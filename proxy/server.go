@@ -1,9 +1,9 @@
 package proxy
 
 import (
+	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/sqleval"
 	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/10gen/sqlproxy/config"
-	"github.com/10gen/sqlproxy/sqleval"
 
 	"net"
 	"runtime"
@@ -11,9 +11,9 @@ import (
 )
 
 type Server struct {
-	cfg *config.Config
+	cfg  *config.Config
 	eval *sqleval.Evalulator
-	
+
 	running bool
 
 	listener net.Listener

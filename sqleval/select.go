@@ -3,8 +3,8 @@ package sqleval
 import (
 	"fmt"
 	"github.com/siddontang/mixer/sqlparser"
-	"labix.org/v2/mgo"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	"strconv"
 )
 
@@ -16,7 +16,6 @@ func getColumnName(valExpr sqlparser.ValExpr) (string, error) {
 		return "", fmt.Errorf("not a column name type: %T", valExpr)
 	}
 }
-
 
 func getLiteral(valExpr sqlparser.ValExpr) (interface{}, error) {
 	switch val := valExpr.(type) {
@@ -35,7 +34,7 @@ func getLiteral(valExpr sqlparser.ValExpr) (interface{}, error) {
 
 /**
 * @return (list of expressions that cannot be pushed down, a $where clause to push down, error)
-*/
+ */
 func playWithWhere(where sqlparser.Expr) ([]sqlparser.Expr, bson.M, error) {
 	fmt.Printf("where: %s\n", sqlparser.String(where))
 	fmt.Printf("where: %T\n", where)
@@ -54,14 +53,14 @@ func playWithWhere(where sqlparser.Expr) ([]sqlparser.Expr, bson.M, error) {
 			return []sqlparser.Expr{where}, nil, nil
 		}
 
-		return nil, bson.M{column : right}, nil
+		return nil, bson.M{column: right}, nil
 	default:
 		return nil, nil, fmt.Errorf("where can't handle expression type %T", where)
 	}
 
 }
 
-func (e *Evalulator)EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
+func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
 	if stmt == nil {
 		// we can parse ourselves
 		raw, err := sqlparser.Parse(sql)
@@ -80,7 +79,7 @@ func (e *Evalulator)EvalSelect(db string, sql string, stmt *sqlparser.Select) ([
 
 	var whereToEvaluate []sqlparser.Expr
 	var whereToPush bson.M = nil
-	
+
 	if stmt.Where != nil {
 		toEval, toPush, err := playWithWhere(stmt.Where.Expr)
 		if err != nil {
@@ -90,7 +89,7 @@ func (e *Evalulator)EvalSelect(db string, sql string, stmt *sqlparser.Select) ([
 		whereToPush = toPush
 		fmt.Printf("toEval: %v toPush: %v\n", whereToEvaluate, whereToPush)
 	}
-	
+
 	tableName := sqlparser.String(stmt.From[0])
 	dbConfig := e.cfg.Schemas[db]
 	if dbConfig == nil {
@@ -112,7 +111,7 @@ func (e *Evalulator)EvalSelect(db string, sql string, stmt *sqlparser.Select) ([
 	} else {
 		thePipe := tableConfig.Pipeline
 		if whereToPush != nil {
-			thePipe = append(thePipe, bson.M{"$match" : whereToPush})
+			thePipe = append(thePipe, bson.M{"$match": whereToPush})
 		}
 		pipe := collection.Pipe(thePipe)
 		iter = pipe.Iter()

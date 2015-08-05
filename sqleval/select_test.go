@@ -2,8 +2,8 @@ package sqleval
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
-	"labix.org/v2/mgo/bson"
+	"github.com/erh/mongo-sql-temp/config"
+	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
 
@@ -35,9 +35,9 @@ schema :
 
 	collection := eval.getCollection(session, "test.select_test1")
 	collection.DropCollection()
-	collection.Insert(bson.M{"_id": 5, "a": 6, "b" : 7})
-	collection.Insert(bson.M{"_id": 15, "a": 16, "c" : 17})
-	
+	collection.Insert(bson.M{"_id": 5, "a": 6, "b": 7})
+	collection.Insert(bson.M{"_id": 15, "a": 16, "c": 17})
+
 	names, values, err := eval.EvalSelect("test2", "select * from bar", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -46,7 +46,7 @@ schema :
 	if len(values) != 2 {
 		t.Fatal(fmt.Printf("wrong number of rows"))
 	}
-	
+
 	if len(names) != 4 {
 		t.Fatal(fmt.Printf("names length wrong"))
 	}
@@ -65,7 +65,7 @@ schema :
 		t.Fatal(fmt.Printf("2nd row data wrong", values[1]))
 	}
 
-	for _,row := range(values) {
+	for _, row := range values {
 		if len(names) != len(row) {
 			t.Fatal("row/name count mismatch %v", row)
 		}
@@ -117,9 +117,9 @@ schema :
 
 	collection := eval.getCollection(session, "test.select_test2")
 	collection.DropCollection()
-	collection.Insert(bson.M{"_id": 5, "a": 6, "b" : 7, "x" : []int{ 10, 11 } })
-	collection.Insert(bson.M{"_id": 15, "a": 16, "c" : 17, "x" : 12})
-	
+	collection.Insert(bson.M{"_id": 5, "a": 6, "b": 7, "x": []int{10, 11}})
+	collection.Insert(bson.M{"_id": 15, "a": 16, "c": 17, "x": 12})
+
 	names, values, err := eval.EvalSelect("test2", "select * from bar", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -132,7 +132,7 @@ schema :
 	if len(values) != 3 {
 		t.Fatal(fmt.Printf("wrong number of values"))
 	}
-	
+
 	if names[0] != "_id" ||
 		names[1] != "a" ||
 		names[2] != "b" ||
@@ -149,14 +149,14 @@ schema :
 		t.Fatal(fmt.Printf("2nd row data wrong", values[1]))
 	}
 
-	for _,row := range(values) {
+	for _, row := range values {
 		if len(names) != len(row) {
 			t.Fatal("row/name count mismatch %v", row)
 		}
 	}
 
 	// push down where
-	
+
 	names, values, err = eval.EvalSelect("test2", "select * from bar where x = 11", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -165,7 +165,7 @@ schema :
 	if len(values) != 1 {
 		t.Fatal(fmt.Printf("wrong number of values"))
 	}
-	
+
 	if len(names) != 4 {
 		t.Fatal(fmt.Printf("names length wrong %v", names))
 	}
@@ -174,6 +174,5 @@ schema :
 		values[0][3] != 11 {
 		t.Fatal(fmt.Printf("row data wrong", values[0]))
 	}
-
 
 }

@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"github.com/10gen/sqlproxy/sqleval"
-	"github.com/10gen/sqlproxy/config"
-	"github.com/10gen/sqlproxy/proxy"
+	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/proxy"
+	"github.com/erh/mongo-sql-temp/sqleval"
 	"github.com/mongodb/mongo-tools/common/log"
 	"os"
 	"os/signal"
@@ -53,7 +53,7 @@ func main() {
 		return
 	}
 
-	log.SetVerbosity(&LogLevel{ level: cfg.LogLevel } )
+	log.SetVerbosity(&LogLevel{level: cfg.LogLevel})
 
 	evaluator, err := sqleval.NewEvalulator(cfg)
 	if err != nil {
@@ -61,7 +61,7 @@ func main() {
 		log.Logf(log.Always, err.Error())
 		return
 	}
-	
+
 	var svr *proxy.Server
 	svr, err = proxy.NewServer(cfg, evaluator)
 	if err != nil {
@@ -84,7 +84,6 @@ func main() {
 	}()
 
 	log.Logf(log.Info, "Going to start running on %s.", cfg.Addr)
-	
+
 	svr.Run()
 }
-

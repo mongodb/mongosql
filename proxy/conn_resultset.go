@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 	"strconv"
 )
 

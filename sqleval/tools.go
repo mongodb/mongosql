@@ -2,19 +2,19 @@ package sqleval
 
 import (
 	"fmt"
-	"labix.org/v2/mgo"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	"sort"
 )
 
-func (e *Evalulator)PrintTableData(names []string, values [][]interface{}) {
-	for _, name := range(names) {
+func (e *Evalulator) PrintTableData(names []string, values [][]interface{}) {
+	for _, name := range names {
 		fmt.Printf("| %-9s ", name)
 	}
 	fmt.Printf(" |\n")
 
-	for _, row := range(values) {
-		for _, value := range(row) {
+	for _, row := range values {
+		for _, value := range row {
 			fmt.Printf("| %-9v ", value)
 		}
 		fmt.Printf(" |\n")
@@ -35,7 +35,7 @@ func IterToNamesAndValues(iter *mgo.Iter) ([]string, [][]interface{}, error) {
 
 		if first {
 			first = false
-			for name,_ := range(doc) {
+			for name, _ := range doc {
 				if name != "_id" {
 					names = append(names, name)
 					seen[name] = true
@@ -45,12 +45,12 @@ func IterToNamesAndValues(iter *mgo.Iter) ([]string, [][]interface{}, error) {
 		}
 
 		columns := make([]interface{}, 0)
-		
-		for _,name := range(names) {
+
+		for _, name := range names {
 			columns = append(columns, doc[name])
 		}
-		
-		for k,v := range(doc) {
+
+		for k, v := range doc {
 			if !seen[k] {
 				names = append(names, k)
 				seen[k] = true
@@ -65,13 +65,13 @@ func IterToNamesAndValues(iter *mgo.Iter) ([]string, [][]interface{}, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	
-	for idx,row := range(values) {
+
+	for idx, row := range values {
 		for len(row) < len(names) {
 			row = append(row, nil)
 		}
 		values[idx] = row
 	}
-	
+
 	return names, values, nil
 }

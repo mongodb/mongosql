@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
+	"github.com/erh/mongo-sql-temp/config"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
