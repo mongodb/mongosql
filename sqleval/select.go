@@ -106,7 +106,7 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 
 	var iter *mgo.Iter
 	if tableConfig.Pipeline == nil {
-		query = collection.Find(whereToPush)
+		query := collection.Find(whereToPush)
 		iter = query.Iter()
 	} else {
 		thePipe := tableConfig.Pipeline

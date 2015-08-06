@@ -1,14 +1,17 @@
 # mongo-sql-temp
 
 ```
-cd $GOROOT/src/github.com/10gen/
 git clone git@github.com:erh/mongo-sql-temp.git sqlproxy
-make bootstrap
-make test
+. ./set_gopath.sh
+go run cmd/bi-connector/main.go -config sample.conf
+```
+
+Connect using TCP protocol with mysql client
+```
+mysql --protocol=tcp
 ```
 
 TODO
-
 
 - AS
    - field list
