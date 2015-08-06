@@ -2,6 +2,7 @@ package sqleval
 
 import (
 	"fmt"
+	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/siddontang/mixer/sqlparser"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -36,25 +37,25 @@ func getLiteral(valExpr sqlparser.ValExpr) (interface{}, error) {
 * @return (list of expressions that cannot be pushed down, a $where clause to push down, error)
  */
 func playWithWhere(where sqlparser.Expr) ([]sqlparser.Expr, bson.M, error) {
-	fmt.Printf("where: %s\n", sqlparser.String(where))
-	fmt.Printf("where: %T\n", where)
+	log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(where), where)
 
 	switch ex := where.(type) {
 	case *sqlparser.ComparisonExpr:
 		column, err := getColumnName(ex.Left)
 		if err != nil {
-			fmt.Printf("cannot push down (%s) b/c of %s", sqlparser.String(where), err)
+			log.Logf(log.DebugLow, "cannot push down (%s) b/c of %s", sqlparser.String(where), err)
 			return []sqlparser.Expr{where}, nil, nil
 		}
 
 		right, err := getLiteral(ex.Right)
 		if err != nil {
-			fmt.Printf("cannot push down (%s) b/c of %s\n", sqlparser.String(where), err)
+			log.Logf(log.DebugLow, "cannot push down (%s) b/c of %s", sqlparser.String(where), err)
 			return []sqlparser.Expr{where}, nil, nil
 		}
 
 		return nil, bson.M{column: right}, nil
 	default:
+		log.Logf(log.DebugLow, "where can't handle expression type %T", where)
 		return nil, nil, fmt.Errorf("where can't handle expression type %T", where)
 	}
 
@@ -87,7 +88,7 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		}
 		whereToEvaluate = toEval
 		whereToPush = toPush
-		fmt.Printf("toEval: %v toPush: %v\n", whereToEvaluate, whereToPush)
+		log.Logf(log.DebugLow, "toEval: %v toPush: %v", whereToEvaluate, whereToPush)
 	}
 
 	tableName := sqlparser.String(stmt.From[0])
@@ -101,12 +102,11 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	}
 
 	session := e.getSession()
-	defer session.Close()
 	collection := e.getCollection(session, tableConfig.Collection)
 
 	var iter *mgo.Iter
 	if tableConfig.Pipeline == nil {
-		query := collection.Find(whereToPush)
+		query = collection.Find(whereToPush)
 		iter = query.Iter()
 	} else {
 		thePipe := tableConfig.Pipeline

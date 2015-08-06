@@ -8,7 +8,7 @@ setgopath() {
         VENDOR_GOPATH=`pwd`/vendor
 
         # set up the $GOPATH to use the vendored dependencies as
-        # well as the source 
+        # well as the source
         rm -rf .gopath/
         mkdir -p .gopath/src/"$(dirname "${PKG}")"
         ln -sf `pwd` .gopath/src/$PKG
@@ -27,7 +27,7 @@ setgopath() {
         mkdir -p .gopath/src/"$PKG"
         cp -r `pwd`/* .gopath/src/$PKG
         # now handle vendoring
-        rm -rf .gopath/src/$PKG/vendor 
+        rm -rf .gopath/src/$PKG/vendor
         cp -r `pwd`/vendor/src/* .gopath/src/.
         export GOPATH="$SOURCE_GOPATH;$VENDOR_GOPATH"
     fi;

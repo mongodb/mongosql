@@ -66,7 +66,7 @@ func (c *Conn) getConn(n, isSelect bool) (co *client.SqlConn, err error) {
 	return nil, fmt.Errorf("getConn is broken")
 }
 
-func (c *Conn) getShardConns(isSelect bool,stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*client.SqlConn, error) {
+func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*client.SqlConn, error) {
 	return nil, fmt.Errorf("getShardConns is broken")
 }
 
@@ -158,11 +158,12 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 }
 
 func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
-	log.Logf(log.DebugLow, "handleSelect sql:%s", sql)
+	log.Logf(log.DebugLow, "handleSelect sql: %s", sql)
+	log.Logf(log.DebugLow, "parsed stmt: %#v", stmt)
 
 	// TODO: deal with this
 	// bindVars := makeBindVars(args)
-	
+
 	names, values, err := c.server.eval.EvalSelect(c.schema.DB, sql, stmt)
 	if err != nil {
 		return err
@@ -172,7 +173,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	if err != nil {
 		return err
 	}
-	
+
 	return c.writeResultset(c.status, rs)
 }
 

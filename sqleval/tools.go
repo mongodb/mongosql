@@ -22,7 +22,7 @@ func (e *Evalulator) PrintTableData(names []string, values [][]interface{}) {
 }
 
 func IterToNamesAndValues(iter *mgo.Iter) ([]string, [][]interface{}, error) {
-
+	// TODO: fix case where no document is found.
 	names := []string{"_id"} // we want this to be first
 	values := make([][]interface{}, 0)
 
@@ -32,7 +32,6 @@ func IterToNamesAndValues(iter *mgo.Iter) ([]string, [][]interface{}, error) {
 	var first bool = true
 	var doc bson.M
 	for iter.Next(&doc) {
-
 		if first {
 			first = false
 			for name, _ := range doc {

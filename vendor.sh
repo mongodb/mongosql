@@ -58,14 +58,14 @@ while read line; do
     then
         cd $SCRIPT_DIR
         echo ">> Moving package to import path ${importpath}"
-        importdirup="$(dirname "${importpath}")" 
+        importdirup="$(dirname "${importpath}")"
         mkdir -p vendor/src/${importdirup}
         rm -rf vendor/src/${importpath}
         mv ${install_path} vendor/src/${importdirup}
         echo ">> Package moved"
     fi
 
-  ) 
+  )
 done < $deps_file
 
 # remove all revision control info

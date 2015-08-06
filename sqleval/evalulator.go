@@ -25,7 +25,10 @@ func NewEvalulator(cfg *config.Config) (*Evalulator, error) {
 }
 
 func (e *Evalulator) getSession() *mgo.Session {
-	return e.globalSession.New()
+	if e.globalSession == nil {
+		panic("No global session has been set")
+	}
+	return e.globalSession.Copy()
 }
 
 func (e *Evalulator) getCollection(session *mgo.Session, fullName string) *mgo.Collection {
