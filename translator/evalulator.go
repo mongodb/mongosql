@@ -40,6 +40,7 @@ func (e *Evalulator) getCollection(session *mgo.Session, fullName string) *mgo.C
 }
 
 // EvalSelect needs to be updated ...
+// TODO: handle SelectExprs => []SelectExpr -> StarExpr and NonStarExpr.
 func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
 	if stmt == nil {
 		// we can parse ourselves

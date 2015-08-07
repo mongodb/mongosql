@@ -159,6 +159,8 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 
 func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
 	log.Logf(log.DebugLow, "handleSelect sql: %s", sql)
+	log.Logf(log.DebugLow, "handleSelect stmt: %#v", stmt)
+	log.Logf(log.DebugLow, "handleSelect args: %#v", args)
 
 	// TODO: deal with this
 	// bindVars := makeBindVars(args)
