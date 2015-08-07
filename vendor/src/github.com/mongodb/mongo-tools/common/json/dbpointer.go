@@ -67,5 +67,6 @@ func (d *decodeState) getDBPointer() interface{} {
 	}
 	id := bson.ObjectIdHex(string(arg1))
 
+	fmt.Println(id)
 	return DBPointer{arg0, id}
 }

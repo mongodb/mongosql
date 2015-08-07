@@ -27,7 +27,7 @@ func stateInRegexpPattern(s *scanner, c int) int {
 		return scanRegexpOptions
 	}
 	if c == '\\' {
-		s.step = stateInRegexpPatternEsc
+		s.step = stateInRegexpPattern
 		return scanRegexpPattern
 	}
 	if c < 0x20 {

@@ -63,10 +63,6 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("cannot dump a collection without a specified database")
 	case dump.InputOptions.Query != "" && dump.ToolOptions.Namespace.Collection == "":
 		return fmt.Errorf("cannot dump using a query without a specified collection")
-	case dump.InputOptions.QueryFile != "" && dump.ToolOptions.Namespace.Collection == "":
-		return fmt.Errorf("cannot dump using a queryFile without a specified collection")
-	case dump.InputOptions.Query != "" && dump.InputOptions.QueryFile != "":
-		return fmt.Errorf("either query or queryFile can be specified as a query option, not both")
 	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.Namespace.DB == "":
 		return fmt.Errorf("must specify a database when running with dumpDbUsersAndRoles")
 	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.Namespace.Collection != "":
@@ -83,8 +79,6 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("--db is required when --excludeCollectionsWithPrefix is specified")
 	case dump.OutputOptions.Repair && dump.InputOptions.Query != "":
 		return fmt.Errorf("cannot run a query with --repair enabled")
-	case dump.OutputOptions.Repair && dump.InputOptions.QueryFile != "":
-		return fmt.Errorf("cannot run a queryFile with --repair enabled")
 	case dump.OutputOptions.Out != "" && dump.OutputOptions.Archive != "":
 		return fmt.Errorf("--out not allowed when --archive is specified")
 	case dump.OutputOptions.Out == "-" && dump.OutputOptions.Gzip:
@@ -135,14 +129,10 @@ func (dump *MongoDump) Init() error {
 
 // Dump handles some final options checking and executes MongoDump.
 func (dump *MongoDump) Dump() (err error) {
-	if dump.InputOptions.HasQuery() {
+	if dump.InputOptions.Query != "" {
 		// parse JSON then convert extended JSON values
 		var asJSON interface{}
-		content, err := dump.InputOptions.GetQuery()
-		if err != nil {
-			return err
-		}
-		err = json.Unmarshal(content, &asJSON)
+		err = json.Unmarshal([]byte(dump.InputOptions.Query), &asJSON)
 		if err != nil {
 			return fmt.Errorf("error parsing query as json: %v", err)
 		}

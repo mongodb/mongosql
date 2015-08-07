@@ -1,10 +1,5 @@
 package mongodump
 
-import (
-	"fmt"
-	"io/ioutil"
-)
-
 var Usage = `<options>
 
 Export the content of a running server into .bson files.
@@ -16,30 +11,12 @@ See http://docs.mongodb.org/manual/reference/program/mongodump/ for more informa
 // InputOptions defines the set of options to use in retrieving data from the server.
 type InputOptions struct {
 	Query     string `long:"query" short:"q" description:"query filter, as a JSON string, e.g., '{x:{$gt:1}}'"`
-	QueryFile string `long:"queryFile" description:"path to a file containing a query filter (JSON)"`
 	TableScan bool   `long:"forceTableScan" description:"force a table scan"`
 }
 
 // Name returns a human-readable group name for input options.
-func (*InputOptions) Name() string {
+func (_ *InputOptions) Name() string {
 	return "query"
-}
-
-func (inputOptions *InputOptions) HasQuery() bool {
-	return inputOptions.Query != "" || inputOptions.QueryFile != ""
-}
-
-func (inputOptions *InputOptions) GetQuery() ([]byte, error) {
-	if inputOptions.Query != "" {
-		return []byte(inputOptions.Query), nil
-	} else if inputOptions.QueryFile != "" {
-		content, err := ioutil.ReadFile(inputOptions.QueryFile)
-		if err != nil {
-			fmt.Errorf("error reading queryFile: %v", err)
-		}
-		return content, err
-	}
-	panic("GetQuery can return valid values only for query or queryFile input")
 }
 
 // OutputOptions defines the set of options for writing dump data.
@@ -55,6 +32,6 @@ type OutputOptions struct {
 }
 
 // Name returns a human-readable group name for output options.
-func (*OutputOptions) Name() string {
+func (_ *OutputOptions) Name() string {
 	return "output"
 }

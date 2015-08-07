@@ -38,8 +38,6 @@
         removeFile(exportTarget);
         testDB.dest.remove({});
 
-        printjson(replTest.status())
-
         var ret = runMongoProgram('mongoexport', '--db', 'test', '--collection',
             'data', '--host', node.host, '--slaveOk', '--out', exportTarget);
         assert.eq(0, ret);  

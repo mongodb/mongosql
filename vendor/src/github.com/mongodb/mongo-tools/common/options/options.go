@@ -7,14 +7,12 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/mongodb/mongo-tools/common/log"
 	"os"
-	"regexp"
 	"runtime"
 	"strconv"
-	"strings"
 )
 
 const (
-	VersionStr = "3.1.7-pre-"
+	VersionStr = "3.1.6"
 )
 
 // Gitspec that the tool was built with. Needs to be set using -ldflags
@@ -84,13 +82,12 @@ type General struct {
 
 // Struct holding verbosity-related options
 type Verbosity struct {
-	SetVerbosity func(string) `short:"v" long:"verbose" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv, or specify a numeric value, e.g. --verbose=N)" optional:"true" optional-value:""`
-	Quiet        bool         `long:"quiet" description:"hide all log output"`
-	VLevel       int          `no-flag:"true"`
+	Verbose []bool `short:"v" long:"verbose" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv)"`
+	Quiet   bool   `long:"quiet" description:"hide all log output"`
 }
 
 func (v Verbosity) Level() int {
-	return v.VLevel
+	return len(v.Verbose)
 }
 
 func (v Verbosity) IsQuiet() bool {
@@ -139,15 +136,6 @@ type EnabledOptions struct {
 	Namespace  bool
 }
 
-func parseVal(val string) int {
-	idx := strings.Index(val, "=")
-	ret, err := strconv.Atoi(val[idx+1:])
-	if err != nil {
-		panic(fmt.Errorf("could not parse verbosity level as an integer: %v", err))
-	}
-	return ret
-}
-
 // Ask for a new instance of tool options
 func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
 	hiddenOpts := &HiddenOptions{
@@ -168,22 +156,6 @@ func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
 		Kerberos:      &Kerberos{},
 		parser: flags.NewNamedParser(
 			fmt.Sprintf("%v %v", appName, usageStr), flags.None),
-	}
-
-	// Called when -v or --verbose is parsed
-	opts.SetVerbosity = func(val string) {
-		if i, err := strconv.Atoi(val); err == nil {
-			opts.VLevel = opts.VLevel + i // -v=N or --verbose=N
-		} else if matched, _ := regexp.MatchString(`^v+$`, val); matched {
-			opts.VLevel = opts.VLevel + len(val) + 1 // Handles the -vvv cases
-		} else if matched, _ := regexp.MatchString(`^v+=[0-9]$`, val); matched {
-			opts.VLevel = parseVal(val) // I.e. -vv=3
-		} else if val == "" {
-			opts.VLevel = opts.VLevel + 1 // Increment for every occurrence of flag
-		} else {
-			log.Logf(log.Always, "Invalid verbosity value given")
-			os.Exit(-1)
-		}
 	}
 
 	opts.parser.UnknownOptionHandler = func(option string, arg flags.SplitArgument, args []string) ([]string, error) {

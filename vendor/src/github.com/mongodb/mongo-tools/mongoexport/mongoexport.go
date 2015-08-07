@@ -94,18 +94,10 @@ func (exp *MongoExport) ValidateSettings() error {
 		return fmt.Errorf("invalid output type '%v', choose 'json' or 'csv'", exp.OutputOpts.Type)
 	}
 
-	if exp.InputOpts.Query != "" && exp.InputOpts.QueryFile != "" {
-		return fmt.Errorf("either --query or --queryFile can be specified as a query option")
-	}
-
-	if exp.InputOpts != nil && exp.InputOpts.HasQuery() {
-		content, err := exp.InputOpts.GetQuery()
+	if exp.InputOpts != nil && exp.InputOpts.Query != "" {
+		_, err := getObjectFromArg(exp.InputOpts.Query)
 		if err != nil {
 			return err
-		}
-		_, err2 := getObjectFromByteArg(content)
-		if err2 != nil {
-			return err2
 		}
 	}
 
@@ -200,6 +192,7 @@ func (exp *MongoExport) getCount() (c int, err error) {
 // to export, based on the options given to mongoexport. Also returns the
 // associated session, so that it can be closed once the cursor is used up.
 func (exp *MongoExport) getCursor() (*mgo.Iter, *mgo.Session, error) {
+
 	sortFields := []string{}
 	if exp.InputOpts != nil && exp.InputOpts.Sort != "" {
 		sortD, err := getSortFromArg(exp.InputOpts.Sort)
@@ -213,13 +206,9 @@ func (exp *MongoExport) getCursor() (*mgo.Iter, *mgo.Session, error) {
 	}
 
 	query := map[string]interface{}{}
-	if exp.InputOpts != nil && exp.InputOpts.HasQuery() {
+	if exp.InputOpts != nil && exp.InputOpts.Query != "" {
 		var err error
-		content, err := exp.InputOpts.GetQuery()
-		if err != nil {
-			return nil, nil, err
-		}
-		query, err = getObjectFromByteArg(content)
+		query, err = getObjectFromArg(exp.InputOpts.Query)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -379,12 +368,12 @@ func (exp *MongoExport) getExportOutput(out io.Writer) (ExportOutput, error) {
 	return NewJSONExportOutput(exp.OutputOpts.JSONArray, exp.OutputOpts.Pretty, out), nil
 }
 
-// getObjectFromByteArg takes an object in extended JSON, and converts it to an object that
+// getObjectFromArg takes an object in extended JSON, and converts it to an object that
 // can be passed straight to db.collection.find(...) as a query or sort critera.
 // Returns an error if the string is not valid JSON, or extended JSON.
-func getObjectFromByteArg(queryRaw []byte) (map[string]interface{}, error) {
+func getObjectFromArg(queryRaw string) (map[string]interface{}, error) {
 	parsedJSON := map[string]interface{}{}
-	err := json.Unmarshal(queryRaw, &parsedJSON)
+	err := json.Unmarshal([]byte(queryRaw), &parsedJSON)
 	if err != nil {
 		return nil, fmt.Errorf("query '%v' is not valid JSON: %v", queryRaw, err)
 	}
