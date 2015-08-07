@@ -1,8 +1,12 @@
 package translator
 
 import (
+	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/siddontang/mixer/sqlparser"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	"strings"
 )
 
@@ -34,4 +38,54 @@ func (e *Evalulator) getSession() *mgo.Session {
 func (e *Evalulator) getCollection(session *mgo.Session, fullName string) *mgo.Collection {
 	pcs := strings.SplitN(fullName, ".", 2)
 	return session.DB(pcs[0]).C(pcs[1])
+}
+
+// EvalSelect needs to be updated ...
+func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
+	if stmt == nil {
+		// we can parse ourselves
+		raw, err := sqlparser.Parse(sql)
+		if err != nil {
+			return nil, nil, err
+		}
+		stmt = raw.(*sqlparser.Select)
+	}
+
+	if len(stmt.From) == 0 {
+		return nil, nil, fmt.Errorf("no table selected")
+	}
+	if len(stmt.From) > 1 {
+		return nil, nil, fmt.Errorf("joins not supported yet")
+	}
+
+	var query bson.M = nil
+
+	if stmt.Where != nil {
+
+		log.Logf(log.DebugLow, "parsed stmt: %#v", stmt.Where.Expr)
+
+		query, err := translateExpr(stmt.Where.Expr)
+		if err != nil {
+			return nil, nil, err
+		}
+		log.Logf(log.DebugLow, "query: %#v", query)
+	}
+
+	tableName := sqlparser.String(stmt.From[0])
+	dbConfig := e.cfg.Schemas[db]
+	if dbConfig == nil {
+		return nil, nil, fmt.Errorf("db (%s) does not exist", db)
+	}
+	tableConfig := dbConfig.Tables[tableName]
+	if tableConfig == nil {
+		return nil, nil, fmt.Errorf("table (%s) does not exist in db(%s)", tableName, db)
+	}
+
+	session := e.getSession()
+	collection := e.getCollection(session, tableConfig.Collection)
+
+	result := collection.Find(query)
+	iter := result.Iter()
+
+	return IterToNamesAndValues(iter)
 }
