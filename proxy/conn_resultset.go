@@ -40,6 +40,8 @@ func formatValue(value interface{}) ([]byte, error) {
 		return hack.Slice(v), nil
 	case bson.ObjectId:
 		return hack.Slice(v.Hex()), nil
+	case nil:
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("invalid type %T", value)
 	}
@@ -63,9 +65,12 @@ func formatField(field *Field, value interface{}) error {
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
 	case bson.ObjectId:
-		// TOOD: hack?
+		// TODO: hack?
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
+	case nil:
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_NULL
 	default:
 		// TODO: figure out 'field' struct and support all BSON types
 		return fmt.Errorf("unsupported type %T for resultset", value)
