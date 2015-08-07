@@ -1,4 +1,4 @@
-package sqleval
+package translator
 
 import (
 	"github.com/erh/mongo-sql-temp/config"

@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/sqleval"
+	"github.com/erh/mongo-sql-temp/translator"
 	"github.com/mongodb/mongo-tools/common/log"
 
 	"net"
@@ -12,7 +12,7 @@ import (
 
 type Server struct {
 	cfg  *config.Config
-	eval *sqleval.Evalulator
+	eval *translator.Evalulator
 
 	running bool
 
@@ -21,7 +21,7 @@ type Server struct {
 	schemas map[string]*config.Schema
 }
 
-func NewServer(cfg *config.Config, eval *sqleval.Evalulator) (*Server, error) {
+func NewServer(cfg *config.Config, eval *translator.Evalulator) (*Server, error) {
 	s := new(Server)
 
 	s.cfg = cfg

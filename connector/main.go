@@ -4,7 +4,7 @@ import (
 	"flag"
 	"github.com/erh/mongo-sql-temp/config"
 	"github.com/erh/mongo-sql-temp/proxy"
-	"github.com/erh/mongo-sql-temp/sqleval"
+	"github.com/erh/mongo-sql-temp/translator"
 	"github.com/mongodb/mongo-tools/common/log"
 	"os"
 	"os/signal"
@@ -55,7 +55,7 @@ func main() {
 
 	log.SetVerbosity(&LogLevel{level: cfg.LogLevel})
 
-	evaluator, err := sqleval.NewEvalulator(cfg)
+	evaluator, err := translator.NewEvalulator(cfg)
 	if err != nil {
 		log.Logf(log.Always, "error starting evaluator")
 		log.Logf(log.Always, err.Error())
