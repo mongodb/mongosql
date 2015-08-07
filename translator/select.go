@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/siddontang/mixer/sqlparser"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strconv"
 )
@@ -27,19 +26,17 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		return nil, nil, fmt.Errorf("joins not supported yet")
 	}
 
-	var whereToEvaluate []sqlparser.Expr
-	var whereToPush bson.M = nil
+	var query bson.M = nil
 
 	if stmt.Where != nil {
+
 		log.Logf(log.DebugLow, "parsed stmt: %#v", stmt.Where.Expr)
 
-		toEval, toPush, err := translateWhere(stmt.Where.Expr)
+		query, err := translateWhere(stmt.Where.Expr)
 		if err != nil {
 			return nil, nil, err
 		}
-		whereToEvaluate = toEval
-		whereToPush = toPush
-		log.Logf(log.DebugLow, "toEval: %v toPush: %v", whereToEvaluate, whereToPush)
+		log.Logf(log.DebugLow, "query: %v", query)
 	}
 
 	tableName := sqlparser.String(stmt.From[0])
@@ -55,18 +52,8 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	session := e.getSession()
 	collection := e.getCollection(session, tableConfig.Collection)
 
-	var iter *mgo.Iter
-	if tableConfig.Pipeline == nil {
-		query := collection.Find(whereToPush)
-		iter = query.Iter()
-	} else {
-		thePipe := tableConfig.Pipeline
-		if whereToPush != nil {
-			thePipe = append(thePipe, bson.M{"$match": whereToPush})
-		}
-		pipe := collection.Pipe(thePipe)
-		iter = pipe.Iter()
-	}
+	result := collection.Find(query)
+	iter := result.Iter()
 
 	return IterToNamesAndValues(iter)
 }
@@ -74,51 +61,51 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 /**
 * @return (list of expressions that cannot be pushed down, a $where clause to push down, error)
  */
-func translateWhere(where sqlparser.Expr) ([]sqlparser.Expr, bson.M, error) {
+func translateWhere(where sqlparser.Expr) (bson.M, error) {
 	log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(where), where)
 
 	switch expr := where.(type) {
 
 	case *sqlparser.AndExpr:
-		return nil, nil, fmt.Errorf("where can't handle AndExpr type %T", where)
+		return nil, fmt.Errorf("where can't handle AndExpr type %T", where)
 
 	case *sqlparser.OrExpr:
-		return nil, nil, fmt.Errorf("where can't handle OrExpr type %T", where)
+		return nil, fmt.Errorf("where can't handle OrExpr type %T", where)
 
 	case *sqlparser.NotExpr:
-		return nil, nil, fmt.Errorf("where can't handle NotExpr type %T", where)
+		return nil, fmt.Errorf("where can't handle NotExpr type %T", where)
 
 	case *sqlparser.ParenBoolExpr:
-		return nil, nil, fmt.Errorf("where can't handle ParenBoolExpr type %T", where)
+		return nil, fmt.Errorf("where can't handle ParenBoolExpr type %T", where)
 
 	case *sqlparser.ComparisonExpr:
 
 		column, err := getColumnName(expr.Left)
 		if err != nil {
 			log.Logf(log.DebugLow, "cannot push down (%s) b/c of %s", sqlparser.String(where), err)
-			return []sqlparser.Expr{where}, nil, nil
+			return nil, nil
 		}
 
 		right, err := getLiteral(expr.Right)
 		if err != nil {
 			log.Logf(log.DebugLow, "cannot push down (%s) b/c of %s", sqlparser.String(where), err)
-			return []sqlparser.Expr{where}, nil, nil
+			return nil, nil
 		}
 
-		return nil, bson.M{column: right}, nil
+		return bson.M{column: right}, nil
 
 	case *sqlparser.RangeCond:
-		return nil, nil, fmt.Errorf("where can't handle RangeCond type %T", where)
+		return nil, fmt.Errorf("where can't handle RangeCond type %T", where)
 
 	case *sqlparser.NullCheck:
-		return nil, nil, fmt.Errorf("where can't handle NullCheck type %T", where)
+		return nil, fmt.Errorf("where can't handle NullCheck type %T", where)
 
 	case *sqlparser.ExistsExpr:
-		return nil, nil, fmt.Errorf("where can't handle ExistsExpr type %T", where)
+		return nil, fmt.Errorf("where can't handle ExistsExpr type %T", where)
 
 	default:
 		log.Logf(log.DebugLow, "where can't handle expression type %T", where)
-		return nil, nil, fmt.Errorf("where can't handle expression type %T", where)
+		return nil, fmt.Errorf("where can't handle expression type %T", where)
 	}
 
 }
