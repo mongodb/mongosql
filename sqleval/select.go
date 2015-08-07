@@ -40,7 +40,21 @@ func playWithWhere(where sqlparser.Expr) ([]sqlparser.Expr, bson.M, error) {
 	log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(where), where)
 
 	switch ex := where.(type) {
+
+	case *sqlparser.AndExpr:
+		return nil, nil, fmt.Errorf("where can't handle AndExpr type %T", where)
+
+	case *sqlparser.OrExpr:
+		return nil, nil, fmt.Errorf("where can't handle OrExpr type %T", where)
+
+	case *sqlparser.NotExpr:
+		return nil, nil, fmt.Errorf("where can't handle NotExpr type %T", where)
+
+	case *sqlparser.ParenBoolExpr:
+		return nil, nil, fmt.Errorf("where can't handle ParenBoolExpr type %T", where)
+
 	case *sqlparser.ComparisonExpr:
+
 		column, err := getColumnName(ex.Left)
 		if err != nil {
 			log.Logf(log.DebugLow, "cannot push down (%s) b/c of %s", sqlparser.String(where), err)
@@ -54,6 +68,16 @@ func playWithWhere(where sqlparser.Expr) ([]sqlparser.Expr, bson.M, error) {
 		}
 
 		return nil, bson.M{column: right}, nil
+
+	case *sqlparser.RangeCond:
+		return nil, nil, fmt.Errorf("where can't handle RangeCond type %T", where)
+
+	case *sqlparser.NullCheck:
+		return nil, nil, fmt.Errorf("where can't handle NullCheck type %T", where)
+
+	case *sqlparser.ExistsExpr:
+		return nil, nil, fmt.Errorf("where can't handle ExistsExpr type %T", where)
+
 	default:
 		log.Logf(log.DebugLow, "where can't handle expression type %T", where)
 		return nil, nil, fmt.Errorf("where can't handle expression type %T", where)
@@ -70,6 +94,8 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		}
 		stmt = raw.(*sqlparser.Select)
 	}
+
+	log.Logf(log.DebugLow, "parsed stmt: %#v", stmt.Where.Expr)
 
 	if len(stmt.From) == 0 {
 		return nil, nil, fmt.Errorf("no table selected")
