@@ -1,5 +1,4 @@
-github.com/siddontang/go-log/log
-github.com/siddontang/go-yaml/yaml
-github.com/mongodb/mongo-tools/common
+github.com/siddontang/go-yaml/yaml				d686370b54f9b15850653ad4537f5faa1eb744bb
+github.com/mongodb/mongo-tools/common			ec79a8183b012d3c55fc22fde298dd3032444b0b
 gopkg.in/mgo.v2			                        c6a7dce14133ccac2dcac3793f1d6e2ef048503a
-github.com/siddontang/mixer/sqlparser
+github.com/siddontang/mixer/sqlparser			36b37895a340bf7162c233ecc84299828ba4c79a
