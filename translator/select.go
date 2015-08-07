@@ -112,8 +112,6 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		stmt = raw.(*sqlparser.Select)
 	}
 
-	log.Logf(log.DebugLow, "parsed stmt: %#v", stmt.Where.Expr)
-
 	if len(stmt.From) == 0 {
 		return nil, nil, fmt.Errorf("no table selected")
 	}
@@ -125,6 +123,8 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	var whereToPush bson.M = nil
 
 	if stmt.Where != nil {
+		log.Logf(log.DebugLow, "parsed stmt: %#v", stmt.Where.Expr)
+
 		toEval, toPush, err := playWithWhere(stmt.Where.Expr)
 		if err != nil {
 			return nil, nil, err
