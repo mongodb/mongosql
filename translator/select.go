@@ -9,6 +9,23 @@ import (
 	"strconv"
 )
 
+/*
+// ComparisonExpr.Operator
+const (
+	sqlparser.AST_EQ
+	sqlparser.AST_LT
+	sqlparser.AST_GT
+	sqlparser.AST_LE
+	sqlparser.AST_GE
+	sqlparser.AST_NE
+	sqlparser.AST_NSE
+	sqlparser.AST_IN
+	sqlparser.AST_NOT_IN
+	sqlparser.AST_LIKE
+	sqlparser.AST_NOT_LIKE
+)
+
+*/
 func getColumnName(valExpr sqlparser.ValExpr) (string, error) {
 	switch val := valExpr.(type) {
 	case *sqlparser.ColName:
@@ -39,7 +56,7 @@ func getLiteral(valExpr sqlparser.ValExpr) (interface{}, error) {
 func playWithWhere(where sqlparser.Expr) ([]sqlparser.Expr, bson.M, error) {
 	log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(where), where)
 
-	switch ex := where.(type) {
+	switch expr := where.(type) {
 
 	case *sqlparser.AndExpr:
 		return nil, nil, fmt.Errorf("where can't handle AndExpr type %T", where)
@@ -55,13 +72,13 @@ func playWithWhere(where sqlparser.Expr) ([]sqlparser.Expr, bson.M, error) {
 
 	case *sqlparser.ComparisonExpr:
 
-		column, err := getColumnName(ex.Left)
+		column, err := getColumnName(expr.Left)
 		if err != nil {
 			log.Logf(log.DebugLow, "cannot push down (%s) b/c of %s", sqlparser.String(where), err)
 			return []sqlparser.Expr{where}, nil, nil
 		}
 
-		right, err := getLiteral(ex.Right)
+		right, err := getLiteral(expr.Right)
 		if err != nil {
 			log.Logf(log.DebugLow, "cannot push down (%s) b/c of %s", sqlparser.String(where), err)
 			return []sqlparser.Expr{where}, nil, nil
