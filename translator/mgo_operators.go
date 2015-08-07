@@ -6,7 +6,7 @@ import (
 
 var (
 	// ComparisonExpr operators
-	MGO_OPERATORS = map[string]string{
+	operators = map[string]string{
 		sqlparser.AST_EQ:       "$eq",
 		sqlparser.AST_LT:       "$lt",
 		sqlparser.AST_GT:       "$gt",
