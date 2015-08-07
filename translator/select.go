@@ -25,7 +25,16 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		return nil, fmt.Errorf("where can't handle ValArg type %T", where)
 
 	case sqlparser.ValTuple:
-		return nil, fmt.Errorf("where can't handle ValTuple type %T", where)
+		vals := sqlparser.ValExprs(expr)
+		tuples := make([]interface{}, len(vals))
+		var err error
+		for i, val := range vals {
+			tuples[i], err = translateExpr(val)
+			if err != nil {
+				return nil, fmt.Errorf("where can't handle ValExpr %v: %v", val, err)
+			}
+		}
+		return tuples, nil
 
 	case *sqlparser.NullVal:
 		return nil, nil
