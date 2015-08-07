@@ -22,7 +22,6 @@ func (e *Evalulator) PrintTableData(names []string, values [][]interface{}) {
 }
 
 func IterToNamesAndValues(iter *mgo.Iter) ([]string, [][]interface{}, error) {
-	// TODO: fix case where no document is found.
 	names := []string{"_id"} // we want this to be first
 	values := make([][]interface{}, 0)
 
@@ -70,6 +69,10 @@ func IterToNamesAndValues(iter *mgo.Iter) ([]string, [][]interface{}, error) {
 			row = append(row, nil)
 		}
 		values[idx] = row
+	}
+
+	if len(values) == 0 {
+		names = []string{}
 	}
 
 	return names, values, nil
