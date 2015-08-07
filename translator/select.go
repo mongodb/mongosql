@@ -14,9 +14,6 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 
 	switch expr := where.(type) {
 
-	case sqlparser.StrVal:
-		return nil, fmt.Errorf("where can't handle StrVal type %T", where)
-
 	case sqlparser.NumVal:
 		val, err := getNumVal(expr)
 		if err != nil {
@@ -31,9 +28,9 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		return nil, fmt.Errorf("where can't handle ValTuple type %T", where)
 
 	case *sqlparser.NullVal:
-		return nil, fmt.Errorf("where can't handle NullVal type %T", where)
+		return nil, nil
 
-	case *sqlparser.ColName:
+	case sqlparser.StrVal, *sqlparser.ColName:
 		return sqlparser.String(expr), nil
 
 	case *sqlparser.Subquery:
