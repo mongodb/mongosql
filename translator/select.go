@@ -71,12 +71,6 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		}
 		return bson.M{"$or": []interface{}{left, right}}, nil
 
-	case *sqlparser.NotExpr:
-		return nil, fmt.Errorf("where can't handle NotExpr type %T", where)
-
-	case *sqlparser.ParenBoolExpr:
-		return nil, fmt.Errorf("where can't handle ParenBoolExpr type %T", where)
-
 	case *sqlparser.ComparisonExpr:
 		left, right, err := translateLRExpr(expr.Left, expr.Right)
 		if err != nil {
@@ -84,18 +78,42 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		}
 		switch tLeft := left.(type) {
 		case string:
-			return bson.M{tLeft: bson.M{operators[expr.Operator]: right}}, nil
+			return bson.M{tLeft: bson.M{oprtMap[expr.Operator]: right}}, nil
 		default:
-			return bson.M{operators[expr.Operator]: []interface{}{left, right}}, nil
+			return bson.M{oprtMap[expr.Operator]: []interface{}{left, right}}, nil
 		}
 	case *sqlparser.RangeCond:
-		return nil, fmt.Errorf("where can't handle RangeCond type %T", where)
+		from, to, err := translateLRExpr(expr.From, expr.To)
+		if err != nil {
+			return nil, fmt.Errorf("RangeCond lr error: %v", err)
+		}
+		left, err := translateExpr(expr.Left)
+		if err != nil {
+			return nil, fmt.Errorf("RangeCond left error: %v", err)
+		}
+		cond := bson.M{MgoGe: from, MgoLe: to}
+		switch tLeft := left.(type) {
+		case string:
+			return bson.M{tLeft: cond}, nil
+		default:
+			// TODO: can Left not be a string?
+			if key, ok := tLeft.(string); ok {
+				return bson.M{key: cond}, nil
+			}
+			return nil, fmt.Errorf("RangeCond left type error: %v", tLeft)
+		}
 
 	case *sqlparser.NullCheck:
 		return nil, fmt.Errorf("where can't handle NullCheck type %T", where)
 
 	case *sqlparser.ExistsExpr:
 		return nil, fmt.Errorf("where can't handle ExistsExpr type %T", where)
+
+	case *sqlparser.NotExpr:
+		return nil, fmt.Errorf("where can't handle NotExpr type %T", where)
+
+	case *sqlparser.ParenBoolExpr:
+		return nil, fmt.Errorf("where can't handle ParenBoolExpr type %T", where)
 
 	default:
 		return nil, fmt.Errorf("where can't handle expression type %T", where)
