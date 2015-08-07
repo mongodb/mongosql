@@ -71,8 +71,12 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		if err != nil {
 			return nil, fmt.Errorf("ComparisonExpr error: %v", err)
 		}
-		return bson.M{operators[expr.Operator]: []interface{}{left, right}}, nil
-
+		switch tLeft := left.(type) {
+		case string:
+			return bson.M{tLeft: bson.M{operators[expr.Operator]: right}}, nil
+		default:
+			return bson.M{operators[expr.Operator]: []interface{}{left, right}}, nil
+		}
 	case *sqlparser.RangeCond:
 		return nil, fmt.Errorf("where can't handle RangeCond type %T", where)
 

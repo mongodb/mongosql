@@ -62,8 +62,12 @@ func formatField(field *Field, value interface{}) error {
 	case string, []byte:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
+	case bson.ObjectId:
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_VAR_STRING
 	default:
-		return fmt.Errorf("unsupport type %T for resultset", value)
+		// TODO: figure out 'field' struct and support all BSON types
+		return fmt.Errorf("unsupported type %T for resultset", value)
 	}
 	return nil
 }

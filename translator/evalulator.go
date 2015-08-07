@@ -6,7 +6,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/siddontang/mixer/sqlparser"
 	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"strings"
 )
 
@@ -58,17 +57,18 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		return nil, nil, fmt.Errorf("joins not supported yet")
 	}
 
-	var query bson.M = nil
+	var query interface{} = nil
 
 	if stmt.Where != nil {
 
 		log.Logf(log.DebugLow, "parsed stmt: %#v", stmt.Where.Expr)
 
-		query, err := translateExpr(stmt.Where.Expr)
+		var err error
+
+		query, err = translateExpr(stmt.Where.Expr)
 		if err != nil {
 			return nil, nil, err
 		}
-		log.Logf(log.DebugLow, "query: %#v", query)
 	}
 
 	tableName := sqlparser.String(stmt.From[0])
@@ -84,6 +84,7 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	session := e.getSession()
 	collection := e.getCollection(session, tableConfig.Collection)
 
+	log.Logf(log.DebugLow, "query: %#v", query)
 	result := collection.Find(query)
 	iter := result.Iter()
 
