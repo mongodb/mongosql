@@ -57,8 +57,13 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 			return nil, fmt.Errorf("AndExpr error: %v", err)
 		}
 		return bson.M{"$and": []interface{}{left, right}}, nil
+
 	case *sqlparser.OrExpr:
-		return nil, fmt.Errorf("where can't handle OrExpr type %T", where)
+		left, right, err := translateLRExpr(expr.Left, expr.Right)
+		if err != nil {
+			return nil, fmt.Errorf("OrExpr error: %v", err)
+		}
+		return bson.M{"$or": []interface{}{left, right}}, nil
 
 	case *sqlparser.NotExpr:
 		return nil, fmt.Errorf("where can't handle NotExpr type %T", where)

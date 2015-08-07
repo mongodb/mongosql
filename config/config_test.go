@@ -20,7 +20,7 @@ log_level : error
 
 schema :
 - 
-  db: test1
+  db: test
   tables:
   - 
      table: foo

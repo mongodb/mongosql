@@ -63,6 +63,7 @@ func formatField(field *Field, value interface{}) error {
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
 	case bson.ObjectId:
+		// TOOD: hack?
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
 	default:

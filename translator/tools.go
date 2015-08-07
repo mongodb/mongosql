@@ -31,6 +31,7 @@ func IterToNamesAndValues(iter *mgo.Iter) ([]string, [][]interface{}, error) {
 	var first bool = true
 	var doc bson.M
 	for iter.Next(&doc) {
+		fmt.Printf(">>>>%#v\n<<<<", doc)
 		if first {
 			first = false
 			for name, _ := range doc {
