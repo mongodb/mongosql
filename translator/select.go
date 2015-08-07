@@ -9,34 +9,72 @@ import (
 	"strconv"
 )
 
-func getColumnName(valExpr sqlparser.ValExpr) (string, error) {
-	switch val := valExpr.(type) {
-	case *sqlparser.ColName:
-		return sqlparser.String(val), nil
-	default:
-		return "", fmt.Errorf("not a column name type: %T", valExpr)
-	}
-}
-
-func getLiteral(valExpr sqlparser.ValExpr) (interface{}, error) {
-	switch val := valExpr.(type) {
-	case sqlparser.StrVal:
-		return sqlparser.String(val), nil
-	case sqlparser.NumVal:
-		f, err := strconv.ParseFloat(sqlparser.String(val), 64)
+// EvalSelect returns ...
+func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
+	if stmt == nil {
+		// we can parse ourselves
+		raw, err := sqlparser.Parse(sql)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		return f, nil
-	default:
-		return nil, fmt.Errorf("not a literal type: %T", valExpr)
+		stmt = raw.(*sqlparser.Select)
 	}
+
+	if len(stmt.From) == 0 {
+		return nil, nil, fmt.Errorf("no table selected")
+	}
+	if len(stmt.From) > 1 {
+		return nil, nil, fmt.Errorf("joins not supported yet")
+	}
+
+	var whereToEvaluate []sqlparser.Expr
+	var whereToPush bson.M = nil
+
+	if stmt.Where != nil {
+		log.Logf(log.DebugLow, "parsed stmt: %#v", stmt.Where.Expr)
+
+		toEval, toPush, err := translateWhere(stmt.Where.Expr)
+		if err != nil {
+			return nil, nil, err
+		}
+		whereToEvaluate = toEval
+		whereToPush = toPush
+		log.Logf(log.DebugLow, "toEval: %v toPush: %v", whereToEvaluate, whereToPush)
+	}
+
+	tableName := sqlparser.String(stmt.From[0])
+	dbConfig := e.cfg.Schemas[db]
+	if dbConfig == nil {
+		return nil, nil, fmt.Errorf("db (%s) does not exist", db)
+	}
+	tableConfig := dbConfig.Tables[tableName]
+	if tableConfig == nil {
+		return nil, nil, fmt.Errorf("table (%s) does not exist in db(%s)", tableName, db)
+	}
+
+	session := e.getSession()
+	collection := e.getCollection(session, tableConfig.Collection)
+
+	var iter *mgo.Iter
+	if tableConfig.Pipeline == nil {
+		query := collection.Find(whereToPush)
+		iter = query.Iter()
+	} else {
+		thePipe := tableConfig.Pipeline
+		if whereToPush != nil {
+			thePipe = append(thePipe, bson.M{"$match": whereToPush})
+		}
+		pipe := collection.Pipe(thePipe)
+		iter = pipe.Iter()
+	}
+
+	return IterToNamesAndValues(iter)
 }
 
 /**
 * @return (list of expressions that cannot be pushed down, a $where clause to push down, error)
  */
-func playWithWhere(where sqlparser.Expr) ([]sqlparser.Expr, bson.M, error) {
+func translateWhere(where sqlparser.Expr) ([]sqlparser.Expr, bson.M, error) {
 	log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(where), where)
 
 	switch expr := where.(type) {
@@ -85,63 +123,26 @@ func playWithWhere(where sqlparser.Expr) ([]sqlparser.Expr, bson.M, error) {
 
 }
 
-func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
-	if stmt == nil {
-		// we can parse ourselves
-		raw, err := sqlparser.Parse(sql)
+func getColumnName(valExpr sqlparser.ValExpr) (string, error) {
+	switch val := valExpr.(type) {
+	case *sqlparser.ColName:
+		return sqlparser.String(val), nil
+	default:
+		return "", fmt.Errorf("not a column name type: %T", valExpr)
+	}
+}
+
+func getLiteral(valExpr sqlparser.ValExpr) (interface{}, error) {
+	switch val := valExpr.(type) {
+	case sqlparser.StrVal:
+		return sqlparser.String(val), nil
+	case sqlparser.NumVal:
+		f, err := strconv.ParseFloat(sqlparser.String(val), 64)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		stmt = raw.(*sqlparser.Select)
+		return f, nil
+	default:
+		return nil, fmt.Errorf("not a literal type: %T", valExpr)
 	}
-
-	if len(stmt.From) == 0 {
-		return nil, nil, fmt.Errorf("no table selected")
-	}
-	if len(stmt.From) > 1 {
-		return nil, nil, fmt.Errorf("joins not supported yet")
-	}
-
-	var whereToEvaluate []sqlparser.Expr
-	var whereToPush bson.M = nil
-
-	if stmt.Where != nil {
-		log.Logf(log.DebugLow, "parsed stmt: %#v", stmt.Where.Expr)
-
-		toEval, toPush, err := playWithWhere(stmt.Where.Expr)
-		if err != nil {
-			return nil, nil, err
-		}
-		whereToEvaluate = toEval
-		whereToPush = toPush
-		log.Logf(log.DebugLow, "toEval: %v toPush: %v", whereToEvaluate, whereToPush)
-	}
-
-	tableName := sqlparser.String(stmt.From[0])
-	dbConfig := e.cfg.Schemas[db]
-	if dbConfig == nil {
-		return nil, nil, fmt.Errorf("db (%s) does not exist", db)
-	}
-	tableConfig := dbConfig.Tables[tableName]
-	if tableConfig == nil {
-		return nil, nil, fmt.Errorf("table (%s) does not exist in db(%s)", tableName, db)
-	}
-
-	session := e.getSession()
-	collection := e.getCollection(session, tableConfig.Collection)
-
-	var iter *mgo.Iter
-	if tableConfig.Pipeline == nil {
-		query := collection.Find(whereToPush)
-		iter = query.Iter()
-	} else {
-		thePipe := tableConfig.Pipeline
-		if whereToPush != nil {
-			thePipe = append(thePipe, bson.M{"$match": whereToPush})
-		}
-		pipe := collection.Pipe(thePipe)
-		iter = pipe.Iter()
-	}
-
-	return IterToNamesAndValues(iter)
 }
