@@ -9,23 +9,6 @@ import (
 	"strconv"
 )
 
-/*
-// ComparisonExpr.Operator
-const (
-	sqlparser.AST_EQ
-	sqlparser.AST_LT
-	sqlparser.AST_GT
-	sqlparser.AST_LE
-	sqlparser.AST_GE
-	sqlparser.AST_NE
-	sqlparser.AST_NSE
-	sqlparser.AST_IN
-	sqlparser.AST_NOT_IN
-	sqlparser.AST_LIKE
-	sqlparser.AST_NOT_LIKE
-)
-
-*/
 func getColumnName(valExpr sqlparser.ValExpr) (string, error) {
 	switch val := valExpr.(type) {
 	case *sqlparser.ColName:
