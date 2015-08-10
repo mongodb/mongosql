@@ -19,7 +19,7 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 	case sqlparser.NumVal:
 		val, err := getNumVal(expr)
 		if err != nil {
-			return nil, fmt.Errorf("where can't handle NumVal %v: %v", err)
+			return nil, fmt.Errorf("where can't handle NumVal %v: %v", expr, err)
 		}
 		return val, err
 
@@ -75,33 +75,23 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 			// integers
 			return leftVal ^ rightVal, nil
 		case sqlparser.AST_PLUS:
-			// integers, floats, complex values, strings
+			// TODO ?: floats, complex values, strings
 			return leftVal + rightVal, nil
 		case sqlparser.AST_MINUS:
-			// integers, floats, complex values
+			// TODO ?: floats, complex values
 			return leftVal - rightVal, nil
 		case sqlparser.AST_MULT:
-			// integers, floats, complex values
+			// TODO ?: floats, complex values
 			return leftVal * rightVal, nil
 		case sqlparser.AST_DIV:
-			// integers, floats, complex values
+			// TODO ?: floats, complex values
 			return leftVal / rightVal, nil
 		case sqlparser.AST_MOD:
 			// integers
 			return leftVal % rightVal, nil
+		default:
+			return nil, fmt.Errorf("where can't handle BinaryExpr operator: %v", expr.Operator)
 		}
-
-		return nil, fmt.Errorf("where can't handle BinaryExpr operator: %v", expr.Operator)
-
-	case *sqlparser.UnaryExpr:
-		return nil, fmt.Errorf("where can't handle UnaryExpr type %T", where)
-
-	case *sqlparser.FuncExpr:
-		return nil, fmt.Errorf("where can't handle FuncExpr type %T", where)
-
-		// TODO: might require resultset post-processing
-	case *sqlparser.CaseExpr:
-		return nil, fmt.Errorf("where can't handle CaseExpr type %T", where)
 
 	case *sqlparser.AndExpr:
 		left, right, err := translateLRExpr(expr.Left, expr.Right)
@@ -127,32 +117,33 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		case string:
 			return bson.M{tLeft: bson.M{oprtMap[expr.Operator]: right}}, nil
 		default:
+			// TODO: verify structure
 			return bson.M{oprtMap[expr.Operator]: []interface{}{left, right}}, nil
 		}
 
 	case *sqlparser.RangeCond:
 		from, to, err := translateLRExpr(expr.From, expr.To)
 		if err != nil {
-			return nil, fmt.Errorf("RangeCond lr error: %v", err)
+			return nil, fmt.Errorf("RangeCond LR error: %v", err)
 		}
 
 		left, err := translateExpr(expr.Left)
 		if err != nil {
-			return nil, fmt.Errorf("RangeCond left error: %v", err)
+			return nil, fmt.Errorf("RangeCond key error: %v", err)
 		}
 
 		switch tLeft := left.(type) {
 		case string:
 			return bson.M{tLeft: bson.M{MgoGe: from, MgoLe: to}}, nil
 		default:
-			return nil, fmt.Errorf("RangeCond left type error: %v (%T)", tLeft, tLeft)
+			return nil, fmt.Errorf("RangeCond key type error: %v (%T)", tLeft, tLeft)
 		}
 
 		// TODO: how is 'null' interpreted? exists? 'null'?
 	case *sqlparser.NullCheck:
 		val, err := translateExpr(expr.Expr)
 		if err != nil {
-			return nil, fmt.Errorf("NullCheck key error: %v", err)
+			return nil, fmt.Errorf("NullCheck error: %v", err)
 		}
 
 		switch tVal := val.(type) {
@@ -162,6 +153,35 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 			// TODO: can node not be a string?
 			return nil, fmt.Errorf("NullCheck left type error: %v (%T)", val, tVal)
 		}
+
+	case *sqlparser.UnaryExpr:
+		val, err := translateExpr(expr.Expr)
+		if err != nil {
+			return nil, fmt.Errorf("UnaryExpr error: %v", err)
+		}
+
+		intVal, err := util.ToInt(val)
+		if err != nil {
+			return nil, fmt.Errorf("UnaryExpr conversion error (%v): %v", val, err)
+		}
+
+		switch expr.Operator {
+		case sqlparser.AST_UPLUS:
+			return intVal, nil
+		case sqlparser.AST_UMINUS:
+			return -intVal, nil
+		case sqlparser.AST_TILDA:
+			return ^intVal, nil
+		default:
+			return nil, fmt.Errorf("where can't handle UnaryExpr operator type %T", where)
+		}
+
+	case *sqlparser.FuncExpr:
+		return nil, fmt.Errorf("where can't handle FuncExpr type %T", where)
+
+		// TODO: might require resultset post-processing
+	case *sqlparser.CaseExpr:
+		return nil, fmt.Errorf("where can't handle CaseExpr type %T", where)
 
 	case *sqlparser.ExistsExpr:
 		return nil, fmt.Errorf("where can't handle ExistsExpr type %T", where)
