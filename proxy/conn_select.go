@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	//"bytes"
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/log"
 	. "github.com/siddontang/mixer/mysql"
@@ -11,19 +10,20 @@ import (
 
 func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
 	log.Logf(log.DebugLow, "handleSimpleSelect")
+
 	if len(stmt.SelectExprs) != 1 {
-		return fmt.Errorf("support select one informaction function, %s", sql)
+		return fmt.Errorf("support SimpleSelect SelectExprs, %s", sql)
 	}
 
 	expr, ok := stmt.SelectExprs[0].(*sqlparser.NonStarExpr)
 	if !ok {
-		return fmt.Errorf("support select informaction function, %s", sql)
+		return fmt.Errorf("support SimpleSelect NonStarExpr, %s", sql)
 	}
 
 	var f *sqlparser.FuncExpr
 	f, ok = expr.Expr.(*sqlparser.FuncExpr)
 	if !ok {
-		return fmt.Errorf("support select informaction function, %s", sql)
+		return fmt.Errorf("support SimpleSelect FuncExpr, %s", sql)
 	}
 
 	var r *Resultset

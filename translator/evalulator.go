@@ -54,6 +54,7 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	if len(stmt.From) == 0 {
 		return nil, nil, fmt.Errorf("no table selected")
 	}
+
 	if len(stmt.From) > 1 {
 		return nil, nil, fmt.Errorf("joins not supported yet")
 	}
@@ -70,6 +71,10 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		if err != nil {
 			return nil, nil, err
 		}
+	}
+
+	if stmt.Having != nil {
+		return nil, nil, fmt.Errorf("'HAVING' statement not yet supported")
 	}
 
 	tableName := sqlparser.String(stmt.From[0])
