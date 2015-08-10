@@ -27,7 +27,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	var stmt sqlparser.Statement
 	stmt, err = sqlparser.Parse(sql)
 	if err != nil {
-		return fmt.Errorf(`parse sql "%s" error`, sql)
+		return fmt.Errorf(`parse sql "%s" error: %s`, sql, err)
 	}
 
 	switch v := stmt.(type) {
