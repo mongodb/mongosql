@@ -118,7 +118,7 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		return nil, fmt.Errorf("where can't handle ExistsExpr type %T", where)
 
 	case *sqlparser.NotExpr:
-		return nil, fmt.Errorf("where can't handle NotExpr type %T", where)
+		return translateExpr(expr.Expr)
 
 	case *sqlparser.ParenBoolExpr:
 		return nil, fmt.Errorf("where can't handle ParenBoolExpr type %T", where)
