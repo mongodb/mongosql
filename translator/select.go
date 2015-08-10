@@ -62,14 +62,14 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		if err != nil {
 			return nil, fmt.Errorf("AndExpr error: %v", err)
 		}
-		return bson.M{"$and": []interface{}{left, right}}, nil
+		return bson.M{MgoAnd: []interface{}{left, right}}, nil
 
 	case *sqlparser.OrExpr:
 		left, right, err := translateLRExpr(expr.Left, expr.Right)
 		if err != nil {
 			return nil, fmt.Errorf("OrExpr error: %v", err)
 		}
-		return bson.M{"$or": []interface{}{left, right}}, nil
+		return bson.M{MgoOr: []interface{}{left, right}}, nil
 
 	case *sqlparser.ComparisonExpr:
 		left, right, err := translateLRExpr(expr.Left, expr.Right)
@@ -82,6 +82,7 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		default:
 			return bson.M{oprtMap[expr.Operator]: []interface{}{left, right}}, nil
 		}
+
 	case *sqlparser.RangeCond:
 		from, to, err := translateLRExpr(expr.From, expr.To)
 		if err != nil {
@@ -96,15 +97,22 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		case string:
 			return bson.M{tLeft: cond}, nil
 		default:
-			// TODO: can Left not be a string?
-			if key, ok := tLeft.(string); ok {
-				return bson.M{key: cond}, nil
-			}
-			return nil, fmt.Errorf("RangeCond left type error: %v", tLeft)
+			return nil, fmt.Errorf("RangeCond left type error: %v (%T)", tLeft, tLeft)
 		}
 
+		// TODO: how is 'null' interpreted? exists? 'null'?
 	case *sqlparser.NullCheck:
-		return nil, fmt.Errorf("where can't handle NullCheck type %T", where)
+		val, err := translateExpr(expr.Expr)
+		if err != nil {
+			return nil, fmt.Errorf("NullCheck key error: %v", err)
+		}
+		switch tVal := val.(type) {
+		case string:
+			return bson.M{tVal: bson.M{MgoNe: nil}}, nil
+		default:
+			// TODO: can node not be a string?
+			return nil, fmt.Errorf("NullCheck left type error: %v (%T)", val, tVal)
+		}
 
 	case *sqlparser.ExistsExpr:
 		return nil, fmt.Errorf("where can't handle ExistsExpr type %T", where)

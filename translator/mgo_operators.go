@@ -16,6 +16,8 @@ var (
 	MgoNotIn   = "$nin"
 	MgoLike    = "???" // TODO
 	MgoNotLike = "???" // TODO
+	MgoAnd     = "$and"
+	MgoOr      = "$or"
 
 	oprtMap = map[string]string{
 		sqlparser.AST_EQ:       MgoEq,
