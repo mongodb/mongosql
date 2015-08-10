@@ -23,9 +23,6 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		}
 		return val, err
 
-	case sqlparser.ValArg:
-		return nil, fmt.Errorf("where can't handle ValArg type %T", where)
-
 	case sqlparser.ValTuple:
 		vals := sqlparser.ValExprs(expr)
 		tuples := make([]interface{}, len(vals))
@@ -44,9 +41,6 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 
 	case sqlparser.StrVal, *sqlparser.ColName:
 		return sqlparser.String(expr), nil
-
-	case *sqlparser.Subquery:
-		return nil, fmt.Errorf("where can't handle Subquery type %T", where)
 
 	case *sqlparser.BinaryExpr:
 		left, right, err := translateLRExpr(expr.Left, expr.Right)
@@ -176,16 +170,6 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 			return nil, fmt.Errorf("where can't handle UnaryExpr operator type %T", where)
 		}
 
-	case *sqlparser.FuncExpr:
-		return nil, fmt.Errorf("where can't handle FuncExpr type %T", where)
-
-		// TODO: might require resultset post-processing
-	case *sqlparser.CaseExpr:
-		return nil, fmt.Errorf("where can't handle CaseExpr type %T", where)
-
-	case *sqlparser.ExistsExpr:
-		return nil, fmt.Errorf("where can't handle ExistsExpr type %T", where)
-
 	case *sqlparser.NotExpr:
 		val, err := translateExpr(expr.Expr)
 		if err != nil {
@@ -201,6 +185,26 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		}
 
 		return val, err
+
+		//
+		//  some nodes rely on SimpleSelect support
+		//
+
+	case *sqlparser.Subquery:
+		return nil, fmt.Errorf("where can't handle Subquery type %T", where)
+
+	case sqlparser.ValArg:
+		return nil, fmt.Errorf("where can't handle ValArg type %T", where)
+
+	case *sqlparser.FuncExpr:
+		return nil, fmt.Errorf("where can't handle FuncExpr type %T", where)
+
+		// TODO: might require resultset post-processing
+	case *sqlparser.CaseExpr:
+		return nil, fmt.Errorf("where can't handle CaseExpr type %T", where)
+
+	case *sqlparser.ExistsExpr:
+		return nil, fmt.Errorf("where can't handle ExistsExpr type %T", where)
 
 	default:
 		return nil, fmt.Errorf("where can't handle expression type %T", where)
