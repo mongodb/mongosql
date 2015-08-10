@@ -3,6 +3,7 @@ package translator
 import (
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/siddontang/mixer/sqlparser"
 	"gopkg.in/mgo.v2/bson"
 	"strconv"
@@ -48,7 +49,49 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		return nil, fmt.Errorf("where can't handle Subquery type %T", where)
 
 	case *sqlparser.BinaryExpr:
-		return nil, fmt.Errorf("where can't handle BinaryExpr type %T", where)
+		left, right, err := translateLRExpr(expr.Left, expr.Right)
+		if err != nil {
+			return nil, fmt.Errorf("BinaryExpr LR translation error: %v", err)
+		}
+
+		leftVal, err := util.ToInt(left)
+		if err != nil {
+			return nil, fmt.Errorf("BinaryExpr leftVal conversion error (%v): %v", left, err)
+		}
+
+		rightVal, err := util.ToInt(right)
+		if err != nil {
+			return nil, fmt.Errorf("BinaryExpr rightVal conversion error (%v): %v", right, err)
+		}
+
+		switch expr.Operator {
+		case sqlparser.AST_BITAND:
+			// integers
+			return leftVal & rightVal, nil
+		case sqlparser.AST_BITOR:
+			// integers
+			return leftVal | rightVal, nil
+		case sqlparser.AST_BITXOR:
+			// integers
+			return leftVal ^ rightVal, nil
+		case sqlparser.AST_PLUS:
+			// integers, floats, complex values, strings
+			return leftVal + rightVal, nil
+		case sqlparser.AST_MINUS:
+			// integers, floats, complex values
+			return leftVal - rightVal, nil
+		case sqlparser.AST_MULT:
+			// integers, floats, complex values
+			return leftVal * rightVal, nil
+		case sqlparser.AST_DIV:
+			// integers, floats, complex values
+			return leftVal / rightVal, nil
+		case sqlparser.AST_MOD:
+			// integers
+			return leftVal % rightVal, nil
+		}
+
+		return nil, fmt.Errorf("where can't handle BinaryExpr operator: %v", expr.Operator)
 
 	case *sqlparser.UnaryExpr:
 		return nil, fmt.Errorf("where can't handle UnaryExpr type %T", where)

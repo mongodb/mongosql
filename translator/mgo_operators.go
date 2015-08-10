@@ -11,11 +11,11 @@ var (
 	MgoLe      = "$lte"
 	MgoGe      = "$gte"
 	MgoNe      = "$ne"
-	MgoNse     = "???" // TODO
+	MgoNse     = "???" // TODO: NULL_SAFE_EQUAL
 	MgoIn      = "$in"
 	MgoNotIn   = "$nin"
-	MgoLike    = "???" // TODO
-	MgoNotLike = "???" // TODO
+	MgoLike    = "???" // TODO: LIKE EXPRESSIONS
+	MgoNotLike = "???" // TODO: LIKE EXPRESSIONS
 	MgoAnd     = "$and"
 	MgoOr      = "$or"
 
