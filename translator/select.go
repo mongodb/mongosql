@@ -167,7 +167,7 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		case sqlparser.AST_TILDA:
 			return ^intVal, nil
 		default:
-			return nil, fmt.Errorf("where can't handle UnaryExpr operator type %T", where)
+			return nil, fmt.Errorf("where can't handle UnaryExpr operator type %T", expr.Operator)
 		}
 
 	case *sqlparser.NotExpr:
