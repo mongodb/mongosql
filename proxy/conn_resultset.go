@@ -6,6 +6,7 @@ import (
 	. "github.com/siddontang/mixer/mysql"
 	"gopkg.in/mgo.v2/bson"
 	"strconv"
+	"time"
 )
 
 func formatValue(value interface{}) ([]byte, error) {
@@ -40,6 +41,10 @@ func formatValue(value interface{}) ([]byte, error) {
 		return hack.Slice(v), nil
 	case bson.ObjectId:
 		return hack.Slice(v.Hex()), nil
+	case time.Time:
+		return v.GobEncode()
+	case bool:
+		return strconv.AppendBool(nil, v), nil
 	case nil:
 		return nil, nil
 	default:
@@ -64,13 +69,23 @@ func formatField(field *Field, value interface{}) error {
 	case string, []byte:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
-	case bson.ObjectId:
 		// TODO: hack?
+	case bson.ObjectId:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
+
+	case time.Time: // Timestamp
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_TIMESTAMP
+
+	case bool: // bool
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_BIT
+
 	case nil:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_NULL
+
 	default:
 		// TODO: figure out 'field' struct and support all BSON types
 		return fmt.Errorf("unsupported type %T for resultset", value)

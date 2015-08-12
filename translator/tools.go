@@ -2,6 +2,7 @@ package translator
 
 import (
 	"fmt"
+	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"sort"
@@ -74,6 +75,8 @@ func IterToNamesAndValues(iter *mgo.Iter) ([]string, [][]interface{}, error) {
 	if len(values) == 0 {
 		names = []string{}
 	}
+
+	log.Logf(log.DebugHigh, "%#v", values)
 
 	return names, values, nil
 }
