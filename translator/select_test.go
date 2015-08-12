@@ -12,35 +12,18 @@ var testConfigSimple = []byte(
 schema :
 -
   url: localhost
-  db: test2
+  db: test
   tables:
   -
      table: bar
-     collection: test.select_test1
-`)
-
-var testConfigPipe = []byte(
-	`
-schema :
--
-  url: localhost
-  db: test2
-  tables:
-  -
-     table: bar
-     collection: test.select_test2
-     pipeline:
-     -
-        $unwind : "$x"
-     -
-        $limit : 10
+     collection: test.simple
 `)
 
 func TestSimple(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
 
-		Convey("connecting to the proxy should work ", func() {
+		Convey("connecting through the proxy server should return correct results", func() {
 
 			cfg, err := config.ParseConfigData(testConfigSimple)
 			So(err, ShouldBeNil)
@@ -51,12 +34,12 @@ func TestSimple(t *testing.T) {
 			session := eval.getSession()
 			defer session.Close()
 
-			collection := eval.getCollection(session, "test.select_test1")
-			So(collection.DropCollection(), ShouldBeNil)
+			collection := eval.getCollection(session, "test.simple")
+			collection.DropCollection()
 			So(collection.Insert(bson.M{"_id": 5, "a": 6, "b": 7}), ShouldBeNil)
 			So(collection.Insert(bson.M{"_id": 15, "a": 16, "c": 17}), ShouldBeNil)
 
-			names, values, err := eval.EvalSelect("test2", "select * from bar", nil)
+			names, values, err := eval.EvalSelect("test", "select * from bar", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 2)
@@ -75,8 +58,7 @@ func TestSimple(t *testing.T) {
 				So(len(names), ShouldEqual, len(row))
 			}
 
-			// push down where
-			names, values, err = eval.EvalSelect("test2", "select * from bar where a = 16", nil)
+			names, values, err = eval.EvalSelect("test", "select * from bar where a = 16", nil)
 			So(err, ShouldBeNil)
 			So(len(values), ShouldEqual, 1)
 		})
