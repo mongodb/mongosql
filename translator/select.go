@@ -9,6 +9,15 @@ import (
 	"strconv"
 )
 
+// TODO: EvalSelect should return a ProcessPlan which contains a number of
+// stages
+type ProcessPlan struct {
+	Stages []Stage
+}
+
+type Stage struct {
+}
+
 // translateExpr takes an expression and returns its translated form.
 func translateExpr(where sqlparser.Expr) (interface{}, error) {
 
