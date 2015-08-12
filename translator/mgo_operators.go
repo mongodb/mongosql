@@ -14,8 +14,8 @@ var (
 	MgoNse     = "???" // TODO: NULL_SAFE_EQUAL
 	MgoIn      = "$in"
 	MgoNotIn   = "$nin"
-	MgoLike    = "???" // TODO: LIKE EXPRESSIONS
-	MgoNotLike = "???" // TODO: LIKE EXPRESSIONS
+	MgoLike    = "$regex"      // TODO: LIKE EXPRESSIONS
+	MgoNotLike = "$nyi-!regex" // TODO: NOT LIKE EXPRESSIONS
 	MgoAnd     = "$and"
 	MgoOr      = "$or"
 

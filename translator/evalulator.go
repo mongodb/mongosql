@@ -51,6 +51,8 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		stmt = raw.(*sqlparser.Select)
 	}
 
+	log.Logf(log.DebugLow, "parsed select exprs: %#v", stmt.SelectExprs)
+
 	if len(stmt.From) == 0 {
 		return nil, nil, fmt.Errorf("no table selected")
 	}
@@ -62,8 +64,6 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	var query interface{} = nil
 
 	if stmt.Where != nil {
-
-		log.Logf(log.DebugLow, "parsed stmt: %#v", stmt.Where.Expr)
 
 		var err error
 

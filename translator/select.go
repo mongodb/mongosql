@@ -39,7 +39,8 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 	case *sqlparser.NullVal:
 		return nil, nil
 
-	case sqlparser.StrVal, *sqlparser.ColName:
+		// TODO: regex lowercased
+	case *sqlparser.ColName:
 		return sqlparser.String(expr), nil
 
 	case *sqlparser.BinaryExpr:
