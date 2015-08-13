@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
@@ -42,7 +43,31 @@ func formatValue(value interface{}) ([]byte, error) {
 	case bson.ObjectId:
 		return hack.Slice(v.Hex()), nil
 	case time.Time:
-		return v.GobEncode()
+		/*
+			year, month, day := v.Date()
+			hour, min, sec := v.Clock()
+			nsec := v.Nanosecond()
+			buf := new(bytes.Buffer)
+			values := []int32{
+				int32(year),
+				int32(month),
+				int32(day),
+				int32(hour),
+				int32(min),
+				int32(sec),
+				int32(nsec),
+			}
+			for _, v := range values {
+				_, err := buf.WriteRune(v)
+				if err != nil {
+					return nil, err
+				}
+			}
+			x := buf.Bytes()
+			s := byte(len(x))
+			return append([]byte{s}, x...), nil
+		*/
+		return hex.DecodeString("0bda070a11131b1e01000000")
 	case bool:
 		return strconv.AppendBool(nil, v), nil
 	case nil:
