@@ -53,17 +53,31 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 
 	log.Logf(log.DebugLow, "parsed select exprs: %#v", stmt.SelectExprs)
 
-	if len(stmt.From) == 0 {
-		return nil, nil, fmt.Errorf("no table selected")
-	}
+	if stmt.From != nil {
+		var from interface{} = nil
 
-	if len(stmt.From) > 1 {
-		return nil, nil, fmt.Errorf("joins not supported yet")
+		var err error
+
+		for i, expr := range stmt.From {
+
+			log.Logf(log.DebugLow, "from (%d): %s (type is %T)", i, sqlparser.String(expr), expr)
+
+			from, err = translateTableExpr(expr)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			log.Logf(log.DebugLow, "from %v translation: %#v", i, from)
+
+		}
+
 	}
 
 	var query interface{} = nil
 
 	if stmt.Where != nil {
+
+		log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(stmt.Where.Expr), stmt.Where.Expr)
 
 		var err error
 

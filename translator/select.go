@@ -19,16 +19,15 @@ type Stage struct {
 }
 
 // translateExpr takes an expression and returns its translated form.
-func translateExpr(where sqlparser.Expr) (interface{}, error) {
+func translateExpr(gExpr sqlparser.Expr) (interface{}, error) {
+	log.Logf(log.DebugLow, "expr: %s (type is %T)", sqlparser.String(gExpr), gExpr)
 
-	log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(where), where)
-
-	switch expr := where.(type) {
+	switch expr := gExpr.(type) {
 
 	case sqlparser.NumVal:
 		val, err := getNumVal(expr)
 		if err != nil {
-			return nil, fmt.Errorf("where can't handle NumVal %v: %v", expr, err)
+			return nil, fmt.Errorf("can't handle NumVal %v: %v", expr, err)
 		}
 		return val, err
 
@@ -40,7 +39,7 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		for i, val := range vals {
 			tuples[i], err = translateExpr(val)
 			if err != nil {
-				return nil, fmt.Errorf("where can't handle ValExpr %v: %v", val, err)
+				return nil, fmt.Errorf("can't handle ValExpr %v: %v", val, err)
 			}
 		}
 		return tuples, nil
@@ -52,20 +51,23 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 	case *sqlparser.ColName:
 		return sqlparser.String(expr), nil
 
+	case sqlparser.StrVal:
+		return sqlparser.String(expr), nil
+
 	case *sqlparser.BinaryExpr:
 		left, right, err := translateLRExpr(expr.Left, expr.Right)
 		if err != nil {
-			return nil, fmt.Errorf("BinaryExpr LR translation error: %v", err)
+			return nil, fmt.Errorf("BinaryExpr LR error: %v", err)
 		}
 
 		leftVal, err := util.ToInt(left)
 		if err != nil {
-			return nil, fmt.Errorf("BinaryExpr leftVal conversion error (%v): %v", left, err)
+			return nil, fmt.Errorf("BinaryExpr leftVal error (%v): %v", left, err)
 		}
 
 		rightVal, err := util.ToInt(right)
 		if err != nil {
-			return nil, fmt.Errorf("BinaryExpr rightVal conversion error (%v): %v", right, err)
+			return nil, fmt.Errorf("BinaryExpr rightVal error (%v): %v", right, err)
 		}
 
 		switch expr.Operator {
@@ -94,7 +96,7 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 			// integers
 			return leftVal % rightVal, nil
 		default:
-			return nil, fmt.Errorf("where can't handle BinaryExpr operator: %v", expr.Operator)
+			return nil, fmt.Errorf("can't handle BinaryExpr operator: %v", expr.Operator)
 		}
 
 	case *sqlparser.AndExpr:
@@ -177,7 +179,7 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		case sqlparser.AST_TILDA:
 			return ^intVal, nil
 		default:
-			return nil, fmt.Errorf("where can't handle UnaryExpr operator type %T", expr.Operator)
+			return nil, fmt.Errorf("can't handle UnaryExpr operator type %T", expr.Operator)
 		}
 
 	case *sqlparser.NotExpr:
@@ -201,23 +203,87 @@ func translateExpr(where sqlparser.Expr) (interface{}, error) {
 		//
 
 	case *sqlparser.Subquery:
-		return nil, fmt.Errorf("where can't handle Subquery type %T", where)
+		return nil, fmt.Errorf("can't handle Subquery type %T", expr)
 
 	case sqlparser.ValArg:
-		return nil, fmt.Errorf("where can't handle ValArg type %T", where)
+		return nil, fmt.Errorf("can't handle ValArg type %T", expr)
 
 	case *sqlparser.FuncExpr:
-		return nil, fmt.Errorf("where can't handle FuncExpr type %T", where)
+		return nil, fmt.Errorf("can't handle FuncExpr type %T", expr)
 
 		// TODO: might require resultset post-processing
 	case *sqlparser.CaseExpr:
-		return nil, fmt.Errorf("where can't handle CaseExpr type %T", where)
+		return nil, fmt.Errorf("can't handle CaseExpr type %T", expr)
 
 	case *sqlparser.ExistsExpr:
-		return nil, fmt.Errorf("where can't handle ExistsExpr type %T", where)
+		return nil, fmt.Errorf("can't handle ExistsExpr type %T", expr)
 
 	default:
-		return nil, fmt.Errorf("where can't handle expression type %T", where)
+		return nil, fmt.Errorf("can't handle expression type %T", expr)
+	}
+
+}
+
+// translateTableExpr takes a table expression and returns its translated form.
+func translateTableExpr(tExpr sqlparser.TableExpr) (interface{}, error) {
+
+	log.Logf(log.DebugLow, "table expr: %s (type is %T)", sqlparser.String(tExpr), tExpr)
+
+	switch expr := tExpr.(type) {
+
+	case *sqlparser.AliasedTableExpr:
+
+		// TODO: ignoring index hints for now
+		stExpr, err := translateSimpleTableExpr(expr.Expr)
+		if err != nil {
+			return nil, fmt.Errorf("AliasedTableExpr error: %v", err)
+		}
+
+		return []interface{}{stExpr, string(expr.As)}, nil
+
+	case *sqlparser.ParenTableExpr:
+		ptExpr, err := translateTableExpr(expr.Expr)
+		if err != nil {
+			return nil, fmt.Errorf("ParenTableExpr error: %v", err)
+		}
+		return ptExpr, nil
+
+	case *sqlparser.JoinTableExpr:
+
+		left, right, err := translateLRTableExpr(expr.LeftExpr, expr.RightExpr)
+		if err != nil {
+			return nil, fmt.Errorf("JoinTableExpr LR error: %v", err)
+		}
+
+		criterion, err := translateExpr(expr.On)
+		if err != nil {
+			return nil, fmt.Errorf("JoinTableExpr On error: %v", err)
+		}
+
+		return []interface{}{left, criterion, right}, nil
+
+	default:
+		return nil, fmt.Errorf("can't handle table expression type %T", expr)
+	}
+
+}
+
+// translateSimpleTableExpr takes a simple table expression and returns its translated form.
+func translateSimpleTableExpr(stExpr sqlparser.SimpleTableExpr) (interface{}, error) {
+
+	log.Logf(log.DebugLow, "simple table expr: %s (type is %T)", sqlparser.String(stExpr), stExpr)
+
+	switch expr := stExpr.(type) {
+
+	case *sqlparser.TableName:
+		// TODO: ignoring qualifier for now
+		return sqlparser.String(expr), nil
+
+	case *sqlparser.Subquery:
+		return translateExpr(expr)
+
+	default:
+		return nil, fmt.Errorf("can't handle simple table expression type %T", expr)
 	}
 
 }
@@ -234,6 +300,23 @@ func translateLRExpr(lExpr, rExpr sqlparser.Expr) (interface{}, interface{}, err
 	if err != nil {
 		return nil, nil, fmt.Errorf("rExpr error: %v", err)
 	}
+
+	return left, right, nil
+}
+
+// translateLRTableExpr takes two leaf table expressions and returns their translations.
+func translateLRTableExpr(lExpr, rExpr sqlparser.TableExpr) (interface{}, interface{}, error) {
+
+	left, err := translateTableExpr(lExpr)
+	if err != nil {
+		return nil, nil, fmt.Errorf("lTableExpr error: %v", err)
+	}
+
+	right, err := translateTableExpr(rExpr)
+	if err != nil {
+		return nil, nil, fmt.Errorf("rTableExpr error: %v", err)
+	}
+
 	return left, right, nil
 }
 
@@ -246,7 +329,7 @@ func getNumVal(valExpr sqlparser.ValExpr) (interface{}, error) {
 		return sqlparser.String(val), nil
 
 	case sqlparser.NumVal:
-		// TODO add other types
+		// TODO: add other types
 		f, err := strconv.ParseFloat(sqlparser.String(val), 64)
 		if err != nil {
 			return nil, err
