@@ -10,7 +10,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 	Convey("With a simple SQL statement...", t, func() {
 
-		Convey("algebrizing the parsed statements should produce the correct nodes", func() {
+		Convey("algebrizing table names should produce the correct algebrized nodes", func() {
 
 			sql := "select * from foo f"
 
@@ -24,6 +24,17 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(algebrized.Nodes[0].nAlias, ShouldEqual, "f")
 			So(algebrized.Nodes[0].nName, ShouldEqual, "foo")
 			So(algebrized.Nodes[0].nType, ShouldEqual, Table)
+		})
+
+		Convey("algebrizing column names should produce the correct algebrized nodes", func() {
+
+			sql := "select a as x b as y from foo f"
+
+			raw, err := sqlparser.Parse(sql)
+			So(err, ShouldBeNil)
+			stmt := raw.(*sqlparser.Select)
+			_, err = algebrizeTableExpr(stmt.From[0])
+			So(err, ShouldBeNil)
 		})
 	})
 }
