@@ -58,9 +58,8 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
 	}
 
-	err = getAlgebrizedQuery(stmt, ctx)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error constructing algebrized select tree: %v", err)
+	if err = algebrizeStatement(stmt, ctx); err != nil {
+		return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
 	}
 
 	log.Logf(log.DebugLow, "algebrized tree: %#v", stmt)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/siddontang/mixer/sqlparser"
+	"strings"
 )
 
 // ParseCtx holds information that is used to resolve
@@ -30,27 +31,36 @@ type ColumnInfo struct {
 	Table string
 }
 
-func NewParseCtx(stmt *sqlparser.Select) (*ParseCtx, error) {
+func NewParseCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) {
 
-	ctx := &ParseCtx{}
+	switch stmt := ss.(type) {
 
-	tableInfo, err := getTableInfo(stmt.From, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error getting table info: %v", err)
+	case *sqlparser.Select:
+		ctx := &ParseCtx{}
+
+		tableInfo, err := getTableInfo(stmt.From, nil)
+		if err != nil {
+			return nil, fmt.Errorf("error getting table info: %v", err)
+		}
+
+		ctx.Table = tableInfo
+
+		// handle select expressions like as aliasing
+		// e.g. select FirstName as f, LastName as l from foo;
+		columnInfo, err := getColumnInfo(stmt.SelectExprs, ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error getting column info: %v", err)
+		}
+
+		ctx.Column = columnInfo
+
+		return ctx, nil
+
+	default:
+		return nil, fmt.Errorf("select statement type %T not yet supported", stmt)
+
 	}
 
-	ctx.Table = tableInfo
-
-	// handle select expressions like as aliasing
-	// e.g. select FirstName as f, LastName as l from foo;
-	columnInfo, err := getColumnInfo(stmt.SelectExprs, ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error getting column info: %v", err)
-	}
-
-	ctx.Column = columnInfo
-
-	return ctx, nil
 }
 
 // TableName returns the unaliased table name given an alias.
@@ -69,12 +79,40 @@ func (c *ParseCtx) TableName(alias string) string {
 	return c.Parent.TableName(alias)
 }
 
+// TableExists returns true if an table within this or the parent
+// context matches 'tableName' unaliased table name given an alias.
+// It searches in the parent context if the alias is not found
+// in the current context.
+func (c *ParseCtx) TableExists(tableName string) bool {
+	if c == nil {
+		return false
+	}
+
+	for _, table := range c.Table {
+		for _, v := range table.Name {
+			if v == tableName {
+				return true
+			}
+		}
+	}
+
+	return c.Parent.TableExists(tableName)
+}
+
 // ColumnName returns the unaliased column name given an alias.
 // It searches in the parent context if the alias is not found
 // in the current context.
 func (c *ParseCtx) ColumnName(alias string) string {
 	if c == nil {
 		return alias
+	}
+
+	pcs := strings.SplitN(alias, ".", 2)
+
+	if len(pcs) > 1 {
+		if c.TableExists(c.TableName(pcs[0])) {
+			return strings.Join(pcs[1:], ".")
+		}
 	}
 
 	for _, a := range c.Column {
@@ -99,8 +137,8 @@ func (c *ParseCtx) GetDefaultTable() string {
 		return ""
 	}
 
-	for k, _ := range c.Table[0].Name {
-		return k
+	for _, v := range c.Table[0].Name {
+		return v
 	}
 
 	return c.Parent.GetDefaultTable()

@@ -8,42 +8,28 @@ import (
 	"strings"
 )
 
-// AlgebrizedQuery holds a name resolved form of a select query.
-type AlgebrizedQuery struct {
-	Collection interface{}
-	Filter     interface{}
-	Projection string
-}
+// algebrizeStatement takes a parsed SQL statement and returns an algebrized form of the query.
+func algebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
+	log.Logf(log.DebugLow, "pCtx algebrizeStatement: %#v", ctx)
 
-// getAlgebrizedQuery takes a parsed SQL statements and returns an algebrized form of the query.
-func getAlgebrizedQuery(stmt *sqlparser.Select, ctx *ParseCtx) error {
+	switch stmt := ss.(type) {
 
-	log.Logf(log.DebugLow, "ctxt: %#v", ctx)
+	case *sqlparser.Select:
 
-	if stmt.Where != nil {
+		if stmt.Where != nil {
 
-		log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(stmt.Where.Expr), stmt.Where.Expr)
+			log.Logf(log.DebugLow, "where: %s", sqlparser.String(stmt.Where.Expr))
 
-		algebrizedStmt, err := algebrizeExpr(stmt.Where.Expr, ctx)
-		if err != nil {
-			return err
-		}
-		stmt.Where.Expr = algebrizedStmt.(sqlparser.BoolExpr)
-	}
-
-	if stmt.From != nil {
-		if len(stmt.From) != 1 {
-			return fmt.Errorf("JOINS not yet supported")
+			algebrizedStmt, err := algebrizeExpr(stmt.Where.Expr, ctx)
+			if err != nil {
+				return err
+			}
+			stmt.Where.Expr = algebrizedStmt.(sqlparser.BoolExpr)
 		}
 
-		err := algebrizeTableExpr(stmt.From[0], ctx)
-		if err != nil {
-			return err
-		}
-	}
+	default:
+		return fmt.Errorf("select statement type %T not yet supported", stmt)
 
-	if stmt.Having != nil {
-		return fmt.Errorf("'HAVING' statement not yet supported")
 	}
 
 	return nil
@@ -54,7 +40,7 @@ func algebrizeSelectStatement(stmt sqlparser.SelectStatement, pCtx *ParseCtx) er
 	switch expr := stmt.(type) {
 
 	case *sqlparser.Select:
-		err := getAlgebrizedQuery(expr, pCtx)
+		err := algebrizeStatement(expr, pCtx)
 		if err != nil {
 			return err
 		}
@@ -68,6 +54,7 @@ func algebrizeSelectStatement(stmt sqlparser.SelectStatement, pCtx *ParseCtx) er
 // algebrizeExpr takes an expression and returns its algebrized form.
 func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error) {
 	log.Logf(log.DebugLow, "expr: %s (type is %T)", sqlparser.String(gExpr), gExpr)
+	log.Logf(log.DebugLow, "pCtx algebrizeExpr: %#v", pCtx)
 
 	switch expr := gExpr.(type) {
 
@@ -94,7 +81,7 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 	case *sqlparser.ColName:
 		expr = &sqlparser.ColName{
 			Name:      []byte(pCtx.ColumnName(sqlparser.String(expr))),
-			Qualifier: expr.Qualifier,
+			Qualifier: nil,
 		}
 		return expr, nil
 
@@ -340,23 +327,40 @@ func getTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 				return nil, fmt.Errorf("getTableInfo error: %v", err)
 			}
 
-			switch expr2 := stExpr.(type) {
-
-			case *sqlparser.TableName:
-				strVal := strings.TrimSpace(string(expr2.Name))
+			if node, ok := stExpr.(*sqlparser.TableName); ok {
+				val := strings.TrimSpace(string(node.Name))
 				name := string(expr.As)
 				if name == "" {
-					name = strVal
+					name = val
 				}
 				table := TableInfo{
-					Name: map[string]string{name: strVal},
+					Name: map[string]string{name: val},
 				}
 				tables = append(tables, table)
-
-			default:
-				return nil, fmt.Errorf("unsupported simple table expression alias of %T", expr)
+			} else {
+				return nil, fmt.Errorf("getTableInfo AliasedTableExpr type assert error: %v", err)
 			}
 
+		case *sqlparser.ParenTableExpr:
+			return nil, fmt.Errorf("can't handle ParenTableExpr table expression")
+
+		case *sqlparser.JoinTableExpr:
+			var l sqlparser.TableExprs
+			l = append(l, expr.LeftExpr)
+			lInfo, err := getTableInfo(l, pCtx)
+			if err != nil {
+				return nil, fmt.Errorf("JoinTableExpr LeftExpr error: %v", err)
+			}
+
+			var r sqlparser.TableExprs
+			r = append(r, expr.RightExpr)
+			rInfo, err := getTableInfo(r, pCtx)
+			if err != nil {
+				return nil, fmt.Errorf("JoinTableExpr RightExpr error: %v", err)
+			}
+
+			tables = append(tables, lInfo...)
+			tables = append(tables, rInfo...)
 		default:
 			return nil, fmt.Errorf("can't handle table expression type %T", expr)
 		}
@@ -369,10 +373,10 @@ func getTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 func parseColumnInfo(pCtx *ParseCtx, name string, varAlias ...string) (columnInfo ColumnInfo) {
 	var alias string
 
-	if len(varAlias) == 0 {
-		alias = name
-	} else {
+	if len(varAlias) != 0 && varAlias[0] != "" {
 		alias = varAlias[0]
+	} else {
+		alias = name
 	}
 
 	if i := strings.Index(name, "."); i != -1 {
@@ -416,15 +420,32 @@ func getColumnInfo(exprs sqlparser.SelectExprs, pCtx *ParseCtx) ([]ColumnInfo, e
 			}
 
 			alias := strings.TrimSpace(string(expr.As))
-			switch name := c.(type) {
+			switch cType := c.(type) {
 
 			case *sqlparser.ColName:
-				column := parseColumnInfo(pCtx, string(name.Name), alias)
+				column := parseColumnInfo(pCtx, string(cType.Name), alias)
 				columns = append(columns, column)
 
 			case sqlparser.StrVal:
-				column := parseColumnInfo(pCtx, string(name), alias)
+				column := parseColumnInfo(pCtx, string(cType), alias)
 				columns = append(columns, column)
+
+			case *sqlparser.Subquery:
+				ctx, err := NewParseCtx(cType.Select)
+				if err != nil {
+					return nil, fmt.Errorf("error constructing new parse context: %v", err)
+				}
+
+				ctx.Parent = pCtx
+
+				if err = algebrizeStatement(cType.Select, ctx); err != nil {
+					return nil, fmt.Errorf("error algebrizing subquery statement: %v", err)
+				}
+
+				if len(ctx.Column) != 1 {
+					return nil, fmt.Errorf("too many columns in subquery: %v", len(ctx.Column))
+				}
+				columns = append(columns, ctx.Column[0])
 
 			default:
 				return nil, fmt.Errorf("unsupported column type: %T", c)

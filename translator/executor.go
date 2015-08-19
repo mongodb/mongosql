@@ -23,6 +23,13 @@ const (
 	Subquery
 )
 
+// AlgebrizedQuery holds a name resolved form of a select query.
+type AlgebrizedQuery struct {
+	Collection interface{}
+	Filter     interface{}
+	Projection string
+}
+
 type QueryPlan struct {
 	Query       AlgebrizedQuery
 	Children    []QueryPlan
