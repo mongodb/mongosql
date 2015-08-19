@@ -7,23 +7,6 @@ import (
 	"strings"
 )
 
-type ParseCtx struct {
-	Column []ColumnInfo
-	Table  []TableInfo
-	Parent *ParseCtx
-}
-
-type TableInfo struct {
-	Name map[string]string
-}
-
-type ColumnInfo struct {
-	// using a mapping in case the name is an alias
-	// e.g. SELECT a+b AS x FROM foo WHERE x<10;
-	Name  map[string]string
-	Table string
-}
-
 // algebrizeSimpleTableExpr takes a simple table expression and returns its algebrized nodes.
 func algebrizeSimpleTableExpr(stExpr sqlparser.SimpleTableExpr) (interface{}, error) {
 
@@ -43,7 +26,7 @@ func algebrizeSimpleTableExpr(stExpr sqlparser.SimpleTableExpr) (interface{}, er
 }
 
 // getTableInfo takes a select expression and returns the table information.
-func getTableInfo(tExprs sqlparser.TableExprs) ([]TableInfo, error) {
+func getTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, error) {
 	tables := []TableInfo{}
 
 	for _, tExpr := range tExprs {
@@ -57,7 +40,7 @@ func getTableInfo(tExprs sqlparser.TableExprs) ([]TableInfo, error) {
 			}
 
 			if strVal, ok := stExpr.(string); ok {
-				name := string(expr.As)
+				name := strings.TrimSpace(string(expr.As))
 				if name == "" {
 					name = strVal
 				}
@@ -76,21 +59,29 @@ func getTableInfo(tExprs sqlparser.TableExprs) ([]TableInfo, error) {
 	return tables, nil
 }
 
-func parseColumnInfo(alias, name string) (columnInfo ColumnInfo) {
+func parseColumnInfo(alias, name string, pCtx *ParseCtx) (columnInfo ColumnInfo) {
 	if alias == "" {
 		alias = name
 	}
 	if i := strings.Index(name, "."); i != -1 {
-		columnInfo.Table = name[:i]
+		if actual := pCtx.TableName(name[:i]); actual != "" {
+			columnInfo.Table = actual
+		} else {
+			columnInfo.Table = name[:i]
+		}
 		columnInfo.Name = map[string]string{alias: name[i+1:]}
 	} else {
 		columnInfo.Name = map[string]string{alias: name}
 	}
+	if columnInfo.Table == "" {
+		// TODO: join with multiple tables
+		columnInfo.Table = pCtx.GetDefaultTable()
+	}
 	return
 }
 
-// getColumnInfo takes a select expression and returns the column information.
-func getColumnInfo(exprs sqlparser.SelectExprs) ([]ColumnInfo, error) {
+// getColumnInfo takes a select expression (and table information) and returns the column information.
+func getColumnInfo(exprs sqlparser.SelectExprs, pCtx *ParseCtx) ([]ColumnInfo, error) {
 	columns := []ColumnInfo{}
 
 	for i, sExpr := range exprs {
@@ -112,20 +103,20 @@ func getColumnInfo(exprs sqlparser.SelectExprs) ([]ColumnInfo, error) {
 				return nil, err
 			}
 
-			alias := string(expr.As)
+			alias := strings.TrimSpace(string(expr.As))
 
 			switch name := c.(type) {
 
 			case ColName:
-				column := parseColumnInfo(alias, name.Value)
+				column := parseColumnInfo(alias, name.Value, pCtx)
 				columns = append(columns, column)
 
 			case StrVal:
-				column := parseColumnInfo(alias, name.Value)
+				column := parseColumnInfo(alias, name.Value, pCtx)
 				columns = append(columns, column)
 
 			case string:
-				column := parseColumnInfo(alias, name)
+				column := parseColumnInfo(alias, name, pCtx)
 				columns = append(columns, column)
 
 			default:

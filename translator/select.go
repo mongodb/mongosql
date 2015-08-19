@@ -8,9 +8,6 @@ import (
 	"strconv"
 )
 
-type ExecutionTree interface {
-}
-
 func translateSelectStatement(stmt sqlparser.SelectStatement, pCtx *ParseCtx) (interface{}, error) {
 
 	switch expr := stmt.(type) {
@@ -55,7 +52,7 @@ func translateExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (interface{}, error) {
 
 		// TODO: regex lowercased
 	case *sqlparser.ColName:
-		return ColName{sqlparser.String(expr)}, nil
+		return ColName{pCtx.ColumnName(sqlparser.String(expr))}, nil
 
 	case sqlparser.StrVal:
 		return StrVal{sqlparser.String(expr)}, nil
@@ -65,8 +62,8 @@ func translateExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (interface{}, error) {
 		if err != nil {
 			return nil, fmt.Errorf("BinaryExpr LR error: %v", err)
 		}
-		// TODO ?: floats, complex values, strings
 
+		// TODO ?: floats, complex values, strings
 		leftVal, err := util.ToInt(left)
 		if err != nil {
 			return nil, fmt.Errorf("BinaryExpr leftVal error (%v): %v", left, err)

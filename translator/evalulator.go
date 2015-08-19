@@ -81,45 +81,53 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	return IterToNamesAndValues(iter)
 }
 
-func getAlgebrizedQuery(stmt *sqlparser.Select, pCtx *ParseCtx) (interface{}, error) {
+func getAlgebrizedQuery(stmt *sqlparser.Select, pCtx *ParseCtx) (*Query, error) {
+
+	ctx := &ParseCtx{Parent: pCtx}
+
+	tableInfo, err := getTableInfo(stmt.From, pCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.Table = tableInfo
+
 	// handle select expressions like as aliasing
 	// e.g. select FirstName as f, LastName as l from foo;
-	columns, err := getColumnInfo(stmt.SelectExprs)
+	columnInfo, err := getColumnInfo(stmt.SelectExprs, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Logf(log.DebugLow, "columns %#v", columns)
+	ctx.Column = columnInfo
 
-	tables, err := getTableInfo(stmt.From)
-	if err != nil {
-		return nil, err
-	}
+	log.Logf(log.DebugLow, "ctxt: %#v", ctx)
 
-	log.Logf(log.DebugLow, "tables %#v", columns)
-
-	ctx := &ParseCtx{
-		Table:  tables,
-		Column: columns,
-		Parent: pCtx,
-	}
-
-	var query interface{} = nil
+	query := &Query{}
 
 	if stmt.Where != nil {
 
 		log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(stmt.Where.Expr), stmt.Where.Expr)
 
-		var err error
-
-		query, err = translateExpr(stmt.Where.Expr, ctx)
+		filter, err := translateExpr(stmt.Where.Expr, ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		log.Logf(log.DebugLow, "query tree: %#v", query)
+		query.Filter = filter
+	}
 
-		return query, nil
+	if stmt.From != nil {
+		if len(stmt.From) != 1 {
+			return nil, fmt.Errorf("JOINS not yet supported")
+		}
+
+		c, err := translateTableExpr(stmt.From[0], ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		query.Collection = c
 	}
 
 	if stmt.Having != nil {
