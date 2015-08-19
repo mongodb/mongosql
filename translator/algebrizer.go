@@ -16,25 +16,7 @@ type AlgebrizedQuery struct {
 }
 
 // getAlgebrizedQuery takes a parsed SQL statements and returns an algebrized form of the query.
-func getAlgebrizedQuery(stmt *sqlparser.Select, pCtx *ParseCtx) error {
-
-	ctx := &ParseCtx{Parent: pCtx}
-
-	tableInfo, err := getTableInfo(stmt.From, pCtx)
-	if err != nil {
-		return err
-	}
-
-	ctx.Table = tableInfo
-
-	// handle select expressions like as aliasing
-	// e.g. select FirstName as f, LastName as l from foo;
-	columnInfo, err := getColumnInfo(stmt.SelectExprs, ctx)
-	if err != nil {
-		return err
-	}
-
-	ctx.Column = columnInfo
+func getAlgebrizedQuery(stmt *sqlparser.Select, ctx *ParseCtx) error {
 
 	log.Logf(log.DebugLow, "ctxt: %#v", ctx)
 
