@@ -51,7 +51,12 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		stmt = raw.(*sqlparser.Select)
 	}
 
-	log.Logf(log.DebugLow, "parsed select exprs: %#v", stmt.SelectExprs)
+	// handle select expressions like as aliasing
+	// e.g. select FirstName as f, LastName as l from foo;
+	for i, expr := range stmt.SelectExprs {
+		log.Logf(log.DebugLow, "handling parsed select expr %v: %#v", i, expr)
+
+	}
 
 	if stmt.From != nil {
 		var from interface{} = nil
@@ -96,6 +101,7 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	if dbConfig == nil {
 		return nil, nil, fmt.Errorf("db (%s) does not exist", db)
 	}
+
 	tableConfig := dbConfig.Tables[tableName]
 	if tableConfig == nil {
 		return nil, nil, fmt.Errorf("table (%s) does not exist in db(%s)", tableName, db)

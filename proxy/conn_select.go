@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/log"
 	. "github.com/siddontang/mixer/mysql"
@@ -79,36 +80,20 @@ func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 }
 
 func (c *Conn) handleFieldList(data []byte) error {
-	/*
-		index := bytes.IndexByte(data, 0x00)
-		table := string(data[0:index])
-		wildcard := string(data[index+1:])
 
-		if c.schema == nil {
-			return NewDefaultError(ER_NO_DB_ERROR)
-		}
+	index := bytes.IndexByte(data, 0x00)
+	table := string(data[0:index])
+	wildcard := string(data[index+1:])
 
-		nodeName := c.schema.rule.GetRule(table).Nodes[0]
+	// TODO: hack but valid since _id always exists in MongoDB
+	log.Logf(log.DebugLow, "handleFieldList table: %v", table)
+	log.Logf(log.DebugLow, "handleFieldList wildcard: %v", wildcard)
 
-		n := c.server.getNode(nodeName)
+	f := &Field{}
+	f.Name = []byte("_id")
+	f.OrgName = f.Name
 
-		co, err := n.getMasterConn()
-		if err != nil {
-			return err
-		}
-		defer co.Close()
-
-		if err = co.UseDB(c.schema.db); err != nil {
-			return err
-		}
-
-		if fs, err := co.FieldList(table, wildcard); err != nil {
-			return err
-		} else {
-			return c.writeFieldList(c.status, fs)
-		}
-	*/
-	return fmt.Errorf("handleFieldList broken")
+	return c.writeFieldList(c.status, []*Field{f})
 }
 
 func (c *Conn) writeFieldList(status uint16, fs []*Field) error {
