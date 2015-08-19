@@ -7,12 +7,6 @@ import (
 type ExecutionTree interface {
 }
 
-type Query struct {
-	Collection interface{}
-	Filter     interface{}
-	Projection string
-}
-
 func executor(aType interface{}) (interface{}, error) {
 
 	switch expr := aType.(type) {

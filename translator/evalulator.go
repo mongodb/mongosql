@@ -40,7 +40,6 @@ func (e *Evalulator) getCollection(session *mgo.Session, fullName string) *mgo.C
 }
 
 // EvalSelect needs to be updated ...
-// TODO: handle SelectExprs => []SelectExpr -> StarExpr and NonStarExpr.
 func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
 	if stmt == nil {
 		// we can parse ourselves
@@ -79,60 +78,4 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	iter := result.Iter()
 
 	return IterToNamesAndValues(iter)
-}
-
-func getAlgebrizedQuery(stmt *sqlparser.Select, pCtx *ParseCtx) (*Query, error) {
-
-	ctx := &ParseCtx{Parent: pCtx}
-
-	tableInfo, err := getTableInfo(stmt.From, pCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx.Table = tableInfo
-
-	// handle select expressions like as aliasing
-	// e.g. select FirstName as f, LastName as l from foo;
-	columnInfo, err := getColumnInfo(stmt.SelectExprs, ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx.Column = columnInfo
-
-	log.Logf(log.DebugLow, "ctxt: %#v", ctx)
-
-	query := &Query{}
-
-	if stmt.Where != nil {
-
-		log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(stmt.Where.Expr), stmt.Where.Expr)
-
-		filter, err := translateExpr(stmt.Where.Expr, ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		query.Filter = filter
-	}
-
-	if stmt.From != nil {
-		if len(stmt.From) != 1 {
-			return nil, fmt.Errorf("JOINS not yet supported")
-		}
-
-		c, err := translateTableExpr(stmt.From[0], ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		query.Collection = c
-	}
-
-	if stmt.Having != nil {
-		return nil, fmt.Errorf("'HAVING' statement not yet supported")
-	}
-
-	return query, nil
 }
