@@ -1,5 +1,6 @@
 package translator
 
+/*
 type FieldComp struct {
 	Left       string
 	Comparator interface{}
@@ -87,3 +88,4 @@ type ValArg struct{}
 type FuncExpr struct{}
 type CaseExpr struct{}
 type ExistsExpr struct{}
+*/

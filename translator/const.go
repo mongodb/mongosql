@@ -1,5 +1,6 @@
 package translator
 
+/*
 type Stage byte
 
 const (
@@ -32,3 +33,4 @@ const (
 	NodeCaseExpr
 	NodeExistsExpr
 )
+*/

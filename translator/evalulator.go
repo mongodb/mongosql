@@ -53,12 +53,12 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		}
 	}
 
-	algebrizedQuery, err := getAlgebrizedQuery(stmt, nil)
+	err := getAlgebrizedQuery(stmt, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error constructing algebrized select tree: %v", err)
 	}
 
-	log.Logf(log.DebugLow, "algebrized tree: %#v", algebrizedQuery)
+	log.Logf(log.DebugLow, "algebrized tree: %#v", stmt)
 
 	tableName := sqlparser.String(stmt.From[0])
 	dbConfig := e.cfg.Schemas[db]
@@ -74,7 +74,7 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	session := e.getSession()
 	collection := e.getCollection(session, tableConfig.Collection)
 
-	result := collection.Find(algebrizedQuery)
+	result := collection.Find(nil)
 	iter := result.Iter()
 
 	return IterToNamesAndValues(iter)
