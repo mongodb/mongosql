@@ -48,53 +48,18 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		if err != nil {
 			return nil, nil, err
 		}
-		stmt = raw.(*sqlparser.Select)
-	}
-
-	// handle select expressions like as aliasing
-	// e.g. select FirstName as f, LastName as l from foo;
-	for i, expr := range stmt.SelectExprs {
-		log.Logf(log.DebugLow, "handling parsed select expr %v: %#v", i, expr)
-
-	}
-
-	if stmt.From != nil {
-		var from interface{} = nil
-
-		var err error
-
-		for i, expr := range stmt.From {
-
-			log.Logf(log.DebugLow, "from (%d): %s (type is %T)", i, sqlparser.String(expr), expr)
-
-			from, err = translateTableExpr(expr)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			log.Logf(log.DebugLow, "from %v translation: %#v", i, from)
-
-		}
-
-	}
-
-	var query interface{} = nil
-
-	if stmt.Where != nil {
-
-		log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(stmt.Where.Expr), stmt.Where.Expr)
-
-		var err error
-
-		query, err = translateExpr(stmt.Where.Expr)
-		if err != nil {
-			return nil, nil, err
+		var ok bool
+		if stmt, ok = raw.(*sqlparser.Select); !ok {
+			return nil, nil, fmt.Errorf("got a non-selecdt statement in EvalSelect")
 		}
 	}
 
-	if stmt.Having != nil {
-		return nil, nil, fmt.Errorf("'HAVING' statement not yet supported")
+	algebrizedQuery, err := getAlgebrizedQuery(stmt, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error constructing algebrized select tree: %v", err)
 	}
+
+	log.Logf(log.DebugLow, "algebrized tree: %#v", algebrizedQuery)
 
 	tableName := sqlparser.String(stmt.From[0])
 	dbConfig := e.cfg.Schemas[db]
@@ -110,9 +75,56 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	session := e.getSession()
 	collection := e.getCollection(session, tableConfig.Collection)
 
-	log.Logf(log.DebugLow, "query: %#v", query)
-	result := collection.Find(query)
+	result := collection.Find(algebrizedQuery)
 	iter := result.Iter()
 
 	return IterToNamesAndValues(iter)
+}
+
+func getAlgebrizedQuery(stmt *sqlparser.Select, pCtx *ParseCtx) (interface{}, error) {
+	// handle select expressions like as aliasing
+	// e.g. select FirstName as f, LastName as l from foo;
+	columns, err := getColumnInfo(stmt.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Logf(log.DebugLow, "columns %#v", columns)
+
+	tables, err := getTableInfo(stmt.From)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Logf(log.DebugLow, "tables %#v", columns)
+
+	ctx := &ParseCtx{
+		Table:  tables,
+		Column: columns,
+		Parent: pCtx,
+	}
+
+	var query interface{} = nil
+
+	if stmt.Where != nil {
+
+		log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(stmt.Where.Expr), stmt.Where.Expr)
+
+		var err error
+
+		query, err = translateExpr(stmt.Where.Expr, ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Logf(log.DebugLow, "query tree: %#v", query)
+
+		return query, nil
+	}
+
+	if stmt.Having != nil {
+		return nil, fmt.Errorf("'HAVING' statement not yet supported")
+	}
+
+	return query, nil
 }
