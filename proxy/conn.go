@@ -41,7 +41,7 @@ type Conn struct {
 
 	salt []byte
 
-	schema *config.Schema
+	currentSchema *config.Schema
 
 	//txConns map[*Node]*client.SqlConn
 
@@ -313,7 +313,7 @@ func (c *Conn) useDB(db string) error {
 	if s := c.server.schemas[db]; s == nil {
 		return NewDefaultError(ER_BAD_DB_ERROR, db)
 	} else {
-		c.schema = s
+		c.currentSchema = s
 		c.db = db
 	}
 	return nil

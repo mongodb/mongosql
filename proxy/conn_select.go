@@ -40,8 +40,8 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 	case "connection_id":
 		r, err = c.buildSimpleSelectResult(c.connectionId, f.Name, expr.As)
 	case "database":
-		if c.schema != nil {
-			r, err = c.buildSimpleSelectResult(c.schema.DB, f.Name, expr.As)
+		if c.currentSchema != nil {
+			r, err = c.buildSimpleSelectResult(c.currentSchema.DB, f.Name, expr.As)
 		} else {
 			r, err = c.buildSimpleSelectResult("NULL", f.Name, expr.As)
 		}

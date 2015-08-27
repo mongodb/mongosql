@@ -38,12 +38,12 @@ func (c *Conn) handleShowDatabases() (*Resultset, error) {
 }
 
 func (c *Conn) handleShowTables(sql string, stmt *sqlparser.Show) (*Resultset, error) {
-	if c.schema == nil {
+	if c.currentSchema == nil {
 		return nil, fmt.Errorf("no db select for show tables")
 	}
 	
 	var tables []string
-	for table, _ := range c.schema.Tables {
+	for table, _ := range c.currentSchema.Tables {
 		tables = append(tables, table)
 	}
 
@@ -54,7 +54,7 @@ func (c *Conn) handleShowTables(sql string, stmt *sqlparser.Show) (*Resultset, e
 		values[i] = tables[i]
 	}
 
-	return c.buildSimpleShowResultset(values, fmt.Sprintf("Tables_in_%s", c.schema.DB))
+	return c.buildSimpleShowResultset(values, fmt.Sprintf("Tables_in_%s", c.currentSchema.DB))
 }
 
 func (c *Conn) buildSimpleShowResultset(values []interface{}, name string) (*Resultset, error) {
