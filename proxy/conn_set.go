@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/mongodb/mongo-tools/common/log"
 	. "github.com/siddontang/mixer/mysql"
 	"github.com/siddontang/mixer/sqlparser"
 	"strings"
@@ -16,12 +17,17 @@ func (c *Conn) handleSet(stmt *sqlparser.Set) error {
 
 	k := string(stmt.Exprs[0].Name.Name)
 
-	switch strings.ToUpper(k) {
-	case `AUTOCOMMIT`:
+	switch strings.ToLower(k) {
+	case `autocommit`:
 		return c.handleSetAutoCommit(stmt.Exprs[0].Expr)
-	case `NAMES`:
+	case `names`:
 		return c.handleSetNames(stmt.Exprs[0].Expr)
+	case `character_set_results`:
+		return c.handleSetCharacterResults(stmt.Exprs[0].Expr)
+	case `sql_auto_is_null`:
+		return c.writeOK(nil)
 	default:
+		log.Logf(log.Always, "%s", sqlparser.String(stmt))
 		return fmt.Errorf("set %s is not supported now", k)
 	}
 }
@@ -59,4 +65,13 @@ func (c *Conn) handleSetNames(val sqlparser.ValExpr) error {
 	c.collation = cid
 
 	return c.writeOK(nil)
+}
+
+func (c *Conn) handleSetCharacterResults(val sqlparser.ValExpr) error {
+	switch expr := val.(type) {
+	case *sqlparser.NullVal:
+		return c.writeOK(nil)
+	default:
+		return fmt.Errorf("do not know how to set CHARACTER_SET_RESULTS to: %T %s", expr,sqlparser.String(expr))
+	}
 }

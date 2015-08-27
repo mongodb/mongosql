@@ -257,7 +257,7 @@ func (c *Conn) Run() {
 		}
 
 		if err := c.dispatch(data); err != nil {
-			log.Logf(log.Always, "dispatch error %s", err.Error())
+			log.Logf(log.Always, "dispatch error: %s", err.Error())
 			if err != ErrBadConn {
 				c.writeError(err)
 			}
