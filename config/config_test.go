@@ -20,7 +20,7 @@ log_level : error
 
 schema :
 - 
-  db: test
+  db: test1
   tables:
   - 
      table: foo
@@ -64,7 +64,7 @@ schema :
 	}
 
 	if cfg.RawSchemas[0].DB != "test1" {
-		t.Fatal("first db is wrong")
+		t.Fatalf("first db is wrong: %s", cfg.RawSchemas[0].DB)
 	}
 
 	if cfg.RawSchemas[0].RawTables[0].Table != "foo" || cfg.RawSchemas[0].RawTables[0].Collection != "test.foo" {
