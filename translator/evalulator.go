@@ -79,13 +79,20 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		}
 	}
 
+	alias := ctx.GetDefaultTable()
+	tableName := ctx.TableName(alias)
+
+	if strings.Index(tableName, ".") >= 0 {
+		split := strings.SplitN(tableName, ".", 2)
+		db = split[0]
+		tableName = split[1]
+	}
+	
 	dbConfig := e.cfg.Schemas[db]
 	if dbConfig == nil {
 		return nil, nil, fmt.Errorf("db (%s) does not exist", db)
 	}
 
-	alias := ctx.GetDefaultTable()
-	tableName := ctx.TableName(alias)
 	tableConfig := dbConfig.Tables[tableName]
 	if tableConfig == nil {
 		return nil, nil, fmt.Errorf("table (%s) does not exist in db(%s)", tableName, db)
