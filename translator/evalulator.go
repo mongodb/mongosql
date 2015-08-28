@@ -34,9 +34,9 @@ func (e *Evalulator) getSession() *mgo.Session {
 	return e.globalSession.Copy()
 }
 
-func (e *Evalulator) getCollection(session *mgo.Session, fullName string) *mgo.Collection {
+func (e *Evalulator) getCollection(session *mgo.Session, fullName string) DataSource {
 	pcs := strings.SplitN(fullName, ".", 2)
-	return session.DB(pcs[0]).C(pcs[1])
+	return GoDataSource{session.DB(pcs[0]).C(pcs[1])}
 }
 
 // EvalSelect needs to be updated ...

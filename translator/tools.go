@@ -3,7 +3,6 @@ package translator
 import (
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/log"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"sort"
 )
@@ -22,7 +21,7 @@ func (e *Evalulator) PrintTableData(names []string, values [][]interface{}) {
 	}
 }
 
-func IterToNamesAndValues(iter *mgo.Iter) ([]string, [][]interface{}, error) {
+func IterToNamesAndValues(iter FindResults) ([]string, [][]interface{}, error) {
 	names := []string{"_id"} // we want this to be first
 	values := make([][]interface{}, 0)
 
