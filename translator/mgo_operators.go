@@ -1,7 +1,7 @@
 package translator
 
 import (
-	"github.com/siddontang/mixer/sqlparser"
+	"github.com/erh/mixer/sqlparser"
 )
 
 var (

@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/siddontang/mixer/sqlparser"
+	"github.com/erh/mixer/sqlparser"
 )
 
 func (c *Conn) handleAdmin(admin *sqlparser.Admin) error {

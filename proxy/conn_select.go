@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/log"
 	. "github.com/siddontang/mixer/mysql"
-	"github.com/siddontang/mixer/sqlparser"
+	"github.com/erh/mixer/sqlparser"
 	"strings"
 )
 

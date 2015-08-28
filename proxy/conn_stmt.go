@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	. "github.com/siddontang/mixer/mysql"
-	"github.com/siddontang/mixer/sqlparser"
+	"github.com/erh/mixer/sqlparser"
 	"math"
 	"strconv"
 	//"strings"

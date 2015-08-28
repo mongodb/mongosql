@@ -6,7 +6,7 @@ import (
 	"github.com/siddontang/mixer/client"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
-	"github.com/siddontang/mixer/sqlparser"
+	"github.com/erh/mixer/sqlparser"
 	"runtime/debug"
 	"strconv"
 	"strings"

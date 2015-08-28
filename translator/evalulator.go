@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
 	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/siddontang/mixer/sqlparser"
+	"github.com/erh/mixer/sqlparser"
 	"gopkg.in/mgo.v2"
 	"strings"
 )
