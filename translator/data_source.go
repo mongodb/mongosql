@@ -15,6 +15,8 @@ type FindQuery interface {
 
 type DataSource interface {
 	Find(query interface{}) FindQuery
+	Insert(docs ...interface{}) error
+	DropCollection() error
 }
 
 // ------
@@ -49,4 +51,12 @@ type GoDataSource struct {
 
 func (gds GoDataSource) Find(query interface{}) FindQuery {
 	return GoFindQuery{gds.collection.Find(query)}
+}
+
+func (gds GoDataSource) Insert(docs ...interface{}) error {
+	return gds.collection.Insert(docs...)
+}
+
+func (gds GoDataSource) DropCollection() error {
+	return gds.collection.DropCollection()
 }
