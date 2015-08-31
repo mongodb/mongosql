@@ -25,12 +25,18 @@ schema :
   - 
      table: foo
      collection: test.foo
+     columns:
+        a: int
+        b: string
 -
   db: test2
   tables:
   -
      table: bar
      collection: test.bar
+     columns:
+        a: string
+        b: int
      pipeline:
      -
         $unwind : "$x"
