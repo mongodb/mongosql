@@ -36,7 +36,7 @@ func (e *Evalulator) getSession() *mgo.Session {
 
 func (e *Evalulator) getCollection(session *mgo.Session, fullName string) DataSource {
 	pcs := strings.SplitN(fullName, ".", 2)
-	return GoDataSource{session.DB(pcs[0]).C(pcs[1])}
+	return MgoDataSource{session.DB(pcs[0]).C(pcs[1])}
 }
 
 // EvalSelect needs to be updated ...

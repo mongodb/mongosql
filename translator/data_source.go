@@ -21,42 +21,42 @@ type DataSource interface {
 
 // ------
 
-type GoFindResults struct {
+type MgoFindResults struct {
 	iter *mgo.Iter
 }
 
-func (gfr GoFindResults) Next(result interface{}) bool {
+func (gfr MgoFindResults) Next(result interface{}) bool {
 	return gfr.iter.Next(result)
 }
 
-func (gfr GoFindResults) Err() error {
+func (gfr MgoFindResults) Err() error {
 	return gfr.iter.Err()
 }
 
 // -
 
-type GoFindQuery struct {
+type MgoFindQuery struct {
 	query *mgo.Query
 }
 
-func (gfq GoFindQuery) Iter() FindResults {
-	return GoFindResults{gfq.query.Iter()}
+func (gfq MgoFindQuery) Iter() FindResults {
+	return MgoFindResults{gfq.query.Iter()}
 }
 
 // -
 
-type GoDataSource struct {
+type MgoDataSource struct {
 	collection *mgo.Collection
 }
 
-func (gds GoDataSource) Find(query interface{}) FindQuery {
-	return GoFindQuery{gds.collection.Find(query)}
+func (gds MgoDataSource) Find(query interface{}) FindQuery {
+	return MgoFindQuery{gds.collection.Find(query)}
 }
 
-func (gds GoDataSource) Insert(docs ...interface{}) error {
+func (gds MgoDataSource) Insert(docs ...interface{}) error {
 	return gds.collection.Insert(docs...)
 }
 
-func (gds GoDataSource) DropCollection() error {
+func (gds MgoDataSource) DropCollection() error {
 	return gds.collection.DropCollection()
 }
