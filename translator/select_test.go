@@ -7,18 +7,6 @@ import (
 	"testing"
 )
 
-var testConfigSimple = []byte(
-	`
-schema :
--
-  url: localhost
-  db: test
-  tables:
-  -
-     table: bar
-     collection: test.simple
-`)
-
 func TestSimple(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {

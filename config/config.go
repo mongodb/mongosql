@@ -4,11 +4,18 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+type Column struct {
+	Name string
+	Type string
+	MysqlType string
+}
+
 type TableConfig struct {
 	Table      string   `yaml:"table"`
 	Collection string   `yaml:"collection"`
 	Pipeline   []bson.M `yaml:"pipeline"`
-	Columns map[string]string `yaml:"columns"`
+	ColumnMap map[string]string `yaml:"columns"`
+	Columns []Column `yaml:"columns_no"`
 }
 
 type Schema struct {

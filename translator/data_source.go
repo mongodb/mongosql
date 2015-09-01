@@ -2,10 +2,11 @@ package translator
 
 import (
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type FindResults interface {
-	Next(result interface{}) bool
+	Next(result *bson.M) bool
 	Err() error
 }
 
@@ -25,11 +26,11 @@ type MgoFindResults struct {
 	iter *mgo.Iter
 }
 
-func (gfr MgoFindResults) Next(result interface{}) bool {
+func (gfr *MgoFindResults) Next(result *bson.M) bool {
 	return gfr.iter.Next(result)
 }
 
-func (gfr MgoFindResults) Err() error {
+func (gfr *MgoFindResults) Err() error {
 	return gfr.iter.Err()
 }
 
@@ -40,7 +41,7 @@ type MgoFindQuery struct {
 }
 
 func (gfq MgoFindQuery) Iter() FindResults {
-	return MgoFindResults{gfq.query.Iter()}
+	return &MgoFindResults{gfq.query.Iter()}
 }
 
 // -

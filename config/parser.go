@@ -7,12 +7,12 @@ import (
 )
 
 func fixTable(table *TableConfig) error {
-	for field, our_type := range(table.Columns) {
+	for field, our_type := range(table.ColumnMap) {
 		switch our_type {
 		case "int":
-			continue
+			table.Columns = append(table.Columns, Column{field, our_type, "int(11)"})
 		case "string":
-			continue
+			table.Columns = append(table.Columns, Column{field, our_type, "varchar(1024)"})
 		default:
 			return fmt.Errorf("unknown column type: %s on %s.%s", table.Table, field)
 		}

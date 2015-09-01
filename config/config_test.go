@@ -85,6 +85,10 @@ schema :
 		t.Fatal("map broken 2")
 	}
 
+	if len(cfg.Schemas["test1"].Tables["foo"].Columns) != 2 {
+		t.Fatal("test1.foo columns wrong")
+	}
+	
 	testBar := cfg.Schemas["test2"].Tables["bar"]
 	if len(testBar.Pipeline) != 2 {
 		t.Fatal("test2.bar pipeline is wrong length")
