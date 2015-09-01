@@ -57,6 +57,15 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 	(*result)["COLUMN_TYPE"] = col.MysqlType
 
 	cfr.columnsOffset = cfr.columnsOffset + 1
+
+	matches, err := Matches(cfr.query, result)
+	if err != nil {
+		panic(err)
+	}
+	if !matches {
+		return cfr.Next(result)
+	}
+	
 	return true
 }
 

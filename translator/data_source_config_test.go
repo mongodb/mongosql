@@ -4,35 +4,55 @@ import (
 	"github.com/erh/mongo-sql-temp/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
+	"sort"
 	"testing"
 )
 
 func TestConfigDataSourceIter(t *testing.T) {
 
-	Convey("With a simple test configuration...", t, func() {
+	Convey("using config data source should work", t, func() {
 
-		Convey("using config data source should work", func() {
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+		
+		dataSource := ConfigDataSource{cfg}
+		
+		query := dataSource.Find(bson.M{})
+		
+		iter := query.Iter()
+		
+		var doc bson.M
 
-			cfg, err := config.ParseConfigData(testConfigSimple)
-			So(err, ShouldBeNil)
+		fieldNames := []string{}
 
-			dataSource := ConfigDataSource{cfg}
+		for iter.Next(&doc) {
+			fieldNames = append(fieldNames, doc["COLUMN_NAME"].(string) )
+		}
+		
+		So(len(fieldNames), ShouldEqual, 6)
 
-			query := dataSource.Find(bson.M{})
+		sort.Strings(fieldNames)
+		So([]string{"a", "b", "c", "d", "e", "f"}, ShouldResemble, fieldNames)
+	})
+}
 
-			iter := query.Iter()
+func TestConfigDataSourceSelect(t *testing.T) {
 
-			var doc bson.M
+	Convey("using config data source should work", t, func() {
 
-			So(iter.Next(&doc), ShouldBeTrue)
-			So(iter.Next(&doc), ShouldBeTrue)
-			So(iter.Next(&doc), ShouldBeTrue)
-			So(iter.Next(&doc), ShouldBeTrue)
-			So(iter.Next(&doc), ShouldBeTrue)
-			So(iter.Next(&doc), ShouldBeTrue)
-			So(doc["TABLE_NAME"], ShouldEqual, "silly")
-			So(doc["COLUMN_NAME"], ShouldEqual, "f")
-			So(iter.Next(&doc), ShouldBeFalse)
-		})
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvalulator(cfg)
+		So(err, ShouldBeNil)
+
+		_, values, err := eval.EvalSelect("information_schema", "select * from columns", nil)
+		So(err, ShouldBeNil)
+		So(len(values), ShouldEqual, 6)
+
+		_, values, err = eval.EvalSelect("information_schema", "select * from columns where COLUMN_NAME = 'f'", nil)
+		So(err, ShouldBeNil)
+		So(len(values), ShouldEqual, 1)
+
 	})
 }

@@ -39,6 +39,27 @@ func (e *Evalulator) getCollection(session *mgo.Session, fullName string) DataSo
 	return MgoDataSource{session.DB(pcs[0]).C(pcs[1])}
 }
 
+func (e *Evalulator) getDataSource(db string, tableName string) (DataSource, error) {
+
+	dbConfig := e.cfg.Schemas[db]
+	if dbConfig == nil {
+		if strings.ToLower(db) == "information_schema" &&
+			strings.ToLower(tableName) == "columns" {
+			return ConfigDataSource{e.cfg}, nil
+		}
+		
+		return nil, fmt.Errorf("db (%s) does not exist", db)
+	}
+
+	tableConfig := dbConfig.Tables[tableName]
+	if tableConfig == nil {
+		return nil, fmt.Errorf("table (%s) does not exist in db(%s)", tableName, db)
+	}
+
+	session := e.getSession()
+	return e.getCollection(session, tableConfig.Collection), nil
+}
+
 // EvalSelect needs to be updated ...
 func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
 	if stmt == nil {
@@ -88,18 +109,10 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		tableName = split[1]
 	}
 	
-	dbConfig := e.cfg.Schemas[db]
-	if dbConfig == nil {
-		return nil, nil, fmt.Errorf("db (%s) does not exist", db)
+	collection, err := e.getDataSource(db, tableName)
+	if err != nil {
+		return nil, nil, err
 	}
-
-	tableConfig := dbConfig.Tables[tableName]
-	if tableConfig == nil {
-		return nil, nil, fmt.Errorf("table (%s) does not exist in db(%s)", tableName, db)
-	}
-
-	session := e.getSession()
-	collection := e.getCollection(session, tableConfig.Collection)
 
 	result := collection.Find(query)
 	iter := result.Iter()

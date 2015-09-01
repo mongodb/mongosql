@@ -42,7 +42,7 @@ func translateExpr(gExpr sqlparser.Expr) (interface{}, error) {
 		return sqlparser.String(expr), nil
 
 	case sqlparser.StrVal:
-		return sqlparser.String(expr), nil
+		return string(expr), nil 
 
 	case *sqlparser.BinaryExpr:
 		left, right, err := translateLRExpr(expr.Left, expr.Right)
