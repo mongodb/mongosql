@@ -15,7 +15,7 @@ func TestConfigDataSourceIter(t *testing.T) {
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
 		
-		dataSource := ConfigDataSource{cfg}
+		dataSource := ConfigDataSource{cfg, true}
 		
 		query := dataSource.Find(bson.M{})
 		
@@ -54,5 +54,33 @@ func TestConfigDataSourceSelect(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(len(values), ShouldEqual, 1)
 
+	})
+}
+
+func TestConfigDataSourceIterTables(t *testing.T) {
+
+	Convey("using config data source should work", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+		
+		dataSource := ConfigDataSource{cfg, false}
+		
+		query := dataSource.Find(bson.M{})
+		
+		iter := query.Iter()
+		
+		var doc bson.M
+
+		names := []string{}
+
+		for iter.Next(&doc) {
+			names = append(names, doc["TABLE_NAME"].(string) )
+		}
+		
+		So(len(names), ShouldEqual, 3)
+
+		sort.Strings(names)
+		So([]string{"bar", "bar", "silly"}, ShouldResemble, names)
 	})
 }

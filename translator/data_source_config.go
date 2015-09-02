@@ -11,7 +11,8 @@ import "github.com/erh/mongo-sql-temp/config"
 type ConfigFindResults struct {
 	config *config.Config
 	query interface{}
-
+	includeColumns bool
+	
 	dbOffset int
 	tableOffset int
 	columnsOffset int
@@ -36,6 +37,20 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 	}
 
 	table := db.RawTables[cfr.tableOffset]
+
+	if !cfr.includeColumns {
+		*result = bson.M{}
+	
+		(*result)["TABLE_SCHEMA"] = db.DB
+		(*result)["TABLE_NAME"] = table.Table
+
+		(*result)["TABLE_TYPE"] = "BASE TABLE"
+		(*result)["TABLE_COMMENT"] = "d"
+
+		cfr.tableOffset = cfr.tableOffset + 1
+		
+		return true
+	}
 	
 	// are we in valid column space
 	if cfr.columnsOffset >= len(table.Columns) {
@@ -80,20 +95,22 @@ func (cfr *ConfigFindResults) Err() error {
 type ConfigFindQuery struct {
 	config *config.Config
 	query interface{}
+	includeColumns bool
 }
 
 func (cfq ConfigFindQuery) Iter() FindResults {
-	return &ConfigFindResults{cfq.config, cfq.query, 0, 0, 0}
+	return &ConfigFindResults{cfq.config, cfq.query, cfq.includeColumns, 0, 0, 0}
 }
 
 // -
 
 type ConfigDataSource struct {
 	Config *config.Config
+	IncludeColumns bool
 }
 
 func (cds ConfigDataSource) Find(query interface{}) FindQuery {
-	return ConfigFindQuery{cds.Config, query}
+	return ConfigFindQuery{cds.Config, query, cds.IncludeColumns}
 }
 
 func (cds ConfigDataSource) Insert(docs ...interface{}) error {

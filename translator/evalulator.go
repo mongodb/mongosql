@@ -44,9 +44,14 @@ func (e *Evalulator) getDataSource(db string, tableName string) (DataSource, err
 
 	dbConfig := e.cfg.Schemas[db]
 	if dbConfig == nil {
-		if strings.ToLower(db) == "information_schema" &&
-			strings.ToLower(tableName) == "columns" {
-			return ConfigDataSource{e.cfg}, nil
+		if strings.ToLower(db) == "information_schema" {
+			if strings.ToLower(tableName) == "columns" {
+				return ConfigDataSource{e.cfg, true}, nil
+			}
+			if strings.ToLower(tableName) == "tables" {
+				return ConfigDataSource{e.cfg, false}, nil
+			}
+
 		}
 		
 		return nil, fmt.Errorf("db (%s) does not exist", db)
