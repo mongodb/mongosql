@@ -56,6 +56,8 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 	(*result)["COLUMN_NAME"] = col.Name
 	(*result)["COLUMN_TYPE"] = col.MysqlType
 
+	(*result)["ORDINAL_POSITINO"] = cfr.columnsOffset + 1
+	
 	cfr.columnsOffset = cfr.columnsOffset + 1
 
 	matches, err := Matches(cfr.query, result)
@@ -100,4 +102,8 @@ func (cds ConfigDataSource) Insert(docs ...interface{}) error {
 
 func (cds ConfigDataSource) DropCollection() error {
 	return fmt.Errorf("cannot drop config data source")
+}
+
+func (cds ConfigDataSource) GetColumns() []config.Column {
+	return []config.Column{}
 }

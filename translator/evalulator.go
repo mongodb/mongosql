@@ -34,9 +34,10 @@ func (e *Evalulator) getSession() *mgo.Session {
 	return e.globalSession.Copy()
 }
 
-func (e *Evalulator) getCollection(session *mgo.Session, fullName string) DataSource {
+func (e *Evalulator) getCollection(session *mgo.Session, tableConfig *config.TableConfig) DataSource {
+	fullName := tableConfig.Collection
 	pcs := strings.SplitN(fullName, ".", 2)
-	return MgoDataSource{session.DB(pcs[0]).C(pcs[1])}
+	return MgoDataSource{session.DB(pcs[0]).C(pcs[1]), tableConfig.Columns}
 }
 
 func (e *Evalulator) getDataSource(db string, tableName string) (DataSource, error) {
@@ -57,7 +58,7 @@ func (e *Evalulator) getDataSource(db string, tableName string) (DataSource, err
 	}
 
 	session := e.getSession()
-	return e.getCollection(session, tableConfig.Collection), nil
+	return e.getCollection(session, tableConfig), nil
 }
 
 // EvalSelect needs to be updated ...
@@ -117,5 +118,5 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	result := collection.Find(query)
 	iter := result.Iter()
 
-	return IterToNamesAndValues(iter)
+	return IterToNamesAndValues(iter, collection.GetColumns())
 }
