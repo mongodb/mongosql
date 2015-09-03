@@ -17,17 +17,7 @@ func getFieldCaseInsensitive(doc *bson.M, field string) interface{} {
 }
 
 func valuesEqual(rawA interface{}, rawB interface{}) bool {
-	switch a := rawA.(type) {
-	case string:
-		switch b := rawB.(type) {
-		case string:
-			return a == b
-		default:
-			return false
-		}
-	default:
-		return reflect.DeepEqual(rawA, rawB)
-	}
+	return reflect.DeepEqual(rawA, rawB)
 }
 
 func fieldMatches(field_value interface{}, op interface{}) (bool, error) {
@@ -42,10 +32,9 @@ func fieldMatches(field_value interface{}, op interface{}) (bool, error) {
 		}
 		return true, nil
 	default:
-		return false, fmt.Errorf("can't handle op  type: %V", op)
+		return false, fmt.Errorf("can't handle op  type: %T", op)
 	}
 	
-	return true, nil
 }
 
 func Matches(query interface{}, doc *bson.M) (bool, error) {

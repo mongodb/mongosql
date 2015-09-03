@@ -10,7 +10,7 @@ import (
 
 func TestConfigDataSourceIter(t *testing.T) {
 
-	Convey("using config data source should work", t, func() {
+	Convey("using config data source should iterate all columns", t, func() {
 
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
@@ -38,7 +38,7 @@ func TestConfigDataSourceIter(t *testing.T) {
 
 func TestConfigDataSourceSelect(t *testing.T) {
 
-	Convey("using config data source should work", t, func() {
+	Convey("using config data source should to filter columns", t, func() {
 
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
@@ -59,7 +59,7 @@ func TestConfigDataSourceSelect(t *testing.T) {
 
 func TestConfigDataSourceIterTables(t *testing.T) {
 
-	Convey("using config data source should work", t, func() {
+	Convey("using config data source should iterate tables", t, func() {
 
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
