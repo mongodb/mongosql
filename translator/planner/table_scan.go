@@ -3,6 +3,7 @@ package planner
 import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"strings"
 	"sync"
 )
 
@@ -26,9 +27,28 @@ func (ts *TableScan) init(ctx *ExecutionCtx) error {
 	if err != nil {
 		return err
 	}
-	ts.database = sp.GetSession().DB(ctx.Db)
-	collection := ts.database.C(ts.collection)
-	ts.iter = collection.Find(ts.filter).Iter()
+
+	dbConfig := ctx.Config.Schemas[ctx.Db]
+	if dbConfig == nil {
+		if strings.ToLower(ctx.Db) == "information_schema" {
+			var cds ConfigDataSource
+			if strings.ToLower(ts.collection) == "columns" {
+				cds = ConfigDataSource{ctx.Config, true}
+			}
+			if strings.ToLower(ts.collection) == "tables" ||
+				strings.ToLower(ts.collection) == "txxxables" {
+				cds = ConfigDataSource{ctx.Config, false}
+			}
+			// TODO: need to change TableScan.iter to something we can use
+			// both an mgo.Iter and the FindQuery interface for.
+			// MgoDataSource is essentialy TableScan.Iter
+			cds.Find(ts.filter).Iter()
+		}
+	} else {
+		ts.database = sp.GetSession().DB(ctx.Db)
+		collection := ts.database.C(ts.collection)
+		ts.iter = collection.Find(ts.filter).Iter()
+	}
 	return nil
 }
 
