@@ -7,6 +7,7 @@ import (
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
 	"github.com/erh/mixer/sqlparser"
+	"github.com/erh/mongo-sql-temp/translator"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -27,7 +28,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	sql = strings.TrimRight(sql, ";")
 
 	var stmt sqlparser.Statement
-	stmt, err = sqlparser.Parse(sql)
+	stmt, err = translator.ParseSQL(sql)
 	if err != nil {
 
 		// This is an ugly hack such that if someone tries to set some parameter to the default

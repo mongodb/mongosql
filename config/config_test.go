@@ -26,8 +26,12 @@ schema :
      table: foo
      collection: test.foo
      columns:
-        a: int
-        b: string
+     -
+        name: a
+        type: int
+     -
+        name: b
+        type: string
 -
   db: test2
   tables:
@@ -35,8 +39,12 @@ schema :
      table: bar
      collection: test.bar
      columns:
-        a: string
-        b: int
+     -
+        name: a
+        type: string
+     -
+        name: b
+        type: int
      pipeline:
      -
         $unwind : "$x"
@@ -86,7 +94,11 @@ schema :
 	}
 
 	if len(cfg.Schemas["test1"].Tables["foo"].Columns) != 2 {
-		t.Fatal("test1.foo columns wrong")
+		t.Fatal("test1.foo num columns wrong")
+	}
+
+	if cfg.Schemas["test1"].Tables["foo"].Columns[0].Name != "a" {
+		t.Fatal("test1.foo.a name wrong")
 	}
 	
 	testBar := cfg.Schemas["test2"].Tables["bar"]

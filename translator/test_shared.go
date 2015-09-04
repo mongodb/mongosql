@@ -11,8 +11,12 @@ schema :
      table: bar
      collection: test.simple
      columns:
-        a: int
-        b: string
+     -
+        name: a
+        type: int
+     -
+        name: b
+        type: string
 -
   url: localhost
   db: foo
@@ -21,15 +25,20 @@ schema :
      table: bar
      collection: test.simple
      columns:
-        c: int
-        d: string
+     -
+        name: c
+        type: int
+     -
+        name: d
+        type: string
   -
      table: silly
      collection: test.simple
      columns:
-        e: int
-        f: string
-
-
-
+     -
+        name: e
+        type: int
+     -
+        name: f
+        type: string
 `)

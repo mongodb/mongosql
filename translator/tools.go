@@ -2,12 +2,18 @@ package translator
 
 import (
 	"fmt"
+	"strings"
 	
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/erh/mongo-sql-temp/config"
 )
+
+func caseInsensitiveEquals(a string, b string) bool {
+	// TODO don't copy
+	return strings.ToUpper(a) == strings.ToUpper(b)
+}
 
 func (e *Evalulator) PrintTableData(names []string, values [][]interface{}) {
 	for _, name := range names {
@@ -23,51 +29,47 @@ func (e *Evalulator) PrintTableData(names []string, values [][]interface{}) {
 	}
 }
 
-func IterToNamesAndValues(iter FindResults, columns []config.Column) ([]string, [][]interface{}, error) {
+func getColumn(doc *bson.M, name string) interface{} {
+	val := (*doc)[name]
+	if val != nil {
+		return val
+	}
+
+	for k, v := range *doc {
+		if caseInsensitiveEquals(name, k) {
+			return v
+		}
+	}
+
+	return nil
+}
+
+func IterToNamesAndValues(iter FindResults, columns []config.Column, includeExtra bool) ([]string, [][]interface{}, error) {
 	names := []string{}
 	var seen map[string]bool = make(map[string]bool)
 	
-	gotId := false
 	for _, c := range(columns) {
-		if c.Name == "_id" {
-			gotId = true
-		}
 		names = append(names, c.Name)
 		seen[c.Name] = true
 	}
 
-	if !gotId {
-		names = append(names, "_id")
-	}
-	
 	values := make([][]interface{}, 0)
 
-	seen["_id"] = true
-
-	var first bool = true
 	var doc bson.M
 	for iter.Next(&doc) {
-		if first {
-			first = false
-			for name, _ := range doc {
-				if name != "_id" && !seen[name] {
-					names = append(names, name)
-					seen[name] = true
-				}
-			}
-		}
-
 		columns := make([]interface{}, 0)
 
 		for _, name := range names {
-			columns = append(columns, doc[name])
+			columns = append(columns, getColumn(&doc, name))
 		}
 
-		for k, v := range doc {
-			if !seen[k] {
-				names = append(names, k)
-				seen[k] = true
-				columns = append(columns, v)
+		if includeExtra {
+			for k, v := range doc {
+				if !seen[k] {
+					names = append(names, k)
+					seen[k] = true
+					columns = append(columns, v)
+				}
 			}
 		}
 

@@ -38,9 +38,9 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 
 	table := db.RawTables[cfr.tableOffset]
 
-	if !cfr.includeColumns {
-		*result = bson.M{}
+	*result = bson.M{}
 	
+	if !cfr.includeColumns {
 		(*result)["TABLE_SCHEMA"] = db.DB
 		(*result)["TABLE_NAME"] = table.Table
 
@@ -48,32 +48,28 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 		(*result)["TABLE_COMMENT"] = "d"
 
 		cfr.tableOffset = cfr.tableOffset + 1
+	} else {
+		// are we in valid column space
+		if cfr.columnsOffset >= len(table.Columns) {
+			cfr.tableOffset = cfr.tableOffset + 1
+			cfr.columnsOffset = 0
+			return cfr.Next(result)
+		}
+	
+		(*result)["TABLE_CATALOG"] = "def"
 		
-		return true
+		(*result)["TABLE_SCHEMA"] = db.DB
+		(*result)["TABLE_NAME"] = table.Table
+		
+		col := table.Columns[cfr.columnsOffset]
+	
+		(*result)["COLUMN_NAME"] = col.Name
+		(*result)["COLUMN_TYPE"] = col.MysqlType
+
+		(*result)["ORDINAL_POSITION"] = cfr.columnsOffset + 1
+	
+		cfr.columnsOffset = cfr.columnsOffset + 1
 	}
-	
-	// are we in valid column space
-	if cfr.columnsOffset >= len(table.Columns) {
-		cfr.tableOffset = cfr.tableOffset + 1
-		cfr.columnsOffset = 0
-		return cfr.Next(result)
-	}
-
-	*result = bson.M{}
-	
-	(*result)["TABLE_CATALOG"] = "def"
-
-	(*result)["TABLE_SCHEMA"] = db.DB
-	(*result)["TABLE_NAME"] = table.Table
-
-	col := table.Columns[cfr.columnsOffset]
-	
-	(*result)["COLUMN_NAME"] = col.Name
-	(*result)["COLUMN_TYPE"] = col.MysqlType
-
-	(*result)["ORDINAL_POSITINO"] = cfr.columnsOffset + 1
-	
-	cfr.columnsOffset = cfr.columnsOffset + 1
 
 	matches, err := Matches(cfr.query, result)
 	if err != nil {

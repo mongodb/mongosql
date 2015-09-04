@@ -6,20 +6,6 @@ import (
 	"io/ioutil"
 )
 
-func fixTable(table *TableConfig) error {
-	for field, ourType := range(table.ColumnMap) {
-		switch ourType {
-		case "int":
-			table.Columns = append(table.Columns, Column{field, ourType, "int(11)"})
-		case "string":
-			table.Columns = append(table.Columns, Column{field, ourType, "varchar(1024)"})
-		default:
-			return fmt.Errorf("unknown column type: %s on %s.%s", table.Table, field)
-		}
-	}
-	return nil
-}
-
 func ParseConfigData(data []byte) (*Config, error) {
 	var cfg Config
 	if err := yaml.Unmarshal([]byte(data), &cfg); err != nil {
@@ -36,11 +22,6 @@ func ParseConfigData(data []byte) (*Config, error) {
 		schemaCfg.Tables = make(map[string]*TableConfig)
 		for _, n := range schemaCfg.RawTables {
 			schemaCfg.Tables[n.Table] = n
-
-			err := fixTable(n)
-			if err != nil {
-				return nil, err
-			}
 		}
 
 	}

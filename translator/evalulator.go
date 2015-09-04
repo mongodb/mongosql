@@ -48,7 +48,8 @@ func (e *Evalulator) getDataSource(db string, tableName string) (DataSource, err
 			if strings.ToLower(tableName) == "columns" {
 				return ConfigDataSource{e.cfg, true}, nil
 			}
-			if strings.ToLower(tableName) == "tables" {
+			if strings.ToLower(tableName) == "tables" ||
+				strings.ToLower(tableName) == "txxxables" {
 				return ConfigDataSource{e.cfg, false}, nil
 			}
 
@@ -66,17 +67,58 @@ func (e *Evalulator) getDataSource(db string, tableName string) (DataSource, err
 	return e.getCollection(session, tableConfig), nil
 }
 
+func computeOutputColumns(schema []config.Column, exprs sqlparser.SelectExprs) ([]config.Column, bool, error) {
+	output := make([]config.Column, 0)
+
+	hadStar := false
+	
+	for _, c := range(exprs) {
+		switch entry := c.(type) {
+		case *sqlparser.StarExpr:
+			output = append(output, schema...)
+			hadStar = true
+		case *sqlparser.NonStarExpr:
+			if len(entry.As) > 0 {
+				return output, false, fmt.Errorf("can't handle AS yet")
+			}
+			
+			switch e := entry.Expr.(type) {
+			case *sqlparser.ColName:
+				name := string(e.Name)
+				var idx int = -1
+				for i, j := range(schema) {
+					if caseInsensitiveEquals(j.Name, name) {
+						idx = i
+						break
+					}
+				}
+				if idx == -1 {
+					output = append(output, config.Column{name, "", ""} )
+				} else {
+					output = append(output, schema[idx])
+				}
+			default:
+				return output, false, fmt.Errorf("weird non-star type %T", e)
+			}
+		default:
+			return output, false, fmt.Errorf("weird select type %T", entry)
+		}
+	}
+
+	return output, hadStar, nil
+}
+
 // EvalSelect needs to be updated ...
 func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
 	if stmt == nil {
 		// we can parse ourselves
-		raw, err := sqlparser.Parse(sql)
+		raw, err := ParseSQL(sql)
 		if err != nil {
 			return nil, nil, err
 		}
 		var ok bool
 		if stmt, ok = raw.(*sqlparser.Select); !ok {
-			return nil, nil, fmt.Errorf("got a non-selecdt statement in EvalSelect")
+			return nil, nil, fmt.Errorf("got a non-select statement in EvalSelect: %T", raw)
 		}
 	}
 
@@ -105,7 +147,6 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 			return nil, nil, err
 		}
 	}
-
 	alias := ctx.GetDefaultTable()
 	tableName := ctx.TableName(alias)
 
@@ -123,5 +164,10 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	result := collection.Find(query)
 	iter := result.Iter()
 
-	return IterToNamesAndValues(iter, collection.GetColumns())
+	outputColumns, includeExtra, err := computeOutputColumns(collection.GetColumns(), stmt.SelectExprs)
+	if err != nil {
+		return nil, nil, err
+	}
+	
+	return IterToNamesAndValues(iter, outputColumns, includeExtra)
 }

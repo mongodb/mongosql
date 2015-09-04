@@ -14,8 +14,7 @@ type TableConfig struct {
 	Table      string   `yaml:"table"`
 	Collection string   `yaml:"collection"`
 	Pipeline   []bson.M `yaml:"pipeline"`
-	ColumnMap map[string]string `yaml:"columns"`
-	Columns []Column `yaml:"columns_no"`
+	Columns []Column `yaml:"columns"`
 }
 
 type Schema struct {
@@ -35,3 +34,12 @@ type Config struct {
 	RawSchemas []*Schema          `yaml:"schema"`
 	Schemas    map[string]*Schema `yaml:"schema_no"`
 }
+
+// ---
+
+/*
+func (TableConfig *Loglevel) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	fmt.Printf("hi there
+	return nil
+}*'
+*/
