@@ -16,6 +16,8 @@ type ConfigFindResults struct {
 	dbOffset int
 	tableOffset int
 	columnsOffset int
+
+	err error
 }
 
 func (cfr *ConfigFindResults) Next(result *bson.M) bool {
@@ -73,7 +75,8 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 
 	matches, err := Matches(cfr.query, result)
 	if err != nil {
-		panic(err)
+		cfr.err = err
+		return false
 	}
 	if !matches {
 		return cfr.Next(result)
@@ -83,7 +86,7 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 }
 
 func (cfr *ConfigFindResults) Err() error {
-	return nil
+	return cfr.err
 }
 
 // -
@@ -95,7 +98,7 @@ type ConfigFindQuery struct {
 }
 
 func (cfq ConfigFindQuery) Iter() FindResults {
-	return &ConfigFindResults{cfq.config, cfq.query, cfq.includeColumns, 0, 0, 0}
+	return &ConfigFindResults{cfq.config, cfq.query, cfq.includeColumns, 0, 0, 0, nil}
 }
 
 // -

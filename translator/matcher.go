@@ -36,7 +36,7 @@ func fieldMatches(field_value interface{}, op interface{}) (bool, error) {
 		}
 		return true, nil
 	default:
-		return false, fmt.Errorf("can't handle op type: %T", op)
+		return false, fmt.Errorf("can't handle op type: %T %s", op, op)
 	}
 	
 }
