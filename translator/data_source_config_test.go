@@ -99,6 +99,14 @@ func TestConfigDataSourceTablesSelect(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(len(values), ShouldEqual, 3)
 
+		_, values, err = eval.EvalSelect("", "select * from information_schema.TABLES WHERE table_schema = 'test'", nil)
+		So(err, ShouldBeNil)
+		So(len(values), ShouldEqual, 1)
+
+		_, values, err = eval.EvalSelect("", "select * from information_schema.TABLES WHERE TABLE_SCHEMA = 'test'", nil)
+		So(err, ShouldBeNil)
+		So(len(values), ShouldEqual, 1)
+
 		_, values, err = eval.EvalSelect("", "select TABLE_NAME from information_schema.TABLES", nil)
 		So(err, ShouldBeNil)
 		So(0, ShouldBeLessThan, len(values[0][0].(string)))
@@ -107,5 +115,9 @@ func TestConfigDataSourceTablesSelect(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(0, ShouldBeLessThan, len(values[0][0].(string)))
 
+		_, values, err = eval.EvalSelect("", "select * from information_schema.TABLES WHERE table_schema LIKE 'test'", nil)
+		So(err, ShouldBeNil)
+		So(len(values), ShouldEqual, 1)
+		
 	})
 }

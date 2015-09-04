@@ -2,6 +2,7 @@ package translator
 
 import "fmt"
 import "reflect"
+import "regexp"
 import "strings"
 
 import "gopkg.in/mgo.v2/bson"
@@ -24,15 +25,18 @@ func fieldMatches(field_value interface{}, op interface{}) (bool, error) {
 	switch k := op.(type) {
 	case bson.M:
 		for op_name, val := range(k) {
-			if op_name == "$eq" {
+			switch op_name {
+			case "$eq":
 				return valuesEqual(val, field_value), nil
-			} else {
+			case "$regex":
+				return regexp.Match(val.(string), []byte(field_value.(string)))
+			default:
 				return false, fmt.Errorf("unknown op name: %s\n", op_name)
 			}
 		}
 		return true, nil
 	default:
-		return false, fmt.Errorf("can't handle op  type: %T", op)
+		return false, fmt.Errorf("can't handle op type: %T", op)
 	}
 	
 }
