@@ -1,15 +1,17 @@
-package translator
+package planner
 
-import "fmt"
-import "reflect"
-import "regexp"
-import "strings"
+import (
+	"fmt"
+	"reflect"
+	"regexp"
+	"strings"
 
-import "gopkg.in/mgo.v2/bson"
+	"gopkg.in/mgo.v2/bson"
+)
 
 func getFieldCaseInsensitive(doc *bson.M, field string) interface{} {
 	field = strings.ToLower(field)
-	for k, v := range(*doc) {
+	for k, v := range *doc {
 		if strings.ToLower(k) == field {
 			return v
 		}
@@ -24,7 +26,7 @@ func valuesEqual(rawA interface{}, rawB interface{}) bool {
 func fieldMatches(field_value interface{}, op interface{}) (bool, error) {
 	switch k := op.(type) {
 	case bson.M:
-		for op_name, val := range(k) {
+		for op_name, val := range k {
 			switch op_name {
 			case "$eq":
 				return valuesEqual(val, field_value), nil
@@ -38,7 +40,7 @@ func fieldMatches(field_value interface{}, op interface{}) (bool, error) {
 	default:
 		return false, fmt.Errorf("can't handle op type: %T %s", op, op)
 	}
-	
+
 }
 
 func Matches(query interface{}, doc *bson.M) (bool, error) {
@@ -48,7 +50,7 @@ func Matches(query interface{}, doc *bson.M) (bool, error) {
 
 	switch q := query.(type) {
 	case bson.M:
-		for field, op := range(q) {
+		for field, op := range q {
 			res, err := fieldMatches(getFieldCaseInsensitive(doc, field), op)
 			if err != nil {
 				return false, err

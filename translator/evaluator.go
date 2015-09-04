@@ -5,7 +5,8 @@ import (
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
 	"github.com/erh/mongo-sql-temp/translator/algebrizer"
-	"github.com/erh/mongo-sql-temp/translator/mongodb"
+	"github.com/erh/mongo-sql-temp/translator/evaluator"
+	"github.com/erh/mongo-sql-temp/translator/planner"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 	"strings"
@@ -36,23 +37,23 @@ func (e *Evalulator) getSession() *mgo.Session {
 	return e.globalSession.Copy()
 }
 
-func (e *Evalulator) getCollection(session *mgo.Session, tableConfig *config.TableConfig) DataSource {
+func (e *Evalulator) getCollection(session *mgo.Session, tableConfig *config.TableConfig) planner.DataSource {
 	fullName := tableConfig.Collection
 	pcs := strings.SplitN(fullName, ".", 2)
-	return MgoDataSource{session.DB(pcs[0]).C(pcs[1]), tableConfig.Columns}
+	return planner.MgoDataSource{session.DB(pcs[0]).C(pcs[1]), tableConfig.Columns}
 }
 
-func (e *Evalulator) getDataSource(db string, tableName string) (DataSource, error) {
+func (e *Evalulator) getDataSource(db string, tableName string) (planner.DataSource, error) {
 
 	dbConfig := e.cfg.Schemas[db]
 	if dbConfig == nil {
 		if strings.ToLower(db) == "information_schema" {
 			if strings.ToLower(tableName) == "columns" {
-				return ConfigDataSource{e.cfg, true}, nil
+				return planner.ConfigDataSource{e.cfg, true}, nil
 			}
 			if strings.ToLower(tableName) == "tables" ||
 				strings.ToLower(tableName) == "txxxables" {
-				return ConfigDataSource{e.cfg, false}, nil
+				return planner.ConfigDataSource{e.cfg, false}, nil
 			}
 
 		}
@@ -110,69 +111,49 @@ func computeOutputColumns(schema []config.Column, exprs sqlparser.SelectExprs) (
 	return output, hadStar, nil
 }
 
-// EvalSelect needs to be updated ...
+// EvalSelect returns all rows matching the query.
 func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
+	log.Logf(log.DebugLow, "Evaluating select: %#v", stmt)
+
 	if stmt == nil {
 		// we can parse ourselves
-		raw, err := ParseSQL(sql)
+		raw, err := sqlparser.Parse(sql)
 		if err != nil {
 			return nil, nil, err
 		}
 		var ok bool
 		if stmt, ok = raw.(*sqlparser.Select); !ok {
-			return nil, nil, fmt.Errorf("got a non-select statement in EvalSelect: %T", raw)
+			return nil, nil, fmt.Errorf("got a non-select statement in EvalSelect")
 		}
 	}
 
-	ctx, err := algebrizer.NewParseCtx(stmt)
+	// create initial parse context
+	pCtx, err := algebrizer.NewParseCtx(stmt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
 	}
 
-	if err = algebrizer.AlgebrizeStatement(stmt, ctx); err != nil {
+	// resolve names
+	if err = algebrizer.AlgebrizeStatement(stmt, pCtx); err != nil {
 		return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
 	}
 
-	log.Logf(log.DebugLow, "algebrized tree: %#v", stmt)
-
-	// TODO: full query planner
-	var query interface{} = nil
-
-	if stmt.Where != nil {
-
-		log.Logf(log.DebugLow, "where: %s (type is %T)", sqlparser.String(stmt.Where.Expr), stmt.Where.Expr)
-
-		var err error
-
-		query, err = mongodb.TranslateExpr(stmt.Where.Expr)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	tableName, err := ctx.GetCurrentTable("")
+	// construct plan
+	queryPlan, err := planner.PlanQuery(stmt)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("error getting query plan: %v", err)
 	}
 
-	if strings.Index(tableName, ".") >= 0 {
-		split := strings.SplitN(tableName, ".", 2)
-		db = split[0]
-		tableName = split[1]
+	eCtx := &planner.ExecutionCtx{
+		Config: e.cfg,
+		Db:     db,
 	}
 
-	collection, err := e.getDataSource(db, tableName)
+	// execute plan
+	columns, results, err := evaluator.Execute(eCtx, queryPlan)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("error executing query: %v", err)
 	}
 
-	result := collection.Find(query)
-	iter := result.Iter()
-
-	outputColumns, includeExtra, err := computeOutputColumns(collection.GetColumns(), stmt.SelectExprs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return IterToNamesAndValues(iter, outputColumns, includeExtra)
+	return columns, results, nil
 }

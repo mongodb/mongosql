@@ -1,4 +1,4 @@
-package translator
+package planner
 
 import (
 	"gopkg.in/mgo.v2"
@@ -51,22 +51,22 @@ func (gfq MgoFindQuery) Iter() FindResults {
 // -
 
 type MgoDataSource struct {
-	collection *mgo.Collection
-	columns []config.Column
+	Collection *mgo.Collection
+	Columns    []config.Column
 }
 
 func (gds MgoDataSource) Find(query interface{}) FindQuery {
-	return MgoFindQuery{gds.collection.Find(query)}
+	return MgoFindQuery{gds.Collection.Find(query)}
 }
 
 func (gds MgoDataSource) Insert(docs ...interface{}) error {
-	return gds.collection.Insert(docs...)
+	return gds.Collection.Insert(docs...)
 }
 
 func (gds MgoDataSource) DropCollection() error {
-	return gds.collection.DropCollection()
+	return gds.Collection.DropCollection()
 }
 
 func (gds MgoDataSource) GetColumns() []config.Column {
-	return gds.columns
+	return gds.Columns
 }

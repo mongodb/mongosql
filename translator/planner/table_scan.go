@@ -11,8 +11,9 @@ type TableScan struct {
 	collection string
 	filter     interface{}
 	sync.Mutex
-	iter *mgo.Iter
-	err  error
+	iter           *mgo.Iter
+	IncludeColumns bool
+	err            error
 }
 
 // Open establishes a connection to database collection for this table.

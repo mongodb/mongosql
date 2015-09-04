@@ -1,4 +1,4 @@
-package translator
+package planner
 
 import (
 	"github.com/erh/mongo-sql-temp/config"
@@ -14,21 +14,21 @@ func TestConfigDataSourceIter(t *testing.T) {
 
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
-		
+
 		dataSource := ConfigDataSource{cfg, true}
-		
+
 		query := dataSource.Find(bson.M{})
-		
+
 		iter := query.Iter()
-		
+
 		var doc bson.M
 
 		fieldNames := []string{}
 
 		for iter.Next(&doc) {
-			fieldNames = append(fieldNames, doc["COLUMN_NAME"].(string) )
+			fieldNames = append(fieldNames, doc["COLUMN_NAME"].(string))
 		}
-		
+
 		So(len(fieldNames), ShouldEqual, 6)
 
 		sort.Strings(fieldNames)
@@ -63,21 +63,21 @@ func TestConfigDataSourceIterTables(t *testing.T) {
 
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
-		
+
 		dataSource := ConfigDataSource{cfg, false}
-		
+
 		query := dataSource.Find(bson.M{})
-		
+
 		iter := query.Iter()
-		
+
 		var doc bson.M
 
 		names := []string{}
 
 		for iter.Next(&doc) {
-			names = append(names, doc["TABLE_NAME"].(string) )
+			names = append(names, doc["TABLE_NAME"].(string))
 		}
-		
+
 		So(len(names), ShouldEqual, 3)
 
 		sort.Strings(names)
@@ -118,6 +118,6 @@ func TestConfigDataSourceTablesSelect(t *testing.T) {
 		_, values, err = eval.EvalSelect("", "select * from information_schema.TABLES WHERE table_schema LIKE 'test'", nil)
 		So(err, ShouldBeNil)
 		So(len(values), ShouldEqual, 1)
-		
+
 	})
 }

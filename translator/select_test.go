@@ -68,17 +68,17 @@ func TestSelectOrder(t *testing.T) {
 
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
-		
+
 		eval, err := NewEvalulator(cfg)
 		So(err, ShouldBeNil)
-		
+
 		session := eval.getSession()
 		defer session.Close()
-		
+
 		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
-		
+
 		names, values, err := eval.EvalSelect("test", "select * from bar", nil)
 		So(err, ShouldBeNil)
 		So(len(names), ShouldEqual, 3)
@@ -93,7 +93,6 @@ func TestSelectOrder(t *testing.T) {
 
 		So(names, ShouldResemble, []string{"b", "a"})
 
-		
 		names, values, err = eval.EvalSelect("test", "select a, b from bar", nil)
 		So(err, ShouldBeNil)
 		So(len(names), ShouldEqual, 2)
@@ -115,7 +114,5 @@ func TestSelectOrder(t *testing.T) {
 
 		So(names, ShouldResemble, []string{"b", "a", "b"})
 
-
 	})
 }
-		

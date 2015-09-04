@@ -2,8 +2,9 @@ package translator
 
 import (
 	"fmt"
+	"github.com/erh/mongo-sql-temp/translator/planner"
 	"strings"
-	
+
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
 
@@ -44,11 +45,11 @@ func getColumn(doc *bson.M, name string) interface{} {
 	return nil
 }
 
-func IterToNamesAndValues(iter FindResults, columns []config.Column, includeExtra bool) ([]string, [][]interface{}, error) {
+func IterToNamesAndValues(iter planner.FindResults, columns []config.Column, includeExtra bool) ([]string, [][]interface{}, error) {
 	names := []string{}
 	var seen map[string]bool = make(map[string]bool)
-	
-	for _, c := range(columns) {
+
+	for _, c := range columns {
 		names = append(names, c.Name)
 		seen[c.Name] = true
 	}

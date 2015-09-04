@@ -1,20 +1,18 @@
-package translator
+package planner
 
-import "fmt"
-
-import "gopkg.in/mgo.v2/bson"
-
-import "github.com/erh/mongo-sql-temp/config"
-
-// ---
+import (
+	"fmt"
+	"github.com/erh/mongo-sql-temp/config"
+	"gopkg.in/mgo.v2/bson"
+)
 
 type ConfigFindResults struct {
-	config *config.Config
-	query interface{}
+	config         *config.Config
+	query          interface{}
 	includeColumns bool
-	
-	dbOffset int
-	tableOffset int
+
+	dbOffset      int
+	tableOffset   int
 	columnsOffset int
 
 	err error
@@ -29,7 +27,7 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 	}
 
 	db := cfr.config.RawSchemas[cfr.dbOffset]
-	
+
 	// are we in valid table space
 	if cfr.tableOffset >= len(db.RawTables) {
 		cfr.dbOffset = cfr.dbOffset + 1
@@ -41,7 +39,7 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 	table := db.RawTables[cfr.tableOffset]
 
 	*result = bson.M{}
-	
+
 	if !cfr.includeColumns {
 		(*result)["TABLE_SCHEMA"] = db.DB
 		(*result)["TABLE_NAME"] = table.Table
@@ -57,19 +55,19 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 			cfr.columnsOffset = 0
 			return cfr.Next(result)
 		}
-	
+
 		(*result)["TABLE_CATALOG"] = "def"
-		
+
 		(*result)["TABLE_SCHEMA"] = db.DB
 		(*result)["TABLE_NAME"] = table.Table
-		
+
 		col := table.Columns[cfr.columnsOffset]
-	
+
 		(*result)["COLUMN_NAME"] = col.Name
 		(*result)["COLUMN_TYPE"] = col.MysqlType
 
 		(*result)["ORDINAL_POSITION"] = cfr.columnsOffset + 1
-	
+
 		cfr.columnsOffset = cfr.columnsOffset + 1
 	}
 
@@ -81,7 +79,7 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 	if !matches {
 		return cfr.Next(result)
 	}
-	
+
 	return true
 }
 
@@ -92,8 +90,8 @@ func (cfr *ConfigFindResults) Err() error {
 // -
 
 type ConfigFindQuery struct {
-	config *config.Config
-	query interface{}
+	config         *config.Config
+	query          interface{}
 	includeColumns bool
 }
 
@@ -104,7 +102,7 @@ func (cfq ConfigFindQuery) Iter() FindResults {
 // -
 
 type ConfigDataSource struct {
-	Config *config.Config
+	Config         *config.Config
 	IncludeColumns bool
 }
 

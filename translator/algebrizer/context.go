@@ -3,6 +3,7 @@ package algebrizer
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
+	"github.com/mongodb/mongo-tools/common/log"
 )
 
 var (
@@ -116,6 +117,22 @@ func (c *ParseCtx) ColumnAlias(alias string) (*ColumnInfo, error) {
 	}
 
 	return c.Parent.ColumnAlias(alias)
+}
+
+// GetDefaultTable finds a given table in the current context.
+// It searches in the parent context if the alias is not found
+// in the current context.
+func (c *ParseCtx) GetDefaultTable() string {
+	if c == nil {
+		return ""
+	}
+
+	if len(c.Table) != 1 {
+		log.Logf(log.DebugLow, "found more than one 'default' table returning ''")
+		return ""
+	}
+
+	return c.Table[0].Collection
 }
 
 // GetCurrentTable finds a given table in the current context.

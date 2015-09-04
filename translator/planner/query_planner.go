@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
+	"strings"
 )
 
 // PlanQuery translates the SQL SELECT statement into an
@@ -105,6 +106,14 @@ func planSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, where *sqlparser.Wher
 	switch expr := stExpr.(type) {
 	case *sqlparser.TableName:
 		tableName := string(expr.Name)
+		ts := &TableScan{collection: tableName}
+
+		if strings.ToLower(tableName) == "information_schema" {
+			if strings.ToLower(tableName) == "columns" {
+				ts.IncludeColumns = true
+			}
+
+		}
 
 		if where != nil {
 			// create a matcher that can evaluate the WHERE expression
@@ -112,8 +121,6 @@ func planSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, where *sqlparser.Wher
 			if err != nil {
 				return nil, err
 			}
-
-			source := &TableScan{collection: tableName}
 
 			// Try to transform the match expression into mongo query language
 			// if it is successful, use the query and skip the matcher
@@ -123,13 +130,13 @@ func planSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, where *sqlparser.Wher
 			// so that the part of the query that can be expressed with MQL is extracted and passed
 			// to mongo, and the rest of hte filtering can be done by the (simplified) matcher
 			if transformed, err := matcher.Transform(); err == nil {
-				source.filter = transformed
-				return source, nil
+				ts.filter = transformed
+				return ts, nil
 			}
-			return &MatchOperator{source: source, matcher: matcher}, nil
+			return &MatchOperator{source: ts, matcher: matcher}, nil
 		}
 
-		return &TableScan{collection: tableName}, nil
+		return ts, nil
 
 	case *sqlparser.Subquery:
 		return PlanQuery(expr.Select)
