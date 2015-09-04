@@ -2,9 +2,11 @@ package translator
 
 import (
 	"fmt"
-	"github.com/erh/mongo-sql-temp/config"
-	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/erh/mixer/sqlparser"
+	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/algebrizer"
+	"github.com/erh/mongo-sql-temp/translator/mongodb"
+	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 	"strings"
 )
@@ -54,7 +56,7 @@ func (e *Evalulator) getDataSource(db string, tableName string) (DataSource, err
 			}
 
 		}
-		
+
 		return nil, fmt.Errorf("db (%s) does not exist", db)
 	}
 
@@ -71,8 +73,8 @@ func computeOutputColumns(schema []config.Column, exprs sqlparser.SelectExprs) (
 	output := make([]config.Column, 0)
 
 	hadStar := false
-	
-	for _, c := range(exprs) {
+
+	for _, c := range exprs {
 		switch entry := c.(type) {
 		case *sqlparser.StarExpr:
 			output = append(output, schema...)
@@ -81,19 +83,19 @@ func computeOutputColumns(schema []config.Column, exprs sqlparser.SelectExprs) (
 			if len(entry.As) > 0 {
 				return output, false, fmt.Errorf("can't handle AS yet")
 			}
-			
+
 			switch e := entry.Expr.(type) {
 			case *sqlparser.ColName:
 				name := string(e.Name)
 				var idx int = -1
-				for i, j := range(schema) {
+				for i, j := range schema {
 					if caseInsensitiveEquals(j.Name, name) {
 						idx = i
 						break
 					}
 				}
 				if idx == -1 {
-					output = append(output, config.Column{name, "", ""} )
+					output = append(output, config.Column{name, "", ""})
 				} else {
 					output = append(output, schema[idx])
 				}
@@ -122,12 +124,12 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		}
 	}
 
-	ctx, err := NewParseCtx(stmt)
+	ctx, err := algebrizer.NewParseCtx(stmt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
 	}
 
-	if err = algebrizeStatement(stmt, ctx); err != nil {
+	if err = algebrizer.AlgebrizeStatement(stmt, ctx); err != nil {
 		return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
 	}
 
@@ -142,20 +144,23 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 
 		var err error
 
-		query, err = translateExpr(stmt.Where.Expr)
+		query, err = mongodb.TranslateExpr(stmt.Where.Expr)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
-	alias := ctx.GetDefaultTable()
-	tableName := ctx.TableName(alias)
+
+	tableName, err := ctx.GetCurrentTable("")
+	if err != nil {
+		return nil, nil, err
+	}
 
 	if strings.Index(tableName, ".") >= 0 {
 		split := strings.SplitN(tableName, ".", 2)
 		db = split[0]
 		tableName = split[1]
 	}
-	
+
 	collection, err := e.getDataSource(db, tableName)
 	if err != nil {
 		return nil, nil, err
@@ -168,6 +173,6 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	return IterToNamesAndValues(iter, outputColumns, includeExtra)
 }
