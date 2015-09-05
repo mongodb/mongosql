@@ -17,12 +17,14 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 
 		// algebrize 'FROM' clause
 		if stmt.From != nil {
+			fmt.Printf("before %s\n", sqlparser.String(stmt.From))
 			for _, table := range stmt.From {
 				err := algebrizeTableExpr(table, ctx)
 				if err != nil {
 					return err
 				}
 			}
+			fmt.Printf("after %s\n", sqlparser.String(stmt.From))
 		}
 
 		// algebrize 'SELECT EXPRESSION' clause
@@ -324,11 +326,12 @@ func algebrizeSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, pCtx *ParseCtx) 
 
 	log.Logf(log.DebugLow, "simple table expr: %s (type is %T)\npCtx: %#v\n\n", sqlparser.String(stExpr), stExpr, pCtx)
 
+	fmt.Printf("simple table expr: %s (type is %T)\npCtx: %#v\n\n", sqlparser.String(stExpr), stExpr, pCtx)
+
 	switch expr := stExpr.(type) {
 
 	case *sqlparser.TableName:
-		// TODO: ignoring qualifier for now
-		tName, err := pCtx.TableName(sqlparser.String(expr))
+		tName, err := pCtx.TableName(string(expr.Qualifier), string(expr.Name))
 		expr.Name = []byte(tName)
 
 		return expr, err
@@ -406,12 +409,7 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 				if alias == "" {
 					alias = tableName
 				}
-				table := TableInfo{
-					Alias:      alias,
-					Collection: tableName,
-				}
-				tables = append(tables, table)
-
+				tables = append(tables, NewTableInfo(alias, tableName))
 			case *sqlparser.Subquery:
 
 				ctx, err := NewParseCtx(node.Select)

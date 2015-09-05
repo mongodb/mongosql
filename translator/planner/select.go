@@ -2,19 +2,21 @@ package planner
 
 import (
 	"gopkg.in/mgo.v2/bson"
+	"github.com/erh/mongo-sql-temp/config"
 )
 
 type value struct {
 	Table string
 	Data  bson.D
+	TableConfig *config.TableConfig
 }
 
 type Select struct {
-	Namespaces []*Namespace
+	Namespaces []*Namespace // the actual fields to return (TODO WISDOM CHECK COMMENT PLEASE)
 	err        error
 	children   []Operator
 	values     []*value
-	fields     []string
+	fields     []string // field names to return to client (TODO WISDOM CHECK COMMENT PLEASE)
 	closed     map[Operator]bool
 	isStar     bool
 }
@@ -70,6 +72,7 @@ func (s *Select) Next(row *Row) bool {
 			v := &value{
 				Table: data.Table,
 				Data:  data.Values,
+				TableConfig: data.TableConfig,
 			}
 
 			s.values = append(s.values, v)
@@ -90,11 +93,43 @@ func (s *Select) Next(row *Row) bool {
 
 func (s *Select) mergeInput(r *Row) error {
 
-	// handles StarExpr
-	if s.fields == nil {
-		if err := s.setNamespaces(); err != nil {
-			return err
+	// look for more namespaces to add
+	// maybe all of them!
+	if s.Namespaces == nil || s.isStar {
+
+		if s.isStar && s.Namespaces == nil {
+			// first inialize from select specs
+			for _, v := range s.values {
+				if v.TableConfig != nil {
+					for _, col := range v.TableConfig.Columns {
+						ns := &Namespace{v.Table, col.Name, col.Name}
+						s.Namespaces = append(s.Namespaces, ns)
+						s.fields = append(s.fields, ns.View)
+					}
+				}
+			}
 		}
+		
+		for _, v := range s.values {
+			for _, f := range v.Data {
+				ns := &Namespace{v.Table, f.Name, f.Name}
+				// TODO this is n^1230
+				found := false
+				for _, old := range s.Namespaces {
+					if old.Table == ns.Table &&
+						old.Column == ns.Column {
+						found = true;
+						break;
+					}
+				}
+
+				if !found {
+					s.Namespaces = append(s.Namespaces, ns)
+					s.fields = append(s.fields, ns.View)
+				}
+			}
+		}
+
 	}
 
 	data := map[string][]bson.DocElem{}
@@ -104,7 +139,7 @@ func (s *Select) mergeInput(r *Row) error {
 	}
 
 	for k, v := range data {
-		r.Data = append(r.Data, TableRow{k, v})
+		r.Data = append(r.Data, TableRow{k, v, nil})
 	}
 
 	return nil
@@ -130,23 +165,6 @@ func (s *Select) getValue(ns *Namespace) (string, bson.DocElem) {
 	}
 
 	return "", bson.DocElem{ns.Column, nil}
-}
-
-func (s *Select) setNamespaces() error {
-	// first record retrieved determines the set of columns
-	// we return for this query
-
-	// TODO: unqualified join selects should have qualified names
-
-	for _, v := range s.values {
-		for _, f := range v.Data {
-			ns := &Namespace{v.Table, f.Name, f.Name}
-			s.Namespaces = append(s.Namespaces, ns)
-			s.fields = append(s.fields, ns.View)
-		}
-	}
-
-	return nil
 }
 
 func (s *Select) Close() error {

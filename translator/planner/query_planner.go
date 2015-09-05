@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
-	"strings"
 )
 
 // PlanQuery translates the SQL SELECT statement into an
@@ -26,6 +25,7 @@ func PlanQuery(ss sqlparser.SelectStatement) (Operator, error) {
 			switch expr := sExpr.(type) {
 			// TODO: validate no mixture of star and non-star expression
 			case *sqlparser.StarExpr:
+				selectNode.isStar = true
 				break
 
 			case *sqlparser.NonStarExpr:
@@ -105,15 +105,7 @@ func planTableExpr(tExpr sqlparser.TableExpr, where *sqlparser.Where) (Operator,
 func planSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, where *sqlparser.Where) (Operator, error) {
 	switch expr := stExpr.(type) {
 	case *sqlparser.TableName:
-		tableName := string(expr.Name)
-		ts := &TableScan{collection: tableName}
-
-		if strings.ToLower(tableName) == "information_schema" {
-			if strings.ToLower(tableName) == "columns" {
-				ts.IncludeColumns = true
-			}
-
-		}
+		ts := &TableScan{dbName: string(expr.Qualifier), tableName: string(expr.Name)}
 
 		if where != nil {
 			// create a matcher that can evaluate the WHERE expression

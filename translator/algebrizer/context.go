@@ -3,7 +3,7 @@ package algebrizer
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/mongodb/mongo-tools/common/log"
+	"strings"
 )
 
 var (
@@ -24,7 +24,8 @@ type ParseCtx struct {
 // if not aliased) to the actual table name.
 type TableInfo struct {
 	Alias      string
-	Collection string
+	Db         string
+	Table      string
 }
 
 // ColumnInfo holds a mapping of aliases (or real names
@@ -37,6 +38,16 @@ type ColumnInfo struct {
 	// TODO: parser does not currently support column aliasing :(
 	Alias      string
 	Collection string
+}
+
+func NewTableInfo(alias string, longName string) TableInfo {
+	fmt.Printf("A (%s)\n", longName)
+	if strings.Index(longName, ".") > 0 {
+		pcs := strings.SplitN(longName, ".", 2)
+		return TableInfo{pcs[1], pcs[0], pcs[1]}
+	}
+
+	return TableInfo{alias, "", longName}
 }
 
 func (ci *ColumnInfo) String() string {
@@ -56,7 +67,6 @@ func NewParseCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) {
 		}
 
 		ctx.Table = tableInfo
-
 		return ctx, nil
 
 	default:
@@ -69,37 +79,19 @@ func NewParseCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) {
 // TableName returns the unaliased table name given an alias.
 // It searches in the parent context if the alias is not found
 // in the current context.
-func (c *ParseCtx) TableName(alias string) (string, error) {
+func (c *ParseCtx) TableName(qualifier string, alias string) (string, error) {
 	// no guarantee that this table exists without checking the db
 	if c == nil {
 		return alias, nil
 	}
 
 	for _, tableInfo := range c.Table {
-		if alias == tableInfo.Alias {
-			return tableInfo.Collection, nil
+		if qualifier == tableInfo.Db && alias == tableInfo.Alias {
+			return tableInfo.Table, nil
 		}
 	}
 
-	return c.Parent.TableName(alias)
-}
-
-// TableExists returns true if an table within this or the parent
-// context matches 'tableName' unaliased table name given an alias.
-// It searches in the parent context if the alias is not found
-// in the current context.
-func (c *ParseCtx) TableExists(tableName string) bool {
-	if c == nil {
-		return false
-	}
-
-	for _, tableInfo := range c.Table {
-		if tableName == tableInfo.Collection {
-			return true
-		}
-	}
-
-	return c.Parent.TableExists(tableName)
+	return c.Parent.TableName(qualifier, alias)
 }
 
 // ColumnAlias searches current context for the given alias
@@ -119,22 +111,6 @@ func (c *ParseCtx) ColumnAlias(alias string) (*ColumnInfo, error) {
 	return c.Parent.ColumnAlias(alias)
 }
 
-// GetDefaultTable finds a given table in the current context.
-// It searches in the parent context if the alias is not found
-// in the current context.
-func (c *ParseCtx) GetDefaultTable() string {
-	if c == nil {
-		return ""
-	}
-
-	if len(c.Table) != 1 {
-		log.Logf(log.DebugLow, "found more than one 'default' table returning ''")
-		return ""
-	}
-
-	return c.Table[0].Collection
-}
-
 // GetCurrentTable finds a given table in the current context.
 func (c *ParseCtx) GetCurrentTable(tableName string) (string, error) {
 	if c == nil {
@@ -149,8 +125,10 @@ func (c *ParseCtx) GetCurrentTable(tableName string) (string, error) {
 
 		curTable := c.Table[0]
 
-		if curTable.Collection == tableName || curTable.Alias == tableName || tableName == "" {
-			return c.Table[0].Collection, nil
+		// TODO: this is broken, ignores db
+		if curTable.Table == tableName || curTable.Alias == tableName || tableName == "" {
+			// TODO: this is broken, ignores db
+			return c.Table[0].Table, nil
 		}
 	} else {
 		// if there are multiple tables in the current context
@@ -161,8 +139,10 @@ func (c *ParseCtx) GetCurrentTable(tableName string) (string, error) {
 
 		// the table name can either be actual or aliased
 		for _, tableInfo := range c.Table {
-			if tableInfo.Alias == tableName || tableInfo.Collection == tableName {
-				return tableInfo.Collection, nil
+			// TODO: this is broken, ignores db
+			if tableInfo.Alias == tableName || tableInfo.Table == tableName {
+				// TODO: this is broken, ignores db
+				return tableInfo.Table, nil
 			}
 		}
 	}

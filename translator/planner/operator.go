@@ -30,6 +30,7 @@ type Row struct {
 type TableRow struct {
 	Table  string
 	Values bson.D
+	TableConfig *config.TableConfig
 }
 
 // GetField takes a table returns the given value of the given key

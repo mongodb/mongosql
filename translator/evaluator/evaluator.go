@@ -44,6 +44,14 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 		return nil, nil, nil
 	}
 
+	// make sure all rows have same number of values
+	for idx, row := range rows {
+		for len(row) < len(s.Fields()) {
+			row = append(row, nil)
+		}
+		rows[idx] = row
+	}
+
 	return s.Fields(), rows, nil
 }
 

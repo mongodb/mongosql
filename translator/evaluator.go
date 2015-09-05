@@ -137,7 +137,7 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	if err = algebrizer.AlgebrizeStatement(stmt, pCtx); err != nil {
 		return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
 	}
-
+	
 	// construct plan
 	queryPlan, err := planner.PlanQuery(stmt)
 	if err != nil {
