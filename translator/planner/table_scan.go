@@ -2,7 +2,6 @@ package planner
 
 import (
 	"fmt"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
 	"sync"
@@ -15,7 +14,7 @@ type TableScan struct {
 	fullCollection string
 	filter     interface{}
 	sync.Mutex
-	iter           *mgo.Iter
+	iter           FindResults
 	err            error
 	tableConfig *config.TableConfig
 }
@@ -41,15 +40,14 @@ func (ts *TableScan) init(ctx *ExecutionCtx) error {
 			var cds ConfigDataSource
 			if strings.ToLower(ts.tableName) == "columns" {
 				cds = ConfigDataSource{ctx.Config, true}
-			}
-			if strings.ToLower(ts.tableName) == "tables" ||
+			} else if strings.ToLower(ts.tableName) == "tables" ||
 				strings.ToLower(ts.tableName) == "txxxables" {
 				cds = ConfigDataSource{ctx.Config, false}
+			} else {
+				return fmt.Errorf("unknown information_schema table (%s)", ts.tableName)
 			}
-			// TODO: need to change TableScan.iter to something we can use
-			// both an mgo.Iter and the FindQuery interface for.
-			// MgoDataSource is essentialy TableScan.Iter
-			cds.Find(ts.filter).Iter()
+
+			ts.iter = cds.Find(ts.filter).Iter()
 		} else {
 			return fmt.Errorf("db (%s) doesn't exist table(%s)", ts.dbName, ts.tableName)
 		}
@@ -62,7 +60,7 @@ func (ts *TableScan) init(ctx *ExecutionCtx) error {
 		ts.fullCollection = ts.tableConfig.Collection
 		pcs := strings.SplitN(ts.tableConfig.Collection, ".", 2)
 		collection := sp.GetSession().DB(pcs[0]).C(pcs[1])
-		ts.iter = collection.Find(ts.filter).Iter()
+		ts.iter = MgoFindResults{collection.Find(ts.filter).Iter()}
 	}
 
 	return nil

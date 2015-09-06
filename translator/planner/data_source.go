@@ -8,8 +8,9 @@ import (
 )
 
 type FindResults interface {
-	Next(result *bson.M) bool
+	Next(result *bson.D) bool
 	Err() error
+	Close() error
 }
 
 type FindQuery interface {
@@ -30,12 +31,16 @@ type MgoFindResults struct {
 	iter *mgo.Iter
 }
 
-func (gfr *MgoFindResults) Next(result *bson.M) bool {
+func (gfr MgoFindResults) Next(result *bson.D) bool {
 	return gfr.iter.Next(result)
 }
 
-func (gfr *MgoFindResults) Err() error {
+func (gfr MgoFindResults) Err() error {
 	return gfr.iter.Err()
+}
+
+func (gfr MgoFindResults) Close() error {
+	return gfr.iter.Close()
 }
 
 // -

@@ -1,6 +1,7 @@
 package planner
 
 import (
+	"strings"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/erh/mongo-sql-temp/config"
 )
@@ -152,13 +153,12 @@ func (s *Select) Fields() []string {
 func (s *Select) getValue(ns *Namespace) (string, bson.DocElem) {
 
 	for _, v := range s.values {
-
 		if ns.Table != "" && ns.Table != v.Table {
 			continue
 		}
 
 		for _, c := range v.Data {
-			if ns.Column == c.Name {
+			if strings.ToLower(ns.Column) == strings.ToLower(c.Name) { // TODO: optimize
 				return ns.Table, bson.DocElem{ns.Column, c.Value}
 			}
 		}

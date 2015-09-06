@@ -86,14 +86,16 @@ func TestBasicMatching(t *testing.T) {
 		Convey("using the matcher on a row whose value matches should return true", func() {
 			tree := Equals{SQLString("xyz"), &SQLField{"foo", "b"}}
 			matchCtx := &MatchCtx{[]*Row{
-				{Data: []TableRow{{"foo", bson.D{{"a", 123}, {"b", "xyz"}, {"c", nil}}}}},
-			}}
+				{Data: []TableRow{{"foo",
+					bson.D{{"a", 123}, {"b", "xyz"}, {"c", nil}},
+					nil}},
+				}}}
 			So(tree.Matches(matchCtx), ShouldBeTrue)
 		})
 
 		Convey("using the matcher on a row whose values do not match should return false", func() {
 			matchCtx := &MatchCtx{[]*Row{
-				{Data: []TableRow{{"foo", bson.D{{"a", 123}, {"b", "WRONG"}, {"c", nil}}}}},
+				{Data: []TableRow{{"foo", bson.D{{"a", 123}, {"b", "WRONG"}, {"c", nil}}, nil}}},
 			}}
 			So(tree.Matches(matchCtx), ShouldBeFalse)
 		})
@@ -114,7 +116,7 @@ func TestComparisonMatchers(t *testing.T) {
 	Convey("Equality matcher should return true/false when numerics are equal/unequal", t, func() {
 		var tree Matcher
 		matchCtx := &MatchCtx{[]*Row{
-			{Data: []TableRow{{"foo", bson.D{{"x", 123}, {"y", 456}, {"c", nil}}}}},
+			{Data: []TableRow{{"foo", bson.D{{"x", 123}, {"y", 456}, {"c", nil}}, nil}}},
 		}}
 		for _, data := range tests {
 			tree = &Equals{data.less, data.less}

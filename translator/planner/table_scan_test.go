@@ -34,7 +34,7 @@ func TestTableScanOperator(t *testing.T) {
 			}
 
 			dbName := "test"
-			colName := "customer"
+			colName := "customers"
 
 			collection := session.DB(dbName).C(colName)
 			collection.DropCollection()
@@ -49,7 +49,7 @@ func TestTableScanOperator(t *testing.T) {
 			}
 
 			operator := TableScan{
-				collection: colName,
+				tableName: colName,
 			}
 
 			So(operator.Open(ctx), ShouldBeNil)

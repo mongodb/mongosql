@@ -72,8 +72,10 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 			return &GreaterThanOrEqual{left, right}, nil
 		case sqlparser.AST_NE:
 			return &NotEquals{left, right}, nil
+		case sqlparser.AST_LIKE:
+			return &Like{left, right}, nil
 		default:
-			panic("not implemented")
+			return &Equals{left, right}, fmt.Errorf("sql where clause not implemented: %s", sqlparser.String(expr))
 		}
 	case *sqlparser.RangeCond:
 		// BETWEEN

@@ -3,6 +3,7 @@ package planner
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -56,6 +57,7 @@ type GreaterThan rangeNodes
 type LessThan rangeNodes
 type GreaterThanOrEqual rangeNodes
 type LessThanOrEqual rangeNodes
+type Like rangeNodes
 
 func (neq *NotEquals) Matches(ctx *MatchCtx) bool {
 	if c, err := neq.left.CompareTo(ctx, neq.right); err == nil {
@@ -167,6 +169,21 @@ func (lte *LessThanOrEqual) Matches(ctx *MatchCtx) bool {
 	}
 	return false
 }
+
+func (l *Like) Transform() (*bson.D, error) {
+	return transformComparison(l.left, l.right, "$regex", "no inverse like support")
+}
+
+func (l *Like) Matches(ctx *MatchCtx) bool {
+	reg := l.left.Evaluate(ctx).MongoValue().(string)
+	res, err := regexp.Match(reg, []byte(l.right.Evaluate(ctx).MongoValue().(string)))
+	if err != nil {
+		panic(err)
+	}
+	return res
+}
+
+// ----
 
 type And struct {
 	children []Matcher

@@ -96,11 +96,11 @@ func setupJoinOperator(criteria sqlparser.BoolExpr, joinType string) Operator {
 	}
 
 	ts1 := &TableScan{
-		collection: colOne,
+		tableName: colOne,
 	}
 
 	ts2 := &TableScan{
-		collection: colTwo,
+		tableName: colTwo,
 	}
 
 	session.Close()

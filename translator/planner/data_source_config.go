@@ -18,8 +18,15 @@ type ConfigFindResults struct {
 	err error
 }
 
-func (cfr *ConfigFindResults) Next(result *bson.M) bool {
+func _cfrNextHelper(result *bson.D, fieldName string, fieldValue interface{}) {
+	*result = append(*result, bson.DocElem{fieldName, fieldValue})
+}
 
+func (cfr *ConfigFindResults) Next(result *bson.D) bool {
+	if cfr.err != nil {
+		return false
+	}
+	
 	// are we in valid db space
 	if cfr.dbOffset >= len(cfr.config.RawSchemas) {
 		// nope, we're done
@@ -38,14 +45,14 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 
 	table := db.RawTables[cfr.tableOffset]
 
-	*result = bson.M{}
+	*result = bson.D{}
 
 	if !cfr.includeColumns {
-		(*result)["TABLE_SCHEMA"] = db.DB
-		(*result)["TABLE_NAME"] = table.Table
+		_cfrNextHelper(result, "TABLE_SCHEMA", db.DB)
+		_cfrNextHelper(result, "TABLE_NAME", table.Table)
 
-		(*result)["TABLE_TYPE"] = "BASE TABLE"
-		(*result)["TABLE_COMMENT"] = "d"
+		_cfrNextHelper(result, "TABLE_TYPE", "BASE TABLE")
+		_cfrNextHelper(result, "TABLE_COMMENT", "d")
 
 		cfr.tableOffset = cfr.tableOffset + 1
 	} else {
@@ -56,17 +63,17 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 			return cfr.Next(result)
 		}
 
-		(*result)["TABLE_CATALOG"] = "def"
+		_cfrNextHelper(result, "TABLE_CATALOG", "def")
 
-		(*result)["TABLE_SCHEMA"] = db.DB
-		(*result)["TABLE_NAME"] = table.Table
+		_cfrNextHelper(result, "TABLE_SCHEMA", db.DB)
+		_cfrNextHelper(result, "TABLE_NAME", table.Table)
 
 		col := table.Columns[cfr.columnsOffset]
 
-		(*result)["COLUMN_NAME"] = col.Name
-		(*result)["COLUMN_TYPE"] = col.MysqlType
+		_cfrNextHelper(result, "COLUMN_NAME", col.Name)
+		_cfrNextHelper(result, "COLUMN_TYPE", col.MysqlType)
 
-		(*result)["ORDINAL_POSITION"] = cfr.columnsOffset + 1
+		_cfrNextHelper(result, "ORDINAL_POSITION", cfr.columnsOffset + 1)
 
 		cfr.columnsOffset = cfr.columnsOffset + 1
 	}
@@ -79,12 +86,16 @@ func (cfr *ConfigFindResults) Next(result *bson.M) bool {
 	if !matches {
 		return cfr.Next(result)
 	}
-
+	
 	return true
 }
 
 func (cfr *ConfigFindResults) Err() error {
 	return cfr.err
+}
+
+func (cfr *ConfigFindResults) Close() error {
+	return nil
 }
 
 // -
