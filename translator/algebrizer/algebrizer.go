@@ -17,14 +17,12 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 
 		// algebrize 'FROM' clause
 		if stmt.From != nil {
-			fmt.Printf("before %s\n", sqlparser.String(stmt.From))
 			for _, table := range stmt.From {
 				err := algebrizeTableExpr(table, ctx)
 				if err != nil {
 					return err
 				}
 			}
-			fmt.Printf("after %s\n", sqlparser.String(stmt.From))
 		}
 
 		// algebrize 'SELECT EXPRESSION' clause
@@ -325,8 +323,6 @@ func algebrizeTableExpr(tExpr sqlparser.TableExpr, pCtx *ParseCtx) error {
 func algebrizeSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, pCtx *ParseCtx) (sqlparser.SimpleTableExpr, error) {
 
 	log.Logf(log.DebugLow, "simple table expr: %s (type is %T)\npCtx: %#v\n\n", sqlparser.String(stExpr), stExpr, pCtx)
-
-	fmt.Printf("simple table expr: %s (type is %T)\npCtx: %#v\n\n", sqlparser.String(stExpr), stExpr, pCtx)
 
 	switch expr := stExpr.(type) {
 

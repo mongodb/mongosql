@@ -41,7 +41,6 @@ type ColumnInfo struct {
 }
 
 func NewTableInfo(alias string, longName string) TableInfo {
-	fmt.Printf("A (%s)\n", longName)
 	if strings.Index(longName, ".") > 0 {
 		pcs := strings.SplitN(longName, ".", 2)
 		return TableInfo{pcs[1], pcs[0], pcs[1]}
