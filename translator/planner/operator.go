@@ -51,8 +51,12 @@ func (row *Row) GetField(table, key string) (interface{}, bool) {
 func getKey(key string, doc bson.D) (interface{}, bool) {
 	index := strings.Index(key, ".")
 	if index == -1 {
-		value, hasValue := doc.Map()[key]
-		return value, hasValue
+		for _, entry := range doc {
+			if strings.ToLower(key) == strings.ToLower(entry.Name) { // TODO optimize
+				return entry.Value, true
+			}
+		}
+		return nil, false
 	}
 	left := key[0:index]
 	docMap := doc.Map()

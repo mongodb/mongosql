@@ -46,6 +46,17 @@ type Matcher interface {
 	Transform() (*bson.D, error)
 }
 
+type EmptyMatcher struct {
+}
+
+func (em EmptyMatcher) Matches(*MatchCtx) bool {
+	return true
+}
+
+func (em EmptyMatcher) Transform() (*bson.D, error) {
+	return &bson.D{}, nil
+}
+
 type rangeNodes struct {
 	left, right SQLValue
 }
@@ -78,18 +89,18 @@ func (eq *Equals) Matches(ctx *MatchCtx) bool {
 // literal's, then a bool indicating if the re-ordered pair is the inverse of the order that was
 // passed in. An error is returned if both or neither of the values are SQLFields.
 func makeMQLQueryPair(left, right SQLValue) (*SQLField, SQLValue, bool, error) {
-	fmt.Printf("left is %#v right is %#v\n", left, right)
+	//fmt.Printf("left is %#v right is %#v\n", left, right)
 	leftField, leftOk := left.(SQLField)
 	rightField, rightOk := right.(SQLField)
-	fmt.Println(leftOk, rightOk)
+	//fmt.Println(leftOk, rightOk)
 	if leftOk == rightOk {
 		return nil, nil, false, ErrUntransformableCondition
 	}
 	if leftOk {
-		fmt.Println("returning left field first")
+		//fmt.Println("returning left field first")
 		return &leftField, right, false, nil
 	}
-	fmt.Println("returning right field")
+	//fmt.Println("returning right field")
 	return &rightField, left, true, nil
 }
 

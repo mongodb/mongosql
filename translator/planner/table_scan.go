@@ -13,6 +13,7 @@ type TableScan struct {
 	tableName string
 	fullCollection string
 	filter     interface{}
+	filterMatcher Matcher
 	sync.Mutex
 	iter           FindResults
 	err            error
@@ -47,7 +48,7 @@ func (ts *TableScan) init(ctx *ExecutionCtx) error {
 				return fmt.Errorf("unknown information_schema table (%s)", ts.tableName)
 			}
 
-			ts.iter = cds.Find(ts.filter).Iter()
+			ts.iter = cds.Find(ts.filterMatcher).Iter()
 		} else {
 			return fmt.Errorf("db (%s) doesn't exist table(%s)", ts.dbName, ts.tableName)
 		}

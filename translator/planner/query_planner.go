@@ -123,6 +123,7 @@ func planSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, where *sqlparser.Wher
 			// to mongo, and the rest of hte filtering can be done by the (simplified) matcher
 			if transformed, err := matcher.Transform(); err == nil {
 				ts.filter = transformed
+				ts.filterMatcher = matcher
 				return ts, nil
 			}
 			return &MatchOperator{source: ts, matcher: matcher}, nil

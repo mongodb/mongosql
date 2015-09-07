@@ -8,7 +8,7 @@ import (
 
 type ConfigFindResults struct {
 	config         *config.Config
-	query          interface{}
+	matcher        Matcher
 	includeColumns bool
 
 	dbOffset      int
@@ -46,7 +46,9 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 	table := db.RawTables[cfr.tableOffset]
 
 	*result = bson.D{}
-
+	
+	tableName := "columns"
+	
 	if !cfr.includeColumns {
 		_cfrNextHelper(result, "TABLE_SCHEMA", db.DB)
 		_cfrNextHelper(result, "TABLE_NAME", table.Table)
@@ -55,6 +57,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 		_cfrNextHelper(result, "TABLE_COMMENT", "d")
 
 		cfr.tableOffset = cfr.tableOffset + 1
+		tableName = "txxxables"
 	} else {
 		// are we in valid column space
 		if cfr.columnsOffset >= len(table.Columns) {
@@ -78,15 +81,10 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 		cfr.columnsOffset = cfr.columnsOffset + 1
 	}
 
-	matches, err := Matches(cfr.query, result)
-	if err != nil {
-		cfr.err = err
-		return false
-	}
-	if !matches {
+	if cfr.matcher != nil && !cfr.matcher.Matches(&MatchCtx{[]*Row{&Row{[]TableRow{TableRow{tableName, *result, nil}}}}}) {
 		return cfr.Next(result)
 	}
-	
+
 	return true
 }
 
@@ -102,12 +100,12 @@ func (cfr *ConfigFindResults) Close() error {
 
 type ConfigFindQuery struct {
 	config         *config.Config
-	query          interface{}
+	matcher          Matcher
 	includeColumns bool
 }
 
 func (cfq ConfigFindQuery) Iter() FindResults {
-	return &ConfigFindResults{cfq.config, cfq.query, cfq.includeColumns, 0, 0, 0, nil}
+	return &ConfigFindResults{cfq.config, cfq.matcher, cfq.includeColumns, 0, 0, 0, nil}
 }
 
 // -
@@ -117,8 +115,8 @@ type ConfigDataSource struct {
 	IncludeColumns bool
 }
 
-func (cds ConfigDataSource) Find(query interface{}) FindQuery {
-	return ConfigFindQuery{cds.Config, query, cds.IncludeColumns}
+func (cds ConfigDataSource) Find(matcher Matcher) FindQuery {
+	return ConfigFindQuery{cds.Config, matcher, cds.IncludeColumns}
 }
 
 func (cds ConfigDataSource) Insert(docs ...interface{}) error {

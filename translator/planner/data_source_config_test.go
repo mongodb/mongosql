@@ -17,7 +17,7 @@ func TestConfigDataSourceIter(t *testing.T) {
 
 		dataSource := ConfigDataSource{cfg, true}
 
-		query := dataSource.Find(bson.M{})
+		query := dataSource.Find(EmptyMatcher{})
 
 		iter := query.Iter()
 
@@ -47,7 +47,7 @@ func TestConfigDataSourceIterTables(t *testing.T) {
 
 		dataSource := ConfigDataSource{cfg, false}
 
-		query := dataSource.Find(bson.M{})
+		query := dataSource.Find(EmptyMatcher{})
 
 		iter := query.Iter()
 
