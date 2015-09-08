@@ -1,7 +1,12 @@
 package planner
 
-var testConfigSimple = []byte(
-	`
+var (
+	dbName       = "test"
+	tableOneName = "foo"
+	tableTwoName = "bar"
+
+	testConfigSimple = []byte(
+		`
 schema :
 -
   url: localhost
@@ -9,7 +14,7 @@ schema :
   tables:
   -
      table: bar
-     collection: test.simple
+     collection: test.bar
      columns:
      -
         name: a
@@ -17,6 +22,9 @@ schema :
      -
         name: b
         type: string
+  -
+     table: foo
+     collection: test.foo
 -
   url: localhost
   db: foo
@@ -42,3 +50,4 @@ schema :
         name: f
         type: string
 `)
+)

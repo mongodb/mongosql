@@ -14,7 +14,7 @@ func TestTableScanOperator(t *testing.T) {
 
 		Convey("fetching data from a table scan should return correct results", func() {
 
-			cfg, err := config.ParseConfigData(testCfg)
+			cfg, err := config.ParseConfigData(testConfigSimple)
 			So(err, ShouldBeNil)
 
 			session, err := mgo.Dial(cfg.Url)
@@ -33,10 +33,7 @@ func TestTableScanOperator(t *testing.T) {
 				},
 			}
 
-			dbName := "test"
-			colName := "customers"
-
-			collection := session.DB(dbName).C(colName)
+			collection := session.DB(dbName).C(tableOneName)
 			collection.DropCollection()
 
 			for _, row := range rows {
@@ -49,7 +46,7 @@ func TestTableScanOperator(t *testing.T) {
 			}
 
 			operator := TableScan{
-				tableName: colName,
+				tableName: tableOneName,
 			}
 
 			So(operator.Open(ctx), ShouldBeNil)
@@ -60,8 +57,9 @@ func TestTableScanOperator(t *testing.T) {
 
 			for operator.Next(row) {
 				So(len(row.Data), ShouldEqual, 1)
-				So(row.Data[0].Table, ShouldEqual, colName)
+				So(row.Data[0].Table, ShouldEqual, tableOneName)
 				So(row.Data[0].Values, ShouldResemble, rows[i])
+				row = &Row{}
 				i++
 			}
 

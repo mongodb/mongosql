@@ -21,7 +21,6 @@ func TestConfigDataSourceIter(t *testing.T) {
 
 		iter := query.Iter()
 
-
 		fieldNames := []string{}
 
 		var doc bson.D
@@ -60,9 +59,9 @@ func TestConfigDataSourceIterTables(t *testing.T) {
 			names = append(names, v.(string))
 		}
 
-		So(len(names), ShouldEqual, 3)
+		So(len(names), ShouldEqual, 4)
 
 		sort.Strings(names)
-		So([]string{"bar", "bar", "silly"}, ShouldResemble, names)
+		So([]string{"bar", "bar", "foo", "silly"}, ShouldResemble, names)
 	})
 }

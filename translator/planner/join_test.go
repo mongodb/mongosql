@@ -9,27 +9,7 @@ import (
 	"testing"
 )
 
-var testCfg = []byte(
-	`
-schema :
--
-  url: localhost
-  db: test
-  tables:
-  -
-     table: customers
-     collection: test.customers
-  tables:
-  -
-     table: orders
-     collection: test.orders
-`)
-
 var (
-	dbName = "test"
-	colOne = "customers"
-	colTwo = "orders"
-
 	customers = []interface{}{
 		bson.D{
 			bson.DocElem{Name: "name", Value: "personA"},
@@ -75,20 +55,20 @@ var (
 
 func setupJoinOperator(criteria sqlparser.BoolExpr, joinType string) Operator {
 
-	cfg, err := config.ParseConfigData(testCfg)
+	cfg, err := config.ParseConfigData(testConfigSimple)
 	So(err, ShouldBeNil)
 
 	session, err := mgo.Dial(cfg.Url)
 	So(err, ShouldBeNil)
 
-	c1 := session.DB(dbName).C(colOne)
+	c1 := session.DB(dbName).C(tableOneName)
 	c1.DropCollection()
 
 	for _, customer := range customers {
 		So(c1.Insert(customer), ShouldBeNil)
 	}
 
-	c2 := session.DB(dbName).C(colTwo)
+	c2 := session.DB(dbName).C(tableTwoName)
 	c2.DropCollection()
 
 	for _, order := range orders {
@@ -96,11 +76,11 @@ func setupJoinOperator(criteria sqlparser.BoolExpr, joinType string) Operator {
 	}
 
 	ts1 := &TableScan{
-		tableName: colOne,
+		tableName: tableOneName,
 	}
 
 	ts2 := &TableScan{
-		tableName: colTwo,
+		tableName: tableTwoName,
 	}
 
 	session.Close()
@@ -122,15 +102,15 @@ func TestJoinOperator(t *testing.T) {
 			Operator: sqlparser.AST_EQ,
 			Left: &sqlparser.ColName{
 				Name:      []byte("orderid"),
-				Qualifier: []byte("customers"),
+				Qualifier: []byte(tableOneName),
 			},
 			Right: &sqlparser.ColName{
 				Name:      []byte("orderid"),
-				Qualifier: []byte("orders"),
+				Qualifier: []byte(tableTwoName),
 			},
 		}
 
-		cfg, err := config.ParseConfigData(testCfg)
+		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
 
 		ctx := &ExecutionCtx{
@@ -160,8 +140,8 @@ func TestJoinOperator(t *testing.T) {
 
 			for operator.Next(row) {
 				So(len(row.Data), ShouldEqual, 2)
-				So(row.Data[0].Table, ShouldEqual, colOne)
-				So(row.Data[1].Table, ShouldEqual, colTwo)
+				So(row.Data[0].Table, ShouldEqual, tableOneName)
+				So(row.Data[1].Table, ShouldEqual, tableTwoName)
 				So(row.Data[0].Values.Map()["name"], ShouldEqual, expectedResults[i].Name)
 				So(row.Data[1].Values.Map()["amount"], ShouldEqual, expectedResults[i].Amount)
 				i++
@@ -195,13 +175,13 @@ func TestJoinOperator(t *testing.T) {
 				// left entry with no corresponding right entry
 				if i == 3 {
 					So(len(row.Data), ShouldEqual, 1)
-					So(row.Data[0].Table, ShouldEqual, colOne)
+					So(row.Data[0].Table, ShouldEqual, tableOneName)
 					So(row.Data[0].Values.Map()["name"], ShouldEqual, expectedResults[i].Name)
 					So(row.Data[0].Values.Map()["amount"], ShouldEqual, expectedResults[i].Amount)
 				} else {
 					So(len(row.Data), ShouldEqual, 2)
-					So(row.Data[0].Table, ShouldEqual, colOne)
-					So(row.Data[1].Table, ShouldEqual, colTwo)
+					So(row.Data[0].Table, ShouldEqual, tableOneName)
+					So(row.Data[1].Table, ShouldEqual, tableTwoName)
 					So(row.Data[0].Values.Map()["name"], ShouldEqual, expectedResults[i].Name)
 					So(row.Data[1].Values.Map()["amount"], ShouldEqual, expectedResults[i].Amount)
 				}
@@ -239,13 +219,13 @@ func TestJoinOperator(t *testing.T) {
 				// right entry with no corresponding left entry
 				if i == 4 {
 					So(len(row.Data), ShouldEqual, 1)
-					So(row.Data[0].Table, ShouldEqual, colTwo)
+					So(row.Data[0].Table, ShouldEqual, tableTwoName)
 					So(row.Data[0].Values.Map()["name"], ShouldEqual, expectedResults[i].Name)
 					So(row.Data[0].Values.Map()["amount"], ShouldEqual, expectedResults[i].Amount)
 				} else {
 					So(len(row.Data), ShouldEqual, 2)
-					So(row.Data[0].Table, ShouldEqual, colTwo)
-					So(row.Data[1].Table, ShouldEqual, colOne)
+					So(row.Data[0].Table, ShouldEqual, tableTwoName)
+					So(row.Data[1].Table, ShouldEqual, tableOneName)
 					So(row.Data[1].Values.Map()["name"], ShouldEqual, expectedResults[i].Name)
 					So(row.Data[0].Values.Map()["amount"], ShouldEqual, expectedResults[i].Amount)
 				}
