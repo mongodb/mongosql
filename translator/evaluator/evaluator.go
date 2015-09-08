@@ -26,11 +26,7 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 
 	for operator.Next(row) {
 
-		// TODO: merge eliot's work so we have
-		// definite field names before Fields()
-		// is called
-
-		values := getRowValues(s.Namespaces, row)
+		values := getRowValues(s.Columns, row)
 		rows = append(rows, values)
 
 		row.Data = []planner.TableRow{}
@@ -55,11 +51,11 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 	return s.Fields(), rows, nil
 }
 
-func getRowValues(n []*planner.Namespace, r *planner.Row) []interface{} {
+func getRowValues(columns []*planner.Column, row *planner.Row) []interface{} {
 	values := make([]interface{}, 0)
 
-	for _, ns := range n {
-		value, _ := r.GetField(ns.Table, ns.Column)
+	for _, column := range columns {
+		value, _ := row.GetField(column.Table, column.Name)
 		values = append(values, value)
 	}
 

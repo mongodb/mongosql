@@ -62,4 +62,3 @@ func TestConfigScanOperatorTablesSelect(t *testing.T) {
 		So(len(values), ShouldEqual, 1)
 	})
 }
-

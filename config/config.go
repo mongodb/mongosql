@@ -5,8 +5,8 @@ import (
 )
 
 type Column struct {
-	Name string
-	Type string
+	Name      string
+	Type      string
 	MysqlType string
 }
 
@@ -14,7 +14,7 @@ type TableConfig struct {
 	Table      string   `yaml:"table"`
 	Collection string   `yaml:"collection"`
 	Pipeline   []bson.M `yaml:"pipeline"`
-	Columns []Column `yaml:"columns"`
+	Columns    []Column `yaml:"columns"`
 }
 
 type Schema struct {

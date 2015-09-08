@@ -29,15 +29,15 @@ func PlanQuery(ss sqlparser.SelectStatement) (Operator, error) {
 				break
 
 			case *sqlparser.NonStarExpr:
-				plan, ns, err := planExpr(expr.Expr)
+				plan, column, err := planExpr(expr.Expr)
 				if err != nil {
 					return nil, err
 				}
-				ns.View = string(expr.As)
-				if ns.View == "" {
-					ns.View = ns.Column
+				column.View = string(expr.As)
+				if column.View == "" {
+					column.View = column.Name
 				}
-				selectNode.Namespaces = append(selectNode.Namespaces, ns)
+				selectNode.Columns = append(selectNode.Columns, column)
 				if _, ok := plan.(*Noop); !ok {
 					selectNode.children = append(selectNode.children, plan)
 				}
@@ -146,7 +146,7 @@ func random() string {
 	return hex.EncodeToString(b)
 }
 
-func planExpr(sqlExpr sqlparser.Expr) (Operator, *Namespace, error) {
+func planExpr(sqlExpr sqlparser.Expr) (Operator, *Column, error) {
 
 	log.Logf(log.DebugLow, "planExpr: %s (type is %T)", sqlparser.String(sqlExpr), sqlExpr)
 
@@ -156,9 +156,9 @@ func planExpr(sqlExpr sqlparser.Expr) (Operator, *Namespace, error) {
 	case sqlparser.ValTuple:
 	case *sqlparser.NullVal:
 	case *sqlparser.ColName:
-		ns := &Namespace{
-			Table:  string(expr.Qualifier),
-			Column: string(expr.Name),
+		ns := &Column{
+			Table: string(expr.Qualifier),
+			Name:  string(expr.Name),
 		}
 
 		return &Noop{}, ns, nil
@@ -174,7 +174,7 @@ func planExpr(sqlExpr sqlparser.Expr) (Operator, *Namespace, error) {
 	case *sqlparser.ParenBoolExpr:
 	case *sqlparser.Subquery:
 		op, err := PlanQuery(expr.Select)
-		ns := &Namespace{
+		ns := &Column{
 			Table: random(),
 		}
 		return op, ns, err

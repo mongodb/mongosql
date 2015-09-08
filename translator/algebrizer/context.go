@@ -23,9 +23,9 @@ type ParseCtx struct {
 // TableInfo holds a mapping of aliases (or real names
 // if not aliased) to the actual table name.
 type TableInfo struct {
-	Alias      string
-	Db         string
-	Table      string
+	Alias string
+	Db    string
+	Table string
 }
 
 // ColumnInfo holds a mapping of aliases (or real names
@@ -34,8 +34,7 @@ type TableInfo struct {
 type ColumnInfo struct {
 	// using a mapping in case the name is an alias
 	// e.g. SELECT a+b AS x FROM foo WHERE x<10;
-	Field string
-	// TODO: parser does not currently support column aliasing :(
+	Field      string
 	Alias      string
 	Collection string
 }

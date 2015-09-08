@@ -26,7 +26,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 	if cfr.err != nil {
 		return false
 	}
-	
+
 	// are we in valid db space
 	if cfr.dbOffset >= len(cfr.config.RawSchemas) {
 		// nope, we're done
@@ -46,9 +46,9 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 	table := db.RawTables[cfr.tableOffset]
 
 	*result = bson.D{}
-	
+
 	tableName := "columns"
-	
+
 	if !cfr.includeColumns {
 		_cfrNextHelper(result, "TABLE_SCHEMA", db.DB)
 		_cfrNextHelper(result, "TABLE_NAME", table.Table)
@@ -76,7 +76,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 		_cfrNextHelper(result, "COLUMN_NAME", col.Name)
 		_cfrNextHelper(result, "COLUMN_TYPE", col.MysqlType)
 
-		_cfrNextHelper(result, "ORDINAL_POSITION", cfr.columnsOffset + 1)
+		_cfrNextHelper(result, "ORDINAL_POSITION", cfr.columnsOffset+1)
 
 		cfr.columnsOffset = cfr.columnsOffset + 1
 	}
@@ -100,7 +100,7 @@ func (cfr *ConfigFindResults) Close() error {
 
 type ConfigFindQuery struct {
 	config         *config.Config
-	matcher          Matcher
+	matcher        Matcher
 	includeColumns bool
 }
 

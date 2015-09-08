@@ -24,6 +24,6 @@ func ParseSQL(sql string) (sqlparser.Statement, error) {
 			return stmt, nil
 		}
 	}
-	
+
 	return stmt, err
 }

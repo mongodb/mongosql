@@ -6,6 +6,16 @@ import (
 	"strings"
 )
 
+// Column contains information used to select data
+// from an operator. 'Table' and 'Column' define the
+// source of the data while 'View' holds the display
+// header representation of the data.
+type Column struct {
+	Table string
+	Name  string
+	View  string
+}
+
 // ExecutionCtx holds data that is used by each operator.
 type ExecutionCtx struct {
 	Config *config.Config
@@ -28,8 +38,8 @@ type Row struct {
 
 // TableRow holds column data from a given table.
 type TableRow struct {
-	Table  string
-	Values bson.D
+	Table       string
+	Values      bson.D
 	TableConfig *config.TableConfig
 }
 

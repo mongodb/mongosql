@@ -2,21 +2,21 @@ package planner
 
 import (
 	"fmt"
+	"github.com/erh/mongo-sql-temp/config"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
 	"sync"
-	"github.com/erh/mongo-sql-temp/config"
 )
 
 type TableScan struct {
-	dbName string
-	tableName string
+	dbName         string
+	tableName      string
 	fullCollection string
-	filter     interface{}
-	filterMatcher Matcher
+	filter         interface{}
+	filterMatcher  Matcher
 	sync.Mutex
-	iter           FindResults
-	err            error
+	iter        FindResults
+	err         error
 	tableConfig *config.TableConfig
 }
 
@@ -34,7 +34,7 @@ func (ts *TableScan) init(ctx *ExecutionCtx) error {
 	if len(ts.dbName) == 0 {
 		ts.dbName = ctx.Db
 	}
-	
+
 	dbConfig := ctx.Config.Schemas[ts.dbName]
 	if dbConfig == nil {
 		if strings.ToLower(ts.dbName) == "information_schema" {

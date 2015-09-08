@@ -3,8 +3,8 @@ package planner
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"gopkg.in/mgo.v2/bson"
+	"regexp"
 )
 
 var ErrUntransformableCondition = errors.New("condition can't be expressed as a field:value pair")

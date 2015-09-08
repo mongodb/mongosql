@@ -28,13 +28,6 @@ const (
 	NaturalJoin           = sqlparser.AST_NATURAL_JOIN
 )
 
-// Namespace is used to hold alias values
-type Namespace struct {
-	Table  string
-	Column string
-	View   string
-}
-
 // NestedLoop implementation of a JOIN.
 type NestedLoopJoiner struct {
 	matcher  Matcher
