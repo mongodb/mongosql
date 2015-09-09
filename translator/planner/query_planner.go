@@ -64,31 +64,49 @@ func PlanQuery(ss sqlparser.SelectStatement) (Operator, error) {
 }
 
 // planFromExpr takes one or more table expressions and returns an Operator for the
-// data source. If more than one table expression exists, it constructs a right deep
-// Cross Join Operator.
+// data source. If more than one table expression exists, it constructs a join
+// operator (which is left deep for more than two table expressions).
 func planFromExpr(tExpr sqlparser.TableExprs, where *sqlparser.Where) (Operator, error) {
 	if len(tExpr) == 0 {
-		return nil, fmt.Errorf("can not use planCrossJoin with no tables")
+		return nil, fmt.Errorf("can plan table expression with no tables")
 	} else if len(tExpr) == 1 {
 		return planTableExpr(tExpr[0], where)
 	}
 
-	left, err := planTableExpr(tExpr[0], where)
-	if err != nil {
-		return nil, fmt.Errorf("error on cross join node: %v", err)
+	var left, right Operator
+	var err error
+
+	if len(tExpr) == 2 {
+
+		left, err = planTableExpr(tExpr[0], where)
+		if err != nil {
+			return nil, fmt.Errorf("error planning left table expr: %v", err)
+		}
+
+		right, err = planTableExpr(tExpr[1], where)
+		if err != nil {
+			return nil, fmt.Errorf("error planning right table expr: %v", err)
+		}
+
+	} else {
+
+		left, err = planFromExpr(tExpr[:len(tExpr)-1], where)
+		if err != nil {
+			return nil, fmt.Errorf("error planning left forest: %v", err)
+		}
+
+		right, err = planTableExpr(tExpr[len(tExpr)-1], where)
+		if err != nil {
+			return nil, fmt.Errorf("error planning right table leaf: %v", err)
+		}
+
 	}
 
 	join := &Join{
-		left: left,
-		kind: sqlparser.AST_CROSS_JOIN,
+		left:  left,
+		right: right,
+		kind:  sqlparser.AST_CROSS_JOIN,
 	}
-
-	right, err := planFromExpr(tExpr[1:], where)
-	if err != nil {
-		return nil, fmt.Errorf("error on cross join node: %v", err)
-	}
-
-	join.right = right
 
 	return join, nil
 
