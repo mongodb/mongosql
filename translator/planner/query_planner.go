@@ -48,13 +48,12 @@ func PlanQuery(ss sqlparser.SelectStatement) (Operator, error) {
 
 		// interpret 'FROM' clause
 		if ast.From != nil {
-			for _, table := range ast.From {
-				plan, err := planTableExpr(table, ast.Where)
-				if err != nil {
-					return nil, err
-				}
-				selectNode.children = append(selectNode.children, plan)
+			plan, err := planFromExpr(ast.From, ast.Where)
+			if err != nil {
+				return nil, err
 			}
+
+			selectNode.children = append(selectNode.children, plan)
 		}
 
 		return selectNode, nil
@@ -62,6 +61,37 @@ func PlanQuery(ss sqlparser.SelectStatement) (Operator, error) {
 	default:
 		return nil, fmt.Errorf("%T select statement not yet implemented", ast)
 	}
+}
+
+// planFromExpr takes one or more table expressions and returns an Operator for the
+// data source. If more than one table expression exists, it constructs a right deep
+// Cross Join Operator.
+func planFromExpr(tExpr sqlparser.TableExprs, where *sqlparser.Where) (Operator, error) {
+	if len(tExpr) == 0 {
+		return nil, fmt.Errorf("can not use planCrossJoin with no tables")
+	} else if len(tExpr) == 1 {
+		return planTableExpr(tExpr[0], where)
+	}
+
+	left, err := planTableExpr(tExpr[0], where)
+	if err != nil {
+		return nil, fmt.Errorf("error on cross join node: %v", err)
+	}
+
+	join := &Join{
+		left: left,
+		kind: sqlparser.AST_CROSS_JOIN,
+	}
+
+	right, err := planFromExpr(tExpr[1:], where)
+	if err != nil {
+		return nil, fmt.Errorf("error on cross join node: %v", err)
+	}
+
+	join.right = right
+
+	return join, nil
+
 }
 
 // planTableExpr takes a table expression and returns an Operator that can iterate over its result

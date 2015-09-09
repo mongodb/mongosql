@@ -239,5 +239,32 @@ func TestJoinOperator(t *testing.T) {
 			So(operator.Close(), ShouldBeNil)
 
 		})
+
+		Convey("a cross join should return correct results", func() {
+
+			operator := setupJoinOperator(criteria, sqlparser.AST_CROSS_JOIN)
+
+			So(operator.Open(ctx), ShouldBeNil)
+
+			expectedNames := []string{"personA", "personB", "personC", "personD", "personE"}
+			expectedAmounts := []int{1000, 450, 1300, 390, 760}
+
+			i := 0
+
+			for operator.Next(row) {
+				So(len(row.Data), ShouldEqual, 2)
+				So(row.Data[0].Table, ShouldEqual, tableOneName)
+				So(row.Data[1].Table, ShouldEqual, tableTwoName)
+				So(row.Data[0].Values.Map()["name"], ShouldEqual, expectedNames[i/5])
+				So(row.Data[1].Values.Map()["amount"], ShouldEqual, expectedAmounts[i%5])
+				i++
+			}
+
+			So(i, ShouldEqual, 20)
+
+			So(operator.Err(), ShouldBeNil)
+			So(operator.Close(), ShouldBeNil)
+
+		})
 	})
 }

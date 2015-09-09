@@ -109,9 +109,11 @@ func (join *Join) init(ctx *ExecutionCtx) (err error) {
 
 	join.errChan = make(chan error, 1)
 
-	join.matcher, err = BuildMatcher(join.on)
-	if err != nil {
-		return err
+	if join.on != nil {
+		join.matcher, err = BuildMatcher(join.on)
+		if err != nil {
+			return err
+		}
 	}
 
 	joinKind := getJoinKind(join.kind)
@@ -222,6 +224,7 @@ func (nlp *NestedLoopJoiner) Join(lChan, rChan chan *Row) chan Row {
 		go nlp.sideJoin(rChan, lChan, ch)
 	case StraightJoin:
 	case CrossJoin:
+		go nlp.crossJoin(lChan, rChan, ch)
 	case NaturalJoin:
 
 	}
@@ -265,6 +268,19 @@ func (nlp *NestedLoopJoiner) sideJoin(lChan, rChan chan *Row, ch chan Row) {
 		}
 
 		hasMatch = false
+	}
+
+	close(ch)
+}
+
+func (nlp *NestedLoopJoiner) crossJoin(lChan, rChan chan *Row, ch chan Row) {
+	left := readFromChan(lChan)
+	right := readFromChan(rChan)
+
+	for _, l := range left {
+		for _, r := range right {
+			ch <- Row{Data: append(l.Data, r.Data...)}
+		}
 	}
 
 	close(ch)
