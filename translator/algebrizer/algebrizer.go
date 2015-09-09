@@ -100,7 +100,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 
 // algebrizeExpr takes an expression and returns its algebrized form.
 func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error) {
-	log.Logf(log.DebugLow, "expr: %s (type is %T)\npCtx: %#v\n\n", sqlparser.String(gExpr), gExpr, pCtx)
+	log.Logf(log.DebugLow, "expr: %#v (type is %T)\npCtx: %#v\n\n", gExpr, gExpr, pCtx)
 
 	switch expr := gExpr.(type) {
 
@@ -300,12 +300,13 @@ func algebrizeTableExpr(tExpr sqlparser.TableExpr, pCtx *ParseCtx) error {
 		expr.LeftExpr = left.(sqlparser.TableExpr)
 		expr.RightExpr = right.(sqlparser.TableExpr)
 
-		criterion, err := algebrizeExpr(expr.On, pCtx)
-		if err != nil {
-			return fmt.Errorf("JoinTableExpr On error: %v", err)
+		if expr.On != nil {
+			criterion, err := algebrizeExpr(expr.On, pCtx)
+			if err != nil {
+				return fmt.Errorf("JoinTableExpr On error: %v", err)
+			}
+			expr.On = criterion.(sqlparser.BoolExpr)
 		}
-
-		expr.On = criterion.(sqlparser.BoolExpr)
 
 		return nil
 

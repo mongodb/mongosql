@@ -27,7 +27,7 @@ func BuildValue(gExpr sqlparser.Expr) (SQLValue, error) {
 
 // BuildMatcher rewrites a boolean expression as a matcher.
 func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
-	log.Logf(log.DebugLow, "expr: %s (type is %T)", sqlparser.String(gExpr), gExpr)
+	log.Logf(log.DebugLow, "expr: %#v (type is %T)", gExpr, gExpr)
 
 	switch expr := gExpr.(type) {
 	case *sqlparser.AndExpr:
