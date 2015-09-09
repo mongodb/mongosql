@@ -15,9 +15,10 @@ var (
 // ParseCtx holds information that is used to resolve
 // columns and table names in a select query.
 type ParseCtx struct {
-	Column []ColumnInfo
-	Table  []TableInfo
-	Parent *ParseCtx
+	Column   []ColumnInfo
+	Table    []TableInfo
+	Parent   *ParseCtx
+	Children []*ParseCtx
 }
 
 // TableInfo holds a mapping of aliases (or real names
@@ -33,7 +34,8 @@ type TableInfo struct {
 // table name for the column is also stored here.
 type ColumnInfo struct {
 	// using a mapping in case the name is an alias
-	// e.g. SELECT a+b AS x FROM foo WHERE x<10;
+	// TODO: e.g. SELECT a+b AS x FROM foo WHERE x<10;
+	// x should be replaced with 'a+b' expr.
 	Field      string
 	Alias      string
 	Collection string
@@ -77,56 +79,73 @@ func NewParseCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) {
 // TableName returns the unaliased table name given an alias.
 // It searches in the parent context if the alias is not found
 // in the current context.
-func (c *ParseCtx) TableName(qualifier string, alias string) (string, error) {
+func (pCtx *ParseCtx) TableName(qualifier string, alias string) (string, error) {
 	// no guarantee that this table exists without checking the db
-	if c == nil {
+	if pCtx == nil {
 		return alias, nil
 	}
 
-	for _, tableInfo := range c.Table {
+	for _, tableInfo := range pCtx.Table {
 		if qualifier == tableInfo.Db && alias == tableInfo.Alias {
 			return tableInfo.Table, nil
 		}
 	}
 
-	return c.Parent.TableName(qualifier, alias)
+	return pCtx.Parent.TableName(qualifier, alias)
 }
 
 // ColumnAlias searches current context for the given alias
 // It searches in the parent context if the alias is not found
 // in the current context.
-func (c *ParseCtx) ColumnAlias(alias string) (*ColumnInfo, error) {
-	if c == nil {
+func (pCtx *ParseCtx) ColumnAlias(alias string) (*ColumnInfo, error) {
+	if pCtx == nil {
 		return nil, ErrColumnAliasNotFound
 	}
 
-	for _, columnInfo := range c.Column {
+	for _, columnInfo := range pCtx.Column {
 		if columnInfo.Alias == alias {
 			return &columnInfo, nil
 		}
 	}
 
-	return c.Parent.ColumnAlias(alias)
+	return pCtx.Parent.ColumnAlias(alias)
+}
+
+// ChildCtx returns a new child context for the current context.
+func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) {
+	if pCtx == nil {
+		return nil, ErrNilCtx
+	}
+
+	ctx, err := NewParseCtx(ss)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.Parent = pCtx
+	pCtx.Children = append(pCtx.Children, ctx)
+
+	return ctx, nil
 }
 
 // GetCurrentTable finds a given table in the current context.
-func (c *ParseCtx) GetCurrentTable(tableName string) (string, error) {
-	if c == nil {
+func (pCtx *ParseCtx) GetCurrentTable(tableName string) (string, error) {
+	if pCtx == nil {
 		return "", ErrNilCtx
 	}
 
-	if len(c.Table) == 0 {
-		return c.Parent.GetCurrentTable(tableName)
-	} else if len(c.Table) == 1 {
+	if len(pCtx.Table) == 0 {
+		return pCtx.Parent.GetCurrentTable(tableName)
+	} else if len(pCtx.Table) == 1 {
 		// in this case, we're either referencing a table directly,
 		// using an alias or implicitly referring to the current table
 
-		curTable := c.Table[0]
+		curTable := pCtx.Table[0]
 
 		// TODO: this is broken, ignores db
 		if curTable.Table == tableName || curTable.Alias == tableName || tableName == "" {
 			// TODO: this is broken, ignores db
-			return c.Table[0].Table, nil
+			return pCtx.Table[0].Table, nil
 		}
 	} else {
 		// if there are multiple tables in the current context
@@ -136,7 +155,7 @@ func (c *ParseCtx) GetCurrentTable(tableName string) (string, error) {
 		}
 
 		// the table name can either be actual or aliased
-		for _, tableInfo := range c.Table {
+		for _, tableInfo := range pCtx.Table {
 			// TODO: this is broken, ignores db
 			if tableInfo.Alias == tableName || tableInfo.Table == tableName {
 				// TODO: this is broken, ignores db
@@ -145,5 +164,5 @@ func (c *ParseCtx) GetCurrentTable(tableName string) (string, error) {
 		}
 	}
 
-	return c.Parent.GetCurrentTable(tableName)
+	return pCtx.Parent.GetCurrentTable(tableName)
 }

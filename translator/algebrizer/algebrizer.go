@@ -237,14 +237,12 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 		//
 
 	case *sqlparser.Subquery:
-		ctx, err := NewParseCtx(expr.Select)
+		nCtx, err := pCtx.ChildCtx(expr.Select)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing Subquery parse context: %v", err)
 		}
 
-		ctx.Parent = pCtx
-
-		err = algebrizeSelectStatement(expr.Select, ctx)
+		err = algebrizeSelectStatement(expr.Select, nCtx)
 		if err != nil {
 			return nil, fmt.Errorf("Subquery error: %v", err)
 		}
@@ -333,13 +331,12 @@ func algebrizeSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, pCtx *ParseCtx) 
 		return expr, err
 
 	case *sqlparser.Subquery:
-		ctx, err := NewParseCtx(expr.Select)
+		nCtx, err := pCtx.ChildCtx(expr.Select)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing new parse context: %v", err)
 		}
-		ctx.Parent = pCtx
 
-		err = algebrizeSelectStatement(expr.Select, ctx)
+		err = algebrizeSelectStatement(expr.Select, nCtx)
 		if err != nil {
 			return nil, fmt.Errorf("can't algebrize Subquery: %v", err)
 		}
