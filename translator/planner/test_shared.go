@@ -1,9 +1,10 @@
 package planner
 
 var (
-	dbName       = "test"
-	tableOneName = "foo"
-	tableTwoName = "bar"
+	dbName         = "test"
+	tableOneName   = "foo"
+	tableTwoName   = "bar"
+	tableThreeName = "baz"
 
 	testConfigSimple = []byte(
 		`
