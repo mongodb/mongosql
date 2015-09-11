@@ -19,6 +19,22 @@ func BuildValue(gExpr sqlparser.Expr) (SQLValue, error) {
 		return SQLField{string(expr.Qualifier), string(expr.Name)}, nil
 	case sqlparser.StrVal:
 		return SQLString(string([]byte(expr))), nil
+	case *sqlparser.BinaryExpr:
+		// look up the function in the function map
+		funcImpl, ok := funcMap[string(expr.Operator)]
+		if !ok {
+			return nil, fmt.Errorf("can't find implementation for binary operator '%v'", expr.Operator)
+		}
+
+		left, err := BuildValue(expr.Left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := BuildValue(expr.Right)
+		if err != nil {
+			return nil, err
+		}
+		return &SQLFuncValue{[]SQLValue{left, right}, funcImpl}, nil
 	default:
 		panic(fmt.Errorf("BuildValue expr not yet implemented for %T", expr))
 		return nil, nil
