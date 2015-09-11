@@ -23,9 +23,17 @@ func (mo *MatchOperator) Close() error {
 }
 
 func (mo *MatchOperator) Next(row *Row) bool {
-	// TODO feed row into matcher with execution context, and consume from source with Next() until
-	// the matcher returns true
-	return mo.source.Next(row)
+	for mo.source.Next(row) {
+		// TODO don't allocate this repeatedly inside the loop to avoid GC?
+		ctx := &MatchCtx{[]*Row{row}}
+		if mo.matcher.Matches(ctx) {
+			return true
+		} else {
+			// the row from source does not match - keep iterating
+			continue
+		}
+	}
+	return false
 }
 
 func (mo *MatchOperator) Err() error {
@@ -71,14 +79,18 @@ type LessThanOrEqual rangeNodes
 type Like rangeNodes
 
 func (neq *NotEquals) Matches(ctx *MatchCtx) bool {
-	if c, err := neq.left.CompareTo(ctx, neq.right); err == nil {
+	leftEvald := neq.left.Evaluate(ctx)
+	rightEvald := neq.right.Evaluate(ctx)
+	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c != 0
 	}
 	return false
 }
 
 func (eq *Equals) Matches(ctx *MatchCtx) bool {
-	if c, err := eq.left.CompareTo(ctx, eq.right); err == nil {
+	leftEvald := eq.left.Evaluate(ctx)
+	rightEvald := eq.right.Evaluate(ctx)
+	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c == 0
 	}
 	return false
@@ -125,7 +137,9 @@ func (neq *NotEquals) Transform() (*bson.D, error) {
 }
 
 func (gt *GreaterThan) Matches(ctx *MatchCtx) bool {
-	if c, err := gt.left.CompareTo(ctx, gt.right); err == nil {
+	leftEvald := gt.left.Evaluate(ctx)
+	rightEvald := gt.right.Evaluate(ctx)
+	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c > 0
 	}
 	return false
@@ -163,19 +177,25 @@ func (gt *LessThan) Transform() (*bson.D, error) {
 }
 
 func (lt *LessThan) Matches(ctx *MatchCtx) bool {
-	if c, err := lt.left.CompareTo(ctx, lt.right); err == nil {
+	leftEvald := lt.left.Evaluate(ctx)
+	rightEvald := lt.right.Evaluate(ctx)
+	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c < 0
 	}
 	return false
 }
 func (gte *GreaterThanOrEqual) Matches(ctx *MatchCtx) bool {
-	if c, err := gte.left.CompareTo(ctx, gte.right); err == nil {
+	leftEvald := gte.left.Evaluate(ctx)
+	rightEvald := gte.right.Evaluate(ctx)
+	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c >= 0
 	}
 	return false
 }
 func (lte *LessThanOrEqual) Matches(ctx *MatchCtx) bool {
-	if c, err := lte.left.CompareTo(ctx, lte.right); err == nil {
+	leftEvald := lte.left.Evaluate(ctx)
+	rightEvald := lte.right.Evaluate(ctx)
+	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c <= 0
 	}
 	return false
@@ -319,9 +339,6 @@ func (sn SQLString) CompareTo(ctx *MatchCtx, v SQLValue) (int, error) {
 	}
 	// can only compare numbers to each other, otherwise treat as error
 	return -1, ErrTypeMismatch
-}
-
-type SQLFunction struct {
 }
 
 type SQLNullValue struct{}
