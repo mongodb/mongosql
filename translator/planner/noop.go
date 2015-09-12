@@ -11,6 +11,10 @@ func (*Noop) Next(row *Row) bool {
 	return false
 }
 
+func (*Noop) OpFields() []*Column {
+	return nil
+}
+
 func (*Noop) Close() error {
 	return nil
 }

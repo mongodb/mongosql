@@ -18,6 +18,24 @@ type ConfigFindResults struct {
 	err error
 }
 
+var (
+	ISTablesHeaders = []string{
+		"TABLE_SCHEMA",
+		"TABLE_NAME",
+		"TABLE_TYPE",
+		"TABLE_COMMENT",
+	}
+
+	ISColumnHeaders = []string{
+		"TABLE_CATALOG",
+		"TABLE_SCHEMA",
+		"TABLE_NAME",
+		"COLUMN_NAME",
+		"COLUMN_TYPE",
+		"ORDINAL_POSITION",
+	}
+)
+
 func _cfrNextHelper(result *bson.D, fieldName string, fieldValue interface{}) {
 	*result = append(*result, bson.DocElem{fieldName, fieldValue})
 }
@@ -50,11 +68,11 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 	tableName := "columns"
 
 	if !cfr.includeColumns {
-		_cfrNextHelper(result, "TABLE_SCHEMA", db.DB)
-		_cfrNextHelper(result, "TABLE_NAME", table.Table)
+		_cfrNextHelper(result, ISTablesHeaders[0], db.DB)
+		_cfrNextHelper(result, ISTablesHeaders[1], table.Table)
 
-		_cfrNextHelper(result, "TABLE_TYPE", "BASE TABLE")
-		_cfrNextHelper(result, "TABLE_COMMENT", "d")
+		_cfrNextHelper(result, ISTablesHeaders[2], "BASE TABLE")
+		_cfrNextHelper(result, ISTablesHeaders[3], "d")
 
 		cfr.tableOffset = cfr.tableOffset + 1
 		tableName = "txxxables"
@@ -66,17 +84,17 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 			return cfr.Next(result)
 		}
 
-		_cfrNextHelper(result, "TABLE_CATALOG", "def")
+		_cfrNextHelper(result, ISColumnHeaders[0], "def")
 
-		_cfrNextHelper(result, "TABLE_SCHEMA", db.DB)
-		_cfrNextHelper(result, "TABLE_NAME", table.Table)
+		_cfrNextHelper(result, ISColumnHeaders[1], db.DB)
+		_cfrNextHelper(result, ISColumnHeaders[2], table.Table)
 
 		col := table.Columns[cfr.columnsOffset]
 
-		_cfrNextHelper(result, "COLUMN_NAME", col.Name)
-		_cfrNextHelper(result, "COLUMN_TYPE", col.MysqlType)
+		_cfrNextHelper(result, ISColumnHeaders[3], col.Name)
+		_cfrNextHelper(result, ISColumnHeaders[4], col.MysqlType)
 
-		_cfrNextHelper(result, "ORDINAL_POSITION", cfr.columnsOffset+1)
+		_cfrNextHelper(result, ISColumnHeaders[5], cfr.columnsOffset+1)
 
 		cfr.columnsOffset = cfr.columnsOffset + 1
 	}

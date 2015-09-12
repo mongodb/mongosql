@@ -77,10 +77,8 @@ func TestSelectOperator(t *testing.T) {
 
 			operator := &Select{
 				isStar: true,
-				children: []Operator{
-					&TableScan{
-						tableName: tableOneName,
-					},
+				source: &TableScan{
+					tableName: tableOneName,
 				},
 			}
 
@@ -101,17 +99,15 @@ func TestSelectOperator(t *testing.T) {
 				},
 			}
 
-			columns := []*Column{
+			columns := []Column{
 				{tableOneName, "a", "a"},
 				{tableOneName, "b", "b"},
 			}
 
 			operator := &Select{
 				Columns: columns,
-				children: []Operator{
-					&TableScan{
-						tableName: tableOneName,
-					},
+				source: &TableScan{
+					tableName: tableOneName,
 				},
 			}
 

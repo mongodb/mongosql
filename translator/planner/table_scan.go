@@ -17,6 +17,7 @@ type TableScan struct {
 	sync.Mutex
 	iter        FindResults
 	err         error
+	dbConfig    *config.Schema
 	tableConfig *config.TableConfig
 }
 
@@ -26,17 +27,27 @@ func (ts *TableScan) Open(ctx *ExecutionCtx) error {
 }
 
 func (ts *TableScan) init(ctx *ExecutionCtx) error {
-	sp, err := NewSessionProvider(ctx.Config)
-	if err != nil {
-		return err
-	}
 
 	if len(ts.dbName) == 0 {
 		ts.dbName = ctx.Db
 	}
 
-	dbConfig := ctx.Config.Schemas[ts.dbName]
-	if dbConfig == nil {
+	if err := ts.setIterator(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
+	sp, err := NewSessionProvider(ctx.Config)
+	if err != nil {
+		return err
+	}
+
+	ts.dbConfig = ctx.Config.Schemas[ts.dbName]
+
+	if ts.dbConfig == nil {
 		if strings.ToLower(ts.dbName) == "information_schema" {
 			var cds ConfigDataSource
 			if strings.ToLower(ts.tableName) == "columns" {
@@ -47,23 +58,22 @@ func (ts *TableScan) init(ctx *ExecutionCtx) error {
 			} else {
 				return fmt.Errorf("unknown information_schema table (%s)", ts.tableName)
 			}
-
 			ts.iter = cds.Find(ts.filterMatcher).Iter()
-		} else {
-			return fmt.Errorf("db (%s) doesn't exist table(%s)", ts.dbName, ts.tableName)
+			return nil
 		}
-	} else {
-		ts.tableConfig = dbConfig.Tables[ts.tableName]
-		if ts.tableConfig == nil {
-			return fmt.Errorf("table (%s) doesn't exist in db (%s)", ts.tableName, ts.dbName)
-		}
+		return fmt.Errorf("db (%s) doesn't exist table(%s)", ts.dbName, ts.tableName)
 
-		ts.fullCollection = ts.tableConfig.Collection
-		pcs := strings.SplitN(ts.tableConfig.Collection, ".", 2)
-		collection := sp.GetSession().DB(pcs[0]).C(pcs[1])
-		ts.iter = MgoFindResults{collection.Find(ts.filter).Iter()}
 	}
 
+	ts.tableConfig = ts.dbConfig.Tables[ts.tableName]
+	if ts.tableConfig == nil {
+		return fmt.Errorf("table (%s) doesn't exist in db (%s)", ts.tableName, ts.dbName)
+	}
+
+	ts.fullCollection = ts.tableConfig.Collection
+	pcs := strings.SplitN(ts.tableConfig.Collection, ".", 2)
+	collection := sp.GetSession().DB(pcs[0]).C(pcs[1])
+	ts.iter = MgoFindResults{collection.Find(ts.filter).Iter()}
 	return nil
 }
 
@@ -71,6 +81,7 @@ func (ts *TableScan) Next(row *Row) bool {
 	if ts.iter == nil {
 		return false
 	}
+
 	data := &bson.D{}
 	hasNext := ts.iter.Next(data)
 	row.Data = []TableRow{{ts.tableName, *data, ts.tableConfig}}
@@ -80,6 +91,38 @@ func (ts *TableScan) Next(row *Row) bool {
 	}
 
 	return hasNext
+}
+
+func (ts *TableScan) OpFields() []*Column {
+	columns := []*Column{}
+
+	if ts.dbConfig == nil {
+		if strings.ToLower(ts.dbName) == "information_schema" {
+			return ts.getISColumns(strings.ToLower(ts.tableName))
+		}
+	}
+
+	for _, c := range ts.tableConfig.Columns {
+		columns = append(columns, &Column{ts.tableName, c.Name, c.Name})
+	}
+
+	return columns
+}
+
+func (ts *TableScan) getISColumns(tableName string) (columns []*Column) {
+	var names []string
+
+	if tableName == "tables" || tableName == "txxxables" {
+		names = ISTablesHeaders
+	} else if tableName == "columns" {
+		names = ISColumnHeaders
+	}
+
+	for _, name := range names {
+		columns = append(columns, &Column{ts.tableName, name, name})
+	}
+
+	return columns
 }
 
 func (ts *TableScan) Close() error {

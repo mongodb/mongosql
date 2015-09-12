@@ -51,7 +51,7 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 	return s.Fields(), rows, nil
 }
 
-func getRowValues(columns []*planner.Column, row *planner.Row) []interface{} {
+func getRowValues(columns []planner.Column, row *planner.Row) []interface{} {
 	values := make([]interface{}, 0)
 
 	for _, column := range columns {

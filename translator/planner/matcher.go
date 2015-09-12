@@ -18,6 +18,10 @@ func (mo *MatchOperator) Open(ctx *ExecutionCtx) error {
 	return mo.source.Open(ctx)
 }
 
+func (mo *MatchOperator) OpFields() []*Column {
+	return mo.source.OpFields()
+}
+
 func (mo *MatchOperator) Close() error {
 	return mo.source.Close()
 }

@@ -17,6 +17,12 @@ schema :
      -
         name: b
         type: string
+     -
+        name: _id
+        type: string
+     -
+        name: c
+        type: string
 -
   url: localhost
   db: foo

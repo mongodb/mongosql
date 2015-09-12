@@ -5,9 +5,9 @@ import (
 )
 
 type Column struct {
-	Name      string
-	Type      string
-	MysqlType string
+	Name      string `yaml:"name"`
+	Type      string `yaml:"type"`
+	MysqlType string `yaml:"mysql_type"`
 }
 
 type TableConfig struct {

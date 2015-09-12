@@ -22,7 +22,7 @@ type DataSource interface {
 	Insert(docs ...interface{}) error
 	DropCollection() error
 
-	GetColumns() []config.Column
+	GetColumns() []Column
 }
 
 // ------

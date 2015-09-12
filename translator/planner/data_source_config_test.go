@@ -30,10 +30,10 @@ func TestConfigDataSourceIter(t *testing.T) {
 			fieldNames = append(fieldNames, v.(string))
 		}
 
-		So(len(fieldNames), ShouldEqual, 6)
+		So(len(fieldNames), ShouldEqual, 7)
 
 		sort.Strings(fieldNames)
-		So([]string{"a", "b", "c", "d", "e", "f"}, ShouldResemble, fieldNames)
+		So([]string{"_id", "a", "b", "c", "d", "e", "f"}, ShouldResemble, fieldNames)
 	})
 }
 

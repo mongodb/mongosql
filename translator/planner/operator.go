@@ -28,6 +28,7 @@ type Operator interface {
 	Open(*ExecutionCtx) error
 	Next(*Row) bool
 	Close() error
+	OpFields() []*Column
 	Err() error
 }
 

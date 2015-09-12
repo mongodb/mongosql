@@ -18,7 +18,7 @@ func TestConfigScanOperatorSelect(t *testing.T) {
 
 		_, values, err := eval.EvalSelect("information_schema", "select * from columns", nil)
 		So(err, ShouldBeNil)
-		So(len(values), ShouldEqual, 6)
+		So(len(values), ShouldEqual, 8)
 
 		_, values, err = eval.EvalSelect("information_schema", "select * from columns where COLUMN_NAME = 'f'", nil)
 		So(err, ShouldBeNil)

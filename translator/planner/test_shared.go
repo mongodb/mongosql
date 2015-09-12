@@ -23,6 +23,9 @@ schema :
      -
         name: b
         type: string
+     -
+        name: _id
+        type: string
   -
      table: foo
      collection: test.foo

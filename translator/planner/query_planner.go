@@ -14,59 +14,113 @@ func PlanQuery(ss sqlparser.SelectStatement) (Operator, error) {
 
 	log.Logf(log.DebugLow, "Planning query for %#v\n", ss)
 
-	// select node is always on top of the tree
-	selectNode := &Select{}
+	switch ast := ss.(type) {
+
+	case *sqlparser.Select:
+		return planSelectExpr(ast)
+
+	case *sqlparser.Union:
+		return nil, fmt.Errorf("union select statement not yet implemented")
+
+	default:
+		return nil, fmt.Errorf("unknown select statement: %T", ast)
+	}
+}
+
+func planSelectExpr(ast *sqlparser.Select) (source Operator, err error) {
+	// handles from and where expression
+	if ast.From != nil {
+		source, err = planFromExpr(ast.From, ast.Where)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// handle select expressions
+	operator := &Select{source: source}
+	sColumns := []SelectColumn{}
+
+	if err = setReferencedColumns(ast, &sColumns, 0); err != nil {
+		return nil, err
+	}
+
+	for _, sc := range sColumns {
+		// TODO: check columns referenced in nested levels
+		for _, column := range sc.Columns {
+			operator.Columns = append(operator.Columns, *column)
+		}
+	}
+
+	return operator, nil
+
+}
+
+// setReferencedColumns adds any columns referenced in the select statement
+// to s. level indicates what nesting level the columna appears in relative
+// to s.
+func setReferencedColumns(ss sqlparser.SelectStatement, s *[]SelectColumn, level int) error {
+
+	columns := make([]*Column, 0)
 
 	switch ast := ss.(type) {
 
 	case *sqlparser.Select:
-		// interpret select expressions
 		for _, sExpr := range ast.SelectExprs {
+
 			switch expr := sExpr.(type) {
-			// TODO: validate no mixture of star and non-star expression
+
+			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
-				selectNode.isStar = true
-				break
+				continue
 
 			case *sqlparser.NonStarExpr:
-				plan, column, err := planExpr(expr.Expr)
+
+				refColumns, err := getReferencedColumn(expr.Expr, s, level)
 				if err != nil {
-					return nil, err
+					return err
 				}
-				column.View = string(expr.As)
-				if column.View == "" {
-					column.View = column.Name
+
+				// TODO: check columns against table config
+				for _, column := range refColumns {
+					column.View = string(expr.As)
+
+					if column.View == "" {
+						column.View = column.Name
+					}
+
+					columns = append(columns, column)
 				}
-				selectNode.Columns = append(selectNode.Columns, column)
-				if _, ok := plan.(*Noop); !ok {
-					selectNode.children = append(selectNode.children, plan)
-				}
+
 			default:
-				return nil, fmt.Errorf("unreachable path")
+				return fmt.Errorf("unreachable path")
 			}
 		}
 
-		// interpret 'FROM' clause
-		if ast.From != nil {
-			plan, err := planFromExpr(ast.From, ast.Where)
-			if err != nil {
-				return nil, err
-			}
-
-			selectNode.children = append(selectNode.children, plan)
+	case *sqlparser.Union:
+		err := setReferencedColumns(ast.Left, s, level)
+		if err != nil {
+			return err
 		}
 
-		return selectNode, nil
+		err = setReferencedColumns(ast.Right, s, level)
+		if err != nil {
+			return err
+		}
 
 	default:
-		return nil, fmt.Errorf("%T select statement not yet implemented", ast)
+		return fmt.Errorf("unknown select statement: %T", ast)
 	}
+
+	*s = append(*s, SelectColumn{columns, level})
+
+	return nil
 }
 
 // planFromExpr takes one or more table expressions and returns an Operator for the
 // data source. If more than one table expression exists, it constructs a join
 // operator (which is left deep for more than two table expressions).
 func planFromExpr(tExpr sqlparser.TableExprs, where *sqlparser.Where) (Operator, error) {
+
 	if len(tExpr) == 0 {
 		return nil, fmt.Errorf("can plan table expression with no tables")
 	} else if len(tExpr) == 1 {
@@ -112,15 +166,18 @@ func planFromExpr(tExpr sqlparser.TableExprs, where *sqlparser.Where) (Operator,
 
 }
 
-// planTableExpr takes a table expression and returns an Operator that can iterate over its result
-// set.
+// planTableExpr takes a table expression and returns an Operator that
+// can iterate over its result set.
 func planTableExpr(tExpr sqlparser.TableExpr, where *sqlparser.Where) (Operator, error) {
 	switch expr := tExpr.(type) {
+
 	case *sqlparser.AliasedTableExpr:
 		// this is a simple table to get data from
 		return planSimpleTableExpr(expr.Expr, where)
+
 	case *sqlparser.ParenTableExpr:
 		return planTableExpr(expr.Expr, where)
+
 	case *sqlparser.JoinTableExpr:
 		left, err := planTableExpr(expr.LeftExpr, where)
 		if err != nil {
@@ -152,6 +209,7 @@ func planTableExpr(tExpr sqlparser.TableExpr, where *sqlparser.Where) (Operator,
 // over its result set.
 func planSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, where *sqlparser.Where) (Operator, error) {
 	switch expr := stExpr.(type) {
+
 	case *sqlparser.TableName:
 		ts := &TableScan{dbName: string(expr.Qualifier), tableName: string(expr.Name)}
 
@@ -162,13 +220,10 @@ func planSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, where *sqlparser.Wher
 				return nil, err
 			}
 
-			// Try to transform the match expression into mongo query language
-			// if it is successful, use the query and skip the matcher
-
-			// TODO currently the trasnformation is all-or-nothing either the entire query is
+			// TODO currently the transformation is all-or-nothing either the entire query is
 			// executed inside mongo or inside the matcher. Needs update to prune the matcher tree
 			// so that the part of the query that can be expressed with MQL is extracted and passed
-			// to mongo, and the rest of hte filtering can be done by the (simplified) matcher
+			// to mongo, and the rest of the filtering can be done by the (simplified) matcher
 			if transformed, err := matcher.Transform(); err == nil {
 				ts.filter = transformed
 				ts.filterMatcher = matcher
@@ -176,7 +231,6 @@ func planSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, where *sqlparser.Wher
 			}
 			return &MatchOperator{source: ts, matcher: matcher}, nil
 		}
-
 		return ts, nil
 
 	case *sqlparser.Subquery:
@@ -196,7 +250,7 @@ func random() string {
 
 func planExpr(sqlExpr sqlparser.Expr) (Operator, *Column, error) {
 
-	log.Logf(log.DebugLow, "planExpr: %s (type is %T)", sqlparser.String(sqlExpr), sqlExpr)
+	log.Logf(log.DebugLow, "planExpr: %#v (type is %T)", sqlExpr, sqlExpr)
 
 	switch expr := sqlExpr.(type) {
 
@@ -235,4 +289,108 @@ func planExpr(sqlExpr sqlparser.Expr) (Operator, *Column, error) {
 	}
 
 	return nil, nil, nil
+}
+
+// getReferencedColumn returns a slice of referenced columns in an expression.
+func getReferencedColumn(e sqlparser.Expr, s *[]SelectColumn, level int) ([]*Column, error) {
+
+	log.Logf(log.DebugLow, "getReferencedColumn: %#v (type is %T)", e, e)
+
+	switch expr := e.(type) {
+
+	case sqlparser.NumVal:
+	case sqlparser.ValTuple:
+	case sqlparser.StrVal:
+	case *sqlparser.NullVal:
+	case *sqlparser.ColName:
+
+		c := &Column{
+			Table: string(expr.Qualifier),
+			Name:  string(expr.Name),
+		}
+		return []*Column{c}, nil
+
+	case *sqlparser.BinaryExpr:
+
+		return getReferencedColumns(s, level, expr.Left, expr.Right)
+
+	case *sqlparser.AndExpr:
+
+		return getReferencedColumns(s, level, expr.Left, expr.Right)
+
+	case *sqlparser.OrExpr:
+
+		return getReferencedColumns(s, level, expr.Left, expr.Right)
+
+	case *sqlparser.ParenBoolExpr:
+
+		return getReferencedColumn(expr.Expr, s, level)
+
+	case *sqlparser.ComparisonExpr:
+
+		return getReferencedColumns(s, level, expr.Left, expr.Right)
+
+	case *sqlparser.RangeCond:
+
+		return getReferencedColumns(s, level, expr.From, expr.To, expr.Left)
+
+	case *sqlparser.NullCheck:
+
+		return getReferencedColumn(expr.Expr, s, level)
+
+	case *sqlparser.UnaryExpr:
+
+		return getReferencedColumn(expr.Expr, s, level)
+
+	case *sqlparser.NotExpr:
+
+		return getReferencedColumn(expr.Expr, s, level)
+
+	case *sqlparser.Subquery:
+		switch ast := expr.Select.(type) {
+
+		case *sqlparser.Select:
+			if err := setReferencedColumns(ast, s, level+1); err != nil {
+				return nil, err
+			}
+
+		case *sqlparser.Union:
+			if err := setReferencedColumns(ast, s, level+1); err != nil {
+				return nil, err
+			}
+
+		default:
+			return nil, fmt.Errorf("unknown select statement: %T", ast)
+		}
+
+		// TODO: fill these in
+	case sqlparser.ValArg:
+		return nil, fmt.Errorf("referenced columns for ValArg for NYI")
+	case *sqlparser.FuncExpr:
+		return nil, fmt.Errorf("referenced columns for FuncExpr for NYI")
+	case *sqlparser.CaseExpr:
+		return nil, fmt.Errorf("referenced columns for CaseExpr for NYI")
+	case *sqlparser.ExistsExpr:
+		return nil, fmt.Errorf("referenced columns for ExistsExpr for NYI")
+	default:
+		return nil, fmt.Errorf("referenced columns NYI for: %T", expr)
+	}
+
+	return nil, fmt.Errorf("referenced columns (on %T) reached an unreachable point", e)
+}
+
+// getReferencedColumns accepts several exppressions and returns a slice
+// of referenced columns in those expressions.
+func getReferencedColumns(s *[]SelectColumn, l int, e ...sqlparser.Expr) ([]*Column, error) {
+	columns := make([]*Column, 0)
+
+	for _, expr := range e {
+		refColumns, err := getReferencedColumn(expr, s, l)
+		if err != nil {
+			return nil, err
+		}
+		columns = append(columns, refColumns...)
+	}
+
+	return columns, nil
 }

@@ -154,6 +154,12 @@ func (join *Join) Close() error {
 	return nil
 }
 
+func (join *Join) OpFields() []*Column {
+	left := join.left.OpFields()
+	right := join.right.OpFields()
+	return append(left, right...)
+}
+
 func (join *Join) Err() error {
 	return join.err
 }

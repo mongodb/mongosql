@@ -80,7 +80,7 @@ func TestSelectOrder(t *testing.T) {
 		collection.DropCollection()
 		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
 
-		names, values, err := eval.EvalSelect("test", "select * from bar", nil)
+		names, values, err := eval.EvalSelect("test", "select a, b, _id from bar", nil)
 		So(err, ShouldBeNil)
 		So(len(names), ShouldEqual, 3)
 		So(len(values), ShouldEqual, 1)
