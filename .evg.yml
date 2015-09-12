@@ -1,0 +1,95 @@
+stepback: true
+
+buildvariants:
+- name: linux
+  display_name: Linux
+  run_on:
+  - ubuntu1404-docker
+  tasks:
+  - name: run_tests
+
+pre:
+  - command: shell.track
+  - command: shell.exec
+    params:
+      script: |
+        rm -rf src
+
+post:
+  - command: shell.cleanup
+
+
+functions:
+  "upload coverage html report":
+     command: s3.put
+     params:
+       aws_key: ${aws_key}
+       aws_secret: ${aws_secret}
+       local_file: ${package}.html
+       remote_file: sqlproxy/coverage/${task_id}-${package}.html
+       bucket: mciuploads
+       permissions: public-read
+       content_type: text/html
+       display_name: Coverage Report (HTML) - ${package}
+
+
+tasks:
+- name: run_tests
+  commands:
+    - command: git.get_project
+      params:
+        directory: src
+    - command: shell.exec
+      params:
+        script: |
+          set -e
+          curl https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1410-clang-3.0.6.tgz -o mongodb.tgz
+          tar xvf ./mongodb.tgz
+          chmod +x ./mongodb-*/bin/*
+          mv ./mongodb-*/bin/* .
+          rm -rf db_files
+          mkdir ./db_files
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          ./mongod --dbpath ./db_files &
+    - command: shell.exec
+      params:
+        script: |
+          set -e
+          echo "waiting for mongo to get up"
+          ./mongo --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")'
+
+          cd src
+          . ./set_gopath.sh
+
+          cd translator/planner
+          go test -v -coverprofile=planner_cover.out
+          #go tool cover -html=planner_cover.out -o ../../../planner.html
+
+          cd ../algebrizer
+          go test -v -coverprofile=algebrizer_cover.out
+          #go tool cover -html=algebrizer_cover.out -o ../../algebrizer.html
+
+          cd ../
+          go test -v -coverprofile=translator_cover.out
+          #go tool cover -html=translator_cover.out -o ../translator.html
+
+          #cd ../
+          #go tool cover -html=translator_cover.out -o translator.html
+          #go tool cover -html=algebrizer_cover.out -o algebrizer.html
+          #go tool cover -html=planner_cover.out -o planner.html
+
+    #- func: "upload coverage html report"
+      #vars:
+        #package: "translator"
+    #- func: "upload coverage html report"
+      #vars:
+        #package: "algebrizer"
+    #- func: "upload coverage html report"
+      #vars:
+        #package: "planner"
+
+
+
