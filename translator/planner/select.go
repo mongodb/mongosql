@@ -20,10 +20,6 @@ type Select struct {
 	// to the client in the result set.
 	fields []string
 
-	// isStar indicates if one or more of the select expressions in this
-	// operator was a star expression - '*'
-	isStar bool
-
 	// ctx is the current execution context
 	ctx *ExecutionCtx
 }
@@ -42,7 +38,7 @@ func (s *Select) Open(ctx *ExecutionCtx) error {
 
 	s.ctx = ctx
 
-	// star expression so get fields from source
+	// no columns imply a star expression - in which case we grab all the fields
 	if len(s.Columns) == 0 {
 		for _, column := range s.source.OpFields() {
 			s.fields = append(s.fields, column.View)
