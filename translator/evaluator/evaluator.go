@@ -1,7 +1,6 @@
 package evaluator
 
 import (
-	"fmt"
 	"github.com/erh/mongo-sql-temp/translator/planner"
 	"github.com/mongodb/mongo-tools/common/log"
 )
@@ -19,14 +18,9 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 	}
 	defer operator.Close()
 
-	s, ok := operator.(*planner.Select)
-	if !ok {
-		return nil, nil, fmt.Errorf("select operator must be root of query tree")
-	}
-
 	for operator.Next(row) {
 
-		values := getRowValues(s.Columns, row)
+		values := getRowValues(operator.OpFields(), row)
 		rows = append(rows, values)
 
 		row.Data = []planner.TableRow{}
@@ -42,16 +36,21 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 
 	// make sure all rows have same number of values
 	for idx, row := range rows {
-		for len(row) < len(s.Fields()) {
+		for len(row) < len(operator.OpFields()) {
 			row = append(row, nil)
 		}
 		rows[idx] = row
 	}
 
-	return s.Fields(), rows, nil
+	var headers []string
+	for _, field := range operator.OpFields() {
+		headers = append(headers, field.View)
+	}
+
+	return headers, rows, nil
 }
 
-func getRowValues(columns []planner.Column, row *planner.Row) []interface{} {
+func getRowValues(columns []*planner.Column, row *planner.Row) []interface{} {
 	values := make([]interface{}, 0)
 
 	for _, column := range columns {

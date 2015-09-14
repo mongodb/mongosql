@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
+	//	"github.com/mongodb/mongo-tools/common/util"
 )
 
 // PlanQuery translates the SQL SELECT statement into an
@@ -27,28 +28,46 @@ func PlanQuery(ss sqlparser.SelectStatement) (Operator, error) {
 	}
 }
 
-func planSelectExpr(ast *sqlparser.Select) (source Operator, err error) {
+func planSelectExpr(ast *sqlparser.Select) (operator Operator, err error) {
 	// handles from and where expression
 	if ast.From != nil {
-		source, err = planFromExpr(ast.From, ast.Where)
+		operator, err = planFromExpr(ast.From, ast.Where)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// handle select expressions
-	operator := &Select{source: source}
-	sColumns := []SelectColumn{}
+	selectOperator := &Select{source: operator}
+	selectColumns := []SelectColumn{}
 
-	if err = setReferencedColumns(ast, &sColumns, 0); err != nil {
+	if err = setReferencedColumns(&selectColumns, 0, ast); err != nil {
 		return nil, err
 	}
 
-	for _, sc := range sColumns {
+	for _, sc := range selectColumns {
 		// TODO: check columns referenced in nested levels
 		for _, column := range sc.Columns {
-			operator.Columns = append(operator.Columns, *column)
+			selectOperator.Columns = append(selectOperator.Columns, *column)
 		}
+	}
+
+	operator = selectOperator
+
+	// handle group by expression
+	if len(ast.GroupBy) != 0 {
+
+		gb := &GroupBy{source: operator, fields: selectColumns}
+
+		for _, valExpr := range ast.GroupBy {
+			expr, ok := sqlparser.Expr(valExpr).(*sqlparser.ColName)
+			if !ok {
+				return nil, fmt.Errorf("unsupported group by term: %T", valExpr)
+			}
+			gb.exprs = append(gb.exprs, expr)
+
+		}
+		operator = gb
 	}
 
 	return operator, nil
@@ -58,7 +77,7 @@ func planSelectExpr(ast *sqlparser.Select) (source Operator, err error) {
 // setReferencedColumns adds any columns referenced in the select statement
 // to s. level indicates what nesting level the columna appears in relative
 // to s.
-func setReferencedColumns(ss sqlparser.SelectStatement, s *[]SelectColumn, level int) error {
+func setReferencedColumns(s *[]SelectColumn, level int, ss sqlparser.SelectStatement) error {
 
 	columns := make([]*Column, 0)
 
@@ -75,7 +94,7 @@ func setReferencedColumns(ss sqlparser.SelectStatement, s *[]SelectColumn, level
 
 			case *sqlparser.NonStarExpr:
 
-				refColumns, err := getReferencedColumn(expr.Expr, s, level)
+				refColumns, err := getReferencedColumns(s, level, expr.Expr)
 				if err != nil {
 					return err
 				}
@@ -97,12 +116,12 @@ func setReferencedColumns(ss sqlparser.SelectStatement, s *[]SelectColumn, level
 		}
 
 	case *sqlparser.Union:
-		err := setReferencedColumns(ast.Left, s, level)
+		err := setReferencedColumns(s, level, ast.Left)
 		if err != nil {
 			return err
 		}
 
-		err = setReferencedColumns(ast.Right, s, level)
+		err = setReferencedColumns(s, level, ast.Right)
 		if err != nil {
 			return err
 		}
@@ -291,8 +310,27 @@ func planExpr(sqlExpr sqlparser.Expr) (Operator, *Column, error) {
 	return nil, nil, nil
 }
 
+// getReferencedColumns accepts several exppressions and returns a slice
+// of referenced columns in those expressions.
+func getReferencedColumns(s *[]SelectColumn, l int, exprs ...sqlparser.Expr) ([]*Column, error) {
+
+	log.Logf(log.DebugLow, "getReferencedColumns: %#v (type is %T)", exprs, exprs)
+
+	columns := make([]*Column, 0)
+
+	for _, e := range exprs {
+		refColumns, err := getReferencedColumn(s, l, e)
+		if err != nil {
+			return nil, err
+		}
+		columns = append(columns, refColumns...)
+	}
+
+	return columns, nil
+}
+
 // getReferencedColumn returns a slice of referenced columns in an expression.
-func getReferencedColumn(e sqlparser.Expr, s *[]SelectColumn, level int) ([]*Column, error) {
+func getReferencedColumn(s *[]SelectColumn, l int, e sqlparser.Expr) ([]*Column, error) {
 
 	log.Logf(log.DebugLow, "getReferencedColumn: %#v (type is %T)", e, e)
 
@@ -312,50 +350,50 @@ func getReferencedColumn(e sqlparser.Expr, s *[]SelectColumn, level int) ([]*Col
 
 	case *sqlparser.BinaryExpr:
 
-		return getReferencedColumns(s, level, expr.Left, expr.Right)
+		return getReferencedColumns(s, l, expr.Left, expr.Right)
 
 	case *sqlparser.AndExpr:
 
-		return getReferencedColumns(s, level, expr.Left, expr.Right)
+		return getReferencedColumns(s, l, expr.Left, expr.Right)
 
 	case *sqlparser.OrExpr:
 
-		return getReferencedColumns(s, level, expr.Left, expr.Right)
+		return getReferencedColumns(s, l, expr.Left, expr.Right)
 
 	case *sqlparser.ParenBoolExpr:
 
-		return getReferencedColumn(expr.Expr, s, level)
+		return getReferencedColumn(s, l, expr.Expr)
 
 	case *sqlparser.ComparisonExpr:
 
-		return getReferencedColumns(s, level, expr.Left, expr.Right)
+		return getReferencedColumns(s, l, expr.Left, expr.Right)
 
 	case *sqlparser.RangeCond:
 
-		return getReferencedColumns(s, level, expr.From, expr.To, expr.Left)
+		return getReferencedColumns(s, l, expr.From, expr.To, expr.Left)
 
 	case *sqlparser.NullCheck:
 
-		return getReferencedColumn(expr.Expr, s, level)
+		return getReferencedColumn(s, l, expr.Expr)
 
 	case *sqlparser.UnaryExpr:
 
-		return getReferencedColumn(expr.Expr, s, level)
+		return getReferencedColumn(s, l, expr.Expr)
 
 	case *sqlparser.NotExpr:
 
-		return getReferencedColumn(expr.Expr, s, level)
+		return getReferencedColumn(s, l, expr.Expr)
 
 	case *sqlparser.Subquery:
 		switch ast := expr.Select.(type) {
 
 		case *sqlparser.Select:
-			if err := setReferencedColumns(ast, s, level+1); err != nil {
+			if err := setReferencedColumns(s, l+1, ast); err != nil {
 				return nil, err
 			}
 
 		case *sqlparser.Union:
-			if err := setReferencedColumns(ast, s, level+1); err != nil {
+			if err := setReferencedColumns(s, l+1, ast); err != nil {
 				return nil, err
 			}
 
@@ -377,20 +415,4 @@ func getReferencedColumn(e sqlparser.Expr, s *[]SelectColumn, level int) ([]*Col
 	}
 
 	return nil, fmt.Errorf("referenced columns (on %T) reached an unreachable point", e)
-}
-
-// getReferencedColumns accepts several exppressions and returns a slice
-// of referenced columns in those expressions.
-func getReferencedColumns(s *[]SelectColumn, l int, e ...sqlparser.Expr) ([]*Column, error) {
-	columns := make([]*Column, 0)
-
-	for _, expr := range e {
-		refColumns, err := getReferencedColumn(expr, s, l)
-		if err != nil {
-			return nil, err
-		}
-		columns = append(columns, refColumns...)
-	}
-
-	return columns, nil
 }

@@ -103,7 +103,12 @@ func (ts *TableScan) OpFields() []*Column {
 	}
 
 	for _, c := range ts.tableConfig.Columns {
-		columns = append(columns, &Column{ts.tableName, c.Name, c.Name})
+		column := &Column{
+			Table: ts.tableName,
+			Name:  c.Name,
+			View:  c.Name,
+		}
+		columns = append(columns, column)
 	}
 
 	return columns
@@ -119,7 +124,12 @@ func (ts *TableScan) getISColumns(tableName string) (columns []*Column) {
 	}
 
 	for _, name := range names {
-		columns = append(columns, &Column{ts.tableName, name, name})
+		column := &Column{
+			Table: ts.tableName,
+			Name:  name,
+			View:  name,
+		}
+		columns = append(columns, column)
 	}
 
 	return columns
