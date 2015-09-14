@@ -43,6 +43,7 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 	}
 
 	var headers []string
+
 	for _, field := range operator.OpFields() {
 		headers = append(headers, field.View)
 	}

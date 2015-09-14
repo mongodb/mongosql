@@ -76,7 +76,6 @@ func TestSelectOperator(t *testing.T) {
 		Convey("a select operator from one table with a star field return the right columns requested", func() {
 
 			operator := &Select{
-				isStar: true,
 				source: &TableScan{
 					tableName: tableOneName,
 				},
@@ -100,8 +99,8 @@ func TestSelectOperator(t *testing.T) {
 			}
 
 			columns := []Column{
-				{tableOneName, "a", "a"},
-				{tableOneName, "b", "b"},
+				{tableOneName, "a", "a", nil},
+				{tableOneName, "b", "b", nil},
 			}
 
 			operator := &Select{

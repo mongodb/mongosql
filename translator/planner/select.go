@@ -115,11 +115,14 @@ func (s *Select) Close() error {
 	return s.source.Close()
 }
 
-func (s *Select) OpFields() (c []*Column) {
+func (s *Select) OpFields() (columns []*Column) {
+
 	for _, column := range s.Columns {
-		c = append(c, &column)
+		column := Column(column)
+		columns = append(columns, &column)
 	}
-	return c
+
+	return columns
 }
 
 func (s *Select) Err() error {
