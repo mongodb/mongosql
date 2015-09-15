@@ -43,6 +43,23 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 			stmt.Where.Expr = algebrizedStmt.(sqlparser.BoolExpr)
 		}
 
+		// algebrize 'GROUP BY' clause
+		if len(stmt.GroupBy) != 0 {
+			var algebrizedValExprs sqlparser.ValExprs
+
+			for _, valExpr := range stmt.GroupBy {
+				algebrizedValExpr, err := algebrizeExpr(valExpr, ctx)
+				if err != nil {
+					return err
+				}
+				algebrizedValExprs = append(algebrizedValExprs, algebrizedValExpr.(sqlparser.ValExpr))
+			}
+
+			stmt.GroupBy = []sqlparser.ValExpr(algebrizedValExprs)
+		}
+
+		log.Logf(log.DebugLow, "crazy ass end parse context: %#v\n\n", ctx)
+
 		// algebrize group by -> having -> select
 		// expressions -> into -> order by -> limit
 
@@ -252,7 +269,14 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 		return nil, fmt.Errorf("can't handle ValArg type %T", expr)
 
 	case *sqlparser.FuncExpr:
-		return nil, fmt.Errorf("can't handle FuncExpr type %T", expr)
+
+		algebrizedSelectExprs, err := algebrizeSelectExprs(expr.Exprs, pCtx)
+		if err != nil {
+			return nil, err
+		}
+		expr.Exprs = algebrizedSelectExprs
+
+		return expr, nil
 
 		// TODO: might require resultset post-processing
 	case *sqlparser.CaseExpr:

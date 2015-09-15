@@ -16,12 +16,10 @@ type GroupBy struct {
 	grouped bool
 	// err holds any error encountered during processing
 	err error
-}
-
-type groupByResult map[int][]*Row
-
-func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
-	return gb.source.Open(ctx)
+	// holds all groupings
+	finalGrouping map[string][]Row
+	// channel on which to send final grouping
+	outChan chan Row
 }
 
 func (gb *GroupBy) getSelectView(group string) string {
@@ -33,51 +31,90 @@ func (gb *GroupBy) getSelectView(group string) string {
 	return ""
 }
 
-func (gb *GroupBy) group() error {
-	r := &Row{}
+func (gb *GroupBy) evaluateGroupByKey(keys []*sqlparser.ColName, row *Row) string {
+
+	var gbKey string
+
+	for _, key := range keys {
+		// TODO: add ability to evaluate arbitrary key
+		value, _ := row.GetField(string(key.Qualifier), string(key.Name))
+
+		// TODO: would be better to use a hash for this
+		gbKey += fmt.Sprintf("%#v", value)
+	}
+
+	return gbKey
+
+}
+
+func (gb *GroupBy) createGroups() error {
 
 	// TODO: support aggregate functions
-	var groups []string
+	var columns []*sqlparser.ColName
 
 	for _, expr := range gb.exprs {
 		column, ok := expr.(*sqlparser.ColName)
-		if ok {
-			name := string(column.Name)
-			group := gb.getSelectView(name)
-			groups = append(groups, group)
-		} else {
+		if !ok {
 			return fmt.Errorf("%T not supported as group type")
 		}
+		columns = append(columns, column)
 	}
+
+	gb.finalGrouping = make(map[string][]Row, 0)
+
+	r := &Row{}
 
 	// iterator source to create groupings
 	for gb.source.Next(r) {
-
+		key := gb.evaluateGroupByKey(columns, r)
+		gb.finalGrouping[key] = append(gb.finalGrouping[key], *r)
+		r = &Row{}
 	}
+
+	gb.grouped = true
 
 	return gb.source.Err()
 }
 
+func (gb *GroupBy) iterChan() chan Row {
+	ch := make(chan Row)
+	go func() {
+		for _, v := range gb.finalGrouping {
+			for _, r := range v {
+				ch <- r
+			}
+		}
+		close(ch)
+	}()
+	return ch
+}
+
 func (gb *GroupBy) Next(row *Row) bool {
-	if !gb.grouped {
-		if err := gb.group(); err != nil {
+	if /* len(gb.aggFuncs()) != 0 && */ !gb.grouped {
+		if err := gb.createGroups(); err != nil {
 			gb.err = err
 			return false
 		}
+		gb.outChan = gb.iterChan()
 	}
 
-	// return gb.next(row)
-	return false
+	r, done := <-gb.outChan
+	row.Data = r.Data
+	return done
+}
+
+func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
+	return gb.source.Open(ctx)
 }
 
 func (gb *GroupBy) Close() error {
 	return gb.source.Close()
 }
 
-func (gb *GroupBy) OpFields() []*Column {
-	return gb.source.OpFields()
-}
-
 func (gb *GroupBy) Err() error {
 	return gb.err
+}
+
+func (gb *GroupBy) OpFields() []*Column {
+	return gb.source.OpFields()
 }
