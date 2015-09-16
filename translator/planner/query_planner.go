@@ -64,14 +64,41 @@ func planSelectExpr(ast *sqlparser.Select) (operator Operator, err error) {
 			if !ok {
 				return nil, fmt.Errorf("unsupported group by term: %T", valExpr)
 			}
+
+			/*
+				// a GROUP BY clause can't refer to nonaggregated columns in
+				// the select list that are not named in the GROUP BY clause
+				if !isValidGroupByTerm(selectColumns, expr) {
+					return nil, fmt.Errorf("group by term '%v' not in select list", string(expr.Name))
+				}
+
+			*/
+
 			gb.exprs = append(gb.exprs, expr)
 
 		}
+
 		operator = gb
 	}
 
 	return operator, nil
 
+}
+
+// isValidGroupByTerm returns true if the column expression is valid as a group
+// by term within a select column context.
+func isValidGroupByTerm(scs []SelectColumn, expr *sqlparser.ColName) bool {
+	for _, sc := range scs {
+		if sc.Level == 0 {
+			for _, c := range sc.Columns {
+				// TODO: support alias in group by term?
+				if c.Table == string(expr.Qualifier) && c.Name == string(expr.Name) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // refColsInSelectExpr adds any columns referenced in the select expression
