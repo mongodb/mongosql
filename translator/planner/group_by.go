@@ -20,6 +20,13 @@ type GroupBy struct {
 	finalGrouping map[string][]Row
 	// channel on which to send final grouping
 	outChan chan Row
+	// execution context
+	ctx *ExecutionCtx
+}
+
+func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
+	gb.ctx = ctx
+	return gb.source.Open(ctx)
 }
 
 func (gb *GroupBy) getSelectView(group string) string {
@@ -31,20 +38,26 @@ func (gb *GroupBy) getSelectView(group string) string {
 	return ""
 }
 
-func (gb *GroupBy) evaluateGroupByKey(keys []*sqlparser.ColName, row *Row) string {
+func (gb *GroupBy) evaluateGroupByKey(keys []*sqlparser.ColName, row *Row) (string, error) {
 
 	var gbKey string
 
 	for _, key := range keys {
-		// TODO: add ability to evaluate arbitrary key
-		value, _ := row.GetField(string(key.Qualifier), string(key.Name))
+		expr, err := NewExpr(key)
+		if err != nil {
+			panic(err)
+		}
+
+		value, err := expr.Evaluate(gb.ctx)
+		if err != nil {
+			return "", err
+		}
 
 		// TODO: would be better to use a hash for this
 		gbKey += fmt.Sprintf("%#v", value)
 	}
 
-	return gbKey
-
+	return gbKey, nil
 }
 
 func (gb *GroupBy) createGroups() error {
@@ -66,7 +79,10 @@ func (gb *GroupBy) createGroups() error {
 
 	// iterator source to create groupings
 	for gb.source.Next(r) {
-		key := gb.evaluateGroupByKey(columns, r)
+		key, err := gb.evaluateGroupByKey(columns, r)
+		if err != nil {
+			return err
+		}
 		gb.finalGrouping[key] = append(gb.finalGrouping[key], *r)
 		r = &Row{}
 	}
@@ -101,10 +117,6 @@ func (gb *GroupBy) Next(row *Row) bool {
 	r, done := <-gb.outChan
 	row.Data = r.Data
 	return done
-}
-
-func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
-	return gb.source.Open(ctx)
 }
 
 func (gb *GroupBy) Close() error {
