@@ -22,6 +22,7 @@ type Column struct {
 type ExecutionCtx struct {
 	Config *config.Config
 	Db     string
+	Row    *Row
 }
 
 // Operator defines a set of functions that are implemented by each

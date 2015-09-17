@@ -56,6 +56,8 @@ var (
 			},
 		},
 	}
+
+	ctx = &ExecutionCtx{}
 )
 
 func TestPlanFromExpr(t *testing.T) {
@@ -64,7 +66,7 @@ func TestPlanFromExpr(t *testing.T) {
 
 		Convey("planning the from expression with no table should return an error", func() {
 
-			opr, err := planFromExpr(planFromExprTExprs[0], nil)
+			opr, err := planFromExpr(ctx, planFromExprTExprs[0], nil)
 			So(err, ShouldNotBeNil)
 			So(opr, ShouldBeNil)
 
@@ -72,7 +74,7 @@ func TestPlanFromExpr(t *testing.T) {
 
 		Convey("planning the from expression with one table should return a table scan operator", func() {
 
-			opr, err := planFromExpr(planFromExprTExprs[1], nil)
+			opr, err := planFromExpr(ctx, planFromExprTExprs[1], nil)
 			So(err, ShouldBeNil)
 			ts, ok := opr.(*TableScan)
 			So(ok, ShouldBeTrue)
@@ -82,7 +84,7 @@ func TestPlanFromExpr(t *testing.T) {
 
 		Convey("planning the from expression with two tables should return a cross join operator", func() {
 
-			opr, err := planFromExpr(planFromExprTExprs[2], nil)
+			opr, err := planFromExpr(ctx, planFromExprTExprs[2], nil)
 			So(err, ShouldBeNil)
 			join, ok := opr.(*Join)
 			So(ok, ShouldBeTrue)
@@ -100,7 +102,7 @@ func TestPlanFromExpr(t *testing.T) {
 
 		Convey("planning the from expression with more than two tables should return a left-leaning cross join operator", func() {
 
-			opr, err := planFromExpr(planFromExprTExprs[3], nil)
+			opr, err := planFromExpr(ctx, planFromExprTExprs[3], nil)
 			So(err, ShouldBeNil)
 
 			join, ok := opr.(*Join)

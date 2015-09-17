@@ -6,18 +6,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type ConfigFindResults struct {
-	config         *config.Config
-	matcher        Matcher
-	includeColumns bool
-
-	dbOffset      int
-	tableOffset   int
-	columnsOffset int
-
-	err error
-}
-
 var (
 	ISTablesHeaders = []string{
 		"TABLE_SCHEMA",
@@ -36,8 +24,110 @@ var (
 	}
 )
 
+type ConfigDataSource struct {
+	config         *config.Config
+	tableName      string
+	includeColumns bool
+	filter         interface{}
+	matcher        Matcher
+	iter           FindResults
+	err            error
+}
+
+func (cds *ConfigDataSource) Open(ctx *ExecutionCtx) error {
+	return cds.init(ctx)
+}
+
+func (cds *ConfigDataSource) init(ctx *ExecutionCtx) error {
+	cds.config = ctx.Config
+
+	switch cds.tableName {
+	case "columns":
+		cds.includeColumns = true
+	// TODO: what is 'txxxables' for?
+	case "tables", "txxxables":
+	default:
+		return fmt.Errorf("unknown information_schema table (%s)", cds.tableName)
+	}
+
+	cds.iter = cds.Find().Iter()
+	return nil
+}
+
+func (cds *ConfigDataSource) Next(row *Row) bool {
+	if cds.iter == nil {
+		return false
+	}
+
+	data := &bson.D{}
+	hasNext := cds.iter.Next(data)
+	row.Data = []TableRow{{cds.tableName, *data, nil}}
+
+	if !hasNext {
+		cds.err = cds.iter.Err()
+	}
+
+	return hasNext
+}
+
+func (cds *ConfigDataSource) OpFields() []*Column {
+
+	var columns []*Column
+
+	headers := ISTablesHeaders
+
+	if cds.includeColumns {
+		headers = ISColumnHeaders
+	}
+
+	for _, c := range headers {
+		column := &Column{
+			Table: cds.tableName,
+			Name:  c,
+			View:  c,
+		}
+		columns = append(columns, column)
+	}
+
+	return columns
+}
+
+func (cds *ConfigDataSource) Close() error {
+	return cds.iter.Close()
+}
+
+func (cds *ConfigDataSource) Err() error {
+	return cds.iter.Err()
+}
+
+func (cds *ConfigDataSource) Find() FindQuery {
+	return ConfigFindQuery{cds.config, cds.matcher, cds.includeColumns}
+}
+
+func (cds *ConfigDataSource) Insert(docs ...interface{}) error {
+	return fmt.Errorf("cannot insert into config data source")
+}
+
+func (cds *ConfigDataSource) DropCollection() error {
+	return fmt.Errorf("cannot drop config data source")
+}
+
 func _cfrNextHelper(result *bson.D, fieldName string, fieldValue interface{}) {
 	*result = append(*result, bson.DocElem{fieldName, fieldValue})
+}
+
+// -------
+
+type ConfigFindResults struct {
+	config         *config.Config
+	matcher        Matcher
+	includeColumns bool
+
+	dbOffset      int
+	tableOffset   int
+	columnsOffset int
+
+	err error
 }
 
 func (cfr *ConfigFindResults) Next(result *bson.D) bool {
@@ -99,22 +189,15 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 		cfr.columnsOffset = cfr.columnsOffset + 1
 	}
 
-	if cfr.matcher != nil && !cfr.matcher.Matches(&MatchCtx{[]*Row{&Row{[]TableRow{TableRow{tableName, *result, nil}}}}}) {
+	matchCtx := &MatchCtx{[]*Row{{[]TableRow{{tableName, *result, nil}}}}}
+	if cfr.matcher != nil && !cfr.matcher.Matches(matchCtx) {
 		return cfr.Next(result)
 	}
 
 	return true
 }
 
-func (cfr *ConfigFindResults) Err() error {
-	return cfr.err
-}
-
-func (cfr *ConfigFindResults) Close() error {
-	return nil
-}
-
-// -
+// -------
 
 type ConfigFindQuery struct {
 	config         *config.Config
@@ -126,25 +209,10 @@ func (cfq ConfigFindQuery) Iter() FindResults {
 	return &ConfigFindResults{cfq.config, cfq.matcher, cfq.includeColumns, 0, 0, 0, nil}
 }
 
-// -
-
-type ConfigDataSource struct {
-	Config         *config.Config
-	IncludeColumns bool
+func (cfr *ConfigFindResults) Err() error {
+	return cfr.err
 }
 
-func (cds ConfigDataSource) Find(matcher Matcher) FindQuery {
-	return ConfigFindQuery{cds.Config, matcher, cds.IncludeColumns}
-}
-
-func (cds ConfigDataSource) Insert(docs ...interface{}) error {
-	return fmt.Errorf("cannot insert into config data source")
-}
-
-func (cds ConfigDataSource) DropCollection() error {
-	return fmt.Errorf("cannot drop config data source")
-}
-
-func (cds ConfigDataSource) GetColumns() []config.Column {
-	return []config.Column{}
+func (cfr *ConfigFindResults) Close() error {
+	return nil
 }

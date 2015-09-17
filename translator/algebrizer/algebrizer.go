@@ -58,8 +58,6 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 			stmt.GroupBy = []sqlparser.ValExpr(algebrizedValExprs)
 		}
 
-		log.Logf(log.DebugLow, "crazy ass end parse context: %#v\n\n", ctx)
-
 		// algebrize group by -> having -> select
 		// expressions -> into -> order by -> limit
 

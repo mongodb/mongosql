@@ -15,9 +15,9 @@ func TestConfigDataSourceIter(t *testing.T) {
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
 
-		dataSource := ConfigDataSource{cfg, true}
+		dataSource := ConfigDataSource{config: cfg, includeColumns: true}
 
-		query := dataSource.Find(EmptyMatcher{})
+		query := dataSource.Find()
 
 		iter := query.Iter()
 
@@ -44,9 +44,9 @@ func TestConfigDataSourceIterTables(t *testing.T) {
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
 
-		dataSource := ConfigDataSource{cfg, false}
+		dataSource := ConfigDataSource{config: cfg}
 
-		query := dataSource.Find(EmptyMatcher{})
+		query := dataSource.Find()
 
 		iter := query.Iter()
 

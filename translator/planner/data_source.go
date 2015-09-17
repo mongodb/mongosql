@@ -3,8 +3,6 @@ package planner
 import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-
-	"github.com/erh/mongo-sql-temp/config"
 )
 
 type FindResults interface {
@@ -21,8 +19,6 @@ type DataSource interface {
 	Find(query interface{}) FindQuery
 	Insert(docs ...interface{}) error
 	DropCollection() error
-
-	GetColumns() []Column
 }
 
 // ------
@@ -43,7 +39,7 @@ func (gfr MgoFindResults) Close() error {
 	return gfr.iter.Close()
 }
 
-// -
+// -------
 
 type MgoFindQuery struct {
 	query *mgo.Query
@@ -53,11 +49,10 @@ func (gfq MgoFindQuery) Iter() FindResults {
 	return &MgoFindResults{gfq.query.Iter()}
 }
 
-// -
+// -------
 
 type MgoDataSource struct {
 	Collection *mgo.Collection
-	Columns    []config.Column
 }
 
 func (gds MgoDataSource) Find(query interface{}) FindQuery {
@@ -70,8 +65,4 @@ func (gds MgoDataSource) Insert(docs ...interface{}) error {
 
 func (gds MgoDataSource) DropCollection() error {
 	return gds.Collection.DropCollection()
-}
-
-func (gds MgoDataSource) GetColumns() []config.Column {
-	return gds.Columns
 }

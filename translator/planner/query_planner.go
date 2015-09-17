@@ -1,23 +1,27 @@
 package planner
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
+	"gopkg.in/mgo.v2/bson"
+	"strings"
+)
+
+var (
+	informationSchema = "information_schema"
 )
 
 // PlanQuery translates the SQL SELECT statement into an
 // algebra tree representation of logical operators.
-func PlanQuery(ss sqlparser.SelectStatement) (Operator, error) {
+func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error) {
 
 	log.Logf(log.DebugLow, "Planning query for %#v\n", ss)
 
 	switch ast := ss.(type) {
 
 	case *sqlparser.Select:
-		return planSelectExpr(ast)
+		return planSelectExpr(ctx, ast)
 
 	case *sqlparser.Union:
 		return nil, fmt.Errorf("union select statement not yet implemented")
@@ -28,10 +32,10 @@ func PlanQuery(ss sqlparser.SelectStatement) (Operator, error) {
 }
 
 // planSelectExpr takes a select struct and returns a query execution plan for it.
-func planSelectExpr(ast *sqlparser.Select) (operator Operator, err error) {
+func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err error) {
 	// handles from and where expression
 	if ast.From != nil {
-		operator, err = planFromExpr(ast.From, ast.Where)
+		operator, err = planFromExpr(ctx, ast.From, ast.Where)
 		if err != nil {
 			return nil, err
 		}
@@ -46,9 +50,12 @@ func planSelectExpr(ast *sqlparser.Select) (operator Operator, err error) {
 	}
 
 	for _, sc := range selectColumns {
-		// TODO: check columns referenced in nested levels
-		for _, column := range sc.Columns {
-			selectOperator.Columns = append(selectOperator.Columns, *column)
+		if sc.Level == 0 {
+			// TODO: check columns referenced in nested levels
+			for _, column := range sc.Columns {
+				selectOperator.Columns = append(selectOperator.Columns, column)
+			}
+			break
 		}
 	}
 
@@ -125,6 +132,7 @@ func refColsInSelectExpr(s *[]SelectColumn, level int, sExprs sqlparser.SelectEx
 			// TODO: check columns against table config
 			for _, column := range refColumns {
 				column.View = string(expr.As)
+				column.Expr = expr.Expr
 
 				if column.View == "" {
 					column.View = column.Name
@@ -177,12 +185,12 @@ func refColsInSelectStmt(s *[]SelectColumn, level int, ss sqlparser.SelectStatem
 // planFromExpr takes one or more table expressions and returns an Operator for the
 // data source. If more than one table expression exists, it constructs a join
 // operator (which is left deep for more than two table expressions).
-func planFromExpr(tExpr sqlparser.TableExprs, where *sqlparser.Where) (Operator, error) {
+func planFromExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExprs, where *sqlparser.Where) (Operator, error) {
 
 	if len(tExpr) == 0 {
 		return nil, fmt.Errorf("can't plan table expression with no tables")
 	} else if len(tExpr) == 1 {
-		return planTableExpr(tExpr[0], where)
+		return planTableExpr(ctx, tExpr[0], where)
 	}
 
 	var left, right Operator
@@ -190,24 +198,24 @@ func planFromExpr(tExpr sqlparser.TableExprs, where *sqlparser.Where) (Operator,
 
 	if len(tExpr) == 2 {
 
-		left, err = planTableExpr(tExpr[0], where)
+		left, err = planTableExpr(ctx, tExpr[0], where)
 		if err != nil {
 			return nil, fmt.Errorf("error planning left table expr: %v", err)
 		}
 
-		right, err = planTableExpr(tExpr[1], where)
+		right, err = planTableExpr(ctx, tExpr[1], where)
 		if err != nil {
 			return nil, fmt.Errorf("error planning right table expr: %v", err)
 		}
 
 	} else {
 
-		left, err = planFromExpr(tExpr[:len(tExpr)-1], where)
+		left, err = planFromExpr(ctx, tExpr[:len(tExpr)-1], where)
 		if err != nil {
 			return nil, fmt.Errorf("error planning left forest: %v", err)
 		}
 
-		right, err = planTableExpr(tExpr[len(tExpr)-1], where)
+		right, err = planTableExpr(ctx, tExpr[len(tExpr)-1], where)
 		if err != nil {
 			return nil, fmt.Errorf("error planning right table leaf: %v", err)
 		}
@@ -226,23 +234,23 @@ func planFromExpr(tExpr sqlparser.TableExprs, where *sqlparser.Where) (Operator,
 
 // planTableExpr takes a table expression and returns an Operator that
 // can iterate over its result set.
-func planTableExpr(tExpr sqlparser.TableExpr, where *sqlparser.Where) (Operator, error) {
+func planTableExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExpr, where *sqlparser.Where) (Operator, error) {
 	switch expr := tExpr.(type) {
 
 	case *sqlparser.AliasedTableExpr:
 		// this is a simple table to get data from
-		return planSimpleTableExpr(expr.Expr, where)
+		return planSimpleTableExpr(ctx, expr.Expr, where)
 
 	case *sqlparser.ParenTableExpr:
-		return planTableExpr(expr.Expr, where)
+		return planTableExpr(ctx, expr.Expr, where)
 
 	case *sqlparser.JoinTableExpr:
-		left, err := planTableExpr(expr.LeftExpr, where)
+		left, err := planTableExpr(ctx, expr.LeftExpr, where)
 		if err != nil {
 			return nil, fmt.Errorf("error on left join node: %v", err)
 		}
 
-		right, err := planTableExpr(expr.RightExpr, where)
+		right, err := planTableExpr(ctx, expr.RightExpr, where)
 		if err != nil {
 			return nil, fmt.Errorf("error on right join node: %v", err)
 		}
@@ -263,86 +271,81 @@ func planTableExpr(tExpr sqlparser.TableExpr, where *sqlparser.Where) (Operator,
 	return nil, fmt.Errorf("unreachable in planTableExpr")
 }
 
-// planSimpleTableExpr takes a simple table expression and returns an operator that can iterate
-// over its result set.
-func planSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, where *sqlparser.Where) (Operator, error) {
-	switch expr := stExpr.(type) {
+// planTableName takes a table name and returns an operator to get
+// data from the appropriate source.
+func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) (Operator, error) {
 
-	case *sqlparser.TableName:
-		ts := &TableScan{dbName: string(expr.Qualifier), tableName: string(expr.Name)}
+	var matcher Matcher
+	var err error
 
-		if where != nil {
-			// create a matcher that can evaluate the WHERE expression
-			matcher, err := BuildMatcher(where.Expr)
-			if err != nil {
-				return nil, err
-			}
+	filter := &bson.D{}
 
+	if w != nil {
+
+		// create a matcher that can evaluate the WHERE expression
+		matcher, err = BuildMatcher(w.Expr)
+		if err == nil {
 			// TODO currently the transformation is all-or-nothing either the entire query is
 			// executed inside mongo or inside the matcher. Needs update to prune the matcher tree
 			// so that the part of the query that can be expressed with MQL is extracted and passed
 			// to mongo, and the rest of the filtering can be done by the (simplified) matcher
-			if transformed, err := matcher.Transform(); err == nil {
-				ts.filter = transformed
-				ts.filterMatcher = matcher
-				return ts, nil
-			}
-			return &MatchOperator{source: ts, matcher: matcher}, nil
+			filter, err = matcher.Transform()
 		}
-		return ts, nil
+
+	}
+
+	dbName := strings.ToLower(string(t.Qualifier))
+	isInformationSchema := dbName == informationSchema || c.Db == informationSchema
+
+	if isInformationSchema {
+
+		// ConfigDataSource is a special table that handles queries against
+		// the 'information_schema' database
+		cds := &ConfigDataSource{
+			tableName: strings.ToLower(string(t.Name)),
+		}
+
+		c.Db = informationSchema
+
+		// if we got a valid filter/matcher, use it
+		if err == nil {
+			cds.filter = filter
+			cds.matcher = matcher
+		}
+
+		return cds, nil
+	}
+
+	ts := &TableScan{
+		tableName: string(t.Name),
+		dbName:    string(t.Qualifier),
+	}
+
+	// if we got a valid filter/matcher, use it
+	if err == nil {
+		ts.filter = filter
+		ts.matcher = matcher
+	}
+
+	return ts, nil
+
+}
+
+// planSimpleTableExpr takes a simple table expression and returns an operator that can iterate
+// over its result set.
+func planSimpleTableExpr(c *ExecutionCtx, s sqlparser.SimpleTableExpr, w *sqlparser.Where) (Operator, error) {
+	switch expr := s.(type) {
+
+	case *sqlparser.TableName:
+		return planTableName(c, expr, w)
 
 	case *sqlparser.Subquery:
-		return PlanQuery(expr.Select)
+		return PlanQuery(c, expr.Select)
 
 	default:
 		return nil, fmt.Errorf("can't yet handle simple table expression type %T", expr)
 	}
 
-}
-
-func planExpr(sqlExpr sqlparser.Expr) (Operator, *Column, error) {
-
-	log.Logf(log.DebugLow, "planExpr: %#v (type is %T)", sqlExpr, sqlExpr)
-
-	switch expr := sqlExpr.(type) {
-
-	case sqlparser.NumVal:
-	case sqlparser.ValTuple:
-	case *sqlparser.NullVal:
-	case *sqlparser.ColName:
-		ns := &Column{
-			Table: string(expr.Qualifier),
-			Name:  string(expr.Name),
-		}
-
-		return &Noop{}, ns, nil
-	case sqlparser.StrVal:
-	case *sqlparser.BinaryExpr:
-	case *sqlparser.AndExpr:
-	case *sqlparser.OrExpr:
-	case *sqlparser.ComparisonExpr:
-	case *sqlparser.RangeCond:
-	case *sqlparser.NullCheck:
-	case *sqlparser.UnaryExpr:
-	case *sqlparser.NotExpr:
-	case *sqlparser.ParenBoolExpr:
-	case *sqlparser.Subquery:
-		op, err := PlanQuery(expr.Select)
-		b := make([]byte, 16)
-		rand.Read(b)
-		ns := &Column{
-			Table: hex.EncodeToString(b),
-		}
-		return op, ns, err
-	case sqlparser.ValArg:
-	case *sqlparser.FuncExpr:
-	case *sqlparser.CaseExpr:
-	case *sqlparser.ExistsExpr:
-	default:
-		return nil, nil, fmt.Errorf("can't handle expression type %T", expr)
-	}
-
-	return nil, nil, nil
 }
 
 // getReferencedColumns accepts several exppressions and returns a slice
@@ -358,7 +361,10 @@ func getReferencedColumns(s *[]SelectColumn, l int, exprs ...sqlparser.Expr) ([]
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, refColumns...)
+		for _, c := range refColumns {
+			c.Expr = e
+			columns = append(columns, c)
+		}
 	}
 
 	return columns, nil
@@ -384,7 +390,6 @@ func referencedColumns(s *[]SelectColumn, l int, e sqlparser.Expr) ([]*Column, e
 		return []*Column{c}, nil
 
 	case *sqlparser.BinaryExpr:
-
 		return getReferencedColumns(s, l, expr.Left, expr.Right)
 
 	case *sqlparser.AndExpr:

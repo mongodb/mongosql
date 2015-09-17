@@ -63,15 +63,15 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 		return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
 	}
 
-	// construct plan
-	queryPlan, err := planner.PlanQuery(stmt)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error getting query plan: %v", err)
-	}
-
 	eCtx := &planner.ExecutionCtx{
 		Config: e.cfg,
 		Db:     db,
+	}
+
+	// construct plan
+	queryPlan, err := planner.PlanQuery(eCtx, stmt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error getting query plan: %v", err)
 	}
 
 	// execute plan

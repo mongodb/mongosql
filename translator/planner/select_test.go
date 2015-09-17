@@ -98,7 +98,7 @@ func TestSelectOperator(t *testing.T) {
 				},
 			}
 
-			columns := []Column{
+			columns := []*Column{
 				{tableOneName, "a", "a", nil},
 				{tableOneName, "b", "b", nil},
 			}

@@ -1,14 +1,14 @@
 package planner
 
 import (
+	"github.com/erh/mixer/sqlparser"
 	"gopkg.in/mgo.v2/bson"
-	"strings"
 )
 
 type Select struct {
 	// Columns is used to determine which column information we retrieve
 	// from the data returned by a child operator
-	Columns []Column
+	Columns []*Column
 
 	// err holds any error that may have occurred during processing
 	err error
@@ -42,7 +42,7 @@ func (s *Select) Open(ctx *ExecutionCtx) error {
 	if len(s.Columns) == 0 {
 		for _, column := range s.source.OpFields() {
 			s.fields = append(s.fields, column.View)
-			s.Columns = append(s.Columns, *column)
+			s.Columns = append(s.Columns, column)
 		}
 	}
 
@@ -53,13 +53,7 @@ func (s *Select) Next(r *Row) bool {
 
 	row := &Row{}
 
-	var hasNext bool
-
-	if len(s.Columns) == 0 {
-		hasNext = s.source.Next(r)
-	} else {
-		hasNext = s.source.Next(row)
-	}
+	hasNext := s.source.Next(row)
 
 	if !hasNext {
 
@@ -71,37 +65,51 @@ func (s *Select) Next(r *Row) bool {
 
 	}
 
-	if len(s.Columns) != 0 {
-		data := map[string][]bson.DocElem{}
-		for _, column := range s.Columns {
-			t, v := s.getValue(&column, row)
-			data[t] = append(data[t], v)
-		}
+	columns := s.Columns
 
-		for k, v := range data {
-			r.Data = append(r.Data, TableRow{k, v, nil})
+	// star expression, take headers from source
+	if len(columns) == 0 {
+		columns = s.source.OpFields()
+	}
+
+	data := map[string][]bson.DocElem{}
+
+	for _, column := range columns {
+		t, v, err := s.getValue(column, row)
+		if err != nil {
+			s.err = err
+			hasNext = false
 		}
+		data[t] = append(data[t], v)
+	}
+
+	for k, v := range data {
+		r.Data = append(r.Data, TableRow{k, v, nil})
 	}
 
 	return hasNext
 }
 
-func (s *Select) getValue(column *Column, row *Row) (string, bson.DocElem) {
+func (s *Select) getValue(column *Column, row *Row) (string, bson.DocElem, error) {
+	expr := column.Expr
 
-	for _, v := range row.Data {
-
-		if column.Table != "" && column.Table != v.Table {
-			continue
-		}
-
-		for _, c := range v.Values {
-			if strings.ToLower(column.Name) == strings.ToLower(c.Name) { // TODO: optimize
-				return column.Table, bson.DocElem{column.Name, c.Value}
-			}
+	// no expression value if this is from table source
+	// convert to a ColName type
+	if column.Expr == nil {
+		expr = &sqlparser.ColName{
+			Name:      []byte(column.Name),
+			Qualifier: []byte(column.Table),
 		}
 	}
 
-	return "", bson.DocElem{column.Name, nil}
+	nExpr, err := NewExpr(expr)
+	if err != nil {
+		panic(err)
+	}
+
+	s.ctx.Row = row
+	v, err := nExpr.Evaluate(s.ctx)
+	return column.Table, bson.DocElem{column.Name, v}, err
 }
 
 func (s *Select) Fields() (f []string) {
@@ -116,13 +124,7 @@ func (s *Select) Close() error {
 }
 
 func (s *Select) OpFields() (columns []*Column) {
-
-	for _, column := range s.Columns {
-		column := Column(column)
-		columns = append(columns, &column)
-	}
-
-	return columns
+	return s.Columns
 }
 
 func (s *Select) Err() error {
