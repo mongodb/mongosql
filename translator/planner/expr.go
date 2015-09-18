@@ -3,6 +3,7 @@ package planner
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
+	"github.com/mongodb/mongo-tools/common/util"
 )
 
 type Expr interface {
@@ -46,7 +47,7 @@ func NewExpr(e sqlparser.Expr) (Expr, error) {
 	case *sqlparser.UnaryExpr:
 		return nil, fmt.Errorf("NewExpr not yet implemented for %#v", e)
 	case *sqlparser.FuncExpr:
-		return nil, fmt.Errorf("NewExpr not yet implemented for %#v", e)
+		return &FuncExpr{expr}, nil
 	case *sqlparser.CaseExpr:
 		return nil, fmt.Errorf("NewExpr not yet implemented for %#v", e)
 	default:
@@ -59,8 +60,66 @@ type ColName struct {
 }
 
 func (c *ColName) Evaluate(ctx *ExecutionCtx) (interface{}, error) {
-	if v, ok := ctx.Row.GetField(string(c.Qualifier), string(c.Name)); ok {
-		return v, nil
+	for _, r := range ctx.Rows {
+		if v, ok := r.GetField(string(c.Qualifier), string(c.Name)); ok {
+			return v, nil
+		}
 	}
 	return nil, nil
+}
+
+func (c *ColName) String() string {
+	return fmt.Sprintf("FQNS: '%v.%v'", string(c.Qualifier), string(c.Name))
+}
+
+type FuncExpr struct {
+	*sqlparser.FuncExpr
+}
+
+func (f *FuncExpr) Evaluate(ctx *ExecutionCtx) (interface{}, error) {
+	switch string(f.Name) {
+	case "sum":
+		return sumFunc(ctx, f.Exprs)
+	default:
+		return nil, fmt.Errorf("function '%v' not yet implemented", string(f.Name))
+	}
+}
+
+func sumFunc(ctx *ExecutionCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
+	var sum int64
+
+	for _, row := range ctx.Rows {
+		for _, sExpr := range sExprs {
+
+			switch e := sExpr.(type) {
+
+			// mixture of star and non-star expression is acceptable
+			case *sqlparser.StarExpr:
+				sum += 1
+
+			case *sqlparser.NonStarExpr:
+				expr, err := NewExpr(e.Expr)
+				if err != nil {
+					panic(err)
+				}
+
+				ctx.Rows = []Row{row}
+
+				eval, err := expr.Evaluate(ctx)
+				if err != nil {
+					return nil, err
+				}
+
+				// TODO: ignoring if we can't convert this to an integer
+				// we should instead support all summable types
+				value, _ := util.ToInt(eval)
+
+				sum += int64(value)
+
+			default:
+				return nil, fmt.Errorf("unknown expression in sumFunc: %T", e)
+			}
+		}
+	}
+	return sum, nil
 }

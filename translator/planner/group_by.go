@@ -3,6 +3,7 @@ package planner
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type GroupBy struct {
@@ -27,15 +28,6 @@ type GroupBy struct {
 func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
 	gb.ctx = ctx
 	return gb.source.Open(ctx)
-}
-
-func (gb *GroupBy) getSelectView(group string) string {
-	for _, column := range gb.fields[0].Columns {
-		if column.Name == group {
-			return column.View
-		}
-	}
-	return ""
 }
 
 func (gb *GroupBy) evaluateGroupByKey(keys []*sqlparser.ColName, row *Row) (string, error) {
@@ -92,13 +84,46 @@ func (gb *GroupBy) createGroups() error {
 	return gb.source.Err()
 }
 
+func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
+
+	aggValues := map[string]bson.D{}
+
+	row := &Row{}
+
+	for _, field := range gb.fields {
+		expr, err := NewExpr(field.Expr)
+		if err != nil {
+			panic(err)
+		}
+
+		gb.ctx.Rows = r
+		value, err := expr.Evaluate(gb.ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		aggValues[field.Table] = append(aggValues[field.Table], bson.DocElem{field.Name, value})
+	}
+
+	for table, values := range aggValues {
+		row.Data = append(row.Data, TableRow{table, values, nil})
+	}
+
+	return row, nil
+}
+
 func (gb *GroupBy) iterChan() chan Row {
 	ch := make(chan Row)
+
 	go func() {
 		for _, v := range gb.finalGrouping {
-			for _, r := range v {
-				ch <- r
+			r, err := gb.evalAggRow(v)
+			if err != nil {
+				gb.err = err
+				close(ch)
+				return
 			}
+			ch <- *r
 		}
 		close(ch)
 	}()
@@ -106,7 +131,7 @@ func (gb *GroupBy) iterChan() chan Row {
 }
 
 func (gb *GroupBy) Next(row *Row) bool {
-	if /* len(gb.aggFuncs()) != 0 && */ !gb.grouped {
+	if !gb.grouped {
 		if err := gb.createGroups(); err != nil {
 			gb.err = err
 			return false
@@ -127,6 +152,14 @@ func (gb *GroupBy) Err() error {
 	return gb.err
 }
 
-func (gb *GroupBy) OpFields() []*Column {
-	return gb.source.OpFields()
+func (gb *GroupBy) OpFields() (columns []*Column) {
+	for _, field := range gb.fields {
+		column := &Column{
+			Name:  field.Name,
+			View:  field.View,
+			Table: field.Table,
+		}
+		columns = append(columns, column)
+	}
+	return columns
 }

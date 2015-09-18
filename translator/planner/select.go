@@ -105,7 +105,7 @@ func (s *Select) getValue(sc SelectColumn, row *Row) (string, bson.DocElem, erro
 		panic(err)
 	}
 
-	s.ctx.Row = *row
+	s.ctx.Rows = []Row{*row}
 	v, err := expr.Evaluate(s.ctx)
 
 	return sc.Table, bson.DocElem{sc.View, v}, err
@@ -144,4 +144,22 @@ func (sc SelectColumns) GetColumns() []*Column {
 	}
 
 	return columns
+}
+
+func (sc SelectColumn) isAggFunc() bool {
+	_, ok := sc.Expr.(*sqlparser.FuncExpr)
+	return ok
+}
+
+func (sc SelectColumns) AggFunctions() SelectColumns {
+
+	selectColumns := SelectColumns{}
+
+	for _, selectColumn := range sc {
+		if _, ok := selectColumn.Expr.(*sqlparser.FuncExpr); ok {
+			selectColumns = append(selectColumns, selectColumn)
+		}
+	}
+
+	return selectColumns
 }

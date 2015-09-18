@@ -42,58 +42,61 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 	}
 
 	// handle select expressions
-	selectOperator := &Select{source: operator}
+	s := &Select{source: operator}
 
-	selectOperator.selectColumns, err = refColsInSelectStmt(ast)
+	s.selectColumns, err = refColsInSelectStmt(ast)
 	if err != nil {
 		return nil, err
 	}
 
-	operator = selectOperator
-
 	// handle group by expression
 	if len(ast.GroupBy) != 0 {
-
-		gb := &GroupBy{
-			source: operator,
-			fields: selectOperator.selectColumns,
-		}
-
-		for _, valExpr := range ast.GroupBy {
-			expr, ok := sqlparser.Expr(valExpr).(*sqlparser.ColName)
-			if !ok {
-				return nil, fmt.Errorf("unsupported group by term: %T", valExpr)
-			}
-
-			/*
-				// a GROUP BY clause can't refer to nonaggregated columns in
-				// the select list that are not named in the GROUP BY clause
-				if !isValidGroupByTerm(selectColumns, expr) {
-					return nil, fmt.Errorf("group by term '%v' not in select list", string(expr.Name))
-				}
-
-			*/
-
-			gb.exprs = append(gb.exprs, expr)
-
-		}
-
-		operator = gb
+		return planGroupBy(ast.GroupBy, s, s.selectColumns)
 	}
 
-	return operator, nil
+	return s, nil
 
+}
+
+// planGroupBy returns a query execution plan for a group by clause.
+func planGroupBy(groupBy sqlparser.GroupBy, source Operator, selectColumns SelectColumns) (operator Operator, err error) {
+
+	gb := &GroupBy{
+		source: source,
+		fields: selectColumns,
+	}
+
+	for _, valExpr := range groupBy {
+		expr, ok := sqlparser.Expr(valExpr).(*sqlparser.ColName)
+		if !ok {
+			return nil, fmt.Errorf("unsupported group by term: %T", valExpr)
+		}
+
+		// a GROUP BY clause can't refer to nonaggregated columns in
+		// the select list that are not named in the GROUP BY clause
+		if !isValidGroupByTerm(gb.fields, expr) {
+			return nil, fmt.Errorf("group by term '%v' not in select list", string(expr.Name))
+		}
+
+		gb.exprs = append(gb.exprs, expr)
+
+	}
+
+	nonAggFields := len(gb.fields) - len(gb.fields.AggFunctions())
+	if nonAggFields > len(gb.exprs) {
+		return nil, fmt.Errorf("can not have unused select expression with group by query")
+	}
+
+	return gb, nil
 }
 
 // isValidGroupByTerm returns true if the column expression is valid as a group
 // by term within a select column context.
 func isValidGroupByTerm(scs []SelectColumn, expr *sqlparser.ColName) bool {
 	for _, sc := range scs {
-		for _, c := range sc.Columns {
-			// TODO: support alias in group by term?
-			if c.Table == string(expr.Qualifier) && c.Name == string(expr.Name) {
-				return true
-			}
+		// TODO: support alias in group by term?
+		if sc.Table == string(expr.Qualifier) && sc.Name == string(expr.Name) {
+			return true
 		}
 	}
 	return false
@@ -128,9 +131,19 @@ func refColsInSelectExpr(sExprs sqlparser.SelectExprs) ([]SelectColumn, error) {
 			if c, ok := expr.Expr.(*sqlparser.ColName); ok {
 				selectColumn.Table = string(c.Qualifier)
 				selectColumn.Name = string(c.Name)
+
 				if selectColumn.View == "" {
 					selectColumn.View = string(c.Name)
 				}
+			} else {
+				// get a string representation of the expression if
+				// it isn't a column name e.g. sum(foo.a) for aggregate
+				// expressions
+				selectColumn.Name = sqlparser.String(expr.Expr)
+			}
+
+			if selectColumn.View == "" {
+				selectColumn.View = sqlparser.String(expr.Expr)
 			}
 
 			selectColumns = append(selectColumns, selectColumn)
@@ -341,7 +354,7 @@ func planSimpleTableExpr(c *ExecutionCtx, s sqlparser.SimpleTableExpr, w *sqlpar
 // of referenced columns in those expressions.
 func getReferencedColumns(exprs ...sqlparser.Expr) ([]*Column, error) {
 
-	log.Logf(log.DebugLow, "getReferencedColumns: %#v (type is %T)", exprs, exprs)
+	log.Logf(log.DebugLow, "getReferencedColumns: %#v (type is %T)\n", exprs, exprs)
 
 	columns := make([]*Column, 0)
 
@@ -360,7 +373,7 @@ func getReferencedColumns(exprs ...sqlparser.Expr) ([]*Column, error) {
 // referencedColumns returns a slice of referenced columns in an expression.
 func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 
-	log.Logf(log.DebugLow, "referencedColumns: %#v (type is %T)", e, e)
+	log.Logf(log.DebugLow, "referencedColumns: %#v (type is %T)\n", e, e)
 
 	switch expr := e.(type) {
 

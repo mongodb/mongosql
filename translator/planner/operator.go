@@ -20,7 +20,7 @@ type Column struct {
 type ExecutionCtx struct {
 	Config *config.Config
 	Db     string
-	Row    Row
+	Rows   []Row
 }
 
 // Operator defines a set of functions that are implemented by each
@@ -54,7 +54,12 @@ type TableRow struct {
 func (row *Row) GetField(table, key string) (interface{}, bool) {
 	for _, r := range row.Data {
 		if r.Table == table {
-			return getKey(key, r.Values)
+			for _, entry := range r.Values {
+				// TODO optimize
+				if strings.ToLower(key) == strings.ToLower(entry.Name) {
+					return entry.Value, true
+				}
+			}
 		}
 	}
 	return nil, false

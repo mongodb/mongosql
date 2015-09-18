@@ -21,6 +21,7 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 	for operator.Next(row) {
 
 		values := getRowValues(operator.OpFields(), row)
+
 		rows = append(rows, values)
 
 		row.Data = []planner.TableRow{}

@@ -89,9 +89,10 @@ func TestSelectOrder(t *testing.T) {
 
 		names, values, err = eval.EvalSelect("test", "select bar.* from bar", nil)
 		So(err, ShouldBeNil)
-		So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
 		So(len(names), ShouldEqual, 4)
 		So(len(values), ShouldEqual, 1)
+
+		So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
 
 		names, values, err = eval.EvalSelect("test", "select b, a from bar", nil)
 		So(err, ShouldBeNil)
