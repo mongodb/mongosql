@@ -21,7 +21,7 @@ func selectTest(operator Operator, rows, expectedRows []interface{}) {
 	session, err := mgo.Dial(cfg.Url)
 	So(err, ShouldBeNil)
 
-	collection := session.DB(dbName).C(tableOneName)
+	collection := session.DB(dbName).C(tableTwoName)
 	collection.DropCollection()
 
 	for _, row := range rows {
@@ -41,7 +41,7 @@ func selectTest(operator Operator, rows, expectedRows []interface{}) {
 
 	for operator.Next(row) {
 		So(len(row.Data), ShouldEqual, 1)
-		So(row.Data[0].Table, ShouldEqual, tableOneName)
+		So(row.Data[0].Table, ShouldEqual, tableTwoName)
 		So(row.Data[0].Values, ShouldResemble, expectedRows[i])
 		row = &Row{}
 		i++
@@ -62,14 +62,14 @@ func TestSelectOperator(t *testing.T) {
 
 		rows := []interface{}{
 			bson.D{
-				bson.DocElem{Name: "_id", Value: 5},
 				bson.DocElem{Name: "a", Value: 6},
 				bson.DocElem{Name: "b", Value: 7},
+				bson.DocElem{Name: "_id", Value: 5},
 			},
 			bson.D{
-				bson.DocElem{Name: "_id", Value: 15},
 				bson.DocElem{Name: "a", Value: 16},
 				bson.DocElem{Name: "b", Value: 17},
+				bson.DocElem{Name: "_id", Value: 15},
 			},
 		}
 
@@ -77,7 +77,7 @@ func TestSelectOperator(t *testing.T) {
 
 			operator := &Select{
 				source: &TableScan{
-					tableName: tableOneName,
+					tableName: tableTwoName,
 				},
 			}
 
@@ -98,15 +98,20 @@ func TestSelectOperator(t *testing.T) {
 				},
 			}
 
-			columns := []*Column{
-				{tableOneName, "a", "a", nil},
-				{tableOneName, "b", "b", nil},
+			columns := []Column{
+				{tableTwoName, "a", "a"},
+				{tableTwoName, "b", "b"},
+			}
+
+			selectColumns := SelectColumns{
+				{columns[0], nil, nil},
+				{columns[1], nil, nil},
 			}
 
 			operator := &Select{
-				Columns: columns,
+				selectColumns: selectColumns,
 				source: &TableScan{
-					tableName: tableOneName,
+					tableName: tableTwoName,
 				},
 			}
 

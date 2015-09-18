@@ -86,10 +86,7 @@ func TestBasicMatching(t *testing.T) {
 		Convey("using the matcher on a row whose value matches should return true", func() {
 			tree := Equals{SQLString("xyz"), &SQLField{"foo", "b"}}
 			matchCtx := &MatchCtx{[]*Row{
-				{Data: []TableRow{{"foo",
-					bson.D{{"a", 123}, {"b", "xyz"}, {"c", nil}},
-					nil}},
-				}}}
+				{Data: []TableRow{{"foo", bson.D{{"a", 123}, {"b", "xyz"}, {"c", nil}}, nil}}}}}
 			So(tree.Matches(matchCtx), ShouldBeTrue)
 		})
 

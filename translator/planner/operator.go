@@ -1,7 +1,6 @@
 package planner
 
 import (
-	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
@@ -15,14 +14,13 @@ type Column struct {
 	Table string
 	Name  string
 	View  string
-	Expr  sqlparser.Expr
 }
 
 // ExecutionCtx holds data that is used by each operator.
 type ExecutionCtx struct {
 	Config *config.Config
 	Db     string
-	Row    *Row
+	Row    Row
 }
 
 // Operator defines a set of functions that are implemented by each

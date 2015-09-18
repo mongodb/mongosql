@@ -6,9 +6,9 @@ import (
 )
 
 type Select struct {
-	// Columns is used to determine which column information we retrieve
-	// from the data returned by a child operator
-	Columns []*Column
+	// selectColumns holds information on the columns referenced in each
+	// select expression
+	selectColumns SelectColumns
 
 	// err holds any error that may have occurred during processing
 	err error
@@ -16,18 +16,15 @@ type Select struct {
 	// source holds the source for this select statement
 	source Operator
 
-	// fields holds the set of column display names that is returned
-	// to the client in the result set.
-	fields []string
-
 	// ctx is the current execution context
 	ctx *ExecutionCtx
 }
 
 // SelectColumn holds all columns referenced in select expressions.
 type SelectColumn struct {
+	Column
 	Columns []*Column
-	Level   int
+	Expr    sqlparser.Expr
 }
 
 func (s *Select) Open(ctx *ExecutionCtx) error {
@@ -38,15 +35,20 @@ func (s *Select) Open(ctx *ExecutionCtx) error {
 
 	s.ctx = ctx
 
-	// no columns imply a star expression - in which case we grab all the fields
-	if len(s.Columns) == 0 {
-		for _, column := range s.source.OpFields() {
-			s.fields = append(s.fields, column.View)
-			s.Columns = append(s.Columns, column)
-		}
+	// no select expression imply a star expression - in which case
+	// we grab all the fields
+	if len(s.selectColumns) == 0 {
+		s.setSelectExpr()
 	}
 
 	return nil
+}
+
+func (s *Select) setSelectExpr() {
+	for _, column := range s.source.OpFields() {
+		sExpr := SelectColumn{*column, []*Column{column}, nil}
+		s.selectColumns = append(s.selectColumns, sExpr)
+	}
 }
 
 func (s *Select) Next(r *Row) bool {
@@ -65,17 +67,16 @@ func (s *Select) Next(r *Row) bool {
 
 	}
 
-	columns := s.Columns
-
 	// star expression, take headers from source
-	if len(columns) == 0 {
-		columns = s.source.OpFields()
+	if len(s.selectColumns) == 0 {
+		s.setSelectExpr()
 	}
 
 	data := map[string][]bson.DocElem{}
 
-	for _, column := range columns {
-		t, v, err := s.getValue(column, row)
+	for _, expr := range s.selectColumns {
+
+		t, v, err := s.getValue(expr, row)
 		if err != nil {
 			s.err = err
 			hasNext = false
@@ -90,33 +91,24 @@ func (s *Select) Next(r *Row) bool {
 	return hasNext
 }
 
-func (s *Select) getValue(column *Column, row *Row) (string, bson.DocElem, error) {
-	expr := column.Expr
-
-	// no expression value if this is from table source
-	// convert to a ColName type
-	if column.Expr == nil {
-		expr = &sqlparser.ColName{
-			Name:      []byte(column.Name),
-			Qualifier: []byte(column.Table),
+func (s *Select) getValue(sc SelectColumn, row *Row) (string, bson.DocElem, error) {
+	// in case we have a bare select column with no expression
+	if sc.Expr == nil {
+		sc.Expr = &sqlparser.ColName{
+			Name:      []byte(sc.Name),
+			Qualifier: []byte(sc.Table),
 		}
 	}
 
-	nExpr, err := NewExpr(expr)
+	expr, err := NewExpr(sc.Expr)
 	if err != nil {
 		panic(err)
 	}
 
-	s.ctx.Row = row
-	v, err := nExpr.Evaluate(s.ctx)
-	return column.Table, bson.DocElem{column.Name, v}, err
-}
+	s.ctx.Row = *row
+	v, err := expr.Evaluate(s.ctx)
 
-func (s *Select) Fields() (f []string) {
-	for _, column := range s.Columns {
-		f = append(f, column.View)
-	}
-	return f
+	return sc.Table, bson.DocElem{sc.View, v}, err
 }
 
 func (s *Select) Close() error {
@@ -124,9 +116,32 @@ func (s *Select) Close() error {
 }
 
 func (s *Select) OpFields() (columns []*Column) {
-	return s.Columns
+
+	for _, expr := range s.selectColumns {
+		column := &Column{
+			Name:  expr.View,
+			View:  expr.View,
+			Table: expr.Table,
+		}
+		columns = append(columns, column)
+	}
+
+	return columns
 }
 
 func (s *Select) Err() error {
 	return s.err
+}
+
+type SelectColumns []SelectColumn
+
+func (sc SelectColumns) GetColumns() []*Column {
+
+	columns := make([]*Column, 0)
+
+	for _, selectColumn := range sc {
+		columns = append(columns, selectColumn.Columns...)
+	}
+
+	return columns
 }

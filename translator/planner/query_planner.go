@@ -43,20 +43,10 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 
 	// handle select expressions
 	selectOperator := &Select{source: operator}
-	selectColumns := []SelectColumn{}
 
-	if err = refColsInSelectStmt(&selectColumns, 0, ast); err != nil {
+	selectOperator.selectColumns, err = refColsInSelectStmt(ast)
+	if err != nil {
 		return nil, err
-	}
-
-	for _, sc := range selectColumns {
-		if sc.Level == 0 {
-			// TODO: check columns referenced in nested levels
-			for _, column := range sc.Columns {
-				selectOperator.Columns = append(selectOperator.Columns, column)
-			}
-			break
-		}
 	}
 
 	operator = selectOperator
@@ -64,7 +54,10 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 	// handle group by expression
 	if len(ast.GroupBy) != 0 {
 
-		gb := &GroupBy{source: operator, fields: selectColumns}
+		gb := &GroupBy{
+			source: operator,
+			fields: selectOperator.selectColumns,
+		}
 
 		for _, valExpr := range ast.GroupBy {
 			expr, ok := sqlparser.Expr(valExpr).(*sqlparser.ColName)
@@ -96,23 +89,20 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 // by term within a select column context.
 func isValidGroupByTerm(scs []SelectColumn, expr *sqlparser.ColName) bool {
 	for _, sc := range scs {
-		if sc.Level == 0 {
-			for _, c := range sc.Columns {
-				// TODO: support alias in group by term?
-				if c.Table == string(expr.Qualifier) && c.Name == string(expr.Name) {
-					return true
-				}
+		for _, c := range sc.Columns {
+			// TODO: support alias in group by term?
+			if c.Table == string(expr.Qualifier) && c.Name == string(expr.Name) {
+				return true
 			}
 		}
 	}
 	return false
 }
 
-// refColsInSelectExpr adds any columns referenced in the select expression
-// to s. level indicates what nesting level the columna appears in relative
-// to s.
-func refColsInSelectExpr(s *[]SelectColumn, level int, sExprs sqlparser.SelectExprs) error {
-	columns := make([]*Column, 0)
+// refColsInSelectExpr returns a slice of select columns - each holding
+// a non-star select expression and any columns referenced in it.
+func refColsInSelectExpr(sExprs sqlparser.SelectExprs) ([]SelectColumn, error) {
+	selectColumns := make([]SelectColumn, 0)
 
 	for _, sExpr := range sExprs {
 
@@ -124,62 +114,61 @@ func refColsInSelectExpr(s *[]SelectColumn, level int, sExprs sqlparser.SelectEx
 
 		case *sqlparser.NonStarExpr:
 
-			refColumns, err := getReferencedColumns(s, level, expr.Expr)
+			columns, err := getReferencedColumns(expr.Expr)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
-			// TODO: check columns against table config
-			for _, column := range refColumns {
-				column.View = string(expr.As)
-				column.Expr = expr.Expr
+			// TODO: check referenced columns against table config
 
-				if column.View == "" {
-					column.View = column.Name
+			column := Column{View: string(expr.As)}
+
+			selectColumn := SelectColumn{column, columns, expr.Expr}
+
+			if c, ok := expr.Expr.(*sqlparser.ColName); ok {
+				selectColumn.Table = string(c.Qualifier)
+				selectColumn.Name = string(c.Name)
+				if selectColumn.View == "" {
+					selectColumn.View = string(c.Name)
 				}
-
-				columns = append(columns, column)
 			}
+
+			selectColumns = append(selectColumns, selectColumn)
 
 		default:
-			return fmt.Errorf("unknown SelectExprs in refColsInSelectExpr: %T", expr)
+			return nil, fmt.Errorf("unknown SelectExprs in refColsInSelectExpr: %T", expr)
 		}
 	}
 
-	*s = append(*s, SelectColumn{columns, level})
-
-	return nil
+	return selectColumns, nil
 }
 
-// refColsInSelectStmt adds any columns referenced in the select statement
-// to s. level indicates what nesting level the columna appears in relative
-// to s.
-func refColsInSelectStmt(s *[]SelectColumn, level int, ss sqlparser.SelectStatement) error {
+// refColsInSelectStmt returns any columns referenced in the select statement.
+func refColsInSelectStmt(ss sqlparser.SelectStatement) ([]SelectColumn, error) {
 
 	switch stmt := ss.(type) {
 
 	case *sqlparser.Select:
-		err := refColsInSelectExpr(s, level, stmt.SelectExprs)
-		if err != nil {
-			return err
-		}
+
+		return refColsInSelectExpr(stmt.SelectExprs)
 
 	case *sqlparser.Union:
-		err := refColsInSelectStmt(s, level, stmt.Left)
+		l, err := refColsInSelectStmt(stmt.Left)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		err = refColsInSelectStmt(s, level, stmt.Right)
+		r, err := refColsInSelectStmt(stmt.Right)
 		if err != nil {
-			return err
+			return nil, err
 		}
+
+		return append(l, r...), nil
 
 	default:
-		return fmt.Errorf("unknown SelectStatement in refColsInSelectStmt: %T", stmt)
+		return nil, fmt.Errorf("unknown SelectStatement in refColsInSelectStmt: %T", stmt)
 	}
 
-	return nil
 }
 
 // planFromExpr takes one or more table expressions and returns an Operator for the
@@ -350,28 +339,26 @@ func planSimpleTableExpr(c *ExecutionCtx, s sqlparser.SimpleTableExpr, w *sqlpar
 
 // getReferencedColumns accepts several exppressions and returns a slice
 // of referenced columns in those expressions.
-func getReferencedColumns(s *[]SelectColumn, l int, exprs ...sqlparser.Expr) ([]*Column, error) {
+func getReferencedColumns(exprs ...sqlparser.Expr) ([]*Column, error) {
 
 	log.Logf(log.DebugLow, "getReferencedColumns: %#v (type is %T)", exprs, exprs)
 
 	columns := make([]*Column, 0)
 
 	for _, e := range exprs {
-		refColumns, err := referencedColumns(s, l, e)
+		refColumns, err := referencedColumns(e)
 		if err != nil {
 			return nil, err
 		}
-		for _, c := range refColumns {
-			c.Expr = e
-			columns = append(columns, c)
-		}
+
+		columns = append(columns, refColumns...)
 	}
 
 	return columns, nil
 }
 
 // referencedColumns returns a slice of referenced columns in an expression.
-func referencedColumns(s *[]SelectColumn, l int, e sqlparser.Expr) ([]*Column, error) {
+func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 
 	log.Logf(log.DebugLow, "referencedColumns: %#v (type is %T)", e, e)
 
@@ -390,67 +377,57 @@ func referencedColumns(s *[]SelectColumn, l int, e sqlparser.Expr) ([]*Column, e
 		return []*Column{c}, nil
 
 	case *sqlparser.BinaryExpr:
-		return getReferencedColumns(s, l, expr.Left, expr.Right)
+		return getReferencedColumns(expr.Left, expr.Right)
 
 	case *sqlparser.AndExpr:
 
-		return getReferencedColumns(s, l, expr.Left, expr.Right)
+		return getReferencedColumns(expr.Left, expr.Right)
 
 	case *sqlparser.OrExpr:
 
-		return getReferencedColumns(s, l, expr.Left, expr.Right)
+		return getReferencedColumns(expr.Left, expr.Right)
 
 	case *sqlparser.ParenBoolExpr:
 
-		return referencedColumns(s, l, expr.Expr)
+		return referencedColumns(expr.Expr)
 
 	case *sqlparser.ComparisonExpr:
 
-		return getReferencedColumns(s, l, expr.Left, expr.Right)
+		return getReferencedColumns(expr.Left, expr.Right)
 
 	case *sqlparser.RangeCond:
 
-		return getReferencedColumns(s, l, expr.From, expr.To, expr.Left)
+		return getReferencedColumns(expr.From, expr.To, expr.Left)
 
 	case *sqlparser.NullCheck:
 
-		return referencedColumns(s, l, expr.Expr)
+		return referencedColumns(expr.Expr)
 
 	case *sqlparser.UnaryExpr:
 
-		return referencedColumns(s, l, expr.Expr)
+		return referencedColumns(expr.Expr)
 
 	case *sqlparser.NotExpr:
 
-		return referencedColumns(s, l, expr.Expr)
+		return referencedColumns(expr.Expr)
 
 	case *sqlparser.Subquery:
-		switch sbq := expr.Select.(type) {
 
-		case *sqlparser.Select:
-			if err := refColsInSelectStmt(s, l+1, sbq); err != nil {
-				return nil, err
-			}
-
-		case *sqlparser.Union:
-			if err := refColsInSelectStmt(s, l+1, sbq); err != nil {
-				return nil, err
-			}
-
-		default:
-			return nil, fmt.Errorf("unknown Subquery type: %T", sbq)
+		sc, err := refColsInSelectStmt(expr.Select)
+		if err != nil {
+			return nil, err
 		}
 
-		// TODO: test
-		return nil, nil
+		return SelectColumns(sc).GetColumns(), nil
 
 	case *sqlparser.FuncExpr:
 
-		if err := refColsInSelectExpr(s, l, expr.Exprs); err != nil {
+		sc, err := refColsInSelectExpr(expr.Exprs)
+		if err != nil {
 			return nil, err
 		}
-		// TODO: test
-		return nil, nil
+
+		return SelectColumns(sc).GetColumns(), nil
 
 		// TODO: fill these in
 	case sqlparser.ValArg:

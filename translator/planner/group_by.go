@@ -7,7 +7,7 @@ import (
 
 type GroupBy struct {
 	// fields indicates the columns of the prior select operator
-	fields []SelectColumn
+	fields SelectColumns
 	// source is the operator that provides the data to group
 	source Operator
 	// exprs holds the expressions to group by
