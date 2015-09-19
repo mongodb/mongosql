@@ -67,8 +67,10 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return c.handleShow(sql, v)
 	case *sqlparser.Admin:
 		return c.handleAdmin(v)
+	case *sqlparser.DDL:
+		return c.handleDDL(v)
 	default:
-		return fmt.Errorf("statement %T not support now", stmt)
+		return fmt.Errorf("statement %T not supported now", stmt)
 	}
 
 	return nil

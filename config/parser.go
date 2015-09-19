@@ -21,6 +21,10 @@ func ParseConfigData(data []byte) (*Config, error) {
 
 		schemaCfg.Tables = make(map[string]*TableConfig)
 		for _, n := range schemaCfg.RawTables {
+			err := n.fixTypes()
+			if err != nil {
+				return nil, err
+			}
 			schemaCfg.Tables[n.Table] = n
 		}
 

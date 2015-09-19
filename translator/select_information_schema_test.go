@@ -62,3 +62,20 @@ func TestConfigScanOperatorTablesSelect(t *testing.T) {
 		So(len(values), ShouldEqual, 1)
 	})
 }
+
+func TestConfigKeyColumnUsage(t *testing.T) {
+
+	Convey("using config data source should to filter columns", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvalulator(cfg)
+		So(err, ShouldBeNil)
+
+		_, values, err := eval.EvalSelect("information_schema", "select * from KEY_COLUMN_USAGE", nil)
+		So(err, ShouldBeNil)
+		So(len(values), ShouldEqual, 0)
+
+	})
+}

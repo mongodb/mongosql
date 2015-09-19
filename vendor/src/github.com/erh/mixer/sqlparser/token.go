@@ -115,7 +115,10 @@ var keywords = map[string]int{
 	"show":      SHOW,
 	"databases": DATABASES,
 	"tables":    TABLES,
-
+	"variables": VARIABLES,
+	"columns": COLUMNS,
+	"full": FULL,
+	
 	//for mixer admin
 	"admin": ADMIN,
 	"proxy": PROXY,

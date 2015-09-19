@@ -924,11 +924,18 @@ func (node *Admin) Format(buf *TrackedBuffer) {
 	buf.Fprintf("admin %s(%v)", node.Name, node.Values)
 }
 
+const (
+	AST_SHOW_NO_MOD = ""
+	AST_SHOW_FULL = "full"
+)
+
 type Show struct {
 	Section     string
 	Key         string
 	From        ValExpr
 	LikeOrWhere Expr
+	Modifier    string
+	DBFilter      ValExpr
 }
 
 func (*Show) IStatement() {}

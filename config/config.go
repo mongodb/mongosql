@@ -2,6 +2,7 @@ package config
 
 import (
 	"gopkg.in/mgo.v2/bson"
+	"fmt"
 )
 
 type Column struct {
@@ -14,7 +15,7 @@ type TableConfig struct {
 	Table      string   `yaml:"table"`
 	Collection string   `yaml:"collection"`
 	Pipeline   []bson.M `yaml:"pipeline"`
-	Columns    []Column `yaml:"columns"`
+	Columns    []*Column `yaml:"columns"`
 }
 
 type Schema struct {
@@ -37,9 +38,24 @@ type Config struct {
 
 // ---
 
-/*
-func (TableConfig *Loglevel) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	fmt.Printf("hi there
+func (c *Column)fixType() error {
+	switch (c.Type) {
+	case "string":
+		c.MysqlType = "varchar(2048)"
+	case "int":
+		c.MysqlType = "int(11)"
+	default:
+		return fmt.Errorf("don't know mysql equivilant for type: %s", c.Type)
+	}
 	return nil
-}*'
-*/
+}
+
+func (t *TableConfig)fixTypes() error {
+	for _, c := range(t.Columns) {
+		err := c.fixType()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

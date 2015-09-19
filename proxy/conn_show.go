@@ -17,8 +17,12 @@ func (c *Conn) handleShow(sql string, stmt *sqlparser.Show) error {
 		r, err = c.handleShowDatabases()
 	case "tables":
 		r, err = c.handleShowTables(sql, stmt)
+	case "variables":
+		r, err = c.handleShowVariables(sql, stmt)
+	case "columns":
+		r, err = c.handleShowColumns(sql, stmt)
 	default:
-		err = fmt.Errorf("unsupport show %s now", sql)
+		err = fmt.Errorf("no support for show (%s) for now", sql)
 	}
 
 	if err != nil {
@@ -55,6 +59,95 @@ func (c *Conn) handleShowTables(sql string, stmt *sqlparser.Show) (*Resultset, e
 	}
 
 	return c.buildSimpleShowResultset(values, fmt.Sprintf("Tables_in_%s", c.currentSchema.DB))
+}
+
+func (c *Conn) handleShowVariables(sql string, stmt *sqlparser.Show) (*Resultset, error) {
+	variables := make([]interface{}, 0)
+	/*
+	for key := range c.server.schemas {
+		dbs = append(dbs, key)
+	}
+*/
+	return c.buildSimpleShowResultset(variables, "Variable")
+}
+
+func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, error) {
+
+	db := c.db
+	table := ""
+	
+	switch f := stmt.From.(type) {
+	case sqlparser.StrVal:
+		table = string(f)
+	case *sqlparser.ColName:
+		if f.Qualifier != nil {
+			db = string(f.Qualifier)
+		}
+		table = string(f.Name)
+	default:
+		return nil, fmt.Errorf("do not know how to show columns from type: %T", f)
+	}
+
+	if stmt.DBFilter != nil {
+		switch f := stmt.DBFilter.(type) {
+		case sqlparser.StrVal:
+			db = string(f)
+		case *sqlparser.ColName:
+			db = string(f.Name)
+		default:
+			return nil, fmt.Errorf("do not know how to in show filter on db type: %T", f)
+		}
+	}
+
+	schema := c.server.schemas[db]
+	if schema == nil {
+		return nil, NewDefaultError(ER_BAD_DB_ERROR, db)
+	}
+
+	tableConfig := schema.Tables[table]
+	if tableConfig == nil {
+		return nil, fmt.Errorf("table (%s) does not exist in db (%s)", table, db)
+	}
+
+	if len(tableConfig.Columns) == 0 {
+		return nil, fmt.Errorf("no configured columns")
+	}
+	
+	//fmt.Printf(" db (%s) table (%s)\n", db, table)
+	
+    full := strings.ToLower(stmt.Modifier) == "full" 
+
+	values := make([][]interface{},len(tableConfig.Columns))
+	names := []string{ "Field", "Type", "Null", "Key", "Default", "Extra"}
+
+	if full {
+		names = append(names, []string{ "Collation", "Privileges", "Comment" }...)
+	}
+
+	fmt.Printf("col: %s\n", tableConfig.Columns)
+	
+	for num, col := range(tableConfig.Columns) {
+		row := make([]interface{}, len(names))
+		row[0] = col.Name
+		row[1] = col.MysqlType
+		row[2] = "YES"
+		row[3] = ""
+		row[4] = nil
+		row[5] = ""
+
+		if full {
+			row[6] = nil
+			row[7] = "select"
+			row[8] = ""
+		}
+
+		fmt.Printf("num %s\n", num)
+		values[num] = row
+	}
+
+	fmt.Printf("hi\n%s\n%s\n", names, values)
+	
+	return c.buildResultset(names, values)
 }
 
 func (c *Conn) buildSimpleShowResultset(values []interface{}, name string) (*Resultset, error) {

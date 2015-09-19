@@ -42,10 +42,12 @@ func (cds *ConfigDataSource) init(ctx *ExecutionCtx) error {
 	cds.config = ctx.Config
 
 	switch cds.tableName {
+	case "key_column_usage":
+		cds.iter = &EmptyFindResults{}
+		return nil
 	case "columns":
 		cds.includeColumns = true
-	// TODO: what is 'txxxables' for?
-	case "tables", "txxxables":
+	case "tables":
 	default:
 		return fmt.Errorf("unknown information_schema table (%s)", cds.tableName)
 	}
@@ -165,7 +167,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 		_cfrNextHelper(result, ISTablesHeaders[3], "d")
 
 		cfr.tableOffset = cfr.tableOffset + 1
-		tableName = "txxxables"
+		tableName = "tables"
 	} else {
 		// are we in valid column space
 		if cfr.columnsOffset >= len(table.Columns) {

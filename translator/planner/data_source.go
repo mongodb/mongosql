@@ -66,3 +66,21 @@ func (gds MgoDataSource) Insert(docs ...interface{}) error {
 func (gds MgoDataSource) DropCollection() error {
 	return gds.Collection.DropCollection()
 }
+
+// ------
+
+type EmptyFindResults struct {
+}
+
+func (gfr EmptyFindResults) Next(result *bson.D) bool {
+	return false
+}
+
+func (gfr EmptyFindResults) Err() error {
+	return nil
+}
+
+func (gfr EmptyFindResults) Close() error {
+	return nil
+}
+

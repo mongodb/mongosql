@@ -26,9 +26,12 @@ func (c *Conn) handleSet(stmt *sqlparser.Set) error {
 		return c.handleSetCharacterResults(stmt.Exprs[0].Expr)
 	case `sql_auto_is_null`:
 		return c.writeOK(nil)
+	case `@@sql_select_limit`:
+		// TODO
+		return c.writeOK(nil)
 	default:
 		log.Logf(log.Always, "%s", sqlparser.String(stmt))
-		return fmt.Errorf("set %s is not supported now", k)
+		return fmt.Errorf("set (%s) is not supported now", k)
 	}
 }
 
