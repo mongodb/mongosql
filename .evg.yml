@@ -3,10 +3,14 @@ stepback: true
 buildvariants:
 - name: linux
   display_name: Linux
+  expansions:
+    mongo_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-2.6.1.tgz
   run_on:
   - ubuntu1404-docker
   tasks:
-  - name: run_tests
+  - name: algebrizer
+  - name: planner
+  - name: translator
 
 pre:
   - command: shell.track
@@ -14,82 +18,213 @@ pre:
     params:
       script: |
         rm -rf src
+        set -o errexit
+        rm -rf mongodb
+        mkdir mongodb
+        cd mongodb
+        curl ${mongo_url} -o mongodb.tgz
+        ${decompress} mongodb.tgz
+        chmod +x ./mongodb-*/bin/*
+        mv ./mongodb-*/bin/* .
+        rm -rf db_files
+        rm -rf db_logs
+        mkdir db_files
+        mkdir db_logs
+
+  - command: shell.exec
+    params:
+      silent: true
+      script: |
+        echo "building creds file!"
+        cat > creds.yml <<END_OF_CREDS
+        credentials:  {
+          github: "${github_token}",
+        }
+
+        providers:
+          aws:
+            aws_id: "${aws_key}"
+            aws_secret: "${aws_secret}"
+
+        END_OF_CREDS
 
 post:
+  - command: gotest.parse_files
+    params: 
+      files: ["src/*.suite", "src/**/*.suite"]
   - command: shell.cleanup
 
-
 functions:
-  "upload coverage html report":
-     command: s3.put
-     params:
-       aws_key: ${aws_key}
-       aws_secret: ${aws_secret}
-       local_file: ${package}.html
-       remote_file: sqlproxy/coverage/${task_id}-${package}.html
-       bucket: mciuploads
-       permissions: public-read
-       content_type: text/html
-       display_name: Coverage Report (HTML) - ${package}
+  "fetch source" :
+    command: git.get_project
+    params:
+      directory: src
 
-
-tasks:
-- name: run_tests
-  commands:
-    - command: git.get_project
-      params:
-        directory: src
-    - command: shell.exec
-      params:
-        script: |
-          set -e
-          curl https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1410-clang-3.0.6.tgz -o mongodb.tgz
-          tar xvf ./mongodb.tgz
-          chmod +x ./mongodb-*/bin/*
-          mv ./mongodb-*/bin/* .
-          rm -rf db_files
-          mkdir ./db_files
-    - command: shell.exec
+  "start mongod":
+      command: shell.exec
       params:
         background: true
         script: |
-          ./mongod --dbpath ./db_files &
+          set -o verbose
+          cd mongodb
+          echo "starting mongod..."
+          ./mongod${extension} --dbpath ./db_files &
+          echo "waiting for mongod to start up"
+          ./mongo${extension} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")'
+
+  "apply patches" :
+    command: git.apply_patch
+    params:
+      directory: src
+
+  "setup creds":
+    command: shell.exec
+    params:
+      script: |
+        set -o verbose
+        cp creds.yml src
+
+  "rewrite coverage report":
+    command: shell.exec
+    params:
+      working_dir: src
+      script: |
+        if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+        fi;
+        . ./set_gopath.sh
+        perl -pe 's/.*src/github.com\/erh\/mongo-sql-temp/' coverage.out > coverage_rewrite.out
+
+  "generate coverage html":
+    command: shell.exec
+    params:
+      working_dir: src
+      script: |
+        set -o verbose
+        . ./set_gopath.sh
+        go tool cover -html=coverage_rewrite.out -o coverage.html
+
+  "generate coverage txt":
+    command: shell.exec
+    params:
+      working_dir: src
+      script: |
+        set -o verbose
+        . ./set_gopath.sh
+        go tool cover -func=coverage_rewrite.out -o coverage.txt
+
+  "upload coverage html report":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: src/coverage.html
+      remote_file: sqlproxy/coverage/${task_id}.html
+      bucket: mciuploads
+      permissions: public-read
+      content_type: text/html
+      display_name: Coverage Report (HTML)
+
+  "upload coverage txt report":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: src/coverage.txt
+      remote_file: sqlproxy/coverage/${task_id}.txt
+      bucket: mciuploads
+      permissions: public-read
+      content_type: text/plain
+      display_name: Coverage Report (TXT)
+
+
+tasks:
+- name: algebrizer
+  commands:
+    - func: "start mongod"
+    - func: "fetch source"
+    - func: "apply patches"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          . ./set_gopath.sh
+          cd translator/algebrizer
+          mkfifo test_pipe
+          tee -a algebrizer.suite < test_pipe&
+          go test -v -coverprofile=coverage.out > test_pipe
     - command: shell.exec
       params:
+        working_dir: src
         script: |
-          set -e
-          echo "waiting for mongo to get up"
-          ./mongo --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")'
+          set -o verbose
+          mv translator/algebrizer/coverage.out .
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
 
-          cd src
+- name: planner
+  commands:
+    - func: "start mongod"
+    - func: "fetch source"
+    - func: "apply patches"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
           . ./set_gopath.sh
-
           cd translator/planner
-          go test -v -coverprofile=planner_cover.out
-          #go tool cover -html=planner_cover.out -o ../../../planner.html
+          mkfifo test_pipe
+          tee -a planner.suite < test_pipe&
+          go test -v -coverprofile=coverage.out > test_pipe
+    - command: shell.exec
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          mv translator/planner/coverage.out .
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
 
-          cd ../algebrizer
-          go test -v -coverprofile=algebrizer_cover.out
-          #go tool cover -html=algebrizer_cover.out -o ../../algebrizer.html
-
-          cd ../
-          go test -v -coverprofile=translator_cover.out
-          #go tool cover -html=translator_cover.out -o ../translator.html
-
-          #cd ../
-          #go tool cover -html=translator_cover.out -o translator.html
-          #go tool cover -html=algebrizer_cover.out -o algebrizer.html
-          #go tool cover -html=planner_cover.out -o planner.html
-
-    #- func: "upload coverage html report"
-      #vars:
-        #package: "translator"
-    #- func: "upload coverage html report"
-      #vars:
-        #package: "algebrizer"
-    #- func: "upload coverage html report"
-      #vars:
-        #package: "planner"
-
-
-
+- name: translator
+  commands:
+    - func: "start mongod"
+    - func: "fetch source"
+    - func: "apply patches"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          . ./set_gopath.sh
+          cd translator
+          mkfifo test_pipe
+          tee -a translator.suite < test_pipe&
+          go test -v -coverprofile=coverage.out > test_pipe
+    - command: shell.exec
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          mv translator/coverage.out .
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
