@@ -32,6 +32,8 @@ type Config struct {
 
 	Url string `yaml:"url"`
 
+	SchemaDir string `yaml:"schema_dir"`
+	
 	RawSchemas []*Schema          `yaml:"schema"`
 	Schemas    map[string]*Schema `yaml:"schema_no"`
 }
@@ -58,4 +60,61 @@ func (t *TableConfig)fixTypes() error {
 		}
 	}
 	return nil
+}
+
+// ---
+
+func (c *Config)injestSubFile(data []byte) error {
+	temp, err := ParseConfigData(data)
+	if err != nil {
+		return err
+	}
+
+	if len(temp.Addr) > 0 {
+		return fmt.Errorf("cannot set addr in sub file")
+	}
+
+	if len(temp.User) > 0 {
+		return fmt.Errorf("cannot set user in sub file")
+	}
+
+	if len(temp.Password) > 0 {
+		return fmt.Errorf("cannot set password in sub file")
+	}
+
+	if len(temp.LogLevel) > 0 {
+		return fmt.Errorf("cannot set log_level in sub file")
+	}
+
+	if len(temp.Url) > 0 {
+		return fmt.Errorf("cannot set url in sub file")
+	}
+
+	if len(temp.SchemaDir) > 0 {
+		return fmt.Errorf("cannot set schema_dir in sub file")
+	}
+
+	for name, schema := range(temp.Schemas) {
+
+		ours := c.Schemas[name]
+		
+		if ours == nil {
+			// entire db missing
+			c.Schemas[name] = schema
+			c.RawSchemas = append(c.RawSchemas, schema)
+			continue
+		}
+
+		// have to merge tables
+		for table, tableConfig := range schema.Tables {
+			if ours.Tables[table] != nil {
+				return fmt.Errorf("table config conflict db: %s table: %s", name, table)
+			}
+			ours.Tables[table] = tableConfig
+			ours.RawTables = append(ours.RawTables, tableConfig)
+		}
+
+	}
+	
+	return nil	
 }
