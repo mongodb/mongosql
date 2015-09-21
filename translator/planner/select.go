@@ -22,9 +22,14 @@ type Select struct {
 
 // SelectColumn holds all columns referenced in select expressions.
 type SelectColumn struct {
+	// Column holds information for the view of this select expression
 	Column
+	// Columns is a slice of every other column(s) referenced in the
+	// select expression.
 	Columns []*Column
-	Expr    sqlparser.Expr
+	// Expr holds the actual expression to be evaluated during processing.
+	// For column names expressions, it is nil.
+	Expr sqlparser.Expr
 }
 
 func (s *Select) Open(ctx *ExecutionCtx) error {
@@ -105,8 +110,8 @@ func (s *Select) getValue(sc SelectColumn, row *Row) (string, bson.DocElem, erro
 		panic(err)
 	}
 
-	s.ctx.Rows = []Row{*row}
-	v, err := expr.Evaluate(s.ctx)
+	evalCtx := &EvalCtx{rows: []Row{*row}}
+	v, err := expr.Evaluate(evalCtx)
 
 	return sc.Table, bson.DocElem{sc.View, v}, err
 }

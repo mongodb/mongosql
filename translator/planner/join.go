@@ -241,8 +241,8 @@ func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row) {
 
 	for _, l := range left {
 		for _, r := range right {
-			ctx := &MatchCtx{[]*Row{l, r}}
-			if nlp.matcher.Matches(ctx) {
+			evalCtx := &EvalCtx{[]Row{*l, *r}}
+			if nlp.matcher.Matches(evalCtx) {
 				ch <- Row{Data: append(l.Data, r.Data...)}
 			}
 		}
@@ -259,8 +259,8 @@ func (nlp *NestedLoopJoiner) sideJoin(lChan, rChan chan *Row, ch chan Row) {
 
 	for _, l := range left {
 		for _, r := range right {
-			ctx := &MatchCtx{[]*Row{l, r}}
-			if nlp.matcher.Matches(ctx) {
+			evalCtx := &EvalCtx{[]Row{*l, *r}}
+			if nlp.matcher.Matches(evalCtx) {
 				hasMatch = true
 				ch <- Row{Data: append(l.Data, r.Data...)}
 			}

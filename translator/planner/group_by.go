@@ -22,11 +22,16 @@ type GroupBy struct {
 	// channel on which to send final grouping
 	outChan chan Row
 	// execution context
-	ctx *ExecutionCtx
+	ctx ExecutionCtx
 }
 
 func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
-	gb.ctx = ctx
+	return gb.init(ctx)
+}
+
+func (gb *GroupBy) init(ctx *ExecutionCtx) error {
+	gb.ctx = *ctx
+
 	return gb.source.Open(ctx)
 }
 
@@ -40,12 +45,13 @@ func (gb *GroupBy) evaluateGroupByKey(keys []*sqlparser.ColName, row *Row) (stri
 			panic(err)
 		}
 
-		value, err := expr.Evaluate(gb.ctx)
+		evalCtx := &EvalCtx{rows: []Row{*row}}
+		value, err := expr.Evaluate(evalCtx)
 		if err != nil {
 			return "", err
 		}
 
-		// TODO: would be better to use a hash for this
+		// TODO: might be better to use a hash for this
 		gbKey += fmt.Sprintf("%#v", value)
 	}
 
@@ -75,6 +81,7 @@ func (gb *GroupBy) createGroups() error {
 		if err != nil {
 			return err
 		}
+
 		gb.finalGrouping[key] = append(gb.finalGrouping[key], *r)
 		r = &Row{}
 	}
@@ -90,14 +97,18 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 
 	row := &Row{}
 
+	gb.ctx.Rows = r
+
 	for _, field := range gb.fields {
+
 		expr, err := NewExpr(field.Expr)
 		if err != nil {
 			panic(err)
 		}
 
-		gb.ctx.Rows = r
-		value, err := expr.Evaluate(gb.ctx)
+		evalCtx := &EvalCtx{rows: r}
+
+		value, err := expr.Evaluate(evalCtx)
 		if err != nil {
 			return nil, err
 		}

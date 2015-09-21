@@ -59,10 +59,9 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 }
 
 // planGroupBy returns a query execution plan for a group by clause.
-func planGroupBy(groupBy sqlparser.GroupBy, source Operator, selectColumns SelectColumns) (operator Operator, err error) {
+func planGroupBy(groupBy sqlparser.GroupBy, source *Select, selectColumns SelectColumns) (Operator, error) {
 
 	gb := &GroupBy{
-		source: source,
 		fields: selectColumns,
 	}
 
@@ -86,6 +85,18 @@ func planGroupBy(groupBy sqlparser.GroupBy, source Operator, selectColumns Selec
 	if nonAggFields > len(gb.exprs) {
 		return nil, fmt.Errorf("can not have unused select expression with group by query")
 	}
+
+	// add any referenced columns to the select operator
+	for _, selectColumn := range source.selectColumns {
+		if len(selectColumn.Columns) != 0 {
+			for _, column := range selectColumn.Columns {
+				newSelectColumn := SelectColumn{Column: *column}
+				source.selectColumns = append(source.selectColumns, newSelectColumn)
+			}
+		}
+	}
+
+	gb.source = source
 
 	return gb, nil
 }
@@ -377,19 +388,30 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 
 	switch expr := e.(type) {
 
-	case sqlparser.NumVal:
 	case sqlparser.ValTuple:
-	case sqlparser.StrVal:
-	case *sqlparser.NullVal:
+		columns := []*Column{}
+		for _, valTuple := range expr {
+			refCols, err := referencedColumns(valTuple)
+			if err != nil {
+				return nil, err
+			}
+			columns = append(columns, refCols...)
+		}
+		return columns, nil
+
+	case sqlparser.NumVal, sqlparser.StrVal, *sqlparser.NullVal:
+		return nil, nil
 	case *sqlparser.ColName:
 
 		c := &Column{
 			Table: string(expr.Qualifier),
 			Name:  string(expr.Name),
+			View:  string(expr.Name),
 		}
 		return []*Column{c}, nil
 
 	case *sqlparser.BinaryExpr:
+
 		return getReferencedColumns(expr.Left, expr.Right)
 
 	case *sqlparser.AndExpr:

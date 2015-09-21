@@ -85,16 +85,16 @@ func TestBasicMatching(t *testing.T) {
 		tree := Equals{SQLString("xyz"), &SQLField{"foo", "b"}}
 		Convey("using the matcher on a row whose value matches should return true", func() {
 			tree := Equals{SQLString("xyz"), &SQLField{"foo", "b"}}
-			matchCtx := &MatchCtx{[]*Row{
+			evalCtx := &EvalCtx{[]Row{
 				{Data: []TableRow{{"foo", bson.D{{"a", 123}, {"b", "xyz"}, {"c", nil}}, nil}}}}}
-			So(tree.Matches(matchCtx), ShouldBeTrue)
+			So(tree.Matches(evalCtx), ShouldBeTrue)
 		})
 
 		Convey("using the matcher on a row whose values do not match should return false", func() {
-			matchCtx := &MatchCtx{[]*Row{
+			evalCtx := &EvalCtx{[]Row{
 				{Data: []TableRow{{"foo", bson.D{{"a", 123}, {"b", "WRONG"}, {"c", nil}}, nil}}},
 			}}
-			So(tree.Matches(matchCtx), ShouldBeFalse)
+			So(tree.Matches(evalCtx), ShouldBeFalse)
 		})
 	})
 }
@@ -112,67 +112,67 @@ func TestComparisonMatchers(t *testing.T) {
 
 	Convey("Equality matcher should return true/false when numerics are equal/unequal", t, func() {
 		var tree Matcher
-		matchCtx := &MatchCtx{[]*Row{
+		evalCtx := &EvalCtx{[]Row{
 			{Data: []TableRow{{"foo", bson.D{{"x", 123}, {"y", 456}, {"c", nil}}, nil}}},
 		}}
 		for _, data := range tests {
 			tree = &Equals{data.less, data.less}
-			So(tree.Matches(matchCtx), ShouldBeTrue)
+			So(tree.Matches(evalCtx), ShouldBeTrue)
 
 			tree = &Equals{data.less, data.greater}
-			So(tree.Matches(matchCtx), ShouldBeFalse)
+			So(tree.Matches(evalCtx), ShouldBeFalse)
 
 			tree = &NotEquals{data.less, data.greater}
-			So(tree.Matches(matchCtx), ShouldBeTrue)
+			So(tree.Matches(evalCtx), ShouldBeTrue)
 
 			tree = &NotEquals{data.less, data.less}
-			So(tree.Matches(matchCtx), ShouldBeFalse)
+			So(tree.Matches(evalCtx), ShouldBeFalse)
 
 			tree = &Not{&Equals{data.less, data.less}}
-			So(tree.Matches(matchCtx), ShouldBeFalse)
+			So(tree.Matches(evalCtx), ShouldBeFalse)
 
 			tree = &Not{&Equals{data.less, data.greater}}
-			So(tree.Matches(matchCtx), ShouldBeTrue)
+			So(tree.Matches(evalCtx), ShouldBeTrue)
 
 			/* GT */
 			tree = &GreaterThan{data.less, data.greater}
-			So(tree.Matches(matchCtx), ShouldBeFalse)
+			So(tree.Matches(evalCtx), ShouldBeFalse)
 
 			tree = &GreaterThan{data.greater, data.less}
-			So(tree.Matches(matchCtx), ShouldBeTrue)
+			So(tree.Matches(evalCtx), ShouldBeTrue)
 
 			tree = &GreaterThan{data.less, data.less}
-			So(tree.Matches(matchCtx), ShouldBeFalse)
+			So(tree.Matches(evalCtx), ShouldBeFalse)
 
 			/* GTE */
 			tree = &GreaterThanOrEqual{data.less, data.greater}
-			So(tree.Matches(matchCtx), ShouldBeFalse)
+			So(tree.Matches(evalCtx), ShouldBeFalse)
 
 			tree = &GreaterThanOrEqual{data.greater, data.less}
-			So(tree.Matches(matchCtx), ShouldBeTrue)
+			So(tree.Matches(evalCtx), ShouldBeTrue)
 
 			tree = &GreaterThanOrEqual{data.less, data.less}
-			So(tree.Matches(matchCtx), ShouldBeTrue)
+			So(tree.Matches(evalCtx), ShouldBeTrue)
 
 			/* LT */
 			tree = &LessThan{data.less, data.greater}
-			So(tree.Matches(matchCtx), ShouldBeTrue)
+			So(tree.Matches(evalCtx), ShouldBeTrue)
 
 			tree = &LessThan{data.greater, data.less}
-			So(tree.Matches(matchCtx), ShouldBeFalse)
+			So(tree.Matches(evalCtx), ShouldBeFalse)
 
 			tree = &LessThan{data.less, data.less}
-			So(tree.Matches(matchCtx), ShouldBeFalse)
+			So(tree.Matches(evalCtx), ShouldBeFalse)
 
 			/* LTE */
 			tree = &LessThanOrEqual{data.less, data.greater}
-			So(tree.Matches(matchCtx), ShouldBeTrue)
+			So(tree.Matches(evalCtx), ShouldBeTrue)
 
 			tree = &LessThanOrEqual{data.greater, data.less}
-			So(tree.Matches(matchCtx), ShouldBeFalse)
+			So(tree.Matches(evalCtx), ShouldBeFalse)
 
 			tree = &LessThanOrEqual{data.less, data.less}
-			So(tree.Matches(matchCtx), ShouldBeTrue)
+			So(tree.Matches(evalCtx), ShouldBeTrue)
 		}
 	})
 }

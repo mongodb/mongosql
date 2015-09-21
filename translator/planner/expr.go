@@ -7,7 +7,7 @@ import (
 )
 
 type Expr interface {
-	Evaluate(*ExecutionCtx) (interface{}, error)
+	Evaluate(*EvalCtx) (interface{}, error)
 }
 
 func NewExpr(e sqlparser.Expr) (Expr, error) {
@@ -43,7 +43,7 @@ func NewExpr(e sqlparser.Expr) (Expr, error) {
 	case *sqlparser.Subquery:
 		return nil, fmt.Errorf("NewExpr not yet implemented for %#v", e)
 	case *sqlparser.BinaryExpr:
-		return nil, fmt.Errorf("NewExpr not yet implemented for %#v", e)
+		return &BinaryExpr{expr}, nil
 	case *sqlparser.UnaryExpr:
 		return nil, fmt.Errorf("NewExpr not yet implemented for %#v", e)
 	case *sqlparser.FuncExpr:
@@ -55,12 +55,13 @@ func NewExpr(e sqlparser.Expr) (Expr, error) {
 	}
 }
 
+//---
 type ColName struct {
 	*sqlparser.ColName
 }
 
-func (c *ColName) Evaluate(ctx *ExecutionCtx) (interface{}, error) {
-	for _, r := range ctx.Rows {
+func (c *ColName) Evaluate(ctx *EvalCtx) (interface{}, error) {
+	for _, r := range ctx.rows {
 		if v, ok := r.GetField(string(c.Qualifier), string(c.Name)); ok {
 			return v, nil
 		}
@@ -72,11 +73,12 @@ func (c *ColName) String() string {
 	return fmt.Sprintf("FQNS: '%v.%v'", string(c.Qualifier), string(c.Name))
 }
 
+//---
 type FuncExpr struct {
 	*sqlparser.FuncExpr
 }
 
-func (f *FuncExpr) Evaluate(ctx *ExecutionCtx) (interface{}, error) {
+func (f *FuncExpr) Evaluate(ctx *EvalCtx) (interface{}, error) {
 	switch string(f.Name) {
 	case "sum":
 		return sumFunc(ctx, f.Exprs)
@@ -85,10 +87,11 @@ func (f *FuncExpr) Evaluate(ctx *ExecutionCtx) (interface{}, error) {
 	}
 }
 
-func sumFunc(ctx *ExecutionCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
+func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
 	var sum int64
 
-	for _, row := range ctx.Rows {
+	for _, row := range ctx.rows {
+
 		for _, sExpr := range sExprs {
 
 			switch e := sExpr.(type) {
@@ -103,9 +106,8 @@ func sumFunc(ctx *ExecutionCtx, sExprs sqlparser.SelectExprs) (interface{}, erro
 					panic(err)
 				}
 
-				ctx.Rows = []Row{row}
-
-				eval, err := expr.Evaluate(ctx)
+				evalCtx := &EvalCtx{rows: []Row{row}}
+				eval, err := expr.Evaluate(evalCtx)
 				if err != nil {
 					return nil, err
 				}
@@ -122,4 +124,13 @@ func sumFunc(ctx *ExecutionCtx, sExprs sqlparser.SelectExprs) (interface{}, erro
 		}
 	}
 	return sum, nil
+}
+
+//---
+type BinaryExpr struct {
+	*sqlparser.BinaryExpr
+}
+
+func (b *BinaryExpr) Evaluate(ctx *EvalCtx) (interface{}, error) {
+	return nil, nil
 }

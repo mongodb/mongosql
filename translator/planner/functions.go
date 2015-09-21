@@ -5,24 +5,24 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type SQLFunction func([]SQLValue, *MatchCtx) SQLValue
+type SQLFunction func([]SQLValue, *EvalCtx) SQLValue
 
 type SQLFuncValue struct {
 	arguments []SQLValue
-	function  func([]SQLValue, *MatchCtx) SQLValue
+	function  func([]SQLValue, *EvalCtx) SQLValue
 }
 
 func (sqlfv *SQLFuncValue) Transform() (*bson.D, error) {
 	return nil, fmt.Errorf("transformation of functional expression not supported")
 }
 
-func (sqlfunc *SQLFuncValue) CompareTo(ctx *MatchCtx, v SQLValue) (int, error) {
+func (sqlfunc *SQLFuncValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	left := sqlfunc.Evaluate(ctx)
 	right := v.Evaluate(ctx)
 	return left.CompareTo(ctx, right)
 }
 
-func (sqlfunc *SQLFuncValue) Evaluate(ctx *MatchCtx) SQLValue {
+func (sqlfunc *SQLFuncValue) Evaluate(ctx *EvalCtx) SQLValue {
 	return sqlfunc.function(sqlfunc.arguments, ctx)
 }
 
@@ -31,7 +31,7 @@ func (sqlfunc *SQLFuncValue) MongoValue() interface{} {
 }
 
 var funcMap = map[string]SQLFunction{
-	"+": SQLFunction(func(args []SQLValue, ctx *MatchCtx) SQLValue {
+	"+": SQLFunction(func(args []SQLValue, ctx *EvalCtx) SQLValue {
 		sum := float64(0)
 		for _, arg := range args {
 			c := arg.Evaluate(ctx)
@@ -47,7 +47,7 @@ var funcMap = map[string]SQLFunction{
 		}
 		return SQLNumeric(sum)
 	}),
-	"-": SQLFunction(func(args []SQLValue, ctx *MatchCtx) SQLValue {
+	"-": SQLFunction(func(args []SQLValue, ctx *EvalCtx) SQLValue {
 		if len(args) < 2 {
 			panic("- function needs at least 2 args")
 		}
@@ -71,7 +71,7 @@ var funcMap = map[string]SQLFunction{
 		}
 		return SQLNumeric(*diff)
 	}),
-	"*": SQLFunction(func(args []SQLValue, ctx *MatchCtx) SQLValue {
+	"*": SQLFunction(func(args []SQLValue, ctx *EvalCtx) SQLValue {
 		if len(args) < 2 {
 			panic("* function needs at least 2 args")
 		}
@@ -90,7 +90,7 @@ var funcMap = map[string]SQLFunction{
 		}
 		return SQLNumeric(product)
 	}),
-	"/": SQLFunction(func(args []SQLValue, ctx *MatchCtx) SQLValue {
+	"/": SQLFunction(func(args []SQLValue, ctx *EvalCtx) SQLValue {
 		if len(args) != 2 {
 			panic("/ function must take 2 args")
 		}

@@ -29,7 +29,7 @@ func (mo *MatchOperator) Close() error {
 func (mo *MatchOperator) Next(row *Row) bool {
 	for mo.source.Next(row) {
 		// TODO don't allocate this repeatedly inside the loop to avoid GC?
-		ctx := &MatchCtx{[]*Row{row}}
+		ctx := &EvalCtx{[]Row{*row}}
 		if mo.matcher.Matches(ctx) {
 			return true
 		} else {
@@ -48,20 +48,20 @@ var SQLNull = SQLNullValue{}
 
 var ErrTypeMismatch = errors.New("type mismatch")
 
-type MatchCtx struct {
-	rows []*Row
+type EvalCtx struct {
+	rows []Row
 }
 
 // Tree nodes for evaluating if a row matches
 type Matcher interface {
-	Matches(*MatchCtx) bool
+	Matches(*EvalCtx) bool
 	Transform() (*bson.D, error)
 }
 
 type EmptyMatcher struct {
 }
 
-func (em EmptyMatcher) Matches(*MatchCtx) bool {
+func (em EmptyMatcher) Matches(*EvalCtx) bool {
 	return true
 }
 
@@ -82,7 +82,7 @@ type GreaterThanOrEqual rangeNodes
 type LessThanOrEqual rangeNodes
 type Like rangeNodes
 
-func (neq *NotEquals) Matches(ctx *MatchCtx) bool {
+func (neq *NotEquals) Matches(ctx *EvalCtx) bool {
 	leftEvald := neq.left.Evaluate(ctx)
 	rightEvald := neq.right.Evaluate(ctx)
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
@@ -91,7 +91,7 @@ func (neq *NotEquals) Matches(ctx *MatchCtx) bool {
 	return false
 }
 
-func (eq *Equals) Matches(ctx *MatchCtx) bool {
+func (eq *Equals) Matches(ctx *EvalCtx) bool {
 	leftEvald := eq.left.Evaluate(ctx)
 	rightEvald := eq.right.Evaluate(ctx)
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
@@ -140,7 +140,7 @@ func (neq *NotEquals) Transform() (*bson.D, error) {
 	}, nil
 }
 
-func (gt *GreaterThan) Matches(ctx *MatchCtx) bool {
+func (gt *GreaterThan) Matches(ctx *EvalCtx) bool {
 	leftEvald := gt.left.Evaluate(ctx)
 	rightEvald := gt.right.Evaluate(ctx)
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
@@ -180,7 +180,7 @@ func (gt *LessThan) Transform() (*bson.D, error) {
 	return transformComparison(gt.left, gt.right, "$lt", "$gte")
 }
 
-func (lt *LessThan) Matches(ctx *MatchCtx) bool {
+func (lt *LessThan) Matches(ctx *EvalCtx) bool {
 	leftEvald := lt.left.Evaluate(ctx)
 	rightEvald := lt.right.Evaluate(ctx)
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
@@ -188,7 +188,7 @@ func (lt *LessThan) Matches(ctx *MatchCtx) bool {
 	}
 	return false
 }
-func (gte *GreaterThanOrEqual) Matches(ctx *MatchCtx) bool {
+func (gte *GreaterThanOrEqual) Matches(ctx *EvalCtx) bool {
 	leftEvald := gte.left.Evaluate(ctx)
 	rightEvald := gte.right.Evaluate(ctx)
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
@@ -196,7 +196,7 @@ func (gte *GreaterThanOrEqual) Matches(ctx *MatchCtx) bool {
 	}
 	return false
 }
-func (lte *LessThanOrEqual) Matches(ctx *MatchCtx) bool {
+func (lte *LessThanOrEqual) Matches(ctx *EvalCtx) bool {
 	leftEvald := lte.left.Evaluate(ctx)
 	rightEvald := lte.right.Evaluate(ctx)
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
@@ -209,7 +209,7 @@ func (l *Like) Transform() (*bson.D, error) {
 	return transformComparison(l.left, l.right, "$regex", "no inverse like support")
 }
 
-func (l *Like) Matches(ctx *MatchCtx) bool {
+func (l *Like) Matches(ctx *EvalCtx) bool {
 	reg := l.left.Evaluate(ctx).MongoValue().(string)
 	res, err := regexp.Match(reg, []byte(l.right.Evaluate(ctx).MongoValue().(string)))
 	if err != nil {
@@ -236,7 +236,7 @@ func (and *And) Transform() (*bson.D, error) {
 	return &bson.D{{"$and", transformedChildren}}, nil
 }
 
-func (and *And) Matches(ctx *MatchCtx) bool {
+func (and *And) Matches(ctx *EvalCtx) bool {
 	for _, c := range and.children {
 		if !c.Matches(ctx) {
 			return false
@@ -261,7 +261,7 @@ func (or *Or) Transform() (*bson.D, error) {
 	return &bson.D{{"$or", transformedChildren}}, nil
 }
 
-func (or *Or) Matches(ctx *MatchCtx) bool {
+func (or *Or) Matches(ctx *EvalCtx) bool {
 	for _, c := range or.children {
 		if c.Matches(ctx) {
 			return true
@@ -278,29 +278,29 @@ type Not struct {
 	child Matcher
 }
 
-func (not *Not) Matches(ctx *MatchCtx) bool {
+func (not *Not) Matches(ctx *EvalCtx) bool {
 	return !not.child.Matches(ctx)
 }
 
 // SQLValue used in computation by matchers
 type SQLValue interface {
-	Evaluate(*MatchCtx) SQLValue
+	Evaluate(*EvalCtx) SQLValue
 	MongoValue() interface{}
 	Comparable
 }
 
 type Comparable interface {
-	CompareTo(*MatchCtx, SQLValue) (int, error)
+	CompareTo(*EvalCtx, SQLValue) (int, error)
 }
 
 type SQLNumeric float64
 type SQLString string
 
-func (sn SQLNumeric) Evaluate(_ *MatchCtx) SQLValue {
+func (sn SQLNumeric) Evaluate(_ *EvalCtx) SQLValue {
 	return sn
 }
 
-func (ss SQLString) Evaluate(_ *MatchCtx) SQLValue {
+func (ss SQLString) Evaluate(_ *EvalCtx) SQLValue {
 	return ss
 }
 
@@ -321,7 +321,7 @@ func (sn SQLNumeric) MongoValue() interface{} {
 	return float64(sn)
 }
 
-func (sn SQLNumeric) CompareTo(ctx *MatchCtx, v SQLValue) (int, error) {
+func (sn SQLNumeric) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	c := v.Evaluate(ctx)
 	if n, ok := c.(SQLNumeric); ok {
 		return int(float64(sn) - float64(n)), nil
@@ -330,7 +330,7 @@ func (sn SQLNumeric) CompareTo(ctx *MatchCtx, v SQLValue) (int, error) {
 	return -1, ErrTypeMismatch
 }
 
-func (sn SQLString) CompareTo(ctx *MatchCtx, v SQLValue) (int, error) {
+func (sn SQLString) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	c := v.Evaluate(ctx)
 	if n, ok := c.(SQLString); ok {
 		s1, s2 := string(sn), string(n)
@@ -347,11 +347,11 @@ func (sn SQLString) CompareTo(ctx *MatchCtx, v SQLValue) (int, error) {
 
 type SQLNullValue struct{}
 
-func (nv SQLNullValue) Evaluate(ctx *MatchCtx) SQLValue {
+func (nv SQLNullValue) Evaluate(ctx *EvalCtx) SQLValue {
 	return nv
 }
 
-func (nv SQLNullValue) CompareTo(ctx *MatchCtx, v SQLValue) (int, error) {
+func (nv SQLNullValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	c := v.Evaluate(ctx)
 	if _, ok := c.(SQLNullValue); ok {
 		return 0, nil
@@ -366,11 +366,11 @@ type SQLField struct {
 
 type SQLBool bool
 
-func (sb SQLBool) Evaluate(ctx *MatchCtx) SQLValue {
+func (sb SQLBool) Evaluate(ctx *EvalCtx) SQLValue {
 	return sb
 }
 
-func (sb SQLBool) CompareTo(ctx *MatchCtx, v SQLValue) (int, error) {
+func (sb SQLBool) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	c := v.Evaluate(ctx)
 	if n, ok := c.(SQLBool); ok {
 		s1, s2 := bool(sb), bool(n)
@@ -443,7 +443,7 @@ func NewSQLField(value interface{}) (SQLValue, error) {
 	}
 }
 
-func (sqlf SQLField) Evaluate(ctx *MatchCtx) SQLValue {
+func (sqlf SQLField) Evaluate(ctx *EvalCtx) SQLValue {
 	// TODO how do we report field not existing? do we just treat is a NULL, or something else?
 	for _, row := range ctx.rows {
 		for _, data := range row.Data {
@@ -463,7 +463,7 @@ func (sqlf SQLField) Evaluate(ctx *MatchCtx) SQLValue {
 	return SQLNull
 }
 
-func (sqlf SQLField) CompareTo(ctx *MatchCtx, v SQLValue) (int, error) {
+func (sqlf SQLField) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	left := sqlf.Evaluate(ctx)
 	right := v.Evaluate(ctx)
 	return left.CompareTo(ctx, right)

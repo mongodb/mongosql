@@ -191,8 +191,8 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 		cfr.columnsOffset = cfr.columnsOffset + 1
 	}
 
-	matchCtx := &MatchCtx{[]*Row{{[]TableRow{{tableName, *result, nil}}}}}
-	if cfr.matcher != nil && !cfr.matcher.Matches(matchCtx) {
+	evalCtx := &EvalCtx{[]Row{{[]TableRow{{tableName, *result, nil}}}}}
+	if cfr.matcher != nil && !cfr.matcher.Matches(evalCtx) {
 		return cfr.Next(result)
 	}
 
