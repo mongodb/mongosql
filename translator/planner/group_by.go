@@ -21,17 +21,9 @@ type GroupBy struct {
 	finalGrouping map[string][]Row
 	// channel on which to send final grouping
 	outChan chan Row
-	// execution context
-	ctx ExecutionCtx
 }
 
 func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
-	return gb.init(ctx)
-}
-
-func (gb *GroupBy) init(ctx *ExecutionCtx) error {
-	gb.ctx = *ctx
-
 	return gb.source.Open(ctx)
 }
 
@@ -96,8 +88,6 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 	aggValues := map[string]bson.D{}
 
 	row := &Row{}
-
-	gb.ctx.Rows = r
 
 	for _, field := range gb.fields {
 
