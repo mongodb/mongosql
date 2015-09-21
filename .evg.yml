@@ -138,7 +138,6 @@ functions:
       content_type: text/plain
       display_name: Coverage Report (TXT)
 
-
 tasks:
 - name: algebrizer
   commands:

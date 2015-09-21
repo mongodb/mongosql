@@ -3,6 +3,7 @@ package planner
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
+	"github.com/erh/mongo-sql-temp/translator/comparator"
 	"github.com/mongodb/mongo-tools/common/util"
 )
 
@@ -81,7 +82,14 @@ type FuncExpr struct {
 func (f *FuncExpr) Evaluate(ctx *EvalCtx) (interface{}, error) {
 	switch string(f.Name) {
 	case "sum":
+		// TODO: handle distinct
 		return sumFunc(ctx, f.Exprs)
+	case "count":
+		return countFunc(ctx, f.Exprs)
+	case "max":
+		return maxFunc(ctx, f.Exprs)
+	case "min":
+		return minFunc(ctx, f.Exprs)
 	default:
 		return nil, fmt.Errorf("function '%v' not yet implemented", string(f.Name))
 	}
@@ -124,6 +132,51 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
 		}
 	}
 	return sum, nil
+}
+
+func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
+	var count int64
+
+	for _, row := range ctx.rows {
+
+		for _, sExpr := range sExprs {
+
+			switch e := sExpr.(type) {
+
+			// mixture of star and non-star expression is acceptable
+			case *sqlparser.StarExpr:
+				count += 1
+
+			case *sqlparser.NonStarExpr:
+				expr, err := NewExpr(e.Expr)
+				if err != nil {
+					panic(err)
+				}
+
+				evalCtx := &EvalCtx{rows: []Row{row}}
+				eval, err := expr.Evaluate(evalCtx)
+				if err != nil {
+					return nil, err
+				}
+
+				if eval != nil {
+					count += 1
+				}
+
+			default:
+				return nil, fmt.Errorf("unknown expression in countFunc: %T", e)
+			}
+		}
+	}
+	return count, nil
+}
+
+func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
+	return comparator.Compare(0, 0), nil
+}
+
+func maxFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
+	return comparator.Compare(0, 0), nil
 }
 
 //---

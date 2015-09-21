@@ -457,7 +457,6 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 		return SelectExpressions(sc).GetColumns(), nil
 
 	case *sqlparser.FuncExpr:
-
 		sc, err := refColsInSelectExpr(expr.Exprs)
 		if err != nil {
 			return nil, err
