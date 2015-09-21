@@ -9,6 +9,7 @@ buildvariants:
   - ubuntu1404-docker
   tasks:
   - name: algebrizer
+  - name: config
   - name: planner
   - name: translator
 
@@ -163,6 +164,36 @@ tasks:
         script: |
           set -o verbose
           mv translator/algebrizer/coverage.out .
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
+
+- name: config
+  commands:
+    - func: "start mongod"
+    - func: "fetch source"
+    - func: "apply patches"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          . ./set_gopath.sh
+          cd config
+          mkfifo test_pipe
+          tee -a config.suite < test_pipe&
+          go test -v -coverprofile=coverage.out > test_pipe
+    - command: shell.exec
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          mv config/coverage.out .
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
