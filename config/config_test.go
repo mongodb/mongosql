@@ -397,3 +397,32 @@ schema:
 
 }
 
+func _testComputeDirectory(t* testing.T, file string, dir string, correct string) {
+	output := computeDirectory(file, dir)
+	if output != correct {
+		t.Fatalf("computeDirectory wrong (%s) (%s) -> (%s) != (%s)(correct)", file, dir, output, correct)
+	}
+}
+
+func TestComputeDirectory(t* testing.T) {
+	_testComputeDirectory(t, "asd", "/a", "/a")
+	_testComputeDirectory(t, "foo.conf", "/a", "/a")
+	_testComputeDirectory(t, "/b/foo.conf", "/a", "/a")
+	_testComputeDirectory(t, "/b/foo.conf", "a", "/b/a")
+}
+
+func TestReadFile(t* testing.T) {
+	cfg, err := ParseConfigFile("test_data/foo.conf")
+	if err != nil {
+		t.Fatal(err);
+	}
+
+	if cfg.SchemaDir != "sub" {
+		t.Fatalf("SchemaDir wrong: (%s)", cfg.SchemaDir)
+	}
+
+	if len(cfg.RawSchemas) != 3 {
+		t.Fatalf("num RawSchemas wrong: %d", len(cfg.RawSchemas))
+	}
+}
+

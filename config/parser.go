@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
 	"github.com/siddontang/go-yaml/yaml"
 	"io/ioutil"
+	"strings"
 )
 
 func ParseConfigData(data []byte) (*Config, error) {
@@ -41,5 +43,50 @@ func ParseConfigFile(fileName string) (*Config, error) {
 		return nil, err
 	}
 
-	return ParseConfigData(data)
+	cfg, err := ParseConfigData(data)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(cfg.SchemaDir) > 0 {
+		newDir := computeDirectory(fileName, cfg.SchemaDir)
+
+		files, err := ioutil.ReadDir(newDir)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, f := range(files) {
+			if f.IsDir() {
+				continue
+			}
+			if strings.ContainsAny(f.Name(), "#~") {
+				continue
+			}
+
+			subData, err := ioutil.ReadFile(filepath.Join(newDir, f.Name()))
+			if err != nil {
+				return nil, err
+			}
+
+			err = cfg.injestSubFile(subData)
+			if err != nil {
+				return nil, err
+			}
+			
+		}
+	}
+	
+	return cfg, nil
+}
+
+// --
+
+func computeDirectory(originalFileName string, schemaDir string) string {
+	if schemaDir[0] == '/' || schemaDir[0] == '\\' {
+		return schemaDir
+	}
+
+	d, _ := filepath.Split(originalFileName)
+	return filepath.Join(d, schemaDir)
 }
