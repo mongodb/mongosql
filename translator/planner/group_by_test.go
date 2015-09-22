@@ -77,12 +77,12 @@ func TestGroupByOperator(t *testing.T) {
 			source: &TableScan{
 				tableName: tableOneName,
 			},
-			selectColumns: SelectColumns{
-				SelectColumn{
+			sExprs: SelectExpressions{
+				SelectExpression{
 					Column: Column{tableOneName, "a", "a"},
 					Expr:   &sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
 				},
-				SelectColumn{
+				SelectExpression{
 					Column: Column{tableOneName, "b", "b"},
 					Expr:   &sqlparser.ColName{[]byte("b"), []byte(tableOneName)},
 				},
@@ -91,12 +91,12 @@ func TestGroupByOperator(t *testing.T) {
 
 		Convey("a group by operator using an aggregation function should return the right aggregate result", func() {
 
-			fields := SelectColumns{
-				SelectColumn{
+			sExprs := SelectExpressions{
+				SelectExpression{
 					Column: Column{tableOneName, "a", "a"},
 					Expr:   &sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
 				},
-				SelectColumn{
+				SelectExpression{
 					Column: Column{"", "sum(b)", "sum(b)"},
 					Expr: &sqlparser.FuncExpr{
 						Name: []byte("sum"),
@@ -114,7 +114,7 @@ func TestGroupByOperator(t *testing.T) {
 			}
 
 			operator := &GroupBy{
-				fields: fields,
+				sExprs: sExprs,
 				source: source,
 				exprs:  exprs,
 			}

@@ -103,13 +103,13 @@ func TestSelectOperator(t *testing.T) {
 				{tableTwoName, "b", "b"},
 			}
 
-			selectColumns := SelectColumns{
+			sExprs := SelectExpressions{
 				{columns[0], nil, nil},
 				{columns[1], nil, nil},
 			}
 
 			operator := &Select{
-				selectColumns: selectColumns,
+				sExprs: sExprs,
 				source: &TableScan{
 					tableName: tableTwoName,
 				},

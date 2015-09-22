@@ -44,14 +44,14 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 	// handle select expressions
 	s := &Select{source: operator}
 
-	s.selectColumns, err = refColsInSelectStmt(ast)
+	s.sExprs, err = refColsInSelectStmt(ast)
 	if err != nil {
 		return nil, err
 	}
 
 	// handle group by expression
 	if len(ast.GroupBy) != 0 {
-		return planGroupBy(ast.GroupBy, s, s.selectColumns)
+		return planGroupBy(ast.GroupBy, s, s.sExprs)
 	}
 
 	return s, nil
@@ -59,12 +59,13 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 }
 
 // planGroupBy returns a query execution plan for a group by clause.
-func planGroupBy(groupBy sqlparser.GroupBy, source *Select, selectColumns SelectColumns) (Operator, error) {
+func planGroupBy(groupBy sqlparser.GroupBy, source *Select, selectExpressions SelectExpressions) (Operator, error) {
 
 	gb := &GroupBy{
-		fields: selectColumns,
+		sExprs: selectExpressions,
 	}
 
+	// TODO: you can't use * in GROUP BY or ORDER BY clauses
 	for _, valExpr := range groupBy {
 		expr, ok := sqlparser.Expr(valExpr).(*sqlparser.ColName)
 		if !ok {
@@ -73,7 +74,7 @@ func planGroupBy(groupBy sqlparser.GroupBy, source *Select, selectColumns Select
 
 		// a GROUP BY clause can't refer to nonaggregated columns in
 		// the select list that are not named in the GROUP BY clause
-		if !isValidGroupByTerm(gb.fields, expr) {
+		if !isValidGroupByTerm(gb.sExprs, expr) {
 			return nil, fmt.Errorf("group by term '%v' not in select list", string(expr.Name))
 		}
 
@@ -81,17 +82,17 @@ func planGroupBy(groupBy sqlparser.GroupBy, source *Select, selectColumns Select
 
 	}
 
-	nonAggFields := len(gb.fields) - len(gb.fields.AggFunctions())
+	nonAggFields := len(gb.sExprs) - len(gb.sExprs.AggFunctions())
 	if nonAggFields > len(gb.exprs) {
 		return nil, fmt.Errorf("can not have unused select expression with group by query")
 	}
 
 	// add any referenced columns to the select operator
-	for _, selectColumn := range source.selectColumns {
-		if len(selectColumn.Columns) != 0 {
-			for _, column := range selectColumn.Columns {
-				newSelectColumn := SelectColumn{Column: *column}
-				source.selectColumns = append(source.selectColumns, newSelectColumn)
+	for _, selectExpression := range source.sExprs {
+		if len(selectExpression.RefColumns) != 0 {
+			for _, column := range selectExpression.RefColumns {
+				newSelectExpression := SelectExpression{Column: *column}
+				source.sExprs = append(source.sExprs, newSelectExpression)
 			}
 		}
 	}
@@ -103,10 +104,10 @@ func planGroupBy(groupBy sqlparser.GroupBy, source *Select, selectColumns Select
 
 // isValidGroupByTerm returns true if the column expression is valid as a group
 // by term within a select column context.
-func isValidGroupByTerm(scs []SelectColumn, expr *sqlparser.ColName) bool {
-	for _, sc := range scs {
+func isValidGroupByTerm(sExprs []SelectExpression, expr *sqlparser.ColName) bool {
+	for _, sExpr := range sExprs {
 		// TODO: support alias in group by term?
-		if sc.Table == string(expr.Qualifier) && sc.Name == string(expr.Name) {
+		if sExpr.Table == string(expr.Qualifier) && sExpr.Name == string(expr.Name) {
 			return true
 		}
 	}
@@ -115,10 +116,10 @@ func isValidGroupByTerm(scs []SelectColumn, expr *sqlparser.ColName) bool {
 
 // refColsInSelectExpr returns a slice of select columns - each holding
 // a non-star select expression and any columns referenced in it.
-func refColsInSelectExpr(sExprs sqlparser.SelectExprs) ([]SelectColumn, error) {
-	selectColumns := make([]SelectColumn, 0)
+func refColsInSelectExpr(exprs sqlparser.SelectExprs) ([]SelectExpression, error) {
+	sExprs := make([]SelectExpression, 0)
 
-	for _, sExpr := range sExprs {
+	for _, sExpr := range exprs {
 
 		switch expr := sExpr.(type) {
 
@@ -137,38 +138,38 @@ func refColsInSelectExpr(sExprs sqlparser.SelectExprs) ([]SelectColumn, error) {
 
 			column := Column{View: string(expr.As)}
 
-			selectColumn := SelectColumn{column, columns, expr.Expr}
+			selectExpression := SelectExpression{column, columns, expr.Expr}
 
 			if c, ok := expr.Expr.(*sqlparser.ColName); ok {
-				selectColumn.Table = string(c.Qualifier)
-				selectColumn.Name = string(c.Name)
+				selectExpression.Table = string(c.Qualifier)
+				selectExpression.Name = string(c.Name)
 
-				if selectColumn.View == "" {
-					selectColumn.View = string(c.Name)
+				if selectExpression.View == "" {
+					selectExpression.View = string(c.Name)
 				}
 			} else {
 				// get a string representation of the expression if
 				// it isn't a column name e.g. sum(foo.a) for aggregate
 				// expressions
-				selectColumn.Name = sqlparser.String(expr.Expr)
+				selectExpression.Name = sqlparser.String(expr.Expr)
 			}
 
-			if selectColumn.View == "" {
-				selectColumn.View = sqlparser.String(expr.Expr)
+			if selectExpression.View == "" {
+				selectExpression.View = sqlparser.String(expr.Expr)
 			}
 
-			selectColumns = append(selectColumns, selectColumn)
+			sExprs = append(sExprs, selectExpression)
 
 		default:
 			return nil, fmt.Errorf("unknown SelectExprs in refColsInSelectExpr: %T", expr)
 		}
 	}
 
-	return selectColumns, nil
+	return sExprs, nil
 }
 
 // refColsInSelectStmt returns any columns referenced in the select statement.
-func refColsInSelectStmt(ss sqlparser.SelectStatement) ([]SelectColumn, error) {
+func refColsInSelectStmt(ss sqlparser.SelectStatement) ([]SelectExpression, error) {
 
 	switch stmt := ss.(type) {
 
@@ -453,7 +454,7 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 			return nil, err
 		}
 
-		return SelectColumns(sc).GetColumns(), nil
+		return SelectExpressions(sc).GetColumns(), nil
 
 	case *sqlparser.FuncExpr:
 
@@ -462,12 +463,11 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 			return nil, err
 		}
 
-		return SelectColumns(sc).GetColumns(), nil
+		return SelectExpressions(sc).GetColumns(), nil
 
 		// TODO: fill these in
 	case sqlparser.ValArg:
 		return nil, fmt.Errorf("referenced columns for ValArg for NYI")
-
 	case *sqlparser.CaseExpr:
 		return nil, fmt.Errorf("referenced columns for CaseExpr for NYI")
 	case *sqlparser.ExistsExpr:

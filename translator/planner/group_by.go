@@ -7,19 +7,23 @@ import (
 )
 
 type GroupBy struct {
-	// fields indicates the columns of the prior select operator
-	fields SelectColumns
+	// sExprs holds the columns and/or expressions present in
+	// the source operator
+	sExprs SelectExpressions
 	// source is the operator that provides the data to group
 	source Operator
-	// exprs holds the expressions to group by
+	// exprs holds the expression(s) to group by. for example, in
+	// select a, count(b) from foo group by a
+	// exprs will hold the parsed column name 'a'
 	exprs []sqlparser.Expr
 	// grouped indicates if the source operator data has been grouped
 	grouped bool
 	// err holds any error encountered during processing
 	err error
-	// holds all groupings
+	// finalGrouping has a key derived from the group by clause and
+	// a value corresponding to all rows that are part of the group
 	finalGrouping map[string][]Row
-	// channel on which to send final grouping
+	// channel on which to send rows derived from the final grouping
 	outChan chan Row
 }
 
@@ -89,9 +93,9 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 
 	row := &Row{}
 
-	for _, field := range gb.fields {
+	for _, sExpr := range gb.sExprs {
 
-		expr, err := NewExpr(field.Expr)
+		expr, err := NewExpr(sExpr.Expr)
 		if err != nil {
 			panic(err)
 		}
@@ -103,7 +107,7 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 			return nil, err
 		}
 
-		aggValues[field.Table] = append(aggValues[field.Table], bson.DocElem{field.Name, value})
+		aggValues[sExpr.Table] = append(aggValues[sExpr.Table], bson.DocElem{sExpr.Name, value})
 	}
 
 	for table, values := range aggValues {
@@ -154,11 +158,11 @@ func (gb *GroupBy) Err() error {
 }
 
 func (gb *GroupBy) OpFields() (columns []*Column) {
-	for _, field := range gb.fields {
+	for _, sExpr := range gb.sExprs {
 		column := &Column{
-			Name:  field.Name,
-			View:  field.View,
-			Table: field.Table,
+			Name:  sExpr.Name,
+			View:  sExpr.View,
+			Table: sExpr.Table,
 		}
 		columns = append(columns, column)
 	}
