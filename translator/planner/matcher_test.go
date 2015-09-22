@@ -3,6 +3,7 @@ package planner
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
+	"github.com/erh/mongo-sql-temp/config"
 	"github.com/erh/mongo-sql-temp/translator/algebrizer"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/json"
@@ -18,10 +19,14 @@ func getMatcherFromSQL(sql string) (Matcher, error) {
 		return nil, err
 	}
 	if selectStatement, ok := raw.(*sqlparser.Select); ok {
-		parseCtx, err := algebrizer.NewParseCtx(selectStatement)
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+		parseCtx, err := algebrizer.NewParseCtx(selectStatement, cfg, dbName)
 		if err != nil {
 			return nil, err
 		}
+
+		parseCtx.Database = dbName
 
 		err = algebrizer.AlgebrizeStatement(selectStatement, parseCtx)
 		if err != nil {
@@ -35,26 +40,26 @@ func getMatcherFromSQL(sql string) (Matcher, error) {
 
 func TestMatcherBuilder(t *testing.T) {
 	Convey("Simple WHERE with explicit table names", t, func() {
-		matcher, err := getMatcherFromSQL("select * from foo where foo.firstname = 'eliot'")
+		matcher, err := getMatcherFromSQL("select * from bar where bar.a = 'eliot'")
 		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &Equals{SQLField{"foo", "firstname"}, SQLString("eliot")})
+		So(matcher, ShouldResemble, &Equals{SQLField{"bar", "a"}, SQLString("eliot")})
 	})
 	Convey("Simple WHERE with implicit table names", t, func() {
-		matcher, err := getMatcherFromSQL("select * from foo where firstname = 'eliot'")
+		matcher, err := getMatcherFromSQL("select * from bar where a = 'eliot'")
 		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &Equals{SQLField{"foo", "firstname"}, SQLString("eliot")})
+		So(matcher, ShouldResemble, &Equals{SQLField{"bar", "a"}, SQLString("eliot")})
 	})
 	Convey("WHERE with complex nested matching clauses", t, func() {
-		matcher, err := getMatcherFromSQL("select * from foo where NOT((firstname = 'eliot') AND (x>1 OR y<'blah'))")
+		matcher, err := getMatcherFromSQL("select * from bar where NOT((a = 'eliot') AND (b>1 OR a<'blah'))")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &Not{
 			&And{
 				[]Matcher{
-					&Equals{SQLField{"foo", "firstname"}, SQLString("eliot")},
+					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
 					&Or{
 						[]Matcher{
-							&GreaterThan{SQLField{"foo", "x"}, SQLNumeric(1.0)},
-							&LessThan{SQLField{"foo", "y"}, SQLString("blah")},
+							&GreaterThan{SQLField{"bar", "b"}, SQLNumeric(1.0)},
+							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
 						},
 					},
 				},
@@ -62,16 +67,16 @@ func TestMatcherBuilder(t *testing.T) {
 		})
 	})
 	Convey("WHERE with complex nested matching clauses", t, func() {
-		matcher, err := getMatcherFromSQL("select * from foo where NOT((firstname = 'eliot') AND (x>1 OR y<'blah'))")
+		matcher, err := getMatcherFromSQL("select * from bar where NOT((a = 'eliot') AND (b>13 OR a<'blah'))")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &Not{
 			&And{
 				[]Matcher{
-					&Equals{SQLField{"foo", "firstname"}, SQLString("eliot")},
+					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
 					&Or{
 						[]Matcher{
-							&GreaterThan{SQLField{"foo", "x"}, SQLNumeric(1.0)},
-							&LessThan{SQLField{"foo", "y"}, SQLString("blah")},
+							&GreaterThan{SQLField{"bar", "b"}, SQLNumeric(13.0)},
+							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
 						},
 					},
 				},
@@ -82,17 +87,17 @@ func TestMatcherBuilder(t *testing.T) {
 
 func TestBasicMatching(t *testing.T) {
 	Convey("With a matcher checking for: field b = 'xyz'", t, func() {
-		tree := Equals{SQLString("xyz"), &SQLField{"foo", "b"}}
+		tree := Equals{SQLString("xyz"), &SQLField{"bar", "b"}}
 		Convey("using the matcher on a row whose value matches should return true", func() {
-			tree := Equals{SQLString("xyz"), &SQLField{"foo", "b"}}
+			tree := Equals{SQLString("xyz"), &SQLField{"bar", "b"}}
 			evalCtx := &EvalCtx{[]Row{
-				{Data: []TableRow{{"foo", bson.D{{"a", 123}, {"b", "xyz"}, {"c", nil}}, nil}}}}}
+				{Data: []TableRow{{"bar", bson.D{{"a", 123}, {"b", "xyz"}, {"c", nil}}, nil}}}}}
 			So(tree.Matches(evalCtx), ShouldBeTrue)
 		})
 
 		Convey("using the matcher on a row whose values do not match should return false", func() {
 			evalCtx := &EvalCtx{[]Row{
-				{Data: []TableRow{{"foo", bson.D{{"a", 123}, {"b", "WRONG"}, {"c", nil}}, nil}}},
+				{Data: []TableRow{{"bar", bson.D{{"a", 123}, {"b", "WRONG"}, {"c", nil}}, nil}}},
 			}}
 			So(tree.Matches(evalCtx), ShouldBeFalse)
 		})
@@ -107,13 +112,13 @@ func TestComparisonMatchers(t *testing.T) {
 	tests := []compareTest{
 		{SQLNumeric(1000.0), SQLNumeric(5000.0)},
 		{SQLString("aaa"), SQLString("bbb")},
-		{SQLField{"foo", "x"}, SQLField{"foo", "y"}},
+		{SQLField{"bar", "a"}, SQLField{"bar", "y"}},
 	}
 
 	Convey("Equality matcher should return true/false when numerics are equal/unequal", t, func() {
 		var tree Matcher
 		evalCtx := &EvalCtx{[]Row{
-			{Data: []TableRow{{"foo", bson.D{{"x", 123}, {"y", 456}, {"c", nil}}, nil}}},
+			{Data: []TableRow{{"bar", bson.D{{"a", 123}, {"y", 456}, {"c", nil}}, nil}}},
 		}}
 		for _, data := range tests {
 			tree = &Equals{data.less, data.less}
@@ -178,26 +183,20 @@ func TestComparisonMatchers(t *testing.T) {
 }
 
 func debugJson(data interface{}) {
-	if data == nil {
-		fmt.Println("<nil>")
-	}
-	jsonBytes, err := json.Marshal(data)
-	if err != nil {
-		fmt.Println("error marshaling json: ", err)
-	}
-
-	fmt.Println(string(jsonBytes))
+	So(data, ShouldNotBeNil)
+	_, err := json.Marshal(data)
+	So(err, ShouldBeNil)
 }
 
 func TestMatcherTransformation(t *testing.T) {
 	Convey("Equality matcher should return true/false when numerics are equal/unequal", t, func() {
-		matcher, err := getMatcherFromSQL("select * from foo where foo.firstname = 'eliot'")
+		matcher, err := getMatcherFromSQL("select * from bar where bar.a = 'eliot'")
 		So(err, ShouldBeNil)
 		transformed, err := matcher.Transform()
 		So(err, ShouldBeNil)
 		debugJson(bsonutil.MarshalD(*transformed))
 
-		matcher, err = getMatcherFromSQL("select * from foo where foo.firstname = 'eliot' and x=5")
+		matcher, err = getMatcherFromSQL("select * from bar where bar.a = 'eliot' and b=5")
 		So(err, ShouldBeNil)
 		transformed, err = matcher.Transform()
 		debugJson(bsonutil.MarshalD(*transformed))

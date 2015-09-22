@@ -55,10 +55,6 @@ func TestSimple(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(values), ShouldEqual, 1)
 
-			names, values, err = eval.EvalSelect("xxx", "select * from test.bar where a = 16", nil)
-			So(err, ShouldBeNil)
-			So(len(values), ShouldEqual, 1)
-
 		})
 	})
 }

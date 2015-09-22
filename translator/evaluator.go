@@ -53,7 +53,7 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	}
 
 	// create initial parse context
-	pCtx, err := algebrizer.NewParseCtx(stmt)
+	pCtx, err := algebrizer.NewParseCtx(stmt, e.cfg, db)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
 	}

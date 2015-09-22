@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
-	"strings"
 )
 
 // AlgebrizeStatement takes a parsed SQL statement and returns an algebrized form of the query.
@@ -140,14 +139,9 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 		// TODO: regex lowercased
 	case *sqlparser.ColName:
-		ns := string(expr.Name)
-		qualifier := string(expr.Qualifier)
-		if qualifier != "" {
-			ns = fmt.Sprintf("%v.%v", qualifier, ns)
-		}
-		columnInfo, err := columnToCtx(pCtx, ns)
+		columnInfo, err := columnToCtx(pCtx, expr)
 		if err != nil {
-			return nil, fmt.Errorf("ColName error on %#v: %v %#v", ns, err, pCtx)
+			return nil, err
 		}
 		pCtx.Column = append(pCtx.Column, *columnInfo)
 
@@ -420,15 +414,28 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 			switch node := stExpr.(type) {
 
 			case *sqlparser.TableName:
-				tableName := strings.TrimSpace(string(node.Name))
+				tableName := string(node.Name)
+
 				alias := string(expr.As)
 				if alias == "" {
 					alias = tableName
 				}
-				tables = append(tables, NewTableInfo(alias, tableName))
+
+				db := string(node.Qualifier)
+				if db == "" {
+					db = pCtx.Database
+				}
+
+				// handles cases where the database is expressed in the FROM clause e.g.
+				// EvalSelect("", "select * from db.table", nil)
+				if pCtx.Database == "" {
+					pCtx.Database = db
+				}
+
+				tables = append(tables, NewTableInfo(alias, db, tableName))
 			case *sqlparser.Subquery:
 
-				ctx, err := NewParseCtx(node.Select)
+				ctx, err := NewParseCtx(node.Select, pCtx.Config, pCtx.Database)
 				if err != nil {
 					return nil, fmt.Errorf("GetTableInfo Subquery ctx error: %v", err)
 				}
@@ -472,54 +479,46 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 
 // columnToCtx returns the column information given a parse context, the name
 // of the field, and an optional alias.
-func columnToCtx(pCtx *ParseCtx, column string, varAlias ...string) (*ColumnInfo, error) {
+func columnToCtx(pCtx *ParseCtx, expr *sqlparser.ColName) (*ColumnInfo, error) {
 
 	columnInfo := &ColumnInfo{}
 
-	var alias string
-
-	if len(varAlias) != 0 && varAlias[0] != "" {
-		alias = varAlias[0]
-	}
-
-	var tableName string
-	var columnName string
-	var err error
-
-	// check if the column name is in the form
-	// foo.baz - where foo is the table name
-	// and baz is the actual column name.
-	if i := strings.Index(column, "."); i != -1 {
-		tableName = column[:i]
-		columnName = column[i+1:]
-	} else {
-		columnName = column
-	}
+	columnName := string(expr.Name)
+	tableName := string(expr.Qualifier)
 
 	// TODO: check if column is star expression
 	if columnName == "" {
-		return nil, fmt.Errorf("column name can not be empty: %v", column)
+		return nil, fmt.Errorf("column name can not be empty: %v", columnName)
 	}
 
-	tableName, err = pCtx.GetCurrentTable(tableName)
+	table, err := pCtx.GetCurrentTable(pCtx.Database, tableName)
 	if err != nil {
 		return nil, err
 	}
-	columnInfo.Collection = tableName
+
+	if pCtx.Database == "" {
+		pCtx.Database = table.Db
+	}
+
+	columnInfo.Collection = table.Table
 
 	// the column name itself could be an alias so handle this
-	aliasInfo, err := pCtx.ColumnAlias(alias)
+	info, err := pCtx.ColumnAlias(columnName)
 	if err != nil {
+		// this is not an alias so it must be an actual column name
+		if err = pCtx.CheckColumn(table.Table, columnName); err != nil {
+			return nil, err
+		}
 		columnInfo.Field = columnName
 	} else {
-		columnInfo.Field = aliasInfo.Field
-		columnInfo.Alias = aliasInfo.Alias
+		columnInfo.Field = info.Field
+		columnInfo.Alias = info.Alias
 	}
 
 	// if the column isn't aliased, use the actual column name
 	// as the alias
 	if columnInfo.Alias == "" {
-		columnInfo.Alias = columnName
+		columnInfo.Alias = columnInfo.Field
 	}
 
 	return columnInfo, nil

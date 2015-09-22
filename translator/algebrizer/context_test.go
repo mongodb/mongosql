@@ -2,6 +2,7 @@ package algebrizer
 
 import (
 	"github.com/erh/mixer/sqlparser"
+	"github.com/erh/mongo-sql-temp/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
@@ -16,8 +17,11 @@ func TestNewParseCtx(t *testing.T) {
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			stmt := raw.(*sqlparser.Select)
-			ctx, err := NewParseCtx(stmt)
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+			cfg, err := config.ParseConfigData(testConfigSimple)
+			So(err, ShouldBeNil)
+			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 

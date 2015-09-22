@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	informationSchema = "information_schema"
+	InformationSchema = "information_schema"
 )
 
 // PlanQuery translates the SQL SELECT statement into an
@@ -51,10 +51,25 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 
 	// handle group by expression or aggregate functions in select expression
 	if len(ast.GroupBy) != 0 || len(s.sExprs.AggFunctions()) != 0 {
-		return planGroupBy(ast.GroupBy, s, s.sExprs)
+		operator, err = planGroupBy(ast.GroupBy, s, s.sExprs)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		operator = s
 	}
 
-	return s, nil
+	if ast.Having != nil {
+		if len(ast.GroupBy) == 0 {
+			return nil, fmt.Errorf("HAVING clause must follow A GROUP BY clause")
+		}
+		operator = &Having{
+			source: operator,
+			expr:   ast.Having.Expr,
+		}
+	}
+
+	return operator, nil
 
 }
 
@@ -309,7 +324,7 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 	}
 
 	dbName := strings.ToLower(string(t.Qualifier))
-	isInformationSchema := dbName == informationSchema || c.Db == informationSchema
+	isInformationSchema := dbName == InformationSchema || c.Db == InformationSchema
 
 	if isInformationSchema {
 
@@ -319,7 +334,7 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 			tableName: strings.ToLower(string(t.Name)),
 		}
 
-		c.Db = informationSchema
+		c.Db = InformationSchema
 
 		// if we got a valid filter/matcher, use it
 		if err == nil {

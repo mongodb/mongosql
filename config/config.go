@@ -1,8 +1,8 @@
 package config
 
 import (
-	"gopkg.in/mgo.v2/bson"
 	"fmt"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type Column struct {
@@ -12,9 +12,9 @@ type Column struct {
 }
 
 type TableConfig struct {
-	Table      string   `yaml:"table"`
-	Collection string   `yaml:"collection"`
-	Pipeline   []bson.M `yaml:"pipeline"`
+	Table      string    `yaml:"table"`
+	Collection string    `yaml:"collection"`
+	Pipeline   []bson.M  `yaml:"pipeline"`
 	Columns    []*Column `yaml:"columns"`
 }
 
@@ -33,15 +33,15 @@ type Config struct {
 	Url string `yaml:"url"`
 
 	SchemaDir string `yaml:"schema_dir"`
-	
+
 	RawSchemas []*Schema          `yaml:"schema"`
 	Schemas    map[string]*Schema `yaml:"schema_no"`
 }
 
 // ---
 
-func (c *Column)fixType() error {
-	switch (c.Type) {
+func (c *Column) fixType() error {
+	switch c.Type {
 	case "string":
 		c.MysqlType = "varchar(2048)"
 	case "int":
@@ -52,8 +52,8 @@ func (c *Column)fixType() error {
 	return nil
 }
 
-func (t *TableConfig)fixTypes() error {
-	for _, c := range(t.Columns) {
+func (t *TableConfig) fixTypes() error {
+	for _, c := range t.Columns {
 		err := c.fixType()
 		if err != nil {
 			return err
@@ -64,7 +64,7 @@ func (t *TableConfig)fixTypes() error {
 
 // ---
 
-func (c *Config)injestSubFile(data []byte) error {
+func (c *Config) injestSubFile(data []byte) error {
 	temp, err := ParseConfigData(data)
 	if err != nil {
 		return err
@@ -94,10 +94,10 @@ func (c *Config)injestSubFile(data []byte) error {
 		return fmt.Errorf("cannot set schema_dir in sub file")
 	}
 
-	for name, schema := range(temp.Schemas) {
+	for name, schema := range temp.Schemas {
 
 		ours := c.Schemas[name]
-		
+
 		if ours == nil {
 			// entire db missing
 			c.Schemas[name] = schema
@@ -115,6 +115,6 @@ func (c *Config)injestSubFile(data []byte) error {
 		}
 
 	}
-	
-	return nil	
+
+	return nil
 }

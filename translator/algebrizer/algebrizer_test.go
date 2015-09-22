@@ -2,6 +2,7 @@ package algebrizer
 
 import (
 	"github.com/erh/mixer/sqlparser"
+	"github.com/erh/mongo-sql-temp/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
@@ -18,14 +19,18 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 		Convey("algebrizing column names should produce the correct algebrized nodes", func() {
 
-			sql := `select f.firstname from foo f where f.firstname = 'eliot'`
-			algebrizedSQL := `select foo.firstname from foo as f where foo.firstname = 'eliot'`
+			sql := `select f.first from foo f where f.first = 'eliot'`
+			algebrizedSQL := `select foo.first from foo as f where foo.first = 'eliot'`
 
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			stmt := raw.(*sqlparser.Select)
-			ctx, err := NewParseCtx(stmt)
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+
+			cfg, err := config.ParseConfigData(testConfigSimple)
+			So(err, ShouldBeNil)
+			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 
@@ -42,8 +47,11 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
-			stmt := raw.(*sqlparser.Select)
-			ctx, err := NewParseCtx(stmt)
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+			cfg, err := config.ParseConfigData(testConfigSimple)
+			So(err, ShouldBeNil)
+			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
@@ -59,8 +67,11 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
-			stmt := raw.(*sqlparser.Select)
-			ctx, err := NewParseCtx(stmt)
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+			cfg, err := config.ParseConfigData(testConfigSimple)
+			So(err, ShouldBeNil)
+			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
@@ -76,8 +87,11 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			stmt := raw.(*sqlparser.Select)
-			ctx, err := NewParseCtx(stmt)
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+			cfg, err := config.ParseConfigData(testConfigSimple)
+			So(err, ShouldBeNil)
+			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 
@@ -95,8 +109,11 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			stmt := raw.(*sqlparser.Select)
-			ctx, err := NewParseCtx(stmt)
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+			cfg, err := config.ParseConfigData(testConfigSimple)
+			So(err, ShouldBeNil)
+			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 
@@ -114,8 +131,11 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			stmt := raw.(*sqlparser.Select)
-			ctx, err := NewParseCtx(stmt)
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+			cfg, err := config.ParseConfigData(testConfigSimple)
+			So(err, ShouldBeNil)
+			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 

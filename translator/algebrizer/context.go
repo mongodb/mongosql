@@ -3,7 +3,8 @@ package algebrizer
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
-	"strings"
+	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/planner"
 )
 
 var (
@@ -19,6 +20,8 @@ type ParseCtx struct {
 	Table    []TableInfo
 	Parent   *ParseCtx
 	Children []*ParseCtx
+	Config   *config.Config
+	Database string
 }
 
 // TableInfo holds a mapping of aliases (or real names
@@ -41,25 +44,23 @@ type ColumnInfo struct {
 	Collection string
 }
 
-func NewTableInfo(alias string, longName string) TableInfo {
-	if strings.Index(longName, ".") > 0 {
-		pcs := strings.SplitN(longName, ".", 2)
-		return TableInfo{pcs[1], pcs[0], pcs[1]}
-	}
-
-	return TableInfo{alias, "", longName}
+func NewTableInfo(alias, db, longName string) TableInfo {
+	return TableInfo{alias, db, longName}
 }
 
 func (ci *ColumnInfo) String() string {
 	return fmt.Sprintf("%v.%v", ci.Collection, ci.Field)
 }
 
-func NewParseCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) {
+func NewParseCtx(ss sqlparser.SelectStatement, c *config.Config, db string) (*ParseCtx, error) {
 
 	switch stmt := ss.(type) {
 
 	case *sqlparser.Select:
-		ctx := &ParseCtx{}
+		ctx := &ParseCtx{
+			Config:   c,
+			Database: db,
+		}
 
 		tableInfo, err := GetTableInfo(stmt.From, ctx)
 		if err != nil {
@@ -71,7 +72,6 @@ func NewParseCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) {
 
 	default:
 		return nil, fmt.Errorf("select statement type %T not yet supported", stmt)
-
 	}
 
 }
@@ -117,7 +117,7 @@ func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) 
 		return nil, ErrNilCtx
 	}
 
-	ctx, err := NewParseCtx(ss)
+	ctx, err := NewParseCtx(ss, pCtx.Config, pCtx.Database)
 	if err != nil {
 		return nil, err
 	}
@@ -129,40 +129,68 @@ func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) 
 }
 
 // GetCurrentTable finds a given table in the current context.
-func (pCtx *ParseCtx) GetCurrentTable(tableName string) (string, error) {
+func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, error) {
 	if pCtx == nil {
-		return "", ErrNilCtx
+		return nil, ErrNilCtx
 	}
 
 	if len(pCtx.Table) == 0 {
-		return pCtx.Parent.GetCurrentTable(tableName)
+		return pCtx.Parent.GetCurrentTable(dbName, tableName)
 	} else if len(pCtx.Table) == 1 {
 		// in this case, we're either referencing a table directly,
 		// using an alias or implicitly referring to the current table
 
 		curTable := pCtx.Table[0]
 
-		// TODO: this is broken, ignores db
 		if curTable.Table == tableName || curTable.Alias == tableName || tableName == "" {
-			// TODO: this is broken, ignores db
-			return pCtx.Table[0].Table, nil
+			if curTable.Db == dbName {
+				return &curTable, nil
+			}
 		}
 	} else {
 		// if there are multiple tables in the current context
 		// then tableName must not be empty
 		if tableName == "" {
-			return "", fmt.Errorf("found more than one table in context")
+			return nil, fmt.Errorf("found more than one table in context")
 		}
 
 		// the table name can either be actual or aliased
 		for _, tableInfo := range pCtx.Table {
-			// TODO: this is broken, ignores db
 			if tableInfo.Alias == tableName || tableInfo.Table == tableName {
-				// TODO: this is broken, ignores db
-				return tableInfo.Table, nil
+				if tableInfo.Db == dbName {
+					return &tableInfo, nil
+				}
 			}
 		}
 	}
 
-	return pCtx.Parent.GetCurrentTable(tableName)
+	return pCtx.Parent.GetCurrentTable(dbName, tableName)
+}
+
+// CheckColumn checks that the column information is valid in the given context.
+func (pCtx *ParseCtx) CheckColumn(table, column string) error {
+	// whitelist all 'virtual' schemas including information_schema
+	// TODO: more precise validation needed
+	if pCtx.Database == planner.InformationSchema ||
+		table == planner.InformationSchema {
+		return nil
+	}
+
+	schema := pCtx.Config.Schemas[pCtx.Database]
+	if schema == nil {
+		return fmt.Errorf("Schema for db '%v' doesn't exist", pCtx.Database)
+	}
+
+	collection := schema.Tables[table]
+	if collection == nil {
+		return fmt.Errorf("Table '%v' doesn't exist", table)
+	}
+
+	for _, c := range collection.Columns {
+		if c.Name == column {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Unknown column '%v' in table %v", column, table)
 }
