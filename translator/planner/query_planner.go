@@ -49,8 +49,8 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		return nil, err
 	}
 
-	// handle group by expression
-	if len(ast.GroupBy) != 0 {
+	// handle group by expression or aggregate functions in select expression
+	if len(ast.GroupBy) != 0 || len(s.sExprs.AggFunctions()) != 0 {
 		return planGroupBy(ast.GroupBy, s, s.sExprs)
 	}
 
@@ -83,7 +83,7 @@ func planGroupBy(groupBy sqlparser.GroupBy, source *Select, selectExpressions Se
 	}
 
 	nonAggFields := len(gb.sExprs) - len(gb.sExprs.AggFunctions())
-	if nonAggFields > len(gb.exprs) {
+	if nonAggFields > len(gb.exprs) && len(groupBy) != 0 {
 		return nil, fmt.Errorf("can not have unused select expression with group by query")
 	}
 
