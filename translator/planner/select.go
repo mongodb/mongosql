@@ -2,6 +2,8 @@ package planner
 
 import (
 	"github.com/erh/mixer/sqlparser"
+	"github.com/erh/mongo-sql-temp/translator/evaluator"
+	"github.com/erh/mongo-sql-temp/translator/types"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -37,8 +39,8 @@ func (s *Select) Open(ctx *ExecutionCtx) error {
 	return nil
 }
 
-func (s *Select) Next(r *Row) bool {
-	row := &Row{}
+func (s *Select) Next(r *types.Row) bool {
+	row := &types.Row{}
 
 	hasNext := s.source.Next(row)
 
@@ -70,13 +72,13 @@ func (s *Select) Next(r *Row) bool {
 	}
 
 	for k, v := range data {
-		r.Data = append(r.Data, TableRow{k, v, nil})
+		r.Data = append(r.Data, types.TableRow{k, v, nil})
 	}
 
 	return hasNext
 }
 
-func (s *Select) getValue(sc SelectExpression, row *Row) (string, bson.DocElem, error) {
+func (s *Select) getValue(sc SelectExpression, row *types.Row) (string, bson.DocElem, error) {
 	// in the case where we have a bare select column and no expression
 	if sc.Expr == nil {
 		sc.Expr = &sqlparser.ColName{
@@ -85,12 +87,12 @@ func (s *Select) getValue(sc SelectExpression, row *Row) (string, bson.DocElem, 
 		}
 	}
 
-	expr, err := NewExpr(sc.Expr)
+	expr, err := evaluator.NewExpr(sc.Expr)
 	if err != nil {
 		panic(err)
 	}
 
-	evalCtx := &EvalCtx{rows: []Row{*row}}
+	evalCtx := &evaluator.EvalCtx{Rows: []types.Row{*row}}
 	v, err := expr.Evaluate(evalCtx)
 
 	return sc.Table, bson.DocElem{sc.View, v}, err

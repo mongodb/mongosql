@@ -1,44 +1,19 @@
-package planner
+package evaluator
 
 import (
+	"errors"
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
-	"strconv"
+	"gopkg.in/mgo.v2/bson"
 )
 
-func BuildValue(gExpr sqlparser.Expr) (SQLValue, error) {
-	switch expr := gExpr.(type) {
-	case sqlparser.NumVal:
-		f, err := strconv.ParseFloat(sqlparser.String(expr), 64)
-		if err != nil {
-			return nil, err
-		}
-		return SQLNumeric(f), nil
-	case *sqlparser.ColName:
-		return SQLField{string(expr.Qualifier), string(expr.Name)}, nil
-	case sqlparser.StrVal:
-		return SQLString(string([]byte(expr))), nil
-	case *sqlparser.BinaryExpr:
-		// look up the function in the function map
-		funcImpl, ok := funcMap[string(expr.Operator)]
-		if !ok {
-			return nil, fmt.Errorf("can't find implementation for binary operator '%v'", expr.Operator)
-		}
+var ErrUntransformableCondition = errors.New("condition can't be expressed as a field:value pair")
 
-		left, err := BuildValue(expr.Left)
-		if err != nil {
-			return nil, err
-		}
-		right, err := BuildValue(expr.Right)
-		if err != nil {
-			return nil, err
-		}
-		return &SQLFuncValue{[]SQLValue{left, right}, funcImpl}, nil
-	default:
-		panic(fmt.Errorf("BuildValue expr not yet implemented for %T", expr))
-		return nil, nil
-	}
+// Tree nodes for evaluating if a row matches
+type Matcher interface {
+	Matches(*EvalCtx) bool
+	Transform() (*bson.D, error)
 }
 
 // BuildMatcher rewrites a boolean expression as a matcher.
@@ -67,11 +42,11 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		}
 		return &Or{[]Matcher{left, right}}, nil
 	case *sqlparser.ComparisonExpr:
-		left, err := BuildValue(expr.Left)
+		left, err := NewSQLValue(expr.Left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := BuildValue(expr.Right)
+		right, err := NewSQLValue(expr.Right)
 		if err != nil {
 			return nil, err
 		}

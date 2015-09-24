@@ -5,7 +5,7 @@ import (
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
 	"github.com/erh/mongo-sql-temp/translator/algebrizer"
-	"github.com/erh/mongo-sql-temp/translator/evaluator"
+	"github.com/erh/mongo-sql-temp/translator/executor"
 	"github.com/erh/mongo-sql-temp/translator/planner"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
@@ -75,7 +75,7 @@ func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) (
 	}
 
 	// execute plan
-	columns, results, err := evaluator.Execute(eCtx, queryPlan)
+	columns, results, err := executor.Execute(eCtx, queryPlan)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error executing query: %v", err)
 	}

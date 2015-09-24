@@ -3,6 +3,7 @@ package planner
 import (
 	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/types"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -35,7 +36,7 @@ func selectTest(operator Operator, rows, expectedRows []interface{}) {
 
 	So(operator.Open(ctx), ShouldBeNil)
 
-	row := &Row{}
+	row := &types.Row{}
 
 	i := 0
 
@@ -43,7 +44,7 @@ func selectTest(operator Operator, rows, expectedRows []interface{}) {
 		So(len(row.Data), ShouldEqual, 1)
 		So(row.Data[0].Table, ShouldEqual, tableTwoName)
 		So(row.Data[0].Values, ShouldResemble, expectedRows[i])
-		row = &Row{}
+		row = &types.Row{}
 		i++
 	}
 

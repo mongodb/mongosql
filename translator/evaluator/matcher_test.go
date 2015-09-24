@@ -1,10 +1,11 @@
-package planner
+package evaluator
 
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
 	"github.com/erh/mongo-sql-temp/translator/algebrizer"
+	"github.com/erh/mongo-sql-temp/translator/types"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/json"
 	. "github.com/smartystreets/goconvey/convey"
@@ -90,14 +91,14 @@ func TestBasicMatching(t *testing.T) {
 		tree := Equals{SQLString("xyz"), &SQLField{"bar", "b"}}
 		Convey("using the matcher on a row whose value matches should return true", func() {
 			tree := Equals{SQLString("xyz"), &SQLField{"bar", "b"}}
-			evalCtx := &EvalCtx{[]Row{
-				{Data: []TableRow{{"bar", bson.D{{"a", 123}, {"b", "xyz"}, {"c", nil}}, nil}}}}}
+			evalCtx := &EvalCtx{[]types.Row{
+				{Data: []types.TableRow{{"bar", bson.D{{"a", 123}, {"b", "xyz"}, {"c", nil}}, nil}}}}}
 			So(tree.Matches(evalCtx), ShouldBeTrue)
 		})
 
 		Convey("using the matcher on a row whose values do not match should return false", func() {
-			evalCtx := &EvalCtx{[]Row{
-				{Data: []TableRow{{"bar", bson.D{{"a", 123}, {"b", "WRONG"}, {"c", nil}}, nil}}},
+			evalCtx := &EvalCtx{[]types.Row{
+				{Data: []types.TableRow{{"bar", bson.D{{"a", 123}, {"b", "WRONG"}, {"c", nil}}, nil}}},
 			}}
 			So(tree.Matches(evalCtx), ShouldBeFalse)
 		})
@@ -117,8 +118,8 @@ func TestComparisonMatchers(t *testing.T) {
 
 	Convey("Equality matcher should return true/false when numerics are equal/unequal", t, func() {
 		var tree Matcher
-		evalCtx := &EvalCtx{[]Row{
-			{Data: []TableRow{{"bar", bson.D{{"a", 123}, {"y", 456}, {"c", nil}}, nil}}},
+		evalCtx := &EvalCtx{[]types.Row{
+			{Data: []types.TableRow{{"bar", bson.D{{"a", 123}, {"y", 456}, {"c", nil}}, nil}}},
 		}}
 		for _, data := range tests {
 			tree = &Equals{data.less, data.less}
