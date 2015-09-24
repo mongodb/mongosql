@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"gopkg.in/mgo.v2/bson"
 )
 

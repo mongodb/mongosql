@@ -7,6 +7,29 @@ import (
 
 type SQLBinaryFunction func([]SQLValue, *EvalCtx) SQLValue
 
+type SQLBinaryExprValue struct {
+	arguments []SQLValue
+	function  func([]SQLValue, *EvalCtx) SQLValue
+}
+
+func (sqlfv *SQLBinaryExprValue) Transform() (*bson.D, error) {
+	return nil, fmt.Errorf("transformation of functional expression not supported")
+}
+
+func (sqlfunc *SQLBinaryExprValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	left := sqlfunc.Evaluate(ctx)
+	right := v.Evaluate(ctx)
+	return left.CompareTo(ctx, right)
+}
+
+func (sqlfunc *SQLBinaryExprValue) Evaluate(ctx *EvalCtx) SQLValue {
+	return sqlfunc.function(sqlfunc.arguments, ctx)
+}
+
+func (sqlfunc *SQLBinaryExprValue) MongoValue() interface{} {
+	panic("can't generate mongo value from a function")
+}
+
 var binaryFuncMap = map[string]SQLBinaryFunction{
 	"+": SQLBinaryFunction(func(args []SQLValue, ctx *EvalCtx) SQLValue {
 		sum := float64(0)

@@ -1,8 +1,9 @@
-package planner
+package evaluator
 
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
+	"github.com/erh/mongo-sql-temp/translator/types"
 )
 
 type Expr interface {
@@ -60,7 +61,7 @@ type ColName struct {
 }
 
 func (c *ColName) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	for _, r := range ctx.rows {
+	for _, r := range ctx.Rows {
 		if v, ok := r.GetField(string(c.Qualifier), string(c.Name)); ok {
 			return NewSQLField(v)
 		}
@@ -100,15 +101,15 @@ func (f *FuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
 	var sum float64
 	count := 0
-	for _, row := range ctx.rows {
-		evalCtx := &EvalCtx{rows: []Row{row}}
+	for _, row := range ctx.Rows {
+		evalCtx := &EvalCtx{Rows: []types.Row{row}}
 		for _, sExpr := range sExprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
 				sum += 1
 			case *sqlparser.NonStarExpr:
-				val, err := BuildValue(e.Expr)
+				val, err := NewSQLValue(e.Expr)
 				if err != nil {
 					return nil, err
 				}
@@ -137,15 +138,15 @@ func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 
 func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
 	var sum float64
-	for _, row := range ctx.rows {
-		evalCtx := &EvalCtx{rows: []Row{row}}
+	for _, row := range ctx.Rows {
+		evalCtx := &EvalCtx{Rows: []types.Row{row}}
 		for _, sExpr := range sExprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
 				sum += 1
 			case *sqlparser.NonStarExpr:
-				val, err := BuildValue(e.Expr)
+				val, err := NewSQLValue(e.Expr)
 				if err != nil {
 					return nil, err
 				}
@@ -173,8 +174,8 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 
 func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
 	var count int64
-	for _, row := range ctx.rows {
-		evalCtx := &EvalCtx{rows: []Row{row}}
+	for _, row := range ctx.Rows {
+		evalCtx := &EvalCtx{Rows: []types.Row{row}}
 		for _, sExpr := range sExprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
@@ -182,7 +183,7 @@ func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[inter
 				count += 1
 
 			case *sqlparser.NonStarExpr:
-				val, err := BuildValue(e.Expr)
+				val, err := NewSQLValue(e.Expr)
 				if err != nil {
 					return nil, err
 				}
@@ -211,15 +212,15 @@ func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[inter
 
 func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 	var min SQLValue
-	for _, row := range ctx.rows {
-		evalCtx := &EvalCtx{rows: []Row{row}}
+	for _, row := range ctx.Rows {
+		evalCtx := &EvalCtx{Rows: []types.Row{row}}
 		for _, sExpr := range sExprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
 				return nil, fmt.Errorf("can't use * as argument to min function.")
 			case *sqlparser.NonStarExpr:
-				val, err := BuildValue(e.Expr)
+				val, err := NewSQLValue(e.Expr)
 				if err != nil {
 					return nil, err
 				}
@@ -245,15 +246,15 @@ func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 
 func maxFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 	var max SQLValue
-	for _, row := range ctx.rows {
-		evalCtx := &EvalCtx{rows: []Row{row}}
+	for _, row := range ctx.Rows {
+		evalCtx := &EvalCtx{Rows: []types.Row{row}}
 		for _, sExpr := range sExprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
 				return nil, fmt.Errorf("can't use * as argument to max function.")
 			case *sqlparser.NonStarExpr:
-				val, err := BuildValue(e.Expr)
+				val, err := NewSQLValue(e.Expr)
 				if err != nil {
 					return nil, err
 				}
