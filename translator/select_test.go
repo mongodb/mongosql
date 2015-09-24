@@ -126,4 +126,32 @@ func TestSelectOrder(t *testing.T) {
 		So(names, ShouldResemble, []string{"b", "a", "b"})
 
 	})
+
+}
+
+func TestSelectAliasing(t *testing.T) {
+
+	Convey("Alias select", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvalulator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
+
+		names, values, err := eval.EvalSelect("test", "select a, b as c from bar", nil)
+		So(err, ShouldBeNil)
+		So(len(names), ShouldEqual, 2)
+		So(len(values), ShouldEqual, 1)
+
+		So(names, ShouldResemble, []string{"a", "c"})
+
+	})
 }
