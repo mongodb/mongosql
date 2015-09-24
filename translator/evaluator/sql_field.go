@@ -15,6 +15,8 @@ type SQLField struct {
 
 func NewSQLField(value interface{}) (SQLValue, error) {
 	switch v := value.(type) {
+	case SQLValue:
+		return v, nil
 	case nil:
 		return SQLNull, nil
 	case bson.ObjectId: // ObjectId

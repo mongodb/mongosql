@@ -298,17 +298,17 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		})
 
-		Convey("an error should be returned if the some select fields are unused in GROUP BY clause", t, func() {
+		Convey("an error should be returned if the some select fields are unused in GROUP BY clause", func() {
 			_, _, err := eval.EvalSelect("test", "select a, sum(b) from bar group by a", nil)
 			So(err, ShouldNotBeNil)
 		})
 
-		Convey("an error should be returned if any GROUP BY clause is not selected", t, func() {
+		Convey("an error should be returned if any GROUP BY clause is not selected", func() {
 			_, _, err := eval.EvalSelect("test", "select a, sum(b) from bar group by a, b", nil)
 			So(err, ShouldNotBeNil)
 		})
 
-		Convey("using multiple aggregation functions should produce correct results", t, func() {
+		Convey("using multiple aggregation functions should produce correct results", func() {
 
 			names, values, err := eval.EvalSelect("test", "select a, count(*), sum(foo.b) from bar group by a", nil)
 			So(err, ShouldBeNil)
@@ -332,7 +332,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(values[2][2], ShouldResemble, 4)
 		})
 
-		Convey("using aggregation function containing other complex expressions should produce correct results", t, func() {
+		Convey("using aggregation function containing other complex expressions should produce correct results", func() {
 
 			names, values, err := eval.EvalSelect("test", "select a, sum(a+b) from bar group by a", nil)
 			So(err, ShouldBeNil)
@@ -353,7 +353,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(values[2][1], ShouldResemble, 7)
 		})
 
-		Convey("using aliased aggregation function should return aliased headers", t, func() {
+		Convey("using aliased aggregation function should return aliased headers", func() {
 
 			names, values, err := eval.EvalSelect("test", "select a, sum(b) as sum from bar group by a", nil)
 			So(err, ShouldBeNil)
