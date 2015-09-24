@@ -39,7 +39,7 @@ schema :
         type: string
   -
      table: silly
-     collection: test.simple
+     collection: test.simple2
      columns:
      -
         name: e

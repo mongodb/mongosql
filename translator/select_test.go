@@ -239,6 +239,20 @@ func TestSelectWithAliasing(t *testing.T) {
 			So(values[0][1], ShouldResemble, 6)
 
 		})
+
+		Convey("aliased fields colliding with existing column names should also return the aliased header", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b as a from bar", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "a"})
+			So(len(values[0]), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, 7)
+			So(values[0][1], ShouldResemble, 6)
+
+		})
 	})
 }
 
@@ -285,20 +299,23 @@ func TestSelectWithGroupBy(t *testing.T) {
 		})
 
 		Convey("an error should be returned if the some select fields are unused in GROUP BY clause", t, func() {
-
 			_, _, err := eval.EvalSelect("test", "select a, sum(b) from bar group by a", nil)
 			So(err, ShouldNotBeNil)
+		})
 
+		Convey("an error should be returned if any GROUP BY clause is not selected", t, func() {
+			_, _, err := eval.EvalSelect("test", "select a, sum(b) from bar group by a, b", nil)
+			So(err, ShouldNotBeNil)
 		})
 
 		Convey("using multiple aggregation functions should produce correct results", t, func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, count(*), sum(b) from bar group by a", nil)
+			names, values, err := eval.EvalSelect("test", "select a, count(*), sum(foo.b) from bar group by a", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
 
-			So(names, ShouldResemble, []string{"a", "sum(b)"})
+			So(names, ShouldResemble, []string{"a", "count(*)", "sum(foo.b)"})
 			So(len(values[0]), ShouldEqual, 3)
 			So(values[0][0], ShouldResemble, 1)
 			So(values[0][1], ShouldResemble, 2)
@@ -313,6 +330,94 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(values[2][0], ShouldResemble, 3)
 			So(values[2][1], ShouldResemble, 1)
 			So(values[2][2], ShouldResemble, 4)
+		})
+
+		Convey("using aggregation function containing other complex expressions should produce correct results", t, func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, sum(a+b) from bar group by a", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "sum(bar.a+bar.b)"})
+			So(len(values[0]), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, 1)
+			So(values[0][1], ShouldResemble, 5)
+
+			So(len(values[1]), ShouldEqual, 2)
+			So(values[1][0], ShouldResemble, 2)
+			So(values[1][1], ShouldResemble, 5)
+
+			So(len(values[2]), ShouldEqual, 2)
+			So(values[2][0], ShouldResemble, 3)
+			So(values[2][1], ShouldResemble, 7)
+		})
+
+		Convey("using aliased aggregation function should return aliased headers", t, func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, sum(b) as sum from bar group by a", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "sum"})
+			So(len(values[0]), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, 1)
+			So(values[0][1], ShouldResemble, 3)
+
+			So(len(values[1]), ShouldEqual, 2)
+			So(values[1][0], ShouldResemble, 2)
+			So(values[1][1], ShouldResemble, 3)
+
+			So(len(values[2]), ShouldEqual, 2)
+			So(values[2][0], ShouldResemble, 3)
+			So(values[2][1], ShouldResemble, 4)
+		})
+	})
+}
+
+func TestSelectWithJoin(t *testing.T) {
+
+	Convey("With a non-star select query containing a join", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvalulator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collectionOne := session.DB("foo").C("simple")
+		collectionTwo := session.DB("foo").C("simple2")
+
+		collectionOne.DropCollection()
+		collectionTwo.DropCollection()
+
+		So(collectionOne.Insert(bson.M{"c": 1, "d": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"c": 3, "d": 4}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"c": 5, "d": 16}), ShouldBeNil)
+
+		So(collectionTwo.Insert(bson.M{"e": 1, "f": 12}), ShouldBeNil)
+		So(collectionTwo.Insert(bson.M{"e": 3, "f": 14}), ShouldBeNil)
+		So(collectionTwo.Insert(bson.M{"e": 15, "f": 16}), ShouldBeNil)
+
+		Convey("results should contain data from each of the joined tables", func() {
+
+			names, values, err := eval.EvalSelect("test", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 2)
+
+			So(names, ShouldResemble, []string{"t1.c", "t2.f"})
+			So(len(values[0]), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, 1)
+			So(values[0][1], ShouldResemble, 12)
+
+			So(len(values[1]), ShouldEqual, 2)
+			So(values[1][0], ShouldResemble, 3)
+			So(values[1][1], ShouldResemble, 14)
 
 		})
 	})
