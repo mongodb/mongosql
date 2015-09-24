@@ -7,11 +7,11 @@ import (
 	"testing"
 )
 
-func TestSimple(t *testing.T) {
+func TestSelectWithStar(t *testing.T) {
 
-	Convey("With a simple test configuration...", t, func() {
+	Convey("With a star select query", t, func() {
 
-		Convey("connecting through the proxy server should return correct results", func() {
+		Convey("result set should be returned according to the schema order", func() {
 
 			cfg, err := config.ParseConfigData(testConfigSimple)
 			So(err, ShouldBeNil)
@@ -52,127 +52,199 @@ func TestSimple(t *testing.T) {
 				So(len(names), ShouldEqual, len(row))
 			}
 
-			names, values, err = eval.EvalSelect("test", "select * from bar where a = 16", nil)
-			So(err, ShouldBeNil)
-			So(len(values), ShouldEqual, 1)
-			So(len(values[0]), ShouldEqual, 4)
-			So(values[0][0], ShouldResemble, 16)
-			So(values[0][1], ShouldResemble, nil)
-			So(values[0][2], ShouldResemble, 15)
-			So(values[0][3], ShouldResemble, 17)
+			Convey("result set should only contain records satisfying the WHERE clause", func() {
 
-			names, values, err = eval.EvalSelect("", "select * from test.bar where a = 16", nil)
+				names, values, err = eval.EvalSelect("test", "select * from bar where a = 16", nil)
+				So(err, ShouldBeNil)
+				So(len(values), ShouldEqual, 1)
+				So(len(values[0]), ShouldEqual, 4)
+				So(values[0][0], ShouldResemble, 16)
+				So(values[0][1], ShouldResemble, nil)
+				So(values[0][2], ShouldResemble, 15)
+				So(values[0][3], ShouldResemble, 17)
+
+				names, values, err = eval.EvalSelect("", "select * from test.bar where a = 16", nil)
+				So(err, ShouldBeNil)
+				So(len(values), ShouldEqual, 1)
+				So(len(values[0]), ShouldEqual, 4)
+				So(values[0][0], ShouldResemble, 16)
+				So(values[0][1], ShouldResemble, nil)
+				So(values[0][2], ShouldResemble, 15)
+				So(values[0][3], ShouldResemble, 17)
+
+			})
+		})
+	})
+}
+
+func TestSelectWithNonStar(t *testing.T) {
+
+	Convey("With a non-star select query", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvalulator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
+
+		Convey("selecting the fields in any order should return results as requested", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b, _id from bar", nil)
 			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 3)
+			So(values[0][0], ShouldResemble, 7)
+			So(values[0][1], ShouldResemble, 6)
+			So(values[0][2], ShouldResemble, 5)
+
+			So(names, ShouldResemble, []string{"a", "b", "_id"})
+
+			names, values, err = eval.EvalSelect("test", "select bar.* from bar", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 1)
 			So(len(values[0]), ShouldEqual, 4)
-			So(values[0][0], ShouldResemble, 16)
-			So(values[0][1], ShouldResemble, nil)
-			So(values[0][2], ShouldResemble, 15)
-			So(values[0][3], ShouldResemble, 17)
+			So(values[0][0], ShouldResemble, 7)
+			So(values[0][1], ShouldResemble, 6)
+			So(values[0][2], ShouldResemble, 5)
+			So(values[0][3], ShouldResemble, nil)
+
+			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+
+			names, values, err = eval.EvalSelect("test", "select b, a from bar", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, 6)
+			So(values[0][1], ShouldResemble, 7)
+
+			So(names, ShouldResemble, []string{"b", "a"})
+
+			names, values, err = eval.EvalSelect("test", "select bar.b, bar.a from bar", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, 6)
+			So(values[0][1], ShouldResemble, 7)
+
+			So(names, ShouldResemble, []string{"b", "a"})
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, 7)
+			So(values[0][1], ShouldResemble, 6)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+			names, values, err = eval.EvalSelect("test", "select b, a, b from bar", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 3)
+			So(values[0][0], ShouldResemble, 6)
+			So(values[0][1], ShouldResemble, 7)
+			So(values[0][2], ShouldResemble, 6)
+
+			So(names, ShouldResemble, []string{"b", "a", "b"})
+
+			names, values, err = eval.EvalSelect("test", "select b, A, b from bar", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"b", "a", "b"})
+			So(len(values[0]), ShouldEqual, 3)
+			So(values[0][0], ShouldResemble, 6)
+			So(values[0][1], ShouldResemble, 7)
+			So(values[0][2], ShouldResemble, 6)
+
+		})
+	})
+
+}
+
+func TestSelectWithAggregateFunction(t *testing.T) {
+
+	Convey("With a non-star select query containing aggregate functions", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvalulator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+		So(collection.Insert(bson.M{"_id": 1, "b": 6, "a": 7}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 2, "b": 6, "a": 7}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 3, "b": 6, "a": 7}), ShouldBeNil)
+
+		Convey("only one result set should be returned", func() {
+
+			names, values, err := eval.EvalSelect("test", "select count(*) from bar", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 1)
+			So(values[0][0], ShouldResemble, 3)
+
+		})
+	})
+
+}
+
+func TestSelectWithAliasing(t *testing.T) {
+
+	Convey("With a non-star select query", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvalulator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
+
+		Convey("aliased fields should return the aliased header", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b as c from bar", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "c"})
+			So(len(values[0]), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, 7)
+			So(values[0][1], ShouldResemble, 6)
 
 		})
 	})
 }
 
-func TestSelectOrder(t *testing.T) {
+func TestSelectWithGroupBy(t *testing.T) {
 
-	Convey("Reorder select", t, func() {
-
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvalulator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
-		collection.DropCollection()
-		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
-
-		names, values, err := eval.EvalSelect("test", "select a, b, _id from bar", nil)
-		So(err, ShouldBeNil)
-		So(len(names), ShouldEqual, 3)
-		So(len(values), ShouldEqual, 1)
-		So(len(values[0]), ShouldEqual, 3)
-		So(values[0][0], ShouldResemble, 7)
-		So(values[0][1], ShouldResemble, 6)
-		So(values[0][2], ShouldResemble, 5)
-
-		So(names, ShouldResemble, []string{"a", "b", "_id"})
-
-		names, values, err = eval.EvalSelect("test", "select bar.* from bar", nil)
-		So(err, ShouldBeNil)
-		So(len(names), ShouldEqual, 4)
-		So(len(values), ShouldEqual, 1)
-		So(len(values[0]), ShouldEqual, 4)
-		So(values[0][0], ShouldResemble, 7)
-		So(values[0][1], ShouldResemble, 6)
-		So(values[0][2], ShouldResemble, 5)
-		So(values[0][3], ShouldResemble, nil)
-
-		So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
-
-		names, values, err = eval.EvalSelect("test", "select b, a from bar", nil)
-		So(err, ShouldBeNil)
-		So(len(names), ShouldEqual, 2)
-		So(len(values), ShouldEqual, 1)
-		So(len(values[0]), ShouldEqual, 2)
-		So(values[0][0], ShouldResemble, 6)
-		So(values[0][1], ShouldResemble, 7)
-
-		So(names, ShouldResemble, []string{"b", "a"})
-
-		names, values, err = eval.EvalSelect("test", "select bar.b, bar.a from bar", nil)
-		So(err, ShouldBeNil)
-		So(len(names), ShouldEqual, 2)
-		So(len(values), ShouldEqual, 1)
-		So(len(values[0]), ShouldEqual, 2)
-		So(values[0][0], ShouldResemble, 6)
-		So(values[0][1], ShouldResemble, 7)
-
-		So(names, ShouldResemble, []string{"b", "a"})
-
-		names, values, err = eval.EvalSelect("test", "select a, b from bar", nil)
-		So(err, ShouldBeNil)
-		So(len(names), ShouldEqual, 2)
-		So(len(values), ShouldEqual, 1)
-		So(len(values[0]), ShouldEqual, 2)
-		So(values[0][0], ShouldResemble, 7)
-		So(values[0][1], ShouldResemble, 6)
-
-		So(names, ShouldResemble, []string{"a", "b"})
-
-		names, values, err = eval.EvalSelect("test", "select b, a, b from bar", nil)
-		So(err, ShouldBeNil)
-		So(len(names), ShouldEqual, 3)
-		So(len(values), ShouldEqual, 1)
-		So(len(values[0]), ShouldEqual, 3)
-		So(values[0][0], ShouldResemble, 6)
-		So(values[0][1], ShouldResemble, 7)
-		So(values[0][2], ShouldResemble, 6)
-
-		So(names, ShouldResemble, []string{"b", "a", "b"})
-
-		names, values, err = eval.EvalSelect("test", "select b, A, b from bar", nil)
-		So(err, ShouldBeNil)
-		So(len(names), ShouldEqual, 3)
-		So(len(values), ShouldEqual, 1)
-
-		So(names, ShouldResemble, []string{"b", "a", "b"})
-		So(len(values[0]), ShouldEqual, 3)
-		So(values[0][0], ShouldResemble, 6)
-		So(values[0][1], ShouldResemble, 7)
-		So(values[0][2], ShouldResemble, 6)
-
-	})
-
-}
-
-func TestSelectAliasing(t *testing.T) {
-
-	Convey("Alias select", t, func() {
+	Convey("With a select query containing a GROUP BY clause", t, func() {
 
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
@@ -185,17 +257,63 @@ func TestSelectAliasing(t *testing.T) {
 
 		collection := session.DB("test").C("simple")
 		collection.DropCollection()
-		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 3, "b": 3, "a": 2}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 4, "b": 4, "a": 3}), ShouldBeNil)
 
-		names, values, err := eval.EvalSelect("test", "select a, b as c from bar", nil)
-		So(err, ShouldBeNil)
-		So(len(names), ShouldEqual, 2)
-		So(len(values), ShouldEqual, 1)
+		Convey("the result set should contain terms grouped accordingly", func() {
 
-		So(names, ShouldResemble, []string{"a", "c"})
-		So(len(values[0]), ShouldEqual, 2)
-		So(values[0][0], ShouldResemble, 7)
-		So(values[0][1], ShouldResemble, 6)
+			names, values, err := eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
 
+			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+			So(len(values[0]), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, 1)
+			So(values[0][1], ShouldResemble, 3)
+
+			So(len(values[1]), ShouldEqual, 2)
+			So(values[1][0], ShouldResemble, 2)
+			So(values[1][1], ShouldResemble, 3)
+
+			So(len(values[2]), ShouldEqual, 2)
+			So(values[2][0], ShouldResemble, 3)
+			So(values[2][1], ShouldResemble, 4)
+
+		})
+
+		Convey("an error should be returned if the some select fields are unused in GROUP BY clause", t, func() {
+
+			_, _, err := eval.EvalSelect("test", "select a, sum(b) from bar group by a", nil)
+			So(err, ShouldNotBeNil)
+
+		})
+
+		Convey("using multiple aggregation functions should produce correct results", t, func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, count(*), sum(b) from bar group by a", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "sum(b)"})
+			So(len(values[0]), ShouldEqual, 3)
+			So(values[0][0], ShouldResemble, 1)
+			So(values[0][1], ShouldResemble, 2)
+			So(values[0][2], ShouldResemble, 3)
+
+			So(len(values[1]), ShouldEqual, 3)
+			So(values[1][0], ShouldResemble, 2)
+			So(values[1][1], ShouldResemble, 1)
+			So(values[1][2], ShouldResemble, 3)
+
+			So(len(values[2]), ShouldEqual, 3)
+			So(values[2][0], ShouldResemble, 3)
+			So(values[2][1], ShouldResemble, 1)
+			So(values[2][2], ShouldResemble, 4)
+
+		})
 	})
 }

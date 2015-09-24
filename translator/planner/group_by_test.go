@@ -59,7 +59,7 @@ func groupByTest(operator Operator, rows []interface{}, expectedRows [][]bson.D)
 
 func TestGroupByOperator(t *testing.T) {
 
-	Convey("With a simple test configuration...", t, func() {
+	Convey("A group by operator...", t, func() {
 
 		data := []interface{}{
 			bson.D{
@@ -90,7 +90,7 @@ func TestGroupByOperator(t *testing.T) {
 			},
 		}
 
-		Convey("a group by operator using an aggregation function should return the right aggregate result", func() {
+		Convey("should return the right result when using an aggregation function", func() {
 
 			sExprs := SelectExpressions{
 				SelectExpression{
