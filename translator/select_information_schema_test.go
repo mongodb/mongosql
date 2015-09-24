@@ -2,6 +2,7 @@ package translator
 
 import (
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
@@ -51,11 +52,11 @@ func TestConfigScanOperatorTablesSelect(t *testing.T) {
 
 		_, values, err = eval.EvalSelect("", "select TABLE_NAME from information_schema.TABLES", nil)
 		So(err, ShouldBeNil)
-		So(0, ShouldBeLessThan, len(values[0][0].(string)))
+		So(0, ShouldBeLessThan, len(string(values[0][0].(evaluator.SQLString))))
 
 		_, values, err = eval.EvalSelect("", "select table_name from information_schema.TABLES", nil)
 		So(err, ShouldBeNil)
-		So(0, ShouldBeLessThan, len(values[0][0].(string)))
+		So(0, ShouldBeLessThan, len(string(values[0][0].(evaluator.SQLString))))
 
 		_, values, err = eval.EvalSelect("", "select * from information_schema.TABLES WHERE table_schema LIKE 'test'", nil)
 		So(err, ShouldBeNil)
