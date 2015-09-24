@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/types"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -36,7 +37,7 @@ func groupByTest(operator Operator, rows []interface{}, expectedRows [][]bson.D)
 
 	So(operator.Open(ctx), ShouldBeNil)
 
-	row := &Row{}
+	row := &types.Row{}
 
 	i := 0
 
@@ -51,7 +52,7 @@ func groupByTest(operator Operator, rows []interface{}, expectedRows [][]bson.D)
 		So(row.Data[1-aggregateTable].Table, ShouldEqual, tableOneName)
 		So(row.Data[1-aggregateTable].Values, ShouldResemble, expectedRows[i][0])
 		So(row.Data[aggregateTable].Values, ShouldResemble, expectedRows[i][1])
-		row = &Row{}
+		row = &types.Row{}
 		i++
 	}
 }

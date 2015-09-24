@@ -3,6 +3,8 @@ package planner
 import (
 	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/evaluator"
+	"github.com/erh/mongo-sql-temp/translator/types"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -29,7 +31,7 @@ type ConfigDataSource struct {
 	tableName      string
 	includeColumns bool
 	filter         interface{}
-	matcher        Matcher
+	matcher        evaluator.Matcher
 	iter           FindResults
 	err            error
 }
@@ -56,14 +58,14 @@ func (cds *ConfigDataSource) init(ctx *ExecutionCtx) error {
 	return nil
 }
 
-func (cds *ConfigDataSource) Next(row *Row) bool {
+func (cds *ConfigDataSource) Next(row *types.Row) bool {
 	if cds.iter == nil {
 		return false
 	}
 
 	data := &bson.D{}
 	hasNext := cds.iter.Next(data)
-	row.Data = []TableRow{{cds.tableName, *data, nil}}
+	row.Data = []types.TableRow{{cds.tableName, *data, nil}}
 
 	if !hasNext {
 		cds.err = cds.iter.Err()
@@ -122,7 +124,7 @@ func _cfrNextHelper(result *bson.D, fieldName string, fieldValue interface{}) {
 
 type ConfigFindResults struct {
 	config         *config.Config
-	matcher        Matcher
+	matcher        evaluator.Matcher
 	includeColumns bool
 
 	dbOffset      int
@@ -191,7 +193,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 		cfr.columnsOffset = cfr.columnsOffset + 1
 	}
 
-	evalCtx := &EvalCtx{[]Row{{[]TableRow{{tableName, *result, nil}}}}}
+	evalCtx := &evaluator.EvalCtx{[]types.Row{{[]types.TableRow{{tableName, *result, nil}}}}}
 	if cfr.matcher != nil && !cfr.matcher.Matches(evalCtx) {
 		return cfr.Next(result)
 	}
@@ -203,7 +205,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 
 type ConfigFindQuery struct {
 	config         *config.Config
-	matcher        Matcher
+	matcher        evaluator.Matcher
 	includeColumns bool
 }
 

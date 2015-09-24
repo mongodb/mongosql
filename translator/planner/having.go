@@ -2,10 +2,9 @@ package planner
 
 import (
 	"github.com/erh/mixer/sqlparser"
-	/*
-		"fmt"
-		"gopkg.in/mgo.v2/bson"
-	*/)
+	"github.com/erh/mongo-sql-temp/translator/evaluator"
+	"github.com/erh/mongo-sql-temp/translator/types"
+)
 
 type Having struct {
 	// source is the operator that provides the data to filter
@@ -14,13 +13,13 @@ type Having struct {
 	err error
 	// matcher is used to evaluate each row in determining whether
 	// it passes the 'HAVING' filter
-	matcher Matcher
+	matcher evaluator.Matcher
 	// expr is the boolean expression to match
 	expr sqlparser.BoolExpr
 }
 
 func (hv *Having) Open(ctx *ExecutionCtx) (err error) {
-	hv.matcher, err = BuildMatcher(hv.expr)
+	hv.matcher, err = evaluator.BuildMatcher(hv.expr)
 	if err != nil {
 		return err
 	}
@@ -28,8 +27,8 @@ func (hv *Having) Open(ctx *ExecutionCtx) (err error) {
 	return hv.source.Open(ctx)
 }
 
-func (hv *Having) Next(row *Row) bool {
-	r := &Row{}
+func (hv *Having) Next(row *types.Row) bool {
+	r := &types.Row{}
 
 	var hasNext bool
 
@@ -45,7 +44,7 @@ func (hv *Having) Next(row *Row) bool {
 			return false
 		}
 
-		evalCtx := &EvalCtx{[]Row{*r}}
+		evalCtx := &evaluator.EvalCtx{[]types.Row{*r}}
 
 		if hv.matcher.Matches(evalCtx) {
 			row.Data = r.Data

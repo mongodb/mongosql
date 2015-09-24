@@ -2,6 +2,7 @@ package planner
 
 import (
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/types"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -51,7 +52,7 @@ func TestTableScanOperator(t *testing.T) {
 
 			So(operator.Open(ctx), ShouldBeNil)
 
-			row := &Row{}
+			row := &types.Row{}
 
 			i := 0
 
@@ -59,7 +60,7 @@ func TestTableScanOperator(t *testing.T) {
 				So(len(row.Data), ShouldEqual, 1)
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
 				So(row.Data[0].Values, ShouldResemble, rows[i])
-				row = &Row{}
+				row = &types.Row{}
 				i++
 			}
 

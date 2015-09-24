@@ -1,9 +1,9 @@
-package planner
+package evaluator
 
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/translator/comparator"
+	"github.com/erh/mongo-sql-temp/translator/types"
 	"github.com/mongodb/mongo-tools/common/util"
 )
 
@@ -62,7 +62,7 @@ type ColName struct {
 }
 
 func (c *ColName) Evaluate(ctx *EvalCtx) (interface{}, error) {
-	for _, r := range ctx.rows {
+	for _, r := range ctx.Rows {
 		if v, ok := r.GetField(string(c.Qualifier), string(c.Name)); ok {
 			return v, nil
 		}
@@ -86,10 +86,6 @@ func (f *FuncExpr) Evaluate(ctx *EvalCtx) (interface{}, error) {
 		return sumFunc(ctx, f.Exprs)
 	case "count":
 		return countFunc(ctx, f.Exprs)
-	case "max":
-		return maxFunc(ctx, f.Exprs)
-	case "min":
-		return minFunc(ctx, f.Exprs)
 	default:
 		return nil, fmt.Errorf("function '%v' not yet implemented", string(f.Name))
 	}
@@ -98,7 +94,7 @@ func (f *FuncExpr) Evaluate(ctx *EvalCtx) (interface{}, error) {
 func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
 	var sum int64
 
-	for _, row := range ctx.rows {
+	for _, row := range ctx.Rows {
 
 		for _, sExpr := range sExprs {
 
@@ -114,7 +110,7 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
 					panic(err)
 				}
 
-				evalCtx := &EvalCtx{rows: []Row{row}}
+				evalCtx := &EvalCtx{Rows: []types.Row{row}}
 				eval, err := expr.Evaluate(evalCtx)
 				if err != nil {
 					return nil, err
@@ -137,7 +133,7 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
 func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
 	var count int64
 
-	for _, row := range ctx.rows {
+	for _, row := range ctx.Rows {
 
 		for _, sExpr := range sExprs {
 
@@ -153,7 +149,7 @@ func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) 
 					panic(err)
 				}
 
-				evalCtx := &EvalCtx{rows: []Row{row}}
+				evalCtx := &EvalCtx{Rows: []types.Row{row}}
 				eval, err := expr.Evaluate(evalCtx)
 				if err != nil {
 					return nil, err
@@ -169,14 +165,6 @@ func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) 
 		}
 	}
 	return count, nil
-}
-
-func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
-	return comparator.Compare(0, 0), nil
-}
-
-func maxFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
-	return comparator.Compare(0, 0), nil
 }
 
 //---

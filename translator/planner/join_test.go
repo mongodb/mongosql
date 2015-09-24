@@ -3,6 +3,7 @@ package planner
 import (
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/types"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -118,7 +119,7 @@ func TestJoinOperator(t *testing.T) {
 			Db:     dbName,
 		}
 
-		row := &Row{}
+		row := &types.Row{}
 
 		i := 0
 

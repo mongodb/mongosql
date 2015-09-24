@@ -3,6 +3,8 @@ package planner
 import (
 	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/evaluator"
+	"github.com/erh/mongo-sql-temp/translator/types"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
 	"sync"
@@ -13,7 +15,7 @@ type TableScan struct {
 	tableName      string
 	fullCollection string
 	filter         interface{}
-	matcher        Matcher
+	matcher        evaluator.Matcher
 	sync.Mutex
 	iter        FindResults
 	err         error
@@ -40,7 +42,7 @@ func (ts *TableScan) init(ctx *ExecutionCtx) error {
 }
 
 func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
-	sp, err := NewSessionProvider(ctx.Config)
+	sp, err := evaluator.NewSessionProvider(ctx.Config)
 	if err != nil {
 		return err
 	}
@@ -66,7 +68,7 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 	return nil
 }
 
-func (ts *TableScan) Next(row *Row) bool {
+func (ts *TableScan) Next(row *types.Row) bool {
 	if ts.iter == nil {
 		return false
 	}
@@ -74,7 +76,7 @@ func (ts *TableScan) Next(row *Row) bool {
 	data := &bson.D{}
 	hasNext := ts.iter.Next(data)
 
-	row.Data = []TableRow{{ts.tableName, *data, ts.tableConfig}}
+	row.Data = []types.TableRow{{ts.tableName, *data, ts.tableConfig}}
 	if !hasNext {
 		ts.err = ts.iter.Err()
 	}

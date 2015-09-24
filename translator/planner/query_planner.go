@@ -3,6 +3,7 @@ package planner
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
+	"github.com/erh/mongo-sql-temp/translator/evaluator"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
@@ -33,7 +34,7 @@ func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error
 
 // planSelectExpr takes a select struct and returns a query execution plan for it.
 func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err error) {
-	// handles from and where expression
+	// handles FROM and WHERE expression
 	if ast.From != nil {
 		operator, err = planFromExpr(ctx, ast.From, ast.Where)
 		if err != nil {
@@ -49,9 +50,9 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		return nil, err
 	}
 
-	// handle group by expression or aggregate functions in select expression
+	// handle GROUP BY and HAVING expressions or aggregate functions in select expression
 	if len(ast.GroupBy) != 0 || len(s.sExprs.AggFunctions()) != 0 {
-		operator, err = planGroupBy(ast.GroupBy, s, s.sExprs)
+		operator, err = planGroupBy(ast, s, s.sExprs)
 		if err != nil {
 			return nil, err
 		}
@@ -59,25 +60,30 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		operator = s
 	}
 
-	if ast.Having != nil {
-		if len(ast.GroupBy) == 0 {
-			return nil, fmt.Errorf("HAVING clause must follow A GROUP BY clause")
-		}
-		operator = &Having{
-			source: operator,
-			expr:   ast.Having.Expr,
-		}
-	}
-
 	return operator, nil
 
 }
 
 // planGroupBy returns a query execution plan for a group by clause.
-func planGroupBy(groupBy sqlparser.GroupBy, source *Select, selectExpressions SelectExpressions) (Operator, error) {
+func planGroupBy(ast *sqlparser.Select, source *Select, selectExpressions SelectExpressions) (Operator, error) {
+	groupBy := ast.GroupBy
+	having := ast.Having
+
+	if having != nil && len(groupBy) == 0 {
+		return nil, fmt.Errorf("HAVING clause must follow A GROUP BY clause")
+	}
 
 	gb := &GroupBy{
 		sExprs: selectExpressions,
+	}
+
+	if having != nil {
+		// create a matcher that can evaluate the HAVING expression
+		matcher, err := evaluator.BuildMatcher(having.Expr)
+		if err != nil {
+			return nil, err
+		}
+		gb.matcher = matcher
 	}
 
 	// TODO: you can't use * in GROUP BY or ORDER BY clauses
@@ -94,7 +100,6 @@ func planGroupBy(groupBy sqlparser.GroupBy, source *Select, selectExpressions Se
 		}
 
 		gb.exprs = append(gb.exprs, expr)
-
 	}
 
 	nonAggFields := len(gb.sExprs) - len(gb.sExprs.AggFunctions())
@@ -304,7 +309,7 @@ func planTableExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExpr, where *sqlparse
 // data from the appropriate source.
 func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) (Operator, error) {
 
-	var matcher Matcher
+	var matcher evaluator.Matcher
 	var err error
 
 	filter := &bson.D{}
@@ -312,7 +317,7 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 	if w != nil {
 
 		// create a matcher that can evaluate the WHERE expression
-		matcher, err = BuildMatcher(w.Expr)
+		matcher, err = evaluator.BuildMatcher(w.Expr)
 		if err == nil {
 			// TODO currently the transformation is all-or-nothing either the entire query is
 			// executed inside mongo or inside the matcher. Needs update to prune the matcher tree

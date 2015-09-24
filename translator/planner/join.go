@@ -3,6 +3,8 @@ package planner
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
+	"github.com/erh/mongo-sql-temp/translator/evaluator"
+	"github.com/erh/mongo-sql-temp/translator/types"
 )
 
 // JoinStrategy specifies the method a Join
@@ -30,40 +32,40 @@ const (
 
 // NestedLoop implementation of a JOIN.
 type NestedLoopJoiner struct {
-	matcher  Matcher
+	matcher  evaluator.Matcher
 	joinType JoinType
 }
 
 // SortMerge implementation of a JOIN.
 type SortMergeJoiner struct {
-	matcher  Matcher
+	matcher  evaluator.Matcher
 	joinType JoinType
 }
 
 // Hash implementation of a JOIN.
 type HashJoiner struct {
-	matcher  Matcher
+	matcher  evaluator.Matcher
 	joinType JoinType
 }
 
 // Joiner wraps the basic Join function that is
 // used to combine data from two different sources.
 type Joiner interface {
-	Join(left, right chan *Row) chan Row
+	Join(left, right chan *types.Row) chan types.Row
 }
 
 // Join implements the operator interface for
 // join expressions.
 type Join struct {
 	left, right Operator
-	matcher     Matcher
+	matcher     evaluator.Matcher
 	on          sqlparser.BoolExpr
 	err         error
 	kind        string
 	strategy    JoinStrategy
-	leftRows    chan *Row
-	rightRows   chan *Row
-	onChan      chan Row
+	leftRows    chan *types.Row
+	rightRows   chan *types.Row
+	onChan      chan types.Row
 	errChan     chan error
 }
 
@@ -71,13 +73,13 @@ func (join *Join) Open(ctx *ExecutionCtx) error {
 	return join.init(ctx)
 }
 
-func (join *Join) fetchRows(opr Operator, ch chan *Row) {
+func (join *Join) fetchRows(opr Operator, ch chan *types.Row) {
 
-	r := &Row{}
+	r := &types.Row{}
 
 	for opr.Next(r) {
 		ch <- r
-		r = &Row{}
+		r = &types.Row{}
 	}
 	close(ch)
 
@@ -101,15 +103,15 @@ func (join *Join) init(ctx *ExecutionCtx) (err error) {
 	}
 	defer join.right.Close()
 
-	join.leftRows = make(chan *Row)
+	join.leftRows = make(chan *types.Row)
 	go join.fetchRows(join.left, join.leftRows)
 
-	join.rightRows = make(chan *Row)
+	join.rightRows = make(chan *types.Row)
 	go join.fetchRows(join.right, join.rightRows)
 
 	join.errChan = make(chan error, 1)
 
-	join.matcher, err = BuildMatcher(join.on)
+	join.matcher, err = evaluator.BuildMatcher(join.on)
 	if err != nil {
 		return err
 	}
@@ -127,7 +129,7 @@ func (join *Join) init(ctx *ExecutionCtx) (err error) {
 
 }
 
-func (join *Join) Next(row *Row) bool {
+func (join *Join) Next(row *types.Row) bool {
 	select {
 	case err := <-join.errChan:
 		join.err = err
@@ -168,7 +170,7 @@ func (join *Join) Err() error {
 // strategy. The implementation uses the supplied matcher in
 // evaluating the join criteria and performs joins according
 // to the joinType
-func NewJoiner(s JoinStrategy, matcher Matcher, joinType JoinType) (Joiner, error) {
+func NewJoiner(s JoinStrategy, matcher evaluator.Matcher, joinType JoinType) (Joiner, error) {
 	switch s {
 	case NestedLoop:
 		return &NestedLoopJoiner{matcher, joinType}, nil
@@ -183,8 +185,8 @@ func NewJoiner(s JoinStrategy, matcher Matcher, joinType JoinType) (Joiner, erro
 
 // readFromChan reads data from the ch channel and
 // returns all the data read as a slice of Rows.
-func readFromChan(ch chan *Row) []*Row {
-	r := []*Row{}
+func readFromChan(ch chan *types.Row) []*types.Row {
+	r := []*types.Row{}
 
 	for data := range ch {
 		r = append(r, data)
@@ -214,9 +216,9 @@ func getJoinKind(s string) JoinType {
 }
 
 // NestedLoopJoiner implementation.
-func (nlp *NestedLoopJoiner) Join(lChan, rChan chan *Row) chan Row {
+func (nlp *NestedLoopJoiner) Join(lChan, rChan chan *types.Row) chan types.Row {
 
-	ch := make(chan Row)
+	ch := make(chan types.Row)
 
 	switch nlp.joinType {
 
@@ -235,15 +237,15 @@ func (nlp *NestedLoopJoiner) Join(lChan, rChan chan *Row) chan Row {
 	return ch
 }
 
-func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row) {
+func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *types.Row, ch chan types.Row) {
 	left := readFromChan(lChan)
 	right := readFromChan(rChan)
 
 	for _, l := range left {
 		for _, r := range right {
-			evalCtx := &EvalCtx{[]Row{*l, *r}}
+			evalCtx := &evaluator.EvalCtx{[]types.Row{*l, *r}}
 			if nlp.matcher.Matches(evalCtx) {
-				ch <- Row{Data: append(l.Data, r.Data...)}
+				ch <- types.Row{Data: append(l.Data, r.Data...)}
 			}
 		}
 	}
@@ -251,7 +253,7 @@ func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row) {
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) sideJoin(lChan, rChan chan *Row, ch chan Row) {
+func (nlp *NestedLoopJoiner) sideJoin(lChan, rChan chan *types.Row, ch chan types.Row) {
 	left := readFromChan(lChan)
 	right := readFromChan(rChan)
 
@@ -259,15 +261,15 @@ func (nlp *NestedLoopJoiner) sideJoin(lChan, rChan chan *Row, ch chan Row) {
 
 	for _, l := range left {
 		for _, r := range right {
-			evalCtx := &EvalCtx{[]Row{*l, *r}}
+			evalCtx := &evaluator.EvalCtx{[]types.Row{*l, *r}}
 			if nlp.matcher.Matches(evalCtx) {
 				hasMatch = true
-				ch <- Row{Data: append(l.Data, r.Data...)}
+				ch <- types.Row{Data: append(l.Data, r.Data...)}
 			}
 		}
 
 		if !hasMatch {
-			ch <- Row{Data: l.Data}
+			ch <- types.Row{Data: l.Data}
 		}
 
 		hasMatch = false
@@ -276,13 +278,13 @@ func (nlp *NestedLoopJoiner) sideJoin(lChan, rChan chan *Row, ch chan Row) {
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) crossJoin(lChan, rChan chan *Row, ch chan Row) {
+func (nlp *NestedLoopJoiner) crossJoin(lChan, rChan chan *types.Row, ch chan types.Row) {
 	left := readFromChan(lChan)
 	right := readFromChan(rChan)
 
 	for _, l := range left {
 		for _, r := range right {
-			ch <- Row{Data: append(l.Data, r.Data...)}
+			ch <- types.Row{Data: append(l.Data, r.Data...)}
 		}
 	}
 
@@ -290,11 +292,11 @@ func (nlp *NestedLoopJoiner) crossJoin(lChan, rChan chan *Row, ch chan Row) {
 }
 
 // SortMergeJoiner implementation.
-func (smj *SortMergeJoiner) Join(lChan, rChan chan *Row) chan Row {
+func (smj *SortMergeJoiner) Join(lChan, rChan chan *types.Row) chan types.Row {
 	return nil
 }
 
 // HashJoiner implementation.
-func (hj *HashJoiner) Join(lChan, rChan chan *Row) chan Row {
+func (hj *HashJoiner) Join(lChan, rChan chan *types.Row) chan types.Row {
 	return nil
 }
