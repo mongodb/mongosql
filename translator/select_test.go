@@ -300,7 +300,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 		})
 
 		Convey("an error should be returned if the some select fields are unused in GROUP BY clause", func() {
-			_, _, err := eval.EvalSelect("test", "select a, sum(b) from bar group by a", nil)
+			_, _, err := eval.EvalSelect("test", "select a, b, sum(b) from bar group by a", nil)
 			So(err, ShouldNotBeNil)
 		})
 
@@ -311,12 +311,12 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("using multiple aggregation functions should produce correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, count(*), sum(foo.b) from bar group by a", nil)
+			names, values, err := eval.EvalSelect("test", "select a, count(*), sum(bar.b) from bar group by a", nil)
 			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 2)
+			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 3)
 
-			So(names, ShouldResemble, []string{"a", "count(*)", "sum(foo.b)"})
+			So(names, ShouldResemble, []string{"a", "count(*)", "sum(bar.b)"})
 			So(len(values[0]), ShouldEqual, 3)
 			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
 			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(2))
@@ -406,7 +406,7 @@ func TestSelectWithJoin(t *testing.T) {
 
 		Convey("results should contain data from each of the joined tables", func() {
 
-			names, values, err := eval.EvalSelect("test", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e", nil)
+			names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 2)
