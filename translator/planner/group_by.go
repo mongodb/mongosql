@@ -36,23 +36,17 @@ func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
 }
 
 func (gb *GroupBy) evaluateGroupByKey(keys []*sqlparser.ColName, row *types.Row) (string, error) {
-
 	var gbKey string
 
 	for _, key := range keys {
-		expr, err := evaluator.NewExpr(key)
-		if err != nil {
-			panic(err)
-		}
-
-		evalCtx := &evaluator.EvalCtx{Rows: []types.Row{*row}}
-		value, err := expr.Evaluate(evalCtx)
+		expr, err := evaluator.NewSQLValue(key)
 		if err != nil {
 			return "", err
 		}
-
+		evalCtx := &evaluator.EvalCtx{Rows: []types.Row{*row}}
+		value := expr.Evaluate(evalCtx)
 		// TODO: might be better to use a hash for this
-		gbKey += fmt.Sprintf("%#v", value)
+		gbKey += fmt.Sprintf("%#v", value.MongoValue())
 	}
 
 	return gbKey, nil
@@ -99,18 +93,14 @@ func (gb *GroupBy) evalAggRow(r []types.Row) (*types.Row, error) {
 
 	for _, sExpr := range gb.sExprs {
 
-		expr, err := evaluator.NewExpr(sExpr.Expr)
-		if err != nil {
-			panic(err)
-		}
-
-		evalCtx := &evaluator.EvalCtx{Rows: r}
-
-		value, err := expr.Evaluate(evalCtx)
+		val, err := evaluator.NewSQLValue(sExpr.Expr)
 		if err != nil {
 			return nil, err
 		}
 
+		evalCtx := &evaluator.EvalCtx{Rows: r}
+
+		value := val.Evaluate(evalCtx)
 		aggValues[sExpr.Table] = append(aggValues[sExpr.Table], bson.DocElem{sExpr.Name, value})
 	}
 
