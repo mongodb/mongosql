@@ -2,6 +2,7 @@ package translator
 
 import (
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
@@ -58,19 +59,19 @@ func TestSelectWithStar(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(len(values), ShouldEqual, 1)
 				So(len(values[0]), ShouldEqual, 4)
-				So(values[0][0], ShouldResemble, 16)
+				So(values[0][0], ShouldResemble, evaluator.SQLNumeric(16))
 				So(values[0][1], ShouldResemble, nil)
-				So(values[0][2], ShouldResemble, 15)
-				So(values[0][3], ShouldResemble, 17)
+				So(values[0][2], ShouldResemble, evaluator.SQLNumeric(15))
+				So(values[0][3], ShouldResemble, evaluator.SQLNumeric(17))
 
 				names, values, err = eval.EvalSelect("", "select * from test.bar where a = 16", nil)
 				So(err, ShouldBeNil)
 				So(len(values), ShouldEqual, 1)
 				So(len(values[0]), ShouldEqual, 4)
-				So(values[0][0], ShouldResemble, 16)
+				So(values[0][0], ShouldResemble, evaluator.SQLNumeric(16))
 				So(values[0][1], ShouldResemble, nil)
-				So(values[0][2], ShouldResemble, 15)
-				So(values[0][3], ShouldResemble, 17)
+				So(values[0][2], ShouldResemble, evaluator.SQLNumeric(15))
+				So(values[0][3], ShouldResemble, evaluator.SQLNumeric(17))
 
 			})
 		})
@@ -101,9 +102,9 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 1)
 			So(len(values[0]), ShouldEqual, 3)
-			So(values[0][0], ShouldResemble, 7)
-			So(values[0][1], ShouldResemble, 6)
-			So(values[0][2], ShouldResemble, 5)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(6))
+			So(values[0][2], ShouldResemble, evaluator.SQLNumeric(5))
 
 			So(names, ShouldResemble, []string{"a", "b", "_id"})
 
@@ -112,9 +113,9 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 1)
 			So(len(values[0]), ShouldEqual, 4)
-			So(values[0][0], ShouldResemble, 7)
-			So(values[0][1], ShouldResemble, 6)
-			So(values[0][2], ShouldResemble, 5)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(6))
+			So(values[0][2], ShouldResemble, evaluator.SQLNumeric(5))
 			So(values[0][3], ShouldResemble, nil)
 
 			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
@@ -124,8 +125,8 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
 			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, 6)
-			So(values[0][1], ShouldResemble, 7)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(6))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(7))
 
 			So(names, ShouldResemble, []string{"b", "a"})
 
@@ -134,8 +135,8 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
 			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, 6)
-			So(values[0][1], ShouldResemble, 7)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(6))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(7))
 
 			So(names, ShouldResemble, []string{"b", "a"})
 
@@ -144,8 +145,8 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
 			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, 7)
-			So(values[0][1], ShouldResemble, 6)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(6))
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
@@ -154,9 +155,9 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 1)
 			So(len(values[0]), ShouldEqual, 3)
-			So(values[0][0], ShouldResemble, 6)
-			So(values[0][1], ShouldResemble, 7)
-			So(values[0][2], ShouldResemble, 6)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(6))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(7))
+			So(values[0][2], ShouldResemble, evaluator.SQLNumeric(6))
 
 			So(names, ShouldResemble, []string{"b", "a", "b"})
 
@@ -167,9 +168,9 @@ func TestSelectWithNonStar(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"b", "a", "b"})
 			So(len(values[0]), ShouldEqual, 3)
-			So(values[0][0], ShouldResemble, 6)
-			So(values[0][1], ShouldResemble, 7)
-			So(values[0][2], ShouldResemble, 6)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(6))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(7))
+			So(values[0][2], ShouldResemble, evaluator.SQLNumeric(6))
 
 		})
 	})
@@ -202,7 +203,7 @@ func TestSelectWithAggregateFunction(t *testing.T) {
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
 			So(len(values[0]), ShouldEqual, 1)
-			So(values[0][0], ShouldResemble, 3)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(3))
 
 		})
 	})
@@ -235,8 +236,8 @@ func TestSelectWithAliasing(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "c"})
 			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, 7)
-			So(values[0][1], ShouldResemble, 6)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(6))
 
 		})
 
@@ -249,8 +250,8 @@ func TestSelectWithAliasing(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "a"})
 			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, 7)
-			So(values[0][1], ShouldResemble, 6)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(6))
 
 		})
 	})
@@ -285,16 +286,16 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
 			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, 1)
-			So(values[0][1], ShouldResemble, 3)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(3))
 
 			So(len(values[1]), ShouldEqual, 2)
-			So(values[1][0], ShouldResemble, 2)
-			So(values[1][1], ShouldResemble, 3)
+			So(values[1][0], ShouldResemble, evaluator.SQLNumeric(2))
+			So(values[1][1], ShouldResemble, evaluator.SQLNumeric(3))
 
 			So(len(values[2]), ShouldEqual, 2)
-			So(values[2][0], ShouldResemble, 3)
-			So(values[2][1], ShouldResemble, 4)
+			So(values[2][0], ShouldResemble, evaluator.SQLNumeric(3))
+			So(values[2][1], ShouldResemble, evaluator.SQLNumeric(4))
 
 		})
 
@@ -317,19 +318,19 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "count(*)", "sum(foo.b)"})
 			So(len(values[0]), ShouldEqual, 3)
-			So(values[0][0], ShouldResemble, 1)
-			So(values[0][1], ShouldResemble, 2)
-			So(values[0][2], ShouldResemble, 3)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(2))
+			So(values[0][2], ShouldResemble, evaluator.SQLNumeric(3))
 
 			So(len(values[1]), ShouldEqual, 3)
-			So(values[1][0], ShouldResemble, 2)
-			So(values[1][1], ShouldResemble, 1)
-			So(values[1][2], ShouldResemble, 3)
+			So(values[1][0], ShouldResemble, evaluator.SQLNumeric(2))
+			So(values[1][1], ShouldResemble, evaluator.SQLNumeric(1))
+			So(values[1][2], ShouldResemble, evaluator.SQLNumeric(3))
 
 			So(len(values[2]), ShouldEqual, 3)
-			So(values[2][0], ShouldResemble, 3)
-			So(values[2][1], ShouldResemble, 1)
-			So(values[2][2], ShouldResemble, 4)
+			So(values[2][0], ShouldResemble, evaluator.SQLNumeric(3))
+			So(values[2][1], ShouldResemble, evaluator.SQLNumeric(1))
+			So(values[2][2], ShouldResemble, evaluator.SQLNumeric(4))
 		})
 
 		Convey("using aggregation function containing other complex expressions should produce correct results", func() {
@@ -341,16 +342,16 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.a+bar.b)"})
 			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, 1)
-			So(values[0][1], ShouldResemble, 5)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(5))
 
 			So(len(values[1]), ShouldEqual, 2)
-			So(values[1][0], ShouldResemble, 2)
-			So(values[1][1], ShouldResemble, 5)
+			So(values[1][0], ShouldResemble, evaluator.SQLNumeric(2))
+			So(values[1][1], ShouldResemble, evaluator.SQLNumeric(5))
 
 			So(len(values[2]), ShouldEqual, 2)
-			So(values[2][0], ShouldResemble, 3)
-			So(values[2][1], ShouldResemble, 7)
+			So(values[2][0], ShouldResemble, evaluator.SQLNumeric(3))
+			So(values[2][1], ShouldResemble, evaluator.SQLNumeric(7))
 		})
 
 		Convey("using aliased aggregation function should return aliased headers", func() {
@@ -362,16 +363,16 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "sum"})
 			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, 1)
-			So(values[0][1], ShouldResemble, 3)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(3))
 
 			So(len(values[1]), ShouldEqual, 2)
-			So(values[1][0], ShouldResemble, 2)
-			So(values[1][1], ShouldResemble, 3)
+			So(values[1][0], ShouldResemble, evaluator.SQLNumeric(2))
+			So(values[1][1], ShouldResemble, evaluator.SQLNumeric(3))
 
 			So(len(values[2]), ShouldEqual, 2)
-			So(values[2][0], ShouldResemble, 3)
-			So(values[2][1], ShouldResemble, 4)
+			So(values[2][0], ShouldResemble, evaluator.SQLNumeric(3))
+			So(values[2][1], ShouldResemble, evaluator.SQLNumeric(4))
 		})
 	})
 }
@@ -412,12 +413,12 @@ func TestSelectWithJoin(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"t1.c", "t2.f"})
 			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, 1)
-			So(values[0][1], ShouldResemble, 12)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(12))
 
 			So(len(values[1]), ShouldEqual, 2)
-			So(values[1][0], ShouldResemble, 3)
-			So(values[1][1], ShouldResemble, 14)
+			So(values[1][0], ShouldResemble, evaluator.SQLNumeric(3))
+			So(values[1][1], ShouldResemble, evaluator.SQLNumeric(14))
 
 		})
 	})
