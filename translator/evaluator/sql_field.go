@@ -5,6 +5,9 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+//
+// SQLField
+//
 type SQLField struct {
 	tableName string
 	fieldName string
@@ -68,7 +71,103 @@ func (sqlf SQLField) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	return left.CompareTo(ctx, right)
 }
 
-// string
-// number
-// date
-// time
+//
+// SQLNull
+//
+type SQLNullValue struct{}
+
+var SQLNull = SQLNullValue{}
+
+func (nv SQLNullValue) Evaluate(ctx *EvalCtx) SQLValue {
+	return nv
+}
+
+func (nv SQLNullValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	c := v.Evaluate(ctx)
+	if _, ok := c.(SQLNullValue); ok {
+		return 0, nil
+	}
+	return -1, nil
+}
+
+func (sn SQLNullValue) MongoValue() interface{} {
+	return nil
+}
+
+//
+// SQLNumeric
+//
+type SQLNumeric float64
+
+func (sn SQLNumeric) Evaluate(_ *EvalCtx) SQLValue {
+	return sn
+}
+
+func (sn SQLNumeric) MongoValue() interface{} {
+	return float64(sn)
+}
+
+func (sn SQLNumeric) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	c := v.Evaluate(ctx)
+	if n, ok := c.(SQLNumeric); ok {
+		return int(float64(sn) - float64(n)), nil
+	}
+	// can only compare numbers to each other, otherwise treat as error
+	return -1, ErrTypeMismatch
+}
+
+//
+// SQLString
+//
+type SQLString string
+
+func (ss SQLString) Evaluate(_ *EvalCtx) SQLValue {
+	return ss
+}
+
+func (ss SQLString) MongoValue() interface{} {
+	return string(ss)
+}
+
+func (sn SQLString) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	c := v.Evaluate(ctx)
+	if n, ok := c.(SQLString); ok {
+		s1, s2 := string(sn), string(n)
+		if s1 < s2 {
+			return -1, nil
+		} else if s1 > s2 {
+			return 1, nil
+		}
+		return 0, nil
+	}
+	// can only compare numbers to each other, otherwise treat as error
+	return -1, ErrTypeMismatch
+}
+
+//
+// SQLBool
+//
+type SQLBool bool
+
+func (sb SQLBool) Evaluate(ctx *EvalCtx) SQLValue {
+	return sb
+}
+
+func (sb SQLBool) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	c := v.Evaluate(ctx)
+	if n, ok := c.(SQLBool); ok {
+		s1, s2 := bool(sb), bool(n)
+		if s1 == s2 {
+			return 0, nil
+		} else if !s1 {
+			return -1, nil
+		}
+		return 1, nil
+	}
+	// can only compare bool to a bool, otherwise treat as error
+	return -1, ErrTypeMismatch
+}
+
+func (sb SQLBool) MongoValue() interface{} {
+	return bool(sb)
+}
