@@ -3,6 +3,7 @@ package proxy
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/erh/mongo-sql-temp/translator/planner"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
 	"gopkg.in/mgo.v2/bson"
@@ -12,6 +13,12 @@ import (
 
 func formatValue(value interface{}) ([]byte, error) {
 	switch v := value.(type) {
+	case planner.SQLString:
+		return hack.Slice(string(v)), nil
+	case planner.SQLNumeric:
+		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
+	case planner.SQLNullValue:
+		return nil, nil
 	case int8:
 		return strconv.AppendInt(nil, int64(v), 10), nil
 	case int16:
@@ -79,6 +86,10 @@ func formatValue(value interface{}) ([]byte, error) {
 
 func formatField(field *Field, value interface{}) error {
 	switch value.(type) {
+	case planner.SQLNumeric:
+		field.Charset = 63
+		field.Type = MYSQL_TYPE_FLOAT
+		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
 	case float64:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_FLOAT
@@ -91,7 +102,7 @@ func formatField(field *Field, value interface{}) error {
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
-	case string, []byte:
+	case string, []byte, planner.SQLString:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
 		// TODO: hack?
@@ -106,7 +117,9 @@ func formatField(field *Field, value interface{}) error {
 	case bool: // bool
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_BIT
-
+	case planner.SQLNullValue:
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_NULL
 	case nil:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_NULL

@@ -387,6 +387,8 @@ func (sb SQLBool) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 
 func NewSQLField(value interface{}) (SQLValue, error) {
 	switch v := value.(type) {
+	case SQLValue:
+		return v, nil
 	case nil:
 		return SQLNull, nil
 	case bson.ObjectId: // ObjectId
@@ -409,7 +411,7 @@ func NewSQLField(value interface{}) (SQLValue, error) {
 	case int64: // NumberLong
 		return SQLNumeric(float64(v)), nil
 	default:
-		panic("can't convert this type to a SQLValue")
+		panic(fmt.Errorf("can't convert this type to a SQLValue: %T", v))
 		/*
 			case *bson.M: // document
 				panic("can't convert this type to a SQLValue")

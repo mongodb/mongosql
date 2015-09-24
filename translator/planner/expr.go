@@ -3,12 +3,10 @@ package planner
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/translator/comparator"
-	"github.com/mongodb/mongo-tools/common/util"
 )
 
 type Expr interface {
-	Evaluate(*EvalCtx) (interface{}, error)
+	Evaluate(*EvalCtx) (SQLValue, error)
 }
 
 func NewExpr(e sqlparser.Expr) (Expr, error) {
@@ -61,10 +59,10 @@ type ColName struct {
 	*sqlparser.ColName
 }
 
-func (c *ColName) Evaluate(ctx *EvalCtx) (interface{}, error) {
+func (c *ColName) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	for _, r := range ctx.rows {
 		if v, ok := r.GetField(string(c.Qualifier), string(c.Name)); ok {
-			return v, nil
+			return NewSQLField(v)
 		}
 	}
 	return nil, nil
@@ -74,18 +72,22 @@ func (c *ColName) String() string {
 	return fmt.Sprintf("FQNS: '%v.%v'", string(c.Qualifier), string(c.Name))
 }
 
-//---
 type FuncExpr struct {
 	*sqlparser.FuncExpr
 }
 
-func (f *FuncExpr) Evaluate(ctx *EvalCtx) (interface{}, error) {
+func (f *FuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	var distinctMap map[interface{}]bool = nil
+	if f.Distinct {
+		distinctMap = make(map[interface{}]bool)
+	}
 	switch string(f.Name) {
+	case "avg":
+		return avgFunc(ctx, f.Exprs, distinctMap)
 	case "sum":
-		// TODO: handle distinct
-		return sumFunc(ctx, f.Exprs)
+		return sumFunc(ctx, f.Exprs, distinctMap)
 	case "count":
-		return countFunc(ctx, f.Exprs)
+		return countFunc(ctx, f.Exprs, distinctMap)
 	case "max":
 		return maxFunc(ctx, f.Exprs)
 	case "min":
@@ -95,71 +97,107 @@ func (f *FuncExpr) Evaluate(ctx *EvalCtx) (interface{}, error) {
 	}
 }
 
-func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
-	var sum int64
-
+func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
+	var sum float64
+	count := 0
 	for _, row := range ctx.rows {
-
+		evalCtx := &EvalCtx{rows: []Row{row}}
 		for _, sExpr := range sExprs {
-
 			switch e := sExpr.(type) {
-
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
 				sum += 1
-
 			case *sqlparser.NonStarExpr:
-				expr, err := NewExpr(e.Expr)
-				if err != nil {
-					panic(err)
-				}
-
-				evalCtx := &EvalCtx{rows: []Row{row}}
-				eval, err := expr.Evaluate(evalCtx)
+				val, err := BuildValue(e.Expr)
 				if err != nil {
 					return nil, err
 				}
-
-				// TODO: ignoring if we can't convert this to an integer
-				// we should instead support all summable types
-				value, _ := util.ToInt(eval)
-
-				sum += int64(value)
-
+				eval := val.Evaluate(evalCtx)
+				if distinctMap != nil {
+					rawVal := eval.MongoValue()
+					if distinctMap[rawVal] {
+						// already in our distinct map, so we skip this row
+						continue
+					} else {
+						distinctMap[rawVal] = true
+					}
+				}
+				count += 1
+				// TODO: ignoring if we can't convert this to a number
+				if n, ok := eval.(SQLNumeric); ok {
+					sum += float64(n)
+				}
 			default:
 				return nil, fmt.Errorf("unknown expression in sumFunc: %T", e)
 			}
 		}
 	}
-	return sum, nil
+	return SQLNumeric(sum / float64(count)), nil
 }
 
-func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
-	var count int64
-
+func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
+	var sum float64
 	for _, row := range ctx.rows {
-
+		evalCtx := &EvalCtx{rows: []Row{row}}
 		for _, sExpr := range sExprs {
-
 			switch e := sExpr.(type) {
+			// mixture of star and non-star expression is acceptable
+			case *sqlparser.StarExpr:
+				sum += 1
+			case *sqlparser.NonStarExpr:
+				val, err := BuildValue(e.Expr)
+				if err != nil {
+					return nil, err
+				}
+				eval := val.Evaluate(evalCtx)
+				if distinctMap != nil {
+					rawVal := eval.MongoValue()
+					if distinctMap[rawVal] {
+						// already in our distinct map, so we skip this row
+						continue
+					} else {
+						distinctMap[rawVal] = true
+					}
+				}
+				// TODO: ignoring if we can't convert this to a number
+				if n, ok := eval.(SQLNumeric); ok {
+					sum += float64(n)
+				}
+			default:
+				return nil, fmt.Errorf("unknown expression in sumFunc: %T", e)
+			}
+		}
+	}
+	return SQLNumeric(sum), nil
+}
 
+func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
+	var count int64
+	for _, row := range ctx.rows {
+		evalCtx := &EvalCtx{rows: []Row{row}}
+		for _, sExpr := range sExprs {
+			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
 				count += 1
 
 			case *sqlparser.NonStarExpr:
-				expr, err := NewExpr(e.Expr)
-				if err != nil {
-					panic(err)
-				}
-
-				evalCtx := &EvalCtx{rows: []Row{row}}
-				eval, err := expr.Evaluate(evalCtx)
+				val, err := BuildValue(e.Expr)
 				if err != nil {
 					return nil, err
 				}
+				eval := val.Evaluate(evalCtx)
+				if distinctMap != nil {
+					rawVal := eval.MongoValue()
+					if distinctMap[rawVal] {
+						// already in our distinct map, so we skip this row
+						continue
+					} else {
+						distinctMap[rawVal] = true
+					}
+				}
 
-				if eval != nil {
+				if eval != nil && eval != SQLNull {
 					count += 1
 				}
 
@@ -168,15 +206,75 @@ func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) 
 			}
 		}
 	}
-	return count, nil
+	return SQLNumeric(count), nil
 }
 
-func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
-	return comparator.Compare(0, 0), nil
+func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
+	var min SQLValue
+	for _, row := range ctx.rows {
+		evalCtx := &EvalCtx{rows: []Row{row}}
+		for _, sExpr := range sExprs {
+			switch e := sExpr.(type) {
+			// mixture of star and non-star expression is acceptable
+			case *sqlparser.StarExpr:
+				return nil, fmt.Errorf("can't use * as argument to min function.")
+			case *sqlparser.NonStarExpr:
+				val, err := BuildValue(e.Expr)
+				if err != nil {
+					return nil, err
+				}
+				eval := val.Evaluate(evalCtx)
+				if min == nil {
+					min = eval
+					continue
+				}
+				compared, err := min.CompareTo(evalCtx, eval)
+				if err != nil {
+					return nil, err
+				}
+				if compared > 0 {
+					min = eval
+				}
+			default:
+				return nil, fmt.Errorf("unknown expression in countFunc: %T", e)
+			}
+		}
+	}
+	return min, nil
 }
 
-func maxFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (interface{}, error) {
-	return comparator.Compare(0, 0), nil
+func maxFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
+	var max SQLValue
+	for _, row := range ctx.rows {
+		evalCtx := &EvalCtx{rows: []Row{row}}
+		for _, sExpr := range sExprs {
+			switch e := sExpr.(type) {
+			// mixture of star and non-star expression is acceptable
+			case *sqlparser.StarExpr:
+				return nil, fmt.Errorf("can't use * as argument to max function.")
+			case *sqlparser.NonStarExpr:
+				val, err := BuildValue(e.Expr)
+				if err != nil {
+					return nil, err
+				}
+				eval := val.Evaluate(evalCtx)
+				if max == nil {
+					max = eval
+					continue
+				}
+				compared, err := max.CompareTo(evalCtx, eval)
+				if err != nil {
+					return nil, err
+				}
+				if compared < 0 {
+					max = eval
+				}
+			default:
+				return nil, fmt.Errorf("unknown expression in countFunc: %T", e)
+			}
+		}
+	}
+	return max, nil
 }
 
 //---
@@ -184,6 +282,6 @@ type BinaryExpr struct {
 	*sqlparser.BinaryExpr
 }
 
-func (b *BinaryExpr) Evaluate(ctx *EvalCtx) (interface{}, error) {
-	return nil, nil
+func (b *BinaryExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return SQLNull, nil
 }
