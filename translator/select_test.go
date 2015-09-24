@@ -38,6 +38,11 @@ func TestSimple(t *testing.T) {
 			So(names[2], ShouldEqual, "_id")
 			So(names[3], ShouldEqual, "c")
 
+			So(values[0][0], ShouldEqual, 6)
+			So(values[0][1], ShouldEqual, 7)
+			So(values[0][2], ShouldEqual, 5)
+			So(values[0][3], ShouldEqual, nil)
+
 			So(values[1][0], ShouldEqual, 16)
 			So(values[1][1], ShouldEqual, nil)
 			So(values[1][2], ShouldEqual, 15)
@@ -50,10 +55,20 @@ func TestSimple(t *testing.T) {
 			names, values, err = eval.EvalSelect("test", "select * from bar where a = 16", nil)
 			So(err, ShouldBeNil)
 			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 4)
+			So(values[0][0], ShouldResemble, 16)
+			So(values[0][1], ShouldResemble, nil)
+			So(values[0][2], ShouldResemble, 15)
+			So(values[0][3], ShouldResemble, 17)
 
 			names, values, err = eval.EvalSelect("", "select * from test.bar where a = 16", nil)
 			So(err, ShouldBeNil)
 			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 4)
+			So(values[0][0], ShouldResemble, 16)
+			So(values[0][1], ShouldResemble, nil)
+			So(values[0][2], ShouldResemble, 15)
+			So(values[0][3], ShouldResemble, 17)
 
 		})
 	})
@@ -80,6 +95,10 @@ func TestSelectOrder(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(len(names), ShouldEqual, 3)
 		So(len(values), ShouldEqual, 1)
+		So(len(values[0]), ShouldEqual, 3)
+		So(values[0][0], ShouldResemble, 7)
+		So(values[0][1], ShouldResemble, 6)
+		So(values[0][2], ShouldResemble, 5)
 
 		So(names, ShouldResemble, []string{"a", "b", "_id"})
 
@@ -87,6 +106,11 @@ func TestSelectOrder(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(len(names), ShouldEqual, 4)
 		So(len(values), ShouldEqual, 1)
+		So(len(values[0]), ShouldEqual, 4)
+		So(values[0][0], ShouldResemble, 7)
+		So(values[0][1], ShouldResemble, 6)
+		So(values[0][2], ShouldResemble, 5)
+		So(values[0][3], ShouldResemble, nil)
 
 		So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
 
@@ -94,6 +118,9 @@ func TestSelectOrder(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(len(names), ShouldEqual, 2)
 		So(len(values), ShouldEqual, 1)
+		So(len(values[0]), ShouldEqual, 2)
+		So(values[0][0], ShouldResemble, 6)
+		So(values[0][1], ShouldResemble, 7)
 
 		So(names, ShouldResemble, []string{"b", "a"})
 
@@ -101,6 +128,9 @@ func TestSelectOrder(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(len(names), ShouldEqual, 2)
 		So(len(values), ShouldEqual, 1)
+		So(len(values[0]), ShouldEqual, 2)
+		So(values[0][0], ShouldResemble, 6)
+		So(values[0][1], ShouldResemble, 7)
 
 		So(names, ShouldResemble, []string{"b", "a"})
 
@@ -108,6 +138,9 @@ func TestSelectOrder(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(len(names), ShouldEqual, 2)
 		So(len(values), ShouldEqual, 1)
+		So(len(values[0]), ShouldEqual, 2)
+		So(values[0][0], ShouldResemble, 7)
+		So(values[0][1], ShouldResemble, 6)
 
 		So(names, ShouldResemble, []string{"a", "b"})
 
@@ -115,6 +148,10 @@ func TestSelectOrder(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(len(names), ShouldEqual, 3)
 		So(len(values), ShouldEqual, 1)
+		So(len(values[0]), ShouldEqual, 3)
+		So(values[0][0], ShouldResemble, 6)
+		So(values[0][1], ShouldResemble, 7)
+		So(values[0][2], ShouldResemble, 6)
 
 		So(names, ShouldResemble, []string{"b", "a", "b"})
 
@@ -124,6 +161,10 @@ func TestSelectOrder(t *testing.T) {
 		So(len(values), ShouldEqual, 1)
 
 		So(names, ShouldResemble, []string{"b", "a", "b"})
+		So(len(values[0]), ShouldEqual, 3)
+		So(values[0][0], ShouldResemble, 6)
+		So(values[0][1], ShouldResemble, 7)
+		So(values[0][2], ShouldResemble, 6)
 
 	})
 
@@ -152,6 +193,9 @@ func TestSelectAliasing(t *testing.T) {
 		So(len(values), ShouldEqual, 1)
 
 		So(names, ShouldResemble, []string{"a", "c"})
+		So(len(values[0]), ShouldEqual, 2)
+		So(values[0][0], ShouldResemble, 7)
+		So(values[0][1], ShouldResemble, 6)
 
 	})
 }
