@@ -7,7 +7,6 @@ import (
 
 type SQLFunction func([]SQLValue, *EvalCtx) SQLValue
 
-/*
 type SQLFuncValue struct {
 	arguments []SQLValue
 	function  func([]SQLValue, *EvalCtx) SQLValue
@@ -30,7 +29,6 @@ func (sqlfunc *SQLFuncValue) Evaluate(ctx *EvalCtx) SQLValue {
 func (sqlfunc *SQLFuncValue) MongoValue() interface{} {
 	panic("can't generate mongo value from a function")
 }
-*/
 
 var funcMap = map[string]SQLFunction{
 	"+": SQLFunction(func(args []SQLValue, ctx *EvalCtx) SQLValue {
