@@ -91,7 +91,7 @@ func (ts *TableScan) OpFields() []*Column {
 		column := &Column{
 			Table: ts.tableName,
 			Name:  c.Name,
-			View:  c.Name,
+			View:  ts.tableName + "." + c.Name,
 		}
 		columns = append(columns, column)
 	}

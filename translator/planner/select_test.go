@@ -3,6 +3,7 @@ package planner
 import (
 	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/evaluator"
 	"github.com/erh/mongo-sql-temp/translator/types"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
@@ -14,7 +15,7 @@ var (
 	_ fmt.Stringer = nil
 )
 
-func selectTest(operator Operator, rows, expectedRows []interface{}) {
+func selectTest(operator Operator, rows, expectedRows []bson.D) {
 
 	cfg, err := config.ParseConfigData(testConfigSimple)
 	So(err, ShouldBeNil)
@@ -61,16 +62,16 @@ func TestSelectOperator(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
 
-		rows := []interface{}{
+		rows := []bson.D{
 			bson.D{
-				bson.DocElem{Name: "a", Value: 6},
-				bson.DocElem{Name: "b", Value: 7},
-				bson.DocElem{Name: "_id", Value: 5},
+				{"a", evaluator.SQLNumeric(6)},
+				{"b", evaluator.SQLNumeric(7)},
+				{"_id", evaluator.SQLNumeric(5)},
 			},
 			bson.D{
-				bson.DocElem{Name: "a", Value: 16},
-				bson.DocElem{Name: "b", Value: 17},
-				bson.DocElem{Name: "_id", Value: 15},
+				{"a", evaluator.SQLNumeric(16)},
+				{"b", evaluator.SQLNumeric(17)},
+				{"_id", evaluator.SQLNumeric(15)},
 			},
 		}
 
@@ -88,14 +89,14 @@ func TestSelectOperator(t *testing.T) {
 
 		Convey("a select operator from one table with non-star fields return the right columns requested", func() {
 
-			expectedRows := []interface{}{
+			expectedRows := []bson.D{
 				bson.D{
-					bson.DocElem{Name: "a", Value: 6},
-					bson.DocElem{Name: "b", Value: 7},
+					{"a", evaluator.SQLNumeric(6)},
+					{"b", evaluator.SQLNumeric(7)},
 				},
 				bson.D{
-					bson.DocElem{Name: "a", Value: 16},
-					bson.DocElem{Name: "b", Value: 17},
+					{"a", evaluator.SQLNumeric(16)},
+					{"b", evaluator.SQLNumeric(17)},
 				},
 			}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/erh/mongo-sql-temp/translator/evaluator"
 	"github.com/erh/mongo-sql-temp/translator/types"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
@@ -15,7 +16,7 @@ var (
 	_ fmt.Stringer = nil
 )
 
-func groupByTest(operator Operator, rows []interface{}, expectedRows [][]bson.D) {
+func groupByTest(operator Operator, rows []bson.D, expectedRows [][]bson.D) {
 
 	cfg, err := config.ParseConfigData(testConfigSimple)
 	So(err, ShouldBeNil)
@@ -61,16 +62,16 @@ func TestGroupByOperator(t *testing.T) {
 
 	Convey("A group by operator...", t, func() {
 
-		data := []interface{}{
+		data := []bson.D{
 			bson.D{
-				bson.DocElem{Name: "_id", Value: 1},
-				bson.DocElem{Name: "a", Value: 6},
-				bson.DocElem{Name: "b", Value: 7},
+				{"_id", evaluator.SQLNumeric(1)},
+				{"a", evaluator.SQLNumeric(6)},
+				{"b", evaluator.SQLNumeric(7)},
 			},
 			bson.D{
-				bson.DocElem{Name: "_id", Value: 2},
-				bson.DocElem{Name: "a", Value: 6},
-				bson.DocElem{Name: "b", Value: 8},
+				{"_id", evaluator.SQLNumeric(2)},
+				{"a", evaluator.SQLNumeric(6)},
+				{"b", evaluator.SQLNumeric(8)},
 			},
 		}
 
@@ -120,7 +121,12 @@ func TestGroupByOperator(t *testing.T) {
 				exprs:  exprs,
 			}
 
-			expected := [][]bson.D{[]bson.D{bson.D{{"a", 6}}, bson.D{{"sum(b)", int64(15)}}}}
+			expected := [][]bson.D{
+				[]bson.D{
+					{{"a", evaluator.SQLNumeric(6)}},
+					{{"sum(b)", evaluator.SQLNumeric(15)}},
+				},
+			}
 
 			groupByTest(operator, data, expected)
 

@@ -86,7 +86,6 @@ func planGroupBy(ast *sqlparser.Select, source *Select, selectExpressions Select
 		gb.matcher = matcher
 	}
 
-	// TODO: you can't use * in GROUP BY or ORDER BY clauses
 	for _, valExpr := range groupBy {
 		expr, ok := sqlparser.Expr(valExpr).(*sqlparser.ColName)
 		if !ok {

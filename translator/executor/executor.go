@@ -57,7 +57,7 @@ func getRowValues(columns []*planner.Column, row *types.Row) []interface{} {
 	values := make([]interface{}, 0)
 
 	for _, column := range columns {
-		value, _ := row.GetField(column.Table, column.View)
+		value, _ := row.GetField(column.Table, column.Name)
 		values = append(values, value)
 	}
 

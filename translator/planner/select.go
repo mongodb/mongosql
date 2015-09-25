@@ -95,7 +95,7 @@ func (s *Select) getValue(sc SelectExpression, row *types.Row) (string, bson.Doc
 	evalCtx := &evaluator.EvalCtx{Rows: []types.Row{*row}}
 	v, err := expr.Evaluate(evalCtx)
 
-	return sc.Table, bson.DocElem{sc.View, v}, err
+	return sc.Table, bson.DocElem{sc.Name, v}, err
 }
 
 func (s *Select) OpFields() (columns []*Column) {

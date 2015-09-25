@@ -277,25 +277,38 @@ func TestSelectWithGroupBy(t *testing.T) {
 		So(collection.Insert(bson.M{"_id": 3, "b": 3, "a": 2}), ShouldBeNil)
 		So(collection.Insert(bson.M{"_id": 4, "b": 4, "a": 3}), ShouldBeNil)
 
+		checkExpectedValues := func(count int, values [][]interface{}, expected map[interface{}][]evaluator.SQLNumeric) {
+			for _, value := range values {
+				So(len(value), ShouldEqual, count)
+				x, ok := expected[value[0]]
+				So(ok, ShouldBeTrue)
+				for j := 0; j < count-1; j++ {
+					So(value[j+1], ShouldResemble, x[j])
+				}
+			}
+		}
+
 		Convey("the result set should contain terms grouped accordingly", func() {
 
 			names, values, err := eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
-			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
-			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
-			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(3))
 
-			So(len(values[1]), ShouldEqual, 2)
-			So(values[1][0], ShouldResemble, evaluator.SQLNumeric(2))
-			So(values[1][1], ShouldResemble, evaluator.SQLNumeric(3))
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLNumeric(1): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(3),
+				},
+				evaluator.SQLNumeric(2): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(3),
+				},
+				evaluator.SQLNumeric(3): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(4),
+				},
+			}
 
-			So(len(values[2]), ShouldEqual, 2)
-			So(values[2][0], ShouldResemble, evaluator.SQLNumeric(3))
-			So(values[2][1], ShouldResemble, evaluator.SQLNumeric(4))
+			checkExpectedValues(2, values, expectedValues)
 
 		})
 
@@ -314,23 +327,26 @@ func TestSelectWithGroupBy(t *testing.T) {
 			names, values, err := eval.EvalSelect("test", "select a, count(*), sum(bar.b) from bar group by a", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
-			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "count(*)", "sum(bar.b)"})
-			So(len(values[0]), ShouldEqual, 3)
-			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
-			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(2))
-			So(values[0][2], ShouldResemble, evaluator.SQLNumeric(3))
 
-			So(len(values[1]), ShouldEqual, 3)
-			So(values[1][0], ShouldResemble, evaluator.SQLNumeric(2))
-			So(values[1][1], ShouldResemble, evaluator.SQLNumeric(1))
-			So(values[1][2], ShouldResemble, evaluator.SQLNumeric(3))
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLNumeric(1): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(2),
+					evaluator.SQLNumeric(3),
+				},
+				evaluator.SQLNumeric(2): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(1),
+					evaluator.SQLNumeric(3),
+				},
+				evaluator.SQLNumeric(3): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(1),
+					evaluator.SQLNumeric(4),
+				},
+			}
 
-			So(len(values[2]), ShouldEqual, 3)
-			So(values[2][0], ShouldResemble, evaluator.SQLNumeric(3))
-			So(values[2][1], ShouldResemble, evaluator.SQLNumeric(1))
-			So(values[2][2], ShouldResemble, evaluator.SQLNumeric(4))
+			checkExpectedValues(3, values, expectedValues)
+
 		})
 
 		Convey("using aggregation function containing other complex expressions should produce correct results", func() {
@@ -338,41 +354,44 @@ func TestSelectWithGroupBy(t *testing.T) {
 			names, values, err := eval.EvalSelect("test", "select a, sum(a+b) from bar group by a", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
-			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.a+bar.b)"})
-			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
-			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(5))
 
-			So(len(values[1]), ShouldEqual, 2)
-			So(values[1][0], ShouldResemble, evaluator.SQLNumeric(2))
-			So(values[1][1], ShouldResemble, evaluator.SQLNumeric(5))
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLNumeric(1): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(5),
+				},
+				evaluator.SQLNumeric(2): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(5),
+				},
+				evaluator.SQLNumeric(3): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(7),
+				},
+			}
 
-			So(len(values[2]), ShouldEqual, 2)
-			So(values[2][0], ShouldResemble, evaluator.SQLNumeric(3))
-			So(values[2][1], ShouldResemble, evaluator.SQLNumeric(7))
+			checkExpectedValues(2, values, expectedValues)
 		})
-
 		Convey("using aliased aggregation function should return aliased headers", func() {
 
 			names, values, err := eval.EvalSelect("test", "select a, sum(b) as sum from bar group by a", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
-			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "sum"})
-			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
-			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(3))
 
-			So(len(values[1]), ShouldEqual, 2)
-			So(values[1][0], ShouldResemble, evaluator.SQLNumeric(2))
-			So(values[1][1], ShouldResemble, evaluator.SQLNumeric(3))
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLNumeric(1): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(3),
+				},
+				evaluator.SQLNumeric(2): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(3),
+				},
+				evaluator.SQLNumeric(3): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(4),
+				},
+			}
 
-			So(len(values[2]), ShouldEqual, 2)
-			So(values[2][0], ShouldResemble, evaluator.SQLNumeric(3))
-			So(values[2][1], ShouldResemble, evaluator.SQLNumeric(4))
+			checkExpectedValues(2, values, expectedValues)
 		})
 	})
 }
@@ -390,8 +409,8 @@ func TestSelectWithJoin(t *testing.T) {
 		session := eval.getSession()
 		defer session.Close()
 
-		collectionOne := session.DB("foo").C("simple")
-		collectionTwo := session.DB("foo").C("simple2")
+		collectionOne := session.DB("test").C("simple")
+		collectionTwo := session.DB("test").C("simple2")
 
 		collectionOne.DropCollection()
 		collectionTwo.DropCollection()
