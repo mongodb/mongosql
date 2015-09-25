@@ -70,11 +70,15 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		}
 	case *sqlparser.RangeCond:
 		// BETWEEN
-		panic("not implemented")
+		panic("not implemented: RangeCond")
 	case *sqlparser.NullCheck:
-		panic("not implemented")
+		val, err := NewSQLValue(expr.Expr)
+		if err != nil {
+			return nil, err
+		}
+		return &NullMatch{expr.Operator == sqlparser.AST_IS_NULL, val}, nil
 	case *sqlparser.UnaryExpr:
-		panic("not implemented")
+		panic("not implemented: UnaryExpr")
 	case *sqlparser.NotExpr:
 		child, err := BuildMatcher(expr.Expr)
 		if err != nil {

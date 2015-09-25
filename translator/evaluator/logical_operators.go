@@ -76,3 +76,33 @@ func (and *And) Matches(ctx *EvalCtx) bool {
 	}
 	return true
 }
+
+//
+// NullMatch
+//
+ 
+type NullMatch struct {
+	wantsNull bool
+	val SQLValue
+}
+
+func (nm *NullMatch) Matches(ctx *EvalCtx) bool {
+	reg := nm.val.Evaluate(ctx).MongoValue()
+	if nm.wantsNull {
+		return reg == nil
+	}
+	return reg != nil
+}
+
+func (nm *NullMatch) Transform() (*bson.D, error) {
+	field, ok := nm.val.(SQLField)
+	if !ok {
+		return nil, ErrUntransformableCondition
+	}
+	if nm.wantsNull {
+		return &bson.D{{field.fieldName, bson.D{{"$eq", nil}}}}, nil
+	}
+	return &bson.D{{field.fieldName, bson.D{{"$ne", nil}}}}, nil
+}
+
+
