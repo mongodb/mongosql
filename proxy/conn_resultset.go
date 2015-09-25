@@ -167,6 +167,18 @@ func (c *Conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 		r.RowDatas = append(r.RowDatas, row)
 	}
 
+	if len(values) == 0 {
+		for j, nm := range(names) {
+			field := &Field{}
+			r.Fields[j] = field
+			field.Name = hack.Slice(nm)
+
+			if err = formatField(field, nil); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	return r, nil
 }
 
