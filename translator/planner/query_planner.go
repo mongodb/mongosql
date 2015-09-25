@@ -174,6 +174,15 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs) ([]SelectExpression, error
 			}
 
 			if selectExpression.View == "" {
+				// TODO: this currently includes the table name for
+				// aggregate functions - e.g. if you have a query like:
+				//
+				// select a, sum(b) from foo;
+				//
+				// The headers in the result set are displayed as:
+				//
+				// a	sum(foo.b)
+				//
 				selectExpression.View = sqlparser.String(expr.Expr)
 			}
 

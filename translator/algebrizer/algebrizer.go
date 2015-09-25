@@ -411,12 +411,13 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 				return nil, fmt.Errorf("GetTableInfo AliasedTableExpr error: %v", err)
 			}
 
+			alias := string(expr.As)
+
 			switch node := stExpr.(type) {
 
 			case *sqlparser.TableName:
 				tableName := string(node.Name)
 
-				alias := string(expr.As)
 				if alias == "" {
 					alias = tableName
 				}
@@ -432,15 +433,30 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 					pCtx.Database = db
 				}
 
-				tables = append(tables, NewTableInfo(alias, db, tableName))
+				table := NewTableInfo(alias, db, tableName)
+
+				tables = append(tables, table)
+
 			case *sqlparser.Subquery:
+
+				if alias == "" {
+					return nil, fmt.Errorf("Every derived table must have its own alias")
+				}
 
 				ctx, err := NewParseCtx(node.Select, pCtx.Config, pCtx.Database)
 				if err != nil {
 					return nil, fmt.Errorf("GetTableInfo Subquery ctx error: %v", err)
 				}
 
-				tables = append(tables, ctx.Table...)
+				// apply derived table alias to context
+				aliasedTables := []TableInfo{}
+				for _, table := range ctx.Tables {
+					table.Alias = alias
+					aliasedTables = append(aliasedTables, table)
+				}
+				ctx.Tables = aliasedTables
+
+				tables = append(tables, ctx.Tables...)
 
 			default:
 				return nil, fmt.Errorf("GetTableInfo AliasedTableExpr type assert error: %v", err)
@@ -500,13 +516,13 @@ func columnToCtx(pCtx *ParseCtx, expr *sqlparser.ColName) (*ColumnInfo, error) {
 		pCtx.Database = table.Db
 	}
 
-	columnInfo.Collection = table.Table
+	columnInfo.Collection = table.Name
 
 	// the column name itself could be an alias so handle this
 	info, err := pCtx.ColumnAlias(columnName)
 	if err != nil {
 		// this is not an alias so it must be an actual column name
-		if err = pCtx.CheckColumn(table.Table, columnName); err != nil {
+		if err = pCtx.CheckColumn(table.Name, columnName); err != nil {
 			return nil, err
 		}
 		columnInfo.Field = columnName

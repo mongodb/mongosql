@@ -430,7 +430,7 @@ func TestSelectWithJoin(t *testing.T) {
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 2)
 
-			So(names, ShouldResemble, []string{"t1.c", "t2.f"})
+			So(names, ShouldResemble, []string{"c", "f"})
 			So(len(values[0]), ShouldEqual, 2)
 			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
 			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(12))

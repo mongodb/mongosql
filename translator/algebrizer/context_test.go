@@ -25,9 +25,9 @@ func TestNewParseCtx(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 
-			So(len(ctx.Table), ShouldEqual, 1)
-			So(ctx.Table[0].Alias, ShouldResemble, "f")
-			So(ctx.Table[0].Table, ShouldResemble, "foo")
+			So(len(ctx.Tables), ShouldEqual, 1)
+			So(ctx.Tables[0].Alias, ShouldResemble, "f")
+			So(ctx.Tables[0].Name, ShouldResemble, "foo")
 
 		})
 	})

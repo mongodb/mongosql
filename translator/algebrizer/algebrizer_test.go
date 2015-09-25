@@ -145,6 +145,60 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(getQuery(raw), ShouldEqual, algebrizedSQL)
 		})
 
+		Convey("algebrizing a derived table should require an alias", func() {
+
+			sql := `select o.orderid from (select * from orders) join customers on o.customerid = customers.customerid`
+
+			raw, err := sqlparser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+
+			cfg, err := config.ParseConfigData(testConfigSimple)
+			So(err, ShouldBeNil)
+
+			_, err = NewParseCtx(stmt, cfg, dbName)
+			So(err, ShouldNotBeNil)
+		})
+
+		Convey("algebrizing a derived table with an alias different from referenced select expression should fail", func() {
+
+			sql := `select o.orderid from (select * from orders) as f join customers on o.customerid = customers.customerid`
+
+			raw, err := sqlparser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+
+			cfg, err := config.ParseConfigData(testConfigSimple)
+			So(err, ShouldBeNil)
+
+			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			So(err, ShouldBeNil)
+
+			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
+		})
+
+		Convey("algebrizing a derived table with an alias same from referenced select expression should pass", func() {
+
+			sql := `select f.orderid from (select * from orders) as f join customers on f.customerid = customers.customerid`
+
+			raw, err := sqlparser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+
+			cfg, err := config.ParseConfigData(testConfigSimple)
+			So(err, ShouldBeNil)
+
+			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			So(err, ShouldBeNil)
+
+			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
+		})
 		// TODO: negative test cases
 	})
 }

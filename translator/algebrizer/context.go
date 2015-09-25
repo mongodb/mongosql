@@ -17,7 +17,7 @@ var (
 // columns and table names in a select query.
 type ParseCtx struct {
 	Column   []ColumnInfo
-	Table    []TableInfo
+	Tables   []TableInfo
 	Parent   *ParseCtx
 	Children []*ParseCtx
 	Config   *config.Config
@@ -29,7 +29,7 @@ type ParseCtx struct {
 type TableInfo struct {
 	Alias string
 	Db    string
-	Table string
+	Name  string
 }
 
 // ColumnInfo holds a mapping of aliases (or real names
@@ -67,7 +67,7 @@ func NewParseCtx(ss sqlparser.SelectStatement, c *config.Config, db string) (*Pa
 			return nil, fmt.Errorf("error getting table info: %v", err)
 		}
 
-		ctx.Table = tableInfo
+		ctx.Tables = tableInfo
 		return ctx, nil
 
 	default:
@@ -85,9 +85,9 @@ func (pCtx *ParseCtx) TableName(qualifier string, alias string) (string, error) 
 		return alias, nil
 	}
 
-	for _, tableInfo := range pCtx.Table {
+	for _, tableInfo := range pCtx.Tables {
 		if qualifier == tableInfo.Db && alias == tableInfo.Alias {
-			return tableInfo.Table, nil
+			return tableInfo.Name, nil
 		}
 	}
 
@@ -131,18 +131,18 @@ func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) 
 // GetCurrentTable finds a given table in the current context.
 func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, error) {
 	if pCtx == nil {
-		return nil, ErrNilCtx
+		return nil, fmt.Errorf("Table '%v' doesn't exist", tableName)
 	}
 
-	if len(pCtx.Table) == 0 {
+	if len(pCtx.Tables) == 0 {
 		return pCtx.Parent.GetCurrentTable(dbName, tableName)
-	} else if len(pCtx.Table) == 1 {
+	} else if len(pCtx.Tables) == 1 {
 		// in this case, we're either referencing a table directly,
 		// using an alias or implicitly referring to the current table
 
-		curTable := pCtx.Table[0]
+		curTable := pCtx.Tables[0]
 
-		if curTable.Table == tableName || curTable.Alias == tableName || tableName == "" {
+		if curTable.Alias == tableName || tableName == "" {
 			if curTable.Db == dbName {
 				return &curTable, nil
 			}
@@ -151,12 +151,12 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, err
 		// if there are multiple tables in the current context
 		// then tableName must not be empty
 		if tableName == "" {
-			return nil, fmt.Errorf("found more than one table in context")
+			return nil, fmt.Errorf("ambiguity in column field(s) - qualify with table name")
 		}
 
 		// the table name can either be actual or aliased
-		for _, tableInfo := range pCtx.Table {
-			if tableInfo.Alias == tableName || tableInfo.Table == tableName {
+		for _, tableInfo := range pCtx.Tables {
+			if tableInfo.Alias == tableName {
 				if tableInfo.Db == dbName {
 					return &tableInfo, nil
 				}
