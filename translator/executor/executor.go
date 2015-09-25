@@ -31,11 +31,7 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 	if err := operator.Err(); err != nil {
 		return nil, nil, err
 	}
-
-	if len(rows) == 0 {
-		return nil, nil, nil
-	}
-
+	
 	// make sure all rows have same number of values
 	for idx, row := range rows {
 		for len(row) < len(operator.OpFields()) {
