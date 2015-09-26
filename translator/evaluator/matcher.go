@@ -106,6 +106,8 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 	case *sqlparser.ExistsExpr:
 		panic("not implemented: exists")
 		return nil, nil
+	case nil:
+		return &NoopMatch{}, nil
 	default:
 		panic(fmt.Errorf("not implemented: %v", expr))
 		return nil, nil

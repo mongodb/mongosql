@@ -80,10 +80,10 @@ func (and *And) Matches(ctx *EvalCtx) bool {
 //
 // NullMatch
 //
- 
+
 type NullMatch struct {
 	wantsNull bool
-	val SQLValue
+	val       SQLValue
 }
 
 func (nm *NullMatch) Matches(ctx *EvalCtx) bool {
@@ -105,4 +105,16 @@ func (nm *NullMatch) Transform() (*bson.D, error) {
 	return &bson.D{{field.fieldName, bson.D{{"$ne", nil}}}}, nil
 }
 
+//
+// NoopMatch
+//
 
+type NoopMatch struct{}
+
+func (no *NoopMatch) Matches(ctx *EvalCtx) bool {
+	return true
+}
+
+func (nm *NoopMatch) Transform() (*bson.D, error) {
+	return nil, nil
+}
