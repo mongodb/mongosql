@@ -57,6 +57,16 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 			stmt.GroupBy = []sqlparser.ValExpr(algebrizedValExprs)
 		}
 
+		// algebrize 'HAVING' clause
+		if stmt.Having != nil {
+			algebrizedStmt, err := algebrizeExpr(stmt.Having.Expr, ctx)
+			if err != nil {
+				return err
+			}
+
+			stmt.Having.Expr = algebrizedStmt.(sqlparser.BoolExpr)
+		}
+
 		// algebrize group by -> having -> select
 		// expressions -> into -> order by -> limit
 

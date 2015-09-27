@@ -179,6 +179,7 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 						distinctMap[rawVal] = true
 					}
 				}
+
 				// TODO: ignoring if we can't convert this to a number
 				if n, ok := eval.(SQLNumeric); ok {
 					sum += float64(n)
@@ -188,6 +189,7 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 			}
 		}
 	}
+
 	return SQLNumeric(sum), nil
 }
 

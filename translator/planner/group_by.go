@@ -99,7 +99,7 @@ func (gb *GroupBy) evalAggRow(r []types.Row) (*types.Row, error) {
 
 	for _, sExpr := range gb.sExprs {
 
-		expr, err := evaluator.NewExpr(sExpr.Expr)
+		expr, err := evaluator.NewSQLValue(sExpr.Expr)
 		if err != nil {
 			panic(err)
 		}
@@ -111,7 +111,9 @@ func (gb *GroupBy) evalAggRow(r []types.Row) (*types.Row, error) {
 			return nil, err
 		}
 
-		aggValues[sExpr.Table] = append(aggValues[sExpr.Table], bson.DocElem{sExpr.Name, value})
+		if gb.matcher.Matches(evalCtx) {
+			aggValues[sExpr.Table] = append(aggValues[sExpr.Table], bson.DocElem{sExpr.Name, value})
+		}
 	}
 
 	for table, values := range aggValues {
@@ -132,7 +134,10 @@ func (gb *GroupBy) iterChan() chan types.Row {
 				close(ch)
 				return
 			}
-			ch <- *r
+			// check we have some matching data
+			if len(r.Data) != 0 {
+				ch <- *r
+			}
 		}
 		close(ch)
 	}()

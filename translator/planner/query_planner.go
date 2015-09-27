@@ -77,14 +77,17 @@ func planGroupBy(ast *sqlparser.Select, source *Select, selectExpressions Select
 		sExprs: selectExpressions,
 	}
 
+	var expr sqlparser.Expr
 	if having != nil {
-		// create a matcher that can evaluate the HAVING expression
-		matcher, err := evaluator.BuildMatcher(having.Expr)
-		if err != nil {
-			return nil, err
-		}
-		gb.matcher = matcher
+		expr = having.Expr
 	}
+
+	// create a matcher that can evaluate the HAVING expression
+	matcher, err := evaluator.BuildMatcher(expr)
+	if err != nil {
+		return nil, err
+	}
+	gb.matcher = matcher
 
 	for _, valExpr := range groupBy {
 		expr, ok := sqlparser.Expr(valExpr).(*sqlparser.ColName)

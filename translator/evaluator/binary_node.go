@@ -61,10 +61,12 @@ func (gt *GreaterThan) Matches(ctx *EvalCtx) bool {
 	if err != nil {
 		return false
 	}
+
 	rightEvald, err := gt.right.Evaluate(ctx)
 	if err != nil {
 		return false
 	}
+
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c > 0
 	}

@@ -8,6 +8,17 @@ import (
 	"testing"
 )
 
+func checkExpectedValues(count int, values [][]interface{}, expected map[interface{}][]evaluator.SQLNumeric) {
+	for _, value := range values {
+		So(len(value), ShouldEqual, count)
+		x, ok := expected[value[0]]
+		So(ok, ShouldBeTrue)
+		for j := 0; j < count-1; j++ {
+			So(value[j+1], ShouldResemble, x[j])
+		}
+	}
+}
+
 func TestSelectWithStar(t *testing.T) {
 
 	Convey("With a star select query", t, func() {
@@ -277,17 +288,6 @@ func TestSelectWithGroupBy(t *testing.T) {
 		So(collection.Insert(bson.M{"_id": 3, "b": 3, "a": 2}), ShouldBeNil)
 		So(collection.Insert(bson.M{"_id": 4, "b": 4, "a": 3}), ShouldBeNil)
 
-		checkExpectedValues := func(count int, values [][]interface{}, expected map[interface{}][]evaluator.SQLNumeric) {
-			for _, value := range values {
-				So(len(value), ShouldEqual, count)
-				x, ok := expected[value[0]]
-				So(ok, ShouldBeTrue)
-				for j := 0; j < count-1; j++ {
-					So(value[j+1], ShouldResemble, x[j])
-				}
-			}
-		}
-
 		Convey("the result set should contain terms grouped accordingly", func() {
 
 			names, values, err := eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a", nil)
@@ -371,6 +371,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			checkExpectedValues(2, values, expectedValues)
 		})
+
 		Convey("using aliased aggregation function should return aliased headers", func() {
 
 			names, values, err := eval.EvalSelect("test", "select a, sum(b) as sum from bar group by a", nil)
@@ -392,6 +393,83 @@ func TestSelectWithGroupBy(t *testing.T) {
 			}
 
 			checkExpectedValues(2, values, expectedValues)
+		})
+	})
+}
+
+func TestSelectWithHaving(t *testing.T) {
+
+	Convey("With a select query containing a HAVING clause", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvalulator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 3, "b": 3, "a": 2}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 4, "b": 4, "a": 3}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 5, "b": 4, "a": 4}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 6, "b": 5, "a": 5}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 7, "b": 6, "a": 5}), ShouldBeNil)
+
+		Convey("using the same select expression aggregate function should filter the result set accordingly", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, sum(b) from bar group by a having sum(b) > 3", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+
+			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLNumeric(3): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(4),
+				},
+				evaluator.SQLNumeric(4): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(4),
+				},
+				evaluator.SQLNumeric(5): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(11),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+		})
+
+		Convey("using a different select expression aggregate function should filter the result set accordingly", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, sum(b) from bar group by a having count(b) > 1", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+
+			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLNumeric(5): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(11),
+				},
+				evaluator.SQLNumeric(1): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(3),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+		})
+
+		Convey("an error should be returned if a having clause is used without a group by clause", func() {
+
+			_, _, err := eval.EvalSelect("test", "select a, sum(b) from bar having sum(b) > 3", nil)
+			So(err, ShouldNotBeNil)
+
 		})
 	})
 }
@@ -431,14 +509,62 @@ func TestSelectWithJoin(t *testing.T) {
 			So(len(values), ShouldEqual, 2)
 
 			So(names, ShouldResemble, []string{"c", "f"})
-			So(len(values[0]), ShouldEqual, 2)
-			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
-			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(12))
 
-			So(len(values[1]), ShouldEqual, 2)
-			So(values[1][0], ShouldResemble, evaluator.SQLNumeric(3))
-			So(values[1][1], ShouldResemble, evaluator.SQLNumeric(14))
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLNumeric(1): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(12),
+				},
+				evaluator.SQLNumeric(3): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(14),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+		})
+
+		Convey("an error should be returned if derived table has no alias", func() {
+
+			_, _, err := eval.EvalSelect("foo", "select * from (select * from bar)", nil)
+			So(err, ShouldNotBeNil)
+
+		})
+
+		Convey("results should contain data from a derived table", func() {
+
+			names, values, err := eval.EvalSelect("foo", "select * from (select * from bar) as derived", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"c", "d"})
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLNumeric(1): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(2),
+				},
+				evaluator.SQLNumeric(3): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(4),
+				},
+				evaluator.SQLNumeric(5): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(16),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+		})
+
+		Convey("results should work when basic table is joined with subquery", func() {
+			// Note that this relies on the left deep nested join strategy
+			names, values, err := eval.EvalSelect("foo", "select * from bar join (select * from silly) as derived", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 9)
+
+			So(names, ShouldResemble, []string{"c", "d", "e", "f"})
 
 		})
 	})
+
 }
