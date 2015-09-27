@@ -47,7 +47,7 @@ func (sf SQLField) MongoValue() interface{} {
 	panic("can't get the mongo value of a field reference.")
 }
 
-func (sqlf SQLField) Evaluate(ctx *EvalCtx) SQLValue {
+func (sqlf SQLField) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// TODO how do we report field not existing? do we just treat is a NULL, or something else?
 	for _, row := range ctx.Rows {
 		for _, data := range row.Data {
@@ -55,21 +55,27 @@ func (sqlf SQLField) Evaluate(ctx *EvalCtx) SQLValue {
 				if value, hasValue := row.GetField(sqlf.tableName, sqlf.fieldName); hasValue {
 					val, err := NewSQLField(value)
 					if err != nil {
-						panic(err)
+						return nil, err
 					}
-					return val
+					return val, nil
 				}
 				// field does not exist - return null i guess
-				return SQLNull
+				return SQLNull, nil
 			}
 		}
 	}
-	return SQLNull
+	return SQLNull, nil
 }
 
 func (sqlf SQLField) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	left := sqlf.Evaluate(ctx)
-	right := v.Evaluate(ctx)
+	left, err := sqlf.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	right, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
 	return left.CompareTo(ctx, right)
 }
 
@@ -80,12 +86,15 @@ type SQLNullValue struct{}
 
 var SQLNull = SQLNullValue{}
 
-func (nv SQLNullValue) Evaluate(ctx *EvalCtx) SQLValue {
-	return nv
+func (nv SQLNullValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return nv, nil
 }
 
 func (nv SQLNullValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	c := v.Evaluate(ctx)
+	c, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
 	if _, ok := c.(SQLNullValue); ok {
 		return 0, nil
 	}
@@ -101,8 +110,8 @@ func (sn SQLNullValue) MongoValue() interface{} {
 //
 type SQLNumeric float64
 
-func (sn SQLNumeric) Evaluate(_ *EvalCtx) SQLValue {
-	return sn
+func (sn SQLNumeric) Evaluate(_ *EvalCtx) (SQLValue, error) {
+	return sn, nil
 }
 
 func (sn SQLNumeric) MongoValue() interface{} {
@@ -110,7 +119,10 @@ func (sn SQLNumeric) MongoValue() interface{} {
 }
 
 func (sn SQLNumeric) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	c := v.Evaluate(ctx)
+	c, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
 	if n, ok := c.(SQLNumeric); ok {
 		return int(float64(sn) - float64(n)), nil
 	}
@@ -123,8 +135,8 @@ func (sn SQLNumeric) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 //
 type SQLString string
 
-func (ss SQLString) Evaluate(_ *EvalCtx) SQLValue {
-	return ss
+func (ss SQLString) Evaluate(_ *EvalCtx) (SQLValue, error) {
+	return ss, nil
 }
 
 func (ss SQLString) MongoValue() interface{} {
@@ -132,7 +144,10 @@ func (ss SQLString) MongoValue() interface{} {
 }
 
 func (sn SQLString) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	c := v.Evaluate(ctx)
+	c, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
 	if n, ok := c.(SQLString); ok {
 		s1, s2 := string(sn), string(n)
 		if s1 < s2 {
@@ -151,12 +166,15 @@ func (sn SQLString) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 //
 type SQLBool bool
 
-func (sb SQLBool) Evaluate(ctx *EvalCtx) SQLValue {
-	return sb
+func (sb SQLBool) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return sb, nil
 }
 
 func (sb SQLBool) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	c := v.Evaluate(ctx)
+	c, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
 	if n, ok := c.(SQLBool); ok {
 		s1, s2 := bool(sb), bool(n)
 		if s1 == s2 {

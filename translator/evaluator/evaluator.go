@@ -16,7 +16,7 @@ type BinaryNode struct {
 
 // SQLValue used in computation by matchers
 type SQLValue interface {
-	Evaluate(*EvalCtx) SQLValue
+	Evaluate(*EvalCtx) (SQLValue, error)
 	MongoValue() interface{}
 	Comparable
 }
@@ -60,6 +60,8 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 			return nil, err
 		}
 		return &SQLBinaryExprValue{[]SQLValue{left, right}, funcImpl}, nil
+	case *sqlparser.FuncExpr:
+		return &FuncExpr{expr}, nil
 	default:
 		panic(fmt.Errorf("NewSQLValue expr not yet implemented for %T", expr))
 		return nil, nil

@@ -98,6 +98,19 @@ func (f *FuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 }
 
+func (f *FuncExpr) MongoValue() interface{} {
+	return nil
+}
+
+func (f *FuncExpr) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
+	fEval, err := f.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return fEval.CompareTo(ctx, value)
+}
+
 func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
 	var sum float64
 	count := 0
@@ -113,7 +126,10 @@ func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 				if err != nil {
 					return nil, err
 				}
-				eval := val.Evaluate(evalCtx)
+				eval, err := val.Evaluate(evalCtx)
+				if err != nil {
+					return nil, err
+				}
 				if distinctMap != nil {
 					rawVal := eval.MongoValue()
 					if distinctMap[rawVal] {
@@ -150,7 +166,10 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 				if err != nil {
 					return nil, err
 				}
-				eval := val.Evaluate(evalCtx)
+				eval, err := val.Evaluate(evalCtx)
+				if err != nil {
+					return nil, err
+				}
 				if distinctMap != nil {
 					rawVal := eval.MongoValue()
 					if distinctMap[rawVal] {
@@ -187,7 +206,10 @@ func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[inter
 				if err != nil {
 					return nil, err
 				}
-				eval := val.Evaluate(evalCtx)
+				eval, err := val.Evaluate(evalCtx)
+				if err != nil {
+					return nil, err
+				}
 				if distinctMap != nil {
 					rawVal := eval.MongoValue()
 					if distinctMap[rawVal] {
@@ -224,7 +246,10 @@ func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 				if err != nil {
 					return nil, err
 				}
-				eval := val.Evaluate(evalCtx)
+				eval, err := val.Evaluate(evalCtx)
+				if err != nil {
+					return nil, err
+				}
 				if min == nil {
 					min = eval
 					continue
@@ -258,7 +283,10 @@ func maxFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 				if err != nil {
 					return nil, err
 				}
-				eval := val.Evaluate(evalCtx)
+				eval, err := val.Evaluate(evalCtx)
+				if err != nil {
+					return nil, err
+				}
 				if max == nil {
 					max = eval
 					continue

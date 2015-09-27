@@ -87,7 +87,11 @@ type NullMatch struct {
 }
 
 func (nm *NullMatch) Matches(ctx *EvalCtx) bool {
-	reg := nm.val.Evaluate(ctx).MongoValue()
+	eval, err := nm.val.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
+	reg := eval.MongoValue()
 	if nm.wantsNull {
 		return reg == nil
 	}

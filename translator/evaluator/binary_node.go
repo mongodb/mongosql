@@ -20,8 +20,14 @@ func (gt *LessThan) Transform() (*bson.D, error) {
 }
 
 func (lt *LessThan) Matches(ctx *EvalCtx) bool {
-	leftEvald := lt.left.Evaluate(ctx)
-	rightEvald := lt.right.Evaluate(ctx)
+	leftEvald, err := lt.left.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
+	rightEvald, err := lt.right.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c < 0
 	}
@@ -29,8 +35,14 @@ func (lt *LessThan) Matches(ctx *EvalCtx) bool {
 }
 
 func (lte *LessThanOrEqual) Matches(ctx *EvalCtx) bool {
-	leftEvald := lte.left.Evaluate(ctx)
-	rightEvald := lte.right.Evaluate(ctx)
+	leftEvald, err := lte.left.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
+	rightEvald, err := lte.right.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c <= 0
 	}
@@ -45,8 +57,14 @@ type GreaterThan BinaryNode
 type GreaterThanOrEqual BinaryNode
 
 func (gt *GreaterThan) Matches(ctx *EvalCtx) bool {
-	leftEvald := gt.left.Evaluate(ctx)
-	rightEvald := gt.right.Evaluate(ctx)
+	leftEvald, err := gt.left.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
+	rightEvald, err := gt.right.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c > 0
 	}
@@ -62,8 +80,14 @@ func (gt *GreaterThanOrEqual) Transform() (*bson.D, error) {
 }
 
 func (gte *GreaterThanOrEqual) Matches(ctx *EvalCtx) bool {
-	leftEvald := gte.left.Evaluate(ctx)
-	rightEvald := gte.right.Evaluate(ctx)
+	leftEvald, err := gte.left.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
+	rightEvald, err := gte.right.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c >= 0
 	}
@@ -81,12 +105,25 @@ func (l *Like) Transform() (*bson.D, error) {
 }
 
 func (l *Like) Matches(ctx *EvalCtx) bool {
-	reg := l.left.Evaluate(ctx).MongoValue().(string)
-	res, err := regexp.Match(reg, []byte(l.right.Evaluate(ctx).MongoValue().(string)))
+	e, err := l.left.Evaluate(ctx)
 	if err != nil {
-		panic(err)
+		return false
 	}
-	return res
+
+	left := e.MongoValue().(string)
+
+	e, err = l.right.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
+
+	right := e.MongoValue().(string)
+
+	matches, err := regexp.Match(left, []byte(right))
+	if err != nil {
+		return false
+	}
+	return matches
 }
 
 //
@@ -96,8 +133,14 @@ func (l *Like) Matches(ctx *EvalCtx) bool {
 type NotEquals BinaryNode
 
 func (neq *NotEquals) Matches(ctx *EvalCtx) bool {
-	leftEvald := neq.left.Evaluate(ctx)
-	rightEvald := neq.right.Evaluate(ctx)
+	leftEvald, err := neq.left.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
+	rightEvald, err := neq.right.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c != 0
 	}
@@ -121,8 +164,14 @@ func (neq *NotEquals) Transform() (*bson.D, error) {
 type Equals BinaryNode
 
 func (eq *Equals) Matches(ctx *EvalCtx) bool {
-	leftEvald := eq.left.Evaluate(ctx)
-	rightEvald := eq.right.Evaluate(ctx)
+	leftEvald, err := eq.left.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
+	rightEvald, err := eq.right.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
 	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
 		return c == 0
 	}
