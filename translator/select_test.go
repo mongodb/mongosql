@@ -105,13 +105,19 @@ func TestSelectWithNonStar(t *testing.T) {
 		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 3, "b": 3, "a": 2}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 4, "b": 4, "a": 3}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 1, "b": 4, "a": 4}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 6, "b": 5, "a": 5}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 7, "b": 6, "a": 5}), ShouldBeNil)
 
 		Convey("selecting the fields in any order should return results as requested", func() {
 
 			names, values, err := eval.EvalSelect("test", "select a, b, _id from bar", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
-			So(len(values), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 7)
 			So(len(values[0]), ShouldEqual, 3)
 			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
 			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(6))
@@ -122,7 +128,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			names, values, err = eval.EvalSelect("test", "select bar.* from bar", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
-			So(len(values), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 7)
 			So(len(values[0]), ShouldEqual, 4)
 			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
 			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(6))
@@ -134,7 +140,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			names, values, err = eval.EvalSelect("test", "select b, a from bar", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
-			So(len(values), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 7)
 			So(len(values[0]), ShouldEqual, 2)
 			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(6))
 			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(7))
@@ -144,7 +150,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			names, values, err = eval.EvalSelect("test", "select bar.b, bar.a from bar", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
-			So(len(values), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 7)
 			So(len(values[0]), ShouldEqual, 2)
 			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(6))
 			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(7))
@@ -154,7 +160,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			names, values, err = eval.EvalSelect("test", "select a, b from bar", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
-			So(len(values), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 7)
 			So(len(values[0]), ShouldEqual, 2)
 			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
 			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(6))
@@ -164,7 +170,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			names, values, err = eval.EvalSelect("test", "select b, a, b from bar", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
-			So(len(values), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 7)
 			So(len(values[0]), ShouldEqual, 3)
 			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(6))
 			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(7))
@@ -175,7 +181,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			names, values, err = eval.EvalSelect("test", "select b, A, b from bar", nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
-			So(len(values), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 7)
 
 			So(names, ShouldResemble, []string{"b", "a", "b"})
 			So(len(values[0]), ShouldEqual, 3)
@@ -183,6 +189,16 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(7))
 			So(values[0][2], ShouldResemble, evaluator.SQLNumeric(6))
 
+		})
+
+		Convey("selecting fields with non-column names should return results as requested", func() {
+			names, values, err := eval.EvalSelect("test", "select a + b, sum(a) from bar", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(13))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(27))
 		})
 	})
 
@@ -314,11 +330,6 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("an error should be returned if the some select fields are unused in GROUP BY clause", func() {
 			_, _, err := eval.EvalSelect("test", "select a, b, sum(b) from bar group by a", nil)
-			So(err, ShouldNotBeNil)
-		})
-
-		Convey("an error should be returned if any GROUP BY clause is not selected", func() {
-			_, _, err := eval.EvalSelect("test", "select a, sum(b) from bar group by a, b", nil)
 			So(err, ShouldNotBeNil)
 		})
 
@@ -555,7 +566,7 @@ func TestSelectWithJoin(t *testing.T) {
 
 		})
 
-		Convey("results should work when basic table is joined with subquery", func() {
+		Convey("results should be correct when basic table is joined with subquery", func() {
 			// Note that this relies on the left deep nested join strategy
 			names, values, err := eval.EvalSelect("foo", "select * from bar join (select * from silly) as derived", nil)
 			So(err, ShouldBeNil)
@@ -565,6 +576,18 @@ func TestSelectWithJoin(t *testing.T) {
 			So(names, ShouldResemble, []string{"c", "d", "e", "f"})
 
 		})
+
+		Convey("results should be correct when subquery is joined with subquery", func() {
+			// Note that this relies on the left deep nested join strategy
+			names, values, err := eval.EvalSelect("foo", "select * from (select * from bar) as a join (select * from silly) as b", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 9)
+
+			So(names, ShouldResemble, []string{"c", "d", "e", "f"})
+
+		})
+
 	})
 
 }

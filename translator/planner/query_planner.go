@@ -129,10 +129,19 @@ func planGroupBy(ast *sqlparser.Select, source *Select, selectExpressions Select
 func isValidGroupByTerm(sExprs []SelectExpression, expr *sqlparser.ColName) bool {
 	for _, sExpr := range sExprs {
 		// TODO: support alias in group by term?
-		if sExpr.Table == string(expr.Qualifier) && sExpr.Name == string(expr.Name) {
-			return true
+		if len(sExpr.RefColumns) != 0 {
+			for _, column := range sExpr.RefColumns {
+				if column.Table == string(expr.Qualifier) && column.Name == string(expr.Name) {
+					return true
+				}
+			}
+		} else {
+			if sExpr.Table == string(expr.Qualifier) && sExpr.Name == string(expr.Name) {
+				return true
+			}
 		}
 	}
+
 	return false
 }
 
@@ -433,6 +442,7 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 
 	case sqlparser.NumVal, sqlparser.StrVal, *sqlparser.NullVal:
 		return nil, nil
+
 	case *sqlparser.ColName:
 
 		c := &Column{
