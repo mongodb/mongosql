@@ -3,9 +3,9 @@ package proxy
 import (
 	"bytes"
 	"fmt"
+	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 	. "github.com/siddontang/mixer/mysql"
-	"github.com/erh/mixer/sqlparser"
 	"strings"
 )
 

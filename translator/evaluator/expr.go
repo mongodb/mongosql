@@ -94,7 +94,7 @@ func (f *FuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	case "min":
 		return minFunc(ctx, f.Exprs)
 	default:
-		return nil, fmt.Errorf("function '%v' not yet implemented", string(f.Name))
+		return nil, fmt.Errorf("function '%v' is not supported", string(f.Name))
 	}
 }
 
@@ -120,7 +120,7 @@ func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
-				sum += 1
+				return nil, fmt.Errorf("avg aggregate function can not contain '*'")
 			case *sqlparser.NonStarExpr:
 				val, err := NewSQLValue(e.Expr)
 				if err != nil {
@@ -145,10 +145,11 @@ func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 					sum += float64(n)
 				}
 			default:
-				return nil, fmt.Errorf("unknown expression in sumFunc: %T", e)
+				return nil, fmt.Errorf("unknown expression in avgFunc: %T", e)
 			}
 		}
 	}
+
 	return SQLNumeric(sum / float64(count)), nil
 }
 
@@ -160,7 +161,7 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
-				sum += 1
+				return nil, fmt.Errorf("sum aggregate function can not contain '*'")
 			case *sqlparser.NonStarExpr:
 				val, err := NewSQLValue(e.Expr)
 				if err != nil {
@@ -170,6 +171,7 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 				if err != nil {
 					return nil, err
 				}
+
 				if distinctMap != nil {
 					rawVal := eval.MongoValue()
 					if distinctMap[rawVal] {
@@ -242,7 +244,7 @@ func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
-				return nil, fmt.Errorf("can't use * as argument to min function.")
+				return nil, fmt.Errorf("min aggregate function can not contain '*'")
 			case *sqlparser.NonStarExpr:
 				val, err := NewSQLValue(e.Expr)
 				if err != nil {
@@ -264,7 +266,7 @@ func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 					min = eval
 				}
 			default:
-				return nil, fmt.Errorf("unknown expression in countFunc: %T", e)
+				return nil, fmt.Errorf("unknown expression in minFunc: %T", e)
 			}
 		}
 	}
@@ -279,7 +281,7 @@ func maxFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
-				return nil, fmt.Errorf("can't use * as argument to max function.")
+				return nil, fmt.Errorf("max aggregate function can not contain '*'")
 			case *sqlparser.NonStarExpr:
 				val, err := NewSQLValue(e.Expr)
 				if err != nil {
@@ -301,7 +303,7 @@ func maxFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 					max = eval
 				}
 			default:
-				return nil, fmt.Errorf("unknown expression in countFunc: %T", e)
+				return nil, fmt.Errorf("unknown expression in maxFunc: %T", e)
 			}
 		}
 	}
