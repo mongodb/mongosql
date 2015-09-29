@@ -464,6 +464,7 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 					table.Alias = alias
 					aliasedTables = append(aliasedTables, table)
 				}
+
 				ctx.Tables = aliasedTables
 
 				tables = append(tables, ctx.Tables...)
@@ -500,6 +501,15 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 			return nil, fmt.Errorf("can't handle table expression type %T", expr)
 		}
 	}
+
+	// TODO: the current implementation assumes all queries get routed to a single
+	// database and needs to be updated.
+	//
+	// If only one table exists within the context use the referenced database
+	if len(tables) == 1 {
+		pCtx.Database = tables[0].Db
+	}
+
 	return tables, nil
 }
 

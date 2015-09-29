@@ -25,6 +25,10 @@ func TestConfigScanOperatorSelect(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(len(values), ShouldEqual, 1)
 
+		_, values, err = eval.EvalSelect("test", "SELECT TABLE_NAME, TABLE_COMMENT, TABLE_TYPE, TABLE_SCHEMA FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND ( TABLE_TYPE='BASE TABLE' OR TABLE_TYPE='VIEW' )", nil)
+		So(err, ShouldBeNil)
+		So(len(values), ShouldEqual, 0)
+
 	})
 }
 

@@ -5,6 +5,7 @@ import (
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
 	"github.com/erh/mongo-sql-temp/translator/planner"
+	"strings"
 )
 
 var (
@@ -171,8 +172,8 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, err
 func (pCtx *ParseCtx) CheckColumn(table, column string) error {
 	// whitelist all 'virtual' schemas including information_schema
 	// TODO: more precise validation needed
-	if pCtx.Database == planner.InformationSchema ||
-		table == planner.InformationSchema {
+	if strings.EqualFold(pCtx.Database, planner.InformationSchema) ||
+		strings.EqualFold(table, planner.InformationSchema) {
 		return nil
 	}
 
