@@ -40,7 +40,7 @@ func (gb *GroupBy) evaluateGroupByKey(keys []*sqlparser.ColName, row *types.Row)
 	var gbKey string
 
 	for _, key := range keys {
-		expr, err := evaluator.NewExpr(key)
+		expr, err := evaluator.NewSQLValue(key)
 		if err != nil {
 			panic(err)
 		}

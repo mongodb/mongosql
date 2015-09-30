@@ -61,7 +61,9 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 		}
 		return &SQLBinaryExprValue{[]SQLValue{left, right}, funcImpl}, nil
 	case *sqlparser.FuncExpr:
-		return &FuncExpr{expr}, nil
+		return &SQLFuncExpr{expr}, nil
+	case *sqlparser.ParenBoolExpr:
+		return &SQLParenBoolExpr{expr}, nil
 	default:
 		panic(fmt.Errorf("NewSQLValue expr not yet implemented for %T", expr))
 		return nil, nil

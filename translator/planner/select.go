@@ -87,7 +87,7 @@ func (s *Select) getValue(sc SelectExpression, row *types.Row) (string, bson.Doc
 		}
 	}
 
-	expr, err := evaluator.NewExpr(sc.Expr)
+	expr, err := evaluator.NewSQLValue(sc.Expr)
 	if err != nil {
 		panic(err)
 	}

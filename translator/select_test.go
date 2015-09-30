@@ -53,10 +53,10 @@ func TestSelectWithStar(t *testing.T) {
 			So(values[0][0], ShouldEqual, 6)
 			So(values[0][1], ShouldEqual, 7)
 			So(values[0][2], ShouldEqual, 5)
-			So(values[0][3], ShouldEqual, nil)
+			So(values[0][3], ShouldResemble, evaluator.SQLNullValue{})
 
 			So(values[1][0], ShouldEqual, 16)
-			So(values[1][1], ShouldEqual, nil)
+			So(values[1][1], ShouldResemble, evaluator.SQLNullValue{})
 			So(values[1][2], ShouldEqual, 15)
 			So(values[1][3], ShouldEqual, 17)
 
@@ -71,7 +71,7 @@ func TestSelectWithStar(t *testing.T) {
 				So(len(values), ShouldEqual, 1)
 				So(len(values[0]), ShouldEqual, 4)
 				So(values[0][0], ShouldResemble, evaluator.SQLNumeric(16))
-				So(values[0][1], ShouldResemble, nil)
+				So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
 				So(values[0][2], ShouldResemble, evaluator.SQLNumeric(15))
 				So(values[0][3], ShouldResemble, evaluator.SQLNumeric(17))
 
@@ -80,7 +80,7 @@ func TestSelectWithStar(t *testing.T) {
 				So(len(values), ShouldEqual, 1)
 				So(len(values[0]), ShouldEqual, 4)
 				So(values[0][0], ShouldResemble, evaluator.SQLNumeric(16))
-				So(values[0][1], ShouldResemble, nil)
+				So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
 				So(values[0][2], ShouldResemble, evaluator.SQLNumeric(15))
 				So(values[0][3], ShouldResemble, evaluator.SQLNumeric(17))
 
@@ -133,7 +133,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
 			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(6))
 			So(values[0][2], ShouldResemble, evaluator.SQLNumeric(5))
-			So(values[0][3], ShouldResemble, nil)
+			So(values[0][3], ShouldResemble, evaluator.SQLNullValue{})
 
 			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
 
