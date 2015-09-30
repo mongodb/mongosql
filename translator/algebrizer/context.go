@@ -9,20 +9,24 @@ import (
 )
 
 var (
-	ErrNilCtx              = fmt.Errorf("received nil context")
-	ErrColumnAliasNotFound = fmt.Errorf("no column alias found")
-	ErrTableAliasNotFound  = fmt.Errorf("no table alias found")
+	ErrNilCtx = fmt.Errorf("received nil context")
 )
 
 // ParseCtx holds information that is used to resolve
 // columns and table names in a select query.
 type ParseCtx struct {
-	Column   []ColumnInfo
-	Tables   []TableInfo
-	Parent   *ParseCtx
+	// Columns holds a slice of all columns in this context
+	Columns []ColumnInfo
+	// Tables holds a slice of all tables in this context
+	Tables []TableInfo
+	// Parent holds the context from which this one is dereived
+	Parent *ParseCtx
+	// Children holds all new contexts derived from this contenxt
 	Children []*ParseCtx
-	Config   *config.Config
-	Database string
+	// NonStarAlias holds the alias for a non-star expression
+	NonStarAlias string
+	Config       *config.Config
+	Database     string
 }
 
 // TableInfo holds a mapping of aliases (or real names
@@ -31,26 +35,25 @@ type TableInfo struct {
 	Alias string
 	Db    string
 	Name  string
+	// Derived indicates if context table is from a subquery
+	Derived bool
 }
 
 // ColumnInfo holds a mapping of aliases (or real names
 // if not aliased) to the actual column name. The actual
 // table name for the column is also stored here.
 type ColumnInfo struct {
-	// using a mapping in case the name is an alias
-	// TODO: e.g. SELECT a+b AS x FROM foo WHERE x<10;
-	// x should be replaced with 'a+b' expr.
-	Field      string
-	Alias      string
-	Collection string
+	Name  string
+	Alias string
+	Table string
 }
 
-func NewTableInfo(alias, db, longName string) TableInfo {
-	return TableInfo{alias, db, longName}
+func NewTableInfo(alias, db, longName string, derived bool) TableInfo {
+	return TableInfo{alias, db, longName, derived}
 }
 
 func (ci *ColumnInfo) String() string {
-	return fmt.Sprintf("%v.%v", ci.Collection, ci.Field)
+	return fmt.Sprintf("%v.%v", ci.Table, ci.Name)
 }
 
 func NewParseCtx(ss sqlparser.SelectStatement, c *config.Config, db string) (*ParseCtx, error) {
@@ -77,39 +80,39 @@ func NewParseCtx(ss sqlparser.SelectStatement, c *config.Config, db string) (*Pa
 
 }
 
-// TableName returns the unaliased table name given an alias.
+// TableInfo returns the table infor for the given alias.
 // It searches in the parent context if the alias is not found
 // in the current context.
-func (pCtx *ParseCtx) TableName(qualifier string, alias string) (string, error) {
+func (pCtx *ParseCtx) TableInfo(qualifier string, alias string) (*TableInfo, error) {
 	// no guarantee that this table exists without checking the db
 	if pCtx == nil {
-		return alias, nil
+		return nil, fmt.Errorf("Unknown table '%v'", alias)
 	}
 
 	for _, tableInfo := range pCtx.Tables {
 		if qualifier == tableInfo.Db && alias == tableInfo.Alias {
-			return tableInfo.Name, nil
+			return &tableInfo, nil
 		}
 	}
 
-	return pCtx.Parent.TableName(qualifier, alias)
+	return pCtx.Parent.TableInfo(qualifier, alias)
 }
 
-// ColumnAlias searches current context for the given alias
+// ColumnInfo searches current context for the given alias
 // It searches in the parent context if the alias is not found
 // in the current context.
-func (pCtx *ParseCtx) ColumnAlias(alias string) (*ColumnInfo, error) {
+func (pCtx *ParseCtx) ColumnInfo(alias string) (*ColumnInfo, error) {
 	if pCtx == nil {
-		return nil, ErrColumnAliasNotFound
+		return nil, fmt.Errorf("Unknown column '%v'", alias)
 	}
 
-	for _, columnInfo := range pCtx.Column {
+	for _, columnInfo := range pCtx.Columns {
 		if columnInfo.Alias == alias {
 			return &columnInfo, nil
 		}
 	}
 
-	return pCtx.Parent.ColumnAlias(alias)
+	return pCtx.Parent.ColumnInfo(alias)
 }
 
 // ChildCtx returns a new child context for the current context.
@@ -132,7 +135,7 @@ func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) 
 // GetCurrentTable finds a given table in the current context.
 func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, error) {
 	if pCtx == nil {
-		return nil, fmt.Errorf("Table '%v' doesn't exist", tableName)
+		return nil, fmt.Errorf("Current table '%v' doesn't exist", tableName)
 	}
 
 	if len(pCtx.Tables) == 0 {
@@ -184,6 +187,13 @@ func (pCtx *ParseCtx) CheckColumn(table, column string) error {
 
 	collection := schema.Tables[table]
 	if collection == nil {
+		// check if it's a derived table
+		for _, tableInfo := range pCtx.Tables {
+			if tableInfo.Alias == table && tableInfo.Derived {
+				return nil
+			}
+		}
+
 		return fmt.Errorf("Table '%v' doesn't exist", table)
 	}
 

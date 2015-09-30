@@ -328,11 +328,6 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		})
 
-		Convey("an error should be returned if the some select fields are unused in GROUP BY clause", func() {
-			_, _, err := eval.EvalSelect("test", "select a, b, sum(b) from bar group by a", nil)
-			So(err, ShouldNotBeNil)
-		})
-
 		Convey("using multiple aggregation functions should produce correct results", func() {
 
 			names, values, err := eval.EvalSelect("test", "select a, count(*), sum(bar.b) from bar group by a", nil)
@@ -358,6 +353,11 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			checkExpectedValues(3, values, expectedValues)
 
+		})
+
+		Convey("an error should be returned if the some select fields are unused in GROUP BY clause", func() {
+			_, _, err := eval.EvalSelect("test", "select a, b, sum(a) from bar group by a", nil)
+			So(err, ShouldNotBeNil)
 		})
 
 		Convey("using aggregation function containing other complex expressions should produce correct results", func() {
@@ -404,6 +404,43 @@ func TestSelectWithGroupBy(t *testing.T) {
 			}
 
 			checkExpectedValues(2, values, expectedValues)
+
+		})
+
+		Convey("grouping by aliased term should return aliased headers", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a as f, sum(b) as sum from bar group by f", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+
+			So(names, ShouldResemble, []string{"f", "sum"})
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLNumeric(1): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(3),
+				},
+				evaluator.SQLNumeric(2): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(3),
+				},
+				evaluator.SQLNumeric(3): []evaluator.SQLNumeric{
+					evaluator.SQLNumeric(4),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+		})
+
+		Convey("grouping by aliased term referencing aliased columns should return correct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0`", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"sum_a_ok"})
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
+
 		})
 	})
 }
@@ -585,9 +622,84 @@ func TestSelectWithJoin(t *testing.T) {
 			So(len(values), ShouldEqual, 9)
 
 			So(names, ShouldResemble, []string{"c", "d", "e", "f"})
-
 		})
 
 	})
 
+}
+
+func TestSelectFromSubquery(t *testing.T) {
+
+	Convey("For a select statement with data from a subquery", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvalulator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
+
+		Convey("an error should be returned if the subquery is unaliased", func() {
+
+			_, _, err := eval.EvalSelect("test", "select * from (select * from bar)", nil)
+			So(err, ShouldNotBeNil)
+		})
+
+		Convey("star select expressions should return the correct results in order", func() {
+			names, values, err := eval.EvalSelect("test", "select * from (select * from bar) t0", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(6))
+			So(values[0][2], ShouldResemble, evaluator.SQLNumeric(5))
+			So(values[0][3], ShouldResemble, evaluator.SQLNullValue{})
+		})
+
+		Convey("non-star select expressions should return the correct results in order", func() {
+			names, values, err := eval.EvalSelect("test", "select _id, c from (select * from bar) t0", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"_id", "c"})
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(5))
+			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
+		})
+
+		Convey("aliased non-star select expressions should return the correct results in order", func() {
+			names, values, err := eval.EvalSelect("test", "select _id as x, c as y from (select * from bar) t0", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"x", "y"})
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(5))
+			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
+		})
+
+		Convey("correctly qualified aliased non-star select expressions should return the correct results in order", func() {
+			names, values, err := eval.EvalSelect("test", "select t0._id as x, c as y from (select * from bar) t0", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"x", "y"})
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(5))
+			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
+		})
+
+		Convey("incorrectly qualified aliased non-star select expressions should return the correct results in order", func() {
+			_, _, err := eval.EvalSelect("test", "select bar._id as x, c as y from (select * from bar) t0", nil)
+			So(err, ShouldNotBeNil)
+		})
+	})
 }

@@ -5,7 +5,6 @@ import (
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/translator/evaluator"
 	"github.com/erh/mongo-sql-temp/translator/types"
-	"gopkg.in/mgo.v2/bson"
 )
 
 type GroupBy struct {
@@ -35,11 +34,11 @@ func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
 	return gb.source.Open(ctx)
 }
 
-func (gb *GroupBy) evaluateGroupByKey(keys []*sqlparser.ColName, row *types.Row) (string, error) {
+func (gb *GroupBy) evaluateGroupByKey(row *types.Row) (string, error) {
 
 	var gbKey string
 
-	for _, key := range keys {
+	for _, key := range gb.exprs {
 		expr, err := evaluator.NewSQLValue(key)
 		if err != nil {
 			panic(err)
@@ -60,24 +59,13 @@ func (gb *GroupBy) evaluateGroupByKey(keys []*sqlparser.ColName, row *types.Row)
 
 func (gb *GroupBy) createGroups() error {
 
-	// TODO: support aggregate functions
-	var columns []*sqlparser.ColName
-
-	for _, expr := range gb.exprs {
-		column, ok := expr.(*sqlparser.ColName)
-		if !ok {
-			return fmt.Errorf("%T not supported as group type")
-		}
-		columns = append(columns, column)
-	}
-
 	gb.finalGrouping = make(map[string][]types.Row, 0)
 
 	r := &types.Row{}
 
 	// iterator source to create groupings
 	for gb.source.Next(r) {
-		key, err := gb.evaluateGroupByKey(columns, r)
+		key, err := gb.evaluateGroupByKey(r)
 		if err != nil {
 			return err
 		}
@@ -93,7 +81,7 @@ func (gb *GroupBy) createGroups() error {
 
 func (gb *GroupBy) evalAggRow(r []types.Row) (*types.Row, error) {
 
-	aggValues := map[string]bson.D{}
+	aggValues := map[string]types.Values{}
 
 	row := &types.Row{}
 
@@ -106,13 +94,18 @@ func (gb *GroupBy) evalAggRow(r []types.Row) (*types.Row, error) {
 
 		evalCtx := &evaluator.EvalCtx{Rows: r}
 
-		value, err := expr.Evaluate(evalCtx)
+		v, err := expr.Evaluate(evalCtx)
 		if err != nil {
 			return nil, err
 		}
 
 		if gb.matcher.Matches(evalCtx) {
-			aggValues[sExpr.Table] = append(aggValues[sExpr.Table], bson.DocElem{sExpr.Name, value})
+			value := types.Value{
+				Name: sExpr.Name,
+				View: sExpr.View,
+				Data: v,
+			}
+			aggValues[sExpr.Table] = append(aggValues[sExpr.Table], value)
 		}
 	}
 
@@ -155,6 +148,7 @@ func (gb *GroupBy) Next(row *types.Row) bool {
 
 	r, done := <-gb.outChan
 	row.Data = r.Data
+
 	return done
 }
 

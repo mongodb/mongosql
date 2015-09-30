@@ -65,7 +65,7 @@ func (cds *ConfigDataSource) Next(row *types.Row) bool {
 
 	data := &bson.D{}
 	hasNext := cds.iter.Next(data)
-	row.Data = []types.TableRow{{cds.tableName, *data, nil}}
+	row.Data = []types.TableRow{{cds.tableName, bsonDToValues(*data), nil}}
 
 	if !hasNext {
 		cds.err = cds.iter.Err()
@@ -193,7 +193,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 		cfr.columnsOffset = cfr.columnsOffset + 1
 	}
 
-	evalCtx := &evaluator.EvalCtx{[]types.Row{{[]types.TableRow{{tableName, *result, nil}}}}}
+	evalCtx := &evaluator.EvalCtx{[]types.Row{{[]types.TableRow{{tableName, bsonDToValues(*result), nil}}}}}
 	if cfr.matcher != nil && !cfr.matcher.Matches(evalCtx) {
 		return cfr.Next(result)
 	}

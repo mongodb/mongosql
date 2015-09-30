@@ -13,7 +13,7 @@ func TestTableScanOperator(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
 
-		Convey("fetching data from a table scan should return correct results", func() {
+		Convey("fetching data from a table scan should return correct results in the right order", func() {
 
 			cfg, err := config.ParseConfigData(testConfigSimple)
 			So(err, ShouldBeNil)
@@ -21,20 +21,25 @@ func TestTableScanOperator(t *testing.T) {
 			session, err := mgo.Dial(cfg.Url)
 			So(err, ShouldBeNil)
 
-			rows := []interface{}{
+			rows := []bson.D{
 				bson.D{
-					bson.DocElem{Name: "_id", Value: 5},
 					bson.DocElem{Name: "a", Value: 6},
 					bson.DocElem{Name: "b", Value: 7},
+					bson.DocElem{Name: "_id", Value: 5},
 				},
 				bson.D{
-					bson.DocElem{Name: "_id", Value: 15},
 					bson.DocElem{Name: "a", Value: 16},
 					bson.DocElem{Name: "b", Value: 17},
+					bson.DocElem{Name: "_id", Value: 15},
 				},
 			}
 
-			collection := session.DB(dbName).C(tableOneName)
+			var expected []types.Values
+			for _, document := range rows {
+				expected = append(expected, bsonDToValues(document))
+			}
+
+			collection := session.DB(dbName).C(tableTwoName)
 			collection.DropCollection()
 
 			for _, row := range rows {
@@ -47,7 +52,7 @@ func TestTableScanOperator(t *testing.T) {
 			}
 
 			operator := TableScan{
-				tableName: tableOneName,
+				tableName: tableTwoName,
 			}
 
 			So(operator.Open(ctx), ShouldBeNil)
@@ -58,8 +63,8 @@ func TestTableScanOperator(t *testing.T) {
 
 			for operator.Next(row) {
 				So(len(row.Data), ShouldEqual, 1)
-				So(row.Data[0].Table, ShouldEqual, tableOneName)
-				So(row.Data[0].Values, ShouldResemble, rows[i])
+				So(row.Data[0].Table, ShouldEqual, tableTwoName)
+				So(row.Data[0].Values, ShouldResemble, expected[i])
 				row = &types.Row{}
 				i++
 			}

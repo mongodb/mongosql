@@ -4,16 +4,15 @@ import (
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/translator/types"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
 
 var (
-	testCtx = &EvalCtx{Rows: []types.Row{
-		{Data: []types.TableRow{{tableOneName, bson.D{{"a", 1}, {"b", 1}}, nil}}},
-		{Data: []types.TableRow{{tableOneName, bson.D{{"a", 2}, {"b", 2}}, nil}}},
-		{Data: []types.TableRow{{tableOneName, bson.D{{"a", 3}, {"b", 3}}, nil}}},
-		{Data: []types.TableRow{{tableOneName, bson.D{{"a", 4}, {"b", 1}}, nil}}},
+	testCtx = &EvalCtx{[]types.Row{
+		{[]types.TableRow{{tableOneName, types.Values{{"a", "a", 1}, {"b", "b", 1}}, nil}}},
+		{[]types.TableRow{{tableOneName, types.Values{{"a", "a", 2}, {"b", "b", 2}}, nil}}},
+		{[]types.TableRow{{tableOneName, types.Values{{"a", "a", 3}, {"b", "b", 3}}, nil}}},
+		{[]types.TableRow{{tableOneName, types.Values{{"a", "a", 4}, {"b", "b", 1}}, nil}}},
 	}}
 )
 
@@ -100,7 +99,7 @@ func TestAggFuncSum(t *testing.T) {
 			copy(evalRows, testCtx.Rows)
 			evalCtx := &EvalCtx{evalRows}
 			unsummableRow := types.Row{
-				[]types.TableRow{{tableOneName, bson.D{{"a", "nsummable value"}}, nil}},
+				[]types.TableRow{{tableOneName, types.Values{{"a", "a", "unsummable value"}}, nil}},
 			}
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
 
@@ -174,7 +173,7 @@ func TestAggFuncAvg(t *testing.T) {
 			copy(evalRows, testCtx.Rows)
 			evalCtx := &EvalCtx{evalRows}
 			unsummableRow := types.Row{
-				[]types.TableRow{{tableOneName, bson.D{{"a", "nsummable value"}}, nil}},
+				[]types.TableRow{{tableOneName, types.Values{{"a", "a", "nsummable value"}}, nil}},
 			}
 
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
@@ -249,7 +248,7 @@ func TestAggFuncCount(t *testing.T) {
 			copy(evalRows, testCtx.Rows)
 			evalCtx := &EvalCtx{evalRows}
 			unsummableRow := types.Row{
-				[]types.TableRow{{tableOneName, bson.D{{"a", nil}}, nil}},
+				[]types.TableRow{{tableOneName, types.Values{{"a", "a", nil}}, nil}},
 			}
 
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
@@ -323,7 +322,7 @@ func TestAggFuncMax(t *testing.T) {
 			copy(evalRows, testCtx.Rows)
 			evalCtx := &EvalCtx{evalRows}
 			unsummableRow := types.Row{
-				[]types.TableRow{{tableOneName, bson.D{{"a", nil}}, nil}},
+				[]types.TableRow{{tableOneName, types.Values{{"a", "a", nil}}, nil}},
 			}
 
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
@@ -397,7 +396,7 @@ func TestAggFuncMin(t *testing.T) {
 			copy(evalRows, testCtx.Rows)
 			evalCtx := &EvalCtx{evalRows}
 			unsummableRow := types.Row{
-				[]types.TableRow{{tableOneName, bson.D{{"a", nil}}, nil}},
+				[]types.TableRow{{tableOneName, types.Values{{"a", "a", nil}}, nil}},
 			}
 
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)

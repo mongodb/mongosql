@@ -73,10 +73,33 @@ func (ts *TableScan) Next(row *types.Row) bool {
 		return false
 	}
 
-	data := &bson.D{}
-	hasNext := ts.iter.Next(data)
+	d := &bson.D{}
+	hasNext := ts.iter.Next(d)
 
-	row.Data = []types.TableRow{{ts.tableName, *data, ts.tableConfig}}
+	values := types.Values{}
+	data := d.Map()
+
+	for _, column := range ts.tableConfig.Columns {
+		value := types.Value{
+			Name: column.Name,
+			View: column.Name,
+			Data: data[column.Name],
+		}
+		values = append(values, value)
+		delete(data, column.Name)
+	}
+
+	// now add all other columns
+	for key, value := range data {
+		value := types.Value{
+			Name: key,
+			View: key,
+			Data: value,
+		}
+		values = append(values, value)
+	}
+
+	row.Data = []types.TableRow{{ts.tableName, values, ts.tableConfig}}
 	if !hasNext {
 		ts.err = ts.iter.Err()
 	}
@@ -86,7 +109,9 @@ func (ts *TableScan) Next(row *types.Row) bool {
 func (ts *TableScan) OpFields() []*Column {
 	columns := []*Column{}
 
-	// TODO: we currently only use data from the schema
+	// TODO: we currently only return headers from the schema
+	// though the actual data is everything that comes from
+	// the database
 	for _, c := range ts.tableConfig.Columns {
 		column := &Column{
 			Table: ts.tableName,

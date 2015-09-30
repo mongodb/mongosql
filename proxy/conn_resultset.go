@@ -75,6 +75,8 @@ func formatValue(value interface{}) ([]byte, error) {
 			return append([]byte{s}, x...), nil
 		*/
 		return hex.DecodeString("0bda070a11131b1e01000000")
+	case evaluator.SQLBool:
+		return strconv.AppendBool(nil, bool(v)), nil
 	case bool:
 		return strconv.AppendBool(nil, v), nil
 	case nil:
@@ -90,6 +92,9 @@ func formatField(field *Field, value interface{}) error {
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_FLOAT
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
+	case evaluator.SQLBool:
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_BIT
 	case float64:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_FLOAT
@@ -168,7 +173,7 @@ func (c *Conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 	}
 
 	if len(values) == 0 {
-		for j, nm := range(names) {
+		for j, nm := range names {
 			field := &Field{}
 			r.Fields[j] = field
 			field.Name = hack.Slice(nm)

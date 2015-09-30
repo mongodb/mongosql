@@ -105,13 +105,24 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 
 		// TODO: validate no mixture of star and non-star expression
 		case *sqlparser.StarExpr:
+			// validate table name if present
+			if string(expr.TableName) != "" {
+				_, err := pCtx.TableInfo(pCtx.Database, string(expr.TableName))
+				if err != nil {
+					return nil, err
+				}
+			}
 			algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
 
 		case *sqlparser.NonStarExpr:
+			if pCtx.NonStarAlias == "" {
+				pCtx.NonStarAlias = string(expr.As)
+			}
 			nse, err := algebrizeExpr(expr.Expr, pCtx)
 			if err != nil {
 				return nil, err
 			}
+
 			algNSE := &sqlparser.NonStarExpr{nse, expr.As}
 			algebrizeSelectExprs = append(algebrizeSelectExprs, algNSE)
 
@@ -153,10 +164,17 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 		if err != nil {
 			return nil, err
 		}
-		pCtx.Column = append(pCtx.Column, *columnInfo)
 
-		expr.Name = []byte(columnInfo.Field)
-		expr.Qualifier = []byte(columnInfo.Collection)
+		if pCtx.NonStarAlias != "" {
+			columnInfo.Alias = pCtx.NonStarAlias
+			pCtx.NonStarAlias = ""
+		}
+
+		pCtx.Columns = append(pCtx.Columns, *columnInfo)
+
+		expr.Name = []byte(columnInfo.Name)
+		expr.Qualifier = []byte(columnInfo.Table)
+
 		return expr, nil
 
 	case sqlparser.StrVal:
@@ -307,6 +325,7 @@ func algebrizeTableExpr(tExpr sqlparser.TableExpr, pCtx *ParseCtx) error {
 		if err != nil {
 			return fmt.Errorf("AliasedTableExpr error: %v", err)
 		}
+
 		expr.Expr = ste
 
 	case *sqlparser.ParenTableExpr:
@@ -352,10 +371,14 @@ func algebrizeSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, pCtx *ParseCtx) 
 	switch expr := stExpr.(type) {
 
 	case *sqlparser.TableName:
-		tName, err := pCtx.TableName(string(expr.Qualifier), string(expr.Name))
-		expr.Name = []byte(tName)
+		table, err := pCtx.TableInfo(string(expr.Qualifier), string(expr.Name))
+		if err != nil {
+			expr.Name = []byte(string(expr.Name))
+		} else {
+			expr.Name = []byte(table.Name)
+		}
 
-		return expr, err
+		return expr, nil
 
 	case *sqlparser.Subquery:
 		nCtx, err := pCtx.ChildCtx(expr.Select)
@@ -443,7 +466,7 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 					pCtx.Database = db
 				}
 
-				table := NewTableInfo(alias, db, tableName)
+				table := NewTableInfo(alias, db, tableName, false)
 
 				tables = append(tables, table)
 
@@ -462,6 +485,8 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 				aliasedTables := []TableInfo{}
 				for _, table := range ctx.Tables {
 					table.Alias = alias
+					table.Name = alias
+					table.Derived = true
 					aliasedTables = append(aliasedTables, table)
 				}
 
@@ -536,25 +561,28 @@ func columnToCtx(pCtx *ParseCtx, expr *sqlparser.ColName) (*ColumnInfo, error) {
 		pCtx.Database = table.Db
 	}
 
-	columnInfo.Collection = table.Name
+	columnInfo.Table = table.Name
 
 	// the column name itself could be an alias so handle this
-	info, err := pCtx.ColumnAlias(columnName)
+	info, err := pCtx.ColumnInfo(columnName)
+
 	if err != nil {
 		// this is not an alias so it must be an actual column name
-		if err = pCtx.CheckColumn(table.Name, columnName); err != nil {
+		// or a column name from a child context
+		err := pCtx.CheckColumn(table.Name, columnName)
+		if err != nil {
 			return nil, err
 		}
-		columnInfo.Field = columnName
+		columnInfo.Name = columnName
 	} else {
-		columnInfo.Field = info.Field
+		columnInfo.Name = info.Name
 		columnInfo.Alias = info.Alias
 	}
 
 	// if the column isn't aliased, use the actual column name
 	// as the alias
 	if columnInfo.Alias == "" {
-		columnInfo.Alias = columnInfo.Field
+		columnInfo.Alias = columnInfo.Name
 	}
 
 	return columnInfo, nil

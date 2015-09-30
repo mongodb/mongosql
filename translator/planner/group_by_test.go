@@ -16,7 +16,7 @@ var (
 	_ fmt.Stringer = nil
 )
 
-func groupByTest(operator Operator, rows []bson.D, expectedRows [][]bson.D) {
+func groupByTest(operator Operator, rows []bson.D, expectedRows [][]types.Values) {
 
 	cfg, err := config.ParseConfigData(testConfigSimple)
 	So(err, ShouldBeNil)
@@ -124,10 +124,10 @@ func TestGroupByOperator(t *testing.T) {
 				matcher: matcher,
 			}
 
-			expected := [][]bson.D{
-				[]bson.D{
-					{{"a", evaluator.SQLNumeric(6)}},
-					{{"sum(b)", evaluator.SQLNumeric(15)}},
+			expected := [][]types.Values{
+				[]types.Values{
+					{{"a", "a", evaluator.SQLNumeric(6)}},
+					{{"sum(b)", "sum(b)", evaluator.SQLNumeric(15)}},
 				},
 			}
 

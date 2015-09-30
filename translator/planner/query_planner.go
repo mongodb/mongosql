@@ -6,6 +6,7 @@ import (
 	"github.com/erh/mongo-sql-temp/translator/evaluator"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
+	"strconv"
 	"strings"
 )
 
@@ -65,7 +66,7 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 }
 
 // planGroupBy returns a query execution plan for a group by clause.
-func planGroupBy(ast *sqlparser.Select, source *Select, selectExpressions SelectExpressions) (Operator, error) {
+func planGroupBy(ast *sqlparser.Select, source *Select, sExprs SelectExpressions) (Operator, error) {
 	groupBy := ast.GroupBy
 	having := ast.Having
 
@@ -74,7 +75,7 @@ func planGroupBy(ast *sqlparser.Select, source *Select, selectExpressions Select
 	}
 
 	gb := &GroupBy{
-		sExprs: selectExpressions,
+		sExprs: sExprs,
 	}
 
 	var expr sqlparser.Expr
@@ -90,31 +91,38 @@ func planGroupBy(ast *sqlparser.Select, source *Select, selectExpressions Select
 	gb.matcher = matcher
 
 	for _, valExpr := range groupBy {
-		expr, ok := sqlparser.Expr(valExpr).(*sqlparser.ColName)
-		if !ok {
-			return nil, fmt.Errorf("unsupported group by term: %T", valExpr)
-		}
+		expr := sqlparser.Expr(valExpr)
 
 		// a GROUP BY clause can't refer to nonaggregated columns in
 		// the select list that are not named in the GROUP BY clause
-		if !isValidGroupByTerm(gb.sExprs, expr) {
-			return nil, fmt.Errorf("group by term '%v' not in select list", string(expr.Name))
+		parsedExpr, err := getGroupByTerm(gb.sExprs, expr)
+		if err != nil {
+			return nil, err
 		}
 
-		gb.exprs = append(gb.exprs, expr)
+		gb.exprs = append(gb.exprs, parsedExpr)
 	}
 
 	nonAggFields := len(gb.sExprs) - len(gb.sExprs.AggFunctions())
 	if nonAggFields > len(gb.exprs) && len(groupBy) != 0 {
-		return nil, fmt.Errorf("can not have unused select expression with group by query")
+		var aggFuncs int
+		for _, sExpr := range gb.sExprs {
+			if hasAggFunctions(sExpr.Expr) {
+				aggFuncs += 1
+			}
+		}
+
+		if len(sExprs) > (len(gb.exprs) + aggFuncs) {
+			return nil, fmt.Errorf("can not have unused select expression with group by query")
+		}
 	}
 
 	// add any referenced columns to the select operator
-	for _, selectExpression := range source.sExprs {
-		if len(selectExpression.RefColumns) != 0 {
-			for _, column := range selectExpression.RefColumns {
-				newSelectExpression := SelectExpression{Column: *column}
-				source.sExprs = append(source.sExprs, newSelectExpression)
+	for _, sExpr := range source.sExprs {
+		if len(sExpr.RefColumns) != 0 {
+			for _, column := range sExpr.RefColumns {
+				newSExpr := SelectExpression{Column: *column}
+				source.sExprs = append(source.sExprs, newSExpr)
 			}
 		}
 	}
@@ -124,25 +132,43 @@ func planGroupBy(ast *sqlparser.Select, source *Select, selectExpressions Select
 	return gb, nil
 }
 
-// isValidGroupByTerm returns true if the column expression is valid as a group
+// getGroupByTerm returns true if the column expression is valid as a group
 // by term within a select column context.
-func isValidGroupByTerm(sExprs []SelectExpression, expr *sqlparser.ColName) bool {
-	for _, sExpr := range sExprs {
-		// TODO: support alias in group by term?
-		if len(sExpr.RefColumns) != 0 {
-			for _, column := range sExpr.RefColumns {
-				if column.Table == string(expr.Qualifier) && column.Name == string(expr.Name) {
-					return true
+func getGroupByTerm(sExprs []SelectExpression, gExpr sqlparser.Expr) (sqlparser.Expr, error) {
+
+	switch expr := gExpr.(type) {
+
+	case *sqlparser.ColName:
+		for _, sExpr := range sExprs {
+			if len(sExpr.RefColumns) != 0 {
+				for _, column := range sExpr.RefColumns {
+					if column.Table == string(expr.Qualifier) && column.Name == string(expr.Name) {
+						return gExpr, nil
+					}
+				}
+			} else {
+				if sExpr.Table == string(expr.Qualifier) && sExpr.Name == string(expr.Name) {
+					return gExpr, nil
 				}
 			}
-		} else {
-			if sExpr.Table == string(expr.Qualifier) && sExpr.Name == string(expr.Name) {
-				return true
-			}
 		}
+
+	case sqlparser.NumVal:
+		i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		if i < 1 || i > int64(len(sExprs)) {
+			return nil, fmt.Errorf("Unknown column '%v' in 'group statement'", i)
+		}
+
+		return sExprs[i-1].Expr, nil
+
 	}
 
-	return false
+	return nil, fmt.Errorf("Unsupported group by term: %T", gExpr)
+
 }
 
 // refColsInSelectExpr returns a slice of select columns - each holding
@@ -164,8 +190,6 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs) ([]SelectExpression, error
 			if err != nil {
 				return nil, err
 			}
-
-			// TODO: check referenced columns against table config
 
 			column := Column{View: string(expr.As)}
 
@@ -293,7 +317,7 @@ func planTableExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExpr, where *sqlparse
 
 	case *sqlparser.AliasedTableExpr:
 		// this is a simple table to get data from
-		return planSimpleTableExpr(ctx, expr.Expr, where)
+		return planSimpleTableExpr(ctx, expr, where)
 
 	case *sqlparser.ParenTableExpr:
 		return planTableExpr(ctx, expr.Expr, where)
@@ -387,14 +411,23 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 
 // planSimpleTableExpr takes a simple table expression and returns an operator that can iterate
 // over its result set.
-func planSimpleTableExpr(c *ExecutionCtx, s sqlparser.SimpleTableExpr, w *sqlparser.Where) (Operator, error) {
-	switch expr := s.(type) {
+func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlparser.Where) (Operator, error) {
+	switch expr := s.Expr.(type) {
 
 	case *sqlparser.TableName:
 		return planTableName(c, expr, w)
 
 	case *sqlparser.Subquery:
-		return PlanQuery(c, expr.Select)
+		source, err := PlanQuery(c, expr.Select)
+		if err != nil {
+			return nil, err
+		}
+
+		sq := &Subquery{
+			source:    source,
+			tableName: string(s.As),
+		}
+		return sq, nil
 
 	default:
 		return nil, fmt.Errorf("can't yet handle simple table expression type %T", expr)
@@ -517,4 +550,84 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 	}
 
 	return nil, fmt.Errorf("referenced columns (on %T) reached an unreachable point", e)
+}
+
+// hasAggFunctions returns true if expression e contains
+// an aggregate function and false otherwise.
+func hasAggFunctions(e sqlparser.Expr) bool {
+
+	log.Logf(log.DebugLow, "hasAggFunctions: %#v (type is %T)\n", e, e)
+
+	switch expr := e.(type) {
+
+	case sqlparser.ValTuple:
+		for _, valTuple := range expr {
+			if hasAggFunctions(valTuple) {
+				return true
+			}
+		}
+		return false
+
+	case sqlparser.NumVal, sqlparser.StrVal, *sqlparser.NullVal, *sqlparser.ColName:
+		return false
+
+	case *sqlparser.BinaryExpr:
+		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
+			return true
+		}
+		return false
+
+	case *sqlparser.AndExpr:
+
+		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
+			return true
+		}
+		return false
+
+	case *sqlparser.OrExpr:
+
+		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
+			return true
+		}
+		return false
+
+	case *sqlparser.ParenBoolExpr:
+
+		return hasAggFunctions(expr.Expr)
+
+	case *sqlparser.ComparisonExpr:
+
+		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
+			return true
+		}
+		return false
+
+	case *sqlparser.RangeCond:
+
+		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.From) || hasAggFunctions(expr.To) {
+			return true
+		}
+		return false
+
+	case *sqlparser.NullCheck:
+
+		return false
+
+	case *sqlparser.UnaryExpr:
+
+		return hasAggFunctions(expr.Expr)
+
+	case *sqlparser.NotExpr:
+
+		return hasAggFunctions(expr.Expr)
+
+	case *sqlparser.FuncExpr:
+
+		return true
+
+	default:
+		panic(fmt.Sprintf("hasAggFunctions NYI for: %T", expr))
+	}
+
+	panic(fmt.Sprintf("hasAggFunctions(on %T) reached an unreachable point", e))
 }

@@ -15,7 +15,7 @@ var (
 	_ fmt.Stringer = nil
 )
 
-func selectTest(operator Operator, rows, expectedRows []bson.D) {
+func selectTest(operator Operator, rows []bson.D, expectedRows []types.Values) {
 
 	cfg, err := config.ParseConfigData(testConfigSimple)
 	So(err, ShouldBeNil)
@@ -83,20 +83,24 @@ func TestSelectOperator(t *testing.T) {
 				},
 			}
 
-			selectTest(operator, rows, rows)
+			var expected []types.Values
+			for _, document := range rows {
+				expected = append(expected, bsonDToValues(document))
+			}
+			selectTest(operator, rows, expected)
 
 		})
 
 		Convey("a select operator from one table with non-star fields return the right columns requested", func() {
 
-			expectedRows := []bson.D{
-				bson.D{
-					{"a", evaluator.SQLNumeric(6)},
-					{"b", evaluator.SQLNumeric(7)},
+			expectedRows := []types.Values{
+				{
+					{"a", "a", evaluator.SQLNumeric(6)},
+					{"b", "b", evaluator.SQLNumeric(7)},
 				},
-				bson.D{
-					{"a", evaluator.SQLNumeric(16)},
-					{"b", evaluator.SQLNumeric(17)},
+				{
+					{"a", "a", evaluator.SQLNumeric(16)},
+					{"b", "b", evaluator.SQLNumeric(17)},
 				},
 			}
 

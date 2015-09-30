@@ -257,5 +257,24 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
 		})
 
+		Convey("a non-existent qualified star expression reference should fail", func() {
+
+			sql := `select dasd.* from (select * from foo) asd`
+
+			raw, err := sqlparser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+
+			cfg, err := config.ParseConfigData(testConfigSimple)
+			So(err, ShouldBeNil)
+
+			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			So(err, ShouldBeNil)
+
+			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
+		})
+
 	})
 }

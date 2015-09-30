@@ -83,28 +83,28 @@ type SelectExpression struct {
 
 type SelectExpressions []SelectExpression
 
-func (sc SelectExpressions) GetColumns() []*Column {
+func (se SelectExpressions) GetColumns() []*Column {
 	columns := make([]*Column, 0)
 
-	for _, selectExpression := range sc {
+	for _, selectExpression := range se {
 		columns = append(columns, selectExpression.RefColumns...)
 	}
 
 	return columns
 }
 
-func (sc SelectExpression) isAggFunc() bool {
-	_, ok := sc.Expr.(*sqlparser.FuncExpr)
+func (se SelectExpression) isAggFunc() bool {
+	_, ok := se.Expr.(*sqlparser.FuncExpr)
 	return ok
 }
 
-func (sc SelectExpressions) AggFunctions() SelectExpressions {
+func (se SelectExpressions) AggFunctions() SelectExpressions {
 
 	sExprs := SelectExpressions{}
 
-	for _, selectExpression := range sc {
-		if _, ok := selectExpression.Expr.(*sqlparser.FuncExpr); ok {
-			sExprs = append(sExprs, selectExpression)
+	for _, sExpr := range se {
+		if _, ok := sExpr.Expr.(*sqlparser.FuncExpr); ok {
+			sExprs = append(sExprs, sExpr)
 		}
 	}
 
@@ -132,4 +132,13 @@ func getKey(key string, doc bson.D) (interface{}, bool) {
 		return nil, false
 	}
 	return getKey(key[index+1:], subDoc)
+}
+
+// bsonDToValues takes a bson.D document and returns
+// the corresponding values.
+func bsonDToValues(document bson.D) (values []types.Value) {
+	for _, v := range document {
+		values = append(values, types.Value{v.Name, v.Name, v.Value})
+	}
+	return values
 }

@@ -4,7 +4,6 @@ import (
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/translator/evaluator"
 	"github.com/erh/mongo-sql-temp/translator/types"
-	"gopkg.in/mgo.v2/bson"
 )
 
 type Select struct {
@@ -59,16 +58,21 @@ func (s *Select) Next(r *types.Row) bool {
 		s.setSelectExpr()
 	}
 
-	data := map[string][]bson.DocElem{}
+	data := map[string][]types.Value{}
 
 	for _, expr := range s.sExprs {
-
-		t, v, err := s.getValue(expr, row)
+		v, err := s.getValue(expr, row)
 		if err != nil {
 			s.err = err
 			hasNext = false
 		}
-		data[t] = append(data[t], v)
+
+		value := types.Value{
+			Name: expr.Name,
+			View: expr.View,
+			Data: v,
+		}
+		data[expr.Table] = append(data[expr.Table], value)
 	}
 
 	for k, v := range data {
@@ -78,7 +82,7 @@ func (s *Select) Next(r *types.Row) bool {
 	return hasNext
 }
 
-func (s *Select) getValue(sc SelectExpression, row *types.Row) (string, bson.DocElem, error) {
+func (s *Select) getValue(sc SelectExpression, row *types.Row) (interface{}, error) {
 	// in the case where we have a bare select column and no expression
 	if sc.Expr == nil {
 		sc.Expr = &sqlparser.ColName{
@@ -89,13 +93,14 @@ func (s *Select) getValue(sc SelectExpression, row *types.Row) (string, bson.Doc
 
 	expr, err := evaluator.NewSQLValue(sc.Expr)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	evalCtx := &evaluator.EvalCtx{Rows: []types.Row{*row}}
-	v, err := expr.Evaluate(evalCtx)
+	evalCtx := &evaluator.EvalCtx{
+		Rows: []types.Row{*row},
+	}
 
-	return sc.Table, bson.DocElem{sc.Name, v}, err
+	return expr.Evaluate(evalCtx)
 }
 
 func (s *Select) OpFields() (columns []*Column) {
