@@ -11,13 +11,13 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-type Evalulator struct {
+type Evaluator struct {
 	cfg           *config.Config
 	globalSession *mgo.Session
 }
 
-func NewEvalulator(cfg *config.Config) (*Evalulator, error) {
-	e := new(Evalulator)
+func NewEvaluator(cfg *config.Config) (*Evaluator, error) {
+	e := new(Evaluator)
 	e.cfg = cfg
 
 	session, err := mgo.Dial(cfg.Url)
@@ -29,7 +29,7 @@ func NewEvalulator(cfg *config.Config) (*Evalulator, error) {
 	return e, nil
 }
 
-func (e *Evalulator) getSession() *mgo.Session {
+func (e *Evaluator) getSession() *mgo.Session {
 	if e.globalSession == nil {
 		panic("No global session has been set")
 	}
@@ -37,7 +37,7 @@ func (e *Evalulator) getSession() *mgo.Session {
 }
 
 // EvalSelect returns all rows matching the query.
-func (e *Evalulator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
+func (e *Evaluator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
 	log.Logf(log.DebugLow, "Evaluating select: %#v", stmt)
 
 	if stmt == nil {

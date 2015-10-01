@@ -12,7 +12,7 @@ import (
 
 type Server struct {
 	cfg  *config.Config
-	eval *translator.Evalulator
+	eval *translator.Evaluator
 
 	running bool
 
@@ -21,7 +21,7 @@ type Server struct {
 	schemas map[string]*config.Schema
 }
 
-func NewServer(cfg *config.Config, eval *translator.Evalulator) (*Server, error) {
+func NewServer(cfg *config.Config, eval *translator.Evaluator) (*Server, error) {
 	s := new(Server)
 
 	s.cfg = cfg

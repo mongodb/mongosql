@@ -31,15 +31,15 @@ func NewSQLField(value interface{}) (SQLValue, error) {
 
 	// TODO - handle overflow/precision of numeric types!
 	case int:
-		return SQLNumeric(float64(v)), nil
+		return SQLInt(v), nil
 	case int32: // NumberInt
-		return SQLNumeric(float64(v)), nil
+		return SQLInt(int64(v)), nil
 	case float64:
-		return SQLNumeric(float64(v)), nil
+		return SQLFloat(float64(v)), nil
 	case float32:
-		return SQLNumeric(float64(v)), nil
+		return SQLFloat(float64(v)), nil
 	case int64: // NumberLong
-		return SQLNumeric(float64(v)), nil
+		return SQLInt(v), nil
 	default:
 		panic(fmt.Errorf("can't convert this type to a SQLValue: %T", v))
 	}
@@ -110,23 +110,112 @@ func (sn SQLNullValue) MongoValue() interface{} {
 //
 // SQLNumeric
 //
-type SQLNumeric float64
+type SQLFloat float64
+type SQLInt int64
 
-func (sn SQLNumeric) Evaluate(_ *EvalCtx) (SQLValue, error) {
-	return sn, nil
+type SQLNumeric interface {
+	SQLValue
+	Add(o SQLNumeric) SQLNumeric
+	Sub(o SQLNumeric) SQLNumeric
+	Product(o SQLNumeric) SQLNumeric
+	Float64() float64
 }
 
-func (sn SQLNumeric) MongoValue() interface{} {
-	return float64(sn)
+func (sf SQLFloat) Add(o SQLNumeric) SQLNumeric {
+	return SQLFloat(float64(sf) + o.Float64())
 }
 
-func (sn SQLNumeric) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+func (si SQLInt) Add(o SQLNumeric) SQLNumeric {
+	if oi, ok := o.(SQLInt); ok {
+		return SQLInt(int64(si) + int64(oi))
+	}
+	return SQLFloat(si.Float64() + o.Float64())
+}
+
+func (sf SQLFloat) Float64() float64 {
+	return float64(sf)
+}
+
+func (si SQLInt) Float64() float64 {
+	return float64(si)
+}
+
+func (sf SQLFloat) Sub(o SQLNumeric) SQLNumeric {
+	return SQLFloat(float64(sf) - o.Float64())
+}
+
+func (si SQLInt) Sub(o SQLNumeric) SQLNumeric {
+	if oi, ok := o.(SQLInt); ok {
+		return SQLInt(int64(si) - int64(oi))
+	}
+	return SQLFloat(si.Float64() - o.Float64())
+}
+
+func (sf SQLFloat) Product(o SQLNumeric) SQLNumeric {
+	return SQLFloat(float64(sf) * o.Float64())
+}
+
+func (si SQLInt) Product(o SQLNumeric) SQLNumeric {
+	if oi, ok := o.(SQLInt); ok {
+		return SQLInt(int64(si) * int64(oi))
+	}
+	return SQLFloat(si.Float64() * o.Float64())
+}
+
+func (si SQLInt) Evaluate(_ *EvalCtx) (SQLValue, error) {
+	return si, nil
+}
+func (sf SQLFloat) Evaluate(_ *EvalCtx) (SQLValue, error) {
+	return sf, nil
+}
+
+func (sf SQLFloat) MongoValue() interface{} {
+	return float64(sf)
+}
+
+func (si SQLInt) MongoValue() interface{} {
+	return int64(si)
+}
+
+func (sf SQLFloat) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	c, err := v.Evaluate(ctx)
 	if err != nil {
 		return 0, err
 	}
 	if n, ok := c.(SQLNumeric); ok {
-		return int(float64(sn) - float64(n)), nil
+		cmp := sf.Float64() - n.Float64()
+		if cmp > 0 {
+			return 1, nil
+		} else if cmp < 0 {
+			return -1, nil
+		}
+		return 0, nil
+	}
+	// can only compare numbers to each other, otherwise treat as error
+	return -1, ErrTypeMismatch
+}
+
+func (si SQLInt) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	c, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if n, ok := c.(SQLInt); ok {
+		cmp := int64(si) - int64(n)
+		if cmp > 0 {
+			return 1, nil
+		} else if cmp < 0 {
+			return -1, nil
+		}
+		return 0, nil
+	} else if n, ok := c.(SQLFloat); ok {
+		cmp := si.Float64() - n.Float64()
+		if cmp > 0 {
+			return 1, nil
+		} else if cmp < 0 {
+			return -1, nil
+		}
+		return 0, nil
 	}
 	// can only compare numbers to each other, otherwise treat as error
 	return -1, ErrTypeMismatch
@@ -236,7 +325,7 @@ func (f *SQLFuncExpr) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
 }
 
 func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
-	var sum float64
+	var sum SQLNumeric = SQLInt(0)
 	count := 0
 	for _, row := range ctx.Rows {
 		evalCtx := &EvalCtx{Rows: []types.Row{row}}
@@ -266,7 +355,7 @@ func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 				count += 1
 				// TODO: ignoring if we can't convert this to a number
 				if n, ok := eval.(SQLNumeric); ok {
-					sum += float64(n)
+					sum = sum.Add(n)
 				}
 			default:
 				return nil, fmt.Errorf("unknown expression in avgFunc: %T", e)
@@ -274,11 +363,11 @@ func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 		}
 	}
 
-	return SQLNumeric(sum / float64(count)), nil
+	return SQLFloat(sum.Float64() / float64(count)), nil
 }
 
 func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
-	var sum float64
+	var sum SQLNumeric = SQLInt(0)
 	for _, row := range ctx.Rows {
 		evalCtx := &EvalCtx{Rows: []types.Row{row}}
 		for _, sExpr := range sExprs {
@@ -308,7 +397,7 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 
 				// TODO: ignoring if we can't convert this to a number
 				if n, ok := eval.(SQLNumeric); ok {
-					sum += float64(n)
+					sum = sum.Add(n)
 				}
 			default:
 				return nil, fmt.Errorf("unknown expression in sumFunc: %T", e)
@@ -316,7 +405,7 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 		}
 	}
 
-	return SQLNumeric(sum), nil
+	return sum, nil
 }
 
 func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
@@ -357,7 +446,7 @@ func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[inter
 			}
 		}
 	}
-	return SQLNumeric(count), nil
+	return SQLInt(count), nil
 }
 
 func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {

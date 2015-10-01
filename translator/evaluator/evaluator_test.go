@@ -59,7 +59,7 @@ func TestAggFuncSum(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(10))
+			So(value, ShouldResemble, SQLInt(10))
 		})
 
 		Convey("an error should be returned if the function is misspelt", func() {
@@ -105,7 +105,7 @@ func TestAggFuncSum(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(10))
+			So(value, ShouldResemble, SQLInt(10))
 		})
 	})
 }
@@ -133,7 +133,7 @@ func TestAggFuncAvg(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(2.5))
+			So(value, ShouldResemble, SQLFloat(2.5))
 		})
 
 		Convey("an error should be returned if the function is misspelt", func() {
@@ -179,7 +179,7 @@ func TestAggFuncAvg(t *testing.T) {
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(2.5))
+			So(value, ShouldResemble, SQLFloat(2.5))
 		})
 	})
 }
@@ -207,7 +207,7 @@ func TestAggFuncCount(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(4))
+			So(value, ShouldResemble, SQLInt(4))
 		})
 
 		Convey("an error should be returned if the function is misspelt", func() {
@@ -235,7 +235,7 @@ func TestAggFuncCount(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(4))
+			So(value, ShouldResemble, SQLInt(4))
 		})
 
 		Convey("nil values should be skipped", func() {
@@ -254,7 +254,7 @@ func TestAggFuncCount(t *testing.T) {
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(4))
+			So(value, ShouldResemble, SQLInt(4))
 		})
 	})
 }
@@ -282,7 +282,7 @@ func TestAggFuncMax(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(4))
+			So(value, ShouldResemble, SQLInt(4))
 		})
 
 		Convey("an error should be returned if the function is misspelt", func() {
@@ -328,7 +328,7 @@ func TestAggFuncMax(t *testing.T) {
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(4))
+			So(value, ShouldResemble, SQLInt(4))
 		})
 	})
 }
@@ -356,7 +356,7 @@ func TestAggFuncMin(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(1))
+			So(value, ShouldResemble, SQLInt(1))
 		})
 
 		Convey("an error should be returned if the function is misspelt", func() {
@@ -402,7 +402,7 @@ func TestAggFuncMin(t *testing.T) {
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(1))
+			So(value, ShouldResemble, SQLInt(1))
 		})
 	})
 }
@@ -431,7 +431,7 @@ func TestAggFuncDistinct(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(6))
+			So(value, ShouldResemble, SQLInt(6))
 		})
 
 		Convey("a correct evaluation should be returned for count", func() {
@@ -455,7 +455,7 @@ func TestAggFuncDistinct(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(3))
+			So(value, ShouldResemble, SQLInt(3))
 		})
 
 	})
@@ -491,7 +491,7 @@ func TestAggFuncComplex(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(17))
+			So(value, ShouldResemble, SQLInt(17))
 		})
 
 		Convey("a correct evaluation should be returned for avg", func() {
@@ -503,7 +503,7 @@ func TestAggFuncComplex(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(4.25))
+			So(value, ShouldResemble, SQLFloat(4.25))
 		})
 
 		Convey("a correct evaluation should be returned for count", func() {
@@ -515,7 +515,7 @@ func TestAggFuncComplex(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(4))
+			So(value, ShouldResemble, SQLInt(4))
 		})
 
 		Convey("a correct evaluation should be returned for max", func() {
@@ -527,7 +527,7 @@ func TestAggFuncComplex(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(6))
+			So(value, ShouldResemble, SQLInt(6))
 		})
 
 		Convey("a correct evaluation should be returned for min", func() {
@@ -539,7 +539,7 @@ func TestAggFuncComplex(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLNumeric(2))
+			So(value, ShouldResemble, SQLInt(2))
 		})
 
 	})

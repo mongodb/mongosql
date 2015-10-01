@@ -55,7 +55,7 @@ func main() {
 
 	log.SetVerbosity(&LogLevel{level: cfg.LogLevel})
 
-	evaluator, err := translator.NewEvalulator(cfg)
+	evaluator, err := translator.NewEvaluator(cfg)
 	if err != nil {
 		log.Logf(log.Always, "error starting evaluator")
 		log.Logf(log.Always, err.Error())

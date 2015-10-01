@@ -35,11 +35,16 @@ type EvalCtx struct {
 func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 	switch expr := gExpr.(type) {
 	case sqlparser.NumVal:
+		// try to parse as int first
+		if i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64); err == nil {
+			return SQLInt(i), nil
+		}
+		// if it's not a valid int, try parsing as float instead
 		f, err := strconv.ParseFloat(sqlparser.String(expr), 64)
 		if err != nil {
 			return nil, err
 		}
-		return SQLNumeric(f), nil
+		return SQLFloat(f), nil
 	case *sqlparser.ColName:
 		return SQLField{string(expr.Qualifier), string(expr.Name)}, nil
 	case sqlparser.StrVal:

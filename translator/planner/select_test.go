@@ -61,18 +61,9 @@ func selectTest(operator Operator, rows []bson.D, expectedRows []types.Values) {
 func TestSelectOperator(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
-
 		rows := []bson.D{
-			bson.D{
-				{"a", evaluator.SQLNumeric(6)},
-				{"b", evaluator.SQLNumeric(7)},
-				{"_id", evaluator.SQLNumeric(5)},
-			},
-			bson.D{
-				{"a", evaluator.SQLNumeric(16)},
-				{"b", evaluator.SQLNumeric(17)},
-				{"_id", evaluator.SQLNumeric(15)},
-			},
+			{{"a", evaluator.SQLInt(6)}, {"b", evaluator.SQLInt(7)}, {"_id", evaluator.SQLInt(5)}},
+			{{"a", evaluator.SQLInt(16)}, {"b", evaluator.SQLInt(17)}, {"_id", evaluator.SQLInt(15)}},
 		}
 
 		Convey("a select operator from one table with a star field return the right columns requested", func() {
@@ -88,19 +79,18 @@ func TestSelectOperator(t *testing.T) {
 				expected = append(expected, bsonDToValues(document))
 			}
 			selectTest(operator, rows, expected)
-
 		})
 
 		Convey("a select operator from one table with non-star fields return the right columns requested", func() {
 
 			expectedRows := []types.Values{
 				{
-					{"a", "a", evaluator.SQLNumeric(6)},
-					{"b", "b", evaluator.SQLNumeric(7)},
+					{"a", "a", evaluator.SQLInt(6)},
+					{"b", "b", evaluator.SQLInt(7)},
 				},
 				{
-					{"a", "a", evaluator.SQLNumeric(16)},
-					{"b", "b", evaluator.SQLNumeric(17)},
+					{"a", "a", evaluator.SQLInt(16)},
+					{"b", "b", evaluator.SQLInt(17)},
 				},
 			}
 

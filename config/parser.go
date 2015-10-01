@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
-	"path/filepath"
 	"github.com/siddontang/go-yaml/yaml"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 )
 
@@ -56,7 +56,7 @@ func ParseConfigFile(fileName string) (*Config, error) {
 			return nil, err
 		}
 
-		for _, f := range(files) {
+		for _, f := range files {
 			if f.IsDir() {
 				continue
 			}
@@ -73,10 +73,10 @@ func ParseConfigFile(fileName string) (*Config, error) {
 			if err != nil {
 				return nil, err
 			}
-			
+
 		}
 	}
-	
+
 	return cfg, nil
 }
 

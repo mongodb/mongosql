@@ -65,14 +65,14 @@ func TestHavingOperator(t *testing.T) {
 
 		data := []bson.D{
 			bson.D{
-				{"_id", evaluator.SQLNumeric(1)},
-				{"a", evaluator.SQLNumeric(6)},
-				{"b", evaluator.SQLNumeric(7)},
+				{"_id", evaluator.SQLInt(1)},
+				{"a", evaluator.SQLInt(6)},
+				{"b", evaluator.SQLInt(7)},
 			},
 			bson.D{
-				{"_id", evaluator.SQLNumeric(2)},
-				{"a", evaluator.SQLNumeric(6)},
-				{"b", evaluator.SQLNumeric(8)},
+				{"_id", evaluator.SQLInt(2)},
+				{"a", evaluator.SQLInt(6)},
+				{"b", evaluator.SQLInt(8)},
 			},
 		}
 
@@ -136,8 +136,8 @@ func TestHavingOperator(t *testing.T) {
 
 			expected := [][]types.Values{
 				[]types.Values{
-					{{"a", "a", evaluator.SQLNumeric(6)}},
-					{{"sum(b)", "sum(b)", evaluator.SQLNumeric(15)}},
+					{{"a", "a", evaluator.SQLInt(6)}},
+					{{"sum(b)", "sum(b)", evaluator.SQLInt(15)}},
 				},
 			}
 

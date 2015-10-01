@@ -100,7 +100,7 @@ schema :
 	if cfg.Schemas["test1"].Tables["foo"].Columns[0].Name != "a" {
 		t.Fatal("test1.foo.a name wrong")
 	}
-	
+
 	testBar := cfg.Schemas["test2"].Tables["bar"]
 	if len(testBar.Pipeline) != 2 {
 		t.Fatal("test2.bar pipeline is wrong length")
@@ -160,7 +160,7 @@ schema:
      table: bar2
      collection: test.bar2
 `)
-	
+
 	cfg, err := ParseConfigData(testConfigDataRoot)
 	if err != nil {
 		t.Fatal(err)
@@ -174,7 +174,7 @@ schema:
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	if len(cfg.RawSchemas) != 2 {
 		t.Fatal(cfg)
 	}
@@ -210,7 +210,7 @@ schema:
 	if cfg.Schemas["test1"].Tables["foo"].Columns[0].Name != "a" {
 		t.Fatal("test1.foo.a name wrong")
 	}
-	
+
 	testBar := cfg.Schemas["test2"].Tables["bar"]
 	if len(testBar.Pipeline) != 2 {
 		t.Fatal("test2.bar pipeline is wrong length")
@@ -290,7 +290,7 @@ schema:
         type: string
 
 `)
-	
+
 	cfg, err := ParseConfigData(testConfigDataRoot)
 	if err != nil {
 		t.Fatal(err)
@@ -314,7 +314,7 @@ schema:
 	if cfg.Schemas["test3"] == nil {
 		t.Fatal("where is test3")
 	}
-	
+
 	if len(cfg.RawSchemas) != 3 {
 		t.Fatal(cfg)
 	}
@@ -380,7 +380,7 @@ schema:
         type: string
 
 `)
-	
+
 	cfg, err := ParseConfigData(testConfigDataRoot)
 	if err != nil {
 		t.Fatal(err)
@@ -397,24 +397,24 @@ schema:
 
 }
 
-func _testComputeDirectory(t* testing.T, file string, dir string, correct string) {
+func _testComputeDirectory(t *testing.T, file string, dir string, correct string) {
 	output := computeDirectory(file, dir)
 	if output != correct {
 		t.Fatalf("computeDirectory wrong (%s) (%s) -> (%s) != (%s)(correct)", file, dir, output, correct)
 	}
 }
 
-func TestComputeDirectory(t* testing.T) {
+func TestComputeDirectory(t *testing.T) {
 	_testComputeDirectory(t, "asd", "/a", "/a")
 	_testComputeDirectory(t, "foo.conf", "/a", "/a")
 	_testComputeDirectory(t, "/b/foo.conf", "/a", "/a")
 	_testComputeDirectory(t, "/b/foo.conf", "a", "/b/a")
 }
 
-func TestReadFile(t* testing.T) {
+func TestReadFile(t *testing.T) {
 	cfg, err := ParseConfigFile("test_data/foo.conf")
 	if err != nil {
-		t.Fatal(err);
+		t.Fatal(err)
 	}
 
 	if cfg.SchemaDir != "sub" {
@@ -425,4 +425,3 @@ func TestReadFile(t* testing.T) {
 		t.Fatalf("num RawSchemas wrong: %d", len(cfg.RawSchemas))
 	}
 }
-

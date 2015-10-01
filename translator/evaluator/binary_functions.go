@@ -38,7 +38,8 @@ func (sqlfunc *SQLBinaryExprValue) MongoValue() interface{} {
 
 var binaryFuncMap = map[string]SQLBinaryFunction{
 	"+": SQLBinaryFunction(func(args []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-		sum := float64(0)
+		var sum SQLNumeric
+		sum = SQLInt(0)
 		for _, arg := range args {
 			c, err := arg.Evaluate(ctx)
 			if err != nil {
@@ -46,7 +47,7 @@ var binaryFuncMap = map[string]SQLBinaryFunction{
 			}
 			switch v := c.(type) {
 			case SQLNumeric:
-				sum = sum + float64(v)
+				sum = sum.Add(v)
 			case SQLNullValue:
 				// treat null as 0
 				continue
@@ -54,13 +55,13 @@ var binaryFuncMap = map[string]SQLBinaryFunction{
 				return nil, fmt.Errorf("illegal argument: not numeric")
 			}
 		}
-		return SQLNumeric(sum), nil
+		return sum, nil
 	}),
 	"-": SQLBinaryFunction(func(args []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		if len(args) < 2 {
 			return nil, fmt.Errorf("- function needs at least 2 args")
 		}
-		var diff *float64
+		var diff *SQLNumeric
 		for _, arg := range args {
 			c, err := arg.Evaluate(ctx)
 			if err != nil {
@@ -69,10 +70,10 @@ var binaryFuncMap = map[string]SQLBinaryFunction{
 			switch v := c.(type) {
 			case SQLNumeric:
 				if diff == nil {
-					diff = new(float64)
-					*diff = float64(v)
+					diff = &v
 				} else {
-					*diff = *diff - float64(v)
+					d := (*diff).Sub(v)
+					diff = &d
 				}
 			case SQLNullValue:
 				// treat null as 0
@@ -81,13 +82,13 @@ var binaryFuncMap = map[string]SQLBinaryFunction{
 				return nil, fmt.Errorf("illegal argument: not numeric")
 			}
 		}
-		return SQLNumeric(*diff), nil
+		return *diff, nil
 	}),
 	"*": SQLBinaryFunction(func(args []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		if len(args) < 2 {
 			return nil, fmt.Errorf("* function needs at least 2 args")
 		}
-		product := float64(1)
+		var product SQLNumeric = SQLFloat(1)
 		for _, arg := range args {
 			c, err := arg.Evaluate(ctx)
 			if err != nil {
@@ -95,7 +96,7 @@ var binaryFuncMap = map[string]SQLBinaryFunction{
 			}
 			switch v := c.(type) {
 			case SQLNumeric:
-				product = product * float64(v)
+				product = product.Product(v)
 			case SQLNullValue:
 				// treat null as 0
 				continue
@@ -126,9 +127,9 @@ var binaryFuncMap = map[string]SQLBinaryFunction{
 			return nil, fmt.Errorf("both args to / must be numeric")
 		}
 
-		if float64(right) == 0 {
+		if right.Float64() == 0 {
 			return nil, fmt.Errorf("divide by zero")
 		}
-		return SQLNumeric(float64(left) / float64(right)), nil
+		return SQLFloat(left.Float64() / right.Float64()), nil
 	}),
 }

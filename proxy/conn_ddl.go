@@ -2,8 +2,8 @@ package proxy
 
 import (
 	"fmt"
-	"strings"
 	"github.com/erh/mixer/sqlparser"
+	"strings"
 )
 
 func (c *Conn) handleDDL(ddl *sqlparser.DDL) error {

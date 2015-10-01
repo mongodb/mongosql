@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 	. "github.com/siddontang/mixer/mysql"
-	"github.com/erh/mixer/sqlparser"
 	"strings"
 )
 
@@ -75,6 +75,6 @@ func (c *Conn) handleSetCharacterResults(val sqlparser.ValExpr) error {
 	case *sqlparser.NullVal:
 		return c.writeOK(nil)
 	default:
-		return fmt.Errorf("do not know how to set CHARACTER_SET_RESULTS to: %T %s", expr,sqlparser.String(expr))
+		return fmt.Errorf("do not know how to set CHARACTER_SET_RESULTS to: %T %s", expr, sqlparser.String(expr))
 	}
 }

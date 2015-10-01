@@ -3,8 +3,8 @@ package proxy
 import (
 	"encoding/binary"
 	"fmt"
-	. "github.com/siddontang/mixer/mysql"
 	"github.com/erh/mixer/sqlparser"
+	. "github.com/siddontang/mixer/mysql"
 	"math"
 	"strconv"
 	//"strings"
@@ -40,73 +40,73 @@ func (s *Stmt) ResetParams() {
 
 func (c *Conn) handleStmtPrepare(sql string) error {
 	/*
-	if c.schema == nil {
-		return NewDefaultError(ER_NO_DB_ERROR)
-	}
-
-	s := new(Stmt)
-
-	sql = strings.TrimRight(sql, ";")
-
-	var err error
-	s.s, err = sqlparser.Parse(sql)
-	if err != nil {
-		return fmt.Errorf(`parse sql "%s" error`, sql)
-	}
-
-	s.sql = sql
-
-	var tableName string
-	switch s := s.s.(type) {
-	case *sqlparser.Select:
-		tableName = nstring(s.From)
-	case *sqlparser.Insert:
-		tableName = nstring(s.Table)
-	case *sqlparser.Update:
-		tableName = nstring(s.Table)
-	case *sqlparser.Delete:
-		tableName = nstring(s.Table)
-	case *sqlparser.Replace:
-		tableName = nstring(s.Table)
-	default:
-		return fmt.Errorf(`unsupport prepare sql "%s"`, sql)
-	}
-
-	r := c.schema.rule.GetRule(tableName)
-
-	n := c.server.getNode(r.Nodes[0])
-
-	if co, err := n.getMasterConn(); err != nil {
-		return fmt.Errorf("prepare error %s", err)
-	} else {
-		defer co.Close()
-
-		if err = co.UseDB(c.schema.db); err != nil {
-			return fmt.Errorf("parepre error %s", err)
+		if c.schema == nil {
+			return NewDefaultError(ER_NO_DB_ERROR)
 		}
 
-		if t, err := co.Prepare(sql); err != nil {
-			return fmt.Errorf("parepre error %s", err)
+		s := new(Stmt)
+
+		sql = strings.TrimRight(sql, ";")
+
+		var err error
+		s.s, err = sqlparser.Parse(sql)
+		if err != nil {
+			return fmt.Errorf(`parse sql "%s" error`, sql)
+		}
+
+		s.sql = sql
+
+		var tableName string
+		switch s := s.s.(type) {
+		case *sqlparser.Select:
+			tableName = nstring(s.From)
+		case *sqlparser.Insert:
+			tableName = nstring(s.Table)
+		case *sqlparser.Update:
+			tableName = nstring(s.Table)
+		case *sqlparser.Delete:
+			tableName = nstring(s.Table)
+		case *sqlparser.Replace:
+			tableName = nstring(s.Table)
+		default:
+			return fmt.Errorf(`unsupport prepare sql "%s"`, sql)
+		}
+
+		r := c.schema.rule.GetRule(tableName)
+
+		n := c.server.getNode(r.Nodes[0])
+
+		if co, err := n.getMasterConn(); err != nil {
+			return fmt.Errorf("prepare error %s", err)
 		} else {
+			defer co.Close()
 
-			s.params = t.ParamNum()
-			s.columns = t.ColumnNum()
+			if err = co.UseDB(c.schema.db); err != nil {
+				return fmt.Errorf("parepre error %s", err)
+			}
+
+			if t, err := co.Prepare(sql); err != nil {
+				return fmt.Errorf("parepre error %s", err)
+			} else {
+
+				s.params = t.ParamNum()
+				s.columns = t.ColumnNum()
+			}
 		}
-	}
 
-	s.id = c.stmtId
-	c.stmtId++
+		s.id = c.stmtId
+		c.stmtId++
 
-	if err = c.writePrepare(s); err != nil {
-		return err
-	}
+		if err = c.writePrepare(s); err != nil {
+			return err
+		}
 
-	s.ResetParams()
+		s.ResetParams()
 
-	c.stmts[s.id] = s
+		c.stmts[s.id] = s
 
-	return nil
-*/
+		return nil
+	*/
 	return fmt.Errorf("handleStmtPrepare broken")
 }
 

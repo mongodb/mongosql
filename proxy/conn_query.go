@@ -2,12 +2,12 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/erh/mixer/sqlparser"
+	"github.com/erh/mongo-sql-temp/translator"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/siddontang/mixer/client"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
-	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/translator"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -16,7 +16,7 @@ import (
 
 func (c *Conn) handleQuery(sql string) (err error) {
 	log.Logf(log.Always, "---- handleQuery: %s\n", sql)
-	
+
 	defer func() {
 		if e := recover(); e != nil {
 			log.Logf(log.Always, "%s\n", debug.Stack())
@@ -183,7 +183,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	if c.currentSchema != nil {
 		currentDB = c.currentSchema.DB
 	}
-	
+
 	names, values, err := c.server.eval.EvalSelect(currentDB, sql, stmt)
 	if err != nil {
 		return err

@@ -83,4 +83,3 @@ func (gfr EmptyFindResults) Err() error {
 func (gfr EmptyFindResults) Close() error {
 	return nil
 }
-

@@ -58,7 +58,7 @@ func TestMatcherBuilder(t *testing.T) {
 					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
 					&Or{
 						[]Matcher{
-							&GreaterThan{SQLField{"bar", "b"}, SQLNumeric(1.0)},
+							&GreaterThan{SQLField{"bar", "b"}, SQLInt(1)},
 							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
 						},
 					},
@@ -75,7 +75,7 @@ func TestMatcherBuilder(t *testing.T) {
 					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
 					&Or{
 						[]Matcher{
-							&GreaterThan{SQLField{"bar", "b"}, SQLNumeric(13.0)},
+							&GreaterThan{SQLField{"bar", "b"}, SQLInt(13)},
 							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
 						},
 					},
@@ -110,7 +110,7 @@ func TestComparisonMatchers(t *testing.T) {
 	}
 
 	tests := []compareTest{
-		{SQLNumeric(1000.0), SQLNumeric(5000.0)},
+		{SQLFloat(1000.0), SQLFloat(5000.0)},
 		{SQLString("aaa"), SQLString("bbb")},
 		{SQLField{"bar", "a"}, SQLField{"bar", "y"}},
 	}

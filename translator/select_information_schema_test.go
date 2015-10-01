@@ -14,7 +14,7 @@ func TestConfigScanOperatorSelect(t *testing.T) {
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
 
-		eval, err := NewEvalulator(cfg)
+		eval, err := NewEvaluator(cfg)
 		So(err, ShouldBeNil)
 
 		_, values, err := eval.EvalSelect("information_schema", "select * from columns", nil)
@@ -39,7 +39,7 @@ func TestConfigScanOperatorTablesSelect(t *testing.T) {
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
 
-		eval, err := NewEvalulator(cfg)
+		eval, err := NewEvaluator(cfg)
 		So(err, ShouldBeNil)
 
 		_, values, err := eval.EvalSelect("", "select * from information_schema.TABLES", nil)
@@ -75,7 +75,7 @@ func TestConfigKeyColumnUsage(t *testing.T) {
 		cfg, err := config.ParseConfigData(testConfigSimple)
 		So(err, ShouldBeNil)
 
-		eval, err := NewEvalulator(cfg)
+		eval, err := NewEvaluator(cfg)
 		So(err, ShouldBeNil)
 
 		_, values, err := eval.EvalSelect("information_schema", "select * from KEY_COLUMN_USAGE", nil)
