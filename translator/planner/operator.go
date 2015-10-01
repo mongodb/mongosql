@@ -79,6 +79,14 @@ type SelectExpression struct {
 	// expression.
 	//
 	Expr sqlparser.Expr
+	// Referenced indicates if this column is part of the select expressions
+	// by way of being referenced - as opposed to be explicitly requested. e.g.
+	// in the expression:
+	//
+	// select name, (discount * price) as discountRate from foo;
+	//
+	// the 'discount' and 'price' columns are referenced
+	Referenced bool
 }
 
 type SelectExpressions []SelectExpression

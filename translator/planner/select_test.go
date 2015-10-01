@@ -110,8 +110,8 @@ func TestSelectOperator(t *testing.T) {
 			}
 
 			sExprs := SelectExpressions{
-				{columns[0], nil, nil},
-				{columns[1], nil, nil},
+				{columns[0], nil, nil, false},
+				{columns[1], nil, nil, false},
 			}
 
 			operator := &Select{

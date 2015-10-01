@@ -513,11 +513,17 @@ func TestSelectWithHaving(t *testing.T) {
 
 		})
 
-		Convey("an error should be returned if a having clause is used without a group by clause", func() {
+		Convey("should work even if no group by clause exists", func() {
 
-			_, _, err := eval.EvalSelect("test", "select a, sum(b) from bar having sum(b) > 3", nil)
-			So(err, ShouldNotBeNil)
+			names, values, err := eval.EvalSelect("test", "select a, sum(b) from bar having sum(b) > 3", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
 
+			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(25))
 		})
 	})
 }

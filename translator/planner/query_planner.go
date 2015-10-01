@@ -43,7 +43,7 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		}
 	}
 
-	// handle select expressions
+	// handle SELECT expression
 	s := &Select{source: operator}
 
 	s.sExprs, err = refColsInSelectStmt(ast)
@@ -51,9 +51,10 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		return nil, err
 	}
 
-	// handle GROUP BY and HAVING expressions or aggregate functions in select expression
-	if len(ast.GroupBy) != 0 || len(s.sExprs.AggFunctions()) != 0 {
-		operator, err = planGroupBy(ast, s, s.sExprs)
+	// handle GROUP BY expressions or aggregate functions in select expression
+	aggSelect := (len(s.sExprs.AggFunctions()) != 0 && ast.Having == nil)
+	if len(ast.GroupBy) != 0 || aggSelect {
+		operator, err = planGroupBy(ast, s)
 		if err != nil {
 			return nil, err
 		}
@@ -61,21 +62,25 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		operator = s
 	}
 
+	// handle HAVING expression
+	if ast.Having != nil && len(ast.GroupBy) == 0 {
+		operator, err = planHaving(ast.Having, s)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return operator, nil
 
 }
 
-// planGroupBy returns a query execution plan for a group by clause.
-func planGroupBy(ast *sqlparser.Select, source *Select, sExprs SelectExpressions) (Operator, error) {
+// planGroupBy returns a query execution plan for a GROUP BY clause.
+func planGroupBy(ast *sqlparser.Select, s *Select) (Operator, error) {
 	groupBy := ast.GroupBy
 	having := ast.Having
 
-	if having != nil && len(groupBy) == 0 {
-		return nil, fmt.Errorf("HAVING clause must follow A GROUP BY clause")
-	}
-
 	gb := &GroupBy{
-		sExprs: sExprs,
+		sExprs: s.sExprs,
 	}
 
 	var expr sqlparser.Expr
@@ -112,24 +117,55 @@ func planGroupBy(ast *sqlparser.Select, source *Select, sExprs SelectExpressions
 			}
 		}
 
-		if len(sExprs) > (len(gb.exprs) + aggFuncs) {
-			return nil, fmt.Errorf("can not have unused select expression with group by query")
+		if len(s.sExprs) > (len(gb.exprs) + aggFuncs) {
+			return nil, fmt.Errorf("can't have unused select expression with group by query")
 		}
 	}
 
 	// add any referenced columns to the select operator
-	for _, sExpr := range source.sExprs {
+	for _, sExpr := range s.sExprs {
 		if len(sExpr.RefColumns) != 0 {
 			for _, column := range sExpr.RefColumns {
-				newSExpr := SelectExpression{Column: *column}
-				source.sExprs = append(source.sExprs, newSExpr)
+				newSExpr := SelectExpression{Column: *column, Referenced: true}
+				s.sExprs = append(s.sExprs, newSExpr)
 			}
 		}
 	}
 
-	gb.source = source
+	gb.source = s
 
 	return gb, nil
+}
+
+// planHaving returns a query execution plan for a HAVING clause.
+func planHaving(having *sqlparser.Where, s *Select) (Operator, error) {
+
+	// create a matcher that can evaluate the HAVING expression
+	matcher, err := evaluator.BuildMatcher(having.Expr)
+	if err != nil {
+		return nil, err
+	}
+
+	// add any referenced columns to the select operator
+	var newSExprs SelectExpressions
+	for _, sExpr := range s.sExprs {
+		if len(sExpr.RefColumns) != 0 {
+			for _, column := range sExpr.RefColumns {
+				newSExpr := SelectExpression{Column: *column, Referenced: true}
+				newSExprs = append(newSExprs, newSExpr)
+			}
+		}
+	}
+
+	s.sExprs = append(s.sExprs, newSExprs...)
+
+	hv := &Having{
+		sExprs:  s.sExprs,
+		source:  s,
+		matcher: matcher,
+	}
+
+	return hv, nil
 }
 
 // getGroupByTerm returns true if the column expression is valid as a group
@@ -193,7 +229,7 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs) ([]SelectExpression, error
 
 			column := Column{View: string(expr.As)}
 
-			selectExpression := SelectExpression{column, columns, expr.Expr}
+			selectExpression := SelectExpression{column, columns, expr.Expr, false}
 
 			if c, ok := expr.Expr.(*sqlparser.ColName); ok {
 				selectExpression.Table = string(c.Qualifier)

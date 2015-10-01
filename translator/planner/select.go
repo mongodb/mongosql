@@ -126,7 +126,7 @@ func (s *Select) Err() error {
 
 func (s *Select) setSelectExpr() {
 	for _, column := range s.source.OpFields() {
-		sExpr := SelectExpression{*column, []*Column{column}, nil}
+		sExpr := SelectExpression{*column, []*Column{column}, nil, false}
 		s.sExprs = append(s.sExprs, sExpr)
 	}
 }

@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/erh/mixer/sqlparser"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
-	"github.com/erh/mixer/sqlparser"
 	"sort"
 	"strings"
 )
@@ -45,7 +45,7 @@ func (c *Conn) handleShowTables(sql string, stmt *sqlparser.Show) (*Resultset, e
 	if c.currentSchema == nil {
 		return nil, fmt.Errorf("no db select for show tables")
 	}
-	
+
 	var tables []string
 	for table, _ := range c.currentSchema.Tables {
 		tables = append(tables, table)
@@ -64,10 +64,10 @@ func (c *Conn) handleShowTables(sql string, stmt *sqlparser.Show) (*Resultset, e
 func (c *Conn) handleShowVariables(sql string, stmt *sqlparser.Show) (*Resultset, error) {
 	variables := make([]interface{}, 0)
 	/*
-	for key := range c.server.schemas {
-		dbs = append(dbs, key)
-	}
-*/
+		for key := range c.server.schemas {
+			dbs = append(dbs, key)
+		}
+	*/
 	return c.buildSimpleShowResultset(variables, "Variable")
 }
 
@@ -75,7 +75,7 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 
 	db := c.db
 	table := ""
-	
+
 	switch f := stmt.From.(type) {
 	case sqlparser.StrVal:
 		table = string(f)
@@ -112,21 +112,21 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 	if len(tableConfig.Columns) == 0 {
 		return nil, fmt.Errorf("no configured columns")
 	}
-	
-	//fmt.Printf(" db (%s) table (%s)\n", db, table)
-	
-    full := strings.ToLower(stmt.Modifier) == "full" 
 
-	values := make([][]interface{},len(tableConfig.Columns))
-	names := []string{ "Field", "Type", "Null", "Key", "Default", "Extra"}
+	//fmt.Printf(" db (%s) table (%s)\n", db, table)
+
+	full := strings.ToLower(stmt.Modifier) == "full"
+
+	values := make([][]interface{}, len(tableConfig.Columns))
+	names := []string{"Field", "Type", "Null", "Key", "Default", "Extra"}
 
 	if full {
-		names = append(names, []string{ "Collation", "Privileges", "Comment" }...)
+		names = append(names, []string{"Collation", "Privileges", "Comment"}...)
 	}
 
 	fmt.Printf("col: %s\n", tableConfig.Columns)
-	
-	for num, col := range(tableConfig.Columns) {
+
+	for num, col := range tableConfig.Columns {
 		row := make([]interface{}, len(names))
 		row[0] = col.Name
 		row[1] = col.MysqlType
@@ -146,7 +146,7 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 	}
 
 	fmt.Printf("hi\n%s\n%s\n", names, values)
-	
+
 	return c.buildResultset(names, values)
 }
 
