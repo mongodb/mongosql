@@ -15,7 +15,9 @@ func formatValue(value interface{}) ([]byte, error) {
 	switch v := value.(type) {
 	case evaluator.SQLString:
 		return hack.Slice(string(v)), nil
-	case evaluator.SQLNumeric:
+	case evaluator.SQLInt:
+		return strconv.AppendInt(nil, int64(v), 10), nil
+	case evaluator.SQLFloat:
 		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
 	case evaluator.SQLNullValue:
 		return nil, nil
