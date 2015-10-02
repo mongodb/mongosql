@@ -13,6 +13,7 @@ buildvariants:
   - name: config
   - name: planner
   - name: translator
+  - name: dist
 
 pre:
   - command: shell.track
@@ -259,6 +260,22 @@ tasks:
     - func: "generate coverage txt"
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
+
+- name: dist
+  commands:
+    - func: "fetch source"
+    - func: "apply patches"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          . ./set_gopath.sh
+          set -e
+          go build connector/main.go
 
 - name: translator
   commands:
