@@ -47,7 +47,7 @@ func (row *Row) GetField(table, name string) (interface{}, bool) {
 }
 
 func (values Values) Map() map[string]interface{} {
-	m := make(map[string]interface{}, len(values))
+	m := make(map[string]interface{}, 0)
 	for _, value := range values {
 		m[value.Name] = value.Data
 	}
