@@ -25,7 +25,7 @@ func (hv *Having) Open(ctx *ExecutionCtx) error {
 	return hv.source.Open(ctx)
 }
 
-func (hv *Having) pageInSource() error {
+func (hv *Having) fetchData() error {
 
 	hv.data = []types.Row{}
 
@@ -82,7 +82,11 @@ func (hv *Having) evalResult() (*types.Row, error) {
 func (hv *Having) Next(row *types.Row) bool {
 	hv.hasNext = !hv.hasNext
 
-	if err := hv.pageInSource(); err != nil {
+	if !hv.hasNext {
+		return false
+	}
+
+	if err := hv.fetchData(); err != nil {
 		hv.err = err
 		return false
 	}
@@ -100,7 +104,7 @@ func (hv *Having) Next(row *types.Row) bool {
 		return false
 	}
 
-	return hv.hasNext
+	return true
 }
 
 func (hv *Having) OpFields() (columns []*Column) {
