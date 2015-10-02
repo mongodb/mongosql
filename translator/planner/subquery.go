@@ -32,7 +32,6 @@ func (sq *Subquery) Next(row *types.Row) bool {
 		var values types.Values
 
 		for _, value := range tableRow.Values {
-			// name is referenced by view in outer context
 			value.Name = value.View
 			values = append(values, value)
 		}
@@ -51,7 +50,8 @@ func (sq *Subquery) Next(row *types.Row) bool {
 func (sq *Subquery) OpFields() (columns []*Column) {
 	for _, expr := range sq.source.OpFields() {
 		column := &Column{
-			Name:  expr.Name,
+			// name is referenced by view in outer context
+			Name:  expr.View,
 			View:  expr.View,
 			Table: sq.tableName,
 		}

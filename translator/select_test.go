@@ -707,5 +707,18 @@ func TestSelectFromSubquery(t *testing.T) {
 			_, _, err := eval.EvalSelect("test", "select bar._id as x, c as y from (select * from bar) t0", nil)
 			So(err, ShouldNotBeNil)
 		})
+
+		Convey("unqualified star select expressions should return the correct results in order", func() {
+			names, values, err := eval.EvalSelect("test", "select * from (select * from bar) t0", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(values[0][0], ShouldResemble, evaluator.SQLNumeric(7))
+			So(values[0][1], ShouldResemble, evaluator.SQLNumeric(6))
+			So(values[0][2], ShouldResemble, evaluator.SQLNumeric(5))
+			So(values[0][3], ShouldResemble, evaluator.SQLNullValue{})
+		})
 	})
 }
