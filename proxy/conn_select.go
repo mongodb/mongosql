@@ -24,7 +24,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 	var f *sqlparser.FuncExpr
 	f, ok = expr.Expr.(*sqlparser.FuncExpr)
 	if !ok {
-		return fmt.Errorf("support SimpleSelect FuncExpr, %s", sql)
+		return fmt.Errorf("support SimpleSelect FuncExpr, %s %T", sql, expr)
 	}
 
 	var r *Resultset

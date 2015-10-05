@@ -275,7 +275,7 @@ tasks:
           fi;
           . ./set_gopath.sh
           set -e
-          go build connector/main.go
+          go build connector/main/main.go
 
 - name: translator
   commands:

@@ -5,6 +5,7 @@ import (
 	"github.com/erh/mongo-sql-temp/translator"
 	"github.com/mongodb/mongo-tools/common/log"
 
+	"fmt"
 	"net"
 	"runtime"
 	"strings"
