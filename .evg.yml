@@ -309,7 +309,7 @@ tasks:
             set -o igncr
           fi;
           . ./set_gopath.sh
-          cd connector
+          cd translator
           mkfifo test_pipe
           tee -a translator.suite < test_pipe&
           go test -v -coverprofile=coverage.out > test_pipe
