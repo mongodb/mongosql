@@ -278,7 +278,7 @@ tasks:
           set -e
           go build connector/main/main.go
 
-- name: roundtrip
+- name: connector
   commands:
     - func: "start mongod"
     - func: "fetch source"
