@@ -170,9 +170,7 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 			pCtx.NonStarAlias = ""
 		}
 
-		if !pCtx.Columns.Contains(columnInfo) {
-			pCtx.Columns = append(pCtx.Columns, *columnInfo)
-		}
+		pCtx.Columns = append(pCtx.Columns, *columnInfo)
 
 		expr.Name = []byte(columnInfo.Name)
 		expr.Qualifier = []byte(columnInfo.Table)
@@ -470,9 +468,7 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 
 				table := NewTableInfo(alias, db, tableName, false)
 
-				if !pCtx.Tables.Contains(table) {
-					tables = append(tables, table)
-				}
+				tables = append(tables, table)
 
 			case *sqlparser.Subquery:
 
