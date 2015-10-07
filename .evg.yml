@@ -12,6 +12,7 @@ buildvariants:
   - name: evaluator
   - name: config
   - name: planner
+  - name: connector
   - name: translator
   - name: dist
 
@@ -277,6 +278,23 @@ tasks:
           set -e
           go build connector/main/main.go
 
+- name: roundtrip
+  commands:
+    - func: "start mongod"
+    - func: "fetch source"
+    - func: "apply patches"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          . ./set_gopath.sh
+          cd connector
+          go test -v -coverprofile=coverage.out
+
 - name: translator
   commands:
     - func: "start mongod"
@@ -291,7 +309,7 @@ tasks:
             set -o igncr
           fi;
           . ./set_gopath.sh
-          cd translator
+          cd connector
           mkfifo test_pipe
           tee -a translator.suite < test_pipe&
           go test -v -coverprofile=coverage.out > test_pipe
