@@ -17,7 +17,6 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 	if err := operator.Open(ctx); err != nil {
 		return nil, nil, err
 	}
-	defer operator.Close()
 
 	for operator.Next(row) {
 
@@ -26,6 +25,10 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 		rows = append(rows, values)
 
 		row.Data = []types.TableRow{}
+	}
+
+	if err := operator.Close(); err != nil {
+		return nil, nil, err
 	}
 
 	if err := operator.Err(); err != nil {

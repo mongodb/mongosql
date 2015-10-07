@@ -18,7 +18,8 @@ type Column struct {
 	View  string
 }
 
-// ExecutionCtx holds data that is used by each operator.
+// ExecutionCtx holds exeuction context information
+// used by each Operator implemenation.
 type ExecutionCtx struct {
 	Config *config.Config
 	Db     string
@@ -26,12 +27,69 @@ type ExecutionCtx struct {
 }
 
 // Operator defines a set of functions that are implemented by each
-// node in the query tree.
+// node in the query pipeline.
 type Operator interface {
+	//
+	// Open prepares the operator for query processing. Implementations of this
+	// interface should perform all tasks necessary for subsequently processing
+	// row data data - including opening of source nodes, setting up state, etc.
+	// If successful, the Next method can be called on the operator to retrieve
+	// processed row data.
+	//
 	Open(*ExecutionCtx) error
+
+	//
+	// Next retrieves the next row from this operator. It returns true if it has
+	// additional data and false if there is no more data or if an error occurred
+	// during processing.
+	//
+	// When Next returns false, the Err method should be called to verify if
+	// there was an error during processing.
+	//
+	// For example:
+	//
+	//    if err := node.Open(ctx); err != nil {
+	//        return err
+	//    }
+	//
+	//    for node.Next(&row) {
+	//        fmt.Printf("Row: %v\n", row)
+	//    }
+	//
+	//    if err := node.Close(); err != nil {
+	//        return err
+	//    }
+	//
+	//    if err := node.Err(); err != nil {
+	//        return err
+	//    }
+	//
 	Next(*types.Row) bool
-	Close() error
+
+	//
+	// OpFields returns all the column headers that this operator includes for each
+	// row returned by the Next method.
+	//
+	// For example, in the query below:
+	//
+	// select a, b from foo;
+	//
+	// the OpFields method will return a slice with two elements - for each of the
+	// select expressions ("a" and "b") in the query.
+	//
 	OpFields() []*Column
+
+	//
+	// Close frees up any resources in use by this operator. Callers should always
+	// call the Close method once they are finished with an operator.
+	//
+	Close() error
+
+	//
+	// Err returns nil if no errors happened during processing, or the actual
+	// error otherwise. Callers should always call the Err method to check whether
+	// any error was encountered during processing they are finished with an operator.
+	//
 	Err() error
 }
 
