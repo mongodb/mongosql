@@ -666,6 +666,77 @@ func TestSelectFromSubquery(t *testing.T) {
 			So(values[0][3], ShouldResemble, evaluator.SQLNullValue{})
 		})
 
+		Convey("aliased non-star select expressions should return the correct results in order", func() {
+			names, values, err := eval.EvalSelect("test", "select _id as x, c as y from (select _id, c from bar) t0", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"x", "y"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
+			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
+		})
+
+		Convey("correctly qualified outer aliased non-star select expressions should return the correct results in order", func() {
+			names, values, err := eval.EvalSelect("test", "select t0._id as x, c as y from (select _id, c from bar) t0", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"x", "y"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
+			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
+		})
+
+		Convey("correctly qualified outer and inner aliased non-star select expressions should return the correct results in order", func() {
+			names, values, err := eval.EvalSelect("test", "select b as x, d as y from (select _id as b, c as d from bar) t0", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"x", "y"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
+			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
+		})
+
+		Convey("invalid (or invisible) column names in outer context should fail", func() {
+			_, _, err := eval.EvalSelect("test", "select da from (select * from (select _id from bar) y) x", nil)
+			So(err, ShouldNotBeNil)
+		})
+
+		Convey("valid column names in outer context should pass", func() {
+			names, values, err := eval.EvalSelect("test", "select _id from (select * from (select _id from bar) y) x", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"_id"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
+		})
+
+		Convey("aliased and valid column names in outer context should pass", func() {
+			names, values, err := eval.EvalSelect("test", "select _id as c from (select * from (select _id from bar) y) x", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"c"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
+		})
+
+		Convey("multiply aliased and valid column names in outer context should pass", func() {
+			names, values, err := eval.EvalSelect("test", "select b as d from (select _id as b from (select _id from bar) y) x", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"d"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
+		})
+
+		// TODO: MySQL doesn't support column references that aren't visible
+		// in the subquery - specifically star expressions though we currently
+		// support and test for that below.
 		Convey("non-star select expressions should return the correct results in order", func() {
 			names, values, err := eval.EvalSelect("test", "select _id, c from (select * from bar) t0", nil)
 			So(err, ShouldBeNil)
@@ -673,28 +744,6 @@ func TestSelectFromSubquery(t *testing.T) {
 			So(len(values), ShouldEqual, 1)
 
 			So(names, ShouldResemble, []string{"_id", "c"})
-			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
-			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
-		})
-
-		Convey("aliased non-star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select _id as x, c as y from (select * from bar) t0", nil)
-			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 2)
-			So(len(values), ShouldEqual, 1)
-
-			So(names, ShouldResemble, []string{"x", "y"})
-			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
-			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
-		})
-
-		Convey("correctly qualified aliased non-star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select t0._id as x, c as y from (select * from bar) t0", nil)
-			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 2)
-			So(len(values), ShouldEqual, 1)
-
-			So(names, ShouldResemble, []string{"x", "y"})
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
 			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
 		})
@@ -716,5 +765,6 @@ func TestSelectFromSubquery(t *testing.T) {
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(5))
 			So(values[0][3], ShouldResemble, evaluator.SQLNullValue{})
 		})
+
 	})
 }

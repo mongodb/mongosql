@@ -17,6 +17,7 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 		// algebrize 'FROM' clause
 		if stmt.From != nil {
 			for _, table := range stmt.From {
+				ctx.Expr = stmt.From
 				err := algebrizeTableExpr(table, ctx)
 				if err != nil {
 					return err
@@ -25,6 +26,7 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 		}
 
 		// algebrize 'SELECT EXPRESSION' clause
+		ctx.Expr = stmt.SelectExprs
 		algebrizedSelectExprs, err := algebrizeSelectExprs(stmt.SelectExprs, ctx)
 		if err != nil {
 			return err
@@ -34,6 +36,7 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 
 		// algebrize 'WHERE' clause
 		if stmt.Where != nil {
+			ctx.Expr = stmt.Where
 			algebrizedStmt, err := algebrizeExpr(stmt.Where.Expr, ctx)
 			if err != nil {
 				return err
@@ -46,6 +49,7 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 		if len(stmt.GroupBy) != 0 {
 			var algebrizedValExprs sqlparser.ValExprs
 
+			ctx.Expr = stmt.GroupBy
 			for _, valExpr := range stmt.GroupBy {
 				algebrizedValExpr, err := algebrizeExpr(valExpr, ctx)
 				if err != nil {
@@ -59,6 +63,7 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 
 		// algebrize 'HAVING' clause
 		if stmt.Having != nil {
+			ctx.Expr = stmt.Having
 			algebrizedStmt, err := algebrizeExpr(stmt.Having.Expr, ctx)
 			if err != nil {
 				return err
@@ -170,7 +175,9 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 			pCtx.NonStarAlias = ""
 		}
 
-		pCtx.Columns = append(pCtx.Columns, *columnInfo)
+		if !pCtx.Columns.Contains(columnInfo) {
+			pCtx.Columns = append(pCtx.Columns, *columnInfo)
+		}
 
 		expr.Name = []byte(columnInfo.Name)
 		expr.Qualifier = []byte(columnInfo.Table)
@@ -468,7 +475,9 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 
 				table := NewTableInfo(alias, db, tableName, false)
 
-				tables = append(tables, table)
+				if !pCtx.Tables.Contains(table) {
+					tables = append(tables, table)
+				}
 
 			case *sqlparser.Subquery:
 
@@ -536,6 +545,31 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 	}
 
 	return tables, nil
+}
+
+// hasStarExpr returns true if the select expression in the given statement
+// is a star expression.
+func hasStarExpr(ss sqlparser.SelectStatement) bool {
+
+	switch e := ss.(type) {
+
+	case *sqlparser.Select:
+
+		for _, expr := range e.SelectExprs {
+			switch expr.(type) {
+
+			// TODO: validate no mixture of star and non-star expression
+			case *sqlparser.StarExpr:
+				return true
+
+			}
+		}
+
+	default:
+		return false
+	}
+
+	return false
 }
 
 // columnToCtx returns the column information given a parse context, the name
