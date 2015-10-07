@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func testParse(t *testing.T, sql string) Statement{
+func testParse(t *testing.T, sql string) Statement {
 	stmt, err := Parse(sql)
 	if err != nil {
 		t.Fatalf("sql: %s err: %s", sql, err)
@@ -19,6 +19,23 @@ func TestSet(t *testing.T) {
 
 func TestSimpleSelect(t *testing.T) {
 	sql := "select last_insert_id() as a"
+	testParse(t, sql)
+}
+
+func TestAliasedWhere(t *testing.T) {
+	sql := "select * from foo.tables where a"
+	testParse(t, sql)
+
+	sql = "select * from foo.tables where a or b"
+	testParse(t, sql)
+
+	sql = "select * from foo.tables where a > b"
+	testParse(t, sql)
+
+	sql = "SELECT sum_a_ok AS `sum_a_ok`, sum_b_ok AS `sum_b_ok` FROM ( SELECT SUM(`foo`.`a`) AS `sum_a_ok`, SUM(`foo`.`b`) AS `sum_b_ok`, (COUNT(1) > 0) AS `havclause`, 1 AS `_Tableau_const_expr` FROM `foo` GROUP BY 4 ) `t0` WHERE havclause"
+	testParse(t, sql)
+
+	sql = "select * from foo.tables"
 	testParse(t, sql)
 }
 
@@ -63,7 +80,7 @@ func TestMixer(t *testing.T) {
 
 	sql = "SHOW VARIABLES"
 	testParse(t, sql)
-	
+
 	sql = "show variables"
 	testParse(t, sql)
 

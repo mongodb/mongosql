@@ -403,7 +403,7 @@ func (node *IndexHints) Format(buf *TrackedBuffer) {
 // Where represents a WHERE or HAVING clause.
 type Where struct {
 	Type string
-	Expr BoolExpr
+	Expr Expr
 }
 
 // Where.Type
@@ -413,8 +413,8 @@ const (
 )
 
 // NewWhere creates a WHERE or HAVING clause out
-// of a BoolExpr. If the expression is nil, it returns nil.
-func NewWhere(typ string, expr BoolExpr) *Where {
+// of an Expr. If the expression is nil, it returns nil.
+func NewWhere(typ string, expr Expr) *Where {
 	if expr == nil {
 		return nil
 	}
@@ -431,6 +431,7 @@ func (node *Where) Format(buf *TrackedBuffer) {
 // Expr represents an expression.
 type Expr interface {
 	IExpr()
+	IBoolExpr()
 	SQLNode
 }
 
@@ -456,9 +457,20 @@ func (*CaseExpr) IExpr()       {}
 
 // BoolExpr represents a boolean expression.
 type BoolExpr interface {
-	IBoolExpr()
 	Expr
 }
+
+func (StrVal) IBoolExpr()      {}
+func (NumVal) IBoolExpr()      {}
+func (ValArg) IBoolExpr()      {}
+func (*NullVal) IBoolExpr()    {}
+func (*ColName) IBoolExpr()    {}
+func (ValTuple) IBoolExpr()    {}
+func (*Subquery) IBoolExpr()   {}
+func (*BinaryExpr) IBoolExpr() {}
+func (*UnaryExpr) IBoolExpr()  {}
+func (*FuncExpr) IBoolExpr()   {}
+func (*CaseExpr) IBoolExpr()   {}
 
 func (*AndExpr) IBoolExpr()        {}
 func (*OrExpr) IBoolExpr()         {}
@@ -926,7 +938,7 @@ func (node *Admin) Format(buf *TrackedBuffer) {
 
 const (
 	AST_SHOW_NO_MOD = ""
-	AST_SHOW_FULL = "full"
+	AST_SHOW_FULL   = "full"
 )
 
 type Show struct {
@@ -935,7 +947,7 @@ type Show struct {
 	From        ValExpr
 	LikeOrWhere Expr
 	Modifier    string
-	DBFilter      ValExpr
+	DBFilter    ValExpr
 }
 
 func (*Show) IStatement() {}

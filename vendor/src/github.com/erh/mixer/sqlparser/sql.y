@@ -124,7 +124,7 @@ var (
 %type <tableName> dml_table_expression
 %type <indexHints> index_hint_list
 %type <bytes2> index_list
-%type <boolExpr> where_expression_opt
+%type <expr> where_expression_opt
 %type <boolExpr> boolean_expression condition
 %type <str> compare
 %type <insRows> row_list
@@ -141,7 +141,7 @@ var (
 %type <when> when_expression
 %type <valExpr> value_expression_opt else_expression_opt
 %type <valExprs> group_by_opt
-%type <boolExpr> having_opt
+%type <expr> having_opt
 %type <orderBy> order_by_opt order_list
 %type <order> order
 %type <str> asc_desc_opt
@@ -639,7 +639,7 @@ where_expression_opt:
   {
     $$ = nil
   }
-| WHERE boolean_expression
+| WHERE expression
   {
     $$ = $2
   }
@@ -648,7 +648,7 @@ like_or_where_opt:
   {
     $$ = nil
   }
-| WHERE boolean_expression
+| WHERE expression
   {
     $$ = $2
   }
@@ -668,15 +668,15 @@ from_opt:
 
 boolean_expression:
   condition
-| boolean_expression AND boolean_expression
+| expression AND expression
   {
     $$ = &AndExpr{Left: $1, Right: $3}
   }
-| boolean_expression OR boolean_expression
+| expression OR expression
   {
     $$ = &OrExpr{Left: $1, Right: $3}
   }
-| NOT boolean_expression
+| NOT expression
   {
     $$ = &NotExpr{Expr: $2}
   }
@@ -989,7 +989,7 @@ having_opt:
   {
     $$ = nil
   }
-| HAVING boolean_expression
+| HAVING expression
   {
     $$ = $2
   }
