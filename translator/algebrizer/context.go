@@ -1,6 +1,7 @@
 package algebrizer
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
@@ -16,9 +17,9 @@ var (
 // columns and table names in a select query.
 type ParseCtx struct {
 	// Columns holds a slice of all columns in this context
-	Columns []ColumnInfo
+	Columns ColumnInfos
 	// Tables holds a slice of all tables in this context
-	Tables []TableInfo
+	Tables TableInfos
 	// Parent holds the context from which this one is dereived
 	Parent *ParseCtx
 	// Children holds all new contexts derived from this contenxt
@@ -27,6 +28,59 @@ type ParseCtx struct {
 	NonStarAlias string
 	Config       *config.Config
 	Database     string
+}
+
+func (pCtx *ParseCtx) String() string {
+
+	if pCtx == nil {
+		return ""
+	}
+
+	b := bytes.NewBufferString("")
+
+	pCtx.string(b, 0)
+
+	return b.String()
+}
+
+func printTabs(b *bytes.Buffer, d int) {
+	for i := 0; i < d; i++ {
+		b.WriteString("\t")
+	}
+}
+
+func (pCtx *ParseCtx) string(b *bytes.Buffer, d int) {
+
+	if len(pCtx.Tables) != 0 {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("→ Tables\n"))
+	}
+
+	for i, table := range pCtx.Tables {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("\tT%v: → %#v\n", i, table))
+	}
+
+	if len(pCtx.Columns) != 0 {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("→ Columns\n"))
+	}
+
+	for i, column := range pCtx.Columns {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("\tC%v: → %#v\n", i, column))
+	}
+
+	if len(pCtx.Children) != 0 {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("→ Children\n"))
+	}
+
+	for i, ctx := range pCtx.Children {
+		printTabs(b, d+1)
+		b.WriteString(fmt.Sprintf("Child %v:\n", i))
+		ctx.string(b, d+1)
+	}
 }
 
 // TableInfo holds a mapping of aliases (or real names
@@ -39,6 +93,18 @@ type TableInfo struct {
 	Derived bool
 }
 
+type TableInfos []TableInfo
+
+func (tInfos TableInfos) Contains(t TableInfo) bool {
+	for _, tInfo := range tInfos {
+		if tInfo.Name == t.Name && tInfo.Db == t.Db &&
+			tInfo.Alias == t.Alias && tInfo.Derived == t.Derived {
+			return true
+		}
+	}
+	return false
+}
+
 // ColumnInfo holds a mapping of aliases (or real names
 // if not aliased) to the actual column name. The actual
 // table name for the column is also stored here.
@@ -48,12 +114,23 @@ type ColumnInfo struct {
 	Table string
 }
 
-func NewTableInfo(alias, db, longName string, derived bool) TableInfo {
-	return TableInfo{alias, db, longName, derived}
+type ColumnInfos []ColumnInfo
+
+func (cInfos ColumnInfos) Contains(c *ColumnInfo) bool {
+	for _, cInfo := range cInfos {
+		if cInfo.Name == c.Name && cInfo.Alias == c.Alias && cInfo.Table == c.Table {
+			return true
+		}
+	}
+	return false
 }
 
 func (ci *ColumnInfo) String() string {
 	return fmt.Sprintf("%v.%v", ci.Table, ci.Name)
+}
+
+func NewTableInfo(alias, db, longName string, derived bool) TableInfo {
+	return TableInfo{alias, db, longName, derived}
 }
 
 func NewParseCtx(ss sqlparser.SelectStatement, c *config.Config, db string) (*ParseCtx, error) {
@@ -127,6 +204,7 @@ func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) 
 	}
 
 	ctx.Parent = pCtx
+
 	pCtx.Children = append(pCtx.Children, ctx)
 
 	return ctx, nil
@@ -171,6 +249,20 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, err
 	return pCtx.Parent.GetCurrentTable(dbName, tableName)
 }
 
+// checkColumn checks that a referenced column in the context of
+// a derived table is valid.
+func (pCtx *ParseCtx) checkColumn(column string) error {
+	for _, ctx := range pCtx.Children {
+		for _, col := range ctx.Columns {
+			if col.Alias == column {
+				return nil
+			}
+		}
+	}
+
+	return fmt.Errorf("Unknown column '%v'", column)
+}
+
 // CheckColumn checks that the column information is valid in the given context.
 func (pCtx *ParseCtx) CheckColumn(table, column string) error {
 	// whitelist all 'virtual' schemas including information_schema
@@ -190,7 +282,7 @@ func (pCtx *ParseCtx) CheckColumn(table, column string) error {
 		// check if it's a derived table
 		for _, tableInfo := range pCtx.Tables {
 			if tableInfo.Alias == table && tableInfo.Derived {
-				return nil
+				return pCtx.checkColumn(column)
 			}
 		}
 
