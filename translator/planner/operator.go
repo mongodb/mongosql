@@ -169,7 +169,7 @@ func (se SelectExpressions) AggFunctions() SelectExpressions {
 	sExprs := SelectExpressions{}
 
 	for _, sExpr := range se {
-		if _, ok := sExpr.Expr.(*sqlparser.FuncExpr); ok {
+		if hasAggFunctions(sExpr.Expr) {
 			sExprs = append(sExprs, sExpr)
 		}
 	}

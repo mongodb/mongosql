@@ -734,9 +734,6 @@ func TestSelectFromSubquery(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
 		})
 
-		// TODO: MySQL doesn't support column references that aren't visible
-		// in the subquery - specifically star expressions though we currently
-		// support and test for that below.
 		Convey("non-star select expressions should return the correct results in order", func() {
 			names, values, err := eval.EvalSelect("test", "select _id, c from (select * from bar) t0", nil)
 			So(err, ShouldBeNil)
