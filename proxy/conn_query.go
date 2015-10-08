@@ -3,7 +3,6 @@ package proxy
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/translator"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/siddontang/mixer/client"
 	"github.com/siddontang/mixer/hack"
@@ -28,7 +27,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	sql = strings.TrimRight(sql, ";")
 
 	var stmt sqlparser.Statement
-	stmt, err = translator.ParseSQL(sql)
+	stmt, err = sqlparser.Parse(sql)
 	if err != nil {
 
 		// This is an ugly hack such that if someone tries to set some parameter to the default

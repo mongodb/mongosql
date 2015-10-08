@@ -1,8 +1,8 @@
 package proxy
 
 import (
+	sqlproxy "github.com/erh/mongo-sql-temp"
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/translator"
 	"github.com/mongodb/mongo-tools/common/log"
 
 	"net"
@@ -12,7 +12,7 @@ import (
 
 type Server struct {
 	cfg  *config.Config
-	eval *translator.Evaluator
+	eval *sqlproxy.Evaluator
 
 	running bool
 
@@ -21,7 +21,7 @@ type Server struct {
 	schemas map[string]*config.Schema
 }
 
-func NewServer(cfg *config.Config, eval *translator.Evaluator) (*Server, error) {
+func NewServer(cfg *config.Config, eval *sqlproxy.Evaluator) (*Server, error) {
 	s := new(Server)
 
 	s.cfg = cfg

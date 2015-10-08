@@ -2,9 +2,9 @@ package connector
 
 import (
 	"database/sql"
+	"github.com/erh/mongo-sql-temp"
 	"github.com/erh/mongo-sql-temp/config"
 	"github.com/erh/mongo-sql-temp/proxy"
-	"github.com/erh/mongo-sql-temp/translator"
 	_ "github.com/go-sql-driver/mysql"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
@@ -26,7 +26,7 @@ var sampleConfig = `{
 }`
 
 func testServer(cfg *config.Config) (*proxy.Server, error) {
-	evaluator, err := translator.NewEvaluator(cfg)
+	evaluator, err := sqlproxy.NewEvaluator(cfg)
 	if err != nil {
 		return nil, err
 	}

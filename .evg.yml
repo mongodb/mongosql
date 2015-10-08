@@ -13,7 +13,7 @@ buildvariants:
   - name: config
   - name: planner
   - name: connector
-  - name: translator
+  - name: sqlproxy
   - name: dist
 
 pre:
@@ -156,7 +156,7 @@ tasks:
             set -o igncr
           fi;
           . ./set_gopath.sh
-          cd translator/algebrizer
+          cd algebrizer
           mkfifo test_pipe
           tee -a algebrizer.suite < test_pipe&
           go test -v -coverprofile=coverage.out > test_pipe
@@ -165,7 +165,7 @@ tasks:
         working_dir: src
         script: |
           set -o verbose
-          mv translator/algebrizer/coverage.out .
+          mv algebrizer/coverage.out .
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -216,7 +216,7 @@ tasks:
             set -o igncr
           fi;
           . ./set_gopath.sh
-          cd translator/evaluator
+          cd evaluator
           mkfifo test_pipe
           tee -a evaluator.suite < test_pipe&
           go test -v -coverprofile=coverage.out > test_pipe
@@ -225,7 +225,7 @@ tasks:
         working_dir: src
         script: |
           set -o verbose
-          mv translator/evaluator/coverage.out .
+          mv evaluator/coverage.out .
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -246,7 +246,7 @@ tasks:
             set -o igncr
           fi;
           . ./set_gopath.sh
-          cd translator/planner
+          cd planner
           mkfifo test_pipe
           tee -a planner.suite < test_pipe&
           go test -v -coverprofile=coverage.out > test_pipe
@@ -255,7 +255,7 @@ tasks:
         working_dir: src
         script: |
           set -o verbose
-          mv translator/planner/coverage.out .
+          mv planner/coverage.out .
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -295,7 +295,7 @@ tasks:
           cd connector
           go test -v -coverprofile=coverage.out
 
-- name: translator
+- name: sqlproxy
   commands:
     - func: "start mongod"
     - func: "fetch source"
@@ -309,16 +309,9 @@ tasks:
             set -o igncr
           fi;
           . ./set_gopath.sh
-          cd translator
           mkfifo test_pipe
-          tee -a translator.suite < test_pipe&
+          tee -a sqlproxy.suite < test_pipe&
           go test -v -coverprofile=coverage.out > test_pipe
-    - command: shell.exec
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          mv translator/coverage.out .
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
