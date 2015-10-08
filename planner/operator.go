@@ -64,7 +64,7 @@ type Operator interface {
 	//        return err
 	//    }
 	//
-	Next(*types.Row) bool
+	Next(*evaluator.Row) bool
 
 	//
 	// OpFields returns all the column headers that this operator includes for each
