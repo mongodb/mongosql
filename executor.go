@@ -19,7 +19,6 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 	}
 
 	for operator.Next(row) {
-
 		values := getRowValues(operator.OpFields(), row)
 
 		rows = append(rows, values)
@@ -33,6 +32,11 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 
 	if err := operator.Err(); err != nil {
 		return nil, nil, err
+	}
+
+	// no headers are returned for empty sets
+	if len(rows) == 0 {
+		return nil, nil, nil
 	}
 
 	// make sure all rows have same number of values

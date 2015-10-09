@@ -26,11 +26,14 @@ type ParseCtx struct {
 	Children []*ParseCtx
 	// NonStarAlias holds the alias for a non-star expression
 	NonStarAlias string
-	// ParseExpr holds what expression in a select query we're
-	// currently processing
-	Expr     interface{}
-	Config   *config.Config
-	Database string
+	// Expr holds the expression in a select query that is being
+	// processed
+	Expr interface{}
+	// RefColumn indicates if a column where parsing a select
+	// expression
+	RefColumn bool
+	Config    *config.Config
+	Database  string
 }
 
 func (pCtx *ParseCtx) String() string {
@@ -247,9 +250,7 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, err
 		return nil, fmt.Errorf("Current table '%v' doesn't exist", tableName)
 	}
 
-	if len(pCtx.Tables) == 0 {
-		return pCtx.Parent.GetCurrentTable(dbName, tableName)
-	} else if len(pCtx.Tables) == 1 {
+	if len(pCtx.Tables) == 1 {
 		// in this case, we're either referencing a table directly,
 		// using an alias or implicitly referring to the current table
 
@@ -260,11 +261,14 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, err
 				return &curTable, nil
 			}
 		}
-	} else {
+	} else if len(pCtx.Tables) > 1 {
 		// if there are multiple tables in the current context
 		// then tableName must not be empty
 		if tableName == "" {
-			return nil, fmt.Errorf("ambiguity in column field(s) - qualify with table name")
+			if pCtx.Parent == nil {
+				return nil, fmt.Errorf("Can not find empty table in join context")
+			}
+			return pCtx.Parent.GetCurrentTable(dbName, tableName)
 		}
 
 		// the table name can either be actual or aliased
@@ -283,7 +287,6 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, err
 // checkColumn checks that a referenced column in the context of
 // a derived table is valid.
 func (pCtx *ParseCtx) checkColumn(table, column string) error {
-
 	for _, ctx := range pCtx.Children {
 		err := ctx.checkColumn(table, column)
 		if err == nil {

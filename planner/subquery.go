@@ -14,6 +14,9 @@ type Subquery struct {
 	// source holds the source for this select statement
 	source Operator
 
+	// matcher is used to filter results returned by this operator
+	matcher evaluator.Matcher
+
 	// ctx is the current execution context
 	ctx *ExecutionCtx
 }
@@ -23,26 +26,47 @@ func (sq *Subquery) Open(ctx *ExecutionCtx) error {
 }
 
 func (sq *Subquery) Next(row *evaluator.Row) bool {
-	hasNext := sq.source.Next(row)
 
-	var tableRows []evaluator.TableRow
+	var hasNext bool
 
-	for _, tableRow := range row.Data {
+	for {
 
-		var values evaluator.Values
+		hasNext = sq.source.Next(row)
 
-		for _, value := range tableRow.Values {
-			value.Name = value.View
-			values = append(values, value)
+		var tableRows []evaluator.TableRow
+
+		for _, tableRow := range row.Data {
+
+			var values evaluator.Values
+
+			for _, value := range tableRow.Values {
+				value.Name = value.View
+				values = append(values, value)
+			}
+
+			tableRow.Values = values
+			tableRow.Table = sq.tableName
+
+			tableRows = append(tableRows, tableRow)
 		}
 
-		tableRow.Values = values
-		tableRow.Table = sq.tableName
+		row.Data = tableRows
 
-		tableRows = append(tableRows, tableRow)
+		evalCtx := &evaluator.EvalCtx{[]evaluator.Row{*row}}
+
+		if sq.matcher != nil {
+			if sq.matcher.Matches(evalCtx) {
+				break
+			}
+		} else {
+			break
+		}
+
+		if !hasNext {
+			break
+		}
+
 	}
-
-	row.Data = tableRows
 
 	return hasNext
 }

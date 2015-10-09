@@ -7,8 +7,8 @@ import (
 )
 
 // AlgebrizeStatement takes a parsed SQL statement and returns an algebrized form of the query.
-func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
-	log.Logf(log.DebugLow, "pCtx AlgebrizeStatement: %#v\n\n", ctx)
+func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
+	log.Logf(log.DebugLow, "pCtx AlgebrizeStatement: %v\n\n", pCtx.String())
 
 	switch stmt := ss.(type) {
 
@@ -17,27 +17,18 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 		// algebrize 'FROM' clause
 		if stmt.From != nil {
 			for _, table := range stmt.From {
-				ctx.Expr = stmt.From
-				err := algebrizeTableExpr(table, ctx)
+				pCtx.Expr = stmt.From
+				err := algebrizeTableExpr(table, pCtx)
 				if err != nil {
 					return err
 				}
 			}
 		}
 
-		// algebrize 'SELECT EXPRESSION' clause
-		ctx.Expr = stmt.SelectExprs
-		algebrizedSelectExprs, err := algebrizeSelectExprs(stmt.SelectExprs, ctx)
-		if err != nil {
-			return err
-		}
-
-		stmt.SelectExprs = algebrizedSelectExprs
-
 		// algebrize 'WHERE' clause
 		if stmt.Where != nil {
-			ctx.Expr = stmt.Where
-			algebrizedStmt, err := algebrizeExpr(stmt.Where.Expr, ctx)
+			pCtx.Expr = stmt.Where
+			algebrizedStmt, err := algebrizeExpr(stmt.Where.Expr, pCtx)
 			if err != nil {
 				return err
 			}
@@ -45,13 +36,22 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 			stmt.Where.Expr = algebrizedStmt.(sqlparser.BoolExpr)
 		}
 
+		// algebrize 'SELECT EXPRESSION' clause
+		pCtx.Expr = stmt.SelectExprs
+		algebrizedSelectExprs, err := algebrizeSelectExprs(stmt.SelectExprs, pCtx)
+		if err != nil {
+			return err
+		}
+
+		stmt.SelectExprs = algebrizedSelectExprs
+
 		// algebrize 'GROUP BY' clause
 		if len(stmt.GroupBy) != 0 {
 			var algebrizedValExprs sqlparser.ValExprs
 
-			ctx.Expr = stmt.GroupBy
+			pCtx.Expr = stmt.GroupBy
 			for _, valExpr := range stmt.GroupBy {
-				algebrizedValExpr, err := algebrizeExpr(valExpr, ctx)
+				algebrizedValExpr, err := algebrizeExpr(valExpr, pCtx)
 				if err != nil {
 					return err
 				}
@@ -63,8 +63,8 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, ctx *ParseCtx) error {
 
 		// algebrize 'HAVING' clause
 		if stmt.Having != nil {
-			ctx.Expr = stmt.Having
-			algebrizedStmt, err := algebrizeExpr(stmt.Having.Expr, ctx)
+			pCtx.Expr = stmt.Having
+			algebrizedStmt, err := algebrizeExpr(stmt.Having.Expr, pCtx)
 			if err != nil {
 				return err
 			}
@@ -104,7 +104,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 	var algebrizeSelectExprs sqlparser.SelectExprs
 
 	for _, sExpr := range sExprs {
-		log.Logf(log.DebugLow, "sExpr: %s (type is %T)\npCtx: %#v\n\n", sqlparser.String(sExpr), sExpr, pCtx)
+		log.Logf(log.DebugLow, "sExpr: %s (type is %T)\npCtx: %v\n\n", sqlparser.String(sExpr), sExpr, pCtx.String())
 
 		switch expr := sExpr.(type) {
 
@@ -120,12 +120,37 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 			algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
 
 		case *sqlparser.NonStarExpr:
+			nonStarExpr := expr
 			if pCtx.NonStarAlias == "" {
 				pCtx.NonStarAlias = string(expr.As)
 			}
+
+			pCtx.RefColumn = false
 			nse, err := algebrizeExpr(expr.Expr, pCtx)
 			if err != nil {
 				return nil, err
+			}
+
+			// if this expression doesn't reference a column, add it
+			// to the parse context provided we're not parsing a
+			// subquery or a select expression within a function
+			_, inFuncExpr := pCtx.Expr.(*sqlparser.FuncExpr)
+			_, isSubquery := nonStarExpr.Expr.(*sqlparser.Subquery)
+			if !pCtx.RefColumn && !inFuncExpr && !isSubquery {
+				nonStarAlias := string(nonStarExpr.As)
+				nonStarName := sqlparser.String(nonStarExpr.Expr)
+
+				if nonStarAlias == "" {
+					nonStarAlias = nonStarName
+				}
+
+				table, err := pCtx.GetCurrentTable(pCtx.Database, "")
+				if err != nil {
+					return nil, err
+				}
+
+				column := ColumnInfo{nonStarName, nonStarAlias, table.Name}
+				pCtx.Columns = append(pCtx.Columns, column)
 			}
 
 			algNSE := &sqlparser.NonStarExpr{nse, expr.As}
@@ -140,7 +165,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 
 // algebrizeExpr takes an expression and returns its algebrized form.
 func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error) {
-	log.Logf(log.DebugLow, "expr: %#v (type is %T)\npCtx: %#v\n\n", gExpr, gExpr, pCtx)
+	log.Logf(log.DebugLow, "expr: %#v (type is %T)\npCtx: %v\n\n", gExpr, gExpr, pCtx.String())
 
 	switch expr := gExpr.(type) {
 
@@ -182,6 +207,7 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 		expr.Name = []byte(columnInfo.Name)
 		expr.Qualifier = []byte(columnInfo.Table)
 
+		pCtx.RefColumn = true
 		return expr, nil
 
 	case sqlparser.StrVal:
@@ -296,11 +322,16 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 		return nil, fmt.Errorf("can't handle ValArg type %T", expr)
 
 	case *sqlparser.FuncExpr:
-
+		// set the current expression being parsed to this function to
+		// prevent treating nested select expressions as top-level column
+		// references
+		fExpr := pCtx.Expr
+		pCtx.Expr = expr
 		algebrizedSelectExprs, err := algebrizeSelectExprs(expr.Exprs, pCtx)
 		if err != nil {
 			return nil, err
 		}
+		pCtx.Expr = fExpr
 		expr.Exprs = algebrizedSelectExprs
 
 		return expr, nil

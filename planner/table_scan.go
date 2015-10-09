@@ -72,36 +72,55 @@ func (ts *TableScan) Next(row *evaluator.Row) bool {
 		return false
 	}
 
-	d := &bson.D{}
-	hasNext := ts.iter.Next(d)
+	var hasNext bool
 
-	values := evaluator.Values{}
-	data := d.Map()
+	for {
+		d := &bson.D{}
+		hasNext = ts.iter.Next(d)
 
-	for _, column := range ts.tableConfig.Columns {
-		value := evaluator.Value{
-			Name: column.Name,
-			View: column.Name,
-			Data: data[column.Name],
+		values := evaluator.Values{}
+		data := d.Map()
+
+		for _, column := range ts.tableConfig.Columns {
+			value := evaluator.Value{
+				Name: column.Name,
+				View: column.Name,
+				Data: data[column.Name],
+			}
+			values = append(values, value)
+			delete(data, column.Name)
 		}
-		values = append(values, value)
-		delete(data, column.Name)
+
+		// now add all other columns
+		for key, value := range data {
+			value := evaluator.Value{
+				Name: key,
+				View: key,
+				Data: value,
+			}
+			values = append(values, value)
+		}
+		row.Data = []evaluator.TableRow{{ts.tableName, values, ts.tableConfig}}
+
+		evalCtx := &evaluator.EvalCtx{[]evaluator.Row{*row}}
+
+		if ts.matcher != nil {
+			if ts.matcher.Matches(evalCtx) {
+				break
+			}
+		} else {
+			break
+		}
+
+		if !hasNext {
+			break
+		}
 	}
 
-	// now add all other columns
-	for key, value := range data {
-		value := evaluator.Value{
-			Name: key,
-			View: key,
-			Data: value,
-		}
-		values = append(values, value)
-	}
-
-	row.Data = []evaluator.TableRow{{ts.tableName, values, ts.tableConfig}}
 	if !hasNext {
 		ts.err = ts.iter.Err()
 	}
+
 	return hasNext
 }
 

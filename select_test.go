@@ -438,6 +438,23 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
 
 		})
+
+		Convey("grouping by aliased term referencing aliased columns with a where clause should return correct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0` where havclause", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"sum_a_ok"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
+
+			names, values, err = eval.EvalSelect("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0` where not havclause", nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 0)
+			So(len(values), ShouldEqual, 0)
+
+		})
 	})
 }
 

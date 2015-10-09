@@ -56,6 +56,9 @@ schema :
      collection: test.bar
      columns:
      -
+        name: a
+        type: string
+     -
         name: z
         type: string
   -

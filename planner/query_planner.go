@@ -395,17 +395,17 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 	filter := &bson.D{}
 
 	if w != nil {
-
 		// create a matcher that can evaluate the WHERE expression
 		matcher, err = evaluator.BuildMatcher(w.Expr)
-		if err == nil {
-			// TODO currently the transformation is all-or-nothing either the entire query is
-			// executed inside mongo or inside the matcher. Needs update to prune the matcher tree
-			// so that the part of the query that can be expressed with MQL is extracted and passed
-			// to mongo, and the rest of the filtering can be done by the (simplified) matcher
-			filter, err = matcher.Transform()
+		if err != nil {
+			return nil, err
 		}
 
+		// TODO: this doesn't work right so just ignore it
+		filter, err = matcher.Transform()
+		if err != nil {
+			filter = &bson.D{}
+		}
 	}
 
 	dbName := strings.ToLower(string(t.Qualifier))
@@ -433,16 +433,11 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 	ts := &TableScan{
 		tableName: string(t.Name),
 		dbName:    string(t.Qualifier),
-	}
-
-	// if we got a valid filter/matcher, use it
-	if err == nil {
-		ts.filter = filter
-		ts.matcher = matcher
+		filter:    filter,
+		matcher:   matcher,
 	}
 
 	return ts, nil
-
 }
 
 // planSimpleTableExpr takes a simple table expression and returns an operator that can iterate
@@ -463,6 +458,15 @@ func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlp
 			source:    source,
 			tableName: string(s.As),
 		}
+
+		if w != nil {
+			matcher, err := evaluator.BuildMatcher(w.Expr)
+			if err != nil {
+				return nil, err
+			}
+			sq.matcher = matcher
+		}
+
 		return sq, nil
 
 	default:
@@ -660,6 +664,10 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 	case *sqlparser.FuncExpr:
 
 		return true
+
+	case *sqlparser.Subquery:
+
+		return false
 
 	default:
 		panic(fmt.Sprintf("hasAggFunctions NYI for: %T", expr))

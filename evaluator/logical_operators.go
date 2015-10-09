@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -120,5 +121,25 @@ func (no *NoopMatch) Matches(ctx *EvalCtx) bool {
 }
 
 func (nm *NoopMatch) Transform() (*bson.D, error) {
+	return nil, nil
+}
+
+//
+// BoolMatch
+//
+
+type BoolMatch struct {
+	SQLValue
+}
+
+func (bm *BoolMatch) Matches(ctx *EvalCtx) bool {
+	val, err := bm.Evaluate(ctx)
+	if err != nil {
+		return false
+	}
+	return util.IsTruthy(val)
+}
+
+func (bm *BoolMatch) Transform() (*bson.D, error) {
 	return nil, nil
 }
