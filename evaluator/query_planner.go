@@ -1,9 +1,8 @@
-package planner
+package evaluator
 
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/evaluator"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
 	"strconv"
@@ -89,7 +88,7 @@ func planGroupBy(ast *sqlparser.Select, s *Select) (Operator, error) {
 	}
 
 	// create a matcher that can evaluate the HAVING expression
-	matcher, err := evaluator.BuildMatcher(expr)
+	matcher, err := BuildMatcher(expr)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +140,7 @@ func planGroupBy(ast *sqlparser.Select, s *Select) (Operator, error) {
 func planHaving(having *sqlparser.Where, s *Select) (Operator, error) {
 
 	// create a matcher that can evaluate the HAVING expression
-	matcher, err := evaluator.BuildMatcher(having.Expr)
+	matcher, err := BuildMatcher(having.Expr)
 	if err != nil {
 		return nil, err
 	}
@@ -389,14 +388,14 @@ func planTableExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExpr, where *sqlparse
 // data from the appropriate source.
 func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) (Operator, error) {
 
-	var matcher evaluator.Matcher
+	var matcher Matcher
 	var err error
 
 	filter := &bson.D{}
 
 	if w != nil {
 		// create a matcher that can evaluate the WHERE expression
-		matcher, err = evaluator.BuildMatcher(w.Expr)
+		matcher, err = BuildMatcher(w.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -460,7 +459,7 @@ func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlp
 		}
 
 		if w != nil {
-			matcher, err := evaluator.BuildMatcher(w.Expr)
+			matcher, err := BuildMatcher(w.Expr)
 			if err != nil {
 				return nil, err
 			}

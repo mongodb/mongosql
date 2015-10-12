@@ -28,7 +28,8 @@ var ErrTypeMismatch = errors.New("type mismatch")
 
 // EvalCtx holds a slice of rows used to evaluate a SQLValue.
 type EvalCtx struct {
-	Rows []Row
+	Rows    []Row
+	ExecCtx *ExecutionCtx
 }
 
 func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {

@@ -1,9 +1,8 @@
-package planner
+package evaluator
 
 import (
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/evaluator"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
 )
@@ -18,12 +17,20 @@ type Column struct {
 	View  string
 }
 
+type ConnectionCtx interface {
+	LastInsertId() int64
+	RowCount() int64
+	ConnectionId() uint32
+	DB() string
+}
+
 // ExecutionCtx holds exeuction context information
 // used by each Operator implemenation.
 type ExecutionCtx struct {
 	Config *config.Config
 	Db     string
-	Rows   []evaluator.Row
+	Rows   []Row
+	ConnectionCtx
 }
 
 // Operator defines a set of functions that are implemented by each
@@ -64,7 +71,7 @@ type Operator interface {
 	//        return err
 	//    }
 	//
-	Next(*evaluator.Row) bool
+	Next(*Row) bool
 
 	//
 	// OpFields returns all the column headers that this operator includes for each
@@ -202,9 +209,9 @@ func getKey(key string, doc bson.D) (interface{}, bool) {
 
 // bsonDToValues takes a bson.D document and returns
 // the corresponding values.
-func bsonDToValues(document bson.D) (values []evaluator.Value) {
+func bsonDToValues(document bson.D) (values []Value) {
 	for _, v := range document {
-		values = append(values, evaluator.Value{v.Name, v.Name, v.Value})
+		values = append(values, Value{v.Name, v.Name, v.Value})
 	}
 	return values
 }

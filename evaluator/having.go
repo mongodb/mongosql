@@ -1,8 +1,4 @@
-package planner
-
-import (
-	"github.com/erh/mongo-sql-temp/evaluator"
-)
+package evaluator
 
 type Having struct {
 	// sExprs holds the columns and/or expressions present in
@@ -13,45 +9,48 @@ type Having struct {
 	// err holds any error encountered during processing
 	err error
 	// data holds all the paged in data from the source operator
-	data []evaluator.Row
+	data []Row
 	// matcher is used to filter results based on a HAVING clause
-	matcher evaluator.Matcher
+	matcher Matcher
 	// hasNext indicates if this operator has more results
 	hasNext bool
+
+	ctx *ExecutionCtx
 }
 
 func (hv *Having) Open(ctx *ExecutionCtx) error {
+	hv.ctx = ctx
 	return hv.source.Open(ctx)
 }
 
 func (hv *Having) fetchData() error {
 
-	hv.data = []evaluator.Row{}
+	hv.data = []Row{}
 
-	r := &evaluator.Row{}
+	r := &Row{}
 
 	// iterator source to create groupings
 	for hv.source.Next(r) {
 		hv.data = append(hv.data, *r)
-		r = &evaluator.Row{}
+		r = &Row{}
 	}
 
 	return hv.source.Err()
 }
 
-func (hv *Having) evalResult() (*evaluator.Row, error) {
+func (hv *Having) evalResult() (*Row, error) {
 
-	aggValues := map[string]evaluator.Values{}
+	aggValues := map[string]Values{}
 
-	row := &evaluator.Row{}
-	evalCtx := &evaluator.EvalCtx{Rows: hv.data}
+	row := &Row{}
+	evalCtx := &EvalCtx{hv.data, hv.ctx}
 
 	for _, sExpr := range hv.sExprs {
 		if sExpr.Referenced {
 			continue
 		}
 
-		expr, err := evaluator.NewSQLValue(sExpr.Expr)
+		expr, err := NewSQLValue(sExpr.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +60,7 @@ func (hv *Having) evalResult() (*evaluator.Row, error) {
 			return nil, err
 		}
 
-		value := evaluator.Value{
+		value := Value{
 			Name: sExpr.Name,
 			View: sExpr.View,
 			Data: v,
@@ -72,13 +71,13 @@ func (hv *Having) evalResult() (*evaluator.Row, error) {
 	}
 
 	for table, values := range aggValues {
-		row.Data = append(row.Data, evaluator.TableRow{table, values, nil})
+		row.Data = append(row.Data, TableRow{table, values, nil})
 	}
 
 	return row, nil
 }
 
-func (hv *Having) Next(row *evaluator.Row) bool {
+func (hv *Having) Next(row *Row) bool {
 	hv.hasNext = !hv.hasNext
 
 	if !hv.hasNext {
@@ -95,7 +94,7 @@ func (hv *Having) Next(row *evaluator.Row) bool {
 		hv.err = err
 	}
 
-	evalCtx := &evaluator.EvalCtx{Rows: hv.data}
+	evalCtx := &EvalCtx{Rows: hv.data, ExecCtx: hv.ctx}
 
 	if hv.matcher.Matches(evalCtx) {
 		row.Data = r.Data

@@ -3,9 +3,8 @@ package sqlproxy
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/algebrizer"
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/planner"
+	"github.com/erh/mongo-sql-temp/evaluator"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 )
@@ -36,7 +35,7 @@ func (e *Evaluator) getSession() *mgo.Session {
 }
 
 // EvalSelect returns all rows matching the query.
-func (e *Evaluator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([]string, [][]interface{}, error) {
+func (e *Evaluator) EvalSelect(db, sql string, stmt *sqlparser.Select, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
 	log.Logf(log.DebugLow, "Evaluating select: %#v", stmt)
 
 	if stmt == nil {
@@ -52,23 +51,24 @@ func (e *Evaluator) EvalSelect(db string, sql string, stmt *sqlparser.Select) ([
 	}
 
 	// create initial parse context
-	pCtx, err := algebrizer.NewParseCtx(stmt, e.cfg, db)
+	pCtx, err := evaluator.NewParseCtx(stmt, e.cfg, db)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
 	}
 
 	// resolve names
-	if err = algebrizer.AlgebrizeStatement(stmt, pCtx); err != nil {
+	if err = evaluator.AlgebrizeStatement(stmt, pCtx); err != nil {
 		return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
 	}
 
-	eCtx := &planner.ExecutionCtx{
-		Config: e.cfg,
-		Db:     db,
+	eCtx := &evaluator.ExecutionCtx{
+		Config:        e.cfg,
+		Db:            db,
+		ConnectionCtx: conn,
 	}
 
 	// construct plan
-	queryPlan, err := planner.PlanQuery(eCtx, stmt)
+	queryPlan, err := evaluator.PlanQuery(eCtx, stmt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error getting query plan: %v", err)
 	}

@@ -1,9 +1,8 @@
-package planner
+package evaluator
 
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/evaluator"
 )
 
 type GroupBy struct {
@@ -22,28 +21,32 @@ type GroupBy struct {
 	err error
 	// finalGrouping has a key derived from the group by clause and
 	// a value corresponding to all rows that are part of the group
-	finalGrouping map[string][]evaluator.Row
+	finalGrouping map[string][]Row
 	// channel on which to send rows derived from the final grouping
-	outChan chan evaluator.Row
+	outChan chan Row
 	// matcher is used to filter results based on a HAVING clause
-	matcher evaluator.Matcher
+	matcher Matcher
+
+	// ctx holds the current ExecutionContext
+	ctx *ExecutionCtx
 }
 
 func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
+	gb.ctx = ctx
 	return gb.source.Open(ctx)
 }
 
-func (gb *GroupBy) evaluateGroupByKey(row *evaluator.Row) (string, error) {
+func (gb *GroupBy) evaluateGroupByKey(row *Row) (string, error) {
 
 	var gbKey string
 
 	for _, key := range gb.exprs {
-		expr, err := evaluator.NewSQLValue(key)
+		expr, err := NewSQLValue(key)
 		if err != nil {
 			panic(err)
 		}
 
-		evalCtx := &evaluator.EvalCtx{Rows: []evaluator.Row{*row}}
+		evalCtx := &EvalCtx{Rows: []Row{*row}, ExecCtx: gb.ctx}
 		value, err := expr.Evaluate(evalCtx)
 		if err != nil {
 			return "", err
@@ -58,9 +61,9 @@ func (gb *GroupBy) evaluateGroupByKey(row *evaluator.Row) (string, error) {
 
 func (gb *GroupBy) createGroups() error {
 
-	gb.finalGrouping = make(map[string][]evaluator.Row, 0)
+	gb.finalGrouping = make(map[string][]Row, 0)
 
-	r := &evaluator.Row{}
+	r := &Row{}
 
 	// iterator source to create groupings
 	for gb.source.Next(r) {
@@ -70,7 +73,7 @@ func (gb *GroupBy) createGroups() error {
 		}
 
 		gb.finalGrouping[key] = append(gb.finalGrouping[key], *r)
-		r = &evaluator.Row{}
+		r = &Row{}
 	}
 
 	gb.grouped = true
@@ -78,20 +81,20 @@ func (gb *GroupBy) createGroups() error {
 	return gb.source.Err()
 }
 
-func (gb *GroupBy) evalAggRow(r []evaluator.Row) (*evaluator.Row, error) {
+func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 
-	aggValues := map[string]evaluator.Values{}
+	aggValues := map[string]Values{}
 
-	row := &evaluator.Row{}
+	row := &Row{}
 
 	for _, sExpr := range gb.sExprs {
 
-		expr, err := evaluator.NewSQLValue(sExpr.Expr)
+		expr, err := NewSQLValue(sExpr.Expr)
 		if err != nil {
 			panic(err)
 		}
 
-		evalCtx := &evaluator.EvalCtx{Rows: r}
+		evalCtx := &EvalCtx{Rows: r, ExecCtx: gb.ctx}
 
 		v, err := expr.Evaluate(evalCtx)
 		if err != nil {
@@ -99,7 +102,7 @@ func (gb *GroupBy) evalAggRow(r []evaluator.Row) (*evaluator.Row, error) {
 		}
 
 		if gb.matcher.Matches(evalCtx) {
-			value := evaluator.Value{
+			value := Value{
 				Name: sExpr.Name,
 				View: sExpr.View,
 				Data: v,
@@ -109,14 +112,14 @@ func (gb *GroupBy) evalAggRow(r []evaluator.Row) (*evaluator.Row, error) {
 	}
 
 	for table, values := range aggValues {
-		row.Data = append(row.Data, evaluator.TableRow{table, values, nil})
+		row.Data = append(row.Data, TableRow{table, values, nil})
 	}
 
 	return row, nil
 }
 
-func (gb *GroupBy) iterChan() chan evaluator.Row {
-	ch := make(chan evaluator.Row)
+func (gb *GroupBy) iterChan() chan Row {
+	ch := make(chan Row)
 
 	go func() {
 		for _, v := range gb.finalGrouping {
@@ -136,7 +139,7 @@ func (gb *GroupBy) iterChan() chan evaluator.Row {
 	return ch
 }
 
-func (gb *GroupBy) Next(row *evaluator.Row) bool {
+func (gb *GroupBy) Next(row *Row) bool {
 	if !gb.grouped {
 		if err := gb.createGroups(); err != nil {
 			gb.err = err

@@ -1,4 +1,4 @@
-package algebrizer
+package evaluator
 
 import (
 	"fmt"

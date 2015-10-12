@@ -1,4 +1,4 @@
-package algebrizer
+package evaluator
 
 import (
 	"github.com/erh/mixer/sqlparser"
@@ -19,7 +19,7 @@ func TestNewParseCtx(t *testing.T) {
 
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)

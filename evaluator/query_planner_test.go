@@ -1,4 +1,4 @@
-package planner
+package evaluator
 
 import (
 	"github.com/erh/mixer/sqlparser"

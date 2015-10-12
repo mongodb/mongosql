@@ -1,6 +1,7 @@
-package planner
+package evaluator
 
 import (
+	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
@@ -12,10 +13,11 @@ func TestConfigDataSourceIter(t *testing.T) {
 
 	Convey("using config data source should iterate all columns", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
+		cfg, err := config.ParseConfigData(testConfig1)
 		So(err, ShouldBeNil)
 
-		dataSource := ConfigDataSource{config: cfg, includeColumns: true}
+		execCtx := &ExecutionCtx{cfg, "test", nil, nil}
+		dataSource := ConfigDataSource{ctx: execCtx, includeColumns: true}
 
 		query := dataSource.Find()
 
@@ -30,6 +32,7 @@ func TestConfigDataSourceIter(t *testing.T) {
 			fieldNames = append(fieldNames, v.(string))
 		}
 
+		fmt.Println("field names is ", fieldNames)
 		So(len(fieldNames), ShouldEqual, 7)
 
 		sort.Strings(fieldNames)
@@ -41,10 +44,11 @@ func TestConfigDataSourceIterTables(t *testing.T) {
 
 	Convey("using config data source should iterate tables", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
+		cfg, err := config.ParseConfigData(testConfig1)
 		So(err, ShouldBeNil)
 
-		dataSource := ConfigDataSource{config: cfg}
+		execCtx := &ExecutionCtx{cfg, "test", nil, nil}
+		dataSource := ConfigDataSource{ctx: execCtx}
 
 		query := dataSource.Find()
 

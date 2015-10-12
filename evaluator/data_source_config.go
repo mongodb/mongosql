@@ -1,9 +1,7 @@
-package planner
+package evaluator
 
 import (
 	"fmt"
-	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/evaluator"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -26,21 +24,21 @@ var (
 )
 
 type ConfigDataSource struct {
-	config         *config.Config
 	tableName      string
 	includeColumns bool
 	filter         interface{}
-	matcher        evaluator.Matcher
+	matcher        Matcher
 	iter           FindResults
 	err            error
+	ctx            *ExecutionCtx
 }
 
 func (cds *ConfigDataSource) Open(ctx *ExecutionCtx) error {
+	cds.ctx = ctx
 	return cds.init(ctx)
 }
 
 func (cds *ConfigDataSource) init(ctx *ExecutionCtx) error {
-	cds.config = ctx.Config
 
 	switch cds.tableName {
 	case "key_column_usage":
@@ -57,14 +55,14 @@ func (cds *ConfigDataSource) init(ctx *ExecutionCtx) error {
 	return nil
 }
 
-func (cds *ConfigDataSource) Next(row *evaluator.Row) bool {
+func (cds *ConfigDataSource) Next(row *Row) bool {
 	if cds.iter == nil {
 		return false
 	}
 
 	data := &bson.D{}
 	hasNext := cds.iter.Next(data)
-	row.Data = []evaluator.TableRow{{cds.tableName, bsonDToValues(*data), nil}}
+	row.Data = []TableRow{{cds.tableName, bsonDToValues(*data), nil}}
 
 	if !hasNext {
 		cds.err = cds.iter.Err()
@@ -104,7 +102,7 @@ func (cds *ConfigDataSource) Err() error {
 }
 
 func (cds *ConfigDataSource) Find() FindQuery {
-	return ConfigFindQuery{cds.config, cds.matcher, cds.includeColumns}
+	return ConfigFindQuery{cds.ctx, cds.matcher, cds.includeColumns}
 }
 
 func (cds *ConfigDataSource) Insert(docs ...interface{}) error {
@@ -122,8 +120,8 @@ func _cfrNextHelper(result *bson.D, fieldName string, fieldValue interface{}) {
 // -------
 
 type ConfigFindResults struct {
-	config         *config.Config
-	matcher        evaluator.Matcher
+	ctx            *ExecutionCtx
+	matcher        Matcher
 	includeColumns bool
 
 	dbOffset      int
@@ -139,12 +137,12 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 	}
 
 	// are we in valid db space
-	if cfr.dbOffset >= len(cfr.config.RawSchemas) {
+	if cfr.dbOffset >= len(cfr.ctx.Config.RawSchemas) {
 		// nope, we're done
 		return false
 	}
 
-	db := cfr.config.RawSchemas[cfr.dbOffset]
+	db := cfr.ctx.Config.RawSchemas[cfr.dbOffset]
 
 	// are we in valid table space
 	if cfr.tableOffset >= len(db.RawTables) {
@@ -192,7 +190,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 		cfr.columnsOffset = cfr.columnsOffset + 1
 	}
 
-	evalCtx := &evaluator.EvalCtx{[]evaluator.Row{{[]evaluator.TableRow{{tableName, bsonDToValues(*result), nil}}}}}
+	evalCtx := &EvalCtx{[]Row{{[]TableRow{{tableName, bsonDToValues(*result), nil}}}}, cfr.ctx}
 	if cfr.matcher != nil && !cfr.matcher.Matches(evalCtx) {
 		return cfr.Next(result)
 	}
@@ -203,13 +201,13 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 // -------
 
 type ConfigFindQuery struct {
-	config         *config.Config
-	matcher        evaluator.Matcher
+	ctx            *ExecutionCtx
+	matcher        Matcher
 	includeColumns bool
 }
 
 func (cfq ConfigFindQuery) Iter() FindResults {
-	return &ConfigFindResults{cfq.config, cfq.matcher, cfq.includeColumns, 0, 0, 0, nil}
+	return &ConfigFindResults{cfq.ctx, cfq.matcher, cfq.includeColumns, 0, 0, 0, nil}
 }
 
 func (cfr *ConfigFindResults) Err() error {

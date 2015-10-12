@@ -1,9 +1,8 @@
-package planner
+package evaluator
 
 import (
 	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -14,9 +13,9 @@ var (
 	_ fmt.Stringer = nil
 )
 
-func selectTest(operator Operator, rows []bson.D, expectedRows []evaluator.Values) {
+func selectTest(operator Operator, rows []bson.D, expectedRows []Values) {
 
-	cfg, err := config.ParseConfigData(testConfigSimple)
+	cfg, err := config.ParseConfigData(testConfig1)
 	So(err, ShouldBeNil)
 
 	session, err := mgo.Dial(cfg.Url)
@@ -36,7 +35,7 @@ func selectTest(operator Operator, rows []bson.D, expectedRows []evaluator.Value
 
 	So(operator.Open(ctx), ShouldBeNil)
 
-	row := &evaluator.Row{}
+	row := &Row{}
 
 	i := 0
 
@@ -44,7 +43,7 @@ func selectTest(operator Operator, rows []bson.D, expectedRows []evaluator.Value
 		So(len(row.Data), ShouldEqual, 1)
 		So(row.Data[0].Table, ShouldEqual, tableTwoName)
 		So(row.Data[0].Values, ShouldResemble, expectedRows[i])
-		row = &evaluator.Row{}
+		row = &Row{}
 		i++
 	}
 
@@ -61,8 +60,8 @@ func TestSelectOperator(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
 		rows := []bson.D{
-			{{"a", evaluator.SQLInt(6)}, {"b", evaluator.SQLInt(7)}, {"_id", evaluator.SQLInt(5)}},
-			{{"a", evaluator.SQLInt(16)}, {"b", evaluator.SQLInt(17)}, {"_id", evaluator.SQLInt(15)}},
+			{{"a", SQLInt(6)}, {"b", SQLInt(7)}, {"_id", SQLInt(5)}},
+			{{"a", SQLInt(16)}, {"b", SQLInt(17)}, {"_id", SQLInt(15)}},
 		}
 
 		Convey("a select operator from one table with a star field return the right columns requested", func() {
@@ -73,7 +72,7 @@ func TestSelectOperator(t *testing.T) {
 				},
 			}
 
-			var expected []evaluator.Values
+			var expected []Values
 			for _, document := range rows {
 				expected = append(expected, bsonDToValues(document))
 			}
@@ -82,14 +81,14 @@ func TestSelectOperator(t *testing.T) {
 
 		Convey("a select operator from one table with non-star fields return the right columns requested", func() {
 
-			expectedRows := []evaluator.Values{
+			expectedRows := []Values{
 				{
-					{"a", "a", evaluator.SQLInt(6)},
-					{"b", "b", evaluator.SQLInt(7)},
+					{"a", "a", SQLInt(6)},
+					{"b", "b", SQLInt(7)},
 				},
 				{
-					{"a", "a", evaluator.SQLInt(16)},
-					{"b", "b", evaluator.SQLInt(17)},
+					{"a", "a", SQLInt(16)},
+					{"b", "b", SQLInt(17)},
 				},
 			}
 

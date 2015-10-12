@@ -1,11 +1,10 @@
-package algebrizer
+package evaluator
 
 import (
 	"bytes"
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/planner"
 	"strings"
 )
 
@@ -317,8 +316,8 @@ func (pCtx *ParseCtx) TableSchema(table string) *config.TableConfig {
 func (pCtx *ParseCtx) CheckColumn(tName, cName string) error {
 	// whitelist all 'virtual' schemas including information_schema
 	// TODO: more precise validation needed
-	if strings.EqualFold(pCtx.Database, planner.InformationSchema) ||
-		strings.EqualFold(tName, planner.InformationSchema) {
+	if strings.EqualFold(pCtx.Database, InformationSchema) ||
+		strings.EqualFold(tName, InformationSchema) {
 		return nil
 	}
 

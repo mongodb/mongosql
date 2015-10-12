@@ -1,4 +1,4 @@
-package algebrizer
+package evaluator
 
 import (
 	"github.com/erh/mixer/sqlparser"
@@ -28,7 +28,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
@@ -49,7 +49,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(err, ShouldBeNil)
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
@@ -69,7 +69,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(err, ShouldBeNil)
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
@@ -89,7 +89,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
@@ -111,7 +111,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
@@ -133,7 +133,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
 			So(err, ShouldBeNil)
@@ -155,7 +155,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
 			_, err = NewParseCtx(stmt, cfg, dbName)
@@ -172,7 +172,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
@@ -191,7 +191,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
@@ -210,7 +210,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
@@ -229,7 +229,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
@@ -248,7 +248,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbName)
@@ -267,7 +267,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbName)

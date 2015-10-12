@@ -1,9 +1,8 @@
-package planner
+package evaluator
 
 import (
 	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -14,9 +13,9 @@ var (
 	_ fmt.Stringer = nil
 )
 
-func subqueryTest(operator Operator, rows []bson.D, expectedRows []evaluator.Values) {
+func subqueryTest(operator Operator, rows []bson.D, expectedRows []Values) {
 
-	cfg, err := config.ParseConfigData(testConfigSimple)
+	cfg, err := config.ParseConfigData(testConfig1)
 	So(err, ShouldBeNil)
 
 	session, err := mgo.Dial(cfg.Url)
@@ -36,7 +35,7 @@ func subqueryTest(operator Operator, rows []bson.D, expectedRows []evaluator.Val
 
 	So(operator.Open(ctx), ShouldBeNil)
 
-	row := &evaluator.Row{}
+	row := &Row{}
 
 	i := 0
 
@@ -44,7 +43,7 @@ func subqueryTest(operator Operator, rows []bson.D, expectedRows []evaluator.Val
 		So(len(row.Data), ShouldEqual, 1)
 		So(row.Data[0].Table, ShouldEqual, tableOneName)
 		So(row.Data[0].Values[0].Data, ShouldResemble, expectedRows[i][0].Data)
-		row = &evaluator.Row{}
+		row = &Row{}
 		i++
 	}
 
@@ -74,7 +73,7 @@ func TestSubQueryOperator(t *testing.T) {
 				tableName: tableOneName,
 			}
 
-			expected := []evaluator.Values{
+			expected := []Values{
 				{{"a", "a", 6}, {"b", "b", 7}, {"_id", "_id", 5}},
 				{{"a", "a", 16}, {"b", "b", 17}, {"_id", "_id", 15}},
 			}

@@ -1,8 +1,7 @@
-package planner
+package evaluator
 
 import (
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -15,7 +14,7 @@ func TestTableScanOperator(t *testing.T) {
 
 		Convey("fetching data from a table scan should return correct results in the right order", func() {
 
-			cfg, err := config.ParseConfigData(testConfigSimple)
+			cfg, err := config.ParseConfigData(testConfig1)
 			So(err, ShouldBeNil)
 
 			session, err := mgo.Dial(cfg.Url)
@@ -34,7 +33,7 @@ func TestTableScanOperator(t *testing.T) {
 				},
 			}
 
-			var expected []evaluator.Values
+			var expected []Values
 			for _, document := range rows {
 				expected = append(expected, bsonDToValues(document))
 			}
@@ -57,7 +56,7 @@ func TestTableScanOperator(t *testing.T) {
 
 			So(operator.Open(ctx), ShouldBeNil)
 
-			row := &evaluator.Row{}
+			row := &Row{}
 
 			i := 0
 
@@ -65,7 +64,7 @@ func TestTableScanOperator(t *testing.T) {
 				So(len(row.Data), ShouldEqual, 1)
 				So(row.Data[0].Table, ShouldEqual, tableTwoName)
 				So(row.Data[0].Values, ShouldResemble, expected[i])
-				row = &evaluator.Row{}
+				row = &Row{}
 				i++
 			}
 

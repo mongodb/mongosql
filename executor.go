@@ -2,12 +2,11 @@ package sqlproxy
 
 import (
 	"github.com/erh/mongo-sql-temp/evaluator"
-	"github.com/erh/mongo-sql-temp/planner"
 	"github.com/mongodb/mongo-tools/common/log"
 )
 
 // Execute walks an operator and its children to returns results.
-func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, [][]interface{}, error) {
+func Execute(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) ([]string, [][]interface{}, error) {
 	rows := make([][]interface{}, 0)
 
 	log.Logf(log.DebugLow, "Executing plan: %#v", operator)
@@ -56,7 +55,7 @@ func Execute(ctx *planner.ExecutionCtx, operator planner.Operator) ([]string, []
 	return headers, rows, nil
 }
 
-func getRowValues(columns []*planner.Column, row *evaluator.Row) []interface{} {
+func getRowValues(columns []*evaluator.Column, row *evaluator.Row) []interface{} {
 	values := make([]interface{}, 0)
 
 	for _, column := range columns {

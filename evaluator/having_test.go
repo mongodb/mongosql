@@ -1,10 +1,9 @@
-package planner
+package evaluator
 
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -16,9 +15,9 @@ var (
 	_ fmt.Stringer = nil
 )
 
-func havingTest(operator Operator, rows []bson.D, expectedRows [][]evaluator.Values) {
+func havingTest(operator Operator, rows []bson.D, expectedRows [][]Values) {
 
-	cfg, err := config.ParseConfigData(testConfigSimple)
+	cfg, err := config.ParseConfigData(testConfig1)
 	So(err, ShouldBeNil)
 
 	session, err := mgo.Dial(cfg.Url)
@@ -38,7 +37,7 @@ func havingTest(operator Operator, rows []bson.D, expectedRows [][]evaluator.Val
 
 	So(operator.Open(ctx), ShouldBeNil)
 
-	row := &evaluator.Row{}
+	row := &Row{}
 
 	i := 0
 
@@ -53,7 +52,7 @@ func havingTest(operator Operator, rows []bson.D, expectedRows [][]evaluator.Val
 		So(row.Data[1-aggregateTable].Table, ShouldEqual, tableOneName)
 		So(row.Data[1-aggregateTable].Values, ShouldResemble, expectedRows[i][0])
 		So(row.Data[aggregateTable].Values, ShouldResemble, expectedRows[i][1])
-		row = &evaluator.Row{}
+		row = &Row{}
 		i++
 	}
 }
@@ -64,14 +63,14 @@ func TestHavingOperator(t *testing.T) {
 
 		data := []bson.D{
 			bson.D{
-				{"_id", evaluator.SQLInt(1)},
-				{"a", evaluator.SQLInt(6)},
-				{"b", evaluator.SQLInt(7)},
+				{"_id", SQLInt(1)},
+				{"a", SQLInt(6)},
+				{"b", SQLInt(7)},
 			},
 			bson.D{
-				{"_id", evaluator.SQLInt(2)},
-				{"a", evaluator.SQLInt(6)},
-				{"b", evaluator.SQLInt(8)},
+				{"_id", SQLInt(2)},
+				{"a", SQLInt(6)},
+				{"b", SQLInt(8)},
 			},
 		}
 
@@ -124,7 +123,7 @@ func TestHavingOperator(t *testing.T) {
 				Right: sqlparser.NumVal(strconv.FormatFloat(3.0, 'E', -1, 64)),
 			}
 
-			matcher, err := evaluator.BuildMatcher(expr)
+			matcher, err := BuildMatcher(expr)
 			So(err, ShouldBeNil)
 
 			operator := &Having{
@@ -133,10 +132,10 @@ func TestHavingOperator(t *testing.T) {
 				matcher: matcher,
 			}
 
-			expected := [][]evaluator.Values{
-				[]evaluator.Values{
-					{{"a", "a", evaluator.SQLInt(6)}},
-					{{"sum(b)", "sum(b)", evaluator.SQLInt(15)}},
+			expected := [][]Values{
+				[]Values{
+					{{"a", "a", SQLInt(6)}},
+					{{"sum(b)", "sum(b)", SQLInt(15)}},
 				},
 			}
 
@@ -158,7 +157,7 @@ func TestHavingOperator(t *testing.T) {
 				Right: sqlparser.NumVal(strconv.FormatFloat(999.0, 'E', -1, 64)),
 			}
 
-			matcher, err := evaluator.BuildMatcher(expr)
+			matcher, err := BuildMatcher(expr)
 			So(err, ShouldBeNil)
 
 			operator := &Having{
@@ -167,7 +166,7 @@ func TestHavingOperator(t *testing.T) {
 				matcher: matcher,
 			}
 
-			expected := [][]evaluator.Values{}
+			expected := [][]Values{}
 
 			havingTest(operator, data, expected)
 		})

@@ -1,9 +1,8 @@
-package planner
+package evaluator
 
 import (
 	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/evaluator"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
 	"sync"
@@ -14,12 +13,13 @@ type TableScan struct {
 	tableName      string
 	fullCollection string
 	filter         interface{}
-	matcher        evaluator.Matcher
+	matcher        Matcher
 	sync.Mutex
 	iter        FindResults
 	err         error
 	dbConfig    *config.Schema
 	tableConfig *config.TableConfig
+	ctx         *ExecutionCtx
 }
 
 // Open establishes a connection to database collection for this table.
@@ -28,6 +28,7 @@ func (ts *TableScan) Open(ctx *ExecutionCtx) error {
 }
 
 func (ts *TableScan) init(ctx *ExecutionCtx) error {
+	ts.ctx = ctx
 
 	if len(ts.dbName) == 0 {
 		ts.dbName = ctx.Db
@@ -41,7 +42,7 @@ func (ts *TableScan) init(ctx *ExecutionCtx) error {
 }
 
 func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
-	sp, err := evaluator.NewSessionProvider(ctx.Config)
+	sp, err := NewSessionProvider(ctx.Config)
 	if err != nil {
 		return err
 	}
@@ -67,7 +68,7 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 	return nil
 }
 
-func (ts *TableScan) Next(row *evaluator.Row) bool {
+func (ts *TableScan) Next(row *Row) bool {
 	if ts.iter == nil {
 		return false
 	}
@@ -78,11 +79,11 @@ func (ts *TableScan) Next(row *evaluator.Row) bool {
 		d := &bson.D{}
 		hasNext = ts.iter.Next(d)
 
-		values := evaluator.Values{}
+		values := Values{}
 		data := d.Map()
 
 		for _, column := range ts.tableConfig.Columns {
-			value := evaluator.Value{
+			value := Value{
 				Name: column.Name,
 				View: column.Name,
 				Data: data[column.Name],
@@ -93,16 +94,16 @@ func (ts *TableScan) Next(row *evaluator.Row) bool {
 
 		// now add all other columns
 		for key, value := range data {
-			value := evaluator.Value{
+			value := Value{
 				Name: key,
 				View: key,
 				Data: value,
 			}
 			values = append(values, value)
 		}
-		row.Data = []evaluator.TableRow{{ts.tableName, values, ts.tableConfig}}
+		row.Data = []TableRow{{ts.tableName, values, ts.tableConfig}}
 
-		evalCtx := &evaluator.EvalCtx{[]evaluator.Row{*row}}
+		evalCtx := &EvalCtx{[]Row{*row}, ts.ctx}
 
 		if ts.matcher != nil {
 			if ts.matcher.Matches(evalCtx) {

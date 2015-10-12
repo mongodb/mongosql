@@ -55,6 +55,22 @@ type Conn struct {
 	stmts map[uint32]*Stmt
 }
 
+func (c *Conn) LastInsertId() int64 {
+	return c.lastInsertId
+}
+func (c *Conn) RowCount() int64 {
+	return c.affectedRows
+}
+func (c *Conn) ConnectionId() uint32 {
+	return c.connectionId
+}
+func (c *Conn) DB() string {
+	if c.currentSchema == nil {
+		return ""
+	}
+	return c.currentSchema.DB
+}
+
 var baseConnId uint32 = 10000
 
 func (s *Server) newConn(co net.Conn) *Conn {

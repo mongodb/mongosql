@@ -1,9 +1,8 @@
-package planner
+package evaluator
 
 import (
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -56,7 +55,7 @@ var (
 
 func setupJoinOperator(criteria sqlparser.BoolExpr, joinType string) Operator {
 
-	cfg, err := config.ParseConfigData(testConfigSimple)
+	cfg, err := config.ParseConfigData(testConfig1)
 	So(err, ShouldBeNil)
 
 	session, err := mgo.Dial(cfg.Url)
@@ -111,7 +110,7 @@ func TestJoinOperator(t *testing.T) {
 			},
 		}
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
+		cfg, err := config.ParseConfigData(testConfig1)
 		So(err, ShouldBeNil)
 
 		ctx := &ExecutionCtx{
@@ -119,7 +118,7 @@ func TestJoinOperator(t *testing.T) {
 			Db:     dbName,
 		}
 
-		row := &evaluator.Row{}
+		row := &Row{}
 
 		i := 0
 

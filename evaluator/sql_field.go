@@ -295,6 +295,10 @@ func (f *SQLFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		distinctMap = make(map[interface{}]bool)
 	}
 	switch string(f.Name) {
+	case "connection_id":
+		return connectionIdFunc(ctx)
+	case "database":
+		return dbFunc(ctx)
 	case "avg":
 		return avgFunc(ctx, f.Exprs, distinctMap)
 	case "sum":
@@ -321,6 +325,14 @@ func (f *SQLFuncExpr) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
 	}
 
 	return fEval.CompareTo(ctx, value)
+}
+
+func connectionIdFunc(ctx *EvalCtx) (SQLValue, error) {
+	return SQLInt(ctx.ExecCtx.ConnectionId()), nil
+}
+
+func dbFunc(ctx *EvalCtx) (SQLValue, error) {
+	return SQLString(ctx.ExecCtx.DB()), nil
 }
 
 func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {

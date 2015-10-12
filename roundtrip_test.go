@@ -1,4 +1,4 @@
-package connector
+package sqlproxy
 
 import (
 	"database/sql"

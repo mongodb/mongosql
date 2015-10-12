@@ -1,4 +1,4 @@
-package planner
+package evaluator
 
 import (
 	"gopkg.in/mgo.v2"

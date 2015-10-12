@@ -12,7 +12,9 @@ var (
 		{[]TableRow{{tableOneName, Values{{"a", "a", 2}, {"b", "b", 2}}, nil}}},
 		{[]TableRow{{tableOneName, Values{{"a", "a", 3}, {"b", "b", 3}}, nil}}},
 		{[]TableRow{{tableOneName, Values{{"a", "a", 4}, {"b", "b", 1}}, nil}}},
-	}}
+	},
+		nil,
+	}
 )
 
 func TestNewSQLValue(t *testing.T) {
@@ -96,7 +98,7 @@ func TestAggFuncSum(t *testing.T) {
 
 			evalRows := make([]Row, len(testCtx.Rows))
 			copy(evalRows, testCtx.Rows)
-			evalCtx := &EvalCtx{evalRows}
+			evalCtx := &EvalCtx{evalRows, nil}
 			unsummableRow := Row{
 				[]TableRow{{tableOneName, Values{{"a", "a", "unsummable value"}}, nil}},
 			}
@@ -170,7 +172,7 @@ func TestAggFuncAvg(t *testing.T) {
 
 			evalRows := make([]Row, len(testCtx.Rows))
 			copy(evalRows, testCtx.Rows)
-			evalCtx := &EvalCtx{evalRows}
+			evalCtx := &EvalCtx{evalRows, nil}
 			unsummableRow := Row{
 				[]TableRow{{tableOneName, Values{{"a", "a", "nsummable value"}}, nil}},
 			}
@@ -245,7 +247,7 @@ func TestAggFuncCount(t *testing.T) {
 
 			evalRows := make([]Row, len(testCtx.Rows))
 			copy(evalRows, testCtx.Rows)
-			evalCtx := &EvalCtx{evalRows}
+			evalCtx := &EvalCtx{evalRows, nil}
 			unsummableRow := Row{
 				[]TableRow{{tableOneName, Values{{"a", "a", nil}}, nil}},
 			}
@@ -319,7 +321,7 @@ func TestAggFuncMax(t *testing.T) {
 
 			evalRows := make([]Row, len(testCtx.Rows))
 			copy(evalRows, testCtx.Rows)
-			evalCtx := &EvalCtx{evalRows}
+			evalCtx := &EvalCtx{evalRows, nil}
 			unsummableRow := Row{
 				[]TableRow{{tableOneName, Values{{"a", "a", nil}}, nil}},
 			}
@@ -393,7 +395,7 @@ func TestAggFuncMin(t *testing.T) {
 
 			evalRows := make([]Row, len(testCtx.Rows))
 			copy(evalRows, testCtx.Rows)
-			evalCtx := &EvalCtx{evalRows}
+			evalCtx := &EvalCtx{evalRows, nil}
 			unsummableRow := Row{
 				[]TableRow{{tableOneName, Values{{"a", "a", nil}}, nil}},
 			}

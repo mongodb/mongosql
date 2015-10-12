@@ -1,8 +1,4 @@
-package planner
-
-import (
-	"github.com/erh/mongo-sql-temp/evaluator"
-)
+package evaluator
 
 type Subquery struct {
 	// tableName holds the name of this table as seen in outer contexts
@@ -15,17 +11,18 @@ type Subquery struct {
 	source Operator
 
 	// matcher is used to filter results returned by this operator
-	matcher evaluator.Matcher
+	matcher Matcher
 
 	// ctx is the current execution context
 	ctx *ExecutionCtx
 }
 
 func (sq *Subquery) Open(ctx *ExecutionCtx) error {
+	sq.ctx = ctx
 	return sq.source.Open(ctx)
 }
 
-func (sq *Subquery) Next(row *evaluator.Row) bool {
+func (sq *Subquery) Next(row *Row) bool {
 
 	var hasNext bool
 
@@ -33,11 +30,11 @@ func (sq *Subquery) Next(row *evaluator.Row) bool {
 
 		hasNext = sq.source.Next(row)
 
-		var tableRows []evaluator.TableRow
+		var tableRows []TableRow
 
 		for _, tableRow := range row.Data {
 
-			var values evaluator.Values
+			var values Values
 
 			for _, value := range tableRow.Values {
 				value.Name = value.View
@@ -46,13 +43,12 @@ func (sq *Subquery) Next(row *evaluator.Row) bool {
 
 			tableRow.Values = values
 			tableRow.Table = sq.tableName
-
 			tableRows = append(tableRows, tableRow)
 		}
 
 		row.Data = tableRows
 
-		evalCtx := &evaluator.EvalCtx{[]evaluator.Row{*row}}
+		evalCtx := &EvalCtx{[]Row{*row}, sq.ctx}
 
 		if sq.matcher != nil {
 			if sq.matcher.Matches(evalCtx) {

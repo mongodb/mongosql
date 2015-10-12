@@ -8,11 +8,8 @@ buildvariants:
   run_on:
   - ubuntu1404-docker
   tasks:
-  - name: algebrizer
   - name: evaluator
   - name: config
-  - name: planner
-  - name: connector
   - name: sqlproxy
   - name: dist
 
@@ -142,36 +139,6 @@ functions:
       display_name: Coverage Report (TXT)
 
 tasks:
-- name: algebrizer
-  commands:
-    - func: "start mongod"
-    - func: "fetch source"
-    - func: "apply patches"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          . ./set_gopath.sh
-          cd algebrizer
-          mkfifo test_pipe
-          tee -a algebrizer.suite < test_pipe&
-          go test -v -coverprofile=coverage.out > test_pipe
-    - command: shell.exec
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          mv algebrizer/coverage.out .
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
-
 - name: config
   commands:
     - func: "start mongod"
@@ -232,36 +199,6 @@ tasks:
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
 
-- name: planner
-  commands:
-    - func: "start mongod"
-    - func: "fetch source"
-    - func: "apply patches"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          . ./set_gopath.sh
-          cd planner
-          mkfifo test_pipe
-          tee -a planner.suite < test_pipe&
-          go test -v -coverprofile=coverage.out > test_pipe
-    - command: shell.exec
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          mv planner/coverage.out .
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
-
 - name: dist
   commands:
     - func: "fetch source"
@@ -276,7 +213,7 @@ tasks:
           fi;
           . ./set_gopath.sh
           set -e
-          go build connector/main/main.go
+          go build -o sqlproxy main/main.go
 
 - name: connector
   commands:
@@ -292,7 +229,6 @@ tasks:
             set -o igncr
           fi;
           . ./set_gopath.sh
-          cd connector
           go test -v -coverprofile=coverage.out
 
 - name: sqlproxy

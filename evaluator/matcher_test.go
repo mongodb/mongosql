@@ -3,7 +3,6 @@ package evaluator
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/algebrizer"
 	"github.com/erh/mongo-sql-temp/config"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/json"
@@ -18,16 +17,16 @@ func getMatcherFromSQL(sql string) (Matcher, error) {
 		return nil, err
 	}
 	if selectStatement, ok := raw.(*sqlparser.Select); ok {
-		cfg, err := config.ParseConfigData(testConfigSimple)
+		cfg, err := config.ParseConfigData(testConfig3)
 		So(err, ShouldBeNil)
-		parseCtx, err := algebrizer.NewParseCtx(selectStatement, cfg, dbName)
+		parseCtx, err := NewParseCtx(selectStatement, cfg, dbName)
 		if err != nil {
 			return nil, err
 		}
 
 		parseCtx.Database = dbName
 
-		err = algebrizer.AlgebrizeStatement(selectStatement, parseCtx)
+		err = AlgebrizeStatement(selectStatement, parseCtx)
 		if err != nil {
 			return nil, err
 		}
@@ -90,14 +89,16 @@ func TestBasicMatching(t *testing.T) {
 		Convey("using the matcher on a row whose value matches should return true", func() {
 			tree := Equals{SQLString("xyz"), &SQLField{"bar", "b"}}
 			evalCtx := &EvalCtx{[]Row{
-				{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"b", "b", "xyz"}, {"c", "c", nil}}, nil}}}}}
+				{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"b", "b", "xyz"}, {"c", "c", nil}}, nil}}}},
+				nil,
+			}
 			So(tree.Matches(evalCtx), ShouldBeTrue)
 		})
 
 		Convey("using the matcher on a row whose values do not match should return false", func() {
 			evalCtx := &EvalCtx{[]Row{
 				{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"b", "b", "WRONG"}, {"c", "c", nil}}, nil}}},
-			}}
+			}, nil}
 			So(tree.Matches(evalCtx), ShouldBeFalse)
 		})
 	})
@@ -118,7 +119,7 @@ func TestComparisonMatchers(t *testing.T) {
 		var tree Matcher
 		evalCtx := &EvalCtx{[]Row{
 			{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"y", "y", 456}, {"c", "c", nil}}, nil}}},
-		}}
+		}, nil}
 		for _, data := range tests {
 			tree = &Equals{data.less, data.less}
 			So(tree.Matches(evalCtx), ShouldBeTrue)

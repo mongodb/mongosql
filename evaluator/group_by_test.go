@@ -1,18 +1,17 @@
-package planner
+package evaluator
 
 import (
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
 
-func groupByTest(operator Operator, rows []bson.D, expectedRows [][]evaluator.Values) {
+func groupByTest(operator Operator, rows []bson.D, expectedRows [][]Values) {
 
-	cfg, err := config.ParseConfigData(testConfigSimple)
+	cfg, err := config.ParseConfigData(testConfig1)
 	So(err, ShouldBeNil)
 
 	session, err := mgo.Dial(cfg.Url)
@@ -32,7 +31,7 @@ func groupByTest(operator Operator, rows []bson.D, expectedRows [][]evaluator.Va
 
 	So(operator.Open(ctx), ShouldBeNil)
 
-	row := &evaluator.Row{}
+	row := &Row{}
 
 	i := 0
 
@@ -47,7 +46,7 @@ func groupByTest(operator Operator, rows []bson.D, expectedRows [][]evaluator.Va
 		So(row.Data[1-aggregateTable].Table, ShouldEqual, tableOneName)
 		So(row.Data[1-aggregateTable].Values, ShouldResemble, expectedRows[i][0])
 		So(row.Data[aggregateTable].Values, ShouldResemble, expectedRows[i][1])
-		row = &evaluator.Row{}
+		row = &Row{}
 		i++
 	}
 }
@@ -101,7 +100,7 @@ func TestGroupByOperator(t *testing.T) {
 				&sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
 			}
 
-			matcher := &evaluator.NoopMatch{}
+			matcher := &NoopMatch{}
 
 			operator := &GroupBy{
 				sExprs:  sExprs,
@@ -110,10 +109,10 @@ func TestGroupByOperator(t *testing.T) {
 				matcher: matcher,
 			}
 
-			expected := [][]evaluator.Values{
-				[]evaluator.Values{
-					{{"a", "a", evaluator.SQLInt(6)}},
-					{{"sum(b)", "sum(b)", evaluator.SQLInt(15)}},
+			expected := [][]Values{
+				[]Values{
+					{{"a", "a", SQLInt(6)}},
+					{{"sum(b)", "sum(b)", SQLInt(15)}},
 				},
 			}
 

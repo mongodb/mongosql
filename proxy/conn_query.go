@@ -61,7 +61,12 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	case *sqlparser.Rollback:
 		return c.handleRollback()
 	case *sqlparser.SimpleSelect:
-		return c.handleSimpleSelect(sql, v)
+		// TODO alias to special table correctly
+		rewrittenSelect := &sqlparser.Select{
+			SelectExprs: v.SelectExprs,
+			From:        sqlparser.TableExprs{&sqlparser.AliasedTableExpr{&sqlparser.TableName{}, []byte(""), nil}},
+		}
+		return c.handleSelect(rewrittenSelect, sql, nil)
 	case *sqlparser.Show:
 		return c.handleShow(sql, v)
 	case *sqlparser.Admin:
@@ -183,7 +188,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		currentDB = c.currentSchema.DB
 	}
 
-	names, values, err := c.server.eval.EvalSelect(currentDB, sql, stmt)
+	names, values, err := c.server.eval.EvalSelect(currentDB, sql, stmt, c)
 	if err != nil {
 		return err
 	}

@@ -1,8 +1,7 @@
-package planner
+package evaluator
 
 import (
 	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/evaluator"
 )
 
 type Select struct {
@@ -37,8 +36,8 @@ func (s *Select) Open(ctx *ExecutionCtx) error {
 	return nil
 }
 
-func (s *Select) Next(r *evaluator.Row) bool {
-	row := &evaluator.Row{}
+func (s *Select) Next(r *Row) bool {
+	row := &Row{}
 
 	hasNext := s.source.Next(row)
 
@@ -57,7 +56,7 @@ func (s *Select) Next(r *evaluator.Row) bool {
 		s.setSelectExpr()
 	}
 
-	data := map[string][]evaluator.Value{}
+	data := map[string][]Value{}
 
 	for _, expr := range s.sExprs {
 		v, err := s.getValue(expr, row)
@@ -66,7 +65,7 @@ func (s *Select) Next(r *evaluator.Row) bool {
 			hasNext = false
 		}
 
-		value := evaluator.Value{
+		value := Value{
 			Name: expr.Name,
 			View: expr.View,
 			Data: v,
@@ -75,13 +74,13 @@ func (s *Select) Next(r *evaluator.Row) bool {
 	}
 
 	for k, v := range data {
-		r.Data = append(r.Data, evaluator.TableRow{k, v, nil})
+		r.Data = append(r.Data, TableRow{k, v, nil})
 	}
 
 	return hasNext
 }
 
-func (s *Select) getValue(sc SelectExpression, row *evaluator.Row) (interface{}, error) {
+func (s *Select) getValue(sc SelectExpression, row *Row) (interface{}, error) {
 	// in the case where we have a bare select column and no expression
 	if sc.Expr == nil {
 		sc.Expr = &sqlparser.ColName{
@@ -90,13 +89,14 @@ func (s *Select) getValue(sc SelectExpression, row *evaluator.Row) (interface{},
 		}
 	}
 
-	expr, err := evaluator.NewSQLValue(sc.Expr)
+	expr, err := NewSQLValue(sc.Expr)
 	if err != nil {
 		return nil, err
 	}
 
-	evalCtx := &evaluator.EvalCtx{
-		Rows: []evaluator.Row{*row},
+	evalCtx := &EvalCtx{
+		Rows:    []Row{*row},
+		ExecCtx: s.ctx,
 	}
 
 	return expr.Evaluate(evalCtx)
