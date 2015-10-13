@@ -3,7 +3,7 @@
 ```
 git clone git@github.com:erh/mongo-sql-temp.git sqlproxy
 cd sqlproxy && . ./set_gopath.sh
-go run connector/main.go -config sample.conf
+go run main/main.go -config sample.conf
 ```
 
 Connect using TCP protocol with mysql client
