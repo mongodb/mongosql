@@ -145,14 +145,22 @@ func (l *Like) Matches(ctx *EvalCtx) (bool, error) {
 		return false, err
 	}
 
-	left := e.MongoValue().(string)
+	value := e.MongoValue()
+	left, ok := value.(string)
+	if !ok {
+		return false, nil
+	}
 
 	e, err = l.right.Evaluate(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	right := e.MongoValue().(string)
+	value = e.MongoValue()
+	right, ok := value.(string)
+	if !ok {
+		return false, nil
+	}
 
 	matches, err := regexp.Match(left, []byte(right))
 	if err != nil {
