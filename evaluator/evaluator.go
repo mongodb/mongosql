@@ -69,6 +69,16 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 		return &SQLFuncExpr{expr}, nil
 	case *sqlparser.ParenBoolExpr:
 		return &SQLParenBoolExpr{expr}, nil
+	case sqlparser.ValTuple:
+		var values []SQLValue
+		for _, e := range expr {
+			value, err := NewSQLValue(e)
+			if err != nil {
+				return nil, err
+			}
+			values = append(values, value)
+		}
+		return &SQLValTupleExpr{values}, nil
 	case nil:
 		return &SQLNullValue{}, nil
 	default:

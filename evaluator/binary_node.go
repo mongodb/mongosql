@@ -1,9 +1,12 @@
 package evaluator
 
 import (
+	"fmt"
 	"gopkg.in/mgo.v2/bson"
 	"regexp"
 )
+
+// TODO: support SQLValues in all nodes
 
 //
 // LessThan
@@ -11,42 +14,44 @@ import (
 type LessThan BinaryNode
 type LessThanOrEqual BinaryNode
 
-func (gt *LessThanOrEqual) Transform() (*bson.D, error) {
-	return transformComparison(gt.left, gt.right, "$lte", "$gt")
+func (lt *LessThanOrEqual) Transform() (*bson.D, error) {
+	return transformComparison(lt.left, lt.right, "$lte", "$gt")
 }
 
-func (gt *LessThan) Transform() (*bson.D, error) {
-	return transformComparison(gt.left, gt.right, "$lt", "$gte")
+func (lt *LessThan) Transform() (*bson.D, error) {
+	return transformComparison(lt.left, lt.right, "$lt", "$gte")
 }
 
-func (lt *LessThan) Matches(ctx *EvalCtx) bool {
+func (lt *LessThan) Matches(ctx *EvalCtx) (bool, error) {
 	leftEvald, err := lt.left.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
 	rightEvald, err := lt.right.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
-	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
-		return c < 0
+	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	if err == nil {
+		return c < 0, nil
 	}
-	return false
+	return false, err
 }
 
-func (lte *LessThanOrEqual) Matches(ctx *EvalCtx) bool {
+func (lte *LessThanOrEqual) Matches(ctx *EvalCtx) (bool, error) {
 	leftEvald, err := lte.left.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
 	rightEvald, err := lte.right.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
-	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
-		return c <= 0
+	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	if err == nil {
+		return c <= 0, nil
 	}
-	return false
+	return false, err
 }
 
 //
@@ -56,21 +61,20 @@ func (lte *LessThanOrEqual) Matches(ctx *EvalCtx) bool {
 type GreaterThan BinaryNode
 type GreaterThanOrEqual BinaryNode
 
-func (gt *GreaterThan) Matches(ctx *EvalCtx) bool {
+func (gt *GreaterThan) Matches(ctx *EvalCtx) (bool, error) {
 	leftEvald, err := gt.left.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
-
 	rightEvald, err := gt.right.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
-
-	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
-		return c > 0
+	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	if err == nil {
+		return c > 0, nil
 	}
-	return false
+	return false, err
 }
 
 func (gt *GreaterThan) Transform() (*bson.D, error) {
@@ -81,19 +85,20 @@ func (gt *GreaterThanOrEqual) Transform() (*bson.D, error) {
 	return transformComparison(gt.left, gt.right, "$gte", "$lt")
 }
 
-func (gte *GreaterThanOrEqual) Matches(ctx *EvalCtx) bool {
+func (gte *GreaterThanOrEqual) Matches(ctx *EvalCtx) (bool, error) {
 	leftEvald, err := gte.left.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
 	rightEvald, err := gte.right.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
-	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
-		return c >= 0
+	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	if err == nil {
+		return c >= 0, nil
 	}
-	return false
+	return false, err
 }
 
 //
@@ -106,26 +111,26 @@ func (l *Like) Transform() (*bson.D, error) {
 	return transformComparison(l.left, l.right, "$regex", "no inverse like support")
 }
 
-func (l *Like) Matches(ctx *EvalCtx) bool {
+func (l *Like) Matches(ctx *EvalCtx) (bool, error) {
 	e, err := l.left.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
 
 	left := e.MongoValue().(string)
 
 	e, err = l.right.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
 
 	right := e.MongoValue().(string)
 
 	matches, err := regexp.Match(left, []byte(right))
 	if err != nil {
-		return false
+		return false, err
 	}
-	return matches
+	return matches, nil
 }
 
 //
@@ -134,19 +139,20 @@ func (l *Like) Matches(ctx *EvalCtx) bool {
 
 type NotEquals BinaryNode
 
-func (neq *NotEquals) Matches(ctx *EvalCtx) bool {
+func (neq *NotEquals) Matches(ctx *EvalCtx) (bool, error) {
 	leftEvald, err := neq.left.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
 	rightEvald, err := neq.right.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
-	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
-		return c != 0
+	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	if err == nil {
+		return c != 0, nil
 	}
-	return false
+	return false, err
 }
 
 func (neq *NotEquals) Transform() (*bson.D, error) {
@@ -165,19 +171,20 @@ func (neq *NotEquals) Transform() (*bson.D, error) {
 
 type Equals BinaryNode
 
-func (eq *Equals) Matches(ctx *EvalCtx) bool {
+func (eq *Equals) Matches(ctx *EvalCtx) (bool, error) {
 	leftEvald, err := eq.left.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
 	rightEvald, err := eq.right.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
-	if c, err := leftEvald.CompareTo(ctx, rightEvald); err == nil {
-		return c == 0
+	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	if err == nil {
+		return c == 0, nil
 	}
-	return false
+	return false, err
 }
 
 func (eq *Equals) Transform() (*bson.D, error) {
@@ -188,4 +195,53 @@ func (eq *Equals) Transform() (*bson.D, error) {
 	return &bson.D{
 		{tField.fieldName, bson.D{{"$eq", tLiteral.MongoValue()}}},
 	}, nil
+}
+
+//
+// In
+//
+
+type In BinaryNode
+
+func (in *In) Matches(ctx *EvalCtx) (bool, error) {
+	left, err := in.left.Evaluate(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	right, err := in.right.Evaluate(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// right child must be of type SQLValues
+	rightChild, ok := right.(SQLValues)
+	if !ok {
+		return false, fmt.Errorf("right In expression is %T", right)
+	}
+
+	leftChild, ok := left.(SQLValues)
+	if ok {
+		if len(leftChild.values) != 1 {
+			return false, fmt.Errorf("left operand should contain 1 column")
+		}
+		left = leftChild.values[0]
+	}
+
+	for _, right := range rightChild.values {
+		eq := &Equals{left, right}
+		m, err := eq.Matches(ctx)
+		if err != nil {
+			return false, err
+		}
+		if m {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (in *In) Transform() (*bson.D, error) {
+	return &bson.D{}, nil
 }

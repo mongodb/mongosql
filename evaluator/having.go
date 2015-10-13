@@ -14,12 +14,9 @@ type Having struct {
 	matcher Matcher
 	// hasNext indicates if this operator has more results
 	hasNext bool
-
-	ctx *ExecutionCtx
 }
 
 func (hv *Having) Open(ctx *ExecutionCtx) error {
-	hv.ctx = ctx
 	return hv.source.Open(ctx)
 }
 
@@ -43,7 +40,7 @@ func (hv *Having) evalResult() (*Row, error) {
 	aggValues := map[string]Values{}
 
 	row := &Row{}
-	evalCtx := &EvalCtx{hv.data, hv.ctx}
+	evalCtx := &EvalCtx{Rows: hv.data}
 
 	for _, sExpr := range hv.sExprs {
 		if sExpr.Referenced {
@@ -94,9 +91,14 @@ func (hv *Having) Next(row *Row) bool {
 		hv.err = err
 	}
 
-	evalCtx := &EvalCtx{Rows: hv.data, ExecCtx: hv.ctx}
+	evalCtx := &EvalCtx{Rows: hv.data}
 
-	if hv.matcher.Matches(evalCtx) {
+	m, err := hv.matcher.Matches(evalCtx)
+	if err != nil {
+		hv.err = err
+		return false
+	}
+	if m {
 		row.Data = r.Data
 	} else {
 		return false

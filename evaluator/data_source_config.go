@@ -191,10 +191,16 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 	}
 
 	evalCtx := &EvalCtx{[]Row{{[]TableRow{{tableName, bsonDToValues(*result), nil}}}}, cfr.ctx}
-	if cfr.matcher != nil && !cfr.matcher.Matches(evalCtx) {
-		return cfr.Next(result)
+	if cfr.matcher != nil {
+		m, err := cfr.matcher.Matches(evalCtx)
+		if err != nil {
+			cfr.err = err
+			return false
+		}
+		if !m {
+			return cfr.Next(result)
+		}
 	}
-
 	return true
 }
 

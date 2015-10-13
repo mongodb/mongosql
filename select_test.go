@@ -782,3 +782,90 @@ func TestSelectFromSubquery(t *testing.T) {
 
 	})
 }
+
+func TestSelectWithRowValue(t *testing.T) {
+
+	Convey("With a select query containing a row value expression", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvaluator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 2}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 3, "b": 4, "a": 3}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 4, "b": 4, "a": 4}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 5, "b": 4, "a": 5}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 6, "b": 5, "a": 6}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 7, "b": 6, "a": 7}), ShouldBeNil)
+
+		Convey("degree 1 equality comparisons should return the correct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a) = 3", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(3))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(4))
+
+		})
+
+		Convey("degree 1 greater than comparisons should return the correct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a) > 5", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(6): []evaluator.SQLNumeric{
+					evaluator.SQLInt(5),
+				},
+				evaluator.SQLInt(7): []evaluator.SQLNumeric{
+					evaluator.SQLInt(6),
+				},
+			}
+			checkExpectedValues(2, values, expectedValues)
+
+		})
+
+		Convey("degree 1 less than comparisons should return the correct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a) < 2", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a) < (2)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
+
+		})
+
+		// additional test cases to support:
+		//
+		// select a, b from foo where (3) > (true) ;
+		//
+		// select a, b from bar where 2 >= (a)
+		//
+
+	})
+}

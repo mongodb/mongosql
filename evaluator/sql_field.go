@@ -190,8 +190,7 @@ func (sf SQLFloat) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 		}
 		return 0, nil
 	}
-	// can only compare numbers to each other, otherwise treat as error
-	return -1, ErrTypeMismatch
+	return -1, nil
 }
 
 func (si SQLInt) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
@@ -216,8 +215,7 @@ func (si SQLInt) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 		}
 		return 0, nil
 	}
-	// can only compare numbers to each other, otherwise treat as error
-	return -1, ErrTypeMismatch
+	return -1, nil
 }
 
 //
@@ -553,7 +551,8 @@ func (p *SQLParenBoolExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	return SQLBool(matcher.Matches(ctx)), nil
+	b, err := matcher.Matches(ctx)
+	return SQLBool(b), err
 }
 
 func (p *SQLParenBoolExpr) MongoValue() interface{} {
@@ -561,5 +560,79 @@ func (p *SQLParenBoolExpr) MongoValue() interface{} {
 }
 
 func (p *SQLParenBoolExpr) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	return 0, nil
+}
+
+//
+// SQLValues
+//
+type SQLValues struct {
+	values []SQLValue
+}
+
+func (sv SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return sv, nil
+}
+
+func (sv SQLValues) MongoValue() interface{} {
+	return nil
+}
+
+func (sv SQLValues) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+
+	r, ok := v.(SQLValues)
+	if !ok {
+		if len(sv.values) != 1 {
+			return -1, fmt.Errorf("Operand should contain %v columns", len(sv.values))
+		}
+		// allows for implicit row value comparisons such as:
+		//
+		// select a, b from foo where (a) < 3;
+		//
+		//
+		r.values = append(r.values, v)
+	} else if len(sv.values) != len(r.values) {
+		return -1, fmt.Errorf("Operand should contain %v columns", len(sv.values))
+	}
+
+	for i := 0; i < len(sv.values); i++ {
+		c, err := sv.values[i].CompareTo(ctx, r.values[i])
+		if err != nil {
+			return -1, err
+		}
+
+		if c != 0 {
+			return c, nil
+		}
+
+	}
+
+	return 0, nil
+}
+
+//
+// SQLValTupleExpr
+//
+type SQLValTupleExpr SQLValues
+
+func (te SQLValTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	var values []SQLValue
+
+	for _, v := range te.values {
+		value, err := v.Evaluate(ctx)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, value)
+	}
+
+	return SQLValues{values}, nil
+}
+
+func (te SQLValTupleExpr) MongoValue() interface{} {
+	return nil
+}
+
+func (te SQLValTupleExpr) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	return 0, nil
 }

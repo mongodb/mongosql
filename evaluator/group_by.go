@@ -26,13 +26,9 @@ type GroupBy struct {
 	outChan chan Row
 	// matcher is used to filter results based on a HAVING clause
 	matcher Matcher
-
-	// ctx holds the current ExecutionContext
-	ctx *ExecutionCtx
 }
 
 func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
-	gb.ctx = ctx
 	return gb.source.Open(ctx)
 }
 
@@ -46,7 +42,7 @@ func (gb *GroupBy) evaluateGroupByKey(row *Row) (string, error) {
 			panic(err)
 		}
 
-		evalCtx := &EvalCtx{Rows: []Row{*row}, ExecCtx: gb.ctx}
+		evalCtx := &EvalCtx{Rows: []Row{*row}}
 		value, err := expr.Evaluate(evalCtx)
 		if err != nil {
 			return "", err
@@ -91,17 +87,21 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 
 		expr, err := NewSQLValue(sExpr.Expr)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
-		evalCtx := &EvalCtx{Rows: r, ExecCtx: gb.ctx}
+		evalCtx := &EvalCtx{Rows: r}
 
 		v, err := expr.Evaluate(evalCtx)
 		if err != nil {
 			return nil, err
 		}
 
-		if gb.matcher.Matches(evalCtx) {
+		m, err := gb.matcher.Matches(evalCtx)
+		if err != nil {
+			return nil, err
+		}
+		if m {
 			value := Value{
 				Name: sExpr.Name,
 				View: sExpr.View,

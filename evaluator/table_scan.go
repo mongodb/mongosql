@@ -106,7 +106,12 @@ func (ts *TableScan) Next(row *Row) bool {
 		evalCtx := &EvalCtx{[]Row{*row}, ts.ctx}
 
 		if ts.matcher != nil {
-			if ts.matcher.Matches(evalCtx) {
+			m, err := ts.matcher.Matches(evalCtx)
+			if err != nil {
+				ts.err = err
+				return false
+			}
+			if m {
 				break
 			}
 		} else {

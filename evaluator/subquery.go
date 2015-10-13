@@ -43,6 +43,7 @@ func (sq *Subquery) Next(row *Row) bool {
 
 			tableRow.Values = values
 			tableRow.Table = sq.tableName
+
 			tableRows = append(tableRows, tableRow)
 		}
 
@@ -51,7 +52,12 @@ func (sq *Subquery) Next(row *Row) bool {
 		evalCtx := &EvalCtx{[]Row{*row}, sq.ctx}
 
 		if sq.matcher != nil {
-			if sq.matcher.Matches(evalCtx) {
+			m, err := sq.matcher.Matches(evalCtx)
+			if err != nil {
+				sq.err = err
+				return false
+			}
+			if m {
 				break
 			}
 		} else {

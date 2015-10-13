@@ -12,7 +12,7 @@ var ErrUntransformableCondition = errors.New("condition can't be expressed as a 
 
 // Tree nodes for evaluating if a row matches
 type Matcher interface {
-	Matches(*EvalCtx) bool
+	Matches(*EvalCtx) (bool, error)
 	Transform() (*bson.D, error)
 }
 
@@ -65,8 +65,10 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 			return &NotEquals{left, right}, nil
 		case sqlparser.AST_LIKE:
 			return &Like{left, right}, nil
+		case sqlparser.AST_IN:
+			return &In{left, right}, nil
 		default:
-			return &Equals{left, right}, fmt.Errorf("sql where clause not implemented: %s", sqlparser.String(expr))
+			return &Equals{left, right}, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)
 		}
 	case *sqlparser.RangeCond:
 		// BETWEEN

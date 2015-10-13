@@ -13,8 +13,12 @@ type Not struct {
 	child Matcher
 }
 
-func (not *Not) Matches(ctx *EvalCtx) bool {
-	return !not.child.Matches(ctx)
+func (not *Not) Matches(ctx *EvalCtx) (bool, error) {
+	m, err := not.child.Matches(ctx)
+	if err != nil {
+		return false, err
+	}
+	return !m, nil
 }
 
 func (not *Not) Transform() (*bson.D, error) {
@@ -40,13 +44,17 @@ func (or *Or) Transform() (*bson.D, error) {
 	return &bson.D{{"$or", transformedChildren}}, nil
 }
 
-func (or *Or) Matches(ctx *EvalCtx) bool {
+func (or *Or) Matches(ctx *EvalCtx) (bool, error) {
 	for _, c := range or.children {
-		if c.Matches(ctx) {
-			return true
+		m, err := c.Matches(ctx)
+		if err != nil {
+			return false, err
+		}
+		if m {
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 //
@@ -69,13 +77,17 @@ func (and *And) Transform() (*bson.D, error) {
 	return &bson.D{{"$and", transformedChildren}}, nil
 }
 
-func (and *And) Matches(ctx *EvalCtx) bool {
+func (and *And) Matches(ctx *EvalCtx) (bool, error) {
 	for _, c := range and.children {
-		if !c.Matches(ctx) {
-			return false
+		m, err := c.Matches(ctx)
+		if err != nil {
+			return false, err
+		}
+		if !m {
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }
 
 //
@@ -87,16 +99,16 @@ type NullMatch struct {
 	val       SQLValue
 }
 
-func (nm *NullMatch) Matches(ctx *EvalCtx) bool {
+func (nm *NullMatch) Matches(ctx *EvalCtx) (bool, error) {
 	eval, err := nm.val.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, nil
 	}
 	reg := eval.MongoValue()
 	if nm.wantsNull {
-		return reg == nil
+		return reg == nil, nil
 	}
-	return reg != nil
+	return reg != nil, nil
 }
 
 func (nm *NullMatch) Transform() (*bson.D, error) {
@@ -116,8 +128,8 @@ func (nm *NullMatch) Transform() (*bson.D, error) {
 
 type NoopMatch struct{}
 
-func (no *NoopMatch) Matches(ctx *EvalCtx) bool {
-	return true
+func (no *NoopMatch) Matches(ctx *EvalCtx) (bool, error) {
+	return true, nil
 }
 
 func (nm *NoopMatch) Transform() (*bson.D, error) {
@@ -132,12 +144,12 @@ type BoolMatch struct {
 	SQLValue
 }
 
-func (bm *BoolMatch) Matches(ctx *EvalCtx) bool {
+func (bm *BoolMatch) Matches(ctx *EvalCtx) (bool, error) {
 	val, err := bm.Evaluate(ctx)
 	if err != nil {
-		return false
+		return false, err
 	}
-	return util.IsTruthy(val)
+	return util.IsTruthy(val), nil
 }
 
 func (bm *BoolMatch) Transform() (*bson.D, error) {

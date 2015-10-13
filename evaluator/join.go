@@ -32,18 +32,21 @@ const (
 type NestedLoopJoiner struct {
 	matcher  Matcher
 	joinType JoinType
+	errChan  chan error
 }
 
 // SortMerge implementation of a JOIN.
 type SortMergeJoiner struct {
 	matcher  Matcher
 	joinType JoinType
+	errChan  chan error
 }
 
 // Hash implementation of a JOIN.
 type HashJoiner struct {
 	matcher  Matcher
 	joinType JoinType
+	errChan  chan error
 }
 
 // Joiner wraps the basic Join function that is
@@ -114,14 +117,12 @@ func (join *Join) init(ctx *ExecutionCtx) (err error) {
 		return err
 	}
 
-	joinKind := getJoinKind(join.kind)
-
-	j, err := NewJoiner(join.strategy, join.matcher, joinKind)
+	joiner, err := NewJoiner(join)
 	if err != nil {
 		return err
 	}
 
-	join.onChan = j.Join(join.leftRows, join.rightRows, ctx)
+	join.onChan = joiner.Join(join.leftRows, join.rightRows, ctx)
 
 	return nil
 
@@ -168,14 +169,20 @@ func (join *Join) Err() error {
 // strategy. The implementation uses the supplied matcher in
 // evaluating the join criteria and performs joins according
 // to the joinType
-func NewJoiner(s JoinStrategy, matcher Matcher, joinType JoinType) (Joiner, error) {
+func NewJoiner(join *Join) (Joiner, error) {
+
+	s := join.strategy
+	matcher := join.matcher
+	errChan := join.errChan
+	joinType := getJoinKind(join.kind)
+
 	switch s {
 	case NestedLoop:
-		return &NestedLoopJoiner{matcher, joinType}, nil
+		return &NestedLoopJoiner{matcher, joinType, errChan}, nil
 	case SortMerge:
-		return &SortMergeJoiner{matcher, joinType}, nil
+		return &SortMergeJoiner{matcher, joinType, errChan}, nil
 	case Hash:
-		return &HashJoiner{matcher, joinType}, nil
+		return &HashJoiner{matcher, joinType, errChan}, nil
 	default:
 		return nil, fmt.Errorf("unknown join strategy")
 	}
@@ -242,7 +249,10 @@ func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 	for _, l := range left {
 		for _, r := range right {
 			evalCtx := &EvalCtx{[]Row{*l, *r}, ctx}
-			if nlp.matcher.Matches(evalCtx) {
+			m, err := nlp.matcher.Matches(evalCtx)
+			if err != nil {
+				nlp.errChan <- err
+			} else if m {
 				ch <- Row{Data: append(l.Data, r.Data...)}
 			}
 		}
@@ -260,7 +270,10 @@ func (nlp *NestedLoopJoiner) sideJoin(lChan, rChan chan *Row, ch chan Row, ctx *
 	for _, l := range left {
 		for _, r := range right {
 			evalCtx := &EvalCtx{[]Row{*l, *r}, ctx}
-			if nlp.matcher.Matches(evalCtx) {
+			m, err := nlp.matcher.Matches(evalCtx)
+			if err != nil {
+				nlp.errChan <- err
+			} else if m {
 				hasMatch = true
 				ch <- Row{Data: append(l.Data, r.Data...)}
 			}
@@ -290,11 +303,11 @@ func (nlp *NestedLoopJoiner) crossJoin(lChan, rChan chan *Row, ch chan Row, _ *E
 }
 
 // SortMergeJoiner implementation.
-func (smj *SortMergeJoiner) Join(lChan, rChan chan *Row, _ *ExecutionCtx) chan Row {
+func (smj *SortMergeJoiner) Join(lChan, rChan chan *Row, ctx *ExecutionCtx) chan Row {
 	return nil
 }
 
 // HashJoiner implementation.
-func (hj *HashJoiner) Join(lChan, rChan chan *Row, _ *ExecutionCtx) chan Row {
+func (hj *HashJoiner) Join(lChan, rChan chan *Row, ctx *ExecutionCtx) chan Row {
 	return nil
 }
