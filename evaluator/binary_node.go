@@ -31,6 +31,13 @@ func (lt *LessThan) Matches(ctx *EvalCtx) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	if _, ok := rightEvald.(SQLValues); ok {
+		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		if err == nil {
+			return c > 0, nil
+		}
+		return false, err
+	}
 	c, err := leftEvald.CompareTo(ctx, rightEvald)
 	if err == nil {
 		return c < 0, nil
@@ -45,6 +52,13 @@ func (lte *LessThanOrEqual) Matches(ctx *EvalCtx) (bool, error) {
 	}
 	rightEvald, err := lte.right.Evaluate(ctx)
 	if err != nil {
+		return false, err
+	}
+	if _, ok := rightEvald.(SQLValues); ok {
+		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		if err == nil {
+			return c >= 0, nil
+		}
 		return false, err
 	}
 	c, err := leftEvald.CompareTo(ctx, rightEvald)
@@ -70,6 +84,13 @@ func (gt *GreaterThan) Matches(ctx *EvalCtx) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	if _, ok := rightEvald.(SQLValues); ok {
+		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		if err == nil {
+			return c < 0, nil
+		}
+		return false, err
+	}
 	c, err := leftEvald.CompareTo(ctx, rightEvald)
 	if err == nil {
 		return c > 0, nil
@@ -92,6 +113,13 @@ func (gte *GreaterThanOrEqual) Matches(ctx *EvalCtx) (bool, error) {
 	}
 	rightEvald, err := gte.right.Evaluate(ctx)
 	if err != nil {
+		return false, err
+	}
+	if _, ok := rightEvald.(SQLValues); ok {
+		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		if err == nil {
+			return c <= 0, nil
+		}
 		return false, err
 	}
 	c, err := leftEvald.CompareTo(ctx, rightEvald)
@@ -148,6 +176,13 @@ func (neq *NotEquals) Matches(ctx *EvalCtx) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	if _, ok := rightEvald.(SQLValues); ok {
+		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		if err == nil {
+			return c != 0, nil
+		}
+		return false, err
+	}
 	c, err := leftEvald.CompareTo(ctx, rightEvald)
 	if err == nil {
 		return c != 0, nil
@@ -178,6 +213,13 @@ func (eq *Equals) Matches(ctx *EvalCtx) (bool, error) {
 	}
 	rightEvald, err := eq.right.Evaluate(ctx)
 	if err != nil {
+		return false, err
+	}
+	if _, ok := rightEvald.(SQLValues); ok {
+		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		if err == nil {
+			return c == 0, nil
+		}
 		return false, err
 	}
 	c, err := leftEvald.CompareTo(ctx, rightEvald)

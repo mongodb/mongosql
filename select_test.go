@@ -858,13 +858,95 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
 
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where 2 > (a)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where 2 >= (a)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 2)
+
+			// TODO: add ORDER BY clause
+			So(names, ShouldResemble, []string{"a", "b"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
+			So(values[1][0], ShouldResemble, evaluator.SQLInt(2))
+			So(values[1][1], ShouldResemble, evaluator.SQLInt(2))
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where 6 < (a)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(6))
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where 6 <= (a)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 2)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(6))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(5))
+			So(values[1][0], ShouldResemble, evaluator.SQLInt(7))
+			So(values[1][1], ShouldResemble, evaluator.SQLInt(6))
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where 6 <> (a)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 6)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where 6 = (a)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(6))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(5))
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where 6 in (a)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(6))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(5))
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where 16 in (a)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 0)
+			So(len(values), ShouldEqual, 0)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a) in (a)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 7)
+
+			_, _, err = eval.EvalSelect("test", "select a, b from bar where (a) in 3", nil, nil)
+			So(err, ShouldNotBeNil)
+
+			_, _, err = eval.EvalSelect("test", "select a, b from bar where a in 3", nil, nil)
+			So(err, ShouldNotBeNil)
 		})
 
+		//
+		//
 		// additional test cases to support:
 		//
 		// select a, b from foo where (3) > (true) ;
 		//
-		// select a, b from bar where 2 >= (a)
 		//
 
 	})
