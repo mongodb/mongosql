@@ -61,12 +61,13 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	case *sqlparser.Rollback:
 		return c.handleRollback()
 	case *sqlparser.SimpleSelect:
-		// TODO alias to special table correctly
-		rewrittenSelect := &sqlparser.Select{
-			SelectExprs: v.SelectExprs,
-			From:        sqlparser.TableExprs{&sqlparser.AliasedTableExpr{&sqlparser.TableName{}, []byte(""), nil}},
-		}
-		return c.handleSelect(rewrittenSelect, sql, nil)
+		return c.handleSimpleSelect(sql, v)
+		// 		// TODO alias to special table correctly
+		// 		rewrittenSelect := &sqlparser.Select{
+		// 			SelectExprs: v.SelectExprs,
+		// 			From:        sqlparser.TableExprs{&sqlparser.AliasedTableExpr{&sqlparser.TableName{}, []byte(""), nil}},
+		// 		}
+		// 		return c.handleSelect(rewrittenSelect, sql, nil)
 	case *sqlparser.Show:
 		return c.handleShow(sql, v)
 	case *sqlparser.Admin:
