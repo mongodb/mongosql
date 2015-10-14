@@ -67,6 +67,8 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 			return &Like{left, right}, nil
 		case sqlparser.AST_IN:
 			return &In{left, right}, nil
+		case sqlparser.AST_NOT_IN:
+			return &NotIn{left, right}, nil
 		default:
 			return &Equals{left, right}, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)
 		}

@@ -986,6 +986,61 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 0)
 			So(len(values), ShouldEqual, 0)
+
+		})
+
+		Convey("comparisons using the IN operator should return the correct results", func() {
+			_, _, err := eval.EvalSelect("test", "select a, b from bar where (a, b) in (1, 2)", nil, nil)
+			So(err, ShouldNotBeNil)
+
+			_, _, err = eval.EvalSelect("test", "select a, b from bar where a in 1", nil, nil)
+			So(err, ShouldNotBeNil)
+
+			_, _, err = eval.EvalSelect("test", "select a, b from bar where (a) in 1", nil, nil)
+			So(err, ShouldNotBeNil)
+
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where a in (1)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where a in (1, 2)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 2)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a) in (1, 2)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 2)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (b) in (4)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+		})
+
+		Convey("comparisons using the NOT IN operator should return the correct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where (b) not in (4)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 4)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (b) not in (1, 2, 4, 5)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (b) not in (1, 2, 4, 5, 6)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 0)
+			So(len(values), ShouldEqual, 0)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (b) not in (1, 2, 4, 5, 6) or a not in (1, 2, 3, 4, 5, 6)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
 		})
 
 		//

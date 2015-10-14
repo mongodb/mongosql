@@ -287,3 +287,22 @@ func (in *In) Matches(ctx *EvalCtx) (bool, error) {
 func (in *In) Transform() (*bson.D, error) {
 	return &bson.D{}, nil
 }
+
+//
+// NotIn
+//
+
+type NotIn BinaryNode
+
+func (nin *NotIn) Matches(ctx *EvalCtx) (bool, error) {
+	in := &In{nin.left, nin.right}
+	m, err := in.Matches(ctx)
+	if err != nil {
+		return false, err
+	}
+	return !m, nil
+}
+
+func (nin *NotIn) Transform() (*bson.D, error) {
+	return &bson.D{}, nil
+}
