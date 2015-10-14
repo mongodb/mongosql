@@ -33,7 +33,7 @@ func (sqlfunc *SQLBinaryExprValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (sqlfunc *SQLBinaryExprValue) MongoValue() interface{} {
-	panic("can't generate mongo value from a function")
+	return nil
 }
 
 var binaryFuncMap = map[string]SQLBinaryFunction{
