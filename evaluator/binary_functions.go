@@ -39,7 +39,6 @@ func (sqlfunc *SQLBinaryExprValue) MongoValue() interface{} {
 var binaryFuncMap = map[string]SQLBinaryFunction{
 	"+": SQLBinaryFunction(func(args []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNumericBinaryOp(args, ctx, "+")
-
 	}),
 	"-": SQLBinaryFunction(func(args []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNumericBinaryOp(args, ctx, "-")
@@ -57,34 +56,39 @@ func SQLNumericBinaryOp(args []SQLValue, ctx *EvalCtx, op string) (SQLValue, err
 		return nil, fmt.Errorf("%v function needs at least 2 args", op)
 	}
 
-	lEval, err := args[0].Evaluate(ctx)
+	eval, err := args[0].Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
-	left, leftOk := (lEval).(SQLNumeric)
-
-	rEval, err := args[1].Evaluate(ctx)
-	if err != nil {
-		return nil, err
-	}
-	right, rightOk := (rEval).(SQLNumeric)
-
-	if !(leftOk && rightOk) {
+	left, ok := eval.(SQLNumeric)
+	if !ok {
 		return &SQLNullValue{}, nil
 	}
 
-	switch op {
-	case "+":
-		return left.Add(right), nil
-	case "-":
-		return left.Sub(right), nil
-	case "*":
-		return left.Product(right), nil
-	case "/":
-		if right.Float64() == 0 {
+	for _, arg := range args[1:] {
+		eval, err = arg.Evaluate(ctx)
+		if err != nil {
+			return nil, err
+		}
+		right, ok := (eval).(SQLNumeric)
+		if !ok {
 			return &SQLNullValue{}, nil
 		}
-		return SQLFloat(left.Float64() / right.Float64()), nil
+		switch op {
+		case "+":
+			left = left.Add(right)
+		case "-":
+			left = left.Sub(right)
+		case "*":
+			left = left.Product(right)
+		case "/":
+			if right.Float64() == 0 {
+				return &SQLNullValue{}, nil
+			}
+			left = SQLFloat(left.Float64() / right.Float64())
+		default:
+			return nil, fmt.Errorf("unsupported numeric binary operation: '%v'", op)
+		}
 	}
-	return nil, fmt.Errorf("unsupported numeric binary operation: '%v'", op)
+	return left, nil
 }

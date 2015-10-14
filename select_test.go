@@ -1002,6 +1002,11 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 3)
 
+			names, values, err = eval.EvalSelect("test", "select * from bar where (a+a*b, a*b) > (20, 15)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 4)
+
 		})
 
 		Convey("comparisons using the IN operator should return the correct results", func() {
