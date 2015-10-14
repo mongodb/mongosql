@@ -819,7 +819,7 @@ func TestSelectWithRowValue(t *testing.T) {
 
 		})
 
-		Convey("degree 1 greater than comparisons should return the correct results", func() {
+		Convey("degree 1 inequality comparisons should return the correct results", func() {
 
 			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a) > 5", nil, nil)
 			So(err, ShouldBeNil)
@@ -836,11 +836,7 @@ func TestSelectWithRowValue(t *testing.T) {
 			}
 			checkExpectedValues(2, values, expectedValues)
 
-		})
-
-		Convey("degree 1 less than comparisons should return the correct results", func() {
-
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a) < 2", nil, nil)
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a) < 2", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -939,6 +935,57 @@ func TestSelectWithRowValue(t *testing.T) {
 
 			_, _, err = eval.EvalSelect("test", "select a, b from bar where a in 3", nil, nil)
 			So(err, ShouldNotBeNil)
+		})
+
+		Convey("degree n equality comparisons should return the correct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a, b) = (3, 4)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(3))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(4))
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a, b) = (3, 5)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 0)
+			So(len(values), ShouldEqual, 0)
+
+		})
+
+		Convey("degree n inequality comparisons should return the correct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a, b) >= (3, 4)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 5)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a, b) > (3, 4)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 4)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a, b) < (4, 5)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 4)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a, b) <= (1, 2)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a, b) <> (1, 2)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 7)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where not (a, b) <> (1, 2)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 0)
+			So(len(values), ShouldEqual, 0)
 		})
 
 		//
