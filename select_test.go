@@ -987,6 +987,21 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(len(names), ShouldEqual, 0)
 			So(len(values), ShouldEqual, 0)
 
+			names, values, err = eval.EvalSelect("test", "select * from bar where (b-a, a+b) = (1, 7)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 1)
+
+			names, values, err = eval.EvalSelect("test", "select * from bar where (a-b, a*b) > (0, 15)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 4)
+
+			names, values, err = eval.EvalSelect("test", "select * from bar where (a-b, a*b) > (0, 17)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 3)
+
 		})
 
 		Convey("comparisons using the IN operator should return the correct results", func() {
