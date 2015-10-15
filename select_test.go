@@ -451,7 +451,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			names, values, err = eval.EvalSelect("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0` where not havclause", nil, nil)
 			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 0)
+			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 0)
 
 		})
@@ -922,7 +922,7 @@ func TestSelectWithRowValue(t *testing.T) {
 
 			names, values, err = eval.EvalSelect("test", "select a, b from bar where 16 in (a)", nil, nil)
 			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 0)
+			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 0)
 
 			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a) in (a)", nil, nil)
@@ -950,7 +950,7 @@ func TestSelectWithRowValue(t *testing.T) {
 
 			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a, b) = (3, 5)", nil, nil)
 			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 0)
+			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 0)
 
 		})
@@ -984,7 +984,7 @@ func TestSelectWithRowValue(t *testing.T) {
 
 			names, values, err = eval.EvalSelect("test", "select a, b from bar where not (a, b) <> (1, 2)", nil, nil)
 			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 0)
+			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 0)
 
 			names, values, err = eval.EvalSelect("test", "select * from bar where (b-a, a+b) = (1, 7)", nil, nil)
@@ -1054,7 +1054,7 @@ func TestSelectWithRowValue(t *testing.T) {
 
 			names, values, err = eval.EvalSelect("test", "select a, b from bar where (b) not in (1, 2, 4, 5, 6)", nil, nil)
 			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 0)
+			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 0)
 
 			names, values, err = eval.EvalSelect("test", "select a, b from bar where (b) not in (1, 2, 4, 5, 6) or a not in (1, 2, 3, 4, 5, 6)", nil, nil)

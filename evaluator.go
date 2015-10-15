@@ -49,9 +49,9 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 		}
 	}
 
-	if _, ok := stmt.(*sqlparser.Select); ok {
+	log.Logf(log.DebugLow, "Preparing select query: %#v", sqlparser.String(stmt))
 
-		log.Logf(log.DebugLow, "Preparing select query: %#v", stmt)
+	if _, ok := stmt.(*sqlparser.Select); ok {
 
 		// create initial parse context
 		pCtx, err := evaluator.NewParseCtx(stmt, e.cfg, db)
@@ -116,11 +116,6 @@ func executeQueryPlan(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) 
 	}
 
 	log.Logf(log.DebugLow, "Done executing plan")
-
-	// no headers are returned for empty sets
-	if len(rows) == 0 {
-		return nil, nil, nil
-	}
 
 	// make sure all rows have same number of values
 	for idx, row := range rows {
