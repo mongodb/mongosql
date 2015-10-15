@@ -45,7 +45,7 @@ func TestRoundtrip(t *testing.T) {
 			So(err, ShouldBeNil)
 			defer db.Close()
 			var outNum int
-			err = db.QueryRow("SELECT * from foo where 1 =0").Scan(&outNum)
+			err = db.QueryRow("SELECT count(*) from foo").Scan(&outNum)
 			So(err, ShouldBeNil)
 		})
 	})
