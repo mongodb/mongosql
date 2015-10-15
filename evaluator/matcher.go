@@ -72,17 +72,14 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		default:
 			return &Equals{left, right}, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)
 		}
-	case *sqlparser.RangeCond:
-		// BETWEEN
-		panic("not implemented: RangeCond")
+
 	case *sqlparser.NullCheck:
 		val, err := NewSQLValue(expr.Expr)
 		if err != nil {
 			return nil, err
 		}
 		return &NullMatch{expr.Operator == sqlparser.AST_IS_NULL, val}, nil
-	case *sqlparser.UnaryExpr:
-		panic("not implemented: UnaryExpr")
+
 	case *sqlparser.NotExpr:
 		child, err := BuildMatcher(expr.Expr)
 		if err != nil {
@@ -95,21 +92,6 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 			return nil, err
 		}
 		return child, nil
-	case *sqlparser.Subquery:
-		panic("not implemented: subquery")
-		return nil, nil
-	case sqlparser.ValArg:
-		panic("not implemented: function")
-		return nil, fmt.Errorf("can't handle ValArg type %T", expr)
-	case *sqlparser.FuncExpr:
-		panic("not implemented: function")
-		return nil, nil
-	case *sqlparser.CaseExpr:
-		panic("not implemented: case")
-		return nil, nil
-	case *sqlparser.ExistsExpr:
-		panic("not implemented: exists")
-		return nil, nil
 	case nil:
 		return &NoopMatch{}, nil
 	case *sqlparser.ColName:
@@ -124,8 +106,17 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 			return nil, err
 		}
 		return &BoolMatch{val}, nil
+		/*
+			case *sqlparser.RangeCond:
+			case *sqlparser.UnaryExpr:
+			case *sqlparser.Subquery:
+			case sqlparser.ValArg:
+			case *sqlparser.FuncExpr:
+			case *sqlparser.CaseExpr:
+			case *sqlparser.ExistsExpr:
+		*/
 	default:
-		panic(fmt.Errorf("not implemented: %v (%T)", sqlparser.String(expr), expr))
+		panic(fmt.Errorf("matcher not yet implemented for %v (%T)", sqlparser.String(expr), expr))
 		return nil, nil
 	}
 
