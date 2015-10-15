@@ -11,7 +11,7 @@ import (
 )
 
 var sampleConfig = `{
-  "addr": "127.0.0.1:3307", 
+  "addr": "127.0.0.1:3456",
   "schema": [
     { "db": "test", "tables": [
         { "table": "foo", "collection": "test.foo", 
@@ -41,7 +41,7 @@ func TestRoundtrip(t *testing.T) {
 		So(err, ShouldBeNil)
 		go srv.Run()
 		Convey("Running query against server should succeed", func() {
-			db, err := sql.Open("mysql", "root@tcp(127.0.0.1:3307)/test")
+			db, err := sql.Open("mysql", "root@tcp(127.0.0.1:3456)/test")
 			So(err, ShouldBeNil)
 			defer db.Close()
 			var outNum int

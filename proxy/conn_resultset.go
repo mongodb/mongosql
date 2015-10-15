@@ -17,6 +17,8 @@ func formatValue(value interface{}) ([]byte, error) {
 		return hack.Slice(string(v)), nil
 	case evaluator.SQLInt:
 		return strconv.AppendInt(nil, int64(v), 10), nil
+	case evaluator.SQLUint32:
+		return strconv.AppendUint(nil, uint64(v), 10), nil
 	case evaluator.SQLFloat:
 		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
 	case evaluator.SQLNullValue:
@@ -90,7 +92,7 @@ func formatValue(value interface{}) ([]byte, error) {
 
 func formatField(field *Field, value interface{}) error {
 	switch value.(type) {
-	case evaluator.SQLNumeric:
+	case evaluator.SQLFloat:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_FLOAT
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
@@ -101,11 +103,11 @@ func formatField(field *Field, value interface{}) error {
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_FLOAT
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
-	case uint8, uint16, uint32, uint64, uint:
+	case uint8, uint16, uint32, uint64, uint, evaluator.SQLUint32:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG
-	case int8, int16, int32, int64, int:
+	case int8, int16, int32, int64, int, evaluator.SQLInt:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG

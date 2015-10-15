@@ -111,6 +111,7 @@ func (sn SQLNullValue) MongoValue() interface{} {
 //
 type SQLFloat float64
 type SQLInt int64
+type SQLUint32 uint32
 
 type SQLNumeric interface {
 	SQLValue
@@ -131,12 +132,23 @@ func (si SQLInt) Add(o SQLNumeric) SQLNumeric {
 	return SQLFloat(si.Float64() + o.Float64())
 }
 
+func (su SQLUint32) Add(o SQLNumeric) SQLNumeric {
+	if oi, ok := o.(SQLUint32); ok {
+		return SQLUint32(uint32(su) + uint32(oi))
+	}
+	return SQLFloat(su.Float64() + o.Float64())
+}
+
 func (sf SQLFloat) Float64() float64 {
 	return float64(sf)
 }
 
 func (si SQLInt) Float64() float64 {
 	return float64(si)
+}
+
+func (su SQLUint32) Float64() float64 {
+	return float64(su)
 }
 
 func (sf SQLFloat) Sub(o SQLNumeric) SQLNumeric {
@@ -150,6 +162,13 @@ func (si SQLInt) Sub(o SQLNumeric) SQLNumeric {
 	return SQLFloat(si.Float64() - o.Float64())
 }
 
+func (su SQLUint32) Sub(o SQLNumeric) SQLNumeric {
+	if oi, ok := o.(SQLUint32); ok {
+		return SQLUint32(uint32(su) - uint32(oi))
+	}
+	return SQLFloat(su.Float64() - o.Float64())
+}
+
 func (sf SQLFloat) Product(o SQLNumeric) SQLNumeric {
 	return SQLFloat(float64(sf) * o.Float64())
 }
@@ -161,11 +180,21 @@ func (si SQLInt) Product(o SQLNumeric) SQLNumeric {
 	return SQLFloat(si.Float64() * o.Float64())
 }
 
+func (su SQLUint32) Product(o SQLNumeric) SQLNumeric {
+	if oi, ok := o.(SQLUint32); ok {
+		return SQLUint32(uint32(su) * uint32(oi))
+	}
+	return SQLFloat(su.Float64() * o.Float64())
+}
+
 func (si SQLInt) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return si, nil
 }
 func (sf SQLFloat) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return sf, nil
+}
+func (su SQLUint32) Evaluate(_ *EvalCtx) (SQLValue, error) {
+	return su, nil
 }
 
 func (sf SQLFloat) MongoValue() interface{} {
@@ -174,6 +203,10 @@ func (sf SQLFloat) MongoValue() interface{} {
 
 func (si SQLInt) MongoValue() interface{} {
 	return int64(si)
+}
+
+func (su SQLUint32) MongoValue() interface{} {
+	return uint32(su)
 }
 
 func (sf SQLFloat) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
@@ -208,6 +241,31 @@ func (si SQLInt) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 		return 0, nil
 	} else if n, ok := c.(SQLFloat); ok {
 		cmp := si.Float64() - n.Float64()
+		if cmp > 0 {
+			return 1, nil
+		} else if cmp < 0 {
+			return -1, nil
+		}
+		return 0, nil
+	}
+	return -1, nil
+}
+
+func (su SQLUint32) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	c, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if n, ok := c.(SQLUint32); ok {
+		cmp := uint32(su) - uint32(n)
+		if cmp > 0 {
+			return 1, nil
+		} else if cmp < 0 {
+			return -1, nil
+		}
+		return 0, nil
+	} else if n, ok := c.(SQLFloat); ok {
+		cmp := su.Float64() - n.Float64()
 		if cmp > 0 {
 			return 1, nil
 		} else if cmp < 0 {
@@ -327,7 +385,7 @@ func (f *SQLFuncExpr) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
 }
 
 func connectionIdFunc(ctx *EvalCtx) (SQLValue, error) {
-	return SQLInt(ctx.ExecCtx.ConnectionId()), nil
+	return SQLUint32(ctx.ExecCtx.ConnectionId()), nil
 }
 
 func dbFunc(ctx *EvalCtx) (SQLValue, error) {
