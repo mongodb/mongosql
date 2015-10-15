@@ -96,7 +96,7 @@ func executeQueryPlan(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) 
 	row := &evaluator.Row{}
 
 	if err := operator.Open(ctx); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("operator open: %v", err)
 	}
 
 	for operator.Next(row) {
@@ -108,12 +108,14 @@ func executeQueryPlan(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) 
 	}
 
 	if err := operator.Close(); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("operator close: %v", err)
 	}
 
 	if err := operator.Err(); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("operator err: %v", err)
 	}
+
+	log.Logf(log.DebugLow, "Done executing plan")
 
 	// no headers are returned for empty sets
 	if len(rows) == 0 {

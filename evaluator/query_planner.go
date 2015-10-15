@@ -16,7 +16,7 @@ var (
 // PlanQuery constructs a query plan to satisfy the select statement.
 func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error) {
 
-	log.Logf(log.DebugLow, "Planning query for %#v\n", ss)
+	log.Logf(log.DebugLow, "Planning query for %#v\n", sqlparser.String(ss))
 
 	switch ast := ss.(type) {
 
