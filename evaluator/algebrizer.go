@@ -144,12 +144,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 					nonStarAlias = nonStarName
 				}
 
-				table, err := pCtx.GetCurrentTable(pCtx.Database, "")
-				if err != nil {
-					return nil, err
-				}
-
-				column := ColumnInfo{nonStarName, nonStarAlias, table.Name}
+				column := ColumnInfo{nonStarName, nonStarAlias, ""}
 				pCtx.Columns = append(pCtx.Columns, column)
 			}
 
