@@ -292,6 +292,7 @@ func (f *SQLFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if f.Distinct {
 		distinctMap = make(map[interface{}]bool)
 	}
+
 	switch string(f.Name) {
 	case "connection_id":
 		return connectionIdFunc(ctx)

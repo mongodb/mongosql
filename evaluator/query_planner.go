@@ -13,8 +13,7 @@ var (
 	InformationSchema = "information_schema"
 )
 
-// PlanQuery translates the SQL SELECT statement into an
-// algebra tree representation of logical operators.
+// PlanQuery constructs a query plan to satisfy the select statement.
 func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error) {
 
 	log.Logf(log.DebugLow, "Planning query for %#v\n", ss)
@@ -24,12 +23,35 @@ func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error
 	case *sqlparser.Select:
 		return planSelectExpr(ctx, ast)
 
+	case *sqlparser.SimpleSelect:
+		return planSimpleSelectExpr(ctx, ast)
+
 	case *sqlparser.Union:
 		return nil, fmt.Errorf("union select statement not yet implemented")
 
 	default:
 		return nil, fmt.Errorf("unknown select statement: %T", ast)
 	}
+}
+
+// planSimpleSelectExpr takes a simple select expression and returns a query execution plan for it.
+func planSimpleSelectExpr(ctx *ExecutionCtx, ss *sqlparser.SimpleSelect) (operator Operator, err error) {
+	sExprs, err := refColsInSelectStmt(ss)
+	if err != nil {
+		return nil, err
+	}
+
+	// ensure no columns are referenced in any of the select expressions
+	for _, expr := range sExprs {
+		if len(expr.RefColumns) != 0 {
+			return nil, fmt.Errorf("no column reference allowed in simple select statement")
+		}
+	}
+
+	// TODO: support distinct within the simple select query
+	queryPlan := &Select{sExprs: sExprs, source: &Dual{}}
+
+	return queryPlan, nil
 }
 
 // planSelectExpr takes a select struct and returns a query execution plan for it.
@@ -288,6 +310,10 @@ func refColsInSelectStmt(ss sqlparser.SelectStatement) ([]SelectExpression, erro
 		}
 
 		return append(l, r...), nil
+
+	case *sqlparser.SimpleSelect:
+
+		return refColsInSelectExpr(stmt.SelectExprs)
 
 	default:
 		return nil, fmt.Errorf("unknown SelectStatement in refColsInSelectStmt: %T", stmt)

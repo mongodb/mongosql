@@ -1073,3 +1073,48 @@ func TestSelectWithRowValue(t *testing.T) {
 
 	})
 }
+
+func TestSelectWithoutTable(t *testing.T) {
+	Convey("With a select expression that references no table...", t, func() {
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvaluator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		Convey("the result set should work on just the select expressions", func() {
+
+			names, values, err := eval.EvalSelect("test", "select 1, 3", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"1", "3"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(3))
+
+			names, values, err = eval.EvalSelect("test", "select 2*1, 3+5", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"2*1", "3+5"})
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(2))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(8))
+
+			// TODO: this works but can't test it since the execution context
+			// isn't yet set
+			//
+			// names, values, err = eval.EvalSelect("test", "select database()", nil, nil)
+			// So(err, ShouldBeNil)
+			// So(len(names), ShouldEqual, 1)
+			// So(len(values), ShouldEqual, 1)
+			//
+
+		})
+
+	})
+}

@@ -2,58 +2,26 @@ package proxy
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 	. "github.com/siddontang/mixer/mysql"
-	"strings"
 )
 
 func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
-	log.Logf(log.DebugLow, "handleSimpleSelect")
+	log.Logf(log.DebugLow, "handling simple select query")
 
-	if len(stmt.SelectExprs) != 1 {
-		return fmt.Errorf("support SimpleSelect SelectExprs, %s", sql)
-	}
-
-	expr, ok := stmt.SelectExprs[0].(*sqlparser.NonStarExpr)
-	if !ok {
-		return fmt.Errorf("support SimpleSelect NonStarExpr, %s", sql)
-	}
-
-	var f *sqlparser.FuncExpr
-	f, ok = expr.Expr.(*sqlparser.FuncExpr)
-	if !ok {
-		return fmt.Errorf("support SimpleSelect FuncExpr, %s %T", sql, expr)
-	}
-
-	var r *Resultset
-	var err error
-
-	switch strings.ToLower(string(f.Name)) {
-	case "last_insert_id":
-		r, err = c.buildSimpleSelectResult(c.lastInsertId, f.Name, expr.As)
-	case "row_count":
-		r, err = c.buildSimpleSelectResult(c.affectedRows, f.Name, expr.As)
-	case "version":
-		r, err = c.buildSimpleSelectResult(ServerVersion, f.Name, expr.As)
-	case "connection_id":
-		r, err = c.buildSimpleSelectResult(c.connectionId, f.Name, expr.As)
-	case "database":
-		if c.currentSchema != nil {
-			r, err = c.buildSimpleSelectResult(c.currentSchema.DB, f.Name, expr.As)
-		} else {
-			r, err = c.buildSimpleSelectResult("NULL", f.Name, expr.As)
-		}
-	default:
-		return fmt.Errorf("function %s not support", f.Name)
-	}
-
+	names, values, err := c.server.eval.EvalSelect("", sql, stmt, c)
 	if err != nil {
 		return err
 	}
 
-	return c.writeResultset(c.status, r)
+	rs, err := c.buildResultset(names, values)
+	if err != nil {
+		return err
+	}
+
+	return c.writeResultset(c.status, rs)
+
 }
 
 func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {

@@ -35,8 +35,7 @@ func (e *Evaluator) getSession() *mgo.Session {
 }
 
 // EvalSelect returns all rows matching the query.
-func (e *Evaluator) EvalSelect(db, sql string, stmt *sqlparser.Select, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
-	log.Logf(log.DebugLow, "Evaluating select: %#v", stmt)
+func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
 
 	if stmt == nil {
 		// we can parse ourselves
@@ -45,20 +44,25 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt *sqlparser.Select, conn eval
 			return nil, nil, err
 		}
 		var ok bool
-		if stmt, ok = raw.(*sqlparser.Select); !ok {
+		if stmt, ok = raw.(sqlparser.SelectStatement); !ok {
 			return nil, nil, fmt.Errorf("got a non-select statement in EvalSelect")
 		}
 	}
 
-	// create initial parse context
-	pCtx, err := evaluator.NewParseCtx(stmt, e.cfg, db)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
-	}
+	if _, ok := stmt.(*sqlparser.Select); ok {
 
-	// resolve names
-	if err = evaluator.AlgebrizeStatement(stmt, pCtx); err != nil {
-		return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
+		log.Logf(log.DebugLow, "Preparing select query: %#v", stmt)
+
+		// create initial parse context
+		pCtx, err := evaluator.NewParseCtx(stmt, e.cfg, db)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
+		}
+
+		// resolve names
+		if err = evaluator.AlgebrizeStatement(stmt, pCtx); err != nil {
+			return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
+		}
 	}
 
 	eCtx := &evaluator.ExecutionCtx{
@@ -67,14 +71,14 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt *sqlparser.Select, conn eval
 		ConnectionCtx: conn,
 	}
 
-	// construct plan
+	// construct select plan
 	queryPlan, err := evaluator.PlanQuery(eCtx, stmt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error getting query plan: %v", err)
 	}
 
 	// execute plan
-	columns, results, err := Execute(eCtx, queryPlan)
+	columns, results, err := executeQueryPlan(eCtx, queryPlan)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error executing query: %v", err)
 	}
@@ -82,8 +86,9 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt *sqlparser.Select, conn eval
 	return columns, results, nil
 }
 
-// Execute walks an operator and its children to returns results.
-func Execute(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) ([]string, [][]interface{}, error) {
+// executeQueryPlan executes the query plan held in the operator by reading from it
+// until it exhausts all results.
+func executeQueryPlan(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) ([]string, [][]interface{}, error) {
 	rows := make([][]interface{}, 0)
 
 	log.Logf(log.DebugLow, "Executing plan: %#v", operator)
