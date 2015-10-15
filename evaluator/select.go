@@ -1,7 +1,9 @@
 package evaluator
 
 import (
+	"fmt"
 	"github.com/erh/mixer/sqlparser"
+	"strings"
 )
 
 type Select struct {
@@ -80,12 +82,27 @@ func (s *Select) Next(r *Row) bool {
 	return hasNext
 }
 
-func (s *Select) getValue(sc SelectExpression, row *Row) (interface{}, error) {
+var systemVars = map[string]SQLValue{
+	"max_allowed_packet": SQLInt(4194304),
+}
+
+func (s *Select) getValue(sc SelectExpression, row *Row) (SQLValue, error) {
 	// in the case where we have a bare select column and no expression
 	if sc.Expr == nil {
 		sc.Expr = &sqlparser.ColName{
 			Name:      []byte(sc.Name),
 			Qualifier: []byte(sc.Table),
+		}
+	} else {
+		// If the column name is actually referencing a system variable, look it up and return
+		// its value if it exists.
+
+		// TODO scope system variables per-connection?
+		if strings.HasPrefix(sc.Name, "@@") {
+			if varValue, hasKey := systemVars[sc.Name[2:]]; hasKey {
+				return varValue, nil
+			}
+			return nil, fmt.Errorf("unknown system variable %v", sc.Name)
 		}
 	}
 

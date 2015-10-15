@@ -43,7 +43,20 @@ func planSimpleSelectExpr(ctx *ExecutionCtx, ss *sqlparser.SimpleSelect) (operat
 	// ensure no columns are referenced in any of the select expressions
 	for _, expr := range sExprs {
 		if len(expr.RefColumns) != 0 {
-			return nil, fmt.Errorf("no column reference allowed in simple select statement")
+			nonSystemVar := false
+			// Check if the RefColumns actually reference table columns, or if they only refer to
+			// system variables.
+			for _, colRef := range expr.RefColumns {
+				if !strings.HasPrefix(colRef.Name, "@@") {
+					nonSystemVar = true
+					break
+				}
+			}
+			// If at least one of the RefColumns refers to anything other than a system variable,
+			// the query is invalid since there is no table to reference.
+			if nonSystemVar {
+				return nil, fmt.Errorf("no column reference allowed in simple select statement")
+			}
 		}
 	}
 
