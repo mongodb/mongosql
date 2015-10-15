@@ -118,6 +118,12 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 			return nil, err
 		}
 		return &BoolMatch{val}, nil
+	case sqlparser.NumVal:
+		val, err := NewSQLValue(expr)
+		if err != nil {
+			return nil, err
+		}
+		return &BoolMatch{val}, nil
 	default:
 		panic(fmt.Errorf("not implemented: %v (%T)", sqlparser.String(expr), expr))
 		return nil, nil

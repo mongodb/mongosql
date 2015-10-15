@@ -34,11 +34,7 @@ func (ts *TableScan) init(ctx *ExecutionCtx) error {
 		ts.dbName = ctx.Db
 	}
 
-	if err := ts.setIterator(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return ts.setIterator(ctx)
 }
 
 func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
@@ -152,6 +148,7 @@ func (ts *TableScan) Close() error {
 	if ts.iter == nil {
 		return nil
 	}
+
 	return ts.iter.Close()
 }
 

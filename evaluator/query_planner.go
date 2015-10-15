@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
-	"gopkg.in/mgo.v2/bson"
 	"strconv"
 	"strings"
 )
@@ -417,7 +416,7 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 	var matcher Matcher
 	var err error
 
-	filter := &bson.D{}
+	var filter interface{}
 
 	if w != nil {
 		// create a matcher that can evaluate the WHERE expression
@@ -426,11 +425,6 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 			return nil, err
 		}
 
-		// TODO: this doesn't work right so just ignore it
-		filter, err = matcher.Transform()
-		if err != nil {
-			filter = &bson.D{}
-		}
 	}
 
 	dbName := strings.ToLower(string(t.Qualifier))
