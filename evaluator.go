@@ -71,10 +71,10 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 		ConnectionCtx: conn,
 	}
 
-	// construct select plan
+	// construct query plan
 	queryPlan, err := evaluator.PlanQuery(eCtx, stmt)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting query plan: %v", err)
+		return nil, nil, fmt.Errorf("error constructing query plan: %v", err)
 	}
 
 	// execute plan
