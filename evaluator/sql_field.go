@@ -626,7 +626,7 @@ func (p *SQLParenBoolExpr) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 // SQLValues
 //
 type SQLValues struct {
-	values []SQLValue
+	Values []SQLValue
 }
 
 func (sv SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -641,21 +641,21 @@ func (sv SQLValues) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 
 	r, ok := v.(SQLValues)
 	if !ok {
-		if len(sv.values) != 1 {
-			return -1, fmt.Errorf("Operand should contain %v columns", len(sv.values))
+		if len(sv.Values) != 1 {
+			return -1, fmt.Errorf("Operand should contain %v columns", len(sv.Values))
 		}
 		// allows for implicit row value comparisons such as:
 		//
 		// select a, b from foo where (a) < 3;
 		//
 		//
-		r.values = append(r.values, v)
-	} else if len(sv.values) != len(r.values) {
-		return -1, fmt.Errorf("Operand should contain %v columns", len(sv.values))
+		r.Values = append(r.Values, v)
+	} else if len(sv.Values) != len(r.Values) {
+		return -1, fmt.Errorf("Operand should contain %v columns", len(sv.Values))
 	}
 
-	for i := 0; i < len(sv.values); i++ {
-		c, err := sv.values[i].CompareTo(ctx, r.values[i])
+	for i := 0; i < len(sv.Values); i++ {
+		c, err := sv.Values[i].CompareTo(ctx, r.Values[i])
 		if err != nil {
 			return -1, err
 		}
@@ -677,7 +677,7 @@ type SQLValTupleExpr SQLValues
 func (te SQLValTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	var values []SQLValue
 
-	for _, v := range te.values {
+	for _, v := range te.Values {
 		value, err := v.Evaluate(ctx)
 		if err != nil {
 			return nil, err

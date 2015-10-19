@@ -21,6 +21,16 @@ func formatValue(value interface{}) ([]byte, error) {
 		return strconv.AppendUint(nil, uint64(v), 10), nil
 	case evaluator.SQLFloat:
 		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
+	case evaluator.SQLValues:
+		slice := []byte{}
+		for _, value := range v.Values {
+			b, err := formatValue(value)
+			if err != nil {
+				return nil, err
+			}
+			slice = append(slice, b...)
+		}
+		return slice, nil
 	case evaluator.SQLNullValue:
 		return nil, nil
 	case int8:
@@ -116,6 +126,10 @@ func formatField(field *Field, value interface{}) error {
 		field.Type = MYSQL_TYPE_VAR_STRING
 		// TODO: hack?
 	case bson.ObjectId:
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_VAR_STRING
+
+	case evaluator.SQLValues:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
 

@@ -272,13 +272,13 @@ func (in *In) Matches(ctx *EvalCtx) (bool, error) {
 
 	leftChild, ok := left.(SQLValues)
 	if ok {
-		if len(leftChild.values) != 1 {
+		if len(leftChild.Values) != 1 {
 			return false, fmt.Errorf("left operand should contain 1 column")
 		}
-		left = leftChild.values[0]
+		left = leftChild.Values[0]
 	}
 
-	for _, right := range rightChild.values {
+	for _, right := range rightChild.Values {
 		eq := &Equals{left, right}
 		m, err := eq.Matches(ctx)
 		if err != nil {
