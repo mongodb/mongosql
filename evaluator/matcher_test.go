@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/json"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
@@ -222,19 +221,4 @@ func debugJson(data interface{}) {
 	So(data, ShouldNotBeNil)
 	_, err := json.Marshal(data)
 	So(err, ShouldBeNil)
-}
-
-func TestMatcherTransformation(t *testing.T) {
-	Convey("Equality matcher should return true/false when numerics are equal/unequal", t, func() {
-		matcher, err := getMatcherFromSQL("select * from bar where bar.a = 'eliot'")
-		So(err, ShouldBeNil)
-		transformed, err := matcher.Transform()
-		So(err, ShouldBeNil)
-		debugJson(bsonutil.MarshalD(*transformed))
-
-		matcher, err = getMatcherFromSQL("select * from bar where bar.a = 'eliot' and b=5")
-		So(err, ShouldBeNil)
-		transformed, err = matcher.Transform()
-		debugJson(bsonutil.MarshalD(*transformed))
-	})
 }

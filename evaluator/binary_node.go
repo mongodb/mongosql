@@ -2,25 +2,14 @@ package evaluator
 
 import (
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 	"regexp"
 )
-
-// TODO: support SQLValues in all nodes
 
 //
 // LessThan
 //
 type LessThan BinaryNode
 type LessThanOrEqual BinaryNode
-
-func (lt *LessThanOrEqual) Transform() (*bson.D, error) {
-	return transformComparison(lt.left, lt.right, "$lte", "$gt")
-}
-
-func (lt *LessThan) Transform() (*bson.D, error) {
-	return transformComparison(lt.left, lt.right, "$lt", "$gte")
-}
 
 func (lt *LessThan) Matches(ctx *EvalCtx) (bool, error) {
 	leftEvald, err := lt.left.Evaluate(ctx)
@@ -98,14 +87,6 @@ func (gt *GreaterThan) Matches(ctx *EvalCtx) (bool, error) {
 	return false, err
 }
 
-func (gt *GreaterThan) Transform() (*bson.D, error) {
-	return transformComparison(gt.left, gt.right, "$gt", "$lte")
-}
-
-func (gt *GreaterThanOrEqual) Transform() (*bson.D, error) {
-	return transformComparison(gt.left, gt.right, "$gte", "$lt")
-}
-
 func (gte *GreaterThanOrEqual) Matches(ctx *EvalCtx) (bool, error) {
 	leftEvald, err := gte.left.Evaluate(ctx)
 	if err != nil {
@@ -134,10 +115,6 @@ func (gte *GreaterThanOrEqual) Matches(ctx *EvalCtx) (bool, error) {
 //
 
 type Like BinaryNode
-
-func (l *Like) Transform() (*bson.D, error) {
-	return transformComparison(l.left, l.right, "$regex", "no inverse like support")
-}
 
 func (l *Like) Matches(ctx *EvalCtx) (bool, error) {
 	e, err := l.left.Evaluate(ctx)
@@ -198,16 +175,6 @@ func (neq *NotEquals) Matches(ctx *EvalCtx) (bool, error) {
 	return false, err
 }
 
-func (neq *NotEquals) Transform() (*bson.D, error) {
-	tField, tLiteral, _, err := makeMQLQueryPair(neq.left, neq.right)
-	if err != nil {
-		return nil, err
-	}
-	return &bson.D{
-		{tField.fieldName, bson.D{{"$neq", tLiteral.MongoValue()}}},
-	}, nil
-}
-
 //
 // Equals
 //
@@ -235,16 +202,6 @@ func (eq *Equals) Matches(ctx *EvalCtx) (bool, error) {
 		return c == 0, nil
 	}
 	return false, err
-}
-
-func (eq *Equals) Transform() (*bson.D, error) {
-	tField, tLiteral, _, err := makeMQLQueryPair(eq.left, eq.right)
-	if err != nil {
-		return nil, err
-	}
-	return &bson.D{
-		{tField.fieldName, bson.D{{"$eq", tLiteral.MongoValue()}}},
-	}, nil
 }
 
 //
@@ -292,10 +249,6 @@ func (in *In) Matches(ctx *EvalCtx) (bool, error) {
 	return false, nil
 }
 
-func (in *In) Transform() (*bson.D, error) {
-	return &bson.D{}, nil
-}
-
 //
 // NotIn
 //
@@ -309,8 +262,4 @@ func (nin *NotIn) Matches(ctx *EvalCtx) (bool, error) {
 		return false, err
 	}
 	return !m, nil
-}
-
-func (nin *NotIn) Transform() (*bson.D, error) {
-	return &bson.D{}, nil
 }

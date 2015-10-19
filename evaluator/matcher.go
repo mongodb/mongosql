@@ -1,20 +1,15 @@
 package evaluator
 
 import (
-	"errors"
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
-	"gopkg.in/mgo.v2/bson"
 	"strings"
 )
 
-var ErrUntransformableCondition = errors.New("condition can't be expressed as a field:value pair")
-
-// Tree nodes for evaluating if a row matches
+// Tree nodes for evaluating if a row matches.
 type Matcher interface {
 	Matches(*EvalCtx) (bool, error)
-	Transform() (*bson.D, error)
 }
 
 // BuildMatcher rewrites a boolean expression as a matcher.

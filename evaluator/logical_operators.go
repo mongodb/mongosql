@@ -1,9 +1,7 @@
 package evaluator
 
 import (
-	"fmt"
 	"github.com/mongodb/mongo-tools/common/util"
-	"gopkg.in/mgo.v2/bson"
 )
 
 //
@@ -21,27 +19,11 @@ func (not *Not) Matches(ctx *EvalCtx) (bool, error) {
 	return !m, nil
 }
 
-func (not *Not) Transform() (*bson.D, error) {
-	return nil, fmt.Errorf("transformation of 'not' expressions not supported")
-}
-
 //
 // Or
 //
 type Or struct {
 	children []Matcher
-}
-
-func (or *Or) Transform() (*bson.D, error) {
-	transformedChildren := make([]*bson.D, 0, len(or.children))
-	for _, child := range or.children {
-		transformedChild, err := child.Transform()
-		if err != nil {
-			return nil, err
-		}
-		transformedChildren = append(transformedChildren, transformedChild)
-	}
-	return &bson.D{{"$or", transformedChildren}}, nil
 }
 
 func (or *Or) Matches(ctx *EvalCtx) (bool, error) {
@@ -63,18 +45,6 @@ func (or *Or) Matches(ctx *EvalCtx) (bool, error) {
 
 type And struct {
 	children []Matcher
-}
-
-func (and *And) Transform() (*bson.D, error) {
-	transformedChildren := make([]*bson.D, 0, len(and.children))
-	for _, child := range and.children {
-		transformedChild, err := child.Transform()
-		if err != nil {
-			return nil, err
-		}
-		transformedChildren = append(transformedChildren, transformedChild)
-	}
-	return &bson.D{{"$and", transformedChildren}}, nil
 }
 
 func (and *And) Matches(ctx *EvalCtx) (bool, error) {
@@ -111,17 +81,6 @@ func (nm *NullMatch) Matches(ctx *EvalCtx) (bool, error) {
 	return reg != nil, nil
 }
 
-func (nm *NullMatch) Transform() (*bson.D, error) {
-	field, ok := nm.val.(SQLField)
-	if !ok {
-		return nil, ErrUntransformableCondition
-	}
-	if nm.wantsNull {
-		return &bson.D{{field.fieldName, bson.D{{"$eq", nil}}}}, nil
-	}
-	return &bson.D{{field.fieldName, bson.D{{"$ne", nil}}}}, nil
-}
-
 //
 // NoopMatch
 //
@@ -130,10 +89,6 @@ type NoopMatch struct{}
 
 func (no *NoopMatch) Matches(ctx *EvalCtx) (bool, error) {
 	return true, nil
-}
-
-func (nm *NoopMatch) Transform() (*bson.D, error) {
-	return nil, nil
 }
 
 //
@@ -150,8 +105,4 @@ func (bm *BoolMatch) Matches(ctx *EvalCtx) (bool, error) {
 		return false, err
 	}
 	return util.IsTruthy(val), nil
-}
-
-func (bm *BoolMatch) Transform() (*bson.D, error) {
-	return nil, nil
 }

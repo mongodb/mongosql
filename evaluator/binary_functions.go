@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 )
 
 type SQLBinaryFunction func([]SQLValue, *EvalCtx) (SQLValue, error)
@@ -10,10 +9,6 @@ type SQLBinaryFunction func([]SQLValue, *EvalCtx) (SQLValue, error)
 type SQLBinaryExprValue struct {
 	arguments []SQLValue
 	function  func([]SQLValue, *EvalCtx) (SQLValue, error)
-}
-
-func (sqlfv *SQLBinaryExprValue) Transform() (*bson.D, error) {
-	return nil, fmt.Errorf("transformation of functional expression not supported")
 }
 
 func (sqlfunc *SQLBinaryExprValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
