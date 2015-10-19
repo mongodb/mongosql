@@ -13,7 +13,7 @@ var (
 	_ fmt.Stringer = nil
 )
 
-func subqueryTest(operator Operator, rows []bson.D, expectedRows []Values) {
+func aliasedSourceTest(operator Operator, rows []bson.D, expectedRows []Values) {
 
 	cfg, err := config.ParseConfigData(testConfig1)
 	So(err, ShouldBeNil)
@@ -55,7 +55,7 @@ func subqueryTest(operator Operator, rows []bson.D, expectedRows []Values) {
 	session.Close()
 
 }
-func TestSubQueryOperator(t *testing.T) {
+func TestAliasedSourceOperator(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
 
@@ -64,9 +64,9 @@ func TestSubQueryOperator(t *testing.T) {
 			bson.D{{"a", 16}, {"b", 17}, {"_id", 15}},
 		}
 
-		Convey("a subquery operator should properly present the table and row data", func() {
+		Convey("an aliased source operator should properly present the table and row data", func() {
 
-			operator := &Subquery{
+			operator := &AliasedSource{
 				source: &TableScan{
 					tableName: tableTwoName,
 				},
@@ -78,7 +78,7 @@ func TestSubQueryOperator(t *testing.T) {
 				{{"a", "a", 16}, {"b", "b", 17}, {"_id", "_id", 15}},
 			}
 
-			subqueryTest(operator, rows, expected)
+			aliasedSourceTest(operator, rows, expected)
 
 		})
 	})

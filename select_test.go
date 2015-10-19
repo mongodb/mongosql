@@ -643,6 +643,51 @@ func TestSelectWithJoin(t *testing.T) {
 			So(names, ShouldResemble, []string{"c", "d", "e", "f"})
 		})
 
+		Convey("where clause filtering should return only matched results", func() {
+
+			names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e where t1.c > t2.e", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 0)
+
+			So(names, ShouldResemble, []string{"c", "f"})
+			checkExpectedValues(0, values, nil)
+
+			names, values, err = eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e where t1.c = 3", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"c", "f"})
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+					evaluator.SQLInt(14),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+			names, values, err = eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e where t1.c = 3 or t2.f = 12", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 2)
+
+			So(names, ShouldResemble, []string{"c", "f"})
+
+			expectedValues = map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+					evaluator.SQLInt(14),
+				},
+				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+					evaluator.SQLInt(12),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+		})
+
 	})
 
 }

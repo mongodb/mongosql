@@ -12,7 +12,6 @@ type TableScan struct {
 	dbName         string
 	tableName      string
 	fullCollection string
-	filter         interface{}
 	matcher        Matcher
 	sync.Mutex
 	iter        FindResults
@@ -60,7 +59,7 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 	ts.fullCollection = ts.tableConfig.Collection
 	pcs := strings.SplitN(ts.tableConfig.Collection, ".", 2)
 	collection := sp.GetSession().DB(pcs[0]).C(pcs[1])
-	ts.iter = MgoFindResults{collection.Find(ts.filter).Iter()}
+	ts.iter = MgoFindResults{collection.Find(nil).Iter()}
 	return nil
 }
 

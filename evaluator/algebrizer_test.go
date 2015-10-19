@@ -17,29 +17,6 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 	Convey("When algerizing a select expression...", t, func() {
 
-		Convey("aliased column names should be correctly resolved", func() {
-
-			sql := `select f.first from foo f where f.first = 'eliot'`
-			algebrizedSQL := `select foo.first from foo as f where foo.first = 'eliot'`
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-
-			cfg, err := config.ParseConfigData(testConfig2)
-			So(err, ShouldBeNil)
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
-			So(err, ShouldBeNil)
-			So(ctx, ShouldNotBeNil)
-
-			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
-
-			// check that statement is properly algebrized
-			So(getQuery(raw), ShouldEqual, algebrizedSQL)
-		})
-
 		Convey("aliased table names should be correctly parsed", func() {
 
 			sql := "select * from foo f"
@@ -63,7 +40,6 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 		Convey("a query with an implicit WHERE clause reference should produce the correct algebrized nodes", func() {
 
 			sql := "select a from foo f where x > 3"
-			algebrizedSQL := "select foo.a from foo as f where foo.x > 3"
 
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
@@ -76,13 +52,10 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(ctx, ShouldNotBeNil)
 			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
 
-			// check that statement is properly algebrized
-			So(getQuery(raw), ShouldEqual, algebrizedSQL)
 		})
 		Convey("subqueries should produce the correct algebrized nodes", func() {
 
 			sql := `select f.first, f.last, (select f.age from foo f where f.age > 34) from foo f where f.first = 'eliot' and f.last = 'horowitz'`
-			algebrizedSQL := `select foo.first, foo.last, (select foo.age from foo as f where foo.age > 34) from foo as f where foo.first = 'eliot' and foo.last = 'horowitz'`
 
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
@@ -96,15 +69,11 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(ctx, ShouldNotBeNil)
 
 			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
-
-			// check that statement is properly algebrized
-			So(getQuery(raw), ShouldEqual, algebrizedSQL)
 		})
 
 		Convey("join statements should produce the correct algebrized nodes", func() {
 
 			sql := `select o.orderid, o.customername, o.orderdate from orders as o join customers as c on o.customerid = c.customerid where c.customerid > 4 and c.customerid < 9`
-			algebrizedSQL := `select orders.orderid, orders.customername, orders.orderdate from orders as o join customers as c on orders.customerid = customers.customerid where customers.customerid > 4 and customers.customerid < 9`
 
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
@@ -118,15 +87,11 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(ctx, ShouldNotBeNil)
 
 			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
-
-			// check that statement is properly algebrized
-			So(getQuery(raw), ShouldEqual, algebrizedSQL)
 		})
 
 		Convey("a subquery that references outer aliased nodes should properly algebrized", func() {
 
 			sql := `select f3.z, (select f1.a from baz f2 where f3.a = f2.b ), f1.b from foo f1, bar f3`
-			algebrizedSQL := `select bar.z, (select foo.a from baz as f2 where bar.a = baz.b), foo.b from foo as f1, bar as f3`
 
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
@@ -140,9 +105,6 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(ctx, ShouldNotBeNil)
 
 			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
-
-			// check that statement is properly algebrized
-			So(getQuery(raw), ShouldEqual, algebrizedSQL)
 		})
 
 		Convey("a derived table should require an alias", func() {

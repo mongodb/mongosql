@@ -1,6 +1,6 @@
 package evaluator
 
-type Subquery struct {
+type AliasedSource struct {
 	// tableName holds the name of this table as seen in outer contexts
 	tableName string
 
@@ -17,18 +17,18 @@ type Subquery struct {
 	ctx *ExecutionCtx
 }
 
-func (sq *Subquery) Open(ctx *ExecutionCtx) error {
-	sq.ctx = ctx
-	return sq.source.Open(ctx)
+func (as *AliasedSource) Open(ctx *ExecutionCtx) error {
+	as.ctx = ctx
+	return as.source.Open(ctx)
 }
 
-func (sq *Subquery) Next(row *Row) bool {
+func (as *AliasedSource) Next(row *Row) bool {
 
 	var hasNext bool
 
 	for {
 
-		hasNext = sq.source.Next(row)
+		hasNext = as.source.Next(row)
 
 		var tableRows []TableRow
 
@@ -42,19 +42,19 @@ func (sq *Subquery) Next(row *Row) bool {
 			}
 
 			tableRow.Values = values
-			tableRow.Table = sq.tableName
+			tableRow.Table = as.tableName
 
 			tableRows = append(tableRows, tableRow)
 		}
 
 		row.Data = tableRows
 
-		evalCtx := &EvalCtx{[]Row{*row}, sq.ctx}
+		evalCtx := &EvalCtx{[]Row{*row}, as.ctx}
 
-		if sq.matcher != nil {
-			m, err := sq.matcher.Matches(evalCtx)
+		if as.matcher != nil {
+			m, err := as.matcher.Matches(evalCtx)
 			if err != nil {
-				sq.err = err
+				as.err = err
 				return false
 			}
 			if m {
@@ -73,13 +73,13 @@ func (sq *Subquery) Next(row *Row) bool {
 	return hasNext
 }
 
-func (sq *Subquery) OpFields() (columns []*Column) {
-	for _, expr := range sq.source.OpFields() {
+func (as *AliasedSource) OpFields() (columns []*Column) {
+	for _, expr := range as.source.OpFields() {
 		column := &Column{
 			// name is referenced by view in outer context
 			Name:  expr.View,
 			View:  expr.View,
-			Table: sq.tableName,
+			Table: as.tableName,
 		}
 		columns = append(columns, column)
 	}
@@ -87,10 +87,10 @@ func (sq *Subquery) OpFields() (columns []*Column) {
 	return columns
 }
 
-func (sq *Subquery) Close() error {
-	return sq.source.Close()
+func (as *AliasedSource) Close() error {
+	return as.source.Close()
 }
 
-func (sq *Subquery) Err() error {
-	return sq.err
+func (as *AliasedSource) Err() error {
+	return as.err
 }

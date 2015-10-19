@@ -26,7 +26,6 @@ var (
 type ConfigDataSource struct {
 	tableName      string
 	includeColumns bool
-	filter         interface{}
 	matcher        Matcher
 	iter           FindResults
 	err            error

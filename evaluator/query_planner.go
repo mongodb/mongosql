@@ -68,7 +68,6 @@ func planSimpleSelectExpr(ctx *ExecutionCtx, ss *sqlparser.SimpleSelect) (operat
 
 // planSelectExpr takes a select struct and returns a query execution plan for it.
 func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err error) {
-	// handles FROM and WHERE expression
 	if ast.From != nil {
 		operator, err = planFromExpr(ctx, ast.From, ast.Where)
 		if err != nil {
@@ -76,7 +75,14 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		}
 	}
 
-	// handle SELECT expression
+	if ast.Where != nil {
+		matcher, err := BuildMatcher(ast.Where.Expr)
+		if err != nil {
+			return nil, err
+		}
+		operator = &Filter{source: operator, matcher: matcher}
+	}
+
 	s := &Select{source: operator}
 
 	s.sExprs, err = refColsInSelectStmt(ast)
@@ -84,7 +90,9 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		return nil, err
 	}
 
-	// handle GROUP BY expressions or aggregate functions in select expression
+	// This handles GROUP BY expressions and/or aggregate functions in
+	// select expressions - as aggregate functions with no GROUP BY
+	// clause imply a single group
 	aggSelect := (len(s.sExprs.AggFunctions()) != 0 && ast.Having == nil)
 	if len(ast.GroupBy) != 0 || aggSelect {
 		operator, err = planGroupBy(ast, s)
@@ -429,15 +437,8 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 	var matcher Matcher
 	var err error
 
-	var filter interface{}
-
 	if w != nil {
-		// create a matcher that can evaluate the WHERE expression
-		matcher, err = BuildMatcher(w.Expr)
-		if err != nil {
-			return nil, err
-		}
-
+		// TODO: perform optimization to filter results returned from this table
 	}
 
 	dbName := strings.ToLower(string(t.Qualifier))
@@ -455,7 +456,6 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 
 		// if we got a valid filter/matcher, use it
 		if err == nil {
-			cds.filter = filter
 			cds.matcher = matcher
 		}
 
@@ -465,7 +465,6 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 	ts := &TableScan{
 		tableName: string(t.Name),
 		dbName:    string(t.Qualifier),
-		filter:    filter,
 		matcher:   matcher,
 	}
 
@@ -478,15 +477,30 @@ func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlp
 	switch expr := s.Expr.(type) {
 
 	case *sqlparser.TableName:
-		return planTableName(c, expr, w)
+		source, err := planTableName(c, expr, w)
+		if err != nil {
+			return nil, err
+		}
 
+		// use actual table name if table expression isn't aliased
+		// otherwise, rename the table to its aliased form.
+		if len(s.As) == 0 {
+			return source, nil
+		}
+
+		sq := &AliasedSource{
+			source:    source,
+			tableName: string(s.As),
+		}
+
+		return sq, nil
 	case *sqlparser.Subquery:
 		source, err := PlanQuery(c, expr.Select)
 		if err != nil {
 			return nil, err
 		}
 
-		sq := &Subquery{
+		sq := &AliasedSource{
 			source:    source,
 			tableName: string(s.As),
 		}

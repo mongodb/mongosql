@@ -200,7 +200,11 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 		}
 
 		expr.Name = []byte(columnInfo.Name)
-		expr.Qualifier = []byte(columnInfo.Table)
+
+		// ensure all columns include a table name
+		if len(expr.Qualifier) == 0 {
+			expr.Qualifier = []byte(columnInfo.Table)
+		}
 
 		pCtx.RefColumn = true
 		return expr, nil

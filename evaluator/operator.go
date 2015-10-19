@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/erh/mongo-sql-temp/config"
 	"gopkg.in/mgo.v2/bson"
@@ -155,6 +157,17 @@ type SelectExpression struct {
 }
 
 type SelectExpressions []SelectExpression
+
+func (ses SelectExpressions) String() string {
+
+	b := bytes.NewBufferString(fmt.Sprintf("columns: \n"))
+
+	for _, expr := range ses {
+		b.WriteString(fmt.Sprintf("- %#v\n", expr.Column))
+	}
+
+	return b.String()
+}
 
 func (se SelectExpressions) GetColumns() []*Column {
 	columns := make([]*Column, 0)

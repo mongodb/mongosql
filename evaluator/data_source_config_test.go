@@ -1,7 +1,6 @@
 package evaluator
 
 import (
-	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
@@ -32,7 +31,6 @@ func TestConfigDataSourceIter(t *testing.T) {
 			fieldNames = append(fieldNames, v.(string))
 		}
 
-		fmt.Println("field names is ", fieldNames)
 		So(len(fieldNames), ShouldEqual, 7)
 
 		sort.Strings(fieldNames)
