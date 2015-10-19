@@ -170,7 +170,7 @@ schema:
 		t.Fatal("SchemaDir wrong")
 	}
 
-	err = cfg.injestSubFile(testConfigDataSub)
+	err = cfg.ingestSubFile(testConfigDataSub)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,7 +300,7 @@ schema:
 		t.Fatal("SchemaDir wrong")
 	}
 
-	err = cfg.injestSubFile(testConfigDataSub)
+	err = cfg.ingestSubFile(testConfigDataSub)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -390,7 +390,7 @@ schema:
 		t.Fatal("SchemaDir wrong")
 	}
 
-	err = cfg.injestSubFile(testConfigDataSub)
+	err = cfg.ingestSubFile(testConfigDataSub)
 	if err == nil {
 		t.Fatal("should have conflicted")
 	}

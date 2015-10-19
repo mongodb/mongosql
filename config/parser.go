@@ -69,7 +69,7 @@ func ParseConfigFile(fileName string) (*Config, error) {
 				return nil, err
 			}
 
-			err = cfg.injestSubFile(subData)
+			err = cfg.ingestSubFile(subData)
 			if err != nil {
 				return nil, err
 			}

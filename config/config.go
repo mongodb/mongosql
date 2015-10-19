@@ -62,9 +62,19 @@ func (t *TableConfig) fixTypes() error {
 	return nil
 }
 
-// ---
+// Must is a helper that wraps a call to a function returning (*Config, error)
+// and panics if the error is non-nil. It is intended for use in variable
+// initializations such as
+//	var t = config.Must(ParseConfigData(raw))
 
-func (c *Config) injestSubFile(data []byte) error {
+func Must(c *Config, err error) *Config {
+	if err != nil {
+		panic(err)
+	}
+	return c
+}
+
+func (c *Config) ingestSubFile(data []byte) error {
 	temp, err := ParseConfigData(data)
 	if err != nil {
 		return err
