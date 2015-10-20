@@ -30,6 +30,10 @@ func (as *AliasedSource) Next(row *Row) bool {
 
 		hasNext = as.source.Next(row)
 
+		if !hasNext {
+			break
+		}
+
 		var tableRows []TableRow
 
 		for _, tableRow := range row.Data {
@@ -61,10 +65,6 @@ func (as *AliasedSource) Next(row *Row) bool {
 				break
 			}
 		} else {
-			break
-		}
-
-		if !hasNext {
 			break
 		}
 

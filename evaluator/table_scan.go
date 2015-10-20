@@ -74,6 +74,10 @@ func (ts *TableScan) Next(row *Row) bool {
 		d := &bson.D{}
 		hasNext = ts.iter.Next(d)
 
+		if !hasNext {
+			break
+		}
+
 		values := Values{}
 		data := d.Map()
 
@@ -113,9 +117,6 @@ func (ts *TableScan) Next(row *Row) bool {
 			break
 		}
 
-		if !hasNext {
-			break
-		}
 	}
 
 	if !hasNext {

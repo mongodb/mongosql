@@ -27,6 +27,10 @@ func (ft *Filter) Next(row *Row) bool {
 
 		hasNext = ft.source.Next(row)
 
+		if !hasNext {
+			break
+		}
+
 		evalCtx := &EvalCtx{[]Row{*row}, ft.ctx}
 
 		if ft.matcher != nil {
@@ -39,10 +43,6 @@ func (ft *Filter) Next(row *Row) bool {
 				break
 			}
 		} else {
-			break
-		}
-
-		if !hasNext {
 			break
 		}
 
