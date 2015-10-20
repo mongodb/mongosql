@@ -131,23 +131,8 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		}
 
 		return m, nil
-
-	case *sqlparser.UnaryExpr:
-		val, err := NewSQLValue(expr.Expr)
-		if err != nil {
-			return nil, err
-		}
-
-		switch expr.Operator {
-		case sqlparser.AST_UMINUS:
-			return &BoolMatch{&UMinus{val}}, nil
-		case sqlparser.AST_UPLUS:
-			return &BoolMatch{&UPlus{val}}, nil
-		case sqlparser.AST_TILDA:
-			return &BoolMatch{&Tilda{val}}, nil
-		}
-		return nil, fmt.Errorf("invalid unary operator - '%v'", string(expr.Operator))
 		/*
+			case *sqlparser.UnaryExpr:
 			case *sqlparser.Subquery:
 			case sqlparser.ValArg:
 			case *sqlparser.CaseExpr:
