@@ -104,8 +104,34 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		return &BoolMatch{val}, nil
 	case *sqlparser.FuncExpr:
 		return BuildFuncMatcher(expr)
+	case *sqlparser.RangeCond:
+		from, err := NewSQLValue(expr.From)
+		if err != nil {
+			return nil, err
+		}
+
+		left, err := NewSQLValue(expr.Left)
+		if err != nil {
+			return nil, err
+		}
+
+		to, err := NewSQLValue(expr.To)
+		if err != nil {
+			return nil, err
+		}
+
+		lower := &GreaterThanOrEqual{left, from}
+
+		upper := &LessThanOrEqual{left, to}
+
+		m := &And{[]Matcher{lower, upper}}
+
+		if expr.Operator == sqlparser.AST_NOT_BETWEEN {
+			return &Not{m}, nil
+		}
+
+		return m, nil
 		/*
-			case *sqlparser.RangeCond:
 			case *sqlparser.UnaryExpr:
 			case *sqlparser.Subquery:
 			case sqlparser.ValArg:

@@ -1163,3 +1163,108 @@ func TestSelectWithoutTable(t *testing.T) {
 
 	})
 }
+
+func TestSelectWithWhere(t *testing.T) {
+	Convey("With a select expression with a WHERE clause...", t, func() {
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvaluator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 2}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 3, "b": 4, "a": 3}), ShouldBeNil)
+
+		Convey("range filters should return the right results", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where a between 1 and 3", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+					evaluator.SQLInt(1),
+				},
+				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+					evaluator.SQLInt(2),
+				},
+				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+					evaluator.SQLInt(4),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where a between 3 and 3", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+			expectedValues = map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+					evaluator.SQLInt(4),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where a between 3 and 1", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 0)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where a between 1 and 2 or a between 2 and 3", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+			expectedValues = map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+					evaluator.SQLInt(1),
+				},
+				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+					evaluator.SQLInt(2),
+				},
+				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+					evaluator.SQLInt(4),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where a not between 1 and 2 and a not between 2 and 3", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 0)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where a not between 1 and 2", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(3))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(4))
+		})
+
+	})
+}
