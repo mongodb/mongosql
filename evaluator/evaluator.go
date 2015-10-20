@@ -78,6 +78,21 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 			values = append(values, value)
 		}
 		return &SQLValTupleExpr{values}, nil
+
+	case *sqlparser.UnaryExpr:
+		val, err := NewSQLValue(expr.Expr)
+		if err != nil {
+			return nil, err
+		}
+		switch expr.Operator {
+		case sqlparser.AST_UMINUS:
+			return &UMinus{val}, nil
+		case sqlparser.AST_UPLUS:
+			return &UPlus{val}, nil
+		case sqlparser.AST_TILDA:
+			return &Tilda{val}, nil
+		}
+		return nil, fmt.Errorf("invalid unary operator - '%v'", string(expr.Operator))
 	case nil:
 		return &SQLNullValue{}, nil
 	default:

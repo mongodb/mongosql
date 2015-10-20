@@ -134,8 +134,15 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		}
 
 		return m, nil
+
+	case *sqlparser.UnaryExpr:
+		val, err := NewSQLValue(expr.Expr)
+		if err != nil {
+			return nil, err
+		}
+		return &BoolMatch{val}, nil
+
 		/*
-			case *sqlparser.UnaryExpr:
 			case *sqlparser.Subquery:
 			case sqlparser.ValArg:
 			case *sqlparser.CaseExpr:

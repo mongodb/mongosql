@@ -794,3 +794,88 @@ func (te SQLValTupleExpr) MongoValue() interface{} {
 func (te SQLValTupleExpr) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	return 0, nil
 }
+
+// round returns the closest integer value to the float - round half down
+// for negative values and round half up otherwise.
+func round(f float64) int64 {
+	v := f
+
+	if v < 0.0 {
+		v += 0.5
+	}
+
+	if f < 0 && v == math.Floor(v) {
+		return int64(v - 1)
+	}
+
+	return int64(math.Floor(v))
+}
+
+//
+// UMinus
+//
+
+type UMinus struct {
+	SQLValue
+}
+
+func (um *UMinus) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	if val, ok := um.SQLValue.(SQLNumeric); ok {
+		return SQLInt(-(round(val.Float64()))), nil
+	}
+	return um.SQLValue, nil
+}
+
+func (um *UMinus) MongoValue() interface{} {
+	return um.SQLValue.MongoValue()
+}
+
+func (um *UMinus) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	return um.CompareTo(ctx, v)
+}
+
+//
+// UPlus
+//
+
+type UPlus struct {
+	SQLValue
+}
+
+func (up *UPlus) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	if val, ok := up.SQLValue.(SQLNumeric); ok {
+		return SQLInt(round(val.Float64())), nil
+	}
+	return up.SQLValue, nil
+}
+
+func (up *UPlus) MongoValue() interface{} {
+	return up.SQLValue.MongoValue()
+}
+
+func (up *UPlus) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	return up.CompareTo(ctx, v)
+}
+
+//
+// Tilda
+//
+
+type Tilda struct {
+	SQLValue
+}
+
+func (td *Tilda) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	if val, ok := td.SQLValue.(SQLNumeric); ok {
+		return SQLInt(^round(val.Float64())), nil
+	}
+	return td.SQLValue, nil
+}
+
+func (td *Tilda) MongoValue() interface{} {
+	return td.SQLValue.MongoValue()
+}
+
+func (td *Tilda) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	return td.CompareTo(ctx, v)
+}

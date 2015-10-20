@@ -46,28 +46,40 @@ var binaryFuncMap = map[string]SQLBinaryFunction{
 	}),
 }
 
+func convertToSQLNumeric(v SQLValue, ctx *EvalCtx) (SQLNumeric, error) {
+	v, err := v.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	eval, ok := v.(SQLNumeric)
+	if !ok {
+		v, ok := v.(SQLValues)
+		if !ok || len(v.Values) != 1 {
+			return nil, fmt.Errorf("Operand should contain 1 argument")
+		}
+		eval, ok = v.Values[0].(SQLNumeric)
+		if !ok {
+			return nil, fmt.Errorf("Operand should contain 1 argument")
+		}
+	}
+	return eval, nil
+}
+
 func SQLNumericBinaryOp(args []SQLValue, ctx *EvalCtx, op string) (SQLValue, error) {
 	if len(args) < 2 {
 		return nil, fmt.Errorf("%v function needs at least 2 args", op)
 	}
 
-	eval, err := args[0].Evaluate(ctx)
+	left, err := convertToSQLNumeric(args[0], ctx)
 	if err != nil {
 		return nil, err
 	}
-	left, ok := eval.(SQLNumeric)
-	if !ok {
-		return &SQLNullValue{}, nil
-	}
 
 	for _, arg := range args[1:] {
-		eval, err = arg.Evaluate(ctx)
+		right, err := convertToSQLNumeric(arg, ctx)
 		if err != nil {
 			return nil, err
-		}
-		right, ok := (eval).(SQLNumeric)
-		if !ok {
-			return &SQLNullValue{}, nil
 		}
 		switch op {
 		case "+":

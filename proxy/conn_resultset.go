@@ -31,7 +31,18 @@ func formatValue(value interface{}) ([]byte, error) {
 			slice = append(slice, b...)
 		}
 		return slice, nil
-	case evaluator.SQLNullValue:
+	case *evaluator.SQLValTupleExpr:
+		slice := []byte{}
+		for _, value := range v.Values {
+			b, err := formatValue(value)
+			if err != nil {
+				return nil, err
+			}
+			slice = append(slice, b...)
+		}
+		return slice, nil
+
+	case evaluator.SQLNullValue, *evaluator.SQLNullValue:
 		return nil, nil
 	case int8:
 		return strconv.AppendInt(nil, int64(v), 10), nil
@@ -140,12 +151,12 @@ func formatField(field *Field, value interface{}) error {
 	case bool: // bool
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_BIT
-	case evaluator.SQLNullValue:
+	case nil, *evaluator.SQLNullValue, evaluator.SQLNullValue:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_NULL
-	case nil:
+	case *evaluator.SQLValTupleExpr:
 		field.Charset = 33
-		field.Type = MYSQL_TYPE_NULL
+		field.Type = MYSQL_TYPE_ENUM
 
 	default:
 		// TODO: figure out 'field' struct and support all BSON types
