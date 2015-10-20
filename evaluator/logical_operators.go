@@ -104,5 +104,20 @@ func (bm *BoolMatch) Matches(ctx *EvalCtx) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	if v, ok := val.(SQLValues); ok {
+		if len(v.Values) == 0 {
+			return false, nil
+		}
+		if len(v.Values) == 1 {
+			s, err := v.Values[0].Evaluate(ctx)
+			if err != nil {
+				return false, err
+			}
+			return util.IsTruthy(s), nil
+		}
+		return false, nil
+	}
+
 	return util.IsTruthy(val), nil
 }
