@@ -50,7 +50,7 @@ func (s *Select) Next(r *Row) bool {
 		} else if err := s.source.Close(); err != nil {
 			s.err = err
 		}
-
+		return false
 	}
 
 	// star expression, take headers from source
