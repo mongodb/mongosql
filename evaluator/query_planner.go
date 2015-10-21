@@ -708,9 +708,19 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 		return hasAggFunctions(expr.Expr)
 
 	case *sqlparser.FuncExpr:
-
-		return true
-
+		switch strings.ToLower(string(expr.Name)) {
+		case "avg":
+			fallthrough
+		case "sum":
+			fallthrough
+		case "count":
+			fallthrough
+		case "max":
+			fallthrough
+		case "min":
+			return true
+		}
+		return false
 	case *sqlparser.Subquery:
 
 		return false

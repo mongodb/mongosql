@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"gopkg.in/mgo.v2/bson"
+	"math"
 )
 
 //
@@ -352,6 +353,12 @@ func (f *SQLFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	switch string(f.Name) {
+	case "isnull":
+		return isNullFunc(ctx, f.Exprs)
+	case "not":
+		return notFunc(ctx, f.Exprs)
+	case "pow":
+		return powFunc(ctx, f.Exprs)
 	case "connection_id":
 		return connectionIdFunc(ctx)
 	case "database":
@@ -390,6 +397,98 @@ func connectionIdFunc(ctx *EvalCtx) (SQLValue, error) {
 
 func dbFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(ctx.ExecCtx.DB()), nil
+}
+
+func isNullFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
+	if len(sExprs) != 1 {
+		return nil, fmt.Errorf("isnull() function requires one argument")
+	}
+	var exp sqlparser.Expr
+	if v, ok := sExprs[0].(*sqlparser.NonStarExpr); ok {
+		exp = v.Expr
+	} else {
+		return nil, fmt.Errorf("invalid type in 1st argument to a pow function: %T", sExprs[1])
+	}
+	val, err := NewSQLValue(exp)
+	if err != nil {
+		return nil, err
+	}
+	val, err = val.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+	matcher := NullMatcher{val}
+	result, err := matcher.Matches(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return SQLBool(result), nil
+}
+
+func notFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
+	if len(sExprs) != 1 {
+		return nil, fmt.Errorf("not() function requires one argument")
+	}
+	var notExpr sqlparser.Expr
+	if v, ok := sExprs[0].(*sqlparser.NonStarExpr); ok {
+		notExpr = v.Expr
+	} else {
+		return nil, fmt.Errorf("invalid type in 1st argument to a pow function: %T", sExprs[1])
+	}
+
+	notVal, err := NewSQLValue(notExpr)
+	if err != nil {
+		return nil, err
+	}
+
+	matcher := &Not{&BoolMatcher{notVal}}
+	result, err := matcher.Matches(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return SQLBool(result), nil
+}
+
+func powFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
+	if len(sExprs) != 2 {
+		return nil, fmt.Errorf("pow() function requires two arguments")
+	}
+	var baseExpr, expExpr sqlparser.Expr
+	if v, ok := sExprs[0].(*sqlparser.NonStarExpr); ok {
+		baseExpr = v.Expr
+	} else {
+		return nil, fmt.Errorf("invalid type in 1st argument to a pow function: %T", sExprs[1])
+	}
+	if v, ok := sExprs[1].(*sqlparser.NonStarExpr); ok {
+		expExpr = v.Expr
+	} else {
+		return nil, fmt.Errorf("invalid type in 2nd argument to a pow function: %T", sExprs[1])
+	}
+
+	base, err := NewSQLValue(baseExpr)
+	if err != nil {
+		return nil, err
+	}
+	exponent, err := NewSQLValue(expExpr)
+	if err != nil {
+		return nil, err
+	}
+
+	base, err = base.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+	exponent, err = exponent.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if bNum, ok := base.(SQLNumeric); ok {
+		if eNum, ok := exponent.(SQLNumeric); ok {
+			return SQLFloat(math.Pow(bNum.Float64(), eNum.Float64())), nil
+		}
+		return nil, fmt.Errorf("exponent must be a number, but got %t", exponent)
+	}
+	return nil, fmt.Errorf("base must be a number, but got %T", base)
 }
 
 func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {

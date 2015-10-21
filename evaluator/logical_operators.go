@@ -1,7 +1,7 @@
 package evaluator
 
 import (
-	"github.com/mongodb/mongo-tools/common/util"
+	"strconv"
 )
 
 //
@@ -39,10 +39,8 @@ func (or *Or) Matches(ctx *EvalCtx) (bool, error) {
 	return false, nil
 }
 
-//
-// And
-//
-
+// And is a matcher that matches if and only if
+// all of its children match.
 type And struct {
 	children []Matcher
 }
@@ -60,49 +58,62 @@ func (and *And) Matches(ctx *EvalCtx) (bool, error) {
 	return true, nil
 }
 
-//
-// NullMatch
-//
-
-type NullMatch struct {
-	wantsNull bool
-	val       SQLValue
+// NullMatcher matches if the embedded SQLValue evaluates to null.
+type NullMatcher struct {
+	val SQLValue
 }
 
-func (nm *NullMatch) Matches(ctx *EvalCtx) (bool, error) {
+func (nm *NullMatcher) Matches(ctx *EvalCtx) (bool, error) {
 	eval, err := nm.val.Evaluate(ctx)
 	if err != nil {
 		return false, nil
 	}
 	reg := eval.MongoValue()
-	if nm.wantsNull {
-		return reg == nil, nil
-	}
-	return reg != nil, nil
+	return reg == nil, nil
 }
 
-//
-// NoopMatch
-//
+// NoopMatcher is a matcher that always returns true for any row.
+type NoopMatcher struct{}
 
-type NoopMatch struct{}
-
-func (no *NoopMatch) Matches(ctx *EvalCtx) (bool, error) {
+func (no *NoopMatcher) Matches(ctx *EvalCtx) (bool, error) {
 	return true, nil
 }
 
-//
-// BoolMatch
-//
-
-type BoolMatch struct {
+// BoolMatcher is a matcher that returns true if the embedded SQLValue evaluates
+// to something that is "truthy" i.e. a non-zero number, or a string that parses
+// as a non-zero number.
+type BoolMatcher struct {
 	SQLValue
 }
 
-func (bm *BoolMatch) Matches(ctx *EvalCtx) (bool, error) {
+func (bm *BoolMatcher) Matches(ctx *EvalCtx) (bool, error) {
 	val, err := bm.Evaluate(ctx)
 	if err != nil {
 		return false, err
 	}
-	return util.IsTruthy(val), nil
+	return IsTruthy(val), nil
+}
+
+// IsTruthy checks if a given SQLValue is "truthy" or should by coercing it to a boolean value.
+// - booleans: the result is simply that same return value
+// - numeric values: the result is true if and only if the value is non-zero.
+// - strings, the result is true if and only if that string can be parsed as a number,
+//   and that number is non-zero.
+func IsTruthy(sv SQLValue) bool {
+	if asBool, ok := sv.(SQLBool); ok {
+		return bool(asBool)
+	}
+	if asNum, ok := sv.(SQLNumeric); ok {
+		return asNum.Float64() != float64(0)
+	}
+	if asStr, ok := sv.(SQLString); ok {
+		// check if the string should be considered "truthy" by trying to convert it to a number and comparing to 0.
+		// more info: http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
+		if parsedFloat, err := strconv.ParseFloat(string(asStr), 64); err == nil {
+			return parsedFloat != float64(0)
+		}
+		return false
+	}
+	// TODO - handle other types with possible values that are "truthy" : dates, etc?
+	return false
 }

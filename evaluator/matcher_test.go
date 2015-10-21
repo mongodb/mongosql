@@ -35,6 +35,45 @@ func getMatcherFromSQL(sql string) (Matcher, error) {
 	return nil, fmt.Errorf("statement doesn't look like a 'SELECT'")
 }
 
+func TestBoolMatcher(t *testing.T) {
+	Convey("When evaluating a single value as a match", t, func() {
+		evalCtx := &EvalCtx{[]Row{
+			{Data: []TableRow{
+				{"bar", Values{
+					{"a", "a", 123},
+					{"b", "b", "xyz"},
+					{"c", "c", nil},
+				}, nil}}}}, nil}
+		Convey("It should evaluate to true iff it's non-zero or parseable as a non-zero number", func() {
+			shouldBeTrue := []SQLValue{
+				SQLInt(124),
+				SQLFloat(1235),
+				SQLString("512"),
+			}
+
+			shouldBeFalse := []SQLValue{
+				SQLInt(0),
+				SQLFloat(0),
+				SQLString("000"),
+				SQLString("skdjbkjb"),
+				SQLString(""),
+			}
+			for _, t := range shouldBeTrue {
+				matcher := BoolMatcher{t}
+				match, err := matcher.Matches(evalCtx)
+				So(err, ShouldBeNil)
+				So(match, ShouldBeTrue)
+			}
+			for _, t := range shouldBeFalse {
+				matcher := BoolMatcher{t}
+				match, err := matcher.Matches(evalCtx)
+				So(err, ShouldBeNil)
+				So(match, ShouldBeFalse)
+			}
+		})
+	})
+}
+
 func TestMatcherBuilder(t *testing.T) {
 	Convey("Simple WHERE with explicit table names", t, func() {
 		matcher, err := getMatcherFromSQL("select * from bar where bar.a = 'eliot'")

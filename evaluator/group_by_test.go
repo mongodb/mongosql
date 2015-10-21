@@ -100,7 +100,7 @@ func TestGroupByOperator(t *testing.T) {
 				&sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
 			}
 
-			matcher := &NoopMatch{}
+			matcher := &NoopMatcher{}
 
 			operator := &GroupBy{
 				sExprs:  sExprs,

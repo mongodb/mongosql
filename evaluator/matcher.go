@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
-	"strings"
 )
 
 // Tree nodes for evaluating if a row matches.
@@ -74,8 +73,11 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &NullMatch{expr.Operator == sqlparser.AST_IS_NULL, val}, nil
-
+		matcher := &NullMatcher{val}
+		if expr.Operator == sqlparser.AST_IS_NULL {
+			return matcher, nil
+		}
+		return &Not{matcher}, nil
 	case *sqlparser.NotExpr:
 		child, err := BuildMatcher(expr.Expr)
 		if err != nil {
@@ -89,21 +91,22 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		}
 		return child, nil
 	case nil:
-		return &NoopMatch{}, nil
+		return &NoopMatcher{}, nil
 	case *sqlparser.ColName:
 		val, err := NewSQLValue(expr)
 		if err != nil {
 			return nil, err
 		}
-		return &BoolMatch{val}, nil
+		return &BoolMatcher{val}, nil
 	case sqlparser.NumVal:
 		val, err := NewSQLValue(expr)
 		if err != nil {
 			return nil, err
 		}
-		return &BoolMatch{val}, nil
+		return &BoolMatcher{val}, nil
 	case *sqlparser.FuncExpr:
-		return BuildFuncMatcher(expr)
+		sqlFuncVal := &SQLFuncExpr{expr}
+		return &BoolMatcher{sqlFuncVal}, nil
 	case *sqlparser.RangeCond:
 		from, err := NewSQLValue(expr.From)
 		if err != nil {
@@ -142,10 +145,10 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		panic(fmt.Errorf("matcher not yet implemented for %v (%T)", sqlparser.String(expr), expr))
 		return nil, nil
 	}
-
 }
 
 // BuildFuncMatcher creates a matcher for a function expression.
+/*
 func BuildFuncMatcher(fExpr *sqlparser.FuncExpr) (Matcher, error) {
 	log.Logf(log.DebugLow, "building scalar function matcher '%v'", string(fExpr.Name))
 
@@ -155,6 +158,7 @@ func BuildFuncMatcher(fExpr *sqlparser.FuncExpr) (Matcher, error) {
 	}
 
 	switch strings.ToLower(string(fExpr.Name)) {
+	//
 	case "not":
 		if len(exprs) != 1 {
 			return nil, fmt.Errorf("%v scalar function must accept exactly 1 argument, got %v: %#v", string(fExpr.Name), len(fExpr.Exprs), exprs)
@@ -172,11 +176,12 @@ func BuildFuncMatcher(fExpr *sqlparser.FuncExpr) (Matcher, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &NullMatch{true, val}, nil
+		return &NullMatcher{true, val}, nil
 	default:
 		return nil, fmt.Errorf("scalar function '%v' is not supported", string(fExpr.Name))
 	}
 }
+*/
 
 // getFuncExprs parses a slice of SelectExpr - part of scalar function
 // expressions - and returns the referenced expressions for each.
