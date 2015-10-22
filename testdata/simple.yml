@@ -1,0 +1,31 @@
+# How this test case file works:
+#
+# 1. mongoimport each of these json files under the "data" section 
+# into the indicated namespace
+#
+data:
+- ns: test.foo
+  json_file: testdata/input/test1.json
+- ns: test.baz
+  json_file: testdata/input/test2.json
+
+# 2. Start a test server using the following schema mapping, which should
+# correspond to the data used in (1)
+
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: test.foo
+    pipeline: []
+    columns:
+    - name: a
+      type: int
+    - name: b
+      type: string
+
+# 3. Run each of the following queries, and report any that have errors
+testcases:
+- sql: "SELECT * from foo"
+- sql: "SELECT count(*) from foo"
+- sql: "SELECT sum(a) from foo"

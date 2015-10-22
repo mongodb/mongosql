@@ -21,6 +21,10 @@ type Server struct {
 	schemas map[string]*config.Schema
 }
 
+func (s *Server) GetSchemas() map[string]*config.Schema {
+	return s.schemas
+}
+
 func NewServer(cfg *config.Config, eval *sqlproxy.Evaluator) (*Server, error) {
 	s := new(Server)
 

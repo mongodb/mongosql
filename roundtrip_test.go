@@ -2,35 +2,44 @@ package sqlproxy
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/erh/mongo-sql-temp"
 	"github.com/erh/mongo-sql-temp/config"
 	"github.com/erh/mongo-sql-temp/proxy"
 	_ "github.com/go-sql-driver/mysql"
+	toolsdb "github.com/mongodb/mongo-tools/common/db"
+	toolsLog "github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/mongoimport"
+	"github.com/siddontang/go-yaml/yaml"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"io/ioutil"
+	"strings"
 	"testing"
 )
 
-var sampleConfig = []byte(`{
-  "addr": "127.0.0.1:3456",
-  "schema": [
-    { "db": "test", "tables": [
-        { "table": "foo", "collection": "test.foo", 
-          "columns": [
-            { "type": "int", "name": "a" }, 
-            { "type": "string", "name": "b" }
-          ]
-        }
-      ], 
-    }
-  ]
-}`)
+const (
+	testMongoHost = "127.0.0.1"
+	testMongoPort = "27017"
+	testDBAddr    = "127.0.0.1:3308"
+)
 
-type testData struct {
-	database   string
-	collection string
-	data       []bson.D
+type testDataSet struct {
+	NS       string `yaml:"ns"`
+	JSONFile string `yaml:"json_file"`
+}
+
+type testCase struct {
+	SQL         string `yaml:"sql"`
+	Description string `yaml:"description"`
+	expected    string `yaml:"expected"`
+}
+
+type testConfig struct {
+	DB        string           `yaml:"db"`
+	Data      []testDataSet    `yaml:"data"`
+	Schemas   []*config.Schema `yaml:"schema"`
+	TestCases []testCase       `yaml:"testcases"`
 }
 
 func testServer(cfg *config.Config) (*proxy.Server, error) {
@@ -41,47 +50,63 @@ func testServer(cfg *config.Config) (*proxy.Server, error) {
 	return proxy.NewServer(cfg, evaluator)
 }
 
-func populateTestData(cfg *config.Config, datasets []testData) error {
-	session, err := mgo.Dial(cfg.Url)
+func buildSchemaMaps(conf *config.Config) {
+	conf.Schemas = make(map[string]*config.Schema)
+	for _, schema := range conf.RawSchemas {
+		schema.Tables = make(map[string]*config.TableConfig)
+		for _, table := range schema.RawTables {
+			schema.Tables[table.Table] = table
+		}
+		conf.Schemas[schema.DB] = schema
+	}
+}
+
+func compareResults(actual [][]interface{}, expected [][]interface{}) {
+	So(actual, ShouldResemble, expected)
+}
+
+func importJSON(host, port, file, db, collection string) error {
+	connection := &options.Connection{Host: host, Port: port}
+	sessionProvider, err := toolsdb.NewSessionProvider(options.ToolOptions{
+		Auth:       &options.Auth{},
+		Connection: connection})
 	if err != nil {
 		return err
 	}
-	defer session.Close()
-	for _, dataset := range datasets {
-		c := session.DB(dataset.database).C(dataset.collection)
-		err := c.DropCollection()
-		if err != nil {
-			return err
-		}
-		for _, d := range dataset.data {
-			err := c.Insert(d)
-			if err != nil {
-				return err
-			}
-		}
+
+	toolsLog.SetVerbosity(&options.Verbosity{Quiet: true})
+	importer := mongoimport.MongoImport{
+		ToolOptions: &options.ToolOptions{
+			Connection: connection,
+			Namespace: &options.Namespace{
+				DB:         db,
+				Collection: collection,
+			},
+			HiddenOptions: &options.HiddenOptions{NumDecodingWorkers: 10},
+		},
+		InputOptions: &mongoimport.InputOptions{File: file},
+		IngestOptions: &mongoimport.IngestOptions{
+			Drop:        true,
+			StopOnError: true,
+		},
+		SessionProvider: sessionProvider,
 	}
-	return nil
+	_, err = importer.ImportDocuments()
+	return err
 }
 
-// runSQL will populate the collection for the given config with the array of data,
-// then run the given SQL statement and return its results as an array of arrays.
-func runSQL(statement string, cfg *config.Config) ([][]interface{}, error) {
-	srv, err := testServer(cfg)
-	So(err, ShouldBeNil)
-	go srv.Run()
-
-	db, err := sql.Open("mysql", "root@tcp(127.0.0.1:3456)/test")
-	So(err, ShouldBeNil)
-	defer db.Close()
-	rows, err := db.Query(statement)
-	So(err, ShouldBeNil)
+func runSQL(db *sql.DB, query string) ([][]interface{}, error) {
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
-
 	cols, err := rows.Columns()
-	So(err, ShouldBeNil)
+	if err != nil {
+		return nil, err
+	}
 
 	result := [][]interface{}{}
-
 	i := 0
 	for rows.Next() {
 		i += 1
@@ -101,29 +126,77 @@ func runSQL(statement string, cfg *config.Config) ([][]interface{}, error) {
 	return result, nil
 }
 
-func compareResults(actual [][]interface{}, expected [][]interface{}) {
-	So(actual, ShouldResemble, expected)
+func executeTestCase(dbhost, dbport string, conf testConfig) error {
+	// populate the DB with data for all the files in the config's list of json files
+	for _, dataSet := range conf.Data {
+		ns := strings.SplitN(dataSet.NS, ".", 2)
+		if len(ns) != 2 {
+			return fmt.Errorf("ns '%v' missing period; namespace should be specified as 'dbname.collection'")
+		}
+		err := importJSON(dbhost, dbport, dataSet.JSONFile, ns[0], ns[1])
+		if err != nil {
+			return err
+		}
+	}
+
+	// make a test server using the embedded schema
+	cfg := &config.Config{
+		Addr:       testDBAddr,
+		Url:        fmt.Sprintf("mongodb://%v:%v", dbhost, dbport),
+		RawSchemas: conf.Schemas,
+	}
+	buildSchemaMaps(cfg)
+	s, err := testServer(cfg)
+	if err != nil {
+		return err
+	}
+	go s.Run()
+	defer s.Close()
+
+	db, err := sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Schemas[0].DB))
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	for _, testCase := range conf.TestCases {
+		description := testCase.SQL
+		if testCase.Description != "" {
+			description = testCase.Description
+		}
+		Convey(description, func() {
+			_, err := runSQL(db, testCase.SQL)
+			So(err, ShouldBeNil)
+		})
+	}
+	return nil
 }
 
-func TestRoundtrip(t *testing.T) {
-	Convey("With sample config on test server", t, func() {
-		cfg := config.Must(config.ParseConfigData(sampleConfig))
+func MustLoadTestConfig(path string) testConfig {
+	fileBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	var conf testConfig
+	err = yaml.Unmarshal(fileBytes, &conf)
+	if err != nil {
+		panic(err)
+	}
+	return conf
+}
 
-		err := populateTestData(cfg, []testData{
-			{database: "test", collection: "foo",
-				data: []bson.D{
-					{{"a", "foo"}},
-					{{"a", "bar"}},
-					{{"a", "baz"}},
-				}},
-		})
-
-		result, err := runSQL("SELECT a from foo", cfg)
+func TestTableauDemo(t *testing.T) {
+	Convey("Test tableau dataset", t, func() {
+		conf := MustLoadTestConfig("testdata/tableau.yml")
+		err := executeTestCase(testMongoHost, testMongoPort, conf)
 		So(err, ShouldBeNil)
-		So(result, ShouldResemble, [][]interface{}{
-			{[]byte("foo")},
-			{[]byte("bar")},
-			{[]byte("baz")},
-		})
+	})
+}
+
+func TestSimpleQueries(t *testing.T) {
+	Convey("Test simple queries", t, func() {
+		conf := MustLoadTestConfig("testdata/simple.yml")
+		err := executeTestCase(testMongoHost, testMongoPort, conf)
+		So(err, ShouldBeNil)
 	})
 }

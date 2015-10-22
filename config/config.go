@@ -8,13 +8,13 @@ import (
 type Column struct {
 	Name      string `yaml:"name"`
 	Type      string `yaml:"type"`
-	MysqlType string `yaml:"mysql_type"`
+	MysqlType string `yaml:"mysql_type,omitempty"`
 }
 
 type TableConfig struct {
 	Table      string    `yaml:"table"`
 	Collection string    `yaml:"collection"`
-	Pipeline   []bson.M  `yaml:"pipeline"`
+	Pipeline   []bson.M  `yaml:"pipeline,omitempty"`
 	Columns    []*Column `yaml:"columns"`
 }
 
