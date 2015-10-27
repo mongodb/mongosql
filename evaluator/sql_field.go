@@ -353,16 +353,21 @@ func (f *SQLFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	switch string(f.Name) {
+	// scalar functions
 	case "isnull":
 		return isNullFunc(ctx, f.Exprs)
 	case "not":
 		return notFunc(ctx, f.Exprs)
 	case "pow":
 		return powFunc(ctx, f.Exprs)
+
+	// connector functions
 	case "connection_id":
 		return connectionIdFunc(ctx)
 	case "database":
 		return dbFunc(ctx)
+
+	// aggregate functions
 	case "avg":
 		return avgFunc(ctx, f.Exprs, distinctMap)
 	case "sum":
@@ -401,22 +406,25 @@ func dbFunc(ctx *EvalCtx) (SQLValue, error) {
 
 func isNullFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 	if len(sExprs) != 1 {
-		return nil, fmt.Errorf("isnull() function requires one argument")
+		return nil, fmt.Errorf("'isnull' function requires exactly one argument")
 	}
 	var exp sqlparser.Expr
 	if v, ok := sExprs[0].(*sqlparser.NonStarExpr); ok {
 		exp = v.Expr
 	} else {
-		return nil, fmt.Errorf("invalid type in 1st argument to a pow function: %T", sExprs[1])
+		return nil, fmt.Errorf("argument to 'isnull' function can not contain '*'")
 	}
+
 	val, err := NewSQLValue(exp)
 	if err != nil {
 		return nil, err
 	}
+
 	val, err = val.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	matcher := NullMatcher{val}
 	result, err := matcher.Matches(ctx)
 	if err != nil {
@@ -427,13 +435,13 @@ func isNullFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 
 func notFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 	if len(sExprs) != 1 {
-		return nil, fmt.Errorf("not() function requires one argument")
+		return nil, fmt.Errorf("'not' function requires exactly one argument")
 	}
 	var notExpr sqlparser.Expr
 	if v, ok := sExprs[0].(*sqlparser.NonStarExpr); ok {
 		notExpr = v.Expr
 	} else {
-		return nil, fmt.Errorf("invalid type in 1st argument to a pow function: %T", sExprs[1])
+		return nil, fmt.Errorf("argument to 'not' function can not contain '*'")
 	}
 
 	notVal, err := NewSQLValue(notExpr)
@@ -451,18 +459,18 @@ func notFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 
 func powFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 	if len(sExprs) != 2 {
-		return nil, fmt.Errorf("pow() function requires two arguments")
+		return nil, fmt.Errorf("'pow' function requires exactly two arguments")
 	}
 	var baseExpr, expExpr sqlparser.Expr
 	if v, ok := sExprs[0].(*sqlparser.NonStarExpr); ok {
 		baseExpr = v.Expr
 	} else {
-		return nil, fmt.Errorf("invalid type in 1st argument to a pow function: %T", sExprs[1])
+		return nil, fmt.Errorf("argument to 'pow' function can not contain '*'")
 	}
 	if v, ok := sExprs[1].(*sqlparser.NonStarExpr); ok {
 		expExpr = v.Expr
 	} else {
-		return nil, fmt.Errorf("invalid type in 2nd argument to a pow function: %T", sExprs[1])
+		return nil, fmt.Errorf("argument to 'pow' function can not contain '*'")
 	}
 
 	base, err := NewSQLValue(baseExpr)
