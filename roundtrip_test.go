@@ -131,7 +131,7 @@ func executeTestCase(dbhost, dbport string, conf testConfig) error {
 	for _, dataSet := range conf.Data {
 		ns := strings.SplitN(dataSet.NS, ".", 2)
 		if len(ns) != 2 {
-			return fmt.Errorf("ns '%v' missing period; namespace should be specified as 'dbname.collection'")
+			return fmt.Errorf("ns '%v' missing period; namespace should be specified as 'dbname.collection'", dataSet.NS)
 		}
 		err := importJSON(dbhost, dbport, dataSet.JSONFile, ns[0], ns[1])
 		if err != nil {

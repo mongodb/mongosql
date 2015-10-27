@@ -115,7 +115,7 @@ func executeQueryPlan(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) 
 		return nil, nil, fmt.Errorf("operator err: %v", err)
 	}
 
-	log.Logf(log.DebugLow, "Done executing plan")
+	log.Log(log.DebugLow, "Done executing plan")
 
 	// make sure all rows have same number of values
 	for idx, row := range rows {
