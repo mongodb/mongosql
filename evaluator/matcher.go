@@ -140,7 +140,7 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &BoolMatch{val}, nil
+		return &BoolMatcher{val}, nil
 
 		/*
 			case *sqlparser.Subquery:
