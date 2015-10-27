@@ -72,6 +72,18 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 			stmt.Having.Expr = algebrizedStmt.(sqlparser.BoolExpr)
 		}
 
+		// algebrize 'ORDER BY' clause
+		if len(stmt.OrderBy) != 0 {
+			for _, orderBy := range stmt.OrderBy {
+				algebrizedStmt, err := algebrizeExpr(orderBy.Expr, pCtx)
+				if err != nil {
+					return err
+				}
+
+				orderBy.Expr = algebrizedStmt.(sqlparser.ValExpr)
+			}
+		}
+
 		// algebrize group by -> having -> select
 		// expressions -> into -> order by -> limit
 

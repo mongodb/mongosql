@@ -156,6 +156,16 @@ type SelectExpression struct {
 	Referenced bool
 }
 
+// RowCtx holds evaluated data as well as the relevant context used to evaluate the data
+// used for passing data - used to process aggregation functions - between operators.
+type RowCtx struct {
+	// Row contains the evaluated data for each record.
+	Row Row
+	// Ctx contains the rows used in evaluating any aggregation
+	// function used in the GROUP BY expression.
+	Ctx []Row
+}
+
 type SelectExpressions []SelectExpression
 
 func (ses SelectExpressions) String() string {

@@ -90,10 +90,11 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		return nil, err
 	}
 
+	aggSelect := (len(s.sExprs.AggFunctions()) != 0 && ast.Having == nil)
+
 	// This handles GROUP BY expressions and/or aggregate functions in
 	// select expressions - as aggregate functions with no GROUP BY
 	// clause imply a single group
-	aggSelect := (len(s.sExprs.AggFunctions()) != 0 && ast.Having == nil)
 	if len(ast.GroupBy) != 0 || aggSelect {
 		operator, err = planGroupBy(ast, s)
 		if err != nil {
@@ -103,7 +104,7 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		operator = s
 	}
 
-	// handle HAVING expression
+	// handle HAVING expression without GROUP BY clause
 	if ast.Having != nil && len(ast.GroupBy) == 0 {
 		operator, err = planHaving(ast.Having, s)
 		if err != nil {
@@ -111,8 +112,44 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		}
 	}
 
+	if len(ast.OrderBy) != 0 {
+		operator, err = planOrderBy(ast, operator)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return operator, nil
 
+}
+
+// planOrderBy returns a query execution plan for an order by clause.
+func planOrderBy(ast *sqlparser.Select, source Operator) (Operator, error) {
+
+	//
+	// TODO: doesn't make sense to allow ORDER BY aggregate expression without
+	// a GROUP BY clause
+	//
+	orderBy := &OrderBy{
+		source: source,
+	}
+
+	for _, i := range ast.OrderBy {
+		value, err := NewSQLValue(i.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		key := orderByKey{
+			value:     value,
+			isAggFunc: hasAggFunctions(i.Expr),
+			ascending: i.Direction == sqlparser.AST_ASC,
+		}
+
+		orderBy.keys = append(orderBy.keys, key)
+	}
+
+	return orderBy, nil
 }
 
 // planGroupBy returns a query execution plan for a GROUP BY clause.
@@ -139,7 +176,7 @@ func planGroupBy(ast *sqlparser.Select, s *Select) (Operator, error) {
 	for _, valExpr := range groupBy {
 		expr := sqlparser.Expr(valExpr)
 
-		// a GROUP BY clause can't refer to nonaggregated columns in
+		// a GROUP BY clause can't refer to non-aggregated columns in
 		// the select list that are not named in the GROUP BY clause
 		parsedExpr, err := getGroupByTerm(gb.sExprs, expr)
 		if err != nil {
@@ -150,6 +187,7 @@ func planGroupBy(ast *sqlparser.Select, s *Select) (Operator, error) {
 	}
 
 	nonAggFields := len(gb.sExprs) - len(gb.sExprs.AggFunctions())
+
 	if nonAggFields > len(gb.exprs) && len(groupBy) != 0 {
 		var aggFuncs int
 		for _, sExpr := range gb.sExprs {
@@ -638,8 +676,7 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 	return nil, fmt.Errorf("referenced columns (on %T) reached an unreachable point", e)
 }
 
-// hasAggFunctions returns true if expression e contains
-// an aggregate function and false otherwise.
+// hasAggFunctions returns true if expression e contains an aggregate function and false otherwise.
 func hasAggFunctions(e sqlparser.Expr) bool {
 
 	log.Logf(log.DebugLow, "hasAggFunctions: %#v (type is %T)\n", e, e)
@@ -647,20 +684,25 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 	switch expr := e.(type) {
 
 	case sqlparser.ValTuple:
+
 		for _, valTuple := range expr {
 			if hasAggFunctions(valTuple) {
 				return true
 			}
 		}
+
 		return false
 
 	case sqlparser.NumVal, sqlparser.StrVal, *sqlparser.NullVal, *sqlparser.ColName:
+
 		return false
 
 	case *sqlparser.BinaryExpr:
+
 		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
 			return true
 		}
+
 		return false
 
 	case *sqlparser.AndExpr:
@@ -668,6 +710,7 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
 			return true
 		}
+
 		return false
 
 	case *sqlparser.OrExpr:
@@ -675,6 +718,7 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
 			return true
 		}
+
 		return false
 
 	case *sqlparser.ParenBoolExpr:
@@ -686,6 +730,7 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
 			return true
 		}
+
 		return false
 
 	case *sqlparser.RangeCond:
@@ -693,6 +738,7 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.From) || hasAggFunctions(expr.To) {
 			return true
 		}
+
 		return false
 
 	case *sqlparser.NullCheck:
@@ -708,19 +754,9 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 		return hasAggFunctions(expr.Expr)
 
 	case *sqlparser.FuncExpr:
-		switch strings.ToLower(string(expr.Name)) {
-		case "avg":
-			fallthrough
-		case "sum":
-			fallthrough
-		case "count":
-			fallthrough
-		case "max":
-			fallthrough
-		case "min":
-			return true
-		}
-		return false
+
+		return isAggFunction(expr.Name)
+
 	case *sqlparser.Subquery:
 
 		return false
@@ -730,4 +766,14 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 	}
 
 	panic(fmt.Sprintf("hasAggFunctions(on %T) reached an unreachable point", e))
+}
+
+// isAggFunction returns true if the byte slice e contains the name of an aggregate function and false otherwise.
+func isAggFunction(e []byte) bool {
+	switch strings.ToLower(string(e)) {
+	case "avg", "sum", "count", "max", "min":
+		return true
+	default:
+		return false
+	}
 }

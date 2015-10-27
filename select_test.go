@@ -1300,3 +1300,143 @@ func TestSelectWithWhere(t *testing.T) {
 		})
 	})
 }
+
+func TestSelectWithOrderBy(t *testing.T) {
+
+	Convey("With a select query containing a ORDER BY clause", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvaluator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+
+		Convey("with a single order by term, the result set should be sorted accordingly", func() {
+
+			So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
+			So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
+			So(collection.Insert(bson.M{"_id": 3, "b": 2, "a": 2}), ShouldBeNil)
+			So(collection.Insert(bson.M{"_id": 4, "b": 10, "a": 3}), ShouldBeNil)
+
+			names, values, err := eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by a", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+
+			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by a desc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
+
+			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by sum(b)", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+
+			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by sum(b) asc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+
+			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by sum(b) desc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
+
+		})
+
+		Convey("with multiple order by terms, the result set should be sorted accordingly", func() {
+			So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
+			So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
+			So(collection.Insert(bson.M{"_id": 3, "b": 2, "a": 2}), ShouldBeNil)
+			So(collection.Insert(bson.M{"_id": 4, "b": 10, "a": 3}), ShouldBeNil)
+			So(collection.Insert(bson.M{"_id": 5, "b": 3, "a": 4}), ShouldBeNil)
+			So(collection.Insert(bson.M{"_id": 6, "b": 3, "a": 1}), ShouldBeNil)
+
+			names, values, err := eval.EvalSelect("test", "select a, b, sum(bar.b) from bar group by a, b order by a asc, sum(b) desc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 6)
+
+			So(names, ShouldResemble, []string{"a", "b", "sum(bar.b)"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLInt(3)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(10)})
+			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLInt(3)})
+
+			names, values, err = eval.EvalSelect("test", "select a, b, sum(bar.b) from bar group by a, b order by a asc, sum(b) asc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 6)
+
+			So(names, ShouldResemble, []string{"a", "b", "sum(bar.b)"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLInt(3)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(10)})
+			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLInt(3)})
+
+			names, values, err = eval.EvalSelect("test", "select a, b, sum(bar.b) from bar group by a, b order by a desc, sum(b) asc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 6)
+
+			So(names, ShouldResemble, []string{"a", "b", "sum(bar.b)"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLInt(3)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(10)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1)})
+			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLInt(3)})
+
+			names, values, err = eval.EvalSelect("test", "select a, b, sum(bar.b) from bar group by a, b order by a desc, sum(b) desc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 6)
+
+			So(names, ShouldResemble, []string{"a", "b", "sum(bar.b)"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLInt(3)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(10)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLInt(3)})
+			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1)})
+
+		})
+
+	})
+}

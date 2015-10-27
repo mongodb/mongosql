@@ -98,6 +98,7 @@ func (hv *Having) Next(row *Row) bool {
 		hv.err = err
 		return false
 	}
+
 	if m {
 		row.Data = r.Data
 	} else {
