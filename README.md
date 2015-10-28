@@ -16,15 +16,20 @@ TODO
 - ~~AS~~
    - ~~field list~~
    - ~~table list~~
-- ~~WHERE~~
+- dotted-field mapping/selection
+- WHERE
    - ~~math~~
+   - case expression
+   - exists expression
+   - subquery expression
+   - value argument expressions
 - ~~AGGREGATORS (avg, sum)~~
 - ~~SORT~~
 - ~~HAVING~~
 - ~~join~~
    - ~~subquery~~
    - ~~in FROM~~
-- pushdown
+- pushdown/optimizations
    - group
    - sort
    - $lookup
