@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"sort"
 )
 
@@ -8,9 +9,11 @@ type OrderBy struct {
 	// source is the operator that provides the data to group
 	source Operator
 
-	// keys holds the expression key(s) to order by. For example, in
+	// keys holds the SQLValues(s) to order by. For example, in
 	// select a, count(b) from foo group by a order by count(b)
-	// keys will hold the expression 'count(b)'
+	// keys will hold the SQLValue for 'count(b)'. For multiple
+	// order by criteria, they are stored in the same order within
+	// the keys slice.
 	keys []orderByKey
 
 	// channel on which to send sorted rows
@@ -53,7 +56,6 @@ func (ob *OrderBy) evaluateOrderByKeys(row *Row) []orderByKey {
 	keys := make([]orderByKey, 0, len(ob.keys))
 
 	for _, key := range ob.keys {
-
 		key.evalCtx = &EvalCtx{Rows: []Row{*row}}
 
 		// for aggregation functions, we set the context in the
@@ -68,7 +70,7 @@ func (ob *OrderBy) evaluateOrderByKeys(row *Row) []orderByKey {
 	return keys
 }
 
-func (ob *OrderBy) sortGroups() (orderByRows, error) {
+func (ob *OrderBy) sortRows() (orderByRows, error) {
 	rows := orderByRows{}
 
 	row := &Row{}
@@ -79,11 +81,21 @@ func (ob *OrderBy) sortGroups() (orderByRows, error) {
 		row = &Row{}
 	}
 
+	err := ob.source.Err()
+
+	defer func() {
+		if err == nil {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("%v", r)
+			}
+		}
+	}()
+
 	sort.Sort(rows)
 
 	ob.sorted = true
 
-	return rows, ob.source.Err()
+	return rows, err
 
 }
 
@@ -103,12 +115,12 @@ func (ob *OrderBy) iterChan(rows orderByRows) chan Row {
 func (ob *OrderBy) Next(row *Row) bool {
 
 	if !ob.sorted {
-		g, err := ob.sortGroups()
+		rows, err := ob.sortRows()
 		if err != nil {
 			ob.err = err
 			return false
 		}
-		ob.outChan = ob.iterChan(g)
+		ob.outChan = ob.iterChan(rows)
 	}
 
 	r, done := <-ob.outChan
@@ -150,12 +162,12 @@ func (rows orderByRows) Less(i, j int) bool {
 
 		eval, err := left.value.Evaluate(left.evalCtx)
 		if err != nil {
-			return false
+			panic(err)
 		}
 
 		cmp, err := eval.CompareTo(right.evalCtx, right.value)
 		if err != nil {
-			return false
+			panic(err)
 		}
 
 		if !left.ascending {

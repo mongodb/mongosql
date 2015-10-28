@@ -340,20 +340,21 @@ func (sb SQLBool) MongoValue() interface{} {
 }
 
 //
-// SQLFuncExpr
+// SQLScalarFuncExpr
 //
-type SQLFuncExpr struct {
+type SQLScalarFuncExpr struct {
 	*sqlparser.FuncExpr
 }
 
-func (f *SQLFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	var distinctMap map[interface{}]bool = nil
-	if f.Distinct {
-		distinctMap = make(map[interface{}]bool)
-	}
-
+func (f *SQLScalarFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	switch string(f.Name) {
-	// scalar functions
+	// connector functions
+	case "connection_id":
+		return connectionIdFunc(ctx)
+	case "database":
+		return dbFunc(ctx)
+
+		// scalar functions
 	case "isnull":
 		return isNullFunc(ctx, f.Exprs)
 	case "not":
@@ -361,13 +362,38 @@ func (f *SQLFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	case "pow":
 		return powFunc(ctx, f.Exprs)
 
-	// connector functions
-	case "connection_id":
-		return connectionIdFunc(ctx)
-	case "database":
-		return dbFunc(ctx)
+	default:
+		return nil, fmt.Errorf("function '%v' is not supported", string(f.Name))
+	}
+}
 
-	// aggregate functions
+func (f *SQLScalarFuncExpr) MongoValue() interface{} {
+	return nil
+}
+
+func (f *SQLScalarFuncExpr) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
+	fEval, err := f.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return fEval.CompareTo(ctx, value)
+}
+
+//
+// SQLAggFuncExpr
+//
+type SQLAggFuncExpr struct {
+	*sqlparser.FuncExpr
+}
+
+func (f *SQLAggFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	var distinctMap map[interface{}]bool = nil
+	if f.Distinct {
+		distinctMap = make(map[interface{}]bool)
+	}
+
+	switch string(f.Name) {
 	case "avg":
 		return avgFunc(ctx, f.Exprs, distinctMap)
 	case "sum":
@@ -383,11 +409,11 @@ func (f *SQLFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 }
 
-func (f *SQLFuncExpr) MongoValue() interface{} {
+func (f *SQLAggFuncExpr) MongoValue() interface{} {
 	return nil
 }
 
-func (f *SQLFuncExpr) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
+func (f *SQLAggFuncExpr) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
 	fEval, err := f.Evaluate(ctx)
 	if err != nil {
 		return 0, err

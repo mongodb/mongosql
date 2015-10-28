@@ -1342,6 +1342,28 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
 
+			names, values, err = eval.EvalSelect("test", "select a from bar order by a asc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 4)
+
+			So(names, ShouldResemble, []string{"a"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(3)})
+
+			names, values, err = eval.EvalSelect("test", "select a from bar order by a desc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 4)
+
+			So(names, ShouldResemble, []string{"a"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
+
 			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by a desc", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
