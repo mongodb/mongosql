@@ -349,6 +349,14 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			checkExpectedValues(3, values, expectedValues)
 
+			names, values, err = eval.EvalSelect("test", "select a, count(*), sum(bar.b) from bar group by 1", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "count(*)", "sum(bar.b)"})
+
+			checkExpectedValues(3, values, expectedValues)
+
 		})
 
 		Convey("an error should be returned if the some select fields are unused in GROUP BY clause", func() {
