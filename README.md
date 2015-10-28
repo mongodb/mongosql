@@ -13,17 +13,17 @@ mysql --protocol=tcp
 
 TODO
 
-- AS
-   - field list
-   - table list
-- WHERE
-   - math
-- AGGREGATORS (avg, sum)
-- SORT
-- HAVING
-- join
-   - subquery
-   - in FROM   
+- ~~AS~~
+   - ~~field list~~
+   - ~~table list~~
+- ~~WHERE~~
+   - ~~math~~
+- ~~AGGREGATORS (avg, sum)~~
+- ~~SORT~~
+- ~~HAVING~~
+- ~~join~~
+   - ~~subquery~~
+   - ~~in FROM~~
 - pushdown
    - group
    - sort
