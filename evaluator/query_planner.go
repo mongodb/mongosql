@@ -90,6 +90,7 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		return nil, err
 	}
 
+	// this handles queries like "select sum(a) from foo"
 	aggSelect := (len(s.sExprs.AggFunctions()) != 0 && ast.Having == nil)
 
 	// This handles GROUP BY expressions and/or aggregate functions in
@@ -113,7 +114,7 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 	}
 
 	if len(ast.OrderBy) != 0 {
-		operator, err = planOrderBy(ast, operator)
+		operator, err = planOrderBy(ast, operator, s.sExprs)
 		if err != nil {
 			return nil, err
 		}
@@ -124,7 +125,7 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 }
 
 // planOrderBy returns a query execution plan for an order by clause.
-func planOrderBy(ast *sqlparser.Select, source Operator) (Operator, error) {
+func planOrderBy(ast *sqlparser.Select, source Operator, sExpr SelectExpressions) (Operator, error) {
 
 	//
 	// TODO: doesn't make sense to allow ORDER BY aggregate expression without
@@ -135,14 +136,19 @@ func planOrderBy(ast *sqlparser.Select, source Operator) (Operator, error) {
 	}
 
 	for _, i := range ast.OrderBy {
-		value, err := NewSQLValue(i.Expr)
+		expr, err := getOrderByTerm(sExpr, i.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		value, err := NewSQLValue(expr)
 		if err != nil {
 			return nil, err
 		}
 
 		key := orderByKey{
 			value:     value,
-			isAggFunc: hasAggFunctions(i.Expr),
+			isAggFunc: hasAggFunctions(expr),
 			ascending: i.Direction == sqlparser.AST_ASC,
 		}
 
@@ -247,8 +253,8 @@ func planHaving(having *sqlparser.Where, s *Select) (Operator, error) {
 	return hv, nil
 }
 
-// getGroupByTerm returns true if the column expression is valid as a group
-// by term within a select column context.
+// getGroupByTerm returns true if the column expression is
+// valid as a GROUP BY term within a select column context.
 func getGroupByTerm(sExprs []SelectExpression, gExpr sqlparser.Expr) (sqlparser.Expr, error) {
 
 	switch expr := gExpr.(type) {
@@ -275,14 +281,38 @@ func getGroupByTerm(sExprs []SelectExpression, gExpr sqlparser.Expr) (sqlparser.
 		}
 
 		if i < 1 || i > int64(len(sExprs)) {
-			return nil, fmt.Errorf("Unknown column '%v' in 'group statement'", i)
+			return nil, fmt.Errorf("Unknown column '%v' in 'GROUP BY clause'", i)
 		}
 
 		return sExprs[i-1].Expr, nil
 
 	}
 
-	return nil, fmt.Errorf("Unsupported group by term: %T", gExpr)
+	return nil, fmt.Errorf("Unsupported GROUP BY term: %T", gExpr)
+
+}
+
+// getOrderByTerm returns true if the column expression is
+// valid as a ORDER BY term within a select column context.
+func getOrderByTerm(sExprs []SelectExpression, e sqlparser.Expr) (sqlparser.Expr, error) {
+
+	switch expr := e.(type) {
+
+	case sqlparser.NumVal:
+		i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		if i < 1 || i > int64(len(sExprs)) {
+			return nil, fmt.Errorf("Unknown column '%v' in 'ORDER BY clause'", i)
+		}
+
+		return sExprs[i-1].Expr, nil
+
+	}
+
+	return e, nil
 
 }
 

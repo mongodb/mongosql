@@ -1327,10 +1327,10 @@ func TestSelectWithOrderBy(t *testing.T) {
 
 		Convey("with a single order by term, the result set should be sorted accordingly", func() {
 
-			So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
 			So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
-			So(collection.Insert(bson.M{"_id": 3, "b": 2, "a": 2}), ShouldBeNil)
 			So(collection.Insert(bson.M{"_id": 4, "b": 10, "a": 3}), ShouldBeNil)
+			So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
+			So(collection.Insert(bson.M{"_id": 3, "b": 2, "a": 2}), ShouldBeNil)
 
 			names, values, err := eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by a", nil, nil)
 			So(err, ShouldBeNil)
@@ -1354,6 +1354,17 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(3)})
 
 			names, values, err = eval.EvalSelect("test", "select a from bar order by a desc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 4)
+
+			So(names, ShouldResemble, []string{"a"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
+
+			names, values, err = eval.EvalSelect("test", "select a from bar order by 1 desc", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 4)
