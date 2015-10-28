@@ -29,7 +29,7 @@ type GroupBy struct {
 	finalGrouping map[string][]Row
 
 	// channel on which to send rows derived from the final grouping
-	outChan chan RowCtx
+	outChan chan AggRowCtx
 
 	// matcher is used to filter results based on a HAVING clause
 	matcher Matcher
@@ -138,8 +138,8 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 	return row, nil
 }
 
-func (gb *GroupBy) iterChan() chan RowCtx {
-	ch := make(chan RowCtx)
+func (gb *GroupBy) iterChan() chan AggRowCtx {
+	ch := make(chan AggRowCtx)
 
 	go func() {
 		for _, v := range gb.finalGrouping {
@@ -152,7 +152,7 @@ func (gb *GroupBy) iterChan() chan RowCtx {
 
 			// check we have some matching data
 			if len(r.Data) != 0 {
-				ch <- RowCtx{*r, v}
+				ch <- AggRowCtx{*r, v}
 			}
 		}
 		close(ch)
