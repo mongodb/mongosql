@@ -8,6 +8,7 @@ import (
 type Column struct {
 	Name      string `yaml:"name"`
 	Type      string `yaml:"type"`
+	Source    string `yaml:"source"`
 	MysqlType string `yaml:"mysql_type,omitempty"`
 }
 

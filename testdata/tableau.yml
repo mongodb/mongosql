@@ -59,6 +59,10 @@ schema :
       columns:
         - name: "latitude"
           type: float
+          source: "loc.coordinates.0"
+        - name: "longitude"
+          type: float
+          source: "loc.coordinates.1"
         - name: "airport_city"
           type: string
         - name: "airport_code"

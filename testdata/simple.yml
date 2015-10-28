@@ -23,9 +23,17 @@ schema:
       type: int
     - name: b
       type: string
+    - name: latitude
+      type: int
+      source: "loc.0"
+    - name: longitude
+      type: int
+      source: "loc.1"
 
 # 3. Run each of the following queries, and report any that have errors
 testcases:
 - sql: "SELECT * from foo"
 - sql: "SELECT count(*) from foo"
 - sql: "SELECT sum(a) from foo"
+- sql: "SELECT latitude, longitude from foo"
+

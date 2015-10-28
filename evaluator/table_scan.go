@@ -3,7 +3,10 @@ package evaluator
 import (
 	"fmt"
 	"github.com/erh/mongo-sql-temp/config"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"gopkg.in/mgo.v2/bson"
+	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -63,6 +66,61 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 	return nil
 }
 
+var bsonDType = reflect.TypeOf(bson.D{})
+
+// extractFieldByName takes a field name and document, and returns a value representing
+// the value of that field in the document in a format that can be printed as a string.
+// It will also handle dot-delimited field names for nested arrays or documents.
+func extractFieldByName(fieldName string, document interface{}) interface{} {
+	dotParts := strings.Split(fieldName, ".")
+	var subdoc interface{} = document
+
+	for _, path := range dotParts {
+		docValue := reflect.ValueOf(subdoc)
+		if !docValue.IsValid() {
+			return ""
+		}
+		docType := docValue.Type()
+		docKind := docType.Kind()
+		if docKind == reflect.Map {
+			subdocVal := docValue.MapIndex(reflect.ValueOf(path))
+			if subdocVal.Kind() == reflect.Invalid {
+				return ""
+			}
+			subdoc = subdocVal.Interface()
+		} else if docKind == reflect.Slice {
+			if docType == bsonDType {
+				// dive into a D as a document
+				asD := subdoc.(bson.D)
+				var err error
+				subdoc, err = bsonutil.FindValueByKey(path, &asD)
+				if err != nil {
+					return ""
+				}
+			} else {
+				//  check that the path can be converted to int
+				arrayIndex, err := strconv.Atoi(path)
+				if err != nil {
+					return ""
+				}
+				// bounds check for slice
+				if arrayIndex < 0 || arrayIndex >= docValue.Len() {
+					return ""
+				}
+				subdocVal := docValue.Index(arrayIndex)
+				if subdocVal.Kind() == reflect.Invalid {
+					return ""
+				}
+				subdoc = subdocVal.Interface()
+			}
+		} else {
+			// trying to index into a non-compound type - just return blank.
+			return ""
+		}
+	}
+	return subdoc
+}
+
 func (ts *TableScan) Next(row *Row) bool {
 	if ts.iter == nil {
 		return false
@@ -85,7 +143,12 @@ func (ts *TableScan) Next(row *Row) bool {
 			value := Value{
 				Name: column.Name,
 				View: column.Name,
-				Data: data[column.Name],
+			}
+
+			if len(column.Source) != 0 {
+				value.Data = extractFieldByName(column.Source, data)
+			} else {
+				value.Data = data[column.Name]
 			}
 			values = append(values, value)
 			delete(data, column.Name)
