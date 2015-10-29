@@ -136,7 +136,7 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 
 	case *sqlparser.FuncExpr:
 
-		v, err := NewSQLFuncExpr(expr)
+		v, err := NewSQLFuncExprValue(expr)
 		if err != nil {
 			return nil, err
 		}
@@ -181,10 +181,18 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 
 		return &BoolMatcher{val}, nil
 
+	case *sqlparser.CaseExpr:
+
+		val, err := NewSQLCaseExprValue(expr)
+		if err != nil {
+			return nil, err
+		}
+
+		return &BoolMatcher{val}, nil
+
 		/*
 			case *sqlparser.Subquery:
 			case sqlparser.ValArg:
-			case *sqlparser.CaseExpr:
 			case *sqlparser.ExistsExpr:
 		*/
 

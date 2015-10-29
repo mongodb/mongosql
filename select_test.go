@@ -1481,3 +1481,69 @@ func TestSelectWithOrderBy(t *testing.T) {
 
 	})
 }
+
+func TestSelectWithCaseExpr(t *testing.T) {
+
+	Convey("With a select query containing a case expression clause", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvaluator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+
+		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 5}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 3, "b": 2, "a": 6}), ShouldBeNil)
+
+		Convey("if a case matches, the correct result should be returned", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, (case when a > 5 then 'gt' else 'lt' end) as p from bar", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "p"})
+
+			expectedValues := [][]evaluator.SQLValue{
+				[]evaluator.SQLValue{evaluator.SQLInt(5), evaluator.SQLString("lt")},
+				[]evaluator.SQLValue{evaluator.SQLInt(1), evaluator.SQLString("lt")},
+				[]evaluator.SQLValue{evaluator.SQLInt(6), evaluator.SQLString("gt")},
+			}
+
+			for i, v := range expectedValues {
+				caseValue := evaluator.SQLValues{[]evaluator.SQLValue{v[1]}}
+				So(values[i], ShouldResemble, []interface{}{v[0], caseValue})
+			}
+
+		})
+
+		Convey("if no case matches, null should be returned", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, (case when a > 15 then 'gt' end) as p from bar", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "p"})
+
+			expectedValues := [][]evaluator.SQLValue{
+				[]evaluator.SQLValue{evaluator.SQLInt(5), evaluator.SQLNullValue{}},
+				[]evaluator.SQLValue{evaluator.SQLInt(1), evaluator.SQLNullValue{}},
+				[]evaluator.SQLValue{evaluator.SQLInt(6), evaluator.SQLNullValue{}},
+			}
+
+			for i, v := range expectedValues {
+				caseValue := evaluator.SQLValues{[]evaluator.SQLValue{v[1]}}
+				So(values[i], ShouldResemble, []interface{}{v[0], caseValue})
+			}
+
+		})
+	})
+}

@@ -21,10 +21,9 @@ TODO
 - consolidate NewSQLValue and BuildMatcher
 - WHERE
    - ~~math~~
-   - case expression
+   - ~~case expression~~
    - exists expression
    - strval expression
-   - nullcheck expression
    - subquery expression
    - value argument expressions
 - ~~AGGREGATORS (avg, sum)~~
