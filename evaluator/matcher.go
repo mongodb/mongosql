@@ -80,6 +80,20 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 			return &Equals{left, right}, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)
 		}
 
+	case *sqlparser.NullCheck:
+
+		val, err := NewSQLValue(expr.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		matcher := &NullMatcher{val}
+		if expr.Operator == sqlparser.AST_IS_NULL {
+			return matcher, nil
+		}
+
+		return &Not{matcher}, nil
+
 	case *sqlparser.NotExpr:
 
 		child, err := BuildMatcher(expr.Expr)
@@ -122,7 +136,7 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 
 	case *sqlparser.FuncExpr:
 
-		v, err := NewSQLFuncExprValue(expr)
+		v, err := NewSQLFuncExpr(expr)
 		if err != nil {
 			return nil, err
 		}
@@ -167,19 +181,10 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 
 		return &BoolMatcher{val}, nil
 
-	case *sqlparser.CaseExpr:
-
-		val, err := NewSQLCaseExprValue(expr)
-		if err != nil {
-			return nil, err
-		}
-
-		return &BoolMatcher{val}, nil
-
 		/*
 			case *sqlparser.Subquery:
 			case sqlparser.ValArg:
-			case *sqlparser.NullCheck:
+			case *sqlparser.CaseExpr:
 			case *sqlparser.ExistsExpr:
 		*/
 

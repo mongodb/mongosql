@@ -692,44 +692,13 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 
 		return SelectExpressions(sc).GetColumns(), nil
 
-	case *sqlparser.CaseExpr:
-
-		columns, err := getReferencedColumns(expr.Else, expr.Expr)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, when := range expr.Whens {
-			c, err := getReferencedColumns(when.Cond)
-			if err != nil {
-				return nil, err
-			}
-
-			columns = append(columns, c...)
-
-			c, err = getReferencedColumns(when.Val)
-			if err != nil {
-				return nil, err
-			}
-
-			columns = append(columns, c...)
-		}
-
-		return columns, nil
-
 		// TODO: fill these in
 	case sqlparser.ValArg:
-
 		return nil, fmt.Errorf("referenced columns for ValArg for NYI")
-
+	case *sqlparser.CaseExpr:
+		return nil, fmt.Errorf("referenced columns for CaseExpr for NYI")
 	case *sqlparser.ExistsExpr:
-
 		return nil, fmt.Errorf("referenced columns for ExistsExpr for NYI")
-
-	case nil:
-
-		return nil, nil
-
 	default:
 		return nil, fmt.Errorf("referenced columns NYI for: %T", expr)
 	}
