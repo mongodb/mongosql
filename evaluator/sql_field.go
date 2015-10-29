@@ -82,6 +82,50 @@ func (sqlf SQLField) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 }
 
 //
+// SQLCaseExprValue
+//
+type SQLCaseExprValue struct {
+	elseValue    SQLValue
+	caseMatchers []caseMatcher
+}
+
+type caseMatcher struct {
+	matcher Matcher
+	value   SQLValue
+}
+
+func (s SQLCaseExprValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+
+	for _, cm := range s.caseMatchers {
+
+		m, err := cm.matcher.Matches(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if m {
+			return cm.value.Evaluate(ctx)
+		}
+	}
+
+	return s.elseValue.Evaluate(ctx)
+
+}
+
+func (s SQLCaseExprValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	c, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return s.CompareTo(ctx, c)
+}
+
+func (s SQLCaseExprValue) MongoValue() interface{} {
+	return nil
+}
+
+//
 // SQLNull
 //
 type SQLNullValue struct{}

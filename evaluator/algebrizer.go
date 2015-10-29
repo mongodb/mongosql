@@ -347,12 +347,47 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 		return expr, nil
 
-		// TODO: might require resultset post-processing
 	case *sqlparser.CaseExpr:
-		return nil, fmt.Errorf("can't handle CaseExpr type %T", expr)
+
+		if expr.Else != nil {
+			whenElse, err := algebrizeExpr(expr.Else, pCtx)
+			if err != nil {
+				return nil, fmt.Errorf("CaseExpr Else error: %v", err)
+			}
+			expr.Else = whenElse.(sqlparser.ValExpr)
+		}
+
+		if expr.Expr != nil {
+			whenExpr, err := algebrizeExpr(expr.Expr, pCtx)
+			if err != nil {
+				return nil, fmt.Errorf("CaseExpr Expr error: %v", err)
+			}
+			expr.Expr = whenExpr.(sqlparser.ValExpr)
+		}
+
+		for _, when := range expr.Whens {
+
+			c, err := algebrizeExpr(when.Cond, pCtx)
+			if err != nil {
+				return nil, fmt.Errorf("CaseExpr Cond error: %v", err)
+			}
+
+			v, err := algebrizeExpr(when.Val, pCtx)
+			if err != nil {
+				return nil, fmt.Errorf("CaseExpr Val error: %v", err)
+			}
+
+			when.Cond = c.(sqlparser.BoolExpr)
+			when.Val = v.(sqlparser.ValExpr)
+		}
+
+		return expr, nil
 
 	case *sqlparser.ExistsExpr:
 		return nil, fmt.Errorf("can't handle ExistsExpr type %T", expr)
+
+	case nil:
+		return nil, nil
 
 	default:
 		return nil, fmt.Errorf("can't handle expression type %T", expr)

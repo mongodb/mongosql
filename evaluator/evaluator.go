@@ -79,7 +79,7 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 
 	case *sqlparser.FuncExpr:
 
-		return NewSQLFuncExpr(expr)
+		return NewSQLFuncExprValue(expr)
 
 	case *sqlparser.ParenBoolExpr:
 
@@ -123,6 +123,10 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 
 		return nil, fmt.Errorf("invalid unary operator - '%v'", string(expr.Operator))
 
+	case *sqlparser.CaseExpr:
+
+		return NewSQLCaseExprValue(expr)
+
 	case nil:
 
 		return &SQLNullValue{}, nil
@@ -134,7 +138,64 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 	}
 }
 
-func NewSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLValue, error) {
+func NewSQLCaseExprValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
+
+	var e SQLValue
+
+	var err error
+
+	if expr.Expr != nil {
+		e, err = NewSQLValue(expr.Expr)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var matchers []caseMatcher
+
+	var m Matcher
+
+	for _, when := range expr.Whens {
+
+		// searched case
+		if expr.Expr == nil {
+			m, err = BuildMatcher(when.Cond)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// TODO: support simple case in parser
+			c, err := NewSQLValue(when.Cond)
+			if err != nil {
+				return nil, err
+			}
+
+			m = &Equals{e, c}
+		}
+
+		v, err := NewSQLValue(when.Val)
+		if err != nil {
+			return nil, err
+		}
+
+		matchers = append(matchers, caseMatcher{m, v})
+
+	}
+
+	elseValue, err := NewSQLValue(expr.Else)
+	if err != nil {
+		return nil, err
+	}
+
+	value := &SQLCaseExprValue{
+		elseValue:    elseValue,
+		caseMatchers: matchers,
+	}
+
+	return value, nil
+}
+
+func NewSQLFuncExprValue(expr *sqlparser.FuncExpr) (SQLValue, error) {
 	if isAggFunction(expr.Name) {
 		return &SQLAggFuncExpr{expr}, nil
 	}
