@@ -16,7 +16,8 @@ TODO
 - ~~AS~~
    - ~~field list~~
    - ~~table list~~
-- dotted-field mapping/selection
+- ~~dotted-field mapping/selection~~
+- run all tests in select_test.go in roundtrip_test.go
 - WHERE
    - ~~math~~
    - case expression
