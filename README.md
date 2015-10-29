@@ -18,10 +18,13 @@ TODO
    - ~~table list~~
 - ~~dotted-field mapping/selection~~
 - run all tests in select_test.go in roundtrip_test.go
+- consolidate NewSQLValue and BuildMatcher
 - WHERE
    - ~~math~~
    - case expression
    - exists expression
+   - strval expression
+   - nullcheck expression
    - subquery expression
    - value argument expressions
 - ~~AGGREGATORS (avg, sum)~~
