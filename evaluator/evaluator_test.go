@@ -32,7 +32,7 @@ func TestNewSQLValue(t *testing.T) {
 		}
 		expr, err := NewSQLValue(sqlValue)
 		So(err, ShouldBeNil)
-		_, ok := expr.(*SQLAggFuncExpr)
+		_, ok := expr.(*SQLAggFuncValue)
 		So(ok, ShouldBeTrue)
 	})
 }
@@ -55,7 +55,7 @@ func TestAggFuncSum(t *testing.T) {
 		Convey("a correct evaluation should be returned", func() {
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -67,7 +67,7 @@ func TestAggFuncSum(t *testing.T) {
 			sqlValue.Name = []byte("sumd")
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLScalarFuncExpr)
+			funcExpr, ok := expr.(*SQLScalarFuncValue)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -83,7 +83,7 @@ func TestAggFuncSum(t *testing.T) {
 
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -93,7 +93,7 @@ func TestAggFuncSum(t *testing.T) {
 		Convey("a correct evaluation should be returned even with unsummable values", func() {
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			evalRows := make([]Row, len(testCtx.Rows))
@@ -129,7 +129,7 @@ func TestAggFuncAvg(t *testing.T) {
 		Convey("a correct evaluation should be returned", func() {
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -141,7 +141,7 @@ func TestAggFuncAvg(t *testing.T) {
 			sqlValue.Name = []byte("avgd")
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLScalarFuncExpr)
+			funcExpr, ok := expr.(*SQLScalarFuncValue)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -157,7 +157,7 @@ func TestAggFuncAvg(t *testing.T) {
 
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -167,7 +167,7 @@ func TestAggFuncAvg(t *testing.T) {
 		Convey("a correct evaluation should be returned even with unsummable values", func() {
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			evalRows := make([]Row, len(testCtx.Rows))
@@ -203,7 +203,7 @@ func TestAggFuncCount(t *testing.T) {
 		Convey("a correct evaluation should be returned", func() {
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -215,7 +215,7 @@ func TestAggFuncCount(t *testing.T) {
 			sqlValue.Name = []byte("countd")
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLScalarFuncExpr)
+			funcExpr, ok := expr.(*SQLScalarFuncValue)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -231,7 +231,7 @@ func TestAggFuncCount(t *testing.T) {
 
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -242,7 +242,7 @@ func TestAggFuncCount(t *testing.T) {
 		Convey("nil values should be skipped", func() {
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			evalRows := make([]Row, len(testCtx.Rows))
@@ -278,7 +278,7 @@ func TestAggFuncMax(t *testing.T) {
 		Convey("a correct evaluation should be returned", func() {
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -290,7 +290,7 @@ func TestAggFuncMax(t *testing.T) {
 			sqlValue.Name = []byte("maxd")
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLScalarFuncExpr)
+			funcExpr, ok := expr.(*SQLScalarFuncValue)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -306,7 +306,7 @@ func TestAggFuncMax(t *testing.T) {
 
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -316,7 +316,7 @@ func TestAggFuncMax(t *testing.T) {
 		Convey("a correct evaluation should be returned in the presence of nil values", func() {
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			evalRows := make([]Row, len(testCtx.Rows))
@@ -352,7 +352,7 @@ func TestAggFuncMin(t *testing.T) {
 		Convey("a correct evaluation should be returned", func() {
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -364,7 +364,7 @@ func TestAggFuncMin(t *testing.T) {
 			sqlValue.Name = []byte("mind")
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLScalarFuncExpr)
+			funcExpr, ok := expr.(*SQLScalarFuncValue)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -380,7 +380,7 @@ func TestAggFuncMin(t *testing.T) {
 
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -390,7 +390,7 @@ func TestAggFuncMin(t *testing.T) {
 		Convey("a correct evaluation should be returned in the presence of nil values", func() {
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			evalRows := make([]Row, len(testCtx.Rows))
@@ -427,7 +427,7 @@ func TestAggFuncDistinct(t *testing.T) {
 
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -451,7 +451,7 @@ func TestAggFuncDistinct(t *testing.T) {
 
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -487,7 +487,7 @@ func TestAggFuncComplex(t *testing.T) {
 		Convey("a correct evaluation should be returned for sum", func() {
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -499,7 +499,7 @@ func TestAggFuncComplex(t *testing.T) {
 			sqlValue.Name = []byte("avg")
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -511,7 +511,7 @@ func TestAggFuncComplex(t *testing.T) {
 			sqlValue.Name = []byte("count")
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -523,7 +523,7 @@ func TestAggFuncComplex(t *testing.T) {
 			sqlValue.Name = []byte("max")
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -535,7 +535,7 @@ func TestAggFuncComplex(t *testing.T) {
 			sqlValue.Name = []byte("min")
 			expr, err := NewSQLValue(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncExpr)
+			funcExpr, ok := expr.(*SQLAggFuncValue)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)

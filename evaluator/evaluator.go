@@ -75,15 +75,15 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 			return nil, err
 		}
 
-		return &SQLBinaryExprValue{[]SQLValue{left, right}, funcImpl}, nil
+		return &SQLBinaryValue{[]SQLValue{left, right}, funcImpl}, nil
 
 	case *sqlparser.FuncExpr:
 
-		return NewSQLFuncExprValue(expr)
+		return NewSQLFuncValue(expr)
 
 	case *sqlparser.ParenBoolExpr:
 
-		return &SQLParenBoolExpr{expr}, nil
+		return &SQLParenBoolValue{expr}, nil
 
 	case sqlparser.ValTuple:
 
@@ -97,7 +97,7 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 			values = append(values, value)
 		}
 
-		return &SQLValTupleExpr{values}, nil
+		return &SQLValTupleValue{values}, nil
 
 	case *sqlparser.UnaryExpr:
 
@@ -125,7 +125,7 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 
 	case *sqlparser.CaseExpr:
 
-		return NewSQLCaseExprValue(expr)
+		return NewSQLCaseValue(expr)
 
 	case nil:
 
@@ -138,7 +138,16 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 	}
 }
 
-func NewSQLCaseExprValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
+// NewSQLCaseValue returns a SQLValue for SQL case expressions of which there are
+// two kinds.
+//
+// For simple case expressions, we create an equality matcher that compares
+// the expression against each value in the list of cases.
+//
+// For searched case expressions, we create a matcher based on the boolean
+// expression in each when condition.
+//
+func NewSQLCaseValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
 
 	var e SQLValue
 
@@ -151,15 +160,15 @@ func NewSQLCaseExprValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
 		}
 	}
 
-	var matchers []caseMatcher
+	var conditions []caseCondition
 
-	var m Matcher
+	var matcher Matcher
 
 	for _, when := range expr.Whens {
 
 		// searched case
 		if expr.Expr == nil {
-			m, err = BuildMatcher(when.Cond)
+			matcher, err = BuildMatcher(when.Cond)
 			if err != nil {
 				return nil, err
 			}
@@ -170,16 +179,15 @@ func NewSQLCaseExprValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
 				return nil, err
 			}
 
-			m = &Equals{e, c}
+			matcher = &Equals{e, c}
 		}
 
-		v, err := NewSQLValue(when.Val)
+		then, err := NewSQLValue(when.Val)
 		if err != nil {
 			return nil, err
 		}
 
-		matchers = append(matchers, caseMatcher{m, v})
-
+		conditions = append(conditions, caseCondition{matcher, then})
 	}
 
 	elseValue, err := NewSQLValue(expr.Else)
@@ -187,9 +195,9 @@ func NewSQLCaseExprValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
 		return nil, err
 	}
 
-	value := &SQLCaseExprValue{
-		elseValue:    elseValue,
-		caseMatchers: matchers,
+	value := &SQLCaseValue{
+		elseValue:      elseValue,
+		caseConditions: conditions,
 	}
 
 	// TODO: You cannot specify the literal NULL for every return expr
@@ -197,9 +205,9 @@ func NewSQLCaseExprValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
 	return value, nil
 }
 
-func NewSQLFuncExprValue(expr *sqlparser.FuncExpr) (SQLValue, error) {
+func NewSQLFuncValue(expr *sqlparser.FuncExpr) (SQLValue, error) {
 	if isAggFunction(expr.Name) {
-		return &SQLAggFuncExpr{expr}, nil
+		return &SQLAggFuncValue{expr}, nil
 	}
-	return &SQLScalarFuncExpr{expr}, nil
+	return &SQLScalarFuncValue{expr}, nil
 }

@@ -31,7 +31,7 @@ func formatValue(value interface{}) ([]byte, error) {
 			slice = append(slice, b...)
 		}
 		return slice, nil
-	case *evaluator.SQLValTupleExpr:
+	case *evaluator.SQLValTupleValue:
 		slice := []byte{}
 		for _, value := range v.Values {
 			b, err := formatValue(value)
@@ -154,7 +154,7 @@ func formatField(field *Field, value interface{}) error {
 	case nil, *evaluator.SQLNullValue, evaluator.SQLNullValue:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_NULL
-	case *evaluator.SQLValTupleExpr:
+	case *evaluator.SQLValTupleValue:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_ENUM
 

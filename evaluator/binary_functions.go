@@ -6,12 +6,12 @@ import (
 
 type SQLBinaryFunction func([]SQLValue, *EvalCtx) (SQLValue, error)
 
-type SQLBinaryExprValue struct {
+type SQLBinaryValue struct {
 	arguments []SQLValue
 	function  func([]SQLValue, *EvalCtx) (SQLValue, error)
 }
 
-func (sqlfunc *SQLBinaryExprValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+func (sqlfunc *SQLBinaryValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	left, err := sqlfunc.Evaluate(ctx)
 	if err != nil {
 		return 0, err
@@ -23,11 +23,11 @@ func (sqlfunc *SQLBinaryExprValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, err
 	return left.CompareTo(ctx, right)
 }
 
-func (sqlfunc *SQLBinaryExprValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (sqlfunc *SQLBinaryValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sqlfunc.function(sqlfunc.arguments, ctx)
 }
 
-func (sqlfunc *SQLBinaryExprValue) MongoValue() interface{} {
+func (sqlfunc *SQLBinaryValue) MongoValue() interface{} {
 	return nil
 }
 

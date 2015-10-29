@@ -82,29 +82,35 @@ func (sqlf SQLField) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 }
 
 //
-// SQLCaseExprValue
+// SQLCaseValue holds a number of cases to evaluate as well as the value
+// to return if any of the cases is matched. If none is matched,
+// 'elseValue' is evaluated and returned.
 //
-type SQLCaseExprValue struct {
-	elseValue    SQLValue
-	caseMatchers []caseMatcher
+type SQLCaseValue struct {
+	elseValue      SQLValue
+	caseConditions []caseCondition
 }
 
-type caseMatcher struct {
+// caseCondition holds a matcher used in evaluating case expressions and
+// a value to return if a particular case is matched. If a case ia matched,
+// the corresponding 'then' value is evaluated and returned ('then'
+// corresponds to the 'then' clause in a case expression).
+type caseCondition struct {
 	matcher Matcher
-	value   SQLValue
+	then    SQLValue
 }
 
-func (s SQLCaseExprValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (s SQLCaseValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
-	for _, cm := range s.caseMatchers {
+	for _, condition := range s.caseConditions {
 
-		m, err := cm.matcher.Matches(ctx)
+		m, err := condition.matcher.Matches(ctx)
 		if err != nil {
 			return nil, err
 		}
 
 		if m {
-			return cm.value.Evaluate(ctx)
+			return condition.then.Evaluate(ctx)
 		}
 	}
 
@@ -112,7 +118,7 @@ func (s SQLCaseExprValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 }
 
-func (s SQLCaseExprValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+func (s SQLCaseValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	c, err := v.Evaluate(ctx)
 	if err != nil {
 		return 0, err
@@ -121,7 +127,7 @@ func (s SQLCaseExprValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	return s.CompareTo(ctx, c)
 }
 
-func (s SQLCaseExprValue) MongoValue() interface{} {
+func (s SQLCaseValue) MongoValue() interface{} {
 	return nil
 }
 
@@ -384,13 +390,13 @@ func (sb SQLBool) MongoValue() interface{} {
 }
 
 //
-// SQLScalarFuncExpr
+// SQLScalarFuncValue
 //
-type SQLScalarFuncExpr struct {
+type SQLScalarFuncValue struct {
 	*sqlparser.FuncExpr
 }
 
-func (f *SQLScalarFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (f *SQLScalarFuncValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	switch string(f.Name) {
 	// connector functions
 	case "connection_id":
@@ -411,11 +417,11 @@ func (f *SQLScalarFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 }
 
-func (f *SQLScalarFuncExpr) MongoValue() interface{} {
+func (f *SQLScalarFuncValue) MongoValue() interface{} {
 	return nil
 }
 
-func (f *SQLScalarFuncExpr) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
+func (f *SQLScalarFuncValue) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
 	fEval, err := f.Evaluate(ctx)
 	if err != nil {
 		return 0, err
@@ -425,13 +431,13 @@ func (f *SQLScalarFuncExpr) CompareTo(ctx *EvalCtx, value SQLValue) (int, error)
 }
 
 //
-// SQLAggFuncExpr
+// SQLAggFuncValue
 //
-type SQLAggFuncExpr struct {
+type SQLAggFuncValue struct {
 	*sqlparser.FuncExpr
 }
 
-func (f *SQLAggFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (f *SQLAggFuncValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	var distinctMap map[interface{}]bool = nil
 	if f.Distinct {
 		distinctMap = make(map[interface{}]bool)
@@ -453,11 +459,11 @@ func (f *SQLAggFuncExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 }
 
-func (f *SQLAggFuncExpr) MongoValue() interface{} {
+func (f *SQLAggFuncValue) MongoValue() interface{} {
 	return nil
 }
 
-func (f *SQLAggFuncExpr) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
+func (f *SQLAggFuncValue) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
 	fEval, err := f.Evaluate(ctx)
 	if err != nil {
 		return 0, err
@@ -769,13 +775,13 @@ func maxFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 }
 
 //
-// SQLParenBoolExpr
+// SQLParenBoolValue
 //
-type SQLParenBoolExpr struct {
+type SQLParenBoolValue struct {
 	*sqlparser.ParenBoolExpr
 }
 
-func (p *SQLParenBoolExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (p *SQLParenBoolValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	expr, ok := p.Expr.(sqlparser.Expr)
 
 	if !ok {
@@ -791,11 +797,11 @@ func (p *SQLParenBoolExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLBool(b), err
 }
 
-func (p *SQLParenBoolExpr) MongoValue() interface{} {
+func (p *SQLParenBoolValue) MongoValue() interface{} {
 	return nil
 }
 
-func (p *SQLParenBoolExpr) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+func (p *SQLParenBoolValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	return 0, nil
 }
 
@@ -847,11 +853,11 @@ func (sv SQLValues) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 }
 
 //
-// SQLValTupleExpr
+// SQLValTupleValue
 //
-type SQLValTupleExpr SQLValues
+type SQLValTupleValue SQLValues
 
-func (te SQLValTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (te SQLValTupleValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	var values []SQLValue
 
 	for _, v := range te.Values {
@@ -865,11 +871,11 @@ func (te SQLValTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLValues{values}, nil
 }
 
-func (te SQLValTupleExpr) MongoValue() interface{} {
+func (te SQLValTupleValue) MongoValue() interface{} {
 	return nil
 }
 
-func (te SQLValTupleExpr) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+func (te SQLValTupleValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	return 0, nil
 }
 
