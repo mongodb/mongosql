@@ -92,7 +92,7 @@ type SQLCaseValue struct {
 }
 
 // caseCondition holds a matcher used in evaluating case expressions and
-// a value to return if a particular case is matched. If a case ia matched,
+// a value to return if a particular case is matched. If a case is matched,
 // the corresponding 'then' value is evaluated and returned ('then'
 // corresponds to the 'then' clause in a case expression).
 type caseCondition struct {
