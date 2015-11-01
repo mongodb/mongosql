@@ -253,8 +253,9 @@ func planHaving(having *sqlparser.Where, s *Select) (Operator, error) {
 	return hv, nil
 }
 
-// getGroupByTerm returns true if the column expression is
-// valid as a GROUP BY term within a select column context.
+// getGroupByTerm returns the referenced expression in an GROUP BY clause if the
+// expression is aliased by column name or position. Otherwise, it returns the
+// expression supplied.
 func getGroupByTerm(sExprs []SelectExpression, gExpr sqlparser.Expr) (sqlparser.Expr, error) {
 
 	switch expr := gExpr.(type) {
@@ -292,8 +293,8 @@ func getGroupByTerm(sExprs []SelectExpression, gExpr sqlparser.Expr) (sqlparser.
 
 }
 
-// getOrderByTerm returns true if the column expression is
-// valid as a ORDER BY term within a select column context.
+// getOrderByTerm returns the referenced expression in an ORDER BY clause if the
+// expression is positionally aliased. Otherwise, it returns the expression supplied.
 func getOrderByTerm(sExprs []SelectExpression, e sqlparser.Expr) (sqlparser.Expr, error) {
 
 	switch expr := e.(type) {
