@@ -1,5 +1,7 @@
 package evaluator
 
+// Having serves as a filter for HAVING expressions -
+// involving aggregate functions.
 type Having struct {
 	// sExprs holds the columns and/or expressions present in
 	// the source operator

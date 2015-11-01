@@ -129,7 +129,42 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 					return nil, err
 				}
 			}
-			algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
+
+			// This replaces star expressions with actual column references if
+			// possible.
+			//
+			// TODO: abstract configuration source to support databases like
+			// the information schema
+
+			_, inFuncExpr := pCtx.Expr.(*sqlparser.FuncExpr)
+
+			if pCtx.Database != InformationSchema && !inFuncExpr {
+				table, err := pCtx.GetCurrentTable(pCtx.Database, string(expr.TableName))
+				if err != nil {
+					algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
+					continue
+				}
+
+				schema := pCtx.TableSchema(table.Name)
+				if schema == nil {
+					algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
+					continue
+				}
+
+				for _, column := range schema.Columns {
+					expr := &sqlparser.ColName{
+						Name:      []byte(column.Name),
+						Qualifier: []byte(table.Name),
+					}
+
+					nonStarExpr := &sqlparser.NonStarExpr{
+						Expr: expr,
+					}
+					algebrizeSelectExprs = append(algebrizeSelectExprs, nonStarExpr)
+				}
+			} else {
+				algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
+			}
 
 		case *sqlparser.NonStarExpr:
 			nonStarExpr := expr

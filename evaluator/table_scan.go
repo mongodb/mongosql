@@ -11,6 +11,8 @@ import (
 	"sync"
 )
 
+// TableScan is the primary interface for SQLProxy to a MongoDB
+// installation and executes simple queries against collections.
 type TableScan struct {
 	dbName         string
 	tableName      string

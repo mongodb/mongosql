@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// Select returns results for the columns referenced in a
+// select query.
 type Select struct {
 	// sExprs holds information on the columns referenced in each
 	// select expression
@@ -31,7 +33,15 @@ func (s *Select) Open(ctx *ExecutionCtx) error {
 
 	// no select field implies a star expression - so we use
 	// the fields from the source operator.
-	if len(s.sExprs) == 0 {
+	hasExpr := false
+
+	for _, expr := range s.sExprs {
+		if !expr.Referenced {
+			hasExpr = true
+		}
+	}
+
+	if !hasExpr {
 		s.setSelectExpr()
 	}
 

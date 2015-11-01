@@ -20,7 +20,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 		Convey("aliased table names should be correctly parsed", func() {
 
 			sql := "select * from foo f"
-			algebrizedSQL := "select * from foo as f"
+			algebrizedSQL := "select foo.a, foo.x, foo.first, foo.last, foo.age, foo.b from foo as f"
 
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)

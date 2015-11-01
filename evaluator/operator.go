@@ -189,6 +189,17 @@ func (se SelectExpressions) GetColumns() []*Column {
 	return columns
 }
 
+func (se SelectExpressions) Contains(column Column) bool {
+
+	for _, selectExpression := range se {
+		if selectExpression.Column == column {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (se SelectExpression) isAggFunc() bool {
 	_, ok := se.Expr.(*sqlparser.FuncExpr)
 	return ok

@@ -5,6 +5,7 @@ import (
 	"github.com/erh/mixer/sqlparser"
 )
 
+// GroupBy groups records according to one or more fields.
 type GroupBy struct {
 	// sExprs holds the columns and/or expressions present in
 	// the source operator

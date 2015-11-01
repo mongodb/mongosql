@@ -5,8 +5,9 @@ import (
 	"sort"
 )
 
+// OrderBy sorts records according to one or more keys.
 type OrderBy struct {
-	// source is the operator that provides the data to group
+	// source is the operator that provides the data to order
 	source Operator
 
 	// keys holds the SQLValues(s) to order by. For example, in
