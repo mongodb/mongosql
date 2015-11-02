@@ -5,11 +5,19 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+type ColumnType string
+
+const (
+	String ColumnType = "string"
+	Int    ColumnType = "int"
+	Float  ColumnType = "float"
+)
+
 type Column struct {
-	Name      string `yaml:"name"`
-	Type      string `yaml:"type"`
-	Source    string `yaml:"source"`
-	MysqlType string `yaml:"mysql_type,omitempty"`
+	Name      string     `yaml:"name"`
+	Type      ColumnType `yaml:"type"`
+	Source    string     `yaml:"source"`
+	MysqlType string     `yaml:"mysql_type,omitempty"`
 }
 
 type TableConfig struct {
@@ -43,12 +51,14 @@ type Config struct {
 
 func (c *Column) fixType() error {
 	switch c.Type {
-	case "string":
+	case String:
 		c.MysqlType = "varchar(2048)"
-	case "int":
+	case Int:
 		c.MysqlType = "int(11)"
+	case Float:
+		c.MysqlType = "float"
 	default:
-		return fmt.Errorf("don't know mysql equivilant for type: %s", c.Type)
+		panic(fmt.Sprintf("don't know mysql equivalent for type: %s", c.Type))
 	}
 	return nil
 }

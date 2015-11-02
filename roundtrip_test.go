@@ -14,6 +14,7 @@ import (
 	"github.com/siddontang/go-yaml/yaml"
 	. "github.com/smartystreets/goconvey/convey"
 	"io/ioutil"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -30,9 +31,10 @@ type testDataSet struct {
 }
 
 type testCase struct {
-	SQL         string `yaml:"sql"`
-	Description string `yaml:"description"`
-	expected    string `yaml:"expected"`
+	SQL           string              `yaml:"sql"`
+	Description   string              `yaml:"description"`
+	ExpectedTypes []config.ColumnType `yaml:"expected_types"`
+	ExpectedData  [][]interface{}     `yaml:"expected"`
 }
 
 type testConfig struct {
@@ -61,8 +63,15 @@ func buildSchemaMaps(conf *config.Config) {
 	}
 }
 
-func compareResults(actual [][]interface{}, expected [][]interface{}) {
-	So(actual, ShouldResemble, expected)
+func compareResults(t *testing.T, actual [][]interface{}, expected [][]interface{}) {
+	So(len(actual), ShouldEqual, len(expected))
+	for rownum, row := range actual {
+		t.Logf("comparing row %v", rownum)
+		for colnum, col := range row {
+			expectedCol := expected[rownum][colnum]
+			So(col, ShouldResemble, expectedCol)
+		}
+	}
 }
 
 func importJSON(host, port, file, db, collection string) error {
@@ -95,7 +104,7 @@ func importJSON(host, port, file, db, collection string) error {
 	return err
 }
 
-func runSQL(db *sql.DB, query string) ([][]interface{}, error) {
+func runSQL(db *sql.DB, query string, types []config.ColumnType) ([][]interface{}, error) {
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
@@ -105,20 +114,34 @@ func runSQL(db *sql.DB, query string) ([][]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(cols) != len(types) {
+		return nil, fmt.Errorf("Number of columns in result set (%v) does not match columns in expected types (%v)", len(cols), len(types))
+	}
 
 	result := [][]interface{}{}
-	i := 0
-	for rows.Next() {
-		i += 1
-		resultRow := make([]interface{}, len(cols))
-		resultRowVals := make([]interface{}, len(cols))
-		for i, _ := range resultRow {
-			resultRow[i] = &resultRowVals[i]
+
+	resultContainer := make([]interface{}, 0, len(types))
+	for _, t := range types {
+		switch t {
+		case config.String:
+			resultContainer = append(resultContainer, new(string))
+		case config.Int:
+			resultContainer = append(resultContainer, new(int))
+		case config.Float:
+			resultContainer = append(resultContainer, new(float64))
 		}
-		if err := rows.Scan(resultRow...); err != nil {
+	}
+	for rows.Next() {
+		resultRow := make([]interface{}, 0, len(types))
+		if err := rows.Scan(resultContainer...); err != nil {
 			return nil, err
 		}
-		result = append(result, resultRowVals)
+		for _, x := range resultContainer {
+			p := reflect.ValueOf(x)
+			resultRow = append(resultRow, p.Elem().Interface())
+		}
+
+		result = append(result, resultRow)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -126,7 +149,7 @@ func runSQL(db *sql.DB, query string) ([][]interface{}, error) {
 	return result, nil
 }
 
-func executeTestCase(dbhost, dbport string, conf testConfig) error {
+func executeTestCase(t *testing.T, dbhost, dbport string, conf testConfig) error {
 	// populate the DB with data for all the files in the config's list of json files
 	for _, dataSet := range conf.Data {
 		ns := strings.SplitN(dataSet.NS, ".", 2)
@@ -165,8 +188,10 @@ func executeTestCase(dbhost, dbport string, conf testConfig) error {
 			description = testCase.Description
 		}
 		Convey(description, func() {
-			_, err := runSQL(db, testCase.SQL)
+			t.Logf("Running test query: '%v'", testCase.SQL)
+			results, err := runSQL(db, testCase.SQL, testCase.ExpectedTypes)
 			So(err, ShouldBeNil)
+			compareResults(t, results, testCase.ExpectedData)
 		})
 	}
 	return nil
@@ -188,7 +213,7 @@ func MustLoadTestConfig(path string) testConfig {
 func TestTableauDemo(t *testing.T) {
 	Convey("Test tableau dataset", t, func() {
 		conf := MustLoadTestConfig("testdata/tableau.yml")
-		err := executeTestCase(testMongoHost, testMongoPort, conf)
+		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
 		So(err, ShouldBeNil)
 	})
 }
@@ -196,7 +221,7 @@ func TestTableauDemo(t *testing.T) {
 func TestSimpleQueries(t *testing.T) {
 	Convey("Test simple queries", t, func() {
 		conf := MustLoadTestConfig("testdata/simple.yml")
-		err := executeTestCase(testMongoHost, testMongoPort, conf)
+		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
 		So(err, ShouldBeNil)
 	})
 }

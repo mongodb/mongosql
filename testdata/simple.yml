@@ -32,8 +32,19 @@ schema:
 
 # 3. Run each of the following queries, and report any that have errors
 testcases:
-- sql: "SELECT * from foo"
+- sql: "SELECT a, b, latitude, longitude from foo"
+  expected_types: [int, string, float, float]
+  expected: 
+    - [1, "hello world!", 124.0, 35.0]
 - sql: "SELECT count(*) from foo"
+  expected_types: [int]
+  expected: 
+    - [1]
 - sql: "SELECT sum(a) from foo"
+  expected_types: [int]
+  expected: 
+    - [1]
 - sql: "SELECT latitude, longitude from foo"
-
+  expected_types: [float, float]
+  expected: 
+    - [124.0, 35.0]
