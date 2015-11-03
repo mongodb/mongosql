@@ -15,22 +15,65 @@ var (
 // PlanQuery constructs a query plan to satisfy the select statement.
 func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error) {
 
-	log.Logf(log.DebugLow, "Planning query for %#v\n", sqlparser.String(ss))
-
 	switch ast := ss.(type) {
 
 	case *sqlparser.Select:
+
+		log.Logf(log.DebugLow, "Planning select query for %#v\n", sqlparser.String(ss))
+
 		return planSelectExpr(ctx, ast)
 
 	case *sqlparser.SimpleSelect:
+
+		log.Logf(log.DebugLow, "Planning simple select query for %#v\n", sqlparser.String(ss))
+
 		return planSimpleSelectExpr(ctx, ast)
 
 	case *sqlparser.Union:
+
 		return nil, fmt.Errorf("union select statement not yet implemented")
 
 	default:
+
 		return nil, fmt.Errorf("unknown select statement: %T", ast)
+
 	}
+
+}
+
+func getReferencedExpressions(ast *sqlparser.Select) (SelectExpressions, error) {
+	var sExprs SelectExpressions
+
+	// add any referenced columns in the GROUP BY clause
+	for _, term := range ast.GroupBy {
+		expr := sqlparser.Expr(term)
+		cols, err := getReferencedColumns(expr)
+		if err != nil {
+			return nil, err
+		}
+		for _, col := range cols {
+			if !sExprs.Contains(*col) {
+				newSExpr := SelectExpression{Column: *col, Referenced: true, Expr: expr}
+				sExprs = append(sExprs, newSExpr)
+			}
+		}
+	}
+
+	// add any referenced columns in the ORDER BY clause
+	for _, term := range ast.OrderBy {
+		cols, err := getReferencedColumns(term.Expr)
+		if err != nil {
+			return nil, err
+		}
+		for _, col := range cols {
+			if !sExprs.Contains(*col) {
+				newSExpr := SelectExpression{Column: *col, Referenced: true, Expr: term.Expr}
+				sExprs = append(sExprs, newSExpr)
+			}
+		}
+	}
+
+	return sExprs, nil
 }
 
 // planSimpleSelectExpr takes a simple select expression and returns a query execution plan for it.
@@ -90,8 +133,15 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		return nil, err
 	}
 
+	refExprs, err := getReferencedExpressions(ast)
+	if err != nil {
+		return nil, err
+	}
+
+	s.sExprs = append(s.sExprs, refExprs...)
+
 	// this handles queries like "select sum(a) from foo"
-	aggSelect := (len(s.sExprs.AggFunctions()) != 0 && ast.Having == nil)
+	aggSelect := len(s.sExprs.AggFunctions()) != 0
 
 	// This handles GROUP BY expressions and/or aggregate functions in
 	// select expressions - as aggregate functions with no GROUP BY
@@ -120,12 +170,21 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		}
 	}
 
+	// if we have any ORDER BY or GROUP BY terms, ensure that any
+	// supporting fields included to evaluate them are projected
+	// out in the final result set.
+	//
+	// TODO: check for other clauses e.g. HAVING
+	if len(ast.OrderBy) != 0 || len(ast.GroupBy) != 0 {
+		return &Project{source: operator, sExprs: s.sExprs}, nil
+	}
+
 	return operator, nil
 
 }
 
 // planOrderBy returns a query execution plan for an order by clause.
-func planOrderBy(ast *sqlparser.Select, source Operator, sExpr SelectExpressions) (Operator, error) {
+func planOrderBy(ast *sqlparser.Select, source Operator, sExprs SelectExpressions) (Operator, error) {
 
 	//
 	// TODO: doesn't make sense to allow ORDER BY aggregate expression without
@@ -136,7 +195,7 @@ func planOrderBy(ast *sqlparser.Select, source Operator, sExpr SelectExpressions
 	}
 
 	for _, i := range ast.OrderBy {
-		expr, err := getOrderByTerm(sExpr, i.Expr)
+		expr, err := getOrderByTerm(sExprs, i.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -192,27 +251,14 @@ func planGroupBy(ast *sqlparser.Select, s *Select) (Operator, error) {
 		gb.exprs = append(gb.exprs, parsedExpr)
 	}
 
-	nonAggFields := len(gb.sExprs) - len(gb.sExprs.AggFunctions())
-
-	if nonAggFields > len(gb.exprs) && len(groupBy) != 0 {
-		var aggFuncs int
-		for _, sExpr := range gb.sExprs {
-			if hasAggFunctions(sExpr.Expr) {
-				aggFuncs += 1
-			}
-		}
-
-		if len(s.sExprs) > (len(gb.exprs) + aggFuncs) {
-			return nil, fmt.Errorf("can't have unused select expression with group by query")
-		}
-	}
-
 	// add any referenced columns to the select operator
 	for _, sExpr := range s.sExprs {
 		if len(sExpr.RefColumns) != 0 {
 			for _, column := range sExpr.RefColumns {
-				newSExpr := SelectExpression{Column: *column, Referenced: true}
-				s.sExprs = append(s.sExprs, newSExpr)
+				if !s.sExprs.Contains(*column) {
+					newSExpr := SelectExpression{Column: *column, Referenced: true}
+					s.sExprs = append(s.sExprs, newSExpr)
+				}
 			}
 		}
 	}
@@ -261,31 +307,21 @@ func getGroupByTerm(sExprs []SelectExpression, gExpr sqlparser.Expr) (sqlparser.
 	switch expr := gExpr.(type) {
 
 	case *sqlparser.ColName:
-		for _, sExpr := range sExprs {
-			if len(sExpr.RefColumns) != 0 {
-				for _, column := range sExpr.RefColumns {
-					if column.Table == string(expr.Qualifier) && column.Name == string(expr.Name) {
-						return gExpr, nil
-					}
-				}
-			} else {
-				if sExpr.Table == string(expr.Qualifier) && sExpr.Name == string(expr.Name) {
-					return gExpr, nil
-				}
-			}
+
+		if term := getColumnTerm(sExprs, expr); term != nil {
+			return term, nil
 		}
+
+		return nil, fmt.Errorf("Must reference GROUP BY term '%v' in select expression", sqlparser.String(expr))
 
 	case sqlparser.NumVal:
-		i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64)
+
+		term, err := getNumericTerm(sExprs, expr)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Unknown column in 'GROUP BY' clause: '%v'", err)
 		}
 
-		if i < 1 || i > int64(len(sExprs)) {
-			return nil, fmt.Errorf("Unknown column '%v' in 'GROUP BY clause'", i)
-		}
-
-		return sExprs[i-1].Expr, nil
+		return term, nil
 
 	}
 
@@ -294,27 +330,72 @@ func getGroupByTerm(sExprs []SelectExpression, gExpr sqlparser.Expr) (sqlparser.
 }
 
 // getOrderByTerm returns the referenced expression in an ORDER BY clause if the
-// expression is positionally aliased. Otherwise, it returns the expression supplied.
-func getOrderByTerm(sExprs []SelectExpression, e sqlparser.Expr) (sqlparser.Expr, error) {
-
+// expression is aliased. Otherwise, it returns the expression supplied - provided
+// it is valid as an ORDER BY term.
+func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr) (sqlparser.Expr, error) {
 	switch expr := e.(type) {
 
+	case *sqlparser.ColName:
+
+		if term := getColumnTerm(sExprs, expr); term != nil {
+			return term, nil
+		}
+
+		return expr, nil
+
 	case sqlparser.NumVal:
-		i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64)
+
+		term, err := getNumericTerm(sExprs, e)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Unknown column in 'ORDER BY' clause: '%v'", err)
 		}
 
-		if i < 1 || i > int64(len(sExprs)) {
-			return nil, fmt.Errorf("Unknown column '%v' in 'ORDER BY clause'", i)
-		}
+		return term, nil
 
-		return sExprs[i-1].Expr, nil
+	case *sqlparser.FuncExpr:
+
+		return expr, nil
 
 	}
 
-	return e, nil
+	return nil, fmt.Errorf("Unsupported ORDER BY term: %T", e)
 
+}
+
+func getColumnTerm(sExprs SelectExpressions, expr *sqlparser.ColName) sqlparser.Expr {
+	for i, sExpr := range sExprs {
+		if len(sExpr.RefColumns) != 0 {
+			for _, column := range sExpr.RefColumns {
+				if column.Table == string(expr.Qualifier) && column.Name == string(expr.Name) {
+					return sExprs[i].Expr
+				}
+			}
+		} else {
+			if sExpr.Table == string(expr.Qualifier) && sExpr.Name == string(expr.Name) {
+				return expr
+			}
+		}
+	}
+	return nil
+}
+
+func getNumericTerm(sExprs SelectExpressions, expr sqlparser.Expr) (sqlparser.Expr, error) {
+	i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	var j int64
+
+	for _, sExpr := range sExprs {
+		if !sExpr.Referenced {
+			j++
+		}
+		if j == i {
+			return sExpr.Expr, nil
+		}
+	}
+	return nil, fmt.Errorf("%v", i)
 }
 
 // refColsInSelectExpr returns a slice of select columns - each holding
@@ -326,7 +407,7 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs) ([]SelectExpression, error
 
 		switch expr := sExpr.(type) {
 
-		// mixture of star and non-star expression is acceptable
+		// TODO: validate no mixture of star and non-star expression
 		case *sqlparser.StarExpr:
 			continue
 

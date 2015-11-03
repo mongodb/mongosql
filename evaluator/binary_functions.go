@@ -55,12 +55,15 @@ func convertToSQLNumeric(v SQLValue, ctx *EvalCtx) (SQLNumeric, error) {
 	eval, ok := v.(SQLNumeric)
 	if !ok {
 		v, ok := v.(SQLValues)
-		if !ok || len(v.Values) != 1 {
-			return nil, fmt.Errorf("Operand should contain 1 argument")
+		if !ok {
+			return nil, fmt.Errorf("could not convert binary operand to SQLValues")
+		}
+		if len(v.Values) != 1 {
+			return nil, fmt.Errorf("expected only one other composite operand - got %v", len(v.Values))
 		}
 		eval, ok = v.Values[0].(SQLNumeric)
 		if !ok {
-			return nil, fmt.Errorf("Operand should contain 1 argument")
+			return nil, fmt.Errorf("could not convert binary operand to SQLNumeric")
 		}
 	}
 	return eval, nil

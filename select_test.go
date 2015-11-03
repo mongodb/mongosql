@@ -360,8 +360,14 @@ func TestSelectWithGroupBy(t *testing.T) {
 		})
 
 		Convey("an error should be returned if the some select fields are unused in GROUP BY clause", func() {
-			_, _, err := eval.EvalSelect("test", "select a, b, sum(a) from bar group by a", nil, nil)
-			So(err, ShouldNotBeNil)
+			names, values, err := eval.EvalSelect("test", "select a, b, sum(a) from bar group by a order by a", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 3)
+			So(names, ShouldResemble, []string{"a", "b", "sum(bar.a)"})
+
+			So(len(values), ShouldEqual, 3)
+
 		})
 
 		Convey("using aggregation function containing other complex expressions should produce correct results", func() {
@@ -1385,7 +1391,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
 
-			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by sum(b)", nil, nil)
+			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by sum(bar.b)", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -1394,6 +1400,32 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+
+			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by 2", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+
+			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) as c from bar group by a order by c", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "c"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+
+			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) as c from bar group by a order by cd", nil, nil)
+			So(err, ShouldNotBeNil)
+
+			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by 3", nil, nil)
+			So(err, ShouldNotBeNil)
 
 			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by sum(b) asc", nil, nil)
 			So(err, ShouldBeNil)
@@ -1404,6 +1436,39 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+
+			names, values, err = eval.EvalSelect("test", "select * from bar order by 3", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 4)
+
+			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNullValue{}})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNullValue{}})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNullValue{}})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNullValue{}})
+
+			names, values, err = eval.EvalSelect("test", "select * from bar order by 3 desc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 4)
+
+			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNullValue{}})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNullValue{}})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNullValue{}})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNullValue{}})
+
+			names, values, err = eval.EvalSelect("test", "select * from bar order by 2, 3 desc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 4)
+
+			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNullValue{}})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNullValue{}})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNullValue{}})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNullValue{}})
 
 			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by sum(b) desc", nil, nil)
 			So(err, ShouldBeNil)

@@ -1,5 +1,7 @@
 package evaluator
 
+// Dual simulates a source for queries that don't require fields.
+// It only ever returns one row.
 type Dual struct {
 	called bool
 }

@@ -1,5 +1,7 @@
 package evaluator
 
+// Filter ensures that only rows matching a given criteria are
+// returned.
 type Filter struct {
 	// err holds any error that may have occurred during processing
 	err error
