@@ -55,6 +55,7 @@ func aliasedSourceTest(operator Operator, rows []bson.D, expectedRows []Values) 
 	session.Close()
 
 }
+
 func TestAliasedSourceOperator(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
