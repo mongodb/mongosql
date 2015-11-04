@@ -84,8 +84,31 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 			}
 		}
 
+		// algebrize 'LIMIT' clause
+		if stmt.Limit != nil {
+
+			pCtx.Expr = stmt.Limit
+
+			if stmt.Limit.Offset != nil {
+				offset, err := algebrizeExpr(stmt.Limit.Offset, pCtx)
+				if err != nil {
+					return err
+				}
+
+				stmt.Limit.Offset = offset.(sqlparser.ValExpr)
+			}
+
+			rowcount, err := algebrizeExpr(stmt.Limit.Rowcount, pCtx)
+			if err != nil {
+				return err
+			}
+
+			stmt.Limit.Rowcount = rowcount.(sqlparser.ValExpr)
+		}
+
+		// TODO: into?
 		// algebrize group by -> having -> select
-		// expressions -> into -> order by -> limit
+		// expressions -> INTO -> order by -> limit
 
 	default:
 		return fmt.Errorf("select statement type %T not yet supported", stmt)

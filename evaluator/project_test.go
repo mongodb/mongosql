@@ -48,6 +48,8 @@ func projectTest(operator Operator, rows []bson.D, expectedRows []Values) {
 		i++
 	}
 
+	So(i, ShouldEqual, len(expectedRows))
+
 	So(operator.Err(), ShouldBeNil)
 	So(operator.Close(), ShouldBeNil)
 

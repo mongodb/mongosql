@@ -176,14 +176,70 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 	//
 	// TODO: check for other clauses e.g. HAVING
 	if len(ast.OrderBy) != 0 || len(ast.GroupBy) != 0 {
-		return &Project{source: operator, sExprs: s.sExprs}, nil
+		operator = &Project{source: operator, sExprs: s.sExprs}
+	}
+
+	if ast.Limit != nil {
+		operator, err = planLimit(ast.Limit, operator)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return operator, nil
 
 }
 
-// planOrderBy returns a query execution plan for an order by clause.
+// planLimit returns a query execution plan for a LIMIT clause.
+func planLimit(expr *sqlparser.Limit, source Operator) (Operator, error) {
+
+	operator := &Limit{
+		source: source,
+	}
+
+	// TODO: our MySQL parser only supports the LIMIT offset, row_count syntax
+	// and not the equivalent LIMIT row_count OFFSET offset syntax.
+	//
+	// For compatibility with PostgreSQL, MySQL supports both so we should
+	// update our parser.
+	//
+	eval, err := NewSQLValue(expr.Offset)
+	if err != nil {
+		return nil, err
+	}
+
+	if expr.Offset != nil {
+		offset, ok := eval.(SQLNumeric)
+		if !ok {
+			return nil, fmt.Errorf("LIMIT offset must be a number: %T", eval)
+		}
+		operator.offset = offset.Float64()
+
+		if operator.offset < 0 {
+			return nil, fmt.Errorf("LIMIT offset can not be negative")
+		}
+	}
+
+	eval, err = NewSQLValue(expr.Rowcount)
+	if err != nil {
+		return nil, err
+	}
+
+	rowcount, ok := eval.(SQLNumeric)
+	if !ok {
+		return nil, fmt.Errorf("LIMIT row count must be a number: %T", eval)
+	}
+
+	operator.rowcount = rowcount.Float64()
+
+	if operator.rowcount < 0 {
+		return nil, fmt.Errorf("LIMIT row count can not be negative")
+	}
+
+	return operator, nil
+}
+
+// planOrderBy returns a query execution plan for an ORDER BY clause.
 func planOrderBy(ast *sqlparser.Select, source Operator, sExprs SelectExpressions) (Operator, error) {
 
 	//

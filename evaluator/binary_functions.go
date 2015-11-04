@@ -12,14 +12,17 @@ type SQLBinaryValue struct {
 }
 
 func (sqlfunc *SQLBinaryValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+
 	left, err := sqlfunc.Evaluate(ctx)
 	if err != nil {
 		return 0, err
 	}
+
 	right, err := v.Evaluate(ctx)
 	if err != nil {
 		return 0, err
 	}
+
 	return left.CompareTo(ctx, right)
 }
 
@@ -32,41 +35,50 @@ func (sqlfunc *SQLBinaryValue) MongoValue() interface{} {
 }
 
 var binaryFuncMap = map[string]SQLBinaryFunction{
+
 	"+": SQLBinaryFunction(func(args []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNumericBinaryOp(args, ctx, "+")
 	}),
+
 	"-": SQLBinaryFunction(func(args []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNumericBinaryOp(args, ctx, "-")
 	}),
+
 	"*": SQLBinaryFunction(func(args []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNumericBinaryOp(args, ctx, "*")
 	}),
+
 	"/": SQLBinaryFunction(func(args []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNumericBinaryOp(args, ctx, "/")
 	}),
 }
 
 func convertToSQLNumeric(v SQLValue, ctx *EvalCtx) (SQLNumeric, error) {
-	v, err := v.Evaluate(ctx)
+	eval, err := v.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	eval, ok := v.(SQLNumeric)
-	if !ok {
-		v, ok := v.(SQLValues)
-		if !ok {
-			return nil, fmt.Errorf("could not convert binary operand to SQLValues")
-		}
+	switch v := eval.(type) {
+
+	case SQLNumeric:
+
+		return v, nil
+
+	case SQLValues:
+
 		if len(v.Values) != 1 {
-			return nil, fmt.Errorf("expected only one other composite operand - got %v", len(v.Values))
+			return nil, fmt.Errorf("expected only one SQLValues value - got %v", len(v.Values))
 		}
-		eval, ok = v.Values[0].(SQLNumeric)
-		if !ok {
-			return nil, fmt.Errorf("could not convert binary operand to SQLNumeric")
-		}
+
+		return convertToSQLNumeric(v.Values[0], ctx)
+
+	default:
+
+		return nil, fmt.Errorf("can not convert %T to SQLNumeric", eval)
+
 	}
-	return eval, nil
+
 }
 
 func SQLNumericBinaryOp(args []SQLValue, ctx *EvalCtx, op string) (SQLValue, error) {
