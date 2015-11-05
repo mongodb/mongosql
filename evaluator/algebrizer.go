@@ -17,7 +17,9 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 		// algebrize 'FROM' clause
 		if stmt.From != nil {
 			for _, table := range stmt.From {
+
 				pCtx.Expr = stmt.From
+
 				err := algebrizeTableExpr(table, pCtx)
 				if err != nil {
 					return err
@@ -27,7 +29,9 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 
 		// algebrize 'WHERE' clause
 		if stmt.Where != nil {
+
 			pCtx.Expr = stmt.Where
+
 			algebrizedStmt, err := algebrizeExpr(stmt.Where.Expr, pCtx)
 			if err != nil {
 				return err
@@ -38,6 +42,7 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 
 		// algebrize 'SELECT EXPRESSION' clause
 		pCtx.Expr = stmt.SelectExprs
+
 		algebrizedSelectExprs, err := algebrizeSelectExprs(stmt.SelectExprs, pCtx)
 		if err != nil {
 			return err
@@ -49,12 +54,15 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 		if len(stmt.GroupBy) != 0 {
 			var algebrizedValExprs sqlparser.ValExprs
 
-			pCtx.Expr = stmt.GroupBy
 			for _, valExpr := range stmt.GroupBy {
+
+				pCtx.Expr = valExpr
+
 				algebrizedValExpr, err := algebrizeExpr(valExpr, pCtx)
 				if err != nil {
 					return err
 				}
+
 				algebrizedValExprs = append(algebrizedValExprs, algebrizedValExpr.(sqlparser.ValExpr))
 			}
 
@@ -63,7 +71,9 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 
 		// algebrize 'HAVING' clause
 		if stmt.Having != nil {
+
 			pCtx.Expr = stmt.Having
+
 			algebrizedStmt, err := algebrizeExpr(stmt.Having.Expr, pCtx)
 			if err != nil {
 				return err
@@ -75,6 +85,9 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 		// algebrize 'ORDER BY' clause
 		if len(stmt.OrderBy) != 0 {
 			for _, orderBy := range stmt.OrderBy {
+
+				pCtx.Expr = orderBy.Expr
+
 				algebrizedStmt, err := algebrizeExpr(orderBy.Expr, pCtx)
 				if err != nil {
 					return err
@@ -87,9 +100,10 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 		// algebrize 'LIMIT' clause
 		if stmt.Limit != nil {
 
-			pCtx.Expr = stmt.Limit
-
 			if stmt.Limit.Offset != nil {
+
+				pCtx.Expr = stmt.Limit.Offset
+
 				offset, err := algebrizeExpr(stmt.Limit.Offset, pCtx)
 				if err != nil {
 					return err
@@ -97,6 +111,8 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 
 				stmt.Limit.Offset = offset.(sqlparser.ValExpr)
 			}
+
+			pCtx.Expr = stmt.Limit.Rowcount
 
 			rowcount, err := algebrizeExpr(stmt.Limit.Rowcount, pCtx)
 			if err != nil {
@@ -206,7 +222,9 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 			// subquery or a select expression within a function
 			_, inFuncExpr := pCtx.Expr.(*sqlparser.FuncExpr)
 			_, isSubquery := nonStarExpr.Expr.(*sqlparser.Subquery)
+
 			if !pCtx.RefColumn && !inFuncExpr && !isSubquery {
+
 				nonStarAlias := string(nonStarExpr.As)
 				nonStarName := sqlparser.String(nonStarExpr.Expr)
 
@@ -219,6 +237,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 			}
 
 			algNSE := &sqlparser.NonStarExpr{nse, expr.As}
+
 			algebrizeSelectExprs = append(algebrizeSelectExprs, algNSE)
 
 		default:
@@ -396,10 +415,12 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 		// references
 		fExpr := pCtx.Expr
 		pCtx.Expr = expr
+
 		algebrizedSelectExprs, err := algebrizeSelectExprs(expr.Exprs, pCtx)
 		if err != nil {
 			return nil, err
 		}
+
 		pCtx.Expr = fExpr
 		expr.Exprs = algebrizedSelectExprs
 
