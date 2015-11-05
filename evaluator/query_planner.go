@@ -41,36 +41,57 @@ func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error
 
 }
 
-func getReferencedExpressions(ast *sqlparser.Select) (SelectExpressions, error) {
+// isTableColumn returns true if the given column is present in the table's
+// configuration.
+func isTableColumn(column *Column, ctx *ExecutionCtx) bool {
+
+	db := ctx.Config.Schemas[ctx.Db]
+
+	for _, c := range db.Tables[column.Table].Columns {
+		if c.Name == column.Name {
+			return true
+		}
+	}
+
+	return false
+
+}
+
+func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx) (SelectExpressions, error) {
 	var sExprs SelectExpressions
 
-	// add any referenced columns in the GROUP BY clause
-	for _, term := range ast.GroupBy {
-		expr := sqlparser.Expr(term)
-		cols, err := getReferencedColumns(expr)
-		if err != nil {
-			return nil, err
-		}
-		for _, col := range cols {
-			if !sExprs.Contains(*col) {
-				newSExpr := SelectExpression{Column: *col, Referenced: true, Expr: expr}
+	addColumns := func(columns []*Column, expr sqlparser.Expr) {
+		for _, column := range columns {
+			// only add basic columns present in table configuration
+			if isTableColumn(column, ctx) && !sExprs.Contains(*column) {
+				newSExpr := SelectExpression{Column: *column, Referenced: true, Expr: expr}
 				sExprs = append(sExprs, newSExpr)
 			}
 		}
 	}
 
-	// add any referenced columns in the ORDER BY clause
-	for _, term := range ast.OrderBy {
-		cols, err := getReferencedColumns(term.Expr)
+	// add any referenced columns in the GROUP BY clause
+	for _, term := range ast.GroupBy {
+
+		expr := sqlparser.Expr(term)
+		columns, err := getReferencedColumns(expr)
 		if err != nil {
 			return nil, err
 		}
-		for _, col := range cols {
-			if !sExprs.Contains(*col) {
-				newSExpr := SelectExpression{Column: *col, Referenced: true, Expr: term.Expr}
-				sExprs = append(sExprs, newSExpr)
-			}
+
+		addColumns(columns, expr)
+	}
+
+	// add any referenced columns in the ORDER BY clause
+	for _, term := range ast.OrderBy {
+
+		columns, err := getReferencedColumns(term.Expr)
+		if err != nil {
+			return nil, err
 		}
+
+		addColumns(columns, term.Expr)
+
 	}
 
 	return sExprs, nil
@@ -133,7 +154,7 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		return nil, err
 	}
 
-	refExprs, err := getReferencedExpressions(ast)
+	refExprs, err := getReferencedExpressions(ast, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -251,6 +272,7 @@ func planOrderBy(ast *sqlparser.Select, source Operator, sExprs SelectExpression
 	}
 
 	for _, i := range ast.OrderBy {
+
 		expr, err := getOrderByTerm(sExprs, i.Expr)
 		if err != nil {
 			return nil, err
@@ -419,7 +441,9 @@ func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr) (sqlparser.Expr,
 }
 
 func getColumnTerm(sExprs SelectExpressions, expr *sqlparser.ColName) sqlparser.Expr {
+
 	for i, sExpr := range sExprs {
+
 		if len(sExpr.RefColumns) != 0 {
 			for _, column := range sExpr.RefColumns {
 				if column.Table == string(expr.Qualifier) && column.Name == string(expr.Name) {
@@ -428,10 +452,11 @@ func getColumnTerm(sExprs SelectExpressions, expr *sqlparser.ColName) sqlparser.
 			}
 		} else {
 			if sExpr.Table == string(expr.Qualifier) && sExpr.Name == string(expr.Name) {
-				return expr
+				return sExprs[i].Expr
 			}
 		}
 	}
+
 	return nil
 }
 
