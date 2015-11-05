@@ -66,7 +66,7 @@ func buildSchemaMaps(conf *config.Config) {
 func compareResults(t *testing.T, actual [][]interface{}, expected [][]interface{}) {
 	So(len(actual), ShouldEqual, len(expected))
 	for rownum, row := range actual {
-		t.Logf("comparing row %v", rownum)
+		t.Logf("comparing row %v of %v", rownum+1, len(expected))
 		for colnum, col := range row {
 			expectedCol := expected[rownum][colnum]
 			So(col, ShouldResemble, expectedCol)
@@ -182,13 +182,13 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testConfig) error
 	}
 	defer db.Close()
 
-	for _, testCase := range conf.TestCases {
+	for i, testCase := range conf.TestCases {
 		description := testCase.SQL
 		if testCase.Description != "" {
 			description = testCase.Description
 		}
 		Convey(description, func() {
-			t.Logf("Running test query: '%v'", testCase.SQL)
+			t.Logf("Running test query (%v of %v): '%v'", i, len(conf.TestCases), testCase.SQL)
 			results, err := runSQL(db, testCase.SQL, testCase.ExpectedTypes)
 			So(err, ShouldBeNil)
 			compareResults(t, results, testCase.ExpectedData)
