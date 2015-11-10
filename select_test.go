@@ -1612,3 +1612,63 @@ func TestSelectWithCaseExpr(t *testing.T) {
 		})
 	})
 }
+
+func TestSelectWithLimit(t *testing.T) {
+
+	Convey("With a select query containing a limit expression", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvaluator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+
+		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 5}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 3, "b": 2, "a": 6}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 4, "b": 2, "a": 6}), ShouldBeNil)
+		So(collection.Insert(bson.M{"_id": 5, "b": 2, "a": 6}), ShouldBeNil)
+
+		Convey("non-integer limits and/or row counts should return an error", func() {
+
+			_, _, err := eval.EvalSelect("test", "select * from bar limit 1,1.1", nil, nil)
+			So(err, ShouldNotBeNil)
+
+			_, _, err = eval.EvalSelect("test", "select * from bar limit 1.1,1", nil, nil)
+			So(err, ShouldNotBeNil)
+
+			_, _, err = eval.EvalSelect("test", "select * from bar limit 1.1,1.1", nil, nil)
+			So(err, ShouldNotBeNil)
+
+		})
+
+		Convey("the number of results should match the limit", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a from bar limit 1", nil, nil)
+			So(err, ShouldBeNil)
+			So(names, ShouldResemble, []string{"a"})
+			So(len(values), ShouldEqual, 1)
+
+		})
+
+		Convey("the offset should be skip the number of records specified", func() {
+
+			names, values, err := eval.EvalSelect("test", "select _id from bar order by _id limit 1, 1", nil, nil)
+			So(err, ShouldBeNil)
+			So(names, ShouldResemble, []string{"_id"})
+			So(values, ShouldResemble, [][]interface{}{[]interface{}{evaluator.SQLInt(2)}})
+
+			names, values, err = eval.EvalSelect("test", "select _id from bar order by _id limit 3, 1", nil, nil)
+			So(err, ShouldBeNil)
+			So(names, ShouldResemble, []string{"_id"})
+			So(values, ShouldResemble, [][]interface{}{[]interface{}{evaluator.SQLInt(4)}})
+
+		})
+	})
+}

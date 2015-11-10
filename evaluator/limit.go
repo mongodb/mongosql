@@ -4,15 +4,15 @@ package evaluator
 type Limit struct {
 	// rowcount imposes a limit on the number of rows returned
 	// by this operator
-	rowcount float64
+	rowcount int64
 
 	// offset keeps a 0-indexed offset of where to commence
 	// returning rows
-	offset float64
+	offset int64
 
 	// total keeps track of how many rows have gone through
 	// this operator.
-	total float64
+	total int64
 
 	// source is the source of data for this operator.
 	source Operator

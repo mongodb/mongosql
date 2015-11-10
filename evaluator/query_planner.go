@@ -230,11 +230,11 @@ func planLimit(expr *sqlparser.Limit, source Operator) (Operator, error) {
 	}
 
 	if expr.Offset != nil {
-		offset, ok := eval.(SQLNumeric)
+		offset, ok := eval.(SQLInt)
 		if !ok {
-			return nil, fmt.Errorf("LIMIT offset must be a number: %T", eval)
+			return nil, fmt.Errorf("LIMIT offset must be an integer")
 		}
-		operator.offset = offset.Float64()
+		operator.offset = int64(offset)
 
 		if operator.offset < 0 {
 			return nil, fmt.Errorf("LIMIT offset can not be negative")
@@ -246,18 +246,19 @@ func planLimit(expr *sqlparser.Limit, source Operator) (Operator, error) {
 		return nil, err
 	}
 
-	rowcount, ok := eval.(SQLNumeric)
+	rowcount, ok := eval.(SQLInt)
 	if !ok {
-		return nil, fmt.Errorf("LIMIT row count must be a number: %T", eval)
+		return nil, fmt.Errorf("LIMIT row count must be an integer")
 	}
 
-	operator.rowcount = rowcount.Float64()
+	operator.rowcount = int64(rowcount)
 
 	if operator.rowcount < 0 {
 		return nil, fmt.Errorf("LIMIT row count can not be negative")
 	}
 
 	return operator, nil
+
 }
 
 // planOrderBy returns a query execution plan for an ORDER BY clause.

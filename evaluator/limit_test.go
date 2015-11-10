@@ -82,7 +82,7 @@ func TestLimitOperator(t *testing.T) {
 			},
 		}
 
-		Convey("should accordingly handle limits less than the total number of records", func() {
+		Convey("should return only 'limit' records if the limit is less than the total number of records", func() {
 
 			operator.rowcount = 2
 
@@ -91,7 +91,7 @@ func TestLimitOperator(t *testing.T) {
 			limitTest(operator, rows, expected)
 		})
 
-		Convey("should limit results with offsets accordingly", func() {
+		Convey("should return the right slice of the records with an offset leaving less records than the limit covers", func() {
 
 			operator.rowcount = 2
 			operator.offset = 4
@@ -101,7 +101,7 @@ func TestLimitOperator(t *testing.T) {
 			limitTest(operator, rows, expected)
 		})
 
-		Convey("should accordingly handle limits with offsets greater than the number of records", func() {
+		Convey("should return no records if the offset is greater than the number of records", func() {
 			operator.rowcount = 2
 			operator.offset = 40
 
@@ -110,7 +110,7 @@ func TestLimitOperator(t *testing.T) {
 			limitTest(operator, rows, expected)
 		})
 
-		Convey("should accordingly handle limits and offsets greater than the number of records", func() {
+		Convey("should return no records if the limit and offset are both greater than the number of records", func() {
 
 			operator.rowcount = 40
 			operator.offset = 40
@@ -119,7 +119,7 @@ func TestLimitOperator(t *testing.T) {
 			limitTest(operator, rows, expected)
 		})
 
-		Convey("should accordingly handle limits that are greater than the number of records", func() {
+		Convey("should only return the number of records if the limit is greater than the number of records", func() {
 
 			operator.rowcount = 40
 
@@ -131,7 +131,7 @@ func TestLimitOperator(t *testing.T) {
 			limitTest(operator, rows, expected)
 		})
 
-		Convey("should accordingly handle limit and offset 1 at start", func() {
+		Convey("should return the one record if the limit is 1 with an offset of 1", func() {
 			operator.rowcount = 1
 			operator.offset = 1
 
@@ -141,7 +141,7 @@ func TestLimitOperator(t *testing.T) {
 
 		})
 
-		Convey("should accordingly handle limit 1 at end", func() {
+		Convey("should return the one record if all but the last record is skipped", func() {
 
 			operator.rowcount = 1
 			operator.offset = 6
@@ -151,7 +151,7 @@ func TestLimitOperator(t *testing.T) {
 			limitTest(operator, rows, expected)
 		})
 
-		Convey("should accordingly handle limit/offset 0", func() {
+		Convey("should return no records with a limit and offset of 0", func() {
 
 			operator.rowcount = 0
 			operator.offset = 0
@@ -161,7 +161,7 @@ func TestLimitOperator(t *testing.T) {
 			limitTest(operator, rows, expected)
 		})
 
-		Convey("should accordingly handle lone limit", func() {
+		Convey("should return only 'limit' records if there is no offset", func() {
 
 			operator.rowcount = 3
 			operator.offset = 0
@@ -171,7 +171,7 @@ func TestLimitOperator(t *testing.T) {
 			limitTest(operator, rows, expected)
 		})
 
-		Convey("should accordingly handle lone offset", func() {
+		Convey("should return no records if the limit is 0", func() {
 
 			operator.rowcount = 0
 			operator.offset = 4
