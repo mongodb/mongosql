@@ -17,8 +17,19 @@ TODO
    - ~~field list~~
    - ~~table list~~
 - ~~dotted-field mapping/selection~~
-- run all tests in select_test.go in roundtrip_test.go
-- consolidate NewSQLValue and BuildMatcher
+- Run select_test.go as integration tests
+- Add support for arrays
+- Add support for TIMESTAMP parsing and processing
+- 
+- Finalize data type mapping between MongoDB and MySQL types
+- Support all expressions in 'dual' queries.
+- Add authentication support
+- Add SSL support
+- Add support for disk support
+- Add query_planner.go tests
+- Generate config on the fly (use connection stream to infer)
+- Stream results to client
+- 
 - WHERE
    - ~~math~~
    - ~~case expression~~
@@ -35,4 +46,5 @@ TODO
 - pushdown/optimizations
    - group
    - sort
+   - limit
    - $lookup
