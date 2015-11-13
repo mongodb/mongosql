@@ -14,7 +14,7 @@ mysql -u root -e 'DROP TABLE IF EXISTS flights' test
 mysql -u root -e 'DROP TABLE IF EXISTS attendees' test
 mysql -u root -e 'CREATE TABLE flights  (carrier_code varchar(255), tail_num varchar(255), flight_number int, origin_airport_id int, origin_city_market_id int, origin_airport_code varchar(255), origin_city_name varchar(255), origin_state varchar(255), dest_airport_id int, dest_city_market_id int, dest_airport_code varchar(255), dest_city_name varchar(255), dest_state varchar(255), dest_time int, diff_from_dep_time int, dep_delay int, arr_time int, diff_from_arr_time int, airline varchar(255), cancelled int, arr_delay int, carrier_delay int);' test
 
-mysql -u root -e 'CREATE TABLE attendees (latitude float, longitude float, airport_city varchar(255),airport_code varchar(255),airport_id int,city varchar(255),city_market_description varchar(255),city_market_id int,country varchar(255),state varchar(255),zip varchar(255))' test
+mysql -u root -e 'CREATE TABLE attendees (latitude double, longitude double, airport_city varchar(255),airport_code varchar(255),airport_id int,city varchar(255),city_market_description varchar(255),city_market_id int,country varchar(255),state varchar(255),zip varchar(255))' test
 CWD=`pwd`
 mysql -u root -e "LOAD DATA INFILE '$CWD/flights.csv' INTO TABLE flights FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 LINES" test
 mysql -u root -e "LOAD DATA INFILE '$CWD/attendees.csv' INTO TABLE attendees FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 LINES" test
