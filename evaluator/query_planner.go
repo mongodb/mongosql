@@ -41,60 +41,55 @@ func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error
 
 }
 
-// isTableColumn returns true if the given column is present in the table's
-// configuration.
-func isTableColumn(column *Column, ctx *ExecutionCtx) bool {
+func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs SelectExpressions) (SelectExpressions, error) {
+	var expressions SelectExpressions
 
-	db := ctx.Config.Schemas[ctx.Db]
+	referenced := func(columns []*Column, expr sqlparser.Expr) SelectExpressions {
+		var exprs SelectExpressions
 
-	for _, c := range db.Tables[column.Table].Columns {
-		if c.Name == column.Name {
-			return true
-		}
-	}
-
-	return false
-
-}
-
-func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx) (SelectExpressions, error) {
-	var sExprs SelectExpressions
-
-	addColumns := func(columns []*Column, expr sqlparser.Expr) {
 		for _, column := range columns {
 			// only add basic columns present in table configuration
-			if isTableColumn(column, ctx) && !sExprs.Contains(*column) {
-				newSExpr := SelectExpression{Column: *column, Referenced: true, Expr: expr}
-				sExprs = append(sExprs, newSExpr)
+			if ctx.ParseCtx.IsSchemaColumn(column) && !expressions.Contains(*column) {
+				cExpr := &sqlparser.ColName{Name: []byte(column.Name), Qualifier: []byte(column.Table)}
+				newSExpr := SelectExpression{Column: *column, Referenced: true, Expr: cExpr}
+				exprs = append(exprs, newSExpr)
 			}
 		}
+
+		return exprs
 	}
 
-	// add any referenced columns in the GROUP BY clause
-	for _, term := range ast.GroupBy {
+	var exprs []sqlparser.Expr
 
-		expr := sqlparser.Expr(term)
+	// add any referenced columns in the GROUP BY clause
+	for _, key := range ast.GroupBy {
+		expr, err := getGroupByTerm(sExprs, key)
+		if err != nil {
+			return nil, err
+		}
+		exprs = append(exprs, expr)
+	}
+
+	// add any referenced columns in the ORDER BY clause
+	for _, key := range ast.OrderBy {
+		expr, err := getOrderByTerm(sExprs, key.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		exprs = append(exprs, expr)
+	}
+
+	for _, expr := range exprs {
 		columns, err := getReferencedColumns(expr)
 		if err != nil {
 			return nil, err
 		}
 
-		addColumns(columns, expr)
+		expressions = append(expressions, referenced(columns, expr)...)
 	}
 
-	// add any referenced columns in the ORDER BY clause
-	for _, term := range ast.OrderBy {
-
-		columns, err := getReferencedColumns(term.Expr)
-		if err != nil {
-			return nil, err
-		}
-
-		addColumns(columns, term.Expr)
-
-	}
-
-	return sExprs, nil
+	return expressions, nil
 }
 
 // planSimpleSelectExpr takes a simple select expression and returns a query execution plan for it.
@@ -154,7 +149,7 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		return nil, err
 	}
 
-	refExprs, err := getReferencedExpressions(ast, ctx)
+	refExprs, err := getReferencedExpressions(ast, ctx, s.sExprs)
 	if err != nil {
 		return nil, err
 	}
@@ -381,9 +376,9 @@ func planHaving(having *sqlparser.Where, s *Select) (Operator, error) {
 // getGroupByTerm returns the referenced expression in an GROUP BY clause if the
 // expression is aliased by column name or position. Otherwise, it returns the
 // expression supplied.
-func getGroupByTerm(sExprs []SelectExpression, gExpr sqlparser.Expr) (sqlparser.Expr, error) {
+func getGroupByTerm(sExprs []SelectExpression, e sqlparser.Expr) (sqlparser.Expr, error) {
 
-	switch expr := gExpr.(type) {
+	switch expr := e.(type) {
 
 	case *sqlparser.ColName:
 
@@ -391,7 +386,7 @@ func getGroupByTerm(sExprs []SelectExpression, gExpr sqlparser.Expr) (sqlparser.
 			return term, nil
 		}
 
-		return nil, fmt.Errorf("Must reference GROUP BY term '%v' in select expression", sqlparser.String(expr))
+		return expr, nil
 
 	case sqlparser.NumVal:
 
@@ -404,7 +399,7 @@ func getGroupByTerm(sExprs []SelectExpression, gExpr sqlparser.Expr) (sqlparser.
 
 	}
 
-	return nil, fmt.Errorf("Unsupported GROUP BY term: %T", gExpr)
+	return e, nil
 
 }
 
@@ -437,13 +432,17 @@ func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr) (sqlparser.Expr,
 
 	}
 
-	return nil, fmt.Errorf("Unsupported ORDER BY term: %T", e)
+	return e, nil
 
 }
 
 func getColumnTerm(sExprs SelectExpressions, expr *sqlparser.ColName) sqlparser.Expr {
 
 	for i, sExpr := range sExprs {
+
+		if sExpr.Table == string(expr.Qualifier) && sExpr.Name == string(expr.Name) {
+			return sExprs[i].Expr
+		}
 
 		if len(sExpr.RefColumns) != 0 {
 			for _, column := range sExpr.RefColumns {
@@ -452,7 +451,15 @@ func getColumnTerm(sExprs SelectExpressions, expr *sqlparser.ColName) sqlparser.
 				}
 			}
 		} else {
-			if sExpr.Table == string(expr.Qualifier) && sExpr.Name == string(expr.Name) {
+			// This handles column names that are aliases for actual
+			// expressions. For example:
+			//
+			// SELECT a + b as c from foo GROUP by c ORDER by c;
+			//
+			// In this case, the both the ORDER BY and GROUP BY terms will
+			// be references to the underlying expresssion - (a + b)
+			if sExpr.Name == string(expr.Name) {
+
 				return sExprs[i].Expr
 			}
 		}
@@ -674,7 +681,7 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 	}
 
 	dbName := strings.ToLower(string(t.Qualifier))
-	isInformationSchema := dbName == InformationSchema || c.Db == InformationSchema
+	isInformationSchema := dbName == InformationSchema || strings.ToLower(c.Db) == InformationSchema
 
 	if isInformationSchema {
 
@@ -720,19 +727,20 @@ func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlp
 			return source, nil
 		}
 
-		sq := &AliasedSource{
+		as := &AliasedSource{
 			source:    source,
 			tableName: string(s.As),
 		}
 
-		return sq, nil
+		return as, nil
+
 	case *sqlparser.Subquery:
 		source, err := PlanQuery(c, expr.Select)
 		if err != nil {
 			return nil, err
 		}
 
-		sq := &AliasedSource{
+		as := &AliasedSource{
 			source:    source,
 			tableName: string(s.As),
 		}
@@ -742,10 +750,10 @@ func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlp
 			if err != nil {
 				return nil, err
 			}
-			sq.matcher = matcher
+			as.matcher = matcher
 		}
 
-		return sq, nil
+		return as, nil
 
 	default:
 		return nil, fmt.Errorf("can't yet handle simple table expression type %T", expr)
@@ -1009,7 +1017,6 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 
 	}
 
-	panic(fmt.Sprintf("hasAggFunctions(on %T) reached an unreachable point", e))
 }
 
 // isAggFunction returns true if the byte slice e contains the name of an aggregate function and false otherwise.

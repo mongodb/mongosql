@@ -29,9 +29,10 @@ type ConnectionCtx interface {
 // ExecutionCtx holds exeuction context information
 // used by each Operator implemenation.
 type ExecutionCtx struct {
-	Config *config.Config
-	Db     string
-	Rows   []Row
+	Config   *config.Config
+	ParseCtx *ParseCtx
+	Db       string
+	Rows     []Row
 	ConnectionCtx
 }
 

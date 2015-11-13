@@ -262,6 +262,16 @@ func TestSelectWithAliasing(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(6))
 
+			names, values, err = eval.EvalSelect("test", "select a as d, b as c from bar b1", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"d", "c"})
+			So(len(values[0]), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(6))
+
 		})
 
 		Convey("aliased fields colliding with existing column names should also return the aliased header", func() {
@@ -357,9 +367,29 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			checkExpectedValues(3, values, expectedValues)
 
+			names, values, err = eval.EvalSelect("test", "select a from bar group by a", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a"})
+
+			names, values, err = eval.EvalSelect("test", "select a as zz from bar group by zz", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"zz"})
+
+			expectedValues = map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(1): []evaluator.SQLNumeric{},
+				evaluator.SQLInt(2): []evaluator.SQLNumeric{},
+				evaluator.SQLInt(3): []evaluator.SQLNumeric{},
+			}
+			checkExpectedValues(1, values, expectedValues)
+
 		})
 
-		Convey("an error should be returned if the some select fields are unused in GROUP BY clause", func() {
+		Convey("no error should be returned if the some select fields are unused in GROUP BY clause", func() {
 			names, values, err := eval.EvalSelect("test", "select a, b, sum(a) from bar group by a order by a", nil, nil)
 			So(err, ShouldBeNil)
 
@@ -1381,6 +1411,17 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
 
+			names, values, err = eval.EvalSelect("test", "select a + b as c from bar group by c order by c desc", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 4)
+
+			So(names, ShouldResemble, []string{"c"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(13)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(4)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(2)})
+
 			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by a desc", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
@@ -1541,6 +1582,19 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLInt(3)})
 			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
 			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1)})
+
+			names, values, err = eval.EvalSelect("test", "select a, a + b as c from foo order by c", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 6)
+
+			So(names, ShouldResemble, []string{"a", "b", "c"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(13)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(7)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(4)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(4)})
+			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
+			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2)})
 
 		})
 

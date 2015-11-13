@@ -15,24 +15,81 @@ var (
 // ParseCtx holds information that is used to resolve
 // columns and table names in a select query.
 type ParseCtx struct {
+	// ColumnReferences holds a slice of all columns that reference other
+	// more complex expressions. For example, in:
+	//
+	// select a+b as c from foo;
+	//
+	// ColumnReferences will contain an entry indicating c references the
+	// a+b expression.
+	ColumnReferences ColumnReferences
+
 	// Columns holds a slice of all columns in this context
 	Columns ColumnInfos
+
 	// Tables holds a slice of all tables in this context
 	Tables TableInfos
-	// Parent holds the context from which this one is dereived
+
+	// Parent holds the context from which this one is derived
 	Parent *ParseCtx
-	// Children holds all new contexts derived from this contenxt
+
+	// Children holds all new contexts derived from this context
 	Children []*ParseCtx
+
 	// NonStarAlias holds the alias for a non-star expression
 	NonStarAlias string
+
 	// Expr holds the expression in a select query that is being
 	// processed
-	Expr interface{}
-	// RefColumn indicates if a column where parsing a select
-	// expression
-	RefColumn bool
-	Config    *config.Config
-	Database  string
+	Expr sqlparser.Expr
+
+	// Phase describes where in a select clause we're algebrizing.
+	// e.g. if we're algebrizing within a where clause, the Phase will
+	// hold the value of 'PhaseWhere'
+	Phase string
+
+	// State holds information on what kind of select expression is being parsed
+	State ParseState
+
+	// Config hold the schema configuration data for all the databases and tables
+	Config *config.Config
+
+	// Database holds the current database referenced in the select expression
+	Database string
+}
+
+// ParseState holds bookkeeping information for parsing.
+type ParseState uint32
+
+// Parse states.
+const (
+	StateFuncExpr     ParseState = 1 << iota
+	StateRefColExpr              = 2 << iota
+	StateSubQueryExpr            = 3 << iota
+)
+
+// Parse context phases.
+const (
+	PhaseInit       = "INIT"
+	PhaseOrderBy    = "ORDER BY"
+	PhaseGroupBy    = "GROUP BY"
+	PhaseHaving     = "HAVING"
+	PhaseFrom       = "FROM"
+	PhaseWhere      = "WHERE"
+	PhaseSelectExpr = "SELECT EXPRESSION"
+	PhaseLimit      = "LIMIT"
+)
+
+func (pCtx *ParseCtx) InFuncExpr() bool {
+	return (pCtx.State & StateFuncExpr) > 0
+}
+
+func (pCtx *ParseCtx) InSubquery() bool {
+	return (pCtx.State & StateSubQueryExpr) > 0
+}
+
+func (pCtx *ParseCtx) InRefColumn() bool {
+	return (pCtx.State & StateRefColExpr) > 0
 }
 
 func (pCtx *ParseCtx) String() string {
@@ -40,7 +97,13 @@ func (pCtx *ParseCtx) String() string {
 		return ""
 	}
 
-	b := bytes.NewBufferString(fmt.Sprintf("In %#v\n", pCtx.Expr))
+	b := bytes.NewBufferString(fmt.Sprintf("%v Phase (%v); State (%v):", &pCtx, pCtx.Phase, pCtx.State))
+
+	if pCtx.Expr != nil {
+		b.WriteString(fmt.Sprintf(" %v", sqlparser.String(pCtx.Expr)))
+	}
+
+	b.WriteString("\n")
 
 	pCtx.string(b, 0)
 
@@ -57,7 +120,7 @@ func (pCtx *ParseCtx) string(b *bytes.Buffer, d int) {
 
 	if len(pCtx.Tables) != 0 {
 		printTabs(b, d)
-		b.WriteString(fmt.Sprintf("→ Tables\n"))
+		b.WriteString(fmt.Sprintf("→ Tables (%v)\n", len(pCtx.Tables)))
 	}
 
 	for i, table := range pCtx.Tables {
@@ -67,7 +130,7 @@ func (pCtx *ParseCtx) string(b *bytes.Buffer, d int) {
 
 	if len(pCtx.Columns) != 0 {
 		printTabs(b, d)
-		b.WriteString(fmt.Sprintf("→ Columns\n"))
+		b.WriteString(fmt.Sprintf("→ Columns (%v)\n", len(pCtx.Columns)))
 	}
 
 	for i, column := range pCtx.Columns {
@@ -75,14 +138,24 @@ func (pCtx *ParseCtx) string(b *bytes.Buffer, d int) {
 		b.WriteString(fmt.Sprintf("\tC%v: → %#v\n", i, column))
 	}
 
+	if len(pCtx.ColumnReferences) != 0 {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("→ References (%v)\n", len(pCtx.ColumnReferences)))
+	}
+
+	for i, reference := range pCtx.ColumnReferences {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("\tR%v: → %#v\n", i, reference))
+	}
+
 	if len(pCtx.Children) != 0 {
 		printTabs(b, d)
-		b.WriteString(fmt.Sprintf("→ Children\n"))
+		b.WriteString(fmt.Sprintf("→ Children (%v)\n", len(pCtx.Children)))
 	}
 
 	for i, ctx := range pCtx.Children {
 		printTabs(b, d+1)
-		b.WriteString(fmt.Sprintf("Child %v:\n", i))
+		b.WriteString(fmt.Sprintf("Child %v: %v\n", i, &ctx))
 		ctx.string(b, d+1)
 	}
 }
@@ -107,6 +180,13 @@ func (tInfos TableInfos) Contains(t TableInfo) bool {
 		}
 	}
 	return false
+}
+
+type ColumnReferences []ColumnReference
+
+type ColumnReference struct {
+	Name string
+	Expr sqlparser.Expr
 }
 
 // ColumnInfo holds a mapping of aliases (or real names
@@ -145,6 +225,7 @@ func NewParseCtx(ss sqlparser.SelectStatement, c *config.Config, db string) (*Pa
 		ctx := &ParseCtx{
 			Config:   c,
 			Database: db,
+			Phase:    PhaseInit,
 		}
 
 		tableInfo, err := GetTableInfo(stmt.From, ctx)
@@ -152,7 +233,12 @@ func NewParseCtx(ss sqlparser.SelectStatement, c *config.Config, db string) (*Pa
 			return nil, fmt.Errorf("error getting table info: %v", err)
 		}
 
-		ctx.Tables = tableInfo
+		for _, table := range tableInfo {
+			if !ctx.Tables.Contains(table) {
+				ctx.Tables = append(ctx.Tables, table)
+			}
+		}
+
 		return ctx, nil
 
 	default:
@@ -182,18 +268,18 @@ func (pCtx *ParseCtx) TableInfo(db, alias string) (*TableInfo, error) {
 // ColumnInfo searches current context for the given alias
 // It searches in the parent context if the alias is not found
 // in the current context.
-func (pCtx *ParseCtx) ColumnInfo(alias string) (*ColumnInfo, error) {
+func (pCtx *ParseCtx) ColumnInfo(column string) (*ColumnInfo, error) {
 	if pCtx == nil {
-		return nil, fmt.Errorf("Unknown column '%v'", alias)
+		return nil, fmt.Errorf("Unknown column alias '%v'", column)
 	}
 
 	for _, columnInfo := range pCtx.Columns {
-		if columnInfo.Alias == alias {
+		if columnInfo.Alias == column {
 			return &columnInfo, nil
 		}
 	}
 
-	return pCtx.Parent.ColumnInfo(alias)
+	return pCtx.Parent.ColumnInfo(column)
 }
 
 // AddColumns adds columns from the schema configuration to the context.
@@ -245,6 +331,7 @@ func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) 
 
 // GetCurrentTable finds a given table in the current context.
 func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, error) {
+
 	if pCtx == nil {
 		return nil, fmt.Errorf("Current table '%v' doesn't exist", tableName)
 	}
@@ -285,21 +372,59 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, err
 
 // checkColumn checks that a referenced column in the context of
 // a derived table is valid.
-func (pCtx *ParseCtx) checkColumn(table, column string) error {
-	for _, ctx := range pCtx.Children {
-		err := ctx.checkColumn(table, column)
-		if err == nil {
+func (pCtx *ParseCtx) checkColumn(table, column string, depth int) error {
+
+	err := fmt.Errorf("Unknown column '%v'", column)
+
+	if pCtx == nil {
+		return err
+	}
+
+	for _, c := range pCtx.Columns {
+
+		if c.Alias == column {
+			return nil
+		}
+
+	}
+
+	for _, r := range pCtx.ColumnReferences {
+
+		if r.Name == column {
 			return nil
 		}
 	}
 
-	for _, col := range pCtx.Columns {
-		if col.Alias == column {
-			return nil
+	// only look deeper if columns are referenced from
+	// the child context
+	if depth == 0 || len(pCtx.Columns) == 0 {
+
+		for _, ctx := range pCtx.Children {
+
+			for _, c := range ctx.Columns {
+
+				if c.Alias == column {
+					return nil
+
+				}
+			}
+
+			for _, r := range ctx.ColumnReferences {
+
+				if r.Name == column {
+					return nil
+				}
+
+			}
+
+			if err = ctx.checkColumn(table, column, depth+1); err == nil {
+				return nil
+			}
+
 		}
 	}
 
-	return fmt.Errorf("Unknown column '%v'", column)
+	return err
 }
 
 // TableSchema returns the schema for a given table.
@@ -312,8 +437,59 @@ func (pCtx *ParseCtx) TableSchema(table string) *config.TableConfig {
 	return schema.Tables[table]
 }
 
+// IsSchemaColumn returns true if the given column is present
+// column references for this context.
+func (pCtx *ParseCtx) IsColumnReference(column *Column) bool {
+
+	for _, reference := range pCtx.ColumnReferences {
+
+		if reference.Name == column.Name {
+			return true
+		}
+	}
+
+	return false
+
+}
+
+// IsSchemaColumn returns true if the given column is present
+// schema table's configuration.
+func (pCtx *ParseCtx) IsSchemaColumn(column *Column) bool {
+
+	if strings.ToLower(pCtx.Database) == InformationSchema {
+		return true
+	}
+
+	tableInfo, err := pCtx.TableInfo(pCtx.Database, column.Table)
+	if err != nil {
+		panic(fmt.Sprintf("Unknown column table '%v'", column.Table))
+	}
+
+	if tableInfo.Derived {
+		return true
+	}
+
+	db := pCtx.Config.Schemas[pCtx.Database]
+
+	table := db.Tables[tableInfo.Name]
+
+	for _, c := range table.Columns {
+
+		if c.Name == column.Name {
+			return true
+		}
+
+	}
+
+	return false
+
+}
+
 // CheckColumn checks that the column information is valid in the given context.
-func (pCtx *ParseCtx) CheckColumn(tName, cName string) error {
+func (pCtx *ParseCtx) CheckColumn(table *TableInfo, cName string) error {
+
+	tName := table.Alias
+
 	// whitelist all 'virtual' schemas including information_schema
 	// TODO: more precise validation needed
 	if strings.EqualFold(pCtx.Database, InformationSchema) ||
@@ -321,23 +497,39 @@ func (pCtx *ParseCtx) CheckColumn(tName, cName string) error {
 		return nil
 	}
 
-	table := pCtx.TableSchema(tName)
-
-	if table == nil {
-		// check if it's a derived table
+	if table.Derived {
+		// For derived tables, column names must come from children
 		for _, tableInfo := range pCtx.Tables {
-			if tableInfo.Alias == tName && tableInfo.Derived {
-				return pCtx.checkColumn(tName, cName)
+			if tableInfo.Alias == tName {
+				return pCtx.checkColumn(tName, cName, 0)
 			}
 		}
+
+		return fmt.Errorf("Derived table '%v' doesn't exist", tName)
+	}
+
+	// For schema tables, columns must come from schema configuration
+	tableSchema := pCtx.TableSchema(table.Name)
+
+	if tableSchema == nil {
 		return fmt.Errorf("Table '%v' doesn't exist", tName)
 	}
 
-	for _, c := range table.Columns {
+	for _, c := range tableSchema.Columns {
+
 		if c.Name == cName {
 			return nil
 		}
+
 	}
 
-	return fmt.Errorf("Unknown column '%v' in table %v", cName, tName)
+	for _, r := range pCtx.ColumnReferences {
+
+		if r.Name == cName {
+			return nil
+		}
+
+	}
+
+	return fmt.Errorf("Unknown column '%v' in table '%v'", cName, tName)
 }

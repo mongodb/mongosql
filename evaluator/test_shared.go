@@ -101,6 +101,16 @@ schema :
         name: orderdate
         type: string
   -
+     table: customers
+     collection: test.customers
+     columns:
+     -
+        name: customerid
+        type: string
+     -
+        name: customername
+        type: string
+  -
      table: bar
      collection: test.bar
      columns:

@@ -238,5 +238,35 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
 		})
 
+		Convey("nested subquery sources should rely on children sources to determine valid columns", func() {
+
+			sql := "select sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`c`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM (select a, (select b from foo where b = 4) as x from bar) as bar GROUP BY 3) `t0` where  havclause"
+			raw, err := sqlparser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+
+			cfg, err := config.ParseConfigData(testConfig2)
+			So(err, ShouldBeNil)
+
+			_, err = NewParseCtx(stmt, cfg, dbName)
+			So(err, ShouldNotBeNil)
+
+			sql = `select a,b from (select a from (select a,b from bar) y) x`
+			raw, err = sqlparser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			stmt, ok = raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+
+			cfg, err = config.ParseConfigData(testConfig2)
+			So(err, ShouldBeNil)
+
+			_, err = NewParseCtx(stmt, cfg, dbName)
+			So(err, ShouldNotBeNil)
+
+		})
+
 	})
 }

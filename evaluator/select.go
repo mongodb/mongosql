@@ -71,6 +71,7 @@ func (s *Select) Next(r *Row) bool {
 	data := map[string][]Value{}
 
 	for _, expr := range s.sExprs {
+
 		v, err := s.getValue(expr, row)
 		if err != nil {
 			s.err = err
@@ -82,6 +83,7 @@ func (s *Select) Next(r *Row) bool {
 			View: expr.View,
 			Data: v,
 		}
+
 		data[expr.Table] = append(data[expr.Table], value)
 	}
 

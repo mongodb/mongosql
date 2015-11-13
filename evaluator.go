@@ -51,10 +51,12 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 
 	log.Logf(log.DebugLow, "Preparing select query: %#v", sqlparser.String(stmt))
 
-	if _, ok := stmt.(*sqlparser.Select); ok {
+	var pCtx *evaluator.ParseCtx
+	var err error
 
+	if _, ok := stmt.(*sqlparser.Select); ok {
 		// create initial parse context
-		pCtx, err := evaluator.NewParseCtx(stmt, e.cfg, db)
+		pCtx, err = evaluator.NewParseCtx(stmt, e.cfg, db)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
 		}
@@ -66,9 +68,10 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 	}
 
 	eCtx := &evaluator.ExecutionCtx{
-		Config:        e.cfg,
 		Db:            db,
+		ParseCtx:      pCtx,
 		ConnectionCtx: conn,
+		Config:        e.cfg,
 	}
 
 	// construct query plan
