@@ -1583,7 +1583,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
 			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1)})
 
-			names, values, err = eval.EvalSelect("test", "select a, a + b as c from foo order by c", nil, nil)
+			names, values, err = eval.EvalSelect("test", "select a, a + b as c from bar order by c", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 6)
