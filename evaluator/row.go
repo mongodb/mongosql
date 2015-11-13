@@ -1,7 +1,7 @@
 package evaluator
 
 import (
-	"github.com/erh/mongo-sql-temp/config"
+	"github.com/10gen/sqlproxy/config"
 	"strings"
 )
 

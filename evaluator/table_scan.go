@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/erh/mongo-sql-temp/config"
+	"github.com/10gen/sqlproxy/config"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"gopkg.in/mgo.v2/bson"
 	"reflect"

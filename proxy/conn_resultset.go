@@ -3,7 +3,7 @@ package proxy
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/erh/mongo-sql-temp/evaluator"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
 	"gopkg.in/mgo.v2/bson"

@@ -1,8 +1,8 @@
 package proxy
 
 import (
-	sqlproxy "github.com/erh/mongo-sql-temp"
-	"github.com/erh/mongo-sql-temp/config"
+	sqlproxy "github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/config"
 	"github.com/mongodb/mongo-tools/common/log"
 
 	"net"

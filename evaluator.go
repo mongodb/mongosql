@@ -2,9 +2,9 @@ package sqlproxy
 
 import (
 	"fmt"
+	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/evaluator"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 )

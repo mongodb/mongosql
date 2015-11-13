@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PKG='github.com/erh/mongo-sql-temp'
+PKG='github.com/10gen/sqlproxy'
 
 setgopath() {
     if [ "Windows_NT" != "$OS" ]; then

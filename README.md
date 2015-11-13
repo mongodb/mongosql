@@ -1,7 +1,7 @@
 # mongo-sql-temp
 
 ```
-git clone git@github.com:erh/mongo-sql-temp.git sqlproxy
+git clone git@github.com:10gen/sqlproxy.git sqlproxy
 cd sqlproxy && . ./set_gopath.sh
 go run main/main.go -config sample.conf
 ```

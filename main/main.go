@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"github.com/erh/mongo-sql-temp"
-	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/proxy"
+	"github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/proxy"
 	"github.com/mongodb/mongo-tools/common/log"
 	"os"
 	"os/signal"

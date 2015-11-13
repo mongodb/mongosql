@@ -3,9 +3,9 @@ package sqlproxy
 import (
 	"database/sql"
 	"fmt"
-	"github.com/erh/mongo-sql-temp"
-	"github.com/erh/mongo-sql-temp/config"
-	"github.com/erh/mongo-sql-temp/proxy"
+	"github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/proxy"
 	_ "github.com/go-sql-driver/mysql"
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	toolsLog "github.com/mongodb/mongo-tools/common/log"

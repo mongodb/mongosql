@@ -2,8 +2,8 @@ package evaluator
 
 import (
 	"fmt"
+	"github.com/10gen/sqlproxy/config"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"

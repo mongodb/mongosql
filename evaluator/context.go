@@ -3,8 +3,8 @@ package evaluator
 import (
 	"bytes"
 	"fmt"
+	"github.com/10gen/sqlproxy/config"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/erh/mongo-sql-temp/config"
 	"strings"
 )
 
