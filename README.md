@@ -1,7 +1,7 @@
-# mongo-sql-temp
+# sqlproxy
 
 ```
-git clone git@github.com:10gen/sqlproxy.git sqlproxy
+git clone git@github.com:10gen/sqlproxy.git
 cd sqlproxy && . ./set_gopath.sh
 go run main/main.go -config sample.conf
 ```
@@ -20,7 +20,6 @@ TODO
 - Run select_test.go as integration tests
 - Add support for arrays
 - Add support for TIMESTAMP parsing and processing
-- 
 - Finalize data type mapping between MongoDB and MySQL types
 - Support all expressions in 'dual' queries.
 - Add authentication support
@@ -29,7 +28,6 @@ TODO
 - Add query_planner.go tests
 - Generate config on the fly (use connection stream to infer)
 - Stream results to client
-- 
 - WHERE
    - ~~math~~
    - ~~case expression~~
