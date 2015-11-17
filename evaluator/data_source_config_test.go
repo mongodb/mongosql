@@ -15,7 +15,7 @@ func TestConfigDataSourceIter(t *testing.T) {
 		cfg, err := config.ParseConfigData(testConfig1)
 		So(err, ShouldBeNil)
 
-		execCtx := &ExecutionCtx{cfg, nil, "test", nil, nil}
+		execCtx := &ExecutionCtx{cfg, nil, "test", nil, nil, 0, nil}
 		dataSource := ConfigDataSource{ctx: execCtx, includeColumns: true}
 
 		query := dataSource.Find()
@@ -45,7 +45,7 @@ func TestConfigDataSourceIterTables(t *testing.T) {
 		cfg, err := config.ParseConfigData(testConfig1)
 		So(err, ShouldBeNil)
 
-		execCtx := &ExecutionCtx{cfg, nil, "test", nil, nil}
+		execCtx := &ExecutionCtx{cfg, nil, "test", nil, nil, 0, nil}
 		dataSource := ConfigDataSource{ctx: execCtx}
 
 		query := dataSource.Find()

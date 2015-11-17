@@ -215,7 +215,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 				for _, column := range schema.Columns {
 					expr := &sqlparser.ColName{
 						Name:      []byte(column.Name),
-						Qualifier: []byte(table.Name),
+						Qualifier: []byte(table.Alias),
 					}
 
 					nonStarExpr := &sqlparser.NonStarExpr{
@@ -522,7 +522,7 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 	case *sqlparser.ExistsExpr:
 
-		return nil, fmt.Errorf("can't handle ExistsExpr type %T", expr)
+		return algebrizeExpr(expr.Subquery, pCtx)
 
 	case nil:
 

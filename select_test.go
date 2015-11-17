@@ -1736,3 +1736,93 @@ func TestSelectWithLimit(t *testing.T) {
 		})
 	})
 }
+
+func TestSelectWithExists(t *testing.T) {
+
+	Convey("With a select query containing an exists expression", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvaluator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+
+		So(collection.Insert(bson.M{"a": 2, "b": 4, "c": 5}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 1, "b": 7, "c": 2}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 6, "b": 1, "c": 9}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 5, "b": 3, "c": 4}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 1, "b": 6, "c": 8}), ShouldBeNil)
+
+		Convey("singly and multiply nested exist expressions from single tables should return correct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "select f1.a, f1.b from bar f1 where exists (select f2.b from bar f2 where f2.b < f1.a)", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+					evaluator.SQLInt(4),
+				},
+				evaluator.SQLInt(6): []evaluator.SQLNumeric{
+					evaluator.SQLInt(1),
+				},
+				evaluator.SQLInt(5): []evaluator.SQLNumeric{
+					evaluator.SQLInt(3),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+			names, values, err = eval.EvalSelect("test", "select f1.a,f1.b from bar f1 where exists (select f2.b from bar f2 where exists (select f3.c from bar f3 where exists (select * from bar f4 where f4.a > f2.b and f1.c = f3.a)))", nil, nil)
+
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 2)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+			expectedValues = map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+					evaluator.SQLInt(4),
+				},
+				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+					evaluator.SQLInt(7),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+		})
+
+		Convey("singly and multiply nested exist expressions from joined tables should return correct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "select f1.a, f9.c from bar f1  join bar f9 on f9.a > f1.b + 3 where exists (select f2.b from bar f2 join bar f10 on f2.c > f10.a where exists (select f3.c from bar f3 where exists (select * from bar, bar f5 where f5.a > f2.a and f10.c < f1.a*2)) and f2.a > f1.c and f1.a > f2.b or f9.c > 8 )", nil, nil)
+
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "c"})
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(6): []evaluator.SQLNumeric{
+					evaluator.SQLInt(9),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+		})
+
+	})
+}

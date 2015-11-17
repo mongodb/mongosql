@@ -84,20 +84,11 @@ func TestSelectOperator(t *testing.T) {
 		Convey("a select operator from one table with non-star fields return the right columns requested", func() {
 
 			expectedRows := []Values{
-				{
-					{"a", "a", SQLInt(6)},
-					{"b", "b", SQLInt(7)},
-				},
-				{
-					{"a", "a", SQLInt(16)},
-					{"b", "b", SQLInt(17)},
-				},
+				{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(7)}},
+				{{"a", "a", SQLInt(16)}, {"b", "b", SQLInt(17)}},
 			}
 
-			columns := []Column{
-				{tableTwoName, "a", "a"},
-				{tableTwoName, "b", "b"},
-			}
+			columns := []Column{{tableTwoName, "a", "a", false}, {tableTwoName, "b", "b", false}}
 
 			sExprs := SelectExpressions{
 				{columns[0], nil, nil, false},

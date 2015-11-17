@@ -14,9 +14,10 @@ import (
 // source of the data while 'View' holds the display
 // header representation of the data.
 type Column struct {
-	Table string
-	Name  string
-	View  string
+	Table      string
+	Name       string
+	View       string
+	InSubquery bool
 }
 
 type ConnectionCtx interface {
@@ -32,7 +33,13 @@ type ExecutionCtx struct {
 	Config   *config.Config
 	ParseCtx *ParseCtx
 	Db       string
-	Rows     []Row
+	// GroupRows holds a set of rows used by each GROUP BY combination
+	GroupRows []Row
+	// SrcRows caches the data gotten from a table scan or join node
+	SrcRows []*Row
+	// Depth indicates what level within a WHERE expression - containing
+	// a subquery = is being processed
+	Depth int
 	ConnectionCtx
 }
 
@@ -125,8 +132,7 @@ type SelectExpression struct {
 	//
 	// select name, sum(price) from foo;
 	//
-	// Column will hold "sum(price)", "sum(price)", and "".
-	// Non-column name expressions always have a source table of "".
+	// Column will hold "sum(price)", "sum(price)", and foo.
 	//
 	Column
 	// RefColumns is a slice of every other column(s) referenced in the
@@ -192,8 +198,23 @@ func (se SelectExpressions) GetColumns() []*Column {
 
 func (se SelectExpressions) Contains(column Column) bool {
 
-	for _, selectExpression := range se {
-		if selectExpression.Column == column {
+	for _, expr := range se {
+		if expr.Column.Name == column.Name &&
+			expr.Column.Table == column.Table &&
+			expr.Column.View == column.View {
+			return true
+		}
+	}
+
+	return false
+}
+
+// hasSubquery returns true if any of the select expressions contains a
+// subquery expression.
+func (se SelectExpressions) HasSubquery() bool {
+
+	for _, expr := range se {
+		if expr.InSubquery {
 			return true
 		}
 	}

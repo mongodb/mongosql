@@ -14,6 +14,9 @@ type Filter struct {
 
 	// ctx is the current execution context
 	ctx *ExecutionCtx
+
+	// hasSubquery is true if this operator source contains a subquery
+	hasSubquery bool
 }
 
 func (ft *Filter) Open(ctx *ExecutionCtx) error {
@@ -34,6 +37,23 @@ func (ft *Filter) Next(row *Row) bool {
 		}
 
 		evalCtx := &EvalCtx{[]Row{*row}, ft.ctx}
+
+		// add parent row(s) to this subquery's evaluation context
+		if len(ft.ctx.SrcRows) != 0 {
+
+			bound := len(ft.ctx.SrcRows) - 1
+
+			for _, r := range ft.ctx.SrcRows[:bound] {
+				evalCtx.Rows = append(evalCtx.Rows, *r)
+			}
+
+			// avoid duplication since subquery row is most recently
+			// appended and "*row"
+			if !ft.hasSubquery {
+				evalCtx.Rows = append(evalCtx.Rows, *ft.ctx.SrcRows[bound])
+			}
+
+		}
 
 		if ft.matcher != nil {
 			m, err := ft.matcher.Matches(evalCtx)

@@ -400,92 +400,39 @@ func (f *SQLScalarFuncValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	switch string(f.Name) {
 	// connector functions
 	case "connection_id":
-		return connectionIdFunc(ctx)
+		return f.connectionIdFunc(ctx)
 	case "database":
-		return dbFunc(ctx)
+		return f.dbFunc(ctx)
 
 		// scalar functions
 	case "isnull":
-		return isNullFunc(ctx, f.Exprs)
+		return f.isNullFunc(ctx)
 	case "not":
-		return notFunc(ctx, f.Exprs)
+		return f.notFunc(ctx)
 	case "pow":
-		return powFunc(ctx, f.Exprs)
+		return f.powFunc(ctx)
 
 	default:
 		return nil, fmt.Errorf("function '%v' is not supported", string(f.Name))
 	}
 }
 
-func (f *SQLScalarFuncValue) MongoValue() interface{} {
-	return nil
-}
-
-func (f *SQLScalarFuncValue) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
-	fEval, err := f.Evaluate(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	return fEval.CompareTo(ctx, value)
-}
-
-//
-// SQLAggFuncValue
-//
-type SQLAggFuncValue struct {
-	*sqlparser.FuncExpr
-}
-
-func (f *SQLAggFuncValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	var distinctMap map[interface{}]bool = nil
-	if f.Distinct {
-		distinctMap = make(map[interface{}]bool)
-	}
-
-	switch string(f.Name) {
-	case "avg":
-		return avgFunc(ctx, f.Exprs, distinctMap)
-	case "sum":
-		return sumFunc(ctx, f.Exprs, distinctMap)
-	case "count":
-		return countFunc(ctx, f.Exprs, distinctMap)
-	case "max":
-		return maxFunc(ctx, f.Exprs)
-	case "min":
-		return minFunc(ctx, f.Exprs)
-	default:
-		return nil, fmt.Errorf("function '%v' is not supported", string(f.Name))
-	}
-}
-
-func (f *SQLAggFuncValue) MongoValue() interface{} {
-	return nil
-}
-
-func (f *SQLAggFuncValue) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
-	fEval, err := f.Evaluate(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	return fEval.CompareTo(ctx, value)
-}
-
-func connectionIdFunc(ctx *EvalCtx) (SQLValue, error) {
+func (f *SQLScalarFuncValue) connectionIdFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLUint32(ctx.ExecCtx.ConnectionId()), nil
 }
 
-func dbFunc(ctx *EvalCtx) (SQLValue, error) {
+func (f *SQLScalarFuncValue) dbFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(ctx.ExecCtx.DB()), nil
 }
 
-func isNullFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
-	if len(sExprs) != 1 {
+func (f *SQLScalarFuncValue) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
+	if len(f.Exprs) != 1 {
 		return nil, fmt.Errorf("'isnull' function requires exactly one argument")
 	}
+
 	var exp sqlparser.Expr
-	if v, ok := sExprs[0].(*sqlparser.NonStarExpr); ok {
+
+	if v, ok := f.Exprs[0].(*sqlparser.NonStarExpr); ok {
 		exp = v.Expr
 	} else {
 		return nil, fmt.Errorf("argument to 'isnull' function can not contain '*'")
@@ -509,12 +456,12 @@ func isNullFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 	return SQLBool(result), nil
 }
 
-func notFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
-	if len(sExprs) != 1 {
+func (f *SQLScalarFuncValue) notFunc(ctx *EvalCtx) (SQLValue, error) {
+	if len(f.Exprs) != 1 {
 		return nil, fmt.Errorf("'not' function requires exactly one argument")
 	}
 	var notExpr sqlparser.Expr
-	if v, ok := sExprs[0].(*sqlparser.NonStarExpr); ok {
+	if v, ok := f.Exprs[0].(*sqlparser.NonStarExpr); ok {
 		notExpr = v.Expr
 	} else {
 		return nil, fmt.Errorf("argument to 'not' function can not contain '*'")
@@ -533,17 +480,17 @@ func notFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 	return SQLBool(result), nil
 }
 
-func powFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
-	if len(sExprs) != 2 {
+func (f *SQLScalarFuncValue) powFunc(ctx *EvalCtx) (SQLValue, error) {
+	if len(f.Exprs) != 2 {
 		return nil, fmt.Errorf("'pow' function requires exactly two arguments")
 	}
 	var baseExpr, expExpr sqlparser.Expr
-	if v, ok := sExprs[0].(*sqlparser.NonStarExpr); ok {
+	if v, ok := f.Exprs[0].(*sqlparser.NonStarExpr); ok {
 		baseExpr = v.Expr
 	} else {
 		return nil, fmt.Errorf("argument to 'pow' function can not contain '*'")
 	}
-	if v, ok := sExprs[1].(*sqlparser.NonStarExpr); ok {
+	if v, ok := f.Exprs[1].(*sqlparser.NonStarExpr); ok {
 		expExpr = v.Expr
 	} else {
 		return nil, fmt.Errorf("argument to 'pow' function can not contain '*'")
@@ -575,12 +522,67 @@ func powFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 	return nil, fmt.Errorf("base must be a number, but got %T", base)
 }
 
-func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
+func (f *SQLScalarFuncValue) MongoValue() interface{} {
+	return nil
+}
+
+func (f *SQLScalarFuncValue) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
+	fEval, err := f.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return fEval.CompareTo(ctx, value)
+}
+
+//
+// SQLAggFuncValue
+//
+type SQLAggFuncValue struct {
+	*sqlparser.FuncExpr
+}
+
+func (f *SQLAggFuncValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	var distinctMap map[interface{}]bool = nil
+	if f.Distinct {
+		distinctMap = make(map[interface{}]bool)
+	}
+
+	switch string(f.Name) {
+	case "avg":
+		return f.avgFunc(ctx, distinctMap)
+	case "sum":
+		return f.sumFunc(ctx, distinctMap)
+	case "count":
+		return f.countFunc(ctx, distinctMap)
+	case "max":
+		return f.maxFunc(ctx)
+	case "min":
+		return f.minFunc(ctx)
+	default:
+		return nil, fmt.Errorf("function '%v' is not supported", string(f.Name))
+	}
+}
+
+func (f *SQLAggFuncValue) MongoValue() interface{} {
+	return nil
+}
+
+func (f *SQLAggFuncValue) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
+	fEval, err := f.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return fEval.CompareTo(ctx, value)
+}
+
+func (f *SQLAggFuncValue) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
 	var sum SQLNumeric = SQLInt(0)
 	count := 0
 	for _, row := range ctx.Rows {
 		evalCtx := &EvalCtx{Rows: []Row{row}}
-		for _, sExpr := range sExprs {
+		for _, sExpr := range f.Exprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
@@ -617,11 +619,11 @@ func avgFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 	return SQLFloat(sum.Float64() / float64(count)), nil
 }
 
-func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
+func (f *SQLAggFuncValue) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
 	var sum SQLNumeric = SQLInt(0)
 	for _, row := range ctx.Rows {
 		evalCtx := &EvalCtx{Rows: []Row{row}}
-		for _, sExpr := range sExprs {
+		for _, sExpr := range f.Exprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
@@ -659,11 +661,11 @@ func sumFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interfa
 	return sum, nil
 }
 
-func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[interface{}]bool) (SQLValue, error) {
+func (f *SQLAggFuncValue) countFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
 	var count int64
 	for _, row := range ctx.Rows {
 		evalCtx := &EvalCtx{Rows: []Row{row}}
-		for _, sExpr := range sExprs {
+		for _, sExpr := range f.Exprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
@@ -700,11 +702,11 @@ func countFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs, distinctMap map[inter
 	return SQLInt(count), nil
 }
 
-func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
+func (f *SQLAggFuncValue) minFunc(ctx *EvalCtx) (SQLValue, error) {
 	var min SQLValue
 	for _, row := range ctx.Rows {
 		evalCtx := &EvalCtx{Rows: []Row{row}}
-		for _, sExpr := range sExprs {
+		for _, sExpr := range f.Exprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
@@ -737,11 +739,11 @@ func minFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
 	return min, nil
 }
 
-func maxFunc(ctx *EvalCtx, sExprs sqlparser.SelectExprs) (SQLValue, error) {
+func (f *SQLAggFuncValue) maxFunc(ctx *EvalCtx) (SQLValue, error) {
 	var max SQLValue
 	for _, row := range ctx.Rows {
 		evalCtx := &EvalCtx{Rows: []Row{row}}
-		for _, sExpr := range sExprs {
+		for _, sExpr := range f.Exprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
 			case *sqlparser.StarExpr:
@@ -962,4 +964,65 @@ func (td *Tilda) MongoValue() interface{} {
 
 func (td *Tilda) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	return td.CompareTo(ctx, v)
+}
+
+//
+// SubqueryValue
+//
+
+type SubqueryValue struct {
+	stmt sqlparser.SelectStatement
+}
+
+func (sv *SubqueryValue) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
+	ctx.ExecCtx.Depth += 1
+
+	operator, err := PlanQuery(ctx.ExecCtx, sv.stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	value = SQLBool(false)
+
+	defer func() {
+		if err == nil {
+			err = operator.Err()
+		}
+
+		// add context to error
+		if err != nil {
+			err = fmt.Errorf("SubqueryValue (%v): %v", ctx.ExecCtx.Depth, err)
+		}
+
+		ctx.ExecCtx.Depth -= 1
+
+	}()
+
+	row := &Row{}
+
+	if err := operator.Open(ctx.ExecCtx); err != nil {
+		return nil, err
+	}
+
+	for operator.Next(row) {
+
+		if len(row.Data) != 0 {
+			value = SQLBool(true)
+			break
+		}
+
+		row = &Row{}
+
+	}
+
+	return value, operator.Close()
+}
+
+func (sv *SubqueryValue) MongoValue() interface{} {
+	return nil
+}
+
+// TODO (INT-810)
+func (sv *SubqueryValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	return 0, nil
 }

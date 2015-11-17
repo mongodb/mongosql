@@ -251,9 +251,13 @@ func NewParseCtx(ss sqlparser.SelectStatement, c *config.Config, db string) (*Pa
 // It searches in the parent context if the alias is not found
 // in the current context.
 func (pCtx *ParseCtx) TableInfo(db, alias string) (*TableInfo, error) {
-	// no guarantee that this table exists without checking the db
-	if pCtx == nil {
-		return nil, fmt.Errorf("Unknown table '%v'", alias)
+	return pCtx.tableInfo(db, alias, 0)
+}
+
+func (pCtx *ParseCtx) tableInfo(db, alias string, depth int) (*TableInfo, error) {
+
+	if pCtx != nil && pCtx.Parent != nil && depth == 0 {
+		return pCtx.Parent.tableInfo(db, alias, depth)
 	}
 
 	for _, tableInfo := range pCtx.Tables {
@@ -262,7 +266,14 @@ func (pCtx *ParseCtx) TableInfo(db, alias string) (*TableInfo, error) {
 		}
 	}
 
-	return pCtx.Parent.TableInfo(db, alias)
+	for _, ctx := range pCtx.Children {
+		tableInfo, err := ctx.tableInfo(db, alias, depth+1)
+		if err == nil {
+			return tableInfo, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Unknown table '%v'", alias)
 }
 
 // ColumnInfo searches current context for the given alias
@@ -437,7 +448,7 @@ func (pCtx *ParseCtx) TableSchema(table string) *config.TableConfig {
 	return schema.Tables[table]
 }
 
-// IsSchemaColumn returns true if the given column is present
+// IsColumnReference returns true if the given column is present
 // column references for this context.
 func (pCtx *ParseCtx) IsColumnReference(column *Column) bool {
 

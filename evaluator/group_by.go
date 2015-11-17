@@ -171,7 +171,7 @@ func (gb *GroupBy) Next(row *Row) bool {
 	}
 
 	rCtx, done := <-gb.outChan
-	gb.ctx.Rows = rCtx.Ctx
+	gb.ctx.GroupRows = rCtx.Ctx
 	row.Data = rCtx.Row.Data
 
 	return done

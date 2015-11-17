@@ -13,7 +13,7 @@ type Matcher interface {
 
 // BuildMatcher rewrites a boolean expression as a matcher.
 func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
-	log.Logf(log.DebugLow, "match expr: %#v (type is %T)", gExpr, gExpr)
+	log.Logf(log.DebugLow, "match expr: %#v (type is %T)\n", gExpr, gExpr)
 
 	switch expr := gExpr.(type) {
 
@@ -197,10 +197,21 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		}
 
 		return &BoolMatcher{val}, nil
+
+	case *sqlparser.Subquery:
+
+		val := &SubqueryValue{expr.Select}
+
+		return &BoolMatcher{val}, nil
+
+	case *sqlparser.ExistsExpr:
+
+		val := &SubqueryValue{expr.Subquery.Select}
+
+		return &BoolMatcher{val}, nil
+
 		/*
-			case *sqlparser.Subquery:
 			case sqlparser.ValArg:
-			case *sqlparser.ExistsExpr:
 		*/
 
 	default:

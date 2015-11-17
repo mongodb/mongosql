@@ -70,12 +70,12 @@ func TestProjectOperator(t *testing.T) {
 
 		sExprs := SelectExpressions{
 			SelectExpression{
-				Column: Column{tableOneName, "a", "a"},
+				Column: Column{tableOneName, "a", "a", false},
 				Expr:   &sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
 			},
 			SelectExpression{
 				Referenced: true,
-				Column:     Column{tableOneName, "b", "b"},
+				Column:     Column{tableOneName, "b", "b", false},
 				Expr:       &sqlparser.ColName{[]byte("b"), []byte(tableOneName)},
 			},
 		}

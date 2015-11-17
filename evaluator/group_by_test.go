@@ -66,11 +66,11 @@ func TestGroupByOperator(t *testing.T) {
 			},
 			sExprs: SelectExpressions{
 				SelectExpression{
-					Column: Column{tableOneName, "a", "a"},
+					Column: Column{tableOneName, "a", "a", false},
 					Expr:   &sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
 				},
 				SelectExpression{
-					Column: Column{tableOneName, "b", "b"},
+					Column: Column{tableOneName, "b", "b", false},
 					Expr:   &sqlparser.ColName{[]byte("b"), []byte(tableOneName)},
 				},
 			},
@@ -80,11 +80,11 @@ func TestGroupByOperator(t *testing.T) {
 
 			sExprs := SelectExpressions{
 				SelectExpression{
-					Column: Column{tableOneName, "a", "a"},
+					Column: Column{tableOneName, "a", "a", false},
 					Expr:   &sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
 				},
 				SelectExpression{
-					Column: Column{"", "sum(b)", "sum(b)"},
+					Column: Column{"", "sum(b)", "sum(b)", false},
 					Expr: &sqlparser.FuncExpr{
 						Name: []byte("sum"),
 						Exprs: sqlparser.SelectExprs{

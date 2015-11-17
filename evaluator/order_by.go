@@ -62,7 +62,7 @@ func (ob *OrderBy) evaluateOrderByKeys(row *Row) []orderByKey {
 		// for aggregation functions, we set the context in the
 		// preceding GROUP BY operator
 		if key.isAggFunc {
-			key.evalCtx = &EvalCtx{Rows: ob.ctx.Rows}
+			key.evalCtx = &EvalCtx{Rows: ob.ctx.GroupRows}
 		}
 
 		keys = append(keys, key)

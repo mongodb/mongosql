@@ -67,6 +67,8 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 		}
 	}
 
+	log.Logf(log.DebugLow, "pCTX: %v\n", pCtx.String())
+
 	eCtx := &evaluator.ExecutionCtx{
 		Db:            db,
 		ParseCtx:      pCtx,
@@ -94,7 +96,7 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 func executeQueryPlan(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) ([]string, [][]interface{}, error) {
 	rows := make([][]interface{}, 0)
 
-	log.Logf(log.DebugLow, "Executing plan: %#v", operator)
+	log.Logf(log.DebugLow, "Executing plan: %#v\n", operator)
 
 	row := &evaluator.Row{}
 
