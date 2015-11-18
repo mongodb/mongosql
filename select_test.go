@@ -80,6 +80,16 @@ func TestSelectWithStar(t *testing.T) {
 				So(values[0][1], ShouldResemble, evaluator.SQLNull)
 				So(values[0][2], ShouldResemble, evaluator.SQLInt(15))
 				So(values[0][3], ShouldResemble, evaluator.SQLInt(17))
+
+				// A string literal should be usable as a matcher. "1" evaluates to true
+				names, values, err = eval.EvalSelect("", "select * from test.bar where '1'", nil, nil)
+				So(err, ShouldBeNil)
+				So(len(values), ShouldEqual, 2)
+
+				// A string that can't be converted to a non-zero integer evaluates to false
+				names, values, err = eval.EvalSelect("", "select * from test.bar where 'xxx'", nil, nil)
+				So(err, ShouldBeNil)
+				So(len(values), ShouldEqual, 0)
 			})
 		})
 	})

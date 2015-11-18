@@ -190,6 +190,13 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 
 		return &BoolMatcher{val}, nil
 
+	case sqlparser.StrVal:
+		val, err := NewSQLValue(expr)
+		if err != nil {
+			return nil, err
+		}
+
+		return &BoolMatcher{val}, nil
 		/*
 			case *sqlparser.Subquery:
 			case sqlparser.ValArg:
