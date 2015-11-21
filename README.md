@@ -31,8 +31,8 @@ TODO
 - WHERE
    - ~~math~~
    - ~~case expression~~
-   - exists expression
-   - strval expression
+   - ~~exists expression~~
+   - ~~strval expression~~
    - subquery expression
    - value argument expressions
 - ~~AGGREGATORS (avg, sum)~~
