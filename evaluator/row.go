@@ -46,6 +46,19 @@ func (row *Row) GetField(table, name string) (interface{}, bool) {
 	return nil, false
 }
 
+// GetValues gets the values of the columns - referenced by name - in
+// the row.
+func (row *Row) GetValues(columns []*Column) []interface{} {
+	values := make([]interface{}, 0)
+
+	for _, column := range columns {
+		value, _ := row.GetField(column.Table, column.Name)
+		values = append(values, value)
+	}
+
+	return values
+}
+
 func (values Values) Map() map[string]interface{} {
 	m := make(map[string]interface{}, 0)
 	for _, value := range values {

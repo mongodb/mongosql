@@ -150,7 +150,7 @@ func (nv SQLNullValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	if _, ok := c.(SQLNullValue); ok {
 		return 0, nil
 	}
-	return -1, nil
+	return 1, nil
 }
 
 func (sn SQLNullValue) MongoValue() interface{} {
@@ -355,7 +355,7 @@ func (sn SQLString) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 		return 0, nil
 	}
 	// can only compare numbers to each other, otherwise treat as error
-	return -1, ErrTypeMismatch
+	return 1, ErrTypeMismatch
 }
 
 //
@@ -382,7 +382,7 @@ func (sb SQLBool) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 		return 1, nil
 	}
 	// can only compare bool to a bool, otherwise treat as error
-	return -1, ErrTypeMismatch
+	return 1, ErrTypeMismatch
 }
 
 func (sb SQLBool) MongoValue() interface{} {
@@ -826,23 +826,24 @@ func (sv SQLValues) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 
 	r, ok := v.(SQLValues)
 	if !ok {
-		if len(sv.Values) != 1 {
-			return -1, fmt.Errorf("Operand should contain %v columns", len(sv.Values))
-		}
+		//
 		// allows for implicit row value comparisons such as:
 		//
 		// select a, b from foo where (a) < 3;
 		//
-		//
+		if len(sv.Values) != 1 {
+			return 1, fmt.Errorf("Operand should contain %v columns", len(sv.Values))
+		}
 		r.Values = append(r.Values, v)
 	} else if len(sv.Values) != len(r.Values) {
-		return -1, fmt.Errorf("Operand should contain %v columns", len(sv.Values))
+		return 1, fmt.Errorf("Operand should contain %v columns", len(sv.Values))
 	}
 
 	for i := 0; i < len(sv.Values); i++ {
+
 		c, err := sv.Values[i].CompareTo(ctx, r.Values[i])
 		if err != nil {
-			return -1, err
+			return 1, err
 		}
 
 		if c != 0 {
@@ -966,25 +967,31 @@ func (td *Tilda) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	return td.CompareTo(ctx, v)
 }
 
-//
-// SubqueryValue
-//
-
+// SubqueryValue returns true if any result is returned from the subquery.
 type SubqueryValue struct {
 	stmt sqlparser.SelectStatement
 }
 
 func (sv *SubqueryValue) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
+
 	ctx.ExecCtx.Depth += 1
 
-	operator, err := PlanQuery(ctx.ExecCtx, sv.stmt)
+	var operator Operator
+
+	eval := SQLValues{}
+
+	operator, err = PlanQuery(ctx.ExecCtx, sv.stmt)
 	if err != nil {
 		return nil, err
 	}
 
-	value = SQLBool(false)
-
 	defer func() {
+		if err == nil {
+			err = operator.Close()
+		} else {
+			operator.Close()
+		}
+
 		if err == nil {
 			err = operator.Err()
 		}
@@ -998,31 +1005,40 @@ func (sv *SubqueryValue) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 
 	}()
 
-	row := &Row{}
-
-	if err := operator.Open(ctx.ExecCtx); err != nil {
+	err = operator.Open(ctx.ExecCtx)
+	if err != nil {
 		return nil, err
 	}
 
-	for operator.Next(row) {
+	row := &Row{}
 
-		if len(row.Data) != 0 {
-			value = SQLBool(true)
-			break
+	hasNext := operator.Next(row)
+
+	// Filter has to check the entire source to return an accurate 'hasNext'
+	if hasNext && operator.Next(&Row{}) {
+		return nil, fmt.Errorf("Subquery returns more than 1 row")
+	}
+
+	values := row.GetValues(operator.OpFields())
+
+	for _, value := range values {
+
+		field, err := NewSQLField(value)
+		if err != nil {
+			return nil, err
 		}
 
-		row = &Row{}
+		eval.Values = append(eval.Values, field)
 
 	}
 
-	return value, operator.Close()
+	return eval, nil
 }
 
 func (sv *SubqueryValue) MongoValue() interface{} {
 	return nil
 }
 
-// TODO (INT-810)
 func (sv *SubqueryValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	return 0, nil
+	return 1, nil
 }

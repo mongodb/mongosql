@@ -1826,3 +1826,178 @@ func TestSelectWithExists(t *testing.T) {
 
 	})
 }
+
+func TestSelectWithSubqueryWhere(t *testing.T) {
+
+	Convey("With a select query containing a subquery in the WHERE expression", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvaluator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+
+		So(collection.Insert(bson.M{"a": 2, "b": 4, "c": 5}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 1, "b": 7, "c": 2}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 6, "b": 1, "c": 9}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 5, "b": 3, "c": 4}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 1, "b": 6, "c": 8}), ShouldBeNil)
+
+		Convey("subqueries returning more than one row should error out", func() {
+
+			_, _, err := eval.EvalSelect("test", "select * from bar where (a, b) > (select a, b from bar where a < 2)", nil, nil)
+			So(err, ShouldNotBeNil)
+
+		})
+
+		Convey("subqueries returning one matching row should not error out", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where a = (select max(a) from bar)", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(6): []evaluator.SQLNumeric{
+					evaluator.SQLInt(1),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+			names, values, err = eval.EvalSelect("test", "select a, b from bar where a = (select a from bar where a = 5)", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+			expectedValues = map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(5): []evaluator.SQLNumeric{
+					evaluator.SQLInt(3),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+		})
+
+		Convey("subqueries returning no rows should return no results", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a, b) > (select a, b from bar where a = 0)", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 0)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+		})
+
+		Convey("subqueries returning exactly one row should be filtered correctly than one row", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a, b) > (select a, b from bar where a = 2)", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 2)
+
+			So(names, ShouldResemble, []string{"a", "b"})
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(6): []evaluator.SQLNumeric{
+					evaluator.SQLInt(1),
+				},
+				evaluator.SQLInt(5): []evaluator.SQLNumeric{
+					evaluator.SQLInt(3),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+
+		})
+
+	})
+
+}
+
+func TestSelectWithSubqueryInline(t *testing.T) {
+
+	Convey("With a select query containing an inline subquery as a data source", t, func() {
+
+		cfg, err := config.ParseConfigData(testConfigSimple)
+		So(err, ShouldBeNil)
+
+		eval, err := NewEvaluator(cfg)
+		So(err, ShouldBeNil)
+
+		session := eval.getSession()
+		defer session.Close()
+
+		collection := session.DB("test").C("simple")
+		collection.DropCollection()
+
+		So(collection.Insert(bson.M{"a": 2, "b": 4, "c": 5}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 1, "b": 7, "c": 2}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 6, "b": 1, "c": 9}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 5, "b": 3, "c": 4}), ShouldBeNil)
+		So(collection.Insert(bson.M{"a": 1, "b": 6, "c": 8}), ShouldBeNil)
+
+		Convey("star expressions combined with subqueries should return the correct columns", func() {
+
+			names, values, err := eval.EvalSelect("test", "select * from bar f, (select max(a) as maxloss, c from bar) m", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 6)
+			So(len(values), ShouldEqual, 5)
+
+			So(names, ShouldResemble, []string{"a", "b", "_id", "c", "maxloss", "c"})
+		})
+
+		Convey("filtered star expressions combined with subqueries should return the correct columns", func() {
+
+			names, values, err := eval.EvalSelect("test", "select f.* from bar f, (select max(a) as maxloss from bar) m", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 4)
+			So(len(values), ShouldEqual, 5)
+
+			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+
+			names, values, err = eval.EvalSelect("test", "select m.* from bar f, (select max(a) as maxloss, c from bar) m", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 5)
+
+			So(names, ShouldResemble, []string{"maxloss", "c"})
+
+			names, values, err = eval.EvalSelect("test", "select m.*, f.* from bar f, (select max(a) as maxloss, c from bar) m", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 6)
+			So(len(values), ShouldEqual, 5)
+
+			So(names, ShouldResemble, []string{"maxloss", "c", "a", "b", "_id", "c"})
+
+			names, values, err = eval.EvalSelect("test", "select * from bar f, (select max(a) as maxloss, c from bar) m", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 6)
+			So(len(values), ShouldEqual, 5)
+
+			So(names, ShouldResemble, []string{"a", "b", "_id", "c", "maxloss", "c"})
+
+		})
+	})
+}

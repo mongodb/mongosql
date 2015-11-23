@@ -190,6 +190,7 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 	// select expressions - as aggregate functions with no GROUP BY
 	// clause imply a single group
 	if len(ast.GroupBy) != 0 || hasAggSelectExpr {
+
 		operator, err = planGroupBy(ast, selectOp)
 		if err != nil {
 			return nil, err
@@ -775,14 +776,6 @@ func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlp
 		as := &AliasedSource{
 			source:    source,
 			tableName: string(s.As),
-		}
-
-		if w != nil {
-			matcher, err := BuildMatcher(w.Expr)
-			if err != nil {
-				return nil, err
-			}
-			as.matcher = matcher
 		}
 
 		return as, nil

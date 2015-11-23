@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"fmt"
+	"github.com/erh/mixer/sqlparser"
 	"strconv"
 )
 
@@ -77,6 +79,47 @@ type NoopMatcher struct{}
 
 func (no *NoopMatcher) Matches(ctx *EvalCtx) (bool, error) {
 	return true, nil
+}
+
+// ExistsMatcher returns true if any result is returned from an exists
+// expression referencing a subquery.
+type ExistsMatcher struct {
+	stmt sqlparser.SelectStatement
+}
+
+func (em *ExistsMatcher) Matches(ctx *EvalCtx) (bool, error) {
+	ctx.ExecCtx.Depth += 1
+
+	operator, err := PlanQuery(ctx.ExecCtx, em.stmt)
+	if err != nil {
+		return false, err
+	}
+
+	var matches bool
+
+	defer func() {
+		if err == nil {
+			err = operator.Err()
+		}
+
+		// add context to error
+		if err != nil {
+			err = fmt.Errorf("ExistsMatcher (%v): %v", ctx.ExecCtx.Depth, err)
+		}
+
+		ctx.ExecCtx.Depth -= 1
+
+	}()
+
+	if err := operator.Open(ctx.ExecCtx); err != nil {
+		return false, err
+	}
+
+	if operator.Next(&Row{}) {
+		matches = true
+	}
+
+	return matches, operator.Close()
 }
 
 // BoolMatcher is a matcher that returns true if the embedded SQLValue evaluates

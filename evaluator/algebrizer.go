@@ -26,6 +26,7 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 				if err != nil {
 					return err
 				}
+
 			}
 		}
 
@@ -200,6 +201,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 			// the information schema
 
 			if pCtx.Database != InformationSchema && !pCtx.InFuncExpr() {
+
 				table, err := pCtx.GetCurrentTable(pCtx.Database, string(expr.TableName))
 				if err != nil {
 					algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
@@ -207,27 +209,32 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 				}
 
 				schema := pCtx.TableSchema(table.Name)
-				if schema == nil {
-					algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
-					continue
-				}
+				if schema != nil {
+					for _, column := range schema.Columns {
+						expr := &sqlparser.ColName{
+							Name:      []byte(column.Name),
+							Qualifier: []byte(table.Alias),
+						}
 
-				for _, column := range schema.Columns {
-					expr := &sqlparser.ColName{
-						Name:      []byte(column.Name),
-						Qualifier: []byte(table.Alias),
+						nonStarExpr := &sqlparser.NonStarExpr{
+							Expr: expr,
+						}
+						algebrizeSelectExprs = append(algebrizeSelectExprs, nonStarExpr)
+					}
+				} else {
+					if !table.Derived {
+						return nil, fmt.Errorf("non-derived table '%v' does not exist", table.Name)
 					}
 
-					nonStarExpr := &sqlparser.NonStarExpr{
-						Expr: expr,
-					}
-					algebrizeSelectExprs = append(algebrizeSelectExprs, nonStarExpr)
+					algebrizeSelectExprs = append(algebrizeSelectExprs, pCtx.GetTableColumns(table)...)
 				}
+				continue
 			} else {
 				algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
 			}
 
 		case *sqlparser.NonStarExpr:
+
 			nonStarExpr := expr
 
 			pCtx.Expr = expr.Expr
@@ -245,7 +252,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 
 			// If this expression doesn't reference a column, add the
 			// column information to the parse context.
-			if !pCtx.InRefColumn() {
+			if !(pCtx.InRefColumn() || pCtx.InFuncExpr()) {
 
 				nonStarAlias := string(nonStarExpr.As)
 				nonStarName := sqlparser.String(nonStarExpr.Expr)
@@ -261,7 +268,9 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 					tableName = table.Alias
 				}
 
-				column := ColumnInfo{nonStarName, nonStarAlias, tableName}
+				index := len(pCtx.Columns) + len(pCtx.ColumnReferences)
+
+				column := ColumnInfo{nonStarName, nonStarAlias, tableName, index}
 
 				pCtx.Columns = append(pCtx.Columns, column)
 			}
@@ -274,6 +283,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 			return nil, fmt.Errorf("unreachable path")
 		}
 	}
+
 	return algebrizeSelectExprs, nil
 }
 
@@ -307,7 +317,7 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 	case *sqlparser.NullVal:
 
-		return nil, nil
+		return expr, nil
 
 		// TODO: regex lowercased
 	case *sqlparser.ColName:
@@ -367,6 +377,7 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 		return expr, nil
 
 	case *sqlparser.RangeCond:
+
 		from, to, err := algebrizeLRExpr(expr.From, expr.To, pCtx)
 		if err != nil {
 			return nil, fmt.Errorf("RangeCond LR error: %v", err)
@@ -450,18 +461,15 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 		return expr, nil
 
-	case sqlparser.ValArg:
-
-		return nil, fmt.Errorf("can't handle ValArg type %T", expr)
-
 	case *sqlparser.FuncExpr:
 		// set the current expression being parsed to this function to
 		// prevent treating nested select expressions as top-level column
 		// references
 
 		if pCtx.NonStarAlias != "" {
-			reference := ColumnReference{pCtx.NonStarAlias, pCtx.Expr}
-			pCtx.ColumnReferences = append(pCtx.ColumnReferences, reference)
+			index := len(pCtx.Columns) + len(pCtx.ColumnReferences)
+			ref := ColumnReference{pCtx.NonStarAlias, pCtx.DerivedTableName, pCtx.Expr, index}
+			pCtx.ColumnReferences = append(pCtx.ColumnReferences, ref)
 		}
 
 		pCtx.State |= StateFuncExpr
@@ -526,7 +534,11 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 	case nil:
 
-		return nil, nil
+		return &sqlparser.NullVal{}, nil
+
+	case sqlparser.ValArg:
+
+		return nil, fmt.Errorf("can't handle ValArg type %T", expr)
 
 	default:
 
@@ -622,6 +634,8 @@ func algebrizeSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, pCtx *ParseCtx) 
 
 			nCtx.State |= StateSubQueryExpr
 
+			nCtx.DerivedTableName = pCtx.DerivedTableName
+
 			if err = algebrizeSelectStatement(expr.Select, nCtx); err != nil {
 				return nil, fmt.Errorf("can't algebrize Subquery: %v", err)
 			}
@@ -683,12 +697,16 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 
 		case *sqlparser.AliasedTableExpr:
 
+			alias := string(expr.As)
+
+			pCtx.DerivedTableName = alias
+
 			stExpr, err := algebrizeSimpleTableExpr(expr.Expr, pCtx)
 			if err != nil {
 				return nil, fmt.Errorf("GetTableInfo AliasedTableExpr error: %v", err)
 			}
 
-			alias := string(expr.As)
+			pCtx.DerivedTableName = ""
 
 			switch node := stExpr.(type) {
 
@@ -840,6 +858,10 @@ func resolveColumnExpr(expr *sqlparser.ColName, pCtx *ParseCtx) (sqlparser.Expr,
 		expr.Qualifier = []byte(columnInfo.Table)
 	}
 
+	if pCtx.DerivedTableName != "" {
+		columnInfo.Table = pCtx.DerivedTableName
+	}
+
 	// If we're not parsing a select expression, and we encounter a column
 	// it could either be a schema table column or the alias referencing a
 	// select expression
@@ -884,10 +906,10 @@ func resolveColumnExpr(expr *sqlparser.ColName, pCtx *ParseCtx) (sqlparser.Expr,
 		//
 		// select a+b as f from foo order by a+b;
 		//
-		for _, reference := range pCtx.ColumnReferences {
+		for _, ref := range pCtx.ColumnReferences {
 
-			if reference.Name == column.Name {
-				return reference.Expr, nil
+			if ref.Name == column.Name {
+				return ref.Expr, nil
 			}
 		}
 	}
@@ -897,12 +919,17 @@ func resolveColumnExpr(expr *sqlparser.ColName, pCtx *ParseCtx) (sqlparser.Expr,
 	// aliased as such. Add the expression to the parse context
 	// either as a column or as a column reference.
 
-	if _, ok := pCtx.Expr.(*sqlparser.ColName); ok {
-		pCtx.Columns = append(pCtx.Columns, *columnInfo)
-	} else {
-		if pCtx.NonStarAlias != "" {
-			reference := ColumnReference{columnInfo.Alias, pCtx.Expr}
-			pCtx.ColumnReferences = append(pCtx.ColumnReferences, reference)
+	if !pCtx.InFuncExpr() {
+		if _, ok := pCtx.Expr.(*sqlparser.ColName); ok {
+			index := len(pCtx.Columns) + len(pCtx.ColumnReferences)
+			columnInfo.Index = index
+			pCtx.Columns = append(pCtx.Columns, *columnInfo)
+		} else {
+			if pCtx.NonStarAlias != "" {
+				index := len(pCtx.Columns) + len(pCtx.ColumnReferences)
+				ref := ColumnReference{columnInfo.Alias, columnInfo.Table, pCtx.Expr, index}
+				pCtx.ColumnReferences = append(pCtx.ColumnReferences, ref)
+			}
 		}
 	}
 

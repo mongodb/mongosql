@@ -65,9 +65,12 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 		if err = evaluator.AlgebrizeStatement(stmt, pCtx); err != nil {
 			return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
 		}
-	}
 
-	log.Logf(log.DebugLow, "pCTX: %v\n", pCtx.String())
+		if pCtx != nil {
+			log.Logf(log.DebugLow, "pCTX: %v\n", pCtx.String())
+		}
+
+	}
 
 	eCtx := &evaluator.ExecutionCtx{
 		Db:            db,
@@ -105,9 +108,8 @@ func executeQueryPlan(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) 
 	}
 
 	for operator.Next(row) {
-		values := getRowValues(operator.OpFields(), row)
 
-		rows = append(rows, values)
+		rows = append(rows, row.GetValues(operator.OpFields()))
 
 		row.Data = []evaluator.TableRow{}
 	}
@@ -137,16 +139,4 @@ func executeQueryPlan(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) 
 	}
 
 	return headers, rows, nil
-}
-
-func getRowValues(columns []*evaluator.Column, row *evaluator.Row) []interface{} {
-	values := make([]interface{}, 0)
-
-	for _, column := range columns {
-
-		value, _ := row.GetField(column.Table, column.Name)
-		values = append(values, value)
-	}
-
-	return values
 }

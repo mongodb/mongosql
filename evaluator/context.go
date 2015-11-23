@@ -36,8 +36,11 @@ type ParseCtx struct {
 	// Children holds all new contexts derived from this context
 	Children []*ParseCtx
 
-	// NonStarAlias holds the alias for a non-star expression
+	// NonStarAlias holds the column alias for a non-star expression
 	NonStarAlias string
+
+	// NonStarAlias holds the table alias for a non-star subquery expression
+	DerivedTableName string
 
 	// Expr holds the expression in a select query that is being
 	// processed
@@ -185,8 +188,10 @@ func (tInfos TableInfos) Contains(t TableInfo) bool {
 type ColumnReferences []ColumnReference
 
 type ColumnReference struct {
-	Name string
-	Expr sqlparser.Expr
+	Name  string
+	Table string
+	Expr  sqlparser.Expr
+	Index int
 }
 
 // ColumnInfo holds a mapping of aliases (or real names
@@ -196,6 +201,7 @@ type ColumnInfo struct {
 	Name  string
 	Alias string
 	Table string
+	Index int
 }
 
 type ColumnInfos []ColumnInfo
@@ -454,7 +460,7 @@ func (pCtx *ParseCtx) IsColumnReference(column *Column) bool {
 
 	for _, reference := range pCtx.ColumnReferences {
 
-		if reference.Name == column.Name {
+		if reference.Name == column.Name && reference.Table == column.Table {
 			return true
 		}
 	}
@@ -543,4 +549,42 @@ func (pCtx *ParseCtx) CheckColumn(table *TableInfo, cName string) error {
 	}
 
 	return fmt.Errorf("Unknown column '%v' in table '%v'", cName, tName)
+}
+
+// GetTableColumns returns all the columns for a derived table.
+func (pCtx *ParseCtx) GetTableColumns(table *TableInfo) sqlparser.SelectExprs {
+
+	exprs := make(map[int]sqlparser.SelectExpr, 0)
+
+	for _, child := range pCtx.Children {
+
+		for _, column := range child.Columns {
+			if column.Table == table.Name {
+				expr := &sqlparser.ColName{
+					Name:      []byte(column.Alias),
+					Qualifier: []byte(column.Table),
+				}
+				exprs[column.Index] = &sqlparser.NonStarExpr{Expr: expr}
+			}
+		}
+
+		for _, ref := range child.ColumnReferences {
+			if ref.Table == table.Name {
+				expr := &sqlparser.ColName{
+					Name:      []byte(ref.Name),
+					Qualifier: []byte(ref.Table),
+				}
+				exprs[ref.Index] = &sqlparser.NonStarExpr{Expr: expr}
+			}
+		}
+	}
+
+	selectExprs := sqlparser.SelectExprs{}
+
+	for i := 0; i < len(exprs); i++ {
+		selectExprs = append(selectExprs, exprs[i])
+	}
+
+	return selectExprs
+
 }

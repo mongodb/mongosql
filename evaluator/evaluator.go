@@ -107,6 +107,7 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 		}
 
 		switch expr.Operator {
+
 		case sqlparser.AST_UMINUS:
 
 			return &UMinus{val}, nil
@@ -126,6 +127,10 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 	case *sqlparser.CaseExpr:
 
 		return NewSQLCaseValue(expr)
+
+	case *sqlparser.Subquery:
+
+		return &SubqueryValue{expr.Select}, nil
 
 	case nil:
 

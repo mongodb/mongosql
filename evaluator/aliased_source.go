@@ -10,9 +10,6 @@ type AliasedSource struct {
 	// source holds the source for this select statement
 	source Operator
 
-	// matcher is used to filter results returned by this operator
-	matcher Matcher
-
 	// ctx is the current execution context
 	ctx *ExecutionCtx
 }
@@ -24,53 +21,32 @@ func (as *AliasedSource) Open(ctx *ExecutionCtx) error {
 
 func (as *AliasedSource) Next(row *Row) bool {
 
-	var hasNext bool
+	hasNext := as.source.Next(row)
 
-	for {
-
-		hasNext = as.source.Next(row)
-
-		if !hasNext {
-			break
-		}
-
-		var tableRows []TableRow
-
-		for _, tableRow := range row.Data {
-
-			var values Values
-
-			for _, value := range tableRow.Values {
-				value.Name = value.View
-				values = append(values, value)
-			}
-
-			tableRow.Values = values
-			tableRow.Table = as.tableName
-
-			tableRows = append(tableRows, tableRow)
-		}
-
-		row.Data = tableRows
-
-		evalCtx := &EvalCtx{[]Row{*row}, as.ctx}
-
-		if as.matcher != nil {
-			m, err := as.matcher.Matches(evalCtx)
-			if err != nil {
-				as.err = err
-				return false
-			}
-			if m {
-				break
-			}
-		} else {
-			break
-		}
-
+	if !hasNext {
+		return false
 	}
 
-	return hasNext
+	var tableRows []TableRow
+
+	for _, tableRow := range row.Data {
+
+		var values Values
+
+		for _, value := range tableRow.Values {
+			value.Name = value.View
+			values = append(values, value)
+		}
+
+		tableRow.Values = values
+		tableRow.Table = as.tableName
+
+		tableRows = append(tableRows, tableRow)
+	}
+
+	row.Data = tableRows
+
+	return true
 }
 
 func (as *AliasedSource) OpFields() (columns []*Column) {

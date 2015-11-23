@@ -73,8 +73,16 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		case sqlparser.AST_LIKE:
 			return &Like{left, right}, nil
 		case sqlparser.AST_IN:
+			switch eval := right.(type) {
+			case *SubqueryValue:
+				return &SubqueryCmp{true, left, eval}, nil
+			}
 			return &In{left, right}, nil
 		case sqlparser.AST_NOT_IN:
+			switch eval := right.(type) {
+			case *SubqueryValue:
+				return &SubqueryCmp{false, left, eval}, nil
+			}
 			return &NotIn{left, right}, nil
 		default:
 			return &Equals{left, right}, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)
@@ -191,6 +199,7 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 		return &BoolMatcher{val}, nil
 
 	case sqlparser.StrVal:
+
 		val, err := NewSQLValue(expr)
 		if err != nil {
 			return nil, err
@@ -200,15 +209,11 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 
 	case *sqlparser.Subquery:
 
-		val := &SubqueryValue{expr.Select}
-
-		return &BoolMatcher{val}, nil
+		return &ExistsMatcher{expr.Select}, nil
 
 	case *sqlparser.ExistsExpr:
 
-		val := &SubqueryValue{expr.Subquery.Select}
-
-		return &BoolMatcher{val}, nil
+		return &ExistsMatcher{expr.Subquery.Select}, nil
 
 		/*
 			case sqlparser.ValArg:
@@ -216,6 +221,5 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 
 	default:
 		panic(fmt.Errorf("matcher not yet implemented for %v (%T)", sqlparser.String(expr), expr))
-		return nil, nil
 	}
 }
