@@ -312,8 +312,9 @@ func (pCtx *ParseCtx) AddColumns() {
 			continue
 		}
 
-		for _, tableColumn := range tableSchema.Columns {
+		for index, tableColumn := range tableSchema.Columns {
 			column := ColumnInfo{
+				Index: index,
 				Name:  tableColumn.Name,
 				Alias: tableColumn.Name,
 				Table: table.Name,

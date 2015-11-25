@@ -1998,6 +1998,14 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b", "_id", "c", "maxloss", "c"})
 
+			names, values, err = eval.EvalSelect("test", "select * from bar join (select * from bar) as derived order by bar.c", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 8)
+			So(len(values), ShouldEqual, 25)
+
+			So(names, ShouldResemble, []string{"a", "b", "_id", "c", "a", "b", "_id", "c"})
+
 		})
 	})
 }

@@ -33,7 +33,7 @@ TODO
    - ~~case expression~~
    - ~~exists expression~~
    - ~~strval expression~~
-   - subquery expression
+   - ~~subquery expression~~
    - value argument expressions
 - ~~AGGREGATORS (avg, sum)~~
 - ~~SORT~~

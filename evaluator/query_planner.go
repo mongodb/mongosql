@@ -47,7 +47,8 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 	addReferencedColumns := func(columns []*Column) {
 		for _, column := range columns {
 			// only add basic columns present in table configuration
-			if ctx.ParseCtx.IsSchemaColumn(column) && !(expressions.Contains(*column) || sExprs.Contains(*column)) {
+			hasColumn := (expressions.Contains(*column) || sExprs.Contains(*column))
+			if ctx.ParseCtx.IsSchemaColumn(column) && !hasColumn && !hasStarExpr(ast) {
 				sqlExpr := &sqlparser.ColName{Name: []byte(column.Name), Qualifier: []byte(column.Table)}
 				expression := SelectExpression{Column: *column, Referenced: true, Expr: sqlExpr}
 				expressions = append(expressions, expression)

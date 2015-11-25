@@ -466,7 +466,7 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 		// prevent treating nested select expressions as top-level column
 		// references
 
-		if pCtx.NonStarAlias != "" {
+		if pCtx.NonStarAlias != "" && pCtx.Phase == PhaseSelectExpr {
 			index := len(pCtx.Columns) + len(pCtx.ColumnReferences)
 			ref := ColumnReference{pCtx.NonStarAlias, pCtx.DerivedTableName, pCtx.Expr, index}
 			pCtx.ColumnReferences = append(pCtx.ColumnReferences, ref)
@@ -768,6 +768,7 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 		case *sqlparser.JoinTableExpr:
 
 			var l sqlparser.TableExprs
+
 			l = append(l, expr.LeftExpr)
 
 			lInfo, err := GetTableInfo(l, pCtx)
@@ -807,29 +808,14 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 // hasStarExpr returns true if the select expression in the given statement
 // is a star expression.
 func hasStarExpr(ss sqlparser.SelectStatement) bool {
-
-	switch e := ss.(type) {
-
-	case *sqlparser.Select:
-
-		for _, expr := range e.SelectExprs {
-			switch expr.(type) {
-
-			// TODO: validate no mixture of star and non-star expression
-			case *sqlparser.StarExpr:
+	if s, ok := ss.(*sqlparser.Select); ok {
+		for _, expr := range s.SelectExprs {
+			if _, ok := expr.(*sqlparser.StarExpr); ok {
 				return true
-
 			}
 		}
-
-	default:
-
-		return false
-
 	}
-
 	return false
-
 }
 
 // resolveColumnExpr takes a column name expression and resolves it within
@@ -919,7 +905,7 @@ func resolveColumnExpr(expr *sqlparser.ColName, pCtx *ParseCtx) (sqlparser.Expr,
 	// aliased as such. Add the expression to the parse context
 	// either as a column or as a column reference.
 
-	if !pCtx.InFuncExpr() {
+	if !pCtx.InFuncExpr() && pCtx.Phase == PhaseSelectExpr {
 		if _, ok := pCtx.Expr.(*sqlparser.ColName); ok {
 			index := len(pCtx.Columns) + len(pCtx.ColumnReferences)
 			columnInfo.Index = index
