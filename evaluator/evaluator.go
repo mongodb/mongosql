@@ -131,7 +131,7 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 
 		return &SubqueryValue{expr.Select}, nil
 
-	case nil:
+	case *sqlparser.NullVal, nil:
 
 		return &SQLNullValue{}, nil
 
