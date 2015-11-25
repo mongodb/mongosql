@@ -15,7 +15,6 @@ type BinaryNode struct {
 // SQLValue used in computation by matchers
 type SQLValue interface {
 	Evaluate(*EvalCtx) (SQLValue, error)
-	MongoValue() interface{}
 	Comparable
 }
 

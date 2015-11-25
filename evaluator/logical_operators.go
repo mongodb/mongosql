@@ -70,8 +70,8 @@ func (nm *NullMatcher) Matches(ctx *EvalCtx) (bool, error) {
 	if err != nil {
 		return false, nil
 	}
-	reg := eval.MongoValue()
-	return reg == nil, nil
+	_, ok := eval.(SQLNullValue)
+	return ok, nil
 }
 
 // NoopMatcher is a matcher that always returns true for any row.

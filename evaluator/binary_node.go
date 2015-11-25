@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 )
 
 //
@@ -136,33 +137,51 @@ type Like BinaryNode
 
 func (l *Like) Matches(ctx *EvalCtx) (bool, error) {
 
-	e, err := l.left.Evaluate(ctx)
+	value, err := l.left.Evaluate(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	value := e.MongoValue()
-	left, ok := value.(string)
+	data, err := SQLValueToString(value)
+	if err != nil {
+		return false, err
+	}
+
+	value, err = l.right.Evaluate(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	pattern, ok := value.(SQLString)
 	if !ok {
 		return false, nil
 	}
 
-	e, err = l.right.Evaluate(ctx)
+	// TODO: Golang's regexp package expects a regex pattern
+	// for matching but MySQL's 'LIKE' operator doesn't exactly
+	// work the same way.
+	matches, err := regexp.Match(string(pattern), []byte(data))
 	if err != nil {
 		return false, err
 	}
 
-	value = e.MongoValue()
-	right, ok := value.(string)
-	if !ok {
-		return false, nil
-	}
-
-	matches, err := regexp.Match(left, []byte(right))
-	if err != nil {
-		return false, err
-	}
 	return matches, nil
+}
+
+func SQLValueToString(sqlValue SQLValue) (string, error) {
+	switch v := sqlValue.(type) {
+	case SQLString:
+		return string(v), nil
+	case SQLInt:
+		return string(v), nil
+	case SQLUint32:
+		return string(v), nil
+	case SQLFloat:
+		return strconv.FormatFloat(float64(v), 'f', -1, 64), nil
+	}
+
+	// TODO: just return empty string with no error?
+	return "", fmt.Errorf("unable to convert %v to string", sqlValue)
 }
 
 //

@@ -30,10 +30,6 @@ func (sqlfunc *SQLBinaryValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sqlfunc.function(sqlfunc.arguments, ctx)
 }
 
-func (sqlfunc *SQLBinaryValue) MongoValue() interface{} {
-	return nil
-}
-
 var binaryFuncMap = map[string]SQLBinaryFunction{
 
 	"+": SQLBinaryFunction(func(args []SQLValue, ctx *EvalCtx) (SQLValue, error) {

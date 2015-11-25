@@ -45,10 +45,6 @@ func NewSQLField(value interface{}) (SQLValue, error) {
 	}
 }
 
-func (sf SQLField) MongoValue() interface{} {
-	panic("can't get the mongo value of a field reference.")
-}
-
 func (sqlf SQLField) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// TODO how do we report field not existing? do we just treat is a NULL, or something else?
 	for _, row := range ctx.Rows {
@@ -119,16 +115,15 @@ func (s SQLCaseValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (s SQLCaseValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	c, err := v.Evaluate(ctx)
+	left, err := s.Evaluate(ctx)
 	if err != nil {
 		return 0, err
 	}
-
-	return s.CompareTo(ctx, c)
-}
-
-func (s SQLCaseValue) MongoValue() interface{} {
-	return nil
+	right, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return left.CompareTo(ctx, right)
 }
 
 //
@@ -151,10 +146,6 @@ func (nv SQLNullValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 		return 0, nil
 	}
 	return 1, nil
-}
-
-func (sn SQLNullValue) MongoValue() interface{} {
-	return nil
 }
 
 //
@@ -248,18 +239,6 @@ func (su SQLUint32) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return su, nil
 }
 
-func (sf SQLFloat) MongoValue() interface{} {
-	return float64(sf)
-}
-
-func (si SQLInt) MongoValue() interface{} {
-	return int64(si)
-}
-
-func (su SQLUint32) MongoValue() interface{} {
-	return uint32(su)
-}
-
 func (sf SQLFloat) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	c, err := v.Evaluate(ctx)
 	if err != nil {
@@ -336,10 +315,6 @@ func (ss SQLString) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return ss, nil
 }
 
-func (ss SQLString) MongoValue() interface{} {
-	return string(ss)
-}
-
 func (sn SQLString) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	c, err := v.Evaluate(ctx)
 	if err != nil {
@@ -383,10 +358,6 @@ func (sb SQLBool) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 	}
 	// can only compare bool to a bool, otherwise treat as error
 	return 1, ErrTypeMismatch
-}
-
-func (sb SQLBool) MongoValue() interface{} {
-	return bool(sb)
 }
 
 //
@@ -522,17 +493,16 @@ func (f *SQLScalarFuncValue) powFunc(ctx *EvalCtx) (SQLValue, error) {
 	return nil, fmt.Errorf("base must be a number, but got %T", base)
 }
 
-func (f *SQLScalarFuncValue) MongoValue() interface{} {
-	return nil
-}
-
-func (f *SQLScalarFuncValue) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
-	fEval, err := f.Evaluate(ctx)
+func (f *SQLScalarFuncValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	left, err := f.Evaluate(ctx)
 	if err != nil {
 		return 0, err
 	}
-
-	return fEval.CompareTo(ctx, value)
+	right, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return left.CompareTo(ctx, right)
 }
 
 //
@@ -564,17 +534,16 @@ func (f *SQLAggFuncValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 }
 
-func (f *SQLAggFuncValue) MongoValue() interface{} {
-	return nil
-}
-
-func (f *SQLAggFuncValue) CompareTo(ctx *EvalCtx, value SQLValue) (int, error) {
-	fEval, err := f.Evaluate(ctx)
+func (f *SQLAggFuncValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	left, err := f.Evaluate(ctx)
 	if err != nil {
 		return 0, err
 	}
-
-	return fEval.CompareTo(ctx, value)
+	right, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return left.CompareTo(ctx, right)
 }
 
 func (f *SQLAggFuncValue) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
@@ -597,12 +566,11 @@ func (f *SQLAggFuncValue) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool
 					return nil, err
 				}
 				if distinctMap != nil {
-					rawVal := eval.MongoValue()
-					if distinctMap[rawVal] {
+					if distinctMap[eval] {
 						// already in our distinct map, so we skip this row
 						continue
 					} else {
-						distinctMap[rawVal] = true
+						distinctMap[eval] = true
 					}
 				}
 				count += 1
@@ -639,12 +607,11 @@ func (f *SQLAggFuncValue) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]bool
 				}
 
 				if distinctMap != nil {
-					rawVal := eval.MongoValue()
-					if distinctMap[rawVal] {
+					if distinctMap[eval] {
 						// already in our distinct map, so we skip this row
 						continue
 					} else {
-						distinctMap[rawVal] = true
+						distinctMap[eval] = true
 					}
 				}
 
@@ -681,12 +648,11 @@ func (f *SQLAggFuncValue) countFunc(ctx *EvalCtx, distinctMap map[interface{}]bo
 					return nil, err
 				}
 				if distinctMap != nil {
-					rawVal := eval.MongoValue()
-					if distinctMap[rawVal] {
+					if distinctMap[eval] {
 						// already in our distinct map, so we skip this row
 						continue
 					} else {
-						distinctMap[rawVal] = true
+						distinctMap[eval] = true
 					}
 				}
 
@@ -799,12 +765,16 @@ func (p *SQLParenBoolValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLBool(b), err
 }
 
-func (p *SQLParenBoolValue) MongoValue() interface{} {
-	return nil
-}
-
 func (p *SQLParenBoolValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	return 0, nil
+	left, err := p.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	right, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return left.CompareTo(ctx, right)
 }
 
 //
@@ -816,10 +786,6 @@ type SQLValues struct {
 
 func (sv SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sv, nil
-}
-
-func (sv SQLValues) MongoValue() interface{} {
-	return nil
 }
 
 func (sv SQLValues) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
@@ -874,12 +840,16 @@ func (te SQLValTupleValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLValues{values}, nil
 }
 
-func (te SQLValTupleValue) MongoValue() interface{} {
-	return nil
-}
-
 func (te SQLValTupleValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	return 0, nil
+	left, err := te.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	right, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return left.CompareTo(ctx, right)
 }
 
 // round returns the closest integer value to the float - round half down
@@ -913,12 +883,16 @@ func (um *UMinus) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return um.SQLValue, nil
 }
 
-func (um *UMinus) MongoValue() interface{} {
-	return um.SQLValue.MongoValue()
-}
-
 func (um *UMinus) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	return um.CompareTo(ctx, v)
+	left, err := um.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	right, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return left.CompareTo(ctx, right)
 }
 
 //
@@ -936,12 +910,16 @@ func (up *UPlus) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return up.SQLValue, nil
 }
 
-func (up *UPlus) MongoValue() interface{} {
-	return up.SQLValue.MongoValue()
-}
-
 func (up *UPlus) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	return up.CompareTo(ctx, v)
+	left, err := up.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	right, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return left.CompareTo(ctx, right)
 }
 
 //
@@ -959,12 +937,16 @@ func (td *Tilda) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return td.SQLValue, nil
 }
 
-func (td *Tilda) MongoValue() interface{} {
-	return td.SQLValue.MongoValue()
-}
-
 func (td *Tilda) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	return td.CompareTo(ctx, v)
+	left, err := td.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	right, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return left.CompareTo(ctx, right)
 }
 
 // SubqueryValue returns true if any result is returned from the subquery.
@@ -1035,10 +1017,14 @@ func (sv *SubqueryValue) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 	return eval, nil
 }
 
-func (sv *SubqueryValue) MongoValue() interface{} {
-	return nil
-}
-
 func (sv *SubqueryValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
-	return 1, nil
+	left, err := sv.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	right, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return left.CompareTo(ctx, right)
 }
