@@ -37,7 +37,7 @@ schema :
           type: string
         - name: "dest_state"
           type: string
-        - name: "dest_time"
+        - name: "dep_time"
           type: int
         - name: "diff_from_dep_time"
           type: int
@@ -46,6 +46,8 @@ schema :
         - name: "arr_time"
           type: int
         - name: "diff_from_arr_time"
+          type: int
+        - name: "flight_time"
           type: int
         - name: "airline"
           type: string
