@@ -265,9 +265,14 @@ func getKey(key string, doc bson.D) (interface{}, bool) {
 
 // bsonDToValues takes a bson.D document and returns
 // the corresponding values.
-func bsonDToValues(document bson.D) (values []Value) {
+func bsonDToValues(document bson.D) ([]Value, error) {
+	values := []Value{}
 	for _, v := range document {
-		values = append(values, Value{v.Name, v.Name, v.Value})
+		value, err := NewSQLField(v.Value, "")
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, Value{v.Name, v.Name, value})
 	}
-	return values
+	return values, nil
 }

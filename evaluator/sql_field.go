@@ -2,9 +2,14 @@ package evaluator
 
 import (
 	"fmt"
+	"github.com/10gen/sqlproxy/config"
 	"github.com/erh/mixer/sqlparser"
+	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2/bson"
 	"math"
+	"strconv"
+	"strings"
+	"time"
 )
 
 //
@@ -15,34 +20,127 @@ type SQLField struct {
 	fieldName string
 }
 
-func NewSQLField(value interface{}) (SQLValue, error) {
-	switch v := value.(type) {
-	case SQLValue:
-		return v, nil
-	case nil:
-		return SQLNull, nil
-	case bson.ObjectId: // ObjectId
-		//TODO handle this a special type? just using a string for now.
-		return SQLString(v.Hex()), nil
-	case bool:
-		return SQLBool(v), nil
-	case string:
-		return SQLString(v), nil
+func NewSQLField(value interface{}, columnType config.ColumnType) (SQLValue, error) {
 
-	// TODO - handle overflow/precision of numeric types!
-	case int:
-		return SQLInt(v), nil
-	case int32: // NumberInt
-		return SQLInt(int64(v)), nil
-	case float64:
-		return SQLFloat(float64(v)), nil
-	case float32:
-		return SQLFloat(float64(v)), nil
-	case int64: // NumberLong
-		return SQLInt(v), nil
-	default:
-		panic(fmt.Errorf("can't convert this type to a SQLValue: %T", v))
+	if value == nil {
+		return SQLNullValue{}, nil
 	}
+
+	if columnType == "" {
+		switch v := value.(type) {
+		case SQLValue:
+			return v, nil
+		case nil:
+			return SQLNull, nil
+		case bson.ObjectId:
+			// TODO: handle this a special type? just using a string for now.
+			return SQLString(v.Hex()), nil
+		case bool:
+			return SQLBool(v), nil
+		case string:
+			return SQLString(v), nil
+
+		// TODO - handle overflow/precision of numeric types!
+		case int:
+			return SQLInt(v), nil
+		case int32: // NumberInt
+			return SQLInt(int64(v)), nil
+		case float64:
+			return SQLFloat(float64(v)), nil
+		case float32:
+			return SQLFloat(float64(v)), nil
+		case int64: // NumberLong
+			return SQLInt(v), nil
+		case uint32:
+			return SQLUint32(v), nil
+		case time.Time:
+			return SQLTimestamp{v}, nil
+		default:
+			panic(fmt.Errorf("can't convert this type to a SQLValue: %T", v))
+		}
+	}
+
+	switch columnType {
+	case config.SQLString:
+		switch v := value.(type) {
+		case bool:
+			return SQLString(strconv.FormatBool(v)), nil
+		case string:
+			return SQLString(v), nil
+		case float64:
+			return SQLString(strconv.FormatFloat(v, 'f', -1, 64)), nil
+		case int:
+			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+		case int64:
+			return SQLString(strconv.FormatInt(v, 10)), nil
+		}
+	case config.SQLInt:
+		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLInt(1), nil
+			}
+			return SQLInt(0), nil
+		case string:
+			eval, err := strconv.Atoi(v)
+			if err == nil {
+				return SQLInt(eval), nil
+			}
+			if strings.Trim(v, " ") == "" {
+				return SQLNullValue{}, nil
+			}
+		case int, int32, int64, float64:
+			eval, err := util.ToInt(v)
+			if err == nil {
+				return SQLInt(eval), nil
+			}
+		}
+	case config.SQLFloat:
+		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLFloat(1), nil
+			}
+			return SQLFloat(0), nil
+		case string:
+			eval, err := strconv.Atoi(v)
+			if err == nil {
+				return SQLFloat(float64(eval)), nil
+			}
+			if strings.Trim(v, " ") == "" {
+				return SQLNullValue{}, nil
+			}
+		case int, int32, int64, float64:
+			eval, err := util.ToFloat64(v)
+			if err == nil {
+				return SQLFloat(eval), nil
+			}
+		}
+	case config.SQLDatetime:
+		v, ok := value.(time.Time)
+		if ok {
+			return SQLDateTime{v}, nil
+		}
+	case config.SQLTimestamp:
+		v, ok := value.(time.Time)
+		if ok {
+			return SQLTimestamp{v}, nil
+		}
+	case config.SQLTime:
+		v, ok := value.(time.Time)
+		if ok {
+			return SQLTime{v}, nil
+		}
+	case config.SQLDate:
+		v, ok := value.(time.Time)
+		if ok {
+			return SQLDate{v}, nil
+		}
+	default:
+		return nil, fmt.Errorf("unknown column type %v", columnType)
+	}
+	return nil, fmt.Errorf("unable to convert '%v' (%T) to %v", value, value, columnType)
+
 }
 
 func (sqlf SQLField) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -51,7 +149,7 @@ func (sqlf SQLField) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		for _, data := range row.Data {
 			if data.Table == sqlf.tableName {
 				if value, hasValue := row.GetField(sqlf.tableName, sqlf.fieldName); hasValue {
-					val, err := NewSQLField(value)
+					val, err := NewSQLField(value, "")
 					if err != nil {
 						return nil, err
 					}
@@ -146,6 +244,107 @@ func (nv SQLNullValue) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 		return 0, nil
 	}
 	return 1, nil
+}
+
+//
+// SQLTemporal
+//
+type SQLTemporal interface {
+	SQLValue
+}
+
+type SQLDateTime struct {
+	Time time.Time
+}
+type SQLTimestamp struct {
+	Time time.Time
+}
+type SQLDate struct {
+	Time time.Time
+}
+
+type SQLTime struct {
+	Time time.Time
+}
+
+func (sd SQLDateTime) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return sd, nil
+}
+
+func (sd SQLDateTime) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	c, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if cmp, ok := c.(SQLDate); ok {
+		if sd.Time.After(cmp.Time) {
+			return 1, nil
+		} else if sd.Time.Before(cmp.Time) {
+			return -1, nil
+		}
+	}
+	// TODO: type sort order implementation
+	return 0, nil
+}
+
+func (st SQLTime) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return st, nil
+}
+
+func (st SQLTime) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	c, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if cmp, ok := c.(SQLDate); ok {
+		if st.Time.After(cmp.Time) {
+			return 1, nil
+		} else if st.Time.Before(cmp.Time) {
+			return -1, nil
+		}
+	}
+	// TODO: type sort order implementation
+	return 0, nil
+}
+
+func (st SQLTimestamp) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return st, nil
+}
+
+func (st SQLTimestamp) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	c, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if cmp, ok := c.(SQLDate); ok {
+		if st.Time.After(cmp.Time) {
+			return 1, nil
+		} else if st.Time.Before(cmp.Time) {
+			return -1, nil
+		}
+	}
+	// TODO: type sort order implementation
+	return 0, nil
+}
+
+func (sd SQLDate) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return sd, nil
+}
+
+func (sd SQLDate) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
+	c, err := v.Evaluate(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if cmp, ok := c.(SQLDate); ok {
+		if sd.Time.After(cmp.Time) {
+			return 1, nil
+		} else if sd.Time.Before(cmp.Time) {
+			return -1, nil
+		}
+	}
+	// TODO: type sort order implementation
+	return 0, nil
 }
 
 //
@@ -356,7 +555,7 @@ func (sb SQLBool) CompareTo(ctx *EvalCtx, v SQLValue) (int, error) {
 		}
 		return 1, nil
 	}
-	// can only compare bool to a bool, otherwise treat as error
+	// TODO: support comparing with SQLInt, SQLFloat, etc
 	return 1, ErrTypeMismatch
 }
 
@@ -1005,7 +1204,7 @@ func (sv *SubqueryValue) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 
 	for _, value := range values {
 
-		field, err := NewSQLField(value)
+		field, err := NewSQLField(value, "")
 		if err != nil {
 			return nil, err
 		}

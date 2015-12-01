@@ -12,7 +12,7 @@ func TestConfigDataSourceIter(t *testing.T) {
 
 	Convey("using config data source should iterate all columns", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfig1)
+		cfg, err := config.ParseConfigData(testConfig3)
 		So(err, ShouldBeNil)
 
 		execCtx := &ExecutionCtx{cfg, nil, "test", nil, nil, 0, nil}
@@ -33,8 +33,9 @@ func TestConfigDataSourceIter(t *testing.T) {
 
 		So(len(fieldNames), ShouldEqual, 7)
 
+		names := []string{"_id", "a", "b", "c", "d", "e", "f"}
 		sort.Strings(fieldNames)
-		So([]string{"_id", "a", "b", "c", "d", "e", "f"}, ShouldResemble, fieldNames)
+		So(names, ShouldResemble, fieldNames)
 	})
 }
 
@@ -61,9 +62,10 @@ func TestConfigDataSourceIterTables(t *testing.T) {
 			names = append(names, v.(string))
 		}
 
-		So(len(names), ShouldEqual, 4)
+		So(len(names), ShouldEqual, 6)
 
+		tableNames := []string{"bar", "bar", "bar", "foo", "foo", "silly"}
 		sort.Strings(names)
-		So([]string{"bar", "bar", "foo", "silly"}, ShouldResemble, names)
+		So(tableNames, ShouldResemble, names)
 	})
 }

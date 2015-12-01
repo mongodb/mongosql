@@ -76,7 +76,9 @@ func TestSelectOperator(t *testing.T) {
 
 			var expected []Values
 			for _, document := range rows {
-				expected = append(expected, bsonDToValues(document))
+				values, err := bsonDToValues(document)
+				So(err, ShouldBeNil)
+				expected = append(expected, values)
 			}
 			selectTest(operator, rows, expected)
 		})

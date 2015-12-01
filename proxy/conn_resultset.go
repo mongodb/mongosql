@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/siddontang/mixer/hack"
@@ -44,6 +43,10 @@ func formatValue(value interface{}) ([]byte, error) {
 
 	case evaluator.SQLNullValue, *evaluator.SQLNullValue:
 		return nil, nil
+	case evaluator.SQLTimestamp:
+		return hack.Slice(v.Time.String()), nil
+	case time.Time:
+		return hack.Slice(v.String()), nil
 	case int8:
 		return strconv.AppendInt(nil, int64(v), 10), nil
 	case int16:
@@ -74,32 +77,6 @@ func formatValue(value interface{}) ([]byte, error) {
 		return hack.Slice(v), nil
 	case bson.ObjectId:
 		return hack.Slice(v.Hex()), nil
-	case time.Time:
-		/*
-			year, month, day := v.Date()
-			hour, min, sec := v.Clock()
-			nsec := v.Nanosecond()
-			buf := new(bytes.Buffer)
-			values := []int32{
-				int32(year),
-				int32(month),
-				int32(day),
-				int32(hour),
-				int32(min),
-				int32(sec),
-				int32(nsec),
-			}
-			for _, v := range values {
-				_, err := buf.WriteRune(v)
-				if err != nil {
-					return nil, err
-				}
-			}
-			x := buf.Bytes()
-			s := byte(len(x))
-			return append([]byte{s}, x...), nil
-		*/
-		return hex.DecodeString("0bda070a11131b1e01000000")
 	case evaluator.SQLBool:
 		return strconv.AppendBool(nil, bool(v)), nil
 	case bool:
@@ -157,6 +134,9 @@ func formatField(field *Field, value interface{}) error {
 	case *evaluator.SQLValTupleValue:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_ENUM
+	case evaluator.SQLTime:
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_DATETIME
 
 	default:
 		// TODO: figure out 'field' struct and support all BSON types

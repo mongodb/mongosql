@@ -123,11 +123,11 @@ func runSQL(db *sql.DB, query string, types []config.ColumnType) ([][]interface{
 	resultContainer := make([]interface{}, 0, len(types))
 	for _, t := range types {
 		switch t {
-		case config.String:
+		case config.SQLString:
 			resultContainer = append(resultContainer, new(string))
-		case config.Int:
+		case config.SQLInt:
 			resultContainer = append(resultContainer, new(int))
-		case config.Float:
+		case config.SQLFloat:
 			resultContainer = append(resultContainer, new(float64))
 		}
 	}

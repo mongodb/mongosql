@@ -35,7 +35,9 @@ func TestTableScanOperator(t *testing.T) {
 
 			var expected []Values
 			for _, document := range rows {
-				expected = append(expected, bsonDToValues(document))
+				values, err := bsonDToValues(document)
+				So(err, ShouldBeNil)
+				expected = append(expected, values)
 			}
 
 			collection := session.DB(dbName).C(tableTwoName)

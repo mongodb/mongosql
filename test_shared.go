@@ -16,13 +16,13 @@ schema :
         type: int
      -
         name: b
-        type: string
+        type: int
      -
         name: _id
-        type: string
+
      -
         name: c
-        type: string
+        type: int
 -
   url: localhost
   db: foo
@@ -36,7 +36,7 @@ schema :
         type: int
      -
         name: d
-        type: string
+        type: int
   -
      table: silly
      collection: test.simple2
@@ -46,5 +46,5 @@ schema :
         type: int
      -
         name: f
-        type: string
+        type: int
 `)

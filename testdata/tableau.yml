@@ -84,7 +84,7 @@ schema :
         - name: "state"
           type: string
         - name: "zip"
-          type: "int"
+          type: "string"
 
 testcases:
     - sql: "SELECT SUM(1) AS num_records FROM public.attendees attendees HAVING (COUNT(1) > 0);"

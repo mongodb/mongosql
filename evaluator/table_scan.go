@@ -140,6 +140,7 @@ func (ts *TableScan) Next(row *Row) bool {
 
 		values := Values{}
 		data := d.Map()
+		var err error
 
 		for _, column := range ts.tableConfig.Columns {
 			value := Value{
@@ -152,6 +153,13 @@ func (ts *TableScan) Next(row *Row) bool {
 			} else {
 				value.Data = data[column.Name]
 			}
+
+			value.Data, err = NewSQLField(value.Data, column.Type)
+			if err != nil {
+				ts.err = err
+				return false
+			}
+
 			values = append(values, value)
 			delete(data, column.Name)
 		}

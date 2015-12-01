@@ -42,9 +42,7 @@ func filterSourceTest(operator Operator, rows []bson.D, expectedRows []Values) {
 	for operator.Next(row) {
 		So(len(row.Data), ShouldEqual, 1)
 		So(row.Data[0].Table, ShouldEqual, tableTwoName)
-
 		So(row.Data[0].Values, ShouldResemble, expectedRows[i])
-
 		row = &Row{}
 		i++
 	}
@@ -79,14 +77,12 @@ func TestFilterOperator(t *testing.T) {
 				fmt.Sprintf("select * from %v where b = 7 or a = 6", tableTwoName),
 			}
 
-			expected := [][]Values{
-				{bsonDToValues(rows[1])},
-				{bsonDToValues(rows[0])},
-				nil,
-				{bsonDToValues(rows[1])},
-				{bsonDToValues(rows[1])},
-				{bsonDToValues(rows[0])},
-			}
+			r0, err := bsonDToValues(rows[0])
+			So(err, ShouldBeNil)
+			r1, err := bsonDToValues(rows[1])
+			So(err, ShouldBeNil)
+
+			expected := [][]Values{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
 
 			for i, query := range queries {
 				matcher, err := getMatcherFromSQL(query)

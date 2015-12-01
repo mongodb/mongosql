@@ -2,6 +2,7 @@ package evaluator
 
 var (
 	dbName         = "test"
+	dbName2        = "test2"
 	tableOneName   = "foo"
 	tableTwoName   = "bar"
 	tableThreeName = "baz"
@@ -22,10 +23,10 @@ schema :
         type: int
      -
         name: b
-        type: string
+        type: int
      -
         name: _id
-        type: string
+        type: int
   -
      table: foo
      collection: test.foo
@@ -42,7 +43,7 @@ schema :
         type: int
      -
         name: d
-        type: string
+        type: int
   -
      table: silly
      collection: test.simple
@@ -52,7 +53,37 @@ schema :
         type: int
      -
         name: f
+        type: int
+-
+  url: localhost
+  db: test2
+  tables:
+  -
+     table: foo
+     collection: test2.foo
+     columns:
+     -
+        name: name
         type: string
+     -
+        name: orderid
+        type: int
+     -
+        name: _id
+        type: int
+  -
+     table: bar
+     collection: test2.bar
+     columns:
+     -
+        name: orderid
+        type: int
+     -
+        name: amount
+        type: int
+     -
+        name: _id
+        type: int
 `)
 
 	// from algebrizer package

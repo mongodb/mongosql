@@ -14,18 +14,22 @@ var (
 		bson.D{
 			bson.DocElem{Name: "name", Value: "personA"},
 			bson.DocElem{Name: "orderid", Value: 1},
+			bson.DocElem{Name: "_id", Value: 1},
 		},
 		bson.D{
 			bson.DocElem{Name: "name", Value: "personB"},
 			bson.DocElem{Name: "orderid", Value: 2},
+			bson.DocElem{Name: "_id", Value: 2},
 		},
 		bson.D{
 			bson.DocElem{Name: "name", Value: "personC"},
 			bson.DocElem{Name: "orderid", Value: 3},
+			bson.DocElem{Name: "_id", Value: 3},
 		},
 		bson.D{
 			bson.DocElem{Name: "name", Value: "personD"},
 			bson.DocElem{Name: "orderid", Value: 4},
+			bson.DocElem{Name: "_id", Value: 4},
 		},
 	}
 
@@ -33,22 +37,27 @@ var (
 		bson.D{
 			bson.DocElem{Name: "orderid", Value: 1},
 			bson.DocElem{Name: "amount", Value: 1000},
+			bson.DocElem{Name: "_id", Value: 1},
 		},
 		bson.D{
 			bson.DocElem{Name: "orderid", Value: 1},
 			bson.DocElem{Name: "amount", Value: 450},
+			bson.DocElem{Name: "_id", Value: 2},
 		},
 		bson.D{
 			bson.DocElem{Name: "orderid", Value: 2},
 			bson.DocElem{Name: "amount", Value: 1300},
+			bson.DocElem{Name: "_id", Value: 3},
 		},
 		bson.D{
 			bson.DocElem{Name: "orderid", Value: 4},
 			bson.DocElem{Name: "amount", Value: 390},
+			bson.DocElem{Name: "_id", Value: 4},
 		},
 		bson.D{
 			bson.DocElem{Name: "orderid", Value: 5},
 			bson.DocElem{Name: "amount", Value: 760},
+			bson.DocElem{Name: "_id", Value: 5},
 		},
 	}
 )
@@ -61,14 +70,14 @@ func setupJoinOperator(criteria sqlparser.BoolExpr, joinType string) Operator {
 	session, err := mgo.Dial(cfg.Url)
 	So(err, ShouldBeNil)
 
-	c1 := session.DB(dbName).C(tableOneName)
+	c1 := session.DB(dbName2).C(tableOneName)
 	c1.DropCollection()
 
 	for _, customer := range customers {
 		So(c1.Insert(customer), ShouldBeNil)
 	}
 
-	c2 := session.DB(dbName).C(tableTwoName)
+	c2 := session.DB(dbName2).C(tableTwoName)
 	c2.DropCollection()
 
 	for _, order := range orders {
@@ -115,7 +124,7 @@ func TestJoinOperator(t *testing.T) {
 
 		ctx := &ExecutionCtx{
 			Config: cfg,
-			Db:     dbName,
+			Db:     dbName2,
 		}
 
 		row := &Row{}
@@ -129,8 +138,8 @@ func TestJoinOperator(t *testing.T) {
 			So(operator.Open(ctx), ShouldBeNil)
 
 			expectedResults := []struct {
-				Name   string
-				Amount int
+				Name   interface{}
+				Amount interface{}
 			}{
 				{"personA", 1000},
 				{"personA", 450},
@@ -213,8 +222,6 @@ func TestJoinOperator(t *testing.T) {
 				{nil, 760},
 			}
 
-			i := 0
-
 			for operator.Next(row) {
 				// right entry with no corresponding left entry
 				if i == 4 {
@@ -230,7 +237,6 @@ func TestJoinOperator(t *testing.T) {
 					So(row.Data[0].Values.Map()["amount"], ShouldEqual, expectedResults[i].Amount)
 				}
 				i++
-
 			}
 
 			So(i, ShouldEqual, 5)
@@ -248,8 +254,6 @@ func TestJoinOperator(t *testing.T) {
 
 			expectedNames := []string{"personA", "personB", "personC", "personD", "personE"}
 			expectedAmounts := []int{1000, 450, 1300, 390, 760}
-
-			i := 0
 
 			for operator.Next(row) {
 				So(len(row.Data), ShouldEqual, 2)

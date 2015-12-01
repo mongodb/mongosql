@@ -372,7 +372,7 @@ func (sc *SubqueryCmp) Matches(ctx *EvalCtx) (matches bool, err error) {
 		values := row.GetValues(operator.OpFields())
 
 		for _, value := range values {
-			field, err := NewSQLField(value)
+			field, err := NewSQLField(value, "")
 			if err != nil {
 				return false, err
 			}

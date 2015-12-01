@@ -8,9 +8,36 @@ import (
 type ColumnType string
 
 const (
-	String ColumnType = "string"
-	Int    ColumnType = "int"
-	Float  ColumnType = "float"
+	SQLString  ColumnType = "string"
+	SQLInt     ColumnType = "int"
+	SQLFloat   ColumnType = "float"
+	SQLBlob    ColumnType = "text"
+	SQLVarchar ColumnType = "varchar"
+
+	SQLYear      ColumnType = "year"
+	SQLDatetime  ColumnType = "datetime"
+	SQLTimestamp ColumnType = "timestamp"
+	SQLTime      ColumnType = "time"
+	SQLDate      ColumnType = "date"
+
+	SQLDecimal  ColumnType = "decimal"
+	SQLDouble   ColumnType = "double"
+	SQLEnum     ColumnType = "enum"
+	SQLGeometry ColumnType = "geometry"
+
+	SQLBigInt   ColumnType = "bigint"
+	SQLMedInt   ColumnType = "mediumint"
+	SQLSmallInt ColumnType = "smallint"
+	SQLTiny     ColumnType = "tinyint"
+
+	SQLLongText   ColumnType = "longtext"
+	SQLTinyText   ColumnType = "tinytext"
+	SQLMediumText ColumnType = "mediumtext"
+
+	SQLNull ColumnType = "null"
+	SQLSet  ColumnType = "set"
+	SQLChar ColumnType = "char"
+	SQLBit  ColumnType = "bit"
 )
 
 type Column struct {
@@ -50,13 +77,15 @@ type Config struct {
 // ---
 
 func (c *Column) fixType() error {
+	// TODO: add other types
 	switch c.Type {
-	case String:
+	case SQLString:
 		c.MysqlType = "varchar(2048)"
-	case Int:
+	case SQLInt:
 		c.MysqlType = "int(11)"
-	case Float:
+	case SQLFloat:
 		c.MysqlType = "float"
+	case "":
 	default:
 		panic(fmt.Sprintf("don't know mysql equivalent for type: %s", c.Type))
 	}

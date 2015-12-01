@@ -77,8 +77,8 @@ func TestAliasedSourceOperator(t *testing.T) {
 			}
 
 			expected := []Values{
-				{{"a", "a", 6}, {"b", "b", 7}, {"_id", "_id", 5}},
-				{{"a", "a", 16}, {"b", "b", 17}, {"_id", "_id", 15}},
+				{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(7)}, {"_id", "_id", SQLInt(5)}},
+				{{"a", "a", SQLInt(16)}, {"b", "b", SQLInt(17)}, {"_id", "_id", SQLInt(15)}},
 			}
 
 			aliasedSourceTest(operator, rows, expected)
