@@ -31,6 +31,8 @@ schema :
           type: int
         - name: "dest_airport_code"
           type: string
+        - name: "flight_date"
+          type: string
         - name: "dest_city_name"
           type: string
         - name: "dest_state"
