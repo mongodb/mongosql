@@ -32,8 +32,6 @@ func ParseConfigData(data []byte) (*Config, error) {
 
 	}
 
-	//fmt.Printf("%+v\n", cfg)
-
 	return &cfg, nil
 }
 

@@ -9,7 +9,7 @@ func TestConfig(t *testing.T) {
 		`
 # Sample BI-Connector Config File
 
-# Address to lsiten on
+# Address to listen on
 addr : 127.0.0.1:4000
 
 # Proxy user/pass
@@ -20,6 +20,7 @@ log_level : error
 
 schema :
 - 
+  url: localhost
   db: test1
   tables:
   - 
@@ -33,6 +34,7 @@ schema :
         name: b
         type: string
 -
+  url: localhost
   db: test2
   tables:
   -

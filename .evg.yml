@@ -1,17 +1,31 @@
 stepback: true
-
+command_type: system
 buildvariants:
 - name: linux
   display_name: Linux
   expansions:
-    mongo_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-2.6.1.tgz
+    mongo_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.0-rc6.tgz
   run_on:
   - ubuntu1404-test
   tasks:
-  - name: evaluator
-  - name: config
-  - name: sqlproxy
-  - name: dist
+  - "*"
+- name: windows-64
+  display_name: Windows
+  run_on:
+  - windows-64-vs2013-test
+  expansions:
+    mongo_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.0-rc6.zip
+    extension: .exe
+  tasks:
+  - "*"
+- name: osx
+  display_name: OSX
+  run_on:
+  - osx-108
+  expansions:
+    mongo_url: https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-3.2.0-rc6.tgz
+  tasks:
+  - "*"
 
 pre:
   - command: shell.track
@@ -19,35 +33,31 @@ pre:
     params:
       script: |
         rm -rf src
-        set -o errexit
-        rm -rf mongodb
-        mkdir mongodb
-        cd mongodb
-        curl ${mongo_url} -o mongodb.tgz
-        ${decompress} mongodb.tgz
-        chmod +x ./mongodb-*/bin/*
-        mv ./mongodb-*/bin/* .
-        rm -rf db_files
-        rm -rf db_logs
-        mkdir db_files
-        mkdir db_logs
-
+        mkdir src
   - command: shell.exec
     params:
+      working_dir: src
       silent: true
       script: |
-        echo "building creds file!"
+        echo "Building credential file..."
         cat > creds.yml <<END_OF_CREDS
         credentials:  {
           github: "${github_token}",
         }
-
         providers:
           aws:
             aws_id: "${aws_key}"
             aws_secret: "${aws_secret}"
 
         END_OF_CREDS
+        echo "Done!"
+  - command: shell.exec
+    params:
+      silent: true
+      script: |
+        ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongooplog; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos; pkill -f buildlogger.py; pkill -f smoke.py} >/dev/null 2>&1
+        rm -rf src /data/db/*
+        exit 0
 
 post:
   - command: gotest.parse_files
@@ -56,27 +66,83 @@ post:
   - command: shell.cleanup
 
 functions:
+
+  "apply patches" :
+    command: git.apply_patch
+    type: test
+    params:
+      directory: src
+
+  "build SQLProxy":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src
+      script: |
+        set -o verbose
+        set -o errexit
+        echo "Building SQLProxy"
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        . ./set_gopath.sh
+        go build -o sqlproxy main/main.go
+        echo "Done!"
+
+  "download mongod":
+    command: shell.exec
+    params:
+      script: |
+        set -o verbose
+        rm -rf mongodb
+        mkdir mongodb
+        cd mongodb
+        curl -s ${mongo_url} --output mongodb.tgz
+        ${decompress} mongodb.tgz
+        chmod +x ./mongodb-*/bin/*
+        mv ./mongodb-*/bin/* .
+
   "fetch source" :
     command: git.get_project
     params:
       directory: src
 
-  "start mongod":
-      command: shell.exec
-      params:
-        background: true
-        script: |
-          set -o verbose
-          cd mongodb
-          echo "starting mongod..."
-          ./mongod${extension} --dbpath ./db_files &
-          echo "waiting for mongod to start up"
-          ./mongo${extension} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")'
-
-  "apply patches" :
-    command: git.apply_patch
+  "generate coverage txt":
+    command: shell.exec
     params:
-      directory: src
+      working_dir: src
+      script: |
+        set -o verbose
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        . ./set_gopath.sh
+        perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
+        go tool cover -func=coverage_rewrite.out -o coverage.txt
+
+  "generate coverage html":
+    command: shell.exec
+    params:
+      working_dir: src
+      script: |
+        set -o verbose
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        . ./set_gopath.sh
+        perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
+        go tool cover -html=coverage_rewrite.out -o coverage.html
+
+  "rewrite coverage report":
+    command: shell.exec
+    params:
+      working_dir: src
+      script: |
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        . ./set_gopath.sh
+        perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
 
   "setup creds":
     command: shell.exec
@@ -85,34 +151,18 @@ functions:
         set -o verbose
         cp creds.yml src
 
-  "rewrite coverage report":
+  "start mongod":
     command: shell.exec
     params:
-      working_dir: src
-      script: |
-        if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-        fi;
-        . ./set_gopath.sh
-        perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
-
-  "generate coverage html":
-    command: shell.exec
-    params:
-      working_dir: src
+      background: true
       script: |
         set -o verbose
-        . ./set_gopath.sh
-        go tool cover -html=coverage_rewrite.out -o coverage.html
-
-  "generate coverage txt":
-    command: shell.exec
-    params:
-      working_dir: src
-      script: |
-        set -o verbose
-        . ./set_gopath.sh
-        go tool cover -func=coverage_rewrite.out -o coverage.txt
+        echo "Starting mongod..."
+        rm -rf mongodb/dbpath && mkdir mongodb/dbpath
+        ./mongodb/mongod${extension} --dbpath mongodb/dbpath --setParameter=enableTestCommands=1
+        echo "Waiting for mongod to start up..."
+        ./mongodb/mongo${extension} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")'
+        echo "Done!"
 
   "upload coverage html report":
     command: s3.put
@@ -138,17 +188,31 @@ functions:
       content_type: text/plain
       display_name: Coverage Report (TXT)
 
+  "upload SQLProxy":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: src/sqlproxy
+      remote_file: sqlproxy/binaries/sqlproxy${extension}
+      bucket: mciuploads
+      permissions: public-read
+      content_type: application/octet-stream
+      display_name: sqlproxy${extension}
+
 tasks:
 - name: config
   commands:
-    - func: "start mongod"
     - func: "fetch source"
     - func: "apply patches"
+    - func: "download mongod"
+    - func: "start mongod"
     - command: shell.exec
       type: test
       params:
         working_dir: src
         script: |
+          set -o verbose
           if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
           fi;
@@ -169,16 +233,25 @@ tasks:
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
 
-- name: evaluator
+- name: dist
   commands:
-    - func: "start mongod"
     - func: "fetch source"
     - func: "apply patches"
+    - func: "build SQLProxy"
+    - func: "upload SQLProxy"
+
+- name: evaluator
+  commands:
+    - func: "fetch source"
+    - func: "apply patches"
+    - func: "download mongod"
+    - func: "start mongod"
     - command: shell.exec
       type: test
       params:
         working_dir: src
         script: |
+          set -o verbose
           if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
           fi;
@@ -188,6 +261,7 @@ tasks:
           tee -a evaluator.suite < test_pipe&
           go test -v -coverprofile=coverage.out > test_pipe
     - command: shell.exec
+      type: test
       params:
         working_dir: src
         script: |
@@ -199,48 +273,18 @@ tasks:
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
 
-- name: dist
-  commands:
-    - func: "fetch source"
-    - func: "apply patches"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          . ./set_gopath.sh
-          set -e
-          go build -o sqlproxy main/main.go
-
-- name: connector
-  commands:
-    - func: "start mongod"
-    - func: "fetch source"
-    - func: "apply patches"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          . ./set_gopath.sh
-          go test -v -coverprofile=coverage.out
-
 - name: sqlproxy
   commands:
-    - func: "start mongod"
     - func: "fetch source"
     - func: "apply patches"
+    - func: "download mongod"
+    - func: "start mongod"
     - command: shell.exec
       type: test
       params:
         working_dir: src
         script: |
+          set -o verbose
           if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
           fi;
