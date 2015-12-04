@@ -27,6 +27,13 @@ func NewEvaluator(cfg *config.Config) (*Evaluator, error) {
 	return e, nil
 }
 
+func (e *Evaluator) getSession() *mgo.Session {
+	if e.globalSession == nil {
+		panic("No global session has been set")
+	}
+	return e.globalSession.Copy()
+}
+
 // EvalSelect returns all rows matching the query.
 func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
 
@@ -70,7 +77,6 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 		ParseCtx:      pCtx,
 		ConnectionCtx: conn,
 		Config:        e.cfg,
-		Session:       e.globalSession,
 	}
 
 	// construct query plan
