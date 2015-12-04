@@ -1,19 +1,16 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
 func sourceAppendTest(operator *SourceAppend) {
 
-	cfg, err := config.ParseConfigData(testConfig1)
-	So(err, ShouldBeNil)
-
 	ctx := &ExecutionCtx{
-		Config: cfg,
-		Db:     dbName,
+		Config:  cfgOne,
+		Db:      dbOne,
+		Session: session,
 	}
 
 	operator.source = &TableScan{
@@ -34,6 +31,9 @@ func sourceAppendTest(operator *SourceAppend) {
 			So(len(ctx.SrcRows), ShouldEqual, 0)
 		}
 	}
+
+	So(operator.Close(), ShouldBeNil)
+	So(operator.Err(), ShouldBeNil)
 }
 
 func TestSourceAppendOperator(t *testing.T) {

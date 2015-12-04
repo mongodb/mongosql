@@ -1,7 +1,6 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 	"sort"
@@ -12,10 +11,12 @@ func TestConfigDataSourceIter(t *testing.T) {
 
 	Convey("using config data source should iterate all columns", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfig3)
-		So(err, ShouldBeNil)
+		execCtx := &ExecutionCtx{
+			Config:  cfgThree,
+			Session: session,
+			Db:      dbOne,
+		}
 
-		execCtx := &ExecutionCtx{cfg, nil, "test", nil, nil, 0, nil}
 		dataSource := ConfigDataSource{ctx: execCtx, includeColumns: true}
 
 		query := dataSource.Find()
@@ -36,6 +37,7 @@ func TestConfigDataSourceIter(t *testing.T) {
 		names := []string{"_id", "a", "b", "c", "d", "e", "f"}
 		sort.Strings(fieldNames)
 		So(names, ShouldResemble, fieldNames)
+		So(iter.Close(), ShouldBeNil)
 	})
 }
 
@@ -43,10 +45,12 @@ func TestConfigDataSourceIterTables(t *testing.T) {
 
 	Convey("using config data source should iterate tables", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfig1)
-		So(err, ShouldBeNil)
+		execCtx := &ExecutionCtx{
+			Config:  cfgOne,
+			Session: session,
+			Db:      dbOne,
+		}
 
-		execCtx := &ExecutionCtx{cfg, nil, "test", nil, nil, 0, nil}
 		dataSource := ConfigDataSource{ctx: execCtx}
 
 		query := dataSource.Find()
@@ -67,5 +71,6 @@ func TestConfigDataSourceIterTables(t *testing.T) {
 		tableNames := []string{"bar", "bar", "bar", "foo", "foo", "silly"}
 		sort.Strings(names)
 		So(tableNames, ShouldResemble, names)
+		So(iter.Close(), ShouldBeNil)
 	})
 }

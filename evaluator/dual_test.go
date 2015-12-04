@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
@@ -16,14 +15,13 @@ func TestDualOperator(t *testing.T) {
 	Convey("A dual operator...", t, func() {
 
 		Convey("should only ever return one row with no data", func() {
-			cfg, err := config.ParseConfigData(testConfig1)
-			So(err, ShouldBeNil)
 
 			operator := &Dual{}
 
 			ctx := &ExecutionCtx{
-				Config: cfg,
-				Db:     dbName,
+				Config:  cfgOne,
+				Db:      dbOne,
+				Session: session,
 			}
 
 			So(operator.Open(ctx), ShouldBeNil)
@@ -38,8 +36,9 @@ func TestDualOperator(t *testing.T) {
 			}
 
 			So(i, ShouldEqual, 1)
-			So(operator.Err(), ShouldBeNil)
+
 			So(operator.Close(), ShouldBeNil)
+			So(operator.Err(), ShouldBeNil)
 
 		})
 	})

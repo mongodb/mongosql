@@ -1,36 +1,23 @@
 package evaluator
 
 import (
-	"fmt"
-	"github.com/10gen/sqlproxy/config"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
 
-var (
-	_ fmt.Stringer = nil
-)
-
 func aliasedSourceTest(operator Operator, rows []bson.D, expectedRows []Values) {
 
-	cfg, err := config.ParseConfigData(testConfig1)
-	So(err, ShouldBeNil)
-
-	session, err := mgo.Dial(cfg.Url)
-	So(err, ShouldBeNil)
-
-	collection := session.DB(dbName).C(tableTwoName)
-	collection.DropCollection()
+	collectionTwo.DropCollection()
 
 	for _, row := range rows {
-		So(collection.Insert(row), ShouldBeNil)
+		So(collectionTwo.Insert(row), ShouldBeNil)
 	}
 
 	ctx := &ExecutionCtx{
-		Config: cfg,
-		Db:     dbName,
+		Config:  cfgOne,
+		Db:      dbOne,
+		Session: session,
 	}
 
 	So(operator.Open(ctx), ShouldBeNil)
@@ -49,13 +36,8 @@ func aliasedSourceTest(operator Operator, rows []bson.D, expectedRows []Values) 
 
 	So(i, ShouldEqual, len(expectedRows))
 
-	So(operator.Err(), ShouldBeNil)
 	So(operator.Close(), ShouldBeNil)
-
-	collection.DropCollection()
-
-	session.Close()
-
+	So(operator.Err(), ShouldBeNil)
 }
 
 func TestAliasedSourceOperator(t *testing.T) {

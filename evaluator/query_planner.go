@@ -709,10 +709,6 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 	var matcher Matcher
 	var err error
 
-	if w != nil {
-		// TODO: perform optimization to filter results returned from this table
-	}
-
 	dbName := strings.ToLower(string(t.Qualifier))
 	isInformationSchema := dbName == InformationSchema || strings.ToLower(c.Db) == InformationSchema
 

@@ -1,9 +1,7 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/config"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
@@ -13,12 +11,6 @@ func TestTableScanOperator(t *testing.T) {
 	Convey("With a simple test configuration...", t, func() {
 
 		Convey("fetching data from a table scan should return correct results in the right order", func() {
-
-			cfg, err := config.ParseConfigData(testConfig1)
-			So(err, ShouldBeNil)
-
-			session, err := mgo.Dial(cfg.Url)
-			So(err, ShouldBeNil)
 
 			rows := []bson.D{
 				bson.D{
@@ -40,16 +32,16 @@ func TestTableScanOperator(t *testing.T) {
 				expected = append(expected, values)
 			}
 
-			collection := session.DB(dbName).C(tableTwoName)
-			collection.DropCollection()
+			collectionTwo.DropCollection()
 
 			for _, row := range rows {
-				So(collection.Insert(row), ShouldBeNil)
+				So(collectionTwo.Insert(row), ShouldBeNil)
 			}
 
 			ctx := &ExecutionCtx{
-				Config: cfg,
-				Db:     dbName,
+				Config:  cfgOne,
+				Db:      dbOne,
+				Session: session,
 			}
 
 			operator := TableScan{
@@ -70,9 +62,8 @@ func TestTableScanOperator(t *testing.T) {
 				i++
 			}
 
-			So(operator.Err(), ShouldBeNil)
 			So(operator.Close(), ShouldBeNil)
-			session.Close()
+			So(operator.Err(), ShouldBeNil)
 		})
 	})
 }

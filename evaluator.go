@@ -10,28 +10,18 @@ import (
 )
 
 type Evaluator struct {
-	cfg           *config.Config
-	globalSession *mgo.Session
+	config  *config.Config
+	session *mgo.Session
 }
 
 func NewEvaluator(cfg *config.Config) (*Evaluator, error) {
-	e := new(Evaluator)
-	e.cfg = cfg
 
 	session, err := mgo.Dial(cfg.Url)
 	if err != nil {
 		return nil, err
 	}
-	e.globalSession = session
 
-	return e, nil
-}
-
-func (e *Evaluator) getSession() *mgo.Session {
-	if e.globalSession == nil {
-		panic("No global session has been set")
-	}
-	return e.globalSession.Copy()
+	return &Evaluator{cfg, session}, nil
 }
 
 // EvalSelect returns all rows matching the query.
@@ -56,7 +46,7 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 
 	if _, ok := stmt.(*sqlparser.Select); ok {
 		// create initial parse context
-		pCtx, err = evaluator.NewParseCtx(stmt, e.cfg, db)
+		pCtx, err = evaluator.NewParseCtx(stmt, e.config, db)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
 		}
@@ -72,11 +62,13 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 
 	}
 
+	// construct execution context
 	eCtx := &evaluator.ExecutionCtx{
 		Db:            db,
 		ParseCtx:      pCtx,
 		ConnectionCtx: conn,
-		Config:        e.cfg,
+		Config:        e.config,
+		Session:       e.session,
 	}
 
 	// construct query plan

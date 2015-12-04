@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/10gen/sqlproxy/config"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"reflect"
 	"strconv"
@@ -14,16 +15,16 @@ import (
 // TableScan is the primary interface for SQLProxy to a MongoDB
 // installation and executes simple queries against collections.
 type TableScan struct {
-	dbName         string
-	tableName      string
-	fullCollection string
-	matcher        Matcher
 	sync.Mutex
+	dbName      string
+	tableName   string
+	matcher     Matcher
 	iter        FindResults
-	err         error
 	dbConfig    *config.Schema
+	session     *mgo.Session
 	tableConfig *config.TableConfig
 	ctx         *ExecutionCtx
+	err         error
 }
 
 // Open establishes a connection to database collection for this table.
@@ -42,10 +43,6 @@ func (ts *TableScan) init(ctx *ExecutionCtx) error {
 }
 
 func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
-	sp, err := NewSessionProvider(ctx.Config)
-	if err != nil {
-		return err
-	}
 
 	if len(ts.dbName) == 0 {
 		ts.dbName = ctx.Db
@@ -61,10 +58,14 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 		return fmt.Errorf("table (%s) doesn't exist in db (%s)", ts.tableName, ts.dbName)
 	}
 
-	ts.fullCollection = ts.tableConfig.Collection
 	pcs := strings.SplitN(ts.tableConfig.Collection, ".", 2)
-	collection := sp.GetSession().DB(pcs[0]).C(pcs[1])
-	ts.iter = MgoFindResults{collection.Find(nil).Iter()}
+
+	ts.session = ctx.Session.Copy()
+	db := ctx.Session.DB(pcs[0])
+	collection := db.C(pcs[1])
+	query := collection.Find(nil)
+	ts.iter = MgoFindResults{query.Iter()}
+
 	return nil
 }
 
@@ -218,6 +219,8 @@ func (ts *TableScan) OpFields() []*Column {
 }
 
 func (ts *TableScan) Close() error {
+	defer ts.session.Copy()
+
 	if ts.iter == nil {
 		return nil
 	}

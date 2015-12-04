@@ -9,13 +9,9 @@ type AliasedSource struct {
 
 	// source holds the source for this select statement
 	source Operator
-
-	// ctx is the current execution context
-	ctx *ExecutionCtx
 }
 
 func (as *AliasedSource) Open(ctx *ExecutionCtx) error {
-	as.ctx = ctx
 	return as.source.Open(ctx)
 }
 

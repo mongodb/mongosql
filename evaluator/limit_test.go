@@ -2,10 +2,8 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
 	"github.com/erh/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
@@ -16,22 +14,16 @@ var (
 
 func limitTest(operator Operator, rows []bson.D, expectedRows []Values) {
 
-	cfg, err := config.ParseConfigData(testConfig1)
-	So(err, ShouldBeNil)
-
-	session, err := mgo.Dial(cfg.Url)
-	So(err, ShouldBeNil)
-
-	collection := session.DB(dbName).C(tableOneName)
-	collection.DropCollection()
+	collectionOne.DropCollection()
 
 	for _, row := range rows {
-		So(collection.Insert(row), ShouldBeNil)
+		So(collectionOne.Insert(row), ShouldBeNil)
 	}
 
 	ctx := &ExecutionCtx{
-		Config: cfg,
-		Db:     dbName,
+		Config:  cfgOne,
+		Db:      dbOne,
+		Session: session,
 	}
 
 	So(operator.Open(ctx), ShouldBeNil)
@@ -50,13 +42,8 @@ func limitTest(operator Operator, rows []bson.D, expectedRows []Values) {
 
 	So(i, ShouldEqual, len(expectedRows))
 
-	So(operator.Err(), ShouldBeNil)
 	So(operator.Close(), ShouldBeNil)
-
-	collection.DropCollection()
-
-	session.Close()
-
+	So(operator.Err(), ShouldBeNil)
 }
 
 func TestLimitOperator(t *testing.T) {
@@ -86,7 +73,7 @@ func TestLimitOperator(t *testing.T) {
 
 			operator.rowcount = 2
 
-			expected := []Values{{{"a", "a", 1}}, {{"a", "a", 2}}}
+			expected := []Values{{{"a", "a", SQLInt(1)}}, {{"a", "a", SQLInt(2)}}}
 
 			limitTest(operator, rows, expected)
 		})
@@ -96,7 +83,7 @@ func TestLimitOperator(t *testing.T) {
 			operator.rowcount = 2
 			operator.offset = 4
 
-			expected := []Values{{{"a", "a", 5}}, {{"a", "a", 6}}}
+			expected := []Values{{{"a", "a", SQLInt(5)}}, {{"a", "a", SQLInt(6)}}}
 
 			limitTest(operator, rows, expected)
 		})
@@ -123,9 +110,9 @@ func TestLimitOperator(t *testing.T) {
 
 			operator.rowcount = 40
 
-			expected := []Values{{{"a", "a", 1}},
-				{{"a", "a", 2}}, {{"a", "a", 3}}, {{"a", "a", 4}},
-				{{"a", "a", 5}}, {{"a", "a", 6}}, {{"a", "a", 7}},
+			expected := []Values{{{"a", "a", SQLInt(1)}},
+				{{"a", "a", SQLInt(2)}}, {{"a", "a", SQLInt(3)}}, {{"a", "a", SQLInt(4)}},
+				{{"a", "a", SQLInt(5)}}, {{"a", "a", SQLInt(6)}}, {{"a", "a", SQLInt(7)}},
 			}
 
 			limitTest(operator, rows, expected)
@@ -135,7 +122,7 @@ func TestLimitOperator(t *testing.T) {
 			operator.rowcount = 1
 			operator.offset = 1
 
-			expected := []Values{{{"a", "a", 2}}}
+			expected := []Values{{{"a", "a", SQLInt(2)}}}
 
 			limitTest(operator, rows, expected)
 
@@ -146,7 +133,7 @@ func TestLimitOperator(t *testing.T) {
 			operator.rowcount = 1
 			operator.offset = 6
 
-			expected := []Values{{{"a", "a", 7}}}
+			expected := []Values{{{"a", "a", SQLInt(7)}}}
 
 			limitTest(operator, rows, expected)
 		})
@@ -166,7 +153,7 @@ func TestLimitOperator(t *testing.T) {
 			operator.rowcount = 3
 			operator.offset = 0
 
-			expected := []Values{{{"a", "a", 1}}, {{"a", "a", 2}}, {{"a", "a", 3}}}
+			expected := []Values{{{"a", "a", SQLInt(1)}}, {{"a", "a", SQLInt(2)}}, {{"a", "a", SQLInt(3)}}}
 
 			limitTest(operator, rows, expected)
 		})

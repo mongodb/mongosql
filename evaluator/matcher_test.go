@@ -18,12 +18,12 @@ func getMatcherFromSQL(sql string) (Matcher, error) {
 	if selectStatement, ok := raw.(*sqlparser.Select); ok {
 		cfg, err := config.ParseConfigData(testConfig3)
 		So(err, ShouldBeNil)
-		parseCtx, err := NewParseCtx(selectStatement, cfg, dbName)
+		parseCtx, err := NewParseCtx(selectStatement, cfg, dbOne)
 		if err != nil {
 			return nil, err
 		}
 
-		parseCtx.Database = dbName
+		parseCtx.Database = dbOne
 
 		err = AlgebrizeStatement(selectStatement, parseCtx)
 		if err != nil {

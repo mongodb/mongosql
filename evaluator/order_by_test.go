@@ -1,32 +1,24 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/config"
 	"github.com/erh/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
 
 func orderByTest(operator Operator, rows []bson.D, expectedRows []Values) {
 
-	cfg, err := config.ParseConfigData(testConfig1)
-	So(err, ShouldBeNil)
-
-	session, err := mgo.Dial(cfg.Url)
-	So(err, ShouldBeNil)
-
-	collection := session.DB(dbName).C(tableOneName)
-	collection.DropCollection()
+	collectionOne.DropCollection()
 
 	for _, row := range rows {
-		So(collection.Insert(row), ShouldBeNil)
+		So(collectionOne.Insert(row), ShouldBeNil)
 	}
 
 	ctx := &ExecutionCtx{
-		Config: cfg,
-		Db:     dbName,
+		Config:  cfgOne,
+		Db:      dbOne,
+		Session: session,
 	}
 
 	So(operator.Open(ctx), ShouldBeNil)
@@ -42,6 +34,9 @@ func orderByTest(operator Operator, rows []bson.D, expectedRows []Values) {
 		row = &Row{}
 		i++
 	}
+
+	So(operator.Close(), ShouldBeNil)
+	So(operator.Err(), ShouldBeNil)
 }
 
 func TestOrderByOperator(t *testing.T) {

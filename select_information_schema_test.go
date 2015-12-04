@@ -1,7 +1,6 @@
 package sqlproxy
 
 import (
-	"github.com/10gen/sqlproxy/config"
 	"github.com/10gen/sqlproxy/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
@@ -30,12 +29,6 @@ func TestConfigScanOperatorSelect(t *testing.T) {
 
 		conn := mockConnection{"fo"}
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
 		_, values, err := eval.EvalSelect("information_schema", "select * from columns", nil, conn)
 		So(err, ShouldBeNil)
 		So(len(values), ShouldEqual, 8)
@@ -54,12 +47,6 @@ func TestConfigScanOperatorSelect(t *testing.T) {
 func TestConfigScanOperatorTablesSelect(t *testing.T) {
 
 	Convey("using config data source should to select tables", t, func() {
-
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
 
 		_, values, err := eval.EvalSelect("", "select * from information_schema.TABLES", nil, nil)
 		So(err, ShouldBeNil)
@@ -90,12 +77,6 @@ func TestConfigScanOperatorTablesSelect(t *testing.T) {
 func TestConfigKeyColumnUsage(t *testing.T) {
 
 	Convey("using config data source should to filter columns", t, func() {
-
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
 
 		_, values, err := eval.EvalSelect("information_schema", "select * from KEY_COLUMN_USAGE", nil, nil)
 		So(err, ShouldBeNil)

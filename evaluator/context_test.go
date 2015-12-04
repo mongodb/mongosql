@@ -21,7 +21,7 @@ func TestNewParseCtx(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 

@@ -1,19 +1,34 @@
 package evaluator
 
 var (
-	dbName         = "test"
-	dbName2        = "test2"
+	dbOne          = "test"
+	dbTwo          = "test2"
 	tableOneName   = "foo"
 	tableTwoName   = "bar"
 	tableThreeName = "baz"
 
-	// from the planner package
 	testConfig1 = []byte(`
+url: localhost
+log_level: vv
 schema :
 -
-  url: localhost
   db: test
   tables:
+  -
+     table: foo
+     collection: test.foo
+     columns:
+     -
+        name: a
+        type: int
+     -
+        name: b
+        type: int
+     -
+        name: c
+        type: int
+     -
+        name: _id
   -
      table: bar
      collection: test.bar
@@ -26,17 +41,12 @@ schema :
         type: int
      -
         name: _id
-        type: int
-  -
-     table: foo
-     collection: test.foo
 -
-  url: localhost
   db: foo
   tables:
   -
      table: bar
-     collection: test.simple
+     collection: foo.bar
      columns:
      -
         name: c
@@ -46,7 +56,7 @@ schema :
         type: int
   -
      table: silly
-     collection: test.simple
+     collection: foo.silly
      columns:
      -
         name: e
@@ -55,7 +65,6 @@ schema :
         name: f
         type: int
 -
-  url: localhost
   db: test2
   tables:
   -
@@ -70,7 +79,6 @@ schema :
         type: int
      -
         name: _id
-        type: int
   -
      table: bar
      collection: test2.bar
@@ -83,14 +91,13 @@ schema :
         type: int
      -
         name: _id
-        type: int
 `)
 
-	// from algebrizer package
 	testConfig2 = []byte(`
+url: localhost
+log_level: vv
 schema :
 -
-  url: localhost
   db: test
   tables:
   -
@@ -162,9 +169,10 @@ schema :
 
 	testConfig3 = []byte(
 		`
+url: localhost
+log_level: vv
 schema :
 -
-  url: localhost
   db: test
   tables:
   -
@@ -179,17 +187,15 @@ schema :
         type: string
      -
         name: _id
-        type: string
   -
      table: foo
      collection: test.foo
 -
-  url: localhost
   db: foo
   tables:
   -
      table: bar
-     collection: test.simple
+     collection: foo.bar
      columns:
      -
         name: c
@@ -199,7 +205,7 @@ schema :
         type: string
   -
      table: silly
-     collection: test.simple
+     collection: foo.silly
      columns:
      -
         name: e

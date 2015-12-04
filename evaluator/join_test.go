@@ -1,10 +1,8 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/config"
 	"github.com/erh/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
@@ -64,20 +62,14 @@ var (
 
 func setupJoinOperator(criteria sqlparser.BoolExpr, joinType string) Operator {
 
-	cfg, err := config.ParseConfigData(testConfig1)
-	So(err, ShouldBeNil)
-
-	session, err := mgo.Dial(cfg.Url)
-	So(err, ShouldBeNil)
-
-	c1 := session.DB(dbName2).C(tableOneName)
+	c1 := session.DB(dbTwo).C(tableOneName)
 	c1.DropCollection()
 
 	for _, customer := range customers {
 		So(c1.Insert(customer), ShouldBeNil)
 	}
 
-	c2 := session.DB(dbName2).C(tableTwoName)
+	c2 := session.DB(dbTwo).C(tableTwoName)
 	c2.DropCollection()
 
 	for _, order := range orders {
@@ -91,8 +83,6 @@ func setupJoinOperator(criteria sqlparser.BoolExpr, joinType string) Operator {
 	ts2 := &TableScan{
 		tableName: tableTwoName,
 	}
-
-	session.Close()
 
 	return &Join{
 		left:  ts1,
@@ -119,12 +109,10 @@ func TestJoinOperator(t *testing.T) {
 			},
 		}
 
-		cfg, err := config.ParseConfigData(testConfig1)
-		So(err, ShouldBeNil)
-
 		ctx := &ExecutionCtx{
-			Config: cfg,
-			Db:     dbName2,
+			Config:  cfgOne,
+			Db:      dbTwo,
+			Session: session,
 		}
 
 		row := &Row{}
@@ -158,8 +146,8 @@ func TestJoinOperator(t *testing.T) {
 
 			So(i, ShouldEqual, 4)
 
-			So(operator.Err(), ShouldBeNil)
 			So(operator.Close(), ShouldBeNil)
+			So(operator.Err(), ShouldBeNil)
 
 		})
 
@@ -200,8 +188,8 @@ func TestJoinOperator(t *testing.T) {
 
 			So(i, ShouldEqual, 5)
 
-			So(operator.Err(), ShouldBeNil)
 			So(operator.Close(), ShouldBeNil)
+			So(operator.Err(), ShouldBeNil)
 
 		})
 
@@ -241,8 +229,8 @@ func TestJoinOperator(t *testing.T) {
 
 			So(i, ShouldEqual, 5)
 
-			So(operator.Err(), ShouldBeNil)
 			So(operator.Close(), ShouldBeNil)
+			So(operator.Err(), ShouldBeNil)
 
 		})
 
@@ -266,8 +254,8 @@ func TestJoinOperator(t *testing.T) {
 
 			So(i, ShouldEqual, 20)
 
-			So(operator.Err(), ShouldBeNil)
 			So(operator.Close(), ShouldBeNil)
+			So(operator.Err(), ShouldBeNil)
 
 		})
 	})

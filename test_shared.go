@@ -1,10 +1,16 @@
 package sqlproxy
 
-var testConfigSimple = []byte(
-	`
-schema :
+var (
+	dbOne        = "test"
+	tableOneName = "simple"
+	tableTwoName = "simple2"
+
+	testConfigSimple = []byte(
+		`
+url: localhost
+log_level: vv
+schema:
 -
-  url: localhost
   db: test
   tables:
   -
@@ -19,12 +25,10 @@ schema :
         type: int
      -
         name: _id
-
      -
         name: c
         type: int
 -
-  url: localhost
   db: foo
   tables:
   -
@@ -48,3 +52,4 @@ schema :
         name: f
         type: int
 `)
+)

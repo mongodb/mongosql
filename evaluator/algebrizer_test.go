@@ -28,7 +28,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
@@ -47,7 +47,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
@@ -64,7 +64,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 
@@ -82,7 +82,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 
@@ -100,7 +100,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 			So(ctx, ShouldNotBeNil)
 
@@ -120,7 +120,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
-			_, err = NewParseCtx(stmt, cfg, dbName)
+			_, err = NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldNotBeNil)
 		})
 
@@ -137,7 +137,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 
 			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
@@ -156,7 +156,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 
 			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
@@ -175,7 +175,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 
 			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
@@ -194,7 +194,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 
 			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
@@ -213,7 +213,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 
 			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
@@ -232,7 +232,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
-			ctx, err := NewParseCtx(stmt, cfg, dbName)
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
 
 			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
@@ -250,7 +250,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			cfg, err := config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
-			_, err = NewParseCtx(stmt, cfg, dbName)
+			_, err = NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldNotBeNil)
 
 			sql = `select a,b from (select a from (select a,b from bar) y) x`
@@ -263,7 +263,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			cfg, err = config.ParseConfigData(testConfig2)
 			So(err, ShouldBeNil)
 
-			_, err = NewParseCtx(stmt, cfg, dbName)
+			_, err = NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldNotBeNil)
 
 		})

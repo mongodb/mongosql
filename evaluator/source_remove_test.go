@@ -1,20 +1,17 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
 func sourceRemoveTest(operator *SourceRemove) {
 
-	cfg, err := config.ParseConfigData(testConfig1)
-	So(err, ShouldBeNil)
-
 	ctx := &ExecutionCtx{
-		Config:  cfg,
-		Db:      dbName,
+		Config:  cfgOne,
+		Db:      dbOne,
 		SrcRows: []*Row{&Row{}},
+		Session: session,
 	}
 
 	operator.source = &TableScan{
@@ -35,6 +32,9 @@ func sourceRemoveTest(operator *SourceRemove) {
 			So(len(ctx.SrcRows), ShouldEqual, 1)
 		}
 	}
+
+	So(operator.Close(), ShouldBeNil)
+	So(operator.Err(), ShouldBeNil)
 }
 
 func TestSourceRemoveOperator(t *testing.T) {
