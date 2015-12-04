@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/10gen/sqlproxy/config"
 	"github.com/erh/mixer/sqlparser"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
 )
@@ -31,6 +32,7 @@ type ConnectionCtx interface {
 // used by each Operator implemenation.
 type ExecutionCtx struct {
 	Config   *config.Config
+	Session  *mgo.Session
 	ParseCtx *ParseCtx
 	Db       string
 	// GroupRows holds a set of rows used by each GROUP BY combination

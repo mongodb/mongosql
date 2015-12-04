@@ -1,12 +1,36 @@
 package sqlproxy
 
 import (
+	"fmt"
 	"github.com/10gen/sqlproxy/config"
 	"github.com/10gen/sqlproxy/evaluator"
 	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
+
+var (
+	session       *mgo.Session
+	eval          *Evaluator
+	collection    *mgo.Collection
+	collectionTwo *mgo.Collection
+)
+
+func init() {
+	cfg, err := config.ParseConfigData(testConfigSimple)
+	if err != nil {
+		panic(fmt.Sprintf("error parsing config: %v", err))
+	}
+	eval, err = NewEvaluator(cfg)
+	if err != nil {
+		panic(fmt.Sprintf("error creating evaluator: %v: %#v", err, cfg))
+	}
+
+	collection = eval.globalSession.DB("test").C("simple")
+	collectionTwo = eval.globalSession.DB("test").C("simple2")
+
+}
 
 func checkExpectedValues(count int, values [][]interface{}, expected map[interface{}][]evaluator.SQLNumeric) {
 	for _, value := range values {
@@ -22,16 +46,7 @@ func checkExpectedValues(count int, values [][]interface{}, expected map[interfa
 func TestSelectWithStar(t *testing.T) {
 	Convey("With a star select query", t, func() {
 		Convey("result set should be returned according to the schema order", func() {
-			cfg, err := config.ParseConfigData(testConfigSimple)
-			So(err, ShouldBeNil)
 
-			eval, err := NewEvaluator(cfg)
-			So(err, ShouldBeNil)
-
-			session := eval.getSession()
-			defer session.Close()
-
-			collection := session.DB("test").C("simple")
 			collection.DropCollection()
 			So(collection.Insert(bson.M{"_id": 5, "a": 6, "b": 7}), ShouldBeNil)
 			So(collection.Insert(bson.M{"_id": 15, "a": 16, "c": 17}), ShouldBeNil)
@@ -99,16 +114,6 @@ func TestSelectWithNonStar(t *testing.T) {
 
 	Convey("With a non-star select query", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
 		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
@@ -214,16 +219,6 @@ func TestSelectWithAggregateFunction(t *testing.T) {
 
 	Convey("With a non-star select query containing aggregate functions", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 		So(collection.Insert(bson.M{"_id": 1, "b": 6, "a": 7}), ShouldBeNil)
 		So(collection.Insert(bson.M{"_id": 2, "b": 6, "a": 7}), ShouldBeNil)
@@ -247,16 +242,6 @@ func TestSelectWithAliasing(t *testing.T) {
 
 	Convey("With a non-star select query", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
 
@@ -304,16 +289,6 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 	Convey("With a select query containing a GROUP BY clause", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
 		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
@@ -516,16 +491,6 @@ func TestSelectWithHaving(t *testing.T) {
 
 	Convey("With a select query containing a HAVING clause", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
 		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
@@ -599,24 +564,12 @@ func TestSelectWithJoin(t *testing.T) {
 
 	Convey("With a non-star select query containing a join", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collectionOne := session.DB("test").C("simple")
-		collectionTwo := session.DB("test").C("simple2")
-
-		collectionOne.DropCollection()
+		collection.DropCollection()
 		collectionTwo.DropCollection()
 
-		So(collectionOne.Insert(bson.M{"c": 1, "d": 2}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"c": 3, "d": 4}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"c": 5, "d": 16}), ShouldBeNil)
+		So(collection.Insert(bson.M{"c": 1, "d": 2}), ShouldBeNil)
+		So(collection.Insert(bson.M{"c": 3, "d": 4}), ShouldBeNil)
+		So(collection.Insert(bson.M{"c": 5, "d": 16}), ShouldBeNil)
 
 		So(collectionTwo.Insert(bson.M{"e": 1, "f": 12}), ShouldBeNil)
 		So(collectionTwo.Insert(bson.M{"e": 3, "f": 14}), ShouldBeNil)
@@ -750,16 +703,6 @@ func TestSelectFromSubquery(t *testing.T) {
 
 	Convey("For a select statement with data from a subquery", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 		So(collection.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
 
@@ -886,16 +829,6 @@ func TestSelectWithRowValue(t *testing.T) {
 
 	Convey("With a select query containing a row value expression", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
 		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 2}), ShouldBeNil)
@@ -1175,14 +1108,6 @@ func TestSelectWithRowValue(t *testing.T) {
 
 func TestSelectWithoutTable(t *testing.T) {
 	Convey("With a select expression that references no table...", t, func() {
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
 
 		Convey("the result set should work on just the select expressions", func() {
 
@@ -1220,16 +1145,7 @@ func TestSelectWithoutTable(t *testing.T) {
 
 func TestSelectWithWhere(t *testing.T) {
 	Convey("With a select expression with a WHERE clause...", t, func() {
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
 
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
 		So(collection.Insert(bson.M{"_id": 2, "b": 2, "a": 2}), ShouldBeNil)
@@ -1359,16 +1275,6 @@ func TestSelectWithOrderBy(t *testing.T) {
 
 	Convey("With a select query containing a ORDER BY clause", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 
 		Convey("with a single order by term, the result set should be sorted accordingly", func() {
@@ -1615,16 +1521,6 @@ func TestSelectWithCaseExpr(t *testing.T) {
 
 	Convey("With a select query containing a case expression clause", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 
 		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 5}), ShouldBeNil)
@@ -1681,16 +1577,6 @@ func TestSelectWithLimit(t *testing.T) {
 
 	Convey("With a select query containing a limit expression", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 
 		So(collection.Insert(bson.M{"_id": 1, "b": 1, "a": 5}), ShouldBeNil)
@@ -1741,16 +1627,6 @@ func TestSelectWithExists(t *testing.T) {
 
 	Convey("With a select query containing an exists expression", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 
 		So(collection.Insert(bson.M{"a": 2, "b": 4, "c": 5}), ShouldBeNil)
@@ -1831,16 +1707,6 @@ func TestSelectWithSubqueryWhere(t *testing.T) {
 
 	Convey("With a select query containing a subquery in the WHERE expression", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 
 		So(collection.Insert(bson.M{"a": 2, "b": 4, "c": 5}), ShouldBeNil)
@@ -1935,16 +1801,6 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 
 	Convey("With a select query containing an inline subquery as a data source", t, func() {
 
-		cfg, err := config.ParseConfigData(testConfigSimple)
-		So(err, ShouldBeNil)
-
-		eval, err := NewEvaluator(cfg)
-		So(err, ShouldBeNil)
-
-		session := eval.getSession()
-		defer session.Close()
-
-		collection := session.DB("test").C("simple")
 		collection.DropCollection()
 
 		So(collection.Insert(bson.M{"a": 2, "b": 4, "c": 5}), ShouldBeNil)

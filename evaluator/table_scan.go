@@ -42,10 +42,6 @@ func (ts *TableScan) init(ctx *ExecutionCtx) error {
 }
 
 func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
-	sp, err := NewSessionProvider(ctx.Config)
-	if err != nil {
-		return err
-	}
 
 	if len(ts.dbName) == 0 {
 		ts.dbName = ctx.Db
@@ -63,7 +59,7 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 
 	ts.fullCollection = ts.tableConfig.Collection
 	pcs := strings.SplitN(ts.tableConfig.Collection, ".", 2)
-	collection := sp.GetSession().DB(pcs[0]).C(pcs[1])
+	collection := ctx.Session.DB(pcs[0]).C(pcs[1])
 	ts.iter = MgoFindResults{collection.Find(nil).Iter()}
 	return nil
 }
