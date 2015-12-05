@@ -9,13 +9,11 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 // TableScan is the primary interface for SQLProxy to a MongoDB
 // installation and executes simple queries against collections.
 type TableScan struct {
-	sync.Mutex
 	dbName      string
 	tableName   string
 	matcher     Matcher
@@ -219,7 +217,7 @@ func (ts *TableScan) OpFields() []*Column {
 }
 
 func (ts *TableScan) Close() error {
-	defer ts.session.Copy()
+	defer ts.session.Close()
 
 	if ts.iter == nil {
 		return nil
@@ -229,9 +227,5 @@ func (ts *TableScan) Close() error {
 }
 
 func (ts *TableScan) Err() error {
-	var err error
-	ts.Lock()
-	err = ts.err
-	ts.Unlock()
-	return err
+	return ts.err
 }
