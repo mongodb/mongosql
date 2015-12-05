@@ -6,14 +6,19 @@ type Having struct {
 	// sExprs holds the columns and/or expressions present in
 	// the source operator
 	sExprs SelectExpressions
+
 	// source is the operator that provides the data to filter
 	source Operator
+
 	// err holds any error encountered during processing
 	err error
+
 	// data holds all the paged in data from the source operator
 	data []Row
+
 	// matcher is used to filter results based on a HAVING clause
 	matcher Matcher
+
 	// hasNext indicates if this operator has more results
 	hasNext bool
 }
@@ -91,6 +96,7 @@ func (hv *Having) Next(row *Row) bool {
 	r, err := hv.evalResult()
 	if err != nil {
 		hv.err = err
+		return false
 	}
 
 	evalCtx := &EvalCtx{Rows: hv.data}
