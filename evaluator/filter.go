@@ -82,5 +82,8 @@ func (ft *Filter) Close() error {
 }
 
 func (ft *Filter) Err() error {
+	if err := ft.source.Err(); err != nil {
+		return err
+	}
 	return ft.err
 }

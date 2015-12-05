@@ -7,16 +7,20 @@ type Project struct {
 	// sExprs holds the columns and/or expressions used in
 	// the pipeline
 	sExprs SelectExpressions
+
 	// viewColumns holds the final list of columns we return
 	// to the client
 	viewColumns []*Column
+
 	// source is the operator that provides the data to project
 	source Operator
 }
 
 func (pj *Project) Open(ctx *ExecutionCtx) error {
 
-	err := pj.source.Open(ctx)
+	if err := pj.source.Open(ctx); err != nil {
+		return err
+	}
 
 	for _, sExpr := range pj.sExprs {
 		if !sExpr.Referenced {
@@ -29,7 +33,7 @@ func (pj *Project) Open(ctx *ExecutionCtx) error {
 		pj.viewColumns = pj.source.OpFields()
 	}
 
-	return err
+	return nil
 }
 
 func (pj *Project) Next(r *Row) bool {

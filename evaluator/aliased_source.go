@@ -64,5 +64,8 @@ func (as *AliasedSource) Close() error {
 }
 
 func (as *AliasedSource) Err() error {
+	if err := as.source.Err(); err != nil {
+		return err
+	}
 	return as.err
 }

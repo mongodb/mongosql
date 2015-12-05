@@ -162,6 +162,15 @@ func (join *Join) OpFields() []*Column {
 }
 
 func (join *Join) Err() error {
+
+	if err := join.left.Err(); err != nil {
+		return err
+	}
+
+	if err := join.right.Err(); err != nil {
+		return err
+	}
+
 	return join.err
 }
 

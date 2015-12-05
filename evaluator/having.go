@@ -130,5 +130,8 @@ func (hv *Having) Close() error {
 }
 
 func (hv *Having) Err() error {
+	if err := hv.source.Err(); err != nil {
+		return err
+	}
 	return hv.err
 }

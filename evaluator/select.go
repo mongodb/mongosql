@@ -149,6 +149,10 @@ func (s *Select) Close() error {
 }
 
 func (s *Select) Err() error {
+	if err := s.source.Err(); err != nil {
+		return err
+	}
+
 	return s.err
 }
 

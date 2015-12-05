@@ -135,6 +135,10 @@ func (ob *OrderBy) Close() error {
 }
 
 func (ob *OrderBy) Err() error {
+	if err := ob.source.Err(); err != nil {
+		return err
+	}
+
 	return ob.err
 }
 

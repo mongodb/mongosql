@@ -182,6 +182,9 @@ func (gb *GroupBy) Close() error {
 }
 
 func (gb *GroupBy) Err() error {
+	if err := gb.source.Err(); err != nil {
+		return err
+	}
 	return gb.err
 }
 
