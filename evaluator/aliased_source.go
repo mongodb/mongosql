@@ -4,9 +4,6 @@ type AliasedSource struct {
 	// tableName holds the name of this table as seen in outer contexts
 	tableName string
 
-	// err holds any error that may have occurred during processing
-	err error
-
 	// source holds the source for this select statement
 	source Operator
 }
@@ -64,8 +61,5 @@ func (as *AliasedSource) Close() error {
 }
 
 func (as *AliasedSource) Err() error {
-	if err := as.source.Err(); err != nil {
-		return err
-	}
-	return as.err
+	return as.source.Err()
 }
