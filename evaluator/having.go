@@ -17,7 +17,7 @@ type Having struct {
 	data []Row
 
 	// matcher is used to filter results based on a HAVING clause
-	matcher Matcher
+	matcher SQLExpr
 
 	// hasNext indicates if this operator has more results
 	hasNext bool
@@ -101,7 +101,7 @@ func (hv *Having) Next(row *Row) bool {
 
 	evalCtx := &EvalCtx{Rows: hv.data}
 
-	m, err := hv.matcher.Matches(evalCtx)
+	m, err := Matches(hv.matcher, evalCtx)
 	if err != nil {
 		hv.err = err
 		return false

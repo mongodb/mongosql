@@ -4,15 +4,41 @@ import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
+	"strconv"
 )
 
-// Tree nodes for evaluating if a row matches.
-type Matcher interface {
-	Matches(*EvalCtx) (bool, error)
+// Matches checks if a given SQLExpr is "truthy" or should by coercing it to a boolean value.
+// - booleans: the result is simply that same return value
+// - numeric values: the result is true if and only if the value is non-zero.
+// - strings, the result is true if and only if that string can be parsed as a number,
+//   and that number is non-zero.
+func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
+
+	sv, err := expr.Evaluate(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	if asBool, ok := sv.(SQLBool); ok {
+		return bool(asBool), nil
+	}
+	if asNum, ok := sv.(SQLNumeric); ok {
+		return asNum.Float64() != float64(0), nil
+	}
+	if asStr, ok := sv.(SQLString); ok {
+		// check if the string should be considered "truthy" by trying to convert it to a number and comparing to 0.
+		// more info: http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
+		if parsedFloat, err := strconv.ParseFloat(string(asStr), 64); err == nil {
+			return parsedFloat != float64(0), nil
+		}
+		return false, nil
+	}
+	// TODO - handle other types with possible values that are "truthy" : dates, etc?
+	return false, nil
 }
 
-// BuildMatcher rewrites a boolean expression as a matcher.
-func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
+// BuildMatcher transforms sqlparser expressions into SQLExpr
+func BuildMatcher(gExpr sqlparser.Expr) (SQLExpr, error) {
 	log.Logf(log.DebugLow, "match expr: %#v (type is %T)\n", gExpr, gExpr)
 
 	switch expr := gExpr.(type) {
@@ -29,7 +55,7 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 			return nil, err
 		}
 
-		return &And{[]Matcher{left, right}}, nil
+		return &And{[]SQLExpr{left, right}}, nil
 
 	case *sqlparser.OrExpr:
 
@@ -43,7 +69,7 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 			return nil, err
 		}
 
-		return &Or{[]Matcher{left, right}}, nil
+		return &Or{[]SQLExpr{left, right}}, nil
 
 	case *sqlparser.ComparisonExpr:
 
@@ -126,30 +152,15 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 
 	case *sqlparser.ColName:
 
-		val, err := NewSQLValue(expr)
-		if err != nil {
-			return nil, err
-		}
-
-		return &BoolMatcher{val}, nil
+		return NewSQLValue(expr)
 
 	case sqlparser.NumVal:
 
-		val, err := NewSQLValue(expr)
-		if err != nil {
-			return nil, err
-		}
-
-		return &BoolMatcher{val}, nil
+		return NewSQLValue(expr)
 
 	case *sqlparser.FuncExpr:
 
-		v, err := NewSQLFuncValue(expr)
-		if err != nil {
-			return nil, err
-		}
-
-		return &BoolMatcher{v}, nil
+		return NewSQLFuncValue(expr)
 
 	case *sqlparser.RangeCond:
 
@@ -172,7 +183,7 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 
 		upper := &LessThanOrEqual{left, to}
 
-		m := &And{[]Matcher{lower, upper}}
+		m := &And{[]SQLExpr{lower, upper}}
 
 		if expr.Operator == sqlparser.AST_NOT_BETWEEN {
 			return &Not{m}, nil
@@ -182,30 +193,15 @@ func BuildMatcher(gExpr sqlparser.Expr) (Matcher, error) {
 
 	case *sqlparser.UnaryExpr:
 
-		val, err := NewSQLValue(expr.Expr)
-		if err != nil {
-			return nil, err
-		}
-
-		return &BoolMatcher{val}, nil
+		return NewSQLValue(expr.Expr)
 
 	case *sqlparser.CaseExpr:
 
-		val, err := NewSQLCaseValue(expr)
-		if err != nil {
-			return nil, err
-		}
-
-		return &BoolMatcher{val}, nil
+		return NewSQLCaseValue(expr)
 
 	case sqlparser.StrVal:
 
-		val, err := NewSQLValue(expr)
-		if err != nil {
-			return nil, err
-		}
-
-		return &BoolMatcher{val}, nil
+		return NewSQLValue(expr)
 
 	case *sqlparser.Subquery:
 

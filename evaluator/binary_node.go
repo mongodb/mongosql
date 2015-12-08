@@ -12,58 +12,58 @@ import (
 type LessThan BinaryNode
 type LessThanOrEqual BinaryNode
 
-func (lt *LessThan) Matches(ctx *EvalCtx) (bool, error) {
+func (lt *LessThan) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := lt.left.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	rightEvald, err := lt.right.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
 		c, err := rightEvald.CompareTo(ctx, leftEvald)
 		if err == nil {
-			return c > 0, nil
+			return SQLBool(c > 0), nil
 		}
-		return false, err
+		return SQLBool(false), err
 	}
 
 	c, err := leftEvald.CompareTo(ctx, rightEvald)
 	if err == nil {
-		return c < 0, nil
+		return SQLBool(c < 0), nil
 	}
-	return false, err
+	return SQLBool(false), err
 }
 
-func (lte *LessThanOrEqual) Matches(ctx *EvalCtx) (bool, error) {
+func (lte *LessThanOrEqual) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := lte.left.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	rightEvald, err := lte.right.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
 		c, err := rightEvald.CompareTo(ctx, leftEvald)
 		if err == nil {
-			return c >= 0, nil
+			return SQLBool(c >= 0), nil
 		}
-		return false, err
+		return SQLBool(false), err
 	}
 
 	c, err := leftEvald.CompareTo(ctx, rightEvald)
 	if err == nil {
-		return c <= 0, nil
+		return SQLBool(c <= 0), nil
 	}
-	return false, err
+	return SQLBool(false), err
 }
 
 //
@@ -73,59 +73,59 @@ func (lte *LessThanOrEqual) Matches(ctx *EvalCtx) (bool, error) {
 type GreaterThan BinaryNode
 type GreaterThanOrEqual BinaryNode
 
-func (gt *GreaterThan) Matches(ctx *EvalCtx) (bool, error) {
+func (gt *GreaterThan) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := gt.left.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	rightEvald, err := gt.right.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
 		c, err := rightEvald.CompareTo(ctx, leftEvald)
 		if err == nil {
-			return c < 0, nil
+			return SQLBool(c < 0), nil
 		}
-		return false, err
+		return SQLBool(false), err
 	}
 
 	c, err := leftEvald.CompareTo(ctx, rightEvald)
 	if err == nil {
-		return c > 0, nil
+		return SQLBool(c > 0), nil
 	}
-	return false, err
+	return SQLBool(false), err
 }
 
-func (gte *GreaterThanOrEqual) Matches(ctx *EvalCtx) (bool, error) {
+func (gte *GreaterThanOrEqual) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := gte.left.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	rightEvald, err := gte.right.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
 		c, err := rightEvald.CompareTo(ctx, leftEvald)
 		if err == nil {
-			return c <= 0, nil
+			return SQLBool(c <= 0), nil
 		}
-		return false, err
+		return SQLBool(false), err
 	}
 
 	c, err := leftEvald.CompareTo(ctx, rightEvald)
 	if err == nil {
-		return c >= 0, nil
+		return SQLBool(c >= 0), nil
 	}
 
-	return false, err
+	return SQLBool(false), err
 
 }
 
@@ -135,26 +135,26 @@ func (gte *GreaterThanOrEqual) Matches(ctx *EvalCtx) (bool, error) {
 
 type Like BinaryNode
 
-func (l *Like) Matches(ctx *EvalCtx) (bool, error) {
+func (l *Like) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	value, err := l.left.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	data, err := SQLValueToString(value)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	value, err = l.right.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	pattern, ok := value.(SQLString)
 	if !ok {
-		return false, nil
+		return SQLBool(false), nil
 	}
 
 	// TODO: Golang's regexp package expects a regex pattern
@@ -162,10 +162,10 @@ func (l *Like) Matches(ctx *EvalCtx) (bool, error) {
 	// work the same way.
 	matches, err := regexp.Match(string(pattern), []byte(data))
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
-	return matches, nil
+	return SQLBool(matches), nil
 }
 
 func SQLValueToString(sqlValue SQLValue) (string, error) {
@@ -190,32 +190,32 @@ func SQLValueToString(sqlValue SQLValue) (string, error) {
 
 type NotEquals BinaryNode
 
-func (neq *NotEquals) Matches(ctx *EvalCtx) (bool, error) {
+func (neq *NotEquals) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := neq.left.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	rightEvald, err := neq.right.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
 		c, err := rightEvald.CompareTo(ctx, leftEvald)
 		if err == nil {
-			return c != 0, nil
+			return SQLBool(c != 0), nil
 		}
-		return false, err
+		return SQLBool(false), err
 	}
 
 	c, err := leftEvald.CompareTo(ctx, rightEvald)
 	if err == nil {
-		return c != 0, nil
+		return SQLBool(c != 0), nil
 	}
 
-	return false, err
+	return SQLBool(false), err
 
 }
 
@@ -225,32 +225,32 @@ func (neq *NotEquals) Matches(ctx *EvalCtx) (bool, error) {
 
 type Equals BinaryNode
 
-func (eq *Equals) Matches(ctx *EvalCtx) (bool, error) {
+func (eq *Equals) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := eq.left.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	rightEvald, err := eq.right.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
 		c, err := rightEvald.CompareTo(ctx, leftEvald)
 		if err == nil {
-			return c == 0, nil
+			return SQLBool(c == 0), nil
 		}
-		return false, err
+		return SQLBool(false), err
 	}
 
 	c, err := leftEvald.CompareTo(ctx, rightEvald)
 	if err == nil {
-		return c == 0, nil
+		return SQLBool(c == 0), nil
 	}
 
-	return false, err
+	return SQLBool(false), err
 
 }
 
@@ -260,43 +260,43 @@ func (eq *Equals) Matches(ctx *EvalCtx) (bool, error) {
 
 type In BinaryNode
 
-func (in *In) Matches(ctx *EvalCtx) (bool, error) {
+func (in *In) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	left, err := in.left.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	right, err := in.right.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	// right child must be of type SQLValues
 	rightChild, ok := right.(SQLValues)
 	if !ok {
-		return false, fmt.Errorf("right In expression is %T", right)
+		return SQLBool(false), fmt.Errorf("right In expression is %T", right)
 	}
 
 	leftChild, ok := left.(SQLValues)
 	if ok {
 		if len(leftChild.Values) != 1 {
-			return false, fmt.Errorf("left operand should contain 1 column")
+			return SQLBool(false), fmt.Errorf("left operand should contain 1 column")
 		}
 		left = leftChild.Values[0]
 	}
 
 	for _, right := range rightChild.Values {
 		eq := &Equals{left, right}
-		m, err := eq.Matches(ctx)
+		m, err := Matches(eq, ctx)
 		if err != nil {
-			return false, err
+			return SQLBool(false), err
 		}
 		if m {
-			return true, nil
+			return SQLBool(true), nil
 		}
 	}
 
-	return false, nil
+	return SQLBool(false), nil
 }
 
 //
@@ -305,13 +305,13 @@ func (in *In) Matches(ctx *EvalCtx) (bool, error) {
 
 type NotIn BinaryNode
 
-func (nin *NotIn) Matches(ctx *EvalCtx) (bool, error) {
+func (nin *NotIn) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	in := &In{nin.left, nin.right}
-	m, err := in.Matches(ctx)
+	m, err := Matches(in, ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
-	return !m, nil
+	return SQLBool(!m), nil
 }
 
 //
@@ -324,18 +324,18 @@ type SubqueryCmp struct {
 	value *SubqueryValue
 }
 
-func (sc *SubqueryCmp) Matches(ctx *EvalCtx) (matches bool, err error) {
+func (sc *SubqueryCmp) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	left, err := sc.left.Evaluate(ctx)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	ctx.ExecCtx.Depth += 1
 
 	operator, err := PlanQuery(ctx.ExecCtx, sc.value.stmt)
 	if err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	defer func() {
@@ -360,7 +360,7 @@ func (sc *SubqueryCmp) Matches(ctx *EvalCtx) (matches bool, err error) {
 	right := SQLValues{}
 
 	if err := operator.Open(ctx.ExecCtx); err != nil {
-		return false, err
+		return SQLBool(false), err
 	}
 
 	row := &Row{}
@@ -374,22 +374,22 @@ func (sc *SubqueryCmp) Matches(ctx *EvalCtx) (matches bool, err error) {
 		for _, value := range values {
 			field, err := NewSQLField(value, "")
 			if err != nil {
-				return false, err
+				return SQLBool(false), err
 			}
 			right.Values = append(right.Values, field)
 		}
 
-		matcher := &Equals{left, right}
+		eq := &Equals{left, right}
 
-		matches, err := matcher.Matches(ctx)
+		matches, err := Matches(eq, ctx)
 		if err != nil {
-			return false, err
+			return SQLBool(false), err
 		}
 
 		if matches {
 			matched = true
 			if sc.In {
-				return true, err
+				return SQLBool(true), err
 			}
 		}
 
@@ -401,5 +401,5 @@ func (sc *SubqueryCmp) Matches(ctx *EvalCtx) (matches bool, err error) {
 		matched = true
 	}
 
-	return !matched, err
+	return SQLBool(!matched), err
 }

@@ -9,12 +9,16 @@ import (
 
 // BinaryNode holds two SQLValues.
 type BinaryNode struct {
-	left, right SQLValue
+	left, right SQLExpr
+}
+
+type SQLExpr interface {
+	Evaluate(*EvalCtx) (SQLValue, error)
 }
 
 // SQLValue used in computation by matchers
 type SQLValue interface {
-	Evaluate(*EvalCtx) (SQLValue, error)
+	SQLExpr
 	Comparable
 }
 
@@ -166,7 +170,7 @@ func NewSQLCaseValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
 
 	var conditions []caseCondition
 
-	var matcher Matcher
+	var matcher SQLExpr
 
 	for _, when := range expr.Whens {
 

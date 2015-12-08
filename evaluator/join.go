@@ -30,21 +30,21 @@ const (
 
 // NestedLoop implementation of a JOIN.
 type NestedLoopJoiner struct {
-	matcher  Matcher
+	matcher  SQLExpr
 	joinType JoinType
 	errChan  chan error
 }
 
 // SortMerge implementation of a JOIN.
 type SortMergeJoiner struct {
-	matcher  Matcher
+	matcher  SQLExpr
 	joinType JoinType
 	errChan  chan error
 }
 
 // Hash implementation of a JOIN.
 type HashJoiner struct {
-	matcher  Matcher
+	matcher  SQLExpr
 	joinType JoinType
 	errChan  chan error
 }
@@ -59,7 +59,7 @@ type Joiner interface {
 // join expressions.
 type Join struct {
 	left, right Operator
-	matcher     Matcher
+	matcher     SQLExpr
 	on          sqlparser.BoolExpr
 	err         error
 	kind        string
@@ -258,7 +258,7 @@ func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 	for _, l := range left {
 		for _, r := range right {
 			evalCtx := &EvalCtx{[]Row{*l, *r}, ctx}
-			m, err := nlp.matcher.Matches(evalCtx)
+			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
 			} else if m {
@@ -279,7 +279,7 @@ func (nlp *NestedLoopJoiner) sideJoin(lChan, rChan chan *Row, ch chan Row, ctx *
 	for _, l := range left {
 		for _, r := range right {
 			evalCtx := &EvalCtx{[]Row{*l, *r}, ctx}
-			m, err := nlp.matcher.Matches(evalCtx)
+			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
 			} else if m {

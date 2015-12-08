@@ -10,7 +10,7 @@ type Filter struct {
 	source Operator
 
 	// matcher is used to filter results gotten from the source operator
-	matcher Matcher
+	matcher SQLExpr
 
 	// ctx is the current execution context
 	ctx *ExecutionCtx
@@ -56,7 +56,7 @@ func (ft *Filter) Next(row *Row) bool {
 		}
 
 		if ft.matcher != nil {
-			m, err := ft.matcher.Matches(evalCtx)
+			m, err := Matches(ft.matcher, evalCtx)
 			if err != nil {
 				ft.err = err
 				return false

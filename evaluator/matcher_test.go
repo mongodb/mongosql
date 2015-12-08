@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func getMatcherFromSQL(sql string) (Matcher, error) {
+func getMatcherFromSQL(sql string) (SQLExpr, error) {
 	// Parse the statement, algebrize it, extract the WHERE clause and build a matcher from it.
 	raw, err := sqlparser.Parse(sql)
 	if err != nil {
@@ -35,7 +35,7 @@ func getMatcherFromSQL(sql string) (Matcher, error) {
 	return nil, fmt.Errorf("statement doesn't look like a 'SELECT'")
 }
 
-func TestBoolMatcher(t *testing.T) {
+func TestTruthyMatcher(t *testing.T) {
 	Convey("When evaluating a single value as a match", t, func() {
 		evalCtx := &EvalCtx{[]Row{
 			{Data: []TableRow{
@@ -59,14 +59,12 @@ func TestBoolMatcher(t *testing.T) {
 				SQLString(""),
 			}
 			for _, t := range shouldBeTrue {
-				matcher := BoolMatcher{t}
-				match, err := matcher.Matches(evalCtx)
+				match, err := Matches(t, evalCtx)
 				So(err, ShouldBeNil)
 				So(match, ShouldBeTrue)
 			}
 			for _, t := range shouldBeFalse {
-				matcher := BoolMatcher{t}
-				match, err := matcher.Matches(evalCtx)
+				match, err := Matches(t, evalCtx)
 				So(err, ShouldBeNil)
 				So(match, ShouldBeFalse)
 			}
@@ -90,10 +88,10 @@ func TestMatcherBuilder(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &Not{
 			&And{
-				[]Matcher{
+				[]SQLExpr{
 					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
 					&Or{
-						[]Matcher{
+						[]SQLExpr{
 							&GreaterThan{SQLField{"bar", "b"}, SQLInt(1)},
 							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
 						},
@@ -107,10 +105,10 @@ func TestMatcherBuilder(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &Not{
 			&And{
-				[]Matcher{
+				[]SQLExpr{
 					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
 					&Or{
-						[]Matcher{
+						[]SQLExpr{
 							&GreaterThan{SQLField{"bar", "b"}, SQLInt(13)},
 							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
 						},
@@ -123,12 +121,11 @@ func TestMatcherBuilder(t *testing.T) {
 
 func TestBasicMatching(t *testing.T) {
 	Convey("With a matcher checking for: field b = 'xyz'", t, func() {
-		tree := Equals{SQLString("xyz"), &SQLField{"bar", "b"}}
+		tree := &Equals{SQLString("xyz"), &SQLField{"bar", "b"}}
 		Convey("using the matcher on a row whose value matches should return true", func() {
-			tree := Equals{SQLString("xyz"), &SQLField{"bar", "b"}}
 			evalCtx := &EvalCtx{[]Row{
 				{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"b", "b", "xyz"}, {"c", "c", nil}}, nil}}}}, nil}
-			m, err := tree.Matches(evalCtx)
+			m, err := Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 		})
@@ -136,7 +133,7 @@ func TestBasicMatching(t *testing.T) {
 		Convey("using the matcher on a row whose values do not match should return false", func() {
 			evalCtx := &EvalCtx{[]Row{
 				{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"b", "b", "WRONG"}, {"c", "c", nil}}, nil}}}}, nil}
-			m, err := tree.Matches(evalCtx)
+			m, err := Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 		})
@@ -155,101 +152,101 @@ func TestComparisonMatchers(t *testing.T) {
 	}
 
 	Convey("Equality matcher should return true/false when numerics are equal/unequal", t, func() {
-		var tree Matcher
+		var tree SQLExpr
 		evalCtx := &EvalCtx{[]Row{
 			{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"y", "y", 456}, {"c", "c", nil}}, nil}}}}, nil}
 		for _, data := range tests {
 			tree = &Equals{data.less, data.less}
-			m, err := tree.Matches(evalCtx)
+			m, err := Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
 			tree = &Equals{data.less, data.greater}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
 			tree = &NotEquals{data.less, data.greater}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
 			tree = &NotEquals{data.less, data.less}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
 			tree = &Not{&Equals{data.less, data.less}}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
 			tree = &Not{&Equals{data.less, data.greater}}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
 			/* GT */
 			tree = &GreaterThan{data.less, data.greater}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
 			tree = &GreaterThan{data.greater, data.less}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
 			tree = &GreaterThan{data.less, data.less}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
 			/* GTE */
 			tree = &GreaterThanOrEqual{data.less, data.greater}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
 			tree = &GreaterThanOrEqual{data.greater, data.less}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
 			tree = &GreaterThanOrEqual{data.less, data.less}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
 			/* LT */
 			tree = &LessThan{data.less, data.greater}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
 			tree = &LessThan{data.greater, data.less}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
 			tree = &LessThan{data.less, data.less}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
 			/* LTE */
 			tree = &LessThanOrEqual{data.less, data.greater}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
 			tree = &LessThanOrEqual{data.greater, data.less}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
 			tree = &LessThanOrEqual{data.less, data.less}
-			m, err = tree.Matches(evalCtx)
+			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 		}

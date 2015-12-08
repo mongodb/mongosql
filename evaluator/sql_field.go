@@ -190,7 +190,7 @@ type SQLCaseValue struct {
 // the corresponding 'then' value is evaluated and returned ('then'
 // corresponds to the 'then' clause in a case expression).
 type caseCondition struct {
-	matcher Matcher
+	matcher SQLExpr
 	then    SQLValue
 }
 
@@ -198,7 +198,7 @@ func (s SQLCaseValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	for _, condition := range s.caseConditions {
 
-		m, err := condition.matcher.Matches(ctx)
+		m, err := Matches(condition.matcher, ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -618,8 +618,8 @@ func (f *SQLScalarFuncValue) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	matcher := NullMatcher{val}
-	result, err := matcher.Matches(ctx)
+	matcher := &NullMatcher{val}
+	result, err := Matches(matcher, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -642,8 +642,8 @@ func (f *SQLScalarFuncValue) notFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	matcher := &Not{&BoolMatcher{notVal}}
-	result, err := matcher.Matches(ctx)
+	matcher := &Not{notVal}
+	result, err := Matches(matcher, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -960,7 +960,7 @@ func (p *SQLParenBoolValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	b, err := matcher.Matches(ctx)
+	b, err := Matches(matcher, ctx)
 	return SQLBool(b), err
 }
 

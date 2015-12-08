@@ -33,7 +33,7 @@ type GroupBy struct {
 	outChan chan AggRowCtx
 
 	// matcher is used to filter results based on a HAVING clause
-	matcher Matcher
+	matcher SQLExpr
 
 	// orderBy holds the expression(s) to order by. For example, in
 	// select a, count(b) from foo group by a order by count(b)
@@ -117,7 +117,7 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 			return nil, err
 		}
 
-		m, err := gb.matcher.Matches(evalCtx)
+		m, err := Matches(gb.matcher, evalCtx)
 		if err != nil {
 			return nil, err
 		}

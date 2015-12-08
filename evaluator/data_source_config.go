@@ -26,7 +26,7 @@ var (
 type ConfigDataSource struct {
 	tableName      string
 	includeColumns bool
-	matcher        Matcher
+	matcher        SQLExpr
 	iter           FindResults
 	err            error
 	ctx            *ExecutionCtx
@@ -125,7 +125,7 @@ func _cfrNextHelper(result *bson.D, fieldName string, fieldValue interface{}) {
 
 type ConfigFindResults struct {
 	ctx            *ExecutionCtx
-	matcher        Matcher
+	matcher        SQLExpr
 	includeColumns bool
 
 	dbOffset      int
@@ -201,7 +201,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 	}
 	evalCtx := &EvalCtx{[]Row{{[]TableRow{{tableName, values, nil}}}}, cfr.ctx}
 	if cfr.matcher != nil {
-		m, err := cfr.matcher.Matches(evalCtx)
+		m, err := Matches(cfr.matcher, evalCtx)
 		if err != nil {
 			cfr.err = err
 			return false
@@ -217,7 +217,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 
 type ConfigFindQuery struct {
 	ctx            *ExecutionCtx
-	matcher        Matcher
+	matcher        SQLExpr
 	includeColumns bool
 }
 

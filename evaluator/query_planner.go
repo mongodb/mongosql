@@ -706,7 +706,7 @@ func planTableExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExpr, where *sqlparse
 // data from the appropriate source.
 func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) (Operator, error) {
 
-	var matcher Matcher
+	var matcher SQLExpr
 	var err error
 
 	dbName := strings.ToLower(string(t.Qualifier))

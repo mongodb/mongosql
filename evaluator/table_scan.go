@@ -16,7 +16,7 @@ import (
 type TableScan struct {
 	dbName      string
 	tableName   string
-	matcher     Matcher
+	matcher     SQLExpr
 	iter        FindResults
 	dbConfig    *config.Schema
 	session     *mgo.Session
@@ -177,7 +177,7 @@ func (ts *TableScan) Next(row *Row) bool {
 		evalCtx := &EvalCtx{[]Row{*row}, ts.ctx}
 
 		if ts.matcher != nil {
-			m, err := ts.matcher.Matches(evalCtx)
+			m, err := Matches(ts.matcher, evalCtx)
 			if err != nil {
 				ts.err = err
 				return false
@@ -188,7 +188,6 @@ func (ts *TableScan) Next(row *Row) bool {
 		} else {
 			break
 		}
-
 	}
 
 	if !hasNext {
