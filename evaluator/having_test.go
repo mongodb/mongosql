@@ -118,7 +118,7 @@ func TestHavingOperator(t *testing.T) {
 				Right: sqlparser.NumVal(strconv.FormatFloat(3.0, 'E', -1, 64)),
 			}
 
-			matcher, err := BuildMatcher(expr)
+			matcher, err := NewSQLExpr(expr)
 			So(err, ShouldBeNil)
 
 			operator := &Having{
@@ -152,7 +152,7 @@ func TestHavingOperator(t *testing.T) {
 				Right: sqlparser.NumVal(strconv.FormatFloat(999.0, 'E', -1, 64)),
 			}
 
-			matcher, err := BuildMatcher(expr)
+			matcher, err := NewSQLExpr(expr)
 			So(err, ShouldBeNil)
 
 			operator := &Having{

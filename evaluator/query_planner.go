@@ -170,7 +170,7 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 	appender.hasSubquery = hasSubquery
 
 	if ast.Where != nil {
-		matcher, err := BuildMatcher(ast.Where.Expr)
+		matcher, err := NewSQLExpr(ast.Where.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -339,7 +339,7 @@ func planGroupBy(ast *sqlparser.Select, s *Select) (Operator, error) {
 	}
 
 	// create a matcher that can evaluate the HAVING expression
-	matcher, err := BuildMatcher(expr)
+	matcher, err := NewSQLExpr(expr)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +380,7 @@ func planGroupBy(ast *sqlparser.Select, s *Select) (Operator, error) {
 func planHaving(having *sqlparser.Where, s *Select) (Operator, error) {
 
 	// create a matcher that can evaluate the HAVING expression
-	matcher, err := BuildMatcher(having.Expr)
+	matcher, err := NewSQLExpr(having.Expr)
 	if err != nil {
 		return nil, err
 	}

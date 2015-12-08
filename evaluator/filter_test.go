@@ -72,7 +72,7 @@ func TestFilterOperator(t *testing.T) {
 			expected := [][]Values{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
 
 			for i, query := range queries {
-				matcher, err := getMatcherFromSQL(query)
+				matcher, err := getSQLExprFromSQL(query)
 				So(err, ShouldBeNil)
 
 				operator := &Filter{

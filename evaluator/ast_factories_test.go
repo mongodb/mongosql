@@ -545,3 +545,50 @@ func TestAggFuncComplex(t *testing.T) {
 
 	})
 }
+
+func TestNewSQLExpr(t *testing.T) {
+	Convey("Simple WHERE with explicit table names", t, func() {
+		matcher, err := getSQLExprFromSQL("select * from bar where bar.a = 'eliot'")
+		So(err, ShouldBeNil)
+		So(matcher, ShouldResemble, &Equals{SQLField{"bar", "a"}, SQLString("eliot")})
+	})
+	Convey("Simple WHERE with implicit table names", t, func() {
+		matcher, err := getSQLExprFromSQL("select * from bar where a = 'eliot'")
+		So(err, ShouldBeNil)
+		So(matcher, ShouldResemble, &Equals{SQLField{"bar", "a"}, SQLString("eliot")})
+	})
+	Convey("WHERE with complex nested matching clauses", t, func() {
+		matcher, err := getSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>1 OR a<'blah'))")
+		So(err, ShouldBeNil)
+		So(matcher, ShouldResemble, &Not{
+			&And{
+				[]SQLExpr{
+					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
+					&Or{
+						[]SQLExpr{
+							&GreaterThan{SQLField{"bar", "b"}, SQLInt(1)},
+							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
+						},
+					},
+				},
+			},
+		})
+	})
+	Convey("WHERE with complex nested matching clauses", t, func() {
+		matcher, err := getSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>13 OR a<'blah'))")
+		So(err, ShouldBeNil)
+		So(matcher, ShouldResemble, &Not{
+			&And{
+				[]SQLExpr{
+					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
+					&Or{
+						[]SQLExpr{
+							&GreaterThan{SQLField{"bar", "b"}, SQLInt(13)},
+							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
+						},
+					},
+				},
+			},
+		})
+	})
+}

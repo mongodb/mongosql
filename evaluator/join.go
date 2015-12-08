@@ -112,7 +112,7 @@ func (join *Join) init(ctx *ExecutionCtx) (err error) {
 
 	join.errChan = make(chan error, 1)
 
-	join.matcher, err = BuildMatcher(join.on)
+	join.matcher, err = NewSQLExpr(join.on)
 	if err != nil {
 		return err
 	}

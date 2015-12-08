@@ -1,15 +1,15 @@
 package evaluator
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/10gen/sqlproxy/config"
 	"github.com/erh/mixer/sqlparser"
-	"github.com/mongodb/mongo-tools/common/json"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
-func getMatcherFromSQL(sql string) (SQLExpr, error) {
+func getSQLExprFromSQL(sql string) (SQLExpr, error) {
 	// Parse the statement, algebrize it, extract the WHERE clause and build a matcher from it.
 	raw, err := sqlparser.Parse(sql)
 	if err != nil {
@@ -30,12 +30,12 @@ func getMatcherFromSQL(sql string) (SQLExpr, error) {
 			return nil, err
 		}
 
-		return BuildMatcher(selectStatement.Where.Expr)
+		return NewSQLExpr(selectStatement.Where.Expr)
 	}
 	return nil, fmt.Errorf("statement doesn't look like a 'SELECT'")
 }
 
-func TestTruthyMatcher(t *testing.T) {
+func TestMatchesWithValues(t *testing.T) {
 	Convey("When evaluating a single value as a match", t, func() {
 		evalCtx := &EvalCtx{[]Row{
 			{Data: []TableRow{
@@ -72,54 +72,7 @@ func TestTruthyMatcher(t *testing.T) {
 	})
 }
 
-func TestMatcherBuilder(t *testing.T) {
-	Convey("Simple WHERE with explicit table names", t, func() {
-		matcher, err := getMatcherFromSQL("select * from bar where bar.a = 'eliot'")
-		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &Equals{SQLField{"bar", "a"}, SQLString("eliot")})
-	})
-	Convey("Simple WHERE with implicit table names", t, func() {
-		matcher, err := getMatcherFromSQL("select * from bar where a = 'eliot'")
-		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &Equals{SQLField{"bar", "a"}, SQLString("eliot")})
-	})
-	Convey("WHERE with complex nested matching clauses", t, func() {
-		matcher, err := getMatcherFromSQL("select * from bar where NOT((a = 'eliot') AND (b>1 OR a<'blah'))")
-		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &Not{
-			&And{
-				[]SQLExpr{
-					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
-					&Or{
-						[]SQLExpr{
-							&GreaterThan{SQLField{"bar", "b"}, SQLInt(1)},
-							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
-						},
-					},
-				},
-			},
-		})
-	})
-	Convey("WHERE with complex nested matching clauses", t, func() {
-		matcher, err := getMatcherFromSQL("select * from bar where NOT((a = 'eliot') AND (b>13 OR a<'blah'))")
-		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &Not{
-			&And{
-				[]SQLExpr{
-					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
-					&Or{
-						[]SQLExpr{
-							&GreaterThan{SQLField{"bar", "b"}, SQLInt(13)},
-							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
-						},
-					},
-				},
-			},
-		})
-	})
-}
-
-func TestBasicMatching(t *testing.T) {
+func TestBasicBooleanExpressions(t *testing.T) {
 	Convey("With a matcher checking for: field b = 'xyz'", t, func() {
 		tree := &Equals{SQLString("xyz"), &SQLField{"bar", "b"}}
 		Convey("using the matcher on a row whose value matches should return true", func() {
@@ -140,7 +93,7 @@ func TestBasicMatching(t *testing.T) {
 	})
 }
 
-func TestComparisonMatchers(t *testing.T) {
+func TestComparisonExpressions(t *testing.T) {
 	type compareTest struct {
 		less, greater SQLValue
 	}
