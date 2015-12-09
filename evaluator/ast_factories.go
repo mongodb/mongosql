@@ -158,13 +158,33 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 		return &And{[]SQLExpr{left, right}}, nil
 
+	case *sqlparser.BinaryExpr:
+
+		// look up the function in the function map
+		funcImpl, ok := binaryFuncMap[string(expr.Operator)]
+		if !ok {
+			return nil, fmt.Errorf("can't find implementation for binary operator '%v'", expr.Operator)
+		}
+
+		left, err := NewSQLValue(expr.Left)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := NewSQLValue(expr.Right)
+		if err != nil {
+			return nil, err
+		}
+
+		return &SQLBinaryValue{[]SQLValue{left, right}, funcImpl}, nil
+
 	case *sqlparser.CaseExpr:
 
 		return NewSQLCaseValue(expr)
 
 	case *sqlparser.ColName:
 
-		return NewSQLValue(expr)
+		return SQLField{string(expr.Qualifier), string(expr.Name)}, nil
 
 	case *sqlparser.ComparisonExpr:
 
@@ -246,7 +266,18 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case sqlparser.NumVal:
 
-		return NewSQLValue(expr)
+		// try to parse as int first
+		if i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64); err == nil {
+			return SQLInt(i), nil
+		}
+
+		// if it's not a valid int, try parsing as float instead
+		f, err := strconv.ParseFloat(sqlparser.String(expr), 64)
+		if err != nil {
+			return nil, err
+		}
+
+		return SQLFloat(f), nil
 
 	case *sqlparser.OrExpr:
 
@@ -264,12 +295,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.ParenBoolExpr:
 
-		child, err := NewSQLExpr(expr.Expr)
-		if err != nil {
-			return nil, err
-		}
-
-		return child, nil
+		return NewSQLExpr(expr.Expr)
 
 	case *sqlparser.RangeCond:
 
@@ -302,7 +328,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case sqlparser.StrVal:
 
-		return NewSQLValue(expr)
+		return SQLString(string([]byte(expr))), nil
 
 	case *sqlparser.Subquery:
 
@@ -310,66 +336,21 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.UnaryExpr:
 
-		return NewSQLValue(expr.Expr)
-
-	default:
-		panic(fmt.Errorf("matcher not yet implemented for %v (%T)", sqlparser.String(expr), expr))
-	}
-}
-
-func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
-	switch expr := gExpr.(type) {
-
-	case sqlparser.NumVal:
-
-		// try to parse as int first
-		if i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64); err == nil {
-			return SQLInt(i), nil
-		}
-
-		// if it's not a valid int, try parsing as float instead
-		f, err := strconv.ParseFloat(sqlparser.String(expr), 64)
+		val, err := NewSQLValue(expr.Expr)
 		if err != nil {
 			return nil, err
 		}
 
-		return SQLFloat(f), nil
-
-	case *sqlparser.ColName:
-
-		return SQLField{string(expr.Qualifier), string(expr.Name)}, nil
-
-	case sqlparser.StrVal:
-
-		return SQLString(string([]byte(expr))), nil
-
-	case *sqlparser.BinaryExpr:
-
-		// look up the function in the function map
-		funcImpl, ok := binaryFuncMap[string(expr.Operator)]
-		if !ok {
-			return nil, fmt.Errorf("can't find implementation for binary operator '%v'", expr.Operator)
+		switch expr.Operator {
+		case sqlparser.AST_UMINUS:
+			return &SQLUnaryMinus{val}, nil
+		case sqlparser.AST_UPLUS:
+			return &SQLUnaryPlus{val}, nil
+		case sqlparser.AST_TILDA:
+			return &SQLUnaryTilde{val}, nil
 		}
 
-		left, err := NewSQLValue(expr.Left)
-		if err != nil {
-			return nil, err
-		}
-
-		right, err := NewSQLValue(expr.Right)
-		if err != nil {
-			return nil, err
-		}
-
-		return &SQLBinaryValue{[]SQLValue{left, right}, funcImpl}, nil
-
-	case *sqlparser.FuncExpr:
-
-		return NewSQLFuncValue(expr)
-
-	case *sqlparser.ParenBoolExpr:
-
-		return &SQLParenBoolValue{expr}, nil
+		return nil, fmt.Errorf("invalid unary operator - '%v'", string(expr.Operator))
 
 	case sqlparser.ValTuple:
 
@@ -385,47 +366,47 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 
 		return &SQLValTupleValue{values}, nil
 
-	case *sqlparser.UnaryExpr:
+	default:
+		panic(fmt.Errorf("NewSQLExpr not yet implemented for %v (%T)", sqlparser.String(expr), expr))
+	}
+}
 
-		val, err := NewSQLValue(expr.Expr)
+func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
+
+	// I'm not totally happy that we are doing something different here
+	// than in NewSQLExpr. I'm not quite sure why this is quite yet. I have
+	// a feeling it's because some of our nodes only accept SQLValue and not
+	// SQLExpr.
+
+	switch expr := gExpr.(type) {
+
+	case *sqlparser.NullVal, nil:
+
+		// TODO: I'm not sure why we have different results for when someone asks for a
+		// NewSQLValue(nil) vs. NewSQLExpr(nil) (the old BuildMatcher)
+		return &SQLNullValue{}, nil
+
+	case *sqlparser.ParenBoolExpr:
+
+		return &SQLParenBoolValue{expr}, nil
+
+	case *sqlparser.Subquery:
+		// TODO: I'm not sure why we have different results for when someone asks for a
+		// NewSQLValue  vs. when they ask for a NewSqlExpr (the old BuildMatcher)
+		return &SQLSubqueryValue{expr.Select}, nil
+
+	default:
+
+		valExpr, err := NewSQLExpr(gExpr)
 		if err != nil {
 			return nil, err
 		}
 
-		switch expr.Operator {
-
-		case sqlparser.AST_UMINUS:
-
-			return &SQLUnaryMinus{val}, nil
-
-		case sqlparser.AST_UPLUS:
-
-			return &SQLUnaryPlus{val}, nil
-
-		case sqlparser.AST_TILDA:
-
-			return &SQLUnaryTilde{val}, nil
-
+		if val, ok := valExpr.(SQLValue); ok {
+			return val, nil
 		}
 
-		return nil, fmt.Errorf("invalid unary operator - '%v'", string(expr.Operator))
-
-	case *sqlparser.CaseExpr:
-
-		return NewSQLCaseValue(expr)
-
-	case *sqlparser.Subquery:
-
-		return &SQLSubqueryValue{expr.Select}, nil
-
-	case *sqlparser.NullVal, nil:
-
-		return &SQLNullValue{}, nil
-
-	default:
-
-		panic(fmt.Errorf("NewSQLValue expr not yet implemented for %T", expr))
-		return nil, nil
+		return nil, fmt.Errorf("%v (%T) is not a SQLValue.", expr, expr)
 	}
 }
 
