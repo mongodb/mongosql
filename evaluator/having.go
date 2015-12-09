@@ -54,7 +54,7 @@ func (hv *Having) evalResult() (*Row, error) {
 			continue
 		}
 
-		expr, err := NewSQLValue(sExpr.Expr)
+		expr, err := NewSQLExpr(sExpr.Expr)
 		if err != nil {
 			return nil, err
 		}

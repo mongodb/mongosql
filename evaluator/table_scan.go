@@ -153,7 +153,7 @@ func (ts *TableScan) Next(row *Row) bool {
 				value.Data = data[column.Name]
 			}
 
-			value.Data, err = NewSQLField(value.Data, column.Type)
+			value.Data, err = NewSQLValue(value.Data, column.Type)
 			if err != nil {
 				ts.err = err
 				return false

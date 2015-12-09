@@ -118,7 +118,7 @@ func (s *Select) getValue(sc SelectExpression, row *Row) (SQLValue, error) {
 		}
 	}
 
-	expr, err := NewSQLValue(sc.Expr)
+	expr, err := NewSQLExpr(sc.Expr)
 	if err != nil {
 		return nil, err
 	}

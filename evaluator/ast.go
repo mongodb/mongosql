@@ -12,11 +12,11 @@ type SQLExpr interface {
 }
 
 //
-// A Comparable SQL Value.
+// A Comparable SQL Expression.
 //
 type SQLValue interface {
 	SQLExpr
-	CompareTo(*EvalCtx, SQLValue) (int, error)
+	CompareTo(SQLValue) (int, error)
 }
 
 //
@@ -76,6 +76,7 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 		}
 		return false, nil
 	}
+
 	// TODO - handle other types with possible values that are "truthy" : dates, etc?
 	return false, nil
 }

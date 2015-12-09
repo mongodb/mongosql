@@ -74,7 +74,7 @@ func TestMatchesWithValues(t *testing.T) {
 
 func TestBasicBooleanExpressions(t *testing.T) {
 	Convey("With a matcher checking for: field b = 'xyz'", t, func() {
-		tree := &Equals{SQLString("xyz"), &SQLField{"bar", "b"}}
+		tree := &SQLEqualsExpr{SQLString("xyz"), &SQLFieldExpr{"bar", "b"}}
 		Convey("using the matcher on a row whose value matches should return true", func() {
 			evalCtx := &EvalCtx{[]Row{
 				{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"b", "b", "xyz"}, {"c", "c", nil}}, nil}}}}, nil}
@@ -95,13 +95,13 @@ func TestBasicBooleanExpressions(t *testing.T) {
 
 func TestComparisonExpressions(t *testing.T) {
 	type compareTest struct {
-		less, greater SQLValue
+		less, greater SQLExpr
 	}
 
 	tests := []compareTest{
 		{SQLFloat(1000.0), SQLFloat(5000.0)},
 		{SQLString("aaa"), SQLString("bbb")},
-		{SQLField{"bar", "a"}, SQLField{"bar", "y"}},
+		{SQLFieldExpr{"bar", "a"}, SQLFieldExpr{"bar", "y"}},
 	}
 
 	Convey("Equality matcher should return true/false when numerics are equal/unequal", t, func() {
@@ -109,96 +109,96 @@ func TestComparisonExpressions(t *testing.T) {
 		evalCtx := &EvalCtx{[]Row{
 			{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"y", "y", 456}, {"c", "c", nil}}, nil}}}}, nil}
 		for _, data := range tests {
-			tree = &Equals{data.less, data.less}
+			tree = &SQLEqualsExpr{data.less, data.less}
 			m, err := Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
-			tree = &Equals{data.less, data.greater}
+			tree = &SQLEqualsExpr{data.less, data.greater}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
-			tree = &NotEquals{data.less, data.greater}
+			tree = &SQLNotEqualsExpr{data.less, data.greater}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
-			tree = &NotEquals{data.less, data.less}
+			tree = &SQLNotEqualsExpr{data.less, data.less}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
-			tree = &Not{&Equals{data.less, data.less}}
+			tree = &SQLNotExpr{&SQLEqualsExpr{data.less, data.less}}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
-			tree = &Not{&Equals{data.less, data.greater}}
+			tree = &SQLNotExpr{&SQLEqualsExpr{data.less, data.greater}}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
 			/* GT */
-			tree = &GreaterThan{data.less, data.greater}
+			tree = &SQLGreaterThanExpr{data.less, data.greater}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
-			tree = &GreaterThan{data.greater, data.less}
+			tree = &SQLGreaterThanExpr{data.greater, data.less}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
-			tree = &GreaterThan{data.less, data.less}
+			tree = &SQLGreaterThanExpr{data.less, data.less}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
 			/* GTE */
-			tree = &GreaterThanOrEqual{data.less, data.greater}
+			tree = &SQLGreaterThanOrEqualExpr{data.less, data.greater}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
-			tree = &GreaterThanOrEqual{data.greater, data.less}
+			tree = &SQLGreaterThanOrEqualExpr{data.greater, data.less}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
-			tree = &GreaterThanOrEqual{data.less, data.less}
+			tree = &SQLGreaterThanOrEqualExpr{data.less, data.less}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
 			/* LT */
-			tree = &LessThan{data.less, data.greater}
+			tree = &SQLLessThanExpr{data.less, data.greater}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
-			tree = &LessThan{data.greater, data.less}
+			tree = &SQLLessThanExpr{data.greater, data.less}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
-			tree = &LessThan{data.less, data.less}
+			tree = &SQLLessThanExpr{data.less, data.less}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
 			/* LTE */
-			tree = &LessThanOrEqual{data.less, data.greater}
+			tree = &SQLLessThanOrEqualExpr{data.less, data.greater}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)
 
-			tree = &LessThanOrEqual{data.greater, data.less}
+			tree = &SQLLessThanOrEqualExpr{data.greater, data.less}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeFalse)
 
-			tree = &LessThanOrEqual{data.less, data.less}
+			tree = &SQLLessThanOrEqualExpr{data.less, data.less}
 			m, err = Matches(tree, evalCtx)
 			So(err, ShouldBeNil)
 			So(m, ShouldBeTrue)

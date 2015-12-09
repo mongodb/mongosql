@@ -10,11 +10,11 @@ import (
 //
 // Evaluates to true if and only if all its children evaluate to true.
 //
-type And struct {
+type SQLAndExpr struct {
 	children []SQLExpr
 }
 
-func (and *And) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	for _, c := range and.children {
 		m, err := Matches(c, ctx)
 		if err != nil {
@@ -30,9 +30,9 @@ func (and *And) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true if the left equals the right.
 //
-type Equals SQLBinaryNode
+type SQLEqualsExpr SQLBinaryNode
 
-func (eq *Equals) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := eq.left.Evaluate(ctx)
 	if err != nil {
@@ -45,14 +45,14 @@ func (eq *Equals) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
-		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c == 0), nil
 		}
 		return SQLBool(false), err
 	}
 
-	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	c, err := leftEvald.CompareTo(rightEvald)
 	if err == nil {
 		return SQLBool(c == 0), nil
 	}
@@ -64,11 +64,11 @@ func (eq *Equals) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true if any result is returned from the subquery.
 //
-type ExistsMatcher struct {
+type SQLExistsExpr struct {
 	stmt sqlparser.SelectStatement
 }
 
-func (em *ExistsMatcher) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	ctx.ExecCtx.Depth += 1
 
 	operator, err := PlanQuery(ctx.ExecCtx, em.stmt)
@@ -106,9 +106,9 @@ func (em *ExistsMatcher) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true when the left is greater than the right.
 //
-type GreaterThan SQLBinaryNode
+type SQLGreaterThanExpr SQLBinaryNode
 
-func (gt *GreaterThan) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := gt.left.Evaluate(ctx)
 	if err != nil {
@@ -121,14 +121,14 @@ func (gt *GreaterThan) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
-		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c < 0), nil
 		}
 		return SQLBool(false), err
 	}
 
-	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	c, err := leftEvald.CompareTo(rightEvald)
 	if err == nil {
 		return SQLBool(c > 0), nil
 	}
@@ -138,9 +138,9 @@ func (gt *GreaterThan) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true when the left is greater than or equal to the right.
 //
-type GreaterThanOrEqual SQLBinaryNode
+type SQLGreaterThanOrEqualExpr SQLBinaryNode
 
-func (gte *GreaterThanOrEqual) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := gte.left.Evaluate(ctx)
 	if err != nil {
@@ -153,14 +153,14 @@ func (gte *GreaterThanOrEqual) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
-		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c <= 0), nil
 		}
 		return SQLBool(false), err
 	}
 
-	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	c, err := leftEvald.CompareTo(rightEvald)
 	if err == nil {
 		return SQLBool(c >= 0), nil
 	}
@@ -171,9 +171,9 @@ func (gte *GreaterThanOrEqual) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true if the left is in any of the values on the right.
 //
-type In SQLBinaryNode
+type SQLInExpr SQLBinaryNode
 
-func (in *In) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	left, err := in.left.Evaluate(ctx)
 	if err != nil {
 		return SQLBool(false), err
@@ -200,7 +200,7 @@ func (in *In) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	for _, right := range rightChild.Values {
-		eq := &Equals{left, right}
+		eq := &SQLEqualsExpr{left, right}
 		m, err := Matches(eq, ctx)
 		if err != nil {
 			return SQLBool(false), err
@@ -216,9 +216,9 @@ func (in *In) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true when the left is less than the right.
 //
-type LessThan SQLBinaryNode
+type SQLLessThanExpr SQLBinaryNode
 
-func (lt *LessThan) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := lt.left.Evaluate(ctx)
 	if err != nil {
@@ -231,14 +231,14 @@ func (lt *LessThan) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
-		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c > 0), nil
 		}
 		return SQLBool(false), err
 	}
 
-	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	c, err := leftEvald.CompareTo(rightEvald)
 	if err == nil {
 		return SQLBool(c < 0), nil
 	}
@@ -248,9 +248,9 @@ func (lt *LessThan) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true when the left is less than or equal to the right.
 //
-type LessThanOrEqual SQLBinaryNode
+type SQLLessThanOrEqualExpr SQLBinaryNode
 
-func (lte *LessThanOrEqual) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := lte.left.Evaluate(ctx)
 	if err != nil {
@@ -263,14 +263,14 @@ func (lte *LessThanOrEqual) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
-		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c >= 0), nil
 		}
 		return SQLBool(false), err
 	}
 
-	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	c, err := leftEvald.CompareTo(rightEvald)
 	if err == nil {
 		return SQLBool(c <= 0), nil
 	}
@@ -280,9 +280,9 @@ func (lte *LessThanOrEqual) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true if the left is 'like' the right.
 //
-type Like SQLBinaryNode
+type SQLLikeExpr SQLBinaryNode
 
-func (l *Like) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	value, err := l.left.Evaluate(ctx)
 	if err != nil {
@@ -332,22 +332,13 @@ func sqlValueToString(sqlValue SQLValue) (string, error) {
 }
 
 //
-// Evaluates to true, always.
-//
-type NoopMatcher struct{}
-
-func (no *NoopMatcher) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	return SQLBool(true), nil
-}
-
-//
 // Evaluates to the inverse of its child.
 //
-type Not struct {
+type SQLNotExpr struct {
 	child SQLExpr
 }
 
-func (not *Not) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	m, err := Matches(not.child, ctx)
 	if err != nil {
 		return SQLBool(false), err
@@ -358,9 +349,9 @@ func (not *Not) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true if the left does not equal the right.
 //
-type NotEquals SQLBinaryNode
+type SQLNotEqualsExpr SQLBinaryNode
 
-func (neq *NotEquals) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftEvald, err := neq.left.Evaluate(ctx)
 	if err != nil {
@@ -373,14 +364,14 @@ func (neq *NotEquals) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	if _, ok := rightEvald.(SQLValues); ok {
-		c, err := rightEvald.CompareTo(ctx, leftEvald)
+		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c != 0), nil
 		}
 		return SQLBool(false), err
 	}
 
-	c, err := leftEvald.CompareTo(ctx, rightEvald)
+	c, err := leftEvald.CompareTo(rightEvald)
 	if err == nil {
 		return SQLBool(c != 0), nil
 	}
@@ -391,10 +382,10 @@ func (neq *NotEquals) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true if the left is not in any of the values on the right.
 //
-type NotIn SQLBinaryNode
+type SQLNotInExpr SQLBinaryNode
 
-func (nin *NotIn) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	in := &In{nin.left, nin.right}
+func (nin *SQLNotInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	in := &SQLInExpr{nin.left, nin.right}
 	m, err := Matches(in, ctx)
 	if err != nil {
 		return SQLBool(false), err
@@ -405,11 +396,11 @@ func (nin *NotIn) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true if its value evaluates to null.
 //
-type NullMatcher struct {
-	val SQLValue
+type SQLNullCmpExpr struct {
+	val SQLExpr
 }
 
-func (nm *NullMatcher) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (nm *SQLNullCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	eval, err := nm.val.Evaluate(ctx)
 	if err != nil {
 		return SQLBool(false), nil
@@ -421,11 +412,11 @@ func (nm *NullMatcher) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true if any of its children evaluate to true.
 //
-type Or struct {
+type SQLOrExpr struct {
 	children []SQLExpr
 }
 
-func (or *Or) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	for _, c := range or.children {
 		m, err := Matches(c, ctx)
 		if err != nil {
@@ -441,13 +432,13 @@ func (or *Or) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // Evaluates to true if ...???
 //
-type SQLSubqueryCmp struct {
+type SQLSubqueryCmpExpr struct {
 	In    bool
-	left  SQLValue
-	value *SQLSubqueryValue
+	left  SQLExpr
+	value *SQLSubqueryExpr
 }
 
-func (sc *SQLSubqueryCmp) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	left, err := sc.left.Evaluate(ctx)
 	if err != nil {
@@ -495,14 +486,14 @@ func (sc *SQLSubqueryCmp) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		values := row.GetValues(operator.OpFields())
 
 		for _, value := range values {
-			field, err := NewSQLField(value, "")
+			field, err := NewSQLValue(value, "")
 			if err != nil {
 				return SQLBool(false), err
 			}
 			right.Values = append(right.Values, field)
 		}
 
-		eq := &Equals{left, right}
+		eq := &SQLEqualsExpr{left, right}
 
 		matches, err := Matches(eq, ctx)
 		if err != nil {

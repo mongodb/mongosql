@@ -38,7 +38,6 @@ func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error
 		return nil, fmt.Errorf("unknown select statement: %T", ast)
 
 	}
-
 }
 
 func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs SelectExpressions) (SelectExpressions, error) {
@@ -170,7 +169,9 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 	appender.hasSubquery = hasSubquery
 
 	if ast.Where != nil {
+
 		matcher, err := NewSQLExpr(ast.Where.Expr)
+
 		if err != nil {
 			return nil, err
 		}
@@ -252,7 +253,7 @@ func planLimit(expr *sqlparser.Limit, source Operator) (Operator, error) {
 	// For compatibility with PostgreSQL, MySQL supports both so we should
 	// update our parser.
 	//
-	eval, err := NewSQLValue(expr.Offset)
+	eval, err := NewSQLExpr(expr.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +270,7 @@ func planLimit(expr *sqlparser.Limit, source Operator) (Operator, error) {
 		}
 	}
 
-	eval, err = NewSQLValue(expr.Rowcount)
+	eval, err = NewSQLExpr(expr.Rowcount)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +308,7 @@ func planOrderBy(ast *sqlparser.Select, source Operator, sExprs SelectExpression
 			return nil, err
 		}
 
-		value, err := NewSQLValue(expr)
+		value, err := NewSQLExpr(expr)
 		if err != nil {
 			return nil, err
 		}

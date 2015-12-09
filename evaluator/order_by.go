@@ -10,7 +10,7 @@ type OrderBy struct {
 	// source is the operator that provides the data to order
 	source Operator
 
-	// keys holds the SQLValues(s) to order by. For example, in
+	// keys holds the SQLExpr(s) to order by. For example, in
 	// select a, count(b) from foo group by a order by count(b)
 	// keys will hold the SQLValue for 'count(b)'. For multiple
 	// order by criteria, they are stored in the same order within
@@ -30,7 +30,7 @@ type OrderBy struct {
 }
 
 type orderByKey struct {
-	value     SQLValue
+	value     SQLExpr
 	isAggFunc bool
 	ascending bool
 	evalCtx   *EvalCtx
@@ -165,12 +165,17 @@ func (rows orderByRows) Less(i, j int) bool {
 		left := r1.keys[i]
 		right := r2.keys[i]
 
-		eval, err := left.value.Evaluate(left.evalCtx)
+		leftVal, err := left.value.Evaluate(left.evalCtx)
 		if err != nil {
 			panic(err)
 		}
 
-		cmp, err := eval.CompareTo(right.evalCtx, right.value)
+		rightVal, err := right.value.Evaluate(right.evalCtx)
+		if err != nil {
+			panic(err)
+		}
+
+		cmp, err := leftVal.CompareTo(rightVal)
 		if err != nil {
 			panic(err)
 		}

@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func NewSQLField(value interface{}, columnType config.ColumnType) (SQLValue, error) {
+func NewSQLValue(value interface{}, columnType config.ColumnType) (SQLValue, error) {
 
 	if value == nil {
 		return SQLNullValue{}, nil
@@ -141,8 +141,8 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	switch expr := gExpr.(type) {
 	case nil:
-
-		return &NoopMatcher{}, nil
+		// TODO: this is weird... anyone passing nil to this method should get changed...
+		return SQLBool(true), nil
 
 	case *sqlparser.AndExpr:
 
@@ -156,7 +156,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		return &And{[]SQLExpr{left, right}}, nil
+		return &SQLAndExpr{[]SQLExpr{left, right}}, nil
 
 	case *sqlparser.BinaryExpr:
 
@@ -166,76 +166,72 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 			return nil, fmt.Errorf("can't find implementation for binary operator '%v'", expr.Operator)
 		}
 
-		left, err := NewSQLValue(expr.Left)
+		left, err := NewSQLExpr(expr.Left)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := NewSQLValue(expr.Right)
+		right, err := NewSQLExpr(expr.Right)
 		if err != nil {
 			return nil, err
 		}
 
-		return &SQLBinaryValue{[]SQLValue{left, right}, funcImpl}, nil
+		return &SQLBinaryFunctionExpr{[]SQLExpr{left, right}, funcImpl}, nil
 
 	case *sqlparser.CaseExpr:
 
-		return NewSQLCaseValue(expr)
+		return NewSQLCaseExpr(expr)
 
 	case *sqlparser.ColName:
 
-		return SQLField{string(expr.Qualifier), string(expr.Name)}, nil
+		return SQLFieldExpr{string(expr.Qualifier), string(expr.Name)}, nil
 
 	case *sqlparser.ComparisonExpr:
 
-		left, err := NewSQLValue(expr.Left)
+		left, err := NewSQLExpr(expr.Left)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := NewSQLValue(expr.Right)
+		right, err := newSQLExprForComparison(expr.Right)
 		if err != nil {
 			return nil, err
 		}
 
 		switch expr.Operator {
 		case sqlparser.AST_EQ:
-			return &Equals{left, right}, nil
+			return &SQLEqualsExpr{left, right}, nil
 		case sqlparser.AST_LT:
-			return &LessThan{left, right}, nil
+			return &SQLLessThanExpr{left, right}, nil
 		case sqlparser.AST_GT:
-			return &GreaterThan{left, right}, nil
+			return &SQLGreaterThanExpr{left, right}, nil
 		case sqlparser.AST_LE:
-			return &LessThanOrEqual{left, right}, nil
+			return &SQLLessThanOrEqualExpr{left, right}, nil
 		case sqlparser.AST_GE:
-			return &GreaterThanOrEqual{left, right}, nil
+			return &SQLGreaterThanOrEqualExpr{left, right}, nil
 		case sqlparser.AST_NE:
-			return &NotEquals{left, right}, nil
+			return &SQLNotEqualsExpr{left, right}, nil
 		case sqlparser.AST_LIKE:
-			return &Like{left, right}, nil
+			return &SQLLikeExpr{left, right}, nil
 		case sqlparser.AST_IN:
 			switch eval := right.(type) {
-			case *SQLSubqueryValue:
-				return &SQLSubqueryCmp{true, left, eval}, nil
+			case *SQLSubqueryExpr:
+				return &SQLSubqueryCmpExpr{true, left, eval}, nil
 			}
-			return &In{left, right}, nil
+			return &SQLInExpr{left, right}, nil
 		case sqlparser.AST_NOT_IN:
 			switch eval := right.(type) {
-			case *SQLSubqueryValue:
-				return &SQLSubqueryCmp{false, left, eval}, nil
+			case *SQLSubqueryExpr:
+				return &SQLSubqueryCmpExpr{false, left, eval}, nil
 			}
-			return &NotIn{left, right}, nil
+			return &SQLNotInExpr{left, right}, nil
 		default:
-			return &Equals{left, right}, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)
+			return &SQLEqualsExpr{left, right}, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)
 		}
 
 	case *sqlparser.ExistsExpr:
 
-		return &ExistsMatcher{expr.Subquery.Select}, nil
-
-		/*
-			case sqlparser.ValArg:
-		*/
+		return &SQLExistsExpr{expr.Subquery.Select}, nil
 
 	case *sqlparser.FuncExpr:
 
@@ -248,21 +244,26 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		return &Not{child}, nil
+		return &SQLNotExpr{child}, nil
 
 	case *sqlparser.NullCheck:
 
-		val, err := NewSQLValue(expr.Expr)
+		val, err := NewSQLExpr(expr.Expr)
 		if err != nil {
 			return nil, err
 		}
 
-		matcher := &NullMatcher{val}
+		// TODO: Why can't this just be an Equals expression?
+		matcher := &SQLNullCmpExpr{val}
 		if expr.Operator == sqlparser.AST_IS_NULL {
 			return matcher, nil
 		}
 
-		return &Not{matcher}, nil
+		return &SQLNotExpr{matcher}, nil
+
+	case *sqlparser.NullVal:
+
+		return SQLNull, nil
 
 	case sqlparser.NumVal:
 
@@ -291,7 +292,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		return &Or{[]SQLExpr{left, right}}, nil
+		return &SQLOrExpr{[]SQLExpr{left, right}}, nil
 
 	case *sqlparser.ParenBoolExpr:
 
@@ -299,29 +300,29 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.RangeCond:
 
-		from, err := NewSQLValue(expr.From)
+		from, err := NewSQLExpr(expr.From)
 		if err != nil {
 			return nil, err
 		}
 
-		left, err := NewSQLValue(expr.Left)
+		left, err := NewSQLExpr(expr.Left)
 		if err != nil {
 			return nil, err
 		}
 
-		to, err := NewSQLValue(expr.To)
+		to, err := NewSQLExpr(expr.To)
 		if err != nil {
 			return nil, err
 		}
 
-		lower := &GreaterThanOrEqual{left, from}
+		lower := &SQLGreaterThanOrEqualExpr{left, from}
 
-		upper := &LessThanOrEqual{left, to}
+		upper := &SQLLessThanOrEqualExpr{left, to}
 
-		m := &And{[]SQLExpr{lower, upper}}
+		m := &SQLAndExpr{[]SQLExpr{lower, upper}}
 
 		if expr.Operator == sqlparser.AST_NOT_BETWEEN {
-			return &Not{m}, nil
+			return &SQLNotExpr{m}, nil
 		}
 
 		return m, nil
@@ -332,85 +333,62 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.Subquery:
 
-		return &ExistsMatcher{expr.Select}, nil
+		// NOTE: This seems very odd to me. All the current
+		// tests pass, so perhaps SQLExistsExpr is simply
+		// misnamed?
+		return &SQLExistsExpr{expr.Select}, nil
 
 	case *sqlparser.UnaryExpr:
 
-		val, err := NewSQLValue(expr.Expr)
+		val, err := NewSQLExpr(expr.Expr)
 		if err != nil {
 			return nil, err
 		}
 
 		switch expr.Operator {
 		case sqlparser.AST_UMINUS:
-			return &SQLUnaryMinus{val}, nil
+			return &SQLUnaryMinusExpr{val}, nil
 		case sqlparser.AST_UPLUS:
-			return &SQLUnaryPlus{val}, nil
+			return &SQLUnaryPlusExpr{val}, nil
 		case sqlparser.AST_TILDA:
-			return &SQLUnaryTilde{val}, nil
+			return &SQLUnaryTildeExpr{val}, nil
 		}
 
 		return nil, fmt.Errorf("invalid unary operator - '%v'", string(expr.Operator))
 
 	case sqlparser.ValTuple:
 
-		var values []SQLValue
+		var exprs []SQLExpr
 
 		for _, e := range expr {
-			value, err := NewSQLValue(e)
+			newExpr, err := NewSQLExpr(e)
 			if err != nil {
 				return nil, err
 			}
-			values = append(values, value)
+
+			exprs = append(exprs, newExpr)
 		}
 
-		return &SQLValTupleValue{values}, nil
+		return &SQLTupleExpr{exprs}, nil
 
 	default:
 		panic(fmt.Errorf("NewSQLExpr not yet implemented for %v (%T)", sqlparser.String(expr), expr))
 	}
 }
 
-func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
-
-	// I'm not totally happy that we are doing something different here
-	// than in NewSQLExpr. I'm not quite sure why this is quite yet. I have
-	// a feeling it's because some of our nodes only accept SQLValue and not
-	// SQLExpr.
+func newSQLExprForComparison(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	switch expr := gExpr.(type) {
 
-	case *sqlparser.NullVal, nil:
-
-		// TODO: I'm not sure why we have different results for when someone asks for a
-		// NewSQLValue(nil) vs. NewSQLExpr(nil) (the old BuildMatcher)
-		return &SQLNullValue{}, nil
-
-	case *sqlparser.ParenBoolExpr:
-
-		return &SQLParenBoolValue{expr}, nil
-
 	case *sqlparser.Subquery:
-		// TODO: I'm not sure why we have different results for when someone asks for a
-		// NewSQLValue  vs. when they ask for a NewSqlExpr (the old BuildMatcher)
-		return &SQLSubqueryValue{expr.Select}, nil
+		return &SQLSubqueryExpr{expr.Select}, nil
 
 	default:
-
-		valExpr, err := NewSQLExpr(gExpr)
-		if err != nil {
-			return nil, err
-		}
-
-		if val, ok := valExpr.(SQLValue); ok {
-			return val, nil
-		}
-
-		return nil, fmt.Errorf("%v (%T) is not a SQLValue.", expr, expr)
+		return NewSQLExpr(gExpr)
 	}
 }
 
-// NewSQLCaseValue returns a SQLValue for SQL case expressions of which there are
+// NewSQLCaseExpr returns a SQLValue for SQL case expressions of which there are
 // two kinds.
 //
 // For simple case expressions, we create an equality matcher that compares
@@ -419,14 +397,14 @@ func NewSQLValue(gExpr sqlparser.Expr) (SQLValue, error) {
 // For searched case expressions, we create a matcher based on the boolean
 // expression in each when condition.
 //
-func NewSQLCaseValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
+func NewSQLCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
 
-	var e SQLValue
+	var e SQLExpr
 
 	var err error
 
 	if expr.Expr != nil {
-		e, err = NewSQLValue(expr.Expr)
+		e, err = NewSQLExpr(expr.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -446,15 +424,15 @@ func NewSQLCaseValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
 			}
 		} else {
 			// TODO: support simple case in parser
-			c, err := NewSQLValue(when.Cond)
+			c, err := NewSQLExpr(when.Cond)
 			if err != nil {
 				return nil, err
 			}
 
-			matcher = &Equals{e, c}
+			matcher = &SQLEqualsExpr{e, c}
 		}
 
-		then, err := NewSQLValue(when.Val)
+		then, err := NewSQLExpr(when.Val)
 		if err != nil {
 			return nil, err
 		}
@@ -462,12 +440,14 @@ func NewSQLCaseValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
 		conditions = append(conditions, caseCondition{matcher, then})
 	}
 
-	elseValue, err := NewSQLValue(expr.Else)
-	if err != nil {
+	var elseValue SQLExpr
+	if expr.Else == nil {
+		elseValue = SQLNull
+	} else if elseValue, err = NewSQLExpr(expr.Else); err != nil {
 		return nil, err
 	}
 
-	value := &SQLCaseValue{
+	value := &SQLCaseExpr{
 		elseValue:      elseValue,
 		caseConditions: conditions,
 	}
@@ -477,9 +457,9 @@ func NewSQLCaseValue(expr *sqlparser.CaseExpr) (SQLValue, error) {
 	return value, nil
 }
 
-func NewSQLFuncValue(expr *sqlparser.FuncExpr) (SQLValue, error) {
+func NewSQLFuncValue(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 	if isAggFunction(expr.Name) {
-		return &SQLAggFuncValue{expr}, nil
+		return &SQLAggFunctionExpr{expr}, nil
 	}
-	return &SQLScalarFuncValue{expr}, nil
+	return &SQLScalarFunctionExpr{expr}, nil
 }

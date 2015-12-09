@@ -17,8 +17,8 @@ var (
 	}
 )
 
-func TestNewSQLValue(t *testing.T) {
-	Convey("Calling NewSQLValue on a sqlparser expression should produce the appropriate Expr", t, func() {
+func TestNewSQLExpr(t *testing.T) {
+	Convey("Calling NewSQLExpr on a sqlparser expression should produce the appropriate Expr", t, func() {
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("sum"),
 			Exprs: sqlparser.SelectExprs{
@@ -30,10 +30,55 @@ func TestNewSQLValue(t *testing.T) {
 				},
 			},
 		}
-		expr, err := NewSQLValue(sqlValue)
+		expr, err := NewSQLExpr(sqlValue)
 		So(err, ShouldBeNil)
-		_, ok := expr.(*SQLAggFuncValue)
+		_, ok := expr.(*SQLAggFunctionExpr)
 		So(ok, ShouldBeTrue)
+	})
+
+	Convey("Simple WHERE with explicit table names", t, func() {
+		matcher, err := getSQLExprFromSQL("select * from bar where bar.a = 'eliot'")
+		So(err, ShouldBeNil)
+		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")})
+	})
+	Convey("Simple WHERE with implicit table names", t, func() {
+		matcher, err := getSQLExprFromSQL("select * from bar where a = 'eliot'")
+		So(err, ShouldBeNil)
+		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")})
+	})
+	Convey("WHERE with complex nested matching clauses", t, func() {
+		matcher, err := getSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>1 OR a<'blah'))")
+		So(err, ShouldBeNil)
+		So(matcher, ShouldResemble, &SQLNotExpr{
+			&SQLAndExpr{
+				[]SQLExpr{
+					&SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")},
+					&SQLOrExpr{
+						[]SQLExpr{
+							&SQLGreaterThanExpr{SQLFieldExpr{"bar", "b"}, SQLInt(1)},
+							&SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLString("blah")},
+						},
+					},
+				},
+			},
+		})
+	})
+	Convey("WHERE with complex nested matching clauses", t, func() {
+		matcher, err := getSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>13 OR a<'blah'))")
+		So(err, ShouldBeNil)
+		So(matcher, ShouldResemble, &SQLNotExpr{
+			&SQLAndExpr{
+				[]SQLExpr{
+					&SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")},
+					&SQLOrExpr{
+						[]SQLExpr{
+							&SQLGreaterThanExpr{SQLFieldExpr{"bar", "b"}, SQLInt(13)},
+							&SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLString("blah")},
+						},
+					},
+				},
+			},
+		})
 	})
 }
 
@@ -53,9 +98,9 @@ func TestAggFuncSum(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned", func() {
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -65,9 +110,9 @@ func TestAggFuncSum(t *testing.T) {
 
 		Convey("an error should be returned if the function is misspelt", func() {
 			sqlValue.Name = []byte("sumd")
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLScalarFuncValue)
+			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -81,9 +126,9 @@ func TestAggFuncSum(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -91,9 +136,9 @@ func TestAggFuncSum(t *testing.T) {
 		})
 
 		Convey("a correct evaluation should be returned even with unsummable values", func() {
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			evalRows := make([]Row, len(testCtx.Rows))
@@ -127,9 +172,9 @@ func TestAggFuncAvg(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned", func() {
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -139,9 +184,9 @@ func TestAggFuncAvg(t *testing.T) {
 
 		Convey("an error should be returned if the function is misspelt", func() {
 			sqlValue.Name = []byte("avgd")
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLScalarFuncValue)
+			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -155,9 +200,9 @@ func TestAggFuncAvg(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -165,9 +210,9 @@ func TestAggFuncAvg(t *testing.T) {
 		})
 
 		Convey("a correct evaluation should be returned even with unsummable values", func() {
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			evalRows := make([]Row, len(testCtx.Rows))
@@ -201,9 +246,9 @@ func TestAggFuncCount(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned", func() {
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -213,9 +258,9 @@ func TestAggFuncCount(t *testing.T) {
 
 		Convey("an error should be returned if the function is misspelt", func() {
 			sqlValue.Name = []byte("countd")
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLScalarFuncValue)
+			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -229,9 +274,9 @@ func TestAggFuncCount(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -240,9 +285,9 @@ func TestAggFuncCount(t *testing.T) {
 		})
 
 		Convey("nil values should be skipped", func() {
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			evalRows := make([]Row, len(testCtx.Rows))
@@ -276,9 +321,9 @@ func TestAggFuncMax(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned", func() {
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -288,9 +333,9 @@ func TestAggFuncMax(t *testing.T) {
 
 		Convey("an error should be returned if the function is misspelt", func() {
 			sqlValue.Name = []byte("maxd")
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLScalarFuncValue)
+			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -304,9 +349,9 @@ func TestAggFuncMax(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -314,9 +359,9 @@ func TestAggFuncMax(t *testing.T) {
 		})
 
 		Convey("a correct evaluation should be returned in the presence of nil values", func() {
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			evalRows := make([]Row, len(testCtx.Rows))
@@ -350,9 +395,9 @@ func TestAggFuncMin(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned", func() {
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -362,9 +407,9 @@ func TestAggFuncMin(t *testing.T) {
 
 		Convey("an error should be returned if the function is misspelt", func() {
 			sqlValue.Name = []byte("mind")
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLScalarFuncValue)
+			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -378,9 +423,9 @@ func TestAggFuncMin(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			_, err = funcExpr.Evaluate(testCtx)
@@ -388,9 +433,9 @@ func TestAggFuncMin(t *testing.T) {
 		})
 
 		Convey("a correct evaluation should be returned in the presence of nil values", func() {
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			evalRows := make([]Row, len(testCtx.Rows))
@@ -425,9 +470,9 @@ func TestAggFuncDistinct(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -449,9 +494,9 @@ func TestAggFuncDistinct(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -485,9 +530,9 @@ func TestAggFuncComplex(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned for sum", func() {
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -497,9 +542,9 @@ func TestAggFuncComplex(t *testing.T) {
 
 		Convey("a correct evaluation should be returned for avg", func() {
 			sqlValue.Name = []byte("avg")
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -509,9 +554,9 @@ func TestAggFuncComplex(t *testing.T) {
 
 		Convey("a correct evaluation should be returned for count", func() {
 			sqlValue.Name = []byte("count")
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -521,9 +566,9 @@ func TestAggFuncComplex(t *testing.T) {
 
 		Convey("a correct evaluation should be returned for max", func() {
 			sqlValue.Name = []byte("max")
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -533,9 +578,9 @@ func TestAggFuncComplex(t *testing.T) {
 
 		Convey("a correct evaluation should be returned for min", func() {
 			sqlValue.Name = []byte("min")
-			expr, err := NewSQLValue(sqlValue)
+			expr, err := NewSQLExpr(sqlValue)
 			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFuncValue)
+			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
 
 			value, err := funcExpr.Evaluate(testCtx)
@@ -543,52 +588,5 @@ func TestAggFuncComplex(t *testing.T) {
 			So(value, ShouldResemble, SQLInt(2))
 		})
 
-	})
-}
-
-func TestNewSQLExpr(t *testing.T) {
-	Convey("Simple WHERE with explicit table names", t, func() {
-		matcher, err := getSQLExprFromSQL("select * from bar where bar.a = 'eliot'")
-		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &Equals{SQLField{"bar", "a"}, SQLString("eliot")})
-	})
-	Convey("Simple WHERE with implicit table names", t, func() {
-		matcher, err := getSQLExprFromSQL("select * from bar where a = 'eliot'")
-		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &Equals{SQLField{"bar", "a"}, SQLString("eliot")})
-	})
-	Convey("WHERE with complex nested matching clauses", t, func() {
-		matcher, err := getSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>1 OR a<'blah'))")
-		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &Not{
-			&And{
-				[]SQLExpr{
-					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
-					&Or{
-						[]SQLExpr{
-							&GreaterThan{SQLField{"bar", "b"}, SQLInt(1)},
-							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
-						},
-					},
-				},
-			},
-		})
-	})
-	Convey("WHERE with complex nested matching clauses", t, func() {
-		matcher, err := getSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>13 OR a<'blah'))")
-		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &Not{
-			&And{
-				[]SQLExpr{
-					&Equals{SQLField{"bar", "a"}, SQLString("eliot")},
-					&Or{
-						[]SQLExpr{
-							&GreaterThan{SQLField{"bar", "b"}, SQLInt(13)},
-							&LessThan{SQLField{"bar", "a"}, SQLString("blah")},
-						},
-					},
-				},
-			},
-		})
 	})
 }

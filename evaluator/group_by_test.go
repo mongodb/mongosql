@@ -95,13 +95,11 @@ func TestGroupByOperator(t *testing.T) {
 				&sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
 			}
 
-			matcher := &NoopMatcher{}
-
 			operator := &GroupBy{
 				sExprs:  sExprs,
 				source:  source,
 				exprs:   exprs,
-				matcher: matcher,
+				matcher: SQLBool(true),
 			}
 
 			expected := [][]Values{

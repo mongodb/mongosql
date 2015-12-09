@@ -71,7 +71,7 @@ func TestOrderByOperator(t *testing.T) {
 			Convey("asc", func() {
 
 				keys := []orderByKey{
-					{SQLField{tableOneName, "a"}, false, true, nil},
+					{SQLFieldExpr{tableOneName, "a"}, false, true, nil},
 				}
 
 				operator := &OrderBy{
@@ -93,7 +93,7 @@ func TestOrderByOperator(t *testing.T) {
 			Convey("desc", func() {
 
 				keys := []orderByKey{
-					{SQLField{tableOneName, "a"}, false, false, nil},
+					{SQLFieldExpr{tableOneName, "a"}, false, false, nil},
 				}
 
 				operator := &OrderBy{
@@ -118,8 +118,8 @@ func TestOrderByOperator(t *testing.T) {
 
 			Convey("asc + asc", func() {
 				keys := []orderByKey{
-					{SQLField{tableOneName, "a"}, false, true, nil},
-					{SQLField{tableOneName, "b"}, false, true, nil},
+					{SQLFieldExpr{tableOneName, "a"}, false, true, nil},
+					{SQLFieldExpr{tableOneName, "b"}, false, true, nil},
 				}
 
 				expected := []Values{
@@ -140,8 +140,8 @@ func TestOrderByOperator(t *testing.T) {
 
 			Convey("asc + desc", func() {
 				keys := []orderByKey{
-					{SQLField{tableOneName, "a"}, false, true, nil},
-					{SQLField{tableOneName, "b"}, false, false, nil},
+					{SQLFieldExpr{tableOneName, "a"}, false, true, nil},
+					{SQLFieldExpr{tableOneName, "b"}, false, false, nil},
 				}
 
 				operator := &OrderBy{
@@ -162,8 +162,8 @@ func TestOrderByOperator(t *testing.T) {
 
 			Convey("desc + asc", func() {
 				keys := []orderByKey{
-					{SQLField{tableOneName, "a"}, false, false, nil},
-					{SQLField{tableOneName, "b"}, false, true, nil},
+					{SQLFieldExpr{tableOneName, "a"}, false, false, nil},
+					{SQLFieldExpr{tableOneName, "b"}, false, true, nil},
 				}
 
 				operator := &OrderBy{
@@ -184,8 +184,8 @@ func TestOrderByOperator(t *testing.T) {
 
 			Convey("desc + desc", func() {
 				keys := []orderByKey{
-					{SQLField{tableOneName, "a"}, false, false, nil},
-					{SQLField{tableOneName, "b"}, false, false, nil},
+					{SQLFieldExpr{tableOneName, "a"}, false, false, nil},
+					{SQLFieldExpr{tableOneName, "b"}, false, false, nil},
 				}
 
 				operator := &OrderBy{

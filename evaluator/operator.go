@@ -270,7 +270,7 @@ func getKey(key string, doc bson.D) (interface{}, bool) {
 func bsonDToValues(document bson.D) ([]Value, error) {
 	values := []Value{}
 	for _, v := range document {
-		value, err := NewSQLField(v.Value, "")
+		value, err := NewSQLValue(v.Value, "")
 		if err != nil {
 			return nil, err
 		}

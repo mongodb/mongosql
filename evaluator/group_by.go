@@ -57,7 +57,7 @@ func (gb *GroupBy) evaluateGroupByKey(row *Row) (string, error) {
 	var gbKey string
 
 	for _, key := range gb.exprs {
-		expr, err := NewSQLValue(key)
+		expr, err := NewSQLExpr(key)
 		if err != nil {
 			panic(err)
 		}
@@ -105,7 +105,7 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 
 	for _, sExpr := range gb.sExprs {
 
-		expr, err := NewSQLValue(sExpr.Expr)
+		expr, err := NewSQLExpr(sExpr.Expr)
 		if err != nil {
 			return nil, err
 		}
