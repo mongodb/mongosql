@@ -56,6 +56,15 @@ func NewSQLValue(value interface{}, columnType config.ColumnType) (SQLValue, err
 	}
 
 	switch columnType {
+
+	// TODO: columnType can - and should - be more expressive. e.g. certain
+	// types allow you to specify additional constraints on the value of
+	// the type. e.g. unsigned longs, binary, character set for varchars,
+	// precision in time values, etc
+
+	// We should have this specified in the DRDL file, and use it when we're
+	// formatting the fields for the query response.
+
 	case config.SQLString:
 		switch v := value.(type) {
 		case bool:
@@ -69,6 +78,7 @@ func NewSQLValue(value interface{}, columnType config.ColumnType) (SQLValue, err
 		case int64:
 			return SQLString(strconv.FormatInt(v, 10)), nil
 		}
+
 	case config.SQLInt:
 		switch v := value.(type) {
 		case bool:
@@ -90,6 +100,7 @@ func NewSQLValue(value interface{}, columnType config.ColumnType) (SQLValue, err
 				return SQLInt(eval), nil
 			}
 		}
+
 	case config.SQLFloat:
 		switch v := value.(type) {
 		case bool:
@@ -111,31 +122,200 @@ func NewSQLValue(value interface{}, columnType config.ColumnType) (SQLValue, err
 				return SQLFloat(eval), nil
 			}
 		}
+
+	//
+	// Time related types
+	//
+	// Note: MongoDB only supports time to millisecond precision when
+	// using the UTC datetime type while MySQL supports microsecond
+	// precision.
+	//
+	// See https://dev.mysql.com/doc/refman/5.5/en/date-and-time-types.html
+	// for more information on date and time types.
+	//
+
+	case config.SQLDate:
+
+		lower := time.Date(1000, time.January, 1, 0, 0, 0, 0, config.DefaultLocale)
+		upper := time.Date(9999, time.December, 31, 0, 0, 0, 0, config.DefaultLocale)
+
+		var date time.Time
+
+		switch v := value.(type) {
+
+		case time.Time:
+
+			date = time.Date(v.Year(), v.Month(), v.Day(), 0, 0, 0, 0, config.DefaultLocale)
+
+		case string:
+			d, err := time.Parse(config.DateFormat, v)
+			if err != nil {
+				return SQLDate{config.DefaultTime}, nil
+			}
+			date = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, config.DefaultLocale)
+
+		default:
+			return SQLDate{config.DefaultTime}, nil
+		}
+
+		if date.Before(lower) || date.After(upper) {
+			return SQLDate{config.DefaultTime}, nil
+		}
+
+		return SQLDate{date}, nil
+
 	case config.SQLDatetime:
-		v, ok := value.(time.Time)
-		if ok {
-			return SQLDateTime{v}, nil
+
+		lower := time.Date(1000, time.January, 1, 0, 0, 0, 0, config.DefaultLocale)
+		upper := time.Date(9999, time.December, 31, 23, 59, 59, 0, config.DefaultLocale)
+
+		var dt time.Time
+
+		switch v := value.(type) {
+
+		case time.Time:
+
+			dt = v
+
+		case string:
+
+			d, err := time.Parse(config.TimestampFormat, v)
+			if err != nil {
+				return SQLDate{config.DefaultTime}, nil
+			}
+
+			dt = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
+				d.Minute(), d.Second(), d.Nanosecond(), config.DefaultLocale)
+
+		default:
+
+			return SQLDateTime{config.DefaultTime}, nil
+
 		}
+
+		if dt.Before(lower) || dt.After(upper) {
+			return SQLDateTime{config.DefaultTime}, nil
+		}
+
+		return SQLDateTime{dt}, nil
+
 	case config.SQLTimestamp:
-		v, ok := value.(time.Time)
-		if ok {
-			return SQLTimestamp{v}, nil
+
+		lower := time.Date(1970, time.January, 1, 0, 0, 01, 0, config.DefaultLocale)
+		upper := time.Date(2038, time.January, 19, 03, 14, 07, 0, config.DefaultLocale)
+
+		var ts time.Time
+
+		switch v := value.(type) {
+
+		case time.Time:
+
+			ts = v
+
+		case string:
+
+			d, err := time.Parse(config.TimestampFormat, v)
+			if err != nil {
+				return SQLDate{config.DefaultTime}, nil
+			}
+			ts = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
+				d.Minute(), d.Second(), d.Nanosecond(), config.DefaultLocale)
+
+		default:
+
+			return SQLTimestamp{config.DefaultTime}, nil
+
 		}
+
+		if ts.Before(lower) || ts.After(upper) {
+			return SQLTimestamp{config.DefaultTime}, nil
+		}
+
+		return SQLTimestamp{ts}, nil
+
+	// TODO: not sure if it makes sense to support this type
+	// in the config since there isn't really a reasonable
+	// mapping between it and any of MongoDB's BSON types.
 	case config.SQLTime:
 		v, ok := value.(time.Time)
 		if ok {
 			return SQLTime{v}, nil
 		}
-	case config.SQLDate:
-		v, ok := value.(time.Time)
-		if ok {
-			return SQLDate{v}, nil
-		}
-	default:
-		return nil, fmt.Errorf("unknown column type %v", columnType)
-	}
-	return nil, fmt.Errorf("unable to convert '%v' (%T) to %v", value, value, columnType)
 
+	// See http://dev.mysql.com/doc/refman/5.7/en/year.html
+	case config.SQLYear:
+		switch v := value.(type) {
+
+		case time.Time:
+			return SQLYear{v}, nil
+
+		case int, int32, int64:
+			year, err := getYear(value.(int), true)
+			if err != nil {
+				return nil, err
+			}
+			return SQLYear{time.Date(year, 0, 0, 0, 0, 0, 0, config.DefaultLocale)}, nil
+
+		case string:
+			if v == "00" || v == "0" {
+				return SQLYear{time.Date(2000, 0, 0, 0, 0, 0, 0, config.DefaultLocale)}, nil
+			}
+
+			y, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return SQLYear{config.DefaultTime}, nil
+			}
+
+			year, err := getYear(int(y), false)
+			if err != nil {
+				return nil, err
+			}
+
+			return SQLYear{time.Date(year, 0, 0, 0, 0, 0, 0, config.DefaultLocale)}, nil
+
+		default:
+			return SQLYear{config.DefaultTime}, nil
+		}
+
+	default:
+		// programmer error: should never happen
+		panic(fmt.Sprintf("unimplemented column type %v", columnType))
+	}
+
+	return nil, fmt.Errorf("unable to convert '%v' (%T) to %v", value, value, columnType)
+}
+
+func getYear(y int, isNum bool) (int, error) {
+	err := fmt.Errorf("invalid year: %v", y)
+
+	// handle error cases
+	if y < 0 {
+		return 0, err
+	}
+	if y > 99 && y < 1901 {
+		return 0, err
+	}
+	if y > 2155 {
+		return 0, err
+	}
+
+	if isNum {
+		if y < 70 && y > 0 {
+			return 2000 + y, nil
+		}
+		if y > 69 && y < 100 {
+			return 1970 + y, nil
+		}
+	} else {
+		if y < 70 {
+			return 2000 + y, nil
+		}
+		if y > 69 && y < 100 {
+			return 1970 + y, nil
+		}
+	}
+
+	return 0, nil
 }
 
 // NewSQLExpr transforms sqlparser expressions into SQLExpr.

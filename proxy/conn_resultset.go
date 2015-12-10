@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/10gen/sqlproxy/config"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
@@ -12,14 +13,19 @@ import (
 
 func formatValue(value interface{}) ([]byte, error) {
 	switch v := value.(type) {
+
 	case evaluator.SQLString:
 		return hack.Slice(string(v)), nil
+
 	case evaluator.SQLInt:
 		return strconv.AppendInt(nil, int64(v), 10), nil
+
 	case evaluator.SQLUint32:
 		return strconv.AppendUint(nil, uint64(v), 10), nil
+
 	case evaluator.SQLFloat:
 		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
+
 	case evaluator.SQLValues:
 		slice := []byte{}
 		for _, value := range v.Values {
@@ -30,6 +36,7 @@ func formatValue(value interface{}) ([]byte, error) {
 			slice = append(slice, b...)
 		}
 		return slice, nil
+
 	case *evaluator.SQLTupleExpr:
 		slice := []byte{}
 		for _, expr := range v.Exprs {
@@ -43,10 +50,29 @@ func formatValue(value interface{}) ([]byte, error) {
 
 	case evaluator.SQLNullValue, *evaluator.SQLNullValue:
 		return nil, nil
+
+	// SQL time related values
+
+	case evaluator.SQLDate:
+		return hack.Slice(v.Time.Format(config.DateFormat)), nil
+
+	case evaluator.SQLDateTime:
+		return hack.Slice(v.Time.Format(config.TimestampFormat)), nil
+
+	case evaluator.SQLTime:
+		return hack.Slice(v.Time.Format(config.TimeFormat)), nil
+
 	case evaluator.SQLTimestamp:
-		return hack.Slice(v.Time.String()), nil
+		return hack.Slice(v.Time.Format(config.TimestampFormat)), nil
+
+	case evaluator.SQLYear:
+		return strconv.AppendInt(nil, int64(v.Time.Year()), 10), nil
+
 	case time.Time:
 		return hack.Slice(v.String()), nil
+
+	// TODO: should we only be dealing with SQLValues here?
+
 	case int8:
 		return strconv.AppendInt(nil, int64(v), 10), nil
 	case int16:
@@ -90,29 +116,36 @@ func formatValue(value interface{}) ([]byte, error) {
 
 func formatField(field *Field, value interface{}) error {
 	switch value.(type) {
+
 	case evaluator.SQLFloat:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_FLOAT
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
+
 	case evaluator.SQLBool:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_BIT
+
 	case float64:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_FLOAT
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
+
 	case uint8, uint16, uint32, uint64, uint, evaluator.SQLUint32:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG
+
 	case int8, int16, int32, int64, int, evaluator.SQLInt:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
+
 	case string, []byte, evaluator.SQLString:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
-		// TODO: hack?
+
+	// TODO: hack?
 	case bson.ObjectId:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
@@ -128,19 +161,38 @@ func formatField(field *Field, value interface{}) error {
 	case bool: // bool
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_BIT
+
 	case nil, *evaluator.SQLNullValue, evaluator.SQLNullValue:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_NULL
+
 	case *evaluator.SQLTupleExpr:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_ENUM
-	case evaluator.SQLTime:
+
+	case evaluator.SQLDate:
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_DATE
+
+	case evaluator.SQLDateTime:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_DATETIME
 
+	case evaluator.SQLTime:
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_TIME
+
+	case evaluator.SQLTimestamp:
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_TIMESTAMP
+
+	case evaluator.SQLYear:
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_YEAR
+
 	default:
 		// TODO: figure out 'field' struct and support all BSON types
-		return fmt.Errorf("unsupported type %T for resultset", value)
+		return fmt.Errorf("unsupported type %T for result set", value)
 	}
 	return nil
 }

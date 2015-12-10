@@ -3,9 +3,8 @@ package config
 import (
 	"fmt"
 	"gopkg.in/mgo.v2/bson"
+	"time"
 )
-
-type ColumnType string
 
 const (
 	SQLString  ColumnType = "string"
@@ -14,11 +13,11 @@ const (
 	SQLBlob    ColumnType = "text"
 	SQLVarchar ColumnType = "varchar"
 
-	SQLYear      ColumnType = "year"
-	SQLDatetime  ColumnType = "datetime"
-	SQLTimestamp ColumnType = "timestamp"
-	SQLTime      ColumnType = "time"
 	SQLDate      ColumnType = "date"
+	SQLDatetime  ColumnType = "datetime"
+	SQLTime      ColumnType = "time"
+	SQLTimestamp ColumnType = "timestamp"
+	SQLYear      ColumnType = "year"
 
 	SQLDecimal  ColumnType = "decimal"
 	SQLDouble   ColumnType = "double"
@@ -40,61 +39,107 @@ const (
 	SQLBit  ColumnType = "bit"
 )
 
-type Column struct {
-	Name      string     `yaml:"name"`
-	Type      ColumnType `yaml:"type"`
-	Source    string     `yaml:"source"`
-	MysqlType string     `yaml:"mysql_type,omitempty"`
-}
+type (
+	ColumnType string
 
-type TableConfig struct {
-	Table      string    `yaml:"table"`
-	Collection string    `yaml:"collection"`
-	Pipeline   []bson.M  `yaml:"pipeline,omitempty"`
-	Columns    []*Column `yaml:"columns"`
-}
+	Column struct {
+		Name      string     `yaml:"name"`
+		Type      ColumnType `yaml:"type"`
+		Source    string     `yaml:"source"`
+		MysqlType string     `yaml:"mysql_type,omitempty"`
+	}
 
-type Schema struct {
-	DB        string                  `yaml:"db"`
-	RawTables []*TableConfig          `yaml:"tables"`
-	Tables    map[string]*TableConfig `yaml:"tables_no"`
-}
+	TableConfig struct {
+		Table      string    `yaml:"table"`
+		Collection string    `yaml:"collection"`
+		Pipeline   []bson.M  `yaml:"pipeline,omitempty"`
+		Columns    []*Column `yaml:"columns"`
+	}
 
-type Config struct {
-	Addr     string `yaml:"addr"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	LogLevel string `yaml:"log_level"`
+	Schema struct {
+		DB        string                  `yaml:"db"`
+		RawTables []*TableConfig          `yaml:"tables"`
+		Tables    map[string]*TableConfig `yaml:"tables_no"`
+	}
 
-	Url string `yaml:"url"`
+	Config struct {
+		Addr     string `yaml:"addr"`
+		User     string `yaml:"user"`
+		Password string `yaml:"password"`
+		LogLevel string `yaml:"log_level"`
 
-	SchemaDir string `yaml:"schema_dir"`
+		Url       string `yaml:"url"`
+		SchemaDir string `yaml:"schema_dir"`
 
-	RawSchemas []*Schema          `yaml:"schema"`
-	Schemas    map[string]*Schema `yaml:"schema_no"`
-}
+		RawSchemas []*Schema          `yaml:"schema"`
+		Schemas    map[string]*Schema `yaml:"schema_no"`
+	}
+)
 
-// ---
+const (
+	DateFormat      = "2006-01-02"
+	TimeFormat      = "15:04:05"
+	TimestampFormat = "2006-01-02 15:04:05"
+)
 
-func (c *Column) fixType() error {
-	// TODO: add other types
+var (
+
+	// MySQL maintains three different time zone settings:
+	// - system: host machine time zone
+	// - server: server's current time zone
+	// - per-connection time zone (using SET)
+	// TODO: We might need to update the default locale (time
+	// zone) we use in parsing time related types from MongoDB.
+	// See https://dev.mysql.com/doc/refman/5.6/en/time-zone-support.html
+	DefaultLocale = time.UTC
+	DefaultTime   = time.Date(0, 0, 0, 0, 0, 0, 0, DefaultLocale)
+)
+
+func (c *Column) validateType() error {
 	switch c.Type {
-	case SQLString:
-		c.MysqlType = "varchar(2048)"
-	case SQLInt:
-		c.MysqlType = "int(11)"
-	case SQLFloat:
-		c.MysqlType = "float"
+
 	case "":
+
+	case SQLString:
+	case SQLInt:
+	case SQLFloat:
+	case SQLBlob:
+	case SQLVarchar:
+
+	case SQLYear:
+	case SQLDatetime:
+	case SQLTimestamp:
+	case SQLTime:
+	case SQLDate:
+
+	case SQLDecimal:
+	case SQLDouble:
+	case SQLEnum:
+	case SQLGeometry:
+
+	case SQLBigInt:
+	case SQLMedInt:
+	case SQLSmallInt:
+	case SQLTiny:
+
+	case SQLLongText:
+	case SQLTinyText:
+	case SQLMediumText:
+
+	case SQLNull:
+	case SQLSet:
+	case SQLChar:
+	case SQLBit:
+
 	default:
-		panic(fmt.Sprintf("don't know mysql equivalent for type: %s", c.Type))
+		panic(fmt.Sprintf("don't know MySQL type: %s", c.Type))
 	}
 	return nil
 }
 
 func (t *TableConfig) fixTypes() error {
 	for _, c := range t.Columns {
-		err := c.fixType()
+		err := c.validateType()
 		if err != nil {
 			return err
 		}

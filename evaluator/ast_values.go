@@ -36,6 +36,30 @@ func (sb SQLBool) CompareTo(v SQLValue) (int, error) {
 }
 
 //
+// Time related SQL types and helpers.
+//
+func timeCmpHelper(at1, at2, at3, bt1, bt2, bt3 int) int {
+	if at1 > bt1 {
+		return 1
+	} else if at1 == bt1 {
+		if at2 > bt2 {
+			return 1
+		} else if at2 == bt2 {
+			if at3 > bt3 {
+				return 1
+			} else if at3 < bt3 {
+				return -1
+			}
+		} else if at2 < bt2 {
+			return -1
+		}
+	} else if at1 < bt1 {
+		return -1
+	}
+	return 0
+}
+
+//
 // SQLDate represents a date.
 //
 type SQLDate struct {
@@ -47,13 +71,35 @@ func (sd SQLDate) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (sd SQLDate) CompareTo(v SQLValue) (int, error) {
-	if cmp, ok := v.(SQLDate); ok {
-		if sd.Time.After(cmp.Time) {
-			return 1, nil
-		} else if sd.Time.Before(cmp.Time) {
-			return -1, nil
-		}
+
+	var t1, t2 time.Time
+
+	switch vt := v.(type) {
+
+	case SQLDate:
+		t1 = sd.Time
+		t2 = vt.Time
+	// TODO: round fractional seconds
+	case SQLDateTime:
+		t1 = sd.Time
+		t2 = vt.Time
+	// TODO: round fractional seconds
+	case SQLTimestamp:
+		t1 = sd.Time
+		t2 = vt.Time
+	case SQLYear:
+		t1 = sd.Time
+		t2 = vt.Time
+	default:
+		return -1, fmt.Errorf("SQLDate comparison not yet implemented against: %T", vt)
 	}
+
+	if t1.After(t2) {
+		return 1, nil
+	} else if t1.Before(t2) {
+		return -1, nil
+	}
+
 	// TODO: type sort order implementation
 	return 0, nil
 }
@@ -70,12 +116,139 @@ func (sd SQLDateTime) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (sd SQLDateTime) CompareTo(v SQLValue) (int, error) {
-	if cmp, ok := v.(SQLDate); ok {
-		if sd.Time.After(cmp.Time) {
-			return 1, nil
-		} else if sd.Time.Before(cmp.Time) {
-			return -1, nil
-		}
+
+	var t1, t2 time.Time
+
+	switch vt := v.(type) {
+
+	case SQLDate:
+		t1 = sd.Time
+		t2 = vt.Time
+	case SQLDateTime:
+		t1 = sd.Time
+		t2 = vt.Time
+	case SQLTimestamp:
+		t1 = sd.Time
+		t2 = vt.Time
+	case SQLYear:
+		t1 = sd.Time
+		t2 = vt.Time
+	default:
+		return -1, fmt.Errorf("SQLDateTime comparison not yet implemented against: %T", vt)
+	}
+
+	if t1.After(t2) {
+		return 1, nil
+	} else if t1.Before(t2) {
+		return -1, nil
+	}
+
+	// TODO: type sort order implementation
+	return 0, nil
+}
+
+//
+// SQLTime represents a time value.
+//
+type SQLTime struct {
+	Time time.Time
+}
+
+func (st SQLTime) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return st, nil
+}
+
+func (st SQLTime) CompareTo(v SQLValue) (int, error) {
+
+	switch vt := v.(type) {
+	default:
+		return -1, fmt.Errorf("SQLTime comparison not yet implemented against: %T", vt)
+	}
+
+	// TODO: type sort order implementation
+	return 0, nil
+}
+
+//
+// SQLTimestamp represents a timestamp value.
+//
+type SQLTimestamp struct {
+	Time time.Time
+}
+
+func (st SQLTimestamp) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return st, nil
+}
+
+func (st SQLTimestamp) CompareTo(v SQLValue) (int, error) {
+
+	var t1, t2 time.Time
+
+	switch vt := v.(type) {
+
+	case SQLDate:
+		t1 = st.Time
+		t2 = vt.Time
+	case SQLDateTime:
+		t1 = st.Time
+		t2 = vt.Time
+	case SQLTimestamp:
+		t1 = st.Time
+		t2 = vt.Time
+	case SQLYear:
+		t1 = st.Time
+		t2 = vt.Time
+	default:
+		return -1, fmt.Errorf("SQLTimestamp comparison not yet implemented against: %T", vt)
+	}
+
+	if t1.After(t2) {
+		return 1, nil
+	} else if t1.Before(t2) {
+		return -1, nil
+	}
+
+	// TODO: type sort order implementation
+	return 0, nil
+}
+
+//
+// SQLYear represents a year value.
+//
+type SQLYear struct {
+	Time time.Time
+}
+
+func (st SQLYear) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return st, nil
+}
+
+func (st SQLYear) CompareTo(v SQLValue) (int, error) {
+
+	var t1, t2 time.Time
+
+	switch vt := v.(type) {
+
+	case SQLDate:
+		t1 = st.Time
+		t2 = vt.Time
+	case SQLDateTime:
+		t1 = st.Time
+		t2 = vt.Time
+	case SQLTimestamp:
+		t1 = st.Time
+		t2 = vt.Time
+	case SQLYear:
+		t1 = st.Time
+		t2 = vt.Time
+	default:
+		return -1, fmt.Errorf("SQLYear comparison not yet implemented against: %T", vt)
+	}
+
+	if t1.After(t2) {
+		return 1, nil
+	} else if t1.Before(t2) {
+		return -1, nil
 	}
 
 	// TODO: type sort order implementation
@@ -215,52 +388,6 @@ func (sn SQLString) CompareTo(v SQLValue) (int, error) {
 	}
 	// can only compare numbers to each other, otherwise treat as error
 	return 1, fmt.Errorf("type mismatch")
-}
-
-//
-// SQLTime represents a time value.
-//
-type SQLTime struct {
-	Time time.Time
-}
-
-func (st SQLTimestamp) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	return st, nil
-}
-
-func (st SQLTimestamp) CompareTo(v SQLValue) (int, error) {
-	if cmp, ok := v.(SQLDate); ok {
-		if st.Time.After(cmp.Time) {
-			return 1, nil
-		} else if st.Time.Before(cmp.Time) {
-			return -1, nil
-		}
-	}
-	// TODO: type sort order implementation
-	return 0, nil
-}
-
-//
-// SQLTimestamp represents a timestamp value.
-//
-type SQLTimestamp struct {
-	Time time.Time
-}
-
-func (st SQLTime) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	return st, nil
-}
-
-func (st SQLTime) CompareTo(v SQLValue) (int, error) {
-	if cmp, ok := v.(SQLDate); ok {
-		if st.Time.After(cmp.Time) {
-			return 1, nil
-		} else if st.Time.Before(cmp.Time) {
-			return -1, nil
-		}
-	}
-	// TODO: type sort order implementation
-	return 0, nil
 }
 
 //

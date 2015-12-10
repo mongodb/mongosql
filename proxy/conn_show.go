@@ -3,6 +3,7 @@ package proxy
 import (
 	"fmt"
 	"github.com/erh/mixer/sqlparser"
+	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
 	"sort"
@@ -124,12 +125,12 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 		names = append(names, []string{"Collation", "Privileges", "Comment"}...)
 	}
 
-	fmt.Printf("col: %s\n", tableConfig.Columns)
+	log.Logf(log.DebugLow, "columns for %v: %#v\n\n", table, tableConfig.Columns)
 
 	for num, col := range tableConfig.Columns {
 		row := make([]interface{}, len(names))
 		row[0] = col.Name
-		row[1] = col.MysqlType
+		row[1] = string(col.Type)
 		row[2] = "YES"
 		row[3] = ""
 		row[4] = nil
@@ -141,11 +142,11 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 			row[8] = ""
 		}
 
-		fmt.Printf("num %s\n", num)
+		log.Logf(log.DebugLow, "num: %v\n", num)
 		values[num] = row
 	}
 
-	fmt.Printf("hi\n%s\n%s\n", names, values)
+	log.Logf(log.DebugLow, "names: %#v\nvalues: %#v\n", names, values)
 
 	return c.buildResultset(names, values)
 }
