@@ -7,7 +7,8 @@ import (
 )
 
 //
-// A function invocation.
+// SQLBinaryFunctionExpr represents a function invocation containing the
+// function as well as the arguments.
 //
 type SQLBinaryFunctionExpr struct {
 	arguments []SQLExpr
@@ -18,24 +19,25 @@ func (sqlfunc *SQLBinaryFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sqlfunc.function(sqlfunc.arguments, ctx)
 }
 
+// SQLBinaryFunction is a function alias expected by SQLBinaryFunctionExpr.
 type SQLBinaryFunction func([]SQLExpr, *EvalCtx) (SQLValue, error)
 
 var binaryFuncMap = map[string]SQLBinaryFunction{
 
 	"+": SQLBinaryFunction(func(args []SQLExpr, ctx *EvalCtx) (SQLValue, error) {
-		return SQLNumericBinaryOp(args, ctx, "+")
+		return sqlNumericBinaryOp(args, ctx, "+")
 	}),
 
 	"-": SQLBinaryFunction(func(args []SQLExpr, ctx *EvalCtx) (SQLValue, error) {
-		return SQLNumericBinaryOp(args, ctx, "-")
+		return sqlNumericBinaryOp(args, ctx, "-")
 	}),
 
 	"*": SQLBinaryFunction(func(args []SQLExpr, ctx *EvalCtx) (SQLValue, error) {
-		return SQLNumericBinaryOp(args, ctx, "*")
+		return sqlNumericBinaryOp(args, ctx, "*")
 	}),
 
 	"/": SQLBinaryFunction(func(args []SQLExpr, ctx *EvalCtx) (SQLValue, error) {
-		return SQLNumericBinaryOp(args, ctx, "/")
+		return sqlNumericBinaryOp(args, ctx, "/")
 	}),
 }
 
@@ -67,7 +69,7 @@ func convertToSQLNumeric(expr SQLExpr, ctx *EvalCtx) (SQLNumeric, error) {
 
 }
 
-func SQLNumericBinaryOp(args []SQLExpr, ctx *EvalCtx, op string) (SQLValue, error) {
+func sqlNumericBinaryOp(args []SQLExpr, ctx *EvalCtx, op string) (SQLValue, error) {
 	if len(args) < 2 {
 		return nil, fmt.Errorf("%v function needs at least 2 args", op)
 	}
@@ -91,7 +93,7 @@ func SQLNumericBinaryOp(args []SQLExpr, ctx *EvalCtx, op string) (SQLValue, erro
 			left = left.Product(right)
 		case "/":
 			if right.Float64() == 0 {
-				return &SQLNullValue{}, nil
+				return SQLNull, nil
 			}
 			left = SQLFloat(left.Float64() / right.Float64())
 		default:
@@ -139,7 +141,7 @@ func (s SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 //
-// A field reference.
+// SQLFieldExpr represents a field reference.
 //
 type SQLFieldExpr struct {
 	tableName string
@@ -167,7 +169,9 @@ func (sqlf SQLFieldExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 //
-// A scalar function.
+// SQLScalarFunctionExpr is a wrapper around a sqlparser.FuncExpr.
+//
+// TODO: we should just convert the sqlparser.FuncExpr into our own.
 //
 type SQLScalarFunctionExpr struct {
 	*sqlparser.FuncExpr
@@ -294,7 +298,8 @@ func (f *SQLScalarFunctionExpr) powFunc(ctx *EvalCtx) (SQLValue, error) {
 	return nil, fmt.Errorf("base must be a number, but got %T", base)
 }
 
-// A subquery as a value.
+// SQLSubqueryExpr is a wrapper around a sqlparser.SelectStatement representing
+// a subquery.
 type SQLSubqueryExpr struct {
 	stmt sqlparser.SelectStatement
 }
@@ -341,10 +346,6 @@ func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 
 	hasNext := operator.Next(row)
 
-	// TODO: I think this is problematic... this is a subquery and will return
-	// whatever it does. It's up to the higher-level EXISTS operator to restrict
-	// this to a single row, or the comparison function.
-
 	// Filter has to check the entire source to return an accurate 'hasNext'
 	if hasNext && operator.Next(&Row{}) {
 		return nil, fmt.Errorf("Subquery returns more than 1 row")
@@ -367,7 +368,7 @@ func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 }
 
 //
-// A unary minus expression.
+// SQLUnaryMinusExpr represents a unary minus expression.
 //
 type SQLUnaryMinusExpr struct {
 	SQLExpr
@@ -381,7 +382,7 @@ func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 //
-// A unary plus expression.
+// SQLUnaryPlusExpr represents a unary plus expression.
 //
 type SQLUnaryPlusExpr struct {
 	SQLExpr
@@ -395,7 +396,7 @@ func (up *SQLUnaryPlusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 //
-// A tilde unary expression.
+// SQLUnaryTildeExpr represents a unary tilde expression.
 //
 type SQLUnaryTildeExpr struct {
 	SQLExpr
@@ -409,7 +410,7 @@ func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 //
-// A tuple value.
+// SQLTupleExpr represents a tuple.
 //
 type SQLTupleExpr struct {
 	Exprs []SQLExpr

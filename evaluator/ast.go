@@ -5,14 +5,14 @@ import (
 )
 
 //
-// A SQL Expression.
+// SQLExpr is the base type for a SQL expression.
 //
 type SQLExpr interface {
 	Evaluate(*EvalCtx) (SQLValue, error)
 }
 
 //
-// A Comparable SQL Expression.
+// SQLValue is a comparable SQLExpr.
 //
 type SQLValue interface {
 	SQLExpr
@@ -20,7 +20,8 @@ type SQLValue interface {
 }
 
 //
-// A Numeric SQL Value
+// SQLNumeric is a numeric SQLValue.
+//
 type SQLNumeric interface {
 	SQLValue
 	Add(o SQLNumeric) SQLNumeric
@@ -30,15 +31,14 @@ type SQLNumeric interface {
 }
 
 //
-// A Temporal SQL Value.
+// SQLTemporal is a time-based SQLValue.
 //
-// TODO: This matches every single SQLValue type... doesn't seem that useful to me.
 type SQLTemporal interface {
 	SQLValue
 }
 
 // A base type for a binary node.
-type SQLBinaryNode struct {
+type sqlBinaryNode struct {
 	left, right SQLExpr
 }
 

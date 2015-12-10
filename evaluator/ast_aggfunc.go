@@ -6,7 +6,9 @@ import (
 )
 
 //
-// SQLAggFunctionExpr
+// SQLAggFunctionExpr is a wrapper around a sqlparser.FuncExpr designating it
+// as an aggregate function. These aggregate functions are avg, sum, count,
+// max, and min.
 //
 type SQLAggFunctionExpr struct {
 	*sqlparser.FuncExpr
@@ -30,7 +32,7 @@ func (f *SQLAggFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	case "min":
 		return f.minFunc(ctx)
 	default:
-		return nil, fmt.Errorf("function '%v' is not supported", string(f.Name))
+		return nil, fmt.Errorf("aggregate function '%v' is not supported", string(f.Name))
 	}
 }
 

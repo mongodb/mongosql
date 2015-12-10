@@ -7,9 +7,15 @@ import (
 )
 
 //
-// A boolean value.
+// SQLBool represents a boolean.
 //
 type SQLBool bool
+
+// SQLTrue is a constant SQLBool(true).
+const SQLTrue = SQLBool(true)
+
+// SQLFalse is a constant SQLBool(false).
+const SQLFalse = SQLBool(false)
 
 func (sb SQLBool) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sb, nil
@@ -30,7 +36,7 @@ func (sb SQLBool) CompareTo(v SQLValue) (int, error) {
 }
 
 //
-// A date value.
+// SQLDate represents a date.
 //
 type SQLDate struct {
 	Time time.Time
@@ -53,7 +59,7 @@ func (sd SQLDate) CompareTo(v SQLValue) (int, error) {
 }
 
 //
-// A date time value.
+// SQLDateTime represents a datetime.
 //
 type SQLDateTime struct {
 	Time time.Time
@@ -77,7 +83,7 @@ func (sd SQLDateTime) CompareTo(v SQLValue) (int, error) {
 }
 
 //
-// A float value.
+// SQLFloat represents a float.
 //
 type SQLFloat float64
 
@@ -115,7 +121,7 @@ func (sf SQLFloat) Sub(o SQLNumeric) SQLNumeric {
 }
 
 //
-// A 64-bit integer value.
+// SQLInt represents a 64-bit integer value.
 //
 type SQLInt int64
 
@@ -170,10 +176,11 @@ func (si SQLInt) Sub(o SQLNumeric) SQLNumeric {
 }
 
 //
-// The null value.
+// SQLNullValue represents a null.
 //
 type SQLNullValue struct{}
 
+// SQLNull is a constant SQLNullValue.
 var SQLNull = SQLNullValue{}
 
 func (nv SQLNullValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -188,7 +195,7 @@ func (nv SQLNullValue) CompareTo(v SQLValue) (int, error) {
 }
 
 //
-// A string value.
+// SQLString represents a string value.
 //
 type SQLString string
 
@@ -211,7 +218,7 @@ func (sn SQLString) CompareTo(v SQLValue) (int, error) {
 }
 
 //
-// A time value.
+// SQLTime represents a time value.
 //
 type SQLTime struct {
 	Time time.Time
@@ -234,7 +241,7 @@ func (st SQLTimestamp) CompareTo(v SQLValue) (int, error) {
 }
 
 //
-// A timestamp value
+// SQLTimestamp represents a timestamp value.
 //
 type SQLTimestamp struct {
 	Time time.Time
@@ -257,7 +264,7 @@ func (st SQLTime) CompareTo(v SQLValue) (int, error) {
 }
 
 //
-// Multiple SQL Values.
+// SQLValues represents multiple sql values.
 //
 type SQLValues struct {
 	Values []SQLValue
@@ -301,7 +308,7 @@ func (sv SQLValues) CompareTo(v SQLValue) (int, error) {
 }
 
 //
-// An unsigned 32-bit integer.
+// SQLUint32 represents an unsigned 32-bit integer.
 //
 type SQLUint32 uint32
 

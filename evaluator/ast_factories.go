@@ -12,10 +12,13 @@ import (
 	"time"
 )
 
+//
+// NewSQLValue is a factory method for creating a SQLValue from a value and column type.
+//
 func NewSQLValue(value interface{}, columnType config.ColumnType) (SQLValue, error) {
 
 	if value == nil {
-		return SQLNullValue{}, nil
+		return SQLNull, nil
 	}
 
 	if columnType == "" {
@@ -135,14 +138,13 @@ func NewSQLValue(value interface{}, columnType config.ColumnType) (SQLValue, err
 
 }
 
-// NewSQLExpr transforms sqlparser expressions into SQLExpr
+// NewSQLExpr transforms sqlparser expressions into SQLExpr.
 func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 	log.Logf(log.DebugLow, "match expr: %#v (type is %T)\n", gExpr, gExpr)
 
 	switch expr := gExpr.(type) {
 	case nil:
-		// TODO: this is weird... anyone passing nil to this method should get changed...
-		return SQLBool(true), nil
+		return SQLTrue, nil
 
 	case *sqlparser.AndExpr:
 
@@ -180,7 +182,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.CaseExpr:
 
-		return NewSQLCaseExpr(expr)
+		return newSQLCaseExpr(expr)
 
 	case *sqlparser.ColName:
 
@@ -333,9 +335,6 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.Subquery:
 
-		// NOTE: This seems very odd to me. All the current
-		// tests pass, so perhaps SQLExistsExpr is simply
-		// misnamed?
 		return &SQLExistsExpr{expr.Select}, nil
 
 	case *sqlparser.UnaryExpr:
@@ -397,7 +396,7 @@ func newSQLExprForComparison(gExpr sqlparser.Expr) (SQLExpr, error) {
 // For searched case expressions, we create a matcher based on the boolean
 // expression in each when condition.
 //
-func NewSQLCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
+func newSQLCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
 
 	var e SQLExpr
 
