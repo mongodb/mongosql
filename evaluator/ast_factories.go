@@ -158,15 +158,9 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		return &SQLAndExpr{[]SQLExpr{left, right}}, nil
+		return &SQLAndExpr{left, right}, nil
 
 	case *sqlparser.BinaryExpr:
-
-		// look up the function in the function map
-		funcImpl, ok := binaryFuncMap[string(expr.Operator)]
-		if !ok {
-			return nil, fmt.Errorf("can't find implementation for binary operator '%v'", expr.Operator)
-		}
 
 		left, err := NewSQLExpr(expr.Left)
 		if err != nil {
@@ -178,7 +172,18 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		return &SQLBinaryFunctionExpr{[]SQLExpr{left, right}, funcImpl}, nil
+		switch expr.Operator {
+		case '+':
+			return &SQLAddExpr{left, right}, nil
+		case '-':
+			return &SQLSubtractExpr{left, right}, nil
+		case '*':
+			return &SQLMultiplyExpr{left, right}, nil
+		case '/':
+			return &SQLDivideExpr{left, right}, nil
+		default:
+			return nil, fmt.Errorf("can't find implementation for binary operator '%v'", expr.Operator)
+		}
 
 	case *sqlparser.CaseExpr:
 
@@ -226,7 +231,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 			case *SQLSubqueryExpr:
 				return &SQLSubqueryCmpExpr{false, left, eval}, nil
 			}
-			return &SQLNotInExpr{left, right}, nil
+			return &SQLNotExpr{&SQLInExpr{left, right}}, nil
 		default:
 			return &SQLEqualsExpr{left, right}, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)
 		}
@@ -294,7 +299,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		return &SQLOrExpr{[]SQLExpr{left, right}}, nil
+		return &SQLOrExpr{left, right}, nil
 
 	case *sqlparser.ParenBoolExpr:
 
@@ -321,7 +326,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 		upper := &SQLLessThanOrEqualExpr{left, to}
 
-		m := &SQLAndExpr{[]SQLExpr{lower, upper}}
+		m := &SQLAndExpr{lower, upper}
 
 		if expr.Operator == sqlparser.AST_NOT_BETWEEN {
 			return &SQLNotExpr{m}, nil

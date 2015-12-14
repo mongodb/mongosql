@@ -1,213 +1,297 @@
 package evaluator
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
-	"github.com/erh/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
-func getSQLExprFromSQL(sql string) (SQLExpr, error) {
-	// Parse the statement, algebrize it, extract the WHERE clause and build a matcher from it.
-	raw, err := sqlparser.Parse(sql)
-	if err != nil {
-		return nil, err
+func TestEvaluates(t *testing.T) {
+
+	type test struct {
+		sql    string
+		result SQLExpr
 	}
-	if selectStatement, ok := raw.(*sqlparser.Select); ok {
-		cfg, err := config.ParseConfigData(testConfig3)
-		So(err, ShouldBeNil)
-		parseCtx, err := NewParseCtx(selectStatement, cfg, dbOne)
-		if err != nil {
-			return nil, err
-		}
 
-		parseCtx.Database = dbOne
-
-		err = AlgebrizeStatement(selectStatement, parseCtx)
-		if err != nil {
-			return nil, err
-		}
-
-		return NewSQLExpr(selectStatement.Where.Expr)
-	}
-	return nil, fmt.Errorf("statement doesn't look like a 'SELECT'")
-}
-
-func TestMatchesWithValues(t *testing.T) {
-	Convey("When evaluating a single value as a match", t, func() {
-		evalCtx := &EvalCtx{[]Row{
-			{Data: []TableRow{
-				{"bar", Values{
-					{"a", "a", 123},
-					{"b", "b", "xyz"},
-					{"c", "c", nil},
-				}, nil}}}}, nil}
-		Convey("It should evaluate to true iff it's non-zero or parseable as a non-zero number", func() {
-			shouldBeTrue := []SQLValue{
-				SQLInt(124),
-				SQLFloat(1235),
-				SQLString("512"),
-			}
-
-			shouldBeFalse := []SQLValue{
-				SQLInt(0),
-				SQLFloat(0),
-				SQLString("000"),
-				SQLString("skdjbkjb"),
-				SQLString(""),
-			}
-			for _, t := range shouldBeTrue {
-				match, err := Matches(t, evalCtx)
+	runTests := func(ctx *EvalCtx, tests []test) {
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%q should be %v", t.sql, t.result), func() {
+				subject, err := getWhereSQLExprFromSQL("SELECT * FROM bar WHERE " + t.sql)
 				So(err, ShouldBeNil)
-				So(match, ShouldBeTrue)
-			}
-			for _, t := range shouldBeFalse {
-				match, err := Matches(t, evalCtx)
+				result, err := subject.Evaluate(ctx)
 				So(err, ShouldBeNil)
-				So(match, ShouldBeFalse)
+				So(result, ShouldEqual, t.result)
+			})
+		}
+	}
+
+	Convey("Subject: Evaluates", t, func() {
+		evalCtx := &EvalCtx{
+			[]Row{{
+				Data: []TableRow{{
+					"bar",
+					Values{
+						{"a", "a", 123},
+						{"b", "b", 456},
+						{"c", "c", nil}},
+					nil}}}},
+			nil}
+
+		Convey("Subject: SQLAddExpr", func() {
+			tests := []test{
+				test{"0 + 0", SQLInt(0)},
+				test{"-1 + 1", SQLInt(0)},
+				test{"10 + 32", SQLInt(42)},
+				test{"-10 + -32", SQLInt(-42)},
 			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLAndExpr", func() {
+			// INT-1040: boolean literals don't work
+			tests := []test{
+				test{"1 AND 1", SQLTrue},
+				test{"1 AND 0", SQLFalse},
+				test{"0 AND 1", SQLFalse},
+				test{"0 AND 0", SQLFalse},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLDivideExpr", func() {
+			tests := []test{
+				test{"-1 / 1", SQLInt(-1)},
+				test{"100 / 10", SQLInt(10)},
+				test{"-10 / 10", SQLInt(-1)},
+			}
+
+			runTests(evalCtx, tests)
+
+			Convey("The result should be SQLNull when dividing by zero", func() {
+				subject := &SQLDivideExpr{SQLInt(10), SQLInt(0)}
+				result, err := subject.Evaluate(evalCtx)
+				So(err, ShouldBeNil)
+				So(result, ShouldHaveSameTypeAs, SQLNull)
+			})
+		})
+
+		Convey("Subject: SQLEqualsExpr", func() {
+			tests := []test{
+				test{"0 = 0", SQLTrue},
+				test{"-1 = 1", SQLFalse},
+				test{"10 = 10", SQLTrue},
+				test{"-10 = -10", SQLTrue},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		SkipConvey("Subject: SQLExistsExpr", func() {
+		})
+
+		Convey("Subject: SQLFieldExpr", func() {
+			Convey("Should return the value of the field when it exists", func() {
+				subject := &SQLFieldExpr{"bar", "a"}
+				result, err := subject.Evaluate(evalCtx)
+				So(err, ShouldBeNil)
+				So(result, ShouldEqual, SQLInt(123))
+			})
+
+			Convey("Should return nil when the field is null", func() {
+				subject := &SQLFieldExpr{"bar", "c"}
+				result, err := subject.Evaluate(evalCtx)
+				So(err, ShouldBeNil)
+				So(result, ShouldHaveSameTypeAs, SQLNull)
+			})
+
+			Convey("Should return nil when the field doesn't exists", func() {
+				subject := &SQLFieldExpr{"bar", "no_existy"}
+				result, err := subject.Evaluate(evalCtx)
+				So(err, ShouldBeNil)
+				So(result, ShouldHaveSameTypeAs, SQLNull)
+			})
+		})
+
+		Convey("Subject: SQLGreaterThanExpr", func() {
+			tests := []test{
+				test{"0 > 0", SQLFalse},
+				test{"-1 > 1", SQLFalse},
+				test{"1 > -1", SQLTrue},
+				test{"11 > 10", SQLTrue},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLGreaterThanOrEqualExpr", func() {
+			tests := []test{
+				test{"0 >= 0", SQLTrue},
+				test{"-1 >= 1", SQLFalse},
+				test{"1 >= -1", SQLTrue},
+				test{"11 >= 10", SQLTrue},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLInExpr", func() {
+			tests := []test{
+				test{"0 IN(0)", SQLTrue},
+				test{"-1 IN(1)", SQLFalse},
+				test{"0 IN(10, 0)", SQLTrue},
+				test{"-1 IN(1, 10)", SQLFalse},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLLessThanExpr", func() {
+			tests := []test{
+				test{"0 < 0", SQLFalse},
+				test{"-1 < 1", SQLTrue},
+				test{"1 < -1", SQLFalse},
+				test{"10 < 11", SQLTrue},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLLessThanOrEqualExpr", func() {
+			tests := []test{
+				test{"0 <= 0", SQLTrue},
+				test{"-1 <= 1", SQLTrue},
+				test{"1 <= -1", SQLFalse},
+				test{"10 <= 11", SQLTrue},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		SkipConvey("Subject: SQLLikeExpr", func() {
+		})
+
+		Convey("Subject: SQLMultiplyExpr", func() {
+			tests := []test{
+				test{"0 * 0", SQLInt(0)},
+				test{"-1 * 1", SQLInt(-1)},
+				test{"10 * 32", SQLInt(320)},
+				test{"-10 * -32", SQLInt(320)},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLNotEqualsExpr", func() {
+			tests := []test{
+				test{"0 <> 0", SQLFalse},
+				test{"-1 <> 1", SQLTrue},
+				test{"10 <> 10", SQLFalse},
+				test{"-10 <> -10", SQLFalse},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLNotExpr", func() {
+			// INT-1040: boolean literals don't work
+			tests := []test{
+				test{"NOT 1", SQLFalse},
+				test{"NOT 0", SQLTrue},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLNullCmpExpr", func() {
+			tests := []test{
+				test{"1 IS NULL", SQLFalse},
+				test{"NULL IS NULL", SQLTrue},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLOrExpr", func() {
+			// INT-1040: boolean literals don't work
+			tests := []test{
+				test{"1 OR 1", SQLTrue},
+				test{"1 OR 0", SQLTrue},
+				test{"0 OR 1", SQLTrue},
+				test{"0 OR 0", SQLFalse},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLSubtractExpr", func() {
+			tests := []test{
+				test{"0 - 0", SQLInt(0)},
+				test{"-1 - 1", SQLInt(-2)},
+				test{"10 - 32", SQLInt(-22)},
+				test{"-10 - -32", SQLInt(22)},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLTupleExpr", func() {
+			Convey("Should evaluate all the expressions and return SQLValues", func() {
+				subject := &SQLTupleExpr{[]SQLExpr{SQLInt(10), &SQLAddExpr{SQLInt(30), SQLInt(12)}}}
+				result, err := subject.Evaluate(evalCtx)
+				So(err, ShouldBeNil)
+				So(result, ShouldHaveSameTypeAs, SQLValues{})
+				resultValues := result.(SQLValues)
+				So(resultValues[0], ShouldEqual, SQLInt(10))
+				So(resultValues[1], ShouldEqual, SQLInt(42))
+			})
+		})
+
+		Convey("Subject: SQLUnaryMinusExpr", func() {
+			tests := []test{
+				test{"-10", SQLInt(-10)},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		SkipConvey("Subject: SQLUnaryPlusExpr", func() {
+			// TODO: what this is supposed to do?
+		})
+
+		SkipConvey("Subject: SQLUnaryTildeExpr", func() {
+			// TODO: I'm not convinced we have this correct.
 		})
 	})
 }
 
-func TestBasicBooleanExpressions(t *testing.T) {
-	Convey("With a matcher checking for: field b = 'xyz'", t, func() {
-		tree := &SQLEqualsExpr{SQLString("xyz"), &SQLFieldExpr{"bar", "b"}}
-		Convey("using the matcher on a row whose value matches should return true", func() {
-			evalCtx := &EvalCtx{[]Row{
-				{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"b", "b", "xyz"}, {"c", "c", nil}}, nil}}}}, nil}
-			m, err := Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeTrue)
-		})
+func TestMatches(t *testing.T) {
+	Convey("Subject: Matches", t, func() {
 
-		Convey("using the matcher on a row whose values do not match should return false", func() {
-			evalCtx := &EvalCtx{[]Row{
-				{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"b", "b", "WRONG"}, {"c", "c", nil}}, nil}}}}, nil}
-			m, err := Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeFalse)
-		})
-	})
-}
+		evalCtx := &EvalCtx{[]Row{}, nil}
 
-func TestComparisonExpressions(t *testing.T) {
-	type compareTest struct {
-		less, greater SQLExpr
-	}
+		tests := [][]interface{}{
+			[]interface{}{SQLInt(124), true},
+			[]interface{}{SQLFloat(1235), true},
+			[]interface{}{SQLString("512"), true},
+			[]interface{}{SQLInt(0), false},
+			[]interface{}{SQLFloat(0), false},
+			[]interface{}{SQLString("000"), false},
+			[]interface{}{SQLString("skdjbkjb"), false},
+			[]interface{}{SQLString(""), false},
+			[]interface{}{SQLTrue, true},
+			[]interface{}{SQLFalse, false},
+			[]interface{}{&SQLEqualsExpr{SQLInt(42), SQLInt(42)}, true},
+			[]interface{}{&SQLEqualsExpr{SQLInt(42), SQLInt(21)}, false},
+		}
 
-	tests := []compareTest{
-		{SQLFloat(1000.0), SQLFloat(5000.0)},
-		{SQLString("aaa"), SQLString("bbb")},
-		{SQLFieldExpr{"bar", "a"}, SQLFieldExpr{"bar", "y"}},
-	}
-
-	Convey("Equality matcher should return true/false when numerics are equal/unequal", t, func() {
-		var tree SQLExpr
-		evalCtx := &EvalCtx{[]Row{
-			{Data: []TableRow{{"bar", Values{{"a", "a", 123}, {"y", "y", 456}, {"c", "c", nil}}, nil}}}}, nil}
-		for _, data := range tests {
-			tree = &SQLEqualsExpr{data.less, data.less}
-			m, err := Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeTrue)
-
-			tree = &SQLEqualsExpr{data.less, data.greater}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeFalse)
-
-			tree = &SQLNotEqualsExpr{data.less, data.greater}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeTrue)
-
-			tree = &SQLNotEqualsExpr{data.less, data.less}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeFalse)
-
-			tree = &SQLNotExpr{&SQLEqualsExpr{data.less, data.less}}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeFalse)
-
-			tree = &SQLNotExpr{&SQLEqualsExpr{data.less, data.greater}}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeTrue)
-
-			/* GT */
-			tree = &SQLGreaterThanExpr{data.less, data.greater}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeFalse)
-
-			tree = &SQLGreaterThanExpr{data.greater, data.less}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeTrue)
-
-			tree = &SQLGreaterThanExpr{data.less, data.less}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeFalse)
-
-			/* GTE */
-			tree = &SQLGreaterThanOrEqualExpr{data.less, data.greater}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeFalse)
-
-			tree = &SQLGreaterThanOrEqualExpr{data.greater, data.less}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeTrue)
-
-			tree = &SQLGreaterThanOrEqualExpr{data.less, data.less}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeTrue)
-
-			/* LT */
-			tree = &SQLLessThanExpr{data.less, data.greater}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeTrue)
-
-			tree = &SQLLessThanExpr{data.greater, data.less}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeFalse)
-
-			tree = &SQLLessThanExpr{data.less, data.less}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeFalse)
-
-			/* LTE */
-			tree = &SQLLessThanOrEqualExpr{data.less, data.greater}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeTrue)
-
-			tree = &SQLLessThanOrEqualExpr{data.greater, data.less}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeFalse)
-
-			tree = &SQLLessThanOrEqualExpr{data.less, data.less}
-			m, err = Matches(tree, evalCtx)
-			So(err, ShouldBeNil)
-			So(m, ShouldBeTrue)
+		for _, t := range tests {
+			Convey(fmt.Sprintf("Should evaluate %v(%T) to %v", t[0], t[0], t[1]), func() {
+				m, err := Matches(t[0].(SQLExpr), evalCtx)
+				So(err, ShouldBeNil)
+				So(m, ShouldEqual, t[1])
+			})
 		}
 	})
-}
-
-func debugJson(data interface{}) {
-	So(data, ShouldNotBeNil)
-	_, err := json.Marshal(data)
-	So(err, ShouldBeNil)
 }

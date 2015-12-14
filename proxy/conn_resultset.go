@@ -22,7 +22,7 @@ func formatValue(value interface{}) ([]byte, error) {
 		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
 	case evaluator.SQLValues:
 		slice := []byte{}
-		for _, value := range v.Values {
+		for _, value := range v {
 			b, err := formatValue(value)
 			if err != nil {
 				return nil, err

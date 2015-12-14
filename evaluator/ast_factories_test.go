@@ -37,45 +37,37 @@ func TestNewSQLExpr(t *testing.T) {
 	})
 
 	Convey("Simple WHERE with explicit table names", t, func() {
-		matcher, err := getSQLExprFromSQL("select * from bar where bar.a = 'eliot'")
+		matcher, err := getWhereSQLExprFromSQL("select * from bar where bar.a = 'eliot'")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")})
 	})
 	Convey("Simple WHERE with implicit table names", t, func() {
-		matcher, err := getSQLExprFromSQL("select * from bar where a = 'eliot'")
+		matcher, err := getWhereSQLExprFromSQL("select * from bar where a = 'eliot'")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")})
 	})
 	Convey("WHERE with complex nested matching clauses", t, func() {
-		matcher, err := getSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>1 OR a<'blah'))")
+		matcher, err := getWhereSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>1 OR a<'blah'))")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLNotExpr{
 			&SQLAndExpr{
-				[]SQLExpr{
-					&SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")},
-					&SQLOrExpr{
-						[]SQLExpr{
-							&SQLGreaterThanExpr{SQLFieldExpr{"bar", "b"}, SQLInt(1)},
-							&SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLString("blah")},
-						},
-					},
+				&SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")},
+				&SQLOrExpr{
+					&SQLGreaterThanExpr{SQLFieldExpr{"bar", "b"}, SQLInt(1)},
+					&SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLString("blah")},
 				},
 			},
 		})
 	})
 	Convey("WHERE with complex nested matching clauses", t, func() {
-		matcher, err := getSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>13 OR a<'blah'))")
+		matcher, err := getWhereSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>13 OR a<'blah'))")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLNotExpr{
 			&SQLAndExpr{
-				[]SQLExpr{
-					&SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")},
-					&SQLOrExpr{
-						[]SQLExpr{
-							&SQLGreaterThanExpr{SQLFieldExpr{"bar", "b"}, SQLInt(13)},
-							&SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLString("blah")},
-						},
-					},
+				&SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")},
+				&SQLOrExpr{
+					&SQLGreaterThanExpr{SQLFieldExpr{"bar", "b"}, SQLInt(13)},
+					&SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLString("blah")},
 				},
 			},
 		})
