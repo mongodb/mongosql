@@ -105,6 +105,10 @@ type SQLExprVisitor interface {
 	Visit(SQLExpr) (SQLExpr, error)
 }
 
+// walk handles walking the children of the provided expression, calling
+// v.Visit on each child. Some visitor implementations may ignore this
+// method completely, but most will use it as the default implementation
+// for a majority of nodes.
 func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 	if v == nil || e == nil {
 		return nil, nil

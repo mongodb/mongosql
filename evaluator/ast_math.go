@@ -83,8 +83,6 @@ func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLInt(-(round(val.Float64()))), nil
 	}
 
-	// NOTE: this doesn't seem right... the negation of a non-number should
-	// be an illegal
 	return um.operand.Evaluate(ctx)
 }
 
@@ -95,11 +93,9 @@ type SQLUnaryPlusExpr sqlUnaryNode
 
 func (up *SQLUnaryPlusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if val, ok := up.operand.(SQLNumeric); ok {
-		// NOTE: where is the documentation that this is correct?
 		return SQLInt(round(val.Float64())), nil
 	}
 
-	// NOTE: this doesn't seem right to ignore it...
 	return up.operand.Evaluate(ctx)
 }
 
@@ -113,7 +109,6 @@ func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLInt(^round(val.Float64())), nil
 	}
 
-	// NOTE: this doesn't seem right to ignore it...
 	return td.operand.Evaluate(ctx)
 }
 
