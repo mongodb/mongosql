@@ -86,6 +86,17 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 	return false, nil
 }
 
+// PartiallyEvaluate will take an expression tree and partially evaluate any nodes that can
+// evaluated without needing data.
+func PartiallyEvaluate(e SQLExpr) (SQLExpr, error) {
+	candidates, err := nominateForPartialEvaluation(e)
+	if err != nil {
+		return nil, err
+	}
+	v := &partialEvaluator{candidates}
+	return v.Visit(e)
+}
+
 // SQLExprVisitor is an implementation of the Visitor pattern.
 type SQLExprVisitor interface {
 	// Visit is called with an expression. It returns:
@@ -188,7 +199,7 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 
 	case *SQLExistsExpr:
 		// child isn't visitable
-	case *SQLFieldExpr:
+	case SQLFieldExpr:
 		// no children
 	case *SQLGreaterThanExpr:
 		left, err := v.Visit(typedE.left)

@@ -93,21 +93,21 @@ func TestEvaluates(t *testing.T) {
 
 		Convey("Subject: SQLFieldExpr", func() {
 			Convey("Should return the value of the field when it exists", func() {
-				subject := &SQLFieldExpr{"bar", "a"}
+				subject := SQLFieldExpr{"bar", "a"}
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldEqual, SQLInt(123))
 			})
 
 			Convey("Should return nil when the field is null", func() {
-				subject := &SQLFieldExpr{"bar", "c"}
+				subject := SQLFieldExpr{"bar", "c"}
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldHaveSameTypeAs, SQLNull)
 			})
 
 			Convey("Should return nil when the field doesn't exists", func() {
-				subject := &SQLFieldExpr{"bar", "no_existy"}
+				subject := SQLFieldExpr{"bar", "no_existy"}
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldHaveSameTypeAs, SQLNull)
@@ -293,5 +293,49 @@ func TestMatches(t *testing.T) {
 				So(m, ShouldEqual, t[1])
 			})
 		}
+	})
+}
+
+func TestPartialEvaluation(t *testing.T) {
+	Convey("Subject: Partial Evaluation", t, func() {
+
+		Convey("Should partially evaluate an entire tree", func() {
+			expr, err := getWhereSQLExprFromSQL("SELECT * FROM bar WHERE 3 + 3 = 6")
+			So(err, ShouldBeNil)
+			result, err := PartiallyEvaluate(expr)
+			So(err, ShouldBeNil)
+			So(result, ShouldEqual, SQLTrue)
+		})
+
+		Convey("Should partially evaluate a subtree recursively", func() {
+			expr, err := getWhereSQLExprFromSQL("SELECT * FROM bar WHERE 3 / (3 - 2) = a")
+			So(err, ShouldBeNil)
+			result, err := PartiallyEvaluate(expr)
+			So(err, ShouldBeNil)
+			So(result, ShouldHaveSameTypeAs, &SQLEqualsExpr{})
+			eq := result.(*SQLEqualsExpr)
+			So(eq.left, ShouldEqual, SQLInt(3))
+			So(eq.right, ShouldHaveSameTypeAs, SQLFieldExpr{})
+		})
+
+		Convey("Should partially evaluate multiple subtrees", func() {
+			expr, err := getWhereSQLExprFromSQL("SELECT * FROM bar WHERE 3 / (3 - 2) = a AND 4 - 2 = b")
+			So(err, ShouldBeNil)
+			result, err := PartiallyEvaluate(expr)
+			So(err, ShouldBeNil)
+
+			So(result, ShouldHaveSameTypeAs, &SQLAndExpr{})
+			and := result.(*SQLAndExpr)
+
+			So(and.left, ShouldHaveSameTypeAs, &SQLEqualsExpr{})
+			leq := and.left.(*SQLEqualsExpr)
+			So(leq.left, ShouldEqual, SQLInt(3))
+			So(leq.right, ShouldHaveSameTypeAs, SQLFieldExpr{})
+
+			So(and.right, ShouldHaveSameTypeAs, &SQLEqualsExpr{})
+			req := and.right.(*SQLEqualsExpr)
+			So(req.left, ShouldEqual, SQLInt(2))
+			So(req.right, ShouldHaveSameTypeAs, SQLFieldExpr{})
+		})
 	})
 }
