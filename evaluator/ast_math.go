@@ -87,19 +87,6 @@ func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 //
-// SQLUnaryPlusExpr represents a unary plus expression.
-//
-type SQLUnaryPlusExpr sqlUnaryNode
-
-func (up *SQLUnaryPlusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	if val, ok := up.operand.(SQLNumeric); ok {
-		return SQLInt(round(val.Float64())), nil
-	}
-
-	return up.operand.Evaluate(ctx)
-}
-
-//
 // SQLUnaryTildeExpr evaluates to the bitwise complement of the expression.
 //
 type SQLUnaryTildeExpr sqlUnaryNode

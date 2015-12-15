@@ -1,12 +1,5 @@
 package evaluator
 
-import (
-	"bufio"
-	"fmt"
-	"io"
-	"strings"
-)
-
 type partialEvaluator struct {
 	candidates map[SQLExpr]bool
 }
@@ -18,10 +11,7 @@ func (pe *partialEvaluator) Visit(e SQLExpr) (SQLExpr, error) {
 
 	// if we need an evaluation context, or nominator is returning
 	// bad candidates.
-	e, err := e.Evaluate(nil)
-	if err != nil {
-		return nil, err
-	}
+	return e.Evaluate(nil)
 }
 
 func nominateForPartialEvaluation(e SQLExpr) (map[SQLExpr]bool, error) {

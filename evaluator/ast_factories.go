@@ -352,8 +352,6 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 		switch expr.Operator {
 		case sqlparser.AST_UMINUS:
 			return &SQLUnaryMinusExpr{val}, nil
-		case sqlparser.AST_UPLUS:
-			return &SQLUnaryPlusExpr{val}, nil
 		case sqlparser.AST_TILDA:
 			return &SQLUnaryTildeExpr{val}, nil
 		}

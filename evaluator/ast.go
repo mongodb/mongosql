@@ -385,15 +385,6 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 			e = &SQLUnaryMinusExpr{operand}
 		}
 
-	case *SQLUnaryPlusExpr:
-		operand, err := v.Visit(typedE.operand)
-		if err != nil {
-			return nil, err
-		}
-		if typedE.operand != operand {
-			e = &SQLUnaryPlusExpr{operand}
-		}
-
 	case *SQLUnaryTildeExpr:
 		operand, err := v.Visit(typedE.operand)
 		if err != nil {
