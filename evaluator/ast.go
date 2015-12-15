@@ -86,15 +86,28 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 	return false, nil
 }
 
-// PartiallyEvaluate will take an expression tree and partially evaluate any nodes that can
-// evaluated without needing data.
-func PartiallyEvaluate(e SQLExpr) (SQLExpr, error) {
-	candidates, err := nominateForPartialEvaluation(e)
+// OptimizeSQLExpr takes a SQLExpr and optimizes it by normalizing
+// it into a semantically equivalent tree and partially evaluating
+// any subtrees that evaluatable without data.
+func OptimizeSQLExpr(e SQLExpr) (SQLExpr, error) {
+
+	newE, err := normalize(e)
 	if err != nil {
 		return nil, err
 	}
-	v := &partialEvaluator{candidates}
-	return v.Visit(e)
+
+	newE, err = partiallyEvaluate(newE)
+	if err != nil {
+		return nil, err
+	}
+
+	if e != newE {
+		// normalized and partially evaluated trees might allow for further
+		// optimization
+		return OptimizeSQLExpr(newE)
+	}
+
+	return newE, nil
 }
 
 // SQLExprVisitor is an implementation of the Visitor pattern.

@@ -296,46 +296,48 @@ func TestMatches(t *testing.T) {
 	})
 }
 
-func TestPartialEvaluation(t *testing.T) {
-	Convey("Subject: Partial Evaluation", t, func() {
+func TestOptimizeSQLExpr(t *testing.T) {
 
-		Convey("Should partially evaluate an entire tree", func() {
-			expr, err := getWhereSQLExprFromSQL("SELECT * FROM bar WHERE 3 + 3 = 6")
-			So(err, ShouldBeNil)
-			result, err := PartiallyEvaluate(expr)
-			So(err, ShouldBeNil)
-			So(result, ShouldEqual, SQLTrue)
-		})
+	type test struct {
+		sql      string
+		expected string
+		result   SQLExpr
+	}
 
-		Convey("Should partially evaluate a subtree recursively", func() {
-			expr, err := getWhereSQLExprFromSQL("SELECT * FROM bar WHERE 3 / (3 - 2) = a")
-			So(err, ShouldBeNil)
-			result, err := PartiallyEvaluate(expr)
-			So(err, ShouldBeNil)
-			So(result, ShouldHaveSameTypeAs, &SQLEqualsExpr{})
-			eq := result.(*SQLEqualsExpr)
-			So(eq.left, ShouldEqual, SQLInt(3))
-			So(eq.right, ShouldHaveSameTypeAs, SQLFieldExpr{})
-		})
+	runTests := func(tests []test) {
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
+				e, err := getWhereSQLExprFromSQL("SELECT * FROM bar WHERE " + t.sql)
+				So(err, ShouldBeNil)
+				result, err := OptimizeSQLExpr(e)
+				So(err, ShouldBeNil)
+				So(result, ShouldResemble, t.result)
+			})
+		}
+	}
 
-		Convey("Should partially evaluate multiple subtrees", func() {
-			expr, err := getWhereSQLExprFromSQL("SELECT * FROM bar WHERE 3 / (3 - 2) = a AND 4 - 2 = b")
-			So(err, ShouldBeNil)
-			result, err := PartiallyEvaluate(expr)
-			So(err, ShouldBeNil)
+	Convey("Subject: OptimizeSQLExpr", t, func() {
 
-			So(result, ShouldHaveSameTypeAs, &SQLAndExpr{})
-			and := result.(*SQLAndExpr)
+		tests := []test{
+			test{"3 = a", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 < a", "a > 3", &SQLGreaterThanExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 > a", "a < 3", &SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 + 3 = 6", "true", SQLTrue},
+			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLFloat(3)}},
+			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
+				&SQLAndExpr{
+					&SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLFloat(3)},
+					&SQLEqualsExpr{SQLFieldExpr{"bar", "b"}, SQLInt(2)}}},
+			test{"3 + 3 = 6 OR a = 3", "true", SQLTrue},
+			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
+			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+		}
 
-			So(and.left, ShouldHaveSameTypeAs, &SQLEqualsExpr{})
-			leq := and.left.(*SQLEqualsExpr)
-			So(leq.left, ShouldEqual, SQLInt(3))
-			So(leq.right, ShouldHaveSameTypeAs, SQLFieldExpr{})
-
-			So(and.right, ShouldHaveSameTypeAs, &SQLEqualsExpr{})
-			req := and.right.(*SQLEqualsExpr)
-			So(req.left, ShouldEqual, SQLInt(2))
-			So(req.right, ShouldHaveSameTypeAs, SQLFieldExpr{})
-		})
+		runTests(tests)
 	})
 }
