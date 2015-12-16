@@ -11,7 +11,7 @@ url: localhost
 log_level: vv
 databases:
 -
-  db: test
+  name: test
   tables:
   -
      table: bar
@@ -29,7 +29,7 @@ databases:
         sqlname: c
         sqltype: int
 -
-  db: foo
+  name: foo
   tables:
   -
      table: bar

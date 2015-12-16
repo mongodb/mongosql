@@ -13,7 +13,7 @@ data:
 # correspond to the data used in (1)
 
 databases:
-- db: test
+- name: test
   tables:
   - table: foo
     collection: test.foo

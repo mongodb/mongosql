@@ -12,7 +12,7 @@ url: localhost
 log_level: vv
 databases :
 -
-  db: test
+  name: test
   tables:
   -
      table: foo
@@ -42,7 +42,7 @@ databases :
      -
         sqlname: _id
 -
-  db: foo
+  name: foo
   tables:
   -
      table: bar
@@ -65,7 +65,7 @@ databases :
         sqlname: f
         sqltype: int
 -
-  db: test2
+  name: test2
   tables:
   -
      table: foo
@@ -98,7 +98,7 @@ url: localhost
 log_level: vv
 databases :
 -
-  db: test
+  name: test
   tables:
   -
      table: foo
@@ -173,7 +173,7 @@ url: localhost
 log_level: vv
 databases :
 -
-  db: test
+  name: test
   tables:
   -
      table: bar
@@ -191,7 +191,7 @@ databases :
      table: foo
      collection: test.foo
 -
-  db: foo
+  name: foo
   tables:
   -
      table: bar

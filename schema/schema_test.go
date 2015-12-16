@@ -20,7 +20,7 @@ log_level : error
 
 databases :
 - 
-  db: test1
+  name: test1
   tables:
   - 
      table: foo
@@ -33,7 +33,7 @@ databases :
         sqlname: b
         sqltype: string
 -
-  db: test2
+  name: test2
   tables:
   -
      table: bar
@@ -125,7 +125,7 @@ schema_dir : foo
 		`
 databases:
 -
-  db: test1
+  name: test1
   tables:
   - 
      table: foo
@@ -138,7 +138,7 @@ databases:
         sqlname: b
         sqltype: string
 -
-  db: test2
+  name: test2
   tables:
   -
      table: bar
@@ -231,7 +231,7 @@ log_level : error
 schema_dir : foo
 databases:
 -
-  db: test1
+  name: test1
   tables:
   - 
      table: foo
@@ -244,7 +244,7 @@ databases:
         sqlname: b
         sqltype: string
 -
-  db: test3
+  name: test3
   tables:
   - 
      table: foo
@@ -263,7 +263,7 @@ databases:
 		`
 databases:
 -
-  db: test2
+  name: test2
   tables:
   -
      table: bar
@@ -276,7 +276,7 @@ databases:
         sqlname: b
         sqltype: int
 -
-  db: test3
+  name: test3
   tables:
   - 
      table: bar
@@ -347,7 +347,7 @@ log_level : error
 schema_dir : foo
 databases:
 -
-  db: test3
+  name: test3
   tables:
   - 
      table: foo
@@ -366,7 +366,7 @@ databases:
 		`
 databases:
 -
-  db: test3
+  name: test3
   tables:
   - 
      table: foo

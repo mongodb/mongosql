@@ -4,7 +4,7 @@ data:
 
 databases :
 -
-  db: public
+  name: public
   tables:
     - table: flights
       collection: tableau.flights201406

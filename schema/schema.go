@@ -55,7 +55,7 @@ type (
 	}
 
 	Database struct {
-		Name      string            `yaml:"db"`
+		Name      string            `yaml:"name"`
 		RawTables []*Table          `yaml:"tables"`
 		Tables    map[string]*Table `yaml:"tables_no"`
 	}
