@@ -1,7 +1,6 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/config"
 	"strings"
 )
 
@@ -12,9 +11,8 @@ type Row struct {
 
 // TableRow holds column data from a given table.
 type TableRow struct {
-	Table       string
-	Values      Values
-	TableConfig *config.TableConfig
+	Table  string
+	Values Values
 }
 
 // Value holds row value for an SQL column.

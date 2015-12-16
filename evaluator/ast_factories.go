@@ -15,7 +15,7 @@ import (
 //
 // NewSQLValue is a factory method for creating a SQLValue from a value and column type.
 //
-func NewSQLValue(value interface{}, columnType config.ColumnType) (SQLValue, error) {
+func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 	if value == nil {
 		return SQLNull, nil

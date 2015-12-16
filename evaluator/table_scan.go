@@ -20,7 +20,7 @@ type TableScan struct {
 	iter        FindResults
 	dbConfig    *config.Schema
 	session     *mgo.Session
-	tableConfig *config.TableConfig
+	tableConfig *config.Table
 	ctx         *ExecutionCtx
 	err         error
 }
@@ -56,7 +56,7 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 		return fmt.Errorf("table (%s) doesn't exist in db (%s)", ts.tableName, ts.dbName)
 	}
 
-	pcs := strings.SplitN(ts.tableConfig.Collection, ".", 2)
+	pcs := strings.SplitN(ts.tableConfig.CollectionName, ".", 2)
 
 	ts.session = ctx.Session.Copy()
 	db := ctx.Session.DB(pcs[0])
@@ -139,28 +139,29 @@ func (ts *TableScan) Next(row *Row) bool {
 
 		values := Values{}
 		data := d.Map()
+
 		var err error
 
 		for _, column := range ts.tableConfig.Columns {
 			value := Value{
-				Name: column.Name,
-				View: column.Name,
+				Name: column.SqlName,
+				View: column.SqlName,
 			}
 
-			if len(column.Source) != 0 {
-				value.Data = extractFieldByName(column.Source, data)
+			if len(column.Name) != 0 {
+				value.Data = extractFieldByName(column.Name, data)
 			} else {
-				value.Data = data[column.Name]
+				value.Data = data[column.SqlName]
 			}
 
-			value.Data, err = NewSQLValue(value.Data, column.Type)
+			value.Data, err = NewSQLValue(value.Data, column.SqlType)
 			if err != nil {
 				ts.err = err
 				return false
 			}
 
 			values = append(values, value)
-			delete(data, column.Name)
+			delete(data, column.SqlName)
 		}
 
 		// now add all other columns
@@ -172,7 +173,7 @@ func (ts *TableScan) Next(row *Row) bool {
 			}
 			values = append(values, value)
 		}
-		row.Data = []TableRow{{ts.tableName, values, ts.tableConfig}}
+		row.Data = []TableRow{{ts.tableName, values}}
 
 		evalCtx := &EvalCtx{[]Row{*row}, ts.ctx}
 
@@ -206,8 +207,8 @@ func (ts *TableScan) OpFields() []*Column {
 	for _, c := range ts.tableConfig.Columns {
 		column := &Column{
 			Table: ts.tableName,
-			Name:  c.Name,
-			View:  c.Name,
+			Name:  c.SqlName,
+			View:  c.SqlName,
 		}
 		columns = append(columns, column)
 	}

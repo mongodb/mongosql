@@ -2,64 +2,62 @@ package config
 
 import (
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 	"time"
 )
 
 const (
-	SQLString  ColumnType = "string"
-	SQLInt     ColumnType = "int"
-	SQLFloat   ColumnType = "float"
-	SQLBlob    ColumnType = "text"
-	SQLVarchar ColumnType = "varchar"
+	SQLString  string = "string"
+	SQLInt     string = "int"
+	SQLFloat   string = "float"
+	SQLBlob    string = "text"
+	SQLVarchar string = "varchar"
 
-	SQLDate      ColumnType = "date"
-	SQLDatetime  ColumnType = "datetime"
-	SQLTime      ColumnType = "time"
-	SQLTimestamp ColumnType = "timestamp"
-	SQLYear      ColumnType = "year"
+	SQLDate      string = "date"
+	SQLDatetime  string = "datetime"
+	SQLTime      string = "time"
+	SQLTimestamp string = "timestamp"
+	SQLYear      string = "year"
 
-	SQLDecimal  ColumnType = "decimal"
-	SQLDouble   ColumnType = "double"
-	SQLEnum     ColumnType = "enum"
-	SQLGeometry ColumnType = "geometry"
+	SQLDecimal  string = "decimal"
+	SQLDouble   string = "double"
+	SQLEnum     string = "enum"
+	SQLGeometry string = "geometry"
 
-	SQLBigInt   ColumnType = "bigint"
-	SQLMedInt   ColumnType = "mediumint"
-	SQLSmallInt ColumnType = "smallint"
-	SQLTiny     ColumnType = "tinyint"
+	SQLBigInt   string = "bigint"
+	SQLMedInt   string = "mediumint"
+	SQLSmallInt string = "smallint"
+	SQLTiny     string = "tinyint"
 
-	SQLLongText   ColumnType = "longtext"
-	SQLTinyText   ColumnType = "tinytext"
-	SQLMediumText ColumnType = "mediumtext"
+	SQLLongText   string = "longtext"
+	SQLTinyText   string = "tinytext"
+	SQLMediumText string = "mediumtext"
 
-	SQLNull ColumnType = "null"
-	SQLSet  ColumnType = "set"
-	SQLChar ColumnType = "char"
-	SQLBit  ColumnType = "bit"
+	SQLNull string = "null"
+	SQLSet  string = "set"
+	SQLChar string = "char"
+	SQLBit  string = "bit"
 )
 
 type (
-	ColumnType string
-
 	Column struct {
-		Name      string     `yaml:"name"`
-		Type      ColumnType `yaml:"type"`
-		Source    string     `yaml:"source"`
-		MysqlType string     `yaml:"mysql_type,omitempty"`
+		Name      string `yaml:"name"`
+		MongoType string `yaml:"type"`
+		SqlName   string `yaml:"sql_name"`
+		SqlType   string `yaml:"sql_type"`
 	}
 
-	TableConfig struct {
-		Table      string    `yaml:"table"`
-		Collection string    `yaml:"collection"`
-		Pipeline   []bson.M  `yaml:"pipeline,omitempty"`
-		Columns    []*Column `yaml:"columns"`
+	Table struct {
+		Name           string                   `yaml:"table"`
+		CollectionName string                   `yaml:"collection"`
+		Pipeline       []map[string]interface{} `yaml:"pipeline"`
+		Columns        []*Column                `yaml:"columns"`
+		Parent         *Table                   `yaml:"-"`
 	}
 
 	Schema struct {
-		DB        string                  `yaml:"db"`
-		RawTables []*TableConfig          `yaml:"tables"`
-		Tables    map[string]*TableConfig `yaml:"tables_no"`
+		DB        string            `yaml:"db"`
+		RawTables []*Table          `yaml:"tables"`
+		Tables    map[string]*Table `yaml:"tables_no"`
 	}
 
 	Config struct {
@@ -96,7 +94,7 @@ var (
 )
 
 func (c *Column) validateType() error {
-	switch c.Type {
+	switch c.SqlType {
 
 	case "":
 
@@ -132,12 +130,12 @@ func (c *Column) validateType() error {
 	case SQLBit:
 
 	default:
-		panic(fmt.Sprintf("don't know MySQL type: %s", c.Type))
+		panic(fmt.Sprintf("don't know MySQL type: %s", c.SqlType))
 	}
 	return nil
 }
 
-func (t *TableConfig) fixTypes() error {
+func (t *Table) fixTypes() error {
 	for _, c := range t.Columns {
 		err := c.validateType()
 		if err != nil {

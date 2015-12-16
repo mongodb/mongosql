@@ -18,16 +18,16 @@ schema:
      collection: test.simple
      columns:
      -
-        name: a
-        type: int
+        sql_name: a
+        sql_type: int
      -
-        name: b
-        type: int
+        sql_name: b
+        sql_type: int
      -
-        name: _id
+        sql_name: _id
      -
-        name: c
-        type: int
+        sql_name: c
+        sql_type: int
 -
   db: foo
   tables:
@@ -36,20 +36,20 @@ schema:
      collection: test.simple
      columns:
      -
-        name: c
-        type: int
+        sql_name: c
+        sql_type: int
      -
-        name: d
-        type: int
+        sql_name: d
+        sql_type: int
   -
      table: silly
      collection: test.simple2
      columns:
      -
-        name: e
-        type: int
+        sql_name: e
+        sql_type: int
      -
-        name: f
-        type: int
+        sql_name: f
+        sql_type: int
 `)
 )

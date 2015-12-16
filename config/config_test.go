@@ -20,7 +20,6 @@ log_level : error
 
 schema :
 - 
-  url: localhost
   db: test1
   tables:
   - 
@@ -28,13 +27,12 @@ schema :
      collection: test.foo
      columns:
      -
-        name: a
-        type: int
+        sql_name: a
+        sql_type: int
      -
-        name: b
-        type: string
+        sql_name: b
+        sql_type: string
 -
-  url: localhost
   db: test2
   tables:
   -
@@ -42,11 +40,11 @@ schema :
      collection: test.bar
      columns:
      -
-        name: a
-        type: string
+        sql_name: a
+        sql_type: string
      -
-        name: b
-        type: int
+        sql_name: b
+        sql_type: int
      pipeline:
      -
         $unwind : "$x"
@@ -83,7 +81,7 @@ schema :
 		t.Fatalf("first db is wrong: %s", cfg.RawSchemas[0].DB)
 	}
 
-	if cfg.RawSchemas[0].RawTables[0].Table != "foo" || cfg.RawSchemas[0].RawTables[0].Collection != "test.foo" {
+	if cfg.RawSchemas[0].RawTables[0].Name != "foo" || cfg.RawSchemas[0].RawTables[0].CollectionName != "test.foo" {
 		t.Fatal("Table 0 (bar) basics wrong")
 	}
 
@@ -91,7 +89,7 @@ schema :
 		t.Fatal("map broken")
 	}
 
-	if cfg.Schemas["test1"].Tables["foo"].Collection != "test.foo" {
+	if cfg.Schemas["test1"].Tables["foo"].CollectionName != "test.foo" {
 		t.Fatal("map broken 2")
 	}
 
@@ -99,7 +97,7 @@ schema :
 		t.Fatal("test1.foo num columns wrong")
 	}
 
-	if cfg.Schemas["test1"].Tables["foo"].Columns[0].Name != "a" {
+	if cfg.Schemas["test1"].Tables["foo"].Columns[0].SqlName != "a" {
 		t.Fatal("test1.foo.a name wrong")
 	}
 
@@ -134,11 +132,11 @@ schema:
      collection: test.foo
      columns:
      -
-        name: a
-        type: int
+        sql_name: a
+        sql_type: int
      -
-        name: b
-        type: string
+        sql_name: b
+        sql_type: string
 -
   db: test2
   tables:
@@ -147,11 +145,11 @@ schema:
      collection: test.bar
      columns:
      -
-        name: a
-        type: string
+        sql_name: a
+        sql_type: string
      -
-        name: b
-        type: int
+        sql_name: b
+        sql_type: int
      pipeline:
      -
         $unwind : "$x"
@@ -193,7 +191,7 @@ schema:
 		t.Fatalf("first db is wrong: %s", cfg.RawSchemas[0].DB)
 	}
 
-	if cfg.RawSchemas[0].RawTables[0].Table != "foo" || cfg.RawSchemas[0].RawTables[0].Collection != "test.foo" {
+	if cfg.RawSchemas[0].RawTables[0].Name != "foo" || cfg.RawSchemas[0].RawTables[0].CollectionName != "test.foo" {
 		t.Fatal("Table 0 (bar) basics wrong")
 	}
 
@@ -201,7 +199,7 @@ schema:
 		t.Fatal("map broken")
 	}
 
-	if cfg.Schemas["test1"].Tables["foo"].Collection != "test.foo" {
+	if cfg.Schemas["test1"].Tables["foo"].CollectionName != "test.foo" {
 		t.Fatal("map broken 2")
 	}
 
@@ -209,7 +207,7 @@ schema:
 		t.Fatal("test1.foo num columns wrong")
 	}
 
-	if cfg.Schemas["test1"].Tables["foo"].Columns[0].Name != "a" {
+	if cfg.Schemas["test1"].Tables["foo"].Columns[0].SqlName != "a" {
 		t.Fatal("test1.foo.a name wrong")
 	}
 
@@ -240,11 +238,11 @@ schema:
      collection: test.foo
      columns:
      -
-        name: a
-        type: int
+        sql_name: a
+        sql_type: int
      -
-        name: b
-        type: string
+        sql_name: b
+        sql_type: string
 -
   db: test3
   tables:
@@ -253,11 +251,11 @@ schema:
      collection: test.foo
      columns:
      -
-        name: a
-        type: int
+        sql_name: a
+        sql_type: int
      -
-        name: b
-        type: string
+        sql_name: b
+        sql_type: string
 
 `)
 
@@ -272,11 +270,11 @@ schema:
      collection: test.bar
      columns:
      -
-        name: a
-        type: string
+        sql_name: a
+        sql_type: string
      -
-        name: b
-        type: int
+        sql_name: b
+        sql_type: int
 -
   db: test3
   tables:
@@ -285,11 +283,11 @@ schema:
      collection: test.foo
      columns:
      -
-        name: a
-        type: int
+        sql_name: a
+        sql_type: int
      -
-        name: b
-        type: string
+        sql_name: b
+        sql_type: string
 
 `)
 
@@ -356,11 +354,11 @@ schema:
      collection: test.foo
      columns:
      -
-        name: a
-        type: int
+        sql_name: a
+        sql_type: int
      -
-        name: b
-        type: string
+        sql_name: b
+        sql_type: string
 
 `)
 
@@ -375,11 +373,11 @@ schema:
      collection: test.foo
      columns:
      -
-        name: a
-        type: int
+        sql_name: a
+        sql_type: int
      -
-        name: b
-        type: string
+        sql_name: b
+        sql_type: string
 
 `)
 

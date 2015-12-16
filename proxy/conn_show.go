@@ -130,7 +130,7 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 	for num, col := range tableConfig.Columns {
 		row := make([]interface{}, len(names))
 		row[0] = col.Name
-		row[1] = string(col.Type)
+		row[1] = string(col.SqlType)
 		row[2] = "YES"
 		row[3] = ""
 		row[4] = nil

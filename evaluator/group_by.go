@@ -133,7 +133,7 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 	}
 
 	for table, values := range aggValues {
-		row.Data = append(row.Data, TableRow{table, values, nil})
+		row.Data = append(row.Data, TableRow{table, values})
 	}
 
 	return row, nil

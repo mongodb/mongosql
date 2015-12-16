@@ -34,7 +34,7 @@ func TestEvaluates(t *testing.T) {
 						{"a", "a", 123},
 						{"b", "b", 456},
 						{"c", "c", nil}},
-					nil}}}},
+				}}}},
 			nil}
 
 		Convey("Subject: SQLAddExpr", func() {

@@ -66,7 +66,7 @@ func (cds *ConfigDataSource) Next(row *Row) bool {
 		cds.err = err
 		return false
 	}
-	row.Data = []TableRow{{cds.tableName, values, nil}}
+	row.Data = []TableRow{{cds.tableName, values}}
 
 	if !hasNext {
 		cds.err = cds.iter.Err()
@@ -164,7 +164,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 
 	if !cfr.includeColumns {
 		_cfrNextHelper(result, ISTablesHeaders[0], db.DB)
-		_cfrNextHelper(result, ISTablesHeaders[1], table.Table)
+		_cfrNextHelper(result, ISTablesHeaders[1], table.Name)
 
 		_cfrNextHelper(result, ISTablesHeaders[2], "BASE TABLE")
 		_cfrNextHelper(result, ISTablesHeaders[3], "d")
@@ -182,12 +182,12 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 		_cfrNextHelper(result, ISColumnHeaders[0], "def")
 
 		_cfrNextHelper(result, ISColumnHeaders[1], db.DB)
-		_cfrNextHelper(result, ISColumnHeaders[2], table.Table)
+		_cfrNextHelper(result, ISColumnHeaders[2], table.Name)
 
 		col := table.Columns[cfr.columnsOffset]
 
-		_cfrNextHelper(result, ISColumnHeaders[3], col.Name)
-		_cfrNextHelper(result, ISColumnHeaders[4], col.MysqlType)
+		_cfrNextHelper(result, ISColumnHeaders[3], col.SqlName)
+		_cfrNextHelper(result, ISColumnHeaders[4], col.SqlType)
 
 		_cfrNextHelper(result, ISColumnHeaders[5], cfr.columnsOffset+1)
 
@@ -199,7 +199,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 		cfr.err = err
 		return false
 	}
-	evalCtx := &EvalCtx{[]Row{{[]TableRow{{tableName, values, nil}}}}, cfr.ctx}
+	evalCtx := &EvalCtx{[]Row{{[]TableRow{{tableName, values}}}}, cfr.ctx}
 	if cfr.matcher != nil {
 		m, err := Matches(cfr.matcher, evalCtx)
 		if err != nil {

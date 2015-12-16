@@ -19,28 +19,28 @@ schema :
      collection: test.foo
      columns:
      -
-        name: a
-        type: int
+        sql_name: a
+        sql_type: int
      -
-        name: b
-        type: int
+        sql_name: b
+        sql_type: int
      -
-        name: c
-        type: int
+        sql_name: c
+        sql_type: int
      -
-        name: _id
+        sql_name: _id
   -
      table: bar
      collection: test.bar
      columns:
      -
-        name: a
-        type: int
+        sql_name: a
+        sql_type: int
      -
-        name: b
-        type: int
+        sql_name: b
+        sql_type: int
      -
-        name: _id
+        sql_name: _id
 -
   db: foo
   tables:
@@ -49,21 +49,21 @@ schema :
      collection: foo.bar
      columns:
      -
-        name: c
-        type: int
+        sql_name: c
+        sql_type: int
      -
-        name: d
-        type: int
+        sql_name: d
+        sql_type: int
   -
      table: silly
      collection: foo.silly
      columns:
      -
-        name: e
-        type: int
+        sql_name: e
+        sql_type: int
      -
-        name: f
-        type: int
+        sql_name: f
+        sql_type: int
 -
   db: test2
   tables:
@@ -72,25 +72,25 @@ schema :
      collection: test2.foo
      columns:
      -
-        name: name
-        type: string
+        sql_name: name
+        sql_type: string
      -
-        name: orderid
-        type: int
+        sql_name: orderid
+        sql_type: int
      -
-        name: _id
+        sql_name: _id
   -
      table: bar
      collection: test2.bar
      columns:
      -
-        name: orderid
-        type: int
+        sql_name: orderid
+        sql_type: int
      -
-        name: amount
-        type: int
+        sql_name: amount
+        sql_type: int
      -
-        name: _id
+        sql_name: _id
 `)
 
 	testConfig2 = []byte(`
@@ -105,66 +105,66 @@ schema :
      collection: test.foo
      columns:
      -
-        name: a
-        type: string
+        sql_name: a
+        sql_type: string
      -
-        name: x
-        type: string
+        sql_name: x
+        sql_type: string
      -
-        name: first
-        type: string
+        sql_name: first
+        sql_type: string
      -
-        name: last
-        type: string
+        sql_name: last
+        sql_type: string
      -
-        name: age
-        type: string
+        sql_name: age
+        sql_type: string
      -
-        name: b
-        type: string
+        sql_name: b
+        sql_type: string
   -
      table: orders
      collection: test.orders
      columns:
      -
-        name: customerid
-        type: string
+        sql_name: customerid
+        sql_type: string
      -
-        name: customername
-        type: string
+        sql_name: customername
+        sql_type: string
      -
-        name: orderid
-        type: string
+        sql_name: orderid
+        sql_type: string
      -
-        name: orderdate
-        type: string
+        sql_name: orderdate
+        sql_type: string
   -
      table: customers
      collection: test.customers
      columns:
      -
-        name: customerid
-        type: string
+        sql_name: customerid
+        sql_type: string
      -
-        name: customername
-        type: string
+        sql_name: customername
+        sql_type: string
   -
      table: bar
      collection: test.bar
      columns:
      -
-        name: a
-        type: string
+        sql_name: a
+        sql_type: string
      -
-        name: z
-        type: string
+        sql_name: z
+        sql_type: string
   -
      table: baz
      collection: test.baz
      columns:
      -
-        name: b
-        type: string
+        sql_name: b
+        sql_type: string
 `)
 
 	testConfig3 = []byte(
@@ -180,13 +180,13 @@ schema :
      collection: test.bar
      columns:
      -
-        name: a
-        type: int
+        sql_name: a
+        sql_type: int
      -
-        name: b
-        type: string
+        sql_name: b
+        sql_type: string
      -
-        name: _id
+        sql_name: _id
   -
      table: foo
      collection: test.foo
@@ -198,20 +198,20 @@ schema :
      collection: foo.bar
      columns:
      -
-        name: c
-        type: int
+        sql_name: c
+        sql_type: int
      -
-        name: d
-        type: string
+        sql_name: d
+        sql_type: string
   -
      table: silly
      collection: foo.silly
      columns:
      -
-        name: e
-        type: int
+        sql_name: e
+        sql_type: int
      -
-        name: f
-        type: string
+        sql_name: f
+        sql_type: string
 `)
 )

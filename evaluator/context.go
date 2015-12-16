@@ -312,11 +312,11 @@ func (pCtx *ParseCtx) AddColumns() {
 			continue
 		}
 
-		for index, tableColumn := range tableSchema.Columns {
+		for index, colDef := range tableSchema.Columns {
 			column := ColumnInfo{
 				Index: index,
-				Name:  tableColumn.Name,
-				Alias: tableColumn.Name,
+				Name:  colDef.SqlName,
+				Alias: colDef.SqlName,
 				Table: table.Name,
 			}
 			pCtx.Columns = append(pCtx.Columns, column)
@@ -446,7 +446,7 @@ func (pCtx *ParseCtx) checkColumn(table, column string, depth int) error {
 }
 
 // TableSchema returns the schema for a given table.
-func (pCtx *ParseCtx) TableSchema(table string) *config.TableConfig {
+func (pCtx *ParseCtx) TableSchema(table string) *config.Table {
 	schema := pCtx.Config.Schemas[pCtx.Database]
 	if schema == nil {
 		return nil
@@ -493,7 +493,7 @@ func (pCtx *ParseCtx) IsSchemaColumn(column *Column) bool {
 
 	for _, c := range table.Columns {
 
-		if c.Name == column.Name {
+		if c.SqlName == column.Name {
 			return true
 		}
 
@@ -535,7 +535,7 @@ func (pCtx *ParseCtx) CheckColumn(table *TableInfo, cName string) error {
 
 	for _, c := range tableSchema.Columns {
 
-		if c.Name == cName {
+		if c.SqlName == cName {
 			return nil
 		}
 

@@ -212,7 +212,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 				if schema != nil {
 					for _, column := range schema.Columns {
 						expr := &sqlparser.ColName{
-							Name:      []byte(column.Name),
+							Name:      []byte(column.SqlName),
 							Qualifier: []byte(table.Alias),
 						}
 

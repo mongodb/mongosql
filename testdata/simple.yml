@@ -19,16 +19,16 @@ schema:
     collection: test.foo
     pipeline: []
     columns:
-    - name: a
-      type: int
-    - name: b
-      type: string
-    - name: latitude
-      type: int
-      source: "loc.0"
-    - name: longitude
-      type: int
-      source: "loc.1"
+    - sql_name: a
+      sql_type: int
+    - sql_name: b
+      sql_type: string
+    - sql_name: latitude
+      sql_type: int
+      name: "loc.0"
+    - sql_name: longitude
+      sql_type: int
+      name: "loc.1"
 
 # 3. Run each of the following queries, and report any that have errors
 testcases:

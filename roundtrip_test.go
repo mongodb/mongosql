@@ -31,10 +31,10 @@ type testDataSet struct {
 }
 
 type testCase struct {
-	SQL           string              `yaml:"sql"`
-	Description   string              `yaml:"description"`
-	ExpectedTypes []config.ColumnType `yaml:"expected_types"`
-	ExpectedData  [][]interface{}     `yaml:"expected"`
+	SQL           string          `yaml:"sql"`
+	Description   string          `yaml:"description"`
+	ExpectedTypes []string        `yaml:"expected_types"`
+	ExpectedData  [][]interface{} `yaml:"expected"`
 }
 
 type testConfig struct {
@@ -55,9 +55,9 @@ func testServer(cfg *config.Config) (*proxy.Server, error) {
 func buildSchemaMaps(conf *config.Config) {
 	conf.Schemas = make(map[string]*config.Schema)
 	for _, schema := range conf.RawSchemas {
-		schema.Tables = make(map[string]*config.TableConfig)
+		schema.Tables = make(map[string]*config.Table)
 		for _, table := range schema.RawTables {
-			schema.Tables[table.Table] = table
+			schema.Tables[table.Name] = table
 		}
 		conf.Schemas[schema.DB] = schema
 	}
@@ -104,7 +104,7 @@ func importJSON(host, port, file, db, collection string) error {
 	return err
 }
 
-func runSQL(db *sql.DB, query string, types []config.ColumnType) ([][]interface{}, error) {
+func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err

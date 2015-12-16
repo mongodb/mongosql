@@ -88,7 +88,7 @@ func (s *Select) Next(r *Row) bool {
 	}
 
 	for k, v := range data {
-		r.Data = append(r.Data, TableRow{k, v, nil})
+		r.Data = append(r.Data, TableRow{k, v})
 	}
 
 	return hasNext

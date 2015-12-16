@@ -50,7 +50,7 @@ func (pj *Project) Next(r *Row) bool {
 	r.Data = []TableRow{}
 
 	for table, values := range tableValues {
-		r.Data = append(r.Data, TableRow{table, values, nil})
+		r.Data = append(r.Data, TableRow{table, values})
 	}
 
 	return hasNext
