@@ -51,7 +51,6 @@ type (
 		CollectionName string                   `yaml:"collection"`
 		Pipeline       []map[string]interface{} `yaml:"pipeline"`
 		Columns        []*Column                `yaml:"columns"`
-		Parent         *Table                   `yaml:"-"`
 	}
 
 	Database struct {
