@@ -2,8 +2,8 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
 	"gopkg.in/mgo.v2/bson"
@@ -54,16 +54,16 @@ func formatValue(value interface{}) ([]byte, error) {
 	// SQL time related values
 
 	case evaluator.SQLDate:
-		return hack.Slice(v.Time.Format(config.DateFormat)), nil
+		return hack.Slice(v.Time.Format(schema.DateFormat)), nil
 
 	case evaluator.SQLDateTime:
-		return hack.Slice(v.Time.Format(config.TimestampFormat)), nil
+		return hack.Slice(v.Time.Format(schema.TimestampFormat)), nil
 
 	case evaluator.SQLTime:
-		return hack.Slice(v.Time.Format(config.TimeFormat)), nil
+		return hack.Slice(v.Time.Format(schema.TimeFormat)), nil
 
 	case evaluator.SQLTimestamp:
-		return hack.Slice(v.Time.Format(config.TimestampFormat)), nil
+		return hack.Slice(v.Time.Format(schema.TimestampFormat)), nil
 
 	case evaluator.SQLYear:
 		return strconv.AppendInt(nil, int64(v.Time.Year()), 10), nil

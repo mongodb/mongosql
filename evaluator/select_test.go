@@ -20,7 +20,7 @@ func selectTest(operator Operator, rows []bson.D, expectedRows []Values) {
 	}
 
 	ctx := &ExecutionCtx{
-		Config:  cfgOne,
+		Schema:  cfgOne,
 		Db:      dbOne,
 		Session: session,
 	}

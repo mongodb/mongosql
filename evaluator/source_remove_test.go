@@ -8,7 +8,7 @@ import (
 func sourceRemoveTest(operator *SourceRemove) {
 
 	ctx := &ExecutionCtx{
-		Config:  cfgOne,
+		Schema:  cfgOne,
 		Db:      dbOne,
 		SrcRows: []*Row{&Row{}},
 		Session: session,

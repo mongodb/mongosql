@@ -3,7 +3,7 @@ package evaluator
 import (
 	"bytes"
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/erh/mixer/sqlparser"
 	"strings"
 )
@@ -54,8 +54,8 @@ type ParseCtx struct {
 	// State holds information on what kind of select expression is being parsed
 	State ParseState
 
-	// Config hold the schema configuration data for all the databases and tables
-	Config *config.Config
+	// Schema hold the schema configuration data for all the databases and tables
+	Schema *schema.Schema
 
 	// Database holds the current database referenced in the select expression
 	Database string
@@ -223,13 +223,13 @@ func NewTableInfo(alias, db, longName string, derived bool) TableInfo {
 	return TableInfo{alias, db, longName, derived}
 }
 
-func NewParseCtx(ss sqlparser.SelectStatement, c *config.Config, db string) (*ParseCtx, error) {
+func NewParseCtx(ss sqlparser.SelectStatement, c *schema.Schema, db string) (*ParseCtx, error) {
 
 	switch stmt := ss.(type) {
 
 	case *sqlparser.Select:
 		ctx := &ParseCtx{
-			Config:   c,
+			Schema:   c,
 			Database: db,
 			Phase:    PhaseInit,
 		}
@@ -330,7 +330,7 @@ func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) 
 		return nil, ErrNilCtx
 	}
 
-	ctx, err := NewParseCtx(ss, pCtx.Config, pCtx.Database)
+	ctx, err := NewParseCtx(ss, pCtx.Schema, pCtx.Database)
 	if err != nil {
 		return nil, err
 	}
@@ -446,8 +446,8 @@ func (pCtx *ParseCtx) checkColumn(table, column string, depth int) error {
 }
 
 // TableSchema returns the named table's configuration.
-func (pCtx *ParseCtx) TableSchema(table string) *config.Table {
-	db := pCtx.Config.Databases[pCtx.Database]
+func (pCtx *ParseCtx) TableSchema(table string) *schema.Table {
+	db := pCtx.Schema.Databases[pCtx.Database]
 
 	if db == nil {
 		return nil
@@ -488,7 +488,7 @@ func (pCtx *ParseCtx) IsSchemaColumn(column *Column) bool {
 		return true
 	}
 
-	db := pCtx.Config.Databases[pCtx.Database]
+	db := pCtx.Schema.Databases[pCtx.Database]
 
 	table := db.Tables[tableInfo.Name]
 

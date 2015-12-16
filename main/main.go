@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"github.com/10gen/sqlproxy"
-	"github.com/10gen/sqlproxy/config"
 	"github.com/10gen/sqlproxy/proxy"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
 	"os"
 	"os/signal"
@@ -46,7 +46,7 @@ func main() {
 		return
 	}
 
-	cfg, err := config.ParseConfigFile(*configFile)
+	cfg, err := schema.ParseSchemaFile(*configFile)
 	if err != nil {
 		log.Logf(log.Always, "error parsing config file")
 		log.Logf(log.Always, err.Error())

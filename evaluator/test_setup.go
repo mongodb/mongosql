@@ -2,13 +2,13 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2"
 )
 
 var (
 	session                      *mgo.Session
-	cfgOne, cfgThree             *config.Config
+	cfgOne, cfgThree             *schema.Schema
 	collectionOne, collectionTwo *mgo.Collection
 )
 
@@ -16,12 +16,12 @@ func init() {
 
 	var err error
 
-	cfgOne, err = config.ParseConfigData(testConfig1)
+	cfgOne, err = schema.ParseSchemaData(testSchema1)
 	if err != nil {
 		panic(fmt.Sprintf("error parsing config1: %v", err))
 	}
 
-	cfgThree, err = config.ParseConfigData(testConfig3)
+	cfgThree, err = schema.ParseSchemaData(testSchema3)
 	if err != nil {
 		panic(fmt.Sprintf("error parsing config3: %v", err))
 	}

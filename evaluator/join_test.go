@@ -110,7 +110,7 @@ func TestJoinOperator(t *testing.T) {
 		}
 
 		ctx := &ExecutionCtx{
-			Config:  cfgOne,
+			Schema:  cfgOne,
 			Db:      dbTwo,
 			Session: session,
 		}

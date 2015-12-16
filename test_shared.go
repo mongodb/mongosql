@@ -5,7 +5,7 @@ var (
 	tableOneName = "simple"
 	tableTwoName = "simple2"
 
-	testConfigSimple = []byte(
+	testSchemaSimple = []byte(
 		`
 url: localhost
 log_level: vv

@@ -7,17 +7,17 @@ import (
 	"testing"
 )
 
-func TestConfigDataSourceIter(t *testing.T) {
+func TestSchemaDataSourceIter(t *testing.T) {
 
 	Convey("using config data source should iterate all columns", t, func() {
 
 		execCtx := &ExecutionCtx{
-			Config:  cfgThree,
+			Schema:  cfgThree,
 			Session: session,
 			Db:      dbOne,
 		}
 
-		dataSource := ConfigDataSource{ctx: execCtx, includeColumns: true}
+		dataSource := SchemaDataSource{ctx: execCtx, includeColumns: true}
 
 		query := dataSource.Find()
 
@@ -41,17 +41,17 @@ func TestConfigDataSourceIter(t *testing.T) {
 	})
 }
 
-func TestConfigDataSourceIterTables(t *testing.T) {
+func TestSchemaDataSourceIterTables(t *testing.T) {
 
 	Convey("using config data source should iterate tables", t, func() {
 
 		execCtx := &ExecutionCtx{
-			Config:  cfgOne,
+			Schema:  cfgOne,
 			Session: session,
 			Db:      dbOne,
 		}
 
-		dataSource := ConfigDataSource{ctx: execCtx}
+		dataSource := SchemaDataSource{ctx: execCtx}
 
 		query := dataSource.Find()
 

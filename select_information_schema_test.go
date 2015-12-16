@@ -23,7 +23,7 @@ func (mc mockConnection) DB() string {
 	return mc.db
 }
 
-func TestConfigScanOperatorSelect(t *testing.T) {
+func TestSchemaScanOperatorSelect(t *testing.T) {
 
 	Convey("using config data source should to filter columns", t, func() {
 
@@ -44,7 +44,7 @@ func TestConfigScanOperatorSelect(t *testing.T) {
 	})
 }
 
-func TestConfigScanOperatorTablesSelect(t *testing.T) {
+func TestSchemaScanOperatorTablesSelect(t *testing.T) {
 
 	Convey("using config data source should to select tables", t, func() {
 
@@ -74,7 +74,7 @@ func TestConfigScanOperatorTablesSelect(t *testing.T) {
 	})
 }
 
-func TestConfigKeyColumnUsage(t *testing.T) {
+func TestSchemaKeyColumnUsage(t *testing.T) {
 
 	Convey("using config data source should to filter columns", t, func() {
 

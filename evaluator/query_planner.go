@@ -715,9 +715,9 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 
 	if isInformationDatabase {
 
-		// ConfigDataSource is a special table that handles queries against
+		// SchemaDataSource is a special table that handles queries against
 		// the 'information_schema' database
-		cds := &ConfigDataSource{
+		cds := &SchemaDataSource{
 			tableName: strings.ToLower(string(t.Name)),
 		}
 

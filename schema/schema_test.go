@@ -1,13 +1,13 @@
-package config
+package schema
 
 import (
 	"testing"
 )
 
-func TestConfig(t *testing.T) {
-	var testConfigData = []byte(
+func TestSchema(t *testing.T) {
+	var testSchemaData = []byte(
 		`
-# Sample BI-Connector Config File
+# Sample BI-Connector Schema File
 
 # Address to listen on
 addr : 127.0.0.1:4000
@@ -56,13 +56,13 @@ databases :
      collection: test.bar2
 `)
 
-	cfg, err := ParseConfigData(testConfigData)
+	cfg, err := ParseSchemaData(testSchemaData)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if cfg.LogLevel != "error" || cfg.User != "root" || cfg.Password != "abc" || cfg.Addr != "127.0.0.1:4000" {
-		t.Fatal("Top Config not equal.")
+		t.Fatal("Top Schema not equal.")
 	}
 
 	if len(cfg.RawDatabases) != 2 {
@@ -107,8 +107,8 @@ databases :
 	}
 }
 
-func TestConfigSubdir(t *testing.T) {
-	var testConfigDataRoot = []byte(
+func TestSchemaSubdir(t *testing.T) {
+	var testSchemaDataRoot = []byte(
 		`
 addr : 127.0.0.1:4000
 
@@ -121,7 +121,7 @@ log_level : error
 schema_dir : foo
 `)
 
-	var testConfigDataSub = []byte(
+	var testSchemaDataSub = []byte(
 		`
 databases:
 -
@@ -161,7 +161,7 @@ databases:
      collection: test.bar2
 `)
 
-	cfg, err := ParseConfigData(testConfigDataRoot)
+	cfg, err := ParseSchemaData(testSchemaDataRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ databases:
 		t.Fatal("SchemaDir wrong")
 	}
 
-	err = cfg.ingestSubFile(testConfigDataSub)
+	err = cfg.ingestSubFile(testSchemaDataSub)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,8 +217,8 @@ databases:
 	}
 }
 
-func TestConfigSubdir2(t *testing.T) {
-	var testConfigDataRoot = []byte(
+func TestSchemaSubdir2(t *testing.T) {
+	var testSchemaDataRoot = []byte(
 		`
 addr : 127.0.0.1:4000
 
@@ -259,7 +259,7 @@ databases:
 
 `)
 
-	var testConfigDataSub = []byte(
+	var testSchemaDataSub = []byte(
 		`
 databases:
 -
@@ -291,7 +291,7 @@ databases:
 
 `)
 
-	cfg, err := ParseConfigData(testConfigDataRoot)
+	cfg, err := ParseSchemaData(testSchemaDataRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,7 +300,7 @@ databases:
 		t.Fatal("SchemaDir wrong")
 	}
 
-	err = cfg.ingestSubFile(testConfigDataSub)
+	err = cfg.ingestSubFile(testSchemaDataSub)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,8 +333,8 @@ databases:
 
 }
 
-func TestConfigSubdirConflict(t *testing.T) {
-	var testConfigDataRoot = []byte(
+func TestSchemaSubdirConflict(t *testing.T) {
+	var testSchemaDataRoot = []byte(
 		`
 addr : 127.0.0.1:4000
 
@@ -362,7 +362,7 @@ databases:
 
 `)
 
-	var testConfigDataSub = []byte(
+	var testSchemaDataSub = []byte(
 		`
 databases:
 -
@@ -381,7 +381,7 @@ databases:
 
 `)
 
-	cfg, err := ParseConfigData(testConfigDataRoot)
+	cfg, err := ParseSchemaData(testSchemaDataRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -390,7 +390,7 @@ databases:
 		t.Fatal("SchemaDir wrong")
 	}
 
-	err = cfg.ingestSubFile(testConfigDataSub)
+	err = cfg.ingestSubFile(testSchemaDataSub)
 	if err == nil {
 		t.Fatal("should have conflicted")
 	}
@@ -412,7 +412,7 @@ func TestComputeDirectory(t *testing.T) {
 }
 
 func TestReadFile(t *testing.T) {
-	cfg, err := ParseConfigFile("test_data/foo.conf")
+	cfg, err := ParseSchemaFile("test_data/foo.conf")
 	if err != nil {
 		t.Fatal(err)
 	}

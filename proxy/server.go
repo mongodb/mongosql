@@ -2,7 +2,7 @@ package proxy
 
 import (
 	sqlproxy "github.com/10gen/sqlproxy"
-	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
 
 	"net"
@@ -11,21 +11,21 @@ import (
 )
 
 type Server struct {
-	cfg  *config.Config
+	cfg  *schema.Schema
 	eval *sqlproxy.Evaluator
 
 	running bool
 
 	listener net.Listener
 
-	databases map[string]*config.Database
+	databases map[string]*schema.Database
 }
 
-func (s *Server) GetDatabases() map[string]*config.Database {
+func (s *Server) GetDatabases() map[string]*schema.Database {
 	return s.databases
 }
 
-func NewServer(cfg *config.Config, eval *sqlproxy.Evaluator) (*Server, error) {
+func NewServer(cfg *schema.Schema, eval *sqlproxy.Evaluator) (*Server, error) {
 	s := new(Server)
 
 	s.cfg = cfg

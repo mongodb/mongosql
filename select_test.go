@@ -2,8 +2,8 @@ package sqlproxy
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -18,7 +18,7 @@ var (
 
 func init() {
 
-	cfg, err := config.ParseConfigData(testConfigSimple)
+	cfg, err := schema.ParseSchemaData(testSchemaSimple)
 	if err != nil {
 		panic(fmt.Sprintf("error parsing config: %v", err))
 	}

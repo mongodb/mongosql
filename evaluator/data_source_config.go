@@ -23,7 +23,7 @@ var (
 	}
 )
 
-type ConfigDataSource struct {
+type SchemaDataSource struct {
 	tableName      string
 	includeColumns bool
 	matcher        SQLExpr
@@ -32,12 +32,12 @@ type ConfigDataSource struct {
 	ctx            *ExecutionCtx
 }
 
-func (cds *ConfigDataSource) Open(ctx *ExecutionCtx) error {
+func (cds *SchemaDataSource) Open(ctx *ExecutionCtx) error {
 	cds.ctx = ctx
 	return cds.init(ctx)
 }
 
-func (cds *ConfigDataSource) init(ctx *ExecutionCtx) error {
+func (cds *SchemaDataSource) init(ctx *ExecutionCtx) error {
 
 	switch cds.tableName {
 	case "key_column_usage":
@@ -54,7 +54,7 @@ func (cds *ConfigDataSource) init(ctx *ExecutionCtx) error {
 	return nil
 }
 
-func (cds *ConfigDataSource) Next(row *Row) bool {
+func (cds *SchemaDataSource) Next(row *Row) bool {
 	if cds.iter == nil {
 		return false
 	}
@@ -75,7 +75,7 @@ func (cds *ConfigDataSource) Next(row *Row) bool {
 	return hasNext
 }
 
-func (cds *ConfigDataSource) OpFields() []*Column {
+func (cds *SchemaDataSource) OpFields() []*Column {
 
 	var columns []*Column
 
@@ -97,23 +97,23 @@ func (cds *ConfigDataSource) OpFields() []*Column {
 	return columns
 }
 
-func (cds *ConfigDataSource) Close() error {
+func (cds *SchemaDataSource) Close() error {
 	return cds.iter.Close()
 }
 
-func (cds *ConfigDataSource) Err() error {
+func (cds *SchemaDataSource) Err() error {
 	return cds.iter.Err()
 }
 
-func (cds *ConfigDataSource) Find() FindQuery {
-	return ConfigFindQuery{cds.ctx, cds.matcher, cds.includeColumns}
+func (cds *SchemaDataSource) Find() FindQuery {
+	return SchemaFindQuery{cds.ctx, cds.matcher, cds.includeColumns}
 }
 
-func (cds *ConfigDataSource) Insert(docs ...interface{}) error {
+func (cds *SchemaDataSource) Insert(docs ...interface{}) error {
 	return fmt.Errorf("cannot insert into config data source")
 }
 
-func (cds *ConfigDataSource) DropCollection() error {
+func (cds *SchemaDataSource) DropCollection() error {
 	return fmt.Errorf("cannot drop config data source")
 }
 
@@ -123,7 +123,7 @@ func _cfrNextHelper(result *bson.D, fieldName string, fieldValue interface{}) {
 
 // -------
 
-type ConfigFindResults struct {
+type SchemaFindResults struct {
 	ctx            *ExecutionCtx
 	matcher        SQLExpr
 	includeColumns bool
@@ -135,18 +135,18 @@ type ConfigFindResults struct {
 	err error
 }
 
-func (cfr *ConfigFindResults) Next(result *bson.D) bool {
+func (cfr *SchemaFindResults) Next(result *bson.D) bool {
 	if cfr.err != nil {
 		return false
 	}
 
 	// are we in valid db space
-	if cfr.dbOffset >= len(cfr.ctx.Config.RawDatabases) {
+	if cfr.dbOffset >= len(cfr.ctx.Schema.RawDatabases) {
 		// nope, we're done
 		return false
 	}
 
-	db := cfr.ctx.Config.RawDatabases[cfr.dbOffset]
+	db := cfr.ctx.Schema.RawDatabases[cfr.dbOffset]
 
 	// are we in valid table space
 	if cfr.tableOffset >= len(db.RawTables) {
@@ -215,20 +215,20 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 
 // -------
 
-type ConfigFindQuery struct {
+type SchemaFindQuery struct {
 	ctx            *ExecutionCtx
 	matcher        SQLExpr
 	includeColumns bool
 }
 
-func (cfq ConfigFindQuery) Iter() FindResults {
-	return &ConfigFindResults{cfq.ctx, cfq.matcher, cfq.includeColumns, 0, 0, 0, nil}
+func (cfq SchemaFindQuery) Iter() FindResults {
+	return &SchemaFindResults{cfq.ctx, cfq.matcher, cfq.includeColumns, 0, 0, 0, nil}
 }
 
-func (cfr *ConfigFindResults) Err() error {
+func (cfr *SchemaFindResults) Err() error {
 	return cfr.err
 }
 
-func (cfr *ConfigFindResults) Close() error {
+func (cfr *SchemaFindResults) Close() error {
 	return nil
 }

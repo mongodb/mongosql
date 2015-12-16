@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/erh/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -14,7 +14,7 @@ func getWhereSQLExprFromSQL(sql string) (SQLExpr, error) {
 		return nil, err
 	}
 	if selectStatement, ok := raw.(*sqlparser.Select); ok {
-		cfg, err := config.ParseConfigData(testConfig3)
+		cfg, err := schema.ParseSchemaData(testSchema3)
 		So(err, ShouldBeNil)
 		parseCtx, err := NewParseCtx(selectStatement, cfg, dbOne)
 		if err != nil {

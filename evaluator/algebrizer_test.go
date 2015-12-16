@@ -1,7 +1,7 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/erh/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
@@ -26,7 +26,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(err, ShouldBeNil)
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
@@ -45,7 +45,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(err, ShouldBeNil)
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
@@ -62,7 +62,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
@@ -80,7 +80,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
@@ -98,7 +98,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)
@@ -117,7 +117,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 
 			_, err = NewParseCtx(stmt, cfg, dbOne)
@@ -134,7 +134,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
@@ -153,7 +153,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
@@ -172,7 +172,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
@@ -191,7 +191,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
@@ -210,7 +210,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
@@ -229,7 +229,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
@@ -247,7 +247,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err := config.ParseConfigData(testConfig2)
+			cfg, err := schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 
 			_, err = NewParseCtx(stmt, cfg, dbOne)
@@ -260,7 +260,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			stmt, ok = raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
 
-			cfg, err = config.ParseConfigData(testConfig2)
+			cfg, err = schema.ParseSchemaData(testSchema2)
 			So(err, ShouldBeNil)
 
 			_, err = NewParseCtx(stmt, cfg, dbOne)

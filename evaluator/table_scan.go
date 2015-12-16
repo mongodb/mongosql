@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -18,9 +18,9 @@ type TableScan struct {
 	tableName   string
 	matcher     SQLExpr
 	iter        FindResults
-	database    *config.Database
+	database    *schema.Database
 	session     *mgo.Session
-	tableConfig *config.Table
+	tableSchema *schema.Table
 	ctx         *ExecutionCtx
 	err         error
 }
@@ -46,17 +46,17 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 		ts.dbName = ctx.Db
 	}
 
-	ts.database = ctx.Config.Databases[ts.dbName]
+	ts.database = ctx.Schema.Databases[ts.dbName]
 	if ts.database == nil {
 		return fmt.Errorf("db (%s) doesn't exist - table (%s)", ts.dbName, ts.tableName)
 	}
 
-	ts.tableConfig = ts.database.Tables[ts.tableName]
-	if ts.tableConfig == nil {
+	ts.tableSchema = ts.database.Tables[ts.tableName]
+	if ts.tableSchema == nil {
 		return fmt.Errorf("table (%s) doesn't exist in db (%s)", ts.tableName, ts.dbName)
 	}
 
-	pcs := strings.SplitN(ts.tableConfig.CollectionName, ".", 2)
+	pcs := strings.SplitN(ts.tableSchema.CollectionName, ".", 2)
 
 	ts.session = ctx.Session.Copy()
 	db := ctx.Session.DB(pcs[0])
@@ -142,7 +142,7 @@ func (ts *TableScan) Next(row *Row) bool {
 
 		var err error
 
-		for _, column := range ts.tableConfig.Columns {
+		for _, column := range ts.tableSchema.Columns {
 			value := Value{
 				Name: column.SqlName,
 				View: column.SqlName,
@@ -204,7 +204,7 @@ func (ts *TableScan) OpFields() []*Column {
 	// TODO: we currently only return headers from the schema
 	// though the actual data is everything that comes from
 	// the database
-	for _, c := range ts.tableConfig.Columns {
+	for _, c := range ts.tableSchema.Columns {
 		column := &Column{
 			Table: ts.tableName,
 			Name:  c.SqlName,

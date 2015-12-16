@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/10gen/sqlproxy"
-	"github.com/10gen/sqlproxy/config"
 	"github.com/10gen/sqlproxy/proxy"
+	"github.com/10gen/sqlproxy/schema"
 	_ "github.com/go-sql-driver/mysql"
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	toolsLog "github.com/mongodb/mongo-tools/common/log"
@@ -37,14 +37,14 @@ type testCase struct {
 	ExpectedData  [][]interface{} `yaml:"expected"`
 }
 
-type testConfig struct {
+type testSchema struct {
 	DB        string             `yaml:"db"`
 	Data      []testDataSet      `yaml:"data"`
-	Databases []*config.Database `yaml:"databases"`
+	Databases []*schema.Database `yaml:"databases"`
 	TestCases []testCase         `yaml:"testcases"`
 }
 
-func testServer(cfg *config.Config) (*proxy.Server, error) {
+func testServer(cfg *schema.Schema) (*proxy.Server, error) {
 	evaluator, err := sqlproxy.NewEvaluator(cfg)
 	if err != nil {
 		return nil, err
@@ -52,10 +52,10 @@ func testServer(cfg *config.Config) (*proxy.Server, error) {
 	return proxy.NewServer(cfg, evaluator)
 }
 
-func buildSchemaMaps(conf *config.Config) {
-	conf.Databases = make(map[string]*config.Database)
+func buildSchemaMaps(conf *schema.Schema) {
+	conf.Databases = make(map[string]*schema.Database)
 	for _, db := range conf.RawDatabases {
-		db.Tables = make(map[string]*config.Table)
+		db.Tables = make(map[string]*schema.Table)
 		for _, table := range db.RawTables {
 			db.Tables[table.Name] = table
 		}
@@ -123,11 +123,11 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 	resultContainer := make([]interface{}, 0, len(types))
 	for _, t := range types {
 		switch t {
-		case config.SQLString:
+		case schema.SQLString:
 			resultContainer = append(resultContainer, new(string))
-		case config.SQLInt:
+		case schema.SQLInt:
 			resultContainer = append(resultContainer, new(int))
-		case config.SQLFloat:
+		case schema.SQLFloat:
 			resultContainer = append(resultContainer, new(float64))
 		}
 	}
@@ -149,7 +149,7 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 	return result, nil
 }
 
-func executeTestCase(t *testing.T, dbhost, dbport string, conf testConfig) error {
+func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error {
 	// populate the DB with data for all the files in the config's list of json files
 	for _, dataSet := range conf.Data {
 		ns := strings.SplitN(dataSet.NS, ".", 2)
@@ -163,7 +163,7 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testConfig) error
 	}
 
 	// make a test server using the embedded database
-	cfg := &config.Config{
+	cfg := &schema.Schema{
 		Addr:         testDBAddr,
 		Url:          fmt.Sprintf("mongodb://%v:%v", dbhost, dbport),
 		RawDatabases: conf.Databases,
@@ -197,12 +197,12 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testConfig) error
 	return nil
 }
 
-func MustLoadTestConfig(path string) testConfig {
+func MustLoadTestSchema(path string) testSchema {
 	fileBytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
-	var conf testConfig
+	var conf testSchema
 	err = yaml.Unmarshal(fileBytes, &conf)
 	if err != nil {
 		panic(err)
@@ -212,7 +212,7 @@ func MustLoadTestConfig(path string) testConfig {
 
 func TestTableauDemo(t *testing.T) {
 	Convey("Test tableau dataset", t, func() {
-		conf := MustLoadTestConfig("testdata/tableau.yml")
+		conf := MustLoadTestSchema("testdata/tableau.yml")
 		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
 		So(err, ShouldBeNil)
 	})
@@ -220,7 +220,7 @@ func TestTableauDemo(t *testing.T) {
 
 func TestSimpleQueries(t *testing.T) {
 	Convey("Test simple queries", t, func() {
-		conf := MustLoadTestConfig("testdata/simple.yml")
+		conf := MustLoadTestSchema("testdata/simple.yml")
 		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
 		So(err, ShouldBeNil)
 	})

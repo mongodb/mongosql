@@ -737,7 +737,7 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 					return nil, fmt.Errorf("Every derived table must have its own alias")
 				}
 
-				ctx, err := NewParseCtx(node.Select, pCtx.Config, pCtx.Database)
+				ctx, err := NewParseCtx(node.Select, pCtx.Schema, pCtx.Database)
 				if err != nil {
 					return nil, fmt.Errorf("GetTableInfo Subquery ctx error: %v", err)
 				}

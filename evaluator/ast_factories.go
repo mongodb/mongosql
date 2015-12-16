@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
@@ -65,7 +65,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 	// We should have this specified in the DRDL file, and use it when we're
 	// formatting the fields for the query response.
 
-	case config.SQLString:
+	case schema.SQLString:
 		switch v := value.(type) {
 		case bool:
 			return SQLString(strconv.FormatBool(v)), nil
@@ -79,7 +79,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			return SQLString(strconv.FormatInt(v, 10)), nil
 		}
 
-	case config.SQLInt:
+	case schema.SQLInt:
 		switch v := value.(type) {
 		case bool:
 			if v {
@@ -101,7 +101,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			}
 		}
 
-	case config.SQLFloat:
+	case schema.SQLFloat:
 		switch v := value.(type) {
 		case bool:
 			if v {
@@ -134,10 +134,10 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 	// for more information on date and time types.
 	//
 
-	case config.SQLDate:
+	case schema.SQLDate:
 
-		lower := time.Date(1000, time.January, 1, 0, 0, 0, 0, config.DefaultLocale)
-		upper := time.Date(9999, time.December, 31, 0, 0, 0, 0, config.DefaultLocale)
+		lower := time.Date(1000, time.January, 1, 0, 0, 0, 0, schema.DefaultLocale)
+		upper := time.Date(9999, time.December, 31, 0, 0, 0, 0, schema.DefaultLocale)
 
 		var date time.Time
 
@@ -145,29 +145,29 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case time.Time:
 
-			date = time.Date(v.Year(), v.Month(), v.Day(), 0, 0, 0, 0, config.DefaultLocale)
+			date = time.Date(v.Year(), v.Month(), v.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 
 		case string:
-			d, err := time.Parse(config.DateFormat, v)
+			d, err := time.Parse(schema.DateFormat, v)
 			if err != nil {
-				return SQLDate{config.DefaultTime}, nil
+				return SQLDate{schema.DefaultTime}, nil
 			}
-			date = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, config.DefaultLocale)
+			date = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 
 		default:
-			return SQLDate{config.DefaultTime}, nil
+			return SQLDate{schema.DefaultTime}, nil
 		}
 
 		if date.Before(lower) || date.After(upper) {
-			return SQLDate{config.DefaultTime}, nil
+			return SQLDate{schema.DefaultTime}, nil
 		}
 
 		return SQLDate{date}, nil
 
-	case config.SQLDatetime:
+	case schema.SQLDatetime:
 
-		lower := time.Date(1000, time.January, 1, 0, 0, 0, 0, config.DefaultLocale)
-		upper := time.Date(9999, time.December, 31, 23, 59, 59, 0, config.DefaultLocale)
+		lower := time.Date(1000, time.January, 1, 0, 0, 0, 0, schema.DefaultLocale)
+		upper := time.Date(9999, time.December, 31, 23, 59, 59, 0, schema.DefaultLocale)
 
 		var dt time.Time
 
@@ -179,30 +179,30 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case string:
 
-			d, err := time.Parse(config.TimestampFormat, v)
+			d, err := time.Parse(schema.TimestampFormat, v)
 			if err != nil {
-				return SQLDate{config.DefaultTime}, nil
+				return SQLDate{schema.DefaultTime}, nil
 			}
 
 			dt = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
-				d.Minute(), d.Second(), d.Nanosecond(), config.DefaultLocale)
+				d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
 
 		default:
 
-			return SQLDateTime{config.DefaultTime}, nil
+			return SQLDateTime{schema.DefaultTime}, nil
 
 		}
 
 		if dt.Before(lower) || dt.After(upper) {
-			return SQLDateTime{config.DefaultTime}, nil
+			return SQLDateTime{schema.DefaultTime}, nil
 		}
 
 		return SQLDateTime{dt}, nil
 
-	case config.SQLTimestamp:
+	case schema.SQLTimestamp:
 
-		lower := time.Date(1970, time.January, 1, 0, 0, 01, 0, config.DefaultLocale)
-		upper := time.Date(2038, time.January, 19, 03, 14, 07, 0, config.DefaultLocale)
+		lower := time.Date(1970, time.January, 1, 0, 0, 01, 0, schema.DefaultLocale)
+		upper := time.Date(2038, time.January, 19, 03, 14, 07, 0, schema.DefaultLocale)
 
 		var ts time.Time
 
@@ -214,21 +214,21 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case string:
 
-			d, err := time.Parse(config.TimestampFormat, v)
+			d, err := time.Parse(schema.TimestampFormat, v)
 			if err != nil {
-				return SQLDate{config.DefaultTime}, nil
+				return SQLDate{schema.DefaultTime}, nil
 			}
 			ts = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
-				d.Minute(), d.Second(), d.Nanosecond(), config.DefaultLocale)
+				d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
 
 		default:
 
-			return SQLTimestamp{config.DefaultTime}, nil
+			return SQLTimestamp{schema.DefaultTime}, nil
 
 		}
 
 		if ts.Before(lower) || ts.After(upper) {
-			return SQLTimestamp{config.DefaultTime}, nil
+			return SQLTimestamp{schema.DefaultTime}, nil
 		}
 
 		return SQLTimestamp{ts}, nil
@@ -236,14 +236,14 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 	// TODO: not sure if it makes sense to support this type
 	// in the config since there isn't really a reasonable
 	// mapping between it and any of MongoDB's BSON types.
-	case config.SQLTime:
+	case schema.SQLTime:
 		v, ok := value.(time.Time)
 		if ok {
 			return SQLTime{v}, nil
 		}
 
 	// See http://dev.mysql.com/doc/refman/5.7/en/year.html
-	case config.SQLYear:
+	case schema.SQLYear:
 		switch v := value.(type) {
 
 		case time.Time:
@@ -254,16 +254,16 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			if err != nil {
 				return nil, err
 			}
-			return SQLYear{time.Date(year, 0, 0, 0, 0, 0, 0, config.DefaultLocale)}, nil
+			return SQLYear{time.Date(year, 0, 0, 0, 0, 0, 0, schema.DefaultLocale)}, nil
 
 		case string:
 			if v == "00" || v == "0" {
-				return SQLYear{time.Date(2000, 0, 0, 0, 0, 0, 0, config.DefaultLocale)}, nil
+				return SQLYear{time.Date(2000, 0, 0, 0, 0, 0, 0, schema.DefaultLocale)}, nil
 			}
 
 			y, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				return SQLYear{config.DefaultTime}, nil
+				return SQLYear{schema.DefaultTime}, nil
 			}
 
 			year, err := getYear(int(y), false)
@@ -271,10 +271,10 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 				return nil, err
 			}
 
-			return SQLYear{time.Date(year, 0, 0, 0, 0, 0, 0, config.DefaultLocale)}, nil
+			return SQLYear{time.Date(year, 0, 0, 0, 0, 0, 0, schema.DefaultLocale)}, nil
 
 		default:
-			return SQLYear{config.DefaultTime}, nil
+			return SQLYear{schema.DefaultTime}, nil
 		}
 
 	default:

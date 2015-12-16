@@ -7,7 +7,7 @@ var (
 	tableTwoName   = "bar"
 	tableThreeName = "baz"
 
-	testConfig1 = []byte(`
+	testSchema1 = []byte(`
 url: localhost
 log_level: vv
 databases :
@@ -93,7 +93,7 @@ databases :
         sqlname: _id
 `)
 
-	testConfig2 = []byte(`
+	testSchema2 = []byte(`
 url: localhost
 log_level: vv
 databases :
@@ -167,7 +167,7 @@ databases :
         sqltype: string
 `)
 
-	testConfig3 = []byte(
+	testSchema3 = []byte(
 		`
 url: localhost
 log_level: vv

@@ -201,7 +201,7 @@ functions:
       display_name: sqlproxy${extension}
 
 tasks:
-- name: config
+- name: schema
   commands:
     - func: "fetch source"
     - func: "apply patches"
@@ -217,16 +217,16 @@ tasks:
             set -o igncr
           fi;
           . ./set_gopath.sh
-          cd config
+          cd schema
           mkfifo test_pipe
-          tee -a config.suite < test_pipe&
+          tee -a schema.suite < test_pipe&
           go test -v -coverprofile=coverage.out > test_pipe
     - command: shell.exec
       params:
         working_dir: src
         script: |
           set -o verbose
-          mv config/coverage.out .
+          mv schema/coverage.out .
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"

@@ -1,17 +1,17 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2"
 	"strings"
 )
 
 type SessionProvider struct {
-	cfg           *config.Config
+	cfg           *schema.Schema
 	globalSession *mgo.Session
 }
 
-func NewSessionProvider(cfg *config.Config) (*SessionProvider, error) {
+func NewSessionProvider(cfg *schema.Schema) (*SessionProvider, error) {
 	e := new(SessionProvider)
 	e.cfg = cfg
 

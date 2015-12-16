@@ -8,7 +8,7 @@ import (
 func sourceAppendTest(operator *SourceAppend) {
 
 	ctx := &ExecutionCtx{
-		Config:  cfgOne,
+		Schema:  cfgOne,
 		Db:      dbOne,
 		Session: session,
 	}

@@ -3,7 +3,7 @@ package evaluator
 import (
 	"bytes"
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/erh/mixer/sqlparser"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -31,7 +31,7 @@ type ConnectionCtx interface {
 // ExecutionCtx holds exeuction context information
 // used by each Operator implemenation.
 type ExecutionCtx struct {
-	Config   *config.Config
+	Schema   *schema.Schema
 	Session  *mgo.Session
 	ParseCtx *ParseCtx
 	Db       string

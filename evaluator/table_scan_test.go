@@ -39,7 +39,7 @@ func TestTableScanOperator(t *testing.T) {
 			}
 
 			ctx := &ExecutionCtx{
-				Config:  cfgOne,
+				Schema:  cfgOne,
 				Db:      dbOne,
 				Session: session,
 			}

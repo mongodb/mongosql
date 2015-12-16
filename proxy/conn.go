@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/siddontang/mixer/hack"
 	. "github.com/siddontang/mixer/mysql"
@@ -41,7 +41,7 @@ type Conn struct {
 
 	salt []byte
 
-	currentDB *config.Database
+	currentDB *schema.Database
 
 	//txConns map[*Node]*client.SqlConn
 

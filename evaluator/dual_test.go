@@ -19,7 +19,7 @@ func TestDualOperator(t *testing.T) {
 			operator := &Dual{}
 
 			ctx := &ExecutionCtx{
-				Config:  cfgOne,
+				Schema:  cfgOne,
 				Db:      dbOne,
 				Session: session,
 			}

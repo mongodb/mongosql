@@ -2,19 +2,19 @@ package sqlproxy
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/config"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 )
 
 type Evaluator struct {
-	config  *config.Config
+	config  *schema.Schema
 	session *mgo.Session
 }
 
-func NewEvaluator(cfg *config.Config) (*Evaluator, error) {
+func NewEvaluator(cfg *schema.Schema) (*Evaluator, error) {
 
 	session, err := mgo.Dial(cfg.Url)
 	if err != nil {
@@ -67,7 +67,7 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 		Db:            db,
 		ParseCtx:      pCtx,
 		ConnectionCtx: conn,
-		Config:        e.config,
+		Schema:        e.config,
 		Session:       e.session,
 	}
 

@@ -1,4 +1,4 @@
-package config
+package schema
 
 import (
 	"fmt"
@@ -60,7 +60,7 @@ type (
 		Tables    map[string]*Table `yaml:"tables_no"`
 	}
 
-	Config struct {
+	Schema struct {
 		Addr     string `yaml:"addr"`
 		User     string `yaml:"user"`
 		Password string `yaml:"password"`
@@ -145,20 +145,20 @@ func (t *Table) fixTypes() error {
 	return nil
 }
 
-// Must is a helper that wraps a call to a function returning (*Config, error)
+// Must is a helper that wraps a call to a function returning (*Schema, error)
 // and panics if the error is non-nil. It is intended for use in variable
 // initializations such as
-//	var t = config.Must(ParseConfigData(raw))
+//	var t = schema.Must(ParseSchemaData(raw))
 
-func Must(c *Config, err error) *Config {
+func Must(c *Schema, err error) *Schema {
 	if err != nil {
 		panic(err)
 	}
 	return c
 }
 
-func (c *Config) ingestSubFile(data []byte) error {
-	temp, err := ParseConfigData(data)
+func (c *Schema) ingestSubFile(data []byte) error {
+	temp, err := ParseSchemaData(data)
 	if err != nil {
 		return err
 	}
@@ -199,12 +199,12 @@ func (c *Config) ingestSubFile(data []byte) error {
 		}
 
 		// have to merge tables
-		for table, tableConfig := range schema.Tables {
+		for table, tableSchema := range schema.Tables {
 			if ours.Tables[table] != nil {
 				return fmt.Errorf("table config conflict db: %s table: %s", name, table)
 			}
-			ours.Tables[table] = tableConfig
-			ours.RawTables = append(ours.RawTables, tableConfig)
+			ours.Tables[table] = tableSchema
+			ours.RawTables = append(ours.RawTables, tableSchema)
 		}
 
 	}

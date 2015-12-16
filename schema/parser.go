@@ -1,4 +1,4 @@
-package config
+package schema
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-func ParseConfigData(data []byte) (*Config, error) {
-	var cfg Config
+func ParseSchemaData(data []byte) (*Schema, error) {
+	var cfg Schema
 	if err := yaml.Unmarshal([]byte(data), &cfg); err != nil {
 		return nil, err
 	}
@@ -39,13 +39,13 @@ func ParseConfigData(data []byte) (*Config, error) {
 	return &cfg, nil
 }
 
-func ParseConfigFile(fileName string) (*Config, error) {
+func ParseSchemaFile(fileName string) (*Schema, error) {
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg, err := ParseConfigData(data)
+	cfg, err := ParseSchemaData(data)
 	if err != nil {
 		return nil, err
 	}
