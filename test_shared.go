@@ -9,7 +9,7 @@ var (
 		`
 url: localhost
 log_level: vv
-schema:
+databases:
 -
   db: test
   tables:

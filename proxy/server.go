@@ -18,11 +18,11 @@ type Server struct {
 
 	listener net.Listener
 
-	schemas map[string]*config.Schema
+	databases map[string]*config.Database
 }
 
-func (s *Server) GetSchemas() map[string]*config.Schema {
-	return s.schemas
+func (s *Server) GetDatabases() map[string]*config.Database {
+	return s.databases
 }
 
 func NewServer(cfg *config.Config, eval *sqlproxy.Evaluator) (*Server, error) {
@@ -32,7 +32,7 @@ func NewServer(cfg *config.Config, eval *sqlproxy.Evaluator) (*Server, error) {
 	s.eval = eval
 	s.running = false
 
-	s.schemas = cfg.Schemas
+	s.databases = cfg.Databases
 
 	var err error
 	netProto := "tcp"

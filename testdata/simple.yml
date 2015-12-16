@@ -12,7 +12,7 @@ data:
 # 2. Start a test server using the following schema mapping, which should
 # correspond to the data used in (1)
 
-schema:
+databases:
 - db: test
   tables:
   - table: foo

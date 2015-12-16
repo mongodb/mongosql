@@ -38,10 +38,10 @@ type testCase struct {
 }
 
 type testConfig struct {
-	DB        string           `yaml:"db"`
-	Data      []testDataSet    `yaml:"data"`
-	Schemas   []*config.Schema `yaml:"schema"`
-	TestCases []testCase       `yaml:"testcases"`
+	DB        string             `yaml:"db"`
+	Data      []testDataSet      `yaml:"data"`
+	Databases []*config.Database `yaml:"databases"`
+	TestCases []testCase         `yaml:"testcases"`
 }
 
 func testServer(cfg *config.Config) (*proxy.Server, error) {
@@ -53,13 +53,13 @@ func testServer(cfg *config.Config) (*proxy.Server, error) {
 }
 
 func buildSchemaMaps(conf *config.Config) {
-	conf.Schemas = make(map[string]*config.Schema)
-	for _, schema := range conf.RawSchemas {
-		schema.Tables = make(map[string]*config.Table)
-		for _, table := range schema.RawTables {
-			schema.Tables[table.Name] = table
+	conf.Databases = make(map[string]*config.Database)
+	for _, db := range conf.RawDatabases {
+		db.Tables = make(map[string]*config.Table)
+		for _, table := range db.RawTables {
+			db.Tables[table.Name] = table
 		}
-		conf.Schemas[schema.DB] = schema
+		conf.Databases[db.Name] = db
 	}
 }
 
@@ -162,11 +162,11 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testConfig) error
 		}
 	}
 
-	// make a test server using the embedded schema
+	// make a test server using the embedded database
 	cfg := &config.Config{
-		Addr:       testDBAddr,
-		Url:        fmt.Sprintf("mongodb://%v:%v", dbhost, dbport),
-		RawSchemas: conf.Schemas,
+		Addr:         testDBAddr,
+		Url:          fmt.Sprintf("mongodb://%v:%v", dbhost, dbport),
+		RawDatabases: conf.Databases,
 	}
 	buildSchemaMaps(cfg)
 	s, err := testServer(cfg)
@@ -176,7 +176,7 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testConfig) error
 	go s.Run()
 	defer s.Close()
 
-	db, err := sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Schemas[0].DB))
+	db, err := sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
 	if err != nil {
 		return err
 	}

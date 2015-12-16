@@ -141,12 +141,12 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 	}
 
 	// are we in valid db space
-	if cfr.dbOffset >= len(cfr.ctx.Config.RawSchemas) {
+	if cfr.dbOffset >= len(cfr.ctx.Config.RawDatabases) {
 		// nope, we're done
 		return false
 	}
 
-	db := cfr.ctx.Config.RawSchemas[cfr.dbOffset]
+	db := cfr.ctx.Config.RawDatabases[cfr.dbOffset]
 
 	// are we in valid table space
 	if cfr.tableOffset >= len(db.RawTables) {
@@ -163,7 +163,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 	tableName := "columns"
 
 	if !cfr.includeColumns {
-		_cfrNextHelper(result, ISTablesHeaders[0], db.DB)
+		_cfrNextHelper(result, ISTablesHeaders[0], db.Name)
 		_cfrNextHelper(result, ISTablesHeaders[1], table.Name)
 
 		_cfrNextHelper(result, ISTablesHeaders[2], "BASE TABLE")
@@ -181,7 +181,7 @@ func (cfr *ConfigFindResults) Next(result *bson.D) bool {
 
 		_cfrNextHelper(result, ISColumnHeaders[0], "def")
 
-		_cfrNextHelper(result, ISColumnHeaders[1], db.DB)
+		_cfrNextHelper(result, ISColumnHeaders[1], db.Name)
 		_cfrNextHelper(result, ISColumnHeaders[2], table.Name)
 
 		col := table.Columns[cfr.columnsOffset]

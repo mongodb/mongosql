@@ -14,15 +14,15 @@ func ParseConfigData(data []byte) (*Config, error) {
 		return nil, err
 	}
 
-	cfg.Schemas = make(map[string]*Schema)
+	cfg.Databases = make(map[string]*Database)
 
-	for _, schemaCfg := range cfg.RawSchemas {
+	for _, schemaCfg := range cfg.RawDatabases {
 
-		if _, ok := cfg.Schemas[schemaCfg.DB]; ok {
-			return nil, fmt.Errorf("duplicate schema [%s].", schemaCfg.DB)
+		if _, ok := cfg.Databases[schemaCfg.Name]; ok {
+			return nil, fmt.Errorf("duplicate schema [%s].", schemaCfg.Name)
 		}
 
-		cfg.Schemas[schemaCfg.DB] = schemaCfg
+		cfg.Databases[schemaCfg.Name] = schemaCfg
 
 		schemaCfg.Tables = make(map[string]*Table)
 

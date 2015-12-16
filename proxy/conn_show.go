@@ -34,8 +34,8 @@ func (c *Conn) handleShow(sql string, stmt *sqlparser.Show) error {
 }
 
 func (c *Conn) handleShowDatabases() (*Resultset, error) {
-	dbs := make([]interface{}, 0, len(c.server.schemas))
-	for key := range c.server.schemas {
+	dbs := make([]interface{}, 0, len(c.server.databases))
+	for key := range c.server.databases {
 		dbs = append(dbs, key)
 	}
 
@@ -43,12 +43,12 @@ func (c *Conn) handleShowDatabases() (*Resultset, error) {
 }
 
 func (c *Conn) handleShowTables(sql string, stmt *sqlparser.Show) (*Resultset, error) {
-	if c.currentSchema == nil {
+	if c.currentDB == nil {
 		return nil, fmt.Errorf("no db select for show tables")
 	}
 
 	var tables []string
-	for table, _ := range c.currentSchema.Tables {
+	for table, _ := range c.currentDB.Tables {
 		tables = append(tables, table)
 	}
 
@@ -59,7 +59,7 @@ func (c *Conn) handleShowTables(sql string, stmt *sqlparser.Show) (*Resultset, e
 		values[i] = tables[i]
 	}
 
-	return c.buildSimpleShowResultset(values, fmt.Sprintf("Tables_in_%s", c.currentSchema.DB))
+	return c.buildSimpleShowResultset(values, fmt.Sprintf("Tables_in_%s", c.currentDB.Name))
 }
 
 func (c *Conn) handleShowVariables(sql string, stmt *sqlparser.Show) (*Resultset, error) {
@@ -74,7 +74,7 @@ func (c *Conn) handleShowVariables(sql string, stmt *sqlparser.Show) (*Resultset
 
 func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, error) {
 
-	db := c.db
+	dbName := c.db
 	table := ""
 
 	switch f := stmt.From.(type) {
@@ -82,7 +82,7 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 		table = string(f)
 	case *sqlparser.ColName:
 		if f.Qualifier != nil {
-			db = string(f.Qualifier)
+			dbName = string(f.Qualifier)
 		}
 		table = string(f.Name)
 	default:
@@ -92,22 +92,22 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 	if stmt.DBFilter != nil {
 		switch f := stmt.DBFilter.(type) {
 		case sqlparser.StrVal:
-			db = string(f)
+			dbName = string(f)
 		case *sqlparser.ColName:
-			db = string(f.Name)
+			dbName = string(f.Name)
 		default:
 			return nil, fmt.Errorf("do not know how to in show filter on db type: %T", f)
 		}
 	}
 
-	schema := c.server.schemas[db]
-	if schema == nil {
-		return nil, NewDefaultError(ER_BAD_DB_ERROR, db)
+	db := c.server.databases[dbName]
+	if db == nil {
+		return nil, NewDefaultError(ER_BAD_DB_ERROR, dbName)
 	}
 
-	tableConfig := schema.Tables[table]
+	tableConfig := db.Tables[table]
 	if tableConfig == nil {
-		return nil, fmt.Errorf("table (%s) does not exist in db (%s)", table, db)
+		return nil, fmt.Errorf("table (%s) does not exist in db (%s)", table, dbName)
 	}
 
 	if len(tableConfig.Columns) == 0 {

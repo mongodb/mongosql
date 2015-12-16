@@ -200,7 +200,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 			// TODO: abstract configuration source to support databases like
 			// the information schema
 
-			if pCtx.Database != InformationSchema && !pCtx.InFuncExpr() {
+			if pCtx.Database != InformationDatabase && !pCtx.InFuncExpr() {
 
 				table, err := pCtx.GetCurrentTable(pCtx.Database, string(expr.TableName))
 				if err != nil {

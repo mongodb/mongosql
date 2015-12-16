@@ -18,7 +18,7 @@ type TableScan struct {
 	tableName   string
 	matcher     SQLExpr
 	iter        FindResults
-	dbConfig    *config.Schema
+	database    *config.Database
 	session     *mgo.Session
 	tableConfig *config.Table
 	ctx         *ExecutionCtx
@@ -46,12 +46,12 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 		ts.dbName = ctx.Db
 	}
 
-	ts.dbConfig = ctx.Config.Schemas[ts.dbName]
-	if ts.dbConfig == nil {
+	ts.database = ctx.Config.Databases[ts.dbName]
+	if ts.database == nil {
 		return fmt.Errorf("db (%s) doesn't exist - table (%s)", ts.dbName, ts.tableName)
 	}
 
-	ts.tableConfig = ts.dbConfig.Tables[ts.tableName]
+	ts.tableConfig = ts.database.Tables[ts.tableName]
 	if ts.tableConfig == nil {
 		return fmt.Errorf("table (%s) doesn't exist in db (%s)", ts.tableName, ts.dbName)
 	}

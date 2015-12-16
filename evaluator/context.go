@@ -445,14 +445,15 @@ func (pCtx *ParseCtx) checkColumn(table, column string, depth int) error {
 	return err
 }
 
-// TableSchema returns the schema for a given table.
+// TableSchema returns the named table's configuration.
 func (pCtx *ParseCtx) TableSchema(table string) *config.Table {
-	schema := pCtx.Config.Schemas[pCtx.Database]
-	if schema == nil {
+	db := pCtx.Config.Databases[pCtx.Database]
+
+	if db == nil {
 		return nil
 	}
 
-	return schema.Tables[table]
+	return db.Tables[table]
 }
 
 // IsColumnReference returns true if the given column is present
@@ -474,7 +475,7 @@ func (pCtx *ParseCtx) IsColumnReference(column *Column) bool {
 // schema table's configuration.
 func (pCtx *ParseCtx) IsSchemaColumn(column *Column) bool {
 
-	if strings.ToLower(pCtx.Database) == InformationSchema {
+	if strings.ToLower(pCtx.Database) == InformationDatabase {
 		return true
 	}
 
@@ -487,7 +488,7 @@ func (pCtx *ParseCtx) IsSchemaColumn(column *Column) bool {
 		return true
 	}
 
-	db := pCtx.Config.Schemas[pCtx.Database]
+	db := pCtx.Config.Databases[pCtx.Database]
 
 	table := db.Tables[tableInfo.Name]
 
@@ -510,8 +511,8 @@ func (pCtx *ParseCtx) CheckColumn(table *TableInfo, cName string) error {
 
 	// whitelist all 'virtual' schemas including information_schema
 	// TODO: more precise validation needed
-	if strings.EqualFold(pCtx.Database, InformationSchema) ||
-		strings.EqualFold(tName, InformationSchema) {
+	if strings.EqualFold(pCtx.Database, InformationDatabase) ||
+		strings.EqualFold(tName, InformationDatabase) {
 		return nil
 	}
 

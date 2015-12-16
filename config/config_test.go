@@ -18,7 +18,7 @@ password : abc
 
 log_level : error
 
-schema :
+databases :
 - 
   db: test1
   tables:
@@ -65,43 +65,43 @@ schema :
 		t.Fatal("Top Config not equal.")
 	}
 
-	if len(cfg.RawSchemas) != 2 {
+	if len(cfg.RawDatabases) != 2 {
 		t.Fatal(cfg)
 	}
 
-	if len(cfg.RawSchemas[0].RawTables) != 1 {
-		t.Fatal(len(cfg.RawSchemas[0].RawTables))
+	if len(cfg.RawDatabases[0].RawTables) != 1 {
+		t.Fatal(len(cfg.RawDatabases[0].RawTables))
 	}
 
-	if len(cfg.RawSchemas[1].RawTables) != 2 {
-		t.Fatal(len(cfg.RawSchemas[1].RawTables))
+	if len(cfg.RawDatabases[1].RawTables) != 2 {
+		t.Fatal(len(cfg.RawDatabases[1].RawTables))
 	}
 
-	if cfg.RawSchemas[0].DB != "test1" {
-		t.Fatalf("first db is wrong: %s", cfg.RawSchemas[0].DB)
+	if cfg.RawDatabases[0].Name != "test1" {
+		t.Fatalf("first db is wrong: %s", cfg.RawDatabases[0].Name)
 	}
 
-	if cfg.RawSchemas[0].RawTables[0].Name != "foo" || cfg.RawSchemas[0].RawTables[0].CollectionName != "test.foo" {
+	if cfg.RawDatabases[0].RawTables[0].Name != "foo" || cfg.RawDatabases[0].RawTables[0].CollectionName != "test.foo" {
 		t.Fatal("Table 0 (bar) basics wrong")
 	}
 
-	if cfg.Schemas["test1"].DB != "test1" {
+	if cfg.Databases["test1"].Name != "test1" {
 		t.Fatal("map broken")
 	}
 
-	if cfg.Schemas["test1"].Tables["foo"].CollectionName != "test.foo" {
+	if cfg.Databases["test1"].Tables["foo"].CollectionName != "test.foo" {
 		t.Fatal("map broken 2")
 	}
 
-	if len(cfg.Schemas["test1"].Tables["foo"].Columns) != 2 {
+	if len(cfg.Databases["test1"].Tables["foo"].Columns) != 2 {
 		t.Fatal("test1.foo num columns wrong")
 	}
 
-	if cfg.Schemas["test1"].Tables["foo"].Columns[0].SqlName != "a" {
+	if cfg.Databases["test1"].Tables["foo"].Columns[0].SqlName != "a" {
 		t.Fatal("test1.foo.a name wrong")
 	}
 
-	testBar := cfg.Schemas["test2"].Tables["bar"]
+	testBar := cfg.Databases["test2"].Tables["bar"]
 	if len(testBar.Pipeline) != 2 {
 		t.Fatal("test2.bar pipeline is wrong length")
 	}
@@ -123,7 +123,7 @@ schema_dir : foo
 
 	var testConfigDataSub = []byte(
 		`
-schema:
+databases:
 -
   db: test1
   tables:
@@ -175,43 +175,43 @@ schema:
 		t.Fatal(err)
 	}
 
-	if len(cfg.RawSchemas) != 2 {
+	if len(cfg.RawDatabases) != 2 {
 		t.Fatal(cfg)
 	}
 
-	if len(cfg.RawSchemas[0].RawTables) != 1 {
-		t.Fatal(len(cfg.RawSchemas[0].RawTables))
+	if len(cfg.RawDatabases[0].RawTables) != 1 {
+		t.Fatal(len(cfg.RawDatabases[0].RawTables))
 	}
 
-	if len(cfg.RawSchemas[1].RawTables) != 2 {
-		t.Fatal(len(cfg.RawSchemas[1].RawTables))
+	if len(cfg.RawDatabases[1].RawTables) != 2 {
+		t.Fatal(len(cfg.RawDatabases[1].RawTables))
 	}
 
-	if cfg.RawSchemas[0].DB != "test1" {
-		t.Fatalf("first db is wrong: %s", cfg.RawSchemas[0].DB)
+	if cfg.RawDatabases[0].Name != "test1" {
+		t.Fatalf("first db is wrong: %s", cfg.RawDatabases[0].Name)
 	}
 
-	if cfg.RawSchemas[0].RawTables[0].Name != "foo" || cfg.RawSchemas[0].RawTables[0].CollectionName != "test.foo" {
+	if cfg.RawDatabases[0].RawTables[0].Name != "foo" || cfg.RawDatabases[0].RawTables[0].CollectionName != "test.foo" {
 		t.Fatal("Table 0 (bar) basics wrong")
 	}
 
-	if cfg.Schemas["test1"].DB != "test1" {
+	if cfg.Databases["test1"].Name != "test1" {
 		t.Fatal("map broken")
 	}
 
-	if cfg.Schemas["test1"].Tables["foo"].CollectionName != "test.foo" {
+	if cfg.Databases["test1"].Tables["foo"].CollectionName != "test.foo" {
 		t.Fatal("map broken 2")
 	}
 
-	if len(cfg.Schemas["test1"].Tables["foo"].Columns) != 2 {
+	if len(cfg.Databases["test1"].Tables["foo"].Columns) != 2 {
 		t.Fatal("test1.foo num columns wrong")
 	}
 
-	if cfg.Schemas["test1"].Tables["foo"].Columns[0].SqlName != "a" {
+	if cfg.Databases["test1"].Tables["foo"].Columns[0].SqlName != "a" {
 		t.Fatal("test1.foo.a name wrong")
 	}
 
-	testBar := cfg.Schemas["test2"].Tables["bar"]
+	testBar := cfg.Databases["test2"].Tables["bar"]
 	if len(testBar.Pipeline) != 2 {
 		t.Fatal("test2.bar pipeline is wrong length")
 	}
@@ -229,7 +229,7 @@ password : abc
 log_level : error
 
 schema_dir : foo
-schema:
+databases:
 -
   db: test1
   tables:
@@ -261,7 +261,7 @@ schema:
 
 	var testConfigDataSub = []byte(
 		`
-schema:
+databases:
 -
   db: test2
   tables:
@@ -305,29 +305,29 @@ schema:
 		t.Fatal(err)
 	}
 
-	if cfg.Schemas["test1"] == nil {
+	if cfg.Databases["test1"] == nil {
 		t.Fatal("where is test1")
 	}
-	if cfg.Schemas["test2"] == nil {
+	if cfg.Databases["test2"] == nil {
 		t.Fatal("where is test2")
 	}
-	if cfg.Schemas["test3"] == nil {
+	if cfg.Databases["test3"] == nil {
 		t.Fatal("where is test3")
 	}
 
-	if len(cfg.RawSchemas) != 3 {
+	if len(cfg.RawDatabases) != 3 {
 		t.Fatal(cfg)
 	}
 
-	if len(cfg.Schemas["test1"].RawTables) != 1 {
+	if len(cfg.Databases["test1"].RawTables) != 1 {
 		t.Fatal("test1 wrong")
 	}
 
-	if len(cfg.Schemas["test2"].RawTables) != 1 {
+	if len(cfg.Databases["test2"].RawTables) != 1 {
 		t.Fatal("test3 wrong")
 	}
 
-	if len(cfg.Schemas["test3"].RawTables) != 2 {
+	if len(cfg.Databases["test3"].RawTables) != 2 {
 		t.Fatal("test3 wrong")
 	}
 
@@ -345,7 +345,7 @@ password : abc
 log_level : error
 
 schema_dir : foo
-schema:
+databases:
 -
   db: test3
   tables:
@@ -364,7 +364,7 @@ schema:
 
 	var testConfigDataSub = []byte(
 		`
-schema:
+databases:
 -
   db: test3
   tables:
@@ -421,7 +421,7 @@ func TestReadFile(t *testing.T) {
 		t.Fatalf("SchemaDir wrong: (%s)", cfg.SchemaDir)
 	}
 
-	if len(cfg.RawSchemas) != 3 {
-		t.Fatalf("num RawSchemas wrong: %d", len(cfg.RawSchemas))
+	if len(cfg.RawDatabases) != 3 {
+		t.Fatalf("num RawDatabases wrong: %d", len(cfg.RawDatabases))
 	}
 }

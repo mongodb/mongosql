@@ -10,7 +10,7 @@ var (
 	testConfig1 = []byte(`
 url: localhost
 log_level: vv
-schema :
+databases :
 -
   db: test
   tables:
@@ -96,7 +96,7 @@ schema :
 	testConfig2 = []byte(`
 url: localhost
 log_level: vv
-schema :
+databases :
 -
   db: test
   tables:
@@ -171,7 +171,7 @@ schema :
 		`
 url: localhost
 log_level: vv
-schema :
+databases :
 -
   db: test
   tables:

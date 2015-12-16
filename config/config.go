@@ -54,8 +54,8 @@ type (
 		Parent         *Table                   `yaml:"-"`
 	}
 
-	Schema struct {
-		DB        string            `yaml:"db"`
+	Database struct {
+		Name      string            `yaml:"db"`
 		RawTables []*Table          `yaml:"tables"`
 		Tables    map[string]*Table `yaml:"tables_no"`
 	}
@@ -69,8 +69,8 @@ type (
 		Url       string `yaml:"url"`
 		SchemaDir string `yaml:"schema_dir"`
 
-		RawSchemas []*Schema          `yaml:"schema"`
-		Schemas    map[string]*Schema `yaml:"schema_no"`
+		RawDatabases []*Database          `yaml:"databases"`
+		Databases    map[string]*Database `yaml:"schema_no"`
 	}
 )
 
@@ -187,14 +187,14 @@ func (c *Config) ingestSubFile(data []byte) error {
 		return fmt.Errorf("cannot set schema_dir in sub file")
 	}
 
-	for name, schema := range temp.Schemas {
+	for name, schema := range temp.Databases {
 
-		ours := c.Schemas[name]
+		ours := c.Databases[name]
 
 		if ours == nil {
 			// entire db missing
-			c.Schemas[name] = schema
-			c.RawSchemas = append(c.RawSchemas, schema)
+			c.Databases[name] = schema
+			c.RawDatabases = append(c.RawDatabases, schema)
 			continue
 		}
 

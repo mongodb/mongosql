@@ -41,7 +41,7 @@ type Conn struct {
 
 	salt []byte
 
-	currentSchema *config.Schema
+	currentDB *config.Database
 
 	//txConns map[*Node]*client.SqlConn
 
@@ -65,10 +65,10 @@ func (c *Conn) ConnectionId() uint32 {
 	return c.connectionId
 }
 func (c *Conn) DB() string {
-	if c.currentSchema == nil {
+	if c.currentDB == nil {
 		return ""
 	}
-	return c.currentSchema.DB
+	return c.currentDB.Name
 }
 
 var baseConnId uint32 = 10000
@@ -326,10 +326,10 @@ func (c *Conn) dispatch(data []byte) error {
 }
 
 func (c *Conn) useDB(db string) error {
-	if s := c.server.schemas[db]; s == nil {
+	if s := c.server.databases[db]; s == nil {
 		return NewDefaultError(ER_BAD_DB_ERROR, db)
 	} else {
-		c.currentSchema = s
+		c.currentDB = s
 		c.db = db
 	}
 	return nil

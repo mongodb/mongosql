@@ -179,8 +179,8 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	// bindVars := makeBindVars(args)
 
 	var currentDB string = ""
-	if c.currentSchema != nil {
-		currentDB = c.currentSchema.DB
+	if c.currentDB != nil {
+		currentDB = c.currentDB.Name
 	}
 
 	names, values, err := c.server.eval.EvalSelect(currentDB, sql, stmt, c)

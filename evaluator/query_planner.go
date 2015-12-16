@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	InformationSchema = "information_schema"
+	InformationDatabase = "information_schema"
 )
 
 // PlanQuery constructs a query plan to satisfy the select statement.
@@ -711,9 +711,9 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 	var err error
 
 	dbName := strings.ToLower(string(t.Qualifier))
-	isInformationSchema := dbName == InformationSchema || strings.ToLower(c.Db) == InformationSchema
+	isInformationDatabase := dbName == InformationDatabase || strings.ToLower(c.Db) == InformationDatabase
 
-	if isInformationSchema {
+	if isInformationDatabase {
 
 		// ConfigDataSource is a special table that handles queries against
 		// the 'information_schema' database
@@ -721,7 +721,7 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 			tableName: strings.ToLower(string(t.Name)),
 		}
 
-		c.Db = InformationSchema
+		c.Db = InformationDatabase
 
 		// if we got a valid filter/matcher, use it
 		if err == nil {
