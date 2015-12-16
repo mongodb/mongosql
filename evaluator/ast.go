@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -42,6 +43,10 @@ type sqlBinaryNode struct {
 	left, right SQLExpr
 }
 
+type sqlUnaryNode struct {
+	operand SQLExpr
+}
+
 //
 // EvalCtx holds a slice of rows used to evaluate a SQLValue.
 //
@@ -79,4 +84,384 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 
 	// TODO - handle other types with possible values that are "truthy" : dates, etc?
 	return false, nil
+}
+
+// PartiallyEvaluate will take an expression tree and partially evaluate any nodes that can
+// evaluated without needing data.
+func PartiallyEvaluate(e SQLExpr) (SQLExpr, error) {
+	candidates, err := nominateForPartialEvaluation(e)
+	if err != nil {
+		return nil, err
+	}
+	v := &partialEvaluator{candidates}
+	return v.Visit(e)
+}
+
+// SQLExprVisitor is an implementation of the Visitor pattern.
+type SQLExprVisitor interface {
+	// Visit is called with an expression. It returns:
+	// - SQLExpr is the expression used to replace the argument.
+	// - error
+	Visit(SQLExpr) (SQLExpr, error)
+}
+
+// walk handles walking the children of the provided expression, calling
+// v.Visit on each child. Some visitor implementations may ignore this
+// method completely, but most will use it as the default implementation
+// for a majority of nodes.
+func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
+	if v == nil || e == nil {
+		return nil, nil
+	}
+
+	switch typedE := e.(type) {
+	case *SQLAggFunctionExpr:
+		// child isn't visitable
+	case *SQLAddExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedE.left != left || typedE.right != right {
+			e = &SQLAddExpr{left, right}
+		}
+
+	case *SQLAndExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLAndExpr{left, right}
+		}
+
+	case *SQLCaseExpr:
+		hasNewCond := false
+		newConds := []caseCondition{}
+		for _, cond := range typedE.caseConditions {
+			m, err := v.Visit(cond.matcher)
+			if err != nil {
+				return nil, err
+			}
+			t, err := v.Visit(cond.then)
+			if err != nil {
+				return nil, err
+			}
+
+			newCond := cond
+			if cond.matcher != m || cond.then != t {
+				newCond = caseCondition{m, t}
+				hasNewCond = true
+			}
+
+			newConds = append(newConds, newCond)
+		}
+
+		newElse, err := v.Visit(typedE.elseValue)
+		if err != nil {
+			return nil, err
+		}
+
+		if hasNewCond || typedE.elseValue != newElse {
+			e = &SQLCaseExpr{newElse, newConds}
+		}
+
+	case *SQLDivideExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLDivideExpr{left, right}
+		}
+
+	case *SQLEqualsExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLEqualsExpr{left, right}
+		}
+
+	case *SQLExistsExpr:
+		// child isn't visitable
+	case SQLFieldExpr:
+		// no children
+	case *SQLGreaterThanExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLGreaterThanExpr{left, right}
+		}
+
+	case *SQLGreaterThanOrEqualExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLGreaterThanOrEqualExpr{left, right}
+		}
+
+	case *SQLInExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLInExpr{left, right}
+		}
+
+	case *SQLLessThanExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLLessThanExpr{left, right}
+		}
+
+	case *SQLLessThanOrEqualExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLLessThanOrEqualExpr{left, right}
+		}
+
+	case *SQLLikeExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLLikeExpr{left, right}
+		}
+
+	case *SQLMultiplyExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLMultiplyExpr{left, right}
+		}
+
+	case *SQLNotExpr:
+		operand, err := v.Visit(typedE.operand)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.operand != operand {
+			e = &SQLNotExpr{operand}
+		}
+
+	case *SQLNotEqualsExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLNotEqualsExpr{left, right}
+		}
+
+	case *SQLNullCmpExpr:
+		operand, err := v.Visit(typedE.operand)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.operand != operand {
+			e = &SQLNullCmpExpr{operand}
+		}
+
+	case *SQLOrExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLOrExpr{left, right}
+		}
+
+	case *SQLScalarFunctionExpr:
+		// child isn't visitable
+	case *SQLSubqueryCmpExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		sub, err := v.Visit(typedE.value)
+		if err != nil {
+			return nil, err
+		}
+
+		value, ok := sub.(*SQLSubqueryExpr)
+		if !ok {
+			return nil, fmt.Errorf("SQLSubqueryCmpExpr requires an evaluator.*SQLSubqueryExpr, but got a %T", sub)
+		}
+
+		if typedE.left != left || typedE.value != value {
+			e = &SQLSubqueryCmpExpr{typedE.In, left, value}
+		}
+
+	case *SQLSubqueryExpr:
+		// child isn't visitable
+	case *SQLSubtractExpr:
+		left, err := v.Visit(typedE.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedE.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.left != left || typedE.right != right {
+			e = &SQLSubtractExpr{left, right}
+		}
+
+	case *SQLUnaryMinusExpr:
+		operand, err := v.Visit(typedE.operand)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.operand != operand {
+			e = &SQLUnaryMinusExpr{operand}
+		}
+
+	case *SQLUnaryTildeExpr:
+		operand, err := v.Visit(typedE.operand)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.operand != operand {
+			e = &SQLUnaryTildeExpr{operand}
+		}
+
+	case *SQLTupleExpr:
+		hasNewChild := false
+		newChildren := []SQLExpr{}
+		for _, child := range typedE.Exprs {
+			newChild, err := v.Visit(child)
+			if err != nil {
+				return nil, err
+			}
+
+			if child != newChild {
+				hasNewChild = true
+			}
+
+			newChildren = append(newChildren, newChild)
+		}
+
+		if hasNewChild {
+			e = &SQLTupleExpr{newChildren}
+		}
+
+	// values
+	case SQLBool:
+		// nothing to do
+	case SQLDate:
+		// nothing to do
+	case SQLDateTime:
+		// nothing to do
+	case SQLFloat:
+		// nothing to do
+	case SQLInt:
+		// nothing to do
+	case SQLNullValue:
+		// nothing to do
+	case SQLString:
+		// nothing to do
+	case SQLTime:
+		// nothing to do
+	case SQLTimestamp:
+		// nothing to do
+	case SQLValues:
+		hasNewValue := false
+		newValues := []SQLValue{}
+		for _, value := range typedE {
+			newValueExpr, err := v.Visit(value)
+			if err != nil {
+				return nil, err
+			}
+			newValue, ok := newValueExpr.(SQLValue)
+			if !ok {
+				return nil, fmt.Errorf("evaluator.SQLValues requires an evaluator.SQLValue, but got a %T", newValueExpr)
+			}
+
+			if value != newValue {
+				hasNewValue = true
+			}
+
+			newValues = append(newValues, newValue)
+		}
+
+		if hasNewValue {
+			e = SQLValues(newValues)
+		}
+
+	case SQLUint32:
+		// nothing to do
+	default:
+		return nil, fmt.Errorf("unsupported expression: %T", typedE)
+	}
+
+	return e, nil
 }

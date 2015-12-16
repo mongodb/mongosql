@@ -10,21 +10,23 @@ import (
 //
 // SQLAndExpr evaluates to true if and only if all its children evaluate to true.
 //
-type SQLAndExpr struct {
-	children []SQLExpr
-}
+type SQLAndExpr sqlBinaryNode
 
 func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	for _, c := range and.children {
-		m, err := Matches(c, ctx)
-		if err != nil {
-			return SQLFalse, err
-		}
-		if !m {
-			return SQLFalse, nil
-		}
+	leftMatches, err := Matches(and.left, ctx)
+	if err != nil {
+		return nil, err
 	}
-	return SQLTrue, nil
+	rightMatches, err := Matches(and.right, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if leftMatches && rightMatches {
+		return SQLTrue, nil
+	}
+
+	return SQLFalse, nil
 }
 
 //
@@ -193,13 +195,13 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	leftChild, ok := left.(SQLValues)
 	if ok {
-		if len(leftChild.Values) != 1 {
+		if len(leftChild) != 1 {
 			return SQLFalse, fmt.Errorf("left operand should contain 1 column")
 		}
-		left = leftChild.Values[0]
+		left = leftChild[0]
 	}
 
-	for _, right := range rightChild.Values {
+	for _, right := range rightChild {
 		eq := &SQLEqualsExpr{left, right}
 		m, err := Matches(eq, ctx)
 		if err != nil {
@@ -334,12 +336,10 @@ func sqlValueToString(sqlValue SQLValue) (string, error) {
 //
 // SQLNotExpr evaluates to the inverse of its child.
 //
-type SQLNotExpr struct {
-	child SQLExpr
-}
+type SQLNotExpr sqlUnaryNode
 
 func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	m, err := Matches(not.child, ctx)
+	m, err := Matches(not.operand, ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
@@ -380,28 +380,12 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 //
-// SQLNotInExpr evaluates to true if the left is not in any of the values on the right.
-//
-type SQLNotInExpr sqlBinaryNode
-
-func (nin *SQLNotInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	in := &SQLInExpr{nin.left, nin.right}
-	m, err := Matches(in, ctx)
-	if err != nil {
-		return SQLFalse, err
-	}
-	return SQLBool(!m), nil
-}
-
-//
 // SQLNullCmpExpr evaluates to true if its value evaluates to null.
 //
-type SQLNullCmpExpr struct {
-	val SQLExpr
-}
+type SQLNullCmpExpr sqlUnaryNode
 
 func (nm *SQLNullCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	eval, err := nm.val.Evaluate(ctx)
+	eval, err := nm.operand.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, nil
 	}
@@ -412,20 +396,22 @@ func (nm *SQLNullCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 //
 // SQLOrExpr evaluates to true if any of its children evaluate to true.
 //
-type SQLOrExpr struct {
-	children []SQLExpr
-}
+type SQLOrExpr sqlBinaryNode
 
 func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	for _, c := range or.children {
-		m, err := Matches(c, ctx)
-		if err != nil {
-			return SQLFalse, err
-		}
-		if m {
-			return SQLTrue, nil
-		}
+	leftMatches, err := Matches(or.left, ctx)
+	if err != nil {
+		return nil, err
 	}
+	rightMatches, err := Matches(or.right, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if leftMatches || rightMatches {
+		return SQLTrue, nil
+	}
+
 	return SQLFalse, nil
 }
 
@@ -471,8 +457,6 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	}()
 
-	right := SQLValues{}
-
 	if err := operator.Open(ctx.ExecCtx); err != nil {
 		return SQLFalse, err
 	}
@@ -481,6 +465,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	matched := false
 
+	right := SQLValues{}
 	for operator.Next(row) {
 
 		values := row.GetValues(operator.OpFields())
@@ -490,7 +475,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 			if err != nil {
 				return SQLFalse, err
 			}
-			right.Values = append(right.Values, field)
+			right = append(right, field)
 		}
 
 		eq := &SQLEqualsExpr{left, right}

@@ -7,100 +7,230 @@ import (
 )
 
 //
-// SQLBinaryFunctionExpr represents a function invocation containing the
-// function as well as the arguments.
+// SQLAggFunctionExpr is a wrapper around a sqlparser.FuncExpr designating it
+// as an aggregate function. These aggregate functions are avg, sum, count,
+// max, and min.
 //
-type SQLBinaryFunctionExpr struct {
-	arguments []SQLExpr
-	function  func([]SQLExpr, *EvalCtx) (SQLValue, error)
+type SQLAggFunctionExpr struct {
+	*sqlparser.FuncExpr
 }
 
-func (sqlfunc *SQLBinaryFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	return sqlfunc.function(sqlfunc.arguments, ctx)
-}
-
-// SQLBinaryFunction is a function alias expected by SQLBinaryFunctionExpr.
-type SQLBinaryFunction func([]SQLExpr, *EvalCtx) (SQLValue, error)
-
-var binaryFuncMap = map[string]SQLBinaryFunction{
-
-	"+": SQLBinaryFunction(func(args []SQLExpr, ctx *EvalCtx) (SQLValue, error) {
-		return sqlNumericBinaryOp(args, ctx, "+")
-	}),
-
-	"-": SQLBinaryFunction(func(args []SQLExpr, ctx *EvalCtx) (SQLValue, error) {
-		return sqlNumericBinaryOp(args, ctx, "-")
-	}),
-
-	"*": SQLBinaryFunction(func(args []SQLExpr, ctx *EvalCtx) (SQLValue, error) {
-		return sqlNumericBinaryOp(args, ctx, "*")
-	}),
-
-	"/": SQLBinaryFunction(func(args []SQLExpr, ctx *EvalCtx) (SQLValue, error) {
-		return sqlNumericBinaryOp(args, ctx, "/")
-	}),
-}
-
-func convertToSQLNumeric(expr SQLExpr, ctx *EvalCtx) (SQLNumeric, error) {
-	eval, err := expr.Evaluate(ctx)
-	if err != nil {
-		return nil, err
+func (f *SQLAggFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	var distinctMap map[interface{}]bool = nil
+	if f.Distinct {
+		distinctMap = make(map[interface{}]bool)
 	}
 
-	switch v := eval.(type) {
-
-	case SQLNumeric:
-
-		return v, nil
-
-	case SQLValues:
-
-		if len(v.Values) != 1 {
-			return nil, fmt.Errorf("expected only one SQLValues value - got %v", len(v.Values))
-		}
-
-		return convertToSQLNumeric(v.Values[0], ctx)
-
+	switch string(f.Name) {
+	case "avg":
+		return f.avgFunc(ctx, distinctMap)
+	case "sum":
+		return f.sumFunc(ctx, distinctMap)
+	case "count":
+		return f.countFunc(ctx, distinctMap)
+	case "max":
+		return f.maxFunc(ctx)
+	case "min":
+		return f.minFunc(ctx)
 	default:
-
-		return nil, fmt.Errorf("can not convert %T to SQLNumeric", eval)
-
+		return nil, fmt.Errorf("aggregate function '%v' is not supported", string(f.Name))
 	}
-
 }
 
-func sqlNumericBinaryOp(args []SQLExpr, ctx *EvalCtx, op string) (SQLValue, error) {
-	if len(args) < 2 {
-		return nil, fmt.Errorf("%v function needs at least 2 args", op)
-	}
-
-	left, err := convertToSQLNumeric(args[0], ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, arg := range args[1:] {
-		right, err := convertToSQLNumeric(arg, ctx)
-		if err != nil {
-			return nil, err
-		}
-		switch op {
-		case "+":
-			left = left.Add(right)
-		case "-":
-			left = left.Sub(right)
-		case "*":
-			left = left.Product(right)
-		case "/":
-			if right.Float64() == 0 {
-				return SQLNull, nil
+func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
+	var sum SQLNumeric = SQLInt(0)
+	count := 0
+	for _, row := range ctx.Rows {
+		evalCtx := &EvalCtx{Rows: []Row{row}}
+		for _, sExpr := range f.Exprs {
+			switch e := sExpr.(type) {
+			// mixture of star and non-star expression is acceptable
+			case *sqlparser.StarExpr:
+				return nil, fmt.Errorf("avg aggregate function can not contain '*'")
+			case *sqlparser.NonStarExpr:
+				valExpr, err := NewSQLExpr(e.Expr)
+				if err != nil {
+					return nil, err
+				}
+				eval, err := valExpr.Evaluate(evalCtx)
+				if err != nil {
+					return nil, err
+				}
+				if distinctMap != nil {
+					if distinctMap[eval] {
+						// already in our distinct map, so we skip this row
+						continue
+					} else {
+						distinctMap[eval] = true
+					}
+				}
+				count += 1
+				// TODO: ignoring if we can't convert this to a number
+				if n, ok := eval.(SQLNumeric); ok {
+					sum = sum.Add(n)
+				}
+			default:
+				return nil, fmt.Errorf("unknown expression in avgFunc: %T", e)
 			}
-			left = SQLFloat(left.Float64() / right.Float64())
-		default:
-			return nil, fmt.Errorf("unsupported numeric binary operation: '%v'", op)
 		}
 	}
-	return left, nil
+
+	return SQLFloat(sum.Float64() / float64(count)), nil
+}
+
+func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
+	var count int64
+	for _, row := range ctx.Rows {
+		evalCtx := &EvalCtx{Rows: []Row{row}}
+		for _, sExpr := range f.Exprs {
+			switch e := sExpr.(type) {
+			// mixture of star and non-star expression is acceptable
+			case *sqlparser.StarExpr:
+				count += 1
+
+			case *sqlparser.NonStarExpr:
+				valExpr, err := NewSQLExpr(e.Expr)
+				if err != nil {
+					return nil, err
+				}
+				eval, err := valExpr.Evaluate(evalCtx)
+				if err != nil {
+					return nil, err
+				}
+				if distinctMap != nil {
+					if distinctMap[eval] {
+						// already in our distinct map, so we skip this row
+						continue
+					} else {
+						distinctMap[eval] = true
+					}
+				}
+
+				if eval != nil && eval != SQLNull {
+					count += 1
+				}
+
+			default:
+				return nil, fmt.Errorf("unknown expression in countFunc: %T", e)
+			}
+		}
+	}
+	return SQLInt(count), nil
+}
+
+func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
+	var max SQLValue
+	for _, row := range ctx.Rows {
+		evalCtx := &EvalCtx{Rows: []Row{row}}
+		for _, sExpr := range f.Exprs {
+			switch e := sExpr.(type) {
+			// mixture of star and non-star expression is acceptable
+			case *sqlparser.StarExpr:
+				return nil, fmt.Errorf("max aggregate function can not contain '*'")
+			case *sqlparser.NonStarExpr:
+				valExpr, err := NewSQLExpr(e.Expr)
+				if err != nil {
+					return nil, err
+				}
+				eval, err := valExpr.Evaluate(evalCtx)
+				if err != nil {
+					return nil, err
+				}
+				if max == nil {
+					max = eval
+					continue
+				}
+				compared, err := max.CompareTo(eval)
+				if err != nil {
+					return nil, err
+				}
+				if compared < 0 {
+					max = eval
+				}
+			default:
+				return nil, fmt.Errorf("unknown expression in maxFunc: %T", e)
+			}
+		}
+	}
+	return max, nil
+}
+
+func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
+	var min SQLValue
+	for _, row := range ctx.Rows {
+		evalCtx := &EvalCtx{Rows: []Row{row}}
+		for _, sExpr := range f.Exprs {
+			switch e := sExpr.(type) {
+			// mixture of star and non-star expression is acceptable
+			case *sqlparser.StarExpr:
+				return nil, fmt.Errorf("min aggregate function can not contain '*'")
+			case *sqlparser.NonStarExpr:
+				valExpr, err := NewSQLExpr(e.Expr)
+				if err != nil {
+					return nil, err
+				}
+				eval, err := valExpr.Evaluate(evalCtx)
+				if err != nil {
+					return nil, err
+				}
+				if min == nil {
+					min = eval
+					continue
+				}
+				compared, err := min.CompareTo(eval)
+				if err != nil {
+					return nil, err
+				}
+				if compared > 0 {
+					min = eval
+				}
+			default:
+				return nil, fmt.Errorf("unknown expression in minFunc: %T", e)
+			}
+		}
+	}
+	return min, nil
+}
+
+func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
+	var sum SQLNumeric = SQLInt(0)
+	for _, row := range ctx.Rows {
+		evalCtx := &EvalCtx{Rows: []Row{row}}
+		for _, sExpr := range f.Exprs {
+			switch e := sExpr.(type) {
+			// mixture of star and non-star expression is acceptable
+			case *sqlparser.StarExpr:
+				return nil, fmt.Errorf("sum aggregate function can not contain '*'")
+			case *sqlparser.NonStarExpr:
+				valExpr, err := NewSQLExpr(e.Expr)
+				if err != nil {
+					return nil, err
+				}
+				eval, err := valExpr.Evaluate(evalCtx)
+				if err != nil {
+					return nil, err
+				}
+
+				if distinctMap != nil {
+					if distinctMap[eval] {
+						// already in our distinct map, so we skip this row
+						continue
+					} else {
+						distinctMap[eval] = true
+					}
+				}
+
+				// TODO: ignoring if we can't convert this to a number
+				if n, ok := eval.(SQLNumeric); ok {
+					sum = sum.Add(n)
+				}
+			default:
+				return nil, fmt.Errorf("unknown expression in sumFunc: %T", e)
+			}
+		}
+	}
+
+	return sum, nil
 }
 
 //
@@ -310,8 +440,6 @@ func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 
 	var operator Operator
 
-	eval := SQLValues{}
-
 	operator, err = PlanQuery(ctx.ExecCtx, sv.stmt)
 	if err != nil {
 		return nil, err
@@ -353,6 +481,7 @@ func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 
 	values := row.GetValues(operator.OpFields())
 
+	eval := SQLValues{}
 	for _, value := range values {
 
 		field, err := NewSQLValue(value, "")
@@ -360,53 +489,11 @@ func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 			return nil, err
 		}
 
-		eval.Values = append(eval.Values, field)
+		eval = append(eval, field)
 
 	}
 
 	return eval, nil
-}
-
-//
-// SQLUnaryMinusExpr represents a unary minus expression.
-//
-type SQLUnaryMinusExpr struct {
-	SQLExpr
-}
-
-func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	if val, ok := um.SQLExpr.(SQLNumeric); ok {
-		return SQLInt(-(round(val.Float64()))), nil
-	}
-	return um.SQLExpr.Evaluate(ctx)
-}
-
-//
-// SQLUnaryPlusExpr represents a unary plus expression.
-//
-type SQLUnaryPlusExpr struct {
-	SQLExpr
-}
-
-func (up *SQLUnaryPlusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	if val, ok := up.SQLExpr.(SQLNumeric); ok {
-		return SQLInt(round(val.Float64())), nil
-	}
-	return up.SQLExpr.Evaluate(ctx)
-}
-
-//
-// SQLUnaryTildeExpr represents a unary tilde expression.
-//
-type SQLUnaryTildeExpr struct {
-	SQLExpr
-}
-
-func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	if val, ok := td.SQLExpr.(SQLNumeric); ok {
-		return SQLInt(^round(val.Float64())), nil
-	}
-	return td.SQLExpr.Evaluate(ctx)
 }
 
 //
@@ -427,5 +514,5 @@ func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		values = append(values, value)
 	}
 
-	return SQLValues{values}, nil
+	return SQLValues(values), nil
 }

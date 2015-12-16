@@ -393,9 +393,7 @@ func (sn SQLString) CompareTo(v SQLValue) (int, error) {
 //
 // SQLValues represents multiple sql values.
 //
-type SQLValues struct {
-	Values []SQLValue
-}
+type SQLValues []SQLValue
 
 func (sv SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sv, nil
@@ -410,17 +408,17 @@ func (sv SQLValues) CompareTo(v SQLValue) (int, error) {
 		//
 		// select a, b from foo where (a) < 3;
 		//
-		if len(sv.Values) != 1 {
-			return 1, fmt.Errorf("Operand should contain %v columns", len(sv.Values))
+		if len(sv) != 1 {
+			return 1, fmt.Errorf("Operand should contain %v columns", len(sv))
 		}
-		r.Values = append(r.Values, v)
-	} else if len(sv.Values) != len(r.Values) {
-		return 1, fmt.Errorf("Operand should contain %v columns", len(sv.Values))
+		r = append(r, v)
+	} else if len(sv) != len(r) {
+		return 1, fmt.Errorf("Operand should contain %v columns", len(sv))
 	}
 
-	for i := 0; i < len(sv.Values); i++ {
+	for i := 0; i < len(sv); i++ {
 
-		c, err := sv.Values[i].CompareTo(r.Values[i])
+		c, err := sv[i].CompareTo(r[i])
 		if err != nil {
 			return 1, err
 		}
