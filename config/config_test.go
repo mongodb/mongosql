@@ -27,11 +27,11 @@ databases :
      collection: test.foo
      columns:
      -
-        sql_name: a
-        sql_type: int
+        sqlname: a
+        sqltype: int
      -
-        sql_name: b
-        sql_type: string
+        sqlname: b
+        sqltype: string
 -
   db: test2
   tables:
@@ -40,11 +40,11 @@ databases :
      collection: test.bar
      columns:
      -
-        sql_name: a
-        sql_type: string
+        sqlname: a
+        sqltype: string
      -
-        sql_name: b
-        sql_type: int
+        sqlname: b
+        sqltype: int
      pipeline:
      -
         $unwind : "$x"
@@ -132,11 +132,11 @@ databases:
      collection: test.foo
      columns:
      -
-        sql_name: a
-        sql_type: int
+        sqlname: a
+        sqltype: int
      -
-        sql_name: b
-        sql_type: string
+        sqlname: b
+        sqltype: string
 -
   db: test2
   tables:
@@ -145,11 +145,11 @@ databases:
      collection: test.bar
      columns:
      -
-        sql_name: a
-        sql_type: string
+        sqlname: a
+        sqltype: string
      -
-        sql_name: b
-        sql_type: int
+        sqlname: b
+        sqltype: int
      pipeline:
      -
         $unwind : "$x"
@@ -238,11 +238,11 @@ databases:
      collection: test.foo
      columns:
      -
-        sql_name: a
-        sql_type: int
+        sqlname: a
+        sqltype: int
      -
-        sql_name: b
-        sql_type: string
+        sqlname: b
+        sqltype: string
 -
   db: test3
   tables:
@@ -251,11 +251,11 @@ databases:
      collection: test.foo
      columns:
      -
-        sql_name: a
-        sql_type: int
+        sqlname: a
+        sqltype: int
      -
-        sql_name: b
-        sql_type: string
+        sqlname: b
+        sqltype: string
 
 `)
 
@@ -270,11 +270,11 @@ databases:
      collection: test.bar
      columns:
      -
-        sql_name: a
-        sql_type: string
+        sqlname: a
+        sqltype: string
      -
-        sql_name: b
-        sql_type: int
+        sqlname: b
+        sqltype: int
 -
   db: test3
   tables:
@@ -283,11 +283,11 @@ databases:
      collection: test.foo
      columns:
      -
-        sql_name: a
-        sql_type: int
+        sqlname: a
+        sqltype: int
      -
-        sql_name: b
-        sql_type: string
+        sqlname: b
+        sqltype: string
 
 `)
 
@@ -354,11 +354,11 @@ databases:
      collection: test.foo
      columns:
      -
-        sql_name: a
-        sql_type: int
+        sqlname: a
+        sqltype: int
      -
-        sql_name: b
-        sql_type: string
+        sqlname: b
+        sqltype: string
 
 `)
 
@@ -373,11 +373,11 @@ databases:
      collection: test.foo
      columns:
      -
-        sql_name: a
-        sql_type: int
+        sqlname: a
+        sqltype: int
      -
-        sql_name: b
-        sql_type: string
+        sqlname: b
+        sqltype: string
 
 `)
 

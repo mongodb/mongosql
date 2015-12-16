@@ -9,82 +9,82 @@ databases :
     - table: flights
       collection: tableau.flights201406
       columns:
-        - sql_name: "carrier_code"
-          sql_type: string
-        - sql_name: "tail_num"
-          sql_type: string
-        - sql_name: "flight_number"
-          sql_type: int
-        - sql_name: "origin_airport_id"
-          sql_type: int
-        - sql_name: "origin_city_market_id"
-          sql_type: int
-        - sql_name: "origin_airport_code"
-          sql_type: string
-        - sql_name: "origin_city_name"
-          sql_type: string
-        - sql_name: "origin_state"
-          sql_type: string
-        - sql_name: "dest_airport_id"
-          sql_type: int
-        - sql_name: "dest_city_market_id"
-          sql_type: int
-        - sql_name: "dest_airport_code"
-          sql_type: string
-        - sql_name: "flight_date"
-          sql_type: string
-        - sql_name: "dest_city_name"
-          sql_type: string
-        - sql_name: "dest_state"
-          sql_type: string
-        - sql_name: "dep_time"
-          sql_type: int
-        - sql_name: "diff_from_dep_time"
-          sql_type: int
-        - sql_name: "dep_delay"
-          sql_type: int
-        - sql_name: "arr_time"
-          sql_type: int
-        - sql_name: "diff_from_arr_time"
-          sql_type: int
-        - sql_name: "flight_time"
-          sql_type: int
-        - sql_name: "airline"
-          sql_type: string
-        - sql_name: "cancelled"
-          sql_type: int
-        - sql_name: "arr_delay"
-          sql_type: int
-        - sql_name: "carrier_delay"
-          sql_type: int
+        - sqlname: "carrier_code"
+          sqltype: string
+        - sqlname: "tail_num"
+          sqltype: string
+        - sqlname: "flight_number"
+          sqltype: int
+        - sqlname: "origin_airport_id"
+          sqltype: int
+        - sqlname: "origin_city_market_id"
+          sqltype: int
+        - sqlname: "origin_airport_code"
+          sqltype: string
+        - sqlname: "origin_city_name"
+          sqltype: string
+        - sqlname: "origin_state"
+          sqltype: string
+        - sqlname: "dest_airport_id"
+          sqltype: int
+        - sqlname: "dest_city_market_id"
+          sqltype: int
+        - sqlname: "dest_airport_code"
+          sqltype: string
+        - sqlname: "flight_date"
+          sqltype: string
+        - sqlname: "dest_city_name"
+          sqltype: string
+        - sqlname: "dest_state"
+          sqltype: string
+        - sqlname: "dep_time"
+          sqltype: int
+        - sqlname: "diff_from_dep_time"
+          sqltype: int
+        - sqlname: "dep_delay"
+          sqltype: int
+        - sqlname: "arr_time"
+          sqltype: int
+        - sqlname: "diff_from_arr_time"
+          sqltype: int
+        - sqlname: "flight_time"
+          sqltype: int
+        - sqlname: "airline"
+          sqltype: string
+        - sqlname: "cancelled"
+          sqltype: int
+        - sqlname: "arr_delay"
+          sqltype: int
+        - sqlname: "carrier_delay"
+          sqltype: int
 
     - table: attendees
       collection: "tableau.attendees"
       columns:
-        - sql_name: "latitude"
-          sql_type: float
+        - sqlname: "latitude"
+          sqltype: float
           name: "loc.coordinates.0"
-        - sql_name: "longitude"
-          sql_type: float
+        - sqlname: "longitude"
+          sqltype: float
           name: "loc.coordinates.1"
-        - sql_name: "airport_city"
-          sql_type: string
-        - sql_name: "airport_code"
-          sql_type: string
-        - sql_name: "airport_id"
-          sql_type: int
-        - sql_name: "city"
-          sql_type: string
-        - sql_name: "city_market_description"
-          sql_type: string
-        - sql_name: "city_market_id"
-          sql_type: int
-        - sql_name: "country"
-          sql_type: string
-        - sql_name: "state"
-          sql_type: string
-        - sql_name: "zip"
-          sql_type: "string"
+        - sqlname: "airport_city"
+          sqltype: string
+        - sqlname: "airport_code"
+          sqltype: string
+        - sqlname: "airport_id"
+          sqltype: int
+        - sqlname: "city"
+          sqltype: string
+        - sqlname: "city_market_description"
+          sqltype: string
+        - sqlname: "city_market_id"
+          sqltype: int
+        - sqlname: "country"
+          sqltype: string
+        - sqlname: "state"
+          sqltype: string
+        - sqlname: "zip"
+          sqltype: "string"
 
 testcases:
     - sql: "SELECT SUM(1) AS num_records FROM public.attendees attendees HAVING (COUNT(1) > 0);"

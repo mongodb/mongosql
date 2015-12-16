@@ -42,8 +42,8 @@ type (
 	Column struct {
 		Name      string `yaml:"name"`
 		MongoType string `yaml:"type"`
-		SqlName   string `yaml:"sql_name"`
-		SqlType   string `yaml:"sql_type"`
+		SqlName   string `yaml:"sqlname"`
+		SqlType   string `yaml:"sqltype"`
 	}
 
 	Table struct {

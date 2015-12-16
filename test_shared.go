@@ -18,16 +18,16 @@ databases:
      collection: test.simple
      columns:
      -
-        sql_name: a
-        sql_type: int
+        sqlname: a
+        sqltype: int
      -
-        sql_name: b
-        sql_type: int
+        sqlname: b
+        sqltype: int
      -
-        sql_name: _id
+        sqlname: _id
      -
-        sql_name: c
-        sql_type: int
+        sqlname: c
+        sqltype: int
 -
   db: foo
   tables:
@@ -36,20 +36,20 @@ databases:
      collection: test.simple
      columns:
      -
-        sql_name: c
-        sql_type: int
+        sqlname: c
+        sqltype: int
      -
-        sql_name: d
-        sql_type: int
+        sqlname: d
+        sqltype: int
   -
      table: silly
      collection: test.simple2
      columns:
      -
-        sql_name: e
-        sql_type: int
+        sqlname: e
+        sqltype: int
      -
-        sql_name: f
-        sql_type: int
+        sqlname: f
+        sqltype: int
 `)
 )
