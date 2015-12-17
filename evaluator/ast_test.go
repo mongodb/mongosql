@@ -1,7 +1,9 @@
 package evaluator
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
@@ -14,9 +16,11 @@ func TestEvaluates(t *testing.T) {
 	}
 
 	runTests := func(ctx *EvalCtx, tests []test) {
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be %v", t.sql, t.result), func() {
-				subject, err := getWhereSQLExprFromSQL("SELECT * FROM bar WHERE " + t.sql)
+				subject, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
 				So(err, ShouldBeNil)
 				result, err := subject.Evaluate(ctx)
 				So(err, ShouldBeNil)
@@ -305,9 +309,11 @@ func TestOptimizeSQLExpr(t *testing.T) {
 	}
 
 	runTests := func(tests []test) {
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
-				e, err := getWhereSQLExprFromSQL("SELECT * FROM bar WHERE " + t.sql)
+				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
 				So(err, ShouldBeNil)
 				result, err := OptimizeSQLExpr(e)
 				So(err, ShouldBeNil)
@@ -336,6 +342,64 @@ func TestOptimizeSQLExpr(t *testing.T) {
 			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
 			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
 			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+		}
+
+		runTests(tests)
+	})
+}
+
+func TestTranslatePredicate(t *testing.T) {
+
+	type test struct {
+		sql      string
+		expected string
+	}
+
+	runTests := func(tests []test) {
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
+				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
+				So(err, ShouldBeNil)
+				result, ok := TranslatePredicate(e, schema.Databases["test"])
+				So(ok, ShouldBeTrue)
+				jsonResult, err := json.Marshal(result)
+				So(err, ShouldBeNil)
+
+				So(string(jsonResult), ShouldEqual, t.expected)
+			})
+		}
+	}
+
+	Convey("Subject: TranslatePredicate", t, func() {
+		tests := []test{
+			test{"a = 3", `{"a":3}`},
+			test{"a > 3", `{"a":{"$gt":3}}`},
+			test{"a >= 3", `{"a":{"$gte":3}}`},
+			test{"a < 3", `{"a":{"$lt":3}}`},
+			test{"a <= 3", `{"a":{"$lte":3}}`},
+			test{"a <> 3", `{"a":{"$ne":3}}`},
+			test{"a > 3 AND a < 10", `{"$and":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}`},
+			test{"(a > 3 AND a < 10) AND b = 10", `{"$and":[{"a":{"$gt":3}},{"a":{"$lt":10}},{"b":10}]}`},
+			test{"a > 3 AND (a < 10 AND b = 10)", `{"$and":[{"a":{"$gt":3}},{"a":{"$lt":10}},{"b":10}]}`},
+			test{"a > 3 OR a < 10", `{"$or":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}`},
+			test{"(a > 3 OR a < 10) OR b = 10", `{"$or":[{"a":{"$gt":3}},{"a":{"$lt":10}},{"b":10}]}`},
+			test{"a > 3 OR (a < 10 OR b = 10)", `{"$or":[{"a":{"$gt":3}},{"a":{"$lt":10}},{"b":10}]}`},
+			test{"(a > 3 AND a < 10) OR b = 10", `{"$or":[{"$and":[{"a":{"$gt":3}},{"a":{"$lt":10}}]},{"b":10}]}`},
+			test{"a > 3 AND (a < 10 OR b = 10)", `{"$and":[{"a":{"$gt":3}},{"$or":[{"a":{"$lt":10}},{"b":10}]}]}`},
+			test{"a IN(1,3,5)", `{"a":{"$in":[1,3,5]}}`},
+			test{"a IS NULL", `{"a":null}`},
+			test{"NOT (a > 3)", `{"a":{"$not":{"$gt":3}}}`},
+			test{"NOT (NOT (a > 3))", `{"a":{"$gt":3}}`},
+			test{"NOT (a = 3)", `{"a":{"$ne":3}}`},
+			test{"NOT (a <> 3)", `{"a":3}`},
+			test{"NOT (a NOT IN (1,3,5))", `{"a":{"$in":[1,3,5]}}`},
+			test{"a NOT IN (1,3,5)", `{"a":{"$nin":[1,3,5]}}`},
+			test{"NOT a IN (1,3,5)", `{"a":{"$nin":[1,3,5]}}`},
+			test{"NOT (a > 3 AND a < 10)", `{"$nor":[{"$and":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}]}`},
+			test{"NOT (NOT (a > 3 AND a < 10))", `{"$or":[{"$and":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}]}`},
+			test{"NOT (a > 3 OR a < 10)", `{"$nor":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}`},
 		}
 
 		runTests(tests)

@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
@@ -49,6 +50,9 @@ func TestFilterOperator(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
 
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+
 		rows := []bson.D{
 			bson.D{{"a", 6}, {"b", 7}, {"_id", 5}},
 			bson.D{{"a", 16}, {"b", 17}, {"_id", 15}},
@@ -72,7 +76,7 @@ func TestFilterOperator(t *testing.T) {
 			expected := [][]Values{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
 
 			for i, query := range queries {
-				matcher, err := getWhereSQLExprFromSQL(query)
+				matcher, err := getWhereSQLExprFromSQL(schema, query)
 				So(err, ShouldBeNil)
 
 				operator := &Filter{

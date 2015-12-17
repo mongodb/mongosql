@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/erh/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
@@ -37,17 +38,23 @@ func TestNewSQLExpr(t *testing.T) {
 	})
 
 	Convey("Simple WHERE with explicit table names", t, func() {
-		matcher, err := getWhereSQLExprFromSQL("select * from bar where bar.a = 'eliot'")
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where bar.a = 'eliot'")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")})
 	})
 	Convey("Simple WHERE with implicit table names", t, func() {
-		matcher, err := getWhereSQLExprFromSQL("select * from bar where a = 'eliot'")
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where a = 'eliot'")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")})
 	})
 	Convey("WHERE with complex nested matching clauses", t, func() {
-		matcher, err := getWhereSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>1 OR a<'blah'))")
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where NOT((a = 'eliot') AND (b>1 OR a<'blah'))")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLNotExpr{
 			&SQLAndExpr{
@@ -60,7 +67,9 @@ func TestNewSQLExpr(t *testing.T) {
 		})
 	})
 	Convey("WHERE with complex nested matching clauses", t, func() {
-		matcher, err := getWhereSQLExprFromSQL("select * from bar where NOT((a = 'eliot') AND (b>13 OR a<'blah'))")
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where NOT((a = 'eliot') AND (b>13 OR a<'blah'))")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLNotExpr{
 			&SQLAndExpr{

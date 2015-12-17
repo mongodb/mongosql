@@ -35,6 +35,10 @@ func (sb SQLBool) CompareTo(v SQLValue) (int, error) {
 	return 1, fmt.Errorf("type mismatch")
 }
 
+func (sb SQLBool) Value() interface{} {
+	return bool(sb)
+}
+
 //
 // Time related SQL types and helpers.
 //
@@ -104,6 +108,10 @@ func (sd SQLDate) CompareTo(v SQLValue) (int, error) {
 	return 0, nil
 }
 
+func (sd SQLDate) Value() interface{} {
+	return sd.Time
+}
+
 //
 // SQLDateTime represents a datetime.
 //
@@ -147,6 +155,10 @@ func (sd SQLDateTime) CompareTo(v SQLValue) (int, error) {
 	return 0, nil
 }
 
+func (sd SQLDateTime) Value() interface{} {
+	return sd.Time
+}
+
 //
 // SQLTime represents a time value.
 //
@@ -167,6 +179,10 @@ func (st SQLTime) CompareTo(v SQLValue) (int, error) {
 
 	// TODO: type sort order implementation
 	return 0, nil
+}
+
+func (st SQLTime) Value() interface{} {
+	return st.Time
 }
 
 //
@@ -212,6 +228,10 @@ func (st SQLTimestamp) CompareTo(v SQLValue) (int, error) {
 	return 0, nil
 }
 
+func (st SQLTimestamp) Value() interface{} {
+	return st.Time
+}
+
 //
 // SQLYear represents a year value.
 //
@@ -255,6 +275,10 @@ func (st SQLYear) CompareTo(v SQLValue) (int, error) {
 	return 0, nil
 }
 
+func (sy SQLYear) Value() interface{} {
+	return sy.Time
+}
+
 //
 // SQLFloat represents a float.
 //
@@ -291,6 +315,10 @@ func (sf SQLFloat) Product(o SQLNumeric) SQLNumeric {
 
 func (sf SQLFloat) Sub(o SQLNumeric) SQLNumeric {
 	return SQLFloat(float64(sf) - o.Float64())
+}
+
+func (sf SQLFloat) Value() interface{} {
+	return float64(sf)
 }
 
 //
@@ -348,6 +376,10 @@ func (si SQLInt) Sub(o SQLNumeric) SQLNumeric {
 	return SQLFloat(si.Float64() - o.Float64())
 }
 
+func (si SQLInt) Value() interface{} {
+	return int64(si)
+}
+
 //
 // SQLNullValue represents a null.
 //
@@ -365,6 +397,10 @@ func (nv SQLNullValue) CompareTo(v SQLValue) (int, error) {
 		return 0, nil
 	}
 	return 1, nil
+}
+
+func (_ SQLNullValue) Value() interface{} {
+	return nil
 }
 
 //
@@ -388,6 +424,10 @@ func (sn SQLString) CompareTo(v SQLValue) (int, error) {
 	}
 	// can only compare numbers to each other, otherwise treat as error
 	return 1, fmt.Errorf("type mismatch")
+}
+
+func (ss SQLString) Value() interface{} {
+	return string(ss)
 }
 
 //
@@ -430,6 +470,14 @@ func (sv SQLValues) CompareTo(v SQLValue) (int, error) {
 	}
 
 	return 0, nil
+}
+
+func (sv SQLValues) Value() interface{} {
+	values := []interface{}{}
+	for _, v := range sv {
+		values = append(values, v)
+	}
+	return values
 }
 
 //
@@ -485,6 +533,10 @@ func (su SQLUint32) Sub(o SQLNumeric) SQLNumeric {
 		return SQLUint32(uint32(su) - uint32(oi))
 	}
 	return SQLFloat(su.Float64() - o.Float64())
+}
+
+func (su SQLUint32) Value() interface{} {
+	return uint32(su)
 }
 
 //

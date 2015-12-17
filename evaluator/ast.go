@@ -18,6 +18,7 @@ type SQLExpr interface {
 type SQLValue interface {
 	SQLExpr
 	CompareTo(SQLValue) (int, error)
+	Value() interface{}
 }
 
 //
