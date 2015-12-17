@@ -40,7 +40,7 @@ type testCase struct {
 type testSchema struct {
 	DB        string             `yaml:"db"`
 	Data      []testDataSet      `yaml:"data"`
-	Databases []*schema.Database `yaml:"databases"`
+	Databases []*schema.Database `yaml:"schema"`
 	TestCases []testCase         `yaml:"testcases"`
 }
 

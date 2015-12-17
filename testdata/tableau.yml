@@ -2,7 +2,7 @@ data:
 - ns: tableau.attendees
   json_file: testdata/input/tableau_attendees.json
 
-databases :
+schema:
 -
   name: public
   tables:

@@ -18,7 +18,7 @@ password : abc
 
 log_level : error
 
-databases :
+schema:
 - 
   name: test1
   tables:
@@ -123,7 +123,7 @@ schema_dir : foo
 
 	var testSchemaDataSub = []byte(
 		`
-databases:
+schema:
 -
   name: test1
   tables:
@@ -229,7 +229,7 @@ password : abc
 log_level : error
 
 schema_dir : foo
-databases:
+schema:
 -
   name: test1
   tables:
@@ -261,7 +261,7 @@ databases:
 
 	var testSchemaDataSub = []byte(
 		`
-databases:
+schema:
 -
   name: test2
   tables:
@@ -345,7 +345,7 @@ password : abc
 log_level : error
 
 schema_dir : foo
-databases:
+schema:
 -
   name: test3
   tables:
@@ -364,7 +364,7 @@ databases:
 
 	var testSchemaDataSub = []byte(
 		`
-databases:
+schema:
 -
   name: test3
   tables:

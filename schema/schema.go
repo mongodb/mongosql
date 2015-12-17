@@ -68,7 +68,7 @@ type (
 		Url       string `yaml:"url"`
 		SchemaDir string `yaml:"schema_dir"`
 
-		RawDatabases []*Database          `yaml:"databases"`
+		RawDatabases []*Database          `yaml:"schema"`
 		Databases    map[string]*Database `yaml:"schema_no"`
 	}
 )
