@@ -1,13 +1,13 @@
 # How this test case file works:
 #
-# 1. mongoimport each of these json files under the "data" section 
+# 1. mongorestore each of these bson files under the "data" section 
 # into the indicated namespace
 #
 data:
 - ns: test.foo
-  json_file: testdata/input/test1.json
+  bson_file: testdata/input/test1.bson.gz
 - ns: test.baz
-  json_file: testdata/input/test2.json
+  bson_file: testdata/input/test2.bson.gz
 
 # 2. Start a test server using the following schema mapping, which should
 # correspond to the data used in (1)

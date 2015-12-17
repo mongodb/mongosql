@@ -102,6 +102,14 @@ functions:
         chmod +x ./mongodb-*/bin/*
         mv ./mongodb-*/bin/* .
 
+  "download test data":
+    command: shell.exec
+    params:
+      working_dir: src
+      script: |
+        curl -s https://s3.amazonaws.com/boxes.10gen.com/build/attendees.bson.gz --output testdata/input/attendees.bson.gz
+        curl -s https://s3.amazonaws.com/boxes.10gen.com/build/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
+
   "fetch source" :
     command: git.get_project
     params:
@@ -277,6 +285,7 @@ tasks:
   commands:
     - func: "fetch source"
     - func: "apply patches"
+    - func: "download test data"
     - func: "download mongod"
     - func: "start mongod"
     - command: shell.exec

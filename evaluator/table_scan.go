@@ -59,7 +59,8 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 	pcs := strings.SplitN(ts.tableSchema.CollectionName, ".", 2)
 
 	ts.session = ctx.Session.Copy()
-	db := ctx.Session.DB(pcs[0])
+	ts.session.SetSocketTimeout(0)
+	db := ts.session.DB(pcs[0])
 	collection := db.C(pcs[1])
 	query := collection.Find(nil)
 	ts.iter = MgoFindResults{query.Iter()}

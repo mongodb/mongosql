@@ -5,6 +5,13 @@ import (
 	"github.com/erh/mixer/sqlparser"
 )
 
+// orderedGroup holds all the rows belonging to a given key in the groups
+// and an slice of the keys for each group.
+type orderedGroup struct {
+	groups map[string][]Row
+	keys   []string
+}
+
 // GroupBy groups records according to one or more fields.
 type GroupBy struct {
 	// sExprs holds the columns and/or expressions present in
@@ -25,9 +32,9 @@ type GroupBy struct {
 	// err holds any error encountered during processing
 	err error
 
-	// finalGrouping has a key derived from the group by clause and
-	// a value corresponding to all rows that are part of the group
-	finalGrouping map[string][]Row
+	// finalGrouping contains all grouped records and an ordered list of
+	// the keys as read from the source operator
+	finalGrouping orderedGroup
 
 	// channel on which to send rows derived from the final grouping
 	outChan chan AggRowCtx
@@ -77,18 +84,26 @@ func (gb *GroupBy) evaluateGroupByKey(row *Row) (string, error) {
 
 func (gb *GroupBy) createGroups() error {
 
-	gb.finalGrouping = make(map[string][]Row, 0)
+	gb.finalGrouping = orderedGroup{
+		groups: make(map[string][]Row, 0),
+	}
 
 	r := &Row{}
 
 	// iterator source to create groupings
 	for gb.source.Next(r) {
+
 		key, err := gb.evaluateGroupByKey(r)
 		if err != nil {
 			return err
 		}
 
-		gb.finalGrouping[key] = append(gb.finalGrouping[key], *r)
+		if gb.finalGrouping.groups[key] == nil {
+			gb.finalGrouping.keys = append(gb.finalGrouping.keys, key)
+		}
+
+		gb.finalGrouping.groups[key] = append(gb.finalGrouping.groups[key], *r)
+
 		r = &Row{}
 	}
 
@@ -143,7 +158,8 @@ func (gb *GroupBy) iterChan() chan AggRowCtx {
 	ch := make(chan AggRowCtx)
 
 	go func() {
-		for _, v := range gb.finalGrouping {
+		for _, key := range gb.finalGrouping.keys {
+			v := gb.finalGrouping.groups[key]
 			r, err := gb.evalAggRow(v)
 			if err != nil {
 				gb.err = err

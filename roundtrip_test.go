@@ -10,7 +10,7 @@ import (
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	toolsLog "github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/mongoimport"
+	"github.com/mongodb/mongo-tools/mongorestore"
 	"github.com/siddontang/go-yaml/yaml"
 	. "github.com/smartystreets/goconvey/convey"
 	"io/ioutil"
@@ -27,7 +27,7 @@ const (
 
 type testDataSet struct {
 	NS       string `yaml:"ns"`
-	JSONFile string `yaml:"json_file"`
+	BSONFile string `yaml:"bson_file"`
 }
 
 type testCase struct {
@@ -74,17 +74,20 @@ func compareResults(t *testing.T, actual [][]interface{}, expected [][]interface
 	}
 }
 
-func importJSON(host, port, file, db, collection string) error {
+func restoreBSON(host, port, file, db, collection string) error {
+
 	connection := &options.Connection{Host: host, Port: port}
 	sessionProvider, err := toolsdb.NewSessionProvider(options.ToolOptions{
 		Auth:       &options.Auth{},
 		Connection: connection})
+
 	if err != nil {
 		return err
 	}
 
 	toolsLog.SetVerbosity(&options.Verbosity{Quiet: true})
-	importer := mongoimport.MongoImport{
+
+	restorer := mongorestore.MongoRestore{
 		ToolOptions: &options.ToolOptions{
 			Connection: connection,
 			Namespace: &options.Namespace{
@@ -93,15 +96,18 @@ func importJSON(host, port, file, db, collection string) error {
 			},
 			HiddenOptions: &options.HiddenOptions{NumDecodingWorkers: 10},
 		},
-		InputOptions: &mongoimport.InputOptions{File: file},
-		IngestOptions: &mongoimport.IngestOptions{
-			Drop:        true,
-			StopOnError: true,
+		InputOptions: &mongorestore.InputOptions{Gzip: true},
+		OutputOptions: &mongorestore.OutputOptions{
+			Drop:                   true,
+			StopOnError:            true,
+			NumParallelCollections: 1,
+			NumInsertionWorkers:    1,
 		},
 		SessionProvider: sessionProvider,
+		TargetDirectory: file,
 	}
-	_, err = importer.ImportDocuments()
-	return err
+
+	return restorer.Restore()
 }
 
 func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
@@ -156,7 +162,7 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 		if len(ns) != 2 {
 			return fmt.Errorf("ns '%v' missing period; namespace should be specified as 'dbname.collection'", dataSet.NS)
 		}
-		err := importJSON(dbhost, dbport, dataSet.JSONFile, ns[0], ns[1])
+		err := restoreBSON(dbhost, dbport, dataSet.BSONFile, ns[0], ns[1])
 		if err != nil {
 			return err
 		}
@@ -188,7 +194,7 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 			description = testCase.Description
 		}
 		Convey(description, func() {
-			t.Logf("Running test query (%v of %v): '%v'", i, len(conf.TestCases), testCase.SQL)
+			t.Logf("Running test query (%v of %v): '%v'", i+1, len(conf.TestCases), testCase.SQL)
 			results, err := runSQL(db, testCase.SQL, testCase.ExpectedTypes)
 			So(err, ShouldBeNil)
 			compareResults(t, results, testCase.ExpectedData)
