@@ -11,45 +11,45 @@ url: localhost
 log_level: vv
 schema:
 -
-  name: test
+  db: test
   tables:
   -
      table: bar
      collection: test.simple
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: int
      -
-        sqlname: b
+        name: b
         sqltype: int
      -
-        sqlname: _id
+        name: _id
      -
-        sqlname: c
+        name: c
         sqltype: int
 -
-  name: foo
+  db: foo
   tables:
   -
      table: bar
      collection: test.simple
      columns:
      -
-        sqlname: c
+        name: c
         sqltype: int
      -
-        sqlname: d
+        name: d
         sqltype: int
   -
      table: silly
      collection: test.simple2
      columns:
      -
-        sqlname: e
+        name: e
         sqltype: int
      -
-        sqlname: f
+        name: f
         sqltype: int
 `)
 )

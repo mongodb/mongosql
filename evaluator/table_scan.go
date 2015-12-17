@@ -143,7 +143,7 @@ func (ts *TableScan) Next(row *Row) bool {
 
 		var err error
 
-		for _, column := range ts.tableSchema.Columns {
+		for _, column := range ts.tableSchema.RawColumns {
 			value := Value{
 				Name: column.SqlName,
 				View: column.SqlName,
@@ -205,7 +205,7 @@ func (ts *TableScan) OpFields() []*Column {
 	// TODO: we currently only return headers from the schema
 	// though the actual data is everything that comes from
 	// the database
-	for _, c := range ts.tableSchema.Columns {
+	for _, c := range ts.tableSchema.RawColumns {
 		column := &Column{
 			Table: ts.tableName,
 			Name:  c.SqlName,

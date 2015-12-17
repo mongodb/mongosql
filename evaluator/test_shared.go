@@ -12,85 +12,85 @@ url: localhost
 log_level: vv
 schema:
 -
-  name: test
+  db: test
   tables:
   -
      table: foo
      collection: test.foo
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: int
      -
-        sqlname: b
+        name: b
         sqltype: int
      -
-        sqlname: c
+        name: c
         sqltype: int
      -
-        sqlname: _id
+        name: _id
   -
      table: bar
      collection: test.bar
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: int
      -
-        sqlname: b
+        name: b
         sqltype: int
      -
-        sqlname: _id
+        name: _id
 -
-  name: foo
+  db: foo
   tables:
   -
      table: bar
      collection: foo.bar
      columns:
      -
-        sqlname: c
+        name: c
         sqltype: int
      -
-        sqlname: d
+        name: d
         sqltype: int
   -
      table: silly
      collection: foo.silly
      columns:
      -
-        sqlname: e
+        name: e
         sqltype: int
      -
-        sqlname: f
+        name: f
         sqltype: int
 -
-  name: test2
+  db: test2
   tables:
   -
      table: foo
      collection: test2.foo
      columns:
      -
-        sqlname: name
+        name: name
         sqltype: string
      -
-        sqlname: orderid
+        name: orderid
         sqltype: int
      -
-        sqlname: _id
+        name: _id
   -
      table: bar
      collection: test2.bar
      columns:
      -
-        sqlname: orderid
+        name: orderid
         sqltype: int
      -
-        sqlname: amount
+        name: amount
         sqltype: int
      -
-        sqlname: _id
+        name: _id
 `)
 
 	testSchema2 = []byte(`
@@ -98,72 +98,72 @@ url: localhost
 log_level: vv
 schema:
 -
-  name: test
+  db: test
   tables:
   -
      table: foo
      collection: test.foo
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: string
      -
-        sqlname: x
+        name: x
         sqltype: string
      -
-        sqlname: first
+        name: first
         sqltype: string
      -
-        sqlname: last
+        name: last
         sqltype: string
      -
-        sqlname: age
+        name: age
         sqltype: string
      -
-        sqlname: b
+        name: b
         sqltype: string
   -
      table: orders
      collection: test.orders
      columns:
      -
-        sqlname: customerid
+        name: customerid
         sqltype: string
      -
-        sqlname: customername
+        name: customername
         sqltype: string
      -
-        sqlname: orderid
+        name: orderid
         sqltype: string
      -
-        sqlname: orderdate
+        name: orderdate
         sqltype: string
   -
      table: customers
      collection: test.customers
      columns:
      -
-        sqlname: customerid
+        name: customerid
         sqltype: string
      -
-        sqlname: customername
+        name: customername
         sqltype: string
   -
      table: bar
      collection: test.bar
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: string
      -
-        sqlname: z
+        name: z
         sqltype: string
   -
      table: baz
      collection: test.baz
      columns:
      -
-        sqlname: b
+        name: b
         sqltype: string
 `)
 
@@ -173,45 +173,45 @@ url: localhost
 log_level: vv
 schema:
 -
-  name: test
+  db: test
   tables:
   -
      table: bar
      collection: test.bar
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: int
      -
-        sqlname: b
+        name: b
         sqltype: string
      -
-        sqlname: _id
+        name: _id
   -
      table: foo
      collection: test.foo
 -
-  name: foo
+  db: foo
   tables:
   -
      table: bar
      collection: foo.bar
      columns:
      -
-        sqlname: c
+        name: c
         sqltype: int
      -
-        sqlname: d
+        name: d
         sqltype: string
   -
      table: silly
      collection: foo.silly
      columns:
      -
-        sqlname: e
+        name: e
         sqltype: int
      -
-        sqlname: f
+        name: f
         sqltype: string
 `)
 )

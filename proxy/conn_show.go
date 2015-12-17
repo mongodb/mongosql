@@ -110,7 +110,7 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 		return nil, fmt.Errorf("table (%s) does not exist in db (%s)", table, dbName)
 	}
 
-	if len(tableSchema.Columns) == 0 {
+	if len(tableSchema.RawColumns) == 0 {
 		return nil, fmt.Errorf("no configured columns")
 	}
 
@@ -118,16 +118,16 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 
 	full := strings.ToLower(stmt.Modifier) == "full"
 
-	values := make([][]interface{}, len(tableSchema.Columns))
+	values := make([][]interface{}, len(tableSchema.RawColumns))
 	names := []string{"Field", "Type", "Null", "Key", "Default", "Extra"}
 
 	if full {
 		names = append(names, []string{"Collation", "Privileges", "Comment"}...)
 	}
 
-	log.Logf(log.DebugLow, "columns for %v: %#v\n\n", table, tableSchema.Columns)
+	log.Logf(log.DebugLow, "columns for %v: %#v\n\n", table, tableSchema.RawColumns)
 
-	for num, col := range tableSchema.Columns {
+	for num, col := range tableSchema.RawColumns {
 		row := make([]interface{}, len(names))
 		row[0] = col.Name
 		row[1] = string(col.SqlType)

@@ -190,17 +190,7 @@ func getSingleMapEntry(m bson.M) (string, interface{}) {
 func getFieldName(e SQLExpr, db *schema.Database) (string, bool) {
 	if field, ok := e.(SQLFieldExpr); ok {
 
-		tbl := db.Tables[field.tableName]
-
-		for _, c := range tbl.Columns {
-			if c.SqlName == field.fieldName {
-				if c.Name == "" {
-					return c.SqlName, true
-				}
-
-				return c.Name, true
-			}
-		}
+		return db.Tables[field.tableName].Columns[field.fieldName].SqlName, true
 	}
 
 	return "", false

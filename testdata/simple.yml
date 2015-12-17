@@ -13,22 +13,24 @@ data:
 # correspond to the data used in (1)
 
 schema:
-- name: test
+- db: test
   tables:
   - table: foo
     collection: test.foo
     pipeline: []
     columns:
-    - sqlname: a
+    - name: a
+      sqlname: a
       sqltype: int
-    - sqlname: b
+    - name: b
+      sqlname: b
       sqltype: string
-    - sqlname: latitude
+    - name: "loc.0" 
+      sqlname: latitude
       sqltype: int
-      name: "loc.0"
-    - sqlname: longitude
+    - name: "loc.1"
+      sqlname: longitude
       sqltype: int
-      name: "loc.1"
 
 # 3. Run each of the following queries, and report any that have errors
 testcases:

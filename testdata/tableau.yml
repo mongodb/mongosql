@@ -6,86 +6,117 @@ data:
 
 schema:
 -
-  name: public
+  db: public
   tables:
     - table: flights201406
       collection: tableau.flights201406
       columns:
-        - sqlname: "carrier_code"
+        - name: "carrier_code"
+          sqlname: "carrier_code"
           sqltype: string
-        - sqlname: "tail_num"
+        - name: "tail_num"
           sqltype: string
-        - sqlname: "flight_number"
+        - name: "flight_number"
+          sqlname: "flight_number"
           sqltype: int
-        - sqlname: "origin_airport_id"
+        - name: "origin_airport_id"
+          sqlname: "origin_airport_id"
           sqltype: int
-        - sqlname: "origin_city_market_id"
+        - name: "origin_city_market_id"
+          sqlname: "origin_city_market_id"
           sqltype: int
-        - sqlname: "origin_airport_code"
+        - name: "origin_airport_code"
+          sqlname: "origin_airport_code"
           sqltype: string
-        - sqlname: "origin_city_name"
+        - name: "origin_city_name"
+          sqlname: "origin_city_name"
           sqltype: string
-        - sqlname: "origin_state"
+        - name: "origin_state"
           sqltype: string
-        - sqlname: "dest_airport_id"
+        - name: "dest_airport_id"
+          sqlname: "dest_airport_id"
           sqltype: int
-        - sqlname: "dest_city_market_id"
+        - name: "dest_city_market_id"
+          sqlname: "dest_city_market_id"
           sqltype: int
-        - sqlname: "dest_airport_code"
+        - name: "dest_airport_code"
+          sqlname: "dest_airport_code"
           sqltype: string
-        - sqlname: "flight_date"
+        - name: "flight_date"
+          sqlname: "flight_date"
           sqltype: timestamp
-        - sqlname: "dest_city_name"
+        - name: "dest_city_name"
+          sqlname: "dest_city_name"
           sqltype: string
-        - sqlname: "dest_state"
+        - name: "dest_state"
+          sqlname: "dest_state"
           sqltype: string
-        - sqlname: "dep_time"
+        - name: "dep_time"
+          sqlname: "dep_time"
           sqltype: int
-        - sqlname: "diff_from_dep_time"
+        - name: "diff_from_dep_time"
+          sqlname: "diff_from_dep_time"
           sqltype: int
-        - sqlname: "dep_delay"
+        - name: "dep_delay"
+          sqlname: "dep_delay"
           sqltype: int
-        - sqlname: "arr_time"
+        - name: "arr_time"
+          sqlname: "arr_time"
           sqltype: int
-        - sqlname: "diff_from_arr_time"
+        - name: "diff_from_arr_time"
+          sqlname: "diff_from_arr_time"
           sqltype: int
-        - sqlname: "flight_time"
+        - name: "flight_time"
+          sqlname: "flight_time"
           sqltype: timestamp
-        - sqlname: "airline"
+        - name: "airline"
+          sqlname: "airline"
           sqltype: string
-        - sqlname: "cancelled"
+        - name: "cancelled"
+          sqlname: "cancelled"
           sqltype: int
-        - sqlname: "arr_delay"
+        - name: "arr_delay"
+          sqlname: "arr_delay"
           sqltype: int
-        - sqlname: "carrier_delay"
+        - name: "carrier_delay"
+          sqlname: "carrier_delay"
           sqltype: int
 
     - table: attendees
       collection: "tableau.attendees"
       columns:
-        - sqlname: "latitude"
+        - name: "loc.coordinates.0"
+          sqlname: "latitude"
           sqltype: float
-          name: "loc.coordinates.0"
-        - sqlname: "longitude"
+        - name: "loc.coordinates.1"
+          sqlname: "longitude"
           sqltype: float
-          name: "loc.coordinates.1"
-        - sqlname: "airport_city"
+        - name: "airport_city"
+          sqlname: "airport_city"
           sqltype: string
-        - sqlname: "airport_code"
+        - name: "airport_code"
+          sqlname: "airport_code"
           sqltype: string
-        - sqlname: "airport_id"
+        - name: "airport_id"
+          sqlname: "airport_id"
           sqltype: int
-        - sqlname: "city"
+        - name: "city"
+          sqlname: "city"
           sqltype: string
-        - sqlname: "city_market_description"
+        - name: "city_market_description"
+          sqlname: "city_market_description"
           sqltype: string
-        - sqlname: "city_market_id"
+        - name: "city_market_id"
+          sqlname: "city_market_id"
           sqltype: int
-        - sqlname: "country"
+        - name: "country"
+          sqlname: "country"
           sqltype: string
-        - sqlname: "state"
+        - name: "state"
+          sqlname: "state"
           sqltype: string
-        - sqlname: "zip"
+        - name: "zip"
+          sqlname: "zip"
           sqltype: "string"
 
 testcases:

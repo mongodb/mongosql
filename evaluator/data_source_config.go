@@ -173,7 +173,7 @@ func (cfr *SchemaFindResults) Next(result *bson.D) bool {
 		tableName = "tables"
 	} else {
 		// are we in valid column space
-		if cfr.columnsOffset >= len(table.Columns) {
+		if cfr.columnsOffset >= len(table.RawColumns) {
 			cfr.tableOffset = cfr.tableOffset + 1
 			cfr.columnsOffset = 0
 			return cfr.Next(result)
@@ -184,7 +184,7 @@ func (cfr *SchemaFindResults) Next(result *bson.D) bool {
 		_cfrNextHelper(result, ISColumnHeaders[1], db.Name)
 		_cfrNextHelper(result, ISColumnHeaders[2], table.Name)
 
-		col := table.Columns[cfr.columnsOffset]
+		col := table.RawColumns[cfr.columnsOffset]
 
 		_cfrNextHelper(result, ISColumnHeaders[3], col.SqlName)
 		_cfrNextHelper(result, ISColumnHeaders[4], col.SqlType)

@@ -213,6 +213,7 @@ func MustLoadTestSchema(path string) testSchema {
 	if err != nil {
 		panic(err)
 	}
+
 	return conf
 }
 

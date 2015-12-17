@@ -9,34 +9,53 @@ import (
 )
 
 func ParseSchemaData(data []byte) (*Schema, error) {
-	var cfg Schema
-	if err := yaml.Unmarshal([]byte(data), &cfg); err != nil {
+	var schema Schema
+	if err := yaml.Unmarshal([]byte(data), &schema); err != nil {
 		return nil, err
 	}
 
-	cfg.Databases = make(map[string]*Database)
+	schema.Databases = make(map[string]*Database)
 
-	for _, schemaCfg := range cfg.RawDatabases {
+	for _, db := range schema.RawDatabases {
 
-		if _, ok := cfg.Databases[schemaCfg.Name]; ok {
-			return nil, fmt.Errorf("duplicate schema [%s].", schemaCfg.Name)
+		if _, ok := schema.Databases[db.Name]; ok {
+			return nil, fmt.Errorf("duplicate database [%s].", db.Name)
 		}
 
-		cfg.Databases[schemaCfg.Name] = schemaCfg
+		schema.Databases[db.Name] = db
 
-		schemaCfg.Tables = make(map[string]*Table)
+		db.Tables = make(map[string]*Table)
 
-		for _, n := range schemaCfg.RawTables {
-			err := n.fixTypes()
+		for _, tbl := range db.RawTables {
+			err := tbl.fixTypes()
 			if err != nil {
 				return nil, err
 			}
-			schemaCfg.Tables[n.Name] = n
-		}
 
+			if _, ok := db.Tables[tbl.Name]; ok {
+				return nil, fmt.Errorf("duplicate table [%s].", tbl.Name)
+			}
+
+			db.Tables[tbl.Name] = tbl
+
+			tbl.Columns = make(map[string]*Column)
+
+			for _, c := range tbl.RawColumns {
+
+				if c.SqlName == "" {
+					c.SqlName = c.Name
+				}
+
+				if _, ok := tbl.Columns[c.Name]; ok {
+					return nil, fmt.Errorf("duplicate column [%s].", c.SqlName)
+				}
+
+				tbl.Columns[c.SqlName] = c
+			}
+		}
 	}
 
-	return &cfg, nil
+	return &schema, nil
 }
 
 func ParseSchemaFile(fileName string) (*Schema, error) {

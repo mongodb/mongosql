@@ -312,7 +312,7 @@ func (pCtx *ParseCtx) AddColumns() {
 			continue
 		}
 
-		for index, colDef := range tableSchema.Columns {
+		for index, colDef := range tableSchema.RawColumns {
 			column := ColumnInfo{
 				Index: index,
 				Name:  colDef.SqlName,
@@ -492,7 +492,7 @@ func (pCtx *ParseCtx) IsSchemaColumn(column *Column) bool {
 
 	table := db.Tables[tableInfo.Name]
 
-	for _, c := range table.Columns {
+	for _, c := range table.RawColumns {
 
 		if c.SqlName == column.Name {
 			return true
@@ -534,7 +534,7 @@ func (pCtx *ParseCtx) CheckColumn(table *TableInfo, cName string) error {
 		return fmt.Errorf("Table '%v' doesn't exist", tName)
 	}
 
-	for _, c := range tableSchema.Columns {
+	for _, c := range tableSchema.RawColumns {
 
 		if c.SqlName == cName {
 			return nil

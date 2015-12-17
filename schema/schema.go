@@ -50,13 +50,14 @@ type (
 		Name           string                   `yaml:"table"`
 		CollectionName string                   `yaml:"collection"`
 		Pipeline       []map[string]interface{} `yaml:"pipeline"`
-		Columns        []*Column                `yaml:"columns"`
+		RawColumns     []*Column                `yaml:"columns"`
+		Columns        map[string]*Column       `yaml:"-"`
 	}
 
 	Database struct {
-		Name      string            `yaml:"name"`
+		Name      string            `yaml:"db"`
 		RawTables []*Table          `yaml:"tables"`
-		Tables    map[string]*Table `yaml:"tables_no"`
+		Tables    map[string]*Table `yaml:"-"`
 	}
 
 	Schema struct {
@@ -69,7 +70,7 @@ type (
 		SchemaDir string `yaml:"schema_dir"`
 
 		RawDatabases []*Database          `yaml:"schema"`
-		Databases    map[string]*Database `yaml:"schema_no"`
+		Databases    map[string]*Database `yaml:"-"`
 	}
 )
 
@@ -135,7 +136,7 @@ func (c *Column) validateType() error {
 }
 
 func (t *Table) fixTypes() error {
-	for _, c := range t.Columns {
+	for _, c := range t.RawColumns {
 		err := c.validateType()
 		if err != nil {
 			return err

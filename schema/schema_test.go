@@ -93,11 +93,11 @@ schema:
 		t.Fatal("map broken 2")
 	}
 
-	if len(cfg.Databases["test1"].Tables["foo"].Columns) != 2 {
+	if len(cfg.Databases["test1"].Tables["foo"].RawColumns) != 2 {
 		t.Fatal("test1.foo num columns wrong")
 	}
 
-	if cfg.Databases["test1"].Tables["foo"].Columns[0].SqlName != "a" {
+	if cfg.Databases["test1"].Tables["foo"].RawColumns[0].SqlName != "a" {
 		t.Fatal("test1.foo.a name wrong")
 	}
 

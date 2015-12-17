@@ -19,6 +19,7 @@ var (
 )
 
 func TestNewSQLExpr(t *testing.T) {
+
 	Convey("Calling NewSQLExpr on a sqlparser expression should produce the appropriate Expr", t, func() {
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("sum"),
