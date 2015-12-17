@@ -1,7 +1,10 @@
 package evaluator
 
 // partiallyEvaluate will take an expression tree and partially evaluate any nodes that can
-// evaluated without needing data.
+// evaluated without needing data from the database. If functions by using the
+// nominateForPartialEvaluation function to gather candidates that are evaluatable. Then
+// it walks the tree from top-down and, when it finds a candidate node, replaces the
+// candidate node with the result of calling Evaluate on the candidate node.
 func partiallyEvaluate(e SQLExpr) (SQLExpr, error) {
 	candidates, err := nominateForPartialEvaluation(e)
 	if err != nil {
@@ -25,6 +28,9 @@ func (pe *partialEvaluator) Visit(e SQLExpr) (SQLExpr, error) {
 	return e.Evaluate(nil)
 }
 
+// nominateForPartialEvaluation walks a SQLExpr tree from bottom up
+// identifying nodes that are able to be evaluated without executing
+// a query. It returns these identified nodes as candidates.
 func nominateForPartialEvaluation(e SQLExpr) (map[SQLExpr]bool, error) {
 	n := &partialEvaluatorNominator{
 		candidates: make(map[SQLExpr]bool),
@@ -98,9 +104,8 @@ func (n *normalizer) Visit(e SQLExpr) (SQLExpr, error) {
 			}
 			if matches {
 				return typedE.right, nil
-			} else {
-				return SQLFalse, nil
 			}
+			return SQLFalse, nil
 		}
 		if right, ok := typedE.right.(SQLValue); ok {
 			matches, err := Matches(right, nil)
@@ -109,9 +114,8 @@ func (n *normalizer) Visit(e SQLExpr) (SQLExpr, error) {
 			}
 			if matches {
 				return typedE.left, nil
-			} else {
-				return SQLFalse, nil
 			}
+			return SQLFalse, nil
 		}
 	case *SQLEqualsExpr:
 		if shouldFlip(sqlBinaryNode(*typedE)) {
@@ -145,9 +149,8 @@ func (n *normalizer) Visit(e SQLExpr) (SQLExpr, error) {
 			}
 			if matches {
 				return SQLTrue, nil
-			} else {
-				return typedE.right, nil
 			}
+			return typedE.right, nil
 		}
 		if right, ok := typedE.right.(SQLValue); ok {
 			matches, err := Matches(right, nil)
@@ -156,9 +159,8 @@ func (n *normalizer) Visit(e SQLExpr) (SQLExpr, error) {
 			}
 			if matches {
 				return SQLTrue, nil
-			} else {
-				return typedE.left, nil
 			}
+			return typedE.left, nil
 		}
 	}
 
