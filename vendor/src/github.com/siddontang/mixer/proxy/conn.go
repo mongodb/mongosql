@@ -73,7 +73,7 @@ func (s *Server) newConn(co net.Conn) *Conn {
 
 	c.status = SERVER_STATUS_AUTOCOMMIT
 
-	c.salt, _ = RandomBuf(20)
+	c.salt = RandomBuf(20)
 
 	c.txConns = make(map[*Node]*client.SqlConn)
 
@@ -221,7 +221,7 @@ func (c *Conn) readHandshakeResponse() error {
 
 	pos += authLen
 
-	if c.capability|CLIENT_CONNECT_WITH_DB > 0 {
+	if c.capability&CLIENT_CONNECT_WITH_DB > 0 {
 		if len(data[pos:]) == 0 {
 			return nil
 		}

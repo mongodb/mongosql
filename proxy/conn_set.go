@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"fmt"
+	. "github.com/erh/mixer/mysql"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
-	. "github.com/siddontang/mixer/mysql"
 	"strings"
 )
 

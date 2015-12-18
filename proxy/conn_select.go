@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"bytes"
+	. "github.com/erh/mixer/mysql"
 	"github.com/erh/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
-	. "github.com/siddontang/mixer/mysql"
 )
 
 func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
