@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/erh/mixer/sqlparser"
+	"github.com/deafgoat/mixer/sqlparser"
 	"strings"
 )
 

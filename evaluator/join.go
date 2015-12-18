@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/erh/mixer/sqlparser"
+	"github.com/deafgoat/mixer/sqlparser"
 )
 
 // JoinStrategy specifies the method a Join

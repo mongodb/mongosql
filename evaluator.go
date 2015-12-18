@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/erh/mixer/sqlparser"
+	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 )

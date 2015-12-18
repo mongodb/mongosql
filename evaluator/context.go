@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/erh/mixer/sqlparser"
+	"github.com/deafgoat/mixer/sqlparser"
 	"strings"
 )
 

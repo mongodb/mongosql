@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/erh/mixer/sqlparser"
+	"github.com/deafgoat/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )

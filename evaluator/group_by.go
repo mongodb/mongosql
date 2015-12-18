@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/erh/mixer/sqlparser"
+	"github.com/deafgoat/mixer/sqlparser"
 )
 
 // orderedGroup holds all the rows belonging to a given key in the groups

@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/erh/mixer/sqlparser"
+	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 )
 

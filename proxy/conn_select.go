@@ -2,8 +2,8 @@ package proxy
 
 import (
 	"bytes"
-	. "github.com/erh/mixer/mysql"
-	"github.com/erh/mixer/sqlparser"
+	. "github.com/deafgoat/mixer/mysql"
+	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 )
 

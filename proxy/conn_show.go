@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/erh/mixer/hack"
-	. "github.com/erh/mixer/mysql"
-	"github.com/erh/mixer/sqlparser"
+	"github.com/deafgoat/mixer/hack"
+	. "github.com/deafgoat/mixer/mysql"
+	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 	"sort"
 	"strings"

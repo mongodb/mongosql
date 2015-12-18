@@ -1,9 +1,12 @@
-github.com/siddontang/go-yaml/yaml				d686370b54f9b15850653ad4537f5faa1eb744bb
-github.com/mongodb/mongo-tools/common			ec79a8183b012d3c55fc22fde298dd3032444b0b
-gopkg.in/mgo.v2			c6a7dce14133ccac2dcac3793f1d6e2ef048503a
-github.com/erh/mixer/sqlparser			4d7d5574831230e46fc9db43d8bf1fee9faa91b5
-github.com/smartystreets/goconvey				eb2e83c1df892d2c9ad5a3c85672da30be585dfd
+github.com/deafgoat/mixer/sqlparser			9b7a35798c8291ddd6cff13480c773594d5ce3a0
 github.com/go-sql-driver/mysql			v1.2
-github.com/jessevdk/go-flags	aa34304f81c710f34c76e964a3d996ec1330711d
 github.com/howeyc/gopass	ae71a9cc54fddb61d946abe9191d05a24ac0e21b
+github.com/jessevdk/go-flags	aa34304f81c710f34c76e964a3d996ec1330711d
+github.com/jtolds/gls	9a4a02dbe491bef4bab3c24fd9f3087d6c4c6690
+github.com/mongodb/mongo-tools/common			ec79a8183b012d3c55fc22fde298dd3032444b0b
+github.com/siddontang/go-yaml/yaml				d686370b54f9b15850653ad4537f5faa1eb744bb
+github.com/smartystreets/assertions				edb6e295a22c57a2aa353b2f0729b6eff9f9f4b7
+github.com/smartystreets/goconvey				eb2e83c1df892d2c9ad5a3c85672da30be585dfd
+
 golang.org/x/crypto/ssh/terminal	a7ead6ddf06233883deca151dffaef2effbf498f
+gopkg.in/mgo.v2			c6a7dce14133ccac2dcac3793f1d6e2ef048503a

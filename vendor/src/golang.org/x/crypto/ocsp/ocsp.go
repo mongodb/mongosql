@@ -9,15 +9,10 @@ package ocsp // import "golang.org/x/crypto/ocsp"
 
 import (
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha1"
+	_ "crypto/sha1"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
-	"errors"
 	"math/big"
 	"time"
 )
@@ -43,21 +38,6 @@ type certID struct {
 	SerialNumber  *big.Int
 }
 
-// https://tools.ietf.org/html/rfc2560#section-4.1.1
-type ocspRequest struct {
-	TBSRequest tbsRequest
-}
-
-type tbsRequest struct {
-	Version       int              `asn1:"explicit,tag:0,default:0,optional"`
-	RequestorName pkix.RDNSequence `asn1:"explicit,tag:1,optional"`
-	RequestList   []request
-}
-
-type request struct {
-	Cert certID
-}
-
 type responseASN1 struct {
 	Status   asn1.Enumerated
 	Response responseBytes `asn1:"explicit,tag:0"`
@@ -76,26 +56,26 @@ type basicResponse struct {
 }
 
 type responseData struct {
-	Raw              asn1.RawContent
-	Version          int           `asn1:"optional,default:1,explicit,tag:0"`
-	RawResponderName asn1.RawValue `asn1:"optional,explicit,tag:1"`
-	KeyHash          []byte        `asn1:"optional,explicit,tag:2"`
-	ProducedAt       time.Time     `asn1:"generalized"`
-	Responses        []singleResponse
+	Raw           asn1.RawContent
+	Version       int              `asn1:"optional,default:1,explicit,tag:0"`
+	RequestorName pkix.RDNSequence `asn1:"optional,explicit,tag:1"`
+	KeyHash       []byte           `asn1:"optional,explicit,tag:2"`
+	ProducedAt    time.Time
+	Responses     []singleResponse
 }
 
 type singleResponse struct {
 	CertID     certID
-	Good       asn1.Flag   `asn1:"tag:0,optional"`
-	Revoked    revokedInfo `asn1:"tag:1,optional"`
-	Unknown    asn1.Flag   `asn1:"tag:2,optional"`
-	ThisUpdate time.Time   `asn1:"generalized"`
-	NextUpdate time.Time   `asn1:"generalized,explicit,tag:0,optional"`
+	Good       asn1.Flag   `asn1:"explicit,tag:0,optional"`
+	Revoked    revokedInfo `asn1:"explicit,tag:1,optional"`
+	Unknown    asn1.Flag   `asn1:"explicit,tag:2,optional"`
+	ThisUpdate time.Time
+	NextUpdate time.Time `asn1:"explicit,tag:0,optional"`
 }
 
 type revokedInfo struct {
-	RevocationTime time.Time       `asn1:"generalized"`
-	Reason         asn1.Enumerated `asn1:"explicit,tag:0,optional"`
+	RevocationTime time.Time
+	Reason         int `asn1:"explicit,tag:0,optional"`
 }
 
 var (
@@ -113,124 +93,40 @@ var (
 	oidSignatureECDSAWithSHA512 = asn1.ObjectIdentifier{1, 2, 840, 10045, 4, 3, 4}
 )
 
-var hashOIDs = map[crypto.Hash]asn1.ObjectIdentifier{
-	crypto.SHA1:   asn1.ObjectIdentifier([]int{1, 3, 14, 3, 2, 26}),
-	crypto.SHA256: asn1.ObjectIdentifier([]int{2, 16, 840, 1, 101, 3, 4, 2, 1}),
-	crypto.SHA384: asn1.ObjectIdentifier([]int{2, 16, 840, 1, 101, 3, 4, 2, 2}),
-	crypto.SHA512: asn1.ObjectIdentifier([]int{2, 16, 840, 1, 101, 3, 4, 2, 3}),
-}
-
-// TODO(rlb): This is also from crypto/x509, so same comment as AGL's below
-var signatureAlgorithmDetails = []struct {
-	algo       x509.SignatureAlgorithm
-	oid        asn1.ObjectIdentifier
-	pubKeyAlgo x509.PublicKeyAlgorithm
-	hash       crypto.Hash
-}{
-	{x509.MD2WithRSA, oidSignatureMD2WithRSA, x509.RSA, crypto.Hash(0) /* no value for MD2 */},
-	{x509.MD5WithRSA, oidSignatureMD5WithRSA, x509.RSA, crypto.MD5},
-	{x509.SHA1WithRSA, oidSignatureSHA1WithRSA, x509.RSA, crypto.SHA1},
-	{x509.SHA256WithRSA, oidSignatureSHA256WithRSA, x509.RSA, crypto.SHA256},
-	{x509.SHA384WithRSA, oidSignatureSHA384WithRSA, x509.RSA, crypto.SHA384},
-	{x509.SHA512WithRSA, oidSignatureSHA512WithRSA, x509.RSA, crypto.SHA512},
-	{x509.DSAWithSHA1, oidSignatureDSAWithSHA1, x509.DSA, crypto.SHA1},
-	{x509.DSAWithSHA256, oidSignatureDSAWithSHA256, x509.DSA, crypto.SHA256},
-	{x509.ECDSAWithSHA1, oidSignatureECDSAWithSHA1, x509.ECDSA, crypto.SHA1},
-	{x509.ECDSAWithSHA256, oidSignatureECDSAWithSHA256, x509.ECDSA, crypto.SHA256},
-	{x509.ECDSAWithSHA384, oidSignatureECDSAWithSHA384, x509.ECDSA, crypto.SHA384},
-	{x509.ECDSAWithSHA512, oidSignatureECDSAWithSHA512, x509.ECDSA, crypto.SHA512},
-}
-
-// TODO(rlb): This is also from crypto/x509, so same comment as AGL's below
-func signingParamsForPublicKey(pub interface{}, requestedSigAlgo x509.SignatureAlgorithm) (hashFunc crypto.Hash, sigAlgo pkix.AlgorithmIdentifier, err error) {
-	var pubType x509.PublicKeyAlgorithm
-
-	switch pub := pub.(type) {
-	case *rsa.PublicKey:
-		pubType = x509.RSA
-		hashFunc = crypto.SHA256
-		sigAlgo.Algorithm = oidSignatureSHA256WithRSA
-		sigAlgo.Parameters = asn1.RawValue{
-			Tag: 5,
-		}
-
-	case *ecdsa.PublicKey:
-		pubType = x509.ECDSA
-
-		switch pub.Curve {
-		case elliptic.P224(), elliptic.P256():
-			hashFunc = crypto.SHA256
-			sigAlgo.Algorithm = oidSignatureECDSAWithSHA256
-		case elliptic.P384():
-			hashFunc = crypto.SHA384
-			sigAlgo.Algorithm = oidSignatureECDSAWithSHA384
-		case elliptic.P521():
-			hashFunc = crypto.SHA512
-			sigAlgo.Algorithm = oidSignatureECDSAWithSHA512
-		default:
-			err = errors.New("x509: unknown elliptic curve")
-		}
-
-	default:
-		err = errors.New("x509: only RSA and ECDSA keys supported")
-	}
-
-	if err != nil {
-		return
-	}
-
-	if requestedSigAlgo == 0 {
-		return
-	}
-
-	found := false
-	for _, details := range signatureAlgorithmDetails {
-		if details.algo == requestedSigAlgo {
-			if details.pubKeyAlgo != pubType {
-				err = errors.New("x509: requested SignatureAlgorithm does not match private key type")
-				return
-			}
-			sigAlgo.Algorithm, hashFunc = details.oid, details.hash
-			if hashFunc == 0 {
-				err = errors.New("x509: cannot sign with hash function requested")
-				return
-			}
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		err = errors.New("x509: unknown SignatureAlgorithm")
-	}
-
-	return
-}
-
 // TODO(agl): this is taken from crypto/x509 and so should probably be exported
 // from crypto/x509 or crypto/x509/pkix.
 func getSignatureAlgorithmFromOID(oid asn1.ObjectIdentifier) x509.SignatureAlgorithm {
-	for _, details := range signatureAlgorithmDetails {
-		if oid.Equal(details.oid) {
-			return details.algo
-		}
+	switch {
+	case oid.Equal(oidSignatureMD2WithRSA):
+		return x509.MD2WithRSA
+	case oid.Equal(oidSignatureMD5WithRSA):
+		return x509.MD5WithRSA
+	case oid.Equal(oidSignatureSHA1WithRSA):
+		return x509.SHA1WithRSA
+	case oid.Equal(oidSignatureSHA256WithRSA):
+		return x509.SHA256WithRSA
+	case oid.Equal(oidSignatureSHA384WithRSA):
+		return x509.SHA384WithRSA
+	case oid.Equal(oidSignatureSHA512WithRSA):
+		return x509.SHA512WithRSA
+	case oid.Equal(oidSignatureDSAWithSHA1):
+		return x509.DSAWithSHA1
+	case oid.Equal(oidSignatureDSAWithSHA256):
+		return x509.DSAWithSHA256
+	case oid.Equal(oidSignatureECDSAWithSHA1):
+		return x509.ECDSAWithSHA1
+	case oid.Equal(oidSignatureECDSAWithSHA256):
+		return x509.ECDSAWithSHA256
+	case oid.Equal(oidSignatureECDSAWithSHA384):
+		return x509.ECDSAWithSHA384
+	case oid.Equal(oidSignatureECDSAWithSHA512):
+		return x509.ECDSAWithSHA512
 	}
 	return x509.UnknownSignatureAlgorithm
 }
 
-// TODO(rlb): This is not taken from crypto/x509, but it's of the same general form.
-func getHashAlgorithmFromOID(target asn1.ObjectIdentifier) crypto.Hash {
-	for hash, oid := range hashOIDs {
-		if oid.Equal(target) {
-			return hash
-		}
-	}
-	return crypto.Hash(0)
-}
-
 // This is the exposed reflection of the internal OCSP structures.
 
-// The status values that can be expressed in OCSP.  See RFC 6960.
 const (
 	// Good means that the certificate is valid.
 	Good = iota
@@ -241,29 +137,6 @@ const (
 	// ServerFailed means that the OCSP responder failed to process the request.
 	ServerFailed = iota
 )
-
-// The enumerated reasons for revoking a certificate.  See RFC 5280.
-const (
-	Unspecified          = iota
-	KeyCompromise        = iota
-	CACompromise         = iota
-	AffiliationChanged   = iota
-	Superseded           = iota
-	CessationOfOperation = iota
-	CertificateHold      = iota
-	_                    = iota
-	RemoveFromCRL        = iota
-	PrivilegeWithdrawn   = iota
-	AACompromise         = iota
-)
-
-// Request represents an OCSP request. See RFC 2560.
-type Request struct {
-	HashAlgorithm  crypto.Hash
-	IssuerNameHash []byte
-	IssuerKeyHash  []byte
-	SerialNumber   *big.Int
-}
 
 // Response represents an OCSP response. See RFC 2560.
 type Response struct {
@@ -280,18 +153,6 @@ type Response struct {
 	SignatureAlgorithm x509.SignatureAlgorithm
 }
 
-// These are pre-serialized error responses for the various non-success codes
-// defined by OCSP. The Unauthorized code in particular can be used by an OCSP
-// responder that supports only pre-signed responses as a response to requests
-// for certificates with unknown status. See RFC 5019.
-var (
-	MalformedRequestErrorResponse = []byte{0x30, 0x03, 0x0A, 0x01, 0x01}
-	InternalErrorErrorResponse    = []byte{0x30, 0x03, 0x0A, 0x01, 0x02}
-	TryLaterErrorResponse         = []byte{0x30, 0x03, 0x0A, 0x01, 0x03}
-	SigRequredErrorResponse       = []byte{0x30, 0x03, 0x0A, 0x01, 0x05}
-	UnauthorizedErrorResponse     = []byte{0x30, 0x03, 0x0A, 0x01, 0x06}
-)
-
 // CheckSignatureFrom checks that the signature in resp is a valid signature
 // from issuer. This should only be used if resp.Certificate is nil. Otherwise,
 // the OCSP response contained an intermediate certificate that created the
@@ -306,37 +167,6 @@ type ParseError string
 
 func (p ParseError) Error() string {
 	return string(p)
-}
-
-// ParseRequest parses an OCSP request in DER form. It only supports
-// requests for a single certificate. Signed requests are not supported.
-// If a request includes a signature, it will result in a ParseError.
-func ParseRequest(bytes []byte) (*Request, error) {
-	var req ocspRequest
-	rest, err := asn1.Unmarshal(bytes, &req)
-	if err != nil {
-		return nil, err
-	}
-	if len(rest) > 0 {
-		return nil, ParseError("trailing data in OCSP request")
-	}
-
-	if len(req.TBSRequest.RequestList) == 0 {
-		return nil, ParseError("OCSP request contains no request body")
-	}
-	innerRequest := req.TBSRequest.RequestList[0]
-
-	hashFunc := getHashAlgorithmFromOID(innerRequest.Cert.HashAlgorithm.Algorithm)
-	if hashFunc == crypto.Hash(0) {
-		return nil, ParseError("OCSP request uses unknown hash function")
-	}
-
-	return &Request{
-		HashAlgorithm:  hashFunc,
-		IssuerNameHash: innerRequest.Cert.NameHash,
-		IssuerKeyHash:  innerRequest.Cert.IssuerKeyHash,
-		SerialNumber:   innerRequest.Cert.SerialNumber,
-	}, nil
 }
 
 // ParseResponse parses an OCSP response in DER form. It only supports
@@ -415,7 +245,7 @@ func ParseResponse(bytes []byte, issuer *x509.Certificate) (*Response, error) {
 	default:
 		ret.Status = Revoked
 		ret.RevokedAt = r.Revoked.RevocationTime
-		ret.RevocationReason = int(r.Revoked.Reason)
+		ret.RevocationReason = r.Revoked.Reason
 	}
 
 	ret.ProducedAt = basicResp.TBSResponseData.ProducedAt
@@ -423,6 +253,20 @@ func ParseResponse(bytes []byte, issuer *x509.Certificate) (*Response, error) {
 	ret.NextUpdate = r.NextUpdate
 
 	return ret, nil
+}
+
+// https://tools.ietf.org/html/rfc2560#section-4.1.1
+type ocspRequest struct {
+	TBSRequest tbsRequest
+}
+
+type tbsRequest struct {
+	Version     int `asn1:"explicit,tag:0,default:0"`
+	RequestList []request
+}
+
+type request struct {
+	Cert certID
 }
 
 // RequestOptions contains options for constructing OCSP requests.
@@ -449,8 +293,16 @@ func CreateRequest(cert, issuer *x509.Certificate, opts *RequestOptions) ([]byte
 	// used. I took the following from
 	// http://msdn.microsoft.com/en-us/library/ff635603.aspx
 	var hashOID asn1.ObjectIdentifier
-	hashOID, ok := hashOIDs[hashFunc]
-	if !ok {
+	switch hashFunc {
+	case crypto.SHA1:
+		hashOID = asn1.ObjectIdentifier([]int{1, 3, 14, 3, 2, 26})
+	case crypto.SHA256:
+		hashOID = asn1.ObjectIdentifier([]int{2, 16, 840, 1, 101, 3, 4, 2, 1})
+	case crypto.SHA384:
+		hashOID = asn1.ObjectIdentifier([]int{2, 16, 840, 1, 101, 3, 4, 2, 2})
+	case crypto.SHA512:
+		hashOID = asn1.ObjectIdentifier([]int{2, 16, 840, 1, 101, 3, 4, 2, 3})
+	default:
 		return nil, x509.ErrUnsupportedAlgorithm
 	}
 
@@ -490,119 +342,6 @@ func CreateRequest(cert, issuer *x509.Certificate, opts *RequestOptions) ([]byte
 					},
 				},
 			},
-		},
-	})
-}
-
-// CreateResponse returns a DER-encoded OCSP response with the specified contents.
-// The fields in the response are populated as follows:
-//
-// The responder cert is used to populate the ResponderName field, and the certificate
-// itself is provided alongside the OCSP response signature.
-//
-// The issuer cert is used to puplate the IssuerNameHash and IssuerKeyHash fields.
-// (SHA-1 is used for the hash function; this is not configurable.)
-//
-// The template is used to populate the SerialNumber, RevocationStatus, RevokedAt,
-// RevocationReason, ThisUpdate, and NextUpdate fields.
-//
-// The ProducedAt date is automatically set to the current date, to the nearest minute.
-func CreateResponse(issuer, responderCert *x509.Certificate, template Response, priv crypto.Signer) ([]byte, error) {
-	var publicKeyInfo struct {
-		Algorithm pkix.AlgorithmIdentifier
-		PublicKey asn1.BitString
-	}
-	if _, err := asn1.Unmarshal(issuer.RawSubjectPublicKeyInfo, &publicKeyInfo); err != nil {
-		return nil, err
-	}
-
-	h := sha1.New()
-	h.Write(publicKeyInfo.PublicKey.RightAlign())
-	issuerKeyHash := h.Sum(nil)
-
-	h.Reset()
-	h.Write(issuer.RawSubject)
-	issuerNameHash := h.Sum(nil)
-
-	innerResponse := singleResponse{
-		CertID: certID{
-			HashAlgorithm: pkix.AlgorithmIdentifier{
-				Algorithm:  hashOIDs[crypto.SHA1],
-				Parameters: asn1.RawValue{Tag: 5 /* ASN.1 NULL */},
-			},
-			NameHash:      issuerNameHash,
-			IssuerKeyHash: issuerKeyHash,
-			SerialNumber:  template.SerialNumber,
-		},
-		ThisUpdate: template.ThisUpdate.UTC(),
-		NextUpdate: template.NextUpdate.UTC(),
-	}
-
-	switch template.Status {
-	case Good:
-		innerResponse.Good = true
-	case Unknown:
-		innerResponse.Unknown = true
-	case Revoked:
-		innerResponse.Revoked = revokedInfo{
-			RevocationTime: template.RevokedAt.UTC(),
-			Reason:         asn1.Enumerated(template.RevocationReason),
-		}
-	}
-
-	responderName := asn1.RawValue{
-		Class:      2, // context-specific
-		Tag:        1, // explicit tag
-		IsCompound: true,
-		Bytes:      responderCert.RawSubject,
-	}
-	tbsResponseData := responseData{
-		Version:          0,
-		RawResponderName: responderName,
-		ProducedAt:       time.Now().Truncate(time.Minute).UTC(),
-		Responses:        []singleResponse{innerResponse},
-	}
-
-	tbsResponseDataDER, err := asn1.Marshal(tbsResponseData)
-	if err != nil {
-		return nil, err
-	}
-
-	hashFunc, signatureAlgorithm, err := signingParamsForPublicKey(priv.Public(), template.SignatureAlgorithm)
-	if err != nil {
-		return nil, err
-	}
-
-	responseHash := hashFunc.New()
-	responseHash.Write(tbsResponseDataDER)
-	signature, err := priv.Sign(rand.Reader, responseHash.Sum(nil), hashFunc)
-	if err != nil {
-		return nil, err
-	}
-
-	response := basicResponse{
-		TBSResponseData:    tbsResponseData,
-		SignatureAlgorithm: signatureAlgorithm,
-		Signature: asn1.BitString{
-			Bytes:     signature,
-			BitLength: 8 * len(signature),
-		},
-	}
-	if template.Certificate != nil {
-		response.Certificates = []asn1.RawValue{
-			asn1.RawValue{FullBytes: template.Certificate.Raw},
-		}
-	}
-	responseDER, err := asn1.Marshal(response)
-	if err != nil {
-		return nil, err
-	}
-
-	return asn1.Marshal(responseASN1{
-		Status: ocspSuccess,
-		Response: responseBytes{
-			ResponseType: idPKIXOCSPBasic,
-			Response:     responseDER,
 		},
 	})
 }
