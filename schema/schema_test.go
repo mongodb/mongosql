@@ -20,30 +20,30 @@ log_level : error
 
 schema:
 - 
-  name: test1
+  db: test1
   tables:
   - 
      table: foo
      collection: test.foo
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: int
      -
-        sqlname: b
+        name: b
         sqltype: string
 -
-  name: test2
+  db: test2
   tables:
   -
      table: bar
      collection: test.bar
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: string
      -
-        sqlname: b
+        name: b
         sqltype: int
      pipeline:
      -
@@ -125,30 +125,30 @@ schema_dir : foo
 		`
 schema:
 -
-  name: test1
+  db: test1
   tables:
   - 
      table: foo
      collection: test.foo
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: int
      -
-        sqlname: b
+        name: b
         sqltype: string
 -
-  name: test2
+  db: test2
   tables:
   -
      table: bar
      collection: test.bar
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: string
      -
-        sqlname: b
+        name: b
         sqltype: int
      pipeline:
      -
@@ -203,11 +203,11 @@ schema:
 		t.Fatal("map broken 2")
 	}
 
-	if len(cfg.Databases["test1"].Tables["foo"].Columns) != 2 {
+	if len(cfg.Databases["test1"].Tables["foo"].RawColumns) != 2 {
 		t.Fatal("test1.foo num columns wrong")
 	}
 
-	if cfg.Databases["test1"].Tables["foo"].Columns[0].SqlName != "a" {
+	if cfg.Databases["test1"].Tables["foo"].RawColumns[0].SqlName != "a" {
 		t.Fatal("test1.foo.a name wrong")
 	}
 
@@ -231,30 +231,30 @@ log_level : error
 schema_dir : foo
 schema:
 -
-  name: test1
+  db: test1
   tables:
   - 
      table: foo
      collection: test.foo
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: int
      -
-        sqlname: b
+        name: b
         sqltype: string
 -
-  name: test3
+  db: test3
   tables:
   - 
      table: foo
      collection: test.foo
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: int
      -
-        sqlname: b
+        name: b
         sqltype: string
 
 `)
@@ -263,30 +263,30 @@ schema:
 		`
 schema:
 -
-  name: test2
+  db: test2
   tables:
   -
      table: bar
      collection: test.bar
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: string
      -
-        sqlname: b
+        name: b
         sqltype: int
 -
-  name: test3
+  db: test3
   tables:
   - 
      table: bar
      collection: test.foo
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: int
      -
-        sqlname: b
+        name: b
         sqltype: string
 
 `)
@@ -347,17 +347,17 @@ log_level : error
 schema_dir : foo
 schema:
 -
-  name: test3
+  db: test3
   tables:
   - 
      table: foo
      collection: test.foo
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: int
      -
-        sqlname: b
+        name: b
         sqltype: string
 
 `)
@@ -366,17 +366,17 @@ schema:
 		`
 schema:
 -
-  name: test3
+  db: test3
   tables:
   - 
      table: foo
      collection: test.foo
      columns:
      -
-        sqlname: a
+        name: a
         sqltype: int
      -
-        sqlname: b
+        name: b
         sqltype: string
 
 `)
