@@ -2,7 +2,7 @@ package schema
 
 import (
 	"fmt"
-	"github.com/siddontang/go-yaml/yaml"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
