@@ -21,13 +21,23 @@ func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error
 
 		log.Logf(log.DebugLow, "Planning select query for %#v\n", sqlparser.String(ss))
 
-		return planSelectExpr(ctx, ast)
+		o, err := planSelectExpr(ctx, ast)
+		if err != nil {
+			return nil, err
+		}
+
+		return OptimizeOperator(ctx, o)
 
 	case *sqlparser.SimpleSelect:
 
 		log.Logf(log.DebugLow, "Planning simple select query for %#v\n", sqlparser.String(ss))
 
-		return planSimpleSelectExpr(ctx, ast)
+		o, err := planSimpleSelectExpr(ctx, ast)
+		if err != nil {
+			return nil, err
+		}
+
+		return OptimizeOperator(ctx, o)
 
 	case *sqlparser.Union:
 

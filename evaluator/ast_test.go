@@ -245,10 +245,10 @@ func TestEvaluates(t *testing.T) {
 				subject := &SQLTupleExpr{[]SQLExpr{SQLInt(10), &SQLAddExpr{SQLInt(30), SQLInt(12)}}}
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
-				So(result, ShouldHaveSameTypeAs, SQLValues{})
-				resultValues := result.(SQLValues)
-				So(resultValues[0], ShouldEqual, SQLInt(10))
-				So(resultValues[1], ShouldEqual, SQLInt(42))
+				So(result, ShouldHaveSameTypeAs, &SQLValues{})
+				resultValues := result.(*SQLValues)
+				So(resultValues.Values[0], ShouldEqual, SQLInt(10))
+				So(resultValues.Values[1], ShouldEqual, SQLInt(42))
 			})
 		})
 
@@ -342,6 +342,7 @@ func TestOptimizeSQLExpr(t *testing.T) {
 			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
 			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
 			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
 		}
 
 		runTests(tests)
@@ -366,7 +367,6 @@ func TestTranslatePredicate(t *testing.T) {
 				So(ok, ShouldBeTrue)
 				jsonResult, err := json.Marshal(result)
 				So(err, ShouldBeNil)
-
 				So(string(jsonResult), ShouldEqual, t.expected)
 			})
 		}

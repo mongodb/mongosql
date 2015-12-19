@@ -22,6 +22,7 @@ type TableScan struct {
 	session     *mgo.Session
 	tableSchema *schema.Table
 	ctx         *ExecutionCtx
+	pipeline    []bson.M
 	err         error
 }
 
@@ -62,8 +63,8 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 	ts.session.SetSocketTimeout(0)
 	db := ts.session.DB(pcs[0])
 	collection := db.C(pcs[1])
-	query := collection.Find(nil)
-	ts.iter = MgoFindResults{query.Iter()}
+	agg := collection.Pipe(ts.pipeline)
+	ts.iter = MgoFindResults{agg.Iter()}
 
 	return nil
 }

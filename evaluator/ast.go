@@ -447,10 +447,10 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		// nothing to do
 	case SQLTimestamp:
 		// nothing to do
-	case SQLValues:
+	case *SQLValues:
 		hasNewValue := false
 		newValues := []SQLValue{}
-		for _, value := range typedE {
+		for _, value := range typedE.Values {
 			newValueExpr, err := v.Visit(value)
 			if err != nil {
 				return nil, err
@@ -468,7 +468,7 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		}
 
 		if hasNewValue {
-			e = SQLValues(newValues)
+			e = &SQLValues{newValues}
 		}
 
 	case SQLUint32:

@@ -46,7 +46,7 @@ func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(SQLValues); ok {
+	if _, ok := rightEvald.(*SQLValues); ok {
 		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c == 0), nil
@@ -122,7 +122,7 @@ func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(SQLValues); ok {
+	if _, ok := rightEvald.(*SQLValues); ok {
 		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c < 0), nil
@@ -154,7 +154,7 @@ func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(SQLValues); ok {
+	if _, ok := rightEvald.(*SQLValues); ok {
 		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c <= 0), nil
@@ -188,20 +188,20 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	// right child must be of type SQLValues
 	// TODO: can we not simply require this as part of the node definition?
-	rightChild, ok := right.(SQLValues)
+	rightChild, ok := right.(*SQLValues)
 	if !ok {
 		return SQLFalse, fmt.Errorf("right In expression is %T", right)
 	}
 
-	leftChild, ok := left.(SQLValues)
+	leftChild, ok := left.(*SQLValues)
 	if ok {
-		if len(leftChild) != 1 {
+		if len(leftChild.Values) != 1 {
 			return SQLFalse, fmt.Errorf("left operand should contain 1 column")
 		}
-		left = leftChild[0]
+		left = leftChild.Values[0]
 	}
 
-	for _, right := range rightChild {
+	for _, right := range rightChild.Values {
 		eq := &SQLEqualsExpr{left, right}
 		m, err := Matches(eq, ctx)
 		if err != nil {
@@ -232,7 +232,7 @@ func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(SQLValues); ok {
+	if _, ok := rightEvald.(*SQLValues); ok {
 		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c > 0), nil
@@ -264,7 +264,7 @@ func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(SQLValues); ok {
+	if _, ok := rightEvald.(*SQLValues); ok {
 		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c >= 0), nil
@@ -363,7 +363,7 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(SQLValues); ok {
+	if _, ok := rightEvald.(*SQLValues); ok {
 		c, err := rightEvald.CompareTo(leftEvald)
 		if err == nil {
 			return SQLBool(c != 0), nil
@@ -465,7 +465,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	matched := false
 
-	right := SQLValues{}
+	right := &SQLValues{}
 	for operator.Next(row) {
 
 		values := row.GetValues(operator.OpFields())
@@ -475,7 +475,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 			if err != nil {
 				return SQLFalse, err
 			}
-			right = append(right, field)
+			right.Values = append(right.Values, field)
 		}
 
 		eq := &SQLEqualsExpr{left, right}
@@ -492,7 +492,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 			}
 		}
 
-		row, right = &Row{}, SQLValues{}
+		row, right = &Row{}, &SQLValues{}
 
 	}
 

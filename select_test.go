@@ -1549,7 +1549,7 @@ func TestSelectWithCaseExpr(t *testing.T) {
 			}
 
 			for i, v := range expectedValues {
-				caseValue := evaluator.SQLValues{v[1]}
+				caseValue := &evaluator.SQLValues{[]evaluator.SQLValue{v[1]}}
 				So(values[i], ShouldResemble, []interface{}{v[0], caseValue})
 			}
 
@@ -1571,7 +1571,7 @@ func TestSelectWithCaseExpr(t *testing.T) {
 			}
 
 			for i, v := range expectedValues {
-				caseValue := evaluator.SQLValues{v[1]}
+				caseValue := &evaluator.SQLValues{[]evaluator.SQLValue{v[1]}}
 				So(values[i], ShouldResemble, []interface{}{v[0], caseValue})
 			}
 

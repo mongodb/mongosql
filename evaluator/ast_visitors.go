@@ -162,6 +162,14 @@ func (n *normalizer) Visit(e SQLExpr) (SQLExpr, error) {
 			}
 			return typedE.left, nil
 		}
+	case *SQLTupleExpr:
+		if len(typedE.Exprs) == 1 {
+			return typedE.Exprs[0], nil
+		}
+	case *SQLValues:
+		if len(typedE.Values) == 1 {
+			return typedE.Values[0], nil
+		}
 	}
 
 	return e, nil

@@ -278,3 +278,199 @@ func bsonDToValues(document bson.D) ([]Value, error) {
 	}
 	return values, nil
 }
+
+// OperatorVisitor is an implementation of the visitor pattern.
+type OperatorVisitor interface {
+	// Visit is called with an operator. It returns:
+	// - Operator is the operator used to replace the argument.
+	// - error
+	Visit(o Operator) (Operator, error)
+}
+
+// walkOperatorTree handles walking the children of the provided operator, calling
+// v.Visit on each child which is an operator. Some visitor implementations
+// may ignore this method completely, but most will use it as the default
+// implementation for a majority of nodes.
+func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
+	switch typedO := o.(type) {
+	case *AliasedSource:
+		source, err := v.Visit(typedO.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.source != source {
+			o = &AliasedSource{
+				tableName: typedO.tableName,
+				source:    source,
+			}
+		}
+	case *Dual:
+		// nothing to do
+	case *Filter:
+		source, err := v.Visit(typedO.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.source != source {
+			o = &Filter{
+				err:         typedO.err,
+				source:      source,
+				matcher:     typedO.matcher,
+				ctx:         typedO.ctx,
+				hasSubquery: typedO.hasSubquery}
+		}
+	case *GroupBy:
+		source, err := v.Visit(typedO.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.source != source {
+			o = &GroupBy{
+				source:        source,
+				sExprs:        typedO.sExprs,
+				exprs:         typedO.exprs,
+				grouped:       typedO.grouped,
+				err:           typedO.err,
+				finalGrouping: typedO.finalGrouping,
+				outChan:       typedO.outChan,
+				matcher:       typedO.matcher,
+				orderBy:       typedO.orderBy,
+				ctx:           typedO.ctx,
+			}
+		}
+	case *Having:
+		source, err := v.Visit(typedO.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.source != source {
+			o = &Having{
+				source:  source,
+				sExprs:  typedO.sExprs,
+				err:     typedO.err,
+				data:    typedO.data,
+				matcher: typedO.matcher,
+				hasNext: typedO.hasNext,
+			}
+		}
+	case *Join:
+		left, err := v.Visit(typedO.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := v.Visit(typedO.right)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.left != left || typedO.right != right {
+			o = &Join{
+				left:      left,
+				right:     right,
+				on:        typedO.on,
+				err:       typedO.err,
+				kind:      typedO.kind,
+				strategy:  typedO.strategy,
+				leftRows:  typedO.leftRows,
+				rightRows: typedO.rightRows,
+				onChan:    typedO.onChan,
+				errChan:   typedO.errChan,
+			}
+		}
+	case *Limit:
+		source, err := v.Visit(typedO.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.source != source {
+			o = &Limit{
+				source:   source,
+				rowcount: typedO.rowcount,
+				offset:   typedO.offset,
+				total:    typedO.total,
+			}
+		}
+	case *OrderBy:
+		source, err := v.Visit(typedO.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.source != source {
+			o = &OrderBy{
+				source:  source,
+				keys:    typedO.keys,
+				outChan: typedO.outChan,
+				sorted:  typedO.sorted,
+				ctx:     typedO.ctx,
+				err:     typedO.err,
+			}
+		}
+	case *Project:
+		source, err := v.Visit(typedO.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.source != source {
+			o = &Project{
+				source:      source,
+				sExprs:      typedO.sExprs,
+				viewColumns: typedO.viewColumns,
+			}
+		}
+	case *SchemaDataSource:
+		// nothing to do
+	case *Select:
+		source, err := v.Visit(typedO.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.source != source {
+			o = &Select{
+				source: source,
+				sExprs: typedO.sExprs,
+				err:    typedO.err,
+				ctx:    typedO.ctx,
+			}
+		}
+	case *SourceAppend:
+		source, err := v.Visit(typedO.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.source != source {
+			o = &SourceAppend{
+				source:      source,
+				ctx:         typedO.ctx,
+				hasSubquery: typedO.hasSubquery,
+			}
+		}
+	case *SourceRemove:
+		source, err := v.Visit(typedO.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.source != source {
+			o = &SourceRemove{
+				source:      source,
+				ctx:         typedO.ctx,
+				hasSubquery: typedO.hasSubquery,
+			}
+		}
+	case *TableScan:
+		// nothing to do
+	default:
+		return nil, fmt.Errorf("unsupported operator: %T", typedO)
+	}
+
+	return o, nil
+}

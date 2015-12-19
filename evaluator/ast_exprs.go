@@ -481,7 +481,7 @@ func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 
 	values := row.GetValues(operator.OpFields())
 
-	eval := SQLValues{}
+	eval := &SQLValues{}
 	for _, value := range values {
 
 		field, err := NewSQLValue(value, "")
@@ -489,8 +489,7 @@ func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 			return nil, err
 		}
 
-		eval = append(eval, field)
-
+		eval.Values = append(eval.Values, field)
 	}
 
 	return eval, nil
@@ -514,5 +513,5 @@ func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		values = append(values, value)
 	}
 
-	return SQLValues(values), nil
+	return &SQLValues{values}, nil
 }

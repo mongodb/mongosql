@@ -108,11 +108,11 @@ func convertToSQLNumeric(expr SQLExpr, ctx *EvalCtx) (SQLNumeric, error) {
 	switch v := eval.(type) {
 	case SQLNumeric:
 		return v, nil
-	case SQLValues:
-		if len(v) != 1 {
-			return nil, fmt.Errorf("expected only one SQLValues value - got %v", len(v))
+	case *SQLValues:
+		if len(v.Values) != 1 {
+			return nil, fmt.Errorf("expected only one SQLValues value - got %v", len(v.Values))
 		}
-		return convertToSQLNumeric(v[0], ctx)
+		return convertToSQLNumeric(v.Values[0], ctx)
 	default:
 		return nil, fmt.Errorf("can not convert %T to SQLNumeric", eval)
 	}

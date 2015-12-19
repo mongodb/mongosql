@@ -28,7 +28,7 @@ func formatValue(value interface{}) ([]byte, error) {
 
 	case evaluator.SQLValues:
 		slice := []byte{}
-		for _, value := range v {
+		for _, value := range v.Values {
 			b, err := formatValue(value)
 			if err != nil {
 				return nil, err

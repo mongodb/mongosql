@@ -433,32 +433,34 @@ func (ss SQLString) Value() interface{} {
 //
 // SQLValues represents multiple sql values.
 //
-type SQLValues []SQLValue
+type SQLValues struct {
+	Values []SQLValue
+}
 
-func (sv SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (sv *SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sv, nil
 }
 
-func (sv SQLValues) CompareTo(v SQLValue) (int, error) {
+func (sv *SQLValues) CompareTo(v SQLValue) (int, error) {
 
-	r, ok := v.(SQLValues)
+	r, ok := v.(*SQLValues)
 	if !ok {
 		//
 		// allows for implicit row value comparisons such as:
 		//
 		// select a, b from foo where (a) < 3;
 		//
-		if len(sv) != 1 {
-			return 1, fmt.Errorf("Operand should contain %v columns", len(sv))
+		if len(sv.Values) != 1 {
+			return 1, fmt.Errorf("Operand should contain %v columns", len(sv.Values))
 		}
-		r = append(r, v)
-	} else if len(sv) != len(r) {
-		return 1, fmt.Errorf("Operand should contain %v columns", len(sv))
+		r = &SQLValues{[]SQLValue{v}}
+	} else if len(sv.Values) != len(r.Values) {
+		return 1, fmt.Errorf("Operand should contain %v columns", len(sv.Values))
 	}
 
-	for i := 0; i < len(sv); i++ {
+	for i := 0; i < len(sv.Values); i++ {
 
-		c, err := sv[i].CompareTo(r[i])
+		c, err := sv.Values[i].CompareTo(r.Values[i])
 		if err != nil {
 			return 1, err
 		}
@@ -472,9 +474,9 @@ func (sv SQLValues) CompareTo(v SQLValue) (int, error) {
 	return 0, nil
 }
 
-func (sv SQLValues) Value() interface{} {
+func (sv *SQLValues) Value() interface{} {
 	values := []interface{}{}
-	for _, v := range sv {
+	for _, v := range sv.Values {
 		values = append(values, v)
 	}
 	return values
