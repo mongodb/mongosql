@@ -1776,7 +1776,7 @@ func TestSelectWithSubqueryWhere(t *testing.T) {
 
 		})
 
-		Convey("subqueries returning exactly one row should be filtered correctly than one row", func() {
+		Convey("subqueries returning exactly one row should be filtered correctly", func() {
 
 			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a, b) > (select a, b from bar where a = 2)", nil, nil)
 			So(err, ShouldBeNil)

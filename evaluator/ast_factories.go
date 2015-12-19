@@ -145,6 +145,8 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case time.Time:
 
+			v = v.In(schema.DefaultLocale)
+
 			date = time.Date(v.Year(), v.Month(), v.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 
 		case string:
@@ -164,7 +166,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		return SQLDate{date}, nil
 
-	case schema.SQLDatetime:
+	case schema.SQLDateTime:
 
 		lower := time.Date(1000, time.January, 1, 0, 0, 0, 0, schema.DefaultLocale)
 		upper := time.Date(9999, time.December, 31, 23, 59, 59, 0, schema.DefaultLocale)
@@ -175,7 +177,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case time.Time:
 
-			dt = v
+			dt = v.In(schema.DefaultLocale)
 
 		case string:
 
@@ -210,7 +212,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case time.Time:
 
-			ts = v
+			ts = v.In(schema.DefaultLocale)
 
 		case string:
 
@@ -247,7 +249,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		switch v := value.(type) {
 
 		case time.Time:
-			return SQLYear{v}, nil
+			return SQLYear{v.In(schema.DefaultLocale)}, nil
 
 		case int, int32, int64:
 			year, err := getYear(value.(int), true)

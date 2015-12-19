@@ -135,6 +135,8 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 			resultContainer = append(resultContainer, new(int))
 		case schema.SQLFloat:
 			resultContainer = append(resultContainer, new(float64))
+		default:
+			resultContainer = append(resultContainer, new(string))
 		}
 	}
 	for rows.Next() {
@@ -157,6 +159,7 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 
 func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error {
 	// populate the DB with data for all the files in the config's list of json files
+
 	for _, dataSet := range conf.Data {
 		ns := strings.SplitN(dataSet.NS, ".", 2)
 		if len(ns) != 2 {

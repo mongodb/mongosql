@@ -44,7 +44,7 @@ schema:
           sqltype: string
         - name: "flight_date"
           sqlname: "flight_date"
-          sqltype: timestamp
+          sqltype: date
         - name: "dest_city_name"
           sqlname: "dest_city_name"
           sqltype: string
@@ -163,7 +163,9 @@ testcases:
     - sql: "SELECT flights201406.origin_city_market_id AS origin_city_market_id FROM public.flights201406 flights201406 GROUP BY 1 ORDER BY 1"
       expected_types: [int]
       expected: *query4_results
-    #- sql: "SELECT MIN(flights201406.flight_date) AS TEMP(flight_date_lower)(290714814)(0), MAX(flights201406.flight_date) AS TEMP(flight_date_upper)(290714814)(0) FROM public.flights201406 flights201406 HAVING (COUNT(1) > 0);"
+    - sql: "SELECT MIN(flights201406.flight_date) AS `TEMP(flight_date_lower)(290714814)(0)`, MAX(flights201406.flight_date) AS `TEMP(flight_date_upper)(290714814)(0)` FROM public.flights201406 flights201406 HAVING (COUNT(1) > 0);"
+      expected_types: [date, date]
+      expected: *query5_results
     #- sql: "SELECT attendees.airport_city AS airport_city, attendees.latitude AS latitude, attendees.longitude AS longitude, SUM(1) AS records FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703)) GROUP BY 1, 2, 3;"
     #- sql: "SELECT attendees.city AS city, SUM(1) AS calculation_4190704170258269 FROM public.attendees attendees  INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1;"
     #- sql: "SELECT attendees.city AS city, COUNT(DISTINCT attendees._id) AS ctd_id FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1;"
@@ -894,3 +896,6 @@ query4_results: &query4_results
   - [ 35841 ]
   - [ 35897 ]
   - [ 35991 ]
+
+query5_results: &query5_results
+  - [ "2014-06-01", "2014-06-30" ]

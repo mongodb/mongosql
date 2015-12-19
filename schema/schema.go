@@ -13,7 +13,7 @@ const (
 	SQLVarchar        = "varchar"
 
 	SQLDate      = "date"
-	SQLDatetime  = "datetime"
+	SQLDateTime  = "datetime"
 	SQLTime      = "time"
 	SQLTimestamp = "timestamp"
 	SQLYear      = "year"
@@ -105,7 +105,7 @@ func (c *Column) validateType() error {
 	case SQLVarchar:
 
 	case SQLYear:
-	case SQLDatetime:
+	case SQLDateTime:
 	case SQLTimestamp:
 	case SQLTime:
 	case SQLDate:
