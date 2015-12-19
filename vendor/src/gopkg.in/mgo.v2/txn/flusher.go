@@ -395,15 +395,12 @@ func (f *flusher) rescan(t *transaction, force bool) (revnos []int64, err error)
 	revno := make(map[docKey]int64)
 	info := txnInfo{}
 	for _, dkey := range dkeys {
-		const retries = 3
-		retry := -1
+		retry := 0
 
 	RetryDoc:
-		retry++
 		c := f.tc.Database.C(dkey.C)
 		if err := c.FindId(dkey.Id).Select(txnFields).One(&info); err == mgo.ErrNotFound {
 			// Document is missing. Look in stash.
-			chaos("")
 			if err := f.sc.FindId(dkey).One(&info); err == mgo.ErrNotFound {
 				// Stash also doesn't exist. Maybe someone applied it.
 				if err := f.reload(t); err != nil {
@@ -412,7 +409,8 @@ func (f *flusher) rescan(t *transaction, force bool) (revnos []int64, err error)
 					return t.Revnos, err
 				}
 				// Not applying either.
-				if retry < retries {
+				retry++
+				if retry < 3 {
 					// Retry since there might be an insert/remove race.
 					goto RetryDoc
 				}
@@ -453,28 +451,13 @@ func (f *flusher) rescan(t *transaction, force bool) (revnos []int64, err error)
 		}
 		f.queue[dkey] = info.Queue
 		if !found {
-			// Rescanned transaction id was not in the queue. This could mean one
-			// of three things:
-			//  1) The transaction was applied and popped by someone else. This is
-			//     the common case.
-			//  2) We've read an out-of-date queue from the stash. This can happen
-			//     when someone else was paused for a long while preparing another
-			//     transaction for this document, and improperly upserted to the
-			//     stash when unpaused (after someone else inserted the document).
-			//     This is rare but possible.
-			//  3) There's an actual bug somewhere, or outside interference. Worst
-			//     possible case.
+			// Previously set txn-queue was popped by someone.
+			// Transaction is being/has been applied elsewhere.
 			f.debugf("Rescanned document %v misses %s in queue: %v", dkey, tt, info.Queue)
 			err := f.reload(t)
 			if t.State == tpreparing || t.State == tprepared {
-				if retry < retries {
-					// Case 2.
-					goto RetryDoc
-				}
-				// Case 3.
-				return nil, fmt.Errorf("cannot find transaction %s in queue for document %v", t, dkey)
+				panic("rescanned document misses transaction in queue")
 			}
-			// Case 1.
 			return t.Revnos, err
 		}
 	}

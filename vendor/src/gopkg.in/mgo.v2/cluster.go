@@ -30,8 +30,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -211,18 +209,17 @@ func (cluster *mongoCluster) syncServer(server *mongoServer) (info *mongoServerI
 
 	if result.IsMaster {
 		debugf("SYNC %s is a master.", addr)
-		if !server.info.Master {
-			// Made an incorrect assumption above, so fix stats.
-			stats.conn(-1, false)
-			stats.conn(+1, true)
-		}
+		// Made an incorrect assumption above, so fix stats.
+		stats.conn(-1, false)
+		stats.conn(+1, true)
 	} else if result.Secondary {
 		debugf("SYNC %s is a slave.", addr)
 	} else if cluster.direct {
 		logf("SYNC %s in unknown state. Pretending it's a slave due to direct connection.", addr)
 	} else {
 		logf("SYNC %s is neither a master nor a slave.", addr)
-		// Let stats track it as whatever was known before.
+		// Made an incorrect assumption above, so fix stats.
+		stats.conn(-1, false)
 		return nil, nil, errors.New(addr + " is not a master nor slave")
 	}
 
@@ -410,59 +407,14 @@ func (cluster *mongoCluster) server(addr string, tcpaddr *net.TCPAddr) *mongoSer
 }
 
 func resolveAddr(addr string) (*net.TCPAddr, error) {
-	// Simple cases that do not need actual resolution. Works with IPv4 and v6.
-	if host, port, err := net.SplitHostPort(addr); err == nil {
-		if port, _ := strconv.Atoi(port); port > 0 {
-			zone := ""
-			if i := strings.LastIndex(host, "%"); i >= 0 {
-				zone = host[i+1:]
-				host = host[:i]
-			}
-			ip := net.ParseIP(host)
-			if ip != nil {
-				return &net.TCPAddr{IP: ip, Port: port, Zone: zone}, nil
-			}
-		}
-	}
-
-	// Attempt to resolve IPv4 and v6 concurrently.
-	addrChan := make(chan *net.TCPAddr, 2)
-	for _, network := range []string{"udp4", "udp6"} {
-		network := network
-		go func() {
-			// The unfortunate UDP dialing hack allows having a timeout on address resolution.
-			conn, err := net.DialTimeout(network, addr, 10*time.Second)
-			if err != nil {
-				addrChan <- nil
-			} else {
-				addrChan <- (*net.TCPAddr)(conn.RemoteAddr().(*net.UDPAddr))
-				conn.Close()
-			}
-		}()
-	}
-
-	// Wait for the result of IPv4 and v6 resolution. Use IPv4 if available.
-	tcpaddr := <-addrChan
-	if tcpaddr == nil || len(tcpaddr.IP) != 4 {
-		var timeout <-chan time.Time
-		if tcpaddr != nil {
-			// Don't wait too long if an IPv6 address is known.
-			timeout = time.After(50 * time.Millisecond)
-		}
-		select {
-		case <-timeout:
-		case tcpaddr2 := <-addrChan:
-			if tcpaddr == nil || tcpaddr2 != nil {
-				// It's an IPv4 address or the only known address. Use it.
-				tcpaddr = tcpaddr2
-			}
-		}
-	}
-
-	if tcpaddr == nil {
+	// This hack allows having a timeout on resolution.
+	conn, err := net.DialTimeout("udp", addr, 10*time.Second)
+	if err != nil {
 		log("SYNC Failed to resolve server address: ", addr)
 		return nil, errors.New("failed to resolve server address: " + addr)
 	}
+	tcpaddr := (*net.TCPAddr)(conn.RemoteAddr().(*net.UDPAddr))
+	conn.Close()
 	if tcpaddr.String() != addr {
 		debug("SYNC Address ", addr, " resolved as ", tcpaddr.String())
 	}
@@ -559,8 +511,8 @@ func (cluster *mongoCluster) syncServersIteration(direct bool) {
 	}
 
 	cluster.Lock()
-	mastersLen := cluster.masters.Len()
-	logf("SYNC Synchronization completed: %d master(s) and %d slave(s) alive.", mastersLen, cluster.servers.Len()-mastersLen)
+	ml := cluster.masters.Len()
+	logf("SYNC Synchronization completed: %d master(s) and %d slave(s) alive.", ml, cluster.servers.Len()-ml)
 
 	// Update dynamic seeds, but only if we have any good servers. Otherwise,
 	// leave them alone for better chances of a successful sync in the future.
@@ -578,17 +530,17 @@ func (cluster *mongoCluster) syncServersIteration(direct bool) {
 // AcquireSocket returns a socket to a server in the cluster.  If slaveOk is
 // true, it will attempt to return a socket to a slave server.  If it is
 // false, the socket will necessarily be to a master server.
-func (cluster *mongoCluster) AcquireSocket(mode Mode, slaveOk bool, syncTimeout time.Duration, socketTimeout time.Duration, serverTags []bson.D, poolLimit int) (s *mongoSocket, err error) {
+func (cluster *mongoCluster) AcquireSocket(slaveOk bool, syncTimeout time.Duration, socketTimeout time.Duration, serverTags []bson.D, poolLimit int) (s *mongoSocket, err error) {
 	var started time.Time
 	var syncCount uint
 	warnedLimit := false
 	for {
 		cluster.RLock()
 		for {
-			mastersLen := cluster.masters.Len()
-			slavesLen := cluster.servers.Len() - mastersLen
-			debugf("Cluster has %d known masters and %d known slaves.", mastersLen, slavesLen)
-			if !(slaveOk && mode == Secondary) && mastersLen > 0 || slaveOk && slavesLen > 0 {
+			ml := cluster.masters.Len()
+			sl := cluster.servers.Len()
+			debugf("Cluster has %d known masters and %d known slaves.", ml, sl-ml)
+			if ml > 0 || slaveOk && sl > 0 {
 				break
 			}
 			if started.IsZero() {
@@ -608,9 +560,9 @@ func (cluster *mongoCluster) AcquireSocket(mode Mode, slaveOk bool, syncTimeout 
 
 		var server *mongoServer
 		if slaveOk {
-			server = cluster.servers.BestFit(mode, serverTags)
+			server = cluster.servers.BestFit(serverTags)
 		} else {
-			server = cluster.masters.BestFit(mode, nil)
+			server = cluster.masters.BestFit(nil)
 		}
 		cluster.RUnlock()
 

@@ -66,13 +66,13 @@ type S struct {
 	frozen  []string
 }
 
-func (s *S) versionAtLeast(v ...int) (result bool) {
+func (s *S) versionAtLeast(v ...int) bool {
 	for i := range v {
 		if i == len(s.build.VersionArray) {
 			return false
 		}
-		if s.build.VersionArray[i] != v[i] {
-			return s.build.VersionArray[i] >= v[i]
+		if s.build.VersionArray[i] < v[i] {
+			return false
 		}
 	}
 	return true
@@ -103,9 +103,6 @@ func (s *S) SetUpTest(c *C) {
 
 func (s *S) TearDownTest(c *C) {
 	if s.stopped {
-		s.Stop(":40201")
-		s.Stop(":40202")
-		s.Stop(":40203")
 		s.StartAll()
 	}
 	for _, host := range s.frozen {
@@ -183,15 +180,13 @@ func (s *S) Thaw(host string) {
 }
 
 func (s *S) StartAll() {
-	if s.stopped {
-		// Restart any stopped nodes.
-		run("cd _testdb && supervisorctl start all")
-		err := run("cd testdb && mongo --nodb wait.js")
-		if err != nil {
-			panic(err)
-		}
-		s.stopped = false
+	// Restart any stopped nodes.
+	run("cd _testdb && supervisorctl start all")
+	err := run("cd testdb && mongo --nodb wait.js")
+	if err != nil {
+		panic(err)
 	}
+	s.stopped = false
 }
 
 func run(command string) error {
