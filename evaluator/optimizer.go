@@ -27,6 +27,7 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 
 	// we can only optimize a filter if its source is a SourceAppend
 	// whose source is a TableScan
+
 	sa, ok := filter.source.(*SourceAppend)
 	if !ok {
 		return filter, nil
@@ -42,12 +43,14 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 	}
 
 	pipeline := ts.pipeline
+	var localMatcher SQLExpr
 
 	if value, ok := optimizedExpr.(SQLValue); ok {
 		// our optimized expression has left us with just a value,
 		// we can see if it matches right now. If so, we eliminate
 		// the filter from the tree. Otherwise, we return an
 		// operator that yields no rows.
+
 		matches, err := Matches(value, nil)
 		if err != nil {
 			return nil, err
@@ -59,11 +62,6 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 		// otherwise, the filter simply gets removed from the tree
 
 	} else {
-		// TODO: we should first check if the optimizedExpr is a *SQLAndExpr.
-		// if so, we can translate each condition separately, push down
-		// the ones that are translatable, and evaluate locally the ones
-		// that are not.
-
 		dbName := ts.dbName
 		if dbName == "" {
 			dbName = ctx.Db
@@ -74,16 +72,21 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 			return nil, fmt.Errorf("Database %q could not be found in the schema.", dbName)
 		}
 
-		matchBody, ok := TranslatePredicate(optimizedExpr, db)
-		if !ok {
-			// we were unable to translate the expression into a
-			// MongoDB query, so we'll have to evaluate it locally.
+		var matchBody bson.M
+		matchBody, localMatcher = TranslatePredicate(optimizedExpr, db)
+
+		if matchBody == nil {
+			// no pieces of the matcher are able to be pushed down,
+			// so there is no change in the operator tree.
 			return filter, nil
 		}
 
 		pipeline = append(ts.pipeline, bson.M{"$match": matchBody})
 	}
 
+	// if we end up here, it's because we have messed with the pipeline
+	// in the current table scan operator, so we need to reconstruct the
+	// operator nodes.
 	ts = &TableScan{
 		pipeline:    pipeline,
 		dbName:      ts.dbName,
@@ -103,10 +106,23 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 		hasSubquery: sa.hasSubquery,
 	}
 
-	// Remove the filter from the tree.
-	// Alternatively, we could not remove the filter from the tree
-	// and simply mark it as fully pushed down such that a Limit, for
-	// instance, knows it is able to skip this Filter and push down the
-	// limit as well.
+	if localMatcher != nil {
+		// we ended up here because we have a predicate
+		// that can be partially pushed down, so we construct
+		// a new filter with only the part remaining that
+		// cannot be pushed down.
+		filter = &Filter{
+			source:      sa,
+			matcher:     localMatcher,
+			hasSubquery: filter.hasSubquery,
+			ctx:         filter.ctx,
+			err:         filter.err,
+		}
+
+		return filter, nil
+	}
+
+	// everything was able to be pushed down, so the filter
+	// is removed from the plan.
 	return sa, nil
 }

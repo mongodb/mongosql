@@ -363,11 +363,34 @@ func TestTranslatePredicate(t *testing.T) {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
 				So(err, ShouldBeNil)
-				result, ok := TranslatePredicate(e, schema.Databases["test"])
-				So(ok, ShouldBeTrue)
-				jsonResult, err := json.Marshal(result)
+				match, local := TranslatePredicate(e, schema.Databases["test"])
+				jsonResult, err := json.Marshal(match)
 				So(err, ShouldBeNil)
 				So(string(jsonResult), ShouldEqual, t.expected)
+				So(local, ShouldBeNil)
+			})
+		}
+	}
+
+	type partialTest struct {
+		sql       string
+		expected  string
+		localDesc string
+		local     SQLExpr
+	}
+
+	runPartialTests := func(tests []partialTest) {
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%q should be translated to \"%s\" and locally evaluate %q", t.sql, t.expected, t.localDesc), func() {
+				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
+				So(err, ShouldBeNil)
+				match, local := TranslatePredicate(e, schema.Databases["test"])
+				jsonResult, err := json.Marshal(match)
+				So(err, ShouldBeNil)
+				So(string(jsonResult), ShouldEqual, t.expected)
+				So(local, ShouldResemble, t.local)
 			})
 		}
 	}
@@ -403,5 +426,14 @@ func TestTranslatePredicate(t *testing.T) {
 		}
 
 		runTests(tests)
+
+		partialTests := []partialTest{
+			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLFieldExpr{"bar", "b"}}},
+			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLFieldExpr{"bar", "b"}}},
+			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLFieldExpr{"bar", "b"}}},
+			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLFieldExpr{"bar", "b"}}}},
+		}
+
+		runPartialTests(partialTests)
 	})
 }

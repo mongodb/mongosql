@@ -1274,6 +1274,16 @@ func TestSelectWithWhere(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(3))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(4))
 		})
+
+		Convey("complex filter operators should return the right results", func() {
+			names, values, err := eval.EvalSelect("test", "select a, b from bar where a > 1 AND a < b", nil, nil)
+			So(err, ShouldBeNil)
+
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 1)
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(3))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(4))
+		})
 	})
 }
 

@@ -6,99 +6,140 @@ import (
 	"strings"
 )
 
-func TranslatePredicate(e SQLExpr, db *schema.Database) (bson.M, bool) {
+// TranslatePredicate attempts to turn the SQLExpr into mongodb query langage.
+// It returns 2 things, a translated predicate that can be sent to MongoDB, and
+// a SQLExpr that cannot be sent to MongoDB. Either of these may be nil.
+func TranslatePredicate(e SQLExpr, db *schema.Database) (bson.M, SQLExpr) {
 	switch typedE := e.(type) {
 	case *SQLAndExpr:
-		left, ok := TranslatePredicate(typedE.left, db)
-		if !ok {
-			return nil, false
-		}
-		right, ok := TranslatePredicate(typedE.right, db)
-		if !ok {
-			return nil, false
-		}
-
-		cond := []interface{}{}
-
-		if v, ok := left["$and"]; ok {
-			array := v.([]interface{})
-			cond = append(cond, array...)
+		left, exLeft := TranslatePredicate(typedE.left, db)
+		right, exRight := TranslatePredicate(typedE.right, db)
+		var match bson.M
+		if left == nil && right == nil {
+			return nil, e
+		} else if left != nil && right == nil {
+			match = left
+		} else if left == nil && right != nil {
+			match = right
 		} else {
-			cond = append(cond, left)
+			cond := []interface{}{}
+			if v, ok := left["$and"]; ok {
+				array := v.([]interface{})
+				cond = append(cond, array...)
+			} else {
+				cond = append(cond, left)
+			}
+
+			if v, ok := right["$and"]; ok {
+				array := v.([]interface{})
+				cond = append(cond, array...)
+			} else {
+				cond = append(cond, right)
+			}
+
+			match = bson.M{"$and": cond}
 		}
 
-		if v, ok := right["$and"]; ok {
-			array := v.([]interface{})
-			cond = append(cond, array...)
+		if exLeft == nil && exRight == nil {
+			return match, nil
+		} else if exLeft != nil && exRight == nil {
+			return match, exLeft
+		} else if exLeft == nil && exRight != nil {
+			return match, exRight
 		} else {
-			cond = append(cond, right)
+			return match, &SQLAndExpr{exLeft, exRight}
 		}
 
-		return bson.M{"$and": cond}, true
 	case *SQLEqualsExpr:
 		name, ok := getFieldName(typedE.left, db)
 		if !ok {
-			return nil, false
+			return nil, e
 		}
 		val, ok := getValue(typedE.right)
 		if !ok {
-			return nil, false
+			return nil, e
 		}
-		return bson.M{name: val}, true
+		return bson.M{name: val}, nil
 	case *SQLGreaterThanExpr:
-		return translateOperator(db, "$gt", typedE.left, typedE.right)
+		match, ok := translateOperator(db, "$gt", typedE.left, typedE.right)
+		if !ok {
+			return nil, e
+		}
+		return match, nil
 	case *SQLGreaterThanOrEqualExpr:
-		return translateOperator(db, "$gte", typedE.left, typedE.right)
+		match, ok := translateOperator(db, "$gte", typedE.left, typedE.right)
+		if !ok {
+			return nil, e
+		}
+		return match, nil
 	case *SQLInExpr:
 		name, ok := getFieldName(typedE.left, db)
 		if !ok {
-			return nil, false
+			return nil, e
 		}
 
 		tuple, ok := typedE.right.(*SQLTupleExpr)
 		if !ok {
-			return nil, false
+			return nil, e
 		}
 
 		values := []interface{}{}
 		for _, valExpr := range tuple.Exprs {
 			value, ok := getValue(valExpr)
 			if !ok {
-				return nil, false
+				return nil, e
 			}
 
 			values = append(values, value)
 		}
 
-		return bson.M{name: bson.M{"$in": values}}, true
+		return bson.M{name: bson.M{"$in": values}}, nil
 	case *SQLLessThanExpr:
-		return translateOperator(db, "$lt", typedE.left, typedE.right)
-	case *SQLLessThanOrEqualExpr:
-		return translateOperator(db, "$lte", typedE.left, typedE.right)
-	case *SQLNotEqualsExpr:
-		return translateOperator(db, "$ne", typedE.left, typedE.right)
-	case *SQLNotExpr:
-		op, ok := TranslatePredicate(typedE.operand, db)
+		match, ok := translateOperator(db, "$lt", typedE.left, typedE.right)
 		if !ok {
-			return nil, false
+			return nil, e
+		}
+		return match, nil
+	case *SQLLessThanOrEqualExpr:
+		match, ok := translateOperator(db, "$lte", typedE.left, typedE.right)
+		if !ok {
+			return nil, e
+		}
+		return match, nil
+	case *SQLNotEqualsExpr:
+		match, ok := translateOperator(db, "$ne", typedE.left, typedE.right)
+		if !ok {
+			return nil, e
+		}
+		return match, nil
+	case *SQLNotExpr:
+		match, ex := TranslatePredicate(typedE.operand, db)
+		if match == nil {
+			return nil, e
+		} else if ex == nil {
+			return negate(match), nil
+		} else {
+			// partial translation of Not
+			return negate(match), &SQLNotExpr{ex}
 		}
 
-		return negate(op), true
 	case *SQLNullCmpExpr:
 		name, ok := getFieldName(typedE.operand, db)
 		if !ok {
-			return nil, false
+			return nil, e
 		}
 
-		return bson.M{name: nil}, true
+		return bson.M{name: nil}, nil
 	case *SQLOrExpr:
-		left, ok := TranslatePredicate(typedE.left, db)
-		if !ok {
-			return nil, false
+		left, exLeft := TranslatePredicate(typedE.left, db)
+		if exLeft != nil {
+			// cannot partially translate an OR
+			return nil, e
 		}
-		right, ok := TranslatePredicate(typedE.right, db)
-		if !ok {
-			return nil, false
+		right, exRight := TranslatePredicate(typedE.right, db)
+		if exRight != nil {
+			// cannot partially translate an OR
+			return nil, e
 		}
 
 		cond := []interface{}{}
@@ -117,10 +158,10 @@ func TranslatePredicate(e SQLExpr, db *schema.Database) (bson.M, bool) {
 			cond = append(cond, right)
 		}
 
-		return bson.M{"$or": cond}, true
+		return bson.M{"$or": cond}, nil
 	}
 
-	return nil, false
+	return nil, e
 }
 
 func translateOperator(db *schema.Database, op string, nameExpr SQLExpr, valExpr SQLExpr) (bson.M, bool) {
