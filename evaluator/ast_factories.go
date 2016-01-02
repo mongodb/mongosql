@@ -228,12 +228,18 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case string:
 
-			d, err := time.Parse(schema.TimestampFormat, v)
-			if err != nil {
-				return SQLDate{schema.DefaultTime}, nil
+			for _, format := range schema.TimestampCtorFormats {
+				d, err := time.Parse(format, v)
+				if err == nil {
+					ts = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
+						d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
+					break
+				}
 			}
-			ts = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
-				d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
+
+			if ts.Equal(time.Time{}) {
+				return SQLTimestamp{schema.DefaultTime}, nil
+			}
 
 		case bson.ObjectId:
 
@@ -345,8 +351,6 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 	log.Logf(log.DebugLow, "match expr: %#v (type is %T)\n", gExpr, gExpr)
 
 	switch expr := gExpr.(type) {
-	case nil:
-		return SQLTrue, nil
 
 	case *sqlparser.AndExpr:
 
@@ -438,13 +442,21 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 			return &SQLEqualsExpr{left, right}, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)
 		}
 
+	case *sqlparser.CtorExpr:
+
+		return &SQLCtorExpr{Name: expr.Name, Args: expr.Exprs}, nil
+
 	case *sqlparser.ExistsExpr:
 
 		return &SQLExistsExpr{expr.Subquery.Select}, nil
 
 	case *sqlparser.FuncExpr:
 
-		return NewSQLFuncValue(expr)
+		return newSQLFuncExpr(expr)
+
+	case nil:
+
+		return SQLTrue, nil
 
 	case *sqlparser.NotExpr:
 
@@ -661,7 +673,7 @@ func newSQLCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
 	return value, nil
 }
 
-func NewSQLFuncValue(expr *sqlparser.FuncExpr) (SQLExpr, error) {
+func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 	if isAggFunction(expr.Name) {
 		return &SQLAggFunctionExpr{expr}, nil
 	}

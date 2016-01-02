@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 	"math"
 )
@@ -267,6 +268,45 @@ func (s SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return s.elseValue.Evaluate(ctx)
+
+}
+
+//
+// SQLCtorExpr is a representation of a sqlparser.CtorExpr.
+//
+type SQLCtorExpr struct {
+	Name string
+	Args sqlparser.ValExprs
+}
+
+func (s SQLCtorExpr) Evaluate(_ *EvalCtx) (SQLValue, error) {
+
+	if len(s.Args) == 0 {
+		return nil, fmt.Errorf("no arguments supplied to SQLCtorExpr")
+	}
+
+	// TODO: currently only supports single argument constructors
+	strVal, ok := s.Args[0].(sqlparser.StrVal)
+	if !ok {
+		return nil, fmt.Errorf("%v constructor requires string argument: got %T", string(s.Name), s.Args[0])
+	}
+
+	arg := string(strVal)
+
+	switch s.Name {
+	case sqlparser.AST_DATE:
+		return NewSQLValue(arg, schema.SQLDate)
+	case sqlparser.AST_DATETIME:
+		return NewSQLValue(arg, schema.SQLDateTime)
+	case sqlparser.AST_TIME:
+		return NewSQLValue(arg, schema.SQLTime)
+	case sqlparser.AST_TIMESTAMP:
+		return NewSQLValue(arg, schema.SQLTimestamp)
+	case sqlparser.AST_YEAR:
+		return NewSQLValue(arg, schema.SQLYear)
+	default:
+		return nil, fmt.Errorf("%v constructor is not supported", string(s.Name))
+	}
 
 }
 

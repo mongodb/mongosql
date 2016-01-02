@@ -91,6 +91,13 @@ var (
 	// See https://dev.mysql.com/doc/refman/5.6/en/time-zone-support.html
 	DefaultLocale = time.UTC
 	DefaultTime   = time.Date(0, 0, 0, 0, 0, 0, 0, DefaultLocale)
+
+	// TimestampCtorFormats holds the various formats for constructing
+	// the timestamp
+	TimestampCtorFormats = []string{
+		"2006-01-02 15:04:05",
+		"2006-01-02 15:04:05.000",
+	}
 )
 
 func (c *Column) validateType() error {

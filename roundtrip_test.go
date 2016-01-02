@@ -220,14 +220,6 @@ func MustLoadTestSchema(path string) testSchema {
 	return conf
 }
 
-func TestTableauDemo(t *testing.T) {
-	Convey("Test tableau dataset", t, func() {
-		conf := MustLoadTestSchema("testdata/tableau.yml")
-		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
-		So(err, ShouldBeNil)
-	})
-}
-
 func TestSimpleQueries(t *testing.T) {
 	Convey("Test simple queries", t, func() {
 		conf := MustLoadTestSchema("testdata/simple.yml")

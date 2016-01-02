@@ -94,7 +94,6 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 		matcher:     ts.matcher,
 		iter:        ts.iter,
 		database:    ts.database,
-		session:     ts.session,
 		tableSchema: ts.tableSchema,
 		ctx:         ts.ctx,
 		err:         ts.err,

@@ -821,88 +821,13 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 
 	switch expr := e.(type) {
 
-	case sqlparser.ValTuple:
-		columns := []*Column{}
-		for _, valTuple := range expr {
-			refCols, err := referencedColumns(valTuple)
-			if err != nil {
-				return nil, err
-			}
-			columns = append(columns, refCols...)
-		}
-		return columns, nil
-
-	case sqlparser.NumVal, sqlparser.StrVal, *sqlparser.NullVal:
-		return nil, nil
-
-	case *sqlparser.ColName:
-
-		c := &Column{
-			Table: string(expr.Qualifier),
-			Name:  string(expr.Name),
-			View:  string(expr.Name),
-		}
-		return []*Column{c}, nil
-
-	case *sqlparser.BinaryExpr:
-
-		return getReferencedColumns(expr.Left, expr.Right)
-
 	case *sqlparser.AndExpr:
 
 		return getReferencedColumns(expr.Left, expr.Right)
 
-	case *sqlparser.OrExpr:
+	case *sqlparser.BinaryExpr:
 
 		return getReferencedColumns(expr.Left, expr.Right)
-
-	case *sqlparser.ParenBoolExpr:
-
-		return referencedColumns(expr.Expr)
-
-	case *sqlparser.ComparisonExpr:
-
-		return getReferencedColumns(expr.Left, expr.Right)
-
-	case *sqlparser.RangeCond:
-
-		return getReferencedColumns(expr.From, expr.To, expr.Left)
-
-	case *sqlparser.NullCheck:
-
-		return referencedColumns(expr.Expr)
-
-	case *sqlparser.UnaryExpr:
-
-		return referencedColumns(expr.Expr)
-
-	case *sqlparser.NotExpr:
-
-		return referencedColumns(expr.Expr)
-
-	case *sqlparser.Subquery:
-
-		sc, err := refColsInSelectStmt(expr.Select)
-		if err != nil {
-			return nil, err
-		}
-
-		columns := SelectExpressions(sc).GetColumns()
-
-		for _, column := range columns {
-			column.InSubquery = true
-		}
-
-		return columns, nil
-
-	case *sqlparser.FuncExpr:
-
-		sc, err := refColsInSelectExpr(expr.Exprs)
-		if err != nil {
-			return nil, err
-		}
-
-		return SelectExpressions(sc).GetColumns(), nil
 
 	case *sqlparser.CaseExpr:
 
@@ -930,18 +855,109 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 
 		return columns, nil
 
-		// TODO: fill these in
-	case sqlparser.ValArg:
+	case *sqlparser.ColName:
 
-		return nil, fmt.Errorf("referenced columns for ValArg for NYI")
+		c := &Column{
+			Table: string(expr.Qualifier),
+			Name:  string(expr.Name),
+			View:  string(expr.Name),
+		}
+		return []*Column{c}, nil
+
+	case *sqlparser.ComparisonExpr:
+
+		return getReferencedColumns(expr.Left, expr.Right)
+
+	case *sqlparser.CtorExpr:
+
+		return referencedColumns(sqlparser.ValTuple(expr.Exprs))
 
 	case *sqlparser.ExistsExpr:
 
 		return nil, fmt.Errorf("referenced columns for ExistsExpr for NYI")
 
+	case *sqlparser.FuncExpr:
+
+		sc, err := refColsInSelectExpr(expr.Exprs)
+		if err != nil {
+			return nil, err
+		}
+
+		return SelectExpressions(sc).GetColumns(), nil
+
+	case *sqlparser.NotExpr:
+
+		return referencedColumns(expr.Expr)
+
 	case nil:
 
 		return nil, nil
+
+	case *sqlparser.NullCheck:
+
+		return referencedColumns(expr.Expr)
+
+	case *sqlparser.NullVal:
+
+		return nil, nil
+
+	case sqlparser.NumVal:
+
+		return nil, nil
+
+	case *sqlparser.OrExpr:
+
+		return getReferencedColumns(expr.Left, expr.Right)
+
+	case *sqlparser.ParenBoolExpr:
+
+		return referencedColumns(expr.Expr)
+
+	case *sqlparser.RangeCond:
+
+		return getReferencedColumns(expr.From, expr.To, expr.Left)
+
+	case sqlparser.StrVal:
+
+		return nil, nil
+
+	case *sqlparser.Subquery:
+
+		sc, err := refColsInSelectStmt(expr.Select)
+		if err != nil {
+			return nil, err
+		}
+
+		columns := SelectExpressions(sc).GetColumns()
+
+		for _, column := range columns {
+			column.InSubquery = true
+		}
+
+		return columns, nil
+
+	case *sqlparser.UnaryExpr:
+
+		return referencedColumns(expr.Expr)
+
+		// TODO: fill these in
+	case sqlparser.ValArg:
+
+		return nil, fmt.Errorf("referenced columns for ValArg for NYI")
+
+	case sqlparser.ValTuple:
+
+		columns := []*Column{}
+
+		for _, valTuple := range expr {
+			refCols, err := referencedColumns(valTuple)
+			if err != nil {
+				return nil, err
+			}
+			columns = append(columns, refCols...)
+		}
+
+		return columns, nil
 
 	default:
 
@@ -959,28 +975,6 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 
 	switch expr := e.(type) {
 
-	case sqlparser.ValTuple:
-
-		for _, valTuple := range expr {
-			if hasAggFunctions(valTuple) {
-				return true
-			}
-		}
-
-		return false
-
-	case sqlparser.NumVal, sqlparser.StrVal, *sqlparser.NullVal, *sqlparser.ColName:
-
-		return false
-
-	case *sqlparser.BinaryExpr:
-
-		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
-			return true
-		}
-
-		return false
-
 	case *sqlparser.AndExpr:
 
 		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
@@ -989,51 +983,11 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 
 		return false
 
-	case *sqlparser.OrExpr:
+	case *sqlparser.BinaryExpr:
 
 		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
 			return true
 		}
-
-		return false
-
-	case *sqlparser.ParenBoolExpr:
-
-		return hasAggFunctions(expr.Expr)
-
-	case *sqlparser.ComparisonExpr:
-
-		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
-			return true
-		}
-
-		return false
-
-	case *sqlparser.RangeCond:
-
-		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.From) || hasAggFunctions(expr.To) {
-			return true
-		}
-
-		return false
-
-	case *sqlparser.NullCheck:
-
-		return false
-
-	case *sqlparser.UnaryExpr:
-
-		return hasAggFunctions(expr.Expr)
-
-	case *sqlparser.NotExpr:
-
-		return hasAggFunctions(expr.Expr)
-
-	case *sqlparser.FuncExpr:
-
-		return isAggFunction(expr.Name)
-
-	case *sqlparser.Subquery:
 
 		return false
 
@@ -1051,11 +1005,90 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 
 		return false
 
+	case *sqlparser.ColName:
+
+		return false
+
+	case *sqlparser.ComparisonExpr:
+
+		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
+			return true
+		}
+
+		return false
+
+	case *sqlparser.CtorExpr:
+
+		return false
+
+	case *sqlparser.FuncExpr:
+
+		return isAggFunction(expr.Name)
+
 	case nil:
 
 		return false
 
+	case *sqlparser.NullCheck:
+
+		return false
+
+	case *sqlparser.NullVal:
+
+		return false
+
+	case *sqlparser.NotExpr:
+
+		return hasAggFunctions(expr.Expr)
+
+	case sqlparser.NumVal:
+
+		return false
+
+	case *sqlparser.OrExpr:
+
+		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
+			return true
+		}
+
+		return false
+
+	case *sqlparser.ParenBoolExpr:
+
+		return hasAggFunctions(expr.Expr)
+
+	case *sqlparser.RangeCond:
+
+		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.From) || hasAggFunctions(expr.To) {
+			return true
+		}
+
+		return false
+
+	case sqlparser.StrVal:
+
+		return false
+
+	case *sqlparser.Subquery:
+
+		return false
+
+	case *sqlparser.UnaryExpr:
+
+		return hasAggFunctions(expr.Expr)
+
+	case sqlparser.ValTuple:
+
+		for _, valTuple := range expr {
+			if hasAggFunctions(valTuple) {
+				return true
+			}
+		}
+
+		return false
+
 	default:
+
 		panic(fmt.Sprintf("hasAggFunctions NYI for: %T", expr))
 
 	}

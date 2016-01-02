@@ -32,62 +32,62 @@ type SchemaDataSource struct {
 	ctx            *ExecutionCtx
 }
 
-func (cds *SchemaDataSource) Open(ctx *ExecutionCtx) error {
-	cds.ctx = ctx
-	return cds.init(ctx)
+func (sds *SchemaDataSource) Open(ctx *ExecutionCtx) error {
+	sds.ctx = ctx
+	return sds.init(ctx)
 }
 
-func (cds *SchemaDataSource) init(ctx *ExecutionCtx) error {
+func (sds *SchemaDataSource) init(ctx *ExecutionCtx) error {
 
-	switch cds.tableName {
+	switch sds.tableName {
 	case "key_column_usage":
-		cds.iter = &EmptyFindResults{}
+		sds.iter = &EmptyFindResults{}
 		return nil
 	case "columns":
-		cds.includeColumns = true
+		sds.includeColumns = true
 	case "tables":
 	default:
-		return fmt.Errorf("unknown information_schema table (%s)", cds.tableName)
+		return fmt.Errorf("unknown information_schema table (%s)", sds.tableName)
 	}
 
-	cds.iter = cds.Find().Iter()
+	sds.iter = sds.Find().Iter()
 	return nil
 }
 
-func (cds *SchemaDataSource) Next(row *Row) bool {
-	if cds.iter == nil {
+func (sds *SchemaDataSource) Next(row *Row) bool {
+	if sds.iter == nil {
 		return false
 	}
 
 	data := &bson.D{}
-	hasNext := cds.iter.Next(data)
+	hasNext := sds.iter.Next(data)
 	values, err := bsonDToValues(*data)
 	if err != nil {
-		cds.err = err
+		sds.err = err
 		return false
 	}
-	row.Data = []TableRow{{cds.tableName, values}}
+	row.Data = []TableRow{{sds.tableName, values}}
 
 	if !hasNext {
-		cds.err = cds.iter.Err()
+		sds.err = sds.iter.Err()
 	}
 
 	return hasNext
 }
 
-func (cds *SchemaDataSource) OpFields() []*Column {
+func (sds *SchemaDataSource) OpFields() []*Column {
 
 	var columns []*Column
 
 	headers := ISTablesHeaders
 
-	if cds.includeColumns {
+	if sds.includeColumns {
 		headers = ISColumnHeaders
 	}
 
 	for _, c := range headers {
 		column := &Column{
-			Table: cds.tableName,
+			Table: sds.tableName,
 			Name:  c,
 			View:  c,
 		}
@@ -97,23 +97,23 @@ func (cds *SchemaDataSource) OpFields() []*Column {
 	return columns
 }
 
-func (cds *SchemaDataSource) Close() error {
-	return cds.iter.Close()
+func (sds *SchemaDataSource) Close() error {
+	return sds.iter.Close()
 }
 
-func (cds *SchemaDataSource) Err() error {
-	return cds.iter.Err()
+func (sds *SchemaDataSource) Err() error {
+	return sds.iter.Err()
 }
 
-func (cds *SchemaDataSource) Find() FindQuery {
-	return SchemaFindQuery{cds.ctx, cds.matcher, cds.includeColumns}
+func (sds *SchemaDataSource) Find() FindQuery {
+	return SchemaFindQuery{sds.ctx, sds.matcher, sds.includeColumns}
 }
 
-func (cds *SchemaDataSource) Insert(docs ...interface{}) error {
+func (sds *SchemaDataSource) Insert(docs ...interface{}) error {
 	return fmt.Errorf("cannot insert into config data source")
 }
 
-func (cds *SchemaDataSource) DropCollection() error {
+func (sds *SchemaDataSource) DropCollection() error {
 	return fmt.Errorf("cannot drop config data source")
 }
 
@@ -135,48 +135,48 @@ type SchemaFindResults struct {
 	err error
 }
 
-func (cfr *SchemaFindResults) Next(result *bson.D) bool {
-	if cfr.err != nil {
+func (sfr *SchemaFindResults) Next(result *bson.D) bool {
+	if sfr.err != nil {
 		return false
 	}
 
 	// are we in valid db space
-	if cfr.dbOffset >= len(cfr.ctx.Schema.RawDatabases) {
+	if sfr.dbOffset >= len(sfr.ctx.Schema.RawDatabases) {
 		// nope, we're done
 		return false
 	}
 
-	db := cfr.ctx.Schema.RawDatabases[cfr.dbOffset]
+	db := sfr.ctx.Schema.RawDatabases[sfr.dbOffset]
 
 	// are we in valid table space
-	if cfr.tableOffset >= len(db.RawTables) {
-		cfr.dbOffset = cfr.dbOffset + 1
-		cfr.tableOffset = 0
-		cfr.columnsOffset = 0
-		return cfr.Next(result)
+	if sfr.tableOffset >= len(db.RawTables) {
+		sfr.dbOffset = sfr.dbOffset + 1
+		sfr.tableOffset = 0
+		sfr.columnsOffset = 0
+		return sfr.Next(result)
 	}
 
-	table := db.RawTables[cfr.tableOffset]
+	table := db.RawTables[sfr.tableOffset]
 
 	*result = bson.D{}
 
 	tableName := "columns"
 
-	if !cfr.includeColumns {
+	if !sfr.includeColumns {
 		_cfrNextHelper(result, ISTablesHeaders[0], db.Name)
 		_cfrNextHelper(result, ISTablesHeaders[1], table.Name)
 
 		_cfrNextHelper(result, ISTablesHeaders[2], "BASE TABLE")
 		_cfrNextHelper(result, ISTablesHeaders[3], "d")
 
-		cfr.tableOffset = cfr.tableOffset + 1
+		sfr.tableOffset = sfr.tableOffset + 1
 		tableName = "tables"
 	} else {
 		// are we in valid column space
-		if cfr.columnsOffset >= len(table.RawColumns) {
-			cfr.tableOffset = cfr.tableOffset + 1
-			cfr.columnsOffset = 0
-			return cfr.Next(result)
+		if sfr.columnsOffset >= len(table.RawColumns) {
+			sfr.tableOffset = sfr.tableOffset + 1
+			sfr.columnsOffset = 0
+			return sfr.Next(result)
 		}
 
 		_cfrNextHelper(result, ISColumnHeaders[0], "def")
@@ -184,36 +184,34 @@ func (cfr *SchemaFindResults) Next(result *bson.D) bool {
 		_cfrNextHelper(result, ISColumnHeaders[1], db.Name)
 		_cfrNextHelper(result, ISColumnHeaders[2], table.Name)
 
-		col := table.RawColumns[cfr.columnsOffset]
+		col := table.RawColumns[sfr.columnsOffset]
 
 		_cfrNextHelper(result, ISColumnHeaders[3], col.SqlName)
 		_cfrNextHelper(result, ISColumnHeaders[4], col.SqlType)
 
-		_cfrNextHelper(result, ISColumnHeaders[5], cfr.columnsOffset+1)
+		_cfrNextHelper(result, ISColumnHeaders[5], sfr.columnsOffset+1)
 
-		cfr.columnsOffset = cfr.columnsOffset + 1
+		sfr.columnsOffset = sfr.columnsOffset + 1
 	}
 
 	values, err := bsonDToValues(*result)
 	if err != nil {
-		cfr.err = err
+		sfr.err = err
 		return false
 	}
-	evalCtx := &EvalCtx{[]Row{{[]TableRow{{tableName, values}}}}, cfr.ctx}
-	if cfr.matcher != nil {
-		m, err := Matches(cfr.matcher, evalCtx)
+	evalCtx := &EvalCtx{[]Row{{[]TableRow{{tableName, values}}}}, sfr.ctx}
+	if sfr.matcher != nil {
+		m, err := Matches(sfr.matcher, evalCtx)
 		if err != nil {
-			cfr.err = err
+			sfr.err = err
 			return false
 		}
 		if !m {
-			return cfr.Next(result)
+			return sfr.Next(result)
 		}
 	}
 	return true
 }
-
-// -------
 
 type SchemaFindQuery struct {
 	ctx            *ExecutionCtx
@@ -225,10 +223,10 @@ func (cfq SchemaFindQuery) Iter() FindResults {
 	return &SchemaFindResults{cfq.ctx, cfq.matcher, cfq.includeColumns, 0, 0, 0, nil}
 }
 
-func (cfr *SchemaFindResults) Err() error {
-	return cfr.err
+func (sfr *SchemaFindResults) Err() error {
+	return sfr.err
 }
 
-func (cfr *SchemaFindResults) Close() error {
+func (sfr *SchemaFindResults) Close() error {
 	return nil
 }

@@ -15,71 +15,33 @@ type FindQuery interface {
 	Iter() FindResults
 }
 
-type DataSource interface {
-	Find(query interface{}) FindQuery
-	Insert(docs ...interface{}) error
-	DropCollection() error
-}
-
-// ------
-
 type MgoFindResults struct {
 	iter *mgo.Iter
 }
 
-func (gfr MgoFindResults) Next(result *bson.D) bool {
-	return gfr.iter.Next(result)
+func (mfr MgoFindResults) Next(result *bson.D) bool {
+	return mfr.iter.Next(result)
 }
 
-func (gfr MgoFindResults) Err() error {
-	return gfr.iter.Err()
+func (mfr MgoFindResults) Err() error {
+	return mfr.iter.Err()
 }
 
-func (gfr MgoFindResults) Close() error {
-	return gfr.iter.Close()
+func (mfr MgoFindResults) Close() error {
+	return mfr.iter.Close()
 }
-
-// -------
-
-type MgoFindQuery struct {
-	query *mgo.Query
-}
-
-func (gfq MgoFindQuery) Iter() FindResults {
-	return &MgoFindResults{gfq.query.Iter()}
-}
-
-// -------
-
-type MgoDataSource struct {
-	Collection *mgo.Collection
-}
-
-func (gds MgoDataSource) Find(query interface{}) FindQuery {
-	return MgoFindQuery{gds.Collection.Find(query)}
-}
-
-func (gds MgoDataSource) Insert(docs ...interface{}) error {
-	return gds.Collection.Insert(docs...)
-}
-
-func (gds MgoDataSource) DropCollection() error {
-	return gds.Collection.DropCollection()
-}
-
-// ------
 
 type EmptyFindResults struct {
 }
 
-func (gfr EmptyFindResults) Next(result *bson.D) bool {
+func (_ EmptyFindResults) Next(result *bson.D) bool {
 	return false
 }
 
-func (gfr EmptyFindResults) Err() error {
+func (_ EmptyFindResults) Err() error {
 	return nil
 }
 
-func (gfr EmptyFindResults) Close() error {
+func (_ EmptyFindResults) Close() error {
 	return nil
 }

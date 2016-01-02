@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"reflect"
 	"strconv"
@@ -19,7 +18,6 @@ type TableScan struct {
 	matcher     SQLExpr
 	iter        FindResults
 	database    *schema.Database
-	session     *mgo.Session
 	tableSchema *schema.Table
 	ctx         *ExecutionCtx
 	pipeline    []bson.D
@@ -59,9 +57,7 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 
 	pcs := strings.SplitN(ts.tableSchema.CollectionName, ".", 2)
 
-	ts.session = ctx.Session.Copy()
-	ts.session.SetSocketTimeout(0)
-	db := ts.session.DB(pcs[0])
+	db := ctx.Session.DB(pcs[0])
 	collection := db.C(pcs[1])
 	agg := collection.Pipe(ts.pipeline)
 	ts.iter = MgoFindResults{agg.Iter()}
@@ -193,10 +189,6 @@ func (ts *TableScan) Next(row *Row) bool {
 		}
 	}
 
-	if !hasNext {
-		ts.err = ts.iter.Err()
-	}
-
 	return hasNext
 }
 
@@ -219,15 +211,12 @@ func (ts *TableScan) OpFields() []*Column {
 }
 
 func (ts *TableScan) Close() error {
-	defer ts.session.Close()
-
-	if ts.iter == nil {
-		return nil
-	}
-
 	return ts.iter.Close()
 }
 
 func (ts *TableScan) Err() error {
+	if err := ts.iter.Err(); err != nil {
+		return err
+	}
 	return ts.err
 }

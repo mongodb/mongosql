@@ -528,6 +528,24 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 		return expr, nil
 
+	case *sqlparser.CtorExpr:
+
+		tuple := sqlparser.ValTuple{}
+
+		for i, val := range expr.Exprs {
+
+			t, err := algebrizeExpr(val, pCtx)
+			if err != nil {
+				return nil, fmt.Errorf("can't handle CtorExpr expr %v (%v): %v", i+1, sqlparser.String(val), err)
+			}
+
+			tuple = append(tuple, t.(sqlparser.ValExpr))
+		}
+
+		expr.Exprs = sqlparser.ValExprs(tuple)
+
+		return expr, nil
+
 	case *sqlparser.ExistsExpr:
 
 		return algebrizeExpr(expr.Subquery, pCtx)
