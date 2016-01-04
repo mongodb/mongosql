@@ -51,10 +51,10 @@ func ParseSchemaData(data []byte) (*Schema, error) {
 				}
 
 				if _, ok := tbl.Columns[c.Name]; ok {
-					return nil, fmt.Errorf("duplicate column [%s].", c.SqlName)
+					return nil, fmt.Errorf("duplicate column [%s].", c.Name)
 				}
 
-				tbl.Columns[c.SqlName] = c
+				tbl.Columns[c.Name] = c
 			}
 		}
 	}
