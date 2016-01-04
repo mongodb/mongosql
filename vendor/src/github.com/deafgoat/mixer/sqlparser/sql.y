@@ -69,6 +69,7 @@ var (
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LE GE NE NULL_SAFE_EQUAL
 %token <empty> '(' '=' '<' '>' '~'
+%token <empty> DATE DATETIME TIME TIMESTAMP YEAR
 
 %left <empty> UNION MINUS EXCEPT INTERSECT
 %left <empty> ','
@@ -153,6 +154,7 @@ var (
 %type <updateExpr> update_expression
 %type <empty> exists_opt not_exists_opt ignore_opt non_rename_operation to_opt constraint_opt using_opt
 %type <bytes> sql_id
+%type <str> ctor_type time_type
 %type <empty> force_eof
 
 %type <statement> begin_statement commit_statement rollback_statement
@@ -875,6 +877,10 @@ value_expression:
   {
     $$ = &FuncExpr{Name: $1, Distinct: true, Exprs: $4}
   }
+| '(' ctor_type value_expression_list ')'
+  {
+    $$ = &CtorExpr{Name: $2, Exprs: $3}
+  }
 | keyword_as_func '(' select_expression_list ')'
   {
     $$ = &FuncExpr{Name: $1, Exprs: $3}
@@ -1156,6 +1162,35 @@ sql_id:
   ID
   {
     $$ = bytes.ToLower($1)
+  }
+
+
+ctor_type:
+  time_type
+  {
+    $$ = $1
+  }
+
+time_type:
+  DATE
+  {
+    $$ = AST_DATE
+  }
+| TIME
+  {
+    $$ = AST_TIME
+  }
+| TIMESTAMP
+  {
+    $$ = AST_TIMESTAMP
+  }
+| DATETIME
+  {
+    $$ = AST_DATETIME
+  }
+| YEAR
+  {
+    $$ = AST_YEAR
   }
 
 force_eof:

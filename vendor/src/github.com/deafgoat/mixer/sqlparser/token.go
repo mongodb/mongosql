@@ -119,9 +119,16 @@ var keywords = map[string]int{
 	"columns":   COLUMNS,
 	"full":      FULL,
 
-	//for mixer admin
+	// for mixer admin
 	"admin": ADMIN,
 	"proxy": PROXY,
+
+	// time related constructors
+	"date":      DATE,
+	"datetime":  DATETIME,
+	"time":      TIME,
+	"timestamp": TIMESTAMP,
+	"year":      YEAR,
 }
 
 // Lex returns the next token form the Tokenizer.

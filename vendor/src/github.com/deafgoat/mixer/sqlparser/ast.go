@@ -453,6 +453,7 @@ func (*Subquery) IExpr()       {}
 func (*BinaryExpr) IExpr()     {}
 func (*UnaryExpr) IExpr()      {}
 func (*FuncExpr) IExpr()       {}
+func (*CtorExpr) IExpr()       {}
 func (*CaseExpr) IExpr()       {}
 
 // BoolExpr represents a boolean expression.
@@ -470,6 +471,7 @@ func (*Subquery) IBoolExpr()   {}
 func (*BinaryExpr) IBoolExpr() {}
 func (*UnaryExpr) IBoolExpr()  {}
 func (*FuncExpr) IBoolExpr()   {}
+func (*CtorExpr) IBoolExpr()   {}
 func (*CaseExpr) IBoolExpr()   {}
 
 func (*AndExpr) IBoolExpr()        {}
@@ -600,6 +602,7 @@ func (*Subquery) IValExpr()   {}
 func (*BinaryExpr) IValExpr() {}
 func (*UnaryExpr) IValExpr()  {}
 func (*FuncExpr) IValExpr()   {}
+func (*CtorExpr) IValExpr()   {}
 func (*CaseExpr) IValExpr()   {}
 
 // StrVal represents a string value.
@@ -741,6 +744,24 @@ func (node *FuncExpr) Format(buf *TrackedBuffer) {
 		distinct = "distinct "
 	}
 	buf.Fprintf("%s(%s%v)", node.Name, distinct, node.Exprs)
+}
+
+// CtorExpr represents a constructor call.
+type CtorExpr struct {
+	Name  string
+	Exprs ValExprs
+}
+
+const (
+	AST_DATE      = "date"
+	AST_TIME      = "time"
+	AST_TIMESTAMP = "timestamp"
+	AST_DATETIME  = "datetime"
+	AST_YEAR      = "year"
+)
+
+func (node *CtorExpr) Format(buf *TrackedBuffer) {
+	buf.Fprintf("%s(%v)", node.Name, node.Exprs)
 }
 
 // CaseExpr represents a CASE expression.
