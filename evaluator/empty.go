@@ -1,5 +1,7 @@
 package evaluator
 
+// An empty source for when we find that 0 rows are going to be returned, we don't
+// need to hit MongoDB to get back nothing.
 type Empty struct {
 }
 
@@ -11,7 +13,7 @@ func (_ *Empty) Next(row *Row) bool {
 	return false
 }
 
-func (_ *Empty) OpFields() (columns []*Column) {
+func (_ *Empty) OpFields() []*Column {
 	return []*Column{}
 }
 

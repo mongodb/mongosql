@@ -81,7 +81,7 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 			return filter, nil
 		}
 
-		pipeline = append(ts.pipeline, bson.M{"$match": matchBody})
+		pipeline = append(ts.pipeline, bson.D{{"$match", matchBody}})
 	}
 
 	// if we end up here, it's because we have messed with the pipeline

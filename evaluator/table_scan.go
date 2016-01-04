@@ -22,7 +22,7 @@ type TableScan struct {
 	session     *mgo.Session
 	tableSchema *schema.Table
 	ctx         *ExecutionCtx
-	pipeline    []bson.M
+	pipeline    []bson.D
 	err         error
 }
 

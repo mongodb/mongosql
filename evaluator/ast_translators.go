@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// TranslatePredicate attempts to turn the SQLExpr into mongodb query langage.
-// It returns 2 things, a translated predicate that can be sent to MongoDB, and
+// TranslatePredicate attempts to turn the SQLExpr into mongodb query language.
+// It returns 2 things, a translated predicate that can be sent to MongoDB and
 // a SQLExpr that cannot be sent to MongoDB. Either of these may be nil.
 func TranslatePredicate(e SQLExpr, db *schema.Database) (bson.M, SQLExpr) {
 	switch typedE := e.(type) {
