@@ -46,6 +46,10 @@ func ParseSchemaData(data []byte) (*Schema, error) {
 					c.SqlName = c.Name
 				}
 
+				if c.SqlName == "" {
+					return nil, fmt.Errorf("table [%s] has column with no name.", tbl.Name)
+				}
+
 				if _, ok := tbl.Columns[c.Name]; ok {
 					return nil, fmt.Errorf("duplicate column [%s].", c.SqlName)
 				}
