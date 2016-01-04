@@ -45,15 +45,13 @@ func (l *Limit) Next(row *Row) bool {
 		l.offset, l.total = 0, 0
 	}
 
-	hasNext := l.source.Next(row)
-
 	l.total += 1
 
 	if l.total > l.rowcount {
 		return false
 	}
 
-	return hasNext
+	return l.source.Next(row)
 }
 
 func (l *Limit) OpFields() (columns []*Column) {
