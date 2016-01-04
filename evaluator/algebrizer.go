@@ -293,53 +293,6 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 	switch expr := gExpr.(type) {
 
-	case sqlparser.NumVal:
-
-		return expr, nil
-
-	case sqlparser.ValTuple:
-
-		vals := sqlparser.ValExprs(expr)
-		tuple := sqlparser.ValTuple{}
-
-		for i, val := range vals {
-
-			t, err := algebrizeExpr(val, pCtx)
-			if err != nil {
-				return nil, fmt.Errorf("can't handle ValExpr %v (%v): %v", i+1, sqlparser.String(val), err)
-			}
-
-			tuple = append(tuple, t.(sqlparser.ValExpr))
-
-		}
-
-		return tuple, nil
-
-	case *sqlparser.NullVal:
-
-		return expr, nil
-
-		// TODO: regex lowercased
-	case *sqlparser.ColName:
-
-		return resolveColumnExpr(expr, pCtx)
-
-	case sqlparser.StrVal:
-
-		return expr, nil
-
-	case *sqlparser.BinaryExpr:
-
-		left, right, err := algebrizeLRExpr(expr.Left, expr.Right, pCtx)
-		if err != nil {
-			return nil, fmt.Errorf("BinaryExpr LR error: %v", err)
-		}
-
-		expr.Left = left.(sqlparser.Expr)
-		expr.Right = right.(sqlparser.Expr)
-
-		return expr, nil
-
 	case *sqlparser.AndExpr:
 
 		left, right, err := algebrizeLRExpr(expr.Left, expr.Right, pCtx)
@@ -352,136 +305,15 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 		return expr, nil
 
-	case *sqlparser.OrExpr:
+	case *sqlparser.BinaryExpr:
 
 		left, right, err := algebrizeLRExpr(expr.Left, expr.Right, pCtx)
 		if err != nil {
-			return nil, fmt.Errorf("OrExpr error: %v", err)
+			return nil, fmt.Errorf("BinaryExpr LR error: %v", err)
 		}
 
-		expr.Left = left.(sqlparser.BoolExpr)
-		expr.Right = right.(sqlparser.BoolExpr)
-
-		return expr, nil
-
-	case *sqlparser.ComparisonExpr:
-
-		left, right, err := algebrizeLRExpr(expr.Left, expr.Right, pCtx)
-		if err != nil {
-			return nil, fmt.Errorf("ComparisonExpr error: %v", err)
-		}
-
-		expr.Left = left.(sqlparser.ValExpr)
-		expr.Right = right.(sqlparser.ValExpr)
-
-		return expr, nil
-
-	case *sqlparser.RangeCond:
-
-		from, to, err := algebrizeLRExpr(expr.From, expr.To, pCtx)
-		if err != nil {
-			return nil, fmt.Errorf("RangeCond LR error: %v", err)
-		}
-
-		left, err := algebrizeExpr(expr.Left, pCtx)
-		if err != nil {
-			return nil, fmt.Errorf("RangeCond key error: %v", err)
-		}
-
-		expr.Left = left.(sqlparser.ValExpr)
-		expr.To = to.(sqlparser.ValExpr)
-		expr.From = from.(sqlparser.ValExpr)
-
-		return expr, nil
-
-	case *sqlparser.NullCheck:
-
-		// TODO: how is 'null' interpreted? exists? 'null'?
-		val, err := algebrizeExpr(expr.Expr, pCtx)
-		if err != nil {
-			return nil, fmt.Errorf("NullCheck error: %v", err)
-		}
-
-		expr.Expr = val.(sqlparser.ValExpr)
-
-		return expr, nil
-
-	case *sqlparser.UnaryExpr:
-
-		val, err := algebrizeExpr(expr.Expr, pCtx)
-		if err != nil {
-			return nil, fmt.Errorf("UnaryExpr error: %v", err)
-		}
-
-		expr.Expr = val
-
-		return expr, nil
-
-	case *sqlparser.NotExpr:
-
-		val, err := algebrizeExpr(expr.Expr, pCtx)
-		if err != nil {
-			return nil, fmt.Errorf("NotExpr error: %v", err)
-		}
-
-		expr.Expr = val.(sqlparser.BoolExpr)
-
-		return expr, nil
-
-	case *sqlparser.ParenBoolExpr:
-
-		val, err := algebrizeExpr(expr.Expr, pCtx)
-		if err != nil {
-			return nil, fmt.Errorf("ParenBoolExpr error: %v", err)
-		}
-
-		expr.Expr = val.(sqlparser.BoolExpr)
-
-		return expr, nil
-
-		//
-		//  some nodes rely on SimpleSelect support
-		//
-
-	case *sqlparser.Subquery:
-
-		// algebrize subquery as a select expression
-
-		nCtx, err := pCtx.ChildCtx(expr.Select)
-		if err != nil {
-			return nil, fmt.Errorf("error constructing subquery select expression context: %v", err)
-		}
-
-		nCtx.State |= StateSubQueryExpr
-
-		err = algebrizeSelectStatement(expr.Select, nCtx)
-		if err != nil {
-			return nil, fmt.Errorf("can't algebrize select expression Subquery: %v", err)
-		}
-
-		return expr, nil
-
-	case *sqlparser.FuncExpr:
-		// set the current expression being parsed to this function to
-		// prevent treating nested select expressions as top-level column
-		// references
-
-		if pCtx.NonStarAlias != "" && pCtx.Phase == PhaseSelectExpr {
-			index := len(pCtx.Columns) + len(pCtx.ColumnReferences)
-			ref := ColumnReference{pCtx.NonStarAlias, pCtx.DerivedTableName, pCtx.Expr, index}
-			pCtx.ColumnReferences = append(pCtx.ColumnReferences, ref)
-		}
-
-		pCtx.State |= StateFuncExpr
-
-		algebrizedSelectExprs, err := algebrizeSelectExprs(expr.Exprs, pCtx)
-		if err != nil {
-			return nil, err
-		}
-
-		pCtx.State &^= StateFuncExpr
-
-		expr.Exprs = algebrizedSelectExprs
+		expr.Left = left.(sqlparser.Expr)
+		expr.Right = right.(sqlparser.Expr)
 
 		return expr, nil
 
@@ -528,6 +360,23 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 		return expr, nil
 
+		// TODO: regex lowercased
+	case *sqlparser.ColName:
+
+		return resolveColumnExpr(expr, pCtx)
+
+	case *sqlparser.ComparisonExpr:
+
+		left, right, err := algebrizeLRExpr(expr.Left, expr.Right, pCtx)
+		if err != nil {
+			return nil, fmt.Errorf("ComparisonExpr error: %v", err)
+		}
+
+		expr.Left = left.(sqlparser.ValExpr)
+		expr.Right = right.(sqlparser.ValExpr)
+
+		return expr, nil
+
 	case *sqlparser.CtorExpr:
 
 		tuple := sqlparser.ValTuple{}
@@ -550,13 +399,164 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 		return algebrizeExpr(expr.Subquery, pCtx)
 
+	case *sqlparser.FuncExpr:
+		// set the current expression being parsed to this function to
+		// prevent treating nested select expressions as top-level column
+		// references
+
+		if pCtx.NonStarAlias != "" && pCtx.Phase == PhaseSelectExpr {
+			index := len(pCtx.Columns) + len(pCtx.ColumnReferences)
+			ref := ColumnReference{pCtx.NonStarAlias, pCtx.DerivedTableName, pCtx.Expr, index}
+			pCtx.ColumnReferences = append(pCtx.ColumnReferences, ref)
+		}
+
+		pCtx.State |= StateFuncExpr
+
+		algebrizedSelectExprs, err := algebrizeSelectExprs(expr.Exprs, pCtx)
+		if err != nil {
+			return nil, err
+		}
+
+		pCtx.State &^= StateFuncExpr
+
+		expr.Exprs = algebrizedSelectExprs
+
+		return expr, nil
+
 	case nil:
 
 		return &sqlparser.NullVal{}, nil
 
+	case *sqlparser.NotExpr:
+
+		val, err := algebrizeExpr(expr.Expr, pCtx)
+		if err != nil {
+			return nil, fmt.Errorf("NotExpr error: %v", err)
+		}
+
+		expr.Expr = val.(sqlparser.BoolExpr)
+
+		return expr, nil
+
+	case *sqlparser.NullCheck:
+
+		// TODO: how is 'null' interpreted? exists? 'null'?
+		val, err := algebrizeExpr(expr.Expr, pCtx)
+		if err != nil {
+			return nil, fmt.Errorf("NullCheck error: %v", err)
+		}
+
+		expr.Expr = val.(sqlparser.ValExpr)
+
+		return expr, nil
+
+	case *sqlparser.NullVal:
+
+		return expr, nil
+
+	case sqlparser.NumVal:
+
+		return expr, nil
+
+	case *sqlparser.OrExpr:
+
+		left, right, err := algebrizeLRExpr(expr.Left, expr.Right, pCtx)
+		if err != nil {
+			return nil, fmt.Errorf("OrExpr error: %v", err)
+		}
+
+		expr.Left = left.(sqlparser.BoolExpr)
+		expr.Right = right.(sqlparser.BoolExpr)
+
+		return expr, nil
+
+	case *sqlparser.ParenBoolExpr:
+
+		val, err := algebrizeExpr(expr.Expr, pCtx)
+		if err != nil {
+			return nil, fmt.Errorf("ParenBoolExpr error: %v", err)
+		}
+
+		expr.Expr = val.(sqlparser.BoolExpr)
+
+		return expr, nil
+
+	case *sqlparser.RangeCond:
+
+		from, to, err := algebrizeLRExpr(expr.From, expr.To, pCtx)
+		if err != nil {
+			return nil, fmt.Errorf("RangeCond LR error: %v", err)
+		}
+
+		left, err := algebrizeExpr(expr.Left, pCtx)
+		if err != nil {
+			return nil, fmt.Errorf("RangeCond key error: %v", err)
+		}
+
+		expr.Left = left.(sqlparser.ValExpr)
+		expr.To = to.(sqlparser.ValExpr)
+		expr.From = from.(sqlparser.ValExpr)
+
+		return expr, nil
+
+	case sqlparser.StrVal:
+
+		return expr, nil
+
+		//
+		//  some nodes rely on SimpleSelect support
+		//
+
+	case *sqlparser.Subquery:
+
+		// algebrize subquery as a select expression
+
+		nCtx, err := pCtx.ChildCtx(expr.Select)
+		if err != nil {
+			return nil, fmt.Errorf("error constructing subquery select expression context: %v", err)
+		}
+
+		nCtx.State |= StateSubQueryExpr
+
+		err = algebrizeSelectStatement(expr.Select, nCtx)
+		if err != nil {
+			return nil, fmt.Errorf("can't algebrize select expression Subquery: %v", err)
+		}
+
+		return expr, nil
+
+	case *sqlparser.UnaryExpr:
+
+		val, err := algebrizeExpr(expr.Expr, pCtx)
+		if err != nil {
+			return nil, fmt.Errorf("UnaryExpr error: %v", err)
+		}
+
+		expr.Expr = val
+
+		return expr, nil
+
 	case sqlparser.ValArg:
 
 		return nil, fmt.Errorf("can't handle ValArg type %T", expr)
+
+	case sqlparser.ValTuple:
+
+		vals := sqlparser.ValExprs(expr)
+		tuple := sqlparser.ValTuple{}
+
+		for i, val := range vals {
+
+			t, err := algebrizeExpr(val, pCtx)
+			if err != nil {
+				return nil, fmt.Errorf("can't handle ValExpr %v (%v): %v", i+1, sqlparser.String(val), err)
+			}
+
+			tuple = append(tuple, t.(sqlparser.ValExpr))
+
+		}
+
+		return tuple, nil
 
 	default:
 
