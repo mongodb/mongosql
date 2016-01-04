@@ -77,6 +77,8 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			return SQLString(strconv.FormatInt(int64(v), 10)), nil
 		case int64:
 			return SQLString(strconv.FormatInt(v, 10)), nil
+		case bson.ObjectId:
+			return SQLString(v.Hex()), nil
 		}
 
 	case schema.SQLInt:
@@ -156,8 +158,14 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			}
 			date = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 
+		case bson.ObjectId:
+
+			return NewSQLValue(v.Time(), columnType)
+
 		default:
+
 			return SQLDate{schema.DefaultTime}, nil
+
 		}
 
 		if date.Before(lower) || date.After(upper) {
@@ -188,6 +196,10 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 			dt = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
 				d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
+
+		case bson.ObjectId:
+
+			return NewSQLValue(v.Time(), columnType)
 
 		default:
 
@@ -222,6 +234,10 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			}
 			ts = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
 				d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
+
+		case bson.ObjectId:
+
+			return NewSQLValue(v.Time(), columnType)
 
 		default:
 
@@ -274,6 +290,10 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			}
 
 			return SQLYear{time.Date(year, 0, 0, 0, 0, 0, 0, schema.DefaultLocale)}, nil
+
+		case bson.ObjectId:
+
+			return NewSQLValue(v.Time(), columnType)
 
 		default:
 			return SQLYear{schema.DefaultTime}, nil
