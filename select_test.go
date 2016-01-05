@@ -80,7 +80,6 @@ func TestSelectWithStar(t *testing.T) {
 			}
 
 			Convey("result set should only contain records satisfying the WHERE clause", func() {
-
 				names, values, err = eval.EvalSelect("test", "select * from bar where a = 16", nil, nil)
 				So(err, ShouldBeNil)
 				So(len(values), ShouldEqual, 1)
@@ -214,7 +213,16 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(len(values[0]), ShouldEqual, 2)
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(13))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(27))
+
+			names, values, err = eval.EvalSelect("test", "select 1 from bar", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(values), ShouldEqual, 7)
+
+			for _, value := range values[0] {
+				So(value, ShouldResemble, evaluator.SQLInt(1))
+			}
 		})
+
 	})
 
 }

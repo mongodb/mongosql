@@ -348,7 +348,7 @@ func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) 
 }
 
 // GetCurrentTable finds a given table in the current context.
-func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, error) {
+func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName, columnName string) (*TableInfo, error) {
 
 	if pCtx == nil {
 		return nil, fmt.Errorf("Current table '%v' doesn't exist", tableName)
@@ -367,12 +367,44 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, err
 		}
 	} else if len(pCtx.Tables) > 1 {
 		// if there are multiple tables in the current context
-		// then tableName must not be empty
+		// then tableName may or may not be qualified
 		if tableName == "" {
+
 			if pCtx.Parent == nil {
-				return nil, fmt.Errorf("Can not find empty table in join context")
+
+				var tInfo *TableInfo
+
+				if columnName == "" {
+					return nil, fmt.Errorf("Can not find empty table in join context")
+				}
+
+				column := &Column{Name: columnName}
+
+				for _, tableInfo := range pCtx.Tables {
+
+					column.Table = tableInfo.Alias
+
+					if err := pCtx.CheckColumn(&tableInfo, columnName); err != nil {
+
+						if pCtx.IsSchemaColumn(column) {
+							tInfo = &tableInfo
+							break
+						}
+						continue
+					}
+
+					tInfo = &tableInfo
+					break
+				}
+
+				if tInfo == nil {
+					return nil, fmt.Errorf("Column '%v' not found", columnName)
+				}
+
+				return tInfo, nil
 			}
-			return pCtx.Parent.GetCurrentTable(dbName, tableName)
+
+			return pCtx.Parent.GetCurrentTable(dbName, tableName, columnName)
 		}
 
 		// the table name can either be actual or aliased
@@ -385,7 +417,7 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName string) (*TableInfo, err
 		}
 	}
 
-	return pCtx.Parent.GetCurrentTable(dbName, tableName)
+	return pCtx.Parent.GetCurrentTable(dbName, tableName, columnName)
 }
 
 // checkColumn checks that a referenced column in the context of
@@ -490,17 +522,17 @@ func (pCtx *ParseCtx) IsSchemaColumn(column *Column) bool {
 
 	db := pCtx.Schema.Databases[pCtx.Database]
 
-	table := db.Tables[tableInfo.Name]
-
-	for _, c := range table.RawColumns {
-
-		if c.SqlName == column.Name {
-			return true
-		}
-
+	if db == nil {
+		return false
 	}
 
-	return false
+	table := db.Tables[tableInfo.Name]
+
+	if table == nil {
+		return false
+	}
+
+	return table.Columns[column.Name] != nil
 
 }
 

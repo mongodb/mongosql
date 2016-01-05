@@ -1,7 +1,6 @@
 package evaluator
 
 import (
-	"fmt"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -62,18 +61,8 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 		// otherwise, the filter simply gets removed from the tree
 
 	} else {
-		dbName := ts.dbName
-		if dbName == "" {
-			dbName = ctx.Db
-		}
-
-		db, ok := ctx.Schema.Databases[dbName]
-		if !ok {
-			return nil, fmt.Errorf("Database %q could not be found in the schema.", dbName)
-		}
-
 		var matchBody bson.M
-		matchBody, localMatcher = TranslatePredicate(optimizedExpr, db)
+		matchBody, localMatcher = TranslatePredicate(optimizedExpr, ctx.Schema.Databases[ctx.Db])
 
 		if matchBody == nil {
 			// no pieces of the matcher are able to be pushed down,
@@ -88,20 +77,14 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 	// in the current table scan operator, so we need to reconstruct the
 	// operator nodes.
 	ts = &TableScan{
-		pipeline:    pipeline,
-		dbName:      ts.dbName,
-		tableName:   ts.tableName,
-		matcher:     ts.matcher,
-		iter:        ts.iter,
-		database:    ts.database,
-		tableSchema: ts.tableSchema,
-		ctx:         ts.ctx,
-		err:         ts.err,
+		pipeline:  pipeline,
+		dbName:    ts.dbName,
+		tableName: ts.tableName,
+		matcher:   ts.matcher,
 	}
 
 	sa = &SourceAppend{
 		source:      ts,
-		ctx:         sa.ctx,
 		hasSubquery: sa.hasSubquery,
 	}
 
@@ -114,8 +97,6 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 			source:      sa,
 			matcher:     localMatcher,
 			hasSubquery: filter.hasSubquery,
-			ctx:         filter.ctx,
-			err:         filter.err,
 		}
 
 		return filter, nil

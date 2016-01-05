@@ -91,7 +91,7 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 		Convey("a subquery that references outer aliased nodes should properly algebrized", func() {
 
-			sql := `select f3.z, (select f1.a from baz f2 where f3.a = f2.b ), f1.b from foo f1, bar f3`
+			sql := `select f3.z, (select f1.a from baz f2 where f3.a = f2.b), f1.b from foo f1, bar f3`
 
 			raw, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)

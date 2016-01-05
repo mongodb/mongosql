@@ -431,6 +431,8 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 	// values
 	case SQLBool:
 		// nothing to do
+	case *SQLCtorExpr:
+		return e.Evaluate(nil)
 	case SQLDate:
 		// nothing to do
 	case SQLDateTime:

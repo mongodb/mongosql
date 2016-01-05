@@ -8,6 +8,15 @@ import (
 	"strings"
 )
 
+func computeDirectory(originalFileName string, schemaDir string) string {
+	if schemaDir[0] == '/' || schemaDir[0] == '\\' {
+		return schemaDir
+	}
+
+	d, _ := filepath.Split(originalFileName)
+	return filepath.Join(d, schemaDir)
+}
+
 func ParseSchemaData(data []byte) (*Schema, error) {
 	var schema Schema
 	if err := yaml.Unmarshal([]byte(data), &schema); err != nil {
@@ -22,41 +31,12 @@ func ParseSchemaData(data []byte) (*Schema, error) {
 			return nil, fmt.Errorf("duplicate database [%s].", db.Name)
 		}
 
+		if err := PopulateColumnMaps(db); err != nil {
+			return nil, err
+		}
+
 		schema.Databases[db.Name] = db
 
-		db.Tables = make(map[string]*Table)
-
-		for _, tbl := range db.RawTables {
-			err := tbl.fixTypes()
-			if err != nil {
-				return nil, err
-			}
-
-			if _, ok := db.Tables[tbl.Name]; ok {
-				return nil, fmt.Errorf("duplicate table [%s].", tbl.Name)
-			}
-
-			db.Tables[tbl.Name] = tbl
-
-			tbl.Columns = make(map[string]*Column)
-
-			for _, c := range tbl.RawColumns {
-
-				if c.SqlName == "" {
-					c.SqlName = c.Name
-				}
-
-				if c.SqlName == "" {
-					return nil, fmt.Errorf("table [%s] has column with no name.", tbl.Name)
-				}
-
-				if _, ok := tbl.Columns[c.Name]; ok {
-					return nil, fmt.Errorf("duplicate column [%s].", c.Name)
-				}
-
-				tbl.Columns[c.Name] = c
-			}
-		}
 	}
 
 	return &schema, nil
@@ -105,13 +85,46 @@ func ParseSchemaFile(fileName string) (*Schema, error) {
 	return cfg, nil
 }
 
-// --
+func PopulateColumnMaps(db *Database) error {
 
-func computeDirectory(originalFileName string, schemaDir string) string {
-	if schemaDir[0] == '/' || schemaDir[0] == '\\' {
-		return schemaDir
+	db.Tables = make(map[string]*Table)
+
+	for _, tbl := range db.RawTables {
+
+		err := tbl.fixTypes()
+		if err != nil {
+			return err
+		}
+
+		// TODO: consider lowercasing table names in config since we do
+		// that in the query planner in constructing the TableScan node.
+		if _, ok := db.Tables[tbl.Name]; ok {
+			return fmt.Errorf("duplicate table [%s].", tbl.Name)
+		}
+
+		db.Tables[tbl.Name] = tbl
+
+		tbl.Columns = make(map[string]*Column)
+		tbl.SQLColumns = make(map[string]*Column)
+
+		for _, c := range tbl.RawColumns {
+
+			if c.SqlName == "" {
+				c.SqlName = c.Name
+			}
+
+			if c.SqlName == "" {
+				return fmt.Errorf("table [%s] has column with no name.", tbl.Name)
+			}
+
+			if _, ok := tbl.Columns[c.Name]; ok {
+				return fmt.Errorf("duplicate column [%s].", c.Name)
+			}
+
+			tbl.Columns[c.Name] = c
+			tbl.SQLColumns[c.SqlName] = c
+		}
 	}
 
-	d, _ := filepath.Split(originalFileName)
-	return filepath.Join(d, schemaDir)
+	return nil
 }

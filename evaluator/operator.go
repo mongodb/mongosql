@@ -213,11 +213,28 @@ func (se SelectExpressions) Contains(column Column) bool {
 
 // hasSubquery returns true if any of the select expressions contains a
 // subquery expression.
-func (se SelectExpressions) HasSubquery() bool {
+func (se SelectExpressions) hasSubquery() bool {
 
 	for _, expr := range se {
 		if expr.InSubquery {
 			return true
+		}
+	}
+
+	return false
+}
+
+// hasCase returns true if any of the select expressions contains a
+// case expression.
+func (se SelectExpressions) hasCase() bool {
+
+	for _, s := range se {
+		if value, ok := s.Expr.(sqlparser.ValTuple); ok {
+			for _, expr := range value {
+				if _, ok := expr.(*sqlparser.CaseExpr); ok {
+					return true
+				}
+			}
 		}
 	}
 

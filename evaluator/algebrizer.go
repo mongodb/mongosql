@@ -201,8 +201,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 			// the information schema
 
 			if pCtx.Database != InformationDatabase && !pCtx.InFuncExpr() {
-
-				table, err := pCtx.GetCurrentTable(pCtx.Database, string(expr.TableName))
+				table, err := pCtx.GetCurrentTable(pCtx.Database, string(expr.TableName), "")
 				if err != nil {
 					algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
 					continue
@@ -225,7 +224,6 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 					if !table.Derived {
 						return nil, fmt.Errorf("non-derived table '%v' does not exist", table.Name)
 					}
-
 					algebrizeSelectExprs = append(algebrizeSelectExprs, pCtx.GetTableColumns(table)...)
 				}
 				continue
@@ -263,7 +261,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 
 				var tableName string
 
-				table, err := pCtx.GetCurrentTable(pCtx.Database, "")
+				table, err := pCtx.GetCurrentTable(pCtx.Database, "", nonStarAlias)
 				if err == nil {
 					tableName = table.Alias
 				}
@@ -360,7 +358,7 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 		return expr, nil
 
-		// TODO: regex lowercased
+	// TODO: regex lowercased
 	case *sqlparser.ColName:
 
 		return resolveColumnExpr(expr, pCtx)
@@ -438,6 +436,14 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 		return expr, nil
 
+	case *sqlparser.NullVal:
+
+		return expr, nil
+
+	case sqlparser.NumVal:
+
+		return expr, nil
+
 	case *sqlparser.NullCheck:
 
 		// TODO: how is 'null' interpreted? exists? 'null'?
@@ -447,14 +453,6 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 		}
 
 		expr.Expr = val.(sqlparser.ValExpr)
-
-		return expr, nil
-
-	case *sqlparser.NullVal:
-
-		return expr, nil
-
-	case sqlparser.NumVal:
 
 		return expr, nil
 
@@ -481,6 +479,10 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 		return expr, nil
 
+		//
+		//  some nodes rely on SimpleSelect support
+		//
+
 	case *sqlparser.RangeCond:
 
 		from, to, err := algebrizeLRExpr(expr.From, expr.To, pCtx)
@@ -502,10 +504,6 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 	case sqlparser.StrVal:
 
 		return expr, nil
-
-		//
-		//  some nodes rely on SimpleSelect support
-		//
 
 	case *sqlparser.Subquery:
 
@@ -585,15 +583,6 @@ func algebrizeTableExpr(tExpr sqlparser.TableExpr, pCtx *ParseCtx) error {
 
 		return nil
 
-	case *sqlparser.ParenTableExpr:
-
-		err := algebrizeTableExpr(expr.Expr, pCtx)
-		if err != nil {
-			return fmt.Errorf("ParenTableExpr error: %v", err)
-		}
-
-		return nil
-
 	case *sqlparser.JoinTableExpr:
 
 		left, right, err := algebrizeLRTableExpr(expr.LeftExpr, expr.RightExpr, pCtx)
@@ -614,6 +603,15 @@ func algebrizeTableExpr(tExpr sqlparser.TableExpr, pCtx *ParseCtx) error {
 
 		return nil
 
+	case *sqlparser.ParenTableExpr:
+
+		err := algebrizeTableExpr(expr.Expr, pCtx)
+		if err != nil {
+			return fmt.Errorf("ParenTableExpr error: %v", err)
+		}
+
+		return nil
+
 	default:
 
 		return fmt.Errorf("can't handle table expression type %T", expr)
@@ -628,17 +626,6 @@ func algebrizeSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, pCtx *ParseCtx) 
 	log.Logf(log.DebugLow, "simple table expr: %s (type is %T)\npCtx: %v\n\n", sqlparser.String(stExpr), stExpr, pCtx.String())
 
 	switch expr := stExpr.(type) {
-
-	case *sqlparser.TableName:
-
-		table, err := pCtx.TableInfo(string(expr.Qualifier), string(expr.Name))
-		if err != nil {
-			expr.Name = []byte(string(expr.Name))
-		} else {
-			expr.Name = []byte(table.Name)
-		}
-
-		return expr, nil
 
 	case *sqlparser.Subquery:
 
@@ -658,6 +645,17 @@ func algebrizeSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, pCtx *ParseCtx) 
 				return nil, fmt.Errorf("can't algebrize Subquery: %v", err)
 			}
 
+		}
+
+		return expr, nil
+
+	case *sqlparser.TableName:
+
+		table, err := pCtx.TableInfo(string(expr.Qualifier), string(expr.Name))
+		if err != nil {
+			expr.Name = []byte(string(expr.Name))
+		} else {
+			expr.Name = []byte(table.Name)
 		}
 
 		return expr, nil
@@ -961,7 +959,7 @@ func columnToCtx(pCtx *ParseCtx, expr *sqlparser.ColName) (*ColumnInfo, error) {
 		return nil, fmt.Errorf("column name can not be empty: %v", columnName)
 	}
 
-	table, err := pCtx.GetCurrentTable(pCtx.Database, tableName)
+	table, err := pCtx.GetCurrentTable(pCtx.Database, tableName, columnName)
 	if err != nil {
 		return nil, err
 	}

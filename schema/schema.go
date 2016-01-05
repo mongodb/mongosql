@@ -52,6 +52,7 @@ type (
 		Pipeline       []map[string]interface{} `yaml:"pipeline"`
 		RawColumns     []*Column                `yaml:"columns"`
 		Columns        map[string]*Column       `yaml:"-"`
+		SQLColumns     map[string]*Column       `yaml:"-"`
 	}
 
 	Database struct {

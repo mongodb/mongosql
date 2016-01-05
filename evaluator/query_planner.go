@@ -174,7 +174,7 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 
 	selectOp.sExprs = append(selectOp.sExprs, refExprs...)
 
-	hasSubquery := selectOp.sExprs.HasSubquery()
+	hasSubquery := selectOp.sExprs.hasSubquery()
 
 	appender.hasSubquery = hasSubquery
 
@@ -602,6 +602,7 @@ func refColsInSelectStmt(ss sqlparser.SelectStatement) ([]SelectExpression, erro
 		return refColsInSelectExpr(stmt.SelectExprs)
 
 	case *sqlparser.Union:
+
 		l, err := refColsInSelectStmt(stmt.Left)
 		if err != nil {
 			return nil, err
@@ -741,9 +742,13 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 		return cds, nil
 	}
 
+	if c.Db == "" {
+		c.Db = dbName
+	}
+
 	ts := &TableScan{
 		tableName: string(t.Name),
-		dbName:    string(t.Qualifier),
+		dbName:    dbName,
 		matcher:   matcher,
 	}
 
