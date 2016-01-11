@@ -96,13 +96,11 @@ func (join *Join) init(ctx *ExecutionCtx) (err error) {
 	if err != nil {
 		return err
 	}
-	defer join.left.Close()
 
 	err = join.right.Open(ctx)
 	if err != nil {
 		return err
 	}
-	defer join.right.Close()
 
 	join.leftRows = make(chan *Row)
 	go join.fetchRows(join.left, join.leftRows)
