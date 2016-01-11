@@ -200,6 +200,25 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
 		})
 
+		Convey("ambiguity in column references should fail", func() {
+
+			sql := "select a from foo join bar"
+
+			raw, err := sqlparser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			stmt, ok := raw.(*sqlparser.Select)
+			So(ok, ShouldBeTrue)
+
+			cfg, err := schema.ParseSchemaData(testSchema2)
+			So(err, ShouldBeNil)
+
+			ctx, err := NewParseCtx(stmt, cfg, dbOne)
+			So(err, ShouldBeNil)
+
+			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
+		})
+
 		Convey("a non-existent qualified column reference should fail", func() {
 
 			sql := `select o.DNE from orders o`

@@ -380,6 +380,8 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName, columnName string) (*Ta
 
 				column := &Column{Name: columnName}
 
+				var count int64
+
 				for _, tableInfo := range pCtx.Tables {
 
 					column.Table = tableInfo.Alias
@@ -388,17 +390,19 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName, columnName string) (*Ta
 
 						if pCtx.IsSchemaColumn(column) {
 							tInfo = &tableInfo
-							break
+							count++
 						}
 						continue
 					}
 
 					tInfo = &tableInfo
-					break
+					count++
 				}
 
-				if tInfo == nil {
+				if count == 0 {
 					return nil, fmt.Errorf("Column '%v' not found", columnName)
+				} else if count > 1 {
+					return nil, fmt.Errorf("Column '%v' in field list is ambiguous", columnName)
 				}
 
 				return tInfo, nil
