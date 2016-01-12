@@ -13,6 +13,27 @@ func getQuery(raw sqlparser.Statement) string {
 	return buf.String()
 }
 
+func runAlgebrizerTest(sql string, shouldPass bool) {
+	raw, err := sqlparser.Parse(sql)
+	So(err, ShouldBeNil)
+
+	stmt, ok := raw.(*sqlparser.Select)
+	So(ok, ShouldBeTrue)
+
+	cfg, err := schema.ParseSchemaData(testSchema2)
+	So(err, ShouldBeNil)
+
+	ctx, err := NewParseCtx(stmt, cfg, dbOne)
+	So(err, ShouldBeNil)
+	So(ctx, ShouldNotBeNil)
+
+	if shouldPass {
+		So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
+	} else {
+		So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
+	}
+}
+
 func TestAlgebrizeTableExpr(t *testing.T) {
 
 	Convey("When algerizing a select expression...", t, func() {
@@ -38,73 +59,19 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 		})
 
 		Convey("a query with an implicit WHERE clause reference should produce the correct algebrized nodes", func() {
-
-			sql := "select a from foo f where x > 3"
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-			cfg, err := schema.ParseSchemaData(testSchema2)
-			So(err, ShouldBeNil)
-			ctx, err := NewParseCtx(stmt, cfg, dbOne)
-			So(err, ShouldBeNil)
-			So(ctx, ShouldNotBeNil)
-			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
-
+			runAlgebrizerTest("select a from foo f where x > 3", true)
 		})
+
 		Convey("subqueries should produce the correct algebrized nodes", func() {
-
-			sql := `select f.first, f.last, (select f.age from foo f where f.age > 34) from foo f where f.first = 'eliot' and f.last = 'horowitz'`
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-			cfg, err := schema.ParseSchemaData(testSchema2)
-			So(err, ShouldBeNil)
-			ctx, err := NewParseCtx(stmt, cfg, dbOne)
-			So(err, ShouldBeNil)
-			So(ctx, ShouldNotBeNil)
-
-			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
+			runAlgebrizerTest("select f.first, f.last, (select f.age from foo f where f.age > 34) from foo f where f.first = 'eliot' and f.last = 'horowitz'", true)
 		})
 
 		Convey("join statements should produce the correct algebrized nodes", func() {
-
-			sql := `select o.orderid, o.customername, o.orderdate from orders as o join customers as c on o.customerid = c.customerid where c.customerid > 4 and c.customerid < 9`
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-			cfg, err := schema.ParseSchemaData(testSchema2)
-			So(err, ShouldBeNil)
-			ctx, err := NewParseCtx(stmt, cfg, dbOne)
-			So(err, ShouldBeNil)
-			So(ctx, ShouldNotBeNil)
-
-			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
+			runAlgebrizerTest("select o.orderid, o.customername, o.orderdate from orders as o join customers as c on o.customerid = c.customerid where c.customerid > 4 and c.customerid < 9", true)
 		})
 
 		Convey("a subquery that references outer aliased nodes should properly algebrized", func() {
-
-			sql := `select f3.z, (select f1.a from baz f2 where f3.a = f2.b), f1.b from foo f1, bar f3`
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-			cfg, err := schema.ParseSchemaData(testSchema2)
-			So(err, ShouldBeNil)
-			ctx, err := NewParseCtx(stmt, cfg, dbOne)
-			So(err, ShouldBeNil)
-			So(ctx, ShouldNotBeNil)
-
-			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
+			runAlgebrizerTest("select f3.z, (select f1.a from baz f2 where f3.a = f2.b), f1.b from foo f1, bar f3", true)
 		})
 
 		Convey("a derived table should require an alias", func() {
@@ -125,136 +92,31 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 		})
 
 		Convey("a derived table with an alias different from referenced select expression should fail", func() {
-
-			sql := `select o.orderid from (select * from orders) as f join customers on o.customerid = customers.customerid`
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-
-			cfg, err := schema.ParseSchemaData(testSchema2)
-			So(err, ShouldBeNil)
-
-			ctx, err := NewParseCtx(stmt, cfg, dbOne)
-			So(err, ShouldBeNil)
-
-			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
+			runAlgebrizerTest("select o.orderid from (select * from orders) as f join customers on o.customerid = customers.customerid", false)
 		})
 
 		Convey("a derived table with an alias same from referenced select expression should pass", func() {
-
-			sql := `select f.orderid from (select * from orders) as f join customers on f.customerid = customers.customerid`
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-
-			cfg, err := schema.ParseSchemaData(testSchema2)
-			So(err, ShouldBeNil)
-
-			ctx, err := NewParseCtx(stmt, cfg, dbOne)
-			So(err, ShouldBeNil)
-
-			So(AlgebrizeStatement(stmt, ctx), ShouldBeNil)
+			runAlgebrizerTest("select f.orderid from (select * from orders) as f join customers on f.customerid = customers.customerid", true)
 		})
 
 		Convey("an aliased table can not use the original name", func() {
-
-			sql := `select orders.customerid from orders o`
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-
-			cfg, err := schema.ParseSchemaData(testSchema2)
-			So(err, ShouldBeNil)
-
-			ctx, err := NewParseCtx(stmt, cfg, dbOne)
-			So(err, ShouldBeNil)
-
-			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
+			runAlgebrizerTest("select orders.customerid from orders o", false)
 		})
 
 		Convey("a non-existent unqualified column reference should fail", func() {
-
-			sql := `select DNE from orders o`
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-
-			cfg, err := schema.ParseSchemaData(testSchema2)
-			So(err, ShouldBeNil)
-
-			ctx, err := NewParseCtx(stmt, cfg, dbOne)
-			So(err, ShouldBeNil)
-
-			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
+			runAlgebrizerTest("select DNE from orders o", false)
 		})
 
 		Convey("ambiguity in column references should fail", func() {
-
-			sql := "select a from foo join bar"
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-
-			cfg, err := schema.ParseSchemaData(testSchema2)
-			So(err, ShouldBeNil)
-
-			ctx, err := NewParseCtx(stmt, cfg, dbOne)
-			So(err, ShouldBeNil)
-
-			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
+			runAlgebrizerTest("select a from foo join bar", false)
 		})
 
 		Convey("a non-existent qualified column reference should fail", func() {
-
-			sql := `select o.DNE from orders o`
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-
-			cfg, err := schema.ParseSchemaData(testSchema2)
-			So(err, ShouldBeNil)
-
-			ctx, err := NewParseCtx(stmt, cfg, dbOne)
-			So(err, ShouldBeNil)
-
-			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
+			runAlgebrizerTest("select o.DNE from orders o", false)
 		})
 
 		Convey("a non-existent qualified star expression reference should fail", func() {
-
-			sql := `select dasd.* from (select * from foo) asd`
-
-			raw, err := sqlparser.Parse(sql)
-			So(err, ShouldBeNil)
-
-			stmt, ok := raw.(*sqlparser.Select)
-			So(ok, ShouldBeTrue)
-
-			cfg, err := schema.ParseSchemaData(testSchema2)
-			So(err, ShouldBeNil)
-
-			ctx, err := NewParseCtx(stmt, cfg, dbOne)
-			So(err, ShouldBeNil)
-
-			So(AlgebrizeStatement(stmt, ctx), ShouldNotBeNil)
+			runAlgebrizerTest("select dasd.* from (select * from foo) asd", false)
 		})
 
 		Convey("nested subquery sources should rely on children sources to determine valid columns", func() {
