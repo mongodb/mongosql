@@ -43,11 +43,9 @@ func (ts *TableScan) Open(ctx *ExecutionCtx) error {
 		return fmt.Errorf("table (%s) doesn't exist in db (%s)", ts.tableName, ts.dbName)
 	}
 
-	pcs := strings.SplitN(ts.tableSchema.CollectionName, ".", 2)
+	pcs := strings.SplitN(ts.tableSchema.FQNS, ".", 2)
 
-	db := ctx.Session.DB(pcs[0])
-	collection := db.C(pcs[1])
-	ts.iter = MgoFindResults{collection.Pipe(ts.pipeline).Iter()}
+	ts.iter = MgoFindResults{ctx.Session.DB(pcs[0]).C(pcs[1]).Pipe(ts.pipeline).Iter()}
 
 	return nil
 }

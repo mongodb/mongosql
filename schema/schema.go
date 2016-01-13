@@ -47,12 +47,12 @@ type (
 	}
 
 	Table struct {
-		Name           string                   `yaml:"table"`
-		CollectionName string                   `yaml:"collection"`
-		Pipeline       []map[string]interface{} `yaml:"pipeline"`
-		RawColumns     []*Column                `yaml:"columns"`
-		Columns        map[string]*Column       `yaml:"-"`
-		SQLColumns     map[string]*Column       `yaml:"-"`
+		Name       string                   `yaml:"table"`
+		FQNS       string                   `yaml:"collection"`
+		Pipeline   []map[string]interface{} `yaml:"pipeline"`
+		RawColumns []*Column                `yaml:"columns"`
+		Columns    map[string]*Column       `yaml:"-"`
+		SQLColumns map[string]*Column       `yaml:"-"`
 	}
 
 	Database struct {
@@ -209,12 +209,12 @@ func (c *Schema) ingestSubFile(data []byte) error {
 		// have to merge tables
 		for table, tableSchema := range schema.Tables {
 			if ours.Tables[table] != nil {
-				return fmt.Errorf("table config conflict db: %s table: %s", name, table)
+				return fmt.Errorf("table config conflict in db: %s table: %s", name, table)
 			}
+
 			ours.Tables[table] = tableSchema
 			ours.RawTables = append(ours.RawTables, tableSchema)
 		}
-
 	}
 
 	return nil

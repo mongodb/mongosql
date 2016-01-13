@@ -91,6 +91,10 @@ func PopulateColumnMaps(db *Database) error {
 
 	for _, tbl := range db.RawTables {
 
+		if len(strings.SplitN(tbl.FQNS, ".", 2)) != 2 {
+			return fmt.Errorf("invalid collection mapping '%v' (must contain '.') in db '%s' on table '%s'", tbl.FQNS, db.Name, tbl.Name)
+		}
+
 		err := tbl.fixTypes()
 		if err != nil {
 			return err
