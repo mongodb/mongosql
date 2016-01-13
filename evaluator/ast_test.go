@@ -31,8 +31,8 @@ func TestEvaluates(t *testing.T) {
 
 	Convey("Subject: Evaluates", t, func() {
 		evalCtx := &EvalCtx{
-			[]Row{{
-				Data: []TableRow{{
+			Rows{{
+				Data: TableRows{{
 					"bar",
 					Values{
 						{"a", "a", 123},
@@ -273,7 +273,7 @@ func TestEvaluates(t *testing.T) {
 func TestMatches(t *testing.T) {
 	Convey("Subject: Matches", t, func() {
 
-		evalCtx := &EvalCtx{[]Row{}, nil}
+		evalCtx := &EvalCtx{Rows{}, nil}
 
 		tests := [][]interface{}{
 			[]interface{}{SQLInt(124), true},

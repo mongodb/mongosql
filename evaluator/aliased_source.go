@@ -20,7 +20,7 @@ func (as *AliasedSource) Next(row *Row) bool {
 		return false
 	}
 
-	var tableRows []TableRow
+	var tableRows TableRows
 
 	for _, tableRow := range row.Data {
 

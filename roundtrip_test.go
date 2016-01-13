@@ -202,6 +202,7 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 			So(err, ShouldBeNil)
 			compareResults(t, results, testCase.ExpectedData)
 		})
+
 	}
 	return nil
 }

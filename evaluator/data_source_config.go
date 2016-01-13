@@ -66,7 +66,7 @@ func (sds *SchemaDataSource) Next(row *Row) bool {
 		sds.err = err
 		return false
 	}
-	row.Data = []TableRow{{sds.tableName, values}}
+	row.Data = TableRows{{sds.tableName, values}}
 
 	if !hasNext {
 		sds.err = sds.iter.Err()
@@ -199,7 +199,7 @@ func (sfr *SchemaFindResults) Next(result *bson.D) bool {
 		sfr.err = err
 		return false
 	}
-	evalCtx := &EvalCtx{[]Row{{[]TableRow{{tableName, values}}}}, sfr.ctx}
+	evalCtx := &EvalCtx{Rows{{TableRows{{tableName, values}}}}, sfr.ctx}
 	if sfr.matcher != nil {
 		m, err := Matches(sfr.matcher, evalCtx)
 		if err != nil {

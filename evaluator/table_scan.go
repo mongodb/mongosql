@@ -3,10 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"gopkg.in/mgo.v2/bson"
-	"reflect"
-	"strconv"
 	"strings"
 )
 
@@ -26,20 +23,11 @@ type TableScan struct {
 
 // Open establishes a connection to database collection for this table.
 func (ts *TableScan) Open(ctx *ExecutionCtx) error {
-	return ts.init(ctx)
-}
-
-func (ts *TableScan) init(ctx *ExecutionCtx) error {
 	ts.ctx = ctx
 
 	if len(ts.dbName) == 0 {
 		ts.dbName = ctx.Db
 	}
-
-	return ts.setIterator(ctx)
-}
-
-func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 
 	if len(ts.dbName) == 0 {
 		ts.dbName = ctx.Db
@@ -59,65 +47,9 @@ func (ts *TableScan) setIterator(ctx *ExecutionCtx) error {
 
 	db := ctx.Session.DB(pcs[0])
 	collection := db.C(pcs[1])
-	agg := collection.Pipe(ts.pipeline)
-	ts.iter = MgoFindResults{agg.Iter()}
+	ts.iter = MgoFindResults{collection.Pipe(ts.pipeline).Iter()}
 
 	return nil
-}
-
-var bsonDType = reflect.TypeOf(bson.D{})
-
-// extractFieldByName takes a field name and document, and returns a value representing
-// the value of that field in the document in a format that can be printed as a string.
-// It will also handle dot-delimited field names for nested arrays or documents.
-func extractFieldByName(fieldName string, document interface{}) interface{} {
-	dotParts := strings.Split(fieldName, ".")
-	var subdoc interface{} = document
-
-	for _, path := range dotParts {
-		docValue := reflect.ValueOf(subdoc)
-		if !docValue.IsValid() {
-			return ""
-		}
-		docType := docValue.Type()
-		docKind := docType.Kind()
-		if docKind == reflect.Map {
-			subdocVal := docValue.MapIndex(reflect.ValueOf(path))
-			if subdocVal.Kind() == reflect.Invalid {
-				return ""
-			}
-			subdoc = subdocVal.Interface()
-		} else if docKind == reflect.Slice {
-			if docType == bsonDType {
-				// dive into a D as a document
-				asD := subdoc.(bson.D)
-				var err error
-				subdoc, err = bsonutil.FindValueByKey(path, &asD)
-				if err != nil {
-					return ""
-				}
-			} else {
-				//  check that the path can be converted to int
-				arrayIndex, err := strconv.Atoi(path)
-				if err != nil {
-					return ""
-				}
-				// bounds check for slice
-				if arrayIndex < 0 || arrayIndex >= docValue.Len() {
-					return ""
-				}
-				subdocVal := docValue.Index(arrayIndex)
-				if subdocVal.Kind() == reflect.Invalid {
-					return ""
-				}
-				subdoc = subdocVal.Interface()
-			}
-		} else {
-			// trying to index into a non-compound type - just return blank.
-			return ""
-		}
-	}
-	return subdoc
 }
 
 func (ts *TableScan) Next(row *Row) bool {
@@ -141,6 +73,7 @@ func (ts *TableScan) Next(row *Row) bool {
 		var err error
 
 		for _, column := range ts.tableSchema.RawColumns {
+
 			value := Value{
 				Name: column.SqlName,
 				View: column.SqlName,
@@ -162,18 +95,9 @@ func (ts *TableScan) Next(row *Row) bool {
 			delete(data, column.SqlName)
 		}
 
-		// now add all other columns
-		for key, value := range data {
-			value := Value{
-				Name: key,
-				View: key,
-				Data: value,
-			}
-			values = append(values, value)
-		}
-		row.Data = []TableRow{{ts.tableName, values}}
+		row.Data = TableRows{{ts.tableName, values}}
 
-		evalCtx := &EvalCtx{[]Row{*row}, ts.ctx}
+		evalCtx := &EvalCtx{Rows{*row}, ts.ctx}
 
 		if ts.matcher != nil {
 			m, err := Matches(ts.matcher, evalCtx)
@@ -192,12 +116,8 @@ func (ts *TableScan) Next(row *Row) bool {
 	return hasNext
 }
 
-func (ts *TableScan) OpFields() []*Column {
-	columns := []*Column{}
+func (ts *TableScan) OpFields() (columns []*Column) {
 
-	// TODO: we currently only return headers from the schema
-	// though the actual data is everything that comes from
-	// the database
 	for _, c := range ts.tableSchema.RawColumns {
 		column := &Column{
 			Table: ts.tableName,

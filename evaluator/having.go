@@ -13,9 +13,6 @@ type Having struct {
 	// err holds any error encountered during processing
 	err error
 
-	// data holds all the paged in data from the source operator
-	data []Row
-
 	// matcher is used to filter results based on a HAVING clause
 	matcher SQLExpr
 
@@ -27,79 +24,26 @@ func (hv *Having) Open(ctx *ExecutionCtx) error {
 	return hv.source.Open(ctx)
 }
 
-func (hv *Having) fetchData() error {
+func (hv *Having) Next(r *Row) bool {
 
-	hv.data = []Row{}
-
-	r := &Row{}
-
-	// iterator source to create groupings
-	for hv.source.Next(r) {
-		hv.data = append(hv.data, *r)
-		r = &Row{}
-	}
-
-	return hv.source.Err()
-}
-
-func (hv *Having) evalResult() (*Row, error) {
-
-	aggValues := map[string]Values{}
-
-	row := &Row{}
-	evalCtx := &EvalCtx{Rows: hv.data}
-
-	for _, sExpr := range hv.sExprs {
-		if sExpr.Referenced {
-			continue
-		}
-
-		expr, err := NewSQLExpr(sExpr.Expr)
-		if err != nil {
-			return nil, err
-		}
-
-		v, err := expr.Evaluate(evalCtx)
-		if err != nil {
-			return nil, err
-		}
-
-		value := Value{
-			Name: sExpr.Name,
-			View: sExpr.View,
-			Data: v,
-		}
-
-		aggValues[sExpr.Table] = append(aggValues[sExpr.Table], value)
-
-	}
-
-	for table, values := range aggValues {
-		row.Data = append(row.Data, TableRow{table, values})
-	}
-
-	return row, nil
-}
-
-func (hv *Having) Next(row *Row) bool {
 	hv.hasNext = !hv.hasNext
 
 	if !hv.hasNext {
 		return false
 	}
+	rows := Rows{}
 
-	if err := hv.fetchData(); err != nil {
+	for hv.source.Next(r) {
+		rows = append(rows, *r)
+		r = &Row{}
+	}
+
+	if err := hv.source.Err(); err != nil {
 		hv.err = err
 		return false
 	}
 
-	r, err := hv.evalResult()
-	if err != nil {
-		hv.err = err
-		return false
-	}
-
-	evalCtx := &EvalCtx{Rows: hv.data}
+	evalCtx := &EvalCtx{Rows: rows}
 
 	m, err := Matches(hv.matcher, evalCtx)
 	if err != nil {
@@ -107,13 +51,7 @@ func (hv *Having) Next(row *Row) bool {
 		return false
 	}
 
-	if m {
-		row.Data = r.Data
-	} else {
-		return false
-	}
-
-	return true
+	return m
 }
 
 func (hv *Having) OpFields() (columns []*Column) {

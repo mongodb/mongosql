@@ -1,5 +1,11 @@
 package evaluator
 
+import (
+	"fmt"
+	"github.com/deafgoat/mixer/sqlparser"
+	"strings"
+)
+
 // Project ensures that referenced columns - e.g. those used to
 // support ORDER BY and GROUP BY clauses - aren't included in
 // the final result set.
@@ -8,56 +14,135 @@ type Project struct {
 	// the pipeline
 	sExprs SelectExpressions
 
-	// viewColumns holds the final list of columns we return
-	// to the client
-	viewColumns []*Column
+	// err holds any error that may have occurred during processing
+	err error
 
 	// source is the operator that provides the data to project
 	source Operator
+
+	// ctx is the current execution context
+	ctx *ExecutionCtx
+}
+
+var systemVars = map[string]SQLValue{
+	"max_allowed_packet": SQLInt(4194304),
 }
 
 func (pj *Project) Open(ctx *ExecutionCtx) error {
 
-	if err := pj.source.Open(ctx); err != nil {
-		return err
-	}
+	pj.ctx = ctx
 
-	for _, sExpr := range pj.sExprs {
-		if !sExpr.Referenced {
-			viewColumn := sExpr.Column
-			pj.viewColumns = append(pj.viewColumns, &viewColumn)
+	// no select field implies a star expression - so we use
+	// the fields from the source operator.
+	hasExpr := false
+
+	for _, expr := range pj.sExprs {
+		if !expr.Referenced {
+			hasExpr = true
+			break
 		}
 	}
 
-	if len(pj.viewColumns) == 0 {
-		pj.viewColumns = pj.source.OpFields()
+	err := pj.source.Open(ctx)
+
+	if !hasExpr {
+		pj.addSelectExprs()
 	}
 
-	return nil
+	return err
+}
+
+func (pj *Project) getValue(sc SelectExpression, row *Row) (SQLValue, error) {
+	// in the case where we have a bare select column and no expression
+	if sc.Expr == nil {
+		sc.Expr = &sqlparser.ColName{
+			Name:      []byte(sc.Name),
+			Qualifier: []byte(sc.Table),
+		}
+	} else {
+		// If the column name is actually referencing a system variable, look it up and return
+		// its value if it exists.
+
+		// TODO scope system variables per-connection?
+		if strings.HasPrefix(sc.Name, "@@") {
+			if varValue, hasKey := systemVars[sc.Name[2:]]; hasKey {
+				return varValue, nil
+			}
+			return nil, fmt.Errorf("unknown system variable %v", sc.Name)
+		}
+	}
+
+	expr, err := NewSQLExpr(sc.Expr)
+	if err != nil {
+		return nil, err
+	}
+
+	evalCtx := &EvalCtx{
+		Rows:    Rows{*row},
+		ExecCtx: pj.ctx,
+	}
+
+	return expr.Evaluate(evalCtx)
 }
 
 func (pj *Project) Next(r *Row) bool {
 
 	hasNext := pj.source.Next(r)
-	tableValues := map[string]Values{}
 
-	for _, column := range pj.viewColumns {
-		field, _ := r.GetField(column.Table, column.Name)
-		value := Value{column.Name, column.View, field}
-		tableValues[column.Table] = append(tableValues[column.Table], value)
+	data := map[string]Values{}
+
+	for _, expr := range pj.sExprs {
+
+		if expr.Referenced {
+			continue
+		}
+
+		value := Value{
+			Name: expr.Name,
+			View: expr.View,
+		}
+
+		if v, _ := r.GetField(expr.Table, expr.Name); v == nil {
+			v, err := pj.getValue(expr, r)
+			if err != nil {
+				pj.err = err
+				hasNext = false
+			}
+			value.Data = v
+		} else {
+			value.Data = v
+		}
+
+		data[expr.Table] = append(data[expr.Table], value)
 	}
 
-	r.Data = []TableRow{}
+	r.Data = TableRows{}
 
-	for table, values := range tableValues {
-		r.Data = append(r.Data, TableRow{table, values})
+	for k, v := range data {
+		r.Data = append(r.Data, TableRow{k, v})
 	}
 
 	return hasNext
 }
 
 func (pj *Project) OpFields() (columns []*Column) {
-	return pj.viewColumns
+	for _, expr := range pj.sExprs {
+		if expr.Referenced {
+			continue
+		}
+		column := &Column{
+			Name:  expr.Name,
+			View:  expr.View,
+			Table: expr.Table,
+		}
+		columns = append(columns, column)
+	}
+
+	if len(columns) == 0 {
+		columns = pj.source.OpFields()
+	}
+
+	return columns
 }
 
 func (pj *Project) Close() error {
@@ -66,4 +151,11 @@ func (pj *Project) Close() error {
 
 func (pj *Project) Err() error {
 	return pj.source.Err()
+}
+
+func (pj *Project) addSelectExprs() {
+	for _, column := range pj.source.OpFields() {
+		sExpr := SelectExpression{*column, []*Column{column}, nil, false}
+		pj.sExprs = append(pj.sExprs, sExpr)
+	}
 }

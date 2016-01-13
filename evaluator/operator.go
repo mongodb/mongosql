@@ -332,11 +332,10 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 
 		if typedO.source != source {
 			o = &Filter{
-				err:         typedO.err,
 				source:      source,
 				matcher:     typedO.matcher,
-				ctx:         typedO.ctx,
-				hasSubquery: typedO.hasSubquery}
+				hasSubquery: typedO.hasSubquery,
+			}
 		}
 	case *GroupBy:
 		source, err := v.Visit(typedO.source)
@@ -346,16 +345,11 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 
 		if typedO.source != source {
 			o = &GroupBy{
-				source:        source,
-				sExprs:        typedO.sExprs,
-				exprs:         typedO.exprs,
-				grouped:       typedO.grouped,
-				err:           typedO.err,
-				finalGrouping: typedO.finalGrouping,
-				outChan:       typedO.outChan,
-				matcher:       typedO.matcher,
-				orderBy:       typedO.orderBy,
-				ctx:           typedO.ctx,
+				source:  source,
+				sExprs:  typedO.sExprs,
+				exprs:   typedO.exprs,
+				matcher: typedO.matcher,
+				orderBy: typedO.orderBy,
 			}
 		}
 	case *Having:
@@ -368,10 +362,7 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 			o = &Having{
 				source:  source,
 				sExprs:  typedO.sExprs,
-				err:     typedO.err,
-				data:    typedO.data,
 				matcher: typedO.matcher,
-				hasNext: typedO.hasNext,
 			}
 		}
 	case *Join:
@@ -386,16 +377,10 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 
 		if typedO.left != left || typedO.right != right {
 			o = &Join{
-				left:      left,
-				right:     right,
-				on:        typedO.on,
-				err:       typedO.err,
-				kind:      typedO.kind,
-				strategy:  typedO.strategy,
-				leftRows:  typedO.leftRows,
-				rightRows: typedO.rightRows,
-				onChan:    typedO.onChan,
-				errChan:   typedO.errChan,
+				left:     left,
+				right:    right,
+				kind:     typedO.kind,
+				strategy: typedO.strategy,
 			}
 		}
 	case *Limit:
@@ -409,7 +394,6 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 				source:   source,
 				rowcount: typedO.rowcount,
 				offset:   typedO.offset,
-				total:    typedO.total,
 			}
 		}
 	case *OrderBy:
@@ -420,12 +404,8 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 
 		if typedO.source != source {
 			o = &OrderBy{
-				source:  source,
-				keys:    typedO.keys,
-				outChan: typedO.outChan,
-				sorted:  typedO.sorted,
-				ctx:     typedO.ctx,
-				err:     typedO.err,
+				source: source,
+				keys:   typedO.keys,
 			}
 		}
 	case *Project:
@@ -436,27 +416,12 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 
 		if typedO.source != source {
 			o = &Project{
-				source:      source,
-				sExprs:      typedO.sExprs,
-				viewColumns: typedO.viewColumns,
+				source: source,
+				sExprs: typedO.sExprs,
 			}
 		}
 	case *SchemaDataSource:
 		// nothing to do
-	case *Select:
-		source, err := v.Visit(typedO.source)
-		if err != nil {
-			return nil, err
-		}
-
-		if typedO.source != source {
-			o = &Select{
-				source: source,
-				sExprs: typedO.sExprs,
-				err:    typedO.err,
-				ctx:    typedO.ctx,
-			}
-		}
 	case *SourceAppend:
 		source, err := v.Visit(typedO.source)
 		if err != nil {
@@ -466,7 +431,6 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 		if typedO.source != source {
 			o = &SourceAppend{
 				source:      source,
-				ctx:         typedO.ctx,
 				hasSubquery: typedO.hasSubquery,
 			}
 		}
@@ -479,7 +443,6 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 		if typedO.source != source {
 			o = &SourceRemove{
 				source:      source,
-				ctx:         typedO.ctx,
 				hasSubquery: typedO.hasSubquery,
 			}
 		}

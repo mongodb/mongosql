@@ -366,6 +366,7 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName, columnName string) (*Ta
 			}
 		}
 	} else if len(pCtx.Tables) > 1 {
+
 		// if there are multiple tables in the current context
 		// then tableName may or may not be qualified
 		if tableName == "" {
@@ -374,6 +375,7 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName, columnName string) (*Ta
 
 				var tInfo *TableInfo
 
+				// indicates a star expression
 				if columnName == "" {
 					return nil, fmt.Errorf("Can not find empty table in join context")
 				}

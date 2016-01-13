@@ -50,7 +50,7 @@ func TestOrderByOperator(t *testing.T) {
 			bson.D{{"_id", 4}, {"a", 7}, {"b", 7}},
 		}
 
-		source := &Select{
+		source := &Project{
 			source: &TableScan{
 				tableName: tableOneName,
 			},

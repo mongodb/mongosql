@@ -8,11 +8,11 @@ import (
 )
 
 var (
-	testCtx = &EvalCtx{[]Row{
-		{[]TableRow{{tableOneName, Values{{"a", "a", 1}, {"b", "b", 1}}}}},
-		{[]TableRow{{tableOneName, Values{{"a", "a", 2}, {"b", "b", 2}}}}},
-		{[]TableRow{{tableOneName, Values{{"a", "a", 3}, {"b", "b", 3}}}}},
-		{[]TableRow{{tableOneName, Values{{"a", "a", 4}, {"b", "b", 1}}}}},
+	testCtx = &EvalCtx{Rows{
+		{TableRows{{tableOneName, Values{{"a", "a", 1}, {"b", "b", 1}}}}},
+		{TableRows{{tableOneName, Values{{"a", "a", 2}, {"b", "b", 2}}}}},
+		{TableRows{{tableOneName, Values{{"a", "a", 3}, {"b", "b", 3}}}}},
+		{TableRows{{tableOneName, Values{{"a", "a", 4}, {"b", "b", 1}}}}},
 	},
 		nil,
 	}
@@ -147,7 +147,7 @@ func TestAggFuncSum(t *testing.T) {
 			copy(evalRows, testCtx.Rows)
 			evalCtx := &EvalCtx{evalRows, nil}
 			unsummableRow := Row{
-				[]TableRow{{tableOneName, Values{{"a", "a", "unsummable value"}}}},
+				TableRows{{tableOneName, Values{{"a", "a", "unsummable value"}}}},
 			}
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
 
@@ -221,7 +221,7 @@ func TestAggFuncAvg(t *testing.T) {
 			copy(evalRows, testCtx.Rows)
 			evalCtx := &EvalCtx{evalRows, nil}
 			unsummableRow := Row{
-				[]TableRow{{tableOneName, Values{{"a", "a", "nsummable value"}}}},
+				TableRows{{tableOneName, Values{{"a", "a", "nsummable value"}}}},
 			}
 
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
@@ -296,7 +296,7 @@ func TestAggFuncCount(t *testing.T) {
 			copy(evalRows, testCtx.Rows)
 			evalCtx := &EvalCtx{evalRows, nil}
 			unsummableRow := Row{
-				[]TableRow{{tableOneName, Values{{"a", "a", nil}}}},
+				TableRows{{tableOneName, Values{{"a", "a", nil}}}},
 			}
 
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
@@ -370,7 +370,7 @@ func TestAggFuncMax(t *testing.T) {
 			copy(evalRows, testCtx.Rows)
 			evalCtx := &EvalCtx{evalRows, nil}
 			unsummableRow := Row{
-				[]TableRow{{tableOneName, Values{{"a", "a", nil}}}},
+				TableRows{{tableOneName, Values{{"a", "a", nil}}}},
 			}
 
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)
@@ -444,7 +444,7 @@ func TestAggFuncMin(t *testing.T) {
 			copy(evalRows, testCtx.Rows)
 			evalCtx := &EvalCtx{evalRows, nil}
 			unsummableRow := Row{
-				[]TableRow{{tableOneName, Values{{"a", "a", nil}}}},
+				TableRows{{tableOneName, Values{{"a", "a", nil}}}},
 			}
 
 			evalCtx.Rows = append(evalCtx.Rows, unsummableRow)

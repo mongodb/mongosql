@@ -101,9 +101,7 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 		if err != nil {
 			return nil, err
 		}
-
 		addReferencedColumns(columns)
-
 	}
 
 	return expressions, nil
@@ -137,9 +135,11 @@ func planSimpleSelectExpr(ctx *ExecutionCtx, ss *sqlparser.SimpleSelect) (operat
 	}
 
 	// TODO: support distinct within the simple select query
-	queryPlan := &Select{sExprs: sExprs, source: &Dual{}}
-
-	return queryPlan, nil
+	operator = &Project{
+		source: &Dual{sExprs: sExprs},
+		sExprs: sExprs,
+	}
+	return operator, nil
 }
 
 // planSelectExpr takes a select struct and returns a query execution plan for it.
@@ -152,93 +152,88 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 		}
 	}
 
-	appender := &SourceAppend{
-		source: operator,
-	}
-
-	operator = appender
-
-	selectOp := &Select{
-		source: operator,
-	}
-
-	selectOp.sExprs, err = refColsInSelectStmt(ast)
+	sExprs, err := refColsInSelectStmt(ast)
 	if err != nil {
 		return nil, err
 	}
 
-	refExprs, err := getReferencedExpressions(ast, ctx, selectOp.sExprs)
+	refExprs, err := getReferencedExpressions(ast, ctx, sExprs)
 	if err != nil {
 		return nil, err
 	}
 
-	selectOp.sExprs = append(selectOp.sExprs, refExprs...)
+	sExprs = append(sExprs, refExprs...)
 
-	hasSubquery := selectOp.sExprs.hasSubquery()
+	hasSubquery := sExprs.hasSubquery()
 
-	appender.hasSubquery = hasSubquery
+	if hasSubquery {
+		log.Logf(log.DebugLow, "hasSubQuery at depth %v\n", ctx.Depth)
+	}
+
+	operator = &SourceAppend{
+		source:      operator,
+		hasSubquery: hasSubquery,
+	}
 
 	if ast.Where != nil {
-
 		matcher, err := NewSQLExpr(ast.Where.Expr)
-
 		if err != nil {
 			return nil, err
 		}
 
-		selectOp.source = &Filter{
+		operator = &Filter{
 			source:      operator,
 			matcher:     matcher,
 			hasSubquery: hasSubquery,
 		}
 	}
 
-	operator = selectOp
-
 	// this handles queries like "select sum(a) from foo"
-	hasAggSelectExpr := len(selectOp.sExprs.AggFunctions()) != 0
+	refAggFunction := len(sExprs.AggFunctions()) != 0
 
 	// This handles GROUP BY expressions and/or aggregate functions in
 	// select expressions - as aggregate functions with no GROUP BY
 	// clause imply a single group
-	if len(ast.GroupBy) != 0 || hasAggSelectExpr {
-
-		operator, err = planGroupBy(ast, selectOp)
+	useGroupBy := len(ast.GroupBy) != 0 || refAggFunction
+	if useGroupBy {
+		gb, err := planGroupBy(ast, sExprs)
 		if err != nil {
 			return nil, err
 		}
+		gb.source = operator
+		operator = gb
 	}
 
-	if ast.Having != nil && len(ast.GroupBy) == 0 {
-		operator, err = planHaving(ast.Having, selectOp)
+	if ast.Having != nil && !useGroupBy {
+		hv, err := planHaving(ast.Having, sExprs)
 		if err != nil {
 			return nil, err
 		}
+		hv.source = operator
+		operator = hv
 	}
 
 	if len(ast.OrderBy) != 0 {
-		operator, err = planOrderBy(ast, operator, selectOp.sExprs)
+		ob, err := planOrderBy(ast, sExprs)
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	// Ensure that any supporting fields included to evaluate
-	// various clauses are projected out in the final result set.
-	operator = &Project{
-		source: operator,
-		sExprs: selectOp.sExprs,
+		ob.source = operator
+		operator = ob
 	}
 
 	if ast.Limit != nil {
-		operator, err = planLimit(ast.Limit, operator)
+		lm, err := planLimit(ast.Limit)
 		if err != nil {
 			return nil, err
 		}
+		lm.source = operator
+		operator = lm
 	}
 
-	if hasSubquery {
-		log.Logf(log.DebugLow, "hasSubQuery at depth %v\n", ctx.Depth)
+	operator = &Project{
+		source: operator,
+		sExprs: sExprs,
 	}
 
 	operator = &SourceRemove{
@@ -251,11 +246,9 @@ func planSelectExpr(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator
 }
 
 // planLimit returns a query execution plan for a LIMIT clause.
-func planLimit(expr *sqlparser.Limit, source Operator) (Operator, error) {
+func planLimit(expr *sqlparser.Limit) (*Limit, error) {
 
-	operator := &Limit{
-		source: source,
-	}
+	operator := &Limit{}
 
 	// TODO: our MySQL parser only supports the LIMIT offset, row_count syntax
 	// and not the equivalent LIMIT row_count OFFSET offset syntax.
@@ -301,15 +294,13 @@ func planLimit(expr *sqlparser.Limit, source Operator) (Operator, error) {
 }
 
 // planOrderBy returns a query execution plan for an ORDER BY clause.
-func planOrderBy(ast *sqlparser.Select, source Operator, sExprs SelectExpressions) (Operator, error) {
+func planOrderBy(ast *sqlparser.Select, sExprs SelectExpressions) (*OrderBy, error) {
 
 	//
 	// TODO: doesn't make sense to allow ORDER BY aggregate expression without
 	// a GROUP BY clause
 	//
-	orderBy := &OrderBy{
-		source: source,
-	}
+	orderBy := &OrderBy{}
 
 	for _, i := range ast.OrderBy {
 
@@ -336,12 +327,12 @@ func planOrderBy(ast *sqlparser.Select, source Operator, sExprs SelectExpression
 }
 
 // planGroupBy returns a query execution plan for a GROUP BY clause.
-func planGroupBy(ast *sqlparser.Select, s *Select) (Operator, error) {
+func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions) (*GroupBy, error) {
 	groupBy := ast.GroupBy
 	having := ast.Having
 
 	gb := &GroupBy{
-		sExprs: s.sExprs,
+		sExprs: sExprs,
 	}
 
 	var expr sqlparser.Expr
@@ -371,24 +362,22 @@ func planGroupBy(ast *sqlparser.Select, s *Select) (Operator, error) {
 	}
 
 	// add any referenced columns to the select operator
-	for _, expr := range s.sExprs {
+	for _, expr := range sExprs {
 		if len(expr.RefColumns) != 0 {
 			for _, column := range expr.RefColumns {
-				if !s.sExprs.Contains(*column) {
+				if !sExprs.Contains(*column) {
 					newSExpr := SelectExpression{Column: *column, Referenced: true}
-					s.sExprs = append(s.sExprs, newSExpr)
+					sExprs = append(sExprs, newSExpr)
 				}
 			}
 		}
 	}
 
-	gb.source = s
-
 	return gb, nil
 }
 
 // planHaving returns a query execution plan for a HAVING clause.
-func planHaving(having *sqlparser.Where, s *Select) (Operator, error) {
+func planHaving(having *sqlparser.Where, sExprs SelectExpressions) (*Having, error) {
 
 	// create a matcher that can evaluate the HAVING expression
 	matcher, err := NewSQLExpr(having.Expr)
@@ -398,7 +387,7 @@ func planHaving(having *sqlparser.Where, s *Select) (Operator, error) {
 
 	// add any referenced columns to the select operator
 	var newSExprs SelectExpressions
-	for _, sExpr := range s.sExprs {
+	for _, sExpr := range sExprs {
 		if len(sExpr.RefColumns) != 0 {
 			for _, column := range sExpr.RefColumns {
 				newSExpr := SelectExpression{Column: *column, Referenced: true}
@@ -407,11 +396,10 @@ func planHaving(having *sqlparser.Where, s *Select) (Operator, error) {
 		}
 	}
 
-	s.sExprs = append(s.sExprs, newSExprs...)
+	sExprs = append(sExprs, newSExprs...)
 
 	hv := &Having{
-		sExprs:  s.sExprs,
-		source:  s,
+		sExprs:  sExprs,
 		matcher: matcher,
 	}
 
@@ -452,6 +440,7 @@ func getGroupByTerm(sExprs []SelectExpression, e sqlparser.Expr) (sqlparser.Expr
 // expression is aliased. Otherwise, it returns the expression supplied - provided
 // it is valid as an ORDER BY term.
 func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr) (sqlparser.Expr, error) {
+
 	switch expr := e.(type) {
 
 	case *sqlparser.ColName:
@@ -593,7 +582,7 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs) ([]SelectExpression, error
 }
 
 // refColsInSelectStmt returns any columns referenced in the select statement.
-func refColsInSelectStmt(ss sqlparser.SelectStatement) ([]SelectExpression, error) {
+func refColsInSelectStmt(ss sqlparser.SelectStatement) (SelectExpressions, error) {
 
 	switch stmt := ss.(type) {
 

@@ -71,11 +71,8 @@ func TestProjectOperator(t *testing.T) {
 
 			operator := &Project{
 				sExprs: sExprs,
-				source: &Select{
-					source: &TableScan{
-						tableName: tableOneName,
-					},
-					sExprs: sExprs,
+				source: &TableScan{
+					tableName: tableOneName,
 				},
 			}
 
@@ -89,11 +86,8 @@ func TestProjectOperator(t *testing.T) {
 
 			operator := &Project{
 				sExprs: sExprs,
-				source: &Select{
-					source: &TableScan{
-						tableName: tableOneName,
-					},
-					sExprs: sExprs,
+				source: &TableScan{
+					tableName: tableOneName,
 				},
 			}
 

@@ -69,7 +69,7 @@ func (gb *GroupBy) evaluateGroupByKey(row *Row) (string, error) {
 			panic(err)
 		}
 
-		evalCtx := &EvalCtx{Rows: []Row{*row}}
+		evalCtx := &EvalCtx{Rows: Rows{*row}}
 		value, err := expr.Evaluate(evalCtx)
 		if err != nil {
 			return "", err

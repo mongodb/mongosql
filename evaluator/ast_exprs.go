@@ -42,7 +42,7 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	var sum SQLNumeric = SQLInt(0)
 	count := 0
 	for _, row := range ctx.Rows {
-		evalCtx := &EvalCtx{Rows: []Row{row}}
+		evalCtx := &EvalCtx{Rows: Rows{row}}
 		for _, sExpr := range f.Exprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
@@ -82,7 +82,7 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
 	var count int64
 	for _, row := range ctx.Rows {
-		evalCtx := &EvalCtx{Rows: []Row{row}}
+		evalCtx := &EvalCtx{Rows: Rows{row}}
 		for _, sExpr := range f.Exprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
@@ -122,7 +122,7 @@ func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}
 func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
 	var max SQLValue
 	for _, row := range ctx.Rows {
-		evalCtx := &EvalCtx{Rows: []Row{row}}
+		evalCtx := &EvalCtx{Rows: Rows{row}}
 		for _, sExpr := range f.Exprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
@@ -159,7 +159,7 @@ func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
 func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 	var min SQLValue
 	for _, row := range ctx.Rows {
-		evalCtx := &EvalCtx{Rows: []Row{row}}
+		evalCtx := &EvalCtx{Rows: Rows{row}}
 		for _, sExpr := range f.Exprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable
@@ -196,7 +196,7 @@ func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
 	var sum SQLNumeric = SQLInt(0)
 	for _, row := range ctx.Rows {
-		evalCtx := &EvalCtx{Rows: []Row{row}}
+		evalCtx := &EvalCtx{Rows: Rows{row}}
 		for _, sExpr := range f.Exprs {
 			switch e := sExpr.(type) {
 			// mixture of star and non-star expression is acceptable

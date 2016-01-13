@@ -57,7 +57,7 @@ func (ob *OrderBy) evaluateOrderByKeys(row *Row) []orderByKey {
 	keys := make([]orderByKey, 0, len(ob.keys))
 
 	for _, key := range ob.keys {
-		key.evalCtx = &EvalCtx{Rows: []Row{*row}}
+		key.evalCtx = &EvalCtx{Rows: Rows{*row}}
 
 		// for aggregation functions, we set the context in the
 		// preceding GROUP BY operator

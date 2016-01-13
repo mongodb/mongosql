@@ -36,7 +36,7 @@ func (ft *Filter) Next(row *Row) bool {
 			break
 		}
 
-		evalCtx := &EvalCtx{[]Row{*row}, ft.ctx}
+		evalCtx := &EvalCtx{Rows{*row}, ft.ctx}
 
 		// add parent row(s) to this subquery's evaluation context
 		if len(ft.ctx.SrcRows) != 0 {

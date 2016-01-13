@@ -1,19 +1,27 @@
 package evaluator
 
 import (
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"gopkg.in/mgo.v2/bson"
+	"reflect"
+	"strconv"
 	"strings"
 )
 
 // Row holds data from one or more tables.
 type Row struct {
-	Data []TableRow
+	Data TableRows
 }
+
+type Rows []Row
 
 // TableRow holds column data from a given table.
 type TableRow struct {
 	Table  string
 	Values Values
 }
+
+type TableRows []TableRow
 
 // Value holds row value for an SQL column.
 type Value struct {
@@ -23,6 +31,8 @@ type Value struct {
 }
 
 type Values []Value
+
+var bsonDType = reflect.TypeOf(bson.D{})
 
 // GetField takes a table returns the given value of the given key
 // in the document, or nil if it does not exist.
@@ -63,4 +73,57 @@ func (values Values) Map() map[string]interface{} {
 		m[value.Name] = value.Data
 	}
 	return m
+}
+
+// extractFieldByName takes a field name and document, and returns a value representing
+// the value of that field in the document in a format that can be printed as a string.
+// It will also handle dot-delimited field names for nested arrays or documents.
+func extractFieldByName(fieldName string, document interface{}) interface{} {
+	dotParts := strings.Split(fieldName, ".")
+	var subdoc interface{} = document
+
+	for _, path := range dotParts {
+		docValue := reflect.ValueOf(subdoc)
+		if !docValue.IsValid() {
+			return ""
+		}
+		docType := docValue.Type()
+		docKind := docType.Kind()
+		if docKind == reflect.Map {
+			subdocVal := docValue.MapIndex(reflect.ValueOf(path))
+			if subdocVal.Kind() == reflect.Invalid {
+				return ""
+			}
+			subdoc = subdocVal.Interface()
+		} else if docKind == reflect.Slice {
+			if docType == bsonDType {
+				// dive into a D as a document
+				asD := subdoc.(bson.D)
+				var err error
+				subdoc, err = bsonutil.FindValueByKey(path, &asD)
+				if err != nil {
+					return ""
+				}
+			} else {
+				//  check that the path can be converted to int
+				arrayIndex, err := strconv.Atoi(path)
+				if err != nil {
+					return ""
+				}
+				// bounds check for slice
+				if arrayIndex < 0 || arrayIndex >= docValue.Len() {
+					return ""
+				}
+				subdocVal := docValue.Index(arrayIndex)
+				if subdocVal.Kind() == reflect.Invalid {
+					return ""
+				}
+				subdoc = subdocVal.Interface()
+			}
+		} else {
+			// trying to index into a non-compound type - just return blank.
+			return ""
+		}
+	}
+	return subdoc
 }

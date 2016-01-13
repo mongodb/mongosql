@@ -255,7 +255,7 @@ func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 
 	for _, l := range left {
 		for _, r := range right {
-			evalCtx := &EvalCtx{[]Row{*l, *r}, ctx}
+			evalCtx := &EvalCtx{Rows{*l, *r}, ctx}
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
@@ -276,7 +276,7 @@ func (nlp *NestedLoopJoiner) sideJoin(lChan, rChan chan *Row, ch chan Row, ctx *
 
 	for _, l := range left {
 		for _, r := range right {
-			evalCtx := &EvalCtx{[]Row{*l, *r}, ctx}
+			evalCtx := &EvalCtx{Rows{*l, *r}, ctx}
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
