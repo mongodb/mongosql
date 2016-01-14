@@ -31,10 +31,7 @@ func (sf *subqueryFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 	default:
 
-		_, err := walk(sf, e)
-		if err != nil {
-			return nil, err
-		}
+		return walk(sf, e)
 
 	}
 
@@ -110,10 +107,7 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 	default:
 
-		_, err := walk(cf, expr)
-		if err != nil {
-			return nil, err
-		}
+		return walk(cf, expr)
 
 	}
 
@@ -155,10 +149,7 @@ func (af *aggFunctionFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 	default:
 
-		_, err := walk(af, e)
-		if err != nil {
-			return nil, err
-		}
+		return walk(af, e)
 
 	}
 
