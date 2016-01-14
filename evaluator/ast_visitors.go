@@ -89,7 +89,7 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		_, err = walk(cf, expr.left)
+		_, err = cf.Visit(expr.left)
 		if err != nil {
 			return nil, err
 		}
