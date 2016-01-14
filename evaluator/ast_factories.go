@@ -675,7 +675,35 @@ func newSQLCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
 
 func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 	if isAggFunction(expr.Name) {
-		return &SQLAggFunctionExpr{expr}, nil
+		exprs := []SQLExpr{}
+		for _, e := range expr.Exprs {
+			switch typedE := e.(type) {
+			// TODO: mixture of star and non-star expression is acceptable
+
+			case *sqlparser.StarExpr:
+
+				if name := string(expr.Name); name != "count" {
+					return nil, fmt.Errorf("%v aggregate function can not contain '*'", name)
+				}
+
+				sqlExpr, err := NewSQLExpr(sqlparser.NumVal{'1'})
+				if err != nil {
+					return nil, err
+				}
+				exprs = append(exprs, sqlExpr)
+
+			case *sqlparser.NonStarExpr:
+
+				sqlExpr, err := NewSQLExpr(typedE.Expr)
+				if err != nil {
+					return nil, err
+				}
+				exprs = append(exprs, sqlExpr)
+
+			}
+		}
+
+		return &SQLAggFunctionExpr{string(expr.Name), expr.Distinct, exprs}, nil
 	}
 	return &SQLScalarFunctionExpr{expr}, nil
 }

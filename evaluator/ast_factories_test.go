@@ -128,12 +128,7 @@ func TestAggFuncSum(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLExpr(sqlValue)
-			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFunctionExpr)
-			So(ok, ShouldBeTrue)
-
-			_, err = funcExpr.Evaluate(testCtx)
+			_, err := NewSQLExpr(sqlValue)
 			So(err, ShouldNotBeNil)
 		})
 
@@ -202,12 +197,7 @@ func TestAggFuncAvg(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLExpr(sqlValue)
-			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFunctionExpr)
-			So(ok, ShouldBeTrue)
-
-			_, err = funcExpr.Evaluate(testCtx)
+			_, err := NewSQLExpr(sqlValue)
 			So(err, ShouldNotBeNil)
 		})
 
@@ -351,12 +341,7 @@ func TestAggFuncMax(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLExpr(sqlValue)
-			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFunctionExpr)
-			So(ok, ShouldBeTrue)
-
-			_, err = funcExpr.Evaluate(testCtx)
+			_, err := NewSQLExpr(sqlValue)
 			So(err, ShouldNotBeNil)
 		})
 
@@ -425,12 +410,7 @@ func TestAggFuncMin(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLExpr(sqlValue)
-			So(err, ShouldBeNil)
-			funcExpr, ok := expr.(*SQLAggFunctionExpr)
-			So(ok, ShouldBeTrue)
-
-			_, err = funcExpr.Evaluate(testCtx)
+			_, err := NewSQLExpr(sqlValue)
 			So(err, ShouldNotBeNil)
 		})
 

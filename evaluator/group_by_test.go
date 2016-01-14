@@ -1,7 +1,6 @@
 package evaluator
 
 import (
-	"github.com/deafgoat/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
@@ -81,13 +80,9 @@ func TestGroupByOperator(t *testing.T) {
 				SelectExpression{
 					Column: Column{"", "sum(b)", "sum(b)"},
 					Expr: &SQLAggFunctionExpr{
-						&sqlparser.FuncExpr{
-							Name: []byte("sum"),
-							Exprs: sqlparser.SelectExprs{
-								&sqlparser.NonStarExpr{
-									Expr: &sqlparser.ColName{[]byte("b"), []byte(tableOneName)},
-								},
-							},
+						Name: "sum",
+						Exprs: []SQLExpr{
+							SQLFieldExpr{tableOneName, "b"},
 						},
 					},
 				},

@@ -65,12 +65,15 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 	case *SQLAggFunctionExpr:
 
-		sc, err := refColsInSelectExpr(expr.Exprs)
-		if err != nil {
-			return nil, err
-		}
+		for _, expr := range expr.Exprs {
 
-		cf.columns = append(cf.columns, SelectExpressions(sc).GetColumns()...)
+			columns, err := referencedColumns(expr)
+			if err != nil {
+				return nil, err
+			}
+
+			cf.columns = append(cf.columns, columns...)
+		}
 
 	case SQLFieldExpr:
 
