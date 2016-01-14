@@ -206,36 +206,6 @@ func (se SelectExpressions) Contains(column Column) bool {
 	return false
 }
 
-// hasSubquery returns true if any of the select expressions contains a
-// subquery expression.
-func (se SelectExpressions) hasSubquery() bool {
-
-	for _, expr := range se {
-		if expr.InSubquery {
-			return true
-		}
-	}
-
-	return false
-}
-
-// hasCase returns true if any of the select expressions contains a
-// case expression.
-func (se SelectExpressions) hasCase() bool {
-
-	for _, s := range se {
-		if value, ok := s.Expr.(SQLTupleExpr); ok {
-			for _, expr := range value.Exprs {
-				if _, ok := expr.(*SQLCaseExpr); ok {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
-}
-
 func (se SelectExpression) isAggFunc() bool {
 	_, ok := se.Expr.(*SQLAggFunctionExpr)
 	return ok

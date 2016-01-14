@@ -1,5 +1,170 @@
 package evaluator
 
+type subqueryFinder struct {
+	hasSq bool
+}
+
+// hasSubquery will take an expression and return true if it contains a subquery.
+func hasSubquery(e SQLExpr) (bool, error) {
+
+	sf := &subqueryFinder{}
+
+	_, err := sf.Visit(e)
+	if err != nil {
+		return false, err
+	}
+
+	return sf.hasSq, nil
+}
+
+func (sf *subqueryFinder) Visit(e SQLExpr) (SQLExpr, error) {
+
+	if sf.hasSq {
+		return e, nil
+	}
+
+	switch e.(type) {
+
+	case *SQLSubqueryExpr, *SQLSubqueryCmpExpr, *SQLExistsExpr:
+
+		sf.hasSq = true
+
+	default:
+
+		_, err := walk(sf, e)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	return e, nil
+}
+
+type columnFinder struct {
+	columns []*Column
+}
+
+// referencedColumns will take an expression and return all the columns referenced in the expression
+func referencedColumns(e SQLExpr) ([]*Column, error) {
+
+	cf := &columnFinder{}
+
+	_, err := cf.Visit(e)
+	if err != nil {
+		return nil, err
+	}
+
+	return cf.columns, nil
+}
+
+func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
+
+	switch expr := e.(type) {
+
+	case nil, *SQLCtorExpr, *SQLScalarFunctionExpr, SQLString, SQLNullValue:
+
+		return e, nil
+
+	case *SQLAggFunctionExpr:
+
+		sc, err := refColsInSelectExpr(expr.Exprs)
+		if err != nil {
+			return nil, err
+		}
+
+		cf.columns = append(cf.columns, SelectExpressions(sc).GetColumns()...)
+
+	case SQLFieldExpr:
+
+		column := &Column{
+			Table: string(expr.tableName),
+			Name:  string(expr.fieldName),
+			View:  string(expr.fieldName),
+		}
+
+		cf.columns = append(cf.columns, column)
+
+	case *SQLSubqueryCmpExpr:
+
+		sc, err := refColsInSelectStmt(expr.value.stmt)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = cf.Visit(expr.left)
+		if err != nil {
+			return nil, err
+		}
+
+		cf.columns = append(cf.columns, SelectExpressions(sc).GetColumns()...)
+
+	case *SQLSubqueryExpr:
+
+		sc, err := refColsInSelectStmt(expr.stmt)
+		if err != nil {
+			return nil, err
+		}
+
+		cf.columns = append(cf.columns, SelectExpressions(sc).GetColumns()...)
+
+	default:
+
+		_, err := walk(cf, expr)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	return e, nil
+}
+
+type aggFunctionFinder struct {
+	hasAggFunc bool
+}
+
+// hasAggFunction will take an expression and return true if it contains an aggregation function.
+func hasAggFunction(e SQLExpr) (bool, error) {
+
+	af := &aggFunctionFinder{}
+
+	_, err := af.Visit(e)
+	if err != nil {
+		return false, err
+	}
+
+	return af.hasAggFunc, nil
+}
+
+func (af *aggFunctionFinder) Visit(e SQLExpr) (SQLExpr, error) {
+
+	if af.hasAggFunc {
+		return e, nil
+	}
+
+	switch e.(type) {
+
+	case *SQLExistsExpr, SQLFieldExpr, SQLNullValue, SQLNumeric, SQLString, *SQLSubqueryExpr:
+
+		return e, nil
+
+	case *SQLAggFunctionExpr:
+
+		af.hasAggFunc = true
+
+	default:
+
+		_, err := walk(af, e)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	return e, nil
+}
+
 // partiallyEvaluate will take an expression tree and partially evaluate any nodes that can
 // evaluated without needing data from the database. If functions by using the
 // nominateForPartialEvaluation function to gather candidates that are evaluatable. Then
