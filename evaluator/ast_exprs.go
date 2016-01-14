@@ -8,9 +8,8 @@ import (
 )
 
 //
-// SQLAggFunctionExpr is a wrapper around a sqlparser.FuncExpr designating it
-// as an aggregate function. These aggregate functions are avg, sum, count,
-// max, and min.
+// SQLAggFunctionExpr represents an aggregate function. These aggregate
+// functions are avg, sum, count, max, and min.
 //
 type SQLAggFunctionExpr struct {
 	Name     string
@@ -279,16 +278,15 @@ func (sqlf SQLFieldExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 //
-// SQLScalarFunctionExpr is a wrapper around a sqlparser.FuncExpr.
-//
-// TODO: we should just convert the sqlparser.FuncExpr into our own.
+// SQLScalarFunctionExpr represents a scalar function.
 //
 type SQLScalarFunctionExpr struct {
-	*sqlparser.FuncExpr
+	Name  string
+	Exprs []SQLExpr
 }
 
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	switch string(f.Name) {
+	switch f.Name {
 	// connector functions
 	case "connection_id":
 		return f.connectionIdFunc(ctx)
@@ -317,24 +315,7 @@ func (f *SQLScalarFunctionExpr) dbFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
-	if len(f.Exprs) != 1 {
-		return nil, fmt.Errorf("'isnull' function requires exactly one argument")
-	}
-
-	var exp sqlparser.Expr
-
-	if v, ok := f.Exprs[0].(*sqlparser.NonStarExpr); ok {
-		exp = v.Expr
-	} else {
-		return nil, fmt.Errorf("argument to 'isnull' function can not contain '*'")
-	}
-
-	sqlExpr, err := NewSQLExpr(exp)
-	if err != nil {
-		return nil, err
-	}
-
-	matcher := &SQLNullCmpExpr{sqlExpr}
+	matcher := &SQLNullCmpExpr{f.Exprs[0]}
 	result, err := Matches(matcher, ctx)
 	if err != nil {
 		return nil, err
@@ -343,22 +324,7 @@ func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (f *SQLScalarFunctionExpr) notFunc(ctx *EvalCtx) (SQLValue, error) {
-	if len(f.Exprs) != 1 {
-		return nil, fmt.Errorf("'not' function requires exactly one argument")
-	}
-	var notExpr sqlparser.Expr
-	if v, ok := f.Exprs[0].(*sqlparser.NonStarExpr); ok {
-		notExpr = v.Expr
-	} else {
-		return nil, fmt.Errorf("argument to 'not' function can not contain '*'")
-	}
-
-	child, err := NewSQLExpr(notExpr)
-	if err != nil {
-		return nil, err
-	}
-
-	matcher := &SQLNotExpr{child}
+	matcher := &SQLNotExpr{f.Exprs[0]}
 	result, err := Matches(matcher, ctx)
 	if err != nil {
 		return nil, err
@@ -367,38 +333,16 @@ func (f *SQLScalarFunctionExpr) notFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (f *SQLScalarFunctionExpr) powFunc(ctx *EvalCtx) (SQLValue, error) {
-	if len(f.Exprs) != 2 {
-		return nil, fmt.Errorf("'pow' function requires exactly two arguments")
-	}
-	var baseExpr, expExpr sqlparser.Expr
-	if v, ok := f.Exprs[0].(*sqlparser.NonStarExpr); ok {
-		baseExpr = v.Expr
-	} else {
-		return nil, fmt.Errorf("argument to 'pow' function can not contain '*'")
-	}
-	if v, ok := f.Exprs[1].(*sqlparser.NonStarExpr); ok {
-		expExpr = v.Expr
-	} else {
-		return nil, fmt.Errorf("argument to 'pow' function can not contain '*'")
-	}
-
-	base, err := NewSQLExpr(baseExpr)
-	if err != nil {
-		return nil, err
-	}
-	exponent, err := NewSQLExpr(expExpr)
+	base, err := f.Exprs[0].Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	base, err = base.Evaluate(ctx)
+	exponent, err := f.Exprs[1].Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
-	exponent, err = exponent.Evaluate(ctx)
-	if err != nil {
-		return nil, err
-	}
+
 	if bNum, ok := base.(SQLNumeric); ok {
 		if eNum, ok := exponent.(SQLNumeric); ok {
 			return SQLFloat(math.Pow(bNum.Float64(), eNum.Float64())), nil

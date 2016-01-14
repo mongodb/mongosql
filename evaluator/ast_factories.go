@@ -674,15 +674,21 @@ func newSQLCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
 }
 
 func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
+
+	exprs := []SQLExpr{}
+
+	name := string(expr.Name)
+
 	if isAggFunction(expr.Name) {
-		exprs := []SQLExpr{}
+
 		for _, e := range expr.Exprs {
+
 			switch typedE := e.(type) {
 			// TODO: mixture of star and non-star expression is acceptable
 
 			case *sqlparser.StarExpr:
 
-				if name := string(expr.Name); name != "count" {
+				if name != "count" {
 					return nil, fmt.Errorf("%v aggregate function can not contain '*'", name)
 				}
 
@@ -703,7 +709,43 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 			}
 		}
 
-		return &SQLAggFunctionExpr{string(expr.Name), expr.Distinct, exprs}, nil
+		return &SQLAggFunctionExpr{name, expr.Distinct, exprs}, nil
 	}
-	return &SQLScalarFunctionExpr{expr}, nil
+
+	for _, e := range expr.Exprs {
+
+		switch typedE := e.(type) {
+
+		case *sqlparser.StarExpr:
+
+			switch name {
+			case "isnull", "not", "pow":
+				return nil, fmt.Errorf("argument to '%v' function can not contain '*'", name)
+			}
+
+		case *sqlparser.NonStarExpr:
+
+			sqlExpr, err := NewSQLExpr(typedE.Expr)
+			if err != nil {
+				return nil, err
+			}
+
+			exprs = append(exprs, sqlExpr)
+
+		}
+
+	}
+
+	switch name {
+	case "isnull", "not":
+		if len(exprs) != 1 {
+			return nil, fmt.Errorf("'%v' function requires exactly one argument", name)
+		}
+	case "pow":
+		if len(exprs) != 2 {
+			return nil, fmt.Errorf("'%v' function requires exactly two arguments", name)
+		}
+	}
+
+	return &SQLScalarFunctionExpr{name, exprs}, nil
 }
