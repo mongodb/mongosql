@@ -61,11 +61,11 @@ func TestHavingOperator(t *testing.T) {
 
 		sExprs := SelectExpressions{
 			SelectExpression{
-				Column: Column{tableOneName, "a", "a", false},
+				Column: Column{tableOneName, "a", "a"},
 				Expr:   SQLFieldExpr{tableOneName, "a"},
 			},
 			SelectExpression{
-				Column: Column{"", "sum(b)", "sum(b)", false},
+				Column: Column{"", "sum(b)", "sum(b)"},
 				Expr: &SQLAggFunctionExpr{
 					&sqlparser.FuncExpr{
 						Name: []byte("sum"),

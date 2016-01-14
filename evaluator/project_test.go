@@ -56,12 +56,12 @@ func TestProjectOperator(t *testing.T) {
 
 		sExprs := SelectExpressions{
 			SelectExpression{
-				Column: Column{tableOneName, "a", "a", false},
+				Column: Column{tableOneName, "a", "a"},
 				Expr:   SQLFieldExpr{tableOneName, "a"},
 			},
 			SelectExpression{
 				Referenced: true,
-				Column:     Column{tableOneName, "b", "b", false},
+				Column:     Column{tableOneName, "b", "b"},
 				Expr:       SQLFieldExpr{tableOneName, "b"},
 			},
 		}

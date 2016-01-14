@@ -14,10 +14,9 @@ import (
 // source of the data while 'View' holds the display
 // header representation of the data.
 type Column struct {
-	Table      string
-	Name       string
-	View       string
-	InSubquery bool
+	Table string
+	Name  string
+	View  string
 }
 
 type ConnectionCtx interface {
