@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/deafgoat/mixer/sqlparser"
 )
 
 // orderedGroup holds all the rows belonging to a given key in the groups
@@ -24,7 +23,7 @@ type GroupBy struct {
 	// exprs holds the expression(s) to group by. For example, in
 	// select a, count(b) from foo group by a
 	// exprs will hold the parsed column name 'a'.
-	exprs []sqlparser.Expr
+	exprs []SQLExpr
 
 	// grouped indicates if the source operator data has been grouped
 	grouped bool
@@ -42,11 +41,6 @@ type GroupBy struct {
 	// matcher is used to filter results based on a HAVING clause
 	matcher SQLExpr
 
-	// orderBy holds the expression(s) to order by. For example, in
-	// select a, count(b) from foo group by a order by count(b)
-	// exprs will hold the expression 'count(b)'
-	orderBy sqlparser.OrderBy
-
 	ctx *ExecutionCtx
 }
 
@@ -63,12 +57,7 @@ func (gb *GroupBy) evaluateGroupByKey(row *Row) (string, error) {
 
 	var gbKey string
 
-	for _, key := range gb.exprs {
-		expr, err := NewSQLExpr(key)
-		if err != nil {
-			panic(err)
-		}
-
+	for _, expr := range gb.exprs {
 		evalCtx := &EvalCtx{Rows: Rows{*row}}
 		value, err := expr.Evaluate(evalCtx)
 		if err != nil {
@@ -120,17 +109,7 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 
 	for _, sExpr := range gb.sExprs {
 
-		expr, err := NewSQLExpr(sExpr.Expr)
-		if err != nil {
-			return nil, err
-		}
-
 		evalCtx := &EvalCtx{Rows: r}
-
-		v, err := expr.Evaluate(evalCtx)
-		if err != nil {
-			return nil, err
-		}
 
 		m, err := Matches(gb.matcher, evalCtx)
 		if err != nil {
@@ -138,6 +117,11 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 		}
 
 		if m {
+			v, err := sExpr.Expr.Evaluate(evalCtx)
+			if err != nil {
+				return nil, err
+			}
+
 			value := Value{
 				Name: sExpr.Name,
 				View: sExpr.View,

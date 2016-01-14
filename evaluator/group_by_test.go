@@ -62,11 +62,11 @@ func TestGroupByOperator(t *testing.T) {
 			sExprs: SelectExpressions{
 				SelectExpression{
 					Column: Column{tableOneName, "a", "a", false},
-					Expr:   &sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
+					Expr:   SQLFieldExpr{tableOneName, "a"},
 				},
 				SelectExpression{
 					Column: Column{tableOneName, "b", "b", false},
-					Expr:   &sqlparser.ColName{[]byte("b"), []byte(tableOneName)},
+					Expr:   SQLFieldExpr{tableOneName, "b"},
 				},
 			},
 		}
@@ -76,23 +76,25 @@ func TestGroupByOperator(t *testing.T) {
 			sExprs := SelectExpressions{
 				SelectExpression{
 					Column: Column{tableOneName, "a", "a", false},
-					Expr:   &sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
+					Expr:   SQLFieldExpr{tableOneName, "a"},
 				},
 				SelectExpression{
 					Column: Column{"", "sum(b)", "sum(b)", false},
-					Expr: &sqlparser.FuncExpr{
-						Name: []byte("sum"),
-						Exprs: sqlparser.SelectExprs{
-							&sqlparser.NonStarExpr{
-								Expr: &sqlparser.ColName{[]byte("b"), []byte(tableOneName)},
+					Expr: &SQLAggFunctionExpr{
+						&sqlparser.FuncExpr{
+							Name: []byte("sum"),
+							Exprs: sqlparser.SelectExprs{
+								&sqlparser.NonStarExpr{
+									Expr: &sqlparser.ColName{[]byte("b"), []byte(tableOneName)},
+								},
 							},
 						},
 					},
 				},
 			}
 
-			exprs := []sqlparser.Expr{
-				&sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
+			exprs := []SQLExpr{
+				SQLFieldExpr{tableOneName, "a"},
 			}
 
 			operator := &GroupBy{

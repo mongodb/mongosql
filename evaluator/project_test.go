@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/deafgoat/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
@@ -58,12 +57,12 @@ func TestProjectOperator(t *testing.T) {
 		sExprs := SelectExpressions{
 			SelectExpression{
 				Column: Column{tableOneName, "a", "a", false},
-				Expr:   &sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
+				Expr:   SQLFieldExpr{tableOneName, "a"},
 			},
 			SelectExpression{
 				Referenced: true,
 				Column:     Column{tableOneName, "b", "b", false},
-				Expr:       &sqlparser.ColName{[]byte("b"), []byte(tableOneName)},
+				Expr:       SQLFieldExpr{tableOneName, "b"},
 			},
 		}
 

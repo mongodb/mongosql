@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/deafgoat/mixer/sqlparser"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
@@ -146,15 +145,11 @@ type SelectExpression struct {
 	// entry for both the "discount" and the "price" fields.
 	//
 	RefColumns []*Column
-	// Expr holds the actual expression to be evaluated during processing.
+	// Expr holds the transformed sqlparser expression (a SQLExpr) that can
+	// subsequently be evaluated during processing.
 	// For column names expressions, it is nil. For example, in the expression:
 	//
-	// select name, (discount * price) as discountRate from foo;
-	//
-	// Expr will be nil for the first expression and a BinaryExpr for the second
-	// expression.
-	//
-	Expr sqlparser.Expr
+	Expr SQLExpr
 	// Referenced indicates if this column is part of the select expressions
 	// by way of being referenced - as opposed to be explicitly requested. e.g.
 	// in the expression:
@@ -229,9 +224,9 @@ func (se SelectExpressions) hasSubquery() bool {
 func (se SelectExpressions) hasCase() bool {
 
 	for _, s := range se {
-		if value, ok := s.Expr.(sqlparser.ValTuple); ok {
-			for _, expr := range value {
-				if _, ok := expr.(*sqlparser.CaseExpr); ok {
+		if value, ok := s.Expr.(SQLTupleExpr); ok {
+			for _, expr := range value.Exprs {
+				if _, ok := expr.(*SQLCaseExpr); ok {
 					return true
 				}
 			}
@@ -242,7 +237,7 @@ func (se SelectExpressions) hasCase() bool {
 }
 
 func (se SelectExpression) isAggFunc() bool {
-	_, ok := se.Expr.(*sqlparser.FuncExpr)
+	_, ok := se.Expr.(*SQLAggFunctionExpr)
 	return ok
 }
 
@@ -251,7 +246,7 @@ func (se SelectExpressions) AggFunctions() SelectExpressions {
 	sExprs := SelectExpressions{}
 
 	for _, sExpr := range se {
-		if hasAggFunctions(sExpr.Expr) {
+		if sExpr.isAggFunc() {
 			sExprs = append(sExprs, sExpr)
 		}
 	}
@@ -349,7 +344,6 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 				sExprs:  typedO.sExprs,
 				exprs:   typedO.exprs,
 				matcher: typedO.matcher,
-				orderBy: typedO.orderBy,
 			}
 		}
 	case *Having:

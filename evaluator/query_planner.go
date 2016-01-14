@@ -58,14 +58,14 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 			// only add basic columns present in table configuration
 			hasColumn := (expressions.Contains(*column) || sExprs.Contains(*column))
 			if ctx.ParseCtx.IsSchemaColumn(column) && !hasColumn && !hasStarExpr(ast) {
-				sqlExpr := &sqlparser.ColName{Name: []byte(column.Name), Qualifier: []byte(column.Table)}
+				sqlExpr := &SQLFieldExpr{column.Table, column.Name}
 				expression := SelectExpression{Column: *column, Referenced: true, Expr: sqlExpr}
 				expressions = append(expressions, expression)
 			}
 		}
 	}
 
-	var exprs []sqlparser.Expr
+	var exprs []SQLExpr
 
 	// add any referenced columns in the GROUP BY clause
 	for _, key := range ast.GroupBy {
@@ -73,6 +73,7 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 		if err != nil {
 			return nil, err
 		}
+
 		exprs = append(exprs, expr)
 	}
 
@@ -88,12 +89,20 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 
 	// add any referenced columns in the WHERE clause
 	if ast.Where != nil {
-		exprs = append(exprs, ast.Where.Expr)
+		e, err := NewSQLExpr(ast.Where.Expr)
+		if err != nil {
+			return nil, err
+		}
+		exprs = append(exprs, e)
 	}
 
 	// add any referenced columns in the HAVING clause
 	if ast.Having != nil {
-		exprs = append(exprs, ast.Having.Expr)
+		e, err := NewSQLExpr(ast.Having.Expr)
+		if err != nil {
+			return nil, err
+		}
+		exprs = append(exprs, e)
 	}
 
 	for _, expr := range exprs {
@@ -309,13 +318,8 @@ func planOrderBy(ast *sqlparser.Select, sExprs SelectExpressions) (*OrderBy, err
 			return nil, err
 		}
 
-		value, err := NewSQLExpr(expr)
-		if err != nil {
-			return nil, err
-		}
-
 		key := orderByKey{
-			value:     value,
+			value:     expr,
 			isAggFunc: hasAggFunctions(expr),
 			ascending: i.Direction == sqlparser.AST_ASC,
 		}
@@ -353,12 +357,12 @@ func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions) (*GroupBy, err
 
 		// a GROUP BY clause can't refer to non-aggregated columns in
 		// the select list that are not named in the GROUP BY clause
-		parsedExpr, err := getGroupByTerm(gb.sExprs, expr)
+		gbExpr, err := getGroupByTerm(gb.sExprs, expr)
 		if err != nil {
 			return nil, err
 		}
 
-		gb.exprs = append(gb.exprs, parsedExpr)
+		gb.exprs = append(gb.exprs, gbExpr)
 	}
 
 	// add any referenced columns to the select operator
@@ -409,7 +413,7 @@ func planHaving(having *sqlparser.Where, sExprs SelectExpressions) (*Having, err
 // getGroupByTerm returns the referenced expression in an GROUP BY clause if the
 // expression is aliased by column name or position. Otherwise, it returns the
 // expression supplied.
-func getGroupByTerm(sExprs []SelectExpression, e sqlparser.Expr) (sqlparser.Expr, error) {
+func getGroupByTerm(sExprs []SelectExpression, e sqlparser.Expr) (SQLExpr, error) {
 
 	switch expr := e.(type) {
 
@@ -419,7 +423,7 @@ func getGroupByTerm(sExprs []SelectExpression, e sqlparser.Expr) (sqlparser.Expr
 			return term, nil
 		}
 
-		return expr, nil
+		return NewSQLExpr(e)
 
 	case sqlparser.NumVal:
 
@@ -432,14 +436,13 @@ func getGroupByTerm(sExprs []SelectExpression, e sqlparser.Expr) (sqlparser.Expr
 
 	}
 
-	return e, nil
-
+	return NewSQLExpr(e)
 }
 
 // getOrderByTerm returns the referenced expression in an ORDER BY clause if the
 // expression is aliased. Otherwise, it returns the expression supplied - provided
 // it is valid as an ORDER BY term.
-func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr) (sqlparser.Expr, error) {
+func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr) (SQLExpr, error) {
 
 	switch expr := e.(type) {
 
@@ -449,7 +452,7 @@ func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr) (sqlparser.Expr,
 			return term, nil
 		}
 
-		return expr, nil
+		return NewSQLExpr(e)
 
 	case sqlparser.NumVal:
 
@@ -460,17 +463,12 @@ func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr) (sqlparser.Expr,
 
 		return term, nil
 
-	case *sqlparser.FuncExpr:
-
-		return expr, nil
-
 	}
 
-	return e, nil
-
+	return NewSQLExpr(e)
 }
 
-func getColumnTerm(sExprs SelectExpressions, expr *sqlparser.ColName) sqlparser.Expr {
+func getColumnTerm(sExprs SelectExpressions, expr *sqlparser.ColName) SQLExpr {
 
 	for i, sExpr := range sExprs {
 
@@ -501,7 +499,7 @@ func getColumnTerm(sExprs SelectExpressions, expr *sqlparser.ColName) sqlparser.
 	return nil
 }
 
-func getNumericTerm(sExprs SelectExpressions, expr sqlparser.Expr) (sqlparser.Expr, error) {
+func getNumericTerm(sExprs SelectExpressions, expr sqlparser.Expr) (SQLExpr, error) {
 	i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64)
 	if err != nil {
 		return nil, err
@@ -517,6 +515,7 @@ func getNumericTerm(sExprs SelectExpressions, expr sqlparser.Expr) (sqlparser.Ex
 			return sExpr.Expr, nil
 		}
 	}
+
 	return nil, fmt.Errorf("%v", i)
 }
 
@@ -535,14 +534,19 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs) ([]SelectExpression, error
 
 		case *sqlparser.NonStarExpr:
 
-			columns, err := getReferencedColumns(expr.Expr)
+			sqlExpr, err := NewSQLExpr(expr.Expr)
+			if err != nil {
+				return nil, err
+			}
+
+			columns, err := getReferencedColumns(sqlExpr)
 			if err != nil {
 				return nil, err
 			}
 
 			column := Column{View: string(expr.As)}
 
-			selectExpression := SelectExpression{column, columns, expr.Expr, false}
+			selectExpression := SelectExpression{column, columns, sqlExpr, false}
 
 			if c, ok := expr.Expr.(*sqlparser.ColName); ok {
 				selectExpression.Table = string(c.Qualifier)
@@ -790,13 +794,15 @@ func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlp
 
 // getReferencedColumns accepts several exppressions and returns a slice
 // of referenced columns in those expressions.
-func getReferencedColumns(exprs ...sqlparser.Expr) ([]*Column, error) {
+func getReferencedColumns(exprs ...SQLExpr) ([]*Column, error) {
 
 	log.Logf(log.DebugLow, "getReferencedColumns: %#v (type is %T)\n", exprs, exprs)
 
 	columns := make([]*Column, 0)
 
 	for _, e := range exprs {
+		log.Logf(log.DebugLow, "getReferencedColumns expr: %#v (type is %T)\n", e, e)
+
 		refColumns, err := referencedColumns(e)
 		if err != nil {
 			return nil, err
@@ -809,37 +815,46 @@ func getReferencedColumns(exprs ...sqlparser.Expr) ([]*Column, error) {
 }
 
 // referencedColumns returns a slice of referenced columns in an expression.
-func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
+func referencedColumns(e SQLExpr) ([]*Column, error) {
 
 	log.Logf(log.DebugLow, "referencedColumns: %#v (type is %T)\n", e, e)
 
 	switch expr := e.(type) {
 
-	case *sqlparser.AndExpr:
+	case *SQLAggFunctionExpr:
 
-		return getReferencedColumns(expr.Left, expr.Right)
-
-	case *sqlparser.BinaryExpr:
-
-		return getReferencedColumns(expr.Left, expr.Right)
-
-	case *sqlparser.CaseExpr:
-
-		columns, err := getReferencedColumns(expr.Else, expr.Expr)
+		sc, err := refColsInSelectExpr(expr.Exprs)
 		if err != nil {
 			return nil, err
 		}
 
-		for _, when := range expr.Whens {
+		return SelectExpressions(sc).GetColumns(), nil
 
-			c, err := getReferencedColumns(when.Cond)
+	case *SQLAddExpr:
+
+		return getReferencedColumns(expr.left, expr.right)
+
+	case *SQLAndExpr:
+
+		return getReferencedColumns(expr.left, expr.right)
+
+	case *SQLCaseExpr:
+
+		columns, err := getReferencedColumns(expr.elseValue)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, when := range expr.caseConditions {
+
+			c, err := getReferencedColumns(when.matcher)
 			if err != nil {
 				return nil, err
 			}
 
 			columns = append(columns, c...)
 
-			c, err = getReferencedColumns(when.Val)
+			c, err = getReferencedColumns(when.then)
 			if err != nil {
 				return nil, err
 			}
@@ -849,75 +864,17 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 
 		return columns, nil
 
-	case *sqlparser.ColName:
+	case *SQLDivideExpr:
 
-		c := &Column{
-			Table: string(expr.Qualifier),
-			Name:  string(expr.Name),
-			View:  string(expr.Name),
-		}
-		return []*Column{c}, nil
+		return getReferencedColumns(expr.left, expr.right)
 
-	case *sqlparser.ComparisonExpr:
+	case *SQLEqualsExpr:
 
-		return getReferencedColumns(expr.Left, expr.Right)
+		return getReferencedColumns(expr.left, expr.right)
 
-	case *sqlparser.CtorExpr:
+	case *SQLExistsExpr:
 
-		return referencedColumns(sqlparser.ValTuple(expr.Exprs))
-
-	case *sqlparser.ExistsExpr:
-
-		return nil, fmt.Errorf("referenced columns for ExistsExpr for NYI")
-
-	case *sqlparser.FuncExpr:
-
-		sc, err := refColsInSelectExpr(expr.Exprs)
-		if err != nil {
-			return nil, err
-		}
-
-		return SelectExpressions(sc).GetColumns(), nil
-
-	case *sqlparser.NotExpr:
-
-		return referencedColumns(expr.Expr)
-
-	case nil:
-
-		return nil, nil
-
-	case *sqlparser.NullCheck:
-
-		return referencedColumns(expr.Expr)
-
-	case *sqlparser.NullVal:
-
-		return nil, nil
-
-	case sqlparser.NumVal:
-
-		return nil, nil
-
-	case *sqlparser.OrExpr:
-
-		return getReferencedColumns(expr.Left, expr.Right)
-
-	case *sqlparser.ParenBoolExpr:
-
-		return referencedColumns(expr.Expr)
-
-	case *sqlparser.RangeCond:
-
-		return getReferencedColumns(expr.From, expr.To, expr.Left)
-
-	case sqlparser.StrVal:
-
-		return nil, nil
-
-	case *sqlparser.Subquery:
-
-		sc, err := refColsInSelectStmt(expr.Select)
+		sc, err := refColsInSelectStmt(expr.stmt)
 		if err != nil {
 			return nil, err
 		}
@@ -930,20 +887,107 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 
 		return columns, nil
 
-	case *sqlparser.UnaryExpr:
+	case SQLFieldExpr:
 
-		return referencedColumns(expr.Expr)
+		c := &Column{
+			Table: string(expr.tableName),
+			Name:  string(expr.fieldName),
+			View:  string(expr.fieldName),
+		}
+		return []*Column{c}, nil
 
-		// TODO: fill these in
-	case sqlparser.ValArg:
+	case *SQLGreaterThanExpr:
 
-		return nil, fmt.Errorf("referenced columns for ValArg for NYI")
+		return getReferencedColumns(expr.left, expr.right)
 
-	case sqlparser.ValTuple:
+	case *SQLGreaterThanOrEqualExpr:
+
+		return getReferencedColumns(expr.left, expr.right)
+
+	case *SQLInExpr:
+
+		return getReferencedColumns(expr.left, expr.right)
+
+	case *SQLLessThanExpr:
+
+		return getReferencedColumns(expr.left, expr.right)
+
+	case *SQLLessThanOrEqualExpr:
+
+		return getReferencedColumns(expr.left, expr.right)
+
+	case *SQLLikeExpr:
+
+		return getReferencedColumns(expr.left, expr.right)
+
+	case *SQLMultiplyExpr:
+
+		return getReferencedColumns(expr.left, expr.right)
+
+	case *SQLNotEqualsExpr:
+
+		return getReferencedColumns(expr.left, expr.right)
+
+	case *SQLNotExpr:
+
+		return getReferencedColumns(expr.operand)
+
+	case *SQLNullCmpExpr:
+
+		return referencedColumns(expr.operand)
+
+	case *SQLOrExpr:
+
+		return getReferencedColumns(expr.left, expr.right)
+
+	case *SQLSubqueryCmpExpr:
+
+		sc, err := refColsInSelectStmt(expr.value.stmt)
+		if err != nil {
+			return nil, err
+		}
+
+		columns := SelectExpressions(sc).GetColumns()
+
+		for _, column := range columns {
+			column.InSubquery = true
+		}
+
+		c, err := getReferencedColumns(expr.left)
+		if err != nil {
+			return nil, err
+		}
+
+		return append(columns, c...), nil
+
+	case *SQLSubtractExpr:
+
+		return getReferencedColumns(expr.left, expr.right)
+
+	case *SQLSubqueryExpr:
+
+		sc, err := refColsInSelectStmt(expr.stmt)
+		if err != nil {
+			return nil, err
+		}
+
+		columns := SelectExpressions(sc).GetColumns()
+
+		for _, column := range columns {
+			column.InSubquery = true
+		}
+
+		return columns, nil
+
+	case nil, *SQLCtorExpr, SQLNumeric, *SQLScalarFunctionExpr, SQLString, SQLNullValue:
+
+		return nil, nil
+
+	case *SQLTupleExpr:
 
 		columns := []*Column{}
 
-		for _, valTuple := range expr {
+		for _, valTuple := range expr.Exprs {
 			refCols, err := referencedColumns(valTuple)
 			if err != nil {
 				return nil, err
@@ -953,127 +997,161 @@ func referencedColumns(e sqlparser.Expr) ([]*Column, error) {
 
 		return columns, nil
 
+	case *SQLUnaryMinusExpr:
+
+		return referencedColumns(expr.operand)
+
+	case *SQLUnaryTildeExpr:
+
+		return referencedColumns(expr.operand)
+
 	default:
 
 		return nil, fmt.Errorf("referenced columns NYI for: %T", expr)
 
 	}
 
-	return nil, fmt.Errorf("referenced columns (on %T) reached an unreachable point", e)
+	return nil, fmt.Errorf("referenced columns NYI for: %T", e)
 }
 
 // hasAggFunctions returns true if expression e contains an aggregate function and false otherwise.
-func hasAggFunctions(e sqlparser.Expr) bool {
+func hasAggFunctions(e SQLExpr) bool {
 
 	log.Logf(log.DebugLow, "hasAggFunctions: %#v (type is %T)\n", e, e)
 
 	switch expr := e.(type) {
 
-	case *sqlparser.AndExpr:
+	case nil, *SQLExistsExpr, SQLFieldExpr, SQLNullValue, SQLNumeric, SQLString, *SQLSubqueryExpr:
 
-		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
+		return false
+
+	case *SQLAddExpr:
+
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
 			return true
 		}
 
 		return false
 
-	case *sqlparser.BinaryExpr:
+	case *SQLAggFunctionExpr:
 
-		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
+		return true
+
+	case *SQLAndExpr:
+
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
 			return true
 		}
 
 		return false
 
-	case *sqlparser.CaseExpr:
+	case *SQLCaseExpr:
 
-		if hasAggFunctions(expr.Else) || hasAggFunctions(expr.Expr) {
+		if hasAggFunctions(expr.elseValue) {
 			return true
 		}
 
-		for _, when := range expr.Whens {
-			if hasAggFunctions(when.Cond) || hasAggFunctions(when.Val) {
+		for _, when := range expr.caseConditions {
+			if hasAggFunctions(when.matcher) || hasAggFunctions(when.then) {
 				return true
 			}
 		}
 
 		return false
 
-	case *sqlparser.ColName:
+	case *SQLDivideExpr:
 
-		return false
-
-	case *sqlparser.ComparisonExpr:
-
-		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
 			return true
 		}
 
 		return false
 
-	case *sqlparser.CtorExpr:
+	case *SQLEqualsExpr:
 
-		return false
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
+			return true
+		}
 
-	case *sqlparser.FuncExpr:
+	case *SQLGreaterThanExpr:
 
-		return isAggFunction(expr.Name)
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
+			return true
+		}
 
-	case nil:
+	case *SQLGreaterThanOrEqualExpr:
 
-		return false
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
+			return true
+		}
 
-	case *sqlparser.NullCheck:
+	case *SQLInExpr:
 
-		return false
+		return hasAggFunctions(expr)
 
-	case *sqlparser.NullVal:
+	case *SQLLessThanExpr:
 
-		return false
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
+			return true
+		}
 
-	case *sqlparser.NotExpr:
+	case *SQLLessThanOrEqualExpr:
 
-		return hasAggFunctions(expr.Expr)
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
+			return true
+		}
 
-	case sqlparser.NumVal:
+	case *SQLLikeExpr:
 
-		return false
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
+			return true
+		}
 
-	case *sqlparser.OrExpr:
+	case *SQLMultiplyExpr:
 
-		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.Right) {
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
 			return true
 		}
 
 		return false
 
-	case *sqlparser.ParenBoolExpr:
+	case *SQLNotEqualsExpr:
 
-		return hasAggFunctions(expr.Expr)
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
+			return true
+		}
 
-	case *sqlparser.RangeCond:
+	case *SQLNotExpr:
 
-		if hasAggFunctions(expr.Left) || hasAggFunctions(expr.From) || hasAggFunctions(expr.To) {
+		return hasAggFunctions(expr)
+
+	case *SQLNullCmpExpr:
+
+		return hasAggFunctions(expr.operand)
+
+	case *SQLOrExpr:
+
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
 			return true
 		}
 
 		return false
 
-	case sqlparser.StrVal:
+	case *SQLSubqueryCmpExpr:
+
+		return hasAggFunctions(expr.left)
+
+	case *SQLSubtractExpr:
+
+		if hasAggFunctions(expr.left) || hasAggFunctions(expr.right) {
+			return true
+		}
 
 		return false
 
-	case *sqlparser.Subquery:
+	case *SQLTupleExpr:
 
-		return false
-
-	case *sqlparser.UnaryExpr:
-
-		return hasAggFunctions(expr.Expr)
-
-	case sqlparser.ValTuple:
-
-		for _, valTuple := range expr {
+		for _, valTuple := range expr.Exprs {
 			if hasAggFunctions(valTuple) {
 				return true
 			}
@@ -1086,6 +1164,8 @@ func hasAggFunctions(e sqlparser.Expr) bool {
 		panic(fmt.Sprintf("hasAggFunctions NYI for: %T", expr))
 
 	}
+
+	return false
 
 }
 

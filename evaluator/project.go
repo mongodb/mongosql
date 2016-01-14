@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/deafgoat/mixer/sqlparser"
 	"strings"
 )
 
@@ -52,29 +51,21 @@ func (pj *Project) Open(ctx *ExecutionCtx) error {
 	return err
 }
 
-func (pj *Project) getValue(sc SelectExpression, row *Row) (SQLValue, error) {
+func (pj *Project) getValue(se SelectExpression, row *Row) (SQLValue, error) {
 	// in the case where we have a bare select column and no expression
-	if sc.Expr == nil {
-		sc.Expr = &sqlparser.ColName{
-			Name:      []byte(sc.Name),
-			Qualifier: []byte(sc.Table),
-		}
+	if se.Expr == nil {
+		se.Expr = SQLFieldExpr{se.Table, se.Name}
 	} else {
 		// If the column name is actually referencing a system variable, look it up and return
 		// its value if it exists.
 
 		// TODO scope system variables per-connection?
-		if strings.HasPrefix(sc.Name, "@@") {
-			if varValue, hasKey := systemVars[sc.Name[2:]]; hasKey {
+		if strings.HasPrefix(se.Name, "@@") {
+			if varValue, hasKey := systemVars[se.Name[2:]]; hasKey {
 				return varValue, nil
 			}
-			return nil, fmt.Errorf("unknown system variable %v", sc.Name)
+			return nil, fmt.Errorf("unknown system variable %v", se.Name)
 		}
-	}
-
-	expr, err := NewSQLExpr(sc.Expr)
-	if err != nil {
-		return nil, err
 	}
 
 	evalCtx := &EvalCtx{
@@ -82,7 +73,7 @@ func (pj *Project) getValue(sc SelectExpression, row *Row) (SQLValue, error) {
 		ExecCtx: pj.ctx,
 	}
 
-	return expr.Evaluate(evalCtx)
+	return se.Expr.Evaluate(evalCtx)
 }
 
 func (pj *Project) Next(r *Row) bool {

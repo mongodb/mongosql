@@ -416,7 +416,8 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 //
-// SQLSubqueryCmpExpr evaluates to true if ...???
+// SQLSubqueryCmpExpr evaluates to true if left is in any of the
+// rows returne by the SQLSubqueryExpr expression results.
 //
 type SQLSubqueryCmpExpr struct {
 	In    bool

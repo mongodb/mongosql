@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/deafgoat/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
@@ -60,7 +59,7 @@ func TestLimitOperator(t *testing.T) {
 				sExprs: SelectExpressions{
 					SelectExpression{
 						Column: Column{tableOneName, "a", "a", false},
-						Expr:   &sqlparser.ColName{[]byte("a"), []byte(tableOneName)},
+						Expr:   SQLFieldExpr{tableOneName, "a"},
 					},
 				},
 				source: &TableScan{
