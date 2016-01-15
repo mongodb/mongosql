@@ -12,6 +12,36 @@ import (
 	"time"
 )
 
+// newSQLTimeValue is a factory method for creating a
+// time SQLValue from a time object.
+func newSQLTimeValue(t time.Time) (SQLValue, error) {
+
+	// Time objects can be reliably converted into one of the following:
+	//
+	// 1. SQLTimestamp
+	// 2. SQLDate
+	// 3. SQLDateTime
+	//
+	// We don't support SQLYear because can not reliably differentiate between
+	// a SQLYear and a SQLDate - since the default month and day - November and
+	// 30 respectively - are both valid. To maintain correctness, we use the
+	// more precise of the two - SQLDate - in constructing the SQLValue.
+	// Note that this ambiguity only occurs when we push down a GroupBy operator
+	// since MongoDB time value support is not as broad as MySQL's.
+
+	h := t.Hour()
+	mi := t.Minute()
+	sd := t.Second()
+	ns := t.Nanosecond()
+
+	if ns == 0 && sd == 0 && mi == 0 && h == 0 {
+		return NewSQLValue(t, schema.SQLDate)
+	}
+
+	// SQLDateTime and SQLTimestamp can be handled similarly
+	return NewSQLValue(t, schema.SQLTimestamp)
+}
+
 //
 // NewSQLValue is a factory method for creating a SQLValue from a value and column type.
 //
@@ -25,7 +55,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		switch v := value.(type) {
 		case SQLValue:
 			return v, nil
-		case nil:
+		case nil, []interface{}:
 			return SQLNull, nil
 		case bson.ObjectId:
 			// TODO: handle this a special type? just using a string for now.
@@ -49,7 +79,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		case uint32:
 			return SQLUint32(v), nil
 		case time.Time:
-			return SQLTimestamp{v}, nil
+			return newSQLTimeValue(v)
 		default:
 			panic(fmt.Errorf("can't convert this type to a SQLValue: %T", v))
 		}
@@ -65,7 +95,8 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 	// We should have this specified in the DRDL file, and use it when we're
 	// formatting the fields for the query response.
 
-	case schema.SQLString:
+	case schema.SQLString, schema.SQLVarchar:
+
 		switch v := value.(type) {
 		case bool:
 			return SQLString(strconv.FormatBool(v)), nil
@@ -82,6 +113,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		}
 
 	case schema.SQLInt:
+
 		switch v := value.(type) {
 		case bool:
 			if v {
@@ -104,6 +136,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		}
 
 	case schema.SQLFloat:
+
 		switch v := value.(type) {
 		case bool:
 			if v {
@@ -111,7 +144,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			}
 			return SQLFloat(0), nil
 		case string:
-			eval, err := strconv.Atoi(v)
+			eval, err := strconv.ParseFloat(v, 64)
 			if err == nil {
 				return SQLFloat(float64(eval)), nil
 			}
@@ -152,11 +185,18 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			date = time.Date(v.Year(), v.Month(), v.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 
 		case string:
-			d, err := time.Parse(schema.DateFormat, v)
-			if err != nil {
+
+			for _, format := range schema.TimestampCtorFormats {
+				d, err := time.Parse(format, v)
+				if err == nil {
+					date = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+					break
+				}
+			}
+
+			if date.Equal(time.Time{}) {
 				return SQLDate{schema.DefaultTime}, nil
 			}
-			date = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 
 		case bson.ObjectId:
 
@@ -189,13 +229,18 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case string:
 
-			d, err := time.Parse(schema.TimestampFormat, v)
-			if err != nil {
-				return SQLDate{schema.DefaultTime}, nil
+			for _, format := range schema.TimestampCtorFormats {
+				d, err := time.Parse(format, v)
+				if err == nil {
+					dt = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
+						d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
+					break
+				}
 			}
 
-			dt = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
-				d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
+			if dt.Equal(time.Time{}) {
+				return SQLDateTime{schema.DefaultTime}, nil
+			}
 
 		case bson.ObjectId:
 
@@ -276,7 +321,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		case int, int32, int64:
 			year, err := getYear(value.(int), true)
 			if err != nil {
-				return nil, err
+				return SQLYear{schema.DefaultTime}, nil
 			}
 			return SQLYear{time.Date(year, 0, 0, 0, 0, 0, 0, schema.DefaultLocale)}, nil
 
@@ -292,7 +337,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 			year, err := getYear(int(y), false)
 			if err != nil {
-				return nil, err
+				return SQLYear{schema.DefaultTime}, nil
 			}
 
 			return SQLYear{time.Date(year, 0, 0, 0, 0, 0, 0, schema.DefaultLocale)}, nil
@@ -681,28 +726,31 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 
 	if isAggFunction(expr.Name) {
 
-		for _, e := range expr.Exprs {
+		if len(expr.Exprs) != 1 {
+			return nil, fmt.Errorf("aggregate function can not contain tuples")
+		}
 
-			switch typedE := e.(type) {
-			// TODO: mixture of star and non-star expression acceptable?
+		e := expr.Exprs[0]
 
-			case *sqlparser.StarExpr:
+		switch typedE := e.(type) {
+		// TODO: mixture of star and non-star expression acceptable?
 
-				if name != "count" {
-					return nil, fmt.Errorf("%v aggregate function can not contain '*'", name)
-				}
+		case *sqlparser.StarExpr:
 
-				exprs = append(exprs, SQLInt(1))
-
-			case *sqlparser.NonStarExpr:
-
-				sqlExpr, err := NewSQLExpr(typedE.Expr)
-				if err != nil {
-					return nil, err
-				}
-				exprs = append(exprs, sqlExpr)
-
+			if name != "count" {
+				return nil, fmt.Errorf("%v aggregate function can not contain '*'", name)
 			}
+
+			exprs = append(exprs, SQLString("*"))
+
+		case *sqlparser.NonStarExpr:
+
+			sqlExpr, err := NewSQLExpr(typedE.Expr)
+			if err != nil {
+				return nil, err
+			}
+			exprs = append(exprs, sqlExpr)
+
 		}
 
 		return &SQLAggFunctionExpr{name, expr.Distinct, exprs}, nil

@@ -55,18 +55,7 @@ func (hv *Having) Next(r *Row) bool {
 }
 
 func (hv *Having) OpFields() (columns []*Column) {
-	for _, sExpr := range hv.sExprs {
-		if sExpr.Referenced {
-			continue
-		}
-		column := &Column{
-			Name:  sExpr.Name,
-			View:  sExpr.View,
-			Table: sExpr.Table,
-		}
-		columns = append(columns, column)
-	}
-	return columns
+	return hv.source.OpFields()
 }
 
 func (hv *Having) Close() error {

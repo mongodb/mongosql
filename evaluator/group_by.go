@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"bytes"
 	"fmt"
 )
 
@@ -23,7 +24,7 @@ type GroupBy struct {
 	// exprs holds the expression(s) to group by. For example, in
 	// select a, count(b) from foo group by a
 	// exprs will hold the parsed column name 'a'.
-	exprs []SQLExpr
+	exprs SelectExpressions
 
 	// grouped indicates if the source operator data has been grouped
 	grouped bool
@@ -59,7 +60,7 @@ func (gb *GroupBy) evaluateGroupByKey(row *Row) (string, error) {
 
 	for _, expr := range gb.exprs {
 		evalCtx := &EvalCtx{Rows: Rows{*row}}
-		value, err := expr.Evaluate(evalCtx)
+		value, err := expr.Expr.Evaluate(evalCtx)
 		if err != nil {
 			return "", err
 		}
@@ -198,4 +199,24 @@ func (gb *GroupBy) OpFields() (columns []*Column) {
 		columns = append(columns, column)
 	}
 	return columns
+}
+
+func (gb *GroupBy) String() string {
+
+	b := bytes.NewBufferString("select exprs ( ")
+
+	for _, expr := range gb.sExprs {
+		b.WriteString(fmt.Sprintf("'%v' ", expr.View))
+	}
+
+	b.WriteString(") grouped by ( ")
+
+	for _, expr := range gb.exprs {
+		b.WriteString(fmt.Sprintf("'%v' ", expr.View))
+	}
+
+	b.WriteString(")")
+
+	return b.String()
+
 }

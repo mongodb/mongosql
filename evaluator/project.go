@@ -93,7 +93,8 @@ func (pj *Project) Next(r *Row) bool {
 			View: expr.View,
 		}
 
-		if v, _ := r.GetField(expr.Table, expr.Name); v == nil {
+		v, ok := r.GetField(expr.Table, expr.Name)
+		if !ok {
 			v, err := pj.getValue(expr, r)
 			if err != nil {
 				pj.err = err
@@ -146,7 +147,12 @@ func (pj *Project) Err() error {
 
 func (pj *Project) addSelectExprs() {
 	for _, column := range pj.source.OpFields() {
-		sExpr := SelectExpression{*column, []*Column{column}, nil, false}
+		sExpr := SelectExpression{
+			Column:     column,
+			RefColumns: []*Column{column},
+			Expr:       nil,
+			Referenced: false,
+		}
 		pj.sExprs = append(pj.sExprs, sExpr)
 	}
 }

@@ -186,6 +186,10 @@ schema:
         name: b
         sqltype: string
      -
+        name: loc.1
+        sqlname: c
+        sqltype: string
+     -
         name: _id
   -
      table: foo

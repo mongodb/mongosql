@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2/bson"
+	"strings"
 	"testing"
 )
 
@@ -436,4 +438,195 @@ func TestTranslatePredicate(t *testing.T) {
 
 		runPartialTests(partialTests)
 	})
+}
+
+func TestTranslateExpr(t *testing.T) {
+
+	type test struct {
+		sql      string
+		expected string
+	}
+
+	runTests := func(tests []test) {
+		schema, err := schema.ParseSchemaData(testSchema3)
+		db := "test"
+		So(err, ShouldBeNil)
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
+				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
+				So(err, ShouldBeNil)
+				match, err := TranslateExpr(e, schema.Databases[db], false)
+				So(err, ShouldBeNil)
+				jsonResult, err := json.Marshal(match)
+				So(err, ShouldBeNil)
+				So(string(jsonResult), ShouldEqual, t.expected)
+			})
+		}
+	}
+
+	Convey("Subject: TranslateExpr", t, func() {
+		tests := []test{
+			test{"sum(a * b)", `{"$sum":{"$multiply":["$a","$b"]}}`},
+			test{"sum(a)", `{"$sum":"$a"}`},
+			test{"sum(a < 1)", `{"$sum":{"$lt":["$a",{"$literal":1}]}}`},
+			test{"min(a + 4)", `{"$min":{"$add":["$a",{"$literal":4}]}}`},
+			test{"count(*)", `{"$sum":{"$cond":[{"$eq":[{"$ifNull":[{"$literal":"*"},null]},null]},0,1]}}`},
+			test{"count(a + b)", `{"$sum":{"$cond":[{"$eq":[{"$ifNull":[{"$add":["$a","$b"]},null]},null]},0,1]}}`},
+		}
+
+		runTests(tests)
+
+	})
+}
+
+func TestTranslateGroupBy(t *testing.T) {
+
+	type testCase struct {
+		groupBy  *GroupBy
+		expected bson.M
+	}
+
+	tbl := "bar"
+
+	Convey("Subject: TranslateGroupBy", t, func() {
+
+		sm, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+
+		database := sm.Databases["test"]
+		table := database.Tables[tbl]
+
+		source := &SourceAppend{
+			source: &TableScan{
+				tableName: tbl,
+			},
+		}
+
+		Convey("group by operator with column and aggregate fields should be translated correctly", func() {
+
+			runTests := func(tests []testCase) {
+
+				for _, t := range tests {
+					jsonResult, err := json.Marshal(t.expected)
+					So(err, ShouldBeNil)
+
+					Convey(fmt.Sprintf("running group test on %s translated to:\n\t%s",
+						t.groupBy, string(jsonResult)), func() {
+						stages, err := TranslateGroupBy(t.groupBy, database, table)
+						So(err, ShouldBeNil)
+						So(stages, ShouldResemble, t.expected)
+					})
+				}
+			}
+
+			testCases := []testCase{}
+
+			exprs := map[string]SQLExpr{
+				"a":      SQLFieldExpr{tbl, "a"},
+				"b":      SQLFieldExpr{tbl, "b"},
+				"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "a"}}},
+				"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+			}
+
+			sExprs := constructSelectExpressions(exprs, "a", "b", "sum(a)", "sum(b)")
+
+			gbExprs := sExprs[:2]
+
+			for _, gbExpr := range gbExprs {
+
+				gb := &GroupBy{
+					exprs:  SelectExpressions{gbExpr},
+					sExprs: sExprs,
+					source: source,
+				}
+
+				// strip off the table name
+				view := gbExpr.View[strings.LastIndex(gbExpr.View, ".")+1:]
+
+				expected := bson.M{
+					"a": bson.M{
+						"$first": "$a",
+					},
+					"b": bson.M{
+						"$first": "$b",
+					},
+					"sum(bar_DOT_a)": bson.M{
+						"$sum": "$a",
+					}, "sum(bar_DOT_b)": bson.M{
+						"$sum": "$b",
+					}, "_id": bson.M{
+						view: "$" + view,
+					},
+				}
+
+				testCases = append(testCases, testCase{gb, expected})
+			}
+
+			runTests(testCases)
+		})
+
+		Convey("group by operator with a column alias should be translated correctly", func() {
+
+			runTests := func(tests []testCase) {
+
+				for _, t := range tests {
+					jsonResult, err := json.Marshal(t.expected)
+					So(err, ShouldBeNil)
+
+					Convey(fmt.Sprintf("running group test on %s translated to:\n\t%s",
+						t.groupBy, string(jsonResult)), func() {
+						stages, err := TranslateGroupBy(t.groupBy, database, table)
+						So(err, ShouldBeNil)
+						So(stages, ShouldResemble, t.expected)
+					})
+				}
+			}
+
+			testCases := []testCase{}
+
+			exprs := map[string]SQLExpr{
+				"a":      SQLFieldExpr{tbl, "a"},
+				"c":      SQLFieldExpr{tbl, "c"},
+				"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "a"}}},
+				"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+			}
+
+			sExprs := constructSelectExpressions(exprs, "a", "c", "sum(a)", "sum(b)")
+
+			gb := &GroupBy{
+				exprs:  SelectExpressions{sExprs[1]},
+				sExprs: sExprs,
+				source: source,
+			}
+
+			expected := bson.M{
+				"a": bson.M{
+					"$first": "$a",
+				},
+				"c": bson.M{
+					"$first": bson.M{
+						"$arrayElemAt": []interface{}{
+							"$loc", 1,
+						},
+					},
+				},
+				"sum(bar_DOT_a)": bson.M{
+					"$sum": "$a",
+				}, "sum(bar_DOT_b)": bson.M{
+					"$sum": "$b",
+				}, "_id": bson.M{
+					"loc_DOT_1": bson.M{
+						"$arrayElemAt": []interface{}{
+							"$loc", 1,
+						},
+					},
+				},
+			}
+
+			testCases = append(testCases, testCase{gb, expected})
+
+			runTests(testCases)
+		})
+	})
+
 }

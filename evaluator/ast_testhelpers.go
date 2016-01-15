@@ -6,6 +6,28 @@ import (
 	"github.com/deafgoat/mixer/sqlparser"
 )
 
+func constructSelectExpressions(exprs map[string]SQLExpr, values ...string) (sExprs SelectExpressions) {
+
+	for i, value := range values {
+
+		expr := exprs[value]
+
+		column := &Column{
+			Name: expr.String(),
+			View: expr.String(),
+		}
+
+		sExprs = append(sExprs, SelectExpression{
+			Column:     column,
+			Expr:       expr,
+			Referenced: (i % 2) == 0,
+		})
+	}
+
+	return
+
+}
+
 func getWhereSQLExprFromSQL(schema *schema.Schema, sql string) (SQLExpr, error) {
 	// Parse the statement, algebrize it, extract the WHERE clause and build a matcher from it.
 	raw, err := sqlparser.Parse(sql)

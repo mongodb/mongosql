@@ -30,7 +30,7 @@ type OrderBy struct {
 }
 
 type orderByKey struct {
-	value     SQLExpr
+	expr      *SelectExpression
 	isAggFunc bool
 	ascending bool
 	evalCtx   *EvalCtx
@@ -61,7 +61,7 @@ func (ob *OrderBy) evaluateOrderByKeys(row *Row) []orderByKey {
 
 		// for aggregation functions, we set the context in the
 		// preceding GROUP BY operator
-		if key.isAggFunc {
+		if key.isAggFunc && len(ob.ctx.GroupRows) != 0 {
 			key.evalCtx = &EvalCtx{Rows: ob.ctx.GroupRows}
 		}
 
@@ -157,20 +157,39 @@ func (rows orderByRows) Swap(i, j int) {
 	rows[i], rows[j] = rows[j], rows[i]
 }
 
+func orderValue(key orderByKey) (SQLValue, error) {
+
+	expr := key.expr
+
+	if key.isAggFunc {
+
+		row := key.evalCtx.Rows[0]
+
+		value, ok := row.GetField(expr.Table, expr.Name)
+		if ok {
+			return NewSQLValue(value, "")
+		}
+	}
+
+	return expr.Expr.Evaluate(key.evalCtx)
+}
+
 func (rows orderByRows) Less(i, j int) bool {
+
 	r1 := rows[i]
 	r2 := rows[j]
 
 	for i := range r1.keys {
+
 		left := r1.keys[i]
 		right := r2.keys[i]
 
-		leftVal, err := left.value.Evaluate(left.evalCtx)
+		leftVal, err := orderValue(left)
 		if err != nil {
 			panic(err)
 		}
 
-		rightVal, err := right.value.Evaluate(right.evalCtx)
+		rightVal, err := orderValue(right)
 		if err != nil {
 			panic(err)
 		}

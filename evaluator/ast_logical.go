@@ -29,6 +29,10 @@ func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, nil
 }
 
+func (and *SQLAndExpr) String() string {
+	return fmt.Sprintf("%v and %v", and.left, and.right)
+}
+
 //
 // SQLEqualsExpr evaluates to true if the left equals the right.
 //
@@ -60,7 +64,10 @@ func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLFalse, err
+}
 
+func (eq *SQLEqualsExpr) String() string {
+	return fmt.Sprintf("%v = %v", eq.left, eq.right)
 }
 
 //
@@ -105,6 +112,10 @@ func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLBool(matches), operator.Close()
 }
 
+func (em *SQLExistsExpr) String() string {
+	return fmt.Sprintf("exists %v", em.stmt)
+}
+
 //
 // SQLGreaterThanExpr evaluates to true when the left is greater than the right.
 //
@@ -135,6 +146,10 @@ func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLBool(c > 0), nil
 	}
 	return SQLFalse, err
+}
+
+func (gt *SQLGreaterThanExpr) String() string {
+	return fmt.Sprintf("%v>%v", gt.left, gt.right)
 }
 
 //
@@ -168,6 +183,10 @@ func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLFalse, err
+}
+
+func (gte *SQLGreaterThanOrEqualExpr) String() string {
+	return fmt.Sprintf("%v>=%v", gte.left, gte.right)
 }
 
 //
@@ -215,6 +234,10 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, nil
 }
 
+func (in *SQLInExpr) String() string {
+	return fmt.Sprintf("%v in %v", in.left, in.right)
+}
+
 //
 // SQLLessThanExpr evaluates to true when the left is less than the right.
 //
@@ -247,6 +270,10 @@ func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
+func (lt *SQLLessThanExpr) String() string {
+	return fmt.Sprintf("%v<%v", lt.left, lt.right)
+}
+
 //
 // SQLLessThanOrEqualExpr evaluates to true when the left is less than or equal to the right.
 //
@@ -277,6 +304,10 @@ func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLBool(c <= 0), nil
 	}
 	return SQLFalse, err
+}
+
+func (lte *SQLLessThanOrEqualExpr) String() string {
+	return fmt.Sprintf("%v<=%v", lte.left, lte.right)
 }
 
 //
@@ -317,6 +348,10 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLBool(matches), nil
 }
 
+func (l *SQLLikeExpr) String() string {
+	return fmt.Sprintf("%v like %v", l.left, l.right)
+}
+
 func sqlValueToString(sqlValue SQLValue) (string, error) {
 	switch v := sqlValue.(type) {
 	case SQLString:
@@ -344,6 +379,10 @@ func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 	return SQLBool(!m), nil
+}
+
+func (not *SQLNotExpr) String() string {
+	return fmt.Sprintf("not %v", not.operand)
 }
 
 //
@@ -379,6 +418,10 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
+func (neq *SQLNotEqualsExpr) String() string {
+	return fmt.Sprintf("%v != %v", neq.left, neq.right)
+}
+
 //
 // SQLNullCmpExpr evaluates to true if its value evaluates to null.
 //
@@ -391,6 +434,10 @@ func (nm *SQLNullCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 	_, ok := eval.(SQLNullValue)
 	return SQLBool(ok), nil
+}
+
+func (nm *SQLNullCmpExpr) String() string {
+	return fmt.Sprintf("is null (%v)", nm.operand)
 }
 
 //
@@ -413,6 +460,10 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLFalse, nil
+}
+
+func (or *SQLOrExpr) String() string {
+	return fmt.Sprintf("%v or %v", or.left, or.right)
 }
 
 //
@@ -502,4 +553,12 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLBool(!matched), err
+}
+
+func (sc *SQLSubqueryCmpExpr) String() string {
+	in := "in"
+	if !sc.In {
+		in = "not in"
+	}
+	return fmt.Sprintf("%v %v %v", sc.left, in, sc.value)
 }

@@ -20,6 +20,10 @@ func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return leftEvald.Add(rightEvald), nil
 }
 
+func (add *SQLAddExpr) String() string {
+	return fmt.Sprintf("%v+%v", add.left, add.right)
+}
+
 // SQLDivideExpr evaluates to the quotient of the left expression divided by the right.
 type SQLDivideExpr sqlBinaryNode
 
@@ -41,6 +45,10 @@ func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(leftEvald.Float64() / rightEvald.Float64()), nil
 }
 
+func (div *SQLDivideExpr) String() string {
+	return fmt.Sprintf("%v/%v", div.left, div.right)
+}
+
 // SQLMultiplyExpr evaluates to the product of two expressions
 type SQLMultiplyExpr sqlBinaryNode
 
@@ -55,6 +63,10 @@ func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return leftEvald.Product(rightEvald), nil
+}
+
+func (mult *SQLMultiplyExpr) String() string {
+	return fmt.Sprintf("%v*%v", mult.left, mult.right)
 }
 
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
@@ -73,6 +85,10 @@ func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return leftEvald.Sub(rightEvald), nil
 }
 
+func (sub *SQLSubtractExpr) String() string {
+	return fmt.Sprintf("%v-%v", sub.left, sub.right)
+}
+
 //
 // SQLUnaryMinusExpr evaluates to the negation of the expression.
 //
@@ -86,6 +102,10 @@ func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return um.operand.Evaluate(ctx)
 }
 
+func (um *SQLUnaryMinusExpr) String() string {
+	return fmt.Sprintf("-%v", um.operand)
+}
+
 //
 // SQLUnaryTildeExpr evaluates to the bitwise complement of the expression.
 //
@@ -97,6 +117,10 @@ func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return td.operand.Evaluate(ctx)
+}
+
+func (td *SQLUnaryTildeExpr) String() string {
+	return fmt.Sprintf("~%v", td.operand)
 }
 
 func convertToSQLNumeric(expr SQLExpr, ctx *EvalCtx) (SQLNumeric, error) {

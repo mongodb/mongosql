@@ -12,13 +12,47 @@ import (
 type TableScan struct {
 	dbName      string
 	tableName   string
+	aliasName   string
 	matcher     SQLExpr
 	iter        FindResults
 	database    *schema.Database
 	tableSchema *schema.Table
 	ctx         *ExecutionCtx
 	pipeline    []bson.D
+	aggregated  bool
 	err         error
+}
+
+func (ts *TableScan) getAggregatedFields(data bson.M) (values Values, err error) {
+
+	// now add all dottified columns
+	for key, value := range data {
+
+		// array values have already been extracted
+		if _, ok := value.(bson.D); ok {
+			continue
+		}
+
+		if strings.Contains(key, Dot) {
+			key = deDottifyFieldName(key)
+		}
+
+		value := Value{
+			Name: key,
+			View: key,
+			Data: value,
+		}
+
+		value.Data, err = NewSQLValue(value.Data, "")
+		if err != nil {
+			return nil, err
+		}
+
+		values = append(values, value)
+	}
+
+	return values, err
+
 }
 
 // Open establishes a connection to database collection for this table.
@@ -44,6 +78,10 @@ func (ts *TableScan) Open(ctx *ExecutionCtx) error {
 	}
 
 	pcs := strings.SplitN(ts.tableSchema.FQNS, ".", 2)
+
+	if ts.aliasName == "" {
+		ts.aliasName = ts.tableName
+	}
 
 	ts.iter = MgoFindResults{ctx.Session.DB(pcs[0]).C(pcs[1]).Pipe(ts.pipeline).Iter()}
 
@@ -77,10 +115,15 @@ func (ts *TableScan) Next(row *Row) bool {
 				View: column.SqlName,
 			}
 
-			if len(column.Name) != 0 {
+			if len(column.Name) != 0 && !ts.aggregated {
 				value.Data = extractFieldByName(column.Name, data)
 			} else {
-				value.Data = data[column.SqlName]
+				// when we optimize, the field is top-level
+				if ts.aggregated && strings.Contains(column.Name, ".") {
+					value.Data = data[dottifyFieldName(column.SqlName)]
+				} else {
+					value.Data = data[column.SqlName]
+				}
 			}
 
 			value.Data, err = NewSQLValue(value.Data, column.SqlType)
@@ -93,7 +136,20 @@ func (ts *TableScan) Next(row *Row) bool {
 			delete(data, column.SqlName)
 		}
 
-		row.Data = TableRows{{ts.tableName, values}}
+		// if we performed a group by pushdown, grab
+		// the aggregated fields separately
+		if ts.aggregated {
+			aggValues, err := ts.getAggregatedFields(data)
+
+			if err != nil {
+				ts.err = err
+				return false
+			}
+
+			values = append(values, aggValues...)
+		}
+
+		row.Data = TableRows{{ts.aliasName, values}}
 
 		evalCtx := &EvalCtx{Rows{*row}, ts.ctx}
 
@@ -118,7 +174,7 @@ func (ts *TableScan) OpFields() (columns []*Column) {
 
 	for _, c := range ts.tableSchema.RawColumns {
 		column := &Column{
-			Table: ts.tableName,
+			Table: ts.aliasName,
 			Name:  c.SqlName,
 			View:  c.SqlName,
 		}

@@ -212,10 +212,18 @@ func MustLoadTestSchema(path string) testSchema {
 	if err != nil {
 		panic(err)
 	}
+
 	var conf testSchema
+
 	err = yaml.Unmarshal(fileBytes, &conf)
 	if err != nil {
 		panic(err)
+	}
+
+	for _, db := range conf.Databases {
+		if err := schema.PopulateColumnMaps(db); err != nil {
+			panic(err)
+		}
 	}
 
 	return conf

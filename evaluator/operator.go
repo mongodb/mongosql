@@ -134,7 +134,7 @@ type SelectExpression struct {
 	//
 	// Column will hold "sum(price)", "sum(price)", and foo.
 	//
-	Column
+	*Column
 	// RefColumns is a slice of every other column(s) referenced in the
 	// select expression. For example, in the expression:
 	//
@@ -196,8 +196,8 @@ func (se SelectExpressions) Contains(column Column) bool {
 
 	for _, expr := range se {
 		if expr.Column.Name == column.Name &&
-			expr.Column.Table == column.Table &&
-			expr.Column.View == column.View {
+			expr.Column.View == column.View &&
+			expr.Column.Table == column.Table {
 			return true
 		}
 	}
@@ -205,22 +205,22 @@ func (se SelectExpressions) Contains(column Column) bool {
 	return false
 }
 
-func (se SelectExpression) isAggFunc() bool {
-	_, ok := se.Expr.(*SQLAggFunctionExpr)
-	return ok
-}
-
-func (se SelectExpressions) AggFunctions() SelectExpressions {
+func (se SelectExpressions) AggFunctions() (*SelectExpressions, error) {
 
 	sExprs := SelectExpressions{}
 
 	for _, sExpr := range se {
-		if sExpr.isAggFunc() {
+		aggFuncs, err := getAggFunctions(sExpr.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(aggFuncs) != 0 {
 			sExprs = append(sExprs, sExpr)
 		}
 	}
 
-	return sExprs
+	return &sExprs, nil
 }
 
 func getKey(key string, doc bson.D) (interface{}, bool) {
@@ -268,25 +268,124 @@ type OperatorVisitor interface {
 	Visit(o Operator) (Operator, error)
 }
 
+func prettyPrintPlan(b *bytes.Buffer, o Operator, d int) {
+
+	printTabs(b, d)
+
+	switch typedE := o.(type) {
+
+	case *Dual:
+
+		b.WriteString("↳ Dual")
+
+	case *Empty:
+
+		b.WriteString("↳ Empty")
+
+	case *Filter:
+
+		b.WriteString("↳ Filter:\n")
+		prettyPrintPlan(b, typedE.source, d+1)
+
+	case *GroupBy:
+
+		b.WriteString("↳ GroupBy:\n")
+		prettyPrintPlan(b, typedE.source, d+1)
+
+	case *Having:
+
+		b.WriteString("↳ Having:\n")
+		prettyPrintPlan(b, typedE.source, d+1)
+
+	case *Join:
+
+		b.WriteString("↳ Join:\n")
+
+		prettyPrintPlan(b, typedE.left, d+1)
+
+		printTabs(b, d+1)
+
+		b.WriteString(fmt.Sprintf("%v\n", typedE.kind))
+
+		prettyPrintPlan(b, typedE.right, d+1)
+
+	case *Limit:
+
+		b.WriteString("↳ Limit:\n")
+		prettyPrintPlan(b, typedE.source, d+1)
+
+	case *OrderBy:
+
+		b.WriteString("↳ OrderBy:\n")
+		prettyPrintPlan(b, typedE.source, d+1)
+
+	case *Project:
+
+		b.WriteString("↳ Project:\n")
+		prettyPrintPlan(b, typedE.source, d+1)
+
+	case *SchemaDataSource:
+
+		b.WriteString("↳ SchemaDataSource")
+
+	case *SourceAppend:
+
+		b.WriteString("↳ SourceAppend:\n")
+		prettyPrintPlan(b, typedE.source, d+1)
+
+	case *SourceRemove:
+
+		b.WriteString("↳ SourceRemove:\n")
+		prettyPrintPlan(b, typedE.source, d+1)
+
+	case *Subquery:
+
+		b.WriteString("↳ Subquery:\n")
+		prettyPrintPlan(b, typedE.source, d+1)
+
+	case *TableScan:
+
+		b.WriteString(fmt.Sprintf("↳ TableScan '%v'", typedE.tableName))
+
+		if typedE.aliasName != "" {
+			b.WriteString(fmt.Sprintf(" as '%v'", typedE.aliasName))
+		}
+
+		b.WriteString("\n")
+
+		for i, stage := range typedE.pipeline {
+			printTabs(b, d+1)
+			b.WriteString(fmt.Sprintf("  stage %v: '%v'\n", i+1, stage))
+		}
+
+	default:
+
+		panic(fmt.Sprintf("unsupported print operator: %T", typedE))
+
+	}
+
+}
+
+// PrettyPrintPlan takes an operator and recursively prints its source.
+func PrettyPrintPlan(o Operator) string {
+
+	b := bytes.NewBufferString("")
+
+	prettyPrintPlan(b, o, 0)
+
+	return b.String()
+
+}
+
 // walkOperatorTree handles walking the children of the provided operator, calling
 // v.Visit on each child which is an operator. Some visitor implementations
 // may ignore this method completely, but most will use it as the default
 // implementation for a majority of nodes.
 func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
-	switch typedO := o.(type) {
-	case *AliasedSource:
-		source, err := v.Visit(typedO.source)
-		if err != nil {
-			return nil, err
-		}
 
-		if typedO.source != source {
-			o = &AliasedSource{
-				tableName: typedO.tableName,
-				source:    source,
-			}
-		}
-	case *Dual:
+	switch typedO := o.(type) {
+
+	case *Dual, *Empty:
 		// nothing to do
 	case *Filter:
 		source, err := v.Visit(typedO.source)
@@ -407,6 +506,18 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 			o = &SourceRemove{
 				source:      source,
 				hasSubquery: typedO.hasSubquery,
+			}
+		}
+	case *Subquery:
+		source, err := v.Visit(typedO.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO.source != source {
+			o = &Subquery{
+				tableName: typedO.tableName,
+				source:    source,
 			}
 		}
 	case *TableScan:

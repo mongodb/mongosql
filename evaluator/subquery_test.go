@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func aliasedSourceTest(operator Operator, rows []bson.D, expectedRows []Values) {
+func subqueryTest(operator Operator, rows []bson.D, expectedRows []Values) {
 
 	collectionTwo.DropCollection()
 
@@ -40,7 +40,7 @@ func aliasedSourceTest(operator Operator, rows []bson.D, expectedRows []Values) 
 	So(operator.Err(), ShouldBeNil)
 }
 
-func TestAliasedSourceOperator(t *testing.T) {
+func TestSubqueryOperator(t *testing.T) {
 
 	Convey("With a simple test configuration...", t, func() {
 
@@ -49,9 +49,9 @@ func TestAliasedSourceOperator(t *testing.T) {
 			bson.D{{"a", 16}, {"b", 17}, {"_id", 15}},
 		}
 
-		Convey("an aliased source operator should properly present the table and row data", func() {
+		Convey("a subquery source operator should properly present the table and row data", func() {
 
-			operator := &AliasedSource{
+			operator := &Subquery{
 				source: &TableScan{
 					tableName: tableTwoName,
 				},
@@ -63,7 +63,7 @@ func TestAliasedSourceOperator(t *testing.T) {
 				{{"a", "a", SQLInt(16)}, {"b", "b", SQLInt(17)}, {"_id", "_id", SQLInt(15)}},
 			}
 
-			aliasedSourceTest(operator, rows, expected)
+			subqueryTest(operator, rows, expected)
 
 		})
 	})

@@ -39,6 +39,14 @@ func (f *SQLAggFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 }
 
+func (f *SQLAggFunctionExpr) String() string {
+	var distinct string
+	if f.Distinct {
+		distinct = "distinct "
+	}
+	return fmt.Sprintf("%s(%s%v)", f.Name, distinct, f.Exprs[0])
+}
+
 func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
 	var sum SQLNumeric = SQLInt(0)
 	count := 0
@@ -207,7 +215,18 @@ func (s SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return s.elseValue.Evaluate(ctx)
+}
 
+func (s SQLCaseExpr) String() string {
+	str := fmt.Sprintf("case ")
+	for _, cond := range s.caseConditions {
+		str += fmt.Sprintf("%v ", cond)
+	}
+	if s.elseValue != nil {
+		str += fmt.Sprintf("%v ", s.elseValue)
+	}
+	str += fmt.Sprintf("end")
+	return str
 }
 
 //
@@ -246,7 +265,11 @@ func (s SQLCtorExpr) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	default:
 		return nil, fmt.Errorf("%v constructor is not supported", string(s.Name))
 	}
+}
 
+func (s SQLCtorExpr) String() string {
+	v, _ := s.Evaluate(nil)
+	return v.String()
 }
 
 //
@@ -277,6 +300,15 @@ func (sqlf SQLFieldExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLNull, nil
 }
 
+func (sqlf SQLFieldExpr) String() string {
+	var str string
+	if sqlf.tableName != "" {
+		str += sqlf.tableName + "."
+	}
+	str += sqlf.fieldName
+	return str
+}
+
 //
 // SQLScalarFunctionExpr represents a scalar function.
 //
@@ -302,8 +334,12 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.powFunc(ctx)
 
 	default:
-		return nil, fmt.Errorf("function '%v' is not supported", string(f.Name))
+		return nil, fmt.Errorf("scalar function '%v' is not supported", string(f.Name))
 	}
+}
+
+func (f *SQLScalarFunctionExpr) String() string {
+	return fmt.Sprintf("%s(%v)", f.Name, f.Exprs)
 }
 
 func (f *SQLScalarFunctionExpr) connectionIdFunc(ctx *EvalCtx) (SQLValue, error) {
@@ -419,6 +455,12 @@ func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 	return eval, nil
 }
 
+func (sv *SQLSubqueryExpr) String() string {
+	buf := sqlparser.NewTrackedBuffer(nil)
+	sv.stmt.Format(buf)
+	return buf.String()
+}
+
 //
 // SQLTupleExpr represents a tuple.
 //
@@ -438,4 +480,13 @@ func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return &SQLValues{values}, nil
+}
+
+func (te SQLTupleExpr) String() string {
+	var prefix string
+	for _, e := range te.Exprs {
+		prefix += fmt.Sprintf("%v", e)
+		prefix = ", "
+	}
+	return prefix
 }

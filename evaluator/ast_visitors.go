@@ -118,29 +118,26 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 }
 
 type aggFunctionFinder struct {
-	hasAggFunc bool
+	aggFuncs []*SQLAggFunctionExpr
 }
 
-// hasAggFunction will take an expression and return true if it contains an aggregation function.
-func hasAggFunction(e SQLExpr) (bool, error) {
+// getAggFunctions will take an expression and return all
+// aggregation functions it finds within the expression.
+func getAggFunctions(e SQLExpr) ([]*SQLAggFunctionExpr, error) {
 
 	af := &aggFunctionFinder{}
 
 	_, err := af.Visit(e)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	return af.hasAggFunc, nil
+	return af.aggFuncs, nil
 }
 
 func (af *aggFunctionFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
-	if af.hasAggFunc {
-		return e, nil
-	}
-
-	switch e.(type) {
+	switch typedE := e.(type) {
 
 	case *SQLExistsExpr, SQLFieldExpr, SQLNullValue, SQLNumeric, SQLString, *SQLSubqueryExpr:
 
@@ -148,7 +145,7 @@ func (af *aggFunctionFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 	case *SQLAggFunctionExpr:
 
-		af.hasAggFunc = true
+		af.aggFuncs = append(af.aggFuncs, typedE)
 
 	default:
 

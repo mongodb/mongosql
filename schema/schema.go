@@ -18,24 +18,31 @@ const (
 	SQLTimestamp = "timestamp"
 	SQLYear      = "year"
 
-	SQLDecimal  = "decimal"
-	SQLDouble   = "double"
-	SQLEnum     = "enum"
-	SQLGeometry = "geometry"
-
-	SQLBigInt   = "bigint"
-	SQLMedInt   = "mediumint"
-	SQLSmallInt = "smallint"
-	SQLTiny     = "tinyint"
-
-	SQLLongText   = "longtext"
-	SQLTinyText   = "tinytext"
-	SQLMediumText = "mediumtext"
-
 	SQLNull = "null"
-	SQLSet  = "set"
-	SQLChar = "char"
-	SQLBit  = "bit"
+
+	/*
+
+		TODO: support these
+
+		SQLDecimal  = "decimal"
+		SQLDouble   = "double"
+		SQLEnum     = "enum"
+		SQLGeometry = "geometry"
+
+		SQLBigInt   = "bigint"
+		SQLMedInt   = "mediumint"
+		SQLSmallInt = "smallint"
+		SQLTiny     = "tinyint"
+
+		SQLLongText   = "longtext"
+		SQLTinyText   = "tinytext"
+		SQLMediumText = "mediumtext"
+
+		SQLSet  = "set"
+		SQLChar = "char"
+		SQLBit  = "bit"
+
+	*/
 )
 
 type (
@@ -96,6 +103,7 @@ var (
 	// TimestampCtorFormats holds the various formats for constructing
 	// the timestamp
 	TimestampCtorFormats = []string{
+		"2006-01-02",
 		"2006-01-02 15:04:05",
 		"2006-01-02 15:04:05.000",
 	}
@@ -118,24 +126,7 @@ func (c *Column) validateType() error {
 	case SQLTime:
 	case SQLDate:
 
-	case SQLDecimal:
-	case SQLDouble:
-	case SQLEnum:
-	case SQLGeometry:
-
-	case SQLBigInt:
-	case SQLMedInt:
-	case SQLSmallInt:
-	case SQLTiny:
-
-	case SQLLongText:
-	case SQLTinyText:
-	case SQLMediumText:
-
 	case SQLNull:
-	case SQLSet:
-	case SQLChar:
-	case SQLBit:
 
 	default:
 		panic(fmt.Sprintf("don't know MySQL type: %s", c.SqlType))

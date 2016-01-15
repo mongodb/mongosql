@@ -1,10 +1,487 @@
 package evaluator
 
 import (
+	"errors"
+	"fmt"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
+	"strconv"
 	"strings"
 )
+
+const (
+	Dot           = "_DOT_"
+	HavingMatcher = "_HAVING_"
+	Oid           = "_id"
+)
+
+var (
+	ErrPushDown = errors.New("can not push down query")
+)
+
+// getDottedDoc returns a bson document to project the given
+// field and a boolean indicating if it references an array
+// object.
+func getDottedDoc(field string) (bson.M, bool) {
+
+	names := strings.Split(field, ".")
+
+	if len(names) == 1 {
+		return bson.M{"$first": "$" + dottifyFieldName(field)}, false
+	}
+
+	// TODO: this is to enable our current tests pass - since
+	// we allow array mappings like:
+	//
+	// - name: loc.0
+	//   sqlname: latitude
+	//
+	value, err := strconv.Atoi(names[len(names)-1])
+	if err == nil {
+		field = field[0:strings.LastIndex(field, ".")]
+		return bson.M{"$arrayElemAt": []interface{}{"$" + field, value}}, true
+	}
+
+	return bson.M{"$first": "$" + dottifyFieldName(field)}, false
+}
+
+// projectGroupBy takes a prior group document and projects then
+// in a manner suitable for the aggregation framework and client.
+func projectGroupBy(groupBy bson.M, table *schema.Table) bson.M {
+
+	projectClause := bson.M{}
+
+	for key, value := range groupBy {
+		if key == Oid {
+			for name, _ := range value.(bson.M) {
+				name = dottifyFieldName(name)
+				projectClause[name] = fmt.Sprintf("$%v.%v", Oid, name)
+			}
+		}
+		projectClause[key] = "$" + key
+	}
+
+	projectClause[Oid] = 0
+
+	return projectClause
+}
+
+// TranslateGroupBy attempts to turn the SQLExpr into mongodb query language.
+// It returns a translated group by aggregation stage that can be sent to MongoDB.
+func TranslateGroupBy(gb *GroupBy, db *schema.Database, table *schema.Table) (bson.M, error) {
+
+	groupBy := bson.M{}
+
+	aggFuncs := SelectExpressions{}
+
+	// translate all the expressions referenced in the statement
+	for _, sExpr := range gb.sExprs {
+
+		refAggExprs, err := getAggFunctions(sExpr.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(refAggExprs) != 0 {
+
+			for _, expr := range refAggExprs {
+
+				column := &Column{
+					Name: expr.String(),
+					View: expr.String(),
+				}
+
+				refAggFunc := SelectExpression{
+					Expr:   expr,
+					Column: column,
+				}
+				aggFuncs = append(aggFuncs, refAggFunc)
+			}
+
+			continue
+		}
+
+		// project any referenced columns in the select expression
+		columns, err := referencedColumns(sExpr.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, column := range columns {
+
+			view := dottifyFieldName(column.Name)
+
+			name := column.Name
+
+			if groupBy[name] != nil {
+				continue
+			}
+
+			doc, isArray := getDottedDoc(table.SQLColumns[name].Name)
+			if isArray {
+				doc = bson.M{"$first": doc}
+			}
+
+			groupBy[view] = doc
+		}
+
+	}
+
+	oid := bson.M{}
+
+	// translate the group by keys
+	for _, allExpr := range append(gb.exprs, aggFuncs...) {
+
+		expr := allExpr.Expr
+
+		switch typedE := expr.(type) {
+
+		case SQLFieldExpr:
+
+			name, ok := getFieldName(typedE, db)
+			if !ok {
+				return nil, fmt.Errorf("could not find field name for group function")
+			}
+
+			if strings.Contains(name, ".") {
+				oid[dottifyFieldName(name)], _ = getDottedDoc(name)
+			} else {
+				oid[name] = "$" + name
+			}
+
+		default:
+
+			// in these cases, we must first evaluate the type before adding it.
+			name := typedE.String()
+
+			transExpr, err := TranslateExpr(expr, db, false)
+			if err != nil {
+				return nil, err
+			}
+
+			view := dottifyFieldName(name)
+
+			switch typedE.(type) {
+
+			case *SQLAggFunctionExpr:
+
+				groupBy[view] = transExpr
+
+			case SQLFieldExpr:
+
+				if strings.Contains(name, ".") {
+					oid[view], _ = getDottedDoc(name)
+				} else {
+					oid[view] = "$" + name
+				}
+
+			default:
+
+				oid[view] = transExpr
+
+			}
+
+		}
+	}
+
+	groupBy[Oid] = oid
+
+	return groupBy, nil
+}
+
+// TranslateExpr attempts to turn the SQLExpr into Mongodb query language.
+func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, error) {
+
+	switch typedE := e.(type) {
+
+	case *SQLAddExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$add": []interface{}{left, right}}, nil
+
+	case *SQLAggFunctionExpr:
+
+		if grouped {
+			return "$" + dottifyFieldName(typedE.String()), nil
+		}
+
+		transExpr, err := TranslateExpr(typedE.Exprs[0], db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedE.Name == "count" {
+			return bson.M{
+				"$sum": bson.M{
+					"$cond": []interface{}{
+						bson.M{
+							"$eq": []interface{}{
+								bson.M{
+									"$ifNull": []interface{}{
+										transExpr,
+										nil,
+									},
+								},
+								nil,
+							},
+						},
+						0,
+						1,
+					},
+				},
+			}, nil
+		}
+
+		return bson.M{"$" + typedE.Name: transExpr}, nil
+
+	case *SQLAndExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$and": []interface{}{left, right}}, nil
+
+	case *SQLCtorExpr:
+
+		expr, err := typedE.Evaluate(nil)
+		if err != nil {
+			return nil, err
+		}
+
+		return TranslateExpr(expr, db, grouped)
+
+	case SQLDate:
+
+		return typedE.Time, nil
+
+	case SQLDateTime:
+
+		return typedE.Time, nil
+
+	case *SQLDivideExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$divide": []interface{}{left, right}}, nil
+
+	case *SQLEqualsExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$eq": []interface{}{left, right}}, nil
+
+	case SQLFieldExpr:
+
+		name, ok := getFieldName(typedE, db)
+		if !ok {
+			return nil, fmt.Errorf("invalid field name: %v", typedE)
+		}
+
+		return "$" + dottifyFieldName(name), nil
+
+	case *SQLGreaterThanExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$gt": []interface{}{left, right}}, nil
+
+	case *SQLGreaterThanOrEqualExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$gte": []interface{}{left, right}}, nil
+
+	case *SQLLessThanExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$lt": []interface{}{left, right}}, nil
+
+	case *SQLLessThanOrEqualExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$lte": []interface{}{left, right}}, nil
+
+	case *SQLMultiplyExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$multiply": []interface{}{left, right}}, nil
+
+	case *SQLNotExpr:
+
+		op, err := TranslateExpr(typedE.operand, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$not": []interface{}{op}}, nil
+
+	case *SQLNotEqualsExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$ne": []interface{}{left, right}}, nil
+
+	case *SQLNullCmpExpr:
+
+		op, err := TranslateExpr(typedE.operand, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$eq": []interface{}{op, nil}}, nil
+
+	case SQLNullValue:
+
+		return nil, nil
+
+	case *SQLOrExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$or": []interface{}{left, right}}, nil
+
+	case *SQLScalarFunctionExpr:
+
+		// TODO: can use some data and string aggregation functions here
+
+	case *SQLSubqueryCmpExpr:
+
+		// unsupported
+
+	case *SQLSubtractExpr:
+
+		left, err := TranslateExpr(typedE.left, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := TranslateExpr(typedE.right, db, grouped)
+		if err != nil {
+			return nil, err
+		}
+
+		return bson.M{"$subtract": []interface{}{left, right}}, nil
+
+	case SQLInt, SQLUint32, SQLFloat, SQLBool, SQLString:
+
+		return bson.M{"$literal": typedE}, nil
+
+	case SQLTime:
+
+		return typedE.Time, nil
+
+	case SQLTimestamp:
+
+		return typedE.Time, nil
+
+		/*
+			TODO: implement these
+			case *SQLCaseExpr:
+			case *SQLUnaryMinusExpr:
+			case *SQLUnaryTildeExpr:
+			case *SQLTupleExpr:
+			case *SQLInExpr:
+		*/
+
+	}
+
+	log.Logf(log.DebugHigh, "Unable to push down group down expression: %#v (%T)\n", e, e)
+
+	return nil, ErrPushDown
+
+}
 
 // TranslatePredicate attempts to turn the SQLExpr into mongodb query language.
 // It returns 2 things, a translated predicate that can be sent to MongoDB and
@@ -229,12 +706,29 @@ func getSingleMapEntry(m bson.M) (string, interface{}) {
 }
 
 func getFieldName(e SQLExpr, db *schema.Database) (string, bool) {
-	if field, ok := e.(SQLFieldExpr); ok {
 
-		return db.Tables[field.tableName].Columns[field.fieldName].SqlName, true
+	switch field := e.(type) {
+
+	case SQLFieldExpr:
+
+		table := db.Tables[field.tableName]
+		if table == nil {
+			return "", false
+		}
+
+		column := table.SQLColumns[field.fieldName]
+		if column == nil {
+			return "", false
+		}
+
+		return column.Name, true
+
+	default:
+
+		return "", false
+
 	}
 
-	return "", false
 }
 
 func getValue(e SQLExpr) (interface{}, bool) {

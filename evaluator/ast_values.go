@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"time"
 )
 
@@ -19,6 +20,13 @@ const SQLFalse = SQLBool(false)
 
 func (sb SQLBool) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sb, nil
+}
+
+func (sb SQLBool) String() string {
+	if sb {
+		return "true"
+	}
+	return "false"
 }
 
 func (sb SQLBool) CompareTo(v SQLValue) (int, error) {
@@ -74,6 +82,10 @@ func (sd SQLDate) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sd, nil
 }
 
+func (sd SQLDate) String() string {
+	return sd.Time.Format("2006-01-02")
+}
+
 func (sd SQLDate) CompareTo(v SQLValue) (int, error) {
 
 	var t1, t2 time.Time
@@ -123,6 +135,10 @@ func (sd SQLDateTime) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sd, nil
 }
 
+func (sd SQLDateTime) String() string {
+	return sd.Time.Format("2006-01-02 15:04:05")
+}
+
 func (sd SQLDateTime) CompareTo(v SQLValue) (int, error) {
 
 	var t1, t2 time.Time
@@ -170,6 +186,10 @@ func (st SQLTime) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return st, nil
 }
 
+func (st SQLTime) String() string {
+	return st.Time.Format("15:04:05")
+}
+
 func (st SQLTime) CompareTo(v SQLValue) (int, error) {
 
 	switch vt := v.(type) {
@@ -194,6 +214,10 @@ type SQLTimestamp struct {
 
 func (st SQLTimestamp) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return st, nil
+}
+
+func (st SQLTimestamp) String() string {
+	return st.Time.Format("2006-01-02 15:04:05")
 }
 
 func (st SQLTimestamp) CompareTo(v SQLValue) (int, error) {
@@ -243,6 +267,10 @@ func (st SQLYear) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return st, nil
 }
 
+func (st SQLYear) String() string {
+	return st.Time.Format("2006")
+}
+
 func (st SQLYear) CompareTo(v SQLValue) (int, error) {
 
 	var t1, t2 time.Time
@@ -288,6 +316,10 @@ func (sf SQLFloat) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return sf, nil
 }
 
+func (sf SQLFloat) String() string {
+	return strconv.FormatFloat(float64(sf), 'f', -1, 64)
+}
+
 func (sf SQLFloat) CompareTo(v SQLValue) (int, error) {
 	if n, ok := v.(SQLNumeric); ok {
 		cmp := sf.Float64() - n.Float64()
@@ -328,6 +360,10 @@ type SQLInt int64
 
 func (si SQLInt) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return si, nil
+}
+
+func (si SQLInt) String() string {
+	return strconv.Itoa(int(si))
 }
 
 func (si SQLInt) CompareTo(v SQLValue) (int, error) {
@@ -392,6 +428,10 @@ func (nv SQLNullValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return nv, nil
 }
 
+func (nv SQLNullValue) String() string {
+	return "null"
+}
+
 func (nv SQLNullValue) CompareTo(v SQLValue) (int, error) {
 	if _, ok := v.(SQLNullValue); ok {
 		return 0, nil
@@ -410,6 +450,10 @@ type SQLString string
 
 func (ss SQLString) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return ss, nil
+}
+
+func (ss SQLString) String() string {
+	return string(ss)
 }
 
 func (sn SQLString) CompareTo(v SQLValue) (int, error) {
@@ -439,6 +483,15 @@ type SQLValues struct {
 
 func (sv *SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sv, nil
+}
+
+func (sv *SQLValues) String() string {
+	var prefix string
+	for _, n := range sv.Values {
+		prefix += fmt.Sprintf("%v", n)
+		prefix = ", "
+	}
+	return prefix
 }
 
 func (sv *SQLValues) CompareTo(v SQLValue) (int, error) {
@@ -489,6 +542,10 @@ type SQLUint32 uint32
 
 func (su SQLUint32) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return su, nil
+}
+
+func (su SQLUint32) String() string {
+	return strconv.FormatFloat(float64(su), 'f', -1, 32)
 }
 
 func (su SQLUint32) CompareTo(v SQLValue) (int, error) {

@@ -42,6 +42,7 @@ var bsonDType = reflect.TypeOf(bson.D{})
 // within a subdocument.
 func (row *Row) GetField(table, name string) (interface{}, bool) {
 	for _, r := range row.Data {
+		// TODO: need to remove the need for tables
 		if r.Table == table {
 			for _, entry := range r.Values {
 				// TODO optimize
@@ -73,6 +74,16 @@ func (values Values) Map() map[string]interface{} {
 		m[value.Name] = value.Data
 	}
 	return m
+}
+
+// dottifyFieldName translates any dots in a field name into the Dot constant
+func dottifyFieldName(fieldName string) string {
+	return strings.Replace(fieldName, ".", Dot, -1)
+}
+
+// deDottifyFieldName translates any Dot constant in a field name into a '.'
+func deDottifyFieldName(fieldName string) string {
+	return strings.Replace(fieldName, Dot, ".", -1)
 }
 
 // extractFieldByName takes a field name and document, and returns a value representing

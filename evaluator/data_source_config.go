@@ -25,6 +25,7 @@ var (
 
 type SchemaDataSource struct {
 	tableName      string
+	aliasName      string
 	includeColumns bool
 	matcher        SQLExpr
 	iter           FindResults
@@ -48,6 +49,10 @@ func (sds *SchemaDataSource) init(ctx *ExecutionCtx) error {
 	case "tables":
 	default:
 		return fmt.Errorf("unknown information_schema table (%s)", sds.tableName)
+	}
+
+	if sds.aliasName == "" {
+		sds.aliasName = sds.tableName
 	}
 
 	sds.iter = sds.Find().Iter()
@@ -87,7 +92,7 @@ func (sds *SchemaDataSource) OpFields() []*Column {
 
 	for _, c := range headers {
 		column := &Column{
-			Table: sds.tableName,
+			Table: sds.aliasName,
 			Name:  c,
 			View:  c,
 		}

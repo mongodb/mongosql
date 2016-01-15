@@ -13,20 +13,44 @@ type optimizer struct {
 	ctx *ExecutionCtx
 }
 
-func (v *optimizer) Visit(o Operator) (Operator, error) {
-	switch typedO := o.(type) {
-	case *Filter:
-		return optimizeFilter(v.ctx, typedO)
+func (v *optimizer) Visit(opr Operator) (Operator, error) {
+
+	o, err := walkOperatorTree(v, opr)
+	if err != nil {
+		return nil, err
 	}
 
-	return walkOperatorTree(v, o)
+	switch typedO := o.(type) {
+
+	case *Filter:
+		o, err := optimizeFilter(v.ctx, typedO)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO != o {
+			return v.Visit(o)
+		}
+
+	case *GroupBy:
+		o, err := optimizeGroupBy(v.ctx, typedO)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO != o {
+			return v.Visit(o)
+		}
+	}
+
+	return o, err
+
 }
 
 func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 
 	// we can only optimize a filter if its source is a SourceAppend
 	// whose source is a TableScan
-
 	sa, ok := filter.source.(*SourceAppend)
 	if !ok {
 		return filter, nil
@@ -77,10 +101,11 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 	// in the current table scan operator, so we need to reconstruct the
 	// operator nodes.
 	ts = &TableScan{
-		pipeline:  pipeline,
-		dbName:    ts.dbName,
-		tableName: ts.tableName,
-		matcher:   ts.matcher,
+		pipeline:   pipeline,
+		dbName:     ts.dbName,
+		tableName:  ts.tableName,
+		matcher:    ts.matcher,
+		aggregated: ts.aggregated,
 	}
 
 	sa = &SourceAppend{
@@ -104,5 +129,85 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 
 	// everything was able to be pushed down, so the filter
 	// is removed from the plan.
+	return sa, nil
+}
+
+func optimizeGroupBy(ctx *ExecutionCtx, gb *GroupBy) (Operator, error) {
+
+	sa, ok := gb.source.(*SourceAppend)
+	if !ok {
+		return gb, nil
+	}
+
+	ts, ok := sa.source.(*TableScan)
+	if !ok {
+		return gb, nil
+	}
+
+	pipeline := ts.pipeline
+
+	db := ctx.Schema.Databases[ctx.Db]
+
+	table := db.Tables[ts.tableName]
+
+	groupClause, err := TranslateGroupBy(gb, db, table)
+	if err != nil {
+		// we couldn't push down the GROUP BY clause
+		if err == ErrPushDown {
+			return gb, nil
+		}
+		return nil, err
+	}
+
+	// rewrite the grouped columns
+	projectClause := projectGroupBy(groupClause, table)
+
+	pipeline = append(pipeline, bson.D{{"$group", groupClause}})
+
+	if gb.matcher != nil && gb.matcher != SQLTrue {
+
+		havingClause, err := TranslateExpr(gb.matcher, db, true)
+		if err != nil {
+			if err == ErrPushDown {
+				return gb, nil
+			}
+			return nil, err
+		}
+
+		if havingClause != nil {
+			projectClause[HavingMatcher] = havingClause
+		}
+	}
+
+	// update the table source for all columns
+	for _, column := range gb.sExprs {
+		column.Table = ts.tableName
+	}
+
+	pipeline = append(pipeline, bson.D{{"$project", projectClause}})
+
+	if projectClause[HavingMatcher] != nil {
+		havingClause := bson.M{
+			HavingMatcher: bson.M{
+				"$ne": false,
+			},
+		}
+
+		pipeline = append(pipeline, bson.D{{"$match", havingClause}})
+	}
+
+	ts = &TableScan{
+		pipeline:   pipeline,
+		dbName:     ts.dbName,
+		tableName:  ts.tableName,
+		matcher:    ts.matcher,
+		aggregated: true,
+	}
+
+	sa = &SourceAppend{
+		source:      ts,
+		hasSubquery: sa.hasSubquery,
+	}
+
 	return sa, nil
 }

@@ -60,11 +60,11 @@ func TestGroupByOperator(t *testing.T) {
 			},
 			sExprs: SelectExpressions{
 				SelectExpression{
-					Column: Column{tableOneName, "a", "a"},
+					Column: &Column{tableOneName, "a", "a"},
 					Expr:   SQLFieldExpr{tableOneName, "a"},
 				},
 				SelectExpression{
-					Column: Column{tableOneName, "b", "b"},
+					Column: &Column{tableOneName, "b", "b"},
 					Expr:   SQLFieldExpr{tableOneName, "b"},
 				},
 			},
@@ -74,11 +74,11 @@ func TestGroupByOperator(t *testing.T) {
 
 			sExprs := SelectExpressions{
 				SelectExpression{
-					Column: Column{tableOneName, "a", "a"},
+					Column: &Column{tableOneName, "a", "a"},
 					Expr:   SQLFieldExpr{tableOneName, "a"},
 				},
 				SelectExpression{
-					Column: Column{"", "sum(b)", "sum(b)"},
+					Column: &Column{"", "sum(b)", "sum(b)"},
 					Expr: &SQLAggFunctionExpr{
 						Name: "sum",
 						Exprs: []SQLExpr{
@@ -88,8 +88,11 @@ func TestGroupByOperator(t *testing.T) {
 				},
 			}
 
-			exprs := []SQLExpr{
-				SQLFieldExpr{tableOneName, "a"},
+			exprs := SelectExpressions{
+				SelectExpression{
+					Column: &Column{tableOneName, "a", "a"},
+					Expr:   SQLFieldExpr{tableOneName, "a"},
+				},
 			}
 
 			operator := &GroupBy{

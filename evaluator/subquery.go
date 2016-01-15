@@ -1,6 +1,6 @@
 package evaluator
 
-type AliasedSource struct {
+type Subquery struct {
 	// tableName holds the name of this table as seen in outer contexts
 	tableName string
 
@@ -8,13 +8,13 @@ type AliasedSource struct {
 	source Operator
 }
 
-func (as *AliasedSource) Open(ctx *ExecutionCtx) error {
-	return as.source.Open(ctx)
+func (sq *Subquery) Open(ctx *ExecutionCtx) error {
+	return sq.source.Open(ctx)
 }
 
-func (as *AliasedSource) Next(row *Row) bool {
+func (sq *Subquery) Next(row *Row) bool {
 
-	hasNext := as.source.Next(row)
+	hasNext := sq.source.Next(row)
 
 	if !hasNext {
 		return false
@@ -32,7 +32,7 @@ func (as *AliasedSource) Next(row *Row) bool {
 		}
 
 		tableRow.Values = values
-		tableRow.Table = as.tableName
+		tableRow.Table = sq.tableName
 
 		tableRows = append(tableRows, tableRow)
 	}
@@ -42,13 +42,13 @@ func (as *AliasedSource) Next(row *Row) bool {
 	return true
 }
 
-func (as *AliasedSource) OpFields() (columns []*Column) {
-	for _, expr := range as.source.OpFields() {
+func (sq *Subquery) OpFields() (columns []*Column) {
+	for _, expr := range sq.source.OpFields() {
 		column := &Column{
 			// name is referenced by view in outer context
 			Name:  expr.View,
 			View:  expr.View,
-			Table: as.tableName,
+			Table: sq.tableName,
 		}
 		columns = append(columns, column)
 	}
@@ -56,10 +56,10 @@ func (as *AliasedSource) OpFields() (columns []*Column) {
 	return columns
 }
 
-func (as *AliasedSource) Close() error {
-	return as.source.Close()
+func (sq *Subquery) Close() error {
+	return sq.source.Close()
 }
 
-func (as *AliasedSource) Err() error {
-	return as.source.Err()
+func (sq *Subquery) Err() error {
+	return sq.source.Err()
 }

@@ -10,6 +10,7 @@ import (
 //
 type SQLExpr interface {
 	Evaluate(*EvalCtx) (SQLValue, error)
+	String() string
 }
 
 //
