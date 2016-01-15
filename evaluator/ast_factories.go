@@ -684,7 +684,7 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 		for _, e := range expr.Exprs {
 
 			switch typedE := e.(type) {
-			// TODO: mixture of star and non-star expression is acceptable
+			// TODO: mixture of star and non-star expression acceptable?
 
 			case *sqlparser.StarExpr:
 
@@ -692,11 +692,7 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 					return nil, fmt.Errorf("%v aggregate function can not contain '*'", name)
 				}
 
-				sqlExpr, err := NewSQLExpr(sqlparser.NumVal{'1'})
-				if err != nil {
-					return nil, err
-				}
-				exprs = append(exprs, sqlExpr)
+				exprs = append(exprs, SQLInt(1))
 
 			case *sqlparser.NonStarExpr:
 
