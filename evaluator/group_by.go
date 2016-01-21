@@ -39,7 +39,8 @@ type GroupBy struct {
 	// channel on which to send rows derived from the final grouping
 	outChan chan AggRowCtx
 
-	// matcher is used to filter results based on a HAVING clause
+	// matcher is used to filter results based on a HAVING clause that
+	// references an aggregate function
 	matcher SQLExpr
 
 	ctx *ExecutionCtx

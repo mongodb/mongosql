@@ -32,9 +32,9 @@ func TestSchemaDataSourceIter(t *testing.T) {
 			fieldNames = append(fieldNames, v.(string))
 		}
 
-		So(len(fieldNames), ShouldEqual, 7)
+		So(len(fieldNames), ShouldEqual, 8)
 
-		names := []string{"_id", "a", "b", "c", "d", "e", "f"}
+		names := []string{"_id", "a", "b", "c", "c", "d", "e", "f"}
 		sort.Strings(fieldNames)
 		So(names, ShouldResemble, fieldNames)
 		So(iter.Close(), ShouldBeNil)

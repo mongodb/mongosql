@@ -292,11 +292,6 @@ func prettyPrintPlan(b *bytes.Buffer, o Operator, d int) {
 		b.WriteString("↳ GroupBy:\n")
 		prettyPrintPlan(b, typedE.source, d+1)
 
-	case *Having:
-
-		b.WriteString("↳ Having:\n")
-		prettyPrintPlan(b, typedE.source, d+1)
-
 	case *Join:
 
 		b.WriteString("↳ Join:\n")
@@ -411,19 +406,6 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 				source:  source,
 				sExprs:  typedO.sExprs,
 				exprs:   typedO.exprs,
-				matcher: typedO.matcher,
-			}
-		}
-	case *Having:
-		source, err := v.Visit(typedO.source)
-		if err != nil {
-			return nil, err
-		}
-
-		if typedO.source != source {
-			o = &Having{
-				source:  source,
-				sExprs:  typedO.sExprs,
 				matcher: typedO.matcher,
 			}
 		}

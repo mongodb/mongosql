@@ -408,23 +408,6 @@ func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions) (*GroupBy, err
 	return gb, nil
 }
 
-// planHaving returns a query execution plan for a HAVING clause.
-func planHaving(having *sqlparser.Where, sExprs SelectExpressions) (*Having, error) {
-
-	// create a matcher that can evaluate the HAVING expression
-	matcher, err := NewSQLExpr(having.Expr)
-	if err != nil {
-		return nil, err
-	}
-
-	hv := &Having{
-		sExprs:  sExprs,
-		matcher: matcher,
-	}
-
-	return hv, nil
-}
-
 // planLimit returns a query execution plan for a LIMIT clause.
 func planLimit(expr *sqlparser.Limit) (*Limit, error) {
 
@@ -625,12 +608,16 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 	// to include the filter (HAVING clause) within
 	// that operator so we can push down more easily
 	if ast.Having != nil && !needsGroupBy {
-		hv, err := planHaving(ast.Having, sExprs)
+		matcher, err := NewSQLExpr(ast.Having.Expr)
 		if err != nil {
 			return nil, err
 		}
-		hv.source = operator
-		operator = hv
+
+		operator = &Filter{
+			source:      operator,
+			matcher:     matcher,
+			hasSubquery: containsSubquery,
+		}
 	}
 
 	if len(ast.OrderBy) != 0 {
