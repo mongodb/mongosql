@@ -6,9 +6,131 @@ import (
 	"testing"
 )
 
+func TestFilterPushDown(t *testing.T) {
+
+	Convey("Subject: Filter Optimization", t, func() {
+
+		ctx := &ExecutionCtx{
+			Schema: cfgOne,
+			Db:     dbOne,
+		}
+
+		Convey("Given a push-downable filter", func() {
+
+			ts := &TableScan{
+				tableName: "foo",
+				dbName:    "test",
+				pipeline:  []bson.D{},
+			}
+
+			sa := &SourceAppend{
+				source: ts,
+			}
+
+			filter := &Filter{
+				source: sa,
+			}
+
+			Convey("Should optimize when the matcher is fully translatable", func() {
+
+				filter.matcher = &SQLEqualsExpr{SQLFieldExpr{"foo", "a"}, SQLString("funny")}
+
+				verifyOptimizedPipeline(ctx, filter,
+					[]bson.D{bson.D{{"$match", bson.M{"a": "funny"}}}})
+			})
+
+			Convey("Should optimize when the matcher is partially translatable", func() {
+
+				filter.matcher = &SQLAndExpr{
+					&SQLEqualsExpr{SQLFieldExpr{"foo", "a"}, SQLString("funny")},
+					&SQLEqualsExpr{SQLFieldExpr{"foo", "b"}, SQLFieldExpr{"foo", "c"}}}
+
+				optimized, err := OptimizeOperator(ctx, filter)
+				So(err, ShouldBeNil)
+				newFilter, ok := optimized.(*Filter)
+				So(ok, ShouldBeTrue)
+				So(newFilter.matcher, ShouldResemble, &SQLEqualsExpr{SQLFieldExpr{"foo", "b"}, SQLFieldExpr{"foo", "c"}})
+				sa, ok := newFilter.source.(*SourceAppend)
+				So(ok, ShouldBeTrue)
+				ts, ok := sa.source.(*TableScan)
+				So(ok, ShouldBeTrue)
+
+				So(ts.pipeline, ShouldResemble, []bson.D{bson.D{{"$match", bson.M{"a": "funny"}}}})
+			})
+		})
+
+		Convey("Given an immediately evaluated filter", func() {
+
+			ts := &TableScan{
+				tableName: "foo",
+				dbName:    "test",
+				pipeline:  []bson.D{},
+			}
+
+			sa := &SourceAppend{
+				source: ts,
+			}
+
+			filter := &Filter{
+				source: sa,
+			}
+
+			Convey("Should return an Empty operator when evaluated to false", func() {
+				filter.matcher = SQLBool(false)
+
+				optimized, err := OptimizeOperator(ctx, filter)
+				So(err, ShouldBeNil)
+
+				_, ok := optimized.(*Empty)
+				So(ok, ShouldBeTrue)
+			})
+
+			Convey("Should elimate the Filter from the tree and not alter the pipeline when evaluated to true", func() {
+				filter.matcher = SQLBool(true)
+
+				verifyOptimizedPipeline(ctx, filter, []bson.D{})
+			})
+		})
+
+		Convey("Given a non-push-downable filter", func() {
+
+			Convey("Should not optimize the pipeline when the source is not valid", func() {
+
+				empty := &Empty{}
+
+				filter := &Filter{
+					source: empty,
+				}
+
+				verifyUnoptimizedPipeline(ctx, filter)
+			})
+
+			Convey("Should not optimize the pipeline when the filter is not push-downable", func() {
+
+				ts := &TableScan{
+					tableName: "foo",
+					dbName:    "test",
+					pipeline:  []bson.D{},
+				}
+
+				sa := &SourceAppend{
+					source: ts,
+				}
+
+				filter := &Filter{
+					source:  sa,
+					matcher: &SQLEqualsExpr{SQLFieldExpr{"foo", "a"}, SQLFieldExpr{"foo", "b"}},
+				}
+
+				verifyUnoptimizedPipeline(ctx, filter)
+			})
+		})
+	})
+}
+
 func TestLimitPushDown(t *testing.T) {
 
-	Convey("TestLimitPushDown", t, func() {
+	Convey("Subject: Limit Optimization", t, func() {
 
 		ctx := &ExecutionCtx{
 			Schema: cfgOne,
