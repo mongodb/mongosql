@@ -41,6 +41,16 @@ func (v *optimizer) Visit(opr Operator) (Operator, error) {
 		if typedO != o {
 			return v.Visit(o)
 		}
+
+	case *Limit:
+		o, err := optimizeLimit(v.ctx, typedO)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedO != o {
+			return v.Visit(o)
+		}
 	}
 
 	return o, err
@@ -49,13 +59,7 @@ func (v *optimizer) Visit(opr Operator) (Operator, error) {
 
 func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 
-	// we can only optimize a filter if its source is a SourceAppend
-	// whose source is a TableScan
-	sa, ok := filter.source.(*SourceAppend)
-	if !ok {
-		return filter, nil
-	}
-	ts, ok := sa.source.(*TableScan)
+	sa, ts, ok := canOptimize(filter.source)
 	if !ok {
 		return filter, nil
 	}
@@ -134,12 +138,7 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 
 func optimizeGroupBy(ctx *ExecutionCtx, gb *GroupBy) (Operator, error) {
 
-	sa, ok := gb.source.(*SourceAppend)
-	if !ok {
-		return gb, nil
-	}
-
-	ts, ok := sa.source.(*TableScan)
+	sa, ts, ok := canOptimize(gb.source)
 	if !ok {
 		return gb, nil
 	}
@@ -210,4 +209,53 @@ func optimizeGroupBy(ctx *ExecutionCtx, gb *GroupBy) (Operator, error) {
 	}
 
 	return sa, nil
+}
+
+func optimizeLimit(ctx *ExecutionCtx, limit *Limit) (Operator, error) {
+
+	sa, ts, ok := canOptimize(limit.source)
+	if !ok {
+		return limit, nil
+	}
+
+	pipeline := ts.pipeline
+
+	if limit.offset > 0 {
+		pipeline = append(pipeline, bson.D{{"$skip", limit.offset}})
+	}
+
+	if limit.rowcount > 0 {
+		pipeline = append(pipeline, bson.D{{"$limit", limit.rowcount}})
+	}
+
+	ts = &TableScan{
+		pipeline:   pipeline,
+		dbName:     ts.dbName,
+		tableName:  ts.tableName,
+		matcher:    ts.matcher,
+		aggregated: true,
+	}
+
+	sa = &SourceAppend{
+		source:      ts,
+		hasSubquery: sa.hasSubquery,
+	}
+
+	return sa, nil
+}
+
+func canOptimize(op Operator) (*SourceAppend, *TableScan, bool) {
+
+	// we can only optimize an operator whose source is a SourceAppend
+	// with a source of a TableScan
+	sa, ok := op.(*SourceAppend)
+	if !ok {
+		return nil, nil, false
+	}
+	ts, ok := sa.source.(*TableScan)
+	if !ok {
+		return nil, nil, false
+	}
+
+	return sa, ts, true
 }
