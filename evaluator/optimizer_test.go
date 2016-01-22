@@ -6,6 +6,90 @@ import (
 	"testing"
 )
 
+func TestOptimizeOperator(t *testing.T) {
+	Convey("Subject: OptimizeOperator", t, func() {
+
+		ctx := &ExecutionCtx{
+			Schema: cfgOne,
+			Db:     dbOne,
+		}
+
+		Convey("Given a recursively optimizable tree", func() {
+
+			ts := &TableScan{
+				tableName: "foo",
+				dbName:    "test",
+				pipeline:  []bson.D{},
+			}
+
+			sa := &SourceAppend{
+				source: ts,
+			}
+
+			Convey("Should optimize from bottom-up", func() {
+
+				filter := &Filter{
+					source:  sa,
+					matcher: &SQLEqualsExpr{SQLFieldExpr{"foo", "a"}, SQLString("funny")},
+				}
+
+				limit := &Limit{
+					source:   filter,
+					rowcount: 42,
+				}
+
+				verifyOptimizedPipeline(ctx, limit,
+					[]bson.D{
+						bson.D{{"$match", bson.M{"a": "funny"}}},
+						bson.D{{"$limit", limit.rowcount}}})
+			})
+
+			Convey("Should optimize adjacent operators of the same type", func() {
+
+				limit := &Limit{
+					source:   sa,
+					rowcount: 22,
+				}
+
+				skip := &Limit{
+					source: limit,
+					offset: 20,
+				}
+
+				verifyOptimizedPipeline(ctx, skip,
+					[]bson.D{
+						bson.D{{"$limit", limit.rowcount}},
+						bson.D{{"$skip", skip.offset}}})
+			})
+
+			Convey("Should optimize multiple operators of the same type split a part", func() {
+
+				skip := &Limit{
+					source: sa,
+					offset: 20,
+				}
+
+				filter := &Filter{
+					source:  skip,
+					matcher: &SQLEqualsExpr{SQLFieldExpr{"foo", "a"}, SQLString("funny")},
+				}
+
+				limit := &Limit{
+					source:   filter,
+					rowcount: 42,
+				}
+
+				verifyOptimizedPipeline(ctx, limit,
+					[]bson.D{
+						bson.D{{"$skip", skip.offset}},
+						bson.D{{"$match", bson.M{"a": "funny"}}},
+						bson.D{{"$limit", limit.rowcount}}})
+			})
+		})
+
+	})
+}
+
 func TestFilterPushDown(t *testing.T) {
 
 	Convey("Subject: Filter Optimization", t, func() {
