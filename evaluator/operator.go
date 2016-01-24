@@ -406,6 +406,7 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 				source:  source,
 				sExprs:  typedO.sExprs,
 				exprs:   typedO.exprs,
+				grouped: typedO.grouped,
 				matcher: typedO.matcher,
 			}
 		}

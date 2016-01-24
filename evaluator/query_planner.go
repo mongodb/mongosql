@@ -68,19 +68,13 @@ func getColumnExpr(sExprs SelectExpressions, expr *sqlparser.ColName) (*SelectEx
 			return &sExprs[i], nil
 		}
 
-		if len(sExpr.RefColumns) != 0 {
-			for _, column := range sExpr.RefColumns {
-				if column.Table == string(expr.Qualifier) && column.Name == string(expr.Name) {
-					return &sExpr, nil
-				}
-			}
-		} else {
+		if len(sExpr.RefColumns) == 0 {
 			// This handles column names that are aliases for actual
 			// expressions. For example:
 			//
 			// SELECT a + b as c from foo GROUP by c ORDER by c;
 			//
-			// In this case, the both the ORDER BY and GROUP BY terms will
+			// In this case, both the ORDER BY and GROUP BY terms will
 			// be references to the underlying expresssion - (a + b)
 			if sExpr.Name == string(expr.Name) {
 				return &sExprs[i], nil
@@ -393,6 +387,7 @@ func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions) (*GroupBy, err
 	gb.matcher = matcher
 
 	for _, valExpr := range groupBy {
+
 		expr := sqlparser.Expr(valExpr)
 
 		// a GROUP BY clause can't refer to non-aggregated columns in
@@ -500,17 +495,17 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 		}
 	}
 
-	sExprs, err := refColsInSelectStmt(ast)
+	baseSExprs, err := refColsInSelectStmt(ast)
 	if err != nil {
 		return nil, err
 	}
 
-	refExprs, sqlExprs, err := getReferencedExpressions(ast, ctx, sExprs)
+	refExprs, sqlExprs, err := getReferencedExpressions(ast, ctx, baseSExprs)
 	if err != nil {
 		return nil, err
 	}
 
-	sExprs = append(sExprs, refExprs...)
+	sExprs := append(baseSExprs, refExprs...)
 
 	var containsSubquery bool
 
@@ -617,6 +612,18 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 			source:      operator,
 			matcher:     matcher,
 			hasSubquery: containsSubquery,
+		}
+	}
+
+	needsDistinctGroup := !refAggFunction && (ast.Distinct == sqlparser.AST_DISTINCT)
+
+	if needsDistinctGroup {
+		operator = &GroupBy{
+			exprs:   baseSExprs,
+			matcher: SQLTrue,
+			sExprs:  sExprs,
+			grouped: len(ast.GroupBy) != 0,
+			source:  operator,
 		}
 	}
 

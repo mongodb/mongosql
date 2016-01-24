@@ -739,6 +739,10 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 
 			if name != "count" {
 				return nil, fmt.Errorf("%v aggregate function can not contain '*'", name)
+			} else {
+				if expr.Distinct {
+					return nil, fmt.Errorf("count aggregate function can not have distinct '*'")
+				}
 			}
 
 			exprs = append(exprs, SQLString("*"))

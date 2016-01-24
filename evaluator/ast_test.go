@@ -512,8 +512,9 @@ func TestTranslateGroupBy(t *testing.T) {
 
 					Convey(fmt.Sprintf("running group test on %s translated to:\n\t%s",
 						t.groupBy, string(jsonResult)), func() {
-						stages, err := TranslateGroupBy(t.groupBy, database, table)
+						stages, distinctAggFuncs, err := TranslateGroupBy(t.groupBy, database, table)
 						So(err, ShouldBeNil)
+						So(distinctAggFuncs, ShouldResemble, map[string]*SQLAggFunctionExpr{})
 						So(stages, ShouldResemble, t.expected)
 					})
 				}
@@ -543,12 +544,14 @@ func TestTranslateGroupBy(t *testing.T) {
 				// strip off the table name
 				view := gbExpr.View[strings.LastIndex(gbExpr.View, ".")+1:]
 
+				first := "a"
+				if view == "a" {
+					first = "b"
+				}
+
 				expected := bson.M{
-					"a": bson.M{
-						"$first": "$a",
-					},
-					"b": bson.M{
-						"$first": "$b",
+					first: bson.M{
+						"$first": "$" + first,
 					},
 					"sum(bar_DOT_a)": bson.M{
 						"$sum": "$a",
@@ -575,8 +578,9 @@ func TestTranslateGroupBy(t *testing.T) {
 
 					Convey(fmt.Sprintf("running group test on %s translated to:\n\t%s",
 						t.groupBy, string(jsonResult)), func() {
-						stages, err := TranslateGroupBy(t.groupBy, database, table)
+						stages, distinctAggFuncs, err := TranslateGroupBy(t.groupBy, database, table)
 						So(err, ShouldBeNil)
+						So(distinctAggFuncs, ShouldResemble, map[string]*SQLAggFunctionExpr{})
 						So(stages, ShouldResemble, t.expected)
 					})
 				}

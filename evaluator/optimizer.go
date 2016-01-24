@@ -149,7 +149,7 @@ func optimizeGroupBy(ctx *ExecutionCtx, gb *GroupBy) (Operator, error) {
 
 	table := db.Tables[ts.tableName]
 
-	groupClause, err := TranslateGroupBy(gb, db, table)
+	groupClause, distinctAggFuncs, err := TranslateGroupBy(gb, db, table)
 	if err != nil {
 		// we couldn't push down the GROUP BY clause
 		if err == ErrPushDown {
@@ -159,7 +159,7 @@ func optimizeGroupBy(ctx *ExecutionCtx, gb *GroupBy) (Operator, error) {
 	}
 
 	// rewrite the grouped columns
-	projectClause := projectGroupBy(groupClause, table)
+	projectClause := projectGroupBy(groupClause, distinctAggFuncs, table)
 
 	pipeline = append(pipeline, bson.D{{"$group", groupClause}})
 

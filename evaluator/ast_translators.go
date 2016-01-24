@@ -20,10 +20,39 @@ var (
 	ErrPushDown = errors.New("can not push down query")
 )
 
-// getDottedDoc returns a bson document to project the given
+// getAggBSON creates a BSON document for the
+// given aggregation expression
+func getAggBSON(name string, expr interface{}) bson.M {
+
+	if name == "count" {
+		return bson.M{
+			"$sum": bson.M{
+				"$cond": []interface{}{
+					bson.M{
+						"$eq": []interface{}{
+							bson.M{
+								"$ifNull": []interface{}{
+									expr,
+									nil,
+								},
+							},
+							nil,
+						},
+					},
+					0,
+					1,
+				},
+			},
+		}
+	}
+
+	return bson.M{"$" + name: expr}
+}
+
+// getDottedBSON returns a BSON document to project the given
 // field and a boolean indicating if it references an array
 // object.
-func getDottedDoc(field string) (bson.M, bool) {
+func getDottedBSON(field string) (bson.M, bool) {
 
 	names := strings.Split(field, ".")
 
@@ -46,9 +75,10 @@ func getDottedDoc(field string) (bson.M, bool) {
 	return bson.M{"$first": "$" + dottifyFieldName(field)}, false
 }
 
-// projectGroupBy takes a prior group document and projects then
-// in a manner suitable for the aggregation framework and client.
-func projectGroupBy(groupBy bson.M, table *schema.Table) bson.M {
+// projectGroupBy takes a prior group document together with a map of distinct aggregate
+// functions and returns a projection document that can be used in the PROJECT stage of
+// an aggregation pipeline.
+func projectGroupBy(groupBy bson.M, distinctAggFuncs map[string]*SQLAggFunctionExpr, table *schema.Table) bson.M {
 
 	projectClause := bson.M{}
 
@@ -59,7 +89,12 @@ func projectGroupBy(groupBy bson.M, table *schema.Table) bson.M {
 				projectClause[name] = fmt.Sprintf("$%v.%v", Oid, name)
 			}
 		}
-		projectClause[key] = "$" + key
+
+		if distinctAggFunc := distinctAggFuncs[key]; distinctAggFunc != nil {
+			projectClause[key] = getAggBSON(distinctAggFunc.Name, "$"+key)
+		} else {
+			projectClause[key] = "$" + key
+		}
 	}
 
 	projectClause[Oid] = 0
@@ -67,45 +102,91 @@ func projectGroupBy(groupBy bson.M, table *schema.Table) bson.M {
 	return projectClause
 }
 
+// translateGroupByKeys returns a BSON document that can be used as the _id field
+// in the GROUP stage of an aggregation pipeline.
+func translateGroupByKeys(exprs SelectExpressions, db *schema.Database, grouped bool) (bson.M, error) {
+
+	oid := bson.M{}
+
+	// translate the group by keys
+	for _, e := range exprs {
+
+		expr := e.Expr
+
+		switch typedE := expr.(type) {
+
+		case SQLFieldExpr:
+
+			name, ok := getFieldName(typedE, db)
+			if !ok {
+				return nil, fmt.Errorf("could not find field name for group function")
+			}
+
+			if strings.Contains(name, ".") {
+				oid[dottifyFieldName(name)], _ = getDottedBSON(name)
+			} else {
+				oid[name] = "$" + name
+			}
+
+		default:
+			//
+			// handles expressions like:
+			//
+			// select a + b as c from bar group by c order by c
+			//
+			transExpr, err := TranslateExpr(expr, db, grouped)
+			if err != nil {
+				return nil, err
+			}
+
+			oid[dottifyFieldName(typedE.String())] = transExpr
+
+		}
+
+	}
+
+	return oid, nil
+
+}
+
 // TranslateGroupBy attempts to turn the SQLExpr into mongodb query language.
 // It returns a translated group by aggregation stage that can be sent to MongoDB.
-func TranslateGroupBy(gb *GroupBy, db *schema.Database, table *schema.Table) (bson.M, error) {
+func TranslateGroupBy(gb *GroupBy, db *schema.Database, table *schema.Table) (bson.M, map[string]*SQLAggFunctionExpr, error) {
 
 	groupBy := bson.M{}
-
-	aggFuncs := SelectExpressions{}
+	distinctAggFuncs := make(map[string]*SQLAggFunctionExpr)
 
 	// translate all the expressions referenced in the statement
 	for _, sExpr := range gb.sExprs {
 
 		refAggExprs, err := getAggFunctions(sExpr.Expr)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if len(refAggExprs) != 0 {
 
 			for _, expr := range refAggExprs {
 
-				column := &Column{
-					Name: expr.String(),
-					View: expr.String(),
+				if expr.Distinct {
+					distinctAggFuncs[dottifyFieldName(expr.String())] = expr
+					continue
 				}
 
-				refAggFunc := SelectExpression{
-					Expr:   expr,
-					Column: column,
+				transExpr, err := TranslateExpr(expr, db, gb.grouped)
+				if err != nil {
+					return nil, nil, err
 				}
-				aggFuncs = append(aggFuncs, refAggFunc)
+
+				groupBy[dottifyFieldName(expr.String())] = transExpr
+
 			}
-
-			continue
 		}
 
 		// project any referenced columns in the select expression
 		columns, err := referencedColumns(sExpr.Expr)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		for _, column := range columns {
@@ -118,76 +199,43 @@ func TranslateGroupBy(gb *GroupBy, db *schema.Database, table *schema.Table) (bs
 				continue
 			}
 
-			doc, isArray := getDottedDoc(table.SQLColumns[name].Name)
+			doc, isArray := getDottedBSON(table.SQLColumns[name].Name)
 			if isArray {
 				doc = bson.M{"$first": doc}
 			}
 
-			groupBy[view] = doc
+			if len(refAggExprs) == 0 {
+				groupBy[view] = doc
+			}
+
 		}
 
 	}
 
-	oid := bson.M{}
+	for view, distinctAggFunc := range distinctAggFuncs {
+		transExpr, err := TranslateExpr(distinctAggFunc.Exprs[0], db, gb.grouped)
+		if err != nil {
+			return nil, nil, err
+		}
 
-	// translate the group by keys
-	for _, allExpr := range append(gb.exprs, aggFuncs...) {
+		groupBy[view] = bson.M{"$addToSet": transExpr}
+	}
 
-		expr := allExpr.Expr
+	oid, err := translateGroupByKeys(gb.exprs, db, gb.grouped)
+	if err != nil {
+		return nil, nil, err
+	}
 
-		switch typedE := expr.(type) {
-
-		case SQLFieldExpr:
-
-			name, ok := getFieldName(typedE, db)
-			if !ok {
-				return nil, fmt.Errorf("could not find field name for group function")
-			}
-
-			if strings.Contains(name, ".") {
-				oid[dottifyFieldName(name)], _ = getDottedDoc(name)
-			} else {
-				oid[name] = "$" + name
-			}
-
-		default:
-
-			// in these cases, we must first evaluate the type before adding it.
-			name := typedE.String()
-
-			transExpr, err := TranslateExpr(expr, db, false)
-			if err != nil {
-				return nil, err
-			}
-
-			view := dottifyFieldName(name)
-
-			switch typedE.(type) {
-
-			case *SQLAggFunctionExpr:
-
-				groupBy[view] = transExpr
-
-			case SQLFieldExpr:
-
-				if strings.Contains(name, ".") {
-					oid[view], _ = getDottedDoc(name)
-				} else {
-					oid[view] = "$" + name
-				}
-
-			default:
-
-				oid[view] = transExpr
-
-			}
-
+	// remove group fields that are part of group identifier
+	for k, _ := range oid {
+		if groupBy[k] != nil {
+			delete(groupBy, k)
 		}
 	}
 
 	groupBy[Oid] = oid
 
-	return groupBy, nil
+	return groupBy, distinctAggFuncs, nil
 }
 
 // TranslateExpr attempts to turn the SQLExpr into Mongodb query language.
@@ -212,7 +260,7 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 	case *SQLAggFunctionExpr:
 
 		if grouped {
-			return "$" + dottifyFieldName(typedE.String()), nil
+			return "$" + dottifyFieldName(e.String()), nil
 		}
 
 		transExpr, err := TranslateExpr(typedE.Exprs[0], db, grouped)
@@ -220,29 +268,7 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 			return nil, err
 		}
 
-		if typedE.Name == "count" {
-			return bson.M{
-				"$sum": bson.M{
-					"$cond": []interface{}{
-						bson.M{
-							"$eq": []interface{}{
-								bson.M{
-									"$ifNull": []interface{}{
-										transExpr,
-										nil,
-									},
-								},
-								nil,
-							},
-						},
-						0,
-						1,
-					},
-				},
-			}, nil
-		}
-
-		return bson.M{"$" + typedE.Name: transExpr}, nil
+		return getAggBSON(typedE.Name, transExpr), nil
 
 	case *SQLAndExpr:
 

@@ -109,13 +109,15 @@ func formatValue(value interface{}) ([]byte, error) {
 		return strconv.AppendBool(nil, v), nil
 	case nil:
 		return nil, nil
+	case *evaluator.SQLValues:
+		return formatValue(v.Values[0])
 	default:
 		return nil, fmt.Errorf("invalid type %T", value)
 	}
 }
 
 func formatField(field *Field, value interface{}) error {
-	switch value.(type) {
+	switch typedV := value.(type) {
 
 	case evaluator.SQLFloat:
 		field.Charset = 63
@@ -190,10 +192,16 @@ func formatField(field *Field, value interface{}) error {
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_YEAR
 
+	case *evaluator.SQLValues:
+		if len(typedV.Values) != 1 {
+			return fmt.Errorf("Operand should contain 1 column")
+		}
+
 	default:
 		// TODO: figure out 'field' struct and support all BSON types
 		return fmt.Errorf("unsupported type %T for result set", value)
 	}
+
 	return nil
 }
 
