@@ -403,11 +403,11 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 
 		if typedO.source != source {
 			o = &GroupBy{
-				source:  source,
-				sExprs:  typedO.sExprs,
-				exprs:   typedO.exprs,
-				grouped: typedO.grouped,
-				matcher: typedO.matcher,
+				source:    source,
+				sExprs:    typedO.sExprs,
+				exprs:     typedO.exprs,
+				evaluated: typedO.evaluated,
+				matcher:   typedO.matcher,
 			}
 		}
 	case *Join:

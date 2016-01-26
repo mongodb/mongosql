@@ -212,6 +212,221 @@ func TestFilterPushDown(t *testing.T) {
 	})
 }
 
+func TestGroupByPushDown(t *testing.T) {
+
+	Convey("Subject: GroupBy Optimization", t, func() {
+
+		ctx := &ExecutionCtx{
+			Db:     dbOne,
+			Schema: cfgOne,
+		}
+
+		tbl := "bar"
+
+		Convey("Given a group by clause that can be pushed down", func() {
+
+			ts := &TableScan{
+				dbName:    dbOne,
+				pipeline:  []bson.D{},
+				tableName: tbl,
+			}
+
+			sa := &SourceAppend{
+				source: ts,
+			}
+
+			exprs := map[string]SQLExpr{
+				"a":      SQLFieldExpr{tbl, "a"},
+				"b":      SQLFieldExpr{tbl, "b"},
+				"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "a"}}},
+				"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+				"inExpr": &SQLInExpr{SQLFieldExpr{tbl, "a"}, SQLFieldExpr{tbl, "a"}},
+			}
+
+			sExprs := constructSelectExpressions(exprs, "a", "b", "sum(a)", "sum(b)")
+
+			Convey("Should optimize when the group is fully translatable", func() {
+
+				group := &GroupBy{
+					exprs:  constructSelectExpressions(exprs, "a"),
+					sExprs: sExprs,
+					source: sa,
+				}
+
+				expected := []bson.D{
+					bson.D{
+						bson.DocElem{
+							Name: "$group",
+							Value: bson.M{
+								"_id": bson.M{
+									"a": "$a",
+								},
+								"b": bson.M{
+									"$first": "$b",
+								},
+								"sum(bar_DOT_a)": bson.M{
+									"$sum": "$a",
+								},
+								"sum(bar_DOT_b)": bson.M{
+									"$sum": "$b",
+								},
+							},
+						},
+					},
+					bson.D{
+						bson.DocElem{
+							Name: "$project",
+							Value: bson.M{
+								"_id":            0,
+								"a":              "$_id.a",
+								"b":              "$b",
+								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
+								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
+							},
+						},
+					},
+				}
+
+				verifyOptimizedPipeline(ctx, group, expected)
+			})
+
+			Convey("Should perform no translation when already evaluated", func() {
+
+				group := &GroupBy{
+					evaluated: true,
+					exprs:     constructSelectExpressions(exprs, "a"),
+					sExprs:    sExprs,
+					source:    sa,
+				}
+
+				expected := []bson.D{
+					bson.D{
+						bson.DocElem{
+							Name: "$group",
+							Value: bson.M{
+								"_id": bson.M{
+									"a": "$a",
+								},
+								"b": bson.M{
+									"$first": "$b",
+								},
+								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
+								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
+							},
+						},
+					},
+					bson.D{
+						bson.DocElem{
+							Name: "$project",
+							Value: bson.M{
+								"_id":            0,
+								"a":              "$_id.a",
+								"b":              "$b",
+								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
+								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
+							},
+						},
+					},
+				}
+
+				verifyOptimizedPipeline(ctx, group, expected)
+
+			})
+
+			Convey("Should perform no optimization clause can't be pushed down", func() {
+
+				group := &GroupBy{
+					exprs:  constructSelectExpressions(exprs, "inExpr"),
+					sExprs: sExprs,
+					source: sa,
+				}
+
+				verifyUnoptimizedPipeline(ctx, group)
+
+			})
+
+			Convey("Should create two groups when a distinct operator is required", func() {
+
+				innerGroup := &GroupBy{
+					exprs:  constructSelectExpressions(exprs, "a"),
+					sExprs: sExprs,
+					source: sa,
+				}
+
+				outerGroup := &GroupBy{
+					exprs:     constructSelectExpressions(exprs, "a", "b"),
+					evaluated: true,
+					sExprs:    sExprs,
+					source:    innerGroup,
+				}
+
+				expected := []bson.D{
+					{
+						{
+							Name: "$group",
+							Value: bson.M{
+								"_id": bson.M{
+									"a": "$a",
+								},
+								"b": bson.M{
+									"$first": "$b",
+								},
+								"sum(bar_DOT_a)": bson.M{
+									"$sum": "$a",
+								},
+								"sum(bar_DOT_b)": bson.M{
+									"$sum": "$b",
+								},
+							},
+						},
+					},
+					{
+						{
+							Name: "$project",
+							Value: bson.M{
+								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
+								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
+								"a":              "$_id.a",
+								"_id":            0,
+								"b":              "$b",
+							},
+						},
+					},
+					{
+						{
+							Name: "$group",
+							Value: bson.M{
+								"_id": bson.M{
+									"a": "$a",
+									"b": "$b",
+								},
+								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
+								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
+							},
+						},
+					},
+					{
+						{
+							Name: "$project",
+							Value: bson.M{
+								"_id":            0,
+								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
+								"a":              "$_id.a",
+								"b":              "$_id.b",
+								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
+							},
+						},
+					},
+				}
+
+				verifyOptimizedPipeline(ctx, outerGroup, expected)
+
+			})
+		})
+
+	})
+}
+
 func TestLimitPushDown(t *testing.T) {
 
 	Convey("Subject: Limit Optimization", t, func() {

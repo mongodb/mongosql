@@ -326,6 +326,19 @@ func TestSelectWithDistinct(t *testing.T) {
 			So(values[3][1], ShouldResemble, evaluator.SQLInt(3))
 		})
 
+		Convey("distinct column references with group by should return distinct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "SELECT distinct a, b FROM bar group by a order by a, b", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+
+			So(len(values), ShouldEqual, 2)
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(2))
+			So(values[1][0], ShouldResemble, evaluator.SQLInt(2))
+			So(values[1][1], ShouldResemble, evaluator.SQLInt(3))
+		})
+
 		Convey("math within distinct column references should return distinct results", func() {
 			names, values, err := eval.EvalSelect("test", "SELECT distinct a+b FROM bar order by a+b", nil, nil)
 			So(err, ShouldBeNil)
@@ -388,7 +401,7 @@ func TestSelectWithDistinct(t *testing.T) {
 			checkExpectedValues(3, values, expectedValues)
 		})
 
-		Convey("aggregate functions with no grouping should return a single result", func() {
+		Convey("distinct with aggregate functions and no grouping should return a single result", func() {
 
 			names, values, err := eval.EvalSelect("test", "SELECT distinct sum(a-b), sum(b), a, a+b FROM bar", nil, nil)
 			So(err, ShouldBeNil)
@@ -399,6 +412,69 @@ func TestSelectWithDistinct(t *testing.T) {
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(11))
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(1))
 			So(values[0][3], ShouldResemble, evaluator.SQLInt(3))
+		})
+
+		Convey("distinct with aggregate functions and grouping should return distinct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "SELECT distinct sum(a-b), sum(b), b FROM bar group by b order by b", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 3)
+
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(0))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][2], ShouldResemble, evaluator.SQLInt(1))
+
+			So(values[1][0], ShouldResemble, evaluator.SQLInt(-1))
+			So(values[1][1], ShouldResemble, evaluator.SQLInt(4))
+			So(values[1][2], ShouldResemble, evaluator.SQLInt(2))
+
+			So(values[2][0], ShouldResemble, evaluator.SQLInt(-2))
+			So(values[2][1], ShouldResemble, evaluator.SQLInt(6))
+			So(values[2][2], ShouldResemble, evaluator.SQLInt(3))
+
+		})
+
+		Convey("distinct with single distinct aggregate functions and grouping should return distinct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "SELECT distinct sum(distinct a-b), sum(b), b FROM bar group by b order by b", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 3)
+
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(0))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][2], ShouldResemble, evaluator.SQLInt(1))
+
+			So(values[1][0], ShouldResemble, evaluator.SQLInt(-1))
+			So(values[1][1], ShouldResemble, evaluator.SQLInt(4))
+			So(values[1][2], ShouldResemble, evaluator.SQLInt(2))
+
+			So(values[2][0], ShouldResemble, evaluator.SQLInt(-1))
+			So(values[2][1], ShouldResemble, evaluator.SQLInt(6))
+			So(values[2][2], ShouldResemble, evaluator.SQLInt(3))
+
+		})
+
+		Convey("distinct with multiple distinct aggregate functions and grouping should return distinct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "SELECT distinct sum(distinct a-b), sum(distinct b), b FROM bar group by b order by b", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 3)
+
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(0))
+			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][2], ShouldResemble, evaluator.SQLInt(1))
+
+			So(values[1][0], ShouldResemble, evaluator.SQLInt(-1))
+			So(values[1][1], ShouldResemble, evaluator.SQLInt(2))
+			So(values[1][2], ShouldResemble, evaluator.SQLInt(2))
+
+			So(values[2][0], ShouldResemble, evaluator.SQLInt(-1))
+			So(values[2][1], ShouldResemble, evaluator.SQLInt(3))
+			So(values[2][2], ShouldResemble, evaluator.SQLInt(3))
+
 		})
 
 	})

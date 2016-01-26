@@ -104,7 +104,7 @@ func projectGroupBy(groupBy bson.M, distinctAggFuncs map[string]*SQLAggFunctionE
 
 // translateGroupByKeys returns a BSON document that can be used as the _id field
 // in the GROUP stage of an aggregation pipeline.
-func translateGroupByKeys(exprs SelectExpressions, db *schema.Database, grouped bool) (bson.M, error) {
+func translateGroupByKeys(exprs SelectExpressions, db *schema.Database, evaluated bool) (bson.M, error) {
 
 	oid := bson.M{}
 
@@ -134,7 +134,7 @@ func translateGroupByKeys(exprs SelectExpressions, db *schema.Database, grouped 
 			//
 			// select a + b as c from bar group by c order by c
 			//
-			transExpr, err := TranslateExpr(expr, db, grouped)
+			transExpr, err := TranslateExpr(expr, db, evaluated)
 			if err != nil {
 				return nil, err
 			}
@@ -173,7 +173,7 @@ func TranslateGroupBy(gb *GroupBy, db *schema.Database, table *schema.Table) (bs
 					continue
 				}
 
-				transExpr, err := TranslateExpr(expr, db, gb.grouped)
+				transExpr, err := TranslateExpr(expr, db, gb.evaluated)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -213,7 +213,7 @@ func TranslateGroupBy(gb *GroupBy, db *schema.Database, table *schema.Table) (bs
 	}
 
 	for view, distinctAggFunc := range distinctAggFuncs {
-		transExpr, err := TranslateExpr(distinctAggFunc.Exprs[0], db, gb.grouped)
+		transExpr, err := TranslateExpr(distinctAggFunc.Exprs[0], db, gb.evaluated)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -221,7 +221,7 @@ func TranslateGroupBy(gb *GroupBy, db *schema.Database, table *schema.Table) (bs
 		groupBy[view] = bson.M{"$addToSet": transExpr}
 	}
 
-	oid, err := translateGroupByKeys(gb.exprs, db, gb.grouped)
+	oid, err := translateGroupByKeys(gb.exprs, db, gb.evaluated)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -238,19 +238,19 @@ func TranslateGroupBy(gb *GroupBy, db *schema.Database, table *schema.Table) (bs
 	return groupBy, distinctAggFuncs, nil
 }
 
-// TranslateExpr attempts to turn the SQLExpr into Mongodb query language.
-func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, error) {
+// TranslateExpr attempts to turn the SQLExpr into MongoD query language.
+func TranslateExpr(e SQLExpr, db *schema.Database, evaluated bool) (interface{}, error) {
 
 	switch typedE := e.(type) {
 
 	case *SQLAddExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -259,11 +259,11 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLAggFunctionExpr:
 
-		if grouped {
+		if evaluated {
 			return "$" + dottifyFieldName(e.String()), nil
 		}
 
-		transExpr, err := TranslateExpr(typedE.Exprs[0], db, grouped)
+		transExpr, err := TranslateExpr(typedE.Exprs[0], db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -272,12 +272,12 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLAndExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -291,7 +291,7 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 			return nil, err
 		}
 
-		return TranslateExpr(expr, db, grouped)
+		return TranslateExpr(expr, db, evaluated)
 
 	case SQLDate:
 
@@ -303,12 +303,12 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLDivideExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -317,12 +317,12 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLEqualsExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -340,12 +340,12 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLGreaterThanExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -354,12 +354,12 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLGreaterThanOrEqualExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -368,12 +368,12 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLLessThanExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -382,12 +382,12 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLLessThanOrEqualExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -396,12 +396,12 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLMultiplyExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -410,7 +410,7 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLNotExpr:
 
-		op, err := TranslateExpr(typedE.operand, db, grouped)
+		op, err := TranslateExpr(typedE.operand, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -419,12 +419,12 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLNotEqualsExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -433,7 +433,7 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLNullCmpExpr:
 
-		op, err := TranslateExpr(typedE.operand, db, grouped)
+		op, err := TranslateExpr(typedE.operand, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -446,12 +446,12 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLOrExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
@@ -468,12 +468,12 @@ func TranslateExpr(e SQLExpr, db *schema.Database, grouped bool) (interface{}, e
 
 	case *SQLSubtractExpr:
 
-		left, err := TranslateExpr(typedE.left, db, grouped)
+		left, err := TranslateExpr(typedE.left, db, evaluated)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := TranslateExpr(typedE.right, db, grouped)
+		right, err := TranslateExpr(typedE.right, db, evaluated)
 		if err != nil {
 			return nil, err
 		}

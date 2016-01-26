@@ -619,11 +619,11 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 
 	if needsDistinctGroup {
 		operator = &GroupBy{
-			exprs:   baseSExprs,
-			matcher: SQLTrue,
-			sExprs:  sExprs,
-			grouped: len(ast.GroupBy) != 0,
-			source:  operator,
+			exprs:     baseSExprs,
+			matcher:   SQLTrue,
+			sExprs:    sExprs,
+			evaluated: len(ast.GroupBy) != 0,
+			source:    operator,
 		}
 	}
 

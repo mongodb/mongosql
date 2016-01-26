@@ -217,13 +217,17 @@ func (s SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return s.elseValue.Evaluate(ctx)
 }
 
+func (c *caseCondition) String() string {
+	return fmt.Sprintf("when %v then '%v'", c.matcher, c.then)
+}
+
 func (s SQLCaseExpr) String() string {
 	str := fmt.Sprintf("case ")
 	for _, cond := range s.caseConditions {
-		str += fmt.Sprintf("%v ", cond)
+		str += fmt.Sprintf("%v ", cond.String())
 	}
 	if s.elseValue != nil {
-		str += fmt.Sprintf("%v ", s.elseValue)
+		str += fmt.Sprintf("else '%v' ", s.elseValue)
 	}
 	str += fmt.Sprintf("end")
 	return str

@@ -29,6 +29,10 @@ type GroupBy struct {
 	// grouped indicates if the source operator data has been grouped
 	grouped bool
 
+	// evaluated is used for push down optimizations to indicate if
+	// group functions have already been calculated
+	evaluated bool
+
 	// err holds any error encountered during processing
 	err error
 

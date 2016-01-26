@@ -33,13 +33,6 @@ type SQLNumeric interface {
 	Float64() float64
 }
 
-//
-// SQLTemporal is a time-based SQLValue.
-//
-type SQLTemporal interface {
-	SQLValue
-}
-
 // A base type for a binary node.
 type sqlBinaryNode struct {
 	left, right SQLExpr
