@@ -10,6 +10,23 @@ import (
 	"testing"
 )
 
+func createFieldNameLookup(db *schema.Database) fieldNameLookup {
+
+	return func(tableName, columnName string) (string, bool) {
+		table := db.Tables[tableName]
+		if table == nil {
+			return "", false
+		}
+
+		column := table.SQLColumns[columnName]
+		if column == nil {
+			return "", false
+		}
+
+		return column.Name, true
+	}
+}
+
 func TestEvaluates(t *testing.T) {
 
 	type test struct {
@@ -360,12 +377,15 @@ func TestTranslatePredicate(t *testing.T) {
 
 	runTests := func(tests []test) {
 		schema, err := schema.ParseSchemaData(testSchema3)
+
+		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
+
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
 				So(err, ShouldBeNil)
-				match, local := TranslatePredicate(e, schema.Databases["test"])
+				match, local := TranslatePredicate(e, lookupFieldName)
 				jsonResult, err := json.Marshal(match)
 				So(err, ShouldBeNil)
 				So(string(jsonResult), ShouldEqual, t.expected)
@@ -383,12 +403,13 @@ func TestTranslatePredicate(t *testing.T) {
 
 	runPartialTests := func(tests []partialTest) {
 		schema, err := schema.ParseSchemaData(testSchema3)
+		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\" and locally evaluate %q", t.sql, t.expected, t.localDesc), func() {
 				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
 				So(err, ShouldBeNil)
-				match, local := TranslatePredicate(e, schema.Databases["test"])
+				match, local := TranslatePredicate(e, lookupFieldName)
 				jsonResult, err := json.Marshal(match)
 				So(err, ShouldBeNil)
 				So(string(jsonResult), ShouldEqual, t.expected)

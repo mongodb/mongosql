@@ -28,24 +28,22 @@ func (v *optimizer) registerFieldName(tbl, column, field string) {
 	v.fields[tbl][column] = field
 }
 
-func (v *optimizer) getFieldName(tbl, column string) string {
+func (v *optimizer) getFieldName(tbl, column string) (string, bool) {
 	if v.fields == nil {
-		return column
+		return "", false
 	}
 
 	columnToField, ok := v.fields[tbl]
 	if !ok {
-		// no mapping exists, so we use the column name
-		return column
+		return "", false
 	}
 
 	field, ok := columnToField[column]
 	if !ok {
-		// no mapping exists, so we use the column name
-		return column
+		return "", false
 	}
 
-	return field
+	return field, true
 }
 
 func (v *optimizer) Visit(opr Operator) (Operator, error) {
@@ -103,7 +101,7 @@ func (v *optimizer) visitFilter(filter *Filter) (Operator, error) {
 
 	} else {
 		var matchBody bson.M
-		matchBody, localMatcher = TranslatePredicate(optimizedExpr, v.ctx.Schema.Databases[v.ctx.Db])
+		matchBody, localMatcher = TranslatePredicate(optimizedExpr, v.getFieldName)
 
 		if matchBody == nil {
 			// no pieces of the matcher are able to be pushed down,
