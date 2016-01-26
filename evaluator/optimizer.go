@@ -1,16 +1,51 @@
 package evaluator
 
 import (
+	"fmt"
 	"gopkg.in/mgo.v2/bson"
 )
 
 func OptimizeOperator(ctx *ExecutionCtx, o Operator) (Operator, error) {
-	v := &optimizer{ctx}
+	v := &optimizer{ctx: ctx}
 	return v.Visit(o)
 }
 
 type optimizer struct {
-	ctx *ExecutionCtx
+	ctx    *ExecutionCtx
+	fields map[string]map[string]string
+}
+
+func (v *optimizer) registerFieldName(tbl, column, field string) {
+
+	if v.fields == nil {
+		v.fields = make(map[string]map[string]string)
+	}
+
+	if _, ok := v.fields[tbl]; !ok {
+		v.fields[tbl] = make(map[string]string)
+	}
+
+	v.fields[tbl][column] = field
+}
+
+func (v *optimizer) getFieldName(tbl, column string) string {
+	if v.fields == nil {
+		return column
+	}
+
+	columnToField, ok := v.fields[tbl]
+	if !ok {
+		// no mapping exists, so we use the column name
+		return column
+	}
+
+	field, ok := columnToField[column]
+	if !ok {
+		// no mapping exists, so we use the column name
+		return column
+	}
+
+	return field
 }
 
 func (v *optimizer) Visit(opr Operator) (Operator, error) {
@@ -23,43 +58,21 @@ func (v *optimizer) Visit(opr Operator) (Operator, error) {
 	switch typedO := o.(type) {
 
 	case *Filter:
-		o, err := optimizeFilter(v.ctx, typedO)
-		if err != nil {
-			return nil, err
-		}
-
-		if typedO != o {
-			return v.Visit(o)
-		}
-
+		return v.visitFilter(typedO)
 	case *GroupBy:
-		o, err := optimizeGroupBy(v.ctx, typedO)
-		if err != nil {
-			return nil, err
-		}
-
-		if typedO != o {
-			return v.Visit(o)
-		}
-
+		return v.visitGroupBy(typedO)
 	case *Limit:
-		o, err := optimizeLimit(v.ctx, typedO)
-		if err != nil {
-			return nil, err
-		}
-
-		if typedO != o {
-			return v.Visit(o)
-		}
+		return v.visitLimit(typedO)
+	case *TableScan:
+		return v.visitTableScan(typedO)
 	}
 
 	return o, err
-
 }
 
-func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
+func (v *optimizer) visitFilter(filter *Filter) (Operator, error) {
 
-	sa, ts, ok := canOptimize(filter.source)
+	sa, ts, ok := canPushDown(filter.source)
 	if !ok {
 		return filter, nil
 	}
@@ -90,7 +103,7 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 
 	} else {
 		var matchBody bson.M
-		matchBody, localMatcher = TranslatePredicate(optimizedExpr, ctx.Schema.Databases[ctx.Db])
+		matchBody, localMatcher = TranslatePredicate(optimizedExpr, v.ctx.Schema.Databases[v.ctx.Db])
 
 		if matchBody == nil {
 			// no pieces of the matcher are able to be pushed down,
@@ -136,16 +149,16 @@ func optimizeFilter(ctx *ExecutionCtx, filter *Filter) (Operator, error) {
 	return sa, nil
 }
 
-func optimizeGroupBy(ctx *ExecutionCtx, gb *GroupBy) (Operator, error) {
+func (v *optimizer) visitGroupBy(gb *GroupBy) (Operator, error) {
 
-	sa, ts, ok := canOptimize(gb.source)
+	sa, ts, ok := canPushDown(gb.source)
 	if !ok {
 		return gb, nil
 	}
 
 	pipeline := ts.pipeline
 
-	db := ctx.Schema.Databases[ctx.Db]
+	db := v.ctx.Schema.Databases[v.ctx.Db]
 
 	table := db.Tables[ts.tableName]
 
@@ -211,9 +224,9 @@ func optimizeGroupBy(ctx *ExecutionCtx, gb *GroupBy) (Operator, error) {
 	return sa, nil
 }
 
-func optimizeLimit(ctx *ExecutionCtx, limit *Limit) (Operator, error) {
+func (_ *optimizer) visitLimit(limit *Limit) (Operator, error) {
 
-	sa, ts, ok := canOptimize(limit.source)
+	sa, ts, ok := canPushDown(limit.source)
 	if !ok {
 		return limit, nil
 	}
@@ -244,7 +257,28 @@ func optimizeLimit(ctx *ExecutionCtx, limit *Limit) (Operator, error) {
 	return sa, nil
 }
 
-func canOptimize(op Operator) (*SourceAppend, *TableScan, bool) {
+func (v *optimizer) visitTableScan(ts *TableScan) (Operator, error) {
+
+	db, ok := v.ctx.Schema.Databases[v.ctx.Db]
+	if !ok {
+		return nil, fmt.Errorf("The database %v is invalid.", v.ctx.Db)
+	}
+
+	table, ok := db.Tables[ts.tableName]
+	if !ok {
+		return nil, fmt.Errorf("The table %v.%v is invalid.", v.ctx.Db, ts.tableName)
+	}
+
+	// go through the tableSchema and register all the "columns" and their field names.
+	// any fields that aren't in the schema are unknown to us and cannot be used.
+	for _, column := range table.Columns {
+		v.registerFieldName(table.Name, column.SqlName, column.Name)
+	}
+
+	return ts, nil
+}
+
+func canPushDown(op Operator) (*SourceAppend, *TableScan, bool) {
 
 	// we can only optimize an operator whose source is a SourceAppend
 	// with a source of a TableScan
