@@ -632,5 +632,63 @@ func TestTranslateGroupBy(t *testing.T) {
 			runTests(testCases)
 		})
 	})
+}
 
+func TestProjectGroupBy(t *testing.T) {
+
+	Convey("Subject: ProjectGroupBy", t, func() {
+
+		tbl := "bar"
+
+		groupBy := bson.M{
+			"c": bson.M{
+				"$first": "$c",
+			},
+			"sum(bar_DOT_a)": bson.M{
+				"$sum": "$a",
+			},
+			"sum(bar_DOT_b)": bson.M{
+				"$sum": "$b",
+			},
+			"_id": bson.M{
+				"a": "$a",
+			},
+		}
+
+		distinctAggFuncs := map[string]*SQLAggFunctionExpr{
+			"sum(bar_DOT_a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "a"}}},
+			"sum(bar_DOT_b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+		}
+
+		Convey("with no distinct aggregation function on renamings should be projected", func() {
+
+			expected := bson.M{
+				"_id":            0,
+				"a":              "$_id.a",
+				"c":              "$c",
+				"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
+				"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
+			}
+
+			So(projectGroupBy(groupBy, nil), ShouldResemble, expected)
+		})
+
+		Convey("distinct aggregation functions should be computed in the projection", func() {
+
+			expected := bson.M{
+				"_id": 0,
+				"a":   "$_id.a",
+				"c":   "$c",
+				"sum(bar_DOT_a)": bson.M{
+					"$sum": "$sum(bar_DOT_a)",
+				},
+				"sum(bar_DOT_b)": bson.M{
+					"$sum": "$sum(bar_DOT_b)",
+				},
+			}
+
+			So(projectGroupBy(groupBy, distinctAggFuncs), ShouldResemble, expected)
+		})
+
+	})
 }

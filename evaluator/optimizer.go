@@ -159,7 +159,7 @@ func optimizeGroupBy(ctx *ExecutionCtx, gb *GroupBy) (Operator, error) {
 	}
 
 	// rewrite the grouped columns
-	projectClause := projectGroupBy(groupClause, distinctAggFuncs, table)
+	projectClause := projectGroupBy(groupClause, distinctAggFuncs)
 
 	pipeline = append(pipeline, bson.D{{"$group", groupClause}})
 

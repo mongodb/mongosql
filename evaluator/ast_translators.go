@@ -78,7 +78,7 @@ func getDottedBSON(field string) (bson.M, bool) {
 // projectGroupBy takes a prior group document together with a map of distinct aggregate
 // functions and returns a projection document that can be used in the PROJECT stage of
 // an aggregation pipeline.
-func projectGroupBy(groupBy bson.M, distinctAggFuncs map[string]*SQLAggFunctionExpr, table *schema.Table) bson.M {
+func projectGroupBy(groupBy bson.M, distinctAggFuncs map[string]*SQLAggFunctionExpr) bson.M {
 
 	projectClause := bson.M{}
 
