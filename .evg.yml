@@ -6,7 +6,7 @@ buildvariants:
   expansions:
     mongo_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.0-rc6.tgz
   run_on:
-  - ubuntu1404-test
+  - ubuntu1404-build
   tasks:
   - "*"
 - name: windows-64
@@ -300,7 +300,7 @@ tasks:
           . ./set_gopath.sh
           mkfifo test_pipe
           tee -a sqlproxy.suite < test_pipe&
-          go test -v -coverprofile=coverage.out > test_pipe
+          go test -timeout 2h -v -coverprofile=coverage.out > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"

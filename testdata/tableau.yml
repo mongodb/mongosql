@@ -168,9 +168,9 @@ testcases:
       expected_types: [date, date]
       expected: *query5_results
 
-    #- sql: "SELECT attendees.airport_city AS airport_city, attendees.latitude AS latitude, attendees.longitude AS longitude, SUM(1) AS records FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703)) GROUP BY 1, 2, 3 ORDER BY 1, 2, 3;"
-    #  expected_types: [string, float, float, int]
-    #  expected: *query6_results
+    - sql: "SELECT attendees.airport_city AS airport_city, attendees.latitude AS latitude, attendees.longitude AS longitude, SUM(1) AS records FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703)) GROUP BY 1, 2, 3 ORDER BY 1, 2, 3;"
+      expected_types: [string, float, float, int]
+      expected: *query6_results
 
     #- sql: "SELECT attendees.city AS city, SUM(1) AS calculation_4190704170258269 FROM public.attendees attendees  INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1;"
     #- sql: "SELECT attendees.city AS city, COUNT(DISTINCT attendees._id) AS ctd_id FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1;"
