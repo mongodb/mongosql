@@ -4,7 +4,7 @@ buildvariants:
 - name: linux
   display_name: Linux
   expansions:
-    mongo_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.0-rc6.tgz
+    mongo_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.1.tgz
   run_on:
   - ubuntu1404-build
   tasks:
@@ -14,7 +14,7 @@ buildvariants:
   run_on:
   - windows-64-vs2013-test
   expansions:
-    mongo_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.0-rc6.zip
+    mongo_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.1.zip
     extension: .exe
   tasks:
   - "*"
@@ -23,7 +23,7 @@ buildvariants:
   run_on:
   - osx-108
   expansions:
-    mongo_url: https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-3.2.0-rc6.tgz
+    mongo_url: https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-3.2.1.tgz
   tasks:
   - "*"
 
