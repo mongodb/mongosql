@@ -65,7 +65,7 @@ var (
 
 %token LEX_ERROR
 %token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT FOR
-%token <empty> ALL DISTINCT AS EXISTS IN IS LIKE BETWEEN NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
+%token <empty> ALL DISTINCT PRECISION AS EXISTS IN IS LIKE BETWEEN NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LE GE NE NULL_SAFE_EQUAL
 %token <empty> '(' '=' '<' '>' '~'
@@ -460,6 +460,10 @@ select_expression:
     $$ = &StarExpr{}
   }
 | expression as_lower_opt
+  {
+    $$ = &NonStarExpr{Expr: $1, As: $2}
+  }
+| expression as_lower_opt PRECISION
   {
     $$ = &NonStarExpr{Expr: $1, As: $2}
   }

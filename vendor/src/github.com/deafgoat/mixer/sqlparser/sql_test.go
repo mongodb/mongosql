@@ -35,10 +35,34 @@ func TestAliasedWhere(t *testing.T) {
 	sql = "SELECT sum_a_ok AS `sum_a_ok`, sum_b_ok AS `sum_b_ok` FROM ( SELECT SUM(`foo`.`a`) AS `sum_a_ok`, SUM(`foo`.`b`) AS `sum_b_ok`, (COUNT(1) > 0) AS `havclause`, 1 AS `_Tableau_const_expr` FROM `foo` GROUP BY 4 ) `t0` WHERE havclause"
 	testParse(t, sql)
 
-	sql = "select * from foo.tables where a > (TIMESTAMP '2014-06-01 00:00:00.000')"
+	sql = "select * from foo.tables"
+	testParse(t, sql)
+}
+
+func TestTimeConstructors(t *testing.T) {
+
+	sql := "select * from foo.tables where a > (DATE '2014-06-01 00:00:00.000')"
 	testParse(t, sql)
 
-	sql = "select * from foo.tables"
+	sql = "select * from foo.tables where a > (DATETIME '2014-06-01 00:00:00.000')"
+	testParse(t, sql)
+
+	sql = "select * from foo.tables where a > (YEAR '2014-06-01 00:00:00.000')"
+	testParse(t, sql)
+
+	sql = "select * from foo.tables where a > (TIME '2014-06-01 00:00:00.000')"
+	testParse(t, sql)
+
+	sql = "select * from foo.tables where a > (TIMESTAMP '2014-06-01 00:00:00.000')"
+	testParse(t, sql)
+}
+
+func TestCastExpr(t *testing.T) {
+
+	sql := "SELECT CAST(3/3 AS int precision) from foo.tables"
+	testParse(t, sql)
+
+	sql = "SELECT (100 * (CASE WHEN 1 = 0 THEN NULL ELSE CAST((CASE WHEN (flights201406.cancelled = '1') THEN 1 ELSE 0 END) AS DOUBLE PRECISION) / 1 END)) from foo.tables"
 	testParse(t, sql)
 }
 
