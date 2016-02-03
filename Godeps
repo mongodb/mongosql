@@ -1,4 +1,4 @@
-github.com/deafgoat/mixer/sqlparser			660728c44e92b9beacce25c0f37bbfd5e4bdbbb4
+github.com/deafgoat/mixer/sqlparser			68b11183add9094bd9af11a41fc64ce96cf9ff7e
 github.com/go-sql-driver/mysql			v1.2
 github.com/howeyc/gopass	ae71a9cc54fddb61d946abe9191d05a24ac0e21b
 github.com/jessevdk/go-flags	aa34304f81c710f34c76e964a3d996ec1330711d

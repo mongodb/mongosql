@@ -494,6 +494,11 @@ as_lower_opt:
   {
     $$ = $2
   }
+| AS ctor_type
+  {
+    $$ = []byte($2)
+  }
+
 
 table_expression_list:
   table_expression

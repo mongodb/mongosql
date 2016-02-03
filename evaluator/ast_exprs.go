@@ -322,6 +322,7 @@ type SQLScalarFunctionExpr struct {
 }
 
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+
 	switch f.Name {
 	// connector functions
 	case "connection_id":
@@ -336,6 +337,8 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.notFunc(ctx)
 	case "pow":
 		return f.powFunc(ctx)
+	case "cast":
+		return f.castFunc(ctx)
 
 	default:
 		return nil, fmt.Errorf("scalar function '%v' is not supported", string(f.Name))
@@ -390,6 +393,14 @@ func (f *SQLScalarFunctionExpr) powFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, fmt.Errorf("exponent must be a number, but got %t", exponent)
 	}
 	return nil, fmt.Errorf("base must be a number, but got %T", base)
+}
+
+func (f *SQLScalarFunctionExpr) castFunc(ctx *EvalCtx) (SQLValue, error) {
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewSQLValue(value.Value(), f.Exprs[1].String())
 }
 
 // SQLSubqueryExpr is a wrapper around a sqlparser.SelectStatement representing

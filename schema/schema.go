@@ -9,6 +9,7 @@ const (
 	SQLString  string = "string"
 	SQLInt            = "int"
 	SQLFloat          = "float"
+	SQLDouble         = "double"
 	SQLBlob           = "text"
 	SQLVarchar        = "varchar"
 

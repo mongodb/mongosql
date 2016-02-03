@@ -135,7 +135,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			}
 		}
 
-	case schema.SQLFloat:
+	case schema.SQLFloat, schema.SQLDouble:
 
 		switch v := value.(type) {
 		case bool:
@@ -350,9 +350,6 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			return SQLYear{schema.DefaultTime}, nil
 		}
 
-	default:
-		// programmer error: should never happen
-		panic(fmt.Sprintf("unimplemented column type %v", columnType))
 	}
 
 	return nil, fmt.Errorf("unable to convert '%v' (%T) to %v", value, value, columnType)
@@ -779,6 +776,15 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 			}
 
 			exprs = append(exprs, sqlExpr)
+
+			switch name {
+			case "cast":
+				sqlAlias, err := NewSQLExpr(sqlparser.StrVal(typedE.As))
+				if err != nil {
+					return nil, err
+				}
+				exprs = append(exprs, sqlAlias)
+			}
 
 		}
 
