@@ -1027,6 +1027,107 @@ func TestLimitPushDown(t *testing.T) {
 	})
 }
 
+func TestOrderByPushDown(t *testing.T) {
+
+	Convey("Subject: Order By Optimization", t, func() {
+
+		ctx := &ExecutionCtx{
+			Schema: cfgOne,
+			Db:     dbOne,
+		}
+
+		tbl := "foo"
+
+		Convey("Given a push-downable order by", func() {
+
+			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			So(err, ShouldBeNil)
+
+			sa := &SourceAppend{
+				source: ts,
+			}
+
+			orderBy := &OrderBy{
+				source: sa,
+			}
+
+			Convey("Should optimize order by with simple column references 'select a from foo order by a, b DESC, e'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a": SQLFieldExpr{tbl, "a"},
+					"b": SQLFieldExpr{tbl, "b"},
+					"e": SQLFieldExpr{tbl, "e"},
+				}
+				orderBy.keys = constructOrderByKeys(exprs, "a", "b", "e")
+
+				verifyOptimizedPipeline(ctx, orderBy,
+					[]bson.D{bson.D{{"$sort", bson.M{
+						"a":   1,
+						"b":   -1,
+						"d.e": 1,
+					}}}})
+			})
+
+			Convey("Should optimize order by with aggregation expressions that have already been pushed down 'select a from foo group by a order by sum(b)'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a":      SQLFieldExpr{tbl, "a"},
+					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+				}
+
+				groupBy := &GroupBy{
+					source:      sa,
+					keyExprs:    constructSelectExpressions(exprs, "a"),
+					selectExprs: constructSelectExpressions(exprs, "a"),
+				}
+
+				orderBy.source = groupBy
+				orderBy.keys = constructOrderByKeys(exprs, "sum(b)")
+
+				verifyOptimizedPipeline(ctx, orderBy,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_a": "$a",
+							},
+							"sum(foo_DOT_b)": bson.M{
+								"$sum": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":            0,
+							"foo_DOT_a":      "$_id.foo_DOT_a",
+							"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						}}},
+						bson.D{{"$sort", bson.M{
+							"sum(foo_DOT_b)": 1,
+						}}}})
+			})
+		})
+
+		Convey("Given a non-push-downable order by", func() {
+
+			empty := &Empty{}
+
+			orderBy := &OrderBy{
+				source: empty,
+			}
+
+			Convey("Should not optimized the pipeline", func() {
+
+				exprs := map[string]SQLExpr{
+					"a": SQLFieldExpr{tbl, "a"},
+					"b": SQLFieldExpr{tbl, "b"},
+					"c": SQLFieldExpr{tbl, "c"},
+				}
+				orderBy.keys = constructOrderByKeys(exprs, "a", "b", "c")
+
+				verifyUnoptimizedPipeline(ctx, orderBy)
+			})
+		})
+	})
+}
+
 func verifyUnoptimizedPipeline(ctx *ExecutionCtx, op Operator) {
 	optimized, err := OptimizeOperator(ctx, op)
 	So(err, ShouldBeNil)

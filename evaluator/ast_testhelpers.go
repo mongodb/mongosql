@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 )
@@ -22,6 +23,22 @@ func constructSelectExpressions(exprs map[string]SQLExpr, values ...string) (sEx
 			Referenced: true,
 		})
 	}
+	return
+}
+
+func constructOrderByKeys(exprs map[string]SQLExpr, values ...string) (keys []orderByKey) {
+	sExprs := constructSelectExpressions(exprs, values...)
+
+	for i := range sExprs {
+
+		key := orderByKey{
+			expr:      &sExprs[i],
+			ascending: i%2 == 0,
+		}
+
+		keys = append(keys, key)
+	}
+
 	return
 }
 

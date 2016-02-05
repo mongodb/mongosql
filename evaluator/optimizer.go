@@ -23,17 +23,22 @@ func (v *optimizer) Visit(o Operator) (Operator, error) {
 	case *Filter:
 		o, err = v.visitFilter(typedO)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to optimized filter: %v", err)
+			return nil, fmt.Errorf("unable to optimize filter: %v", err)
 		}
 	case *GroupBy:
 		o, err = v.visitGroupBy(typedO)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to optimized group by: %v", err)
+			return nil, fmt.Errorf("unable to optimize group by: %v", err)
 		}
 	case *Limit:
 		o, err = v.visitLimit(typedO)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to optimized limit: %v", err)
+			return nil, fmt.Errorf("unable to optimize limit: %v", err)
+		}
+	case *OrderBy:
+		o, err = v.visitOrderBy(typedO)
+		if err != nil {
+			return nil, fmt.Errorf("unable to optimize order by: %v", err)
 		}
 	}
 

@@ -3,6 +3,8 @@ package evaluator
 import (
 	"fmt"
 	"sort"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
 // OrderBy sorts records according to one or more keys.
@@ -210,4 +212,53 @@ func (rows orderByRows) Less(i, j int) bool {
 	}
 
 	return false
+}
+
+///////////////
+//Optimization
+///////////////
+
+func (v *optimizer) visitOrderBy(orderBy *OrderBy) (Operator, error) {
+
+	sa, ts, ok := canPushDown(orderBy.source)
+	if !ok {
+		return orderBy, nil
+	}
+
+	sort := bson.D{}
+
+	for _, key := range orderBy.keys {
+
+		var tableName, columnName string
+
+		switch typedE := key.expr.Expr.(type) {
+		case SQLFieldExpr:
+			tableName, columnName = typedE.tableName, typedE.fieldName
+		default:
+			// MongoDB only allows sorting by a field, so pushing down a
+			// non-field requires it to be pre-calculated by a previous
+			// push down. If it has been pre-calculated, then it will
+			// exist in the mapping registry. Otherwise, it won't, and
+			// the order by cannot be pushed down.
+			columnName = typedE.String()
+		}
+
+		fieldName, ok := ts.mappingRegistry.lookupFieldName(tableName, columnName)
+		if !ok {
+			return orderBy, nil
+		}
+		direction := 1
+		if !key.ascending {
+			direction = -1
+		}
+		sort = append(sort, bson.DocElem{fieldName, direction})
+	}
+
+	pipeline := ts.pipeline
+	pipeline = append(pipeline, bson.D{{"$sort", sort}})
+
+	ts = ts.WithPipeline(pipeline)
+	sa = sa.WithSource(ts)
+
+	return sa, nil
 }
