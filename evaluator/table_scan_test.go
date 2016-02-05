@@ -1,9 +1,10 @@
 package evaluator
 
 import (
+	"testing"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
 )
 
 func TestTableScanOperator(t *testing.T) {
@@ -44,10 +45,8 @@ func TestTableScanOperator(t *testing.T) {
 				Session: session,
 			}
 
-			operator := TableScan{
-				tableName: tableTwoName,
-			}
-
+			operator, err := NewTableScan(ctx, dbOne, tableTwoName, "")
+			So(err, ShouldBeNil)
 			So(operator.Open(ctx), ShouldBeNil)
 
 			row := &Row{}

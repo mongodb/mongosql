@@ -28,10 +28,30 @@ schema:
         name: c
         sqltype: int
      -
+        name: d.e
+        sqlname: e
+        sqltype: int
+     -
+        name: d.f
+        sqlname: f
+        sqltype: int
+     -
         name: _id
   -
      table: bar
      collection: test.bar
+     columns:
+     -
+        name: a
+        sqltype: int
+     -
+        name: b
+        sqltype: int
+     -
+        name: _id
+  -
+     table: baz
+     collection: test.baz
      columns:
      -
         name: a

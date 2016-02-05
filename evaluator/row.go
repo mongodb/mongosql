@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+const (
+	Dot = "_DOT_"
+)
+
 // Row holds data from one or more tables.
 type Row struct {
 	Data TableRows

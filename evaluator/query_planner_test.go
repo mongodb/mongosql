@@ -6,67 +6,20 @@ import (
 	"testing"
 )
 
-var (
-	// Table expressions to use as arguments for the
-	// planFromExpr function
-	planFromExprTExprs = [][]sqlparser.TableExpr{
-
-		// no table expression
-		[]sqlparser.TableExpr{},
-
-		// one table expression
-		[]sqlparser.TableExpr{
-			&sqlparser.AliasedTableExpr{
-				Expr: &sqlparser.TableName{
-					Name: []byte(tableOneName),
-				},
-			},
-		},
-
-		// ...
-		[]sqlparser.TableExpr{
-			&sqlparser.AliasedTableExpr{
-				Expr: &sqlparser.TableName{
-					Name: []byte(tableOneName),
-				},
-			},
-			&sqlparser.AliasedTableExpr{
-				Expr: &sqlparser.TableName{
-					Name: []byte(tableTwoName),
-				},
-			},
-		},
-
-		// ...
-		[]sqlparser.TableExpr{
-			&sqlparser.AliasedTableExpr{
-				Expr: &sqlparser.TableName{
-					Name: []byte(tableOneName),
-				},
-			},
-			&sqlparser.AliasedTableExpr{
-				Expr: &sqlparser.TableName{
-					Name: []byte(tableTwoName),
-				},
-			},
-			&sqlparser.AliasedTableExpr{
-				Expr: &sqlparser.TableName{
-					Name: []byte(tableThreeName),
-				},
-			},
-		},
-	}
-
-	ctx = &ExecutionCtx{}
-)
-
 func TestPlanFromExpr(t *testing.T) {
+
+	ctx := &ExecutionCtx{
+		Schema: cfgOne,
+		Db:     dbOne,
+	}
 
 	Convey("With a given table expr...", t, func() {
 
 		Convey("planning the from expression with no table should return an error", func() {
 
-			opr, err := planFromExpr(ctx, planFromExprTExprs[0], nil)
+			tables := []sqlparser.TableExpr{}
+
+			opr, err := planFromExpr(ctx, tables, nil)
 			So(err, ShouldNotBeNil)
 			So(opr, ShouldBeNil)
 
@@ -74,7 +27,16 @@ func TestPlanFromExpr(t *testing.T) {
 
 		Convey("planning the from expression with one table should return a table scan operator", func() {
 
-			opr, err := planFromExpr(ctx, planFromExprTExprs[1], nil)
+			tables := []sqlparser.TableExpr{
+				&sqlparser.AliasedTableExpr{
+					Expr: &sqlparser.TableName{
+						Name:      []byte(tableOneName),
+						Qualifier: []byte(dbOne),
+					},
+				},
+			}
+
+			opr, err := planFromExpr(ctx, tables, nil)
 			So(err, ShouldBeNil)
 			ts, ok := opr.(*TableScan)
 			So(ok, ShouldBeTrue)
@@ -84,7 +46,22 @@ func TestPlanFromExpr(t *testing.T) {
 
 		Convey("planning the from expression with two tables should return a cross join operator", func() {
 
-			opr, err := planFromExpr(ctx, planFromExprTExprs[2], nil)
+			tables := []sqlparser.TableExpr{
+				&sqlparser.AliasedTableExpr{
+					Expr: &sqlparser.TableName{
+						Name:      []byte(tableOneName),
+						Qualifier: []byte(dbOne),
+					},
+				},
+				&sqlparser.AliasedTableExpr{
+					Expr: &sqlparser.TableName{
+						Name:      []byte(tableTwoName),
+						Qualifier: []byte(dbOne),
+					},
+				},
+			}
+
+			opr, err := planFromExpr(ctx, tables, nil)
 			So(err, ShouldBeNil)
 			join, ok := opr.(*Join)
 			So(ok, ShouldBeTrue)
@@ -102,7 +79,28 @@ func TestPlanFromExpr(t *testing.T) {
 
 		Convey("planning the from expression with more than two tables should return a left-leaning cross join operator", func() {
 
-			opr, err := planFromExpr(ctx, planFromExprTExprs[3], nil)
+			tables := []sqlparser.TableExpr{
+				&sqlparser.AliasedTableExpr{
+					Expr: &sqlparser.TableName{
+						Name:      []byte(tableOneName),
+						Qualifier: []byte(dbOne),
+					},
+				},
+				&sqlparser.AliasedTableExpr{
+					Expr: &sqlparser.TableName{
+						Name:      []byte(tableTwoName),
+						Qualifier: []byte(dbOne),
+					},
+				},
+				&sqlparser.AliasedTableExpr{
+					Expr: &sqlparser.TableName{
+						Name:      []byte(tableThreeName),
+						Qualifier: []byte(dbOne),
+					},
+				},
+			}
+
+			opr, err := planFromExpr(ctx, tables, nil)
 			So(err, ShouldBeNil)
 
 			join, ok := opr.(*Join)

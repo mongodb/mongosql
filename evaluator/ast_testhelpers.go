@@ -7,25 +7,22 @@ import (
 )
 
 func constructSelectExpressions(exprs map[string]SQLExpr, values ...string) (sExprs SelectExpressions) {
-
-	for i, value := range values {
+	for _, value := range values {
 
 		expr := exprs[value]
 
 		column := &Column{
 			Name: expr.String(),
-			View: expr.String(),
+			View: value,
 		}
 
 		sExprs = append(sExprs, SelectExpression{
 			Column:     column,
 			Expr:       expr,
-			Referenced: (i % 2) == 0,
+			Referenced: true,
 		})
 	}
-
 	return
-
 }
 
 func getWhereSQLExprFromSQL(schema *schema.Schema, sql string) (SQLExpr, error) {

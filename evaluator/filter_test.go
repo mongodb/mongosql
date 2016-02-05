@@ -2,51 +2,57 @@ package evaluator
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
 )
 
 var (
 	_ fmt.Stringer = nil
 )
 
-func filterSourceTest(operator Operator, rows []bson.D, expectedRows []Values) {
-
-	collectionTwo.DropCollection()
-
-	for _, row := range rows {
-		So(collectionTwo.Insert(row), ShouldBeNil)
-	}
-
-	ctx := &ExecutionCtx{
-		Schema:  cfgOne,
-		Db:      dbOne,
-		Session: session,
-	}
-
-	So(operator.Open(ctx), ShouldBeNil)
-
-	row := &Row{}
-
-	i := 0
-
-	for operator.Next(row) {
-		So(len(row.Data), ShouldEqual, 1)
-		So(row.Data[0].Table, ShouldEqual, tableTwoName)
-		So(row.Data[0].Values, ShouldResemble, expectedRows[i])
-		row = &Row{}
-		i++
-	}
-
-	So(i, ShouldEqual, len(expectedRows))
-
-	So(operator.Close(), ShouldBeNil)
-	So(operator.Err(), ShouldBeNil)
-}
-
 func TestFilterOperator(t *testing.T) {
+
+	runTest := func(filter *Filter, rows []bson.D, expectedRows []Values) {
+
+		collectionTwo.DropCollection()
+
+		for _, row := range rows {
+			So(collectionTwo.Insert(row), ShouldBeNil)
+		}
+
+		ctx := &ExecutionCtx{
+			Schema:  cfgOne,
+			Db:      dbOne,
+			Session: session,
+		}
+
+		ts, err := NewTableScan(ctx, dbOne, tableTwoName, "")
+		So(err, ShouldBeNil)
+
+		filter.source = ts
+
+		So(filter.Open(ctx), ShouldBeNil)
+
+		row := &Row{}
+
+		i := 0
+
+		for filter.Next(row) {
+			So(len(row.Data), ShouldEqual, 1)
+			So(row.Data[0].Table, ShouldEqual, tableTwoName)
+			So(row.Data[0].Values, ShouldResemble, expectedRows[i])
+			row = &Row{}
+			i++
+		}
+
+		So(i, ShouldEqual, len(expectedRows))
+
+		So(filter.Close(), ShouldBeNil)
+		So(filter.Err(), ShouldBeNil)
+	}
 
 	Convey("With a simple test configuration...", t, func() {
 
@@ -80,13 +86,10 @@ func TestFilterOperator(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				operator := &Filter{
-					source: &TableScan{
-						tableName: tableTwoName,
-					},
 					matcher: matcher,
 				}
 
-				filterSourceTest(operator, rows, expected[i])
+				runTest(operator, rows, expected[i])
 			}
 		})
 	})

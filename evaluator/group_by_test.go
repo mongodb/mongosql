@@ -1,51 +1,69 @@
 package evaluator
 
 import (
+	"testing"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
 )
 
-func groupByTest(operator Operator, rows []bson.D, expectedRows [][]Values) {
+func TestGroupByOperator(t *testing.T) {
 
-	collectionOne.DropCollection()
+	runTest := func(groupBy *GroupBy, rows []bson.D, expectedRows [][]Values) {
 
-	for _, row := range rows {
-		So(collectionOne.Insert(row), ShouldBeNil)
-	}
+		collectionOne.DropCollection()
 
-	ctx := &ExecutionCtx{
-		Schema:  cfgOne,
-		Db:      dbOne,
-		Session: session,
-	}
-
-	So(operator.Open(ctx), ShouldBeNil)
-
-	row := &Row{}
-
-	i := 0
-
-	for operator.Next(row) {
-		So(len(row.Data), ShouldEqual, 2)
-		aggregateTable := 1
-		if row.Data[0].Table == "" {
-			aggregateTable = 0
+		for _, row := range rows {
+			So(collectionOne.Insert(row), ShouldBeNil)
 		}
 
-		So(row.Data[aggregateTable].Table, ShouldEqual, "")
-		So(row.Data[1-aggregateTable].Table, ShouldEqual, tableOneName)
-		So(row.Data[1-aggregateTable].Values, ShouldResemble, expectedRows[i][0])
-		So(row.Data[aggregateTable].Values, ShouldResemble, expectedRows[i][1])
-		row = &Row{}
-		i++
+		ctx := &ExecutionCtx{
+			Schema:  cfgOne,
+			Db:      dbOne,
+			Session: session,
+		}
+
+		ts, err := NewTableScan(ctx, dbOne, tableOneName, "")
+		So(err, ShouldBeNil)
+
+		groupBy.source = &Project{
+			source: ts,
+			sExprs: SelectExpressions{
+				SelectExpression{
+					Column: &Column{tableOneName, "a", "a", "int"},
+					Expr:   SQLFieldExpr{tableOneName, "a"},
+				},
+				SelectExpression{
+					Column: &Column{tableOneName, "b", "b", "int"},
+					Expr:   SQLFieldExpr{tableOneName, "b"},
+				},
+			},
+		}
+
+		So(groupBy.Open(ctx), ShouldBeNil)
+
+		row := &Row{}
+
+		i := 0
+
+		for groupBy.Next(row) {
+			So(len(row.Data), ShouldEqual, 2)
+			aggregateTable := 1
+			if row.Data[0].Table == "" {
+				aggregateTable = 0
+			}
+
+			So(row.Data[aggregateTable].Table, ShouldEqual, "")
+			So(row.Data[1-aggregateTable].Table, ShouldEqual, tableOneName)
+			So(row.Data[1-aggregateTable].Values, ShouldResemble, expectedRows[i][0])
+			So(row.Data[aggregateTable].Values, ShouldResemble, expectedRows[i][1])
+			row = &Row{}
+			i++
+		}
+
+		So(groupBy.Close(), ShouldBeNil)
+		So(groupBy.Err(), ShouldBeNil)
 	}
-
-	So(operator.Close(), ShouldBeNil)
-	So(operator.Err(), ShouldBeNil)
-}
-
-func TestGroupByOperator(t *testing.T) {
 
 	Convey("A group by operator...", t, func() {
 
@@ -54,31 +72,15 @@ func TestGroupByOperator(t *testing.T) {
 			bson.D{{"_id", 2}, {"a", 6}, {"b", 8}},
 		}
 
-		source := &Project{
-			source: &TableScan{
-				tableName: tableOneName,
-			},
-			sExprs: SelectExpressions{
-				SelectExpression{
-					Column: &Column{tableOneName, "a", "a"},
-					Expr:   SQLFieldExpr{tableOneName, "a"},
-				},
-				SelectExpression{
-					Column: &Column{tableOneName, "b", "b"},
-					Expr:   SQLFieldExpr{tableOneName, "b"},
-				},
-			},
-		}
-
 		Convey("should return the right result when using an aggregation function", func() {
 
 			sExprs := SelectExpressions{
 				SelectExpression{
-					Column: &Column{tableOneName, "a", "a"},
+					Column: &Column{tableOneName, "a", "a", "int"},
 					Expr:   SQLFieldExpr{tableOneName, "a"},
 				},
 				SelectExpression{
-					Column: &Column{"", "sum(b)", "sum(b)"},
+					Column: &Column{"", "sum(b)", "sum(b)", "int"},
 					Expr: &SQLAggFunctionExpr{
 						Name: "sum",
 						Exprs: []SQLExpr{
@@ -90,16 +92,14 @@ func TestGroupByOperator(t *testing.T) {
 
 			exprs := SelectExpressions{
 				SelectExpression{
-					Column: &Column{tableOneName, "a", "a"},
+					Column: &Column{tableOneName, "a", "a", "int"},
 					Expr:   SQLFieldExpr{tableOneName, "a"},
 				},
 			}
 
 			operator := &GroupBy{
-				sExprs:  sExprs,
-				source:  source,
-				exprs:   exprs,
-				matcher: SQLBool(true),
+				selectExprs: sExprs,
+				keyExprs:    exprs,
 			}
 
 			expected := [][]Values{
@@ -109,7 +109,7 @@ func TestGroupByOperator(t *testing.T) {
 				},
 			}
 
-			groupByTest(operator, data, expected)
+			runTest(operator, data, expected)
 
 		})
 

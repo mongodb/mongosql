@@ -2,12 +2,13 @@ package sqlproxy
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
 )
 
 var (
@@ -227,30 +228,6 @@ func TestSelectWithNonStar(t *testing.T) {
 
 }
 
-func TestSelectWithAggregateFunction(t *testing.T) {
-
-	Convey("With a non-star select query containing aggregate functions", t, func() {
-
-		collectionOne.DropCollection()
-
-		So(collectionOne.Insert(bson.M{"_id": 1, "b": 6, "a": 7}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 2, "b": 6, "a": 7}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 3, "b": 6, "a": 7}), ShouldBeNil)
-
-		Convey("only one result set should be returned", func() {
-
-			names, values, err := eval.EvalSelect("test", "select count(*) from bar", nil, nil)
-			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 1)
-			So(len(values), ShouldEqual, 1)
-			So(len(values[0]), ShouldEqual, 1)
-			So(values[0][0], ShouldResemble, evaluator.SQLInt(3))
-
-		})
-	})
-
-}
-
 func TestSelectWithAliasing(t *testing.T) {
 
 	Convey("With a non-star select query", t, func() {
@@ -363,44 +340,6 @@ func TestSelectWithDistinct(t *testing.T) {
 			So(values[3][0], ShouldResemble, evaluator.SQLInt(2))
 		})
 
-		Convey("grouping using distinct aggregation functions should return distinct results", func() {
-
-			names, values, err := eval.EvalSelect("test", "SELECT a, sum(distinct b+_id) FROM bar GROUP BY a", nil, nil)
-			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 2)
-
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
-					evaluator.SQLInt(3),
-				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
-					evaluator.SQLInt(13),
-				},
-			}
-
-			checkExpectedValues(2, values, expectedValues)
-		})
-
-		Convey("grouping using multiple distinct aggregation functions should return distinct results", func() {
-
-			names, values, err := eval.EvalSelect("test", "SELECT a, sum(distinct b+_id), sum(distinct b) FROM bar GROUP BY a", nil, nil)
-			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 3)
-
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
-					evaluator.SQLInt(3),
-					evaluator.SQLInt(3),
-				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
-					evaluator.SQLInt(13),
-					evaluator.SQLInt(5),
-				},
-			}
-
-			checkExpectedValues(3, values, expectedValues)
-		})
-
 		Convey("distinct with aggregate functions and no grouping should return a single result", func() {
 
 			names, values, err := eval.EvalSelect("test", "SELECT distinct sum(a-b), sum(b), a, a+b FROM bar", nil, nil)
@@ -476,9 +415,7 @@ func TestSelectWithDistinct(t *testing.T) {
 			So(values[2][2], ShouldResemble, evaluator.SQLInt(3))
 
 		})
-
 	})
-
 }
 
 func TestSelectWithGroupBy(t *testing.T) {
@@ -486,10 +423,12 @@ func TestSelectWithGroupBy(t *testing.T) {
 	Convey("With a select query containing a GROUP BY clause", t, func() {
 
 		collectionOne.DropCollection()
-		So(collectionOne.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"_id": 1, "b": 2, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"_id": 2, "b": 1, "a": 1}), ShouldBeNil)
 		So(collectionOne.Insert(bson.M{"_id": 3, "b": 3, "a": 2}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 4, "b": 4, "a": 3}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"_id": 4, "b": 3, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"_id": 5, "b": 2, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"_id": 6, "b": nil, "a": 1}), ShouldBeNil)
 
 		Convey("the result set should contain terms grouped accordingly", func() {
 
@@ -504,10 +443,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 					evaluator.SQLInt(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLNumeric{
-					evaluator.SQLInt(3),
-				},
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
-					evaluator.SQLInt(4),
+					evaluator.SQLInt(8),
 				},
 			}
 
@@ -525,16 +461,12 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			expectedValues := map[interface{}][]evaluator.SQLNumeric{
 				evaluator.SQLInt(1): []evaluator.SQLNumeric{
-					evaluator.SQLInt(2),
+					evaluator.SQLInt(3),
 					evaluator.SQLInt(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLNumeric{
-					evaluator.SQLInt(1),
 					evaluator.SQLInt(3),
-				},
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
-					evaluator.SQLInt(1),
-					evaluator.SQLInt(4),
+					evaluator.SQLInt(8),
 				},
 			}
 
@@ -551,9 +483,15 @@ func TestSelectWithGroupBy(t *testing.T) {
 			names, values, err = eval.EvalSelect("test", "select a from bar group by a", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
-			So(len(values), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 2)
 
 			So(names, ShouldResemble, []string{"a"})
+
+			expectedValues = map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(1): []evaluator.SQLNumeric{},
+				evaluator.SQLInt(2): []evaluator.SQLNumeric{},
+			}
+			checkExpectedValues(1, values, expectedValues)
 
 			names, values, err = eval.EvalSelect("test", "select a as zz from bar group by zz", nil, nil)
 			So(err, ShouldBeNil)
@@ -564,20 +502,32 @@ func TestSelectWithGroupBy(t *testing.T) {
 			expectedValues = map[interface{}][]evaluator.SQLNumeric{
 				evaluator.SQLInt(1): []evaluator.SQLNumeric{},
 				evaluator.SQLInt(2): []evaluator.SQLNumeric{},
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{},
 			}
 			checkExpectedValues(1, values, expectedValues)
 
 		})
 
-		Convey("no error should be returned if the some select fields are unused in GROUP BY clause", func() {
+		Convey("no error should be returned if some select fields are unused in GROUP BY clause", func() {
 			names, values, err := eval.EvalSelect("test", "select a, b, sum(a) from bar group by a order by a", nil, nil)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 3)
 			So(names, ShouldResemble, []string{"a", "b", "sum(bar.a)"})
 
-			So(len(values), ShouldEqual, 3)
+			So(len(values), ShouldEqual, 2)
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+					evaluator.SQLInt(2),
+					evaluator.SQLInt(3),
+				},
+				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+					evaluator.SQLInt(3),
+					evaluator.SQLInt(6),
+				},
+			}
+
+			checkExpectedValues(3, values, expectedValues)
 
 		})
 
@@ -594,10 +544,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 					evaluator.SQLInt(5),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLNumeric{
-					evaluator.SQLInt(5),
-				},
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
-					evaluator.SQLInt(7),
+					evaluator.SQLInt(14),
 				},
 			}
 
@@ -617,10 +564,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 					evaluator.SQLInt(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLNumeric{
-					evaluator.SQLInt(3),
-				},
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
-					evaluator.SQLInt(4),
+					evaluator.SQLInt(8),
 				},
 			}
 
@@ -641,10 +585,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 					evaluator.SQLInt(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLNumeric{
-					evaluator.SQLInt(3),
-				},
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
-					evaluator.SQLInt(4),
+					evaluator.SQLInt(8),
 				},
 			}
 
@@ -660,7 +601,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(len(values), ShouldEqual, 1)
 
 			So(names, ShouldResemble, []string{"sum_a_ok"})
-			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(9))
 
 		})
 
@@ -672,12 +613,103 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(len(values), ShouldEqual, 1)
 
 			So(names, ShouldResemble, []string{"sum_a_ok"})
-			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(9))
 
 			names, values, err = eval.EvalSelect("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0` where not havclause", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 0)
+
+		})
+
+		Convey("grouping using distinct aggregation functions should return distinct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "SELECT a, sum(distinct b+_id) FROM bar GROUP BY a", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+					evaluator.SQLInt(3),
+				},
+				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+					evaluator.SQLInt(13),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
+		})
+
+		Convey("grouping using multiple distinct aggregation functions should return distinct results", func() {
+
+			names, values, err := eval.EvalSelect("test", "SELECT a, sum(distinct b+_id), sum(distinct b) FROM bar GROUP BY a", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 3)
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+					evaluator.SQLInt(3),
+					evaluator.SQLInt(3),
+				},
+				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+					evaluator.SQLInt(13),
+					evaluator.SQLInt(5),
+				},
+			}
+
+			checkExpectedValues(3, values, expectedValues)
+		})
+
+		Convey("count with a star parameter should count all rows", func() {
+
+			names, values, err := eval.EvalSelect("test", "select count(*) from bar", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 1)
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(6))
+		})
+
+		Convey("count with a column parameter should count only rows that contain a non-nullish b", func() {
+
+			names, values, err := eval.EvalSelect("test", "select count(b) from bar", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 1)
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
+
+		})
+
+		Convey("count with a distinct column parameter should count only non-nullish distinct values", func() {
+
+			names, values, err := eval.EvalSelect("test", "select count(distinct b) from bar", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 1)
+			So(len(values[0]), ShouldEqual, 1)
+			So(values[0][0], ShouldResemble, evaluator.SQLInt(3))
+
+		})
+
+		Convey("should handle aliased table definitions", func() {
+
+			names, values, err := eval.EvalSelect("test", "select a, sum(b) from bar as b group by a", nil, nil)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+
+			So(names, ShouldResemble, []string{"a", "sum(b.b)"})
+
+			expectedValues := map[interface{}][]evaluator.SQLNumeric{
+				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+					evaluator.SQLInt(3),
+				},
+				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+					evaluator.SQLInt(8),
+				},
+			}
+
+			checkExpectedValues(2, values, expectedValues)
 
 		})
 	})

@@ -3,6 +3,11 @@ package sqlproxy
 import (
 	"database/sql"
 	"fmt"
+	"io/ioutil"
+	"reflect"
+	"strings"
+	"testing"
+
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/proxy"
 	"github.com/10gen/sqlproxy/schema"
@@ -13,10 +18,6 @@ import (
 	"github.com/mongodb/mongo-tools/mongorestore"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"reflect"
-	"strings"
-	"testing"
 )
 
 const (

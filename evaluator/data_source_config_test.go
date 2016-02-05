@@ -66,11 +66,11 @@ func TestSchemaDataSourceIterTables(t *testing.T) {
 			names = append(names, v.(string))
 		}
 
-		So(len(names), ShouldEqual, 6)
+		So(len(names), ShouldEqual, 7)
 
-		tableNames := []string{"bar", "bar", "bar", "foo", "foo", "silly"}
+		tableNames := []string{"bar", "bar", "bar", "baz", "foo", "foo", "silly"}
 		sort.Strings(names)
-		So(tableNames, ShouldResemble, names)
+		So(names, ShouldResemble, tableNames)
 		So(iter.Close(), ShouldBeNil)
 	})
 }

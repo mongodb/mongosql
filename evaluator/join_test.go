@@ -1,10 +1,11 @@
 package evaluator
 
 import (
+	"testing"
+
 	"github.com/deafgoat/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
 )
 
 var (
@@ -60,7 +61,7 @@ var (
 	}
 )
 
-func setupJoinOperator(criteria sqlparser.BoolExpr, joinType string) Operator {
+func setupJoinOperator(ctx *ExecutionCtx, criteria sqlparser.BoolExpr, joinType string) Operator {
 
 	c1 := session.DB(dbTwo).C(tableOneName)
 	c1.DropCollection()
@@ -76,13 +77,10 @@ func setupJoinOperator(criteria sqlparser.BoolExpr, joinType string) Operator {
 		So(c2.Insert(order), ShouldBeNil)
 	}
 
-	ts1 := &TableScan{
-		tableName: tableOneName,
-	}
-
-	ts2 := &TableScan{
-		tableName: tableTwoName,
-	}
+	ts1, err := NewTableScan(ctx, dbTwo, tableOneName, "")
+	So(err, ShouldBeNil)
+	ts2, err := NewTableScan(ctx, dbTwo, tableTwoName, "")
+	So(err, ShouldBeNil)
 
 	return &Join{
 		left:  ts1,
@@ -114,14 +112,13 @@ func TestJoinOperator(t *testing.T) {
 			Db:      dbTwo,
 			Session: session,
 		}
-
 		row := &Row{}
 
 		i := 0
 
 		Convey("an inner join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, sqlparser.AST_JOIN)
+			operator := setupJoinOperator(ctx, criteria, sqlparser.AST_JOIN)
 
 			So(operator.Open(ctx), ShouldBeNil)
 
@@ -153,7 +150,7 @@ func TestJoinOperator(t *testing.T) {
 
 		Convey("an left join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, sqlparser.AST_LEFT_JOIN)
+			operator := setupJoinOperator(ctx, criteria, sqlparser.AST_LEFT_JOIN)
 
 			So(operator.Open(ctx), ShouldBeNil)
 
@@ -195,7 +192,7 @@ func TestJoinOperator(t *testing.T) {
 
 		Convey("an right join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, sqlparser.AST_RIGHT_JOIN)
+			operator := setupJoinOperator(ctx, criteria, sqlparser.AST_RIGHT_JOIN)
 
 			So(operator.Open(ctx), ShouldBeNil)
 
@@ -236,7 +233,7 @@ func TestJoinOperator(t *testing.T) {
 
 		Convey("a cross join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, sqlparser.AST_CROSS_JOIN)
+			operator := setupJoinOperator(ctx, criteria, sqlparser.AST_CROSS_JOIN)
 
 			So(operator.Open(ctx), ShouldBeNil)
 

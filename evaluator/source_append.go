@@ -13,6 +13,13 @@ type SourceAppend struct {
 	hasSubquery bool
 }
 
+func (sa *SourceAppend) WithSource(source Operator) *SourceAppend {
+	return &SourceAppend{
+		source:      source,
+		hasSubquery: sa.hasSubquery,
+	}
+}
+
 func (sa *SourceAppend) Open(ctx *ExecutionCtx) error {
 	sa.ctx = ctx
 	return sa.source.Open(ctx)

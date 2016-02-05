@@ -3,10 +3,11 @@ package evaluator
 import (
 	"bytes"
 	"fmt"
+	"strings"
+
 	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"strings"
 )
 
 // Column contains information used to select data
@@ -17,6 +18,7 @@ type Column struct {
 	Table string
 	Name  string
 	View  string
+	Type  string
 }
 
 type ConnectionCtx interface {
@@ -403,11 +405,9 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 
 		if typedO.source != source {
 			o = &GroupBy{
-				source:    source,
-				sExprs:    typedO.sExprs,
-				exprs:     typedO.exprs,
-				evaluated: typedO.evaluated,
-				matcher:   typedO.matcher,
+				source:      source,
+				selectExprs: typedO.selectExprs,
+				keyExprs:    typedO.keyExprs,
 			}
 		}
 	case *Join:

@@ -1,9 +1,10 @@
 package evaluator
 
 import (
+	"testing"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
 )
 
 func TestOptimizeOperator(t *testing.T) {
@@ -14,13 +15,12 @@ func TestOptimizeOperator(t *testing.T) {
 			Db:     dbOne,
 		}
 
+		tbl := "foo"
+
 		Convey("Given a recursively optimizable tree", func() {
 
-			ts := &TableScan{
-				tableName: "foo",
-				dbName:    "test",
-				pipeline:  []bson.D{},
-			}
+			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
 				source: ts,
@@ -30,7 +30,7 @@ func TestOptimizeOperator(t *testing.T) {
 
 				filter := &Filter{
 					source:  sa,
-					matcher: &SQLEqualsExpr{SQLFieldExpr{"foo", "a"}, SQLString("funny")},
+					matcher: &SQLEqualsExpr{SQLFieldExpr{tbl, "a"}, SQLString("funny")},
 				}
 
 				limit := &Limit{
@@ -71,7 +71,7 @@ func TestOptimizeOperator(t *testing.T) {
 
 				filter := &Filter{
 					source:  skip,
-					matcher: &SQLEqualsExpr{SQLFieldExpr{"foo", "a"}, SQLString("funny")},
+					matcher: &SQLEqualsExpr{SQLFieldExpr{tbl, "a"}, SQLString("funny")},
 				}
 
 				limit := &Limit{
@@ -99,13 +99,12 @@ func TestFilterPushDown(t *testing.T) {
 			Db:     dbOne,
 		}
 
+		tbl := "foo"
+
 		Convey("Given a push-downable filter", func() {
 
-			ts := &TableScan{
-				tableName: "foo",
-				dbName:    "test",
-				pipeline:  []bson.D{},
-			}
+			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
 				source: ts,
@@ -117,7 +116,7 @@ func TestFilterPushDown(t *testing.T) {
 
 			Convey("Should optimize when the matcher is fully translatable", func() {
 
-				filter.matcher = &SQLEqualsExpr{SQLFieldExpr{"foo", "a"}, SQLString("funny")}
+				filter.matcher = &SQLEqualsExpr{SQLFieldExpr{tbl, "a"}, SQLString("funny")}
 
 				verifyOptimizedPipeline(ctx, filter,
 					[]bson.D{bson.D{{"$match", bson.M{"a": "funny"}}}})
@@ -126,14 +125,14 @@ func TestFilterPushDown(t *testing.T) {
 			Convey("Should optimize when the matcher is partially translatable", func() {
 
 				filter.matcher = &SQLAndExpr{
-					&SQLEqualsExpr{SQLFieldExpr{"foo", "a"}, SQLString("funny")},
-					&SQLEqualsExpr{SQLFieldExpr{"foo", "b"}, SQLFieldExpr{"foo", "c"}}}
+					&SQLEqualsExpr{SQLFieldExpr{tbl, "a"}, SQLString("funny")},
+					&SQLEqualsExpr{SQLFieldExpr{tbl, "b"}, SQLFieldExpr{tbl, "c"}}}
 
 				optimized, err := OptimizeOperator(ctx, filter)
 				So(err, ShouldBeNil)
 				newFilter, ok := optimized.(*Filter)
 				So(ok, ShouldBeTrue)
-				So(newFilter.matcher, ShouldResemble, &SQLEqualsExpr{SQLFieldExpr{"foo", "b"}, SQLFieldExpr{"foo", "c"}})
+				So(newFilter.matcher, ShouldResemble, &SQLEqualsExpr{SQLFieldExpr{tbl, "b"}, SQLFieldExpr{tbl, "c"}})
 				sa, ok := newFilter.source.(*SourceAppend)
 				So(ok, ShouldBeTrue)
 				ts, ok := sa.source.(*TableScan)
@@ -145,11 +144,8 @@ func TestFilterPushDown(t *testing.T) {
 
 		Convey("Given an immediately evaluated filter", func() {
 
-			ts := &TableScan{
-				tableName: "foo",
-				dbName:    "test",
-				pipeline:  []bson.D{},
-			}
+			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
 				source: ts,
@@ -172,7 +168,7 @@ func TestFilterPushDown(t *testing.T) {
 			Convey("Should elimate the Filter from the tree and not alter the pipeline when evaluated to true", func() {
 				filter.matcher = SQLBool(true)
 
-				verifyOptimizedPipeline(ctx, filter, []bson.D{})
+				verifyOptimizedPipeline(ctx, filter, ts.pipeline)
 			})
 		})
 
@@ -191,11 +187,8 @@ func TestFilterPushDown(t *testing.T) {
 
 			Convey("Should not optimize the pipeline when the filter is not push-downable", func() {
 
-				ts := &TableScan{
-					tableName: "foo",
-					dbName:    "test",
-					pipeline:  []bson.D{},
-				}
+				ts, err := NewTableScan(ctx, dbOne, tbl, "")
+				So(err, ShouldBeNil)
 
 				sa := &SourceAppend{
 					source: ts,
@@ -203,7 +196,7 @@ func TestFilterPushDown(t *testing.T) {
 
 				filter := &Filter{
 					source:  sa,
-					matcher: &SQLEqualsExpr{SQLFieldExpr{"foo", "a"}, SQLFieldExpr{"foo", "b"}},
+					matcher: &SQLEqualsExpr{SQLFieldExpr{tbl, "a"}, SQLFieldExpr{tbl, "b"}},
 				}
 
 				verifyUnoptimizedPipeline(ctx, filter)
@@ -221,209 +214,749 @@ func TestGroupByPushDown(t *testing.T) {
 			Schema: cfgOne,
 		}
 
-		tbl := "bar"
+		tbl := "foo"
 
 		Convey("Given a group by clause that can be pushed down", func() {
 
-			ts := &TableScan{
-				dbName:    dbOne,
-				pipeline:  []bson.D{},
-				tableName: tbl,
-			}
+			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
 				source: ts,
 			}
 
-			exprs := map[string]SQLExpr{
-				"a":      SQLFieldExpr{tbl, "a"},
-				"b":      SQLFieldExpr{tbl, "b"},
-				"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "a"}}},
-				"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
-				"inExpr": &SQLInExpr{SQLFieldExpr{tbl, "a"}, SQLFieldExpr{tbl, "a"}},
+			gb := &GroupBy{
+				source: sa,
 			}
 
-			sExprs := constructSelectExpressions(exprs, "a", "b", "sum(a)", "sum(b)")
+			Convey("Should optimize 'select a, b from foo group by c'", func() {
 
-			Convey("Should optimize when the group is fully translatable", func() {
-
-				group := &GroupBy{
-					exprs:  constructSelectExpressions(exprs, "a"),
-					sExprs: sExprs,
-					source: sa,
+				exprs := map[string]SQLExpr{
+					"a": SQLFieldExpr{tbl, "a"},
+					"b": SQLFieldExpr{tbl, "b"},
+					"c": SQLFieldExpr{tbl, "c"},
 				}
 
-				expected := []bson.D{
-					bson.D{
-						bson.DocElem{
-							Name: "$group",
-							Value: bson.M{
-								"_id": bson.M{
-									"a": "$a",
-								},
-								"b": bson.M{
-									"$first": "$b",
-								},
-								"sum(bar_DOT_a)": bson.M{
-									"$sum": "$a",
-								},
-								"sum(bar_DOT_b)": bson.M{
-									"$sum": "$b",
-								},
-							},
-						},
-					},
-					bson.D{
-						bson.DocElem{
-							Name: "$project",
-							Value: bson.M{
-								"_id":            0,
-								"a":              "$_id.a",
-								"b":              "$b",
-								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
-								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
-							},
-						},
-					},
-				}
+				gb.selectExprs = constructSelectExpressions(exprs, "a", "b")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, group, expected)
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"foo_DOT_b": bson.M{
+								"$first": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":       0,
+							"foo_DOT_a": "$foo_DOT_a",
+							"foo_DOT_b": "$foo_DOT_b",
+						}}}})
 			})
 
-			Convey("Should perform no translation when already evaluated", func() {
+			Convey("Should optimize 'select a, b, c from foo group by c'", func() {
 
-				group := &GroupBy{
-					evaluated: true,
-					exprs:     constructSelectExpressions(exprs, "a"),
-					sExprs:    sExprs,
-					source:    sa,
+				exprs := map[string]SQLExpr{
+					"a": SQLFieldExpr{tbl, "a"},
+					"b": SQLFieldExpr{tbl, "b"},
+					"c": SQLFieldExpr{tbl, "c"},
 				}
 
-				expected := []bson.D{
-					bson.D{
-						bson.DocElem{
-							Name: "$group",
-							Value: bson.M{
-								"_id": bson.M{
-									"a": "$a",
-								},
-								"b": bson.M{
-									"$first": "$b",
-								},
-								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
-								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
-							},
-						},
-					},
-					bson.D{
-						bson.DocElem{
-							Name: "$project",
-							Value: bson.M{
-								"_id":            0,
-								"a":              "$_id.a",
-								"b":              "$b",
-								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
-								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
-							},
-						},
-					},
-				}
+				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "c")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, group, expected)
-
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"foo_DOT_b": bson.M{
+								"$first": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":       0,
+							"foo_DOT_a": "$foo_DOT_a",
+							"foo_DOT_b": "$foo_DOT_b",
+							"foo_DOT_c": "$_id.foo_DOT_c",
+						}}}})
 			})
 
-			Convey("Should perform no optimization clause can't be pushed down", func() {
+			Convey("Should optimize 'select a, b, c as Awesome from foo group by c'", func() {
 
-				group := &GroupBy{
-					exprs:  constructSelectExpressions(exprs, "inExpr"),
-					sExprs: sExprs,
-					source: sa,
+				exprs := map[string]SQLExpr{
+					"a":       SQLFieldExpr{tbl, "a"},
+					"b":       SQLFieldExpr{tbl, "b"},
+					"c":       SQLFieldExpr{tbl, "c"},
+					"Awesome": SQLFieldExpr{tbl, "c"},
 				}
 
-				verifyUnoptimizedPipeline(ctx, group)
+				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "Awesome")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"foo_DOT_b": bson.M{
+								"$first": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":       0,
+							"foo_DOT_a": "$foo_DOT_a",
+							"foo_DOT_b": "$foo_DOT_b",
+							"foo_DOT_c": "$_id.foo_DOT_c",
+						}}}})
 			})
 
-			Convey("Should create two groups when a distinct operator is required", func() {
+			Convey("Should optimize 'select a, b, c + a as Awesome from foo group by c'", func() {
 
-				innerGroup := &GroupBy{
-					exprs:  constructSelectExpressions(exprs, "a"),
-					sExprs: sExprs,
-					source: sa,
+				exprs := map[string]SQLExpr{
+					"a":       SQLFieldExpr{tbl, "a"},
+					"b":       SQLFieldExpr{tbl, "b"},
+					"c":       SQLFieldExpr{tbl, "c"},
+					"Awesome": &SQLAddExpr{SQLFieldExpr{tbl, "c"}, SQLFieldExpr{tbl, "a"}},
 				}
 
-				outerGroup := &GroupBy{
-					exprs:     constructSelectExpressions(exprs, "a", "b"),
-					evaluated: true,
-					sExprs:    sExprs,
-					source:    innerGroup,
+				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "Awesome")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"foo_DOT_b": bson.M{
+								"$first": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":                 0,
+							"foo_DOT_a":           "$foo_DOT_a",
+							"foo_DOT_b":           "$foo_DOT_b",
+							"foo_DOT_c+foo_DOT_a": bson.M{"$add": []interface{}{"$_id.foo_DOT_c", "$foo_DOT_a"}},
+						}}}})
+			})
+
+			Convey("Should optimize 'select sum(a), sum(b) from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "a"}}},
+					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+					"c":      SQLFieldExpr{tbl, "c"},
 				}
 
-				expected := []bson.D{
-					{
-						{
-							Name: "$group",
-							Value: bson.M{
-								"_id": bson.M{
-									"a": "$a",
-								},
-								"b": bson.M{
-									"$first": "$b",
-								},
-								"sum(bar_DOT_a)": bson.M{
-									"$sum": "$a",
-								},
-								"sum(bar_DOT_b)": bson.M{
-									"$sum": "$b",
-								},
+				gb.selectExprs = constructSelectExpressions(exprs, "sum(a)", "sum(b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
 							},
-						},
-					},
-					{
-						{
-							Name: "$project",
-							Value: bson.M{
-								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
-								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
-								"a":              "$_id.a",
-								"_id":            0,
-								"b":              "$b",
+							"sum(foo_DOT_a)": bson.M{
+								"$sum": "$a",
 							},
-						},
-					},
-					{
-						{
-							Name: "$group",
-							Value: bson.M{
-								"_id": bson.M{
-									"a": "$a",
-									"b": "$b",
-								},
-								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
-								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
+							"sum(foo_DOT_b)": bson.M{
+								"$sum": "$b",
 							},
-						},
-					},
-					{
-						{
-							Name: "$project",
-							Value: bson.M{
-								"_id":            0,
-								"sum(bar_DOT_b)": "$sum(bar_DOT_b)",
-								"a":              "$_id.a",
-								"b":              "$_id.b",
-								"sum(bar_DOT_a)": "$sum(bar_DOT_a)",
-							},
-						},
-					},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":            0,
+							"sum(foo_DOT_a)": "$sum(foo_DOT_a)",
+							"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						}}}})
+			})
+
+			Convey("Should optimize 'select c, sum(a), sum(b) from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "a"}}},
+					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+					"c":      SQLFieldExpr{tbl, "c"},
 				}
 
-				verifyOptimizedPipeline(ctx, outerGroup, expected)
+				gb.selectExprs = constructSelectExpressions(exprs, "c", "sum(a)", "sum(b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"sum(foo_DOT_a)": bson.M{
+								"$sum": "$a",
+							},
+							"sum(foo_DOT_b)": bson.M{
+								"$sum": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":            0,
+							"foo_DOT_c":      "$_id.foo_DOT_c",
+							"sum(foo_DOT_a)": "$sum(foo_DOT_a)",
+							"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						}}}})
+			})
+
+			Convey("Should optimize 'select a, sum(b) from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a":      SQLFieldExpr{tbl, "a"},
+					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+					"c":      SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"sum(foo_DOT_b)": bson.M{
+								"$sum": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":            0,
+							"foo_DOT_a":      "$foo_DOT_a",
+							"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						}}}})
+			})
+
+			Convey("Should optimize 'select a, sum(distinct b) from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a":               SQLFieldExpr{tbl, "a"},
+					"sum(distinct b)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+					"c":               SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"distinct foo_DOT_b": bson.M{
+								"$addToSet": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":                     0,
+							"foo_DOT_a":               "$foo_DOT_a",
+							"sum(distinct foo_DOT_b)": bson.M{"$sum": "$distinct foo_DOT_b"},
+						}}}})
+			})
+
+			Convey("Should optimize 'select a, sum(distinct b), c from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a":               SQLFieldExpr{tbl, "a"},
+					"sum(distinct b)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+					"c":               SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct b)", "c")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"distinct foo_DOT_b": bson.M{
+								"$addToSet": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":                     0,
+							"foo_DOT_c":               "$_id.foo_DOT_c",
+							"foo_DOT_a":               "$foo_DOT_a",
+							"sum(distinct foo_DOT_b)": bson.M{"$sum": "$distinct foo_DOT_b"},
+						}}}})
+			})
+
+			Convey("Should optimize 'select a + sum(b) from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a + sum(b)": &SQLAddExpr{SQLFieldExpr{tbl, "a"}, &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}}},
+					"c":          SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "a + sum(b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"sum(foo_DOT_b)": bson.M{
+								"$sum": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id": 0,
+							"foo_DOT_a+sum(foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$sum(foo_DOT_b)"}},
+						}}}})
+			})
+
+			Convey("Should optimize 'select a + b from foo group by a + b'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a + b": &SQLAddExpr{SQLFieldExpr{tbl, "a"}, SQLFieldExpr{tbl, "b"}},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "a + b")
+				gb.keyExprs = constructSelectExpressions(exprs, "a + b")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{"foo_DOT_a+foo_DOT_b": bson.M{"$add": []interface{}{"$a", "$b"}}},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id": 0,
+							"foo_DOT_a+foo_DOT_b": "$_id.foo_DOT_a+foo_DOT_b",
+						}}}})
+			})
+
+			Convey("Should optimize 'select a + c + sum(b) from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a + c + sum(b)": &SQLAddExpr{SQLFieldExpr{tbl, "a"}, &SQLAddExpr{SQLFieldExpr{tbl, "c"}, &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}}}},
+					"c":              SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "a + c + sum(b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"sum(foo_DOT_b)": bson.M{
+								"$sum": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id": 0,
+							"foo_DOT_a+foo_DOT_c+sum(foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", bson.M{"$add": []interface{}{"$_id.foo_DOT_c", "$sum(foo_DOT_b)"}}}},
+						}}}})
+			})
+
+			Convey("Should optimize 'select a + sum(b) as Awesome from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"Awesome": &SQLAddExpr{SQLFieldExpr{tbl, "a"}, &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}}},
+					"c":       SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "Awesome")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"sum(foo_DOT_b)": bson.M{
+								"$sum": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id": 0,
+							"foo_DOT_a+sum(foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$sum(foo_DOT_b)"}},
+						}}}})
+			})
+
+			Convey("Should optimize 'select a + sum(distinct b) from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a + sum(distinct b)": &SQLAddExpr{SQLFieldExpr{tbl, "a"}, &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLFieldExpr{tbl, "b"}}}},
+					"c": SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "a + sum(distinct b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"distinct foo_DOT_b": bson.M{
+								"$addToSet": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id": 0,
+							"foo_DOT_a+sum(distinct foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", bson.M{"$sum": "$distinct foo_DOT_b"}}},
+						}}}})
+			})
+
+			Convey("Should optimize 'select c + sum(distinct b) from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"c + sum(distinct b)": &SQLAddExpr{SQLFieldExpr{tbl, "c"}, &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLFieldExpr{tbl, "b"}}}},
+					"c": SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "c + sum(distinct b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"distinct foo_DOT_b": bson.M{
+								"$addToSet": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id": 0,
+							"foo_DOT_c+sum(distinct foo_DOT_b)": bson.M{"$add": []interface{}{"$_id.foo_DOT_c", bson.M{"$sum": "$distinct foo_DOT_b"}}},
+						}}}})
+			})
+
+			Convey("Should optimize 'select sum(distinct a+b) from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"sum(distinct a+b)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{&SQLAddExpr{SQLFieldExpr{tbl, "a"}, SQLFieldExpr{tbl, "b"}}}},
+					"c":                 SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "sum(distinct a+b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"distinct foo_DOT_a+foo_DOT_b": bson.M{
+								"$addToSet": bson.M{"$add": []interface{}{"$a", "$b"}},
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id": 0,
+							"sum(distinct foo_DOT_a+foo_DOT_b)": bson.M{
+								"$sum": "$distinct foo_DOT_a+foo_DOT_b"},
+						}}}})
+			})
+
+			Convey("Should optimize 'select a+sum(distinct a+b) from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a+sum(distinct a+b)": &SQLAddExpr{SQLFieldExpr{tbl, "a"}, &SQLAggFunctionExpr{"sum", true, []SQLExpr{&SQLAddExpr{SQLFieldExpr{tbl, "a"}, SQLFieldExpr{tbl, "b"}}}}},
+					"c": SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "a+sum(distinct a+b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"distinct foo_DOT_a+foo_DOT_b": bson.M{
+								"$addToSet": bson.M{"$add": []interface{}{"$a", "$b"}},
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id": 0,
+							"foo_DOT_a+sum(distinct foo_DOT_a+foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", bson.M{"$sum": "$distinct foo_DOT_a+foo_DOT_b"}}},
+						}}}})
+			})
+
+			Convey("Should optimize 'select a, e from foo group by f'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a": SQLFieldExpr{tbl, "a"},
+					"e": SQLFieldExpr{tbl, "e"},
+					"f": SQLFieldExpr{tbl, "f"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "a", "e")
+				gb.keyExprs = constructSelectExpressions(exprs, "f")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_f": "$d.f",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"foo_DOT_e": bson.M{
+								"$first": "$d.e",
+							}}}},
+						bson.D{{"$project", bson.M{
+							"_id":       0,
+							"foo_DOT_a": "$foo_DOT_a",
+							"foo_DOT_e": "$foo_DOT_e",
+						}}}})
+			})
+
+			Convey("Should optimize 'select a, sum(distinct e) from foo group by f'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a":               SQLFieldExpr{tbl, "a"},
+					"sum(distinct e)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLFieldExpr{tbl, "e"}}},
+					"f":               SQLFieldExpr{tbl, "f"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct e)")
+				gb.keyExprs = constructSelectExpressions(exprs, "f")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_f": "$d.f",
+							},
+							"foo_DOT_a": bson.M{
+								"$first": "$a",
+							},
+							"distinct foo_DOT_e": bson.M{
+								"$addToSet": "$d.e",
+							}}}},
+						bson.D{{"$project", bson.M{
+							"_id":                     0,
+							"foo_DOT_a":               "$foo_DOT_a",
+							"sum(distinct foo_DOT_e)": bson.M{"$sum": "$distinct foo_DOT_e"},
+						}}}})
+			})
+
+			Convey("Should optimize 'select count(*) from foo'", func() {
+
+				exprs := map[string]SQLExpr{
+					"count(*)": &SQLAggFunctionExpr{"count", false, []SQLExpr{SQLString("*")}},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "count(*)")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id":      bson.M{},
+							"count(*)": bson.M{"$sum": 1},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":      0,
+							"count(*)": "$count(*)",
+						}}}})
+			})
+
+			Convey("Should optimize 'select count(a) from foo'", func() {
+
+				exprs := map[string]SQLExpr{
+					"count(a)": &SQLAggFunctionExpr{"count", false, []SQLExpr{SQLFieldExpr{tbl, "a"}}},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "count(a)")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{},
+							"count(foo_DOT_a)": bson.M{
+								"$sum": bson.M{
+									"$cond": []interface{}{
+										bson.M{
+											"$eq": []interface{}{
+												bson.M{
+													"$ifNull": []interface{}{
+														"$a",
+														nil,
+													},
+												},
+												nil,
+											},
+										},
+										0,
+										1,
+									},
+								},
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":              0,
+							"count(foo_DOT_a)": "$count(foo_DOT_a)",
+						}}}})
+			})
+
+			Convey("Should optimize 'select a, count(distinct b) from foo group by c'", func() {
+
+				exprs := map[string]SQLExpr{
+					"a":                 SQLFieldExpr{tbl, "a"},
+					"count(distinct b)": &SQLAggFunctionExpr{"count", true, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+					"c":                 SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "a", "count(distinct b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+
+				verifyOptimizedPipeline(ctx, gb,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"foo_DOT_a":          bson.M{"$first": "$a"},
+							"distinct foo_DOT_b": bson.M{"$addToSet": "$b"},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":       0,
+							"foo_DOT_a": "$foo_DOT_a",
+							"count(distinct foo_DOT_b)": bson.M{
+								"$sum": bson.M{
+									"$map": bson.M{
+										"input": "$distinct foo_DOT_b",
+										"as":    "i",
+										"in": bson.M{
+											"$cond": []interface{}{
+												bson.M{"$eq": []interface{}{
+													bson.M{"$ifNull": []interface{}{"$$i", nil}},
+													nil}},
+												0,
+												1,
+											}}}}}}}}})
 			})
 		})
+	})
+}
 
+func TestHavingPushDown(t *testing.T) {
+	// This is effectively the same as filter, except it always happens after a group by, so we
+	// are really just testing that group by did the right thing related to columns...
+
+	Convey("Subject: Having Optimization", t, func() {
+
+		ctx := &ExecutionCtx{
+			Db:     dbOne,
+			Schema: cfgOne,
+		}
+
+		tbl := "foo"
+
+		Convey("Given a group by clause that can be pushed down", func() {
+
+			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			So(err, ShouldBeNil)
+
+			sa := &SourceAppend{
+				source: ts,
+			}
+
+			gb := &GroupBy{
+				source: sa,
+			}
+
+			having := &Filter{
+				source: gb,
+			}
+
+			Convey("Should optimize 'select sum(a) from bar group by c having sum(b) = 10'", func() {
+
+				exprs := map[string]SQLExpr{
+					"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "a"}}},
+					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLFieldExpr{tbl, "b"}}},
+					"c":      SQLFieldExpr{tbl, "c"},
+				}
+
+				gb.selectExprs = constructSelectExpressions(exprs, "sum(a)", "sum(b)")
+				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				having.matcher = &SQLEqualsExpr{SQLFieldExpr{"", "sum(foo.b)"}, SQLInt(10)}
+
+				verifyOptimizedPipeline(ctx, having,
+					[]bson.D{
+						bson.D{{"$group", bson.M{
+							"_id": bson.M{
+								"foo_DOT_c": "$c",
+							},
+							"sum(foo_DOT_a)": bson.M{
+								"$sum": "$a",
+							},
+							"sum(foo_DOT_b)": bson.M{
+								"$sum": "$b",
+							},
+						}}},
+						bson.D{{"$project", bson.M{
+							"_id":            0,
+							"sum(foo_DOT_a)": "$sum(foo_DOT_a)",
+							"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						}}},
+						bson.D{{"$match", bson.M{
+							"sum(foo_DOT_b)": int64(10),
+						}}}})
+			})
+		})
 	})
 }
 
@@ -436,13 +969,12 @@ func TestLimitPushDown(t *testing.T) {
 			Db:     dbOne,
 		}
 
+		tbl := "foo"
+
 		Convey("Given a push-downable limit", func() {
 
-			ts := &TableScan{
-				tableName: "foo",
-				dbName:    "test",
-				pipeline:  []bson.D{},
-			}
+			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
 				source: ts,
@@ -502,6 +1034,7 @@ func verifyUnoptimizedPipeline(ctx *ExecutionCtx, op Operator) {
 }
 
 func verifyOptimizedPipeline(ctx *ExecutionCtx, op Operator, pipeline []bson.D) {
+
 	optimized, err := OptimizeOperator(ctx, op)
 	So(err, ShouldBeNil)
 

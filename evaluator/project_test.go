@@ -2,50 +2,56 @@ package evaluator
 
 import (
 	"fmt"
+	"testing"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
 )
 
 var (
 	_ fmt.Stringer = nil
 )
 
-func projectTest(operator Operator, rows []bson.D, expectedRows []Values) {
-
-	collectionOne.DropCollection()
-
-	for _, row := range rows {
-		So(collectionOne.Insert(row), ShouldBeNil)
-	}
-
-	ctx := &ExecutionCtx{
-		Schema:  cfgOne,
-		Db:      dbOne,
-		Session: session,
-	}
-
-	So(operator.Open(ctx), ShouldBeNil)
-
-	row := &Row{}
-
-	i := 0
-
-	for operator.Next(row) {
-		So(len(row.Data), ShouldEqual, 1)
-		So(row.Data[0].Table, ShouldEqual, tableOneName)
-		So(row.Data[0].Values, ShouldResemble, expectedRows[i])
-		row = &Row{}
-		i++
-	}
-
-	So(i, ShouldEqual, len(expectedRows))
-
-	So(operator.Close(), ShouldBeNil)
-	So(operator.Err(), ShouldBeNil)
-}
-
 func TestProjectOperator(t *testing.T) {
+
+	runTest := func(project *Project, rows []bson.D, expectedRows []Values) {
+
+		collectionOne.DropCollection()
+
+		for _, row := range rows {
+			So(collectionOne.Insert(row), ShouldBeNil)
+		}
+
+		ctx := &ExecutionCtx{
+			Schema:  cfgOne,
+			Db:      dbOne,
+			Session: session,
+		}
+
+		ts, err := NewTableScan(ctx, dbOne, tableOneName, "")
+		So(err, ShouldBeNil)
+
+		project.source = ts
+
+		So(project.Open(ctx), ShouldBeNil)
+
+		row := &Row{}
+
+		i := 0
+
+		for project.Next(row) {
+			So(len(row.Data), ShouldEqual, 1)
+			So(row.Data[0].Table, ShouldEqual, tableOneName)
+			So(row.Data[0].Values, ShouldResemble, expectedRows[i])
+			row = &Row{}
+			i++
+		}
+
+		So(i, ShouldEqual, len(expectedRows))
+
+		So(project.Close(), ShouldBeNil)
+		So(project.Err(), ShouldBeNil)
+	}
 
 	Convey("A project operator...", t, func() {
 
@@ -56,43 +62,37 @@ func TestProjectOperator(t *testing.T) {
 
 		sExprs := SelectExpressions{
 			SelectExpression{
-				Column: &Column{tableOneName, "a", "a"},
+				Column: &Column{tableOneName, "a", "a", "int"},
 				Expr:   SQLFieldExpr{tableOneName, "a"},
 			},
 			SelectExpression{
 				Referenced: true,
-				Column:     &Column{tableOneName, "b", "b"},
+				Column:     &Column{tableOneName, "b", "b", "int"},
 				Expr:       SQLFieldExpr{tableOneName, "b"},
 			},
 		}
 
 		Convey("should filter out referenced columns in select expressions", func() {
 
-			operator := &Project{
+			project := &Project{
 				sExprs: sExprs,
-				source: &TableScan{
-					tableName: tableOneName,
-				},
 			}
 
 			expected := []Values{{{"a", "a", SQLInt(6)}}, {{"a", "a", SQLInt(3)}}}
 
-			projectTest(operator, rows, expected)
+			runTest(project, rows, expected)
 		})
 
 		Convey("should not filter any results if no column is referenced", func() {
 			sExprs[1].Referenced = false
 
-			operator := &Project{
+			project := &Project{
 				sExprs: sExprs,
-				source: &TableScan{
-					tableName: tableOneName,
-				},
 			}
 
 			expected := []Values{{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(9)}}, {{"a", "a", SQLInt(3)}, {"b", "b", SQLInt(4)}}}
 
-			projectTest(operator, rows, expected)
+			runTest(project, rows, expected)
 		})
 
 	})

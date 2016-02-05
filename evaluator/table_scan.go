@@ -2,86 +2,143 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/schema"
-	"gopkg.in/mgo.v2/bson"
 	"strings"
+
+	"gopkg.in/mgo.v2/bson"
 )
+
+// mappingRegistry provides a way to get a field name from a table/column.
+type mappingRegistry struct {
+	columns []*Column
+	fields  map[string]map[string]string
+}
+
+func (mr *mappingRegistry) addColumn(column *Column) {
+	mr.columns = append(mr.columns, column)
+}
+
+func (mr *mappingRegistry) registerMapping(tbl, column, field string) {
+
+	if mr.fields == nil {
+		mr.fields = make(map[string]map[string]string)
+	}
+
+	if _, ok := mr.fields[tbl]; !ok {
+		mr.fields[tbl] = make(map[string]string)
+	}
+
+	mr.fields[tbl][column] = field
+}
+
+func (mr *mappingRegistry) lookupFieldName(tbl, column string) (string, bool) {
+	if mr.fields == nil {
+		return "", false
+	}
+
+	columnToField, ok := mr.fields[tbl]
+	if !ok {
+		return "", false
+	}
+
+	field, ok := columnToField[column]
+	return field, ok
+}
 
 // TableScan is the primary interface for SQLProxy to a MongoDB
 // installation and executes simple queries against collections.
 type TableScan struct {
-	dbName      string
-	tableName   string
-	aliasName   string
-	matcher     SQLExpr
-	iter        FindResults
-	database    *schema.Database
-	tableSchema *schema.Table
-	ctx         *ExecutionCtx
-	pipeline    []bson.D
-	aggregated  bool
-	err         error
+	dbName          string
+	tableName       string
+	aliasName       string
+	fqns            string // the fully qualified namespace in MongoDB
+	mappingRegistry *mappingRegistry
+	pipeline        []bson.D
+	matcher         SQLExpr
+	ctx             *ExecutionCtx
+	iter            FindResults
+	err             error
 }
 
-func (ts *TableScan) getAggregatedFields(data bson.M) (values Values, err error) {
+func NewTableScan(ctx *ExecutionCtx, dbName, tableName string, aliasName string) (*TableScan, error) {
 
-	// now add all dottified columns
-	for key, value := range data {
-
-		// array values have already been extracted
-		if _, ok := value.(bson.D); ok {
-			continue
-		}
-
-		if strings.Contains(key, Dot) {
-			key = deDottifyFieldName(key)
-		}
-
-		value := Value{
-			Name: key,
-			View: key,
-			Data: value,
-		}
-
-		value.Data, err = NewSQLValue(value.Data, "")
-		if err != nil {
-			return nil, err
-		}
-
-		values = append(values, value)
+	if dbName == "" {
+		return nil, fmt.Errorf("dbName is empty")
+	}
+	if tableName == "" {
+		return nil, fmt.Errorf("tableName is empty")
+	}
+	ts := &TableScan{
+		dbName:    dbName,
+		tableName: tableName,
+		aliasName: aliasName,
 	}
 
-	return values, err
+	if ts.aliasName == "" {
+		ts.aliasName = ts.tableName
+	}
 
+	database, ok := ctx.Schema.Databases[ts.dbName]
+	if !ok {
+		return nil, fmt.Errorf("db (%s) doesn't exist - table (%s)", dbName, tableName)
+	}
+	tableSchema, ok := database.Tables[ts.tableName]
+	if !ok {
+		return nil, fmt.Errorf("table (%s) doesn't exist in db (%s)", tableName, dbName)
+	}
+
+	ts.fqns = tableSchema.FQNS
+
+	ts.mappingRegistry = &mappingRegistry{}
+	for _, c := range tableSchema.RawColumns {
+		column := &Column{
+			Table: ts.aliasName,
+			Name:  c.SqlName,
+			View:  c.SqlName,
+			Type:  c.SqlType,
+		}
+		ts.mappingRegistry.addColumn(column)
+		ts.mappingRegistry.registerMapping(ts.aliasName, c.SqlName, c.Name)
+	}
+
+	ts.pipeline = []bson.D{}
+
+	return ts, nil
+}
+
+// WithPipeline creates a new TableScan operator by copying everything
+// and changing only the pipeline.
+func (ts *TableScan) WithPipeline(pipeline []bson.D) *TableScan {
+	return &TableScan{
+		dbName:          ts.dbName,
+		tableName:       ts.tableName,
+		aliasName:       ts.aliasName,
+		fqns:            ts.fqns,
+		matcher:         ts.matcher,
+		mappingRegistry: ts.mappingRegistry,
+		pipeline:        pipeline,
+	}
+}
+
+// WithMappingRegistry creates a new TableScan operator by copying everything
+// and changing only the mappingRegistry.
+func (ts *TableScan) WithMappingRegistry(mappingRegistry *mappingRegistry) *TableScan {
+
+	return &TableScan{
+		dbName:          ts.dbName,
+		tableName:       ts.tableName,
+		aliasName:       ts.aliasName,
+		fqns:            ts.fqns,
+		matcher:         ts.matcher,
+		pipeline:        ts.pipeline,
+		mappingRegistry: mappingRegistry,
+	}
 }
 
 // Open establishes a connection to database collection for this table.
 func (ts *TableScan) Open(ctx *ExecutionCtx) error {
 	ts.ctx = ctx
 
-	if len(ts.dbName) == 0 {
-		ts.dbName = ctx.Db
-	}
-
-	if len(ts.dbName) == 0 {
-		ts.dbName = ctx.Db
-	}
-
-	ts.database = ctx.Schema.Databases[ts.dbName]
-	if ts.database == nil {
-		return fmt.Errorf("db (%s) doesn't exist - table (%s)", ts.dbName, ts.tableName)
-	}
-
-	ts.tableSchema = ts.database.Tables[ts.tableName]
-	if ts.tableSchema == nil {
-		return fmt.Errorf("table (%s) doesn't exist in db (%s)", ts.tableName, ts.dbName)
-	}
-
-	pcs := strings.SplitN(ts.tableSchema.FQNS, ".", 2)
-
-	if ts.aliasName == "" {
-		ts.aliasName = ts.tableName
-	}
+	pcs := strings.SplitN(ts.fqns, ".", 2)
 
 	ts.iter = MgoFindResults{ctx.Session.DB(pcs[0]).C(pcs[1]).Pipe(ts.pipeline).Iter()}
 
@@ -103,53 +160,50 @@ func (ts *TableScan) Next(row *Row) bool {
 			break
 		}
 
-		values := Values{}
+		values := make(map[string]Values)
 		data := d.Map()
 
 		var err error
 
-		for _, column := range ts.tableSchema.RawColumns {
+		for _, column := range ts.mappingRegistry.columns {
+
+			mappedFieldName, ok := ts.mappingRegistry.lookupFieldName(column.Table, column.Name)
+			if !ok {
+				ts.err = fmt.Errorf("Unable to find mapping from %v.%v to a field name.", column.Table, column.Name)
+				return false
+			}
 
 			value := Value{
-				Name: column.SqlName,
-				View: column.SqlName,
+				Name: column.Name,
+				View: column.View,
+				Data: extractFieldByName(mappedFieldName, data),
 			}
 
-			if len(column.Name) != 0 && !ts.aggregated {
-				value.Data = extractFieldByName(column.Name, data)
-			} else {
-				// when we optimize, the field is top-level
-				if ts.aggregated && strings.Contains(column.Name, ".") {
-					value.Data = data[dottifyFieldName(column.SqlName)]
-				} else {
-					value.Data = data[column.SqlName]
-				}
-			}
-
-			value.Data, err = NewSQLValue(value.Data, column.SqlType)
+			value.Data, err = NewSQLValue(value.Data, column.Type)
 			if err != nil {
 				ts.err = err
 				return false
 			}
 
-			values = append(values, value)
-			delete(data, column.SqlName)
-		}
-
-		// if we performed a group by pushdown, grab
-		// the aggregated fields separately
-		if ts.aggregated {
-			aggValues, err := ts.getAggregatedFields(data)
-
-			if err != nil {
-				ts.err = err
-				return false
+			tableName := column.Table
+			if tableName == ts.tableName {
+				tableName = ts.aliasName
 			}
 
-			values = append(values, aggValues...)
+			if _, ok := values[tableName]; !ok {
+				values[tableName] = Values{}
+			}
+
+			values[tableName] = append(values[tableName], value)
+			delete(data, mappedFieldName)
 		}
 
-		row.Data = TableRows{{ts.aliasName, values}}
+		tableRows := TableRows{}
+		for k, v := range values {
+			tableRows = append(tableRows, TableRow{k, v})
+		}
+
+		row.Data = tableRows
 
 		evalCtx := &EvalCtx{Rows{*row}, ts.ctx}
 
@@ -171,17 +225,7 @@ func (ts *TableScan) Next(row *Row) bool {
 }
 
 func (ts *TableScan) OpFields() (columns []*Column) {
-
-	for _, c := range ts.tableSchema.RawColumns {
-		column := &Column{
-			Table: ts.aliasName,
-			Name:  c.SqlName,
-			View:  c.SqlName,
-		}
-		columns = append(columns, column)
-	}
-
-	return columns
+	return ts.mappingRegistry.columns
 }
 
 func (ts *TableScan) Close() error {

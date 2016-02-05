@@ -2,50 +2,64 @@ package evaluator
 
 import (
 	"fmt"
+	"testing"
+
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
 )
 
 var (
 	_ fmt.Stringer = nil
 )
 
-func limitTest(operator Operator, rows []bson.D, expectedRows []Values) {
-
-	collectionOne.DropCollection()
-
-	for _, row := range rows {
-		So(collectionOne.Insert(row), ShouldBeNil)
-	}
-
-	ctx := &ExecutionCtx{
-		Schema:  cfgOne,
-		Db:      dbOne,
-		Session: session,
-	}
-
-	So(operator.Open(ctx), ShouldBeNil)
-
-	row := &Row{}
-
-	i := 0
-
-	for operator.Next(row) {
-		So(len(row.Data), ShouldEqual, 1)
-		So(row.Data[0].Table, ShouldEqual, tableOneName)
-		So(row.Data[0].Values, ShouldResemble, expectedRows[i])
-		row = &Row{}
-		i++
-	}
-
-	So(i, ShouldEqual, len(expectedRows))
-
-	So(operator.Close(), ShouldBeNil)
-	So(operator.Err(), ShouldBeNil)
-}
-
 func TestLimitOperator(t *testing.T) {
+
+	runTest := func(limit *Limit, rows []bson.D, expectedRows []Values) {
+
+		collectionOne.DropCollection()
+
+		for _, row := range rows {
+			So(collectionOne.Insert(row), ShouldBeNil)
+		}
+
+		ctx := &ExecutionCtx{
+			Schema:  cfgOne,
+			Db:      dbOne,
+			Session: session,
+		}
+
+		ts, err := NewTableScan(ctx, dbOne, tableOneName, "")
+		So(err, ShouldBeNil)
+
+		limit.source = &Project{
+			sExprs: SelectExpressions{
+				SelectExpression{
+					Column: &Column{tableOneName, "a", "a", "int"},
+					Expr:   SQLFieldExpr{tableOneName, "a"},
+				},
+			},
+			source: ts,
+		}
+
+		So(limit.Open(ctx), ShouldBeNil)
+
+		row := &Row{}
+
+		i := 0
+
+		for limit.Next(row) {
+			So(len(row.Data), ShouldEqual, 1)
+			So(row.Data[0].Table, ShouldEqual, tableOneName)
+			So(row.Data[0].Values, ShouldResemble, expectedRows[i])
+			row = &Row{}
+			i++
+		}
+
+		So(i, ShouldEqual, len(expectedRows))
+
+		So(limit.Close(), ShouldBeNil)
+		So(limit.Err(), ShouldBeNil)
+	}
 
 	Convey("A limit operator...", t, func() {
 
@@ -54,19 +68,7 @@ func TestLimitOperator(t *testing.T) {
 			bson.D{{"a", 4}}, bson.D{{"a", 5}}, bson.D{{"a", 6}}, bson.D{{"a", 7}},
 		}
 
-		operator := &Limit{
-			source: &Project{
-				sExprs: SelectExpressions{
-					SelectExpression{
-						Column: &Column{tableOneName, "a", "a"},
-						Expr:   SQLFieldExpr{tableOneName, "a"},
-					},
-				},
-				source: &TableScan{
-					tableName: tableOneName,
-				},
-			},
-		}
+		operator := &Limit{}
 
 		Convey("should return only 'limit' records if the limit is less than the total number of records", func() {
 
@@ -74,7 +76,7 @@ func TestLimitOperator(t *testing.T) {
 
 			expected := []Values{{{"a", "a", SQLInt(1)}}, {{"a", "a", SQLInt(2)}}}
 
-			limitTest(operator, rows, expected)
+			runTest(operator, rows, expected)
 		})
 
 		Convey("should return the right slice of the records with an offset leaving less records than the limit covers", func() {
@@ -84,7 +86,7 @@ func TestLimitOperator(t *testing.T) {
 
 			expected := []Values{{{"a", "a", SQLInt(5)}}, {{"a", "a", SQLInt(6)}}}
 
-			limitTest(operator, rows, expected)
+			runTest(operator, rows, expected)
 		})
 
 		Convey("should return no records if the offset is greater than the number of records", func() {
@@ -93,7 +95,7 @@ func TestLimitOperator(t *testing.T) {
 
 			expected := []Values{}
 
-			limitTest(operator, rows, expected)
+			runTest(operator, rows, expected)
 		})
 
 		Convey("should return no records if the limit and offset are both greater than the number of records", func() {
@@ -102,7 +104,7 @@ func TestLimitOperator(t *testing.T) {
 			operator.offset = 40
 			expected := []Values{}
 
-			limitTest(operator, rows, expected)
+			runTest(operator, rows, expected)
 		})
 
 		Convey("should only return the number of records if the limit is greater than the number of records", func() {
@@ -114,7 +116,7 @@ func TestLimitOperator(t *testing.T) {
 				{{"a", "a", SQLInt(5)}}, {{"a", "a", SQLInt(6)}}, {{"a", "a", SQLInt(7)}},
 			}
 
-			limitTest(operator, rows, expected)
+			runTest(operator, rows, expected)
 		})
 
 		Convey("should return the one record if the limit is 1 with an offset of 1", func() {
@@ -123,7 +125,7 @@ func TestLimitOperator(t *testing.T) {
 
 			expected := []Values{{{"a", "a", SQLInt(2)}}}
 
-			limitTest(operator, rows, expected)
+			runTest(operator, rows, expected)
 
 		})
 
@@ -134,7 +136,7 @@ func TestLimitOperator(t *testing.T) {
 
 			expected := []Values{{{"a", "a", SQLInt(7)}}}
 
-			limitTest(operator, rows, expected)
+			runTest(operator, rows, expected)
 		})
 
 		Convey("should return no records with a limit and offset of 0", func() {
@@ -144,7 +146,7 @@ func TestLimitOperator(t *testing.T) {
 
 			expected := []Values{}
 
-			limitTest(operator, rows, expected)
+			runTest(operator, rows, expected)
 		})
 
 		Convey("should return only 'limit' records if there is no offset", func() {
@@ -154,7 +156,7 @@ func TestLimitOperator(t *testing.T) {
 
 			expected := []Values{{{"a", "a", SQLInt(1)}}, {{"a", "a", SQLInt(2)}}, {{"a", "a", SQLInt(3)}}}
 
-			limitTest(operator, rows, expected)
+			runTest(operator, rows, expected)
 		})
 
 		Convey("should return no records if the limit is 0", func() {
@@ -164,7 +166,7 @@ func TestLimitOperator(t *testing.T) {
 
 			expected := []Values{}
 
-			limitTest(operator, rows, expected)
+			runTest(operator, rows, expected)
 		})
 	})
 }

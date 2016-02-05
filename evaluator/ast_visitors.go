@@ -340,3 +340,21 @@ func shouldFlip(n sqlBinaryNode) bool {
 
 	return false
 }
+
+type aggFunctionExprReplacer struct {
+	tableName string
+}
+
+func replaceAggFunctionsWithColumns(tableName string, e SQLExpr) (SQLExpr, error) {
+	v := &aggFunctionExprReplacer{tableName}
+	return v.Visit(e)
+}
+
+func (v *aggFunctionExprReplacer) Visit(e SQLExpr) (SQLExpr, error) {
+	switch typedE := e.(type) {
+	case *SQLAggFunctionExpr:
+		return SQLFieldExpr{v.tableName, typedE.String()}, nil
+	default:
+		return walk(v, e)
+	}
+}

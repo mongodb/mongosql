@@ -1,5 +1,9 @@
 package evaluator
 
+import (
+	"gopkg.in/mgo.v2/bson"
+)
+
 // Filter ensures that only rows matching a given criteria are
 // returned.
 type Filter struct {
@@ -17,6 +21,14 @@ type Filter struct {
 
 	// hasSubquery is true if this operator source contains a subquery
 	hasSubquery bool
+}
+
+func NewFilter(source Operator, matcher SQLExpr, hasSubquery bool) *Filter {
+	return &Filter{
+		source:      source,
+		matcher:     matcher,
+		hasSubquery: hasSubquery,
+	}
 }
 
 func (ft *Filter) Open(ctx *ExecutionCtx) error {
@@ -86,4 +98,71 @@ func (ft *Filter) Err() error {
 		return err
 	}
 	return ft.err
+}
+
+///////////////
+//Optimization
+///////////////
+
+func (v *optimizer) visitFilter(filter *Filter) (Operator, error) {
+
+	sa, ts, ok := canPushDown(filter.source)
+	if !ok {
+		return filter, nil
+	}
+
+	optimizedExpr, err := OptimizeSQLExpr(filter.matcher)
+	if err != nil {
+		return nil, err
+	}
+
+	pipeline := ts.pipeline
+	var localMatcher SQLExpr
+
+	if value, ok := optimizedExpr.(SQLValue); ok {
+		// our optimized expression has left us with just a value,
+		// we can see if it matches right now. If so, we eliminate
+		// the filter from the tree. Otherwise, we return an
+		// operator that yields no rows.
+
+		matches, err := Matches(value, nil)
+		if err != nil {
+			return nil, err
+		}
+		if !matches {
+			return &Empty{}, nil
+		}
+
+		// otherwise, the filter simply gets removed from the tree
+
+	} else {
+		var matchBody bson.M
+		matchBody, localMatcher = TranslatePredicate(optimizedExpr, ts.mappingRegistry.lookupFieldName)
+
+		if matchBody == nil {
+			// no pieces of the matcher are able to be pushed down,
+			// so there is no change in the operator tree.
+			return filter, nil
+		}
+
+		pipeline = append(ts.pipeline, bson.D{{"$match", matchBody}})
+	}
+
+	// if we end up here, it's because we have messed with the pipeline
+	// in the current table scan operator, so we need to reconstruct the
+	// operator nodes.
+	ts = ts.WithPipeline(pipeline)
+	sa = sa.WithSource(ts)
+
+	if localMatcher != nil {
+		// we ended up here because we have a predicate
+		// that can be partially pushed down, so we construct
+		// a new filter with only the part remaining that
+		// cannot be pushed down.
+		return NewFilter(sa, localMatcher, filter.hasSubquery), nil
+	}
+
+	// everything was able to be pushed down, so the filter
+	// is removed from the plan.
+	return sa, nil
 }

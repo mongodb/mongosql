@@ -2,10 +2,11 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/deafgoat/mixer/sqlparser"
-	"github.com/mongodb/mongo-tools/common/log"
 	"strconv"
 	"strings"
+
+	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/mongodb/mongo-tools/common/log"
 )
 
 var (
@@ -366,25 +367,10 @@ func planFromExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExprs, where *sqlparse
 func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions) (*GroupBy, error) {
 
 	groupBy := ast.GroupBy
-	having := ast.Having
 
 	gb := &GroupBy{
-		sExprs: sExprs,
+		selectExprs: sExprs,
 	}
-
-	var expr sqlparser.Expr
-
-	if having != nil {
-		expr = having.Expr
-	}
-
-	// create a matcher that can evaluate the HAVING expression
-	matcher, err := NewSQLExpr(expr)
-	if err != nil {
-		return nil, err
-	}
-
-	gb.matcher = matcher
 
 	for _, valExpr := range groupBy {
 
@@ -392,12 +378,12 @@ func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions) (*GroupBy, err
 
 		// a GROUP BY clause can't refer to non-aggregated columns in
 		// the select list that are not named in the GROUP BY clause
-		gbExpr, err := getGroupByTerm(gb.sExprs, expr)
+		gbExpr, err := getGroupByTerm(gb.selectExprs, expr)
 		if err != nil {
 			return nil, err
 		}
 
-		gb.exprs = append(gb.exprs, *gbExpr)
+		gb.keyExprs = append(gb.keyExprs, *gbExpr)
 	}
 
 	return gb, nil
@@ -495,17 +481,17 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 		}
 	}
 
-	baseSExprs, err := refColsInSelectStmt(ast)
+	projectedSelectExprs, err := refColsInSelectStmt(ast)
 	if err != nil {
 		return nil, err
 	}
 
-	refExprs, sqlExprs, err := getReferencedExpressions(ast, ctx, baseSExprs)
+	refExprs, sqlExprs, err := getReferencedExpressions(ast, ctx, projectedSelectExprs)
 	if err != nil {
 		return nil, err
 	}
 
-	sExprs := append(baseSExprs, refExprs...)
+	allSelectExprs := append(projectedSelectExprs, refExprs...)
 
 	var containsSubquery bool
 
@@ -537,11 +523,7 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 			return nil, err
 		}
 
-		operator = &Filter{
-			source:      operator,
-			matcher:     matcher,
-			hasSubquery: containsSubquery,
-		}
+		operator = NewFilter(operator, matcher, containsSubquery)
 	}
 
 	var aggSelExprs SelectExpressions
@@ -570,14 +552,14 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 		}
 	}
 
-	sExprs = append(sExprs, aggSelExprs...)
+	allSelectExprs = append(allSelectExprs, aggSelExprs...)
 
 	refAggFunction := len(aggSelExprs) != 0
 
 	if !refAggFunction {
 		// This handles aggregate function expressions with
 		// select expressions; e.g. "select sum(a) from foo"
-		aggFuncs, err := sExprs.AggFunctions()
+		aggFuncs, err := allSelectExprs.AggFunctions()
 		if err != nil {
 			return nil, err
 		}
@@ -586,49 +568,52 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 	}
 
 	// This handles GROUP BY expressions and/or aggregate functions in
-	// other parts of the query - sinc aggregate functions with no
+	// other parts of the query - since aggregate functions with no
 	// GROUP BY clause imply a single group
 	needsGroupBy := len(ast.GroupBy) != 0 || refAggFunction
 
 	if needsGroupBy {
-		gb, err := planGroupBy(ast, sExprs)
+		gb, err := planGroupBy(ast, allSelectExprs)
 		if err != nil {
 			return nil, err
 		}
 		gb.source = operator
 		operator = gb
+
+		// at this point, all aggregations, computations, etc... have been done in the group
+		// by, so we need to make sure that these are replaced by what is now a column.
+		projectedSelectExprs = replaceSelectExpressionsWithColumns(groupTempTable, projectedSelectExprs)
+		allSelectExprs = replaceSelectExpressionsWithColumns(groupTempTable, allSelectExprs)
 	}
 
-	// in planning the GROUP BY operator, we optimize
-	// to include the filter (HAVING clause) within
-	// that operator so we can push down more easily
-	if ast.Having != nil && !needsGroupBy {
+	if ast.Having != nil {
 		matcher, err := NewSQLExpr(ast.Having.Expr)
 		if err != nil {
 			return nil, err
 		}
 
-		operator = &Filter{
-			source:      operator,
-			matcher:     matcher,
-			hasSubquery: containsSubquery,
+		// we need to replace all the SQLAggFunctionExpr inside matcher with fields,
+		// because, regardless of whether push down will occur, all aggregations
+		// have already been evaluated.
+		matcher, err = replaceAggFunctionsWithColumns(groupTempTable, matcher)
+		if err != nil {
+			return nil, err
 		}
+
+		operator = NewFilter(operator, matcher, containsSubquery)
 	}
 
-	needsDistinctGroup := !refAggFunction && (ast.Distinct == sqlparser.AST_DISTINCT)
+	if ast.Distinct == sqlparser.AST_DISTINCT {
 
-	if needsDistinctGroup {
 		operator = &GroupBy{
-			exprs:     baseSExprs,
-			matcher:   SQLTrue,
-			sExprs:    sExprs,
-			evaluated: len(ast.GroupBy) != 0,
-			source:    operator,
+			keyExprs:    projectedSelectExprs,
+			selectExprs: allSelectExprs,
+			source:      operator,
 		}
 	}
 
 	if len(ast.OrderBy) != 0 {
-		ob, err := planOrderBy(ast, sExprs)
+		ob, err := planOrderBy(ast, allSelectExprs)
 		if err != nil {
 			return nil, err
 		}
@@ -647,7 +632,7 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 
 	operator = &Project{
 		source: operator,
-		sExprs: sExprs,
+		sExprs: projectedSelectExprs,
 	}
 
 	operator = &SourceRemove{
@@ -656,7 +641,6 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 	}
 
 	return operator, nil
-
 }
 
 // planSimpleSelectExpr takes a simple select expression and returns a query execution plan for it.
@@ -780,25 +764,7 @@ func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlp
 
 	case *sqlparser.TableName:
 
-		source, err := planTableName(c, expr, w)
-		if err != nil {
-			return nil, err
-		}
-
-		// use actual table name if table expression isn't aliased
-		// otherwise, rename the table to its aliased form.
-		if len(s.As) != 0 {
-			switch typedO := source.(type) {
-			case *TableScan:
-				typedO.aliasName = string(s.As)
-			case *SchemaDataSource:
-				typedO.aliasName = string(s.As)
-			default:
-				return nil, fmt.Errorf("planSimpleTableExpr returned unknown type %T", typedO)
-			}
-		}
-
-		return source, nil
+		return planTableName(c, expr, string(s.As), w)
 
 	case *sqlparser.Subquery:
 
@@ -862,13 +828,13 @@ func planTableExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExpr, w *sqlparser.Wh
 
 // planTableName takes a table name and returns an operator to get
 // data from the appropriate source.
-func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) (Operator, error) {
+func planTableName(ctx *ExecutionCtx, t *sqlparser.TableName, aliasName string, w *sqlparser.Where) (Operator, error) {
 
 	var matcher SQLExpr
 	var err error
 
 	dbName := strings.ToLower(string(t.Qualifier))
-	isInformationDatabase := dbName == InformationDatabase || strings.ToLower(c.Db) == InformationDatabase
+	isInformationDatabase := dbName == InformationDatabase || strings.ToLower(ctx.Db) == InformationDatabase
 
 	if isInformationDatabase {
 
@@ -876,9 +842,10 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 		// the 'information_schema' database
 		cds := &SchemaDataSource{
 			tableName: strings.ToLower(string(t.Name)),
+			aliasName: aliasName,
 		}
 
-		c.Db = InformationDatabase
+		ctx.Db = InformationDatabase
 
 		// if we got a valid filter/matcher, use it
 		if err == nil {
@@ -888,17 +855,11 @@ func planTableName(c *ExecutionCtx, t *sqlparser.TableName, w *sqlparser.Where) 
 		return cds, nil
 	}
 
-	if c.Db == "" {
-		c.Db = dbName
+	if dbName == "" {
+		dbName = ctx.Db
 	}
 
-	ts := &TableScan{
-		tableName: string(t.Name),
-		dbName:    dbName,
-		matcher:   matcher,
-	}
-
-	return ts, nil
+	return NewTableScan(ctx, dbName, string(t.Name), aliasName)
 }
 
 // refColsInSelectStmt returns any columns referenced in the select statement.
@@ -932,4 +893,27 @@ func refColsInSelectStmt(ss sqlparser.SelectStatement) (SelectExpressions, error
 		return nil, fmt.Errorf("unknown SelectStatement in refColsInSelectStmt: %T", stmt)
 	}
 
+}
+
+func replaceSelectExpressionsWithColumns(tableName string, sExprs SelectExpressions) SelectExpressions {
+
+	newSExprs := SelectExpressions{}
+
+	for _, sExpr := range sExprs {
+
+		expr, ok := sExpr.Expr.(SQLFieldExpr)
+		if !ok {
+			expr = SQLFieldExpr{tableName, sExpr.Expr.String()}
+		}
+
+		newSExpr := SelectExpression{
+			Column:     sExpr.Column,
+			RefColumns: sExpr.RefColumns,
+			Expr:       expr,
+		}
+
+		newSExprs = append(newSExprs, newSExpr)
+	}
+
+	return newSExprs
 }
