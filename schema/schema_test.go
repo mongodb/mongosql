@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"path/filepath"
 	"testing"
 )
 
@@ -405,10 +406,10 @@ func _testComputeDirectory(t *testing.T, file string, dir string, correct string
 }
 
 func TestComputeDirectory(t *testing.T) {
-	_testComputeDirectory(t, "asd", "/a", "/a")
-	_testComputeDirectory(t, "foo.conf", "/a", "/a")
-	_testComputeDirectory(t, "/b/foo.conf", "/a", "/a")
-	_testComputeDirectory(t, "/b/foo.conf", "a", "/b/a")
+	_testComputeDirectory(t, "asd", filepath.Join("/", "a"), filepath.Join("/", "a"))
+	_testComputeDirectory(t, "foo.conf", filepath.Join("/", "a"), filepath.Join("/", "a"))
+	_testComputeDirectory(t, "/b/foo.conf", filepath.Join("/", "a"), filepath.Join("/", "a"))
+	_testComputeDirectory(t, "/b/foo.conf", "a", filepath.Join("/", "b", "a"))
 }
 
 func TestReadFile(t *testing.T) {
