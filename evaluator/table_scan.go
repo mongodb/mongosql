@@ -155,6 +155,8 @@ func (ts *TableScan) Open(ctx *ExecutionCtx) error {
 
 	pcs := strings.SplitN(ts.fqns, ".", 2)
 
+	ctx.Session.SetSocketTimeout(0)
+
 	ts.iter = MgoFindResults{ctx.Session.DB(pcs[0]).C(pcs[1]).Pipe(ts.pipeline).Iter()}
 
 	return nil

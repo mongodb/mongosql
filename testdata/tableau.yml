@@ -167,15 +167,19 @@ testcases:
       expected_types: [date, date]
       expected: *query6_results
 
-    #- sql: "SELECT attendees.airport_city AS airport_city, attendees.latitude AS latitude, attendees.longitude AS longitude, SUM(1) AS records FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703)) GROUP BY 1, 2, 3 ORDER BY 1, 2, 3;"
-    #  expected_types: [string, float, float, int]
-    #  expected: *query7_results
+    - sql: "SELECT attendees.airport_city AS airport_city, attendees.latitude AS latitude, attendees.longitude AS longitude, SUM(1) AS records FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703)) GROUP BY 1, 2, 3 ORDER BY 1, 2, 3;"
+      expected_types: [string, float, float, int]
+      expected: *query7_results
 
-    #- sql: "SELECT attendees.city AS city, SUM(1) AS calculation_4190704170258269 FROM public.attendees attendees  INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1;"
+    - sql: "SELECT attendees.city AS city, SUM(1) AS calculation_4190704170258269 FROM public.attendees attendees  INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1 ORDER BY 1;"
+      expected_types: [string, int]
+      expected: *query8_results
+
+    #- sql: "SELECT attendees.city AS city, COUNT(DISTINCT attendees._id) AS ctd_id FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1 ORDER BY 1;"
     #  expected_types: [string, int]
-    #  expected: *query8_results
-    #- sql: "SELECT attendees.city AS city, COUNT(DISTINCT attendees._id) AS ctd_id FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1;"
-    #- sql: "SELECT (CASE WHEN (flights201406.dest_city_name IS NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) AS Calculation_6710704172113145, SUM(1) AS TEMP(Calculation_9510704170320209)(2414991311)(0), SUM((CASE WHEN (flights201406.cancelled = '1') THEN 1 ELSE 0 END)) AS TEMP(Calculation_9510704170320209)(424513295)(0), COUNT(DISTINCT attendees._id) AS ctd_id FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1;"
+    #  expected: *query9_results
+
+      #- sql: "SELECT (CASE WHEN (flights201406.dest_city_name IS NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) AS Calculation_6710704172113145, SUM(1) AS TEMP(Calculation_9510704170320209)(2414991311)(0), SUM((CASE WHEN (flights201406.cancelled = '1') THEN 1 ELSE 0 END)) AS TEMP(Calculation_9510704170320209)(424513295)(0), COUNT(DISTINCT attendees._id) AS ctd_id FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1;"
     #- sql: "SELECT (CASE WHEN (flights201406.dest_city_name = NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) AS Calculation_6710704172113145, (100 * (CASE WHEN 1 = 0 THEN NULL ELSE CAST((CASE WHEN (flights201406.cancelled = '1') THEN 1 ELSE 0 END) AS DOUBLE PRECISION) / 1 END)) AS Calculation_9510704170320209, 1 AS num_records, flights201406._id AS _id (flights201406), attendees._id AS _id, flights201406.airline AS airline, attendees.airport_city AS airport_city, attendees.airport_code AS airport_code, attendees.airport_id AS airport_id, flights201406.arr_delay AS arr_delay, flights201406.arr_time AS arr_time, flights201406.cancelled AS cancelled, flights201406.carrier_code AS carrier_code, flights201406.carrier_delay AS carrier_delay, attendees.city AS city, attendees.city_market_description AS city_market_description, attendees.city_market_id AS city_market_id, attendees.country AS country, flights201406.dep_delay AS dep_delay, flights201406.dep_time AS dep_time, flights201406.dest_airport_code AS dest_airport_code, flights201406.dest_airport_id AS dest_airport_id, flights201406.dest_city_market_id AS dest_city_market_id, flights201406.dest_city_name AS dest_city_name, flights201406.dest_state AS dest_state, flights201406.diff_from_arr_time AS diff_from_arr_time, flights201406.diff_from_dep_time AS diff_from_dep_time, flights201406.flight_date AS flight_date, flights201406.flight_number AS flight_number, flights201406.flight_time AS flight_time, flights201406.late_aircraft_delay AS late_aircraft_delay, attendees.latitude AS latitude, attendees.longitude AS longitude, flights201406.nas_delay AS nas_delay, flights201406.origin_airport_code AS origin_airport_code, flights201406.origin_airport_id AS origin_airport_id, flights201406.origin_city_market_id AS origin_city_market_id, flights201406.origin_city_name AS origin_city_name, flights201406.origin_state AS origin_state, flights201406.tail_num AS tail_num FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE ((((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) AND ((CASE WHEN (flights201406.dest_city_name = NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) IS NULL)) LIMIT 7500;"
     #- sql: "SELECT (CASE WHEN (flights201406.dest_city_name IS NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) AS Calculation_6710704172113145, SUM(1) AS TEMP(Calculation_8730704172859978)(2414991311)(0), SUM((CASE WHEN (flights201406.arr_delay > 14) THEN 1 ELSE 0 END)) AS TEMP(Calculation_8730704172859978)(424447523)(0), COUNT(DISTINCT attendees._id) AS ctd_id, SUM((CASE WHEN (flights201406.arr_delay > 0) THEN flights201406.arr_delay ELSE 0 END)) AS calculation_6050704172825900 FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1;"
 
@@ -1028,14 +1032,14 @@ query8_results: &query8_results
   - [ "Barcelona", 10 ]
   - [ "Bedford", 774 ]
   - [ "Belcamp", 267 ]
-  - [ "bellevue", 880 ]
+  - [ "Bellevue", 800 ]
   - [ "Berkley", 328 ]
   - [ "Berlin", 51 ]
   - [ "Beverly", 1548 ]
   - [ "Binghamton", 36 ]
   - [ "Boston", 9449 ]
   - [ "Bothell", 160 ]
-  - [ "boulder", 987 ]
+  - [ "Boulder", 846 ]
   - [ "Braintree", 387 ]
   - [ "Bras??lia", 52 ]
   - [ "Bristow", 276 ]
@@ -1092,12 +1096,12 @@ query8_results: &query8_results
   - [ "Germantown", 135 ]
   - [ "Glasgow", 7 ]
   - [ "Glen Allen", 910 ]
-  - [ "Glendale", 21 ]
+  - [ "Glendale", 7 ]
   - [ "Guatemala", 8 ]
   - [ "Gurgaon", 7 ]
   - [ "Halifax", 36 ]
   - [ "Hanover", 445 ]
-  - [ "Hartford", 60 ]
+  - [ "Hartford", 40 ]
   - [ "Hayward", 7 ]
   - [ "Heidelberg", 123 ]
   - [ "Helsinki", 7 ]
@@ -1109,7 +1113,7 @@ query8_results: &query8_results
   - [ "Hollywood", 486 ]
   - [ "Hood River", 29 ]
   - [ "Horsham", 165 ]
-  - [ "Houston", 124 ]
+  - [ "Houston", 62 ]
   - [ "Huntsville", 48 ]
   - [ "Indianapolis", 152 ]
   - [ "Ipswich", 774 ]
@@ -1144,7 +1148,8 @@ query8_results: &query8_results
   - [ "Mc Lean", 387 ]
   - [ "Medford", 1935 ]
   - [ "Memphis", 17 ]
-  - [ "Menlo park", 1132 ]
+  - [ "Menlo Park", 849 ]
+  - [ "Menlo park", 283 ]
   - [ "Mexico", 152 ]
   - [ "Mexico City", 38 ]
   - [ "Miami", 2497 ]
@@ -1180,10 +1185,11 @@ query8_results: &query8_results
   - [ "Overland Park", 49 ]
   - [ "Owings Mills", 178 ]
   - [ "Oxford", 546 ]
-  - [ "Palo Alto", 63 ]
+  - [ "PHOENIX", 90 ]
+  - [ "Palo Alto", 56 ]
   - [ "Park City", 144 ]
   - [ "Philadelphia", 835 ]
-  - [ "PHOENIX", 270 ]
+  - [ "Phoenix", 180 ]
   - [ "Pittsburgh", 101 ]
   - [ "Pleasanton", 7 ]
   - [ "Plymouth", 164 ]
@@ -1212,19 +1218,22 @@ query8_results: &query8_results
   - [ "Roseville", 14 ]
   - [ "Roswell", 2840 ]
   - [ "Round Rock", 227 ]
+  - [ "SALT LAKE CITY", 48 ]
   - [ "Saint Louis", 102 ]
   - [ "Saline", 328 ]
-  - [ "SALT LAKE CITY", 96 ]
+  - [ "Salt Lake City", 48 ]
   - [ "San Antonio", 126 ]
   - [ "San Carlos", 283 ]
   - [ "San Diego", 126 ]
-  - [ "San Francisco", 11886 ]
+  - [ "San Francisco", 11320 ]
   - [ "San Jose", 71 ]
   - [ "San Mateo", 2830 ]
   - [ "San Sebasti??n de los Reyes", 27 ]
   - [ "San Sebastian de los Reyes", 27 ]
-  - [ "Santa Clara", 63 ]
+  - [ "San francisco", 566 ]
+  - [ "Santa Clara", 56 ]
   - [ "Santa Monica", 1404 ]
+  - [ "Santa clara", 7 ]
   - [ "Sao Paulo", 78 ]
   - [ "Sausalito", 283 ]
   - [ "Scottsdale", 360 ]
@@ -1241,7 +1250,7 @@ query8_results: &query8_results
   - [ "St. Paul", 118 ]
   - [ "Stekene", 23 ]
   - [ "Sterling", 135 ]
-  - [ "Sunnyvale", 311 ]
+  - [ "Sunnyvale", 304 ]
   - [ "Syracuse", 156 ]
   - [ "Tampa", 1050 ]
   - [ "Tel Aviv", 29 ]
@@ -1249,7 +1258,7 @@ query8_results: &query8_results
   - [ "Thornton", 141 ]
   - [ "Tokyo", 168 ]
   - [ "Toronto", 1190 ]
-  - [ "Troy", 362 ]
+  - [ "Troy", 340 ]
   - [ "Trussville", 8 ]
   - [ "Tuscaloosa", 4 ]
   - [ "Universal City", 351 ]
@@ -1279,3 +1288,11 @@ query8_results: &query8_results
   - [ "Woburn", 387 ]
   - [ "Yokohama", 42 ]
   - [ "Zurich", 28 ]
+  - [ "bellevue", 80 ]
+  - [ "boulder", 141 ]
+  - [ "glendale", 14 ]
+  - [ "hartford", 20 ]
+  - [ "houston", 62 ]
+  - [ "palo alto", 7 ]
+  - [ "sunnyvale", 7 ]
+  - [ "troy", 22 ]
