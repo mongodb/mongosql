@@ -5,9 +5,7 @@
 #
 data:
 - ns: test.foo
-  bson_file: testdata/input/test1.bson.gz
-- ns: test.baz
-  bson_file: testdata/input/test2.bson.gz
+  archive_file: testdata/input/test1.bson.gz
 
 # 2. Start a test server using the following schema mapping, which should
 # correspond to the data used in (1)
@@ -16,7 +14,7 @@ schema:
 - db: test
   tables:
   - table: foo
-    collection: test.foo
+    collection: test.test1
     pipeline: []
     columns:
     - name: a

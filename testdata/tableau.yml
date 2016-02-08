@@ -1,8 +1,8 @@
 data:
 - ns: tableau.attendees
-  bson_file: testdata/input/attendees.bson.gz
+  archive_file: testdata/input/attendees.bson.gz
 - ns: tableau.flights201406
-  bson_file: testdata/input/flights201406.bson.gz
+  archive_file: testdata/input/flights201406.bson.gz
 
 schema:
 -
@@ -11,6 +11,9 @@ schema:
     - table: flights201406
       collection: tableau.flights201406
       columns:
+        - name: "_id"
+          sqlname: "_id"
+          sqltype: string
         - name: "carrier_code"
           sqlname: "carrier_code"
           sqltype: string
@@ -85,6 +88,9 @@ schema:
     - table: attendees
       collection: "tableau.attendees"
       columns:
+        - name: "_id"
+          sqlname: "_id"
+          sqltype: string
         - name: "loc.coordinates.0"
           sqlname: "latitude"
           sqltype: float
@@ -124,40 +130,17 @@ testcases:
       expected_types: [int]
       expected: *query1_results
 
-    - sql: "SELECT attendees.longitude AS longitude, SUM(1) AS num_records FROM public.attendees attendees GROUP BY 1 ORDER BY longitude" # added explicit ordering here 
+    - sql: "SELECT attendees.longitude AS longitude, SUM(1) AS num_records FROM public.attendees attendees GROUP BY 1 ORDER BY longitude"
       expected_types: [float, int]
       expected: *query2_results
-      # expected results generated using this aggregation pipeline:
-      # db.attendees.aggregate(
-      #     {$project:{"lon":{$slice:["$loc.coordinates",1,2]}}},
-      #     {$unwind:"$lon"},
-      #     {$group:{_id:"$lon", count:{$sum:1}}},
-      #     {$sort:{"_id":1}}
-      # ).toArray().map(function(x){return [x._id, x.count]})
 
     - sql: "SELECT attendees.latitude AS latitude, attendees.longitude AS longitude, SUM(1) AS records FROM public.attendees attendees GROUP BY 1, 2 ORDER BY 3 DESC, 1 DESC, 2 DESC"
       expected_types: [float, float, int]
       expected: *query3_results
-      # expected results generated using:
-      # db.attendees.aggregate(
-      #     {$project:{"lon":{$slice:["$loc.coordinates",1,2]}, "lat":{$slice:["$loc.coordinates",0,1]}}},
-      #     {$unwind:"$lon"},
-      #     {$unwind:"$lat"},
-      #     {$group:{_id:{lat:"$lat",lon:"$lon"}, count:{$sum:1}}},
-      #     {$sort:{"count":-1, "_id.lat":-1, "_id.lon":-1}}
-      # ).toArray().map(function(x){return [x._id.lat, x._id.lon, x.count]})
 
     - sql: "SELECT attendees.airport_city AS airport_city, attendees.latitude AS latitude, attendees.longitude AS longitude, SUM(1) AS records FROM public.attendees attendees GROUP BY 1, 2, 3 ORDER BY records DESC, airport_city ASC, latitude DESC, longitude DESC"
       expected_types: [string, float, float, int]
       expected: *query4_results
-
-      # db.attendees.aggregate(
-      #     {$project:{"city":"$airport_city","lon":{$slice:["$loc.coordinates",1,2]}, "lat":{$slice:["$loc.coordinates",0,1]}}},
-      #     {$unwind:"$lon"},
-      #     {$unwind:"$lat"},
-      #     {$group:{_id:{city:"$city",lat:"$lat",lon:"$lon"}, count:{$sum:1}}},
-      #     {$sort:{"count":-1, "city":1,"_id.lat":-1, "_id.lon":-1}}
-      # ).toArray().map(function(x){return [x._id.city, x._id.lat, x._id.lon, x.count]})
 
     - sql: "SELECT flights201406.origin_city_market_id AS origin_city_market_id FROM public.flights201406 flights201406 GROUP BY 1 ORDER BY 1"
       expected_types: [int]
@@ -175,9 +158,9 @@ testcases:
       expected_types: [string, int]
       expected: *query8_results
 
-    #- sql: "SELECT attendees.city AS city, COUNT(DISTINCT attendees._id) AS ctd_id FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1 ORDER BY 1;"
-    #  expected_types: [string, int]
-    #  expected: *query9_results
+    - sql: "SELECT attendees.city AS city, COUNT(DISTINCT attendees._id) AS ctd_id FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1 ORDER BY 1;"
+      expected_types: [string, int]
+      expected: *query9_results
 
       #- sql: "SELECT (CASE WHEN (flights201406.dest_city_name IS NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) AS Calculation_6710704172113145, SUM(1) AS TEMP(Calculation_9510704170320209)(2414991311)(0), SUM((CASE WHEN (flights201406.cancelled = '1') THEN 1 ELSE 0 END)) AS TEMP(Calculation_9510704170320209)(424513295)(0), COUNT(DISTINCT attendees._id) AS ctd_id FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1;"
     #- sql: "SELECT (CASE WHEN (flights201406.dest_city_name = NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) AS Calculation_6710704172113145, (100 * (CASE WHEN 1 = 0 THEN NULL ELSE CAST((CASE WHEN (flights201406.cancelled = '1') THEN 1 ELSE 0 END) AS DOUBLE PRECISION) / 1 END)) AS Calculation_9510704170320209, 1 AS num_records, flights201406._id AS _id (flights201406), attendees._id AS _id, flights201406.airline AS airline, attendees.airport_city AS airport_city, attendees.airport_code AS airport_code, attendees.airport_id AS airport_id, flights201406.arr_delay AS arr_delay, flights201406.arr_time AS arr_time, flights201406.cancelled AS cancelled, flights201406.carrier_code AS carrier_code, flights201406.carrier_delay AS carrier_delay, attendees.city AS city, attendees.city_market_description AS city_market_description, attendees.city_market_id AS city_market_id, attendees.country AS country, flights201406.dep_delay AS dep_delay, flights201406.dep_time AS dep_time, flights201406.dest_airport_code AS dest_airport_code, flights201406.dest_airport_id AS dest_airport_id, flights201406.dest_city_market_id AS dest_city_market_id, flights201406.dest_city_name AS dest_city_name, flights201406.dest_state AS dest_state, flights201406.diff_from_arr_time AS diff_from_arr_time, flights201406.diff_from_dep_time AS diff_from_dep_time, flights201406.flight_date AS flight_date, flights201406.flight_number AS flight_number, flights201406.flight_time AS flight_time, flights201406.late_aircraft_delay AS late_aircraft_delay, attendees.latitude AS latitude, attendees.longitude AS longitude, flights201406.nas_delay AS nas_delay, flights201406.origin_airport_code AS origin_airport_code, flights201406.origin_airport_id AS origin_airport_id, flights201406.origin_city_market_id AS origin_city_market_id, flights201406.origin_city_name AS origin_city_name, flights201406.origin_state AS origin_state, flights201406.tail_num AS tail_num FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE ((((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) AND ((CASE WHEN (flights201406.dest_city_name = NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) IS NULL)) LIMIT 7500;"
@@ -1296,3 +1279,292 @@ query8_results: &query8_results
   - [ "palo alto", 7 ]
   - [ "sunnyvale", 7 ]
   - [ "troy", 22 ]
+
+query9_results: &query9_results
+  - [ "Aarhus", 2 ]
+  - [ "Addison", 1 ]
+  - [ "Albany", 1 ]
+  - [ "Albuquerque", 1 ]
+  - [ "Alexandria", 2 ]
+  - [ "Aliso Viejo", 1 ]
+  - [ "Allston", 1 ]
+  - [ "Alpharetta", 5 ]
+  - [ "American Fork", 5 ]
+  - [ "Andover", 1 ]
+  - [ "Ann Arbor", 1 ]
+  - [ "Arden Hills", 2 ]
+  - [ "Arkadelphia", 1 ]
+  - [ "Arlington", 7 ]
+  - [ "Ashburn", 1 ]
+  - [ "Atlanta", 17 ]
+  - [ "Atlantic Beach", 1 ]
+  - [ "Austin", 45 ]
+  - [ "Baar", 2 ]
+  - [ "Baltimore", 7 ]
+  - [ "Barcelona", 1 ]
+  - [ "Bedford", 2 ]
+  - [ "Belcamp", 3 ]
+  - [ "Bellevue", 10 ]
+  - [ "Berkley", 2 ]
+  - [ "Berlin", 3 ]
+  - [ "Beverly", 4 ]
+  - [ "Binghamton", 4 ]
+  - [ "Boston", 26 ]
+  - [ "Bothell", 2 ]
+  - [ "Boulder", 6 ]
+  - [ "Braintree", 1 ]
+  - [ "Bras??lia", 2 ]
+  - [ "Bristow", 1 ]
+  - [ "Brooklyn Center", 2 ]
+  - [ "Broomfield", 1 ]
+  - [ "Brussels", 1 ]
+  - [ "Buffalo", 2 ]
+  - [ "Burlington", 8 ]
+  - [ "Burnaby", 2 ]
+  - [ "Burritts Rapids", 1 ]
+  - [ "Calgary", 2 ]
+  - [ "Cambridge", 16 ]
+  - [ "Cary", 6 ]
+  - [ "Centennial", 1 ]
+  - [ "Centreville", 1 ]
+  - [ "Chandler", 1 ]
+  - [ "Chantilly", 1 ]
+  - [ "Chapel Hill", 1 ]
+  - [ "Charlotte", 2 ]
+  - [ "Chevy Chase", 1 ]
+  - [ "Chicago", 18 ]
+  - [ "Cincinnati", 4 ]
+  - [ "Clearwater", 1 ]
+  - [ "Columbia", 3 ]
+  - [ "Columbus", 1 ]
+  - [ "Culver City", 1 ]
+  - [ "Cupertino", 2 ]
+  - [ "Dearborn", 1 ]
+  - [ "Dedham", 1 ]
+  - [ "Deerfield", 1 ]
+  - [ "Denver", 5 ]
+  - [ "Detroit", 1 ]
+  - [ "Dover", 2 ]
+  - [ "Draper", 1 ]
+  - [ "Dublin", 3 ]
+  - [ "Dublin 2", 2 ]
+  - [ "Dulles", 2 ]
+  - [ "Durham", 8 ]
+  - [ "El Segundo", 9 ]
+  - [ "Ellicott City", 4 ]
+  - [ "Elmhurst", 5 ]
+  - [ "Englewood", 1 ]
+  - [ "Erding, Germany", 1 ]
+  - [ "Fairfax", 3 ]
+  - [ "Falls Church", 2 ]
+  - [ "Fort Collins", 1 ]
+  - [ "Fort Myers", 1 ]
+  - [ "Foster City", 2 ]
+  - [ "Frankfurt am Main", 4 ]
+  - [ "Franklin", 1 ]
+  - [ "Friendswood", 2 ]
+  - [ "Function toUpperCase() { [native code] }ancouver", 1 ]
+  - [ "Garden Valley", 1 ]
+  - [ "Germantown", 1 ]
+  - [ "Glasgow", 1 ]
+  - [ "Glen Allen", 10 ]
+  - [ "Glendale", 1 ]
+  - [ "Guatemala", 2 ]
+  - [ "Gurgaon", 1 ]
+  - [ "Halifax", 2 ]
+  - [ "Hanover", 5 ]
+  - [ "Hartford", 4 ]
+  - [ "Hayward", 1 ]
+  - [ "Heidelberg", 3 ]
+  - [ "Helsinki", 1 ]
+  - [ "Henrico", 1 ]
+  - [ "Henrietta", 1 ]
+  - [ "Herndon", 6 ]
+  - [ "Hillsborough", 1 ]
+  - [ "Hoffman estates", 2 ]
+  - [ "Hollywood", 2 ]
+  - [ "Hood River", 1 ]
+  - [ "Horsham", 1 ]
+  - [ "Houston", 1 ]
+  - [ "Huntsville", 1 ]
+  - [ "Indianapolis", 2 ]
+  - [ "Ipswich", 2 ]
+  - [ "Irvine", 3 ]
+  - [ "Irving", 1 ]
+  - [ "Jerusalem", 1 ]
+  - [ "Jupiter", 6 ]
+  - [ "La Mesa", 1 ]
+  - [ "Lehi", 3 ]
+  - [ "Lenexa", 1 ]
+  - [ "Leuven", 1 ]
+  - [ "Leverkusen", 1 ]
+  - [ "Lexington", 7 ]
+  - [ "Lisle", 1 ]
+  - [ "Litchfield", 1 ]
+  - [ "Little Rock", 1 ]
+  - [ "Littleton", 3 ]
+  - [ "Lombard", 1 ]
+  - [ "London", 4 ]
+  - [ "Long Beach", 4 ]
+  - [ "Los Angeles", 2 ]
+  - [ "Los Gatos", 1 ]
+  - [ "Louisville", 6 ]
+  - [ "Madrid", 3 ]
+  - [ "Manassas", 1 ]
+  - [ "Manchester", 3 ]
+  - [ "Mango", 1 ]
+  - [ "Maple Grove", 1 ]
+  - [ "Marblehead", 1 ]
+  - [ "Markham", 1 ]
+  - [ "Mayfield Village", 1 ]
+  - [ "Mc Lean", 1 ]
+  - [ "Medford", 5 ]
+  - [ "Memphis", 1 ]
+  - [ "Menlo Park", 3 ]
+  - [ "Menlo park", 1 ]
+  - [ "Mexico", 4 ]
+  - [ "Mexico City", 1 ]
+  - [ "Miami", 11 ]
+  - [ "Midlothian", 1 ]
+  - [ "Milpitas", 1 ]
+  - [ "Minneapolis", 1 ]
+  - [ "Mission Viejo", 1 ]
+  - [ "Montreal", 1 ]
+  - [ "Moorestown", 2 ]
+  - [ "Morrisville", 2 ]
+  - [ "Morton", 1 ]
+  - [ "Mountain View", 9 ]
+  - [ "Muenchen", 1 ]
+  - [ "Naperville", 1 ]
+  - [ "Nashville", 3 ]
+  - [ "Needham", 2 ]
+  - [ "New York", 1 ]
+  - [ "Newton", 1 ]
+  - [ "Nieuwegein", 1 ]
+  - [ "Nimes", 1 ]
+  - [ "Noida", 2 ]
+  - [ "Norcross", 1 ]
+  - [ "Norfolk", 2 ]
+  - [ "North Andover", 1 ]
+  - [ "North Attleboro", 1 ]
+  - [ "North Miami", 1 ]
+  - [ "Norwood", 1 ]
+  - [ "Oakland", 1 ]
+  - [ "Ogden", 2 ]
+  - [ "Olathe", 1 ]
+  - [ "Orange", 1 ]
+  - [ "Orlando", 8 ]
+  - [ "Overland Park", 1 ]
+  - [ "Owings Mills", 2 ]
+  - [ "Oxford", 3 ]
+  - [ "PHOENIX", 1 ]
+  - [ "Palo Alto", 8 ]
+  - [ "Park City", 3 ]
+  - [ "Philadelphia", 6 ]
+  - [ "Phoenix", 2 ]
+  - [ "Pittsburgh", 1 ]
+  - [ "Pleasanton", 1 ]
+  - [ "Plymouth", 1 ]
+  - [ "Pornic", 2 ]
+  - [ "Portland", 4 ]
+  - [ "Porto Alegre", 1 ]
+  - [ "Pozuelo de Alarcon", 3 ]
+  - [ "Praha", 2 ]
+  - [ "Providence", 2 ]
+  - [ "Quantico", 1 ]
+  - [ "Ralegih", 1 ]
+  - [ "Raleigh", 8 ]
+  - [ "Ramat-Gan", 1 ]
+  - [ "Redmond", 5 ]
+  - [ "Redondo Beach", 1 ]
+  - [ "Redwood City", 3 ]
+  - [ "Redwood Shores", 1 ]
+  - [ "Reston", 7 ]
+  - [ "Richfield", 4 ]
+  - [ "Richmond", 9 ]
+  - [ "River Falls", 1 ]
+  - [ "Riverton", 3 ]
+  - [ "Rochester", 8 ]
+  - [ "Rochester Hills", 1 ]
+  - [ "Rockville", 1 ]
+  - [ "Roseville", 2 ]
+  - [ "Roswell", 8 ]
+  - [ "Round Rock", 1 ]
+  - [ "SALT LAKE CITY", 1 ]
+  - [ "Saint Louis", 1 ]
+  - [ "Saline", 2 ]
+  - [ "Salt Lake City", 1 ]
+  - [ "San Antonio", 9 ]
+  - [ "San Carlos", 1 ]
+  - [ "San Diego", 2 ]
+  - [ "San Francisco", 40 ]
+  - [ "San Jose", 11 ]
+  - [ "San Mateo", 10 ]
+  - [ "San Sebasti??n de los Reyes", 1 ]
+  - [ "San Sebastian de los Reyes", 1 ]
+  - [ "San francisco", 2 ]
+  - [ "Santa Clara", 8 ]
+  - [ "Santa Monica", 4 ]
+  - [ "Santa clara", 1 ]
+  - [ "Sao Paulo", 3 ]
+  - [ "Sausalito", 1 ]
+  - [ "Scottsdale", 4 ]
+  - [ "Seattle", 20 ]
+  - [ "Seoul South Korea", 1 ]
+  - [ "Sharon", 1 ]
+  - [ "Somerville", 3 ]
+  - [ "Sophia Antipolis", 4 ]
+  - [ "Sophia-Antipolis cedex", 1 ]
+  - [ "South San Francisco", 2 ]
+  - [ "Sparks", 1 ]
+  - [ "Springfield", 1 ]
+  - [ "Springfield,", 1 ]
+  - [ "St. Paul", 1 ]
+  - [ "Stekene", 1 ]
+  - [ "Sterling", 1 ]
+  - [ "Sunnyvale", 4 ]
+  - [ "Syracuse", 2 ]
+  - [ "Tampa", 7 ]
+  - [ "Tel Aviv", 1 ]
+  - [ "Tempe", 2 ]
+  - [ "Thornton", 1 ]
+  - [ "Tokyo", 4 ]
+  - [ "Toronto", 5 ]
+  - [ "Troy", 9 ]
+  - [ "Trussville", 2 ]
+  - [ "Tuscaloosa", 1 ]
+  - [ "Universal City", 1 ]
+  - [ "Unterf??hring", 2 ]
+  - [ "Utrecht", 1 ]
+  - [ "Van Buren", 1 ]
+  - [ "Van Buren Township", 1 ]
+  - [ "Vancouver", 8 ]
+  - [ "Venice", 4 ]
+  - [ "Vienna", 1 ]
+  - [ "Wakefield", 1 ]
+  - [ "Waltham", 3 ]
+  - [ "Warwick", 1 ]
+  - [ "Washington", 18 ]
+  - [ "Wavre", 2 ]
+  - [ "Webster", 4 ]
+  - [ "Wellesley", 1 ]
+  - [ "West Hartford", 1 ]
+  - [ "West Hollywood", 1 ]
+  - [ "West Palm Beach", 1 ]
+  - [ "Westford", 1 ]
+  - [ "Westlake", 2 ]
+  - [ "Westlake Village", 1 ]
+  - [ "Westminster", 5 ]
+  - [ "Winooski", 2 ]
+  - [ "Winter Haven", 5 ]
+  - [ "Woburn", 1 ]
+  - [ "Yokohama", 1 ]
+  - [ "Zurich", 1 ]
+  - [ "bellevue", 1 ]
+  - [ "boulder", 1 ]
+  - [ "glendale", 2 ]
+  - [ "hartford", 2 ]
+  - [ "houston", 1 ]
+  - [ "palo alto", 1 ]
+  - [ "sunnyvale", 1 ]
+  - [ "troy", 1 ]

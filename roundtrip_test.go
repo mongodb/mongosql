@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/10gen/sqlproxy"
@@ -27,8 +26,8 @@ const (
 )
 
 type testDataSet struct {
-	NS       string `yaml:"ns"`
-	BSONFile string `yaml:"bson_file"`
+	NS          string `yaml:"ns"`
+	ArchiveFile string `yaml:"archive_file"`
 }
 
 type testCase struct {
@@ -74,12 +73,16 @@ func compareResults(t *testing.T, actual [][]interface{}, expected [][]interface
 	}
 }
 
-func restoreBSON(host, port, file, db, collection string) error {
+func restoreBSON(host, port, file string) error {
 
 	connection := &options.Connection{Host: host, Port: port}
-	sessionProvider, err := toolsdb.NewSessionProvider(options.ToolOptions{
-		Auth:       &options.Auth{},
-		Connection: connection})
+	sessionProvider, err := toolsdb.NewSessionProvider(
+		options.ToolOptions{
+			Auth:       &options.Auth{},
+			Connection: connection,
+		},
+	)
+	sessionProvider.SetFlags(toolsdb.DisableSocketTimeout)
 
 	if err != nil {
 		return err
@@ -90,16 +93,13 @@ func restoreBSON(host, port, file, db, collection string) error {
 	restorer := mongorestore.MongoRestore{
 		ToolOptions: &options.ToolOptions{
 			Connection: connection,
-			Namespace: &options.Namespace{
-				DB:         db,
-				Collection: collection,
-			},
+			Namespace:  &options.Namespace{},
 			HiddenOptions: &options.HiddenOptions{
 				NumDecodingWorkers: 10,
 				BulkBufferSize:     1000,
 			},
 		},
-		InputOptions: &mongorestore.InputOptions{Gzip: true},
+		InputOptions: &mongorestore.InputOptions{Gzip: true, Archive: file},
 		OutputOptions: &mongorestore.OutputOptions{
 			Drop:                   true,
 			StopOnError:            true,
@@ -107,7 +107,6 @@ func restoreBSON(host, port, file, db, collection string) error {
 			NumInsertionWorkers:    10,
 		},
 		SessionProvider: sessionProvider,
-		TargetDirectory: file,
 	}
 
 	return restorer.Restore()
@@ -221,12 +220,7 @@ func MustLoadTestSchema(path string) testSchema {
 
 func MustLoadTestData(dbhost, dbport string, conf testSchema) {
 	for _, dataSet := range conf.Data {
-		ns := strings.SplitN(dataSet.NS, ".", 2)
-		if len(ns) != 2 {
-			panic(fmt.Errorf("ns '%v' missing period; namespace should be specified as 'dbname.collection'", dataSet.NS))
-		}
-		err := restoreBSON(dbhost, dbport, dataSet.BSONFile, ns[0], ns[1])
-		if err != nil {
+		if err := restoreBSON(dbhost, dbport, dataSet.ArchiveFile); err != nil {
 			panic(err)
 		}
 	}
@@ -243,7 +237,7 @@ func TestTableauDemo(t *testing.T) {
 }
 
 func TestSimpleQueries(t *testing.T) {
-	conf := MustLoadTestSchema("testdata/tableau.yml")
+	conf := MustLoadTestSchema("testdata/simple.yml")
 	MustLoadTestData(testMongoHost, testMongoPort, conf)
 
 	Convey("Test simple queries", t, func() {

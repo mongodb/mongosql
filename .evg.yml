@@ -107,8 +107,8 @@ functions:
     params:
       working_dir: src
       script: |
-        curl -s https://s3.amazonaws.com/boxes.10gen.com/build/attendees.bson.gz --output testdata/input/attendees.bson.gz
-        curl -s https://s3.amazonaws.com/boxes.10gen.com/build/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/attendees.bson.gz --output testdata/input/attendees.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
 
   "fetch source" :
     command: git.get_project
