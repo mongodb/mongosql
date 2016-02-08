@@ -63,17 +63,17 @@ var (
 
 func setupJoinOperator(ctx *ExecutionCtx, criteria sqlparser.BoolExpr, kind JoinKind) Operator {
 
-	ts1, err := NewBSONSource(ctx, tableOneName, customers)
+	ms1, err := NewBSONSource(ctx, tableOneName, customers)
 	So(err, ShouldBeNil)
-	ts2, err := NewBSONSource(ctx, tableTwoName, orders)
+	ms2, err := NewBSONSource(ctx, tableTwoName, orders)
 	So(err, ShouldBeNil)
 
 	on, err := NewSQLExpr(criteria)
 	So(err, ShouldBeNil)
 
 	return &Join{
-		left:    ts1,
-		right:   ts2,
+		left:    ms1,
+		right:   ms2,
 		matcher: on,
 		kind:    kind,
 	}

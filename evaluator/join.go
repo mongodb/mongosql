@@ -328,38 +328,38 @@ func (v *optimizer) visitJoin(join *Join) (Operator, error) {
 
 	// 2. we have to be able to push both down and the foreign TableScan
 	// operator must have nothing in its pipeline.
-	tsLocal, ok := localSource.(*TableScan)
+	msLocal, ok := localSource.(*MongoSource)
 	if !ok {
 		return join, nil
 	}
 
-	tsForeign, ok := foreignSource.(*TableScan)
+	msForeign, ok := foreignSource.(*MongoSource)
 	if !ok {
 		return join, nil
 	}
 
-	if joinKind == InnerJoin && len(tsLocal.pipeline) == 0 && len(tsForeign.pipeline) > 0 {
+	if joinKind == InnerJoin && len(msLocal.pipeline) == 0 && len(msForeign.pipeline) > 0 {
 		// flip them
-		tsLocal, tsForeign = tsForeign, tsLocal
-	} else if len(tsForeign.pipeline) > 0 {
+		msLocal, msForeign = msForeign, msLocal
+	} else if len(msForeign.pipeline) > 0 {
 		return join, nil
 	}
 
 	// 3. find the local column and the foreign column
-	localColumn, foreignColumn, err := getLocalAndForeignColumns(tsLocal.aliasName, tsForeign.aliasName, join.matcher)
+	localColumn, foreignColumn, err := getLocalAndForeignColumns(msLocal.aliasName, msForeign.aliasName, join.matcher)
 	if err != nil {
 		return join, nil
 	}
 
 	// 4. construct the $lookup clause
-	pipeline := tsLocal.pipeline
+	pipeline := msLocal.pipeline
 
-	localFieldName, ok := tsLocal.mappingRegistry.lookupFieldName(localColumn.tableName, localColumn.columnName)
+	localFieldName, ok := msLocal.mappingRegistry.lookupFieldName(localColumn.tableName, localColumn.columnName)
 	if !ok {
 		return join, nil
 	}
-	fromCollectionName := strings.SplitN(tsForeign.fqns, ".", 2)[1]
-	foreignFieldName, ok := tsForeign.mappingRegistry.lookupFieldName(foreignColumn.tableName, foreignColumn.columnName)
+	fromCollectionName := strings.SplitN(msForeign.fqns, ".", 2)[1]
+	foreignFieldName, ok := msForeign.mappingRegistry.lookupFieldName(foreignColumn.tableName, foreignColumn.columnName)
 	if !ok {
 		return join, nil
 	}
@@ -392,21 +392,21 @@ func (v *optimizer) visitJoin(join *Join) (Operator, error) {
 	pipeline = append(pipeline, bson.D{{"$lookup", lookup}})
 	pipeline = append(pipeline, bson.D{{"$unwind", unwind}})
 
-	// 6. change all the mappings from the tsForeign mapping registry to be nested under
+	// 6. change all the mappings from the msForeign mapping registry to be nested under
 	// the 'asField' we used above.
-	newMappingRegistry := tsLocal.mappingRegistry.copy()
+	newMappingRegistry := msLocal.mappingRegistry.copy()
 
-	newMappingRegistry.columns = append(newMappingRegistry.columns, tsForeign.mappingRegistry.columns...)
-	if tsForeign.mappingRegistry.fields != nil {
-		for tableName, columns := range tsForeign.mappingRegistry.fields {
+	newMappingRegistry.columns = append(newMappingRegistry.columns, msForeign.mappingRegistry.columns...)
+	if msForeign.mappingRegistry.fields != nil {
+		for tableName, columns := range msForeign.mappingRegistry.fields {
 			for columnName, fieldName := range columns {
 				newMappingRegistry.registerMapping(tableName, columnName, asField+"."+fieldName)
 			}
 		}
 	}
 
-	ts := tsLocal.WithPipeline(pipeline).WithMappingRegistry(newMappingRegistry)
-	return ts, nil
+	ms := msLocal.WithPipeline(pipeline).WithMappingRegistry(newMappingRegistry)
+	return ms, nil
 }
 
 func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExpr) (*SQLColumnExpr, *SQLColumnExpr, error) {

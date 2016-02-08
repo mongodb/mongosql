@@ -220,7 +220,7 @@ func (rows orderByRows) Less(i, j int) bool {
 
 func (v *optimizer) visitOrderBy(orderBy *OrderBy) (Operator, error) {
 
-	sa, ts, ok := canPushDown(orderBy.source)
+	sa, ms, ok := canPushDown(orderBy.source)
 	if !ok {
 		return orderBy, nil
 	}
@@ -243,7 +243,7 @@ func (v *optimizer) visitOrderBy(orderBy *OrderBy) (Operator, error) {
 			columnName = typedE.String()
 		}
 
-		fieldName, ok := ts.mappingRegistry.lookupFieldName(tableName, columnName)
+		fieldName, ok := ms.mappingRegistry.lookupFieldName(tableName, columnName)
 		if !ok {
 			return orderBy, nil
 		}
@@ -254,11 +254,11 @@ func (v *optimizer) visitOrderBy(orderBy *OrderBy) (Operator, error) {
 		sort = append(sort, bson.DocElem{fieldName, direction})
 	}
 
-	pipeline := ts.pipeline
+	pipeline := ms.pipeline
 	pipeline = append(pipeline, bson.D{{"$sort", sort}})
 
-	ts = ts.WithPipeline(pipeline)
-	sa = sa.WithSource(ts)
+	ms = ms.WithPipeline(pipeline)
+	sa = sa.WithSource(ms)
 
 	return sa, nil
 }

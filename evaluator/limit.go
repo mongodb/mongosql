@@ -76,12 +76,12 @@ func (l *Limit) Err() error {
 
 func (_ *optimizer) visitLimit(limit *Limit) (Operator, error) {
 
-	sa, ts, ok := canPushDown(limit.source)
+	sa, ms, ok := canPushDown(limit.source)
 	if !ok {
 		return limit, nil
 	}
 
-	pipeline := ts.pipeline
+	pipeline := ms.pipeline
 
 	if limit.offset > 0 {
 		pipeline = append(pipeline, bson.D{{"$skip", limit.offset}})
@@ -91,8 +91,8 @@ func (_ *optimizer) visitLimit(limit *Limit) (Operator, error) {
 		pipeline = append(pipeline, bson.D{{"$limit", limit.rowcount}})
 	}
 
-	ts = ts.WithPipeline(pipeline)
-	sa = sa.WithSource(ts)
+	ms = ms.WithPipeline(pipeline)
+	sa = sa.WithSource(ms)
 
 	return sa, nil
 }

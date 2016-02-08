@@ -59,9 +59,9 @@ func (mr *mappingRegistry) lookupFieldName(tbl, column string) (string, bool) {
 	return field, ok
 }
 
-// TableScan is the primary interface for SQLProxy to a MongoDB
+// MongoSource is the primary interface for SQLProxy to a MongoDB
 // installation and executes simple queries against collections.
-type TableScan struct {
+type MongoSource struct {
 	dbName          string
 	tableName       string
 	aliasName       string
@@ -74,7 +74,7 @@ type TableScan struct {
 	err             error
 }
 
-func NewTableScan(ctx *ExecutionCtx, dbName, tableName string, aliasName string) (*TableScan, error) {
+func NewMongoSource(ctx *ExecutionCtx, dbName, tableName string, aliasName string) (*MongoSource, error) {
 
 	if dbName == "" {
 		return nil, fmt.Errorf("dbName is empty")
@@ -82,86 +82,86 @@ func NewTableScan(ctx *ExecutionCtx, dbName, tableName string, aliasName string)
 	if tableName == "" {
 		return nil, fmt.Errorf("tableName is empty")
 	}
-	ts := &TableScan{
+	ms := &MongoSource{
 		dbName:    dbName,
 		tableName: tableName,
 		aliasName: aliasName,
 	}
 
-	if ts.aliasName == "" {
-		ts.aliasName = ts.tableName
+	if ms.aliasName == "" {
+		ms.aliasName = ms.tableName
 	}
 
-	database, ok := ctx.Schema.Databases[ts.dbName]
+	database, ok := ctx.Schema.Databases[ms.dbName]
 	if !ok {
 		return nil, fmt.Errorf("db (%s) doesn't exist - table (%s)", dbName, tableName)
 	}
-	tableSchema, ok := database.Tables[ts.tableName]
+	tableSchema, ok := database.Tables[ms.tableName]
 	if !ok {
 		return nil, fmt.Errorf("table (%s) doesn't exist in db (%s)", tableName, dbName)
 	}
 
-	ts.fqns = tableSchema.FQNS
+	ms.fqns = tableSchema.FQNS
 
-	ts.mappingRegistry = &mappingRegistry{}
+	ms.mappingRegistry = &mappingRegistry{}
 	for _, c := range tableSchema.RawColumns {
 		column := &Column{
-			Table: ts.aliasName,
+			Table: ms.aliasName,
 			Name:  c.SqlName,
 			View:  c.SqlName,
 			Type:  c.SqlType,
 		}
-		ts.mappingRegistry.addColumn(column)
-		ts.mappingRegistry.registerMapping(ts.aliasName, c.SqlName, c.Name)
+		ms.mappingRegistry.addColumn(column)
+		ms.mappingRegistry.registerMapping(ms.aliasName, c.SqlName, c.Name)
 	}
 
-	ts.pipeline = []bson.D{}
+	ms.pipeline = []bson.D{}
 
-	return ts, nil
+	return ms, nil
 }
 
 // WithPipeline creates a new TableScan operator by copying everything
 // and changing only the pipeline.
-func (ts *TableScan) WithPipeline(pipeline []bson.D) *TableScan {
-	return &TableScan{
-		dbName:          ts.dbName,
-		tableName:       ts.tableName,
-		aliasName:       ts.aliasName,
-		fqns:            ts.fqns,
-		matcher:         ts.matcher,
-		mappingRegistry: ts.mappingRegistry,
+func (ms *MongoSource) WithPipeline(pipeline []bson.D) *MongoSource {
+	return &MongoSource{
+		dbName:          ms.dbName,
+		tableName:       ms.tableName,
+		aliasName:       ms.aliasName,
+		fqns:            ms.fqns,
+		matcher:         ms.matcher,
+		mappingRegistry: ms.mappingRegistry,
 		pipeline:        pipeline,
 	}
 }
 
 // WithMappingRegistry creates a new TableScan operator by copying everything
 // and changing only the mappingRegistry.
-func (ts *TableScan) WithMappingRegistry(mappingRegistry *mappingRegistry) *TableScan {
+func (ms *MongoSource) WithMappingRegistry(mappingRegistry *mappingRegistry) *MongoSource {
 
-	return &TableScan{
-		dbName:          ts.dbName,
-		tableName:       ts.tableName,
-		aliasName:       ts.aliasName,
-		fqns:            ts.fqns,
-		matcher:         ts.matcher,
-		pipeline:        ts.pipeline,
+	return &MongoSource{
+		dbName:          ms.dbName,
+		tableName:       ms.tableName,
+		aliasName:       ms.aliasName,
+		fqns:            ms.fqns,
+		matcher:         ms.matcher,
+		pipeline:        ms.pipeline,
 		mappingRegistry: mappingRegistry,
 	}
 }
 
 // Open establishes a connection to database collection for this table.
-func (ts *TableScan) Open(ctx *ExecutionCtx) error {
-	ts.ctx = ctx
+func (ms *MongoSource) Open(ctx *ExecutionCtx) error {
+	ms.ctx = ctx
 
-	pcs := strings.SplitN(ts.fqns, ".", 2)
+	pcs := strings.SplitN(ms.fqns, ".", 2)
 
-	ts.iter = MgoFindResults{ctx.Session.DB(pcs[0]).C(pcs[1]).Pipe(ts.pipeline).Iter()}
+	ms.iter = MgoFindResults{ctx.Session.DB(pcs[0]).C(pcs[1]).Pipe(ms.pipeline).Iter()}
 
 	return nil
 }
 
-func (ts *TableScan) Next(row *Row) bool {
-	if ts.iter == nil {
+func (ms *MongoSource) Next(row *Row) bool {
+	if ms.iter == nil {
 		return false
 	}
 
@@ -169,7 +169,7 @@ func (ts *TableScan) Next(row *Row) bool {
 
 	for {
 		d := &bson.D{}
-		hasNext = ts.iter.Next(d)
+		hasNext = ms.iter.Next(d)
 
 		if !hasNext {
 			break
@@ -180,11 +180,11 @@ func (ts *TableScan) Next(row *Row) bool {
 
 		var err error
 
-		for _, column := range ts.mappingRegistry.columns {
+		for _, column := range ms.mappingRegistry.columns {
 
-			mappedFieldName, ok := ts.mappingRegistry.lookupFieldName(column.Table, column.Name)
+			mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.Name)
 			if !ok {
-				ts.err = fmt.Errorf("Unable to find mapping from %v.%v to a field name.", column.Table, column.Name)
+				ms.err = fmt.Errorf("Unable to find mapping from %v.%v to a field name.", column.Table, column.Name)
 				return false
 			}
 
@@ -196,13 +196,13 @@ func (ts *TableScan) Next(row *Row) bool {
 
 			value.Data, err = NewSQLValue(value.Data, column.Type)
 			if err != nil {
-				ts.err = err
+				ms.err = err
 				return false
 			}
 
 			tableName := column.Table
-			if tableName == ts.tableName {
-				tableName = ts.aliasName
+			if tableName == ms.tableName {
+				tableName = ms.aliasName
 			}
 
 			if _, ok := values[tableName]; !ok {
@@ -220,12 +220,12 @@ func (ts *TableScan) Next(row *Row) bool {
 
 		row.Data = tableRows
 
-		evalCtx := &EvalCtx{Rows{*row}, ts.ctx}
+		evalCtx := &EvalCtx{Rows{*row}, ms.ctx}
 
-		if ts.matcher != nil {
-			m, err := Matches(ts.matcher, evalCtx)
+		if ms.matcher != nil {
+			m, err := Matches(ms.matcher, evalCtx)
 			if err != nil {
-				ts.err = err
+				ms.err = err
 				return false
 			}
 			if m {
@@ -239,17 +239,17 @@ func (ts *TableScan) Next(row *Row) bool {
 	return hasNext
 }
 
-func (ts *TableScan) OpFields() (columns []*Column) {
-	return ts.mappingRegistry.columns
+func (ms *MongoSource) OpFields() (columns []*Column) {
+	return ms.mappingRegistry.columns
 }
 
-func (ts *TableScan) Close() error {
-	return ts.iter.Close()
+func (ms *MongoSource) Close() error {
+	return ms.iter.Close()
 }
 
-func (ts *TableScan) Err() error {
-	if err := ts.iter.Err(); err != nil {
+func (ms *MongoSource) Err() error {
+	if err := ms.iter.Err(); err != nil {
 		return err
 	}
-	return ts.err
+	return ms.err
 }

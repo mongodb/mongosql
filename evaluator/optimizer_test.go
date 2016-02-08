@@ -20,11 +20,11 @@ func TestOptimizeOperator(t *testing.T) {
 
 		Convey("Given a recursively optimizable tree", func() {
 
-			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
-				source: ts,
+				source: ms,
 			}
 
 			Convey("Should optimize from bottom-up", func() {
@@ -104,11 +104,11 @@ func TestFilterPushDown(t *testing.T) {
 
 		Convey("Given a push-downable filter", func() {
 
-			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
-				source: ts,
+				source: ms,
 			}
 
 			filter := &Filter{
@@ -136,20 +136,20 @@ func TestFilterPushDown(t *testing.T) {
 				So(newFilter.matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{tbl, "b"}, SQLColumnExpr{tbl, "c"}})
 				sa, ok := newFilter.source.(*SourceAppend)
 				So(ok, ShouldBeTrue)
-				ts, ok := sa.source.(*TableScan)
+				ms, ok := sa.source.(*MongoSource)
 				So(ok, ShouldBeTrue)
 
-				So(ts.pipeline, ShouldResemble, []bson.D{bson.D{{"$match", bson.M{"a": "funny"}}}})
+				So(ms.pipeline, ShouldResemble, []bson.D{bson.D{{"$match", bson.M{"a": "funny"}}}})
 			})
 		})
 
 		Convey("Given an immediately evaluated filter", func() {
 
-			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
-				source: ts,
+				source: ms,
 			}
 
 			filter := &Filter{
@@ -169,7 +169,7 @@ func TestFilterPushDown(t *testing.T) {
 			Convey("Should elimate the Filter from the tree and not alter the pipeline when evaluated to true", func() {
 				filter.matcher = SQLBool(true)
 
-				verifyOptimizedPipeline(ctx, filter, ts.pipeline)
+				verifyOptimizedPipeline(ctx, filter, ms.pipeline)
 			})
 		})
 
@@ -188,11 +188,11 @@ func TestFilterPushDown(t *testing.T) {
 
 			Convey("Should not optimize the pipeline when the filter is not push-downable", func() {
 
-				ts, err := NewTableScan(ctx, dbOne, tbl, "")
+				ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 				So(err, ShouldBeNil)
 
 				sa := &SourceAppend{
-					source: ts,
+					source: ms,
 				}
 
 				filter := &Filter{
@@ -219,11 +219,11 @@ func TestGroupByPushDown(t *testing.T) {
 
 		Convey("Given a group by clause that can be pushed down", func() {
 
-			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
-				source: ts,
+				source: ms,
 			}
 
 			gb := &GroupBy{
@@ -908,11 +908,11 @@ func TestHavingPushDown(t *testing.T) {
 
 		Convey("Given a group by clause that can be pushed down", func() {
 
-			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
-				source: ts,
+				source: ms,
 			}
 
 			gb := &GroupBy{
@@ -968,11 +968,11 @@ func TestJoinPushDown(t *testing.T) {
 		optimized, err := OptimizeOperator(ctx, op)
 		So(err, ShouldBeNil)
 
-		ts, ok := optimized.(*TableScan)
+		ms, ok := optimized.(*MongoSource)
 		So(ok, ShouldBeTrue)
 
-		So(ts.tableName, ShouldEqual, tblName)
-		So(ts.pipeline, ShouldResemble, pipeline)
+		So(ms.tableName, ShouldEqual, tblName)
+		So(ms.pipeline, ShouldResemble, pipeline)
 	}
 
 	Convey("Subject: Join Optimization", t, func() {
@@ -985,17 +985,17 @@ func TestJoinPushDown(t *testing.T) {
 		tblOne := "foo"
 		tblTwo := "bar"
 
-		tsOne, err := NewTableScan(ctx, dbOne, tblOne, "")
+		msOne, err := NewMongoSource(ctx, dbOne, tblOne, "")
 		So(err, ShouldBeNil)
 
-		tsTwo, err := NewTableScan(ctx, dbOne, tblTwo, "")
+		msTwo, err := NewMongoSource(ctx, dbOne, tblTwo, "")
 		So(err, ShouldBeNil)
 
 		Convey("Given a push-downable join", func() {
 
 			join := &Join{
-				left:  tsOne,
-				right: tsTwo,
+				left:  msOne,
+				right: msTwo,
 			}
 
 			Convey("Should optimize simple inner join", func() {
@@ -1108,7 +1108,7 @@ func TestJoinPushDown(t *testing.T) {
 
 			Convey("Should optimize inner join where the right table has a non-empty pipeline", func() {
 
-				tsTwo.pipeline = append(tsTwo.pipeline, bson.D{{"$test", 1}})
+				msTwo.pipeline = append(msTwo.pipeline, bson.D{{"$test", 1}})
 
 				join.kind = InnerJoin
 				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
@@ -1130,7 +1130,7 @@ func TestJoinPushDown(t *testing.T) {
 
 			Convey("Should optimize right join where the right table has a non-empty pipeline", func() {
 
-				tsTwo.pipeline = append(tsTwo.pipeline, bson.D{{"$test", 1}})
+				msTwo.pipeline = append(msTwo.pipeline, bson.D{{"$test", 1}})
 
 				join.kind = RightJoin
 				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
@@ -1154,8 +1154,8 @@ func TestJoinPushDown(t *testing.T) {
 		Convey("Given a non-push-downable limit", func() {
 
 			join := &Join{
-				left:  tsOne,
-				right: tsTwo,
+				left:  msOne,
+				right: msTwo,
 			}
 
 			Convey("Should not optimize the pipeline when the left source is not a TableScan", func() {
@@ -1186,8 +1186,8 @@ func TestJoinPushDown(t *testing.T) {
 
 			for _, kind := range []JoinKind{InnerJoin, LeftJoin, RightJoin} {
 				Convey(fmt.Sprintf("Should not optimize a %v when both sides already have a pipeline", kind), func() {
-					tsOne.pipeline = append(tsOne.pipeline, bson.D{{"$test", 1}})
-					tsTwo.pipeline = append(tsTwo.pipeline, bson.D{{"$test", 1}})
+					msOne.pipeline = append(msOne.pipeline, bson.D{{"$test", 1}})
+					msTwo.pipeline = append(msTwo.pipeline, bson.D{{"$test", 1}})
 
 					join.kind = kind
 					join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
@@ -1196,7 +1196,7 @@ func TestJoinPushDown(t *testing.T) {
 			}
 
 			Convey("Should not optimize a right join when the left side has a pipeline", func() {
-				tsOne.pipeline = append(tsOne.pipeline, bson.D{{"$test", 1}})
+				msOne.pipeline = append(msOne.pipeline, bson.D{{"$test", 1}})
 
 				join.kind = RightJoin
 				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
@@ -1219,11 +1219,11 @@ func TestLimitPushDown(t *testing.T) {
 
 		Convey("Given a push-downable limit", func() {
 
-			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
-				source: ts,
+				source: ms,
 			}
 
 			limit := &Limit{
@@ -1286,11 +1286,11 @@ func TestOrderByPushDown(t *testing.T) {
 
 		Convey("Given a push-downable order by", func() {
 
-			ts, err := NewTableScan(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			sa := &SourceAppend{
-				source: ts,
+				source: ms,
 			}
 
 			orderBy := &OrderBy{
@@ -1388,8 +1388,8 @@ func verifyOptimizedPipeline(ctx *ExecutionCtx, op Operator, pipeline []bson.D) 
 	sa, ok := optimized.(*SourceAppend)
 	So(ok, ShouldBeTrue)
 
-	ts, ok := sa.source.(*TableScan)
+	ms, ok := sa.source.(*MongoSource)
 	So(ok, ShouldBeTrue)
 
-	So(ts.pipeline, ShouldResemble, pipeline)
+	So(ms.pipeline, ShouldResemble, pipeline)
 }

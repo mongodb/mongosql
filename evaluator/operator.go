@@ -340,9 +340,9 @@ func prettyPrintPlan(b *bytes.Buffer, o Operator, d int) {
 		b.WriteString("↳ Subquery:\n")
 		prettyPrintPlan(b, typedE.source, d+1)
 
-	case *TableScan:
+	case *MongoSource:
 
-		b.WriteString(fmt.Sprintf("↳ TableScan '%v'", typedE.tableName))
+		b.WriteString(fmt.Sprintf("↳ MongoSource '%v'", typedE.tableName))
 
 		if typedE.aliasName != "" {
 			b.WriteString(fmt.Sprintf(" as '%v'", typedE.aliasName))
@@ -503,7 +503,7 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 				source:    source,
 			}
 		}
-	case *TableScan, *BSONSource:
+	case *MongoSource, *BSONSource:
 		// nothing to do
 	default:
 		return nil, fmt.Errorf("unsupported operator: %T", typedO)

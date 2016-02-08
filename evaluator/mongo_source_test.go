@@ -9,7 +9,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func TestTableScanOperator(t *testing.T) {
+func TestMongoSourceOperator(t *testing.T) {
 
 	session, err := mgo.Dial(cfgOne.Url)
 	if err != nil {
@@ -54,7 +54,7 @@ func TestTableScanOperator(t *testing.T) {
 				Session: session,
 			}
 
-			operator, err := NewTableScan(ctx, dbOne, tableTwoName, "")
+			operator, err := NewMongoSource(ctx, dbOne, tableTwoName, "")
 			So(err, ShouldBeNil)
 			So(operator.Open(ctx), ShouldBeNil)
 

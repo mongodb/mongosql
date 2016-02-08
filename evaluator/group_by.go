@@ -232,21 +232,21 @@ const (
 // $group and $project stages for the aggregation pipeline.
 func (v *optimizer) visitGroupBy(gb *GroupBy) (Operator, error) {
 
-	sa, ts, ok := canPushDown(gb.source)
+	sa, ms, ok := canPushDown(gb.source)
 	if !ok {
 		return gb, nil
 	}
 
-	pipeline := ts.pipeline
+	pipeline := ms.pipeline
 
 	// 1. Translate keys
-	keys, err := translateGroupByKeys(gb.keyExprs, ts.mappingRegistry.lookupFieldName)
+	keys, err := translateGroupByKeys(gb.keyExprs, ms.mappingRegistry.lookupFieldName)
 	if err != nil {
 		return gb, nil
 	}
 
 	// 2. Translate aggregations
-	result, err := translateGroupByAggregates(gb.keyExprs, gb.selectExprs, ts.mappingRegistry.lookupFieldName)
+	result, err := translateGroupByAggregates(gb.keyExprs, gb.selectExprs, ms.mappingRegistry.lookupFieldName)
 	if err != nil {
 		return gb, nil
 	}
@@ -275,8 +275,8 @@ func (v *optimizer) visitGroupBy(gb *GroupBy) (Operator, error) {
 		mappingRegistry.registerMapping(sExpr.Column.Table, sExpr.Column.Name, dottifyFieldName(sExpr.Expr.String()))
 	}
 
-	ts = ts.WithPipeline(pipeline).WithMappingRegistry(mappingRegistry)
-	sa = sa.WithSource(ts)
+	ms = ms.WithPipeline(pipeline).WithMappingRegistry(mappingRegistry)
+	sa = sa.WithSource(ms)
 
 	return sa, nil
 }

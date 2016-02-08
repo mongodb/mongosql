@@ -1,9 +1,10 @@
 package evaluator
 
 import (
+	"testing"
+
 	"github.com/deafgoat/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 func TestPlanFromExpr(t *testing.T) {
@@ -38,9 +39,9 @@ func TestPlanFromExpr(t *testing.T) {
 
 			opr, err := planFromExpr(ctx, tables, nil)
 			So(err, ShouldBeNil)
-			ts, ok := opr.(*TableScan)
+			ms, ok := opr.(*MongoSource)
 			So(ok, ShouldBeTrue)
-			So(ts.tableName, ShouldEqual, tableOneName)
+			So(ms.tableName, ShouldEqual, tableOneName)
 
 		})
 
@@ -67,11 +68,11 @@ func TestPlanFromExpr(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			So(join.kind, ShouldEqual, CrossJoin)
 
-			left, ok := join.left.(*TableScan)
+			left, ok := join.left.(*MongoSource)
 			So(ok, ShouldBeTrue)
 			So(left.tableName, ShouldEqual, tableOneName)
 
-			right, ok := join.right.(*TableScan)
+			right, ok := join.right.(*MongoSource)
 			So(ok, ShouldBeTrue)
 			So(right.tableName, ShouldEqual, tableTwoName)
 
@@ -107,18 +108,18 @@ func TestPlanFromExpr(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			So(join.kind, ShouldEqual, CrossJoin)
 
-			ts, ok := join.right.(*TableScan)
+			ms, ok := join.right.(*MongoSource)
 			So(ok, ShouldBeTrue)
-			So(ts.tableName, ShouldEqual, tableThreeName)
+			So(ms.tableName, ShouldEqual, tableThreeName)
 
 			join, ok = join.left.(*Join)
 			So(ok, ShouldBeTrue)
 
-			left, ok := join.left.(*TableScan)
+			left, ok := join.left.(*MongoSource)
 			So(ok, ShouldBeTrue)
 			So(left.tableName, ShouldEqual, tableOneName)
 
-			right, ok := join.right.(*TableScan)
+			right, ok := join.right.(*MongoSource)
 			So(ok, ShouldBeTrue)
 			So(right.tableName, ShouldEqual, tableTwoName)
 

@@ -862,7 +862,7 @@ func planTableName(ctx *ExecutionCtx, t *sqlparser.TableName, aliasName string, 
 		dbName = ctx.Db
 	}
 
-	return NewTableScan(ctx, dbName, string(t.Name), aliasName)
+	return NewMongoSource(ctx, dbName, string(t.Name), aliasName)
 }
 
 // refColsInSelectStmt returns any columns referenced in the select statement.

@@ -106,7 +106,7 @@ func (ft *Filter) Err() error {
 
 func (v *optimizer) visitFilter(filter *Filter) (Operator, error) {
 
-	sa, ts, ok := canPushDown(filter.source)
+	sa, ms, ok := canPushDown(filter.source)
 	if !ok {
 		return filter, nil
 	}
@@ -116,7 +116,7 @@ func (v *optimizer) visitFilter(filter *Filter) (Operator, error) {
 		return nil, err
 	}
 
-	pipeline := ts.pipeline
+	pipeline := ms.pipeline
 	var localMatcher SQLExpr
 
 	if value, ok := optimizedExpr.(SQLValue); ok {
@@ -137,7 +137,7 @@ func (v *optimizer) visitFilter(filter *Filter) (Operator, error) {
 
 	} else {
 		var matchBody bson.M
-		matchBody, localMatcher = TranslatePredicate(optimizedExpr, ts.mappingRegistry.lookupFieldName)
+		matchBody, localMatcher = TranslatePredicate(optimizedExpr, ms.mappingRegistry.lookupFieldName)
 
 		if matchBody == nil {
 			// no pieces of the matcher are able to be pushed down,
@@ -145,14 +145,14 @@ func (v *optimizer) visitFilter(filter *Filter) (Operator, error) {
 			return filter, nil
 		}
 
-		pipeline = append(ts.pipeline, bson.D{{"$match", matchBody}})
+		pipeline = append(ms.pipeline, bson.D{{"$match", matchBody}})
 	}
 
 	// if we end up here, it's because we have messed with the pipeline
 	// in the current table scan operator, so we need to reconstruct the
 	// operator nodes.
-	ts = ts.WithPipeline(pipeline)
-	sa = sa.WithSource(ts)
+	ms = ms.WithPipeline(pipeline)
+	sa = sa.WithSource(ms)
 
 	if localMatcher != nil {
 		// we ended up here because we have a predicate
