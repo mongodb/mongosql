@@ -24,6 +24,11 @@ func NewEvaluator(cfg *schema.Schema) (*Evaluator, error) {
 	return &Evaluator{cfg, session}, nil
 }
 
+// Session returns a copy of the evaluator's session.
+func (e *Evaluator) Session() *mgo.Session {
+	return e.session.Copy()
+}
+
 // EvalSelect returns all rows matching the query.
 func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
 

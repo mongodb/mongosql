@@ -1,9 +1,10 @@
-package sqlproxy
+package sqlproxy_test
 
 import (
 	"fmt"
 	"testing"
 
+	. "github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
@@ -15,6 +16,58 @@ var (
 	session                      *mgo.Session
 	eval                         *Evaluator
 	collectionOne, collectionTwo *mgo.Collection
+
+	dbOne        = "test"
+	tableOneName = "simple"
+	tableTwoName = "simple2"
+
+	testSchemaSimple = []byte(
+		`
+url: localhost
+log_level: vv
+schema:
+-
+  db: test
+  tables:
+  -
+     table: bar
+     collection: test.simple
+     columns:
+     -
+        name: a
+        sqltype: int
+     -
+        name: b
+        sqltype: int
+     -
+        name: _id
+     -
+        name: c
+        sqltype: int
+-
+  db: foo
+  tables:
+  -
+     table: bar
+     collection: test.simple
+     columns:
+     -
+        name: c
+        sqltype: int
+     -
+        name: d
+        sqltype: int
+  -
+     table: silly
+     collection: test.simple2
+     columns:
+     -
+        name: e
+        sqltype: int
+     -
+        name: f
+        sqltype: int
+`)
 )
 
 func init() {
@@ -29,8 +82,8 @@ func init() {
 		panic(fmt.Sprintf("error creating evaluator: %v", err))
 	}
 
-	collectionOne = eval.session.DB(dbOne).C(tableOneName)
-	collectionTwo = eval.session.DB(dbOne).C(tableTwoName)
+	collectionOne = eval.Session().DB(dbOne).C(tableOneName)
+	collectionTwo = eval.Session().DB(dbOne).C(tableTwoName)
 
 }
 

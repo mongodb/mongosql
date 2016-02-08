@@ -1,4 +1,4 @@
-package sqlproxy
+package sqlproxy_test
 
 import (
 	"database/sql"
