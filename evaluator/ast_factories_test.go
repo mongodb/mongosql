@@ -1,13 +1,12 @@
 package evaluator
 
 import (
-	"testing"
-	"time"
-
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
+	"testing"
+	"time"
 )
 
 var (
@@ -713,6 +712,238 @@ func TestAggFuncMax(t *testing.T) {
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
 			So(value, ShouldResemble, SQLInt(4))
+		})
+	})
+}
+
+func TestScalarFuncIsNull(t *testing.T) {
+	Convey("When evaluating the isnull function", t, func() {
+
+		sqlValue := &sqlparser.FuncExpr{
+			Name: []byte("isnull"),
+			Exprs: sqlparser.SelectExprs{
+				&sqlparser.NonStarExpr{
+					Expr: &sqlparser.ColName{
+						Name:      []byte("a"),
+						Qualifier: []byte(tableOneName),
+					},
+				},
+			},
+		}
+
+		Convey("only return true if the value is null", func() {
+			expr, err := NewSQLExpr(sqlValue)
+			So(err, ShouldBeNil)
+			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
+			So(ok, ShouldBeTrue)
+
+			value, err := funcExpr.Evaluate(testCtx)
+			So(err, ShouldBeNil)
+			So(value, ShouldResemble, SQLFalse)
+
+			ctx := &EvalCtx{Rows{{TableRows{{tableOneName, Values{{"a", "a", nil}}}}}}, nil}
+
+			value, err = funcExpr.Evaluate(ctx)
+			So(err, ShouldBeNil)
+			So(value, ShouldResemble, SQLTrue)
+
+		})
+	})
+}
+
+func TestScalarFuncNot(t *testing.T) {
+	Convey("When evaluating the not function", t, func() {
+
+		sqlValue := &sqlparser.FuncExpr{
+			Name: []byte("not"),
+			Exprs: sqlparser.SelectExprs{
+				&sqlparser.NonStarExpr{
+					Expr: &sqlparser.ColName{
+						Name:      []byte("a"),
+						Qualifier: []byte(tableOneName),
+					},
+				},
+			},
+		}
+
+		Convey("only return true if the value is false", func() {
+
+			expr, err := NewSQLExpr(sqlValue)
+			So(err, ShouldBeNil)
+			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
+			So(ok, ShouldBeTrue)
+
+			value, err := funcExpr.Evaluate(testCtx)
+			So(err, ShouldBeNil)
+			So(value, ShouldResemble, SQLFalse)
+
+			ctx := &EvalCtx{Rows{{TableRows{{tableOneName, Values{{"a", "a", false}}}}}}, nil}
+
+			value, err = funcExpr.Evaluate(ctx)
+			So(err, ShouldBeNil)
+			So(value, ShouldResemble, SQLTrue)
+
+		})
+	})
+}
+
+func TestScalarFuncPow(t *testing.T) {
+	Convey("When evaluating the pow function", t, func() {
+
+		sqlValue := &sqlparser.FuncExpr{
+			Name: []byte("pow"),
+			Exprs: sqlparser.SelectExprs{
+				&sqlparser.NonStarExpr{
+					Expr: &sqlparser.ColName{
+						Name:      []byte("a"),
+						Qualifier: []byte(tableOneName),
+					},
+				},
+				&sqlparser.NonStarExpr{
+					Expr: &sqlparser.ColName{
+						Name:      []byte("b"),
+						Qualifier: []byte(tableOneName),
+					},
+				},
+			},
+		}
+
+		expr, err := NewSQLExpr(sqlValue)
+		So(err, ShouldBeNil)
+		funcExpr, ok := expr.(*SQLScalarFunctionExpr)
+		So(ok, ShouldBeTrue)
+
+		ctx := &EvalCtx{Rows{{TableRows{{tableOneName, Values{{"a", "a", 4}, {"b", "b", 3}}}}}}, nil}
+
+		Convey("return the argument raised to the specified power", func() {
+			value, err := funcExpr.Evaluate(ctx)
+			So(err, ShouldBeNil)
+			So(value, ShouldResemble, SQLFloat(64))
+
+			ctx.Rows[0].Data[0].Values[0].Data = 5
+			ctx.Rows[0].Data[0].Values[1].Data = 2
+			value, err = funcExpr.Evaluate(ctx)
+			So(err, ShouldBeNil)
+			So(value, ShouldResemble, SQLFloat(25))
+
+		})
+
+		Convey("return an error if the argument and/or power isn't numeric", func() {
+			ctx.Rows[0].Data[0].Values[0].Data = "a"
+			ctx.Rows[0].Data[0].Values[1].Data = 3
+			_, err := funcExpr.Evaluate(ctx)
+			So(err, ShouldNotBeNil)
+
+			ctx.Rows[0].Data[0].Values[0].Data = 4
+			ctx.Rows[0].Data[0].Values[1].Data = "a"
+			_, err = funcExpr.Evaluate(ctx)
+			So(err, ShouldNotBeNil)
+
+			ctx.Rows[0].Data[0].Values[0].Data = "a"
+			ctx.Rows[0].Data[0].Values[1].Data = "a"
+			_, err = funcExpr.Evaluate(ctx)
+			So(err, ShouldNotBeNil)
+
+		})
+	})
+}
+
+func TestScalarFuncCast(t *testing.T) {
+	Convey("When evaluating the cast function", t, func() {
+
+		Convey("a timestamp argument should be cast correctly", func() {
+			sqlValue := &sqlparser.FuncExpr{
+				Name: []byte("cast"),
+				Exprs: sqlparser.SelectExprs{
+					&sqlparser.NonStarExpr{
+						Expr: &sqlparser.ColName{
+							Name:      []byte("a"),
+							Qualifier: []byte(tableOneName),
+						},
+						As: sqlparser.StrVal([]byte("timestamp")),
+					},
+				},
+			}
+
+			arg := "2006-01-02 15:04:05"
+			values := Values{{"a", "a", arg}}
+			ctx := &EvalCtx{Rows{{TableRows{{tableOneName, values}}}}, nil}
+
+			expr, err := NewSQLExpr(sqlValue)
+			So(err, ShouldBeNil)
+			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
+			So(ok, ShouldBeTrue)
+
+			parsed, err := time.Parse(arg, arg)
+			So(err, ShouldBeNil)
+
+			value, err := funcExpr.Evaluate(ctx)
+			So(err, ShouldBeNil)
+
+			castExpr, ok := value.(SQLTimestamp)
+			So(ok, ShouldBeTrue)
+			So(castExpr.Time, ShouldResemble, parsed)
+
+		})
+
+		Convey("a string argument should be cast correctly", func() {
+			sqlValue := &sqlparser.FuncExpr{
+				Name: []byte("cast"),
+				Exprs: sqlparser.SelectExprs{
+					&sqlparser.NonStarExpr{
+						Expr: &sqlparser.ColName{
+							Name:      []byte("a"),
+							Qualifier: []byte(tableOneName),
+						},
+						As: sqlparser.StrVal([]byte("varchar")),
+					},
+				},
+			}
+
+			expr, err := NewSQLExpr(sqlValue)
+			So(err, ShouldBeNil)
+			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
+			So(ok, ShouldBeTrue)
+
+			values := Values{{"a", "a", "hello"}}
+			ctx := &EvalCtx{Rows{{TableRows{{tableOneName, values}}}}, nil}
+			value, err := funcExpr.Evaluate(ctx)
+			So(err, ShouldBeNil)
+
+			castExpr, ok := value.(SQLString)
+			So(ok, ShouldBeTrue)
+			So(castExpr, ShouldResemble, SQLString("hello"))
+
+		})
+
+		Convey("a double argument should be cast correctly", func() {
+			sqlValue := &sqlparser.FuncExpr{
+				Name: []byte("cast"),
+				Exprs: sqlparser.SelectExprs{
+					&sqlparser.NonStarExpr{
+						Expr: &sqlparser.ColName{
+							Name:      []byte("a"),
+							Qualifier: []byte(tableOneName),
+						},
+						As: sqlparser.StrVal([]byte("double")),
+					},
+				},
+			}
+
+			expr, err := NewSQLExpr(sqlValue)
+			So(err, ShouldBeNil)
+			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
+			So(ok, ShouldBeTrue)
+
+			values := Values{{"a", "a", 34}}
+			ctx := &EvalCtx{Rows{{TableRows{{tableOneName, values}}}}, nil}
+			value, err := funcExpr.Evaluate(ctx)
+			So(err, ShouldBeNil)
+
+			castExpr, ok := value.(SQLFloat)
+			So(ok, ShouldBeTrue)
+			So(castExpr, ShouldResemble, SQLFloat(34))
+
 		})
 	})
 }

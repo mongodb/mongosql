@@ -400,6 +400,7 @@ func (f *SQLScalarFunctionExpr) castFunc(ctx *EvalCtx) (SQLValue, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return NewSQLValue(value.Value(), f.Exprs[1].String())
 }
 

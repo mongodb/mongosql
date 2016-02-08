@@ -779,11 +779,7 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 
 			switch name {
 			case "cast":
-				sqlAlias, err := NewSQLExpr(sqlparser.StrVal(typedE.As))
-				if err != nil {
-					return nil, err
-				}
-				exprs = append(exprs, sqlAlias)
+				exprs = append(exprs, SQLString(string(typedE.As)))
 			}
 
 		}
