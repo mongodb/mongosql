@@ -21,6 +21,8 @@ func NewEvaluator(cfg *schema.Schema) (*Evaluator, error) {
 		return nil, err
 	}
 
+	session.SetSocketTimeout(0)
+
 	return &Evaluator{cfg, session}, nil
 }
 
