@@ -12,9 +12,8 @@ func TestSchemaDataSourceIter(t *testing.T) {
 	Convey("using config data source should iterate all columns", t, func() {
 
 		execCtx := &ExecutionCtx{
-			Schema:  cfgThree,
-			Session: session,
-			Db:      dbOne,
+			Schema: cfgThree,
+			Db:     dbOne,
 		}
 
 		dataSource := SchemaDataSource{ctx: execCtx, includeColumns: true}
@@ -46,9 +45,8 @@ func TestSchemaDataSourceIterTables(t *testing.T) {
 	Convey("using config data source should iterate tables", t, func() {
 
 		execCtx := &ExecutionCtx{
-			Schema:  cfgOne,
-			Session: session,
-			Db:      dbOne,
+			Schema: cfgOne,
+			Db:     dbOne,
 		}
 
 		dataSource := SchemaDataSource{ctx: execCtx}

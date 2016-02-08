@@ -19,9 +19,8 @@ func TestDualOperator(t *testing.T) {
 			operator := &Dual{}
 
 			ctx := &ExecutionCtx{
-				Schema:  cfgOne,
-				Db:      dbOne,
-				Session: session,
+				Schema: cfgOne,
+				Db:     dbOne,
 			}
 
 			So(operator.Open(ctx), ShouldBeNil)

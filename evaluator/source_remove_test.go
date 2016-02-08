@@ -14,14 +14,12 @@ func TestSourceRemoveOperator(t *testing.T) {
 			Schema:  cfgOne,
 			Db:      dbOne,
 			SrcRows: []*Row{&Row{}},
-			Session: session,
 		}
 
-		ts, err := NewTableScan(ctx, dbOne, tableOneName, "")
+		ts, err := NewBSONSource(ctx, tableOneName, nil)
 		So(err, ShouldBeNil)
 
 		operator.source = ts
-
 		So(operator.Open(ctx), ShouldBeNil)
 
 		row := &Row{}

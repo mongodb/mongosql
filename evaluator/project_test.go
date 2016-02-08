@@ -16,19 +16,12 @@ func TestProjectOperator(t *testing.T) {
 
 	runTest := func(project *Project, rows []bson.D, expectedRows []Values) {
 
-		collectionOne.DropCollection()
-
-		for _, row := range rows {
-			So(collectionOne.Insert(row), ShouldBeNil)
-		}
-
 		ctx := &ExecutionCtx{
-			Schema:  cfgOne,
-			Db:      dbOne,
-			Session: session,
+			Schema: cfgOne,
+			Db:     dbOne,
 		}
 
-		ts, err := NewTableScan(ctx, dbOne, tableOneName, "")
+		ts, err := NewBSONSource(ctx, tableOneName, rows)
 		So(err, ShouldBeNil)
 
 		project.source = ts

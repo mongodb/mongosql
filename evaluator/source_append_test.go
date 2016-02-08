@@ -11,16 +11,14 @@ func TestSourceAppendOperator(t *testing.T) {
 	runTest := func(operator *SourceAppend) {
 
 		ctx := &ExecutionCtx{
-			Schema:  cfgOne,
-			Db:      dbOne,
-			Session: session,
+			Schema: cfgOne,
+			Db:     dbOne,
 		}
 
-		ts, err := NewTableScan(ctx, dbOne, tableOneName, "")
+		ts, err := NewBSONSource(ctx, tableOneName, nil)
 		So(err, ShouldBeNil)
 
 		operator.source = ts
-
 		So(operator.Open(ctx), ShouldBeNil)
 
 		row := &Row{}

@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	customers = []interface{}{
+	customers = []bson.D{
 		bson.D{
 			bson.DocElem{Name: "name", Value: "personA"},
 			bson.DocElem{Name: "orderid", Value: 1},
@@ -32,7 +32,7 @@ var (
 		},
 	}
 
-	orders = []interface{}{
+	orders = []bson.D{
 		bson.D{
 			bson.DocElem{Name: "orderid", Value: 1},
 			bson.DocElem{Name: "amount", Value: 1000},
@@ -63,23 +63,9 @@ var (
 
 func setupJoinOperator(ctx *ExecutionCtx, criteria sqlparser.BoolExpr, kind JoinKind) Operator {
 
-	c1 := session.DB(dbTwo).C(tableOneName)
-	c1.DropCollection()
-
-	for _, customer := range customers {
-		So(c1.Insert(customer), ShouldBeNil)
-	}
-
-	c2 := session.DB(dbTwo).C(tableTwoName)
-	c2.DropCollection()
-
-	for _, order := range orders {
-		So(c2.Insert(order), ShouldBeNil)
-	}
-
-	ts1, err := NewTableScan(ctx, dbTwo, tableOneName, "")
+	ts1, err := NewBSONSource(ctx, tableOneName, customers)
 	So(err, ShouldBeNil)
-	ts2, err := NewTableScan(ctx, dbTwo, tableTwoName, "")
+	ts2, err := NewBSONSource(ctx, tableTwoName, orders)
 	So(err, ShouldBeNil)
 
 	on, err := NewSQLExpr(criteria)
@@ -111,10 +97,10 @@ func TestJoinOperator(t *testing.T) {
 		}
 
 		ctx := &ExecutionCtx{
-			Schema:  cfgOne,
-			Db:      dbTwo,
-			Session: session,
+			Schema: cfgOne,
+			Db:     dbTwo,
 		}
+
 		row := &Row{}
 
 		i := 0

@@ -11,19 +11,12 @@ func TestSubqueryOperator(t *testing.T) {
 
 	runTest := func(subquery *Subquery, rows []bson.D, expectedRows []Values) {
 
-		collectionTwo.DropCollection()
-
-		for _, row := range rows {
-			So(collectionTwo.Insert(row), ShouldBeNil)
-		}
-
 		ctx := &ExecutionCtx{
-			Schema:  cfgOne,
-			Db:      dbOne,
-			Session: session,
+			Schema: cfgOne,
+			Db:     dbOne,
 		}
 
-		ts, err := NewTableScan(ctx, dbOne, tableTwoName, "")
+		ts, err := NewBSONSource(ctx, tableTwoName, rows)
 		So(err, ShouldBeNil)
 
 		subquery.source = ts

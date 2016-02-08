@@ -11,19 +11,12 @@ func TestGroupByOperator(t *testing.T) {
 
 	runTest := func(groupBy *GroupBy, rows []bson.D, expectedRows [][]Values) {
 
-		collectionOne.DropCollection()
-
-		for _, row := range rows {
-			So(collectionOne.Insert(row), ShouldBeNil)
-		}
-
 		ctx := &ExecutionCtx{
-			Schema:  cfgOne,
-			Db:      dbOne,
-			Session: session,
+			Schema: cfgOne,
+			Db:     dbOne,
 		}
 
-		ts, err := NewTableScan(ctx, dbOne, tableOneName, "")
+		ts, err := NewBSONSource(ctx, tableOneName, rows)
 		So(err, ShouldBeNil)
 
 		groupBy.source = &Project{

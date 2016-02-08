@@ -11,19 +11,12 @@ func TestOrderByOperator(t *testing.T) {
 
 	runTest := func(orderby *OrderBy, rows []bson.D, expectedRows []Values) {
 
-		collectionOne.DropCollection()
-
-		for _, row := range rows {
-			So(collectionOne.Insert(row), ShouldBeNil)
-		}
-
 		ctx := &ExecutionCtx{
-			Schema:  cfgOne,
-			Db:      dbOne,
-			Session: session,
+			Schema: cfgOne,
+			Db:     dbOne,
 		}
 
-		ts, err := NewTableScan(ctx, dbOne, tableOneName, "")
+		ts, err := NewBSONSource(ctx, tableOneName, nil)
 		So(err, ShouldBeNil)
 
 		source := &Project{

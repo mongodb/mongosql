@@ -1,13 +1,22 @@
 package evaluator
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
 func TestTableScanOperator(t *testing.T) {
+
+	session, err := mgo.Dial(cfgOne.Url)
+	if err != nil {
+		panic(fmt.Sprintf("error creating evaluator: %v", err))
+	}
+
+	collectionTwo := session.DB(dbOne).C(tableTwoName)
 
 	Convey("With a simple test configuration...", t, func() {
 

@@ -503,7 +503,7 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 				source:    source,
 			}
 		}
-	case *TableScan:
+	case *TableScan, *BSONSource:
 		// nothing to do
 	default:
 		return nil, fmt.Errorf("unsupported operator: %T", typedO)
