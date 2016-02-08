@@ -34,7 +34,7 @@ func init() {
 
 }
 
-func checkExpectedValues(count int, values [][]interface{}, expected map[interface{}][]evaluator.SQLNumeric) {
+func checkExpectedValues(count int, values [][]interface{}, expected map[interface{}][]evaluator.SQLExpr) {
 	for _, value := range values {
 		So(len(value), ShouldEqual, count)
 		x, ok := expected[value[0]]
@@ -438,11 +438,11 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(8),
 				},
 			}
@@ -459,12 +459,12 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "count(*)", "sum(bar.b)"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 					evaluator.SQLInt(3),
 				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 					evaluator.SQLInt(8),
 				},
@@ -487,9 +487,9 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a"})
 
-			expectedValues = map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{},
+			expectedValues = map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{},
+				evaluator.SQLInt(2): []evaluator.SQLExpr{},
 			}
 			checkExpectedValues(1, values, expectedValues)
 
@@ -499,9 +499,9 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"zz"})
 
-			expectedValues = map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{},
+			expectedValues = map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{},
+				evaluator.SQLInt(2): []evaluator.SQLExpr{},
 			}
 			checkExpectedValues(1, values, expectedValues)
 
@@ -516,12 +516,12 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(len(values), ShouldEqual, 2)
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(2),
 					evaluator.SQLInt(3),
 				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 					evaluator.SQLInt(6),
 				},
@@ -539,11 +539,11 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.a+bar.b)"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(5),
 				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(14),
 				},
 			}
@@ -559,11 +559,11 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "sum"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(8),
 				},
 			}
@@ -580,11 +580,11 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"f", "sum"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(8),
 				},
 			}
@@ -628,11 +628,11 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(13),
 				},
 			}
@@ -646,12 +646,12 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 					evaluator.SQLInt(3),
 				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(13),
 					evaluator.SQLInt(5),
 				},
@@ -700,11 +700,11 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "sum(b.b)"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(8),
 				},
 			}
@@ -736,14 +736,14 @@ func TestSelectWithHaving(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(3): []evaluator.SQLExpr{
 					evaluator.SQLInt(4),
 				},
-				evaluator.SQLInt(4): []evaluator.SQLNumeric{
+				evaluator.SQLInt(4): []evaluator.SQLExpr{
 					evaluator.SQLInt(4),
 				},
-				evaluator.SQLInt(5): []evaluator.SQLNumeric{
+				evaluator.SQLInt(5): []evaluator.SQLExpr{
 					evaluator.SQLInt(11),
 				},
 			}
@@ -760,11 +760,11 @@ func TestSelectWithHaving(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(5): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(5): []evaluator.SQLExpr{
 					evaluator.SQLInt(11),
 				},
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 				},
 			}
@@ -805,23 +805,71 @@ func TestSelectWithJoin(t *testing.T) {
 
 		Convey("results should contain data from each of the joined tables", func() {
 
-			names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e", nil, nil)
-			So(err, ShouldBeNil)
-			So(len(names), ShouldEqual, 2)
-			So(len(values), ShouldEqual, 2)
+			Convey("for an inner join", func() {
+				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e", nil, nil)
+				So(err, ShouldBeNil)
+				So(len(names), ShouldEqual, 2)
+				So(len(values), ShouldEqual, 2)
 
-			So(names, ShouldResemble, []string{"c", "f"})
+				So(names, ShouldResemble, []string{"c", "f"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
-					evaluator.SQLInt(12),
-				},
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
-					evaluator.SQLInt(14),
-				},
-			}
+				expectedValues := map[interface{}][]evaluator.SQLExpr{
+					evaluator.SQLInt(1): []evaluator.SQLExpr{
+						evaluator.SQLInt(12),
+					},
+					evaluator.SQLInt(3): []evaluator.SQLExpr{
+						evaluator.SQLInt(14),
+					},
+				}
 
-			checkExpectedValues(2, values, expectedValues)
+				checkExpectedValues(2, values, expectedValues)
+			})
+
+			Convey("for a left join", func() {
+				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 left join silly t2 on t1.c = t2.e", nil, nil)
+				So(err, ShouldBeNil)
+				So(len(names), ShouldEqual, 2)
+				So(len(values), ShouldEqual, 3)
+
+				So(names, ShouldResemble, []string{"c", "f"})
+
+				expectedValues := map[interface{}][]evaluator.SQLExpr{
+					evaluator.SQLInt(1): []evaluator.SQLExpr{
+						evaluator.SQLInt(12),
+					},
+					evaluator.SQLInt(3): []evaluator.SQLExpr{
+						evaluator.SQLInt(14),
+					},
+					evaluator.SQLInt(5): []evaluator.SQLExpr{
+						evaluator.SQLNull,
+					},
+				}
+
+				checkExpectedValues(2, values, expectedValues)
+			})
+
+			Convey("for a right join", func() {
+				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 right join silly t2 on t1.c = t2.e", nil, nil)
+				So(err, ShouldBeNil)
+				So(len(names), ShouldEqual, 2)
+				So(len(values), ShouldEqual, 3)
+
+				So(names, ShouldResemble, []string{"c", "f"})
+
+				expectedValues := map[interface{}][]evaluator.SQLExpr{
+					evaluator.SQLInt(1): []evaluator.SQLExpr{
+						evaluator.SQLInt(12),
+					},
+					evaluator.SQLInt(3): []evaluator.SQLExpr{
+						evaluator.SQLInt(14),
+					},
+					evaluator.SQLNull: []evaluator.SQLExpr{
+						evaluator.SQLInt(16),
+					},
+				}
+
+				checkExpectedValues(2, values, expectedValues)
+			})
 
 		})
 
@@ -841,14 +889,14 @@ func TestSelectWithJoin(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"c", "d"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(2),
 				},
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+				evaluator.SQLInt(3): []evaluator.SQLExpr{
 					evaluator.SQLInt(4),
 				},
-				evaluator.SQLInt(5): []evaluator.SQLNumeric{
+				evaluator.SQLInt(5): []evaluator.SQLExpr{
 					evaluator.SQLInt(16),
 				},
 			}
@@ -895,8 +943,8 @@ func TestSelectWithJoin(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"c", "f"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(3): []evaluator.SQLExpr{
 					evaluator.SQLInt(14),
 				},
 			}
@@ -910,11 +958,11 @@ func TestSelectWithJoin(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"c", "f"})
 
-			expectedValues = map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+			expectedValues = map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(3): []evaluator.SQLExpr{
 					evaluator.SQLInt(14),
 				},
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(12),
 				},
 			}
@@ -1086,11 +1134,11 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(len(names), ShouldEqual, 2)
 
 			So(names, ShouldResemble, []string{"a", "b"})
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(6): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(6): []evaluator.SQLExpr{
 					evaluator.SQLInt(5),
 				},
-				evaluator.SQLInt(7): []evaluator.SQLNumeric{
+				evaluator.SQLInt(7): []evaluator.SQLExpr{
 					evaluator.SQLInt(6),
 				},
 			}
@@ -1390,14 +1438,14 @@ func TestSelectWithWhere(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(1),
 				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(2),
 				},
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+				evaluator.SQLInt(3): []evaluator.SQLExpr{
 					evaluator.SQLInt(4),
 				},
 			}
@@ -1412,8 +1460,8 @@ func TestSelectWithWhere(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
-			expectedValues = map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+			expectedValues = map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(3): []evaluator.SQLExpr{
 					evaluator.SQLInt(4),
 				},
 			}
@@ -1436,14 +1484,14 @@ func TestSelectWithWhere(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
-			expectedValues = map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+			expectedValues = map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(1),
 				},
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(2),
 				},
-				evaluator.SQLInt(3): []evaluator.SQLNumeric{
+				evaluator.SQLInt(3): []evaluator.SQLExpr{
 					evaluator.SQLInt(4),
 				},
 			}
@@ -1884,14 +1932,14 @@ func TestSelectWithExists(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(4),
 				},
-				evaluator.SQLInt(6): []evaluator.SQLNumeric{
+				evaluator.SQLInt(6): []evaluator.SQLExpr{
 					evaluator.SQLInt(1),
 				},
-				evaluator.SQLInt(5): []evaluator.SQLNumeric{
+				evaluator.SQLInt(5): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 				},
 			}
@@ -1907,11 +1955,11 @@ func TestSelectWithExists(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
-			expectedValues = map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(2): []evaluator.SQLNumeric{
+			expectedValues = map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(4),
 				},
-				evaluator.SQLInt(1): []evaluator.SQLNumeric{
+				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(7),
 				},
 			}
@@ -1930,8 +1978,8 @@ func TestSelectWithExists(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "c"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(6): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(6): []evaluator.SQLExpr{
 					evaluator.SQLInt(9),
 				},
 			}
@@ -1971,8 +2019,8 @@ func TestSelectWithSubqueryWhere(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(6): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(6): []evaluator.SQLExpr{
 					evaluator.SQLInt(1),
 				},
 			}
@@ -1987,8 +2035,8 @@ func TestSelectWithSubqueryWhere(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
-			expectedValues = map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(5): []evaluator.SQLNumeric{
+			expectedValues = map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(5): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 				},
 			}
@@ -2019,11 +2067,11 @@ func TestSelectWithSubqueryWhere(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
-			expectedValues := map[interface{}][]evaluator.SQLNumeric{
-				evaluator.SQLInt(6): []evaluator.SQLNumeric{
+			expectedValues := map[interface{}][]evaluator.SQLExpr{
+				evaluator.SQLInt(6): []evaluator.SQLExpr{
 					evaluator.SQLInt(1),
 				},
-				evaluator.SQLInt(5): []evaluator.SQLNumeric{
+				evaluator.SQLInt(5): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
 				},
 			}

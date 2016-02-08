@@ -2,7 +2,10 @@ package evaluator
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/deafgoat/mixer/sqlparser"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // JoinStrategy specifies the method a Join
@@ -15,38 +18,38 @@ const (
 	Hash
 )
 
-// JoinType specifies the the type of join for
+// JoinKind specifies the the type of join for
 // a given joiner.
-type JoinType string
+type JoinKind string
 
 const (
-	InnerJoin    JoinType = sqlparser.AST_JOIN
-	StraightJoin          = sqlparser.AST_STRAIGHT_JOIN
-	LeftJoin              = sqlparser.AST_LEFT_JOIN
-	RightJoin             = sqlparser.AST_RIGHT_JOIN
-	CrossJoin             = sqlparser.AST_CROSS_JOIN
-	NaturalJoin           = sqlparser.AST_NATURAL_JOIN
+	InnerJoin    JoinKind = sqlparser.AST_JOIN
+	StraightJoin JoinKind = sqlparser.AST_STRAIGHT_JOIN
+	LeftJoin     JoinKind = sqlparser.AST_LEFT_JOIN
+	RightJoin    JoinKind = sqlparser.AST_RIGHT_JOIN
+	CrossJoin    JoinKind = sqlparser.AST_CROSS_JOIN
+	NaturalJoin  JoinKind = sqlparser.AST_NATURAL_JOIN
 )
 
 // NestedLoop implementation of a JOIN.
 type NestedLoopJoiner struct {
-	matcher  SQLExpr
-	joinType JoinType
-	errChan  chan error
+	matcher SQLExpr
+	kind    JoinKind
+	errChan chan error
 }
 
 // SortMerge implementation of a JOIN.
 type SortMergeJoiner struct {
-	matcher  SQLExpr
-	joinType JoinType
-	errChan  chan error
+	matcher SQLExpr
+	kind    JoinKind
+	errChan chan error
 }
 
 // Hash implementation of a JOIN.
 type HashJoiner struct {
-	matcher  SQLExpr
-	joinType JoinType
-	errChan  chan error
+	matcher SQLExpr
+	kind    JoinKind
+	errChan chan error
 }
 
 // Joiner wraps the basic Join function that is
@@ -60,9 +63,8 @@ type Joiner interface {
 type Join struct {
 	left, right Operator
 	matcher     SQLExpr
-	on          sqlparser.BoolExpr
 	err         error
-	kind        string
+	kind        JoinKind
 	strategy    JoinStrategy
 	leftRows    chan *Row
 	rightRows   chan *Row
@@ -109,11 +111,6 @@ func (join *Join) init(ctx *ExecutionCtx) (err error) {
 	go join.fetchRows(join.right, join.rightRows)
 
 	join.errChan = make(chan error, 1)
-
-	join.matcher, err = NewSQLExpr(join.on)
-	if err != nil {
-		return err
-	}
 
 	joiner, err := NewJoiner(join)
 	if err != nil {
@@ -181,15 +178,14 @@ func NewJoiner(join *Join) (Joiner, error) {
 	s := join.strategy
 	matcher := join.matcher
 	errChan := join.errChan
-	joinType := getJoinKind(join.kind)
 
 	switch s {
 	case NestedLoop:
-		return &NestedLoopJoiner{matcher, joinType, errChan}, nil
+		return &NestedLoopJoiner{matcher, join.kind, errChan}, nil
 	case SortMerge:
-		return &SortMergeJoiner{matcher, joinType, errChan}, nil
+		return &SortMergeJoiner{matcher, join.kind, errChan}, nil
 	case Hash:
-		return &HashJoiner{matcher, joinType, errChan}, nil
+		return &HashJoiner{matcher, join.kind, errChan}, nil
 	default:
 		return nil, fmt.Errorf("unknown join strategy")
 	}
@@ -207,32 +203,12 @@ func readFromChan(ch chan *Row) []*Row {
 	return r
 }
 
-// getJoinKind returns the join type for the given string.
-func getJoinKind(s string) JoinType {
-	switch s {
-	case sqlparser.AST_JOIN:
-		return InnerJoin
-	case sqlparser.AST_STRAIGHT_JOIN:
-		return StraightJoin
-	case sqlparser.AST_LEFT_JOIN:
-		return LeftJoin
-	case sqlparser.AST_RIGHT_JOIN:
-		return RightJoin
-	case sqlparser.AST_CROSS_JOIN:
-		return CrossJoin
-	case sqlparser.AST_NATURAL_JOIN:
-		return NaturalJoin
-	default:
-		return ""
-	}
-}
-
 // NestedLoopJoiner implementation.
 func (nlp *NestedLoopJoiner) Join(lChan, rChan chan *Row, ctx *ExecutionCtx) chan Row {
 
 	ch := make(chan Row)
 
-	switch nlp.joinType {
+	switch nlp.kind {
 
 	case InnerJoin:
 		go nlp.innerJoin(lChan, rChan, ch, ctx)
@@ -317,4 +293,166 @@ func (smj *SortMergeJoiner) Join(lChan, rChan chan *Row, ctx *ExecutionCtx) chan
 // HashJoiner implementation.
 func (hj *HashJoiner) Join(lChan, rChan chan *Row, ctx *ExecutionCtx) chan Row {
 	return nil
+}
+
+///////////////
+//Optimization
+///////////////
+
+const (
+	joinedFieldNamePrefix = "__joined_"
+)
+
+func (v *optimizer) visitJoin(join *Join) (Operator, error) {
+
+	// 1. the join type must be usable. MongoDB can only do an inner join and a left outer join
+	var localSource, foreignSource Operator
+	var joinKind JoinKind
+
+	switch join.kind {
+	case InnerJoin:
+		localSource = join.left
+		foreignSource = join.right
+		joinKind = InnerJoin
+	case LeftJoin:
+		localSource = join.left
+		foreignSource = join.right
+		joinKind = LeftJoin
+	case RightJoin:
+		localSource = join.right
+		foreignSource = join.left
+		joinKind = LeftJoin
+	default:
+		return join, nil
+	}
+
+	// 2. we have to be able to push both down and the foreign TableScan
+	// operator must have nothing in its pipeline.
+	tsLocal, ok := localSource.(*TableScan)
+	if !ok {
+		return join, nil
+	}
+
+	tsForeign, ok := foreignSource.(*TableScan)
+	if !ok {
+		return join, nil
+	}
+
+	if joinKind == InnerJoin && len(tsLocal.pipeline) == 0 && len(tsForeign.pipeline) > 0 {
+		// flip them
+		tsLocal, tsForeign = tsForeign, tsLocal
+	} else if len(tsForeign.pipeline) > 0 {
+		return join, nil
+	}
+
+	// 3. find the local column and the foreign column
+	localColumn, foreignColumn, err := getLocalAndForeignColumns(tsLocal.aliasName, tsForeign.aliasName, join.matcher)
+	if err != nil {
+		return join, nil
+	}
+
+	// 4. construct the $lookup clause
+	pipeline := tsLocal.pipeline
+
+	localFieldName, ok := tsLocal.mappingRegistry.lookupFieldName(localColumn.tableName, localColumn.fieldName)
+	if !ok {
+		return join, nil
+	}
+	fromCollectionName := strings.SplitN(tsForeign.fqns, ".", 2)[1]
+	foreignFieldName, ok := tsForeign.mappingRegistry.lookupFieldName(foreignColumn.tableName, foreignColumn.fieldName)
+	if !ok {
+		return join, nil
+	}
+
+	asField := joinedFieldNamePrefix + fromCollectionName
+
+	lookup := bson.M{
+		"from":         fromCollectionName,
+		"localField":   localFieldName,
+		"foreignField": foreignFieldName,
+		"as":           asField,
+	}
+
+	// 5. construct the $unwind clause
+	var unwind bson.M
+
+	switch joinKind { // right join was already flipped
+	case InnerJoin:
+		unwind = bson.M{
+			"path": "$" + asField,
+			"preserveNullAndEmptyArrays": false,
+		}
+	case LeftJoin:
+		unwind = bson.M{
+			"path": "$" + asField,
+			"preserveNullAndEmptyArrays": true,
+		}
+	}
+
+	pipeline = append(pipeline, bson.D{{"$lookup", lookup}})
+	pipeline = append(pipeline, bson.D{{"$unwind", unwind}})
+
+	// 6. change all the mappings from the tsForeign mapping registry to be nested under
+	// the 'asField' we used above.
+	newMappingRegistry := tsLocal.mappingRegistry.copy()
+
+	newMappingRegistry.columns = append(newMappingRegistry.columns, tsForeign.mappingRegistry.columns...)
+	if tsForeign.mappingRegistry.fields != nil {
+		for tableName, columns := range tsForeign.mappingRegistry.fields {
+			for columnName, fieldName := range columns {
+				newMappingRegistry.registerMapping(tableName, columnName, asField+"."+fieldName)
+			}
+		}
+	}
+
+	ts := tsLocal.WithPipeline(pipeline).WithMappingRegistry(newMappingRegistry)
+	return ts, nil
+}
+
+func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExpr) (*SQLFieldExpr, *SQLFieldExpr, error) {
+
+	// TODO: we can probably extract from 'e' the parts that only deal with the left or
+	// right sides, but not both. These parts of the predicates need to get pushed down
+	// independently such that filters for each side, if necessary, are performed
+	// server side.
+
+	optimizedExpr, err := OptimizeSQLExpr(e)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// anything in optimizedExpr that is not an equi-join makes this impossible to push down
+	equalExpr, ok := optimizedExpr.(*SQLEqualsExpr)
+	if !ok {
+		return nil, nil, fmt.Errorf("join condition cannot be pushed down '%v'", e.String())
+	}
+
+	// we must have a field from the left table and and a field from the right table
+	column1, ok := equalExpr.left.(SQLFieldExpr)
+	if !ok {
+		return nil, nil, fmt.Errorf("join condition cannot be pushed down '%v'", equalExpr.String())
+	}
+	column2, ok := equalExpr.right.(SQLFieldExpr)
+	if !ok {
+		return nil, nil, fmt.Errorf("join condition cannot be pushed down '%v'", equalExpr.String())
+	}
+
+	var localColumn, foreignColumn *SQLFieldExpr
+	if column1.tableName == localTableName {
+		localColumn = &column1
+	} else if column1.tableName == foreignTableName {
+		foreignColumn = &column1
+	}
+
+	if column2.tableName == localTableName {
+		localColumn = &column2
+	} else if column2.tableName == foreignTableName {
+		foreignColumn = &column2
+	}
+
+	if localColumn == nil || foreignColumn == nil {
+		return nil, nil, fmt.Errorf("join condition cannot be pushed down '%v'", equalExpr.String())
+	}
+
+	return localColumn, foreignColumn, nil
 }

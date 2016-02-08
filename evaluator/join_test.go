@@ -61,7 +61,7 @@ var (
 	}
 )
 
-func setupJoinOperator(ctx *ExecutionCtx, criteria sqlparser.BoolExpr, joinType string) Operator {
+func setupJoinOperator(ctx *ExecutionCtx, criteria sqlparser.BoolExpr, kind JoinKind) Operator {
 
 	c1 := session.DB(dbTwo).C(tableOneName)
 	c1.DropCollection()
@@ -82,11 +82,14 @@ func setupJoinOperator(ctx *ExecutionCtx, criteria sqlparser.BoolExpr, joinType 
 	ts2, err := NewTableScan(ctx, dbTwo, tableTwoName, "")
 	So(err, ShouldBeNil)
 
+	on, err := NewSQLExpr(criteria)
+	So(err, ShouldBeNil)
+
 	return &Join{
-		left:  ts1,
-		right: ts2,
-		on:    criteria,
-		kind:  joinType,
+		left:    ts1,
+		right:   ts2,
+		matcher: on,
+		kind:    kind,
 	}
 
 }

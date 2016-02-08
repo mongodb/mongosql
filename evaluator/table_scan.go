@@ -17,6 +17,21 @@ func (mr *mappingRegistry) addColumn(column *Column) {
 	mr.columns = append(mr.columns, column)
 }
 
+func (mr *mappingRegistry) copy() *mappingRegistry {
+	newMappingRegistry := &mappingRegistry{}
+	newMappingRegistry.columns = make([]*Column, len(mr.columns))
+	copy(newMappingRegistry.columns, mr.columns)
+	if mr.fields != nil {
+		for tableName, columns := range mr.fields {
+			for columnName, fieldName := range columns {
+				newMappingRegistry.registerMapping(tableName, columnName, fieldName)
+			}
+		}
+	}
+
+	return newMappingRegistry
+}
+
 func (mr *mappingRegistry) registerMapping(tbl, column, field string) {
 
 	if mr.fields == nil {

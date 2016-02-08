@@ -30,6 +30,11 @@ func (v *optimizer) Visit(o Operator) (Operator, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize group by: %v", err)
 		}
+	case *Join:
+		o, err = v.visitJoin(typedO)
+		if err != nil {
+			return nil, fmt.Errorf("unable to optimize join: %v", err)
+		}
 	case *Limit:
 		o, err = v.visitLimit(typedO)
 		if err != nil {

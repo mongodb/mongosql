@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -960,6 +961,251 @@ func TestHavingPushDown(t *testing.T) {
 	})
 }
 
+func TestJoinPushDown(t *testing.T) {
+
+	verifyOptimizedPipeline := func(ctx *ExecutionCtx, tblName string, op Operator, pipeline []bson.D) {
+
+		optimized, err := OptimizeOperator(ctx, op)
+		So(err, ShouldBeNil)
+
+		ts, ok := optimized.(*TableScan)
+		So(ok, ShouldBeTrue)
+
+		So(ts.tableName, ShouldEqual, tblName)
+		So(ts.pipeline, ShouldResemble, pipeline)
+	}
+
+	Convey("Subject: Join Optimization", t, func() {
+
+		ctx := &ExecutionCtx{
+			Schema: cfgOne,
+			Db:     dbOne,
+		}
+
+		tblOne := "foo"
+		tblTwo := "bar"
+
+		tsOne, err := NewTableScan(ctx, dbOne, tblOne, "")
+		So(err, ShouldBeNil)
+
+		tsTwo, err := NewTableScan(ctx, dbOne, tblTwo, "")
+		So(err, ShouldBeNil)
+
+		Convey("Given a push-downable join", func() {
+
+			join := &Join{
+				left:  tsOne,
+				right: tsTwo,
+			}
+
+			Convey("Should optimize simple inner join", func() {
+				join.kind = InnerJoin
+				join.matcher = &SQLEqualsExpr{SQLFieldExpr{tblOne, "c"}, SQLFieldExpr{tblTwo, "b"}}
+
+				verifyOptimizedPipeline(ctx, tblOne, join,
+					[]bson.D{
+						bson.D{{"$lookup", bson.M{
+							"from":         tblTwo,
+							"localField":   "c",
+							"foreignField": "b",
+							"as":           joinedFieldNamePrefix + tblTwo,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblTwo,
+							"preserveNullAndEmptyArrays": false,
+						}}}})
+			})
+
+			Convey("Should optimize simple inner join with on clause flipped", func() {
+				join.kind = InnerJoin
+				join.matcher = &SQLEqualsExpr{SQLFieldExpr{tblTwo, "b"}, SQLFieldExpr{tblOne, "c"}}
+
+				verifyOptimizedPipeline(ctx, tblOne, join,
+					[]bson.D{
+						bson.D{{"$lookup", bson.M{
+							"from":         tblTwo,
+							"localField":   "c",
+							"foreignField": "b",
+							"as":           joinedFieldNamePrefix + tblTwo,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblTwo,
+							"preserveNullAndEmptyArrays": false,
+						}}}})
+			})
+
+			Convey("Should optimize simple left join", func() {
+				join.kind = LeftJoin
+				join.matcher = &SQLEqualsExpr{SQLFieldExpr{tblOne, "c"}, SQLFieldExpr{tblTwo, "b"}}
+
+				verifyOptimizedPipeline(ctx, tblOne, join,
+					[]bson.D{
+						bson.D{{"$lookup", bson.M{
+							"from":         tblTwo,
+							"localField":   "c",
+							"foreignField": "b",
+							"as":           joinedFieldNamePrefix + tblTwo,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblTwo,
+							"preserveNullAndEmptyArrays": true,
+						}}}})
+			})
+
+			Convey("Should optimize simple left join with on clause flipped", func() {
+				join.kind = LeftJoin
+				join.matcher = &SQLEqualsExpr{SQLFieldExpr{tblTwo, "b"}, SQLFieldExpr{tblOne, "c"}}
+
+				verifyOptimizedPipeline(ctx, tblOne, join,
+					[]bson.D{
+						bson.D{{"$lookup", bson.M{
+							"from":         tblTwo,
+							"localField":   "c",
+							"foreignField": "b",
+							"as":           joinedFieldNamePrefix + tblTwo,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblTwo,
+							"preserveNullAndEmptyArrays": true,
+						}}}})
+			})
+
+			Convey("Should optimize simple right join", func() {
+				join.kind = RightJoin
+				join.matcher = &SQLEqualsExpr{SQLFieldExpr{tblOne, "c"}, SQLFieldExpr{tblTwo, "b"}}
+
+				verifyOptimizedPipeline(ctx, tblTwo, join,
+					[]bson.D{
+						bson.D{{"$lookup", bson.M{
+							"from":         tblOne,
+							"localField":   "b",
+							"foreignField": "c",
+							"as":           joinedFieldNamePrefix + tblOne,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblOne,
+							"preserveNullAndEmptyArrays": true,
+						}}}})
+			})
+
+			Convey("Should optimize simple right join with on clause flipped", func() {
+				join.kind = RightJoin
+				join.matcher = &SQLEqualsExpr{SQLFieldExpr{tblTwo, "b"}, SQLFieldExpr{tblOne, "c"}}
+
+				verifyOptimizedPipeline(ctx, tblTwo, join,
+					[]bson.D{
+						bson.D{{"$lookup", bson.M{
+							"from":         tblOne,
+							"localField":   "b",
+							"foreignField": "c",
+							"as":           joinedFieldNamePrefix + tblOne,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblOne,
+							"preserveNullAndEmptyArrays": true,
+						}}}})
+			})
+
+			Convey("Should optimize inner join where the right table has a non-empty pipeline", func() {
+
+				tsTwo.pipeline = append(tsTwo.pipeline, bson.D{{"$test", 1}})
+
+				join.kind = InnerJoin
+				join.matcher = &SQLEqualsExpr{SQLFieldExpr{tblOne, "c"}, SQLFieldExpr{tblTwo, "b"}}
+
+				verifyOptimizedPipeline(ctx, tblTwo, join,
+					[]bson.D{
+						bson.D{{"$test", 1}},
+						bson.D{{"$lookup", bson.M{
+							"from":         tblOne,
+							"localField":   "b",
+							"foreignField": "c",
+							"as":           joinedFieldNamePrefix + tblOne,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblOne,
+							"preserveNullAndEmptyArrays": false,
+						}}}})
+			})
+
+			Convey("Should optimize right join where the right table has a non-empty pipeline", func() {
+
+				tsTwo.pipeline = append(tsTwo.pipeline, bson.D{{"$test", 1}})
+
+				join.kind = RightJoin
+				join.matcher = &SQLEqualsExpr{SQLFieldExpr{tblOne, "c"}, SQLFieldExpr{tblTwo, "b"}}
+
+				verifyOptimizedPipeline(ctx, tblTwo, join,
+					[]bson.D{
+						bson.D{{"$test", 1}},
+						bson.D{{"$lookup", bson.M{
+							"from":         tblOne,
+							"localField":   "b",
+							"foreignField": "c",
+							"as":           joinedFieldNamePrefix + tblOne,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblOne,
+							"preserveNullAndEmptyArrays": true,
+						}}}})
+			})
+		})
+
+		Convey("Given a non-push-downable limit", func() {
+
+			join := &Join{
+				left:  tsOne,
+				right: tsTwo,
+			}
+
+			Convey("Should not optimize the pipeline when the left source is not a TableScan", func() {
+				join.left = &Empty{}
+				verifyUnoptimizedPipeline(ctx, join)
+			})
+
+			Convey("Should not optimize the pipeline when the right source is not a TableScan", func() {
+				join.right = &Empty{}
+				verifyUnoptimizedPipeline(ctx, join)
+			})
+
+			for _, kind := range []JoinKind{InnerJoin, LeftJoin, RightJoin} {
+				Convey(fmt.Sprintf("Should not optimize a %v when the on clause is not an equality comparison", kind), func() {
+					join.kind = kind
+					join.matcher = &SQLGreaterThanExpr{SQLFieldExpr{tblOne, "c"}, SQLFieldExpr{tblTwo, "b"}}
+					verifyUnoptimizedPipeline(ctx, join)
+				})
+			}
+
+			for _, kind := range []JoinKind{InnerJoin, LeftJoin, RightJoin} {
+				Convey(fmt.Sprintf("Should not optimize a %v when the on clause does not contain fields from both sides", kind), func() {
+					join.kind = kind
+					join.matcher = &SQLEqualsExpr{SQLFieldExpr{tblOne, "c"}, SQLFieldExpr{tblOne, "b"}}
+					verifyUnoptimizedPipeline(ctx, join)
+				})
+			}
+
+			for _, kind := range []JoinKind{InnerJoin, LeftJoin, RightJoin} {
+				Convey(fmt.Sprintf("Should not optimize a %v when both sides already have a pipeline", kind), func() {
+					tsOne.pipeline = append(tsOne.pipeline, bson.D{{"$test", 1}})
+					tsTwo.pipeline = append(tsTwo.pipeline, bson.D{{"$test", 1}})
+
+					join.kind = kind
+					join.matcher = &SQLEqualsExpr{SQLFieldExpr{tblOne, "c"}, SQLFieldExpr{tblTwo, "b"}}
+					verifyUnoptimizedPipeline(ctx, join)
+				})
+			}
+
+			Convey("Should not optimize a right join when the left side has a pipeline", func() {
+				tsOne.pipeline = append(tsOne.pipeline, bson.D{{"$test", 1}})
+
+				join.kind = RightJoin
+				join.matcher = &SQLEqualsExpr{SQLFieldExpr{tblOne, "c"}, SQLFieldExpr{tblTwo, "b"}}
+				verifyUnoptimizedPipeline(ctx, join)
+			})
+		})
+	})
+}
+
 func TestLimitPushDown(t *testing.T) {
 
 	Convey("Subject: Limit Optimization", t, func() {
@@ -1061,10 +1307,10 @@ func TestOrderByPushDown(t *testing.T) {
 				orderBy.keys = constructOrderByKeys(exprs, "a", "b", "e")
 
 				verifyOptimizedPipeline(ctx, orderBy,
-					[]bson.D{bson.D{{"$sort", bson.M{
-						"a":   1,
-						"b":   -1,
-						"d.e": 1,
+					[]bson.D{bson.D{{"$sort", bson.D{
+						{"a", 1},
+						{"b", -1},
+						{"d.e", 1},
 					}}}})
 			})
 
@@ -1078,7 +1324,7 @@ func TestOrderByPushDown(t *testing.T) {
 				groupBy := &GroupBy{
 					source:      sa,
 					keyExprs:    constructSelectExpressions(exprs, "a"),
-					selectExprs: constructSelectExpressions(exprs, "a"),
+					selectExprs: constructSelectExpressions(exprs, "a", "sum(b)"),
 				}
 
 				orderBy.source = groupBy
@@ -1099,8 +1345,8 @@ func TestOrderByPushDown(t *testing.T) {
 							"foo_DOT_a":      "$_id.foo_DOT_a",
 							"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
 						}}},
-						bson.D{{"$sort", bson.M{
-							"sum(foo_DOT_b)": 1,
+						bson.D{{"$sort", bson.D{
+							{"sum(foo_DOT_b)", 1},
 						}}}})
 			})
 		})

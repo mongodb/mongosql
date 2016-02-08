@@ -810,11 +810,16 @@ func planTableExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExpr, w *sqlparser.Wh
 			return nil, fmt.Errorf("error on right join node: %v", err)
 		}
 
+		on, err := NewSQLExpr(expr.On)
+		if err != nil {
+			return nil, err
+		}
+
 		join := &Join{
-			left:  left,
-			right: right,
-			on:    expr.On,
-			kind:  expr.Join,
+			left:    left,
+			right:   right,
+			matcher: on,
+			kind:    JoinKind(expr.Join),
 		}
 
 		return join, nil
@@ -822,8 +827,6 @@ func planTableExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExpr, w *sqlparser.Wh
 	default:
 		return nil, fmt.Errorf("can't handle table expression type %T", expr)
 	}
-
-	return nil, fmt.Errorf("unreachable in planTableExpr")
 }
 
 // planTableName takes a table name and returns an operator to get
