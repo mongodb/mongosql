@@ -2,14 +2,15 @@ package evaluator
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2/bson"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // newSQLTimeValue is a factory method for creating a
@@ -439,7 +440,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.ColName:
 
-		return SQLFieldExpr{string(expr.Qualifier), string(expr.Name)}, nil
+		return SQLColumnExpr{string(expr.Qualifier), string(expr.Name)}, nil
 
 	case *sqlparser.ComparisonExpr:
 

@@ -1,12 +1,13 @@
 package evaluator
 
 import (
+	"testing"
+	"time"
+
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
-	"time"
 )
 
 var (
@@ -393,14 +394,14 @@ func TestNewSQLExpr(t *testing.T) {
 		So(err, ShouldBeNil)
 		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where bar.a = 'eliot'")
 		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")})
+		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLString("eliot")})
 	})
 	Convey("Simple WHERE with implicit table names", t, func() {
 		schema, err := schema.ParseSchemaData(testSchema3)
 		So(err, ShouldBeNil)
 		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where a = 'eliot'")
 		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")})
+		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLString("eliot")})
 	})
 	Convey("WHERE with complex nested matching clauses", t, func() {
 		schema, err := schema.ParseSchemaData(testSchema3)
@@ -409,10 +410,10 @@ func TestNewSQLExpr(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLNotExpr{
 			&SQLAndExpr{
-				&SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")},
+				&SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLString("eliot")},
 				&SQLOrExpr{
-					&SQLGreaterThanExpr{SQLFieldExpr{"bar", "b"}, SQLInt(1)},
-					&SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLString("blah")},
+					&SQLGreaterThanExpr{SQLColumnExpr{"bar", "b"}, SQLInt(1)},
+					&SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLString("blah")},
 				},
 			},
 		})
@@ -424,10 +425,10 @@ func TestNewSQLExpr(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLNotExpr{
 			&SQLAndExpr{
-				&SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLString("eliot")},
+				&SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLString("eliot")},
 				&SQLOrExpr{
-					&SQLGreaterThanExpr{SQLFieldExpr{"bar", "b"}, SQLInt(13)},
-					&SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLString("blah")},
+					&SQLGreaterThanExpr{SQLColumnExpr{"bar", "b"}, SQLInt(13)},
+					&SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLString("blah")},
 				},
 			},
 		})

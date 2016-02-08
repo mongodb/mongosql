@@ -126,9 +126,9 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return bson.M{"$eq": []interface{}{left, right}}, true
 
-	case SQLFieldExpr:
+	case SQLColumnExpr:
 
-		name, ok := lookupFieldName(typedE.tableName, typedE.fieldName)
+		name, ok := lookupFieldName(typedE.tableName, typedE.columnName)
 		if !ok {
 			return nil, false
 		}
@@ -530,8 +530,8 @@ func getSingleMapEntry(m bson.M) (string, interface{}) {
 
 func getFieldName(e SQLExpr, lookupFieldName fieldNameLookup) (string, bool) {
 	switch field := e.(type) {
-	case SQLFieldExpr:
-		return lookupFieldName(field.tableName, field.fieldName)
+	case SQLColumnExpr:
+		return lookupFieldName(field.tableName, field.columnName)
 	default:
 		return "", false
 	}

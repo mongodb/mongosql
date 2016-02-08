@@ -211,7 +211,7 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 
 	case *SQLExistsExpr:
 		// child isn't visitable
-	case SQLFieldExpr:
+	case SQLColumnExpr:
 		// no children
 	case *SQLGreaterThanExpr:
 		left, err := v.Visit(typedE.left)

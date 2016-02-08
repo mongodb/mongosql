@@ -354,12 +354,12 @@ func (v *optimizer) visitJoin(join *Join) (Operator, error) {
 	// 4. construct the $lookup clause
 	pipeline := tsLocal.pipeline
 
-	localFieldName, ok := tsLocal.mappingRegistry.lookupFieldName(localColumn.tableName, localColumn.fieldName)
+	localFieldName, ok := tsLocal.mappingRegistry.lookupFieldName(localColumn.tableName, localColumn.columnName)
 	if !ok {
 		return join, nil
 	}
 	fromCollectionName := strings.SplitN(tsForeign.fqns, ".", 2)[1]
-	foreignFieldName, ok := tsForeign.mappingRegistry.lookupFieldName(foreignColumn.tableName, foreignColumn.fieldName)
+	foreignFieldName, ok := tsForeign.mappingRegistry.lookupFieldName(foreignColumn.tableName, foreignColumn.columnName)
 	if !ok {
 		return join, nil
 	}
@@ -409,7 +409,7 @@ func (v *optimizer) visitJoin(join *Join) (Operator, error) {
 	return ts, nil
 }
 
-func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExpr) (*SQLFieldExpr, *SQLFieldExpr, error) {
+func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExpr) (*SQLColumnExpr, *SQLColumnExpr, error) {
 
 	// TODO: we can probably extract from 'e' the parts that only deal with the left or
 	// right sides, but not both. These parts of the predicates need to get pushed down
@@ -428,16 +428,16 @@ func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExp
 	}
 
 	// we must have a field from the left table and and a field from the right table
-	column1, ok := equalExpr.left.(SQLFieldExpr)
+	column1, ok := equalExpr.left.(SQLColumnExpr)
 	if !ok {
 		return nil, nil, fmt.Errorf("join condition cannot be pushed down '%v'", equalExpr.String())
 	}
-	column2, ok := equalExpr.right.(SQLFieldExpr)
+	column2, ok := equalExpr.right.(SQLColumnExpr)
 	if !ok {
 		return nil, nil, fmt.Errorf("join condition cannot be pushed down '%v'", equalExpr.String())
 	}
 
-	var localColumn, foreignColumn *SQLFieldExpr
+	var localColumn, foreignColumn *SQLColumnExpr
 	if column1.tableName == localTableName {
 		localColumn = &column1
 	} else if column1.tableName == foreignTableName {

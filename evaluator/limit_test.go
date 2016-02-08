@@ -28,7 +28,7 @@ func TestLimitOperator(t *testing.T) {
 			sExprs: SelectExpressions{
 				SelectExpression{
 					Column: &Column{tableOneName, "a", "a", "int"},
-					Expr:   SQLFieldExpr{tableOneName, "a"},
+					Expr:   SQLColumnExpr{tableOneName, "a"},
 				},
 			},
 			source: ts,

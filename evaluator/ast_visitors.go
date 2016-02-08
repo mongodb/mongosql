@@ -75,12 +75,12 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 			cf.columns = append(cf.columns, columns...)
 		}
 
-	case SQLFieldExpr:
+	case SQLColumnExpr:
 
 		column := &Column{
 			Table: string(expr.tableName),
-			Name:  string(expr.fieldName),
-			View:  string(expr.fieldName),
+			Name:  string(expr.columnName),
+			View:  string(expr.columnName),
 		}
 
 		cf.columns = append(cf.columns, column)
@@ -139,7 +139,7 @@ func (af *aggFunctionFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 	switch typedE := e.(type) {
 
-	case *SQLExistsExpr, SQLFieldExpr, SQLNullValue, SQLNumeric, SQLString, *SQLSubqueryExpr:
+	case *SQLExistsExpr, SQLColumnExpr, SQLNullValue, SQLNumeric, SQLString, *SQLSubqueryExpr:
 
 		return e, nil
 
@@ -211,7 +211,7 @@ func (n *partialEvaluatorNominator) Visit(e SQLExpr) (SQLExpr, error) {
 	switch e.(type) {
 	case *SQLExistsExpr:
 		n.blocked = true
-	case SQLFieldExpr:
+	case SQLColumnExpr:
 		n.blocked = true
 	case *SQLSubqueryCmpExpr:
 		n.blocked = true
@@ -353,7 +353,7 @@ func replaceAggFunctionsWithColumns(tableName string, e SQLExpr) (SQLExpr, error
 func (v *aggFunctionExprReplacer) Visit(e SQLExpr) (SQLExpr, error) {
 	switch typedE := e.(type) {
 	case *SQLAggFunctionExpr:
-		return SQLFieldExpr{v.tableName, typedE.String()}, nil
+		return SQLColumnExpr{v.tableName, typedE.String()}, nil
 	default:
 		return walk(v, e)
 	}

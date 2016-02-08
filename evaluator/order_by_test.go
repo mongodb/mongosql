@@ -24,11 +24,11 @@ func TestOrderByOperator(t *testing.T) {
 			sExprs: SelectExpressions{
 				SelectExpression{
 					Column: &Column{tableOneName, "a", "a", "int"},
-					Expr:   SQLFieldExpr{tableOneName, "a"},
+					Expr:   SQLColumnExpr{tableOneName, "a"},
 				},
 				SelectExpression{
 					Column: &Column{tableOneName, "b", "b", "int"},
-					Expr:   SQLFieldExpr{tableOneName, "b"},
+					Expr:   SQLColumnExpr{tableOneName, "b"},
 				},
 			},
 		}
@@ -68,7 +68,7 @@ func TestOrderByOperator(t *testing.T) {
 
 				keys := []orderByKey{
 					{&SelectExpression{
-						Expr: SQLFieldExpr{tableOneName, "a"},
+						Expr: SQLColumnExpr{tableOneName, "a"},
 					}, false, true, nil}}
 
 				operator := &OrderBy{
@@ -90,7 +90,7 @@ func TestOrderByOperator(t *testing.T) {
 
 				keys := []orderByKey{
 					{&SelectExpression{
-						Expr: SQLFieldExpr{tableOneName, "a"}}, false, false, nil},
+						Expr: SQLColumnExpr{tableOneName, "a"}}, false, false, nil},
 				}
 
 				operator := &OrderBy{
@@ -115,9 +115,9 @@ func TestOrderByOperator(t *testing.T) {
 			Convey("asc + asc", func() {
 				keys := []orderByKey{
 					{&SelectExpression{
-						Expr: SQLFieldExpr{tableOneName, "a"}}, false, true, nil},
+						Expr: SQLColumnExpr{tableOneName, "a"}}, false, true, nil},
 					{&SelectExpression{
-						Expr: SQLFieldExpr{tableOneName, "b"}}, false, true, nil},
+						Expr: SQLColumnExpr{tableOneName, "b"}}, false, true, nil},
 				}
 
 				expected := []Values{
@@ -138,9 +138,9 @@ func TestOrderByOperator(t *testing.T) {
 			Convey("asc + desc", func() {
 				keys := []orderByKey{
 					{&SelectExpression{
-						Expr: SQLFieldExpr{tableOneName, "a"}}, false, true, nil},
+						Expr: SQLColumnExpr{tableOneName, "a"}}, false, true, nil},
 					{&SelectExpression{
-						Expr: SQLFieldExpr{tableOneName, "b"}}, false, false, nil},
+						Expr: SQLColumnExpr{tableOneName, "b"}}, false, false, nil},
 				}
 
 				operator := &OrderBy{
@@ -161,9 +161,9 @@ func TestOrderByOperator(t *testing.T) {
 			Convey("desc + asc", func() {
 				keys := []orderByKey{
 					{&SelectExpression{
-						Expr: SQLFieldExpr{tableOneName, "a"}}, false, false, nil},
+						Expr: SQLColumnExpr{tableOneName, "a"}}, false, false, nil},
 					{&SelectExpression{
-						Expr: SQLFieldExpr{tableOneName, "b"}}, false, true, nil},
+						Expr: SQLColumnExpr{tableOneName, "b"}}, false, true, nil},
 				}
 
 				operator := &OrderBy{
@@ -184,9 +184,9 @@ func TestOrderByOperator(t *testing.T) {
 			Convey("desc + desc", func() {
 				keys := []orderByKey{
 					{&SelectExpression{
-						Expr: SQLFieldExpr{tableOneName, "a"}}, false, false, nil},
+						Expr: SQLColumnExpr{tableOneName, "a"}}, false, false, nil},
 					{&SelectExpression{
-						Expr: SQLFieldExpr{tableOneName, "b"}}, false, false, nil},
+						Expr: SQLColumnExpr{tableOneName, "b"}}, false, false, nil},
 				}
 
 				operator := &OrderBy{

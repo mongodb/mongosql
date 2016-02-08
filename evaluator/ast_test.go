@@ -113,23 +113,23 @@ func TestEvaluates(t *testing.T) {
 		SkipConvey("Subject: SQLExistsExpr", func() {
 		})
 
-		Convey("Subject: SQLFieldExpr", func() {
+		Convey("Subject: SQLColumnExpr", func() {
 			Convey("Should return the value of the field when it exists", func() {
-				subject := SQLFieldExpr{"bar", "a"}
+				subject := SQLColumnExpr{"bar", "a"}
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldEqual, SQLInt(123))
 			})
 
 			Convey("Should return nil when the field is null", func() {
-				subject := SQLFieldExpr{"bar", "c"}
+				subject := SQLColumnExpr{"bar", "c"}
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldHaveSameTypeAs, SQLNull)
 			})
 
 			Convey("Should return nil when the field doesn't exists", func() {
-				subject := SQLFieldExpr{"bar", "no_existy"}
+				subject := SQLColumnExpr{"bar", "no_existy"}
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldHaveSameTypeAs, SQLNull)
@@ -343,24 +343,24 @@ func TestOptimizeSQLExpr(t *testing.T) {
 	Convey("Subject: OptimizeSQLExpr", t, func() {
 
 		tests := []test{
-			test{"3 = a", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
-			test{"3 < a", "a > 3", &SQLGreaterThanExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
-			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
-			test{"3 > a", "a < 3", &SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
-			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
-			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 < a", "a > 3", &SQLGreaterThanExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 > a", "a < 3", &SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
 			test{"3 + 3 = 6", "true", SQLTrue},
-			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLFloat(3)}},
-			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLFloat(3)}},
+			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
 			test{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
 				&SQLAndExpr{
-					&SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLFloat(3)},
-					&SQLEqualsExpr{SQLFieldExpr{"bar", "b"}, SQLInt(2)}}},
+					&SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLFloat(3)},
+					&SQLEqualsExpr{SQLColumnExpr{"bar", "b"}, SQLInt(2)}}},
 			test{"3 + 3 = 6 OR a = 3", "true", SQLTrue},
-			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
 			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
-			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
-			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{SQLFieldExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
+			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
 		}
 
 		runTests(tests)
@@ -450,10 +450,10 @@ func TestTranslatePredicate(t *testing.T) {
 		runTests(tests)
 
 		partialTests := []partialTest{
-			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLFieldExpr{"bar", "b"}}},
-			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLFieldExpr{"bar", "b"}}},
-			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLFieldExpr{"bar", "b"}}},
-			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{SQLFieldExpr{"bar", "a"}, SQLFieldExpr{"bar", "b"}}}},
+			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLColumnExpr{"bar", "b"}}},
+			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLColumnExpr{"bar", "b"}}},
+			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLColumnExpr{"bar", "b"}}},
+			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLColumnExpr{"bar", "b"}}}},
 		}
 
 		runPartialTests(partialTests)

@@ -2,9 +2,10 @@ package evaluator
 
 import (
 	"fmt"
+	"math"
+
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
-	"math"
 )
 
 //
@@ -277,19 +278,19 @@ func (s SQLCtorExpr) String() string {
 }
 
 //
-// SQLFieldExpr represents a field reference.
+// SQLColumnExpr represents a column reference.
 //
-type SQLFieldExpr struct {
-	tableName string
-	fieldName string
+type SQLColumnExpr struct {
+	tableName  string
+	columnName string
 }
 
-func (sqlf SQLFieldExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// TODO how do we report field not existing? do we just treat is a NULL, or something else?
 	for _, row := range ctx.Rows {
 		for _, data := range row.Data {
-			if data.Table == sqlf.tableName {
-				if value, hasValue := row.GetField(sqlf.tableName, sqlf.fieldName); hasValue {
+			if data.Table == c.tableName {
+				if value, hasValue := row.GetField(c.tableName, c.columnName); hasValue {
 					val, err := NewSQLValue(value, "")
 					if err != nil {
 						return nil, err
@@ -304,12 +305,12 @@ func (sqlf SQLFieldExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLNull, nil
 }
 
-func (sqlf SQLFieldExpr) String() string {
+func (c SQLColumnExpr) String() string {
 	var str string
-	if sqlf.tableName != "" {
-		str += sqlf.tableName + "."
+	if c.tableName != "" {
+		str += c.tableName + "."
 	}
-	str += sqlf.fieldName
+	str += c.columnName
 	return str
 }
 

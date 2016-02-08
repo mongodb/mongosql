@@ -54,7 +54,7 @@ func (pj *Project) Open(ctx *ExecutionCtx) error {
 func (pj *Project) getValue(se SelectExpression, row *Row) (SQLValue, error) {
 	// in the case where we have a bare select column and no expression
 	if se.Expr == nil {
-		se.Expr = SQLFieldExpr{se.Table, se.Name}
+		se.Expr = SQLColumnExpr{se.Table, se.Name}
 	} else {
 		// If the column name is actually referencing a system variable, look it up and return
 		// its value if it exists.

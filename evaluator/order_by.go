@@ -232,8 +232,8 @@ func (v *optimizer) visitOrderBy(orderBy *OrderBy) (Operator, error) {
 		var tableName, columnName string
 
 		switch typedE := key.expr.Expr.(type) {
-		case SQLFieldExpr:
-			tableName, columnName = typedE.tableName, typedE.fieldName
+		case SQLColumnExpr:
+			tableName, columnName = typedE.tableName, typedE.columnName
 		default:
 			// MongoDB only allows sorting by a field, so pushing down a
 			// non-field requires it to be pre-calculated by a previous

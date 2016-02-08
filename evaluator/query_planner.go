@@ -239,7 +239,7 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 			// only add basic columns present in table configuration
 			hasColumn := (expressions.Contains(*column) || sExprs.Contains(*column))
 			if ctx.ParseCtx.IsSchemaColumn(column) && !hasColumn && !hasStarExpr(ast) {
-				sqlExpr := SQLFieldExpr{column.Table, column.Name}
+				sqlExpr := SQLColumnExpr{column.Table, column.Name}
 				expression := SelectExpression{
 					Column:     column,
 					Referenced: true,
@@ -904,9 +904,9 @@ func replaceSelectExpressionsWithColumns(tableName string, sExprs SelectExpressi
 
 	for _, sExpr := range sExprs {
 
-		expr, ok := sExpr.Expr.(SQLFieldExpr)
+		expr, ok := sExpr.Expr.(SQLColumnExpr)
 		if !ok {
-			expr = SQLFieldExpr{tableName, sExpr.Expr.String()}
+			expr = SQLColumnExpr{tableName, sExpr.Expr.String()}
 		}
 
 		newSExpr := SelectExpression{

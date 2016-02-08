@@ -305,11 +305,11 @@ func translateGroupByKeys(keyExprs SelectExpressions, lookupFieldName fieldNameL
 
 		switch typedE := keyExpr.Expr.(type) {
 
-		case SQLFieldExpr:
+		case SQLColumnExpr:
 
-			fieldName, ok := lookupFieldName(typedE.tableName, typedE.fieldName)
+			fieldName, ok := lookupFieldName(typedE.tableName, typedE.columnName)
 			if !ok {
-				return nil, fmt.Errorf("could not map '%v.%v' to a field", typedE.tableName, typedE.fieldName)
+				return nil, fmt.Errorf("could not map '%v.%v' to a field", typedE.tableName, typedE.columnName)
 			}
 
 			// project to a well-known name of the expr.String(). So, in 'select a from foo group by a',
@@ -402,21 +402,21 @@ type groupByAggregateTranslator struct {
 func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 
 	switch typedE := e.(type) {
-	case SQLFieldExpr:
-		fieldName, ok := v.lookupFieldName(typedE.tableName, typedE.fieldName)
+	case SQLColumnExpr:
+		fieldName, ok := v.lookupFieldName(typedE.tableName, typedE.columnName)
 		if !ok {
-			return nil, fmt.Errorf("could not map %v.%v to a field", typedE.tableName, typedE.fieldName)
+			return nil, fmt.Errorf("could not map %v.%v to a field", typedE.tableName, typedE.columnName)
 		}
 		if !v.isGroupKey(typedE) {
 			// since it's not an aggregation function, this implies that it takes the first value of the column.
 			// So project the field, and register the mapping.
 			v.group[dottifyFieldName(typedE.String())] = bson.M{"$first": getProjectedFieldName(fieldName)}
-			v.mappingRegistry.registerMapping(typedE.tableName, typedE.fieldName, dottifyFieldName(typedE.String()))
+			v.mappingRegistry.registerMapping(typedE.tableName, typedE.columnName, dottifyFieldName(typedE.String()))
 		} else {
 			// the _id is added to the $group in translateGroupByKeys. We will only be here if the user has also projected
 			// the group key, in which we'll need this to look it up in translateGroupByProject under its name. Hence, all
 			// we need to do is register the mapping.
-			v.mappingRegistry.registerMapping(typedE.tableName, typedE.fieldName, groupID+"."+dottifyFieldName(typedE.String()))
+			v.mappingRegistry.registerMapping(typedE.tableName, typedE.columnName, groupID+"."+dottifyFieldName(typedE.String()))
 		}
 		return typedE, nil
 	case *SQLAggFunctionExpr:
@@ -434,7 +434,7 @@ func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 			fieldName := groupDistinctPrefix + dottifyFieldName(typedE.Exprs[0].String())
 			newExpr = &SQLAggFunctionExpr{
 				Name:  typedE.Name,
-				Exprs: []SQLExpr{SQLFieldExpr{groupTempTable, fieldName}},
+				Exprs: []SQLExpr{SQLColumnExpr{groupTempTable, fieldName}},
 			}
 			v.group[fieldName] = bson.M{"$addToSet": trans}
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, fieldName)
@@ -466,7 +466,7 @@ func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 				}
 			}
 			fieldName := dottifyFieldName(typedE.String())
-			newExpr = SQLFieldExpr{groupTempTable, fieldName}
+			newExpr = SQLColumnExpr{groupTempTable, fieldName}
 			v.group[fieldName] = trans
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, fieldName)
 		}
@@ -480,7 +480,7 @@ func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 			// we need to create a new expr that is simply a field pointing at the nested identifier and register that
 			// mapping.
 			fieldName := dottifyFieldName(e.String())
-			newExpr := SQLFieldExpr{groupTempTable, fieldName}
+			newExpr := SQLColumnExpr{groupTempTable, fieldName}
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, groupID+"."+fieldName)
 			return newExpr, nil
 		}
@@ -527,12 +527,12 @@ func translateGroupByProject(exprs []SQLExpr, lookupFieldName fieldNameLookup) (
 	for _, expr := range exprs {
 
 		switch typedE := expr.(type) {
-		case SQLFieldExpr:
+		case SQLColumnExpr:
 			// Any one-step aggregations will end up here as they were fully performed in the $group. So, simple
 			// column references ('select a') and simple aggregations ('select sum(a)').
-			fieldName, ok := lookupFieldName(typedE.tableName, typedE.fieldName)
+			fieldName, ok := lookupFieldName(typedE.tableName, typedE.columnName)
 			if !ok {
-				return nil, fmt.Errorf("unable to get a field name for %v.%v", typedE.tableName, typedE.fieldName)
+				return nil, fmt.Errorf("unable to get a field name for %v.%v", typedE.tableName, typedE.columnName)
 			}
 
 			project[dottifyFieldName(typedE.String())] = "$" + fieldName
