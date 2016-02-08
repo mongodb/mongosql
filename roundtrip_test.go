@@ -159,19 +159,6 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 }
 
 func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error {
-	// populate the DB with data for all the files in the config's list of json files
-
-	for _, dataSet := range conf.Data {
-		ns := strings.SplitN(dataSet.NS, ".", 2)
-		if len(ns) != 2 {
-			return fmt.Errorf("ns '%v' missing period; namespace should be specified as 'dbname.collection'", dataSet.NS)
-		}
-		err := restoreBSON(dbhost, dbport, dataSet.BSONFile, ns[0], ns[1])
-		if err != nil {
-			return err
-		}
-	}
-
 	// make a test server using the embedded database
 	cfg := &schema.Schema{
 		Addr:         testDBAddr,
@@ -230,17 +217,34 @@ func MustLoadTestSchema(path string) testSchema {
 	return conf
 }
 
+func MustLoadTestData(dbhost, dbport string, conf testSchema) {
+	for _, dataSet := range conf.Data {
+		ns := strings.SplitN(dataSet.NS, ".", 2)
+		if len(ns) != 2 {
+			panic(fmt.Errorf("ns '%v' missing period; namespace should be specified as 'dbname.collection'", dataSet.NS))
+		}
+		err := restoreBSON(dbhost, dbport, dataSet.BSONFile, ns[0], ns[1])
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 func TestTableauDemo(t *testing.T) {
+	conf := MustLoadTestSchema("testdata/tableau.yml")
+	MustLoadTestData(testMongoHost, testMongoPort, conf)
+
 	Convey("Test tableau dataset", t, func() {
-		conf := MustLoadTestSchema("testdata/tableau.yml")
 		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
 		So(err, ShouldBeNil)
 	})
 }
 
 func TestSimpleQueries(t *testing.T) {
+	conf := MustLoadTestSchema("testdata/tableau.yml")
+	MustLoadTestData(testMongoHost, testMongoPort, conf)
+
 	Convey("Test simple queries", t, func() {
-		conf := MustLoadTestSchema("testdata/simple.yml")
 		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
 		So(err, ShouldBeNil)
 	})
