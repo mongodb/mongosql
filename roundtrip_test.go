@@ -67,7 +67,6 @@ func buildSchemaMaps(conf *schema.Schema) {
 func compareResults(t *testing.T, actual [][]interface{}, expected [][]interface{}) {
 	So(len(actual), ShouldEqual, len(expected))
 	for rownum, row := range actual {
-		t.Logf("comparing row %v of %v", rownum+1, len(expected))
 		for colnum, col := range row {
 			expectedCol := expected[rownum][colnum]
 			So(col, ShouldResemble, expectedCol)
