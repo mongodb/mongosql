@@ -6,9 +6,9 @@ cd sqlproxy && . ./set_gopath.sh
 go run main/main.go -config sample.conf
 ```
 
-Connect using TCP protocol with mysql client
+Connect using TCP protocol with MySQL client
 ```
-mysql --protocol=tcp
+mysql --protocol=tcp --port 3307
 ```
 
 TODO
