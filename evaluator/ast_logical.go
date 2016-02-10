@@ -437,7 +437,7 @@ func (nm *SQLNullCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (nm *SQLNullCmpExpr) String() string {
-	return fmt.Sprintf("is null (%v)", nm.operand)
+	return fmt.Sprintf("%v is null", nm.operand.String())
 }
 
 //

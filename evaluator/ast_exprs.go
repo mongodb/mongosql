@@ -67,8 +67,9 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 				}
 			}
 			count += 1
-			// TODO: ignoring if we can't convert this to a number
-			if n, ok := eval.(SQLNumeric); ok {
+
+			n, err := convertToSQLNumeric(eval, ctx)
+			if err == nil {
 				sum = sum.Add(n)
 			}
 		}
@@ -172,8 +173,8 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 				}
 			}
 
-			// TODO: ignoring if we can't convert this to a number
-			if n, ok := eval.(SQLNumeric); ok {
+			n, err := convertToSQLNumeric(eval, ctx)
+			if err == nil {
 				sum = sum.Add(n)
 			}
 		}
@@ -219,7 +220,7 @@ func (s SQLCaseExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (c *caseCondition) String() string {
-	return fmt.Sprintf("when %v then '%v'", c.matcher, c.then)
+	return fmt.Sprintf("when (%v) then %v", c.matcher, c.then)
 }
 
 func (s SQLCaseExpr) String() string {
@@ -228,7 +229,7 @@ func (s SQLCaseExpr) String() string {
 		str += fmt.Sprintf("%v ", cond.String())
 	}
 	if s.elseValue != nil {
-		str += fmt.Sprintf("else '%v' ", s.elseValue)
+		str += fmt.Sprintf("else %v ", s.elseValue)
 	}
 	str += fmt.Sprintf("end")
 	return str
@@ -500,10 +501,13 @@ func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (te SQLTupleExpr) String() string {
-	var prefix string
-	for _, e := range te.Exprs {
-		prefix += fmt.Sprintf("%v", e)
-		prefix = ", "
+	prefix := "("
+	for i, expr := range te.Exprs {
+		prefix += fmt.Sprintf("%v", expr.String())
+		if i != len(te.Exprs)-1 {
+			prefix += ", "
+		}
 	}
+	prefix += ")"
 	return prefix
 }

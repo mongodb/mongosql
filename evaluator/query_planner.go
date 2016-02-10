@@ -730,7 +730,7 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs) ([]SelectExpression, error
 				// get a string representation of the expression if
 				// it isn't a column name e.g. sum(foo.a) for aggregate
 				// expressions
-				selectExpression.Name = sqlparser.String(expr.Expr)
+				selectExpression.Name = sqlExpr.String()
 			}
 
 			if selectExpression.View == "" {
@@ -743,7 +743,7 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs) ([]SelectExpression, error
 				//
 				// a	sum(foo.b)
 				//
-				selectExpression.View = sqlparser.String(expr.Expr)
+				selectExpression.View = sqlExpr.String()
 			}
 
 			sExprs = append(sExprs, selectExpression)
