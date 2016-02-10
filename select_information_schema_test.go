@@ -24,6 +24,8 @@ func (mc mockConnection) DB() string {
 }
 
 func TestSchemaScanOperatorSelect(t *testing.T) {
+	env := setupEnv(t)
+	eval := env.eval
 
 	Convey("using config data source should to filter columns", t, func() {
 
@@ -45,6 +47,8 @@ func TestSchemaScanOperatorSelect(t *testing.T) {
 }
 
 func TestSchemaScanOperatorTablesSelect(t *testing.T) {
+	env := setupEnv(t)
+	eval := env.eval
 
 	Convey("using config data source should to select tables", t, func() {
 
@@ -75,6 +79,8 @@ func TestSchemaScanOperatorTablesSelect(t *testing.T) {
 }
 
 func TestSchemaKeyColumnUsage(t *testing.T) {
+	env := setupEnv(t)
+	eval := env.eval
 
 	Convey("using config data source should to filter columns", t, func() {
 

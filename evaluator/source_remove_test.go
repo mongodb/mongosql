@@ -7,6 +7,8 @@ import (
 )
 
 func TestSourceRemoveOperator(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	runTest := func(operator *SourceRemove) {
 

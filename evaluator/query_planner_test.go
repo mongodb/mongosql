@@ -8,6 +8,8 @@ import (
 )
 
 func TestPlanFromExpr(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	ctx := &ExecutionCtx{
 		Schema: cfgOne,

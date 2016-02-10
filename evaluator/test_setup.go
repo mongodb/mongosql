@@ -1,16 +1,23 @@
 package evaluator
 
 import (
-	"fmt"
 	"github.com/10gen/sqlproxy/schema"
+	"os"
+	"testing"
 )
 
 var (
-	dbOne          = "test"
-	dbTwo          = "test2"
-	tableOneName   = "foo"
-	tableTwoName   = "bar"
-	tableThreeName = "baz"
+	dbOne               = "test"
+	dbTwo               = "test2"
+	tableOneName        = "foo"
+	tableTwoName        = "bar"
+	tableThreeName      = "baz"
+	SSLTestKey          = "SQLPROXY_SSLTEST"
+	TestSchemaSSLPrefix = []byte(`
+ssl:
+  allow_invalid_certs: true
+  pem_key_file: "testdata/client.pem"
+`)
 
 	testSchema1 = []byte(`
 url: localhost
@@ -243,22 +250,35 @@ schema:
         name: f
         sqltype: string
 `)
-
-	cfgOne, cfgThree *schema.Schema
 )
 
-func init() {
+type testEnv struct {
+	cfgOne   *schema.Schema
+	cfgThree *schema.Schema
+}
 
-	var err error
-
-	cfgOne, err = schema.ParseSchemaData(testSchema1)
-	if err != nil {
-		panic(fmt.Sprintf("error parsing config1: %v", err))
+func setupEnv(t *testing.T) *testEnv {
+	var sch1, sch3 []byte
+	// ssl is turned on
+	if len(os.Getenv(SSLTestKey)) > 0 {
+		t.Logf("Testing with SSL turned on.")
+		sch1 = []byte(string(TestSchemaSSLPrefix) + string(testSchema1))
+		sch3 = []byte(string(TestSchemaSSLPrefix) + string(testSchema3))
+	} else {
+		sch1 = testSchema1
+		sch3 = testSchema3
 	}
 
-	cfgThree, err = schema.ParseSchemaData(testSchema3)
+	cfgOne, err := schema.ParseSchemaData(sch1)
 	if err != nil {
-		panic(fmt.Sprintf("error parsing config3: %v", err))
+		t.Fatalf("error parsing config1: %v", err)
+		return nil
 	}
 
+	cfgThree, err := schema.ParseSchemaData(sch3)
+	if err != nil {
+		t.Fatalf("error parsing config3: %v", err)
+		return nil
+	}
+	return &testEnv{cfgOne, cfgThree}
 }

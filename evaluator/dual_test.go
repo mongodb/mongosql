@@ -11,6 +11,8 @@ var (
 )
 
 func TestDualOperator(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	Convey("A dual operator...", t, func() {
 

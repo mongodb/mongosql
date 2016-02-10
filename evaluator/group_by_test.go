@@ -8,6 +8,8 @@ import (
 )
 
 func TestGroupByOperator(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	runTest := func(groupBy *GroupBy, rows []bson.D, expectedRows [][]Values) {
 

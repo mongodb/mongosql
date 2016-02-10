@@ -74,12 +74,24 @@ type (
 		User     string `yaml:"user"`
 		Password string `yaml:"password"`
 		LogLevel string `yaml:"log_level"`
+		SSL      *SSL   `yaml:"ssl"`
 
 		Url       string `yaml:"url"`
 		SchemaDir string `yaml:"schema_dir"`
 
 		RawDatabases []*Database          `yaml:"schema"`
 		Databases    map[string]*Database `yaml:"-"`
+	}
+
+	SSL struct {
+		// Don't require the certificate presented by the server to be valid
+		AllowInvalidCerts bool `yaml:"allow_invalid_certs"`
+
+		// Path to file containing cert and private key to present to the server
+		PEMKeyFile string `yaml:"pem_key_file"`
+
+		// File containing CA Certs - may be left blank if AllowInvalidCerts is true.
+		CAFile string `yaml:"ca_file"`
 	}
 )
 

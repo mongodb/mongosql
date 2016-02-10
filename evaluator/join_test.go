@@ -81,6 +81,8 @@ func setupJoinOperator(ctx *ExecutionCtx, criteria sqlparser.BoolExpr, kind Join
 }
 
 func TestJoinOperator(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	Convey("With a simple test configuration...", t, func() {
 

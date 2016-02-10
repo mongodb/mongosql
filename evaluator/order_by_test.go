@@ -8,6 +8,8 @@ import (
 )
 
 func TestOrderByOperator(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	runTest := func(orderby *OrderBy, rows []bson.D, expectedRows []Values) {
 

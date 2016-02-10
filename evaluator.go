@@ -15,8 +15,12 @@ type Evaluator struct {
 }
 
 func NewEvaluator(cfg *schema.Schema) (*Evaluator, error) {
+	info, err := evaluator.GetDialInfo(cfg)
+	if err != nil {
+		return nil, err
+	}
 
-	session, err := mgo.Dial(cfg.Url)
+	session, err := mgo.DialWithInfo(info)
 	if err != nil {
 		return nil, err
 	}

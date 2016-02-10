@@ -14,6 +14,8 @@ var (
 )
 
 func TestFilterOperator(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	runTest := func(filter *Filter, rows []bson.D, expectedRows []Values) {
 

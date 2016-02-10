@@ -1,21 +1,22 @@
 package evaluator
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
 func TestMongoSourceOperator(t *testing.T) {
-
-	session, err := mgo.Dial(cfgOne.Url)
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
+	sessionProvider, err := NewSessionProvider(cfgOne)
 	if err != nil {
-		panic(fmt.Sprintf("error creating evaluator: %v", err))
+		t.Fatalf("failed to set up session provider to test server: %v", err)
+		return
 	}
 
+	session := sessionProvider.GetSession()
 	collectionTwo := session.DB(dbOne).C(tableTwoName)
 
 	Convey("With a simple test configuration...", t, func() {

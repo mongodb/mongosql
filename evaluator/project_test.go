@@ -13,6 +13,8 @@ var (
 )
 
 func TestProjectOperator(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	runTest := func(project *Project, rows []bson.D, expectedRows []Values) {
 

@@ -8,6 +8,8 @@ import (
 )
 
 func TestSchemaDataSourceIter(t *testing.T) {
+	env := setupEnv(t)
+	cfgThree := env.cfgThree
 
 	Convey("using config data source should iterate all columns", t, func() {
 
@@ -41,6 +43,8 @@ func TestSchemaDataSourceIter(t *testing.T) {
 }
 
 func TestSchemaDataSourceIterTables(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	Convey("using config data source should iterate tables", t, func() {
 

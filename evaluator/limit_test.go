@@ -15,6 +15,8 @@ var (
 func TestLimitOperator(t *testing.T) {
 
 	runTest := func(limit *Limit, rows []bson.D, expectedRows []Values) {
+		env := setupEnv(t)
+		cfgOne := env.cfgOne
 
 		ctx := &ExecutionCtx{
 			Schema: cfgOne,

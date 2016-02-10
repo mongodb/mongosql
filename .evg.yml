@@ -9,6 +9,19 @@ buildvariants:
   - ubuntu1404-build
   tasks:
   - "*"
+
+- name: linux-enterprise
+  display_name: Linux (Enterprise)
+  expansions:
+      mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.2.1.tgz --output mongodb.tgz
+      mongod_args:  --sslMode requireSSL --sslPEMKeyFile ./src/testdata/server.pem
+      mongo_args:  --ssl --sslAllowInvalidCertificates --sslPEMKeyFile src/testdata/client.pem 
+      gotest_env: "SQLPROXY_SSLTEST=1"
+  run_on:
+    - linux-64-amzn-build
+  tasks:
+  - "*"
+
 - name: windows-64
   display_name: Windows
   run_on:
@@ -67,12 +80,6 @@ post:
 
 functions:
 
-  "apply patches" :
-    command: git.apply_patch
-    type: test
-    params:
-      directory: src
-
   "build SQLProxy":
     command: shell.exec
     type: test
@@ -111,9 +118,14 @@ functions:
         curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
 
   "fetch source" :
-    command: git.get_project
-    params:
-      directory: src
+    - command: git.get_project
+      params:
+        directory: src
+    - command: git.apply_patch
+      type: test
+      params:
+        directory: src
+
 
   "generate coverage txt":
     command: shell.exec
@@ -167,9 +179,9 @@ functions:
         set -o verbose
         echo "Starting mongod..."
         rm -rf mongodb/dbpath && mkdir mongodb/dbpath
-        ./mongodb/mongod${extension} --dbpath mongodb/dbpath --setParameter=enableTestCommands=1
+        ./mongodb/mongod${extension} --dbpath mongodb/dbpath --setParameter=enableTestCommands=1 ${mongod_args}
         echo "Waiting for mongod to start up..."
-        ./mongodb/mongo${extension} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")'
+        ./mongodb/mongo${extension} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")' ${mongo_args}
         echo "Done!"
 
   "upload coverage html report":
@@ -212,7 +224,6 @@ tasks:
 - name: schema
   commands:
     - func: "fetch source"
-    - func: "apply patches"
     - func: "download mongod"
     - func: "start mongod"
     - command: shell.exec
@@ -244,14 +255,12 @@ tasks:
 - name: dist
   commands:
     - func: "fetch source"
-    - func: "apply patches"
     - func: "build SQLProxy"
     - func: "upload SQLProxy"
 
 - name: evaluator
   commands:
     - func: "fetch source"
-    - func: "apply patches"
     - func: "download mongod"
     - func: "start mongod"
     - command: shell.exec
@@ -267,7 +276,7 @@ tasks:
           cd evaluator
           mkfifo test_pipe
           tee -a evaluator.suite < test_pipe&
-          go test -v -coverprofile=coverage.out > test_pipe
+          ${gotest_env} go test -v -coverprofile=coverage.out > test_pipe
     - command: shell.exec
       type: test
       params:
@@ -284,7 +293,6 @@ tasks:
 - name: sqlproxy
   commands:
     - func: "fetch source"
-    - func: "apply patches"
     - func: "download test data"
     - func: "download mongod"
     - func: "start mongod"
@@ -300,7 +308,7 @@ tasks:
           . ./set_gopath.sh
           mkfifo test_pipe
           tee -a sqlproxy.suite < test_pipe&
-          go test -timeout 4h -v -coverprofile=coverage.out > test_pipe
+          ${gotest_env} go test -timeout 4h -v -coverprofile=coverage.out > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"

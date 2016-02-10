@@ -1,7 +1,7 @@
 package sqlproxy_test
 
 import (
-	"fmt"
+	"os"
 	"testing"
 
 	. "github.com/10gen/sqlproxy"
@@ -13,13 +13,10 @@ import (
 )
 
 var (
-	session                      *mgo.Session
-	eval                         *Evaluator
-	collectionOne, collectionTwo *mgo.Collection
-
 	dbOne        = "test"
 	tableOneName = "simple"
 	tableTwoName = "simple2"
+	SSLTestKey   = "SQLPROXY_SSLTEST"
 
 	testSchemaSimple = []byte(
 		`
@@ -70,21 +67,36 @@ schema:
 `)
 )
 
-func init() {
+type testEnv struct {
+	eval          *Evaluator
+	collectionOne *mgo.Collection
+	collectionTwo *mgo.Collection
+}
 
-	cfg, err := schema.ParseSchemaData(testSchemaSimple)
+func setupEnv(t *testing.T) *testEnv {
+	var schemaData []byte
+	// ssl is turned on
+	if len(os.Getenv(SSLTestKey)) > 0 {
+		t.Logf("Testing with SSL turned on.")
+		schemaData = []byte(string(evaluator.TestSchemaSSLPrefix) + string(testSchemaSimple))
+	} else {
+		schemaData = testSchemaSimple
+	}
+	cfg, err := schema.ParseSchemaData(schemaData)
 	if err != nil {
-		panic(fmt.Sprintf("error parsing config: %v", err))
+		t.Fatalf("failed to parse schema: %v", err)
+		return nil
 	}
 
-	eval, err = NewEvaluator(cfg)
+	eval, err := NewEvaluator(cfg)
 	if err != nil {
-		panic(fmt.Sprintf("error creating evaluator: %v", err))
+		t.Fatalf("failed to create evaluator: %v", err)
+		return nil
 	}
 
-	collectionOne = eval.Session().DB(dbOne).C(tableOneName)
-	collectionTwo = eval.Session().DB(dbOne).C(tableTwoName)
-
+	collectionOne := eval.Session().DB(dbOne).C(tableOneName)
+	collectionTwo := eval.Session().DB(dbOne).C(tableTwoName)
+	return &testEnv{eval, collectionOne, collectionTwo}
 }
 
 func checkExpectedValues(count int, values [][]interface{}, expected map[interface{}][]evaluator.SQLExpr) {
@@ -99,8 +111,9 @@ func checkExpectedValues(count int, values [][]interface{}, expected map[interfa
 }
 
 func TestSelectWithStar(t *testing.T) {
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 	Convey("With a star select query", t, func() {
-
 		collectionOne.DropCollection()
 
 		Convey("result set should be returned according to the schema order", func() {
@@ -168,6 +181,8 @@ func TestSelectWithStar(t *testing.T) {
 
 func TestSelectWithNonStar(t *testing.T) {
 
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 	Convey("With a non-star select query", t, func() {
 
 		collectionOne.DropCollection()
@@ -283,6 +298,8 @@ func TestSelectWithNonStar(t *testing.T) {
 
 func TestSelectWithAliasing(t *testing.T) {
 
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 	Convey("With a non-star select query", t, func() {
 
 		collectionOne.DropCollection()
@@ -330,6 +347,8 @@ func TestSelectWithAliasing(t *testing.T) {
 
 func TestSelectWithDistinct(t *testing.T) {
 
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 	Convey("With a select query containing a DISTINCT clause ", t, func() {
 
 		collectionOne.DropCollection()
@@ -472,6 +491,9 @@ func TestSelectWithDistinct(t *testing.T) {
 }
 
 func TestSelectWithGroupBy(t *testing.T) {
+
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 
 	Convey("With a select query containing a GROUP BY clause", t, func() {
 
@@ -769,6 +791,8 @@ func TestSelectWithGroupBy(t *testing.T) {
 }
 
 func TestSelectWithHaving(t *testing.T) {
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 
 	Convey("With a select query containing a HAVING clause", t, func() {
 
@@ -842,6 +866,8 @@ func TestSelectWithHaving(t *testing.T) {
 }
 
 func TestSelectWithJoin(t *testing.T) {
+	env := setupEnv(t)
+	collectionOne, collectionTwo, eval := env.collectionOne, env.collectionTwo, env.eval
 
 	Convey("With a non-star select query containing a join", t, func() {
 
@@ -1030,6 +1056,8 @@ func TestSelectWithJoin(t *testing.T) {
 
 func TestSelectFromSubquery(t *testing.T) {
 
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 	Convey("For a select statement with data from a subquery", t, func() {
 
 		collectionOne.DropCollection()
@@ -1155,6 +1183,8 @@ func TestSelectFromSubquery(t *testing.T) {
 }
 
 func TestSelectWithRowValue(t *testing.T) {
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 
 	Convey("With a select query containing a row value expression", t, func() {
 
@@ -1436,6 +1466,9 @@ func TestSelectWithRowValue(t *testing.T) {
 }
 
 func TestSelectWithoutTable(t *testing.T) {
+	env := setupEnv(t)
+	eval := env.eval
+
 	Convey("With a select expression that references no table...", t, func() {
 
 		Convey("the result set should work on just the select expressions", func() {
@@ -1473,6 +1506,9 @@ func TestSelectWithoutTable(t *testing.T) {
 }
 
 func TestSelectWithWhere(t *testing.T) {
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
+
 	Convey("With a select expression with a WHERE clause...", t, func() {
 
 		collectionOne.DropCollection()
@@ -1612,6 +1648,9 @@ func TestSelectWithWhere(t *testing.T) {
 }
 
 func TestSelectWithOrderBy(t *testing.T) {
+
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 
 	Convey("With a select query containing a ORDER BY clause", t, func() {
 
@@ -1858,6 +1897,8 @@ func TestSelectWithOrderBy(t *testing.T) {
 }
 
 func TestSelectWithCaseExpr(t *testing.T) {
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 
 	Convey("With a select query containing a case expression clause", t, func() {
 
@@ -1915,6 +1956,9 @@ func TestSelectWithCaseExpr(t *testing.T) {
 
 func TestSelectWithLimit(t *testing.T) {
 
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
+
 	Convey("With a select query containing a limit expression", t, func() {
 
 		collectionOne.DropCollection()
@@ -1964,6 +2008,8 @@ func TestSelectWithLimit(t *testing.T) {
 }
 
 func TestSelectWithExists(t *testing.T) {
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 
 	Convey("With a select query containing an exists expression", t, func() {
 
@@ -2044,6 +2090,8 @@ func TestSelectWithExists(t *testing.T) {
 }
 
 func TestSelectWithSubqueryWhere(t *testing.T) {
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 
 	Convey("With a select query containing a subquery in the WHERE expression", t, func() {
 
@@ -2138,6 +2186,8 @@ func TestSelectWithSubqueryWhere(t *testing.T) {
 }
 
 func TestSelectWithSubqueryInline(t *testing.T) {
+	env := setupEnv(t)
+	collectionOne, eval := env.collectionOne, env.eval
 
 	Convey("With a select query containing an inline subquery as a data source", t, func() {
 

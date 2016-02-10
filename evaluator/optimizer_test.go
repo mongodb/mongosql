@@ -9,6 +9,8 @@ import (
 )
 
 func TestOptimizeOperator(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 	Convey("Subject: OptimizeOperator", t, func() {
 
 		ctx := &ExecutionCtx{
@@ -92,6 +94,8 @@ func TestOptimizeOperator(t *testing.T) {
 }
 
 func TestFilterPushDown(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	Convey("Subject: Filter Optimization", t, func() {
 
@@ -207,6 +211,8 @@ func TestFilterPushDown(t *testing.T) {
 }
 
 func TestGroupByPushDown(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	Convey("Subject: GroupBy Optimization", t, func() {
 
@@ -894,6 +900,9 @@ func TestGroupByPushDown(t *testing.T) {
 }
 
 func TestHavingPushDown(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
+
 	// This is effectively the same as filter, except it always happens after a group by, so we
 	// are really just testing that group by did the right thing related to columns...
 
@@ -962,6 +971,8 @@ func TestHavingPushDown(t *testing.T) {
 }
 
 func TestJoinPushDown(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	verifyOptimizedPipeline := func(ctx *ExecutionCtx, tblName string, op Operator, pipeline []bson.D) {
 
@@ -1207,6 +1218,8 @@ func TestJoinPushDown(t *testing.T) {
 }
 
 func TestLimitPushDown(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	Convey("Subject: Limit Optimization", t, func() {
 
@@ -1274,6 +1287,8 @@ func TestLimitPushDown(t *testing.T) {
 }
 
 func TestOrderByPushDown(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	Convey("Subject: Order By Optimization", t, func() {
 

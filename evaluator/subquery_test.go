@@ -8,6 +8,8 @@ import (
 )
 
 func TestSubqueryOperator(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	runTest := func(subquery *Subquery, rows []bson.D, expectedRows []Values) {
 

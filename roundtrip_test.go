@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
 	"github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/proxy"
 	"github.com/10gen/sqlproxy/schema"
 	_ "github.com/go-sql-driver/mysql"
@@ -20,9 +22,10 @@ import (
 )
 
 const (
-	testMongoHost = "127.0.0.1"
-	testMongoPort = "27017"
-	testDBAddr    = "127.0.0.1:3308"
+	testMongoHost     = "127.0.0.1"
+	testMongoPort     = "27017"
+	testDBAddr        = "127.0.0.1:3308"
+	testClientPEMFile = "testdata/client.pem"
 )
 
 type testDataSet struct {
@@ -45,6 +48,13 @@ type testSchema struct {
 }
 
 func testServer(cfg *schema.Schema) (*proxy.Server, error) {
+	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
+		cfg.SSL = &schema.SSL{
+			AllowInvalidCerts: true,
+			PEMKeyFile:        testClientPEMFile,
+		}
+
+	}
 	evaluator, err := sqlproxy.NewEvaluator(cfg)
 	if err != nil {
 		return nil, err
@@ -74,14 +84,34 @@ func compareResults(t *testing.T, actual [][]interface{}, expected [][]interface
 }
 
 func restoreBSON(host, port, file string) error {
+	var sslOpts *options.SSL
+	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
+		toolsdb.GetConnectorFuncs = append(toolsdb.GetConnectorFuncs,
+			func(opts options.ToolOptions) toolsdb.DBConnector {
+				if opts.SSL.UseSSL {
+					return &evaluator.SSLDBConnector{}
+				}
+				return nil
+			},
+		)
+		sslOpts = &options.SSL{
+			UseSSL:              true,
+			SSLPEMKeyFile:       "testdata/client.pem",
+			SSLAllowInvalidCert: true,
+		}
+	}
 
 	connection := &options.Connection{Host: host, Port: port}
 	sessionProvider, err := toolsdb.NewSessionProvider(
 		options.ToolOptions{
 			Auth:       &options.Auth{},
 			Connection: connection,
+			SSL:        sslOpts,
 		},
 	)
+	if err != nil {
+		return err
+	}
 	sessionProvider.SetFlags(toolsdb.DisableSocketTimeout)
 
 	if err != nil {

@@ -7,6 +7,8 @@ import (
 )
 
 func TestSourceAppendOperator(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
 
 	runTest := func(operator *SourceAppend) {
 
