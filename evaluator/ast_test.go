@@ -42,7 +42,7 @@ func TestEvaluates(t *testing.T) {
 				So(err, ShouldBeNil)
 				result, err := subject.Evaluate(ctx)
 				So(err, ShouldBeNil)
-				So(result, ShouldEqual, t.result)
+				So(result, ShouldResemble, t.result)
 			})
 		}
 	}
@@ -84,9 +84,9 @@ func TestEvaluates(t *testing.T) {
 
 		Convey("Subject: SQLDivideExpr", func() {
 			tests := []test{
-				test{"-1 / 1", SQLInt(-1)},
-				test{"100 / 10", SQLInt(10)},
-				test{"-10 / 10", SQLInt(-1)},
+				test{"-1 / 1", SQLFloat(-1)},
+				test{"100 / 10", SQLFloat(10)},
+				test{"-10 / 10", SQLFloat(-1)},
 			}
 
 			runTests(evalCtx, tests)
@@ -242,6 +242,19 @@ func TestEvaluates(t *testing.T) {
 				test{"1 OR 0", SQLTrue},
 				test{"0 OR 1", SQLTrue},
 				test{"0 OR 0", SQLFalse},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLScalarFunctionExpr", func() {
+			tests := []test{
+				test{"ASCII(NULL)", SQLNull},
+				test{"ASCII('')", SQLInt(0)},
+				test{"ASCII('A')", SQLInt(65)},
+				test{"ASCII('AWESOME')", SQLInt(65)},
+				test{"ASCII('¢')", SQLInt(194)},
+				test{"ASCII('Č')", SQLInt(196)}, // This is actually 268, but the first byte is 196
 			}
 
 			runTests(evalCtx, tests)
