@@ -84,6 +84,12 @@ schema:
         - name: "carrier_delay"
           sqlname: "carrier_delay"
           sqltype: int
+        - name: "late_aircraft_delay"
+          sqlname: "late_aircraft_delay"
+          sqltype: int
+        - name: "nas_delay"
+          sqlname: "nas_delay"
+          sqltype: int
 
     - table: attendees
       collection: "tableau.attendees"
