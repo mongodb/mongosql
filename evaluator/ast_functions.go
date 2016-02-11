@@ -197,7 +197,9 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	case "database":
 		return f.dbFunc(ctx)
 
-	// scalar functions
+		// scalar functions
+	case "abs":
+		return f.absFunc(ctx)
 	case "ascii":
 		return f.asciiFunc(ctx)
 	case "isnull":
@@ -226,8 +228,36 @@ func (f *SQLScalarFunctionExpr) dbFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(ctx.ExecCtx.DB()), nil
 }
 
+// http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_abs
+func (f *SQLScalarFunctionExpr) absFunc(ctx *EvalCtx) (SQLValue, error) {
+	if len(f.Exprs) != 1 {
+		return nil, fmt.Errorf("the 'abs' function expects 1 argument but received %v", len(f.Exprs))
+	}
+
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := value.(SQLNullValue); ok {
+		return value, nil
+	}
+
+	numeric, ok := value.(SQLNumeric)
+	if !ok {
+		return SQLFloat(0), nil
+	}
+
+	result := math.Abs(numeric.Float64())
+	return SQLFloat(result), nil
+}
+
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ascii
 func (f *SQLScalarFunctionExpr) asciiFunc(ctx *EvalCtx) (SQLValue, error) {
+	if len(f.Exprs) != 1 {
+		return nil, fmt.Errorf("the 'ascii' function expects 1 argument but received %v", len(f.Exprs))
+	}
+
 	value, err := f.Exprs[0].Evaluate(ctx)
 	if err != nil {
 		return nil, err

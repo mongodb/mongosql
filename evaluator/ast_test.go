@@ -248,16 +248,29 @@ func TestEvaluates(t *testing.T) {
 		})
 
 		Convey("Subject: SQLScalarFunctionExpr", func() {
-			tests := []test{
-				test{"ASCII(NULL)", SQLNull},
-				test{"ASCII('')", SQLInt(0)},
-				test{"ASCII('A')", SQLInt(65)},
-				test{"ASCII('AWESOME')", SQLInt(65)},
-				test{"ASCII('¢')", SQLInt(194)},
-				test{"ASCII('Č')", SQLInt(196)}, // This is actually 268, but the first byte is 196
-			}
 
-			runTests(evalCtx, tests)
+			Convey("Subject: ABS", func() {
+				tests := []test{
+					test{"ABS(NULL)", SQLNull},
+					test{"ABS('C')", SQLFloat(0)},
+					test{"ABS(-20)", SQLFloat(20)},
+					test{"ABS(20)", SQLFloat(20)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: ASCII", func() {
+				tests := []test{
+					test{"ASCII(NULL)", SQLNull},
+					test{"ASCII('')", SQLInt(0)},
+					test{"ASCII('A')", SQLInt(65)},
+					test{"ASCII('AWESOME')", SQLInt(65)},
+					test{"ASCII('¢')", SQLInt(194)},
+					test{"ASCII('Č')", SQLInt(196)}, // This is actually 268, but the first byte is 196
+				}
+				runTests(evalCtx, tests)
+			})
+
 		})
 
 		Convey("Subject: SQLSubtractExpr", func() {
@@ -498,7 +511,9 @@ func TestTranslateExpr(t *testing.T) {
 	}
 
 	Convey("Subject: TranslateExpr", t, func() {
+
 		tests := []test{
+			test{"abs(a)", `{"$abs":"$a"}`},
 			test{"sum(a * b)", `{"$sum":{"$multiply":["$a","$b"]}}`},
 			test{"sum(a)", `{"$sum":"$a"}`},
 			test{"sum(a < 1)", `{"$sum":{"$lt":["$a",{"$literal":1}]}}`},

@@ -257,7 +257,15 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 	case *SQLScalarFunctionExpr:
 
-		// TODO: can use some data and string aggregation functions here
+		arg, ok := TranslateExpr(typedE.Exprs[0], lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		switch typedE.Name {
+		case "abs":
+			return bson.M{"$abs": arg}, true
+		}
 
 	case *SQLSubqueryCmpExpr:
 
