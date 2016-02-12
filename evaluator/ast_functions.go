@@ -207,20 +207,22 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.absFunc(ctx)
 	case "ascii":
 		return f.asciiFunc(ctx)
+	case "cast":
+		return f.castFunc(ctx)
 	case "concat":
 		return f.concatFunc(ctx)
 	case "current_date":
 		return f.currentDateFunc(ctx)
 	case "current_timestamp":
 		return f.currentTimestampFunc(ctx)
+	case "dayname":
+		return f.dayNameFunc(ctx)
 	case "isnull":
 		return f.isNullFunc(ctx)
 	case "not":
 		return f.notFunc(ctx)
 	case "pow":
 		return f.powFunc(ctx)
-	case "cast":
-		return f.castFunc(ctx)
 
 	default:
 		return nil, fmt.Errorf("scalar function '%v' is not supported", string(f.Name))
@@ -290,6 +292,15 @@ func (f *SQLScalarFunctionExpr) asciiFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(c), nil
 }
 
+func (f *SQLScalarFunctionExpr) castFunc(ctx *EvalCtx) (SQLValue, error) {
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSQLValue(value.Value(), f.Exprs[1].String())
+}
+
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat
 func (f *SQLScalarFunctionExpr) concatFunc(ctx *EvalCtx) (SQLValue, error) {
 	var bytes bytes.Buffer
@@ -322,6 +333,26 @@ func (f *SQLScalarFunctionExpr) currentTimestampFunc(ctx *EvalCtx) (SQLValue, er
 	value := time.Now().UTC()
 
 	return SQLTimestamp{value}, nil
+}
+
+// http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayname
+func (f *SQLScalarFunctionExpr) dayNameFunc(ctx *EvalCtx) (SQLValue, error) {
+	err := ensureArgCount(f, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := time.Parse("2006-1-1", value.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return SQLString(t.Weekday().String()), nil
 }
 
 func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
@@ -360,15 +391,6 @@ func (f *SQLScalarFunctionExpr) powFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, fmt.Errorf("exponent must be a number, but got %t", exponent)
 	}
 	return nil, fmt.Errorf("base must be a number, but got %T", base)
-}
-
-func (f *SQLScalarFunctionExpr) castFunc(ctx *EvalCtx) (SQLValue, error) {
-	value, err := f.Exprs[0].Evaluate(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewSQLValue(value.Value(), f.Exprs[1].String())
 }
 
 func ensureArgCount(f *SQLScalarFunctionExpr, count int) error {

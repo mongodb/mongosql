@@ -297,6 +297,13 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: DAYNAME", func() {
+				tests := []test{
+					test{"DAYNAME('2016-1-1')", SQLString("Friday")},
+				}
+				runTests(evalCtx, tests)
+			})
+
 		})
 
 		Convey("Subject: SQLSubtractExpr", func() {
