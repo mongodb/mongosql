@@ -10,7 +10,7 @@ const (
 	SQLInt            = "int"
 	SQLFloat          = "float"
 	SQLDouble         = "double"
-	SQLBlob           = "text"
+	SQLBoolean        = "boolean"
 	SQLVarchar        = "varchar"
 
 	SQLDate      = "date"
@@ -130,7 +130,7 @@ func (c *Column) validateType() error {
 	case SQLString:
 	case SQLInt:
 	case SQLFloat:
-	case SQLBlob:
+	case SQLBoolean:
 	case SQLVarchar:
 
 	case SQLYear:

@@ -113,6 +113,33 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			return SQLString(v.Hex()), nil
 		}
 
+	case schema.SQLBoolean:
+
+		var eval int
+		var err error
+
+		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLInt(1), nil
+			}
+			return SQLInt(0), nil
+		case string:
+			eval, err = strconv.Atoi(v)
+		case int, int32, int64, float64:
+			eval, err = util.ToInt(v)
+		}
+
+		if err == nil {
+			return SQLInt(0), nil
+		}
+
+		if eval == 1 {
+			return SQLInt(1), nil
+		} else {
+			return SQLInt(0), nil
+		}
+
 	case schema.SQLInt:
 
 		switch v := value.(type) {

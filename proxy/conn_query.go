@@ -14,7 +14,7 @@ import (
 )
 
 func (c *Conn) handleQuery(sql string) (err error) {
-	log.Logf(log.Always, "---- handleQuery: %s\n", sql)
+	log.Logf(log.Info, "---- handleQuery: %s\n", sql)
 
 	defer func() {
 		if e := recover(); e != nil {
@@ -33,9 +33,11 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		// This is an ugly hack such that if someone tries to set some parameter to the default
 		// ignore.  This is because the sql parser barfs.  We should probably fix there for reals.
 		sqlUpper := strings.ToUpper(sql)
-		if sqlUpper[0:4] == "SET " && sqlUpper[len(sqlUpper)-8:] == "=DEFAULT" {
-			// wow, this is ugly
-			return c.writeOK(nil)
+		if len(sqlUpper) > 3 && sqlUpper[0:4] == "SET " {
+			if len(sqlUpper) > 7 && sqlUpper[len(sqlUpper)-8:] == "=DEFAULT" {
+				// wow, this is ugly
+				return c.writeOK(nil)
+			}
 		}
 
 		return fmt.Errorf(`parse sql "%s" error: %s`, sql, err)

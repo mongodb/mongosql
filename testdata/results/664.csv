@@ -1,0 +1,178 @@
+none_Product_Type_nk,none_Product_nk,none_State_nk,sum_Sales_ok
+Coffee,Amaretto,California,2714.6324356544364
+Coffee,Amaretto,Colorado,6505.479027448642
+Coffee,Amaretto,Iowa,1210.1115928354561
+Coffee,Amaretto,New Hampshire,2993.1544382462844
+Coffee,Amaretto,Ohio,3102.718534257378
+Coffee,Amaretto,Oregon,2936.849841924449
+Coffee,Amaretto,Utah,3613.224740249455
+Coffee,Amaretto,Wisconsin,3192.995632041875
+Coffee,Columbian,California,18244.565366908482
+Coffee,Columbian,Colorado,3806.334577859626
+Coffee,Columbian,Connecticut,6922.981495964415
+Coffee,Columbian,Florida,5712.078321812809
+Coffee,Columbian,Illinois,10610.352961241018
+Coffee,Columbian,Iowa,1684.8832167282608
+Coffee,Columbian,Louisiana,2540.6095874493412
+Coffee,Columbian,Massachusetts,13301.741025704356
+Coffee,Columbian,Missouri,4267.00334958621
+Coffee,Columbian,Nevada,1972.7350893365206
+Coffee,Columbian,New Hampshire,3204.150032668375
+Coffee,Columbian,New Mexico,3204.150032668375
+Coffee,Columbian,New York,18244.565366908486
+Coffee,Columbian,Ohio,2646.9446855218257
+Coffee,Columbian,Oklahoma,3237.816958791899
+Coffee,Columbian,Oregon,3128.222383083947
+Coffee,Columbian,Texas,12681.178287950264
+Coffee,Columbian,Utah,2834.5660475579175
+Coffee,Columbian,Washington,4176.433558064186
+Coffee,Columbian,Wisconsin,5897.944789302988
+Coffee,Decaf Irish Cream,California,3738.387594845874
+Coffee,Decaf Irish Cream,Colorado,6234.188247638156
+Coffee,Decaf Irish Cream,Florida,6261.020720655708
+Coffee,Decaf Irish Cream,Illinois,7449.143459758694
+Coffee,Decaf Irish Cream,Iowa,1033.935834583624
+Coffee,Decaf Irish Cream,Louisiana,2888.709057162556
+Coffee,Decaf Irish Cream,Missouri,3613.224740249455
+Coffee,Decaf Irish Cream,Nevada,1684.8832167282608
+Coffee,Decaf Irish Cream,New Mexico,3124.18545155938
+Coffee,Decaf Irish Cream,Ohio,2936.849841924449
+Coffee,Decaf Irish Cream,Oklahoma,1772.9451992468748
+Coffee,Decaf Irish Cream,Oregon,2646.9446855218257
+Coffee,Decaf Irish Cream,Texas,3806.3345778596263
+Coffee,Decaf Irish Cream,Utah,4267.00334958621
+Coffee,Decaf Irish Cream,Washington,5897.944789302988
+Coffee,Decaf Irish Cream,Wisconsin,4887.555430581426
+Espresso,Caffe Latte,California,12003.041308988653
+Espresso,Caffe Latte,Louisiana,3496.335490715558
+Espresso,Caffe Latte,Nevada,1055.3492233369357
+Espresso,Caffe Latte,New Mexico,1657.8162950154956
+Espresso,Caffe Latte,Oklahoma,6261.020720655707
+Espresso,Caffe Latte,Oregon,2901.9643298668584
+Espresso,Caffe Latte,Texas,4027.0934987437577
+Espresso,Caffe Latte,Utah,2302.9554988198515
+Espresso,Caffe Latte,Washington,2194.259806279769
+Espresso,Caffe Mocha,California,7689.889743795533
+Espresso,Caffe Mocha,Colorado,4640.361807426237
+Espresso,Caffe Mocha,Connecticut,3496.335490715558
+Espresso,Caffe Mocha,Florida,5897.944789302988
+Espresso,Caffe Mocha,Illinois,14605.967640098464
+Espresso,Caffe Mocha,Iowa,1252.959683859826
+Espresso,Caffe Mocha,Louisiana,3478.863367411279
+Espresso,Caffe Mocha,Massachusetts,2803.79230909133
+Espresso,Caffe Mocha,Missouri,2695.242095752964
+Espresso,Caffe Mocha,Nevada,1210.1115928354561
+Espresso,Caffe Mocha,New Hampshire,2791.774955750421
+Espresso,Caffe Mocha,New Mexico,2791.774955750421
+Espresso,Caffe Mocha,New York,1656.4326516960564
+Espresso,Caffe Mocha,Ohio,7800.5192709396315
+Espresso,Caffe Mocha,Oklahoma,1387.381281828729
+Espresso,Caffe Mocha,Oregon,3102.718534257378
+Espresso,Caffe Mocha,Texas,6505.479027448641
+Espresso,Caffe Mocha,Utah,3680.3903091972747
+Espresso,Caffe Mocha,Washington,3192.995632041875
+Espresso,Caffe Mocha,Wisconsin,4222.967152324628
+Espresso,Decaf Espresso,California,14605.967640098463
+Espresso,Decaf Espresso,Colorado,4027.093498743758
+Espresso,Decaf Espresso,Connecticut,2834.566047557917
+Espresso,Decaf Espresso,Florida,4887.555430581426
+Espresso,Decaf Espresso,Illinois,12003.041308988653
+Espresso,Decaf Espresso,Iowa,1055.3492233369357
+Espresso,Decaf Espresso,Louisiana,2811.015856273343
+Espresso,Decaf Espresso,Missouri,2302.9554988198515
+Espresso,Decaf Espresso,Nevada,1252.9596838598263
+Espresso,Decaf Espresso,New Mexico,2220.2184250697096
+Espresso,Decaf Espresso,Ohio,2901.964329866859
+Espresso,Decaf Espresso,Oklahoma,5712.078321812809
+Espresso,Decaf Espresso,Oregon,7800.5192709396315
+Espresso,Decaf Espresso,Texas,4640.361807426238
+Espresso,Decaf Espresso,Utah,2695.2420957529644
+Espresso,Decaf Espresso,Washington,4222.967152324628
+Espresso,Decaf Espresso,Wisconsin,2194.259806279769
+Espresso,Regular Espresso,Massachusetts,7800.5192709396315
+Espresso,Regular Espresso,New Hampshire,1657.8162950154956
+Espresso,Regular Espresso,New York,14578.150785087728
+Herbal Tea,Chamomile,California,6234.188247638156
+Herbal Tea,Chamomile,Colorado,7800.5192709396315
+Herbal Tea,Chamomile,Florida,2194.259806279769
+Herbal Tea,Chamomile,Illinois,6505.479027448642
+Herbal Tea,Chamomile,Iowa,14605.967640098464
+Herbal Tea,Chamomile,Louisiana,3680.390309197275
+Herbal Tea,Chamomile,Missouri,2791.774955750421
+Herbal Tea,Chamomile,Nevada,7689.889743795534
+Herbal Tea,Chamomile,New Mexico,1210.1115928354561
+Herbal Tea,Chamomile,Ohio,1387.3812818287292
+Herbal Tea,Chamomile,Oklahoma,3192.995632041875
+Herbal Tea,Chamomile,Oregon,1791.3746955156603
+Herbal Tea,Chamomile,Texas,3102.7185342573785
+Herbal Tea,Chamomile,Utah,2993.154438246284
+Herbal Tea,Chamomile,Washington,6922.9814959644145
+Herbal Tea,Chamomile,Wisconsin,3478.863367411279
+Herbal Tea,Lemon,California,12681.178287950264
+Herbal Tea,Lemon,Colorado,2936.849841924449
+Herbal Tea,Lemon,Connecticut,4267.00334958621
+Herbal Tea,Lemon,Florida,3192.995632041875
+Herbal Tea,Lemon,Illinois,3806.3345778596263
+Herbal Tea,Lemon,Iowa,7449.143459758694
+Herbal Tea,Lemon,Louisiana,4267.00334958621
+Herbal Tea,Lemon,Massachusetts,2901.964329866859
+Herbal Tea,Lemon,Missouri,3124.1854515593795
+Herbal Tea,Lemon,Nevada,10610.352961241018
+Herbal Tea,Lemon,New Hampshire,1972.7350893365206
+Herbal Tea,Lemon,New Mexico,1684.8832167282608
+Herbal Tea,Lemon,New York,14840.994960042848
+Herbal Tea,Lemon,Ohio,1772.9451992468748
+Herbal Tea,Lemon,Oklahoma,5897.944789302988
+Herbal Tea,Lemon,Oregon,3237.8169587918997
+Herbal Tea,Lemon,Texas,2646.9446855218257
+Herbal Tea,Lemon,Utah,3204.150032668375
+Herbal Tea,Lemon,Washington,2540.6095874493412
+Herbal Tea,Lemon,Wisconsin,2888.709057162556
+Herbal Tea,Mint,California,3806.3345778596267
+Herbal Tea,Mint,Colorado,3102.718534257378
+Herbal Tea,Mint,Connecticut,3613.224740249455
+Herbal Tea,Mint,Florida,4222.967152324629
+Herbal Tea,Mint,Illinois,6234.188247638156
+Herbal Tea,Mint,Nevada,7449.143459758694
+Herbal Tea,Mint,New York,4155.549291832026
+Herbal Tea,Mint,Utah,3124.1854515593795
+Tea,Darjeeling,California,6505.479027448642
+Tea,Darjeeling,Colorado,2901.964329866859
+Tea,Darjeeling,Connecticut,2695.2420957529644
+Tea,Darjeeling,Florida,2183.354226529866
+Tea,Darjeeling,Illinois,4640.361807426238
+Tea,Darjeeling,Iowa,12003.041308988653
+Tea,Darjeeling,Massachusetts,1772.9451992468748
+Tea,Darjeeling,Missouri,2220.2184250697096
+Tea,Darjeeling,Nevada,14605.967640098464
+Tea,Darjeeling,New Hampshire,1210.1115928354561
+Tea,Darjeeling,New York,6234.188247638156
+Tea,Darjeeling,Ohio,5712.078321812809
+Tea,Darjeeling,Oregon,1387.3812818287292
+Tea,Darjeeling,Utah,2791.7749557504208
+Tea,Darjeeling,Washington,3478.863367411279
+Tea,Darjeeling,Wisconsin,2811.015856273343
+Tea,Earl Grey,California,4640.361807426238
+Tea,Earl Grey,Colorado,2990.598306696449
+Tea,Earl Grey,Illinois,4027.093498743758
+Tea,Earl Grey,Iowa,14448.31704419095
+Tea,Earl Grey,Missouri,1657.8162950154956
+Tea,Earl Grey,Nevada,12003.041308988653
+Tea,Earl Grey,New York,6505.479027448642
+Tea,Earl Grey,Ohio,6261.020720655707
+Tea,Earl Grey,Oregon,5712.078321812809
+Tea,Earl Grey,Utah,2220.2184250697096
+Tea,Earl Grey,Washington,2811.015856273343
+Tea,Earl Grey,Wisconsin,3496.335490715558
+Tea,Green Tea,California,4027.093498743758
+Tea,Green Tea,Colorado,3237.816958791899
+Tea,Green Tea,Connecticut,1598.8031466057532
+Tea,Green Tea,Florida,2888.709057162556
+Tea,Green Tea,Massachusetts,1387.3812818287292
+Tea,Green Tea,Missouri,1972.7350893365206
+Tea,Green Tea,Nevada,621.1877711051068
+Tea,Green Tea,New Hampshire,1055.3492233369357
+Tea,Green Tea,New York,4640.361807426237
+Tea,Green Tea,Oregon,6261.020720655707
+Tea,Green Tea,Utah,1657.8162950154956
+Tea,Green Tea,Washington,3496.335490715558

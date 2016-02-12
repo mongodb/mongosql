@@ -2,9 +2,12 @@ package sqlproxy_test
 
 import (
 	"database/sql"
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -274,4 +277,102 @@ func TestSimpleQueries(t *testing.T) {
 		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
 		So(err, ShouldBeNil)
 	})
+}
+
+func _TestBlackbox(t *testing.T) {
+	conf := MustLoadTestSchema(pathify("testdata", "blackbox.yml"))
+	MustLoadTestData(testMongoHost, testMongoPort, conf)
+
+	cfg := &schema.Schema{
+		Addr:         testDBAddr,
+		Url:          fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort),
+		RawDatabases: conf.Databases,
+	}
+	buildSchemaMaps(cfg)
+	s, err := testServer(cfg)
+	if err != nil {
+		panic(err)
+	}
+	defer s.Close()
+	go s.Run()
+
+	Convey("Test blackbox dataset", t, func() {
+		err := executeBlackBoxTestCases(t, conf)
+		So(err, ShouldBeNil)
+	})
+}
+
+func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
+
+	db, err := sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	r, err := os.Open(pathify("testdata", "blackbox_queries.json"))
+	if err != nil {
+		return fmt.Errorf("Open: %v", err)
+	}
+
+	dec := json.NewDecoder(r)
+
+	type queryData struct {
+		Id      string `json:"id"`
+		Query   string `json:"value"`
+		Columns int    `json:"columns"`
+		Rows    int    `json:"rows"`
+	}
+
+	query := queryData{}
+
+	for dec.More() {
+
+		err := dec.Decode(&query)
+		if err != nil {
+			return fmt.Errorf("Decode: %v", err)
+		}
+
+		var types []string
+
+		Convey(fmt.Sprintf("Running test query (%v): '%v'", query.Id, query.Query), func() {
+
+			for j := 0; j < query.Columns; j++ {
+				types = append(types, schema.SQLString)
+			}
+
+			results, err := runSQL(db, query.Query, types)
+			So(err, ShouldBeNil)
+
+			resultFile := pathify("testdata", "results", fmt.Sprintf("%v.csv", query.Id))
+
+			handle, err := os.OpenFile(resultFile, os.O_RDONLY, os.ModeExclusive)
+			if err != nil {
+				panic(err)
+			}
+
+			data, err := csv.NewReader(handle).ReadAll()
+			if err != nil {
+				So(err, ShouldBeNil)
+			}
+
+			// TODO: check header as well
+			data = data[1:]
+			newData := make([][]interface{}, len(data))
+			for i, v := range data {
+				for _, s := range v {
+					newData[i] = append(newData[i], s)
+				}
+			}
+
+			compareResults(t, results, newData)
+
+		})
+	}
+
+	return nil
+}
+
+func pathify(elem ...string) string {
+	return filepath.Join(elem...)
 }

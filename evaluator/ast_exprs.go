@@ -229,7 +229,7 @@ func (s SQLCaseExpr) String() string {
 		str += fmt.Sprintf("%v ", cond.String())
 	}
 	if s.elseValue != nil {
-		str += fmt.Sprintf("else %v ", s.elseValue)
+		str += fmt.Sprintf("else %v ", s.elseValue.String())
 	}
 	str += fmt.Sprintf("end")
 	return str

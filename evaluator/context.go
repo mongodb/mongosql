@@ -538,7 +538,7 @@ func (pCtx *ParseCtx) IsSchemaColumn(column *Column) bool {
 		return false
 	}
 
-	return table.Columns[column.Name] != nil
+	return table.SQLColumns[column.Name] != nil
 
 }
 
