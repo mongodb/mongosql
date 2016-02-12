@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
@@ -271,6 +272,31 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: CONCAT", func() {
+				tests := []test{
+					test{"CONCAT(NULL)", SQLNull},
+					test{"CONCAT('A')", SQLString("A")},
+					test{"CONCAT('A', 'B')", SQLString("AB")},
+					test{"CONCAT('A', NULL, 'B')", SQLNull},
+					test{"CONCAT('A', 123, 'B')", SQLString("A123B")},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			SkipConvey("Subject: CURRENT_DATE", func() {
+				tests := []test{
+					test{"CURRENT_DATE()", SQLDate{time.Now().UTC()}},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			SkipConvey("Subject: CURRENT_TIMESTAMP", func() {
+				tests := []test{
+					test{"CURRENT_TIMESTAMP()", SQLTimestamp{time.Now().UTC()}},
+				}
+				runTests(evalCtx, tests)
+			})
+
 		})
 
 		Convey("Subject: SQLSubtractExpr", func() {
@@ -514,6 +540,7 @@ func TestTranslateExpr(t *testing.T) {
 
 		tests := []test{
 			test{"abs(a)", `{"$abs":"$a"}`},
+			test{"concat(a, 'funny')", `{"$concat":["$a",{"$literal":"funny"}]}`},
 			test{"sum(a * b)", `{"$sum":{"$multiply":["$a","$b"]}}`},
 			test{"sum(a)", `{"$sum":"$a"}`},
 			test{"sum(a < 1)", `{"$sum":{"$lt":["$a",{"$literal":1}]}}`},

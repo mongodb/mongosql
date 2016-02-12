@@ -1,8 +1,10 @@
 package evaluator
 
 import (
+	"bytes"
 	"fmt"
 	"math"
+	"time"
 )
 
 //
@@ -190,6 +192,9 @@ type SQLScalarFunctionExpr struct {
 
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
+	// TODO:: can we register aliases in the algebrizer so we don't have
+	// to account for multiple names for the same function below?
+
 	switch f.Name {
 	// connector functions
 	case "connection_id":
@@ -202,6 +207,12 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.absFunc(ctx)
 	case "ascii":
 		return f.asciiFunc(ctx)
+	case "concat":
+		return f.concatFunc(ctx)
+	case "current_date":
+		return f.currentDateFunc(ctx)
+	case "current_timestamp":
+		return f.currentTimestampFunc(ctx)
 	case "isnull":
 		return f.isNullFunc(ctx)
 	case "not":
@@ -230,8 +241,9 @@ func (f *SQLScalarFunctionExpr) dbFunc(ctx *EvalCtx) (SQLValue, error) {
 
 // http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_abs
 func (f *SQLScalarFunctionExpr) absFunc(ctx *EvalCtx) (SQLValue, error) {
-	if len(f.Exprs) != 1 {
-		return nil, fmt.Errorf("the 'abs' function expects 1 argument but received %v", len(f.Exprs))
+	err := ensureArgCount(f, 1)
+	if err != nil {
+		return nil, err
 	}
 
 	value, err := f.Exprs[0].Evaluate(ctx)
@@ -254,8 +266,9 @@ func (f *SQLScalarFunctionExpr) absFunc(ctx *EvalCtx) (SQLValue, error) {
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ascii
 func (f *SQLScalarFunctionExpr) asciiFunc(ctx *EvalCtx) (SQLValue, error) {
-	if len(f.Exprs) != 1 {
-		return nil, fmt.Errorf("the 'ascii' function expects 1 argument but received %v", len(f.Exprs))
+	err := ensureArgCount(f, 1)
+	if err != nil {
+		return nil, err
 	}
 
 	value, err := f.Exprs[0].Evaluate(ctx)
@@ -275,6 +288,40 @@ func (f *SQLScalarFunctionExpr) asciiFunc(ctx *EvalCtx) (SQLValue, error) {
 	c := str[0]
 
 	return SQLInt(c), nil
+}
+
+// http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat
+func (f *SQLScalarFunctionExpr) concatFunc(ctx *EvalCtx) (SQLValue, error) {
+	var bytes bytes.Buffer
+	for _, arg := range f.Exprs {
+
+		value, err := arg.Evaluate(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := arg.(SQLNullValue); ok {
+			return SQLNull, nil
+		}
+
+		bytes.WriteString(value.String())
+	}
+
+	return SQLString(bytes.String()), nil
+}
+
+// http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curdate
+func (f *SQLScalarFunctionExpr) currentDateFunc(ctx *EvalCtx) (SQLValue, error) {
+	value := time.Now().UTC()
+
+	return SQLDate{value}, nil
+}
+
+// http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_now
+func (f *SQLScalarFunctionExpr) currentTimestampFunc(ctx *EvalCtx) (SQLValue, error) {
+	value := time.Now().UTC()
+
+	return SQLTimestamp{value}, nil
 }
 
 func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
@@ -322,4 +369,12 @@ func (f *SQLScalarFunctionExpr) castFunc(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return NewSQLValue(value.Value(), f.Exprs[1].String())
+}
+
+func ensureArgCount(f *SQLScalarFunctionExpr, count int) error {
+	if len(f.Exprs) != count {
+		return fmt.Errorf("the '%v' function expects %v argument but received %v", f.Name, count, len(f.Exprs))
+	}
+
+	return nil
 }

@@ -257,14 +257,21 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 	case *SQLScalarFunctionExpr:
 
-		arg, ok := TranslateExpr(typedE.Exprs[0], lookupFieldName)
+		args, ok := translateExprs(lookupFieldName, typedE.Exprs...)
 		if !ok {
 			return nil, false
 		}
 
 		switch typedE.Name {
 		case "abs":
-			return bson.M{"$abs": arg}, true
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$abs": args[0]}, true
+		// ascii -> not supported
+		case "concat":
+			return bson.M{"$concat": args}, true
 		}
 
 	case *SQLSubqueryCmpExpr:
@@ -553,4 +560,18 @@ func getValue(e SQLExpr) (interface{}, bool) {
 	}
 
 	return cons.Value(), true
+}
+
+func translateExprs(lookupFieldName fieldNameLookup, exprs ...SQLExpr) ([]interface{}, bool) {
+	results := []interface{}{}
+	for _, e := range exprs {
+		r, ok := TranslateExpr(e, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		results = append(results, r)
+	}
+
+	return results, true
 }
