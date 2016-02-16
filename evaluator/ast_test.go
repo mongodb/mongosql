@@ -362,7 +362,6 @@ func TestEvaluates(t *testing.T) {
 					test{"HOUR(NULL)", SQLNull},
 					test{"HOUR('sdg')", SQLNull},
 					test{"HOUR('10:23:52')", SQLInt(10)},
-					//test{"HOUR('273:00:12')", SQLInt(273)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -377,12 +376,60 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: MONTH", func() {
+				tests := []test{
+					test{"MONTH(NULL)", SQLNull},
+					test{"MONTH('sdg')", SQLNull},
+					test{"MONTH('2016-1-01 10:23:52')", SQLInt(1)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: MONTHNAME", func() {
+				tests := []test{
+					test{"MONTHNAME(NULL)", SQLNull},
+					test{"MONTHNAME('sdg')", SQLNull},
+					test{"MONTHNAME('2016-1-01 10:23:52')", SQLString("January")},
+					//test{"MINUTE('273:00:12')", SQLInt(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: QUARTER", func() {
+				tests := []test{
+					test{"QUARTER(NULL)", SQLNull},
+					test{"QUARTER('sdg')", SQLNull},
+					test{"QUARTER('2016-1-01 10:23:52')", SQLInt(1)},
+					test{"QUARTER('2016-4-01 10:23:52')", SQLInt(2)},
+					test{"QUARTER('2016-8-01 10:23:52')", SQLInt(3)},
+					test{"QUARTER('2016-11-01 10:23:52')", SQLInt(4)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: SECOND", func() {
 				tests := []test{
 					test{"SECOND(NULL)", SQLNull},
 					test{"SECOND('sdg')", SQLNull},
 					test{"SECOND('10:23:52')", SQLInt(52)},
-					//test{"SECOND('273:00:12')", SQLInt(12)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: WEEK", func() {
+				tests := []test{
+					test{"WEEK(NULL)", SQLNull},
+					test{"WEEK('sdg')", SQLNull},
+					test{"WEEK('2016-1-01 10:23:52')", SQLInt(53)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			SkipConvey("Subject: YEAR", func() {
+				tests := []test{
+					test{"YEAR(NULL)", SQLNull},
+					test{"YEAR('sdg')", SQLNull},
+					test{"YEAR('2016-1-01 10:23:52')", SQLInt(53)},
 				}
 				runTests(evalCtx, tests)
 			})
