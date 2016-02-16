@@ -223,6 +223,10 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.dayOfWeekFunc(ctx)
 	case "dayofyear":
 		return f.dayOfYearFunc(ctx)
+	case "exp":
+		return f.expFunc(ctx)
+	case "floor":
+		return f.floorFunc(ctx)
 	case "isnull":
 		return f.isNullFunc(ctx)
 	case "not":
@@ -381,6 +385,7 @@ func (f *SQLScalarFunctionExpr) dayOfMonthFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Day())), nil
 }
 
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofweek
 func (f *SQLScalarFunctionExpr) dayOfWeekFunc(ctx *EvalCtx) (SQLValue, error) {
 	err := ensureArgCount(f, 1)
 	if err != nil {
@@ -418,6 +423,48 @@ func (f *SQLScalarFunctionExpr) dayOfYearFunc(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLInt(int(t.YearDay())), nil
+}
+
+// https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_exp
+func (f *SQLScalarFunctionExpr) expFunc(ctx *EvalCtx) (SQLValue, error) {
+	err := ensureArgCount(f, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	n, ok := value.(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	r := math.Exp(n.Float64())
+	return SQLFloat(r), nil
+}
+
+// https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_floor
+func (f *SQLScalarFunctionExpr) floorFunc(ctx *EvalCtx) (SQLValue, error) {
+	err := ensureArgCount(f, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	n, ok := value.(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	r := math.Floor(n.Float64())
+	return SQLFloat(r), nil
 }
 
 func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {

@@ -337,6 +337,26 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: EXP", func() {
+				tests := []test{
+					test{"EXP(NULL)", SQLNull},
+					test{"EXP('sdg')", SQLNull},
+					test{"EXP(0)", SQLFloat(1)},
+					test{"EXP(2)", SQLFloat(7.38905609893065)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: FLOOR", func() {
+				tests := []test{
+					test{"FLOOR(NULL)", SQLNull},
+					test{"FLOOR('sdg')", SQLNull},
+					test{"FLOOR(1.23)", SQLFloat(1)},
+					test{"FLOOR(-1.23)", SQLFloat(-2)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 		})
 
 		Convey("Subject: SQLSubtractExpr", func() {
