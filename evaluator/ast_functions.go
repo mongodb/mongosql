@@ -227,6 +227,12 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.expFunc(ctx)
 	case "floor":
 		return f.floorFunc(ctx)
+	case "hour":
+		return f.hourFunc(ctx)
+	case "minute":
+		return f.minuteFunc(ctx)
+	case "second":
+		return f.secondFunc(ctx)
 	case "isnull":
 		return f.isNullFunc(ctx)
 	case "not":
@@ -357,8 +363,8 @@ func (f *SQLScalarFunctionExpr) dayNameFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	t, err := time.Parse("2006-1-1", value.String())
-	if err != nil {
+	t, ok := parseDateTime(value.String())
+	if !ok {
 		return SQLNull, nil
 	}
 
@@ -377,8 +383,8 @@ func (f *SQLScalarFunctionExpr) dayOfMonthFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	t, err := time.Parse("2006-1-1", value.String())
-	if err != nil {
+	t, ok := parseDateTime(value.String())
+	if !ok {
 		return SQLNull, nil
 	}
 
@@ -397,8 +403,8 @@ func (f *SQLScalarFunctionExpr) dayOfWeekFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	t, err := time.Parse("2006-1-1", value.String())
-	if err != nil {
+	t, ok := parseDateTime(value.String())
+	if !ok {
 		return SQLNull, nil
 	}
 
@@ -417,8 +423,8 @@ func (f *SQLScalarFunctionExpr) dayOfYearFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	t, err := time.Parse("2006-1-1", value.String())
-	if err != nil {
+	t, ok := parseDateTime(value.String())
+	if !ok {
 		return SQLNull, nil
 	}
 
@@ -467,6 +473,26 @@ func (f *SQLScalarFunctionExpr) floorFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(r), nil
 }
 
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_hour
+func (f *SQLScalarFunctionExpr) hourFunc(ctx *EvalCtx) (SQLValue, error) {
+	err := ensureArgCount(f, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	t, ok := parseDateTime(value.String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	return SQLInt(int(t.Hour())), nil
+}
+
 func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
 	matcher := &SQLNullCmpExpr{f.Exprs[0]}
 	result, err := Matches(matcher, ctx)
@@ -474,6 +500,26 @@ func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 	return SQLBool(result), nil
+}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_minute
+func (f *SQLScalarFunctionExpr) minuteFunc(ctx *EvalCtx) (SQLValue, error) {
+	err := ensureArgCount(f, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	t, ok := parseDateTime(value.String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	return SQLInt(int(t.Minute())), nil
 }
 
 func (f *SQLScalarFunctionExpr) notFunc(ctx *EvalCtx) (SQLValue, error) {
@@ -505,10 +551,51 @@ func (f *SQLScalarFunctionExpr) powFunc(ctx *EvalCtx) (SQLValue, error) {
 	return nil, fmt.Errorf("base must be a number, but got %T", base)
 }
 
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_second
+func (f *SQLScalarFunctionExpr) secondFunc(ctx *EvalCtx) (SQLValue, error) {
+	err := ensureArgCount(f, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	t, ok := parseDateTime(value.String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	return SQLInt(int(t.Second())), nil
+}
+
 func ensureArgCount(f *SQLScalarFunctionExpr, count int) error {
 	if len(f.Exprs) != count {
 		return fmt.Errorf("the '%v' function expects %v argument but received %v", f.Name, count, len(f.Exprs))
 	}
 
 	return nil
+}
+
+const (
+	dateTimeFormat = "2006-1-2 15:4:5"
+	dateFormat     = "2006-1-2"
+	timeFormat     = "15:4:5"
+)
+
+func parseDateTime(value string) (time.Time, bool) {
+	t, err := time.Parse(dateTimeFormat, value)
+	if err == nil {
+		return t, true
+	}
+
+	t, err = time.Parse(dateFormat, value)
+	if err == nil {
+		return t, true
+	}
+
+	t, err = time.Parse(timeFormat, value)
+	return t, err == nil
 }

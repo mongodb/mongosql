@@ -301,8 +301,8 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"DAYNAME(NULL)", SQLNull},
 					test{"DAYNAME(14)", SQLNull},
+					test{"DAYNAME('2016-01-01 00:00:00')", SQLString("Friday")},
 					test{"DAYNAME('2016-1-1')", SQLString("Friday")},
-					test{"DAYNAME('2016-01-01')", SQLString("Friday")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -311,8 +311,8 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"DAYOFMONTH(NULL)", SQLNull},
 					test{"DAYOFMONTH(14)", SQLNull},
-					test{"DAYOFMONTH('2016-1-1')", SQLInt(1)},
 					test{"DAYOFMONTH('2016-01-01')", SQLInt(1)},
+					test{"DAYOFMONTH('2016-1-1')", SQLInt(1)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -321,8 +321,8 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"DAYOFWEEK(NULL)", SQLNull},
 					test{"DAYOFWEEK(14)", SQLNull},
-					test{"DAYOFWEEK('2016-1-1')", SQLInt(6)},
 					test{"DAYOFWEEK('2016-01-01')", SQLInt(6)},
+					test{"DAYOFWEEK('2016-1-1')", SQLInt(6)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -353,6 +353,36 @@ func TestEvaluates(t *testing.T) {
 					test{"FLOOR('sdg')", SQLNull},
 					test{"FLOOR(1.23)", SQLFloat(1)},
 					test{"FLOOR(-1.23)", SQLFloat(-2)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: HOUR", func() {
+				tests := []test{
+					test{"HOUR(NULL)", SQLNull},
+					test{"HOUR('sdg')", SQLNull},
+					test{"HOUR('10:23:52')", SQLInt(10)},
+					//test{"HOUR('273:00:12')", SQLInt(273)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: MINUTE", func() {
+				tests := []test{
+					test{"MINUTE(NULL)", SQLNull},
+					test{"MINUTE('sdg')", SQLNull},
+					test{"MINUTE('10:23:52')", SQLInt(23)},
+					//test{"MINUTE('273:00:12')", SQLInt(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: SECOND", func() {
+				tests := []test{
+					test{"SECOND(NULL)", SQLNull},
+					test{"SECOND('sdg')", SQLNull},
+					test{"SECOND('10:23:52')", SQLInt(52)},
+					//test{"SECOND('273:00:12')", SQLInt(12)},
 				}
 				runTests(evalCtx, tests)
 			})
