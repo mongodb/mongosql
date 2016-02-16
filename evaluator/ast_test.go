@@ -384,6 +384,17 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: LOCATE", func() {
+				tests := []test{
+					test{"LOCATE(NULL, 'foobarbar')", SQLNull},
+					test{"LOCATE('bar', NULL)", SQLNull},
+					test{"LOCATE('bar', 'foobarbar')", SQLInt(4)},
+					test{"LOCATE('xbar', 'foobarbar')", SQLInt(0)},
+					test{"LOCATE('bar', 'foobarbar', 5)", SQLInt(7)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: MINUTE", func() {
 				tests := []test{
 					test{"MINUTE(NULL)", SQLNull},
