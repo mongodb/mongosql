@@ -238,6 +238,8 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.lengthFunc(ctx)
 	case "locate":
 		return f.locateFunc(ctx)
+	case "ltrim":
+		return f.ltrimFunc(ctx)
 	case "minute":
 		return f.minuteFunc(ctx)
 	case "month":
@@ -248,6 +250,8 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.notFunc(ctx)
 	case "quarter":
 		return f.quarterFunc(ctx)
+	case "rtrim":
+		return f.rtrimFunc(ctx)
 	case "second":
 		return f.secondFunc(ctx)
 	case "pow":
@@ -561,6 +565,22 @@ func (f *SQLScalarFunctionExpr) locateFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(result + 1), nil
 }
 
+// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_ltrim
+func (f *SQLScalarFunctionExpr) ltrimFunc(ctx *EvalCtx) (SQLValue, error) {
+	values, err := evaluateArgsWithCount(f, ctx, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := values[0].(SQLNullValue); ok {
+		return values[0], nil
+	}
+
+	value := strings.TrimLeft(values[0].String(), " ")
+
+	return SQLString(value), nil
+}
+
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_minute
 func (f *SQLScalarFunctionExpr) minuteFunc(ctx *EvalCtx) (SQLValue, error) {
 	values, err := evaluateArgsWithCount(f, ctx, 1)
@@ -655,6 +675,22 @@ func (f *SQLScalarFunctionExpr) quarterFunc(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLInt(q), nil
+}
+
+// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_rtrim
+func (f *SQLScalarFunctionExpr) rtrimFunc(ctx *EvalCtx) (SQLValue, error) {
+	values, err := evaluateArgsWithCount(f, ctx, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := values[0].(SQLNullValue); ok {
+		return values[0], nil
+	}
+
+	value := strings.TrimRight(values[0].String(), " ")
+
+	return SQLString(value), nil
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_second

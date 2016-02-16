@@ -395,6 +395,14 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: LTRIM", func() {
+				tests := []test{
+					test{"LTRIM(NULL)", SQLNull},
+					test{"LTRIM('   barbar')", SQLString("barbar")},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: MINUTE", func() {
 				tests := []test{
 					test{"MINUTE(NULL)", SQLNull},
@@ -418,7 +426,6 @@ func TestEvaluates(t *testing.T) {
 					test{"MONTHNAME(NULL)", SQLNull},
 					test{"MONTHNAME('sdg')", SQLNull},
 					test{"MONTHNAME('2016-1-01 10:23:52')", SQLString("January")},
-					//test{"MINUTE('273:00:12')", SQLInt(0)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -431,6 +438,14 @@ func TestEvaluates(t *testing.T) {
 					test{"QUARTER('2016-4-01 10:23:52')", SQLInt(2)},
 					test{"QUARTER('2016-8-01 10:23:52')", SQLInt(3)},
 					test{"QUARTER('2016-11-01 10:23:52')", SQLInt(4)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: RTRIM", func() {
+				tests := []test{
+					test{"RTRIM(NULL)", SQLNull},
+					test{"RTRIM('barbar   ')", SQLString("barbar")},
 				}
 				runTests(evalCtx, tests)
 			})
