@@ -375,6 +375,15 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: LENGTH", func() {
+				tests := []test{
+					test{"LENGTH(NULL)", SQLNull},
+					test{"LENGTH('sDg')", SQLInt(3)},
+					test{"LENGTH('世界')", SQLInt(6)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: MINUTE", func() {
 				tests := []test{
 					test{"MINUTE(NULL)", SQLNull},

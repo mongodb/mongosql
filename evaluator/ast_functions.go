@@ -234,6 +234,8 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.isNullFunc(ctx)
 	case "lcase":
 		return f.lcaseFunc(ctx)
+	case "length":
+		return f.lengthFunc(ctx)
 	case "minute":
 		return f.minuteFunc(ctx)
 	case "month":
@@ -500,6 +502,22 @@ func (f *SQLScalarFunctionExpr) lcaseFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(value), nil
 }
 
+// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_length
+func (f *SQLScalarFunctionExpr) lengthFunc(ctx *EvalCtx) (SQLValue, error) {
+	values, err := evaluateArgsWithRequiredCount(f, ctx, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := values[0].(SQLNullValue); ok {
+		return values[0], nil
+	}
+
+	value := values[0].String()
+
+	return SQLInt(len(value)), nil
+}
+
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_minute
 func (f *SQLScalarFunctionExpr) minuteFunc(ctx *EvalCtx) (SQLValue, error) {
 	values, err := evaluateArgsWithRequiredCount(f, ctx, 1)
@@ -611,7 +629,7 @@ func (f *SQLScalarFunctionExpr) secondFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Second())), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_lcase
+// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_ucase
 func (f *SQLScalarFunctionExpr) ucaseFunc(ctx *EvalCtx) (SQLValue, error) {
 	values, err := evaluateArgsWithRequiredCount(f, ctx, 1)
 	if err != nil {
