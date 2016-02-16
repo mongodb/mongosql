@@ -217,6 +217,12 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.currentTimestampFunc(ctx)
 	case "dayname":
 		return f.dayNameFunc(ctx)
+	case "dayofmonth":
+		return f.dayOfMonthFunc(ctx)
+	case "dayofweek":
+		return f.dayOfWeekFunc(ctx)
+	case "dayofyear":
+		return f.dayOfYearFunc(ctx)
 	case "isnull":
 		return f.isNullFunc(ctx)
 	case "not":
@@ -311,7 +317,7 @@ func (f *SQLScalarFunctionExpr) concatFunc(ctx *EvalCtx) (SQLValue, error) {
 			return nil, err
 		}
 
-		if _, ok := arg.(SQLNullValue); ok {
+		if _, ok := value.(SQLNullValue); ok {
 			return SQLNull, nil
 		}
 
@@ -349,10 +355,69 @@ func (f *SQLScalarFunctionExpr) dayNameFunc(ctx *EvalCtx) (SQLValue, error) {
 
 	t, err := time.Parse("2006-1-1", value.String())
 	if err != nil {
-		return nil, err
+		return SQLNull, nil
 	}
 
 	return SQLString(t.Weekday().String()), nil
+}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofmonth
+func (f *SQLScalarFunctionExpr) dayOfMonthFunc(ctx *EvalCtx) (SQLValue, error) {
+	err := ensureArgCount(f, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := time.Parse("2006-1-1", value.String())
+	if err != nil {
+		return SQLNull, nil
+	}
+
+	return SQLInt(int(t.Day())), nil
+}
+
+func (f *SQLScalarFunctionExpr) dayOfWeekFunc(ctx *EvalCtx) (SQLValue, error) {
+	err := ensureArgCount(f, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := time.Parse("2006-1-1", value.String())
+	if err != nil {
+		return SQLNull, nil
+	}
+
+	return SQLInt(int(t.Weekday()) + 1), nil
+}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofyear
+func (f *SQLScalarFunctionExpr) dayOfYearFunc(ctx *EvalCtx) (SQLValue, error) {
+	err := ensureArgCount(f, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := f.Exprs[0].Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := time.Parse("2006-1-1", value.String())
+	if err != nil {
+		return SQLNull, nil
+	}
+
+	return SQLInt(int(t.YearDay())), nil
 }
 
 func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {

@@ -25,6 +25,7 @@ _testmain.go
 *.test
 *.prof
 .gopath
+.vscode
 vendor/pkg
 
 testdata/input

@@ -299,7 +299,40 @@ func TestEvaluates(t *testing.T) {
 
 			Convey("Subject: DAYNAME", func() {
 				tests := []test{
+					test{"DAYNAME(NULL)", SQLNull},
+					test{"DAYNAME(14)", SQLNull},
 					test{"DAYNAME('2016-1-1')", SQLString("Friday")},
+					test{"DAYNAME('2016-01-01')", SQLString("Friday")},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: DAYOFMONTH", func() {
+				tests := []test{
+					test{"DAYOFMONTH(NULL)", SQLNull},
+					test{"DAYOFMONTH(14)", SQLNull},
+					test{"DAYOFMONTH('2016-1-1')", SQLInt(1)},
+					test{"DAYOFMONTH('2016-01-01')", SQLInt(1)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: DAYOFWEEK", func() {
+				tests := []test{
+					test{"DAYOFWEEK(NULL)", SQLNull},
+					test{"DAYOFWEEK(14)", SQLNull},
+					test{"DAYOFWEEK('2016-1-1')", SQLInt(6)},
+					test{"DAYOFWEEK('2016-01-01')", SQLInt(6)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: DAYOFYEAR", func() {
+				tests := []test{
+					test{"DAYOFYEAR(NULL)", SQLNull},
+					test{"DAYOFYEAR(14)", SQLNull},
+					test{"DAYOFYEAR('2016-1-1')", SQLInt(1)},
+					test{"DAYOFYEAR('2016-01-01')", SQLInt(1)},
 				}
 				runTests(evalCtx, tests)
 			})
