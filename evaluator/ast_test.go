@@ -366,12 +366,20 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: LCASE", func() {
+				tests := []test{
+					test{"LCASE(NULL)", SQLNull},
+					test{"LCASE('sDg')", SQLString("sdg")},
+					test{"LCASE(124)", SQLString("124")},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: MINUTE", func() {
 				tests := []test{
 					test{"MINUTE(NULL)", SQLNull},
 					test{"MINUTE('sdg')", SQLNull},
 					test{"MINUTE('10:23:52')", SQLInt(23)},
-					//test{"MINUTE('273:00:12')", SQLInt(0)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -412,6 +420,15 @@ func TestEvaluates(t *testing.T) {
 					test{"SECOND(NULL)", SQLNull},
 					test{"SECOND('sdg')", SQLNull},
 					test{"SECOND('10:23:52')", SQLInt(52)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: UCASE", func() {
+				tests := []test{
+					test{"UCASE(NULL)", SQLNull},
+					test{"UCASE('sdg')", SQLString("SDG")},
+					test{"UCASE(124)", SQLString("124")},
 				}
 				runTests(evalCtx, tests)
 			})

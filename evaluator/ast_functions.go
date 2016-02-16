@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -231,6 +232,8 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.hourFunc(ctx)
 	case "isnull":
 		return f.isNullFunc(ctx)
+	case "lcase":
+		return f.lcaseFunc(ctx)
 	case "minute":
 		return f.minuteFunc(ctx)
 	case "month":
@@ -245,6 +248,8 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.secondFunc(ctx)
 	case "pow":
 		return f.powFunc(ctx)
+	case "ucase":
+		return f.ucaseFunc(ctx)
 	case "week":
 		return f.weekFunc(ctx)
 	case "year":
@@ -479,6 +484,22 @@ func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLBool(result), nil
 }
 
+// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_lcase
+func (f *SQLScalarFunctionExpr) lcaseFunc(ctx *EvalCtx) (SQLValue, error) {
+	values, err := evaluateArgsWithRequiredCount(f, ctx, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := values[0].(SQLNullValue); ok {
+		return values[0], nil
+	}
+
+	value := strings.ToLower(values[0].String())
+
+	return SQLString(value), nil
+}
+
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_minute
 func (f *SQLScalarFunctionExpr) minuteFunc(ctx *EvalCtx) (SQLValue, error) {
 	values, err := evaluateArgsWithRequiredCount(f, ctx, 1)
@@ -588,6 +609,22 @@ func (f *SQLScalarFunctionExpr) secondFunc(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLInt(int(t.Second())), nil
+}
+
+// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_lcase
+func (f *SQLScalarFunctionExpr) ucaseFunc(ctx *EvalCtx) (SQLValue, error) {
+	values, err := evaluateArgsWithRequiredCount(f, ctx, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := values[0].(SQLNullValue); ok {
+		return values[0], nil
+	}
+
+	value := strings.ToUpper(values[0].String())
+
+	return SQLString(value), nil
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_week
