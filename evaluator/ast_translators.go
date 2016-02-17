@@ -349,6 +349,17 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$second": args[0]}, true
+		case "substring":
+			if len(args) != 2 && len(args) != 3 {
+				return nil, false
+			}
+
+			var arg2 interface{} = -1
+			if len(args) == 3 {
+				arg2 = args[2]
+			}
+
+			return bson.M{"$substr": []interface{}{args[0], args[1], arg2}}, true
 		case "week":
 			// TODO: this needs to take into account the second argument
 			if len(args) != 1 {

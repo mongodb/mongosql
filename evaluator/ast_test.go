@@ -787,11 +787,13 @@ func TestTranslateExpr(t *testing.T) {
 			test{"lcase(a)", `{"$toLower":"$a"}`},
 			test{"minute(a)", `{"$minute":"$a"}`},
 			test{"second(a)", `{"$second":"$a"}`},
+			test{"substring(a, 2)", `{"$substr":["$a",{"$literal":2},-1]}`},
+			test{"substring(a, 2, 4)", `{"$substr":["$a",{"$literal":2},{"$literal":4}]}`},
 			test{"month(a)", `{"$month":"$a"}`},
 			test{"week(a)", `{"$week":"$a"}`},
 			test{"ucase(a)", `{"$toUpper":"$a"}`},
 			//test{"week(a, 3)", `{"$week":"$a"}`}, Not support second argument
-			// test{"year(a)", `{"$year":"$a"}`}, Parser error
+			//test{"year(a)", `{"$year":"$a"}`}, Parser error
 			test{"sum(a * b)", `{"$sum":{"$multiply":["$a","$b"]}}`},
 			test{"sum(a)", `{"$sum":"$a"}`},
 			test{"sum(a < 1)", `{"$sum":{"$lt":["$a",{"$literal":1}]}}`},
