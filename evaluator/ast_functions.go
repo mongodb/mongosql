@@ -546,12 +546,12 @@ func (f *SQLScalarFunctionExpr) locateFunc(ctx *EvalCtx) (SQLValue, error) {
 			return SQLNull, nil
 		}
 
-		pos := int(math.Floor(posValue.Float64())) - 1 // MySQL uses 1 as a basis
+		pos := int(posValue.Float64()) - 1 // MySQL uses 1 as a basis
 
 		if len(str) <= pos {
 			result = 0
 		} else {
-			str = str[pos:]
+			str = string([]rune(str)[pos:])
 			result = strings.Index(str, substr)
 			if result > 0 {
 				result += pos
