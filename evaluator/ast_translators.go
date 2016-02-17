@@ -269,12 +269,20 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				return nil, false
 			}
 			return bson.M{"$abs": args[0]}, true
-		// case "ascii": not supported
 		case "concat":
-
 			return bson.M{"$concat": args}, true
-		// case "current_date": not supported
-		// case "current_timestamp": not supported
+		case "current_date":
+			if len(args) != 0 {
+				return nil, false
+			}
+
+			return time.Now().UTC(), true
+		case "current_timestamp":
+			if len(args) != 0 {
+				return nil, false
+			}
+
+			return time.Now().UTC().Unix(), true
 		case "dayname":
 			if len(args) != 1 {
 				return nil, false
@@ -311,8 +319,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$dayOfYear": args[0]}, true
-			// case "exp":
-			// case "floor":
 		case "hour":
 			if len(args) != 1 {
 				return nil, false
