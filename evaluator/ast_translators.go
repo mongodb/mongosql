@@ -325,6 +325,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$hour": args[0]}, true
+		case "lcase":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$toLower": args[0]}, true
 		case "minute":
 			if len(args) != 1 {
 				return nil, false
@@ -350,6 +356,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$week": args[0]}, true
+		case "ucase":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$toUpper": args[0]}, true
 		case "year":
 			if len(args) != 1 {
 				return nil, false
