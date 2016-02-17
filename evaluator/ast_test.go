@@ -792,6 +792,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"minute(a)", `{"$minute":"$a"}`},
 			test{"mod(a, 10)", `{"$mod":["$a",{"$literal":10}]}`},
 			test{"month(a)", `{"$month":"$a"}`},
+			test{"monthname(a)", `{"$arrayElemAt":[["January","February","March","April","May","June","July","August","September","October","November","December"],{"$subtract":[{"$month":"$a"},1]}]}`},
 			test{"power(a, 10)", `{"$pow":["$a",{"$literal":10}]}`},
 			test{"second(a)", `{"$second":"$a"}`},
 			test{"sqrt(a)", `{"$sqrt":"$a"}`},

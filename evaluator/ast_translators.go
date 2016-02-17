@@ -367,6 +367,29 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$month": args[0]}, true
+		case "monthname":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$arrayElemAt": []interface{}{
+				[]interface{}{
+					time.January.String(),
+					time.February.String(),
+					time.March.String(),
+					time.April.String(),
+					time.May.String(),
+					time.June.String(),
+					time.July.String(),
+					time.August.String(),
+					time.September.String(),
+					time.October.String(),
+					time.November.String(),
+					time.December.String(),
+				},
+				bson.M{"$subtract": []interface{}{
+					bson.M{"$month": args[0]},
+					1}}}}, true
 		case "pow":
 			fallthrough
 		case "power":
