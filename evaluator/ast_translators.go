@@ -319,6 +319,18 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$dayOfYear": args[0]}, true
+		case "exp":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$exp": args[0]}, true
+		case "floor":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$floor": args[0]}, true
 		case "hour":
 			if len(args) != 1 {
 				return nil, false
@@ -331,6 +343,18 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$toLower": args[0]}, true
+		case "log10":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$log10": args[0]}, true
+		case "mod":
+			if len(args) != 2 {
+				return nil, false
+			}
+
+			return bson.M{"$mod": []interface{}{args[0], args[1]}}, true
 		case "minute":
 			if len(args) != 1 {
 				return nil, false
@@ -343,12 +367,26 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$month": args[0]}, true
+		case "pow":
+			fallthrough
+		case "power":
+			if len(args) != 2 {
+				return nil, false
+			}
+
+			return bson.M{"$pow": []interface{}{args[0], args[1]}}, true
 		case "second":
 			if len(args) != 1 {
 				return nil, false
 			}
 
 			return bson.M{"$second": args[0]}, true
+		case "sqrt":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$sqrt": args[0]}, true
 		case "substring":
 			if len(args) != 2 && len(args) != 3 {
 				return nil, false
