@@ -459,6 +459,19 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: SUBSTRING", func() {
+				tests := []test{
+					test{"SUBSTRING(NULL, 4)", SQLNull},
+					test{"SUBSTRING('foobarbar', NULL)", SQLNull},
+					test{"SUBSTRING('foobarbar', 4, NULL)", SQLNull},
+					test{"SUBSTRING('Quadratically', 5)", SQLString("ratically")},
+					test{"SUBSTRING('Quadratically', 5, 6)", SQLString("ratica")},
+					test{"SUBSTRING('Sakila', -3)", SQLString("ila")},
+					test{"SUBSTRING('Sakila', -5, 3)", SQLString("aki")},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: UCASE", func() {
 				tests := []test{
 					test{"UCASE(NULL)", SQLNull},

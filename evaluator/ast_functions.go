@@ -254,6 +254,8 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.rtrimFunc(ctx)
 	case "second":
 		return f.secondFunc(ctx)
+	case "substring":
+		return f.substringFunc(ctx)
 	case "pow":
 		return f.powFunc(ctx)
 	case "ucase":
@@ -287,8 +289,8 @@ func (f *SQLScalarFunctionExpr) absFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if _, ok := values[0].(SQLNullValue); ok {
-		return values[0], nil
+	if anyNull(values) {
+		return SQLNull, nil
 	}
 
 	numeric, ok := values[0].(SQLNumeric)
@@ -307,8 +309,8 @@ func (f *SQLScalarFunctionExpr) asciiFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if _, ok := values[0].(SQLNullValue); ok {
-		return values[0], nil
+	if anyNull(values) {
+		return SQLNull, nil
 	}
 
 	str := values[0].String()
@@ -499,8 +501,8 @@ func (f *SQLScalarFunctionExpr) lcaseFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if _, ok := values[0].(SQLNullValue); ok {
-		return values[0], nil
+	if anyNull(values) {
+		return SQLNull, nil
 	}
 
 	value := strings.ToLower(values[0].String())
@@ -515,8 +517,8 @@ func (f *SQLScalarFunctionExpr) lengthFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if _, ok := values[0].(SQLNullValue); ok {
-		return values[0], nil
+	if anyNull(values) {
+		return SQLNull, nil
 	}
 
 	value := values[0].String()
@@ -531,11 +533,8 @@ func (f *SQLScalarFunctionExpr) locateFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if _, ok := values[0].(SQLNullValue); ok {
-		return values[0], nil
-	}
-	if _, ok := values[1].(SQLNullValue); ok {
-		return values[1], nil
+	if anyNull(values) {
+		return SQLNull, nil
 	}
 
 	substr := values[0].String()
@@ -547,7 +546,7 @@ func (f *SQLScalarFunctionExpr) locateFunc(ctx *EvalCtx) (SQLValue, error) {
 			return SQLNull, nil
 		}
 
-		pos := int(math.Floor(posValue.Float64())) - 1
+		pos := int(math.Floor(posValue.Float64())) - 1 // MySQL uses 1 as a basis
 
 		if len(str) <= pos {
 			result = 0
@@ -572,8 +571,8 @@ func (f *SQLScalarFunctionExpr) ltrimFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if _, ok := values[0].(SQLNullValue); ok {
-		return values[0], nil
+	if anyNull(values) {
+		return SQLNull, nil
 	}
 
 	value := strings.TrimLeft(values[0].String(), " ")
@@ -641,6 +640,10 @@ func (f *SQLScalarFunctionExpr) powFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
+	if anyNull(values) {
+		return SQLNull, nil
+	}
+
 	if bNum, ok := values[0].(SQLNumeric); ok {
 		if eNum, ok := values[1].(SQLNumeric); ok {
 			return SQLFloat(math.Pow(bNum.Float64(), eNum.Float64())), nil
@@ -684,8 +687,8 @@ func (f *SQLScalarFunctionExpr) rtrimFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if _, ok := values[0].(SQLNullValue); ok {
-		return values[0], nil
+	if anyNull(values) {
+		return SQLNull, nil
 	}
 
 	value := strings.TrimRight(values[0].String(), " ")
@@ -708,6 +711,56 @@ func (f *SQLScalarFunctionExpr) secondFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Second())), nil
 }
 
+// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_substring
+func (f *SQLScalarFunctionExpr) substringFunc(ctx *EvalCtx) (SQLValue, error) {
+	values, err := evaluateArgsWithCount(f, ctx, 2, 3)
+	if err != nil {
+		return nil, err
+	}
+
+	if anyNull(values) {
+		return SQLNull, nil
+	}
+
+	str := []rune(values[0].String())
+	posValue, ok := values[1].(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	pos := int(posValue.Float64())
+
+	if pos > len(str) {
+		return SQLString(""), nil
+	} else if pos < 0 {
+		pos = len(str) + pos
+
+		if pos < 0 {
+			pos = 0
+		}
+	} else {
+		pos-- // MySQL uses 1 as a basis
+	}
+
+	if len(values) == 3 {
+		lenValue, ok := values[2].(SQLNumeric)
+		if !ok {
+			return SQLNull, nil
+		}
+
+		length := int(lenValue.Float64())
+		if length < 1 {
+			return SQLString(""), nil
+		}
+
+		str = str[pos : pos+length]
+	} else {
+		str = str[pos:]
+	}
+
+	return SQLString(string(str)), nil
+}
+
 // https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_ucase
 func (f *SQLScalarFunctionExpr) ucaseFunc(ctx *EvalCtx) (SQLValue, error) {
 	values, err := evaluateArgsWithCount(f, ctx, 1)
@@ -715,8 +768,8 @@ func (f *SQLScalarFunctionExpr) ucaseFunc(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if _, ok := values[0].(SQLNullValue); ok {
-		return values[0], nil
+	if anyNull(values) {
+		return SQLNull, nil
 	}
 
 	value := strings.ToUpper(values[0].String())
@@ -757,6 +810,16 @@ func (f *SQLScalarFunctionExpr) yearFunc(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLInt(t.Year()), nil
+}
+
+func anyNull(values []SQLValue) bool {
+	for _, v := range values {
+		if _, ok := v.(SQLNullValue); ok {
+			return true
+		}
+	}
+
+	return false
 }
 
 func ensureArgCount(f *SQLScalarFunctionExpr, counts ...int) error {
