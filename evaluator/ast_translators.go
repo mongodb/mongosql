@@ -398,6 +398,16 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$pow": []interface{}{args[0], args[1]}}, true
+		case "quarter":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$arrayElemAt": []interface{}{
+				[]interface{}{1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4},
+				bson.M{"$subtract": []interface{}{
+					bson.M{"$month": args[0]},
+					1}}}}, true
 		case "second":
 			if len(args) != 1 {
 				return nil, false
