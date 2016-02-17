@@ -395,6 +395,18 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: LOG10", func() {
+				tests := []test{
+					test{"LOG10(NULL)", SQLNull},
+					test{"LOG10('sdg')", SQLNull},
+					test{"LOG10(2)", SQLFloat(0.3010299956639812)},
+					test{"LOG10(100)", SQLFloat(2)},
+					test{"LOG10(0)", SQLFloat(0)},
+					test{"LOG10(-100)", SQLFloat(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: LTRIM", func() {
 				tests := []test{
 					test{"LTRIM(NULL)", SQLNull},
@@ -408,6 +420,19 @@ func TestEvaluates(t *testing.T) {
 					test{"MINUTE(NULL)", SQLNull},
 					test{"MINUTE('sdg')", SQLNull},
 					test{"MINUTE('10:23:52')", SQLInt(23)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: MOD", func() {
+				tests := []test{
+					test{"MOD(NULL, NULL)", SQLNull},
+					test{"MOD(234, NULL)", SQLNull},
+					test{"MOD(NULL, 10)", SQLNull},
+					test{"MOD(234, 0)", SQLNull},
+					test{"MOD(234, 10)", SQLFloat(4)},
+					test{"MOD(253, 7)", SQLFloat(1)},
+					test{"MOD(34.5, 3)", SQLFloat(1.5)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -455,6 +480,17 @@ func TestEvaluates(t *testing.T) {
 					test{"SECOND(NULL)", SQLNull},
 					test{"SECOND('sdg')", SQLNull},
 					test{"SECOND('10:23:52')", SQLInt(52)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: SQRT", func() {
+				tests := []test{
+					test{"SQRT(NULL)", SQLNull},
+					test{"SQRT('sdg')", SQLNull},
+					test{"SQRT(-16)", SQLNull},
+					test{"SQRT(4)", SQLFloat(2)},
+					test{"SQRT(20)", SQLFloat(4.47213595499958)},
 				}
 				runTests(evalCtx, tests)
 			})

@@ -238,26 +238,35 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.lengthFunc(ctx)
 	case "locate":
 		return f.locateFunc(ctx)
+	case "log10":
+		return f.log10Func(ctx)
 	case "ltrim":
 		return f.ltrimFunc(ctx)
 	case "minute":
 		return f.minuteFunc(ctx)
+	case "mod":
+		return f.modFunc(ctx)
 	case "month":
 		return f.monthFunc(ctx)
 	case "monthname":
 		return f.monthNameFunc(ctx)
 	case "not":
 		return f.notFunc(ctx)
+	case "pow":
+		return f.powFunc(ctx)
+	case "power":
+		return f.powFunc(ctx)
 	case "quarter":
 		return f.quarterFunc(ctx)
+	case "sqrt":
+		return f.sqrtFunc(ctx)
 	case "rtrim":
 		return f.rtrimFunc(ctx)
 	case "second":
 		return f.secondFunc(ctx)
 	case "substring":
 		return f.substringFunc(ctx)
-	case "pow":
-		return f.powFunc(ctx)
+
 	case "ucase":
 		return f.ucaseFunc(ctx)
 	case "week":
@@ -564,6 +573,28 @@ func (f *SQLScalarFunctionExpr) locateFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(result + 1), nil
 }
 
+// https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_log10
+func (f *SQLScalarFunctionExpr) log10Func(ctx *EvalCtx) (SQLValue, error) {
+	values, err := evaluateArgsWithCount(f, ctx, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	nValue, ok := values[0].(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	n := nValue.Float64()
+
+	if n <= 0 {
+		return SQLFloat(0), nil
+	}
+
+	r := math.Log10(n)
+	return SQLFloat(r), nil
+}
+
 // https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_ltrim
 func (f *SQLScalarFunctionExpr) ltrimFunc(ctx *EvalCtx) (SQLValue, error) {
 	values, err := evaluateArgsWithCount(f, ctx, 1)
@@ -593,6 +624,33 @@ func (f *SQLScalarFunctionExpr) minuteFunc(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLInt(int(t.Minute())), nil
+}
+
+// https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_mod
+func (f *SQLScalarFunctionExpr) modFunc(ctx *EvalCtx) (SQLValue, error) {
+	values, err := evaluateArgsWithCount(f, ctx, 2)
+	if err != nil {
+		return nil, err
+	}
+
+	nValue, ok := values[0].(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	mValue, ok := values[1].(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+	n := nValue.Float64()
+	m := mValue.Float64()
+
+	if m == 0 {
+		return SQLNull, nil
+	}
+
+	r := math.Mod(n, m)
+	return SQLFloat(r), nil
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_month
@@ -709,6 +767,27 @@ func (f *SQLScalarFunctionExpr) secondFunc(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLInt(int(t.Second())), nil
+}
+
+// https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_sqrt
+func (f *SQLScalarFunctionExpr) sqrtFunc(ctx *EvalCtx) (SQLValue, error) {
+	values, err := evaluateArgsWithCount(f, ctx, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	nValue, ok := values[0].(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	n := nValue.Float64()
+	if n < 0 {
+		return SQLNull, nil
+	}
+
+	r := math.Sqrt(n)
+	return SQLFloat(r), nil
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_substring
