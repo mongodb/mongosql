@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"strings"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
@@ -267,13 +268,50 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			if len(args) != 1 {
 				return nil, false
 			}
-
 			return bson.M{"$abs": args[0]}, true
-		// ascii -> not supported
+		// case "ascii": not supported
 		case "concat":
-			return bson.M{"$concat": args}, true
-		}
 
+			return bson.M{"$concat": args}, true
+		// case "current_date": not supported
+		// case "current_timestamp": not supported
+		case "dayname":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$arrayElemAt": []interface{}{
+				[]interface{}{
+					time.Sunday.String(),
+					time.Monday.String(),
+					time.Tuesday.String(),
+					time.Wednesday.String(),
+					time.Thursday.String(),
+					time.Friday.String(),
+					time.Saturday.String(),
+				},
+				bson.M{"$subtract": []interface{}{
+					bson.M{"$dayOfWeek": args[0]},
+					1}}}}, true
+		case "dayofmonth":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$dayOfMonth": args[0]}, true
+		case "dayofweek":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$dayOfWeek": args[0]}, true
+		case "dayofyear":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$dayOfYear": args[0]}, true
+		}
 	case *SQLSubqueryCmpExpr:
 
 		// unsupported

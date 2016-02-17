@@ -779,6 +779,10 @@ func TestTranslateExpr(t *testing.T) {
 		tests := []test{
 			test{"abs(a)", `{"$abs":"$a"}`},
 			test{"concat(a, 'funny')", `{"$concat":["$a",{"$literal":"funny"}]}`},
+			test{"dayname(a)", `{"$arrayElemAt":[["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],{"$subtract":[{"$dayOfWeek":"$a"},1]}]}`},
+			test{"dayofmonth(a)", `{"$dayOfMonth":"$a"}`},
+			test{"dayofweek(a)", `{"$dayOfWeek":"$a"}`},
+			test{"dayofyear(a)", `{"$dayOfYear":"$a"}`},
 			test{"sum(a * b)", `{"$sum":{"$multiply":["$a","$b"]}}`},
 			test{"sum(a)", `{"$sum":"$a"}`},
 			test{"sum(a < 1)", `{"$sum":{"$lt":["$a",{"$literal":1}]}}`},
