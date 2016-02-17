@@ -651,6 +651,7 @@ func TestOptimizeSQLExpr(t *testing.T) {
 			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
 			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
 			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
+			test{"DAYNAME('2016-1-1')", "Friday", SQLString("Friday")},
 		}
 
 		runTests(tests)

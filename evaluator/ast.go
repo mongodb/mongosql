@@ -124,7 +124,24 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 
 	switch typedE := e.(type) {
 	case *SQLAggFunctionExpr:
-		// child isn't visitable
+		hasNewChild := false
+		newChildren := []SQLExpr{}
+		for _, child := range typedE.Exprs {
+			newChild, err := v.Visit(child)
+			if err != nil {
+				return nil, err
+			}
+
+			if child != newChild {
+				hasNewChild = true
+			}
+
+			newChildren = append(newChildren, newChild)
+		}
+
+		if hasNewChild {
+			e = &SQLAggFunctionExpr{typedE.Name, typedE.Distinct, newChildren}
+		}
 	case *SQLAddExpr:
 		left, err := v.Visit(typedE.left)
 		if err != nil {
@@ -182,7 +199,8 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		if hasNewCond || typedE.elseValue != newElse {
 			e = &SQLCaseExpr{newElse, newConds}
 		}
-
+	case SQLColumnExpr:
+		// no children
 	case *SQLDivideExpr:
 		left, err := v.Visit(typedE.left)
 		if err != nil {
@@ -211,8 +229,6 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 
 	case *SQLExistsExpr:
 		// child isn't visitable
-	case SQLColumnExpr:
-		// no children
 	case *SQLGreaterThanExpr:
 		left, err := v.Visit(typedE.left)
 		if err != nil {
@@ -349,7 +365,24 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		}
 
 	case *SQLScalarFunctionExpr:
-		// child isn't visitable
+		hasNewChild := false
+		newChildren := []SQLExpr{}
+		for _, child := range typedE.Exprs {
+			newChild, err := v.Visit(child)
+			if err != nil {
+				return nil, err
+			}
+
+			if child != newChild {
+				hasNewChild = true
+			}
+
+			newChildren = append(newChildren, newChild)
+		}
+
+		if hasNewChild {
+			e = &SQLScalarFunctionExpr{typedE.Name, newChildren}
+		}
 	case *SQLSubqueryCmpExpr:
 		left, err := v.Visit(typedE.left)
 		if err != nil {
