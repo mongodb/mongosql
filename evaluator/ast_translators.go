@@ -311,6 +311,45 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$dayOfYear": args[0]}, true
+			// case "exp":
+			// case "floor":
+		case "hour":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$hour": args[0]}, true
+		case "minute":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$minute": args[0]}, true
+		case "month":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$month": args[0]}, true
+		case "second":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$second": args[0]}, true
+		case "week":
+			// TODO: this needs to take into account the second argument
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$week": args[0]}, true
+		case "year":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$year": args[0]}, true
 		}
 	case *SQLSubqueryCmpExpr:
 
