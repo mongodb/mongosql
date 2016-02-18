@@ -191,89 +191,71 @@ type SQLScalarFunctionExpr struct {
 	Exprs []SQLExpr
 }
 
+type fnDef struct {
+	argCounts []int
+	impl      func([]SQLValue, *EvalCtx) (SQLValue, error)
+}
+
+func newFnDef(impl func([]SQLValue, *EvalCtx) (SQLValue, error), argCounts ...int) fnDef {
+	return fnDef{argCounts, impl}
+}
+
+var fnMap = map[string]fnDef{
+	"abs":               newFnDef(absFunc, 1),
+	"ascii":             newFnDef(asciiFunc, 1),
+	"cast":              newFnDef(castFunc, 2),
+	"concat":            newFnDef(concatFunc),
+	"connection_id":     newFnDef(connectionIdFunc),
+	"current_date":      newFnDef(currentDateFunc),
+	"current_timestamp": newFnDef(currentTimestampFunc),
+	"database":          newFnDef(dbFunc),
+	"dayname":           newFnDef(dayNameFunc, 1),
+	"dayofmonth":        newFnDef(dayOfMonthFunc, 1),
+	"dayofweek":         newFnDef(dayOfWeekFunc, 1),
+	"dayofyear":         newFnDef(dayOfYearFunc, 1),
+	"exp":               newFnDef(expFunc, 1),
+	"floor":             newFnDef(floorFunc, 1),
+	"hour":              newFnDef(hourFunc, 1),
+	"lcase":             newFnDef(lcaseFunc, 1),
+	"length":            newFnDef(lengthFunc, 1),
+	"locate":            newFnDef(locateFunc, 2, 3),
+	"log10":             newFnDef(log10Func, 1),
+	"ltrim":             newFnDef(ltrimFunc, 1),
+	"minute":            newFnDef(minuteFunc, 1),
+	"mod":               newFnDef(modFunc, 2),
+	"month":             newFnDef(monthFunc, 1),
+	"monthname":         newFnDef(monthNameFunc, 1),
+	"pow":               newFnDef(powFunc, 2),
+	"power":             newFnDef(powFunc, 2),
+	"quarter":           newFnDef(quarterFunc, 1),
+	"sqrt":              newFnDef(sqrtFunc, 1),
+	"rtrim":             newFnDef(rtrimFunc, 1),
+	"second":            newFnDef(secondFunc, 1),
+	"substring":         newFnDef(substringFunc, 2, 3),
+	"ucase":             newFnDef(ucaseFunc, 1),
+	"week":              newFnDef(weekFunc, 1),
+	"year":              newFnDef(yearFunc, 1),
+}
+
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
-	// TODO:: can we register aliases in the algebrizer so we don't have
-	// to account for multiple names for the same function below?
+	fd, ok := fnMap[f.Name]
+	if ok {
+		values, err := evaluateArgsWithCount(f, ctx, fd.argCounts...)
+		if err != nil {
+			return nil, err
+		}
 
+		return fd.impl(values, ctx)
+	}
+
+	// any functions not registered globally go here. There shouldn't be many here,
+	// only those that need some special processing.
 	switch f.Name {
-	// connector functions
-	case "connection_id":
-		return f.connectionIdFunc(ctx)
-	case "database":
-		return f.dbFunc(ctx)
-
-		// scalar functions
-	case "abs":
-		return f.absFunc(ctx)
-	case "ascii":
-		return f.asciiFunc(ctx)
-	case "cast":
-		return f.castFunc(ctx)
-	case "concat":
-		return f.concatFunc(ctx)
-	case "current_date":
-		return f.currentDateFunc(ctx)
-	case "current_timestamp":
-		return f.currentTimestampFunc(ctx)
-	case "dayname":
-		return f.dayNameFunc(ctx)
-	case "dayofmonth":
-		return f.dayOfMonthFunc(ctx)
-	case "dayofweek":
-		return f.dayOfWeekFunc(ctx)
-	case "dayofyear":
-		return f.dayOfYearFunc(ctx)
-	case "exp":
-		return f.expFunc(ctx)
-	case "floor":
-		return f.floorFunc(ctx)
-	case "hour":
-		return f.hourFunc(ctx)
 	case "isnull":
 		return f.isNullFunc(ctx)
-	case "lcase":
-		return f.lcaseFunc(ctx)
-	case "length":
-		return f.lengthFunc(ctx)
-	case "locate":
-		return f.locateFunc(ctx)
-	case "log10":
-		return f.log10Func(ctx)
-	case "ltrim":
-		return f.ltrimFunc(ctx)
-	case "minute":
-		return f.minuteFunc(ctx)
-	case "mod":
-		return f.modFunc(ctx)
-	case "month":
-		return f.monthFunc(ctx)
-	case "monthname":
-		return f.monthNameFunc(ctx)
 	case "not":
 		return f.notFunc(ctx)
-	case "pow":
-		return f.powFunc(ctx)
-	case "power":
-		return f.powFunc(ctx)
-	case "quarter":
-		return f.quarterFunc(ctx)
-	case "sqrt":
-		return f.sqrtFunc(ctx)
-	case "rtrim":
-		return f.rtrimFunc(ctx)
-	case "second":
-		return f.secondFunc(ctx)
-	case "substring":
-		return f.substringFunc(ctx)
-
-	case "ucase":
-		return f.ucaseFunc(ctx)
-	case "week":
-		return f.weekFunc(ctx)
-	case "year":
-		return f.yearFunc(ctx)
-
 	default:
 		return nil, fmt.Errorf("scalar function '%v' is not supported", string(f.Name))
 	}
@@ -283,21 +265,34 @@ func (f *SQLScalarFunctionExpr) String() string {
 	return fmt.Sprintf("%s(%v)", f.Name, f.Exprs)
 }
 
-func (f *SQLScalarFunctionExpr) connectionIdFunc(ctx *EvalCtx) (SQLValue, error) {
+func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
+	matcher := &SQLNullCmpExpr{f.Exprs[0]}
+	result, err := Matches(matcher, ctx)
+	if err != nil {
+		return nil, err
+	}
+	return SQLBool(result), nil
+}
+
+func (f *SQLScalarFunctionExpr) notFunc(ctx *EvalCtx) (SQLValue, error) {
+	matcher := &SQLNotExpr{f.Exprs[0]}
+	result, err := Matches(matcher, ctx)
+	if err != nil {
+		return nil, err
+	}
+	return SQLBool(result), nil
+}
+
+func connectionIdFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLUint32(ctx.ExecCtx.ConnectionId()), nil
 }
 
-func (f *SQLScalarFunctionExpr) dbFunc(ctx *EvalCtx) (SQLValue, error) {
+func dbFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(ctx.ExecCtx.DB()), nil
 }
 
 // http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_abs
-func (f *SQLScalarFunctionExpr) absFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func absFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
 	}
@@ -312,12 +307,7 @@ func (f *SQLScalarFunctionExpr) absFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ascii
-func (f *SQLScalarFunctionExpr) asciiFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func asciiFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
 	}
@@ -332,31 +322,18 @@ func (f *SQLScalarFunctionExpr) asciiFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(c), nil
 }
 
-func (f *SQLScalarFunctionExpr) castFunc(ctx *EvalCtx) (SQLValue, error) {
-	ensureArgCount(f, 2)
-
-	value, err := f.Exprs[0].Evaluate(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewSQLValue(value.Value(), f.Exprs[1].String())
+func castFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return NewSQLValue(values[0].Value(), values[1].String())
 }
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat
-func (f *SQLScalarFunctionExpr) concatFunc(ctx *EvalCtx) (SQLValue, error) {
+func concatFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if anyNull(values) {
+		return SQLNull, nil
+	}
+
 	var bytes bytes.Buffer
-	for _, arg := range f.Exprs {
-
-		value, err := arg.Evaluate(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		if _, ok := value.(SQLNullValue); ok {
-			return SQLNull, nil
-		}
-
+	for _, value := range values {
 		bytes.WriteString(value.String())
 	}
 
@@ -364,36 +341,19 @@ func (f *SQLScalarFunctionExpr) concatFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curdate
-func (f *SQLScalarFunctionExpr) currentDateFunc(ctx *EvalCtx) (SQLValue, error) {
-	err := ensureArgCount(f, 0)
-	if err != nil {
-		return nil, err
-	}
-
+func currentDateFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	value := time.Now().UTC()
-
 	return SQLDate{value}, nil
 }
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_now
-func (f *SQLScalarFunctionExpr) currentTimestampFunc(ctx *EvalCtx) (SQLValue, error) {
-	err := ensureArgCount(f, 0)
-	if err != nil {
-		return nil, err
-	}
-
+func currentTimestampFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	value := time.Now().UTC()
-
 	return SQLTimestamp{value}, nil
 }
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayname
-func (f *SQLScalarFunctionExpr) dayNameFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func dayNameFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -403,12 +363,7 @@ func (f *SQLScalarFunctionExpr) dayNameFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofmonth
-func (f *SQLScalarFunctionExpr) dayOfMonthFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func dayOfMonthFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -418,12 +373,7 @@ func (f *SQLScalarFunctionExpr) dayOfMonthFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofweek
-func (f *SQLScalarFunctionExpr) dayOfWeekFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func dayOfWeekFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -433,12 +383,7 @@ func (f *SQLScalarFunctionExpr) dayOfWeekFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofyear
-func (f *SQLScalarFunctionExpr) dayOfYearFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func dayOfYearFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -448,12 +393,7 @@ func (f *SQLScalarFunctionExpr) dayOfYearFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_exp
-func (f *SQLScalarFunctionExpr) expFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func expFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	n, ok := values[0].(SQLNumeric)
 	if !ok {
 		return SQLNull, nil
@@ -464,12 +404,7 @@ func (f *SQLScalarFunctionExpr) expFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_floor
-func (f *SQLScalarFunctionExpr) floorFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func floorFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	n, ok := values[0].(SQLNumeric)
 	if !ok {
 		return SQLNull, nil
@@ -480,12 +415,7 @@ func (f *SQLScalarFunctionExpr) floorFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_hour
-func (f *SQLScalarFunctionExpr) hourFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func hourFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -494,22 +424,8 @@ func (f *SQLScalarFunctionExpr) hourFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Hour())), nil
 }
 
-func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
-	matcher := &SQLNullCmpExpr{f.Exprs[0]}
-	result, err := Matches(matcher, ctx)
-	if err != nil {
-		return nil, err
-	}
-	return SQLBool(result), nil
-}
-
 // https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_lcase
-func (f *SQLScalarFunctionExpr) lcaseFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func lcaseFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
 	}
@@ -520,12 +436,7 @@ func (f *SQLScalarFunctionExpr) lcaseFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_length
-func (f *SQLScalarFunctionExpr) lengthFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func lengthFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
 	}
@@ -536,12 +447,7 @@ func (f *SQLScalarFunctionExpr) lengthFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_locate
-func (f *SQLScalarFunctionExpr) locateFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 2, 3)
-	if err != nil {
-		return nil, err
-	}
-
+func locateFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
 	}
@@ -574,12 +480,7 @@ func (f *SQLScalarFunctionExpr) locateFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_log10
-func (f *SQLScalarFunctionExpr) log10Func(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func log10Func(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	nValue, ok := values[0].(SQLNumeric)
 	if !ok {
 		return SQLNull, nil
@@ -596,12 +497,7 @@ func (f *SQLScalarFunctionExpr) log10Func(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_ltrim
-func (f *SQLScalarFunctionExpr) ltrimFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func ltrimFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
 	}
@@ -612,12 +508,7 @@ func (f *SQLScalarFunctionExpr) ltrimFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_minute
-func (f *SQLScalarFunctionExpr) minuteFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func minuteFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -627,12 +518,7 @@ func (f *SQLScalarFunctionExpr) minuteFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_mod
-func (f *SQLScalarFunctionExpr) modFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 2)
-	if err != nil {
-		return nil, err
-	}
-
+func modFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	nValue, ok := values[0].(SQLNumeric)
 	if !ok {
 		return SQLNull, nil
@@ -654,12 +540,7 @@ func (f *SQLScalarFunctionExpr) modFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_month
-func (f *SQLScalarFunctionExpr) monthFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func monthFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -669,12 +550,7 @@ func (f *SQLScalarFunctionExpr) monthFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_monthname
-func (f *SQLScalarFunctionExpr) monthNameFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func monthNameFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -683,21 +559,7 @@ func (f *SQLScalarFunctionExpr) monthNameFunc(ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(t.Month().String()), nil
 }
 
-func (f *SQLScalarFunctionExpr) notFunc(ctx *EvalCtx) (SQLValue, error) {
-	matcher := &SQLNotExpr{f.Exprs[0]}
-	result, err := Matches(matcher, ctx)
-	if err != nil {
-		return nil, err
-	}
-	return SQLBool(result), nil
-}
-
-func (f *SQLScalarFunctionExpr) powFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 2)
-	if err != nil {
-		return nil, err
-	}
-
+func powFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
 	}
@@ -712,12 +574,7 @@ func (f *SQLScalarFunctionExpr) powFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_quarter
-func (f *SQLScalarFunctionExpr) quarterFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func quarterFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -739,12 +596,7 @@ func (f *SQLScalarFunctionExpr) quarterFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_rtrim
-func (f *SQLScalarFunctionExpr) rtrimFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func rtrimFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
 	}
@@ -755,12 +607,7 @@ func (f *SQLScalarFunctionExpr) rtrimFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_second
-func (f *SQLScalarFunctionExpr) secondFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func secondFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -770,12 +617,7 @@ func (f *SQLScalarFunctionExpr) secondFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_sqrt
-func (f *SQLScalarFunctionExpr) sqrtFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func sqrtFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	nValue, ok := values[0].(SQLNumeric)
 	if !ok {
 		return SQLNull, nil
@@ -791,12 +633,7 @@ func (f *SQLScalarFunctionExpr) sqrtFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_substring
-func (f *SQLScalarFunctionExpr) substringFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 2, 3)
-	if err != nil {
-		return nil, err
-	}
-
+func substringFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
 	}
@@ -841,12 +678,7 @@ func (f *SQLScalarFunctionExpr) substringFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_ucase
-func (f *SQLScalarFunctionExpr) ucaseFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func ucaseFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
 	}
@@ -857,15 +689,8 @@ func (f *SQLScalarFunctionExpr) ucaseFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_week
-func (f *SQLScalarFunctionExpr) weekFunc(ctx *EvalCtx) (SQLValue, error) {
-
+func weekFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	// TODO: this one takes a mode as an optional second argument...
-
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -877,12 +702,7 @@ func (f *SQLScalarFunctionExpr) weekFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_year
-func (f *SQLScalarFunctionExpr) yearFunc(ctx *EvalCtx) (SQLValue, error) {
-	values, err := evaluateArgsWithCount(f, ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
+func yearFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -902,6 +722,10 @@ func anyNull(values []SQLValue) bool {
 }
 
 func ensureArgCount(f *SQLScalarFunctionExpr, counts ...int) error {
+	if len(counts) == 0 {
+		return nil
+	}
+
 	found := false
 	actual := len(f.Exprs)
 	for _, i := range counts {
