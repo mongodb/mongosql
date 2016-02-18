@@ -73,13 +73,17 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 
 	}
 
+	// get a new session for every execution context.
+	session := e.Session()
+	defer session.Close()
+
 	// construct execution context
 	eCtx := &evaluator.ExecutionCtx{
 		Db:            db,
 		ParseCtx:      pCtx,
 		ConnectionCtx: conn,
 		Schema:        e.config,
-		Session:       e.session,
+		Session:       session,
 	}
 
 	// construct query plan
