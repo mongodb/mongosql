@@ -155,7 +155,7 @@ func (ms *MongoSource) Open(ctx *ExecutionCtx) error {
 
 	pcs := strings.SplitN(ms.fqns, ".", 2)
 
-	ms.iter = MgoFindResults{ctx.Session.DB(pcs[0]).C(pcs[1]).Pipe(ms.pipeline).Iter()}
+	ms.iter = MgoFindResults{ctx.Session.DB(pcs[0]).C(pcs[1]).Pipe(ms.pipeline).AllowDiskUse().Iter()}
 
 	return nil
 }
