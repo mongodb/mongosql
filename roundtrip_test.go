@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -326,10 +327,12 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 
 	query := queryData{}
 
-	for dec.More() {
-
+	for {
 		err := dec.Decode(&query)
 		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
 			return fmt.Errorf("Decode: %v", err)
 		}
 
