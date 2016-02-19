@@ -280,7 +280,7 @@ func TestSimpleQueries(t *testing.T) {
 	})
 }
 
-func _TestBlackbox(t *testing.T) {
+func TestBlackbox(t *testing.T) {
 	conf := MustLoadTestSchema(pathify("testdata", "blackbox.yml"))
 	MustLoadTestData(testMongoHost, testMongoPort, conf)
 
@@ -307,7 +307,7 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 
 	db, err := sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
 	if err != nil {
-		return err
+		return fmt.Errorf("mysql open: %v", err)
 	}
 	defer db.Close()
 
@@ -354,10 +354,10 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 				panic(err)
 			}
 
-			data, err := csv.NewReader(handle).ReadAll()
-			if err != nil {
-				So(err, ShouldBeNil)
-			}
+			r := csv.NewReader(handle)
+			r.FieldsPerRecord = query.Columns
+			data, err := r.ReadAll()
+			So(err, ShouldBeNil)
 
 			// TODO: check header as well
 			data = data[1:]

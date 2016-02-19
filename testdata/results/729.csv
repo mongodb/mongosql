@@ -2,17 +2,17 @@ none_key_nk,none_strC_nk,none_z_ifnull_str_nk
 key00,one,one
 key01,two,two
 key02,three,three
-key03,\N,i'm null
+key03,,i'm null
 key04,five,five
 key05,six,six
-key06,\N,i'm null
+key06,,i'm null
 key07,eight,eight
 key08,nine,nine
 key09,ten,ten
 key10,eleven,eleven
 key11,twelve,twelve
-key12,\N,i'm null
+key12,,i'm null
 key13,fourteen,fourteen
 key14,fifteen,fifteen
 key15,sixteen,sixteen
-key16,\N,i'm null
+key16,,i'm null

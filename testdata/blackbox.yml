@@ -1,7 +1,5 @@
 addr : 127.0.0.1:3307
 user : root
-password :
-url: 50.23.195.164
 log_level : vv
 
 schema:
