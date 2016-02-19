@@ -280,7 +280,7 @@ func TestSimpleQueries(t *testing.T) {
 	})
 }
 
-func TestBlackbox(t *testing.T) {
+func _TestBlackbox(t *testing.T) {
 	conf := MustLoadTestSchema(pathify("testdata", "blackbox.yml"))
 	MustLoadTestData(testMongoHost, testMongoPort, conf)
 
