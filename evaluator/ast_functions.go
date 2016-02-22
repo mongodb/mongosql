@@ -330,17 +330,28 @@ func castFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 }
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat
-func concatFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+func concatFunc(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
 	if anyNull(values) {
-		return SQLNull, nil
+		v = SQLNull
+		err = nil
+		return
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			v = nil
+			err = fmt.Errorf("%v", r)
+		}
+	}()
 
 	var bytes bytes.Buffer
 	for _, value := range values {
 		bytes.WriteString(value.String())
 	}
 
-	return SQLString(bytes.String()), nil
+	v = SQLString(bytes.String())
+	err = nil
+	return
 }
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curdate
@@ -768,12 +779,6 @@ func evaluateArgsWithCount(f *SQLScalarFunctionExpr, ctx *EvalCtx, counts ...int
 	return evaluateArgs(f, ctx)
 }
 
-const (
-	dateTimeFormat = "2006-1-2 15:4:5"
-	dateFormat     = "2006-1-2"
-	timeFormat     = "15:4:5"
-)
-
 func parseDateTime(value string) (time.Time, bool) {
 
 	for _, f := range schema.TimestampCtorFormats {
@@ -787,7 +792,6 @@ func parseDateTime(value string) (time.Time, bool) {
 }
 
 func runesIndex(r, sep []rune) int {
-	fmt.Printf("\n***finding %v in %v\n", sep, r)
 	for i := 0; i <= len(r)-len(sep); i++ {
 		found := true
 		for j := 0; j < len(sep); j++ {
