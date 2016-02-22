@@ -116,6 +116,21 @@ functions:
       script: |
         curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/attendees.bson.gz --output testdata/input/attendees.bson.gz
         curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/Batters.bson.gz --output testdata/input/Batters.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/Calcs.bson.gz --output testdata/input/Calcs.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/DateTime.bson.gz --output testdata/input/DateTime.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/Election.bson.gz --output testdata/input/Election.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/Fischeriris.bson.gz --output testdata/input/Fischeriris.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/Loan.bson.gz --output testdata/input/Loan.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/NumericBins.bson.gz --output testdata/input/NumericBins.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/Rei.bson.gz --output testdata/input/Rei.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/SeattleCrime.bson.gz --output testdata/input/SeattleCrime.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/Securities.bson.gz --output testdata/input/Securities.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/SpecialData.bson.gz --output testdata/input/SpecialData.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/Staples.bson.gz --output testdata/input/Staples.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/Starbucks.bson.gz --output testdata/input/Starbucks.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/UTStarcom.bson.gz --output testdata/input/UTStarcom.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/xy.bson.gz --output testdata/input/xy.bson.gz
 
   "fetch source" :
     - command: git.get_project

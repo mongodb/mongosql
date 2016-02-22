@@ -355,6 +355,7 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 			}
 
 			r := csv.NewReader(handle)
+
 			r.FieldsPerRecord = query.Columns
 			data, err := r.ReadAll()
 			So(err, ShouldBeNil)

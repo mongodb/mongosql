@@ -1,3 +1,35 @@
+data:
+- ns: fullblackbox.Batters
+  archive_file: testdata/input/Batters.bson.gz
+- ns: fullblackbox.Calcs
+  archive_file: testdata/input/Calcs.bson.gz
+- ns: fullblackbox.DateTime
+  archive_file: testdata/input/DateTime.bson.gz
+- ns: fullblackbox.Election
+  archive_file: testdata/input/Election.bson.gz
+- ns: fullblackbox.Fischeriris
+  archive_file: testdata/input/Fischeriris.bson.gz
+- ns: fullblackbox.Loan
+  archive_file: testdata/input/Loan.bson.gz
+- ns: fullblackbox.NumericBins
+  archive_file: testdata/input/NumericBins.bson.gz
+- ns: fullblackbox.Rei
+  archive_file: testdata/input/Rei.bson.gz
+- ns: fullblackbox.SeattleCrime
+  archive_file: testdata/input/SeattleCrime.bson.gz
+- ns: fullblackbox.Securities
+  archive_file: testdata/input/Securities.bson.gz
+- ns: fullblackbox.SpecialData
+  archive_file: testdata/input/SpecialData.bson.gz
+- ns: fullblackbox.Staples
+  archive_file: testdata/input/Staples.bson.gz
+- ns: fullblackbox.Starbucks
+  archive_file: testdata/input/Starbucks.bson.gz
+- ns: fullblackbox.UTStarcom
+  archive_file: testdata/input/UTStarcom.bson.gz
+- ns: fullblackbox.xy
+  archive_file: testdata/input/xy.bson.gz
+
 addr : 127.0.0.1:3307
 user : root
 log_level : vv
