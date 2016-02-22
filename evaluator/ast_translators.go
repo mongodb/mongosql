@@ -390,9 +390,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$subtract": []interface{}{
 					bson.M{"$month": args[0]},
 					1}}}}, true
-		case "pow":
-			fallthrough
-		case "power":
+		case "pow", "power":
 			if len(args) != 2 {
 				return nil, false
 			}

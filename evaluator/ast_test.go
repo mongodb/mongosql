@@ -391,6 +391,7 @@ func TestEvaluates(t *testing.T) {
 					test{"LOCATE('bar', 'foobarbar')", SQLInt(4)},
 					test{"LOCATE('xbar', 'foobarbar')", SQLInt(0)},
 					test{"LOCATE('bar', 'foobarbar', 5)", SQLInt(7)},
+					test{"LOCATE('語', '日本語')", SQLInt(3)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -504,6 +505,7 @@ func TestEvaluates(t *testing.T) {
 					test{"SUBSTRING('Quadratically', 5, 6)", SQLString("ratica")},
 					test{"SUBSTRING('Sakila', -3)", SQLString("ila")},
 					test{"SUBSTRING('Sakila', -5, 3)", SQLString("aki")},
+					test{"SUBSTRING('日本語', 2)", SQLString("本語")},
 				}
 				runTests(evalCtx, tests)
 			})

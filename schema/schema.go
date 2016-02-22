@@ -116,9 +116,10 @@ var (
 	// TimestampCtorFormats holds the various formats for constructing
 	// the timestamp
 	TimestampCtorFormats = []string{
-		"2006-01-02",
-		"2006-01-02 15:04:05",
-		"2006-01-02 15:04:05.000",
+		"15:4:5",
+		"2006-1-2",
+		"2006-1-2 15:4:5",
+		"2006-1-2 15:4:5.000",
 	}
 )
 

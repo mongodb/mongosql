@@ -6,6 +6,8 @@ import (
 	"math"
 	"strings"
 	"time"
+
+	"github.com/10gen/sqlproxy/schema"
 )
 
 //
@@ -210,6 +212,7 @@ var fnMap = map[string]fnDef{
 	"current_timestamp": newFnDef(currentTimestampFunc),
 	"database":          newFnDef(dbFunc),
 	"dayname":           newFnDef(dayNameFunc, 1),
+	"day":               newFnDef(dayOfMonthFunc, 1),
 	"dayofmonth":        newFnDef(dayOfMonthFunc, 1),
 	"dayofweek":         newFnDef(dayOfWeekFunc, 1),
 	"dayofyear":         newFnDef(dayOfYearFunc, 1),
@@ -342,7 +345,7 @@ func concatFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curdate
 func currentDateFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	value := time.Now().UTC()
+	value := time.Now().In(schema.DefaultLocale)
 	return SQLDate{value}, nil
 }
 
@@ -362,7 +365,7 @@ func dayNameFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(t.Weekday().String()), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofmonth
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofmonth
 func dayOfMonthFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
@@ -372,7 +375,7 @@ func dayOfMonthFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Day())), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofweek
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofweek
 func dayOfWeekFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
@@ -382,7 +385,7 @@ func dayOfWeekFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Weekday()) + 1), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofyear
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayofyear
 func dayOfYearFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
@@ -392,7 +395,7 @@ func dayOfYearFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.YearDay())), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_exp
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_exp
 func expFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	n, ok := values[0].(SQLNumeric)
 	if !ok {
@@ -403,7 +406,7 @@ func expFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(r), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_floor
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_floor
 func floorFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	n, ok := values[0].(SQLNumeric)
 	if !ok {
@@ -414,7 +417,7 @@ func floorFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(r), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_hour
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_hour
 func hourFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
@@ -424,7 +427,7 @@ func hourFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Hour())), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_lcase
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lcase
 func lcaseFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
@@ -435,7 +438,7 @@ func lcaseFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(value), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_length
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_length
 func lengthFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
@@ -446,14 +449,14 @@ func lengthFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(len(value)), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_locate
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_locate
 func locateFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
 	}
 
-	substr := values[0].String()
-	str := values[1].String()
+	substr := []rune(values[0].String())
+	str := []rune(values[1].String())
 	result := 0
 	if len(values) == 3 {
 		posValue, ok := values[2].(SQLNumeric)
@@ -466,20 +469,20 @@ func locateFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		if len(str) <= pos {
 			result = 0
 		} else {
-			str = string([]rune(str)[pos:])
-			result = strings.Index(str, substr)
+			str = str[pos:]
+			result = runesIndex(str, substr)
 			if result > 0 {
 				result += pos
 			}
 		}
 	} else {
-		result = strings.Index(str, substr)
+		result = runesIndex(str, substr)
 	}
 
 	return SQLInt(result + 1), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_log10
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log10
 func log10Func(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	nValue, ok := values[0].(SQLNumeric)
 	if !ok {
@@ -496,7 +499,7 @@ func log10Func(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(r), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_ltrim
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ltrim
 func ltrimFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
@@ -507,7 +510,7 @@ func ltrimFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(value), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_minute
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_minute
 func minuteFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
@@ -517,7 +520,7 @@ func minuteFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Minute())), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_mod
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_mod
 func modFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	nValue, ok := values[0].(SQLNumeric)
 	if !ok {
@@ -539,7 +542,7 @@ func modFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(r), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_month
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_month
 func monthFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
@@ -549,7 +552,7 @@ func monthFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Month())), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_monthname
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_monthname
 func monthNameFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
@@ -573,7 +576,7 @@ func powFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return nil, fmt.Errorf("base must be a number, but got %T", values[0])
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_quarter
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_quarter
 func quarterFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
@@ -595,7 +598,7 @@ func quarterFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(q), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_rtrim
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_rtrim
 func rtrimFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
@@ -606,7 +609,7 @@ func rtrimFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(value), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_second
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_second
 func secondFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
@@ -616,7 +619,7 @@ func secondFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(int(t.Second())), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/mathematical-functions.html#function_sqrt
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_sqrt
 func sqrtFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	nValue, ok := values[0].(SQLNumeric)
 	if !ok {
@@ -632,7 +635,7 @@ func sqrtFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(r), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_substring
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_substring
 func substringFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
@@ -677,7 +680,7 @@ func substringFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(string(str)), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/string-functions.html#function_ucase
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ucase
 func ucaseFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if anyNull(values) {
 		return SQLNull, nil
@@ -688,7 +691,7 @@ func ucaseFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLString(value), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_week
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_week
 func weekFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	// TODO: this one takes a mode as an optional second argument...
 	t, ok := parseDateTime(values[0].String())
@@ -701,7 +704,7 @@ func weekFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(w), nil
 }
 
-// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_year
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_year
 func yearFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
@@ -772,16 +775,32 @@ const (
 )
 
 func parseDateTime(value string) (time.Time, bool) {
-	t, err := time.Parse(dateTimeFormat, value)
-	if err == nil {
-		return t, true
+
+	for _, f := range schema.TimestampCtorFormats {
+		t, err := time.Parse(f, value)
+		if err == nil {
+			return t, true
+		}
 	}
 
-	t, err = time.Parse(dateFormat, value)
-	if err == nil {
-		return t, true
+	return time.Time{}, false
+}
+
+func runesIndex(r, sep []rune) int {
+	fmt.Printf("\n***finding %v in %v\n", sep, r)
+	for i := 0; i <= len(r)-len(sep); i++ {
+		found := true
+		for j := 0; j < len(sep); j++ {
+			if r[i+j] != sep[j] {
+				found = false
+				break
+			}
+		}
+
+		if found {
+			return i
+		}
 	}
 
-	t, err = time.Parse(timeFormat, value)
-	return t, err == nil
+	return -1
 }
