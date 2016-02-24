@@ -137,7 +137,7 @@ func (v *optimizer) visitFilter(filter *Filter) (Operator, error) {
 
 	} else {
 		var matchBody bson.M
-		matchBody, localMatcher = TranslatePredicate(optimizedExpr, ms.mappingRegistry.lookupFieldName)
+		matchBody, localMatcher = TranslatePredicate(optimizedExpr, ms.mappingRegistry.lookupFieldName, ms.mappingRegistry.lookupFieldType)
 
 		if matchBody == nil {
 			// no pieces of the matcher are able to be pushed down,

@@ -45,18 +45,32 @@ func (mr *mappingRegistry) registerMapping(tbl, column, field string) {
 	mr.fields[tbl][column] = field
 }
 
-func (mr *mappingRegistry) lookupFieldName(tbl, column string) (string, bool) {
+func (mr *mappingRegistry) lookupFieldName(tableName, columnName string) (string, bool) {
 	if mr.fields == nil {
 		return "", false
 	}
 
-	columnToField, ok := mr.fields[tbl]
+	columnToField, ok := mr.fields[tableName]
 	if !ok {
 		return "", false
 	}
 
-	field, ok := columnToField[column]
+	field, ok := columnToField[columnName]
 	return field, ok
+}
+
+func (mr *mappingRegistry) lookupFieldType(tableName, columnName string) (string, bool) {
+	if mr.fields == nil {
+		return "", false
+	}
+
+	for _, column := range mr.columns {
+		if column.Table == tableName && column.Name == columnName {
+			return column.Type, true
+		}
+	}
+
+	return "", false
 }
 
 // MongoSource is the primary interface for SQLProxy to a MongoDB

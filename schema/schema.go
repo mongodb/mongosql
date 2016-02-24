@@ -23,7 +23,7 @@ const (
 
 	/*
 
-		TODO: support these
+		TODO (INT-800): support these
 
 		SQLDecimal  = "decimal"
 		SQLDouble   = "double"

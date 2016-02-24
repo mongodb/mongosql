@@ -20,6 +20,7 @@ type SQLValue interface {
 	SQLExpr
 	CompareTo(SQLValue) (int, error)
 	Value() interface{}
+	Type(fieldTypeLookup) string
 }
 
 //
@@ -256,6 +257,7 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		}
 
 	case *SQLInExpr:
+
 		left, err := v.Visit(typedE.left)
 		if err != nil {
 			return nil, err
@@ -264,6 +266,7 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		if typedE.left != left || typedE.right != right {
 			e = &SQLInExpr{left, right}
 		}

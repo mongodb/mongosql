@@ -222,6 +222,14 @@ schema:
         sqlname: c
         sqltype: string
      -
+        name: g
+        sqlname: g
+        sqltype: datetime
+     -
+        name: h
+        sqlname: h
+        sqltype: date
+     -
         name: _id
   -
      table: foo

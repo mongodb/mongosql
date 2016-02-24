@@ -27,6 +27,23 @@ func createFieldNameLookup(db *schema.Database) fieldNameLookup {
 	}
 }
 
+func createFieldTypeLookup(db *schema.Database) fieldTypeLookup {
+
+	return func(tableName, columnName string) (string, bool) {
+		table := db.Tables[tableName]
+		if table == nil {
+			return "", false
+		}
+
+		column := table.SQLColumns[columnName]
+		if column == nil {
+			return "", false
+		}
+
+		return column.SqlType, true
+	}
+}
+
 func TestEvaluates(t *testing.T) {
 
 	type test struct {
@@ -669,15 +686,15 @@ func TestTranslatePredicate(t *testing.T) {
 
 	runTests := func(tests []test) {
 		schema, err := schema.ParseSchemaData(testSchema3)
-
-		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
-
 		So(err, ShouldBeNil)
+		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
+		lookupFieldType := createFieldTypeLookup(schema.Databases["test"])
+
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
 				So(err, ShouldBeNil)
-				match, local := TranslatePredicate(e, lookupFieldName)
+				match, local := TranslatePredicate(e, lookupFieldName, lookupFieldType)
 				jsonResult, err := json.Marshal(match)
 				So(err, ShouldBeNil)
 				So(string(jsonResult), ShouldEqual, t.expected)
@@ -695,13 +712,14 @@ func TestTranslatePredicate(t *testing.T) {
 
 	runPartialTests := func(tests []partialTest) {
 		schema, err := schema.ParseSchemaData(testSchema3)
-		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
 		So(err, ShouldBeNil)
+		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
+		lookupFieldType := createFieldTypeLookup(schema.Databases["test"])
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\" and locally evaluate %q", t.sql, t.expected, t.localDesc), func() {
 				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
 				So(err, ShouldBeNil)
-				match, local := TranslatePredicate(e, lookupFieldName)
+				match, local := TranslatePredicate(e, lookupFieldName, lookupFieldType)
 				jsonResult, err := json.Marshal(match)
 				So(err, ShouldBeNil)
 				So(string(jsonResult), ShouldEqual, t.expected)
@@ -727,6 +745,8 @@ func TestTranslatePredicate(t *testing.T) {
 			test{"(a > 3 AND a < 10) OR b = 10", `{"$or":[{"$and":[{"a":{"$gt":3}},{"a":{"$lt":10}}]},{"b":10}]}`},
 			test{"a > 3 AND (a < 10 OR b = 10)", `{"$and":[{"a":{"$gt":3}},{"$or":[{"a":{"$lt":10}},{"b":10}]}]}`},
 			test{"a IN(1,3,5)", `{"a":{"$in":[1,3,5]}}`},
+			test{"g IN('2016-02-03 12:23:11.392')", `{"g":{"$in":["2016-02-03T12:23:11.392Z"]}}`},
+			test{"h IN('2016-02-03 12:23:11.392')", `{"h":{"$in":["2016-02-03T00:00:00Z"]}}`},
 			test{"a IS NULL", `{"a":null}`},
 			test{"NOT (a > 3)", `{"a":{"$not":{"$gt":3}}}`},
 			test{"NOT (NOT (a > 3))", `{"a":{"$gt":3}}`},

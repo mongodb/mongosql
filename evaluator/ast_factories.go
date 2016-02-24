@@ -3,7 +3,6 @@ package evaluator
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/10gen/sqlproxy/schema"
@@ -111,6 +110,8 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			return SQLString(strconv.FormatInt(v, 10)), nil
 		case bson.ObjectId:
 			return SQLString(v.Hex()), nil
+		case nil:
+			return SQLNullValue{}, nil
 		}
 
 	case schema.SQLBoolean:
@@ -128,6 +129,8 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			eval, err = strconv.Atoi(v)
 		case int, int32, int64, float64:
 			eval, err = util.ToInt(v)
+		case nil:
+			return SQLNullValue{}, nil
 		}
 
 		if err == nil {
@@ -153,14 +156,13 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			if err == nil {
 				return SQLInt(eval), nil
 			}
-			if strings.Trim(v, " ") == "" {
-				return SQLNullValue{}, nil
-			}
 		case int, int32, int64, float64:
 			eval, err := util.ToInt(v)
 			if err == nil {
 				return SQLInt(eval), nil
 			}
+		case nil:
+			return SQLNullValue{}, nil
 		}
 
 	case schema.SQLFloat, schema.SQLDouble:
@@ -176,14 +178,14 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			if err == nil {
 				return SQLFloat(float64(eval)), nil
 			}
-			if strings.Trim(v, " ") == "" {
-				return SQLNullValue{}, nil
-			}
+
 		case int, int32, int64, float64:
 			eval, err := util.ToFloat64(v)
 			if err == nil {
 				return SQLFloat(eval), nil
 			}
+		case nil:
+			return SQLNullValue{}, nil
 		}
 
 	//
@@ -230,6 +232,10 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 			return NewSQLValue(v.Time(), columnType)
 
+		case nil:
+
+			return SQLNullValue{}, nil
+
 		default:
 
 			return SQLDate{schema.DefaultTime}, nil
@@ -274,6 +280,10 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 			return NewSQLValue(v.Time(), columnType)
 
+		case nil:
+
+			return SQLNullValue{}, nil
+
 		default:
 
 			return SQLDateTime{schema.DefaultTime}, nil
@@ -317,6 +327,10 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		case bson.ObjectId:
 
 			return NewSQLValue(v.Time(), columnType)
+
+		case nil:
+
+			return SQLNullValue{}, nil
 
 		default:
 
@@ -373,6 +387,10 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		case bson.ObjectId:
 
 			return NewSQLValue(v.Time(), columnType)
+
+		case nil:
+
+			return SQLNullValue{}, nil
 
 		default:
 			return SQLYear{schema.DefaultTime}, nil

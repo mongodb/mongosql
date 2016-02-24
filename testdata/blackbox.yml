@@ -30,9 +30,9 @@ data:
 - ns: fullblackbox.xy
   archive_file: testdata/input/xy.bson.gz
 
-addr : 127.0.0.1:3307
-user : root
-log_level : vv
+addr: 127.0.0.1:3307
+user: root
+log_level: vv
 
 schema:
 - db: fullblackbox
@@ -128,7 +128,6 @@ schema:
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
-
   - table: Calcs
     collection: fullblackbox.Calcs
     columns:
@@ -155,19 +154,19 @@ schema:
     - name: date0
       mongotype: date
       sqlname: date0
-      sqltype: timestamp
+      sqltype: date
     - name: date1
       mongotype: date
       sqlname: date1
-      sqltype: timestamp
+      sqltype: date
     - name: date2
       mongotype: date
       sqlname: date2
-      sqltype: timestamp
+      sqltype: date
     - name: date3
       mongotype: date
       sqlname: date3
-      sqltype: timestamp
+      sqltype: date
     - name: datetime0
       mongotype: date
       sqlname: datetime0
@@ -229,18 +228,17 @@ schema:
       sqlname: str3
       sqltype: varchar
     - name: time0
-      mongotype: string
+      mongotype: date
       sqlname: time0
-      sqltype: varchar
+      sqltype: datetime
     - name: time1
-      mongotype: string
+      mongotype: date
       sqlname: time1
-      sqltype: varchar
+      sqltype: datetime
     - name: zzz
       mongotype: string
       sqlname: zzz
       sqltype: varchar
-
   - table: DateTime
     collection: fullblackbox.DateTime
     columns:
@@ -251,11 +249,11 @@ schema:
     - name: Date
       mongotype: date
       sqlname: date
-      sqltype: timestamp
+      sqltype: date
     - name: DateTime
       mongotype: date
       sqlname: datetime
-      sqltype: timestamp
+      sqltype: datetime
     - name: Diagonal
       mongotype: float64
       sqlname: diagonal
@@ -269,14 +267,13 @@ schema:
       sqlname: random
       sqltype: float
     - name: Time
-      mongotype: string
+      mongotype: date
       sqlname: time
-      sqltype: varchar
+      sqltype: datetime
     - name: _id
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
-
   - table: Election
     collection: fullblackbox.Election
     columns:
@@ -324,7 +321,6 @@ schema:
       mongotype: geo.2darray
       sqlname: loc_coordinates
       sqltype: float
-
   - table: Fischeriris
     collection: fullblackbox.FischerIris
     columns:
@@ -368,7 +364,6 @@ schema:
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
-
   - table: Loan
     collection: fullblackbox.Loan
     columns:
@@ -516,7 +511,6 @@ schema:
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
-
   - table: NumericBins
     collection: fullblackbox.NumericBins
     columns:
@@ -556,7 +550,6 @@ schema:
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
-
   - table: SeattleCrime
     collection: fullblackbox.SeattleCrime
     columns:
@@ -624,7 +617,6 @@ schema:
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
-
   - table: Securities
     collection: fullblackbox.Securities
     columns:
@@ -676,7 +668,6 @@ schema:
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
-
   - table: SpecialData
     collection: fullblackbox.SpecialData
     columns:
@@ -712,7 +703,6 @@ schema:
       mongotype: int
       sqlname: val5
       sqltype: int
-
   - table: Staples
     collection: fullblackbox.Staples
     columns:
@@ -928,7 +918,6 @@ schema:
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
-
   - table: Starbucks
     collection: fullblackbox.Starbucks
     columns:
@@ -1052,7 +1041,6 @@ schema:
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
-
   - table: UTStarcom
     collection: fullblackbox.UTStarcom
     columns:
@@ -1092,7 +1080,6 @@ schema:
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
-
   - table: xy
     collection: fullblackbox.xy
     columns:

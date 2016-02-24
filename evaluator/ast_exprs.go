@@ -139,6 +139,14 @@ func (c SQLColumnExpr) String() string {
 	return str
 }
 
+func (c SQLColumnExpr) Type(lookupFieldType fieldTypeLookup) string {
+	t, ok := lookupFieldType(c.tableName, c.columnName)
+	if !ok {
+		return ""
+	}
+	return t
+}
+
 // SQLSubqueryExpr is a wrapper around a sqlparser.SelectStatement representing
 // a subquery.
 type SQLSubqueryExpr struct {

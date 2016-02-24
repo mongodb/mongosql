@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/schema"
+
 	"fmt"
 	"math"
 	"strconv"
@@ -27,6 +29,10 @@ func (sb SQLBool) String() string {
 		return "true"
 	}
 	return "false"
+}
+
+func (sb SQLBool) Type(fieldTypeLookup) string {
+	return schema.SQLBoolean
 }
 
 func (sb SQLBool) CompareTo(v SQLValue) (int, error) {
@@ -86,6 +92,10 @@ func (sd SQLDate) String() string {
 	return sd.Time.Format("2006-01-02")
 }
 
+func (sd SQLDate) Type(fieldTypeLookup) string {
+	return schema.SQLDate
+}
+
 func (sd SQLDate) CompareTo(v SQLValue) (int, error) {
 
 	var t1, t2 time.Time
@@ -106,6 +116,13 @@ func (sd SQLDate) CompareTo(v SQLValue) (int, error) {
 	case SQLYear:
 		t1 = sd.Time
 		t2 = vt.Time
+	case SQLString:
+		t1 = sd.Time
+		value, err := NewSQLValue(vt.String(), schema.SQLDate)
+		if err != nil {
+			return 0, nil
+		}
+		t2 = value.(SQLDate).Time
 	default:
 		return -1, fmt.Errorf("SQLDate comparison not yet implemented against: %T", vt)
 	}
@@ -139,6 +156,10 @@ func (sd SQLDateTime) String() string {
 	return sd.Time.Format("2006-01-02 15:04:05")
 }
 
+func (sd SQLDateTime) Type(fieldTypeLookup) string {
+	return schema.SQLDateTime
+}
+
 func (sd SQLDateTime) CompareTo(v SQLValue) (int, error) {
 
 	var t1, t2 time.Time
@@ -157,6 +178,13 @@ func (sd SQLDateTime) CompareTo(v SQLValue) (int, error) {
 	case SQLYear:
 		t1 = sd.Time
 		t2 = vt.Time
+	case SQLString:
+		t1 = sd.Time
+		value, err := NewSQLValue(vt.String(), schema.SQLDateTime)
+		if err != nil {
+			return 0, nil
+		}
+		t2 = value.(SQLDateTime).Time
 	default:
 		return -1, fmt.Errorf("SQLDateTime comparison not yet implemented against: %T", vt)
 	}
@@ -176,6 +204,7 @@ func (sd SQLDateTime) Value() interface{} {
 }
 
 //
+// TODO (INT-800): should we support this?
 // SQLTime represents a time value.
 //
 type SQLTime struct {
@@ -188,6 +217,10 @@ func (st SQLTime) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (st SQLTime) String() string {
 	return st.Time.Format("15:04:05")
+}
+
+func (sd SQLTime) Type(fieldTypeLookup) string {
+	return schema.SQLTime
 }
 
 func (st SQLTime) CompareTo(v SQLValue) (int, error) {
@@ -220,6 +253,10 @@ func (st SQLTimestamp) String() string {
 	return st.Time.Format("2006-01-02 15:04:05")
 }
 
+func (st SQLTimestamp) Type(fieldTypeLookup) string {
+	return schema.SQLTimestamp
+}
+
 func (st SQLTimestamp) CompareTo(v SQLValue) (int, error) {
 
 	var t1, t2 time.Time
@@ -238,6 +275,13 @@ func (st SQLTimestamp) CompareTo(v SQLValue) (int, error) {
 	case SQLYear:
 		t1 = st.Time
 		t2 = vt.Time
+	case SQLString:
+		t1 = st.Time
+		value, err := NewSQLValue(vt.String(), schema.SQLTimestamp)
+		if err != nil {
+			return 0, nil
+		}
+		t2 = value.(SQLTimestamp).Time
 	default:
 		return -1, fmt.Errorf("SQLTimestamp comparison not yet implemented against: %T", vt)
 	}
@@ -271,6 +315,10 @@ func (st SQLYear) String() string {
 	return st.Time.Format("2006")
 }
 
+func (st SQLYear) Type(fieldTypeLookup) string {
+	return schema.SQLYear
+}
+
 func (st SQLYear) CompareTo(v SQLValue) (int, error) {
 
 	var t1, t2 time.Time
@@ -289,6 +337,13 @@ func (st SQLYear) CompareTo(v SQLValue) (int, error) {
 	case SQLYear:
 		t1 = st.Time
 		t2 = vt.Time
+	case SQLString:
+		t1 = st.Time
+		value, err := NewSQLValue(vt.String(), schema.SQLYear)
+		if err != nil {
+			return 0, nil
+		}
+		t2 = value.(SQLYear).Time
 	default:
 		return -1, fmt.Errorf("SQLYear comparison not yet implemented against: %T", vt)
 	}
@@ -318,6 +373,10 @@ func (sf SQLFloat) Evaluate(_ *EvalCtx) (SQLValue, error) {
 
 func (sf SQLFloat) String() string {
 	return strconv.FormatFloat(float64(sf), 'f', -1, 64)
+}
+
+func (sf SQLFloat) Type(fieldTypeLookup) string {
+	return schema.SQLFloat
 }
 
 func (sf SQLFloat) CompareTo(v SQLValue) (int, error) {
@@ -364,6 +423,10 @@ func (si SQLInt) Evaluate(_ *EvalCtx) (SQLValue, error) {
 
 func (si SQLInt) String() string {
 	return strconv.Itoa(int(si))
+}
+
+func (si SQLInt) Type(fieldTypeLookup) string {
+	return schema.SQLInt
 }
 
 func (si SQLInt) CompareTo(v SQLValue) (int, error) {
@@ -432,6 +495,10 @@ func (nv SQLNullValue) String() string {
 	return "null"
 }
 
+func (nv SQLNullValue) Type(fieldTypeLookup) string {
+	return schema.SQLNull
+}
+
 func (nv SQLNullValue) CompareTo(v SQLValue) (int, error) {
 	if _, ok := v.(SQLNullValue); ok {
 		return 0, nil
@@ -454,6 +521,10 @@ func (ss SQLString) Evaluate(_ *EvalCtx) (SQLValue, error) {
 
 func (ss SQLString) String() string {
 	return string(ss)
+}
+
+func (ss SQLString) Type(fieldTypeLookup) string {
+	return schema.SQLString
 }
 
 func (sn SQLString) CompareTo(v SQLValue) (int, error) {
@@ -494,6 +565,10 @@ func (sv *SQLValues) String() string {
 	return prefix
 }
 
+func (sv *SQLValues) Type(fieldTypeLookup) string {
+	return ""
+}
+
 func (sv *SQLValues) CompareTo(v SQLValue) (int, error) {
 
 	r, ok := v.(*SQLValues)
@@ -515,7 +590,7 @@ func (sv *SQLValues) CompareTo(v SQLValue) (int, error) {
 
 		c, err := sv.Values[i].CompareTo(r.Values[i])
 		if err != nil {
-			return 1, err
+			return 0, err
 		}
 
 		if c != 0 {
@@ -546,6 +621,10 @@ func (su SQLUint32) Evaluate(_ *EvalCtx) (SQLValue, error) {
 
 func (su SQLUint32) String() string {
 	return strconv.FormatFloat(float64(su), 'f', -1, 32)
+}
+
+func (su SQLUint32) Type(fieldTypeLookup) string {
+	return schema.SQLInt
 }
 
 func (su SQLUint32) CompareTo(v SQLValue) (int, error) {
