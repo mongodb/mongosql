@@ -6,6 +6,7 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 	"strings"
+	"unsafe"
 )
 
 var (
@@ -87,12 +88,30 @@ func (pCtx *ParseCtx) InFuncExpr() bool {
 	return (pCtx.State & StateFuncExpr) > 0
 }
 
+func (pCtx *ParseCtx) InRefColumn() bool {
+	return (pCtx.State & StateRefColExpr) > 0
+}
+
 func (pCtx *ParseCtx) InSubquery() bool {
 	return (pCtx.State & StateSubQueryExpr) > 0
 }
 
-func (pCtx *ParseCtx) InRefColumn() bool {
-	return (pCtx.State & StateRefColExpr) > 0
+func (state ParseState) String() string {
+	states := []string{}
+
+	if (state & StateFuncExpr) > 0 {
+		states = append(states, "StateFuncExpr")
+	}
+
+	if (state & StateRefColExpr) > 0 {
+		states = append(states, "StateRefColExpr")
+	}
+
+	if (state & StateSubQueryExpr) > 0 {
+		states = append(states, "StateSubQueryExpr")
+	}
+
+	return strings.Join(states, ",")
 }
 
 func (pCtx *ParseCtx) String() string {
@@ -100,7 +119,9 @@ func (pCtx *ParseCtx) String() string {
 		return ""
 	}
 
-	b := bytes.NewBufferString(fmt.Sprintf("%v Phase (%v); State (%v):", &pCtx, pCtx.Phase, pCtx.State))
+	addr := unsafe.Pointer(pCtx)
+
+	b := bytes.NewBufferString(fmt.Sprintf("%v Phase (%v); State (%v):", addr, pCtx.Phase, pCtx.State))
 
 	if pCtx.Expr != nil {
 		b.WriteString(fmt.Sprintf(" %v", sqlparser.String(pCtx.Expr)))
@@ -158,7 +179,8 @@ func (pCtx *ParseCtx) string(b *bytes.Buffer, d int) {
 
 	for i, ctx := range pCtx.Children {
 		printTabs(b, d+1)
-		b.WriteString(fmt.Sprintf("Child %v: %v\n", i, &ctx))
+		addr := unsafe.Pointer(ctx)
+		b.WriteString(fmt.Sprintf("Child %v: %v\n", i, addr))
 		ctx.string(b, d+1)
 	}
 }
@@ -373,7 +395,7 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName, columnName string) (*Ta
 
 			if pCtx.Parent == nil {
 
-				var tInfo *TableInfo
+				var tInfo TableInfo
 
 				// indicates a star expression
 				if columnName == "" {
@@ -386,18 +408,23 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName, columnName string) (*Ta
 
 				for _, tableInfo := range pCtx.Tables {
 
+					// derived tables must be qualified
+					if tableInfo.Derived {
+						continue
+					}
+
 					column.Table = tableInfo.Alias
 
 					if err := pCtx.CheckColumn(&tableInfo, columnName); err != nil {
 
 						if pCtx.IsSchemaColumn(column) {
-							tInfo = &tableInfo
+							tInfo = tableInfo
 							count++
 						}
 						continue
 					}
 
-					tInfo = &tableInfo
+					tInfo = tableInfo
 					count++
 				}
 
@@ -405,9 +432,9 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName, columnName string) (*Ta
 					return nil, fmt.Errorf("Column '%v' not found", columnName)
 				} else if count > 1 {
 					return nil, fmt.Errorf("Column '%v' in field list is ambiguous", columnName)
-				}
 
-				return tInfo, nil
+				}
+				return &tInfo, nil
 			}
 
 			return pCtx.Parent.GetCurrentTable(dbName, tableName, columnName)
@@ -461,7 +488,6 @@ func (pCtx *ParseCtx) checkColumn(table, column string, depth int) error {
 
 				if c.Alias == column {
 					return nil
-
 				}
 			}
 

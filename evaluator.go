@@ -68,7 +68,7 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 		}
 
 		if pCtx != nil {
-			log.Logf(log.DebugLow, "pCTX: %v\n", pCtx.String())
+			log.Logf(log.DebugLow, "Query Planner ParseCtx: %v\n", pCtx.String())
 		}
 
 	}

@@ -21,13 +21,12 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 			pCtx.Phase = PhaseFrom
 
 			for _, table := range stmt.From {
-
 				err := algebrizeTableExpr(table, pCtx)
 				if err != nil {
 					return err
 				}
-
 			}
+
 		}
 
 		// algebrize 'SELECT EXPRESSION' clause
@@ -237,9 +236,7 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 
 			pCtx.Expr = expr.Expr
 
-			if pCtx.NonStarAlias == "" {
-				pCtx.NonStarAlias = string(expr.As)
-			}
+			pCtx.NonStarAlias = string(expr.As)
 
 			pCtx.State &^= StateRefColExpr
 
@@ -644,7 +641,6 @@ func algebrizeSimpleTableExpr(stExpr sqlparser.SimpleTableExpr, pCtx *ParseCtx) 
 			if err = algebrizeSelectStatement(expr.Select, nCtx); err != nil {
 				return nil, fmt.Errorf("can't algebrize Subquery: %v", err)
 			}
-
 		}
 
 		return expr, nil
@@ -843,7 +839,6 @@ func resolveColumnExpr(expr *sqlparser.ColName, pCtx *ParseCtx) (sqlparser.Expr,
 		// indicate that a column expression was just algebrized
 		pCtx.NonStarAlias = ""
 		pCtx.State |= StateRefColExpr
-
 	}()
 
 	columnInfo, err := columnToCtx(pCtx, expr)
@@ -922,6 +917,7 @@ func resolveColumnExpr(expr *sqlparser.ColName, pCtx *ParseCtx) (sqlparser.Expr,
 	// either as a column or as a column reference.
 
 	if !pCtx.InFuncExpr() && pCtx.Phase == PhaseSelectExpr {
+
 		if _, ok := pCtx.Expr.(*sqlparser.ColName); ok {
 			index := len(pCtx.Columns) + len(pCtx.ColumnReferences)
 			columnInfo.Index = index
@@ -945,8 +941,8 @@ func resolveColumnExpr(expr *sqlparser.ColName, pCtx *ParseCtx) (sqlparser.Expr,
 	return expr, nil
 }
 
-// columnToCtx returns the column information given a parse context, the name
-// of the field, and an optional alias.
+// columnToCtx returns the column information given a parse context and
+// a column expression
 func columnToCtx(pCtx *ParseCtx, expr *sqlparser.ColName) (*ColumnInfo, error) {
 
 	columnInfo := &ColumnInfo{}
