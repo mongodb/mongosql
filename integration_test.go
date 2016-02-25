@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/csv"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -23,6 +24,11 @@ import (
 	"github.com/mongodb/mongo-tools/mongorestore"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/yaml.v2"
+)
+
+// test flags
+var (
+	blackbox = flag.Bool("blackbox", false, "Run blackbox tests")
 )
 
 const (
@@ -280,7 +286,11 @@ func TestSimpleQueries(t *testing.T) {
 	})
 }
 
-func _TestBlackbox(t *testing.T) {
+func TestBlackBox(t *testing.T) {
+	if !*blackbox {
+		t.Skip("skipping blackbox test")
+	}
+
 	conf := MustLoadTestSchema(pathify("testdata", "blackbox.yml"))
 	MustLoadTestData(testMongoHost, testMongoPort, conf)
 

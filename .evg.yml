@@ -236,6 +236,31 @@ functions:
       display_name: sqlproxy${extension}
 
 tasks:
+- name: blackbox
+  commands:
+    - func: "fetch source"
+    - func: "download test data"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          . ./set_gopath.sh
+          mkfifo test_pipe
+          tee -a blackbox.suite < test_pipe&
+          ${gotest_env} go test -blackbox -run TestBlackBox -timeout 4h -v -coverprofile=coverage.out > test_pipe
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
+
 - name: schema
   commands:
     - func: "fetch source"
