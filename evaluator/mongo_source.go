@@ -201,10 +201,12 @@ func (ms *MongoSource) Next(row *Row) bool {
 				return false
 			}
 
+			extractedField, _ := extractFieldByName(mappedFieldName, data)
+
 			value := Value{
 				Name: column.Name,
 				View: column.View,
-				Data: extractFieldByName(mappedFieldName, data),
+				Data: extractedField,
 			}
 
 			value.Data, err = NewSQLValue(value.Data, column.Type)

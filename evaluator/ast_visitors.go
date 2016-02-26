@@ -59,9 +59,17 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 	switch expr := e.(type) {
 
-	case nil, *SQLCtorExpr, *SQLScalarFunctionExpr, SQLString, SQLNullValue:
+	case nil, *SQLCtorExpr, SQLString, SQLNullValue:
 
 		return e, nil
+
+	case *SQLScalarFunctionExpr:
+		for _, funcArg := range expr.Exprs {
+			_, err := cf.Visit(funcArg)
+			if err != nil {
+				return nil, err
+			}
+		}
 
 	case *SQLAggFunctionExpr:
 

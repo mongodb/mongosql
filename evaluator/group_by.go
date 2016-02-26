@@ -3,8 +3,6 @@ package evaluator
 import (
 	"bytes"
 	"fmt"
-	"strconv"
-	"strings"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -301,31 +299,12 @@ func translateGroupByKeys(keyExprs SelectExpressions, lookupFieldName fieldNameL
 	keys := bson.M{}
 
 	for _, keyExpr := range keyExprs {
-
-		switch typedE := keyExpr.Expr.(type) {
-
-		case SQLColumnExpr:
-
-			fieldName, ok := lookupFieldName(typedE.tableName, typedE.columnName)
-			if !ok {
-				return nil, fmt.Errorf("could not map '%v.%v' to a field", typedE.tableName, typedE.columnName)
-			}
-
-			// project to a well-known name of the expr.String(). So, in 'select a from foo group by a',
-			// 'a' will get projected as 'foo_DOT_a'
-			keys[dottifyFieldName(typedE.String())] = getProjectedFieldName(fieldName)
-
-		default:
-
-			transExpr, ok := TranslateExpr(typedE, lookupFieldName)
-			if !ok {
-				return nil, fmt.Errorf("could not translate '%v'", typedE.String())
-			}
-
-			// project to a well-known name of the expr.String(). So, in 'select a from foo group by a+b',
-			// 'a+b' will get projected as 'foo_DOT_a+foo_DOT_b'
-			keys[dottifyFieldName(typedE.String())] = transExpr
+		translatedKey, ok := TranslateExpr(keyExpr.Expr, lookupFieldName)
+		if !ok {
+			return nil, fmt.Errorf("could not translate '%v'", keyExpr.Expr.String())
 		}
+
+		keys[dottifyFieldName(keyExpr.Expr.String())] = translatedKey
 	}
 
 	return keys, nil
@@ -546,30 +525,4 @@ func translateGroupByProject(exprs []SQLExpr, lookupFieldName fieldNameLookup) (
 	}
 
 	return project, nil
-}
-
-// getProjectedFieldName returns an interface to project the given field.
-func getProjectedFieldName(fieldName string) interface{} {
-
-	names := strings.Split(fieldName, ".")
-
-	if len(names) == 1 {
-		return "$" + fieldName
-	}
-
-	// TODO: this is to enable our current tests pass - since
-	// we allow array mappings like:
-	//
-	// - name: loc.0
-	//   sqlname: latitude
-	//
-	// In the future, this swath of code should be removed
-	// and this function can go away
-	value, err := strconv.Atoi(names[len(names)-1])
-	if err == nil {
-		fieldName = fieldName[0:strings.LastIndex(fieldName, ".")]
-		return bson.M{"$arrayElemAt": []interface{}{"$" + fieldName, value}}
-	}
-
-	return "$" + fieldName
 }

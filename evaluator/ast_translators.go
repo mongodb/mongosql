@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -157,8 +158,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		if !ok {
 			return nil, false
 		}
-
-		return "$" + name, true
+		return getProjectedFieldName(name), true
 
 	case *SQLGreaterThanExpr:
 
@@ -824,4 +824,30 @@ func translateExprs(lookupFieldName fieldNameLookup, exprs ...SQLExpr) ([]interf
 	}
 
 	return results, true
+}
+
+// getProjectedFieldName returns an interface to project the given field.
+func getProjectedFieldName(fieldName string) interface{} {
+
+	names := strings.Split(fieldName, ".")
+
+	if len(names) == 1 {
+		return "$" + fieldName
+	}
+
+	// TODO: this is to enable our current tests pass - since
+	// we allow array mappings like:
+	//
+	// - name: loc.0
+	//   sqlname: latitude
+	//
+	// In the future, this swath of code should be removed
+	// and this function can go away
+	value, err := strconv.Atoi(names[len(names)-1])
+	if err == nil {
+		fieldName = fieldName[0:strings.LastIndex(fieldName, ".")]
+		return bson.M{"$arrayElemAt": []interface{}{"$" + fieldName, value}}
+	}
+
+	return "$" + fieldName
 }

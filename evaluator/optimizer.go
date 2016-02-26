@@ -19,7 +19,6 @@ func (v *optimizer) Visit(o Operator) (Operator, error) {
 	}
 
 	switch typedO := o.(type) {
-
 	case *Filter:
 		o, err = v.visitFilter(typedO)
 		if err != nil {
@@ -44,6 +43,11 @@ func (v *optimizer) Visit(o Operator) (Operator, error) {
 		o, err = v.visitOrderBy(typedO)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize order by: %v", err)
+		}
+	case *Project:
+		o, err = v.visitProject(typedO)
+		if err != nil {
+			return nil, fmt.Errorf("unable to optimize project: %v", err)
 		}
 	}
 

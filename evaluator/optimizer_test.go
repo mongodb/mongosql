@@ -1255,6 +1255,89 @@ func TestLimitPushDown(t *testing.T) {
 	})
 }
 
+func TestProjectPushdown(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
+	Convey("Subject: Project Optimization", t, func() {
+		ctx := &ExecutionCtx{Schema: cfgOne, Db: dbOne}
+		tbl := "foo"
+		ms, err := NewMongoSource(ctx, dbOne, tbl, "")
+		So(err, ShouldBeNil)
+		Convey("given a push-downable project", func() {
+			exprs := map[string]SQLExpr{
+				"a":      SQLColumnExpr{tbl, "a"},
+				"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b"}}},
+				"c":      SQLColumnExpr{tbl, "c"},
+			}
+
+			proj := &Project{
+				sExprs: constructSelectExpressions(exprs, "a", "sum(b)"),
+				source: ms,
+			}
+
+			Convey("The pipeline should contain a $project stage with correct field mappings", func() {
+				verifyOptimizedPipeline(ctx, proj,
+					[]bson.D{
+						{{
+							"$project", bson.M{
+								"foo_DOT_a":      "$a",
+								"sum(foo_DOT_b)": bson.M{"$sum": "$b"},
+							},
+						}},
+					},
+				)
+			})
+		})
+
+		Convey("given a partially-push-downable project", func() {
+			exprs := map[string]SQLExpr{
+				"a": SQLColumnExpr{tbl, "a"},
+				"ascii(substring('xxx',b))": &SQLScalarFunctionExpr{
+					"ascii", []SQLExpr{
+						&SQLScalarFunctionExpr{
+							"substring", []SQLExpr{
+								SQLString("xxx"),
+								SQLColumnExpr{tbl, "b"},
+							},
+						},
+					},
+				},
+				"sum(c)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "c"}}},
+			}
+
+			proj := &Project{
+				sExprs: constructSelectExpressions(exprs, "a", "ascii(substring('xxx',b))", "sum(c)"),
+				source: ms,
+			}
+			Convey("the project node should not be removed from query plan tree", func() {
+				optimized, err := OptimizeOperator(ctx, proj)
+				So(err, ShouldBeNil)
+				So(optimized, ShouldHaveSameTypeAs, (*Project)(nil))
+
+				optimizedProject := optimized.(*Project)
+				So(optimizedProject.source, ShouldHaveSameTypeAs, (*MongoSource)(nil))
+
+				Convey("the pipeline should contain all fields required to compute projection", func() {
+					mongoSource := optimizedProject.source.(*MongoSource)
+					So(mongoSource.pipeline, ShouldResemble,
+						[]bson.D{
+							{{
+								"$project", bson.M{
+									"foo_DOT_a":      "$a",                 // pushed-down
+									"b":              "$b",                 // NOT pushed down, but needed for ascii(substring(...))
+									"sum(foo_DOT_c)": bson.M{"$sum": "$c"}, // pushed down
+								},
+							}},
+						},
+					)
+				})
+
+			})
+
+		})
+	})
+}
+
 func TestOrderByPushDown(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne

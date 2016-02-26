@@ -1,40 +1,33 @@
 package evaluator
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
 
-var (
-	_ fmt.Stringer = nil
-)
-
 func TestProjectOperator(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
+	ctx := &ExecutionCtx{Schema: cfgOne, Db: dbOne}
 
-	runTest := func(project *Project, rows []bson.D, expectedRows []Values) {
-
-		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
-		}
-
+	runTest := func(project *Project, optimize bool, rows []bson.D, expectedRows []Values) {
 		ts, err := NewBSONSource(ctx, tableOneName, rows)
 		So(err, ShouldBeNil)
+		var operator Operator
+		operator = project.WithSource(ts)
+		if optimize {
+			operator, err = OptimizeOperator(ctx, operator)
+			So(err, ShouldBeNil)
+		}
 
-		project.source = ts
-
-		So(project.Open(ctx), ShouldBeNil)
-
-		row := &Row{}
+		So(operator.Open(ctx), ShouldBeNil)
 
 		i := 0
+		row := &Row{}
 
-		for project.Next(row) {
+		for operator.Next(row) {
 			So(len(row.Data), ShouldEqual, 1)
 			So(row.Data[0].Table, ShouldEqual, tableOneName)
 			So(row.Data[0].Values, ShouldResemble, expectedRows[i])
@@ -44,8 +37,8 @@ func TestProjectOperator(t *testing.T) {
 
 		So(i, ShouldEqual, len(expectedRows))
 
-		So(project.Close(), ShouldBeNil)
-		So(project.Err(), ShouldBeNil)
+		So(operator.Close(), ShouldBeNil)
+		So(operator.Err(), ShouldBeNil)
 	}
 
 	Convey("A project operator...", t, func() {
@@ -75,7 +68,10 @@ func TestProjectOperator(t *testing.T) {
 
 			expected := []Values{{{"a", "a", SQLInt(6)}}, {{"a", "a", SQLInt(3)}}}
 
-			runTest(project, rows, expected)
+			runTest(project, false, rows, expected)
+			Convey("and should produce identical results after optimization", func() {
+				runTest(project, true, rows, expected)
+			})
 		})
 
 		Convey("should not filter any results if no column is referenced", func() {
@@ -87,7 +83,11 @@ func TestProjectOperator(t *testing.T) {
 
 			expected := []Values{{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(9)}}, {{"a", "a", SQLInt(3)}, {"b", "b", SQLInt(4)}}}
 
-			runTest(project, rows, expected)
+			runTest(project, false, rows, expected)
+
+			Convey("and should produce identical results after optimization", func() {
+				runTest(project, true, rows, expected)
+			})
 		})
 
 	})

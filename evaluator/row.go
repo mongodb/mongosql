@@ -93,21 +93,21 @@ func deDottifyFieldName(fieldName string) string {
 // extractFieldByName takes a field name and document, and returns a value representing
 // the value of that field in the document in a format that can be printed as a string.
 // It will also handle dot-delimited field names for nested arrays or documents.
-func extractFieldByName(fieldName string, document interface{}) interface{} {
+func extractFieldByName(fieldName string, document interface{}) (interface{}, bool) {
 	dotParts := strings.Split(fieldName, ".")
 	var subdoc interface{} = document
 
 	for _, path := range dotParts {
 		docValue := reflect.ValueOf(subdoc)
 		if !docValue.IsValid() {
-			return ""
+			return nil, false
 		}
 		docType := docValue.Type()
 		docKind := docType.Kind()
 		if docKind == reflect.Map {
 			subdocVal := docValue.MapIndex(reflect.ValueOf(path))
 			if subdocVal.Kind() == reflect.Invalid {
-				return ""
+				return nil, false
 			}
 			subdoc = subdocVal.Interface()
 		} else if docKind == reflect.Slice {
@@ -117,28 +117,28 @@ func extractFieldByName(fieldName string, document interface{}) interface{} {
 				var err error
 				subdoc, err = bsonutil.FindValueByKey(path, &asD)
 				if err != nil {
-					return ""
+					return nil, false
 				}
 			} else {
 				//  check that the path can be converted to int
 				arrayIndex, err := strconv.Atoi(path)
 				if err != nil {
-					return ""
+					return nil, false
 				}
 				// bounds check for slice
 				if arrayIndex < 0 || arrayIndex >= docValue.Len() {
-					return ""
+					return nil, false
 				}
 				subdocVal := docValue.Index(arrayIndex)
 				if subdocVal.Kind() == reflect.Invalid {
-					return ""
+					return nil, false
 				}
 				subdoc = subdocVal.Interface()
 			}
 		} else {
 			// trying to index into a non-compound type - just return blank.
-			return ""
+			return nil, false
 		}
 	}
-	return subdoc
+	return subdoc, true
 }

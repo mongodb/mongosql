@@ -87,57 +87,63 @@ func TestExtractField(t *testing.T) {
 		}
 
 		Convey("regular fields should be extracted by name", func() {
-			val := extractFieldByName("a", testD)
+			val, ok := extractFieldByName("a", testD)
 			So(val, ShouldEqual, "string")
+			So(ok, ShouldBeTrue)
 		})
 
 		Convey("array fields should be extracted by name", func() {
-			val := extractFieldByName("b.1", testD)
+			val, ok := extractFieldByName("b.1", testD)
 			So(val, ShouldResemble, bson.D{{"inner2", 1}})
-			val = extractFieldByName("b.1.inner2", testD)
+			So(ok, ShouldBeTrue)
+			val, ok = extractFieldByName("b.1.inner2", testD)
 			So(val, ShouldEqual, 1)
-			val = extractFieldByName("b.0", testD)
+			So(ok, ShouldBeTrue)
+			val, ok = extractFieldByName("b.0", testD)
 			So(val, ShouldEqual, "inner")
+			So(ok, ShouldBeTrue)
 		})
 
 		Convey("subdocument fields should be extracted by name", func() {
-			val := extractFieldByName("c", testD)
+			val, ok := extractFieldByName("c", testD)
 			So(val, ShouldResemble, bson.D{{"x", 5}})
-			val = extractFieldByName("c.x", testD)
+			So(ok, ShouldBeTrue)
+			val, ok = extractFieldByName("c.x", testD)
 			So(val, ShouldEqual, 5)
+			So(ok, ShouldBeTrue)
 
 			Convey("even if they contain null values", func() {
-				val := extractFieldByName("d", testD)
+				val, ok := extractFieldByName("d", testD)
 				So(val, ShouldResemble, bson.D{{"z", nil}})
-				val = extractFieldByName("d.z", testD)
+				So(ok, ShouldBeTrue)
+				val, ok = extractFieldByName("d.z", testD)
 				So(val, ShouldEqual, nil)
-				val = extractFieldByName("d.z.nope", testD)
-				So(val, ShouldEqual, "")
+				So(ok, ShouldBeTrue)
+				val, ok = extractFieldByName("d.z.nope", testD)
+				So(val, ShouldEqual, nil)
+				So(ok, ShouldBeFalse)
 			})
 		})
 
-		Convey(`non-existing fields should return ""`, func() {
-			val := extractFieldByName("f", testD)
-			So(val, ShouldEqual, "")
-			val = extractFieldByName("c.nope", testD)
-			So(val, ShouldEqual, "")
-			val = extractFieldByName("c.nope.NOPE", testD)
-			So(val, ShouldEqual, "")
-			val = extractFieldByName("b.1000", testD)
-			So(val, ShouldEqual, "")
-			val = extractFieldByName("b.1.nada", testD)
-			So(val, ShouldEqual, "")
+		Convey(`non-existing fields should return (nil,false)`, func() {
+			for _, c := range []string{"f", "c.nope", "c.nope.NOPE", "b.1000", "b.1.nada"} {
+				val, ok := extractFieldByName(c, testD)
+				So(val, ShouldBeNil)
+				So(ok, ShouldBeFalse)
+			}
 		})
 
 	})
 
-	Convey(`Extraction of a non-document should return ""`, t, func() {
-		val := extractFieldByName("meh", []interface{}{"meh"})
-		So(val, ShouldEqual, "")
+	Convey(`Extraction of a non-document should return (nil, false)`, t, func() {
+		val, ok := extractFieldByName("meh", []interface{}{"meh"})
+		So(val, ShouldBeNil)
+		So(ok, ShouldBeFalse)
 	})
 
-	Convey(`Extraction of a nil document should return ""`, t, func() {
-		val := extractFieldByName("a", nil)
-		So(val, ShouldEqual, "")
+	Convey(`Extraction of a nil document should return (nil, false)`, t, func() {
+		val, ok := extractFieldByName("a", nil)
+		So(val, ShouldEqual, nil)
+		So(ok, ShouldBeFalse)
 	})
 }
