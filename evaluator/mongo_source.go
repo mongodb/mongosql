@@ -191,7 +191,6 @@ func (ms *MongoSource) Next(row *Row) bool {
 
 		values := make(map[string]Values)
 		data := d.Map()
-
 		var err error
 
 		for _, column := range ms.mappingRegistry.columns {

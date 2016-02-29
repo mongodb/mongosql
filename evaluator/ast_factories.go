@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/10gen/sqlproxy/schema"
@@ -111,7 +112,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		case bson.ObjectId:
 			return SQLString(v.Hex()), nil
 		case nil:
-			return SQLNullValue{}, nil
+			return SQLNull, nil
 		}
 
 	case schema.SQLBoolean:
@@ -130,7 +131,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		case int, int32, int64, float64:
 			eval, err = util.ToInt(v)
 		case nil:
-			return SQLNullValue{}, nil
+			return SQLNull, nil
 		}
 
 		if err == nil {
@@ -154,15 +155,19 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		case string:
 			eval, err := strconv.Atoi(v)
 			if err == nil {
+				if strings.Trim(v, " ") == "" {
+					return SQLInt(0), nil
+				}
 				return SQLInt(eval), nil
 			}
+			return SQLNull, nil
 		case int, int32, int64, float64:
 			eval, err := util.ToInt(v)
 			if err == nil {
 				return SQLInt(eval), nil
 			}
 		case nil:
-			return SQLNullValue{}, nil
+			return SQLNull, nil
 		}
 
 	case schema.SQLFloat, schema.SQLDouble:
@@ -176,16 +181,19 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 		case string:
 			eval, err := strconv.ParseFloat(v, 64)
 			if err == nil {
+				if strings.Trim(v, " ") == "" {
+					return SQLFloat(0), nil
+				}
 				return SQLFloat(float64(eval)), nil
 			}
-
+			return SQLNull, nil
 		case int, int32, int64, float64:
 			eval, err := util.ToFloat64(v)
 			if err == nil {
 				return SQLFloat(eval), nil
 			}
 		case nil:
-			return SQLNullValue{}, nil
+			return SQLNull, nil
 		}
 
 	//

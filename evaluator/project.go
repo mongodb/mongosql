@@ -80,6 +80,10 @@ func (pj *Project) Next(r *Row) bool {
 
 	hasNext := pj.source.Next(r)
 
+	if !hasNext {
+		return false
+	}
+
 	data := map[string]Values{}
 
 	for _, expr := range pj.sExprs {
@@ -114,7 +118,7 @@ func (pj *Project) Next(r *Row) bool {
 		r.Data = append(r.Data, TableRow{k, v})
 	}
 
-	return hasNext
+	return true
 }
 
 func (pj *Project) OpFields() (columns []*Column) {
