@@ -740,13 +740,13 @@ func TestScalarFuncIsNull(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLFalse)
+			So(value, ShouldResemble, SQLInt(0))
 
 			ctx := &EvalCtx{Rows{{TableRows{{tableOneName, Values{{"a", "a", nil}}}}}}, nil}
 
 			value, err = funcExpr.Evaluate(ctx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLTrue)
+			So(value, ShouldResemble, SQLInt(1))
 
 		})
 	})
@@ -776,13 +776,13 @@ func TestScalarFuncNot(t *testing.T) {
 
 			value, err := funcExpr.Evaluate(testCtx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLFalse)
+			So(value, ShouldResemble, SQLInt(0))
 
 			ctx := &EvalCtx{Rows{{TableRows{{tableOneName, Values{{"a", "a", false}}}}}}, nil}
 
 			value, err = funcExpr.Evaluate(ctx)
 			So(err, ShouldBeNil)
-			So(value, ShouldResemble, SQLTrue)
+			So(value, ShouldResemble, SQLInt(1))
 
 		})
 	})

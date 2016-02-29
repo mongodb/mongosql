@@ -289,6 +289,18 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: COALESCE", func() {
+				tests := []test{
+					test{"COALESCE(NULL)", SQLNull},
+					test{"COALESCE('A')", SQLString("A")},
+					test{"COALESCE('A', NULL)", SQLString("A")},
+					test{"COALESCE('A', 'B')", SQLString("A")},
+					test{"COALESCE(NULL, 'A', NULL, 'B')", SQLString("A")},
+					test{"COALESCE(NULL, NULL, NULL)", SQLNull},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: CONCAT", func() {
 				tests := []test{
 					test{"CONCAT(NULL)", SQLNull},

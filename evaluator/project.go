@@ -142,7 +142,10 @@ func (pj *Project) Close() error {
 }
 
 func (pj *Project) Err() error {
-	return pj.source.Err()
+	if err := pj.source.Err(); err != nil {
+		return err
+	}
+	return pj.err
 }
 
 func (pj *Project) addSelectExprs() {

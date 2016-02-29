@@ -808,9 +808,9 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 		switch typedE := e.(type) {
 
 		case *sqlparser.StarExpr:
-
 			switch name {
-			case "isnull", "not", "pow":
+			case "count":
+			default:
 				return nil, fmt.Errorf("argument to '%v' function can not contain '*'", name)
 			}
 
@@ -830,17 +830,6 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 
 		}
 
-	}
-
-	switch name {
-	case "isnull", "not":
-		if len(exprs) != 1 {
-			return nil, fmt.Errorf("'%v' function requires exactly one argument", name)
-		}
-	case "pow":
-		if len(exprs) != 2 {
-			return nil, fmt.Errorf("'%v' function requires exactly two arguments", name)
-		}
 	}
 
 	return &SQLScalarFunctionExpr{name, exprs}, nil

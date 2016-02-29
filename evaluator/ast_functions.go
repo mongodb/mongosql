@@ -206,7 +206,8 @@ var fnMap = map[string]fnDef{
 	"abs":               newFnDef(absFunc, 1),
 	"ascii":             newFnDef(asciiFunc, 1),
 	"cast":              newFnDef(castFunc, 2),
-	"concat":            newFnDef(concatFunc),
+	"coalesce":          newFnDef(coalesceFunc, -1),
+	"concat":            newFnDef(concatFunc, -1),
 	"connection_id":     newFnDef(connectionIdFunc),
 	"current_date":      newFnDef(currentDateFunc),
 	"current_timestamp": newFnDef(currentTimestampFunc),
@@ -219,6 +220,7 @@ var fnMap = map[string]fnDef{
 	"exp":               newFnDef(expFunc, 1),
 	"floor":             newFnDef(floorFunc, 1),
 	"hour":              newFnDef(hourFunc, 1),
+	"isnull":            newFnDef(isnullFunc, 1),
 	"lcase":             newFnDef(lcaseFunc, 1),
 	"length":            newFnDef(lengthFunc, 1),
 	"locate":            newFnDef(locateFunc, 2, 3),
@@ -228,6 +230,7 @@ var fnMap = map[string]fnDef{
 	"mod":               newFnDef(modFunc, 2),
 	"month":             newFnDef(monthFunc, 1),
 	"monthname":         newFnDef(monthNameFunc, 1),
+	"not":               newFnDef(notFunc, 1),
 	"pow":               newFnDef(powFunc, 2),
 	"power":             newFnDef(powFunc, 2),
 	"quarter":           newFnDef(quarterFunc, 1),
@@ -241,7 +244,6 @@ var fnMap = map[string]fnDef{
 }
 
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-
 	fd, ok := fnMap[f.Name]
 	if ok {
 		values, err := evaluateArgsWithCount(f, ctx, fd.argCounts...)
@@ -252,38 +254,15 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return fd.impl(values, ctx)
 	}
 
-	// any functions not registered globally go here. There shouldn't be many here,
-	// only those that need some special processing.
-	switch f.Name {
-	case "isnull":
-		return f.isNullFunc(ctx)
-	case "not":
-		return f.notFunc(ctx)
-	default:
-		return nil, fmt.Errorf("scalar function '%v' is not supported", string(f.Name))
-	}
+	return nil, fmt.Errorf("scalar function '%v' is not supported", string(f.Name))
 }
 
 func (f *SQLScalarFunctionExpr) String() string {
-	return fmt.Sprintf("%s(%v)", f.Name, f.Exprs)
-}
-
-func (f *SQLScalarFunctionExpr) isNullFunc(ctx *EvalCtx) (SQLValue, error) {
-	matcher := &SQLNullCmpExpr{f.Exprs[0]}
-	result, err := Matches(matcher, ctx)
-	if err != nil {
-		return nil, err
+	var exprs []string
+	for _, expr := range f.Exprs {
+		exprs = append(exprs, expr.String())
 	}
-	return SQLBool(result), nil
-}
-
-func (f *SQLScalarFunctionExpr) notFunc(ctx *EvalCtx) (SQLValue, error) {
-	matcher := &SQLNotExpr{f.Exprs[0]}
-	result, err := Matches(matcher, ctx)
-	if err != nil {
-		return nil, err
-	}
-	return SQLBool(result), nil
+	return fmt.Sprintf("%s(%v)", f.Name, strings.Join(exprs, ","))
 }
 
 func connectionIdFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -327,6 +306,16 @@ func asciiFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 func castFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return NewSQLValue(values[0].Value(), values[1].String())
+}
+
+// http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_coalesce
+func coalesceFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	for _, value := range values {
+		if value != SQLNull {
+			return value, nil
+		}
+	}
+	return SQLNull, nil
 }
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat
@@ -436,6 +425,19 @@ func hourFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLInt(int(t.Hour())), nil
+}
+
+// http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_isnull
+func isnullFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	matcher := &SQLNullCmpExpr{values[0]}
+	result, err := Matches(matcher, ctx)
+	if err != nil {
+		return nil, err
+	}
+	if SQLBool(result) == SQLTrue {
+		return SQLInt(1), nil
+	}
+	return SQLInt(0), nil
 }
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lcase
@@ -571,6 +573,18 @@ func monthNameFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLString(t.Month().String()), nil
+}
+
+func notFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	matcher := &SQLNotExpr{values[0]}
+	result, err := Matches(matcher, ctx)
+	if err != nil {
+		return nil, err
+	}
+	if SQLBool(result) == SQLTrue {
+		return SQLInt(1), nil
+	}
+	return SQLInt(0), nil
 }
 
 func powFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -740,6 +754,14 @@ func ensureArgCount(f *SQLScalarFunctionExpr, counts ...int) error {
 		return nil
 	}
 
+	// for scalar functions that accept a variable number of arguments
+	if len(counts) == 1 && counts[0] == -1 {
+		if len(f.Exprs) == 0 {
+			return fmt.Errorf("Incorrect parameter count in the call to native function '%v'", f.Name)
+		}
+		return nil
+	}
+
 	found := false
 	actual := len(f.Exprs)
 	for _, i := range counts {
@@ -750,7 +772,7 @@ func ensureArgCount(f *SQLScalarFunctionExpr, counts ...int) error {
 	}
 
 	if !found {
-		return fmt.Errorf("the '%v' function expects [%v] argument(s) but received %v", f.Name, counts, len(f.Exprs))
+		return fmt.Errorf("the '%v' function expects %v argument(s) but received %v", f.Name, counts, len(f.Exprs))
 	}
 
 	return nil

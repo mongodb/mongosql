@@ -293,6 +293,18 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				return nil, false
 			}
 			return bson.M{"$abs": args[0]}, true
+		case "coalesce":
+			var coalesce func(args []interface{}) interface{}
+
+			coalesce = func(args []interface{}) interface{} {
+				if len(args) == 0 {
+					return nil
+				}
+				replacement := coalesce(args[1:])
+				return bson.M{"$ifNull": []interface{}{args[0], replacement}}
+			}
+
+			return coalesce(args), true
 		case "concat":
 			return bson.M{"$concat": args}, true
 		case "current_date":
