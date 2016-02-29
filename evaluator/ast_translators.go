@@ -17,26 +17,21 @@ type fieldNameLookup func(tableName, columnName string) (string, bool)
 // the field type as defined in the schema
 type fieldTypeLookup func(tableName, columnName string) (string, bool)
 
-// SQLConvertValue is used to convert a given value into a valid type
+// ConvertValue is used to convert a given value into a valid type
 // to be pushed down to MongoDB.
-type SQLConvertValue struct {
-	sqlType  string
-	sqlValue interface{}
-}
+func ConvertValue(sqlValue interface{}, sqlType string) interface{} {
 
-func (cv *SQLConvertValue) Convert() interface{} {
-
-	switch cv.sqlType {
+	switch sqlType {
 
 	case schema.SQLDate, schema.SQLTimestamp, schema.SQLDateTime, schema.SQLYear:
-		value, err := NewSQLValue(cv.sqlValue, cv.sqlType)
+		value, err := NewSQLValue(sqlValue, sqlType)
 		if err != nil {
-			return cv.sqlValue
+			return sqlValue
 		}
 		return value.Value()
 
 	default:
-		return cv.sqlValue
+		return sqlValue
 
 	}
 }
@@ -584,13 +579,8 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup, lookupFieldT
 		if !ok {
 			return nil, e
 		}
-
-		scv := &SQLConvertValue{
-			sqlType:  fieldType,
-			sqlValue: fieldValue,
-		}
-
-		return bson.M{name: scv.Convert()}, nil
+		value := ConvertValue(fieldValue, fieldType)
+		return bson.M{name: value}, nil
 	case *SQLGreaterThanExpr:
 		match, ok := translateOperator("$gt", typedE.left, typedE.right, lookupFieldName, lookupFieldType)
 		if !ok {
@@ -635,13 +625,8 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup, lookupFieldT
 			if !ok {
 				return nil, e
 			}
-
-			scv := &SQLConvertValue{
-				sqlType:  fieldType,
-				sqlValue: fieldValue,
-			}
-
-			values = append(values, scv.Convert())
+			value := ConvertValue(fieldValue, fieldType)
+			values = append(values, value)
 		}
 
 		return bson.M{name: bson.M{"$in": values}}, nil
@@ -731,12 +716,8 @@ func translateOperator(op string, nameExpr, valExpr SQLExpr, lookupFieldName fie
 		return nil, false
 	}
 
-	scv := &SQLConvertValue{
-		sqlType:  fieldType,
-		sqlValue: fieldValue,
-	}
-
-	return bson.M{fieldName: bson.M{op: scv.Convert()}}, true
+	val := ConvertValue(fieldValue, fieldType)
+	return bson.M{fieldName: bson.M{op: val}}, true
 }
 
 func negate(op bson.M) bson.M {

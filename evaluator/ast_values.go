@@ -31,10 +31,6 @@ func (sb SQLBool) String() string {
 	return "false"
 }
 
-func (sb SQLBool) Type(fieldTypeLookup) string {
-	return schema.SQLBoolean
-}
-
 func (sb SQLBool) CompareTo(v SQLValue) (int, error) {
 	if n, ok := v.(SQLBool); ok {
 		s1, s2 := bool(sb), bool(n)
@@ -90,10 +86,6 @@ func (sd SQLDate) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (sd SQLDate) String() string {
 	return sd.Time.Format("2006-01-02")
-}
-
-func (sd SQLDate) Type(fieldTypeLookup) string {
-	return schema.SQLDate
 }
 
 func (sd SQLDate) CompareTo(v SQLValue) (int, error) {
@@ -156,10 +148,6 @@ func (sd SQLDateTime) String() string {
 	return sd.Time.Format("2006-01-02 15:04:05")
 }
 
-func (sd SQLDateTime) Type(fieldTypeLookup) string {
-	return schema.SQLDateTime
-}
-
 func (sd SQLDateTime) CompareTo(v SQLValue) (int, error) {
 
 	var t1, t2 time.Time
@@ -219,10 +207,6 @@ func (st SQLTime) String() string {
 	return st.Time.Format("15:04:05")
 }
 
-func (sd SQLTime) Type(fieldTypeLookup) string {
-	return schema.SQLTime
-}
-
 func (st SQLTime) CompareTo(v SQLValue) (int, error) {
 
 	switch vt := v.(type) {
@@ -251,10 +235,6 @@ func (st SQLTimestamp) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (st SQLTimestamp) String() string {
 	return st.Time.Format("2006-01-02 15:04:05")
-}
-
-func (st SQLTimestamp) Type(fieldTypeLookup) string {
-	return schema.SQLTimestamp
 }
 
 func (st SQLTimestamp) CompareTo(v SQLValue) (int, error) {
@@ -315,10 +295,6 @@ func (st SQLYear) String() string {
 	return st.Time.Format("2006")
 }
 
-func (st SQLYear) Type(fieldTypeLookup) string {
-	return schema.SQLYear
-}
-
 func (st SQLYear) CompareTo(v SQLValue) (int, error) {
 
 	var t1, t2 time.Time
@@ -375,10 +351,6 @@ func (sf SQLFloat) String() string {
 	return strconv.FormatFloat(float64(sf), 'f', -1, 64)
 }
 
-func (sf SQLFloat) Type(fieldTypeLookup) string {
-	return schema.SQLFloat
-}
-
 func (sf SQLFloat) CompareTo(v SQLValue) (int, error) {
 	if n, ok := v.(SQLNumeric); ok {
 		cmp := sf.Float64() - n.Float64()
@@ -423,10 +395,6 @@ func (si SQLInt) Evaluate(_ *EvalCtx) (SQLValue, error) {
 
 func (si SQLInt) String() string {
 	return strconv.Itoa(int(si))
-}
-
-func (si SQLInt) Type(fieldTypeLookup) string {
-	return schema.SQLInt
 }
 
 func (si SQLInt) CompareTo(v SQLValue) (int, error) {
@@ -495,10 +463,6 @@ func (nv SQLNullValue) String() string {
 	return "null"
 }
 
-func (nv SQLNullValue) Type(fieldTypeLookup) string {
-	return schema.SQLNull
-}
-
 func (nv SQLNullValue) CompareTo(v SQLValue) (int, error) {
 	if _, ok := v.(SQLNullValue); ok {
 		return 0, nil
@@ -521,10 +485,6 @@ func (ss SQLString) Evaluate(_ *EvalCtx) (SQLValue, error) {
 
 func (ss SQLString) String() string {
 	return string(ss)
-}
-
-func (ss SQLString) Type(fieldTypeLookup) string {
-	return schema.SQLString
 }
 
 func (sn SQLString) CompareTo(v SQLValue) (int, error) {
@@ -563,10 +523,6 @@ func (sv *SQLValues) String() string {
 		prefix = ", "
 	}
 	return prefix
-}
-
-func (sv *SQLValues) Type(fieldTypeLookup) string {
-	return ""
 }
 
 func (sv *SQLValues) CompareTo(v SQLValue) (int, error) {
@@ -621,10 +577,6 @@ func (su SQLUint32) Evaluate(_ *EvalCtx) (SQLValue, error) {
 
 func (su SQLUint32) String() string {
 	return strconv.FormatFloat(float64(su), 'f', -1, 32)
-}
-
-func (su SQLUint32) Type(fieldTypeLookup) string {
-	return schema.SQLInt
 }
 
 func (su SQLUint32) CompareTo(v SQLValue) (int, error) {

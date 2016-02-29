@@ -20,7 +20,6 @@ type SQLValue interface {
 	SQLExpr
 	CompareTo(SQLValue) (int, error)
 	Value() interface{}
-	Type(fieldTypeLookup) string
 }
 
 //
