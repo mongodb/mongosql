@@ -502,7 +502,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		right, err := newSQLExprForComparison(expr.Right)
+		right, err := NewSQLExpr(expr.Right)
 		if err != nil {
 			return nil, err
 		}
@@ -543,7 +543,6 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 		return &SQLCtorExpr{Name: expr.Name, Args: expr.Exprs}, nil
 
 	case *sqlparser.ExistsExpr:
-
 		return &SQLExistsExpr{expr.Subquery.Select}, nil
 
 	case *sqlparser.FuncExpr:
@@ -650,7 +649,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.Subquery:
 
-		return &SQLExistsExpr{expr.Select}, nil
+		return &SQLSubqueryExpr{expr.Select}, nil
 
 	case *sqlparser.UnaryExpr:
 
@@ -685,18 +684,6 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	default:
 		panic(fmt.Errorf("NewSQLExpr not yet implemented for %v (%T)", sqlparser.String(expr), expr))
-	}
-}
-
-func newSQLExprForComparison(gExpr sqlparser.Expr) (SQLExpr, error) {
-
-	switch expr := gExpr.(type) {
-
-	case *sqlparser.Subquery:
-		return &SQLSubqueryExpr{expr.Select}, nil
-
-	default:
-		return NewSQLExpr(gExpr)
 	}
 }
 

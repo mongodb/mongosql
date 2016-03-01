@@ -526,7 +526,6 @@ func (sv *SQLValues) String() string {
 }
 
 func (sv *SQLValues) CompareTo(v SQLValue) (int, error) {
-
 	r, ok := v.(*SQLValues)
 	if !ok {
 		//

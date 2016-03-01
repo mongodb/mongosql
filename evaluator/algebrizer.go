@@ -392,7 +392,13 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 
 	case *sqlparser.ExistsExpr:
 
-		return algebrizeExpr(expr.Subquery, pCtx)
+		algExpr, err := algebrizeExpr(expr.Subquery, pCtx)
+		if err != nil {
+			return nil, err
+		}
+
+		subquery := algExpr.(*sqlparser.Subquery)
+		return &sqlparser.ExistsExpr{subquery}, nil
 
 	case *sqlparser.FuncExpr:
 		// set the current expression being parsed to this function to

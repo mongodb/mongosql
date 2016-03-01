@@ -113,7 +113,18 @@ func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (em *SQLExistsExpr) String() string {
-	return fmt.Sprintf("exists %v", em.stmt)
+	buf := sqlparser.NewTrackedBuffer(nil)
+
+	switch stmt := em.stmt.(type) {
+	case *sqlparser.Select:
+		stmt.Format(buf)
+	case *sqlparser.SimpleSelect:
+		stmt.Format(buf)
+	case *sqlparser.Union:
+		stmt.Format(buf)
+	}
+
+	return fmt.Sprintf("exists %v", buf.String())
 }
 
 //

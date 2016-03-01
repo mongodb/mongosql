@@ -217,7 +217,7 @@ func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 func (sv *SQLSubqueryExpr) String() string {
 	buf := sqlparser.NewTrackedBuffer(nil)
 	sv.stmt.Format(buf)
-	return buf.String()
+	return fmt.Sprintf("(%v)", buf.String())
 }
 
 //
