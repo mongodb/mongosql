@@ -475,8 +475,7 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 
 		if typedO.source != source {
 			o = &SourceAppend{
-				source:      source,
-				hasSubquery: typedO.hasSubquery,
+				source: source,
 			}
 		}
 	case *SourceRemove:
@@ -487,8 +486,7 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 
 		if typedO.source != source {
 			o = &SourceRemove{
-				source:      source,
-				hasSubquery: typedO.hasSubquery,
+				source: source,
 			}
 		}
 	case *Subquery:

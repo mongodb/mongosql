@@ -510,11 +510,9 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 
 	if containsSubquery {
 		log.Logf(log.DebugLow, "hasSubQuery at depth %v\n", ctx.Depth)
-	}
-
-	operator = &SourceAppend{
-		source:      operator,
-		hasSubquery: containsSubquery,
+		operator = &SourceAppend{
+			source: operator,
+		}
 	}
 
 	if ast.Where != nil {
@@ -635,9 +633,10 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 		sExprs: projectedSelectExprs,
 	}
 
-	operator = &SourceRemove{
-		source:      operator,
-		hasSubquery: containsSubquery,
+	if containsSubquery {
+		operator = &SourceRemove{
+			source: operator,
+		}
 	}
 
 	return operator, nil

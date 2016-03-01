@@ -8,16 +8,6 @@ type SourceAppend struct {
 
 	// ctx is the current execution context
 	ctx *ExecutionCtx
-
-	// hasSubquery is true if this operator source contains a subquery
-	hasSubquery bool
-}
-
-func (sa *SourceAppend) WithSource(source Operator) *SourceAppend {
-	return &SourceAppend{
-		source:      source,
-		hasSubquery: sa.hasSubquery,
-	}
 }
 
 func (sa *SourceAppend) Open(ctx *ExecutionCtx) error {
@@ -32,7 +22,7 @@ func (sa *SourceAppend) Next(row *Row) bool {
 		return false
 	}
 
-	if sa.hasSubquery && len(sa.ctx.SrcRows) == sa.ctx.Depth {
+	if len(sa.ctx.SrcRows) == sa.ctx.Depth {
 		sa.ctx.SrcRows = append(sa.ctx.SrcRows, row)
 	}
 

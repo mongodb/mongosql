@@ -8,9 +8,6 @@ type SourceRemove struct {
 
 	// ctx is the current execution context
 	ctx *ExecutionCtx
-
-	// hasSubquery is true if this operator source contains a subquery
-	hasSubquery bool
 }
 
 func (sr *SourceRemove) Open(ctx *ExecutionCtx) error {
@@ -28,7 +25,7 @@ func (sr *SourceRemove) Next(row *Row) bool {
 
 	bound := len(sr.ctx.SrcRows) - 1
 
-	if sr.hasSubquery && bound == sr.ctx.Depth {
+	if bound == sr.ctx.Depth {
 		sr.ctx.SrcRows = sr.ctx.SrcRows[:bound]
 	}
 
