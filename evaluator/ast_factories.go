@@ -242,7 +242,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case nil:
 
-			return SQLNullValue{}, nil
+			return SQLNull, nil
 
 		default:
 
@@ -290,7 +290,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case nil:
 
-			return SQLNullValue{}, nil
+			return SQLNull, nil
 
 		default:
 
@@ -338,7 +338,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case nil:
 
-			return SQLNullValue{}, nil
+			return SQLNull, nil
 
 		default:
 
@@ -398,7 +398,7 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 
 		case nil:
 
-			return SQLNullValue{}, nil
+			return SQLNull, nil
 
 		default:
 			return SQLYear{schema.DefaultTime}, nil

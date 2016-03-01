@@ -1079,7 +1079,7 @@ func TestSelectFromSubquery(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(6))
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(5))
-			So(values[0][3], ShouldResemble, evaluator.SQLNullValue{})
+			So(values[0][3], ShouldResemble, evaluator.SQLNull)
 		})
 
 		Convey("aliased non-star select expressions should return the correct results in order", func() {
@@ -1090,7 +1090,7 @@ func TestSelectFromSubquery(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"x", "y"})
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
-			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
+			So(values[0][1], ShouldResemble, evaluator.SQLNull)
 		})
 
 		Convey("correctly qualified outer aliased non-star select expressions should return the correct results in order", func() {
@@ -1101,7 +1101,7 @@ func TestSelectFromSubquery(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"x", "y"})
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
-			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
+			So(values[0][1], ShouldResemble, evaluator.SQLNull)
 		})
 
 		Convey("correctly qualified outer and inner aliased non-star select expressions should return the correct results in order", func() {
@@ -1112,7 +1112,7 @@ func TestSelectFromSubquery(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"x", "y"})
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
-			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
+			So(values[0][1], ShouldResemble, evaluator.SQLNull)
 		})
 
 		Convey("invalid (or invisible) column names in outer context should fail", func() {
@@ -1158,7 +1158,7 @@ func TestSelectFromSubquery(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"_id", "c"})
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
-			So(values[0][1], ShouldResemble, evaluator.SQLNullValue{})
+			So(values[0][1], ShouldResemble, evaluator.SQLNull)
 		})
 
 		Convey("incorrectly qualified aliased non-star select expressions should return the correct results in order", func() {
@@ -1176,7 +1176,7 @@ func TestSelectFromSubquery(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(6))
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(5))
-			So(values[0][3], ShouldResemble, evaluator.SQLNullValue{})
+			So(values[0][3], ShouldResemble, evaluator.SQLNull)
 		})
 
 	})
@@ -1779,10 +1779,10 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 4)
 
 			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNullValue{}})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNullValue{}})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNullValue{}})
-			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNullValue{}})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNull})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNull})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNull})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNull})
 
 			names, values, err = eval.EvalSelect("test", "select * from bar order by 3 desc", nil, nil)
 			So(err, ShouldBeNil)
@@ -1790,10 +1790,10 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 4)
 
 			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNullValue{}})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNullValue{}})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNullValue{}})
-			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNullValue{}})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNull})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNull})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNull})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNull})
 
 			names, values, err = eval.EvalSelect("test", "select * from bar order by 2, 3 desc", nil, nil)
 			So(err, ShouldBeNil)
@@ -1801,10 +1801,10 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 4)
 
 			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNullValue{}})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNullValue{}})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNullValue{}})
-			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNullValue{}})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNull})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNull})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNull})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNull})
 
 			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by sum(b) desc", nil, nil)
 			So(err, ShouldBeNil)
@@ -1940,9 +1940,9 @@ func TestSelectWithCaseExpr(t *testing.T) {
 			So(names, ShouldResemble, []string{"a", "p"})
 
 			expectedValues := [][]evaluator.SQLValue{
-				[]evaluator.SQLValue{evaluator.SQLInt(5), evaluator.SQLNullValue{}},
-				[]evaluator.SQLValue{evaluator.SQLInt(1), evaluator.SQLNullValue{}},
-				[]evaluator.SQLValue{evaluator.SQLInt(6), evaluator.SQLNullValue{}},
+				[]evaluator.SQLValue{evaluator.SQLInt(5), evaluator.SQLNull},
+				[]evaluator.SQLValue{evaluator.SQLInt(1), evaluator.SQLNull},
+				[]evaluator.SQLValue{evaluator.SQLInt(6), evaluator.SQLNull},
 			}
 
 			for i, v := range expectedValues {
