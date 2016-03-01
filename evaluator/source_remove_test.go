@@ -29,11 +29,7 @@ func TestSourceRemoveOperator(t *testing.T) {
 		So(len(ctx.SrcRows), ShouldEqual, 1)
 
 		for operator.Next(row) {
-			if operator.hasSubquery {
-				So(len(ctx.SrcRows), ShouldEqual, 0)
-			} else {
-				So(len(ctx.SrcRows), ShouldEqual, 1)
-			}
+			So(len(ctx.SrcRows), ShouldEqual, 0)
 		}
 
 		So(operator.Close(), ShouldBeNil)
@@ -42,20 +38,10 @@ func TestSourceRemoveOperator(t *testing.T) {
 
 	Convey("A source remove operator...", t, func() {
 
-		sourceRemove := &SourceRemove{hasSubquery: true}
+		sourceRemove := &SourceRemove{}
 
-		Convey("should remove the source row if the source operator contains a subquery", func() {
-
+		Convey("should always remove the source row from the source operator", func() {
 			runTest(sourceRemove)
-
 		})
-
-		Convey("should not remove the source row if the source operator does not contains a subquery", func() {
-
-			sourceRemove.hasSubquery = false
-			runTest(sourceRemove)
-
-		})
-
 	})
 }

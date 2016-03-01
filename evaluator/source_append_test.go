@@ -28,11 +28,7 @@ func TestSourceAppendOperator(t *testing.T) {
 		So(len(ctx.SrcRows), ShouldEqual, 0)
 
 		for operator.Next(row) {
-			if operator.hasSubquery {
-				So(len(ctx.SrcRows), ShouldEqual, 1)
-			} else {
-				So(len(ctx.SrcRows), ShouldEqual, 0)
-			}
+			So(len(ctx.SrcRows), ShouldEqual, 1)
 		}
 
 		So(operator.Close(), ShouldBeNil)
@@ -41,17 +37,10 @@ func TestSourceAppendOperator(t *testing.T) {
 
 	Convey("A source append operator...", t, func() {
 
-		sourceAppend := &SourceAppend{hasSubquery: true}
+		sourceAppend := &SourceAppend{}
 
-		Convey("should append the source row if the source operator contains a subquery", func() {
+		Convey("should always append the source row from the source operator", func() {
 
-			runTest(sourceAppend)
-
-		})
-
-		Convey("should not append the source row if the source operator does not contains a subquery", func() {
-
-			sourceAppend.hasSubquery = false
 			runTest(sourceAppend)
 
 		})

@@ -25,14 +25,10 @@ func TestOptimizeOperator(t *testing.T) {
 			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			sa := &SourceAppend{
-				source: ms,
-			}
-
 			Convey("Should optimize from bottom-up", func() {
 
 				filter := &Filter{
-					source:  sa,
+					source:  ms,
 					matcher: &SQLEqualsExpr{SQLColumnExpr{tbl, "a"}, SQLString("funny")},
 				}
 
@@ -50,7 +46,7 @@ func TestOptimizeOperator(t *testing.T) {
 			Convey("Should optimize adjacent operators of the same type", func() {
 
 				limit := &Limit{
-					source:   sa,
+					source:   ms,
 					rowcount: 22,
 				}
 
@@ -68,7 +64,7 @@ func TestOptimizeOperator(t *testing.T) {
 			Convey("Should optimize multiple operators of the same type split a part", func() {
 
 				skip := &Limit{
-					source: sa,
+					source: ms,
 					offset: 20,
 				}
 
@@ -111,12 +107,8 @@ func TestFilterPushDown(t *testing.T) {
 			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			sa := &SourceAppend{
-				source: ms,
-			}
-
 			filter := &Filter{
-				source: sa,
+				source: ms,
 			}
 
 			Convey("Should optimize when the matcher is fully translatable", func() {
@@ -138,11 +130,8 @@ func TestFilterPushDown(t *testing.T) {
 				newFilter, ok := optimized.(*Filter)
 				So(ok, ShouldBeTrue)
 				So(newFilter.matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{tbl, "b"}, SQLColumnExpr{tbl, "c"}})
-				sa, ok := newFilter.source.(*SourceAppend)
+				ms, ok := newFilter.source.(*MongoSource)
 				So(ok, ShouldBeTrue)
-				ms, ok := sa.source.(*MongoSource)
-				So(ok, ShouldBeTrue)
-
 				So(ms.pipeline, ShouldResemble, []bson.D{bson.D{{"$match", bson.M{"a": "funny"}}}})
 			})
 		})
@@ -152,12 +141,8 @@ func TestFilterPushDown(t *testing.T) {
 			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			sa := &SourceAppend{
-				source: ms,
-			}
-
 			filter := &Filter{
-				source: sa,
+				source: ms,
 			}
 
 			Convey("Should return an Empty operator when evaluated to false", func() {
@@ -195,12 +180,8 @@ func TestFilterPushDown(t *testing.T) {
 				ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 				So(err, ShouldBeNil)
 
-				sa := &SourceAppend{
-					source: ms,
-				}
-
 				filter := &Filter{
-					source:  sa,
+					source:  ms,
 					matcher: &SQLEqualsExpr{SQLColumnExpr{tbl, "a"}, SQLColumnExpr{tbl, "b"}},
 				}
 
@@ -228,12 +209,8 @@ func TestGroupByPushDown(t *testing.T) {
 			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			sa := &SourceAppend{
-				source: ms,
-			}
-
 			gb := &GroupBy{
-				source: sa,
+				source: ms,
 			}
 
 			Convey("Should optimize 'select a, b from foo group by c'", func() {
@@ -920,12 +897,8 @@ func TestHavingPushDown(t *testing.T) {
 			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			sa := &SourceAppend{
-				source: ms,
-			}
-
 			gb := &GroupBy{
-				source: sa,
+				source: ms,
 			}
 
 			having := &Filter{
@@ -1235,12 +1208,8 @@ func TestLimitPushDown(t *testing.T) {
 			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			sa := &SourceAppend{
-				source: ms,
-			}
-
 			limit := &Limit{
-				source: sa,
+				source: ms,
 			}
 
 			Convey("Should optimize with only an offset", func() {
@@ -1304,12 +1273,8 @@ func TestOrderByPushDown(t *testing.T) {
 			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			sa := &SourceAppend{
-				source: ms,
-			}
-
 			orderBy := &OrderBy{
-				source: sa,
+				source: ms,
 			}
 
 			Convey("Should optimize order by with simple column references 'select a from foo order by a, b DESC, e'", func() {
@@ -1337,7 +1302,7 @@ func TestOrderByPushDown(t *testing.T) {
 				}
 
 				groupBy := &GroupBy{
-					source:      sa,
+					source:      ms,
 					keyExprs:    constructSelectExpressions(exprs, "a"),
 					selectExprs: constructSelectExpressions(exprs, "a", "sum(b)"),
 				}
@@ -1400,10 +1365,7 @@ func verifyOptimizedPipeline(ctx *ExecutionCtx, op Operator, pipeline []bson.D) 
 	optimized, err := OptimizeOperator(ctx, op)
 	So(err, ShouldBeNil)
 
-	sa, ok := optimized.(*SourceAppend)
-	So(ok, ShouldBeTrue)
-
-	ms, ok := sa.source.(*MongoSource)
+	ms, ok := optimized.(*MongoSource)
 	So(ok, ShouldBeTrue)
 
 	So(ms.pipeline, ShouldResemble, pipeline)
