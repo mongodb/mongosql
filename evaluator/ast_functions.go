@@ -71,7 +71,7 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 			count += 1
 
 			n, err := convertToSQLNumeric(eval, ctx)
-			if err == nil {
+			if err == nil && n != nil {
 				sum = sum.Add(n)
 			}
 		}
@@ -176,7 +176,7 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 			}
 
 			n, err := convertToSQLNumeric(eval, ctx)
-			if err == nil {
+			if err == nil && n != nil {
 				sum = sum.Add(n)
 			}
 		}

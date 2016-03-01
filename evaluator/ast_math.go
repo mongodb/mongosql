@@ -12,9 +12,14 @@ func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	rightEvald, err := convertToSQLNumeric(add.right, ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if leftEvald == nil || rightEvald == nil {
+		return SQLNull, nil
 	}
 
 	return leftEvald.Add(rightEvald), nil
@@ -32,9 +37,14 @@ func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	rightEvald, err := convertToSQLNumeric(div.right, ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if leftEvald == nil || rightEvald == nil {
+		return SQLNull, nil
 	}
 
 	if rightEvald.Float64() == 0 {
@@ -57,9 +67,14 @@ func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	rightEvald, err := convertToSQLNumeric(mult.right, ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if leftEvald == nil || rightEvald == nil {
+		return SQLNull, nil
 	}
 
 	return leftEvald.Product(rightEvald), nil
@@ -77,9 +92,14 @@ func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	rightEvald, err := convertToSQLNumeric(sub.right, ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if leftEvald == nil || rightEvald == nil {
+		return SQLNull, nil
 	}
 
 	return leftEvald.Sub(rightEvald), nil
@@ -138,6 +158,6 @@ func convertToSQLNumeric(expr SQLExpr, ctx *EvalCtx) (SQLNumeric, error) {
 		}
 		return convertToSQLNumeric(v.Values[0], ctx)
 	default:
-		return nil, fmt.Errorf("can not convert %T to SQLNumeric", eval)
+		return nil, nil
 	}
 }
