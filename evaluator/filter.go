@@ -106,7 +106,7 @@ func (ft *Filter) Err() error {
 
 func (v *optimizer) visitFilter(filter *Filter) (Operator, error) {
 
-	sa, ms, ok := canPushDown(filter.source)
+	ms, ok := canPushDown(filter.source)
 	if !ok {
 		return filter, nil
 	}
@@ -152,17 +152,16 @@ func (v *optimizer) visitFilter(filter *Filter) (Operator, error) {
 	// in the current table scan operator, so we need to reconstruct the
 	// operator nodes.
 	ms = ms.WithPipeline(pipeline)
-	sa = sa.WithSource(ms)
 
 	if localMatcher != nil {
 		// we ended up here because we have a predicate
 		// that can be partially pushed down, so we construct
 		// a new filter with only the part remaining that
 		// cannot be pushed down.
-		return NewFilter(sa, localMatcher, filter.hasSubquery), nil
+		return NewFilter(ms, localMatcher, filter.hasSubquery), nil
 	}
 
 	// everything was able to be pushed down, so the filter
 	// is removed from the plan.
-	return sa, nil
+	return ms, nil
 }

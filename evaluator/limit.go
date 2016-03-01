@@ -76,7 +76,7 @@ func (l *Limit) Err() error {
 
 func (_ *optimizer) visitLimit(limit *Limit) (Operator, error) {
 
-	sa, ms, ok := canPushDown(limit.source)
+	ms, ok := canPushDown(limit.source)
 	if !ok {
 		return limit, nil
 	}
@@ -91,8 +91,5 @@ func (_ *optimizer) visitLimit(limit *Limit) (Operator, error) {
 		pipeline = append(pipeline, bson.D{{"$limit", limit.rowcount}})
 	}
 
-	ms = ms.WithPipeline(pipeline)
-	sa = sa.WithSource(ms)
-
-	return sa, nil
+	return ms.WithPipeline(pipeline), nil
 }

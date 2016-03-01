@@ -50,18 +50,12 @@ func (v *optimizer) Visit(o Operator) (Operator, error) {
 	return o, nil
 }
 
-func canPushDown(op Operator) (*SourceAppend, *MongoSource, bool) {
+func canPushDown(op Operator) (*MongoSource, bool) {
 
-	// we can only optimize an operator whose source is a SourceAppend
-	// with a source of a MongoSource
-	sa, ok := op.(*SourceAppend)
+	ms, ok := op.(*MongoSource)
 	if !ok {
-		return nil, nil, false
-	}
-	ms, ok := sa.source.(*MongoSource)
-	if !ok {
-		return nil, nil, false
+		return nil, false
 	}
 
-	return sa, ms, true
+	return ms, true
 }

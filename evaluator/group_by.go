@@ -232,7 +232,7 @@ const (
 // $group and $project stages for the aggregation pipeline.
 func (v *optimizer) visitGroupBy(gb *GroupBy) (Operator, error) {
 
-	sa, ms, ok := canPushDown(gb.source)
+	ms, ok := canPushDown(gb.source)
 	if !ok {
 		return gb, nil
 	}
@@ -276,9 +276,8 @@ func (v *optimizer) visitGroupBy(gb *GroupBy) (Operator, error) {
 	}
 
 	ms = ms.WithPipeline(pipeline).WithMappingRegistry(mappingRegistry)
-	sa = sa.WithSource(ms)
 
-	return sa, nil
+	return ms, nil
 }
 
 // translateGroupByKeys takes the key expressions and generates an _id document. All keys, even single keys,

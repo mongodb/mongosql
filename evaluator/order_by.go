@@ -220,7 +220,7 @@ func (rows orderByRows) Less(i, j int) bool {
 
 func (v *optimizer) visitOrderBy(orderBy *OrderBy) (Operator, error) {
 
-	sa, ms, ok := canPushDown(orderBy.source)
+	ms, ok := canPushDown(orderBy.source)
 	if !ok {
 		return orderBy, nil
 	}
@@ -257,8 +257,5 @@ func (v *optimizer) visitOrderBy(orderBy *OrderBy) (Operator, error) {
 	pipeline := ms.pipeline
 	pipeline = append(pipeline, bson.D{{"$sort", sort}})
 
-	ms = ms.WithPipeline(pipeline)
-	sa = sa.WithSource(ms)
-
-	return sa, nil
+	return ms.WithPipeline(pipeline), nil
 }
