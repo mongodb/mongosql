@@ -31,16 +31,21 @@ schema:
      collection: test.simple
      columns:
      -
-        name: a
-        sqltype: int
+        Name: a
+        MongoType: int
+        SqlType: int
      -
-        name: b
-        sqltype: int
+        Name: b
+        MongoType: int
+        SqlType: int
      -
-        name: _id
+        Name: d
+        MongoType: int
+        SqlType: int
      -
-        name: c
-        sqltype: int
+        Name: c
+        MongoType: int
+        SqlType: int
 -
   db: foo
   tables:
@@ -49,21 +54,25 @@ schema:
      collection: test.simple
      columns:
      -
-        name: c
-        sqltype: int
+        Name: c
+        MongoType: int
+        SqlType: int
      -
-        name: d
-        sqltype: int
+        Name: d
+        MongoType: int
+        SqlType: int
   -
      table: silly
      collection: test.simple2
      columns:
      -
-        name: e
-        sqltype: int
+        Name: e
+        MongoType: int
+        SqlType: int
      -
-        name: f
-        sqltype: int
+        Name: f
+        MongoType: int
+        SqlType: int
 `)
 )
 
@@ -118,18 +127,18 @@ func TestSelectWithStar(t *testing.T) {
 
 		Convey("result set should be returned according to the schema order", func() {
 
-			So(collectionOne.Insert(bson.M{"_id": 5, "a": 6, "b": 7}), ShouldBeNil)
-			So(collectionOne.Insert(bson.M{"_id": 15, "a": 16, "c": 17}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 5, "a": 6, "b": 7}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 15, "a": 16, "c": 17}), ShouldBeNil)
 
 			names, values, err := eval.EvalSelect("test", "select * from bar", nil, nil)
 			So(err, ShouldBeNil)
-			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(names, ShouldResemble, []string{"a", "b", "d", "c"})
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 2)
 
 			So(names[0], ShouldEqual, "a")
 			So(names[1], ShouldEqual, "b")
-			So(names[2], ShouldEqual, "_id")
+			So(names[2], ShouldEqual, "d")
 			So(names[3], ShouldEqual, "c")
 
 			So(values[0][0], ShouldEqual, 6)
@@ -187,17 +196,17 @@ func TestSelectWithNonStar(t *testing.T) {
 
 		collectionOne.DropCollection()
 
-		So(collectionOne.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 3, "b": 3, "a": 2}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 4, "b": 4, "a": 3}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 1, "b": 4, "a": 4}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 6, "b": 5, "a": 5}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 7, "b": 6, "a": 5}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 5, "b": 6, "a": 7}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 2, "b": 2, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 3, "b": 3, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 4, "b": 4, "a": 3}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 1, "b": 4, "a": 4}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 6, "b": 5, "a": 5}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 7, "b": 6, "a": 5}), ShouldBeNil)
 
 		Convey("selecting the fields in any order should return results as requested", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b, _id from bar", nil, nil)
+			names, values, err := eval.EvalSelect("test", "select a, b, d from bar", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 7)
@@ -206,7 +215,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(6))
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(5))
 
-			So(names, ShouldResemble, []string{"a", "b", "_id"})
+			So(names, ShouldResemble, []string{"a", "b", "d"})
 
 			names, values, err = eval.EvalSelect("test", "select bar.* from bar", nil, nil)
 			So(err, ShouldBeNil)
@@ -218,7 +227,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(5))
 			So(values[0][3], ShouldResemble, evaluator.SQLNull)
 
-			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(names, ShouldResemble, []string{"a", "b", "d", "c"})
 
 			names, values, err = eval.EvalSelect("test", "select b, a from bar", nil, nil)
 			So(err, ShouldBeNil)
@@ -303,7 +312,7 @@ func TestSelectWithAliasing(t *testing.T) {
 	Convey("With a non-star select query", t, func() {
 
 		collectionOne.DropCollection()
-		So(collectionOne.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 5, "b": 6, "a": 7}), ShouldBeNil)
 
 		Convey("aliased fields should return the aliased header", func() {
 
@@ -352,11 +361,11 @@ func TestSelectWithDistinct(t *testing.T) {
 	Convey("With a select query containing a DISTINCT clause ", t, func() {
 
 		collectionOne.DropCollection()
-		So(collectionOne.Insert(bson.M{"_id": 1, "b": 2, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 2, "b": 1, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 3, "b": 3, "a": 2}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 4, "b": 3, "a": 2}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 5, "b": 2, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 1, "b": 2, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 2, "b": 1, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 3, "b": 3, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 4, "b": 3, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 5, "b": 2, "a": 2}), ShouldBeNil)
 
 		Convey("distinct column references should return distinct results", func() {
 
@@ -498,12 +507,12 @@ func TestSelectWithGroupBy(t *testing.T) {
 	Convey("With a select query containing a GROUP BY clause", t, func() {
 
 		collectionOne.DropCollection()
-		So(collectionOne.Insert(bson.M{"_id": 1, "b": 2, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 2, "b": 1, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 3, "b": 3, "a": 2}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 4, "b": 3, "a": 2}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 5, "b": 2, "a": 2}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 6, "b": nil, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 1, "b": 2, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 2, "b": 1, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 3, "b": 3, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 4, "b": 3, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 5, "b": 2, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 6, "b": nil, "a": 1}), ShouldBeNil)
 
 		Convey("the result set should contain terms grouped accordingly", func() {
 
@@ -699,7 +708,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("grouping using distinct aggregation functions should return distinct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT a, sum(distinct b+_id) FROM bar GROUP BY a", nil, nil)
+			names, values, err := eval.EvalSelect("test", "SELECT a, sum(distinct b+d) FROM bar GROUP BY a", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -717,7 +726,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("grouping using multiple distinct aggregation functions should return distinct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT a, sum(distinct b+_id), sum(distinct b) FROM bar GROUP BY a", nil, nil)
+			names, values, err := eval.EvalSelect("test", "SELECT a, sum(distinct b+d), sum(distinct b) FROM bar GROUP BY a", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 
@@ -797,13 +806,13 @@ func TestSelectWithHaving(t *testing.T) {
 	Convey("With a select query containing a HAVING clause", t, func() {
 
 		collectionOne.DropCollection()
-		So(collectionOne.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 3, "b": 3, "a": 2}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 4, "b": 4, "a": 3}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 5, "b": 4, "a": 4}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 6, "b": 5, "a": 5}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 7, "b": 6, "a": 5}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 1, "b": 1, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 2, "b": 2, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 3, "b": 3, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 4, "b": 4, "a": 3}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 5, "b": 4, "a": 4}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 6, "b": 5, "a": 5}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 7, "b": 6, "a": 5}), ShouldBeNil)
 
 		Convey("using the same select expression aggregate function should filter the result set accordingly", func() {
 
@@ -1061,7 +1070,7 @@ func TestSelectFromSubquery(t *testing.T) {
 	Convey("For a select statement with data from a subquery", t, func() {
 
 		collectionOne.DropCollection()
-		So(collectionOne.Insert(bson.M{"_id": 5, "b": 6, "a": 7}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 5, "b": 6, "a": 7}), ShouldBeNil)
 
 		Convey("an error should be returned if the subquery is unaliased", func() {
 
@@ -1075,7 +1084,7 @@ func TestSelectFromSubquery(t *testing.T) {
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 1)
 
-			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(names, ShouldResemble, []string{"a", "b", "d", "c"})
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(6))
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(5))
@@ -1083,7 +1092,7 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("aliased non-star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select _id as x, c as y from (select _id, c from bar) t0", nil, nil)
+			names, values, err := eval.EvalSelect("test", "select d as x, c as y from (select d, c from bar) t0", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1094,7 +1103,7 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("correctly qualified outer aliased non-star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select t0._id as x, c as y from (select _id, c from bar) t0", nil, nil)
+			names, values, err := eval.EvalSelect("test", "select t0.d as x, c as y from (select d, c from bar) t0", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1105,7 +1114,7 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("correctly qualified outer and inner aliased non-star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select b as x, d as y from (select _id as b, c as d from bar) t0", nil, nil)
+			names, values, err := eval.EvalSelect("test", "select b as x, d as y from (select d as b, c as d from bar) t0", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1116,22 +1125,22 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("invalid (or invisible) column names in outer context should fail", func() {
-			_, _, err := eval.EvalSelect("test", "select da from (select * from (select _id from bar) y) x", nil, nil)
+			_, _, err := eval.EvalSelect("test", "select da from (select * from (select d from bar) y) x", nil, nil)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("valid column names in outer context should pass", func() {
-			names, values, err := eval.EvalSelect("test", "select _id from (select * from (select _id from bar) y) x", nil, nil)
+			names, values, err := eval.EvalSelect("test", "select d from (select * from (select d from bar) y) x", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
 
-			So(names, ShouldResemble, []string{"_id"})
+			So(names, ShouldResemble, []string{"d"})
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
 		})
 
 		Convey("aliased and valid column names in outer context should pass", func() {
-			names, values, err := eval.EvalSelect("test", "select _id as c from (select * from (select _id from bar) y) x", nil, nil)
+			names, values, err := eval.EvalSelect("test", "select d as c from (select * from (select d from bar) y) x", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
@@ -1141,7 +1150,7 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("multiply aliased and valid column names in outer context should pass", func() {
-			names, values, err := eval.EvalSelect("test", "select b as d from (select _id as b from (select _id from bar) y) x", nil, nil)
+			names, values, err := eval.EvalSelect("test", "select b as d from (select d as b from (select d from bar) y) x", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
@@ -1151,18 +1160,18 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("non-star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select _id, c from (select * from bar) t0", nil, nil)
+			names, values, err := eval.EvalSelect("test", "select d, c from (select * from bar) t0", nil, nil)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
 
-			So(names, ShouldResemble, []string{"_id", "c"})
+			So(names, ShouldResemble, []string{"d", "c"})
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
 			So(values[0][1], ShouldResemble, evaluator.SQLNull)
 		})
 
 		Convey("incorrectly qualified aliased non-star select expressions should return the correct results in order", func() {
-			_, _, err := eval.EvalSelect("test", "select bar._id as x, c as y from (select * from bar) t0", nil, nil)
+			_, _, err := eval.EvalSelect("test", "select bar.d as x, c as y from (select * from bar) t0", nil, nil)
 			So(err, ShouldNotBeNil)
 		})
 
@@ -1172,7 +1181,7 @@ func TestSelectFromSubquery(t *testing.T) {
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 1)
 
-			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(names, ShouldResemble, []string{"a", "b", "d", "c"})
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(6))
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(5))
@@ -1189,13 +1198,13 @@ func TestSelectWithRowValue(t *testing.T) {
 	Convey("With a select query containing a row value expression", t, func() {
 
 		collectionOne.DropCollection()
-		So(collectionOne.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 2, "b": 2, "a": 2}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 3, "b": 4, "a": 3}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 4, "b": 4, "a": 4}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 5, "b": 4, "a": 5}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 6, "b": 5, "a": 6}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 7, "b": 6, "a": 7}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 1, "b": 1, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 2, "b": 2, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 3, "b": 4, "a": 3}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 4, "b": 4, "a": 4}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 5, "b": 4, "a": 5}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 6, "b": 5, "a": 6}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 7, "b": 6, "a": 7}), ShouldBeNil)
 
 		Convey("degree 1 equality comparisons should return the correct results", func() {
 
@@ -1513,9 +1522,9 @@ func TestSelectWithWhere(t *testing.T) {
 
 		collectionOne.DropCollection()
 
-		So(collectionOne.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 2, "b": 2, "a": 2}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 3, "b": 4, "a": 3}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 1, "b": 1, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 2, "b": 2, "a": 2}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 3, "b": 4, "a": 3}), ShouldBeNil)
 
 		Convey("range filters should return the right results", func() {
 
@@ -1658,10 +1667,10 @@ func TestSelectWithOrderBy(t *testing.T) {
 
 		Convey("with a single order by term, the result set should be sorted accordingly", func() {
 
-			So(collectionOne.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
-			So(collectionOne.Insert(bson.M{"_id": 4, "b": 10, "a": 3}), ShouldBeNil)
-			So(collectionOne.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
-			So(collectionOne.Insert(bson.M{"_id": 3, "b": 2, "a": 2}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 2, "b": 2, "a": 1}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 4, "b": 10, "a": 3}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 1, "b": 1, "a": 1}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 3, "b": 2, "a": 2}), ShouldBeNil)
 
 			names, values, err := eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by a", nil, nil)
 			So(err, ShouldBeNil)
@@ -1778,7 +1787,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 4)
 
-			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(names, ShouldResemble, []string{"a", "b", "d", "c"})
 			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNull})
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNull})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNull})
@@ -1789,7 +1798,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 4)
 
-			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(names, ShouldResemble, []string{"a", "b", "d", "c"})
 			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNull})
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNull})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNull})
@@ -1800,7 +1809,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 4)
 
-			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(names, ShouldResemble, []string{"a", "b", "d", "c"})
 			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNull})
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNull})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNull})
@@ -1819,12 +1828,12 @@ func TestSelectWithOrderBy(t *testing.T) {
 		})
 
 		Convey("with multiple order by terms, the result set should be sorted accordingly", func() {
-			So(collectionOne.Insert(bson.M{"_id": 1, "b": 1, "a": 1}), ShouldBeNil)
-			So(collectionOne.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
-			So(collectionOne.Insert(bson.M{"_id": 3, "b": 2, "a": 2}), ShouldBeNil)
-			So(collectionOne.Insert(bson.M{"_id": 4, "b": 10, "a": 3}), ShouldBeNil)
-			So(collectionOne.Insert(bson.M{"_id": 5, "b": 3, "a": 4}), ShouldBeNil)
-			So(collectionOne.Insert(bson.M{"_id": 6, "b": 3, "a": 1}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 1, "b": 1, "a": 1}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 2, "b": 2, "a": 1}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 3, "b": 2, "a": 2}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 4, "b": 10, "a": 3}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 5, "b": 3, "a": 4}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 6, "b": 3, "a": 1}), ShouldBeNil)
 
 			names, values, err := eval.EvalSelect("test", "select a, b, sum(bar.b) from bar group by a, b order by a asc, sum(b) desc", nil, nil)
 			So(err, ShouldBeNil)
@@ -1904,9 +1913,9 @@ func TestSelectWithCaseExpr(t *testing.T) {
 
 		collectionOne.DropCollection()
 
-		So(collectionOne.Insert(bson.M{"_id": 1, "b": 1, "a": 5}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 3, "b": 2, "a": 6}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 1, "b": 1, "a": 5}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 2, "b": 2, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 3, "b": 2, "a": 6}), ShouldBeNil)
 
 		Convey("if a case matches, the correct result should be returned", func() {
 
@@ -1963,11 +1972,11 @@ func TestSelectWithLimit(t *testing.T) {
 
 		collectionOne.DropCollection()
 
-		So(collectionOne.Insert(bson.M{"_id": 1, "b": 1, "a": 5}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 2, "b": 2, "a": 1}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 3, "b": 2, "a": 6}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 4, "b": 2, "a": 6}), ShouldBeNil)
-		So(collectionOne.Insert(bson.M{"_id": 5, "b": 2, "a": 6}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 1, "b": 1, "a": 5}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 2, "b": 2, "a": 1}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 3, "b": 2, "a": 6}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 4, "b": 2, "a": 6}), ShouldBeNil)
+		So(collectionOne.Insert(bson.M{"d": 5, "b": 2, "a": 6}), ShouldBeNil)
 
 		Convey("non-integer limits and/or row counts should return an error", func() {
 
@@ -1993,14 +2002,14 @@ func TestSelectWithLimit(t *testing.T) {
 
 		Convey("the offset should be skip the number of records specified", func() {
 
-			names, values, err := eval.EvalSelect("test", "select _id from bar order by _id limit 1, 1", nil, nil)
+			names, values, err := eval.EvalSelect("test", "select d from bar order by d limit 1, 1", nil, nil)
 			So(err, ShouldBeNil)
-			So(names, ShouldResemble, []string{"_id"})
+			So(names, ShouldResemble, []string{"d"})
 			So(values, ShouldResemble, [][]interface{}{[]interface{}{evaluator.SQLInt(2)}})
 
-			names, values, err = eval.EvalSelect("test", "select _id from bar order by _id limit 3, 1", nil, nil)
+			names, values, err = eval.EvalSelect("test", "select d from bar order by d limit 3, 1", nil, nil)
 			So(err, ShouldBeNil)
-			So(names, ShouldResemble, []string{"_id"})
+			So(names, ShouldResemble, []string{"d"})
 			So(values, ShouldResemble, [][]interface{}{[]interface{}{evaluator.SQLInt(4)}})
 
 		})
@@ -2207,7 +2216,7 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 			So(len(names), ShouldEqual, 6)
 			So(len(values), ShouldEqual, 5)
 
-			So(names, ShouldResemble, []string{"a", "b", "_id", "c", "maxloss", "c"})
+			So(names, ShouldResemble, []string{"a", "b", "d", "c", "maxloss", "c"})
 		})
 
 		Convey("filtered star expressions combined with subqueries should return the correct columns", func() {
@@ -2218,7 +2227,7 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 5)
 
-			So(names, ShouldResemble, []string{"a", "b", "_id", "c"})
+			So(names, ShouldResemble, []string{"a", "b", "d", "c"})
 
 			names, values, err = eval.EvalSelect("test", "select m.* from bar f, (select max(a) as maxloss, c from bar) m", nil, nil)
 			So(err, ShouldBeNil)
@@ -2234,7 +2243,7 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 			So(len(names), ShouldEqual, 6)
 			So(len(values), ShouldEqual, 5)
 
-			So(names, ShouldResemble, []string{"maxloss", "c", "a", "b", "_id", "c"})
+			So(names, ShouldResemble, []string{"maxloss", "c", "a", "b", "d", "c"})
 
 			names, values, err = eval.EvalSelect("test", "select * from bar f, (select max(a) as maxloss, c from bar) m", nil, nil)
 			So(err, ShouldBeNil)
@@ -2242,7 +2251,7 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 			So(len(names), ShouldEqual, 6)
 			So(len(values), ShouldEqual, 5)
 
-			So(names, ShouldResemble, []string{"a", "b", "_id", "c", "maxloss", "c"})
+			So(names, ShouldResemble, []string{"a", "b", "d", "c", "maxloss", "c"})
 
 			names, values, err = eval.EvalSelect("test", "select * from bar join (select * from bar) as derived order by bar.c", nil, nil)
 			So(err, ShouldBeNil)
@@ -2250,7 +2259,7 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 			So(len(names), ShouldEqual, 8)
 			So(len(values), ShouldEqual, 25)
 
-			So(names, ShouldResemble, []string{"a", "b", "_id", "c", "a", "b", "_id", "c"})
+			So(names, ShouldResemble, []string{"a", "b", "d", "c", "a", "b", "d", "c"})
 
 		})
 	})

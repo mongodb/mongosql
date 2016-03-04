@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/schema"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -59,18 +61,19 @@ func (mr *mappingRegistry) lookupFieldName(tableName, columnName string) (string
 	return field, ok
 }
 
-func (mr *mappingRegistry) lookupFieldType(tableName, columnName string) (string, bool) {
+func (mr *mappingRegistry) lookupFieldType(tableName, columnName string) (*schema.ColumnType, bool) {
 	if mr.fields == nil {
-		return "", false
+		return nil, false
 	}
 
 	for _, column := range mr.columns {
 		if column.Table == tableName && column.Name == columnName {
-			return column.Type, true
+			colType := &schema.ColumnType{column.SQLType, column.MongoType}
+			return colType, true
 		}
 	}
 
-	return "", false
+	return nil, false
 }
 
 // MongoSource is the primary interface for SQLProxy to a MongoDB
@@ -120,10 +123,11 @@ func NewMongoSource(ctx *ExecutionCtx, dbName, tableName string, aliasName strin
 	ms.mappingRegistry = &mappingRegistry{}
 	for _, c := range tableSchema.RawColumns {
 		column := &Column{
-			Table: ms.aliasName,
-			Name:  c.SqlName,
-			View:  c.SqlName,
-			Type:  c.SqlType,
+			Table:     ms.aliasName,
+			Name:      c.SqlName,
+			View:      c.SqlName,
+			SQLType:   c.SqlType,
+			MongoType: c.MongoType,
 		}
 		ms.mappingRegistry.addColumn(column)
 		ms.mappingRegistry.registerMapping(ms.aliasName, c.SqlName, c.Name)
@@ -209,7 +213,7 @@ func (ms *MongoSource) Next(row *Row) bool {
 				Data: extractedField,
 			}
 
-			value.Data, err = NewSQLValue(value.Data, column.Type)
+			value.Data, err = NewSQLValue(value.Data, column.SQLType, column.MongoType)
 			if err != nil {
 				ms.err = err
 				return false

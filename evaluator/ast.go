@@ -464,8 +464,6 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		return e.Evaluate(nil)
 	case SQLDate:
 		// nothing to do
-	case SQLDateTime:
-		// nothing to do
 	case SQLFloat:
 		// nothing to do
 	case SQLInt:
@@ -473,8 +471,6 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 	case SQLNullValue:
 		// nothing to do
 	case SQLString:
-		// nothing to do
-	case SQLTime:
 		// nothing to do
 	case SQLTimestamp:
 		// nothing to do

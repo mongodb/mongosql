@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -29,7 +30,7 @@ func TestLimitOperator(t *testing.T) {
 		limit.source = &Project{
 			sExprs: SelectExpressions{
 				SelectExpression{
-					Column: &Column{tableOneName, "a", "a", "int"},
+					Column: &Column{tableOneName, "a", "a", schema.SQLInt, schema.MongoInt},
 					Expr:   SQLColumnExpr{tableOneName, "a"},
 				},
 			},

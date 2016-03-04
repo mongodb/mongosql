@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -92,9 +93,11 @@ func (sds *SchemaDataSource) OpFields() []*Column {
 
 	for _, c := range headers {
 		column := &Column{
-			Table: sds.aliasName,
-			Name:  c,
-			View:  c,
+			Table:     sds.aliasName,
+			Name:      c,
+			View:      c,
+			SQLType:   schema.SQLVarchar,
+			MongoType: schema.MongoString,
 		}
 		columns = append(columns, column)
 	}
@@ -192,7 +195,7 @@ func (sfr *SchemaFindResults) Next(result *bson.D) bool {
 		col := table.RawColumns[sfr.columnsOffset]
 
 		_cfrNextHelper(result, ISColumnHeaders[3], col.SqlName)
-		_cfrNextHelper(result, ISColumnHeaders[4], col.SqlType)
+		_cfrNextHelper(result, ISColumnHeaders[4], string(col.SqlType))
 
 		_cfrNextHelper(result, ISColumnHeaders[5], sfr.columnsOffset+1)
 

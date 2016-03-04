@@ -27,12 +27,12 @@ func TestMongoSourceOperator(t *testing.T) {
 				bson.D{
 					bson.DocElem{Name: "a", Value: 6},
 					bson.DocElem{Name: "b", Value: 7},
-					bson.DocElem{Name: "_id", Value: 5},
+					bson.DocElem{Name: "_id", Value: "5"},
 				},
 				bson.D{
 					bson.DocElem{Name: "a", Value: 16},
 					bson.DocElem{Name: "b", Value: 17},
-					bson.DocElem{Name: "_id", Value: 15},
+					bson.DocElem{Name: "_id", Value: "15"},
 				},
 			}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -169,7 +170,7 @@ func orderValue(key orderByKey) (SQLValue, error) {
 
 		value, ok := row.GetField(expr.Table, expr.Name)
 		if ok {
-			return NewSQLValue(value, "")
+			return NewSQLValue(value, schema.SQLNone, schema.MongoNone)
 		}
 	}
 

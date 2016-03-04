@@ -17,23 +17,27 @@ schema:
     collection: test.test1
     pipeline: []
     columns:
-    - name: a
-      sqlname: a
-      sqltype: int
-    - name: b
-      sqlname: b
-      sqltype: string
-    - name: "loc.0" 
-      sqlname: latitude
-      sqltype: int
-    - name: "loc.1"
-      sqlname: longitude
-      sqltype: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+    - Name: "loc.0" 
+      MongoType: int
+      SqlName: latitude
+      SqlType: int
+    - Name: "loc.1"
+      MongoType: int
+      SqlName: longitude
+      SqlType: int
 
 # 3. Run each of the following queries, and report any that have errors
 testcases:
 - sql: "SELECT a, b, latitude, longitude from foo"
-  expected_types: [int, string, float, float]
+  expected_types: [int, varchar, float64, float64]
   expected: 
     - [1, "hello world!", 124.0, 35.0]
 - sql: "SELECT count(*) from foo"
@@ -45,6 +49,6 @@ testcases:
   expected: 
     - [1]
 - sql: "SELECT latitude, longitude from foo"
-  expected_types: [float, float]
+  expected_types: [float64, float64]
   expected: 
     - [124.0, 35.0]

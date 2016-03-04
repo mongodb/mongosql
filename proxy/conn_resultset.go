@@ -56,17 +56,8 @@ func formatValue(value interface{}) ([]byte, error) {
 	case evaluator.SQLDate:
 		return hack.Slice(v.Time.Format(schema.DateFormat)), nil
 
-	case evaluator.SQLDateTime:
-		return hack.Slice(v.Time.Format(schema.TimestampFormat)), nil
-
-	case evaluator.SQLTime:
-		return hack.Slice(v.Time.Format(schema.TimeFormat)), nil
-
 	case evaluator.SQLTimestamp:
 		return hack.Slice(v.Time.Format(schema.TimestampFormat)), nil
-
-	case evaluator.SQLYear:
-		return strconv.AppendInt(nil, int64(v.Time.Year()), 10), nil
 
 	case time.Time:
 		return hack.Slice(v.String()), nil
@@ -176,21 +167,9 @@ func formatField(field *Field, value interface{}) error {
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_DATE
 
-	case evaluator.SQLDateTime:
-		field.Charset = 33
-		field.Type = MYSQL_TYPE_DATETIME
-
-	case evaluator.SQLTime:
-		field.Charset = 33
-		field.Type = MYSQL_TYPE_TIME
-
 	case evaluator.SQLTimestamp:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_TIMESTAMP
-
-	case evaluator.SQLYear:
-		field.Charset = 33
-		field.Type = MYSQL_TYPE_YEAR
 
 	case *evaluator.SQLValues:
 		if len(typedV.Values) != 1 {

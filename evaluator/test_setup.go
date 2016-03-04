@@ -31,48 +31,63 @@ schema:
      collection: test.foo
      columns:
      -
-        name: a
-        sqltype: int
+        Name: a
+        MongoType: int
+        SqlType: int
      -
-        name: b
-        sqltype: int
+        Name: b
+        MongoType: int
+        SqlType: int
      -
-        name: c
-        sqltype: int
+        Name: c
+        MongoType: int
+        SqlType: int
      -
-        name: d.e
-        sqlname: e
-        sqltype: int
+        Name: d.e
+        MongoType: int
+        SqlName: e
+        SqlType: int
      -
-        name: d.f
-        sqlname: f
-        sqltype: int
+        Name: d.f
+        MongoType: int
+        SqlName: f
+        SqlType: int
      -
-        name: _id
+        Name: _id
+        MongoType: bson.ObjectId
+        SqlType: varchar
   -
      table: bar
      collection: test.bar
      columns:
      -
-        name: a
-        sqltype: int
+        Name: a
+        MongoType: int
+        SqlType: int
      -
-        name: b
-        sqltype: int
+        Name: b
+        MongoType: int
+        SqlType: int
      -
-        name: _id
+        Name: _id
+        MongoType: bson.ObjectId
+        SqlType: varchar
   -
      table: baz
      collection: test.baz
      columns:
      -
-        name: a
-        sqltype: int
+        Name: a
+        MongoType: int
+        SqlType: int
      -
-        name: b
-        sqltype: int
+        Name: b
+        MongoType: int
+        SqlType: int
      -
-        name: _id
+        Name: _id
+        MongoType: bson.ObjectId
+        SqlType: varchar
 -
   db: foo
   tables:
@@ -81,21 +96,25 @@ schema:
      collection: foo.bar
      columns:
      -
-        name: c
-        sqltype: int
+        Name: c
+        MongoType: int
+        SqlType: int
      -
-        name: d
-        sqltype: int
+        Name: d
+        MongoType: int
+        SqlType: int
   -
      table: silly
      collection: foo.silly
      columns:
      -
-        name: e
-        sqltype: int
+        Name: e
+        MongoType: int
+        SqlType: int
      -
-        name: f
-        sqltype: int
+        Name: f
+        MongoType: int
+        SqlType: int
 -
   db: test2
   tables:
@@ -104,25 +123,33 @@ schema:
      collection: test2.foo
      columns:
      -
-        name: name
-        sqltype: string
+        Name: name
+        MongoType: int
+        SqlType: varchar
      -
-        name: orderid
-        sqltype: int
+        Name: orderid
+        MongoType: int
+        SqlType: int
      -
-        name: _id
+        Name: _id
+        MongoType: bson.ObjectId
+        SqlType: varchar
   -
      table: bar
      collection: test2.bar
      columns:
      -
-        name: orderid
-        sqltype: int
+        Name: orderid
+        MongoType: int
+        SqlType: int
      -
-        name: amount
-        sqltype: int
+        Name: amount
+        MongoType: int
+        SqlType: int
      -
-        name: _id
+        Name: _id
+        MongoType: bson.ObjectId
+        SqlType: varchar
 `)
 
 	testSchema2 = []byte(`
@@ -137,66 +164,81 @@ schema:
      collection: test.foo
      columns:
      -
-        name: a
-        sqltype: string
+        Name: a
+        MongoType: string
+        SqlType: varchar
      -
-        name: x
-        sqltype: string
+        Name: x
+        MongoType: string
+        SqlType: varchar
      -
-        name: first
-        sqltype: string
+        Name: first
+        MongoType: string
+        SqlType: varchar
      -
-        name: last
-        sqltype: string
+        Name: last
+        MongoType: string
+        SqlType: varchar
      -
-        name: age
-        sqltype: string
+        Name: age
+        MongoType: string
+        SqlType: varchar
      -
-        name: b
-        sqltype: string
+        Name: b
+        MongoType: string
+        SqlType: varchar
   -
      table: orders
      collection: test.orders
      columns:
      -
-        name: customerid
-        sqltype: string
+        Name: customerid
+        MongoType: string
+        SqlType: varchar
      -
-        name: customername
-        sqltype: string
+        Name: customername
+        MongoType: string
+        SqlType: varchar
      -
-        name: orderid
-        sqltype: string
+        Name: orderid
+        MongoType: string
+        SqlType: varchar
      -
-        name: orderdate
-        sqltype: string
+        Name: orderdate
+        MongoType: string
+        SqlType: varchar
   -
      table: customers
      collection: test.customers
      columns:
      -
-        name: customerid
-        sqltype: string
+        Name: customerid
+        MongoType: string
+        SqlType: varchar
      -
-        name: customername
-        sqltype: string
+        Name: customername
+        MongoType: string
+        SqlType: varchar
   -
      table: bar
      collection: test.bar
      columns:
      -
-        name: a
-        sqltype: string
+        Name: a
+        MongoType: string
+        SqlType: varchar
      -
-        name: z
-        sqltype: string
+        Name: z
+        MongoType: string
+        SqlType: varchar
   -
      table: baz
      collection: test.baz
      columns:
      -
-        name: b
-        sqltype: string
+        Name: b
+        MongoType: string
+        SqlType: varchar
 `)
 
 	testSchema3 = []byte(
@@ -212,25 +254,32 @@ schema:
      collection: test.bar
      columns:
      -
-        name: a
-        sqltype: int
+        Name: a
+        MongoType: int
+        SqlType: int
      -
-        name: b
-        sqltype: string
+        Name: b
+        MongoType: string
+        SqlType: varchar
      -
-        name: loc.1
-        sqlname: c
-        sqltype: string
+        Name: loc.1
+        MongoType: string
+        SqlName: c
+        SqlType: varchar
      -
-        name: g
-        sqlname: g
-        sqltype: datetime
+        Name: g
+        MongoType: date
+        SqlName: g
+        SqlType: timestamp
      -
-        name: h
-        sqlname: h
-        sqltype: date
+        Name: h
+        MongoType: date
+        SqlName: h
+        SqlType: date
      -
-        name: _id
+        Name: _id
+        MongoType: bson.ObjectId
+        SqlType: varchar
   -
      table: foo
      collection: test.foo
@@ -242,21 +291,25 @@ schema:
      collection: foo.bar
      columns:
      -
-        name: c
-        sqltype: int
+        Name: c
+        MongoType: int
+        SqlType: int
      -
-        name: d
-        sqltype: string
+        Name: d
+        MongoType: string
+        SqlType: varchar
   -
      table: silly
      collection: foo.silly
      columns:
      -
-        name: e
-        sqltype: int
+        Name: e
+        MongoType: int
+        SqlType: int
      -
-        name: f
-        sqltype: string
+        Name: f
+        MongoType: string
+        SqlType: varchar
 `)
 )
 

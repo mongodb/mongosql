@@ -225,7 +225,8 @@ func (v *optimizer) visitProject(project *Project) (Operator, error) {
 
 		colType, ok := ms.mappingRegistry.lookupFieldType(exp.Column.Table, exp.Column.Name)
 		if ok {
-			exp.Column.Type = colType
+			exp.Column.SQLType = colType.SQLType
+			exp.Column.MongoType = colType.MongoType
 		}
 		fixedMappingRegistry.addColumn(exp.Column)
 		fixedMappingRegistry.registerMapping(exp.Column.Table, exp.Column.Name, safeFieldName)

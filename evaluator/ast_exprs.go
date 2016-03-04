@@ -83,15 +83,11 @@ func (s SQLCtorExpr) Evaluate(_ *EvalCtx) (SQLValue, error) {
 
 	switch s.Name {
 	case sqlparser.AST_DATE:
-		return NewSQLValue(arg, schema.SQLDate)
+		return NewSQLValue(arg, schema.SQLDate, schema.MongoNone)
 	case sqlparser.AST_DATETIME:
-		return NewSQLValue(arg, schema.SQLDateTime)
-	case sqlparser.AST_TIME:
-		return NewSQLValue(arg, schema.SQLTime)
+		return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
 	case sqlparser.AST_TIMESTAMP:
-		return NewSQLValue(arg, schema.SQLTimestamp)
-	case sqlparser.AST_YEAR:
-		return NewSQLValue(arg, schema.SQLYear)
+		return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
 	default:
 		return nil, fmt.Errorf("%v constructor is not supported", string(s.Name))
 	}
@@ -116,7 +112,7 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		for _, data := range row.Data {
 			if data.Table == c.tableName {
 				if value, hasValue := row.GetField(c.tableName, c.columnName); hasValue {
-					val, err := NewSQLValue(value, "")
+					val, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)
 					if err != nil {
 						return nil, err
 					}
@@ -139,10 +135,10 @@ func (c SQLColumnExpr) String() string {
 	return str
 }
 
-func (c SQLColumnExpr) Type(lookupFieldType fieldTypeLookup) string {
+func (c SQLColumnExpr) Type(lookupFieldType fieldTypeLookup) *schema.ColumnType {
 	t, ok := lookupFieldType(c.tableName, c.columnName)
 	if !ok {
-		return ""
+		return nil
 	}
 	return t
 }
@@ -203,7 +199,7 @@ func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 	eval := &SQLValues{}
 	for _, value := range values {
 
-		field, err := NewSQLValue(value, "")
+		field, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)
 		if err != nil {
 			return nil, err
 		}

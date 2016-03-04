@@ -29,18 +29,19 @@ func createFieldNameLookup(db *schema.Database) fieldNameLookup {
 
 func createFieldTypeLookup(db *schema.Database) fieldTypeLookup {
 
-	return func(tableName, columnName string) (string, bool) {
+	return func(tableName, columnName string) (*schema.ColumnType, bool) {
 		table := db.Tables[tableName]
 		if table == nil {
-			return "", false
+			return nil, false
 		}
 
 		column := table.SQLColumns[columnName]
 		if column == nil {
-			return "", false
+			return nil, false
 		}
 
-		return column.SqlType, true
+		colType := &schema.ColumnType{column.SqlType, column.MongoType}
+		return colType, true
 	}
 }
 

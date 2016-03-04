@@ -15,10 +15,11 @@ import (
 // source of the data while 'View' holds the display
 // header representation of the data.
 type Column struct {
-	Table string
-	Name  string
-	View  string
-	Type  string
+	Table     string
+	Name      string
+	View      string
+	SQLType   schema.SQLType
+	MongoType schema.MongoType
 }
 
 type ConnectionCtx interface {
@@ -253,7 +254,7 @@ func getKey(key string, doc bson.D) (interface{}, bool) {
 func bsonDToValues(document bson.D) ([]Value, error) {
 	values := []Value{}
 	for _, v := range document {
-		value, err := NewSQLValue(v.Value, "")
+		value, err := NewSQLValue(v.Value, schema.SQLNone, schema.MongoNone)
 		if err != nil {
 			return nil, err
 		}

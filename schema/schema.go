@@ -3,55 +3,52 @@ package schema
 import (
 	"fmt"
 	"time"
+
+	"github.com/mongodb/mongo-tools/common/util"
+)
+
+type SQLType string
+
+type MongoType string
+
+type ColumnType struct {
+	SQLType   SQLType
+	MongoType MongoType
+}
+
+const (
+	SQLNumeric    SQLType = "numeric"
+	SQLInt                = "int"
+	SQLInt64              = "int64"
+	SQLFloat              = "float64"
+	SQLVarchar            = "varchar"
+	SQLTimestamp          = "timestamp"
+	SQLDate               = "date"
+	SQLBoolean            = "boolean"
+	SQLArrNumeric         = "numeric[]"
+	SQLNull               = "null"
+	SQLNone               = ""
 )
 
 const (
-	SQLString  string = "string"
-	SQLInt            = "int"
-	SQLFloat          = "float"
-	SQLDouble         = "double"
-	SQLBoolean        = "boolean"
-	SQLVarchar        = "varchar"
-
-	SQLDate      = "date"
-	SQLDateTime  = "datetime"
-	SQLTime      = "time"
-	SQLTimestamp = "timestamp"
-	SQLYear      = "year"
-
-	SQLNull = "null"
-
-	/*
-
-		TODO (INT-800): support these
-
-		SQLDecimal  = "decimal"
-		SQLDouble   = "double"
-		SQLEnum     = "enum"
-		SQLGeometry = "geometry"
-
-		SQLBigInt   = "bigint"
-		SQLMedInt   = "mediumint"
-		SQLSmallInt = "smallint"
-		SQLTiny     = "tinyint"
-
-		SQLLongText   = "longtext"
-		SQLTinyText   = "tinytext"
-		SQLMediumText = "mediumtext"
-
-		SQLSet  = "set"
-		SQLChar = "char"
-		SQLBit  = "bit"
-
-	*/
+	MongoInt      MongoType = "int"
+	MongoInt64              = "int64"
+	MongoFloat              = "float64"
+	MongoDecimal            = "decimal"
+	MongoString             = "string"
+	MongoGeo2D              = "geo.2darray"
+	MongoObjectId           = "bson.ObjectId"
+	MongoBool               = "bool"
+	MongoDate               = "date"
+	MongoNone               = ""
 )
 
 type (
 	Column struct {
-		Name      string `yaml:"name"`
-		MongoType string `yaml:"type"`
-		SqlName   string `yaml:"sqlname"`
-		SqlType   string `yaml:"sqltype"`
+		Name      string    `yaml:"Name"`
+		MongoType MongoType `yaml:"MongoType"`
+		SqlName   string    `yaml:"SqlName"`
+		SqlType   SQLType   `yaml:"SqlType"`
 	}
 
 	Table struct {
@@ -102,19 +99,10 @@ const (
 )
 
 var (
-
-	// MySQL maintains three different time zone settings:
-	// - system: host machine time zone
-	// - server: server's current time zone
-	// - per-connection time zone (using SET)
-	// TODO: We might need to update the default locale (time
-	// zone) we use in parsing time related types from MongoDB.
-	// See https://dev.mysql.com/doc/refman/5.6/en/time-zone-support.html
 	DefaultLocale = time.UTC
-	DefaultTime   = time.Date(0, 0, 0, 0, 0, 0, 0, DefaultLocale)
 
-	// TimestampCtorFormats holds the various formats for constructing
-	// the timestamp
+	// TimestampCtorFormats holds the various formats
+	// for constructing a SQL timestamp.
 	TimestampCtorFormats = []string{
 		"15:4:5",
 		"2006-1-2",
@@ -124,26 +112,64 @@ var (
 )
 
 func (c *Column) validateType() error {
-	switch c.SqlType {
-
-	case "":
-
-	case SQLString:
-	case SQLInt:
-	case SQLFloat:
-	case SQLBoolean:
-	case SQLVarchar:
-
-	case SQLYear:
-	case SQLDateTime:
-	case SQLTimestamp:
-	case SQLTime:
-	case SQLDate:
-
-	case SQLNull:
-
+	switch MongoType(c.MongoType) {
+	case MongoInt:
+		switch SQLType(c.SqlType) {
+		case SQLInt, SQLInt64, SQLNumeric, SQLVarchar:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoInt64:
+		switch SQLType(c.SqlType) {
+		case SQLInt64, SQLNumeric, SQLVarchar:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoFloat:
+		switch SQLType(c.SqlType) {
+		case SQLFloat, SQLNumeric, SQLVarchar:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoDecimal:
+		switch SQLType(c.SqlType) {
+		case SQLNumeric, SQLVarchar:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoString:
+		switch SQLType(c.SqlType) {
+		case SQLVarchar:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoGeo2D:
+		switch SQLType(c.SqlType) {
+		case SQLArrNumeric:
+		default:
+			// TODO (INT-1015): remove once pipeline is supported
+			// return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoObjectId:
+		switch SQLType(c.SqlType) {
+		case SQLVarchar:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoBool:
+		switch SQLType(c.SqlType) {
+		case SQLBoolean:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoDate:
+		switch SQLType(c.SqlType) {
+		case SQLDate, SQLTimestamp:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
 	default:
-		panic(fmt.Sprintf("don't know MySQL type: %s", c.SqlType))
+		return fmt.Errorf("unsupported mongo type: '%s'", c.MongoType)
 	}
 	return nil
 }
@@ -162,7 +188,6 @@ func (t *Table) fixTypes() error {
 // and panics if the error is non-nil. It is intended for use in variable
 // initializations such as
 //	var t = schema.Must(ParseSchemaData(raw))
-
 func Must(c *Schema, err error) *Schema {
 	if err != nil {
 		panic(err)
@@ -223,4 +248,60 @@ func (c *Schema) ingestSubFile(data []byte) error {
 	}
 
 	return nil
+}
+
+// CanCompare returns true if sqlValue can be converted to a
+// value comparable to mType.
+func CanCompare(sqlValue interface{}, mType MongoType) bool {
+	switch mType {
+	case MongoInt, MongoInt64, MongoFloat, MongoDecimal:
+		switch sqlValue.(type) {
+		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64, nil:
+			return true
+		}
+	case MongoString:
+		switch sqlValue.(type) {
+		case string, nil:
+			return true
+		}
+	case MongoGeo2D:
+		switch sqlValue.(type) {
+		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64, nil:
+			return true
+		}
+	case MongoObjectId:
+		switch v := sqlValue.(type) {
+		case string:
+			if len(v) != 24 {
+				return false
+			}
+			return true
+		case nil:
+			return true
+		}
+	case MongoBool:
+		switch v := sqlValue.(type) {
+		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
+			value, err := util.ToInt(v)
+			if err != nil {
+				return false
+			}
+			if !(value == 1 || value == 0) {
+				return false
+			}
+			return true
+		case bool:
+			return true
+		case nil:
+			return true
+		}
+	case MongoDate:
+		switch sqlValue.(type) {
+		case string, nil:
+			return true
+		}
+	default:
+		return false
+	}
+	return false
 }

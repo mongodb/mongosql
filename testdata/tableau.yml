@@ -11,125 +11,166 @@ schema:
     - table: flights201406
       collection: tableau.flights201406
       columns:
-        - name: "_id"
-          sqlname: "_id"
-          sqltype: string
-        - name: "carrier_code"
-          sqlname: "carrier_code"
-          sqltype: string
-        - name: "tail_num"
-          sqltype: string
-        - name: "flight_number"
-          sqlname: "flight_number"
-          sqltype: int
-        - name: "origin_airport_id"
-          sqlname: "origin_airport_id"
-          sqltype: int
-        - name: "origin_city_market_id"
-          sqlname: "origin_city_market_id"
-          sqltype: int
-        - name: "origin_airport_code"
-          sqlname: "origin_airport_code"
-          sqltype: string
-        - name: "origin_city_name"
-          sqlname: "origin_city_name"
-          sqltype: string
-        - name: "origin_state"
-          sqltype: string
-        - name: "dest_airport_id"
-          sqlname: "dest_airport_id"
-          sqltype: int
-        - name: "dest_city_market_id"
-          sqlname: "dest_city_market_id"
-          sqltype: int
-        - name: "dest_airport_code"
-          sqlname: "dest_airport_code"
-          sqltype: string
-        - name: "flight_date"
-          sqlname: "flight_date"
-          sqltype: date
-        - name: "dest_city_name"
-          sqlname: "dest_city_name"
-          sqltype: string
-        - name: "dest_state"
-          sqlname: "dest_state"
-          sqltype: string
-        - name: "dep_time"
-          sqlname: "dep_time"
-          sqltype: int
-        - name: "diff_from_dep_time"
-          sqlname: "diff_from_dep_time"
-          sqltype: int
-        - name: "dep_delay"
-          sqlname: "dep_delay"
-          sqltype: int
-        - name: "arr_time"
-          sqlname: "arr_time"
-          sqltype: int
-        - name: "diff_from_arr_time"
-          sqlname: "diff_from_arr_time"
-          sqltype: int
-        - name: "flight_time"
-          sqlname: "flight_time"
-          sqltype: timestamp
-        - name: "airline"
-          sqlname: "airline"
-          sqltype: string
-        - name: "cancelled"
-          sqlname: "cancelled"
-          sqltype: int
-        - name: "arr_delay"
-          sqlname: "arr_delay"
-          sqltype: int
-        - name: "carrier_delay"
-          sqlname: "carrier_delay"
-          sqltype: int
-        - name: "late_aircraft_delay"
-          sqlname: "late_aircraft_delay"
-          sqltype: int
-        - name: "nas_delay"
-          sqlname: "nas_delay"
-          sqltype: int
+        - Name: _id
+          MongoType: bson.ObjectId
+          SqlName: _id
+          SqlType: varchar
+        - Name: carrier_code
+          MongoType: string
+          SqlName: carrier_code
+          SqlType: varchar
+        - Name: tail_num
+          MongoType: string
+          SqlName: tail_num
+          SqlType: varchar
+        - Name: flight_number
+          MongoType: int
+          SqlName: flight_number
+          SqlType: int
+        - Name: origin_airport_id
+          MongoType: int
+          SqlName: origin_airport_id
+          SqlType: int
+        - Name: origin_city_market_id
+          MongoType: int
+          SqlName: origin_city_market_id
+          SqlType: int
+        - Name: origin_airport_code
+          MongoType: string
+          SqlName: origin_airport_code
+          SqlType: varchar
+        - Name: origin_city_name
+          MongoType: string
+          SqlName: origin_city_name
+          SqlType: varchar
+        - Name: origin_state
+          MongoType: string
+          SqlName: origin_state
+          SqlType: varchar
+        - Name: dest_airport_id
+          MongoType: int
+          SqlName: dest_airport_id
+          SqlType: int
+        - Name: dest_city_market_id
+          MongoType: int
+          SqlName: dest_city_market_id
+          SqlType: int
+        - Name: dest_airport_code
+          MongoType: int
+          SqlName: dest_airport_code
+          SqlType: varchar
+        - Name: flight_date
+          MongoType: date
+          SqlName: flight_date
+          SqlType: date
+        - Name: dest_city_name
+          MongoType: string
+          SqlName: dest_city_name
+          SqlType: varchar
+        - Name: dest_state
+          MongoType: string
+          SqlName: dest_state
+          SqlType: varchar
+        - Name: dep_time
+          MongoType: int
+          SqlName: dep_time
+          SqlType: int
+        - Name: diff_from_dep_time
+          MongoType: int
+          SqlName: diff_from_dep_time
+          SqlType: int
+        - Name: dep_delay
+          MongoType: int
+          SqlName: dep_delay
+          SqlType: int
+        - Name: arr_time
+          MongoType: int
+          SqlName: arr_time
+          SqlType: int
+        - Name: diff_from_arr_time
+          MongoType: int
+          SqlName: diff_from_arr_time
+          SqlType: int
+        - Name: flight_time
+          MongoType: date
+          SqlName: flight_time
+          SqlType: timestamp
+        - Name: airline
+          MongoType: string
+          SqlName: airline
+          SqlType: varchar
+        - Name: cancelled
+          MongoType: int
+          SqlName: cancelled
+          SqlType: int
+        - Name: arr_delay
+          MongoType: int
+          SqlName: arr_delay
+          SqlType: int
+        - Name: carrier_delay
+          MongoType: int
+          SqlName: carrier_delay
+          SqlType: int
+        - Name: late_aircraft_delay
+          MongoType: int
+          SqlName: late_aircraft_delay
+          SqlType: int
+        - Name: nas_delay
+          MongoType: int
+          SqlName: nas_delay
+          SqlType: int
 
     - table: attendees
-      collection: "tableau.attendees"
+      collection: tableau.attendees
       columns:
-        - name: "_id"
-          sqlname: "_id"
-          sqltype: string
-        - name: "loc.coordinates.0"
-          sqlname: "latitude"
-          sqltype: float
-        - name: "loc.coordinates.1"
-          sqlname: "longitude"
-          sqltype: float
-        - name: "airport_city"
-          sqlname: "airport_city"
-          sqltype: string
-        - name: "airport_code"
-          sqlname: "airport_code"
-          sqltype: string
-        - name: "airport_id"
-          sqlname: "airport_id"
-          sqltype: int
-        - name: "city"
-          sqlname: "city"
-          sqltype: string
-        - name: "city_market_description"
-          sqlname: "city_market_description"
-          sqltype: string
-        - name: "city_market_id"
-          sqlname: "city_market_id"
-          sqltype: int
-        - name: "country"
-          sqlname: "country"
-          sqltype: string
-        - name: "state"
-          sqlname: "state"
-          sqltype: string
-        - name: "zip"
-          sqlname: "zip"
-          sqltype: "string"
+        - Name: _id
+          MongoType: bson.ObjectId
+          SqlName: _id
+          SqlType: varchar
+        - Name: loc.coordinates.0
+          MongoType: float64
+          SqlName: latitude
+          SqlType: float64
+        - Name: loc.coordinates.1
+          MongoType: float64
+          SqlName: longitude
+          SqlType: float64
+        - Name: airport_city
+          MongoType: string
+          SqlName: airport_city
+          SqlType: varchar
+        - Name: airport_code
+          MongoType: string
+          SqlName: airport_code
+          SqlType: varchar
+        - Name: airport_id
+          MongoType: int
+          SqlName: airport_id
+          SqlType: int
+        - Name: city
+          MongoType: string
+          SqlName: city
+          SqlType: varchar
+        - Name: city_market_description
+          MongoType: string
+          SqlName: city_market_description
+          SqlType: varchar
+        - Name: city_market_id
+          MongoType: int
+          SqlName: city_market_id
+          SqlType: int
+        - Name: country
+          MongoType: string
+          SqlName: country
+          SqlType: varchar
+        - Name: state
+          MongoType: string
+          SqlName: state
+          SqlType: varchar
+        - Name: zip
+          MongoType: string
+          SqlName: zip
+          SqlType: varchar
 
 testcases:
     - sql: "SELECT SUM(1) AS num_records FROM public.attendees attendees HAVING (COUNT(1) > 0);"
@@ -137,15 +178,15 @@ testcases:
       expected: *query1_results
 
     - sql: "SELECT attendees.longitude AS longitude, SUM(1) AS num_records FROM public.attendees attendees GROUP BY 1 ORDER BY longitude"
-      expected_types: [float, int]
+      expected_types: [float64, int]
       expected: *query2_results
 
     - sql: "SELECT attendees.latitude AS latitude, attendees.longitude AS longitude, SUM(1) AS records FROM public.attendees attendees GROUP BY 1, 2 ORDER BY 3 DESC, 1 DESC, 2 DESC"
-      expected_types: [float, float, int]
+      expected_types: [float64, float64, int]
       expected: *query3_results
 
     - sql: "SELECT attendees.airport_city AS airport_city, attendees.latitude AS latitude, attendees.longitude AS longitude, SUM(1) AS records FROM public.attendees attendees GROUP BY 1, 2, 3 ORDER BY records DESC, airport_city ASC, latitude DESC, longitude DESC"
-      expected_types: [string, float, float, int]
+      expected_types: [varchar, float64, float64, int]
       expected: *query4_results
 
     - sql: "SELECT flights201406.origin_city_market_id AS origin_city_market_id FROM public.flights201406 flights201406 GROUP BY 1 ORDER BY 1"
@@ -157,19 +198,19 @@ testcases:
       expected: *query6_results
 
     - sql: "SELECT attendees.airport_city AS airport_city, attendees.latitude AS latitude, attendees.longitude AS longitude, SUM(1) AS records FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703)) GROUP BY 1, 2, 3 ORDER BY 1, 2, 3;"
-      expected_types: [string, float, float, int]
+      expected_types: [varchar, float64, float64, int]
       expected: *query7_results
 
     - sql: "SELECT attendees.city AS city, SUM(1) AS calculation_4190704170258269 FROM public.attendees attendees  INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1 ORDER BY 1;"
-      expected_types: [string, int]
+      expected_types: [varchar, int]
       expected: *query8_results
 
     - sql: "SELECT attendees.city AS city, COUNT(DISTINCT attendees._id) AS ctd_id FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1 ORDER BY 1;"
-      expected_types: [string, int]
+      expected_types: [varchar, int]
       expected: *query9_results
 
     - sql: "SELECT (CASE WHEN (flights201406.dest_city_name IS NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) AS Calculation_6710704172113145, SUM(1) AS `TEMP(Calculation_9510704170320209)(2414991311)(0)`, SUM((CASE WHEN (flights201406.cancelled = 1) THEN 1 ELSE 0 END)) AS `TEMP(Calculation_9510704170320209)(424513295)(0)`, COUNT(DISTINCT attendees._id) AS ctd_id FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1 ORDER BY 1;"
-      expected_types: [string, int, int, int]
+      expected_types: [varchar, int, int, int]
       expected: *query10_results
 
     #- sql: "SELECT (CASE WHEN (flights201406.dest_city_name = NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) AS Calculation_6710704172113145, (100 * (CASE WHEN 1 = 0 THEN NULL ELSE CAST((CASE WHEN (flights201406.cancelled = '1') THEN 1 ELSE 0 END) AS DOUBLE PRECISION) / 1 END)) AS Calculation_9510704170320209, 1 AS num_records, flights201406._id AS _id (flights201406), attendees._id AS _id, flights201406.airline AS airline, attendees.airport_city AS airport_city, attendees.airport_code AS airport_code, attendees.airport_id AS airport_id, flights201406.arr_delay AS arr_delay, flights201406.arr_time AS arr_time, flights201406.cancelled AS cancelled, flights201406.carrier_code AS carrier_code, flights201406.carrier_delay AS carrier_delay, attendees.city AS city, attendees.city_market_description AS city_market_description, attendees.city_market_id AS city_market_id, attendees.country AS country, flights201406.dep_delay AS dep_delay, flights201406.dep_time AS dep_time, flights201406.dest_airport_code AS dest_airport_code, flights201406.dest_airport_id AS dest_airport_id, flights201406.dest_city_market_id AS dest_city_market_id, flights201406.dest_city_name AS dest_city_name, flights201406.dest_state AS dest_state, flights201406.diff_from_arr_time AS diff_from_arr_time, flights201406.diff_from_dep_time AS diff_from_dep_time, flights201406.flight_date AS flight_date, flights201406.flight_number AS flight_number, flights201406.flight_time AS flight_time, flights201406.late_aircraft_delay AS late_aircraft_delay, attendees.latitude AS latitude, attendees.longitude AS longitude, flights201406.nas_delay AS nas_delay, flights201406.origin_airport_code AS origin_airport_code, flights201406.origin_airport_id AS origin_airport_id, flights201406.origin_city_market_id AS origin_city_market_id, flights201406.origin_city_name AS origin_city_name, flights201406.origin_state AS origin_state, flights201406.tail_num AS tail_num FROM public.attendees attendees INNER JOIN public.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE ((((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) AND ((CASE WHEN (flights201406.dest_city_name = NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) IS NULL)) LIMIT 7500;"

@@ -3,6 +3,7 @@ package evaluator
 import (
 	"testing"
 
+	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -25,11 +26,11 @@ func TestOrderByOperator(t *testing.T) {
 			source: ts,
 			sExprs: SelectExpressions{
 				SelectExpression{
-					Column: &Column{tableOneName, "a", "a", "int"},
+					Column: &Column{tableOneName, "a", "a", schema.SQLInt, schema.MongoInt},
 					Expr:   SQLColumnExpr{tableOneName, "a"},
 				},
 				SelectExpression{
-					Column: &Column{tableOneName, "b", "b", "int"},
+					Column: &Column{tableOneName, "b", "b", schema.SQLInt, schema.MongoInt},
 					Expr:   SQLColumnExpr{tableOneName, "b"},
 				},
 			},
@@ -90,9 +91,8 @@ func TestOrderByOperator(t *testing.T) {
 
 			Convey("desc", func() {
 
-				keys := []orderByKey{
-					{&SelectExpression{
-						Expr: SQLColumnExpr{tableOneName, "a"}}, false, false, nil},
+				keys := []orderByKey{{
+					&SelectExpression{Expr: SQLColumnExpr{tableOneName, "a"}}, false, false, nil},
 				}
 
 				operator := &OrderBy{

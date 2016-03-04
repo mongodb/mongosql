@@ -305,7 +305,7 @@ func asciiFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 }
 
 func castFunc(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return NewSQLValue(values[0].Value(), values[1].String())
+	return NewSQLValue(values[0].Value(), schema.SQLType(values[1].String()), schema.MongoNone)
 }
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_coalesce

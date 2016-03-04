@@ -18,16 +18,21 @@ schema:
      collection: test.simple
      columns:
      -
-        name: a
-        sqltype: int
+        Name: a
+        MongoType: int
+        SqlType: int
      -
-        name: b
-        sqltype: int
+        Name: b
+        MongoType: int
+        SqlType: int
      -
-        name: _id
+        Name: _id
+        MongoType: bson.ObjectId
+        SqlType: varchar
      -
-        name: c
-        sqltype: int
+        Name: c
+        MongoType: int
+        SqlType: int
 -
   db: foo
   tables:
@@ -36,20 +41,24 @@ schema:
      collection: test.simple
      columns:
      -
-        name: c
-        sqltype: int
+        Name: c
+        MongoType: int
+        SqlType: int
      -
-        name: d
-        sqltype: int
+        Name: d
+        MongoType: int
+        SqlType: int
   -
      table: silly
      collection: test.simple2
      columns:
      -
-        name: e
-        sqltype: int
+        Name: e
+        MongoType: int
+        SqlType: int
      -
-        name: f
-        sqltype: int
+        Name: f
+        MongoType: int
+        SqlType: int
 `)
 )

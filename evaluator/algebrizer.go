@@ -141,9 +141,7 @@ func AlgebrizeStatement(ss sqlparser.SelectStatement, pCtx *ParseCtx) error {
 		// expressions -> INTO -> order by -> limit
 
 	default:
-
 		return fmt.Errorf("select statement type %T not yet supported", stmt)
-
 	}
 
 	return nil

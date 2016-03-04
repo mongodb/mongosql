@@ -40,1062 +40,1062 @@ schema:
   - table: Batters
     collection: fullblackbox.Batters
     columns:
-    - name: AB
-      mongotype: int
-      sqlname: ab
-      sqltype: int
-    - name: BB
-      mongotype: int
-      sqlname: bb
-      sqltype: int
-    - name: CS
-      mongotype: int
-      sqlname: cs
-      sqltype: int
-    - name: Doubles
-      mongotype: int
-      sqlname: doubles
-      sqltype: int
-    - name: GIDP
-      mongotype: int
-      sqlname: gidp
-      sqltype: int
-    - name: Games
-      mongotype: int
-      sqlname: games
-      sqltype: int
-    - name: H
-      mongotype: int
-      sqlname: h
-      sqltype: int
-    - name: HBP
-      mongotype: int
-      sqlname: hbp
-      sqltype: int
-    - name: HR
-      mongotype: int
-      sqlname: hr
-      sqltype: int
-    - name: IBB
-      mongotype: int
-      sqlname: ibb
-      sqltype: int
-    - name: League
-      mongotype: string
-      sqlname: league
-      sqltype: varchar
-    - name: Player
-      mongotype: string
-      sqlname: player
-      sqltype: varchar
-    - name: R
-      mongotype: int
-      sqlname: r
-      sqltype: int
-    - name: RBI
-      mongotype: int
-      sqlname: rbi
-      sqltype: int
-    - name: SB
-      mongotype: int
-      sqlname: sb
-      sqltype: int
-    - name: SF
-      mongotype: int
-      sqlname: sf
-      sqltype: int
-    - name: SH
-      mongotype: int
-      sqlname: sh
-      sqltype: int
-    - name: SO
-      mongotype: int
-      sqlname: so
-      sqltype: int
-    - name: Team
-      mongotype: string
-      sqlname: team
-      sqltype: varchar
-    - name: Triples
-      mongotype: int
-      sqlname: triples
-      sqltype: int
-    - name: Year
-      mongotype: int
-      sqlname: year
-      sqltype: int
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
+    - Name: AB
+      MongoType: int
+      SqlName: ab
+      SqlType: int
+    - Name: BB
+      MongoType: int
+      SqlName: bb
+      SqlType: int
+    - Name: CS
+      MongoType: int
+      SqlName: cs
+      SqlType: int
+    - Name: Doubles
+      MongoType: int
+      SqlName: doubles
+      SqlType: int
+    - Name: GIDP
+      MongoType: int
+      SqlName: gidp
+      SqlType: int
+    - Name: Games
+      MongoType: int
+      SqlName: games
+      SqlType: int
+    - Name: H
+      MongoType: int
+      SqlName: h
+      SqlType: int
+    - Name: HBP
+      MongoType: int
+      SqlName: hbp
+      SqlType: int
+    - Name: HR
+      MongoType: int
+      SqlName: hr
+      SqlType: int
+    - Name: IBB
+      MongoType: int
+      SqlName: ibb
+      SqlType: int
+    - Name: League
+      MongoType: string
+      SqlName: league
+      SqlType: varchar
+    - Name: Player
+      MongoType: string
+      SqlName: player
+      SqlType: varchar
+    - Name: R
+      MongoType: int
+      SqlName: r
+      SqlType: int
+    - Name: RBI
+      MongoType: int
+      SqlName: rbi
+      SqlType: int
+    - Name: SB
+      MongoType: int
+      SqlName: sb
+      SqlType: int
+    - Name: SF
+      MongoType: int
+      SqlName: sf
+      SqlType: int
+    - Name: SH
+      MongoType: int
+      SqlName: sh
+      SqlType: int
+    - Name: SO
+      MongoType: int
+      SqlName: so
+      SqlType: int
+    - Name: Team
+      MongoType: string
+      SqlName: team
+      SqlType: varchar
+    - Name: Triples
+      MongoType: int
+      SqlName: triples
+      SqlType: int
+    - Name: Year
+      MongoType: int
+      SqlName: year
+      SqlType: int
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
   - table: Calcs
     collection: fullblackbox.Calcs
     columns:
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
-    - name: bool0
-      mongotype: bool
-      sqlname: bool0
-      sqltype: boolean
-    - name: bool1
-      mongotype: bool
-      sqlname: bool1
-      sqltype: boolean
-    - name: bool2
-      mongotype: bool
-      sqlname: bool2
-      sqltype: boolean
-    - name: bool3
-      mongotype: bool
-      sqlname: bool3
-      sqltype: boolean
-    - name: date0
-      mongotype: date
-      sqlname: date0
-      sqltype: date
-    - name: date1
-      mongotype: date
-      sqlname: date1
-      sqltype: date
-    - name: date2
-      mongotype: date
-      sqlname: date2
-      sqltype: date
-    - name: date3
-      mongotype: date
-      sqlname: date3
-      sqltype: date
-    - name: datetime0
-      mongotype: date
-      sqlname: datetime0
-      sqltype: timestamp
-    - name: int0
-      mongotype: int
-      sqlname: int0
-      sqltype: int
-    - name: int1
-      mongotype: int
-      sqlname: int1
-      sqltype: int
-    - name: int2
-      mongotype: int
-      sqlname: int2
-      sqltype: int
-    - name: int3
-      mongotype: int
-      sqlname: int3
-      sqltype: int
-    - name: key
-      mongotype: string
-      sqlname: key
-      sqltype: varchar
-    - name: num0
-      mongotype: float64
-      sqlname: num0
-      sqltype: float
-    - name: num1
-      mongotype: float64
-      sqlname: num1
-      sqltype: float
-    - name: num2
-      mongotype: float64
-      sqlname: num2
-      sqltype: float
-    - name: num3
-      mongotype: float64
-      sqlname: num3
-      sqltype: float
-    - name: num4
-      mongotype: float64
-      sqlname: num4
-      sqltype: float
-    - name: str0
-      mongotype: string
-      sqlname: str0
-      sqltype: varchar
-    - name: str1
-      mongotype: string
-      sqlname: str1
-      sqltype: varchar
-    - name: str2
-      mongotype: string
-      sqlname: str2
-      sqltype: varchar
-    - name: str3
-      mongotype: string
-      sqlname: str3
-      sqltype: varchar
-    - name: time0
-      mongotype: date
-      sqlname: time0
-      sqltype: datetime
-    - name: time1
-      mongotype: date
-      sqlname: time1
-      sqltype: datetime
-    - name: zzz
-      mongotype: string
-      sqlname: zzz
-      sqltype: varchar
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: bool0
+      MongoType: bool
+      SqlName: bool0
+      SqlType: boolean
+    - Name: bool1
+      MongoType: bool
+      SqlName: bool1
+      SqlType: boolean
+    - Name: bool2
+      MongoType: bool
+      SqlName: bool2
+      SqlType: boolean
+    - Name: bool3
+      MongoType: bool
+      SqlName: bool3
+      SqlType: boolean
+    - Name: date0
+      MongoType: date
+      SqlName: date0
+      SqlType: date
+    - Name: date1
+      MongoType: date
+      SqlName: date1
+      SqlType: date
+    - Name: date2
+      MongoType: date
+      SqlName: date2
+      SqlType: date
+    - Name: date3
+      MongoType: date
+      SqlName: date3
+      SqlType: date
+    - Name: datetime0
+      MongoType: date
+      SqlName: datetime0
+      SqlType: timestamp
+    - Name: int0
+      MongoType: int
+      SqlName: int0
+      SqlType: int
+    - Name: int1
+      MongoType: int
+      SqlName: int1
+      SqlType: int
+    - Name: int2
+      MongoType: int
+      SqlName: int2
+      SqlType: int
+    - Name: int3
+      MongoType: int
+      SqlName: int3
+      SqlType: int
+    - Name: key
+      MongoType: string
+      SqlName: key
+      SqlType: varchar
+    - Name: num0
+      MongoType: float64
+      SqlName: num0
+      SqlType: float64
+    - Name: num1
+      MongoType: float64
+      SqlName: num1
+      SqlType: float64
+    - Name: num2
+      MongoType: float64
+      SqlName: num2
+      SqlType: float64
+    - Name: num3
+      MongoType: float64
+      SqlName: num3
+      SqlType: float64
+    - Name: num4
+      MongoType: float64
+      SqlName: num4
+      SqlType: float64
+    - Name: str0
+      MongoType: string
+      SqlName: str0
+      SqlType: varchar
+    - Name: str1
+      MongoType: string
+      SqlName: str1
+      SqlType: varchar
+    - Name: str2
+      MongoType: string
+      SqlName: str2
+      SqlType: varchar
+    - Name: str3
+      MongoType: string
+      SqlName: str3
+      SqlType: varchar
+    - Name: time0
+      MongoType: date
+      SqlName: time0
+      SqlType: timestamp
+    - Name: time1
+      MongoType: date
+      SqlName: time1
+      SqlType: timestamp
+    - Name: zzz
+      MongoType: string
+      SqlName: zzz
+      SqlType: varchar
   - table: DateTime
     collection: fullblackbox.DateTime
     columns:
-    - name: Curved
-      mongotype: float64
-      sqlname: curved
-      sqltype: float
-    - name: Date
-      mongotype: date
-      sqlname: date
-      sqltype: date
-    - name: DateTime
-      mongotype: date
-      sqlname: datetime
-      sqltype: datetime
-    - name: Diagonal
-      mongotype: float64
-      sqlname: diagonal
-      sqltype: float
-    - name: ID
-      mongotype: int
-      sqlname: id
-      sqltype: int
-    - name: Random
-      mongotype: float64
-      sqlname: random
-      sqltype: float
-    - name: Time
-      mongotype: date
-      sqlname: time
-      sqltype: datetime
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
+    - Name: Curved
+      MongoType: float64
+      SqlName: curved
+      SqlType: float64
+    - Name: Date
+      MongoType: date
+      SqlName: date
+      SqlType: date
+    - Name: DateTime
+      MongoType: date
+      SqlName: datetime
+      SqlType: timestamp
+    - Name: Diagonal
+      MongoType: float64
+      SqlName: diagonal
+      SqlType: float64
+    - Name: ID
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: Random
+      MongoType: float64
+      SqlName: random
+      SqlType: float64
+    - Name: Time
+      MongoType: date
+      SqlName: time
+      SqlType: timestamp
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
   - table: Election
     collection: fullblackbox.Election
     columns:
-    - name: Candidate
-      mongotype: string
-      sqlname: candidate
-      sqltype: varchar
-    - name: Elected
-      mongotype: string
-      sqlname: elected
-      sqltype: varchar
-    - name: PointOrder
-      mongotype: int
-      sqlname: pointorder
-      sqltype: int
-    - name: PolygonID
-      mongotype: int
-      sqlname: polygonid
-      sqltype: int
-    - name: Pop_SQ_Mile
-      mongotype: int
-      sqlname: pop_sq_mile
-      sqltype: int
-    - name: State
-      mongotype: string
-      sqlname: state
-      sqltype: varchar
-    - name: Votes
-      mongotype: int
-      sqlname: votes
-      sqltype: int
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
-    - name: Longitude
-      mongotype: float64
-      sqlname: longitude
-      sqltype: float
-    - name: Latitude
-      mongotype: float64
-      sqlname: latitude
-      sqltype: float
-    - name: loc_coordinates
-      mongotype: geo.2darray
-      sqlname: loc_coordinates
-      sqltype: float
+    - Name: Candidate
+      MongoType: string
+      SqlName: candidate
+      SqlType: varchar
+    - Name: Elected
+      MongoType: string
+      SqlName: elected
+      SqlType: varchar
+    - Name: PointOrder
+      MongoType: int
+      SqlName: pointorder
+      SqlType: int
+    - Name: PolygonID
+      MongoType: int
+      SqlName: polygonid
+      SqlType: int
+    - Name: Pop_SQ_Mile
+      MongoType: int
+      SqlName: pop_sq_mile
+      SqlType: int
+    - Name: State
+      MongoType: string
+      SqlName: state
+      SqlType: varchar
+    - Name: Votes
+      MongoType: int
+      SqlName: votes
+      SqlType: int
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: Longitude
+      MongoType: float64
+      SqlName: longitude
+      SqlType: float64
+    - Name: Latitude
+      MongoType: float64
+      SqlName: latitude
+      SqlType: float64
+    - Name: loc_coordinates
+      MongoType: geo.2darray
+      SqlName: loc_coordinates
+      SqlType: float64
   - table: Fischeriris
     collection: fullblackbox.FischerIris
     columns:
-    - name: Case
-      mongotype: int
-      sqlname: case
-      sqltype: int
-    - name: ID
-      mongotype: int
-      sqlname: id
-      sqltype: int
-    - name: Length
-      mongotype: int
-      sqlname: length
-      sqltype: int
-    - name: Organ
-      mongotype: string
-      sqlname: organ
-      sqltype: varchar
-    - name: Species
-      mongotype: string
-      sqlname: species
-      sqltype: varchar
-    - name: Species_No
-      mongotype: int
-      sqlname: species_no
-      sqltype: int
-    - name: Width
-      mongotype: int
-      sqlname: width
-      sqltype: int
-    - name: row
-      mongotype: int
-      sqlname: row
-      sqltype: int
-    - name: birst_constant_one
-      mongotype: int
-      sqlname: birst_constant_one
-      sqltype: int
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
+    - Name: Case
+      MongoType: int
+      SqlName: case
+      SqlType: int
+    - Name: ID
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: Length
+      MongoType: int
+      SqlName: length
+      SqlType: int
+    - Name: Organ
+      MongoType: string
+      SqlName: organ
+      SqlType: varchar
+    - Name: Species
+      MongoType: string
+      SqlName: species
+      SqlType: varchar
+    - Name: Species_No
+      MongoType: int
+      SqlName: species_no
+      SqlType: int
+    - Name: Width
+      MongoType: int
+      SqlName: width
+      SqlType: int
+    - Name: row
+      MongoType: int
+      SqlName: row
+      SqlType: int
+    - Name: birst_constant_one
+      MongoType: int
+      SqlName: birst_constant_one
+      SqlType: int
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
   - table: Loan
     collection: fullblackbox.Loan
     columns:
-    - name: App_Age
-      mongotype: int
-      sqlname: app_age
-      sqltype: int
-    - name: App_CoSign
-      mongotype: string
-      sqlname: app_cosign
-      sqltype: varchar
-    - name: App_College
-      mongotype: string
-      sqlname: app_college
-      sqltype: varchar
-    - name: App_Employ_Status
-      mongotype: string
-      sqlname: app_employ_status
-      sqltype: varchar
-    - name: App_Ext_Credit_Rating
-      mongotype: int
-      sqlname: app_ext_credit_rating
-      sqltype: int
-    - name: App_Gender
-      mongotype: string
-      sqlname: app_gender
-      sqltype: varchar
-    - name: App_Gift_Income
-      mongotype: string
-      sqlname: app_gift_income
-      sqltype: varchar
-    - name: App_Int_Credit_Rating_1
-      mongotype: int
-      sqlname: app_int_credit_rating_1
-      sqltype: int
-    - name: App_Int_Credit_Rating_2
-      mongotype: int
-      sqlname: app_int_credit_rating_2
-      sqltype: int
-    - name: App_Liquid_Assets
-      mongotype: int
-      sqlname: app_liquid_assets
-      sqltype: int
-    - name: App_Married_Status
-      mongotype: string
-      sqlname: app_married_status
-      sqltype: varchar
-    - name: App_Mortgage_Perform
-      mongotype: string
-      sqlname: app_mortgage_perform
-      sqltype: varchar
-    - name: App_Negative_Flags
-      mongotype: int
-      sqlname: app_negative_flags
-      sqltype: int
-    - name: App_Net_North
-      mongotype: int
-      sqlname: app_net_north
-      sqltype: int
-    - name: App_Num_Homes
-      mongotype: int
-      sqlname: app_num_homes
-      sqltype: int
-    - name: App_Num_Mortgages
-      mongotype: int
-      sqlname: app_num_mortgages
-      sqltype: int
-    - name: App_Prior_Customer
-      mongotype: string
-      sqlname: app_prior_customer
-      sqltype: varchar
-    - name: App_Race
-      mongotype: string
-      sqlname: app_race
-      sqltype: varchar
-    - name: App_Self_Emp
-      mongotype: string
-      sqlname: app_self_emp
-      sqltype: varchar
-    - name: App_Tot_Month_Inc
-      mongotype: int
-      sqlname: app_tot_month_inc
-      sqltype: int
-    - name: App_Trail_Income
-      mongotype: int
-      sqlname: app_trail_income
-      sqltype: int
-    - name: App_Yrs_Current_Job
-      mongotype: float64
-      sqlname: app_yrs_current_job
-      sqltype: float
-    - name: CoApp_Tot_Month_Inc
-      mongotype: int
-      sqlname: coapp_tot_month_inc
-      sqltype: int
-    - name: Loan_Adjustable
-      mongotype: string
-      sqlname: loan_adjustable
-      sqltype: varchar
-    - name: Loan_Amt
-      mongotype: int
-      sqlname: loan_amt
-      sqltype: int
-    - name: Loan_Decision
-      mongotype: string
-      sqlname: loan_decision
-      sqltype: varchar
-    - name: Loan_Multi_Property
-      mongotype: string
-      sqlname: loan_multi_property
-      sqltype: varchar
-    - name: Loan_Pct_Project
-      mongotype: float64
-      sqlname: loan_pct_project
-      sqltype: float
-    - name: Loan_Price
-      mongotype: int
-      sqlname: loan_price
-      sqltype: int
-    - name: Loan_Region
-      mongotype: int
-      sqlname: loan_region
-      sqltype: int
-    - name: Loan_Status
-      mongotype: string
-      sqlname: loan_status
-      sqltype: varchar
-    - name: Loan_Term
-      mongotype: int
-      sqlname: loan_term
-      sqltype: int
-    - name: Property_Public_Rec
-      mongotype: int
-      sqlname: property_public_rec
-      sqltype: int
-    - name: row
-      mongotype: int
-      sqlname: row
-      sqltype: int
-    - name: birst_constant_one
-      mongotype: int
-      sqlname: birst_constant_one
-      sqltype: int
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
+    - Name: App_Age
+      MongoType: int
+      SqlName: app_age
+      SqlType: int
+    - Name: App_CoSign
+      MongoType: string
+      SqlName: app_cosign
+      SqlType: varchar
+    - Name: App_College
+      MongoType: string
+      SqlName: app_college
+      SqlType: varchar
+    - Name: App_Employ_Status
+      MongoType: string
+      SqlName: app_employ_status
+      SqlType: varchar
+    - Name: App_Ext_Credit_Rating
+      MongoType: int
+      SqlName: app_ext_credit_rating
+      SqlType: int
+    - Name: App_Gender
+      MongoType: string
+      SqlName: app_gender
+      SqlType: varchar
+    - Name: App_Gift_Income
+      MongoType: string
+      SqlName: app_gift_income
+      SqlType: varchar
+    - Name: App_Int_Credit_Rating_1
+      MongoType: int
+      SqlName: app_int_credit_rating_1
+      SqlType: int
+    - Name: App_Int_Credit_Rating_2
+      MongoType: int
+      SqlName: app_int_credit_rating_2
+      SqlType: int
+    - Name: App_Liquid_Assets
+      MongoType: int
+      SqlName: app_liquid_assets
+      SqlType: int
+    - Name: App_Married_Status
+      MongoType: string
+      SqlName: app_married_status
+      SqlType: varchar
+    - Name: App_Mortgage_Perform
+      MongoType: string
+      SqlName: app_mortgage_perform
+      SqlType: varchar
+    - Name: App_Negative_Flags
+      MongoType: int
+      SqlName: app_negative_flags
+      SqlType: int
+    - Name: App_Net_North
+      MongoType: int
+      SqlName: app_net_north
+      SqlType: int
+    - Name: App_Num_Homes
+      MongoType: int
+      SqlName: app_num_homes
+      SqlType: int
+    - Name: App_Num_Mortgages
+      MongoType: int
+      SqlName: app_num_mortgages
+      SqlType: int
+    - Name: App_Prior_Customer
+      MongoType: string
+      SqlName: app_prior_customer
+      SqlType: varchar
+    - Name: App_Race
+      MongoType: string
+      SqlName: app_race
+      SqlType: varchar
+    - Name: App_Self_Emp
+      MongoType: string
+      SqlName: app_self_emp
+      SqlType: varchar
+    - Name: App_Tot_Month_Inc
+      MongoType: int
+      SqlName: app_tot_month_inc
+      SqlType: int
+    - Name: App_Trail_Income
+      MongoType: int
+      SqlName: app_trail_income
+      SqlType: int
+    - Name: App_Yrs_Current_Job
+      MongoType: float64
+      SqlName: app_yrs_current_job
+      SqlType: float64
+    - Name: CoApp_Tot_Month_Inc
+      MongoType: int
+      SqlName: coapp_tot_month_inc
+      SqlType: int
+    - Name: Loan_Adjustable
+      MongoType: string
+      SqlName: loan_adjustable
+      SqlType: varchar
+    - Name: Loan_Amt
+      MongoType: int
+      SqlName: loan_amt
+      SqlType: int
+    - Name: Loan_Decision
+      MongoType: string
+      SqlName: loan_decision
+      SqlType: varchar
+    - Name: Loan_Multi_Property
+      MongoType: string
+      SqlName: loan_multi_property
+      SqlType: varchar
+    - Name: Loan_Pct_Project
+      MongoType: float64
+      SqlName: loan_pct_project
+      SqlType: float64
+    - Name: Loan_Price
+      MongoType: int
+      SqlName: loan_price
+      SqlType: int
+    - Name: Loan_Region
+      MongoType: int
+      SqlName: loan_region
+      SqlType: int
+    - Name: Loan_Status
+      MongoType: string
+      SqlName: loan_status
+      SqlType: varchar
+    - Name: Loan_Term
+      MongoType: int
+      SqlName: loan_term
+      SqlType: int
+    - Name: Property_Public_Rec
+      MongoType: int
+      SqlName: property_public_rec
+      SqlType: int
+    - Name: row
+      MongoType: int
+      SqlName: row
+      SqlType: int
+    - Name: birst_constant_one
+      MongoType: int
+      SqlName: birst_constant_one
+      SqlType: int
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
   - table: NumericBins
     collection: fullblackbox.NumericBins
     columns:
-    - name: Key
-      mongotype: string
-      sqlname: Key
-      sqltype: varchar
-    - name: Measure E+0
-      mongotype: float64
-      sqlname: Measure E+0
-      sqltype: float
-    - name: Measure E+1
-      mongotype: float64
-      sqlname: Measure E+1
-      sqltype: float
-    - name: Measure E+4
-      mongotype: float64
-      sqlname: Measure E+4
-      sqltype: float
-    - name: Measure E+7
-      mongotype: float64
-      sqlname: Measure E+7
-      sqltype: float
-    - name: Measure E-1
-      mongotype: float64
-      sqlname: Measure E-1
-      sqltype: float
-    - name: Measure E-2
-      mongotype: float64
-      sqlname: Measure E-2
-      sqltype: float
-    - name: key
-      mongotype: int
-      sqlname: key
-      sqltype: int
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
+    - Name: Key
+      MongoType: string
+      SqlName: Key
+      SqlType: varchar
+    - Name: Measure E+0
+      MongoType: float64
+      SqlName: Measure E+0
+      SqlType: float64
+    - Name: Measure E+1
+      MongoType: float64
+      SqlName: Measure E+1
+      SqlType: float64
+    - Name: Measure E+4
+      MongoType: float64
+      SqlName: Measure E+4
+      SqlType: float64
+    - Name: Measure E+7
+      MongoType: float64
+      SqlName: Measure E+7
+      SqlType: float64
+    - Name: Measure E-1
+      MongoType: float64
+      SqlName: Measure E-1
+      SqlType: float64
+    - Name: Measure E-2
+      MongoType: float64
+      SqlName: Measure E-2
+      SqlType: float64
+    - Name: key
+      MongoType: int
+      SqlName: key
+      SqlType: int
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
   - table: SeattleCrime
     collection: fullblackbox.SeattleCrime
     columns:
-    - name: AGG_ASSAULT
-      mongotype: int
-      sqlname: agg_assault
-      sqltype: int
-    - name: ARSON
-      mongotype: int
-      sqlname: arson
-      sqltype: int
-    - name: AUTOTHEFT
-      mongotype: int
-      sqlname: autotheft
-      sqltype: int
-    - name: MONTH
-      mongotype: string
-      sqlname: month
-      sqltype: varchar
-    - name: MURDER
-      mongotype: int
-      sqlname: murder
-      sqltype: int
-    - name: NON_RES_BURGLARY
-      mongotype: int
-      sqlname: non_res_burglary
-      sqltype: int
-    - name: PRECINCT
-      mongotype: string
-      sqlname: precinct
-      sqltype: varchar
-    - name: RAPE
-      mongotype: int
-      sqlname: rape
-      sqltype: int
-    - name: RES_BURGLARY
-      mongotype: int
-      sqlname: res_burglary
-      sqltype: int
-    - name: ROBBERY
-      mongotype: int
-      sqlname: robbery
-      sqltype: int
-    - name: SAFE
-      mongotype: string
-      sqlname: safe
-      sqltype: varchar
-    - name: THEFT
-      mongotype: int
-      sqlname: theft
-      sqltype: int
-    - name: TOTAL
-      mongotype: int
-      sqlname: total
-      sqltype: int
-    - name: TRACT
-      mongotype: int
-      sqlname: tract
-      sqltype: int
-    - name: YEAR
-      mongotype: int
-      sqlname: year
-      sqltype: int
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
+    - Name: AGG_ASSAULT
+      MongoType: int
+      SqlName: agg_assault
+      SqlType: int
+    - Name: ARSON
+      MongoType: int
+      SqlName: arson
+      SqlType: int
+    - Name: AUTOTHEFT
+      MongoType: int
+      SqlName: autotheft
+      SqlType: int
+    - Name: MONTH
+      MongoType: string
+      SqlName: month
+      SqlType: varchar
+    - Name: MURDER
+      MongoType: int
+      SqlName: murder
+      SqlType: int
+    - Name: NON_RES_BURGLARY
+      MongoType: int
+      SqlName: non_res_burglary
+      SqlType: int
+    - Name: PRECINCT
+      MongoType: string
+      SqlName: precinct
+      SqlType: varchar
+    - Name: RAPE
+      MongoType: int
+      SqlName: rape
+      SqlType: int
+    - Name: RES_BURGLARY
+      MongoType: int
+      SqlName: res_burglary
+      SqlType: int
+    - Name: ROBBERY
+      MongoType: int
+      SqlName: robbery
+      SqlType: int
+    - Name: SAFE
+      MongoType: string
+      SqlName: safe
+      SqlType: varchar
+    - Name: THEFT
+      MongoType: int
+      SqlName: theft
+      SqlType: int
+    - Name: TOTAL
+      MongoType: int
+      SqlName: total
+      SqlType: int
+    - Name: TRACT
+      MongoType: int
+      SqlName: tract
+      SqlType: int
+    - Name: YEAR
+      MongoType: int
+      SqlName: year
+      SqlType: int
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
   - table: Securities
     collection: fullblackbox.Securities
     columns:
-    - name: Big_Move
-      mongotype: string
-      sqlname: big_move
-      sqltype: varchar
-    - name: Close_Price
-      mongotype: float64
-      sqlname: close_price
-      sqltype: float
-    - name: Date
-      mongotype: date
-      sqlname: date
-      sqltype: timestamp
-    - name: High_Price
-      mongotype: float64
-      sqlname: high_price
-      sqltype: float
-    - name: Industry
-      mongotype: string
-      sqlname: industry
-      sqltype: varchar
-    - name: Insider
-      mongotype: string
-      sqlname: insider
-      sqltype: varchar
-    - name: Low_Price
-      mongotype: float64
-      sqlname: low_price
-      sqltype: float
-    - name: Open_Price
-      mongotype: float64
-      sqlname: open_price
-      sqltype: float
-    - name: Recommendation
-      mongotype: string
-      sqlname: recommendation
-      sqltype: varchar
-    - name: Ticker
-      mongotype: string
-      sqlname: ticker
-      sqltype: varchar
-    - name: Volume
-      mongotype: int
-      sqlname: volume
-      sqltype: int
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
+    - Name: Big_Move
+      MongoType: string
+      SqlName: big_move
+      SqlType: varchar
+    - Name: Close_Price
+      MongoType: float64
+      SqlName: close_price
+      SqlType: float64
+    - Name: Date
+      MongoType: date
+      SqlName: date
+      SqlType: timestamp
+    - Name: High_Price
+      MongoType: float64
+      SqlName: high_price
+      SqlType: float64
+    - Name: Industry
+      MongoType: string
+      SqlName: industry
+      SqlType: varchar
+    - Name: Insider
+      MongoType: string
+      SqlName: insider
+      SqlType: varchar
+    - Name: Low_Price
+      MongoType: float64
+      SqlName: low_price
+      SqlType: float64
+    - Name: Open_Price
+      MongoType: float64
+      SqlName: open_price
+      SqlType: float64
+    - Name: Recommendation
+      MongoType: string
+      SqlName: recommendation
+      SqlType: varchar
+    - Name: Ticker
+      MongoType: string
+      SqlName: ticker
+      SqlType: varchar
+    - Name: Volume
+      MongoType: int
+      SqlName: volume
+      SqlType: int
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
   - table: SpecialData
     collection: fullblackbox.SpecialData
     columns:
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
-    - name: keyName
-      mongotype: string
-      sqlname: keyname
-      sqltype: varchar
-    - name: order
-      mongotype: int
-      sqlname: order
-      sqltype: int
-    - name: val1
-      mongotype: int
-      sqlname: val1
-      sqltype: int
-    - name: val2
-      mongotype: int
-      sqlname: val2
-      sqltype: int
-    - name: val3
-      mongotype: int
-      sqlname: val3
-      sqltype: int
-    - name: val4
-      mongotype: int
-      sqlname: val4
-      sqltype: int
-    - name: val5
-      mongotype: int
-      sqlname: val5
-      sqltype: int
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: keyName
+      MongoType: string
+      SqlName: keyname
+      SqlType: varchar
+    - Name: order
+      MongoType: int
+      SqlName: order
+      SqlType: int
+    - Name: val1
+      MongoType: int
+      SqlName: val1
+      SqlType: int
+    - Name: val2
+      MongoType: int
+      SqlName: val2
+      SqlType: int
+    - Name: val3
+      MongoType: int
+      SqlName: val3
+      SqlType: int
+    - Name: val4
+      MongoType: int
+      SqlName: val4
+      SqlType: int
+    - Name: val5
+      MongoType: int
+      SqlName: val5
+      SqlType: int
   - table: Staples
     collection: fullblackbox.Staples
     columns:
-    - name: Call Center Region
-      mongotype: string
-      sqlname: call center region
-      sqltype: varchar
-    - name: Customer Balance
-      mongotype: int
-      sqlname: customer balance
-      sqltype: int
-    - name: Customer Name
-      mongotype: string
-      sqlname: customer name
-      sqltype: varchar
-    - name: Customer Segment
-      mongotype: string
-      sqlname: customer segment
-      sqltype: varchar
-    - name: Customer State
-      mongotype: string
-      sqlname: customer state
-      sqltype: varchar
-    - name: Discount
-      mongotype: float64
-      sqlname: discount
-      sqltype: float
-    - name: Employee Dept
-      mongotype: int
-      sqlname: employee dept
-      sqltype: int
-    - name: Employee Name
-      mongotype: string
-      sqlname: employee name
-      sqltype: varchar
-    - name: Employee Salary
-      mongotype: float64
-      sqlname: employee salary
-      sqltype: float
-    - name: Employee Yrs Exp
-      mongotype: int
-      sqlname: employee yrs exp
-      sqltype: int
-    - name: Fill Time
-      mongotype: int
-      sqlname: fill time
-      sqltype: int
-    - name: Gross Profit
-      mongotype: float64
-      sqlname: gross profit
-      sqltype: float
-    - name: Item Count
-      mongotype: int
-      sqlname: item count
-      sqltype: int
-    - name: Manager Name
-      mongotype: string
-      sqlname: manager name
-      sqltype: varchar
-    - name: Market Segment
-      mongotype: string
-      sqlname: market segment
-      sqltype: varchar
-    - name: Order Date
-      mongotype: date
-      sqlname: order date
-      sqltype: timestamp
-    - name: Order Day
-      mongotype: int
-      sqlname: order day
-      sqltype: int
-    - name: Order ID
-      mongotype: int
-      sqlname: order id
-      sqltype: int
-    - name: Order Month
-      mongotype: int
-      sqlname: order month
-      sqltype: int
-    - name: Order Priority
-      mongotype: string
-      sqlname: order priority
-      sqltype: varchar
-    - name: Order Quantity
-      mongotype: int
-      sqlname: order quantity
-      sqltype: int
-    - name: Order Quarter
-      mongotype: string
-      sqlname: order quarter
-      sqltype: varchar
-    - name: Order Status
-      mongotype: string
-      sqlname: order status
-      sqltype: varchar
-    - name: Order Year
-      mongotype: int
-      sqlname: order year
-      sqltype: int
-    - name: PID
-      mongotype: int
-      sqlname: pid
-      sqltype: int
-    - name: Price
-      mongotype: float64
-      sqlname: price
-      sqltype: float
-    - name: Prod Type1
-      mongotype: string
-      sqlname: prod type1
-      sqltype: varchar
-    - name: Prod Type2
-      mongotype: string
-      sqlname: prod type2
-      sqltype: varchar
-    - name: Prod Type3
-      mongotype: string
-      sqlname: prod type3
-      sqltype: varchar
-    - name: Prod Type4
-      mongotype: string
-      sqlname: prod type4
-      sqltype: varchar
-    - name: Product Base Margin
-      mongotype: float64
-      sqlname: product base margin
-      sqltype: float
-    - name: Product Container
-      mongotype: string
-      sqlname: product container
-      sqltype: varchar
-    - name: Product ID
-      mongotype: int
-      sqlname: product id
-      sqltype: int
-    - name: Product In Stock
-      mongotype: string
-      sqlname: product in stock
-      sqltype: varchar
-    - name: Product Name
-      mongotype: string
-      sqlname: product name
-      sqltype: varchar
-    - name: Receive Time
-      mongotype: int
-      sqlname: receive time
-      sqltype: int
-    - name: Received Date
-      mongotype: date
-      sqlname: received date
-      sqltype: timestamp
-    - name: Sales Total
-      mongotype: float64
-      sqlname: sales total
-      sqltype: float
-    - name: Ship Charge
-      mongotype: float64
-      sqlname: ship charge
-      sqltype: float
-    - name: Ship Date
-      mongotype: date
-      sqlname: ship date
-      sqltype: timestamp
-    - name: Ship Handle Cost
-      mongotype: float64
-      sqlname: ship handle cost
-      sqltype: float
-    - name: Ship Mode
-      mongotype: string
-      sqlname: ship mode
-      sqltype: varchar
-    - name: Ship Priority
-      mongotype: int
-      sqlname: ship priority
-      sqltype: int
-    - name: Ship Promo
-      mongotype: string
-      sqlname: ship promo
-      sqltype: varchar
-    - name: Supplier Balance
-      mongotype: int
-      sqlname: supplier balance
-      sqltype: int
-    - name: Supplier Name
-      mongotype: string
-      sqlname: supplier name
-      sqltype: varchar
-    - name: Supplier Region
-      mongotype: string
-      sqlname: supplier region
-      sqltype: varchar
-    - name: Supplier State
-      mongotype: string
-      sqlname: supplier state
-      sqltype: varchar
-    - name: Tax Rate
-      mongotype: float64
-      sqlname: tax rate
-      sqltype: float
-    - name: Total Cycle Time
-      mongotype: int
-      sqlname: total cycle time
-      sqltype: int
-    - name: birst_constant_one
-      mongotype: int
-      sqlname: birst_constant_one
-      sqltype: int
-    - name: row
-      mongotype: int
-      sqlname: row
-      sqltype: int
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
+    - Name: Call Center Region
+      MongoType: string
+      SqlName: call center region
+      SqlType: varchar
+    - Name: Customer Balance
+      MongoType: int
+      SqlName: customer balance
+      SqlType: int
+    - Name: Customer Name
+      MongoType: string
+      SqlName: customer name
+      SqlType: varchar
+    - Name: Customer Segment
+      MongoType: string
+      SqlName: customer segment
+      SqlType: varchar
+    - Name: Customer State
+      MongoType: string
+      SqlName: customer state
+      SqlType: varchar
+    - Name: Discount
+      MongoType: float64
+      SqlName: discount
+      SqlType: float64
+    - Name: Employee Dept
+      MongoType: int
+      SqlName: employee dept
+      SqlType: int
+    - Name: Employee Name
+      MongoType: string
+      SqlName: employee name
+      SqlType: varchar
+    - Name: Employee Salary
+      MongoType: float64
+      SqlName: employee salary
+      SqlType: float64
+    - Name: Employee Yrs Exp
+      MongoType: int
+      SqlName: employee yrs exp
+      SqlType: int
+    - Name: Fill Time
+      MongoType: int
+      SqlName: fill time
+      SqlType: int
+    - Name: Gross Profit
+      MongoType: float64
+      SqlName: gross profit
+      SqlType: float64
+    - Name: Item Count
+      MongoType: int
+      SqlName: item count
+      SqlType: int
+    - Name: Manager Name
+      MongoType: string
+      SqlName: manager name
+      SqlType: varchar
+    - Name: Market Segment
+      MongoType: string
+      SqlName: market segment
+      SqlType: varchar
+    - Name: Order Date
+      MongoType: date
+      SqlName: order date
+      SqlType: timestamp
+    - Name: Order Day
+      MongoType: int
+      SqlName: order day
+      SqlType: int
+    - Name: Order ID
+      MongoType: int
+      SqlName: order id
+      SqlType: int
+    - Name: Order Month
+      MongoType: int
+      SqlName: order month
+      SqlType: int
+    - Name: Order Priority
+      MongoType: string
+      SqlName: order priority
+      SqlType: varchar
+    - Name: Order Quantity
+      MongoType: int
+      SqlName: order quantity
+      SqlType: int
+    - Name: Order Quarter
+      MongoType: string
+      SqlName: order quarter
+      SqlType: varchar
+    - Name: Order Status
+      MongoType: string
+      SqlName: order status
+      SqlType: varchar
+    - Name: Order Year
+      MongoType: int
+      SqlName: order year
+      SqlType: int
+    - Name: PID
+      MongoType: int
+      SqlName: pid
+      SqlType: int
+    - Name: Price
+      MongoType: float64
+      SqlName: price
+      SqlType: float64
+    - Name: Prod Type1
+      MongoType: string
+      SqlName: prod type1
+      SqlType: varchar
+    - Name: Prod Type2
+      MongoType: string
+      SqlName: prod type2
+      SqlType: varchar
+    - Name: Prod Type3
+      MongoType: string
+      SqlName: prod type3
+      SqlType: varchar
+    - Name: Prod Type4
+      MongoType: string
+      SqlName: prod type4
+      SqlType: varchar
+    - Name: Product Base Margin
+      MongoType: float64
+      SqlName: product base margin
+      SqlType: float64
+    - Name: Product Container
+      MongoType: string
+      SqlName: product container
+      SqlType: varchar
+    - Name: Product ID
+      MongoType: int
+      SqlName: product id
+      SqlType: int
+    - Name: Product In Stock
+      MongoType: string
+      SqlName: product in stock
+      SqlType: varchar
+    - Name: Product Name
+      MongoType: string
+      SqlName: product name
+      SqlType: varchar
+    - Name: Receive Time
+      MongoType: int
+      SqlName: receive time
+      SqlType: int
+    - Name: Received Date
+      MongoType: date
+      SqlName: received date
+      SqlType: timestamp
+    - Name: Sales Total
+      MongoType: float64
+      SqlName: sales total
+      SqlType: float64
+    - Name: Ship Charge
+      MongoType: float64
+      SqlName: ship charge
+      SqlType: float64
+    - Name: Ship Date
+      MongoType: date
+      SqlName: ship date
+      SqlType: timestamp
+    - Name: Ship Handle Cost
+      MongoType: float64
+      SqlName: ship handle cost
+      SqlType: float64
+    - Name: Ship Mode
+      MongoType: string
+      SqlName: ship mode
+      SqlType: varchar
+    - Name: Ship Priority
+      MongoType: int
+      SqlName: ship priority
+      SqlType: int
+    - Name: Ship Promo
+      MongoType: string
+      SqlName: ship promo
+      SqlType: varchar
+    - Name: Supplier Balance
+      MongoType: int
+      SqlName: supplier balance
+      SqlType: int
+    - Name: Supplier Name
+      MongoType: string
+      SqlName: supplier name
+      SqlType: varchar
+    - Name: Supplier Region
+      MongoType: string
+      SqlName: supplier region
+      SqlType: varchar
+    - Name: Supplier State
+      MongoType: string
+      SqlName: supplier state
+      SqlType: varchar
+    - Name: Tax Rate
+      MongoType: float64
+      SqlName: tax rate
+      SqlType: float64
+    - Name: Total Cycle Time
+      MongoType: int
+      SqlName: total cycle time
+      SqlType: int
+    - Name: birst_constant_one
+      MongoType: int
+      SqlName: birst_constant_one
+      SqlType: int
+    - Name: row
+      MongoType: int
+      SqlName: row
+      SqlType: int
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
   - table: Starbucks
     collection: fullblackbox.Starbucks
     columns:
-    - name: Additions
-      mongotype: int
-      sqlname: additions
-      sqltype: int
-    - name: Budget Additions
-      mongotype: int
-      sqlname: budget additions
-      sqltype: int
-    - name: Budget COGS
-      mongotype: int
-      sqlname: budget cogs
-      sqltype: int
-    - name: Budget Margin
-      mongotype: int
-      sqlname: budget margin
-      sqltype: int
-    - name: Budget Payroll
-      mongotype: int
-      sqlname: budget payroll
-      sqltype: int
-    - name: Budget Profit
-      mongotype: int
-      sqlname: budget profit
-      sqltype: int
-    - name: Budget Sales
-      mongotype: int
-      sqlname: budget sales
-      sqltype: int
-    - name: COGS
-      mongotype: int
-      sqlname: cogs
-      sqltype: int
-    - name: Date
-      mongotype: date
-      sqlname: date
-      sqltype: timestamp
-    - name: Ending
-      mongotype: int
-      sqlname: ending
-      sqltype: int
-    - name: Inventory
-      mongotype: int
-      sqlname: inventory
-      sqltype: int
-    - name: Item Count
-      mongotype: int
-      sqlname: item count
-      sqltype: int
-    - name: Margin
-      mongotype: int
-      sqlname: margin
-      sqltype: int
-    - name: Margin Rate
-      mongotype: float64
-      sqlname: margin rate
-      sqltype: float
-    - name: Market
-      mongotype: string
-      sqlname: market
-      sqltype: varchar
-    - name: Market Size
-      mongotype: string
-      sqlname: market size
-      sqltype: varchar
-    - name: Marketing
-      mongotype: int
-      sqlname: marketing
-      sqltype: int
-    - name: Misc
-      mongotype: int
-      sqlname: misc
-      sqltype: int
-    - name: Opening
-      mongotype: int
-      sqlname: opening
-      sqltype: int
-    - name: Payroll
-      mongotype: int
-      sqlname: payroll
-      sqltype: int
-    - name: Product
-      mongotype: string
-      sqlname: product
-      sqltype: varchar
-    - name: Product Type
-      mongotype: string
-      sqlname: product type
-      sqltype: varchar
-    - name: Profit
-      mongotype: float64
-      sqlname: profit
-      sqltype: float
-    - name: Profit Ratio
-      mongotype: float64
-      sqlname: profit ratio
-      sqltype: float
-    - name: Sales
-      mongotype: float64
-      sqlname: sales
-      sqltype: float
-    - name: State
-      mongotype: string
-      sqlname: state
-      sqltype: varchar
-    - name: Total Expenses
-      mongotype: int
-      sqlname: total expenses
-      sqltype: int
-    - name: Type
-      mongotype: string
-      sqlname: type
-      sqltype: varchar
-    - name: birst_constant_one
-      mongotype: int
-      sqlname: birst_constant_one
-      sqltype: int
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
+    - Name: Additions
+      MongoType: int
+      SqlName: additions
+      SqlType: int
+    - Name: Budget Additions
+      MongoType: int
+      SqlName: budget additions
+      SqlType: int
+    - Name: Budget COGS
+      MongoType: int
+      SqlName: budget cogs
+      SqlType: int
+    - Name: Budget Margin
+      MongoType: int
+      SqlName: budget margin
+      SqlType: int
+    - Name: Budget Payroll
+      MongoType: int
+      SqlName: budget payroll
+      SqlType: int
+    - Name: Budget Profit
+      MongoType: int
+      SqlName: budget profit
+      SqlType: int
+    - Name: Budget Sales
+      MongoType: int
+      SqlName: budget sales
+      SqlType: int
+    - Name: COGS
+      MongoType: int
+      SqlName: cogs
+      SqlType: int
+    - Name: Date
+      MongoType: date
+      SqlName: date
+      SqlType: timestamp
+    - Name: Ending
+      MongoType: int
+      SqlName: ending
+      SqlType: int
+    - Name: Inventory
+      MongoType: int
+      SqlName: inventory
+      SqlType: int
+    - Name: Item Count
+      MongoType: int
+      SqlName: item count
+      SqlType: int
+    - Name: Margin
+      MongoType: int
+      SqlName: margin
+      SqlType: int
+    - Name: Margin Rate
+      MongoType: float64
+      SqlName: margin rate
+      SqlType: float64
+    - Name: Market
+      MongoType: string
+      SqlName: market
+      SqlType: varchar
+    - Name: Market Size
+      MongoType: string
+      SqlName: market size
+      SqlType: varchar
+    - Name: Marketing
+      MongoType: int
+      SqlName: marketing
+      SqlType: int
+    - Name: Misc
+      MongoType: int
+      SqlName: misc
+      SqlType: int
+    - Name: Opening
+      MongoType: int
+      SqlName: opening
+      SqlType: int
+    - Name: Payroll
+      MongoType: int
+      SqlName: payroll
+      SqlType: int
+    - Name: Product
+      MongoType: string
+      SqlName: product
+      SqlType: varchar
+    - Name: Product Type
+      MongoType: string
+      SqlName: product type
+      SqlType: varchar
+    - Name: Profit
+      MongoType: float64
+      SqlName: profit
+      SqlType: float64
+    - Name: Profit Ratio
+      MongoType: float64
+      SqlName: profit ratio
+      SqlType: float64
+    - Name: Sales
+      MongoType: float64
+      SqlName: sales
+      SqlType: float64
+    - Name: State
+      MongoType: string
+      SqlName: state
+      SqlType: varchar
+    - Name: Total Expenses
+      MongoType: int
+      SqlName: total expenses
+      SqlType: int
+    - Name: Type
+      MongoType: string
+      SqlName: type
+      SqlType: varchar
+    - Name: birst_constant_one
+      MongoType: int
+      SqlName: birst_constant_one
+      SqlType: int
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
   - table: UTStarcom
     collection: fullblackbox.UTStarcom
     columns:
-    - name: Account Type1
-      mongotype: string
-      sqlname: account type1
-      sqltype: varchar
-    - name: Account Type2
-      mongotype: string
-      sqlname: account type2
-      sqltype: varchar
-    - name: Date
-      mongotype: date
-      sqlname: date
-      sqltype: timestamp
-    - name: Func Descrip
-      mongotype: string
-      sqlname: func descrip
-      sqltype: varchar
-    - name: Income State Prop
-      mongotype: string
-      sqlname: income state prop
-      sqltype: varchar
-    - name: Location Description
-      mongotype: string
-      sqlname: location description
-      sqltype: varchar
-    - name: Measure
-      mongotype: float64
-      sqlname: measure
-      sqltype: float
-    - name: Scenario Type2
-      mongotype: string
-      sqlname: scenario type2
-      sqltype: varchar
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
+    - Name: Account Type1
+      MongoType: string
+      SqlName: account type1
+      SqlType: varchar
+    - Name: Account Type2
+      MongoType: string
+      SqlName: account type2
+      SqlType: varchar
+    - Name: Date
+      MongoType: date
+      SqlName: date
+      SqlType: timestamp
+    - Name: Func Descrip
+      MongoType: string
+      SqlName: func descrip
+      SqlType: varchar
+    - Name: Income State Prop
+      MongoType: string
+      SqlName: income state prop
+      SqlType: varchar
+    - Name: Location Description
+      MongoType: string
+      SqlName: location description
+      SqlType: varchar
+    - Name: Measure
+      MongoType: float64
+      SqlName: measure
+      SqlType: float64
+    - Name: Scenario Type2
+      MongoType: string
+      SqlName: scenario type2
+      SqlType: varchar
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
   - table: xy
     collection: fullblackbox.xy
     columns:
-    - name: _id
-      mongotype: bson.ObjectId
-      sqlname: _id
-      sqltype: varchar
-    - name: a
-      mongotype: string
-      sqlname: a
-      sqltype: varchar
-    - name: x
-      mongotype: int
-      sqlname: x
-      sqltype: int
-    - name: "y"
-      mongotype: int
-      sqlname: "y"
-      sqltype: int
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: string
+      SqlName: a
+      SqlType: varchar
+    - Name: x
+      MongoType: int
+      SqlName: x
+      SqlType: int
+    - Name: "y"
+      MongoType: int
+      SqlName: "y"
+      SqlType: int

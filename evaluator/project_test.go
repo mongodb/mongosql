@@ -3,6 +3,7 @@ package evaluator
 import (
 	"testing"
 
+	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -50,12 +51,12 @@ func TestProjectOperator(t *testing.T) {
 
 		sExprs := SelectExpressions{
 			SelectExpression{
-				Column: &Column{tableOneName, "a", "a", "int"},
+				Column: &Column{tableOneName, "a", "a", schema.SQLInt, schema.MongoInt},
 				Expr:   SQLColumnExpr{tableOneName, "a"},
 			},
 			SelectExpression{
 				Referenced: true,
-				Column:     &Column{tableOneName, "b", "b", "int"},
+				Column:     &Column{tableOneName, "b", "b", schema.SQLInt, schema.MongoInt},
 				Expr:       SQLColumnExpr{tableOneName, "b"},
 			},
 		}

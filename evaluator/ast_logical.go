@@ -5,6 +5,8 @@ import (
 	"github.com/deafgoat/mixer/sqlparser"
 	"regexp"
 	"strconv"
+
+	"github.com/10gen/sqlproxy/schema"
 )
 
 //
@@ -535,7 +537,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		values := row.GetValues(operator.OpFields())
 
 		for _, value := range values {
-			field, err := NewSQLValue(value, "")
+			field, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)
 			if err != nil {
 				return SQLFalse, err
 			}

@@ -2,8 +2,8 @@ package evaluator
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/10gen/sqlproxy/schema"
@@ -15,20 +15,13 @@ import (
 
 // newSQLTimeValue is a factory method for creating a
 // time SQLValue from a time object.
-func newSQLTimeValue(t time.Time) (SQLValue, error) {
+func newSQLTimeValue(t time.Time, mongoType schema.MongoType) (SQLValue, error) {
 
 	// Time objects can be reliably converted into one of the following:
 	//
 	// 1. SQLTimestamp
 	// 2. SQLDate
-	// 3. SQLDateTime
 	//
-	// We don't support SQLYear because can not reliably differentiate between
-	// a SQLYear and a SQLDate - since the default month and day - November and
-	// 30 respectively - are both valid. To maintain correctness, we use the
-	// more precise of the two - SQLDate - in constructing the SQLValue.
-	// Note that this ambiguity only occurs when we push down a GroupBy operator
-	// since MongoDB time value support is not as broad as MySQL's.
 
 	h := t.Hour()
 	mi := t.Minute()
@@ -36,132 +29,80 @@ func newSQLTimeValue(t time.Time) (SQLValue, error) {
 	ns := t.Nanosecond()
 
 	if ns == 0 && sd == 0 && mi == 0 && h == 0 {
-		return NewSQLValue(t, schema.SQLDate)
+		return NewSQLValue(t, schema.SQLDate, mongoType)
 	}
 
 	// SQLDateTime and SQLTimestamp can be handled similarly
-	return NewSQLValue(t, schema.SQLTimestamp)
+	return NewSQLValue(t, schema.SQLTimestamp, mongoType)
 }
 
 //
 // NewSQLValue is a factory method for creating a SQLValue from a value and column type.
 //
-func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
+func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.MongoType) (SQLValue, error) {
 
 	if value == nil {
 		return SQLNull, nil
 	}
 
-	if columnType == "" {
+	if v, ok := value.(SQLValue); ok {
+		return v, nil
+	}
+
+	if sqlType == schema.SQLNone {
 		switch v := value.(type) {
-		case SQLValue:
-			return v, nil
 		case nil, []interface{}:
 			return SQLNull, nil
 		case bson.ObjectId:
-			// TODO: handle this a special type? just using a string for now.
 			return SQLString(v.Hex()), nil
 		case bool:
 			return SQLBool(v), nil
 		case string:
 			return SQLString(v), nil
-
-		// TODO - handle overflow/precision of numeric types!
-		case int:
-			return SQLInt(v), nil
-		case int32: // NumberInt
-			return SQLInt(int64(v)), nil
-		case float64:
-			return SQLFloat(float64(v)), nil
 		case float32:
 			return SQLFloat(float64(v)), nil
-		case int64: // NumberLong
-			return SQLInt(v), nil
+		case float64:
+			return SQLFloat(float64(v)), nil
+		case uint8:
+			return SQLInt(int64(v)), nil
+		case uint16:
+			return SQLInt(int64(v)), nil
 		case uint32:
-			return SQLUint32(v), nil
+			return SQLInt(int64(v)), nil
+		case uint64:
+			return SQLInt(int64(v)), nil
+		case int:
+			return SQLInt(int64(v)), nil
+		case int8:
+			return SQLInt(int64(v)), nil
+		case int16:
+			return SQLInt(int64(v)), nil
+		case int32:
+			return SQLInt(int64(v)), nil
+		case int64:
+			return SQLInt(v), nil
 		case time.Time:
-			return newSQLTimeValue(v)
+			return newSQLTimeValue(v, mongoType)
 		default:
 			panic(fmt.Errorf("can't convert this type to a SQLValue: %T", v))
 		}
 	}
 
-	switch columnType {
-
-	// TODO: columnType can - and should - be more expressive. e.g. certain
-	// types allow you to specify additional constraints on the value of
-	// the type. e.g. unsigned longs, binary, character set for varchars,
-	// precision in time values, etc
-
-	// We should have this specified in the DRDL file, and use it when we're
-	// formatting the fields for the query response.
-
-	case schema.SQLString, schema.SQLVarchar:
-
-		switch v := value.(type) {
-		case bool:
-			return SQLString(strconv.FormatBool(v)), nil
-		case string:
-			return SQLString(v), nil
-		case float64:
-			return SQLString(strconv.FormatFloat(v, 'f', -1, 64)), nil
-		case int:
-			return SQLString(strconv.FormatInt(int64(v), 10)), nil
-		case int64:
-			return SQLString(strconv.FormatInt(v, 10)), nil
-		case bson.ObjectId:
-			return SQLString(v.Hex()), nil
-		case nil:
-			return SQLNull, nil
-		}
-
-	case schema.SQLBoolean:
-
-		var eval int
-		var err error
-
-		switch v := value.(type) {
-		case bool:
-			if v {
-				return SQLInt(1), nil
-			}
-			return SQLInt(0), nil
-		case string:
-			eval, err = strconv.Atoi(v)
-		case int, int32, int64, float64:
-			eval, err = util.ToInt(v)
-		case nil:
-			return SQLNull, nil
-		}
-
-		if err == nil {
-			return SQLInt(0), nil
-		}
-
-		if eval == 1 {
-			return SQLInt(1), nil
-		} else {
-			return SQLInt(0), nil
-		}
+	switch sqlType {
 
 	case schema.SQLInt:
-
 		switch v := value.(type) {
-		case bool:
-			if v {
-				return SQLInt(1), nil
-			}
-			return SQLInt(0), nil
-		case string:
-			eval, err := strconv.Atoi(v)
+		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
+			eval, err := util.ToInt(v)
 			if err == nil {
-				if strings.Trim(v, " ") == "" {
-					return SQLInt(0), nil
-				}
 				return SQLInt(eval), nil
 			}
+		case nil:
 			return SQLNull, nil
-		case int, int32, int64, float64:
+		}
+	case schema.SQLInt64:
+		switch v := value.(type) {
+		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToInt(v)
 			if err == nil {
 				return SQLInt(eval), nil
@@ -170,24 +111,58 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			return SQLNull, nil
 		}
 
-	case schema.SQLFloat, schema.SQLDouble:
+	case schema.SQLVarchar:
+		switch v := value.(type) {
+		case bool:
+			return SQLString(strconv.FormatBool(v)), nil
+		case string:
+			return SQLString(v), nil
+		case float32:
+			return SQLString(strconv.FormatFloat(float64(v), 'f', -1, 32)), nil
+		case float64:
+			return SQLString(strconv.FormatFloat(v, 'f', -1, 64)), nil
+		case int:
+			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+		case int8:
+			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+		case int16:
+			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+		case int32:
+			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+		case int64:
+			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+		case uint8:
+			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+		case uint16:
+			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+		case uint32:
+			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+		case uint64:
+			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+		case bson.ObjectId:
+			return SQLString(v.Hex()), nil
+		case time.Time:
+			return SQLString(v.String()), nil
+		case nil:
+			return SQLNull, nil
+		default:
+			return SQLString(reflect.ValueOf(v).String()), nil
+		}
 
+	case schema.SQLBoolean:
 		switch v := value.(type) {
 		case bool:
 			if v {
-				return SQLFloat(1), nil
+				return SQLTrue, nil
 			}
-			return SQLFloat(0), nil
-		case string:
-			eval, err := strconv.ParseFloat(v, 64)
-			if err == nil {
-				if strings.Trim(v, " ") == "" {
-					return SQLFloat(0), nil
-				}
-				return SQLFloat(float64(eval)), nil
-			}
+			return SQLFalse, nil
+		case nil:
 			return SQLNull, nil
-		case int, int32, int64, float64:
+		}
+
+	case schema.SQLFloat, schema.SQLNumeric:
+		switch v := value.(type) {
+		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToFloat64(v)
 			if err == nil {
 				return SQLFloat(eval), nil
@@ -196,250 +171,51 @@ func NewSQLValue(value interface{}, columnType string) (SQLValue, error) {
 			return SQLNull, nil
 		}
 
-	//
-	// Time related types
-	//
-	// Note: MongoDB only supports time to millisecond precision when
-	// using the UTC datetime type while MySQL supports microsecond
-	// precision.
-	//
-	// See https://dev.mysql.com/doc/refman/5.5/en/date-and-time-types.html
-	// for more information on date and time types.
-	//
-
 	case schema.SQLDate:
-
-		lower := time.Date(1000, time.January, 1, 0, 0, 0, 0, schema.DefaultLocale)
-		upper := time.Date(9999, time.December, 31, 0, 0, 0, 0, schema.DefaultLocale)
-
 		var date time.Time
-
 		switch v := value.(type) {
-
-		case time.Time:
-
-			v = v.In(schema.DefaultLocale)
-
-			date = time.Date(v.Year(), v.Month(), v.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-
 		case string:
-
+			if mongoType != schema.MongoNone {
+				break
+			}
 			for _, format := range schema.TimestampCtorFormats {
 				d, err := time.Parse(format, v)
 				if err == nil {
 					date = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-					break
+					return SQLDate{date}, nil
 				}
 			}
-
-			if date.Equal(time.Time{}) {
-				return SQLDate{schema.DefaultTime}, nil
-			}
-
-		case bson.ObjectId:
-
-			return NewSQLValue(v.Time(), columnType)
-
-		case nil:
-
-			return SQLNull, nil
-
-		default:
-
-			return SQLDate{schema.DefaultTime}, nil
-
-		}
-
-		if date.Before(lower) || date.After(upper) {
-			return SQLDate{schema.DefaultTime}, nil
-		}
-
-		return SQLDate{date}, nil
-
-	case schema.SQLDateTime:
-
-		lower := time.Date(1000, time.January, 1, 0, 0, 0, 0, schema.DefaultLocale)
-		upper := time.Date(9999, time.December, 31, 23, 59, 59, 0, schema.DefaultLocale)
-
-		var dt time.Time
-
-		switch v := value.(type) {
-
 		case time.Time:
-
-			dt = v.In(schema.DefaultLocale)
-
-		case string:
-
-			for _, format := range schema.TimestampCtorFormats {
-				d, err := time.Parse(format, v)
-				if err == nil {
-					dt = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
-						d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
-					break
-				}
-			}
-
-			if dt.Equal(time.Time{}) {
-				return SQLDateTime{schema.DefaultTime}, nil
-			}
-
-		case bson.ObjectId:
-
-			return NewSQLValue(v.Time(), columnType)
-
+			v = v.In(schema.DefaultLocale)
+			date := time.Date(v.Year(), v.Month(), v.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+			return SQLDate{date}, nil
 		case nil:
-
 			return SQLNull, nil
-
-		default:
-
-			return SQLDateTime{schema.DefaultTime}, nil
-
 		}
-
-		if dt.Before(lower) || dt.After(upper) {
-			return SQLDateTime{schema.DefaultTime}, nil
-		}
-
-		return SQLDateTime{dt}, nil
 
 	case schema.SQLTimestamp:
-
-		lower := time.Date(1970, time.January, 1, 0, 0, 01, 0, schema.DefaultLocale)
-		upper := time.Date(2038, time.January, 19, 03, 14, 07, 0, schema.DefaultLocale)
-
 		var ts time.Time
-
 		switch v := value.(type) {
-
-		case time.Time:
-
-			ts = v.In(schema.DefaultLocale)
-
 		case string:
-
+			if mongoType != schema.MongoNone {
+				break
+			}
 			for _, format := range schema.TimestampCtorFormats {
 				d, err := time.Parse(format, v)
 				if err == nil {
 					ts = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
 						d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
-					break
+					return SQLTimestamp{ts}, nil
 				}
 			}
-
-			if ts.Equal(time.Time{}) {
-				return SQLTimestamp{schema.DefaultTime}, nil
-			}
-
-		case bson.ObjectId:
-
-			return NewSQLValue(v.Time(), columnType)
-
-		case nil:
-
-			return SQLNull, nil
-
-		default:
-
-			return SQLTimestamp{schema.DefaultTime}, nil
-
-		}
-
-		if ts.Before(lower) || ts.After(upper) {
-			return SQLTimestamp{schema.DefaultTime}, nil
-		}
-
-		return SQLTimestamp{ts}, nil
-
-	// TODO: not sure if it makes sense to support this type
-	// in the config since there isn't really a reasonable
-	// mapping between it and any of MongoDB's BSON types.
-	case schema.SQLTime:
-		v, ok := value.(time.Time)
-		if ok {
-			return SQLTime{v}, nil
-		}
-
-	// See http://dev.mysql.com/doc/refman/5.7/en/year.html
-	case schema.SQLYear:
-		switch v := value.(type) {
-
 		case time.Time:
-			return SQLYear{v.In(schema.DefaultLocale)}, nil
-
-		case int, int32, int64:
-			year, err := getYear(value.(int), true)
-			if err != nil {
-				return SQLYear{schema.DefaultTime}, nil
-			}
-			return SQLYear{time.Date(year, 0, 0, 0, 0, 0, 0, schema.DefaultLocale)}, nil
-
-		case string:
-			if v == "00" || v == "0" {
-				return SQLYear{time.Date(2000, 0, 0, 0, 0, 0, 0, schema.DefaultLocale)}, nil
-			}
-
-			y, err := strconv.ParseInt(v, 10, 64)
-			if err != nil {
-				return SQLYear{schema.DefaultTime}, nil
-			}
-
-			year, err := getYear(int(y), false)
-			if err != nil {
-				return SQLYear{schema.DefaultTime}, nil
-			}
-
-			return SQLYear{time.Date(year, 0, 0, 0, 0, 0, 0, schema.DefaultLocale)}, nil
-
-		case bson.ObjectId:
-
-			return NewSQLValue(v.Time(), columnType)
-
+			return SQLTimestamp{v.In(schema.DefaultLocale)}, nil
 		case nil:
-
 			return SQLNull, nil
-
-		default:
-			return SQLYear{schema.DefaultTime}, nil
-		}
-
-	}
-
-	return nil, fmt.Errorf("unable to convert '%v' (%T) to %v", value, value, columnType)
-}
-
-func getYear(y int, isNum bool) (int, error) {
-	err := fmt.Errorf("invalid year: %v", y)
-
-	// handle error cases
-	if y < 0 {
-		return 0, err
-	}
-	if y > 99 && y < 1901 {
-		return 0, err
-	}
-	if y > 2155 {
-		return 0, err
-	}
-
-	if isNum {
-		if y < 70 && y > 0 {
-			return 2000 + y, nil
-		}
-		if y > 69 && y < 100 {
-			return 1970 + y, nil
-		}
-	} else {
-		if y < 70 {
-			return 2000 + y, nil
-		}
-		if y > 69 && y < 100 {
-			return 1970 + y, nil
 		}
 	}
 
-	return 0, nil
+	return nil, fmt.Errorf("unable to convert '%v' (%T) to %v", value, value, sqlType)
 }
 
 // NewSQLExpr transforms sqlparser expressions into SQLExpr.

@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -39,7 +40,7 @@ func (ts *BSONSource) Next(row *Row) bool {
 
 		var value SQLValue
 
-		value, ts.err = NewSQLValue(docElem.Value, "")
+		value, ts.err = NewSQLValue(docElem.Value, schema.SQLNone, schema.MongoNone)
 		if ts.err != nil {
 			return false
 		}

@@ -97,20 +97,12 @@ func (sd SQLDate) CompareTo(v SQLValue) (int, error) {
 	case SQLDate:
 		t1 = sd.Time
 		t2 = vt.Time
-	// TODO: round fractional seconds
-	case SQLDateTime:
-		t1 = sd.Time
-		t2 = vt.Time
-	// TODO: round fractional seconds
 	case SQLTimestamp:
-		t1 = sd.Time
-		t2 = vt.Time
-	case SQLYear:
 		t1 = sd.Time
 		t2 = vt.Time
 	case SQLString:
 		t1 = sd.Time
-		value, err := NewSQLValue(vt.String(), schema.SQLDate)
+		value, err := NewSQLValue(vt.String(), schema.SQLDate, schema.MongoDate)
 		if err != nil {
 			return 0, nil
 		}
@@ -131,95 +123,6 @@ func (sd SQLDate) CompareTo(v SQLValue) (int, error) {
 
 func (sd SQLDate) Value() interface{} {
 	return sd.Time
-}
-
-//
-// SQLDateTime represents a datetime.
-//
-type SQLDateTime struct {
-	Time time.Time
-}
-
-func (sd SQLDateTime) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	return sd, nil
-}
-
-func (sd SQLDateTime) String() string {
-	return sd.Time.Format("2006-01-02 15:04:05")
-}
-
-func (sd SQLDateTime) CompareTo(v SQLValue) (int, error) {
-
-	var t1, t2 time.Time
-
-	switch vt := v.(type) {
-
-	case SQLDate:
-		t1 = sd.Time
-		t2 = vt.Time
-	case SQLDateTime:
-		t1 = sd.Time
-		t2 = vt.Time
-	case SQLTimestamp:
-		t1 = sd.Time
-		t2 = vt.Time
-	case SQLYear:
-		t1 = sd.Time
-		t2 = vt.Time
-	case SQLString:
-		t1 = sd.Time
-		value, err := NewSQLValue(vt.String(), schema.SQLDateTime)
-		if err != nil {
-			return 0, nil
-		}
-		t2 = value.(SQLDateTime).Time
-	default:
-		return -1, fmt.Errorf("SQLDateTime comparison not yet implemented against: %T", vt)
-	}
-
-	if t1.After(t2) {
-		return 1, nil
-	} else if t1.Before(t2) {
-		return -1, nil
-	}
-
-	// TODO: type sort order implementation
-	return 0, nil
-}
-
-func (sd SQLDateTime) Value() interface{} {
-	return sd.Time
-}
-
-//
-// TODO (INT-800): should we support this?
-// SQLTime represents a time value.
-//
-type SQLTime struct {
-	Time time.Time
-}
-
-func (st SQLTime) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	return st, nil
-}
-
-func (st SQLTime) String() string {
-	return st.Time.Format("15:04:05")
-}
-
-func (st SQLTime) CompareTo(v SQLValue) (int, error) {
-
-	switch vt := v.(type) {
-	default:
-		return -1, fmt.Errorf("SQLTime comparison not yet implemented against: %T", vt)
-	}
-
-	// TODO: type sort order implementation
-	return 0, nil
-}
-
-func (st SQLTime) Value() interface{} {
-	return st.Time
 }
 
 //
@@ -246,18 +149,12 @@ func (st SQLTimestamp) CompareTo(v SQLValue) (int, error) {
 	case SQLDate:
 		t1 = st.Time
 		t2 = vt.Time
-	case SQLDateTime:
-		t1 = st.Time
-		t2 = vt.Time
 	case SQLTimestamp:
-		t1 = st.Time
-		t2 = vt.Time
-	case SQLYear:
 		t1 = st.Time
 		t2 = vt.Time
 	case SQLString:
 		t1 = st.Time
-		value, err := NewSQLValue(vt.String(), schema.SQLTimestamp)
+		value, err := NewSQLValue(vt.String(), schema.SQLTimestamp, schema.MongoDate)
 		if err != nil {
 			return 0, nil
 		}
@@ -278,64 +175,6 @@ func (st SQLTimestamp) CompareTo(v SQLValue) (int, error) {
 
 func (st SQLTimestamp) Value() interface{} {
 	return st.Time
-}
-
-//
-// SQLYear represents a year value.
-//
-type SQLYear struct {
-	Time time.Time
-}
-
-func (st SQLYear) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	return st, nil
-}
-
-func (st SQLYear) String() string {
-	return st.Time.Format("2006")
-}
-
-func (st SQLYear) CompareTo(v SQLValue) (int, error) {
-
-	var t1, t2 time.Time
-
-	switch vt := v.(type) {
-
-	case SQLDate:
-		t1 = st.Time
-		t2 = vt.Time
-	case SQLDateTime:
-		t1 = st.Time
-		t2 = vt.Time
-	case SQLTimestamp:
-		t1 = st.Time
-		t2 = vt.Time
-	case SQLYear:
-		t1 = st.Time
-		t2 = vt.Time
-	case SQLString:
-		t1 = st.Time
-		value, err := NewSQLValue(vt.String(), schema.SQLYear)
-		if err != nil {
-			return 0, nil
-		}
-		t2 = value.(SQLYear).Time
-	default:
-		return -1, fmt.Errorf("SQLYear comparison not yet implemented against: %T", vt)
-	}
-
-	if t1.After(t2) {
-		return 1, nil
-	} else if t1.Before(t2) {
-		return -1, nil
-	}
-
-	// TODO: type sort order implementation
-	return 0, nil
-}
-
-func (sy SQLYear) Value() interface{} {
-	return sy.Time
 }
 
 //

@@ -170,8 +170,9 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 
 	resultContainer := make([]interface{}, 0, len(types))
 	for _, t := range types {
-		switch t {
-		case schema.SQLString:
+
+		switch schema.SQLType(t) {
+		case schema.SQLVarchar:
 			resultContainer = append(resultContainer, new(string))
 		case schema.SQLInt:
 			resultContainer = append(resultContainer, new(int))
@@ -181,6 +182,7 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 			resultContainer = append(resultContainer, new(string))
 		}
 	}
+
 	for rows.Next() {
 		resultRow := make([]interface{}, 0, len(types))
 		if err := rows.Scan(resultContainer...); err != nil {
@@ -190,9 +192,9 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 			p := reflect.ValueOf(x)
 			resultRow = append(resultRow, p.Elem().Interface())
 		}
-
 		result = append(result, resultRow)
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -351,7 +353,7 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 		Convey(fmt.Sprintf("Running test query (%v): '%v'", query.Id, query.Query), func() {
 
 			for j := 0; j < query.Columns; j++ {
-				types = append(types, schema.SQLString)
+				types = append(types, schema.SQLVarchar)
 			}
 
 			results, err := runSQL(db, query.Query, types)
