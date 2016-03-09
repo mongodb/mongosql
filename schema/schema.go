@@ -3,8 +3,6 @@ package schema
 import (
 	"fmt"
 	"time"
-
-	"github.com/mongodb/mongo-tools/common/util"
 )
 
 type SQLType string
@@ -28,6 +26,7 @@ const (
 	SQLArrNumeric         = "numeric[]"
 	SQLNull               = "null"
 	SQLNone               = ""
+	SQLObjectID           = "objectid"
 )
 
 const (
@@ -252,55 +251,84 @@ func (c *Schema) ingestSubFile(data []byte) error {
 
 // CanCompare returns true if sqlValue can be converted to a
 // value comparable to mType.
-func CanCompare(sqlValue interface{}, mType MongoType) bool {
-	switch mType {
-	case MongoInt, MongoInt64, MongoFloat, MongoDecimal:
-		switch sqlValue.(type) {
-		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64, nil:
+func CanCompare(leftType, rightType SQLType) bool {
+
+	if leftType == SQLNull || rightType == SQLNull {
+		return true
+	}
+
+	if leftType == SQLNone || rightType == SQLNone {
+		return true
+	}
+
+	switch leftType {
+
+	case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
+		switch rightType {
+		case SQLArrNumeric, SQLBoolean, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
 			return true
 		}
-	case MongoString:
-		switch sqlValue.(type) {
-		case string, nil:
+	case SQLBoolean:
+		switch rightType {
+		case SQLArrNumeric, SQLBoolean, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
 			return true
 		}
-	case MongoGeo2D:
-		switch sqlValue.(type) {
-		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64, nil:
+	case SQLDate, SQLTimestamp:
+		switch rightType {
+		case SQLDate, SQLTimestamp, SQLVarchar:
 			return true
 		}
-	case MongoObjectId:
-		switch v := sqlValue.(type) {
-		case string:
-			if len(v) != 24 {
-				return false
-			}
-			return true
-		case nil:
+	case SQLObjectID:
+		switch rightType {
+		case SQLObjectID, SQLVarchar:
 			return true
 		}
-	case MongoBool:
-		switch v := sqlValue.(type) {
-		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
-			value, err := util.ToInt(v)
-			if err != nil {
-				return false
-			}
-			if !(value == 1 || value == 0) {
-				return false
-			}
-			return true
-		case bool:
-			return true
-		case nil:
+	case SQLVarchar:
+		switch rightType {
+		case SQLDate, SQLTimestamp, SQLVarchar:
 			return true
 		}
-	case MongoDate:
-		switch sqlValue.(type) {
-		case string, nil:
+	}
+	return false
+}
+
+type SQLTypes []SQLType
+
+func (types SQLTypes) Len() int {
+	return len(types)
+}
+
+func (types SQLTypes) Swap(i, j int) {
+	types[i], types[j] = types[j], types[i]
+}
+
+func (types SQLTypes) Less(i, j int) bool {
+
+	t1 := types[i]
+	t2 := types[j]
+
+	switch t1 {
+	case SQLNone, SQLNull:
+		return true
+	case SQLVarchar:
+		switch t2 {
+		case SQLVarchar, SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLNone, SQLNull:
+			return false
+		case SQLTimestamp, SQLDate:
 			return true
+		default:
+			return false
 		}
-	default:
+	case SQLInt, SQLInt64, SQLFloat, SQLNumeric:
+		switch t2 {
+		case SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLNone, SQLNull:
+			return false
+		case SQLTimestamp, SQLDate, SQLVarchar:
+			return true
+		default:
+			return false
+		}
+	case SQLTimestamp, SQLDate:
 		return false
 	}
 	return false

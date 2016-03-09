@@ -5,7 +5,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"path/filepath"
 	"testing"
-	"time"
 )
 
 func TestSchema(t *testing.T) {
@@ -452,158 +451,149 @@ func TestReadFile(t *testing.T) {
 
 func TestCanCompare(t *testing.T) {
 
-	type test struct {
-		value  interface{}
-		mType  MongoType
-		result bool
-	}
+	Convey("Subject: CanCompare", t, func() {
 
-	runTests := func(tests []test) {
-		for _, t := range tests {
-			Convey(fmt.Sprintf("can compare %v to %v: %v", t.value, t.mType, t.result), func() {
-				So(CanCompare(t.value, t.mType), ShouldEqual, t.result)
-			})
+		type test struct {
+			left         SQLType
+			right        SQLType
+			incomparable bool
 		}
-	}
 
-	timeObject := time.Now()
-
-	Convey("Subject: Numeric Comparison", t, func() {
-		tests := []test{
-			test{66, MongoInt, true},
-			test{-1.2, MongoInt, true},
-			test{4, MongoInt, true},
-			test{int(8), MongoInt, true},
-			test{float64(1.6), MongoInt, true},
-			test{int8(11), MongoInt, true},
-			test{int16(95), MongoInt, true},
-			test{int32(46), MongoInt, true},
-			test{int64(7), MongoInt, true},
-			test{uint8(24), MongoInt, true},
-			test{uint16(669), MongoInt, true},
-			test{uint32(74), MongoInt, true},
-			test{uint64(63), MongoInt, true},
-			test{float32(32.2), MongoInt, true},
-			test{float64(66.1), MongoInt, true},
-			test{nil, MongoInt, true},
-			test{"nil", MongoInt, false},
-			test{timeObject, MongoInt, false},
-			test{true, MongoInt, false},
-			test{false, MongoInt, false},
+		runTests := func(tests []test) {
+			for _, t := range tests {
+				var incomparable string
+				if !t.incomparable {
+					incomparable = "not "
+				}
+				Convey(fmt.Sprintf("comparison between '%v' and '%v' should %vreturn an error", t.left, t.right, incomparable), func() {
+					canCompare := CanCompare(t.left, t.right)
+					if t.incomparable {
+						So(canCompare, ShouldBeFalse)
+					} else {
+						So(canCompare, ShouldBeTrue)
+					}
+				})
+			}
 		}
-		Convey("Subject: MongoInt", func() {
+
+		Convey("Subject: SQLInt", func() {
+			tests := []test{
+				{SQLInt, SQLInt, false},
+				{SQLInt, SQLFloat, false},
+				{SQLInt, SQLBoolean, false},
+				{SQLInt, SQLNull, false},
+				{SQLInt, SQLObjectID, true},
+				{SQLInt, SQLVarchar, true},
+				{SQLInt, SQLNone, false},
+				{SQLInt, SQLDate, true},
+				{SQLInt, SQLTimestamp, true},
+			}
 			runTests(tests)
 		})
 
-		Convey("Subject: MongoInt64", func() {
-			var int64Tests []test
-			for _, test := range tests {
-				test.mType = MongoInt64
-				int64Tests = append(int64Tests, test)
+		Convey("Subject: SQLFloat", func() {
+			tests := []test{
+				{SQLFloat, SQLInt, false},
+				{SQLFloat, SQLBoolean, false},
+				{SQLFloat, SQLNull, false},
+				{SQLFloat, SQLObjectID, true},
+				{SQLFloat, SQLVarchar, true},
+				{SQLFloat, SQLFloat, false},
+				{SQLFloat, SQLNone, false},
+				{SQLFloat, SQLDate, true},
+				{SQLFloat, SQLTimestamp, true},
 			}
-			runTests(int64Tests)
+			runTests(tests)
 		})
 
-		Convey("Subject: MongoFloat", func() {
-			var float64Tests []test
-			for _, test := range tests {
-				test.mType = MongoFloat
-				float64Tests = append(float64Tests, test)
+		Convey("Subject: SQLBool", func() {
+			tests := []test{
+				{SQLBoolean, SQLFloat, false},
+				{SQLBoolean, SQLNull, false},
+				{SQLBoolean, SQLObjectID, true},
+				{SQLBoolean, SQLVarchar, true},
+				{SQLBoolean, SQLInt, false},
+				{SQLBoolean, SQLBoolean, false},
+				{SQLBoolean, SQLNone, false},
+				{SQLBoolean, SQLDate, true},
+				{SQLBoolean, SQLTimestamp, true},
 			}
-			runTests(float64Tests)
+			runTests(tests)
 		})
 
-		Convey("Subject: MongoDecimal", func() {
-			var decimalTests []test
-			for _, test := range tests {
-				test.mType = MongoDecimal
-				decimalTests = append(decimalTests, test)
+		Convey("Subject: SQLDate", func() {
+			tests := []test{
+				{SQLDate, SQLInt, true},
+				{SQLDate, SQLFloat, true},
+				{SQLDate, SQLBoolean, true},
+				{SQLDate, SQLNull, false},
+				{SQLDate, SQLObjectID, true},
+				{SQLDate, SQLVarchar, false},
+				{SQLDate, SQLNone, false},
+				{SQLDate, SQLDate, false},
+				{SQLDate, SQLTimestamp, false},
 			}
-			runTests(decimalTests)
+			runTests(tests)
 		})
 
-		Convey("Subject: MongoGeo2D", func() {
-			var geo2DTests []test
-			for _, test := range tests {
-				test.mType = MongoGeo2D
-				geo2DTests = append(geo2DTests, test)
+		Convey("Subject: SQLTimestamp", func() {
+			tests := []test{
+				{SQLTimestamp, SQLInt, true},
+				{SQLTimestamp, SQLFloat, true},
+				{SQLTimestamp, SQLBoolean, true},
+				{SQLTimestamp, SQLNull, false},
+				{SQLTimestamp, SQLObjectID, true},
+				{SQLTimestamp, SQLVarchar, false},
+				{SQLTimestamp, SQLDate, false},
+				{SQLTimestamp, SQLNone, false},
+				{SQLTimestamp, SQLTimestamp, false},
 			}
-			runTests(geo2DTests)
+			runTests(tests)
 		})
-	})
 
-	Convey("Subject: MongoString Comparison", t, func() {
-		tests := []test{
-			test{66, MongoString, false},
-			test{-1.2, MongoString, false},
-			test{nil, MongoString, true},
-			test{false, MongoString, false},
-			test{true, MongoString, false},
-			test{timeObject, MongoString, false},
-		}
-		runTests(tests)
-	})
+		Convey("Subject: SQLNullValue", func() {
+			tests := []test{
+				{SQLNull, SQLInt, false},
+				{SQLNull, SQLFloat, false},
+				{SQLNull, SQLBoolean, false},
+				{SQLNull, SQLObjectID, false},
+				{SQLNull, SQLVarchar, false},
+				{SQLNull, SQLNone, false},
+				{SQLNull, SQLDate, false},
+				{SQLNull, SQLTimestamp, false},
+				{SQLNull, SQLNull, false},
+			}
+			runTests(tests)
+		})
 
-	Convey("Subject: MongoObjectId Comparison", t, func() {
-		tests := []test{
-			test{nil, MongoObjectId, true},
-			test{"123412341234123412341234", MongoObjectId, true},
-			test{"12341234123412341234123", MongoObjectId, false},
-			test{"", MongoObjectId, false},
-			test{66, MongoObjectId, false},
-			test{false, MongoObjectId, false},
-			test{true, MongoObjectId, false},
-			test{timeObject, MongoObjectId, false},
-			test{-1.2, MongoObjectId, false},
-		}
-		runTests(tests)
-	})
+		Convey("Subject: SQLVarchar", func() {
+			tests := []test{
+				{SQLVarchar, SQLInt, true},
+				{SQLVarchar, SQLFloat, true},
+				{SQLVarchar, SQLBoolean, true},
+				{SQLVarchar, SQLObjectID, true},
+				{SQLVarchar, SQLVarchar, false},
+				{SQLVarchar, SQLNone, false},
+				{SQLVarchar, SQLDate, false},
+				{SQLVarchar, SQLTimestamp, false},
+			}
+			runTests(tests)
+		})
 
-	Convey("Subject: MongoBool Comparison", t, func() {
-		tests := []test{
-			test{nil, MongoBool, true},
-			test{1, MongoBool, true},
-			test{0, MongoBool, true},
-			test{false, MongoBool, true},
-			test{true, MongoBool, true},
-			test{"", MongoBool, false},
-			test{66, MongoBool, false},
-			test{timeObject, MongoBool, false},
-			test{-1.2, MongoBool, false},
-		}
-		runTests(tests)
-	})
+		Convey("Subject: SQLObjectID", func() {
 
-	Convey("Subject: MongoDate Comparison", t, func() {
-		tests := []test{
-			test{nil, MongoDate, true},
-			test{"string", MongoDate, true},
-			test{"", MongoDate, true},
-			test{0, MongoDate, false},
-			test{1, MongoDate, false},
-			test{false, MongoDate, false},
-			test{true, MongoDate, false},
-			test{66, MongoDate, false},
-			test{timeObject, MongoDate, false},
-			test{-1.2, MongoDate, false},
-		}
-		runTests(tests)
-	})
+			tests := []test{
+				{SQLObjectID, SQLInt, true},
+				{SQLObjectID, SQLFloat, true},
+				{SQLObjectID, SQLVarchar, false},
+				{SQLObjectID, SQLBoolean, true},
+				{SQLObjectID, SQLNone, false},
+				{SQLObjectID, SQLDate, true},
+				{SQLObjectID, SQLTimestamp, true},
+				{SQLObjectID, SQLObjectID, false},
+			}
+			runTests(tests)
+		})
 
-	Convey("Subject: MongoNone Comparison", t, func() {
-		tests := []test{
-			test{nil, MongoNone, false},
-			test{"string", MongoNone, false},
-			test{"", MongoNone, false},
-			test{0, MongoNone, false},
-			test{1, MongoNone, false},
-			test{false, MongoNone, false},
-			test{true, MongoNone, false},
-			test{66, MongoNone, false},
-			test{timeObject, MongoNone, false},
-			test{-1.2, MongoNone, false},
-		}
-		runTests(tests)
 	})
-
 }

@@ -65,8 +65,10 @@ func (row *Row) GetValues(columns []*Column) []interface{} {
 	values := make([]interface{}, 0)
 
 	for _, column := range columns {
-		value, _ := row.GetField(column.Table, column.Name)
-		values = append(values, value)
+		value, hasField := row.GetField(column.Table, column.Name)
+		if hasField {
+			values = append(values, value)
+		}
 	}
 
 	return values

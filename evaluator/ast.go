@@ -2,7 +2,10 @@ package evaluator
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
+
+	"github.com/10gen/sqlproxy/schema"
 )
 
 //
@@ -11,14 +14,14 @@ import (
 type SQLExpr interface {
 	Evaluate(*EvalCtx) (SQLValue, error)
 	String() string
+	Type() schema.SQLType
 }
 
 //
-// SQLValue is a comparable SQLExpr.
+// SQLValue is a SQLExpr with a value.
 //
 type SQLValue interface {
 	SQLExpr
-	CompareTo(SQLValue) (int, error)
 	Value() interface{}
 }
 
@@ -57,22 +60,21 @@ type EvalCtx struct {
 //   and that number is non-zero.
 func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 
-	sv, err := expr.Evaluate(ctx)
+	eval, err := expr.Evaluate(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	if asBool, ok := sv.(SQLBool); ok {
-		return bool(asBool), nil
-	}
-	if asNum, ok := sv.(SQLNumeric); ok {
-		return asNum.Float64() != float64(0), nil
-	}
-	if asStr, ok := sv.(SQLString); ok {
-		// check if the string should be considered "truthy" by trying to convert it to a number and comparing to 0.
+	switch v := eval.(type) {
+	case SQLBool:
+		return bool(v), nil
+	case SQLNumeric:
+		return v.Float64() != float64(0), nil
+	case SQLString:
 		// more info: http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
-		if parsedFloat, err := strconv.ParseFloat(string(asStr), 64); err == nil {
-			return parsedFloat != float64(0), nil
+		p, err := strconv.ParseFloat(string(v), 64)
+		if err == nil {
+			return p != float64(0), nil
 		}
 		return false, nil
 	}
@@ -201,6 +203,14 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		}
 	case SQLColumnExpr:
 		// no children
+	case *SQLConvertExpr:
+		expr, err := v.Visit(typedE.expr)
+		if err != nil {
+			return nil, err
+		}
+		if typedE.expr != expr {
+			e = &SQLConvertExpr{expr, typedE.convType}
+		}
 	case *SQLDivideExpr:
 		left, err := v.Visit(typedE.left)
 		if err != nil {
@@ -213,7 +223,6 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		if typedE.left != left || typedE.right != right {
 			e = &SQLDivideExpr{left, right}
 		}
-
 	case *SQLEqualsExpr:
 		left, err := v.Visit(typedE.left)
 		if err != nil {
@@ -460,8 +469,6 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 	// values
 	case SQLBool:
 		// nothing to do
-	case *SQLCtorExpr:
-		return e.Evaluate(nil)
 	case SQLDate:
 		// nothing to do
 	case SQLFloat:
@@ -505,4 +512,78 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 	}
 
 	return e, nil
+}
+
+// getColumnType accepts a table name and a column name
+// and returns the column type for the given column if
+// it is found in the tables map. If it is not found, it
+// returns a default column type.
+func getColumnType(tables map[string]*schema.Table, tableName, columnName string) *schema.ColumnType {
+
+	none := &schema.ColumnType{schema.SQLNone, schema.MongoNone}
+
+	if tables == nil {
+		return none
+	}
+
+	table, ok := tables[tableName]
+	if !ok {
+		return none
+	}
+
+	column, ok := table.SQLColumns[columnName]
+	if !ok {
+		return none
+	}
+
+	return &schema.ColumnType{column.SqlType, column.MongoType}
+}
+
+// preferentialType accepts a variable number of
+// SQLExprs and returns the type of the SQLExpr
+// with the highest preference.
+func preferentialType(exprs ...SQLExpr) schema.SQLType {
+	if len(exprs) == 0 {
+		return schema.SQLNone
+	}
+
+	var types schema.SQLTypes
+
+	for _, expr := range exprs {
+		types = append(types, expr.Type())
+	}
+
+	sort.Sort(types)
+
+	return types[len(types)-1]
+}
+
+// reconcileSQLExprs takes two SQLExpr and ensures that
+// they are of the same type. If they are of different
+// types but still comparable, it wraps the SQLExpr with
+// a lesser precendence in a SQLConvertExpr. If they are
+// not comparable, it returns a non-nil error.
+func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
+
+	leftType, rightType := left.Type(), right.Type()
+
+	if leftType == rightType {
+		return left, right, nil
+	}
+
+	if !schema.CanCompare(leftType, rightType) {
+		return nil, nil, fmt.Errorf("cannot compare %v type against %v type", leftType, rightType)
+	}
+
+	types := schema.SQLTypes{leftType, rightType}
+
+	sort.Sort(types)
+
+	if types[1] == leftType {
+		right = &SQLConvertExpr{right, types[1]}
+	} else {
+		left = &SQLConvertExpr{left, types[1]}
+	}
+
+	return left, right, nil
 }

@@ -12,6 +12,7 @@ func TestProjectOperator(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
 	ctx := &ExecutionCtx{Schema: cfgOne, Db: dbOne}
+	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	runTest := func(project *Project, optimize bool, rows []bson.D, expectedRows []Values) {
 		ts, err := NewBSONSource(ctx, tableOneName, rows)
@@ -52,12 +53,12 @@ func TestProjectOperator(t *testing.T) {
 		sExprs := SelectExpressions{
 			SelectExpression{
 				Column: &Column{tableOneName, "a", "a", schema.SQLInt, schema.MongoInt},
-				Expr:   SQLColumnExpr{tableOneName, "a"},
+				Expr:   SQLColumnExpr{tableOneName, "a", columnType},
 			},
 			SelectExpression{
 				Referenced: true,
 				Column:     &Column{tableOneName, "b", "b", schema.SQLInt, schema.MongoInt},
-				Expr:       SQLColumnExpr{tableOneName, "b"},
+				Expr:       SQLColumnExpr{tableOneName, "b", columnType},
 			},
 		}
 

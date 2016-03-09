@@ -120,7 +120,7 @@ func TestNewSQLValue(t *testing.T) {
 			_id := bson.ObjectId("56a10dd56ce28a89a8ed6edb")
 			newV, err = NewSQLValue(_id, schema.SQLVarchar, schema.MongoObjectId)
 			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, SQLString(_id.Hex()))
+			So(newV, ShouldResemble, SQLObjectID(_id.Hex()))
 
 		})
 
@@ -253,6 +253,14 @@ func TestNewSQLValue(t *testing.T) {
 
 func TestNewSQLExpr(t *testing.T) {
 
+	schema, err := schema.ParseSchemaData(testSchema3)
+	if err != nil {
+		panic(err)
+	}
+	tables := schema.Databases[dbOne].Tables
+	columnTypeA := getColumnType(tables, "bar", "a")
+	columnTypeB := getColumnType(tables, "bar", "b")
+
 	Convey("Calling NewSQLExpr on a sqlparser expression should produce the appropriate Expr", t, func() {
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("sum"),
@@ -265,52 +273,44 @@ func TestNewSQLExpr(t *testing.T) {
 				},
 			},
 		}
-		expr, err := NewSQLExpr(sqlValue)
+		expr, err := NewSQLExpr(sqlValue, tables)
 		So(err, ShouldBeNil)
 		_, ok := expr.(*SQLAggFunctionExpr)
 		So(ok, ShouldBeTrue)
 	})
 
 	Convey("Simple WHERE with explicit table names", t, func() {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where bar.a = 4")
 		So(err, ShouldBeNil)
-		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where bar.a = 'eliot'")
-		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLString("eliot")})
+		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{"bar", "a", *columnTypeA}, SQLInt(4)})
 	})
 	Convey("Simple WHERE with implicit table names", t, func() {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where a = 4")
 		So(err, ShouldBeNil)
-		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where a = 'eliot'")
-		So(err, ShouldBeNil)
-		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLString("eliot")})
+		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{"bar", "a", *columnTypeA}, SQLInt(4)})
 	})
 	Convey("WHERE with complex nested matching clauses", t, func() {
-		schema, err := schema.ParseSchemaData(testSchema3)
-		So(err, ShouldBeNil)
-		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where NOT((a = 'eliot') AND (b>1 OR a<'blah'))")
+		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where NOT((a = 3) AND (b>1 OR a<8))")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLNotExpr{
 			&SQLAndExpr{
-				&SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLString("eliot")},
+				&SQLEqualsExpr{SQLColumnExpr{"bar", "a", *columnTypeA}, SQLInt(3)},
 				&SQLOrExpr{
-					&SQLGreaterThanExpr{SQLColumnExpr{"bar", "b"}, SQLInt(1)},
-					&SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLString("blah")},
+					&SQLGreaterThanExpr{SQLColumnExpr{"bar", "b", *columnTypeB}, SQLInt(1)},
+					&SQLLessThanExpr{SQLColumnExpr{"bar", "a", *columnTypeA}, SQLInt(8)},
 				},
 			},
 		})
 	})
 	Convey("WHERE with complex nested matching clauses", t, func() {
-		schema, err := schema.ParseSchemaData(testSchema3)
-		So(err, ShouldBeNil)
-		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where NOT((a = 'eliot') AND (b>13 OR a<'blah'))")
+		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where NOT((a=4) AND (b>13 OR a<5))")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLNotExpr{
 			&SQLAndExpr{
-				&SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLString("eliot")},
+				&SQLEqualsExpr{SQLColumnExpr{"bar", "a", *columnTypeA}, SQLInt(4)},
 				&SQLOrExpr{
-					&SQLGreaterThanExpr{SQLColumnExpr{"bar", "b"}, SQLInt(13)},
-					&SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLString("blah")},
+					&SQLGreaterThanExpr{SQLColumnExpr{"bar", "b", *columnTypeB}, SQLInt(13)},
+					&SQLLessThanExpr{SQLColumnExpr{"bar", "a", *columnTypeA}, SQLInt(5)},
 				},
 			},
 		})
@@ -319,6 +319,10 @@ func TestNewSQLExpr(t *testing.T) {
 
 func TestAggFuncSum(t *testing.T) {
 	Convey("When evaluating a 'sum' aggregation function", t, func() {
+
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		tables := schema.Databases[dbOne].Tables
 
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("sum"),
@@ -333,7 +337,7 @@ func TestAggFuncSum(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -345,7 +349,7 @@ func TestAggFuncSum(t *testing.T) {
 
 		Convey("an error should be returned if the function is misspelt", func() {
 			sqlValue.Name = []byte("sumd")
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -361,12 +365,12 @@ func TestAggFuncSum(t *testing.T) {
 				},
 			}
 
-			_, err := NewSQLExpr(sqlValue)
+			_, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("a correct evaluation should be returned even with unsummable values", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -389,6 +393,10 @@ func TestAggFuncSum(t *testing.T) {
 func TestAggFuncAvg(t *testing.T) {
 	Convey("When evaluating a 'avg' aggregation function", t, func() {
 
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		tables := schema.Databases[dbOne].Tables
+
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("avg"),
 			Exprs: sqlparser.SelectExprs{
@@ -402,7 +410,7 @@ func TestAggFuncAvg(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -414,7 +422,7 @@ func TestAggFuncAvg(t *testing.T) {
 
 		Convey("an error should be returned if the function is misspelt", func() {
 			sqlValue.Name = []byte("avgd")
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -430,12 +438,12 @@ func TestAggFuncAvg(t *testing.T) {
 				},
 			}
 
-			_, err := NewSQLExpr(sqlValue)
+			_, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("a correct evaluation should be returned even with unsummable values", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -458,6 +466,10 @@ func TestAggFuncAvg(t *testing.T) {
 func TestAggFuncCount(t *testing.T) {
 	Convey("When evaluating a 'count' aggregation function", t, func() {
 
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		tables := schema.Databases[dbOne].Tables
+
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("count"),
 			Exprs: sqlparser.SelectExprs{
@@ -471,7 +483,7 @@ func TestAggFuncCount(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -483,7 +495,7 @@ func TestAggFuncCount(t *testing.T) {
 
 		Convey("an error should be returned if the function is misspelt", func() {
 			sqlValue.Name = []byte("countd")
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -499,7 +511,7 @@ func TestAggFuncCount(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -510,7 +522,7 @@ func TestAggFuncCount(t *testing.T) {
 		})
 
 		Convey("nil values should be skipped", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -533,6 +545,10 @@ func TestAggFuncCount(t *testing.T) {
 func TestAggFuncMax(t *testing.T) {
 	Convey("When evaluating a 'max' aggregation function", t, func() {
 
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		tables := schema.Databases[dbOne].Tables
+
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("max"),
 			Exprs: sqlparser.SelectExprs{
@@ -546,7 +562,7 @@ func TestAggFuncMax(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -558,7 +574,7 @@ func TestAggFuncMax(t *testing.T) {
 
 		Convey("an error should be returned if the function is misspelt", func() {
 			sqlValue.Name = []byte("maxd")
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -574,12 +590,12 @@ func TestAggFuncMax(t *testing.T) {
 				},
 			}
 
-			_, err := NewSQLExpr(sqlValue)
+			_, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("a correct evaluation should be returned in the presence of nil values", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -602,6 +618,10 @@ func TestAggFuncMax(t *testing.T) {
 func TestScalarFuncIsNull(t *testing.T) {
 	Convey("When evaluating the isnull function", t, func() {
 
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		tables := schema.Databases[dbOne].Tables
+
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("isnull"),
 			Exprs: sqlparser.SelectExprs{
@@ -615,7 +635,7 @@ func TestScalarFuncIsNull(t *testing.T) {
 		}
 
 		Convey("only return true if the value is null", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -625,7 +645,6 @@ func TestScalarFuncIsNull(t *testing.T) {
 			So(value, ShouldResemble, SQLInt(0))
 
 			ctx := &EvalCtx{Rows{{TableRows{{tableOneName, Values{{"a", "a", nil}}}}}}, nil}
-
 			value, err = funcExpr.Evaluate(ctx)
 			So(err, ShouldBeNil)
 			So(value, ShouldResemble, SQLInt(1))
@@ -636,6 +655,10 @@ func TestScalarFuncIsNull(t *testing.T) {
 
 func TestScalarFuncNot(t *testing.T) {
 	Convey("When evaluating the not function", t, func() {
+
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		tables := schema.Databases[dbOne].Tables
 
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("not"),
@@ -651,7 +674,7 @@ func TestScalarFuncNot(t *testing.T) {
 
 		Convey("only return true if the value is false", func() {
 
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -673,6 +696,10 @@ func TestScalarFuncNot(t *testing.T) {
 func TestScalarFuncPow(t *testing.T) {
 	Convey("When evaluating the pow function", t, func() {
 
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		tables := schema.Databases[dbOne].Tables
+
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("pow"),
 			Exprs: sqlparser.SelectExprs{
@@ -691,7 +718,7 @@ func TestScalarFuncPow(t *testing.T) {
 			},
 		}
 
-		expr, err := NewSQLExpr(sqlValue)
+		expr, err := NewSQLExpr(sqlValue, tables)
 		So(err, ShouldBeNil)
 		funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 		So(ok, ShouldBeTrue)
@@ -734,6 +761,10 @@ func TestScalarFuncPow(t *testing.T) {
 func TestScalarFuncCast(t *testing.T) {
 	Convey("When evaluating the cast function", t, func() {
 
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		tables := schema.Databases[dbOne].Tables
+
 		Convey("a timestamp argument should be cast correctly", func() {
 			sqlValue := &sqlparser.FuncExpr{
 				Name: []byte("cast"),
@@ -752,7 +783,7 @@ func TestScalarFuncCast(t *testing.T) {
 			values := Values{{"a", "a", arg}}
 			ctx := &EvalCtx{Rows{{TableRows{{tableOneName, values}}}}, nil}
 
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -783,7 +814,7 @@ func TestScalarFuncCast(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -813,7 +844,7 @@ func TestScalarFuncCast(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -834,6 +865,10 @@ func TestScalarFuncCast(t *testing.T) {
 func TestAggFuncMin(t *testing.T) {
 	Convey("When evaluating a 'min' aggregation function", t, func() {
 
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		tables := schema.Databases[dbOne].Tables
+
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("min"),
 			Exprs: sqlparser.SelectExprs{
@@ -847,7 +882,7 @@ func TestAggFuncMin(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -859,7 +894,7 @@ func TestAggFuncMin(t *testing.T) {
 
 		Convey("an error should be returned if the function is misspelt", func() {
 			sqlValue.Name = []byte("mind")
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLScalarFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -875,12 +910,12 @@ func TestAggFuncMin(t *testing.T) {
 				},
 			}
 
-			_, err := NewSQLExpr(sqlValue)
+			_, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("a correct evaluation should be returned in the presence of nil values", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -903,6 +938,10 @@ func TestAggFuncMin(t *testing.T) {
 func TestAggFuncDistinct(t *testing.T) {
 	Convey("When evaluating a distinct aggregation function", t, func() {
 
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		tables := schema.Databases[dbOne].Tables
+
 		Convey("a correct evaluation should be returned for sum", func() {
 			sqlValue := &sqlparser.FuncExpr{
 				Name:     []byte("sum"),
@@ -917,7 +956,7 @@ func TestAggFuncDistinct(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -941,7 +980,7 @@ func TestAggFuncDistinct(t *testing.T) {
 				},
 			}
 
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -956,6 +995,10 @@ func TestAggFuncDistinct(t *testing.T) {
 
 func TestAggFuncComplex(t *testing.T) {
 	Convey("When evaluating an aggregation function with a complex expression", t, func() {
+
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		tables := schema.Databases[dbOne].Tables
 
 		sqlValue := &sqlparser.FuncExpr{
 			Name: []byte("sum"),
@@ -977,7 +1020,7 @@ func TestAggFuncComplex(t *testing.T) {
 		}
 
 		Convey("a correct evaluation should be returned for sum", func() {
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -989,7 +1032,7 @@ func TestAggFuncComplex(t *testing.T) {
 
 		Convey("a correct evaluation should be returned for avg", func() {
 			sqlValue.Name = []byte("avg")
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -1001,7 +1044,7 @@ func TestAggFuncComplex(t *testing.T) {
 
 		Convey("a correct evaluation should be returned for count", func() {
 			sqlValue.Name = []byte("count")
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -1013,7 +1056,7 @@ func TestAggFuncComplex(t *testing.T) {
 
 		Convey("a correct evaluation should be returned for max", func() {
 			sqlValue.Name = []byte("max")
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)
@@ -1025,7 +1068,7 @@ func TestAggFuncComplex(t *testing.T) {
 
 		Convey("a correct evaluation should be returned for min", func() {
 			sqlValue.Name = []byte("min")
-			expr, err := NewSQLExpr(sqlValue)
+			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLAggFunctionExpr)
 			So(ok, ShouldBeTrue)

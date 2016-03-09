@@ -68,7 +68,9 @@ func setupJoinOperator(ctx *ExecutionCtx, criteria sqlparser.BoolExpr, kind Join
 	ms2, err := NewBSONSource(ctx, tableTwoName, orders)
 	So(err, ShouldBeNil)
 
-	on, err := NewSQLExpr(criteria)
+	tables := getDBTables(ctx)
+
+	on, err := NewSQLExpr(criteria, tables)
 	So(err, ShouldBeNil)
 
 	return &Join{

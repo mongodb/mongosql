@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -11,6 +12,8 @@ import (
 func TestOptimizeOperator(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
+	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
+
 	Convey("Subject: OptimizeOperator", t, func() {
 
 		ctx := &ExecutionCtx{
@@ -29,7 +32,7 @@ func TestOptimizeOperator(t *testing.T) {
 
 				filter := &Filter{
 					source:  ms,
-					matcher: &SQLEqualsExpr{SQLColumnExpr{tbl, "a"}, SQLString("funny")},
+					matcher: &SQLEqualsExpr{SQLColumnExpr{tbl, "a", columnType}, SQLInt(4)},
 				}
 
 				limit := &Limit{
@@ -39,7 +42,7 @@ func TestOptimizeOperator(t *testing.T) {
 
 				verifyOptimizedPipeline(ctx, limit,
 					[]bson.D{
-						bson.D{{"$match", bson.M{"a": "funny"}}},
+						bson.D{{"$match", bson.M{"a": int64(4)}}},
 						bson.D{{"$limit", limit.rowcount}}})
 			})
 
@@ -70,7 +73,7 @@ func TestOptimizeOperator(t *testing.T) {
 
 				filter := &Filter{
 					source:  skip,
-					matcher: &SQLEqualsExpr{SQLColumnExpr{tbl, "a"}, SQLString("funny")},
+					matcher: &SQLEqualsExpr{SQLColumnExpr{tbl, "a", columnType}, SQLInt(5)},
 				}
 
 				limit := &Limit{
@@ -81,7 +84,7 @@ func TestOptimizeOperator(t *testing.T) {
 				verifyOptimizedPipeline(ctx, limit,
 					[]bson.D{
 						bson.D{{"$skip", skip.offset}},
-						bson.D{{"$match", bson.M{"a": "funny"}}},
+						bson.D{{"$match", bson.M{"a": int64(5)}}},
 						bson.D{{"$limit", limit.rowcount}}})
 			})
 		})
@@ -92,6 +95,7 @@ func TestOptimizeOperator(t *testing.T) {
 func TestFilterPushDown(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
+	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	Convey("Subject: Filter Optimization", t, func() {
 
@@ -113,26 +117,26 @@ func TestFilterPushDown(t *testing.T) {
 
 			Convey("Should optimize when the matcher is fully translatable", func() {
 
-				filter.matcher = &SQLEqualsExpr{SQLColumnExpr{tbl, "a"}, SQLString("funny")}
+				filter.matcher = &SQLEqualsExpr{SQLColumnExpr{tbl, "a", columnType}, SQLInt(3)}
 
 				verifyOptimizedPipeline(ctx, filter,
-					[]bson.D{bson.D{{"$match", bson.M{"a": "funny"}}}})
+					[]bson.D{bson.D{{"$match", bson.M{"a": int64(3)}}}})
 			})
 
 			Convey("Should optimize when the matcher is partially translatable", func() {
 
 				filter.matcher = &SQLAndExpr{
-					&SQLEqualsExpr{SQLColumnExpr{tbl, "a"}, SQLString("funny")},
-					&SQLEqualsExpr{SQLColumnExpr{tbl, "b"}, SQLColumnExpr{tbl, "c"}}}
+					&SQLEqualsExpr{SQLColumnExpr{tbl, "a", columnType}, SQLInt(2)},
+					&SQLEqualsExpr{SQLColumnExpr{tbl, "b", columnType}, SQLColumnExpr{tbl, "c", columnType}}}
 
 				optimized, err := OptimizeOperator(ctx, filter)
 				So(err, ShouldBeNil)
 				newFilter, ok := optimized.(*Filter)
 				So(ok, ShouldBeTrue)
-				So(newFilter.matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{tbl, "b"}, SQLColumnExpr{tbl, "c"}})
+				So(newFilter.matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{tbl, "b", columnType}, SQLColumnExpr{tbl, "c", columnType}})
 				ms, ok := newFilter.source.(*MongoSource)
 				So(ok, ShouldBeTrue)
-				So(ms.pipeline, ShouldResemble, []bson.D{bson.D{{"$match", bson.M{"a": "funny"}}}})
+				So(ms.pipeline, ShouldResemble, []bson.D{bson.D{{"$match", bson.M{"a": int64(2)}}}})
 			})
 		})
 
@@ -182,7 +186,7 @@ func TestFilterPushDown(t *testing.T) {
 
 				filter := &Filter{
 					source:  ms,
-					matcher: &SQLEqualsExpr{SQLColumnExpr{tbl, "a"}, SQLColumnExpr{tbl, "b"}},
+					matcher: &SQLEqualsExpr{SQLColumnExpr{tbl, "a", columnType}, SQLColumnExpr{tbl, "b", columnType}},
 				}
 
 				verifyUnoptimizedPipeline(ctx, filter)
@@ -194,6 +198,7 @@ func TestFilterPushDown(t *testing.T) {
 func TestGroupByPushDown(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
+	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	Convey("Subject: GroupBy Optimization", t, func() {
 
@@ -216,9 +221,9 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a, b from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a": SQLColumnExpr{tbl, "a"},
-					"b": SQLColumnExpr{tbl, "b"},
-					"c": SQLColumnExpr{tbl, "c"},
+					"a": SQLColumnExpr{tbl, "a", columnType},
+					"b": SQLColumnExpr{tbl, "b", columnType},
+					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "b")
@@ -247,9 +252,9 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a, b, c from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a": SQLColumnExpr{tbl, "a"},
-					"b": SQLColumnExpr{tbl, "b"},
-					"c": SQLColumnExpr{tbl, "c"},
+					"a": SQLColumnExpr{tbl, "a", columnType},
+					"b": SQLColumnExpr{tbl, "b", columnType},
+					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "c")
@@ -279,10 +284,10 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a, b, c as Awesome from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a":       SQLColumnExpr{tbl, "a"},
-					"b":       SQLColumnExpr{tbl, "b"},
-					"c":       SQLColumnExpr{tbl, "c"},
-					"Awesome": SQLColumnExpr{tbl, "c"},
+					"a":       SQLColumnExpr{tbl, "a", columnType},
+					"b":       SQLColumnExpr{tbl, "b", columnType},
+					"c":       SQLColumnExpr{tbl, "c", columnType},
+					"Awesome": SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "Awesome")
@@ -312,10 +317,10 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a, b, c + a as Awesome from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a":       SQLColumnExpr{tbl, "a"},
-					"b":       SQLColumnExpr{tbl, "b"},
-					"c":       SQLColumnExpr{tbl, "c"},
-					"Awesome": &SQLAddExpr{SQLColumnExpr{tbl, "c"}, SQLColumnExpr{tbl, "a"}},
+					"a":       SQLColumnExpr{tbl, "a", columnType},
+					"b":       SQLColumnExpr{tbl, "b", columnType},
+					"c":       SQLColumnExpr{tbl, "c", columnType},
+					"Awesome": &SQLAddExpr{SQLColumnExpr{tbl, "c", columnType}, SQLColumnExpr{tbl, "a", columnType}},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "Awesome")
@@ -345,9 +350,9 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select sum(a), sum(b) from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "a"}}},
-					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b"}}},
-					"c":      SQLColumnExpr{tbl, "c"},
+					"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "a", columnType}}},
+					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
+					"c":      SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "sum(a)", "sum(b)")
@@ -376,9 +381,9 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select c, sum(a), sum(b) from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "a"}}},
-					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b"}}},
-					"c":      SQLColumnExpr{tbl, "c"},
+					"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "a", columnType}}},
+					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
+					"c":      SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "c", "sum(a)", "sum(b)")
@@ -408,9 +413,9 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a, sum(b) from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a":      SQLColumnExpr{tbl, "a"},
-					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b"}}},
-					"c":      SQLColumnExpr{tbl, "c"},
+					"a":      SQLColumnExpr{tbl, "a", columnType},
+					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
+					"c":      SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(b)")
@@ -439,9 +444,9 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a, sum(distinct b) from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a":               SQLColumnExpr{tbl, "a"},
-					"sum(distinct b)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLColumnExpr{tbl, "b"}}},
-					"c":               SQLColumnExpr{tbl, "c"},
+					"a":               SQLColumnExpr{tbl, "a", columnType},
+					"sum(distinct b)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
+					"c":               SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct b)")
@@ -470,9 +475,9 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a, sum(distinct b), c from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a":               SQLColumnExpr{tbl, "a"},
-					"sum(distinct b)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLColumnExpr{tbl, "b"}}},
-					"c":               SQLColumnExpr{tbl, "c"},
+					"a":               SQLColumnExpr{tbl, "a", columnType},
+					"sum(distinct b)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
+					"c":               SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct b)", "c")
@@ -502,8 +507,8 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a + sum(b) from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a + sum(b)": &SQLAddExpr{SQLColumnExpr{tbl, "a"}, &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b"}}}},
-					"c":          SQLColumnExpr{tbl, "c"},
+					"a + sum(b)": &SQLAddExpr{SQLColumnExpr{tbl, "a", columnType}, &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}}},
+					"c":          SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a + sum(b)")
@@ -531,7 +536,7 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a + b from foo group by a + b'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a + b": &SQLAddExpr{SQLColumnExpr{tbl, "a"}, SQLColumnExpr{tbl, "b"}},
+					"a + b": &SQLAddExpr{SQLColumnExpr{tbl, "a", columnType}, SQLColumnExpr{tbl, "b", columnType}},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a + b")
@@ -551,8 +556,8 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a + c + sum(b) from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a + c + sum(b)": &SQLAddExpr{SQLColumnExpr{tbl, "a"}, &SQLAddExpr{SQLColumnExpr{tbl, "c"}, &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b"}}}}},
-					"c":              SQLColumnExpr{tbl, "c"},
+					"a + c + sum(b)": &SQLAddExpr{SQLColumnExpr{tbl, "a", columnType}, &SQLAddExpr{SQLColumnExpr{tbl, "c", columnType}, &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}}}},
+					"c":              SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a + c + sum(b)")
@@ -580,8 +585,8 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a + sum(b) as Awesome from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"Awesome": &SQLAddExpr{SQLColumnExpr{tbl, "a"}, &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b"}}}},
-					"c":       SQLColumnExpr{tbl, "c"},
+					"Awesome": &SQLAddExpr{SQLColumnExpr{tbl, "a", columnType}, &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}}},
+					"c":       SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "Awesome")
@@ -609,8 +614,8 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a + sum(distinct b) from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a + sum(distinct b)": &SQLAddExpr{SQLColumnExpr{tbl, "a"}, &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLColumnExpr{tbl, "b"}}}},
-					"c": SQLColumnExpr{tbl, "c"},
+					"a + sum(distinct b)": &SQLAddExpr{SQLColumnExpr{tbl, "a", columnType}, &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}}},
+					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a + sum(distinct b)")
@@ -638,8 +643,8 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select c + sum(distinct b) from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"c + sum(distinct b)": &SQLAddExpr{SQLColumnExpr{tbl, "c"}, &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLColumnExpr{tbl, "b"}}}},
-					"c": SQLColumnExpr{tbl, "c"},
+					"c + sum(distinct b)": &SQLAddExpr{SQLColumnExpr{tbl, "c", columnType}, &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}}},
+					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "c + sum(distinct b)")
@@ -664,8 +669,8 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select sum(distinct a+b) from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"sum(distinct a+b)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{&SQLAddExpr{SQLColumnExpr{tbl, "a"}, SQLColumnExpr{tbl, "b"}}}},
-					"c":                 SQLColumnExpr{tbl, "c"},
+					"sum(distinct a+b)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{&SQLAddExpr{SQLColumnExpr{tbl, "a", columnType}, SQLColumnExpr{tbl, "b", columnType}}}},
+					"c":                 SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "sum(distinct a+b)")
@@ -691,8 +696,8 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a+sum(distinct a+b) from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a+sum(distinct a+b)": &SQLAddExpr{SQLColumnExpr{tbl, "a"}, &SQLAggFunctionExpr{"sum", true, []SQLExpr{&SQLAddExpr{SQLColumnExpr{tbl, "a"}, SQLColumnExpr{tbl, "b"}}}}},
-					"c": SQLColumnExpr{tbl, "c"},
+					"a+sum(distinct a+b)": &SQLAddExpr{SQLColumnExpr{tbl, "a", columnType}, &SQLAggFunctionExpr{"sum", true, []SQLExpr{&SQLAddExpr{SQLColumnExpr{tbl, "a", columnType}, SQLColumnExpr{tbl, "b", columnType}}}}},
+					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a+sum(distinct a+b)")
@@ -720,9 +725,9 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a, e from foo group by f'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a": SQLColumnExpr{tbl, "a"},
-					"e": SQLColumnExpr{tbl, "e"},
-					"f": SQLColumnExpr{tbl, "f"},
+					"a": SQLColumnExpr{tbl, "a", columnType},
+					"e": SQLColumnExpr{tbl, "e", columnType},
+					"f": SQLColumnExpr{tbl, "f", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "e")
@@ -750,9 +755,9 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a, sum(distinct e) from foo group by f'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a":               SQLColumnExpr{tbl, "a"},
-					"sum(distinct e)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLColumnExpr{tbl, "e"}}},
-					"f":               SQLColumnExpr{tbl, "f"},
+					"a":               SQLColumnExpr{tbl, "a", columnType},
+					"sum(distinct e)": &SQLAggFunctionExpr{"sum", true, []SQLExpr{SQLColumnExpr{tbl, "e", columnType}}},
+					"f":               SQLColumnExpr{tbl, "f", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct e)")
@@ -800,7 +805,7 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select count(a) from foo'", func() {
 
 				exprs := map[string]SQLExpr{
-					"count(a)": &SQLAggFunctionExpr{"count", false, []SQLExpr{SQLColumnExpr{tbl, "a"}}},
+					"count(a)": &SQLAggFunctionExpr{"count", false, []SQLExpr{SQLColumnExpr{tbl, "a", columnType}}},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "count(a)")
@@ -838,9 +843,9 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select a, count(distinct b) from foo group by c'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a":                 SQLColumnExpr{tbl, "a"},
-					"count(distinct b)": &SQLAggFunctionExpr{"count", true, []SQLExpr{SQLColumnExpr{tbl, "b"}}},
-					"c":                 SQLColumnExpr{tbl, "c"},
+					"a":                 SQLColumnExpr{tbl, "a", columnType},
+					"count(distinct b)": &SQLAggFunctionExpr{"count", true, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
+					"c":                 SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "count(distinct b)")
@@ -879,6 +884,7 @@ func TestGroupByPushDown(t *testing.T) {
 func TestHavingPushDown(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
+	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	// This is effectively the same as filter, except it always happens after a group by, so we
 	// are really just testing that group by did the right thing related to columns...
@@ -908,14 +914,14 @@ func TestHavingPushDown(t *testing.T) {
 			Convey("Should optimize 'select sum(a) from bar group by c having sum(b) = 10'", func() {
 
 				exprs := map[string]SQLExpr{
-					"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "a"}}},
-					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b"}}},
-					"c":      SQLColumnExpr{tbl, "c"},
+					"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "a", columnType}}},
+					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
+					"c":      SQLColumnExpr{tbl, "c", columnType},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "sum(a)", "sum(b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
-				having.matcher = &SQLEqualsExpr{SQLColumnExpr{"", "sum(foo.b)"}, SQLInt(10)}
+				having.matcher = &SQLEqualsExpr{SQLColumnExpr{"", "sum(foo.b)", columnType}, SQLInt(10)}
 
 				verifyOptimizedPipeline(ctx, having,
 					[]bson.D{
@@ -946,6 +952,7 @@ func TestHavingPushDown(t *testing.T) {
 func TestJoinPushDown(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
+	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	verifyOptimizedPipeline := func(ctx *ExecutionCtx, tblName string, op Operator, pipeline []bson.D) {
 
@@ -984,7 +991,7 @@ func TestJoinPushDown(t *testing.T) {
 
 			Convey("Should optimize simple inner join", func() {
 				join.kind = InnerJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 
 				verifyOptimizedPipeline(ctx, tblOne, join,
 					[]bson.D{
@@ -1002,7 +1009,7 @@ func TestJoinPushDown(t *testing.T) {
 
 			Convey("Should optimize simple inner join with on clause flipped", func() {
 				join.kind = InnerJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b"}, SQLColumnExpr{tblOne, "c"}}
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b", columnType}, SQLColumnExpr{tblOne, "c", columnType}}
 
 				verifyOptimizedPipeline(ctx, tblOne, join,
 					[]bson.D{
@@ -1020,7 +1027,7 @@ func TestJoinPushDown(t *testing.T) {
 
 			Convey("Should optimize simple left join", func() {
 				join.kind = LeftJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 
 				verifyOptimizedPipeline(ctx, tblOne, join,
 					[]bson.D{
@@ -1038,7 +1045,7 @@ func TestJoinPushDown(t *testing.T) {
 
 			Convey("Should optimize simple left join with on clause flipped", func() {
 				join.kind = LeftJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b"}, SQLColumnExpr{tblOne, "c"}}
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b", columnType}, SQLColumnExpr{tblOne, "c", columnType}}
 
 				verifyOptimizedPipeline(ctx, tblOne, join,
 					[]bson.D{
@@ -1056,7 +1063,7 @@ func TestJoinPushDown(t *testing.T) {
 
 			Convey("Should optimize simple right join", func() {
 				join.kind = RightJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 
 				verifyOptimizedPipeline(ctx, tblTwo, join,
 					[]bson.D{
@@ -1074,7 +1081,7 @@ func TestJoinPushDown(t *testing.T) {
 
 			Convey("Should optimize simple right join with on clause flipped", func() {
 				join.kind = RightJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b"}, SQLColumnExpr{tblOne, "c"}}
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b", columnType}, SQLColumnExpr{tblOne, "c", columnType}}
 
 				verifyOptimizedPipeline(ctx, tblTwo, join,
 					[]bson.D{
@@ -1095,7 +1102,7 @@ func TestJoinPushDown(t *testing.T) {
 				msTwo.pipeline = append(msTwo.pipeline, bson.D{{"$test", 1}})
 
 				join.kind = InnerJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 
 				verifyOptimizedPipeline(ctx, tblTwo, join,
 					[]bson.D{
@@ -1117,7 +1124,7 @@ func TestJoinPushDown(t *testing.T) {
 				msTwo.pipeline = append(msTwo.pipeline, bson.D{{"$test", 1}})
 
 				join.kind = RightJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 
 				verifyOptimizedPipeline(ctx, tblTwo, join,
 					[]bson.D{
@@ -1155,7 +1162,7 @@ func TestJoinPushDown(t *testing.T) {
 			for _, kind := range []JoinKind{InnerJoin, LeftJoin, RightJoin} {
 				Convey(fmt.Sprintf("Should not optimize a %v when the on clause is not an equality comparison", kind), func() {
 					join.kind = kind
-					join.matcher = &SQLGreaterThanExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
+					join.matcher = &SQLGreaterThanExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 					verifyUnoptimizedPipeline(ctx, join)
 				})
 			}
@@ -1163,7 +1170,7 @@ func TestJoinPushDown(t *testing.T) {
 			for _, kind := range []JoinKind{InnerJoin, LeftJoin, RightJoin} {
 				Convey(fmt.Sprintf("Should not optimize a %v when the on clause does not contain fields from both sides", kind), func() {
 					join.kind = kind
-					join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblOne, "b"}}
+					join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblOne, "b", columnType}}
 					verifyUnoptimizedPipeline(ctx, join)
 				})
 			}
@@ -1174,7 +1181,7 @@ func TestJoinPushDown(t *testing.T) {
 					msTwo.pipeline = append(msTwo.pipeline, bson.D{{"$test", 1}})
 
 					join.kind = kind
-					join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
+					join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 					verifyUnoptimizedPipeline(ctx, join)
 				})
 			}
@@ -1183,7 +1190,7 @@ func TestJoinPushDown(t *testing.T) {
 				msOne.pipeline = append(msOne.pipeline, bson.D{{"$test", 1}})
 
 				join.kind = RightJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c"}, SQLColumnExpr{tblTwo, "b"}}
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 				verifyUnoptimizedPipeline(ctx, join)
 			})
 		})
@@ -1258,6 +1265,8 @@ func TestLimitPushDown(t *testing.T) {
 func TestProjectPushdown(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
+	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
+
 	Convey("Subject: Project Optimization", t, func() {
 		ctx := &ExecutionCtx{Schema: cfgOne, Db: dbOne}
 		tbl := "foo"
@@ -1265,9 +1274,9 @@ func TestProjectPushdown(t *testing.T) {
 		So(err, ShouldBeNil)
 		Convey("given a push-downable project", func() {
 			exprs := map[string]SQLExpr{
-				"a":      SQLColumnExpr{tbl, "a"},
-				"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b"}}},
-				"c":      SQLColumnExpr{tbl, "c"},
+				"a":      SQLColumnExpr{tbl, "a", columnType},
+				"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
+				"c":      SQLColumnExpr{tbl, "c", columnType},
 			}
 
 			proj := &Project{
@@ -1291,18 +1300,18 @@ func TestProjectPushdown(t *testing.T) {
 
 		Convey("given a partially-push-downable project", func() {
 			exprs := map[string]SQLExpr{
-				"a": SQLColumnExpr{tbl, "a"},
+				"a": SQLColumnExpr{tbl, "a", columnType},
 				"ascii(substring('xxx',b))": &SQLScalarFunctionExpr{
 					"ascii", []SQLExpr{
 						&SQLScalarFunctionExpr{
 							"substring", []SQLExpr{
 								SQLString("xxx"),
-								SQLColumnExpr{tbl, "b"},
+								SQLColumnExpr{tbl, "b", columnType},
 							},
 						},
 					},
 				},
-				"sum(c)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "c"}}},
+				"sum(c)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "c", columnType}}},
 			}
 
 			proj := &Project{
@@ -1341,6 +1350,7 @@ func TestProjectPushdown(t *testing.T) {
 func TestOrderByPushDown(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
+	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	Convey("Subject: Order By Optimization", t, func() {
 
@@ -1363,9 +1373,9 @@ func TestOrderByPushDown(t *testing.T) {
 			Convey("Should optimize order by with simple column references 'select a from foo order by a, b DESC, e'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a": SQLColumnExpr{tbl, "a"},
-					"b": SQLColumnExpr{tbl, "b"},
-					"e": SQLColumnExpr{tbl, "e"},
+					"a": SQLColumnExpr{tbl, "a", columnType},
+					"b": SQLColumnExpr{tbl, "b", columnType},
+					"e": SQLColumnExpr{tbl, "e", columnType},
 				}
 				orderBy.keys = constructOrderByKeys(exprs, "a", "b", "e")
 
@@ -1380,8 +1390,8 @@ func TestOrderByPushDown(t *testing.T) {
 			Convey("Should optimize order by with aggregation expressions that have already been pushed down 'select a from foo group by a order by sum(b)'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a":      SQLColumnExpr{tbl, "a"},
-					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b"}}},
+					"a":      SQLColumnExpr{tbl, "a", columnType},
+					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
 				}
 
 				groupBy := &GroupBy{
@@ -1425,9 +1435,9 @@ func TestOrderByPushDown(t *testing.T) {
 			Convey("Should not optimized the pipeline", func() {
 
 				exprs := map[string]SQLExpr{
-					"a": SQLColumnExpr{tbl, "a"},
-					"b": SQLColumnExpr{tbl, "b"},
-					"c": SQLColumnExpr{tbl, "c"},
+					"a": SQLColumnExpr{tbl, "a", columnType},
+					"b": SQLColumnExpr{tbl, "b", columnType},
+					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
 				orderBy.keys = constructOrderByKeys(exprs, "a", "b", "c")
 

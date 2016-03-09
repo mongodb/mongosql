@@ -8,6 +8,7 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func createFieldNameLookup(db *schema.Database) fieldNameLookup {
@@ -27,30 +28,14 @@ func createFieldNameLookup(db *schema.Database) fieldNameLookup {
 	}
 }
 
-func createFieldTypeLookup(db *schema.Database) fieldTypeLookup {
-
-	return func(tableName, columnName string) (*schema.ColumnType, bool) {
-		table := db.Tables[tableName]
-		if table == nil {
-			return nil, false
-		}
-
-		column := table.SQLColumns[columnName]
-		if column == nil {
-			return nil, false
-		}
-
-		colType := &schema.ColumnType{column.SqlType, column.MongoType}
-		return colType, true
-	}
-}
-
 func TestEvaluates(t *testing.T) {
 
 	type test struct {
 		sql    string
 		result SQLExpr
 	}
+
+	columnTypeInt := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	runTests := func(ctx *EvalCtx, tests []test) {
 		schema, err := schema.ParseSchemaData(testSchema3)
@@ -134,21 +119,21 @@ func TestEvaluates(t *testing.T) {
 
 		Convey("Subject: SQLColumnExpr", func() {
 			Convey("Should return the value of the field when it exists", func() {
-				subject := SQLColumnExpr{"bar", "a"}
+				subject := SQLColumnExpr{"bar", "a", columnTypeInt}
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldEqual, SQLInt(123))
 			})
 
 			Convey("Should return nil when the field is null", func() {
-				subject := SQLColumnExpr{"bar", "c"}
+				subject := SQLColumnExpr{"bar", "c", columnTypeInt}
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldHaveSameTypeAs, SQLNull)
 			})
 
 			Convey("Should return nil when the field doesn't exists", func() {
-				subject := SQLColumnExpr{"bar", "no_existy"}
+				subject := SQLColumnExpr{"bar", "no_existy", columnTypeInt}
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldHaveSameTypeAs, SQLNull)
@@ -648,6 +633,8 @@ func TestOptimizeSQLExpr(t *testing.T) {
 		result   SQLExpr
 	}
 
+	columnTypeInt := schema.ColumnType{schema.SQLInt, schema.MongoInt}
+
 	runTests := func(tests []test) {
 		schema, err := schema.ParseSchemaData(testSchema3)
 		So(err, ShouldBeNil)
@@ -665,24 +652,24 @@ func TestOptimizeSQLExpr(t *testing.T) {
 	Convey("Subject: OptimizeSQLExpr", t, func() {
 
 		tests := []test{
-			test{"3 = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
-			test{"3 < a", "a > 3", &SQLGreaterThanExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
-			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
-			test{"3 > a", "a < 3", &SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
-			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
-			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
+			test{"3 < a", "a > 3", &SQLGreaterThanExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
+			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
+			test{"3 > a", "a < 3", &SQLLessThanExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
+			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
+			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
 			test{"3 + 3 = 6", "true", SQLTrue},
-			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLFloat(3)}},
-			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLFloat(3)}},
+			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
 			test{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
 				&SQLAndExpr{
-					&SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLFloat(3)},
-					&SQLEqualsExpr{SQLColumnExpr{"bar", "b"}, SQLInt(2)}}},
+					&SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLFloat(3)},
+					&SQLEqualsExpr{SQLColumnExpr{"bar", "b", columnTypeInt}, SQLInt(2)}}},
 			test{"3 + 3 = 6 OR a = 3", "true", SQLTrue},
-			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
 			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
-			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
-			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLInt(3)}},
+			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
+			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
 			test{"DAYNAME('2016-1-1')", "Friday", SQLString("Friday")},
 		}
 
@@ -701,13 +688,14 @@ func TestTranslatePredicate(t *testing.T) {
 		schema, err := schema.ParseSchemaData(testSchema3)
 		So(err, ShouldBeNil)
 		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
-		lookupFieldType := createFieldTypeLookup(schema.Databases["test"])
 
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
 				So(err, ShouldBeNil)
-				match, local := TranslatePredicate(e, lookupFieldName, lookupFieldType)
+				e, err = OptimizeSQLExpr(e)
+				So(err, ShouldBeNil)
+				match, local := TranslatePredicate(e, lookupFieldName)
 				jsonResult, err := json.Marshal(match)
 				So(err, ShouldBeNil)
 				So(string(jsonResult), ShouldEqual, t.expected)
@@ -727,12 +715,12 @@ func TestTranslatePredicate(t *testing.T) {
 		schema, err := schema.ParseSchemaData(testSchema3)
 		So(err, ShouldBeNil)
 		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
-		lookupFieldType := createFieldTypeLookup(schema.Databases["test"])
+
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\" and locally evaluate %q", t.sql, t.expected, t.localDesc), func() {
 				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
 				So(err, ShouldBeNil)
-				match, local := TranslatePredicate(e, lookupFieldName, lookupFieldType)
+				match, local := TranslatePredicate(e, lookupFieldName)
 				jsonResult, err := json.Marshal(match)
 				So(err, ShouldBeNil)
 				So(string(jsonResult), ShouldEqual, t.expected)
@@ -740,6 +728,8 @@ func TestTranslatePredicate(t *testing.T) {
 			})
 		}
 	}
+
+	columnTypeInt := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	Convey("Subject: TranslatePredicate", t, func() {
 		tests := []test{
@@ -776,10 +766,10 @@ func TestTranslatePredicate(t *testing.T) {
 		runTests(tests)
 
 		partialTests := []partialTest{
-			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLColumnExpr{"bar", "b"}}},
-			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLColumnExpr{"bar", "b"}}},
-			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLColumnExpr{"bar", "b"}}},
-			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{SQLColumnExpr{"bar", "a"}, SQLColumnExpr{"bar", "b"}}}},
+			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLColumnExpr{"bar", "b", columnTypeInt}}},
+			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLColumnExpr{"bar", "b", columnTypeInt}}},
+			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLColumnExpr{"bar", "b", columnTypeInt}}},
+			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLColumnExpr{"bar", "b", columnTypeInt}}}},
 		}
 
 		runPartialTests(partialTests)
@@ -847,6 +837,261 @@ func TestTranslateExpr(t *testing.T) {
 		}
 
 		runTests(tests)
+
+	})
+}
+
+func TestCompareTo(t *testing.T) {
+
+	var (
+		diff = time.Duration(969 * time.Hour)
+		now  = time.Now()
+		oid1 = bson.NewObjectId().Hex()
+		oid2 = bson.NewObjectId().Hex()
+		oid3 = bson.NewObjectId().Hex()
+	)
+
+	Convey("Subject: CompareTo", t, func() {
+
+		type test struct {
+			left     SQLValue
+			right    SQLValue
+			expected int
+		}
+
+		runTests := func(tests []test) {
+			for _, t := range tests {
+				Convey(fmt.Sprintf("comparing '%v' (%T) to '%v' (%T) should return %v", t.left, t.left, t.right, t.right, t.expected), func() {
+					compareTo, err := CompareTo(t.left, t.right)
+					So(err, ShouldBeNil)
+					So(compareTo, ShouldEqual, t.expected)
+				})
+			}
+		}
+
+		Convey("Subject: SQLInt", func() {
+			tests := []test{
+				{SQLInt(1), SQLInt(0), 1},
+				{SQLInt(1), SQLInt(1), 0},
+				{SQLInt(1), SQLInt(2), -1},
+				{SQLInt(1), SQLUint32(1), 0},
+				{SQLInt(1), SQLFloat(1), 0},
+				{SQLInt(1), SQLBool(false), -1},
+				{SQLInt(1), SQLBool(true), -1},
+				{SQLInt(1), SQLNull, 1},
+				{SQLInt(1), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
+				{SQLInt(1), SQLString("bac"), -1},
+				{SQLInt(1), &SQLValues{[]SQLValue{SQLInt(1)}}, 0},
+				{SQLInt(1), &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLInt(1), SQLDate{now}, -1},
+				{SQLInt(1), SQLTimestamp{now}, -1},
+			}
+			runTests(tests)
+		})
+
+		Convey("Subject: SQLUint32", func() {
+			tests := []test{
+				{SQLUint32(1), SQLInt(0), 1},
+				{SQLUint32(1), SQLInt(1), 0},
+				{SQLUint32(1), SQLInt(2), -1},
+				{SQLUint32(1), SQLUint32(1), 0},
+				{SQLUint32(1), SQLFloat(1), 0},
+				{SQLUint32(1), SQLBool(false), -1},
+				{SQLUint32(1), SQLBool(true), -1},
+				{SQLUint32(1), SQLNull, 1},
+				{SQLUint32(1), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
+				{SQLUint32(1), SQLString("bac"), -1},
+				{SQLUint32(1), &SQLValues{[]SQLValue{SQLInt(1)}}, 0},
+				{SQLUint32(1), &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLUint32(1), SQLDate{now}, -1},
+				{SQLUint32(1), SQLTimestamp{now}, -1},
+			}
+			runTests(tests)
+		})
+
+		Convey("Subject: SQLFloat", func() {
+			tests := []test{
+				{SQLFloat(0.1), SQLInt(0), 1},
+				{SQLFloat(1.1), SQLInt(1), 1},
+				{SQLFloat(0.1), SQLInt(2), -1},
+				{SQLFloat(1.1), SQLUint32(1), 1},
+				{SQLFloat(1.1), SQLFloat(1), 1},
+				{SQLFloat(0.1), SQLBool(false), -1},
+				{SQLFloat(0.1), SQLBool(true), -1},
+				{SQLFloat(0.1), SQLNull, 1},
+				{SQLFloat(0.1), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
+				{SQLFloat(0.1), SQLString("bac"), -1},
+				{SQLFloat(0.0), &SQLValues{[]SQLValue{SQLInt(1)}}, -1},
+				{SQLFloat(0.1), &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLFloat(0.1), SQLDate{now}, -1},
+				{SQLFloat(0.1), SQLTimestamp{now}, -1},
+			}
+			runTests(tests)
+		})
+
+		Convey("Subject: SQLBool", func() {
+			tests := []test{
+				{SQLBool(true), SQLInt(0), 1},
+				{SQLBool(true), SQLInt(1), 1},
+				{SQLBool(true), SQLInt(2), 1},
+				{SQLBool(true), SQLUint32(1), 1},
+				{SQLBool(true), SQLFloat(1), 1},
+				{SQLBool(true), SQLBool(false), 1},
+				{SQLBool(true), SQLBool(true), 0},
+				{SQLBool(true), SQLNull, 1},
+				{SQLBool(true), SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{SQLBool(true), SQLString("bac"), 1},
+				{SQLBool(true), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
+				{SQLBool(true), &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLBool(true), SQLDate{now}, -1},
+				{SQLBool(true), SQLTimestamp{now}, -1},
+				{SQLBool(false), SQLInt(0), 1},
+				{SQLBool(false), SQLInt(1), 1},
+				{SQLBool(false), SQLInt(2), 1},
+				{SQLBool(false), SQLUint32(1), 1},
+				{SQLBool(false), SQLFloat(1), 1},
+				{SQLBool(false), SQLBool(false), 0},
+				{SQLBool(false), SQLBool(true), -1},
+				{SQLBool(false), SQLNull, 1},
+				{SQLBool(false), SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{SQLBool(false), SQLString("bac"), 1},
+				{SQLBool(false), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
+				{SQLBool(false), &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLBool(false), SQLDate{now}, -1},
+				{SQLBool(false), SQLTimestamp{now}, -1},
+			}
+			runTests(tests)
+		})
+
+		Convey("Subject: SQLDate", func() {
+			tests := []test{
+				{SQLDate{now}, SQLInt(0), 1},
+				{SQLDate{now}, SQLInt(1), 1},
+				{SQLDate{now}, SQLInt(2), 1},
+				{SQLDate{now}, SQLUint32(1), 1},
+				{SQLDate{now}, SQLFloat(1), 1},
+				{SQLDate{now}, SQLBool(false), 1},
+				{SQLDate{now}, SQLDate{now.Add(diff)}, -1},
+				{SQLDate{now}, SQLNull, 1},
+				{SQLDate{now}, SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{SQLDate{now}, SQLString("bac"), 1},
+				{SQLDate{now}, &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
+				{SQLDate{now}, &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLDate{now}, SQLDate{now.Add(-diff)}, 1},
+				{SQLDate{now}, SQLTimestamp{now.Add(diff)}, -1},
+				{SQLDate{now}, SQLTimestamp{now.Add(-diff)}, 1},
+				{SQLDate{now}, SQLDate{now}, 0},
+			}
+			runTests(tests)
+		})
+
+		Convey("Subject: SQLTimestamp", func() {
+			tests := []test{
+				{SQLTimestamp{now}, SQLInt(0), 1},
+				{SQLTimestamp{now}, SQLInt(1), 1},
+				{SQLTimestamp{now}, SQLInt(2), 1},
+				{SQLTimestamp{now}, SQLUint32(1), 1},
+				{SQLTimestamp{now}, SQLFloat(1), 1},
+				{SQLTimestamp{now}, SQLBool(false), 1},
+				{SQLTimestamp{now}, SQLNull, 1},
+				{SQLTimestamp{now}, SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{SQLTimestamp{now}, SQLString("bac"), 1},
+				{SQLTimestamp{now}, &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
+				{SQLTimestamp{now}, &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLTimestamp{now}, SQLTimestamp{now.Add(diff)}, -1},
+				{SQLTimestamp{now}, SQLTimestamp{now.Add(-diff)}, 1},
+				{SQLTimestamp{now}, SQLTimestamp{now}, 0},
+				{SQLTimestamp{now}, SQLDate{now}, 1},
+				{SQLTimestamp{now}, SQLDate{now.Add(diff)}, -1},
+				{SQLTimestamp{now}, SQLDate{now.Add(-diff)}, 1},
+			}
+			runTests(tests)
+		})
+
+		Convey("Subject: SQLNullValue", func() {
+			tests := []test{
+				{SQLNull, SQLInt(0), -1},
+				{SQLNull, SQLInt(1), -1},
+				{SQLNull, SQLInt(2), -1},
+				{SQLNull, SQLUint32(1), -1},
+				{SQLNull, SQLFloat(1), -1},
+				{SQLNull, SQLBool(false), -1},
+				{SQLNull, SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
+				{SQLNull, SQLString("bac"), -1},
+				{SQLNull, &SQLValues{[]SQLValue{SQLInt(1)}}, -1},
+				{SQLNull, &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLNull, &SQLValues{[]SQLValue{SQLNull}}, 0},
+				{SQLNull, SQLDate{now}, -1},
+				{SQLNull, SQLTimestamp{now}, -1},
+				{SQLNull, SQLNull, 0},
+			}
+			runTests(tests)
+		})
+
+		Convey("Subject: SQLString", func() {
+			tests := []test{
+				{SQLString("bac"), SQLInt(0), 1},
+				{SQLString("bac"), SQLInt(1), 1},
+				{SQLString("bac"), SQLInt(2), 1},
+				{SQLString("bac"), SQLUint32(1), 1},
+				{SQLString("bac"), SQLFloat(1), 1},
+				{SQLString("bac"), SQLBool(false), -1},
+				{SQLString("bac"), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
+				{SQLString("bac"), SQLString("cba"), -1},
+				{SQLString("bac"), SQLString("bac"), 0},
+				{SQLString("bac"), SQLString("abc"), 1},
+				{SQLString("bac"), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
+				{SQLString("bac"), &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLString("bac"), &SQLValues{[]SQLValue{SQLString("bac")}}, 0},
+				{SQLString("bac"), SQLDate{now}, -1},
+				{SQLString("bac"), SQLTimestamp{now}, -1},
+			}
+			runTests(tests)
+		})
+
+		Convey("Subject: SQLValues", func() {
+			tests := []test{
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLInt(0), 1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLInt(1), 0},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLInt(2), -1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLUint32(1), 0},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLUint32(11), -1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLUint32(0), 1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLFloat(1.1), -1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLFloat(0.1), 1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLBool(false), -1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLString("abc"), -1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLNone, 1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, &SQLValues{[]SQLValue{SQLInt(1)}}, 0},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, &SQLValues{[]SQLValue{SQLInt(-1)}}, 1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, &SQLValues{[]SQLValue{SQLInt(2)}}, -1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLDate{now}, -1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLTimestamp{now}, -1},
+			}
+			runTests(tests)
+		})
+
+		Convey("Subject: SQLObjectID", func() {
+
+			tests := []test{
+				{SQLObjectID(oid2), SQLInt(0), 1},
+				{SQLObjectID(oid2), SQLUint32(1), 1},
+				{SQLObjectID(oid2), SQLFloat(1), 1},
+				{SQLObjectID(oid2), SQLString("cba"), 1},
+				{SQLObjectID(oid2), SQLBool(false), -1},
+				{SQLObjectID(oid2), SQLBool(true), -1},
+				{SQLObjectID(oid2), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
+				{SQLObjectID(oid2), &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLObjectID(oid2), SQLDate{now}, -1},
+				{SQLObjectID(oid2), SQLTimestamp{now}, -1},
+				{SQLObjectID(oid2), SQLObjectID(oid3), -1},
+				{SQLObjectID(oid2), SQLObjectID(oid2), 0},
+				{SQLObjectID(oid2), SQLObjectID(oid1), 1},
+			}
+			runTests(tests)
+		})
 
 	})
 }

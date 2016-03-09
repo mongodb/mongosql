@@ -740,7 +740,6 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 				}
 
 				// handles cases where the database is expressed in the FROM clause e.g.
-				// EvalSelect("", "select * from db.table", nil)
 				if pCtx.Database == "" {
 					pCtx.Database = db
 				}

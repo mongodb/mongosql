@@ -59,6 +59,14 @@ func (s SQLCaseExpr) String() string {
 	return str
 }
 
+func (s SQLCaseExpr) Type() schema.SQLType {
+	conds := []SQLExpr{s.elseValue}
+	for _, cond := range s.caseConditions {
+		conds = append(conds, cond.then)
+	}
+	return preferentialType(conds...)
+}
+
 //
 // SQLCtorExpr is a representation of a sqlparser.CtorExpr.
 //
@@ -93,17 +101,13 @@ func (s SQLCtorExpr) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	}
 }
 
-func (s SQLCtorExpr) String() string {
-	v, _ := s.Evaluate(nil)
-	return v.String()
-}
-
 //
 // SQLColumnExpr represents a column reference.
 //
 type SQLColumnExpr struct {
 	tableName  string
 	columnName string
+	columnType schema.ColumnType
 }
 
 func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -111,15 +115,15 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	for _, row := range ctx.Rows {
 		for _, data := range row.Data {
 			if data.Table == c.tableName {
-				if value, hasValue := row.GetField(c.tableName, c.columnName); hasValue {
-					val, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)
-					if err != nil {
-						return nil, err
-					}
-					return val, nil
+				value, hasValue := row.GetField(c.tableName, c.columnName)
+				if !hasValue || value == nil {
+					return SQLNull, nil
 				}
-				// field does not exist - return null i guess
-				return SQLNull, nil
+				val, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)
+				if err != nil {
+					return nil, err
+				}
+				return val, nil
 			}
 		}
 	}
@@ -135,27 +139,49 @@ func (c SQLColumnExpr) String() string {
 	return str
 }
 
-func (c SQLColumnExpr) Type(lookupFieldType fieldTypeLookup) *schema.ColumnType {
-	t, ok := lookupFieldType(c.tableName, c.columnName)
-	if !ok {
-		return nil
+func (c SQLColumnExpr) Type() schema.SQLType {
+	return c.columnType.SQLType
+}
+
+//
+// SQLConvertExpr wraps a SQLExpr that can be
+// converted to another SQLType.
+//
+type SQLConvertExpr struct {
+	expr     SQLExpr
+	convType schema.SQLType
+}
+
+func (ce SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	v, err := ce.expr.Evaluate(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return t
+	return NewSQLValue(v.Value(), ce.convType, schema.MongoNone)
+}
+
+func (ce SQLConvertExpr) String() string {
+	return ce.expr.String()
+}
+
+func (ce SQLConvertExpr) Type() schema.SQLType {
+	return ce.convType
 }
 
 // SQLSubqueryExpr is a wrapper around a sqlparser.SelectStatement representing
 // a subquery.
 type SQLSubqueryExpr struct {
-	stmt sqlparser.SelectStatement
+	stmt  sqlparser.SelectStatement
+	exprs []SQLExpr
 }
 
-func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
+func (se *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 
 	ctx.ExecCtx.Depth += 1
 
 	var operator Operator
 
-	operator, err = PlanQuery(ctx.ExecCtx, sv.stmt)
+	operator, err = PlanQuery(ctx.ExecCtx, se.stmt)
 	if err != nil {
 		return nil, err
 	}
@@ -195,25 +221,29 @@ func (sv *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 	}
 
 	values := row.GetValues(operator.OpFields())
+	if len(values) == 0 {
+		return SQLNone, nil
+	}
 
 	eval := &SQLValues{}
 	for _, value := range values {
-
 		field, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)
 		if err != nil {
 			return nil, err
 		}
-
 		eval.Values = append(eval.Values, field)
 	}
-
 	return eval, nil
 }
 
-func (sv *SQLSubqueryExpr) String() string {
+func (se *SQLSubqueryExpr) String() string {
 	buf := sqlparser.NewTrackedBuffer(nil)
-	sv.stmt.Format(buf)
+	se.stmt.Format(buf)
 	return fmt.Sprintf("(%v)", buf.String())
+}
+
+func (se *SQLSubqueryExpr) Type() schema.SQLType {
+	return preferentialType(se.exprs...)
 }
 
 //
@@ -224,6 +254,7 @@ type SQLTupleExpr struct {
 }
 
 func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+
 	var values []SQLValue
 
 	for _, v := range te.Exprs {
@@ -247,4 +278,8 @@ func (te SQLTupleExpr) String() string {
 	}
 	prefix += ")"
 	return prefix
+}
+
+func (te SQLTupleExpr) Type() schema.SQLType {
+	return preferentialType(te.Exprs...)
 }

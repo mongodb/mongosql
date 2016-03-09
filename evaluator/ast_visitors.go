@@ -1,5 +1,9 @@
 package evaluator
 
+import (
+	"github.com/10gen/sqlproxy/schema"
+)
+
 type subqueryFinder struct {
 	hasSq bool
 }
@@ -40,12 +44,13 @@ func (sf *subqueryFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 type columnFinder struct {
 	columns []*Column
+	tables  map[string]*schema.Table
 }
 
 // referencedColumns will take an expression and return all the columns referenced in the expression
-func referencedColumns(e SQLExpr) ([]*Column, error) {
+func referencedColumns(e SQLExpr, tables map[string]*schema.Table) ([]*Column, error) {
 
-	cf := &columnFinder{}
+	cf := &columnFinder{tables: tables}
 
 	_, err := cf.Visit(e)
 	if err != nil {
@@ -59,7 +64,7 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 	switch expr := e.(type) {
 
-	case nil, *SQLCtorExpr, SQLString, SQLNullValue:
+	case nil, SQLString, SQLNullValue:
 
 		return e, nil
 
@@ -75,7 +80,7 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 		for _, expr := range expr.Exprs {
 
-			columns, err := referencedColumns(expr)
+			columns, err := referencedColumns(expr, cf.tables)
 			if err != nil {
 				return nil, err
 			}
@@ -95,7 +100,7 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 	case *SQLSubqueryCmpExpr:
 
-		sc, err := refColsInSelectStmt(expr.value.stmt)
+		sExprs, err := referencedSelectExpressions(expr.value.stmt, cf.tables)
 		if err != nil {
 			return nil, err
 		}
@@ -105,16 +110,16 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		cf.columns = append(cf.columns, SelectExpressions(sc).GetColumns()...)
+		cf.columns = append(cf.columns, SelectExpressions(sExprs).GetColumns()...)
 
 	case *SQLSubqueryExpr:
 
-		sc, err := refColsInSelectStmt(expr.stmt)
+		sExprs, err := referencedSelectExpressions(expr.stmt, cf.tables)
 		if err != nil {
 			return nil, err
 		}
 
-		cf.columns = append(cf.columns, SelectExpressions(sc).GetColumns()...)
+		cf.columns = append(cf.columns, SelectExpressions(sExprs).GetColumns()...)
 
 	default:
 
@@ -224,6 +229,8 @@ func (n *partialEvaluatorNominator) Visit(e SQLExpr) (SQLExpr, error) {
 	case *SQLSubqueryCmpExpr:
 		n.blocked = true
 	case *SQLSubqueryExpr:
+		n.blocked = true
+	case *SQLAggFunctionExpr:
 		n.blocked = true
 	default:
 		_, err := walk(n, e)
@@ -361,7 +368,8 @@ func replaceAggFunctionsWithColumns(tableName string, e SQLExpr) (SQLExpr, error
 func (v *aggFunctionExprReplacer) Visit(e SQLExpr) (SQLExpr, error) {
 	switch typedE := e.(type) {
 	case *SQLAggFunctionExpr:
-		return SQLColumnExpr{v.tableName, typedE.String()}, nil
+		columnType := schema.ColumnType{typedE.Type(), schema.MongoNone}
+		return SQLColumnExpr{v.tableName, typedE.String(), columnType}, nil
 	default:
 		return walk(v, e)
 	}

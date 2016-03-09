@@ -6,9 +6,7 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/hack"
 	. "github.com/deafgoat/mixer/mysql"
-	"gopkg.in/mgo.v2/bson"
 	"strconv"
-	"time"
 )
 
 func formatValue(value interface{}) ([]byte, error) {
@@ -16,16 +14,14 @@ func formatValue(value interface{}) ([]byte, error) {
 
 	case evaluator.SQLString:
 		return hack.Slice(string(v)), nil
-
+	case evaluator.SQLObjectID:
+		return hack.Slice(string(v)), nil
 	case evaluator.SQLInt:
 		return strconv.AppendInt(nil, int64(v), 10), nil
-
 	case evaluator.SQLUint32:
 		return strconv.AppendUint(nil, uint64(v), 10), nil
-
 	case evaluator.SQLFloat:
 		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
-
 	case evaluator.SQLValues:
 		slice := []byte{}
 		for _, value := range v.Values {
@@ -36,7 +32,6 @@ func formatValue(value interface{}) ([]byte, error) {
 			slice = append(slice, b...)
 		}
 		return slice, nil
-
 	case *evaluator.SQLTupleExpr:
 		slice := []byte{}
 		for _, expr := range v.Exprs {
@@ -47,23 +42,20 @@ func formatValue(value interface{}) ([]byte, error) {
 			slice = append(slice, b...)
 		}
 		return slice, nil
-
-	case evaluator.SQLNullValue, *evaluator.SQLNullValue:
+	case evaluator.SQLNullValue, *evaluator.SQLNullValue, evaluator.SQLNoValue:
 		return nil, nil
+	case evaluator.SQLBool:
+		return strconv.AppendBool(nil, bool(v)), nil
+	case *evaluator.SQLValues:
+		return formatValue(v.Values[0])
 
 	// SQL time related values
-
 	case evaluator.SQLDate:
 		return hack.Slice(v.Time.Format(schema.DateFormat)), nil
-
 	case evaluator.SQLTimestamp:
 		return hack.Slice(v.Time.Format(schema.TimestampFormat)), nil
 
-	case time.Time:
-		return hack.Slice(v.String()), nil
-
-	// TODO: should we only be dealing with SQLValues here?
-
+	// TODO (INT-1036): get rid of these and only use SQLValues here.
 	case int8:
 		return strconv.AppendInt(nil, int64(v), 10), nil
 	case int16:
@@ -92,16 +84,10 @@ func formatValue(value interface{}) ([]byte, error) {
 		return v, nil
 	case string:
 		return hack.Slice(v), nil
-	case bson.ObjectId:
-		return hack.Slice(v.Hex()), nil
-	case evaluator.SQLBool:
-		return strconv.AppendBool(nil, bool(v)), nil
 	case bool:
 		return strconv.AppendBool(nil, v), nil
 	case nil:
 		return nil, nil
-	case *evaluator.SQLValues:
-		return formatValue(v.Values[0])
 	default:
 		return nil, fmt.Errorf("invalid type %T", value)
 	}
@@ -114,70 +100,40 @@ func formatField(field *Field, value interface{}) error {
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_FLOAT
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
-
 	case evaluator.SQLBool:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_BIT
-
-	case float64:
-		field.Charset = 63
-		field.Type = MYSQL_TYPE_FLOAT
-		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
-
-	case uint8, uint16, uint32, uint64, uint, evaluator.SQLUint32:
+	case evaluator.SQLUint32:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG
-
-	case int8, int16, int32, int64, int, evaluator.SQLInt:
+	case evaluator.SQLInt:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
-
-	case string, []byte, evaluator.SQLString:
+	case evaluator.SQLString:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
-
-	// TODO: hack?
-	case bson.ObjectId:
+	case evaluator.SQLObjectID:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
-
 	case evaluator.SQLValues:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
-
-	case time.Time: // Timestamp
-		field.Charset = 33
-		field.Type = MYSQL_TYPE_TIMESTAMP
-
-	case bool: // bool
-		field.Charset = 33
-		field.Type = MYSQL_TYPE_BIT
-
-	case nil, *evaluator.SQLNullValue, evaluator.SQLNullValue:
+	case nil, *evaluator.SQLNullValue, evaluator.SQLNullValue, evaluator.SQLNoValue:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_NULL
-
-	case *evaluator.SQLTupleExpr:
-		field.Charset = 33
-		field.Type = MYSQL_TYPE_ENUM
-
 	case evaluator.SQLDate:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_DATE
-
 	case evaluator.SQLTimestamp:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_TIMESTAMP
-
 	case *evaluator.SQLValues:
 		if len(typedV.Values) != 1 {
 			return fmt.Errorf("Operand should contain 1 column")
 		}
-
 	default:
-		// TODO: figure out 'field' struct and support all BSON types
 		return fmt.Errorf("unsupported type %T for result set", value)
 	}
 

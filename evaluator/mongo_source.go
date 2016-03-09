@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/10gen/sqlproxy/schema"
-
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -59,21 +57,6 @@ func (mr *mappingRegistry) lookupFieldName(tableName, columnName string) (string
 
 	field, ok := columnToField[columnName]
 	return field, ok
-}
-
-func (mr *mappingRegistry) lookupFieldType(tableName, columnName string) (*schema.ColumnType, bool) {
-	if mr.fields == nil {
-		return nil, false
-	}
-
-	for _, column := range mr.columns {
-		if column.Table == tableName && column.Name == columnName {
-			colType := &schema.ColumnType{column.SQLType, column.MongoType}
-			return colType, true
-		}
-	}
-
-	return nil, false
 }
 
 // MongoSource is the primary interface for SQLProxy to a MongoDB

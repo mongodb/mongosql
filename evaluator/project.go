@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
+
+	"github.com/10gen/sqlproxy/schema"
 )
 
 // Project ensures that referenced columns - e.g. those used to
@@ -55,7 +57,9 @@ func (pj *Project) Open(ctx *ExecutionCtx) error {
 func (pj *Project) getValue(se SelectExpression, row *Row) (SQLValue, error) {
 	// in the case where we have a bare select column and no expression
 	if se.Expr == nil {
-		se.Expr = SQLColumnExpr{se.Table, se.Name}
+		tables := pj.ctx.Schema.Databases[pj.ctx.Db].Tables
+		columnType := getColumnType(tables, se.Table, se.Name)
+		se.Expr = SQLColumnExpr{se.Table, se.Name, *columnType}
 	} else {
 		// If the column name is actually referencing a system variable, look it up and return
 		// its value if it exists.
@@ -186,6 +190,8 @@ func (v *optimizer) visitProject(project *Project) (Operator, error) {
 
 	fixedExpressions := SelectExpressions{}
 
+	tables := v.ctx.Schema.Databases[v.ctx.Db].Tables
+
 	// Track whether or not we've successfully mapped every field into the $project of the source.
 	// If so, this Project node can be removed from the query plan tree.
 	canReplaceProject := true
@@ -203,7 +209,7 @@ func (v *optimizer) visitProject(project *Project) (Operator, error) {
 
 			// There might still be fields referenced in this expression
 			// that we still need to project, so collect them and add them to the projection.
-			refdCols, err := referencedColumns(exp.Expr)
+			refdCols, err := referencedColumns(exp.Expr, tables)
 			if err != nil {
 				return nil, err
 			}
@@ -223,18 +229,14 @@ func (v *optimizer) visitProject(project *Project) (Operator, error) {
 
 		fieldsToProject[safeFieldName] = projectedField
 
-		colType, ok := ms.mappingRegistry.lookupFieldType(exp.Column.Table, exp.Column.Name)
-		if ok {
-			exp.Column.SQLType = colType.SQLType
-			exp.Column.MongoType = colType.MongoType
-		}
 		fixedMappingRegistry.addColumn(exp.Column)
 		fixedMappingRegistry.registerMapping(exp.Column.Table, exp.Column.Name, safeFieldName)
-
+		columnType := schema.ColumnType{exp.Column.SQLType, exp.Column.MongoType}
+		columnExpr := SQLColumnExpr{exp.Column.Table, exp.Column.Name, columnType}
 		fixedExpressions = append(fixedExpressions,
 			SelectExpression{
 				Column: exp.Column,
-				Expr:   SQLColumnExpr{exp.Column.Table, exp.Column.Name},
+				Expr:   columnExpr,
 			},
 		)
 

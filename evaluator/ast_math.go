@@ -2,111 +2,129 @@ package evaluator
 
 import (
 	"fmt"
+
+	"github.com/10gen/sqlproxy/schema"
 )
 
 // SQLAddExpr evaluates to the sum of two expressions.
 type SQLAddExpr sqlBinaryNode
 
 func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftEvald, err := convertToSQLNumeric(add.left, ctx)
+	leftVal, err := convertToSQLNumeric(add.left, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rightEvald, err := convertToSQLNumeric(add.right, ctx)
+	rightVal, err := convertToSQLNumeric(add.right, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if leftEvald == nil || rightEvald == nil {
+	if leftVal == nil || rightVal == nil {
 		return SQLNull, nil
 	}
 
-	return leftEvald.Add(rightEvald), nil
+	return leftVal.Add(rightVal), nil
 }
 
 func (add *SQLAddExpr) String() string {
 	return fmt.Sprintf("%v+%v", add.left, add.right)
 }
 
+func (add *SQLAddExpr) Type() schema.SQLType {
+	return preferentialType(add.left, add.right)
+}
+
 // SQLDivideExpr evaluates to the quotient of the left expression divided by the right.
 type SQLDivideExpr sqlBinaryNode
 
 func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftEvald, err := convertToSQLNumeric(div.left, ctx)
+	leftVal, err := convertToSQLNumeric(div.left, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rightEvald, err := convertToSQLNumeric(div.right, ctx)
+	rightVal, err := convertToSQLNumeric(div.right, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if leftEvald == nil || rightEvald == nil {
+	if leftVal == nil || rightVal == nil {
 		return SQLNull, nil
 	}
 
-	if rightEvald.Float64() == 0 {
+	if rightVal.Float64() == 0 {
 		// NOTE: this is per the mysql manual.
 		return SQLNull, nil
 	}
 
-	return SQLFloat(leftEvald.Float64() / rightEvald.Float64()), nil
+	return SQLFloat(leftVal.Float64() / rightVal.Float64()), nil
 }
 
 func (div *SQLDivideExpr) String() string {
 	return fmt.Sprintf("%v/%v", div.left, div.right)
 }
 
+func (div *SQLDivideExpr) Type() schema.SQLType {
+	return preferentialType(div.left, div.right)
+}
+
 // SQLMultiplyExpr evaluates to the product of two expressions
 type SQLMultiplyExpr sqlBinaryNode
 
 func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftEvald, err := convertToSQLNumeric(mult.left, ctx)
+	leftVal, err := convertToSQLNumeric(mult.left, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rightEvald, err := convertToSQLNumeric(mult.right, ctx)
+	rightVal, err := convertToSQLNumeric(mult.right, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if leftEvald == nil || rightEvald == nil {
+	if leftVal == nil || rightVal == nil {
 		return SQLNull, nil
 	}
 
-	return leftEvald.Product(rightEvald), nil
+	return leftVal.Product(rightVal), nil
 }
 
 func (mult *SQLMultiplyExpr) String() string {
 	return fmt.Sprintf("%v*%v", mult.left, mult.right)
 }
 
+func (mult *SQLMultiplyExpr) Type() schema.SQLType {
+	return preferentialType(mult.left, mult.right)
+}
+
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
 type SQLSubtractExpr sqlBinaryNode
 
 func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftEvald, err := convertToSQLNumeric(sub.left, ctx)
+	leftVal, err := convertToSQLNumeric(sub.left, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rightEvald, err := convertToSQLNumeric(sub.right, ctx)
+	rightVal, err := convertToSQLNumeric(sub.right, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if leftEvald == nil || rightEvald == nil {
+	if leftVal == nil || rightVal == nil {
 		return SQLNull, nil
 	}
 
-	return leftEvald.Sub(rightEvald), nil
+	return leftVal.Sub(rightVal), nil
 }
 
 func (sub *SQLSubtractExpr) String() string {
 	return fmt.Sprintf("%v-%v", sub.left, sub.right)
+}
+
+func (sub *SQLSubtractExpr) Type() schema.SQLType {
+	return preferentialType(sub.left, sub.right)
 }
 
 //
@@ -126,6 +144,10 @@ func (um *SQLUnaryMinusExpr) String() string {
 	return fmt.Sprintf("-%v", um.operand)
 }
 
+func (um *SQLUnaryMinusExpr) Type() schema.SQLType {
+	return um.operand.Type()
+}
+
 //
 // SQLUnaryTildeExpr evaluates to the bitwise complement of the expression.
 //
@@ -141,6 +163,10 @@ func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (td *SQLUnaryTildeExpr) String() string {
 	return fmt.Sprintf("~%v", td.operand)
+}
+
+func (td *SQLUnaryTildeExpr) Type() schema.SQLType {
+	return td.operand.Type()
 }
 
 func convertToSQLNumeric(expr SQLExpr, ctx *EvalCtx) (SQLNumeric, error) {

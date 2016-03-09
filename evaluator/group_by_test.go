@@ -11,6 +11,7 @@ import (
 func TestGroupByOperator(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
+	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	runTest := func(groupBy *GroupBy, rows []bson.D, expectedRows [][]Values) {
 
@@ -26,12 +27,12 @@ func TestGroupByOperator(t *testing.T) {
 			source: ts,
 			sExprs: SelectExpressions{
 				SelectExpression{
-					Column: &Column{tableOneName, "a", "a", schema.SQLInt, schema.MongoInt},
-					Expr:   SQLColumnExpr{tableOneName, "a"},
+					Column: &Column{tableOneName, "a", "a", columnType.SQLType, columnType.MongoType},
+					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
 				},
 				SelectExpression{
-					Column: &Column{tableOneName, "b", "b", schema.SQLInt, schema.MongoInt},
-					Expr:   SQLColumnExpr{tableOneName, "b"},
+					Column: &Column{tableOneName, "b", "b", columnType.SQLType, columnType.MongoType},
+					Expr:   SQLColumnExpr{tableOneName, "b", columnType},
 				},
 			},
 		}
@@ -72,15 +73,15 @@ func TestGroupByOperator(t *testing.T) {
 
 			sExprs := SelectExpressions{
 				SelectExpression{
-					Column: &Column{tableOneName, "a", "a", schema.SQLInt, schema.MongoInt},
-					Expr:   SQLColumnExpr{tableOneName, "a"},
+					Column: &Column{tableOneName, "a", "a", columnType.SQLType, columnType.MongoType},
+					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
 				},
 				SelectExpression{
-					Column: &Column{"", "sum(b)", "sum(b)", schema.SQLInt, schema.MongoInt},
+					Column: &Column{"", "sum(b)", "sum(b)", columnType.SQLType, columnType.MongoType},
 					Expr: &SQLAggFunctionExpr{
 						Name: "sum",
 						Exprs: []SQLExpr{
-							SQLColumnExpr{tableOneName, "b"},
+							SQLColumnExpr{tableOneName, "b", columnType},
 						},
 					},
 				},
@@ -88,8 +89,8 @@ func TestGroupByOperator(t *testing.T) {
 
 			exprs := SelectExpressions{
 				SelectExpression{
-					Column: &Column{tableOneName, "a", "a", schema.SQLInt, schema.MongoInt},
-					Expr:   SQLColumnExpr{tableOneName, "a"},
+					Column: &Column{tableOneName, "a", "a", columnType.SQLType, columnType.MongoType},
+					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
 				},
 			}
 

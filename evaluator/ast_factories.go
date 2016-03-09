@@ -54,7 +54,7 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 		case nil, []interface{}:
 			return SQLNull, nil
 		case bson.ObjectId:
-			return SQLString(v.Hex()), nil
+			return SQLObjectID(v.Hex()), nil
 		case bool:
 			return SQLBool(v), nil
 		case string:
@@ -140,7 +140,7 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 		case uint64:
 			return SQLString(strconv.FormatInt(int64(v), 10)), nil
 		case bson.ObjectId:
-			return SQLString(v.Hex()), nil
+			return SQLObjectID(v.Hex()), nil
 		case time.Time:
 			return SQLString(v.String()), nil
 		case nil:
@@ -219,19 +219,24 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 }
 
 // NewSQLExpr transforms sqlparser expressions into SQLExpr.
-func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
+func NewSQLExpr(gExpr sqlparser.Expr, tables map[string]*schema.Table) (SQLExpr, error) {
 	log.Logf(log.DebugLow, "match expr: %#v (type is %T)\n", gExpr, gExpr)
 
 	switch expr := gExpr.(type) {
 
 	case *sqlparser.AndExpr:
 
-		left, err := NewSQLExpr(expr.Left)
+		left, err := NewSQLExpr(expr.Left, tables)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := NewSQLExpr(expr.Right)
+		right, err := NewSQLExpr(expr.Right, tables)
+		if err != nil {
+			return nil, err
+		}
+
+		left, right, err = reconcileSQLExprs(left, right)
 		if err != nil {
 			return nil, err
 		}
@@ -240,12 +245,17 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.BinaryExpr:
 
-		left, err := NewSQLExpr(expr.Left)
+		left, err := NewSQLExpr(expr.Left, tables)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := NewSQLExpr(expr.Right)
+		right, err := NewSQLExpr(expr.Right, tables)
+		if err != nil {
+			return nil, err
+		}
+
+		left, right, err = reconcileSQLExprs(left, right)
 		if err != nil {
 			return nil, err
 		}
@@ -265,20 +275,29 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.CaseExpr:
 
-		return newSQLCaseExpr(expr)
+		return newSQLCaseExpr(expr, tables)
 
 	case *sqlparser.ColName:
 
-		return SQLColumnExpr{string(expr.Qualifier), string(expr.Name)}, nil
+		tableName, columnName := string(expr.Qualifier), string(expr.Name)
+
+		columnType := getColumnType(tables, tableName, columnName)
+
+		return SQLColumnExpr{tableName, columnName, *columnType}, nil
 
 	case *sqlparser.ComparisonExpr:
 
-		left, err := NewSQLExpr(expr.Left)
+		left, err := NewSQLExpr(expr.Left, tables)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := NewSQLExpr(expr.Right)
+		right, err := NewSQLExpr(expr.Right, tables)
+		if err != nil {
+			return nil, err
+		}
+
+		left, right, err = reconcileSQLExprs(left, right)
 		if err != nil {
 			return nil, err
 		}
@@ -301,29 +320,45 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 		case sqlparser.AST_IN:
 			switch eval := right.(type) {
 			case *SQLSubqueryExpr:
+				if !schema.CanCompare(left.Type(), eval.Type()) {
+					return nil, fmt.Errorf("cannot compare %v type against %v type", left.Type(), eval.Type())
+				}
 				return &SQLSubqueryCmpExpr{true, left, eval}, nil
+			}
+
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
 			}
 			return &SQLInExpr{left, right}, nil
 		case sqlparser.AST_NOT_IN:
 			switch eval := right.(type) {
 			case *SQLSubqueryExpr:
+				if !schema.CanCompare(left.Type(), eval.Type()) {
+					return nil, fmt.Errorf("cannot compare %v type against %v type", left.Type(), eval.Type())
+				}
 				return &SQLSubqueryCmpExpr{false, left, eval}, nil
+			}
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
 			}
 			return &SQLNotExpr{&SQLInExpr{left, right}}, nil
 		default:
-			return &SQLEqualsExpr{left, right}, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)
+			return nil, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)
 		}
 
 	case *sqlparser.CtorExpr:
 
-		return &SQLCtorExpr{Name: expr.Name, Args: expr.Exprs}, nil
+		ctor := &SQLCtorExpr{Name: expr.Name, Args: expr.Exprs}
+		return ctor.Evaluate(nil)
 
 	case *sqlparser.ExistsExpr:
 		return &SQLExistsExpr{expr.Subquery.Select}, nil
 
 	case *sqlparser.FuncExpr:
 
-		return newSQLFuncExpr(expr)
+		return newSQLFuncExpr(expr, tables)
 
 	case nil:
 
@@ -331,7 +366,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.NotExpr:
 
-		child, err := NewSQLExpr(expr.Expr)
+		child, err := NewSQLExpr(expr.Expr, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -340,7 +375,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.NullCheck:
 
-		val, err := NewSQLExpr(expr.Expr)
+		val, err := NewSQLExpr(expr.Expr, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -374,12 +409,12 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.OrExpr:
 
-		left, err := NewSQLExpr(expr.Left)
+		left, err := NewSQLExpr(expr.Left, tables)
 		if err != nil {
 			return nil, err
 		}
 
-		right, err := NewSQLExpr(expr.Right)
+		right, err := NewSQLExpr(expr.Right, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -388,26 +423,36 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.ParenBoolExpr:
 
-		return NewSQLExpr(expr.Expr)
+		return NewSQLExpr(expr.Expr, tables)
 
 	case *sqlparser.RangeCond:
 
-		from, err := NewSQLExpr(expr.From)
+		from, err := NewSQLExpr(expr.From, tables)
 		if err != nil {
 			return nil, err
 		}
 
-		left, err := NewSQLExpr(expr.Left)
+		left, err := NewSQLExpr(expr.Left, tables)
 		if err != nil {
 			return nil, err
 		}
 
-		to, err := NewSQLExpr(expr.To)
+		to, err := NewSQLExpr(expr.To, tables)
+		if err != nil {
+			return nil, err
+		}
+
+		left, from, err = reconcileSQLExprs(left, from)
 		if err != nil {
 			return nil, err
 		}
 
 		lower := &SQLGreaterThanOrEqualExpr{left, from}
+
+		left, to, err = reconcileSQLExprs(left, to)
+		if err != nil {
+			return nil, err
+		}
 
 		upper := &SQLLessThanOrEqualExpr{left, to}
 
@@ -425,11 +470,22 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.Subquery:
 
-		return &SQLSubqueryExpr{expr.Select}, nil
+		sExprs, err := referencedSelectExpressions(expr.Select, tables)
+		if err != nil {
+			return nil, err
+		}
+
+		var exprs []SQLExpr
+
+		for _, sExpr := range sExprs {
+			exprs = append(exprs, sExpr.Expr)
+		}
+
+		return &SQLSubqueryExpr{expr.Select, exprs}, nil
 
 	case *sqlparser.UnaryExpr:
 
-		val, err := NewSQLExpr(expr.Expr)
+		val, err := NewSQLExpr(expr.Expr, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -448,7 +504,7 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 		var exprs []SQLExpr
 
 		for _, e := range expr {
-			newExpr, err := NewSQLExpr(e)
+			newExpr, err := NewSQLExpr(e, tables)
 			if err != nil {
 				return nil, err
 			}
@@ -472,14 +528,14 @@ func NewSQLExpr(gExpr sqlparser.Expr) (SQLExpr, error) {
 // For searched case expressions, we create a matcher based on the boolean
 // expression in each when condition.
 //
-func newSQLCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
+func newSQLCaseExpr(expr *sqlparser.CaseExpr, tables map[string]*schema.Table) (SQLExpr, error) {
 
 	var e SQLExpr
 
 	var err error
 
 	if expr.Expr != nil {
-		e, err = NewSQLExpr(expr.Expr)
+		e, err = NewSQLExpr(expr.Expr, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -493,13 +549,13 @@ func newSQLCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
 
 		// searched case
 		if expr.Expr == nil {
-			matcher, err = NewSQLExpr(when.Cond)
+			matcher, err = NewSQLExpr(when.Cond, tables)
 			if err != nil {
 				return nil, err
 			}
 		} else {
 			// TODO: support simple case in parser
-			c, err := NewSQLExpr(when.Cond)
+			c, err := NewSQLExpr(when.Cond, tables)
 			if err != nil {
 				return nil, err
 			}
@@ -507,7 +563,7 @@ func newSQLCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
 			matcher = &SQLEqualsExpr{e, c}
 		}
 
-		then, err := NewSQLExpr(when.Val)
+		then, err := NewSQLExpr(when.Val, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -518,7 +574,7 @@ func newSQLCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
 	var elseValue SQLExpr
 	if expr.Else == nil {
 		elseValue = SQLNull
-	} else if elseValue, err = NewSQLExpr(expr.Else); err != nil {
+	} else if elseValue, err = NewSQLExpr(expr.Else, tables); err != nil {
 		return nil, err
 	}
 
@@ -532,7 +588,7 @@ func newSQLCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
 	return value, nil
 }
 
-func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
+func newSQLFuncExpr(expr *sqlparser.FuncExpr, tables map[string]*schema.Table) (SQLExpr, error) {
 
 	exprs := []SQLExpr{}
 
@@ -563,7 +619,7 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 
 		case *sqlparser.NonStarExpr:
 
-			sqlExpr, err := NewSQLExpr(typedE.Expr)
+			sqlExpr, err := NewSQLExpr(typedE.Expr, tables)
 			if err != nil {
 				return nil, err
 			}
@@ -587,7 +643,7 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
 
 		case *sqlparser.NonStarExpr:
 
-			sqlExpr, err := NewSQLExpr(typedE.Expr)
+			sqlExpr, err := NewSQLExpr(typedE.Expr, tables)
 			if err != nil {
 				return nil, err
 			}

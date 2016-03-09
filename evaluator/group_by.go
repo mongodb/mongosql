@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -410,9 +411,10 @@ func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 				return nil, fmt.Errorf("could not translate '%v'", typedE.String())
 			}
 			fieldName := groupDistinctPrefix + dottifyFieldName(typedE.Exprs[0].String())
+			columnType := schema.ColumnType{typedE.Type(), schema.MongoNone}
 			newExpr = &SQLAggFunctionExpr{
 				Name:  typedE.Name,
-				Exprs: []SQLExpr{SQLColumnExpr{groupTempTable, fieldName}},
+				Exprs: []SQLExpr{SQLColumnExpr{groupTempTable, fieldName, columnType}},
 			}
 			v.group[fieldName] = bson.M{"$addToSet": trans}
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, fieldName)
@@ -444,7 +446,8 @@ func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 				}
 			}
 			fieldName := dottifyFieldName(typedE.String())
-			newExpr = SQLColumnExpr{groupTempTable, fieldName}
+			columnType := schema.ColumnType{typedE.Type(), schema.MongoNone}
+			newExpr = SQLColumnExpr{groupTempTable, fieldName, columnType}
 			v.group[fieldName] = trans
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, fieldName)
 		}
@@ -458,7 +461,8 @@ func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 			// we need to create a new expr that is simply a field pointing at the nested identifier and register that
 			// mapping.
 			fieldName := dottifyFieldName(e.String())
-			newExpr := SQLColumnExpr{groupTempTable, fieldName}
+			columnType := schema.ColumnType{typedE.Type(), schema.MongoNone}
+			newExpr := SQLColumnExpr{groupTempTable, fieldName, columnType}
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, groupID+"."+fieldName)
 			return newExpr, nil
 		}

@@ -48,6 +48,7 @@ func getWhereSQLExprFromSQL(schema *schema.Schema, sql string) (SQLExpr, error) 
 	if err != nil {
 		return nil, err
 	}
+
 	if selectStatement, ok := raw.(*sqlparser.Select); ok {
 		parseCtx, err := NewParseCtx(selectStatement, schema, dbOne)
 		if err != nil {
@@ -61,7 +62,7 @@ func getWhereSQLExprFromSQL(schema *schema.Schema, sql string) (SQLExpr, error) 
 			return nil, err
 		}
 
-		return NewSQLExpr(selectStatement.Where.Expr)
+		return NewSQLExpr(selectStatement.Where.Expr, schema.Databases[dbOne].Tables)
 	}
 	return nil, fmt.Errorf("statement doesn't look like a 'SELECT'")
 }

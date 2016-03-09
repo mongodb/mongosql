@@ -260,8 +260,8 @@ schema:
         SqlType: int
      -
         Name: b
-        MongoType: string
-        SqlType: varchar
+        MongoType: int
+        SqlType: int
      -
         Name: loc.1
         MongoType: string

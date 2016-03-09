@@ -62,6 +62,10 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 			return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
 		}
 
+		if db == "" {
+			db = pCtx.Database
+		}
+
 		// resolve names
 		if err = evaluator.AlgebrizeStatement(stmt, pCtx); err != nil {
 			return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)

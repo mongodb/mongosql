@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 )
@@ -63,7 +64,7 @@ func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error
 }
 
 // getColumnExpr returns the referenced Select Expression indicated by a column expression.
-func getColumnExpr(sExprs SelectExpressions, expr *sqlparser.ColName) (*SelectExpression, error) {
+func getColumnExpr(sExprs SelectExpressions, expr *sqlparser.ColName, tables map[string]*schema.Table) (*SelectExpression, error) {
 
 	for i, sExpr := range sExprs {
 
@@ -85,7 +86,7 @@ func getColumnExpr(sExprs SelectExpressions, expr *sqlparser.ColName) (*SelectEx
 		}
 	}
 
-	sqlExpr, err := NewSQLExpr(expr)
+	sqlExpr, err := NewSQLExpr(expr, tables)
 	if err != nil {
 		return nil, err
 	}
@@ -105,13 +106,13 @@ func getColumnExpr(sExprs SelectExpressions, expr *sqlparser.ColName) (*SelectEx
 // getGroupByTerm returns the referenced expression in an GROUP BY clause if the
 // expression is aliased by column name or position. Otherwise, it returns the
 // expression supplied.
-func getGroupByTerm(sExprs []SelectExpression, e sqlparser.Expr) (sExpr *SelectExpression, err error) {
+func getGroupByTerm(sExprs []SelectExpression, e sqlparser.Expr, tables map[string]*schema.Table) (sExpr *SelectExpression, err error) {
 
 	switch expr := e.(type) {
 
 	case *sqlparser.ColName:
 
-		sExpr, err = getColumnExpr(sExprs, expr)
+		sExpr, err = getColumnExpr(sExprs, expr, tables)
 
 	case sqlparser.NumVal:
 
@@ -125,7 +126,7 @@ func getGroupByTerm(sExprs []SelectExpression, e sqlparser.Expr) (sExpr *SelectE
 
 	if sExpr == nil {
 
-		expr, err := NewSQLExpr(e)
+		expr, err := NewSQLExpr(e, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -180,13 +181,13 @@ func getNumericExpr(sExprs SelectExpressions, expr sqlparser.Expr) (*SelectExpre
 // getOrderByTerm returns the referenced expression in an ORDER BY clause if the
 // expression is aliased. Otherwise, it returns the expression supplied - provided
 // it is valid as an ORDER BY term.
-func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr) (*SelectExpression, error) {
+func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr, tables map[string]*schema.Table) (*SelectExpression, error) {
 
 	switch expr := e.(type) {
 
 	case *sqlparser.ColName:
 
-		e, err := getColumnExpr(sExprs, expr)
+		e, err := getColumnExpr(sExprs, expr, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +205,7 @@ func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr) (*SelectExpressi
 
 	}
 
-	expr, err := NewSQLExpr(e)
+	expr, err := NewSQLExpr(e, tables)
 	if err != nil {
 		return nil, err
 	}
@@ -236,12 +237,15 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 
 	var expressions SelectExpressions
 
+	tables := getDBTables(ctx)
+
 	addReferencedColumns := func(columns []*Column) {
 		for _, column := range columns {
 			// only add basic columns present in table configuration
 			hasColumn := (expressions.Contains(*column) || sExprs.Contains(*column))
 			if ctx.ParseCtx.IsSchemaColumn(column) && !hasColumn && !hasStarExpr(ast) {
-				sqlExpr := SQLColumnExpr{column.Table, column.Name}
+				columnType := getColumnType(tables, column.Table, column.Name)
+				sqlExpr := SQLColumnExpr{column.Table, column.Name, *columnType}
 				expression := SelectExpression{
 					Column:     column,
 					Referenced: true,
@@ -256,7 +260,7 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 
 	// add any referenced columns in the GROUP BY clause
 	for _, key := range ast.GroupBy {
-		expr, err := getGroupByTerm(sExprs, key)
+		expr, err := getGroupByTerm(sExprs, key, tables)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -266,7 +270,7 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 
 	// add any referenced columns in the ORDER BY clause
 	for _, key := range ast.OrderBy {
-		expr, err := getOrderByTerm(sExprs, key.Expr)
+		expr, err := getOrderByTerm(sExprs, key.Expr, tables)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -276,7 +280,7 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 
 	// add any referenced columns in the WHERE clause
 	if ast.Where != nil {
-		expr, err := NewSQLExpr(ast.Where.Expr)
+		expr, err := NewSQLExpr(ast.Where.Expr, tables)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -286,7 +290,7 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 
 	// add any referenced columns in the HAVING clause
 	if ast.Having != nil {
-		expr, err := NewSQLExpr(ast.Having.Expr)
+		expr, err := NewSQLExpr(ast.Having.Expr, tables)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -294,11 +298,10 @@ func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs S
 	}
 
 	for _, expr := range exprs {
-		columns, err := referencedColumns(expr)
+		columns, err := referencedColumns(expr, tables)
 		if err != nil {
 			return nil, nil, err
 		}
-
 		addReferencedColumns(columns)
 	}
 
@@ -366,7 +369,7 @@ func planFromExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExprs, where *sqlparse
 }
 
 // planGroupBy returns a query execution plan for a GROUP BY clause.
-func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions) (*GroupBy, error) {
+func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions, tables map[string]*schema.Table) (*GroupBy, error) {
 
 	groupBy := ast.GroupBy
 
@@ -380,7 +383,7 @@ func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions) (*GroupBy, err
 
 		// a GROUP BY clause can't refer to non-aggregated columns in
 		// the select list that are not named in the GROUP BY clause
-		gbExpr, err := getGroupByTerm(gb.selectExprs, expr)
+		gbExpr, err := getGroupByTerm(gb.selectExprs, expr, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -392,7 +395,7 @@ func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions) (*GroupBy, err
 }
 
 // planLimit returns a query execution plan for a LIMIT clause.
-func planLimit(expr *sqlparser.Limit) (*Limit, error) {
+func planLimit(expr *sqlparser.Limit, tables map[string]*schema.Table) (*Limit, error) {
 
 	operator := &Limit{}
 
@@ -402,7 +405,7 @@ func planLimit(expr *sqlparser.Limit) (*Limit, error) {
 	// For compatibility with PostgreSQL, MySQL supports both so we should
 	// update our parser.
 	//
-	eval, err := NewSQLExpr(expr.Offset)
+	eval, err := NewSQLExpr(expr.Offset, tables)
 	if err != nil {
 		return nil, err
 	}
@@ -419,7 +422,7 @@ func planLimit(expr *sqlparser.Limit) (*Limit, error) {
 		}
 	}
 
-	eval, err = NewSQLExpr(expr.Rowcount)
+	eval, err = NewSQLExpr(expr.Rowcount, tables)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +443,7 @@ func planLimit(expr *sqlparser.Limit) (*Limit, error) {
 }
 
 // planOrderBy returns a query execution plan for an ORDER BY clause.
-func planOrderBy(ast *sqlparser.Select, sExprs SelectExpressions) (*OrderBy, error) {
+func planOrderBy(ast *sqlparser.Select, sExprs SelectExpressions, tables map[string]*schema.Table) (*OrderBy, error) {
 
 	//
 	// TODO: doesn't make sense to allow ORDER BY aggregate expression without
@@ -451,7 +454,7 @@ func planOrderBy(ast *sqlparser.Select, sExprs SelectExpressions) (*OrderBy, err
 
 	for _, i := range ast.OrderBy {
 
-		expr, err := getOrderByTerm(sExprs, i.Expr)
+		expr, err := getOrderByTerm(sExprs, i.Expr, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -473,8 +476,18 @@ func planOrderBy(ast *sqlparser.Select, sExprs SelectExpressions) (*OrderBy, err
 	return orderBy, nil
 }
 
+func getDBTables(ctx *ExecutionCtx) map[string]*schema.Table {
+	isInformationDatabase := strings.ToLower(ctx.Db) == InformationDatabase
+	if isInformationDatabase || ctx.Db == "" {
+		return nil
+	}
+	return ctx.Schema.Databases[ctx.Db].Tables
+}
+
 // planQuery takes a select struct and returns a query execution plan for it.
 func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err error) {
+
+	tables := getDBTables(ctx)
 
 	if ast.From != nil {
 		operator, err = planFromExpr(ctx, ast.From, ast.Where)
@@ -483,7 +496,7 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 		}
 	}
 
-	projectedSelectExprs, err := refColsInSelectStmt(ast)
+	projectedSelectExprs, err := referencedSelectExpressions(ast, tables)
 	if err != nil {
 		return nil, err
 	}
@@ -518,7 +531,7 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 	}
 
 	if ast.Where != nil {
-		matcher, err := NewSQLExpr(ast.Where.Expr)
+		matcher, err := NewSQLExpr(ast.Where.Expr, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -573,7 +586,7 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 	needsGroupBy := len(ast.GroupBy) != 0 || refAggFunction
 
 	if needsGroupBy {
-		gb, err := planGroupBy(ast, allSelectExprs)
+		gb, err := planGroupBy(ast, allSelectExprs, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -587,7 +600,7 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 	}
 
 	if ast.Having != nil {
-		matcher, err := NewSQLExpr(ast.Having.Expr)
+		matcher, err := NewSQLExpr(ast.Having.Expr, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -613,7 +626,7 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 	}
 
 	if len(ast.OrderBy) != 0 {
-		ob, err := planOrderBy(ast, allSelectExprs)
+		ob, err := planOrderBy(ast, allSelectExprs, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -622,7 +635,7 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 	}
 
 	if ast.Limit != nil {
-		lm, err := planLimit(ast.Limit)
+		lm, err := planLimit(ast.Limit, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -647,7 +660,9 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 // planSimpleSelectExpr takes a simple select expression and returns a query execution plan for it.
 func planSimpleSelectExpr(ctx *ExecutionCtx, ss *sqlparser.SimpleSelect) (Operator, error) {
 
-	sExprs, err := refColsInSelectStmt(ss)
+	tables := getDBTables(ctx)
+
+	sExprs, err := referencedSelectExpressions(ss, tables)
 	if err != nil {
 		return nil, err
 	}
@@ -687,7 +702,7 @@ func planSimpleSelectExpr(ctx *ExecutionCtx, ss *sqlparser.SimpleSelect) (Operat
 
 // refColsInSelectExpr returns a slice of select columns - each holding
 // a non-star select expression and any columns referenced in it.
-func refColsInSelectExpr(exprs sqlparser.SelectExprs) ([]SelectExpression, error) {
+func refColsInSelectExpr(exprs sqlparser.SelectExprs, tables map[string]*schema.Table) ([]SelectExpression, error) {
 
 	sExprs := make([]SelectExpression, 0)
 
@@ -702,12 +717,12 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs) ([]SelectExpression, error
 
 		case *sqlparser.NonStarExpr:
 
-			sqlExpr, err := NewSQLExpr(expr.Expr)
+			sqlExpr, err := NewSQLExpr(expr.Expr, tables)
 			if err != nil {
 				return nil, err
 			}
 
-			columns, err := referencedColumns(sqlExpr)
+			columns, err := referencedColumns(sqlExpr, tables)
 			if err != nil {
 				return nil, err
 			}
@@ -811,7 +826,9 @@ func planTableExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExpr, w *sqlparser.Wh
 			return nil, fmt.Errorf("error on right join node: %v", err)
 		}
 
-		on, err := NewSQLExpr(expr.On)
+		tables := getDBTables(ctx)
+
+		on, err := NewSQLExpr(expr.On, tables)
 		if err != nil {
 			return nil, err
 		}
@@ -866,35 +883,35 @@ func planTableName(ctx *ExecutionCtx, t *sqlparser.TableName, aliasName string, 
 	return NewMongoSource(ctx, dbName, string(t.Name), aliasName)
 }
 
-// refColsInSelectStmt returns any columns referenced in the select statement.
-func refColsInSelectStmt(ss sqlparser.SelectStatement) (SelectExpressions, error) {
+// referencedSelectExpressions returns any columns referenced in the select statement.
+func referencedSelectExpressions(ss sqlparser.SelectStatement, tables map[string]*schema.Table) (SelectExpressions, error) {
 
 	switch stmt := ss.(type) {
 
 	case *sqlparser.Select:
 
-		return refColsInSelectExpr(stmt.SelectExprs)
+		return refColsInSelectExpr(stmt.SelectExprs, tables)
 
 	case *sqlparser.Union:
 
-		l, err := refColsInSelectStmt(stmt.Left)
+		leftSelectExprs, err := referencedSelectExpressions(stmt.Left, tables)
 		if err != nil {
 			return nil, err
 		}
 
-		r, err := refColsInSelectStmt(stmt.Right)
+		rightSelectExprs, err := referencedSelectExpressions(stmt.Right, tables)
 		if err != nil {
 			return nil, err
 		}
 
-		return append(l, r...), nil
+		return append(leftSelectExprs, rightSelectExprs...), nil
 
 	case *sqlparser.SimpleSelect:
 
-		return refColsInSelectExpr(stmt.SelectExprs)
+		return refColsInSelectExpr(stmt.SelectExprs, tables)
 
 	default:
-		return nil, fmt.Errorf("unknown SelectStatement in refColsInSelectStmt: %T", stmt)
+		return nil, fmt.Errorf("unknown SelectStatement in referencedSelectExpressions: %T", stmt)
 	}
 
 }
@@ -907,7 +924,7 @@ func replaceSelectExpressionsWithColumns(tableName string, sExprs SelectExpressi
 
 		expr, ok := sExpr.Expr.(SQLColumnExpr)
 		if !ok {
-			expr = SQLColumnExpr{tableName, sExpr.Expr.String()}
+			expr = SQLColumnExpr{tableName, sExpr.Expr.String(), expr.columnType}
 		}
 
 		newSExpr := SelectExpression{

@@ -197,7 +197,7 @@ func (rows orderByRows) Less(i, j int) bool {
 			panic(err)
 		}
 
-		cmp, err := leftVal.CompareTo(rightVal)
+		cmp, err := CompareTo(leftVal, rightVal)
 		if err != nil {
 			panic(err)
 		}

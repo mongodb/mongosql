@@ -14,6 +14,7 @@ var (
 )
 
 func TestLimitOperator(t *testing.T) {
+	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	runTest := func(limit *Limit, rows []bson.D, expectedRows []Values) {
 		env := setupEnv(t)
@@ -30,8 +31,8 @@ func TestLimitOperator(t *testing.T) {
 		limit.source = &Project{
 			sExprs: SelectExpressions{
 				SelectExpression{
-					Column: &Column{tableOneName, "a", "a", schema.SQLInt, schema.MongoInt},
-					Expr:   SQLColumnExpr{tableOneName, "a"},
+					Column: &Column{tableOneName, "a", "a", columnType.SQLType, columnType.MongoType},
+					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
 				},
 			},
 			source: ts,

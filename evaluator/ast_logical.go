@@ -19,6 +19,7 @@ func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	rightMatches, err := Matches(and.right, ctx)
 	if err != nil {
 		return nil, err
@@ -35,6 +36,10 @@ func (and *SQLAndExpr) String() string {
 	return fmt.Sprintf("%v and %v", and.left, and.right)
 }
 
+func (_ *SQLAndExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
 //
 // SQLEqualsExpr evaluates to true if the left equals the right.
 //
@@ -42,25 +47,21 @@ type SQLEqualsExpr sqlBinaryNode
 
 func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
-	leftEvald, err := eq.left.Evaluate(ctx)
+	leftVal, err := eq.left.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	rightEvald, err := eq.right.Evaluate(ctx)
+	rightVal, err := eq.right.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(*SQLValues); ok {
-		c, err := rightEvald.CompareTo(leftEvald)
-		if err == nil {
-			return SQLBool(c == 0), nil
-		}
-		return SQLFalse, err
+	if hasNoSQLValue(leftVal, rightVal) {
+		return SQLFalse, nil
 	}
 
-	c, err := leftEvald.CompareTo(rightEvald)
+	c, err := CompareTo(leftVal, rightVal)
 	if err == nil {
 		return SQLBool(c == 0), nil
 	}
@@ -70,6 +71,10 @@ func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (eq *SQLEqualsExpr) String() string {
 	return fmt.Sprintf("%v = %v", eq.left, eq.right)
+}
+
+func (_ *SQLEqualsExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
 }
 
 //
@@ -129,6 +134,10 @@ func (em *SQLExistsExpr) String() string {
 	return fmt.Sprintf("exists %v", buf.String())
 }
 
+func (_ *SQLExistsExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
 //
 // SQLGreaterThanExpr evaluates to true when the left is greater than the right.
 //
@@ -136,25 +145,21 @@ type SQLGreaterThanExpr sqlBinaryNode
 
 func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
-	leftEvald, err := gt.left.Evaluate(ctx)
+	leftVal, err := gt.left.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	rightEvald, err := gt.right.Evaluate(ctx)
+	rightVal, err := gt.right.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(*SQLValues); ok {
-		c, err := rightEvald.CompareTo(leftEvald)
-		if err == nil {
-			return SQLBool(c < 0), nil
-		}
-		return SQLFalse, err
+	if hasNoSQLValue(leftVal, rightVal) {
+		return SQLFalse, nil
 	}
 
-	c, err := leftEvald.CompareTo(rightEvald)
+	c, err := CompareTo(leftVal, rightVal)
 	if err == nil {
 		return SQLBool(c > 0), nil
 	}
@@ -165,6 +170,10 @@ func (gt *SQLGreaterThanExpr) String() string {
 	return fmt.Sprintf("%v>%v", gt.left, gt.right)
 }
 
+func (_ *SQLGreaterThanExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
 //
 // SQLGreaterThanOrEqualExpr evaluates to true when the left is greater than or equal to the right.
 //
@@ -172,25 +181,21 @@ type SQLGreaterThanOrEqualExpr sqlBinaryNode
 
 func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
-	leftEvald, err := gte.left.Evaluate(ctx)
+	leftVal, err := gte.left.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	rightEvald, err := gte.right.Evaluate(ctx)
+	rightVal, err := gte.right.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(*SQLValues); ok {
-		c, err := rightEvald.CompareTo(leftEvald)
-		if err == nil {
-			return SQLBool(c <= 0), nil
-		}
-		return SQLFalse, err
+	if hasNoSQLValue(leftVal, rightVal) {
+		return SQLFalse, nil
 	}
 
-	c, err := leftEvald.CompareTo(rightEvald)
+	c, err := CompareTo(leftVal, rightVal)
 	if err == nil {
 		return SQLBool(c >= 0), nil
 	}
@@ -200,6 +205,10 @@ func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (gte *SQLGreaterThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v>=%v", gte.left, gte.right)
+}
+
+func (_ *SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
 }
 
 //
@@ -222,7 +231,11 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// TODO: can we not simply require this as part of the node definition?
 	rightChild, ok := right.(*SQLValues)
 	if !ok {
-		return SQLFalse, fmt.Errorf("right In expression is %T", right)
+		child, ok := right.(SQLValue)
+		if !ok {
+			return SQLFalse, fmt.Errorf("right 'in' expression is type %T - expeccted tuple", right)
+		}
+		rightChild = &SQLValues{[]SQLValue{child}}
 	}
 
 	leftChild, ok := left.(*SQLValues)
@@ -252,6 +265,10 @@ func (in *SQLInExpr) String() string {
 	return fmt.Sprintf("%v in %v", in.left, in.right)
 }
 
+func (_ *SQLInExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
 //
 // SQLLessThanExpr evaluates to true when the left is less than the right.
 //
@@ -259,25 +276,21 @@ type SQLLessThanExpr sqlBinaryNode
 
 func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
-	leftEvald, err := lt.left.Evaluate(ctx)
+	leftVal, err := lt.left.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	rightEvald, err := lt.right.Evaluate(ctx)
+	rightVal, err := lt.right.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(*SQLValues); ok {
-		c, err := rightEvald.CompareTo(leftEvald)
-		if err == nil {
-			return SQLBool(c > 0), nil
-		}
-		return SQLFalse, err
+	if hasNoSQLValue(leftVal, rightVal) {
+		return SQLFalse, nil
 	}
 
-	c, err := leftEvald.CompareTo(rightEvald)
+	c, err := CompareTo(leftVal, rightVal)
 	if err == nil {
 		return SQLBool(c < 0), nil
 	}
@@ -288,6 +301,10 @@ func (lt *SQLLessThanExpr) String() string {
 	return fmt.Sprintf("%v<%v", lt.left, lt.right)
 }
 
+func (_ *SQLLessThanExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
 //
 // SQLLessThanOrEqualExpr evaluates to true when the left is less than or equal to the right.
 //
@@ -295,25 +312,21 @@ type SQLLessThanOrEqualExpr sqlBinaryNode
 
 func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
-	leftEvald, err := lte.left.Evaluate(ctx)
+	leftVal, err := lte.left.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	rightEvald, err := lte.right.Evaluate(ctx)
+	rightVal, err := lte.right.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(*SQLValues); ok {
-		c, err := rightEvald.CompareTo(leftEvald)
-		if err == nil {
-			return SQLBool(c >= 0), nil
-		}
-		return SQLFalse, err
+	if hasNoSQLValue(leftVal, rightVal) {
+		return SQLFalse, nil
 	}
 
-	c, err := leftEvald.CompareTo(rightEvald)
+	c, err := CompareTo(leftVal, rightVal)
 	if err == nil {
 		return SQLBool(c <= 0), nil
 	}
@@ -322,6 +335,10 @@ func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (lte *SQLLessThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v<=%v", lte.left, lte.right)
+}
+
+func (_ *SQLLessThanOrEqualExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
 }
 
 //
@@ -366,16 +383,21 @@ func (l *SQLLikeExpr) String() string {
 	return fmt.Sprintf("%v like %v", l.left, l.right)
 }
 
+func (_ *SQLLikeExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
 func sqlValueToString(sqlValue SQLValue) (string, error) {
 	switch v := sqlValue.(type) {
 	case SQLString:
 		return string(v), nil
-	case SQLInt:
-		return string(v), nil // TODO: I don't think this works... you need to use strconv.Itoa
-	case SQLUint32:
-		return string(v), nil // TODO: same here...
-	case SQLFloat:
-		return strconv.FormatFloat(float64(v), 'f', -1, 64), nil
+	case SQLNumeric:
+		switch t := v.(type) {
+		case SQLFloat:
+			return strconv.FormatFloat(t.Float64(), 'f', -1, 64), nil
+		default:
+			return strconv.FormatInt(int64(t.Float64()), 10), nil
+		}
 	}
 
 	// TODO: just return empty string with no error?
@@ -399,6 +421,10 @@ func (not *SQLNotExpr) String() string {
 	return fmt.Sprintf("not %v", not.operand)
 }
 
+func (_ *SQLNotExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
 //
 // SQLNotEqualsExpr evaluates to true if the left does not equal the right.
 //
@@ -406,25 +432,21 @@ type SQLNotEqualsExpr sqlBinaryNode
 
 func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
-	leftEvald, err := neq.left.Evaluate(ctx)
+	leftVal, err := neq.left.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	rightEvald, err := neq.right.Evaluate(ctx)
+	rightVal, err := neq.right.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	if _, ok := rightEvald.(*SQLValues); ok {
-		c, err := rightEvald.CompareTo(leftEvald)
-		if err == nil {
-			return SQLBool(c != 0), nil
-		}
-		return SQLFalse, err
+	if hasNoSQLValue(leftVal, rightVal) {
+		return SQLFalse, nil
 	}
 
-	c, err := leftEvald.CompareTo(rightEvald)
+	c, err := CompareTo(leftVal, rightVal)
 	if err == nil {
 		return SQLBool(c != 0), nil
 	}
@@ -434,6 +456,10 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (neq *SQLNotEqualsExpr) String() string {
 	return fmt.Sprintf("%v != %v", neq.left, neq.right)
+}
+
+func (_ *SQLNotEqualsExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
 }
 
 //
@@ -454,6 +480,10 @@ func (nm *SQLNullCmpExpr) String() string {
 	return fmt.Sprintf("%v is null", nm.operand.String())
 }
 
+func (_ *SQLNullCmpExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
 //
 // SQLOrExpr evaluates to true if any of its children evaluate to true.
 //
@@ -464,6 +494,7 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	rightMatches, err := Matches(or.right, ctx)
 	if err != nil {
 		return nil, err
@@ -478,6 +509,10 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (or *SQLOrExpr) String() string {
 	return fmt.Sprintf("%v or %v", or.left, or.right)
+}
+
+func (_ *SQLOrExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
 }
 
 //
@@ -575,4 +610,24 @@ func (sc *SQLSubqueryCmpExpr) String() string {
 		in = "not in"
 	}
 	return fmt.Sprintf("%v %v %v", sc.left, in, sc.value)
+}
+
+func (_ *SQLSubqueryCmpExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
+// hasNoSQLValue returns true if any of the value in values
+// is of type SQLNoValue.
+func hasNoSQLValue(values ...SQLValue) bool {
+	for _, value := range values {
+		switch v := value.(type) {
+		case SQLNoValue:
+			return true
+		case *SQLValues:
+			if hasNoSQLValue(v.Values...) {
+				return true
+			}
+		}
+	}
+	return false
 }
