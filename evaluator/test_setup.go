@@ -13,6 +13,7 @@ var (
 	tableTwoName        = "bar"
 	tableThreeName      = "baz"
 	SSLTestKey          = "SQLPROXY_SSLTEST"
+	NoOptimize          = "SQLPROXY_OPTIMIZE_OFF"
 	TestSchemaSSLPrefix = []byte(`
 ssl:
   allow_invalid_certs: true

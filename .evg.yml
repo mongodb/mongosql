@@ -261,6 +261,31 @@ tasks:
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
 
+- name: blackbox-optoff
+  commands:
+    - func: "fetch source"
+    - func: "download test data"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          . ./set_gopath.sh
+          mkfifo test_pipe
+          tee -a blackbox.suite < test_pipe&
+          ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test -blackbox -run TestBlackBox -timeout 4h -v -coverprofile=coverage.out > test_pipe
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
+
 - name: schema
   commands:
     - func: "fetch source"
@@ -349,6 +374,56 @@ tasks:
           mkfifo test_pipe
           tee -a sqlproxy.suite < test_pipe&
           ${gotest_env} go test -timeout 4h -v -coverprofile=coverage.out > test_pipe
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
+
+- name: sqlproxy-optoff
+  commands:
+    - func: "fetch source"
+    - func: "download test data"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          . ./set_gopath.sh
+          mkfifo test_pipe
+          tee -a sqlproxy.suite < test_pipe&
+          ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test -timeout 4h -v -coverprofile=coverage.out > test_pipe
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
+
+- name: tableau
+  commands:
+    - func: "fetch source"
+    - func: "download test data"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          . ./set_gopath.sh
+          mkfifo test_pipe
+          tee -a tableau.suite < test_pipe&
+          ${gotest_env} go test -tableau -run TestTableauDemo -timeout 4h -v -coverprofile=coverage.out > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
