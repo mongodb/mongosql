@@ -290,9 +290,9 @@ schema:
       SqlName: pointorder
       SqlType: int
     - Name: PolygonID
-      MongoType: int
+      MongoType: string
       SqlName: polygonid
-      SqlType: int
+      SqlType: varchar
     - Name: Pop_SQ_Mile
       MongoType: int
       SqlName: pop_sq_mile
@@ -731,9 +731,9 @@ schema:
       SqlName: discount
       SqlType: float64
     - Name: Employee Dept
-      MongoType: int
+      MongoType: string
       SqlName: employee dept
-      SqlType: int
+      SqlType: varchar
     - Name: Employee Name
       MongoType: string
       SqlName: employee name
@@ -775,9 +775,9 @@ schema:
       SqlName: order day
       SqlType: int
     - Name: Order ID
-      MongoType: int
+      MongoType: string
       SqlName: order id
-      SqlType: int
+      SqlType: varchar
     - Name: Order Month
       MongoType: int
       SqlName: order month
@@ -835,9 +835,9 @@ schema:
       SqlName: product container
       SqlType: varchar
     - Name: Product ID
-      MongoType: int
+      MongoType: string
       SqlName: product id
-      SqlType: int
+      SqlType: varchar
     - Name: Product In Stock
       MongoType: string
       SqlName: product in stock
@@ -875,9 +875,9 @@ schema:
       SqlName: ship mode
       SqlType: varchar
     - Name: Ship Priority
-      MongoType: int
+      MongoType: string
       SqlName: ship priority
-      SqlType: int
+      SqlType: varchar
     - Name: Ship Promo
       MongoType: string
       SqlName: ship promo
