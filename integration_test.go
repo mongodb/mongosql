@@ -29,6 +29,7 @@ import (
 // test flags
 var (
 	blackbox = flag.Bool("blackbox", false, "Run blackbox tests")
+	tableau  = flag.Bool("tableau", false, "Run tableau tests")
 )
 
 const (
@@ -268,26 +269,6 @@ func MustLoadTestData(dbhost, dbport string, conf testSchema) {
 	}
 }
 
-func TestTableauDemo(t *testing.T) {
-	conf := MustLoadTestSchema("testdata/tableau.yml")
-	MustLoadTestData(testMongoHost, testMongoPort, conf)
-
-	Convey("Test tableau dataset", t, func() {
-		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
-		So(err, ShouldBeNil)
-	})
-}
-
-func TestSimpleQueries(t *testing.T) {
-	conf := MustLoadTestSchema("testdata/simple.yml")
-	MustLoadTestData(testMongoHost, testMongoPort, conf)
-
-	Convey("Test simple queries", t, func() {
-		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
-		So(err, ShouldBeNil)
-	})
-}
-
 func TestBlackBox(t *testing.T) {
 	if !*blackbox {
 		t.Skip("skipping blackbox test")
@@ -387,6 +368,30 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 	}
 
 	return nil
+}
+
+func TestSimpleQueries(t *testing.T) {
+	conf := MustLoadTestSchema("testdata/simple.yml")
+	MustLoadTestData(testMongoHost, testMongoPort, conf)
+
+	Convey("Test simple queries", t, func() {
+		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
+		So(err, ShouldBeNil)
+	})
+}
+
+func TestTableauDemo(t *testing.T) {
+	if !*tableau {
+		t.Skip("skipping tableau test")
+	}
+
+	conf := MustLoadTestSchema("testdata/tableau.yml")
+	MustLoadTestData(testMongoHost, testMongoPort, conf)
+
+	Convey("Test tableau dataset", t, func() {
+		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
+		So(err, ShouldBeNil)
+	})
 }
 
 func pathify(elem ...string) string {
