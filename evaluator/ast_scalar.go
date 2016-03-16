@@ -27,7 +27,7 @@ func (_ *connectionIdFunc) Validate(exprCount int) error {
 type dbFunc struct{}
 
 func (_ *dbFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLString(ctx.ExecCtx.DB()), nil
+	return SQLVarchar(ctx.ExecCtx.DB()), nil
 }
 
 func (_ *dbFunc) Type() schema.SQLType {
@@ -145,7 +145,7 @@ func (_ *concatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err 
 		bytes.WriteString(value.String())
 	}
 
-	v = SQLString(bytes.String())
+	v = SQLVarchar(bytes.String())
 	err = nil
 	return
 }
@@ -199,7 +199,7 @@ func (_ *dayNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		return SQLNull, nil
 	}
 
-	return SQLString(t.Weekday().String()), nil
+	return SQLVarchar(t.Weekday().String()), nil
 }
 
 func (_ *dayNameFunc) Type() schema.SQLType {
@@ -365,7 +365,7 @@ func (_ *lcaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 
 	value := strings.ToLower(values[0].String())
 
-	return SQLString(value), nil
+	return SQLVarchar(value), nil
 }
 
 func (_ *lcaseFunc) Type() schema.SQLType {
@@ -477,7 +477,7 @@ func (_ *ltrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 
 	value := strings.TrimLeft(values[0].String(), " ")
 
-	return SQLString(value), nil
+	return SQLVarchar(value), nil
 }
 
 func (_ *ltrimFunc) Type() schema.SQLType {
@@ -569,7 +569,7 @@ func (_ *monthNameFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 		return SQLNull, nil
 	}
 
-	return SQLString(t.Month().String()), nil
+	return SQLVarchar(t.Month().String()), nil
 }
 
 func (_ *monthNameFunc) Type() schema.SQLType {
@@ -668,7 +668,7 @@ func (_ *rtrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 
 	value := strings.TrimRight(values[0].String(), " ")
 
-	return SQLString(value), nil
+	return SQLVarchar(value), nil
 }
 
 func (_ *rtrimFunc) Type() schema.SQLType {
@@ -742,7 +742,7 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	pos := int(posValue.Float64())
 
 	if pos > len(str) {
-		return SQLString(""), nil
+		return SQLVarchar(""), nil
 	} else if pos < 0 {
 		pos = len(str) + pos
 
@@ -761,7 +761,7 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 
 		length := int(lenValue.Float64())
 		if length < 1 {
-			return SQLString(""), nil
+			return SQLVarchar(""), nil
 		}
 
 		str = str[pos : pos+length]
@@ -769,7 +769,7 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 		str = str[pos:]
 	}
 
-	return SQLString(string(str)), nil
+	return SQLVarchar(string(str)), nil
 }
 
 func (_ *substringFunc) Type() schema.SQLType {
@@ -790,7 +790,7 @@ func (_ *ucaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 
 	value := strings.ToUpper(values[0].String())
 
-	return SQLString(value), nil
+	return SQLVarchar(value), nil
 }
 
 func (_ *ucaseFunc) Type() schema.SQLType {

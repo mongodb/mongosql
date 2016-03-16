@@ -97,25 +97,25 @@ func TestNewSQLValue(t *testing.T) {
 
 	Convey("When creating a SQLValue with a column type specified calling NewSQLValue on a", t, func() {
 
-		Convey("a SQLString/SQLVarchar column type should attempt to coerce to the SQLString type", func() {
+		Convey("a SQLVarchar/SQLVarchar column type should attempt to coerce to the SQLVarchar type", func() {
 
 			t := schema.SQLVarchar
 
 			newV, err := NewSQLValue(t, schema.SQLVarchar, schema.MongoString)
 			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, SQLString(t))
+			So(newV, ShouldResemble, SQLVarchar(t))
 
 			newV, err = NewSQLValue(6, schema.SQLVarchar, schema.MongoInt)
 			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, SQLString("6"))
+			So(newV, ShouldResemble, SQLVarchar("6"))
 
 			newV, err = NewSQLValue(6.6, schema.SQLVarchar, schema.MongoFloat)
 			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, SQLString("6.6"))
+			So(newV, ShouldResemble, SQLVarchar("6.6"))
 
 			newV, err = NewSQLValue(int64(6), schema.SQLVarchar, schema.MongoInt64)
 			So(err, ShouldBeNil)
-			So(newV, ShouldResemble, SQLString("6"))
+			So(newV, ShouldResemble, SQLVarchar("6"))
 
 			_id := bson.ObjectId("56a10dd56ce28a89a8ed6edb")
 			newV, err = NewSQLValue(_id, schema.SQLVarchar, schema.MongoObjectId)
@@ -246,6 +246,24 @@ func TestNewSQLValue(t *testing.T) {
 			for _, d := range dates {
 				_, err = NewSQLValue(d, schema.SQLTimestamp, schema.MongoNone)
 				So(err, ShouldNotBeNil)
+			}
+		})
+
+		Convey("a SQLValues column type should attempt to coerce to the SQLValues type", func() {
+
+			values := []interface{}{"2015-2-3", "2014-2-4"}
+
+			value, err := NewSQLValue(values, schema.SQLDate, schema.MongoNone)
+			So(err, ShouldBeNil)
+
+			sqlValues, ok := value.(*SQLValues)
+			So(ok, ShouldBeTrue)
+			So(len(sqlValues.Values), ShouldEqual, 2)
+
+			for i, value := range values {
+				t, err := time.Parse("2006-1-2", value.(string))
+				So(err, ShouldBeNil)
+				So(SQLDate{t}, ShouldResemble, sqlValues.Values[i])
 			}
 		})
 	})
@@ -824,9 +842,9 @@ func TestScalarFuncCast(t *testing.T) {
 			value, err := funcExpr.Evaluate(ctx)
 			So(err, ShouldBeNil)
 
-			castExpr, ok := value.(SQLString)
+			castExpr, ok := value.(SQLVarchar)
 			So(ok, ShouldBeTrue)
-			So(castExpr, ShouldResemble, SQLString("hello"))
+			So(castExpr, ShouldResemble, SQLVarchar("hello"))
 
 		})
 

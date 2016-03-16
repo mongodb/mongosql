@@ -41,7 +41,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		name := typedE.Name
 
-		if name == "count" && typedE.Exprs[0] == SQLString("*") {
+		if name == "count" && typedE.Exprs[0] == SQLVarchar("*") {
 			return bson.M{"$size": transExpr}, true
 		} else if name == "count" {
 			// The below ensure that nulls, undefined, and missing fields
@@ -466,7 +466,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return bson.M{"$subtract": []interface{}{left, right}}, true
 
-	case SQLInt, SQLUint32, SQLFloat, SQLBool, SQLString:
+	case SQLInt, SQLUint32, SQLFloat, SQLBool, SQLVarchar:
 
 		return bson.M{"$literal": typedE}, true
 

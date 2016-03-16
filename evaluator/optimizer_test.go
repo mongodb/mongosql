@@ -785,7 +785,7 @@ func TestGroupByPushDown(t *testing.T) {
 			Convey("Should optimize 'select count(*) from foo'", func() {
 
 				exprs := map[string]SQLExpr{
-					"count(*)": &SQLAggFunctionExpr{"count", false, []SQLExpr{SQLString("*")}},
+					"count(*)": &SQLAggFunctionExpr{"count", false, []SQLExpr{SQLVarchar("*")}},
 				}
 
 				gb.selectExprs = constructSelectExpressions(exprs, "count(*)")
@@ -1305,7 +1305,7 @@ func TestProjectPushdown(t *testing.T) {
 					"ascii", []SQLExpr{
 						&SQLScalarFunctionExpr{
 							"substring", []SQLExpr{
-								SQLString("xxx"),
+								SQLVarchar("xxx"),
 								SQLColumnExpr{tbl, "b", columnType},
 							},
 						},

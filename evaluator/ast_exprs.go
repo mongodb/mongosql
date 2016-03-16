@@ -119,11 +119,7 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 				if !hasValue || value == nil {
 					return SQLNull, nil
 				}
-				val, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)
-				if err != nil {
-					return nil, err
-				}
-				return val, nil
+				return NewSQLValue(value, c.columnType.SQLType, c.columnType.MongoType)
 			}
 		}
 	}

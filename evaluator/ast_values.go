@@ -264,24 +264,24 @@ func (id SQLObjectID) Value() interface{} {
 }
 
 //
-// SQLString represents a string value.
+// SQLVarchar represents a string value.
 //
-type SQLString string
+type SQLVarchar string
 
-func (ss SQLString) Evaluate(_ *EvalCtx) (SQLValue, error) {
-	return ss, nil
+func (sv SQLVarchar) Evaluate(_ *EvalCtx) (SQLValue, error) {
+	return sv, nil
 }
 
-func (ss SQLString) String() string {
-	return string(ss)
+func (sv SQLVarchar) String() string {
+	return string(sv)
 }
 
-func (_ SQLString) Type() schema.SQLType {
+func (_ SQLVarchar) Type() schema.SQLType {
 	return schema.SQLVarchar
 }
 
-func (ss SQLString) Value() interface{} {
-	return string(ss)
+func (sv SQLVarchar) Value() interface{} {
+	return string(sv)
 }
 
 //
@@ -405,7 +405,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 			return -1, nil
 		case SQLDate, SQLTimestamp:
 			return -1, nil
-		case SQLFloat, SQLNullValue, SQLInt, SQLObjectID, SQLString, SQLUint32:
+		case SQLFloat, SQLNullValue, SQLInt, SQLObjectID, SQLVarchar, SQLUint32:
 			return 1, nil
 		case *SQLValues:
 			i, err := CompareTo(right, left)
@@ -425,7 +425,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 		case SQLDate:
 			t1 = leftVal.Time
 			t2 = rightVal.Time
-		case SQLString:
+		case SQLVarchar:
 			t1 = leftVal.Time
 			v, err := NewSQLValue(rightVal.String(), schema.SQLDate, schema.MongoDate)
 			if err != nil {
@@ -472,7 +472,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 				return i, err
 			}
 			return -i, nil
-		case SQLBool, SQLDate, SQLObjectID, SQLString, SQLTimestamp:
+		case SQLBool, SQLDate, SQLObjectID, SQLVarchar, SQLTimestamp:
 			return -1, nil
 		default:
 			return -1, fmt.Errorf("cannot compare %T against %T", left, right)
@@ -498,7 +498,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 		switch rightVal := right.(type) {
 		case SQLBool, SQLDate, SQLTimestamp:
 			return -1, nil
-		case SQLFloat, SQLNullValue, SQLInt, SQLString, SQLUint32:
+		case SQLFloat, SQLNullValue, SQLInt, SQLVarchar, SQLUint32:
 			return 1, nil
 		case SQLObjectID:
 			if !bson.IsObjectIdHex(leftVal.String()) {
@@ -526,17 +526,17 @@ func CompareTo(left, right SQLValue) (int, error) {
 			}
 			return -i, nil
 		default:
-			return -1, fmt.Errorf("cannot compare SQLString against %T", right)
+			return -1, fmt.Errorf("cannot compare SQLVarchar against %T", right)
 		}
 
-	case SQLString:
+	case SQLVarchar:
 
 		switch rightVal := right.(type) {
 		case SQLBool, SQLDate, SQLObjectID, SQLTimestamp:
 			return -1, nil
 		case SQLFloat, SQLInt, SQLNullValue, SQLUint32:
 			return 1, nil
-		case SQLString:
+		case SQLVarchar:
 			s1, s2 := string(leftVal), string(rightVal)
 			if s1 < s2 {
 				return -1, nil
@@ -551,7 +551,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 			}
 			return -i, nil
 		default:
-			return -1, fmt.Errorf("cannot compare SQLString against %T", right)
+			return -1, fmt.Errorf("cannot compare SQLVarchar against %T", right)
 		}
 
 	case SQLTimestamp:
@@ -568,7 +568,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 				return 1, nil
 			}
 			t2 = v.(SQLDate).Time
-		case SQLString:
+		case SQLVarchar:
 			t1 = leftVal.Time
 			v, err := NewSQLValue(rightVal.String(), schema.SQLTimestamp, schema.MongoDate)
 			if err != nil {

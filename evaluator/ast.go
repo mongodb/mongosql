@@ -70,7 +70,7 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 		return bool(v), nil
 	case SQLNumeric:
 		return v.Float64() != float64(0), nil
-	case SQLString:
+	case SQLVarchar:
 		// more info: http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
 		p, err := strconv.ParseFloat(string(v), 64)
 		if err == nil {
@@ -477,7 +477,7 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		// nothing to do
 	case SQLNullValue:
 		// nothing to do
-	case SQLString:
+	case SQLVarchar:
 		// nothing to do
 	case SQLTimestamp:
 		// nothing to do

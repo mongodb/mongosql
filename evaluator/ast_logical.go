@@ -247,7 +247,6 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	for _, right := range rightChild.Values {
-
 		eq := &SQLEqualsExpr{left, right}
 		m, err := Matches(eq, ctx)
 		if err != nil {
@@ -363,7 +362,7 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	pattern, ok := value.(SQLString)
+	pattern, ok := value.(SQLVarchar)
 	if !ok {
 		return SQLFalse, nil
 	}
@@ -389,7 +388,7 @@ func (_ *SQLLikeExpr) Type() schema.SQLType {
 
 func sqlValueToString(sqlValue SQLValue) (string, error) {
 	switch v := sqlValue.(type) {
-	case SQLString:
+	case SQLVarchar:
 		return string(v), nil
 	case SQLNumeric:
 		switch t := v.(type) {

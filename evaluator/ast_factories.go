@@ -51,14 +51,14 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 
 	if sqlType == schema.SQLNone {
 		switch v := value.(type) {
-		case nil, []interface{}:
+		case nil:
 			return SQLNull, nil
 		case bson.ObjectId:
 			return SQLObjectID(v.Hex()), nil
 		case bool:
 			return SQLBool(v), nil
 		case string:
-			return SQLString(v), nil
+			return SQLVarchar(v), nil
 		case float32:
 			return SQLFloat(float64(v)), nil
 		case float64:
@@ -83,6 +83,16 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLInt(v), nil
 		case time.Time:
 			return newSQLTimeValue(v, mongoType)
+		case []interface{}:
+			sqlValue := &SQLValues{}
+			for _, iVal := range v {
+				value, err := NewSQLValue(iVal, sqlType, mongoType)
+				if err != nil {
+					return nil, err
+				}
+				sqlValue.Values = append(sqlValue.Values, value)
+			}
+			return sqlValue, nil
 		default:
 			panic(fmt.Errorf("can't convert this type to a SQLValue: %T", v))
 		}
@@ -99,6 +109,17 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			}
 		case nil:
 			return SQLNull, nil
+		case []interface{}:
+			sqlValue := &SQLValues{}
+
+			for _, iVal := range v {
+				value, err := NewSQLValue(iVal, sqlType, mongoType)
+				if err != nil {
+					return nil, err
+				}
+				sqlValue.Values = append(sqlValue.Values, value)
+			}
+			return sqlValue, nil
 		}
 	case schema.SQLInt64:
 		switch v := value.(type) {
@@ -109,44 +130,66 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			}
 		case nil:
 			return SQLNull, nil
+		case []interface{}:
+			sqlValue := &SQLValues{}
+
+			for _, iVal := range v {
+				value, err := NewSQLValue(iVal, sqlType, mongoType)
+				if err != nil {
+					return nil, err
+				}
+				sqlValue.Values = append(sqlValue.Values, value)
+			}
+			return sqlValue, nil
 		}
 
 	case schema.SQLVarchar:
 		switch v := value.(type) {
 		case bool:
-			return SQLString(strconv.FormatBool(v)), nil
+			return SQLVarchar(strconv.FormatBool(v)), nil
 		case string:
-			return SQLString(v), nil
+			return SQLVarchar(v), nil
 		case float32:
-			return SQLString(strconv.FormatFloat(float64(v), 'f', -1, 32)), nil
+			return SQLVarchar(strconv.FormatFloat(float64(v), 'f', -1, 32)), nil
 		case float64:
-			return SQLString(strconv.FormatFloat(v, 'f', -1, 64)), nil
+			return SQLVarchar(strconv.FormatFloat(v, 'f', -1, 64)), nil
 		case int:
-			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
 		case int8:
-			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
 		case int16:
-			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
 		case int32:
-			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
 		case int64:
-			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
 		case uint8:
-			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
 		case uint16:
-			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
 		case uint32:
-			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
 		case uint64:
-			return SQLString(strconv.FormatInt(int64(v), 10)), nil
+			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
 		case bson.ObjectId:
 			return SQLObjectID(v.Hex()), nil
 		case time.Time:
-			return SQLString(v.String()), nil
+			return SQLVarchar(v.String()), nil
 		case nil:
 			return SQLNull, nil
+		case []interface{}:
+			sqlValue := &SQLValues{}
+
+			for _, iVal := range v {
+				value, err := NewSQLValue(iVal, sqlType, mongoType)
+				if err != nil {
+					return nil, err
+				}
+				sqlValue.Values = append(sqlValue.Values, value)
+			}
+			return sqlValue, nil
 		default:
-			return SQLString(reflect.ValueOf(v).String()), nil
+			return SQLVarchar(reflect.ValueOf(v).String()), nil
 		}
 
 	case schema.SQLBoolean:
@@ -158,6 +201,17 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLFalse, nil
 		case nil:
 			return SQLNull, nil
+		case []interface{}:
+			sqlValue := &SQLValues{}
+
+			for _, iVal := range v {
+				value, err := NewSQLValue(iVal, sqlType, mongoType)
+				if err != nil {
+					return nil, err
+				}
+				sqlValue.Values = append(sqlValue.Values, value)
+			}
+			return sqlValue, nil
 		}
 
 	case schema.SQLFloat, schema.SQLNumeric:
@@ -169,6 +223,17 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			}
 		case nil:
 			return SQLNull, nil
+		case []interface{}:
+			sqlValue := &SQLValues{}
+
+			for _, iVal := range v {
+				value, err := NewSQLValue(iVal, sqlType, mongoType)
+				if err != nil {
+					return nil, err
+				}
+				sqlValue.Values = append(sqlValue.Values, value)
+			}
+			return sqlValue, nil
 		}
 
 	case schema.SQLDate:
@@ -191,6 +256,17 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLDate{date}, nil
 		case nil:
 			return SQLNull, nil
+		case []interface{}:
+			sqlValue := &SQLValues{}
+
+			for _, iVal := range v {
+				value, err := NewSQLValue(iVal, sqlType, mongoType)
+				if err != nil {
+					return nil, err
+				}
+				sqlValue.Values = append(sqlValue.Values, value)
+			}
+			return sqlValue, nil
 		}
 
 	case schema.SQLTimestamp:
@@ -212,6 +288,17 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLTimestamp{v.In(schema.DefaultLocale)}, nil
 		case nil:
 			return SQLNull, nil
+		case []interface{}:
+			sqlValue := &SQLValues{}
+
+			for _, iVal := range v {
+				value, err := NewSQLValue(iVal, sqlType, mongoType)
+				if err != nil {
+					return nil, err
+				}
+				sqlValue.Values = append(sqlValue.Values, value)
+			}
+			return sqlValue, nil
 		}
 	}
 
@@ -466,7 +553,7 @@ func NewSQLExpr(gExpr sqlparser.Expr, tables map[string]*schema.Table) (SQLExpr,
 
 	case sqlparser.StrVal:
 
-		return SQLString(string([]byte(expr))), nil
+		return SQLVarchar(string([]byte(expr))), nil
 
 	case *sqlparser.Subquery:
 
@@ -615,7 +702,7 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr, tables map[string]*schema.Table) (
 				}
 			}
 
-			exprs = append(exprs, SQLString("*"))
+			exprs = append(exprs, SQLVarchar("*"))
 
 		case *sqlparser.NonStarExpr:
 
@@ -652,7 +739,7 @@ func newSQLFuncExpr(expr *sqlparser.FuncExpr, tables map[string]*schema.Table) (
 
 			switch name {
 			case "cast":
-				exprs = append(exprs, SQLString(string(typedE.As)))
+				exprs = append(exprs, SQLVarchar(string(typedE.As)))
 			}
 
 		}

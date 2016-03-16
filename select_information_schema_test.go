@@ -66,11 +66,11 @@ func TestSchemaScanOperatorTablesSelect(t *testing.T) {
 
 		_, values, err = eval.EvalSelect("", "select TABLE_NAME from information_schema.TABLES", nil, nil)
 		So(err, ShouldBeNil)
-		So(0, ShouldBeLessThan, len(string(values[0][0].(evaluator.SQLString))))
+		So(0, ShouldBeLessThan, len(string(values[0][0].(evaluator.SQLVarchar))))
 
 		_, values, err = eval.EvalSelect("", "select table_name from information_schema.TABLES", nil, nil)
 		So(err, ShouldBeNil)
-		So(0, ShouldBeLessThan, len(string(values[0][0].(evaluator.SQLString))))
+		So(0, ShouldBeLessThan, len(string(values[0][0].(evaluator.SQLVarchar))))
 
 		_, values, err = eval.EvalSelect("", "select * from information_schema.TABLES WHERE table_schema LIKE 'test'", nil, nil)
 		So(err, ShouldBeNil)

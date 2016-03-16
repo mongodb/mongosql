@@ -1927,9 +1927,9 @@ func TestSelectWithCaseExpr(t *testing.T) {
 			So(names, ShouldResemble, []string{"a", "p"})
 
 			expectedValues := [][]evaluator.SQLValue{
-				[]evaluator.SQLValue{evaluator.SQLInt(5), evaluator.SQLString("lt")},
-				[]evaluator.SQLValue{evaluator.SQLInt(1), evaluator.SQLString("lt")},
-				[]evaluator.SQLValue{evaluator.SQLInt(6), evaluator.SQLString("gt")},
+				[]evaluator.SQLValue{evaluator.SQLInt(5), evaluator.SQLVarchar("lt")},
+				[]evaluator.SQLValue{evaluator.SQLInt(1), evaluator.SQLVarchar("lt")},
+				[]evaluator.SQLValue{evaluator.SQLInt(6), evaluator.SQLVarchar("gt")},
 			}
 
 			for i, v := range expectedValues {

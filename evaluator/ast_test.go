@@ -278,10 +278,10 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: COALESCE", func() {
 				tests := []test{
 					test{"COALESCE(NULL)", SQLNull},
-					test{"COALESCE('A')", SQLString("A")},
-					test{"COALESCE('A', NULL)", SQLString("A")},
-					test{"COALESCE('A', 'B')", SQLString("A")},
-					test{"COALESCE(NULL, 'A', NULL, 'B')", SQLString("A")},
+					test{"COALESCE('A')", SQLVarchar("A")},
+					test{"COALESCE('A', NULL)", SQLVarchar("A")},
+					test{"COALESCE('A', 'B')", SQLVarchar("A")},
+					test{"COALESCE(NULL, 'A', NULL, 'B')", SQLVarchar("A")},
 					test{"COALESCE(NULL, NULL, NULL)", SQLNull},
 				}
 				runTests(evalCtx, tests)
@@ -290,10 +290,10 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: CONCAT", func() {
 				tests := []test{
 					test{"CONCAT(NULL)", SQLNull},
-					test{"CONCAT('A')", SQLString("A")},
-					test{"CONCAT('A', 'B')", SQLString("AB")},
+					test{"CONCAT('A')", SQLVarchar("A")},
+					test{"CONCAT('A', 'B')", SQLVarchar("AB")},
 					test{"CONCAT('A', NULL, 'B')", SQLNull},
-					test{"CONCAT('A', 123, 'B')", SQLString("A123B")},
+					test{"CONCAT('A', 123, 'B')", SQLVarchar("A123B")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -316,8 +316,8 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"DAYNAME(NULL)", SQLNull},
 					test{"DAYNAME(14)", SQLNull},
-					test{"DAYNAME('2016-01-01 00:00:00')", SQLString("Friday")},
-					test{"DAYNAME('2016-1-1')", SQLString("Friday")},
+					test{"DAYNAME('2016-01-01 00:00:00')", SQLVarchar("Friday")},
+					test{"DAYNAME('2016-1-1')", SQLVarchar("Friday")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -384,8 +384,8 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: LCASE", func() {
 				tests := []test{
 					test{"LCASE(NULL)", SQLNull},
-					test{"LCASE('sDg')", SQLString("sdg")},
-					test{"LCASE(124)", SQLString("124")},
+					test{"LCASE('sDg')", SQLVarchar("sdg")},
+					test{"LCASE(124)", SQLVarchar("124")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -426,7 +426,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: LTRIM", func() {
 				tests := []test{
 					test{"LTRIM(NULL)", SQLNull},
-					test{"LTRIM('   barbar')", SQLString("barbar")},
+					test{"LTRIM('   barbar')", SQLVarchar("barbar")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -466,7 +466,7 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"MONTHNAME(NULL)", SQLNull},
 					test{"MONTHNAME('sdg')", SQLNull},
-					test{"MONTHNAME('2016-1-01 10:23:52')", SQLString("January")},
+					test{"MONTHNAME('2016-1-01 10:23:52')", SQLVarchar("January")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -486,7 +486,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: RTRIM", func() {
 				tests := []test{
 					test{"RTRIM(NULL)", SQLNull},
-					test{"RTRIM('barbar   ')", SQLString("barbar")},
+					test{"RTRIM('barbar   ')", SQLVarchar("barbar")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -516,11 +516,11 @@ func TestEvaluates(t *testing.T) {
 					test{"SUBSTRING(NULL, 4)", SQLNull},
 					test{"SUBSTRING('foobarbar', NULL)", SQLNull},
 					test{"SUBSTRING('foobarbar', 4, NULL)", SQLNull},
-					test{"SUBSTRING('Quadratically', 5)", SQLString("ratically")},
-					test{"SUBSTRING('Quadratically', 5, 6)", SQLString("ratica")},
-					test{"SUBSTRING('Sakila', -3)", SQLString("ila")},
-					test{"SUBSTRING('Sakila', -5, 3)", SQLString("aki")},
-					test{"SUBSTRING('日本語', 2)", SQLString("本語")},
+					test{"SUBSTRING('Quadratically', 5)", SQLVarchar("ratically")},
+					test{"SUBSTRING('Quadratically', 5, 6)", SQLVarchar("ratica")},
+					test{"SUBSTRING('Sakila', -3)", SQLVarchar("ila")},
+					test{"SUBSTRING('Sakila', -5, 3)", SQLVarchar("aki")},
+					test{"SUBSTRING('日本語', 2)", SQLVarchar("本語")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -528,8 +528,8 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: UCASE", func() {
 				tests := []test{
 					test{"UCASE(NULL)", SQLNull},
-					test{"UCASE('sdg')", SQLString("SDG")},
-					test{"UCASE(124)", SQLString("124")},
+					test{"UCASE('sdg')", SQLVarchar("SDG")},
+					test{"UCASE(124)", SQLVarchar("124")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -603,12 +603,12 @@ func TestMatches(t *testing.T) {
 		tests := [][]interface{}{
 			[]interface{}{SQLInt(124), true},
 			[]interface{}{SQLFloat(1235), true},
-			[]interface{}{SQLString("512"), true},
+			[]interface{}{SQLVarchar("512"), true},
 			[]interface{}{SQLInt(0), false},
 			[]interface{}{SQLFloat(0), false},
-			[]interface{}{SQLString("000"), false},
-			[]interface{}{SQLString("skdjbkjb"), false},
-			[]interface{}{SQLString(""), false},
+			[]interface{}{SQLVarchar("000"), false},
+			[]interface{}{SQLVarchar("skdjbkjb"), false},
+			[]interface{}{SQLVarchar(""), false},
 			[]interface{}{SQLTrue, true},
 			[]interface{}{SQLFalse, false},
 			[]interface{}{&SQLEqualsExpr{SQLInt(42), SQLInt(42)}, true},
@@ -670,7 +670,7 @@ func TestOptimizeSQLExpr(t *testing.T) {
 			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
 			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
 			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
-			test{"DAYNAME('2016-1-1')", "Friday", SQLString("Friday")},
+			test{"DAYNAME('2016-1-1')", "Friday", SQLVarchar("Friday")},
 		}
 
 		runTests(tests)
@@ -880,7 +880,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLInt(1), SQLBool(true), -1},
 				{SQLInt(1), SQLNull, 1},
 				{SQLInt(1), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
-				{SQLInt(1), SQLString("bac"), -1},
+				{SQLInt(1), SQLVarchar("bac"), -1},
 				{SQLInt(1), &SQLValues{[]SQLValue{SQLInt(1)}}, 0},
 				{SQLInt(1), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLInt(1), SQLDate{now}, -1},
@@ -900,7 +900,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLUint32(1), SQLBool(true), -1},
 				{SQLUint32(1), SQLNull, 1},
 				{SQLUint32(1), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
-				{SQLUint32(1), SQLString("bac"), -1},
+				{SQLUint32(1), SQLVarchar("bac"), -1},
 				{SQLUint32(1), &SQLValues{[]SQLValue{SQLInt(1)}}, 0},
 				{SQLUint32(1), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLUint32(1), SQLDate{now}, -1},
@@ -920,7 +920,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLFloat(0.1), SQLBool(true), -1},
 				{SQLFloat(0.1), SQLNull, 1},
 				{SQLFloat(0.1), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
-				{SQLFloat(0.1), SQLString("bac"), -1},
+				{SQLFloat(0.1), SQLVarchar("bac"), -1},
 				{SQLFloat(0.0), &SQLValues{[]SQLValue{SQLInt(1)}}, -1},
 				{SQLFloat(0.1), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLFloat(0.1), SQLDate{now}, -1},
@@ -940,7 +940,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLBool(true), SQLBool(true), 0},
 				{SQLBool(true), SQLNull, 1},
 				{SQLBool(true), SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{SQLBool(true), SQLString("bac"), 1},
+				{SQLBool(true), SQLVarchar("bac"), 1},
 				{SQLBool(true), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
 				{SQLBool(true), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLBool(true), SQLDate{now}, -1},
@@ -954,7 +954,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLBool(false), SQLBool(true), -1},
 				{SQLBool(false), SQLNull, 1},
 				{SQLBool(false), SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{SQLBool(false), SQLString("bac"), 1},
+				{SQLBool(false), SQLVarchar("bac"), 1},
 				{SQLBool(false), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
 				{SQLBool(false), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLBool(false), SQLDate{now}, -1},
@@ -974,7 +974,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLDate{now}, SQLDate{now.Add(diff)}, -1},
 				{SQLDate{now}, SQLNull, 1},
 				{SQLDate{now}, SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{SQLDate{now}, SQLString("bac"), 1},
+				{SQLDate{now}, SQLVarchar("bac"), 1},
 				{SQLDate{now}, &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
 				{SQLDate{now}, &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLDate{now}, SQLDate{now.Add(-diff)}, 1},
@@ -995,7 +995,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLTimestamp{now}, SQLBool(false), 1},
 				{SQLTimestamp{now}, SQLNull, 1},
 				{SQLTimestamp{now}, SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{SQLTimestamp{now}, SQLString("bac"), 1},
+				{SQLTimestamp{now}, SQLVarchar("bac"), 1},
 				{SQLTimestamp{now}, &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
 				{SQLTimestamp{now}, &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLTimestamp{now}, SQLTimestamp{now.Add(diff)}, -1},
@@ -1017,7 +1017,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLNull, SQLFloat(1), -1},
 				{SQLNull, SQLBool(false), -1},
 				{SQLNull, SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
-				{SQLNull, SQLString("bac"), -1},
+				{SQLNull, SQLVarchar("bac"), -1},
 				{SQLNull, &SQLValues{[]SQLValue{SQLInt(1)}}, -1},
 				{SQLNull, &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLNull, &SQLValues{[]SQLValue{SQLNull}}, 0},
@@ -1028,23 +1028,23 @@ func TestCompareTo(t *testing.T) {
 			runTests(tests)
 		})
 
-		Convey("Subject: SQLString", func() {
+		Convey("Subject: SQLVarchar", func() {
 			tests := []test{
-				{SQLString("bac"), SQLInt(0), 1},
-				{SQLString("bac"), SQLInt(1), 1},
-				{SQLString("bac"), SQLInt(2), 1},
-				{SQLString("bac"), SQLUint32(1), 1},
-				{SQLString("bac"), SQLFloat(1), 1},
-				{SQLString("bac"), SQLBool(false), -1},
-				{SQLString("bac"), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
-				{SQLString("bac"), SQLString("cba"), -1},
-				{SQLString("bac"), SQLString("bac"), 0},
-				{SQLString("bac"), SQLString("abc"), 1},
-				{SQLString("bac"), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
-				{SQLString("bac"), &SQLValues{[]SQLValue{SQLNone}}, 1},
-				{SQLString("bac"), &SQLValues{[]SQLValue{SQLString("bac")}}, 0},
-				{SQLString("bac"), SQLDate{now}, -1},
-				{SQLString("bac"), SQLTimestamp{now}, -1},
+				{SQLVarchar("bac"), SQLInt(0), 1},
+				{SQLVarchar("bac"), SQLInt(1), 1},
+				{SQLVarchar("bac"), SQLInt(2), 1},
+				{SQLVarchar("bac"), SQLUint32(1), 1},
+				{SQLVarchar("bac"), SQLFloat(1), 1},
+				{SQLVarchar("bac"), SQLBool(false), -1},
+				{SQLVarchar("bac"), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
+				{SQLVarchar("bac"), SQLVarchar("cba"), -1},
+				{SQLVarchar("bac"), SQLVarchar("bac"), 0},
+				{SQLVarchar("bac"), SQLVarchar("abc"), 1},
+				{SQLVarchar("bac"), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
+				{SQLVarchar("bac"), &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLVarchar("bac"), &SQLValues{[]SQLValue{SQLVarchar("bac")}}, 0},
+				{SQLVarchar("bac"), SQLDate{now}, -1},
+				{SQLVarchar("bac"), SQLTimestamp{now}, -1},
 			}
 			runTests(tests)
 		})
@@ -1061,7 +1061,7 @@ func TestCompareTo(t *testing.T) {
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLFloat(0.1), 1},
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLBool(false), -1},
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
-				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLString("abc"), -1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLVarchar("abc"), -1},
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLNone, 1},
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, &SQLValues{[]SQLValue{SQLInt(1)}}, 0},
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, &SQLValues{[]SQLValue{SQLInt(-1)}}, 1},
@@ -1079,7 +1079,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLObjectID(oid2), SQLInt(0), 1},
 				{SQLObjectID(oid2), SQLUint32(1), 1},
 				{SQLObjectID(oid2), SQLFloat(1), 1},
-				{SQLObjectID(oid2), SQLString("cba"), 1},
+				{SQLObjectID(oid2), SQLVarchar("cba"), 1},
 				{SQLObjectID(oid2), SQLBool(false), -1},
 				{SQLObjectID(oid2), SQLBool(true), -1},
 				{SQLObjectID(oid2), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},

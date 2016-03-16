@@ -268,7 +268,7 @@ func MustLoadTestData(dbhost, dbport string, conf testSchema) {
 	}
 }
 
-func TestTableauDemo(t *testing.T) {
+func _TestTableauDemo(t *testing.T) {
 	conf := MustLoadTestSchema("testdata/tableau.yml")
 	MustLoadTestData(testMongoHost, testMongoPort, conf)
 

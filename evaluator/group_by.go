@@ -430,7 +430,7 @@ func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 			// a $sum with $cond and $ifNull.
 			var trans interface{}
 			var ok bool
-			if typedE.Name == "count" && typedE.Exprs[0] == SQLString("*") {
+			if typedE.Name == "count" && typedE.Exprs[0] == SQLVarchar("*") {
 				trans = bson.M{"$sum": 1}
 			} else if typedE.Name == "count" {
 				trans, ok = TranslateExpr(typedE.Exprs[0], v.lookupFieldName)

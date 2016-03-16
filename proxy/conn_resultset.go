@@ -12,7 +12,7 @@ import (
 func formatValue(value interface{}) ([]byte, error) {
 	switch v := value.(type) {
 
-	case evaluator.SQLString:
+	case evaluator.SQLVarchar:
 		return hack.Slice(string(v)), nil
 	case evaluator.SQLObjectID:
 		return hack.Slice(string(v)), nil
@@ -111,7 +111,7 @@ func formatField(field *Field, value interface{}) error {
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
-	case evaluator.SQLString:
+	case evaluator.SQLVarchar:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
 	case evaluator.SQLObjectID:

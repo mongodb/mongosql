@@ -64,7 +64,7 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 	switch expr := e.(type) {
 
-	case nil, SQLString, SQLNullValue:
+	case nil, SQLVarchar, SQLNullValue:
 
 		return e, nil
 
@@ -152,7 +152,7 @@ func (af *aggFunctionFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 	switch typedE := e.(type) {
 
-	case *SQLExistsExpr, SQLColumnExpr, SQLNullValue, SQLNumeric, SQLString, *SQLSubqueryExpr:
+	case *SQLExistsExpr, SQLColumnExpr, SQLNullValue, SQLNumeric, SQLVarchar, *SQLSubqueryExpr:
 
 		return e, nil
 
