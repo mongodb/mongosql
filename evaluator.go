@@ -12,10 +12,11 @@ import (
 type Evaluator struct {
 	config  *schema.Schema
 	session *mgo.Session
+	options Options
 }
 
-func NewEvaluator(cfg *schema.Schema) (*Evaluator, error) {
-	info, err := evaluator.GetDialInfo(cfg)
+func NewEvaluator(cfg *schema.Schema, opts Options) (*Evaluator, error) {
+	info, err := GetDialInfo(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +28,7 @@ func NewEvaluator(cfg *schema.Schema) (*Evaluator, error) {
 
 	session.SetSocketTimeout(0)
 
-	return &Evaluator{cfg, session}, nil
+	return &Evaluator{cfg, session, opts}, nil
 }
 
 // Session returns a copy of the evaluator's session.

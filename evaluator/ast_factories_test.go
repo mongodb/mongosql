@@ -272,21 +272,21 @@ func TestNewSQLExpr(t *testing.T) {
 	})
 
 	Convey("Simple WHERE with explicit table names", t, func() {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where bar.a = 'eliot'")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLString("eliot")})
 	})
 	Convey("Simple WHERE with implicit table names", t, func() {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where a = 'eliot'")
 		So(err, ShouldBeNil)
 		So(matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{"bar", "a"}, SQLString("eliot")})
 	})
 	Convey("WHERE with complex nested matching clauses", t, func() {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where NOT((a = 'eliot') AND (b>1 OR a<'blah'))")
 		So(err, ShouldBeNil)
@@ -301,7 +301,7 @@ func TestNewSQLExpr(t *testing.T) {
 		})
 	})
 	Convey("WHERE with complex nested matching clauses", t, func() {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where NOT((a = 'eliot') AND (b>13 OR a<'blah'))")
 		So(err, ShouldBeNil)

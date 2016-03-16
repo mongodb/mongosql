@@ -58,19 +58,17 @@ type testSchema struct {
 	TestCases []testCase         `yaml:"testcases"`
 }
 
-func testServer(cfg *schema.Schema) (*proxy.Server, error) {
+func testServer(cfg *schema.Schema, opts sqlproxy.Options) (*proxy.Server, error) {
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
-		cfg.SSL = &schema.SSL{
-			AllowInvalidCerts: true,
-			PEMKeyFile:        testClientPEMFile,
-		}
-
+		opts.MongoSSL = true
+		opts.MongoAllowInvalidCerts = true
+		opts.MongoPEMFile = testClientPEMFile
 	}
-	evaluator, err := sqlproxy.NewEvaluator(cfg)
+	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)
 	if err != nil {
 		return nil, err
 	}
-	return proxy.NewServer(cfg, evaluator)
+	return proxy.NewServer(cfg, evaluator, opts)
 }
 
 func buildSchemaMaps(conf *schema.Schema) {
@@ -100,7 +98,7 @@ func restoreBSON(host, port, file string) error {
 		toolsdb.GetConnectorFuncs = append(toolsdb.GetConnectorFuncs,
 			func(opts options.ToolOptions) toolsdb.DBConnector {
 				if opts.SSL.UseSSL {
-					return &evaluator.SSLDBConnector{}
+					return &sqlproxy.SSLDBConnector{}
 				}
 				return nil
 			},
@@ -205,12 +203,14 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error {
 	// make a test server using the embedded database
 	cfg := &schema.Schema{
-		Addr:         testDBAddr,
-		Url:          fmt.Sprintf("mongodb://%v:%v", dbhost, dbport),
 		RawDatabases: conf.Databases,
 	}
+	opts := sqlproxy.Options{
+		Addr:     testDBAddr,
+		MongoURI: fmt.Sprintf("mongodb://%v:%v", dbhost, dbport),
+	}
 	buildSchemaMaps(cfg)
-	s, err := testServer(cfg)
+	s, err := testServer(cfg, opts)
 	if err != nil {
 		return err
 	}
@@ -277,13 +277,15 @@ func TestBlackBox(t *testing.T) {
 	conf := MustLoadTestSchema(pathify("testdata", "blackbox.yml"))
 	MustLoadTestData(testMongoHost, testMongoPort, conf)
 
+	opts := sqlproxy.Options{
+		Addr:     testDBAddr,
+		MongoURI: fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort),
+	}
 	cfg := &schema.Schema{
-		Addr:         testDBAddr,
-		Url:          fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort),
 		RawDatabases: conf.Databases,
 	}
 	buildSchemaMaps(cfg)
-	s, err := testServer(cfg)
+	s, err := testServer(cfg, opts)
 	if err != nil {
 		panic(err)
 	}

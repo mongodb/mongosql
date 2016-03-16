@@ -53,7 +53,7 @@ func TestEvaluates(t *testing.T) {
 	}
 
 	runTests := func(ctx *EvalCtx, tests []test) {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be %v", t.sql, t.result), func() {
@@ -649,7 +649,7 @@ func TestOptimizeSQLExpr(t *testing.T) {
 	}
 
 	runTests := func(tests []test) {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
@@ -698,7 +698,7 @@ func TestTranslatePredicate(t *testing.T) {
 	}
 
 	runTests := func(tests []test) {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
 		lookupFieldType := createFieldTypeLookup(schema.Databases["test"])
@@ -724,7 +724,7 @@ func TestTranslatePredicate(t *testing.T) {
 	}
 
 	runPartialTests := func(tests []partialTest) {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
 		lookupFieldType := createFieldTypeLookup(schema.Databases["test"])
@@ -794,7 +794,7 @@ func TestTranslateExpr(t *testing.T) {
 	}
 
 	runTests := func(tests []test) {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
 		So(err, ShouldBeNil)
 		for _, t := range tests {

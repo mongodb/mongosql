@@ -13,6 +13,7 @@ import (
 type Server struct {
 	cfg  *schema.Schema
 	eval *sqlproxy.Evaluator
+	opts sqlproxy.Options
 
 	running bool
 
@@ -25,27 +26,27 @@ func (s *Server) GetDatabases() map[string]*schema.Database {
 	return s.databases
 }
 
-func NewServer(cfg *schema.Schema, eval *sqlproxy.Evaluator) (*Server, error) {
-	s := new(Server)
-
-	s.cfg = cfg
-	s.eval = eval
-	s.running = false
-
-	s.databases = cfg.Databases
+func NewServer(cfg *schema.Schema, eval *sqlproxy.Evaluator, opts sqlproxy.Options) (*Server, error) {
+	s := &Server{
+		cfg:       cfg,
+		eval:      eval,
+		running:   false,
+		databases: cfg.Databases,
+		opts:      opts,
+	}
 
 	var err error
 	netProto := "tcp"
 	if strings.Contains(netProto, "/") {
 		netProto = "unix"
 	}
-	s.listener, err = net.Listen(netProto, cfg.Addr)
+	s.listener, err = net.Listen(netProto, opts.Addr)
 
 	if err != nil {
 		return nil, err
 	}
 
-	log.Logf(log.Always, "Server run MySql Protocol Listen(%s) at [%s]", netProto, cfg.Addr)
+	log.Logf(log.Always, "Server run MySql Protocol Listen(%s) at [%s]", netProto, opts.Addr)
 	return s, nil
 }
 

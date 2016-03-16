@@ -19,7 +19,7 @@ func TestNewParseCtx(t *testing.T) {
 
 			stmt, ok := raw.(*sqlparser.Select)
 			So(ok, ShouldBeTrue)
-			cfg, err := schema.ParseSchemaData(testSchema2)
+			cfg, err := schema.New(testSchema2)
 			So(err, ShouldBeNil)
 			ctx, err := NewParseCtx(stmt, cfg, dbOne)
 			So(err, ShouldBeNil)

@@ -20,8 +20,6 @@ var (
 
 	testSchemaSimple = []byte(
 		`
-url: localhost
-log_level: vv
 schema:
 -
   db: test
@@ -83,21 +81,21 @@ type testEnv struct {
 }
 
 func setupEnv(t *testing.T) *testEnv {
-	var schemaData []byte
+	testOpts := Options{MongoURI: "localhost"}
 	// ssl is turned on
 	if len(os.Getenv(SSLTestKey)) > 0 {
 		t.Logf("Testing with SSL turned on.")
-		schemaData = []byte(string(evaluator.TestSchemaSSLPrefix) + string(testSchemaSimple))
-	} else {
-		schemaData = testSchemaSimple
+		testOpts.MongoAllowInvalidCerts = true
+		testOpts.MongoPEMFile = "testdata/client.pem"
+		testOpts.MongoSSL = true
 	}
-	cfg, err := schema.ParseSchemaData(schemaData)
+	cfg, err := schema.New(testSchemaSimple)
 	if err != nil {
 		t.Fatalf("failed to parse schema: %v", err)
 		return nil
 	}
 
-	eval, err := NewEvaluator(cfg)
+	eval, err := NewEvaluator(cfg, testOpts)
 	if err != nil {
 		t.Fatalf("failed to create evaluator: %v", err)
 		return nil

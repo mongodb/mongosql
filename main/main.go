@@ -1,18 +1,17 @@
 package main
 
 import (
-	"flag"
+	"fmt"
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/proxy"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/jessevdk/go-flags"
 	"github.com/mongodb/mongo-tools/common/log"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 )
-
-var configFile *string = flag.String("config", "/etc/bi-connector.conf", "bi-connector config file")
 
 type LogLevel struct {
 	level string
@@ -39,23 +38,38 @@ func (ll *LogLevel) Level() int {
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	flag.Parse()
-
-	if len(*configFile) == 0 {
-		log.Logf(log.Always, "must use a config file")
-		return
-	}
-
-	cfg, err := schema.ParseSchemaFile(*configFile)
+	opts := sqlproxy.Options{}
+	_, err := flags.Parse(&opts)
 	if err != nil {
-		log.Logf(log.Always, "error parsing config file")
-		log.Logf(log.Always, err.Error())
-		return
+		log.Logf(log.Always, "failed to parse args: %v", err)
+		os.Exit(1)
 	}
 
-	log.SetVerbosity(&LogLevel{level: cfg.LogLevel})
+	err = opts.Validate()
+	if err != nil {
+		log.Logf(log.Always, "invalid options: %v", err)
+		os.Exit(1)
+	}
 
-	evaluator, err := sqlproxy.NewEvaluator(cfg)
+	cfg := &schema.Schema{}
+	if len(opts.Schema) > 0 {
+		err = cfg.LoadFile(opts.Schema)
+		if err != nil {
+			log.Logf(log.Always, "failed to load schema: %v", err)
+			os.Exit(1)
+		}
+	}
+	if len(opts.SchemaDir) > 0 {
+		err = cfg.LoadDir(opts.SchemaDir)
+		if err != nil {
+			log.Logf(log.Always, "failed to load schema: %v", err)
+			os.Exit(1)
+		}
+	}
+
+	log.SetVerbosity(opts)
+
+	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)
 	if err != nil {
 		log.Logf(log.Always, "error starting evaluator")
 		log.Logf(log.Always, err.Error())
@@ -63,7 +77,7 @@ func main() {
 	}
 
 	var svr *proxy.Server
-	svr, err = proxy.NewServer(cfg, evaluator)
+	svr, err = proxy.NewServer(cfg, evaluator, opts)
 	if err != nil {
 		log.Logf(log.Always, "error starting server")
 		log.Logf(log.Always, err.Error())
@@ -83,7 +97,7 @@ func main() {
 		svr.Close()
 	}()
 
-	log.Logf(log.Info, "Going to start running on %s.", cfg.Addr)
+	log.Logf(log.Info, "Going to start running on %s.", opts.Addr)
 
 	svr.Run()
 }

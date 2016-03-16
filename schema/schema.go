@@ -2,6 +2,10 @@ package schema
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/util"
@@ -67,28 +71,8 @@ type (
 	}
 
 	Schema struct {
-		Addr     string `yaml:"addr"`
-		User     string `yaml:"user"`
-		Password string `yaml:"password"`
-		LogLevel string `yaml:"log_level"`
-		SSL      *SSL   `yaml:"ssl"`
-
-		Url       string `yaml:"url"`
-		SchemaDir string `yaml:"schema_dir"`
-
 		RawDatabases []*Database          `yaml:"schema"`
 		Databases    map[string]*Database `yaml:"-"`
-	}
-
-	SSL struct {
-		// Don't require the certificate presented by the server to be valid
-		AllowInvalidCerts bool `yaml:"allow_invalid_certs"`
-
-		// Path to file containing cert and private key to present to the server
-		PEMKeyFile string `yaml:"pem_key_file"`
-
-		// File containing CA Certs - may be left blank if AllowInvalidCerts is true.
-		CAFile string `yaml:"ca_file"`
 	}
 )
 
@@ -174,13 +158,152 @@ func (c *Column) validateType() error {
 	return nil
 }
 
-func (t *Table) fixTypes() error {
+func (t *Table) validateColumnTypes() error {
 	for _, c := range t.RawColumns {
 		err := c.validateType()
 		if err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func New(data []byte) (*Schema, error) {
+	s := &Schema{}
+	err := s.Load(data)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+// LoadFile loads schema settings from a YML file.
+func (s *Schema) LoadFile(filename string) error {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+	return s.Load(data)
+}
+
+// LoadFile loads schema settings from YML data in a byte slice.
+func (s *Schema) Load(data []byte) error {
+	if s.Databases == nil {
+		s.Databases = make(map[string]*Database)
+	}
+
+	var theirs Schema
+	if err := yaml.Unmarshal([]byte(data), &theirs); err != nil {
+		return err
+	}
+
+	theirs.Databases = make(map[string]*Database)
+
+	for _, db := range theirs.RawDatabases {
+		if _, ok := theirs.Databases[db.Name]; ok {
+			return fmt.Errorf("duplicate database in schema data: '%s'", db.Name)
+		}
+
+		if err := PopulateColumnMaps(db); err != nil {
+			return err
+		}
+
+		theirs.Databases[db.Name] = db
+	}
+
+	for name, schema := range theirs.Databases {
+		ours := s.Databases[name]
+
+		if ours == nil {
+			// The entire DB is missing, copy the whole thing in.
+			s.Databases[name] = schema
+			s.RawDatabases = append(s.RawDatabases, schema)
+		} else {
+			// The schema being loaded refers to a DB that is already loaded
+			// in the current schema. Need to merge tables.
+			for table, tableSchema := range schema.Tables {
+				if ours.Tables[table] != nil {
+					return fmt.Errorf("table config conflict in db: %s table: %s", name, table)
+				}
+
+				ours.Tables[table] = tableSchema
+				ours.RawTables = append(ours.RawTables, tableSchema)
+			}
+		}
+		if err := PopulateColumnMaps(s.Databases[name]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// LoadFile loads schema settings from YML data in all files inside the given directory.
+func (s *Schema) LoadDir(root string) error {
+	files, err := ioutil.ReadDir(root)
+	if err != nil {
+		return err
+	}
+
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		if strings.ContainsAny(f.Name(), "#~") {
+			continue
+		}
+
+		fullPath := filepath.Join(root, f.Name())
+		err = s.LoadFile(fullPath)
+		if err != nil {
+			return fmt.Errorf("in schema file %v: %v", fullPath, err)
+		}
+	}
+	return nil
+}
+
+func PopulateColumnMaps(db *Database) error {
+	db.Tables = make(map[string]*Table)
+
+	for _, tbl := range db.RawTables {
+		if len(strings.SplitN(tbl.FQNS, ".", 2)) != 2 {
+			return fmt.Errorf("invalid collection mapping '%v' (must contain '.') in db '%s' on table '%s'", tbl.FQNS, db.Name, tbl.Name)
+		}
+
+		err := tbl.validateColumnTypes()
+		if err != nil {
+			return err
+		}
+
+		// TODO: consider lowercasing table names in config since we do
+		// that in the query planner in constructing the TableScan node.
+		if _, ok := db.Tables[tbl.Name]; ok {
+			return fmt.Errorf("duplicate table [%s].", tbl.Name)
+		}
+
+		db.Tables[tbl.Name] = tbl
+
+		tbl.Columns = make(map[string]*Column)
+		tbl.SQLColumns = make(map[string]*Column)
+
+		for _, c := range tbl.RawColumns {
+
+			if c.SqlName == "" {
+				c.SqlName = c.Name
+			}
+
+			if c.SqlName == "" {
+				return fmt.Errorf("table [%s] has column with no name.", tbl.Name)
+			}
+
+			if _, ok := tbl.Columns[c.Name]; ok {
+				return fmt.Errorf("duplicate column [%s].", c.Name)
+			}
+
+			tbl.Columns[c.Name] = c
+			tbl.SQLColumns[c.SqlName] = c
+		}
+	}
+
 	return nil
 }
 
@@ -193,61 +316,6 @@ func Must(c *Schema, err error) *Schema {
 		panic(err)
 	}
 	return c
-}
-
-func (c *Schema) ingestSubFile(data []byte) error {
-	temp, err := ParseSchemaData(data)
-	if err != nil {
-		return err
-	}
-
-	if len(temp.Addr) > 0 {
-		return fmt.Errorf("cannot set addr in sub file")
-	}
-
-	if len(temp.User) > 0 {
-		return fmt.Errorf("cannot set user in sub file")
-	}
-
-	if len(temp.Password) > 0 {
-		return fmt.Errorf("cannot set password in sub file")
-	}
-
-	if len(temp.LogLevel) > 0 {
-		return fmt.Errorf("cannot set log_level in sub file")
-	}
-
-	if len(temp.Url) > 0 {
-		return fmt.Errorf("cannot set url in sub file")
-	}
-
-	if len(temp.SchemaDir) > 0 {
-		return fmt.Errorf("cannot set schema_dir in sub file")
-	}
-
-	for name, schema := range temp.Databases {
-
-		ours := c.Databases[name]
-
-		if ours == nil {
-			// entire db missing
-			c.Databases[name] = schema
-			c.RawDatabases = append(c.RawDatabases, schema)
-			continue
-		}
-
-		// have to merge tables
-		for table, tableSchema := range schema.Tables {
-			if ours.Tables[table] != nil {
-				return fmt.Errorf("table config conflict in db: %s table: %s", name, table)
-			}
-
-			ours.Tables[table] = tableSchema
-			ours.RawTables = append(ours.RawTables, tableSchema)
-		}
-	}
-
-	return nil
 }
 
 // CanCompare returns true if sqlValue can be converted to a

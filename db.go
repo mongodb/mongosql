@@ -1,21 +1,16 @@
-package evaluator
+package sqlproxy
 
 import (
 	"crypto/tls"
-	"crypto/x509"
-	"fmt"
-	"github.com/10gen/sqlproxy/schema"
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"
-	"io/ioutil"
 	"net"
 	"strings"
 )
 
 type SessionProvider struct {
-	cfg           *schema.Schema
 	globalSession *mgo.Session
 }
 
@@ -70,68 +65,10 @@ func (ssldbc *SSLDBConnector) GetNewSession() (*mgo.Session, error) {
 	return session, err
 }
 
-// GetDialInfo populates a *mgo.DialInfo object according to
-// the settings present in a *schema.Schema object.
-// If SSL is enabled, will parse out the relevant SSL config fields
-// to construct a tls.Config and use it to replace the DialServer method
-// with one that uses tls.Dial.
-func GetDialInfo(cfg *schema.Schema) (*mgo.DialInfo, error) {
-	dialInfo, err := mgo.ParseURL(cfg.Url)
-	if err != nil {
-		return nil, err
-	}
-	if cfg.SSL != nil {
-		var certs []tls.Certificate
-		var rootCA *x509.CertPool
-		if len(cfg.SSL.PEMKeyFile) > 0 {
-			// assume same file includes both private key and cert data.
-			cert, err := tls.LoadX509KeyPair(cfg.SSL.PEMKeyFile, cfg.SSL.PEMKeyFile)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load pem key file '%v': %v", cfg.SSL.PEMKeyFile, err)
-			}
-			certs = append(certs, cert)
-		}
-
-		if len(cfg.SSL.CAFile) > 0 {
-			caCert, err := ioutil.ReadFile(cfg.SSL.CAFile)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load CA file '%v': %v", cfg.SSL.CAFile)
-			}
-			rootCA = x509.NewCertPool()
-			ok := rootCA.AppendCertsFromPEM(caCert)
-			if !ok {
-				return nil, fmt.Errorf("unable to append valid cert from PEM file '%v'", cfg.SSL.CAFile)
-			}
-		}
-
-		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
-
-			sslConf := &tls.Config{
-				// in the future, certificates could be included here to allow x509 auth.
-				Certificates:       certs,
-				RootCAs:            rootCA,
-				InsecureSkipVerify: cfg.SSL.AllowInvalidCerts,
-			}
-			var err error
-			sslConf.ServerName, _, err = net.SplitHostPort(addr.String())
-			if err != nil {
-				return nil, err
-			}
-			if sslConf.ServerName == "" {
-				sslConf.ServerName = "localhost"
-			}
-			c, err := tls.Dial("tcp", addr.String(), sslConf)
-			return c, err
-		}
-	}
-	return dialInfo, nil
-}
-
-func NewSessionProvider(cfg *schema.Schema) (*SessionProvider, error) {
+func NewSessionProvider(opts Options) (*SessionProvider, error) {
 	e := new(SessionProvider)
-	e.cfg = cfg
 
-	info, err := GetDialInfo(cfg)
+	info, err := GetDialInfo(opts)
 	if err != nil {
 		return nil, err
 	}
