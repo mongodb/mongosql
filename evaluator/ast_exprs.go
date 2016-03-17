@@ -239,7 +239,7 @@ func (se *SQLSubqueryExpr) String() string {
 }
 
 func (se *SQLSubqueryExpr) Type() schema.SQLType {
-	return preferentialType(se.exprs...)
+	return schema.SQLTuple
 }
 
 //
@@ -277,5 +277,5 @@ func (te SQLTupleExpr) String() string {
 }
 
 func (te SQLTupleExpr) Type() schema.SQLType {
-	return preferentialType(te.Exprs...)
+	return schema.SQLTuple
 }

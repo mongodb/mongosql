@@ -27,6 +27,7 @@ const (
 	SQLNull               = "null"
 	SQLNone               = ""
 	SQLObjectID           = "objectid"
+	SQLTuple              = "sqltuple"
 )
 
 const (
@@ -249,15 +250,22 @@ func (c *Schema) ingestSubFile(data []byte) error {
 	return nil
 }
 
+// isComparableType returns true if any of the types
+// in sqlTypes can be compared with any other type.
+func isComparableType(sqlTypes ...SQLType) bool {
+	for _, sqlType := range sqlTypes {
+		if sqlType == SQLNull || sqlType == SQLNone || sqlType == SQLTuple {
+			return true
+		}
+	}
+	return false
+}
+
 // CanCompare returns true if sqlValue can be converted to a
 // value comparable to mType.
 func CanCompare(leftType, rightType SQLType) bool {
 
-	if leftType == SQLNull || rightType == SQLNull {
-		return true
-	}
-
-	if leftType == SQLNone || rightType == SQLNone {
+	if isComparableType(leftType, rightType) {
 		return true
 	}
 

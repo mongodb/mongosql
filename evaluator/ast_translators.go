@@ -568,6 +568,13 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 
 		var exprs []SQLExpr
 
+		// The right child could be a non-SQLValues SQLValue
+		// if OptimizeExpr optimizes away the tuple. For
+		// example in these sorts of cases: (1) or (8-7).
+		// It could be of type *SQLValues when each of the
+		// expressions in the tuple are evaluated to a SQLValue.
+		// Finally, it could be of type *SQLTupleExpr when
+		// OptimizeExpr yielded no change.
 		sqlValue, isSQLValue := typedE.right.(SQLValue)
 		sqlValues, isSQLValues := typedE.right.(*SQLValues)
 		sqlTupleExpr, isSQLTupleExpr := typedE.right.(*SQLTupleExpr)

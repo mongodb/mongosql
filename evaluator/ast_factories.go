@@ -83,16 +83,6 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLInt(v), nil
 		case time.Time:
 			return newSQLTimeValue(v, mongoType)
-		case []interface{}:
-			sqlValue := &SQLValues{}
-			for _, iVal := range v {
-				value, err := NewSQLValue(iVal, sqlType, mongoType)
-				if err != nil {
-					return nil, err
-				}
-				sqlValue.Values = append(sqlValue.Values, value)
-			}
-			return sqlValue, nil
 		default:
 			panic(fmt.Errorf("can't convert this type to a SQLValue: %T", v))
 		}
@@ -109,17 +99,6 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			}
 		case nil:
 			return SQLNull, nil
-		case []interface{}:
-			sqlValue := &SQLValues{}
-
-			for _, iVal := range v {
-				value, err := NewSQLValue(iVal, sqlType, mongoType)
-				if err != nil {
-					return nil, err
-				}
-				sqlValue.Values = append(sqlValue.Values, value)
-			}
-			return sqlValue, nil
 		}
 	case schema.SQLInt64:
 		switch v := value.(type) {
@@ -130,17 +109,6 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			}
 		case nil:
 			return SQLNull, nil
-		case []interface{}:
-			sqlValue := &SQLValues{}
-
-			for _, iVal := range v {
-				value, err := NewSQLValue(iVal, sqlType, mongoType)
-				if err != nil {
-					return nil, err
-				}
-				sqlValue.Values = append(sqlValue.Values, value)
-			}
-			return sqlValue, nil
 		}
 
 	case schema.SQLVarchar:
@@ -177,17 +145,6 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLVarchar(v.String()), nil
 		case nil:
 			return SQLNull, nil
-		case []interface{}:
-			sqlValue := &SQLValues{}
-
-			for _, iVal := range v {
-				value, err := NewSQLValue(iVal, sqlType, mongoType)
-				if err != nil {
-					return nil, err
-				}
-				sqlValue.Values = append(sqlValue.Values, value)
-			}
-			return sqlValue, nil
 		default:
 			return SQLVarchar(reflect.ValueOf(v).String()), nil
 		}
@@ -201,17 +158,6 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLFalse, nil
 		case nil:
 			return SQLNull, nil
-		case []interface{}:
-			sqlValue := &SQLValues{}
-
-			for _, iVal := range v {
-				value, err := NewSQLValue(iVal, sqlType, mongoType)
-				if err != nil {
-					return nil, err
-				}
-				sqlValue.Values = append(sqlValue.Values, value)
-			}
-			return sqlValue, nil
 		}
 
 	case schema.SQLFloat, schema.SQLNumeric:
@@ -223,23 +169,17 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			}
 		case nil:
 			return SQLNull, nil
-		case []interface{}:
-			sqlValue := &SQLValues{}
-
-			for _, iVal := range v {
-				value, err := NewSQLValue(iVal, sqlType, mongoType)
-				if err != nil {
-					return nil, err
-				}
-				sqlValue.Values = append(sqlValue.Values, value)
-			}
-			return sqlValue, nil
 		}
 
 	case schema.SQLDate:
 		var date time.Time
 		switch v := value.(type) {
 		case string:
+			// SQLProxy only allows for converting strings to
+			// time objects during pushdown or when performing
+			// in-memory processing. Otherwise, string data
+			// coming from MongoDB can not be treated like a
+			// time object.
 			if mongoType != schema.MongoNone {
 				break
 			}
@@ -256,17 +196,6 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLDate{date}, nil
 		case nil:
 			return SQLNull, nil
-		case []interface{}:
-			sqlValue := &SQLValues{}
-
-			for _, iVal := range v {
-				value, err := NewSQLValue(iVal, sqlType, mongoType)
-				if err != nil {
-					return nil, err
-				}
-				sqlValue.Values = append(sqlValue.Values, value)
-			}
-			return sqlValue, nil
 		}
 
 	case schema.SQLTimestamp:
@@ -288,17 +217,6 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLTimestamp{v.In(schema.DefaultLocale)}, nil
 		case nil:
 			return SQLNull, nil
-		case []interface{}:
-			sqlValue := &SQLValues{}
-
-			for _, iVal := range v {
-				value, err := NewSQLValue(iVal, sqlType, mongoType)
-				if err != nil {
-					return nil, err
-				}
-				sqlValue.Values = append(sqlValue.Values, value)
-			}
-			return sqlValue, nil
 		}
 	}
 
@@ -384,52 +302,70 @@ func NewSQLExpr(gExpr sqlparser.Expr, tables map[string]*schema.Table) (SQLExpr,
 			return nil, err
 		}
 
-		left, right, err = reconcileSQLExprs(left, right)
-		if err != nil {
-			return nil, err
-		}
-
 		switch expr.Operator {
 		case sqlparser.AST_EQ:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
 			return &SQLEqualsExpr{left, right}, nil
 		case sqlparser.AST_LT:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
 			return &SQLLessThanExpr{left, right}, nil
 		case sqlparser.AST_GT:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
 			return &SQLGreaterThanExpr{left, right}, nil
 		case sqlparser.AST_LE:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
 			return &SQLLessThanOrEqualExpr{left, right}, nil
 		case sqlparser.AST_GE:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
 			return &SQLGreaterThanOrEqualExpr{left, right}, nil
 		case sqlparser.AST_NE:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
 			return &SQLNotEqualsExpr{left, right}, nil
 		case sqlparser.AST_LIKE:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
 			return &SQLLikeExpr{left, right}, nil
 		case sqlparser.AST_IN:
-			switch eval := right.(type) {
-			case *SQLSubqueryExpr:
-				if !schema.CanCompare(left.Type(), eval.Type()) {
-					return nil, fmt.Errorf("cannot compare %v type against %v type", left.Type(), eval.Type())
-				}
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
+
+			if eval, ok := right.(*SQLSubqueryExpr); ok {
 				return &SQLSubqueryCmpExpr{true, left, eval}, nil
 			}
 
-			left, right, err = reconcileSQLExprs(left, right)
-			if err != nil {
-				return nil, err
-			}
 			return &SQLInExpr{left, right}, nil
 		case sqlparser.AST_NOT_IN:
-			switch eval := right.(type) {
-			case *SQLSubqueryExpr:
-				if !schema.CanCompare(left.Type(), eval.Type()) {
-					return nil, fmt.Errorf("cannot compare %v type against %v type", left.Type(), eval.Type())
-				}
-				return &SQLSubqueryCmpExpr{false, left, eval}, nil
-			}
 			left, right, err = reconcileSQLExprs(left, right)
 			if err != nil {
 				return nil, err
 			}
+
+			if eval, ok := right.(*SQLSubqueryExpr); ok {
+				return &SQLSubqueryCmpExpr{true, left, eval}, nil
+			}
+
 			return &SQLNotExpr{&SQLInExpr{left, right}}, nil
 		default:
 			return nil, fmt.Errorf("sql where clause not implemented: %s", expr.Operator)

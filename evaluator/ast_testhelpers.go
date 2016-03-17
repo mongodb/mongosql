@@ -42,6 +42,43 @@ func constructOrderByKeys(exprs map[string]SQLExpr, values ...string) (keys []or
 	return
 }
 
+func getBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
+	switch typedE := expr.(type) {
+	case *SQLAndExpr:
+		return typedE.left, typedE.right
+	case *SQLAddExpr:
+		return typedE.left, typedE.right
+	case *SQLSubtractExpr:
+		return typedE.left, typedE.right
+	case *SQLMultiplyExpr:
+		return typedE.left, typedE.right
+	case *SQLDivideExpr:
+		return typedE.left, typedE.right
+	case *SQLEqualsExpr:
+		return typedE.left, typedE.right
+	case *SQLLessThanExpr:
+		return typedE.left, typedE.right
+	case *SQLGreaterThanExpr:
+		return typedE.left, typedE.right
+	case *SQLLessThanOrEqualExpr:
+		if v, ok := typedE.right.(*SQLSubqueryExpr); ok {
+			return typedE.left, &SQLTupleExpr{v.exprs}
+		}
+		return typedE.left, typedE.right
+	case *SQLGreaterThanOrEqualExpr:
+		return typedE.left, typedE.right
+	case *SQLLikeExpr:
+		return typedE.left, typedE.right
+	case *SQLSubqueryExpr:
+		return nil, &SQLTupleExpr{typedE.exprs}
+	case *SQLSubqueryCmpExpr:
+		return typedE.left, &SQLTupleExpr{typedE.value.exprs}
+	case *SQLInExpr:
+		return typedE.left, typedE.right
+	}
+	return nil, nil
+}
+
 func getWhereSQLExprFromSQL(schema *schema.Schema, sql string) (SQLExpr, error) {
 	// Parse the statement, algebrize it, extract the WHERE clause and build a matcher from it.
 	raw, err := sqlparser.Parse(sql)

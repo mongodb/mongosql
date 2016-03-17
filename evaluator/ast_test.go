@@ -659,11 +659,11 @@ func TestOptimizeSQLExpr(t *testing.T) {
 			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
 			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
 			test{"3 + 3 = 6", "true", SQLTrue},
-			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLFloat(3)}},
+			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
 			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
 			test{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
 				&SQLAndExpr{
-					&SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLFloat(3)},
+					&SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)},
 					&SQLEqualsExpr{SQLColumnExpr{"bar", "b", columnTypeInt}, SQLInt(2)}}},
 			test{"3 + 3 = 6 OR a = 3", "true", SQLTrue},
 			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
@@ -671,10 +671,68 @@ func TestOptimizeSQLExpr(t *testing.T) {
 			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
 			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeInt}, SQLInt(3)}},
 			test{"DAYNAME('2016-1-1')", "Friday", SQLVarchar("Friday")},
+			test{"(8-7)", "1", SQLInt(1)},
 		}
 
 		runTests(tests)
 	})
+}
+
+func TestReconcileSQLExpr(t *testing.T) {
+
+	type test struct {
+		sql             string
+		reconciledLeft  SQLExpr
+		reconciledRight SQLExpr
+	}
+
+	columnTypeInt := schema.ColumnType{schema.SQLInt, schema.MongoInt}
+	columnTypeDate := schema.ColumnType{schema.SQLTimestamp, schema.MongoDate}
+
+	runTests := func(tests []test) {
+		schema, err := schema.ParseSchemaData(testSchema3)
+		So(err, ShouldBeNil)
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%q should be reconciled to %#v and %#v", t.sql, t.reconciledLeft, t.reconciledRight), func() {
+				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
+				So(err, ShouldBeNil)
+				left, right := getBinaryExprLeaves(e)
+				left, right, err = reconcileSQLExprs(left, right)
+				So(err, ShouldBeNil)
+				So(left, ShouldResemble, t.reconciledLeft)
+				So(right, ShouldResemble, t.reconciledRight)
+			})
+		}
+	}
+
+	exprConv := &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLTimestamp}
+	exprTime := &SQLScalarFunctionExpr{"current_timestamp", []SQLExpr{}}
+	exprA := SQLColumnExpr{"bar", "a", columnTypeInt}
+	exprB := SQLColumnExpr{"bar", "b", columnTypeInt}
+	exprG := SQLColumnExpr{"bar", "g", columnTypeDate}
+
+	Convey("Subject: reconcileSQLExpr", t, func() {
+
+		tests := []test{
+			test{"a = 3", exprA, SQLInt(3)},
+			test{"g - '2010-01-01'", exprG, exprConv},
+			test{"a in (3)", exprA, &SQLTupleExpr{[]SQLExpr{SQLInt(3)}}},
+			test{"a in (2,3)", exprA, &SQLTupleExpr{[]SQLExpr{SQLInt(2), SQLInt(3)}}},
+			test{"(a) in (3)", &SQLTupleExpr{[]SQLExpr{exprA}}, &SQLTupleExpr{[]SQLExpr{SQLInt(3)}}},
+			test{"(a,b) in (2,3)", &SQLTupleExpr{[]SQLExpr{exprA, exprB}}, &SQLTupleExpr{[]SQLExpr{SQLInt(2), SQLInt(3)}}},
+			test{"g > '2010-01-01'", exprG, exprConv},
+			test{"a and b", exprA, exprB},
+			test{"a / b", exprA, exprB},
+			test{"'2010-01-01' and g", exprConv, exprG},
+			test{"g in ('2010-01-01',current_timestamp())", exprG, &SQLTupleExpr{[]SQLExpr{exprConv, exprTime}}},
+			test{"g in (select '2010-01-01' from bar)", exprG, &SQLTupleExpr{[]SQLExpr{exprConv}}},
+			test{"(g) in (select '2010-01-01' from bar)", &SQLTupleExpr{[]SQLExpr{exprG}}, &SQLTupleExpr{[]SQLExpr{exprConv}}},
+			test{"(a,g) <= (select b, '2010-01-01' from bar)", &SQLTupleExpr{[]SQLExpr{exprA, exprG}}, &SQLTupleExpr{[]SQLExpr{exprB, exprConv}}},
+		}
+
+		runTests(tests)
+	})
+
 }
 
 func TestTranslatePredicate(t *testing.T) {

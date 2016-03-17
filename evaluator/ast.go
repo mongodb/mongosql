@@ -567,12 +567,22 @@ func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 	leftType, rightType := left.Type(), right.Type()
 
+	_, leftIsTuple := left.(*SQLTupleExpr)
+	_, leftIsSubquery := left.(*SQLSubqueryExpr)
+
+	_, rightIsTuple := right.(*SQLTupleExpr)
+	_, rightIsSubquery := right.(*SQLSubqueryExpr)
+
+	if leftIsTuple || rightIsTuple || leftIsSubquery || rightIsSubquery {
+		return reconcileSQLTuple(left, right)
+	}
+
 	if leftType == rightType {
 		return left, right, nil
 	}
 
 	if !schema.CanCompare(leftType, rightType) {
-		return nil, nil, fmt.Errorf("cannot compare %v type against %v type", leftType, rightType)
+		return nil, nil, fmt.Errorf("cannot compare '%v' type against '%v' type", leftType, rightType)
 	}
 
 	types := schema.SQLTypes{leftType, rightType}
@@ -586,4 +596,149 @@ func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	}
 
 	return left, right, nil
+}
+
+func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
+
+	var getSQLExprs func(expr SQLExpr) ([]SQLExpr, error)
+
+	getSQLExprs = func(expr SQLExpr) ([]SQLExpr, error) {
+		switch typedE := expr.(type) {
+		case *SQLTupleExpr:
+			return typedE.Exprs, nil
+		case *SQLSubqueryExpr:
+			return typedE.exprs, nil
+		}
+		return nil, fmt.Errorf("can not reconcile non-tuple type '%T'", expr)
+	}
+
+	var wrapReconciledExprs func(expr SQLExpr, newExprs []SQLExpr) (SQLExpr, error)
+
+	wrapReconciledExprs = func(expr SQLExpr, newExprs []SQLExpr) (SQLExpr, error) {
+		switch typedE := expr.(type) {
+		case *SQLTupleExpr:
+			return &SQLTupleExpr{newExprs}, nil
+		case *SQLSubqueryExpr:
+			return &SQLSubqueryExpr{typedE.stmt, newExprs}, nil
+		}
+		return nil, fmt.Errorf("can not wrap reconciled non-tuple type '%T'", expr)
+	}
+
+	var leftExprs []SQLExpr
+	var rightExprs []SQLExpr
+	var err error
+
+	if left.Type() == schema.SQLTuple {
+		leftExprs, err = getSQLExprs(left)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	if right.Type() == schema.SQLTuple {
+		rightExprs, err = getSQLExprs(right)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	var newLeftExprs []SQLExpr
+	var newRightExprs []SQLExpr
+
+	// cases here:
+	// (a, b) = (1, 2)
+	// (a) = (1)
+	// (a) = (1, 2)
+	// (a) = (SELECT a FROM foo)
+	if left.Type() == schema.SQLTuple && right.Type() == schema.SQLTuple {
+
+		numLeft, numRight := len(leftExprs), len(rightExprs)
+
+		if numLeft != numRight && numLeft != 1 {
+			return nil, nil, fmt.Errorf("tuple comparison mismatch: expected %v got %v", numLeft, numRight)
+		}
+
+		for i, _ := range rightExprs {
+			leftExpr := leftExprs[0]
+			if numLeft != 1 {
+				leftExpr = leftExprs[i]
+			}
+
+			rightExpr := rightExprs[i]
+
+			newLeftExpr, newRightExpr, err := reconcileSQLExprs(leftExpr, rightExpr)
+			if err != nil {
+				return nil, nil, err
+
+			}
+
+			newRightExprs = append(newRightExprs, newRightExpr)
+			newLeftExprs = append(newLeftExprs, newLeftExpr)
+		}
+
+		if numLeft == 1 {
+			newLeftExprs = newLeftExprs[:1]
+		}
+
+		left, err = wrapReconciledExprs(left, newLeftExprs)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		right, err = wrapReconciledExprs(right, newRightExprs)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return left, right, nil
+	}
+
+	// cases here:
+	// (a) = 1
+	// (SELECT a FROM foo) = 1
+	if left.Type() == schema.SQLTuple && right.Type() != schema.SQLTuple {
+
+		if len(leftExprs) != 1 {
+			return nil, nil, fmt.Errorf("left 'in' operand must have only one value - got %v", len(leftExprs))
+		}
+
+		var newLeftExpr SQLExpr
+
+		newLeftExpr, right, err = reconcileSQLExprs(leftExprs[0], right)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		newLeftExprs = append(newLeftExprs, newLeftExpr)
+
+		left, err = wrapReconciledExprs(left, newLeftExprs)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return left, right, nil
+	}
+
+	// cases here:
+	// a = (1)
+	// a = (SELECT a FROM foo)
+	if left.Type() != schema.SQLTuple && right.Type() == schema.SQLTuple {
+
+		for _, rightExpr := range rightExprs {
+			_, newRightExpr, err := reconcileSQLExprs(left, rightExpr)
+			if err != nil {
+				return nil, nil, err
+			}
+			newRightExprs = append(newRightExprs, newRightExpr)
+		}
+
+		right, err = wrapReconciledExprs(right, newRightExprs)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return left, right, nil
+	}
+
+	return nil, nil, fmt.Errorf("left or right expression must be a tuple")
 }

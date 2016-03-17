@@ -241,7 +241,7 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftChild, ok := left.(*SQLValues)
 	if ok {
 		if len(leftChild.Values) != 1 {
-			return SQLFalse, fmt.Errorf("left operand should contain 1 column")
+			return SQLFalse, fmt.Errorf("left operand should contain 1 column - got %v", len(leftChild.Values))
 		}
 		left = leftChild.Values[0]
 	}

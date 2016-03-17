@@ -248,24 +248,6 @@ func TestNewSQLValue(t *testing.T) {
 				So(err, ShouldNotBeNil)
 			}
 		})
-
-		Convey("a SQLValues column type should attempt to coerce to the SQLValues type", func() {
-
-			values := []interface{}{"2015-2-3", "2014-2-4"}
-
-			value, err := NewSQLValue(values, schema.SQLDate, schema.MongoNone)
-			So(err, ShouldBeNil)
-
-			sqlValues, ok := value.(*SQLValues)
-			So(ok, ShouldBeTrue)
-			So(len(sqlValues.Values), ShouldEqual, 2)
-
-			for i, value := range values {
-				t, err := time.Parse("2006-1-2", value.(string))
-				So(err, ShouldBeNil)
-				So(SQLDate{t}, ShouldResemble, sqlValues.Values[i])
-			}
-		})
 	})
 }
 
