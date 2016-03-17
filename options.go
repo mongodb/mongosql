@@ -41,6 +41,7 @@ func (o Options) Validate() error {
 	if !o.MongoSSL && (len(o.MongoPEMFile) > 0 || len(o.MongoCAFile) > 0 || o.MongoAllowInvalidCerts) {
 		return fmt.Errorf("must specify --mongo-ssl to use SSL options")
 	}
+	return nil
 }
 
 // GetDialInfo populates a *mgo.DialInfo object according to

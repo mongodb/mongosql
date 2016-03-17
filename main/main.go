@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/proxy"
 	"github.com/10gen/sqlproxy/schema"
