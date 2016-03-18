@@ -600,9 +600,7 @@ func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
-	var getSQLExprs func(expr SQLExpr) ([]SQLExpr, error)
-
-	getSQLExprs = func(expr SQLExpr) ([]SQLExpr, error) {
+	getSQLExprs := func(expr SQLExpr) ([]SQLExpr, error) {
 		switch typedE := expr.(type) {
 		case *SQLTupleExpr:
 			return typedE.Exprs, nil
@@ -612,9 +610,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 		return nil, fmt.Errorf("can not reconcile non-tuple type '%T'", expr)
 	}
 
-	var wrapReconciledExprs func(expr SQLExpr, newExprs []SQLExpr) (SQLExpr, error)
-
-	wrapReconciledExprs = func(expr SQLExpr, newExprs []SQLExpr) (SQLExpr, error) {
+	wrapReconciledExprs := func(expr SQLExpr, newExprs []SQLExpr) (SQLExpr, error) {
 		switch typedE := expr.(type) {
 		case *SQLTupleExpr:
 			return &SQLTupleExpr{newExprs}, nil
@@ -648,7 +644,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	// cases here:
 	// (a, b) = (1, 2)
 	// (a) = (1)
-	// (a) = (1, 2)
+	// (a) in (1, 2)
 	// (a) = (SELECT a FROM foo)
 	if left.Type() == schema.SQLTuple && right.Type() == schema.SQLTuple {
 
@@ -722,6 +718,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	// cases here:
 	// a = (1)
 	// a = (SELECT a FROM foo)
+	// a in (1, 2)
 	if left.Type() != schema.SQLTuple && right.Type() == schema.SQLTuple {
 
 		for _, rightExpr := range rightExprs {
