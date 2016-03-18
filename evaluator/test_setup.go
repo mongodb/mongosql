@@ -2,27 +2,19 @@ package evaluator
 
 import (
 	"github.com/10gen/sqlproxy/schema"
-	"os"
 	"testing"
 )
 
 var (
-	dbOne               = "test"
-	dbTwo               = "test2"
-	tableOneName        = "foo"
-	tableTwoName        = "bar"
-	tableThreeName      = "baz"
-	SSLTestKey          = "SQLPROXY_SSLTEST"
-	NoOptimize          = "SQLPROXY_OPTIMIZE_OFF"
-	TestSchemaSSLPrefix = []byte(`
-ssl:
-  allow_invalid_certs: true
-  pem_key_file: "testdata/client.pem"
-`)
+	dbOne          = "test"
+	dbTwo          = "test2"
+	tableOneName   = "foo"
+	tableTwoName   = "bar"
+	tableThreeName = "baz"
+	SSLTestKey     = "SQLPROXY_SSLTEST"
+	NoOptimize     = "SQLPROXY_OPTIMIZE_OFF"
 
 	testSchema1 = []byte(`
-url: localhost
-log_level: vv
 schema:
 -
   db: test
@@ -320,27 +312,7 @@ type testEnv struct {
 }
 
 func setupEnv(t *testing.T) *testEnv {
-	var sch1, sch3 []byte
-	// ssl is turned on
-	if len(os.Getenv(SSLTestKey)) > 0 {
-		t.Logf("Testing with SSL turned on.")
-		sch1 = []byte(string(TestSchemaSSLPrefix) + string(testSchema1))
-		sch3 = []byte(string(TestSchemaSSLPrefix) + string(testSchema3))
-	} else {
-		sch1 = testSchema1
-		sch3 = testSchema3
-	}
-
-	cfgOne, err := schema.ParseSchemaData(sch1)
-	if err != nil {
-		t.Fatalf("error parsing config1: %v", err)
-		return nil
-	}
-
-	cfgThree, err := schema.ParseSchemaData(sch3)
-	if err != nil {
-		t.Fatalf("error parsing config3: %v", err)
-		return nil
-	}
+	cfgOne := schema.Must(schema.New(testSchema1))
+	cfgThree := schema.Must(schema.New(testSchema3))
 	return &testEnv{cfgOne, cfgThree}
 }

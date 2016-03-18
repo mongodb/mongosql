@@ -1,16 +1,32 @@
 package evaluator
 
 import (
+	"os"
 	"testing"
 
+	"github.com/10gen/sqlproxy"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
 
+func getOptions(t *testing.T) sqlproxy.Options {
+	opts := sqlproxy.Options{
+		MongoURI: "localhost",
+	}
+	// ssl is turned on
+	if len(os.Getenv(SSLTestKey)) > 0 {
+		t.Logf("Testing with SSL turned on.")
+		opts.MongoSSL = true
+		opts.MongoAllowInvalidCerts = true
+		opts.MongoPEMFile = "testdata/client.pem"
+	}
+	return opts
+}
+
 func TestMongoSourceOperator(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
-	sessionProvider, err := NewSessionProvider(cfgOne)
+	sessionProvider, err := sqlproxy.NewSessionProvider(getOptions(t))
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 		return

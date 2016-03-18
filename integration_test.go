@@ -29,6 +29,7 @@ import (
 // test flags
 var (
 	blackbox = flag.Bool("blackbox", false, "Run blackbox tests")
+	tableau  = flag.Bool("tableau", false, "Run tableau tests")
 )
 
 const (
@@ -57,19 +58,57 @@ type testSchema struct {
 	TestCases []testCase         `yaml:"testcases"`
 }
 
-func testServer(cfg *schema.Schema) (*proxy.Server, error) {
-	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
-		cfg.SSL = &schema.SSL{
-			AllowInvalidCerts: true,
-			PEMKeyFile:        testClientPEMFile,
-		}
+func TestBlackBox(t *testing.T) {
+	if !*blackbox {
+		t.Skip("skipping blackbox test")
+	}
 
+	conf := mustLoadTestSchema(pathify("testdata", "blackbox.yml"))
+	mustLoadTestData(testMongoHost, testMongoPort, conf)
+
+	opts := sqlproxy.Options{
+		Addr:     testDBAddr,
+		MongoURI: fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort),
 	}
-	evaluator, err := sqlproxy.NewEvaluator(cfg)
+	cfg := &schema.Schema{
+		RawDatabases: conf.Databases,
+	}
+	buildSchemaMaps(cfg)
+	s, err := testServer(cfg, opts)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return proxy.NewServer(cfg, evaluator)
+	defer s.Close()
+	go s.Run()
+
+	Convey("Test blackbox dataset", t, func() {
+		err := executeBlackBoxTestCases(t, conf)
+		So(err, ShouldBeNil)
+	})
+}
+
+func TestSimpleQueries(t *testing.T) {
+	conf := mustLoadTestSchema("testdata/simple.yml")
+	mustLoadTestData(testMongoHost, testMongoPort, conf)
+
+	Convey("Test simple queries", t, func() {
+		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
+		So(err, ShouldBeNil)
+	})
+}
+
+func TestTableauDemo(t *testing.T) {
+	if !*tableau {
+		t.Skip("skipping tableau test")
+	}
+
+	conf := mustLoadTestSchema("testdata/tableau.yml")
+	mustLoadTestData(testMongoHost, testMongoPort, conf)
+
+	Convey("Test tableau dataset", t, func() {
+		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
+		So(err, ShouldBeNil)
+	})
 }
 
 func buildSchemaMaps(conf *schema.Schema) {
@@ -93,13 +132,159 @@ func compareResults(t *testing.T, actual [][]interface{}, expected [][]interface
 	}
 }
 
+func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
+	db, err := sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
+	if err != nil {
+		return fmt.Errorf("mysql open: %v", err)
+	}
+	defer db.Close()
+
+	r, err := os.Open(pathify("testdata", "blackbox_queries.json"))
+	if err != nil {
+		return fmt.Errorf("Open: %v", err)
+	}
+
+	dec := json.NewDecoder(r)
+
+	type queryData struct {
+		Id      string `json:"id"`
+		Query   string `json:"value"`
+		Columns int    `json:"columns"`
+		Rows    int    `json:"rows"`
+	}
+
+	query := queryData{}
+
+	for {
+		err := dec.Decode(&query)
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return fmt.Errorf("Decode: %v", err)
+		}
+
+		var types []string
+
+		Convey(fmt.Sprintf("Running test query (%v): '%v'", query.Id, query.Query), func() {
+
+			for j := 0; j < query.Columns; j++ {
+				types = append(types, schema.SQLVarchar)
+			}
+
+			results, err := runSQL(db, query.Query, types)
+			So(err, ShouldBeNil)
+
+			resultFile := pathify("testdata", "results", fmt.Sprintf("%v.csv", query.Id))
+
+			handle, err := os.OpenFile(resultFile, os.O_RDONLY, os.ModeExclusive)
+			if err != nil {
+				panic(err)
+			}
+
+			r := csv.NewReader(handle)
+
+			r.FieldsPerRecord = query.Columns
+			data, err := r.ReadAll()
+			So(err, ShouldBeNil)
+
+			// TODO: check header as well
+			data = data[1:]
+			newData := make([][]interface{}, len(data))
+			for i, v := range data {
+				for _, s := range v {
+					newData[i] = append(newData[i], s)
+				}
+			}
+
+			compareResults(t, results, newData)
+
+		})
+	}
+
+	return nil
+}
+
+func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error {
+	// make a test server using the embedded database
+	cfg := &schema.Schema{
+		RawDatabases: conf.Databases,
+	}
+	opts := sqlproxy.Options{
+		Addr:     testDBAddr,
+		MongoURI: fmt.Sprintf("mongodb://%v:%v", dbhost, dbport),
+	}
+	buildSchemaMaps(cfg)
+	s, err := testServer(cfg, opts)
+	if err != nil {
+		return err
+	}
+	go s.Run()
+	defer s.Close()
+
+	db, err := sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	for i, testCase := range conf.TestCases {
+		description := testCase.SQL
+		if testCase.Description != "" {
+			description = testCase.Description
+		}
+		Convey(description, func() {
+			t.Logf("Running test query (%v of %v): '%v'", i+1, len(conf.TestCases), testCase.SQL)
+			results, err := runSQL(db, testCase.SQL, testCase.ExpectedTypes)
+			So(err, ShouldBeNil)
+			compareResults(t, results, testCase.ExpectedData)
+		})
+
+	}
+	return nil
+}
+
+func mustLoadTestData(dbhost, dbport string, conf testSchema) {
+	for _, dataSet := range conf.Data {
+		if err := restoreBSON(dbhost, dbport, dataSet.ArchiveFile); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func mustLoadTestSchema(path string) testSchema {
+	fileBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+
+	var conf testSchema
+
+	err = yaml.Unmarshal(fileBytes, &conf)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, db := range conf.Databases {
+		if err := schema.PopulateColumnMaps(db); err != nil {
+			panic(err)
+		}
+	}
+
+	return conf
+}
+
+func pathify(elem ...string) string {
+	return filepath.Join(elem...)
+}
+
 func restoreBSON(host, port, file string) error {
 	var sslOpts *options.SSL
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
 		toolsdb.GetConnectorFuncs = append(toolsdb.GetConnectorFuncs,
 			func(opts options.ToolOptions) toolsdb.DBConnector {
 				if opts.SSL.UseSSL {
-					return &evaluator.SSLDBConnector{}
+					return &sqlproxy.SSLDBConnector{}
 				}
 				return nil
 			},
@@ -201,194 +386,15 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 	return result, nil
 }
 
-func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error {
-	// make a test server using the embedded database
-	cfg := &schema.Schema{
-		Addr:         testDBAddr,
-		Url:          fmt.Sprintf("mongodb://%v:%v", dbhost, dbport),
-		RawDatabases: conf.Databases,
+func testServer(cfg *schema.Schema, opts sqlproxy.Options) (*proxy.Server, error) {
+	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
+		opts.MongoSSL = true
+		opts.MongoAllowInvalidCerts = true
+		opts.MongoPEMFile = testClientPEMFile
 	}
-	buildSchemaMaps(cfg)
-	s, err := testServer(cfg)
+	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	go s.Run()
-	defer s.Close()
-
-	db, err := sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	for i, testCase := range conf.TestCases {
-		description := testCase.SQL
-		if testCase.Description != "" {
-			description = testCase.Description
-		}
-		Convey(description, func() {
-			t.Logf("Running test query (%v of %v): '%v'", i+1, len(conf.TestCases), testCase.SQL)
-			results, err := runSQL(db, testCase.SQL, testCase.ExpectedTypes)
-			So(err, ShouldBeNil)
-			compareResults(t, results, testCase.ExpectedData)
-		})
-
-	}
-	return nil
-}
-
-func MustLoadTestSchema(path string) testSchema {
-	fileBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-
-	var conf testSchema
-
-	err = yaml.Unmarshal(fileBytes, &conf)
-	if err != nil {
-		panic(err)
-	}
-
-	for _, db := range conf.Databases {
-		if err := schema.PopulateColumnMaps(db); err != nil {
-			panic(err)
-		}
-	}
-
-	return conf
-}
-
-func MustLoadTestData(dbhost, dbport string, conf testSchema) {
-	for _, dataSet := range conf.Data {
-		if err := restoreBSON(dbhost, dbport, dataSet.ArchiveFile); err != nil {
-			panic(err)
-		}
-	}
-}
-
-func _TestTableauDemo(t *testing.T) {
-	conf := MustLoadTestSchema("testdata/tableau.yml")
-	MustLoadTestData(testMongoHost, testMongoPort, conf)
-
-	Convey("Test tableau dataset", t, func() {
-		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
-		So(err, ShouldBeNil)
-	})
-}
-
-func TestSimpleQueries(t *testing.T) {
-	conf := MustLoadTestSchema("testdata/simple.yml")
-	MustLoadTestData(testMongoHost, testMongoPort, conf)
-
-	Convey("Test simple queries", t, func() {
-		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
-		So(err, ShouldBeNil)
-	})
-}
-
-func TestBlackBox(t *testing.T) {
-	if !*blackbox {
-		t.Skip("skipping blackbox test")
-	}
-
-	conf := MustLoadTestSchema(pathify("testdata", "blackbox.yml"))
-	MustLoadTestData(testMongoHost, testMongoPort, conf)
-
-	cfg := &schema.Schema{
-		Addr:         testDBAddr,
-		Url:          fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort),
-		RawDatabases: conf.Databases,
-	}
-	buildSchemaMaps(cfg)
-	s, err := testServer(cfg)
-	if err != nil {
-		panic(err)
-	}
-	defer s.Close()
-	go s.Run()
-
-	Convey("Test blackbox dataset", t, func() {
-		err := executeBlackBoxTestCases(t, conf)
-		So(err, ShouldBeNil)
-	})
-}
-
-func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
-
-	db, err := sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
-	if err != nil {
-		return fmt.Errorf("mysql open: %v", err)
-	}
-	defer db.Close()
-
-	r, err := os.Open(pathify("testdata", "blackbox_queries.json"))
-	if err != nil {
-		return fmt.Errorf("Open: %v", err)
-	}
-
-	dec := json.NewDecoder(r)
-
-	type queryData struct {
-		Id      string `json:"id"`
-		Query   string `json:"value"`
-		Columns int    `json:"columns"`
-		Rows    int    `json:"rows"`
-	}
-
-	query := queryData{}
-
-	for {
-		err := dec.Decode(&query)
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			return fmt.Errorf("Decode: %v", err)
-		}
-
-		var types []string
-
-		Convey(fmt.Sprintf("Running test query (%v): '%v'", query.Id, query.Query), func() {
-
-			for j := 0; j < query.Columns; j++ {
-				types = append(types, schema.SQLVarchar)
-			}
-
-			results, err := runSQL(db, query.Query, types)
-			So(err, ShouldBeNil)
-
-			resultFile := pathify("testdata", "results", fmt.Sprintf("%v.csv", query.Id))
-
-			handle, err := os.OpenFile(resultFile, os.O_RDONLY, os.ModeExclusive)
-			if err != nil {
-				panic(err)
-			}
-
-			r := csv.NewReader(handle)
-
-			r.FieldsPerRecord = query.Columns
-			data, err := r.ReadAll()
-			So(err, ShouldBeNil)
-
-			// TODO: check header as well
-			data = data[1:]
-			newData := make([][]interface{}, len(data))
-			for i, v := range data {
-				for _, s := range v {
-					newData[i] = append(newData[i], s)
-				}
-			}
-
-			compareResults(t, results, newData)
-
-		})
-	}
-
-	return nil
-}
-
-func pathify(elem ...string) string {
-	return filepath.Join(elem...)
+	return proxy.NewServer(cfg, evaluator, opts)
 }

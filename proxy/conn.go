@@ -227,7 +227,7 @@ func (c *Conn) readHandshakeResponse() error {
 	pos++
 	auth := data[pos : pos+authLen]
 
-	checkAuth := CalcPassword(c.salt, []byte(c.server.cfg.Password))
+	checkAuth := CalcPassword(c.salt, []byte(c.server.opts.SQLPassword))
 
 	if !bytes.Equal(auth, checkAuth) {
 		return NewDefaultError(ER_ACCESS_DENIED_ERROR, c.c.RemoteAddr().String(), c.user, "Yes")

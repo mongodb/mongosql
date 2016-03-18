@@ -3,24 +3,12 @@ package schema
 import (
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
-	"path/filepath"
 	"testing"
 )
 
 func TestSchema(t *testing.T) {
 	var testSchemaData = []byte(
 		`
-# Sample BI-Connector Schema File
-
-# Address to listen on
-addr : 127.0.0.1:4000
-
-# Proxy user/pass
-user : root
-password : abc
-
-log_level : error
-
 schema:
 - 
   db: test1
@@ -63,13 +51,9 @@ schema:
      collection: test.bar2
 `)
 
-	cfg, err := ParseSchemaData(testSchemaData)
+	cfg, err := New(testSchemaData)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if cfg.LogLevel != "error" || cfg.User != "root" || cfg.Password != "abc" || cfg.Addr != "127.0.0.1:4000" {
-		t.Fatal("Top Schema not equal.")
 	}
 
 	if len(cfg.RawDatabases) != 2 {
@@ -115,19 +99,6 @@ schema:
 }
 
 func TestSchemaSubdir(t *testing.T) {
-	var testSchemaDataRoot = []byte(
-		`
-addr : 127.0.0.1:4000
-
-# Proxy user/pass
-user : root
-password : abc
-
-log_level : error
-
-schema_dir : foo
-`)
-
 	var testSchemaDataSub = []byte(
 		`
 schema:
@@ -172,16 +143,9 @@ schema:
      collection: test.bar2
 `)
 
-	cfg, err := ParseSchemaData(testSchemaDataRoot)
-	if err != nil {
-		t.Fatal(err)
-	}
+	cfg := &Schema{}
 
-	if cfg.SchemaDir != "foo" {
-		t.Fatal("SchemaDir wrong")
-	}
-
-	err = cfg.ingestSubFile(testSchemaDataSub)
+	err := cfg.Load(testSchemaDataSub)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,15 +195,6 @@ schema:
 func TestSchemaSubdir2(t *testing.T) {
 	var testSchemaDataRoot = []byte(
 		`
-addr : 127.0.0.1:4000
-
-# Proxy user/pass
-user : root
-password : abc
-
-log_level : error
-
-schema_dir : foo
 schema:
 -
   db: test1
@@ -310,16 +265,12 @@ schema:
 
 `)
 
-	cfg, err := ParseSchemaData(testSchemaDataRoot)
+	cfg, err := New(testSchemaDataRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if cfg.SchemaDir != "foo" {
-		t.Fatal("SchemaDir wrong")
-	}
-
-	err = cfg.ingestSubFile(testSchemaDataSub)
+	err = cfg.Load(testSchemaDataSub)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -355,15 +306,6 @@ schema:
 func TestSchemaSubdirConflict(t *testing.T) {
 	var testSchemaDataRoot = []byte(
 		`
-addr : 127.0.0.1:4000
-
-# Proxy user/pass
-user : root
-password : abc
-
-log_level : error
-
-schema_dir : foo
 schema:
 -
   db: test3
@@ -404,44 +346,28 @@ schema:
 
 `)
 
-	cfg, err := ParseSchemaData(testSchemaDataRoot)
+	cfg, err := New(testSchemaDataRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if cfg.SchemaDir != "foo" {
-		t.Fatal("SchemaDir wrong")
-	}
-
-	err = cfg.ingestSubFile(testSchemaDataSub)
+	err = cfg.Load(testSchemaDataSub)
 	if err == nil {
 		t.Fatal("should have conflicted")
 	}
 
 }
 
-func _testComputeDirectory(t *testing.T, file string, dir string, correct string) {
-	output := computeDirectory(file, dir)
-	if output != correct {
-		t.Fatalf("computeDirectory wrong (%s) (%s) -> (%s) != (%s)(correct)", file, dir, output, correct)
-	}
-}
-
-func TestComputeDirectory(t *testing.T) {
-	_testComputeDirectory(t, "asd", filepath.Join("/", "a"), filepath.Join("/", "a"))
-	_testComputeDirectory(t, "foo.conf", filepath.Join("/", "a"), filepath.Join("/", "a"))
-	_testComputeDirectory(t, "/b/foo.conf", filepath.Join("/", "a"), filepath.Join("/", "a"))
-	_testComputeDirectory(t, "/b/foo.conf", "a", filepath.Join("/", "b", "a"))
-}
-
 func TestReadFile(t *testing.T) {
-	cfg, err := ParseSchemaFile("test_data/foo.conf")
+	cfg := &Schema{}
+	err := cfg.LoadFile("test_data/foo.conf")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if cfg.SchemaDir != "sub" {
-		t.Fatalf("SchemaDir wrong: (%s)", cfg.SchemaDir)
+	err = cfg.LoadDir("test_data/sub")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if len(cfg.RawDatabases) != 3 {

@@ -38,7 +38,7 @@ func TestEvaluates(t *testing.T) {
 	columnTypeInt := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	runTests := func(ctx *EvalCtx, tests []test) {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be %v", t.sql, t.result), func() {
@@ -636,7 +636,7 @@ func TestOptimizeSQLExpr(t *testing.T) {
 	columnTypeInt := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	runTests := func(tests []test) {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
@@ -690,7 +690,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 	columnTypeDate := schema.ColumnType{schema.SQLTimestamp, schema.MongoDate}
 
 	runTests := func(tests []test) {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be reconciled to %#v and %#v", t.sql, t.reconciledLeft, t.reconciledRight), func() {
@@ -743,7 +743,7 @@ func TestTranslatePredicate(t *testing.T) {
 	}
 
 	runTests := func(tests []test) {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
 
@@ -770,7 +770,7 @@ func TestTranslatePredicate(t *testing.T) {
 	}
 
 	runPartialTests := func(tests []partialTest) {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
 
@@ -842,7 +842,7 @@ func TestTranslateExpr(t *testing.T) {
 	}
 
 	runTests := func(tests []test) {
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
 		So(err, ShouldBeNil)
 		for _, t := range tests {

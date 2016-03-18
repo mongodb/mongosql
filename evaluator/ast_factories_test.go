@@ -253,7 +253,7 @@ func TestNewSQLValue(t *testing.T) {
 
 func TestNewSQLExpr(t *testing.T) {
 
-	schema, err := schema.ParseSchemaData(testSchema3)
+	schema, err := schema.New(testSchema3)
 	if err != nil {
 		panic(err)
 	}
@@ -320,7 +320,7 @@ func TestNewSQLExpr(t *testing.T) {
 func TestAggFuncSum(t *testing.T) {
 	Convey("When evaluating a 'sum' aggregation function", t, func() {
 
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		tables := schema.Databases[dbOne].Tables
 
@@ -393,7 +393,7 @@ func TestAggFuncSum(t *testing.T) {
 func TestAggFuncAvg(t *testing.T) {
 	Convey("When evaluating a 'avg' aggregation function", t, func() {
 
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		tables := schema.Databases[dbOne].Tables
 
@@ -466,7 +466,7 @@ func TestAggFuncAvg(t *testing.T) {
 func TestAggFuncCount(t *testing.T) {
 	Convey("When evaluating a 'count' aggregation function", t, func() {
 
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		tables := schema.Databases[dbOne].Tables
 
@@ -545,7 +545,7 @@ func TestAggFuncCount(t *testing.T) {
 func TestAggFuncMax(t *testing.T) {
 	Convey("When evaluating a 'max' aggregation function", t, func() {
 
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		tables := schema.Databases[dbOne].Tables
 
@@ -618,7 +618,7 @@ func TestAggFuncMax(t *testing.T) {
 func TestScalarFuncIsNull(t *testing.T) {
 	Convey("When evaluating the isnull function", t, func() {
 
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		tables := schema.Databases[dbOne].Tables
 
@@ -656,7 +656,7 @@ func TestScalarFuncIsNull(t *testing.T) {
 func TestScalarFuncNot(t *testing.T) {
 	Convey("When evaluating the not function", t, func() {
 
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		tables := schema.Databases[dbOne].Tables
 
@@ -696,7 +696,7 @@ func TestScalarFuncNot(t *testing.T) {
 func TestScalarFuncPow(t *testing.T) {
 	Convey("When evaluating the pow function", t, func() {
 
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		tables := schema.Databases[dbOne].Tables
 
@@ -761,7 +761,7 @@ func TestScalarFuncPow(t *testing.T) {
 func TestScalarFuncCast(t *testing.T) {
 	Convey("When evaluating the cast function", t, func() {
 
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		tables := schema.Databases[dbOne].Tables
 
@@ -865,7 +865,7 @@ func TestScalarFuncCast(t *testing.T) {
 func TestAggFuncMin(t *testing.T) {
 	Convey("When evaluating a 'min' aggregation function", t, func() {
 
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		tables := schema.Databases[dbOne].Tables
 
@@ -938,7 +938,7 @@ func TestAggFuncMin(t *testing.T) {
 func TestAggFuncDistinct(t *testing.T) {
 	Convey("When evaluating a distinct aggregation function", t, func() {
 
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		tables := schema.Databases[dbOne].Tables
 
@@ -996,7 +996,7 @@ func TestAggFuncDistinct(t *testing.T) {
 func TestAggFuncComplex(t *testing.T) {
 	Convey("When evaluating an aggregation function with a complex expression", t, func() {
 
-		schema, err := schema.ParseSchemaData(testSchema3)
+		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		tables := schema.Databases[dbOne].Tables
 
