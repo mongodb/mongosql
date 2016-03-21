@@ -368,6 +368,20 @@ func CanCompare(leftType, rightType SQLType) bool {
 	return false
 }
 
+// IsSimilar returns true if the logical or comparison
+// operations can be carried on leftType against rightType
+// with no need for type conversion in MongoDB.
+func IsSimilar(leftType, rightType SQLType) bool {
+	switch leftType {
+	case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
+		switch rightType {
+		case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
+			return true
+		}
+	}
+	return false
+}
+
 type SQLTypes []SQLType
 
 func (types SQLTypes) Len() int {

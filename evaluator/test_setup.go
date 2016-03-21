@@ -249,7 +249,7 @@ schema:
      -
         Name: a
         MongoType: int
-        SqlType: int
+        SqlType: numeric
      -
         Name: b
         MongoType: int

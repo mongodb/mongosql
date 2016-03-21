@@ -577,7 +577,7 @@ func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 		return reconcileSQLTuple(left, right)
 	}
 
-	if leftType == rightType {
+	if leftType == rightType || schema.IsSimilar(leftType, rightType) {
 		return left, right, nil
 	}
 
