@@ -9,7 +9,7 @@ schema:
   db: public
   tables:
     - table: flights201406
-      collection: tableau.flights201406
+      collection: flights201406
       columns:
         - Name: _id
           MongoType: bson.ObjectId
@@ -121,7 +121,7 @@ schema:
           SqlType: int
 
     - table: attendees
-      collection: tableau.attendees
+      collection: attendees
       columns:
         - Name: _id
           MongoType: bson.ObjectId

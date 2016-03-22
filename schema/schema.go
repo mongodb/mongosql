@@ -56,12 +56,12 @@ type (
 	}
 
 	Table struct {
-		Name       string                   `yaml:"table"`
-		FQNS       string                   `yaml:"collection"`
-		Pipeline   []map[string]interface{} `yaml:"pipeline"`
-		RawColumns []*Column                `yaml:"columns"`
-		Columns    map[string]*Column       `yaml:"-"`
-		SQLColumns map[string]*Column       `yaml:"-"`
+		Name           string                   `yaml:"table"`
+		CollectionName string                   `yaml:"collection"`
+		Pipeline       []map[string]interface{} `yaml:"pipeline"`
+		RawColumns     []*Column                `yaml:"columns"`
+		Columns        map[string]*Column       `yaml:"-"`
+		SQLColumns     map[string]*Column       `yaml:"-"`
 	}
 
 	Database struct {
@@ -265,10 +265,6 @@ func PopulateColumnMaps(db *Database) error {
 	db.Tables = make(map[string]*Table)
 
 	for _, tbl := range db.RawTables {
-		if len(strings.SplitN(tbl.FQNS, ".", 2)) != 2 {
-			return fmt.Errorf("invalid collection mapping '%v' (must contain '.') in db '%s' on table '%s'", tbl.FQNS, db.Name, tbl.Name)
-		}
-
 		err := tbl.validateColumnTypes()
 		if err != nil {
 			return err

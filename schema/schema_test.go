@@ -15,7 +15,7 @@ schema:
   tables:
   - 
      table: foo
-     collection: test.foo
+     collection: foo
      columns:
      -
         Name: a
@@ -30,7 +30,7 @@ schema:
   tables:
   -
      table: bar
-     collection: test.bar
+     collection: bar
      columns:
      -
         Name: a
@@ -48,7 +48,7 @@ schema:
 
   -
      table: bar2
-     collection: test.bar2
+     collection: bar2
 `)
 
 	cfg, err := New(testSchemaData)
@@ -107,7 +107,7 @@ schema:
   tables:
   - 
      table: foo
-     collection: test.foo
+     collection: foo
      columns:
      -
         Name: a
@@ -122,7 +122,7 @@ schema:
   tables:
   -
      table: bar
-     collection: test.bar
+     collection: bar
      columns:
      -
         Name: a
@@ -140,7 +140,7 @@ schema:
 
   -
      table: bar2
-     collection: test.bar2
+     collection: bar2
 `)
 
 	cfg := &Schema{}
@@ -201,7 +201,7 @@ schema:
   tables:
   - 
      table: foo
-     collection: test.foo
+     collection: foo
      columns:
      -
         Name: a
@@ -216,7 +216,7 @@ schema:
   tables:
   - 
      table: foo
-     collection: test.foo
+     collection: foo
      columns:
      -
         Name: a
@@ -237,7 +237,7 @@ schema:
   tables:
   -
      table: bar
-     collection: test.bar
+     collection: bar
      columns:
      -
         Name: a
@@ -252,7 +252,7 @@ schema:
   tables:
   - 
      table: bar
-     collection: test.foo
+     collection: foo
      columns:
      -
         Name: a
@@ -312,7 +312,7 @@ schema:
   tables:
   - 
      table: foo
-     collection: test.foo
+     collection: foo
      columns:
      -
         Name: a
@@ -333,7 +333,7 @@ schema:
   tables:
   - 
      table: foo
-     collection: test.foo
+     collection: foo
      columns:
      -
         Name: a

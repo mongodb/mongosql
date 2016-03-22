@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/deafgoat/mixer/sqlparser"
 	"gopkg.in/mgo.v2/bson"
@@ -358,16 +357,15 @@ func (v *optimizer) visitJoin(join *Join) (Operator, error) {
 	if !ok {
 		return join, nil
 	}
-	fromCollectionName := strings.SplitN(msForeign.fqns, ".", 2)[1]
 	foreignFieldName, ok := msForeign.mappingRegistry.lookupFieldName(foreignColumn.tableName, foreignColumn.columnName)
 	if !ok {
 		return join, nil
 	}
 
-	asField := joinedFieldNamePrefix + fromCollectionName
+	asField := joinedFieldNamePrefix + msForeign.collectionName
 
 	lookup := bson.M{
-		"from":         fromCollectionName,
+		"from":         msForeign.collectionName,
 		"localField":   localFieldName,
 		"foreignField": foreignFieldName,
 		"as":           asField,

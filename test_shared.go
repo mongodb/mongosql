@@ -15,7 +15,7 @@ schema:
   tables:
   -
      table: bar
-     collection: test.simple
+     collection: simple
      columns:
      -
         Name: a
@@ -38,7 +38,7 @@ schema:
   tables:
   -
      table: bar
-     collection: test.simple
+     collection: simple
      columns:
      -
         Name: c
@@ -50,7 +50,7 @@ schema:
         SqlType: int
   -
      table: silly
-     collection: test.simple2
+     collection: simple2
      columns:
      -
         Name: e

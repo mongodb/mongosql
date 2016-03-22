@@ -26,7 +26,7 @@ schema:
   tables:
   -
      table: bar
-     collection: test.simple
+     collection: simple
      columns:
      -
         Name: a
@@ -49,7 +49,7 @@ schema:
   tables:
   -
      table: bar
-     collection: test.simple
+     collection: simple
      columns:
      -
         Name: c
@@ -61,7 +61,7 @@ schema:
         SqlType: int
   -
      table: silly
-     collection: test.simple2
+     collection: simple2
      columns:
      -
         Name: e
@@ -874,7 +874,10 @@ func TestSelectWithHaving(t *testing.T) {
 
 func TestSelectWithJoin(t *testing.T) {
 	env := setupEnv(t)
-	collectionOne, collectionTwo, eval := env.collectionOne, env.collectionTwo, env.eval
+
+	eval := env.eval
+	collectionOne := eval.Session().DB("foo").C(tableOneName)
+	collectionTwo := eval.Session().DB("foo").C(tableTwoName)
 
 	Convey("With a non-star select query containing a join", t, func() {
 

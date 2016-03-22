@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"strings"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -65,7 +64,7 @@ type MongoSource struct {
 	dbName          string
 	tableName       string
 	aliasName       string
-	fqns            string // the fully qualified namespace in MongoDB
+	collectionName  string
 	mappingRegistry *mappingRegistry
 	pipeline        []bson.D
 	matcher         SQLExpr
@@ -101,7 +100,7 @@ func NewMongoSource(ctx *ExecutionCtx, dbName, tableName string, aliasName strin
 		return nil, fmt.Errorf("table (%s) doesn't exist in db (%s)", tableName, dbName)
 	}
 
-	ms.fqns = tableSchema.FQNS
+	ms.collectionName = tableSchema.CollectionName
 
 	ms.mappingRegistry = &mappingRegistry{}
 	for _, c := range tableSchema.RawColumns {
@@ -128,7 +127,7 @@ func (ms *MongoSource) WithPipeline(pipeline []bson.D) *MongoSource {
 		dbName:          ms.dbName,
 		tableName:       ms.tableName,
 		aliasName:       ms.aliasName,
-		fqns:            ms.fqns,
+		collectionName:  ms.collectionName,
 		matcher:         ms.matcher,
 		mappingRegistry: ms.mappingRegistry,
 		pipeline:        pipeline,
@@ -143,7 +142,7 @@ func (ms *MongoSource) WithMappingRegistry(mappingRegistry *mappingRegistry) *Mo
 		dbName:          ms.dbName,
 		tableName:       ms.tableName,
 		aliasName:       ms.aliasName,
-		fqns:            ms.fqns,
+		collectionName:  ms.collectionName,
 		matcher:         ms.matcher,
 		pipeline:        ms.pipeline,
 		mappingRegistry: mappingRegistry,
@@ -154,9 +153,7 @@ func (ms *MongoSource) WithMappingRegistry(mappingRegistry *mappingRegistry) *Mo
 func (ms *MongoSource) Open(ctx *ExecutionCtx) error {
 	ms.ctx = ctx
 
-	pcs := strings.SplitN(ms.fqns, ".", 2)
-
-	ms.iter = MgoFindResults{ctx.Session.DB(pcs[0]).C(pcs[1]).Pipe(ms.pipeline).AllowDiskUse().Iter()}
+	ms.iter = MgoFindResults{ctx.Session.DB(ms.dbName).C(ms.collectionName).Pipe(ms.pipeline).AllowDiskUse().Iter()}
 
 	return nil
 }

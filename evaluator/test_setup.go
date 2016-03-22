@@ -21,7 +21,7 @@ schema:
   tables:
   -
      table: foo
-     collection: test.foo
+     collection: foo
      columns:
      -
         Name: a
@@ -51,7 +51,7 @@ schema:
         SqlType: varchar
   -
      table: bar
-     collection: test.bar
+     collection: bar
      columns:
      -
         Name: a
@@ -67,7 +67,7 @@ schema:
         SqlType: varchar
   -
      table: baz
-     collection: test.baz
+     collection: baz
      columns:
      -
         Name: a
@@ -86,7 +86,7 @@ schema:
   tables:
   -
      table: bar
-     collection: foo.bar
+     collection: bar
      columns:
      -
         Name: c
@@ -98,7 +98,7 @@ schema:
         SqlType: int
   -
      table: silly
-     collection: foo.silly
+     collection: silly
      columns:
      -
         Name: e
@@ -113,7 +113,7 @@ schema:
   tables:
   -
      table: foo
-     collection: test2.foo
+     collection: foo
      columns:
      -
         Name: name
@@ -129,7 +129,7 @@ schema:
         SqlType: varchar
   -
      table: bar
-     collection: test2.bar
+     collection: bar
      columns:
      -
         Name: orderid
@@ -154,7 +154,7 @@ schema:
   tables:
   -
      table: foo
-     collection: test.foo
+     collection: foo
      columns:
      -
         Name: a
@@ -182,7 +182,7 @@ schema:
         SqlType: varchar
   -
      table: orders
-     collection: test.orders
+     collection: orders
      columns:
      -
         Name: customerid
@@ -202,7 +202,7 @@ schema:
         SqlType: varchar
   -
      table: customers
-     collection: test.customers
+     collection: customers
      columns:
      -
         Name: customerid
@@ -214,7 +214,7 @@ schema:
         SqlType: varchar
   -
      table: bar
-     collection: test.bar
+     collection: bar
      columns:
      -
         Name: a
@@ -226,7 +226,7 @@ schema:
         SqlType: varchar
   -
      table: baz
-     collection: test.baz
+     collection: baz
      columns:
      -
         Name: b
@@ -244,7 +244,7 @@ schema:
   tables:
   -
      table: bar
-     collection: test.bar
+     collection: bar
      columns:
      -
         Name: a
@@ -275,13 +275,13 @@ schema:
         SqlType: varchar
   -
      table: foo
-     collection: test.foo
+     collection: foo
 -
   db: foo
   tables:
   -
      table: bar
-     collection: foo.bar
+     collection: bar
      columns:
      -
         Name: c
@@ -293,7 +293,7 @@ schema:
         SqlType: varchar
   -
      table: silly
-     collection: foo.silly
+     collection: silly
      columns:
      -
         Name: e

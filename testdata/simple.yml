@@ -14,7 +14,7 @@ schema:
 - db: test
   tables:
   - table: foo
-    collection: test.test1
+    collection: test1
     pipeline: []
     columns:
     - Name: a

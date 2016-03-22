@@ -38,7 +38,7 @@ schema:
 - db: fullblackbox
   tables:
   - table: Batters
-    collection: fullblackbox.Batters
+    collection: Batters
     columns:
     - Name: AB
       MongoType: int
@@ -129,7 +129,7 @@ schema:
       SqlName: _id
       SqlType: varchar
   - table: Calcs
-    collection: fullblackbox.Calcs
+    collection: Calcs
     columns:
     - Name: _id
       MongoType: bson.ObjectId
@@ -240,7 +240,7 @@ schema:
       SqlName: zzz
       SqlType: varchar
   - table: DateTime
-    collection: fullblackbox.DateTime
+    collection: DateTime
     columns:
     - Name: Curved
       MongoType: float64
@@ -275,7 +275,7 @@ schema:
       SqlName: _id
       SqlType: varchar
   - table: Election
-    collection: fullblackbox.Election
+    collection: Election
     columns:
     - Name: Candidate
       MongoType: string
@@ -322,7 +322,7 @@ schema:
       SqlName: loc_coordinates
       SqlType: float64
   - table: Fischeriris
-    collection: fullblackbox.FischerIris
+    collection: FischerIris
     columns:
     - Name: Case
       MongoType: int
@@ -365,7 +365,7 @@ schema:
       SqlName: _id
       SqlType: varchar
   - table: Loan
-    collection: fullblackbox.Loan
+    collection: Loan
     columns:
     - Name: App_Age
       MongoType: int
@@ -512,7 +512,7 @@ schema:
       SqlName: _id
       SqlType: varchar
   - table: NumericBins
-    collection: fullblackbox.NumericBins
+    collection: NumericBins
     columns:
     - Name: Key
       MongoType: string
@@ -547,7 +547,7 @@ schema:
       SqlName: _id
       SqlType: varchar
   - table: SeattleCrime
-    collection: fullblackbox.SeattleCrime
+    collection: SeattleCrime
     columns:
     - Name: AGG_ASSAULT
       MongoType: int
@@ -614,7 +614,7 @@ schema:
       SqlName: _id
       SqlType: varchar
   - table: Securities
-    collection: fullblackbox.Securities
+    collection: Securities
     columns:
     - Name: Big_Move
       MongoType: string
@@ -665,7 +665,7 @@ schema:
       SqlName: _id
       SqlType: varchar
   - table: SpecialData
-    collection: fullblackbox.SpecialData
+    collection: SpecialData
     columns:
     - Name: _id
       MongoType: bson.ObjectId
@@ -700,7 +700,7 @@ schema:
       SqlName: val5
       SqlType: int
   - table: Staples
-    collection: fullblackbox.Staples
+    collection: Staples
     columns:
     - Name: Call Center Region
       MongoType: string
@@ -915,7 +915,7 @@ schema:
       SqlName: _id
       SqlType: varchar
   - table: Starbucks
-    collection: fullblackbox.Starbucks
+    collection: Starbucks
     columns:
     - Name: Additions
       MongoType: int
@@ -1038,7 +1038,7 @@ schema:
       SqlName: _id
       SqlType: varchar
   - table: UTStarcom
-    collection: fullblackbox.UTStarcom
+    collection: UTStarcom
     columns:
     - Name: Account Type1
       MongoType: string
@@ -1077,7 +1077,7 @@ schema:
       SqlName: _id
       SqlType: varchar
   - table: xy
-    collection: fullblackbox.xy
+    collection: xy
     columns:
     - Name: _id
       MongoType: bson.ObjectId
