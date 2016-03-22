@@ -516,7 +516,7 @@ schema:
     columns:
     - Name: Key
       MongoType: string
-      SqlName: Key
+      SqlName: key
       SqlType: varchar
     - Name: Measure E+0
       MongoType: float64
@@ -542,10 +542,6 @@ schema:
       MongoType: float64
       SqlName: Measure E-2
       SqlType: float64
-    - Name: key
-      MongoType: int
-      SqlName: key
-      SqlType: int
     - Name: _id
       MongoType: bson.ObjectId
       SqlName: _id
