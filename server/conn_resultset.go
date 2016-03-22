@@ -6,7 +6,6 @@ import (
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/deafgoat/mixer/hack"
 )
 
 func formatValue(value interface{}) ([]byte, error) {
@@ -83,7 +82,7 @@ func formatValue(value interface{}) ([]byte, error) {
 	case []byte:
 		return v, nil
 	case string:
-		return hack.Slice(v), nil
+		return Slice(v), nil
 	case bool:
 		return strconv.AppendBool(nil, v), nil
 	case nil:

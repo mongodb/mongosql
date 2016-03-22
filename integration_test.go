@@ -15,8 +15,8 @@ import (
 
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/proxy"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/server"
 	_ "github.com/go-sql-driver/mysql"
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	toolsLog "github.com/mongodb/mongo-tools/common/log"
@@ -386,7 +386,7 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 	return result, nil
 }
 
-func testServer(cfg *schema.Schema, opts sqlproxy.Options) (*proxy.Server, error) {
+func testServer(cfg *schema.Schema, opts sqlproxy.Options) (*server.Server, error) {
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
 		opts.MongoSSL = true
 		opts.MongoAllowInvalidCerts = true
@@ -396,5 +396,5 @@ func testServer(cfg *schema.Schema, opts sqlproxy.Options) (*proxy.Server, error
 	if err != nil {
 		return nil, err
 	}
-	return proxy.NewServer(cfg, evaluator, opts)
+	return server.New(cfg, evaluator, opts)
 }
