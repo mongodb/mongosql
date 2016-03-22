@@ -1,14 +1,51 @@
-package proxy
+package server
 
 import (
 	"bytes"
-	. "github.com/deafgoat/mixer/mysql"
+	"fmt"
+
 	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 )
 
-func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
-	log.Logf(log.DebugLow, "handling simple select query")
+func makeBindVars(args []interface{}) map[string]interface{} {
+	bindVars := make(map[string]interface{}, len(args))
+
+	if args != nil {
+		for i, v := range args {
+			bindVars[fmt.Sprintf("v%d", i+1)] = v
+		}
+	}
+
+	return bindVars
+}
+
+func (c *conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
+	log.Logf(log.DebugHigh, "[conn%v] parsed statement: %#v", c.connectionID, stmt)
+
+	// TODO: deal with this
+	// bindVars := makeBindVars(args)
+
+	var currentDB string
+	if c.currentDB != nil {
+		currentDB = c.currentDB.Name
+	}
+
+	names, values, err := c.server.eval.EvalSelect(currentDB, sql, stmt, c)
+	if err != nil {
+		return err
+	}
+
+	rs, err := c.buildResultset(names, values)
+	if err != nil {
+		return err
+	}
+
+	return c.writeResultset(c.status, rs)
+}
+
+func (c *conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
+	log.Logf(log.DebugHigh, "[conn%v] parsed statement: %#v", c.connectionID, stmt)
 
 	names, values, err := c.server.eval.EvalSelect("", sql, stmt, c)
 	if err != nil {
@@ -24,7 +61,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 
 }
 
-func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
+func (c *conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
 	field := &Field{}
 
 	field.Name = name
@@ -42,12 +79,12 @@ func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 	if err != nil {
 		return nil, err
 	}
-	r.RowDatas = append(r.RowDatas, PutLengthEncodedString(row))
+	r.RowDatas = append(r.RowDatas, putLengthEncodedString(row))
 
 	return r, nil
 }
 
-func (c *Conn) handleFieldList(data []byte) error {
+func (c *conn) handleFieldList(data []byte) error {
 
 	index := bytes.IndexByte(data, 0x00)
 	table := string(data[0:index])
@@ -64,7 +101,7 @@ func (c *Conn) handleFieldList(data []byte) error {
 	return c.writeFieldList(c.status, []*Field{f})
 }
 
-func (c *Conn) writeFieldList(status uint16, fs []*Field) error {
+func (c *conn) writeFieldList(status uint16, fs []*Field) error {
 	c.affectedRows = int64(-1)
 
 	data := make([]byte, 4, 1024)

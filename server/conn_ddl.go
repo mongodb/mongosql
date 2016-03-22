@@ -1,12 +1,13 @@
-package proxy
+package server
 
 import (
 	"fmt"
-	"github.com/deafgoat/mixer/sqlparser"
 	"strings"
+
+	"github.com/deafgoat/mixer/sqlparser"
 )
 
-func (c *Conn) handleDDL(ddl *sqlparser.DDL) error {
+func (c *conn) handleDDL(ddl *sqlparser.DDL) error {
 	switch ddl.Action {
 	case "drop":
 		tableName := string(ddl.Table)

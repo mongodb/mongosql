@@ -27,6 +27,7 @@ type ConnectionCtx interface {
 	RowCount() int64
 	ConnectionId() uint32
 	DB() string
+	Session() *mgo.Session
 }
 
 // ExecutionCtx holds exeuction context information

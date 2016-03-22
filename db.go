@@ -2,12 +2,14 @@ package sqlproxy
 
 import (
 	"crypto/tls"
+
+	"net"
+	"strings"
+
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"
-	"net"
-	"strings"
 )
 
 type SessionProvider struct {

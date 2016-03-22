@@ -1,13 +1,12 @@
-package proxy
+package server
 
 import (
 	"encoding/binary"
 	"fmt"
-	. "github.com/deafgoat/mixer/mysql"
-	"github.com/deafgoat/mixer/sqlparser"
 	"math"
 	"strconv"
-	//"strings"
+
+	"github.com/deafgoat/mixer/sqlparser"
 )
 
 var paramFieldData []byte
@@ -21,7 +20,7 @@ func init() {
 	columnFieldData = c.Dump()
 }
 
-type Stmt struct {
+type stmt struct {
 	id uint32
 
 	params  int
@@ -34,11 +33,11 @@ type Stmt struct {
 	sql string
 }
 
-func (s *Stmt) ResetParams() {
+func (s *stmt) ResetParams() {
 	s.args = make([]interface{}, s.params)
 }
 
-func (c *Conn) handleStmtPrepare(sql string) error {
+func (c *conn) handleStmtPrepare(sql string) error {
 	/*
 		if c.schema == nil {
 			return NewDefaultError(ER_NO_DB_ERROR)
@@ -110,17 +109,17 @@ func (c *Conn) handleStmtPrepare(sql string) error {
 	return fmt.Errorf("handleStmtPrepare broken")
 }
 
-func (c *Conn) writePrepare(s *Stmt) error {
+func (c *conn) writePrepare(s *stmt) error {
 	data := make([]byte, 4, 128)
 
 	//status ok
 	data = append(data, 0)
 	//stmt id
-	data = append(data, Uint32ToBytes(s.id)...)
+	data = append(data, uint32ToBytes(s.id)...)
 	//number columns
-	data = append(data, Uint16ToBytes(uint16(s.columns))...)
+	data = append(data, uint16ToBytes(uint16(s.columns))...)
 	//number params
-	data = append(data, Uint16ToBytes(uint16(s.params))...)
+	data = append(data, uint16ToBytes(uint16(s.params))...)
 	//filter [00]
 	data = append(data, 0)
 	//warning count
@@ -163,7 +162,7 @@ func (c *Conn) writePrepare(s *Stmt) error {
 	return nil
 }
 
-func (c *Conn) handleStmtExecute(data []byte) error {
+func (c *conn) handleStmtExecute(data []byte) error {
 	if len(data) < 9 {
 		return ErrMalformPacket
 	}
@@ -174,7 +173,7 @@ func (c *Conn) handleStmtExecute(data []byte) error {
 
 	s, ok := c.stmts[id]
 	if !ok {
-		return NewDefaultError(ER_UNKNOWN_STMT_HANDLER,
+		return newDefaultError(ER_UNKNOWN_STMT_HANDLER,
 			strconv.FormatUint(uint64(id), 10), "stmt_execute")
 	}
 
@@ -182,7 +181,7 @@ func (c *Conn) handleStmtExecute(data []byte) error {
 	pos++
 	//now we only support CURSOR_TYPE_NO_CURSOR flag
 	if flag != 0 {
-		return NewError(ER_UNKNOWN_ERROR, fmt.Sprintf("unsupported flag %d", flag))
+		return newError(ER_UNKNOWN_ERROR, fmt.Sprintf("unsupported flag %d", flag))
 	}
 
 	//skip iteration-count, always 1
@@ -225,14 +224,6 @@ func (c *Conn) handleStmtExecute(data []byte) error {
 	switch stmt := s.s.(type) {
 	case *sqlparser.Select:
 		err = c.handleSelect(stmt, s.sql, s.args)
-	case *sqlparser.Insert:
-		err = c.handleExec(s.s, s.sql, s.args)
-	case *sqlparser.Update:
-		err = c.handleExec(s.s, s.sql, s.args)
-	case *sqlparser.Delete:
-		err = c.handleExec(s.s, s.sql, s.args)
-	case *sqlparser.Replace:
-		err = c.handleExec(s.s, s.sql, s.args)
 	default:
 		err = fmt.Errorf("command %T not supported now", stmt)
 	}
@@ -242,13 +233,13 @@ func (c *Conn) handleStmtExecute(data []byte) error {
 	return err
 }
 
-func (c *Conn) bindStmtArgs(s *Stmt, nullBitmap, paramTypes, paramValues []byte) error {
+func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte) error {
 	args := s.args
 
 	pos := 0
 
 	var v []byte
-	var n int = 0
+	var n int
 	var isNull bool
 	var err error
 
@@ -347,7 +338,7 @@ func (c *Conn) bindStmtArgs(s *Stmt, nullBitmap, paramTypes, paramValues []byte)
 				return ErrMalformPacket
 			}
 
-			v, isNull, n, err = LengthEnodedString(paramValues[pos:])
+			v, isNull, n, err = lengthEncodedString(paramValues[pos:])
 			pos += n
 			if err != nil {
 				return err
@@ -367,7 +358,7 @@ func (c *Conn) bindStmtArgs(s *Stmt, nullBitmap, paramTypes, paramValues []byte)
 	return nil
 }
 
-func (c *Conn) handleStmtSendLongData(data []byte) error {
+func (c *conn) handleStmtSendLongData(data []byte) error {
 	if len(data) < 6 {
 		return ErrMalformPacket
 	}
@@ -376,30 +367,30 @@ func (c *Conn) handleStmtSendLongData(data []byte) error {
 
 	s, ok := c.stmts[id]
 	if !ok {
-		return NewDefaultError(ER_UNKNOWN_STMT_HANDLER,
+		return newDefaultError(ER_UNKNOWN_STMT_HANDLER,
 			strconv.FormatUint(uint64(id), 10), "stmt_send_longdata")
 	}
 
-	paramId := binary.LittleEndian.Uint16(data[4:6])
-	if paramId >= uint16(s.params) {
-		return NewDefaultError(ER_WRONG_ARGUMENTS, "stmt_send_longdata")
+	paramID := binary.LittleEndian.Uint16(data[4:6])
+	if paramID >= uint16(s.params) {
+		return newDefaultError(ER_WRONG_ARGUMENTS, "stmt_send_longdata")
 	}
 
-	if s.args[paramId] == nil {
-		s.args[paramId] = data[6:]
+	if s.args[paramID] == nil {
+		s.args[paramID] = data[6:]
 	} else {
-		if b, ok := s.args[paramId].([]byte); ok {
+		if b, ok := s.args[paramID].([]byte); ok {
 			b = append(b, data[6:]...)
-			s.args[paramId] = b
+			s.args[paramID] = b
 		} else {
-			return fmt.Errorf("invalid param long data type %T", s.args[paramId])
+			return fmt.Errorf("invalid param long data type %T", s.args[paramID])
 		}
 	}
 
 	return nil
 }
 
-func (c *Conn) handleStmtReset(data []byte) error {
+func (c *conn) handleStmtReset(data []byte) error {
 	if len(data) < 4 {
 		return ErrMalformPacket
 	}
@@ -408,7 +399,7 @@ func (c *Conn) handleStmtReset(data []byte) error {
 
 	s, ok := c.stmts[id]
 	if !ok {
-		return NewDefaultError(ER_UNKNOWN_STMT_HANDLER,
+		return newDefaultError(ER_UNKNOWN_STMT_HANDLER,
 			strconv.FormatUint(uint64(id), 10), "stmt_reset")
 	}
 
@@ -417,7 +408,7 @@ func (c *Conn) handleStmtReset(data []byte) error {
 	return c.writeOK(nil)
 }
 
-func (c *Conn) handleStmtClose(data []byte) error {
+func (c *conn) handleStmtClose(data []byte) error {
 	if len(data) < 4 {
 		return nil
 	}

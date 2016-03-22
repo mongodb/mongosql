@@ -1,15 +1,16 @@
 package main
 
 import (
-	"github.com/10gen/sqlproxy"
-	"github.com/10gen/sqlproxy/proxy"
-	"github.com/10gen/sqlproxy/schema"
-	"github.com/jessevdk/go-flags"
-	"github.com/mongodb/mongo-tools/common/log"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
+
+	"github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/server"
+	"github.com/jessevdk/go-flags"
+	"github.com/mongodb/mongo-tools/common/log"
 )
 
 type LogLevel struct {
@@ -75,8 +76,8 @@ func main() {
 		return
 	}
 
-	var svr *proxy.Server
-	svr, err = proxy.NewServer(cfg, evaluator, opts)
+	var svr *server.Server
+	svr, err = server.New(cfg, evaluator, opts)
 	if err != nil {
 		log.Logf(log.Always, "error starting server")
 		log.Logf(log.Always, err.Error())
@@ -95,8 +96,6 @@ func main() {
 		log.Logf(log.Info, "Got signal [%d] to exit.", sig)
 		svr.Close()
 	}()
-
-	log.Logf(log.Info, "Going to start running on %s.", opts.Addr)
 
 	svr.Run()
 }

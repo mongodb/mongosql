@@ -1,16 +1,16 @@
-package proxy
+package server
 
 import (
 	"fmt"
-	. "github.com/deafgoat/mixer/mysql"
+	"strings"
+
 	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
-	"strings"
 )
 
 var nstring = sqlparser.String
 
-func (c *Conn) handleSet(stmt *sqlparser.Set) error {
+func (c *conn) handleSet(stmt *sqlparser.Set) error {
 	if len(stmt.Exprs) != 1 {
 		return fmt.Errorf("must set one item once, not %s", nstring(stmt))
 	}
@@ -35,7 +35,7 @@ func (c *Conn) handleSet(stmt *sqlparser.Set) error {
 	}
 }
 
-func (c *Conn) handleSetAutoCommit(val sqlparser.ValExpr) error {
+func (c *conn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 	value, ok := val.(sqlparser.NumVal)
 	if !ok {
 		return fmt.Errorf("set autocommit error")
@@ -52,14 +52,14 @@ func (c *Conn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 	return c.writeOK(nil)
 }
 
-func (c *Conn) handleSetNames(val sqlparser.ValExpr) error {
+func (c *conn) handleSetNames(val sqlparser.ValExpr) error {
 	value, ok := val.(sqlparser.StrVal)
 	if !ok {
 		return fmt.Errorf("set names charset error")
 	}
 
 	charset := strings.ToLower(string(value))
-	cid, ok := CharsetIds[charset]
+	cid, ok := charsetIds[charset]
 	if !ok {
 		return fmt.Errorf("invalid charset %s", charset)
 	}
@@ -70,7 +70,7 @@ func (c *Conn) handleSetNames(val sqlparser.ValExpr) error {
 	return c.writeOK(nil)
 }
 
-func (c *Conn) handleSetCharacterResults(val sqlparser.ValExpr) error {
+func (c *conn) handleSetCharacterResults(val sqlparser.ValExpr) error {
 	switch expr := val.(type) {
 	case *sqlparser.NullVal:
 		return c.writeOK(nil)

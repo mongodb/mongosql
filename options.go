@@ -4,26 +4,33 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"gopkg.in/mgo.v2"
 	"io/ioutil"
 	"net"
+
+	"gopkg.in/mgo.v2"
 )
 
 type Options struct {
-	Addr        string `long:"addr" description:"host address to listen on" default:"127.0.0.1:3307"`
-	SQLUser     string `long:"sql-user" description:"username to require authentication as from MySQL clients"`
-	SQLPassword string `long:"sql-password" description:"password to require from MySQL clients"`
-	Verbose     []bool `short:"v" long:"verbose" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv)"`
+	Addr    string `long:"addr" description:"host address to listen on" default:"127.0.0.1:3307"`
+	Verbose []bool `short:"v" long:"verbose" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv)"`
 
-	MongoURI  string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to" default:"mongodb://localhost:27017"`
 	Schema    string `long:"schema" description:"the path to a schema file"`
 	SchemaDir string `long:"schema-dir" description:"the path to a directory containing schema files to load"`
 
-	// SSL options
+	// Mongo Options
+	MongoURI               string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to" default:"mongodb://localhost:27017"`
 	MongoSSL               bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
-	MongoPEMFile           string `long:"mongo-pem" description:"path to a file containing the cert and private key for connecting to MongoDB, when using --mongo-ssl"`
-	MongoAllowInvalidCerts bool   `long:"mongo-allow-invalid-certs" description:"don't require the cert presented by the MongoDB server to be valid, when using --mongo-ssl"`
-	MongoCAFile            string `long:"mongo-ca-file" description:"path to a CA certs file to use for authenticating certs from MongoDB, when using --mongo-ssl"`
+	MongoPEMFile           string `long:"mongo-ssl-pem-file" description:"path to a file containing the cert and private key for connecting to MongoDB, when using --mongo-ssl"`
+	MongoAllowInvalidCerts bool   `long:"mongo-ssl-allow-invalid-certs" description:"don't require the cert presented by the MongoDB server to be valid, when using --mongo-ssl"`
+	MongoCAFile            string `long:"mongo-ssl-ca-file" description:"path to a CA certs file to use for authenticating certs from MongoDB, when using --mongo-ssl"`
+
+	// SSL Options
+	SSLPEMFile           string `long:"ssl-pem-file" description:"path to a file containing the cert and private key estabolishing a connection with a client"`
+	SSLAllowInvalidCerts bool   `long:"ssl-allow-invalid-certs" description:"don't require the cert presented by the client to be valid"`
+	SSLCAFile            string `long:"ssl-ca-file" description:"path to a CA certs file to use for authenticating certs from a client"`
+
+	// Auth Options
+	Auth bool `long:"auth" description:"use authentication/authorization (SSLPEMFile is require when using auth)"`
 }
 
 func (o Options) Level() int {
@@ -41,6 +48,10 @@ func (o Options) Validate() error {
 	if !o.MongoSSL && (len(o.MongoPEMFile) > 0 || len(o.MongoCAFile) > 0 || o.MongoAllowInvalidCerts) {
 		return fmt.Errorf("must specify --mongo-ssl to use SSL options")
 	}
+	if o.Auth && o.SSLPEMFile == "" {
+		return fmt.Errorf("must specify --ssl-pem-file when using --auth")
+	}
+
 	return nil
 }
 
@@ -54,6 +65,11 @@ func GetDialInfo(opts Options) (*mgo.DialInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if dialInfo.Username != "" || dialInfo.Password != "" {
+		return nil, fmt.Errorf("--mongo-uri may not contain any authentication information")
+	}
+
 	if opts.MongoSSL {
 		var certs []tls.Certificate
 		var rootCA *x509.CertPool

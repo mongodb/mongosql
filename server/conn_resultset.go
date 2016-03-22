@@ -1,21 +1,21 @@
-package proxy
+package server
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/hack"
-	. "github.com/deafgoat/mixer/mysql"
-	"strconv"
 )
 
 func formatValue(value interface{}) ([]byte, error) {
 	switch v := value.(type) {
 
 	case evaluator.SQLVarchar:
-		return hack.Slice(string(v)), nil
+		return Slice(string(v)), nil
 	case evaluator.SQLObjectID:
-		return hack.Slice(string(v)), nil
+		return Slice(string(v)), nil
 	case evaluator.SQLInt:
 		return strconv.AppendInt(nil, int64(v), 10), nil
 	case evaluator.SQLUint32:
@@ -51,9 +51,9 @@ func formatValue(value interface{}) ([]byte, error) {
 
 	// SQL time related values
 	case evaluator.SQLDate:
-		return hack.Slice(v.Time.Format(schema.DateFormat)), nil
+		return Slice(v.Time.Format(schema.DateFormat)), nil
 	case evaluator.SQLTimestamp:
-		return hack.Slice(v.Time.Format(schema.TimestampFormat)), nil
+		return Slice(v.Time.Format(schema.TimestampFormat)), nil
 
 	// TODO (INT-1036): get rid of these and only use SQLValues here.
 	case int8:
@@ -140,7 +140,7 @@ func formatField(field *Field, value interface{}) error {
 	return nil
 }
 
-func (c *Conn) buildResultset(names []string, values [][]interface{}) (*Resultset, error) {
+func (c *conn) buildResultset(names []string, values [][]interface{}) (*Resultset, error) {
 	r := new(Resultset)
 
 	r.Fields = make([]*Field, len(names))
@@ -158,7 +158,7 @@ func (c *Conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 			if i == 0 {
 				field := &Field{}
 				r.Fields[j] = field
-				field.Name = hack.Slice(names[j])
+				field.Name = Slice(names[j])
 
 				if err = formatField(field, value); err != nil {
 					return nil, err
@@ -170,7 +170,7 @@ func (c *Conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 				return nil, err
 			}
 
-			row = append(row, PutLengthEncodedString(b)...)
+			row = append(row, putLengthEncodedString(b)...)
 		}
 
 		r.RowDatas = append(r.RowDatas, row)
@@ -180,7 +180,7 @@ func (c *Conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 		for j, nm := range names {
 			field := &Field{}
 			r.Fields[j] = field
-			field.Name = hack.Slice(nm)
+			field.Name = Slice(nm)
 
 			if err = formatField(field, nil); err != nil {
 				return nil, err
@@ -191,10 +191,10 @@ func (c *Conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 	return r, nil
 }
 
-func (c *Conn) writeResultset(status uint16, r *Resultset) error {
+func (c *conn) writeResultset(status uint16, r *Resultset) error {
 	c.affectedRows = int64(-1)
 
-	columnLen := PutLengthEncodedInt(uint64(len(r.Fields)))
+	columnLen := putLengthEncodedInt(uint64(len(r.Fields)))
 
 	data := make([]byte, 4, 1024)
 

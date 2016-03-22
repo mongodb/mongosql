@@ -1,16 +1,15 @@
-package proxy
+package server
 
 import (
 	"fmt"
-	"github.com/deafgoat/mixer/hack"
-	. "github.com/deafgoat/mixer/mysql"
-	"github.com/deafgoat/mixer/sqlparser"
-	"github.com/mongodb/mongo-tools/common/log"
 	"sort"
 	"strings"
+
+	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/mongodb/mongo-tools/common/log"
 )
 
-func (c *Conn) handleShow(sql string, stmt *sqlparser.Show) error {
+func (c *conn) handleShow(sql string, stmt *sqlparser.Show) error {
 	var err error
 	var r *Resultset
 	switch strings.ToLower(stmt.Section) {
@@ -33,7 +32,7 @@ func (c *Conn) handleShow(sql string, stmt *sqlparser.Show) error {
 	return c.writeResultset(c.status, r)
 }
 
-func (c *Conn) handleShowDatabases() (*Resultset, error) {
+func (c *conn) handleShowDatabases() (*Resultset, error) {
 	dbs := make([]interface{}, 0, len(c.server.databases))
 	for key := range c.server.databases {
 		dbs = append(dbs, key)
@@ -42,13 +41,13 @@ func (c *Conn) handleShowDatabases() (*Resultset, error) {
 	return c.buildSimpleShowResultset(dbs, "Database")
 }
 
-func (c *Conn) handleShowTables(sql string, stmt *sqlparser.Show) (*Resultset, error) {
+func (c *conn) handleShowTables(sql string, stmt *sqlparser.Show) (*Resultset, error) {
 	if c.currentDB == nil {
 		return nil, fmt.Errorf("no db select for show tables")
 	}
 
 	var tables []string
-	for table, _ := range c.currentDB.Tables {
+	for table := range c.currentDB.Tables {
 		tables = append(tables, table)
 	}
 
@@ -62,19 +61,18 @@ func (c *Conn) handleShowTables(sql string, stmt *sqlparser.Show) (*Resultset, e
 	return c.buildSimpleShowResultset(values, fmt.Sprintf("Tables_in_%s", c.currentDB.Name))
 }
 
-func (c *Conn) handleShowVariables(sql string, stmt *sqlparser.Show) (*Resultset, error) {
-	variables := make([]interface{}, 0)
-	/*
-		for key := range c.server.schemas {
-			dbs = append(dbs, key)
-		}
-	*/
+func (c *conn) handleShowVariables(sql string, stmt *sqlparser.Show) (*Resultset, error) {
+	variables := []interface{}{}
 	return c.buildSimpleShowResultset(variables, "Variable")
 }
 
-func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, error) {
+func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, error) {
 
-	dbName := c.db
+	var dbName string
+	if c.currentDB != nil {
+		dbName = c.currentDB.Name
+	}
+
 	table := ""
 
 	switch f := stmt.From.(type) {
@@ -102,7 +100,7 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 
 	db := c.server.databases[dbName]
 	if db == nil {
-		return nil, NewDefaultError(ER_BAD_DB_ERROR, dbName)
+		return nil, newDefaultError(ER_BAD_DB_ERROR, dbName)
 	}
 
 	tableSchema := db.Tables[table]
@@ -113,8 +111,6 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 	if len(tableSchema.RawColumns) == 0 {
 		return nil, fmt.Errorf("no configured columns")
 	}
-
-	//fmt.Printf(" db (%s) table (%s)\n", db, table)
 
 	full := strings.ToLower(stmt.Modifier) == "full"
 
@@ -151,13 +147,13 @@ func (c *Conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 	return c.buildResultset(names, values)
 }
 
-func (c *Conn) buildSimpleShowResultset(values []interface{}, name string) (*Resultset, error) {
+func (c *conn) buildSimpleShowResultset(values []interface{}, name string) (*Resultset, error) {
 
 	r := new(Resultset)
 
 	field := &Field{}
 
-	field.Name = hack.Slice(name)
+	field.Name = Slice(name)
 	field.Charset = 33
 	field.Type = MYSQL_TYPE_VAR_STRING
 
@@ -171,8 +167,7 @@ func (c *Conn) buildSimpleShowResultset(values []interface{}, name string) (*Res
 		if err != nil {
 			return nil, err
 		}
-		r.RowDatas = append(r.RowDatas,
-			PutLengthEncodedString(row))
+		r.RowDatas = append(r.RowDatas, putLengthEncodedString(row))
 	}
 
 	return r, nil

@@ -2,6 +2,7 @@ package sqlproxy
 
 import (
 	"fmt"
+
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
@@ -21,9 +22,12 @@ func NewEvaluator(cfg *schema.Schema, opts Options) (*Evaluator, error) {
 		return nil, err
 	}
 
+	log.Logf(log.Always, "connecting to mongodb at %v.", info.Addrs)
+
 	session, err := mgo.DialWithInfo(info)
 	if err != nil {
-		return nil, err
+		log.Logf(log.Always, "connecting to mongodb failed.")
+		return nil, fmt.Errorf("connecting to mongodb failed: %v", err.Error())
 	}
 
 	session.SetSocketTimeout(0)
@@ -33,7 +37,7 @@ func NewEvaluator(cfg *schema.Schema, opts Options) (*Evaluator, error) {
 
 // Session returns a copy of the evaluator's session.
 func (e *Evaluator) Session() *mgo.Session {
-	return e.session.Copy()
+	return e.session.New()
 }
 
 // EvalSelect returns all rows matching the query.
@@ -79,8 +83,7 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 	}
 
 	// get a new session for every execution context.
-	session := e.Session()
-	defer session.Close()
+	session := conn.Session()
 
 	// construct execution context
 	eCtx := &evaluator.ExecutionCtx{
