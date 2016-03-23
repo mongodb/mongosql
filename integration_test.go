@@ -330,6 +330,7 @@ func restoreBSON(host, port, file string) error {
 			StopOnError:            true,
 			NumParallelCollections: 1,
 			NumInsertionWorkers:    10,
+			MaintainInsertionOrder: true,
 		},
 		SessionProvider: sessionProvider,
 	}
