@@ -2,11 +2,12 @@ package schema
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 type SQLType string
@@ -186,7 +187,7 @@ func (s *Schema) LoadFile(filename string) error {
 	return s.Load(data)
 }
 
-// LoadFile loads schema settings from YML data in a byte slice.
+// Load loads schema settings from YML data in a byte slice.
 func (s *Schema) Load(data []byte) error {
 	if s.Databases == nil {
 		s.Databases = make(map[string]*Database)
@@ -211,33 +212,33 @@ func (s *Schema) Load(data []byte) error {
 		theirs.Databases[db.Name] = db
 	}
 
-	for name, schema := range theirs.Databases {
-		ours := s.Databases[name]
+	for _, db := range theirs.RawDatabases {
+		ours := s.Databases[db.Name]
 
 		if ours == nil {
 			// The entire DB is missing, copy the whole thing in.
-			s.Databases[name] = schema
-			s.RawDatabases = append(s.RawDatabases, schema)
+			s.Databases[db.Name] = db
+			s.RawDatabases = append(s.RawDatabases, db)
 		} else {
 			// The schema being loaded refers to a DB that is already loaded
 			// in the current schema. Need to merge tables.
-			for table, tableSchema := range schema.Tables {
-				if ours.Tables[table] != nil {
-					return fmt.Errorf("table config conflict in db: %s table: %s", name, table)
+			for _, table := range db.RawTables {
+				if ours.Tables[table.Name] != nil {
+					return fmt.Errorf("table config conflict in db: %s table: %s", db.Name, table.Name)
 				}
 
-				ours.Tables[table] = tableSchema
-				ours.RawTables = append(ours.RawTables, tableSchema)
+				ours.Tables[table.Name] = table
+				ours.RawTables = append(ours.RawTables, table)
 			}
 		}
-		if err := PopulateColumnMaps(s.Databases[name]); err != nil {
+		if err := PopulateColumnMaps(s.Databases[db.Name]); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// LoadFile loads schema settings from YML data in all files inside the given directory.
+// LoadDir loads schema settings from YML data in all files inside the given directory.
 func (s *Schema) LoadDir(root string) error {
 	files, err := ioutil.ReadDir(root)
 	if err != nil {

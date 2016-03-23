@@ -2,8 +2,9 @@ package schema
 
 import (
 	"fmt"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSchema(t *testing.T) {
@@ -72,7 +73,7 @@ schema:
 		t.Fatalf("first db is wrong: %s", cfg.RawDatabases[0].Name)
 	}
 
-	if cfg.RawDatabases[0].RawTables[0].Name != "foo" || cfg.RawDatabases[0].RawTables[0].FQNS != "test.foo" {
+	if cfg.RawDatabases[0].RawTables[0].Name != "foo" || cfg.RawDatabases[0].RawTables[0].CollectionName != "foo" {
 		t.Fatal("Table 0 (bar) basics wrong")
 	}
 
@@ -80,7 +81,7 @@ schema:
 		t.Fatal("map broken")
 	}
 
-	if cfg.Databases["test1"].Tables["foo"].FQNS != "test.foo" {
+	if cfg.Databases["test1"].Tables["foo"].CollectionName != "foo" {
 		t.Fatal("map broken 2")
 	}
 
@@ -166,7 +167,7 @@ schema:
 		t.Fatalf("first db is wrong: %s", cfg.RawDatabases[0].Name)
 	}
 
-	if cfg.RawDatabases[0].RawTables[0].Name != "foo" || cfg.RawDatabases[0].RawTables[0].FQNS != "test.foo" {
+	if cfg.RawDatabases[0].RawTables[0].Name != "foo" || cfg.RawDatabases[0].RawTables[0].CollectionName != "foo" {
 		t.Fatal("Table 0 (bar) basics wrong")
 	}
 
@@ -174,7 +175,7 @@ schema:
 		t.Fatal("map broken")
 	}
 
-	if cfg.Databases["test1"].Tables["foo"].FQNS != "test.foo" {
+	if cfg.Databases["test1"].Tables["foo"].CollectionName != "foo" {
 		t.Fatal("map broken 2")
 	}
 
