@@ -20,7 +20,7 @@ schema:
     - Name: a
       MongoType: int
       SqlName: a
-      SqlType: int
+      SqlType: int64
     - Name: b
       MongoType: string
       SqlName: b
@@ -28,11 +28,11 @@ schema:
     - Name: "loc.0" 
       MongoType: int
       SqlName: latitude
-      SqlType: int
+      SqlType: int64
     - Name: "loc.1"
       MongoType: int
       SqlName: longitude
-      SqlType: int
+      SqlType: int64
 
 # 3. Run each of the following queries, and report any that have errors
 testcases:

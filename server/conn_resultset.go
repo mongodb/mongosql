@@ -163,13 +163,17 @@ func (c *conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 					return nil, err
 				}
 			}
-			b, err = formatValue(value)
 
+			b, err = formatValue(value)
 			if err != nil {
 				return nil, err
 			}
 
-			row = append(row, putLengthEncodedString(b)...)
+			if b == nil {
+				row = append(row, 0xfb)
+			} else {
+				row = append(row, putLengthEncodedString(b)...)
+			}
 		}
 
 		r.RowDatas = append(r.RowDatas, row)

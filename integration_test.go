@@ -10,9 +10,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
+	"database/sql/driver"
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
@@ -122,14 +122,26 @@ func buildSchemaMaps(conf *schema.Schema) {
 	}
 }
 
-func compareResults(t *testing.T, actual [][]interface{}, expected [][]interface{}) {
-	So(len(actual), ShouldEqual, len(expected))
+func compareResults(t *testing.T, expected, actual [][]interface{}) {
 	for rownum, row := range actual {
 		for colnum, col := range row {
+			// we don't have a good way of representing
+			// nil in our CSV test results so we check
+			// for an empty string when we expect nil
+			if actual == nil && col == "" {
+				col = ""
+			}
 			expectedCol := expected[rownum][colnum]
+			// our YAML parser converts numbers in the
+			// int range to int but we need them to be
+			// int64
+			if v, ok := expectedCol.(int); ok {
+				expectedCol = int64(v)
+			}
 			So(col, ShouldResemble, expectedCol)
 		}
 	}
+	So(len(expected), ShouldEqual, len(actual))
 }
 
 func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
@@ -237,7 +249,7 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 			t.Logf("Running test query (%v of %v): '%v'", i+1, len(conf.TestCases), testCase.SQL)
 			results, err := runSQL(db, testCase.SQL, testCase.ExpectedTypes)
 			So(err, ShouldBeNil)
-			compareResults(t, results, testCase.ExpectedData)
+			compareResults(t, testCase.ExpectedData, results)
 		})
 
 	}
@@ -355,17 +367,17 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 	result := [][]interface{}{}
 
 	resultContainer := make([]interface{}, 0, len(types))
-	for _, t := range types {
 
+	for _, t := range types {
 		switch schema.SQLType(t) {
 		case schema.SQLVarchar:
-			resultContainer = append(resultContainer, new(string))
+			resultContainer = append(resultContainer, &sql.NullString{})
 		case schema.SQLInt:
-			resultContainer = append(resultContainer, new(int))
+			resultContainer = append(resultContainer, &sql.NullInt64{})
 		case schema.SQLFloat:
-			resultContainer = append(resultContainer, new(float64))
+			resultContainer = append(resultContainer, &sql.NullFloat64{})
 		default:
-			resultContainer = append(resultContainer, new(string))
+			resultContainer = append(resultContainer, &sql.NullString{})
 		}
 	}
 
@@ -375,8 +387,11 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 			return nil, err
 		}
 		for _, x := range resultContainer {
-			p := reflect.ValueOf(x)
-			resultRow = append(resultRow, p.Elem().Interface())
+			v, err := x.(driver.Valuer).Value()
+			if err != nil {
+				return nil, err
+			}
+			resultRow = append(resultRow, v)
 		}
 		result = append(result, resultRow)
 	}
