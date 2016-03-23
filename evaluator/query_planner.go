@@ -925,6 +925,8 @@ func replaceSelectExpressionsWithColumns(tableName string, sExprs SelectExpressi
 		expr, ok := sExpr.Expr.(SQLColumnExpr)
 		if !ok {
 			expr = SQLColumnExpr{tableName, sExpr.Expr.String(), expr.columnType}
+		} else {
+			sExpr.Column.SQLType = expr.Type()
 		}
 
 		newSExpr := SelectExpression{
