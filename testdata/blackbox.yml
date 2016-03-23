@@ -322,7 +322,7 @@ schema:
       SqlName: loc_coordinates
       SqlType: float64
   - table: Fischeriris
-    collection: FischerIris
+    collection: Fischeriris
     columns:
     - Name: Case
       MongoType: int
