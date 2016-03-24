@@ -1,9 +1,5 @@
 package evaluator
 
-import (
-	"gopkg.in/mgo.v2/bson"
-)
-
 // Limit restricts the number of rows returned by a query.
 type Limit struct {
 	// rowcount imposes a limit on the number of rows returned
@@ -68,28 +64,4 @@ func (l *Limit) Close() error {
 
 func (l *Limit) Err() error {
 	return l.source.Err()
-}
-
-///////////////
-//Optimization
-///////////////
-
-func (_ *optimizer) visitLimit(limit *Limit) (Operator, error) {
-
-	ms, ok := canPushDown(limit.source)
-	if !ok {
-		return limit, nil
-	}
-
-	pipeline := ms.pipeline
-
-	if limit.offset > 0 {
-		pipeline = append(pipeline, bson.D{{"$skip", limit.offset}})
-	}
-
-	if limit.rowcount > 0 {
-		pipeline = append(pipeline, bson.D{{"$limit", limit.rowcount}})
-	}
-
-	return ms.WithPipeline(pipeline), nil
 }

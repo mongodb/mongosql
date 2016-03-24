@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -31,14 +30,11 @@ func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error
 
 		log.Logf(log.DebugLow, "Original query plan: \n%v\n", PrettyPrintPlan(o))
 
-		if os.Getenv(NoOptimize) == "" {
-			o, err = OptimizeOperator(ctx, o)
-			if err != nil {
-				return nil, err
-			}
-
-			log.Logf(log.DebugLow, "Optimized query plan: \n%v\n", PrettyPrintPlan(o))
+		o, err = OptimizeOperator(ctx, o)
+		if err != nil {
+			return nil, err
 		}
+
 		return o, err
 
 	case *sqlparser.SimpleSelect:

@@ -2,10 +2,7 @@ package evaluator
 
 import (
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 	"strings"
-
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // Project ensures that referenced columns - e.g. those used to
@@ -172,83 +169,4 @@ func (pj *Project) WithSource(source Operator) *Project {
 		sExprs: pj.sExprs,
 		source: source,
 	}
-}
-
-// Optimizations
-
-func (v *optimizer) visitProject(project *Project) (Operator, error) {
-	// Check if we can optimize further, if the child operator has a MongoSource.
-	ms, ok := canPushDown(project.source)
-	if !ok {
-		return project, nil
-	}
-
-	fieldsToProject := bson.M{}
-
-	// This will contain the rebuilt mapping registry reflecting fields re-mapped by projection.
-	fixedMappingRegistry := mappingRegistry{}
-
-	fixedExpressions := SelectExpressions{}
-
-	tables := v.ctx.Schema.Databases[v.ctx.Db].Tables
-
-	// Track whether or not we've successfully mapped every field into the $project of the source.
-	// If so, this Project node can be removed from the query plan tree.
-	canReplaceProject := true
-
-	for _, exp := range project.sExprs {
-
-		// Convert the column's SQL expression into an expression in mongo query language.
-		projectedField, ok := TranslateExpr(exp.Expr, ms.mappingRegistry.lookupFieldName)
-		if !ok {
-			// Expression can't be translated, so it can't be projected.
-			// We skip it and leave this Project node in the query plan so that it still gets
-			// evaluated during execution.
-			canReplaceProject = false
-			fixedExpressions = append(fixedExpressions, exp)
-
-			// There might still be fields referenced in this expression
-			// that we still need to project, so collect them and add them to the projection.
-			refdCols, err := referencedColumns(exp.Expr, tables)
-			if err != nil {
-				return nil, err
-			}
-			for _, refdCol := range refdCols {
-				fieldName, ok := ms.mappingRegistry.lookupFieldName(refdCol.Table, refdCol.Name)
-				if !ok {
-					// TODO log that optimization gave up here.
-					return project, nil
-				}
-
-				fieldsToProject[dottifyFieldName(fieldName)] = getProjectedFieldName(fieldName)
-			}
-			continue
-		}
-
-		safeFieldName := dottifyFieldName(exp.Expr.String())
-
-		fieldsToProject[safeFieldName] = projectedField
-
-		fixedMappingRegistry.addColumn(exp.Column)
-		fixedMappingRegistry.registerMapping(exp.Column.Table, exp.Column.Name, safeFieldName)
-		columnType := schema.ColumnType{exp.Column.SQLType, exp.Column.MongoType}
-		columnExpr := SQLColumnExpr{exp.Column.Table, exp.Column.Name, columnType}
-		fixedExpressions = append(fixedExpressions,
-			SelectExpression{
-				Column: exp.Column,
-				Expr:   columnExpr,
-			},
-		)
-
-	}
-
-	pipeline := ms.pipeline
-	pipeline = append(pipeline, bson.D{{"$project", fieldsToProject}})
-	ms = ms.WithPipeline(pipeline).WithMappingRegistry(&fixedMappingRegistry)
-
-	if canReplaceProject {
-		return ms, nil
-	}
-
-	return project.WithSource(ms), nil
 }

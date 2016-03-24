@@ -195,6 +195,217 @@ func TestFilterPushDown(t *testing.T) {
 	})
 }
 
+func TestCrossJoinOptimization(t *testing.T) {
+	env := setupEnv(t)
+	cfgOne := env.cfgOne
+
+	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
+
+	Convey("Subject: Filter/Join Merging", t, func() {
+
+		ctx := &ExecutionCtx{
+			Schema: cfgOne,
+			Db:     dbOne,
+		}
+
+		tblOne := "foo"
+		tblTwo := "bar"
+
+		msOne, err := NewMongoSource(ctx, dbOne, tblOne, tblOne)
+		So(err, ShouldBeNil)
+		msTwo, err := NewMongoSource(ctx, dbOne, tblTwo, tblTwo)
+		So(err, ShouldBeNil)
+
+		join := &Join{
+			left:  msOne,
+			right: msTwo,
+		}
+
+		for _, k := range []JoinKind{CrossJoin, InnerJoin} {
+			Convey(fmt.Sprintf("Given a %q without criteria", k), func() {
+
+				join.kind = k
+
+				Convey("Should optimize a filter with criteria for both tables", func() {
+					filter := &Filter{
+						source:  join,
+						matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}},
+					}
+
+					o, err := optimizeCrossJoins(filter)
+					So(err, ShouldBeNil)
+
+					So(o, ShouldResemble, &Join{
+						left:    msOne,
+						right:   msTwo,
+						kind:    InnerJoin,
+						matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}},
+					})
+				})
+
+				Convey("Should optimize a filter with criteria for only the right table", func() {
+					filter := &Filter{
+						source:  join,
+						matcher: &SQLEqualsExpr{SQLColumnExpr{tblTwo, "a", columnType}, SQLInt(10)},
+					}
+
+					o, err := optimizeCrossJoins(filter)
+					So(err, ShouldBeNil)
+
+					So(o, ShouldResemble, &Join{
+						left:    msOne,
+						right:   msTwo,
+						kind:    InnerJoin,
+						matcher: &SQLEqualsExpr{SQLColumnExpr{tblTwo, "a", columnType}, SQLInt(10)},
+					})
+				})
+
+				Convey("Should optimize a filter with partially applicable criteria", func() {
+					filter := &Filter{
+						source: join,
+						matcher: &SQLAndExpr{
+							&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
+							&SQLEqualsExpr{SQLColumnExpr{tblTwo, "a", columnType}, SQLInt(11)},
+						},
+					}
+
+					o, err := optimizeCrossJoins(filter)
+					So(err, ShouldBeNil)
+
+					So(o, ShouldResemble, &Filter{
+						source: &Join{
+							left:    msOne,
+							right:   msTwo,
+							kind:    InnerJoin,
+							matcher: &SQLEqualsExpr{SQLColumnExpr{tblTwo, "a", columnType}, SQLInt(11)},
+						},
+						matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
+					})
+				})
+
+				Convey("Should not optimize a filter with criteria for only the left table", func() {
+					filter := &Filter{
+						source:  join,
+						matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
+					}
+
+					o, err := optimizeCrossJoins(filter)
+					So(err, ShouldBeNil)
+
+					So(o, ShouldResemble, filter)
+				})
+
+				Convey("Given a nested %q without criteria", func() {
+
+					tblThree := "baz"
+					msThree, err := NewMongoSource(ctx, dbOne, tblThree, tblThree)
+					So(err, ShouldBeNil)
+
+					nestedJoin := &Join{
+						left:  join,
+						right: msThree,
+						kind:  k,
+					}
+
+					Convey("Should optimize a filter with criteria for all three tables", func() {
+						filter := &Filter{
+							source: nestedJoin,
+							matcher: &SQLAndExpr{
+								&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}},
+								&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblThree, "a", columnType}},
+							},
+						}
+
+						o, err := optimizeCrossJoins(filter)
+						So(err, ShouldBeNil)
+
+						So(o, ShouldResemble, &Join{
+							left: &Join{
+								left:    msOne,
+								right:   msTwo,
+								kind:    InnerJoin,
+								matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}},
+							},
+							right:   msThree,
+							kind:    InnerJoin,
+							matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblThree, "a", columnType}},
+						})
+					})
+
+					Convey("Should optimize a filter with criteria for only the nested join", func() {
+						filter := &Filter{
+							source:  nestedJoin,
+							matcher: &SQLEqualsExpr{SQLColumnExpr{tblTwo, "a", columnType}, SQLColumnExpr{tblThree, "a", columnType}},
+						}
+
+						o, err := optimizeCrossJoins(filter)
+						So(err, ShouldBeNil)
+
+						So(o, ShouldResemble, &Join{
+							left: &Join{
+								left:  msOne,
+								right: msTwo,
+								kind:  k,
+							},
+							right:   msThree,
+							kind:    InnerJoin,
+							matcher: &SQLEqualsExpr{SQLColumnExpr{tblTwo, "a", columnType}, SQLColumnExpr{tblThree, "a", columnType}},
+						})
+					})
+
+					Convey("Should optimize a filter with criteria for only the top-level join", func() {
+						filter := &Filter{
+							source:  nestedJoin,
+							matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}},
+						}
+
+						o, err := optimizeCrossJoins(filter)
+						So(err, ShouldBeNil)
+
+						So(o, ShouldResemble, &Join{
+							left: &Join{
+								left:    msOne,
+								right:   msTwo,
+								kind:    InnerJoin,
+								matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}},
+							},
+							right: msThree,
+							kind:  CrossJoin,
+						})
+					})
+
+					Convey("Should optimize a filter with partially applicable criteria", func() {
+						filter := &Filter{
+							source: nestedJoin,
+							matcher: &SQLAndExpr{
+								&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
+								&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}},
+							},
+						}
+
+						o, err := optimizeCrossJoins(filter)
+						So(err, ShouldBeNil)
+
+						So(o, ShouldResemble, &Filter{
+							source: &Join{
+								left: &Join{
+									left:    msOne,
+									right:   msTwo,
+									kind:    InnerJoin,
+									matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}},
+								},
+								right: msThree,
+								kind:  CrossJoin,
+							},
+							matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
+						})
+					})
+				})
+			})
+		}
+	})
+}
+
 func TestGroupByPushDown(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne

@@ -1,65 +1,32 @@
 package evaluator
 
-import "fmt"
+import (
+	"os"
 
+	"github.com/mongodb/mongo-tools/common/log"
+)
+
+// OptimizeOperator applies optimizations to the operator tree to
+// aid in performance.
 func OptimizeOperator(ctx *ExecutionCtx, o Operator) (Operator, error) {
-	v := &optimizer{ctx}
-	return v.Visit(o)
-}
+	if os.Getenv(NoOptimize) != "" {
+		return o, nil
+	}
 
-type optimizer struct {
-	ctx *ExecutionCtx
-}
-
-func (v *optimizer) Visit(o Operator) (Operator, error) {
-
-	o, err := walkOperatorTree(v, o)
+	newO, err := optimizeCrossJoins(o)
 	if err != nil {
-		return nil, err
+		return o, nil
 	}
+	o = newO
 
-	switch typedO := o.(type) {
-	case *Filter:
-		o, err = v.visitFilter(typedO)
-		if err != nil {
-			return nil, fmt.Errorf("unable to optimize filter: %v", err)
-		}
-	case *GroupBy:
-		o, err = v.visitGroupBy(typedO)
-		if err != nil {
-			return nil, fmt.Errorf("unable to optimize group by: %v", err)
-		}
-	case *Join:
-		o, err = v.visitJoin(typedO)
-		if err != nil {
-			return nil, fmt.Errorf("unable to optimize join: %v", err)
-		}
-	case *Limit:
-		o, err = v.visitLimit(typedO)
-		if err != nil {
-			return nil, fmt.Errorf("unable to optimize limit: %v", err)
-		}
-	case *OrderBy:
-		o, err = v.visitOrderBy(typedO)
-		if err != nil {
-			return nil, fmt.Errorf("unable to optimize order by: %v", err)
-		}
-	case *Project:
-		o, err = v.visitProject(typedO)
-		if err != nil {
-			return nil, fmt.Errorf("unable to optimize project: %v", err)
-		}
+	log.Logf(log.DebugHigh, "Cross Join Optimization query plan: \n%v\n", PrettyPrintPlan(o))
+
+	newO, err = optimizePushDown(ctx, o)
+	if err != nil {
+		return o, nil
 	}
+	o = newO
 
+	log.Logf(log.DebugHigh, "Optimized query plan: \n%v\n", PrettyPrintPlan(o))
 	return o, nil
-}
-
-func canPushDown(op Operator) (*MongoSource, bool) {
-
-	ms, ok := op.(*MongoSource)
-	if !ok {
-		return nil, false
-	}
-
-	return ms, true
 }

@@ -310,6 +310,12 @@ func prettyPrintPlan(b *bytes.Buffer, o Operator, d int) {
 
 		prettyPrintPlan(b, typedE.right, d+1)
 
+		if typedE.matcher != nil {
+			printTabs(b, d+1)
+
+			b.WriteString(fmt.Sprintf("on %v\n", typedE.matcher.String()))
+		}
+
 	case *Limit:
 
 		b.WriteString("↳ Limit:\n")
@@ -358,6 +364,10 @@ func prettyPrintPlan(b *bytes.Buffer, o Operator, d int) {
 			prettyPipeline = pipelineString(typedE.pipeline, d+1)
 		}
 		b.Write(prettyPipeline)
+
+	case *BSONSource:
+
+		b.WriteString("↳ BSONSource\n")
 
 	default:
 
@@ -455,6 +465,7 @@ func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
 				right:    right,
 				kind:     typedO.kind,
 				strategy: typedO.strategy,
+				matcher:  typedO.matcher,
 			}
 		}
 	case *Limit:
