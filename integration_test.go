@@ -125,13 +125,13 @@ func buildSchemaMaps(conf *schema.Schema) {
 func compareResults(t *testing.T, expected, actual [][]interface{}) {
 	for rownum, row := range actual {
 		for colnum, col := range row {
+			expectedCol := expected[rownum][colnum]
 			// we don't have a good way of representing
 			// nil in our CSV test results so we check
 			// for an empty string when we expect nil
-			if actual == nil && col == "" {
-				col = ""
+			if expectedCol == nil && col == "" {
+				expectedCol = ""
 			}
-			expectedCol := expected[rownum][colnum]
 			// our YAML parser converts numbers in the
 			// int range to int but we need them to be
 			// int64
