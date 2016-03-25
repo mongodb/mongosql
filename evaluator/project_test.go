@@ -18,7 +18,9 @@ func TestProjectOperator(t *testing.T) {
 		ts, err := NewBSONSource(ctx, tableOneName, rows)
 		So(err, ShouldBeNil)
 		var operator Operator
-		operator = project.WithSource(ts)
+		project = project.clone()
+		project.source = ts
+		operator = project
 		if optimize {
 			operator, err = OptimizeOperator(ctx, operator)
 			So(err, ShouldBeNil)

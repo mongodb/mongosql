@@ -164,9 +164,9 @@ func (pj *Project) addSelectExprs() {
 	}
 }
 
-func (pj *Project) WithSource(source Operator) *Project {
+func (pj *Project) clone() *Project {
 	return &Project{
+		source: pj.source,
 		sExprs: pj.sExprs,
-		source: source,
 	}
 }

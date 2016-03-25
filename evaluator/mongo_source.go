@@ -120,9 +120,7 @@ func NewMongoSource(ctx *ExecutionCtx, dbName, tableName string, aliasName strin
 	return ms, nil
 }
 
-// WithPipeline creates a new TableScan operator by copying everything
-// and changing only the pipeline.
-func (ms *MongoSource) WithPipeline(pipeline []bson.D) *MongoSource {
+func (ms *MongoSource) clone() *MongoSource {
 	return &MongoSource{
 		dbName:          ms.dbName,
 		tableName:       ms.tableName,
@@ -130,22 +128,7 @@ func (ms *MongoSource) WithPipeline(pipeline []bson.D) *MongoSource {
 		collectionName:  ms.collectionName,
 		matcher:         ms.matcher,
 		mappingRegistry: ms.mappingRegistry,
-		pipeline:        pipeline,
-	}
-}
-
-// WithMappingRegistry creates a new TableScan operator by copying everything
-// and changing only the mappingRegistry.
-func (ms *MongoSource) WithMappingRegistry(mappingRegistry *mappingRegistry) *MongoSource {
-
-	return &MongoSource{
-		dbName:          ms.dbName,
-		tableName:       ms.tableName,
-		aliasName:       ms.aliasName,
-		collectionName:  ms.collectionName,
-		matcher:         ms.matcher,
 		pipeline:        ms.pipeline,
-		mappingRegistry: mappingRegistry,
 	}
 }
 

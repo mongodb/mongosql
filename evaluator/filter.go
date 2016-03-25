@@ -95,3 +95,11 @@ func (ft *Filter) Err() error {
 	}
 	return ft.err
 }
+
+func (ft *Filter) clone() *Filter {
+	return &Filter{
+		source:      ft.source,
+		matcher:     ft.matcher,
+		hasSubquery: ft.hasSubquery,
+	}
+}

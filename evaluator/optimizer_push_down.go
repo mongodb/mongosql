@@ -76,15 +76,10 @@ func (v *pushDownOptimizer) visitFilter(filter *Filter) (Operator, error) {
 		return filter, nil
 	}
 
-	optimizedExpr, err := OptimizeSQLExpr(filter.matcher)
-	if err != nil {
-		return nil, err
-	}
-
 	pipeline := ms.pipeline
 	var localMatcher SQLExpr
 
-	if value, ok := optimizedExpr.(SQLValue); ok {
+	if value, ok := filter.matcher.(SQLValue); ok {
 		// our optimized expression has left us with just a value,
 		// we can see if it matches right now. If so, we eliminate
 		// the filter from the tree. Otherwise, we return an
@@ -102,7 +97,7 @@ func (v *pushDownOptimizer) visitFilter(filter *Filter) (Operator, error) {
 
 	} else {
 		var matchBody bson.M
-		matchBody, localMatcher = TranslatePredicate(optimizedExpr, ms.mappingRegistry.lookupFieldName)
+		matchBody, localMatcher = TranslatePredicate(filter.matcher, ms.mappingRegistry.lookupFieldName)
 		if matchBody == nil {
 			// no pieces of the matcher are able to be pushed down,
 			// so there is no change in the operator tree.
@@ -115,7 +110,8 @@ func (v *pushDownOptimizer) visitFilter(filter *Filter) (Operator, error) {
 	// if we end up here, it's because we have messed with the pipeline
 	// in the current table scan operator, so we need to reconstruct the
 	// operator nodes.
-	ms = ms.WithPipeline(pipeline)
+	ms = ms.clone()
+	ms.pipeline = pipeline
 
 	if localMatcher != nil {
 		// we ended up here because we have a predicate
@@ -183,7 +179,9 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupBy) (Operator, error) {
 		mappingRegistry.registerMapping(sExpr.Column.Table, sExpr.Column.Name, dottifyFieldName(sExpr.Expr.String()))
 	}
 
-	ms = ms.WithPipeline(pipeline).WithMappingRegistry(mappingRegistry)
+	ms = ms.clone()
+	ms.pipeline = pipeline
+	ms.mappingRegistry = mappingRegistry
 
 	return ms, nil
 }
@@ -549,7 +547,9 @@ func (v *pushDownOptimizer) visitJoin(join *Join) (Operator, error) {
 		}
 	}
 
-	ms := msLocal.WithPipeline(pipeline).WithMappingRegistry(newMappingRegistry)
+	ms := msLocal.clone()
+	ms.pipeline = pipeline
+	ms.mappingRegistry = newMappingRegistry
 	return ms, nil
 }
 
@@ -560,13 +560,8 @@ func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExp
 	// independently such that filters for each side, if necessary, are performed
 	// server side.
 
-	optimizedExpr, err := OptimizeSQLExpr(e)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	// anything in optimizedExpr that is not an equi-join makes this impossible to push down
-	equalExpr, ok := optimizedExpr.(*SQLEqualsExpr)
+	equalExpr, ok := e.(*SQLEqualsExpr)
 	if !ok {
 		return nil, nil, fmt.Errorf("join condition cannot be pushed down '%v'", e.String())
 	}
@@ -618,7 +613,9 @@ func (v *pushDownOptimizer) visitLimit(limit *Limit) (Operator, error) {
 		pipeline = append(pipeline, bson.D{{"$limit", limit.rowcount}})
 	}
 
-	return ms.WithPipeline(pipeline), nil
+	ms = ms.clone()
+	ms.pipeline = pipeline
+	return ms, nil
 }
 
 func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderBy) (Operator, error) {
@@ -660,7 +657,9 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderBy) (Operator, error) {
 	pipeline := ms.pipeline
 	pipeline = append(pipeline, bson.D{{"$sort", sort}})
 
-	return ms.WithPipeline(pipeline), nil
+	ms = ms.clone()
+	ms.pipeline = pipeline
+	return ms, nil
 }
 
 func (v *pushDownOptimizer) visitProject(project *Project) (Operator, error) {
@@ -731,11 +730,15 @@ func (v *pushDownOptimizer) visitProject(project *Project) (Operator, error) {
 
 	pipeline := ms.pipeline
 	pipeline = append(pipeline, bson.D{{"$project", fieldsToProject}})
-	ms = ms.WithPipeline(pipeline).WithMappingRegistry(&fixedMappingRegistry)
+	ms = ms.clone()
+	ms.pipeline = pipeline
+	ms.mappingRegistry = &fixedMappingRegistry
 
 	if canReplaceProject {
 		return ms, nil
 	}
 
-	return project.WithSource(ms), nil
+	project = project.clone()
+	project.source = ms
+	return project, nil
 }

@@ -213,3 +213,11 @@ func (gb *GroupBy) String() string {
 	return b.String()
 
 }
+
+func (gb *GroupBy) clone() *GroupBy {
+	return &GroupBy{
+		source:      gb.source,
+		keyExprs:    gb.keyExprs,
+		selectExprs: gb.selectExprs,
+	}
+}

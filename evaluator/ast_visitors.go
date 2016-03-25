@@ -221,7 +221,7 @@ func (n *partialEvaluatorNominator) Visit(e SQLExpr) (SQLExpr, error) {
 	oldBlocked := n.blocked
 	n.blocked = false
 
-	switch e.(type) {
+	switch typedE := e.(type) {
 	case *SQLExistsExpr:
 		n.blocked = true
 	case SQLColumnExpr:
@@ -232,6 +232,14 @@ func (n *partialEvaluatorNominator) Visit(e SQLExpr) (SQLExpr, error) {
 		n.blocked = true
 	case *SQLAggFunctionExpr:
 		n.blocked = true
+	case *SQLScalarFunctionExpr:
+		n.blocked = typedE.RequiresEvalCtx()
+		if !n.blocked {
+			_, err := walk(n, e)
+			if err != nil {
+				return nil, err
+			}
+		}
 	default:
 		_, err := walk(n, e)
 		if err != nil {

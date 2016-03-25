@@ -167,6 +167,16 @@ func (join *Join) Err() error {
 	return join.err
 }
 
+func (join *Join) clone() *Join {
+	return &Join{
+		left:     join.left,
+		right:    join.right,
+		matcher:  join.matcher,
+		kind:     join.kind,
+		strategy: join.strategy,
+	}
+}
+
 // NewJoiner returns a new Joiner implementation for the given
 // strategy. The implementation uses the supplied matcher in
 // evaluating the join criteria and performs joins according

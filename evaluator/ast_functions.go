@@ -249,6 +249,15 @@ var scalarFuncMap = map[string]scalarFunc{
 	"year":              &yearFunc{},
 }
 
+func (f *SQLScalarFunctionExpr) RequiresEvalCtx() bool {
+	switch f.Name {
+	case "connection_id", "database":
+		return true
+	default:
+		return false
+	}
+}
+
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	sf, ok := scalarFuncMap[f.Name]
 	if ok {

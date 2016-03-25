@@ -38,6 +38,14 @@ type orderByKey struct {
 	evalCtx   *EvalCtx
 }
 
+func (k orderByKey) clone() orderByKey {
+	return orderByKey{
+		expr:      k.expr,
+		isAggFunc: k.isAggFunc,
+		ascending: k.ascending,
+	}
+}
+
 type orderByRow struct {
 	keys []orderByKey
 	data Row
@@ -146,6 +154,13 @@ func (ob *OrderBy) Err() error {
 
 func (ob *OrderBy) OpFields() (columns []*Column) {
 	return ob.source.OpFields()
+}
+
+func (ob *OrderBy) clone() *OrderBy {
+	return &OrderBy{
+		source: ob.source,
+		keys:   ob.keys,
+	}
 }
 
 //

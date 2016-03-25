@@ -165,6 +165,15 @@ type SelectExpression struct {
 	Referenced bool
 }
 
+func (se *SelectExpression) clone() *SelectExpression {
+	return &SelectExpression{
+		Column:     se.Column,
+		Expr:       se.Expr,
+		Referenced: se.Referenced,
+		RefColumns: se.RefColumns,
+	}
+}
+
 // AggRowCtx holds evaluated data as well as the relevant context used to evaluate the data
 // used for passing data - used to process aggregation functions - between operators.
 type AggRowCtx struct {

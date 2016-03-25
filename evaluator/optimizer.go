@@ -13,7 +13,15 @@ func OptimizeOperator(ctx *ExecutionCtx, o Operator) (Operator, error) {
 		return o, nil
 	}
 
-	newO, err := optimizeCrossJoins(o)
+	newO, err := optimizeOperatorSQLExprs(o)
+	if err != nil {
+		return o, nil
+	}
+	o = newO
+
+	log.Logf(log.DebugHigh, "SQL Expr Optimization query plan: \n%v\n", PrettyPrintPlan(o))
+
+	newO, err = optimizeCrossJoins(o)
 	if err != nil {
 		return o, nil
 	}
