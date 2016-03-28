@@ -602,9 +602,9 @@ schema:
       SqlName: total
       SqlType: int
     - Name: TRACT
-      MongoType: int
+      MongoType: string
       SqlName: tract
-      SqlType: int
+      SqlType: varchar
     - Name: YEAR
       MongoType: int
       SqlName: year
