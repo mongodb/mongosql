@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/mongodb/mongo-tools/common/json"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -288,7 +290,7 @@ func prettyPrintPlan(b *bytes.Buffer, o Operator, d int) {
 
 	case *Filter:
 
-		b.WriteString("↳ Filter:\n")
+		b.WriteString(fmt.Sprintf("↳ Filter (%v):\n", typedE.matcher))
 		prettyPrintPlan(b, typedE.source, d+1)
 
 	case *GroupBy:
@@ -351,18 +353,43 @@ func prettyPrintPlan(b *bytes.Buffer, o Operator, d int) {
 		}
 
 		b.WriteString("\n")
-
-		for i, stage := range typedE.pipeline {
-			printTabs(b, d+1)
-			b.WriteString(fmt.Sprintf("  stage %v: '%v'\n", i+1, stage))
+		prettyPipeline, err := pipelineJSON(typedE.pipeline, d+1)
+		if err != nil { // marshaling as json failed, fall back to Sprintf
+			prettyPipeline = pipelineString(typedE.pipeline, d+1)
 		}
+		b.Write(prettyPipeline)
 
 	default:
 
 		panic(fmt.Sprintf("unsupported print operator: %T", typedE))
 
 	}
+}
 
+func pipelineJSON(stages []bson.D, depth int) ([]byte, error) {
+	buf := bytes.Buffer{}
+	for i, s := range stages {
+		md := bsonutil.MarshalD(s)
+		b, err := json.Marshal(md)
+		if err != nil {
+			return nil, err
+		}
+		printTabs(&buf, depth)
+		buf.Write(b)
+		if i != len(stages)-1 {
+			buf.WriteString(",\n")
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+func pipelineString(stages []bson.D, depth int) []byte {
+	buf := bytes.Buffer{}
+	for i, stage := range stages {
+		printTabs(&buf, depth)
+		buf.WriteString(fmt.Sprintf("  stage %v: '%v'\n", i+1, stage))
+	}
+	return buf.Bytes()
 }
 
 // PrettyPrintPlan takes an operator and recursively prints its source.
