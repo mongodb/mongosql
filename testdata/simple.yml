@@ -4,8 +4,7 @@
 # into the indicated namespace
 #
 data:
-- ns: test.foo
-  archive_file: testdata/input/test1.bson.gz
+- archive_file: testdata/input/test1.bson.gz
 
 # 2. Start a test server using the following schema mapping, which should
 # correspond to the data used in (1)

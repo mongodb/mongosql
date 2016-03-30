@@ -40,7 +40,6 @@ const (
 )
 
 type testDataSet struct {
-	NS          string `yaml:"ns"`
 	ArchiveFile string `yaml:"archive_file"`
 }
 
