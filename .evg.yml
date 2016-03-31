@@ -4,7 +4,7 @@ buildvariants:
 - name: linux
   display_name: Linux
   expansions:
-    mongo_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.1.tgz
+    mongo_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-latest.tgz
   run_on:
   - ubuntu1404-build
   tasks:
@@ -13,7 +13,7 @@ buildvariants:
 - name: linux-enterprise
   display_name: Linux (Enterprise)
   expansions:
-      mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.2.1.tgz --output mongodb.tgz
+      mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-latest.tgz --output mongodb.tgz
       mongod_args:  --sslMode requireSSL --sslPEMKeyFile ./src/testdata/server.pem
       mongo_args:  --ssl --sslAllowInvalidCertificates --sslPEMKeyFile src/testdata/client.pem 
       gotest_env: "SQLPROXY_SSLTEST=1"
@@ -27,7 +27,7 @@ buildvariants:
   run_on:
   - windows-64-vs2013-test
   expansions:
-    mongo_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.1.zip
+    mongo_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-latest.zip
     extension: .exe
   tasks:
   - "*"
@@ -36,7 +36,7 @@ buildvariants:
   run_on:
   - osx-1010
   expansions:
-    mongo_url: https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-3.2.1.tgz
+    mongo_url: https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-latest.tgz
   tasks:
   - "*"
 
