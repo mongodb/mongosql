@@ -644,8 +644,8 @@ func TestIsSimilar(t *testing.T) {
 				{SQLDate, SQLObjectID, false},
 				{SQLDate, SQLVarchar, false},
 				{SQLDate, SQLNone, false},
-				{SQLDate, SQLDate, false},
-				{SQLDate, SQLTimestamp, false},
+				{SQLDate, SQLDate, true},
+				{SQLDate, SQLTimestamp, true},
 			}
 			runTests(tests)
 		})
@@ -658,9 +658,9 @@ func TestIsSimilar(t *testing.T) {
 				{SQLTimestamp, SQLNull, false},
 				{SQLTimestamp, SQLObjectID, false},
 				{SQLTimestamp, SQLVarchar, false},
-				{SQLTimestamp, SQLDate, false},
+				{SQLTimestamp, SQLDate, true},
 				{SQLTimestamp, SQLNone, false},
-				{SQLTimestamp, SQLTimestamp, false},
+				{SQLTimestamp, SQLTimestamp, true},
 			}
 			runTests(tests)
 		})

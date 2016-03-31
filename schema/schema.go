@@ -375,6 +375,11 @@ func IsSimilar(leftType, rightType SQLType) bool {
 		case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
 			return true
 		}
+	case SQLDate, SQLTimestamp:
+		switch rightType {
+		case SQLDate, SQLTimestamp:
+			return true
+		}
 	}
 	return false
 }
