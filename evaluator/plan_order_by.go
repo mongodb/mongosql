@@ -8,9 +8,9 @@ import (
 )
 
 // OrderBy sorts records according to one or more keys.
-type OrderBy struct {
+type OrderByStage struct {
 	// source is the operator that provides the data to order
-	source Operator
+	source PlanStage
 
 	// keys holds the SQLExpr(s) to order by. For example, in
 	// select a, count(b) from foo group by a order by count(b)
@@ -18,6 +18,12 @@ type OrderBy struct {
 	// order by criteria, they are stored in the same order within
 	// the keys slice.
 	keys []orderByKey
+}
+
+type OrderByIter struct {
+	keys []orderByKey
+
+	source Iter
 
 	// channel on which to send sorted rows
 	outChan chan Row
@@ -53,16 +59,15 @@ type orderByRow struct {
 
 type orderByRows []orderByRow
 
-func (ob *OrderBy) Open(ctx *ExecutionCtx) error {
-	return ob.init(ctx)
+func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
+	sourceIter, err := ob.source.Open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &OrderByIter{source: sourceIter, keys: ob.keys, ctx: ctx}, nil
 }
 
-func (ob *OrderBy) init(ctx *ExecutionCtx) error {
-	ob.ctx = ctx
-	return ob.source.Open(ctx)
-}
-
-func (ob *OrderBy) evaluateOrderByKeys(row *Row) []orderByKey {
+func (ob *OrderByIter) evaluateOrderByKeys(row *Row) []orderByKey {
 
 	keys := make([]orderByKey, 0, len(ob.keys))
 
@@ -81,7 +86,7 @@ func (ob *OrderBy) evaluateOrderByKeys(row *Row) []orderByKey {
 	return keys
 }
 
-func (ob *OrderBy) sortRows() (orderByRows, error) {
+func (ob *OrderByIter) sortRows() (orderByRows, error) {
 	rows := orderByRows{}
 
 	row := &Row{}
@@ -110,7 +115,7 @@ func (ob *OrderBy) sortRows() (orderByRows, error) {
 
 }
 
-func (ob *OrderBy) iterChan(rows orderByRows) chan Row {
+func iterChan(rows orderByRows) chan Row {
 	ch := make(chan Row)
 
 	go func() {
@@ -123,15 +128,14 @@ func (ob *OrderBy) iterChan(rows orderByRows) chan Row {
 	return ch
 }
 
-func (ob *OrderBy) Next(row *Row) bool {
-
+func (ob *OrderByIter) Next(row *Row) bool {
 	if !ob.sorted {
 		rows, err := ob.sortRows()
 		if err != nil {
 			ob.err = err
 			return false
 		}
-		ob.outChan = ob.iterChan(rows)
+		ob.outChan = iterChan(rows)
 	}
 
 	r, done := <-ob.outChan
@@ -140,11 +144,11 @@ func (ob *OrderBy) Next(row *Row) bool {
 	return done
 }
 
-func (ob *OrderBy) Close() error {
+func (ob *OrderByIter) Close() error {
 	return ob.source.Close()
 }
 
-func (ob *OrderBy) Err() error {
+func (ob *OrderByIter) Err() error {
 	if err := ob.source.Err(); err != nil {
 		return err
 	}
@@ -152,12 +156,12 @@ func (ob *OrderBy) Err() error {
 	return ob.err
 }
 
-func (ob *OrderBy) OpFields() (columns []*Column) {
+func (ob *OrderByStage) OpFields() (columns []*Column) {
 	return ob.source.OpFields()
 }
 
-func (ob *OrderBy) clone() *OrderBy {
-	return &OrderBy{
+func (ob *OrderByStage) clone() *OrderByStage {
+	return &OrderByStage{
 		source: ob.source,
 		keys:   ob.keys,
 	}

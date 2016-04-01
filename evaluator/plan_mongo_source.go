@@ -60,7 +60,7 @@ func (mr *mappingRegistry) lookupFieldName(tableName, columnName string) (string
 
 // MongoSource is the primary interface for SQLProxy to a MongoDB
 // installation and executes simple queries against collections.
-type MongoSource struct {
+type MongoSourceStage struct {
 	dbName          string
 	tableName       string
 	aliasName       string
@@ -68,12 +68,19 @@ type MongoSource struct {
 	mappingRegistry *mappingRegistry
 	pipeline        []bson.D
 	matcher         SQLExpr
+}
+
+type MongoSourceIter struct {
+	tableName       string
+	aliasName       string
+	mappingRegistry *mappingRegistry
+	matcher         SQLExpr
 	ctx             *ExecutionCtx
 	iter            FindResults
 	err             error
 }
 
-func NewMongoSource(ctx *ExecutionCtx, dbName, tableName string, aliasName string) (*MongoSource, error) {
+func NewMongoSourceStage(planCtx *PlanCtx, dbName, tableName string, aliasName string) (*MongoSourceStage, error) {
 
 	if dbName == "" {
 		return nil, fmt.Errorf("dbName is empty")
@@ -81,7 +88,7 @@ func NewMongoSource(ctx *ExecutionCtx, dbName, tableName string, aliasName strin
 	if tableName == "" {
 		return nil, fmt.Errorf("tableName is empty")
 	}
-	ms := &MongoSource{
+	ms := &MongoSourceStage{
 		dbName:    dbName,
 		tableName: tableName,
 		aliasName: aliasName,
@@ -91,7 +98,7 @@ func NewMongoSource(ctx *ExecutionCtx, dbName, tableName string, aliasName strin
 		ms.aliasName = ms.tableName
 	}
 
-	database, ok := ctx.Schema.Databases[ms.dbName]
+	database, ok := planCtx.Schema.Databases[ms.dbName]
 	if !ok {
 		return nil, fmt.Errorf("db (%s) doesn't exist - table (%s)", dbName, tableName)
 	}
@@ -120,8 +127,8 @@ func NewMongoSource(ctx *ExecutionCtx, dbName, tableName string, aliasName strin
 	return ms, nil
 }
 
-func (ms *MongoSource) clone() *MongoSource {
-	return &MongoSource{
+func (ms *MongoSourceStage) clone() *MongoSourceStage {
+	return &MongoSourceStage{
 		dbName:          ms.dbName,
 		tableName:       ms.tableName,
 		aliasName:       ms.aliasName,
@@ -133,15 +140,20 @@ func (ms *MongoSource) clone() *MongoSource {
 }
 
 // Open establishes a connection to database collection for this table.
-func (ms *MongoSource) Open(ctx *ExecutionCtx) error {
-	ms.ctx = ctx
+func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
+	mgoIter := MgoFindResults{ctx.Session.DB(ms.dbName).C(ms.collectionName).Pipe(ms.pipeline).AllowDiskUse().Iter()}
 
-	ms.iter = MgoFindResults{ctx.Session.DB(ms.dbName).C(ms.collectionName).Pipe(ms.pipeline).AllowDiskUse().Iter()}
-
-	return nil
+	return &MongoSourceIter{
+		tableName:       ms.tableName,
+		aliasName:       ms.aliasName,
+		matcher:         ms.matcher,
+		mappingRegistry: ms.mappingRegistry,
+		ctx:             ctx,
+		iter:            mgoIter,
+		err:             nil}, nil
 }
 
-func (ms *MongoSource) Next(row *Row) bool {
+func (ms *MongoSourceIter) Next(row *Row) bool {
 	if ms.iter == nil {
 		return false
 	}
@@ -221,15 +233,15 @@ func (ms *MongoSource) Next(row *Row) bool {
 	return hasNext
 }
 
-func (ms *MongoSource) OpFields() (columns []*Column) {
+func (ms *MongoSourceStage) OpFields() (columns []*Column) {
 	return ms.mappingRegistry.columns
 }
 
-func (ms *MongoSource) Close() error {
+func (ms *MongoSourceIter) Close() error {
 	return ms.iter.Close()
 }
 
-func (ms *MongoSource) Err() error {
+func (ms *MongoSourceIter) Err() error {
 	if err := ms.iter.Err(); err != nil {
 		return err
 	}

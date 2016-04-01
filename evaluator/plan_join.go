@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/deafgoat/mixer/sqlparser"
+	"sync"
 )
 
 // JoinStrategy specifies the method a Join
@@ -58,70 +59,75 @@ type Joiner interface {
 
 // Join implements the operator interface for
 // join expressions.
-type Join struct {
-	left, right Operator
+type JoinStage struct {
+	left, right PlanStage
 	matcher     SQLExpr
-	err         error
 	kind        JoinKind
 	strategy    JoinStrategy
-	leftRows    chan *Row
-	rightRows   chan *Row
-	onChan      chan Row
-	errChan     chan error
 }
 
-func (join *Join) Open(ctx *ExecutionCtx) error {
-	return join.init(ctx)
+type JoinIter struct {
+	strategy    JoinStrategy
+	kind        JoinKind
+	matcher     SQLExpr
+	joiner      Joiner
+	left, right Iter
+	execCtx     *ExecutionCtx
+
+	leftRows  chan *Row
+	rightRows chan *Row
+	onChan    chan Row
+	errChan   chan error
+	init      sync.Once
+	err       error
 }
 
-func (join *Join) fetchRows(opr Operator, ch chan *Row) {
+func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
+	left, err := join.left.Open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	right, err := join.right.Open(ctx)
+	if err != nil {
+		return nil, err
+	}
 
+	return &JoinIter{
+		kind:     join.kind,
+		strategy: join.strategy,
+		matcher:  join.matcher,
+		left:     left,
+		right:    right,
+		execCtx:  ctx,
+	}, nil
+}
+
+// fetchRows reads Row objects from a given Iter, and publishes them on channel ch, closing it when
+// the iterator is exhausted. Errors encountered during iteration are published on errChan.
+func fetchRows(it Iter, ch chan *Row, errChan chan error) {
 	r := &Row{}
 
-	for opr.Next(r) {
+	for it.Next(r) {
 		ch <- r
 		r = &Row{}
 	}
 	close(ch)
 
-	if err := opr.Err(); err != nil {
-		join.errChan <- err
+	if err := it.Err(); err != nil {
+		errChan <- err
 	}
 }
 
-func (join *Join) init(ctx *ExecutionCtx) (err error) {
-
-	// default join mechanism is nested loop
-	err = join.left.Open(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = join.right.Open(ctx)
-	if err != nil {
-		return err
-	}
-
-	join.leftRows = make(chan *Row)
-	go join.fetchRows(join.left, join.leftRows)
-
-	join.rightRows = make(chan *Row)
-	go join.fetchRows(join.right, join.rightRows)
-
-	join.errChan = make(chan error, 1)
-
-	joiner, err := NewJoiner(join)
-	if err != nil {
-		return err
-	}
-
-	join.onChan = joiner.Join(join.leftRows, join.rightRows, ctx)
-
-	return nil
-
-}
-
-func (join *Join) Next(row *Row) bool {
+func (join *JoinIter) Next(row *Row) bool {
+	join.init.Do(func() {
+		join.errChan = make(chan error, 1)
+		join.joiner = NewJoiner(join.strategy, join.kind, join.matcher, join.errChan)
+		join.leftRows = make(chan *Row)
+		join.rightRows = make(chan *Row)
+		go fetchRows(join.left, join.leftRows, join.errChan)
+		go fetchRows(join.right, join.rightRows, join.errChan)
+		join.onChan = join.joiner.Join(join.leftRows, join.rightRows, join.execCtx)
+	})
 	select {
 	case err := <-join.errChan:
 		join.err = err
@@ -135,7 +141,7 @@ func (join *Join) Next(row *Row) bool {
 	return true
 }
 
-func (join *Join) Close() error {
+func (join *JoinIter) Close() error {
 
 	if err := join.left.Close(); err != nil {
 		return err
@@ -148,13 +154,13 @@ func (join *Join) Close() error {
 	return nil
 }
 
-func (join *Join) OpFields() []*Column {
+func (join *JoinStage) OpFields() []*Column {
 	left := join.left.OpFields()
 	right := join.right.OpFields()
 	return append(left, right...)
 }
 
-func (join *Join) Err() error {
+func (join *JoinIter) Err() error {
 
 	if err := join.left.Err(); err != nil {
 		return err
@@ -167,8 +173,8 @@ func (join *Join) Err() error {
 	return join.err
 }
 
-func (join *Join) clone() *Join {
-	return &Join{
+func (join *JoinStage) clone() *JoinStage {
+	return &JoinStage{
 		left:     join.left,
 		right:    join.right,
 		matcher:  join.matcher,
@@ -181,21 +187,17 @@ func (join *Join) clone() *Join {
 // strategy. The implementation uses the supplied matcher in
 // evaluating the join criteria and performs joins according
 // to the joinType
-func NewJoiner(join *Join) (Joiner, error) {
-
-	s := join.strategy
-	matcher := join.matcher
-	errChan := join.errChan
+func NewJoiner(s JoinStrategy, kind JoinKind, matcher SQLExpr, errChan chan error) Joiner {
 
 	switch s {
 	case NestedLoop:
-		return &NestedLoopJoiner{matcher, join.kind, errChan}, nil
+		return &NestedLoopJoiner{matcher, kind, errChan}
 	case SortMerge:
-		return &SortMergeJoiner{matcher, join.kind, errChan}, nil
+		return &SortMergeJoiner{matcher, kind, errChan}
 	case Hash:
-		return &HashJoiner{matcher, join.kind, errChan}, nil
+		return &HashJoiner{matcher, kind, errChan}
 	default:
-		return nil, fmt.Errorf("unknown join strategy")
+		panic(fmt.Sprintf("unknown join strategy: %v", s))
 	}
 }
 

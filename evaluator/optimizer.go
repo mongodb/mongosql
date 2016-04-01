@@ -6,37 +6,37 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 )
 
-// OptimizeOperator applies optimizations to the operator tree to
+// OptimizePlan applies optimizations to the plan tree to
 // aid in performance.
-func OptimizeOperator(ctx *ExecutionCtx, o Operator) (Operator, error) {
+func OptimizePlan(planCtx *PlanCtx, p PlanStage) (PlanStage, error) {
 	if os.Getenv(NoOptimize) != "" {
-		return o, nil
+		return p, nil
 	}
 
-	newO, err := optimizeOperatorSQLExprs(o)
+	newP, err := optimizePlanSQLExprs(p)
 	if err != nil {
-		return o, nil
+		return p, nil
 	}
-	o = newO
+	p = newP
 
-	log.Logf(log.DebugHigh, "SQL Expr Optimization query plan: \n%v\n", PrettyPrintPlan(o))
+	log.Logf(log.DebugHigh, "SQL Expr Optimization query plan: \n%v\n", PrettyPrintPlan(p))
 
-	newO, err = optimizeCrossJoins(o)
+	newP, err = optimizeCrossJoins(p)
 	if err != nil {
-		return o, nil
+		return p, nil
 	}
-	o = newO
+	p = newP
 
-	log.Logf(log.DebugHigh, "Cross Join Optimization query plan: \n%v\n", PrettyPrintPlan(o))
+	log.Logf(log.DebugHigh, "Cross Join Optimization query plan: \n%v\n", PrettyPrintPlan(p))
 
-	newO, err = optimizePushDown(ctx, o)
+	newP, err = optimizePushDown(planCtx, p)
 	if err != nil {
-		return o, nil
+		return p, nil
 	}
-	o = newO
+	p = newP
 
-	log.Logf(log.DebugHigh, "Optimized query plan: \n%v\n", PrettyPrintPlan(o))
-	return o, nil
+	log.Logf(log.DebugHigh, "Optimized query plan: \n%v\n", PrettyPrintPlan(p))
+	return p, nil
 }
 
 func combineExpressions(exprs []SQLExpr) SQLExpr {

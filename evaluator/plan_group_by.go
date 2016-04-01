@@ -3,6 +3,7 @@ package evaluator
 import (
 	"bytes"
 	"fmt"
+	"sync"
 )
 
 // orderedGroup holds all the rows belonging to a given key in the groups
@@ -12,8 +13,7 @@ type orderedGroup struct {
 	keys   []string
 }
 
-// GroupBy groups records according to one or more fields.
-type GroupBy struct {
+type GroupByStage struct {
 	// selectExprs holds the SelectExpression that should
 	// be present in the result of a grouping. This will
 	// include SelectExpressions for aggregates that might
@@ -22,12 +22,32 @@ type GroupBy struct {
 	selectExprs SelectExpressions
 
 	// source is the operator that provides the data to group
-	source Operator
+	source PlanStage
 
 	// keySelectExprs holds the expression(s) to group by. For example, in
 	// select a, count(b) from foo group by a,
 	// keyExprs will hold the parsed column name 'a'.
 	keyExprs SelectExpressions
+}
+
+func (gb *GroupByStage) OpFields() (columns []*Column) {
+	for _, sExpr := range gb.selectExprs {
+		column := &Column{
+			Name:  sExpr.Name,
+			View:  sExpr.View,
+			Table: sExpr.Table,
+		}
+		columns = append(columns, column)
+	}
+	return columns
+}
+
+// GroupBy groups records according to one or more fields.
+type GroupByIter struct {
+	source Iter
+
+	selectExprs SelectExpressions
+	keyExprs    SelectExpressions
 
 	// grouped indicates if the source operator data has been grouped
 	grouped bool
@@ -43,22 +63,23 @@ type GroupBy struct {
 	outChan chan AggRowCtx
 
 	ctx *ExecutionCtx
+
+	init sync.Once
 }
 
-func (gb *GroupBy) Open(ctx *ExecutionCtx) error {
-	return gb.init(ctx)
+func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
+	sourceIter, err := gb.source.Open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &GroupByIter{ctx: ctx, source: sourceIter}, nil
 }
 
-func (gb *GroupBy) init(ctx *ExecutionCtx) error {
-	gb.ctx = ctx
-	return gb.source.Open(ctx)
-}
-
-func (gb *GroupBy) evaluateGroupByKey(row *Row) (string, error) {
+func evaluateGroupByKey(row *Row, keyExprs SelectExpressions) (string, error) {
 
 	var gbKey string
 
-	for _, expr := range gb.keyExprs {
+	for _, expr := range keyExprs {
 		evalCtx := &EvalCtx{Rows: Rows{*row}}
 		value, err := expr.Expr.Evaluate(evalCtx)
 		if err != nil {
@@ -72,7 +93,7 @@ func (gb *GroupBy) evaluateGroupByKey(row *Row) (string, error) {
 	return gbKey, nil
 }
 
-func (gb *GroupBy) createGroups() error {
+func (gb *GroupByIter) createGroups() error {
 
 	gb.finalGrouping = orderedGroup{
 		groups: make(map[string][]Row, 0),
@@ -83,7 +104,7 @@ func (gb *GroupBy) createGroups() error {
 	// iterator source to create groupings
 	for gb.source.Next(r) {
 
-		key, err := gb.evaluateGroupByKey(r)
+		key, err := evaluateGroupByKey(r, gb.selectExprs)
 		if err != nil {
 			return err
 		}
@@ -102,7 +123,7 @@ func (gb *GroupBy) createGroups() error {
 	return gb.source.Err()
 }
 
-func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
+func (gb *GroupByIter) evalAggRow(r []Row) (*Row, error) {
 
 	aggValues := map[string]Values{}
 
@@ -132,7 +153,7 @@ func (gb *GroupBy) evalAggRow(r []Row) (*Row, error) {
 	return row, nil
 }
 
-func (gb *GroupBy) iterChan() chan AggRowCtx {
+func (gb *GroupByIter) iterChan() chan AggRowCtx {
 	ch := make(chan AggRowCtx)
 
 	go func() {
@@ -155,7 +176,7 @@ func (gb *GroupBy) iterChan() chan AggRowCtx {
 	return ch
 }
 
-func (gb *GroupBy) Next(row *Row) bool {
+func (gb *GroupByIter) Next(row *Row) bool {
 	if !gb.grouped {
 		if err := gb.createGroups(); err != nil {
 			gb.err = err
@@ -171,30 +192,18 @@ func (gb *GroupBy) Next(row *Row) bool {
 	return done
 }
 
-func (gb *GroupBy) Close() error {
+func (gb *GroupByIter) Close() error {
 	return gb.source.Close()
 }
 
-func (gb *GroupBy) Err() error {
+func (gb *GroupByIter) Err() error {
 	if err := gb.source.Err(); err != nil {
 		return err
 	}
 	return gb.err
 }
 
-func (gb *GroupBy) OpFields() (columns []*Column) {
-	for _, sExpr := range gb.selectExprs {
-		column := &Column{
-			Name:  sExpr.Name,
-			View:  sExpr.View,
-			Table: sExpr.Table,
-		}
-		columns = append(columns, column)
-	}
-	return columns
-}
-
-func (gb *GroupBy) String() string {
+func (gb *GroupByIter) String() string {
 
 	b := bytes.NewBufferString("select exprs ( ")
 
@@ -214,8 +223,8 @@ func (gb *GroupBy) String() string {
 
 }
 
-func (gb *GroupBy) clone() *GroupBy {
-	return &GroupBy{
+func (gb *GroupByStage) clone() *GroupByStage {
+	return &GroupByStage{
 		source:      gb.source,
 		keyExprs:    gb.keyExprs,
 		selectExprs: gb.selectExprs,

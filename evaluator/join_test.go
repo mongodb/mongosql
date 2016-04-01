@@ -61,19 +61,17 @@ var (
 	}
 )
 
-func setupJoinOperator(ctx *ExecutionCtx, criteria sqlparser.BoolExpr, kind JoinKind) Operator {
+func setupJoinOperator(planCtx *PlanCtx, criteria sqlparser.BoolExpr, kind JoinKind) PlanStage {
 
-	ms1, err := NewBSONSource(ctx, tableOneName, customers)
-	So(err, ShouldBeNil)
-	ms2, err := NewBSONSource(ctx, tableTwoName, orders)
-	So(err, ShouldBeNil)
+	ms1 := &BSONSourceStage{tableOneName, customers}
+	ms2 := &BSONSourceStage{tableTwoName, orders}
 
-	tables := getDBTables(ctx)
+	tables := getDBTables(planCtx)
 
 	on, err := NewSQLExpr(criteria, tables)
 	So(err, ShouldBeNil)
 
-	return &Join{
+	return &JoinStage{
 		left:    ms1,
 		right:   ms2,
 		matcher: on,
@@ -101,8 +99,10 @@ func TestJoinOperator(t *testing.T) {
 		}
 
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbTwo,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbTwo,
+			},
 		}
 
 		row := &Row{}
@@ -111,9 +111,10 @@ func TestJoinOperator(t *testing.T) {
 
 		Convey("an inner join should return correct results", func() {
 
-			operator := setupJoinOperator(ctx, criteria, sqlparser.AST_JOIN)
+			operator := setupJoinOperator(ctx.PlanCtx, criteria, sqlparser.AST_JOIN)
 
-			So(operator.Open(ctx), ShouldBeNil)
+			iter, err := operator.Open(ctx)
+			So(err, ShouldBeNil)
 
 			expectedResults := []struct {
 				Name   interface{}
@@ -125,7 +126,7 @@ func TestJoinOperator(t *testing.T) {
 				{"personD", 390},
 			}
 
-			for operator.Next(row) {
+			for iter.Next(row) {
 				So(len(row.Data), ShouldEqual, 2)
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
 				So(row.Data[1].Table, ShouldEqual, tableTwoName)
@@ -136,16 +137,17 @@ func TestJoinOperator(t *testing.T) {
 
 			So(i, ShouldEqual, 4)
 
-			So(operator.Close(), ShouldBeNil)
-			So(operator.Err(), ShouldBeNil)
+			So(iter.Close(), ShouldBeNil)
+			So(iter.Err(), ShouldBeNil)
 
 		})
 
 		Convey("an left join should return correct results", func() {
 
-			operator := setupJoinOperator(ctx, criteria, sqlparser.AST_LEFT_JOIN)
+			operator := setupJoinOperator(ctx.PlanCtx, criteria, sqlparser.AST_LEFT_JOIN)
 
-			So(operator.Open(ctx), ShouldBeNil)
+			iter, err := operator.Open(ctx)
+			So(err, ShouldBeNil)
 
 			expectedResults := []struct {
 				Name   interface{}
@@ -158,7 +160,7 @@ func TestJoinOperator(t *testing.T) {
 				{"personD", 390},
 			}
 
-			for operator.Next(row) {
+			for iter.Next(row) {
 				// left entry with no corresponding right entry
 				if i == 3 {
 					So(len(row.Data), ShouldEqual, 1)
@@ -178,16 +180,17 @@ func TestJoinOperator(t *testing.T) {
 
 			So(i, ShouldEqual, 5)
 
-			So(operator.Close(), ShouldBeNil)
-			So(operator.Err(), ShouldBeNil)
+			So(iter.Close(), ShouldBeNil)
+			So(iter.Err(), ShouldBeNil)
 
 		})
 
 		Convey("an right join should return correct results", func() {
 
-			operator := setupJoinOperator(ctx, criteria, sqlparser.AST_RIGHT_JOIN)
+			operator := setupJoinOperator(ctx.PlanCtx, criteria, sqlparser.AST_RIGHT_JOIN)
 
-			So(operator.Open(ctx), ShouldBeNil)
+			iter, err := operator.Open(ctx)
+			So(err, ShouldBeNil)
 
 			expectedResults := []struct {
 				Name   interface{}
@@ -200,7 +203,7 @@ func TestJoinOperator(t *testing.T) {
 				{nil, 760},
 			}
 
-			for operator.Next(row) {
+			for iter.Next(row) {
 				// right entry with no corresponding left entry
 				if i == 4 {
 					So(len(row.Data), ShouldEqual, 1)
@@ -219,21 +222,22 @@ func TestJoinOperator(t *testing.T) {
 
 			So(i, ShouldEqual, 5)
 
-			So(operator.Close(), ShouldBeNil)
-			So(operator.Err(), ShouldBeNil)
+			So(iter.Close(), ShouldBeNil)
+			So(iter.Err(), ShouldBeNil)
 
 		})
 
 		Convey("a cross join should return correct results", func() {
 
-			operator := setupJoinOperator(ctx, criteria, sqlparser.AST_CROSS_JOIN)
+			operator := setupJoinOperator(ctx.PlanCtx, criteria, sqlparser.AST_CROSS_JOIN)
 
-			So(operator.Open(ctx), ShouldBeNil)
+			iter, err := operator.Open(ctx)
+			So(err, ShouldBeNil)
 
 			expectedNames := []string{"personA", "personB", "personC", "personD", "personE"}
 			expectedAmounts := []int{1000, 450, 1300, 390, 760}
 
-			for operator.Next(row) {
+			for iter.Next(row) {
 				So(len(row.Data), ShouldEqual, 2)
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
 				So(row.Data[1].Table, ShouldEqual, tableTwoName)
@@ -244,8 +248,8 @@ func TestJoinOperator(t *testing.T) {
 
 			So(i, ShouldEqual, 20)
 
-			So(operator.Close(), ShouldBeNil)
-			So(operator.Err(), ShouldBeNil)
+			So(iter.Close(), ShouldBeNil)
+			So(iter.Err(), ShouldBeNil)
 
 		})
 	})

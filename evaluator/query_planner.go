@@ -15,7 +15,7 @@ var (
 )
 
 // PlanQuery constructs a query plan to satisfy the select statement.
-func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error) {
+func PlanQuery(ctx *PlanCtx, ss sqlparser.SelectStatement) (PlanStage, error) {
 
 	switch ast := ss.(type) {
 
@@ -30,7 +30,7 @@ func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error
 
 		log.Logf(log.DebugLow, "Original query plan: \n%v\n", PrettyPrintPlan(o))
 
-		o, err = OptimizeOperator(ctx, o)
+		o, err = OptimizePlan(ctx, o)
 		if err != nil {
 			return nil, err
 		}
@@ -46,7 +46,7 @@ func PlanQuery(ctx *ExecutionCtx, ss sqlparser.SelectStatement) (Operator, error
 			return nil, err
 		}
 
-		return OptimizeOperator(ctx, o)
+		return OptimizePlan(ctx, o)
 
 	case *sqlparser.Union:
 
@@ -229,17 +229,17 @@ func getOrderByTerm(sExprs SelectExpressions, e sqlparser.Expr, tables map[strin
 
 // getReferencedExpressions parses the parts of the select AST and returns the
 // referenced select expressions and all the expressions comprising the query.
-func getReferencedExpressions(ast *sqlparser.Select, ctx *ExecutionCtx, sExprs SelectExpressions) (SelectExpressions, []SQLExpr, error) {
+func getReferencedExpressions(ast *sqlparser.Select, planCtx *PlanCtx, sExprs SelectExpressions) (SelectExpressions, []SQLExpr, error) {
 
 	var expressions SelectExpressions
 
-	tables := getDBTables(ctx)
+	tables := getDBTables(planCtx)
 
 	addReferencedColumns := func(columns []*Column) {
 		for _, column := range columns {
 			// only add basic columns present in table configuration
 			hasColumn := (expressions.Contains(*column) || sExprs.Contains(*column))
-			if ctx.ParseCtx.IsSchemaColumn(column) && !hasColumn && !hasStarExpr(ast) {
+			if planCtx.ParseCtx.IsSchemaColumn(column) && !hasColumn && !hasStarExpr(ast) {
 				columnType := getColumnType(tables, column.Table, column.Name)
 				sqlExpr := SQLColumnExpr{column.Table, column.Name, *columnType}
 				expression := SelectExpression{
@@ -314,47 +314,47 @@ func isAggFunction(e []byte) bool {
 	}
 }
 
-// planFromExpr takes one or more table expressions and returns an Operator for the
+// planFromExpr takes one or more table expressions and returns an PlanStage for the
 // data source. If more than one table expression exists, it constructs a join
 // operator (which is left deep for more than two table expressions).
-func planFromExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExprs, where *sqlparser.Where) (Operator, error) {
+func planFromExpr(planCtx *PlanCtx, tExpr sqlparser.TableExprs, where *sqlparser.Where) (PlanStage, error) {
 
 	if len(tExpr) == 0 {
 		return nil, fmt.Errorf("can't plan table expression with no tables")
 	} else if len(tExpr) == 1 {
-		return planTableExpr(ctx, tExpr[0], where)
+		return planTableExpr(planCtx, tExpr[0], where)
 	}
 
-	var left, right Operator
+	var left, right PlanStage
 	var err error
 
 	if len(tExpr) == 2 {
 
-		left, err = planTableExpr(ctx, tExpr[0], where)
+		left, err = planTableExpr(planCtx, tExpr[0], where)
 		if err != nil {
 			return nil, fmt.Errorf("error planning left table expr: %v", err)
 		}
 
-		right, err = planTableExpr(ctx, tExpr[1], where)
+		right, err = planTableExpr(planCtx, tExpr[1], where)
 		if err != nil {
 			return nil, fmt.Errorf("error planning right table expr: %v", err)
 		}
 
 	} else {
 
-		left, err = planFromExpr(ctx, tExpr[:len(tExpr)-1], where)
+		left, err = planFromExpr(planCtx, tExpr[:len(tExpr)-1], where)
 		if err != nil {
 			return nil, fmt.Errorf("error planning left forest: %v", err)
 		}
 
-		right, err = planTableExpr(ctx, tExpr[len(tExpr)-1], where)
+		right, err = planTableExpr(planCtx, tExpr[len(tExpr)-1], where)
 		if err != nil {
 			return nil, fmt.Errorf("error planning right table leaf: %v", err)
 		}
 
 	}
 
-	join := &Join{
+	join := &JoinStage{
 		left:  left,
 		right: right,
 		kind:  sqlparser.AST_CROSS_JOIN,
@@ -365,11 +365,11 @@ func planFromExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExprs, where *sqlparse
 }
 
 // planGroupBy returns a query execution plan for a GROUP BY clause.
-func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions, tables map[string]*schema.Table) (*GroupBy, error) {
+func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions, tables map[string]*schema.Table) (*GroupByStage, error) {
 
 	groupBy := ast.GroupBy
 
-	gb := &GroupBy{
+	gb := &GroupByStage{
 		selectExprs: sExprs,
 	}
 
@@ -391,9 +391,9 @@ func planGroupBy(ast *sqlparser.Select, sExprs SelectExpressions, tables map[str
 }
 
 // planLimit returns a query execution plan for a LIMIT clause.
-func planLimit(expr *sqlparser.Limit, tables map[string]*schema.Table) (*Limit, error) {
+func planLimit(expr *sqlparser.Limit, tables map[string]*schema.Table) (*LimitStage, error) {
 
-	operator := &Limit{}
+	limitPlan := &LimitStage{}
 
 	// TODO: our MySQL parser only supports the LIMIT offset, row_count syntax
 	// and not the equivalent LIMIT row_count OFFSET offset syntax.
@@ -411,9 +411,9 @@ func planLimit(expr *sqlparser.Limit, tables map[string]*schema.Table) (*Limit, 
 		if !ok {
 			return nil, fmt.Errorf("LIMIT offset must be an integer")
 		}
-		operator.offset = int64(offset)
+		limitPlan.offset = int64(offset)
 
-		if operator.offset < 0 {
+		if limitPlan.offset < 0 {
 			return nil, fmt.Errorf("LIMIT offset can not be negative")
 		}
 	}
@@ -423,30 +423,30 @@ func planLimit(expr *sqlparser.Limit, tables map[string]*schema.Table) (*Limit, 
 		return nil, err
 	}
 
-	rowcount, ok := eval.(SQLInt)
+	limitCount, ok := eval.(SQLInt)
 	if !ok {
 		return nil, fmt.Errorf("LIMIT row count must be an integer")
 	}
 
-	operator.rowcount = int64(rowcount)
+	limitPlan.limit = int64(limitCount)
 
-	if operator.rowcount < 0 {
+	if limitPlan.limit < 0 {
 		return nil, fmt.Errorf("LIMIT row count can not be negative")
 	}
 
-	return operator, nil
+	return limitPlan, nil
 
 }
 
 // planOrderBy returns a query execution plan for an ORDER BY clause.
-func planOrderBy(ast *sqlparser.Select, sExprs SelectExpressions, tables map[string]*schema.Table) (*OrderBy, error) {
+func planOrderBy(ast *sqlparser.Select, sExprs SelectExpressions, tables map[string]*schema.Table) (*OrderByStage, error) {
 
 	//
 	// TODO: doesn't make sense to allow ORDER BY aggregate expression without
 	// a GROUP BY clause
 	//
 
-	orderBy := &OrderBy{}
+	orderBy := &OrderByStage{}
 
 	for _, i := range ast.OrderBy {
 
@@ -472,21 +472,21 @@ func planOrderBy(ast *sqlparser.Select, sExprs SelectExpressions, tables map[str
 	return orderBy, nil
 }
 
-func getDBTables(ctx *ExecutionCtx) map[string]*schema.Table {
-	isInformationDatabase := strings.ToLower(ctx.Db) == InformationDatabase
-	if isInformationDatabase || ctx.Db == "" {
+func getDBTables(planCtx *PlanCtx) map[string]*schema.Table {
+	isInformationDatabase := strings.ToLower(planCtx.Db) == InformationDatabase
+	if isInformationDatabase || planCtx.Db == "" {
 		return nil
 	}
-	return ctx.Schema.Databases[ctx.Db].Tables
+	return planCtx.Schema.Databases[planCtx.Db].Tables
 }
 
 // planQuery takes a select struct and returns a query execution plan for it.
-func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err error) {
+func planQuery(planCtx *PlanCtx, ast *sqlparser.Select) (plan PlanStage, err error) {
 
-	tables := getDBTables(ctx)
+	tables := getDBTables(planCtx)
 
 	if ast.From != nil {
-		operator, err = planFromExpr(ctx, ast.From, ast.Where)
+		plan, err = planFromExpr(planCtx, ast.From, ast.Where)
 		if err != nil {
 			return nil, err
 		}
@@ -497,7 +497,7 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 		return nil, err
 	}
 
-	refExprs, sqlExprs, err := getReferencedExpressions(ast, ctx, projectedSelectExprs)
+	refExprs, sqlExprs, err := getReferencedExpressions(ast, planCtx, projectedSelectExprs)
 	if err != nil {
 		return nil, err
 	}
@@ -520,10 +520,8 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 	}
 
 	if containsSubquery {
-		log.Logf(log.DebugLow, "hasSubQuery at depth %v\n", ctx.Depth)
-		operator = &SourceAppend{
-			source: operator,
-		}
+		log.Logf(log.DebugLow, "hasSubQuery is true\n") //at depth %v\n", planCtx.ParseCtx.Depth)
+		plan = &SourceAppendStage{source: plan}
 	}
 
 	if ast.Where != nil {
@@ -532,7 +530,7 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 			return nil, err
 		}
 
-		operator = NewFilter(operator, matcher, containsSubquery)
+		plan = &FilterStage{source: plan, matcher: matcher, hasSubquery: containsSubquery}
 	}
 
 	var aggSelExprs SelectExpressions
@@ -586,8 +584,8 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 		if err != nil {
 			return nil, err
 		}
-		gb.source = operator
-		operator = gb
+		gb.source = plan
+		plan = gb
 
 		// at this point, all aggregations, computations, etc... have been done in the group
 		// by, so we need to make sure that these are replaced by what is now a column.
@@ -609,15 +607,15 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 			return nil, err
 		}
 
-		operator = NewFilter(operator, matcher, containsSubquery)
+		plan = &FilterStage{source: plan, matcher: matcher, hasSubquery: containsSubquery}
 	}
 
 	if ast.Distinct == sqlparser.AST_DISTINCT {
 
-		operator = &GroupBy{
+		plan = &GroupByStage{
 			keyExprs:    projectedSelectExprs,
 			selectExprs: allSelectExprs,
-			source:      operator,
+			source:      plan,
 		}
 	}
 
@@ -626,8 +624,8 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 		if err != nil {
 			return nil, err
 		}
-		ob.source = operator
-		operator = ob
+		ob.source = plan
+		plan = ob
 	}
 
 	if ast.Limit != nil {
@@ -635,28 +633,28 @@ func planQuery(ctx *ExecutionCtx, ast *sqlparser.Select) (operator Operator, err
 		if err != nil {
 			return nil, err
 		}
-		lm.source = operator
-		operator = lm
+		lm.source = plan
+		plan = lm
 	}
 
-	operator = &Project{
-		source: operator,
+	plan = &ProjectStage{
+		source: plan,
 		sExprs: projectedSelectExprs,
 	}
 
 	if containsSubquery {
-		operator = &SourceRemove{
-			source: operator,
+		plan = &SourceRemoveStage{
+			source: plan,
 		}
 	}
 
-	return operator, nil
+	return plan, nil
 }
 
 // planSimpleSelectExpr takes a simple select expression and returns a query execution plan for it.
-func planSimpleSelectExpr(ctx *ExecutionCtx, ss *sqlparser.SimpleSelect) (Operator, error) {
+func planSimpleSelectExpr(planCtx *PlanCtx, ss *sqlparser.SimpleSelect) (PlanStage, error) {
 
-	tables := getDBTables(ctx)
+	tables := getDBTables(planCtx)
 
 	sExprs, err := referencedSelectExpressions(ss, tables)
 	if err != nil {
@@ -687,8 +685,8 @@ func planSimpleSelectExpr(ctx *ExecutionCtx, ss *sqlparser.SimpleSelect) (Operat
 	}
 
 	// TODO: support distinct within the simple select query
-	o := &Project{
-		source: &Dual{sExprs: sExprs},
+	o := &ProjectStage{
+		source: &DualStage{sExprs: sExprs},
 		sExprs: sExprs,
 	}
 
@@ -770,7 +768,7 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs, tables map[string]*schema.
 
 // planSimpleTableExpr takes a simple table expression and returns an operator that can iterate
 // over its result set.
-func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlparser.Where) (Operator, error) {
+func planSimpleTableExpr(c *PlanCtx, s *sqlparser.AliasedTableExpr, w *sqlparser.Where) (PlanStage, error) {
 
 	switch expr := s.Expr.(type) {
 
@@ -785,7 +783,7 @@ func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlp
 			return nil, err
 		}
 
-		as := &Subquery{
+		as := &SubqueryStage{
 			source:    source,
 			tableName: string(s.As),
 		}
@@ -798,38 +796,38 @@ func planSimpleTableExpr(c *ExecutionCtx, s *sqlparser.AliasedTableExpr, w *sqlp
 
 }
 
-// planTableExpr takes a table expression and returns an Operator that
+// planTableExpr takes a table expression and returns an PlanStage that
 // can iterate over its result set.
-func planTableExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExpr, w *sqlparser.Where) (Operator, error) {
+func planTableExpr(planCtx *PlanCtx, tExpr sqlparser.TableExpr, w *sqlparser.Where) (PlanStage, error) {
 
 	switch expr := tExpr.(type) {
 
 	case *sqlparser.AliasedTableExpr:
 		// this is a simple table to get data from
-		return planSimpleTableExpr(ctx, expr, w)
+		return planSimpleTableExpr(planCtx, expr, w)
 
 	case *sqlparser.ParenTableExpr:
-		return planTableExpr(ctx, expr.Expr, w)
+		return planTableExpr(planCtx, expr.Expr, w)
 
 	case *sqlparser.JoinTableExpr:
-		left, err := planTableExpr(ctx, expr.LeftExpr, w)
+		left, err := planTableExpr(planCtx, expr.LeftExpr, w)
 		if err != nil {
 			return nil, fmt.Errorf("error on left join node: %v", err)
 		}
 
-		right, err := planTableExpr(ctx, expr.RightExpr, w)
+		right, err := planTableExpr(planCtx, expr.RightExpr, w)
 		if err != nil {
 			return nil, fmt.Errorf("error on right join node: %v", err)
 		}
 
-		tables := getDBTables(ctx)
+		tables := getDBTables(planCtx)
 
 		on, err := NewSQLExpr(expr.On, tables)
 		if err != nil {
 			return nil, err
 		}
 
-		join := &Join{
+		join := &JoinStage{
 			left:    left,
 			right:   right,
 			matcher: on,
@@ -845,24 +843,24 @@ func planTableExpr(ctx *ExecutionCtx, tExpr sqlparser.TableExpr, w *sqlparser.Wh
 
 // planTableName takes a table name and returns an operator to get
 // data from the appropriate source.
-func planTableName(ctx *ExecutionCtx, t *sqlparser.TableName, aliasName string, w *sqlparser.Where) (Operator, error) {
+func planTableName(planCtx *PlanCtx, t *sqlparser.TableName, aliasName string, w *sqlparser.Where) (PlanStage, error) {
 
 	var matcher SQLExpr
 	var err error
 
 	dbName := strings.ToLower(string(t.Qualifier))
-	isInformationDatabase := dbName == InformationDatabase || strings.ToLower(ctx.Db) == InformationDatabase
+	isInformationDatabase := dbName == InformationDatabase || strings.ToLower(planCtx.Db) == InformationDatabase
 
 	if isInformationDatabase {
 
 		// SchemaDataSource is a special table that handles queries against
 		// the 'information_schema' database
-		cds := &SchemaDataSource{
+		cds := &SchemaDataSourceStage{
 			tableName: strings.ToLower(string(t.Name)),
 			aliasName: aliasName,
 		}
 
-		ctx.Db = InformationDatabase
+		planCtx.Db = InformationDatabase
 
 		// if we got a valid filter/matcher, use it
 		if err == nil {
@@ -873,10 +871,10 @@ func planTableName(ctx *ExecutionCtx, t *sqlparser.TableName, aliasName string, 
 	}
 
 	if dbName == "" {
-		dbName = ctx.Db
+		dbName = planCtx.Db
 	}
 
-	return NewMongoSource(ctx, dbName, string(t.Name), aliasName)
+	return NewMongoSourceStage(planCtx, dbName, string(t.Name), aliasName)
 }
 
 // referencedSelectExpressions returns any columns referenced in the select statement.

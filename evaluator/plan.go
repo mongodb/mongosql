@@ -13,7 +13,7 @@ import (
 )
 
 // Column contains information used to select data
-// from an operator. 'Table' and 'Column' define the
+// from a query plan. 'Table' and 'Column' define the
 // source of the data while 'View' holds the display
 // header representation of the data.
 type Column struct {
@@ -32,37 +32,43 @@ type ConnectionCtx interface {
 	Session() *mgo.Session
 }
 
-// ExecutionCtx holds exeuction context information
-// used by each Operator implemenation.
-type ExecutionCtx struct {
+type PlanCtx struct {
 	Schema   *schema.Schema
-	Session  *mgo.Session
 	ParseCtx *ParseCtx
 	Db       string
+	// Depth indicates what level within a WHERE expression - containing
+	// a subquery = is being processed
+	Depth int
+}
+
+// ExecutionCtx holds exeuction context information
+// used by each Iterator implemenation.
+type ExecutionCtx struct {
+	Session *mgo.Session
 	// GroupRows holds a set of rows used by each GROUP BY combination
 	GroupRows []Row
 	// SrcRows caches the data gotten from a table scan or join node
 	SrcRows []*Row
-	// Depth indicates what level within a WHERE expression - containing
-	// a subquery = is being processed
-	Depth int
 	ConnectionCtx
+
+	PlanCtx *PlanCtx
+
+	Depth int
 }
 
-// Operator defines a set of functions that are implemented by each
-// node in the query pipeline.
-type Operator interface {
-	//
-	// Open prepares the operator for query processing. Implementations of this
-	// interface should perform all tasks necessary for subsequently processing
-	// row data data - including opening of source nodes, setting up state, etc.
-	// If successful, the Next method can be called on the operator to retrieve
-	// processed row data.
-	//
-	Open(*ExecutionCtx) error
+// PlanStage represents a single a node in the Plan tree.
+type PlanStage interface {
+	// Open returns an iterator that returns results from executing this plan stage with the given
+	// ExecutionContext.
+	Open(*ExecutionCtx) (Iter, error)
 
-	//
-	// Next retrieves the next row from this operator. It returns true if it has
+	// OpFields returns the set of columns that are contained in results from this plan.
+	OpFields() []*Column
+}
+
+// Iter represents an object that can iterate through a set of rows.
+type Iter interface {
+	// Next retrieves the next row from this iterator. It returns true if it has
 	// additional data and false if there is no more data or if an error occurred
 	// during processing.
 	//
@@ -70,49 +76,33 @@ type Operator interface {
 	// there was an error during processing.
 	//
 	// For example:
+	//    iter, err := plan.Open(ctx);
 	//
-	//    if err := node.Open(ctx); err != nil {
+	//    if err != nil {
 	//        return err
 	//    }
 	//
-	//    for node.Next(&row) {
+	//    for iter.Next(&row) {
 	//        fmt.Printf("Row: %v\n", row)
 	//    }
 	//
-	//    if err := node.Close(); err != nil {
+	//    if err := iter.Close(); err != nil {
 	//        return err
 	//    }
 	//
-	//    if err := node.Err(); err != nil {
+	//    if err := iter.Err(); err != nil {
 	//        return err
 	//    }
 	//
 	Next(*Row) bool
 
-	//
-	// OpFields returns all the column headers that this operator includes for each
-	// row returned by the Next method.
-	//
-	// For example, in the query below:
-	//
-	// select a, b from foo;
-	//
-	// the OpFields method will return a slice with two elements - for each of the
-	// select expressions ("a" and "b") in the query.
-	//
-	OpFields() []*Column
-
-	//
-	// Close frees up any resources in use by this operator. Callers should always
-	// call the Close method once they are finished with an operator.
-	//
+	// Close frees up any resources in use by this iterator. Callers should always
+	// call the Close method once they are finished with an iterator.
 	Close() error
 
-	//
 	// Err returns nil if no errors happened during processing, or the actual
 	// error otherwise. Callers should always call the Err method to check whether
-	// any error was encountered during processing they are finished with an operator.
-	//
+	// any error was encountered during processing they are finished with an iterator.
 	Err() error
 }
 
@@ -175,7 +165,7 @@ func (se *SelectExpression) clone() *SelectExpression {
 }
 
 // AggRowCtx holds evaluated data as well as the relevant context used to evaluate the data
-// used for passing data - used to process aggregation functions - between operators.
+// used for passing data - used to process aggregation functions - between iterators.
 type AggRowCtx struct {
 	// Row contains the evaluated data for each record.
 	Row Row
@@ -275,39 +265,39 @@ func bsonDToValues(document bson.D) ([]Value, error) {
 	return values, nil
 }
 
-// OperatorVisitor is an implementation of the visitor pattern.
-type OperatorVisitor interface {
-	// Visit is called with an operator. It returns:
-	// - Operator is the operator used to replace the argument.
+// PlanStageVisitor is an implementation of the visitor pattern.
+type PlanStageVisitor interface {
+	// Visit is called with a plan stage. It returns:
+	// - PlanStage, the plan used to replace the argument.
 	// - error
-	Visit(o Operator) (Operator, error)
+	Visit(p PlanStage) (PlanStage, error)
 }
 
-func prettyPrintPlan(b *bytes.Buffer, o Operator, d int) {
+func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 	printTabs(b, d)
 
-	switch typedE := o.(type) {
+	switch typedE := p.(type) {
 
-	case *Dual:
+	case *DualStage:
 
 		b.WriteString("↳ Dual")
 
-	case *Empty:
+	case *EmptyStage:
 
 		b.WriteString("↳ Empty")
 
-	case *Filter:
+	case *FilterStage:
 
 		b.WriteString(fmt.Sprintf("↳ Filter (%v):\n", typedE.matcher))
 		prettyPrintPlan(b, typedE.source, d+1)
 
-	case *GroupBy:
+	case *GroupByStage:
 
 		b.WriteString("↳ GroupBy:\n")
 		prettyPrintPlan(b, typedE.source, d+1)
 
-	case *Join:
+	case *JoinStage:
 
 		b.WriteString("↳ Join:\n")
 
@@ -325,43 +315,43 @@ func prettyPrintPlan(b *bytes.Buffer, o Operator, d int) {
 			b.WriteString(fmt.Sprintf("on %v\n", typedE.matcher.String()))
 		}
 
-	case *Limit:
+	case *LimitStage:
 
 		b.WriteString("↳ Limit:\n")
 		prettyPrintPlan(b, typedE.source, d+1)
 
-	case *OrderBy:
+	case *OrderByStage:
 
 		b.WriteString("↳ OrderBy:\n")
 		prettyPrintPlan(b, typedE.source, d+1)
 
-	case *Project:
+	case *ProjectStage:
 
 		b.WriteString("↳ Project:\n")
 		prettyPrintPlan(b, typedE.source, d+1)
 
-	case *SchemaDataSource:
+	case *SchemaDataSourceStage:
 
 		b.WriteString("↳ SchemaDataSource")
 
-	case *SourceAppend:
+	case *SourceAppendStage:
 
 		b.WriteString("↳ SourceAppend:\n")
 		prettyPrintPlan(b, typedE.source, d+1)
 
-	case *SourceRemove:
+	case *SourceRemoveStage:
 
 		b.WriteString("↳ SourceRemove:\n")
 		prettyPrintPlan(b, typedE.source, d+1)
 
-	case *Subquery:
+	case *SubqueryStage:
 
 		b.WriteString("↳ Subquery:\n")
 		prettyPrintPlan(b, typedE.source, d+1)
 
-	case *MongoSource:
+	case *MongoSourceStage:
 
-		b.WriteString(fmt.Sprintf("↳ MongoSource '%v'", typedE.tableName))
+		b.WriteString(fmt.Sprintf("↳ MongoSource '%v' (db: '%v', collection: '%v')\n", typedE.tableName, typedE.dbName, typedE.collectionName))
 
 		if typedE.aliasName != "" {
 			b.WriteString(fmt.Sprintf(" as '%v'", typedE.aliasName))
@@ -374,7 +364,7 @@ func prettyPrintPlan(b *bytes.Buffer, o Operator, d int) {
 		}
 		b.Write(prettyPipeline)
 
-	case *BSONSource:
+	case *BSONSourceStage:
 
 		b.WriteString("↳ BSONSource\n")
 
@@ -411,150 +401,150 @@ func pipelineString(stages []bson.D, depth int) []byte {
 	return buf.Bytes()
 }
 
-// PrettyPrintPlan takes an operator and recursively prints its source.
-func PrettyPrintPlan(o Operator) string {
+// PrettyPrintPlan takes a plan and recursively prints its source.
+func PrettyPrintPlan(p PlanStage) string {
 
 	b := bytes.NewBufferString("")
 
-	prettyPrintPlan(b, o, 0)
+	prettyPrintPlan(b, p, 0)
 
 	return b.String()
 
 }
 
-// walkOperatorTree handles walking the children of the provided operator, calling
-// v.Visit on each child which is an operator. Some visitor implementations
+// walkPlanTree handles walking the children of the provided plan, calling
+// v.Visit on each child which is a plan. Some visitor implementations
 // may ignore this method completely, but most will use it as the default
 // implementation for a majority of nodes.
-func walkOperatorTree(v OperatorVisitor, o Operator) (Operator, error) {
+func walkPlanTree(v PlanStageVisitor, p PlanStage) (PlanStage, error) {
 
-	switch typedO := o.(type) {
+	switch typedP := p.(type) {
 
-	case *Dual, *Empty:
+	case *DualStage, *EmptyStage:
 		// nothing to do
-	case *Filter:
-		source, err := v.Visit(typedO.source)
+	case *FilterStage:
+		source, err := v.Visit(typedP.source)
 		if err != nil {
 			return nil, err
 		}
 
-		if typedO.source != source {
-			o = &Filter{
+		if typedP.source != source {
+			p = &FilterStage{
 				source:      source,
-				matcher:     typedO.matcher,
-				hasSubquery: typedO.hasSubquery,
+				matcher:     typedP.matcher,
+				hasSubquery: typedP.hasSubquery,
 			}
 		}
-	case *GroupBy:
-		source, err := v.Visit(typedO.source)
+	case *GroupByStage:
+		source, err := v.Visit(typedP.source)
 		if err != nil {
 			return nil, err
 		}
 
-		if typedO.source != source {
-			o = &GroupBy{
+		if typedP.source != source {
+			p = &GroupByStage{
 				source:      source,
-				selectExprs: typedO.selectExprs,
-				keyExprs:    typedO.keyExprs,
+				selectExprs: typedP.selectExprs,
+				keyExprs:    typedP.keyExprs,
 			}
 		}
-	case *Join:
-		left, err := v.Visit(typedO.left)
+	case *JoinStage:
+		left, err := v.Visit(typedP.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedO.right)
+		right, err := v.Visit(typedP.right)
 		if err != nil {
 			return nil, err
 		}
 
-		if typedO.left != left || typedO.right != right {
-			o = &Join{
+		if typedP.left != left || typedP.right != right {
+			p = &JoinStage{
 				left:     left,
 				right:    right,
-				kind:     typedO.kind,
-				strategy: typedO.strategy,
-				matcher:  typedO.matcher,
+				kind:     typedP.kind,
+				strategy: typedP.strategy,
+				matcher:  typedP.matcher,
 			}
 		}
-	case *Limit:
-		source, err := v.Visit(typedO.source)
+	case *LimitStage:
+		source, err := v.Visit(typedP.source)
 		if err != nil {
 			return nil, err
 		}
 
-		if typedO.source != source {
-			o = &Limit{
-				source:   source,
-				rowcount: typedO.rowcount,
-				offset:   typedO.offset,
-			}
-		}
-	case *OrderBy:
-		source, err := v.Visit(typedO.source)
-		if err != nil {
-			return nil, err
-		}
-
-		if typedO.source != source {
-			o = &OrderBy{
+		if typedP.source != source {
+			p = &LimitStage{
 				source: source,
-				keys:   typedO.keys,
+				limit:  typedP.limit,
+				offset: typedP.offset,
 			}
 		}
-	case *Project:
-		source, err := v.Visit(typedO.source)
+	case *OrderByStage:
+		source, err := v.Visit(typedP.source)
 		if err != nil {
 			return nil, err
 		}
 
-		if typedO.source != source {
-			o = &Project{
+		if typedP.source != source {
+			p = &OrderByStage{
 				source: source,
-				sExprs: typedO.sExprs,
+				keys:   typedP.keys,
 			}
 		}
-	case *SchemaDataSource:
+	case *ProjectStage:
+		source, err := v.Visit(typedP.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedP.source != source {
+			p = &ProjectStage{
+				source: source,
+				sExprs: typedP.sExprs,
+			}
+		}
+	case *SchemaDataSourceStage:
 		// nothing to do
-	case *SourceAppend:
-		source, err := v.Visit(typedO.source)
+	case *SourceAppendStage:
+		source, err := v.Visit(typedP.source)
 		if err != nil {
 			return nil, err
 		}
 
-		if typedO.source != source {
-			o = &SourceAppend{
+		if typedP.source != source {
+			p = &SourceAppendStage{
 				source: source,
 			}
 		}
-	case *SourceRemove:
-		source, err := v.Visit(typedO.source)
+	case *SourceRemoveStage:
+		source, err := v.Visit(typedP.source)
 		if err != nil {
 			return nil, err
 		}
 
-		if typedO.source != source {
-			o = &SourceRemove{
+		if typedP.source != source {
+			p = &SourceRemoveStage{
 				source: source,
 			}
 		}
-	case *Subquery:
-		source, err := v.Visit(typedO.source)
+	case *SubqueryStage:
+		source, err := v.Visit(typedP.source)
 		if err != nil {
 			return nil, err
 		}
 
-		if typedO.source != source {
-			o = &Subquery{
-				tableName: typedO.tableName,
+		if typedP.source != source {
+			p = &SubqueryStage{
+				tableName: typedP.tableName,
 				source:    source,
 			}
 		}
-	case *MongoSource, *BSONSource:
+	case *MongoSourceStage, *BSONSourceStage:
 		// nothing to do
 	default:
-		return nil, fmt.Errorf("unsupported operator: %T", typedO)
+		return nil, fmt.Errorf("unsupported plan stage: %T", typedP)
 	}
 
-	return o, nil
+	return p, nil
 }

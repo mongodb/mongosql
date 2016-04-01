@@ -11,27 +11,37 @@ import (
 func TestProjectOperator(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
-	ctx := &ExecutionCtx{Schema: cfgOne, Db: dbOne}
+	ctx := &ExecutionCtx{
+		PlanCtx: &PlanCtx{
+			Schema: cfgOne,
+			Db:     dbOne,
+		},
+	}
+
 	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
-	runTest := func(project *Project, optimize bool, rows []bson.D, expectedRows []Values) {
-		ts, err := NewBSONSource(ctx, tableOneName, rows)
-		So(err, ShouldBeNil)
-		var operator Operator
+	runTest := func(project *ProjectStage, optimize bool, rows []bson.D, expectedRows []Values) {
+		ts := &BSONSourceStage{tableOneName, rows}
+
+		project = project.clone()
+		var plan PlanStage
+		var err error
+
 		project = project.clone()
 		project.source = ts
-		operator = project
+		plan = project
 		if optimize {
-			operator, err = OptimizeOperator(ctx, operator)
+			plan, err = OptimizePlan(ctx.PlanCtx, plan)
 			So(err, ShouldBeNil)
 		}
 
-		So(operator.Open(ctx), ShouldBeNil)
+		iter, err := plan.Open(ctx)
+		So(err, ShouldBeNil)
 
 		i := 0
 		row := &Row{}
 
-		for operator.Next(row) {
+		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, 1)
 			So(row.Data[0].Table, ShouldEqual, tableOneName)
 			So(row.Data[0].Values, ShouldResemble, expectedRows[i])
@@ -41,8 +51,8 @@ func TestProjectOperator(t *testing.T) {
 
 		So(i, ShouldEqual, len(expectedRows))
 
-		So(operator.Close(), ShouldBeNil)
-		So(operator.Err(), ShouldBeNil)
+		So(iter.Close(), ShouldBeNil)
+		So(iter.Err(), ShouldBeNil)
 	}
 
 	Convey("A project operator...", t, func() {
@@ -66,7 +76,7 @@ func TestProjectOperator(t *testing.T) {
 
 		Convey("should filter out referenced columns in select expressions", func() {
 
-			project := &Project{
+			project := &ProjectStage{
 				sExprs: sExprs,
 			}
 
@@ -81,7 +91,7 @@ func TestProjectOperator(t *testing.T) {
 		Convey("should not filter any results if no column is referenced", func() {
 			sExprs[1].Referenced = false
 
-			project := &Project{
+			project := &ProjectStage{
 				sExprs: sExprs,
 			}
 

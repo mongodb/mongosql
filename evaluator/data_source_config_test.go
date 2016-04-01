@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
+	//"gopkg.in/mgo.v2/bson"
 	"sort"
 	"testing"
 )
@@ -13,24 +13,30 @@ func TestSchemaDataSourceIter(t *testing.T) {
 
 	Convey("using config data source should iterate all columns", t, func() {
 
-		execCtx := &ExecutionCtx{
-			Schema: cfgThree,
-			Db:     dbOne,
+		ctx := &ExecutionCtx{
+			PlanCtx: &PlanCtx{
+				Schema: cfgThree,
+				Db:     dbOne,
+			},
 		}
 
-		dataSource := SchemaDataSource{ctx: execCtx, includeColumns: true}
-
-		query := dataSource.Find()
-
-		iter := query.Iter()
+		plan := &SchemaDataSourceStage{"columns", "", nil}
 
 		fieldNames := []string{}
+		iter, err := plan.Open(ctx)
+		So(err, ShouldBeNil)
 
-		var doc bson.D
-		for iter.Next(&doc) {
-			v, found := getKey("COLUMN_NAME", doc)
-			So(found, ShouldBeTrue)
-			fieldNames = append(fieldNames, v.(string))
+		row := &Row{}
+		for iter.Next(row) {
+			if col, ok := row.GetField("columns", "COLUMN_NAME"); ok {
+				if colstr, ok := col.(SQLVarchar); ok {
+					fieldNames = append(fieldNames, string(colstr))
+				} else {
+					t.Errorf("expected to get a SQLVarchar for COLUMN_NAME")
+				}
+			} else {
+				t.Errorf("expected to find COLUMN_NAME in row")
+			}
 		}
 
 		So(len(fieldNames), ShouldEqual, 10)
@@ -38,6 +44,7 @@ func TestSchemaDataSourceIter(t *testing.T) {
 		names := []string{"_id", "a", "b", "c", "c", "d", "e", "f", "g", "h"}
 		sort.Strings(fieldNames)
 		So(names, ShouldResemble, fieldNames)
+		So(iter.Err(), ShouldBeNil)
 		So(iter.Close(), ShouldBeNil)
 	})
 }
@@ -48,24 +55,30 @@ func TestSchemaDataSourceIterTables(t *testing.T) {
 
 	Convey("using config data source should iterate tables", t, func() {
 
-		execCtx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+		ctx := &ExecutionCtx{
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
-		dataSource := SchemaDataSource{ctx: execCtx}
-
-		query := dataSource.Find()
-
-		iter := query.Iter()
+		plan := &SchemaDataSourceStage{"tables", "", nil}
 
 		names := []string{}
+		iter, err := plan.Open(ctx)
+		So(err, ShouldBeNil)
 
-		var doc bson.D
-		for iter.Next(&doc) {
-			v, found := getKey("TABLE_NAME", doc)
-			So(found, ShouldBeTrue)
-			names = append(names, v.(string))
+		row := &Row{}
+		for iter.Next(row) {
+			if col, ok := row.GetField("tables", "TABLE_NAME"); ok {
+				if colstr, ok := col.(SQLVarchar); ok {
+					names = append(names, string(colstr))
+				} else {
+					t.Errorf("expected to get a SQLVarchar for TABLE_NAME")
+				}
+			} else {
+				t.Errorf("expected to find TABLE_NAME in row")
+			}
 		}
 
 		So(len(names), ShouldEqual, 7)

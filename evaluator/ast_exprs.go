@@ -171,52 +171,55 @@ type SQLSubqueryExpr struct {
 	exprs []SQLExpr
 }
 
-func (se *SQLSubqueryExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
+func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error) {
 
-	ctx.ExecCtx.Depth += 1
+	evalCtx.ExecCtx.Depth += 1
 
-	var operator Operator
+	var plan PlanStage
+	var it Iter
 
-	operator, err = PlanQuery(ctx.ExecCtx, se.stmt)
+	plan, err = PlanQuery(evalCtx.ExecCtx.PlanCtx, se.stmt)
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		if err == nil {
-			err = operator.Close()
-		} else {
-			operator.Close()
-		}
+		if it != nil {
+			if err == nil {
+				err = it.Close()
+			} else {
+				it.Close()
+			}
 
-		if err == nil {
-			err = operator.Err()
+			if err == nil {
+				err = it.Err()
+			}
 		}
 
 		// add context to error
 		if err != nil {
-			err = fmt.Errorf("SubqueryValue (%v): %v", ctx.ExecCtx.Depth, err)
+			err = fmt.Errorf("SubqueryValue (%v): %v", evalCtx.ExecCtx.Depth, err)
 		}
 
-		ctx.ExecCtx.Depth -= 1
+		evalCtx.ExecCtx.Depth -= 1
 
 	}()
 
-	err = operator.Open(ctx.ExecCtx)
+	it, err = plan.Open(evalCtx.ExecCtx)
 	if err != nil {
 		return nil, err
 	}
 
 	row := &Row{}
 
-	hasNext := operator.Next(row)
+	hasNext := it.Next(row)
 
 	// Filter has to check the entire source to return an accurate 'hasNext'
-	if hasNext && operator.Next(&Row{}) {
+	if hasNext && it.Next(&Row{}) {
 		return nil, fmt.Errorf("Subquery returns more than 1 row")
 	}
 
-	values := row.GetValues(operator.OpFields())
+	values := row.GetValues(plan.OpFields())
 	if len(values) == 0 {
 		return SQLNone, nil
 	}

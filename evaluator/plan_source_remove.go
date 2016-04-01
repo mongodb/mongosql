@@ -2,20 +2,26 @@ package evaluator
 
 // SourceRemove removes the current row from the source slice of the
 // execution context.
-type SourceRemove struct {
+type SourceRemoveStage struct {
 	// source holds the source for this select statement
-	source Operator
+	source PlanStage
+}
 
+type SourceRemoveIter struct {
+	source Iter
 	// ctx is the current execution context
 	ctx *ExecutionCtx
 }
 
-func (sr *SourceRemove) Open(ctx *ExecutionCtx) error {
-	sr.ctx = ctx
-	return sr.source.Open(ctx)
+func (sr *SourceRemoveStage) Open(ctx *ExecutionCtx) (Iter, error) {
+	sourceIter, err := sr.source.Open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &SourceRemoveIter{sourceIter, ctx}, nil
 }
 
-func (sr *SourceRemove) Next(row *Row) bool {
+func (sr *SourceRemoveIter) Next(row *Row) bool {
 
 	hasNext := sr.source.Next(row)
 
@@ -32,14 +38,14 @@ func (sr *SourceRemove) Next(row *Row) bool {
 	return true
 }
 
-func (sr *SourceRemove) OpFields() (columns []*Column) {
+func (sr *SourceRemoveStage) OpFields() (columns []*Column) {
 	return sr.source.OpFields()
 }
 
-func (sr *SourceRemove) Close() error {
+func (sr *SourceRemoveIter) Close() error {
 	return sr.source.Close()
 }
 
-func (sr *SourceRemove) Err() error {
+func (sr *SourceRemoveIter) Err() error {
 	return sr.source.Err()
 }

@@ -17,75 +17,77 @@ func TestOptimizeOperator(t *testing.T) {
 	Convey("Subject: OptimizeOperator", t, func() {
 
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
 		tbl := "foo"
 
 		Convey("Given a recursively optimizable tree", func() {
 
-			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			Convey("Should optimize from bottom-up", func() {
 
-				filter := &Filter{
+				filter := &FilterStage{
 					source:  ms,
 					matcher: &SQLEqualsExpr{SQLColumnExpr{tbl, "a", columnType}, SQLInt(4)},
 				}
 
-				limit := &Limit{
-					source:   filter,
-					rowcount: 42,
+				limit := &LimitStage{
+					source: filter,
+					limit:  42,
 				}
 
-				verifyOptimizedPipeline(ctx, limit,
+				verifyOptimizedPipeline(ctx.PlanCtx, limit,
 					[]bson.D{
 						bson.D{{"$match", bson.M{"a": int64(4)}}},
-						bson.D{{"$limit", limit.rowcount}}})
+						bson.D{{"$limit", limit.limit}}})
 			})
 
 			Convey("Should optimize adjacent operators of the same type", func() {
 
-				limit := &Limit{
-					source:   ms,
-					rowcount: 22,
+				limit := &LimitStage{
+					source: ms,
+					limit:  22,
 				}
 
-				skip := &Limit{
+				skip := &LimitStage{
 					source: limit,
 					offset: 20,
 				}
 
-				verifyOptimizedPipeline(ctx, skip,
+				verifyOptimizedPipeline(ctx.PlanCtx, skip,
 					[]bson.D{
-						bson.D{{"$limit", limit.rowcount}},
+						bson.D{{"$limit", limit.limit}},
 						bson.D{{"$skip", skip.offset}}})
 			})
 
 			Convey("Should optimize multiple operators of the same type split a part", func() {
 
-				skip := &Limit{
+				skip := &LimitStage{
 					source: ms,
 					offset: 20,
 				}
 
-				filter := &Filter{
+				filter := &FilterStage{
 					source:  skip,
 					matcher: &SQLEqualsExpr{SQLColumnExpr{tbl, "a", columnType}, SQLInt(5)},
 				}
 
-				limit := &Limit{
-					source:   filter,
-					rowcount: 42,
+				limit := &LimitStage{
+					source: filter,
+					limit:  42,
 				}
 
-				verifyOptimizedPipeline(ctx, limit,
+				verifyOptimizedPipeline(ctx.PlanCtx, limit,
 					[]bson.D{
 						bson.D{{"$skip", skip.offset}},
 						bson.D{{"$match", bson.M{"a": int64(5)}}},
-						bson.D{{"$limit", limit.rowcount}}})
+						bson.D{{"$limit", limit.limit}}})
 			})
 		})
 
@@ -100,26 +102,26 @@ func TestFilterPushDown(t *testing.T) {
 	Convey("Subject: Filter Optimization", t, func() {
 
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
 		tbl := "foo"
 
 		Convey("Given a push-downable filter", func() {
 
-			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			filter := &Filter{
-				source: ms,
-			}
+			filter := &FilterStage{source: ms}
 
 			Convey("Should optimize when the matcher is fully translatable", func() {
 
 				filter.matcher = &SQLEqualsExpr{SQLColumnExpr{tbl, "a", columnType}, SQLInt(3)}
 
-				verifyOptimizedPipeline(ctx, filter,
+				verifyOptimizedPipeline(ctx.PlanCtx, filter,
 					[]bson.D{bson.D{{"$match", bson.M{"a": int64(3)}}}})
 			})
 
@@ -129,12 +131,12 @@ func TestFilterPushDown(t *testing.T) {
 					&SQLEqualsExpr{SQLColumnExpr{tbl, "a", columnType}, SQLInt(2)},
 					&SQLEqualsExpr{SQLColumnExpr{tbl, "b", columnType}, SQLColumnExpr{tbl, "c", columnType}}}
 
-				optimized, err := OptimizeOperator(ctx, filter)
+				optimized, err := OptimizePlan(ctx.PlanCtx, filter)
 				So(err, ShouldBeNil)
-				newFilter, ok := optimized.(*Filter)
+				newFilter, ok := optimized.(*FilterStage)
 				So(ok, ShouldBeTrue)
 				So(newFilter.matcher, ShouldResemble, &SQLEqualsExpr{SQLColumnExpr{tbl, "b", columnType}, SQLColumnExpr{tbl, "c", columnType}})
-				ms, ok := newFilter.source.(*MongoSource)
+				ms, ok := newFilter.source.(*MongoSourceStage)
 				So(ok, ShouldBeTrue)
 				So(ms.pipeline, ShouldResemble, []bson.D{bson.D{{"$match", bson.M{"a": int64(2)}}}})
 			})
@@ -142,27 +144,27 @@ func TestFilterPushDown(t *testing.T) {
 
 		Convey("Given an immediately evaluated filter", func() {
 
-			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			filter := &Filter{
+			filter := &FilterStage{
 				source: ms,
 			}
 
 			Convey("Should return an Empty operator when evaluated to false", func() {
 				filter.matcher = SQLBool(false)
 
-				optimized, err := OptimizeOperator(ctx, filter)
+				optimized, err := OptimizePlan(ctx.PlanCtx, filter)
 				So(err, ShouldBeNil)
 
-				_, ok := optimized.(*Empty)
+				_, ok := optimized.(*EmptyStage)
 				So(ok, ShouldBeTrue)
 			})
 
 			Convey("Should elimate the Filter from the tree and not alter the pipeline when evaluated to true", func() {
 				filter.matcher = SQLBool(true)
 
-				verifyOptimizedPipeline(ctx, filter, ms.pipeline)
+				verifyOptimizedPipeline(ctx.PlanCtx, filter, ms.pipeline)
 			})
 		})
 
@@ -170,26 +172,26 @@ func TestFilterPushDown(t *testing.T) {
 
 			Convey("Should not optimize the pipeline when the source is not valid", func() {
 
-				empty := &Empty{}
+				empty := &EmptyStage{}
 
-				filter := &Filter{
+				filter := &FilterStage{
 					source: empty,
 				}
 
-				verifyUnoptimizedPipeline(ctx, filter)
+				verifyUnoptimizedPipeline(ctx.PlanCtx, filter)
 			})
 
 			Convey("Should not optimize the pipeline when the filter is not push-downable", func() {
 
-				ms, err := NewMongoSource(ctx, dbOne, tbl, "")
+				ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
 				So(err, ShouldBeNil)
 
-				filter := &Filter{
+				filter := &FilterStage{
 					source:  ms,
 					matcher: &SQLEqualsExpr{SQLColumnExpr{tbl, "a", columnType}, SQLColumnExpr{tbl, "b", columnType}},
 				}
 
-				verifyUnoptimizedPipeline(ctx, filter)
+				verifyUnoptimizedPipeline(ctx.PlanCtx, filter)
 			})
 		})
 	})
@@ -204,19 +206,21 @@ func TestCrossJoinOptimization(t *testing.T) {
 	Convey("Subject: Filter/Join Merging", t, func() {
 
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
 		tblOne := "foo"
 		tblTwo := "bar"
 
-		msOne, err := NewMongoSource(ctx, dbOne, tblOne, tblOne)
+		msOne, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tblOne, tblOne)
 		So(err, ShouldBeNil)
-		msTwo, err := NewMongoSource(ctx, dbOne, tblTwo, tblTwo)
+		msTwo, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tblTwo, tblTwo)
 		So(err, ShouldBeNil)
 
-		join := &Join{
+		join := &JoinStage{
 			left:  msOne,
 			right: msTwo,
 		}
@@ -227,7 +231,7 @@ func TestCrossJoinOptimization(t *testing.T) {
 				join.kind = k
 
 				Convey("Should optimize a filter with criteria for both tables", func() {
-					filter := &Filter{
+					filter := &FilterStage{
 						source:  join,
 						matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}},
 					}
@@ -235,7 +239,7 @@ func TestCrossJoinOptimization(t *testing.T) {
 					o, err := optimizeCrossJoins(filter)
 					So(err, ShouldBeNil)
 
-					So(o, ShouldResemble, &Join{
+					So(o, ShouldResemble, &JoinStage{
 						left:    msOne,
 						right:   msTwo,
 						kind:    InnerJoin,
@@ -244,7 +248,7 @@ func TestCrossJoinOptimization(t *testing.T) {
 				})
 
 				Convey("Should optimize a filter with criteria for only the right table", func() {
-					filter := &Filter{
+					filter := &FilterStage{
 						source:  join,
 						matcher: &SQLEqualsExpr{SQLColumnExpr{tblTwo, "a", columnType}, SQLInt(10)},
 					}
@@ -252,7 +256,7 @@ func TestCrossJoinOptimization(t *testing.T) {
 					o, err := optimizeCrossJoins(filter)
 					So(err, ShouldBeNil)
 
-					So(o, ShouldResemble, &Join{
+					So(o, ShouldResemble, &JoinStage{
 						left:    msOne,
 						right:   msTwo,
 						kind:    InnerJoin,
@@ -261,7 +265,7 @@ func TestCrossJoinOptimization(t *testing.T) {
 				})
 
 				Convey("Should optimize a filter with partially applicable criteria", func() {
-					filter := &Filter{
+					filter := &FilterStage{
 						source: join,
 						matcher: &SQLAndExpr{
 							&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
@@ -272,8 +276,8 @@ func TestCrossJoinOptimization(t *testing.T) {
 					o, err := optimizeCrossJoins(filter)
 					So(err, ShouldBeNil)
 
-					So(o, ShouldResemble, &Filter{
-						source: &Join{
+					So(o, ShouldResemble, &FilterStage{
+						source: &JoinStage{
 							left:    msOne,
 							right:   msTwo,
 							kind:    InnerJoin,
@@ -284,7 +288,7 @@ func TestCrossJoinOptimization(t *testing.T) {
 				})
 
 				Convey("Should not optimize a filter with criteria for only the left table", func() {
-					filter := &Filter{
+					filter := &FilterStage{
 						source:  join,
 						matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
 					}
@@ -298,17 +302,17 @@ func TestCrossJoinOptimization(t *testing.T) {
 				Convey("Given a nested %q without criteria", func() {
 
 					tblThree := "baz"
-					msThree, err := NewMongoSource(ctx, dbOne, tblThree, tblThree)
+					msThree, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tblThree, tblThree)
 					So(err, ShouldBeNil)
 
-					nestedJoin := &Join{
+					nestedJoin := &JoinStage{
 						left:  join,
 						right: msThree,
 						kind:  k,
 					}
 
 					Convey("Should optimize a filter with criteria for all three tables", func() {
-						filter := &Filter{
+						filter := &FilterStage{
 							source: nestedJoin,
 							matcher: &SQLAndExpr{
 								&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}},
@@ -319,8 +323,8 @@ func TestCrossJoinOptimization(t *testing.T) {
 						o, err := optimizeCrossJoins(filter)
 						So(err, ShouldBeNil)
 
-						So(o, ShouldResemble, &Join{
-							left: &Join{
+						So(o, ShouldResemble, &JoinStage{
+							left: &JoinStage{
 								left:    msOne,
 								right:   msTwo,
 								kind:    InnerJoin,
@@ -333,7 +337,7 @@ func TestCrossJoinOptimization(t *testing.T) {
 					})
 
 					Convey("Should optimize a filter with criteria for only the nested join", func() {
-						filter := &Filter{
+						filter := &FilterStage{
 							source:  nestedJoin,
 							matcher: &SQLEqualsExpr{SQLColumnExpr{tblTwo, "a", columnType}, SQLColumnExpr{tblThree, "a", columnType}},
 						}
@@ -341,8 +345,8 @@ func TestCrossJoinOptimization(t *testing.T) {
 						o, err := optimizeCrossJoins(filter)
 						So(err, ShouldBeNil)
 
-						So(o, ShouldResemble, &Join{
-							left: &Join{
+						So(o, ShouldResemble, &JoinStage{
+							left: &JoinStage{
 								left:  msOne,
 								right: msTwo,
 								kind:  k,
@@ -354,7 +358,7 @@ func TestCrossJoinOptimization(t *testing.T) {
 					})
 
 					Convey("Should optimize a filter with criteria for only the top-level join", func() {
-						filter := &Filter{
+						filter := &FilterStage{
 							source:  nestedJoin,
 							matcher: &SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}},
 						}
@@ -362,8 +366,8 @@ func TestCrossJoinOptimization(t *testing.T) {
 						o, err := optimizeCrossJoins(filter)
 						So(err, ShouldBeNil)
 
-						So(o, ShouldResemble, &Join{
-							left: &Join{
+						So(o, ShouldResemble, &JoinStage{
+							left: &JoinStage{
 								left:    msOne,
 								right:   msTwo,
 								kind:    InnerJoin,
@@ -375,7 +379,7 @@ func TestCrossJoinOptimization(t *testing.T) {
 					})
 
 					Convey("Should optimize a filter with partially applicable criteria", func() {
-						filter := &Filter{
+						filter := &FilterStage{
 							source: nestedJoin,
 							matcher: &SQLAndExpr{
 								&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
@@ -386,9 +390,9 @@ func TestCrossJoinOptimization(t *testing.T) {
 						o, err := optimizeCrossJoins(filter)
 						So(err, ShouldBeNil)
 
-						So(o, ShouldResemble, &Filter{
-							source: &Join{
-								left: &Join{
+						So(o, ShouldResemble, &FilterStage{
+							source: &JoinStage{
+								left: &JoinStage{
 									left:    msOne,
 									right:   msTwo,
 									kind:    InnerJoin,
@@ -414,18 +418,20 @@ func TestGroupByPushDown(t *testing.T) {
 	Convey("Subject: GroupBy Optimization", t, func() {
 
 		ctx := &ExecutionCtx{
-			Db:     dbOne,
-			Schema: cfgOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
 		tbl := "foo"
 
 		Convey("Given a group by clause that can be pushed down", func() {
 
-			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			gb := &GroupBy{
+			gb := &GroupByStage{
 				source: ms,
 			}
 
@@ -440,7 +446,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "b")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -471,7 +477,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "c")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -504,7 +510,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "Awesome")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -537,7 +543,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "Awesome")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -569,7 +575,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "sum(a)", "sum(b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -600,7 +606,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "c", "sum(a)", "sum(b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -632,7 +638,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -663,7 +669,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -694,7 +700,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct b)", "c")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -725,7 +731,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a + sum(b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -753,7 +759,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a + b")
 				gb.keyExprs = constructSelectExpressions(exprs, "a + b")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{"foo_DOT_a+foo_DOT_b": bson.M{"$add": []interface{}{"$a", "$b"}}},
@@ -774,7 +780,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a + c + sum(b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -803,7 +809,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "Awesome")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -832,7 +838,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a + sum(distinct b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -861,7 +867,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "c + sum(distinct b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -887,7 +893,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "sum(distinct a+b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -914,7 +920,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a+sum(distinct a+b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -944,7 +950,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "e")
 				gb.keyExprs = constructSelectExpressions(exprs, "f")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -974,7 +980,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct e)")
 				gb.keyExprs = constructSelectExpressions(exprs, "f")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -1001,7 +1007,7 @@ func TestGroupByPushDown(t *testing.T) {
 
 				gb.selectExprs = constructSelectExpressions(exprs, "count(*)")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id":      bson.M{},
@@ -1021,7 +1027,7 @@ func TestGroupByPushDown(t *testing.T) {
 
 				gb.selectExprs = constructSelectExpressions(exprs, "count(a)")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{},
@@ -1062,7 +1068,7 @@ func TestGroupByPushDown(t *testing.T) {
 				gb.selectExprs = constructSelectExpressions(exprs, "a", "count(distinct b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 
-				verifyOptimizedPipeline(ctx, gb,
+				verifyOptimizedPipeline(ctx.PlanCtx, gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -1103,22 +1109,24 @@ func TestHavingPushDown(t *testing.T) {
 	Convey("Subject: Having Optimization", t, func() {
 
 		ctx := &ExecutionCtx{
-			Db:     dbOne,
-			Schema: cfgOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
 		tbl := "foo"
 
 		Convey("Given a group by clause that can be pushed down", func() {
 
-			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			gb := &GroupBy{
+			gb := &GroupByStage{
 				source: ms,
 			}
 
-			having := &Filter{
+			having := &FilterStage{
 				source: gb,
 			}
 
@@ -1134,7 +1142,7 @@ func TestHavingPushDown(t *testing.T) {
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 				having.matcher = &SQLEqualsExpr{SQLColumnExpr{"", "sum(foo.b)", columnType}, SQLInt(10)}
 
-				verifyOptimizedPipeline(ctx, having,
+				verifyOptimizedPipeline(ctx.PlanCtx, having,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -1168,23 +1176,24 @@ func TestJoinPushDown(t *testing.T) {
 	Convey("Subject: Join Optimization", t, func() {
 
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
 		tblOne := "foo"
 		tblTwo := "bar"
 
-		msOne, err := NewMongoSource(ctx, dbOne, tblOne, "")
+		msOne, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tblOne, "")
 		So(err, ShouldBeNil)
 
-		msTwo, err := NewMongoSource(ctx, dbOne, tblTwo, "")
+		msTwo, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tblTwo, "")
 		So(err, ShouldBeNil)
 
 		Convey("Given a push-downable inner join", func() {
 
-			join := &Join{
-				kind:  InnerJoin,
+			join := &JoinStage{
 				left:  msOne,
 				right: msTwo,
 			}
@@ -1192,7 +1201,7 @@ func TestJoinPushDown(t *testing.T) {
 			Convey("Should optimize an inner join with an equality comparison", func() {
 				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 
-				verifyOptimizedPipeline(ctx, join,
+				verifyOptimizedPipeline(ctx.PlanCtx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1209,7 +1218,7 @@ func TestJoinPushDown(t *testing.T) {
 			Convey("Should optimize an inner join with a flipped equality comparison", func() {
 				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b", columnType}, SQLColumnExpr{tblOne, "c", columnType}}
 
-				verifyOptimizedPipeline(ctx, join,
+				verifyOptimizedPipeline(ctx.PlanCtx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1228,7 +1237,7 @@ func TestJoinPushDown(t *testing.T) {
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}},
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)}}
 
-				verifyOptimizedPipeline(ctx, join,
+				verifyOptimizedPipeline(ctx.PlanCtx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1248,7 +1257,7 @@ func TestJoinPushDown(t *testing.T) {
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}}
 
-				verifyOptimizedPipeline(ctx, join,
+				verifyOptimizedPipeline(ctx.PlanCtx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1268,7 +1277,7 @@ func TestJoinPushDown(t *testing.T) {
 					&SQLEqualsExpr{SQLColumnExpr{tblTwo, "a", columnType}, SQLInt(10)},
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}}
 
-				verifyOptimizedPipeline(ctx, join,
+				verifyOptimizedPipeline(ctx.PlanCtx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1286,7 +1295,7 @@ func TestJoinPushDown(t *testing.T) {
 
 		Convey("Given a push-downable left join", func() {
 
-			join := &Join{
+			join := &JoinStage{
 				kind:  LeftJoin,
 				left:  msOne,
 				right: msTwo,
@@ -1295,7 +1304,7 @@ func TestJoinPushDown(t *testing.T) {
 			Convey("Should optimize a left join with an equality comparison", func() {
 				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 
-				verifyOptimizedPipeline(ctx, join,
+				verifyOptimizedPipeline(ctx.PlanCtx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1312,7 +1321,7 @@ func TestJoinPushDown(t *testing.T) {
 			Convey("Should optimize a left join with a flipped equality comparison", func() {
 				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b", columnType}, SQLColumnExpr{tblOne, "c", columnType}}
 
-				verifyOptimizedPipeline(ctx, join,
+				verifyOptimizedPipeline(ctx.PlanCtx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1331,7 +1340,10 @@ func TestJoinPushDown(t *testing.T) {
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}},
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}}}
 
-				verifyOptimizedPipeline(ctx, join,
+				join.kind = InnerJoin
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
+
+				verifyOptimizedPipeline(ctx.PlanCtx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1363,7 +1375,12 @@ func TestJoinPushDown(t *testing.T) {
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}}
 
-				verifyOptimizedPipeline(ctx, join,
+				msTwo.pipeline = append(msTwo.pipeline, bson.D{{"$test", 1}})
+
+				join.kind = RightJoin
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
+
+				verifyOptimizedPipeline(ctx.PlanCtx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1392,39 +1409,39 @@ func TestJoinPushDown(t *testing.T) {
 
 		Convey("Given a non-push-downable join", func() {
 
-			join := &Join{
+			join := &JoinStage{
 				left:  msOne,
 				right: msTwo,
 			}
 
 			Convey("Should not optimize the pipeline when the left source is not a TableScan", func() {
-				join.left = &Empty{}
-				verifyUnoptimizedPipeline(ctx, join)
+				join.left = &EmptyStage{}
+				verifyUnoptimizedPipeline(ctx.PlanCtx, join)
 			})
 
 			Convey("Should not optimize the pipeline when the right source is not a TableScan", func() {
-				join.right = &Empty{}
-				verifyUnoptimizedPipeline(ctx, join)
+				join.right = &EmptyStage{}
+				verifyUnoptimizedPipeline(ctx.PlanCtx, join)
 			})
 
 			Convey("Should not optimize a right join", func() {
 				join.kind = RightJoin
 				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 
-				verifyUnoptimizedPipeline(ctx, join)
+				verifyUnoptimizedPipeline(ctx.PlanCtx, join)
 			})
 
 			for _, kind := range []JoinKind{InnerJoin, LeftJoin} {
 				Convey(fmt.Sprintf("Should not optimize a %v when the on clause does not contain an equality comparison", kind), func() {
 					join.kind = kind
 					join.matcher = &SQLGreaterThanExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
-					verifyUnoptimizedPipeline(ctx, join)
+					verifyUnoptimizedPipeline(ctx.PlanCtx, join)
 				})
 
 				Convey(fmt.Sprintf("Should not optimize a %v when the on clause does not contain fields from both sides", kind), func() {
 					join.kind = kind
 					join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblOne, "b", columnType}}
-					verifyUnoptimizedPipeline(ctx, join)
+					verifyUnoptimizedPipeline(ctx.PlanCtx, join)
 				})
 
 				Convey(fmt.Sprintf("Should not optimize a %v when the right side already has a pipeline", kind), func() {
@@ -1432,7 +1449,7 @@ func TestJoinPushDown(t *testing.T) {
 
 					join.kind = kind
 					join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
-					verifyUnoptimizedPipeline(ctx, join)
+					verifyUnoptimizedPipeline(ctx.PlanCtx, join)
 				})
 			}
 		})
@@ -1446,18 +1463,20 @@ func TestLimitPushDown(t *testing.T) {
 	Convey("Subject: Limit Optimization", t, func() {
 
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
 		tbl := "foo"
 
 		Convey("Given a push-downable limit", func() {
 
-			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			limit := &Limit{
+			limit := &LimitStage{
 				source: ms,
 			}
 
@@ -1465,40 +1484,40 @@ func TestLimitPushDown(t *testing.T) {
 
 				limit.offset = 22
 
-				verifyOptimizedPipeline(ctx, limit,
+				verifyOptimizedPipeline(ctx.PlanCtx, limit,
 					[]bson.D{bson.D{{"$skip", limit.offset}}})
 
 			})
 
 			Convey("Should optimized with only a rowcount", func() {
 
-				limit.rowcount = 20
+				limit.limit = 20
 
-				verifyOptimizedPipeline(ctx, limit,
-					[]bson.D{bson.D{{"$limit", limit.rowcount}}})
+				verifyOptimizedPipeline(ctx.PlanCtx, limit,
+					[]bson.D{bson.D{{"$limit", limit.limit}}})
 			})
 
 			Convey("Should optimized with both an offset and a rowcount", func() {
 
 				limit.offset = 22
-				limit.rowcount = 20
+				limit.limit = 20
 
-				verifyOptimizedPipeline(ctx, limit, []bson.D{
+				verifyOptimizedPipeline(ctx.PlanCtx, limit, []bson.D{
 					bson.D{{"$skip", limit.offset}},
-					bson.D{{"$limit", limit.rowcount}}})
+					bson.D{{"$limit", limit.limit}}})
 			})
 		})
 
 		Convey("Given a non-push-downable limit", func() {
 
-			empty := &Empty{}
+			empty := &EmptyStage{}
 
-			limit := &Limit{
+			limit := &LimitStage{
 				source: empty,
 			}
 
 			Convey("Should not optimized the pipeline", func() {
-				verifyUnoptimizedPipeline(ctx, limit)
+				verifyUnoptimizedPipeline(ctx.PlanCtx, limit)
 			})
 		})
 	})
@@ -1510,9 +1529,16 @@ func TestProjectPushdown(t *testing.T) {
 	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	Convey("Subject: Project Optimization", t, func() {
-		ctx := &ExecutionCtx{Schema: cfgOne, Db: dbOne}
+
+		ctx := &ExecutionCtx{
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
+		}
+
 		tbl := "foo"
-		ms, err := NewMongoSource(ctx, dbOne, tbl, "")
+		ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
 		So(err, ShouldBeNil)
 		Convey("given a push-downable project", func() {
 			exprs := map[string]SQLExpr{
@@ -1521,13 +1547,13 @@ func TestProjectPushdown(t *testing.T) {
 				"c":      SQLColumnExpr{tbl, "c", columnType},
 			}
 
-			proj := &Project{
+			proj := &ProjectStage{
 				sExprs: constructSelectExpressions(exprs, "a", "sum(b)"),
 				source: ms,
 			}
 
 			Convey("The pipeline should contain a $project stage with correct field mappings", func() {
-				verifyOptimizedPipeline(ctx, proj,
+				verifyOptimizedPipeline(ctx.PlanCtx, proj,
 					[]bson.D{
 						{{
 							"$project", bson.M{
@@ -1556,20 +1582,20 @@ func TestProjectPushdown(t *testing.T) {
 				"sum(c)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "c", columnType}}},
 			}
 
-			proj := &Project{
+			proj := &ProjectStage{
 				sExprs: constructSelectExpressions(exprs, "a", "ascii(substring('xxx',b))", "sum(c)"),
 				source: ms,
 			}
 			Convey("the project node should not be removed from query plan tree", func() {
-				optimized, err := OptimizeOperator(ctx, proj)
+				optimized, err := OptimizePlan(ctx.PlanCtx, proj)
 				So(err, ShouldBeNil)
-				So(optimized, ShouldHaveSameTypeAs, (*Project)(nil))
+				So(optimized, ShouldHaveSameTypeAs, (*ProjectStage)(nil))
 
-				optimizedProject := optimized.(*Project)
-				So(optimizedProject.source, ShouldHaveSameTypeAs, (*MongoSource)(nil))
+				optimizedProject := optimized.(*ProjectStage)
+				So(optimizedProject.source, ShouldHaveSameTypeAs, (*MongoSourceStage)(nil))
 
 				Convey("the pipeline should contain all fields required to compute projection", func() {
-					mongoSource := optimizedProject.source.(*MongoSource)
+					mongoSource := optimizedProject.source.(*MongoSourceStage)
 					So(mongoSource.pipeline, ShouldResemble,
 						[]bson.D{
 							{{
@@ -1597,18 +1623,20 @@ func TestOrderByPushDown(t *testing.T) {
 	Convey("Subject: Order By Optimization", t, func() {
 
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
 		tbl := "foo"
 
 		Convey("Given a push-downable order by", func() {
 
-			ms, err := NewMongoSource(ctx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
-			orderBy := &OrderBy{
+			orderBy := &OrderByStage{
 				source: ms,
 			}
 
@@ -1621,7 +1649,7 @@ func TestOrderByPushDown(t *testing.T) {
 				}
 				orderBy.keys = constructOrderByKeys(exprs, "a", "b", "e")
 
-				verifyOptimizedPipeline(ctx, orderBy,
+				verifyOptimizedPipeline(ctx.PlanCtx, orderBy,
 					[]bson.D{bson.D{{"$sort", bson.D{
 						{"a", 1},
 						{"b", -1},
@@ -1636,7 +1664,7 @@ func TestOrderByPushDown(t *testing.T) {
 					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
 				}
 
-				groupBy := &GroupBy{
+				groupBy := &GroupByStage{
 					source:      ms,
 					keyExprs:    constructSelectExpressions(exprs, "a"),
 					selectExprs: constructSelectExpressions(exprs, "a", "sum(b)"),
@@ -1645,7 +1673,7 @@ func TestOrderByPushDown(t *testing.T) {
 				orderBy.source = groupBy
 				orderBy.keys = constructOrderByKeys(exprs, "sum(b)")
 
-				verifyOptimizedPipeline(ctx, orderBy,
+				verifyOptimizedPipeline(ctx.PlanCtx, orderBy,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
 							"_id": bson.M{
@@ -1668,9 +1696,9 @@ func TestOrderByPushDown(t *testing.T) {
 
 		Convey("Given a non-push-downable order by", func() {
 
-			empty := &Empty{}
+			empty := &EmptyStage{}
 
-			orderBy := &OrderBy{
+			orderBy := &OrderByStage{
 				source: empty,
 			}
 
@@ -1683,24 +1711,24 @@ func TestOrderByPushDown(t *testing.T) {
 				}
 				orderBy.keys = constructOrderByKeys(exprs, "a", "b", "c")
 
-				verifyUnoptimizedPipeline(ctx, orderBy)
+				verifyUnoptimizedPipeline(ctx.PlanCtx, orderBy)
 			})
 		})
 	})
 }
 
-func verifyUnoptimizedPipeline(ctx *ExecutionCtx, op Operator) {
-	optimized, err := OptimizeOperator(ctx, op)
+func verifyUnoptimizedPipeline(ctx *PlanCtx, op PlanStage) {
+	optimized, err := OptimizePlan(ctx, op)
 	So(err, ShouldBeNil)
 	So(optimized, ShouldEqual, op)
 }
 
-func verifyOptimizedPipeline(ctx *ExecutionCtx, op Operator, pipeline []bson.D) {
+func verifyOptimizedPipeline(ctx *PlanCtx, op PlanStage, pipeline []bson.D) {
 
-	optimized, err := OptimizeOperator(ctx, op)
+	optimized, err := OptimizePlan(ctx, op)
 	So(err, ShouldBeNil)
 
-	ms, ok := optimized.(*MongoSource)
+	ms, ok := optimized.(*MongoSourceStage)
 	So(ok, ShouldBeTrue)
 
 	So(ms.pipeline, ShouldResemble, pipeline)

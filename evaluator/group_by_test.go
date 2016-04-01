@@ -8,23 +8,23 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func TestGroupByOperator(t *testing.T) {
+func TestGroupByStage(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
 	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
-	runTest := func(groupBy *GroupBy, rows []bson.D, expectedRows [][]Values) {
-
+	runTest := func(groupBy *GroupByStage, rows []bson.D, expectedRows [][]Values) {
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
-		ts, err := NewBSONSource(ctx, tableOneName, rows)
-		So(err, ShouldBeNil)
+		bss := &BSONSourceStage{tableOneName, rows}
 
-		groupBy.source = &Project{
-			source: ts,
+		groupBy.source = &ProjectStage{
+			source: bss,
 			sExprs: SelectExpressions{
 				SelectExpression{
 					Column: &Column{tableOneName, "a", "a", columnType.SQLType, columnType.MongoType},
@@ -37,13 +37,14 @@ func TestGroupByOperator(t *testing.T) {
 			},
 		}
 
-		So(groupBy.Open(ctx), ShouldBeNil)
+		iter, err := groupBy.Open(ctx)
+		So(err, ShouldBeNil)
 
 		row := &Row{}
 
 		i := 0
 
-		for groupBy.Next(row) {
+		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, 2)
 			aggregateTable := 1
 			if row.Data[0].Table == "" {
@@ -58,8 +59,8 @@ func TestGroupByOperator(t *testing.T) {
 			i++
 		}
 
-		So(groupBy.Close(), ShouldBeNil)
-		So(groupBy.Err(), ShouldBeNil)
+		So(iter.Close(), ShouldBeNil)
+		So(iter.Err(), ShouldBeNil)
 	}
 
 	Convey("A group by operator...", t, func() {
@@ -94,7 +95,7 @@ func TestGroupByOperator(t *testing.T) {
 				},
 			}
 
-			operator := &GroupBy{
+			operator := &GroupByStage{
 				selectExprs: sExprs,
 				keyExprs:    exprs,
 			}

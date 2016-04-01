@@ -10,35 +10,36 @@ func TestSourceRemoveOperator(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
 
-	runTest := func(operator *SourceRemove) {
+	runTest := func(operator *SourceRemoveStage) {
 
 		ctx := &ExecutionCtx{
-			Schema:  cfgOne,
-			Db:      dbOne,
 			SrcRows: []*Row{&Row{}},
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
-		ts, err := NewBSONSource(ctx, tableOneName, nil)
-		So(err, ShouldBeNil)
+		ts := &BSONSourceStage{tableOneName, nil}
 
 		operator.source = ts
-		So(operator.Open(ctx), ShouldBeNil)
-
+		iter, err := operator.Open(ctx)
+		So(err, ShouldBeNil)
 		row := &Row{}
 
 		So(len(ctx.SrcRows), ShouldEqual, 1)
 
-		for operator.Next(row) {
+		for iter.Next(row) {
 			So(len(ctx.SrcRows), ShouldEqual, 0)
 		}
 
-		So(operator.Close(), ShouldBeNil)
-		So(operator.Err(), ShouldBeNil)
+		So(iter.Close(), ShouldBeNil)
+		So(iter.Err(), ShouldBeNil)
 	}
 
 	Convey("A source remove operator...", t, func() {
 
-		sourceRemove := &SourceRemove{}
+		sourceRemove := &SourceRemoveStage{}
 
 		Convey("should always remove the source row from the source operator", func() {
 			runTest(sourceRemove)

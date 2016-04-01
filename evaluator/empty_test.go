@@ -9,31 +9,30 @@ func TestEmptyOperator(t *testing.T) {
 
 	Convey("When using the empty operator", t, func() {
 
-		e := Empty{}
+		e := EmptyStage{}
 
-		Convey("Open should return nil", func() {
-			res := e.Open(nil)
-			So(res, ShouldBeNil)
-		})
+		Convey("Open should return nil error", func() {
+			iter, err := e.Open(nil)
+			So(err, ShouldBeNil)
 
-		Convey("Next should return false", func() {
-			res := e.Next(nil)
-			So(res, ShouldBeFalse)
-		})
+			Convey("Next should return false", func() {
+				So(iter.Next(nil), ShouldBeFalse)
+			})
 
-		Convey("OpFields should return an empty array", func() {
-			res := e.OpFields()
-			So(res, ShouldBeEmpty)
-		})
+			Convey("OpFields should return an empty array", func() {
+				res := e.OpFields()
+				So(res, ShouldBeEmpty)
+			})
 
-		Convey("Close should return nil", func() {
-			res := e.Close()
-			So(res, ShouldBeNil)
-		})
+			Convey("Close should return nil", func() {
+				res := iter.Close()
+				So(res, ShouldBeNil)
+			})
 
-		Convey("Err should return nil", func() {
-			res := e.Err()
-			So(res, ShouldBeNil)
+			Convey("Err should return nil", func() {
+				res := iter.Err()
+				So(res, ShouldBeNil)
+			})
 		})
 
 	})

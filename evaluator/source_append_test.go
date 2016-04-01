@@ -10,34 +10,36 @@ func TestSourceAppendOperator(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
 
-	runTest := func(operator *SourceAppend) {
+	runTest := func(operator *SourceAppendStage) {
 
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
-		ts, err := NewBSONSource(ctx, tableOneName, nil)
-		So(err, ShouldBeNil)
+		ts := &BSONSourceStage{tableOneName, nil}
 
 		operator.source = ts
-		So(operator.Open(ctx), ShouldBeNil)
+		iter, err := operator.Open(ctx)
+		So(err, ShouldBeNil)
 
 		row := &Row{}
 
 		So(len(ctx.SrcRows), ShouldEqual, 0)
 
-		for operator.Next(row) {
+		for iter.Next(row) {
 			So(len(ctx.SrcRows), ShouldEqual, 1)
 		}
 
-		So(operator.Close(), ShouldBeNil)
-		So(operator.Err(), ShouldBeNil)
+		So(iter.Close(), ShouldBeNil)
+		So(iter.Err(), ShouldBeNil)
 	}
 
 	Convey("A source append operator...", t, func() {
 
-		sourceAppend := &SourceAppend{}
+		sourceAppend := &SourceAppendStage{}
 
 		Convey("should always append the source row from the source operator", func() {
 

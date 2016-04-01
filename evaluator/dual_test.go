@@ -18,28 +18,31 @@ func TestDualOperator(t *testing.T) {
 
 		Convey("should only ever return one row with no data", func() {
 
-			operator := &Dual{}
+			operator := &DualStage{}
 
 			ctx := &ExecutionCtx{
-				Schema: cfgOne,
-				Db:     dbOne,
+				PlanCtx: &PlanCtx{
+					Schema: cfgOne,
+					Db:     dbOne,
+				},
 			}
 
-			So(operator.Open(ctx), ShouldBeNil)
+			iter, err := operator.Open(ctx)
+			So(err, ShouldBeNil)
 
 			row := &Row{}
 
 			i := 0
 
-			for operator.Next(row) {
+			for iter.Next(row) {
 				So(len(row.Data), ShouldEqual, 0)
 				i++
 			}
 
 			So(i, ShouldEqual, 1)
 
-			So(operator.Close(), ShouldBeNil)
-			So(operator.Err(), ShouldBeNil)
+			So(iter.Close(), ShouldBeNil)
+			So(iter.Err(), ShouldBeNil)
 
 		})
 	})

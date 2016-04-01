@@ -66,20 +66,23 @@ func TestMongoSourceOperator(t *testing.T) {
 			}
 
 			ctx := &ExecutionCtx{
-				Schema:  cfgOne,
-				Db:      dbOne,
 				Session: session,
+				PlanCtx: &PlanCtx{
+					Schema: cfgOne,
+					Db:     dbOne,
+				},
 			}
 
-			operator, err := NewMongoSource(ctx, dbOne, tableTwoName, "")
+			plan, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tableTwoName, "")
 			So(err, ShouldBeNil)
-			So(operator.Open(ctx), ShouldBeNil)
+			iter, err := plan.Open(ctx)
+			So(err, ShouldBeNil)
 
 			row := &Row{}
 
 			i := 0
 
-			for operator.Next(row) {
+			for iter.Next(row) {
 				So(len(row.Data), ShouldEqual, 1)
 				So(row.Data[0].Table, ShouldEqual, tableTwoName)
 				So(row.Data[0].Values, ShouldResemble, expected[i])
@@ -87,8 +90,8 @@ func TestMongoSourceOperator(t *testing.T) {
 				i++
 			}
 
-			So(operator.Close(), ShouldBeNil)
-			So(operator.Err(), ShouldBeNil)
+			So(iter.Close(), ShouldBeNil)
+			So(iter.Err(), ShouldBeNil)
 		})
 	})
 }

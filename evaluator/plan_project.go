@@ -8,16 +8,22 @@ import (
 // Project ensures that referenced columns - e.g. those used to
 // support ORDER BY and GROUP BY clauses - aren't included in
 // the final result set.
-type Project struct {
+type ProjectStage struct {
 	// sExprs holds the columns and/or expressions used in
 	// the pipeline
 	sExprs SelectExpressions
 
+	// source is the operator that provides the data to project
+	source PlanStage
+}
+
+type ProjectIter struct {
+	source Iter
+
+	sExprs SelectExpressions
+
 	// err holds any error that may have occurred during processing
 	err error
-
-	// source is the operator that provides the data to project
-	source Operator
 
 	// ctx is the current execution context
 	ctx *ExecutionCtx
@@ -27,34 +33,24 @@ var systemVars = map[string]SQLValue{
 	"max_allowed_packet": SQLInt(4194304),
 }
 
-func (pj *Project) Open(ctx *ExecutionCtx) error {
-
-	pj.ctx = ctx
-
-	// no select field implies a star expression - so we use
-	// the fields from the source operator.
-	hasExpr := false
-
-	for _, expr := range pj.sExprs {
-		if !expr.Referenced {
-			hasExpr = true
-			break
-		}
+func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
+	sourceIter, err := pj.source.Open(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	err := pj.source.Open(ctx)
+	return &ProjectIter{
+		sExprs: pj.sExprs,
+		ctx:    ctx,
+		source: sourceIter,
+	}, nil
 
-	if !hasExpr {
-		pj.addSelectExprs()
-	}
-
-	return err
 }
 
-func (pj *Project) getValue(se SelectExpression, row *Row) (SQLValue, error) {
+func (pj *ProjectIter) getValue(se SelectExpression, row *Row) (SQLValue, error) {
 	// in the case where we have a bare select column and no expression
 	if se.Expr == nil {
-		tables := pj.ctx.Schema.Databases[pj.ctx.Db].Tables
+		tables := pj.ctx.PlanCtx.Schema.Databases[pj.ctx.PlanCtx.Db].Tables
 		columnType := getColumnType(tables, se.Table, se.Name)
 		se.Expr = SQLColumnExpr{se.Table, se.Name, *columnType}
 	} else {
@@ -78,7 +74,7 @@ func (pj *Project) getValue(se SelectExpression, row *Row) (SQLValue, error) {
 	return se.Expr.Evaluate(evalCtx)
 }
 
-func (pj *Project) Next(r *Row) bool {
+func (pj *ProjectIter) Next(r *Row) bool {
 
 	hasNext := pj.source.Next(r)
 
@@ -122,11 +118,8 @@ func (pj *Project) Next(r *Row) bool {
 	return true
 }
 
-func (pj *Project) OpFields() (columns []*Column) {
+func (pj *ProjectStage) OpFields() (columns []*Column) {
 	for _, expr := range pj.sExprs {
-		if expr.Referenced {
-			continue
-		}
 		column := &Column{
 			Name:  expr.Name,
 			View:  expr.View,
@@ -142,30 +135,19 @@ func (pj *Project) OpFields() (columns []*Column) {
 	return columns
 }
 
-func (pj *Project) Close() error {
+func (pj *ProjectIter) Close() error {
 	return pj.source.Close()
 }
 
-func (pj *Project) Err() error {
+func (pj *ProjectIter) Err() error {
 	if err := pj.source.Err(); err != nil {
 		return err
 	}
 	return pj.err
 }
 
-func (pj *Project) addSelectExprs() {
-	for _, column := range pj.source.OpFields() {
-		sExpr := SelectExpression{
-			Column:     column,
-			RefColumns: []*Column{column},
-			Expr:       nil,
-		}
-		pj.sExprs = append(pj.sExprs, sExpr)
-	}
-}
-
-func (pj *Project) clone() *Project {
-	return &Project{
+func (pj *ProjectStage) clone() *ProjectStage {
+	return &ProjectStage{
 		source: pj.source,
 		sExprs: pj.sExprs,
 	}

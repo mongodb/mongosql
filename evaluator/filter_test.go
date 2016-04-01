@@ -17,25 +17,27 @@ func TestFilterOperator(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
 
-	runTest := func(filter *Filter, rows []bson.D, expectedRows []Values) {
+	runTest := func(filter *FilterStage, rows []bson.D, expectedRows []Values) {
 
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
-		ts, err := NewBSONSource(ctx, tableTwoName, rows)
+		bss := &BSONSourceStage{tableTwoName, rows}
+
+		filter.source = bss
+		iter, err := filter.Open(ctx)
+
 		So(err, ShouldBeNil)
-
-		filter.source = ts
-
-		So(filter.Open(ctx), ShouldBeNil)
 
 		row := &Row{}
 
 		i := 0
 
-		for filter.Next(row) {
+		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, 1)
 			So(row.Data[0].Table, ShouldEqual, tableTwoName)
 			So(row.Data[0].Values, ShouldResemble, expectedRows[i])
@@ -45,8 +47,8 @@ func TestFilterOperator(t *testing.T) {
 
 		So(i, ShouldEqual, len(expectedRows))
 
-		So(filter.Close(), ShouldBeNil)
-		So(filter.Err(), ShouldBeNil)
+		So(iter.Close(), ShouldBeNil)
+		So(iter.Err(), ShouldBeNil)
 	}
 
 	Convey("With a simple test configuration...", t, func() {
@@ -80,7 +82,7 @@ func TestFilterOperator(t *testing.T) {
 				matcher, err := getWhereSQLExprFromSQL(schema, query)
 				So(err, ShouldBeNil)
 
-				operator := &Filter{
+				operator := &FilterStage{
 					matcher: matcher,
 				}
 

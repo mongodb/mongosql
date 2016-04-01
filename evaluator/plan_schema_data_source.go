@@ -24,43 +24,41 @@ var (
 	}
 )
 
-type SchemaDataSource struct {
-	tableName      string
-	aliasName      string
-	includeColumns bool
-	matcher        SQLExpr
-	iter           FindResults
-	err            error
-	ctx            *ExecutionCtx
+type SchemaDataSourceStage struct {
+	tableName string
+	aliasName string
+	matcher   SQLExpr
 }
 
-func (sds *SchemaDataSource) Open(ctx *ExecutionCtx) error {
-	sds.ctx = ctx
-	return sds.init(ctx)
+type SchemaDataSourceIter struct {
+	plan    *SchemaDataSourceStage
+	iter    *SchemaFindResults
+	err     error
+	execCtx *ExecutionCtx
 }
 
-func (sds *SchemaDataSource) init(ctx *ExecutionCtx) error {
+func (sds *SchemaDataSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
+	if sds.tableName == "key_column_usage" {
+		return &EmptyIter{}, nil
+	}
 
+	it := &SchemaDataSourceIter{
+		plan: sds,
+		iter: &SchemaFindResults{execCtx: ctx},
+	}
 	switch sds.tableName {
-	case "key_column_usage":
-		sds.iter = &EmptyFindResults{}
-		return nil
 	case "columns":
-		sds.includeColumns = true
+		it.iter.includeColumns = true
 	case "tables":
+		it.iter.includeColumns = false
 	default:
-		return fmt.Errorf("unknown information_schema table (%s)", sds.tableName)
+		return nil, fmt.Errorf("unknown information_schema table (%s)", sds.tableName)
 	}
 
-	if sds.aliasName == "" {
-		sds.aliasName = sds.tableName
-	}
-
-	sds.iter = sds.Find().Iter()
-	return nil
+	return it, nil
 }
 
-func (sds *SchemaDataSource) Next(row *Row) bool {
+func (sds *SchemaDataSourceIter) Next(row *Row) bool {
 	if sds.iter == nil {
 		return false
 	}
@@ -72,7 +70,7 @@ func (sds *SchemaDataSource) Next(row *Row) bool {
 		sds.err = err
 		return false
 	}
-	row.Data = TableRows{{sds.tableName, values}}
+	row.Data = TableRows{{sds.plan.tableName, values}}
 
 	if !hasNext {
 		sds.err = sds.iter.Err()
@@ -81,19 +79,23 @@ func (sds *SchemaDataSource) Next(row *Row) bool {
 	return hasNext
 }
 
-func (sds *SchemaDataSource) OpFields() []*Column {
+func (sds *SchemaDataSourceStage) OpFields() []*Column {
 
 	var columns []*Column
 
 	headers := ISTablesHeaders
 
-	if sds.includeColumns {
+	if sds.tableName == "columns" {
 		headers = ISColumnHeaders
+	}
+	aliasName := sds.aliasName
+	if aliasName == "" {
+		aliasName = sds.tableName
 	}
 
 	for _, c := range headers {
 		column := &Column{
-			Table:     sds.aliasName,
+			Table:     aliasName,
 			Name:      c,
 			View:      c,
 			SQLType:   schema.SQLVarchar,
@@ -105,25 +107,21 @@ func (sds *SchemaDataSource) OpFields() []*Column {
 	return columns
 }
 
-func (sds *SchemaDataSource) Close() error {
+func (sds *SchemaDataSourceIter) Close() error {
 	return sds.iter.Close()
 }
 
-func (sds *SchemaDataSource) Err() error {
+func (sds *SchemaDataSourceIter) Err() error {
 	return sds.iter.Err()
 }
 
-func (sds *SchemaDataSource) Find() FindQuery {
-	return SchemaFindQuery{sds.ctx, sds.matcher, sds.includeColumns}
-}
-
-func (sds *SchemaDataSource) Insert(docs ...interface{}) error {
-	return fmt.Errorf("cannot insert into config data source")
-}
-
-func (sds *SchemaDataSource) DropCollection() error {
-	return fmt.Errorf("cannot drop config data source")
-}
+// func (sds *SchemaDataSource) Insert(docs ...interface{}) error {
+// 	return fmt.Errorf("cannot insert into config data source")
+// }
+//
+// func (sds *SchemaDataSource) DropCollection() error {
+// 	return fmt.Errorf("cannot drop config data source")
+// }
 
 func _cfrNextHelper(result *bson.D, fieldName string, fieldValue interface{}) {
 	*result = append(*result, bson.DocElem{fieldName, fieldValue})
@@ -132,7 +130,7 @@ func _cfrNextHelper(result *bson.D, fieldName string, fieldValue interface{}) {
 // -------
 
 type SchemaFindResults struct {
-	ctx            *ExecutionCtx
+	execCtx        *ExecutionCtx
 	matcher        SQLExpr
 	includeColumns bool
 
@@ -149,12 +147,12 @@ func (sfr *SchemaFindResults) Next(result *bson.D) bool {
 	}
 
 	// are we in valid db space
-	if sfr.dbOffset >= len(sfr.ctx.Schema.RawDatabases) {
+	if sfr.dbOffset >= len(sfr.execCtx.PlanCtx.Schema.RawDatabases) {
 		// nope, we're done
 		return false
 	}
 
-	db := sfr.ctx.Schema.RawDatabases[sfr.dbOffset]
+	db := sfr.execCtx.PlanCtx.Schema.RawDatabases[sfr.dbOffset]
 
 	// are we in valid table space
 	if sfr.tableOffset >= len(db.RawTables) {
@@ -207,7 +205,7 @@ func (sfr *SchemaFindResults) Next(result *bson.D) bool {
 		sfr.err = err
 		return false
 	}
-	evalCtx := &EvalCtx{Rows{{TableRows{{tableName, values}}}}, sfr.ctx}
+	evalCtx := &EvalCtx{Rows{{TableRows{{tableName, values}}}}, sfr.execCtx}
 	if sfr.matcher != nil {
 		m, err := Matches(sfr.matcher, evalCtx)
 		if err != nil {
@@ -219,16 +217,6 @@ func (sfr *SchemaFindResults) Next(result *bson.D) bool {
 		}
 	}
 	return true
-}
-
-type SchemaFindQuery struct {
-	ctx            *ExecutionCtx
-	matcher        SQLExpr
-	includeColumns bool
-}
-
-func (cfq SchemaFindQuery) Iter() FindResults {
-	return &SchemaFindResults{cfq.ctx, cfq.matcher, cfq.includeColumns, 0, 0, 0, nil}
 }
 
 func (sfr *SchemaFindResults) Err() error {

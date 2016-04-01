@@ -90,19 +90,23 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 	// get a new session for every execution context.
 	session := conn.Session()
 
-	// construct execution context
-	eCtx := &evaluator.ExecutionCtx{
-		Db:            db,
-		ParseCtx:      pCtx,
-		ConnectionCtx: conn,
-		Schema:        e.config,
-		Session:       session,
+	planCtx := &evaluator.PlanCtx{
+		Schema:   e.config,
+		ParseCtx: pCtx,
+		Db:       db,
 	}
 
 	// construct query plan
-	queryPlan, err := evaluator.PlanQuery(eCtx, stmt)
+	queryPlan, err := evaluator.PlanQuery(planCtx, stmt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error constructing query plan: %v", err)
+	}
+
+	// construct execution context
+	eCtx := &evaluator.ExecutionCtx{
+		Session:       session,
+		ConnectionCtx: conn,
+		PlanCtx:       planCtx,
 	}
 
 	// execute plan
@@ -116,29 +120,30 @@ func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, c
 
 // executeQueryPlan executes the query plan held in the operator by reading from it
 // until it exhausts all results.
-func executeQueryPlan(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) ([]string, [][]interface{}, error) {
+func executeQueryPlan(ctx *evaluator.ExecutionCtx, plan evaluator.PlanStage) ([]string, [][]interface{}, error) {
 	rows := make([][]interface{}, 0)
 
 	log.Logf(log.DebugLow, "Executing plan...")
 
 	row := &evaluator.Row{}
+	var iter evaluator.Iter
+	var err error
 
-	if err := operator.Open(ctx); err != nil {
+	if iter, err = plan.Open(ctx); err != nil {
 		return nil, nil, fmt.Errorf("operator open: %v", err)
 	}
 
-	for operator.Next(row) {
-
-		rows = append(rows, row.GetValues(operator.OpFields()))
+	for iter.Next(row) {
+		rows = append(rows, row.GetValues(plan.OpFields()))
 
 		row.Data = []evaluator.TableRow{}
 	}
 
-	if err := operator.Close(); err != nil {
+	if err := iter.Close(); err != nil {
 		return nil, nil, fmt.Errorf("operator close: %v", err)
 	}
 
-	if err := operator.Err(); err != nil {
+	if err := iter.Err(); err != nil {
 		return nil, nil, fmt.Errorf("operator err: %v", err)
 	}
 
@@ -146,7 +151,7 @@ func executeQueryPlan(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) 
 
 	// make sure all rows have same number of values
 	for idx, row := range rows {
-		for len(row) < len(operator.OpFields()) {
+		for len(row) < len(plan.OpFields()) {
 			row = append(row, nil)
 		}
 		rows[idx] = row
@@ -154,7 +159,7 @@ func executeQueryPlan(ctx *evaluator.ExecutionCtx, operator evaluator.Operator) 
 
 	var headers []string
 
-	for _, field := range operator.OpFields() {
+	for _, field := range plan.OpFields() {
 		headers = append(headers, field.View)
 	}
 

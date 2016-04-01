@@ -13,17 +13,18 @@ func TestOrderByOperator(t *testing.T) {
 	cfgOne := env.cfgOne
 	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
-	runTest := func(orderby *OrderBy, rows []bson.D, expectedRows []Values) {
+	runTest := func(orderby *OrderByStage, rows []bson.D, expectedRows []Values) {
 
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
-		ts, err := NewBSONSource(ctx, tableOneName, nil)
-		So(err, ShouldBeNil)
+		ts := &BSONSourceStage{tableOneName, nil}
 
-		source := &Project{
+		source := &ProjectStage{
 			source: ts,
 			sExprs: SelectExpressions{
 				SelectExpression{
@@ -38,14 +39,14 @@ func TestOrderByOperator(t *testing.T) {
 		}
 
 		orderby.source = source
-
-		So(orderby.Open(ctx), ShouldBeNil)
+		iter, err := orderby.Open(ctx)
+		So(err, ShouldBeNil)
 
 		row := &Row{}
 
 		i := 0
 
-		for orderby.Next(row) {
+		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, 1)
 			So(row.Data[0].Table, ShouldEqual, tableOneName)
 			So(row.Data[0].Values, ShouldResemble, expectedRows[i])
@@ -53,8 +54,8 @@ func TestOrderByOperator(t *testing.T) {
 			i++
 		}
 
-		So(orderby.Close(), ShouldBeNil)
-		So(orderby.Err(), ShouldBeNil)
+		So(iter.Close(), ShouldBeNil)
+		So(iter.Err(), ShouldBeNil)
 	}
 
 	Convey("An order by operator...", t, func() {
@@ -75,7 +76,7 @@ func TestOrderByOperator(t *testing.T) {
 						Expr: SQLColumnExpr{tableOneName, "a", columnType},
 					}, false, true, nil}}
 
-				operator := &OrderBy{
+				operator := &OrderByStage{
 					keys: keys,
 				}
 
@@ -96,7 +97,7 @@ func TestOrderByOperator(t *testing.T) {
 					&SelectExpression{Expr: SQLColumnExpr{tableOneName, "a", columnType}}, false, false, nil},
 				}
 
-				operator := &OrderBy{
+				operator := &OrderByStage{
 					keys: keys,
 				}
 
@@ -130,7 +131,7 @@ func TestOrderByOperator(t *testing.T) {
 					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(8)}},
 				}
 
-				operator := &OrderBy{
+				operator := &OrderByStage{
 					keys: keys,
 				}
 
@@ -146,7 +147,7 @@ func TestOrderByOperator(t *testing.T) {
 						Expr: SQLColumnExpr{tableOneName, "b", columnType}}, false, false, nil},
 				}
 
-				operator := &OrderBy{
+				operator := &OrderByStage{
 					keys: keys,
 				}
 
@@ -169,7 +170,7 @@ func TestOrderByOperator(t *testing.T) {
 						Expr: SQLColumnExpr{tableOneName, "b", columnType}}, false, true, nil},
 				}
 
-				operator := &OrderBy{
+				operator := &OrderByStage{
 					keys: keys,
 				}
 
@@ -192,7 +193,7 @@ func TestOrderByOperator(t *testing.T) {
 						Expr: SQLColumnExpr{tableOneName, "b", columnType}}, false, false, nil},
 				}
 
-				operator := &OrderBy{
+				operator := &OrderByStage{
 					keys: keys,
 				}
 

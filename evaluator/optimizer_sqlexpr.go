@@ -1,37 +1,37 @@
 package evaluator
 
-func optimizeOperatorSQLExprs(o Operator) (Operator, error) {
+func optimizePlanSQLExprs(o PlanStage) (PlanStage, error) {
 	v := &sqlExprOptimizer{}
 	return v.Visit(o)
 }
 
 type sqlExprOptimizer struct{}
 
-func (v *sqlExprOptimizer) Visit(o Operator) (Operator, error) {
-	o, err := walkOperatorTree(v, o)
+func (v *sqlExprOptimizer) Visit(p PlanStage) (PlanStage, error) {
+	p, err := walkPlanTree(v, p)
 	if err != nil {
 		return nil, err
 	}
 
-	switch typedO := o.(type) {
-	case *Filter:
-		if typedO.matcher == nil {
+	switch typedP := p.(type) {
+	case *FilterStage:
+		if typedP.matcher == nil {
 			break
 		}
-		matcher, err := OptimizeSQLExpr(typedO.matcher)
+		matcher, err := OptimizeSQLExpr(typedP.matcher)
 		if err != nil {
 			return nil, err
 		}
 
-		if matcher != typedO.matcher {
-			newO := typedO.clone()
-			newO.matcher = matcher
-			o = newO
+		if matcher != typedP.matcher {
+			newP := typedP.clone()
+			newP.matcher = matcher
+			p = newP
 		}
-	case *GroupBy:
+	case *GroupByStage:
 		hasNew := false
 		keyExprs := SelectExpressions{}
-		for _, ke := range typedO.keyExprs {
+		for _, ke := range typedP.keyExprs {
 			newExpr, err := v.optimizeSelectExpression(&ke)
 			if err != nil {
 				return nil, err
@@ -46,7 +46,7 @@ func (v *sqlExprOptimizer) Visit(o Operator) (Operator, error) {
 		}
 
 		selectExprs := SelectExpressions{}
-		for _, se := range typedO.selectExprs {
+		for _, se := range typedP.selectExprs {
 			newExpr, err := v.optimizeSelectExpression(&se)
 			if err != nil {
 				return nil, err
@@ -61,31 +61,31 @@ func (v *sqlExprOptimizer) Visit(o Operator) (Operator, error) {
 		}
 
 		if hasNew {
-			newO := typedO.clone()
-			newO.keyExprs = keyExprs
-			newO.selectExprs = selectExprs
-			o = newO
+			newP := typedP.clone()
+			newP.keyExprs = keyExprs
+			newP.selectExprs = selectExprs
+			p = newP
 		}
 
-	case *Join:
-		if typedO.matcher == nil {
+	case *JoinStage:
+		if typedP.matcher == nil {
 			break
 		}
 
-		matcher, err := OptimizeSQLExpr(typedO.matcher)
+		matcher, err := OptimizeSQLExpr(typedP.matcher)
 		if err != nil {
 			return nil, err
 		}
 
-		if matcher != typedO.matcher {
-			newO := typedO.clone()
-			newO.matcher = matcher
-			o = newO
+		if matcher != typedP.matcher {
+			newP := typedP.clone()
+			newP.matcher = matcher
+			p = newP
 		}
-	case *OrderBy:
+	case *OrderByStage:
 		hasNewKey := false
 		keys := []orderByKey{}
-		for _, k := range typedO.keys {
+		for _, k := range typedP.keys {
 			newExpr, err := v.optimizeSelectExpression(k.expr)
 			if err != nil {
 				return nil, err
@@ -100,14 +100,14 @@ func (v *sqlExprOptimizer) Visit(o Operator) (Operator, error) {
 		}
 
 		if hasNewKey {
-			newO := typedO.clone()
-			newO.keys = keys
-			o = newO
+			newP := typedP.clone()
+			newP.keys = keys
+			p = newP
 		}
-	case *Project:
+	case *ProjectStage:
 		hasNew := false
 		exprs := SelectExpressions{}
-		for _, expr := range typedO.sExprs {
+		for _, expr := range typedP.sExprs {
 			newExpr, err := v.optimizeSelectExpression(&expr)
 			if err != nil {
 				return nil, err
@@ -121,13 +121,13 @@ func (v *sqlExprOptimizer) Visit(o Operator) (Operator, error) {
 		}
 
 		if hasNew {
-			newO := typedO.clone()
-			newO.sExprs = exprs
-			o = newO
+			newP := typedP.clone()
+			newP.sExprs = exprs
+			p = newP
 		}
 	}
 
-	return o, nil
+	return p, nil
 }
 
 func (v *sqlExprOptimizer) optimizeSelectExpression(se *SelectExpression) (*SelectExpression, error) {

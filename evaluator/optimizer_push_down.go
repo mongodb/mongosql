@@ -8,60 +8,60 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func optimizePushDown(ctx *ExecutionCtx, o Operator) (Operator, error) {
-	v := &pushDownOptimizer{ctx}
+func optimizePushDown(planCtx *PlanCtx, o PlanStage) (PlanStage, error) {
+	v := &pushDownOptimizer{planCtx}
 	return v.Visit(o)
 }
 
 type pushDownOptimizer struct {
-	ctx *ExecutionCtx
+	planCtx *PlanCtx
 }
 
-func (v *pushDownOptimizer) Visit(o Operator) (Operator, error) {
-	o, err := walkOperatorTree(v, o)
+func (v *pushDownOptimizer) Visit(p PlanStage) (PlanStage, error) {
+	p, err := walkPlanTree(v, p)
 	if err != nil {
 		return nil, err
 	}
 
-	switch typedO := o.(type) {
-	case *Filter:
-		o, err = v.visitFilter(typedO)
+	switch typedP := p.(type) {
+	case *FilterStage:
+		p, err = v.visitFilter(typedP)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize filter: %v", err)
 		}
-	case *GroupBy:
-		o, err = v.visitGroupBy(typedO)
+	case *GroupByStage:
+		p, err = v.visitGroupBy(typedP)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize group by: %v", err)
 		}
-	case *Join:
-		o, err = v.visitJoin(typedO)
+	case *JoinStage:
+		p, err = v.visitJoin(typedP)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize join: %v", err)
 		}
-	case *Limit:
-		o, err = v.visitLimit(typedO)
+	case *LimitStage:
+		p, err = v.visitLimit(typedP)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize limit: %v", err)
 		}
-	case *OrderBy:
-		o, err = v.visitOrderBy(typedO)
+	case *OrderByStage:
+		p, err = v.visitOrderBy(typedP)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize order by: %v", err)
 		}
-	case *Project:
-		o, err = v.visitProject(typedO)
+	case *ProjectStage:
+		p, err = v.visitProject(typedP)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize project: %v", err)
 		}
 	}
 
-	return o, nil
+	return p, nil
 }
 
-func (v *pushDownOptimizer) canPushDown(op Operator) (*MongoSource, bool) {
+func (v *pushDownOptimizer) canPushDown(ps PlanStage) (*MongoSourceStage, bool) {
 
-	ms, ok := op.(*MongoSource)
+	ms, ok := ps.(*MongoSourceStage)
 	if !ok {
 		return nil, false
 	}
@@ -69,7 +69,7 @@ func (v *pushDownOptimizer) canPushDown(op Operator) (*MongoSource, bool) {
 	return ms, true
 }
 
-func (v *pushDownOptimizer) visitFilter(filter *Filter) (Operator, error) {
+func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) {
 
 	ms, ok := v.canPushDown(filter.source)
 	if !ok {
@@ -90,7 +90,7 @@ func (v *pushDownOptimizer) visitFilter(filter *Filter) (Operator, error) {
 			return nil, err
 		}
 		if !matches {
-			return &Empty{}, nil
+			return &EmptyStage{}, nil
 		}
 
 		// otherwise, the filter simply gets removed from the tree
@@ -118,7 +118,11 @@ func (v *pushDownOptimizer) visitFilter(filter *Filter) (Operator, error) {
 		// that can be partially pushed down, so we construct
 		// a new filter with only the part remaining that
 		// cannot be pushed down.
-		return NewFilter(ms, localMatcher, filter.hasSubquery), nil
+		return &FilterStage{
+			source:      ms,
+			hasSubquery: filter.hasSubquery,
+			matcher:     localMatcher,
+		}, nil
 	}
 
 	// everything was able to be pushed down, so the filter
@@ -134,7 +138,7 @@ const (
 
 // visitGroupBy works by using a visitor to systematically visit and replace certain SQLExpr while generating
 // $group and $project stages for the aggregation pipeline.
-func (v *pushDownOptimizer) visitGroupBy(gb *GroupBy) (Operator, error) {
+func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 
 	ms, ok := v.canPushDown(gb.source)
 	if !ok {
@@ -442,7 +446,7 @@ const (
 	joinedFieldNamePrefix = "__joined_"
 )
 
-func (v *pushDownOptimizer) visitJoin(join *Join) (Operator, error) {
+func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	if join.matcher == nil {
 		return join, nil
@@ -453,7 +457,7 @@ func (v *pushDownOptimizer) visitJoin(join *Join) (Operator, error) {
 	// about the target collections, we need to indicate to users that the right-side may NOT be
 	// sharded. Flipping these around would make this difficult for a user to fix. Instead, we'll
 	// just tell them to make their right outer joins -> left outer joins.
-	var localSource, foreignSource Operator
+	var localSource, foreignSource PlanStage
 	var joinKind JoinKind
 
 	switch join.kind {
@@ -471,12 +475,12 @@ func (v *pushDownOptimizer) visitJoin(join *Join) (Operator, error) {
 
 	// 2. we have to be able to push both down and the foreign MongoSource
 	// operator must have nothing in its pipeline.
-	msLocal, ok := localSource.(*MongoSource)
+	msLocal, ok := localSource.(*MongoSourceStage)
 	if !ok {
 		return join, nil
 	}
 
-	msForeign, ok := foreignSource.(*MongoSource)
+	msForeign, ok := foreignSource.(*MongoSourceStage)
 	if !ok {
 		return join, nil
 	}
@@ -571,7 +575,7 @@ func (v *pushDownOptimizer) visitJoin(join *Join) (Operator, error) {
 	ms.mappingRegistry = newMappingRegistry
 
 	if lookupInfo.remainingPredicate != nil && joinKind == InnerJoin {
-		return v.Visit(&Filter{
+		return v.Visit(&FilterStage{
 			source:  ms,
 			matcher: lookupInfo.remainingPredicate,
 		})
@@ -621,7 +625,7 @@ func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExp
 	return nil, fmt.Errorf("join condition cannot be pushed down '%v'", e)
 }
 
-func (v *pushDownOptimizer) visitLimit(limit *Limit) (Operator, error) {
+func (v *pushDownOptimizer) visitLimit(limit *LimitStage) (PlanStage, error) {
 
 	ms, ok := v.canPushDown(limit.source)
 	if !ok {
@@ -634,8 +638,8 @@ func (v *pushDownOptimizer) visitLimit(limit *Limit) (Operator, error) {
 		pipeline = append(pipeline, bson.D{{"$skip", limit.offset}})
 	}
 
-	if limit.rowcount > 0 {
-		pipeline = append(pipeline, bson.D{{"$limit", limit.rowcount}})
+	if limit.limit > 0 {
+		pipeline = append(pipeline, bson.D{{"$limit", limit.limit}})
 	}
 
 	ms = ms.clone()
@@ -643,7 +647,7 @@ func (v *pushDownOptimizer) visitLimit(limit *Limit) (Operator, error) {
 	return ms, nil
 }
 
-func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderBy) (Operator, error) {
+func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, error) {
 
 	ms, ok := v.canPushDown(orderBy.source)
 	if !ok {
@@ -687,7 +691,7 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderBy) (Operator, error) {
 	return ms, nil
 }
 
-func (v *pushDownOptimizer) visitProject(project *Project) (Operator, error) {
+func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, error) {
 	// Check if we can optimize further, if the child operator has a MongoSource.
 	ms, ok := v.canPushDown(project.source)
 	if !ok {
@@ -701,7 +705,7 @@ func (v *pushDownOptimizer) visitProject(project *Project) (Operator, error) {
 
 	fixedExpressions := SelectExpressions{}
 
-	tables := v.ctx.Schema.Databases[v.ctx.Db].Tables
+	tables := v.planCtx.Schema.Databases[v.planCtx.Db].Tables
 
 	// Track whether or not we've successfully mapped every field into the $project of the source.
 	// If so, this Project node can be removed from the query plan tree.

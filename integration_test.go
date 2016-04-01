@@ -125,6 +125,10 @@ func buildSchemaMaps(conf *schema.Schema) {
 func compareResults(t *testing.T, expected, actual [][]interface{}) {
 	for rownum, row := range actual {
 		for colnum, col := range row {
+			if rownum > len(expected)-1 {
+				t.Errorf("expected %v rows but got %v", len(expected), len(actual))
+				return
+			}
 			expectedCol := expected[rownum][colnum]
 			// we don't have a good way of representing
 			// nil in our CSV test results so we check
@@ -179,6 +183,7 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 		var types []string
 
 		Convey(fmt.Sprintf("Running test query (%v): '%v'", query.Id, query.Query), func() {
+			t.Logf("query: %v %v", query.Id, query.Query)
 
 			for j := 0; j < query.Columns; j++ {
 				types = append(types, schema.SQLVarchar)

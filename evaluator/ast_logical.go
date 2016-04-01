@@ -87,7 +87,10 @@ type SQLExistsExpr struct {
 func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	ctx.ExecCtx.Depth += 1
 
-	operator, err := PlanQuery(ctx.ExecCtx, em.stmt)
+	var plan PlanStage
+	var it Iter
+
+	plan, err := PlanQuery(ctx.ExecCtx.PlanCtx, em.stmt)
 	if err != nil {
 		return SQLFalse, err
 	}
@@ -95,8 +98,8 @@ func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	var matches bool
 
 	defer func() {
-		if err == nil {
-			err = operator.Err()
+		if it != nil && err == nil {
+			err = it.Err()
 		}
 
 		// add context to error
@@ -108,15 +111,16 @@ func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	}()
 
-	if err := operator.Open(ctx.ExecCtx); err != nil {
+	it, err = plan.Open(ctx.ExecCtx)
+	if err != nil {
 		return SQLFalse, err
 	}
 
-	if operator.Next(&Row{}) {
+	if it.Next(&Row{}) {
 		matches = true
 	}
 
-	return SQLBool(matches), operator.Close()
+	return SQLBool(matches), it.Close()
 }
 
 func (em *SQLExistsExpr) String() string {
@@ -531,22 +535,27 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
+	var plan PlanStage
+	var it Iter
+
 	ctx.ExecCtx.Depth += 1
 
-	operator, err := PlanQuery(ctx.ExecCtx, sc.value.stmt)
+	plan, err = PlanQuery(ctx.ExecCtx.PlanCtx, sc.value.stmt)
 	if err != nil {
 		return SQLFalse, err
 	}
 
 	defer func() {
-		if err == nil {
-			err = operator.Close()
-		} else {
-			operator.Close()
-		}
+		if it != nil {
+			if err == nil {
+				err = it.Close()
+			} else {
+				it.Close()
+			}
 
-		if err == nil {
-			err = operator.Err()
+			if err == nil {
+				err = it.Err()
+			}
 		}
 
 		if err != nil {
@@ -557,7 +566,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	}()
 
-	if err := operator.Open(ctx.ExecCtx); err != nil {
+	if it, err = plan.Open(ctx.ExecCtx); err != nil {
 		return SQLFalse, err
 	}
 
@@ -566,9 +575,9 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	matched := false
 
 	right := &SQLValues{}
-	for operator.Next(row) {
+	for it.Next(row) {
 
-		values := row.GetValues(operator.OpFields())
+		values := row.GetValues(plan.OpFields())
 
 		for _, value := range values {
 			field, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)

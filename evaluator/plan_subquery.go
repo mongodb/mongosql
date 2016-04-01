@@ -1,18 +1,27 @@
 package evaluator
 
-type Subquery struct {
+type SubqueryStage struct {
 	// tableName holds the name of this table as seen in outer contexts
 	tableName string
 
 	// source holds the source for this select statement
-	source Operator
+	source PlanStage
 }
 
-func (sq *Subquery) Open(ctx *ExecutionCtx) error {
-	return sq.source.Open(ctx)
+type SubqueryIter struct {
+	plan   *SubqueryStage
+	source Iter
 }
 
-func (sq *Subquery) Next(row *Row) bool {
+func (sq *SubqueryStage) Open(ctx *ExecutionCtx) (Iter, error) {
+	sourceIter, err := sq.source.Open(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &SubqueryIter{sq, sourceIter}, nil
+}
+
+func (sq *SubqueryIter) Next(row *Row) bool {
 
 	hasNext := sq.source.Next(row)
 
@@ -32,7 +41,7 @@ func (sq *Subquery) Next(row *Row) bool {
 		}
 
 		tableRow.Values = values
-		tableRow.Table = sq.tableName
+		tableRow.Table = sq.plan.tableName
 
 		tableRows = append(tableRows, tableRow)
 	}
@@ -42,7 +51,7 @@ func (sq *Subquery) Next(row *Row) bool {
 	return true
 }
 
-func (sq *Subquery) OpFields() (columns []*Column) {
+func (sq *SubqueryStage) OpFields() (columns []*Column) {
 	for _, expr := range sq.source.OpFields() {
 		column := &Column{
 			// name is referenced by view in outer context
@@ -56,10 +65,10 @@ func (sq *Subquery) OpFields() (columns []*Column) {
 	return columns
 }
 
-func (sq *Subquery) Close() error {
+func (sq *SubqueryIter) Close() error {
 	return sq.source.Close()
 }
 
-func (sq *Subquery) Err() error {
+func (sq *SubqueryIter) Err() error {
 	return sq.source.Err()
 }

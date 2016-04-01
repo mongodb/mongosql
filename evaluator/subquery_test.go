@@ -11,25 +11,28 @@ func TestSubqueryOperator(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
 
-	runTest := func(subquery *Subquery, rows []bson.D, expectedRows []Values) {
+	runTest := func(subquery *SubqueryStage, rows []bson.D, expectedRows []Values) {
 
 		ctx := &ExecutionCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
+			SrcRows: []*Row{&Row{}},
+			PlanCtx: &PlanCtx{
+				Schema: cfgOne,
+				Db:     dbOne,
+			},
 		}
 
-		ts, err := NewBSONSource(ctx, tableTwoName, rows)
-		So(err, ShouldBeNil)
+		ts := &BSONSourceStage{tableTwoName, rows}
 
 		subquery.source = ts
 
-		So(subquery.Open(ctx), ShouldBeNil)
+		iter, err := subquery.Open(ctx)
+		So(err, ShouldBeNil)
 
 		row := &Row{}
 
 		i := 0
 
-		for subquery.Next(row) {
+		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, 1)
 			So(row.Data[0].Table, ShouldEqual, tableOneName)
 			So(row.Data[0].Values[0].Data, ShouldResemble, expectedRows[i][0].Data)
@@ -39,8 +42,8 @@ func TestSubqueryOperator(t *testing.T) {
 
 		So(i, ShouldEqual, len(expectedRows))
 
-		So(subquery.Close(), ShouldBeNil)
-		So(subquery.Err(), ShouldBeNil)
+		So(iter.Close(), ShouldBeNil)
+		So(iter.Err(), ShouldBeNil)
 	}
 
 	Convey("With a simple test configuration...", t, func() {
@@ -57,7 +60,7 @@ func TestSubqueryOperator(t *testing.T) {
 				{{"a", "a", SQLInt(16)}, {"b", "b", SQLInt(17)}, {"_id", "_id", SQLInt(15)}},
 			}
 
-			subquery := &Subquery{
+			subquery := &SubqueryStage{
 				tableName: tableOneName,
 			}
 

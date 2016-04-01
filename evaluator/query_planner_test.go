@@ -12,8 +12,10 @@ func TestPlanFromExpr(t *testing.T) {
 	cfgOne := env.cfgOne
 
 	ctx := &ExecutionCtx{
-		Schema: cfgOne,
-		Db:     dbOne,
+		PlanCtx: &PlanCtx{
+			Schema: cfgOne,
+			Db:     dbOne,
+		},
 	}
 
 	Convey("With a given table expr...", t, func() {
@@ -22,7 +24,7 @@ func TestPlanFromExpr(t *testing.T) {
 
 			tables := []sqlparser.TableExpr{}
 
-			opr, err := planFromExpr(ctx, tables, nil)
+			opr, err := planFromExpr(ctx.PlanCtx, tables, nil)
 			So(err, ShouldNotBeNil)
 			So(opr, ShouldBeNil)
 
@@ -39,9 +41,9 @@ func TestPlanFromExpr(t *testing.T) {
 				},
 			}
 
-			opr, err := planFromExpr(ctx, tables, nil)
+			opr, err := planFromExpr(ctx.PlanCtx, tables, nil)
 			So(err, ShouldBeNil)
-			ms, ok := opr.(*MongoSource)
+			ms, ok := opr.(*MongoSourceStage)
 			So(ok, ShouldBeTrue)
 			So(ms.tableName, ShouldEqual, tableOneName)
 
@@ -64,17 +66,17 @@ func TestPlanFromExpr(t *testing.T) {
 				},
 			}
 
-			opr, err := planFromExpr(ctx, tables, nil)
+			opr, err := planFromExpr(ctx.PlanCtx, tables, nil)
 			So(err, ShouldBeNil)
-			join, ok := opr.(*Join)
+			join, ok := opr.(*JoinStage)
 			So(ok, ShouldBeTrue)
 			So(join.kind, ShouldEqual, CrossJoin)
 
-			left, ok := join.left.(*MongoSource)
+			left, ok := join.left.(*MongoSourceStage)
 			So(ok, ShouldBeTrue)
 			So(left.tableName, ShouldEqual, tableOneName)
 
-			right, ok := join.right.(*MongoSource)
+			right, ok := join.right.(*MongoSourceStage)
 			So(ok, ShouldBeTrue)
 			So(right.tableName, ShouldEqual, tableTwoName)
 
@@ -103,25 +105,25 @@ func TestPlanFromExpr(t *testing.T) {
 				},
 			}
 
-			opr, err := planFromExpr(ctx, tables, nil)
+			opr, err := planFromExpr(ctx.PlanCtx, tables, nil)
 			So(err, ShouldBeNil)
 
-			join, ok := opr.(*Join)
+			join, ok := opr.(*JoinStage)
 			So(ok, ShouldBeTrue)
 			So(join.kind, ShouldEqual, CrossJoin)
 
-			ms, ok := join.right.(*MongoSource)
+			ms, ok := join.right.(*MongoSourceStage)
 			So(ok, ShouldBeTrue)
 			So(ms.tableName, ShouldEqual, tableThreeName)
 
-			join, ok = join.left.(*Join)
+			join, ok = join.left.(*JoinStage)
 			So(ok, ShouldBeTrue)
 
-			left, ok := join.left.(*MongoSource)
+			left, ok := join.left.(*MongoSourceStage)
 			So(ok, ShouldBeTrue)
 			So(left.tableName, ShouldEqual, tableOneName)
 
-			right, ok := join.right.(*MongoSource)
+			right, ok := join.right.(*MongoSourceStage)
 			So(ok, ShouldBeTrue)
 			So(right.tableName, ShouldEqual, tableTwoName)
 
