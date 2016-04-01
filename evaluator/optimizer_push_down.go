@@ -448,7 +448,11 @@ func (v *pushDownOptimizer) visitJoin(join *Join) (Operator, error) {
 		return join, nil
 	}
 
-	// 1. the join type must be usable. MongoDB can only do an inner join and a left outer join
+	// 1. the join type must be usable. MongoDB can only do an inner join and a left outer join.
+	// While we can flip a right outer join to a left outer join, because we don't have information
+	// about the target collections, we need to indicate to users that the right-side may NOT be
+	// sharded. Flipping these around would make this difficult for a user to fix. Instead, we'll
+	// just tell them to make their right outer joins -> left outer joins.
 	var localSource, foreignSource Operator
 	var joinKind JoinKind
 
@@ -461,15 +465,11 @@ func (v *pushDownOptimizer) visitJoin(join *Join) (Operator, error) {
 		localSource = join.left
 		foreignSource = join.right
 		joinKind = LeftJoin
-	case RightJoin:
-		localSource = join.right
-		foreignSource = join.left
-		joinKind = LeftJoin
 	default:
 		return join, nil
 	}
 
-	// 2. we have to be able to push both down and the foreign TableScan
+	// 2. we have to be able to push both down and the foreign MongoSource
 	// operator must have nothing in its pipeline.
 	msLocal, ok := localSource.(*MongoSource)
 	if !ok {
@@ -481,60 +481,29 @@ func (v *pushDownOptimizer) visitJoin(join *Join) (Operator, error) {
 		return join, nil
 	}
 
-	if joinKind == InnerJoin && len(msLocal.pipeline) == 0 && len(msForeign.pipeline) > 0 {
-		// flip them
-		msLocal, msForeign = msForeign, msLocal
-	} else if len(msForeign.pipeline) > 0 {
+	if len(msForeign.pipeline) > 0 {
 		return join, nil
 	}
 
 	// 3. find the local column and the foreign column
-	localColumn, foreignColumn, err := getLocalAndForeignColumns(msLocal.aliasName, msForeign.aliasName, join.matcher)
+	lookupInfo, err := getLocalAndForeignColumns(msLocal.aliasName, msForeign.aliasName, join.matcher)
 	if err != nil {
 		return join, nil
 	}
 
-	// 4. construct the $lookup clause
-	pipeline := msLocal.pipeline
-
-	localFieldName, ok := msLocal.mappingRegistry.lookupFieldName(localColumn.tableName, localColumn.columnName)
+	// 4. get lookup fields
+	localFieldName, ok := msLocal.mappingRegistry.lookupFieldName(lookupInfo.localColumn.tableName, lookupInfo.localColumn.columnName)
 	if !ok {
 		return join, nil
 	}
-	foreignFieldName, ok := msForeign.mappingRegistry.lookupFieldName(foreignColumn.tableName, foreignColumn.columnName)
+	foreignFieldName, ok := msForeign.mappingRegistry.lookupFieldName(lookupInfo.foreignColumn.tableName, lookupInfo.foreignColumn.columnName)
 	if !ok {
 		return join, nil
 	}
 
-	asField := joinedFieldNamePrefix + msForeign.collectionName
+	asField := dottifyFieldName(joinedFieldNamePrefix + msForeign.collectionName)
 
-	lookup := bson.M{
-		"from":         msForeign.collectionName,
-		"localField":   localFieldName,
-		"foreignField": foreignFieldName,
-		"as":           asField,
-	}
-
-	// 5. construct the $unwind clause
-	var unwind bson.M
-
-	switch joinKind { // right join was already flipped
-	case InnerJoin:
-		unwind = bson.M{
-			"path": "$" + asField,
-			"preserveNullAndEmptyArrays": false,
-		}
-	case LeftJoin:
-		unwind = bson.M{
-			"path": "$" + asField,
-			"preserveNullAndEmptyArrays": true,
-		}
-	}
-
-	pipeline = append(pipeline, bson.D{{"$lookup", lookup}})
-	pipeline = append(pipeline, bson.D{{"$unwind", unwind}})
-
-	// 6. change all the mappings from the msForeign mapping registry to be nested under
+	// 5. compute all the mappings from the msForeign mapping registry to be nested under
 	// the 'asField' we used above.
 	newMappingRegistry := msLocal.mappingRegistry.copy()
 
@@ -547,53 +516,109 @@ func (v *pushDownOptimizer) visitJoin(join *Join) (Operator, error) {
 		}
 	}
 
+	// 6. build the pipeline
+	pipeline := msLocal.pipeline
+
+	lookup := bson.M{
+		"from":         msForeign.collectionName,
+		"localField":   localFieldName,
+		"foreignField": foreignFieldName,
+		"as":           asField,
+	}
+
+	pipeline = append(pipeline, bson.D{{"$lookup", lookup}})
+
+	unwind := bson.M{
+		"path": "$" + asField,
+		"preserveNullAndEmptyArrays": joinKind == LeftJoin,
+	}
+
+	pipeline = append(pipeline, bson.D{{"$unwind", unwind}})
+
+	if lookupInfo.remainingPredicate != nil && joinKind == LeftJoin {
+
+		ifPart, ok := TranslateExpr(lookupInfo.remainingPredicate, newMappingRegistry.lookupFieldName)
+		if !ok {
+			return join, nil
+		}
+
+		// if the predicate doesn't pass, then we set the 'as' field to nil
+		project := bson.M{
+			asField: bson.M{
+				"$cond": bson.M{
+					"if":   ifPart,
+					"then": "$" + asField,
+					"else": nil,
+				},
+			},
+		}
+
+		// we now need to make sure we project all the existing columns from the local mongo source
+		for _, c := range msLocal.mappingRegistry.columns {
+			field, ok := msLocal.mappingRegistry.lookupFieldName(c.Table, c.Name)
+			if !ok {
+				return join, nil
+			}
+			project[field] = 1
+		}
+
+		pipeline = append(pipeline, bson.D{{"$project", project}})
+	}
+
+	// 7. build the new operators
 	ms := msLocal.clone()
 	ms.pipeline = pipeline
 	ms.mappingRegistry = newMappingRegistry
+
+	if lookupInfo.remainingPredicate != nil && joinKind == InnerJoin {
+		return v.Visit(&Filter{
+			source:  ms,
+			matcher: lookupInfo.remainingPredicate,
+		})
+	}
+
 	return ms, nil
 }
 
-func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExpr) (*SQLColumnExpr, *SQLColumnExpr, error) {
+type lookupInfo struct {
+	localColumn        *SQLColumnExpr
+	foreignColumn      *SQLColumnExpr
+	remainingPredicate SQLExpr
+}
 
-	// TODO: we can probably extract from 'e' the parts that only deal with the left or
-	// right sides, but not both. These parts of the predicates need to get pushed down
-	// independently such that filters for each side, if necessary, are performed
-	// server side.
+func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExpr) (*lookupInfo, error) {
+	exprs := splitExpression(e)
 
-	// anything in optimizedExpr that is not an equi-join makes this impossible to push down
-	equalExpr, ok := e.(*SQLEqualsExpr)
-	if !ok {
-		return nil, nil, fmt.Errorf("join condition cannot be pushed down '%v'", e.String())
+	// find a SQLEqualsExpr where the left and right are columns from the local and foreign tables
+	for i, expr := range exprs {
+		if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
+			// we must have a field from the left table and a field from the right table
+			if column1, ok := equalExpr.left.(SQLColumnExpr); ok {
+				if column2, ok := equalExpr.right.(SQLColumnExpr); ok {
+					var localColumn, foreignColumn *SQLColumnExpr
+					if column1.tableName == localTableName {
+						localColumn = &column1
+					} else if column1.tableName == foreignTableName {
+						foreignColumn = &column1
+					}
+
+					if column2.tableName == localTableName {
+						localColumn = &column2
+					} else if column2.tableName == foreignTableName {
+						foreignColumn = &column2
+					}
+
+					if localColumn != nil && foreignColumn != nil {
+
+						combined := combineExpressions(append(exprs[:i], exprs[i+1:]...))
+						return &lookupInfo{localColumn, foreignColumn, combined}, nil
+					}
+				}
+			}
+		}
 	}
 
-	// we must have a field from the left table and and a field from the right table
-	column1, ok := equalExpr.left.(SQLColumnExpr)
-	if !ok {
-		return nil, nil, fmt.Errorf("join condition cannot be pushed down '%v'", equalExpr.String())
-	}
-	column2, ok := equalExpr.right.(SQLColumnExpr)
-	if !ok {
-		return nil, nil, fmt.Errorf("join condition cannot be pushed down '%v'", equalExpr.String())
-	}
-
-	var localColumn, foreignColumn *SQLColumnExpr
-	if column1.tableName == localTableName {
-		localColumn = &column1
-	} else if column1.tableName == foreignTableName {
-		foreignColumn = &column1
-	}
-
-	if column2.tableName == localTableName {
-		localColumn = &column2
-	} else if column2.tableName == foreignTableName {
-		foreignColumn = &column2
-	}
-
-	if localColumn == nil || foreignColumn == nil {
-		return nil, nil, fmt.Errorf("join condition cannot be pushed down '%v'", equalExpr.String())
-	}
-
-	return localColumn, foreignColumn, nil
+	return nil, fmt.Errorf("join condition cannot be pushed down '%v'", e)
 }
 
 func (v *pushDownOptimizer) visitLimit(limit *Limit) (Operator, error) {

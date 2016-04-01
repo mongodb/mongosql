@@ -950,6 +950,23 @@ func TestSelectWithJoin(t *testing.T) {
 				checkExpectedValues(2, values, expectedValues)
 			})
 
+			Convey("for an inner join with additional criteria", func() {
+				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e AND t2.f > 12", nil, conn)
+				So(err, ShouldBeNil)
+				So(len(names), ShouldEqual, 2)
+				So(len(values), ShouldEqual, 1)
+
+				So(names, ShouldResemble, []string{"c", "f"})
+
+				expectedValues := map[interface{}][]evaluator.SQLExpr{
+					evaluator.SQLInt(3): []evaluator.SQLExpr{
+						evaluator.SQLInt(14),
+					},
+				}
+
+				checkExpectedValues(2, values, expectedValues)
+			})
+
 			Convey("for an implicit join", func() {
 				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1, silly t2 where t1.c = t2.e", nil, conn)
 				So(err, ShouldBeNil)
@@ -970,6 +987,23 @@ func TestSelectWithJoin(t *testing.T) {
 				checkExpectedValues(2, values, expectedValues)
 			})
 
+			Convey("for an implicit join with additional criteria", func() {
+				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1, silly t2 where t1.c = t2.e AND t2.f > 12", nil, conn)
+				So(err, ShouldBeNil)
+				So(len(names), ShouldEqual, 2)
+				So(len(values), ShouldEqual, 1)
+
+				So(names, ShouldResemble, []string{"c", "f"})
+
+				expectedValues := map[interface{}][]evaluator.SQLExpr{
+					evaluator.SQLInt(3): []evaluator.SQLExpr{
+						evaluator.SQLInt(14),
+					},
+				}
+
+				checkExpectedValues(2, values, expectedValues)
+			})
+
 			Convey("for a left join", func() {
 				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 left join silly t2 on t1.c = t2.e", nil, conn)
 				So(err, ShouldBeNil)
@@ -981,6 +1015,29 @@ func TestSelectWithJoin(t *testing.T) {
 				expectedValues := map[interface{}][]evaluator.SQLExpr{
 					evaluator.SQLInt(1): []evaluator.SQLExpr{
 						evaluator.SQLInt(12),
+					},
+					evaluator.SQLInt(3): []evaluator.SQLExpr{
+						evaluator.SQLInt(14),
+					},
+					evaluator.SQLInt(5): []evaluator.SQLExpr{
+						evaluator.SQLNull,
+					},
+				}
+
+				checkExpectedValues(2, values, expectedValues)
+			})
+
+			Convey("for a left join with additional criteria", func() {
+				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 left join silly t2 on t1.c = t2.e AND t2.f > 12", nil, conn)
+				So(err, ShouldBeNil)
+				So(len(names), ShouldEqual, 2)
+				So(len(values), ShouldEqual, 3)
+
+				So(names, ShouldResemble, []string{"c", "f"})
+
+				expectedValues := map[interface{}][]evaluator.SQLExpr{
+					evaluator.SQLInt(1): []evaluator.SQLExpr{
+						evaluator.SQLNull,
 					},
 					evaluator.SQLInt(3): []evaluator.SQLExpr{
 						evaluator.SQLInt(14),

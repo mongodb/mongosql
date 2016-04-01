@@ -1165,18 +1165,6 @@ func TestJoinPushDown(t *testing.T) {
 	cfgOne := env.cfgOne
 	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
-	verifyOptimizedPipeline := func(ctx *ExecutionCtx, tblName string, op Operator, pipeline []bson.D) {
-
-		optimized, err := OptimizeOperator(ctx, op)
-		So(err, ShouldBeNil)
-
-		ms, ok := optimized.(*MongoSource)
-		So(ok, ShouldBeTrue)
-
-		So(ms.tableName, ShouldEqual, tblName)
-		So(ms.pipeline, ShouldResemble, pipeline)
-	}
-
 	Convey("Subject: Join Optimization", t, func() {
 
 		ctx := &ExecutionCtx{
@@ -1193,18 +1181,18 @@ func TestJoinPushDown(t *testing.T) {
 		msTwo, err := NewMongoSource(ctx, dbOne, tblTwo, "")
 		So(err, ShouldBeNil)
 
-		Convey("Given a push-downable join", func() {
+		Convey("Given a push-downable inner join", func() {
 
 			join := &Join{
+				kind:  InnerJoin,
 				left:  msOne,
 				right: msTwo,
 			}
 
-			Convey("Should optimize simple inner join", func() {
-				join.kind = InnerJoin
+			Convey("Should optimize an inner join with an equality comparison", func() {
 				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 
-				verifyOptimizedPipeline(ctx, tblOne, join,
+				verifyOptimizedPipeline(ctx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1218,11 +1206,10 @@ func TestJoinPushDown(t *testing.T) {
 						}}}})
 			})
 
-			Convey("Should optimize simple inner join with on clause flipped", func() {
-				join.kind = InnerJoin
+			Convey("Should optimize an inner join with a flipped equality comparison", func() {
 				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b", columnType}, SQLColumnExpr{tblOne, "c", columnType}}
 
-				verifyOptimizedPipeline(ctx, tblOne, join,
+				verifyOptimizedPipeline(ctx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1236,11 +1223,12 @@ func TestJoinPushDown(t *testing.T) {
 						}}}})
 			})
 
-			Convey("Should optimize simple left join", func() {
-				join.kind = LeftJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
+			Convey("Should optimize an inner join with an equality comparison and other criteria", func() {
+				join.matcher = &SQLAndExpr{
+					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}},
+					&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)}}
 
-				verifyOptimizedPipeline(ctx, tblOne, join,
+				verifyOptimizedPipeline(ctx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
 							"from":         tblTwo,
@@ -1250,110 +1238,159 @@ func TestJoinPushDown(t *testing.T) {
 						}}},
 						bson.D{{"$unwind", bson.M{
 							"path": "$" + joinedFieldNamePrefix + tblTwo,
-							"preserveNullAndEmptyArrays": true,
-						}}}})
-			})
-
-			Convey("Should optimize simple left join with on clause flipped", func() {
-				join.kind = LeftJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b", columnType}, SQLColumnExpr{tblOne, "c", columnType}}
-
-				verifyOptimizedPipeline(ctx, tblOne, join,
-					[]bson.D{
-						bson.D{{"$lookup", bson.M{
-							"from":         tblTwo,
-							"localField":   "c",
-							"foreignField": "b",
-							"as":           joinedFieldNamePrefix + tblTwo,
-						}}},
-						bson.D{{"$unwind", bson.M{
-							"path": "$" + joinedFieldNamePrefix + tblTwo,
-							"preserveNullAndEmptyArrays": true,
-						}}}})
-			})
-
-			Convey("Should optimize simple right join", func() {
-				join.kind = RightJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
-
-				verifyOptimizedPipeline(ctx, tblTwo, join,
-					[]bson.D{
-						bson.D{{"$lookup", bson.M{
-							"from":         tblOne,
-							"localField":   "b",
-							"foreignField": "c",
-							"as":           joinedFieldNamePrefix + tblOne,
-						}}},
-						bson.D{{"$unwind", bson.M{
-							"path": "$" + joinedFieldNamePrefix + tblOne,
-							"preserveNullAndEmptyArrays": true,
-						}}}})
-			})
-
-			Convey("Should optimize simple right join with on clause flipped", func() {
-				join.kind = RightJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b", columnType}, SQLColumnExpr{tblOne, "c", columnType}}
-
-				verifyOptimizedPipeline(ctx, tblTwo, join,
-					[]bson.D{
-						bson.D{{"$lookup", bson.M{
-							"from":         tblOne,
-							"localField":   "b",
-							"foreignField": "c",
-							"as":           joinedFieldNamePrefix + tblOne,
-						}}},
-						bson.D{{"$unwind", bson.M{
-							"path": "$" + joinedFieldNamePrefix + tblOne,
-							"preserveNullAndEmptyArrays": true,
-						}}}})
-			})
-
-			Convey("Should optimize inner join where the right table has a non-empty pipeline", func() {
-
-				msTwo.pipeline = append(msTwo.pipeline, bson.D{{"$test", 1}})
-
-				join.kind = InnerJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
-
-				verifyOptimizedPipeline(ctx, tblTwo, join,
-					[]bson.D{
-						bson.D{{"$test", 1}},
-						bson.D{{"$lookup", bson.M{
-							"from":         tblOne,
-							"localField":   "b",
-							"foreignField": "c",
-							"as":           joinedFieldNamePrefix + tblOne,
-						}}},
-						bson.D{{"$unwind", bson.M{
-							"path": "$" + joinedFieldNamePrefix + tblOne,
 							"preserveNullAndEmptyArrays": false,
-						}}}})
+						}}},
+						bson.D{{"$match", bson.M{"a": int64(10)}}}})
 			})
 
-			Convey("Should optimize right join where the right table has a non-empty pipeline", func() {
+			Convey("Should optimize an inner join with criteria on the local table and an equality comparison", func() {
+				join.matcher = &SQLAndExpr{
+					&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
+					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}}
 
-				msTwo.pipeline = append(msTwo.pipeline, bson.D{{"$test", 1}})
-
-				join.kind = RightJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
-
-				verifyOptimizedPipeline(ctx, tblTwo, join,
+				verifyOptimizedPipeline(ctx, join,
 					[]bson.D{
-						bson.D{{"$test", 1}},
 						bson.D{{"$lookup", bson.M{
-							"from":         tblOne,
-							"localField":   "b",
-							"foreignField": "c",
-							"as":           joinedFieldNamePrefix + tblOne,
+							"from":         tblTwo,
+							"localField":   "c",
+							"foreignField": "b",
+							"as":           joinedFieldNamePrefix + tblTwo,
 						}}},
 						bson.D{{"$unwind", bson.M{
-							"path": "$" + joinedFieldNamePrefix + tblOne,
-							"preserveNullAndEmptyArrays": true,
-						}}}})
+							"path": "$" + joinedFieldNamePrefix + tblTwo,
+							"preserveNullAndEmptyArrays": false,
+						}}},
+						bson.D{{"$match", bson.M{"a": int64(10)}}}})
+			})
+
+			Convey("Should optimize an inner join with criteria on the foreign table and an equality comparison", func() {
+				join.matcher = &SQLAndExpr{
+					&SQLEqualsExpr{SQLColumnExpr{tblTwo, "a", columnType}, SQLInt(10)},
+					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}}
+
+				verifyOptimizedPipeline(ctx, join,
+					[]bson.D{
+						bson.D{{"$lookup", bson.M{
+							"from":         tblTwo,
+							"localField":   "c",
+							"foreignField": "b",
+							"as":           joinedFieldNamePrefix + tblTwo,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblTwo,
+							"preserveNullAndEmptyArrays": false,
+						}}},
+						bson.D{{"$match", bson.M{"__joined_bar.a": int64(10)}}}})
 			})
 		})
 
-		Convey("Given a non-push-downable limit", func() {
+		Convey("Given a push-downable left join", func() {
+
+			join := &Join{
+				kind:  LeftJoin,
+				left:  msOne,
+				right: msTwo,
+			}
+
+			Convey("Should optimize a left join with an equality comparison", func() {
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
+
+				verifyOptimizedPipeline(ctx, join,
+					[]bson.D{
+						bson.D{{"$lookup", bson.M{
+							"from":         tblTwo,
+							"localField":   "c",
+							"foreignField": "b",
+							"as":           joinedFieldNamePrefix + tblTwo,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblTwo,
+							"preserveNullAndEmptyArrays": true,
+						}}}})
+			})
+
+			Convey("Should optimize a left join with a flipped equality comparison", func() {
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblTwo, "b", columnType}, SQLColumnExpr{tblOne, "c", columnType}}
+
+				verifyOptimizedPipeline(ctx, join,
+					[]bson.D{
+						bson.D{{"$lookup", bson.M{
+							"from":         tblTwo,
+							"localField":   "c",
+							"foreignField": "b",
+							"as":           joinedFieldNamePrefix + tblTwo,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblTwo,
+							"preserveNullAndEmptyArrays": true,
+						}}}})
+			})
+
+			Convey("Should optimize a left join with an equality comparison and other criteria", func() {
+				join.matcher = &SQLAndExpr{
+					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}},
+					&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}}}
+
+				verifyOptimizedPipeline(ctx, join,
+					[]bson.D{
+						bson.D{{"$lookup", bson.M{
+							"from":         tblTwo,
+							"localField":   "c",
+							"foreignField": "b",
+							"as":           joinedFieldNamePrefix + tblTwo,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblTwo,
+							"preserveNullAndEmptyArrays": true,
+						}}},
+						bson.D{{"$project", bson.M{
+							"a":   1,
+							"b":   1,
+							"c":   1,
+							"d.e": 1,
+							"d.f": 1,
+							"_id": 1,
+							"__joined_bar": bson.M{
+								"$cond": bson.M{
+									"if":   bson.M{"$eq": []interface{}{"$a", "$__joined_bar.a"}},
+									"then": "$__joined_bar",
+									"else": nil,
+								}}}}}})
+			})
+
+			Convey("Should optimize a left join with criteria and an equality comparison", func() {
+				join.matcher = &SQLAndExpr{
+					&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
+					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}}
+
+				verifyOptimizedPipeline(ctx, join,
+					[]bson.D{
+						bson.D{{"$lookup", bson.M{
+							"from":         tblTwo,
+							"localField":   "c",
+							"foreignField": "b",
+							"as":           joinedFieldNamePrefix + tblTwo,
+						}}},
+						bson.D{{"$unwind", bson.M{
+							"path": "$" + joinedFieldNamePrefix + tblTwo,
+							"preserveNullAndEmptyArrays": true,
+						}}},
+						bson.D{{"$project", bson.M{
+							"a":   1,
+							"b":   1,
+							"c":   1,
+							"d.e": 1,
+							"d.f": 1,
+							"_id": 1,
+							"__joined_bar": bson.M{
+								"$cond": bson.M{
+									"if":   bson.M{"$eq": []interface{}{"$a", bson.M{"$literal": SQLInt(10)}}},
+									"then": "$__joined_bar",
+									"else": nil}}}}}})
+			})
+		})
+
+		Convey("Given a non-push-downable join", func() {
 
 			join := &Join{
 				left:  msOne,
@@ -1370,25 +1407,27 @@ func TestJoinPushDown(t *testing.T) {
 				verifyUnoptimizedPipeline(ctx, join)
 			})
 
-			for _, kind := range []JoinKind{InnerJoin, LeftJoin, RightJoin} {
-				Convey(fmt.Sprintf("Should not optimize a %v when the on clause is not an equality comparison", kind), func() {
+			Convey("Should not optimize a right join", func() {
+				join.kind = RightJoin
+				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
+
+				verifyUnoptimizedPipeline(ctx, join)
+			})
+
+			for _, kind := range []JoinKind{InnerJoin, LeftJoin} {
+				Convey(fmt.Sprintf("Should not optimize a %v when the on clause does not contain an equality comparison", kind), func() {
 					join.kind = kind
 					join.matcher = &SQLGreaterThanExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 					verifyUnoptimizedPipeline(ctx, join)
 				})
-			}
 
-			for _, kind := range []JoinKind{InnerJoin, LeftJoin, RightJoin} {
 				Convey(fmt.Sprintf("Should not optimize a %v when the on clause does not contain fields from both sides", kind), func() {
 					join.kind = kind
 					join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblOne, "b", columnType}}
 					verifyUnoptimizedPipeline(ctx, join)
 				})
-			}
 
-			for _, kind := range []JoinKind{InnerJoin, LeftJoin, RightJoin} {
-				Convey(fmt.Sprintf("Should not optimize a %v when both sides already have a pipeline", kind), func() {
-					msOne.pipeline = append(msOne.pipeline, bson.D{{"$test", 1}})
+				Convey(fmt.Sprintf("Should not optimize a %v when the right side already has a pipeline", kind), func() {
 					msTwo.pipeline = append(msTwo.pipeline, bson.D{{"$test", 1}})
 
 					join.kind = kind
@@ -1396,14 +1435,6 @@ func TestJoinPushDown(t *testing.T) {
 					verifyUnoptimizedPipeline(ctx, join)
 				})
 			}
-
-			Convey("Should not optimize a right join when the left side has a pipeline", func() {
-				msOne.pipeline = append(msOne.pipeline, bson.D{{"$test", 1}})
-
-				join.kind = RightJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
-				verifyUnoptimizedPipeline(ctx, join)
-			})
 		})
 	})
 }

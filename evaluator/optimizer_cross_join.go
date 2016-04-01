@@ -6,7 +6,7 @@ func optimizeCrossJoins(o Operator) (Operator, error) {
 }
 
 type crossJoinOptimizer struct {
-	predicateParts []crossJoinPredicatePart
+	predicateParts expressionParts
 	tableNames     []string
 }
 
@@ -16,7 +16,7 @@ func (v *crossJoinOptimizer) Visit(o Operator) (Operator, error) {
 	case *Filter:
 		// save the old parts before assigning a new one
 		old := v.predicateParts
-		v.predicateParts, err = v.getPredicateParts(typedO.matcher)
+		v.predicateParts, err = splitExpressionIntoParts(typedO.matcher)
 		if err != nil {
 			return nil, err
 		}
@@ -34,7 +34,7 @@ func (v *crossJoinOptimizer) Visit(o Operator) (Operator, error) {
 				// parts.
 				o = &Filter{
 					source:  source,
-					matcher: v.combinePredicateParts(v.predicateParts),
+					matcher: v.predicateParts.combine(),
 				}
 			} else {
 				o = source
@@ -64,11 +64,11 @@ func (v *crossJoinOptimizer) Visit(o Operator) (Operator, error) {
 
 			// go through each part of the predicate and figure out which
 			// ones are associated to the tables in the current join.
-			partsToUse := []crossJoinPredicatePart{}
+			partsToUse := expressionParts{}
 			savedParts := v.predicateParts
 			v.predicateParts = nil
 			for _, part := range savedParts {
-				if v.canUsePredicatePartInJoinClause(part) {
+				if v.canUseExpressionPartInJoinClause(part) {
 					partsToUse = append(partsToUse, part)
 				} else {
 					v.predicateParts = append(v.predicateParts, part)
@@ -82,7 +82,7 @@ func (v *crossJoinOptimizer) Visit(o Operator) (Operator, error) {
 				kind := CrossJoin
 				if len(partsToUse) > 0 {
 					kind = InnerJoin
-					predicate = v.combinePredicateParts(partsToUse)
+					predicate = partsToUse.combine()
 				}
 
 				o = &Join{
@@ -119,26 +119,16 @@ func (v *crossJoinOptimizer) Visit(o Operator) (Operator, error) {
 	return walkOperatorTree(v, o)
 }
 
-func (v *crossJoinOptimizer) canUsePredicatePartInJoinClause(part crossJoinPredicatePart) bool {
-	contains := func(strs []string, str string) bool {
-		for _, n := range strs {
-			if n == str {
-				return true
-			}
-		}
-
-		return false
-	}
-
+func (v *crossJoinOptimizer) canUseExpressionPartInJoinClause(part expressionPart) bool {
 	if len(part.tableNames) > 0 {
 		// the right-most table must be present in the part
-		if !contains(part.tableNames, v.tableNames[len(v.tableNames)-1]) {
+		if !containsString(part.tableNames, v.tableNames[len(v.tableNames)-1]) {
 			return false
 		}
 
 		// all the names in the part must be in scope
 		for _, n := range part.tableNames {
-			if !contains(v.tableNames, n) {
+			if !containsString(v.tableNames, n) {
 				return false
 			}
 		}
@@ -147,65 +137,4 @@ func (v *crossJoinOptimizer) canUsePredicatePartInJoinClause(part crossJoinPredi
 	}
 
 	return false
-}
-
-func (v *crossJoinOptimizer) getPredicateParts(e SQLExpr) ([]crossJoinPredicatePart, error) {
-	// this flattens hierarchical SQLAndExprs into a list
-	var splitConjunctions func(SQLExpr) []SQLExpr
-	splitConjunctions = func(e SQLExpr) []SQLExpr {
-		andE, ok := e.(*SQLAndExpr)
-		if !ok {
-			return []SQLExpr{e}
-		}
-
-		left := splitConjunctions(andE.left)
-		right := splitConjunctions(andE.right)
-		return append(left, right...)
-	}
-
-	conjunctions := splitConjunctions(e)
-	result := []crossJoinPredicatePart{}
-	for _, conjunction := range conjunctions {
-		tableNames, err := v.getTableNames(conjunction)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, crossJoinPredicatePart{conjunction, tableNames})
-	}
-	return result, nil
-}
-
-func (v *crossJoinOptimizer) combinePredicateParts(parts []crossJoinPredicatePart) SQLExpr {
-	predicate := parts[0].expr
-	for _, part := range parts[1:] {
-		predicate = &SQLAndExpr{predicate, part.expr}
-	}
-	return predicate
-}
-
-type crossJoinPredicatePart struct {
-	expr       SQLExpr
-	tableNames []string
-}
-
-func (v *crossJoinOptimizer) getTableNames(e SQLExpr) ([]string, error) {
-	finder := &crossJoinSQLExprTableNameFinder{}
-	_, err := finder.Visit(e)
-	if err != nil {
-		return nil, err
-	}
-
-	return finder.tableNames, nil
-}
-
-type crossJoinSQLExprTableNameFinder struct {
-	tableNames []string
-}
-
-func (v *crossJoinSQLExprTableNameFinder) Visit(e SQLExpr) (SQLExpr, error) {
-	switch typedE := e.(type) {
-	case SQLColumnExpr:
-		v.tableNames = append(v.tableNames, typedE.tableName)
-	}
-	return walk(v, e)
 }
