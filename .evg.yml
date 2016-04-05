@@ -131,6 +131,10 @@ functions:
         curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/Starbucks.bson.gz --output testdata/input/Starbucks.bson.gz
         curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/UTStarcom.bson.gz --output testdata/input/UTStarcom.bson.gz
         curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/xy.bson.gz --output testdata/input/xy.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/bigarray.bson.gz --output testdata/input/bigarray.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/bigcoll.bson.gz --output testdata/input/bigcoll.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/bignestedarray.bson.gz --output testdata/input/bignestedarray.bson.gz
+        curl -s https://s3.amazonaws.com/mciuploads/sqlproxy/data/bigobjarray.bson.gz --output testdata/input/bigobjarray.bson.gz
 
   "fetch source" :
     - command: git.get_project
@@ -211,6 +215,18 @@ functions:
       content_type: text/html
       display_name: Coverage Report (HTML)
 
+  "upload benchmark report":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: src/benchmark.txt
+      remote_file: sqlproxy/benchmarks/${build_variant}/${revision}.txt
+      bucket: mciuploads
+      permissions: public-read
+      content_type: text/plain
+      display_name: Benchmark Report (TXT)
+
   "upload coverage txt report":
     command: s3.put
     params:
@@ -236,6 +252,28 @@ functions:
       display_name: sqlproxy${extension}
 
 tasks:
+- name: benchmark
+  commands:
+    - func: "fetch source"
+    - func: "download test data"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          . ./set_gopath.sh
+          ${gotest_env} go run testdata/benchmark.go -out benchmark_test.go
+          ${gotest_env} go test -run benchmark_test.go -bench=. -benchmem -benchtime=5s -v -timeout 4h | tee benchmark.txt
+          exit ${PIPESTATUS[0]}
+    - func: "upload benchmark report"
+
 - name: blackbox
   commands:
     - func: "fetch source"
@@ -286,37 +324,6 @@ tasks:
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
 
-- name: schema
-  commands:
-    - func: "fetch source"
-    - func: "download mongod"
-    - func: "start mongod"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          . ./set_gopath.sh
-          cd schema
-          mkfifo test_pipe
-          tee -a schema.suite < test_pipe&
-          go test -v -coverprofile=coverage.out > test_pipe
-    - command: shell.exec
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          mv schema/coverage.out .
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
-
 - name: dist
   commands:
     - func: "fetch source"
@@ -349,6 +356,37 @@ tasks:
         script: |
           set -o verbose
           mv evaluator/coverage.out .
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
+
+- name: schema
+  commands:
+    - func: "fetch source"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          . ./set_gopath.sh
+          cd schema
+          mkfifo test_pipe
+          tee -a schema.suite < test_pipe&
+          go test -v -coverprofile=coverage.out > test_pipe
+    - command: shell.exec
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          mv schema/coverage.out .
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"

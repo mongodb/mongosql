@@ -14,6 +14,12 @@ data:
 - archive_file: testdata/input/Starbucks.bson.gz
 - archive_file: testdata/input/UTStarcom.bson.gz
 - archive_file: testdata/input/xy.bson.gz
+- archive_file: testdata/input/bigarray.bson.gz
+- archive_file: testdata/input/bigcoll.bson.gz
+- archive_file: testdata/input/bignestedarray.bson.gz
+- archive_file: testdata/input/bigobjarray.bson.gz
+- archive_file: testdata/input/attendees.bson.gz
+- archive_file: testdata/input/flights201406.bson.gz
 
 addr: 127.0.0.1:3307
 user: root
@@ -1080,3 +1086,347 @@ schema:
       MongoType: int
       SqlName: "y"
       SqlType: int
+  - table: bigarray
+    collection: bigarray
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: i
+      MongoType: float64
+      SqlName: i
+      SqlType: numeric
+    - Name: x
+      MongoType: string
+      SqlName: x
+      SqlType: varchar
+  - table: bigarray_array
+    collection: bigarray
+    pipeline:
+    - $unwind:
+        includeArrayIndex: array_idx
+        path: $array
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: array
+      MongoType: string
+      SqlName: array
+      SqlType: varchar
+    - Name: array_idx
+      MongoType: int
+      SqlName: array_idx
+      SqlType: numeric
+    - Name: i
+      MongoType: float64
+      SqlName: i
+      SqlType: numeric
+    - Name: x
+      MongoType: string
+      SqlName: x
+      SqlType: varchar
+  - table: bigcoll
+    collection: bigcoll
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: float64
+      SqlName: _id
+      SqlType: numeric
+    - Name: a
+      MongoType: string
+      SqlName: a
+      SqlType: varchar
+  - table: bigobjarray
+    collection: bigobjarray
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: i
+      MongoType: float64
+      SqlName: i
+      SqlType: numeric
+    - Name: x
+      MongoType: string
+      SqlName: x
+      SqlType: varchar
+  - table: bigobjarray_array
+    collection: bigobjarray
+    pipeline:
+    - $unwind:
+        includeArrayIndex: array_idx
+        path: $array
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: array.x
+      MongoType: string
+      SqlName: array.x
+      SqlType: varchar
+    - Name: array_idx
+      MongoType: int
+      SqlName: array_idx
+      SqlType: numeric
+    - Name: i
+      MongoType: float64
+      SqlName: i
+      SqlType: numeric
+    - Name: x
+      MongoType: string
+      SqlName: x
+      SqlType: varchar
+  - table: bignestedarray
+    collection: bignestedarray
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: i
+      MongoType: float64
+      SqlName: i
+      SqlType: numeric
+    - Name: x
+      MongoType: string
+      SqlName: x
+      SqlType: varchar
+  - table: bignestedarray_array
+    collection: bignestedarray
+    pipeline:
+    - $unwind:
+        includeArrayIndex: array_idx
+        path: $array
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: array.x
+      MongoType: string
+      SqlName: array.x
+      SqlType: varchar
+    - Name: array_idx
+      MongoType: int
+      SqlName: array_idx
+      SqlType: numeric
+    - Name: i
+      MongoType: float64
+      SqlName: i
+      SqlType: numeric
+    - Name: x
+      MongoType: string
+      SqlName: x
+      SqlType: varchar
+  - table: bignestedarray_array_inner
+    collection: bignestedarray
+    pipeline:
+    - $unwind:
+        includeArrayIndex: array_idx
+        path: $array
+    - $unwind:
+        includeArrayIndex: array.inner_idx
+        path: $array.inner
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: array.inner.inn
+      MongoType: float64
+      SqlName: array.inner.inn
+      SqlType: numeric
+    - Name: array.inner_idx
+      MongoType: int
+      SqlName: array.inner_idx
+      SqlType: numeric
+    - Name: array.x
+      MongoType: string
+      SqlName: array.x
+      SqlType: varchar
+    - Name: array_idx
+      MongoType: int
+      SqlName: array_idx
+      SqlType: numeric
+    - Name: i
+      MongoType: float64
+      SqlName: i
+      SqlType: numeric
+    - Name: x
+      MongoType: string
+      SqlName: x
+      SqlType: varchar
+- db: tableau
+  tables:
+    - table: flights201406
+      collection: flights201406
+      columns:
+        - Name: _id
+          MongoType: bson.ObjectId
+          SqlName: _id
+          SqlType: varchar
+        - Name: carrier_code
+          MongoType: string
+          SqlName: carrier_code
+          SqlType: varchar
+        - Name: tail_num
+          MongoType: string
+          SqlName: tail_num
+          SqlType: varchar
+        - Name: flight_number
+          MongoType: int
+          SqlName: flight_number
+          SqlType: int
+        - Name: origin_airport_id
+          MongoType: int
+          SqlName: origin_airport_id
+          SqlType: int
+        - Name: origin_city_market_id
+          MongoType: int
+          SqlName: origin_city_market_id
+          SqlType: int
+        - Name: origin_airport_code
+          MongoType: string
+          SqlName: origin_airport_code
+          SqlType: varchar
+        - Name: origin_city_name
+          MongoType: string
+          SqlName: origin_city_name
+          SqlType: varchar
+        - Name: origin_state
+          MongoType: string
+          SqlName: origin_state
+          SqlType: varchar
+        - Name: dest_airport_id
+          MongoType: int
+          SqlName: dest_airport_id
+          SqlType: int
+        - Name: dest_city_market_id
+          MongoType: int
+          SqlName: dest_city_market_id
+          SqlType: int
+        - Name: dest_airport_code
+          MongoType: int
+          SqlName: dest_airport_code
+          SqlType: varchar
+        - Name: flight_date
+          MongoType: date
+          SqlName: flight_date
+          SqlType: date
+        - Name: dest_city_name
+          MongoType: string
+          SqlName: dest_city_name
+          SqlType: varchar
+        - Name: dest_state
+          MongoType: string
+          SqlName: dest_state
+          SqlType: varchar
+        - Name: dep_time
+          MongoType: int
+          SqlName: dep_time
+          SqlType: int
+        - Name: diff_from_dep_time
+          MongoType: int
+          SqlName: diff_from_dep_time
+          SqlType: int
+        - Name: dep_delay
+          MongoType: int
+          SqlName: dep_delay
+          SqlType: int
+        - Name: arr_time
+          MongoType: int
+          SqlName: arr_time
+          SqlType: int
+        - Name: diff_from_arr_time
+          MongoType: int
+          SqlName: diff_from_arr_time
+          SqlType: int
+        - Name: flight_time
+          MongoType: date
+          SqlName: flight_time
+          SqlType: timestamp
+        - Name: airline
+          MongoType: string
+          SqlName: airline
+          SqlType: varchar
+        - Name: cancelled
+          MongoType: int
+          SqlName: cancelled
+          SqlType: int
+        - Name: arr_delay
+          MongoType: int
+          SqlName: arr_delay
+          SqlType: int
+        - Name: carrier_delay
+          MongoType: int
+          SqlName: carrier_delay
+          SqlType: int
+        - Name: late_aircraft_delay
+          MongoType: int
+          SqlName: late_aircraft_delay
+          SqlType: int
+        - Name: nas_delay
+          MongoType: int
+          SqlName: nas_delay
+          SqlType: int
+
+    - table: attendees
+      collection: attendees
+      columns:
+        - Name: _id
+          MongoType: bson.ObjectId
+          SqlName: _id
+          SqlType: varchar
+        - Name: loc.coordinates.0
+          MongoType: float64
+          SqlName: latitude
+          SqlType: float64
+        - Name: loc.coordinates.1
+          MongoType: float64
+          SqlName: longitude
+          SqlType: float64
+        - Name: airport_city
+          MongoType: string
+          SqlName: airport_city
+          SqlType: varchar
+        - Name: airport_code
+          MongoType: string
+          SqlName: airport_code
+          SqlType: varchar
+        - Name: airport_id
+          MongoType: int
+          SqlName: airport_id
+          SqlType: int
+        - Name: city
+          MongoType: string
+          SqlName: city
+          SqlType: varchar
+        - Name: city_market_description
+          MongoType: string
+          SqlName: city_market_description
+          SqlType: varchar
+        - Name: city_market_id
+          MongoType: int
+          SqlName: city_market_id
+          SqlType: int
+        - Name: country
+          MongoType: string
+          SqlName: country
+          SqlType: varchar
+        - Name: state
+          MongoType: string
+          SqlName: state
+          SqlType: varchar
+        - Name: zip
+          MongoType: string
+          SqlName: zip
+          SqlType: varchar

@@ -5,8 +5,8 @@ import (
 
 	"net"
 	"strings"
+	"time"
 
-	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"
@@ -41,6 +41,7 @@ func (ssldbc *SSLDBConnector) Configure(opts options.ToolOptions) error {
 	}
 
 	// set up the dial info
+	timeout := time.Duration(options.DefaultDialTimeoutSeconds) * time.Second
 	ssldbc.dialInfo = &mgo.DialInfo{
 		DialServer: func(addr *mgo.ServerAddr) (net.Conn, error) {
 			return tls.Dial("tcp", addr.String(), ssldbc.sslConf)
@@ -51,7 +52,7 @@ func (ssldbc *SSLDBConnector) Configure(opts options.ToolOptions) error {
 		Password:       opts.Auth.Password,
 		ReplicaSetName: opts.ReplicaSetName,
 		Source:         opts.GetAuthenticationDatabase(),
-		Timeout:        toolsdb.DefaultDialTimeout,
+		Timeout:        timeout,
 		Username:       opts.Auth.Username,
 	}
 
