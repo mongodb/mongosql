@@ -223,10 +223,11 @@ type LockStats struct {
 	TimeLockedMicros    ReadWriteLockTimes `bson:"timeLockedMicros"`
 	TimeAcquiringMicros ReadWriteLockTimes `bson:"timeAcquiringMicros"`
 
-	// AcquireCount is a new field of the lock stats only populated on 3.0 or newer.
+	// AcquireCount and AcquireWaitCount are new fields of the lock stats only populated on 3.0 or newer.
 	// Typed as a pointer so that if it is nil, mongostat can assume the field is not populated
 	// with real namespace data.
-	AcquireCount *ReadWriteLockTimes `bson:"acquireCount,omitempty"`
+	AcquireCount     *ReadWriteLockTimes `bson:"acquireCount,omitempty"`
+	AcquireWaitCount *ReadWriteLockTimes `bson:"acquireWaitCount,omitempty"`
 }
 
 // ExtraInfo stores additional platform specific information.
@@ -261,6 +262,8 @@ var StatHeaders = []StatHeader{
 	{"res", Always},
 	{"non-mapped", MMAPOnly | AllOnly},
 	{"faults", MMAPOnly},
+	{"lr|lw %", MMAPOnly | AllOnly},
+	{"lrt|lwt", MMAPOnly | AllOnly},
 	{"    locked db", Locks},
 	{"qr|qw", Always},
 	{"ar|aw", Always},
@@ -291,6 +294,13 @@ func percentageInt64(value, outOf int64) float64 {
 	return 100 * (float64(value) / float64(outOf))
 }
 
+func averageInt64(value, outOf int64) int64 {
+	if value == 0 || outOf == 0 {
+		return 0
+	}
+	return value / outOf
+}
+
 func (slice lockUsages) Len() int {
 	return len(slice)
 }
@@ -301,6 +311,14 @@ func (slice lockUsages) Less(i, j int) bool {
 
 func (slice lockUsages) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
+}
+
+// CollectionLockStatus stores a collection's lock statistics.
+type CollectionLockStatus struct {
+	ReadAcquireWaitsPercentage  float64
+	WriteAcquireWaitsPercentage float64
+	ReadAcquireTimeMicros       int64
+	WriteAcquireTimeMicros      int64
 }
 
 // LockStatus stores a database's lock statistics.
@@ -328,6 +346,9 @@ type StatLine struct {
 
 	// Opcounter fields
 	Insert, Query, Update, Delete, GetMore, Command int64
+
+	// Collection locks (3.0 mmap only)
+	CollectionLocks *CollectionLockStatus
 
 	// Cache utilization (wiredtiger only)
 	CacheDirtyPercent float64
@@ -440,15 +461,12 @@ func (jlf *JSONLineFormatter) FormatLines(lines []StatLine, index int, discover 
 		lineJson["host"] = line.Host
 		lineJson["vsize"] = text.FormatMegabyteAmount(int64(line.Virtual))
 		lineJson["res"] = text.FormatMegabyteAmount(int64(line.Resident))
-
+		lineJson["flushes"] = fmt.Sprintf("%v", line.Flushes)
+		lineJson["qr|qw"] = fmt.Sprintf("%v|%v", line.QueuedReaders, line.QueuedWriters)
+		lineJson["ar|aw"] = fmt.Sprintf("%v|%v", line.ActiveReaders, line.ActiveWriters)
+				
 		// add mmapv1-specific fields
 		if lineFlags&MMAPOnly > 0 {
-			lineJson["flushes"] = fmt.Sprintf("%v", line.Flushes)
-			lineJson["qr|qw"] = fmt.Sprintf("%v|%v", line.QueuedReaders,
-				line.QueuedWriters)
-			lineJson["ar|aw"] = fmt.Sprintf("%v|%v", line.ActiveReaders,
-				line.ActiveWriters)
-
 			mappedVal := ""      // empty for mongos
 			if line.Mapped > 0 { // not mongos, update accordingly
 				mappedVal = text.FormatMegabyteAmount(int64(line.Mapped))
@@ -462,6 +480,18 @@ func (jlf *JSONLineFormatter) FormatLines(lines []StatLine, index int, discover 
 			lineJson["non-mapped"] = nonMappedVal
 
 			lineJson["faults"] = fmt.Sprintf("%v", line.Faults)
+
+			if lineFlags&AllOnly > 0 {
+				// check if we have any locks
+				if lineFlags&Locks <= 0 {
+					if line.CollectionLocks != nil && !line.IsMongos {
+						lineJson["lr|lw %"] = fmt.Sprintf("%.1f%%|%.1f%%", line.CollectionLocks.ReadAcquireWaitsPercentage,
+							line.CollectionLocks.WriteAcquireWaitsPercentage)
+						lineJson["lrt|lwt"] = fmt.Sprintf("%v|%v", line.CollectionLocks.ReadAcquireTimeMicros,
+							line.CollectionLocks.WriteAcquireTimeMicros)
+					}
+				}
+			}
 
 			highestLockedVal := "" // empty for mongos
 			if line.HighestLocked != nil && !line.IsMongos {
@@ -630,6 +660,28 @@ func (glf *GridLineFormatter) FormatLines(lines []StatLine, index int, discover 
 			}
 		}
 
+		if lineFlags&MMAPOnly > 0 && lineFlags&AllOnly > 0 {
+			// check if we have any locks
+			if lineFlags&Locks <= 0 {
+				if line.CollectionLocks != nil && !line.IsMongos {
+					percentCell := fmt.Sprintf("%.1f%%|%.1f%%", line.CollectionLocks.ReadAcquireWaitsPercentage,
+						line.CollectionLocks.WriteAcquireWaitsPercentage)
+					glf.Writer.WriteCell(percentCell)
+					timeCell := fmt.Sprintf("%v|%v", line.CollectionLocks.ReadAcquireTimeMicros,
+						line.CollectionLocks.WriteAcquireTimeMicros)
+					glf.Writer.WriteCell(timeCell)
+				} else {
+					//don't write any lock status for mongos nodes
+					glf.Writer.WriteCell("")
+					glf.Writer.WriteCell("")
+				}
+			} else {
+				// no locks
+				glf.Writer.WriteCell("n/a")
+				glf.Writer.WriteCell("n/a")
+			}
+		}
+
 		// Write columns related to lock % if activated
 		if lineFlags&Locks > 0 {
 			if line.HighestLocked != nil && !line.IsMongos {
@@ -653,7 +705,7 @@ func (glf *GridLineFormatter) FormatLines(lines []StatLine, index int, discover 
 			glf.Writer.WriteCell(line.NodeType)
 		}
 
-		glf.Writer.WriteCell(fmt.Sprintf("%v", line.Time.Format("15:04:05")))
+		glf.Writer.WriteCell(fmt.Sprintf("%v", line.Time.Format("2006-01-02T15:04:05Z07:00")))
 		glf.Writer.EndRow()
 	}
 	glf.Writer.Flush(buf)
@@ -680,12 +732,12 @@ func (glf *GridLineFormatter) FormatLines(lines []StatLine, index int, discover 
 	return returnVal
 }
 
-func diff(newVal, oldVal, sampleTime int64) int64 {
-	return (newVal - oldVal) / sampleTime
+func diff(newVal, oldVal int64, sampleSecs float64) int64 {
+	return int64(float64(newVal-oldVal) / sampleSecs)
 }
 
 // NewStatLine constructs a StatLine object from two ServerStatus objects.
-func NewStatLine(oldStat, newStat ServerStatus, key string, all bool, sampleSecs int64) *StatLine {
+func NewStatLine(oldStat, newStat ServerStatus, key string, all bool) *StatLine {
 	returnVal := &StatLine{
 		Key:       key,
 		Host:      newStat.Host,
@@ -702,6 +754,9 @@ func NewStatLine(oldStat, newStat ServerStatus, key string, all bool, sampleSecs
 	} else {
 		returnVal.StorageEngine = "mmapv1"
 	}
+
+	// Find the number of seconds that have elapsed since the last sample.
+	sampleSecs := float64(newStat.SampleTime.Sub(oldStat.SampleTime).Seconds())
 
 	if newStat.Opcounters != nil && oldStat.Opcounters != nil {
 		returnVal.Insert = diff(newStat.Opcounters.Insert, oldStat.Opcounters.Insert, sampleSecs)
@@ -781,6 +836,23 @@ func NewStatLine(oldStat, newStat ServerStatus, key string, all bool, sampleSecs
 			// This appears to be a 3.0+ server so the data in these fields do *not* refer to
 			// actual namespaces and thus we can't compute lock %.
 			returnVal.HighestLocked = nil
+
+			// Check if it's a 3.0+ MMAP server so we can still compute collection locks
+			collectionCheck, hasCollection := oldStat.Locks["Collection"]
+			if hasCollection && collectionCheck.AcquireWaitCount != nil {
+				readWaitCountDiff := newStat.Locks["Collection"].AcquireWaitCount.Read - oldStat.Locks["Collection"].AcquireWaitCount.Read
+				readTotalCountDiff := newStat.Locks["Collection"].AcquireCount.Read - oldStat.Locks["Collection"].AcquireCount.Read
+				writeWaitCountDiff := newStat.Locks["Collection"].AcquireWaitCount.Write - oldStat.Locks["Collection"].AcquireWaitCount.Write
+				writeTotalCountDiff := newStat.Locks["Collection"].AcquireCount.Write - oldStat.Locks["Collection"].AcquireCount.Write
+				readAcquireTimeDiff := newStat.Locks["Collection"].TimeAcquiringMicros.Read - oldStat.Locks["Collection"].TimeAcquiringMicros.Read
+				writeAcquireTimeDiff := newStat.Locks["Collection"].TimeAcquiringMicros.Write - oldStat.Locks["Collection"].TimeAcquiringMicros.Write
+				returnVal.CollectionLocks = &CollectionLockStatus{
+					ReadAcquireWaitsPercentage:  percentageInt64(readWaitCountDiff, readTotalCountDiff),
+					WriteAcquireWaitsPercentage: percentageInt64(writeWaitCountDiff, writeTotalCountDiff),
+					ReadAcquireTimeMicros:       averageInt64(readAcquireTimeDiff, readWaitCountDiff),
+					WriteAcquireTimeMicros:      averageInt64(writeAcquireTimeDiff, writeWaitCountDiff),
+				}
+			}
 		} else {
 			prevLocks := parseLocks(oldStat)
 			curLocks := parseLocks(newStat)

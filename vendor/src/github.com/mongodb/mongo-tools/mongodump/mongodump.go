@@ -51,7 +51,9 @@ type MongoDump struct {
 	// channel on which to notify if/when a termination signal is received
 	termChan chan struct{}
 	// the value of stdout gets initizlied to os.Stdout if it's unset
-	stdout io.Writer
+	stdout       io.Writer
+	readPrefMode mgo.Mode
+	readPrefTags []bson.D
 }
 
 // ValidateOptions checks for any incompatible sets of options.
@@ -63,6 +65,12 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("cannot dump a collection without a specified database")
 	case dump.InputOptions.Query != "" && dump.ToolOptions.Namespace.Collection == "":
 		return fmt.Errorf("cannot dump using a query without a specified collection")
+	case dump.InputOptions.QueryFile != "" && dump.ToolOptions.Namespace.Collection == "":
+		return fmt.Errorf("cannot dump using a queryFile without a specified collection")
+	case dump.InputOptions.Query != "" && dump.InputOptions.QueryFile != "":
+		return fmt.Errorf("either query or queryFile can be specified as a query option, not both")
+	case dump.InputOptions.Query != "" && dump.InputOptions.TableScan:
+		return fmt.Errorf("cannot use --forceTableScan when specifying --query")
 	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.Namespace.DB == "":
 		return fmt.Errorf("must specify a database when running with dumpDbUsersAndRoles")
 	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.Namespace.Collection != "":
@@ -79,10 +87,14 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("--db is required when --excludeCollectionsWithPrefix is specified")
 	case dump.OutputOptions.Repair && dump.InputOptions.Query != "":
 		return fmt.Errorf("cannot run a query with --repair enabled")
+	case dump.OutputOptions.Repair && dump.InputOptions.QueryFile != "":
+		return fmt.Errorf("cannot run a queryFile with --repair enabled")
 	case dump.OutputOptions.Out != "" && dump.OutputOptions.Archive != "":
 		return fmt.Errorf("--out not allowed when --archive is specified")
 	case dump.OutputOptions.Out == "-" && dump.OutputOptions.Gzip:
 		return fmt.Errorf("compression can't be used when dumping a single collection to standard output")
+	case dump.OutputOptions.NumParallelCollections <= 0:
+		return fmt.Errorf("numParallelCollections must be positive")
 	}
 	return nil
 }
@@ -101,21 +113,43 @@ func (dump *MongoDump) Init() error {
 		return fmt.Errorf("can't create session: %v", err)
 	}
 
-	// allow secondary reads for the isMongos check
-	dump.sessionProvider.SetFlags(db.Monotonic)
+	// temporarily allow secondary reads for the isMongos check
+	dump.sessionProvider.SetReadPreference(mgo.Nearest)
 	dump.isMongos, err = dump.sessionProvider.IsMongos()
 	if err != nil {
 		return err
 	}
 
-	// ensure we allow secondary reads on mongods and disable TCP timeouts
-	flags := db.DisableSocketTimeout
-	if dump.isMongos {
-		log.Logf(log.Info, "connecting to mongos; secondary reads disabled")
-	} else {
-		flags |= db.Monotonic
+	if dump.isMongos && dump.OutputOptions.Oplog {
+		return fmt.Errorf("can't use --oplog option when dumping from a mongos")
 	}
-	dump.sessionProvider.SetFlags(flags)
+
+	var mode mgo.Mode
+	if dump.ToolOptions.ReplicaSetName != "" || dump.isMongos {
+		mode = mgo.Primary
+	} else {
+		mode = mgo.Nearest
+	}
+	var tags bson.D
+
+	if dump.InputOptions.ReadPreference != "" {
+		mode, tags, err = db.ParseReadPreference(dump.InputOptions.ReadPreference)
+		if err != nil {
+			return fmt.Errorf("error parsing --readPreference : %v", err)
+		}
+		if len(tags) > 0 {
+			dump.sessionProvider.SetTags(tags)
+		}
+	}
+
+	// warn if we are trying to dump from a secondary in a sharded cluster
+	if dump.isMongos && mode != mgo.Primary {
+		log.Logf(log.Always, db.WarningNonPrimaryMongosConnection)
+	}
+
+	dump.sessionProvider.SetReadPreference(mode)
+	dump.sessionProvider.SetTags(tags)
+	dump.sessionProvider.SetFlags(db.DisableSocketTimeout)
 
 	// return a helpful error message for mongos --repair
 	if dump.OutputOptions.Repair && dump.isMongos {
@@ -129,10 +163,15 @@ func (dump *MongoDump) Init() error {
 
 // Dump handles some final options checking and executes MongoDump.
 func (dump *MongoDump) Dump() (err error) {
-	if dump.InputOptions.Query != "" {
+
+	if dump.InputOptions.HasQuery() {
 		// parse JSON then convert extended JSON values
 		var asJSON interface{}
-		err = json.Unmarshal([]byte(dump.InputOptions.Query), &asJSON)
+		content, err := dump.InputOptions.GetQuery()
+		if err != nil {
+			return err
+		}
+		err = json.Unmarshal(content, &asJSON)
 		if err != nil {
 			return fmt.Errorf("error parsing query as json: %v", err)
 		}
@@ -248,7 +287,19 @@ func (dump *MongoDump) Dump() (err error) {
 	}
 
 	if dump.OutputOptions.Archive != "" {
-		dump.archive.Prelude, err = archive.NewPrelude(dump.manager, dump.ToolOptions.HiddenOptions.MaxProcs)
+		session, err := dump.sessionProvider.GetSession()
+		if err != nil {
+			return err
+		}
+		buildInfo, err := session.BuildInfo()
+		var serverVersion string
+		if err != nil {
+			log.Logf(log.Always, "warning, couldn't get version information from server: %v", err)
+			serverVersion = "unknown"
+		} else {
+			serverVersion = buildInfo.Version
+		}
+		dump.archive.Prelude, err = archive.NewPrelude(dump.manager, dump.ToolOptions.HiddenOptions.MaxProcs, serverVersion)
 		if err != nil {
 			return fmt.Errorf("creating archive prelude: %v", err)
 		}
@@ -336,7 +387,7 @@ func (dump *MongoDump) Dump() (err error) {
 		}
 		log.Logf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
 
-		log.Logf(log.Always, "writing captured oplog to %v", dump.manager.Oplog().BSONPath)
+		log.Logf(log.Always, "writing captured oplog to %v", dump.manager.Oplog().Location)
 		err = dump.DumpOplogAfterTimestamp(dump.oplogStart)
 		if err != nil {
 			return fmt.Errorf("error dumping oplog: %v", err)
@@ -367,18 +418,18 @@ func (dump *MongoDump) Dump() (err error) {
 func (dump *MongoDump) DumpIntents() error {
 	resultChan := make(chan error)
 
-	var jobs int
-	if dump.ToolOptions != nil && dump.ToolOptions.HiddenOptions != nil {
-		jobs = dump.ToolOptions.HiddenOptions.MaxProcs
+	jobs := dump.OutputOptions.NumParallelCollections
+	if numIntents := len(dump.manager.Intents()); jobs > numIntents {
+		jobs = numIntents
 	}
-	jobs = util.MaxInt(jobs, 1)
+
 	if jobs > 1 {
 		dump.manager.Finalize(intents.LongestTaskFirst)
 	} else {
 		dump.manager.Finalize(intents.Legacy)
 	}
 
-	log.Logf(log.Info, "dumping with %v job threads", jobs)
+	log.Logf(log.Info, "dumping up to %v collections in parallel", jobs)
 
 	// start a goroutine for each job thread
 	for i := 0; i < jobs; i++ {
@@ -454,7 +505,6 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 	}
 
 	// set where the intent will be written to
-	intent.Location = intent.BSONPath
 	if dump.OutputOptions.Archive != "" {
 		if dump.OutputOptions.Archive == "-" {
 			intent.Location = "archive on stdout"
@@ -490,12 +540,17 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 // dumped, and any errors that occured.
 func (dump *MongoDump) dumpQueryToWriter(
 	query *mgo.Query, intent *intents.Intent) (int64, error) {
-
-	total, err := query.Count()
-	if err != nil {
-		return int64(0), fmt.Errorf("error reading from db: %v", err)
+	var total int
+	var err error
+	if len(dump.query) == 0 {
+		total, err = query.Count()
+		if err != nil {
+			return int64(0), fmt.Errorf("error reading from db: %v", err)
+		}
+		log.Logf(log.DebugLow, "counted %v %v in %v", total, docPlural(int64(total)), intent.Namespace())
+	} else {
+		log.Logf(log.DebugLow, "not counting query on %v", intent.Namespace())
 	}
-	log.Logf(log.Info, "\tcounted %v %v in %v", total, docPlural(int64(total)), intent.Namespace())
 
 	dumpProgressor := progress.NewCounter(int64(total))
 	bar := &progress.Bar{

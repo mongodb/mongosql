@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/options"
 	"gopkg.in/mgo.v2/bson"
 	"io"
 	"path/filepath"
+	"sync/atomic"
 )
 
 //MetadataFile implements intents.file
 type MetadataFile struct {
 	*bytes.Buffer
 	Intent *intents.Intent
+	pos    int64
 }
 
 func (md *MetadataFile) Open() error {
@@ -21,6 +24,16 @@ func (md *MetadataFile) Open() error {
 }
 func (md *MetadataFile) Close() error {
 	return nil
+}
+
+func (md *MetadataFile) Read(p []byte) (int, error) {
+	n, err := md.Buffer.Read(p)
+	atomic.AddInt64(&md.pos, int64(n))
+	return n, err
+}
+
+func (md *MetadataFile) Pos() int64 {
+	return atomic.LoadInt64(&md.pos)
 }
 
 // DirLike represents the group of methods done on directories and files in dump directories,
@@ -49,7 +62,7 @@ func (prelude *Prelude) Read(in io.Reader) error {
 	readMagicNumberBuf := make([]byte, 4)
 	_, err := io.ReadAtLeast(in, readMagicNumberBuf, 4)
 	if err != nil {
-		return fmt.Errorf("IO failure reading begining of archive: %v", err)
+		return fmt.Errorf("I/O failure reading beginning of archive: %v", err)
 	}
 	readMagicNumber := uint32(
 		(uint32(readMagicNumberBuf[0]) << 0) |
@@ -59,7 +72,7 @@ func (prelude *Prelude) Read(in io.Reader) error {
 	)
 
 	if readMagicNumber != MagicNumber {
-		return fmt.Errorf("stream or file does not apear to be a mongodump archive")
+		return fmt.Errorf("stream or file does not appear to be a mongodump archive")
 	}
 
 	if prelude.NamespaceMetadatasByDB != nil {
@@ -72,10 +85,12 @@ func (prelude *Prelude) Read(in io.Reader) error {
 }
 
 // NewPrelude generates a Prelude using the contents of an intent.Manager.
-func NewPrelude(manager *intents.Manager, maxProcs int) (*Prelude, error) {
+func NewPrelude(manager *intents.Manager, maxProcs int, serverVersion string) (*Prelude, error) {
 	prelude := Prelude{
 		Header: &Header{
 			FormatVersion:         archiveFormatVersion,
+			ServerVersion:         serverVersion,
+			ToolVersion:           options.VersionStr,
 			ConcurrentCollections: int32(maxProcs),
 		},
 		NamespaceMetadatasByDB: make(map[string][]*CollectionMetadata, 0),
@@ -331,6 +346,7 @@ type MetadataPreludeFile struct {
 	Intent  *intents.Intent
 	Prelude *Prelude
 	*bytes.Buffer
+	pos int64
 }
 
 // Open is part of the intents.file interface, it finds the metadata in the prelude and creates a bytes.Buffer from it.
@@ -355,4 +371,14 @@ func (mpf *MetadataPreludeFile) Open() error {
 func (mpf *MetadataPreludeFile) Close() error {
 	mpf.Buffer = nil
 	return nil
+}
+
+func (mpf *MetadataPreludeFile) Read(p []byte) (int, error) {
+	n, err := mpf.Buffer.Read(p)
+	atomic.AddInt64(&mpf.pos, int64(n))
+	return n, err
+}
+
+func (mpf *MetadataPreludeFile) Pos() int64 {
+	return atomic.LoadInt64(&mpf.pos)
 }

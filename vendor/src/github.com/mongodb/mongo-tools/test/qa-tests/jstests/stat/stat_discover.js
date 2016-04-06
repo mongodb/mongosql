@@ -4,18 +4,15 @@ load("jstests/libs/mongostat.js");
 
 baseName = "tool_discover";
 
-replSetPorts = allocatePorts(4);
-
-port = allocatePorts(1,replSetPorts[3]+1);
-
-m = startMongod("--port", port[0], "--dbpath", MongoRunner.dataPath + baseName + port[0], "--nohttpinterface", "--bind_ip", "127.0.0.1");
+port = allocatePort();
+m = startMongod("--port", port, "--dbpath", MongoRunner.dataPath + baseName + port, "--nohttpinterface", "--bind_ip", "127.0.0.1");
 
 rs = new ReplSetTest({
     name: "rpls",
     nodes: 4,
-    startPort: replSetPorts[0],
     useHostName: true
 });
+replSetPorts = [port + 1, port + 2, port + 3, port + 4];
 
 rs.startSet();
 
@@ -23,7 +20,7 @@ rs.initiate();
 
 rs.awaitReplication();
 
-rsFoo = rs.getMaster().getDB("foo");
+rsFoo = rs.getPrimary().getDB("foo");
 
 rsFoo.bar.insert({
     a: 1
@@ -35,7 +32,7 @@ assert(discoverTest(replSetPorts, rs.liveNodes.slaves[0].host), "--discover agai
 
 assert(statOutputPortCheck([ rs.liveNodes.master.port, rs.liveNodes.slaves[0].port, rs.liveNodes.slaves[1].port ], [ "mongostat", "--host", "rpls/" + rs.liveNodes.master.host + "," + rs.liveNodes.slaves[0].host + "," + rs.liveNodes.slaves[1].host, "--rowcount", 1 ]), "replicata set specifiers are correctly used");
 
-assert(discoverTest([ port[0] ], m.host), "--discover against a stand alone-sees just the stand-alone");
+assert(discoverTest([ port ], m.host), "--discover against a stand alone-sees just the stand-alone");
 
 clearRawMongoProgramOutput();
 
@@ -55,7 +52,7 @@ endTime = new Date();
 
 duration = Math.floor((endTime.valueOf() - startTime.valueOf()) / 1000);
 
-assert.eq(duration, 9, "sleep time affects the total time to produce a number or results");
+assert.gte(duration, 9, "sleep time affects the total time to produce a number or results");
 
 clearRawMongoProgramOutput();
 pid = startMongoProgramNoConnect("mongostat", "--host", rs.liveNodes.slaves[1].host, "--discover");
@@ -92,10 +89,21 @@ assert(statOutputPortCheck([ rs.liveNodes.slaves[0].port ]), "after discovered i
 
 rs.stop(rs.liveNodes.slaves[1]);
 
+assert.soon( function() {
+            try {
+                conn = new Mongo(rs.liveNodes.slaves[1].host);
+                return false;
+            } catch( e ) {
+                return true;
+            }
+            return false;
+}, "mongod still available after being stopped "+ rs.liveNodes.slaves[1].host);
+
+sleep(1000);
+
 clearRawMongoProgramOutput();
 
-sleep(15000)
-
+sleep(2000)
 
 assert(!statOutputPortCheck([ rs.liveNodes.slaves[1].port ]), "after specified host is stopped, specified host is not seen");
 

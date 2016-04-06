@@ -329,7 +329,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 		collection := session.DB(imp.ToolOptions.DB).
 			C(imp.ToolOptions.Collection)
 		if err := collection.DropCollection(); err != nil {
-			if err.Error() != db.ErrNsNotFound.Error() {
+			if err.Error() != db.ErrNsNotFound {
 				return 0, err
 			}
 		}
@@ -349,7 +349,10 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 		processingErrChan <- imp.ingestDocuments(readDocs)
 	}()
 
-	return imp.insertionCount, channelQuorumError(processingErrChan, 2)
+	// expressions are evaluated from left to right so wait for the channels
+	// to complete before we read from imp.insertionCount
+	e1 := channelQuorumError(processingErrChan, 2)
+	return imp.insertionCount, e1
 }
 
 // ingestDocuments accepts a channel from which it reads documents to be inserted
@@ -394,6 +397,7 @@ func (imp *MongoImport) ingestDocuments(readDocs chan bson.D) (retErr error) {
 //
 // 1. Sets the session to not timeout
 // 2. Sets the write concern on the session
+// 3. Sets the session safety
 //
 // returns an error if it's unable to set the write concern
 func (imp *MongoImport) configureSession(session *mgo.Session) error {
@@ -404,6 +408,7 @@ func (imp *MongoImport) configureSession(session *mgo.Session) error {
 		return fmt.Errorf("write concern error: %v", err)
 	}
 	session.SetSafe(sessionSafety)
+
 	return nil
 }
 
@@ -474,7 +479,7 @@ readLoop:
 func (imp *MongoImport) handleUpsert(documents []bson.Raw, collection *mgo.Collection) (numInserted int, err error) {
 	stopOnError := imp.IngestOptions.StopOnError
 	for _, rawBsonDocument := range documents {
-		document := bson.M{}
+		document := bson.D{}
 		err = bson.Unmarshal(rawBsonDocument.Data, &document)
 		if err != nil {
 			return numInserted, fmt.Errorf("error unmarshaling document: %v", err)

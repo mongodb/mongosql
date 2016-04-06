@@ -101,7 +101,10 @@ func (e *encoder) addDoc(v reflect.Value) {
 	if v.Type() == typeRaw {
 		raw := v.Interface().(Raw)
 		if raw.Kind != 0x03 && raw.Kind != 0x00 {
-			panic("Attempted to unmarshal Raw kind " + strconv.Itoa(int(raw.Kind)) + " as a document")
+			panic("Attempted to marshal Raw kind " + strconv.Itoa(int(raw.Kind)) + " as a document")
+		}
+		if len(raw.Data) == 0 {
+			panic("Attempted to marshal empty Raw document")
 		}
 		e.addBytes(raw.Data...)
 		return
@@ -365,7 +368,17 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 		et := v.Type().Elem()
 		if et.Kind() == reflect.Uint8 {
 			e.addElemName('\x05', name)
-			e.addBinary('\x00', v.Slice(0, v.Len()).Interface().([]byte))
+			if v.CanAddr() {
+				e.addBinary('\x00', v.Slice(0, v.Len()).Interface().([]byte))
+			} else {
+				n := v.Len()
+				e.addInt32(int32(n))
+				e.addBytes('\x00')
+				for i := 0; i < n; i++ {
+					el := v.Index(i)
+					e.addBytes(byte(el.Uint()))
+				}
+			}
 		} else {
 			e.addElemName('\x04', name)
 			e.addDoc(v)
@@ -378,6 +391,9 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 			kind := s.Kind
 			if kind == 0x00 {
 				kind = 0x03
+			}
+			if len(s.Data) == 0 && kind != 0x06 && kind != 0x0A && kind != 0xFF && kind != 0x7F {
+				panic("Attempted to marshal empty Raw document")
 			}
 			e.addElemName(kind, name)
 			e.addBytes(s.Data...)

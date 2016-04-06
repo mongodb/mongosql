@@ -1,3 +1,5 @@
+// This test requires mongo 2.6.x, and mongo 3.0.0 releases
+// @tags: [requires_mongo_26, requires_mongo_30]
 (function() {
 
     load("jstests/configs/standard_dump_targets.config.js");
@@ -13,6 +15,7 @@
         ' restoring a 2.8 dump to a 2.6 mongod');
 
     var toolTest = new ToolTest('users_and_roles_28_to_26');
+    resetDbpath(toolTest.dbpath);
     toolTest.startDB('foo');
 
     // where we'll put the dump
@@ -77,6 +80,7 @@
     toolTest.db = null;
     toolTest.options = toolTest.options || {};
     toolTest.options.binVersion = '2.6';
+    resetDbpath(toolTest.dbpath);
     toolTest.startDB('foo');
 
     // refresh the db reference
@@ -94,6 +98,7 @@
         ' restoring a 2.8 dump to a 2.6 mongod');
 
     var toolTest = new ToolTest('users_and_roles_28_to_26');
+    resetDbpath(toolTest.dbpath);
     toolTest.startDB('foo');
 
     // where we'll put the dump
@@ -157,6 +162,7 @@
     toolTest.db = null;
     toolTest.options = toolTest.options || {};
     toolTest.options.binVersion = '2.6';
+    resetDbpath(toolTest.dbpath);
     toolTest.startDB('foo');
 
     // refresh the db reference

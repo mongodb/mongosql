@@ -480,7 +480,7 @@ func (d *decodeState) array(v reflect.Value) {
 	case reflect.Interface:
 		if v.NumMethod() == 0 {
 			// Decoding into nil interface?  Switch to non-reflect code.
-			v.Set(reflect.ValueOf(d.arrayInterface()))
+			v.Set(reflect.ValueOf(d.arrayInterface(false)))
 			return
 		}
 		// Otherwise it's invalid.
@@ -599,14 +599,18 @@ func (d *decodeState) object(v reflect.Value) {
 		if v.IsNil() {
 			v.Set(reflect.MakeMap(t))
 		}
+
+	case reflect.Struct:
+		// do nothing
+
 	case reflect.Slice:
 		// this is only a valid case if the output type is a bson.D
 		t := v.Type()
-		if t != orderedBSONType {
-			d.saveError(&UnmarshalTypeError{"object", v.Type()})
-			break
+		if t == orderedBSONType {
+			v.Set(reflect.ValueOf(d.bsonDInterface()))
+			return
 		}
-	case reflect.Struct:
+		fallthrough // can't unmarshal into a regular slice, goto "default" error case
 
 	default:
 		d.saveError(&UnmarshalTypeError{"object", v.Type()})
@@ -617,8 +621,6 @@ func (d *decodeState) object(v reflect.Value) {
 
 	var mapElem reflect.Value
 
-	i := 0
-	bsonDMode := false
 	for {
 		// Read opening " of string key or closing }.
 		op := d.scanWhile(scanSkipSpace)
@@ -651,14 +653,6 @@ func (d *decodeState) object(v reflect.Value) {
 				mapElem.Set(reflect.Zero(elemType))
 			}
 			subv = mapElem
-		} else if v.Kind() == reflect.Slice {
-			bsonDMode = true
-			elemType := interfaceType.Elem()
-			if !mapElem.IsValid() {
-				subv = reflect.New(elemType).Elem()
-			} else {
-				mapElem.Set(reflect.Zero(elemType))
-			}
 		} else {
 			var f *field
 			fields := cachedTypeFields(v.Type())
@@ -695,18 +689,12 @@ func (d *decodeState) object(v reflect.Value) {
 			d.error(errPhase)
 		}
 		// Read value.
-		var docElemValue interface{}
 		if destring {
 			d.value(reflect.ValueOf(&d.tempstr))
 			d.literalStore([]byte(d.tempstr), subv, true)
 			d.tempstr = "" // Zero scratch space for successive values.
 		} else {
-			if bsonDMode {
-				docElemValue = d.valueInterface()
-				subv.Set(reflect.ValueOf(docElemValue))
-			} else {
-				d.value(subv)
-			}
+			d.value(subv)
 		}
 
 		// Write value back to map;
@@ -714,24 +702,6 @@ func (d *decodeState) object(v reflect.Value) {
 		if v.Kind() == reflect.Map {
 			kv := reflect.ValueOf(key).Convert(v.Type().Key())
 			v.SetMapIndex(kv, subv)
-		} else if v.Kind() == reflect.Slice {
-			kv := reflect.ValueOf(key).Convert(stringType)
-			newDocElem := &bson.DocElem{kv.String(), subv.Interface()}
-			// Slice construction/resizing code is from decodeState.array()
-			if i >= v.Cap() {
-				newcap := v.Cap() + v.Cap()/2
-				if newcap < 4 {
-					newcap = 4
-				}
-				newv := reflect.MakeSlice(v.Type(), v.Len(), newcap)
-				reflect.Copy(newv, v)
-				v.Set(newv)
-			}
-			if i >= v.Len() {
-				v.SetLen(i + 1)
-			}
-			v3 := v.Index(i)
-			v3.Set(reflect.ValueOf(newDocElem).Elem())
 		}
 
 		// Next token must be , or }.
@@ -742,7 +712,6 @@ func (d *decodeState) object(v reflect.Value) {
 		if op != scanObjectValue {
 			d.error(errPhase)
 		}
-		i++
 	}
 }
 
@@ -970,23 +939,32 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 // in an empty interface.  They are not strictly necessary,
 // but they avoid the weight of reflection in this common case.
 
-// valueInterface is like value but returns interface{}
-func (d *decodeState) valueInterface() interface{} {
+// valueInterface is like value but returns interface{}. It takes a boolean
+// parameter denoting whether or not the value is being unmarshalled within
+// a bson.D, so that bson.Ds can be the default object type when
+// they are inside other bson.D documents.
+func (d *decodeState) valueInterface(insideBSOND bool) interface{} {
 	switch d.scanWhile(scanSkipSpace) {
 	default:
 		d.error(errPhase)
 		panic("unreachable")
 	case scanBeginArray:
-		return d.arrayInterface()
+		return d.arrayInterface(insideBSOND)
 	case scanBeginObject:
+		if insideBSOND {
+			return d.bsonDInterface()
+		}
 		return d.objectInterface()
 	case scanBeginLiteral:
 		return d.literalInterface()
 	}
 }
 
-// arrayInterface is like array but returns []interface{}.
-func (d *decodeState) arrayInterface() []interface{} {
+// arrayInterface is like array but returns []interface{}. It takes a boolean
+// parameter denoting whether or not the value is being unmarshalled within
+// a bson.D, so that bson.Ds can be the default object type when
+// they are inside other bson.D documents.
+func (d *decodeState) arrayInterface(insideBSOND bool) []interface{} {
 	var v = make([]interface{}, 0)
 	for {
 		// Look ahead for ] - can only happen on first iteration.
@@ -999,7 +977,7 @@ func (d *decodeState) arrayInterface() []interface{} {
 		d.off--
 		d.scan.undo(op)
 
-		v = append(v, d.valueInterface())
+		v = append(v, d.valueInterface(insideBSOND))
 
 		// Next token must be , or ].
 		op = d.scanWhile(scanSkipSpace)
@@ -1045,7 +1023,7 @@ func (d *decodeState) bsonDInterface() bson.D {
 		}
 
 		// Read value.
-		m = append(m, bson.DocElem{key, d.valueInterface()})
+		m = append(m, bson.DocElem{key, d.valueInterface(true)})
 
 		// Next token must be , or }.
 		op = d.scanWhile(scanSkipSpace)
@@ -1091,7 +1069,7 @@ func (d *decodeState) objectInterface() map[string]interface{} {
 		}
 
 		// Read value.
-		m[key] = d.valueInterface()
+		m[key] = d.valueInterface(false)
 
 		// Next token must be , or }.
 		op = d.scanWhile(scanSkipSpace)

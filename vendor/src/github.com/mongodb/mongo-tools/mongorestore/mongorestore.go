@@ -118,6 +118,14 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 			return fmt.Errorf("error parsing timestamp argument to --oplogLimit: %v", err)
 		}
 	}
+	if restore.InputOptions.OplogFile != "" {
+		if !restore.InputOptions.OplogReplay {
+			return fmt.Errorf("cannot use --oplogFile without --oplogReplay enabled")
+		}
+		if restore.InputOptions.Archive != "" {
+			return fmt.Errorf("cannot use --oplogFile with --archive specified")
+		}
+	}
 
 	// check if we are using a replica set and fall back to w=1 if we aren't (for <= 2.4)
 	nodeType, err := restore.SessionProvider.GetNodeType()
@@ -141,6 +149,13 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		restore.tempRolesCol = "temproles"
 	} else {
 		restore.tempRolesCol = *restore.ToolOptions.HiddenOptions.TempRolesColl
+	}
+	
+	if len(restore.OutputOptions.ExcludedCollections) > 0 && restore.ToolOptions.Namespace.Collection != "" {
+		return fmt.Errorf("--collection is not allowed when --excludeCollection is specified")
+	}
+	if len(restore.OutputOptions.ExcludedCollectionPrefixes) > 0 && restore.ToolOptions.Namespace.Collection != "" {
+		return fmt.Errorf("--collection is not allowed when --excludeCollectionsWithPrefix is specified")
 	}
 
 	if restore.OutputOptions.NumInsertionWorkers < 0 {
@@ -176,6 +191,9 @@ func (restore *MongoRestore) Restore() error {
 
 	// Build up all intents to be restored
 	restore.manager = intents.NewIntentManager()
+	if restore.InputOptions.Archive == "" && restore.InputOptions.OplogReplay {
+		restore.manager.SetSmartPickOplog(true)
+	}
 
 	if restore.InputOptions.Archive != "" {
 		archiveReader, err := restore.getArchiveReader()
@@ -190,6 +208,9 @@ func (restore *MongoRestore) Restore() error {
 		if err != nil {
 			return err
 		}
+		log.Logf(log.DebugLow, `archive format version "%v"`, restore.archive.Prelude.Header.FormatVersion)
+		log.Logf(log.DebugLow, `archive server version "%v"`, restore.archive.Prelude.Header.ServerVersion)
+		log.Logf(log.DebugLow, `archive tool version "%v"`, restore.archive.Prelude.Header.ToolVersion)
 		target, err = restore.archive.Prelude.NewPreludeExplorer()
 		if err != nil {
 			return err
@@ -286,6 +307,20 @@ func (restore *MongoRestore) Restore() error {
 			"remove the 'config' directory from the dump directory first")
 	}
 
+	if restore.InputOptions.OplogFile != "" {
+		err = restore.CreateIntentForOplog()
+		if err != nil {
+			return fmt.Errorf("error reading oplog file: %v", err)
+		}
+	}
+	if restore.InputOptions.OplogReplay && restore.manager.Oplog() == nil {
+		return fmt.Errorf("no oplog file to replay; make sure you run mongodump with --oplog")
+	}
+	if restore.manager.GetOplogConflict() {
+		return fmt.Errorf("cannot provide both an oplog.bson file and an oplog file with --oplogFile, " +
+			"nor can you provide both a local/oplog.rs.bson and a local/oplog.$main.bson file.")
+	}
+
 	if restore.InputOptions.Archive != "" {
 		namespaceChan := make(chan string, 1)
 		namespaceErrorChan := make(chan error)
@@ -368,17 +403,9 @@ func (restore *MongoRestore) Restore() error {
 
 	// Restore users/roles
 	if restore.ShouldRestoreUsersAndRoles() {
-		if restore.manager.Users() != nil {
-			err = restore.RestoreUsersOrRoles(Users, restore.manager.Users())
-			if err != nil {
-				return fmt.Errorf("restore error: %v", err)
-			}
-		}
-		if restore.manager.Roles() != nil {
-			err = restore.RestoreUsersOrRoles(Roles, restore.manager.Roles())
-			if err != nil {
-				return fmt.Errorf("restore error: %v", err)
-			}
+		err = restore.RestoreUsersOrRoles(restore.manager.Users(), restore.manager.Roles())
+		if err != nil {
+			return fmt.Errorf("restore error: %v", err)
 		}
 	}
 
@@ -445,9 +472,9 @@ func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {
 // SIGHUP signal. It ends restore reads for all goroutines
 // as soon as any of those signals is received.
 func (restore *MongoRestore) handleSignals() {
-	log.Log(log.DebugLow, "will listen for SIGTERM, SIGINT and SIGHUP")
+	log.Log(log.DebugLow, "will listen for SIGTERM and SIGINT")
 	sigChan := make(chan os.Signal, 2)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
 	// first signal cleanly terminates restore reads
 	<-sigChan
 	log.Log(log.Always, "ending restore reads")

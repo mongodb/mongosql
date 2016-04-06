@@ -10,6 +10,7 @@ import (
 	"hash"
 	"hash/crc64"
 	"io"
+	"sync/atomic"
 )
 
 // DemuxOut is a Demultiplexer output consumer
@@ -191,6 +192,7 @@ type RegularCollectionReceiver struct {
 	partialReadArray [db.MaxBSONSize]byte
 	partialReadBuf   []byte
 	isOpen           bool
+	pos              int64
 }
 
 func (receiver *RegularCollectionReceiver) Read(r []byte) (int, error) {
@@ -202,6 +204,7 @@ func (receiver *RegularCollectionReceiver) Read(r []byte) (int, error) {
 		} else {
 			receiver.partialReadBuf = receiver.partialReadBuf[copyLen:]
 		}
+		atomic.AddInt64(&receiver.pos, int64(copyLen))
 		return copyLen, nil
 	}
 	// Since we're the "reader" here, not the "writer" we need to start with a read, in case the chan is closed
@@ -225,13 +228,19 @@ func (receiver *RegularCollectionReceiver) Read(r []byte) (int, error) {
 		}
 		copy(r, receiver.partialReadBuf)
 		receiver.partialReadBuf = receiver.partialReadBuf[rLen:]
+		atomic.AddInt64(&receiver.pos, int64(rLen))
 		return rLen, nil
 	}
 	// Send the read buff to the BodyBSON ParserConsumer to fill
 	receiver.readBufChan <- r
 	// Receiver the wLen of data written
 	wLen = <-receiver.readLenChan
+	atomic.AddInt64(&receiver.pos, int64(wLen))
 	return wLen, nil
+}
+
+func (receiver *RegularCollectionReceiver) Pos() int64 {
+	return atomic.LoadInt64(&receiver.pos)
 }
 
 // Close is part of the intents.file interface. It currently does nothing. We can't close the
@@ -304,6 +313,7 @@ type SpecialCollectionCache struct {
 	Intent *intents.Intent
 	Demux  *Demultiplexer
 	bytes.Buffer
+	pos int64
 }
 
 // Open is part of the both interfaces, and it does nothing
@@ -315,6 +325,16 @@ func (cache *SpecialCollectionCache) Open() error {
 func (cache *SpecialCollectionCache) Close() error {
 	cache.Intent.Size = int64(cache.Buffer.Len())
 	return nil
+}
+
+func (cache *SpecialCollectionCache) Read(p []byte) (int, error) {
+	n, err := cache.Buffer.Read(p)
+	atomic.AddInt64(&cache.pos, int64(n))
+	return n, err
+}
+
+func (cache *SpecialCollectionCache) Pos() int64 {
+	return atomic.LoadInt64(&cache.pos)
 }
 
 // MutedCollection implements both DemuxOut as well as intents.file. It serves as a way to
@@ -374,7 +394,7 @@ func (prioritizer *Prioritizer) Get() *intents.Intent {
 	if intent == nil {
 		prioritizer.NamespaceErrorChan <- fmt.Errorf("no intent for namespace %v", namespace)
 	} else {
-		if intent.BSONPath != "" {
+		if intent.BSONFile != nil {
 			intent.BSONFile.Open()
 		}
 		if intent.IsOplog() {

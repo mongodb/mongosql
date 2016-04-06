@@ -1,3 +1,5 @@
+// This test requires mongo 2.6.x, and mongo 3.0.0 releases
+// @tags: [requires_mongo_26, requires_mongo_30]
 (function() {
 
 
@@ -43,6 +45,7 @@
     toolTest.db = null;
     toolTest.options = toolTest.options || {};
     toolTest.options.binVersion = '2.6';
+    resetDbpath(toolTest.dbpath);
     toolTest.startDB('foo');
 
     // refresh the db and coll reference

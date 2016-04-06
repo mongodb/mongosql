@@ -37,6 +37,9 @@ type MongoFiles struct {
 	// mongofiles-specific storage options
 	StorageOptions *StorageOptions
 
+	// mongofiles-specific input options
+	InputOptions *InputOptions
+
 	// for connecting to the db
 	SessionProvider *db.SessionProvider
 
@@ -211,10 +214,8 @@ func (mf *MongoFiles) writeFile(gridFile *mgo.GridFile) (err error) {
 }
 
 // handle logic for 'put' command.
-func (mf *MongoFiles) handlePut(gfs *mgo.GridFS) (string, error) {
+func (mf *MongoFiles) handlePut(gfs *mgo.GridFS) (output string, err error) {
 	localFileName := mf.getLocalFileName(nil)
-
-	var output string
 
 	// check if --replace flag turned on
 	if mf.StorageOptions.Replace {
@@ -225,7 +226,6 @@ func (mf *MongoFiles) handlePut(gfs *mgo.GridFS) (string, error) {
 		output = fmt.Sprintf("removed all instances of '%v' from GridFS\n", mf.FileName)
 	}
 
-	var err error
 	var localFile io.ReadCloser
 
 	if localFileName == "-" {
@@ -243,17 +243,26 @@ func (mf *MongoFiles) handlePut(gfs *mgo.GridFS) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error while creating '%v' in GridFS: %v\n", mf.FileName, err)
 	}
-	defer gFile.Close()
+	defer func() {
+		// GridFS files flush a buffer on Close(), so it's important we
+		// capture any errors that occur as this function exits and
+		// overwrite the error if earlier writes executed successfully
+		if closeErr := gFile.Close(); err == nil && closeErr != nil {
+			log.Logf(log.DebugHigh, "error occurred while closing GridFS file handler")
+			err = fmt.Errorf("error while storing '%v' into GridFS: %v\n", localFileName, closeErr)
+		}
+	}()
 
 	// set optional mime type
 	if mf.StorageOptions.ContentType != "" {
 		gFile.SetContentType(mf.StorageOptions.ContentType)
 	}
 
-	_, err = io.Copy(gFile, localFile)
+	n, err := io.Copy(gFile, localFile)
 	if err != nil {
 		return "", fmt.Errorf("error while storing '%v' into GridFS: %v\n", localFileName, err)
 	}
+	log.Logf(log.DebugLow, "copied %v bytes to server", n)
 
 	output += fmt.Sprintf("added file: %v\n", gFile.Name())
 	return output, nil
@@ -269,6 +278,24 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 	if mf.ToolOptions.Port != "" {
 		connUrl = fmt.Sprintf("%s:%s", connUrl, mf.ToolOptions.Port)
 	}
+
+	var mode = mgo.Nearest
+	var tags bson.D
+
+	if mf.InputOptions.ReadPreference != "" {
+		var err error
+		mode, tags, err = db.ParseReadPreference(mf.InputOptions.ReadPreference)
+		if err != nil {
+			return "", fmt.Errorf("error parsing --readPreference : %v", err)
+		}
+		if len(tags) > 0 {
+			mf.SessionProvider.SetTags(tags)
+		}
+	}
+
+	mf.SessionProvider.SetReadPreference(mode)
+	mf.SessionProvider.SetTags(tags)
+	mf.SessionProvider.SetFlags(db.DisableSocketTimeout)
 
 	// get session
 	session, err := mf.SessionProvider.GetSession()
@@ -293,7 +320,6 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 	// configure the session with the appropriate write concern and ensure the
 	// socket does not timeout
 	session.SetSafe(safety)
-	session.SetSocketTimeout(0)
 
 	if displayHost {
 		log.Logf(log.Always, "connected to: %v", connUrl)

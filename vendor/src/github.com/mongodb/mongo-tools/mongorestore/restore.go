@@ -110,7 +110,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) error {
 	var indexes []IndexDocument
 
 	// get indexes from system.indexes dump if we have it but don't have metadata files
-	if intent.MetadataPath == "" {
+	if intent.MetadataFile == nil {
 		if _, ok := restore.dbCollectionIndexes[intent.DB]; ok {
 			if indexes, ok = restore.dbCollectionIndexes[intent.DB][intent.C]; ok {
 				log.Logf(log.Always, "no metadata; falling back to system.indexes")
@@ -118,44 +118,45 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) error {
 		}
 	}
 
+	logMessageSuffix := "with no metadata"
 	// first create the collection with options from the metadata file
-	if intent.MetadataPath != "" {
+	if intent.MetadataFile != nil {
+		logMessageSuffix = "using options from metadata"
 		err = intent.MetadataFile.Open()
 		if err != nil {
 			return err
 		}
 		defer intent.MetadataFile.Close()
 
-		log.Logf(log.Always, "reading metadata for %v from %v", intent.Namespace(), intent.Location)
+		log.Logf(log.Always, "reading metadata for %v from %v", intent.Namespace(), intent.MetadataLocation)
 		metadata, err := ioutil.ReadAll(intent.MetadataFile)
 		if err != nil {
-			return fmt.Errorf("error reading metadata from %v: %v", intent.Location, err)
+			return fmt.Errorf("error reading metadata from %v: %v", intent.MetadataLocation, err)
 		}
 		options, indexes, err = restore.MetadataFromJSON(metadata)
 		if err != nil {
-			return fmt.Errorf("error parsing metadata from %v: %v", intent.Location, err)
+			return fmt.Errorf("error parsing metadata from %v: %v", intent.MetadataLocation, err)
 		}
-		if !restore.OutputOptions.NoOptionsRestore {
-			if options != nil {
-				if !collectionExists {
-					log.Logf(log.Info, "creating collection %v using options from metadata", intent.Namespace())
-					err = restore.CreateCollection(intent, options)
-					if err != nil {
-						return fmt.Errorf("error creating collection %v: %v", intent.Namespace(), err)
-					}
-				} else {
-					log.Logf(log.Info, "collection %v already exists", intent.Namespace())
-				}
-			} else {
-				log.Log(log.Info, "no collection options to restore")
-			}
-		} else {
-			log.Log(log.Info, "skipping options restoration")
+
+		if restore.OutputOptions.NoOptionsRestore {
+			log.Log(log.Info, "not restoring collection options")
+			logMessageSuffix = "with no collection options"
+			options = nil
 		}
+	}
+	if !collectionExists {
+		log.Logf(log.Info, "creating collection %v %s", intent.Namespace(), logMessageSuffix)
+		log.Logf(log.DebugHigh, "using collection options: %#v", options)
+		err = restore.CreateCollection(intent, options)
+		if err != nil {
+			return fmt.Errorf("error creating collection %v: %v", intent.Namespace(), err)
+		}
+	} else {
+		log.Logf(log.Info, "collection %v already exists - skipping collection create", intent.Namespace())
 	}
 
 	var documentCount int64
-	if intent.BSONPath != "" {
+	if intent.BSONFile != nil {
 		err = intent.BSONFile.Open()
 		if err != nil {
 			return err
@@ -167,9 +168,9 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) error {
 		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(intent.BSONFile))
 		defer bsonSource.Close()
 
-		documentCount, err = restore.RestoreCollectionToDB(intent.DB, intent.C, bsonSource, intent.Size)
+		documentCount, err = restore.RestoreCollectionToDB(intent.DB, intent.C, bsonSource, intent.BSONFile, intent.Size)
 		if err != nil {
-			return fmt.Errorf("error restoring from %v: %v", intent.BSONPath, err)
+			return fmt.Errorf("error restoring from %v: %v", intent.Location, err)
 		}
 	}
 
@@ -192,7 +193,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) error {
 // RestoreCollectionToDB pipes the given BSON data into the database.
 // Returns the number of documents restored and any errors that occured.
 func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
-	bsonSource *db.DecodedBSONSource, fileSize int64) (int64, error) {
+	bsonSource *db.DecodedBSONSource, file PosReader, fileSize int64) (int64, error) {
 
 	var termErr error
 	session, err := restore.SessionProvider.GetSession()
@@ -272,7 +273,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 						log.Logf(log.Always, "error: %v", err)
 					}
 				}
-				watchProgressor.Inc(int64(len(rawDoc.Data)))
+				watchProgressor.Set(file.Pos())
 			}
 			err := bulk.Flush()
 			if err != nil {

@@ -29,7 +29,9 @@
     );
 
     // dump the data
-    var ret = toolTest.runTool('dump', '--out', dumpTarget);
+    var ret = toolTest.runTool.apply(toolTest, ['dump'].
+            concat(getDumpTarget(dumpTarget)));
+    assert.neq(1, ret);
 
     // clear out the user
     adminDB.dropAllUsers();
@@ -37,10 +39,10 @@
     // insert into the tempusers collection
     adminDB.tempusers.insert({ _id: 'corruption' });
 
-    // restore the data. it should fail
+    // restore the data. It should succeed
     ret = toolTest.runTool.apply(toolTest, ['restore'].
             concat(getRestoreTarget(dumpTarget)));
-    assert.neq(0, ret);
+    assert.neq(1, ret);
 
     // success
     toolTest.stop();

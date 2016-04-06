@@ -3,21 +3,23 @@
 package options
 
 import (
-	"fmt"
 	"github.com/jessevdk/go-flags"
 	"github.com/mongodb/mongo-tools/common/log"
+
+	"fmt"
 	"os"
+	"regexp"
 	"runtime"
 	"strconv"
+	"strings"
 )
 
-const (
-	VersionStr = "3.1.6"
-)
+const DefaultDialTimeoutSeconds = 3
 
 // Gitspec that the tool was built with. Needs to be set using -ldflags
 var (
-	Gitspec = "not-built-with-ldflags"
+	VersionStr = "not-built-with-ldflags"
+	Gitspec    = "not-built-with-ldflags"
 )
 
 // Struct encompassing all of the options that are reused across tools: "help",
@@ -64,14 +66,15 @@ type HiddenOptions struct {
 	// Deprecated flag for csv writing in mongoexport
 	CSVOutputType bool
 
-	TempUsersColl *string
-	TempRolesColl *string
+	TempUsersColl      *string
+	TempRolesColl      *string
+	DialTimeoutSeconds *int
 }
 
 type Namespace struct {
 	// Specified database and collection
-	DB         string `short:"d" long:"db" description:"database to use"`
-	Collection string `short:"c" long:"collection" description:"collection to use"`
+	DB         string `short:"d" long:"db" value-name:"<database-name>" description:"database to use"`
+	Collection string `short:"c" long:"collection" value-name:"<collection-name>" description:"collection to use"`
 }
 
 // Struct holding generic options
@@ -82,12 +85,13 @@ type General struct {
 
 // Struct holding verbosity-related options
 type Verbosity struct {
-	Verbose []bool `short:"v" long:"verbose" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv)"`
-	Quiet   bool   `long:"quiet" description:"hide all log output"`
+	SetVerbosity func(string) `short:"v" long:"verbose" value-name:"<level>" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv, or specify a numeric value, e.g. --verbose=N)" optional:"true" optional-value:""`
+	Quiet        bool         `long:"quiet" description:"hide all log output"`
+	VLevel       int          `no-flag:"true"`
 }
 
 func (v Verbosity) Level() int {
-	return len(v.Verbose)
+	return v.VLevel
 }
 
 func (v Verbosity) IsQuiet() bool {
@@ -96,17 +100,17 @@ func (v Verbosity) IsQuiet() bool {
 
 // Struct holding connection-related options
 type Connection struct {
-	Host string `short:"h" long:"host" description:"mongodb host to connect to (setname/host1,host2 for replica sets)"`
-	Port string `long:"port" description:"server port (can also use --host hostname:port)"`
+	Host string `short:"h" long:"host" value-name:"<hostname>" description:"mongodb host to connect to (setname/host1,host2 for replica sets)"`
+	Port string `long:"port" value-name:"<port>" description:"server port (can also use --host hostname:port)"`
 }
 
 // Struct holding ssl-related options
 type SSL struct {
 	UseSSL              bool   `long:"ssl" description:"connect to a mongod or mongos that has ssl enabled"`
-	SSLCAFile           string `long:"sslCAFile" description:"the .pem file containing the root certificate chain from the certificate authority"`
-	SSLPEMKeyFile       string `long:"sslPEMKeyFile" description:"the .pem file containing the certificate and key"`
-	SSLPEMKeyPassword   string `long:"sslPEMKeyPassword" description:"the password to decrypt the sslPEMKeyFile, if necessary"`
-	SSLCRLFile          string `long:"sslCRLFile" description:"the .pem file containing the certificate revocation list"`
+	SSLCAFile           string `long:"sslCAFile" value-name:"<filename>" description:"the .pem file containing the root certificate chain from the certificate authority"`
+	SSLPEMKeyFile       string `long:"sslPEMKeyFile" value-name:"<filename>" description:"the .pem file containing the certificate and key"`
+	SSLPEMKeyPassword   string `long:"sslPEMKeyPassword" value-name:"<password>" description:"the password to decrypt the sslPEMKeyFile, if necessary"`
+	SSLCRLFile          string `long:"sslCRLFile" value-name:"<filename>" description:"the .pem file containing the certificate revocation list"`
 	SSLAllowInvalidCert bool   `long:"sslAllowInvalidCertificates" description:"bypass the validation for server certificates"`
 	SSLAllowInvalidHost bool   `long:"sslAllowInvalidHostnames" description:"bypass the validation for server name"`
 	SSLFipsMode         bool   `long:"sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
@@ -114,16 +118,16 @@ type SSL struct {
 
 // Struct holding auth-related options
 type Auth struct {
-	Username  string `short:"u" long:"username" description:"username for authentication"`
-	Password  string `short:"p" long:"password" description:"password for authentication"`
-	Source    string `long:"authenticationDatabase" description:"database that holds the user's credentials"`
-	Mechanism string `long:"authenticationMechanism" description:"authentication mechanism to use"`
+	Username  string `short:"u" value-name:"<username>" long:"username" description:"username for authentication"`
+	Password  string `short:"p" value-name:"<password>" long:"password" description:"password for authentication"`
+	Source    string `long:"authenticationDatabase" value-name:"<database-name>" description:"database that holds the user's credentials"`
+	Mechanism string `long:"authenticationMechanism" value-name:"<mechanism>" description:"authentication mechanism to use"`
 }
 
 // Struct for Kerberos/GSSAPI-specific options
 type Kerberos struct {
-	Service     string `long:"gssapiServiceName" description:"service name to use when authenticating using GSSAPI/Kerberos ('mongodb' by default)"`
-	ServiceHost string `long:"gssapiHostName" description:"hostname to use when authenticating using GSSAPI/Kerberos (remote server's address by default)"`
+	Service     string `long:"gssapiServiceName" value-name:"<service-name>" description:"service name to use when authenticating using GSSAPI/Kerberos ('mongodb' by default)"`
+	ServiceHost string `long:"gssapiHostName" value-name:"<host-name>" description:"hostname to use when authenticating using GSSAPI/Kerberos (remote server's address by default)"`
 }
 
 type OptionRegistrationFunction func(o *ToolOptions) error
@@ -136,10 +140,21 @@ type EnabledOptions struct {
 	Namespace  bool
 }
 
+func parseVal(val string) int {
+	idx := strings.Index(val, "=")
+	ret, err := strconv.Atoi(val[idx+1:])
+	if err != nil {
+		panic(fmt.Errorf("value was not a valid integer: %v", err))
+	}
+	return ret
+}
+
 // Ask for a new instance of tool options
 func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
+	var timeout = DefaultDialTimeoutSeconds
 	hiddenOpts := &HiddenOptions{
-		BulkBufferSize: 10000,
+		BulkBufferSize:     10000,
+		DialTimeoutSeconds: &timeout,
 	}
 
 	opts := &ToolOptions{
@@ -158,9 +173,23 @@ func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
 			fmt.Sprintf("%v %v", appName, usageStr), flags.None),
 	}
 
-	opts.parser.UnknownOptionHandler = func(option string, arg flags.SplitArgument, args []string) ([]string, error) {
-		return parseHiddenOption(hiddenOpts, option, arg, args)
+	// Called when -v or --verbose is parsed
+	opts.SetVerbosity = func(val string) {
+		if i, err := strconv.Atoi(val); err == nil {
+			opts.VLevel = opts.VLevel + i // -v=N or --verbose=N
+		} else if matched, _ := regexp.MatchString(`^v+$`, val); matched {
+			opts.VLevel = opts.VLevel + len(val) + 1 // Handles the -vvv cases
+		} else if matched, _ := regexp.MatchString(`^v+=[0-9]$`, val); matched {
+			opts.VLevel = parseVal(val) // I.e. -vv=3
+		} else if val == "" {
+			opts.VLevel = opts.VLevel + 1 // Increment for every occurrence of flag
+		} else {
+			log.Logf(log.Always, "Invalid verbosity value given")
+			os.Exit(-1)
+		}
 	}
+
+	opts.parser.UnknownOptionHandler = hiddenOpts.parseHiddenOption
 
 	if _, err := opts.parser.AddGroup("general options", "", opts.General); err != nil {
 		panic(fmt.Errorf("couldn't register general options: %v", err))
@@ -252,13 +281,12 @@ func (o *ToolOptions) GetAuthenticationDatabase() string {
 }
 
 // AddOptions registers an additional options group to this instance
-func (o *ToolOptions) AddOptions(opts ExtraOptions) error {
+func (o *ToolOptions) AddOptions(opts ExtraOptions) {
 	_, err := o.parser.AddGroup(opts.Name()+" options", "", opts)
 	if err != nil {
-		return fmt.Errorf("error setting command line options for"+
-			" %v: %v", opts.Name(), err)
+		panic(fmt.Sprintf("error setting command line options for  %v: %v",
+			opts.Name(), err))
 	}
-	return nil
 }
 
 // Parse the command line args.  Returns any extra args not accounted for by
@@ -267,10 +295,10 @@ func (o *ToolOptions) Parse() ([]string, error) {
 	return o.parser.Parse()
 }
 
-func parseHiddenOption(opts *HiddenOptions, option string, arg flags.SplitArgument, args []string) ([]string, error) {
+func (opts *HiddenOptions) parseHiddenOption(option string, arg flags.SplitArgument, args []string) ([]string, error) {
 	if option == "dbpath" || option == "directoryperdb" || option == "journal" {
-		return args, fmt.Errorf(`--dbpath and related flags are not supported in 3.0 tools.
-See http://dochub.mongodb.org/core/tools-dbpath-deprecated for more information`)
+		return args, fmt.Errorf("--dbpath and related flags are not supported in 3.0 tools.\n" +
+			"See http://dochub.mongodb.org/core/tools-dbpath-deprecated for more information")
 	}
 
 	if option == "csv" {
@@ -311,6 +339,12 @@ See http://dochub.mongodb.org/core/tools-dbpath-deprecated for more information`
 		opts.BulkBufferSize = optionValue
 	case "numDecodingWorkers":
 		opts.NumDecodingWorkers = optionValue
+	case "dialTimeout":
+		if optionValue >= 0 {
+			opts.DialTimeoutSeconds = &optionValue
+		} else {
+			return args, fmt.Errorf("invalid negative value for --dialTimeout")
+		}
 	default:
 		return args, fmt.Errorf(`unknown option "%v"`, option)
 	}

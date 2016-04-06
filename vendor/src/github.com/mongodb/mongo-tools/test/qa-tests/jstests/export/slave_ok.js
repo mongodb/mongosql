@@ -16,7 +16,7 @@
     replTest.awaitSecondaryNodes();
 
     // cache the primary
-    var primary = replTest.getMaster();
+    var primary = replTest.getPrimary();
 
     // the export target
     var exportTarget = 'slave_ok_export.json';
@@ -37,6 +37,8 @@
         // remove the export, clean the destination collection
         removeFile(exportTarget);
         testDB.dest.remove({});
+
+        printjson(replTest.status())
 
         var ret = runMongoProgram('mongoexport', '--db', 'test', '--collection',
             'data', '--host', node.host, '--slaveOk', '--out', exportTarget);

@@ -53,7 +53,9 @@ func simpleMongoDumpInstance() *MongoDump {
 		HiddenOptions: &options.HiddenOptions{},
 		Verbosity:     &options.Verbosity{},
 	}
-	outputOptions := &OutputOptions{}
+	outputOptions := &OutputOptions{
+		NumParallelCollections: 1,
+	}
 	inputOptions := &InputOptions{}
 
 	log.SetVerbosity(toolOptions.Verbosity)
@@ -227,6 +229,49 @@ func fileDirExists(name string) bool {
 	return true
 }
 
+func testQuery(md *MongoDump, session *mgo.Session) string {
+	origDB := session.DB(testDB)
+	restoredDB := session.DB(testRestoreDB)
+
+	// query to test --query* flags
+	bsonQuery := bson.M{"age": bson.M{"$lt": 10}}
+
+	// we can only dump using query per collection
+	for _, testCollName := range testCollectionNames {
+		md.ToolOptions.Namespace.Collection = testCollName
+
+		err := md.Init()
+		So(err, ShouldBeNil)
+
+		err = md.Dump()
+		So(err, ShouldBeNil)
+	}
+
+	path, err := os.Getwd()
+	So(err, ShouldBeNil)
+
+	dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+	So(fileDirExists(dumpDir), ShouldBeTrue)
+	So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+	err = readBSONIntoDatabase(dumpDBDir, testRestoreDB)
+	So(err, ShouldBeNil)
+
+	for _, testCollName := range testCollectionNames {
+		// count filtered docs
+		numDocs1, err := origDB.C(testCollName).Find(bsonQuery).Count()
+		So(err, ShouldBeNil)
+
+		// count number of all restored documents
+		numDocs2, err := restoredDB.C(testCollName).Find(nil).Count()
+		So(err, ShouldBeNil)
+
+		So(numDocs1, ShouldEqual, numDocs2)
+	}
+	return dumpDir
+}
+
 func TestMongoDumpValidateOptions(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 
@@ -264,9 +309,11 @@ func TestMongoDumpKerberos(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		mongoDump := MongoDump{
-			ToolOptions:   opts,
-			InputOptions:  &InputOptions{},
-			OutputOptions: &OutputOptions{},
+			ToolOptions:  opts,
+			InputOptions: &InputOptions{},
+			OutputOptions: &OutputOptions{
+				NumParallelCollections: 1,
+			},
 		}
 
 		mongoDump.OutputOptions.Out = KerberosDumpDirectory
@@ -466,48 +513,12 @@ func TestMongoDumpBSON(t *testing.T) {
 			So(err, ShouldBeNil)
 			jsonQueryBytes, err := json.Marshal(jsonQuery)
 			So(err, ShouldBeNil)
-			md.InputOptions.Query = string(jsonQueryBytes)
 
-			Convey("for all the collections in the database", func() {
+			Convey("using --query for all the collections in the database", func() {
+				md.InputOptions.Query = string(jsonQueryBytes)
 				md.ToolOptions.Namespace.DB = testDB
 				md.OutputOptions.Out = "dump"
-
-				origDB := session.DB(testDB)
-				restoredDB := session.DB(testRestoreDB)
-
-				// we can only dump using query per collection
-				for _, testCollName := range testCollectionNames {
-					md.ToolOptions.Namespace.Collection = testCollName
-
-					err = md.Init()
-					So(err, ShouldBeNil)
-
-					err = md.Dump()
-					So(err, ShouldBeNil)
-				}
-
-				path, err := os.Getwd()
-				So(err, ShouldBeNil)
-
-				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-				dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
-				So(fileDirExists(dumpDir), ShouldBeTrue)
-				So(fileDirExists(dumpDBDir), ShouldBeTrue)
-
-				err = readBSONIntoDatabase(dumpDBDir, testRestoreDB)
-				So(err, ShouldBeNil)
-
-				for _, testCollName := range testCollectionNames {
-					// count filtered docs
-					numDocs1, err := origDB.C(testCollName).Find(bsonQuery).Count()
-					So(err, ShouldBeNil)
-
-					// count number of all restored documents
-					numDocs2, err := restoredDB.C(testCollName).Find(nil).Count()
-					So(err, ShouldBeNil)
-
-					So(numDocs1, ShouldEqual, numDocs2)
-				}
+				dumpDir := testQuery(md, session)
 
 				Reset(func() {
 					So(session.DB(testRestoreDB).DropDatabase(), ShouldBeNil)
@@ -516,6 +527,20 @@ func TestMongoDumpBSON(t *testing.T) {
 
 			})
 
+			Convey("using --queryFile for all the collections in the database", func() {
+				ioutil.WriteFile("example.json", jsonQueryBytes, 0777)
+				md.InputOptions.QueryFile = "example.json"
+				md.ToolOptions.Namespace.DB = testDB
+				md.OutputOptions.Out = "dump"
+				dumpDir := testQuery(md, session)
+
+				Reset(func() {
+					So(session.DB(testRestoreDB).DropDatabase(), ShouldBeNil)
+					So(os.RemoveAll(dumpDir), ShouldBeNil)
+					So(os.Remove("example.json"), ShouldBeNil)
+				})
+
+			})
 		})
 
 		Reset(func() {
@@ -547,9 +572,6 @@ func TestMongoDumpMetaData(t *testing.T) {
 			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
 			So(fileDirExists(dumpDir), ShouldBeTrue)
 			So(fileDirExists(dumpDBDir), ShouldBeTrue)
-
-			systemIndexesBSON := util.ToUniversalPath(filepath.Join(dumpDBDir, "system.indexes.bson"))
-			So(fileDirExists(systemIndexesBSON), ShouldBeTrue)
 
 			Convey("having one metadata file per collection", func() {
 				c1, err := countNonIndexBSONFiles(dumpDBDir)

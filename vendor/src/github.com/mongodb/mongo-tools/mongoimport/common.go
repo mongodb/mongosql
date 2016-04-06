@@ -44,18 +44,32 @@ type sizeTracker interface {
 // sizeTrackingReader implements Reader and sizeTracker by wrapping an io.Reader and keeping track
 // of the total number of bytes read from each call to Read().
 type sizeTrackingReader struct {
-	reader    io.Reader
-	bytesRead int64
+	reader         io.Reader
+	bytesRead      int64
+	bytesReadMutex sync.Mutex
 }
 
 func (str *sizeTrackingReader) Size() int64 {
-	return str.bytesRead
+	str.bytesReadMutex.Lock()
+	bytes := str.bytesRead
+	str.bytesReadMutex.Unlock()
+	return bytes
 }
 
 func (str *sizeTrackingReader) Read(p []byte) (n int, err error) {
 	n, err = str.reader.Read(p)
+	str.bytesReadMutex.Lock()
 	str.bytesRead += int64(n)
+	str.bytesReadMutex.Unlock()
 	return
+}
+
+func newSizeTrackingReader(reader io.Reader) *sizeTrackingReader {
+	return &sizeTrackingReader{
+		reader:         reader,
+		bytesRead:      0,
+		bytesReadMutex: sync.Mutex{},
+	}
 }
 
 // channelQuorumError takes a channel and a quorum - which specifies how many
@@ -72,14 +86,15 @@ func channelQuorumError(ch <-chan error, quorum int) (err error) {
 }
 
 // constructUpsertDocument constructs a BSON document to use for upserts
-func constructUpsertDocument(upsertFields []string, document bson.M) bson.M {
-	upsertDocument := bson.M{}
+func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
+	upsertDocument := bson.D{}
 	var hasDocumentKey bool
 	for _, key := range upsertFields {
-		upsertDocument[key] = getUpsertValue(key, document)
-		if upsertDocument[key] != nil {
+		val := getUpsertValue(key, document)
+		if val != nil {
 			hasDocumentKey = true
 		}
+		upsertDocument = append(upsertDocument, bson.DocElem{key, val})
 	}
 	if !hasDocumentKey {
 		return nil
@@ -148,20 +163,24 @@ func getParsedValue(token string) interface{} {
 // notation for nested fields. e.g. "person.age" would return 34 would return
 // 34 in the document: bson.M{"person": bson.M{"age": 34}} whereas,
 // "person.name" would return nil
-func getUpsertValue(field string, document bson.M) interface{} {
+func getUpsertValue(field string, document bson.D) interface{} {
 	index := strings.Index(field, ".")
 	if index == -1 {
-		return document[field]
+		// grab the value (ignoring errors because we are okay with nil)
+		val, _ := bsonutil.FindValueByKey(field, &document)
+		return val
 	}
+	// recurse into subdocuments
 	left := field[0:index]
-	if document[left] == nil {
+	subDoc, _ := bsonutil.FindValueByKey(left, &document)
+	if subDoc == nil {
 		return nil
 	}
-	subDoc, ok := document[left].(bson.M)
+	subDocD, ok := subDoc.(bson.D)
 	if !ok {
 		return nil
 	}
-	return getUpsertValue(field[index+1:], subDoc)
+	return getUpsertValue(field[index+1:], subDocD)
 }
 
 // filterIngestError accepts a boolean indicating if a non-nil error should be,
@@ -178,16 +197,13 @@ func filterIngestError(stopOnError bool, err error) error {
 	if err == nil {
 		return nil
 	}
-	if err.Error() == db.ErrNoReachableServers.Error() {
-		return err
-	}
 	if err.Error() == io.EOF.Error() {
-		err = db.ErrLostConnection
+		return fmt.Errorf(db.ErrLostConnection)
+	}
+	if stopOnError || db.IsConnectionError(err) {
+		return err
 	}
 	log.Logf(log.Always, "error inserting documents: %v", err)
-	if stopOnError || err == db.ErrLostConnection {
-		return err
-	}
 	return nil
 }
 

@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 )
 
 // FileType describes the various types of restore documents.
@@ -30,12 +31,59 @@ func (errorWriter) Write([]byte) (int, error) {
 	return 0, os.ErrInvalid
 }
 
+type PosReader interface {
+	io.ReadCloser
+	Pos() int64
+}
+
+// posTrackingReader is a type for reading from a file and being able to determine
+// what position the file is at.
+type posTrackingReader struct {
+	io.ReadCloser
+	pos int64
+}
+
+func (f *posTrackingReader) Read(p []byte) (int, error) {
+	n, err := f.ReadCloser.Read(p)
+	atomic.AddInt64(&f.pos, int64(n))
+	return n, err
+}
+
+func (f *posTrackingReader) Pos() int64 {
+	return atomic.LoadInt64(&f.pos)
+}
+
+// mixedPosTrackingReader is a type for reading from one file but getting the position of a
+// different file. This is useful for compressed files where the appropriate position for progress
+// bars is that of the compressed file, but file should be read from the uncompressed file.
+type mixedPosTrackingReader struct {
+	readHolder PosReader
+	posHolder  PosReader
+}
+
+func (f *mixedPosTrackingReader) Read(p []byte) (int, error) {
+	return f.readHolder.Read(p)
+}
+
+func (f *mixedPosTrackingReader) Pos() int64 {
+	return f.posHolder.Pos()
+}
+
+func (f *mixedPosTrackingReader) Close() error {
+	err := f.readHolder.Close()
+	if err != nil {
+		return err
+	}
+	return f.posHolder.Close()
+}
+
 // realBSONFile implements the intents.file interface. It lets intents read from real BSON files
 // ok disk via an embedded os.File
 // The Read, Write and Close methods of the intents.file interface is implemented here by the
 // embedded os.File, the Write will return an error and not succeed
 type realBSONFile struct {
-	io.ReadCloser
+	path string
+	PosReader
 	// errorWrite adds a Write() method to this object allowing it to be an
 	// intent.file ( a ReadWriteOpenCloser )
 	errorWriter
@@ -46,22 +94,26 @@ type realBSONFile struct {
 // Open is part of the intents.file interface. realBSONFiles need to be Opened before Read
 // can be called on them.
 func (f *realBSONFile) Open() (err error) {
-	if f.intent.BSONPath == "" {
+	if f.path == "" {
 		// this error shouldn't happen normally
 		return fmt.Errorf("error reading BSON file for %v", f.intent.Namespace())
 	}
-	file, err := os.Open(f.intent.BSONPath)
+	file, err := os.Open(f.path)
 	if err != nil {
-		return fmt.Errorf("error reading BSON file %v: %v", f.intent.BSONPath, err)
+		return fmt.Errorf("error reading BSON file %v: %v", f.path, err)
 	}
+	posFile := &posTrackingReader{file, 0}
 	if f.gzip {
-		gzFile, err := gzip.NewReader(file)
+		gzFile, err := gzip.NewReader(posFile)
+		posUncompressedFile := &posTrackingReader{gzFile, 0}
 		if err != nil {
-			return fmt.Errorf("error decompressing compresed BSON file %v: %v", f.intent.BSONPath, err)
+			return fmt.Errorf("error decompressing compresed BSON file %v: %v", f.path, err)
 		}
-		f.ReadCloser = &wrappedReadCloser{gzFile, file}
+		f.PosReader = &mixedPosTrackingReader{
+			readHolder: posUncompressedFile,
+			posHolder:  posFile}
 	} else {
-		f.ReadCloser = file
+		f.PosReader = posFile
 	}
 	return nil
 }
@@ -72,27 +124,29 @@ func (f *realBSONFile) Open() (err error) {
 // embedded os.File, the Write will return an error and not succeed
 type realMetadataFile struct {
 	io.ReadCloser
+	path string
 	// errorWrite adds a Write() method to this object allowing it to be an
 	// intent.file ( a ReadWriteOpenCloser )
 	errorWriter
 	intent *intents.Intent
 	gzip   bool
+	pos    int64
 }
 
 // Open is part of the intents.file interface. realMetadataFiles need to be Opened before Read
 // can be called on them.
 func (f *realMetadataFile) Open() (err error) {
-	if f.intent.MetadataPath == "" {
+	if f.path == "" {
 		return fmt.Errorf("error reading metadata for %v", f.intent.Namespace())
 	}
-	file, err := os.Open(f.intent.MetadataPath)
+	file, err := os.Open(f.path)
 	if err != nil {
-		return fmt.Errorf("error reading metadata %v: %v", f.intent.MetadataPath, err)
+		return fmt.Errorf("error reading metadata %v: %v", f.path, err)
 	}
 	if f.gzip {
 		gzFile, err := gzip.NewReader(file)
 		if err != nil {
-			return fmt.Errorf("error reading compressed metadata %v: %v", f.intent.MetadataPath, err)
+			return fmt.Errorf("error reading compressed metadata %v: %v", f.path, err)
 		}
 		f.ReadCloser = &wrappedReadCloser{gzFile, file}
 	} else {
@@ -101,17 +155,38 @@ func (f *realMetadataFile) Open() (err error) {
 	return nil
 }
 
+func (f *realMetadataFile) Read(p []byte) (int, error) {
+	n, err := f.ReadCloser.Read(p)
+	atomic.AddInt64(&f.pos, int64(n))
+	return n, err
+}
+
+func (f *realMetadataFile) Pos() int64 {
+	return atomic.LoadInt64(&f.pos)
+}
+
 // stdinFile implements the intents.file interface. They allow intents to read single collections
 // from standard input
 type stdinFile struct {
 	io.Reader
 	errorWriter
+	pos int64
 }
 
 // Open is part of the intents.file interface. stdinFile needs to have Open called on it before
 // Read can be called on it.
 func (f *stdinFile) Open() error {
 	return nil
+}
+
+func (f *stdinFile) Read(p []byte) (int, error) {
+	n, err := f.Reader.Read(p)
+	atomic.AddInt64(&f.pos, int64(n))
+	return n, err
+}
+
+func (f *stdinFile) Pos() int64 {
+	return atomic.LoadInt64(&f.pos)
 }
 
 // Close is part of the intents.file interface. After Close is called, Read will fail.
@@ -155,7 +230,6 @@ func (restore *MongoRestore) getInfoFromFilename(filename string) (string, FileT
 // the databases and collections it finds.
 func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike, filterDB string, filterCollection string) error {
 	log.Logf(log.DebugHigh, "using %v as dump root directory", dir.Path())
-	foundOplog := false
 	entries, err := dir.ReadDir()
 	if err != nil {
 		return fmt.Errorf("error reading root dump folder: %v", err)
@@ -178,11 +252,10 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike, filterDB stri
 				if restore.InputOptions.OplogReplay {
 					log.Log(log.DebugLow, "found oplog.bson file to replay")
 				}
-				foundOplog = true
 				oplogIntent := &intents.Intent{
 					C:        "oplog",
-					BSONPath: entry.Path(),
 					Size:     entry.Size(),
+					Location: entry.Path(),
 				}
 				// filterDB is used to mimic CreateIntentsForDB, and since CreateIntentsForDB wouldn't
 				// apply the oplog, even when asked, we don't either.
@@ -215,7 +288,7 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike, filterDB stri
 							Demux:  restore.archive.Demux,
 						}
 				} else {
-					oplogIntent.BSONFile = &realBSONFile{intent: oplogIntent, gzip: restore.InputOptions.Gzip}
+					oplogIntent.BSONFile = &realBSONFile{path: entry.Path(), intent: oplogIntent, gzip: restore.InputOptions.Gzip}
 				}
 				restore.manager.Put(oplogIntent)
 			} else {
@@ -223,10 +296,34 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike, filterDB stri
 			}
 		}
 	}
-	if restore.InputOptions.OplogReplay && !foundOplog {
-		return fmt.Errorf("no %v/oplog.bson file to replay; make sure you run mongodump with --oplog", dir.Path())
-	}
 	return nil
+}
+
+// CreateIntentForOplog creates an intent for a file that we want to treat as an oplog.
+func (restore *MongoRestore) CreateIntentForOplog() error {
+	target, err := newActualPath(restore.InputOptions.OplogFile)
+	db := ""
+	collection := "oplog"
+	if err != nil {
+		return err
+	}
+	log.Logf(log.DebugLow, "reading oplog from %v", target.Path())
+
+	if target.IsDir() {
+		return fmt.Errorf("file %v is a directory, not a bson file", target.Path())
+	}
+
+	// Then create its intent.
+	intent := &intents.Intent{
+		DB:       db,
+		C:        collection,
+		Size:     target.Size(),
+		Location: target.Path(),
+	}
+	intent.BSONFile = &realBSONFile{path: target.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
+	restore.manager.PutOplogIntent(intent, "oplogFile")
+	return nil
+
 }
 
 // CreateIntentsForDB drills down into the dir folder, creating intents
@@ -272,14 +369,20 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 							"has .metadata.json files", db)
 					skip = true
 				}
+
+				// TOOLS-976: skip restoring the collections should be excluded 
+				if filterCollection == "" && restore.shouldSkipCollection(collection) {
+					log.Logf(log.DebugLow, "skipping restoring %v.%v, it is excluded", db, collection)
+					skip = true
+				}
+
 				if filterCollection != "" && filterCollection != collection {
 					skip = true
 				}
 				intent := &intents.Intent{
-					DB:       db,
-					C:        collection,
-					Size:     entry.Size(),
-					BSONPath: entry.Path(),
+					DB:   db,
+					C:    collection,
+					Size: entry.Size(),
 				}
 				if restore.InputOptions.Archive != "" {
 					if restore.InputOptions.Archive == "-" {
@@ -304,26 +407,34 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 					if skip {
 						continue
 					}
-					intent.BSONFile = &realBSONFile{intent: intent, gzip: restore.InputOptions.Gzip}
+					intent.Location = entry.Path()
+					intent.BSONFile = &realBSONFile{path: entry.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 				}
 				log.Logf(log.Info, "found collection %v bson to restore", intent.Namespace())
 				restore.manager.Put(intent)
 			case MetadataFileType:
+				// TOOLS-976: skip restoring the collections should be excluded 
+				if filterCollection == "" && restore.shouldSkipCollection(collection) {
+					log.Logf(log.DebugLow, "skipping restoring %v.%v metadata, it is excluded", db, collection)
+					continue	
+				}
+
 				usesMetadataFiles = true
 				intent := &intents.Intent{
-					DB:           db,
-					C:            collection,
-					MetadataPath: entry.Path(),
+					DB: db,
+					C:  collection,
 				}
+				
 				if restore.InputOptions.Archive != "" {
 					if restore.InputOptions.Archive == "-" {
-						intent.Location = "archive on stdin"
+						intent.MetadataLocation = "archive on stdin"
 					} else {
-						intent.Location = fmt.Sprintf("archive '%v'", restore.InputOptions.Archive)
+						intent.MetadataLocation = fmt.Sprintf("archive '%v'", restore.InputOptions.Archive)
 					}
 					intent.MetadataFile = &archive.MetadataPreludeFile{Intent: intent, Prelude: restore.archive.Prelude}
 				} else {
-					intent.MetadataFile = &realMetadataFile{intent: intent, gzip: restore.InputOptions.Gzip}
+					intent.MetadataLocation = entry.Path()
+					intent.MetadataFile = &realMetadataFile{path: entry.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 				}
 				log.Logf(log.Info, "found collection %v metadata to restore", intent.Namespace())
 				restore.manager.Put(intent)
@@ -344,7 +455,7 @@ func (restore *MongoRestore) CreateStdinIntentForCollection(db string, collectio
 	intent := &intents.Intent{
 		DB:       db,
 		C:        collection,
-		BSONPath: "-",
+		Location: "-",
 	}
 	intent.BSONFile = &stdinFile{Reader: restore.stdin}
 	restore.manager.Put(intent)
@@ -378,10 +489,10 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 	intent := &intents.Intent{
 		DB:       db,
 		C:        collection,
-		BSONPath: dir.Path(),
 		Size:     dir.Size(),
+		Location: dir.Path(),
 	}
-	intent.BSONFile = &realBSONFile{intent: intent, gzip: restore.InputOptions.Gzip}
+	intent.BSONFile = &realBSONFile{path: dir.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 
 	// finally, check if it has a .metadata.json file in its folder
 	log.Logf(log.DebugLow, "scanning directory %v for metadata", dir.Name())
@@ -394,23 +505,44 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 		return nil
 	}
 	metadataName := baseName + ".metadata.json"
+	if restore.InputOptions.Gzip {
+		metadataName += ".gz"
+	}
 	for _, entry := range entries {
 		if entry.Name() == metadataName {
 			metadataPath := entry.Path()
 			log.Logf(log.Info, "found metadata for collection at %v", metadataPath)
-			intent.MetadataPath = metadataPath
-			intent.MetadataFile = &realMetadataFile{intent: intent, gzip: restore.InputOptions.Gzip}
+			intent.MetadataLocation = metadataPath
+			intent.MetadataFile = &realMetadataFile{path: metadataPath, intent: intent, gzip: restore.InputOptions.Gzip}
 			break
 		}
 	}
 
-	if intent.MetadataPath == "" {
+	if intent.MetadataFile == nil {
 		log.Log(log.Info, "restoring collection without metadata")
 	}
 
 	restore.manager.Put(intent)
 
 	return nil
+}
+
+func (restore *MongoRestore) shouldSkipCollection(colName string) bool {
+	if restore.OutputOptions != nil && len(restore.OutputOptions.ExcludedCollections) > 0 {
+		for _, excludedCollection := range restore.OutputOptions.ExcludedCollections {
+			if colName == excludedCollection {
+				return true
+			}
+		}
+	}
+	if restore.OutputOptions != nil && len(restore.OutputOptions.ExcludedCollectionPrefixes) > 0 {
+		for _, excludedCollectionPrefix := range restore.OutputOptions.ExcludedCollectionPrefixes {
+			if strings.HasPrefix(colName, excludedCollectionPrefix) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // helper for searching a list of FileInfo for metadata files

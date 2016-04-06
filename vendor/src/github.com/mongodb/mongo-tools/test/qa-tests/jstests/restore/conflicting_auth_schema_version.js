@@ -1,3 +1,5 @@
+// This test requires mongo 2.6.x releases
+// @tags: [requires_mongo_26]
 (function() {
 
     load("jstests/configs/standard_dump_targets.config.js");
@@ -9,8 +11,8 @@
     jsTest.log('Testing restoring a dump with a potentially conflicting'+
             ' authSchemaVersion in the database');
 
-    if (dump_targets == "archive") {
-        print('skipping test incompatable with archiving');
+    if (dump_targets != "standard") {
+        print('skipping test incompatable with archiving or compression');
         return assert(true);
     }
 

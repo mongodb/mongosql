@@ -25,14 +25,17 @@ func (restore *MongoRestore) RestoreOplog() error {
 	intent := restore.manager.Oplog()
 	if intent == nil {
 		// this should not be reached
-		log.Log(log.Always, "no oplog.bson file in root of the dump directory, skipping oplog application")
+		log.Log(log.Always, "no oplog file provided, skipping oplog application")
 		return nil
 	}
 	if err := intent.BSONFile.Open(); err != nil {
 		return err
 	}
 	defer intent.BSONFile.Close()
-	bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(intent.BSONFile))
+	// NewBufferlessBSONSource reads each bson document into its own buffer
+	// because bson.Unmarshal currently can't unmarshal binary types without
+	// them referencing the source buffer
+	bsonSource := db.NewDecodedBSONSource(db.NewBufferlessBSONSource(intent.BSONFile))
 	defer bsonSource.Close()
 
 	entryArray := make([]interface{}, 0, 1024)

@@ -1,3 +1,5 @@
+// This test requires mongo 2.6.x releases
+// @tags: [requires_mongo_26]
 (function() {
 
     // Tests running mongorestore with  --restoreDbUsersAndRoles against 
@@ -11,8 +13,8 @@
         load('jstests/configs/standard_dump_targets.config.js');
     }
 
-    if (dump_targets == "archive") {
-        print('skipping test incompatable with archiving');
+    if (dump_targets != "standard") {
+        print('skipping test incompatable with archiving or compression');
         return assert(true);
     }
 

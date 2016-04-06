@@ -14,10 +14,11 @@ See http://docs.mongodb.org/manual/reference/program/mongorestore/ for more info
 type InputOptions struct {
 	Objcheck               bool   `long:"objcheck" description:"validate all objects before inserting"`
 	OplogReplay            bool   `long:"oplogReplay" description:"replay oplog for point-in-time restore"`
-	OplogLimit             string `long:"oplogLimit" description:"only include oplog entries before the provided Timestamp (seconds[:ordinal])"`
-	Archive                string `long:"archive" optional:"true" optional-value:"-" description:"restore from a dump-archive stream or file"`
+	OplogLimit             string `long:"oplogLimit" value-name:"<seconds>[:ordinal]" description:"only include oplog entries before the provided Timestamp"`
+	OplogFile              string `long:"oplogFile" value-name:"<filename>" description:"oplog file to use for replay of oplog"`
+	Archive                string `long:"archive" value-name:"<filename>" optional:"true" optional-value:"-" description:"restore dump from the specified archive file.  If flag is specified without a value, archive is read from stdin"`
 	RestoreDBUsersAndRoles bool   `long:"restoreDbUsersAndRoles" description:"restore user and role definitions for the given database"`
-	Directory              string `long:"dir" description:"input directory, use '-' for stdin"`
+	Directory              string `long:"dir" value-name:"<directory-name>" description:"input directory, use '-' for stdin"`
 	Gzip                   bool   `long:"gzip" description:"decompress gzipped input"`
 }
 
@@ -28,15 +29,18 @@ func (*InputOptions) Name() string {
 
 // OutputOptions defines the set of options for restoring dump data.
 type OutputOptions struct {
-	Drop                   bool   `long:"drop" description:"drop each collection before import"`
-	WriteConcern           string `long:"writeConcern" default:"majority" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}' (defaults to 'majority')"`
-	NoIndexRestore         bool   `long:"noIndexRestore" description:"don't restore indexes"`
-	NoOptionsRestore       bool   `long:"noOptionsRestore" description:"don't restore collection options"`
-	KeepIndexVersion       bool   `long:"keepIndexVersion" description:"don't update index version"`
-	MaintainInsertionOrder bool   `long:"maintainInsertionOrder" description:"preserve order of documents during restoration"`
-	NumParallelCollections int    `long:"numParallelCollections" short:"j" description:"number of collections to restore in parallel (4 by default)" default:"4" default-mask:"-"`
-	NumInsertionWorkers    int    `long:"numInsertionWorkersPerCollection" description:"number of insert operations to run concurrently per collection (1 by default)" default:"1" default-mask:"-"`
-	StopOnError            bool   `long:"stopOnError" description:"stop restoring if an error is encountered on insert (off by default)"`
+	Drop                       bool     `long:"drop" description:"drop each collection before import"`
+	WriteConcern               string   `long:"writeConcern" value-name:"<write-concern>" default:"majority" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}' (defaults to 'majority')"`
+	NoIndexRestore             bool     `long:"noIndexRestore" description:"don't restore indexes"`
+	NoOptionsRestore           bool     `long:"noOptionsRestore" description:"don't restore collection options"`
+	KeepIndexVersion           bool     `long:"keepIndexVersion" description:"don't update index version"`
+	MaintainInsertionOrder     bool     `long:"maintainInsertionOrder" description:"preserve order of documents during restoration"`
+	NumParallelCollections     int      `long:"numParallelCollections" short:"j" description:"number of collections to restore in parallel (4 by default)" default:"4" default-mask:"-"`
+	NumInsertionWorkers        int      `long:"numInsertionWorkersPerCollection" description:"number of insert operations to run concurrently per collection (1 by default)" default:"1" default-mask:"-"`
+	StopOnError                bool     `long:"stopOnError" description:"stop restoring if an error is encountered on insert (off by default)"`
+	ExcludedCollections        []string `long:"excludeCollection" value-name:"<collection-name>" description:"collection to skip over during restore (may be specified multiple times to exclude additional collections)"`
+	ExcludedCollectionPrefixes []string `long:"excludeCollectionsWithPrefix" value-name:"<collection-prefix>" description:"collections to skip over during restore that have the given prefix (may be specified multiple times to exclude additional prefixes)"`
+	BypassDocumentValidation   bool     `long:"bypassDocumentValidation" description:"bypass document validation"`
 }
 
 // Name returns a human-readable group name for output options.
