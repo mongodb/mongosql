@@ -221,7 +221,7 @@ functions:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
       local_file: src/benchmark.txt
-      remote_file: sqlproxy/benchmarks/${build_variant}/${revision}.txt
+      remote_file: sqlproxy/benchmarks/${build_variant}/${task_id}.txt
       bucket: mciuploads
       permissions: public-read
       content_type: text/plain
