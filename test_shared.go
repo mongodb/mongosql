@@ -7,8 +7,6 @@ var (
 
 	testSchemaSimple = []byte(
 		`
-url: localhost
-log_level: vv
 schema:
 -
   db: test

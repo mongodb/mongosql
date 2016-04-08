@@ -5,8 +5,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
-	"github.com/mongodb/mongo-tools/common/log"
 )
 
 func (c *conn) handleShow(sql string, stmt *sqlparser.Show) error {
@@ -108,41 +109,12 @@ func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 		return nil, fmt.Errorf("table (%s) does not exist in db (%s)", table, dbName)
 	}
 
-	if len(tableSchema.RawColumns) == 0 {
-		return nil, fmt.Errorf("no configured columns")
-	}
-
 	full := strings.ToLower(stmt.Modifier) == "full"
 
-	values := make([][]interface{}, len(tableSchema.RawColumns))
-	names := []string{"Field", "Type", "Null", "Key", "Default", "Extra"}
-
-	if full {
-		names = append(names, []string{"Collation", "Privileges", "Comment"}...)
+	names, values, err := HandleShowColumns(tableSchema, full)
+	if err != nil {
+		return nil, err
 	}
-
-	log.Logf(log.DebugLow, "columns for %v: %#v\n\n", table, tableSchema.RawColumns)
-
-	for num, col := range tableSchema.RawColumns {
-		row := make([]interface{}, len(names))
-		row[0] = col.Name
-		row[1] = string(col.SqlType)
-		row[2] = "YES"
-		row[3] = ""
-		row[4] = nil
-		row[5] = ""
-
-		if full {
-			row[6] = nil
-			row[7] = "select"
-			row[8] = ""
-		}
-
-		log.Logf(log.DebugLow, "num: %v\n", num)
-		values[num] = row
-	}
-
-	log.Logf(log.DebugLow, "names: %#v\nvalues: %#v\n", names, values)
 
 	return c.buildResultset(names, values)
 }
@@ -171,4 +143,35 @@ func (c *conn) buildSimpleShowResultset(values []interface{}, name string) (*Res
 	}
 
 	return r, nil
+}
+
+func HandleShowColumns(tableSchema *schema.Table, full bool) ([]string, [][]interface{}, error) {
+	if len(tableSchema.RawColumns) == 0 {
+		return nil, nil, fmt.Errorf("no configured columns")
+	}
+
+	values := make([][]interface{}, len(tableSchema.RawColumns))
+	names := []string{"Field", "Type", "Null", "Key", "Default", "Extra"}
+
+	if full {
+		names = append(names, []string{"Collation", "Privileges", "Comment"}...)
+	}
+
+	for num, col := range tableSchema.RawColumns {
+		row := make([]interface{}, len(names))
+		row[0] = evaluator.SQLVarchar(col.Name)
+		row[1] = evaluator.SQLVarchar(string(col.SqlType))
+		row[2] = evaluator.SQLVarchar("YES")
+		row[3] = evaluator.SQLVarchar("")
+		row[4] = evaluator.SQLNull
+		row[5] = evaluator.SQLVarchar("")
+
+		if full {
+			row[6] = evaluator.SQLNull
+			row[7] = evaluator.SQLVarchar("select")
+			row[8] = evaluator.SQLVarchar("")
+		}
+		values[num] = row
+	}
+	return names, values, nil
 }

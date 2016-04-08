@@ -40,6 +40,11 @@ func (e *Evaluator) Session() *mgo.Session {
 	return e.session.New()
 }
 
+// Schema returns a copy of the evaluator's schema.
+func (e *Evaluator) Schema() schema.Schema {
+	return *e.config
+}
+
 // EvalSelect returns all rows matching the query.
 func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
 

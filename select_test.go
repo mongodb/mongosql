@@ -6,7 +6,9 @@ import (
 
 	. "github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/evaluator"
+
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/server"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -145,6 +147,31 @@ func checkExpectedValues(count int, values [][]interface{}, expected map[interfa
 			So(value[j+1], ShouldResemble, x[j])
 		}
 	}
+}
+
+func TestShow(t *testing.T) {
+	Convey("With a show command", t, func() {
+		Convey("columns from a specified table should be values matching schema", func() {
+			env := setupEnv(t)
+			config := env.eval.Schema()
+			table := config.Databases["foo"].Tables["bar"]
+			names, values, err := server.HandleShowColumns(table, false)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 6)
+			So(len(values), ShouldEqual, 2)
+			So(names[0], ShouldEqual, "Field")
+			So(names[1], ShouldEqual, "Type")
+			So(names[2], ShouldEqual, "Null")
+			So(names[3], ShouldEqual, "Key")
+			So(names[4], ShouldEqual, "Default")
+			So(names[5], ShouldEqual, "Extra")
+
+			So(values[0][0], ShouldEqual, "c")
+			So(values[0][1], ShouldEqual, "int")
+			So(values[1][0], ShouldEqual, "d")
+			So(values[1][1], ShouldEqual, "int")
+		})
+	})
 }
 
 func TestSelectWithStar(t *testing.T) {
