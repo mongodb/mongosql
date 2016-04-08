@@ -21,6 +21,8 @@ _cgo_export.*
 
 _testmain.go
 
+codereview.rc
+
 *.exe
 *.test
 *.prof
