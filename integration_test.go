@@ -103,7 +103,7 @@ func TestTableauDemo(t *testing.T) {
 	}
 
 	conf := mustLoadTestSchema("testdata/tableau.yml")
-	mustLoadTestData(testMongoHost, testMongoPort, conf)
+	//mustLoadTestData(testMongoHost, testMongoPort, conf)
 
 	Convey("Test tableau dataset", t, func() {
 		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
