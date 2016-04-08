@@ -7,7 +7,11 @@ import (
 	"strings"
 	"time"
 
-	yaml "github.com/cloudfoundry-incubator/candiedyaml"
+	"gopkg.in/mgo.v2/bson"
+
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+
+	yaml "github.com/10gen/candiedyaml"
 )
 
 type SQLType string
@@ -57,12 +61,12 @@ type (
 	}
 
 	Table struct {
-		Name           string                   `yaml:"table"`
-		CollectionName string                   `yaml:"collection"`
-		Pipeline       []map[string]interface{} `yaml:"pipeline"`
-		RawColumns     []*Column                `yaml:"columns"`
-		Columns        map[string]*Column       `yaml:"-"`
-		SQLColumns     map[string]*Column       `yaml:"-"`
+		Name           string             `yaml:"table"`
+		CollectionName string             `yaml:"collection"`
+		Pipeline       []bson.D           `yaml:"pipeline"`
+		RawColumns     []*Column          `yaml:"columns"`
+		Columns        map[string]*Column `yaml:"-"`
+		SQLColumns     map[string]*Column `yaml:"-"`
 	}
 
 	Database struct {
@@ -205,14 +209,8 @@ func (s *Schema) Load(data []byte) error {
 			return fmt.Errorf("duplicate database in schema data: '%s'", db.Name)
 		}
 
-		if err := PopulateColumnMaps(db); err != nil {
-			return err
-		}
-
 		theirs.Databases[db.Name] = db
-	}
 
-	for _, db := range theirs.RawDatabases {
 		ours := s.Databases[db.Name]
 
 		if ours == nil {
@@ -231,7 +229,11 @@ func (s *Schema) Load(data []byte) error {
 				ours.RawTables = append(ours.RawTables, table)
 			}
 		}
+
 		if err := PopulateColumnMaps(s.Databases[db.Name]); err != nil {
+			return err
+		}
+		if err := handlePipeline(s.Databases[db.Name]); err != nil {
 			return err
 		}
 	}
@@ -259,6 +261,21 @@ func (s *Schema) LoadDir(root string) error {
 			return fmt.Errorf("in schema file %v: %v", fullPath, err)
 		}
 	}
+	return nil
+}
+
+func handlePipeline(db *Database) error {
+
+	for _, tbl := range db.RawTables {
+		for i := 0; i < len(tbl.Pipeline); i++ {
+			v, err := bsonutil.ConvertJSONValueToBSON(tbl.Pipeline[i])
+			if err != nil {
+				return fmt.Errorf("unable to parse extended json in table definition %q.%q: %v", db.Name, tbl.Name, err)
+			}
+			tbl.Pipeline[i] = v.(bson.D)
+		}
+	}
+
 	return nil
 }
 

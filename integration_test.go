@@ -14,11 +14,11 @@ import (
 
 	"database/sql/driver"
 
+	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
-	yaml "github.com/cloudfoundry-incubator/candiedyaml"
 	_ "github.com/go-sql-driver/mysql"
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	toolsLog "github.com/mongodb/mongo-tools/common/log"

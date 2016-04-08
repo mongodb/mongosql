@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"gopkg.in/mgo.v2/bson"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -42,61 +44,39 @@ schema:
         MongoType: int
         SqlType: int
      pipeline:
-     -
-        $unwind : "$x"
-     -
-        $limit : 10
+     - $unwind : "$x"
+     - $sort: { a: 1, b: 1, c: -1 }
+     - $project: { a: 1, b: 1, c: { $add: ["$a", { $numberLong: "10" }] } }
 
   -
      table: bar2
      collection: bar2
 `)
 
-	cfg, err := New(testSchemaData)
-	if err != nil {
-		t.Fatal(err)
-	}
+	Convey("Schema should parse correctly", t, func() {
 
-	if len(cfg.RawDatabases) != 2 {
-		t.Fatal(cfg)
-	}
+		cfg, err := New(testSchemaData)
+		So(err, ShouldBeNil)
 
-	if len(cfg.RawDatabases[0].RawTables) != 1 {
-		t.Fatal(len(cfg.RawDatabases[0].RawTables))
-	}
+		So(len(cfg.RawDatabases), ShouldEqual, 2)
+		So(len(cfg.RawDatabases[0].RawTables), ShouldEqual, 1)
+		So(len(cfg.RawDatabases[1].RawTables), ShouldEqual, 2)
+		So(cfg.RawDatabases[0].Name, ShouldEqual, "test1")
 
-	if len(cfg.RawDatabases[1].RawTables) != 2 {
-		t.Fatal(len(cfg.RawDatabases[1].RawTables))
-	}
+		So(cfg.RawDatabases[0].RawTables[0].Name, ShouldEqual, "foo")
+		So(cfg.RawDatabases[0].RawTables[0].CollectionName, ShouldEqual, "foo")
+		So(cfg.Databases["test1"].Name, ShouldEqual, "test1")
+		So(cfg.Databases["test1"].Tables["foo"].CollectionName, ShouldEqual, "foo")
 
-	if cfg.RawDatabases[0].Name != "test1" {
-		t.Fatalf("first db is wrong: %s", cfg.RawDatabases[0].Name)
-	}
+		So(len(cfg.Databases["test1"].Tables["foo"].RawColumns), ShouldEqual, 2)
 
-	if cfg.RawDatabases[0].RawTables[0].Name != "foo" || cfg.RawDatabases[0].RawTables[0].CollectionName != "foo" {
-		t.Fatal("Table 0 (bar) basics wrong")
-	}
+		So(cfg.Databases["test1"].Tables["foo"].RawColumns[0].SqlName, ShouldEqual, "a")
 
-	if cfg.Databases["test1"].Name != "test1" {
-		t.Fatal("map broken")
-	}
-
-	if cfg.Databases["test1"].Tables["foo"].CollectionName != "foo" {
-		t.Fatal("map broken 2")
-	}
-
-	if len(cfg.Databases["test1"].Tables["foo"].RawColumns) != 2 {
-		t.Fatal("test1.foo num columns wrong")
-	}
-
-	if cfg.Databases["test1"].Tables["foo"].RawColumns[0].SqlName != "a" {
-		t.Fatal("test1.foo.a name wrong")
-	}
-
-	testBar := cfg.Databases["test2"].Tables["bar"]
-	if len(testBar.Pipeline) != 2 {
-		t.Fatal("test2.bar pipeline is wrong length")
-	}
+		So(cfg.Databases["test2"].Tables["bar"].Pipeline, ShouldResemble, []bson.D{
+			bson.D{{"$unwind", "$x"}},
+			bson.D{{"$sort", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", int64(-1)}}}},
+			bson.D{{"$project", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", bson.D{{"$add", []interface{}{"$a", int64(10)}}}}}}}})
+	})
 }
 
 func TestSchemaSubdir(t *testing.T) {
@@ -134,63 +114,38 @@ schema:
         MongoType: int
         SqlType: int
      pipeline:
-     -
-        $unwind : "$x"
-     -
-        $limit : 10
+     - $unwind : "$x"
+     - $sort: { a: 1, b: 1, c: -1 }
 
   -
      table: bar2
      collection: bar2
 `)
 
-	cfg := &Schema{}
+	Convey("Schema should parse correctly", t, func() {
+		cfg := &Schema{}
 
-	err := cfg.Load(testSchemaDataSub)
-	if err != nil {
-		t.Fatal(err)
-	}
+		err := cfg.Load(testSchemaDataSub)
+		So(err, ShouldBeNil)
 
-	if len(cfg.RawDatabases) != 2 {
-		t.Fatal(cfg)
-	}
+		So(len(cfg.RawDatabases), ShouldEqual, 2)
+		So(len(cfg.RawDatabases[0].RawTables), ShouldEqual, 1)
+		So(len(cfg.RawDatabases[1].RawTables), ShouldEqual, 2)
+		So(cfg.RawDatabases[0].Name, ShouldEqual, "test1")
 
-	if len(cfg.RawDatabases[0].RawTables) != 1 {
-		t.Fatal(len(cfg.RawDatabases[0].RawTables))
-	}
+		So(cfg.RawDatabases[0].RawTables[0].Name, ShouldEqual, "foo")
+		So(cfg.RawDatabases[0].RawTables[0].CollectionName, ShouldEqual, "foo")
+		So(cfg.Databases["test1"].Name, ShouldEqual, "test1")
+		So(cfg.Databases["test1"].Tables["foo"].CollectionName, ShouldEqual, "foo")
 
-	if len(cfg.RawDatabases[1].RawTables) != 2 {
-		t.Fatal(len(cfg.RawDatabases[1].RawTables))
-	}
+		So(len(cfg.Databases["test1"].Tables["foo"].RawColumns), ShouldEqual, 2)
 
-	if cfg.RawDatabases[0].Name != "test1" {
-		t.Fatalf("first db is wrong: %s", cfg.RawDatabases[0].Name)
-	}
+		So(cfg.Databases["test1"].Tables["foo"].RawColumns[0].SqlName, ShouldEqual, "a")
 
-	if cfg.RawDatabases[0].RawTables[0].Name != "foo" || cfg.RawDatabases[0].RawTables[0].CollectionName != "foo" {
-		t.Fatal("Table 0 (bar) basics wrong")
-	}
-
-	if cfg.Databases["test1"].Name != "test1" {
-		t.Fatal("map broken")
-	}
-
-	if cfg.Databases["test1"].Tables["foo"].CollectionName != "foo" {
-		t.Fatal("map broken 2")
-	}
-
-	if len(cfg.Databases["test1"].Tables["foo"].RawColumns) != 2 {
-		t.Fatal("test1.foo num columns wrong")
-	}
-
-	if cfg.Databases["test1"].Tables["foo"].RawColumns[0].SqlName != "a" {
-		t.Fatal("test1.foo.a name wrong")
-	}
-
-	testBar := cfg.Databases["test2"].Tables["bar"]
-	if len(testBar.Pipeline) != 2 {
-		t.Fatal("test2.bar pipeline is wrong length")
-	}
+		So(cfg.Databases["test2"].Tables["bar"].Pipeline, ShouldResemble, []bson.D{
+			bson.D{{"$unwind", "$x"}},
+			bson.D{{"$sort", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", int64(-1)}}}}})
+	})
 }
 
 func TestSchemaSubdir2(t *testing.T) {
