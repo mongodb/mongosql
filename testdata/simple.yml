@@ -14,7 +14,8 @@ schema:
   tables:
   - table: foo
     collection: test1
-    pipeline: []
+    pipeline: 
+    - $project: { a: 1, b: 1, loc: 1, c: { $add: ["$a", { $numberLong: "10" }] } }
     columns:
     - Name: a
       MongoType: int
@@ -24,6 +25,10 @@ schema:
       MongoType: string
       SqlName: b
       SqlType: varchar
+    - Name: c
+      MongoType: int64
+      SqlName: c
+      SqlType: int64
     - Name: "loc.0" 
       MongoType: int
       SqlName: latitude
@@ -35,10 +40,10 @@ schema:
 
 # 3. Run each of the following queries, and report any that have errors
 testcases:
-- sql: "SELECT a, b, latitude, longitude from foo"
-  expected_types: [int, varchar, float64, float64]
+- sql: "SELECT a, b, c, latitude, longitude from foo"
+  expected_types: [int, varchar, int, float64, float64]
   expected: 
-    - [1, "hello world!", 124.0, 35.0]
+    - [1, "hello world!", 11, 124.0, 35.0]
 - sql: "SELECT count(*) from foo"
   expected_types: [int]
   expected: 
@@ -47,6 +52,10 @@ testcases:
   expected_types: [int]
   expected: 
     - [1]
+- sql: "SELECT sum(c) from foo"
+  expected_types: [int]
+  expected: 
+    - [11]
 - sql: "SELECT latitude, longitude from foo"
   expected_types: [float64, float64]
   expected: 

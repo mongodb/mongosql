@@ -233,7 +233,7 @@ func (s *Schema) Load(data []byte) error {
 		if err := PopulateColumnMaps(s.Databases[db.Name]); err != nil {
 			return err
 		}
-		if err := handlePipeline(s.Databases[db.Name]); err != nil {
+		if err := HandlePipeline(s.Databases[db.Name]); err != nil {
 			return err
 		}
 	}
@@ -264,7 +264,7 @@ func (s *Schema) LoadDir(root string) error {
 	return nil
 }
 
-func handlePipeline(db *Database) error {
+func HandlePipeline(db *Database) error {
 
 	for _, tbl := range db.RawTables {
 		for i := 0; i < len(tbl.Pipeline); i++ {

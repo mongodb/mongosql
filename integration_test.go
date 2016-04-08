@@ -281,6 +281,9 @@ func mustLoadTestSchema(path string) testSchema {
 		if err := schema.PopulateColumnMaps(db); err != nil {
 			panic(err)
 		}
+		if err := schema.HandlePipeline(db); err != nil {
+			panic(err)
+		}
 	}
 
 	return conf
