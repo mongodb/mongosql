@@ -244,6 +244,54 @@ default:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(v).To(Equal(map[string][]string{"hr": []string{"Mark McGwire", "Sammy Sosa"}, "rbi": []string{"Sammy Sosa", "Ken Griffey"}}))
 		})
+
+		It("Decodes to a slice of structs", func() {
+			f, _ := os.Open("fixtures/specification/example2_29.yaml")
+			d := NewDecoder(f)
+
+			type pair struct {
+				Name  string
+				Value interface{}
+			}
+
+			v := make([][]pair, 2)
+
+			err := d.Decode(&v)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(v).To(Equal([][]pair{
+				[]pair{
+					pair{"name", "Mark McGwire"},
+					pair{"stats", []pair{pair{"hr", int64(65)}, pair{"avg", float64(0.278)}}},
+					pair{"teams", []interface{}{[]pair{pair{"name", "Oakland"}}, []pair{pair{"name", "St Louis"}}}}},
+				[]pair{pair{"name", "Sammy Sosa"}, pair{"stats", []pair{pair{"hr", int64(63)}, pair{"avg", float64(0.288)}}}},
+			}))
+		})
+
+		It("Decodes to a named slice of structs", func() {
+			f, _ := os.Open("fixtures/specification/example2_29.yaml")
+			d := NewDecoder(f)
+
+			type elem struct {
+				Name  string
+				Value interface{}
+			}
+
+			type doc []elem
+
+			v := make([]doc, 2)
+
+			err := d.Decode(&v)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(v).To(Equal([]doc{
+				doc{
+					elem{"name", "Mark McGwire"},
+					elem{"stats", doc{elem{"hr", int64(65)}, elem{"avg", float64(0.278)}}},
+					elem{"teams", []interface{}{doc{elem{"name", "Oakland"}}, doc{elem{"name", "St Louis"}}}}},
+				doc{elem{"name", "Sammy Sosa"}, elem{"stats", doc{elem{"hr", int64(63)}, elem{"avg", float64(0.288)}}}},
+			}))
+		})
 	})
 
 	Context("Sequence of Maps", func() {

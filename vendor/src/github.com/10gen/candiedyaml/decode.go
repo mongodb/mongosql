@@ -50,6 +50,7 @@ type Decoder struct {
 	event         yaml_event_t
 	replay_events []yaml_event_t
 	useNumber     bool
+	mapType       reflect.Type
 
 	anchors          map[string][]yaml_event_t
 	tracking_anchors [][]yaml_event_t
@@ -392,7 +393,13 @@ func (d *Decoder) mapping(v reflect.Value) {
 
 	// Decoding into nil interface?  Switch to non-reflect code.
 	if v.Kind() == reflect.Interface && v.NumMethod() == 0 {
-		v.Set(reflect.ValueOf(d.mappingInterface()))
+		if d.mapType != nil {
+			subv := reflect.New(d.mapType).Elem()
+			d.mappingSlice(subv)
+			v.Set(subv)
+		} else {
+			v.Set(reflect.ValueOf(d.mappingInterface()))
+		}
 		return
 	}
 
@@ -400,6 +407,12 @@ func (d *Decoder) mapping(v reflect.Value) {
 	switch v.Kind() {
 	case reflect.Struct:
 		d.mappingStruct(v)
+		return
+	case reflect.Slice:
+		oldMapType := d.mapType
+		d.mapType = v.Type()
+		d.mappingSlice(v)
+		d.mapType = oldMapType
 		return
 	case reflect.Map:
 	default:
@@ -438,6 +451,73 @@ done:
 		d.parse(mapElem)
 
 		v.SetMapIndex(key.Elem(), mapElem)
+	}
+
+	d.nextEvent()
+}
+
+func (d *Decoder) mappingSlice(v reflect.Value) {
+
+	structt := v.Type().Elem()
+
+	fields := cachedTypeFields(structt)
+
+	var nameField *field
+	var valueField *field
+	for _, f := range fields {
+		switch f.name {
+		case "Name":
+			tempf := f
+			nameField = &tempf
+		case "Value":
+			tempf := f
+			valueField = &tempf
+		}
+	}
+
+	// in this instance, we require that a struct
+	// with names Key and Value
+	if nameField == nil || valueField == nil {
+		d.error(fmt.Errorf("Expected a slice of a struct with fields called 'Name' and 'Value' ", v, d.event.start_mark))
+	}
+
+	d.nextEvent()
+	i := 0
+done:
+	for {
+		switch d.event.event_type {
+		case yaml_MAPPING_END_EVENT:
+			break done
+		case yaml_DOCUMENT_END_EVENT:
+			return
+		}
+
+		// Grow slice if necessary
+		if i >= v.Cap() {
+			newcap := v.Cap() + v.Cap()/2
+			if newcap < 4 {
+				newcap = 4
+			}
+			newv := reflect.MakeSlice(v.Type(), v.Len(), newcap)
+			reflect.Copy(newv, v)
+			v.Set(newv)
+		}
+		if i >= v.Len() {
+			v.SetLen(i + 1)
+		}
+
+		subv := reflect.New(structt).Elem()
+
+		d.parse(subv.FieldByName(nameField.name))
+		d.parse(subv.FieldByName(valueField.name))
+
+		v.Index(i).Set(subv)
+		i++
+	}
+
+	v.SetLen(i)
+	if i == 0 && v.Kind() == reflect.Slice {
+		v.Set(reflect.MakeSlice(v.Type(), 0, 0))
 	}
 
 	d.nextEvent()
@@ -544,7 +624,13 @@ func (d *Decoder) valueInterface() interface{} {
 		v = d.sequenceInterface()
 	case yaml_MAPPING_START_EVENT:
 		d.begin_anchor(anchor)
-		v = d.mappingInterface()
+		if d.mapType != nil {
+			subv := reflect.New(d.mapType).Elem()
+			d.mappingSlice(subv)
+			v = subv.Interface()
+		} else {
+			v = d.mappingInterface()
+		}
 	case yaml_SCALAR_EVENT:
 		d.begin_anchor(anchor)
 		v = d.scalarInterface()

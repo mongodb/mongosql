@@ -1,0 +1,13 @@
+- 
+  name: Mark McGwire
+  stats:
+    hr:   65
+    avg:  0.278
+  teams:
+    - name: Oakland
+    - name: St Louis
+-
+  name: Sammy Sosa
+  stats:
+    hr:   63
+    avg:  0.288
