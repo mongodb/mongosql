@@ -115,7 +115,7 @@ func NewMongoSource(ctx *ExecutionCtx, dbName, tableName string, aliasName strin
 		ms.mappingRegistry.registerMapping(ms.aliasName, c.SqlName, c.Name)
 	}
 
-	ms.pipeline = []bson.D{}
+	ms.pipeline = tableSchema.Pipeline
 
 	return ms, nil
 }
