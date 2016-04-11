@@ -186,7 +186,7 @@ func TestSelectWithStar(t *testing.T) {
 			So(collectionOne.Insert(bson.M{"d": 5, "a": 6, "b": 7}), ShouldBeNil)
 			So(collectionOne.Insert(bson.M{"d": 15, "a": 16, "c": 17}), ShouldBeNil)
 
-			names, values, err := eval.EvalSelect("test", "select * from bar", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select * from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(names, ShouldResemble, []string{"a", "b", "d", "c"})
 			So(len(names), ShouldEqual, 4)
@@ -212,7 +212,7 @@ func TestSelectWithStar(t *testing.T) {
 			}
 
 			Convey("result set should only contain records satisfying the WHERE clause", func() {
-				names, values, err = eval.EvalSelect("test", "select * from bar where a = 16", nil, conn)
+				names, values, err = eval.EvaluateRows("test", "select * from bar where a = 16", nil, conn)
 				So(err, ShouldBeNil)
 				So(len(values), ShouldEqual, 1)
 				So(len(values[0]), ShouldEqual, 4)
@@ -221,7 +221,7 @@ func TestSelectWithStar(t *testing.T) {
 				So(values[0][2], ShouldResemble, evaluator.SQLInt(15))
 				So(values[0][3], ShouldResemble, evaluator.SQLInt(17))
 
-				names, values, err = eval.EvalSelect("", "select * from test.bar where a = 16", nil, conn)
+				names, values, err = eval.EvaluateRows("", "select * from test.bar where a = 16", nil, conn)
 				So(err, ShouldBeNil)
 				So(len(values), ShouldEqual, 1)
 				So(len(values[0]), ShouldEqual, 4)
@@ -231,12 +231,12 @@ func TestSelectWithStar(t *testing.T) {
 				So(values[0][3], ShouldResemble, evaluator.SQLInt(17))
 
 				// A string literal should be usable as a matcher. "1" evaluates to true
-				names, values, err = eval.EvalSelect("", "select * from test.bar where '1'", nil, conn)
+				names, values, err = eval.EvaluateRows("", "select * from test.bar where '1'", nil, conn)
 				So(err, ShouldBeNil)
 				So(len(values), ShouldEqual, 2)
 
 				// A string that can't be converted to a non-zero integer evaluates to false
-				names, values, err = eval.EvalSelect("", "select * from test.bar where 'xxx'", nil, conn)
+				names, values, err = eval.EvaluateRows("", "select * from test.bar where 'xxx'", nil, conn)
 				So(err, ShouldBeNil)
 				So(len(values), ShouldEqual, 0)
 			})
@@ -263,7 +263,7 @@ func TestSelectWithNonStar(t *testing.T) {
 
 		Convey("selecting the fields in any order should return results as requested", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b, d from bar", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b, d from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 7)
@@ -274,7 +274,7 @@ func TestSelectWithNonStar(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b", "d"})
 
-			names, values, err = eval.EvalSelect("test", "select bar.* from bar", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select bar.* from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 7)
@@ -286,7 +286,7 @@ func TestSelectWithNonStar(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b", "d", "c"})
 
-			names, values, err = eval.EvalSelect("test", "select b, a from bar", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select b, a from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 7)
@@ -296,7 +296,7 @@ func TestSelectWithNonStar(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"b", "a"})
 
-			names, values, err = eval.EvalSelect("test", "select bar.b, bar.a from bar", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select bar.b, bar.a from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 7)
@@ -306,7 +306,7 @@ func TestSelectWithNonStar(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"b", "a"})
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 7)
@@ -316,7 +316,7 @@ func TestSelectWithNonStar(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
-			names, values, err = eval.EvalSelect("test", "select b, a, b from bar", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select b, a, b from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 7)
@@ -327,7 +327,7 @@ func TestSelectWithNonStar(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"b", "a", "b"})
 
-			names, values, err = eval.EvalSelect("test", "select b, A, b from bar", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select b, A, b from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 7)
@@ -341,7 +341,7 @@ func TestSelectWithNonStar(t *testing.T) {
 		})
 
 		Convey("selecting fields with non-column names should return results as requested", func() {
-			names, values, err := eval.EvalSelect("test", "select a + b, sum(a) from bar", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a + b, sum(a) from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -349,7 +349,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(13))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(27))
 
-			names, values, err = eval.EvalSelect("test", "select 1 from bar", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select 1 from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(values), ShouldEqual, 7)
 
@@ -374,7 +374,7 @@ func TestSelectWithAliasing(t *testing.T) {
 
 		Convey("aliased fields should return the aliased header", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b as c from bar", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b as c from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -384,7 +384,7 @@ func TestSelectWithAliasing(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(6))
 
-			names, values, err = eval.EvalSelect("test", "select a as d, b as c from bar b1", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a as d, b as c from bar b1", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -398,7 +398,7 @@ func TestSelectWithAliasing(t *testing.T) {
 
 		Convey("aliased fields colliding with existing column names should also return the aliased header", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b as a from bar", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b as a from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -428,7 +428,7 @@ func TestSelectWithDistinct(t *testing.T) {
 
 		Convey("distinct column references should return distinct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT distinct a, b FROM bar order by a, b", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT distinct a, b FROM bar order by a, b", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -445,7 +445,7 @@ func TestSelectWithDistinct(t *testing.T) {
 
 		Convey("distinct column references with group by should return distinct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT distinct a, b FROM bar group by a order by a, b", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT distinct a, b FROM bar group by a order by a, b", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -457,7 +457,7 @@ func TestSelectWithDistinct(t *testing.T) {
 		})
 
 		Convey("math within distinct column references should return distinct results", func() {
-			names, values, err := eval.EvalSelect("test", "SELECT distinct a+b FROM bar order by a+b", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT distinct a+b FROM bar order by a+b", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 
@@ -469,7 +469,7 @@ func TestSelectWithDistinct(t *testing.T) {
 		})
 
 		Convey("using aliases with distinct column references should return distinct results", func() {
-			names, values, err := eval.EvalSelect("test", "SELECT distinct a+b as f FROM bar order by f desc", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT distinct a+b as f FROM bar order by f desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 
@@ -482,7 +482,7 @@ func TestSelectWithDistinct(t *testing.T) {
 
 		Convey("distinct with aggregate functions and no grouping should return a single result", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT distinct sum(a-b), sum(b), a, a+b FROM bar", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT distinct sum(a-b), sum(b), a, a+b FROM bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 1)
@@ -495,7 +495,7 @@ func TestSelectWithDistinct(t *testing.T) {
 
 		Convey("distinct with aggregate functions and grouping should return distinct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT distinct sum(a-b), sum(b), b FROM bar group by b order by b", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT distinct sum(a-b), sum(b), b FROM bar group by b order by b", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 3)
@@ -516,7 +516,7 @@ func TestSelectWithDistinct(t *testing.T) {
 
 		Convey("distinct with single distinct aggregate functions and grouping should return distinct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT distinct sum(distinct a-b), sum(b), b FROM bar group by b order by b", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT distinct sum(distinct a-b), sum(b), b FROM bar group by b order by b", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 3)
@@ -537,7 +537,7 @@ func TestSelectWithDistinct(t *testing.T) {
 
 		Convey("distinct with multiple distinct aggregate functions and grouping should return distinct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT distinct sum(distinct a-b), sum(distinct b), b FROM bar group by b order by b", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT distinct sum(distinct a-b), sum(distinct b), b FROM bar group by b order by b", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 3)
@@ -576,7 +576,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("the result set should contain terms grouped accordingly", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, sum(bar.b) from bar group by a", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -597,7 +597,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("using multiple aggregation functions should produce correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, count(*), sum(bar.b) from bar group by a", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, count(*), sum(bar.b) from bar group by a", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 
@@ -616,7 +616,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			checkExpectedValues(3, values, expectedValues)
 
-			names, values, err = eval.EvalSelect("test", "select a, count(*), sum(bar.b) from bar group by 1", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, count(*), sum(bar.b) from bar group by 1", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 
@@ -624,7 +624,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			checkExpectedValues(3, values, expectedValues)
 
-			names, values, err = eval.EvalSelect("test", "select a from bar group by a", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a from bar group by a", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 2)
@@ -637,7 +637,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 			}
 			checkExpectedValues(1, values, expectedValues)
 
-			names, values, err = eval.EvalSelect("test", "select a as zz from bar group by zz", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a as zz from bar group by zz", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 
@@ -652,7 +652,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 		})
 
 		Convey("no error should be returned if some select fields are unused in GROUP BY clause", func() {
-			names, values, err := eval.EvalSelect("test", "select a, b, sum(a) from bar group by a order by a", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b, sum(a) from bar group by a order by a", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 3)
@@ -677,7 +677,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("using aggregation function containing other complex expressions should produce correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, sum(a+b) from bar group by a", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, sum(a+b) from bar group by a", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -697,7 +697,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("using aliased aggregation function should return aliased headers", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, sum(b) as sum from bar group by a", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, sum(b) as sum from bar group by a", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -718,7 +718,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("grouping by aliased term should return aliased headers", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a as f, sum(b) as sum from bar group by f", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a as f, sum(b) as sum from bar group by f", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -739,7 +739,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("grouping by aliased term referencing aliased columns should return correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0`", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0`", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
@@ -751,7 +751,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("grouping by aliased term referencing aliased columns with a where clause should return correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0` where havclause", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0` where havclause", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
@@ -759,7 +759,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(names, ShouldResemble, []string{"sum_a_ok"})
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(9))
 
-			names, values, err = eval.EvalSelect("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0` where not havclause", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0` where not havclause", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 0)
@@ -768,7 +768,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("grouping using distinct aggregation functions should return distinct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT a, sum(distinct b+d) FROM bar GROUP BY a", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT a, sum(distinct b+d) FROM bar GROUP BY a", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -786,7 +786,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("grouping using multiple distinct aggregation functions should return distinct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "SELECT a, sum(distinct b+d), sum(distinct b) FROM bar GROUP BY a", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "SELECT a, sum(distinct b+d), sum(distinct b) FROM bar GROUP BY a", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 
@@ -806,7 +806,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("count with a star parameter should count all rows", func() {
 
-			names, values, err := eval.EvalSelect("test", "select count(*) from bar", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select count(*) from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
@@ -816,7 +816,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("count with a column parameter should count only rows that contain a non-nullish b", func() {
 
-			names, values, err := eval.EvalSelect("test", "select count(b) from bar", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select count(b) from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
@@ -827,7 +827,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("count with a distinct column parameter should count only non-nullish distinct values", func() {
 
-			names, values, err := eval.EvalSelect("test", "select count(distinct b) from bar", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select count(distinct b) from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
@@ -838,7 +838,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 		Convey("should handle aliased table definitions", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, sum(b) from bar as b group by a", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, sum(b) from bar as b group by a", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -877,7 +877,7 @@ func TestSelectWithHaving(t *testing.T) {
 
 		Convey("using the same select expression aggregate function should filter the result set accordingly", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, sum(b) from bar group by a having sum(b) > 3", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, sum(b) from bar group by a having sum(b) > 3", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -901,7 +901,7 @@ func TestSelectWithHaving(t *testing.T) {
 
 		Convey("using a different select expression aggregate function should filter the result set accordingly", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, sum(b) from bar group by a having count(b) > 1", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, sum(b) from bar group by a having count(b) > 1", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -922,7 +922,7 @@ func TestSelectWithHaving(t *testing.T) {
 
 		Convey("should work even if no group by clause exists", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, sum(b) from bar having sum(b) > 3", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, sum(b) from bar having sum(b) > 3", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -958,7 +958,7 @@ func TestSelectWithJoin(t *testing.T) {
 		Convey("results should contain data from each of the joined tables", func() {
 
 			Convey("for an inner join", func() {
-				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e", nil, conn)
+				names, values, err := eval.EvaluateRows("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e", nil, conn)
 				So(err, ShouldBeNil)
 				So(len(names), ShouldEqual, 2)
 				So(len(values), ShouldEqual, 2)
@@ -978,7 +978,7 @@ func TestSelectWithJoin(t *testing.T) {
 			})
 
 			Convey("for an inner join with additional criteria", func() {
-				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e AND t2.f > 12", nil, conn)
+				names, values, err := eval.EvaluateRows("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e AND t2.f > 12", nil, conn)
 				So(err, ShouldBeNil)
 				So(len(names), ShouldEqual, 2)
 				So(len(values), ShouldEqual, 1)
@@ -995,7 +995,7 @@ func TestSelectWithJoin(t *testing.T) {
 			})
 
 			Convey("for an implicit join", func() {
-				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1, silly t2 where t1.c = t2.e", nil, conn)
+				names, values, err := eval.EvaluateRows("foo", "select t1.c, t2.f from bar t1, silly t2 where t1.c = t2.e", nil, conn)
 				So(err, ShouldBeNil)
 				So(len(names), ShouldEqual, 2)
 				So(len(values), ShouldEqual, 2)
@@ -1015,7 +1015,7 @@ func TestSelectWithJoin(t *testing.T) {
 			})
 
 			Convey("for an implicit join with additional criteria", func() {
-				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1, silly t2 where t1.c = t2.e AND t2.f > 12", nil, conn)
+				names, values, err := eval.EvaluateRows("foo", "select t1.c, t2.f from bar t1, silly t2 where t1.c = t2.e AND t2.f > 12", nil, conn)
 				So(err, ShouldBeNil)
 				So(len(names), ShouldEqual, 2)
 				So(len(values), ShouldEqual, 1)
@@ -1032,7 +1032,7 @@ func TestSelectWithJoin(t *testing.T) {
 			})
 
 			Convey("for a left join", func() {
-				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 left join silly t2 on t1.c = t2.e", nil, conn)
+				names, values, err := eval.EvaluateRows("foo", "select t1.c, t2.f from bar t1 left join silly t2 on t1.c = t2.e", nil, conn)
 				So(err, ShouldBeNil)
 				So(len(names), ShouldEqual, 2)
 				So(len(values), ShouldEqual, 3)
@@ -1055,7 +1055,7 @@ func TestSelectWithJoin(t *testing.T) {
 			})
 
 			Convey("for a left join with additional criteria", func() {
-				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 left join silly t2 on t1.c = t2.e AND t2.f > 12", nil, conn)
+				names, values, err := eval.EvaluateRows("foo", "select t1.c, t2.f from bar t1 left join silly t2 on t1.c = t2.e AND t2.f > 12", nil, conn)
 				So(err, ShouldBeNil)
 				So(len(names), ShouldEqual, 2)
 				So(len(values), ShouldEqual, 3)
@@ -1078,7 +1078,7 @@ func TestSelectWithJoin(t *testing.T) {
 			})
 
 			Convey("for a right join", func() {
-				names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 right join silly t2 on t1.c = t2.e", nil, conn)
+				names, values, err := eval.EvaluateRows("foo", "select t1.c, t2.f from bar t1 right join silly t2 on t1.c = t2.e", nil, conn)
 				So(err, ShouldBeNil)
 				So(len(names), ShouldEqual, 2)
 				So(len(values), ShouldEqual, 3)
@@ -1104,14 +1104,14 @@ func TestSelectWithJoin(t *testing.T) {
 
 		Convey("an error should be returned if derived table has no alias", func() {
 
-			_, _, err := eval.EvalSelect("foo", "select * from (select * from bar)", nil, conn)
+			_, _, err := eval.EvaluateRows("foo", "select * from (select * from bar)", nil, conn)
 			So(err, ShouldNotBeNil)
 
 		})
 
 		Convey("results should contain data from a derived table", func() {
 
-			names, values, err := eval.EvalSelect("foo", "select * from (select * from bar) as derived", nil, conn)
+			names, values, err := eval.EvaluateRows("foo", "select * from (select * from bar) as derived", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -1136,7 +1136,7 @@ func TestSelectWithJoin(t *testing.T) {
 
 		Convey("results should be correct when basic table is joined with subquery", func() {
 			// Note that this relies on the left deep nested join strategy
-			names, values, err := eval.EvalSelect("foo", "select * from bar join (select * from silly) as derived", nil, conn)
+			names, values, err := eval.EvaluateRows("foo", "select * from bar join (select * from silly) as derived", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 9)
@@ -1147,7 +1147,7 @@ func TestSelectWithJoin(t *testing.T) {
 
 		Convey("results should be correct when subquery is joined with subquery", func() {
 			// Note that this relies on the left deep nested join strategy
-			names, values, err := eval.EvalSelect("foo", "select * from (select * from bar) as a join (select * from silly) as b", nil, conn)
+			names, values, err := eval.EvaluateRows("foo", "select * from (select * from bar) as a join (select * from silly) as b", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 9)
@@ -1157,7 +1157,7 @@ func TestSelectWithJoin(t *testing.T) {
 
 		Convey("where clause filtering should return only matched results", func() {
 
-			names, values, err := eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e where t1.c > t2.e", nil, conn)
+			names, values, err := eval.EvaluateRows("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e where t1.c > t2.e", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 0)
@@ -1165,7 +1165,7 @@ func TestSelectWithJoin(t *testing.T) {
 			So(names, ShouldResemble, []string{"c", "f"})
 			checkExpectedValues(0, values, nil)
 
-			names, values, err = eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e where t1.c = 3", nil, conn)
+			names, values, err = eval.EvaluateRows("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e where t1.c = 3", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1180,7 +1180,7 @@ func TestSelectWithJoin(t *testing.T) {
 
 			checkExpectedValues(2, values, expectedValues)
 
-			names, values, err = eval.EvalSelect("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e where t1.c = 3 or t2.f = 12", nil, conn)
+			names, values, err = eval.EvaluateRows("foo", "select t1.c, t2.f from bar t1 join silly t2 on t1.c = t2.e where t1.c = 3 or t2.f = 12", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 2)
@@ -1216,12 +1216,12 @@ func TestSelectFromSubquery(t *testing.T) {
 
 		Convey("an error should be returned if the subquery is unaliased", func() {
 
-			_, _, err := eval.EvalSelect("test", "select * from (select * from bar)", nil, conn)
+			_, _, err := eval.EvaluateRows("test", "select * from (select * from bar)", nil, conn)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select * from (select * from bar) t0", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select * from (select * from bar) t0", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 1)
@@ -1234,7 +1234,7 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("aliased non-star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select d as x, c as y from (select d, c from bar) t0", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select d as x, c as y from (select d, c from bar) t0", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1245,7 +1245,7 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("correctly qualified outer aliased non-star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select t0.d as x, c as y from (select d, c from bar) t0", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select t0.d as x, c as y from (select d, c from bar) t0", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1256,7 +1256,7 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("correctly qualified outer and inner aliased non-star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select b as x, d as y from (select d as b, c as d from bar) t0", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select b as x, d as y from (select d as b, c as d from bar) t0", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1267,12 +1267,12 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("invalid (or invisible) column names in outer context should fail", func() {
-			_, _, err := eval.EvalSelect("test", "select da from (select * from (select d from bar) y) x", nil, conn)
+			_, _, err := eval.EvaluateRows("test", "select da from (select * from (select d from bar) y) x", nil, conn)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("valid column names in outer context should pass", func() {
-			names, values, err := eval.EvalSelect("test", "select d from (select * from (select d from bar) y) x", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select d from (select * from (select d from bar) y) x", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
@@ -1282,7 +1282,7 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("aliased and valid column names in outer context should pass", func() {
-			names, values, err := eval.EvalSelect("test", "select d as c from (select * from (select d from bar) y) x", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select d as c from (select * from (select d from bar) y) x", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
@@ -1292,7 +1292,7 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("multiply aliased and valid column names in outer context should pass", func() {
-			names, values, err := eval.EvalSelect("test", "select b as d from (select d as b from (select d from bar) y) x", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select b as d from (select d as b from (select d from bar) y) x", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 1)
@@ -1302,7 +1302,7 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("non-star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select d, c from (select * from bar) t0", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select d, c from (select * from bar) t0", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1313,12 +1313,12 @@ func TestSelectFromSubquery(t *testing.T) {
 		})
 
 		Convey("incorrectly qualified aliased non-star select expressions should return the correct results in order", func() {
-			_, _, err := eval.EvalSelect("test", "select bar.d as x, c as y from (select * from bar) t0", nil, conn)
+			_, _, err := eval.EvaluateRows("test", "select bar.d as x, c as y from (select * from bar) t0", nil, conn)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("unqualified star select expressions should return the correct results in order", func() {
-			names, values, err := eval.EvalSelect("test", "select * from (select * from bar) t0", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select * from (select * from bar) t0", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 1)
@@ -1351,7 +1351,7 @@ func TestSelectWithRowValue(t *testing.T) {
 
 		Convey("degree 1 equality comparisons should return the correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a) = 3", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where (a) = 3", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1364,7 +1364,7 @@ func TestSelectWithRowValue(t *testing.T) {
 
 		Convey("degree 1 inequality comparisons should return the correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a) > 5", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where (a) > 5", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
@@ -1379,7 +1379,7 @@ func TestSelectWithRowValue(t *testing.T) {
 			}
 			checkExpectedValues(2, values, expectedValues)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a) < 2", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (a) < 2", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1388,7 +1388,7 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a) < (2)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (a) < (2)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1397,7 +1397,7 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where 2 > (a)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where 2 > (a)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1406,7 +1406,7 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where 2 >= (a)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where 2 >= (a)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 2)
@@ -1418,7 +1418,7 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(values[1][0], ShouldResemble, evaluator.SQLInt(2))
 			So(values[1][1], ShouldResemble, evaluator.SQLInt(2))
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where 6 < (a)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where 6 < (a)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1427,7 +1427,7 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(7))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(6))
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where 6 <= (a)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where 6 <= (a)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 2)
@@ -1438,14 +1438,14 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(values[1][0], ShouldResemble, evaluator.SQLInt(7))
 			So(values[1][1], ShouldResemble, evaluator.SQLInt(6))
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where 6 <> (a)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where 6 <> (a)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 6)
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where 6 = (a)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where 6 = (a)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1454,7 +1454,7 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(6))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(5))
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where 6 in (a)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where 6 in (a)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1463,26 +1463,26 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(6))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(5))
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where 16 in (a)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where 16 in (a)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 0)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a) in (a)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (a) in (a)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 7)
 
-			_, _, err = eval.EvalSelect("test", "select a, b from bar where (a) in 3", nil, conn)
+			_, _, err = eval.EvaluateRows("test", "select a, b from bar where (a) in 3", nil, conn)
 			So(err, ShouldNotBeNil)
 
-			_, _, err = eval.EvalSelect("test", "select a, b from bar where a in 3", nil, conn)
+			_, _, err = eval.EvaluateRows("test", "select a, b from bar where a in 3", nil, conn)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("degree n equality comparisons should return the correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a, b) = (3, 4)", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where (a, b) = (3, 4)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1491,7 +1491,7 @@ func TestSelectWithRowValue(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(3))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(4))
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a, b) = (3, 5)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (a, b) = (3, 5)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 0)
@@ -1500,52 +1500,52 @@ func TestSelectWithRowValue(t *testing.T) {
 
 		Convey("degree n inequality comparisons should return the correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a, b) >= (3, 4)", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where (a, b) >= (3, 4)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 5)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a, b) > (3, 4)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (a, b) > (3, 4)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 4)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a, b) < (4, 5)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (a, b) < (4, 5)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 4)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a, b) <= (1, 2)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (a, b) <= (1, 2)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a, b) <> (1, 2)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (a, b) <> (1, 2)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 7)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where not (a, b) <> (1, 2)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where not (a, b) <> (1, 2)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 0)
 
-			names, values, err = eval.EvalSelect("test", "select * from bar where (b-a, a+b) = (1, 7)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select * from bar where (b-a, a+b) = (1, 7)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 1)
 
-			names, values, err = eval.EvalSelect("test", "select * from bar where (a-b, a*b) > (0, 15)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select * from bar where (a-b, a*b) > (0, 15)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 4)
 
-			names, values, err = eval.EvalSelect("test", "select * from bar where (a-b, a*b) > (0, 17)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select * from bar where (a-b, a*b) > (0, 17)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 3)
 
-			names, values, err = eval.EvalSelect("test", "select * from bar where (a+a*b, a*b) > (20, 15)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select * from bar where (a+a*b, a*b) > (20, 15)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 4)
@@ -1553,31 +1553,31 @@ func TestSelectWithRowValue(t *testing.T) {
 		})
 
 		Convey("comparisons using the IN operator should return the correct results", func() {
-			_, _, err := eval.EvalSelect("test", "select a, b from bar where (a, b) in (1, 2)", nil, conn)
+			_, _, err := eval.EvaluateRows("test", "select a, b from bar where (a, b) in (1, 2)", nil, conn)
 			So(err, ShouldNotBeNil)
 
-			_, _, err = eval.EvalSelect("test", "select a, b from bar where a in 1", nil, conn)
+			_, _, err = eval.EvaluateRows("test", "select a, b from bar where a in 1", nil, conn)
 			So(err, ShouldNotBeNil)
 
-			_, _, err = eval.EvalSelect("test", "select a, b from bar where (a) in 1", nil, conn)
+			_, _, err = eval.EvaluateRows("test", "select a, b from bar where (a) in 1", nil, conn)
 			So(err, ShouldNotBeNil)
 
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where a in (1)", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where a in (1)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where a in (1, 2)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where a in (1, 2)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 2)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (a) in (1, 2)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (a) in (1, 2)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 2)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (b) in (4)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (b) in (4)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -1585,22 +1585,22 @@ func TestSelectWithRowValue(t *testing.T) {
 
 		Convey("comparisons using the NOT IN operator should return the correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where (b) not in (4)", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where (b) not in (4)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 4)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (b) not in (1, 2, 4, 5)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (b) not in (1, 2, 4, 5)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (b) not in (1, 2, 4, 5, 6)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (b) not in (1, 2, 4, 5, 6)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 0)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where (b) not in (1, 2, 4, 5, 6) or a not in (1, 2, 3, 4, 5, 6)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where (b) not in (1, 2, 4, 5, 6) or a not in (1, 2, 3, 4, 5, 6)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1626,7 +1626,7 @@ func TestSelectWithoutTable(t *testing.T) {
 
 		Convey("the result set should work on just the select expressions", func() {
 
-			names, values, err := eval.EvalSelect("test", "select 1, 3", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select 1, 3", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1635,7 +1635,7 @@ func TestSelectWithoutTable(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(3))
 
-			names, values, err = eval.EvalSelect("test", "select 2*1, 3+5", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select 2*1, 3+5", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
@@ -1647,7 +1647,7 @@ func TestSelectWithoutTable(t *testing.T) {
 			// TODO: this works but can't test it since the execution context
 			// isn't yet set
 			//
-			// names, values, err = eval.EvalSelect("test", "select database()", nil, conn)
+			// names, values, err = eval.EvaluateRows("test", "select database()", nil, conn)
 			// So(err, ShouldBeNil)
 			// So(len(names), ShouldEqual, 1)
 			// So(len(values), ShouldEqual, 1)
@@ -1673,7 +1673,7 @@ func TestSelectWithWhere(t *testing.T) {
 
 		Convey("range filters should return the right results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where a between 1 and 3", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where a between 1 and 3", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -1695,7 +1695,7 @@ func TestSelectWithWhere(t *testing.T) {
 
 			checkExpectedValues(2, values, expectedValues)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where a between 3 and 3", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where a between 3 and 3", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -1711,7 +1711,7 @@ func TestSelectWithWhere(t *testing.T) {
 
 			checkExpectedValues(2, values, expectedValues)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where a between 3 and 1", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where a between 3 and 1", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -1719,7 +1719,7 @@ func TestSelectWithWhere(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b"})
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where a between 1 and 2 or a between 2 and 3", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where a between 1 and 2 or a between 2 and 3", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -1741,13 +1741,13 @@ func TestSelectWithWhere(t *testing.T) {
 
 			checkExpectedValues(2, values, expectedValues)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where a not between 1 and 2 and a not between 2 and 3", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where a not between 1 and 2 and a not between 2 and 3", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 0)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where a not between 1 and 2", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where a not between 1 and 2", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -1758,13 +1758,13 @@ func TestSelectWithWhere(t *testing.T) {
 
 		Convey("unary filter operators should return the right results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where a = ~-1", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where a = ~-1", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 0)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where a = ~-1 + 1", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where a = ~-1 + 1", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -1772,7 +1772,7 @@ func TestSelectWithWhere(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where a = +1 + 1", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where a = +1 + 1", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -1780,7 +1780,7 @@ func TestSelectWithWhere(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(2))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(2))
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where a = (~1 + 1 + (+4))", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where a = (~1 + 1 + (+4))", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -1790,7 +1790,7 @@ func TestSelectWithWhere(t *testing.T) {
 		})
 
 		Convey("complex filter operators should return the right results", func() {
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where a > 1 AND a < b", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where a > 1 AND a < b", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -1818,7 +1818,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(collectionOne.Insert(bson.M{"d": 1, "b": 1, "a": 1}), ShouldBeNil)
 			So(collectionOne.Insert(bson.M{"d": 3, "b": 2, "a": 2}), ShouldBeNil)
 
-			names, values, err := eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by a", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, sum(bar.b) from bar group by a order by a", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -1828,7 +1828,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
 
-			names, values, err = eval.EvalSelect("test", "select a from bar order by a asc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a from bar order by a asc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 4)
@@ -1839,7 +1839,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2)})
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(3)})
 
-			names, values, err = eval.EvalSelect("test", "select a from bar order by a desc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a from bar order by a desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 4)
@@ -1850,7 +1850,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
 
-			names, values, err = eval.EvalSelect("test", "select a from bar order by 1 desc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a from bar order by 1 desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 4)
@@ -1861,7 +1861,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
 
-			names, values, err = eval.EvalSelect("test", "select a + b as c from bar group by c order by c desc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a + b as c from bar group by c order by c desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 4)
@@ -1872,7 +1872,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3)})
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(2)})
 
-			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by a desc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) from bar group by a order by a desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -1882,7 +1882,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
 
-			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by sum(bar.b)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) from bar group by a order by sum(bar.b)", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -1892,7 +1892,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
 
-			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by 2", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) from bar group by a order by 2", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -1902,7 +1902,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
 
-			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) as c from bar group by a order by c", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) as c from bar group by a order by c", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -1912,13 +1912,13 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
 
-			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) as c from bar group by a order by cd", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) as c from bar group by a order by cd", nil, conn)
 			So(err, ShouldNotBeNil)
 
-			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by 3", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) from bar group by a order by 3", nil, conn)
 			So(err, ShouldNotBeNil)
 
-			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by sum(b) asc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) from bar group by a order by sum(b) asc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -1928,7 +1928,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
 
-			names, values, err = eval.EvalSelect("test", "select * from bar order by 3", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select * from bar order by 3", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 4)
@@ -1939,7 +1939,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(3), evaluator.SQLNull})
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNull})
 
-			names, values, err = eval.EvalSelect("test", "select * from bar order by 3 desc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select * from bar order by 3 desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 4)
@@ -1950,7 +1950,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNull})
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLNull})
 
-			names, values, err = eval.EvalSelect("test", "select * from bar order by 2, 3 desc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select * from bar order by 2, 3 desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 4)
@@ -1961,7 +1961,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLNull})
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(4), evaluator.SQLNull})
 
-			names, values, err = eval.EvalSelect("test", "select a, sum(bar.b) from bar group by a order by sum(b) desc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) from bar group by a order by sum(b) desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -1981,7 +1981,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(collectionOne.Insert(bson.M{"d": 5, "b": 3, "a": 4}), ShouldBeNil)
 			So(collectionOne.Insert(bson.M{"d": 6, "b": 3, "a": 1}), ShouldBeNil)
 
-			names, values, err := eval.EvalSelect("test", "select a, b, sum(bar.b) from bar group by a, b order by a asc, sum(b) desc", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b, sum(bar.b) from bar group by a, b order by a asc, sum(b) desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 6)
@@ -1994,7 +1994,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(10)})
 			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLInt(3)})
 
-			names, values, err = eval.EvalSelect("test", "select a, b, sum(bar.b) from bar group by a, b order by a asc, sum(b) asc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b, sum(bar.b) from bar group by a, b order by a asc, sum(b) asc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 6)
@@ -2007,7 +2007,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(10)})
 			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLInt(3)})
 
-			names, values, err = eval.EvalSelect("test", "select a, b, sum(bar.b) from bar group by a, b order by a desc, sum(b) asc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b, sum(bar.b) from bar group by a, b order by a desc, sum(b) asc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 6)
@@ -2020,7 +2020,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
 			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLInt(3)})
 
-			names, values, err = eval.EvalSelect("test", "select a, b, sum(bar.b) from bar group by a, b order by a desc, sum(b) desc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b, sum(bar.b) from bar group by a, b order by a desc, sum(b) desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 6)
@@ -2033,7 +2033,7 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
 			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1)})
 
-			names, values, err = eval.EvalSelect("test", "select a, a + b as c from bar order by c desc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, a + b as c from bar order by c desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 6)
@@ -2066,7 +2066,7 @@ func TestSelectWithCaseExpr(t *testing.T) {
 
 		Convey("if a case matches, the correct result should be returned", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, (case when a > 5 then 'gt' else 'lt' end) as p from bar", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, (case when a > 5 then 'gt' else 'lt' end) as p from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -2087,7 +2087,7 @@ func TestSelectWithCaseExpr(t *testing.T) {
 
 		Convey("if no case matches, null should be returned", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, (case when a > 15 then 'gt' end) as p from bar", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, (case when a > 15 then 'gt' end) as p from bar", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 3)
@@ -2126,20 +2126,20 @@ func TestSelectWithLimit(t *testing.T) {
 
 		Convey("non-integer limits and/or row counts should return an error", func() {
 
-			_, _, err := eval.EvalSelect("test", "select * from bar limit 1,1.1", nil, conn)
+			_, _, err := eval.EvaluateRows("test", "select * from bar limit 1,1.1", nil, conn)
 			So(err, ShouldNotBeNil)
 
-			_, _, err = eval.EvalSelect("test", "select * from bar limit 1.1,1", nil, conn)
+			_, _, err = eval.EvaluateRows("test", "select * from bar limit 1.1,1", nil, conn)
 			So(err, ShouldNotBeNil)
 
-			_, _, err = eval.EvalSelect("test", "select * from bar limit 1.1,1.1", nil, conn)
+			_, _, err = eval.EvaluateRows("test", "select * from bar limit 1.1,1.1", nil, conn)
 			So(err, ShouldNotBeNil)
 
 		})
 
 		Convey("the number of results should match the limit", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a from bar limit 1", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a from bar limit 1", nil, conn)
 			So(err, ShouldBeNil)
 			So(names, ShouldResemble, []string{"a"})
 			So(len(values), ShouldEqual, 1)
@@ -2148,12 +2148,12 @@ func TestSelectWithLimit(t *testing.T) {
 
 		Convey("the offset should be skip the number of records specified", func() {
 
-			names, values, err := eval.EvalSelect("test", "select d from bar order by d limit 1, 1", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select d from bar order by d limit 1, 1", nil, conn)
 			So(err, ShouldBeNil)
 			So(names, ShouldResemble, []string{"d"})
 			So(values, ShouldResemble, [][]interface{}{[]interface{}{evaluator.SQLInt(2)}})
 
-			names, values, err = eval.EvalSelect("test", "select d from bar order by d limit 3, 1", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select d from bar order by d limit 3, 1", nil, conn)
 			So(err, ShouldBeNil)
 			So(names, ShouldResemble, []string{"d"})
 			So(values, ShouldResemble, [][]interface{}{[]interface{}{evaluator.SQLInt(4)}})
@@ -2179,7 +2179,7 @@ func TestSelectWithExists(t *testing.T) {
 
 		Convey("singly and multiply nested exist expressions from single tables should return correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select f1.a, f1.b from bar f1 where exists (select f2.b from bar f2 where f2.b < f1.a)", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select f1.a, f1.b from bar f1 where exists (select f2.b from bar f2 where f2.b < f1.a)", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -2201,7 +2201,7 @@ func TestSelectWithExists(t *testing.T) {
 
 			checkExpectedValues(2, values, expectedValues)
 
-			names, values, err = eval.EvalSelect("test", "select f1.a, f1.b from bar f1 where exists (select f2.b from bar f2 where exists (select f3.c from bar f3 where exists (select * from bar f4 where f4.a > f2.b and f1.c = f3.a)))", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select f1.a, f1.b from bar f1 where exists (select f2.b from bar f2 where exists (select f3.c from bar f3 where exists (select * from bar f4 where f4.a > f2.b and f1.c = f3.a)))", nil, conn)
 
 			So(err, ShouldBeNil)
 
@@ -2224,7 +2224,7 @@ func TestSelectWithExists(t *testing.T) {
 
 		Convey("singly and multiply nested exist expressions from joined tables should return correct results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select f1.a, f9.c from bar f1 join bar f9 on f9.a > f1.b + 3 where exists (select f2.b from bar f2 join bar f10 on f2.c > f10.a where exists (select f3.c from bar f3 where exists (select * from bar, bar f5 where f5.a > f2.a and f10.c < f1.a*2)) and f2.a > f1.c and f1.a > f2.b or f9.c > 8 )", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select f1.a, f9.c from bar f1 join bar f9 on f9.a > f1.b + 3 where exists (select f2.b from bar f2 join bar f10 on f2.c > f10.a where exists (select f3.c from bar f3 where exists (select * from bar, bar f5 where f5.a > f2.a and f10.c < f1.a*2)) and f2.a > f1.c and f1.a > f2.b or f9.c > 8 )", nil, conn)
 
 			So(err, ShouldBeNil)
 
@@ -2262,14 +2262,14 @@ func TestSelectWithSubqueryWhere(t *testing.T) {
 
 		Convey("subqueries returning more than one row should error out", func() {
 
-			_, _, err := eval.EvalSelect("test", "select * from bar where (a, b) > (select a, b from bar where a < 2)", nil, conn)
+			_, _, err := eval.EvaluateRows("test", "select * from bar where (a, b) > (select a, b from bar where a < 2)", nil, conn)
 			So(err, ShouldNotBeNil)
 
 		})
 
 		Convey("subqueries returning one matching row should not error out", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where a = (select max(a) from bar)", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where a = (select max(a) from bar)", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -2285,7 +2285,7 @@ func TestSelectWithSubqueryWhere(t *testing.T) {
 
 			checkExpectedValues(2, values, expectedValues)
 
-			names, values, err = eval.EvalSelect("test", "select a, b from bar where a = (select a from bar where a = 5)", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a, b from bar where a = (select a from bar where a = 5)", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -2305,7 +2305,7 @@ func TestSelectWithSubqueryWhere(t *testing.T) {
 
 		Convey("subqueries returning no rows should return no results", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a, b) > (select a, b from bar where a = 0)", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where (a, b) > (select a, b from bar where a = 0)", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -2317,7 +2317,7 @@ func TestSelectWithSubqueryWhere(t *testing.T) {
 
 		Convey("subqueries returning exactly one row should be filtered correctly", func() {
 
-			names, values, err := eval.EvalSelect("test", "select a, b from bar where (a, b) > (select a, b from bar where a = 2)", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select a, b from bar where (a, b) > (select a, b from bar where a = 2)", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -2359,7 +2359,7 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 
 		Convey("star expressions combined with subqueries should return the correct columns", func() {
 
-			names, values, err := eval.EvalSelect("test", "select * from bar f, (select max(a) as maxloss, c from bar) m", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select * from bar f, (select max(a) as maxloss, c from bar) m", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 6)
@@ -2370,7 +2370,7 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 
 		Convey("filtered star expressions combined with subqueries should return the correct columns", func() {
 
-			names, values, err := eval.EvalSelect("test", "select f.* from bar f, (select max(a) as maxloss from bar) m", nil, conn)
+			names, values, err := eval.EvaluateRows("test", "select f.* from bar f, (select max(a) as maxloss from bar) m", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 4)
@@ -2378,7 +2378,7 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b", "d", "c"})
 
-			names, values, err = eval.EvalSelect("test", "select m.* from bar f, (select max(a) as maxloss, c from bar) m", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select m.* from bar f, (select max(a) as maxloss, c from bar) m", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 2)
@@ -2386,7 +2386,7 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"maxloss", "c"})
 
-			names, values, err = eval.EvalSelect("test", "select m.*, f.* from bar f, (select max(a) as maxloss, c from bar) m", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select m.*, f.* from bar f, (select max(a) as maxloss, c from bar) m", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 6)
@@ -2394,7 +2394,7 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"maxloss", "c", "a", "b", "d", "c"})
 
-			names, values, err = eval.EvalSelect("test", "select * from bar f, (select max(a) as maxloss, c from bar) m", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select * from bar f, (select max(a) as maxloss, c from bar) m", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 6)
@@ -2402,7 +2402,7 @@ func TestSelectWithSubqueryInline(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "b", "d", "c", "maxloss", "c"})
 
-			names, values, err = eval.EvalSelect("test", "select * from bar join (select * from bar) as derived order by bar.c", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select * from bar join (select * from bar) as derived order by bar.c", nil, conn)
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 8)

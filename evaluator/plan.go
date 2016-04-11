@@ -41,19 +41,35 @@ type PlanCtx struct {
 	Depth int
 }
 
+func NewPlanCtx(conf *schema.Schema, pCtx *ParseCtx, db string) *PlanCtx {
+	return &PlanCtx{
+		Schema:   conf,
+		ParseCtx: pCtx,
+		Db:       db,
+	}
+}
+
 // ExecutionCtx holds exeuction context information
 // used by each Iterator implemenation.
 type ExecutionCtx struct {
-	Session *mgo.Session
+	Depth int
+
 	// GroupRows holds a set of rows used by each GROUP BY combination
 	GroupRows []Row
+
 	// SrcRows caches the data gotten from a table scan or join node
 	SrcRows []*Row
+
 	ConnectionCtx
 
 	PlanCtx *PlanCtx
+}
 
-	Depth int
+func NewExecutionCtx(connCtx ConnectionCtx, planCtx *PlanCtx) *ExecutionCtx {
+	return &ExecutionCtx{
+		ConnectionCtx: connCtx,
+		PlanCtx:       planCtx,
+	}
 }
 
 // PlanStage represents a single a node in the Plan tree.

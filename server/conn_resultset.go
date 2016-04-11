@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/mongodb/mongo-tools/common/log"
 )
 
 func formatValue(value interface{}) ([]byte, error) {
@@ -192,6 +193,116 @@ func (c *conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 	}
 
 	return r, nil
+}
+
+// streamResultset implements the COM_QUERY response.
+// More at https://dev.mysql.com/doc/internals/en/com-query-response.html
+func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter) error {
+
+	// If the number of columns in the resultset is 0, write an OK packet
+	if len(columns) == 0 {
+		return c.writeOK(nil)
+	}
+
+	c.affectedRows = int64(-1)
+
+	status := c.status
+
+	columnLen := putLengthEncodedInt(uint64(len(columns)))
+
+	data := make([]byte, 4, 1024)
+
+	data = append(data, columnLen...)
+
+	var err error
+
+	// write column count
+	if err = c.writePacket(data); err != nil {
+		return err
+	}
+
+	writeHeaders := func(values []interface{}) error {
+
+		for j, value := range values {
+
+			field := &Field{
+				Name: Slice(columns[j].View),
+			}
+
+			if err = formatField(field, value); err != nil {
+				return err
+			}
+
+			data = data[0:4]
+			data = append(data, field.Dump()...)
+			// write a column definition packet for each
+			// column in the result set
+			if err := c.writePacket(data); err != nil {
+				return err
+			}
+		}
+
+		// end the column definitions with an EOF packet
+		return c.writeEOF(status)
+	}
+
+	var b []byte
+
+	evaluatorRow := &evaluator.Row{}
+
+	var wroteHeaders bool
+
+	for iter.Next(evaluatorRow) {
+
+		values := evaluatorRow.GetValues(columns)
+
+		// write the headers once
+		if !wroteHeaders {
+			if err = writeHeaders(values); err != nil {
+				return err
+			}
+			wroteHeaders = true
+		}
+
+		data = data[0:4]
+
+		for _, value := range values {
+			b, err = formatValue(value)
+			if err != nil {
+				return err
+			}
+			if b == nil {
+				data = append(data, 0xfb)
+			} else {
+				data = append(data, putLengthEncodedString(b)...)
+			}
+		}
+
+		// write each row as a separate packet
+		if err := c.writePacket(data); err != nil {
+			return err
+		}
+
+		evaluatorRow.Data = []evaluator.TableRow{}
+	}
+
+	if err = iter.Close(); err != nil {
+		return fmt.Errorf("iterator close error: %v", err)
+	}
+
+	if err = iter.Err(); err != nil {
+		return fmt.Errorf("iterator err: %v", err)
+	}
+
+	log.Logf(log.DebugLow, "[conn%v] done executing plan", c.ConnectionId())
+
+	if !wroteHeaders {
+		if err = writeHeaders(make([]interface{}, len(columns))); err != nil {
+			return err
+		}
+	}
+
+	return c.writeEOF(status)
 }
 
 func (c *conn) writeResultset(status uint16, r *Resultset) error {

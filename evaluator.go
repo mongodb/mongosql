@@ -45,113 +45,35 @@ func (e *Evaluator) Schema() schema.Schema {
 	return *e.config
 }
 
-// EvalSelect returns all rows matching the query.
-func (e *Evaluator) EvalSelect(db, sql string, stmt sqlparser.SelectStatement, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
+// EvaluateRows executes the query and returns the
+// generated results as a slice of rows.
+func (e *Evaluator) EvaluateRows(db, sql string, ast sqlparser.SelectStatement, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
 
-	if stmt == nil {
-		// we can parse ourselves
-		raw, err := sqlparser.Parse(sql)
-		if err != nil {
-			return nil, nil, err
-		}
-		var ok bool
-		if stmt, ok = raw.(sqlparser.SelectStatement); !ok {
-			return nil, nil, fmt.Errorf("got a non-select statement in EvalSelect")
-		}
-	}
-
-	log.Logf(log.DebugLow, "Preparing select query: %#v", sqlparser.String(stmt))
-
-	var pCtx *evaluator.ParseCtx
-	var err error
-
-	if _, ok := stmt.(*sqlparser.Select); ok {
-		// create initial parse context
-		pCtx, err = evaluator.NewParseCtx(stmt, e.config, db)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
-		}
-
-		if db == "" {
-			db = pCtx.Database
-		}
-
-		// resolve names
-		if err = evaluator.AlgebrizeStatement(stmt, pCtx); err != nil {
-			return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
-		}
-
-		if pCtx != nil {
-			log.Logf(log.DebugLow, "Query Planner ParseCtx: %v\n", pCtx.String())
-		}
-
-	}
-
-	// get a new session for every execution context.
-	session := conn.Session()
-
-	planCtx := &evaluator.PlanCtx{
-		Schema:   e.config,
-		ParseCtx: pCtx,
-		Db:       db,
-	}
-
-	// construct query plan
-	queryPlan, err := evaluator.PlanQuery(planCtx, stmt)
+	fields, iter, err := e.Evaluate(db, sql, ast, conn)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error constructing query plan: %v", err)
+		return nil, nil, err
 	}
 
-	// construct execution context
-	eCtx := &evaluator.ExecutionCtx{
-		Session:       session,
-		ConnectionCtx: conn,
-		PlanCtx:       planCtx,
-	}
-
-	// execute plan
-	columns, results, err := executeQueryPlan(eCtx, queryPlan)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error executing query: %v", err)
-	}
-
-	return columns, results, nil
-}
-
-// executeQueryPlan executes the query plan held in the operator by reading from it
-// until it exhausts all results.
-func executeQueryPlan(ctx *evaluator.ExecutionCtx, plan evaluator.PlanStage) ([]string, [][]interface{}, error) {
 	rows := make([][]interface{}, 0)
 
-	log.Logf(log.DebugLow, "Executing plan...")
-
 	row := &evaluator.Row{}
-	var iter evaluator.Iter
-	var err error
-
-	if iter, err = plan.Open(ctx); err != nil {
-		return nil, nil, fmt.Errorf("operator open: %v", err)
-	}
 
 	for iter.Next(row) {
-		rows = append(rows, row.GetValues(plan.OpFields()))
-
+		rows = append(rows, row.GetValues(fields))
 		row.Data = []evaluator.TableRow{}
 	}
 
 	if err := iter.Close(); err != nil {
-		return nil, nil, fmt.Errorf("operator close: %v", err)
+		return nil, nil, fmt.Errorf("iterator close: %v", err)
 	}
 
 	if err := iter.Err(); err != nil {
-		return nil, nil, fmt.Errorf("operator err: %v", err)
+		return nil, nil, fmt.Errorf("iterator err: %v", err)
 	}
-
-	log.Log(log.DebugLow, "Done executing plan")
 
 	// make sure all rows have same number of values
 	for idx, row := range rows {
-		for len(row) < len(plan.OpFields()) {
+		for len(row) < len(fields) {
 			row = append(row, nil)
 		}
 		rows[idx] = row
@@ -159,9 +81,83 @@ func executeQueryPlan(ctx *evaluator.ExecutionCtx, plan evaluator.PlanStage) ([]
 
 	var headers []string
 
-	for _, field := range plan.OpFields() {
+	for _, field := range fields {
 		headers = append(headers, field.View)
 	}
 
 	return headers, rows, nil
+}
+
+// Evaluate executes the query and returns an iterator
+// capable of going over all the generated results.
+func (e *Evaluator) Evaluate(db, sql string, ast sqlparser.SelectStatement, conn evaluator.ConnectionCtx) ([]*evaluator.Column, evaluator.Iter, error) {
+
+	plan, executionCtx, err := e.Plan(db, sql, ast, conn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Logf(log.DebugLow, "[conn%v] executing plan", conn.ConnectionId())
+
+	iter, err := plan.Open(executionCtx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	fields := plan.OpFields()
+
+	return fields, iter, nil
+}
+
+// Plan returns a query plan for the SQL query.
+func (e *Evaluator) Plan(db, sql string, ast sqlparser.SelectStatement, conn evaluator.ConnectionCtx) (evaluator.PlanStage, *evaluator.ExecutionCtx, error) {
+
+	var ok bool
+
+	if ast == nil {
+		raw, err := sqlparser.Parse(sql)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		ast, ok = raw.(sqlparser.SelectStatement)
+		if !ok {
+			return nil, nil, fmt.Errorf("got a non-select statement in algebrization")
+		}
+	}
+
+	log.Logf(log.DebugLow, "Preparing query plan for: %#v", sqlparser.String(ast))
+
+	var parseCtx *evaluator.ParseCtx
+	var err error
+
+	if _, ok = ast.(*sqlparser.Select); ok {
+		parseCtx, err = evaluator.NewParseCtx(ast, e.config, db)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
+		}
+
+		if db == "" {
+			db = parseCtx.Database
+		}
+
+		if err = evaluator.AlgebrizeStatement(ast, parseCtx); err != nil {
+			return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
+		}
+
+		if parseCtx != nil {
+			log.Logf(log.DebugLow, "Query Planner ParseCtx: %v\n", parseCtx.String())
+		}
+	}
+
+	planCtx := evaluator.NewPlanCtx(e.config, parseCtx, db)
+
+	queryPlan, err := evaluator.PlanQuery(planCtx, ast)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error constructing query plan: %v", err)
+	}
+
+	executionCtx := evaluator.NewExecutionCtx(conn, planCtx)
+
+	return queryPlan, executionCtx, nil
 }

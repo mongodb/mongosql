@@ -23,42 +23,28 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 func (c *conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
 	log.Logf(log.DebugHigh, "[conn%v] parsed statement: %#v", c.connectionID, stmt)
 
-	// TODO: deal with this
-	// bindVars := makeBindVars(args)
-
 	var currentDB string
 	if c.currentDB != nil {
 		currentDB = c.currentDB.Name
 	}
 
-	names, values, err := c.server.eval.EvalSelect(currentDB, sql, stmt, c)
+	fields, iter, err := c.server.eval.Evaluate(currentDB, sql, stmt, c)
 	if err != nil {
 		return err
 	}
 
-	rs, err := c.buildResultset(names, values)
-	if err != nil {
-		return err
-	}
-
-	return c.writeResultset(c.status, rs)
+	return c.streamResultset(fields, iter)
 }
 
 func (c *conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
 	log.Logf(log.DebugHigh, "[conn%v] parsed statement: %#v", c.connectionID, stmt)
 
-	names, values, err := c.server.eval.EvalSelect("", sql, stmt, c)
+	fields, iter, err := c.server.eval.Evaluate("", sql, stmt, c)
 	if err != nil {
 		return err
 	}
 
-	rs, err := c.buildResultset(names, values)
-	if err != nil {
-		return err
-	}
-
-	return c.writeResultset(c.status, rs)
-
+	return c.streamResultset(fields, iter)
 }
 
 func (c *conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {

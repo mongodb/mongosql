@@ -6,8 +6,33 @@ import (
 
 	"github.com/10gen/sqlproxy"
 	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
+
+type connCtx struct {
+	session *mgo.Session
+}
+
+func (c *connCtx) LastInsertId() int64 {
+	return int64(0)
+}
+
+func (c *connCtx) RowCount() int64 {
+	return int64(0)
+}
+
+func (c *connCtx) ConnectionId() uint32 {
+	return uint32(0)
+}
+
+func (c *connCtx) DB() string {
+	return ""
+}
+
+func (c *connCtx) Session() *mgo.Session {
+	return c.session
+}
 
 func getOptions(t *testing.T) sqlproxy.Options {
 	opts := sqlproxy.Options{
@@ -65,8 +90,10 @@ func TestMongoSourceOperator(t *testing.T) {
 				So(collectionTwo.Insert(row), ShouldBeNil)
 			}
 
+			cCtx := &connCtx{session}
+
 			ctx := &ExecutionCtx{
-				Session: session,
+				ConnectionCtx: cCtx,
 				PlanCtx: &PlanCtx{
 					Schema: cfgOne,
 					Db:     dbOne,

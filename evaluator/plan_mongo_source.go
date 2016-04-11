@@ -141,7 +141,7 @@ func (ms *MongoSourceStage) clone() *MongoSourceStage {
 
 // Open establishes a connection to database collection for this table.
 func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	mgoIter := MgoFindResults{ctx.Session.DB(ms.dbName).C(ms.collectionName).Pipe(ms.pipeline).AllowDiskUse().Iter()}
+	mgoIter := MgoFindResults{ctx.Session().DB(ms.dbName).C(ms.collectionName).Pipe(ms.pipeline).AllowDiskUse().Iter()}
 
 	return &MongoSourceIter{
 		tableName:       ms.tableName,
