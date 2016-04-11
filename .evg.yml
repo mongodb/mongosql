@@ -263,8 +263,6 @@ tasks:
       params:
         working_dir: src
         script: |
-          $(set -o pipefail);
-          if [ "$?" != "2" ]; then set -o pipefail; fi;
           set -o verbose
           set -o errexit
           if [ "Windows_NT" = "$OS" ]; then
@@ -272,7 +270,7 @@ tasks:
           fi;
           . ./set_gopath.sh
           ${gotest_env} go run testdata/benchmark.go -out benchmark_test.go
-          ${gotest_env} go test -run benchmark_test.go -bench=. -benchmem -benchtime=5s -v -timeout 4h | tee benchmark.txt
+          ${gotest_env} go test -run benchmark_test.go -bench=. -benchmem -benchtime=5s -v -timeout 4h > benchmark.txt 2>&1; if [ $? -ne 0 ]; then cat benchmark.txt; exit 1; else cat benchmark.txt; exit 0; fi
     - func: "upload benchmark report"
 
 - name: blackbox
@@ -286,15 +284,13 @@ tasks:
       params:
         working_dir: src
         script: |
-          $(set -o pipefail);
-          if [ "$?" != "2" ]; then set -o pipefail; fi;
           set -o verbose
           set -o errexit
           if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
           fi;
           . ./set_gopath.sh
-          ${gotest_env} go test -blackbox -run TestBlackBox -timeout 4h -v -coverprofile=coverage.out | tee -a blackbox.suite
+          ${gotest_env} go test -blackbox -run TestBlackBox -timeout 4h -v -coverprofile=coverage.out > blackbox.suite 2>&1; if [ $? -ne 0 ]; then cat blackbox.suite; exit 1; else cat blackbox.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -312,8 +308,6 @@ tasks:
       params:
         working_dir: src
         script: |
-          $(set -o pipefail);
-          if [ "$?" != "2" ]; then set -o pipefail; fi;
           set -o verbose
           set -o errexit
           if [ "Windows_NT" = "$OS" ]; then
@@ -321,7 +315,7 @@ tasks:
           fi;
           . ./set_gopath.sh
           tee -a blackbox.suite < test_pipe&
-          ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test -blackbox -run TestBlackBox -timeout 4h -v -coverprofile=coverage.out | tee -a blackbox-optoff.suite
+          ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test -blackbox -run TestBlackBox -timeout 4h -v -coverprofile=coverage.out > blackbox-optoff.suite 2>&1; if [ $? -ne 0 ]; then cat blackbox-optoff.suite; exit 1; else cat blackbox-optoff.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -344,8 +338,6 @@ tasks:
       params:
         working_dir: src
         script: |
-          $(set -o pipefail);
-          if [ "$?" != "2" ]; then set -o pipefail; fi;
           set -o verbose
           set -o errexit
           if [ "Windows_NT" = "$OS" ]; then
@@ -353,7 +345,7 @@ tasks:
           fi;
           . ./set_gopath.sh
           cd evaluator
-          ${gotest_env} go test -v -coverprofile=coverage.out | tee -a evaluator.suite
+          ${gotest_env} go test -v -coverprofile=coverage.out > evaluator.suite 2>&1; if [ $? -ne 0 ]; then cat evaluator.suite; exit 1; else cat evaluator.suite; exit 0; fi
     - command: shell.exec
       type: test
       params:
@@ -377,8 +369,6 @@ tasks:
       params:
         working_dir: src
         script: |
-          $(set -o pipefail);
-          if [ "$?" != "2" ]; then set -o pipefail; fi;
           set -o verbose
           set -o errexit
           if [ "Windows_NT" = "$OS" ]; then
@@ -386,7 +376,7 @@ tasks:
           fi;
           . ./set_gopath.sh
           cd schema
-          ${gotest_env} go test -v -coverprofile=coverage.out | tee -a schema.suite
+          ${gotest_env} go test -v -coverprofile=coverage.out > schema.suite 2>&1; if [ $? -ne 0 ]; then cat schema.suite; exit 1; else cat schema.suite; exit 0; fi
     - command: shell.exec
       params:
         working_dir: src
@@ -410,15 +400,13 @@ tasks:
       params:
         working_dir: src
         script: |
-          $(set -o pipefail);
-          if [ "$?" != "2" ]; then set -o pipefail; fi;
           set -o verbose
           set -o errexit
           if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
           fi;
           . ./set_gopath.sh
-          ${gotest_env} go test -timeout 4h -v -coverprofile=coverage.out | tee -a sqlproxy.suite
+          ${gotest_env} go test -timeout 4h -v -coverprofile=coverage.out > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -436,15 +424,13 @@ tasks:
       params:
         working_dir: src
         script: |
-          $(set -o pipefail);
-          if [ "$?" != "2" ]; then set -o pipefail; fi;
           set -o verbose
           set -o errexit
           if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
           fi;
           . ./set_gopath.sh
-          ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test -timeout 4h -v -coverprofile=coverage.out | tee -a sqlproxy-optoff.suite
+          ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test -timeout 4h -v -coverprofile=coverage.out > sqlproxy-optoff.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-optoff.suite; exit 1; else cat sqlproxy-optoff.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -462,15 +448,13 @@ tasks:
       params:
         working_dir: src
         script: |
-          $(set -o pipefail);
-          if [ "$?" != "2" ]; then set -o pipefail; fi;
           set -o verbose
           set -o errexit
           if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
           fi;
           . ./set_gopath.sh
-          ${gotest_env} go test -tableau -run TestTableauDemo -timeout 4h -v -coverprofile=coverage.out | tee -a tableau.suite
+          ${gotest_env} go test -tableau -run TestTableauDemo -timeout 4h -v -coverprofile=coverage.out > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
