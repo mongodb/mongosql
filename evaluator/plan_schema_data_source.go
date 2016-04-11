@@ -2,7 +2,9 @@ package evaluator
 
 import (
 	"fmt"
+
 	"github.com/10gen/sqlproxy/schema"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -31,10 +33,11 @@ type SchemaDataSourceStage struct {
 }
 
 type SchemaDataSourceIter struct {
-	plan    *SchemaDataSourceStage
-	iter    *SchemaFindResults
-	err     error
-	execCtx *ExecutionCtx
+	remoteNames []string
+	plan        *SchemaDataSourceStage
+	iter        *SchemaFindResults
+	err         error
+	execCtx     *ExecutionCtx
 }
 
 func (sds *SchemaDataSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
@@ -55,28 +58,8 @@ func (sds *SchemaDataSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, fmt.Errorf("unknown information_schema table (%s)", sds.tableName)
 	}
 
+	it.iter.authProvider = ctx.AuthProvider
 	return it, nil
-}
-
-func (sds *SchemaDataSourceIter) Next(row *Row) bool {
-	if sds.iter == nil {
-		return false
-	}
-
-	data := &bson.D{}
-	hasNext := sds.iter.Next(data)
-	values, err := bsonDToValues(*data)
-	if err != nil {
-		sds.err = err
-		return false
-	}
-	row.Data = TableRows{{sds.plan.tableName, values}}
-
-	if !hasNext {
-		sds.err = sds.iter.Err()
-	}
-
-	return hasNext
 }
 
 func (sds *SchemaDataSourceStage) OpFields() []*Column {
@@ -107,6 +90,27 @@ func (sds *SchemaDataSourceStage) OpFields() []*Column {
 	return columns
 }
 
+func (sds *SchemaDataSourceIter) Next(row *Row) bool {
+	if sds.iter == nil {
+		return false
+	}
+
+	data := &bson.D{}
+	if sds.iter.Next(data) {
+		values, err := bsonDToValues(*data)
+		if err != nil {
+			sds.err = err
+			return false
+		}
+
+		row.Data = TableRows{{sds.plan.tableName, values}}
+		return true
+	} else {
+		sds.err = sds.iter.Err()
+		return false
+	}
+}
+
 func (sds *SchemaDataSourceIter) Close() error {
 	return sds.iter.Close()
 }
@@ -115,19 +119,9 @@ func (sds *SchemaDataSourceIter) Err() error {
 	return sds.iter.Err()
 }
 
-// func (sds *SchemaDataSource) Insert(docs ...interface{}) error {
-// 	return fmt.Errorf("cannot insert into config data source")
-// }
-//
-// func (sds *SchemaDataSource) DropCollection() error {
-// 	return fmt.Errorf("cannot drop config data source")
-// }
-
 func _cfrNextHelper(result *bson.D, fieldName string, fieldValue interface{}) {
 	*result = append(*result, bson.DocElem{fieldName, fieldValue})
 }
-
-// -------
 
 type SchemaFindResults struct {
 	execCtx        *ExecutionCtx
@@ -137,6 +131,7 @@ type SchemaFindResults struct {
 	dbOffset      int
 	tableOffset   int
 	columnsOffset int
+	authProvider  AuthProvider
 
 	err error
 }
@@ -154,8 +149,7 @@ func (sfr *SchemaFindResults) Next(result *bson.D) bool {
 
 	db := sfr.execCtx.PlanCtx.Schema.RawDatabases[sfr.dbOffset]
 
-	// are we in valid table space
-	if sfr.tableOffset >= len(db.RawTables) {
+	if !sfr.authProvider.IsDatabaseAllowed(db.Name) || sfr.tableOffset >= len(db.RawTables) {
 		sfr.dbOffset = sfr.dbOffset + 1
 		sfr.tableOffset = 0
 		sfr.columnsOffset = 0
@@ -163,6 +157,12 @@ func (sfr *SchemaFindResults) Next(result *bson.D) bool {
 	}
 
 	table := db.RawTables[sfr.tableOffset]
+
+	if !sfr.authProvider.IsCollectionAllowed(db.Name, table.CollectionName) {
+		sfr.tableOffset++
+		sfr.columnsOffset = 0
+		return sfr.Next(result)
+	}
 
 	*result = bson.D{}
 

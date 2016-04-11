@@ -114,13 +114,3 @@ func (v *sqlExprReferencedTableCollector) Visit(e SQLExpr) (SQLExpr, error) {
 	}
 	return walk(v, e)
 }
-
-func containsString(strs []string, str string) bool {
-	for _, n := range strs {
-		if n == str {
-			return true
-		}
-	}
-
-	return false
-}

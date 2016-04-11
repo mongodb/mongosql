@@ -846,9 +846,6 @@ func planTableExpr(planCtx *PlanCtx, tExpr sqlparser.TableExpr, w *sqlparser.Whe
 // data from the appropriate source.
 func planTableName(planCtx *PlanCtx, t *sqlparser.TableName, aliasName string, w *sqlparser.Where) (PlanStage, error) {
 
-	var matcher SQLExpr
-	var err error
-
 	dbName := strings.ToLower(string(t.Qualifier))
 	isInformationDatabase := dbName == InformationDatabase || strings.ToLower(planCtx.Db) == InformationDatabase
 
@@ -856,19 +853,13 @@ func planTableName(planCtx *PlanCtx, t *sqlparser.TableName, aliasName string, w
 
 		// SchemaDataSource is a special table that handles queries against
 		// the 'information_schema' database
-		cds := &SchemaDataSourceStage{
+		sds := &SchemaDataSourceStage{
 			tableName: strings.ToLower(string(t.Name)),
 			aliasName: aliasName,
 		}
 
 		planCtx.Db = InformationDatabase
-
-		// if we got a valid filter/matcher, use it
-		if err == nil {
-			cds.matcher = matcher
-		}
-
-		return cds, nil
+		return sds, nil
 	}
 
 	if dbName == "" {

@@ -63,12 +63,15 @@ type ExecutionCtx struct {
 	ConnectionCtx
 
 	PlanCtx *PlanCtx
+
+	AuthProvider AuthProvider
 }
 
 func NewExecutionCtx(connCtx ConnectionCtx, planCtx *PlanCtx) *ExecutionCtx {
 	return &ExecutionCtx{
 		ConnectionCtx: connCtx,
 		PlanCtx:       planCtx,
+		AuthProvider:  NewAuthProvider(connCtx.Session()),
 	}
 }
 

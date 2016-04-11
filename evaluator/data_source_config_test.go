@@ -1,91 +1,120 @@
 package evaluator
 
 import (
+	"strings"
+
 	. "github.com/smartystreets/goconvey/convey"
 	//"gopkg.in/mgo.v2/bson"
 	"sort"
 	"testing"
 )
 
-func TestSchemaDataSourceIter(t *testing.T) {
-	env := setupEnv(t)
-	cfgThree := env.cfgThree
+type fakeAuthProvider struct{}
 
-	Convey("using config data source should iterate all columns", t, func() {
-
-		ctx := &ExecutionCtx{
-			PlanCtx: &PlanCtx{
-				Schema: cfgThree,
-				Db:     dbOne,
-			},
-		}
-
-		plan := &SchemaDataSourceStage{"columns", "", nil}
-
-		fieldNames := []string{}
-		iter, err := plan.Open(ctx)
-		So(err, ShouldBeNil)
-
-		row := &Row{}
-		for iter.Next(row) {
-			if col, ok := row.GetField("columns", "COLUMN_NAME"); ok {
-				if colstr, ok := col.(SQLVarchar); ok {
-					fieldNames = append(fieldNames, string(colstr))
-				} else {
-					t.Errorf("expected to get a SQLVarchar for COLUMN_NAME")
-				}
-			} else {
-				t.Errorf("expected to find COLUMN_NAME in row")
-			}
-		}
-
-		So(len(fieldNames), ShouldEqual, 10)
-
-		names := []string{"_id", "a", "b", "c", "c", "d", "e", "f", "g", "h"}
-		sort.Strings(fieldNames)
-		So(names, ShouldResemble, fieldNames)
-		So(iter.Err(), ShouldBeNil)
-		So(iter.Close(), ShouldBeNil)
-	})
+func (p *fakeAuthProvider) IsDatabaseAllowed(dbName string) bool {
+	return strings.HasPrefix(dbName, "test")
 }
 
-func TestSchemaDataSourceIterTables(t *testing.T) {
+func (p *fakeAuthProvider) IsCollectionAllowed(dbName string, colName string) bool {
+	return strings.Contains(colName, "a")
+}
+
+func TestSchemaDataSourceIter(t *testing.T) {
 	env := setupEnv(t)
-	cfgOne := env.cfgOne
 
-	Convey("using config data source should iterate tables", t, func() {
+	gatherValues := func(table, column string, iter Iter) []string {
+		values := []string{}
+		row := &Row{}
+		for iter.Next(row) {
+			if col, ok := row.GetField(table, column); ok {
+				if colstr, ok := col.(SQLVarchar); ok {
+					values = append(values, string(colstr))
+				} else {
+					t.Errorf("expected to get a SQLVarchar for %q", column)
+				}
+			} else {
+				t.Errorf("expected to find %q in row", column)
+			}
+		}
 
+		return values
+	}
+
+	Convey("Given a SchemaDataSource", t, func() {
 		ctx := &ExecutionCtx{
 			PlanCtx: &PlanCtx{
-				Schema: cfgOne,
+				Schema: env.cfgOne,
 				Db:     dbOne,
 			},
 		}
 
-		plan := &SchemaDataSourceStage{"tables", "", nil}
+		Convey("when iterating over tables", func() {
+			plan := &SchemaDataSourceStage{"tables", "", nil}
 
-		names := []string{}
-		iter, err := plan.Open(ctx)
-		So(err, ShouldBeNil)
+			Convey("should return all tables when authentication is disabled", func() {
 
-		row := &Row{}
-		for iter.Next(row) {
-			if col, ok := row.GetField("tables", "TABLE_NAME"); ok {
-				if colstr, ok := col.(SQLVarchar); ok {
-					names = append(names, string(colstr))
-				} else {
-					t.Errorf("expected to get a SQLVarchar for TABLE_NAME")
-				}
-			} else {
-				t.Errorf("expected to find TABLE_NAME in row")
-			}
-		}
+				ctx.AuthProvider = &FixedAuthProvider{true}
+				iter, err := plan.Open(ctx)
+				So(err, ShouldBeNil)
 
-		So(len(names), ShouldEqual, 7)
+				names := gatherValues("tables", "TABLE_NAME", iter)
+				sort.Strings(names)
 
-		tableNames := []string{"bar", "bar", "bar", "baz", "foo", "foo", "silly"}
-		sort.Strings(names)
-		So(names, ShouldResemble, tableNames)
-		So(iter.Close(), ShouldBeNil)
+				So(len(names), ShouldEqual, 7)
+
+				expectedNames := []string{"bar", "bar", "bar", "baz", "foo", "foo", "silly"}
+				So(names, ShouldResemble, expectedNames)
+				So(iter.Close(), ShouldBeNil)
+			})
+
+			Convey("should return allowed tables when authentication is enabled", func() {
+				ctx.AuthProvider = &fakeAuthProvider{}
+				iter, err := plan.Open(ctx)
+				So(err, ShouldBeNil)
+
+				names := gatherValues("tables", "TABLE_NAME", iter)
+				sort.Strings(names)
+
+				So(len(names), ShouldEqual, 3)
+
+				expectedNames := []string{"bar", "bar", "baz"}
+				So(names, ShouldResemble, expectedNames)
+				So(iter.Close(), ShouldBeNil)
+			})
+		})
+
+		Convey("when iterating over columns", func() {
+			plan := &SchemaDataSourceStage{"columns", "", nil}
+
+			Convey("should return all columns when authentication is disabled", func() {
+				ctx.AuthProvider = &FixedAuthProvider{true}
+				iter, err := plan.Open(ctx)
+				So(err, ShouldBeNil)
+
+				names := gatherValues("columns", "COLUMN_NAME", iter)
+				sort.Strings(names)
+
+				So(len(names), ShouldEqual, 22)
+
+				expectedNames := []string{"_id", "_id", "_id", "_id", "_id", "a", "a", "a", "amount", "b", "b", "b", "c", "c", "d", "e", "e", "f", "f", "name", "orderid", "orderid"}
+				So(names, ShouldResemble, expectedNames)
+				So(iter.Close(), ShouldBeNil)
+			})
+
+			Convey("should return allowed columns when authentication is enabled", func() {
+				ctx.AuthProvider = &fakeAuthProvider{}
+				iter, err := plan.Open(ctx)
+				So(err, ShouldBeNil)
+
+				names := gatherValues("columns", "COLUMN_NAME", iter)
+				sort.Strings(names)
+
+				So(len(names), ShouldEqual, 9)
+
+				expectedNames := []string{"_id", "_id", "_id", "a", "a", "amount", "b", "b", "orderid"}
+				So(names, ShouldResemble, expectedNames)
+				So(iter.Close(), ShouldBeNil)
+			})
+		})
 	})
 }
