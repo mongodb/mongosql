@@ -386,7 +386,7 @@ tasks:
           fi;
           . ./set_gopath.sh
           cd schema
-          ${gotest_env}go test -v -coverprofile=coverage.out | tee -a schema.suite
+          ${gotest_env} go test -v -coverprofile=coverage.out | tee -a schema.suite
     - command: shell.exec
       params:
         working_dir: src
