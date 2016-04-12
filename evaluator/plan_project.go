@@ -82,37 +82,37 @@ func (pj *ProjectIter) Next(r *Row) bool {
 		return false
 	}
 
-	data := map[string]Values{}
+	if len(pj.sExprs) > 0 {
+		data := map[string]Values{}
+		for _, expr := range pj.sExprs {
 
-	for _, expr := range pj.sExprs {
-
-		if expr.Referenced {
-			continue
-		}
-		value := Value{
-			Name: expr.Name,
-			View: expr.View,
-		}
-
-		v, ok := r.GetField(expr.Table, expr.Name)
-		if !ok {
-			v, err := pj.getValue(expr, r)
-			if err != nil {
-				pj.err = err
-				hasNext = false
+			if expr.Referenced {
+				continue
 			}
-			value.Data = v
-		} else {
-			value.Data = v
+			value := Value{
+				Name: expr.Name,
+				View: expr.View,
+			}
+
+			v, ok := r.GetField(expr.Table, expr.Name)
+			if !ok {
+				v, err := pj.getValue(expr, r)
+				if err != nil {
+					pj.err = err
+					hasNext = false
+				}
+				value.Data = v
+			} else {
+				value.Data = v
+			}
+
+			data[expr.Table] = append(data[expr.Table], value)
 		}
+		r.Data = TableRows{}
 
-		data[expr.Table] = append(data[expr.Table], value)
-	}
-
-	r.Data = TableRows{}
-
-	for k, v := range data {
-		r.Data = append(r.Data, TableRow{k, v})
+		for k, v := range data {
+			r.Data = append(r.Data, TableRow{k, v})
+		}
 	}
 
 	return true
