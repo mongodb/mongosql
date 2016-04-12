@@ -393,9 +393,13 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 func pipelineJSON(stages []bson.D, depth int) ([]byte, error) {
 	buf := bytes.Buffer{}
+
 	for i, s := range stages {
-		md := bsonutil.MarshalD(s)
-		b, err := json.Marshal(md)
+		converted, err := bsonutil.ConvertBSONValueToJSON(s)
+		if err != nil {
+			return nil, err
+		}
+		b, err := json.Marshal(converted)
 		if err != nil {
 			return nil, err
 		}
