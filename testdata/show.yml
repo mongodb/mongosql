@@ -1,0 +1,145 @@
+# How this test case file works:
+#
+# 1. mongorestore each of these bson files under the "data" section 
+# into the indicated namespace
+#
+data:
+- archive_file: testdata/input/test1.bson.gz
+
+# 2. Start a test server using the following schema mapping, which should
+# correspond to the data used in (1)
+
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: test1
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: a1
+      SqlType: int64
+    - Name: b
+      MongoType: string
+      SqlName: b1
+      SqlType: varchar
+    - Name: c
+      MongoType: int64
+      SqlName: c1
+      SqlType: int64
+  - table: bar
+    collection: test2
+    columns:
+      - Name: a
+        MongoType: int
+        SqlName: a
+        SqlType: int64
+      - Name: b
+        MongoType: string
+        SqlName: a
+        SqlType: varchar
+      - Name: c
+        MongoType: int64
+        SqlName: c
+        SqlType: int64
+- db: blah
+  tables:
+  - table: foo
+    collection: foo
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int64
+      
+# 3. Run each of the following queries, and report any that have errors
+testcases:
+- sql: "SHOW COLUMNS FROM foo"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "int64", "YES", ~, ~, ~]
+    - ["b1", "varchar", "YES", ~, ~, ~]
+    - ["c1", "int64", "YES", ~, ~, ~]
+# - sql: "SHOW COLUMNS FROM foo LIKE 'b'" // NEEDS PARSER SUPPORT
+#   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+#   expected:
+#     - ["b1", "varchar", "YES", ~, ~, ~]
+# - sql: "SHOW COLUMNS FROM foo WHERE type = 'int'" // NEEDS PARSER SUPPORT
+#   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+#   expected:
+#     - ["b1", "varchar", "YES", ~, ~, ~]
+- sql: "SHOW COLUMNS FROM test.foo"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "int64", "YES", ~, ~, ~]
+    - ["b1", "varchar", "YES", ~, ~, ~]
+    - ["c1", "int64", "YES", ~, ~, ~]
+- sql: "SHOW COLUMNS FROM foo FROM test"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "int64", "YES", ~, ~, ~]
+    - ["b1", "varchar", "YES", ~, ~, ~]
+    - ["c1", "int64", "YES", ~, ~, ~]
+- sql: "SHOW COLUMNS IN foo IN test"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "int64", "YES", ~, ~, ~]
+    - ["b1", "varchar", "YES", ~, ~, ~]
+    - ["c1", "int64", "YES", ~, ~, ~]
+- sql: "SHOW FULL COLUMNS FROM foo"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "int64", "YES", ~, ~, ~, "utf8_general_ci", ~, "{ \"name\": \"a\" }"]
+    - ["b1", "varchar", "YES", ~, ~, ~, "utf8_general_ci", ~, "{ \"name\": \"b\" }"]
+    - ["c1", "int64", "YES", ~, ~, ~, "utf8_general_ci", ~, "{ \"name\": \"c\" }"]
+- sql: "SHOW COLUMNS FROM test2.foo"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected: []
+- sql: "SHOW TABLES"
+  expected_types: [varchar]
+  expected: 
+    - ["bar"]
+    - ["foo"]
+- sql: "SHOW TABLES LIKE 'f'"
+  expected_types: [varchar]
+  expected: 
+    - ["foo"]
+- sql: "SHOW TABLES WHERE TABLE_NAME = 'foo'"
+  expected_types: [varchar]
+  expected: 
+    - ["foo"]
+- sql: "SHOW TABLES FROM test"
+  expected_types: [varchar]
+  expected: 
+    - ["bar"]
+    - ["foo"]
+#- sql: "SHOW FULL TABLES" // NEEDS PARSER SUPPORT
+#  expected_types: [varchar, varchar]
+#  expected: 
+#    - ["foo", "VIEW"]
+#    - ["bar", "VIEW"]
+- sql: "SHOW TABLES FROM nonono"
+  expected_types: [varchar]
+  expected: []
+- sql: "SHOW DATABASES"
+  expected_types: [varchar]
+  expected: 
+    - ["blah"]
+    - ["test"]
+- sql: "SHOW DATABASES LIKE 'b'"
+  expected_types: [varchar]
+  expected: 
+    - ["blah"]
+- sql: "SHOW DATABASES WHERE Database = 'test'"
+  expected_types: [varchar]
+  expected: 
+    - ["test"]
+- sql: "SHOW DATABASES WHERE SCHEMA_NAME = 'test'"
+  expected_types: [varchar]
+  expected: 
+    - ["test"]
+#- sql: "SHOW SCHEMAS" // NEEDS PARSER SUPPORT
+#  expected_types: [varchar]
+#  expected: 
+#    - ["test"]
+#    - ["blah"]

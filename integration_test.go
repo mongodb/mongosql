@@ -97,6 +97,16 @@ func TestSimpleQueries(t *testing.T) {
 	})
 }
 
+func TestShowQueries(t *testing.T) {
+	conf := mustLoadTestSchema("testdata/show.yml")
+	mustLoadTestData(testMongoHost, testMongoPort, conf)
+
+	Convey("Test show queries", t, func() {
+		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
+		So(err, ShouldBeNil)
+	})
+}
+
 func TestTableauDemo(t *testing.T) {
 	if !*tableau {
 		t.Skip("skipping tableau test")

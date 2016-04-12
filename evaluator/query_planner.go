@@ -850,16 +850,8 @@ func planTableName(planCtx *PlanCtx, t *sqlparser.TableName, aliasName string, w
 	isInformationDatabase := dbName == InformationDatabase || strings.ToLower(planCtx.Db) == InformationDatabase
 
 	if isInformationDatabase {
-
-		// SchemaDataSource is a special table that handles queries against
-		// the 'information_schema' database
-		sds := &SchemaDataSourceStage{
-			tableName: strings.ToLower(string(t.Name)),
-			aliasName: aliasName,
-		}
-
 		planCtx.Db = InformationDatabase
-		return sds, nil
+		return NewSchemaDataSourceStage(string(t.Name), aliasName), nil
 	}
 
 	if dbName == "" {

@@ -2,72 +2,43 @@ package server
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
-	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 )
 
 func (c *conn) handleShow(sql string, stmt *sqlparser.Show) error {
-	var err error
-	var r *Resultset
 	switch strings.ToLower(stmt.Section) {
-	case "databases":
-		r, err = c.handleShowDatabases()
-	case "tables":
-		r, err = c.handleShowTables(sql, stmt)
-	case "variables":
-		r, err = c.handleShowVariables(sql, stmt)
 	case "columns":
-		r, err = c.handleShowColumns(sql, stmt)
+		return c.handleShowColumns(sql, stmt)
+	case "databases", "schemas":
+		return c.handleShowDatabases(stmt)
+	case "tables":
+		return c.handleShowTables(sql, stmt)
+	case "variables":
+		return c.handleShowVariables(sql, stmt)
 	default:
-		err = fmt.Errorf("no support for show (%s) for now", sql)
+		return fmt.Errorf("no support for show (%s) for now", sql)
 	}
-
-	if err != nil {
-		return err
-	}
-
-	return c.writeResultset(c.status, r)
 }
 
-func (c *conn) handleShowDatabases() (*Resultset, error) {
-	dbs := make([]interface{}, 0, len(c.server.databases))
-	for key := range c.server.databases {
-		dbs = append(dbs, key)
+func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) error {
+
+	translated :=
+		"SELECT COLUMN_NAME AS `Field`" +
+			", COLUMN_TYPE AS `Type`" +
+			", IS_NULLABLE AS `Null`" +
+			", COLUMN_KEY AS `Key`" +
+			", COLUMN_DEFAULT AS `Default`" +
+			", EXTRA AS `Extra`"
+
+	if strings.ToLower(stmt.Modifier) == "full" {
+		translated += ", COLLATION_NAME AS `Collation`" +
+			", PRIVILEGES AS `Privileges`" +
+			", COLUMN_COMMENT AS `Comment`"
 	}
 
-	return c.buildSimpleShowResultset(dbs, "Database")
-}
-
-func (c *conn) handleShowTables(sql string, stmt *sqlparser.Show) (*Resultset, error) {
-	if c.currentDB == nil {
-		return nil, fmt.Errorf("no db select for show tables")
-	}
-
-	var tables []string
-	for table := range c.currentDB.Tables {
-		tables = append(tables, table)
-	}
-
-	sort.Strings(tables)
-
-	values := make([]interface{}, len(tables))
-	for i := range tables {
-		values[i] = tables[i]
-	}
-
-	return c.buildSimpleShowResultset(values, fmt.Sprintf("Tables_in_%s", c.currentDB.Name))
-}
-
-func (c *conn) handleShowVariables(sql string, stmt *sqlparser.Show) (*Resultset, error) {
-	variables := []interface{}{}
-	return c.buildSimpleShowResultset(variables, "Variable")
-}
-
-func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, error) {
+	translated += " FROM INFORMATION_SCHEMA.COLUMNS"
 
 	var dbName string
 	if c.currentDB != nil {
@@ -85,7 +56,7 @@ func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 		}
 		table = string(f.Name)
 	default:
-		return nil, fmt.Errorf("do not know how to show columns from type: %T", f)
+		return fmt.Errorf("do not know how to show columns from type: %T", f)
 	}
 
 	if stmt.DBFilter != nil {
@@ -95,28 +66,99 @@ func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) (*Resultset, 
 		case *sqlparser.ColName:
 			dbName = string(f.Name)
 		default:
-			return nil, fmt.Errorf("do not know how to in show filter on db type: %T", f)
+			return fmt.Errorf("do not know how to in show filter on db type: %T", f)
 		}
 	}
 
-	db := c.server.databases[dbName]
-	if db == nil {
-		return nil, newDefaultError(ER_BAD_DB_ERROR, dbName)
+	translated += fmt.Sprintf(" WHERE TABLE_NAME = '%s'", table)
+
+	if dbName != "" {
+		translated += fmt.Sprintf(" AND TABLE_SCHEMA = '%s'", dbName)
 	}
 
-	tableSchema := db.Tables[table]
-	if tableSchema == nil {
-		return nil, fmt.Errorf("table (%s) does not exist in db (%s)", table, dbName)
+	if stmt.LikeOrWhere != nil {
+		switch stmt.LikeOrWhere.(type) {
+		case sqlparser.StrVal:
+			translated += fmt.Sprintf(" AND COLUMN_NAME LIKE %s", sqlparser.String(stmt.LikeOrWhere))
+		default:
+			translated += fmt.Sprintf(" AND %s", sqlparser.String(stmt.LikeOrWhere))
+		}
 	}
 
-	full := strings.ToLower(stmt.Modifier) == "full"
+	translated += " ORDER BY ORDINAL_POSITION"
 
-	names, values, err := HandleShowColumns(tableSchema, full)
+	return c.handleQuery(translated)
+}
+
+func (c *conn) handleShowDatabases(stmt *sqlparser.Show) error {
+	translated := "SELECT SCHEMA_NAME AS `Database`" +
+		" FROM INFORMATION_SCHEMA.SCHEMATA"
+
+	if stmt.LikeOrWhere != nil {
+		switch stmt.LikeOrWhere.(type) {
+		case sqlparser.StrVal:
+			translated += fmt.Sprintf(" WHERE SCHEMA_NAME LIKE %s", sqlparser.String(stmt.LikeOrWhere))
+		default:
+			translated += fmt.Sprintf(" WHERE %s", sqlparser.String(stmt.LikeOrWhere))
+		}
+	}
+
+	translated += " ORDER BY SCHEMA_NAME"
+
+	return c.handleQuery(translated)
+}
+
+func (c *conn) handleShowTables(sql string, stmt *sqlparser.Show) error {
+	dbName := ""
+	if c.currentDB != nil {
+		dbName = c.currentDB.Name
+	}
+
+	if stmt.From != nil {
+		switch f := stmt.From.(type) {
+		case sqlparser.StrVal:
+			dbName = string(f)
+		case *sqlparser.ColName:
+			dbName = string(f.Name)
+		default:
+			return fmt.Errorf("do not know how to show tables from type: %T", f)
+		}
+	}
+
+	if dbName == "" {
+		return newDefaultError(ER_NO_DB_ERROR)
+	}
+
+	translated := fmt.Sprintf("SELECT TABLE_NAME AS `Tables_in_%s`", dbName)
+
+	if strings.ToLower(stmt.Modifier) == "full" {
+		translated += ", TABLE_TYPE AS `Type`"
+	}
+
+	translated += " FROM INFORMATION_SCHEMA.TABLES" +
+		fmt.Sprintf(" WHERE TABLE_SCHEMA = '%s'", dbName)
+
+	if stmt.LikeOrWhere != nil {
+		switch stmt.LikeOrWhere.(type) {
+		case sqlparser.StrVal:
+			translated += fmt.Sprintf(" AND TABLE_NAME LIKE %s", sqlparser.String(stmt.LikeOrWhere))
+		default:
+			translated += fmt.Sprintf(" AND %s", sqlparser.String(stmt.LikeOrWhere))
+		}
+	}
+
+	translated += " ORDER BY TABLE_NAME"
+
+	return c.handleQuery(translated)
+}
+
+func (c *conn) handleShowVariables(sql string, stmt *sqlparser.Show) error {
+	variables := []interface{}{}
+	r, err := c.buildSimpleShowResultset(variables, "Variable")
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	return c.buildResultset(names, values)
+	return c.writeResultset(c.status, r)
 }
 
 func (c *conn) buildSimpleShowResultset(values []interface{}, name string) (*Resultset, error) {
@@ -143,35 +185,4 @@ func (c *conn) buildSimpleShowResultset(values []interface{}, name string) (*Res
 	}
 
 	return r, nil
-}
-
-func HandleShowColumns(tableSchema *schema.Table, full bool) ([]string, [][]interface{}, error) {
-	if len(tableSchema.RawColumns) == 0 {
-		return nil, nil, fmt.Errorf("no configured columns")
-	}
-
-	values := make([][]interface{}, len(tableSchema.RawColumns))
-	names := []string{"Field", "Type", "Null", "Key", "Default", "Extra"}
-
-	if full {
-		names = append(names, []string{"Collation", "Privileges", "Comment"}...)
-	}
-
-	for num, col := range tableSchema.RawColumns {
-		row := make([]interface{}, len(names))
-		row[0] = evaluator.SQLVarchar(col.Name)
-		row[1] = evaluator.SQLVarchar(string(col.SqlType))
-		row[2] = evaluator.SQLVarchar("YES")
-		row[3] = evaluator.SQLVarchar(" ")
-		row[4] = evaluator.SQLNull
-		row[5] = evaluator.SQLVarchar(" ")
-
-		if full {
-			row[6] = evaluator.SQLVarchar("utf8_bin")
-			row[7] = evaluator.SQLVarchar("select")
-			row[8] = evaluator.SQLVarchar(" ")
-		}
-		values[num] = row
-	}
-	return names, values, nil
 }
