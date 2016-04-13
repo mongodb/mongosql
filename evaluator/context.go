@@ -114,77 +114,6 @@ func (state ParseState) String() string {
 	return strings.Join(states, ",")
 }
 
-func (pCtx *ParseCtx) String() string {
-	if pCtx == nil {
-		return ""
-	}
-
-	addr := unsafe.Pointer(pCtx)
-
-	b := bytes.NewBufferString(fmt.Sprintf("%v Phase (%v); State (%v):", addr, pCtx.Phase, pCtx.State))
-
-	if pCtx.Expr != nil {
-		b.WriteString(fmt.Sprintf(" %v", sqlparser.String(pCtx.Expr)))
-	}
-
-	b.WriteString("\n")
-
-	pCtx.string(b, 0)
-
-	return b.String()
-}
-
-func printTabs(b *bytes.Buffer, d int) {
-	for i := 0; i < d; i++ {
-		b.WriteString("\t")
-	}
-}
-
-func (pCtx *ParseCtx) string(b *bytes.Buffer, d int) {
-
-	if len(pCtx.Tables) != 0 {
-		printTabs(b, d)
-		b.WriteString(fmt.Sprintf("→ Tables (%v)\n", len(pCtx.Tables)))
-	}
-
-	for i, table := range pCtx.Tables {
-		printTabs(b, d)
-		b.WriteString(fmt.Sprintf("\tT%v: → %#v\n", i, table))
-	}
-
-	if len(pCtx.Columns) != 0 {
-		printTabs(b, d)
-		b.WriteString(fmt.Sprintf("→ Columns (%v)\n", len(pCtx.Columns)))
-	}
-
-	for i, column := range pCtx.Columns {
-		printTabs(b, d)
-		b.WriteString(fmt.Sprintf("\tC%v: → %#v\n", i, column))
-	}
-
-	if len(pCtx.ColumnReferences) != 0 {
-		printTabs(b, d)
-		b.WriteString(fmt.Sprintf("→ References (%v)\n", len(pCtx.ColumnReferences)))
-	}
-
-	for i, reference := range pCtx.ColumnReferences {
-		printTabs(b, d)
-		b.WriteString(fmt.Sprintf("\tR%v: → %#v\n", i, reference))
-	}
-
-	if len(pCtx.Children) != 0 {
-		printTabs(b, d)
-		b.WriteString(fmt.Sprintf("→ Children (%v)\n", len(pCtx.Children)))
-	}
-
-	for i, ctx := range pCtx.Children {
-		printTabs(b, d+1)
-		addr := unsafe.Pointer(ctx)
-		b.WriteString(fmt.Sprintf("Child %v: %v\n", i, addr))
-		ctx.string(b, d+1)
-	}
-}
-
 // TableInfo holds a mapping of aliases (or real names
 // if not aliased) to the actual table name.
 type TableInfo struct {
@@ -275,52 +204,6 @@ func NewParseCtx(ss sqlparser.SelectStatement, c *schema.Schema, db string) (*Pa
 
 }
 
-// TableInfo returns the table infor for the given alias.
-// It searches in the parent context if the alias is not found
-// in the current context.
-func (pCtx *ParseCtx) TableInfo(db, alias string) (*TableInfo, error) {
-	return pCtx.tableInfo(db, alias, 0)
-}
-
-func (pCtx *ParseCtx) tableInfo(db, alias string, depth int) (*TableInfo, error) {
-
-	if pCtx != nil && pCtx.Parent != nil && depth == 0 {
-		return pCtx.Parent.tableInfo(db, alias, depth)
-	}
-
-	for _, tableInfo := range pCtx.Tables {
-		if db == tableInfo.Db && alias == tableInfo.Alias {
-			return &tableInfo, nil
-		}
-	}
-
-	for _, ctx := range pCtx.Children {
-		tableInfo, err := ctx.tableInfo(db, alias, depth+1)
-		if err == nil {
-			return tableInfo, nil
-		}
-	}
-
-	return nil, fmt.Errorf("Unknown table '%v'", alias)
-}
-
-// ColumnInfo searches current context for the given alias
-// It searches in the parent context if the alias is not found
-// in the current context.
-func (pCtx *ParseCtx) ColumnInfo(column string) (*ColumnInfo, error) {
-	if pCtx == nil {
-		return nil, fmt.Errorf("Unknown column alias '%v'", column)
-	}
-
-	for _, columnInfo := range pCtx.Columns {
-		if columnInfo.Alias == column {
-			return &columnInfo, nil
-		}
-	}
-
-	return pCtx.Parent.ColumnInfo(column)
-}
-
 // AddColumns adds columns from the schema configuration to the context.
 func (pCtx *ParseCtx) AddColumns() {
 	for _, table := range pCtx.Tables {
@@ -346,6 +229,110 @@ func (pCtx *ParseCtx) AddColumns() {
 	}
 }
 
+// CheckColumn checks that the column information is valid in the given context.
+func (pCtx *ParseCtx) CheckColumn(table *TableInfo, cName string) error {
+
+	tName := table.Alias
+
+	// whitelist all 'virtual' schemas including information_schema
+	// TODO: more precise validation needed
+	if strings.EqualFold(pCtx.Database, InformationDatabase) ||
+		strings.EqualFold(tName, InformationDatabase) {
+		return nil
+	}
+
+	if table.Derived {
+		// For derived tables, column names must come from children
+		for _, tableInfo := range pCtx.Tables {
+			if tableInfo.Alias == tName {
+				return pCtx.checkColumn(tName, cName, 0)
+			}
+		}
+
+		return fmt.Errorf("Derived table '%v' doesn't exist", tName)
+	}
+
+	// For schema tables, columns must come from schema configuration
+	tableSchema := pCtx.TableSchema(table.Name)
+
+	if tableSchema == nil {
+		return fmt.Errorf("Table '%v' doesn't exist", tName)
+	}
+
+	for _, c := range tableSchema.RawColumns {
+
+		if c.SqlName == cName {
+			return nil
+		}
+	}
+
+	for _, r := range pCtx.ColumnReferences {
+
+		if r.Name == cName {
+			return nil
+		}
+
+	}
+
+	return fmt.Errorf("Unknown column '%v' in table '%v'", cName, tName)
+}
+
+// checkColumn checks that a referenced column in the context of
+// a derived table is valid.
+func (pCtx *ParseCtx) checkColumn(table, column string, depth int) error {
+
+	err := fmt.Errorf("Unknown column '%v'", column)
+
+	if pCtx == nil {
+		return err
+	}
+
+	for _, c := range pCtx.Columns {
+
+		if c.Alias == column {
+			return nil
+		}
+
+	}
+
+	for _, r := range pCtx.ColumnReferences {
+
+		if r.Name == column {
+			return nil
+		}
+	}
+
+	// only look deeper if columns are referenced from
+	// the child context
+	if depth == 0 || len(pCtx.Columns) == 0 {
+
+		for _, ctx := range pCtx.Children {
+
+			for _, c := range ctx.Columns {
+
+				if c.Alias == column {
+					return nil
+				}
+			}
+
+			for _, r := range ctx.ColumnReferences {
+
+				if r.Name == column {
+					return nil
+				}
+
+			}
+
+			if err = ctx.checkColumn(table, column, depth+1); err == nil {
+				return nil
+			}
+
+		}
+	}
+
+	return err
+}
+
 // ChildCtx returns a new child context for the current context.
 func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) {
 	if pCtx == nil {
@@ -367,6 +354,23 @@ func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) 
 	pCtx.Children = append(pCtx.Children, ctx)
 
 	return ctx, nil
+}
+
+// ColumnInfo searches current context for the given alias
+// It searches in the parent context if the alias is not found
+// in the current context.
+func (pCtx *ParseCtx) ColumnInfo(column string) (*ColumnInfo, error) {
+	if pCtx == nil {
+		return nil, fmt.Errorf("Unknown column alias '%v'", column)
+	}
+
+	for _, columnInfo := range pCtx.Columns {
+		if columnInfo.Alias == column {
+			return &columnInfo, nil
+		}
+	}
+
+	return pCtx.Parent.ColumnInfo(column)
 }
 
 // GetCurrentTable finds a given table in the current context.
@@ -453,170 +457,6 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName, columnName string) (*Ta
 	return pCtx.Parent.GetCurrentTable(dbName, tableName, columnName)
 }
 
-// checkColumn checks that a referenced column in the context of
-// a derived table is valid.
-func (pCtx *ParseCtx) checkColumn(table, column string, depth int) error {
-
-	err := fmt.Errorf("Unknown column '%v'", column)
-
-	if pCtx == nil {
-		return err
-	}
-
-	for _, c := range pCtx.Columns {
-
-		if c.Alias == column {
-			return nil
-		}
-
-	}
-
-	for _, r := range pCtx.ColumnReferences {
-
-		if r.Name == column {
-			return nil
-		}
-	}
-
-	// only look deeper if columns are referenced from
-	// the child context
-	if depth == 0 || len(pCtx.Columns) == 0 {
-
-		for _, ctx := range pCtx.Children {
-
-			for _, c := range ctx.Columns {
-
-				if c.Alias == column {
-					return nil
-				}
-			}
-
-			for _, r := range ctx.ColumnReferences {
-
-				if r.Name == column {
-					return nil
-				}
-
-			}
-
-			if err = ctx.checkColumn(table, column, depth+1); err == nil {
-				return nil
-			}
-
-		}
-	}
-
-	return err
-}
-
-// TableSchema returns the named table's configuration.
-func (pCtx *ParseCtx) TableSchema(table string) *schema.Table {
-	db := pCtx.Schema.Databases[pCtx.Database]
-
-	if db == nil {
-		return nil
-	}
-
-	return db.Tables[table]
-}
-
-// IsColumnReference returns true if the given column is present
-// column references for this context.
-func (pCtx *ParseCtx) IsColumnReference(column *Column) bool {
-
-	for _, reference := range pCtx.ColumnReferences {
-
-		if reference.Name == column.Name && reference.Table == column.Table {
-			return true
-		}
-	}
-
-	return false
-
-}
-
-// IsSchemaColumn returns true if the given column is present
-// schema table's configuration.
-func (pCtx *ParseCtx) IsSchemaColumn(column *Column) bool {
-
-	if strings.ToLower(pCtx.Database) == InformationDatabase {
-		return true
-	}
-
-	tableInfo, err := pCtx.TableInfo(pCtx.Database, column.Table)
-	if err != nil {
-		panic(fmt.Sprintf("Unknown column table '%v'", column.Table))
-	}
-
-	if tableInfo.Derived {
-		return true
-	}
-
-	db := pCtx.Schema.Databases[pCtx.Database]
-
-	if db == nil {
-		return false
-	}
-
-	table := db.Tables[tableInfo.Name]
-
-	if table == nil {
-		return false
-	}
-
-	return table.SQLColumns[column.Name] != nil
-
-}
-
-// CheckColumn checks that the column information is valid in the given context.
-func (pCtx *ParseCtx) CheckColumn(table *TableInfo, cName string) error {
-
-	tName := table.Alias
-
-	// whitelist all 'virtual' schemas including information_schema
-	// TODO: more precise validation needed
-	if strings.EqualFold(pCtx.Database, InformationDatabase) ||
-		strings.EqualFold(tName, InformationDatabase) {
-		return nil
-	}
-
-	if table.Derived {
-		// For derived tables, column names must come from children
-		for _, tableInfo := range pCtx.Tables {
-			if tableInfo.Alias == tName {
-				return pCtx.checkColumn(tName, cName, 0)
-			}
-		}
-
-		return fmt.Errorf("Derived table '%v' doesn't exist", tName)
-	}
-
-	// For schema tables, columns must come from schema configuration
-	tableSchema := pCtx.TableSchema(table.Name)
-
-	if tableSchema == nil {
-		return fmt.Errorf("Table '%v' doesn't exist", tName)
-	}
-
-	for _, c := range tableSchema.RawColumns {
-
-		if c.SqlName == cName {
-			return nil
-		}
-
-	}
-
-	for _, r := range pCtx.ColumnReferences {
-
-		if r.Name == cName {
-			return nil
-		}
-
-	}
-
-	return fmt.Errorf("Unknown column '%v' in table '%v'", cName, tName)
-}
-
 // GetTableColumns returns all the columns for a derived table.
 func (pCtx *ParseCtx) GetTableColumns(table *TableInfo) sqlparser.SelectExprs {
 
@@ -652,5 +492,164 @@ func (pCtx *ParseCtx) GetTableColumns(table *TableInfo) sqlparser.SelectExprs {
 	}
 
 	return selectExprs
+}
 
+// IsColumnReference returns true if the given column is present
+// column references for this context.
+func (pCtx *ParseCtx) IsColumnReference(column *Column) bool {
+
+	for _, reference := range pCtx.ColumnReferences {
+
+		if reference.Name == column.Name && reference.Table == column.Table {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsSchemaColumn returns true if the given column is present
+// schema table's configuration.
+func (pCtx *ParseCtx) IsSchemaColumn(column *Column) bool {
+
+	if strings.ToLower(pCtx.Database) == InformationDatabase {
+		return true
+	}
+
+	tableInfo, err := pCtx.TableInfo(pCtx.Database, column.Table)
+	if err != nil {
+		panic(fmt.Sprintf("Unknown column table '%v'", column.Table))
+	}
+
+	if tableInfo.Derived {
+		return true
+	}
+
+	db := pCtx.Schema.Databases[pCtx.Database]
+
+	if db == nil {
+		return false
+	}
+
+	table := db.Tables[tableInfo.Name]
+
+	if table == nil {
+		return false
+	}
+
+	return table.SQLColumns[column.Name] != nil
+
+}
+
+func (pCtx *ParseCtx) String() string {
+	if pCtx == nil {
+		return ""
+	}
+
+	addr := unsafe.Pointer(pCtx)
+
+	b := bytes.NewBufferString(fmt.Sprintf("%v Phase (%v); State (%v):", addr, pCtx.Phase, pCtx.State))
+
+	if pCtx.Expr != nil {
+		b.WriteString(fmt.Sprintf(" %v", sqlparser.String(pCtx.Expr)))
+	}
+
+	b.WriteString("\n")
+
+	pCtx.string(b, 0)
+
+	return b.String()
+}
+
+func (pCtx *ParseCtx) string(b *bytes.Buffer, d int) {
+
+	if len(pCtx.Tables) != 0 {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("→ Tables (%v)\n", len(pCtx.Tables)))
+	}
+
+	for i, table := range pCtx.Tables {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("\tT%v: → %#v\n", i, table))
+	}
+
+	if len(pCtx.Columns) != 0 {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("→ Columns (%v)\n", len(pCtx.Columns)))
+	}
+
+	for i, column := range pCtx.Columns {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("\tC%v: → %#v\n", i, column))
+	}
+
+	if len(pCtx.ColumnReferences) != 0 {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("→ References (%v)\n", len(pCtx.ColumnReferences)))
+	}
+
+	for i, reference := range pCtx.ColumnReferences {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("\tR%v: → %#v\n", i, reference))
+	}
+
+	if len(pCtx.Children) != 0 {
+		printTabs(b, d)
+		b.WriteString(fmt.Sprintf("→ Children (%v)\n", len(pCtx.Children)))
+	}
+
+	for i, ctx := range pCtx.Children {
+		printTabs(b, d+1)
+		addr := unsafe.Pointer(ctx)
+		b.WriteString(fmt.Sprintf("Child %v: %v\n", i, addr))
+		ctx.string(b, d+1)
+	}
+}
+
+// TableInfo returns the table infor for the given alias.
+// It searches in the parent context if the alias is not found
+// in the current context.
+func (pCtx *ParseCtx) TableInfo(db, alias string) (*TableInfo, error) {
+	return pCtx.tableInfo(db, alias, 0)
+}
+
+func (pCtx *ParseCtx) tableInfo(db, alias string, depth int) (*TableInfo, error) {
+
+	if pCtx != nil && pCtx.Parent != nil && depth == 0 {
+		return pCtx.Parent.tableInfo(db, alias, depth)
+	}
+
+	for _, tableInfo := range pCtx.Tables {
+		if db == tableInfo.Db && alias == tableInfo.Alias {
+			return &tableInfo, nil
+		}
+	}
+
+	for _, ctx := range pCtx.Children {
+		tableInfo, err := ctx.tableInfo(db, alias, depth+1)
+		if err == nil {
+			return tableInfo, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Unknown table '%v'", alias)
+}
+
+// TableSchema returns the named table's configuration.
+func (pCtx *ParseCtx) TableSchema(table string) *schema.Table {
+	db := pCtx.Schema.Databases[pCtx.Database]
+
+	if db == nil {
+		return nil
+	}
+
+	return db.Tables[table]
+}
+
+// Helpers
+
+func printTabs(b *bytes.Buffer, d int) {
+	for i := 0; i < d; i++ {
+		b.WriteString("\t")
+	}
 }
