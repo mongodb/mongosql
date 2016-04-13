@@ -54,7 +54,12 @@ func (f *SQLAggFunctionExpr) String() string {
 }
 
 func (f *SQLAggFunctionExpr) Type() schema.SQLType {
-	return schema.SQLNumeric
+	switch f.Name {
+	case "count":
+		return schema.SQLInt
+	default:
+		return f.Exprs[0].Type()
+	}
 }
 
 func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
