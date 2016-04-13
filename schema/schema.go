@@ -157,8 +157,7 @@ func (c *Column) validateType() error {
 		switch SQLType(c.SqlType) {
 		case SQLArrNumeric:
 		default:
-			// TODO (INT-1015): remove once pipeline is supported
-			// return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
 		}
 	case MongoObjectId:
 		switch SQLType(c.SqlType) {
@@ -303,6 +302,8 @@ func HandlePipeline(db *Database) error {
 func PopulateColumnMaps(db *Database) error {
 	db.Tables = make(map[string]*Table)
 
+	tables := []*Table{}
+
 	for _, tbl := range db.RawTables {
 		err := tbl.validateColumnTypes()
 		if err != nil {
@@ -320,6 +321,9 @@ func PopulateColumnMaps(db *Database) error {
 		tbl.Columns = make(map[string]*Column)
 		tbl.SQLColumns = make(map[string]*Column)
 
+		var geo2DField []Column
+		var resolvedRawColumns []*Column
+
 		for _, c := range tbl.RawColumns {
 
 			if c.SqlName == "" {
@@ -334,10 +338,41 @@ func PopulateColumnMaps(db *Database) error {
 				return fmt.Errorf("duplicate column [%s].", c.Name)
 			}
 
-			tbl.Columns[c.Name] = c
-			tbl.SQLColumns[c.SqlName] = c
+			// we're dealing with a legacy 2d array
+			if c.SqlType == SQLArrNumeric {
+				c.SqlType = SQLFloat
+				c.MongoType = MongoFloat
+				geo2DField = append(geo2DField, *c)
+			} else {
+				tbl.Columns[c.Name] = c
+				tbl.SQLColumns[c.SqlName] = c
+				resolvedRawColumns = append(resolvedRawColumns, &(*c))
+			}
 		}
+
+		for _, column := range geo2DField {
+			// add longitude and latitude SqlName
+			for j, suffix := range []string{"_longitude", "_latitude"} {
+				c := Column{
+					Name:      fmt.Sprintf("%v.%v", column.SqlName, j),
+					SqlName:   column.SqlName + suffix,
+					SqlType:   SQLFloat,
+					MongoType: column.MongoType,
+				}
+				tbl.Columns[c.Name] = &c
+				tbl.SQLColumns[c.SqlName] = &c
+				resolvedRawColumns = append(resolvedRawColumns, &c)
+			}
+		}
+		tbl.RawColumns = resolvedRawColumns
+		tables = append(tables, &(*tbl))
 	}
+
+	for _, table := range tables {
+		db.Tables[table.Name] = &(*table)
+	}
+
+	db.RawTables = tables
 
 	return nil
 }

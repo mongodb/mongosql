@@ -116,7 +116,22 @@ schema:
      pipeline:
      - $unwind : "$x"
      - $sort: { a: 1, b: 1, c: -1 }
-
+-
+  db: test3
+  tables:
+  -
+     table: bar
+     collection: bar
+     columns:
+     -
+        Name: c
+        MongoType: string
+        SqlType: varchar
+     -
+        Name: d
+        MongoType: geo.2darray
+        SqlName: d
+        SqlType: numeric[]
   -
      table: bar2
      collection: bar2
@@ -128,9 +143,17 @@ schema:
 		err := cfg.Load(testSchemaDataSub)
 		So(err, ShouldBeNil)
 
-		So(len(cfg.RawDatabases), ShouldEqual, 2)
+		So(len(cfg.RawDatabases), ShouldEqual, 3)
 		So(len(cfg.RawDatabases[0].RawTables), ShouldEqual, 1)
-		So(len(cfg.RawDatabases[1].RawTables), ShouldEqual, 2)
+		So(len(cfg.RawDatabases[1].RawTables), ShouldEqual, 1)
+		So(len(cfg.RawDatabases[2].RawTables), ShouldEqual, 2)
+		So(len(cfg.RawDatabases[2].RawTables[0].RawColumns), ShouldEqual, 3)
+		So(len(cfg.RawDatabases[2].RawTables[1].RawColumns), ShouldEqual, 0)
+
+		So(cfg.RawDatabases[2].RawTables[0].RawColumns[0].SqlName, ShouldEqual, "c")
+		So(cfg.RawDatabases[2].RawTables[0].RawColumns[1].SqlName, ShouldEqual, "d_longitude")
+		So(cfg.RawDatabases[2].RawTables[0].RawColumns[2].SqlName, ShouldEqual, "d_latitude")
+
 		So(cfg.RawDatabases[0].Name, ShouldEqual, "test1")
 
 		So(cfg.RawDatabases[0].RawTables[0].Name, ShouldEqual, "foo")

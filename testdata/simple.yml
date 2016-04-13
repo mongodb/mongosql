@@ -5,6 +5,8 @@
 #
 data:
 - archive_file: testdata/input/test1.bson.gz
+- archive_file: testdata/input/test2.bson.gz
+- archive_file: testdata/input/test3.bson.gz
 
 # 2. Start a test server using the following schema mapping, which should
 # correspond to the data used in (1)
@@ -12,7 +14,7 @@ data:
 schema:
 - db: test
   tables:
-  - table: foo
+  - table: test1
     collection: test1
     pipeline: 
     - $project: { a: 1, b: 1, loc: 1, c: { $add: ["$a", { $numberLong: "10" }] } }
@@ -37,26 +39,94 @@ schema:
       MongoType: int
       SqlName: longitude
       SqlType: int64
+  - table: test2
+    collection: test2
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+    - Name: loc.lat
+      MongoType: float64
+      SqlName: loc.lat
+      SqlType: numeric
+    - Name: loc.lng
+      MongoType: float64
+      SqlName: loc.lng
+      SqlType: numeric
+  - table: test3
+    collection: test3
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+    - Name: loc
+      MongoType: geo.2darray
+      SqlName: loc
+      SqlType: numeric[]
 
 # 3. Run each of the following queries, and report any that have errors
 testcases:
-- sql: "SELECT a, b, c, latitude, longitude from foo"
+- sql: "SELECT a, b, c, latitude, longitude from test1"
   expected_types: [int, varchar, int, float64, float64]
-  expected: 
+  expected:
     - [1, "hello world!", 11, 124.0, 35.0]
-- sql: "SELECT count(*) from foo"
+- sql: "SELECT count(*) from test1"
   expected_types: [int]
-  expected: 
+  expected:
     - [1]
-- sql: "SELECT sum(a) from foo"
+- sql: "SELECT sum(a) from test1"
   expected_types: [int]
-  expected: 
+  expected:
     - [1]
-- sql: "SELECT sum(c) from foo"
+- sql: "SELECT sum(c) from test1"
   expected_types: [int]
-  expected: 
+  expected:
     - [11]
-- sql: "SELECT latitude, longitude from foo"
+- sql: "SELECT latitude, longitude from test1"
   expected_types: [float64, float64]
-  expected: 
+  expected:
     - [124.0, 35.0]
+- sql: "SELECT `loc.lat`, `loc.lng` from test2"
+  expected_types: [float64, float64]
+  expected:
+    - [33.0, 11.0]
+- sql: "SELECT * from test2"
+  expected_types: [varchar, int, varchar, float64, float64]
+  expected:
+    - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
+- sql: "SELECT sum(`loc.lng`) from test2"
+  expected_types: [float64]
+  expected:
+    - [11.0]
+- sql: "SELECT loc_latitude, loc_longitude from test3"
+  expected_types: [float64, float64]
+  expected:
+    - [4.0, 2.0]
+- sql: "SELECT * from test3"
+  expected_types: [varchar, int, varchar, float64, float64]
+  expected:
+    - [570e927965d33734a8605cbb, 1, hello, 2.0, 4.0]
+- sql: "SELECT sum(loc_latitude) from test3"
+  expected_types: [float64]
+  expected:
+    - [4.0]
