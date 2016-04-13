@@ -172,7 +172,7 @@ func TestFilterPushDown(t *testing.T) {
 
 			Convey("Should not optimize the pipeline when the source is not valid", func() {
 
-				empty := &EmptyStage{}
+				empty := &EmptyStage{nil}
 
 				filter := &FilterStage{
 					source: empty,
@@ -1415,12 +1415,12 @@ func TestJoinPushDown(t *testing.T) {
 			}
 
 			Convey("Should not optimize the pipeline when the left source is not a TableScan", func() {
-				join.left = &EmptyStage{}
+				join.left = &EmptyStage{nil}
 				verifyUnoptimizedPipeline(ctx.PlanCtx, join)
 			})
 
 			Convey("Should not optimize the pipeline when the right source is not a TableScan", func() {
-				join.right = &EmptyStage{}
+				join.right = &EmptyStage{nil}
 				verifyUnoptimizedPipeline(ctx.PlanCtx, join)
 			})
 
@@ -1510,7 +1510,7 @@ func TestLimitPushDown(t *testing.T) {
 
 		Convey("Given a non-push-downable limit", func() {
 
-			empty := &EmptyStage{}
+			empty := &EmptyStage{nil}
 
 			limit := &LimitStage{
 				source: empty,
@@ -1696,7 +1696,7 @@ func TestOrderByPushDown(t *testing.T) {
 
 		Convey("Given a non-push-downable order by", func() {
 
-			empty := &EmptyStage{}
+			empty := &EmptyStage{nil}
 
 			orderBy := &OrderByStage{
 				source: empty,

@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
@@ -9,7 +10,17 @@ func TestEmptyOperator(t *testing.T) {
 
 	Convey("When using the empty operator", t, func() {
 
-		e := EmptyStage{}
+		e := EmptyStage{
+			[]*Column{
+				&Column{
+					Table:     "foo",
+					Name:      "a",
+					View:      "a",
+					SQLType:   schema.SQLInt,
+					MongoType: schema.MongoInt,
+				},
+			},
+		}
 
 		Convey("Open should return nil error", func() {
 			iter, err := e.Open(nil)
@@ -19,9 +30,14 @@ func TestEmptyOperator(t *testing.T) {
 				So(iter.Next(nil), ShouldBeFalse)
 			})
 
-			Convey("OpFields should return an empty array", func() {
+			Convey("OpFields should return the table fields", func() {
 				res := e.OpFields()
-				So(res, ShouldBeEmpty)
+				So(len(res), ShouldEqual, 1)
+				So(res[0].Table, ShouldEqual, "foo")
+				So(res[0].Name, ShouldEqual, "a")
+				So(res[0].View, ShouldEqual, "a")
+				So(res[0].SQLType, ShouldEqual, schema.SQLInt)
+				So(res[0].MongoType, ShouldEqual, schema.MongoInt)
 			})
 
 			Convey("Close should return nil", func() {
@@ -34,7 +50,6 @@ func TestEmptyOperator(t *testing.T) {
 				So(res, ShouldBeNil)
 			})
 		})
-
 	})
 
 }

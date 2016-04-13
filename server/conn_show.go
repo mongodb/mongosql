@@ -162,14 +162,14 @@ func HandleShowColumns(tableSchema *schema.Table, full bool) ([]string, [][]inte
 		row[0] = evaluator.SQLVarchar(col.Name)
 		row[1] = evaluator.SQLVarchar(string(col.SqlType))
 		row[2] = evaluator.SQLVarchar("YES")
-		row[3] = evaluator.SQLVarchar("")
+		row[3] = evaluator.SQLVarchar(" ")
 		row[4] = evaluator.SQLNull
-		row[5] = evaluator.SQLVarchar("")
+		row[5] = evaluator.SQLVarchar(" ")
 
 		if full {
-			row[6] = evaluator.SQLNull
+			row[6] = evaluator.SQLVarchar("utf8_bin")
 			row[7] = evaluator.SQLVarchar("select")
-			row[8] = evaluator.SQLVarchar("")
+			row[8] = evaluator.SQLVarchar(" ")
 		}
 		values[num] = row
 	}

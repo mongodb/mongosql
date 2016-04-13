@@ -31,11 +31,13 @@ type GroupByStage struct {
 }
 
 func (gb *GroupByStage) OpFields() (columns []*Column) {
-	for _, sExpr := range gb.selectExprs {
+	for _, expr := range gb.selectExprs {
 		column := &Column{
-			Name:  sExpr.Name,
-			View:  sExpr.View,
-			Table: sExpr.Table,
+			Name:      expr.Name,
+			View:      expr.View,
+			Table:     expr.Table,
+			SQLType:   expr.SQLType,
+			MongoType: expr.MongoType,
 		}
 		columns = append(columns, column)
 	}

@@ -721,7 +721,7 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs, tables map[string]*schema.
 				return nil, err
 			}
 
-			column := &Column{View: string(expr.As)}
+			column := &Column{View: string(expr.As), SQLType: sqlExpr.Type()}
 
 			selectExpression := SelectExpression{
 				Column:     column,
@@ -753,6 +753,7 @@ func refColsInSelectExpr(exprs sqlparser.SelectExprs, tables map[string]*schema.
 				//
 				// a	sum(foo.b)
 				//
+				selectExpression.SQLType = sqlExpr.Type()
 				selectExpression.View = sqlExpr.String()
 			}
 

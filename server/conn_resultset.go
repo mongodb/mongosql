@@ -186,7 +186,7 @@ func (c *conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 			r.Fields[j] = field
 			field.Name = Slice(nm)
 
-			if err = formatField(field, nil); err != nil {
+			if err = formatField(field, evaluator.SQLVarchar("")); err != nil {
 				return nil, err
 			}
 		}
@@ -221,9 +221,34 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 		return err
 	}
 
+	var wroteHeaders bool
+
 	writeHeaders := func(values []interface{}) error {
 
-		for j, value := range values {
+		numFields := len(values)
+
+		if values == nil {
+			numFields = len(columns)
+		}
+
+		if numFields == 0 {
+			return fmt.Errorf("no headers returned")
+		}
+
+		var value interface{}
+
+		j := 0
+
+		for j < numFields {
+			if values == nil {
+				zeroValue := columns[j].SQLType.ZeroValue()
+				value, err = evaluator.NewSQLValue(zeroValue, schema.SQLNone, schema.MongoNone)
+				if err != nil {
+					return err
+				}
+			} else {
+				value = values[j]
+			}
 
 			field := &Field{
 				Name: Slice(columns[j].View),
@@ -235,11 +260,14 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 
 			data = data[0:4]
 			data = append(data, field.Dump()...)
+
 			// write a column definition packet for each
 			// column in the result set
 			if err := c.writePacket(data); err != nil {
 				return err
 			}
+
+			j++
 		}
 
 		// end the column definitions with an EOF packet
@@ -249,8 +277,6 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 	var b []byte
 
 	evaluatorRow := &evaluator.Row{}
-
-	var wroteHeaders bool
 
 	for iter.Next(evaluatorRow) {
 
@@ -297,7 +323,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 	log.Logf(log.DebugLow, "[conn%v] done executing plan", c.ConnectionId())
 
 	if !wroteHeaders {
-		if err = writeHeaders(make([]interface{}, len(columns))); err != nil {
+		if err = writeHeaders(nil); err != nil {
 			return err
 		}
 	}

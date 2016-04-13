@@ -39,6 +39,27 @@ const (
 	SQLTuple              = "sqltuple"
 )
 
+// ZeroValue returns the zero value for sqlType.
+func (sqlType SQLType) ZeroValue() interface{} {
+	switch sqlType {
+	case SQLNumeric, SQLInt, SQLInt64:
+		return int64(0)
+	case SQLFloat, SQLArrNumeric:
+		return float64(0)
+	case SQLVarchar:
+		return ""
+	case SQLTimestamp, SQLDate:
+		return time.Time{}
+	case SQLBoolean:
+		return false
+	case SQLNone, SQLNull:
+		return nil
+	case SQLObjectID:
+		return bson.ObjectId("")
+	}
+	return ""
+}
+
 const (
 	MongoInt      MongoType = "int"
 	MongoInt64              = "int64"

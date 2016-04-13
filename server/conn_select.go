@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 )
@@ -76,15 +78,37 @@ func (c *conn) handleFieldList(data []byte) error {
 	table := string(data[0:index])
 	wildcard := string(data[index+1:])
 
-	// TODO: hack but valid since _id always exists in MongoDB
-	log.Logf(log.DebugLow, "handleFieldList table: %v", table)
-	log.Logf(log.DebugLow, "handleFieldList wildcard: %v", wildcard)
+	dbName := c.currentDB.Name
 
-	f := &Field{}
-	f.Name = []byte("_id")
-	f.OrgName = f.Name
+	db := c.server.databases[dbName]
+	if db == nil {
+		return newDefaultError(ER_BAD_DB_ERROR, dbName)
+	}
 
-	return c.writeFieldList(c.status, []*Field{f})
+	tableSchema := db.Tables[table]
+	if tableSchema == nil {
+		return fmt.Errorf("table (%s) does not exist in db (%s)", table, dbName)
+	}
+
+	fields := []*Field{}
+
+	for _, field := range tableSchema.RawColumns {
+		f := &Field{}
+		f.Name = []byte(field.SqlName)
+		zeroValue := field.SqlType.ZeroValue()
+		value, err := evaluator.NewSQLValue(zeroValue, schema.SQLNone, schema.MongoNone)
+		if err != nil {
+			return err
+		}
+		if err = formatField(f, value); err != nil {
+			return err
+		}
+		fields = append(fields, f)
+	}
+
+	log.Logf(log.DebugLow, "handleFieldList table: %v, wildcard: %v", table, wildcard)
+
+	return c.writeFieldList(c.status, fields)
 }
 
 func (c *conn) writeFieldList(status uint16, fs []*Field) error {

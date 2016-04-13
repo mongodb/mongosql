@@ -173,7 +173,7 @@ func (sfr *SchemaFindResults) Next(result *bson.D) bool {
 		_cfrNextHelper(result, ISTablesHeaders[1], table.Name)
 
 		_cfrNextHelper(result, ISTablesHeaders[2], "BASE TABLE")
-		_cfrNextHelper(result, ISTablesHeaders[3], "d")
+		_cfrNextHelper(result, ISTablesHeaders[3], " ")
 
 		sfr.tableOffset = sfr.tableOffset + 1
 		tableName = "tables"

@@ -54,10 +54,11 @@ func (sq *SubqueryIter) Next(row *Row) bool {
 func (sq *SubqueryStage) OpFields() (columns []*Column) {
 	for _, expr := range sq.source.OpFields() {
 		column := &Column{
-			// name is referenced by view in outer context
-			Name:  expr.View,
-			View:  expr.View,
-			Table: sq.tableName,
+			Name:      expr.View,
+			View:      expr.View,
+			Table:     sq.tableName,
+			SQLType:   expr.SQLType,
+			MongoType: expr.MongoType,
 		}
 		columns = append(columns, column)
 	}

@@ -26,9 +26,11 @@ func (di *DualIter) Next(row *Row) bool {
 func (d *DualStage) OpFields() (columns []*Column) {
 	for _, expr := range d.sExprs {
 		column := &Column{
-			Name:  expr.Name,
-			View:  expr.View,
-			Table: expr.Table,
+			Name:      expr.Name,
+			View:      expr.View,
+			Table:     expr.Table,
+			SQLType:   expr.SQLType,
+			MongoType: expr.MongoType,
 		}
 		columns = append(columns, column)
 	}

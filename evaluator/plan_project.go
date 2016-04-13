@@ -121,9 +121,11 @@ func (pj *ProjectIter) Next(r *Row) bool {
 func (pj *ProjectStage) OpFields() (columns []*Column) {
 	for _, expr := range pj.sExprs {
 		column := &Column{
-			Name:  expr.Name,
-			View:  expr.View,
-			Table: expr.Table,
+			Name:      expr.Name,
+			View:      expr.View,
+			Table:     expr.Table,
+			SQLType:   expr.SQLType,
+			MongoType: expr.MongoType,
 		}
 		columns = append(columns, column)
 	}

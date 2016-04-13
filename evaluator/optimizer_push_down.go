@@ -84,13 +84,13 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		// we can see if it matches right now. If so, we eliminate
 		// the filter from the tree. Otherwise, we return an
 		// operator that yields no rows.
-
 		matches, err := Matches(value, nil)
 		if err != nil {
 			return nil, err
 		}
+
 		if !matches {
-			return &EmptyStage{}, nil
+			return &EmptyStage{filter.OpFields()}, nil
 		}
 
 		// otherwise, the filter simply gets removed from the tree
