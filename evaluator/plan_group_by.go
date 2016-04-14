@@ -3,7 +3,6 @@ package evaluator
 import (
 	"bytes"
 	"fmt"
-	"sync"
 )
 
 // orderedGroup holds all the rows belonging to a given key in the groups
@@ -65,8 +64,6 @@ type GroupByIter struct {
 	outChan chan AggRowCtx
 
 	ctx *ExecutionCtx
-
-	init sync.Once
 }
 
 func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
@@ -74,7 +71,15 @@ func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &GroupByIter{ctx: ctx, source: sourceIter}, nil
+
+	iter := &GroupByIter{
+		ctx:         ctx,
+		source:      sourceIter,
+		selectExprs: gb.selectExprs,
+		keyExprs:    gb.keyExprs,
+	}
+
+	return iter, nil
 }
 
 func evaluateGroupByKey(row *Row, keyExprs SelectExpressions) (string, error) {
