@@ -9,6 +9,8 @@ import (
 	"testing"
 )
 
+const numInformationSchemaColumns = 30
+
 type fakeAuthProvider struct{}
 
 func (p *fakeAuthProvider) IsDatabaseAllowed(dbName string) bool {
@@ -49,7 +51,7 @@ func TestSchemaDataSourceIter(t *testing.T) {
 		}
 
 		Convey("when iterating over tables", func() {
-			plan := &SchemaDataSourceStage{"tables", "", nil}
+			plan := NewSchemaDataSourceStage("tables", "")
 
 			Convey("should return all tables when authentication is disabled", func() {
 
@@ -60,9 +62,9 @@ func TestSchemaDataSourceIter(t *testing.T) {
 				names := gatherValues("tables", "TABLE_NAME", iter)
 				sort.Strings(names)
 
-				So(len(names), ShouldEqual, 7)
+				So(len(names), ShouldEqual, 10)
 
-				expectedNames := []string{"bar", "bar", "bar", "baz", "foo", "foo", "silly"}
+				expectedNames := []string{"COLUMNS", "SCHEMATA", "TABLES", "bar", "bar", "bar", "baz", "foo", "foo", "silly"}
 				So(names, ShouldResemble, expectedNames)
 				So(iter.Close(), ShouldBeNil)
 			})
@@ -75,16 +77,16 @@ func TestSchemaDataSourceIter(t *testing.T) {
 				names := gatherValues("tables", "TABLE_NAME", iter)
 				sort.Strings(names)
 
-				So(len(names), ShouldEqual, 3)
+				So(len(names), ShouldEqual, 6)
 
-				expectedNames := []string{"bar", "bar", "baz"}
+				expectedNames := []string{"COLUMNS", "SCHEMATA", "TABLES", "bar", "bar", "baz"}
 				So(names, ShouldResemble, expectedNames)
 				So(iter.Close(), ShouldBeNil)
 			})
 		})
 
 		Convey("when iterating over columns", func() {
-			plan := &SchemaDataSourceStage{"columns", "", nil}
+			plan := NewSchemaDataSourceStage("columns", "")
 
 			Convey("should return all columns when authentication is disabled", func() {
 				ctx.AuthProvider = &FixedAuthProvider{true}
@@ -92,6 +94,7 @@ func TestSchemaDataSourceIter(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				names := gatherValues("columns", "COLUMN_NAME", iter)
+				names = names[numInformationSchemaColumns:]
 				sort.Strings(names)
 
 				So(len(names), ShouldEqual, 22)
@@ -107,6 +110,7 @@ func TestSchemaDataSourceIter(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				names := gatherValues("columns", "COLUMN_NAME", iter)
+				names = names[numInformationSchemaColumns:]
 				sort.Strings(names)
 
 				So(len(names), ShouldEqual, 9)

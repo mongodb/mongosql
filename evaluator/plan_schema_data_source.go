@@ -7,44 +7,55 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+const (
+	isCatalogName      = "def"
+	isCharacterSetName = "utf8"
+	isCollationName    = "utf8_bin"
+)
+
+type isColumn struct {
+	name    string
+	sqlType schema.SQLType
+}
+
 var (
-	ISSchemataHeaders = []string{
-		"CATALOG_NAME",
-		"SCHEMA_NAME",
-		"DEFAULT_CHARACTER_SET_NAME",
-		"DEFAULT_COLLATION_NAME",
-		"SQL_PATH",
+	isSchemataHeaders = []isColumn{
+		{"CATALOG_NAME", schema.SQLVarchar},
+		{"SCHEMA_NAME", schema.SQLVarchar},
+		{"DEFAULT_CHARACTER_SET_NAME", schema.SQLVarchar},
+		{"DEFAULT_COLLATION_NAME", schema.SQLVarchar},
+		{"SQL_PATH", schema.SQLVarchar},
 	}
 
-	ISTablesHeaders = []string{
-		"TABLE_CATALOG",
-		"TABLE_SCHEMA",
-		"TABLE_NAME",
-		"TABLE_TYPE",
-		"TABLE_COMMENT",
+	isTablesHeaders = []isColumn{
+		{"TABLE_CATALOG", schema.SQLVarchar},
+		{"TABLE_SCHEMA", schema.SQLVarchar},
+		{"TABLE_NAME", schema.SQLVarchar},
+		{"TABLE_TYPE", schema.SQLVarchar},
+		{"TABLE_COMMENT", schema.SQLVarchar},
 	}
 
-	ISColumnHeaders = []string{
-		"TABLE_CATALOG",
-		"TABLE_SCHEMA",
-		"TABLE_NAME",
-		"COLUMN_NAME",
-		"ORDINAL_POSITION",
-		"COLUMN_DEFAULT",
-		"IS_NULLABLE",
-		"DATA_TYPE",
-		"CHARACTER_MAXIMUM_LENGTH",
-		"CHARACTER_OCTET_LENGTH",
-		"NUMERIC_PRECISION",
-		"NUMERIC_SCALE",
-		"DATETIME_PRECISION",
-		"CHARACTER_SET_NAME",
-		"COLLATION_NAME",
-		"COLUMN_TYPE",
-		"COLUMN_KEY",
-		"EXTRA",
-		"PRIVILEGES",
-		"COLUMN_COMMENT",
+	isColumnHeaders = []isColumn{
+		{"TABLE_CATALOG", schema.SQLVarchar},
+		{"TABLE_SCHEMA", schema.SQLVarchar},
+		{"TABLE_NAME", schema.SQLVarchar},
+		{"COLUMN_NAME", schema.SQLVarchar},
+		{"ORDINAL_POSITION", schema.SQLInt64},
+		{"COLUMN_DEFAULT", schema.SQLVarchar},
+		{"IS_NULLABLE", schema.SQLVarchar},
+		{"DATA_TYPE", schema.SQLVarchar},
+		{"CHARACTER_MAXIMUM_LENGTH", schema.SQLInt64},
+		{"CHARACTER_OCTET_LENGTH", schema.SQLInt64},
+		{"NUMERIC_PRECISION", schema.SQLInt64},
+		{"NUMERIC_SCALE", schema.SQLInt64},
+		{"DATETIME_PRECISION", schema.SQLInt64},
+		{"CHARACTER_SET_NAME", schema.SQLVarchar},
+		{"COLLATION_NAME", schema.SQLVarchar},
+		{"COLUMN_TYPE", schema.SQLVarchar},
+		{"COLUMN_KEY", schema.SQLVarchar},
+		{"EXTRA", schema.SQLVarchar},
+		{"PRIVILEGES", schema.SQLVarchar},
+		{"COLUMN_COMMENT", schema.SQLVarchar},
 	}
 )
 
@@ -93,15 +104,15 @@ func (sds *SchemaDataSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 func (sds *SchemaDataSourceStage) OpFields() []*Column {
 
-	var headers []string
+	var headers []isColumn
 
 	switch strings.ToLower(sds.tableName) {
 	case "columns":
-		headers = ISColumnHeaders
+		headers = isColumnHeaders
 	case "schemata":
-		headers = ISSchemataHeaders
+		headers = isSchemataHeaders
 	case "tables":
-		headers = ISTablesHeaders
+		headers = isTablesHeaders
 	}
 
 	aliasName := sds.aliasName
@@ -113,10 +124,10 @@ func (sds *SchemaDataSourceStage) OpFields() []*Column {
 	for _, c := range headers {
 		column := &Column{
 			Table:     aliasName,
-			Name:      c,
-			View:      c,
-			SQLType:   schema.SQLVarchar,
-			MongoType: schema.MongoString,
+			Name:      c.name,
+			View:      c.name,
+			SQLType:   c.sqlType,
+			MongoType: schema.MongoNone,
 		}
 		columns = append(columns, column)
 	}
@@ -124,8 +135,46 @@ func (sds *SchemaDataSourceStage) OpFields() []*Column {
 	return columns
 }
 
+func (sds *SchemaDataSourceStage) getValue(c isColumn, data interface{}) Value {
+	data, _ = NewSQLValue(data, c.sqlType, schema.MongoNone)
+	return Value{Name: c.name, View: c.name, Data: data}
+}
+
 func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {
 	rows := []Values{}
+
+	appendRows := func(headers []isColumn, tableName string) {
+		for i, c := range headers {
+			row := Values{
+				sds.getValue(isColumnHeaders[0], isCatalogName),
+				sds.getValue(isColumnHeaders[1], InformationDatabase),
+				sds.getValue(isColumnHeaders[2], tableName),
+				sds.getValue(isColumnHeaders[3], c.name),
+				sds.getValue(isColumnHeaders[4], i),
+				sds.getValue(isColumnHeaders[5], nil),
+				sds.getValue(isColumnHeaders[6], "YES"),
+				sds.getValue(isColumnHeaders[7], string(c.sqlType)),
+				sds.getValue(isColumnHeaders[8], nil),
+				sds.getValue(isColumnHeaders[9], nil),
+				sds.getValue(isColumnHeaders[10], nil),
+				sds.getValue(isColumnHeaders[11], nil),
+				sds.getValue(isColumnHeaders[12], nil),
+				sds.getValue(isColumnHeaders[13], isCharacterSetName),
+				sds.getValue(isColumnHeaders[14], isCollationName),
+				sds.getValue(isColumnHeaders[15], string(c.sqlType)),
+				sds.getValue(isColumnHeaders[16], ""),
+				sds.getValue(isColumnHeaders[17], ""),
+				sds.getValue(isColumnHeaders[18], "select"),
+				sds.getValue(isColumnHeaders[19], ""),
+			}
+			rows = append(rows, row)
+		}
+	}
+
+	appendRows(isColumnHeaders, "COLUMNS")
+	appendRows(isSchemataHeaders, "SCHEMATA")
+	appendRows(isTablesHeaders, "TABLES")
+
 	for _, db := range ctx.PlanCtx.Schema.RawDatabases {
 		if !ctx.AuthProvider.IsDatabaseAllowed(db.Name) {
 			continue
@@ -139,26 +188,26 @@ func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {
 			for i, column := range table.RawColumns {
 
 				row := Values{
-					Value{Name: ISColumnHeaders[0], View: ISColumnHeaders[0], Data: SQLVarchar("def")},
-					Value{Name: ISColumnHeaders[1], View: ISColumnHeaders[1], Data: SQLVarchar(db.Name)},
-					Value{Name: ISColumnHeaders[2], View: ISColumnHeaders[2], Data: SQLVarchar(table.Name)},
-					Value{Name: ISColumnHeaders[3], View: ISColumnHeaders[3], Data: SQLVarchar(column.SqlName)},
-					Value{Name: ISColumnHeaders[4], View: ISColumnHeaders[4], Data: SQLInt(i)},
-					Value{Name: ISColumnHeaders[5], View: ISColumnHeaders[5], Data: SQLNull},
-					Value{Name: ISColumnHeaders[6], View: ISColumnHeaders[6], Data: SQLVarchar("YES")},
-					Value{Name: ISColumnHeaders[7], View: ISColumnHeaders[7], Data: SQLVarchar(string(column.SqlType))},
-					Value{Name: ISColumnHeaders[8], View: ISColumnHeaders[8], Data: SQLNull},
-					Value{Name: ISColumnHeaders[9], View: ISColumnHeaders[9], Data: SQLNull},
-					Value{Name: ISColumnHeaders[10], View: ISColumnHeaders[10], Data: SQLNull},
-					Value{Name: ISColumnHeaders[11], View: ISColumnHeaders[11], Data: SQLNull},
-					Value{Name: ISColumnHeaders[12], View: ISColumnHeaders[12], Data: SQLNull},
-					Value{Name: ISColumnHeaders[13], View: ISColumnHeaders[13], Data: SQLNull},
-					Value{Name: ISColumnHeaders[14], View: ISColumnHeaders[14], Data: SQLVarchar("utf8_general_ci")},
-					Value{Name: ISColumnHeaders[15], View: ISColumnHeaders[15], Data: SQLVarchar(string(column.SqlType))},
-					Value{Name: ISColumnHeaders[16], View: ISColumnHeaders[16], Data: SQLNull},
-					Value{Name: ISColumnHeaders[17], View: ISColumnHeaders[17], Data: SQLNull},
-					Value{Name: ISColumnHeaders[18], View: ISColumnHeaders[18], Data: SQLNull},
-					Value{Name: ISColumnHeaders[19], View: ISColumnHeaders[19], Data: SQLVarchar(fmt.Sprintf("{ \"name\": \"%s\" }", column.Name))},
+					sds.getValue(isColumnHeaders[0], isCatalogName),
+					sds.getValue(isColumnHeaders[1], db.Name),
+					sds.getValue(isColumnHeaders[2], table.Name),
+					sds.getValue(isColumnHeaders[3], column.SqlName),
+					sds.getValue(isColumnHeaders[4], i),
+					sds.getValue(isColumnHeaders[5], nil),
+					sds.getValue(isColumnHeaders[6], "YES"),
+					sds.getValue(isColumnHeaders[7], string(column.SqlType)),
+					sds.getValue(isColumnHeaders[8], nil),
+					sds.getValue(isColumnHeaders[9], nil),
+					sds.getValue(isColumnHeaders[10], nil),
+					sds.getValue(isColumnHeaders[11], nil),
+					sds.getValue(isColumnHeaders[12], nil),
+					sds.getValue(isColumnHeaders[13], isCharacterSetName),
+					sds.getValue(isColumnHeaders[14], isCollationName),
+					sds.getValue(isColumnHeaders[15], string(column.SqlType)),
+					sds.getValue(isColumnHeaders[16], ""),
+					sds.getValue(isColumnHeaders[17], ""),
+					sds.getValue(isColumnHeaders[18], "select"),
+					sds.getValue(isColumnHeaders[19], fmt.Sprintf("{ \"name\": \"%s\" }", column.Name)),
 				}
 
 				rows = append(rows, row)
@@ -170,18 +219,27 @@ func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {
 }
 
 func (sds *SchemaDataSourceStage) gatherSchemataRows(ctx *ExecutionCtx) []Values {
-	rows := []Values{}
+	rows := []Values{
+		Values{
+			sds.getValue(isSchemataHeaders[0], isCatalogName),
+			sds.getValue(isSchemataHeaders[1], InformationDatabase),
+			sds.getValue(isSchemataHeaders[2], isCharacterSetName),
+			sds.getValue(isSchemataHeaders[3], isCollationName),
+			sds.getValue(isSchemataHeaders[4], nil),
+		},
+	}
+
 	for _, db := range ctx.PlanCtx.Schema.RawDatabases {
 		if !ctx.AuthProvider.IsDatabaseAllowed(db.Name) {
 			continue
 		}
 
 		row := Values{
-			Value{Name: ISSchemataHeaders[0], View: ISSchemataHeaders[0], Data: SQLVarchar("def")},
-			Value{Name: ISSchemataHeaders[1], View: ISSchemataHeaders[1], Data: SQLVarchar(db.Name)},
-			Value{Name: ISSchemataHeaders[2], View: ISSchemataHeaders[2], Data: SQLNull},
-			Value{Name: ISSchemataHeaders[3], View: ISSchemataHeaders[3], Data: SQLVarchar("utf8_general_ci")},
-			Value{Name: ISSchemataHeaders[4], View: ISSchemataHeaders[4], Data: SQLNull},
+			sds.getValue(isSchemataHeaders[0], isCatalogName),
+			sds.getValue(isSchemataHeaders[1], db.Name),
+			sds.getValue(isSchemataHeaders[2], isCharacterSetName),
+			sds.getValue(isSchemataHeaders[3], isCollationName),
+			sds.getValue(isSchemataHeaders[4], nil),
 		}
 
 		rows = append(rows, row)
@@ -191,7 +249,29 @@ func (sds *SchemaDataSourceStage) gatherSchemataRows(ctx *ExecutionCtx) []Values
 }
 
 func (sds *SchemaDataSourceStage) gatherTableRows(ctx *ExecutionCtx) []Values {
-	rows := []Values{}
+	rows := []Values{
+		Values{
+			sds.getValue(isTablesHeaders[0], isCatalogName),
+			sds.getValue(isTablesHeaders[1], InformationDatabase),
+			sds.getValue(isTablesHeaders[2], "COLUMNS"),
+			sds.getValue(isTablesHeaders[3], "SYSTEM VIEW"),
+			sds.getValue(isTablesHeaders[4], ""),
+		},
+		Values{
+			sds.getValue(isTablesHeaders[0], isCatalogName),
+			sds.getValue(isTablesHeaders[1], InformationDatabase),
+			sds.getValue(isTablesHeaders[2], "SCHEMATA"),
+			sds.getValue(isTablesHeaders[3], "SYSTEM VIEW"),
+			sds.getValue(isTablesHeaders[4], ""),
+		},
+		Values{
+			sds.getValue(isTablesHeaders[0], isCatalogName),
+			sds.getValue(isTablesHeaders[1], InformationDatabase),
+			sds.getValue(isTablesHeaders[2], "TABLES"),
+			sds.getValue(isTablesHeaders[3], "SYSTEM VIEW"),
+			sds.getValue(isTablesHeaders[4], ""),
+		},
+	}
 	for _, db := range ctx.PlanCtx.Schema.RawDatabases {
 		if !ctx.AuthProvider.IsDatabaseAllowed(db.Name) {
 			continue
@@ -203,11 +283,11 @@ func (sds *SchemaDataSourceStage) gatherTableRows(ctx *ExecutionCtx) []Values {
 			}
 
 			row := Values{
-				Value{Name: ISTablesHeaders[0], View: ISTablesHeaders[0], Data: SQLVarchar("def")},
-				Value{Name: ISTablesHeaders[1], View: ISTablesHeaders[1], Data: SQLVarchar(db.Name)},
-				Value{Name: ISTablesHeaders[2], View: ISTablesHeaders[2], Data: SQLVarchar(table.Name)},
-				Value{Name: ISTablesHeaders[3], View: ISTablesHeaders[3], Data: SQLVarchar("VIEW")},
-				Value{Name: ISTablesHeaders[4], View: ISTablesHeaders[4], Data: SQLVarchar(fmt.Sprintf("{ \"collectionName\": \"%s\" }", table.CollectionName))},
+				sds.getValue(isTablesHeaders[0], isCatalogName),
+				sds.getValue(isTablesHeaders[1], db.Name),
+				sds.getValue(isTablesHeaders[2], table.Name),
+				sds.getValue(isTablesHeaders[3], "VIEW"),
+				sds.getValue(isTablesHeaders[4], fmt.Sprintf("{ \"collectionName\": \"%s\" }", table.CollectionName)),
 			}
 
 			rows = append(rows, row)

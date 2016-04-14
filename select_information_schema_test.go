@@ -16,7 +16,7 @@ func TestSchemaScanOperatorSelect(t *testing.T) {
 
 		_, values, err := eval.EvaluateRows("information_schema", "select * from columns", nil, conn)
 		So(err, ShouldBeNil)
-		So(len(values), ShouldEqual, 8)
+		So(len(values), ShouldEqual, 38)
 
 		_, values, err = eval.EvaluateRows("information_schema", "select * from columns where COLUMN_NAME = 'f'", nil, conn)
 		So(err, ShouldBeNil)
@@ -38,7 +38,7 @@ func TestSchemaScanOperatorTablesSelect(t *testing.T) {
 
 		_, values, err := eval.EvaluateRows("", "select * from information_schema.TABLES", nil, conn)
 		So(err, ShouldBeNil)
-		So(len(values), ShouldEqual, 3)
+		So(len(values), ShouldEqual, 6)
 
 		_, values, err = eval.EvaluateRows("", "select * from information_schema.TABLES WHERE table_schema = 'test'", nil, conn)
 		So(err, ShouldBeNil)
@@ -59,19 +59,5 @@ func TestSchemaScanOperatorTablesSelect(t *testing.T) {
 		_, values, err = eval.EvaluateRows("", "select * from information_schema.TABLES WHERE table_schema LIKE 'test'", nil, conn)
 		So(err, ShouldBeNil)
 		So(len(values), ShouldEqual, 1)
-	})
-}
-
-func TestSchemaKeyColumnUsage(t *testing.T) {
-	env := setupEnv(t)
-	eval := env.eval
-	conn := env.conn()
-
-	Convey("using config data source should to filter columns", t, func() {
-
-		_, values, err := eval.EvaluateRows("information_schema", "select * from KEY_COLUMN_USAGE", nil, conn)
-		So(err, ShouldBeNil)
-		So(len(values), ShouldEqual, 0)
-
 	})
 }

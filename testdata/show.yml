@@ -89,9 +89,9 @@ testcases:
 - sql: "SHOW FULL COLUMNS FROM foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", ~, ~, ~, "utf8_general_ci", ~, "{ \"name\": \"a\" }"]
-    - ["b1", "varchar", "YES", ~, ~, ~, "utf8_general_ci", ~, "{ \"name\": \"b\" }"]
-    - ["c1", "int64", "YES", ~, ~, ~, "utf8_general_ci", ~, "{ \"name\": \"c\" }"]
+    - ["a1", "int64", "YES", ~, ~, ~, "utf8_bin", "select", "{ \"name\": \"a\" }"]
+    - ["b1", "varchar", "YES", ~, ~, ~, "utf8_bin", "select", "{ \"name\": \"b\" }"]
+    - ["c1", "int64", "YES", ~, ~, ~, "utf8_bin", "select", "{ \"name\": \"c\" }"]
 - sql: "SHOW COLUMNS FROM test2.foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected: []
@@ -125,6 +125,7 @@ testcases:
   expected_types: [varchar]
   expected: 
     - ["blah"]
+    - ["information_schema"]
     - ["test"]
 - sql: "SHOW DATABASES LIKE 'b'"
   expected_types: [varchar]
