@@ -304,8 +304,6 @@ func HandlePipeline(db *Database) error {
 func PopulateColumnMaps(db *Database) error {
 	db.Tables = make(map[string]*Table)
 
-	tables := []*Table{}
-
 	for _, tbl := range db.RawTables {
 		err := tbl.validateColumnTypes()
 		if err != nil {
@@ -323,7 +321,7 @@ func PopulateColumnMaps(db *Database) error {
 		tbl.Columns = make(map[string]*Column)
 		tbl.SQLColumns = make(map[string]*Column)
 
-		var geo2DField []Column
+		var geo2DField []*Column
 		var resolvedRawColumns []*Column
 
 		for _, c := range tbl.RawColumns {
@@ -342,37 +340,30 @@ func PopulateColumnMaps(db *Database) error {
 
 			// we're dealing with a legacy 2d array
 			if c.SqlType == SQLArrNumeric {
-				geo2DField = append(geo2DField, *c)
+				geo2DField = append(geo2DField, c)
 			} else {
 				tbl.Columns[c.Name] = c
 				tbl.SQLColumns[c.SqlName] = c
-				resolvedRawColumns = append(resolvedRawColumns, &(*c))
+				resolvedRawColumns = append(resolvedRawColumns, c)
 			}
 		}
 
 		for _, column := range geo2DField {
 			// add longitude and latitude SqlName
 			for j, suffix := range []string{"_longitude", "_latitude"} {
-				c := Column{
+				c := &Column{
 					Name:      fmt.Sprintf("%v.%v", column.Name, j),
 					SqlName:   column.SqlName + suffix,
 					SqlType:   SQLArrNumeric,
 					MongoType: SQLFloat,
 				}
-				tbl.Columns[c.Name] = &c
-				tbl.SQLColumns[c.SqlName] = &c
-				resolvedRawColumns = append(resolvedRawColumns, &c)
+				tbl.Columns[c.Name] = c
+				tbl.SQLColumns[c.SqlName] = c
+				resolvedRawColumns = append(resolvedRawColumns, c)
 			}
 		}
 		tbl.RawColumns = resolvedRawColumns
-		tables = append(tables, &(*tbl))
 	}
-
-	for _, table := range tables {
-		db.Tables[table.Name] = &(*table)
-	}
-
-	db.RawTables = tables
 
 	return nil
 }
