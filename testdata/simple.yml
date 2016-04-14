@@ -31,11 +31,11 @@ schema:
       MongoType: int64
       SqlName: c
       SqlType: int64
-    - Name: "loc.0" 
+    - Name: loc.0
       MongoType: int
       SqlName: latitude
       SqlType: int64
-    - Name: "loc.1"
+    - Name: loc.1
       MongoType: int
       SqlName: longitude
       SqlType: int64

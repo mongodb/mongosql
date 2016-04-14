@@ -300,7 +300,7 @@ func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 		if !v.isGroupKey(typedE) {
 			// since it's not an aggregation function, this implies that it takes the first value of the column.
 			// So project the field, and register the mapping.
-			v.group[dottifyFieldName(typedE.String())] = bson.M{"$first": getProjectedFieldName(fieldName)}
+			v.group[dottifyFieldName(typedE.String())] = bson.M{"$first": getProjectedFieldName(fieldName, typedE.Type())}
 			v.mappingRegistry.registerMapping(typedE.tableName, typedE.columnName, dottifyFieldName(typedE.String()))
 		} else {
 			// the _id is added to the $group in translateGroupByKeys. We will only be here if the user has also projected
@@ -735,7 +735,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 					return project, nil
 				}
 
-				fieldsToProject[dottifyFieldName(fieldName)] = getProjectedFieldName(fieldName)
+				fieldsToProject[dottifyFieldName(fieldName)] = getProjectedFieldName(fieldName, refdCol.SQLType)
 			}
 			continue
 		}

@@ -342,7 +342,7 @@ func PopulateColumnMaps(db *Database) error {
 
 			// we're dealing with a legacy 2d array
 			if c.SqlType == SQLArrNumeric {
-				c.SqlType = SQLFloat
+				c.SqlType = SQLArrNumeric
 				c.MongoType = MongoFloat
 				geo2DField = append(geo2DField, *c)
 			} else {
@@ -358,7 +358,7 @@ func PopulateColumnMaps(db *Database) error {
 				c := Column{
 					Name:      fmt.Sprintf("%v.%v", column.SqlName, j),
 					SqlName:   column.SqlName + suffix,
-					SqlType:   SQLFloat,
+					SqlType:   SQLArrNumeric,
 					MongoType: column.MongoType,
 				}
 				tbl.Columns[c.Name] = &c

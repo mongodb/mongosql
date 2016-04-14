@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -121,7 +122,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		if !ok {
 			return nil, false
 		}
-		return getProjectedFieldName(name), true
+		return getProjectedFieldName(name, typedE.columnType.SQLType), true
 
 	case *SQLGreaterThanExpr:
 
@@ -771,7 +772,7 @@ func translateExprs(lookupFieldName fieldNameLookup, exprs ...SQLExpr) ([]interf
 }
 
 // getProjectedFieldName returns an interface to project the given field.
-func getProjectedFieldName(fieldName string) interface{} {
+func getProjectedFieldName(fieldName string, fieldType schema.SQLType) interface{} {
 
 	names := strings.Split(fieldName, ".")
 
@@ -779,16 +780,9 @@ func getProjectedFieldName(fieldName string) interface{} {
 		return "$" + fieldName
 	}
 
-	// TODO: this is to enable our current tests pass - since
-	// we allow array mappings like:
-	//
-	// - name: loc.0
-	//   sqlname: latitude
-	//
-	// In the future, this swath of code should be removed
-	// and this function can go away
 	value, err := strconv.Atoi(names[len(names)-1])
-	if err == nil {
+	// special handling for legacy 2d array
+	if err == nil && fieldType == schema.SQLArrNumeric {
 		fieldName = fieldName[0:strings.LastIndex(fieldName, ".")]
 		return bson.M{"$arrayElemAt": []interface{}{"$" + fieldName, value}}
 	}

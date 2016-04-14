@@ -160,7 +160,7 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLNull, nil
 		}
 
-	case schema.SQLFloat, schema.SQLNumeric:
+	case schema.SQLFloat, schema.SQLNumeric, schema.SQLArrNumeric:
 		switch v := value.(type) {
 		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToFloat64(v)
