@@ -87,6 +87,7 @@ func evaluateGroupByKey(row *Row, keyExprs SelectExpressions) (string, error) {
 	var gbKey string
 
 	for _, expr := range keyExprs {
+
 		evalCtx := &EvalCtx{Rows: Rows{*row}}
 		value, err := expr.Expr.Evaluate(evalCtx)
 		if err != nil {
@@ -111,7 +112,7 @@ func (gb *GroupByIter) createGroups() error {
 	// iterator source to create groupings
 	for gb.source.Next(r) {
 
-		key, err := evaluateGroupByKey(r, gb.selectExprs)
+		key, err := evaluateGroupByKey(r, gb.keyExprs)
 		if err != nil {
 			return err
 		}
@@ -166,6 +167,7 @@ func (gb *GroupByIter) iterChan() chan AggRowCtx {
 	go func() {
 		for _, key := range gb.finalGrouping.keys {
 			v := gb.finalGrouping.groups[key]
+
 			r, err := gb.evalAggRow(v)
 			if err != nil {
 				gb.err = err
