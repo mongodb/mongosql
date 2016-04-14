@@ -83,6 +83,26 @@ schema:
       MongoType: geo.2darray
       SqlName: loc
       SqlType: numeric[]
+  - table: test4
+    collection: test4
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+    - Name: loc.b.c
+      MongoType: geo.2darray
+      SqlName: location
+      SqlType: numeric[]
 
 # 3. Run each of the following queries, and report any that have errors
 testcases:
@@ -130,3 +150,7 @@ testcases:
   expected_types: [float64]
   expected:
     - [4.0]
+- sql: "SELECT * from test4"
+  expected_types: [varchar, int, varchar, float64, float64]
+  expected:
+    - [570e927965d33734a8605c2b, 1, hello, 44.0, 23.0]

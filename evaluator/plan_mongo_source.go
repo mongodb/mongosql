@@ -55,6 +55,7 @@ func (mr *mappingRegistry) lookupFieldName(tableName, columnName string) (string
 	}
 
 	field, ok := columnToField[columnName]
+
 	return field, ok
 }
 

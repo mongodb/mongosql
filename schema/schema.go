@@ -342,8 +342,6 @@ func PopulateColumnMaps(db *Database) error {
 
 			// we're dealing with a legacy 2d array
 			if c.SqlType == SQLArrNumeric {
-				c.SqlType = SQLArrNumeric
-				c.MongoType = MongoFloat
 				geo2DField = append(geo2DField, *c)
 			} else {
 				tbl.Columns[c.Name] = c
@@ -356,10 +354,10 @@ func PopulateColumnMaps(db *Database) error {
 			// add longitude and latitude SqlName
 			for j, suffix := range []string{"_longitude", "_latitude"} {
 				c := Column{
-					Name:      fmt.Sprintf("%v.%v", column.SqlName, j),
+					Name:      fmt.Sprintf("%v.%v", column.Name, j),
 					SqlName:   column.SqlName + suffix,
 					SqlType:   SQLArrNumeric,
-					MongoType: column.MongoType,
+					MongoType: SQLFloat,
 				}
 				tbl.Columns[c.Name] = &c
 				tbl.SQLColumns[c.SqlName] = &c
