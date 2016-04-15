@@ -99,10 +99,33 @@ schema:
       MongoType: string
       SqlName: b
       SqlType: varchar
+  - table: test4_loc_b_c
+    collection: test4
+    pipeline:
+    - $unwind:
+        includeArrayIndex: loc.b.c_idx
+        path: $loc.b.c
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
     - Name: loc.b.c
-      MongoType: geo.2darray
-      SqlName: location
-      SqlType: numeric[]
+      MongoType: float64
+      SqlName: loc.b.c
+      SqlType: numeric
+    - Name: loc.b.c_idx
+      MongoType: int
+      SqlName: loc.b.c_idx
+      SqlType: numeric
 
 # 3. Run each of the following queries, and report any that have errors
 testcases:
@@ -151,6 +174,15 @@ testcases:
   expected:
     - [4.0]
 - sql: "SELECT * from test4"
-  expected_types: [varchar, int, varchar, float64, float64]
+  expected_types: [varchar, int, varchar]
   expected:
-    - [570e927965d33734a8605c2b, 1, hello, 44.0, 23.0]
+    - [570e927965d33734a8605c2b, 1, hello]
+- sql: "SELECT * from test4_loc_b_c"
+  expected_types: [varchar, int, varchar, float64, int]
+  expected:
+    - [570e927965d33734a8605c2b, 1, hello, 44.0, 0]
+    - [570e927965d33734a8605c2b, 1, hello, 23.0, 1]
+- sql: "SELECT * from test4_loc_b_c where `loc.b.c_idx`=1"
+  expected_types: [varchar, int, varchar, float64, int]
+  expected:
+    - [570e927965d33734a8605c2b, 1, hello, 23.0, 1]
