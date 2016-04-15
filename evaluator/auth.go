@@ -19,18 +19,15 @@ type AuthProvider interface {
 	IsCollectionAllowed(string, string) bool
 }
 
-// FixedAuthProvider returns a fixed value for restrictions.
-type FixedAuthProvider struct {
+type fixedAuthProvider struct {
 	allow bool
 }
 
-// IsDatabaseAllowed indicates whether a database is allowed to be used.
-func (p *FixedAuthProvider) IsDatabaseAllowed(_ string) bool {
+func (p *fixedAuthProvider) IsDatabaseAllowed(_ string) bool {
 	return p.allow
 }
 
-// IsCollectionAllowed indicates whether a collection is allowed to be used.
-func (p *FixedAuthProvider) IsCollectionAllowed(_, _ string) bool {
+func (p *fixedAuthProvider) IsCollectionAllowed(_, _ string) bool {
 	return p.allow
 }
 
@@ -54,7 +51,7 @@ func (p *lazyAuthProvider) ensureInitialized() {
 		a, err := loadAuthProvider(p.session)
 		if err != nil {
 			log.Logf(log.Always, "failed to initialize auth provider: %v", err)
-			p.actual = &FixedAuthProvider{false}
+			p.actual = &fixedAuthProvider{false}
 		}
 		p.actual = a
 	}
@@ -81,7 +78,7 @@ func loadAuthProvider(session *mgo.Session) (AuthProvider, error) {
 func loadAuthProviderFromConnectionStatus(result *bson.M) AuthProvider {
 	authUsers, found := findArrayInDoc("authInfo.authenticatedUsers", result)
 	if !found || len(authUsers) == 0 {
-		return &FixedAuthProvider{true}
+		return &fixedAuthProvider{true}
 	}
 
 	provider := &mongoAuthProvider{}

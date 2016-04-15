@@ -55,7 +55,7 @@ func TestSchemaDataSourceIter(t *testing.T) {
 
 			Convey("should return all tables when authentication is disabled", func() {
 
-				ctx.AuthProvider = &FixedAuthProvider{true}
+				ctx.AuthProvider = &fixedAuthProvider{true}
 				iter, err := plan.Open(ctx)
 				So(err, ShouldBeNil)
 
@@ -89,7 +89,7 @@ func TestSchemaDataSourceIter(t *testing.T) {
 			plan := NewSchemaDataSourceStage("columns", "")
 
 			Convey("should return all columns when authentication is disabled", func() {
-				ctx.AuthProvider = &FixedAuthProvider{true}
+				ctx.AuthProvider = &fixedAuthProvider{true}
 				iter, err := plan.Open(ctx)
 				So(err, ShouldBeNil)
 

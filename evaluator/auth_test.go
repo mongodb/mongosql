@@ -21,8 +21,8 @@ func TestAuthProvider(t *testing.T) {
 
 			provider := loadAuthProviderFromConnectionStatus(&result)
 
-			Convey("provider should be a FixedAuthProvider", func() {
-				So(provider, ShouldResemble, &FixedAuthProvider{true})
+			Convey("provider should be a fixedAuthProvider", func() {
+				So(provider, ShouldResemble, &fixedAuthProvider{true})
 			})
 		})
 
