@@ -308,10 +308,6 @@ schema:
       MongoType: float64
       SqlName: latitude
       SqlType: float64
-    - Name: loc_coordinates
-      MongoType: geo.2darray
-      SqlName: loc_coordinates
-      SqlType: float64
   - table: Fischeriris
     collection: Fischeriris
     columns:
