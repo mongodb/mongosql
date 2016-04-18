@@ -494,11 +494,16 @@ func (pCtx *ParseCtx) IsColumnReference(column *Column) bool {
 	return false
 }
 
+// IsInformationSchema returns true if the database is
+// the information schema.
+func (pCtx *ParseCtx) IsInformationSchema() bool {
+	return strings.ToLower(pCtx.Database) == InformationDatabase
+}
+
 // IsSchemaColumn returns true if the given column is present
 // schema table's configuration.
 func (pCtx *ParseCtx) IsSchemaColumn(column *Column) bool {
-
-	if strings.ToLower(pCtx.Database) == InformationDatabase {
+	if pCtx.IsInformationSchema() {
 		return true
 	}
 

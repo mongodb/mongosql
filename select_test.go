@@ -1835,16 +1835,37 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
 
-			names, values, err = eval.EvaluateRows("test", "select a + b as c from bar group by c order by c desc", nil, conn)
+			names, values, err = eval.EvaluateRows("test", "select a + b as cc from bar group by cc order by cc desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
 			So(len(values), ShouldEqual, 4)
 
-			So(names, ShouldResemble, []string{"c"})
+			So(names, ShouldResemble, []string{"cc"})
 			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(13)})
 			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(4)})
 			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3)})
 			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(2)})
+
+			names, values, err = eval.EvaluateRows("test", "select b as a from bar group by a order by a desc", nil, conn)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(10)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2)})
+
+			names, values, err = eval.EvaluateRows("test", "select b as d from bar group by d order by b desc", nil, conn)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 1)
+			So(len(values), ShouldEqual, 4)
+
+			So(names, ShouldResemble, []string{"d"})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(10)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1)})
 
 			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) from bar group by a order by a desc", nil, conn)
 			So(err, ShouldBeNil)

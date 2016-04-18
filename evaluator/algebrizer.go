@@ -839,12 +839,12 @@ func resolveColumnExpr(expr *sqlparser.ColName, pCtx *ParseCtx) (sqlparser.Expr,
 
 	defer func() {
 		// reset the alias each time we resolve a column name and
-		// indicate that a column expression was just algebrized
+		// indicate that a column expression was just processed
 		pCtx.NonStarAlias = ""
 		pCtx.State |= StateRefColExpr
 	}()
 
-	columnInfo, err := columnToCtx(pCtx, expr)
+	columnInfo, err := columnInCtx(pCtx, expr)
 	if err != nil {
 		return nil, err
 	}
@@ -862,74 +862,127 @@ func resolveColumnExpr(expr *sqlparser.ColName, pCtx *ParseCtx) (sqlparser.Expr,
 		columnInfo.Table = pCtx.DerivedTableName
 	}
 
-	// If we're not parsing a select expression, and we encounter a column
-	// it could either be a schema table column or the alias referencing a
-	// select expression
-	if pCtx.Phase != PhaseSelectExpr {
-
-		column := &Column{
-			Table: string(expr.Qualifier),
-			Name:  string(expr.Name),
-			View:  string(expr.Name),
-		}
-
-		// If it's not a schema table column or a aliased
-		// column reference, it could be an aliased column name.
-		//
-		// For example, the GROUP BY clause in:
-		//
-		// select a as x, sum (b) from foo group by x;
-		//
-		if !pCtx.IsSchemaColumn(column) && !pCtx.IsColumnReference(column) {
-			column, err := pCtx.ColumnInfo(column.View)
-			if err != nil {
-				return pCtx.Expr, nil
-			}
-
-			expr := &sqlparser.ColName{
-				Name:      []byte(column.Name),
-				Qualifier: []byte(column.Table),
-			}
-
-			return expr, nil
-		}
-
-		// If the expression represents a table column
-		// that is aliased, simply return the aliased
-		// column expression.
-		//
-		// This will transform queries like:
-		//
-		// select a+b as f from foo order by f;
-		//
-		// to
-		//
-		// select a+b as f from foo order by a+b;
-		//
-		for _, ref := range pCtx.ColumnReferences {
-
-			if ref.Name == column.Name {
-				return ref.Expr, nil
-			}
-		}
+	column := &Column{
+		Table: string(expr.Qualifier),
+		Name:  string(expr.Name),
+		View:  string(expr.Name),
 	}
 
 	// When parsing a select expression, the column expression
 	// could either be of type *sqlparser.ColName or just
 	// aliased as such. Add the expression to the parse context
 	// either as a column or as a column reference.
-
-	if !pCtx.InFuncExpr() && pCtx.Phase == PhaseSelectExpr {
-
-		if _, ok := pCtx.Expr.(*sqlparser.ColName); ok {
+	if pCtx.Phase == PhaseSelectExpr {
+		if !pCtx.InFuncExpr() {
 			index := len(pCtx.Columns) + len(pCtx.ColumnReferences)
-			columnInfo.Index = index
-			pCtx.Columns = append(pCtx.Columns, *columnInfo)
+			if _, ok := pCtx.Expr.(*sqlparser.ColName); ok {
+				columnInfo.Index = index
+				// use the schema column if it appears within a select
+				// expression. For example, in:
+				//
+				// select a as b, b from foo
+				//
+				// the latter `b` should be that from the schema and
+				// not the first alias.
+				if pCtx.IsSchemaColumn(column) && !pCtx.IsInformationSchema() {
+					columnInfo.Name = column.Name
+				}
+				pCtx.Columns = append(pCtx.Columns, *columnInfo)
+			} else {
+				if pCtx.NonStarAlias != "" {
+					ref := ColumnReference{columnInfo.Alias, columnInfo.Table, pCtx.Expr, index}
+					pCtx.ColumnReferences = append(pCtx.ColumnReferences, ref)
+				}
+			}
+		}
+	} else {
+		// If we're not parsing a select expression, and we encounter a column,
+		// it could either be a schema table column or the alias referencing a
+		// select expression.
+
+		// MySQL resolves unqualified column or alias references
+		// in ORDER BY clauses by searching in the select_expr values,
+		// then in the columns of the tables in the FROM clause.
+		if pCtx.Phase == PhaseOrderBy {
+
+			// If the expression represents a table column
+			// that is aliased, simply return the aliased
+			// column expression.
+			//
+			// This will transform queries like:
+			//
+			// select a+b as f from foo order by f;
+			//
+			// to
+			//
+			// select a+b as f from foo order by a+b;
+			for _, ref := range pCtx.ColumnReferences {
+				if ref.Name == column.Name {
+					return ref.Expr, nil
+				}
+			}
+
+			// If it's not a schema table column, it
+			// could be an aliased column name.
+			//
+			// For example, the ORDER BY clause in:
+			//
+			// select a as x, sum(b) from foo order by x;
+			//
+			for _, columnInfo := range pCtx.Columns {
+				if columnInfo.Alias == column.View {
+					column, err := pCtx.ColumnInfo(column.View)
+					if err != nil {
+						return pCtx.Expr, nil
+					}
+
+					expr := &sqlparser.ColName{
+						Name:      []byte(column.Name),
+						Qualifier: []byte(column.Table),
+					}
+					return expr, nil
+				}
+			}
+
+			if pCtx.IsSchemaColumn(column) && !pCtx.IsInformationSchema() {
+				expr := &sqlparser.ColName{
+					Name:      []byte(column.Name),
+					Qualifier: []byte(column.Table),
+				}
+				return expr, nil
+			}
 		} else {
-			if pCtx.NonStarAlias != "" {
-				index := len(pCtx.Columns) + len(pCtx.ColumnReferences)
-				ref := ColumnReference{columnInfo.Alias, columnInfo.Table, pCtx.Expr, index}
-				pCtx.ColumnReferences = append(pCtx.ColumnReferences, ref)
+			// MySQL resolves unqualified column or alias references
+			// in GROUP BY or HAVING clauses by first searching in
+			// the columns of the tables in the FROM clause, before
+			// searching in the select_expr values.
+			if pCtx.IsSchemaColumn(column) && !pCtx.IsInformationSchema() {
+				expr := &sqlparser.ColName{
+					Name:      []byte(column.Name),
+					Qualifier: []byte(column.Table),
+				}
+				return expr, nil
+			}
+
+			for _, columnInfo := range pCtx.Columns {
+				if columnInfo.Alias == column.View {
+					column, err := pCtx.ColumnInfo(column.View)
+					if err != nil {
+						return pCtx.Expr, nil
+					}
+
+					expr := &sqlparser.ColName{
+						Name:      []byte(column.Name),
+						Qualifier: []byte(column.Table),
+					}
+					return expr, nil
+				}
+			}
+
+			for _, ref := range pCtx.ColumnReferences {
+				if ref.Name == column.Name {
+					return ref.Expr, nil
+				}
 			}
 		}
 	}
@@ -944,16 +997,15 @@ func resolveColumnExpr(expr *sqlparser.ColName, pCtx *ParseCtx) (sqlparser.Expr,
 	return expr, nil
 }
 
-// columnToCtx returns the column information given a parse context and
+// columnInCtx returns the column information given a parse context and
 // a column expression
-func columnToCtx(pCtx *ParseCtx, expr *sqlparser.ColName) (*ColumnInfo, error) {
+func columnInCtx(pCtx *ParseCtx, expr *sqlparser.ColName) (*ColumnInfo, error) {
 
 	columnInfo := &ColumnInfo{}
 
 	columnName := string(expr.Name)
 	tableName := string(expr.Qualifier)
 
-	// TODO: check if column is star expression
 	if columnName == "" {
 		return nil, fmt.Errorf("column name can not be empty: %v", columnName)
 	}
@@ -971,16 +1023,13 @@ func columnToCtx(pCtx *ParseCtx, expr *sqlparser.ColName) (*ColumnInfo, error) {
 
 	// the column name itself could be an alias so handle this
 	info, err := pCtx.ColumnInfo(columnName)
-
 	if err != nil || table.Derived {
 		// The column name given is not an alias so
 		// it is either an actual column name or a
 		// column name from a child context
-
 		if err := pCtx.CheckColumn(table, columnName); err != nil {
 			return nil, err
 		}
-
 		columnInfo.Name = columnName
 	} else {
 		columnInfo.Name = info.Name
