@@ -1,8 +1,12 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/schema"
+	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/kr/pretty"
 )
 
 var (
@@ -315,4 +319,18 @@ func setupEnv(t *testing.T) *testEnv {
 	cfgOne := schema.Must(schema.New(testSchema1))
 	cfgThree := schema.Must(schema.New(testSchema3))
 	return &testEnv{cfgOne, cfgThree}
+}
+
+// ShouldResembleDiffed returns a blank string if its arguments resemble each other, and returns a
+// list of pretty-printed diffs between the objects if they do not match.
+func ShouldResembleDiffed(actual interface{}, expected ...interface{}) string {
+	if len(expected) != 1 {
+		return fmt.Sprintf("Assertion requires 1 expected value, you provided %v", len(expected))
+	}
+	diffs := pretty.Diff(actual, expected[0])
+	if len(diffs) == 0 {
+		return "" // assertion passed
+	}
+	delim := "\n\t- "
+	return delim + strings.Join(diffs, delim)
 }

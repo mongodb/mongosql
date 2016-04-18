@@ -398,7 +398,7 @@ func pipelineJSON(stages []bson.D, depth int) ([]byte, error) {
 	buf := bytes.Buffer{}
 
 	for i, s := range stages {
-		converted, err := bsonutil.ConvertBSONValueToJSON(s)
+		converted, err := bsonutil.GetBSONValueAsJSON(s)
 		if err != nil {
 			return nil, err
 		}

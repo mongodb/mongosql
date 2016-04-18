@@ -1731,5 +1731,5 @@ func verifyOptimizedPipeline(ctx *PlanCtx, op PlanStage, pipeline []bson.D) {
 	ms, ok := optimized.(*MongoSourceStage)
 	So(ok, ShouldBeTrue)
 
-	So(ms.pipeline, ShouldResemble, pipeline)
+	So(ms.pipeline, ShouldResembleDiffed, pipeline)
 }
