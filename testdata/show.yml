@@ -51,7 +51,7 @@ schema:
       MongoType: int
       SqlName: a
       SqlType: int64
-      
+
 # 3. Run each of the following queries, and report any that have errors
 testcases:
 - sql: "SHOW COLUMNS FROM foo"

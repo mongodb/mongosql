@@ -248,7 +248,6 @@ func (pCtx *ParseCtx) CheckColumn(table *TableInfo, cName string) error {
 				return pCtx.checkColumn(tName, cName, 0)
 			}
 		}
-
 		return fmt.Errorf("Derived table '%v' doesn't exist", tName)
 	}
 
@@ -260,18 +259,15 @@ func (pCtx *ParseCtx) CheckColumn(table *TableInfo, cName string) error {
 	}
 
 	for _, c := range tableSchema.RawColumns {
-
 		if c.SqlName == cName {
 			return nil
 		}
 	}
 
 	for _, r := range pCtx.ColumnReferences {
-
 		if r.Name == cName {
 			return nil
 		}
-
 	}
 
 	return fmt.Errorf("Unknown column '%v' in table '%v'", cName, tName)
@@ -288,15 +284,12 @@ func (pCtx *ParseCtx) checkColumn(table, column string, depth int) error {
 	}
 
 	for _, c := range pCtx.Columns {
-
 		if c.Alias == column {
 			return nil
 		}
-
 	}
 
 	for _, r := range pCtx.ColumnReferences {
-
 		if r.Name == column {
 			return nil
 		}
@@ -305,28 +298,22 @@ func (pCtx *ParseCtx) checkColumn(table, column string, depth int) error {
 	// only look deeper if columns are referenced from
 	// the child context
 	if depth == 0 || len(pCtx.Columns) == 0 {
-
 		for _, ctx := range pCtx.Children {
-
 			for _, c := range ctx.Columns {
-
 				if c.Alias == column {
 					return nil
 				}
 			}
 
 			for _, r := range ctx.ColumnReferences {
-
 				if r.Name == column {
 					return nil
 				}
-
 			}
 
 			if err = ctx.checkColumn(table, column, depth+1); err == nil {
 				return nil
 			}
-
 		}
 	}
 
@@ -383,7 +370,6 @@ func (pCtx *ParseCtx) GetCurrentTable(dbName, tableName, columnName string) (*Ta
 	if len(pCtx.Tables) == 1 {
 		// in this case, we're either referencing a table directly,
 		// using an alias or implicitly referring to the current table
-
 		curTable := pCtx.Tables[0]
 
 		if curTable.Alias == tableName || tableName == "" {
