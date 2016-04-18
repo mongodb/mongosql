@@ -2047,10 +2047,13 @@ func TestSelectWithCaseExpr(t *testing.T) {
 
 			So(names, ShouldResemble, []string{"a", "p"})
 
+			ltValue := &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLVarchar("lt")}}
+			gtValue := &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLVarchar("gt")}}
+
 			expectedValues := [][]evaluator.SQLValue{
-				[]evaluator.SQLValue{evaluator.SQLInt(5), evaluator.SQLVarchar("lt")},
-				[]evaluator.SQLValue{evaluator.SQLInt(1), evaluator.SQLVarchar("lt")},
-				[]evaluator.SQLValue{evaluator.SQLInt(6), evaluator.SQLVarchar("gt")},
+				[]evaluator.SQLValue{evaluator.SQLInt(5), ltValue},
+				[]evaluator.SQLValue{evaluator.SQLInt(1), ltValue},
+				[]evaluator.SQLValue{evaluator.SQLInt(6), gtValue},
 			}
 
 			for i, v := range expectedValues {
@@ -2067,11 +2070,12 @@ func TestSelectWithCaseExpr(t *testing.T) {
 			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "p"})
+			nullValues := &evaluator.SQLValues{Values: []evaluator.SQLValue{evaluator.SQLNull}}
 
 			expectedValues := [][]evaluator.SQLValue{
-				[]evaluator.SQLValue{evaluator.SQLInt(5), evaluator.SQLNull},
-				[]evaluator.SQLValue{evaluator.SQLInt(1), evaluator.SQLNull},
-				[]evaluator.SQLValue{evaluator.SQLInt(6), evaluator.SQLNull},
+				[]evaluator.SQLValue{evaluator.SQLInt(5), nullValues},
+				[]evaluator.SQLValue{evaluator.SQLInt(1), nullValues},
+				[]evaluator.SQLValue{evaluator.SQLInt(6), nullValues},
 			}
 
 			for i, v := range expectedValues {
