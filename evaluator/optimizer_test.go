@@ -1194,6 +1194,7 @@ func TestJoinPushDown(t *testing.T) {
 		Convey("Given a push-downable inner join", func() {
 
 			join := &JoinStage{
+				kind:  InnerJoin,
 				left:  msOne,
 				right: msTwo,
 			}
@@ -1340,9 +1341,6 @@ func TestJoinPushDown(t *testing.T) {
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}},
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLColumnExpr{tblTwo, "a", columnType}}}
 
-				join.kind = InnerJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
-
 				verifyOptimizedPipeline(ctx.PlanCtx, join,
 					[]bson.D{
 						bson.D{{"$lookup", bson.M{
@@ -1374,11 +1372,6 @@ func TestJoinPushDown(t *testing.T) {
 				join.matcher = &SQLAndExpr{
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "a", columnType}, SQLInt(10)},
 					&SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}}
-
-				msTwo.pipeline = append(msTwo.pipeline, bson.D{{"$test", 1}})
-
-				join.kind = RightJoin
-				join.matcher = &SQLEqualsExpr{SQLColumnExpr{tblOne, "c", columnType}, SQLColumnExpr{tblTwo, "b", columnType}}
 
 				verifyOptimizedPipeline(ctx.PlanCtx, join,
 					[]bson.D{
