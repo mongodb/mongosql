@@ -41,7 +41,6 @@ func main() {
 	opts := sqlproxy.Options{}
 	_, err := flags.Parse(&opts)
 	if err != nil {
-		log.Logf(log.Always, "failed to parse args: %v", err)
 		os.Exit(1)
 	}
 
