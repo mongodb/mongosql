@@ -91,9 +91,11 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 	case SQLColumnExpr:
 
 		column := &Column{
-			Table: string(expr.tableName),
-			Name:  string(expr.columnName),
-			View:  string(expr.columnName),
+			Table:     string(expr.tableName),
+			Name:      string(expr.columnName),
+			View:      string(expr.columnName),
+			MongoType: expr.columnType.MongoType,
+			SQLType:   expr.columnType.SQLType,
 		}
 
 		cf.columns = append(cf.columns, column)

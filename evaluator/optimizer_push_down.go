@@ -720,7 +720,6 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			// We skip it and leave this Project node in the query plan so that it still gets
 			// evaluated during execution.
 			canReplaceProject = false
-			fixedExpressions = append(fixedExpressions, exp)
 
 			// There might still be fields referenced in this expression
 			// that we still need to project, so collect them and add them to the projection.
@@ -735,25 +734,29 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 					return project, nil
 				}
 
-				fieldsToProject[dottifyFieldName(fieldName)] = getProjectedFieldName(fieldName, refdCol.SQLType)
+				safeFieldName := dottifyFieldName(fieldName)
+				fieldsToProject[safeFieldName] = getProjectedFieldName(fieldName, refdCol.SQLType)
+				fixedMappingRegistry.addColumn(refdCol)
+				fixedMappingRegistry.registerMapping(refdCol.Table, refdCol.Name, safeFieldName)
 			}
-			continue
+
+			fixedExpressions = append(fixedExpressions, exp)
+		} else {
+
+			safeFieldName := dottifyFieldName(exp.Expr.String())
+			fieldsToProject[safeFieldName] = projectedField
+			fixedMappingRegistry.addColumn(exp.Column)
+			fixedMappingRegistry.registerMapping(exp.Column.Table, exp.Column.Name, safeFieldName)
+
+			columnType := schema.ColumnType{exp.Column.SQLType, exp.Column.MongoType}
+			columnExpr := SQLColumnExpr{exp.Column.Table, exp.Column.Name, columnType}
+			fixedExpressions = append(fixedExpressions,
+				SelectExpression{
+					Column: exp.Column,
+					Expr:   columnExpr,
+				},
+			)
 		}
-
-		safeFieldName := dottifyFieldName(exp.Expr.String())
-
-		fieldsToProject[safeFieldName] = projectedField
-
-		fixedMappingRegistry.addColumn(exp.Column)
-		fixedMappingRegistry.registerMapping(exp.Column.Table, exp.Column.Name, safeFieldName)
-		columnType := schema.ColumnType{exp.Column.SQLType, exp.Column.MongoType}
-		columnExpr := SQLColumnExpr{exp.Column.Table, exp.Column.Name, columnType}
-		fixedExpressions = append(fixedExpressions,
-			SelectExpression{
-				Column: exp.Column,
-				Expr:   columnExpr,
-			},
-		)
 
 	}
 
@@ -769,5 +772,6 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 	project = project.clone()
 	project.source = ms
+	project.sExprs = fixedExpressions
 	return project, nil
 }

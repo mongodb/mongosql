@@ -133,11 +133,17 @@ func (sub *SQLSubtractExpr) Type() schema.SQLType {
 type SQLUnaryMinusExpr sqlUnaryNode
 
 func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	if val, ok := um.operand.(SQLNumeric); ok {
-		return SQLInt(-(round(val.Float64()))), nil
+	val, ok := um.operand.(SQLNumeric)
+	if !ok {
+		if operand, err := um.operand.Evaluate(ctx); err == nil {
+			val, ok = operand.(SQLNumeric)
+		}
+	}
+	if ok {
+		return NewSQLValue(-val.Float64(), um.Type(), schema.MongoNone)
 	}
 
-	return um.operand.Evaluate(ctx)
+	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.operand)
 }
 
 func (um *SQLUnaryMinusExpr) String() string {

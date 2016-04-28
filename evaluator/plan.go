@@ -300,11 +300,19 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 	case *DualStage:
 
-		b.WriteString("↳ Dual")
+		b.WriteString("↳ Dual(")
+		for i, c := range typedE.sExprs {
+			if i != 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(fmt.Sprintf("%v as %v", c.Expr.String(), c.Name))
+		}
+
+		b.WriteString(")")
 
 	case *EmptyStage:
 
-		b.WriteString("↳ Empty")
+		b.WriteString("↳ Empty:")
 
 	case *FilterStage:
 
@@ -313,7 +321,17 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 	case *GroupByStage:
 
-		b.WriteString("↳ GroupBy:\n")
+		b.WriteString("↳ GroupBy(")
+
+		for i, c := range typedE.keyExprs {
+			if i != 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(fmt.Sprintf("%v as %v", c.Expr.String(), c.Name))
+		}
+
+		b.WriteString("):\n")
+
 		prettyPrintPlan(b, typedE.source, d+1)
 
 	case *JoinStage:
@@ -336,22 +354,47 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 	case *LimitStage:
 
-		b.WriteString("↳ Limit:\n")
+		b.WriteString(fmt.Sprintf("↳ Limit(offset: %v, limit: %v):\n", typedE.offset, typedE.limit))
 		prettyPrintPlan(b, typedE.source, d+1)
 
 	case *OrderByStage:
 
-		b.WriteString("↳ OrderBy:\n")
+		b.WriteString("↳ OrderBy(")
+
+		for i, c := range typedE.keys {
+			if i != 0 {
+				b.WriteString(", ")
+			}
+
+			dir := "ASC"
+			if !c.ascending {
+				dir = "DESC"
+			}
+
+			b.WriteString(fmt.Sprintf("%v %v", c.expr.Expr.String(), dir))
+		}
+
+		b.WriteString("):\n")
+
 		prettyPrintPlan(b, typedE.source, d+1)
 
 	case *ProjectStage:
 
-		b.WriteString("↳ Project:\n")
+		b.WriteString("↳ Project(")
+
+		for i, c := range typedE.sExprs {
+			if i != 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(fmt.Sprintf("%v as %v", c.Expr.String(), c.Name))
+		}
+
+		b.WriteString("):\n")
 		prettyPrintPlan(b, typedE.source, d+1)
 
 	case *SchemaDataSourceStage:
 
-		b.WriteString("↳ SchemaDataSource")
+		b.WriteString("↳ SchemaDataSource:")
 
 	case *SourceAppendStage:
 
@@ -370,13 +413,13 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 	case *MongoSourceStage:
 
-		b.WriteString(fmt.Sprintf("↳ MongoSource '%v' (db: '%v', collection: '%v')\n", typedE.tableName, typedE.dbName, typedE.collectionName))
+		b.WriteString(fmt.Sprintf("↳ MongoSource: '%v' (db: '%v', collection: '%v')", typedE.tableName, typedE.dbName, typedE.collectionName))
 
 		if typedE.aliasName != "" {
 			b.WriteString(fmt.Sprintf(" as '%v'", typedE.aliasName))
 		}
 
-		b.WriteString("\n")
+		b.WriteString(":\n")
 		prettyPipeline, err := pipelineJSON(typedE.pipeline, d+1)
 		if err != nil { // marshaling as json failed, fall back to Sprintf
 			prettyPipeline = pipelineString(typedE.pipeline, d+1)
@@ -385,7 +428,7 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 	case *BSONSourceStage:
 
-		b.WriteString("↳ BSONSource\n")
+		b.WriteString("↳ BSONSource:\n")
 
 	default:
 

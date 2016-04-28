@@ -609,6 +609,8 @@ func TestEvaluates(t *testing.T) {
 		Convey("Subject: SQLUnaryMinusExpr", func() {
 			tests := []test{
 				test{"-10", SQLInt(-10)},
+				test{"-a", SQLFloat(-123)},
+				test{"-b", SQLInt(-456)},
 			}
 
 			runTests(evalCtx, tests)
