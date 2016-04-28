@@ -45,6 +45,9 @@ func (o Options) Validate() error {
 	if o.Schema == "" && o.SchemaDir == "" {
 		return fmt.Errorf("must specify either --schema or --schema-dir")
 	}
+	if o.Schema != "" && o.SchemaDir != "" {
+		return fmt.Errorf("must specify only one of --schema or --schema-dir")
+	}
 	if !o.MongoSSL && (len(o.MongoPEMFile) > 0 || len(o.MongoCAFile) > 0 || o.MongoAllowInvalidCerts) {
 		return fmt.Errorf("must specify --mongo-ssl to use SSL options")
 	}
