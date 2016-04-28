@@ -334,8 +334,8 @@ func PopulateColumnMaps(db *Database) error {
 				return fmt.Errorf("table [%s] has column with no name.", tbl.Name)
 			}
 
-			if _, ok := tbl.Columns[c.Name]; ok {
-				return fmt.Errorf("duplicate column [%s].", c.Name)
+			if _, ok := tbl.SQLColumns[c.SqlName]; ok {
+				return fmt.Errorf("duplicate SQL column [%s] in table [%s].", c.SqlName, tbl.Name)
 			}
 
 			// we're dealing with a legacy 2d array

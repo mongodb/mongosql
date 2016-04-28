@@ -36,7 +36,7 @@ schema:
         SqlType: int64
       - Name: b
         MongoType: string
-        SqlName: a
+        SqlName: b
         SqlType: varchar
       - Name: c
         MongoType: int64
