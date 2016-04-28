@@ -224,10 +224,10 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 }
 
 // NewSQLExpr transforms sqlparser expressions into SQLExpr.
-func NewSQLExpr(gExpr sqlparser.Expr, tables map[string]*schema.Table) (SQLExpr, error) {
-	log.Logf(log.DebugLow, "match expr: %#v (type is %T)\n", gExpr, gExpr)
+func NewSQLExpr(sqlExpr sqlparser.Expr, tables map[string]*schema.Table) (SQLExpr, error) {
+	log.Logf(log.DebugHigh, "planning expr: %#v (type is %T)\n", sqlExpr, sqlExpr)
 
-	switch expr := gExpr.(type) {
+	switch expr := sqlExpr.(type) {
 
 	case *sqlparser.AndExpr:
 
@@ -320,6 +320,7 @@ func NewSQLExpr(gExpr sqlparser.Expr, tables map[string]*schema.Table) (SQLExpr,
 			if err != nil {
 				return nil, err
 			}
+
 			return &SQLGreaterThanExpr{left, right}, nil
 		case sqlparser.AST_LE:
 			left, right, err = reconcileSQLExprs(left, right)

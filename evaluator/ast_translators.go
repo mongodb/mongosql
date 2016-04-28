@@ -84,10 +84,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return bson.M{"$and": []interface{}{left, right}}, true
 
-	case SQLDate:
-
-		return typedE.Time, true
-
 	case *SQLDivideExpr:
 
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
@@ -226,10 +222,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return bson.M{"$eq": []interface{}{op, nil}}, true
 
-	case SQLNullValue:
-
-		return nil, true
-
 	case *SQLOrExpr:
 
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
@@ -271,18 +263,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return coalesce(args), true
 		case "concat":
 			return bson.M{"$concat": args}, true
-		case "current_date":
-			if len(args) != 0 {
-				return nil, false
-			}
-
-			return time.Now().UTC(), true
-		case "current_timestamp":
-			if len(args) != 0 {
-				return nil, false
-			}
-
-			return time.Now().UTC().Unix(), true
 		case "dayname":
 			if len(args) != 1 {
 				return nil, false
@@ -467,13 +447,23 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return bson.M{"$subtract": []interface{}{left, right}}, true
 
-	case SQLInt, SQLUint32, SQLFloat, SQLBool, SQLVarchar:
+	// SQL builtin types
+
+	case SQLDate:
+
+		return bson.M{"$literal": typedE.Time.Format(schema.DateFormat)}, true
+
+	case SQLBool, SQLFloat, SQLInt, SQLUint32, SQLVarchar:
 
 		return bson.M{"$literal": typedE}, true
 
+	case SQLNullValue:
+
+		return nil, true
+
 	case SQLTimestamp:
 
-		return typedE.Time, true
+		return bson.M{"$literal": typedE.Time.Format(schema.TimestampFormat)}, true
 
 		/*
 			TODO: implement these

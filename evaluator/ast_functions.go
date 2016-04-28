@@ -242,6 +242,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"month":             &monthFunc{},
 	"monthname":         &monthNameFunc{},
 	"not":               &notFunc{},
+	"now":               &currentTimestampFunc{},
 	"pow":               &powFunc{},
 	"power":             &powFunc{},
 	"quarter":           &quarterFunc{},

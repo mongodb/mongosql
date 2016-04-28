@@ -312,6 +312,13 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			SkipConvey("Subject: NOW", func() {
+				tests := []test{
+					test{"NOW()", SQLTimestamp{time.Now().UTC()}},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: DAYNAME", func() {
 				tests := []test{
 					test{"DAYNAME(NULL)", SQLNull},
@@ -899,6 +906,45 @@ func TestTranslateExpr(t *testing.T) {
 
 		runTests(tests)
 
+	})
+
+	type sqlValueTest struct {
+		sqlValue SQLValue
+		expected string
+	}
+
+	runSQLValueTests := func(tests []sqlValueTest) {
+		schema, err := schema.New(testSchema3)
+		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
+		So(err, ShouldBeNil)
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sqlValue, t.expected), func() {
+				match, ok := TranslateExpr(t.sqlValue, lookupFieldName)
+				So(ok, ShouldBeTrue)
+				jsonResult, err := json.Marshal(match)
+				So(err, ShouldBeNil)
+				So(string(jsonResult), ShouldEqual, t.expected)
+			})
+		}
+	}
+
+	fakeTime := time.Now()
+
+	Convey("Subject: TranslateExpr with SQLValue", t, func() {
+
+		sqlValueTests := []sqlValueTest{
+			sqlValueTest{SQLTrue, `{"$literal":true}`},
+			sqlValueTest{SQLFalse, `{"$literal":false}`},
+			sqlValueTest{SQLFloat(1.1), `{"$literal":1.1}`},
+			sqlValueTest{SQLInt(11), `{"$literal":11}`},
+			sqlValueTest{SQLUint32(32), `{"$literal":32}`},
+			sqlValueTest{SQLVarchar("vc"), `{"$literal":"vc"}`},
+			sqlValueTest{SQLNull, "null"},
+			sqlValueTest{SQLDate{fakeTime}, fmt.Sprintf(`{"$literal":"%v"}`, fakeTime.Format(schema.DateFormat))},
+			sqlValueTest{SQLTimestamp{fakeTime}, fmt.Sprintf(`{"$literal":"%v"}`, fakeTime.Format(schema.TimestampFormat))},
+		}
+
+		runSQLValueTests(sqlValueTests)
 	})
 }
 
