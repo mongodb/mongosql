@@ -634,7 +634,7 @@ func TestScalarFuncIsNull(t *testing.T) {
 			},
 		}
 
-		Convey("only return true if the value is null", func() {
+		Convey("only return 1 if the value is null", func() {
 			expr, err := NewSQLExpr(sqlValue, tables)
 			So(err, ShouldBeNil)
 			funcExpr, ok := expr.(*SQLScalarFunctionExpr)

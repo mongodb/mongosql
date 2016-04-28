@@ -317,6 +317,13 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$hour": args[0]}, true
+		case "isnull":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$cond": []interface{}{
+				bson.M{"$eq": []interface{}{args[0], nil}}, 1, 0}}, true
 		case "lcase":
 			if len(args) != 1 {
 				return nil, false

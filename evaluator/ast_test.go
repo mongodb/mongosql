@@ -388,6 +388,15 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: ISNULL", func() {
+				tests := []test{
+					test{"ISNULL(a)", SQLInt(0)},
+					test{"ISNULL(c)", SQLInt(1)},
+					test{`ISNULL("")`, SQLInt(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: LCASE", func() {
 				tests := []test{
 					test{"LCASE(NULL)", SQLNull},
@@ -880,6 +889,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"exp(a)", `{"$exp":"$a"}`},
 			test{"floor(a)", `{"$floor":"$a"}`},
 			test{"hour(a)", `{"$hour":"$a"}`},
+			test{"isnull(a)", `{"$cond":[{"$eq":["$a",null]},1,0]}`},
 			test{"lcase(a)", `{"$toLower":"$a"}`},
 			test{"log10(a)", `{"$log10":"$a"}`},
 			test{"minute(a)", `{"$minute":"$a"}`},
