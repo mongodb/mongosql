@@ -68,14 +68,12 @@ type MongoSourceStage struct {
 	collectionName  string
 	mappingRegistry *mappingRegistry
 	pipeline        []bson.D
-	matcher         SQLExpr
 }
 
 type MongoSourceIter struct {
 	tableName       string
 	aliasName       string
 	mappingRegistry *mappingRegistry
-	matcher         SQLExpr
 	ctx             *ExecutionCtx
 	iter            FindResults
 	err             error
@@ -86,9 +84,11 @@ func NewMongoSourceStage(planCtx *PlanCtx, dbName, tableName string, aliasName s
 	if dbName == "" {
 		return nil, fmt.Errorf("dbName is empty")
 	}
+
 	if tableName == "" {
 		return nil, fmt.Errorf("tableName is empty")
 	}
+
 	ms := &MongoSourceStage{
 		dbName:    dbName,
 		tableName: tableName,
@@ -134,7 +134,6 @@ func (ms *MongoSourceStage) clone() *MongoSourceStage {
 		tableName:       ms.tableName,
 		aliasName:       ms.aliasName,
 		collectionName:  ms.collectionName,
-		matcher:         ms.matcher,
 		mappingRegistry: ms.mappingRegistry,
 		pipeline:        ms.pipeline,
 	}
@@ -147,7 +146,6 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	return &MongoSourceIter{
 		tableName:       ms.tableName,
 		aliasName:       ms.aliasName,
-		matcher:         ms.matcher,
 		mappingRegistry: ms.mappingRegistry,
 		ctx:             ctx,
 		iter:            mgoIter,
@@ -161,77 +159,57 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 
 	var hasNext bool
 
-	for {
-		d := &bson.D{}
-		hasNext = ms.iter.Next(d)
-
-		if !hasNext {
-			break
-		}
-
-		values := make(map[string]Values)
-		data := d.Map()
-		var err error
-
-		for _, column := range ms.mappingRegistry.columns {
-
-			mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.Name)
-			if !ok {
-				ms.err = fmt.Errorf("Unable to find mapping from %v.%v to a field name.", column.Table, column.Name)
-				return false
-			}
-
-			extractedField, _ := extractFieldByName(mappedFieldName, data)
-
-			value := Value{
-				Name: column.Name,
-				View: column.View,
-				Data: extractedField,
-			}
-
-			value.Data, err = NewSQLValue(value.Data, column.SQLType, column.MongoType)
-			if err != nil {
-				ms.err = err
-				return false
-			}
-
-			tableName := column.Table
-			if tableName == ms.tableName {
-				tableName = ms.aliasName
-			}
-
-			if _, ok := values[tableName]; !ok {
-				values[tableName] = Values{}
-			}
-
-			values[tableName] = append(values[tableName], value)
-			delete(data, mappedFieldName)
-		}
-
-		tableRows := TableRows{}
-		for k, v := range values {
-			tableRows = append(tableRows, TableRow{k, v})
-		}
-
-		row.Data = tableRows
-
-		evalCtx := &EvalCtx{Rows{*row}, ms.ctx}
-
-		if ms.matcher != nil {
-			m, err := Matches(ms.matcher, evalCtx)
-			if err != nil {
-				ms.err = err
-				return false
-			}
-			if m {
-				break
-			}
-		} else {
-			break
-		}
+	d := &bson.D{}
+	hasNext = ms.iter.Next(d)
+	if !hasNext {
+		return false
 	}
 
-	return hasNext
+	values := make(map[string]Values)
+	data := d.Map()
+
+	for _, column := range ms.mappingRegistry.columns {
+
+		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.Name)
+		if !ok {
+			ms.err = fmt.Errorf("Unable to find mapping from %v.%v to a field name.", column.Table, column.Name)
+			return false
+		}
+
+		extractedField, _ := extractFieldByName(mappedFieldName, data)
+
+		value := Value{
+			Name: column.Name,
+			View: column.View,
+			Data: extractedField,
+		}
+
+		value.Data, ms.err = NewSQLValue(value.Data, column.SQLType, column.MongoType)
+		if ms.err != nil {
+			return false
+		}
+
+		tableName := column.Table
+		if tableName == ms.tableName {
+			tableName = ms.aliasName
+		}
+
+		if _, ok := values[tableName]; !ok {
+			values[tableName] = Values{}
+		}
+
+		values[tableName] = append(values[tableName], value)
+		delete(data, mappedFieldName)
+	}
+
+	tableRows := TableRows{}
+	for k, v := range values {
+		tableRows = append(tableRows, TableRow{k, v})
+	}
+
+	row.Data = tableRows
+
+	return true
 }
 
 func (ms *MongoSourceStage) OpFields() (columns []*Column) {
