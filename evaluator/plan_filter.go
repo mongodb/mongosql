@@ -35,8 +35,10 @@ func (fs *FilterStage) OpFields() (columns []*Column) {
 }
 
 func (fi *FilterIter) Next(row *Row) bool {
-	var hasNext bool
+	var hasMatch, hasNext bool
+
 	for {
+
 		hasNext = fi.source.Next(row)
 
 		if !hasNext {
@@ -47,7 +49,6 @@ func (fi *FilterIter) Next(row *Row) bool {
 
 		// add parent row(s) to this subquery's evaluation context
 		if len(fi.execCtx.SrcRows) != 0 {
-
 			bound := len(fi.execCtx.SrcRows) - 1
 
 			for _, r := range fi.execCtx.SrcRows[:bound] {
@@ -59,22 +60,25 @@ func (fi *FilterIter) Next(row *Row) bool {
 			if !fi.hasSubquery {
 				evalCtx.Rows = append(evalCtx.Rows, *fi.execCtx.SrcRows[bound])
 			}
-
 		}
 
-		if fi.matcher != nil {
-			m, err := Matches(fi.matcher, evalCtx)
-			if err != nil {
-				fi.err = err
-				return false
-			}
-			if m {
-				break
-			}
-		} else {
+		if fi.matcher == nil {
 			break
 		}
 
+		hasMatch, fi.err = Matches(fi.matcher, evalCtx)
+		if fi.err != nil {
+			return false
+		}
+
+		if hasMatch {
+			break
+		}
+
+	}
+
+	if fi.matcher != nil && !hasMatch {
+		row.Data = nil
 	}
 
 	return hasNext
