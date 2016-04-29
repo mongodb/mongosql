@@ -45,7 +45,14 @@ func (v *crossJoinOptimizer) Visit(p PlanStage) (PlanStage, error) {
 		v.predicateParts = old
 		return p, nil
 	case *JoinStage:
-		if len(v.predicateParts) > 0 && typedP.matcher == nil && (typedP.kind == InnerJoin || typedP.kind == CrossJoin) {
+		matcherOk := typedP.matcher == nil
+		if !matcherOk {
+			switch typedM := typedP.matcher.(type) {
+			case SQLBool:
+				matcherOk = typedM.Value().(bool)
+			}
+		}
+		if matcherOk && (typedP.kind == InnerJoin || typedP.kind == CrossJoin) && len(v.predicateParts) > 0 {
 			// We have a filter and a join without any criteria
 			v.tableNames = nil
 			left, err := v.Visit(typedP.left)
