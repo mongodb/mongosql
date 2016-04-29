@@ -591,6 +591,19 @@ func TestEvaluates(t *testing.T) {
 				So(resultValues.Values[0], ShouldEqual, SQLInt(10))
 				So(resultValues.Values[1], ShouldEqual, SQLInt(42))
 			})
+			Convey("Should evaluate to a single SQLValue if it contains only one value", func() {
+				subject := &SQLTupleExpr{[]SQLExpr{SQLInt(10)}}
+				sqlInt, err := subject.Evaluate(evalCtx)
+				So(err, ShouldBeNil)
+				intResult := sqlInt.(SQLInt)
+				So(intResult, ShouldEqual, SQLInt(10))
+
+				subject = &SQLTupleExpr{[]SQLExpr{SQLVarchar("10")}}
+				sqlVarchar, err := subject.Evaluate(evalCtx)
+				So(err, ShouldBeNil)
+				varcharResult := sqlVarchar.(SQLVarchar)
+				So(varcharResult, ShouldEqual, SQLVarchar("10"))
+			})
 		})
 
 		Convey("Subject: SQLUnaryMinusExpr", func() {

@@ -264,6 +264,10 @@ func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		values = append(values, value)
 	}
 
+	if len(values) == 1 {
+		return values[0], nil
+	}
+
 	return &SQLValues{values}, nil
 }
 
