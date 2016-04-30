@@ -162,6 +162,17 @@ testcases:
   expected_types: [float64]
   expected:
     - [11.0]
+- sql: "SELECT * from test2 where _id = '570e919f65d33734a8605cb9'"
+  expected_types: [varchar, int, varchar, float64, float64]
+  expected:
+    - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
+- sql: "SELECT * from test2 where _id > '570e919f65d33734a8605cb9'"
+  expected_types: [varchar, int, varchar, float64, float64]
+  expected: []
+- sql: "SELECT * from test2 where _id >= '570e919f65d33734a8605cb9'"
+  expected_types: [varchar, int, varchar, float64, float64]
+  expected:
+    - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
 - sql: "SELECT loc_latitude, loc_longitude from test3"
   expected_types: [float64, float64]
   expected:

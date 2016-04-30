@@ -136,6 +136,9 @@ func (c SQLColumnExpr) String() string {
 }
 
 func (c SQLColumnExpr) Type() schema.SQLType {
+	if c.columnType.MongoType == schema.MongoObjectId && c.columnType.SQLType == schema.SQLVarchar {
+		return schema.SQLObjectID
+	}
 	return c.columnType.SQLType
 }
 

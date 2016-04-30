@@ -89,7 +89,15 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 	}
 
 	switch sqlType {
-
+	case schema.SQLObjectID:
+		switch v := value.(type) {
+		case string:
+			return SQLObjectID(v), nil
+		case bson.ObjectId:
+			return SQLObjectID(v.Hex()), nil
+		case nil:
+			return SQLNull, nil
+		}
 	case schema.SQLInt:
 		switch v := value.(type) {
 		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
@@ -226,7 +234,7 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 // NewSQLExpr transforms sqlparser expressions into SQLExpr.
 func NewSQLExpr(sqlExpr sqlparser.Expr, tables map[string]*schema.Table) (SQLExpr, error) {
 	log.Logf(log.DebugHigh, "planning expr: %#v (type is %T)\n", sqlExpr, sqlExpr)
-
+	
 	switch expr := sqlExpr.(type) {
 
 	case *sqlparser.AndExpr:

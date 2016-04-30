@@ -155,7 +155,7 @@ func compareResults(t *testing.T, expected, actual [][]interface{}) {
 			So(col, ShouldResemble, expectedCol)
 		}
 	}
-	So(len(expected), ShouldEqual, len(actual))
+	So(len(actual), ShouldEqual, len(expected))
 }
 
 func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
@@ -255,13 +255,12 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 	}
 	defer db.Close()
 
-	for i, testCase := range conf.TestCases {
+	for _, testCase := range conf.TestCases {
 		description := testCase.SQL
 		if testCase.Description != "" {
 			description = testCase.Description
 		}
-		Convey(description, func() {
-			t.Logf("Running test query (%v of %v): '%v'", i+1, len(conf.TestCases), testCase.SQL)
+		Convey(fmt.Sprintf("%v('%v')", description, testCase.SQL), func() {
 			results, err := runSQL(db, testCase.SQL, testCase.ExpectedTypes)
 			So(err, ShouldBeNil)
 			compareResults(t, testCase.ExpectedData, results)

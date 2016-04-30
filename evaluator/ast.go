@@ -586,8 +586,11 @@ func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	}
 
 	types := schema.SQLTypes{leftType, rightType}
-
 	sort.Sort(types)
+
+	if types[0] == schema.SQLObjectID {
+		types[0], types[1] = types[1], types[0]
+	}
 
 	if types[1] == leftType {
 		right = &SQLConvertExpr{right, types[1]}
