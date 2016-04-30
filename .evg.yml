@@ -290,7 +290,9 @@ tasks:
             set -o igncr
           fi;
           . ./set_gopath.sh
-          ${gotest_env} go test -blackbox -run TestBlackBox -timeout 4h -v -coverprofile=coverage.out > blackbox.suite 2>&1; if [ $? -ne 0 ]; then cat blackbox.suite; exit 1; else cat blackbox.suite; exit 0; fi
+          mkfifo test_pipe
+          tee -a blackbox.suite < test_pipe&
+          ${gotest_env} go test -blackbox -run TestBlackBox -timeout 4h -v -coverprofile=coverage.out > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -314,8 +316,9 @@ tasks:
             set -o igncr
           fi;
           . ./set_gopath.sh
-          tee -a blackbox.suite < test_pipe&
-          ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test -blackbox -run TestBlackBox -timeout 4h -v -coverprofile=coverage.out > blackbox-optoff.suite 2>&1; if [ $? -ne 0 ]; then cat blackbox-optoff.suite; exit 1; else cat blackbox-optoff.suite; exit 0; fi
+          mkfifo test_pipe
+          tee -a blackbox-optoff.suite < test_pipe&
+          ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test -blackbox -run TestBlackBox -timeout 4h -v -coverprofile=coverage.out > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
