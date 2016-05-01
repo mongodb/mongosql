@@ -386,7 +386,7 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 			if i != 0 {
 				b.WriteString(", ")
 			}
-			b.WriteString(fmt.Sprintf("%v as %v", c.Expr.String(), c.Name))
+			b.WriteString(fmt.Sprintf("%v as %v", c.Name, c.View))
 		}
 
 		b.WriteString("):\n")
