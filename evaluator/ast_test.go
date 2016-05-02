@@ -857,9 +857,9 @@ func TestReconcileSQLExpr(t *testing.T) {
 		tests := []test{
 			test{"a = 3", exprA, SQLInt(3)},
 			test{"g - '2010-01-01'", exprG, exprConv},
-			test{"a in (3)", exprA, &SQLTupleExpr{[]SQLExpr{SQLInt(3)}}},
+			test{"a in (3)", exprA, SQLInt(3)},
 			test{"a in (2,3)", exprA, &SQLTupleExpr{[]SQLExpr{SQLInt(2), SQLInt(3)}}},
-			test{"(a) in (3)", &SQLTupleExpr{[]SQLExpr{exprA}}, &SQLTupleExpr{[]SQLExpr{SQLInt(3)}}},
+			test{"(a) in (3)", exprA, SQLInt(3)},
 			test{"(a,b) in (2,3)", &SQLTupleExpr{[]SQLExpr{exprA, exprB}}, &SQLTupleExpr{[]SQLExpr{SQLInt(2), SQLInt(3)}}},
 			test{"g > '2010-01-01'", exprG, exprConv},
 			test{"a and b", exprA, exprB},
@@ -867,7 +867,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 			test{"'2010-01-01' and g", exprConv, exprG},
 			test{"g in ('2010-01-01',current_timestamp())", exprG, &SQLTupleExpr{[]SQLExpr{exprConv, exprTime}}},
 			test{"g in (select '2010-01-01' from bar)", exprG, &SQLTupleExpr{[]SQLExpr{exprConv}}},
-			test{"(g) in (select '2010-01-01' from bar)", &SQLTupleExpr{[]SQLExpr{exprG}}, &SQLTupleExpr{[]SQLExpr{exprConv}}},
+			test{"(g) in (select '2010-01-01' from bar)", exprG, &SQLTupleExpr{[]SQLExpr{exprConv}}},
 			test{"(a,g) <= (select b, '2010-01-01' from bar)", &SQLTupleExpr{[]SQLExpr{exprA, exprG}}, &SQLTupleExpr{[]SQLExpr{exprB, exprConv}}},
 		}
 
