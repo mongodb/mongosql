@@ -193,18 +193,17 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 		var types []string
 
 		Convey(fmt.Sprintf("Running test query (%v): '%v'", query.Id, query.Query), func() {
-			t.Logf("query: %v %v", query.Id, query.Query)
 
 			for j := 0; j < query.Columns; j++ {
 				types = append(types, schema.SQLVarchar)
 			}
 
-			results, err := runSQL(db, query.Query, types)
+			actual, err := runSQL(db, query.Query, types)
 			So(err, ShouldBeNil)
 
-			resultFile := pathify("testdata", "results", fmt.Sprintf("%v.csv", query.Id))
+			expectedFile := pathify("testdata", "results", fmt.Sprintf("%v.csv", query.Id))
 
-			handle, err := os.OpenFile(resultFile, os.O_RDONLY, os.ModeExclusive)
+			handle, err := os.OpenFile(expectedFile, os.O_RDONLY, os.ModeExclusive)
 			if err != nil {
 				panic(err)
 			}
@@ -217,19 +216,17 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 
 			// TODO: check header as well
 			data = data[1:]
-			newData := make([][]interface{}, len(data))
+			expected := make([][]interface{}, len(data))
 			for i, v := range data {
 				for _, s := range v {
-					newData[i] = append(newData[i], s)
+					expected[i] = append(expected[i], s)
 				}
 			}
 
-			compareResults(t, results, newData)
+			compareResults(t, expected, actual)
 
 		})
 	}
-
-	return nil
 }
 
 func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error {

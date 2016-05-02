@@ -55,11 +55,19 @@ func (f *SQLAggFunctionExpr) String() string {
 
 func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 	switch f.Name {
+	case "avg", "sum":
+		switch f.Exprs[0].Type() {
+		case schema.SQLInt, schema.SQLInt64:
+			// TODO: this should return a decimal when we have decimal support
+			return schema.SQLFloat
+		case schema.SQLFloat:
+			return schema.SQLFloat
+		}
 	case "count":
 		return schema.SQLInt
-	default:
-		return f.Exprs[0].Type()
 	}
+
+	return f.Exprs[0].Type()
 }
 
 func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
