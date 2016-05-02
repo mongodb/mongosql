@@ -245,7 +245,7 @@ functions:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
       local_file: src/sqlproxy
-      remote_file: sqlproxy/binaries/sqlproxy${extension}
+      remote_file: sqlproxy/binaries/${task_id}/sqlproxy${extension}
       bucket: mciuploads
       permissions: public-read
       content_type: application/octet-stream
