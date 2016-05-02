@@ -279,6 +279,19 @@ func TestNewSQLExpr(t *testing.T) {
 		So(ok, ShouldBeTrue)
 	})
 
+	Convey("Calling NewSQLExpr on a single-valued tuple expression should return that value", t, func() {
+		sqlValue := sqlparser.ValTuple{
+			&sqlparser.ColName{
+				Name:      []byte("a"),
+				Qualifier: []byte(tableOneName),
+			},
+		}
+		expr, err := NewSQLExpr(sqlValue, tables)
+		So(err, ShouldBeNil)
+		_, ok := expr.(SQLColumnExpr)
+		So(ok, ShouldBeTrue)
+	})
+
 	Convey("Simple WHERE with explicit table names", t, func() {
 		matcher, err := getWhereSQLExprFromSQL(schema, "select * from bar where bar.a = 4")
 		So(err, ShouldBeNil)
