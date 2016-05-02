@@ -190,8 +190,10 @@ func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
+
 	var sum SQLNumeric = SQLInt(0)
-	var hasMatching bool
+	allNull := true
+
 	for _, row := range ctx.Rows {
 		evalCtx := &EvalCtx{Rows: Rows{row}}
 		for _, expr := range f.Exprs {
@@ -202,6 +204,8 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 
 			if eval == SQLNull {
 				continue
+			} else {
+				allNull = false
 			}
 
 			if distinctMap != nil {
@@ -215,13 +219,12 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 
 			n, err := convertToSQLNumeric(eval, ctx)
 			if err == nil && n != nil {
-				hasMatching = true
 				sum = sum.Add(n)
 			}
 		}
 	}
 
-	if !hasMatching {
+	if allNull {
 		return SQLNull, nil
 	}
 

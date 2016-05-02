@@ -74,6 +74,114 @@ func TestEvaluates(t *testing.T) {
 			runTests(evalCtx, tests)
 		})
 
+		Convey("Subject: SQLAggFunctionExpr", func() {
+			var t1, t2 time.Time
+
+			t1 = time.Now()
+			t2 = t1.Add(time.Hour)
+
+			aggCtx := &EvalCtx{
+				Rows{{
+					Data: TableRows{{
+						"bar",
+						Values{
+							{"a", "a", nil},
+							{"b", "b", 3},
+							{"c", "c", nil},
+							{"g", "g", t1}},
+					}},
+				}, {
+					Data: TableRows{{
+						"bar",
+						Values{
+							{"a", "a", 3},
+							{"b", "b", nil},
+							{"c", "c", nil},
+							{"g", "g", t2}},
+					}},
+				}, {
+					Data: TableRows{{
+						"bar",
+						Values{
+							{"a", "a", 5},
+							{"b", "b", 6},
+							{"c", "c", nil},
+							{"g", "g", nil}},
+					}},
+				}},
+				nil,
+			}
+
+			Convey("Subject: AVG", func() {
+				tests := []test{
+					test{"AVG(NULL)", SQLNull},
+					test{"AVG(a)", SQLFloat(4)},
+					test{"AVG(b)", SQLFloat(4.5)},
+					test{"AVG(c)", SQLNull},
+					test{"AVG(g)", SQLFloat(0)},
+					test{"AVG('a')", SQLFloat(0)},
+					test{"AVG(-20)", SQLFloat(-20)},
+					test{"AVG(20)", SQLFloat(20)},
+				}
+				runTests(aggCtx, tests)
+			})
+
+			Convey("Subject: SUM", func() {
+				tests := []test{
+					test{"SUM(NULL)", SQLNull},
+					test{"SUM(a)", SQLFloat(8)},
+					test{"SUM(b)", SQLInt(9)},
+					test{"SUM(c)", SQLNull},
+					test{"SUM(g)", SQLInt(0)},
+					test{"SUM('a')", SQLInt(0)},
+					test{"SUM(-20)", SQLInt(-60)},
+					test{"SUM(20)", SQLInt(60)},
+				}
+				runTests(aggCtx, tests)
+			})
+
+			Convey("Subject: MIN", func() {
+				tests := []test{
+					test{"MIN(NULL)", SQLNull},
+					test{"MIN(a)", SQLFloat(3)},
+					test{"MIN(b)", SQLInt(3)},
+					test{"MIN(c)", SQLNull},
+					test{"MIN('a')", SQLVarchar("a")},
+					test{"MIN(-20)", SQLInt(-20)},
+					test{"MIN(20)", SQLInt(20)},
+				}
+				runTests(aggCtx, tests)
+			})
+
+			Convey("Subject: MAX", func() {
+				tests := []test{
+					test{"MAX(NULL)", SQLNull},
+					test{"MAX(a)", SQLFloat(5)},
+					test{"MAX(b)", SQLInt(6)},
+					test{"MAX(c)", SQLNull},
+					test{"MAX('a')", SQLVarchar("a")},
+					test{"MAX(-20)", SQLInt(-20)},
+					test{"MAX(20)", SQLInt(20)},
+				}
+				runTests(aggCtx, tests)
+			})
+
+			Convey("Subject: COUNT", func() {
+				tests := []test{
+					test{"COUNT(NULL)", SQLInt(0)},
+					test{"COUNT(a)", SQLInt(2)},
+					test{"COUNT(b)", SQLInt(2)},
+					test{"COUNT(c)", SQLInt(0)},
+					test{"COUNT(g)", SQLInt(2)},
+					test{"COUNT('a')", SQLInt(3)},
+					test{"COUNT(-20)", SQLInt(3)},
+					test{"COUNT(20)", SQLInt(3)},
+				}
+				runTests(aggCtx, tests)
+			})
+
+		})
+
 		Convey("Subject: SQLAndExpr", func() {
 			// INT-1040: boolean literals don't work
 			tests := []test{
