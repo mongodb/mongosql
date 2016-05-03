@@ -223,7 +223,7 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 				}
 			}
 
-			compareResults(t, expected, actual)
+			compareResults(t, actual, expected)
 
 		})
 	}
