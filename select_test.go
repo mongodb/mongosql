@@ -820,10 +820,10 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
-					evaluator.SQLInt(3),
+					evaluator.SQLFloat(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLExpr{
-					evaluator.SQLInt(8),
+					evaluator.SQLFloat(8),
 				},
 			}
 

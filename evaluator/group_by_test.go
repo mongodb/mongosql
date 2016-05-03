@@ -78,7 +78,7 @@ func TestGroupByStage(t *testing.T) {
 					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
 				},
 				SelectExpression{
-					Column: &Column{"", "sum(b)", "sum(b)", columnType.SQLType, columnType.MongoType},
+					Column: &Column{"", "sum(b)", "sum(b)", schema.SQLFloat, schema.MongoNone},
 					Expr: &SQLAggFunctionExpr{
 						Name: "sum",
 						Exprs: []SQLExpr{
@@ -103,7 +103,7 @@ func TestGroupByStage(t *testing.T) {
 			expected := [][]Values{
 				[]Values{
 					{{"a", "a", SQLInt(6)}},
-					{{"sum(b)", "sum(b)", SQLInt(15)}},
+					{{"sum(b)", "sum(b)", SQLFloat(15)}},
 				},
 			}
 

@@ -130,12 +130,12 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"SUM(NULL)", SQLNull},
 					test{"SUM(a)", SQLFloat(8)},
-					test{"SUM(b)", SQLInt(9)},
+					test{"SUM(b)", SQLFloat(9)},
 					test{"SUM(c)", SQLNull},
-					test{"SUM(g)", SQLInt(0)},
-					test{"SUM('a')", SQLInt(0)},
-					test{"SUM(-20)", SQLInt(-60)},
-					test{"SUM(20)", SQLInt(60)},
+					test{"SUM(g)", SQLFloat(0)},
+					test{"SUM('a')", SQLFloat(0)},
+					test{"SUM(-20)", SQLFloat(-60)},
+					test{"SUM(20)", SQLFloat(60)},
 				}
 				runTests(aggCtx, tests)
 			})

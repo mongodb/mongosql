@@ -902,7 +902,14 @@ func replaceSelectExpressionsWithColumns(tableName string, sExprs SelectExpressi
 
 		expr, ok := sExpr.Expr.(SQLColumnExpr)
 		if !ok {
-			expr = SQLColumnExpr{tableName, sExpr.Expr.String(), expr.columnType}
+			expr = SQLColumnExpr{
+				tableName:  tableName,
+				columnName: sExpr.Expr.String(),
+				columnType: schema.ColumnType{
+					SQLType:   expr.Type(),
+					MongoType: schema.MongoNone,
+				},
+			}
 		} else {
 			sExpr.Column.SQLType = expr.Type()
 		}

@@ -60,7 +60,7 @@ func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 		case schema.SQLInt, schema.SQLInt64:
 			// TODO: this should return a decimal when we have decimal support
 			return schema.SQLFloat
-		case schema.SQLFloat:
+		default:
 			return schema.SQLFloat
 		}
 	case "count":
@@ -71,7 +71,7 @@ func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 }
 
 func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
-	var sum SQLNumeric = SQLInt(0)
+	var sum SQLNumeric = SQLFloat(0)
 	count := 0
 	for _, row := range ctx.Rows {
 		evalCtx := &EvalCtx{Rows: Rows{row}}
@@ -199,7 +199,7 @@ func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 
 func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
 
-	var sum SQLNumeric = SQLInt(0)
+	var sum SQLNumeric = SQLFloat(0)
 	allNull := true
 
 	for _, row := range ctx.Rows {
@@ -236,7 +236,7 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 		return SQLNull, nil
 	}
 
-	return sum, nil
+	return SQLFloat(sum.Float64()), nil
 }
 
 //
