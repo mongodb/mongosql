@@ -321,7 +321,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(len(values), ShouldEqual, 1)
 			So(len(values[0]), ShouldEqual, 2)
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(13))
-			So(values[0][1], ShouldResemble, evaluator.SQLInt(27))
+			So(values[0][1], ShouldResemble, evaluator.SQLFloat(27))
 
 			names, values, err = eval.EvaluateRows("test", "select 1 from bar", nil, conn)
 			So(err, ShouldBeNil)
@@ -461,8 +461,8 @@ func TestSelectWithDistinct(t *testing.T) {
 			So(len(names), ShouldEqual, 4)
 			So(len(values), ShouldEqual, 1)
 
-			So(values[0][0], ShouldResemble, evaluator.SQLInt(-3))
-			So(values[0][1], ShouldResemble, evaluator.SQLInt(11))
+			So(values[0][0], ShouldResemble, evaluator.SQLFloat(-3))
+			So(values[0][1], ShouldResemble, evaluator.SQLFloat(11))
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(1))
 			So(values[0][3], ShouldResemble, evaluator.SQLInt(3))
 		})
@@ -474,16 +474,16 @@ func TestSelectWithDistinct(t *testing.T) {
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 3)
 
-			So(values[0][0], ShouldResemble, evaluator.SQLInt(0))
-			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][0], ShouldResemble, evaluator.SQLFloat(0))
+			So(values[0][1], ShouldResemble, evaluator.SQLFloat(1))
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(1))
 
-			So(values[1][0], ShouldResemble, evaluator.SQLInt(-1))
-			So(values[1][1], ShouldResemble, evaluator.SQLInt(4))
+			So(values[1][0], ShouldResemble, evaluator.SQLFloat(-1))
+			So(values[1][1], ShouldResemble, evaluator.SQLFloat(4))
 			So(values[1][2], ShouldResemble, evaluator.SQLInt(2))
 
-			So(values[2][0], ShouldResemble, evaluator.SQLInt(-2))
-			So(values[2][1], ShouldResemble, evaluator.SQLInt(6))
+			So(values[2][0], ShouldResemble, evaluator.SQLFloat(-2))
+			So(values[2][1], ShouldResemble, evaluator.SQLFloat(6))
 			So(values[2][2], ShouldResemble, evaluator.SQLInt(3))
 
 		})
@@ -495,16 +495,16 @@ func TestSelectWithDistinct(t *testing.T) {
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 3)
 
-			So(values[0][0], ShouldResemble, evaluator.SQLInt(0))
-			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][0], ShouldResemble, evaluator.SQLFloat(0))
+			So(values[0][1], ShouldResemble, evaluator.SQLFloat(1))
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(1))
 
-			So(values[1][0], ShouldResemble, evaluator.SQLInt(-1))
-			So(values[1][1], ShouldResemble, evaluator.SQLInt(4))
+			So(values[1][0], ShouldResemble, evaluator.SQLFloat(-1))
+			So(values[1][1], ShouldResemble, evaluator.SQLFloat(4))
 			So(values[1][2], ShouldResemble, evaluator.SQLInt(2))
 
-			So(values[2][0], ShouldResemble, evaluator.SQLInt(-1))
-			So(values[2][1], ShouldResemble, evaluator.SQLInt(6))
+			So(values[2][0], ShouldResemble, evaluator.SQLFloat(-1))
+			So(values[2][1], ShouldResemble, evaluator.SQLFloat(6))
 			So(values[2][2], ShouldResemble, evaluator.SQLInt(3))
 
 		})
@@ -516,16 +516,16 @@ func TestSelectWithDistinct(t *testing.T) {
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 3)
 
-			So(values[0][0], ShouldResemble, evaluator.SQLInt(0))
-			So(values[0][1], ShouldResemble, evaluator.SQLInt(1))
+			So(values[0][0], ShouldResemble, evaluator.SQLFloat(0))
+			So(values[0][1], ShouldResemble, evaluator.SQLFloat(1))
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(1))
 
-			So(values[1][0], ShouldResemble, evaluator.SQLInt(-1))
-			So(values[1][1], ShouldResemble, evaluator.SQLInt(2))
+			So(values[1][0], ShouldResemble, evaluator.SQLFloat(-1))
+			So(values[1][1], ShouldResemble, evaluator.SQLFloat(2))
 			So(values[1][2], ShouldResemble, evaluator.SQLInt(2))
 
-			So(values[2][0], ShouldResemble, evaluator.SQLInt(-1))
-			So(values[2][1], ShouldResemble, evaluator.SQLInt(3))
+			So(values[2][0], ShouldResemble, evaluator.SQLFloat(-1))
+			So(values[2][1], ShouldResemble, evaluator.SQLFloat(3))
 			So(values[2][2], ShouldResemble, evaluator.SQLInt(3))
 
 		})
@@ -558,10 +558,10 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
-					evaluator.SQLInt(3),
+					evaluator.SQLFloat(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLExpr{
-					evaluator.SQLInt(8),
+					evaluator.SQLFloat(8),
 				},
 			}
 
@@ -580,11 +580,11 @@ func TestSelectWithGroupBy(t *testing.T) {
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
-					evaluator.SQLInt(3),
+					evaluator.SQLFloat(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
-					evaluator.SQLInt(8),
+					evaluator.SQLFloat(8),
 				},
 			}
 
@@ -637,11 +637,11 @@ func TestSelectWithGroupBy(t *testing.T) {
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
 					evaluator.SQLInt(2),
-					evaluator.SQLInt(3),
+					evaluator.SQLFloat(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLExpr{
 					evaluator.SQLInt(3),
-					evaluator.SQLInt(6),
+					evaluator.SQLFloat(6),
 				},
 			}
 
@@ -659,10 +659,10 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
-					evaluator.SQLInt(5),
+					evaluator.SQLFloat(5),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLExpr{
-					evaluator.SQLInt(14),
+					evaluator.SQLFloat(14),
 				},
 			}
 
@@ -679,10 +679,10 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
-					evaluator.SQLInt(3),
+					evaluator.SQLFloat(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLExpr{
-					evaluator.SQLInt(8),
+					evaluator.SQLFloat(8),
 				},
 			}
 
@@ -700,10 +700,10 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
-					evaluator.SQLInt(3),
+					evaluator.SQLFloat(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLExpr{
-					evaluator.SQLInt(8),
+					evaluator.SQLFloat(8),
 				},
 			}
 
@@ -719,7 +719,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(len(values), ShouldEqual, 1)
 
 			So(names, ShouldResemble, []string{"sum_a_ok"})
-			So(values[0][0], ShouldResemble, evaluator.SQLInt(9))
+			So(values[0][0], ShouldResemble, evaluator.SQLFloat(9))
 
 		})
 
@@ -731,7 +731,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(len(values), ShouldEqual, 1)
 
 			So(names, ShouldResemble, []string{"sum_a_ok"})
-			So(values[0][0], ShouldResemble, evaluator.SQLInt(9))
+			So(values[0][0], ShouldResemble, evaluator.SQLFloat(9))
 
 			names, values, err = eval.EvaluateRows("test", "SELECT sum_a_ok AS `sum_a_ok` FROM (  SELECT SUM(`bar`.`a`) AS `sum_a_ok`,  (COUNT(1) > 0) AS `havclause`,  1 AS `_Tableau_const_expr` FROM `bar` GROUP BY 3) `t0` where not havclause", nil, conn)
 			So(err, ShouldBeNil)
@@ -748,10 +748,10 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
-					evaluator.SQLInt(3),
+					evaluator.SQLFloat(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLExpr{
-					evaluator.SQLInt(13),
+					evaluator.SQLFloat(13),
 				},
 			}
 
@@ -766,12 +766,12 @@ func TestSelectWithGroupBy(t *testing.T) {
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
-					evaluator.SQLInt(3),
-					evaluator.SQLInt(3),
+					evaluator.SQLFloat(3),
+					evaluator.SQLFloat(3),
 				},
 				evaluator.SQLInt(2): []evaluator.SQLExpr{
-					evaluator.SQLInt(13),
-					evaluator.SQLInt(5),
+					evaluator.SQLFloat(13),
+					evaluator.SQLFloat(5),
 				},
 			}
 
@@ -859,13 +859,13 @@ func TestSelectWithHaving(t *testing.T) {
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(3): []evaluator.SQLExpr{
-					evaluator.SQLInt(4),
+					evaluator.SQLFloat(4),
 				},
 				evaluator.SQLInt(4): []evaluator.SQLExpr{
-					evaluator.SQLInt(4),
+					evaluator.SQLFloat(4),
 				},
 				evaluator.SQLInt(5): []evaluator.SQLExpr{
-					evaluator.SQLInt(11),
+					evaluator.SQLFloat(11),
 				},
 			}
 
@@ -883,10 +883,10 @@ func TestSelectWithHaving(t *testing.T) {
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(5): []evaluator.SQLExpr{
-					evaluator.SQLInt(11),
+					evaluator.SQLFloat(11),
 				},
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
-					evaluator.SQLInt(3),
+					evaluator.SQLFloat(3),
 				},
 			}
 
@@ -904,7 +904,7 @@ func TestSelectWithHaving(t *testing.T) {
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
 
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
-			So(values[0][1], ShouldResemble, evaluator.SQLInt(25))
+			So(values[0][1], ShouldResemble, evaluator.SQLFloat(25))
 		})
 	})
 }
@@ -1798,9 +1798,9 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLFloat(3)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLFloat(10)})
 
 			names, values, err = eval.EvaluateRows("test", "select a from bar order by a asc", nil, conn)
 			So(err, ShouldBeNil)
@@ -1873,9 +1873,9 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLFloat(10)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLFloat(3)})
 
 			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) from bar group by a order by sum(bar.b)", nil, conn)
 			So(err, ShouldBeNil)
@@ -1883,9 +1883,9 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLFloat(3)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLFloat(10)})
 
 			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) from bar group by a order by 2", nil, conn)
 			So(err, ShouldBeNil)
@@ -1893,9 +1893,9 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLFloat(3)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLFloat(10)})
 
 			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) as c from bar group by a order by c", nil, conn)
 			So(err, ShouldBeNil)
@@ -1903,9 +1903,9 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "c"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLFloat(3)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLFloat(10)})
 
 			names, values, err = eval.EvaluateRows("test", "select a, sum(bar.b) as c from bar group by a order by cd", nil, conn)
 			So(err, ShouldNotBeNil)
@@ -1919,9 +1919,9 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLFloat(3)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLFloat(10)})
 
 			names, values, err = eval.EvaluateRows("test", "select * from bar order by 3", nil, conn)
 			So(err, ShouldBeNil)
@@ -1962,9 +1962,9 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 3)
 
 			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10)})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3)})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2)})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLFloat(10)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLFloat(3)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLFloat(2)})
 
 		})
 
@@ -1982,12 +1982,12 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 6)
 
 			So(names, ShouldResemble, []string{"a", "b", "sum(bar.b)"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLInt(3)})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1)})
-			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(10)})
-			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLInt(3)})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLFloat(3)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLFloat(1)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLFloat(10)})
+			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLFloat(3)})
 
 			names, values, err = eval.EvaluateRows("test", "select a, b, sum(bar.b) from bar group by a, b order by a asc, sum(b) asc", nil, conn)
 			So(err, ShouldBeNil)
@@ -1995,12 +1995,12 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 6)
 
 			So(names, ShouldResemble, []string{"a", "b", "sum(bar.b)"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1)})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLInt(3)})
-			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(10)})
-			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLInt(3)})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLFloat(1)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLFloat(3)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLFloat(10)})
+			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLFloat(3)})
 
 			names, values, err = eval.EvaluateRows("test", "select a, b, sum(bar.b) from bar group by a, b order by a desc, sum(b) asc", nil, conn)
 			So(err, ShouldBeNil)
@@ -2008,12 +2008,12 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 6)
 
 			So(names, ShouldResemble, []string{"a", "b", "sum(bar.b)"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLInt(3)})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(10)})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1)})
-			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLInt(3)})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLFloat(3)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLFloat(10)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLFloat(1)})
+			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLFloat(3)})
 
 			names, values, err = eval.EvaluateRows("test", "select a, b, sum(bar.b) from bar group by a, b order by a desc, sum(b) desc", nil, conn)
 			So(err, ShouldBeNil)
@@ -2021,12 +2021,12 @@ func TestSelectWithOrderBy(t *testing.T) {
 			So(len(values), ShouldEqual, 6)
 
 			So(names, ShouldResemble, []string{"a", "b", "sum(bar.b)"})
-			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLInt(3)})
-			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLInt(10)})
-			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLInt(3)})
-			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLInt(2)})
-			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLInt(1)})
+			So(values[0], ShouldResemble, []interface{}{evaluator.SQLInt(4), evaluator.SQLInt(3), evaluator.SQLFloat(3)})
+			So(values[1], ShouldResemble, []interface{}{evaluator.SQLInt(3), evaluator.SQLInt(10), evaluator.SQLFloat(10)})
+			So(values[2], ShouldResemble, []interface{}{evaluator.SQLInt(2), evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[3], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(3), evaluator.SQLFloat(3)})
+			So(values[4], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(2), evaluator.SQLFloat(2)})
+			So(values[5], ShouldResemble, []interface{}{evaluator.SQLInt(1), evaluator.SQLInt(1), evaluator.SQLFloat(1)})
 
 			names, values, err = eval.EvaluateRows("test", "select a, a + b as c from bar order by c desc", nil, conn)
 			So(err, ShouldBeNil)
