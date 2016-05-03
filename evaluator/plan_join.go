@@ -2,9 +2,9 @@ package evaluator
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/deafgoat/mixer/sqlparser"
-	"sync"
 )
 
 // JoinStrategy specifies the method a Join

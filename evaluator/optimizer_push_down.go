@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/schema"
-
 	"gopkg.in/mgo.v2/bson"
 )
 

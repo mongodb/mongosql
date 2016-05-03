@@ -14,10 +14,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gopkg.in/mgo.v2"
-
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
+	"gopkg.in/mgo.v2"
 )
 
 type conn struct {

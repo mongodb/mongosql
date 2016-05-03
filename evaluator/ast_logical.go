@@ -2,11 +2,11 @@ package evaluator
 
 import (
 	"fmt"
-	"github.com/deafgoat/mixer/sqlparser"
 	"regexp"
 	"strconv"
 
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/deafgoat/mixer/sqlparser"
 )
 
 //

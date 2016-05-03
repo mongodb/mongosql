@@ -6,7 +6,6 @@ import (
 
 	. "github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/evaluator"
-
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"

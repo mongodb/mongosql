@@ -7,11 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
-
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-
 	yaml "github.com/10gen/candiedyaml"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type SQLType string

@@ -1,10 +1,11 @@
 package evaluator
 
 import (
+	"testing"
+
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 func getQuery(raw sqlparser.Statement) string {

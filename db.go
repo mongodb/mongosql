@@ -2,7 +2,6 @@ package sqlproxy
 
 import (
 	"crypto/tls"
-
 	"net"
 	"strings"
 	"time"

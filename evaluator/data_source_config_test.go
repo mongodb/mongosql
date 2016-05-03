@@ -1,12 +1,11 @@
 package evaluator
 
 import (
+	"sort"
 	"strings"
+	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	//"gopkg.in/mgo.v2/bson"
-	"sort"
-	"testing"
 )
 
 const numInformationSchemaColumns = 30

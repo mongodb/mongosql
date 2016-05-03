@@ -5,14 +5,13 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"runtime"
+	"strings"
 
 	sqlproxy "github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
-
-	"net"
-	"runtime"
-	"strings"
 )
 
 // Server manages connections with clients.

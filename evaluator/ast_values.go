@@ -1,14 +1,14 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/schema"
-	"gopkg.in/mgo.v2/bson"
-
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/10gen/sqlproxy/schema"
+	"gopkg.in/mgo.v2/bson"
 )
 
 //

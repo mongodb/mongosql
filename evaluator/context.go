@@ -3,10 +3,11 @@ package evaluator
 import (
 	"bytes"
 	"fmt"
-	"github.com/10gen/sqlproxy/schema"
-	"github.com/deafgoat/mixer/sqlparser"
 	"strings"
 	"unsafe"
+
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/deafgoat/mixer/sqlparser"
 )
 
 var (

@@ -1,9 +1,10 @@
 package evaluator
 
 import (
+	"testing"
+
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 func TestEmptyOperator(t *testing.T) {

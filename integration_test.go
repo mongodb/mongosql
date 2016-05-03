@@ -2,6 +2,7 @@ package sqlproxy_test
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/csv"
 	"encoding/json"
 	"flag"
@@ -11,8 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"database/sql/driver"
 
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/sqlproxy"

@@ -1,11 +1,12 @@
 package evaluator
 
 import (
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"gopkg.in/mgo.v2/bson"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"gopkg.in/mgo.v2/bson"
 )
 
 const (

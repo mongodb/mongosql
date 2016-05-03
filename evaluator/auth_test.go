@@ -3,9 +3,8 @@ package evaluator
 import (
 	"testing"
 
-	"gopkg.in/mgo.v2/bson"
-
 	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func TestAuthProvider(t *testing.T) {
