@@ -174,7 +174,7 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 	dec := json.NewDecoder(r)
 
 	type queryData struct {
-		Id      string `json:"id"`
+		ID      string `json:"id"`
 		Query   string `json:"value"`
 		Columns int    `json:"columns"`
 		Rows    int    `json:"rows"`
@@ -193,7 +193,7 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 
 		var types []string
 
-		Convey(fmt.Sprintf("Running test query (%v): '%v'", query.Id, query.Query), func() {
+		Convey(fmt.Sprintf("Running test query (%v): '%v'", query.ID, query.Query), func() {
 
 			for j := 0; j < query.Columns; j++ {
 				types = append(types, schema.SQLVarchar)
@@ -202,7 +202,7 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 			actual, err := runSQL(db, query.Query, types)
 			So(err, ShouldBeNil)
 
-			expectedFile := pathify("testdata", "results", fmt.Sprintf("%v.csv", query.Id))
+			expectedFile := pathify("testdata", "results", fmt.Sprintf("%v.csv", query.ID))
 
 			handle, err := os.OpenFile(expectedFile, os.O_RDONLY, os.ModeExclusive)
 			if err != nil {

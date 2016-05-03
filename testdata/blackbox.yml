@@ -365,9 +365,9 @@ schema:
       SqlName: app_employ_status
       SqlType: varchar
     - Name: App_Ext_Credit_Rating
-      MongoType: int
+      MongoType: float64
       SqlName: app_ext_credit_rating
-      SqlType: int
+      SqlType: float64
     - Name: App_Gender
       MongoType: string
       SqlName: app_gender
@@ -385,9 +385,9 @@ schema:
       SqlName: app_int_credit_rating_2
       SqlType: int
     - Name: App_Liquid_Assets
-      MongoType: int
+      MongoType: float64
       SqlName: app_liquid_assets
-      SqlType: int
+      SqlType: float64
     - Name: App_Married_Status
       MongoType: string
       SqlName: app_married_status
@@ -1003,9 +1003,9 @@ schema:
       SqlName: state
       SqlType: varchar
     - Name: Total Expenses
-      MongoType: int
+      MongoType: float64
       SqlName: total expenses
-      SqlType: int
+      SqlType: float64
     - Name: Type
       MongoType: string
       SqlName: type
