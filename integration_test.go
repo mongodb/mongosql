@@ -143,9 +143,10 @@ func compareResults(t *testing.T, expected, actual [][]interface{}) {
 			// we don't have a good way of representing
 			// nil in our CSV test results so we check
 			// for an empty string when we expect nil
-			if expectedCol == nil && col == "" {
-				expectedCol = ""
+			if col == nil && expectedCol == "" {
+				col = ""
 			}
+
 			// our YAML parser converts numbers in the
 			// int range to int but we need them to be
 			// int64
@@ -223,8 +224,7 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 				}
 			}
 
-			compareResults(t, actual, expected)
-
+			compareResults(t, expected, actual)
 		})
 	}
 }
