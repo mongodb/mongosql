@@ -57,41 +57,41 @@ testcases:
 - sql: "SHOW COLUMNS FROM foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", ~, ~, ~]
-    - ["b1", "varchar", "YES", ~, ~, ~]
-    - ["c1", "int64", "YES", ~, ~, ~]
+    - ["a1", "int64", "YES", "", "", ""]
+    - ["b1", "varchar", "YES", "", "", ""]
+    - ["c1", "int64", "YES", "", "", ""]
 # - sql: "SHOW COLUMNS FROM foo LIKE 'b'" // NEEDS PARSER SUPPORT
 #   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
 #   expected:
-#     - ["b1", "varchar", "YES", ~, ~, ~]
+#     - ["b1", "varchar", "YES", "", "", ""]
 # - sql: "SHOW COLUMNS FROM foo WHERE type = 'int'" // NEEDS PARSER SUPPORT
 #   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
 #   expected:
-#     - ["b1", "varchar", "YES", ~, ~, ~]
+#     - ["b1", "varchar", "YES", "", "", ""]
 - sql: "SHOW COLUMNS FROM test.foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", ~, ~, ~]
-    - ["b1", "varchar", "YES", ~, ~, ~]
-    - ["c1", "int64", "YES", ~, ~, ~]
+    - ["a1", "int64", "YES", "", "", ""]
+    - ["b1", "varchar", "YES", "", "", ""]
+    - ["c1", "int64", "YES", "", "", ""]
 - sql: "SHOW COLUMNS FROM foo FROM test"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", ~, ~, ~]
-    - ["b1", "varchar", "YES", ~, ~, ~]
-    - ["c1", "int64", "YES", ~, ~, ~]
+    - ["a1", "int64", "YES", "", "", ""]
+    - ["b1", "varchar", "YES", "", "", ""]
+    - ["c1", "int64", "YES", "", "", ""]
 - sql: "SHOW COLUMNS IN foo IN test"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", ~, ~, ~]
-    - ["b1", "varchar", "YES", ~, ~, ~]
-    - ["c1", "int64", "YES", ~, ~, ~]
+    - ["a1", "int64", "YES", "", "", ""]
+    - ["b1", "varchar", "YES", "", "", ""]
+    - ["c1", "int64", "YES", "", "", ""]
 - sql: "SHOW FULL COLUMNS FROM foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", ~, ~, ~, "utf8_bin", "select", "{ \"name\": \"a\" }"]
-    - ["b1", "varchar", "YES", ~, ~, ~, "utf8_bin", "select", "{ \"name\": \"b\" }"]
-    - ["c1", "int64", "YES", ~, ~, ~, "utf8_bin", "select", "{ \"name\": \"c\" }"]
+    - ["a1", "int64", "YES", "", "", "", "utf8_bin", "select", "{ \"name\": \"a\" }"]
+    - ["b1", "varchar", "YES", "", "", "", "utf8_bin", "select", "{ \"name\": \"b\" }"]
+    - ["c1", "int64", "YES", "", "", "", "utf8_bin", "select", "{ \"name\": \"c\" }"]
 - sql: "SHOW COLUMNS FROM test2.foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected: []
