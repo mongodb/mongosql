@@ -107,7 +107,7 @@ func (ob *OrderByIter) sortRows() (orderByRows, error) {
 		}
 	}()
 
-	sort.Sort(rows)
+	sort.Stable(rows)
 
 	ob.sorted = true
 
