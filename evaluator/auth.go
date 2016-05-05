@@ -37,24 +37,31 @@ type lazyAuthProvider struct {
 }
 
 func (p *lazyAuthProvider) IsDatabaseAllowed(dbName string) bool {
-	p.ensureInitialized()
+	if err := p.ensureInitialized(); err != nil {
+		return false
+	}
 	return p.actual.IsDatabaseAllowed(dbName)
 }
 
 func (p *lazyAuthProvider) IsCollectionAllowed(dbName, colName string) bool {
-	p.ensureInitialized()
+	if err := p.ensureInitialized(); err != nil {
+		return false
+	}
 	return p.actual.IsCollectionAllowed(dbName, colName)
 }
 
-func (p *lazyAuthProvider) ensureInitialized() {
+func (p *lazyAuthProvider) ensureInitialized() error {
 	if p.actual == nil {
 		a, err := loadAuthProvider(p.session)
 		if err != nil {
 			log.Logf(log.Always, "failed to initialize auth provider: %v", err)
-			p.actual = &fixedAuthProvider{false}
+			return err
 		}
+
 		p.actual = a
 	}
+
+	return nil
 }
 
 type mongoAuthProvider struct {
@@ -67,8 +74,13 @@ func loadAuthProvider(session *mgo.Session) (AuthProvider, error) {
 		{"showPrivileges", 1},
 	}
 	result := bson.M{}
-	if err := session.Run(cmd, &result); err != nil {
-		// no auth required. if this fails, it's a real problem...
+
+	// this is how the mgo driver internally executes commands.
+	// In this case, it prevents a dead connection from causing
+	// an error executing the command.
+	clonedSession := session.Clone()
+	defer clonedSession.Close()
+	if err := clonedSession.Run(cmd, &result); err != nil {
 		return nil, err
 	}
 
