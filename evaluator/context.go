@@ -232,48 +232,50 @@ func (pCtx *ParseCtx) AddColumns() error {
 	return nil
 }
 
-// CheckColumn checks that the column information is valid in the given context.
-func (pCtx *ParseCtx) CheckColumn(table *TableInfo, cName string) error {
+// CheckColumn checks that the column name is valid in the given context.
+func (pCtx *ParseCtx) CheckColumn(table *TableInfo, column string) error {
 
-	tName := table.Alias
+	tableName := table.Alias
 
 	// whitelist all 'virtual' schemas including information_schema
 	// TODO: more precise validation needed
 	if strings.EqualFold(pCtx.Database, InformationDatabase) ||
-		strings.EqualFold(tName, InformationDatabase) {
+		strings.EqualFold(tableName, InformationDatabase) {
 		return nil
 	}
+
+	column = strings.ToLower(column)
 
 	if table.Derived {
 		// For derived tables, column names must come from children
 		for _, tableInfo := range pCtx.Tables {
-			if tableInfo.Alias == tName {
-				return pCtx.checkColumn(tName, cName, 0)
+			if tableInfo.Alias == tableName {
+				return pCtx.checkColumn(tableName, column, 0)
 			}
 		}
-		return fmt.Errorf("Derived table '%v' doesn't exist", tName)
+		return fmt.Errorf("Derived table '%v' doesn't exist", tableName)
 	}
 
 	// For schema tables, columns must come from schema configuration
 	tableSchema := pCtx.TableSchema(table.Name)
 
 	if tableSchema == nil {
-		return fmt.Errorf("Table '%v' doesn't exist", tName)
+		return fmt.Errorf("Table '%v' doesn't exist", tableName)
 	}
 
 	for _, c := range tableSchema.RawColumns {
-		if c.SqlName == cName {
+		if c.SqlName == column {
 			return nil
 		}
 	}
 
 	for _, r := range pCtx.ColumnReferences {
-		if r.Name == cName {
+		if r.Name == column {
 			return nil
 		}
 	}
 
-	return fmt.Errorf("Unknown column '%v' in table '%v'", cName, tName)
+	return fmt.Errorf("Unknown column '%v' in table '%v'", column, tableName)
 }
 
 // checkColumn checks that a referenced column in the context of

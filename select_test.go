@@ -316,7 +316,7 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(len(names), ShouldEqual, 3)
 			So(len(values), ShouldEqual, 7)
 
-			So(names, ShouldResemble, []string{"b", "a", "b"})
+			So(names, ShouldResemble, []string{"b", "A", "b"})
 			So(len(values[0]), ShouldEqual, 3)
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(6))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(7))
