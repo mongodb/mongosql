@@ -150,5 +150,9 @@ func TestAlgebrizeTableExpr(t *testing.T) {
 
 		})
 
+		Convey("star expressions in join context should be fully expanded", func() {
+			runAlgebrizerTest("select * from foo f1, foo f2", true)
+		})
+
 	})
 }

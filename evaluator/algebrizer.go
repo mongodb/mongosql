@@ -175,13 +175,14 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 
 	var algebrizeSelectExprs sqlparser.SelectExprs
 
+	var hasUnqualifiedStarExpr, hasQualifiedStarExpr bool
+
 	for _, sExpr := range sExprs {
 
 		log.Logf(log.DebugLow, "select expr: %v (%T)\npCtx: %v\n\n", sqlparser.String(sExpr), sExpr, pCtx.String())
 
 		switch expr := sExpr.(type) {
 
-		// TODO: validate no mixture of star and non-star expression
 		case *sqlparser.StarExpr:
 
 			// validate table name if present
@@ -190,44 +191,21 @@ func algebrizeSelectExprs(sExprs sqlparser.SelectExprs, pCtx *ParseCtx) (sqlpars
 				if err != nil {
 					return nil, err
 				}
-			}
-
-			// This replaces star expressions with actual column references if
-			// possible.
-			//
-			// TODO: abstract configuration source to support databases like
-			// the information schema
-
-			if pCtx.Database != InformationDatabase && !pCtx.InFuncExpr() {
-				table, err := pCtx.GetCurrentTable(pCtx.Database, string(expr.TableName), "")
-				if err != nil {
-					algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
-					continue
-				}
-
-				schema := pCtx.TableSchema(table.Name)
-				if schema != nil {
-					for _, column := range schema.RawColumns {
-						expr := &sqlparser.ColName{
-							Name:      []byte(column.SqlName),
-							Qualifier: []byte(table.Alias),
-						}
-
-						nonStarExpr := &sqlparser.NonStarExpr{
-							Expr: expr,
-						}
-						algebrizeSelectExprs = append(algebrizeSelectExprs, nonStarExpr)
-					}
-				} else {
-					if !table.Derived {
-						return nil, fmt.Errorf("non-derived table '%v' does not exist", table.Name)
-					}
-					algebrizeSelectExprs = append(algebrizeSelectExprs, pCtx.GetTableColumns(table)...)
-				}
-				continue
+				hasQualifiedStarExpr = true
 			} else {
-				algebrizeSelectExprs = append(algebrizeSelectExprs, expr)
+				hasUnqualifiedStarExpr = true
 			}
+
+			if hasUnqualifiedStarExpr && hasQualifiedStarExpr {
+				return nil, fmt.Errorf("can't mix qualified and unqualified star expression")
+			}
+
+			exprs, err := expandStarExpression(expr, pCtx)
+			if err != nil {
+				return nil, err
+			}
+
+			algebrizeSelectExprs = append(algebrizeSelectExprs, exprs...)
 
 		case *sqlparser.NonStarExpr:
 
@@ -510,7 +488,6 @@ func algebrizeExpr(gExpr sqlparser.Expr, pCtx *ParseCtx) (sqlparser.Expr, error)
 	case *sqlparser.Subquery:
 
 		// algebrize subquery as a select expression
-
 		nCtx, err := pCtx.ChildCtx(expr.Select)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing subquery select expression context: %v", err)
@@ -723,8 +700,6 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 				return nil, fmt.Errorf("GetTableInfo AliasedTableExpr error: %v", err)
 			}
 
-			pCtx.DerivedTableName = ""
-
 			switch node := stExpr.(type) {
 
 			case *sqlparser.TableName:
@@ -740,7 +715,8 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 					db = pCtx.Database
 				}
 
-				// handles cases where the database is expressed in the FROM clause e.g.
+				// handles cases where the database is expressed in the FROM clause
+				// e.g select * from TEST.foo
 				if pCtx.Database == "" {
 					pCtx.Database = db
 				}
@@ -761,16 +737,15 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 				// apply derived table alias to context
 				for _, table := range ctx.Tables {
 					table.Alias = alias
-					table.Name = alias
 					table.Derived = true
 					tables = append(tables, table)
 				}
 
 			default:
-
 				return nil, fmt.Errorf("GetTableInfo AliasedTableExpr type assert error: %v", err)
-
 			}
+
+			pCtx.DerivedTableName = ""
 
 		case *sqlparser.ParenTableExpr:
 
@@ -804,9 +779,7 @@ func GetTableInfo(tExprs sqlparser.TableExprs, pCtx *ParseCtx) ([]TableInfo, err
 			tables = append(tables, rInfo...)
 
 		default:
-
 			return nil, fmt.Errorf("can't handle table expression type %T", expr)
-
 		}
 	}
 
@@ -1044,4 +1017,53 @@ func columnInCtx(pCtx *ParseCtx, expr *sqlparser.ColName) (*ColumnInfo, error) {
 	}
 
 	return columnInfo, nil
+}
+
+// expandStarExpression takes a star expression and expands it
+// to all referenced columns within in the given context.
+func expandStarExpression(expr *sqlparser.StarExpr, pCtx *ParseCtx) (sqlparser.SelectExprs, error) {
+	getStarExprColumns := func(tableInfos TableInfos, pCtx *ParseCtx) (sqlparser.SelectExprs, error) {
+		var exprs sqlparser.SelectExprs
+
+		for _, tableInfo := range tableInfos {
+			schema := pCtx.TableSchema(tableInfo.Name)
+			if schema != nil && !tableInfo.Derived {
+				for _, column := range schema.RawColumns {
+					expr := &sqlparser.ColName{
+						Name:      []byte(column.SqlName),
+						Qualifier: []byte(tableInfo.Alias),
+					}
+					nonStarExpr := &sqlparser.NonStarExpr{
+						Expr: expr,
+					}
+					exprs = append(exprs, nonStarExpr)
+				}
+			} else {
+				columns := pCtx.GetTableColumns(&tableInfo)
+				if len(columns) == 0 {
+					return nil, fmt.Errorf("table '%v' has no columns", tableInfo.Alias)
+				}
+				exprs = append(exprs, columns...)
+			}
+		}
+		return exprs, nil
+	}
+
+	if pCtx.Database != InformationDatabase && !pCtx.InFuncExpr() {
+		var tables TableInfos
+
+		table, err := pCtx.GetCurrentTable(pCtx.Database, string(expr.TableName), "")
+		if err != nil {
+			tables = pCtx.Tables
+		} else {
+			tables = TableInfos{*table}
+		}
+
+		exprs, err := getStarExprColumns(tables, pCtx)
+		if err != nil {
+			return nil, err
+		}
+		return exprs, nil
+	}
+	return sqlparser.SelectExprs{expr}, nil
 }

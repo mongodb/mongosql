@@ -214,6 +214,17 @@ func TestSelectWithStar(t *testing.T) {
 				So(len(values), ShouldEqual, 0)
 			})
 		})
+
+		Convey("containing star expressions, columns in join context should be fully expanded", func() {
+
+			So(collectionOne.Insert(bson.M{"d": 5, "a": 6, "b": 7}), ShouldBeNil)
+			So(collectionOne.Insert(bson.M{"d": 15, "a": 16, "c": 17}), ShouldBeNil)
+
+			names, values, err := eval.EvaluateRows("", "select * from test.bar b1, test.bar b2", nil, conn)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 8)
+			So(len(values), ShouldEqual, 4)
+		})
 	})
 }
 

@@ -206,16 +206,17 @@ func NewParseCtx(ss sqlparser.SelectStatement, c *schema.Schema, db string) (*Pa
 }
 
 // AddColumns adds columns from the schema configuration to the context.
-func (pCtx *ParseCtx) AddColumns() {
+func (pCtx *ParseCtx) AddColumns() error {
 	for _, table := range pCtx.Tables {
-		if table.Derived {
-			continue
-		}
 
 		tableSchema := pCtx.TableSchema(table.Name)
 
 		if tableSchema == nil {
-			continue
+			return fmt.Errorf("can't find schema for table '%v'", table.Name)
+		}
+
+		if pCtx.DerivedTableName != "" {
+			table.Alias = pCtx.DerivedTableName
 		}
 
 		for index, colDef := range tableSchema.RawColumns {
@@ -223,11 +224,12 @@ func (pCtx *ParseCtx) AddColumns() {
 				Index: index,
 				Name:  colDef.SqlName,
 				Alias: colDef.SqlName,
-				Table: table.Name,
+				Table: table.Alias,
 			}
 			pCtx.Columns = append(pCtx.Columns, column)
 		}
 	}
+	return nil
 }
 
 // CheckColumn checks that the column information is valid in the given context.
@@ -331,12 +333,15 @@ func (pCtx *ParseCtx) ChildCtx(ss sqlparser.SelectStatement) (*ParseCtx, error) 
 	if err != nil {
 		return nil, err
 	}
-
 	ctx.Parent = pCtx
+	ctx.DerivedTableName = pCtx.DerivedTableName
 
 	// for star expression on derived tables, add known columns
 	if hasStarExpr(ss) {
-		ctx.AddColumns()
+		err = ctx.AddColumns()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	pCtx.Children = append(pCtx.Children, ctx)
@@ -452,7 +457,7 @@ func (pCtx *ParseCtx) GetTableColumns(table *TableInfo) sqlparser.SelectExprs {
 	for _, child := range pCtx.Children {
 
 		for _, column := range child.Columns {
-			if column.Table == table.Name {
+			if column.Table == table.Alias {
 				expr := &sqlparser.ColName{
 					Name:      []byte(column.Alias),
 					Qualifier: []byte(column.Table),
@@ -462,7 +467,7 @@ func (pCtx *ParseCtx) GetTableColumns(table *TableInfo) sqlparser.SelectExprs {
 		}
 
 		for _, ref := range child.ColumnReferences {
-			if ref.Table == table.Name {
+			if ref.Table == table.Alias {
 				expr := &sqlparser.ColName{
 					Name:      []byte(ref.Name),
 					Qualifier: []byte(ref.Table),
