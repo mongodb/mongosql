@@ -876,15 +876,15 @@ value_expression:
   }
 | sql_id '(' ')'
   {
-    $$ = &FuncExpr{Name: $1}
+    $$ = &FuncExpr{Name: bytes.ToLower($1)}
   }
 | sql_id '(' select_expression_list ')'
   {
-    $$ = &FuncExpr{Name: $1, Exprs: $3}
+    $$ = &FuncExpr{Name: bytes.ToLower($1), Exprs: $3}
   }
 | sql_id '(' DISTINCT select_expression_list ')'
   {
-    $$ = &FuncExpr{Name: $1, Distinct: true, Exprs: $4}
+    $$ = &FuncExpr{Name: bytes.ToLower($1), Distinct: true, Exprs: $4}
   }
 | '(' ctor_type value_expression_list ')'
   {
@@ -1170,9 +1170,8 @@ using_opt:
 sql_id:
   ID
   {
-    $$ = bytes.ToLower($1)
+    $$ = $1
   }
-
 
 ctor_type:
   time_type
