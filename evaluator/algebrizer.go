@@ -1020,7 +1020,7 @@ func columnInCtx(pCtx *ParseCtx, expr *sqlparser.ColName) (*ColumnInfo, error) {
 }
 
 // expandStarExpression takes a star expression and expands it
-// to all referenced columns within in the given context.
+// to all referenced columns within the given context.
 func expandStarExpression(expr *sqlparser.StarExpr, pCtx *ParseCtx) (sqlparser.SelectExprs, error) {
 	getStarExprColumns := func(tableInfos TableInfos, pCtx *ParseCtx) (sqlparser.SelectExprs, error) {
 		var exprs sqlparser.SelectExprs
