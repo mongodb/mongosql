@@ -244,13 +244,13 @@ func (pCtx *ParseCtx) CheckColumn(table *TableInfo, column string) error {
 		return nil
 	}
 
-	column = strings.ToLower(column)
+	columnName := strings.ToLower(column)
 
 	if table.Derived {
 		// For derived tables, column names must come from children
 		for _, tableInfo := range pCtx.Tables {
 			if tableInfo.Alias == tableName {
-				return pCtx.checkColumn(tableName, column, 0)
+				return pCtx.checkColumn(tableName, columnName, 0)
 			}
 		}
 		return fmt.Errorf("Derived table '%v' doesn't exist", tableName)
@@ -264,13 +264,13 @@ func (pCtx *ParseCtx) CheckColumn(table *TableInfo, column string) error {
 	}
 
 	for _, c := range tableSchema.RawColumns {
-		if c.SqlName == column {
+		if strings.ToLower(c.SqlName) == columnName {
 			return nil
 		}
 	}
 
 	for _, r := range pCtx.ColumnReferences {
-		if r.Name == column {
+		if strings.ToLower(r.Name) == columnName {
 			return nil
 		}
 	}
