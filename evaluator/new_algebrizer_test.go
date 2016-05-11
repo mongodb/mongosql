@@ -18,7 +18,7 @@ func TestNewAlgebrize(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(*sqlparser.Select)
-			algebrizerContext := NewAlgebrizerContext(schema)
+			algebrizerContext := NewAlgebrizerContext("test", schema)
 			actualPlan, err := Algebrize(selectStatement, algebrizerContext)
 			So(err, ShouldBeNil)
 
