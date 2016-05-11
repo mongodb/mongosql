@@ -3,6 +3,8 @@ package evaluator
 import (
 	"fmt"
 
+	"github.com/10gen/sqlproxy/schema"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -79,7 +81,7 @@ type MongoSourceIter struct {
 	err             error
 }
 
-func NewMongoSourceStage(planCtx *PlanCtx, dbName, tableName string, aliasName string) (*MongoSourceStage, error) {
+func NewMongoSourceStage(schema *schema.Schema, dbName, tableName string, aliasName string) (*MongoSourceStage, error) {
 
 	if dbName == "" {
 		return nil, fmt.Errorf("dbName is empty")
@@ -99,7 +101,7 @@ func NewMongoSourceStage(planCtx *PlanCtx, dbName, tableName string, aliasName s
 		ms.aliasName = ms.tableName
 	}
 
-	database, ok := planCtx.Schema.Databases[ms.dbName]
+	database, ok := schema.Databases[ms.dbName]
 	if !ok {
 		return nil, fmt.Errorf("db (%s) doesn't exist - table (%s)", dbName, tableName)
 	}

@@ -27,7 +27,7 @@ func TestOptimizeOperator(t *testing.T) {
 
 		Convey("Given a recursively optimizable tree", func() {
 
-			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			Convey("Should optimize from bottom-up", func() {
@@ -112,7 +112,7 @@ func TestFilterPushDown(t *testing.T) {
 
 		Convey("Given a push-downable filter", func() {
 
-			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			filter := &FilterStage{source: ms}
@@ -144,7 +144,7 @@ func TestFilterPushDown(t *testing.T) {
 
 		Convey("Given an immediately evaluated filter", func() {
 
-			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			filter := &FilterStage{
@@ -183,7 +183,7 @@ func TestFilterPushDown(t *testing.T) {
 
 			Convey("Should not optimize the pipeline when the filter is not push-downable", func() {
 
-				ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
+				ms, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tbl, "")
 				So(err, ShouldBeNil)
 
 				filter := &FilterStage{
@@ -215,9 +215,9 @@ func TestCrossJoinOptimization(t *testing.T) {
 		tblOne := "foo"
 		tblTwo := "bar"
 
-		msOne, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tblOne, tblOne)
+		msOne, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tblOne, tblOne)
 		So(err, ShouldBeNil)
-		msTwo, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tblTwo, tblTwo)
+		msTwo, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tblTwo, tblTwo)
 		So(err, ShouldBeNil)
 
 		join := &JoinStage{
@@ -308,7 +308,7 @@ func TestCrossJoinOptimization(t *testing.T) {
 						Convey(fmt.Sprintf("Given a nested %q without criteria", k), func() {
 
 							tblThree := "baz"
-							msThree, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tblThree, tblThree)
+							msThree, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tblThree, tblThree)
 							So(err, ShouldBeNil)
 
 							nestedJoin := &JoinStage{
@@ -437,7 +437,7 @@ func TestGroupByPushDown(t *testing.T) {
 
 		Convey("Given a group by clause that can be pushed down", func() {
 
-			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			gb := &GroupByStage{
@@ -1128,7 +1128,7 @@ func TestHavingPushDown(t *testing.T) {
 
 		Convey("Given a group by clause that can be pushed down", func() {
 
-			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			gb := &GroupByStage{
@@ -1194,10 +1194,10 @@ func TestJoinPushDown(t *testing.T) {
 		tblOne := "foo"
 		tblTwo := "bar"
 
-		msOne, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tblOne, "")
+		msOne, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tblOne, "")
 		So(err, ShouldBeNil)
 
-		msTwo, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tblTwo, "")
+		msTwo, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tblTwo, "")
 		So(err, ShouldBeNil)
 
 		Convey("Given a push-downable inner join", func() {
@@ -1475,7 +1475,7 @@ func TestLimitPushDown(t *testing.T) {
 
 		Convey("Given a push-downable limit", func() {
 
-			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			limit := &LimitStage{
@@ -1540,7 +1540,7 @@ func TestProjectPushdown(t *testing.T) {
 		}
 
 		tbl := "foo"
-		ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
+		ms, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tbl, "")
 		So(err, ShouldBeNil)
 		Convey("given a push-downable project", func() {
 			exprs := map[string]SQLExpr{
@@ -1635,7 +1635,7 @@ func TestOrderByPushDown(t *testing.T) {
 
 		Convey("Given a push-downable order by", func() {
 
-			ms, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tbl, "")
+			ms, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tbl, "")
 			So(err, ShouldBeNil)
 
 			orderBy := &OrderByStage{

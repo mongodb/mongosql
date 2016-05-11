@@ -101,7 +101,7 @@ func TestMongoSourceOperator(t *testing.T) {
 				},
 			}
 
-			plan, err := NewMongoSourceStage(ctx.PlanCtx, dbOne, tableTwoName, "")
+			plan, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tableTwoName, "")
 			So(err, ShouldBeNil)
 			iter, err := plan.Open(ctx)
 			So(err, ShouldBeNil)

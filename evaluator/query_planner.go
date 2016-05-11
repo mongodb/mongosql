@@ -858,7 +858,7 @@ func planTableName(planCtx *PlanCtx, t *sqlparser.TableName, aliasName string, w
 		dbName = planCtx.Db
 	}
 
-	return NewMongoSourceStage(planCtx, dbName, string(t.Name), aliasName)
+	return NewMongoSourceStage(planCtx.Schema, dbName, string(t.Name), aliasName)
 }
 
 // referencedSelectExpressions returns any columns referenced in the select statement.
