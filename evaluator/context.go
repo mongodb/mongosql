@@ -289,13 +289,13 @@ func (pCtx *ParseCtx) checkColumn(table, column string, depth int) error {
 	}
 
 	for _, c := range pCtx.Columns {
-		if c.Alias == column {
+		if strings.ToLower(c.Alias) == column {
 			return nil
 		}
 	}
 
 	for _, r := range pCtx.ColumnReferences {
-		if r.Name == column {
+		if strings.ToLower(r.Name) == column {
 			return nil
 		}
 	}
@@ -305,13 +305,13 @@ func (pCtx *ParseCtx) checkColumn(table, column string, depth int) error {
 	if depth == 0 || len(pCtx.Columns) == 0 {
 		for _, ctx := range pCtx.Children {
 			for _, c := range ctx.Columns {
-				if c.Alias == column {
+				if strings.ToLower(c.Alias) == column {
 					return nil
 				}
 			}
 
 			for _, r := range ctx.ColumnReferences {
-				if r.Name == column {
+				if strings.ToLower(r.Name) == column {
 					return nil
 				}
 			}
