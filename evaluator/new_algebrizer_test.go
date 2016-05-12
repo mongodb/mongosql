@@ -171,5 +171,33 @@ func TestNewAlgebrize(t *testing.T) {
 				},
 			}
 		})
+
+		test("select f.a, b.a from foo f, bar b", func() PlanStage {
+			fooSource, _ := NewMongoSourceStage(testSchema, defaultDbName, "foo", "f")
+			barSource, _ := NewMongoSourceStage(testSchema, defaultDbName, "bar", "b")
+			return &ProjectStage{
+				source: &JoinStage{
+					left:  fooSource,
+					right: barSource,
+					kind:  CrossJoin,
+				},
+				sExprs: SelectExpressions{
+					createSelectExpression("", "a",
+						SQLColumnExpr{
+							tableName:  "f",
+							columnName: "a",
+							columnType: schema.ColumnType{
+								SQLType:   schema.SQLInt,
+								MongoType: schema.MongoInt}}),
+					createSelectExpression("", "a",
+						SQLColumnExpr{
+							tableName:  "b",
+							columnName: "a",
+							columnType: schema.ColumnType{
+								SQLType:   schema.SQLInt,
+								MongoType: schema.MongoInt}}),
+				},
+			}
+		})
 	})
 }
