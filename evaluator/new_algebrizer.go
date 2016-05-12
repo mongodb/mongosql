@@ -18,14 +18,14 @@ func Algebrize(selectStatement sqlparser.SelectStatement, dbName string, schema 
 		dbName: dbName,
 		schema: schema,
 	}
-
 	return algebrizer.translateSelectStatement(selectStatement)
 }
 
 type algebrizer struct {
-	dbName  string
-	schema  *schema.Schema
-	columns []*Column
+	sourceName string // the name of the output. This means we need all projected columns to use this as the table name.
+	dbName     string // the default database name.
+	schema     *schema.Schema
+	columns    []*Column // all the columns in scope.
 }
 
 func (a *algebrizer) registerColumns(columns []*Column) {
@@ -48,14 +48,23 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 	}
 
 	if found == nil {
-		if tableName != "" {
-			return nil, fmt.Errorf("unknown column %q in table %q", columnName, tableName)
-		} else {
+		if tableName == "" {
 			return nil, fmt.Errorf("unknown column %q", columnName)
 		}
+
+		return nil, fmt.Errorf("unknown column %q in table %q", columnName, tableName)
 	}
 
 	return found, nil
+}
+
+func (a *algebrizer) algebrizeNamedSource(selectStatement sqlparser.SelectStatement, sourceName string) (PlanStage, error) {
+	algebrizer := &algebrizer{
+		dbName:     a.dbName,
+		schema:     a.schema,
+		sourceName: sourceName,
+	}
+	return algebrizer.translateSelectStatement(selectStatement)
 }
 
 func (a *algebrizer) translateSelectStatement(selectStatement sqlparser.SelectStatement) (PlanStage, error) {
@@ -112,12 +121,11 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 
 			result := SelectExpression{
 				Expr: translatedExpr,
-			}
-
-			result.Column = &Column{
-				MongoType: schema.MongoNone,
-				SQLType:   translatedExpr.Type(),
-				Table:     "", // this needs to come from the alias of the parent...?
+				Column: &Column{
+					Table:     a.sourceName,
+					MongoType: schema.MongoNone,
+					SQLType:   translatedExpr.Type(),
+				},
 			}
 
 			if typedE.As != nil {
@@ -193,6 +201,20 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 			if err != nil {
 				return nil, err
 			}
+		}
+
+		a.registerColumns(plan.OpFields())
+
+		return plan, nil
+	case *sqlparser.Subquery:
+		plan, err := a.algebrizeNamedSource(typedT.Select, aliasName)
+		if err != nil {
+			return nil, err
+		}
+
+		plan = &SubqueryStage{
+			source:    plan,
+			tableName: aliasName,
 		}
 
 		a.registerColumns(plan.OpFields())

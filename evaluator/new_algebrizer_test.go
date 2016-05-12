@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -25,8 +26,8 @@ func TestNewAlgebrize(t *testing.T) {
 
 			expectedPlan := expectedPlanFactory()
 
-			//fmt.Printf("\nExpected: %# v", pretty.Formatter(expectedPlan))
-			//fmt.Printf("\nActual: %# v", pretty.Formatter(actualPlan))
+			fmt.Printf("\nExpected: %# v", pretty.Formatter(expectedPlan))
+			fmt.Printf("\nActual: %# v", pretty.Formatter(actualPlan))
 
 			So(actualPlan, ShouldResemble, expectedPlan)
 		})
@@ -159,7 +160,9 @@ func TestNewAlgebrize(t *testing.T) {
 					},
 				}
 			})
+		})
 
+		Convey("joins", func() {
 			test("select foo.a, bar.a from foo, bar", func() PlanStage {
 				fooSource, _ := NewMongoSourceStage(testSchema, defaultDbName, "foo", "foo")
 				barSource, _ := NewMongoSourceStage(testSchema, defaultDbName, "bar", "bar")
@@ -245,13 +248,106 @@ func TestNewAlgebrize(t *testing.T) {
 			})
 		})
 
+		Convey("subqueries as sources", func() {
+			test("select a from (select a from foo)", func() PlanStage {
+				source, _ := NewMongoSourceStage(testSchema, defaultDbName, "foo", "foo")
+				return &ProjectStage{
+					source: &SubqueryStage{
+						tableName: "",
+						source: &ProjectStage{
+							source: source,
+							sExprs: SelectExpressions{
+								createSelectExpression("", "a",
+									SQLColumnExpr{
+										tableName:  "foo",
+										columnName: "a",
+										columnType: schema.ColumnType{
+											SQLType:   schema.SQLInt,
+											MongoType: schema.MongoInt}}),
+							},
+						},
+					},
+					sExprs: SelectExpressions{
+						createSelectExpression("", "a",
+							SQLColumnExpr{
+								tableName:  "",
+								columnName: "a",
+								columnType: schema.ColumnType{
+									SQLType:   schema.SQLInt,
+									MongoType: schema.MongoNone}}),
+					},
+				}
+			})
+
+			test("select a from (select a from foo) f", func() PlanStage {
+				source, _ := NewMongoSourceStage(testSchema, defaultDbName, "foo", "foo")
+				return &ProjectStage{
+					source: &SubqueryStage{
+						tableName: "f",
+						source: &ProjectStage{
+							source: source,
+							sExprs: SelectExpressions{
+								createSelectExpression("f", "a",
+									SQLColumnExpr{
+										tableName:  "foo",
+										columnName: "a",
+										columnType: schema.ColumnType{
+											SQLType:   schema.SQLInt,
+											MongoType: schema.MongoInt}}),
+							},
+						},
+					},
+					sExprs: SelectExpressions{
+						createSelectExpression("", "a",
+							SQLColumnExpr{
+								tableName:  "f",
+								columnName: "a",
+								columnType: schema.ColumnType{
+									SQLType:   schema.SQLInt,
+									MongoType: schema.MongoNone}}),
+					},
+				}
+			})
+
+			test("select f.a from (select a from foo) f", func() PlanStage {
+				source, _ := NewMongoSourceStage(testSchema, defaultDbName, "foo", "foo")
+				return &ProjectStage{
+					source: &SubqueryStage{
+						tableName: "f",
+						source: &ProjectStage{
+							source: source,
+							sExprs: SelectExpressions{
+								createSelectExpression("f", "a",
+									SQLColumnExpr{
+										tableName:  "foo",
+										columnName: "a",
+										columnType: schema.ColumnType{
+											SQLType:   schema.SQLInt,
+											MongoType: schema.MongoInt}}),
+							},
+						},
+					},
+					sExprs: SelectExpressions{
+						createSelectExpression("", "a",
+							SQLColumnExpr{
+								tableName:  "f",
+								columnName: "a",
+								columnType: schema.ColumnType{
+									SQLType:   schema.SQLInt,
+									MongoType: schema.MongoNone}}),
+					},
+				}
+			})
+		})
+
 		Convey("errors", func() {
 			testError("select a from idk", `table "idk" doesn't exist in db "test"`)
 			testError("select idk from foo", `unknown column "idk"`)
 			testError("select f.a from foo", `unknown column "a" in table "f"`)
 			testError("select foo.a from foo f", `unknown column "a" in table "foo"`)
-			testError("select a from foo, bar", `column "a" in the field list is ambiguous`)
 			testError("select a + idk from foo", `unknown column "idk"`)
+
+			testError("select a from foo, bar", `column "a" in the field list is ambiguous`)
 		})
 
 	})
