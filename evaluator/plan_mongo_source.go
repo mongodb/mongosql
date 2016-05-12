@@ -103,11 +103,11 @@ func NewMongoSourceStage(schema *schema.Schema, dbName, tableName string, aliasN
 
 	database, ok := schema.Databases[ms.dbName]
 	if !ok {
-		return nil, fmt.Errorf("db (%s) doesn't exist - table (%s)", dbName, tableName)
+		return nil, fmt.Errorf("db %q doesn't exist - table %q", dbName, tableName)
 	}
 	tableSchema, ok := database.Tables[ms.tableName]
 	if !ok {
-		return nil, fmt.Errorf("table (%s) doesn't exist in db (%s)", tableName, dbName)
+		return nil, fmt.Errorf("table %q doesn't exist in db %q", tableName, dbName)
 	}
 
 	ms.collectionName = tableSchema.CollectionName

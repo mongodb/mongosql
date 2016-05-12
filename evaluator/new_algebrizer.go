@@ -7,13 +7,12 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
-	"github.com/kr/pretty"
 )
 
 // Algebrize takes a parsed SQL statement and returns an algebrized form of the query.
 func Algebrize(selectStatement sqlparser.SelectStatement, dbName string, schema *schema.Schema) (PlanStage, error) {
 
-	fmt.Printf("\nSelect Statement: %# v", pretty.Formatter(selectStatement))
+	//fmt.Printf("\nSelect Statement: %# v", pretty.Formatter(selectStatement))
 
 	algebrizer := &algebrizer{
 		dbName: dbName,
@@ -45,6 +44,14 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 				return nil, fmt.Errorf("column %q in the field list is ambiguous", fullColumnName)
 			}
 			found = column
+		}
+	}
+
+	if found == nil {
+		if tableName != "" {
+			return nil, fmt.Errorf("unknown column %q in table %q", columnName, tableName)
+		} else {
+			return nil, fmt.Errorf("unknown column %q", columnName)
 		}
 	}
 
