@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
@@ -116,6 +117,8 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 				result.Name = string(typedE.As)
 			} else if sqlCol, ok := translatedExpr.(SQLColumnExpr); ok {
 				result.Name = sqlCol.columnName
+			} else {
+				result.Name = sqlparser.String(typedE)
 			}
 
 			// TODO: not sure we need View at all...
@@ -216,6 +219,49 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 				MongoType: column.MongoType,
 			},
 		}, nil
+	case *sqlparser.BinaryExpr:
+
+		left, err := a.translateExpr(typedE.Left)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := a.translateExpr(typedE.Right)
+		if err != nil {
+			return nil, err
+		}
+
+		left, right, err = reconcileSQLExprs(left, right)
+		if err != nil {
+			return nil, err
+		}
+
+		switch typedE.Operator {
+		case '+':
+			return &SQLAddExpr{left, right}, nil
+		case '-':
+			return &SQLSubtractExpr{left, right}, nil
+		case '*':
+			return &SQLMultiplyExpr{left, right}, nil
+		case '/':
+			return &SQLDivideExpr{left, right}, nil
+		default:
+			return nil, fmt.Errorf("no support for binary operator '%v'", typedE.Operator)
+		}
+	case sqlparser.NumVal:
+
+		// try to parse as int first
+		if i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64); err == nil {
+			return SQLInt(i), nil
+		}
+
+		// if it's not a valid int, try parsing as float instead
+		f, err := strconv.ParseFloat(sqlparser.String(expr), 64)
+		if err != nil {
+			return nil, err
+		}
+
+		return SQLFloat(f), nil
 
 	default:
 		return nil, fmt.Errorf("no support for %T", expr)

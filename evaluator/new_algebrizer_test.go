@@ -60,6 +60,90 @@ func TestNewAlgebrize(t *testing.T) {
 			}
 		})
 
+		test("select a from foo f", func() PlanStage {
+			source, _ := NewMongoSourceStage(testSchema, defaultDbName, "foo", "f")
+			return &ProjectStage{
+				source: source,
+				sExprs: SelectExpressions{
+					createSelectExpression("", "a",
+						SQLColumnExpr{
+							tableName:  "f",
+							columnName: "a",
+							columnType: schema.ColumnType{
+								SQLType:   schema.SQLInt,
+								MongoType: schema.MongoInt}}),
+				},
+			}
+		})
+
+		test("select f.a from foo f", func() PlanStage {
+			source, _ := NewMongoSourceStage(testSchema, defaultDbName, "foo", "f")
+			return &ProjectStage{
+				source: source,
+				sExprs: SelectExpressions{
+					createSelectExpression("", "a",
+						SQLColumnExpr{
+							tableName:  "f",
+							columnName: "a",
+							columnType: schema.ColumnType{
+								SQLType:   schema.SQLInt,
+								MongoType: schema.MongoInt}}),
+				},
+			}
+		})
+
+		test("select a as b from foo", func() PlanStage {
+			source, _ := NewMongoSourceStage(testSchema, defaultDbName, "foo", "foo")
+			return &ProjectStage{
+				source: source,
+				sExprs: SelectExpressions{
+					createSelectExpression("", "b",
+						SQLColumnExpr{
+							tableName:  "foo",
+							columnName: "a",
+							columnType: schema.ColumnType{
+								SQLType:   schema.SQLInt,
+								MongoType: schema.MongoInt}}),
+				},
+			}
+		})
+
+		test("select a + 2 from foo", func() PlanStage {
+			source, _ := NewMongoSourceStage(testSchema, defaultDbName, "foo", "foo")
+			return &ProjectStage{
+				source: source,
+				sExprs: SelectExpressions{
+					createSelectExpression("", "a+2",
+						&SQLAddExpr{
+							left: SQLColumnExpr{
+								tableName:  "foo",
+								columnName: "a",
+								columnType: schema.ColumnType{
+									SQLType:   schema.SQLInt,
+									MongoType: schema.MongoInt}},
+							right: SQLInt(2)}),
+				},
+			}
+		})
+
+		test("select a + 2 as b from foo", func() PlanStage {
+			source, _ := NewMongoSourceStage(testSchema, defaultDbName, "foo", "foo")
+			return &ProjectStage{
+				source: source,
+				sExprs: SelectExpressions{
+					createSelectExpression("", "b",
+						&SQLAddExpr{
+							left: SQLColumnExpr{
+								tableName:  "foo",
+								columnName: "a",
+								columnType: schema.ColumnType{
+									SQLType:   schema.SQLInt,
+									MongoType: schema.MongoInt}},
+							right: SQLInt(2)}),
+				},
+			}
+		})
+
 		test("select foo.a, bar.a from foo, bar", func() PlanStage {
 			fooSource, _ := NewMongoSourceStage(testSchema, defaultDbName, "foo", "foo")
 			barSource, _ := NewMongoSourceStage(testSchema, defaultDbName, "bar", "bar")
