@@ -11,6 +11,14 @@ type LimitStage struct {
 	source PlanStage
 }
 
+func NewLimitStage(source PlanStage, offset int64, limit int64) *LimitStage {
+	return &LimitStage{
+		source: source,
+		offset: offset,
+		limit:  limit,
+	}
+}
+
 type LimitIter struct {
 	limit, offset, total int64
 

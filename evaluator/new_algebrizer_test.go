@@ -263,12 +263,39 @@ func TestNewAlgebrize(t *testing.T) {
 			})
 		})
 
+		Convey("limit", func() {
+			test("select a from foo limit 10", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewLimitStage(source, 0, 10),
+					createSelectExpression(source, "foo", "a", "", "a"),
+				)
+			})
+
+			test("select a from foo limit 10, 20", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewLimitStage(source, 10, 20),
+					createSelectExpression(source, "foo", "a", "", "a"),
+				)
+			})
+		})
+
 		Convey("subqueries as sources", func() {
 			test("select a from (select a from foo)", func() PlanStage {
 				source := createMongoSource("foo", "foo")
 				subquery := &SubqueryStage{
 					tableName: "",
 					source:    NewProjectStage(source, createSelectExpression(source, "foo", "a", "", "a")),
+				}
+				return NewProjectStage(subquery, createSelectExpression(subquery, "", "a", "", "a"))
+			})
+
+			test("select a from (select a from foo limit 1)", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				subquery := &SubqueryStage{
+					tableName: "",
+					source:    NewProjectStage(NewLimitStage(source, 0, 1), createSelectExpression(source, "foo", "a", "", "a")),
 				}
 				return NewProjectStage(subquery, createSelectExpression(subquery, "", "a", "", "a"))
 			})
@@ -360,6 +387,12 @@ func TestNewAlgebrize(t *testing.T) {
 
 			testError("select a from foo, bar", `column "a" in the field list is ambiguous`)
 			testError("select foo.a from (select a from foo)", `unknown column "a" in table "foo"`)
+
+			testError("select a from foo limit -10", `limit rowcount cannot be negative`)
+			testError("select a from foo limit -10, 20", `limit offset cannot be negative`)
+			testError("select a from foo limit -10, -20", `limit offset cannot be negative`)
+			testError("select a from foo limit b", `limit rowcount must be an integer`)
+			testError("select a from foo limit 'c'", `limit rowcount must be an integer`)
 		})
 
 	})

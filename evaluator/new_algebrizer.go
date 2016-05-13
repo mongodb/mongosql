@@ -73,6 +73,45 @@ func (a *algebrizer) isAggFunction(name string) bool {
 	}
 }
 
+func (a *algebrizer) translateLimit(limit *sqlparser.Limit) (SQLInt, SQLInt, error) {
+	var rowcount SQLInt
+	var offset SQLInt
+	var ok bool
+	if limit.Offset != nil {
+		eval, err := a.translateExpr(limit.Offset)
+		if err != nil {
+			return 0, 0, err
+		}
+
+		offset, ok = eval.(SQLInt)
+		if !ok {
+			return 0, 0, fmt.Errorf("limit offset must be an integer")
+		}
+
+		if offset < 0 {
+			return 0, 0, fmt.Errorf("limit offset cannot be negative")
+		}
+	}
+
+	if limit.Rowcount != nil {
+		eval, err := a.translateExpr(limit.Rowcount)
+		if err != nil {
+			return 0, 0, err
+		}
+
+		rowcount, ok = eval.(SQLInt)
+		if !ok {
+			return 0, 0, fmt.Errorf("limit rowcount must be an integer")
+		}
+
+		if rowcount < 0 {
+			return 0, 0, fmt.Errorf("limit rowcount cannot be negative")
+		}
+	}
+
+	return offset, rowcount, nil
+}
+
 func (a *algebrizer) translateNamedSelectStatement(selectStatement sqlparser.SelectStatement, sourceName string) (PlanStage, error) {
 	algebrizer := &algebrizer{
 		dbName:     a.dbName,
@@ -102,16 +141,32 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 		}
 	}
 
+	// WHERE
+
+	// GROUP BY
+
+	// HAVING
+
+	// DISTINCT
+
+	// ORDER BY
+
+	if sel.Limit != nil {
+		offset, rowcount, err := a.translateLimit(sel.Limit)
+		if err != nil {
+			return nil, err
+		}
+
+		plan = NewLimitStage(plan, int64(offset), int64(rowcount))
+	}
+
 	if sel.SelectExprs != nil {
 		sExprs, err := a.translateSelectExprs(sel.SelectExprs)
 		if err != nil {
 			return nil, err
 		}
 
-		plan = &ProjectStage{
-			source: plan,
-			sExprs: sExprs,
-		}
+		plan = NewProjectStage(plan, sExprs...)
 	}
 
 	return plan, nil
@@ -342,6 +397,8 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		}
 
 		return SQLFloat(f), nil
+	case sqlparser.StrVal:
+		return SQLVarchar(string(typedE)), nil
 	case *sqlparser.Subquery:
 		return a.translateSubqueryExpr(typedE)
 	default:
