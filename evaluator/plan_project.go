@@ -17,6 +17,14 @@ type ProjectStage struct {
 	source PlanStage
 }
 
+// NewProjectStage creates a new project stage.
+func NewProjectStage(source PlanStage, sExprs ...SelectExpression) *ProjectStage {
+	return &ProjectStage{
+		source: source,
+		sExprs: sExprs,
+	}
+}
+
 type ProjectIter struct {
 	source Iter
 

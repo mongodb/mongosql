@@ -66,6 +66,14 @@ type JoinStage struct {
 	strategy    JoinStrategy
 }
 
+func NewJoinStage(kind JoinKind, left, right PlanStage) *JoinStage {
+	return &JoinStage{
+		kind:  kind,
+		left:  left,
+		right: right,
+	}
+}
+
 type JoinIter struct {
 	strategy    JoinStrategy
 	kind        JoinKind
