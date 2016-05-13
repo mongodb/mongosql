@@ -513,7 +513,7 @@ func NewSQLExpr(sqlExpr sqlparser.Expr, tables map[string]*schema.Table) (SQLExp
 			exprs = append(exprs, sExpr.Expr)
 		}
 
-		return &SQLSubqueryExpr{expr.Select, exprs}, nil
+		return &SQLSubqueryExpr{expr.Select, exprs, nil}, nil
 
 	case *sqlparser.UnaryExpr:
 

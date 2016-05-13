@@ -22,14 +22,11 @@ func Algebrize(selectStatement sqlparser.SelectStatement, dbName string, schema 
 }
 
 type algebrizer struct {
+	parent     *algebrizer
 	sourceName string // the name of the output. This means we need all projected columns to use this as the table name.
 	dbName     string // the default database name.
 	schema     *schema.Schema
 	columns    []*Column // all the columns in scope.
-}
-
-func (a *algebrizer) registerColumns(columns []*Column) {
-	a.columns = append(a.columns, columns...)
 }
 
 func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error) {
@@ -48,6 +45,10 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 	}
 
 	if found == nil {
+		if a.parent != nil {
+			return a.parent.lookupColumn(tableName, columnName)
+		}
+
 		if tableName == "" {
 			return nil, fmt.Errorf("unknown column %q", columnName)
 		}
@@ -58,7 +59,21 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 	return found, nil
 }
 
-func (a *algebrizer) algebrizeNamedSource(selectStatement sqlparser.SelectStatement, sourceName string) (PlanStage, error) {
+func (a *algebrizer) registerColumns(columns []*Column) {
+	a.columns = append(a.columns, columns...)
+}
+
+// isAggFunction returns true if the byte slice e contains the name of an aggregate function and false otherwise.
+func (a *algebrizer) isAggFunction(name string) bool {
+	switch strings.ToLower(name) {
+	case "avg", "sum", "count", "max", "min":
+		return true
+	default:
+		return false
+	}
+}
+
+func (a *algebrizer) translateNamedSelectStatement(selectStatement sqlparser.SelectStatement, sourceName string) (PlanStage, error) {
 	algebrizer := &algebrizer{
 		dbName:     a.dbName,
 		schema:     a.schema,
@@ -243,7 +258,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 
 		return plan, nil
 	case *sqlparser.Subquery:
-		plan, err := a.algebrizeNamedSource(typedT.Select, aliasName)
+		plan, err := a.translateNamedSelectStatement(typedT.Select, aliasName)
 		if err != nil {
 			return nil, err
 		}
@@ -263,29 +278,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 
 func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 	switch typedE := expr.(type) {
-	case *sqlparser.ColName:
-		tableName := ""
-		if typedE.Qualifier != nil {
-			tableName = string(typedE.Qualifier)
-		}
-
-		columnName := string(typedE.Name)
-
-		column, err := a.lookupColumn(tableName, columnName)
-		if err != nil {
-			return nil, err
-		}
-
-		return SQLColumnExpr{
-			tableName:  column.Table,
-			columnName: column.Name,
-			columnType: schema.ColumnType{
-				SQLType:   column.SQLType,
-				MongoType: column.MongoType,
-			},
-		}, nil
 	case *sqlparser.BinaryExpr:
-
 		left, err := a.translateExpr(typedE.Left)
 		if err != nil {
 			return nil, err
@@ -313,8 +306,30 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		default:
 			return nil, fmt.Errorf("no support for binary operator '%v'", typedE.Operator)
 		}
-	case sqlparser.NumVal:
+	case *sqlparser.ColName:
+		tableName := ""
+		if typedE.Qualifier != nil {
+			tableName = string(typedE.Qualifier)
+		}
 
+		columnName := string(typedE.Name)
+
+		column, err := a.lookupColumn(tableName, columnName)
+		if err != nil {
+			return nil, err
+		}
+
+		return SQLColumnExpr{
+			tableName:  column.Table,
+			columnName: column.Name,
+			columnType: schema.ColumnType{
+				SQLType:   column.SQLType,
+				MongoType: column.MongoType,
+			},
+		}, nil
+	case *sqlparser.FuncExpr:
+		return a.translateFuncExpr(typedE)
+	case sqlparser.NumVal:
 		// try to parse as int first
 		if i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64); err == nil {
 			return SQLInt(i), nil
@@ -327,8 +342,99 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		}
 
 		return SQLFloat(f), nil
-
+	case *sqlparser.Subquery:
+		return a.translateSubqueryExpr(typedE)
 	default:
 		return nil, fmt.Errorf("no support for %T", expr)
 	}
+}
+
+func (a *algebrizer) translateFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
+
+	exprs := []SQLExpr{}
+	name := string(expr.Name)
+
+	if a.isAggFunction(name) {
+
+		if len(expr.Exprs) != 1 {
+			return nil, fmt.Errorf("aggregate function cannot contain tuples")
+		}
+
+		e := expr.Exprs[0]
+
+		switch typedE := e.(type) {
+		case *sqlparser.StarExpr:
+
+			if !strings.EqualFold(name, "count") {
+				return nil, fmt.Errorf(`%q aggregate function can not contain "*"`, name)
+			}
+
+			if expr.Distinct {
+				return nil, fmt.Errorf(`count aggregate function can not have distinct "*"`)
+			}
+
+			exprs = append(exprs, SQLVarchar("*"))
+
+		case *sqlparser.NonStarExpr:
+
+			sqlExpr, err := a.translateExpr(typedE.Expr)
+			if err != nil {
+				return nil, err
+			}
+			exprs = append(exprs, sqlExpr)
+		default:
+			return nil, fmt.Errorf("no support for %T", e)
+		}
+
+		return &SQLAggFunctionExpr{name, expr.Distinct, exprs}, nil
+	}
+
+	for _, e := range expr.Exprs {
+
+		switch typedE := e.(type) {
+		case *sqlparser.StarExpr:
+			if !strings.EqualFold(name, "count") {
+				return nil, fmt.Errorf(`argument to %q cannot contain "*"`, name)
+			}
+		case *sqlparser.NonStarExpr:
+			sqlExpr, err := a.translateExpr(typedE.Expr)
+			if err != nil {
+				return nil, err
+			}
+
+			exprs = append(exprs, sqlExpr)
+
+			if typedE.As != nil {
+				as := string(typedE.As)
+				switch strings.ToLower(as) {
+				case "cast":
+					exprs = append(exprs, SQLVarchar(as))
+				default:
+					return nil, fmt.Errorf("no support for %T", e)
+				}
+			}
+		default:
+			return nil, fmt.Errorf("no support for %T", expr)
+		}
+
+	}
+
+	return &SQLScalarFunctionExpr{name, exprs}, nil
+}
+
+func (a *algebrizer) translateSubqueryExpr(expr *sqlparser.Subquery) (SQLExpr, error) {
+	subqueryAlgebrizer := &algebrizer{
+		parent: a,
+		dbName: a.dbName,
+		schema: a.schema,
+	}
+
+	plan, err := subqueryAlgebrizer.translateSelectStatement(expr.Select)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SQLSubqueryExpr{
+		plan: plan,
+	}, nil
 }

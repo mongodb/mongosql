@@ -274,6 +274,61 @@ func TestNewAlgebrize(t *testing.T) {
 			})
 		})
 
+		Convey("subqueries in select", func() {
+			test("select a, (select a from bar) from foo", func() PlanStage {
+				fooSource := createMongoSource("foo", "foo")
+				barSource := createMongoSource("bar", "bar")
+				return NewProjectStage(fooSource,
+					createSelectExpression(fooSource, "foo", "a", "", "a"),
+					createSelectExpressionFromSQLExpr("", "(select a from bar)",
+						&SQLSubqueryExpr{
+							plan: NewProjectStage(barSource, createSelectExpression(barSource, "bar", "a", "", "a")),
+						},
+					),
+				)
+			})
+
+			test("select a, (select a from bar) as b from foo", func() PlanStage {
+				fooSource := createMongoSource("foo", "foo")
+				barSource := createMongoSource("bar", "bar")
+				return NewProjectStage(fooSource,
+					createSelectExpression(fooSource, "foo", "a", "", "a"),
+					createSelectExpressionFromSQLExpr("", "b",
+						&SQLSubqueryExpr{
+							plan: NewProjectStage(barSource, createSelectExpression(barSource, "bar", "a", "", "a")),
+						},
+					),
+				)
+			})
+
+			test("select a, (select foo.a from foo, bar) from foo", func() PlanStage {
+				fooSource := createMongoSource("foo", "foo")
+				barSource := createMongoSource("bar", "bar")
+				join := NewJoinStage(CrossJoin, fooSource, barSource)
+				return NewProjectStage(fooSource,
+					createSelectExpression(fooSource, "foo", "a", "", "a"),
+					createSelectExpressionFromSQLExpr("", "(select foo.a from foo, bar)",
+						&SQLSubqueryExpr{
+							plan: NewProjectStage(join, createSelectExpression(join, "foo", "a", "", "a")),
+						},
+					),
+				)
+			})
+
+			test("select a, (select foo.a from bar) from foo", func() PlanStage {
+				fooSource := createMongoSource("foo", "foo")
+				barSource := createMongoSource("bar", "bar")
+				return NewProjectStage(fooSource,
+					createSelectExpression(fooSource, "foo", "a", "", "a"),
+					createSelectExpressionFromSQLExpr("", "(select foo.a from bar)",
+						&SQLSubqueryExpr{
+							plan: NewProjectStage(barSource, createSelectExpression(fooSource, "foo", "a", "", "a")),
+						},
+					),
+				)
+			})
+		})
+
 		Convey("errors", func() {
 			testError("select a from idk", `table "idk" doesn't exist in db "test"`)
 			testError("select idk from foo", `unknown column "idk"`)
