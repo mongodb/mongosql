@@ -211,6 +211,24 @@ func TestNewAlgebrize(t *testing.T) {
 					),
 				)
 			})
+
+			test("select ASCII(a) from foo", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(source,
+					createSelectExpressionFromSQLExpr("", "ascii(a)",
+						&SQLScalarFunctionExpr{
+							Name: "ascii",
+							Exprs: []SQLExpr{SQLColumnExpr{
+								tableName:  "foo",
+								columnName: "a",
+								columnType: schema.ColumnType{
+									SQLType:   schema.SQLInt,
+									MongoType: schema.MongoInt}},
+							},
+						},
+					),
+				)
+			})
 		})
 
 		Convey("joins", func() {
