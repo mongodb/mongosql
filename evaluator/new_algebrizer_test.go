@@ -45,6 +45,45 @@ func TestNewAlgebrize(t *testing.T) {
 		})
 	}
 
+	createSelectExpressionFromColumn := func(column *Column, projectedTableName, projectedColumnName string) SelectExpression {
+		return SelectExpression{
+			Column: &Column{
+				Table:     projectedTableName,
+				Name:      projectedColumnName,
+				View:      projectedColumnName, // ???
+				SQLType:   column.SQLType,
+				MongoType: column.MongoType,
+			},
+			Expr: SQLColumnExpr{
+				tableName:  column.Table,
+				columnName: column.Name,
+				columnType: schema.ColumnType{
+					SQLType:   column.SQLType,
+					MongoType: column.MongoType,
+				},
+			},
+		}
+	}
+
+	createSelectExpression := func(source PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) SelectExpression {
+		for _, c := range source.OpFields() {
+			if c.Table == sourceTableName && c.Name == sourceColumnName {
+				return createSelectExpressionFromColumn(c, projectedTableName, projectedColumnName)
+			}
+		}
+
+		panic(fmt.Sprintf("no column found with the name %q", sourceColumnName))
+	}
+
+	createAllSelectExpressionsFromSource := func(source PlanStage, projectedTableName string) SelectExpressions {
+		results := SelectExpressions{}
+		for _, c := range source.OpFields() {
+			results = append(results, createSelectExpressionFromColumn(c, projectedTableName, c.Name))
+		}
+
+		return results
+	}
+
 	createSelectExpressionFromSQLExpr := func(tableName, columnName string, expr SQLExpr) SelectExpression {
 		column := &Column{
 			Table:     tableName,
@@ -57,38 +96,67 @@ func TestNewAlgebrize(t *testing.T) {
 		return SelectExpression{Column: column, Expr: expr}
 	}
 
-	createSelectExpression := func(source PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) SelectExpression {
-		for _, c := range source.OpFields() {
-			if c.Table == sourceTableName && c.Name == sourceColumnName {
-				return SelectExpression{
-					Column: &Column{
-						Table:     projectedTableName,
-						Name:      projectedColumnName,
-						View:      projectedColumnName, // ???
-						SQLType:   c.SQLType,
-						MongoType: schema.MongoNone,
-					},
-					Expr: SQLColumnExpr{
-						tableName:  c.Table,
-						columnName: c.Name,
-						columnType: schema.ColumnType{
-							SQLType:   c.SQLType,
-							MongoType: c.MongoType,
-						},
-					},
-				}
-			}
-		}
-
-		panic(fmt.Sprintf("no column found with the name %q", sourceColumnName))
-	}
-
 	createMongoSource := func(tableName, aliasName string) PlanStage {
 		r, _ := NewMongoSourceStage(testSchema, defaultDbName, tableName, aliasName)
 		return r
 	}
 
 	Convey("Subject: Algebrize", t, func() {
+		Convey("star simple queries", func() {
+			test("select * from foo", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(source, createAllSelectExpressionsFromSource(source, "")...)
+			})
+
+			test("select foo.* from foo", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(source, createAllSelectExpressionsFromSource(source, "")...)
+			})
+
+			test("select f.* from foo f", func() PlanStage {
+				source := createMongoSource("foo", "f")
+				return NewProjectStage(source, createAllSelectExpressionsFromSource(source, "")...)
+			})
+
+			test("select a, foo.* from foo", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				columns := append(
+					SelectExpressions{createSelectExpression(source, "foo", "a", "", "a")},
+					createAllSelectExpressionsFromSource(source, "")...)
+				return NewProjectStage(source, columns...)
+			})
+
+			test("select foo.*, a from foo", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				columns := append(
+					createAllSelectExpressionsFromSource(source, ""),
+					createSelectExpression(source, "foo", "a", "", "a"))
+				return NewProjectStage(source, columns...)
+			})
+
+			test("select a, f.* from foo f", func() PlanStage {
+				source := createMongoSource("foo", "f")
+				columns := append(
+					SelectExpressions{createSelectExpression(source, "f", "a", "", "a")},
+					createAllSelectExpressionsFromSource(source, "")...)
+				return NewProjectStage(source, columns...)
+			})
+
+			test("select * from foo, bar", func() PlanStage {
+				fooSource := createMongoSource("foo", "foo")
+				barSource := createMongoSource("bar", "bar")
+				join := NewJoinStage(CrossJoin, fooSource, barSource)
+				return NewProjectStage(join, createAllSelectExpressionsFromSource(join, "")...)
+			})
+
+			test("select foo.*, bar.* from foo, bar", func() PlanStage {
+				fooSource := createMongoSource("foo", "foo")
+				barSource := createMongoSource("bar", "bar")
+				join := NewJoinStage(CrossJoin, fooSource, barSource)
+				return NewProjectStage(join, createAllSelectExpressionsFromSource(join, "")...)
+			})
+		})
+
 		Convey("non-star simple queries", func() {
 			test("select a from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
@@ -212,6 +280,10 @@ func TestNewAlgebrize(t *testing.T) {
 			testError("select f.a from foo", `unknown column "a" in table "f"`)
 			testError("select foo.a from foo f", `unknown column "a" in table "foo"`)
 			testError("select a + idk from foo", `unknown column "idk"`)
+
+			testError("select *, * from foo", `cannot have a global * in the field list conjunction with any other columns`)
+			testError("select a, * from foo", `cannot have a global * in the field list conjunction with any other columns`)
+			testError("select *, a from foo", `cannot have a global * in the field list conjunction with any other columns`)
 
 			testError("select a from foo, bar", `column "a" in the field list is ambiguous`)
 			testError("select foo.a from (select a from foo)", `unknown column "a" in table "foo"`)

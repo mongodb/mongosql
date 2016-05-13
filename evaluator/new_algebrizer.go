@@ -37,11 +37,11 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 	for _, column := range a.columns {
 		if strings.EqualFold(column.Name, columnName) && (tableName == "" || strings.EqualFold(column.Table, tableName)) {
 			if found != nil {
-				fullColumnName := columnName
 				if tableName != "" {
-					fullColumnName = tableName + "." + columnName
+					return nil, fmt.Errorf("duplicate column name %q in table %q", columnName, tableName)
 				}
-				return nil, fmt.Errorf("column %q in the field list is ambiguous", fullColumnName)
+
+				return nil, fmt.Errorf("column %q in the field list is ambiguous", columnName)
 			}
 			found = column
 		}
@@ -104,6 +104,7 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 
 func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (SelectExpressions, error) {
 	var results SelectExpressions
+	hasGlobalStar := false
 	for _, selectExpr := range selectExprs {
 		switch typedE := selectExpr.(type) {
 
@@ -111,6 +112,34 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 		case *sqlparser.StarExpr:
 
 			// validate tableName if present. Need to have a map of alias -> tableName -> schema
+			tableName := ""
+			if typedE.TableName != nil {
+				tableName = string(typedE.TableName)
+			} else {
+				hasGlobalStar = true
+			}
+
+			for _, column := range a.columns {
+				if tableName == "" || strings.EqualFold(tableName, column.Table) {
+					results = append(results, SelectExpression{
+						Column: &Column{
+							Table:     a.sourceName,
+							Name:      column.Name,
+							View:      column.Name, // ???
+							SQLType:   column.SQLType,
+							MongoType: column.MongoType,
+						},
+						Expr: SQLColumnExpr{
+							tableName:  column.Table,
+							columnName: column.Name,
+							columnType: schema.ColumnType{
+								SQLType:   column.SQLType,
+								MongoType: column.MongoType,
+							},
+						},
+					})
+				}
+			}
 
 		case *sqlparser.NonStarExpr:
 
@@ -128,11 +157,14 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 				},
 			}
 
+			if sqlCol, ok := translatedExpr.(SQLColumnExpr); ok {
+				result.Name = sqlCol.columnName
+				result.MongoType = sqlCol.columnType.MongoType
+			}
+
 			if typedE.As != nil {
 				result.Name = string(typedE.As)
-			} else if sqlCol, ok := translatedExpr.(SQLColumnExpr); ok {
-				result.Name = sqlCol.columnName
-			} else {
+			} else if result.Name == "" {
 				result.Name = sqlparser.String(typedE)
 			}
 
@@ -141,6 +173,10 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 
 			results = append(results, result)
 		}
+	}
+
+	if hasGlobalStar && len(selectExprs) > 1 {
+		return nil, fmt.Errorf("cannot have a global * in the field list conjunction with any other columns")
 	}
 
 	return results, nil
