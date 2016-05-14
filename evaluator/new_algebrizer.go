@@ -87,6 +87,20 @@ func (a *algebrizer) isAggFunction(name string) bool {
 	}
 }
 
+func (a *algebrizer) translateGroupBy(groupby sqlparser.GroupBy) ([]SQLExpr, error) {
+	var keys []SQLExpr
+	for _, g := range groupby {
+		key, err := a.translateExpr(g)
+		if err != nil {
+			return nil, err
+		}
+
+		keys = append(keys, key)
+	}
+
+	return keys, nil
+}
+
 func (a *algebrizer) translateLimit(limit *sqlparser.Limit) (SQLInt, SQLInt, error) {
 	var rowcount SQLInt
 	var offset SQLInt
@@ -199,8 +213,6 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 		}
 	}
 
-	// WHERE
-
 	if sel.Where != nil {
 		expr, err := a.translateExpr(sel.Where.Expr)
 		if err != nil {
@@ -222,23 +234,48 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 		return nil, err
 	}
 
+	// set projected columns here so column resolution falls back to these
 	a.projectedColumns = projectedColumns
 
-	// GROUP BY
-
-	// HAVING
-
-	// DISTINCT
-
-	a.resolveProjectedColumnsFirst = true
-
-	if sel.OrderBy != nil {
-		terms, err := a.translateOrderBy(sel.OrderBy)
+	var groupByKeys []SQLExpr
+	if sel.GroupBy != nil {
+		groupByKeys, err = a.translateGroupBy(sel.GroupBy)
 		if err != nil {
 			return nil, err
 		}
+	}
 
-		plan = NewOrderByStage(plan, terms...)
+	var havingPredicate SQLExpr
+	if sel.Having != nil {
+		havingPredicate, err = a.translateExpr(sel.Having.Expr)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// set this here so we start resolving columns from projected columns first
+	a.resolveProjectedColumnsFirst = true
+
+	var orderByTerms []*orderByTerm
+	if sel.OrderBy != nil {
+		orderByTerms, err = a.translateOrderBy(sel.OrderBy)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(groupByKeys) > 0 {
+		return nil, fmt.Errorf("group isn't supported")
+	}
+
+	if havingPredicate != nil {
+		return nil, fmt.Errorf("having isn't supported")
+	}
+
+	// check for distinct
+
+	if len(orderByTerms) > 0 {
+		plan = NewOrderByStage(plan, orderByTerms...)
 	}
 
 	if sel.Limit != nil {
