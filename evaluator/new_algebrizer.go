@@ -169,11 +169,10 @@ func (a *algebrizer) translateOrder(order *sqlparser.Order) (*orderByTerm, error
 
 func (a *algebrizer) translateSelectStatement(selectStatement sqlparser.SelectStatement) (PlanStage, error) {
 	switch typedS := selectStatement.(type) {
-
 	case *sqlparser.Select:
 		return a.translateSelect(typedS)
 	default:
-		return nil, fmt.Errorf("can't handle select statement of type %T", selectStatement)
+		return nil, fmt.Errorf("no support for %T", selectStatement)
 	}
 }
 
@@ -189,6 +188,22 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 
 	// WHERE
 
+	if sel.Where != nil {
+		expr, err := a.translateExpr(sel.Where.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		if expr.Type() != schema.SQLBoolean {
+			expr = &SQLConvertExpr{
+				expr:     expr,
+				convType: schema.SQLBoolean,
+			}
+		}
+
+		plan = NewFilterStage(plan, expr)
+	}
+
 	projectedColumns, err := a.translateSelectExprs(sel.SelectExprs)
 	if err != nil {
 		return nil, err
@@ -203,8 +218,6 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 	// HAVING
 
 	// DISTINCT
-
-	// ORDER BY
 
 	if sel.OrderBy != nil {
 		terms, err := a.translateOrderBy(sel.OrderBy)
@@ -448,6 +461,88 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 				MongoType: column.MongoType,
 			},
 		}, nil
+
+	case *sqlparser.ComparisonExpr:
+
+		left, err := a.translateExpr(typedE.Left)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := a.translateExpr(typedE.Right)
+		if err != nil {
+			return nil, err
+		}
+
+		switch typedE.Operator {
+		case sqlparser.AST_EQ:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
+			return &SQLEqualsExpr{left, right}, nil
+		case sqlparser.AST_LT:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
+			return &SQLLessThanExpr{left, right}, nil
+		case sqlparser.AST_GT:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
+
+			return &SQLGreaterThanExpr{left, right}, nil
+		case sqlparser.AST_LE:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
+			return &SQLLessThanOrEqualExpr{left, right}, nil
+		case sqlparser.AST_GE:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
+			return &SQLGreaterThanOrEqualExpr{left, right}, nil
+		case sqlparser.AST_NE:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
+			return &SQLNotEqualsExpr{left, right}, nil
+		case sqlparser.AST_LIKE:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
+			return &SQLLikeExpr{left, right}, nil
+		case sqlparser.AST_IN:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
+
+			if eval, ok := right.(*SQLSubqueryExpr); ok {
+				return &SQLSubqueryCmpExpr{true, left, eval}, nil
+			}
+
+			return &SQLInExpr{left, right}, nil
+		case sqlparser.AST_NOT_IN:
+			left, right, err = reconcileSQLExprs(left, right)
+			if err != nil {
+				return nil, err
+			}
+
+			if eval, ok := right.(*SQLSubqueryExpr); ok {
+				return &SQLSubqueryCmpExpr{true, left, eval}, nil
+			}
+
+			return &SQLNotExpr{&SQLInExpr{left, right}}, nil
+		default:
+			return nil, fmt.Errorf("no support for operator %q", typedE.Operator)
+		}
 	case *sqlparser.FuncExpr:
 		return a.translateFuncExpr(typedE)
 	case sqlparser.NumVal:

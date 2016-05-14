@@ -8,6 +8,13 @@ type FilterStage struct {
 	source      PlanStage
 }
 
+func NewFilterStage(source PlanStage, expr SQLExpr) *FilterStage {
+	return &FilterStage{
+		source:  source,
+		matcher: expr,
+	}
+}
+
 type FilterIter struct {
 	matcher     SQLExpr
 	hasSubquery bool

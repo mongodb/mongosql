@@ -235,6 +235,47 @@ func TestNewAlgebrize(t *testing.T) {
 			})
 		})
 
+		Convey("where", func() {
+			test("select a from foo where a", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewFilterStage(source,
+						&SQLConvertExpr{
+							expr:     createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
+							convType: schema.SQLBoolean,
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "a"),
+				)
+			})
+
+			test("select a from foo where a > 10", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewFilterStage(source,
+						&SQLGreaterThanExpr{
+							left:  createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
+							right: SQLInt(10),
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "a"),
+				)
+			})
+
+			test("select a as b from foo where b > 10", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewFilterStage(source,
+						&SQLGreaterThanExpr{
+							left:  createSQLColumnExpr("foo", "b", schema.SQLInt, schema.MongoInt),
+							right: SQLInt(10),
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "b"),
+				)
+			})
+		})
+
 		Convey("joins", func() {
 			test("select foo.a, bar.a from foo, bar", func() PlanStage {
 				fooSource := createMongoSource("foo", "foo")
