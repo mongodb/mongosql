@@ -8,10 +8,10 @@ type FilterStage struct {
 	source      PlanStage
 }
 
-func NewFilterStage(source PlanStage, expr SQLExpr) *FilterStage {
+func NewFilterStage(source PlanStage, predicate SQLExpr) *FilterStage {
 	return &FilterStage{
 		source:  source,
-		matcher: expr,
+		matcher: predicate,
 	}
 }
 

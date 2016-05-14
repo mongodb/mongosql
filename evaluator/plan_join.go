@@ -66,11 +66,12 @@ type JoinStage struct {
 	strategy    JoinStrategy
 }
 
-func NewJoinStage(kind JoinKind, left, right PlanStage) *JoinStage {
+func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr) *JoinStage {
 	return &JoinStage{
-		kind:  kind,
-		left:  left,
-		right: right,
+		kind:    kind,
+		left:    left,
+		right:   right,
+		matcher: predicate,
 	}
 }
 

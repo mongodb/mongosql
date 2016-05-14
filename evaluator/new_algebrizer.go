@@ -347,8 +347,31 @@ func (a *algebrizer) translateTableExpr(tableExpr sqlparser.TableExpr) (PlanStag
 	switch typedT := tableExpr.(type) {
 	case *sqlparser.AliasedTableExpr:
 		return a.translateSimpleTableExpr(typedT.Expr, string(typedT.As))
+	case *sqlparser.ParenTableExpr:
+		return a.translateTableExpr(typedT.Expr)
 	case sqlparser.SimpleTableExpr:
 		return a.translateSimpleTableExpr(typedT, "")
+	case *sqlparser.JoinTableExpr:
+		left, err := a.translateTableExpr(typedT.LeftExpr)
+		if err != nil {
+			return nil, err
+		}
+		right, err := a.translateTableExpr(typedT.RightExpr)
+		if err != nil {
+			return nil, err
+		}
+
+		var predicate SQLExpr
+		if typedT.On != nil {
+			predicate, err = a.translateExpr(typedT.On)
+		} else {
+			predicate = SQLBool(true)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		return NewJoinStage(JoinKind(typedT.Join), left, right, predicate), nil
 	default:
 		return nil, fmt.Errorf("no support for %T", tableExpr)
 	}
