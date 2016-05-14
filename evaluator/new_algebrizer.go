@@ -22,12 +22,13 @@ func Algebrize(selectStatement sqlparser.SelectStatement, dbName string, schema 
 }
 
 type algebrizer struct {
-	parent           *algebrizer
-	sourceName       string // the name of the output. This means we need all projected columns to use this as the table name.
-	dbName           string // the default database name.
-	schema           *schema.Schema
-	columns          []*Column         // all the columns in scope.
-	projectedColumns SelectExpressions // columns to be projected from this scope.
+	parent                       *algebrizer
+	sourceName                   string // the name of the output. This means we need all projected columns to use this as the table name.
+	dbName                       string // the default database name.
+	schema                       *schema.Schema
+	columns                      []*Column         // all the columns in scope.
+	projectedColumns             SelectExpressions // columns to be projected from this scope.
+	resolveProjectedColumnsFirst bool
 }
 
 func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error) {
@@ -58,6 +59,18 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 	}
 
 	return found, nil
+}
+
+func (a *algebrizer) lookupProjectedColumnExpr(columnName string) (SQLExpr, bool) {
+	if a.projectedColumns != nil {
+		for _, pc := range a.projectedColumns {
+			if strings.EqualFold(pc.Name, columnName) {
+				return pc.Expr, true
+			}
+		}
+	}
+
+	return nil, false
 }
 
 func (a *algebrizer) registerColumns(columns []*Column) {
@@ -209,8 +222,6 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 		return nil, err
 	}
 
-	// NOTE: at this point, we are now resolving from projected columns first, followed
-	// by source columns.
 	a.projectedColumns = projectedColumns
 
 	// GROUP BY
@@ -218,6 +229,8 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 	// HAVING
 
 	// DISTINCT
+
+	a.resolveProjectedColumnsFirst = true
 
 	if sel.OrderBy != nil {
 		terms, err := a.translateOrderBy(sel.OrderBy)
@@ -461,18 +474,20 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 
 		columnName := string(typedE.Name)
 
-		// certain stages resolve columns firt with the projected columns, disregarding
-		// the table name.
-		if a.projectedColumns != nil {
-			for _, pc := range a.projectedColumns {
-				if tableName == "" && strings.EqualFold(pc.Name, columnName) {
-					return pc.Expr, nil
-				}
+		if a.resolveProjectedColumnsFirst && tableName == "" {
+			if expr, ok := a.lookupProjectedColumnExpr(columnName); ok {
+				return expr, nil
 			}
 		}
 
 		column, err := a.lookupColumn(tableName, columnName)
 		if err != nil {
+			if !a.resolveProjectedColumnsFirst && tableName == "" {
+				if expr, ok := a.lookupProjectedColumnExpr(columnName); ok {
+					return expr, nil
+				}
+			}
+
 			return nil, err
 		}
 
