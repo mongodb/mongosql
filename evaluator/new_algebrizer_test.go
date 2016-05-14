@@ -45,6 +45,17 @@ func TestNewAlgebrize(t *testing.T) {
 		})
 	}
 
+	createSQLColumnExpr := func(tableName, columnName string, sqlType schema.SQLType, mongoType schema.MongoType) SQLColumnExpr {
+		return SQLColumnExpr{
+			tableName:  tableName,
+			columnName: columnName,
+			columnType: schema.ColumnType{
+				SQLType:   sqlType,
+				MongoType: mongoType,
+			},
+		}
+	}
+
 	createSelectExpressionFromColumn := func(column *Column, projectedTableName, projectedColumnName string) SelectExpression {
 		return SelectExpression{
 			Column: &Column{
@@ -54,14 +65,7 @@ func TestNewAlgebrize(t *testing.T) {
 				SQLType:   column.SQLType,
 				MongoType: column.MongoType,
 			},
-			Expr: SQLColumnExpr{
-				tableName:  column.Table,
-				columnName: column.Name,
-				columnType: schema.ColumnType{
-					SQLType:   column.SQLType,
-					MongoType: column.MongoType,
-				},
-			},
+			Expr: createSQLColumnExpr(column.Table, column.Name, column.SQLType, column.MongoType),
 		}
 	}
 
@@ -281,6 +285,150 @@ func TestNewAlgebrize(t *testing.T) {
 			})
 		})
 
+		Convey("order by", func() {
+			test("select a from foo order by a", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewOrderByStage(source,
+						&orderByTerm{
+							expr:      createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
+							ascending: true,
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "a"),
+				)
+			})
+
+			test("select a as b from foo order by b", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewOrderByStage(source,
+						&orderByTerm{
+							expr:      createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
+							ascending: true,
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "b"),
+				)
+			})
+
+			test("select a from foo order by foo.a", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewOrderByStage(source,
+						&orderByTerm{
+							expr:      createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
+							ascending: true,
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "a"),
+				)
+			})
+
+			test("select a as b from foo order by foo.a", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewOrderByStage(source,
+						&orderByTerm{
+							expr:      createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
+							ascending: true,
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "b"),
+				)
+			})
+
+			test("select a from foo order by 1", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewOrderByStage(source,
+						&orderByTerm{
+							expr:      createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
+							ascending: true,
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "a"),
+				)
+			})
+
+			test("select * from foo order by 2", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewOrderByStage(source,
+						&orderByTerm{
+							expr:      createSQLColumnExpr("foo", "b", schema.SQLInt, schema.MongoInt),
+							ascending: true,
+						},
+					),
+					createAllSelectExpressionsFromSource(source, "")...,
+				)
+			})
+
+			test("select foo.* from foo order by 2", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewOrderByStage(source,
+						&orderByTerm{
+							expr:      createSQLColumnExpr("foo", "b", schema.SQLInt, schema.MongoInt),
+							ascending: true,
+						},
+					),
+					createAllSelectExpressionsFromSource(source, "")...,
+				)
+			})
+
+			test("select foo.*, foo.a from foo order by 2", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				columns := append(createAllSelectExpressionsFromSource(source, ""), createSelectExpression(source, "foo", "a", "", "a"))
+				return NewProjectStage(
+					NewOrderByStage(source,
+						&orderByTerm{
+							expr:      createSQLColumnExpr("foo", "b", schema.SQLInt, schema.MongoInt),
+							ascending: true,
+						},
+					),
+					columns...,
+				)
+			})
+
+			test("select a from foo order by -1", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewOrderByStage(source,
+						&orderByTerm{
+							expr:      SQLInt(-1),
+							ascending: true,
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "a"),
+				)
+			})
+
+			test("select a + b as c from foo order by c - b", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewOrderByStage(source,
+						&orderByTerm{
+							expr: &SQLSubtractExpr{
+								left: &SQLAddExpr{
+									left:  createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
+									right: createSQLColumnExpr("foo", "b", schema.SQLInt, schema.MongoInt),
+								},
+								right: createSQLColumnExpr("foo", "b", schema.SQLInt, schema.MongoInt),
+							},
+							ascending: true,
+						},
+					),
+					createSelectExpressionFromSQLExpr("", "c",
+						&SQLAddExpr{
+							left:  createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
+							right: createSQLColumnExpr("foo", "b", schema.SQLInt, schema.MongoInt),
+						},
+					),
+				)
+			})
+		})
+
 		Convey("subqueries as sources", func() {
 			test("select a from (select a from foo)", func() PlanStage {
 				source := createMongoSource("foo", "foo")
@@ -393,6 +541,9 @@ func TestNewAlgebrize(t *testing.T) {
 			testError("select a from foo limit -10, -20", `limit offset cannot be negative`)
 			testError("select a from foo limit b", `limit rowcount must be an integer`)
 			testError("select a from foo limit 'c'", `limit rowcount must be an integer`)
+
+			testError("select a from foo order by 2", `unknown column "2" in order clause`)
+			testError("select a from foo order by idk", `unknown column "idk"`)
 		})
 
 	})

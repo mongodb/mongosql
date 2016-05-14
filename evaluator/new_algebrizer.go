@@ -22,11 +22,12 @@ func Algebrize(selectStatement sqlparser.SelectStatement, dbName string, schema 
 }
 
 type algebrizer struct {
-	parent     *algebrizer
-	sourceName string // the name of the output. This means we need all projected columns to use this as the table name.
-	dbName     string // the default database name.
-	schema     *schema.Schema
-	columns    []*Column // all the columns in scope.
+	parent           *algebrizer
+	sourceName       string // the name of the output. This means we need all projected columns to use this as the table name.
+	dbName           string // the default database name.
+	schema           *schema.Schema
+	columns          []*Column         // all the columns in scope.
+	projectedColumns SelectExpressions // columns to be projected from this scope.
 }
 
 func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error) {
@@ -121,6 +122,51 @@ func (a *algebrizer) translateNamedSelectStatement(selectStatement sqlparser.Sel
 	return algebrizer.translateSelectStatement(selectStatement)
 }
 
+func (a *algebrizer) translateOrderBy(orderby sqlparser.OrderBy) ([]*orderByTerm, error) {
+	var terms []*orderByTerm
+	for _, o := range orderby {
+		term, err := a.translateOrder(o)
+		if err != nil {
+			return nil, err
+		}
+
+		terms = append(terms, term)
+	}
+
+	return terms, nil
+}
+
+func (a *algebrizer) translateOrder(order *sqlparser.Order) (*orderByTerm, error) {
+	ascending := !strings.EqualFold(order.Direction, "desc")
+	if numVal, ok := order.Expr.(sqlparser.NumVal); ok {
+		n, err := strconv.ParseInt(sqlparser.String(numVal), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		if int(n) > len(a.projectedColumns) {
+			return nil, fmt.Errorf("unknown column \"%v\" in order clause", n)
+		}
+
+		if n >= 0 {
+			return &orderByTerm{
+				expr:      a.projectedColumns[n-1].Expr,
+				ascending: ascending,
+			}, nil
+		}
+	}
+
+	e, err := a.translateExpr(order.Expr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &orderByTerm{
+		expr:      e,
+		ascending: ascending,
+	}, nil
+}
+
 func (a *algebrizer) translateSelectStatement(selectStatement sqlparser.SelectStatement) (PlanStage, error) {
 	switch typedS := selectStatement.(type) {
 
@@ -143,6 +189,15 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 
 	// WHERE
 
+	projectedColumns, err := a.translateSelectExprs(sel.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
+
+	// NOTE: at this point, we are now resolving from projected columns first, followed
+	// by source columns.
+	a.projectedColumns = projectedColumns
+
 	// GROUP BY
 
 	// HAVING
@@ -150,6 +205,15 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 	// DISTINCT
 
 	// ORDER BY
+
+	if sel.OrderBy != nil {
+		terms, err := a.translateOrderBy(sel.OrderBy)
+		if err != nil {
+			return nil, err
+		}
+
+		plan = NewOrderByStage(plan, terms...)
+	}
 
 	if sel.Limit != nil {
 		offset, rowcount, err := a.translateLimit(sel.Limit)
@@ -160,20 +224,12 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 		plan = NewLimitStage(plan, int64(offset), int64(rowcount))
 	}
 
-	if sel.SelectExprs != nil {
-		sExprs, err := a.translateSelectExprs(sel.SelectExprs)
-		if err != nil {
-			return nil, err
-		}
-
-		plan = NewProjectStage(plan, sExprs...)
-	}
-
+	plan = NewProjectStage(plan, projectedColumns...)
 	return plan, nil
 }
 
 func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (SelectExpressions, error) {
-	var results SelectExpressions
+	var projectedColumns SelectExpressions
 	hasGlobalStar := false
 	for _, selectExpr := range selectExprs {
 		switch typedE := selectExpr.(type) {
@@ -191,7 +247,7 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 
 			for _, column := range a.columns {
 				if tableName == "" || strings.EqualFold(tableName, column.Table) {
-					results = append(results, SelectExpression{
+					projectedColumns = append(projectedColumns, SelectExpression{
 						Column: &Column{
 							Table:     a.sourceName,
 							Name:      column.Name,
@@ -218,7 +274,7 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 				return nil, err
 			}
 
-			result := SelectExpression{
+			projectedColumn := SelectExpression{
 				Expr: translatedExpr,
 				Column: &Column{
 					Table:     a.sourceName,
@@ -228,20 +284,20 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 			}
 
 			if sqlCol, ok := translatedExpr.(SQLColumnExpr); ok {
-				result.Name = sqlCol.columnName
-				result.MongoType = sqlCol.columnType.MongoType
+				projectedColumn.Name = sqlCol.columnName
+				projectedColumn.MongoType = sqlCol.columnType.MongoType
 			}
 
 			if typedE.As != nil {
-				result.Name = string(typedE.As)
-			} else if result.Name == "" {
-				result.Name = sqlparser.String(typedE)
+				projectedColumn.Name = string(typedE.As)
+			} else if projectedColumn.Name == "" {
+				projectedColumn.Name = sqlparser.String(typedE)
 			}
 
 			// TODO: not sure we need View at all...
-			result.View = result.Name
+			projectedColumn.View = projectedColumn.Name
 
-			results = append(results, result)
+			projectedColumns = append(projectedColumns, projectedColumn)
 		}
 	}
 
@@ -249,7 +305,7 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 		return nil, fmt.Errorf("cannot have a global * in the field list conjunction with any other columns")
 	}
 
-	return results, nil
+	return projectedColumns, nil
 }
 
 func (a *algebrizer) translateTableExprs(tableExprs sqlparser.TableExprs) (PlanStage, error) {
@@ -368,6 +424,16 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		}
 
 		columnName := string(typedE.Name)
+
+		// certain stages resolve columns firt with the projected columns, disregarding
+		// the table name.
+		if a.projectedColumns != nil {
+			for _, pc := range a.projectedColumns {
+				if tableName == "" && strings.EqualFold(pc.Name, columnName) {
+					return pc.Expr, nil
+				}
+			}
+		}
 
 		column, err := a.lookupColumn(tableName, columnName)
 		if err != nil {

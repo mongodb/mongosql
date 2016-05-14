@@ -18,6 +18,16 @@ type OrderByStage struct {
 	// order by criteria, they are stored in the same order within
 	// the keys slice.
 	keys []orderByKey
+
+	terms []*orderByTerm
+}
+
+// NewOrderByStage returns a new order by stage.
+func NewOrderByStage(source PlanStage, terms ...*orderByTerm) *OrderByStage {
+	return &OrderByStage{
+		source: source,
+		terms:  terms,
+	}
 }
 
 type OrderByIter struct {
@@ -35,6 +45,11 @@ type OrderByIter struct {
 
 	// err holds any error encountered during processing
 	err error
+}
+
+type orderByTerm struct {
+	expr      SQLExpr
+	ascending bool
 }
 
 type orderByKey struct {
