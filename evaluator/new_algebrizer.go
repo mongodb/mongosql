@@ -439,17 +439,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 	switch typedE := expr.(type) {
 	case *sqlparser.BinaryExpr:
-		left, err := a.translateExpr(typedE.Left)
-		if err != nil {
-			return nil, err
-		}
-
-		right, err := a.translateExpr(typedE.Right)
-		if err != nil {
-			return nil, err
-		}
-
-		left, right, err = reconcileSQLExprs(left, right)
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, true)
 		if err != nil {
 			return nil, err
 		}
@@ -502,77 +492,33 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 
 	case *sqlparser.ComparisonExpr:
 
-		left, err := a.translateExpr(typedE.Left)
-		if err != nil {
-			return nil, err
-		}
-
-		right, err := a.translateExpr(typedE.Right)
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, true)
 		if err != nil {
 			return nil, err
 		}
 
 		switch typedE.Operator {
 		case sqlparser.AST_EQ:
-			left, right, err = reconcileSQLExprs(left, right)
-			if err != nil {
-				return nil, err
-			}
 			return &SQLEqualsExpr{left, right}, nil
 		case sqlparser.AST_LT:
-			left, right, err = reconcileSQLExprs(left, right)
-			if err != nil {
-				return nil, err
-			}
 			return &SQLLessThanExpr{left, right}, nil
 		case sqlparser.AST_GT:
-			left, right, err = reconcileSQLExprs(left, right)
-			if err != nil {
-				return nil, err
-			}
-
 			return &SQLGreaterThanExpr{left, right}, nil
 		case sqlparser.AST_LE:
-			left, right, err = reconcileSQLExprs(left, right)
-			if err != nil {
-				return nil, err
-			}
 			return &SQLLessThanOrEqualExpr{left, right}, nil
 		case sqlparser.AST_GE:
-			left, right, err = reconcileSQLExprs(left, right)
-			if err != nil {
-				return nil, err
-			}
 			return &SQLGreaterThanOrEqualExpr{left, right}, nil
 		case sqlparser.AST_NE:
-			left, right, err = reconcileSQLExprs(left, right)
-			if err != nil {
-				return nil, err
-			}
 			return &SQLNotEqualsExpr{left, right}, nil
 		case sqlparser.AST_LIKE:
-			left, right, err = reconcileSQLExprs(left, right)
-			if err != nil {
-				return nil, err
-			}
 			return &SQLLikeExpr{left, right}, nil
 		case sqlparser.AST_IN:
-			left, right, err = reconcileSQLExprs(left, right)
-			if err != nil {
-				return nil, err
-			}
-
 			if eval, ok := right.(*SQLSubqueryExpr); ok {
 				return &SQLSubqueryCmpExpr{true, left, eval}, nil
 			}
 
 			return &SQLInExpr{left, right}, nil
 		case sqlparser.AST_NOT_IN:
-			left, right, err = reconcileSQLExprs(left, right)
-			if err != nil {
-				return nil, err
-			}
-
 			if eval, ok := right.(*SQLSubqueryExpr); ok {
 				return &SQLSubqueryCmpExpr{true, left, eval}, nil
 			}
@@ -603,6 +549,24 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 	default:
 		return nil, fmt.Errorf("no support for %T", expr)
 	}
+}
+
+func (a *algebrizer) translateLeftRightExprs(left sqlparser.Expr, right sqlparser.Expr, reconcile bool) (SQLExpr, SQLExpr, error) {
+	leftEval, err := a.translateExpr(left)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rightEval, err := a.translateExpr(right)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if reconcile {
+		leftEval, rightEval, err = reconcileSQLExprs(leftEval, rightEval)
+	}
+
+	return leftEval, rightEval, err
 }
 
 func (a *algebrizer) translateFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {
