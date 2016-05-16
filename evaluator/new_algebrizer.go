@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/kr/pretty"
 )
 
 // Algebrize takes a parsed SQL statement and returns an algebrized form of the query.
@@ -61,16 +62,35 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 	return found, nil
 }
 
-func (a *algebrizer) lookupProjectedColumnExpr(columnName string) (SQLExpr, bool) {
+func (a *algebrizer) lookupProjectedColumnExpr(columnName string) (*SelectExpression, bool) {
 	if a.projectedColumns != nil {
 		for _, pc := range a.projectedColumns {
 			if strings.EqualFold(pc.Name, columnName) {
-				return pc.Expr, true
+				return &pc, true
 			}
 		}
 	}
 
 	return nil, false
+}
+
+func (a *algebrizer) resolveColumnExpr(expr sqlparser.Expr) (SQLExpr, error) {
+	if numVal, ok := expr.(sqlparser.NumVal); ok {
+		n, err := strconv.ParseInt(sqlparser.String(numVal), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		if int(n) > len(a.projectedColumns) {
+			return nil, fmt.Errorf("unknown column \"%v\" in order clause", n)
+		}
+
+		if n >= 0 {
+			return a.projectedColumns[n-1].Expr, nil
+		}
+	}
+
+	return a.translateExpr(expr)
 }
 
 func (a *algebrizer) registerColumns(columns []*Column) {
@@ -90,7 +110,8 @@ func (a *algebrizer) isAggFunction(name string) bool {
 func (a *algebrizer) translateGroupBy(groupby sqlparser.GroupBy) ([]SQLExpr, error) {
 	var keys []SQLExpr
 	for _, g := range groupby {
-		key, err := a.translateExpr(g)
+
+		key, err := a.resolveColumnExpr(g)
 		if err != nil {
 			return nil, err
 		}
@@ -165,25 +186,7 @@ func (a *algebrizer) translateOrderBy(orderby sqlparser.OrderBy) ([]*orderByTerm
 
 func (a *algebrizer) translateOrder(order *sqlparser.Order) (*orderByTerm, error) {
 	ascending := !strings.EqualFold(order.Direction, "desc")
-	if numVal, ok := order.Expr.(sqlparser.NumVal); ok {
-		n, err := strconv.ParseInt(sqlparser.String(numVal), 10, 64)
-		if err != nil {
-			return nil, err
-		}
-
-		if int(n) > len(a.projectedColumns) {
-			return nil, fmt.Errorf("unknown column \"%v\" in order clause", n)
-		}
-
-		if n >= 0 {
-			return &orderByTerm{
-				expr:      a.projectedColumns[n-1].Expr,
-				ascending: ascending,
-			}, nil
-		}
-	}
-
-	e, err := a.translateExpr(order.Expr)
+	e, err := a.resolveColumnExpr(order.Expr)
 	if err != nil {
 		return nil, err
 	}
@@ -206,6 +209,7 @@ func (a *algebrizer) translateSelectStatement(selectStatement sqlparser.SelectSt
 func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 	var plan PlanStage
 	var err error
+
 	if sel.From != nil {
 		plan, err = a.translateTableExprs(sel.From)
 		if err != nil {
@@ -213,25 +217,34 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 		}
 	}
 
+	// TODO: probably add allowed tableNames in order to filter out subquery columns from
+	// unrelated tables
+	collector := newExpressionCollector()
+
+	var wherePredicate SQLExpr
 	if sel.Where != nil {
-		expr, err := a.translateExpr(sel.Where.Expr)
+		wherePredicate, err = a.translateExpr(sel.Where.Expr)
 		if err != nil {
 			return nil, err
 		}
 
-		if expr.Type() != schema.SQLBoolean {
-			expr = &SQLConvertExpr{
-				expr:     expr,
+		if wherePredicate.Type() != schema.SQLBoolean {
+			wherePredicate = &SQLConvertExpr{
+				expr:     wherePredicate,
 				convType: schema.SQLBoolean,
 			}
 		}
 
-		plan = NewFilterStage(plan, expr)
+		collector.Visit(wherePredicate)
 	}
 
 	projectedColumns, err := a.translateSelectExprs(sel.SelectExprs)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, pc := range projectedColumns {
+		collector.Visit(pc.Expr)
 	}
 
 	// set projected columns here so column resolution falls back to these
@@ -243,6 +256,8 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		collector.VisitAll(groupByKeys)
 	}
 
 	var havingPredicate SQLExpr
@@ -251,9 +266,11 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		collector.Visit(havingPredicate)
 	}
 
-	// set this here so we start resolving columns from projected columns first
+	// order by resolves from the projected columns first
 	a.resolveProjectedColumnsFirst = true
 
 	var orderByTerms []*orderByTerm
@@ -262,17 +279,73 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		for _, obt := range orderByTerms {
+			collector.Visit(obt.expr)
+		}
 	}
 
-	if len(groupByKeys) > 0 {
-		return nil, fmt.Errorf("group isn't supported")
+	if wherePredicate != nil {
+		plan = NewFilterStage(plan, wherePredicate)
+
+		collector.Remove(wherePredicate)
 	}
 
-	if havingPredicate != nil {
-		return nil, fmt.Errorf("having isn't supported")
+	// group by
+	if len(groupByKeys) > 0 || len(collector.allAggFunctions) > 0 {
+		var keys SelectExpressions
+		for _, e := range groupByKeys {
+			pc := projectedColumnFromExpr(e)
+			keys = append(keys, *pc)
+		}
+
+		collector.RemoveAll(groupByKeys)
+
+		var projectedAggregates SelectExpressions
+		for _, e := range collector.allAggFunctions {
+			pc := projectedColumnFromExpr(e)
+			projectedAggregates = append(projectedAggregates, *pc)
+		}
+
+		for _, e := range collector.allNonAggReferencedColumns.getExprs() {
+			pc := projectedColumnFromExpr(e)
+			projectedAggregates = append(projectedAggregates, *pc)
+		}
+
+		plan = NewGroupByStage(plan, keys, projectedAggregates)
+
+		// replace aggregation expressions with columns coming out of the GroupByStage
+
+		var newProjectedColumns SelectExpressions
+		for _, pc := range projectedColumns {
+			replaced, err := replaceAggFunctionsWithColumns("", pc.Expr)
+			if err != nil {
+				return nil, err
+			}
+
+			pc.Expr = replaced
+			newProjectedColumns = append(newProjectedColumns, pc)
+		}
+
+		projectedColumns = newProjectedColumns
+
+		havingPredicate, err = replaceAggFunctionsWithColumns("", havingPredicate)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, obt := range orderByTerms {
+			replaced, err := replaceAggFunctionsWithColumns("", obt.expr)
+			if err != nil {
+				return nil, err
+			}
+			obt.expr = replaced
+		}
 	}
 
-	// check for distinct
+	// having
+
+	// distinct
 
 	if len(orderByTerms) > 0 {
 		plan = NewOrderByStage(plan, orderByTerms...)
@@ -288,6 +361,11 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 	}
 
 	plan = NewProjectStage(plan, projectedColumns...)
+
+	if groupByKeys != nil {
+		fmt.Printf("\nActual: %# v", pretty.Formatter(plan))
+	}
+
 	return plan, nil
 }
 
@@ -503,7 +581,7 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 
 		if a.resolveProjectedColumnsFirst && tableName == "" {
 			if expr, ok := a.lookupProjectedColumnExpr(columnName); ok {
-				return expr, nil
+				return expr.Expr, nil
 			}
 		}
 
@@ -511,7 +589,7 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		if err != nil {
 			if !a.resolveProjectedColumnsFirst && tableName == "" {
 				if expr, ok := a.lookupProjectedColumnExpr(columnName); ok {
-					return expr, nil
+					return expr.Expr, nil
 				}
 			}
 
@@ -694,4 +772,151 @@ func (a *algebrizer) translateSubqueryExpr(expr *sqlparser.Subquery) (SQLExpr, e
 	return &SQLSubqueryExpr{
 		plan: plan,
 	}, nil
+}
+
+type exprCountMap struct {
+	counts map[string]int
+	exprs  []SQLExpr
+}
+
+func newExprCountMap() *exprCountMap {
+	return &exprCountMap{
+		counts: make(map[string]int),
+	}
+}
+
+func (m *exprCountMap) add(e SQLExpr) {
+	s := e.String()
+	if _, ok := m.counts[s]; ok {
+		m.counts[s]++
+	} else {
+		m.counts[s] = 1
+		m.exprs = append(m.exprs, e)
+	}
+}
+
+func (m *exprCountMap) remove(e SQLExpr) {
+	s := e.String()
+	for i, expr := range m.exprs {
+		if strings.EqualFold(s, expr.String()) {
+			m.counts[s]--
+			if m.counts[s] <= 0 {
+				m.exprs = append(m.exprs[:i], m.exprs[i+1:]...)
+			}
+			return
+		}
+	}
+}
+
+func (m *exprCountMap) getExprs() []SQLExpr {
+	exprs := make([]SQLExpr, len(m.exprs))
+	copy(exprs, m.exprs)
+	return exprs
+}
+
+type expressionCollector struct {
+	allReferencedColumns       *exprCountMap
+	allNonAggReferencedColumns *exprCountMap
+	allAggFunctions            []SQLExpr
+
+	inAggFunc  bool
+	removeMode bool
+}
+
+func newExpressionCollector() *expressionCollector {
+	return &expressionCollector{
+		allReferencedColumns:       newExprCountMap(),
+		allNonAggReferencedColumns: newExprCountMap(),
+	}
+}
+
+func (c *expressionCollector) Remove(e SQLExpr) {
+	c.removeMode = true
+	c.Visit(e)
+	c.removeMode = false
+}
+
+func (c *expressionCollector) RemoveAll(e []SQLExpr) {
+	c.removeMode = true
+	c.VisitAll(e)
+	c.removeMode = false
+}
+
+func (c *expressionCollector) VisitAll(exprs []SQLExpr) {
+	for _, e := range exprs {
+		c.Visit(e)
+	}
+}
+
+func (v *expressionCollector) Visit(e SQLExpr) (SQLExpr, error) {
+	switch typedE := e.(type) {
+	case *SQLAggFunctionExpr:
+		oldInAggFunc := v.inAggFunc
+		v.inAggFunc = true
+		v.allAggFunctions = append(v.allAggFunctions, typedE)
+		for _, a := range typedE.Exprs {
+			v.Visit(a)
+		}
+		v.inAggFunc = oldInAggFunc
+		return typedE, nil
+	case SQLColumnExpr:
+		if v.removeMode {
+			v.allReferencedColumns.remove(typedE)
+		} else {
+			v.allReferencedColumns.add(typedE)
+		}
+		if !v.inAggFunc {
+			if v.removeMode {
+				v.allNonAggReferencedColumns.remove(typedE)
+			} else {
+				v.allNonAggReferencedColumns.add(typedE)
+			}
+		}
+		return typedE, nil
+	default:
+		return walk(v, e)
+	}
+}
+
+type aggFunctionExprReplacer struct {
+	tableName string
+}
+
+func replaceAggFunctionsWithColumns(tableName string, e SQLExpr) (SQLExpr, error) {
+	v := &aggFunctionExprReplacer{tableName}
+	return v.Visit(e)
+}
+
+func (v *aggFunctionExprReplacer) Visit(e SQLExpr) (SQLExpr, error) {
+	switch typedE := e.(type) {
+	case *SQLAggFunctionExpr:
+		columnType := schema.ColumnType{
+			SQLType:   typedE.Type(),
+			MongoType: schema.MongoNone,
+		}
+		return SQLColumnExpr{v.tableName, typedE.String(), columnType}, nil
+	default:
+		return walk(v, e)
+	}
+}
+
+func projectedColumnFromExpr(expr SQLExpr) *SelectExpression {
+	pc := &SelectExpression{
+		Column: &Column{
+			SQLType: expr.Type(),
+		},
+		Expr: expr,
+	}
+
+	if sqlCol, ok := expr.(SQLColumnExpr); ok {
+		pc.Name = sqlCol.columnName
+		pc.View = sqlCol.columnName
+		pc.Table = sqlCol.tableName
+		pc.MongoType = sqlCol.columnType.MongoType
+	} else {
+		pc.Name = expr.String()
+		pc.View = expr.String()
+	}
+
+	return pc
 }

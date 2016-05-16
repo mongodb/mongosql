@@ -29,6 +29,14 @@ type GroupByStage struct {
 	keyExprs SelectExpressions
 }
 
+func NewGroupByStage(source PlanStage, keys SelectExpressions, aggregates SelectExpressions) *GroupByStage {
+	return &GroupByStage{
+		source:      source,
+		keyExprs:    keys,
+		selectExprs: aggregates,
+	}
+}
+
 func (gb *GroupByStage) OpFields() (columns []*Column) {
 	for _, expr := range gb.selectExprs {
 		column := &Column{

@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -245,43 +246,95 @@ func TestNewAlgebrize(t *testing.T) {
 			})
 		})
 
-		Convey("where", func() {
-			test("select a from foo where a", func() PlanStage {
+		Convey("subqueries as sources", func() {
+			test("select a from (select a from foo)", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				return NewProjectStage(
-					NewFilterStage(source,
-						&SQLConvertExpr{
-							expr:     createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
-							convType: schema.SQLBoolean,
+				subquery := &SubqueryStage{
+					tableName: "",
+					source:    NewProjectStage(source, createSelectExpression(source, "foo", "a", "", "a")),
+				}
+				return NewProjectStage(subquery, createSelectExpression(subquery, "", "a", "", "a"))
+			})
+
+			test("select a from (select a from foo limit 1)", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				subquery := &SubqueryStage{
+					tableName: "",
+					source:    NewProjectStage(NewLimitStage(source, 0, 1), createSelectExpression(source, "foo", "a", "", "a")),
+				}
+				return NewProjectStage(subquery, createSelectExpression(subquery, "", "a", "", "a"))
+			})
+
+			test("select a from (select a from foo) f", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				subquery := &SubqueryStage{
+					tableName: "f",
+					source:    NewProjectStage(source, createSelectExpression(source, "foo", "a", "f", "a")),
+				}
+				return NewProjectStage(subquery, createSelectExpression(subquery, "f", "a", "", "a"))
+			})
+
+			test("select f.a from (select a from foo) f", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				subquery := &SubqueryStage{
+					tableName: "f",
+					source:    NewProjectStage(source, createSelectExpression(source, "foo", "a", "f", "a")),
+				}
+				return NewProjectStage(subquery, createSelectExpression(subquery, "f", "a", "", "a"))
+			})
+		})
+
+		Convey("subqueries in select", func() {
+			test("select a, (select a from bar) from foo", func() PlanStage {
+				fooSource := createMongoSource("foo", "foo")
+				barSource := createMongoSource("bar", "bar")
+				return NewProjectStage(fooSource,
+					createSelectExpression(fooSource, "foo", "a", "", "a"),
+					createSelectExpressionFromSQLExpr("", "(select a from bar)",
+						&SQLSubqueryExpr{
+							plan: NewProjectStage(barSource, createSelectExpression(barSource, "bar", "a", "", "a")),
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "a"),
 				)
 			})
 
-			test("select a from foo where a > 10", func() PlanStage {
-				source := createMongoSource("foo", "foo")
-				return NewProjectStage(
-					NewFilterStage(source,
-						&SQLGreaterThanExpr{
-							left:  createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
-							right: SQLInt(10),
+			test("select a, (select a from bar) as b from foo", func() PlanStage {
+				fooSource := createMongoSource("foo", "foo")
+				barSource := createMongoSource("bar", "bar")
+				return NewProjectStage(fooSource,
+					createSelectExpression(fooSource, "foo", "a", "", "a"),
+					createSelectExpressionFromSQLExpr("", "b",
+						&SQLSubqueryExpr{
+							plan: NewProjectStage(barSource, createSelectExpression(barSource, "bar", "a", "", "a")),
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "a"),
 				)
 			})
 
-			test("select a as b from foo where b > 10", func() PlanStage {
-				source := createMongoSource("foo", "foo")
-				return NewProjectStage(
-					NewFilterStage(source,
-						&SQLGreaterThanExpr{
-							left:  createSQLColumnExpr("foo", "b", schema.SQLInt, schema.MongoInt),
-							right: SQLInt(10),
+			test("select a, (select foo.a from foo, bar) from foo", func() PlanStage {
+				fooSource := createMongoSource("foo", "foo")
+				barSource := createMongoSource("bar", "bar")
+				join := NewJoinStage(CrossJoin, fooSource, barSource, nil)
+				return NewProjectStage(fooSource,
+					createSelectExpression(fooSource, "foo", "a", "", "a"),
+					createSelectExpressionFromSQLExpr("", "(select foo.a from foo, bar)",
+						&SQLSubqueryExpr{
+							plan: NewProjectStage(join, createSelectExpression(join, "foo", "a", "", "a")),
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "b"),
+				)
+			})
+
+			test("select a, (select foo.a from bar) from foo", func() PlanStage {
+				fooSource := createMongoSource("foo", "foo")
+				barSource := createMongoSource("bar", "bar")
+				return NewProjectStage(fooSource,
+					createSelectExpression(fooSource, "foo", "a", "", "a"),
+					createSelectExpressionFromSQLExpr("", "(select foo.a from bar)",
+						&SQLSubqueryExpr{
+							plan: NewProjectStage(barSource, createSelectExpression(fooSource, "foo", "a", "", "a")),
+						},
+					),
 				)
 			})
 		})
@@ -374,21 +427,67 @@ func TestNewAlgebrize(t *testing.T) {
 			})
 		})
 
-		Convey("limit", func() {
-			test("select a from foo limit 10", func() PlanStage {
+		Convey("where", func() {
+			test("select a from foo where a", func() PlanStage {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(
-					NewLimitStage(source, 0, 10),
+					NewFilterStage(source,
+						&SQLConvertExpr{
+							expr:     createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
+							convType: schema.SQLBoolean,
+						},
+					),
 					createSelectExpression(source, "foo", "a", "", "a"),
 				)
 			})
 
-			test("select a from foo limit 10, 20", func() PlanStage {
+			test("select a from foo where a > 10", func() PlanStage {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(
-					NewLimitStage(source, 10, 20),
+					NewFilterStage(source,
+						&SQLGreaterThanExpr{
+							left:  createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
+							right: SQLInt(10),
+						},
+					),
 					createSelectExpression(source, "foo", "a", "", "a"),
 				)
+			})
+
+			test("select a as b from foo where b > 10", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewFilterStage(source,
+						&SQLGreaterThanExpr{
+							left:  createSQLColumnExpr("foo", "b", schema.SQLInt, schema.MongoInt),
+							right: SQLInt(10),
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "b"),
+				)
+			})
+		})
+
+		Convey("group by", func() {
+			test("select sum(a) from foo group by b", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				s := NewProjectStage(
+					NewGroupByStage(source,
+						SelectExpressions{
+							createSelectExpression(source, "foo", "b", "foo", "b"),
+						},
+						SelectExpressions{
+							createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+								Name:  "sum",
+								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+							}),
+						},
+					),
+					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+				)
+
+				fmt.Printf("\nExpected: %# v", pretty.Formatter(s))
+				return s
 			})
 		})
 
@@ -536,95 +635,20 @@ func TestNewAlgebrize(t *testing.T) {
 			})
 		})
 
-		Convey("subqueries as sources", func() {
-			test("select a from (select a from foo)", func() PlanStage {
+		Convey("limit", func() {
+			test("select a from foo limit 10", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				subquery := &SubqueryStage{
-					tableName: "",
-					source:    NewProjectStage(source, createSelectExpression(source, "foo", "a", "", "a")),
-				}
-				return NewProjectStage(subquery, createSelectExpression(subquery, "", "a", "", "a"))
-			})
-
-			test("select a from (select a from foo limit 1)", func() PlanStage {
-				source := createMongoSource("foo", "foo")
-				subquery := &SubqueryStage{
-					tableName: "",
-					source:    NewProjectStage(NewLimitStage(source, 0, 1), createSelectExpression(source, "foo", "a", "", "a")),
-				}
-				return NewProjectStage(subquery, createSelectExpression(subquery, "", "a", "", "a"))
-			})
-
-			test("select a from (select a from foo) f", func() PlanStage {
-				source := createMongoSource("foo", "foo")
-				subquery := &SubqueryStage{
-					tableName: "f",
-					source:    NewProjectStage(source, createSelectExpression(source, "foo", "a", "f", "a")),
-				}
-				return NewProjectStage(subquery, createSelectExpression(subquery, "f", "a", "", "a"))
-			})
-
-			test("select f.a from (select a from foo) f", func() PlanStage {
-				source := createMongoSource("foo", "foo")
-				subquery := &SubqueryStage{
-					tableName: "f",
-					source:    NewProjectStage(source, createSelectExpression(source, "foo", "a", "f", "a")),
-				}
-				return NewProjectStage(subquery, createSelectExpression(subquery, "f", "a", "", "a"))
-			})
-		})
-
-		Convey("subqueries in select", func() {
-			test("select a, (select a from bar) from foo", func() PlanStage {
-				fooSource := createMongoSource("foo", "foo")
-				barSource := createMongoSource("bar", "bar")
-				return NewProjectStage(fooSource,
-					createSelectExpression(fooSource, "foo", "a", "", "a"),
-					createSelectExpressionFromSQLExpr("", "(select a from bar)",
-						&SQLSubqueryExpr{
-							plan: NewProjectStage(barSource, createSelectExpression(barSource, "bar", "a", "", "a")),
-						},
-					),
+				return NewProjectStage(
+					NewLimitStage(source, 0, 10),
+					createSelectExpression(source, "foo", "a", "", "a"),
 				)
 			})
 
-			test("select a, (select a from bar) as b from foo", func() PlanStage {
-				fooSource := createMongoSource("foo", "foo")
-				barSource := createMongoSource("bar", "bar")
-				return NewProjectStage(fooSource,
-					createSelectExpression(fooSource, "foo", "a", "", "a"),
-					createSelectExpressionFromSQLExpr("", "b",
-						&SQLSubqueryExpr{
-							plan: NewProjectStage(barSource, createSelectExpression(barSource, "bar", "a", "", "a")),
-						},
-					),
-				)
-			})
-
-			test("select a, (select foo.a from foo, bar) from foo", func() PlanStage {
-				fooSource := createMongoSource("foo", "foo")
-				barSource := createMongoSource("bar", "bar")
-				join := NewJoinStage(CrossJoin, fooSource, barSource, nil)
-				return NewProjectStage(fooSource,
-					createSelectExpression(fooSource, "foo", "a", "", "a"),
-					createSelectExpressionFromSQLExpr("", "(select foo.a from foo, bar)",
-						&SQLSubqueryExpr{
-							plan: NewProjectStage(join, createSelectExpression(join, "foo", "a", "", "a")),
-						},
-					),
-				)
-			})
-
-			test("select a, (select foo.a from bar) from foo", func() PlanStage {
-				fooSource := createMongoSource("foo", "foo")
-				barSource := createMongoSource("bar", "bar")
-				return NewProjectStage(fooSource,
-					createSelectExpression(fooSource, "foo", "a", "", "a"),
-					createSelectExpressionFromSQLExpr("", "(select foo.a from bar)",
-						&SQLSubqueryExpr{
-							plan: NewProjectStage(barSource, createSelectExpression(fooSource, "foo", "a", "", "a")),
-						},
-					),
+			test("select a from foo limit 10, 20", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewLimitStage(source, 10, 20),
+					createSelectExpression(source, "foo", "a", "", "a"),
 				)
 			})
 		})
