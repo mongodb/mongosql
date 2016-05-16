@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/10gen/sqlproxy/schema"
@@ -292,7 +293,7 @@ func NewSQLExpr(sqlExpr sqlparser.Expr, tables map[string]*schema.Table) (SQLExp
 
 	case *sqlparser.ColName:
 
-		tableName, columnName := string(expr.Qualifier), string(expr.Name)
+		tableName, columnName := string(expr.Qualifier), strings.ToLower(string(expr.Name))
 
 		columnType := getColumnType(tables, tableName, columnName)
 
