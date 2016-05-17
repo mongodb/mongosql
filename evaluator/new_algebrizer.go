@@ -7,7 +7,6 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
-	"github.com/kr/pretty"
 )
 
 // Algebrize takes a parsed SQL statement and returns an algebrized form of the query.
@@ -207,166 +206,83 @@ func (a *algebrizer) translateSelectStatement(selectStatement sqlparser.SelectSt
 }
 
 func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
-	var plan PlanStage
-	var err error
+	builder := &queryPlanBuilder{
+		algebrizer: a,
+	}
 
+	// 1. Translate all the tables, subqueries, and joins in the FROM clause.
+	// This establishes all the columns which are in scope.
 	if sel.From != nil {
-		plan, err = a.translateTableExprs(sel.From)
+		plan, err := a.translateTableExprs(sel.From)
 		if err != nil {
 			return nil, err
 		}
+
+		builder.from = plan
+
+		// TODO: probably add allowed tableNames in order to filter out subquery columns from
+		// unrelated tables
+		builder.exprCollector = newExpressionCollector()
 	}
 
-	// TODO: probably add allowed tableNames in order to filter out subquery columns from
-	// unrelated tables
-	collector := newExpressionCollector()
-
-	var wherePredicate SQLExpr
+	// 2. Translate all the other clauses from this scope. We aren't going to create the plan stages
+	// yet because the expressions may need to be substituted if a group by exists.
+	// Also, in the future, since we are collecting what columns are required at each stage, we'll be
+	// able to add a RequiredColumns() function to PlanStage that will let us push down a $project
+	// before the first PlanStage we have to execute in memory so as to only pull back the columns
+	// we'll actually need.
 	if sel.Where != nil {
-		wherePredicate, err = a.translateExpr(sel.Where.Expr)
+		err := builder.includeWhere(sel.Where)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if sel.SelectExprs != nil {
+		err := builder.includeSelect(sel.SelectExprs)
 		if err != nil {
 			return nil, err
 		}
 
-		if wherePredicate.Type() != schema.SQLBoolean {
-			wherePredicate = &SQLConvertExpr{
-				expr:     wherePredicate,
-				convType: schema.SQLBoolean,
-			}
-		}
-
-		collector.Visit(wherePredicate)
+		// set projected columns globally because column resolution depends on
+		// this list, where group by and having resolve from this list second, and
+		// order by resolves from it first.
+		a.projectedColumns = builder.project
 	}
 
-	projectedColumns, err := a.translateSelectExprs(sel.SelectExprs)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, pc := range projectedColumns {
-		collector.Visit(pc.Expr)
-	}
-
-	// set projected columns here so column resolution falls back to these
-	a.projectedColumns = projectedColumns
-
-	var groupByKeys []SQLExpr
 	if sel.GroupBy != nil {
-		groupByKeys, err = a.translateGroupBy(sel.GroupBy)
+		err := builder.includeGroupBy(sel.GroupBy)
 		if err != nil {
 			return nil, err
 		}
-
-		collector.VisitAll(groupByKeys)
 	}
 
-	var havingPredicate SQLExpr
 	if sel.Having != nil {
-		havingPredicate, err = a.translateExpr(sel.Having.Expr)
+		err := builder.includeHaving(sel.Having)
 		if err != nil {
 			return nil, err
 		}
-
-		collector.Visit(havingPredicate)
 	}
 
 	// order by resolves from the projected columns first
 	a.resolveProjectedColumnsFirst = true
 
-	var orderByTerms []*orderByTerm
 	if sel.OrderBy != nil {
-		orderByTerms, err = a.translateOrderBy(sel.OrderBy)
+		err := builder.includeOrderBy(sel.OrderBy)
 		if err != nil {
 			return nil, err
 		}
-
-		for _, obt := range orderByTerms {
-			collector.Visit(obt.expr)
-		}
-	}
-
-	if wherePredicate != nil {
-		plan = NewFilterStage(plan, wherePredicate)
-
-		collector.Remove(wherePredicate)
-	}
-
-	// group by
-	if len(groupByKeys) > 0 || len(collector.allAggFunctions) > 0 {
-		var keys SelectExpressions
-		for _, e := range groupByKeys {
-			pc := projectedColumnFromExpr(e)
-			keys = append(keys, *pc)
-		}
-
-		collector.RemoveAll(groupByKeys)
-
-		var projectedAggregates SelectExpressions
-		for _, e := range collector.allAggFunctions {
-			pc := projectedColumnFromExpr(e)
-			projectedAggregates = append(projectedAggregates, *pc)
-		}
-
-		for _, e := range collector.allNonAggReferencedColumns.getExprs() {
-			pc := projectedColumnFromExpr(e)
-			projectedAggregates = append(projectedAggregates, *pc)
-		}
-
-		plan = NewGroupByStage(plan, keys, projectedAggregates)
-
-		// replace aggregation expressions with columns coming out of the GroupByStage
-
-		var newProjectedColumns SelectExpressions
-		for _, pc := range projectedColumns {
-			replaced, err := replaceAggFunctionsWithColumns("", pc.Expr)
-			if err != nil {
-				return nil, err
-			}
-
-			pc.Expr = replaced
-			newProjectedColumns = append(newProjectedColumns, pc)
-		}
-
-		projectedColumns = newProjectedColumns
-
-		havingPredicate, err = replaceAggFunctionsWithColumns("", havingPredicate)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, obt := range orderByTerms {
-			replaced, err := replaceAggFunctionsWithColumns("", obt.expr)
-			if err != nil {
-				return nil, err
-			}
-			obt.expr = replaced
-		}
-	}
-
-	// having
-
-	// distinct
-
-	if len(orderByTerms) > 0 {
-		plan = NewOrderByStage(plan, orderByTerms...)
 	}
 
 	if sel.Limit != nil {
-		offset, rowcount, err := a.translateLimit(sel.Limit)
+		err := builder.includeLimit(sel.Limit)
 		if err != nil {
 			return nil, err
 		}
-
-		plan = NewLimitStage(plan, int64(offset), int64(rowcount))
 	}
 
-	plan = NewProjectStage(plan, projectedColumns...)
-
-	if groupByKeys != nil {
-		fmt.Printf("\nActual: %# v", pretty.Formatter(plan))
-	}
-
-	return plan, nil
+	// 3. Build the stages.
+	return builder.build(), nil
 }
 
 func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (SelectExpressions, error) {
@@ -772,6 +688,246 @@ func (a *algebrizer) translateSubqueryExpr(expr *sqlparser.Subquery) (SQLExpr, e
 	return &SQLSubqueryExpr{
 		plan: plan,
 	}, nil
+}
+
+type queryPlanBuilder struct {
+	algebrizer    *algebrizer
+	exprCollector *expressionCollector
+
+	from     PlanStage
+	where    SQLExpr
+	groupBy  []SQLExpr
+	having   SQLExpr
+	distinct bool
+	orderBy  []*orderByTerm
+	project  SelectExpressions
+	offset   int64
+	rowcount int64
+}
+
+func (b *queryPlanBuilder) build() PlanStage {
+
+	plan := b.buildWhere(b.from)
+	plan = b.buildGroupBy(plan)
+	plan = b.buildHaving(plan)
+	plan = b.buildDistinct(plan)
+	plan = b.buildOrderBy(plan)
+	plan = b.buildLimit(plan)
+	plan = b.buildProject(plan)
+
+	return plan
+}
+
+func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
+	if b.distinct {
+		panic("distinct isn't currently supported")
+	}
+
+	return source
+}
+
+func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
+	plan := source
+	if len(b.groupBy) > 0 || len(b.exprCollector.allAggFunctions) > 0 {
+		var keys SelectExpressions
+		for _, e := range b.groupBy {
+			pc := projectedColumnFromExpr(e)
+			keys = append(keys, *pc)
+		}
+
+		// do this now so it doesn't throw off the b.exprCollector.allNonAggReferencedColumns.
+		b.exprCollector.RemoveAll(b.groupBy)
+
+		// projectedAggregates will include all the aggregates as well
+		// as any column that is not an aggregate function.
+		var projectedAggregates SelectExpressions
+		for _, e := range b.exprCollector.allAggFunctions {
+			pc := projectedColumnFromExpr(e)
+			projectedAggregates = append(projectedAggregates, *pc)
+		}
+
+		for _, e := range b.exprCollector.allNonAggReferencedColumns.getExprs() {
+			pc := projectedColumnFromExpr(e)
+			projectedAggregates = append(projectedAggregates, *pc)
+		}
+
+		plan = NewGroupByStage(source, keys, projectedAggregates)
+
+		// replace aggregation expressions with columns coming out of the GroupByStage
+		// because they have already been aggregated and are now just columns.
+		b.replaceAggFunctions()
+	}
+
+	return plan
+}
+
+func (b *queryPlanBuilder) buildHaving(source PlanStage) PlanStage {
+	if b.having != nil {
+		b.exprCollector.Remove(b.having)
+		return NewFilterStage(source, b.having)
+	}
+
+	return source
+}
+
+func (b *queryPlanBuilder) buildLimit(source PlanStage) PlanStage {
+	if b.offset > 0 || b.rowcount > 0 {
+		return NewLimitStage(source, b.offset, b.rowcount)
+	}
+
+	return source
+}
+
+func (b *queryPlanBuilder) buildOrderBy(source PlanStage) PlanStage {
+	if len(b.orderBy) > 0 {
+		for _, obt := range b.orderBy {
+			b.exprCollector.Remove(obt.expr)
+		}
+
+		return NewOrderByStage(source, b.orderBy...)
+	}
+
+	return source
+}
+
+func (b *queryPlanBuilder) buildProject(source PlanStage) PlanStage {
+	if len(b.project) > 0 {
+		return NewProjectStage(source, b.project...)
+	}
+
+	return source
+}
+
+func (b *queryPlanBuilder) buildWhere(source PlanStage) PlanStage {
+	if b.where != nil {
+		b.exprCollector.Remove(b.where)
+		return NewFilterStage(source, b.where)
+	}
+
+	return source
+}
+
+func (b *queryPlanBuilder) replaceAggFunctions() error {
+	if len(b.project) > 0 {
+
+		var projectedColumns SelectExpressions
+		for _, pc := range b.project {
+			replaced, err := replaceAggFunctionsWithColumns("", pc.Expr)
+			if err != nil {
+				return err
+			}
+
+			projectedColumns = append(projectedColumns, SelectExpression{
+				Expr:   replaced,
+				Column: pc.Column,
+			})
+		}
+		b.project = projectedColumns
+	}
+
+	if b.having != nil {
+		having, err := replaceAggFunctionsWithColumns("", b.having)
+		if err != nil {
+			return err
+		}
+		b.having = having
+	}
+
+	if len(b.orderBy) > 0 {
+		var orderBy []*orderByTerm
+		for _, obt := range b.orderBy {
+			replaced, err := replaceAggFunctionsWithColumns("", obt.expr)
+			if err != nil {
+				return err
+			}
+
+			orderBy = append(orderBy, &orderByTerm{
+				ascending: obt.ascending,
+				expr:      replaced,
+			})
+		}
+
+		b.orderBy = orderBy
+	}
+
+	return nil
+}
+
+func (b *queryPlanBuilder) includeGroupBy(groupBy sqlparser.GroupBy) error {
+	keys, err := b.algebrizer.translateGroupBy(groupBy)
+	if err != nil {
+		return err
+	}
+
+	b.exprCollector.VisitAll(keys)
+	b.groupBy = keys
+	return nil
+}
+
+func (b *queryPlanBuilder) includeHaving(having *sqlparser.Where) error {
+	pred, err := b.algebrizer.translateExpr(having.Expr)
+	if err != nil {
+		return err
+	}
+
+	b.exprCollector.Visit(pred)
+	b.having = pred
+	return nil
+}
+
+func (b *queryPlanBuilder) includeLimit(limit *sqlparser.Limit) error {
+	offset, rowcount, err := b.algebrizer.translateLimit(limit)
+	if err != nil {
+		return err
+	}
+
+	b.offset = int64(offset)
+	b.rowcount = int64(rowcount)
+	return nil
+}
+
+func (b *queryPlanBuilder) includeOrderBy(orderBy sqlparser.OrderBy) error {
+	terms, err := b.algebrizer.translateOrderBy(orderBy)
+	if err != nil {
+		return err
+	}
+
+	for _, obt := range terms {
+		b.exprCollector.Visit(obt.expr)
+	}
+	b.orderBy = terms
+	return nil
+}
+
+func (b *queryPlanBuilder) includeSelect(selectExprs sqlparser.SelectExprs) error {
+	project, err := b.algebrizer.translateSelectExprs(selectExprs)
+	if err != nil {
+		return err
+	}
+
+	for _, pc := range project {
+		b.exprCollector.Visit(pc.Expr)
+	}
+	b.project = project
+	return nil
+}
+
+func (b *queryPlanBuilder) includeWhere(where *sqlparser.Where) error {
+	pred, err := b.algebrizer.translateExpr(where.Expr)
+	if err != nil {
+		return err
+	}
+
+	if pred.Type() != schema.SQLBoolean {
+		pred = &SQLConvertExpr{
+			expr:     pred,
+			convType: schema.SQLBoolean,
+		}
+	}
+
+	b.exprCollector.Visit(pred)
+	b.where = pred
+	return nil
 }
 
 type exprCountMap struct {

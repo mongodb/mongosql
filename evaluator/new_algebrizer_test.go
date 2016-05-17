@@ -6,7 +6,6 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
-	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -471,7 +470,7 @@ func TestNewAlgebrize(t *testing.T) {
 		Convey("group by", func() {
 			test("select sum(a) from foo group by b", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				s := NewProjectStage(
+				return NewProjectStage(
 					NewGroupByStage(source,
 						SelectExpressions{
 							createSelectExpression(source, "foo", "b", "foo", "b"),
@@ -485,9 +484,6 @@ func TestNewAlgebrize(t *testing.T) {
 					),
 					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
-
-				fmt.Printf("\nExpected: %# v", pretty.Formatter(s))
-				return s
 			})
 		})
 
