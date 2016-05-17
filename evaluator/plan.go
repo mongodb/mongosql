@@ -216,6 +216,17 @@ func (se SelectExpressions) GetColumns() []*Column {
 	return columns
 }
 
+func (se SelectExpressions) Unique() SelectExpressions {
+	var results SelectExpressions
+	for _, e := range se {
+		if !results.Contains(*e.Column) {
+			results = append(results, e)
+		}
+	}
+
+	return results
+}
+
 func (se SelectExpressions) Contains(column Column) bool {
 
 	for _, expr := range se {

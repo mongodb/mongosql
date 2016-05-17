@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/kr/pretty"
 )
 
 // Algebrize takes a parsed SQL statement and returns an algebrized form of the query.
@@ -359,7 +360,7 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 	}
 
 	if hasGlobalStar && len(selectExprs) > 1 {
-		return nil, fmt.Errorf("cannot have a global * in the field list conjunction with any other columns")
+		return nil, fmt.Errorf("cannot have a global * in the field list in conjunction with any other columns")
 	}
 
 	return projectedColumns, nil
@@ -715,6 +716,10 @@ func (b *queryPlanBuilder) build() PlanStage {
 	plan = b.buildLimit(plan)
 	plan = b.buildProject(plan)
 
+	if len(b.groupBy) > 0 {
+		fmt.Printf("\nActual: %# v", pretty.Formatter(plan))
+	}
+
 	return plan
 }
 
@@ -741,17 +746,19 @@ func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 		// projectedAggregates will include all the aggregates as well
 		// as any column that is not an aggregate function.
 		var projectedAggregates SelectExpressions
-		for _, e := range b.exprCollector.allAggFunctions {
-			pc := projectedColumnFromExpr(e)
-			projectedAggregates = append(projectedAggregates, *pc)
-		}
-
 		for _, e := range b.exprCollector.allNonAggReferencedColumns.getExprs() {
 			pc := projectedColumnFromExpr(e)
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
 
-		plan = NewGroupByStage(source, keys, projectedAggregates)
+		for _, e := range b.exprCollector.allAggFunctions {
+			pc := projectedColumnFromExpr(e)
+			projectedAggregates = append(projectedAggregates, *pc)
+		}
+
+		// TODO: remove duplicates from projectedAggregates
+
+		plan = NewGroupByStage(source, keys, projectedAggregates.Unique())
 
 		// replace aggregation expressions with columns coming out of the GroupByStage
 		// because they have already been aggregated and are now just columns.

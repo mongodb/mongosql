@@ -485,6 +485,50 @@ func TestNewAlgebrize(t *testing.T) {
 					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
 			})
+
+			test("select a, sum(a) from foo group by b", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewGroupByStage(source,
+						SelectExpressions{
+							createSelectExpression(source, "foo", "b", "foo", "b"),
+						},
+						SelectExpressions{
+							createSelectExpression(source, "foo", "a", "foo", "a"),
+							createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+								Name:  "sum",
+								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+							}),
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "a"),
+					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+				)
+			})
+
+			test("select sum(a) from foo group by b order by sum(a)", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewOrderByStage(
+						NewGroupByStage(source,
+							SelectExpressions{
+								createSelectExpression(source, "foo", "b", "foo", "b"),
+							},
+							SelectExpressions{
+								createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+									Name:  "sum",
+									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+								}),
+							},
+						),
+						&orderByTerm{
+							expr:      createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+							ascending: true,
+						},
+					),
+					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+				)
+			})
 		})
 
 		Convey("order by", func() {
@@ -656,9 +700,9 @@ func TestNewAlgebrize(t *testing.T) {
 			testError("select foo.a from foo f", `unknown column "a" in table "foo"`)
 			testError("select a + idk from foo", `unknown column "idk"`)
 
-			testError("select *, * from foo", `cannot have a global * in the field list conjunction with any other columns`)
-			testError("select a, * from foo", `cannot have a global * in the field list conjunction with any other columns`)
-			testError("select *, a from foo", `cannot have a global * in the field list conjunction with any other columns`)
+			testError("select *, * from foo", `cannot have a global * in the field list in conjunction with any other columns`)
+			testError("select a, * from foo", `cannot have a global * in the field list in conjunction with any other columns`)
+			testError("select *, a from foo", `cannot have a global * in the field list in conjunction with any other columns`)
 
 			testError("select a from foo, bar", `column "a" in the field list is ambiguous`)
 			testError("select foo.a from (select a from foo)", `unknown column "a" in table "foo"`)
