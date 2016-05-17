@@ -570,6 +570,33 @@ func TestNewAlgebrize(t *testing.T) {
 					createSelectExpressionFromSQLExpr("", "sum_a", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
 			})
+
+			// We have an issue with subqueries and aggregates...
+			// test("select (select sum(foo.a) from foo f) from foo group by b", func() PlanStage {
+			// 	source := createMongoSource("foo", "foo")
+			// 	return NewProjectStage(
+			// 		NewGroupByStage(source,
+			// 			SelectExpressions{
+			// 				createSelectExpression(source, "foo", "b", "foo", "b"),
+			// 			},
+			// 			SelectExpressions{
+			// 				createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+			// 					Name:  "sum",
+			// 					Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+			// 				}),
+			// 			},
+			// 		),
+			// 		createSelectExpressionFromSQLExpr("", "(select sum(foo.a) from foo f)",
+			// 			&SQLSubqueryExpr{
+			// 				// correlated: true,
+			// 				plan: NewProjectStage(
+			// 					source,
+			// 					createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+			// 				),
+			// 			},
+			// 		),
+			// 	)
+			// })
 		})
 
 		Convey("having", func() {
@@ -595,6 +622,77 @@ func TestNewAlgebrize(t *testing.T) {
 						},
 					),
 					createSelectExpression(source, "foo", "a", "", "a"),
+				)
+			})
+		})
+
+		Convey("distinct", func() {
+			test("select distinct a from foo", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewGroupByStage(source,
+						SelectExpressions{
+							createSelectExpression(source, "foo", "a", "foo", "a"),
+						},
+						SelectExpressions{
+							createSelectExpression(source, "foo", "a", "foo", "a"),
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "a"),
+				)
+			})
+
+			test("select distinct sum(a) from foo", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewGroupByStage(
+						NewGroupByStage(source,
+							nil,
+							SelectExpressions{
+								createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+									Name:  "sum",
+									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+								}),
+							},
+						),
+						SelectExpressions{
+							createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						},
+						SelectExpressions{
+							createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						},
+					),
+					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+				)
+			})
+
+			test("select distinct sum(a) from foo having sum(a) > 20", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewGroupByStage(
+						NewFilterStage(
+							NewGroupByStage(source,
+								nil,
+								SelectExpressions{
+									createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+										Name:  "sum",
+										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+									}),
+								},
+							),
+							&SQLGreaterThanExpr{
+								left:  createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+								right: SQLInt(20),
+							},
+						),
+						SelectExpressions{
+							createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						},
+						SelectExpressions{
+							createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						},
+					),
+					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
 			})
 		})

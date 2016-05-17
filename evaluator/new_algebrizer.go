@@ -12,8 +12,6 @@ import (
 // Algebrize takes a parsed SQL statement and returns an algebrized form of the query.
 func Algebrize(selectStatement sqlparser.SelectStatement, dbName string, schema *schema.Schema) (PlanStage, error) {
 
-	//fmt.Printf("\nSelect Statement: %# v", pretty.Formatter(selectStatement))
-
 	algebrizer := &algebrizer{
 		dbName: dbName,
 		schema: schema,
@@ -729,19 +727,30 @@ func (b *queryPlanBuilder) build() PlanStage {
 	plan = b.buildLimit(plan)
 	plan = b.buildProject(plan)
 
-	if len(b.groupBy) > 0 {
-		//fmt.Printf("\nActual: %# v", pretty.Formatter(plan))
-	}
-
 	return plan
 }
 
 func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
+	plan := source
 	if b.distinct {
-		panic("distinct isn't currently supported")
+		var keys SelectExpressions
+		for _, c := range b.project {
+			pc := projectedColumnFromExpr(c.Expr)
+			keys = append(keys, *pc)
+		}
+
+		// projectedAggregates will include all the aggregates as well
+		// as any column that is not an aggregate function.
+		var projectedAggregates SelectExpressions
+		for _, e := range b.exprCollector.allNonAggReferencedColumns.getExprs() {
+			pc := projectedColumnFromExpr(e)
+			projectedAggregates = append(projectedAggregates, *pc)
+		}
+
+		plan = NewGroupByStage(plan, keys, projectedAggregates)
 	}
 
-	return source
+	return plan
 }
 
 func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
@@ -769,9 +778,7 @@ func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
 
-		// TODO: remove duplicates from projectedAggregates
-
-		plan = NewGroupByStage(source, keys, projectedAggregates.Unique())
+		plan = NewGroupByStage(plan, keys, projectedAggregates.Unique())
 
 		// replace aggregation expressions with columns coming out of the GroupByStage
 		// because they have already been aggregated and are now just columns.
@@ -828,14 +835,21 @@ func (b *queryPlanBuilder) buildWhere(source PlanStage) PlanStage {
 }
 
 func (b *queryPlanBuilder) replaceAggFunctions() error {
+
+	// since we are replacing aggregates (which likely include columns) with other columns,
+	// we need to update the exprCollection with the new information so that it continues
+	// to be correct. Therefore, we'll be removing the old
+
 	if len(b.project) > 0 {
 
 		var projectedColumns SelectExpressions
 		for _, pc := range b.project {
+			b.exprCollector.Remove(pc.Expr)
 			replaced, err := replaceAggFunctionsWithColumns("", pc.Expr)
 			if err != nil {
 				return err
 			}
+			b.exprCollector.Visit(replaced)
 
 			projectedColumns = append(projectedColumns, SelectExpression{
 				Expr:   replaced,
@@ -846,20 +860,25 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 	}
 
 	if b.having != nil {
+		b.exprCollector.Remove(b.having)
 		having, err := replaceAggFunctionsWithColumns("", b.having)
 		if err != nil {
 			return err
 		}
+		b.exprCollector.Visit(having)
+
 		b.having = having
 	}
 
 	if len(b.orderBy) > 0 {
 		var orderBy []*orderByTerm
 		for _, obt := range b.orderBy {
+			b.exprCollector.Remove(obt.expr)
 			replaced, err := replaceAggFunctionsWithColumns("", obt.expr)
 			if err != nil {
 				return err
 			}
+			b.exprCollector.Visit(replaced)
 
 			orderBy = append(orderBy, &orderByTerm{
 				ascending: obt.ascending,
