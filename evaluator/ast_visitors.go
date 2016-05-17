@@ -132,45 +132,6 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 	return e, nil
 }
 
-type aggFunctionFinder struct {
-	aggFuncs []*SQLAggFunctionExpr
-}
-
-// getAggFunctions will take an expression and return all
-// aggregation functions it finds within the expression.
-func getAggFunctions(e SQLExpr) ([]*SQLAggFunctionExpr, error) {
-
-	af := &aggFunctionFinder{}
-
-	_, err := af.Visit(e)
-	if err != nil {
-		return nil, err
-	}
-
-	return af.aggFuncs, nil
-}
-
-func (af *aggFunctionFinder) Visit(e SQLExpr) (SQLExpr, error) {
-
-	switch typedE := e.(type) {
-
-	case *SQLExistsExpr, SQLColumnExpr, SQLNullValue, SQLNumeric, SQLVarchar, *SQLSubqueryExpr:
-
-		return e, nil
-
-	case *SQLAggFunctionExpr:
-
-		af.aggFuncs = append(af.aggFuncs, typedE)
-
-	default:
-
-		return walk(af, e)
-
-	}
-
-	return e, nil
-}
-
 // partiallyEvaluate will take an expression tree and partially evaluate any nodes that can
 // evaluated without needing data from the database. If functions by using the
 // nominateForPartialEvaluation function to gather candidates that are evaluatable. Then

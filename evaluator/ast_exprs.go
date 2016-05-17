@@ -172,7 +172,9 @@ func (ce SQLConvertExpr) Type() schema.SQLType {
 type SQLSubqueryExpr struct {
 	stmt  sqlparser.SelectStatement
 	exprs []SQLExpr
-	plan  PlanStage
+
+	correlated bool
+	plan       PlanStage
 }
 
 func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error) {

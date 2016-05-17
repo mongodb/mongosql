@@ -618,7 +618,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 		case *SQLTupleExpr:
 			return &SQLTupleExpr{newExprs}, nil
 		case *SQLSubqueryExpr:
-			return &SQLSubqueryExpr{typedE.stmt, newExprs, nil}, nil
+			return &SQLSubqueryExpr{typedE.stmt, newExprs, false, nil}, nil
 		}
 		return nil, fmt.Errorf("can not wrap reconciled non-tuple type '%T'", expr)
 	}

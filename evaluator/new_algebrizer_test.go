@@ -331,7 +331,8 @@ func TestNewAlgebrize(t *testing.T) {
 					createSelectExpression(fooSource, "foo", "a", "", "a"),
 					createSelectExpressionFromSQLExpr("", "(select foo.a from bar)",
 						&SQLSubqueryExpr{
-							plan: NewProjectStage(barSource, createSelectExpression(fooSource, "foo", "a", "", "a")),
+							plan:       NewProjectStage(barSource, createSelectExpression(fooSource, "foo", "a", "", "a")),
+							correlated: true,
 						},
 					),
 				)
@@ -468,6 +469,22 @@ func TestNewAlgebrize(t *testing.T) {
 		})
 
 		Convey("group by", func() {
+			test("select sum(a) from foo", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewGroupByStage(source,
+						nil,
+						SelectExpressions{
+							createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+								Name:  "sum",
+								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+							}),
+						},
+					),
+					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+				)
+			})
+
 			test("select sum(a) from foo group by b", func() PlanStage {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(
@@ -527,6 +544,57 @@ func TestNewAlgebrize(t *testing.T) {
 						},
 					),
 					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+				)
+			})
+
+			test("select sum(a) as sum_a from foo group by b order by sum_a", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewOrderByStage(
+						NewGroupByStage(source,
+							SelectExpressions{
+								createSelectExpression(source, "foo", "b", "foo", "b"),
+							},
+							SelectExpressions{
+								createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+									Name:  "sum",
+									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+								}),
+							},
+						),
+						&orderByTerm{
+							expr:      createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+							ascending: true,
+						},
+					),
+					createSelectExpressionFromSQLExpr("", "sum_a", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+				)
+			})
+		})
+
+		Convey("having", func() {
+			test("select a from foo group by b having sum(a) > 10", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewFilterStage(
+						NewGroupByStage(source,
+							SelectExpressions{
+								createSelectExpression(source, "foo", "b", "foo", "b"),
+							},
+							SelectExpressions{
+								createSelectExpression(source, "foo", "a", "foo", "a"),
+								createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+									Name:  "sum",
+									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+								}),
+							},
+						),
+						&SQLGreaterThanExpr{
+							left:  createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+							right: SQLInt(10),
+						},
+					),
+					createSelectExpression(source, "foo", "a", "", "a"),
 				)
 			})
 		})
@@ -715,6 +783,10 @@ func TestNewAlgebrize(t *testing.T) {
 
 			testError("select a from foo order by 2", `unknown column "2" in order clause`)
 			testError("select a from foo order by idk", `unknown column "idk"`)
+
+			testError("select sum(a) from foo group by sum(a)", `can't group on "sum(foo.a)"`)
+			testError("select sum(a) from foo group by 1", `can't group on "sum(foo.a)"`)
+			testError("select sum(a) from foo group by 2", `unknown column "2" in group clause`)
 		})
 
 	})

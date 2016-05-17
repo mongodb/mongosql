@@ -7,7 +7,6 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
-	"github.com/kr/pretty"
 )
 
 // Algebrize takes a parsed SQL statement and returns an algebrized form of the query.
@@ -28,6 +27,7 @@ type algebrizer struct {
 	dbName                       string // the default database name.
 	schema                       *schema.Schema
 	columns                      []*Column         // all the columns in scope.
+	correlated                   bool              // indicates whether this context is using columns in it's parent.
 	projectedColumns             SelectExpressions // columns to be projected from this scope.
 	resolveProjectedColumnsFirst bool
 }
@@ -48,10 +48,6 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 	}
 
 	if found == nil {
-		if a.parent != nil {
-			return a.parent.lookupColumn(tableName, columnName)
-		}
-
 		if tableName == "" {
 			return nil, fmt.Errorf("unknown column %q", columnName)
 		}
@@ -74,7 +70,7 @@ func (a *algebrizer) lookupProjectedColumnExpr(columnName string) (*SelectExpres
 	return nil, false
 }
 
-func (a *algebrizer) resolveColumnExpr(expr sqlparser.Expr) (SQLExpr, error) {
+func (a *algebrizer) resolveColumnExpr(expr sqlparser.Expr, clause string) (SQLExpr, error) {
 	if numVal, ok := expr.(sqlparser.NumVal); ok {
 		n, err := strconv.ParseInt(sqlparser.String(numVal), 10, 64)
 		if err != nil {
@@ -82,7 +78,7 @@ func (a *algebrizer) resolveColumnExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		}
 
 		if int(n) > len(a.projectedColumns) {
-			return nil, fmt.Errorf("unknown column \"%v\" in order clause", n)
+			return nil, fmt.Errorf("unknown column \"%v\" in %s", n, clause)
 		}
 
 		if n >= 0 {
@@ -111,9 +107,14 @@ func (a *algebrizer) translateGroupBy(groupby sqlparser.GroupBy) ([]SQLExpr, err
 	var keys []SQLExpr
 	for _, g := range groupby {
 
-		key, err := a.resolveColumnExpr(g)
+		key, err := a.resolveColumnExpr(g, "group clause")
 		if err != nil {
 			return nil, err
+		}
+
+		afs, err := getAggFunctions(key)
+		if len(afs) > 0 {
+			return nil, fmt.Errorf("can't group on %q", afs[0].String())
 		}
 
 		keys = append(keys, key)
@@ -186,7 +187,7 @@ func (a *algebrizer) translateOrderBy(orderby sqlparser.OrderBy) ([]*orderByTerm
 
 func (a *algebrizer) translateOrder(order *sqlparser.Order) (*orderByTerm, error) {
 	ascending := !strings.EqualFold(order.Direction, "desc")
-	e, err := a.resolveColumnExpr(order.Expr)
+	e, err := a.resolveColumnExpr(order.Expr, "order clause")
 	if err != nil {
 		return nil, err
 	}
@@ -264,6 +265,8 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 			return nil, err
 		}
 	}
+
+	builder.distinct = sel.Distinct == sqlparser.AST_DISTINCT
 
 	// order by resolves from the projected columns first
 	a.resolveProjectedColumnsFirst = true
@@ -510,7 +513,16 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 				}
 			}
 
-			return nil, err
+			if a.parent != nil {
+				column, err = a.parent.lookupColumn(tableName, columnName)
+				if err != nil {
+					return nil, err
+				}
+
+				a.correlated = true
+			} else {
+				return nil, err
+			}
 		}
 
 		return SQLColumnExpr{
@@ -687,7 +699,8 @@ func (a *algebrizer) translateSubqueryExpr(expr *sqlparser.Subquery) (SQLExpr, e
 	}
 
 	return &SQLSubqueryExpr{
-		plan: plan,
+		plan:       plan,
+		correlated: subqueryAlgebrizer.correlated,
 	}, nil
 }
 
@@ -717,7 +730,7 @@ func (b *queryPlanBuilder) build() PlanStage {
 	plan = b.buildProject(plan)
 
 	if len(b.groupBy) > 0 {
-		fmt.Printf("\nActual: %# v", pretty.Formatter(plan))
+		//fmt.Printf("\nActual: %# v", pretty.Formatter(plan))
 	}
 
 	return plan
@@ -1039,6 +1052,35 @@ func (v *expressionCollector) Visit(e SQLExpr) (SQLExpr, error) {
 	default:
 		return walk(v, e)
 	}
+}
+
+type aggFunctionFinder struct {
+	aggFuncs []*SQLAggFunctionExpr
+}
+
+// getAggFunctions will take an expression and return all
+// aggregation functions it finds within the expression.
+func getAggFunctions(e SQLExpr) ([]*SQLAggFunctionExpr, error) {
+	af := &aggFunctionFinder{}
+	_, err := af.Visit(e)
+	if err != nil {
+		return nil, err
+	}
+
+	return af.aggFuncs, nil
+}
+
+func (af *aggFunctionFinder) Visit(e SQLExpr) (SQLExpr, error) {
+	switch typedE := e.(type) {
+	case *SQLExistsExpr, SQLColumnExpr, SQLNullValue, SQLNumeric, SQLVarchar, *SQLSubqueryExpr:
+		return e, nil
+	case *SQLAggFunctionExpr:
+		af.aggFuncs = append(af.aggFuncs, typedE)
+	default:
+		return walk(af, e)
+	}
+
+	return e, nil
 }
 
 type aggFunctionExprReplacer struct {
