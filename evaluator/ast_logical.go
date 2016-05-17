@@ -83,6 +83,7 @@ func (_ *SQLEqualsExpr) Type() schema.SQLType {
 //
 type SQLExistsExpr struct {
 	stmt sqlparser.SelectStatement
+	expr SQLExpr
 }
 
 func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {

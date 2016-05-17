@@ -386,7 +386,7 @@ func NewSQLExpr(sqlExpr sqlparser.Expr, tables map[string]*schema.Table) (SQLExp
 		return ctor.Evaluate(nil)
 
 	case *sqlparser.ExistsExpr:
-		return &SQLExistsExpr{expr.Subquery.Select}, nil
+		return &SQLExistsExpr{expr.Subquery.Select, nil}, nil
 
 	case *sqlparser.FuncExpr:
 

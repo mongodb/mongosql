@@ -11,7 +11,6 @@ import (
 
 // Algebrize takes a parsed SQL statement and returns an algebrized form of the query.
 func Algebrize(selectStatement sqlparser.SelectStatement, dbName string, schema *schema.Schema) (PlanStage, error) {
-
 	algebrizer := &algebrizer{
 		dbName: dbName,
 		schema: schema,
@@ -471,6 +470,14 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 
 func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 	switch typedE := expr.(type) {
+	case *sqlparser.AndExpr:
+
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		if err != nil {
+			return nil, err
+		}
+
+		return &SQLAndExpr{left, right}, nil
 	case *sqlparser.BinaryExpr:
 		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, true)
 		if err != nil {
@@ -489,6 +496,8 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		default:
 			return nil, fmt.Errorf("no support for binary operator '%v'", typedE.Operator)
 		}
+	case *sqlparser.CaseExpr:
+		return a.translateCaseExpr(typedE)
 	case *sqlparser.ColName:
 		tableName := ""
 		if typedE.Qualifier != nil {
@@ -569,8 +578,41 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		default:
 			return nil, fmt.Errorf("no support for operator %q", typedE.Operator)
 		}
+	case *sqlparser.CtorExpr:
+		// TODO: SQLCtorExpr contains reference to parse tree...
+
+		// ctor := &SQLCtorExpr{Name: typedE.Name, Args: expr.Exprs}
+		// return ctor.Evaluate(nil)
+		return nil, fmt.Errorf("ctor expression not supported yet")
+	case *sqlparser.ExistsExpr:
+		subquery, err := a.translateSubqueryExpr(typedE.Subquery)
+		if err != nil {
+			return nil, err
+		}
+		return &SQLExistsExpr{nil, subquery}, nil
 	case *sqlparser.FuncExpr:
 		return a.translateFuncExpr(typedE)
+	case *sqlparser.NotExpr:
+		child, err := a.translateExpr(typedE.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		return &SQLNotExpr{child}, nil
+	case *sqlparser.NullCheck:
+		val, err := a.translateExpr(typedE.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		var child SQLExpr = &SQLNullCmpExpr{val}
+		if typedE.Operator == sqlparser.AST_IS_NOT_NULL {
+			child = &SQLNotExpr{child}
+		}
+
+		return child, nil
+	case *sqlparser.NullVal:
+		return SQLNull, nil
 	case sqlparser.NumVal:
 		// try to parse as int first
 		if i, err := strconv.ParseInt(sqlparser.String(expr), 10, 64); err == nil {
@@ -584,10 +626,92 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		}
 
 		return SQLFloat(f), nil
+	case *sqlparser.OrExpr:
+
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		if err != nil {
+			return nil, err
+		}
+
+		return &SQLOrExpr{left, right}, nil
+	case *sqlparser.ParenBoolExpr:
+		return a.translateExpr(typedE.Expr)
+	case *sqlparser.RangeCond:
+
+		from, err := a.translateExpr(typedE.From)
+		if err != nil {
+			return nil, err
+		}
+
+		left, err := a.translateExpr(typedE.Left)
+		if err != nil {
+			return nil, err
+		}
+
+		to, err := a.translateExpr(typedE.To)
+		if err != nil {
+			return nil, err
+		}
+
+		left, from, err = reconcileSQLExprs(left, from)
+		if err != nil {
+			return nil, err
+		}
+
+		lower := &SQLGreaterThanOrEqualExpr{left, from}
+
+		left, to, err = reconcileSQLExprs(left, to)
+		if err != nil {
+			return nil, err
+		}
+
+		upper := &SQLLessThanOrEqualExpr{left, to}
+
+		var m SQLExpr = &SQLAndExpr{lower, upper}
+
+		if typedE.Operator == sqlparser.AST_NOT_BETWEEN {
+			return &SQLNotExpr{m}, nil
+		}
+
+		return m, nil
 	case sqlparser.StrVal:
 		return SQLVarchar(string(typedE)), nil
 	case *sqlparser.Subquery:
 		return a.translateSubqueryExpr(typedE)
+	case *sqlparser.UnaryExpr:
+
+		child, err := a.translateExpr(typedE.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		switch typedE.Operator {
+		case sqlparser.AST_UMINUS:
+			return &SQLUnaryMinusExpr{child}, nil
+		case sqlparser.AST_TILDA:
+			return &SQLUnaryTildeExpr{child}, nil
+		}
+
+		return nil, fmt.Errorf("invalid unary operator - '%v'", string(typedE.Operator))
+
+	case sqlparser.ValTuple:
+
+		var exprs []SQLExpr
+
+		for _, e := range typedE {
+			newExpr, err := a.translateExpr(e)
+			if err != nil {
+				return nil, err
+			}
+
+			exprs = append(exprs, newExpr)
+		}
+
+		if len(exprs) == 1 {
+			return exprs[0], nil
+		}
+
+		return &SQLTupleExpr{exprs}, nil
 	default:
 		return nil, fmt.Errorf("no support for %T", expr)
 	}
@@ -609,6 +733,71 @@ func (a *algebrizer) translateLeftRightExprs(left sqlparser.Expr, right sqlparse
 	}
 
 	return leftEval, rightEval, err
+}
+
+func (a *algebrizer) translateCaseExpr(expr *sqlparser.CaseExpr) (SQLExpr, error) {
+	// There are two kinds of case expression.
+	//
+	// 1. For simple case expressions, we create an equality matcher that compares
+	// the expression against each value in the list of cases.
+	//
+	// 2. For searched case expressions, we create a matcher based on the boolean
+	// expression in each when condition.
+
+	var e SQLExpr
+	var err error
+
+	if expr.Expr != nil {
+		e, err = a.translateExpr(expr.Expr)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var conditions []caseCondition
+	var matcher SQLExpr
+
+	for _, when := range expr.Whens {
+
+		// searched case
+		if expr.Expr == nil {
+			matcher, err = a.translateExpr(when.Cond)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// TODO: support simple case in parser
+			c, err := a.translateExpr(when.Cond)
+			if err != nil {
+				return nil, err
+			}
+
+			matcher = &SQLEqualsExpr{e, c}
+		}
+
+		then, err := a.translateExpr(when.Val)
+		if err != nil {
+			return nil, err
+		}
+
+		conditions = append(conditions, caseCondition{matcher, then})
+	}
+
+	var elseValue SQLExpr
+	if expr.Else == nil {
+		elseValue = SQLNull
+	} else if elseValue, err = a.translateExpr(expr.Else); err != nil {
+		return nil, err
+	}
+
+	value := &SQLCaseExpr{
+		elseValue:      elseValue,
+		caseConditions: conditions,
+	}
+
+	// TODO: You cannot specify the literal NULL for every return expr
+	// and the else expr.
+	return value, nil
 }
 
 func (a *algebrizer) translateFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error) {

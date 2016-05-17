@@ -9,7 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestNewAlgebrize(t *testing.T) {
+func TestNewAlgebrizeStatements(t *testing.T) {
 
 	testSchema, _ := schema.New(testSchema1)
 	defaultDbName := "test"
@@ -115,7 +115,7 @@ func TestNewAlgebrize(t *testing.T) {
 		return r
 	}
 
-	Convey("Subject: Algebrize", t, func() {
+	Convey("Subject: Algebrize Statements", t, func() {
 		Convey("star simple queries", func() {
 			test("select * from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
@@ -886,6 +886,249 @@ func TestNewAlgebrize(t *testing.T) {
 			testError("select sum(a) from foo group by 1", `can't group on "sum(foo.a)"`)
 			testError("select sum(a) from foo group by 2", `unknown column "2" in group clause`)
 		})
+	})
+}
 
+func TestNewAlgebrizeExpr(t *testing.T) {
+	testSchema, _ := schema.New(testSchema1)
+	source, _ := NewMongoSourceStage(testSchema, "test", "foo", "foo")
+
+	test := func(sql string, expected SQLExpr) {
+		Convey(sql, func() {
+			statement, err := sqlparser.Parse("select " + sql + " from foo")
+			So(err, ShouldBeNil)
+
+			selectStatement := statement.(*sqlparser.Select)
+			actualPlan, err := Algebrize(selectStatement, "test", testSchema)
+			So(err, ShouldBeNil)
+
+			actual := (actualPlan.(*ProjectStage)).sExprs[0].Expr
+
+			// fmt.Printf("\nExpected: %# v", pretty.Formatter(expected))
+			// fmt.Printf("\nActual: %# v", pretty.Formatter(actual))
+
+			So(actual, ShouldResemble, expected)
+		})
+	}
+
+	createSQLColumnExpr := func(columnName string) SQLColumnExpr {
+		for _, c := range source.OpFields() {
+			if c.Name == columnName {
+				return SQLColumnExpr{
+					tableName:  c.Table,
+					columnName: c.Name,
+					columnType: schema.ColumnType{
+						SQLType:   c.SQLType,
+						MongoType: c.MongoType,
+					},
+				}
+			}
+		}
+
+		panic("column not found")
+	}
+
+	Convey("Subject: Algebrize Expressions", t, func() {
+		Convey("And", func() {
+			test("a = 1 AND b = 2", &SQLAndExpr{
+				left: &SQLEqualsExpr{
+					left:  createSQLColumnExpr("a"),
+					right: SQLInt(1),
+				},
+				right: &SQLEqualsExpr{
+					left:  createSQLColumnExpr("b"),
+					right: SQLInt(2),
+				},
+			})
+		})
+		Convey("Add", func() {
+			test("a + 1", &SQLAddExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLInt(1),
+			})
+		})
+
+		SkipConvey("Case", func() {
+		})
+
+		Convey("Divide", func() {
+			test("a / 1", &SQLDivideExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLInt(1),
+			})
+		})
+
+		Convey("Equals", func() {
+			test("a = 1", &SQLEqualsExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLInt(1),
+			})
+		})
+
+		SkipConvey("Exists", func() {
+		})
+
+		Convey("Greater Than", func() {
+			test("a > 1", &SQLGreaterThanExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLInt(1),
+			})
+		})
+
+		Convey("Greater Than Or Equal", func() {
+			test("a >= 1", &SQLGreaterThanOrEqualExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLInt(1),
+			})
+		})
+
+		SkipConvey("In", func() {
+		})
+
+		Convey("Is Null", func() {
+			test("a IS NULL", &SQLNullCmpExpr{
+				createSQLColumnExpr("a"),
+			})
+		})
+
+		Convey("Is Not Null", func() {
+			test("a IS NOT NULL", &SQLNotExpr{
+				&SQLNullCmpExpr{
+					createSQLColumnExpr("a"),
+				},
+			})
+		})
+
+		Convey("Less Than", func() {
+			test("a < 1", &SQLLessThanExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLInt(1),
+			})
+		})
+
+		Convey("Less Than Or Equal", func() {
+			test("a <= 1", &SQLLessThanOrEqualExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLInt(1),
+			})
+		})
+
+		SkipConvey("Like", func() {
+		})
+
+		Convey("Multiple", func() {
+			test("a * 1", &SQLMultiplyExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLInt(1),
+			})
+		})
+
+		Convey("Not", func() {
+			test("NOT a", &SQLNotExpr{
+				createSQLColumnExpr("a"),
+			})
+		})
+
+		Convey("NotEquals", func() {
+			test("a != 1", &SQLNotEqualsExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLInt(1),
+			})
+		})
+
+		SkipConvey("Not In", func() {
+		})
+
+		Convey("Null", func() {
+			test("NULL", SQLNull)
+		})
+
+		Convey("Number", func() {
+			test("20", SQLInt(20))
+			test("-20", SQLInt(-20))
+			test("20.2", SQLFloat(20.2))
+			test("-20.2", SQLFloat(-20.2))
+		})
+
+		Convey("Or", func() {
+			test("a = 1 OR b = 2", &SQLOrExpr{
+				left: &SQLEqualsExpr{
+					left:  createSQLColumnExpr("a"),
+					right: SQLInt(1),
+				},
+				right: &SQLEqualsExpr{
+					left:  createSQLColumnExpr("b"),
+					right: SQLInt(2),
+				},
+			})
+		})
+
+		Convey("Paren Boolean", func() {
+			// TODO: this seems weird... not sure what is up here
+			test("(1)", SQLInt(1))
+		})
+
+		Convey("Range", func() {
+			test("a BETWEEN 0 AND 20", &SQLAndExpr{
+				left: &SQLGreaterThanOrEqualExpr{
+					left:  createSQLColumnExpr("a"),
+					right: SQLInt(0),
+				},
+				right: &SQLLessThanOrEqualExpr{
+					left:  createSQLColumnExpr("a"),
+					right: SQLInt(20),
+				},
+			})
+
+			test("a NOT BETWEEN 0 AND 20", &SQLNotExpr{
+				&SQLAndExpr{
+					left: &SQLGreaterThanOrEqualExpr{
+						left:  createSQLColumnExpr("a"),
+						right: SQLInt(0),
+					},
+					right: &SQLLessThanOrEqualExpr{
+						left:  createSQLColumnExpr("a"),
+						right: SQLInt(20),
+					},
+				},
+			})
+		})
+
+		Convey("Scalar Function", func() {
+			test("ascii(a)", &SQLScalarFunctionExpr{
+				Name:  "ascii",
+				Exprs: []SQLExpr{createSQLColumnExpr("a")},
+			})
+		})
+
+		SkipConvey("Subquery", func() {
+		})
+
+		Convey("Subtract", func() {
+			test("a - 1", &SQLSubtractExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLInt(1),
+			})
+		})
+
+		Convey("Tuple", func() {
+			test("(a, 1)", &SQLTupleExpr{
+				Exprs: []SQLExpr{createSQLColumnExpr("a"), SQLInt(1)},
+			})
+
+			test("(a)", createSQLColumnExpr("a"))
+		})
+
+		Convey("Unary Minus", func() {
+			test("-a", &SQLUnaryMinusExpr{createSQLColumnExpr("a")})
+		})
+
+		Convey("Unary Tilde", func() {
+			test("~a", &SQLUnaryTildeExpr{createSQLColumnExpr("a")})
+		})
+
+		Convey("Varchar", func() {
+			test("'a'", SQLVarchar("a"))
+		})
 	})
 }
