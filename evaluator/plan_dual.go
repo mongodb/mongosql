@@ -6,6 +6,12 @@ type DualStage struct {
 	sExprs SelectExpressions
 }
 
+func NewDualStage(projectedColumns ...SelectExpression) *DualStage {
+	return &DualStage{
+		sExprs: projectedColumns,
+	}
+}
+
 type DualIter struct {
 	sExprs SelectExpressions
 	called bool

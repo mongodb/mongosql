@@ -19,16 +19,16 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 			statement, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(*sqlparser.Select)
-			actualPlan, err := Algebrize(selectStatement, defaultDbName, testSchema)
+			selectStatement := statement.(sqlparser.SelectStatement)
+			actual, err := Algebrize(selectStatement, defaultDbName, testSchema)
 			So(err, ShouldBeNil)
 
-			expectedPlan := expectedPlanFactory()
+			expected := expectedPlanFactory()
 
-			//fmt.Printf("\nExpected: %# v", pretty.Formatter(expectedPlan))
-			//fmt.Printf("\nActual: %# v", pretty.Formatter(actualPlan))
+			//fmt.Printf("\nExpected: %# v", pretty.Formatter(expected))
+			//fmt.Printf("\nActual: %# v", pretty.Formatter(actual))
 
-			So(actualPlan, ShouldResemble, expectedPlan)
+			So(actual, ShouldResemble, expected)
 		})
 	}
 
@@ -37,9 +37,9 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 			statement, err := sqlparser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(*sqlparser.Select)
-			actualPlan, err := Algebrize(selectStatement, defaultDbName, testSchema)
-			So(actualPlan, ShouldBeNil)
+			selectStatement := statement.(sqlparser.SelectStatement)
+			actual, err := Algebrize(selectStatement, defaultDbName, testSchema)
+			So(actual, ShouldBeNil)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, fmt.Errorf(message))
 		})
@@ -116,6 +116,17 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 	}
 
 	Convey("Subject: Algebrize Statements", t, func() {
+		Convey("dual queries", func() {
+			test("select 2 + 3", func() PlanStage {
+				return NewDualStage(
+					createSelectExpressionFromSQLExpr("", "2+3", &SQLAddExpr{
+						left:  SQLInt(2),
+						right: SQLInt(3),
+					}),
+				)
+			})
+		})
+
 		Convey("star simple queries", func() {
 			test("select * from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
@@ -860,6 +871,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 		})
 
 		Convey("errors", func() {
+			testError("select a", `unknown column "a"`)
+
 			testError("select a from idk", `table "idk" doesn't exist in db "test"`)
 			testError("select idk from foo", `unknown column "idk"`)
 			testError("select f.a from foo", `unknown column "a" in table "f"`)

@@ -199,9 +199,20 @@ func (a *algebrizer) translateSelectStatement(selectStatement sqlparser.SelectSt
 	switch typedS := selectStatement.(type) {
 	case *sqlparser.Select:
 		return a.translateSelect(typedS)
+	case *sqlparser.SimpleSelect:
+		return a.translateSimpleSelect(typedS)
 	default:
 		return nil, fmt.Errorf("no support for %T", selectStatement)
 	}
+}
+
+func (a *algebrizer) translateSimpleSelect(sel *sqlparser.SimpleSelect) (PlanStage, error) {
+	projectedColumns, err := a.translateSelectExprs(sel.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewDualStage(projectedColumns...), nil
 }
 
 func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
