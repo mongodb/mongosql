@@ -24,7 +24,7 @@ type algebrizer struct {
 	dbName                       string // the default database name.
 	schema                       *schema.Schema
 	columns                      []*Column         // all the columns in scope.
-	correlated                   bool              // indicates whether this context is using columns in it's parent.
+	correlated                   bool              // indicates whether this context is using columns in its parent.
 	projectedColumns             SelectExpressions // columns to be projected from this scope.
 	resolveProjectedColumnsFirst bool
 }
@@ -56,11 +56,9 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 }
 
 func (a *algebrizer) lookupProjectedColumnExpr(columnName string) (*SelectExpression, bool) {
-	if a.projectedColumns != nil {
-		for _, pc := range a.projectedColumns {
-			if strings.EqualFold(pc.Name, columnName) {
-				return &pc, true
-			}
+	for _, pc := range a.projectedColumns {
+		if strings.EqualFold(pc.Name, columnName) {
+			return &pc, true
 		}
 	}
 
@@ -303,7 +301,6 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 	for _, selectExpr := range selectExprs {
 		switch typedE := selectExpr.(type) {
 
-		// TODO: validate no mixture of star and non-star expression
 		case *sqlparser.StarExpr:
 
 			// validate tableName if present. Need to have a map of alias -> tableName -> schema
@@ -420,11 +417,11 @@ func (a *algebrizer) translateTableExpr(tableExpr sqlparser.TableExpr) (PlanStag
 		var predicate SQLExpr
 		if typedT.On != nil {
 			predicate, err = a.translateExpr(typedT.On)
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			predicate = SQLBool(true)
-		}
-		if err != nil {
-			return nil, err
 		}
 
 		return NewJoinStage(JoinKind(typedT.Join), left, right, predicate), nil
@@ -827,7 +824,7 @@ func (a *algebrizer) translateFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error
 		switch typedE := e.(type) {
 		case *sqlparser.StarExpr:
 
-			if !strings.EqualFold(name, "count") {
+			if name != "count" {
 				return nil, fmt.Errorf(`%q aggregate function can not contain "*"`, name)
 			}
 
@@ -942,7 +939,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 		// projectedAggregates will include all the aggregates as well
 		// as any column that is not an aggregate function.
 		var projectedAggregates SelectExpressions
-		for _, e := range b.exprCollector.allNonAggReferencedColumns.getExprs() {
+		for _, e := range b.exprCollector.allNonAggReferencedColumns.copyExprs() {
 			pc := projectedColumnFromExpr(e)
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
@@ -968,7 +965,7 @@ func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 		// projectedAggregates will include all the aggregates as well
 		// as any column that is not an aggregate function.
 		var projectedAggregates SelectExpressions
-		for _, e := range b.exprCollector.allNonAggReferencedColumns.getExprs() {
+		for _, e := range b.exprCollector.allNonAggReferencedColumns.copyExprs() {
 			pc := projectedColumnFromExpr(e)
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
@@ -1195,7 +1192,7 @@ func (m *exprCountMap) remove(e SQLExpr) {
 	for i, expr := range m.exprs {
 		if strings.EqualFold(s, expr.String()) {
 			m.counts[s]--
-			if m.counts[s] <= 0 {
+			if m.counts[s] == 0 {
 				m.exprs = append(m.exprs[:i], m.exprs[i+1:]...)
 			}
 			return
@@ -1203,7 +1200,7 @@ func (m *exprCountMap) remove(e SQLExpr) {
 	}
 }
 
-func (m *exprCountMap) getExprs() []SQLExpr {
+func (m *exprCountMap) copyExprs() []SQLExpr {
 	exprs := make([]SQLExpr, len(m.exprs))
 	copy(exprs, m.exprs)
 	return exprs

@@ -39,9 +39,9 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 
 			selectStatement := statement.(sqlparser.SelectStatement)
 			actual, err := Algebrize(selectStatement, defaultDbName, testSchema)
-			So(actual, ShouldBeNil)
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, fmt.Errorf(message))
+			So(actual, ShouldBeNil)
 		})
 	}
 
@@ -885,6 +885,9 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 
 			testError("select a from foo, bar", `column "a" in the field list is ambiguous`)
 			testError("select foo.a from (select a from foo)", `unknown column "a" in table "foo"`)
+			testError("select foo.a from foo f, bar b", `unknown column "a" in table "foo"`)
+			testError("select f.a, * from foo f, bar b", `cannot have a global * in the field list in conjunction with any other columns`)
+			testError("select a from foo f, bar b", `column "a" in the field list is ambiguous`)
 
 			testError("select a from foo limit -10", `limit rowcount cannot be negative`)
 			testError("select a from foo limit -10, 20", `limit offset cannot be negative`)
