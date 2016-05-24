@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	isCatalogName      = "def"
-	isCharacterSetName = "utf8"
-	isCollationName    = "utf8_bin"
+	isCatalogName             = "def"
+	isCharacterSetName        = "utf8"
+	isCollationName           = "utf8_bin"
+	informationSchemaDatabase = "information_schema"
 )
 
 type isColumn struct {
@@ -62,14 +63,16 @@ var (
 type SchemaDataSourceStage struct {
 	tableName string
 	aliasName string
+	schema    *schema.Schema
 }
 
-func NewSchemaDataSourceStage(tableName, aliasName string) *SchemaDataSourceStage {
+func NewSchemaDataSourceStage(schema *schema.Schema, tableName, aliasName string) *SchemaDataSourceStage {
 	if aliasName == "" {
 		aliasName = tableName
 	}
 
 	return &SchemaDataSourceStage{
+		schema:    schema,
 		tableName: tableName,
 		aliasName: aliasName,
 	}
@@ -96,7 +99,7 @@ func (sds *SchemaDataSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	case "tables":
 		it.rows = sds.gatherTableRows(ctx)
 	default:
-		return nil, fmt.Errorf("unsupported %q table %q", InformationDatabase, sds.tableName)
+		return nil, fmt.Errorf("unsupported %q table %q", informationSchemaDatabase, sds.tableName)
 	}
 
 	return it, nil
@@ -147,7 +150,7 @@ func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {
 		for i, c := range headers {
 			row := Values{
 				sds.getValue(isColumnHeaders[0], isCatalogName),
-				sds.getValue(isColumnHeaders[1], InformationDatabase),
+				sds.getValue(isColumnHeaders[1], informationSchemaDatabase),
 				sds.getValue(isColumnHeaders[2], tableName),
 				sds.getValue(isColumnHeaders[3], c.name),
 				sds.getValue(isColumnHeaders[4], i),
@@ -175,7 +178,7 @@ func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {
 	appendRows(isSchemataHeaders, "SCHEMATA")
 	appendRows(isTablesHeaders, "TABLES")
 
-	for _, db := range ctx.PlanCtx.Schema.RawDatabases {
+	for _, db := range sds.schema.RawDatabases {
 		if !ctx.AuthProvider.IsDatabaseAllowed(db.Name) {
 			continue
 		}
@@ -222,14 +225,14 @@ func (sds *SchemaDataSourceStage) gatherSchemataRows(ctx *ExecutionCtx) []Values
 	rows := []Values{
 		Values{
 			sds.getValue(isSchemataHeaders[0], isCatalogName),
-			sds.getValue(isSchemataHeaders[1], InformationDatabase),
+			sds.getValue(isSchemataHeaders[1], informationSchemaDatabase),
 			sds.getValue(isSchemataHeaders[2], isCharacterSetName),
 			sds.getValue(isSchemataHeaders[3], isCollationName),
 			sds.getValue(isSchemataHeaders[4], nil),
 		},
 	}
 
-	for _, db := range ctx.PlanCtx.Schema.RawDatabases {
+	for _, db := range sds.schema.RawDatabases {
 		if !ctx.AuthProvider.IsDatabaseAllowed(db.Name) {
 			continue
 		}
@@ -252,27 +255,27 @@ func (sds *SchemaDataSourceStage) gatherTableRows(ctx *ExecutionCtx) []Values {
 	rows := []Values{
 		Values{
 			sds.getValue(isTablesHeaders[0], isCatalogName),
-			sds.getValue(isTablesHeaders[1], InformationDatabase),
+			sds.getValue(isTablesHeaders[1], informationSchemaDatabase),
 			sds.getValue(isTablesHeaders[2], "COLUMNS"),
 			sds.getValue(isTablesHeaders[3], "SYSTEM VIEW"),
 			sds.getValue(isTablesHeaders[4], ""),
 		},
 		Values{
 			sds.getValue(isTablesHeaders[0], isCatalogName),
-			sds.getValue(isTablesHeaders[1], InformationDatabase),
+			sds.getValue(isTablesHeaders[1], informationSchemaDatabase),
 			sds.getValue(isTablesHeaders[2], "SCHEMATA"),
 			sds.getValue(isTablesHeaders[3], "SYSTEM VIEW"),
 			sds.getValue(isTablesHeaders[4], ""),
 		},
 		Values{
 			sds.getValue(isTablesHeaders[0], isCatalogName),
-			sds.getValue(isTablesHeaders[1], InformationDatabase),
+			sds.getValue(isTablesHeaders[1], informationSchemaDatabase),
 			sds.getValue(isTablesHeaders[2], "TABLES"),
 			sds.getValue(isTablesHeaders[3], "SYSTEM VIEW"),
 			sds.getValue(isTablesHeaders[4], ""),
 		},
 	}
-	for _, db := range ctx.PlanCtx.Schema.RawDatabases {
+	for _, db := range sds.schema.RawDatabases {
 		if !ctx.AuthProvider.IsDatabaseAllowed(db.Name) {
 			continue
 		}

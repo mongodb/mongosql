@@ -32,23 +32,6 @@ type ConnectionCtx interface {
 	Session() *mgo.Session
 }
 
-type PlanCtx struct {
-	Schema   *schema.Schema
-	ParseCtx *ParseCtx
-	Db       string
-	// Depth indicates what level within a WHERE expression - containing
-	// a subquery = is being processed
-	Depth int
-}
-
-func NewPlanCtx(conf *schema.Schema, pCtx *ParseCtx, db string) *PlanCtx {
-	return &PlanCtx{
-		Schema:   conf,
-		ParseCtx: pCtx,
-		Db:       db,
-	}
-}
-
 // ExecutionCtx holds exeuction context information
 // used by each Iterator implemenation.
 type ExecutionCtx struct {
@@ -62,15 +45,12 @@ type ExecutionCtx struct {
 
 	ConnectionCtx
 
-	PlanCtx *PlanCtx
-
 	AuthProvider AuthProvider
 }
 
-func NewExecutionCtx(connCtx ConnectionCtx, planCtx *PlanCtx) *ExecutionCtx {
+func NewExecutionCtx(connCtx ConnectionCtx) *ExecutionCtx {
 	return &ExecutionCtx{
 		ConnectionCtx: connCtx,
-		PlanCtx:       planCtx,
 		AuthProvider:  NewAuthProvider(connCtx.Session()),
 	}
 }
@@ -476,6 +456,12 @@ func pipelineString(stages []bson.D, depth int) []byte {
 		buf.WriteString(fmt.Sprintf("  stage %v: '%v'\n", i+1, stage))
 	}
 	return buf.Bytes()
+}
+
+func printTabs(b *bytes.Buffer, d int) {
+	for i := 0; i < d; i++ {
+		b.WriteString("\t")
+	}
 }
 
 // PrettyPrintPlan takes a plan and recursively prints its source.

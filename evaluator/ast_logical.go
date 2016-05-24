@@ -83,20 +83,14 @@ func (_ *SQLEqualsExpr) Type() schema.SQLType {
 //
 type SQLExistsExpr struct {
 	stmt sqlparser.SelectStatement
-	expr SQLExpr
+	expr *SQLSubqueryExpr
 }
 
 func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	ctx.ExecCtx.Depth += 1
 
-	var plan PlanStage
 	var it Iter
-
-	plan, err := PlanQuery(ctx.ExecCtx.PlanCtx, em.stmt)
-	if err != nil {
-		return SQLFalse, err
-	}
-
+	var err error
 	var matches bool
 
 	defer func() {
@@ -110,10 +104,9 @@ func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		}
 
 		ctx.ExecCtx.Depth -= 1
-
 	}()
 
-	it, err = plan.Open(ctx.ExecCtx)
+	it, err = em.expr.plan.Open(ctx.ExecCtx)
 	if err != nil {
 		return SQLFalse, err
 	}
@@ -557,7 +550,7 @@ func (_ *SQLOrExpr) Type() schema.SQLType {
 
 //
 // SQLSubqueryCmpExpr evaluates to true if left is in any of the
-// rows returne by the SQLSubqueryExpr expression results.
+// rows returned by the SQLSubqueryExpr expression results.
 //
 type SQLSubqueryCmpExpr struct {
 	In    bool
@@ -572,16 +565,9 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	var plan PlanStage
-	var it Iter
-
 	ctx.ExecCtx.Depth += 1
 
-	plan, err = PlanQuery(ctx.ExecCtx.PlanCtx, sc.value.stmt)
-	if err != nil {
-		return SQLFalse, err
-	}
-
+	var it Iter
 	defer func() {
 		if it != nil {
 			if err == nil {
@@ -603,7 +589,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	}()
 
-	if it, err = plan.Open(ctx.ExecCtx); err != nil {
+	if it, err = sc.value.plan.Open(ctx.ExecCtx); err != nil {
 		return SQLFalse, err
 	}
 
@@ -614,7 +600,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	right := &SQLValues{}
 	for it.Next(row) {
 
-		values := row.GetValues(plan.OpFields())
+		values := row.GetValues(sc.value.plan.OpFields())
 
 		for _, value := range values {
 			field, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)

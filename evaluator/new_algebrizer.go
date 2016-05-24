@@ -445,8 +445,8 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 
 		var plan PlanStage
 		var err error
-		if strings.EqualFold(dbName, InformationDatabase) {
-			plan = NewSchemaDataSourceStage(tableName, aliasName)
+		if strings.EqualFold(dbName, informationSchemaDatabase) {
+			plan = NewSchemaDataSourceStage(a.schema, tableName, aliasName)
 		} else {
 			plan, err = NewMongoSourceStage(a.schema, dbName, tableName, aliasName)
 			if err != nil {
@@ -883,7 +883,7 @@ func (a *algebrizer) translateFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error
 	return &SQLScalarFunctionExpr{name, exprs}, nil
 }
 
-func (a *algebrizer) translateSubqueryExpr(expr *sqlparser.Subquery) (SQLExpr, error) {
+func (a *algebrizer) translateSubqueryExpr(expr *sqlparser.Subquery) (*SQLSubqueryExpr, error) {
 	subqueryAlgebrizer := &algebrizer{
 		parent: a,
 		dbName: a.dbName,

@@ -8,7 +8,7 @@ import (
 
 // OptimizePlan applies optimizations to the plan tree to
 // aid in performance.
-func OptimizePlan(planCtx *PlanCtx, p PlanStage) (PlanStage, error) {
+func OptimizePlan(p PlanStage) (PlanStage, error) {
 	if os.Getenv(NoOptimize) != "" {
 		return p, nil
 	}
@@ -29,7 +29,7 @@ func OptimizePlan(planCtx *PlanCtx, p PlanStage) (PlanStage, error) {
 
 	log.Logf(log.DebugHigh, "Cross Join Optimization query plan: \n%v\n", PrettyPrintPlan(p))
 
-	newP, err = optimizePushDown(planCtx, p)
+	newP, err = optimizePushDown(p)
 	if err != nil {
 		return p, nil
 	}

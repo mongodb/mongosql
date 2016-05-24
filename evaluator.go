@@ -128,36 +128,14 @@ func (e *Evaluator) Plan(db, sql string, ast sqlparser.SelectStatement, conn eva
 
 	log.Logf(log.DebugLow, "Preparing query plan for: %#v", sqlparser.String(ast))
 
-	var parseCtx *evaluator.ParseCtx
-	var err error
-
-	if _, ok = ast.(*sqlparser.Select); ok {
-		parseCtx, err = evaluator.NewParseCtx(ast, e.config, db)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error constructing new parse context: %v", err)
-		}
-
-		if db == "" {
-			db = parseCtx.Database
-		}
-
-		if err = evaluator.AlgebrizeStatement(ast, parseCtx); err != nil {
-			return nil, nil, fmt.Errorf("error algebrizing select statement: %v", err)
-		}
-
-		if parseCtx != nil {
-			log.Logf(log.DebugLow, "Query Planner ParseCtx: %v\n", parseCtx.String())
-		}
-	}
-
-	planCtx := evaluator.NewPlanCtx(e.config, parseCtx, db)
-
-	queryPlan, err := evaluator.PlanQuery(planCtx, ast)
+	queryPlan, err := evaluator.Algebrize(ast, db, e.config)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error constructing query plan: %v", err)
+		return nil, nil, err
 	}
 
-	executionCtx := evaluator.NewExecutionCtx(conn, planCtx)
+	evaluator.OptimizePlan(queryPlan)
+
+	executionCtx := evaluator.NewExecutionCtx(conn)
 
 	return queryPlan, executionCtx, nil
 }

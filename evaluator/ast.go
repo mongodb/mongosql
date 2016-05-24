@@ -608,17 +608,18 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 		case *SQLTupleExpr:
 			return typedE.Exprs, nil
 		case *SQLSubqueryExpr:
-			return typedE.exprs, nil
+			return typedE.Exprs(), nil
 		}
 		return nil, fmt.Errorf("can not reconcile non-tuple type '%T'", expr)
 	}
 
 	wrapReconciledExprs := func(expr SQLExpr, newExprs []SQLExpr) (SQLExpr, error) {
-		switch typedE := expr.(type) {
+		switch expr.(type) {
 		case *SQLTupleExpr:
 			return &SQLTupleExpr{newExprs}, nil
 		case *SQLSubqueryExpr:
-			return &SQLSubqueryExpr{typedE.stmt, newExprs, false, nil}, nil
+			// TODO: fix this to wrap the subquery in a SQLConvertExpr...
+			//return &SQLSubqueryExpr{typedE.stmt, newExprs, false, nil}, nil
 		}
 		return nil, fmt.Errorf("can not wrap reconciled non-tuple type '%T'", expr)
 	}

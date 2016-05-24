@@ -56,22 +56,16 @@ func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
 }
 
 func (pj *ProjectIter) getValue(se SelectExpression, row *Row) (SQLValue, error) {
-	// in the case where we have a bare select column and no expression
-	if se.Expr == nil {
-		tables := pj.ctx.PlanCtx.Schema.Databases[pj.ctx.PlanCtx.Db].Tables
-		columnType := getColumnType(tables, se.Table, se.Name)
-		se.Expr = SQLColumnExpr{se.Table, se.Name, *columnType}
-	} else {
-		// If the column name is actually referencing a system variable, look it up and return
-		// its value if it exists.
 
-		// TODO scope system variables per-connection?
-		if strings.HasPrefix(se.Name, "@@") {
-			if varValue, hasKey := systemVars[se.Name[2:]]; hasKey {
-				return varValue, nil
-			}
-			return nil, fmt.Errorf("unknown system variable %v", se.Name)
+	// If the column name is actually referencing a system variable, look it up and return
+	// its value if it exists.
+
+	// TODO scope system variables per-connection?
+	if strings.HasPrefix(se.Name, "@@") {
+		if varValue, hasKey := systemVars[se.Name[2:]]; hasKey {
+			return varValue, nil
 		}
+		return nil, fmt.Errorf("unknown system variable %v", se.Name)
 	}
 
 	evalCtx := &EvalCtx{

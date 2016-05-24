@@ -1,9 +1,5 @@
 package evaluator
 
-import (
-	"github.com/10gen/sqlproxy/schema"
-)
-
 type subqueryFinder struct {
 	hasSq bool
 }
@@ -44,13 +40,12 @@ func (sf *subqueryFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 type columnFinder struct {
 	columns []*Column
-	tables  map[string]*schema.Table
 }
 
 // referencedColumns will take an expression and return all the columns referenced in the expression
-func referencedColumns(e SQLExpr, tables map[string]*schema.Table) ([]*Column, error) {
+func referencedColumns(e SQLExpr) ([]*Column, error) {
 
-	cf := &columnFinder{tables: tables}
+	cf := &columnFinder{}
 
 	_, err := cf.Visit(e)
 	if err != nil {
@@ -80,7 +75,7 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 		for _, expr := range expr.Exprs {
 
-			columns, err := referencedColumns(expr, cf.tables)
+			columns, err := referencedColumns(expr)
 			if err != nil {
 				return nil, err
 			}
@@ -100,28 +95,8 @@ func (cf *columnFinder) Visit(e SQLExpr) (SQLExpr, error) {
 
 		cf.columns = append(cf.columns, column)
 
-	case *SQLSubqueryCmpExpr:
-
-		sExprs, err := referencedSelectExpressions(expr.value.stmt, cf.tables)
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = cf.Visit(expr.left)
-		if err != nil {
-			return nil, err
-		}
-
-		cf.columns = append(cf.columns, SelectExpressions(sExprs).GetColumns()...)
-
-	case *SQLSubqueryExpr:
-
-		sExprs, err := referencedSelectExpressions(expr.stmt, cf.tables)
-		if err != nil {
-			return nil, err
-		}
-
-		cf.columns = append(cf.columns, SelectExpressions(sExprs).GetColumns()...)
+	// TODO: case *SQLSubqueryCmpExpr:
+	// TODO: case *SQLSubqueryExpr:
 
 	default:
 

@@ -1,8 +1,6 @@
 package evaluator
 
 import (
-	"fmt"
-
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 )
@@ -61,45 +59,32 @@ func getBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 	case *SQLGreaterThanExpr:
 		return typedE.left, typedE.right
 	case *SQLLessThanOrEqualExpr:
-		if v, ok := typedE.right.(*SQLSubqueryExpr); ok {
-			return typedE.left, &SQLTupleExpr{v.exprs}
-		}
 		return typedE.left, typedE.right
 	case *SQLGreaterThanOrEqualExpr:
 		return typedE.left, typedE.right
 	case *SQLLikeExpr:
 		return typedE.left, typedE.right
 	case *SQLSubqueryExpr:
-		return nil, &SQLTupleExpr{typedE.exprs}
+		return nil, &SQLTupleExpr{typedE.Exprs()}
 	case *SQLSubqueryCmpExpr:
-		return typedE.left, &SQLTupleExpr{typedE.value.exprs}
+		// return typedE.left, &SQLTupleExpr{typedE.value.exprs}
 	case *SQLInExpr:
 		return typedE.left, typedE.right
 	}
 	return nil, nil
 }
 
-func getWhereSQLExprFromSQL(schema *schema.Schema, sql string) (SQLExpr, error) {
-	// Parse the statement, algebrize it, extract the WHERE clause and build a matcher from it.
-	raw, err := sqlparser.Parse(sql)
+func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
+	statement, err := sqlparser.Parse("select " + sql + " from" + tableName)
 	if err != nil {
 		return nil, err
 	}
 
-	if selectStatement, ok := raw.(*sqlparser.Select); ok {
-		parseCtx, err := NewParseCtx(selectStatement, schema, dbOne)
-		if err != nil {
-			return nil, err
-		}
-
-		parseCtx.Database = dbOne
-
-		err = AlgebrizeStatement(selectStatement, parseCtx)
-		if err != nil {
-			return nil, err
-		}
-
-		return NewSQLExpr(selectStatement.Where.Expr, schema.Databases[dbOne].Tables)
+	selectStatement := statement.(sqlparser.SelectStatement)
+	actualPlan, err := Algebrize(selectStatement, dbName, schema)
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("statement doesn't look like a 'SELECT'")
+
+	return (actualPlan.(*ProjectStage)).sExprs[0].Expr, nil
 }

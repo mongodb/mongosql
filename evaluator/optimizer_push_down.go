@@ -7,13 +7,12 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func optimizePushDown(planCtx *PlanCtx, o PlanStage) (PlanStage, error) {
-	v := &pushDownOptimizer{planCtx}
+func optimizePushDown(o PlanStage) (PlanStage, error) {
+	v := &pushDownOptimizer{}
 	return v.Visit(o)
 }
 
 type pushDownOptimizer struct {
-	planCtx *PlanCtx
 }
 
 func (v *pushDownOptimizer) Visit(p PlanStage) (PlanStage, error) {
@@ -704,8 +703,6 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 	fixedExpressions := SelectExpressions{}
 
-	tables := v.planCtx.Schema.Databases[v.planCtx.Db].Tables
-
 	// Track whether or not we've successfully mapped every field into the $project of the source.
 	// If so, this Project node can be removed from the query plan tree.
 	canReplaceProject := true
@@ -722,7 +719,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 			// There might still be fields referenced in this expression
 			// that we still need to project, so collect them and add them to the projection.
-			refdCols, err := referencedColumns(exp.Expr, tables)
+			refdCols, err := referencedColumns(exp.Expr)
 			if err != nil {
 				return nil, err
 			}

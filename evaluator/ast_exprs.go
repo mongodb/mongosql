@@ -170,25 +170,31 @@ func (ce SQLConvertExpr) Type() schema.SQLType {
 // SQLSubqueryExpr is a wrapper around a sqlparser.SelectStatement representing
 // a subquery.
 type SQLSubqueryExpr struct {
-	stmt  sqlparser.SelectStatement
-	exprs []SQLExpr
-
 	correlated bool
 	plan       PlanStage
+}
+
+func (se *SQLSubqueryExpr) Exprs() []SQLExpr {
+	exprs := []SQLExpr{}
+	for _, c := range se.plan.OpFields() {
+		exprs = append(exprs, SQLColumnExpr{
+			tableName:  c.Table,
+			columnName: c.Name,
+			columnType: schema.ColumnType{
+				SQLType:   c.SQLType,
+				MongoType: c.MongoType,
+			},
+		})
+	}
+
+	return exprs
 }
 
 func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error) {
 
 	evalCtx.ExecCtx.Depth += 1
 
-	var plan PlanStage
 	var it Iter
-
-	plan, err = PlanQuery(evalCtx.ExecCtx.PlanCtx, se.stmt)
-	if err != nil {
-		return nil, err
-	}
-
 	defer func() {
 		if it != nil {
 			if err == nil {
@@ -211,7 +217,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 
 	}()
 
-	it, err = plan.Open(evalCtx.ExecCtx)
+	it, err = se.plan.Open(evalCtx.ExecCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +231,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 		return nil, fmt.Errorf("Subquery returns more than 1 row")
 	}
 
-	values := row.GetValues(plan.OpFields())
+	values := row.GetValues(se.plan.OpFields())
 	if len(values) == 0 {
 		return SQLNone, nil
 	}
@@ -242,9 +248,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 }
 
 func (se *SQLSubqueryExpr) String() string {
-	buf := sqlparser.NewTrackedBuffer(nil)
-	se.stmt.Format(buf)
-	return fmt.Sprintf("(%v)", buf.String())
+	return PrettyPrintPlan(se.plan)
 }
 
 func (se *SQLSubqueryExpr) Type() schema.SQLType {
