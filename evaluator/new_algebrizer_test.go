@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -39,6 +40,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 
 			selectStatement := statement.(sqlparser.SelectStatement)
 			actual, err := Algebrize(selectStatement, defaultDbName, testSchema)
+			fmt.Printf("\n%# v", pretty.Formatter(actual))
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, fmt.Errorf(message))
 			So(actual, ShouldBeNil)

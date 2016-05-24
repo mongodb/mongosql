@@ -1016,17 +1016,17 @@ func TestTranslateExpr(t *testing.T) {
 
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
-		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
+		lookupFieldName := createFieldNameLookup(schema.Databases[dbOne])
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				match, ok := TranslateExpr(e, lookupFieldName)
+				translated, ok := TranslateExpr(e, lookupFieldName)
 				So(ok, ShouldBeTrue)
-				jsonResult, err := json.Marshal(match)
+				jsonResult, err := json.Marshal(translated)
 				So(err, ShouldBeNil)
-				So(string(jsonResult), ShouldEqual, t.expected)
+				So(string(jsonResult), ShouldResembleDiffed, t.expected)
 			})
 		}
 	}
@@ -1060,6 +1060,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"ucase(a)", `{"$toUpper":"$a"}`},
 			//test{"week(a, 3)", `{"$week":"$a"}`}, Not support second argument
 			//test{"year(a)", `{"$year":"$a"}`}, Parser error
+
 			test{"sum(a * b)", `{"$sum":{"$multiply":["$a","$b"]}}`},
 			test{"sum(a)", `{"$sum":"$a"}`},
 			test{"sum(a < 1)", `{"$sum":{"$lt":["$a",{"$literal":1}]}}`},

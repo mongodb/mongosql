@@ -954,7 +954,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 
 func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 	plan := source
-	if len(b.groupBy) > 0 || len(b.exprCollector.allAggFunctions) > 0 {
+	if len(b.groupBy) > 0 || len(b.exprCollector.allAggFunctions.exprs) > 0 {
 		var keys SelectExpressions
 		for _, e := range b.groupBy {
 			pc := projectedColumnFromExpr(e)
@@ -972,7 +972,7 @@ func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
 
-		for _, e := range b.exprCollector.allAggFunctions {
+		for _, e := range b.exprCollector.allAggFunctions.copyExprs() {
 			pc := projectedColumnFromExpr(e)
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
@@ -1212,7 +1212,7 @@ func (m *exprCountMap) copyExprs() []SQLExpr {
 type expressionCollector struct {
 	allReferencedColumns       *exprCountMap
 	allNonAggReferencedColumns *exprCountMap
-	allAggFunctions            []SQLExpr
+	allAggFunctions            *exprCountMap
 
 	inAggFunc  bool
 	removeMode bool
@@ -1222,6 +1222,7 @@ func newExpressionCollector() *expressionCollector {
 	return &expressionCollector{
 		allReferencedColumns:       newExprCountMap(),
 		allNonAggReferencedColumns: newExprCountMap(),
+		allAggFunctions:            newExprCountMap(),
 	}
 }
 
@@ -1247,7 +1248,11 @@ func (v *expressionCollector) Visit(e SQLExpr) (SQLExpr, error) {
 	switch typedE := e.(type) {
 	case *SQLAggFunctionExpr:
 		v.inAggFunc = true
-		v.allAggFunctions = append(v.allAggFunctions, typedE)
+		if v.removeMode {
+			v.allAggFunctions.remove(typedE)
+		} else {
+			v.allAggFunctions.add(typedE)
+		}
 		for _, a := range typedE.Exprs {
 			v.Visit(a)
 		}

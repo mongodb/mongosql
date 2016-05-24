@@ -75,7 +75,7 @@ func getBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 }
 
 func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
-	statement, err := sqlparser.Parse("select " + sql + " from " + tableName)
+	statement, err := sqlparser.Parse("select * from " + tableName + " where " + sql)
 	if err != nil {
 		return nil, err
 	}
@@ -86,5 +86,10 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 		return nil, err
 	}
 
-	return (actualPlan.(*ProjectStage)).sExprs[0].Expr, nil
+	expr := ((actualPlan.(*ProjectStage)).source.(*FilterStage)).matcher
+	if conv, ok := expr.(*SQLConvertExpr); ok {
+		expr = conv.expr
+	}
+
+	return expr, nil
 }
