@@ -9,17 +9,10 @@ import (
 )
 
 func TestGroupByStage(t *testing.T) {
-	env := setupEnv(t)
-	cfgOne := env.cfgOne
 	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	runTest := func(groupBy *GroupByStage, rows []bson.D, expectedRows [][]Values) {
-		ctx := &ExecutionCtx{
-			PlanCtx: &PlanCtx{
-				Schema: cfgOne,
-				Db:     dbOne,
-			},
-		}
+		ctx := &ExecutionCtx{}
 
 		bss := &BSONSourceStage{tableOneName, rows}
 

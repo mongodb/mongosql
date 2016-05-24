@@ -42,15 +42,10 @@ func TestSchemaDataSourceIter(t *testing.T) {
 	}
 
 	Convey("Given a SchemaDataSource", t, func() {
-		ctx := &ExecutionCtx{
-			PlanCtx: &PlanCtx{
-				Schema: env.cfgOne,
-				Db:     dbOne,
-			},
-		}
+		ctx := &ExecutionCtx{}
 
 		Convey("when iterating over tables", func() {
-			plan := NewSchemaDataSourceStage("tables", "")
+			plan := NewSchemaDataSourceStage(env.cfgOne, "tables", "")
 
 			Convey("should return all tables when authentication is disabled", func() {
 
@@ -85,7 +80,7 @@ func TestSchemaDataSourceIter(t *testing.T) {
 		})
 
 		Convey("when iterating over columns", func() {
-			plan := NewSchemaDataSourceStage("columns", "")
+			plan := NewSchemaDataSourceStage(env.cfgOne, "columns", "")
 
 			Convey("should return all columns when authentication is disabled", func() {
 				ctx.AuthProvider = &fixedAuthProvider{true}

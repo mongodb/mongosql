@@ -8,17 +8,10 @@ import (
 )
 
 func TestSubqueryOperator(t *testing.T) {
-	env := setupEnv(t)
-	cfgOne := env.cfgOne
-
 	runTest := func(subquery *SubqueryStage, rows []bson.D, expectedRows []Values) {
 
 		ctx := &ExecutionCtx{
 			SrcRows: []*Row{&Row{}},
-			PlanCtx: &PlanCtx{
-				Schema: cfgOne,
-				Db:     dbOne,
-			},
 		}
 
 		ts := &BSONSourceStage{tableTwoName, rows}

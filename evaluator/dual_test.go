@@ -12,21 +12,13 @@ var (
 )
 
 func TestDualOperator(t *testing.T) {
-	env := setupEnv(t)
-	cfgOne := env.cfgOne
-
 	Convey("A dual operator...", t, func() {
 
 		Convey("should only ever return one row with no data", func() {
 
 			operator := &DualStage{}
 
-			ctx := &ExecutionCtx{
-				PlanCtx: &PlanCtx{
-					Schema: cfgOne,
-					Db:     dbOne,
-				},
-			}
+			ctx := &ExecutionCtx{}
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)

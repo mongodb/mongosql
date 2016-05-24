@@ -3,6 +3,7 @@ package evaluator
 import (
 	"testing"
 
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
@@ -61,15 +62,10 @@ var (
 	}
 )
 
-func setupJoinOperator(planCtx *PlanCtx, criteria sqlparser.BoolExpr, kind JoinKind) PlanStage {
+func setupJoinOperator(on SQLExpr, kind JoinKind) PlanStage {
 
 	ms1 := &BSONSourceStage{tableOneName, customers}
 	ms2 := &BSONSourceStage{tableTwoName, orders}
-
-	tables := getDBTables(planCtx)
-
-	on, err := NewSQLExpr(criteria, tables)
-	So(err, ShouldBeNil)
 
 	return &JoinStage{
 		left:    ms1,
@@ -81,29 +77,28 @@ func setupJoinOperator(planCtx *PlanCtx, criteria sqlparser.BoolExpr, kind JoinK
 }
 
 func TestJoinOperator(t *testing.T) {
-	env := setupEnv(t)
-	cfgOne := env.cfgOne
-
 	Convey("With a simple test configuration...", t, func() {
 
-		criteria := &sqlparser.ComparisonExpr{
-			Operator: sqlparser.AST_EQ,
-			Left: &sqlparser.ColName{
-				Name:      []byte("orderid"),
-				Qualifier: []byte(tableOneName),
+		criteria := &SQLEqualsExpr{
+			left: &SQLColumnExpr{
+				tableName:  tableOneName,
+				columnName: "orderid",
+				columnType: schema.ColumnType{
+					SQLType:   schema.SQLInt,
+					MongoType: schema.MongoInt,
+				},
 			},
-			Right: &sqlparser.ColName{
-				Name:      []byte("orderid"),
-				Qualifier: []byte(tableTwoName),
+			right: &SQLColumnExpr{
+				tableName:  tableTwoName,
+				columnName: "orderid",
+				columnType: schema.ColumnType{
+					SQLType:   schema.SQLInt,
+					MongoType: schema.MongoInt,
+				},
 			},
 		}
 
-		ctx := &ExecutionCtx{
-			PlanCtx: &PlanCtx{
-				Schema: cfgOne,
-				Db:     dbTwo,
-			},
-		}
+		ctx := &ExecutionCtx{}
 
 		row := &Row{}
 
@@ -111,7 +106,7 @@ func TestJoinOperator(t *testing.T) {
 
 		Convey("an inner join should return correct results", func() {
 
-			operator := setupJoinOperator(ctx.PlanCtx, criteria, sqlparser.AST_JOIN)
+			operator := setupJoinOperator(criteria, sqlparser.AST_JOIN)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -144,7 +139,7 @@ func TestJoinOperator(t *testing.T) {
 
 		Convey("an left join should return correct results", func() {
 
-			operator := setupJoinOperator(ctx.PlanCtx, criteria, sqlparser.AST_LEFT_JOIN)
+			operator := setupJoinOperator(criteria, sqlparser.AST_LEFT_JOIN)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -187,7 +182,7 @@ func TestJoinOperator(t *testing.T) {
 
 		Convey("an right join should return correct results", func() {
 
-			operator := setupJoinOperator(ctx.PlanCtx, criteria, sqlparser.AST_RIGHT_JOIN)
+			operator := setupJoinOperator(criteria, sqlparser.AST_RIGHT_JOIN)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -229,7 +224,7 @@ func TestJoinOperator(t *testing.T) {
 
 		Convey("a cross join should return correct results", func() {
 
-			operator := setupJoinOperator(ctx.PlanCtx, criteria, sqlparser.AST_CROSS_JOIN)
+			operator := setupJoinOperator(criteria, sqlparser.AST_CROSS_JOIN)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)

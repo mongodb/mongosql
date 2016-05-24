@@ -43,7 +43,7 @@ func TestEvaluates(t *testing.T) {
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be %v", t.sql, t.result), func() {
-				subject, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
+				subject, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 				result, err := subject.Evaluate(ctx)
 				So(err, ShouldBeNil)
@@ -811,7 +811,7 @@ func TestOptimizeSQLExpr(t *testing.T) {
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
-				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
+				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 				result, err := OptimizeSQLExpr(e)
 				So(err, ShouldBeNil)
@@ -866,7 +866,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be reconciled to %#v and %#v", t.sql, t.reconciledLeft, t.reconciledRight), func() {
-				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
+				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 				left, right := getBinaryExprLeaves(e)
 				left, right, err = reconcileSQLExprs(left, right)
@@ -921,7 +921,7 @@ func TestTranslatePredicate(t *testing.T) {
 
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
-				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
+				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 				e, err = OptimizeSQLExpr(e)
 				So(err, ShouldBeNil)
@@ -948,7 +948,7 @@ func TestTranslatePredicate(t *testing.T) {
 
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\" and locally evaluate %q", t.sql, t.expected, t.localDesc), func() {
-				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
+				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 				match, local := TranslatePredicate(e, lookupFieldName)
 				jsonResult, err := json.Marshal(match)
@@ -1020,7 +1020,7 @@ func TestTranslateExpr(t *testing.T) {
 		So(err, ShouldBeNil)
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
-				e, err := getWhereSQLExprFromSQL(schema, "SELECT * FROM bar WHERE "+t.sql)
+				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
 				match, ok := TranslateExpr(e, lookupFieldName)
 				So(ok, ShouldBeTrue)

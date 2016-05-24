@@ -14,17 +14,9 @@ var (
 )
 
 func TestFilterOperator(t *testing.T) {
-	env := setupEnv(t)
-	cfgOne := env.cfgOne
-
 	runTest := func(filter *FilterStage, rows []bson.D, expectedRows []Values) {
 
-		ctx := &ExecutionCtx{
-			PlanCtx: &PlanCtx{
-				Schema: cfgOne,
-				Db:     dbOne,
-			},
-		}
+		ctx := &ExecutionCtx{}
 
 		bss := &BSONSourceStage{tableTwoName, rows}
 
@@ -79,7 +71,7 @@ func TestFilterOperator(t *testing.T) {
 			expected := [][]Values{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
 
 			for i, query := range queries {
-				matcher, err := getWhereSQLExprFromSQL(schema, query)
+				matcher, err := getSQLExpr(schema, dbOne, tableTwoName, query)
 				So(err, ShouldBeNil)
 
 				operator := &FilterStage{

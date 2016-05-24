@@ -7,17 +7,10 @@ import (
 )
 
 func TestSourceRemoveOperator(t *testing.T) {
-	env := setupEnv(t)
-	cfgOne := env.cfgOne
-
 	runTest := func(operator *SourceRemoveStage) {
 
 		ctx := &ExecutionCtx{
 			SrcRows: []*Row{&Row{}},
-			PlanCtx: &PlanCtx{
-				Schema: cfgOne,
-				Db:     dbOne,
-			},
 		}
 
 		ts := &BSONSourceStage{tableOneName, nil}

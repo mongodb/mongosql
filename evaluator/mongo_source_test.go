@@ -95,13 +95,9 @@ func TestMongoSourceOperator(t *testing.T) {
 
 			ctx := &ExecutionCtx{
 				ConnectionCtx: cCtx,
-				PlanCtx: &PlanCtx{
-					Schema: cfgOne,
-					Db:     dbOne,
-				},
 			}
 
-			plan, err := NewMongoSourceStage(ctx.PlanCtx.Schema, dbOne, tableTwoName, "")
+			plan, err := NewMongoSourceStage(cfgOne, dbOne, tableTwoName, "")
 			So(err, ShouldBeNil)
 			iter, err := plan.Open(ctx)
 			So(err, ShouldBeNil)

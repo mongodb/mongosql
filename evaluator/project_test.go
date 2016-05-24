@@ -9,14 +9,7 @@ import (
 )
 
 func TestProjectOperator(t *testing.T) {
-	env := setupEnv(t)
-	cfgOne := env.cfgOne
-	ctx := &ExecutionCtx{
-		PlanCtx: &PlanCtx{
-			Schema: cfgOne,
-			Db:     dbOne,
-		},
-	}
+	ctx := &ExecutionCtx{}
 
 	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
@@ -31,7 +24,7 @@ func TestProjectOperator(t *testing.T) {
 		project.source = ts
 		plan = project
 		if optimize {
-			plan, err = OptimizePlan(ctx.PlanCtx, plan)
+			plan, err = OptimizePlan(plan)
 			So(err, ShouldBeNil)
 		}
 

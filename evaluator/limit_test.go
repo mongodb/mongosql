@@ -17,15 +17,7 @@ func TestLimitOperator(t *testing.T) {
 	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 
 	runTest := func(limit *LimitStage, rows []bson.D, expectedRows []Values) {
-		env := setupEnv(t)
-		cfgOne := env.cfgOne
-
-		ctx := &ExecutionCtx{
-			PlanCtx: &PlanCtx{
-				Schema: cfgOne,
-				Db:     dbOne,
-			},
-		}
+		ctx := &ExecutionCtx{}
 
 		ts := &BSONSourceStage{tableOneName, rows}
 

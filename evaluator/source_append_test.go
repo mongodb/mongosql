@@ -7,17 +7,9 @@ import (
 )
 
 func TestSourceAppendOperator(t *testing.T) {
-	env := setupEnv(t)
-	cfgOne := env.cfgOne
-
 	runTest := func(operator *SourceAppendStage) {
 
-		ctx := &ExecutionCtx{
-			PlanCtx: &PlanCtx{
-				Schema: cfgOne,
-				Db:     dbOne,
-			},
-		}
+		ctx := &ExecutionCtx{}
 
 		ts := &BSONSourceStage{tableOneName, nil}
 
