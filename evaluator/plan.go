@@ -397,11 +397,6 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 		b.WriteString("↳ SourceRemove:\n")
 		prettyPrintPlan(b, typedE.source, d+1)
 
-	case *SubqueryStage:
-
-		b.WriteString("↳ Subquery:\n")
-		prettyPrintPlan(b, typedE.source, d+1)
-
 	case *MongoSourceStage:
 
 		b.WriteString(fmt.Sprintf("↳ MongoSource: '%v' (db: '%v', collection: '%v')", typedE.tableName, typedE.dbName, typedE.collectionName))
@@ -589,18 +584,6 @@ func walkPlanTree(v PlanStageVisitor, p PlanStage) (PlanStage, error) {
 		if typedP.source != source {
 			p = &SourceRemoveStage{
 				source: source,
-			}
-		}
-	case *SubqueryStage:
-		source, err := v.Visit(typedP.source)
-		if err != nil {
-			return nil, err
-		}
-
-		if typedP.source != source {
-			p = &SubqueryStage{
-				tableName: typedP.tableName,
-				source:    source,
 			}
 		}
 	case *MongoSourceStage, *BSONSourceStage:

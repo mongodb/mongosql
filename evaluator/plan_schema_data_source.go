@@ -83,13 +83,8 @@ func (sds *SchemaDataSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return &EmptyIter{}, nil
 	}
 
-	aliasName := sds.aliasName
-	if aliasName == "" {
-		aliasName = sds.tableName
-	}
-
 	it := &SchemaDataSourceIter{
-		tableName: aliasName,
+		tableName: sds.aliasName,
 	}
 	switch strings.ToLower(sds.tableName) {
 	case "columns":
@@ -140,7 +135,7 @@ func (sds *SchemaDataSourceStage) OpFields() []*Column {
 
 func (sds *SchemaDataSourceStage) getValue(c isColumn, data interface{}) Value {
 	data, _ = NewSQLValue(data, c.sqlType, schema.MongoNone)
-	return Value{Name: c.name, View: c.name, Data: data}
+	return Value{Table: sds.aliasName, Name: c.name, Data: data}
 }
 
 func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {
@@ -312,7 +307,7 @@ func (sds *SchemaDataSourceIter) Next(row *Row) bool {
 		return false
 	}
 
-	row.Data = TableRows{{sds.tableName, sds.rows[sds.index]}}
+	row.Data = sds.rows[sds.index]
 	sds.index++
 	return true
 }

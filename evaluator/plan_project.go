@@ -58,34 +58,28 @@ func (pj *ProjectIter) Next(r *Row) bool {
 		return false
 	}
 
-	if len(pj.sExprs) > 0 {
-		evalCtx := &EvalCtx{
-			Rows:    Rows{*r},
-			ExecCtx: pj.ctx,
-		}
-		data := map[string]Values{}
-		for _, projectedColumn := range pj.sExprs {
-
-			value := Value{
-				Name: projectedColumn.Name,
-				View: projectedColumn.View,
-			}
-
-			v, err := projectedColumn.Expr.Evaluate(evalCtx)
-			if err != nil {
-				pj.err = err
-				hasNext = false
-			}
-			value.Data = v
-
-			data[projectedColumn.Table] = append(data[projectedColumn.Table], value)
-		}
-		r.Data = TableRows{}
-
-		for k, v := range data {
-			r.Data = append(r.Data, TableRow{k, v})
-		}
+	evalCtx := &EvalCtx{
+		Rows:    Rows{*r},
+		ExecCtx: pj.ctx,
 	}
+
+	values := Values{}
+	for _, projectedColumn := range pj.sExprs {
+		v, err := projectedColumn.Expr.Evaluate(evalCtx)
+		if err != nil {
+			pj.err = err
+			hasNext = false
+		}
+		value := Value{
+			Table: projectedColumn.Table,
+			Name:  projectedColumn.Name,
+			Data:  v,
+		}
+
+		values = append(values, value)
+
+	}
+	r.Data = values
 
 	return true
 }

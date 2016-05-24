@@ -105,22 +105,6 @@ func (v *crossJoinOptimizer) Visit(p PlanStage) (PlanStage, error) {
 	case *MongoSourceStage:
 		v.tableNames = append(v.tableNames, typedP.aliasName)
 		return p, nil
-	case *SubqueryStage:
-		v.tableNames = append(v.tableNames, typedP.tableName)
-
-		// We are going to create a whole new visitor and run subqueries in their own context.
-		// Ultimately, they end up with a single table name we can use in the current context.
-		source, err := optimizeCrossJoins(typedP.source)
-		if err != nil {
-			return nil, err
-		}
-		if source != typedP.source {
-			p = &SubqueryStage{
-				source:    source,
-				tableName: typedP.tableName,
-			}
-		}
-		return p, nil
 	}
 
 	return walkPlanTree(v, p)

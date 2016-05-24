@@ -15,24 +15,16 @@ const (
 
 // Row holds data from one or more tables.
 type Row struct {
-	Data TableRows
+	Data Values
 }
 
 type Rows []Row
 
-// TableRow holds column data from a given table.
-type TableRow struct {
-	Table  string
-	Values Values
-}
-
-type TableRows []TableRow
-
 // Value holds row value for an SQL column.
 type Value struct {
-	Name string
-	View string
-	Data interface{}
+	Table string
+	Name  string
+	Data  interface{}
 }
 
 type Values []Value
@@ -43,37 +35,21 @@ var bsonDType = reflect.TypeOf(bson.D{})
 // in the document, or nil if it does not exist.
 // The second return value is a boolean indicating if the field was found or not, to allow
 // the distinction betwen a null value stored in that field from a missing field.
-// The key parameter may be a dot-delimited string to reference a field that is nested
-// within a subdocument.
 func (row *Row) GetField(table, name string) (interface{}, bool) {
 	for _, r := range row.Data {
-		// TODO: need to remove the need for tables
-		if r.Table == table {
-			for _, entry := range r.Values {
-				// TODO optimize
-				if strings.ToLower(name) == strings.ToLower(entry.Name) {
-					return entry.Data, true
-				}
-			}
+		if strings.EqualFold(r.Table, table) && strings.EqualFold(r.Name, name) {
+			return r.Data, true
 		}
 	}
 	return nil, false
 }
 
-// GetValues gets the values of the columns - referenced by name - in
-// the row.
+// GetValues gets the values of the columns.
 func (row *Row) GetValues() []interface{} {
 	values := make([]interface{}, 0)
 
 	for _, v := range row.Data {
-
-	}
-
-	for _, column := range columns {
-		value, hasField := row.GetField(column.Table, column.Name)
-		if hasField {
-			values = append(values, value)
-		}
+		values = append(values, v.Data)
 	}
 
 	return values

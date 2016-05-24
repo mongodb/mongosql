@@ -466,11 +466,6 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 			return nil, err
 		}
 
-		plan = &SubqueryStage{
-			source:    plan,
-			tableName: aliasName,
-		}
-
 		a.registerColumns(plan.OpFields())
 
 		return plan, nil

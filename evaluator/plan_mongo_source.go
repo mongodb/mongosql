@@ -167,9 +167,6 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 		return false
 	}
 
-	values := make(map[string]Values)
-	data := d.Map()
-
 	for _, column := range ms.mappingRegistry.columns {
 
 		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.Name)
@@ -178,38 +175,20 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 			return false
 		}
 
-		extractedField, _ := extractFieldByName(mappedFieldName, data)
+		extractedField, _ := extractFieldByName(mappedFieldName, d.Map())
 
 		value := Value{
-			Name: column.Name,
-			View: column.View,
-			Data: extractedField,
+			Table: ms.aliasName,
+			Name:  column.Name,
 		}
 
-		value.Data, ms.err = NewSQLValue(value.Data, column.SQLType, column.MongoType)
+		value.Data, ms.err = NewSQLValue(extractedField, column.SQLType, column.MongoType)
 		if ms.err != nil {
 			return false
 		}
 
-		tableName := column.Table
-		if tableName == ms.tableName {
-			tableName = ms.aliasName
-		}
-
-		if _, ok := values[tableName]; !ok {
-			values[tableName] = Values{}
-		}
-
-		values[tableName] = append(values[tableName], value)
-		delete(data, mappedFieldName)
+		row.Data = append(row.Data, value)
 	}
-
-	tableRows := TableRows{}
-	for k, v := range values {
-		tableRows = append(tableRows, TableRow{k, v})
-	}
-
-	row.Data = tableRows
 
 	return true
 }

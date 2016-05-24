@@ -52,10 +52,14 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 			return false
 		}
 
-		values = append(values, Value{docElem.Name, docElem.Name, value})
+		values = append(values, Value{
+			Table: bs.tableName,
+			Name:  docElem.Name,
+			Data:  value,
+		})
 	}
 
-	row.Data = TableRows{{bs.tableName, values}}
+	row.Data = values
 	bs.index += 1
 
 	return true

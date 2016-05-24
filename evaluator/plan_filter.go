@@ -82,6 +82,7 @@ func (fi *FilterIter) Next(row *Row) bool {
 			break
 		}
 
+		row.Data = nil
 	}
 
 	if fi.matcher != nil && !hasMatch {

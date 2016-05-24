@@ -141,13 +141,10 @@ func (gb *GroupByIter) createGroups() error {
 
 func (gb *GroupByIter) evalAggRow(r []Row) (*Row, error) {
 
-	aggValues := map[string]Values{}
-
 	row := &Row{}
+	evalCtx := &EvalCtx{Rows: r}
 
 	for _, sExpr := range gb.selectExprs {
-
-		evalCtx := &EvalCtx{Rows: r}
 
 		v, err := sExpr.Expr.Evaluate(evalCtx)
 		if err != nil {
@@ -155,15 +152,12 @@ func (gb *GroupByIter) evalAggRow(r []Row) (*Row, error) {
 		}
 
 		value := Value{
-			Name: sExpr.Name,
-			View: sExpr.View,
-			Data: v,
+			Table: sExpr.Table,
+			Name:  sExpr.Name,
+			Data:  v,
 		}
-		aggValues[sExpr.Table] = append(aggValues[sExpr.Table], value)
-	}
 
-	for table, values := range aggValues {
-		row.Data = append(row.Data, TableRow{table, values})
+		row.Data = append(row.Data, value)
 	}
 
 	return row, nil

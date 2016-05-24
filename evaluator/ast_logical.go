@@ -600,7 +600,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	right := &SQLValues{}
 	for it.Next(row) {
 
-		values := row.GetValues(sc.value.plan.OpFields())
+		values := row.GetValues()
 
 		for _, value := range values {
 			field, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)

@@ -223,35 +223,26 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 
 	var wroteHeaders bool
 
-	writeHeaders := func(values []interface{}) error {
+	writeHeaders := func() error {
 
-		numFields := len(values)
-
-		if values == nil {
-			numFields = len(columns)
-		}
+		numFields := len(columns)
 
 		if numFields == 0 {
 			return fmt.Errorf("no headers returned")
 		}
 
-		var value interface{}
-
 		j := 0
 
+		var value evaluator.SQLValue
 		for j < numFields {
-			if values == nil {
-				zeroValue := columns[j].SQLType.ZeroValue()
-				value, err = evaluator.NewSQLValue(zeroValue, schema.SQLNone, schema.MongoNone)
-				if err != nil {
-					return err
-				}
-			} else {
-				value = values[j]
+			zeroValue := columns[j].SQLType.ZeroValue()
+			value, err = evaluator.NewSQLValue(zeroValue, columns[j].SQLType, columns[j].MongoType)
+			if err != nil {
+				return err
 			}
 
 			field := &Field{
-				Name: Slice(columns[j].View),
+				Name: Slice(columns[j].Name),
 			}
 
 			if err = formatField(field, value); err != nil {
@@ -280,11 +271,11 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 
 	for iter.Next(evaluatorRow) {
 
-		values := evaluatorRow.GetValues(columns)
+		values := evaluatorRow.GetValues()
 
 		// write the headers once
 		if !wroteHeaders {
-			if err = writeHeaders(values); err != nil {
+			if err = writeHeaders(); err != nil {
 				return err
 			}
 			wroteHeaders = true
@@ -309,7 +300,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 			return err
 		}
 
-		evaluatorRow.Data = []evaluator.TableRow{}
+		evaluatorRow.Data = evaluator.Values{}
 	}
 
 	if err = iter.Close(); err != nil {
@@ -323,7 +314,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 	log.Logf(log.DebugLow, "[conn%v] done executing plan", c.ConnectionId())
 
 	if !wroteHeaders {
-		if err = writeHeaders(nil); err != nil {
+		if err = writeHeaders(); err != nil {
 			return err
 		}
 	}

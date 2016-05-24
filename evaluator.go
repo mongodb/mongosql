@@ -59,8 +59,8 @@ func (e *Evaluator) EvaluateRows(db, sql string, ast sqlparser.SelectStatement, 
 	row := &evaluator.Row{}
 
 	for iter.Next(row) {
-		rows = append(rows, row.GetValues(fields))
-		row.Data = []evaluator.TableRow{}
+		rows = append(rows, row.GetValues())
+		row.Data = evaluator.Values{}
 	}
 
 	if err := iter.Close(); err != nil {

@@ -231,7 +231,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 		return nil, fmt.Errorf("Subquery returns more than 1 row")
 	}
 
-	values := row.GetValues(se.plan.OpFields())
+	values := row.GetValues()
 	if len(values) == 0 {
 		return SQLNone, nil
 	}
