@@ -321,7 +321,6 @@ func TestSelectWithNonStar(t *testing.T) {
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(6))
 			So(values[0][1], ShouldResemble, evaluator.SQLInt(7))
 			So(values[0][2], ShouldResemble, evaluator.SQLInt(6))
-
 		})
 
 		Convey("selecting fields with non-column names should return results as requested", func() {

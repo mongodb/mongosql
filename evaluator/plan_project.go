@@ -1,10 +1,5 @@
 package evaluator
 
-import (
-	"fmt"
-	"strings"
-)
-
 // Project ensures that referenced columns - e.g. those used to
 // support ORDER BY and GROUP BY clauses - aren't included in
 // the final result set.
@@ -55,27 +50,6 @@ func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 }
 
-func (pj *ProjectIter) getValue(se SelectExpression, row *Row) (SQLValue, error) {
-
-	// If the column name is actually referencing a system variable, look it up and return
-	// its value if it exists.
-
-	// TODO scope system variables per-connection?
-	if strings.HasPrefix(se.Name, "@@") {
-		if varValue, hasKey := systemVars[se.Name[2:]]; hasKey {
-			return varValue, nil
-		}
-		return nil, fmt.Errorf("unknown system variable %v", se.Name)
-	}
-
-	evalCtx := &EvalCtx{
-		Rows:    Rows{*row},
-		ExecCtx: pj.ctx,
-	}
-
-	return se.Expr.Evaluate(evalCtx)
-}
-
 func (pj *ProjectIter) Next(r *Row) bool {
 
 	hasNext := pj.source.Next(r)
@@ -85,30 +59,26 @@ func (pj *ProjectIter) Next(r *Row) bool {
 	}
 
 	if len(pj.sExprs) > 0 {
+		evalCtx := &EvalCtx{
+			Rows:    Rows{*r},
+			ExecCtx: pj.ctx,
+		}
 		data := map[string]Values{}
-		for _, expr := range pj.sExprs {
+		for _, projectedColumn := range pj.sExprs {
 
-			if expr.Referenced {
-				continue
-			}
 			value := Value{
-				Name: expr.Name,
-				View: expr.View,
+				Name: projectedColumn.Name,
+				View: projectedColumn.View,
 			}
 
-			v, ok := r.GetField(expr.Table, expr.Name)
-			if !ok {
-				v, err := pj.getValue(expr, r)
-				if err != nil {
-					pj.err = err
-					hasNext = false
-				}
-				value.Data = v
-			} else {
-				value.Data = v
+			v, err := projectedColumn.Expr.Evaluate(evalCtx)
+			if err != nil {
+				pj.err = err
+				hasNext = false
 			}
+			value.Data = v
 
-			data[expr.Table] = append(data[expr.Table], value)
+			data[projectedColumn.Table] = append(data[projectedColumn.Table], value)
 		}
 		r.Data = TableRows{}
 

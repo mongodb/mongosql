@@ -350,8 +350,11 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 			}
 
 			if sqlCol, ok := translatedExpr.(SQLColumnExpr); ok {
-				projectedColumn.Name = sqlCol.columnName
 				projectedColumn.MongoType = sqlCol.columnType.MongoType
+			}
+
+			if sqlCol, ok := typedE.Expr.(*sqlparser.ColName); ok {
+				projectedColumn.Name = string(sqlCol.Name)
 			}
 
 			if typedE.As != nil {
@@ -1155,13 +1158,6 @@ func (b *queryPlanBuilder) includeWhere(where *sqlparser.Where) error {
 	pred, err := b.algebrizer.translateExpr(where.Expr)
 	if err != nil {
 		return err
-	}
-
-	if pred.Type() != schema.SQLBoolean {
-		pred = &SQLConvertExpr{
-			expr:     pred,
-			convType: schema.SQLBoolean,
-		}
 	}
 
 	b.exprCollector.Visit(pred)

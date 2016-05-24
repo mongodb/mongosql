@@ -1,13 +1,11 @@
 package evaluator
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/kr/pretty"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -18,8 +16,6 @@ type fieldNameLookup func(tableName, columnName string) (string, bool)
 
 // TranslateExpr attempts to turn the SQLExpr into MongoDB query language.
 func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, bool) {
-
-	fmt.Printf("\n%# v", pretty.Formatter(e))
 
 	switch typedE := e.(type) {
 

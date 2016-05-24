@@ -444,12 +444,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 			test("select a from foo where a", func() PlanStage {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(
-					NewFilterStage(source,
-						&SQLConvertExpr{
-							expr:     createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
-							convType: schema.SQLBoolean,
-						},
-					),
+					NewFilterStage(source, createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt)),
 					createSelectExpression(source, "foo", "a", "", "a"),
 				)
 			})

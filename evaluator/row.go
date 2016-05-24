@@ -62,8 +62,12 @@ func (row *Row) GetField(table, name string) (interface{}, bool) {
 
 // GetValues gets the values of the columns - referenced by name - in
 // the row.
-func (row *Row) GetValues(columns []*Column) []interface{} {
+func (row *Row) GetValues() []interface{} {
 	values := make([]interface{}, 0)
+
+	for _, v := range row.Data {
+
+	}
 
 	for _, column := range columns {
 		value, hasField := row.GetField(column.Table, column.Name)
