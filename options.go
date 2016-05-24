@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"time"
 
 	"gopkg.in/mgo.v2"
 )
@@ -23,6 +24,7 @@ type Options struct {
 	MongoPEMFile           string `long:"mongo-ssl-pem-file" description:"path to a file containing the cert and private key for connecting to MongoDB, when using --mongo-ssl"`
 	MongoAllowInvalidCerts bool   `long:"mongo-ssl-allow-invalid-certs" description:"don't require the cert presented by the MongoDB server to be valid, when using --mongo-ssl"`
 	MongoCAFile            string `long:"mongo-ssl-ca-file" description:"path to a CA certs file to use for authenticating certs from MongoDB, when using --mongo-ssl"`
+	MongoTimeout           int64  `long:"mongo-timeout" description:"seconds to wait for a server to respond when connecting or on follow up operations" default:"30" hidden:"true"`
 
 	// SSL Options
 	SSLPEMFile           string `long:"ssl-pem-file" description:"path to a file containing the cert and private key estabolishing a connection with a client"`
@@ -73,6 +75,8 @@ func GetDialInfo(opts Options) (*mgo.DialInfo, error) {
 		return nil, fmt.Errorf("--mongo-uri may not contain any authentication information")
 	}
 
+	dialInfo.Timeout = time.Duration(opts.MongoTimeout) * time.Second
+
 	if opts.MongoSSL {
 		var certs []tls.Certificate
 		var rootCA *x509.CertPool
@@ -116,5 +120,6 @@ func GetDialInfo(opts Options) (*mgo.DialInfo, error) {
 			return c, err
 		}
 	}
+
 	return dialInfo, nil
 }
