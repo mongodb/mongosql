@@ -13,7 +13,7 @@ var (
 	_ fmt.Stringer = nil
 )
 
-func TestFilterOperator(t *testing.T) {
+func TestFilterPlanStage(t *testing.T) {
 	runTest := func(filter *FilterStage, rows []bson.D, expectedRows []Values) {
 
 		ctx := &ExecutionCtx{}
@@ -55,12 +55,12 @@ func TestFilterOperator(t *testing.T) {
 
 		Convey("a filter operator should only return rows that match", func() {
 			queries := []string{
-				fmt.Sprintf("select * from %v where a = 16", tableTwoName),
-				fmt.Sprintf("select * from %v where a = 6", tableTwoName),
-				fmt.Sprintf("select * from %v where a = 99", tableTwoName),
-				fmt.Sprintf("select * from %v where b > 9", tableTwoName),
-				fmt.Sprintf("select * from %v where b > 9 or a < 5", tableTwoName),
-				fmt.Sprintf("select * from %v where b = 7 or a = 6", tableTwoName),
+				"a = 16",
+				"a = 6",
+				"a = 99",
+				"b > 9",
+				"b > 9 or a < 5",
+				"b = 7 or a = 6",
 			}
 
 			r0, err := bsonDToValues(rows[0])
