@@ -917,7 +917,7 @@ func TestTranslatePredicate(t *testing.T) {
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
-		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
+		lookupFieldName := createFieldNameLookup(schema.Databases[dbOne])
 
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
@@ -944,7 +944,7 @@ func TestTranslatePredicate(t *testing.T) {
 	runPartialTests := func(tests []partialTest) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
-		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
+		lookupFieldName := createFieldNameLookup(schema.Databases[dbOne])
 
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\" and locally evaluate %q", t.sql, t.expected, t.localDesc), func() {
@@ -997,10 +997,10 @@ func TestTranslatePredicate(t *testing.T) {
 		runTests(tests)
 
 		partialTests := []partialTest{
-			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLColumnExpr{"bar", "b", columnTypeInt}}},
-			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLColumnExpr{"bar", "b", columnTypeInt}}},
-			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLColumnExpr{"bar", "b", columnTypeInt}}},
-			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLColumnExpr{"bar", "b", columnTypeInt}}}},
+			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{tableTwoName, "a", columnTypeNumeric}, SQLColumnExpr{tableTwoName, "b", columnTypeInt}}},
+			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{tableTwoName, "a", columnTypeNumeric}, SQLColumnExpr{tableTwoName, "b", columnTypeInt}}},
+			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{tableTwoName, "a", columnTypeNumeric}, SQLColumnExpr{tableTwoName, "b", columnTypeInt}}},
+			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{SQLColumnExpr{tableTwoName, "a", columnTypeNumeric}, SQLColumnExpr{tableTwoName, "b", columnTypeInt}}}},
 		}
 
 		runPartialTests(partialTests)

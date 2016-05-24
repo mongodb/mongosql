@@ -66,8 +66,8 @@ func getBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 		return typedE.left, typedE.right
 	case *SQLSubqueryExpr:
 		return nil, &SQLTupleExpr{typedE.Exprs()}
-	case *SQLSubqueryCmpExpr:
-		// return typedE.left, &SQLTupleExpr{typedE.value.exprs}
+	//case *SQLSubqueryCmpExpr:
+	// return typedE.left, &SQLTupleExpr{typedE.value.exprs}
 	case *SQLInExpr:
 		return typedE.left, typedE.right
 	}
@@ -75,7 +75,7 @@ func getBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 }
 
 func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
-	statement, err := sqlparser.Parse("select " + sql + " from" + tableName)
+	statement, err := sqlparser.Parse("select " + sql + " from " + tableName)
 	if err != nil {
 		return nil, err
 	}
