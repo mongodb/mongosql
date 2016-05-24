@@ -26,7 +26,7 @@ type algebrizer struct {
 	columns                      []*Column         // all the columns in scope.
 	correlated                   bool              // indicates whether this context is using columns in its parent.
 	projectedColumns             SelectExpressions // columns to be projected from this scope.
-	resolveProjectedColumnsFirst bool
+	resolveProjectedColumnsFirst bool              // indicates whether to resolve a column using the projected columns first or second
 }
 
 func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error) {
@@ -181,7 +181,7 @@ func (a *algebrizer) translateOrderBy(orderby sqlparser.OrderBy) ([]*orderByTerm
 }
 
 func (a *algebrizer) translateOrder(order *sqlparser.Order) (*orderByTerm, error) {
-	ascending := !strings.EqualFold(order.Direction, "desc")
+	ascending := !strings.EqualFold(order.Direction, sqlparser.AST_DESC)
 	e, err := a.resolveColumnExpr(order.Expr, "order clause")
 	if err != nil {
 		return nil, err
@@ -493,13 +493,13 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		}
 
 		switch typedE.Operator {
-		case '+':
+		case sqlparser.AST_PLUS:
 			return &SQLAddExpr{left, right}, nil
-		case '-':
+		case sqlparser.AST_MINUS:
 			return &SQLSubtractExpr{left, right}, nil
-		case '*':
+		case sqlparser.AST_MULT:
 			return &SQLMultiplyExpr{left, right}, nil
-		case '/':
+		case sqlparser.AST_DIV:
 			return &SQLDivideExpr{left, right}, nil
 		default:
 			return nil, fmt.Errorf("no support for binary operator '%v'", typedE.Operator)
@@ -570,6 +570,7 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		case sqlparser.AST_NE:
 			return &SQLNotEqualsExpr{left, right}, nil
 		case sqlparser.AST_LIKE:
+			// TODO: Might not want to reconcile expressions in this one...
 			return &SQLLikeExpr{left, right}, nil
 		case sqlparser.AST_IN:
 			if eval, ok := right.(*SQLSubqueryExpr); ok {
@@ -716,6 +717,7 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		}
 
 		if len(exprs) == 1 {
+			// TODO: remove this check from ast_factories.go and add test.
 			return exprs[0], nil
 		}
 
@@ -1035,7 +1037,8 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 
 	// since we are replacing aggregates (which likely include columns) with other columns,
 	// we need to update the exprCollection with the new information so that it continues
-	// to be correct. Therefore, we'll be removing the old
+	// to be correct. Therefore, we'll be removing the old expressions and adding in
+	// new ones.
 
 	if len(b.project) > 0 {
 
@@ -1243,13 +1246,12 @@ func (c *expressionCollector) VisitAll(exprs []SQLExpr) {
 func (v *expressionCollector) Visit(e SQLExpr) (SQLExpr, error) {
 	switch typedE := e.(type) {
 	case *SQLAggFunctionExpr:
-		oldInAggFunc := v.inAggFunc
 		v.inAggFunc = true
 		v.allAggFunctions = append(v.allAggFunctions, typedE)
 		for _, a := range typedE.Exprs {
 			v.Visit(a)
 		}
-		v.inAggFunc = oldInAggFunc
+		v.inAggFunc = false
 		return typedE, nil
 	case SQLColumnExpr:
 		if v.removeMode {
