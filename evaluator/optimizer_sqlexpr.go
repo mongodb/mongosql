@@ -83,25 +83,25 @@ func (v *sqlExprOptimizer) Visit(p PlanStage) (PlanStage, error) {
 			p = newP
 		}
 	case *OrderByStage:
-		hasNewKey := false
-		keys := []orderByKey{}
-		for _, k := range typedP.keys {
-			newExpr, err := v.optimizeSelectExpression(k.expr)
+		hasNewTerm := false
+		terms := []*orderByTerm{}
+		for _, term := range typedP.terms {
+			newExpr, err := OptimizeSQLExpr(term.expr)
 			if err != nil {
 				return nil, err
 			}
-			if newExpr != k.expr {
-				hasNewKey = true
-				k = k.clone()
-				k.expr = newExpr
+			if newExpr != term.expr {
+				hasNewTerm = true
+				term = term.clone()
+				term.expr = newExpr
 			}
 
-			keys = append(keys, k)
+			terms = append(terms, term)
 		}
 
-		if hasNewKey {
+		if hasNewTerm {
 			newP := typedP.clone()
-			newP.keys = keys
+			newP.terms = terms
 			p = newP
 		}
 	case *ProjectStage:

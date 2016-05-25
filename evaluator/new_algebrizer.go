@@ -210,7 +210,7 @@ func (a *algebrizer) translateSimpleSelect(sel *sqlparser.SimpleSelect) (PlanSta
 		return nil, err
 	}
 
-	return NewDualStage(projectedColumns...), nil
+	return NewProjectStage(NewDualStage(), projectedColumns...), nil
 }
 
 func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
@@ -461,6 +461,11 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 
 		return plan, nil
 	case *sqlparser.Subquery:
+
+		if aliasName == "" {
+			return nil, fmt.Errorf("every derived table must have it's own alias")
+		}
+
 		plan, err := a.translateNamedSelectStatement(typedT.Select, aliasName)
 		if err != nil {
 			return nil, err

@@ -291,19 +291,11 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 	case *DualStage:
 
-		b.WriteString("↳ Dual(")
-		for i, c := range typedE.sExprs {
-			if i != 0 {
-				b.WriteString(", ")
-			}
-			b.WriteString(fmt.Sprintf("%v as %v", c.Expr.String(), c.Name))
-		}
-
-		b.WriteString(")")
+		b.WriteString("↳ Dual")
 
 	case *EmptyStage:
 
-		b.WriteString("↳ Empty:")
+		b.WriteString("↳ Empty")
 
 	case *FilterStage:
 
@@ -352,17 +344,17 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 		b.WriteString("↳ OrderBy(")
 
-		for i, c := range typedE.keys {
+		for i, t := range typedE.terms {
 			if i != 0 {
 				b.WriteString(", ")
 			}
 
 			dir := "ASC"
-			if !c.ascending {
+			if !t.ascending {
 				dir = "DESC"
 			}
 
-			b.WriteString(fmt.Sprintf("%v %v", c.expr.Expr.String(), dir))
+			b.WriteString(fmt.Sprintf("%v %v", t.expr.String(), dir))
 		}
 
 		b.WriteString("):\n")
@@ -547,7 +539,7 @@ func walkPlanTree(v PlanStageVisitor, p PlanStage) (PlanStage, error) {
 		if typedP.source != source {
 			p = &OrderByStage{
 				source: source,
-				keys:   typedP.keys,
+				terms:  typedP.terms,
 			}
 		}
 	case *ProjectStage:

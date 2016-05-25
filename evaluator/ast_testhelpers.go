@@ -24,17 +24,17 @@ func constructSelectExpressions(exprs map[string]SQLExpr, values ...string) (sEx
 	return
 }
 
-func constructOrderByKeys(exprs map[string]SQLExpr, values ...string) (keys []orderByKey) {
+func constructOrderByTerms(exprs map[string]SQLExpr, values ...string) (terms []*orderByTerm) {
 	sExprs := constructSelectExpressions(exprs, values...)
 
 	for i := range sExprs {
 
-		key := orderByKey{
-			expr:      &sExprs[i],
+		term := &orderByTerm{
+			expr:      sExprs[i].Expr,
 			ascending: i%2 == 0,
 		}
 
-		keys = append(keys, key)
+		terms = append(terms, term)
 	}
 
 	return

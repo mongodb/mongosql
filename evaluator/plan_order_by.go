@@ -3,23 +3,12 @@ package evaluator
 import (
 	"fmt"
 	"sort"
-
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // OrderBy sorts records according to one or more keys.
 type OrderByStage struct {
-	// source is the operator that provides the data to order
 	source PlanStage
-
-	// keys holds the SQLExpr(s) to order by. For example, in
-	// select a, count(b) from foo group by a order by count(b)
-	// keys will hold the SQLValue for 'count(b)'. For multiple
-	// order by criteria, they are stored in the same order within
-	// the keys slice.
-	keys []orderByKey
-
-	terms []*orderByTerm
+	terms  []*orderByTerm
 }
 
 // NewOrderByStage returns a new order by stage.
@@ -31,9 +20,9 @@ func NewOrderByStage(source PlanStage, terms ...*orderByTerm) *OrderByStage {
 }
 
 type OrderByIter struct {
-	keys []orderByKey
-
 	source Iter
+
+	terms []*orderByTerm
 
 	// channel on which to send sorted rows
 	outChan chan Row
@@ -52,24 +41,17 @@ type orderByTerm struct {
 	ascending bool
 }
 
-type orderByKey struct {
-	expr      *SelectExpression
-	isAggFunc bool
-	ascending bool
-	evalCtx   *EvalCtx
-}
-
-func (k orderByKey) clone() orderByKey {
-	return orderByKey{
-		expr:      k.expr,
-		isAggFunc: k.isAggFunc,
-		ascending: k.ascending,
+func (t *orderByTerm) clone() *orderByTerm {
+	return &orderByTerm{
+		expr:      t.expr,
+		ascending: t.ascending,
 	}
 }
 
 type orderByRow struct {
-	keys []orderByKey
-	data Row
+	terms      []*orderByTerm
+	termValues []SQLValue
+	data       Row
 }
 
 type orderByRows []orderByRow
@@ -79,26 +61,23 @@ func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &OrderByIter{source: sourceIter, keys: ob.keys, ctx: ctx}, nil
+	return &OrderByIter{source: sourceIter, terms: ob.terms, ctx: ctx}, nil
 }
 
-func (ob *OrderByIter) evaluateOrderByKeys(row *Row) []orderByKey {
-
-	keys := make([]orderByKey, 0, len(ob.keys))
-
-	for _, key := range ob.keys {
-		key.evalCtx = &EvalCtx{Rows: Rows{*row}}
-
-		// for aggregation functions, we set the context in the
-		// preceding GROUP BY operator
-		if key.isAggFunc && len(ob.ctx.GroupRows) != 0 {
-			key.evalCtx = &EvalCtx{Rows: ob.ctx.GroupRows}
+func (ob *OrderByIter) Next(row *Row) bool {
+	if !ob.sorted {
+		rows, err := ob.sortRows()
+		if err != nil {
+			ob.err = err
+			return false
 		}
-
-		keys = append(keys, key)
+		ob.outChan = iterChan(rows)
 	}
 
-	return keys
+	r, done := <-ob.outChan
+	row.Data = r.Data
+
+	return done
 }
 
 func (ob *OrderByIter) sortRows() (orderByRows, error) {
@@ -107,7 +86,23 @@ func (ob *OrderByIter) sortRows() (orderByRows, error) {
 	row := &Row{}
 
 	for ob.source.Next(row) {
-		obRow := orderByRow{ob.evaluateOrderByKeys(row), *row}
+
+		ctx := &EvalCtx{
+			Rows:    []Row{*row},
+			ExecCtx: ob.ctx,
+		}
+
+		var values []SQLValue
+		for _, t := range ob.terms {
+			v, err := t.expr.Evaluate(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			values = append(values, v)
+		}
+
+		obRow := orderByRow{ob.terms, values, *row}
 		rows = append(rows, obRow)
 		row = &Row{}
 	}
@@ -143,22 +138,6 @@ func iterChan(rows orderByRows) chan Row {
 	return ch
 }
 
-func (ob *OrderByIter) Next(row *Row) bool {
-	if !ob.sorted {
-		rows, err := ob.sortRows()
-		if err != nil {
-			ob.err = err
-			return false
-		}
-		ob.outChan = iterChan(rows)
-	}
-
-	r, done := <-ob.outChan
-	row.Data = r.Data
-
-	return done
-}
-
 func (ob *OrderByIter) Close() error {
 	return ob.source.Close()
 }
@@ -178,7 +157,7 @@ func (ob *OrderByStage) OpFields() (columns []*Column) {
 func (ob *OrderByStage) clone() *OrderByStage {
 	return &OrderByStage{
 		source: ob.source,
-		keys:   ob.keys,
+		terms:  ob.terms,
 	}
 }
 
@@ -193,49 +172,22 @@ func (rows orderByRows) Swap(i, j int) {
 	rows[i], rows[j] = rows[j], rows[i]
 }
 
-func orderValue(key orderByKey) (SQLValue, error) {
-
-	expr := key.expr
-
-	if key.isAggFunc {
-
-		row := key.evalCtx.Rows[0]
-
-		value, ok := row.GetField(expr.Table, expr.Name)
-		if ok {
-			return NewSQLValue(value, schema.SQLNone, schema.MongoNone)
-		}
-	}
-
-	return expr.Expr.Evaluate(key.evalCtx)
-}
-
 func (rows orderByRows) Less(i, j int) bool {
 
 	r1 := rows[i]
 	r2 := rows[j]
 
-	for i := range r1.keys {
+	for i, t := range r1.terms {
 
-		left := r1.keys[i]
-		right := r2.keys[i]
+		left := r1.termValues[i]
+		right := r2.termValues[i]
 
-		leftVal, err := orderValue(left)
+		cmp, err := CompareTo(left, right)
 		if err != nil {
 			panic(err)
 		}
 
-		rightVal, err := orderValue(right)
-		if err != nil {
-			panic(err)
-		}
-
-		cmp, err := CompareTo(leftVal, rightVal)
-		if err != nil {
-			panic(err)
-		}
-
-		if !left.ascending {
+		if !t.ascending {
 			cmp = -cmp
 		}
 

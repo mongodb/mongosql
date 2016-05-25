@@ -654,11 +654,11 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 
 	sort := bson.D{}
 
-	for _, key := range orderBy.keys {
+	for _, term := range orderBy.terms {
 
 		var tableName, columnName string
 
-		switch typedE := key.expr.Expr.(type) {
+		switch typedE := term.expr.(type) {
 		case SQLColumnExpr:
 			tableName, columnName = typedE.tableName, typedE.columnName
 		default:
@@ -675,7 +675,7 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 			return orderBy, nil
 		}
 		direction := 1
-		if !key.ascending {
+		if !term.ascending {
 			direction = -1
 		}
 		sort = append(sort, bson.DocElem{fieldName, direction})

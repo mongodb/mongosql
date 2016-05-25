@@ -2,23 +2,18 @@ package evaluator
 
 // Dual simulates a source for queries that don't require fields.
 // It only ever returns one row.
-type DualStage struct {
-	sExprs SelectExpressions
-}
+type DualStage struct{}
 
-func NewDualStage(projectedColumns ...SelectExpression) *DualStage {
-	return &DualStage{
-		sExprs: projectedColumns,
-	}
+func NewDualStage() *DualStage {
+	return &DualStage{}
 }
 
 type DualIter struct {
-	sExprs SelectExpressions
 	called bool
 }
 
 func (d *DualStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	return &DualIter{sExprs: d.sExprs}, nil
+	return &DualIter{}, nil
 }
 
 func (di *DualIter) Next(row *Row) bool {
@@ -30,18 +25,7 @@ func (di *DualIter) Next(row *Row) bool {
 }
 
 func (d *DualStage) OpFields() (columns []*Column) {
-	for _, expr := range d.sExprs {
-		column := &Column{
-			Name:      expr.Name,
-			View:      expr.View,
-			Table:     expr.Table,
-			SQLType:   expr.SQLType,
-			MongoType: expr.MongoType,
-		}
-		columns = append(columns, column)
-	}
-
-	return columns
+	return []*Column{}
 }
 
 func (_ *DualIter) Close() error {
