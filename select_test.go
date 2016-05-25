@@ -639,7 +639,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			So(len(names), ShouldEqual, 3)
-			So(names, ShouldResemble, []string{"a", "b", "sum(bar.a)"})
+			So(names, ShouldResemble, []string{"a", "b", "sum(a)"})
 
 			So(len(values), ShouldEqual, 2)
 
@@ -664,7 +664,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
-			So(names, ShouldResemble, []string{"a", "sum(bar.a+bar.b)"})
+			So(names, ShouldResemble, []string{"a", "sum(a+b)"})
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
@@ -825,7 +825,7 @@ func TestSelectWithGroupBy(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
-			So(names, ShouldResemble, []string{"a", "sum(b.b)"})
+			So(names, ShouldResemble, []string{"a", "sum(b)"})
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(1): []evaluator.SQLExpr{
@@ -864,7 +864,7 @@ func TestSelectWithHaving(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
-			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+			So(names, ShouldResemble, []string{"a", "sum(b)"})
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(3): []evaluator.SQLExpr{
@@ -888,7 +888,7 @@ func TestSelectWithHaving(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 2)
 
-			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+			So(names, ShouldResemble, []string{"a", "sum(b)"})
 
 			expectedValues := map[interface{}][]evaluator.SQLExpr{
 				evaluator.SQLInt(5): []evaluator.SQLExpr{
@@ -910,7 +910,7 @@ func TestSelectWithHaving(t *testing.T) {
 			So(len(names), ShouldEqual, 2)
 			So(len(values), ShouldEqual, 1)
 
-			So(names, ShouldResemble, []string{"a", "sum(bar.b)"})
+			So(names, ShouldResemble, []string{"a", "sum(b)"})
 
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(1))
 			So(values[0][1], ShouldResemble, evaluator.SQLFloat(25))
