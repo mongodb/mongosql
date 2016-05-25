@@ -455,8 +455,8 @@ func TestSelectWithDistinct(t *testing.T) {
 			names, values, err := eval.EvaluateRows("test", "SELECT distinct a+b as f FROM bar order by f desc", nil, conn)
 			So(err, ShouldBeNil)
 			So(len(names), ShouldEqual, 1)
-
 			So(len(values), ShouldEqual, 4)
+
 			So(values[0][0], ShouldResemble, evaluator.SQLInt(5))
 			So(values[1][0], ShouldResemble, evaluator.SQLInt(4))
 			So(values[2][0], ShouldResemble, evaluator.SQLInt(3))

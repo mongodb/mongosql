@@ -941,15 +941,37 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 			keys = append(keys, *pc)
 		}
 
-		// projectedAggregates will include all the aggregates as well
-		// as any column that is not an aggregate function.
-		var projectedAggregates SelectExpressions
+		// projectedAggregates will include any column that is not an aggregate function.
+		// as well as all the keys.
+		projectedAggregates := keys
 		for _, e := range b.exprCollector.allNonAggReferencedColumns.copyExprs() {
 			pc := projectedColumnFromExpr(e)
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
 
-		plan = NewGroupByStage(plan, keys, projectedAggregates)
+		plan = NewGroupByStage(plan, keys, projectedAggregates.Unique())
+
+		// now we must replace all the project values with columns as
+		// any that weren't already a column have now been computed.
+		var projectedColumns SelectExpressions
+		for i, pc := range b.project {
+			b.exprCollector.Remove(pc.Expr)
+			newExpr := &SQLColumnExpr{
+				tableName:  keys[i].Table,
+				columnName: keys[i].Name,
+				columnType: schema.ColumnType{
+					SQLType:   keys[i].SQLType,
+					MongoType: keys[i].MongoType,
+				},
+			}
+			projectedColumns = append(projectedColumns, SelectExpression{
+				Column: pc.Column,
+				Expr:   newExpr,
+			})
+			b.exprCollector.Visit(newExpr)
+		}
+
+		b.project = projectedColumns
 	}
 
 	return plan
