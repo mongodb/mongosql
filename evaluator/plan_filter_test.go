@@ -32,7 +32,7 @@ func TestFilterPlanStage(t *testing.T) {
 		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, 1)
 			So(row.Data[0].Table, ShouldEqual, tableTwoName)
-			So(row.Data[0].Values, ShouldResemble, expectedRows[i])
+			So(row.Data[0].Data, ShouldResemble, expectedRows[i])
 			row = &Row{}
 			i++
 		}
@@ -63,9 +63,9 @@ func TestFilterPlanStage(t *testing.T) {
 				"b = 7 or a = 6",
 			}
 
-			r0, err := bsonDToValues(rows[0])
+			r0, err := bsonDToValues(tableTwoName, rows[0])
 			So(err, ShouldBeNil)
-			r1, err := bsonDToValues(rows[1])
+			r1, err := bsonDToValues(tableTwoName, rows[1])
 			So(err, ShouldBeNil)
 
 			expected := [][]Values{{r1}, {r0}, nil, {r1}, {r1}, {r0}}

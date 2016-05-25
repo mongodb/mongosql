@@ -35,9 +35,8 @@ func TestProjectOperator(t *testing.T) {
 		row := &Row{}
 
 		for iter.Next(row) {
-			So(len(row.Data), ShouldEqual, 1)
-			So(row.Data[0].Table, ShouldEqual, tableOneName)
-			So(row.Data[0].Values, ShouldResemble, expectedRows[i])
+			So(len(row.Data), ShouldEqual, len(expectedRows[i]))
+			So(row.Data, ShouldResemble, expectedRows[i])
 			row = &Row{}
 			i++
 		}
@@ -48,7 +47,7 @@ func TestProjectOperator(t *testing.T) {
 		So(iter.Err(), ShouldBeNil)
 	}
 
-	Convey("A project operator...", t, func() {
+	Convey("A project operator should produce the correct results", t, func() {
 
 		rows := []bson.D{
 			bson.D{{"a", 6}, {"b", 9}},
@@ -61,40 +60,24 @@ func TestProjectOperator(t *testing.T) {
 				Expr:   SQLColumnExpr{tableOneName, "a", columnType},
 			},
 			SelectExpression{
-				Referenced: true,
-				Column:     &Column{tableOneName, "b", "b", schema.SQLInt, schema.MongoInt},
-				Expr:       SQLColumnExpr{tableOneName, "b", columnType},
+				Column: &Column{tableOneName, "b", "b", schema.SQLInt, schema.MongoInt},
+				Expr:   SQLColumnExpr{tableOneName, "b", columnType},
 			},
 		}
 
-		Convey("should filter out referenced columns in select expressions", func() {
+		project := &ProjectStage{
+			sExprs: sExprs,
+		}
 
-			project := &ProjectStage{
-				sExprs: sExprs,
-			}
+		expected := []Values{
+			{{tableOneName, "a", SQLInt(6)}, {tableOneName, "b", SQLInt(9)}},
+			{{tableOneName, "a", SQLInt(3)}, {tableOneName, "b", SQLInt(4)}},
+		}
 
-			expected := []Values{{{"a", "a", SQLInt(6)}}, {{"a", "a", SQLInt(3)}}}
+		runTest(project, false, rows, expected)
 
-			runTest(project, false, rows, expected)
-			Convey("and should produce identical results after optimization", func() {
-				runTest(project, true, rows, expected)
-			})
-		})
-
-		Convey("should not filter any results if no column is referenced", func() {
-			sExprs[1].Referenced = false
-
-			project := &ProjectStage{
-				sExprs: sExprs,
-			}
-
-			expected := []Values{{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(9)}}, {{"a", "a", SQLInt(3)}, {"b", "b", SQLInt(4)}}}
-
-			runTest(project, false, rows, expected)
-
-			Convey("and should produce identical results after optimization", func() {
-				runTest(project, true, rows, expected)
-			})
+		Convey("and should produce identical results after optimization", func() {
+			runTest(project, true, rows, expected)
 		})
 
 	})

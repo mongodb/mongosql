@@ -46,8 +46,8 @@ func TestGroupByStage(t *testing.T) {
 
 			So(row.Data[aggregateTable].Table, ShouldEqual, "")
 			So(row.Data[1-aggregateTable].Table, ShouldEqual, tableOneName)
-			So(row.Data[1-aggregateTable].Values, ShouldResemble, expectedRows[i][0])
-			So(row.Data[aggregateTable].Values, ShouldResemble, expectedRows[i][1])
+			So(row.Data[1-aggregateTable].Data, ShouldResemble, expectedRows[i][0])
+			So(row.Data[aggregateTable].Data, ShouldResemble, expectedRows[i][1])
 			row = &Row{}
 			i++
 		}

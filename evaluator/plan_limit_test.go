@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -13,23 +12,12 @@ var (
 	_ fmt.Stringer = nil
 )
 
-func TestLimitOperator(t *testing.T) {
-	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
-
+func TestLimitPlanStage(t *testing.T) {
 	runTest := func(limit *LimitStage, rows []bson.D, expectedRows []Values) {
 		ctx := &ExecutionCtx{}
 
 		ts := &BSONSourceStage{tableOneName, rows}
-
-		limit.source = &ProjectStage{
-			sExprs: SelectExpressions{
-				SelectExpression{
-					Column: &Column{tableOneName, "a", "a", columnType.SQLType, columnType.MongoType},
-					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
-				},
-			},
-			source: ts,
-		}
+		limit.source = ts
 
 		iter, err := limit.Open(ctx)
 		So(err, ShouldBeNil)
@@ -39,9 +27,8 @@ func TestLimitOperator(t *testing.T) {
 		i := 0
 
 		for iter.Next(row) {
-			So(len(row.Data), ShouldEqual, 1)
-			So(row.Data[0].Table, ShouldEqual, tableOneName)
-			So(row.Data[0].Values, ShouldResemble, expectedRows[i])
+			So(len(row.Data), ShouldEqual, len(expectedRows[i]))
+			So(row.Data, ShouldResemble, expectedRows[i])
 			row = &Row{}
 			i++
 		}
@@ -55,8 +42,13 @@ func TestLimitOperator(t *testing.T) {
 	Convey("A limit operator...", t, func() {
 
 		rows := []bson.D{
-			bson.D{{"a", 1}}, bson.D{{"a", 2}}, bson.D{{"a", 3}},
-			bson.D{{"a", 4}}, bson.D{{"a", 5}}, bson.D{{"a", 6}}, bson.D{{"a", 7}},
+			bson.D{{"a", 1}},
+			bson.D{{"a", 2}},
+			bson.D{{"a", 3}},
+			bson.D{{"a", 4}},
+			bson.D{{"a", 5}},
+			bson.D{{"a", 6}},
+			bson.D{{"a", 7}},
 		}
 
 		operator := &LimitStage{}
@@ -65,7 +57,10 @@ func TestLimitOperator(t *testing.T) {
 
 			operator.limit = 2
 
-			expected := []Values{{{"a", "a", SQLInt(1)}}, {{"a", "a", SQLInt(2)}}}
+			expected := []Values{
+				{{tableOneName, "a", SQLInt(1)}},
+				{{tableOneName, "a", SQLInt(2)}},
+			}
 
 			runTest(operator, rows, expected)
 		})
@@ -75,7 +70,10 @@ func TestLimitOperator(t *testing.T) {
 			operator.limit = 2
 			operator.offset = 4
 
-			expected := []Values{{{"a", "a", SQLInt(5)}}, {{"a", "a", SQLInt(6)}}}
+			expected := []Values{
+				{{tableOneName, "a", SQLInt(5)}},
+				{{tableOneName, "a", SQLInt(6)}},
+			}
 
 			runTest(operator, rows, expected)
 		})
@@ -102,9 +100,14 @@ func TestLimitOperator(t *testing.T) {
 
 			operator.limit = 40
 
-			expected := []Values{{{"a", "a", SQLInt(1)}},
-				{{"a", "a", SQLInt(2)}}, {{"a", "a", SQLInt(3)}}, {{"a", "a", SQLInt(4)}},
-				{{"a", "a", SQLInt(5)}}, {{"a", "a", SQLInt(6)}}, {{"a", "a", SQLInt(7)}},
+			expected := []Values{
+				{{tableOneName, "a", SQLInt(1)}},
+				{{tableOneName, "a", SQLInt(2)}},
+				{{tableOneName, "a", SQLInt(3)}},
+				{{tableOneName, "a", SQLInt(4)}},
+				{{tableOneName, "a", SQLInt(5)}},
+				{{tableOneName, "a", SQLInt(6)}},
+				{{tableOneName, "a", SQLInt(7)}},
 			}
 
 			runTest(operator, rows, expected)
@@ -114,7 +117,7 @@ func TestLimitOperator(t *testing.T) {
 			operator.limit = 1
 			operator.offset = 1
 
-			expected := []Values{{{"a", "a", SQLInt(2)}}}
+			expected := []Values{{{tableOneName, "a", SQLInt(2)}}}
 
 			runTest(operator, rows, expected)
 
@@ -125,7 +128,7 @@ func TestLimitOperator(t *testing.T) {
 			operator.limit = 1
 			operator.offset = 6
 
-			expected := []Values{{{"a", "a", SQLInt(7)}}}
+			expected := []Values{{{tableOneName, "a", SQLInt(7)}}}
 
 			runTest(operator, rows, expected)
 		})
@@ -145,7 +148,10 @@ func TestLimitOperator(t *testing.T) {
 			operator.limit = 3
 			operator.offset = 0
 
-			expected := []Values{{{"a", "a", SQLInt(1)}}, {{"a", "a", SQLInt(2)}}, {{"a", "a", SQLInt(3)}}}
+			expected := []Values{
+				{{tableOneName, "a", SQLInt(1)}},
+				{{tableOneName, "a", SQLInt(2)}},
+				{{tableOneName, "a", SQLInt(3)}}}
 
 			runTest(operator, rows, expected)
 		})

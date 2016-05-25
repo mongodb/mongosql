@@ -41,8 +41,7 @@ func TestOrderByOperator(t *testing.T) {
 
 		for iter.Next(row) {
 			So(len(row.Data), ShouldEqual, 1)
-			So(row.Data[0].Table, ShouldEqual, tableOneName)
-			So(row.Data[0].Values, ShouldResemble, expectedRows[i])
+			So(row.Data[0], ShouldResemble, expectedRows[i])
 			row = &Row{}
 			i++
 		}
@@ -64,13 +63,12 @@ func TestOrderByOperator(t *testing.T) {
 
 			Convey("asc", func() {
 
-				keys := []orderByKey{
-					{&SelectExpression{
-						Expr: SQLColumnExpr{tableOneName, "a", columnType},
-					}, false, true, nil}}
+				terms := []*orderByTerm{
+					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
+				}
 
 				operator := &OrderByStage{
-					keys: keys,
+					terms: terms,
 				}
 
 				expected := []Values{
@@ -86,12 +84,12 @@ func TestOrderByOperator(t *testing.T) {
 
 			Convey("desc", func() {
 
-				keys := []orderByKey{{
-					&SelectExpression{Expr: SQLColumnExpr{tableOneName, "a", columnType}}, false, false, nil},
+				terms := []*orderByTerm{
+					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
 				}
 
 				operator := &OrderByStage{
-					keys: keys,
+					terms: terms,
 				}
 
 				expected := []Values{
@@ -110,11 +108,9 @@ func TestOrderByOperator(t *testing.T) {
 		Convey("multiple sort keys should sort according to the direction specified", func() {
 
 			Convey("asc + asc", func() {
-				keys := []orderByKey{
-					{&SelectExpression{
-						Expr: SQLColumnExpr{tableOneName, "a", columnType}}, false, true, nil},
-					{&SelectExpression{
-						Expr: SQLColumnExpr{tableOneName, "b", columnType}}, false, true, nil},
+				terms := []*orderByTerm{
+					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
+					{expr: SQLColumnExpr{tableOneName, "b", columnType}, ascending: false},
 				}
 
 				expected := []Values{
@@ -125,23 +121,20 @@ func TestOrderByOperator(t *testing.T) {
 				}
 
 				operator := &OrderByStage{
-					keys: keys,
+					terms: terms,
 				}
 
 				runTest(operator, data, expected)
-
 			})
 
 			Convey("asc + desc", func() {
-				keys := []orderByKey{
-					{&SelectExpression{
-						Expr: SQLColumnExpr{tableOneName, "a", columnType}}, false, true, nil},
-					{&SelectExpression{
-						Expr: SQLColumnExpr{tableOneName, "b", columnType}}, false, false, nil},
+				terms := []*orderByTerm{
+					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
+					{expr: SQLColumnExpr{tableOneName, "b", columnType}, ascending: false},
 				}
 
 				operator := &OrderByStage{
-					keys: keys,
+					terms: terms,
 				}
 
 				expected := []Values{
@@ -156,15 +149,13 @@ func TestOrderByOperator(t *testing.T) {
 			})
 
 			Convey("desc + asc", func() {
-				keys := []orderByKey{
-					{&SelectExpression{
-						Expr: SQLColumnExpr{tableOneName, "a", columnType}}, false, false, nil},
-					{&SelectExpression{
-						Expr: SQLColumnExpr{tableOneName, "b", columnType}}, false, true, nil},
+				terms := []*orderByTerm{
+					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
+					{expr: SQLColumnExpr{tableOneName, "b", columnType}, ascending: false},
 				}
 
 				operator := &OrderByStage{
-					keys: keys,
+					terms: terms,
 				}
 
 				expected := []Values{
@@ -179,15 +170,13 @@ func TestOrderByOperator(t *testing.T) {
 			})
 
 			Convey("desc + desc", func() {
-				keys := []orderByKey{
-					{&SelectExpression{
-						Expr: SQLColumnExpr{tableOneName, "a", columnType}}, false, false, nil},
-					{&SelectExpression{
-						Expr: SQLColumnExpr{tableOneName, "b", columnType}}, false, false, nil},
+				terms := []*orderByTerm{
+					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
+					{expr: SQLColumnExpr{tableOneName, "b", columnType}, ascending: false},
 				}
 
 				operator := &OrderByStage{
-					keys: keys,
+					terms: terms,
 				}
 
 				expected := []Values{

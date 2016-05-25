@@ -10,13 +10,13 @@ import (
 )
 
 var (
-	testCtx = &EvalCtx{Rows{
-		{TableRows{{tableOneName, Values{{"a", "a", 1}, {"b", "b", 1}}}}},
-		{TableRows{{tableOneName, Values{{"a", "a", 2}, {"b", "b", 2}}}}},
-		{TableRows{{tableOneName, Values{{"a", "a", 3}, {"b", "b", 3}}}}},
-		{TableRows{{tableOneName, Values{{"a", "a", 4}, {"b", "b", 1}}}}},
-	},
-		nil,
+	testCtx = &EvalCtx{
+		Rows: Rows{
+			Row{Values{{tableOneName, "a", 1}, {tableOneName, "b", 1}}},
+			Row{Values{{tableOneName, "a", 2}, {tableOneName, "b", 2}}},
+			Row{Values{{tableOneName, "a", 3}, {tableOneName, "b", 3}}},
+			Row{Values{{tableOneName, "a", 4}, {tableOneName, "b", 4}}},
+		},
 	}
 )
 

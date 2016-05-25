@@ -3,7 +3,22 @@ package evaluator
 import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
+	"gopkg.in/mgo.v2/bson"
 )
+
+// bsonDToValues takes a bson.D document and returns
+// the corresponding values.
+func bsonDToValues(tableName string, document bson.D) ([]Value, error) {
+	values := []Value{}
+	for _, v := range document {
+		value, err := NewSQLValue(v.Value, schema.SQLNone, schema.MongoNone)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, Value{tableName, v.Name, value})
+	}
+	return values, nil
+}
 
 func constructSelectExpressions(exprs map[string]SQLExpr, values ...string) (sExprs SelectExpressions) {
 	for _, value := range values {
@@ -25,12 +40,10 @@ func constructSelectExpressions(exprs map[string]SQLExpr, values ...string) (sEx
 }
 
 func constructOrderByTerms(exprs map[string]SQLExpr, values ...string) (terms []*orderByTerm) {
-	sExprs := constructSelectExpressions(exprs, values...)
-
-	for i := range sExprs {
+	for i, v := range values {
 
 		term := &orderByTerm{
-			expr:      sExprs[i].Expr,
+			expr:      exprs[v],
 			ascending: i%2 == 0,
 		}
 

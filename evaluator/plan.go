@@ -261,20 +261,6 @@ func getKey(key string, doc bson.D) (interface{}, bool) {
 	return getKey(key[index+1:], subDoc)
 }
 
-// bsonDToValues takes a bson.D document and returns
-// the corresponding values.
-func bsonDToValues(document bson.D) ([]Value, error) {
-	values := []Value{}
-	for _, v := range document {
-		value, err := NewSQLValue(v.Value, schema.SQLNone, schema.MongoNone)
-		if err != nil {
-			return nil, err
-		}
-		values = append(values, Value{v.Name, v.Name, value})
-	}
-	return values, nil
-}
-
 // PlanStageVisitor is an implementation of the visitor pattern.
 type PlanStageVisitor interface {
 	// Visit is called with a plan stage. It returns:

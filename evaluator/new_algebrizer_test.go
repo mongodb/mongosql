@@ -120,7 +120,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 	Convey("Subject: Algebrize Statements", t, func() {
 		Convey("dual queries", func() {
 			test("select 2 + 3", func() PlanStage {
-				return NewDualStage(
+				return NewProjectStage(
+					NewDualStage(),
 					createSelectExpressionFromSQLExpr("", "2+3", &SQLAddExpr{
 						left:  SQLInt(2),
 						right: SQLInt(3),
@@ -259,39 +260,15 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 		})
 
 		Convey("subqueries as sources", func() {
-			test("select a from (select a from foo)", func() PlanStage {
-				source := createMongoSource("foo", "foo")
-				subquery := &SubqueryStage{
-					tableName: "",
-					source:    NewProjectStage(source, createSelectExpression(source, "foo", "a", "", "a")),
-				}
-				return NewProjectStage(subquery, createSelectExpression(subquery, "", "a", "", "a"))
-			})
-
-			test("select a from (select a from foo limit 1)", func() PlanStage {
-				source := createMongoSource("foo", "foo")
-				subquery := &SubqueryStage{
-					tableName: "",
-					source:    NewProjectStage(NewLimitStage(source, 0, 1), createSelectExpression(source, "foo", "a", "", "a")),
-				}
-				return NewProjectStage(subquery, createSelectExpression(subquery, "", "a", "", "a"))
-			})
-
 			test("select a from (select a from foo) f", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				subquery := &SubqueryStage{
-					tableName: "f",
-					source:    NewProjectStage(source, createSelectExpression(source, "foo", "a", "f", "a")),
-				}
+				subquery := NewProjectStage(source, createSelectExpression(source, "foo", "a", "f", "a"))
 				return NewProjectStage(subquery, createSelectExpression(subquery, "f", "a", "", "a"))
 			})
 
 			test("select f.a from (select a from foo) f", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				subquery := &SubqueryStage{
-					tableName: "f",
-					source:    NewProjectStage(source, createSelectExpression(source, "foo", "a", "f", "a")),
-				}
+				subquery := NewProjectStage(source, createSelectExpression(source, "foo", "a", "f", "a"))
 				return NewProjectStage(subquery, createSelectExpression(subquery, "f", "a", "", "a"))
 			})
 		})

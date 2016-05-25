@@ -49,7 +49,7 @@ func getOptions(t *testing.T) sqlproxy.Options {
 	return opts
 }
 
-func TestMongoSourceOperator(t *testing.T) {
+func TestMongoSourcePlanStage(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
 	sessionProvider, err := sqlproxy.NewSessionProvider(getOptions(t))
@@ -80,7 +80,7 @@ func TestMongoSourceOperator(t *testing.T) {
 
 			var expected []Values
 			for _, document := range rows {
-				values, err := bsonDToValues(document)
+				values, err := bsonDToValues(tableTwoName, document)
 				So(err, ShouldBeNil)
 				expected = append(expected, values)
 			}
@@ -107,9 +107,8 @@ func TestMongoSourceOperator(t *testing.T) {
 			i := 0
 
 			for iter.Next(row) {
-				So(len(row.Data), ShouldEqual, 1)
-				So(row.Data[0].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Values, ShouldResemble, expected[i])
+				So(len(row.Data), ShouldEqual, len(expected[i]))
+				So(row.Data, ShouldResemble, expected[i])
 				row = &Row{}
 				i++
 			}

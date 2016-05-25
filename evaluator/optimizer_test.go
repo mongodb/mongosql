@@ -1586,7 +1586,7 @@ func TestOrderByPushDown(t *testing.T) {
 					"b": SQLColumnExpr{tbl, "b", columnType},
 					"e": SQLColumnExpr{tbl, "e", columnType},
 				}
-				orderBy.keys = constructOrderByKeys(exprs, "a", "b", "e")
+				orderBy.terms = constructOrderByTerms(exprs, "a", "b", "e")
 
 				verifyOptimizedPipeline(orderBy,
 					[]bson.D{bson.D{{"$sort", bson.D{
@@ -1610,7 +1610,7 @@ func TestOrderByPushDown(t *testing.T) {
 				}
 
 				orderBy.source = groupBy
-				orderBy.keys = constructOrderByKeys(exprs, "sum(b)")
+				orderBy.terms = constructOrderByTerms(exprs, "sum(b)")
 
 				verifyOptimizedPipeline(orderBy,
 					[]bson.D{
@@ -1648,7 +1648,7 @@ func TestOrderByPushDown(t *testing.T) {
 					"b": SQLColumnExpr{tbl, "b", columnType},
 					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
-				orderBy.keys = constructOrderByKeys(exprs, "a", "b", "c")
+				orderBy.terms = constructOrderByTerms(exprs, "a", "b", "c")
 
 				verifyUnoptimizedPipeline(orderBy)
 			})

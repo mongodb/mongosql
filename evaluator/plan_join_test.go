@@ -76,7 +76,7 @@ func setupJoinOperator(on SQLExpr, kind JoinKind) PlanStage {
 
 }
 
-func TestJoinOperator(t *testing.T) {
+func TestJoinPlanStage(t *testing.T) {
 	Convey("With a simple test configuration...", t, func() {
 
 		criteria := &SQLEqualsExpr{
@@ -122,11 +122,11 @@ func TestJoinOperator(t *testing.T) {
 			}
 
 			for iter.Next(row) {
-				So(len(row.Data), ShouldEqual, 2)
+				So(len(row.Data), ShouldEqual, 6)
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
-				So(row.Data[1].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Values.Map()["name"], ShouldEqual, expectedResults[i].Name)
-				So(row.Data[1].Values.Map()["amount"], ShouldEqual, expectedResults[i].Amount)
+				So(row.Data[4].Table, ShouldEqual, tableTwoName)
+				So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
+				So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
 				i++
 			}
 
@@ -158,16 +158,15 @@ func TestJoinOperator(t *testing.T) {
 			for iter.Next(row) {
 				// left entry with no corresponding right entry
 				if i == 3 {
-					So(len(row.Data), ShouldEqual, 1)
+					So(len(row.Data), ShouldEqual, 3)
 					So(row.Data[0].Table, ShouldEqual, tableOneName)
-					So(row.Data[0].Values.Map()["name"], ShouldEqual, expectedResults[i].Name)
-					So(row.Data[0].Values.Map()["amount"], ShouldEqual, expectedResults[i].Amount)
+					So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
 				} else {
-					So(len(row.Data), ShouldEqual, 2)
+					So(len(row.Data), ShouldEqual, 6)
 					So(row.Data[0].Table, ShouldEqual, tableOneName)
-					So(row.Data[1].Table, ShouldEqual, tableTwoName)
-					So(row.Data[0].Values.Map()["name"], ShouldEqual, expectedResults[i].Name)
-					So(row.Data[1].Values.Map()["amount"], ShouldEqual, expectedResults[i].Amount)
+					So(row.Data[4].Table, ShouldEqual, tableTwoName)
+					So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
+					So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
 				}
 				i++
 
@@ -201,16 +200,15 @@ func TestJoinOperator(t *testing.T) {
 			for iter.Next(row) {
 				// right entry with no corresponding left entry
 				if i == 4 {
-					So(len(row.Data), ShouldEqual, 1)
-					So(row.Data[0].Table, ShouldEqual, tableTwoName)
-					So(row.Data[0].Values.Map()["name"], ShouldEqual, expectedResults[i].Name)
-					So(row.Data[0].Values.Map()["amount"], ShouldEqual, expectedResults[i].Amount)
+					So(len(row.Data), ShouldEqual, 3)
+					So(row.Data[4].Table, ShouldEqual, tableTwoName)
+					So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
 				} else {
-					So(len(row.Data), ShouldEqual, 2)
-					So(row.Data[0].Table, ShouldEqual, tableTwoName)
-					So(row.Data[1].Table, ShouldEqual, tableOneName)
-					So(row.Data[1].Values.Map()["name"], ShouldEqual, expectedResults[i].Name)
-					So(row.Data[0].Values.Map()["amount"], ShouldEqual, expectedResults[i].Amount)
+					So(len(row.Data), ShouldEqual, 6)
+					So(row.Data[0].Table, ShouldEqual, tableOneName)
+					So(row.Data[4].Table, ShouldEqual, tableTwoName)
+					So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
+					So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
 				}
 				i++
 			}
@@ -233,11 +231,11 @@ func TestJoinOperator(t *testing.T) {
 			expectedAmounts := []int{1000, 450, 1300, 390, 760}
 
 			for iter.Next(row) {
-				So(len(row.Data), ShouldEqual, 2)
+				So(len(row.Data), ShouldEqual, 6)
 				So(row.Data[0].Table, ShouldEqual, tableOneName)
-				So(row.Data[1].Table, ShouldEqual, tableTwoName)
-				So(row.Data[0].Values.Map()["name"], ShouldEqual, expectedNames[i/5])
-				So(row.Data[1].Values.Map()["amount"], ShouldEqual, expectedAmounts[i%5])
+				So(row.Data[4].Table, ShouldEqual, tableTwoName)
+				So(row.Data[0].Data, ShouldEqual, expectedNames[i/5])
+				So(row.Data[4].Data, ShouldEqual, expectedAmounts[i%5])
 				i++
 			}
 

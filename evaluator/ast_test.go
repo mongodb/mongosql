@@ -54,15 +54,13 @@ func TestEvaluates(t *testing.T) {
 
 	Convey("Subject: Evaluates", t, func() {
 		evalCtx := &EvalCtx{
-			Rows{{
-				Data: TableRows{{
-					"bar",
-					Values{
-						{"a", "a", 123},
-						{"b", "b", 456},
-						{"c", "c", nil}},
-				}}}},
-			nil}
+			Rows: Rows{{
+				Values{
+					{"bar", "a", 123},
+					{"bar", "b", 456},
+					{"bar", "c", nil}},
+			}},
+		}
 
 		Convey("Subject: SQLAddExpr", func() {
 			tests := []test{
@@ -82,35 +80,26 @@ func TestEvaluates(t *testing.T) {
 			t2 = t1.Add(time.Hour)
 
 			aggCtx := &EvalCtx{
-				Rows{{
-					Data: TableRows{{
-						"bar",
-						Values{
-							{"a", "a", nil},
-							{"b", "b", 3},
-							{"c", "c", nil},
-							{"g", "g", t1}},
+				Rows: Rows{{
+					Values{
+						{"bar", "a", nil},
+						{"bar", "b", 3},
+						{"bar", "c", nil},
+						{"bar", "g", t1},
+					}}, {
+					Values{
+						{"bar", "a", 3},
+						{"bar", "b", nil},
+						{"bar", "c", nil},
+						{"bar", "g", t2},
+					}}, {
+					Values{
+						{"bar", "a", 5},
+						{"bar", "b", 6},
+						{"bar", "c", nil},
+						{"bar", "g", nil},
 					}},
-				}, {
-					Data: TableRows{{
-						"bar",
-						Values{
-							{"a", "a", 3},
-							{"b", "b", nil},
-							{"c", "c", nil},
-							{"g", "g", t2}},
-					}},
-				}, {
-					Data: TableRows{{
-						"bar",
-						Values{
-							{"a", "a", 5},
-							{"b", "b", 6},
-							{"c", "c", nil},
-							{"g", "g", nil}},
-					}},
-				}},
-				nil,
+				},
 			}
 
 			Convey("Subject: AVG", func() {
