@@ -19,18 +19,6 @@ type BSONSourceIter struct {
 	err       error
 }
 
-/*
-func NewBSONSource(ctx *ExecutionCtx, tableName string, data []bson.D) (*BSONSource, error) {
-
-	testSource := &BSONSource{
-		data:      data,
-		tableName: tableName,
-	}
-
-	return testSource, nil
-}
-*/
-
 func (bs *BSONSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	return &BSONSourceIter{data: bs.data, tableName: bs.tableName, index: 0}, nil
 }
@@ -65,8 +53,18 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 	return true
 }
 
-func (bs *BSONSourceStage) OpFields() (columns []*Column) {
-	return nil
+func (bs *BSONSourceStage) OpFields() []*Column {
+	var columns []*Column
+	for _, v := range bs.data[0] {
+		columns = append(columns, &Column{
+			Table:     bs.tableName,
+			Name:      v.Name,
+			View:      v.Name,
+			SQLType:   schema.SQLNone,
+			MongoType: schema.MongoNone,
+		})
+	}
+	return columns
 }
 
 func (bs *BSONSourceIter) Close() error {

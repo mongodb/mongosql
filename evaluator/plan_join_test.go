@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/deafgoat/mixer/sqlparser"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -106,7 +105,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		Convey("an inner join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, sqlparser.AST_JOIN)
+			operator := setupJoinOperator(criteria, InnerJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -137,9 +136,9 @@ func TestJoinPlanStage(t *testing.T) {
 
 		})
 
-		Convey("an left join should return correct results", func() {
+		Convey("a left join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, sqlparser.AST_LEFT_JOIN)
+			operator := setupJoinOperator(criteria, LeftJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -156,20 +155,12 @@ func TestJoinPlanStage(t *testing.T) {
 			}
 
 			for iter.Next(row) {
-				// left entry with no corresponding right entry
-				if i == 3 {
-					So(len(row.Data), ShouldEqual, 3)
-					So(row.Data[0].Table, ShouldEqual, tableOneName)
-					So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
-				} else {
-					So(len(row.Data), ShouldEqual, 6)
-					So(row.Data[0].Table, ShouldEqual, tableOneName)
-					So(row.Data[4].Table, ShouldEqual, tableTwoName)
-					So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
-					So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
-				}
+				So(len(row.Data), ShouldEqual, 6)
+				So(row.Data[0].Table, ShouldEqual, tableOneName)
+				So(row.Data[4].Table, ShouldEqual, tableTwoName)
+				So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
+				So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
 				i++
-
 			}
 
 			So(i, ShouldEqual, 5)
@@ -179,9 +170,9 @@ func TestJoinPlanStage(t *testing.T) {
 
 		})
 
-		Convey("an right join should return correct results", func() {
+		Convey("a right join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, sqlparser.AST_RIGHT_JOIN)
+			operator := setupJoinOperator(criteria, RightJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -196,20 +187,12 @@ func TestJoinPlanStage(t *testing.T) {
 				{"personD", 390},
 				{nil, 760},
 			}
-
 			for iter.Next(row) {
-				// right entry with no corresponding left entry
-				if i == 4 {
-					So(len(row.Data), ShouldEqual, 3)
-					So(row.Data[4].Table, ShouldEqual, tableTwoName)
-					So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
-				} else {
-					So(len(row.Data), ShouldEqual, 6)
-					So(row.Data[0].Table, ShouldEqual, tableOneName)
-					So(row.Data[4].Table, ShouldEqual, tableTwoName)
-					So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
-					So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
-				}
+				So(len(row.Data), ShouldEqual, 6)
+				So(row.Data[0].Table, ShouldEqual, tableOneName)
+				So(row.Data[4].Table, ShouldEqual, tableTwoName)
+				So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
+				So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
 				i++
 			}
 
@@ -222,7 +205,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		Convey("a cross join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, sqlparser.AST_CROSS_JOIN)
+			operator := setupJoinOperator(criteria, CrossJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)

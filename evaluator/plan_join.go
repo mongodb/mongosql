@@ -32,9 +32,11 @@ const (
 
 // NestedLoop implementation of a JOIN.
 type NestedLoopJoiner struct {
-	matcher SQLExpr
-	kind    JoinKind
-	errChan chan error
+	matcher      SQLExpr
+	leftColumns  []*Column
+	rightColumns []*Column
+	kind         JoinKind
+	errChan      chan error
 }
 
 // SortMerge implementation of a JOIN.
@@ -76,12 +78,14 @@ func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr) *Join
 }
 
 type JoinIter struct {
-	strategy    JoinStrategy
-	kind        JoinKind
-	matcher     SQLExpr
-	joiner      Joiner
-	left, right Iter
-	execCtx     *ExecutionCtx
+	strategy     JoinStrategy
+	kind         JoinKind
+	matcher      SQLExpr
+	joiner       Joiner
+	left, right  Iter
+	leftColumns  []*Column
+	rightColumns []*Column
+	execCtx      *ExecutionCtx
 
 	leftRows  chan *Row
 	rightRows chan *Row
@@ -102,12 +106,14 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	return &JoinIter{
-		kind:     join.kind,
-		strategy: join.strategy,
-		matcher:  join.matcher,
-		left:     left,
-		right:    right,
-		execCtx:  ctx,
+		kind:         join.kind,
+		strategy:     join.strategy,
+		matcher:      join.matcher,
+		left:         left,
+		right:        right,
+		leftColumns:  join.left.OpFields(),
+		rightColumns: join.right.OpFields(),
+		execCtx:      ctx,
 	}, nil
 }
 
@@ -130,12 +136,12 @@ func fetchRows(it Iter, ch chan *Row, errChan chan error) {
 func (join *JoinIter) Next(row *Row) bool {
 	join.init.Do(func() {
 		join.errChan = make(chan error, 1)
-		join.joiner = NewJoiner(join.strategy, join.kind, join.matcher, join.errChan)
 		join.leftRows = make(chan *Row)
 		join.rightRows = make(chan *Row)
 		go fetchRows(join.left, join.leftRows, join.errChan)
 		go fetchRows(join.right, join.rightRows, join.errChan)
-		join.onChan = join.joiner.Join(join.leftRows, join.rightRows, join.execCtx)
+		joiner := NewJoiner(join.strategy, join.kind, join.matcher, join.leftColumns, join.rightColumns, join.errChan)
+		join.onChan = joiner.Join(join.leftRows, join.rightRows, join.execCtx)
 	})
 	select {
 	case err := <-join.errChan:
@@ -196,11 +202,11 @@ func (join *JoinStage) clone() *JoinStage {
 // strategy. The implementation uses the supplied matcher in
 // evaluating the join criteria and performs joins according
 // to the joinType
-func NewJoiner(s JoinStrategy, kind JoinKind, matcher SQLExpr, errChan chan error) Joiner {
+func NewJoiner(s JoinStrategy, kind JoinKind, matcher SQLExpr, leftColumns, rightColumns []*Column, errChan chan error) Joiner {
 
 	switch s {
 	case NestedLoop:
-		return &NestedLoopJoiner{matcher, kind, errChan}
+		return &NestedLoopJoiner{matcher, leftColumns, rightColumns, kind, errChan}
 	case SortMerge:
 		return &SortMergeJoiner{matcher, kind, errChan}
 	case Hash:
@@ -225,16 +231,26 @@ func readFromChan(ch chan *Row) []*Row {
 // NestedLoopJoiner implementation.
 func (nlp *NestedLoopJoiner) Join(lChan, rChan chan *Row, ctx *ExecutionCtx) chan Row {
 
+	getNilValues := func(columns []*Column) Values {
+		var nilValues Values
+		for _, c := range columns {
+			nilValues = append(nilValues, Value{
+				Table: c.Table,
+				Name:  c.Name,
+			})
+		}
+		return nilValues
+	}
+
 	ch := make(chan Row)
 
 	switch nlp.kind {
-
 	case InnerJoin:
 		go nlp.innerJoin(lChan, rChan, ch, ctx)
 	case LeftJoin:
-		go nlp.sideJoin(lChan, rChan, ch, ctx)
+		go nlp.leftJoin(lChan, rChan, ch, ctx, getNilValues(nlp.rightColumns))
 	case RightJoin:
-		go nlp.sideJoin(rChan, lChan, ch, ctx)
+		go nlp.rightJoin(lChan, rChan, ch, ctx, getNilValues(nlp.leftColumns))
 	case StraightJoin:
 	case CrossJoin:
 		go nlp.crossJoin(lChan, rChan, ch, ctx)
@@ -263,7 +279,7 @@ func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) sideJoin(lChan, rChan chan *Row, ch chan Row, ctx *ExecutionCtx) {
+func (nlp *NestedLoopJoiner) leftJoin(lChan, rChan chan *Row, ch chan Row, ctx *ExecutionCtx, nilRightValues Values) {
 	left := readFromChan(lChan)
 	right := readFromChan(rChan)
 
@@ -282,7 +298,35 @@ func (nlp *NestedLoopJoiner) sideJoin(lChan, rChan chan *Row, ch chan Row, ctx *
 		}
 
 		if !hasMatch {
-			ch <- Row{Data: l.Data}
+			ch <- Row{Data: append(l.Data, nilRightValues...)}
+		}
+
+		hasMatch = false
+	}
+
+	close(ch)
+}
+
+func (nlp *NestedLoopJoiner) rightJoin(lChan, rChan chan *Row, ch chan Row, ctx *ExecutionCtx, nilLeftValues Values) {
+	left := readFromChan(lChan)
+	right := readFromChan(rChan)
+
+	var hasMatch bool
+
+	for _, r := range right {
+		for _, l := range left {
+			evalCtx := &EvalCtx{Rows{*l, *r}, ctx}
+			m, err := Matches(nlp.matcher, evalCtx)
+			if err != nil {
+				nlp.errChan <- err
+			} else if m {
+				hasMatch = true
+				ch <- Row{Data: append(l.Data, r.Data...)}
+			}
+		}
+
+		if !hasMatch {
+			ch <- Row{Data: append(nilLeftValues, r.Data...)}
 		}
 
 		hasMatch = false

@@ -237,18 +237,15 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{"$or": []interface{}{left, right}}, true
 
 	case *SQLScalarFunctionExpr:
-		println("HERE 0")
 
 		args, ok := translateExprs(lookupFieldName, typedE.Exprs...)
 		if !ok {
-			println("HERE 1")
 			return nil, false
 		}
 
 		switch typedE.Name {
 		case "abs":
 			if len(args) != 1 {
-				println("HERE 2")
 				return nil, false
 			}
 			return bson.M{"$abs": args[0]}, true
