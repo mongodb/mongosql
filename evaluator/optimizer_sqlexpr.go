@@ -106,23 +106,23 @@ func (v *sqlExprOptimizer) Visit(p PlanStage) (PlanStage, error) {
 		}
 	case *ProjectStage:
 		hasNew := false
-		exprs := SelectExpressions{}
-		for _, expr := range typedP.sExprs {
-			newExpr, err := v.optimizeSelectExpression(&expr)
+		newProjectedColumns := SelectExpressions{}
+		for _, projectedColumn := range typedP.projectedColumns {
+			newProjectedColumn, err := v.optimizeSelectExpression(&projectedColumn)
 			if err != nil {
 				return nil, err
 			}
-			if newExpr != &expr {
+			if newProjectedColumn != &projectedColumn {
 				hasNew = true
-				expr = *newExpr
+				projectedColumn = *newProjectedColumn
 			}
 
-			exprs = append(exprs, expr)
+			newProjectedColumns = append(newProjectedColumns, projectedColumn)
 		}
 
 		if hasNew {
 			newP := typedP.clone()
-			newP.sExprs = exprs
+			newP.projectedColumns = newProjectedColumns
 			p = newP
 		}
 	}

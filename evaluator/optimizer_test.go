@@ -1494,8 +1494,8 @@ func TestProjectPushdown(t *testing.T) {
 			}
 
 			proj := &ProjectStage{
-				sExprs: constructSelectExpressions(exprs, "a", "sum(b)"),
-				source: ms,
+				projectedColumns: constructSelectExpressions(exprs, "a", "sum(b)"),
+				source:           ms,
 			}
 
 			Convey("The pipeline should contain a $project stage with correct field mappings", func() {
@@ -1529,8 +1529,8 @@ func TestProjectPushdown(t *testing.T) {
 			}
 
 			proj := &ProjectStage{
-				sExprs: constructSelectExpressions(exprs, "a", "ascii(substring('xxx',b))", "sum(c)"),
-				source: ms,
+				projectedColumns: constructSelectExpressions(exprs, "a", "ascii(substring('xxx',b))", "sum(c)"),
+				source:           ms,
 			}
 			Convey("the project node should not be removed from query plan tree", func() {
 				optimized, err := OptimizePlan(proj)

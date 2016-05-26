@@ -54,7 +54,7 @@ func TestProjectOperator(t *testing.T) {
 			bson.D{{"a", 3}, {"b", 4}},
 		}
 
-		sExprs := SelectExpressions{
+		projectedColumns := SelectExpressions{
 			SelectExpression{
 				Column: &Column{tableOneName, "a", schema.SQLInt, schema.MongoInt},
 				Expr:   SQLColumnExpr{tableOneName, "a", columnType},
@@ -66,7 +66,7 @@ func TestProjectOperator(t *testing.T) {
 		}
 
 		project := &ProjectStage{
-			sExprs: sExprs,
+			projectedColumns: projectedColumns,
 		}
 
 		expected := []Values{

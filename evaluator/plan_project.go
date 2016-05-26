@@ -7,26 +7,26 @@ import (
 
 // ProjectStage handles taking sourced rows and projecting them into a different shape.
 type ProjectStage struct {
-	// sExprs holds the columns and/or expressions used in
+	// projectedColumns holds the columns and/or expressions used in
 	// the pipeline
-	sExprs SelectExpressions
+	projectedColumns SelectExpressions
 
 	// source is the operator that provides the data to project
 	source PlanStage
 }
 
 // NewProjectStage creates a new project stage.
-func NewProjectStage(source PlanStage, sExprs ...SelectExpression) *ProjectStage {
+func NewProjectStage(source PlanStage, projectedColumns ...SelectExpression) *ProjectStage {
 	return &ProjectStage{
-		source: source,
-		sExprs: sExprs,
+		source:           source,
+		projectedColumns: projectedColumns,
 	}
 }
 
 type ProjectIter struct {
 	source Iter
 
-	sExprs SelectExpressions
+	projectedColumns SelectExpressions
 
 	// err holds any error that may have occurred during processing
 	err error
@@ -46,9 +46,9 @@ func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	return &ProjectIter{
-		sExprs: pj.sExprs,
-		ctx:    ctx,
-		source: sourceIter,
+		projectedColumns: pj.projectedColumns,
+		ctx:              ctx,
+		source:           sourceIter,
 	}, nil
 
 }
@@ -67,7 +67,7 @@ func (pj *ProjectIter) Next(r *Row) bool {
 	}
 
 	values := Values{}
-	for _, projectedColumn := range pj.sExprs {
+	for _, projectedColumn := range pj.projectedColumns {
 		v, err := projectedColumn.Expr.Evaluate(evalCtx)
 		if err != nil {
 			pj.err = err
@@ -88,12 +88,12 @@ func (pj *ProjectIter) Next(r *Row) bool {
 }
 
 func (pj *ProjectStage) OpFields() (columns []*Column) {
-	for _, expr := range pj.sExprs {
+	for _, projectedColumn := range pj.projectedColumns {
 		column := &Column{
-			Name:      expr.Name,
-			Table:     expr.Table,
-			SQLType:   expr.SQLType,
-			MongoType: expr.MongoType,
+			Name:      projectedColumn.Name,
+			Table:     projectedColumn.Table,
+			SQLType:   projectedColumn.SQLType,
+			MongoType: projectedColumn.MongoType,
 		}
 		columns = append(columns, column)
 	}
@@ -118,8 +118,8 @@ func (pj *ProjectIter) Err() error {
 
 func (pj *ProjectStage) clone() *ProjectStage {
 	return &ProjectStage{
-		source: pj.source,
-		sExprs: pj.sExprs,
+		source:           pj.source,
+		projectedColumns: pj.projectedColumns,
 	}
 }
 

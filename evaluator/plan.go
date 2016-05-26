@@ -217,7 +217,7 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 		b.WriteString("↳ Project(")
 
-		for i, c := range typedE.sExprs {
+		for i, c := range typedE.projectedColumns {
 			if i != 0 {
 				b.WriteString(", ")
 			}
@@ -402,8 +402,8 @@ func walkPlanTree(v PlanStageVisitor, p PlanStage) (PlanStage, error) {
 
 		if typedP.source != source {
 			p = &ProjectStage{
-				source: source,
-				sExprs: typedP.sExprs,
+				source:           source,
+				projectedColumns: typedP.projectedColumns,
 			}
 		}
 	case *SchemaDataSourceStage:

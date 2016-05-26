@@ -890,10 +890,7 @@ func TestNewAlgebrizeExpr(t *testing.T) {
 			actualPlan, err := Algebrize(selectStatement, "test", testSchema)
 			So(err, ShouldBeNil)
 
-			actual := (actualPlan.(*ProjectStage)).sExprs[0].Expr
-
-			// fmt.Printf("\nExpected: %# v", pretty.Formatter(expected))
-			// fmt.Printf("\nActual: %# v", pretty.Formatter(actual))
+			actual := (actualPlan.(*ProjectStage)).projectedColumns[0].Expr
 
 			So(actual, ShouldResemble, expected)
 		})

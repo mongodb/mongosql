@@ -701,16 +701,16 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	// This will contain the rebuilt mapping registry reflecting fields re-mapped by projection.
 	fixedMappingRegistry := mappingRegistry{}
 
-	fixedExpressions := SelectExpressions{}
+	fixedProjectedColumns := SelectExpressions{}
 
 	// Track whether or not we've successfully mapped every field into the $project of the source.
 	// If so, this Project node can be removed from the query plan tree.
 	canReplaceProject := true
 
-	for _, exp := range project.sExprs {
+	for _, projectedColumn := range project.projectedColumns {
 
 		// Convert the column's SQL expression into an expression in mongo query language.
-		projectedField, ok := TranslateExpr(exp.Expr, ms.mappingRegistry.lookupFieldName)
+		projectedField, ok := TranslateExpr(projectedColumn.Expr, ms.mappingRegistry.lookupFieldName)
 		if !ok {
 			// Expression can't be translated, so it can't be projected.
 			// We skip it and leave this Project node in the query plan so that it still gets
@@ -719,7 +719,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 			// There might still be fields referenced in this expression
 			// that we still need to project, so collect them and add them to the projection.
-			refdCols, err := referencedColumns(exp.Expr)
+			refdCols, err := referencedColumns(projectedColumn.Expr)
 			if err != nil {
 				return nil, err
 			}
@@ -736,19 +736,19 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 				fixedMappingRegistry.registerMapping(refdCol.Table, refdCol.Name, safeFieldName)
 			}
 
-			fixedExpressions = append(fixedExpressions, exp)
+			fixedProjectedColumns = append(fixedProjectedColumns, projectedColumn)
 		} else {
 
-			safeFieldName := dottifyFieldName(exp.Expr.String())
+			safeFieldName := dottifyFieldName(projectedColumn.Expr.String())
 			fieldsToProject[safeFieldName] = projectedField
-			fixedMappingRegistry.addColumn(exp.Column)
-			fixedMappingRegistry.registerMapping(exp.Column.Table, exp.Column.Name, safeFieldName)
+			fixedMappingRegistry.addColumn(projectedColumn.Column)
+			fixedMappingRegistry.registerMapping(projectedColumn.Column.Table, projectedColumn.Column.Name, safeFieldName)
 
-			columnType := schema.ColumnType{exp.Column.SQLType, exp.Column.MongoType}
-			columnExpr := SQLColumnExpr{exp.Column.Table, exp.Column.Name, columnType}
-			fixedExpressions = append(fixedExpressions,
+			columnType := schema.ColumnType{projectedColumn.Column.SQLType, projectedColumn.Column.MongoType}
+			columnExpr := SQLColumnExpr{projectedColumn.Column.Table, projectedColumn.Column.Name, columnType}
+			fixedProjectedColumns = append(fixedProjectedColumns,
 				SelectExpression{
-					Column: exp.Column,
+					Column: projectedColumn.Column,
 					Expr:   columnExpr,
 				},
 			)
@@ -768,6 +768,6 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 	project = project.clone()
 	project.source = ms
-	project.sExprs = fixedExpressions
+	project.projectedColumns = fixedProjectedColumns
 	return project, nil
 }
