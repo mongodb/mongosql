@@ -12,7 +12,7 @@ func (_ *EmptyStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	return &EmptyIter{}, nil
 }
 
-func (es *EmptyStage) OpFields() []*Column {
+func (es *EmptyStage) Columns() []*Column {
 	return es.columns
 }
 

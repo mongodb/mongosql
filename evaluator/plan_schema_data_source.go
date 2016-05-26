@@ -100,7 +100,7 @@ func (sds *SchemaDataSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	return it, nil
 }
 
-func (sds *SchemaDataSourceStage) OpFields() []*Column {
+func (sds *SchemaDataSourceStage) Columns() []*Column {
 
 	var headers []isColumn
 

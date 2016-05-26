@@ -49,7 +49,7 @@ func (e *Evaluator) Schema() schema.Schema {
 // generated results as a slice of rows.
 func (e *Evaluator) EvaluateRows(db, sql string, ast sqlparser.SelectStatement, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
 
-	fields, iter, err := e.Evaluate(db, sql, ast, conn)
+	columns, iter, err := e.Evaluate(db, sql, ast, conn)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -73,7 +73,7 @@ func (e *Evaluator) EvaluateRows(db, sql string, ast sqlparser.SelectStatement, 
 
 	// make sure all rows have same number of values
 	for idx, row := range rows {
-		for len(row) < len(fields) {
+		for len(row) < len(columns) {
 			row = append(row, nil)
 		}
 		rows[idx] = row
@@ -81,8 +81,8 @@ func (e *Evaluator) EvaluateRows(db, sql string, ast sqlparser.SelectStatement, 
 
 	var headers []string
 
-	for _, field := range fields {
-		headers = append(headers, field.Name)
+	for _, column := range columns {
+		headers = append(headers, column.Name)
 	}
 
 	return headers, rows, nil
@@ -104,9 +104,9 @@ func (e *Evaluator) Evaluate(db, sql string, ast sqlparser.SelectStatement, conn
 		return nil, nil, err
 	}
 
-	fields := plan.OpFields()
+	columns := plan.Columns()
 
-	return fields, iter, nil
+	return columns, iter, nil
 }
 
 // Plan returns a query plan for the SQL query.

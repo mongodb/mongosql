@@ -60,8 +60,8 @@ type PlanStage interface {
 	// ExecutionContext.
 	Open(*ExecutionCtx) (Iter, error)
 
-	// OpFields returns the set of columns that are contained in results from this plan.
-	OpFields() []*Column
+	// Columns returns the ordered set of columns that are contained in results from this plan.
+	Columns() []*Column
 }
 
 // Iter represents an object that can iterate through a set of rows.

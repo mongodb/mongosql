@@ -38,8 +38,8 @@ func (sr *SourceRemoveIter) Next(row *Row) bool {
 	return true
 }
 
-func (sr *SourceRemoveStage) OpFields() (columns []*Column) {
-	return sr.source.OpFields()
+func (sr *SourceRemoveStage) Columns() (columns []*Column) {
+	return sr.source.Columns()
 }
 
 func (sr *SourceRemoveIter) Close() error {

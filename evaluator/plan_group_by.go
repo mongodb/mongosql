@@ -47,7 +47,7 @@ func NewGroupByStage(source PlanStage, keys SelectExpressions, aggregates Select
 	}
 }
 
-func (gb *GroupByStage) OpFields() (columns []*Column) {
+func (gb *GroupByStage) Columns() (columns []*Column) {
 	for _, expr := range gb.selectExprs {
 		column := &Column{
 			Name:      expr.Name,

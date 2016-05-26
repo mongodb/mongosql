@@ -87,7 +87,7 @@ func (pj *ProjectIter) Next(r *Row) bool {
 	return true
 }
 
-func (pj *ProjectStage) OpFields() (columns []*Column) {
+func (pj *ProjectStage) Columns() (columns []*Column) {
 	for _, projectedColumn := range pj.projectedColumns {
 		column := &Column{
 			Name:      projectedColumn.Name,
@@ -99,7 +99,7 @@ func (pj *ProjectStage) OpFields() (columns []*Column) {
 	}
 
 	if len(columns) == 0 {
-		columns = pj.source.OpFields()
+		columns = pj.source.Columns()
 	}
 
 	return columns

@@ -192,7 +192,7 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 	return true
 }
 
-func (ms *MongoSourceStage) OpFields() (columns []*Column) {
+func (ms *MongoSourceStage) Columns() (columns []*Column) {
 	return ms.mappingRegistry.columns
 }
 

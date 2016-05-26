@@ -30,8 +30,8 @@ func TestEmptyOperator(t *testing.T) {
 				So(iter.Next(nil), ShouldBeFalse)
 			})
 
-			Convey("OpFields should return the table fields", func() {
-				res := e.OpFields()
+			Convey("Columns should return the table fields", func() {
+				res := e.Columns()
 				So(len(res), ShouldEqual, 1)
 				So(res[0].Table, ShouldEqual, "foo")
 				So(res[0].Name, ShouldEqual, "a")

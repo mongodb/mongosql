@@ -24,7 +24,7 @@ func (di *DualIter) Next(row *Row) bool {
 	return false
 }
 
-func (d *DualStage) OpFields() (columns []*Column) {
+func (d *DualStage) Columns() (columns []*Column) {
 	return []*Column{}
 }
 

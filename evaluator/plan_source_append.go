@@ -36,8 +36,8 @@ func (sa *SourceAppendIter) Next(row *Row) bool {
 	return true
 }
 
-func (sa *SourceAppendStage) OpFields() (columns []*Column) {
-	return sa.source.OpFields()
+func (sa *SourceAppendStage) Columns() (columns []*Column) {
+	return sa.source.Columns()
 }
 
 func (sa *SourceAppendIter) Close() error {

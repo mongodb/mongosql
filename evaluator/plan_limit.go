@@ -65,8 +65,8 @@ func (l *LimitIter) Next(row *Row) bool {
 	return l.source.Next(row)
 }
 
-func (l *LimitStage) OpFields() (columns []*Column) {
-	return l.source.OpFields()
+func (l *LimitStage) Columns() (columns []*Column) {
+	return l.source.Columns()
 }
 
 func (l *LimitIter) Close() error {

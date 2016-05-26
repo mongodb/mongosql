@@ -176,7 +176,7 @@ type SQLSubqueryExpr struct {
 
 func (se *SQLSubqueryExpr) Exprs() []SQLExpr {
 	exprs := []SQLExpr{}
-	for _, c := range se.plan.OpFields() {
+	for _, c := range se.plan.Columns() {
 		exprs = append(exprs, SQLColumnExpr{
 			tableName:  c.Table,
 			columnName: c.Name,

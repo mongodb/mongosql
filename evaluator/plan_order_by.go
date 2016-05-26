@@ -150,8 +150,8 @@ func (ob *OrderByIter) Err() error {
 	return ob.err
 }
 
-func (ob *OrderByStage) OpFields() (columns []*Column) {
-	return ob.source.OpFields()
+func (ob *OrderByStage) Columns() (columns []*Column) {
+	return ob.source.Columns()
 }
 
 func (ob *OrderByStage) clone() *OrderByStage {

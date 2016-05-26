@@ -453,7 +453,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 			}
 		}
 
-		a.registerColumns(plan.OpFields())
+		a.registerColumns(plan.Columns())
 
 		return plan, nil
 	case *sqlparser.Subquery:
@@ -467,7 +467,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 			return nil, err
 		}
 
-		a.registerColumns(plan.OpFields())
+		a.registerColumns(plan.Columns())
 
 		return plan, nil
 	default:

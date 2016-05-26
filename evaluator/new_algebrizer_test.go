@@ -57,7 +57,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 	}
 
 	createSQLColumnExprFromSource := func(source PlanStage, tableName, columnName string) SQLColumnExpr {
-		for _, c := range source.OpFields() {
+		for _, c := range source.Columns() {
 			if c.Table == tableName && c.Name == columnName {
 				return createSQLColumnExpr(c.Table, c.Name, c.SQLType, c.MongoType)
 			}
@@ -79,7 +79,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 	}
 
 	createSelectExpression := func(source PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) SelectExpression {
-		for _, c := range source.OpFields() {
+		for _, c := range source.Columns() {
 			if c.Table == sourceTableName && c.Name == sourceColumnName {
 				return createSelectExpressionFromColumn(c, projectedTableName, projectedColumnName)
 			}
@@ -90,7 +90,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 
 	createAllSelectExpressionsFromSource := func(source PlanStage, projectedTableName string) SelectExpressions {
 		results := SelectExpressions{}
-		for _, c := range source.OpFields() {
+		for _, c := range source.Columns() {
 			results = append(results, createSelectExpressionFromColumn(c, projectedTableName, c.Name))
 		}
 
@@ -897,7 +897,7 @@ func TestNewAlgebrizeExpr(t *testing.T) {
 	}
 
 	createSQLColumnExpr := func(columnName string) SQLColumnExpr {
-		for _, c := range source.OpFields() {
+		for _, c := range source.Columns() {
 			if c.Name == columnName {
 				return SQLColumnExpr{
 					tableName:  c.Table,

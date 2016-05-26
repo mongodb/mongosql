@@ -37,8 +37,8 @@ func (fs *FilterStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}, nil
 }
 
-func (fs *FilterStage) OpFields() (columns []*Column) {
-	return fs.source.OpFields()
+func (fs *FilterStage) Columns() (columns []*Column) {
+	return fs.source.Columns()
 }
 
 func (fi *FilterIter) Next(row *Row) bool {

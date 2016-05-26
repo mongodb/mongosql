@@ -111,8 +111,8 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		matcher:      join.matcher,
 		left:         left,
 		right:        right,
-		leftColumns:  join.left.OpFields(),
-		rightColumns: join.right.OpFields(),
+		leftColumns:  join.left.Columns(),
+		rightColumns: join.right.Columns(),
 		execCtx:      ctx,
 	}, nil
 }
@@ -169,9 +169,9 @@ func (join *JoinIter) Close() error {
 	return nil
 }
 
-func (join *JoinStage) OpFields() []*Column {
-	left := join.left.OpFields()
-	right := join.right.OpFields()
+func (join *JoinStage) Columns() []*Column {
+	left := join.left.Columns()
+	right := join.right.Columns()
 	return append(left, right...)
 }
 

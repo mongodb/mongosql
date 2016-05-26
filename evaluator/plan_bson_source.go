@@ -53,7 +53,7 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 	return true
 }
 
-func (bs *BSONSourceStage) OpFields() []*Column {
+func (bs *BSONSourceStage) Columns() []*Column {
 	var columns []*Column
 	for _, v := range bs.data[0] {
 		columns = append(columns, &Column{

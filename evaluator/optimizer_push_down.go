@@ -88,7 +88,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		}
 
 		if !matches {
-			return &EmptyStage{filter.OpFields()}, nil
+			return &EmptyStage{filter.Columns()}, nil
 		}
 
 		// otherwise, the filter simply gets removed from the tree
