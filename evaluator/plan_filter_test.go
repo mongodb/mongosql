@@ -30,9 +30,8 @@ func TestFilterPlanStage(t *testing.T) {
 		i := 0
 
 		for iter.Next(row) {
-			So(len(row.Data), ShouldEqual, 1)
-			So(row.Data[0].Table, ShouldEqual, tableTwoName)
-			So(row.Data[0].Data, ShouldResemble, expectedRows[i])
+			So(len(row.Data), ShouldEqual, len(expectedRows[i]))
+			So(row.Data, ShouldResemble, expectedRows[i])
 			row = &Row{}
 			i++
 		}

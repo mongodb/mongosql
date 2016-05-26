@@ -8,27 +8,13 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func TestGroupByStage(t *testing.T) {
-	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
-
-	runTest := func(groupBy *GroupByStage, rows []bson.D, expectedRows [][]Values) {
+func TestGroupByPlanStage(t *testing.T) {
+	runTest := func(groupBy *GroupByStage, rows []bson.D, expectedRows []Values) {
 		ctx := &ExecutionCtx{}
 
 		bss := &BSONSourceStage{tableOneName, rows}
 
-		groupBy.source = &ProjectStage{
-			source: bss,
-			sExprs: SelectExpressions{
-				SelectExpression{
-					Column: &Column{tableOneName, "a", "a", columnType.SQLType, columnType.MongoType},
-					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
-				},
-				SelectExpression{
-					Column: &Column{tableOneName, "b", "b", columnType.SQLType, columnType.MongoType},
-					Expr:   SQLColumnExpr{tableOneName, "b", columnType},
-				},
-			},
-		}
+		groupBy.source = bss
 
 		iter, err := groupBy.Open(ctx)
 		So(err, ShouldBeNil)
@@ -38,16 +24,8 @@ func TestGroupByStage(t *testing.T) {
 		i := 0
 
 		for iter.Next(row) {
-			So(len(row.Data), ShouldEqual, 2)
-			aggregateTable := 1
-			if row.Data[0].Table == "" {
-				aggregateTable = 0
-			}
-
-			So(row.Data[aggregateTable].Table, ShouldEqual, "")
-			So(row.Data[1-aggregateTable].Table, ShouldEqual, tableOneName)
-			So(row.Data[1-aggregateTable].Data, ShouldResemble, expectedRows[i][0])
-			So(row.Data[aggregateTable].Data, ShouldResemble, expectedRows[i][1])
+			So(len(row.Data), ShouldEqual, len(expectedRows[i]))
+			So(row.Data, ShouldResemble, expectedRows[i])
 			row = &Row{}
 			i++
 		}
@@ -61,10 +39,12 @@ func TestGroupByStage(t *testing.T) {
 		data := []bson.D{
 			bson.D{{"_id", 1}, {"a", 6}, {"b", 7}},
 			bson.D{{"_id", 2}, {"a", 6}, {"b", 8}},
+			bson.D{{"_id", 3}, {"a", 7}, {"b", 9}},
 		}
 
 		Convey("should return the right result when using an aggregation function", func() {
 
+			columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 			sExprs := SelectExpressions{
 				SelectExpression{
 					Column: &Column{tableOneName, "a", "a", columnType.SQLType, columnType.MongoType},
@@ -93,15 +73,12 @@ func TestGroupByStage(t *testing.T) {
 				keyExprs:    exprs,
 			}
 
-			expected := [][]Values{
-				[]Values{
-					{{"a", "a", SQLInt(6)}},
-					{{"sum(b)", "sum(b)", SQLFloat(15)}},
-				},
+			expected := []Values{
+				{{tableOneName, "a", SQLInt(6)}, {"", "sum(b)", SQLFloat(15)}},
+				{{tableOneName, "a", SQLInt(7)}, {"", "sum(b)", SQLFloat(9)}},
 			}
 
 			runTest(operator, data, expected)
-
 		})
 
 	})

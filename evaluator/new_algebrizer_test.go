@@ -6,7 +6,6 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
-	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -40,7 +39,6 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 
 			selectStatement := statement.(sqlparser.SelectStatement)
 			actual, err := Algebrize(selectStatement, defaultDbName, testSchema)
-			fmt.Printf("\n%# v", pretty.Formatter(actual))
 			So(err, ShouldNotBeNil)
 			So(err, ShouldResemble, fmt.Errorf(message))
 			So(actual, ShouldBeNil)
@@ -858,7 +856,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 			testError("select *, a from foo", `cannot have a global * in the field list in conjunction with any other columns`)
 
 			testError("select a from foo, bar", `column "a" in the field list is ambiguous`)
-			testError("select foo.a from (select a from foo)", `unknown column "a" in table "foo"`)
+			testError("select foo.a from (select a from foo)", `every derived table must have it's own alias`)
 			testError("select foo.a from foo f, bar b", `unknown column "a" in table "foo"`)
 			testError("select f.a, * from foo f, bar b", `cannot have a global * in the field list in conjunction with any other columns`)
 			testError("select a from foo f, bar b", `column "a" in the field list is ambiguous`)
