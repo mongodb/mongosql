@@ -117,7 +117,6 @@ func NewMongoSourceStage(schema *schema.Schema, dbName, tableName string, aliasN
 		column := &Column{
 			Table:     ms.aliasName,
 			Name:      c.SqlName,
-			View:      c.SqlName,
 			SQLType:   c.SqlType,
 			MongoType: c.MongoType,
 		}

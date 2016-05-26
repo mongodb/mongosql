@@ -123,7 +123,6 @@ func (sds *SchemaDataSourceStage) OpFields() []*Column {
 		column := &Column{
 			Table:     aliasName,
 			Name:      c.name,
-			View:      c.name,
 			SQLType:   c.sqlType,
 			MongoType: schema.MongoNone,
 		}

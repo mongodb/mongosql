@@ -26,14 +26,12 @@ func constructSelectExpressions(exprs map[string]SQLExpr, values ...string) (sEx
 		expr := exprs[value]
 
 		column := &Column{
-			Name: expr.String(),
-			View: value,
+			Name: value,
 		}
 
 		sExprs = append(sExprs, SelectExpression{
-			Column:     column,
-			Expr:       expr,
-			Referenced: true,
+			Column: column,
+			Expr:   expr,
 		})
 	}
 	return

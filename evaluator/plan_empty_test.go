@@ -16,7 +16,6 @@ func TestEmptyOperator(t *testing.T) {
 				&Column{
 					Table:     "foo",
 					Name:      "a",
-					View:      "a",
 					SQLType:   schema.SQLInt,
 					MongoType: schema.MongoInt,
 				},
@@ -36,7 +35,6 @@ func TestEmptyOperator(t *testing.T) {
 				So(len(res), ShouldEqual, 1)
 				So(res[0].Table, ShouldEqual, "foo")
 				So(res[0].Name, ShouldEqual, "a")
-				So(res[0].View, ShouldEqual, "a")
 				So(res[0].SQLType, ShouldEqual, schema.SQLInt)
 				So(res[0].MongoType, ShouldEqual, schema.MongoInt)
 			})

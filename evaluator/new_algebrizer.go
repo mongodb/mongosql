@@ -317,7 +317,6 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 						Column: &Column{
 							Table:     a.sourceName,
 							Name:      column.Name,
-							View:      column.Name, // ???
 							SQLType:   column.SQLType,
 							MongoType: column.MongoType,
 						},
@@ -362,9 +361,6 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 			} else if projectedColumn.Name == "" {
 				projectedColumn.Name = sqlparser.String(typedE)
 			}
-
-			// TODO: not sure we need View at all...
-			projectedColumn.View = projectedColumn.Name
 
 			projectedColumns = append(projectedColumns, projectedColumn)
 		}
@@ -1356,12 +1352,10 @@ func projectedColumnFromExpr(expr SQLExpr) *SelectExpression {
 
 	if sqlCol, ok := expr.(SQLColumnExpr); ok {
 		pc.Name = sqlCol.columnName
-		pc.View = sqlCol.columnName
 		pc.Table = sqlCol.tableName
 		pc.MongoType = sqlCol.columnType.MongoType
 	} else {
 		pc.Name = expr.String()
-		pc.View = expr.String()
 	}
 
 	return pc

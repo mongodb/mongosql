@@ -71,7 +71,6 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 			Column: &Column{
 				Table:     projectedTableName,
 				Name:      projectedColumnName,
-				View:      projectedColumnName, // ???
 				SQLType:   column.SQLType,
 				MongoType: column.MongoType,
 			},
@@ -102,7 +101,6 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 		column := &Column{
 			Table:     tableName,
 			Name:      columnName,
-			View:      columnName, // ???
 			SQLType:   expr.Type(),
 			MongoType: schema.MongoNone,
 		}

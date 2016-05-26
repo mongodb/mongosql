@@ -1107,12 +1107,12 @@ func TestHavingPushDown(t *testing.T) {
 			Convey("Should optimize 'select sum(a) from bar group by c having sum(b) = 10'", func() {
 
 				exprs := map[string]SQLExpr{
-					"sum(a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "a", columnType}}},
-					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
-					"c":      SQLColumnExpr{tbl, "c", columnType},
+					"sum(foo.a)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "a", columnType}}},
+					"sum(foo.b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
+					"c":          SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "sum(a)", "sum(b)")
+				gb.selectExprs = constructSelectExpressions(exprs, "sum(foo.a)", "sum(foo.b)")
 				gb.keyExprs = constructSelectExpressions(exprs, "c")
 				having.matcher = &SQLEqualsExpr{SQLColumnExpr{"", "sum(foo.b)", columnType}, SQLInt(10)}
 
@@ -1599,14 +1599,15 @@ func TestOrderByPushDown(t *testing.T) {
 			Convey("Should optimize order by with aggregation expressions that have already been pushed down 'select a from foo group by a order by sum(b)'", func() {
 
 				exprs := map[string]SQLExpr{
-					"a":      SQLColumnExpr{tbl, "a", columnType},
-					"sum(b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
+					"a":          SQLColumnExpr{tbl, "a", columnType},
+					"sum(b)":     SQLColumnExpr{"", "sum(foo.b)", columnType},
+					"sum(foo.b)": &SQLAggFunctionExpr{"sum", false, []SQLExpr{SQLColumnExpr{tbl, "b", columnType}}},
 				}
 
 				groupBy := &GroupByStage{
 					source:      ms,
 					keyExprs:    constructSelectExpressions(exprs, "a"),
-					selectExprs: constructSelectExpressions(exprs, "a", "sum(b)"),
+					selectExprs: constructSelectExpressions(exprs, "a", "sum(foo.b)"),
 				}
 
 				orderBy.source = groupBy

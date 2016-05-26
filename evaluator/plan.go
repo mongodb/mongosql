@@ -19,7 +19,6 @@ import (
 type Column struct {
 	Table     string
 	Name      string
-	View      string
 	SQLType   schema.SQLType
 	MongoType schema.MongoType
 }
@@ -103,139 +102,6 @@ type Iter interface {
 	// error otherwise. Callers should always call the Err method to check whether
 	// any error was encountered during processing they are finished with an iterator.
 	Err() error
-}
-
-// SelectExpression is a panner representation of each expression in a select
-// query expression. For example, in the query below, there are three select
-// expressions and each will have a corresponding SelectExpression:
-//
-// select a, b + c, d from foo;
-type SelectExpression struct {
-	// Example query:
-	//
-	// select name, (discount * price) as discountRate from foo;
-	//
-	// Column holds information for this select expression - specifically,
-	// the "name", "view", and "table" for the field. In the example above,
-	// the Column for the first expression will hold "name", "name", and
-	// "foo" respectively.
-	//
-	// The second expression will hold "discountRate", "discountRate", and
-	// "foo" respectively. For unaliased expressions, the name and view will
-	// hold a stringified version of the expression. e.g. consider the aggregate
-	// function below:
-	//
-	// select name, sum(price) from foo;
-	//
-	// Column will hold "sum(price)", "sum(price)", and foo.
-	//
-	*Column
-	// RefColumns is a slice of every other column(s) referenced in the
-	// select expression. For example, in the expression:
-	//
-	// select name, (discount * price) as discountRate from foo;
-	//
-	// The RefColumns slice for the second expression will contain a Column
-	// entry for both the "discount" and the "price" fields.
-	//
-	RefColumns []*Column
-	// Expr holds the transformed sqlparser expression (a SQLExpr) that can
-	// subsequently be evaluated during processing.
-	// For column names expressions, it is nil. For example, in the expression:
-	//
-	Expr SQLExpr
-	// Referenced indicates if this column is part of the select expressions
-	// by way of being referenced - as opposed to be explicitly requested. e.g.
-	// in the expression:
-	//
-	// select name, (discount * price) as discountRate from foo;
-	//
-	// the 'discount' and 'price' columns are referenced
-	Referenced bool
-}
-
-func (se *SelectExpression) clone() *SelectExpression {
-	return &SelectExpression{
-		Column:     se.Column,
-		Expr:       se.Expr,
-		Referenced: se.Referenced,
-		RefColumns: se.RefColumns,
-	}
-}
-
-// AggRowCtx holds evaluated data as well as the relevant context used to evaluate the data
-// used for passing data - used to process aggregation functions - between iterators.
-type AggRowCtx struct {
-	// Row contains the evaluated data for each record.
-	Row Row
-	// Ctx contains the rows used in evaluating any aggregation
-	// function used in the GROUP BY expression.
-	Ctx []Row
-}
-
-type SelectExpressions []SelectExpression
-
-func (ses SelectExpressions) String() string {
-
-	b := bytes.NewBufferString(fmt.Sprintf("columns: \n"))
-
-	for _, expr := range ses {
-		b.WriteString(fmt.Sprintf("- %#v\n", expr.Column))
-	}
-
-	return b.String()
-}
-
-func (se SelectExpressions) GetColumns() []*Column {
-	columns := make([]*Column, 0)
-
-	for _, selectExpression := range se {
-		columns = append(columns, selectExpression.RefColumns...)
-	}
-
-	return columns
-}
-
-func (se SelectExpressions) Unique() SelectExpressions {
-	var results SelectExpressions
-	for _, e := range se {
-		if !results.Contains(*e.Column) {
-			results = append(results, e)
-		}
-	}
-
-	return results
-}
-
-func (se SelectExpressions) Contains(column Column) bool {
-
-	for _, expr := range se {
-		if expr.Column.Name == column.Name &&
-			expr.Column.View == column.View &&
-			expr.Column.Table == column.Table {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (se SelectExpressions) AggFunctions() (*SelectExpressions, error) {
-
-	sExprs := SelectExpressions{}
-
-	for _, sExpr := range se {
-		aggFuncs, err := getAggFunctions(sExpr.Expr)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(aggFuncs) != 0 {
-			sExprs = append(sExprs, sExpr)
-		}
-	}
-
-	return &sExprs, nil
 }
 
 func getKey(key string, doc bson.D) (interface{}, bool) {
@@ -355,7 +221,7 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 			if i != 0 {
 				b.WriteString(", ")
 			}
-			b.WriteString(fmt.Sprintf("%v as %v", c.Name, c.View))
+			b.WriteString(fmt.Sprintf("%v", c.Name))
 		}
 
 		b.WriteString("):\n")

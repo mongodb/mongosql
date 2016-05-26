@@ -82,7 +82,7 @@ func (e *Evaluator) EvaluateRows(db, sql string, ast sqlparser.SelectStatement, 
 	var headers []string
 
 	for _, field := range fields {
-		headers = append(headers, field.View)
+		headers = append(headers, field.Name)
 	}
 
 	return headers, rows, nil

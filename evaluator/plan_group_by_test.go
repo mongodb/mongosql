@@ -47,11 +47,11 @@ func TestGroupByPlanStage(t *testing.T) {
 			columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 			sExprs := SelectExpressions{
 				SelectExpression{
-					Column: &Column{tableOneName, "a", "a", columnType.SQLType, columnType.MongoType},
+					Column: &Column{tableOneName, "a", columnType.SQLType, columnType.MongoType},
 					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
 				},
 				SelectExpression{
-					Column: &Column{"", "sum(b)", "sum(b)", schema.SQLFloat, schema.MongoNone},
+					Column: &Column{"", "sum(b)", schema.SQLFloat, schema.MongoNone},
 					Expr: &SQLAggFunctionExpr{
 						Name: "sum",
 						Exprs: []SQLExpr{
@@ -63,7 +63,7 @@ func TestGroupByPlanStage(t *testing.T) {
 
 			exprs := SelectExpressions{
 				SelectExpression{
-					Column: &Column{tableOneName, "a", "a", columnType.SQLType, columnType.MongoType},
+					Column: &Column{tableOneName, "a", columnType.SQLType, columnType.MongoType},
 					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
 				},
 			}

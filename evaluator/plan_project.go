@@ -1,8 +1,11 @@
 package evaluator
 
-// Project ensures that referenced columns - e.g. those used to
-// support ORDER BY and GROUP BY clauses - aren't included in
-// the final result set.
+import (
+	"bytes"
+	"fmt"
+)
+
+// ProjectStage handles taking sourced rows and projecting them into a different shape.
 type ProjectStage struct {
 	// sExprs holds the columns and/or expressions used in
 	// the pipeline
@@ -88,7 +91,6 @@ func (pj *ProjectStage) OpFields() (columns []*Column) {
 	for _, expr := range pj.sExprs {
 		column := &Column{
 			Name:      expr.Name,
-			View:      expr.View,
 			Table:     expr.Table,
 			SQLType:   expr.SQLType,
 			MongoType: expr.MongoType,
@@ -119,4 +121,56 @@ func (pj *ProjectStage) clone() *ProjectStage {
 		source: pj.source,
 		sExprs: pj.sExprs,
 	}
+}
+
+// SelectExpression is a column projection. It contains the SQLExpr for the column
+// as well as the column information that will be projected.
+type SelectExpression struct {
+	// Column holds the projection information.
+	*Column
+
+	// Expr holds the expression to be evaluated.
+	Expr SQLExpr
+}
+
+func (se *SelectExpression) clone() *SelectExpression {
+	return &SelectExpression{
+		Column: se.Column,
+		Expr:   se.Expr,
+	}
+}
+
+// SelectExpressions is a slice of SelectExpression.
+type SelectExpressions []SelectExpression
+
+func (ses SelectExpressions) String() string {
+
+	b := bytes.NewBufferString(fmt.Sprintf("columns: \n"))
+
+	for _, expr := range ses {
+		b.WriteString(fmt.Sprintf("- %#v\n", expr.Column))
+	}
+
+	return b.String()
+}
+
+func (se SelectExpressions) Unique() SelectExpressions {
+	var results SelectExpressions
+	contains := func(column Column) bool {
+		for _, expr := range results {
+			if expr.Column.Name == column.Name && expr.Column.Table == column.Table {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	for _, e := range se {
+		if !contains(*e.Column) {
+			results = append(results, e)
+		}
+	}
+
+	return results
 }

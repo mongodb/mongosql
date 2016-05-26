@@ -59,7 +59,6 @@ func (bs *BSONSourceStage) OpFields() []*Column {
 		columns = append(columns, &Column{
 			Table:     bs.tableName,
 			Name:      v.Name,
-			View:      v.Name,
 			SQLType:   schema.SQLNone,
 			MongoType: schema.MongoNone,
 		})

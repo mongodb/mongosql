@@ -17,21 +17,7 @@ func TestOrderByOperator(t *testing.T) {
 
 		ts := &BSONSourceStage{tableOneName, nil}
 
-		source := &ProjectStage{
-			source: ts,
-			sExprs: SelectExpressions{
-				SelectExpression{
-					Column: &Column{tableOneName, "a", "a", schema.SQLInt, schema.MongoInt},
-					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
-				},
-				SelectExpression{
-					Column: &Column{tableOneName, "b", "b", schema.SQLInt, schema.MongoInt},
-					Expr:   SQLColumnExpr{tableOneName, "b", columnType},
-				},
-			},
-		}
-
-		orderby.source = source
+		orderby.source = ts
 		iter, err := orderby.Open(ctx)
 		So(err, ShouldBeNil)
 

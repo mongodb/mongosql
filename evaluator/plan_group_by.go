@@ -12,6 +12,16 @@ type orderedGroup struct {
 	keys   []string
 }
 
+// AggRowCtx holds evaluated data as well as the relevant context used to evaluate the data
+// used for passing data - used to process aggregation functions - between iterators.
+type aggRowCtx struct {
+	// Row contains the evaluated data for each record.
+	Row Row
+	// Ctx contains the rows used in evaluating any aggregation
+	// function used in the GROUP BY expression.
+	Ctx []Row
+}
+
 type GroupByStage struct {
 	// selectExprs holds the SelectExpression that should
 	// be present in the result of a grouping. This will
@@ -41,7 +51,6 @@ func (gb *GroupByStage) OpFields() (columns []*Column) {
 	for _, expr := range gb.selectExprs {
 		column := &Column{
 			Name:      expr.Name,
-			View:      expr.View,
 			Table:     expr.Table,
 			SQLType:   expr.SQLType,
 			MongoType: expr.MongoType,
@@ -69,7 +78,7 @@ type GroupByIter struct {
 	finalGrouping orderedGroup
 
 	// channel on which to send rows derived from the final grouping
-	outChan chan AggRowCtx
+	outChan chan aggRowCtx
 
 	ctx *ExecutionCtx
 }
@@ -163,8 +172,8 @@ func (gb *GroupByIter) evalAggRow(r []Row) (*Row, error) {
 	return row, nil
 }
 
-func (gb *GroupByIter) iterChan() chan AggRowCtx {
-	ch := make(chan AggRowCtx)
+func (gb *GroupByIter) iterChan() chan aggRowCtx {
+	ch := make(chan aggRowCtx)
 
 	go func() {
 		for _, key := range gb.finalGrouping.keys {
@@ -179,7 +188,7 @@ func (gb *GroupByIter) iterChan() chan AggRowCtx {
 
 			// check we have some matching data
 			if len(r.Data) != 0 {
-				ch <- AggRowCtx{*r, v}
+				ch <- aggRowCtx{*r, v}
 			}
 		}
 		close(ch)
@@ -219,13 +228,13 @@ func (gb *GroupByIter) String() string {
 	b := bytes.NewBufferString("select exprs ( ")
 
 	for _, expr := range gb.selectExprs {
-		b.WriteString(fmt.Sprintf("'%v' ", expr.View))
+		b.WriteString(fmt.Sprintf("'%v' ", expr.Name))
 	}
 
 	b.WriteString(") grouped by ( ")
 
 	for _, expr := range gb.keyExprs {
-		b.WriteString(fmt.Sprintf("'%v' ", expr.View))
+		b.WriteString(fmt.Sprintf("'%v' ", expr.Name))
 	}
 
 	b.WriteString(")")

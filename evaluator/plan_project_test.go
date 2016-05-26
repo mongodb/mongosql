@@ -56,11 +56,11 @@ func TestProjectOperator(t *testing.T) {
 
 		sExprs := SelectExpressions{
 			SelectExpression{
-				Column: &Column{tableOneName, "a", "a", schema.SQLInt, schema.MongoInt},
+				Column: &Column{tableOneName, "a", schema.SQLInt, schema.MongoInt},
 				Expr:   SQLColumnExpr{tableOneName, "a", columnType},
 			},
 			SelectExpression{
-				Column: &Column{tableOneName, "b", "b", schema.SQLInt, schema.MongoInt},
+				Column: &Column{tableOneName, "b", schema.SQLInt, schema.MongoInt},
 				Expr:   SQLColumnExpr{tableOneName, "b", columnType},
 			},
 		}
