@@ -612,7 +612,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 		Convey("distinct", func() {
 			test("select distinct a from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				return NewProjectStage(
+				plan := NewProjectStage(
 					NewGroupByStage(source,
 						SelectExpressions{
 							createSelectExpression(source, "foo", "a", "foo", "a"),
@@ -623,6 +623,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 					),
 					createSelectExpression(source, "foo", "a", "", "a"),
 				)
+
+				return plan
 			})
 
 			test("select distinct sum(a) from foo", func() PlanStage {

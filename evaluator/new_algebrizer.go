@@ -956,7 +956,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 		var projectedColumns SelectExpressions
 		for i, pc := range b.project {
 			b.exprCollector.Remove(pc.Expr)
-			newExpr := &SQLColumnExpr{
+			newExpr := SQLColumnExpr{
 				tableName:  keys[i].Table,
 				columnName: keys[i].Name,
 				columnType: schema.ColumnType{
