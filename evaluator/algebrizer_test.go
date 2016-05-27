@@ -9,7 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestNewAlgebrizeStatements(t *testing.T) {
+func TestAlgebrizeStatements(t *testing.T) {
 
 	testSchema, _ := schema.New(testSchema1)
 	defaultDbName := "test"
@@ -862,7 +862,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 	})
 }
 
-func TestNewAlgebrizeExpr(t *testing.T) {
+func TestAlgebrizeExpr(t *testing.T) {
 	testSchema, _ := schema.New(testSchema1)
 	source, _ := NewMongoSourceStage(testSchema, "test", "foo", "foo")
 
