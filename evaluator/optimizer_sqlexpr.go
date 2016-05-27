@@ -45,9 +45,9 @@ func (v *sqlExprOptimizer) Visit(p PlanStage) (PlanStage, error) {
 			newKeys = append(newKeys, key)
 		}
 
-		var newProjectedColumns SelectExpressions
+		var newProjectedColumns ProjectedColumns
 		for _, pc := range typedP.projectedColumns {
-			newPC, err := v.optimizeSelectExpression(&pc)
+			newPC, err := v.optimizeProjectedColumn(&pc)
 			if err != nil {
 				return nil, err
 			}
@@ -106,9 +106,9 @@ func (v *sqlExprOptimizer) Visit(p PlanStage) (PlanStage, error) {
 		}
 	case *ProjectStage:
 		hasNew := false
-		newProjectedColumns := SelectExpressions{}
+		newProjectedColumns := ProjectedColumns{}
 		for _, projectedColumn := range typedP.projectedColumns {
-			newProjectedColumn, err := v.optimizeSelectExpression(&projectedColumn)
+			newProjectedColumn, err := v.optimizeProjectedColumn(&projectedColumn)
 			if err != nil {
 				return nil, err
 			}
@@ -130,7 +130,7 @@ func (v *sqlExprOptimizer) Visit(p PlanStage) (PlanStage, error) {
 	return p, nil
 }
 
-func (v *sqlExprOptimizer) optimizeSelectExpression(se *SelectExpression) (*SelectExpression, error) {
+func (v *sqlExprOptimizer) optimizeProjectedColumn(se *ProjectedColumn) (*ProjectedColumn, error) {
 	expr, err := OptimizeSQLExpr(se.Expr)
 	if err != nil {
 		return nil, err

@@ -23,6 +23,48 @@ type Column struct {
 	MongoType schema.MongoType
 }
 
+// ProjectedColumn is a column projection. It contains the SQLExpr for the column
+// as well as the column information that will be projected.
+type ProjectedColumn struct {
+	// Column holds the projection information.
+	*Column
+
+	// Expr holds the expression to be evaluated.
+	Expr SQLExpr
+}
+
+func (se *ProjectedColumn) clone() *ProjectedColumn {
+	return &ProjectedColumn{
+		Column: se.Column,
+		Expr:   se.Expr,
+	}
+}
+
+// ProjectedColumns is a slice of ProjectedColumn.
+type ProjectedColumns []ProjectedColumn
+
+// Unique ensures that only unique projected columns exist in the resulting slice.
+func (pcs ProjectedColumns) Unique() ProjectedColumns {
+	var results ProjectedColumns
+	contains := func(column *ProjectedColumn) bool {
+		for _, expr := range results {
+			if expr.Column.Name == column.Name && expr.Column.Table == column.Table {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	for _, c := range pcs {
+		if !contains(&c) {
+			results = append(results, c)
+		}
+	}
+
+	return results
+}
+
 type ConnectionCtx interface {
 	LastInsertId() int64
 	RowCount() int64

@@ -23,10 +23,10 @@ type algebrizer struct {
 	sourceName                   string // the name of the output. This means we need all projected columns to use this as the table name.
 	dbName                       string // the default database name.
 	schema                       *schema.Schema
-	columns                      []*Column         // all the columns in scope.
-	correlated                   bool              // indicates whether this context is using columns in its parent.
-	projectedColumns             SelectExpressions // columns to be projected from this scope.
-	resolveProjectedColumnsFirst bool              // indicates whether to resolve a column using the projected columns first or second
+	columns                      []*Column        // all the columns in scope.
+	correlated                   bool             // indicates whether this context is using columns in its parent.
+	projectedColumns             ProjectedColumns // columns to be projected from this scope.
+	resolveProjectedColumnsFirst bool             // indicates whether to resolve a column using the projected columns first or second
 }
 
 func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error) {
@@ -55,7 +55,7 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 	return found, nil
 }
 
-func (a *algebrizer) lookupProjectedColumnExpr(columnName string) (*SelectExpression, bool) {
+func (a *algebrizer) lookupProjectedColumnExpr(columnName string) (*ProjectedColumn, bool) {
 	for _, pc := range a.projectedColumns {
 		if strings.EqualFold(pc.Name, columnName) {
 			return &pc, true
@@ -295,8 +295,8 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 	return builder.build(), nil
 }
 
-func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (SelectExpressions, error) {
-	var projectedColumns SelectExpressions
+func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (ProjectedColumns, error) {
+	var projectedColumns ProjectedColumns
 	hasGlobalStar := false
 	for _, selectExpr := range selectExprs {
 		switch typedE := selectExpr.(type) {
@@ -313,7 +313,7 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 
 			for _, column := range a.columns {
 				if tableName == "" || strings.EqualFold(tableName, column.Table) {
-					projectedColumns = append(projectedColumns, SelectExpression{
+					projectedColumns = append(projectedColumns, ProjectedColumn{
 						Column: &Column{
 							Table:     a.sourceName,
 							Name:      column.Name,
@@ -339,7 +339,7 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Se
 				return nil, err
 			}
 
-			projectedColumn := SelectExpression{
+			projectedColumn := ProjectedColumn{
 				Expr: translatedExpr,
 				Column: &Column{
 					Table:     a.sourceName,
@@ -910,7 +910,7 @@ type queryPlanBuilder struct {
 	having   SQLExpr
 	distinct bool
 	orderBy  []*orderByTerm
-	project  SelectExpressions
+	project  ProjectedColumns
 	offset   int64
 	rowcount int64
 }
@@ -932,7 +932,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 	plan := source
 	if b.distinct {
 		var keys []SQLExpr
-		var projectedKeys SelectExpressions
+		var projectedKeys ProjectedColumns
 		for _, c := range b.project {
 			projectedKeys = append(projectedKeys, *projectedColumnFromExpr(c.Expr))
 			keys = append(keys, c.Expr)
@@ -953,7 +953,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 
 		// now we must replace all the project values with columns as
 		// any that weren't already a column have now been computed.
-		projectedColumns = SelectExpressions{}
+		projectedColumns = ProjectedColumns{}
 		for i, pc := range b.project {
 			newExpr := SQLColumnExpr{
 				tableName:  projectedKeys[i].Table,
@@ -963,7 +963,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 					MongoType: projectedKeys[i].MongoType,
 				},
 			}
-			projectedColumns = append(projectedColumns, SelectExpression{
+			projectedColumns = append(projectedColumns, ProjectedColumn{
 				Column: pc.Column,
 				Expr:   newExpr,
 			})
@@ -984,7 +984,7 @@ func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 
 		// projectedAggregates will include all the aggregates as well
 		// as any column that is not an aggregate function.
-		var projectedAggregates SelectExpressions
+		var projectedAggregates ProjectedColumns
 		for _, e := range b.exprCollector.allNonAggReferencedColumns.copyExprs() {
 			pc := projectedColumnFromExpr(e)
 			projectedAggregates = append(projectedAggregates, *pc)
@@ -1063,7 +1063,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 
 	if len(b.project) > 0 {
 
-		var projectedColumns SelectExpressions
+		var projectedColumns ProjectedColumns
 		for _, pc := range b.project {
 			b.exprCollector.Remove(pc.Expr)
 			replaced, err := replaceAggFunctionsWithColumns(pc.Expr)
@@ -1072,7 +1072,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 			}
 			b.exprCollector.Visit(replaced)
 
-			projectedColumns = append(projectedColumns, SelectExpression{
+			projectedColumns = append(projectedColumns, ProjectedColumn{
 				Expr:   replaced,
 				Column: pc.Column,
 			})
@@ -1340,8 +1340,8 @@ func (v *aggFunctionExprReplacer) Visit(e SQLExpr) (SQLExpr, error) {
 	}
 }
 
-func projectedColumnFromExpr(expr SQLExpr) *SelectExpression {
-	pc := &SelectExpression{
+func projectedColumnFromExpr(expr SQLExpr) *ProjectedColumn {
+	pc := &ProjectedColumn{
 		Column: &Column{
 			SQLType: expr.Type(),
 		},

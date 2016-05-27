@@ -20,12 +20,12 @@ type aggRowCtx struct {
 }
 
 type GroupByStage struct {
-	// projectedColumns holds the SelectExpression that should
+	// projectedColumns holds the ProjectedColumn that should
 	// be present in the result of a grouping. This will
-	// include SelectExpressions for aggregates that might
+	// include ProjectedColumns for aggregates that might
 	// not be projected, but are required for further
 	// processing, such as when ordering by an aggregate.
-	projectedColumns SelectExpressions
+	projectedColumns ProjectedColumns
 
 	// source is the operator that provides the data to group
 	source PlanStage
@@ -36,7 +36,7 @@ type GroupByStage struct {
 	keys []SQLExpr
 }
 
-func NewGroupByStage(source PlanStage, keys []SQLExpr, projectedColumns SelectExpressions) *GroupByStage {
+func NewGroupByStage(source PlanStage, keys []SQLExpr, projectedColumns ProjectedColumns) *GroupByStage {
 	return &GroupByStage{
 		source:           source,
 		keys:             keys,
@@ -61,7 +61,7 @@ func (gb *GroupByStage) Columns() (columns []*Column) {
 type GroupByIter struct {
 	source Iter
 
-	projectedColumns SelectExpressions
+	projectedColumns ProjectedColumns
 	keys             []SQLExpr
 
 	// grouped indicates if the source operator data has been grouped

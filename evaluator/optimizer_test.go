@@ -425,7 +425,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a", "b")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a", "b")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -456,7 +456,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a", "b", "c")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a", "b", "c")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -489,7 +489,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a", "b", "Awesome")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a", "b", "Awesome")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -522,7 +522,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a", "b", "Awesome")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a", "b", "Awesome")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -554,7 +554,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "sum(a)", "sum(b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "sum(a)", "sum(b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -585,7 +585,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "c", "sum(a)", "sum(b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "c", "sum(a)", "sum(b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -617,7 +617,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a", "sum(b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a", "sum(b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -648,7 +648,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a", "sum(distinct b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a", "sum(distinct b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -679,7 +679,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a", "sum(distinct b)", "c")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a", "sum(distinct b)", "c")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -710,7 +710,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a + sum(b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a + sum(b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -738,7 +738,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["a + b"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a + b")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a + b")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -759,7 +759,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a + c + sum(b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a + c + sum(b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -788,7 +788,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "Awesome")
+				gb.projectedColumns = constructProjectedColumns(exprs, "Awesome")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -817,7 +817,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a + sum(distinct b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a + sum(distinct b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -846,7 +846,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "c + sum(distinct b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "c + sum(distinct b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -872,7 +872,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "sum(distinct a+b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "sum(distinct a+b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -899,7 +899,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a+sum(distinct a+b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a+sum(distinct a+b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -929,7 +929,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["f"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a", "e")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a", "e")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -959,7 +959,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["f"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a", "sum(distinct e)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a", "sum(distinct e)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -986,7 +986,7 @@ func TestGroupByPushDown(t *testing.T) {
 					"count(*)": &SQLAggFunctionExpr{"count", false, []SQLExpr{SQLVarchar("*")}},
 				}
 
-				gb.projectedColumns = constructSelectExpressions(exprs, "count(*)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "count(*)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -1006,7 +1006,7 @@ func TestGroupByPushDown(t *testing.T) {
 					"count(a)": &SQLAggFunctionExpr{"count", false, []SQLExpr{SQLColumnExpr{tbl, "a", columnType}}},
 				}
 
-				gb.projectedColumns = constructSelectExpressions(exprs, "count(a)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "count(a)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -1047,7 +1047,7 @@ func TestGroupByPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "a", "count(distinct b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "a", "count(distinct b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
@@ -1113,7 +1113,7 @@ func TestHavingPushDown(t *testing.T) {
 				}
 
 				gb.keys = []SQLExpr{exprs["c"]}
-				gb.projectedColumns = constructSelectExpressions(exprs, "sum(foo.a)", "sum(foo.b)")
+				gb.projectedColumns = constructProjectedColumns(exprs, "sum(foo.a)", "sum(foo.b)")
 				having.matcher = &SQLEqualsExpr{SQLColumnExpr{"", "sum(foo.b)", columnType}, SQLInt(10)}
 
 				verifyOptimizedPipeline(having,
@@ -1494,7 +1494,7 @@ func TestProjectPushdown(t *testing.T) {
 			}
 
 			proj := &ProjectStage{
-				projectedColumns: constructSelectExpressions(exprs, "a", "sum(b)"),
+				projectedColumns: constructProjectedColumns(exprs, "a", "sum(b)"),
 				source:           ms,
 			}
 
@@ -1529,7 +1529,7 @@ func TestProjectPushdown(t *testing.T) {
 			}
 
 			proj := &ProjectStage{
-				projectedColumns: constructSelectExpressions(exprs, "a", "ascii(substring('xxx',b))", "sum(c)"),
+				projectedColumns: constructProjectedColumns(exprs, "a", "ascii(substring('xxx',b))", "sum(c)"),
 				source:           ms,
 			}
 			Convey("the project node should not be removed from query plan tree", func() {
@@ -1607,7 +1607,7 @@ func TestOrderByPushDown(t *testing.T) {
 				groupBy := &GroupByStage{
 					source:           ms,
 					keys:             []SQLExpr{exprs["a"]},
-					projectedColumns: constructSelectExpressions(exprs, "a", "sum(foo.b)"),
+					projectedColumns: constructProjectedColumns(exprs, "a", "sum(foo.b)"),
 				}
 
 				orderBy.source = groupBy

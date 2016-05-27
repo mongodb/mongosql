@@ -242,7 +242,7 @@ type translateGroupByAggregatesResult struct {
 // sum(distinct a) will take in a SQLAggFunctionExpr which refers to the column 'a' and return a new SQLAggFunctionExpr
 // which refers to the newly created $addToSet field called 'distinct foo_DOT_a'. This way, the subsequent $project
 // now has the correct reference to the field name in the $group.
-func translateGroupByAggregates(keys []SQLExpr, projectedColumns SelectExpressions, lookupFieldName fieldNameLookup) (*translateGroupByAggregatesResult, error) {
+func translateGroupByAggregates(keys []SQLExpr, projectedColumns ProjectedColumns, lookupFieldName fieldNameLookup) (*translateGroupByAggregatesResult, error) {
 
 	// For example, in "select a + sum(b) from bar group by a", we should not create
 	// an aggregate for a because it's part of the key.
@@ -701,7 +701,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	// This will contain the rebuilt mapping registry reflecting fields re-mapped by projection.
 	fixedMappingRegistry := mappingRegistry{}
 
-	fixedProjectedColumns := SelectExpressions{}
+	fixedProjectedColumns := ProjectedColumns{}
 
 	// Track whether or not we've successfully mapped every field into the $project of the source.
 	// If so, this Project node can be removed from the query plan tree.
@@ -747,7 +747,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			columnType := schema.ColumnType{projectedColumn.Column.SQLType, projectedColumn.Column.MongoType}
 			columnExpr := SQLColumnExpr{projectedColumn.Column.Table, projectedColumn.Column.Name, columnType}
 			fixedProjectedColumns = append(fixedProjectedColumns,
-				SelectExpression{
+				ProjectedColumn{
 					Column: projectedColumn.Column,
 					Expr:   columnExpr,
 				},

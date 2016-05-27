@@ -20,7 +20,7 @@ func bsonDToValues(tableName string, document bson.D) ([]Value, error) {
 	return values, nil
 }
 
-func constructSelectExpressions(exprs map[string]SQLExpr, values ...string) (sExprs SelectExpressions) {
+func constructProjectedColumns(exprs map[string]SQLExpr, values ...string) (projectedColumns ProjectedColumns) {
 	for _, value := range values {
 
 		expr := exprs[value]
@@ -29,7 +29,7 @@ func constructSelectExpressions(exprs map[string]SQLExpr, values ...string) (sEx
 			Name: value,
 		}
 
-		sExprs = append(sExprs, SelectExpression{
+		projectedColumns = append(projectedColumns, ProjectedColumn{
 			Column: column,
 			Expr:   expr,
 		})

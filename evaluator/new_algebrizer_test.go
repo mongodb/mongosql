@@ -66,8 +66,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 		panic("column not found")
 	}
 
-	createSelectExpressionFromColumn := func(column *Column, projectedTableName, projectedColumnName string) SelectExpression {
-		return SelectExpression{
+	createProjectedColumnFromColumn := func(column *Column, projectedTableName, projectedColumnName string) ProjectedColumn {
+		return ProjectedColumn{
 			Column: &Column{
 				Table:     projectedTableName,
 				Name:      projectedColumnName,
@@ -78,26 +78,26 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 		}
 	}
 
-	createSelectExpression := func(source PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) SelectExpression {
+	createProjectedColumn := func(source PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) ProjectedColumn {
 		for _, c := range source.Columns() {
 			if c.Table == sourceTableName && c.Name == sourceColumnName {
-				return createSelectExpressionFromColumn(c, projectedTableName, projectedColumnName)
+				return createProjectedColumnFromColumn(c, projectedTableName, projectedColumnName)
 			}
 		}
 
 		panic(fmt.Sprintf("no column found with the name %q", sourceColumnName))
 	}
 
-	createAllSelectExpressionsFromSource := func(source PlanStage, projectedTableName string) SelectExpressions {
-		results := SelectExpressions{}
+	createAllProjectedColumnsFromSource := func(source PlanStage, projectedTableName string) ProjectedColumns {
+		results := ProjectedColumns{}
 		for _, c := range source.Columns() {
-			results = append(results, createSelectExpressionFromColumn(c, projectedTableName, c.Name))
+			results = append(results, createProjectedColumnFromColumn(c, projectedTableName, c.Name))
 		}
 
 		return results
 	}
 
-	createSelectExpressionFromSQLExpr := func(tableName, columnName string, expr SQLExpr) SelectExpression {
+	createProjectedColumnFromSQLExpr := func(tableName, columnName string, expr SQLExpr) ProjectedColumn {
 		column := &Column{
 			Table:   tableName,
 			Name:    columnName,
@@ -108,7 +108,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 			column.MongoType = sqlColExpr.columnType.MongoType
 		}
 
-		return SelectExpression{Column: column, Expr: expr}
+		return ProjectedColumn{Column: column, Expr: expr}
 	}
 
 	createMongoSource := func(tableName, aliasName string) PlanStage {
@@ -121,7 +121,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 			test("select 2 + 3", func() PlanStage {
 				return NewProjectStage(
 					NewDualStage(),
-					createSelectExpressionFromSQLExpr("", "2+3", &SQLAddExpr{
+					createProjectedColumnFromSQLExpr("", "2+3", &SQLAddExpr{
 						left:  SQLInt(2),
 						right: SQLInt(3),
 					}),
@@ -132,40 +132,40 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 		Convey("star simple queries", func() {
 			test("select * from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				return NewProjectStage(source, createAllSelectExpressionsFromSource(source, "")...)
+				return NewProjectStage(source, createAllProjectedColumnsFromSource(source, "")...)
 			})
 
 			test("select foo.* from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				return NewProjectStage(source, createAllSelectExpressionsFromSource(source, "")...)
+				return NewProjectStage(source, createAllProjectedColumnsFromSource(source, "")...)
 			})
 
 			test("select f.* from foo f", func() PlanStage {
 				source := createMongoSource("foo", "f")
-				return NewProjectStage(source, createAllSelectExpressionsFromSource(source, "")...)
+				return NewProjectStage(source, createAllProjectedColumnsFromSource(source, "")...)
 			})
 
 			test("select a, foo.* from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
 				columns := append(
-					SelectExpressions{createSelectExpression(source, "foo", "a", "", "a")},
-					createAllSelectExpressionsFromSource(source, "")...)
+					ProjectedColumns{createProjectedColumn(source, "foo", "a", "", "a")},
+					createAllProjectedColumnsFromSource(source, "")...)
 				return NewProjectStage(source, columns...)
 			})
 
 			test("select foo.*, a from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
 				columns := append(
-					createAllSelectExpressionsFromSource(source, ""),
-					createSelectExpression(source, "foo", "a", "", "a"))
+					createAllProjectedColumnsFromSource(source, ""),
+					createProjectedColumn(source, "foo", "a", "", "a"))
 				return NewProjectStage(source, columns...)
 			})
 
 			test("select a, f.* from foo f", func() PlanStage {
 				source := createMongoSource("foo", "f")
 				columns := append(
-					SelectExpressions{createSelectExpression(source, "f", "a", "", "a")},
-					createAllSelectExpressionsFromSource(source, "")...)
+					ProjectedColumns{createProjectedColumn(source, "f", "a", "", "a")},
+					createAllProjectedColumnsFromSource(source, "")...)
 				return NewProjectStage(source, columns...)
 			})
 
@@ -173,42 +173,42 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				fooSource := createMongoSource("foo", "foo")
 				barSource := createMongoSource("bar", "bar")
 				join := NewJoinStage(CrossJoin, fooSource, barSource, nil)
-				return NewProjectStage(join, createAllSelectExpressionsFromSource(join, "")...)
+				return NewProjectStage(join, createAllProjectedColumnsFromSource(join, "")...)
 			})
 
 			test("select foo.*, bar.* from foo, bar", func() PlanStage {
 				fooSource := createMongoSource("foo", "foo")
 				barSource := createMongoSource("bar", "bar")
 				join := NewJoinStage(CrossJoin, fooSource, barSource, nil)
-				return NewProjectStage(join, createAllSelectExpressionsFromSource(join, "")...)
+				return NewProjectStage(join, createAllProjectedColumnsFromSource(join, "")...)
 			})
 		})
 
 		Convey("non-star simple queries", func() {
 			test("select a from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				return NewProjectStage(source, createSelectExpression(source, "foo", "a", "", "a"))
+				return NewProjectStage(source, createProjectedColumn(source, "foo", "a", "", "a"))
 			})
 
 			test("select a from foo f", func() PlanStage {
 				source := createMongoSource("foo", "f")
-				return NewProjectStage(source, createSelectExpression(source, "f", "a", "", "a"))
+				return NewProjectStage(source, createProjectedColumn(source, "f", "a", "", "a"))
 			})
 
 			test("select f.a from foo f", func() PlanStage {
 				source := createMongoSource("foo", "f")
-				return NewProjectStage(source, createSelectExpression(source, "f", "a", "", "a"))
+				return NewProjectStage(source, createProjectedColumn(source, "f", "a", "", "a"))
 			})
 
 			test("select a as b from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				return NewProjectStage(source, createSelectExpression(source, "foo", "a", "", "b"))
+				return NewProjectStage(source, createProjectedColumn(source, "foo", "a", "", "b"))
 			})
 
 			test("select a + 2 from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(source,
-					createSelectExpressionFromSQLExpr("", "a+2",
+					createProjectedColumnFromSQLExpr("", "a+2",
 						&SQLAddExpr{
 							left: SQLColumnExpr{
 								tableName:  "foo",
@@ -225,7 +225,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 			test("select a + 2 as b from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(source,
-					createSelectExpressionFromSQLExpr("", "b",
+					createProjectedColumnFromSQLExpr("", "b",
 						&SQLAddExpr{
 							left: SQLColumnExpr{
 								tableName:  "foo",
@@ -242,7 +242,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 			test("select ASCII(a) from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(source,
-					createSelectExpressionFromSQLExpr("", "ascii(a)",
+					createProjectedColumnFromSQLExpr("", "ascii(a)",
 						&SQLScalarFunctionExpr{
 							Name: "ascii",
 							Exprs: []SQLExpr{SQLColumnExpr{
@@ -261,14 +261,14 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 		Convey("subqueries as sources", func() {
 			test("select a from (select a from foo) f", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				subquery := NewProjectStage(source, createSelectExpression(source, "foo", "a", "f", "a"))
-				return NewProjectStage(subquery, createSelectExpression(subquery, "f", "a", "", "a"))
+				subquery := NewProjectStage(source, createProjectedColumn(source, "foo", "a", "f", "a"))
+				return NewProjectStage(subquery, createProjectedColumn(subquery, "f", "a", "", "a"))
 			})
 
 			test("select f.a from (select a from foo) f", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				subquery := NewProjectStage(source, createSelectExpression(source, "foo", "a", "f", "a"))
-				return NewProjectStage(subquery, createSelectExpression(subquery, "f", "a", "", "a"))
+				subquery := NewProjectStage(source, createProjectedColumn(source, "foo", "a", "f", "a"))
+				return NewProjectStage(subquery, createProjectedColumn(subquery, "f", "a", "", "a"))
 			})
 		})
 
@@ -277,10 +277,10 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				fooSource := createMongoSource("foo", "foo")
 				barSource := createMongoSource("bar", "bar")
 				return NewProjectStage(fooSource,
-					createSelectExpression(fooSource, "foo", "a", "", "a"),
-					createSelectExpressionFromSQLExpr("", "(select a from bar)",
+					createProjectedColumn(fooSource, "foo", "a", "", "a"),
+					createProjectedColumnFromSQLExpr("", "(select a from bar)",
 						&SQLSubqueryExpr{
-							plan: NewProjectStage(barSource, createSelectExpression(barSource, "bar", "a", "", "a")),
+							plan: NewProjectStage(barSource, createProjectedColumn(barSource, "bar", "a", "", "a")),
 						},
 					),
 				)
@@ -290,10 +290,10 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				fooSource := createMongoSource("foo", "foo")
 				barSource := createMongoSource("bar", "bar")
 				return NewProjectStage(fooSource,
-					createSelectExpression(fooSource, "foo", "a", "", "a"),
-					createSelectExpressionFromSQLExpr("", "b",
+					createProjectedColumn(fooSource, "foo", "a", "", "a"),
+					createProjectedColumnFromSQLExpr("", "b",
 						&SQLSubqueryExpr{
-							plan: NewProjectStage(barSource, createSelectExpression(barSource, "bar", "a", "", "a")),
+							plan: NewProjectStage(barSource, createProjectedColumn(barSource, "bar", "a", "", "a")),
 						},
 					),
 				)
@@ -304,10 +304,10 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				barSource := createMongoSource("bar", "bar")
 				join := NewJoinStage(CrossJoin, fooSource, barSource, nil)
 				return NewProjectStage(fooSource,
-					createSelectExpression(fooSource, "foo", "a", "", "a"),
-					createSelectExpressionFromSQLExpr("", "(select foo.a from foo, bar)",
+					createProjectedColumn(fooSource, "foo", "a", "", "a"),
+					createProjectedColumnFromSQLExpr("", "(select foo.a from foo, bar)",
 						&SQLSubqueryExpr{
-							plan: NewProjectStage(join, createSelectExpression(join, "foo", "a", "", "a")),
+							plan: NewProjectStage(join, createProjectedColumn(join, "foo", "a", "", "a")),
 						},
 					),
 				)
@@ -317,10 +317,10 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				fooSource := createMongoSource("foo", "foo")
 				barSource := createMongoSource("bar", "bar")
 				return NewProjectStage(fooSource,
-					createSelectExpression(fooSource, "foo", "a", "", "a"),
-					createSelectExpressionFromSQLExpr("", "(select foo.a from bar)",
+					createProjectedColumn(fooSource, "foo", "a", "", "a"),
+					createProjectedColumnFromSQLExpr("", "(select foo.a from bar)",
 						&SQLSubqueryExpr{
-							plan:       NewProjectStage(barSource, createSelectExpression(fooSource, "foo", "a", "", "a")),
+							plan:       NewProjectStage(barSource, createProjectedColumn(fooSource, "foo", "a", "", "a")),
 							correlated: true,
 						},
 					),
@@ -334,8 +334,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				barSource := createMongoSource("bar", "bar")
 				join := NewJoinStage(CrossJoin, fooSource, barSource, nil)
 				return NewProjectStage(join,
-					createSelectExpression(join, "foo", "a", "", "a"),
-					createSelectExpression(join, "bar", "a", "", "a"),
+					createProjectedColumn(join, "foo", "a", "", "a"),
+					createProjectedColumn(join, "bar", "a", "", "a"),
 				)
 			})
 
@@ -344,8 +344,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				barSource := createMongoSource("bar", "bar")
 				join := NewJoinStage(CrossJoin, fooSource, barSource, nil)
 				return NewProjectStage(join,
-					createSelectExpression(join, "f", "a", "", "a"),
-					createSelectExpression(join, "bar", "a", "", "a"),
+					createProjectedColumn(join, "f", "a", "", "a"),
+					createProjectedColumn(join, "bar", "a", "", "a"),
 				)
 			})
 
@@ -354,8 +354,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				barSource := createMongoSource("bar", "b")
 				join := NewJoinStage(CrossJoin, fooSource, barSource, nil)
 				return NewProjectStage(join,
-					createSelectExpression(join, "f", "a", "", "a"),
-					createSelectExpression(join, "b", "a", "", "a"),
+					createProjectedColumn(join, "f", "a", "", "a"),
+					createProjectedColumn(join, "b", "a", "", "a"),
 				)
 			})
 
@@ -368,8 +368,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 						right: createSQLColumnExprFromSource(barSource, "bar", "b"),
 					})
 				return NewProjectStage(join,
-					createSelectExpression(join, "foo", "a", "", "a"),
-					createSelectExpression(join, "bar", "a", "", "a"),
+					createProjectedColumn(join, "foo", "a", "", "a"),
+					createProjectedColumn(join, "bar", "a", "", "a"),
 				)
 			})
 
@@ -382,8 +382,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 						right: createSQLColumnExprFromSource(barSource, "bar", "b"),
 					})
 				return NewProjectStage(join,
-					createSelectExpression(join, "foo", "a", "", "a"),
-					createSelectExpression(join, "bar", "a", "", "a"),
+					createProjectedColumn(join, "foo", "a", "", "a"),
+					createProjectedColumn(join, "bar", "a", "", "a"),
 				)
 			})
 
@@ -396,8 +396,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 						right: createSQLColumnExprFromSource(barSource, "bar", "b"),
 					})
 				return NewProjectStage(join,
-					createSelectExpression(join, "foo", "a", "", "a"),
-					createSelectExpression(join, "bar", "a", "", "a"),
+					createProjectedColumn(join, "foo", "a", "", "a"),
+					createProjectedColumn(join, "bar", "a", "", "a"),
 				)
 			})
 
@@ -410,8 +410,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 						right: createSQLColumnExprFromSource(barSource, "bar", "b"),
 					})
 				return NewProjectStage(join,
-					createSelectExpression(join, "foo", "a", "", "a"),
-					createSelectExpression(join, "bar", "a", "", "a"),
+					createProjectedColumn(join, "foo", "a", "", "a"),
+					createProjectedColumn(join, "bar", "a", "", "a"),
 				)
 			})
 		})
@@ -421,7 +421,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(
 					NewFilterStage(source, createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt)),
-					createSelectExpression(source, "foo", "a", "", "a"),
+					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
 
@@ -434,7 +434,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							right: SQLInt(10),
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "a"),
+					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
 
@@ -447,7 +447,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							right: SQLInt(10),
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "b"),
+					createProjectedColumn(source, "foo", "a", "", "b"),
 				)
 			})
 		})
@@ -458,14 +458,14 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				return NewProjectStage(
 					NewGroupByStage(source,
 						nil,
-						SelectExpressions{
-							createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+						ProjectedColumns{
+							createProjectedColumnFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 								Name:  "sum",
 								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 							}),
 						},
 					),
-					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					createProjectedColumnFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
 			})
 
@@ -474,14 +474,14 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				return NewProjectStage(
 					NewGroupByStage(source,
 						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-						SelectExpressions{
-							createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+						ProjectedColumns{
+							createProjectedColumnFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 								Name:  "sum",
 								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 							}),
 						},
 					),
-					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					createProjectedColumnFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
 			})
 
@@ -490,16 +490,16 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				return NewProjectStage(
 					NewGroupByStage(source,
 						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-						SelectExpressions{
-							createSelectExpression(source, "foo", "a", "foo", "a"),
-							createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+						ProjectedColumns{
+							createProjectedColumn(source, "foo", "a", "foo", "a"),
+							createProjectedColumnFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 								Name:  "sum",
 								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 							}),
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "a"),
-					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					createProjectedColumn(source, "foo", "a", "", "a"),
+					createProjectedColumnFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
 			})
 
@@ -509,8 +509,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 					NewOrderByStage(
 						NewGroupByStage(source,
 							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-							SelectExpressions{
-								createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+							ProjectedColumns{
+								createProjectedColumnFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 									Name:  "sum",
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
@@ -521,7 +521,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							ascending: true,
 						},
 					),
-					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					createProjectedColumnFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
 			})
 
@@ -531,8 +531,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 					NewOrderByStage(
 						NewGroupByStage(source,
 							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-							SelectExpressions{
-								createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+							ProjectedColumns{
+								createProjectedColumnFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 									Name:  "sum",
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
@@ -543,7 +543,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							ascending: true,
 						},
 					),
-					createSelectExpressionFromSQLExpr("", "sum_a", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					createProjectedColumnFromSQLExpr("", "sum_a", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
 			})
 
@@ -552,22 +552,22 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 			// 	source := createMongoSource("foo", "foo")
 			// 	return NewProjectStage(
 			// 		NewGroupByStage(source,
-			// 			SelectExpressions{
-			// 				createSelectExpression(source, "foo", "b", "foo", "b"),
+			// 			ProjectedColumns{
+			// 				createProjectedColumn(source, "foo", "b", "foo", "b"),
 			// 			},
-			// 			SelectExpressions{
-			// 				createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+			// 			ProjectedColumns{
+			// 				createProjectedColumnFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 			// 					Name:  "sum",
 			// 					Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 			// 				}),
 			// 			},
 			// 		),
-			// 		createSelectExpressionFromSQLExpr("", "(select sum(foo.a) from foo f)",
+			// 		createProjectedColumnFromSQLExpr("", "(select sum(foo.a) from foo f)",
 			// 			&SQLSubqueryExpr{
 			// 				// correlated: true,
 			// 				plan: NewProjectStage(
 			// 					source,
-			// 					createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+			// 					createProjectedColumnFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 			// 				),
 			// 			},
 			// 		),
@@ -582,9 +582,9 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 					NewFilterStage(
 						NewGroupByStage(source,
 							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-							SelectExpressions{
-								createSelectExpression(source, "foo", "a", "foo", "a"),
-								createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+							ProjectedColumns{
+								createProjectedColumn(source, "foo", "a", "foo", "a"),
+								createProjectedColumnFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 									Name:  "sum",
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
@@ -595,7 +595,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							right: SQLInt(10),
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "a"),
+					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
 		})
@@ -606,11 +606,11 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				return NewProjectStage(
 					NewGroupByStage(source,
 						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
-						SelectExpressions{
-							createSelectExpression(source, "foo", "a", "foo", "a"),
+						ProjectedColumns{
+							createProjectedColumn(source, "foo", "a", "foo", "a"),
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "a"),
+					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
 
@@ -620,19 +620,19 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 					NewGroupByStage(
 						NewGroupByStage(source,
 							nil,
-							SelectExpressions{
-								createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+							ProjectedColumns{
+								createProjectedColumnFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 									Name:  "sum",
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
 							},
 						),
 						[]SQLExpr{createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
-						SelectExpressions{
-							createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						ProjectedColumns{
+							createProjectedColumnFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 						},
 					),
-					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					createProjectedColumnFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
 			})
 
@@ -643,8 +643,8 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 						NewFilterStage(
 							NewGroupByStage(source,
 								nil,
-								SelectExpressions{
-									createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
+								ProjectedColumns{
+									createProjectedColumnFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 										Name:  "sum",
 										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 									}),
@@ -656,11 +656,11 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							},
 						),
 						[]SQLExpr{createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
-						SelectExpressions{
-							createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						ProjectedColumns{
+							createProjectedColumnFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 						},
 					),
-					createSelectExpressionFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					createProjectedColumnFromSQLExpr("", "sum(a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
 			})
 		})
@@ -675,7 +675,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							ascending: true,
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "a"),
+					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
 
@@ -688,7 +688,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							ascending: true,
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "b"),
+					createProjectedColumn(source, "foo", "a", "", "b"),
 				)
 			})
 
@@ -701,7 +701,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							ascending: true,
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "a"),
+					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
 
@@ -714,7 +714,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							ascending: true,
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "b"),
+					createProjectedColumn(source, "foo", "a", "", "b"),
 				)
 			})
 
@@ -727,7 +727,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							ascending: true,
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "a"),
+					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
 
@@ -740,7 +740,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							ascending: true,
 						},
 					),
-					createAllSelectExpressionsFromSource(source, "")...,
+					createAllProjectedColumnsFromSource(source, "")...,
 				)
 			})
 
@@ -753,13 +753,13 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							ascending: true,
 						},
 					),
-					createAllSelectExpressionsFromSource(source, "")...,
+					createAllProjectedColumnsFromSource(source, "")...,
 				)
 			})
 
 			test("select foo.*, foo.a from foo order by 2", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				columns := append(createAllSelectExpressionsFromSource(source, ""), createSelectExpression(source, "foo", "a", "", "a"))
+				columns := append(createAllProjectedColumnsFromSource(source, ""), createProjectedColumn(source, "foo", "a", "", "a"))
 				return NewProjectStage(
 					NewOrderByStage(source,
 						&orderByTerm{
@@ -780,7 +780,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							ascending: true,
 						},
 					),
-					createSelectExpression(source, "foo", "a", "", "a"),
+					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
 
@@ -799,7 +799,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 							ascending: true,
 						},
 					),
-					createSelectExpressionFromSQLExpr("", "c",
+					createProjectedColumnFromSQLExpr("", "c",
 						&SQLAddExpr{
 							left:  createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt),
 							right: createSQLColumnExpr("foo", "b", schema.SQLInt, schema.MongoInt),
@@ -814,7 +814,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(
 					NewLimitStage(source, 0, 10),
-					createSelectExpression(source, "foo", "a", "", "a"),
+					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
 
@@ -822,7 +822,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(
 					NewLimitStage(source, 10, 20),
-					createSelectExpression(source, "foo", "a", "", "a"),
+					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
 		})

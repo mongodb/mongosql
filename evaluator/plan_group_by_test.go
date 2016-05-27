@@ -45,12 +45,12 @@ func TestGroupByPlanStage(t *testing.T) {
 		Convey("should return the right result when using an aggregation function", func() {
 
 			columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
-			projectedColumns := SelectExpressions{
-				SelectExpression{
+			projectedColumns := ProjectedColumns{
+				ProjectedColumn{
 					Column: &Column{tableOneName, "a", columnType.SQLType, columnType.MongoType},
 					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
 				},
-				SelectExpression{
+				ProjectedColumn{
 					Column: &Column{"", "sum(b)", schema.SQLFloat, schema.MongoNone},
 					Expr: &SQLAggFunctionExpr{
 						Name: "sum",

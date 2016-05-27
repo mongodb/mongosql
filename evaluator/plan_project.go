@@ -1,22 +1,17 @@
 package evaluator
 
-import (
-	"bytes"
-	"fmt"
-)
-
 // ProjectStage handles taking sourced rows and projecting them into a different shape.
 type ProjectStage struct {
 	// projectedColumns holds the columns and/or expressions used in
 	// the pipeline
-	projectedColumns SelectExpressions
+	projectedColumns ProjectedColumns
 
 	// source is the operator that provides the data to project
 	source PlanStage
 }
 
 // NewProjectStage creates a new project stage.
-func NewProjectStage(source PlanStage, projectedColumns ...SelectExpression) *ProjectStage {
+func NewProjectStage(source PlanStage, projectedColumns ...ProjectedColumn) *ProjectStage {
 	return &ProjectStage{
 		source:           source,
 		projectedColumns: projectedColumns,
@@ -26,7 +21,7 @@ func NewProjectStage(source PlanStage, projectedColumns ...SelectExpression) *Pr
 type ProjectIter struct {
 	source Iter
 
-	projectedColumns SelectExpressions
+	projectedColumns ProjectedColumns
 
 	// err holds any error that may have occurred during processing
 	err error
@@ -121,56 +116,4 @@ func (pj *ProjectStage) clone() *ProjectStage {
 		source:           pj.source,
 		projectedColumns: pj.projectedColumns,
 	}
-}
-
-// SelectExpression is a column projection. It contains the SQLExpr for the column
-// as well as the column information that will be projected.
-type SelectExpression struct {
-	// Column holds the projection information.
-	*Column
-
-	// Expr holds the expression to be evaluated.
-	Expr SQLExpr
-}
-
-func (se *SelectExpression) clone() *SelectExpression {
-	return &SelectExpression{
-		Column: se.Column,
-		Expr:   se.Expr,
-	}
-}
-
-// SelectExpressions is a slice of SelectExpression.
-type SelectExpressions []SelectExpression
-
-func (ses SelectExpressions) String() string {
-
-	b := bytes.NewBufferString(fmt.Sprintf("columns: \n"))
-
-	for _, expr := range ses {
-		b.WriteString(fmt.Sprintf("- %#v\n", expr.Column))
-	}
-
-	return b.String()
-}
-
-func (se SelectExpressions) Unique() SelectExpressions {
-	var results SelectExpressions
-	contains := func(column *Column) bool {
-		for _, expr := range results {
-			if expr.Column.Name == column.Name && expr.Column.Table == column.Table {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	for _, e := range se {
-		if !contains(e.Column) {
-			results = append(results, e)
-		}
-	}
-
-	return results
 }
