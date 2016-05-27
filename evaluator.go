@@ -133,7 +133,10 @@ func (e *Evaluator) Plan(db, sql string, ast sqlparser.SelectStatement, conn eva
 		return nil, nil, err
 	}
 
-	evaluator.OptimizePlan(queryPlan)
+	queryPlan, err = evaluator.OptimizePlan(queryPlan)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	executionCtx := evaluator.NewExecutionCtx(conn)
 
