@@ -7,6 +7,10 @@ type SourceRemoveStage struct {
 	source PlanStage
 }
 
+func NewSourceRemoveStage(source PlanStage) *SourceRemoveStage {
+	return &SourceRemoveStage{source}
+}
+
 type SourceRemoveIter struct {
 	source Iter
 	// ctx is the current execution context

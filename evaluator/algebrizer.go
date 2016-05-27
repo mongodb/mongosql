@@ -25,6 +25,7 @@ type algebrizer struct {
 	schema                       *schema.Schema
 	columns                      []*Column        // all the columns in scope.
 	correlated                   bool             // indicates whether this context is using columns in its parent.
+	hasCorrelatedSubquery        bool             // indicates whether this context has a correlated subquery.
 	projectedColumns             ProjectedColumns // columns to be projected from this scope.
 	resolveProjectedColumnsFirst bool             // indicates whether to resolve a column using the projected columns first or second
 }
@@ -291,6 +292,8 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 		}
 	}
 
+	builder.hasCorrelatedSubquery = a.hasCorrelatedSubquery
+
 	// 3. Build the stages.
 	return builder.build(), nil
 }
@@ -473,6 +476,28 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 	default:
 		return nil, fmt.Errorf("no support for %T", tableExpr)
 	}
+}
+
+func (a *algebrizer) translateSubqueryExpr(expr *sqlparser.Subquery) (*SQLSubqueryExpr, error) {
+	subqueryAlgebrizer := &algebrizer{
+		parent: a,
+		dbName: a.dbName,
+		schema: a.schema,
+	}
+
+	plan, err := subqueryAlgebrizer.translateSelectStatement(expr.Select)
+	if err != nil {
+		return nil, err
+	}
+
+	if subqueryAlgebrizer.correlated {
+		a.hasCorrelatedSubquery = true
+	}
+
+	return &SQLSubqueryExpr{
+		plan:       plan,
+		correlated: subqueryAlgebrizer.correlated,
+	}, nil
 }
 
 func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
@@ -893,22 +918,4 @@ func (a *algebrizer) translateFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error
 	}
 
 	return &SQLScalarFunctionExpr{name, exprs}, nil
-}
-
-func (a *algebrizer) translateSubqueryExpr(expr *sqlparser.Subquery) (*SQLSubqueryExpr, error) {
-	subqueryAlgebrizer := &algebrizer{
-		parent: a,
-		dbName: a.dbName,
-		schema: a.schema,
-	}
-
-	plan, err := subqueryAlgebrizer.translateSelectStatement(expr.Select)
-	if err != nil {
-		return nil, err
-	}
-
-	return &SQLSubqueryExpr{
-		plan:       plan,
-		correlated: subqueryAlgebrizer.correlated,
-	}, nil
 }

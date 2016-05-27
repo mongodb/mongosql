@@ -316,13 +316,16 @@ func TestAlgebrizeStatements(t *testing.T) {
 			test("select a, (select foo.a from bar) from foo", func() PlanStage {
 				fooSource := createMongoSource("foo", "foo")
 				barSource := createMongoSource("bar", "bar")
-				return NewProjectStage(fooSource,
-					createProjectedColumn(fooSource, "foo", "a", "", "a"),
-					createProjectedColumnFromSQLExpr("", "(select foo.a from bar)",
-						&SQLSubqueryExpr{
-							plan:       NewProjectStage(barSource, createProjectedColumn(fooSource, "foo", "a", "", "a")),
-							correlated: true,
-						},
+				return NewSourceRemoveStage(
+					NewProjectStage(
+						NewSourceAppendStage(fooSource),
+						createProjectedColumn(fooSource, "foo", "a", "", "a"),
+						createProjectedColumnFromSQLExpr("", "(select foo.a from bar)",
+							&SQLSubqueryExpr{
+								plan:       NewProjectStage(barSource, createProjectedColumn(fooSource, "foo", "a", "", "a")),
+								correlated: true,
+							},
+						),
 					),
 				)
 			})

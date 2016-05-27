@@ -4,6 +4,10 @@ type SourceAppendStage struct {
 	source PlanStage
 }
 
+func NewSourceAppendStage(source PlanStage) *SourceAppendStage {
+	return &SourceAppendStage{source}
+}
+
 // SourceAppend adds the current row to the source slice of the
 // execution context.
 type SourceAppendIter struct {

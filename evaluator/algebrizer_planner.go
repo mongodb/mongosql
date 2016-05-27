@@ -11,6 +11,8 @@ type queryPlanBuilder struct {
 	algebrizer    *algebrizer
 	exprCollector *expressionCollector
 
+	hasCorrelatedSubquery bool
+
 	from     PlanStage
 	where    SQLExpr
 	groupBy  []SQLExpr
@@ -24,13 +26,23 @@ type queryPlanBuilder struct {
 
 func (b *queryPlanBuilder) build() PlanStage {
 
-	plan := b.buildWhere(b.from)
+	plan := b.from
+
+	if b.hasCorrelatedSubquery {
+		plan = NewSourceAppendStage(plan)
+	}
+
+	plan = b.buildWhere(plan)
 	plan = b.buildGroupBy(plan)
 	plan = b.buildHaving(plan)
 	plan = b.buildDistinct(plan)
 	plan = b.buildOrderBy(plan)
 	plan = b.buildLimit(plan)
 	plan = b.buildProject(plan)
+
+	if b.hasCorrelatedSubquery {
+		plan = NewSourceRemoveStage(plan)
+	}
 
 	return plan
 }
