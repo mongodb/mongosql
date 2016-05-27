@@ -6,6 +6,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/kr/pretty"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 )
@@ -128,17 +129,21 @@ func (e *Evaluator) Plan(db, sql string, ast sqlparser.SelectStatement, conn eva
 
 	log.Logf(log.DebugLow, "Preparing query plan for: %#v", sqlparser.String(ast))
 
-	queryPlan, err := evaluator.Algebrize(ast, db, e.config)
+	plan, err := evaluator.Algebrize(ast, db, e.config)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	queryPlan, err = evaluator.OptimizePlan(queryPlan)
+	fmt.Printf("\nBEFORE: %# v", pretty.Formatter(plan))
+
+	plan, err = evaluator.OptimizePlan(plan)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	fmt.Printf("\nAFTER: %# v", pretty.Formatter(plan))
 
 	executionCtx := evaluator.NewExecutionCtx(conn)
 
-	return queryPlan, executionCtx, nil
+	return plan, executionCtx, nil
 }
