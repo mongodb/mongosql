@@ -131,10 +131,6 @@ testcases:
   expected_types: [varchar]
   expected: 
     - ["blah"]
-- sql: "SHOW DATABASES WHERE Database = 'test'"
-  expected_types: [varchar]
-  expected: 
-    - ["test"]
 - sql: "SHOW DATABASES WHERE SCHEMA_NAME = 'test'"
   expected_types: [varchar]
   expected: 
