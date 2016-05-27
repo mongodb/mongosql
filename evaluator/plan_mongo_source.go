@@ -177,6 +177,8 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 		return false
 	}
 
+	mappedD := d.Map()
+
 	for _, column := range ms.mappingRegistry.columns {
 
 		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.alias)
@@ -185,10 +187,10 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 			return false
 		}
 
-		extractedField, _ := extractFieldByName(mappedFieldName, d.Map())
+		extractedField, _ := extractFieldByName(mappedFieldName, mappedD)
 
 		value := Value{
-			Table: ms.aliasName,
+			Table: column.Table,
 			Name:  column.Name,
 		}
 
