@@ -56,7 +56,7 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 	return found, nil
 }
 
-func (a *algebrizer) lookupProjectedColumnExpr(columnName string) (*ProjectedColumn, bool) {
+func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn, bool) {
 	for _, pc := range a.projectedColumns {
 		if strings.EqualFold(pc.Name, columnName) {
 			return &pc, true
@@ -66,23 +66,43 @@ func (a *algebrizer) lookupProjectedColumnExpr(columnName string) (*ProjectedCol
 	return nil, false
 }
 
-func (a *algebrizer) resolveColumnExpr(expr sqlparser.Expr, clause string) (SQLExpr, error) {
-	if numVal, ok := expr.(sqlparser.NumVal); ok {
-		n, err := strconv.ParseInt(sqlparser.String(numVal), 10, 64)
-		if err != nil {
-			return nil, err
-		}
+func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, error) {
 
-		if int(n) > len(a.projectedColumns) {
-			return nil, fmt.Errorf("unknown column \"%v\" in %s", n, clause)
-		}
-
-		if n >= 0 {
-			return a.projectedColumns[n-1].Expr, nil
+	if a.resolveProjectedColumnsFirst && tableName == "" {
+		if expr, ok := a.lookupProjectedColumn(columnName); ok {
+			return expr.Expr, nil
 		}
 	}
 
-	return a.translateExpr(expr)
+	column, err := a.lookupColumn(tableName, columnName)
+	if err == nil {
+		return SQLColumnExpr{
+			tableName:  column.Table,
+			columnName: column.Name,
+			columnType: schema.ColumnType{
+				SQLType:   column.SQLType,
+				MongoType: column.MongoType,
+			},
+		}, nil
+	}
+
+	if !a.resolveProjectedColumnsFirst && tableName == "" {
+		if expr, ok := a.lookupProjectedColumn(columnName); ok {
+			return expr.Expr, nil
+		}
+	}
+
+	// we didn't find it in the current scope, so we need to search our parent,
+	// and let it search it's parent, etc...
+	if a.parent != nil {
+		expr, parentErr := a.parent.resolveColumnExpr(tableName, columnName)
+		if parentErr == nil {
+			a.correlated = true
+			return expr, nil
+		}
+	}
+
+	return nil, err
 }
 
 func (a *algebrizer) registerColumns(columns []*Column) {
@@ -103,7 +123,7 @@ func (a *algebrizer) translateGroupBy(groupby sqlparser.GroupBy) ([]SQLExpr, err
 	var keys []SQLExpr
 	for _, g := range groupby {
 
-		key, err := a.resolveColumnExpr(g, "group clause")
+		key, err := a.translatePossibleColumnRefExpr(g, "group clause")
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +203,7 @@ func (a *algebrizer) translateOrderBy(orderby sqlparser.OrderBy) ([]*orderByTerm
 
 func (a *algebrizer) translateOrder(order *sqlparser.Order) (*orderByTerm, error) {
 	ascending := !strings.EqualFold(order.Direction, sqlparser.AST_DESC)
-	e, err := a.resolveColumnExpr(order.Expr, "order clause")
+	e, err := a.translatePossibleColumnRefExpr(order.Expr, "order clause")
 	if err != nil {
 		return nil, err
 	}
@@ -551,41 +571,7 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 			}, nil
 		}
 
-		if a.resolveProjectedColumnsFirst && tableName == "" {
-			if expr, ok := a.lookupProjectedColumnExpr(columnName); ok {
-				return expr.Expr, nil
-			}
-		}
-
-		column, err := a.lookupColumn(tableName, columnName)
-		if err != nil {
-			if !a.resolveProjectedColumnsFirst && tableName == "" {
-				if expr, ok := a.lookupProjectedColumnExpr(columnName); ok {
-					return expr.Expr, nil
-				}
-			}
-
-			if a.parent != nil {
-				column, err = a.parent.lookupColumn(tableName, columnName)
-				if err != nil {
-					return nil, err
-				}
-
-				a.correlated = true
-			} else {
-				return nil, err
-			}
-		}
-
-		return SQLColumnExpr{
-			tableName:  column.Table,
-			columnName: column.Name,
-			columnType: schema.ColumnType{
-				SQLType:   column.SQLType,
-				MongoType: column.MongoType,
-			},
-		}, nil
-
+		return a.resolveColumnExpr(tableName, columnName)
 	case *sqlparser.ComparisonExpr:
 
 		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, true)
@@ -762,6 +748,25 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 	default:
 		return nil, fmt.Errorf("no support for %T", expr)
 	}
+}
+
+func (a *algebrizer) translatePossibleColumnRefExpr(expr sqlparser.Expr, clause string) (SQLExpr, error) {
+	if numVal, ok := expr.(sqlparser.NumVal); ok {
+		n, err := strconv.ParseInt(sqlparser.String(numVal), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		if int(n) > len(a.projectedColumns) {
+			return nil, fmt.Errorf("unknown column \"%v\" in %s", n, clause)
+		}
+
+		if n >= 0 {
+			return a.projectedColumns[n-1].Expr, nil
+		}
+	}
+
+	return a.translateExpr(expr)
 }
 
 func (a *algebrizer) translateLeftRightExprs(left sqlparser.Expr, right sqlparser.Expr, reconcile bool) (SQLExpr, SQLExpr, error) {
