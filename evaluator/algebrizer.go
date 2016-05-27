@@ -513,6 +513,19 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 
 		columnName := string(typedE.Name)
 
+		if tableName == "" && strings.HasPrefix(columnName, "@") {
+			variableName := strings.TrimPrefix(columnName, "@")
+			variableType := UserDefinedVariable
+			if strings.HasPrefix(variableName, "@") {
+				variableName = strings.TrimPrefix(variableName, "@")
+				variableType = SystemVariable
+			}
+			return &SQLVariableExpr{
+				Name:         variableName,
+				VariableType: variableType,
+			}, nil
+		}
+
 		if a.resolveProjectedColumnsFirst && tableName == "" {
 			if expr, ok := a.lookupProjectedColumnExpr(columnName); ok {
 				return expr.Expr, nil

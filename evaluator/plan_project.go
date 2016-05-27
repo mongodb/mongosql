@@ -30,10 +30,6 @@ type ProjectIter struct {
 	ctx *ExecutionCtx
 }
 
-var systemVars = map[string]SQLValue{
-	"max_allowed_packet": SQLInt(4194304),
-}
-
 func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	sourceIter, err := pj.source.Open(ctx)
 	if err != nil {

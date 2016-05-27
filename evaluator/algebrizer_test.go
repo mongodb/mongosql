@@ -1100,5 +1100,10 @@ func TestAlgebrizeExpr(t *testing.T) {
 		Convey("Varchar", func() {
 			test("'a'", SQLVarchar("a"))
 		})
+
+		Convey("Variable", func() {
+			test("@@max_allowed", &SQLVariableExpr{Name: "max_allowed", VariableType: SystemVariable})
+			test("@hmmm", &SQLVariableExpr{Name: "hmmm", VariableType: UserDefinedVariable})
+		})
 	})
 }

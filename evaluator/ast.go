@@ -481,6 +481,8 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		// nothing to do
 	case SQLTimestamp:
 		// nothing to do
+	case *SQLVariableExpr:
+		// nothing to do
 	case *SQLValues:
 		hasNewValue := false
 		newValues := []SQLValue{}
