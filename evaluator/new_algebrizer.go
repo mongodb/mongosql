@@ -931,33 +931,36 @@ func (b *queryPlanBuilder) build() PlanStage {
 func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 	plan := source
 	if b.distinct {
-		var keys SelectExpressions
+		var keys []SQLExpr
+		var projectedKeys SelectExpressions
 		for _, c := range b.project {
-			pc := projectedColumnFromExpr(c.Expr)
-			keys = append(keys, *pc)
+			projectedKeys = append(projectedKeys, *projectedColumnFromExpr(c.Expr))
+			keys = append(keys, c.Expr)
+
+			// don't want these interfering with b.exprCollector.allNonAggReferencedColumns
+			b.exprCollector.Remove(c.Expr)
 		}
 
-		// projectedAggregates will include any column that is not an aggregate function.
+		// projectedColumns will include any column that is not an aggregate function.
 		// as well as all the keys.
-		projectedAggregates := keys
+		projectedColumns := projectedKeys
 		for _, e := range b.exprCollector.allNonAggReferencedColumns.copyExprs() {
 			pc := projectedColumnFromExpr(e)
-			projectedAggregates = append(projectedAggregates, *pc)
+			projectedColumns = append(projectedColumns, *pc)
 		}
 
-		plan = NewGroupByStage(plan, keys, projectedAggregates.Unique())
+		plan = NewGroupByStage(plan, keys, projectedColumns.Unique())
 
 		// now we must replace all the project values with columns as
 		// any that weren't already a column have now been computed.
-		var projectedColumns SelectExpressions
+		projectedColumns = SelectExpressions{}
 		for i, pc := range b.project {
-			b.exprCollector.Remove(pc.Expr)
 			newExpr := SQLColumnExpr{
-				tableName:  keys[i].Table,
-				columnName: keys[i].Name,
+				tableName:  projectedKeys[i].Table,
+				columnName: projectedKeys[i].Name,
 				columnType: schema.ColumnType{
-					SQLType:   keys[i].SQLType,
-					MongoType: keys[i].MongoType,
+					SQLType:   projectedKeys[i].SQLType,
+					MongoType: projectedKeys[i].MongoType,
 				},
 			}
 			projectedColumns = append(projectedColumns, SelectExpression{
@@ -976,12 +979,6 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 	plan := source
 	if len(b.groupBy) > 0 || len(b.exprCollector.allAggFunctions.exprs) > 0 {
-		var keys SelectExpressions
-		for _, e := range b.groupBy {
-			pc := projectedColumnFromExpr(e)
-			keys = append(keys, *pc)
-		}
-
 		// do this now so it doesn't throw off the b.exprCollector.allNonAggReferencedColumns.
 		b.exprCollector.RemoveAll(b.groupBy)
 
@@ -998,7 +995,7 @@ func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
 
-		plan = NewGroupByStage(plan, keys, projectedAggregates.Unique())
+		plan = NewGroupByStage(plan, b.groupBy, projectedAggregates.Unique())
 
 		// replace aggregation expressions with columns coming out of the GroupByStage
 		// because they have already been aggregated and are now just columns.
@@ -1039,6 +1036,9 @@ func (b *queryPlanBuilder) buildOrderBy(source PlanStage) PlanStage {
 
 func (b *queryPlanBuilder) buildProject(source PlanStage) PlanStage {
 	if len(b.project) > 0 {
+		for _, pc := range b.project {
+			b.exprCollector.Remove(pc.Expr)
+		}
 		return NewProjectStage(source, b.project...)
 	}
 
@@ -1066,7 +1066,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 		var projectedColumns SelectExpressions
 		for _, pc := range b.project {
 			b.exprCollector.Remove(pc.Expr)
-			replaced, err := replaceAggFunctionsWithColumns("", pc.Expr)
+			replaced, err := replaceAggFunctionsWithColumns(pc.Expr)
 			if err != nil {
 				return err
 			}
@@ -1082,7 +1082,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 
 	if b.having != nil {
 		b.exprCollector.Remove(b.having)
-		having, err := replaceAggFunctionsWithColumns("", b.having)
+		having, err := replaceAggFunctionsWithColumns(b.having)
 		if err != nil {
 			return err
 		}
@@ -1095,7 +1095,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 		var orderBy []*orderByTerm
 		for _, obt := range b.orderBy {
 			b.exprCollector.Remove(obt.expr)
-			replaced, err := replaceAggFunctionsWithColumns("", obt.expr)
+			replaced, err := replaceAggFunctionsWithColumns(obt.expr)
 			if err != nil {
 				return err
 			}
@@ -1320,12 +1320,10 @@ func (af *aggFunctionFinder) Visit(e SQLExpr) (SQLExpr, error) {
 	return e, nil
 }
 
-type aggFunctionExprReplacer struct {
-	tableName string
-}
+type aggFunctionExprReplacer struct{}
 
-func replaceAggFunctionsWithColumns(tableName string, e SQLExpr) (SQLExpr, error) {
-	v := &aggFunctionExprReplacer{tableName}
+func replaceAggFunctionsWithColumns(e SQLExpr) (SQLExpr, error) {
+	v := &aggFunctionExprReplacer{}
 	return v.Visit(e)
 }
 
@@ -1336,7 +1334,7 @@ func (v *aggFunctionExprReplacer) Visit(e SQLExpr) (SQLExpr, error) {
 			SQLType:   typedE.Type(),
 			MongoType: schema.MongoNone,
 		}
-		return SQLColumnExpr{v.tableName, typedE.String(), columnType}, nil
+		return SQLColumnExpr{"", typedE.String(), columnType}, nil
 	default:
 		return walk(v, e)
 	}

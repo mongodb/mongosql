@@ -45,7 +45,7 @@ func TestGroupByPlanStage(t *testing.T) {
 		Convey("should return the right result when using an aggregation function", func() {
 
 			columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
-			sExprs := SelectExpressions{
+			projectedColumns := SelectExpressions{
 				SelectExpression{
 					Column: &Column{tableOneName, "a", columnType.SQLType, columnType.MongoType},
 					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
@@ -61,16 +61,11 @@ func TestGroupByPlanStage(t *testing.T) {
 				},
 			}
 
-			exprs := SelectExpressions{
-				SelectExpression{
-					Column: &Column{tableOneName, "a", columnType.SQLType, columnType.MongoType},
-					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
-				},
-			}
+			keys := []SQLExpr{SQLColumnExpr{tableOneName, "a", columnType}}
 
 			operator := &GroupByStage{
-				selectExprs: sExprs,
-				keyExprs:    exprs,
+				projectedColumns: projectedColumns,
+				keys:             keys,
 			}
 
 			expected := []Values{

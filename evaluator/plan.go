@@ -158,11 +158,11 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 		b.WriteString("↳ GroupBy(")
 
-		for i, c := range typedE.keyExprs {
+		for i, key := range typedE.keys {
 			if i != 0 {
 				b.WriteString(", ")
 			}
-			b.WriteString(fmt.Sprintf("%v as %v", c.Expr.String(), c.Name))
+			b.WriteString(fmt.Sprintf("%v", key.String()))
 		}
 
 		b.WriteString("):\n")
@@ -345,9 +345,9 @@ func walkPlanTree(v PlanStageVisitor, p PlanStage) (PlanStage, error) {
 
 		if typedP.source != source {
 			p = &GroupByStage{
-				source:      source,
-				selectExprs: typedP.selectExprs,
-				keyExprs:    typedP.keyExprs,
+				source:           source,
+				projectedColumns: typedP.projectedColumns,
+				keys:             typedP.keys,
 			}
 		}
 	case *JoinStage:

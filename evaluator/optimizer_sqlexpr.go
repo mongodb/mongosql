@@ -30,40 +30,40 @@ func (v *sqlExprOptimizer) Visit(p PlanStage) (PlanStage, error) {
 		}
 	case *GroupByStage:
 		hasNew := false
-		keyExprs := SelectExpressions{}
-		for _, ke := range typedP.keyExprs {
-			newExpr, err := v.optimizeSelectExpression(&ke)
+		var newKeys []SQLExpr
+		for _, key := range typedP.keys {
+			newKey, err := OptimizeSQLExpr(key)
 			if err != nil {
 				return nil, err
 			}
 
-			if newExpr != &ke {
+			if newKey != key {
 				hasNew = true
-				ke = *newExpr
+				key = newKey
 			}
 
-			keyExprs = append(keyExprs, ke)
+			newKeys = append(newKeys, key)
 		}
 
-		selectExprs := SelectExpressions{}
-		for _, se := range typedP.selectExprs {
-			newExpr, err := v.optimizeSelectExpression(&se)
+		var newProjectedColumns SelectExpressions
+		for _, pc := range typedP.projectedColumns {
+			newPC, err := v.optimizeSelectExpression(&pc)
 			if err != nil {
 				return nil, err
 			}
 
-			if newExpr != &se {
+			if newPC != &pc {
 				hasNew = true
-				se = *newExpr
+				pc = *newPC
 			}
 
-			selectExprs = append(selectExprs, se)
+			newProjectedColumns = append(newProjectedColumns, pc)
 		}
 
 		if hasNew {
 			newP := typedP.clone()
-			newP.keyExprs = keyExprs
-			newP.selectExprs = selectExprs
+			newP.keys = newKeys
+			newP.projectedColumns = newProjectedColumns
 			p = newP
 		}
 

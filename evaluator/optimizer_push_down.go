@@ -146,13 +146,13 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	pipeline := ms.pipeline
 
 	// 1. Translate keys
-	keys, err := translateGroupByKeys(gb.keyExprs, ms.mappingRegistry.lookupFieldName)
+	keys, err := translateGroupByKeys(gb.keys, ms.mappingRegistry.lookupFieldName)
 	if err != nil {
 		return gb, nil
 	}
 
 	// 2. Translate aggregations
-	result, err := translateGroupByAggregates(gb.keyExprs, gb.selectExprs, ms.mappingRegistry.lookupFieldName)
+	result, err := translateGroupByAggregates(gb.keys, gb.projectedColumns, ms.mappingRegistry.lookupFieldName)
 	if err != nil {
 		return gb, nil
 	}
@@ -172,13 +172,13 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	// 5. Fix up the TableScan operator - None of the current registrations in mappingRegistry are valid any longer.
 	// We need to clear them out and re-register the new columns.
 	mappingRegistry := &mappingRegistry{}
-	for _, sExpr := range gb.selectExprs {
+	for _, projectedColumn := range gb.projectedColumns {
 		// at this point, our project has all the stringified names of the select expressions, so we need to re-map them
 		// each column to its new MongoDB name. This process is what makes the push-down transparent to subsequent operators
 		// in the tree that either haven't yet been pushed down, or cannot be. Either way, we output of a push-down must be
 		// exactly the same as the output of a non-pushed-down group.
-		mappingRegistry.addColumn(sExpr.Column)
-		mappingRegistry.registerMapping(sExpr.Column.Table, sExpr.Column.Name, dottifyFieldName(sExpr.Expr.String()))
+		mappingRegistry.addColumn(projectedColumn.Column)
+		mappingRegistry.registerMapping(projectedColumn.Column.Table, projectedColumn.Column.Name, dottifyFieldName(projectedColumn.Expr.String()))
 	}
 
 	ms = ms.clone()
@@ -204,20 +204,20 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 //
 // All projected names are the fully qualified name from SQL, ignoring the mongodb name except for when
 // referencing the underlying field.
-func translateGroupByKeys(keyExprs SelectExpressions, lookupFieldName fieldNameLookup) (bson.M, error) {
+func translateGroupByKeys(keys []SQLExpr, lookupFieldName fieldNameLookup) (bson.D, error) {
 
-	keys := bson.M{}
+	keyDocumentElements := bson.D{}
 
-	for _, keyExpr := range keyExprs {
-		translatedKey, ok := TranslateExpr(keyExpr.Expr, lookupFieldName)
+	for _, key := range keys {
+		translatedKey, ok := TranslateExpr(key, lookupFieldName)
 		if !ok {
-			return nil, fmt.Errorf("could not translate '%v'", keyExpr.Expr.String())
+			return nil, fmt.Errorf("could not translate '%v'", key.String())
 		}
 
-		keys[dottifyFieldName(keyExpr.Expr.String())] = translatedKey
+		keyDocumentElements = append(keyDocumentElements, bson.DocElem{dottifyFieldName(key.String()), translatedKey})
 	}
 
-	return keys, nil
+	return keyDocumentElements, nil
 }
 
 // translateGroupByAggregatesResult is just a holder for the results from translateGroupByAggregates.
@@ -242,14 +242,14 @@ type translateGroupByAggregatesResult struct {
 // sum(distinct a) will take in a SQLAggFunctionExpr which refers to the column 'a' and return a new SQLAggFunctionExpr
 // which refers to the newly created $addToSet field called 'distinct foo_DOT_a'. This way, the subsequent $project
 // now has the correct reference to the field name in the $group.
-func translateGroupByAggregates(keyExprs, selectExprs SelectExpressions, lookupFieldName fieldNameLookup) (*translateGroupByAggregatesResult, error) {
+func translateGroupByAggregates(keys []SQLExpr, projectedColumns SelectExpressions, lookupFieldName fieldNameLookup) (*translateGroupByAggregatesResult, error) {
 
 	// For example, in "select a + sum(b) from bar group by a", we should not create
 	// an aggregate for a because it's part of the key.
 	isGroupKey := func(expr SQLExpr) bool {
 		exprString := expr.String()
-		for _, sExpr := range keyExprs {
-			if exprString == sExpr.Expr.String() {
+		for _, key := range keys {
+			if exprString == key.String() {
 				return true
 			}
 		}
@@ -265,9 +265,9 @@ func translateGroupByAggregates(keyExprs, selectExprs SelectExpressions, lookupF
 	// account for all the fields that need to be present in the $group.
 	translator := &groupByAggregateTranslator{bson.M{}, isGroupKey, lookupFieldName, &mappingRegistry{}}
 
-	for _, selectExpr := range selectExprs {
+	for _, projectedColumn := range projectedColumns {
 
-		newExpr, err := translator.Visit(selectExpr.Expr)
+		newExpr, err := translator.Visit(projectedColumn.Expr)
 		if err != nil {
 			return nil, err
 		}

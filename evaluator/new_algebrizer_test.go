@@ -99,10 +99,13 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 
 	createSelectExpressionFromSQLExpr := func(tableName, columnName string, expr SQLExpr) SelectExpression {
 		column := &Column{
-			Table:     tableName,
-			Name:      columnName,
-			SQLType:   expr.Type(),
-			MongoType: schema.MongoNone,
+			Table:   tableName,
+			Name:    columnName,
+			SQLType: expr.Type(),
+		}
+
+		if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
+			column.MongoType = sqlColExpr.columnType.MongoType
 		}
 
 		return SelectExpression{Column: column, Expr: expr}
@@ -470,9 +473,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(
 					NewGroupByStage(source,
-						SelectExpressions{
-							createSelectExpression(source, "foo", "b", "foo", "b"),
-						},
+						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 						SelectExpressions{
 							createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 								Name:  "sum",
@@ -488,9 +489,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(
 					NewGroupByStage(source,
-						SelectExpressions{
-							createSelectExpression(source, "foo", "b", "foo", "b"),
-						},
+						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 						SelectExpressions{
 							createSelectExpression(source, "foo", "a", "foo", "a"),
 							createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
@@ -509,9 +508,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				return NewProjectStage(
 					NewOrderByStage(
 						NewGroupByStage(source,
-							SelectExpressions{
-								createSelectExpression(source, "foo", "b", "foo", "b"),
-							},
+							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 							SelectExpressions{
 								createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 									Name:  "sum",
@@ -533,9 +530,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				return NewProjectStage(
 					NewOrderByStage(
 						NewGroupByStage(source,
-							SelectExpressions{
-								createSelectExpression(source, "foo", "b", "foo", "b"),
-							},
+							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 							SelectExpressions{
 								createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
 									Name:  "sum",
@@ -586,9 +581,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 				return NewProjectStage(
 					NewFilterStage(
 						NewGroupByStage(source,
-							SelectExpressions{
-								createSelectExpression(source, "foo", "b", "foo", "b"),
-							},
+							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 							SelectExpressions{
 								createSelectExpression(source, "foo", "a", "foo", "a"),
 								createSelectExpressionFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
@@ -610,19 +603,15 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 		Convey("distinct", func() {
 			test("select distinct a from foo", func() PlanStage {
 				source := createMongoSource("foo", "foo")
-				plan := NewProjectStage(
+				return NewProjectStage(
 					NewGroupByStage(source,
-						SelectExpressions{
-							createSelectExpression(source, "foo", "a", "foo", "a"),
-						},
+						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 						SelectExpressions{
 							createSelectExpression(source, "foo", "a", "foo", "a"),
 						},
 					),
 					createSelectExpression(source, "foo", "a", "", "a"),
 				)
-
-				return plan
 			})
 
 			test("select distinct sum(a) from foo", func() PlanStage {
@@ -638,9 +627,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 								}),
 							},
 						),
-						SelectExpressions{
-							createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-						},
+						[]SQLExpr{createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
 						SelectExpressions{
 							createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 						},
@@ -668,9 +655,7 @@ func TestNewAlgebrizeStatements(t *testing.T) {
 								right: SQLInt(20),
 							},
 						),
-						SelectExpressions{
-							createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-						},
+						[]SQLExpr{createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
 						SelectExpressions{
 							createSelectExpressionFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 						},

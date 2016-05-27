@@ -424,14 +424,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a", "b")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a", "b")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -455,14 +455,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "c")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a", "b", "c")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -488,14 +488,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"Awesome": SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "Awesome")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a", "b", "Awesome")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -521,14 +521,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"Awesome": &SQLAddExpr{SQLColumnExpr{tbl, "c", columnType}, SQLColumnExpr{tbl, "a", columnType}},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a", "b", "Awesome")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a", "b", "Awesome")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -553,14 +553,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c":      SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "sum(a)", "sum(b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "sum(a)", "sum(b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"sum(foo_DOT_a)": bson.M{
 								"$sum": "$a",
@@ -584,14 +584,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c":      SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "c", "sum(a)", "sum(b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "c", "sum(a)", "sum(b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"sum(foo_DOT_a)": bson.M{
 								"$sum": "$a",
@@ -616,14 +616,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c":      SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a", "sum(b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -647,14 +647,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c":               SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a", "sum(distinct b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -678,14 +678,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c":               SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct b)", "c")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a", "sum(distinct b)", "c")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -709,14 +709,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c":          SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a + sum(b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a + sum(b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -737,13 +737,13 @@ func TestGroupByPushDown(t *testing.T) {
 					"a + b": &SQLAddExpr{SQLColumnExpr{tbl, "a", columnType}, SQLColumnExpr{tbl, "b", columnType}},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a + b")
-				gb.keyExprs = constructSelectExpressions(exprs, "a + b")
+				gb.keys = []SQLExpr{exprs["a + b"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a + b")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{"foo_DOT_a+foo_DOT_b": bson.M{"$add": []interface{}{"$a", "$b"}}},
+							"_id": bson.D{{"foo_DOT_a+foo_DOT_b", bson.M{"$add": []interface{}{"$a", "$b"}}}},
 						}}},
 						bson.D{{"$project", bson.M{
 							"_id": 0,
@@ -758,14 +758,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c":              SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a + c + sum(b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a + c + sum(b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -787,14 +787,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c":       SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "Awesome")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "Awesome")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -816,14 +816,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a + sum(distinct b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a + sum(distinct b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -845,14 +845,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "c + sum(distinct b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "c + sum(distinct b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"distinct foo_DOT_b": bson.M{
 								"$addToSet": "$b",
@@ -871,14 +871,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c":                 SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "sum(distinct a+b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "sum(distinct a+b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"distinct foo_DOT_a+foo_DOT_b": bson.M{
 								"$addToSet": bson.M{"$add": []interface{}{"$a", "$b"}},
@@ -898,14 +898,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c": SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a+sum(distinct a+b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a+sum(distinct a+b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -928,14 +928,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"f": SQLColumnExpr{tbl, "f", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a", "e")
-				gb.keyExprs = constructSelectExpressions(exprs, "f")
+				gb.keys = []SQLExpr{exprs["f"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a", "e")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_f": "$d.f",
+							"_id": bson.D{
+								{"foo_DOT_f", "$d.f"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -958,14 +958,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"f":               SQLColumnExpr{tbl, "f", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a", "sum(distinct e)")
-				gb.keyExprs = constructSelectExpressions(exprs, "f")
+				gb.keys = []SQLExpr{exprs["f"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a", "sum(distinct e)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_f": "$d.f",
+							"_id": bson.D{
+								{"foo_DOT_f", "$d.f"},
 							},
 							"foo_DOT_a": bson.M{
 								"$first": "$a",
@@ -986,12 +986,12 @@ func TestGroupByPushDown(t *testing.T) {
 					"count(*)": &SQLAggFunctionExpr{"count", false, []SQLExpr{SQLVarchar("*")}},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "count(*)")
+				gb.projectedColumns = constructSelectExpressions(exprs, "count(*)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id":      bson.M{},
+							"_id":      bson.D{},
 							"count(*)": bson.M{"$sum": 1},
 						}}},
 						bson.D{{"$project", bson.M{
@@ -1006,12 +1006,12 @@ func TestGroupByPushDown(t *testing.T) {
 					"count(a)": &SQLAggFunctionExpr{"count", false, []SQLExpr{SQLColumnExpr{tbl, "a", columnType}}},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "count(a)")
+				gb.projectedColumns = constructSelectExpressions(exprs, "count(a)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{},
+							"_id": bson.D{},
 							"count(foo_DOT_a)": bson.M{
 								"$sum": bson.M{
 									"$cond": []interface{}{
@@ -1046,14 +1046,14 @@ func TestGroupByPushDown(t *testing.T) {
 					"c":                 SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "a", "count(distinct b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "a", "count(distinct b)")
 
 				verifyOptimizedPipeline(gb,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"foo_DOT_a":          bson.M{"$first": "$a"},
 							"distinct foo_DOT_b": bson.M{"$addToSet": "$b"},
@@ -1112,15 +1112,15 @@ func TestHavingPushDown(t *testing.T) {
 					"c":          SQLColumnExpr{tbl, "c", columnType},
 				}
 
-				gb.selectExprs = constructSelectExpressions(exprs, "sum(foo.a)", "sum(foo.b)")
-				gb.keyExprs = constructSelectExpressions(exprs, "c")
+				gb.keys = []SQLExpr{exprs["c"]}
+				gb.projectedColumns = constructSelectExpressions(exprs, "sum(foo.a)", "sum(foo.b)")
 				having.matcher = &SQLEqualsExpr{SQLColumnExpr{"", "sum(foo.b)", columnType}, SQLInt(10)}
 
 				verifyOptimizedPipeline(having,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_c": "$c",
+							"_id": bson.D{
+								{"foo_DOT_c", "$c"},
 							},
 							"sum(foo_DOT_a)": bson.M{
 								"$sum": "$a",
@@ -1605,9 +1605,9 @@ func TestOrderByPushDown(t *testing.T) {
 				}
 
 				groupBy := &GroupByStage{
-					source:      ms,
-					keyExprs:    constructSelectExpressions(exprs, "a"),
-					selectExprs: constructSelectExpressions(exprs, "a", "sum(foo.b)"),
+					source:           ms,
+					keys:             []SQLExpr{exprs["a"]},
+					projectedColumns: constructSelectExpressions(exprs, "a", "sum(foo.b)"),
 				}
 
 				orderBy.source = groupBy
@@ -1616,8 +1616,8 @@ func TestOrderByPushDown(t *testing.T) {
 				verifyOptimizedPipeline(orderBy,
 					[]bson.D{
 						bson.D{{"$group", bson.M{
-							"_id": bson.M{
-								"foo_DOT_a": "$a",
+							"_id": bson.D{
+								{"foo_DOT_a", "$a"},
 							},
 							"sum(foo_DOT_b)": bson.M{
 								"$sum": "$b",

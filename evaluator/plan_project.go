@@ -156,7 +156,7 @@ func (ses SelectExpressions) String() string {
 
 func (se SelectExpressions) Unique() SelectExpressions {
 	var results SelectExpressions
-	contains := func(column Column) bool {
+	contains := func(column *Column) bool {
 		for _, expr := range results {
 			if expr.Column.Name == column.Name && expr.Column.Table == column.Table {
 				return true
@@ -167,7 +167,7 @@ func (se SelectExpressions) Unique() SelectExpressions {
 	}
 
 	for _, e := range se {
-		if !contains(*e.Column) {
+		if !contains(e.Column) {
 			results = append(results, e)
 		}
 	}

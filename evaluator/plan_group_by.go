@@ -1,9 +1,6 @@
 package evaluator
 
-import (
-	"bytes"
-	"fmt"
-)
+import "fmt"
 
 // orderedGroup holds all the rows belonging to a given key in the groups
 // and an slice of the keys for each group.
@@ -23,32 +20,32 @@ type aggRowCtx struct {
 }
 
 type GroupByStage struct {
-	// selectExprs holds the SelectExpression that should
+	// projectedColumns holds the SelectExpression that should
 	// be present in the result of a grouping. This will
 	// include SelectExpressions for aggregates that might
 	// not be projected, but are required for further
 	// processing, such as when ordering by an aggregate.
-	selectExprs SelectExpressions
+	projectedColumns SelectExpressions
 
 	// source is the operator that provides the data to group
 	source PlanStage
 
-	// keySelectExprs holds the expression(s) to group by. For example, in
+	// keys holds the expression(s) to group by. For example, in
 	// select a, count(b) from foo group by a,
-	// keyExprs will hold the parsed column name 'a'.
-	keyExprs SelectExpressions
+	// keys will hold the parsed column name 'a'.
+	keys []SQLExpr
 }
 
-func NewGroupByStage(source PlanStage, keys SelectExpressions, aggregates SelectExpressions) *GroupByStage {
+func NewGroupByStage(source PlanStage, keys []SQLExpr, projectedColumns SelectExpressions) *GroupByStage {
 	return &GroupByStage{
-		source:      source,
-		keyExprs:    keys,
-		selectExprs: aggregates,
+		source:           source,
+		keys:             keys,
+		projectedColumns: projectedColumns,
 	}
 }
 
 func (gb *GroupByStage) Columns() (columns []*Column) {
-	for _, expr := range gb.selectExprs {
+	for _, expr := range gb.projectedColumns {
 		column := &Column{
 			Name:      expr.Name,
 			Table:     expr.Table,
@@ -64,8 +61,8 @@ func (gb *GroupByStage) Columns() (columns []*Column) {
 type GroupByIter struct {
 	source Iter
 
-	selectExprs SelectExpressions
-	keyExprs    SelectExpressions
+	projectedColumns SelectExpressions
+	keys             []SQLExpr
 
 	// grouped indicates if the source operator data has been grouped
 	grouped bool
@@ -90,110 +87,13 @@ func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	iter := &GroupByIter{
-		ctx:         ctx,
-		source:      sourceIter,
-		selectExprs: gb.selectExprs,
-		keyExprs:    gb.keyExprs,
+		ctx:              ctx,
+		source:           sourceIter,
+		projectedColumns: gb.projectedColumns,
+		keys:             gb.keys,
 	}
 
 	return iter, nil
-}
-
-func evaluateGroupByKey(row *Row, keyExprs SelectExpressions) (string, error) {
-
-	var gbKey string
-
-	for _, expr := range keyExprs {
-
-		evalCtx := &EvalCtx{Rows: Rows{*row}}
-		value, err := expr.Expr.Evaluate(evalCtx)
-		if err != nil {
-			return "", err
-		}
-
-		// TODO: might be better to use a hash for this
-		gbKey += fmt.Sprintf("%#v", value)
-	}
-
-	return gbKey, nil
-}
-
-func (gb *GroupByIter) createGroups() error {
-
-	gb.finalGrouping = orderedGroup{
-		groups: make(map[string][]Row, 0),
-	}
-
-	r := &Row{}
-
-	// iterator source to create groupings
-	for gb.source.Next(r) {
-
-		key, err := evaluateGroupByKey(r, gb.keyExprs)
-		if err != nil {
-			return err
-		}
-
-		if gb.finalGrouping.groups[key] == nil {
-			gb.finalGrouping.keys = append(gb.finalGrouping.keys, key)
-		}
-
-		gb.finalGrouping.groups[key] = append(gb.finalGrouping.groups[key], *r)
-
-		r = &Row{}
-	}
-
-	gb.grouped = true
-
-	return gb.source.Err()
-}
-
-func (gb *GroupByIter) evalAggRow(r []Row) (*Row, error) {
-
-	row := &Row{}
-	evalCtx := &EvalCtx{Rows: r}
-
-	for _, sExpr := range gb.selectExprs {
-
-		v, err := sExpr.Expr.Evaluate(evalCtx)
-		if err != nil {
-			return nil, err
-		}
-
-		value := Value{
-			Table: sExpr.Table,
-			Name:  sExpr.Name,
-			Data:  v,
-		}
-
-		row.Data = append(row.Data, value)
-	}
-
-	return row, nil
-}
-
-func (gb *GroupByIter) iterChan() chan aggRowCtx {
-	ch := make(chan aggRowCtx)
-
-	go func() {
-		for _, key := range gb.finalGrouping.keys {
-			v := gb.finalGrouping.groups[key]
-
-			r, err := gb.evalAggRow(v)
-			if err != nil {
-				gb.err = err
-				close(ch)
-				return
-			}
-
-			// check we have some matching data
-			if len(r.Data) != 0 {
-				ch <- aggRowCtx{*r, v}
-			}
-		}
-		close(ch)
-	}()
-	return ch
 }
 
 func (gb *GroupByIter) Next(row *Row) bool {
@@ -223,30 +123,107 @@ func (gb *GroupByIter) Err() error {
 	return gb.err
 }
 
-func (gb *GroupByIter) String() string {
+func (gb *GroupByIter) evaluateGroupByKey(row *Row) (string, error) {
 
-	b := bytes.NewBufferString("select exprs ( ")
+	var gbKey string
 
-	for _, expr := range gb.selectExprs {
-		b.WriteString(fmt.Sprintf("'%v' ", expr.Name))
+	evalCtx := &EvalCtx{Rows: Rows{*row}}
+	for _, key := range gb.keys {
+
+		value, err := key.Evaluate(evalCtx)
+		if err != nil {
+			return "", err
+		}
+
+		// TODO: might be better to use a hash for this
+		gbKey += fmt.Sprintf("%#v", value)
 	}
 
-	b.WriteString(") grouped by ( ")
+	return gbKey, nil
+}
 
-	for _, expr := range gb.keyExprs {
-		b.WriteString(fmt.Sprintf("'%v' ", expr.Name))
+func (gb *GroupByIter) createGroups() error {
+
+	gb.finalGrouping = orderedGroup{
+		groups: make(map[string][]Row, 0),
 	}
 
-	b.WriteString(")")
+	r := &Row{}
 
-	return b.String()
+	// iterator source to create groupings
+	for gb.source.Next(r) {
 
+		key, err := gb.evaluateGroupByKey(r)
+		if err != nil {
+			return err
+		}
+
+		if gb.finalGrouping.groups[key] == nil {
+			gb.finalGrouping.keys = append(gb.finalGrouping.keys, key)
+		}
+
+		gb.finalGrouping.groups[key] = append(gb.finalGrouping.groups[key], *r)
+
+		r = &Row{}
+	}
+
+	gb.grouped = true
+
+	return gb.source.Err()
+}
+
+func (gb *GroupByIter) evaluateProjectedColumns(r []Row) (*Row, error) {
+
+	row := &Row{}
+	evalCtx := &EvalCtx{Rows: r}
+
+	for _, projectedColumn := range gb.projectedColumns {
+
+		v, err := projectedColumn.Expr.Evaluate(evalCtx)
+		if err != nil {
+			return nil, err
+		}
+
+		value := Value{
+			Table: projectedColumn.Table,
+			Name:  projectedColumn.Name,
+			Data:  v,
+		}
+
+		row.Data = append(row.Data, value)
+	}
+
+	return row, nil
+}
+
+func (gb *GroupByIter) iterChan() chan aggRowCtx {
+	ch := make(chan aggRowCtx)
+
+	go func() {
+		for _, key := range gb.finalGrouping.keys {
+			v := gb.finalGrouping.groups[key]
+
+			r, err := gb.evaluateProjectedColumns(v)
+			if err != nil {
+				gb.err = err
+				close(ch)
+				return
+			}
+
+			// check we have some matching data
+			if len(r.Data) != 0 {
+				ch <- aggRowCtx{*r, v}
+			}
+		}
+		close(ch)
+	}()
+	return ch
 }
 
 func (gb *GroupByStage) clone() *GroupByStage {
 	return &GroupByStage{
-		source:      gb.source,
-		keyExprs:    gb.keyExprs,
-		selectExprs: gb.selectExprs,
+		source:           gb.source,
+		keys:             gb.keys,
+		projectedColumns: gb.projectedColumns,
 	}
 }
