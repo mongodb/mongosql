@@ -611,11 +611,24 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 			return nil, fmt.Errorf("no support for operator %q", typedE.Operator)
 		}
 	case *sqlparser.CtorExpr:
-		// TODO: SQLCtorExpr contains reference to parse tree...
+		// TODO: currently only supports single argument constructors
+		strVal, ok := typedE.Exprs[0].(sqlparser.StrVal)
+		if !ok {
+			return nil, fmt.Errorf("%v constructor requires string argument: got %T", string(typedE.Name), typedE.Exprs[0])
+		}
 
-		// ctor := &SQLCtorExpr{Name: typedE.Name, Args: expr.Exprs}
-		// return ctor.Evaluate(nil)
-		return nil, fmt.Errorf("ctor expression not supported yet")
+		arg := string(strVal)
+
+		switch typedE.Name {
+		case sqlparser.AST_DATE:
+			return NewSQLValue(arg, schema.SQLDate, schema.MongoNone)
+		case sqlparser.AST_DATETIME:
+			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
+		case sqlparser.AST_TIMESTAMP:
+			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
+		default:
+			return nil, fmt.Errorf("%v constructor is not supported", string(typedE.Name))
+		}
 	case *sqlparser.ExistsExpr:
 		subquery, err := a.translateSubqueryExpr(typedE.Subquery)
 		if err != nil {

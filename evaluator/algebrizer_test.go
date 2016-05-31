@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
@@ -922,6 +923,10 @@ func TestAlgebrizeExpr(t *testing.T) {
 		})
 
 		SkipConvey("Case", func() {
+		})
+
+		SkipConvey("Ctor", func() {
+			test("TIMESTAMP '2014-06-07 00:00:00.000'", SQLDate{time.Now()})
 		})
 
 		Convey("Divide", func() {
