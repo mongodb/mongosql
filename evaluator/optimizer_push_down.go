@@ -177,8 +177,16 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 		// each column to its new MongoDB name. This process is what makes the push-down transparent to subsequent operators
 		// in the tree that either haven't yet been pushed down, or cannot be. Either way, we output of a push-down must be
 		// exactly the same as the output of a non-pushed-down group.
-		mappingRegistry.addColumn(projectedColumn.Column, projectedColumn.Expr.String())
-		mappingRegistry.registerMapping(projectedColumn.Table, projectedColumn.Expr.String(), dottifyFieldName(projectedColumn.Expr.String()))
+		var mappedTable, mappedColumn string
+		switch typedE := projectedColumn.Expr.(type) {
+		case SQLColumnExpr:
+			mappedTable = typedE.tableName
+			mappedColumn = typedE.columnName
+		default:
+			mappedColumn = typedE.String()
+		}
+		mappingRegistry.addColumn(projectedColumn.Column, mappedTable, mappedColumn)
+		mappingRegistry.registerMapping(mappedTable, mappedColumn, dottifyFieldName(projectedColumn.Expr.String()))
 	}
 
 	ms = ms.clone()
@@ -732,8 +740,8 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 				safeFieldName := dottifyFieldName(fieldName)
 				fieldsToProject[safeFieldName] = getProjectedFieldName(fieldName, refdCol.SQLType)
-				fixedMappingRegistry.addColumn(refdCol, fieldName)
-				fixedMappingRegistry.registerMapping(refdCol.Table, fieldName, safeFieldName)
+				fixedMappingRegistry.addColumn(refdCol, refdCol.Table, refdCol.Name)
+				fixedMappingRegistry.registerMapping(refdCol.Table, refdCol.Name, safeFieldName)
 			}
 
 			fixedProjectedColumns = append(fixedProjectedColumns, projectedColumn)
@@ -742,8 +750,8 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			exprString := projectedColumn.Expr.String()
 			safeFieldName := dottifyFieldName(exprString)
 			fieldsToProject[safeFieldName] = projectedField
-			fixedMappingRegistry.addColumn(projectedColumn.Column, exprString)
-			fixedMappingRegistry.registerMapping(projectedColumn.Column.Table, exprString, safeFieldName)
+			fixedMappingRegistry.addColumn(projectedColumn.Column, "", exprString)
+			fixedMappingRegistry.registerMapping("", exprString, safeFieldName)
 
 			columnType := schema.ColumnType{projectedColumn.Column.SQLType, projectedColumn.Column.MongoType}
 			columnExpr := SQLColumnExpr{projectedColumn.Column.Table, projectedColumn.Column.Name, columnType}

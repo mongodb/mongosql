@@ -16,16 +16,15 @@ type mappingRegistry struct {
 
 type mappedColumn struct {
 	*Column
-	alias string
+	mappedTable string
+	mappedName  string
 }
 
-func (mr *mappingRegistry) addColumn(column *Column, alias string) {
-	if alias == "" {
-		alias = column.Name
-	}
+func (mr *mappingRegistry) addColumn(column *Column, mappedTable, mappedName string) {
 	mr.columns = append(mr.columns, &mappedColumn{
-		Column: column,
-		alias:  alias,
+		Column:      column,
+		mappedTable: mappedTable,
+		mappedName:  mappedName,
 	})
 }
 
@@ -131,7 +130,7 @@ func NewMongoSourceStage(schema *schema.Schema, dbName, tableName string, aliasN
 			SQLType:   c.SqlType,
 			MongoType: c.MongoType,
 		}
-		ms.mappingRegistry.addColumn(column, "")
+		ms.mappingRegistry.addColumn(column, column.Table, column.Name)
 		ms.mappingRegistry.registerMapping(ms.aliasName, c.SqlName, c.Name)
 	}
 
@@ -181,9 +180,9 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 
 	for _, column := range ms.mappingRegistry.columns {
 
-		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.alias)
+		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.mappedTable, column.mappedName)
 		if !ok {
-			ms.err = fmt.Errorf("Unable to find mapping from %v.%v to a field name.", column.Table, column.alias)
+			ms.err = fmt.Errorf("Unable to find mapping from %v.%v to a field name.", column.mappedTable, column.mappedName)
 			return false
 		}
 
