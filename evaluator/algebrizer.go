@@ -93,7 +93,7 @@ func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, e
 	}
 
 	// we didn't find it in the current scope, so we need to search our parent,
-	// and let it search it's parent, etc...
+	// and let it search its parent, etc...
 	if a.parent != nil {
 		expr, parentErr := a.parent.resolveColumnExpr(tableName, columnName)
 		if parentErr == nil {

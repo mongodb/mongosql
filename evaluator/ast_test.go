@@ -744,6 +744,23 @@ func TestEvaluates(t *testing.T) {
 			runTests(evalCtx, tests)
 		})
 
+		Convey("Subject: SQLVariableExpr", func() {
+			tests := []test{
+				test{"@@max_allowed_packet", SQLInt(4194304)},
+			}
+
+			runTests(evalCtx, tests)
+
+			Convey("Should error when unknown variable is used", func() {
+				subject := &SQLVariableExpr{
+					Name:         "blah",
+					VariableType: SystemVariable,
+				}
+				_, err := subject.Evaluate(evalCtx)
+				So(err, ShouldNotBeNil)
+			})
+		})
+
 		SkipConvey("Subject: SQLUnaryPlusExpr", func() {
 			// TODO: what this is supposed to do?
 		})

@@ -29,7 +29,9 @@ type SQLVariableExpr struct {
 func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	switch v.VariableType {
 	case SystemVariable:
-		return systemVars[v.Name], nil
+		if value, ok := systemVars[v.Name]; ok {
+			return value, nil
+		}
 	}
 
 	return nil, fmt.Errorf("unknown variable %s", v.String())
