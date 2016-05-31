@@ -10,27 +10,17 @@ import (
 
 // mappingRegistry provides a way to get a field name from a table/column.
 type mappingRegistry struct {
-	columns []*mappedColumn
+	columns []*Column
 	fields  map[string]map[string]string
 }
 
-type mappedColumn struct {
-	*Column
-	mappedTable string
-	mappedName  string
-}
-
-func (mr *mappingRegistry) addColumn(column *Column, mappedTable, mappedName string) {
-	mr.columns = append(mr.columns, &mappedColumn{
-		Column:      column,
-		mappedTable: mappedTable,
-		mappedName:  mappedName,
-	})
+func (mr *mappingRegistry) addColumn(column *Column) {
+	mr.columns = append(mr.columns, column)
 }
 
 func (mr *mappingRegistry) copy() *mappingRegistry {
 	newMappingRegistry := &mappingRegistry{}
-	newMappingRegistry.columns = make([]*mappedColumn, len(mr.columns))
+	newMappingRegistry.columns = make([]*Column, len(mr.columns))
 	copy(newMappingRegistry.columns, mr.columns)
 	if mr.fields != nil {
 		for tableName, columns := range mr.fields {
@@ -130,7 +120,7 @@ func NewMongoSourceStage(schema *schema.Schema, dbName, tableName string, aliasN
 			SQLType:   c.SqlType,
 			MongoType: c.MongoType,
 		}
-		ms.mappingRegistry.addColumn(column, column.Table, column.Name)
+		ms.mappingRegistry.addColumn(column)
 		ms.mappingRegistry.registerMapping(ms.aliasName, c.SqlName, c.Name)
 	}
 
@@ -180,9 +170,9 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 
 	for _, column := range ms.mappingRegistry.columns {
 
-		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.mappedTable, column.mappedName)
+		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.Name)
 		if !ok {
-			ms.err = fmt.Errorf("Unable to find mapping from %v.%v to a field name.", column.mappedTable, column.mappedName)
+			ms.err = fmt.Errorf("Unable to find mapping from %v.%v to a field name.", column.Table, column.Name)
 			return false
 		}
 
@@ -205,12 +195,7 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 }
 
 func (ms *MongoSourceStage) Columns() []*Column {
-	var columns []*Column
-	for _, c := range ms.mappingRegistry.columns {
-		columns = append(columns, c.Column)
-	}
-
-	return columns
+	return ms.mappingRegistry.columns
 }
 
 func (ms *MongoSourceIter) Close() error {
