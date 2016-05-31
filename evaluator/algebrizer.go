@@ -467,7 +467,9 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 
 		var plan PlanStage
 		var err error
-		if strings.EqualFold(dbName, informationSchemaDatabase) {
+		if strings.EqualFold(tableName, "DUAL") {
+			plan = NewDualStage()
+		} else if strings.EqualFold(dbName, informationSchemaDatabase) {
 			plan = NewSchemaDataSourceStage(a.schema, tableName, aliasName)
 		} else {
 			plan, err = NewMongoSourceStage(a.schema, dbName, tableName, aliasName)

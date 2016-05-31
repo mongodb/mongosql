@@ -128,6 +128,16 @@ func TestAlgebrizeStatements(t *testing.T) {
 					}),
 				)
 			})
+
+			test("select 2 + 3 from dual", func() PlanStage {
+				return NewProjectStage(
+					NewDualStage(),
+					createProjectedColumnFromSQLExpr("", "2+3", &SQLAddExpr{
+						left:  SQLInt(2),
+						right: SQLInt(3),
+					}),
+				)
+			})
 		})
 
 		Convey("star simple queries", func() {
