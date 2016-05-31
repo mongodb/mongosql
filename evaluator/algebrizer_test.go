@@ -855,10 +855,12 @@ func TestAlgebrizeStatements(t *testing.T) {
 			testError("select *, a from foo", `cannot have a global * in the field list in conjunction with any other columns`)
 
 			testError("select a from foo, bar", `column "a" in the field list is ambiguous`)
-			testError("select foo.a from (select a from foo)", `every derived table must have it's own alias`)
 			testError("select foo.a from foo f, bar b", `unknown column "a" in table "foo"`)
 			testError("select f.a, * from foo f, bar b", `cannot have a global * in the field list in conjunction with any other columns`)
 			testError("select a from foo f, bar b", `column "a" in the field list is ambiguous`)
+
+			testError("select * from (select a, b as a from foo) f", `duplicate column name "a"`)
+			testError("select foo.a from (select a from foo)", `every derived table must have it's own alias`)
 
 			testError("select a from foo limit -10", `limit rowcount cannot be negative`)
 			testError("select a from foo limit -10, 20", `limit offset cannot be negative`)

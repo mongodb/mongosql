@@ -105,8 +105,27 @@ func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, e
 	return nil, err
 }
 
-func (a *algebrizer) registerColumns(columns []*Column) {
-	a.columns = append(a.columns, columns...)
+func (a *algebrizer) registerColumns(columns []*Column) error {
+	contains := func(c *Column) bool {
+		for _, c2 := range a.columns {
+			if strings.EqualFold(c.Name, c2.Name) && strings.EqualFold(c.Table, c2.Table) {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	// this ensures that we have no duplicate columns. We have to check duplicates
+	// against the existing columns as well as against itself.
+	for _, c := range columns {
+		if contains(c) {
+			return fmt.Errorf("duplicate column name %q", c.Name)
+		}
+		a.columns = append(a.columns, c)
+	}
+
+	return nil
 }
 
 // isAggFunction returns true if the byte slice e contains the name of an aggregate function and false otherwise.
@@ -478,7 +497,10 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 			}
 		}
 
-		a.registerColumns(plan.Columns())
+		err = a.registerColumns(plan.Columns())
+		if err != nil {
+			return nil, err
+		}
 
 		return plan, nil
 	case *sqlparser.Subquery:
@@ -492,7 +514,10 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 			return nil, err
 		}
 
-		a.registerColumns(plan.Columns())
+		err = a.registerColumns(plan.Columns())
+		if err != nil {
+			return nil, err
+		}
 
 		return plan, nil
 	default:
