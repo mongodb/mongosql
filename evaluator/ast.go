@@ -616,12 +616,24 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	}
 
 	wrapReconciledExprs := func(expr SQLExpr, newExprs []SQLExpr) (SQLExpr, error) {
-		switch expr.(type) {
+		switch typedE := expr.(type) {
 		case *SQLTupleExpr:
 			return &SQLTupleExpr{newExprs}, nil
 		case *SQLSubqueryExpr:
-			// TODO: fix this to wrap the subquery in a SQLConvertExpr...
-			//return &SQLSubqueryExpr{typedE.stmt, newExprs, false, nil}, nil
+			plan := typedE.plan
+
+			var projectedColumns ProjectedColumns
+			for i, c := range plan.Columns() {
+				projectedColumns = append(projectedColumns, ProjectedColumn{
+					Column: c,
+					Expr:   newExprs[i],
+				})
+			}
+
+			return &SQLSubqueryExpr{
+				correlated: typedE.correlated,
+				plan:       NewProjectStage(plan, projectedColumns...),
+			}, nil
 		}
 		return nil, fmt.Errorf("can not wrap reconciled non-tuple type '%T'", expr)
 	}

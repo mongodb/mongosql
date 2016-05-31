@@ -886,11 +886,6 @@ func TestReconcileSQLExpr(t *testing.T) {
 			test{"a / b", exprA, exprB},
 			test{"'2010-01-01' and g", exprConv, exprG},
 			test{"g in ('2010-01-01',current_timestamp())", exprG, &SQLTupleExpr{[]SQLExpr{exprConv, exprTime}}},
-
-			// TODO: Subqueries
-			// test{"g in (select '2010-01-01' from bar)", exprG, &SQLTupleExpr{[]SQLExpr{exprConv}}},
-			// test{"(g) in (select '2010-01-01' from bar)", exprG, &SQLTupleExpr{[]SQLExpr{exprConv}}},
-			// test{"(a,g) <= (select b, '2010-01-01' from bar)", &SQLTupleExpr{[]SQLExpr{exprA, exprG}}, &SQLTupleExpr{[]SQLExpr{exprB, exprConv}}},
 		}
 
 		runTests(tests)

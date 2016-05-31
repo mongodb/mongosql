@@ -133,14 +133,10 @@ func (e *Evaluator) Plan(db, sql string, ast sqlparser.SelectStatement, conn eva
 		return nil, nil, err
 	}
 
-	//fmt.Printf("\nBEFORE: %# v", pretty.Formatter(plan))
-
 	plan, err = evaluator.OptimizePlan(plan)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	//fmt.Printf("\nAFTER: %# v", pretty.Formatter(plan))
 
 	executionCtx := evaluator.NewExecutionCtx(conn)
 
