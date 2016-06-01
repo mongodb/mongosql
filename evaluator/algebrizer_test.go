@@ -874,6 +874,10 @@ func TestAlgebrizeStatements(t *testing.T) {
 			testError("select sum(a) from foo group by sum(a)", `can't group on "sum(foo.a)"`)
 			testError("select sum(a) from foo group by 1", `can't group on "sum(foo.a)"`)
 			testError("select sum(a) from foo group by 2", `unknown column "2" in group clause`)
+
+			testError("select a from foo, foo", `not unique table/alias: "foo"`)
+			testError("select a from foo as bar, bar", `not unique table/alias: "bar"`)
+			testError("select a from foo as g, foo as g", `not unique table/alias: "g"`)
 		})
 	})
 }

@@ -24,6 +24,7 @@ type algebrizer struct {
 	dbName                       string // the default database name.
 	schema                       *schema.Schema
 	columns                      []*Column        // all the columns in scope.
+	tableNames                   []string         // all the table names in scope.
 	correlated                   bool             // indicates whether this context is using columns in its parent.
 	hasCorrelatedSubquery        bool             // indicates whether this context has a correlated subquery.
 	projectedColumns             ProjectedColumns // columns to be projected from this scope.
@@ -124,6 +125,19 @@ func (a *algebrizer) registerColumns(columns []*Column) error {
 		}
 		a.columns = append(a.columns, c)
 	}
+
+	return nil
+}
+
+// registerTable ensures that we have no duplicate tables.
+func (a *algebrizer) registerTable(tableName string) error {
+	for _, registeredName := range a.tableNames {
+		if strings.EqualFold(tableName, registeredName) {
+			return fmt.Errorf("not unique table/alias: %q", tableName)
+		}
+	}
+
+	a.tableNames = append(a.tableNames, tableName)
 
 	return nil
 }
@@ -495,6 +509,11 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 			if err != nil {
 				return nil, err
 			}
+		}
+
+		err = a.registerTable(aliasName)
+		if err != nil {
+			return nil, err
 		}
 
 		err = a.registerColumns(plan.Columns())
