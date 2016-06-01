@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
@@ -353,33 +354,65 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	value, err := l.left.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return SQLValue(SQLInt(0)), err
+	}
+
+	if _, ok := value.(SQLNullValue); ok {
+		return SQLNull, nil
 	}
 
 	data, err := sqlValueToString(value)
 	if err != nil {
-		return SQLFalse, err
+		return SQLValue(SQLInt(0)), err
 	}
 
 	value, err = l.right.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return SQLValue(SQLInt(0)), err
+	}
+
+	if _, ok := value.(SQLNullValue); ok {
+		return SQLNull, nil
 	}
 
 	pattern, ok := value.(SQLVarchar)
 	if !ok {
-		return SQLFalse, nil
+		return SQLValue(SQLInt(0)), nil
+	}
+	patternStr := string(pattern)
+
+	// check if pattern ends with a whitespace or tab
+	if strings.HasSuffix(patternStr," ") {
+		patternStr = patternStr[0:len(patternStr) - 1]
+		patternStr += "\\s$"
+	} else if strings.HasSuffix(patternStr,"\\t") {
+		patternStr = patternStr[0:len(patternStr)-1]
+		patternStr += "\\t$"
 	}
 
-	// TODO: Golang's regexp package expects a regex pattern
-	// for matching but MySQL's 'LIKE' operator doesn't exactly
-	// work the same way.
-	matches, err := regexp.Match(string(pattern), []byte(data))
+	if !strings.HasPrefix(patternStr, "_") && !strings.HasPrefix(patternStr, "%") {
+		patternStr = "^" + patternStr
+	}
+
+	if !strings.HasSuffix(patternStr, "_") && !strings.HasSuffix(patternStr, "%") {
+		patternStr = patternStr + "$"
+	}
+
+	patternStr = strings.Replace(patternStr, "_","[\\w]",-1)
+	patternStr = strings.Replace(patternStr, "%","[\\w]*",-1)
+
+	// (?i) is case insensitive flag
+	reg, err := regexp.Compile("(?i)" + patternStr)
 	if err != nil {
-		return SQLFalse, err
+		return SQLValue(SQLInt(0)), err
 	}
 
-	return SQLBool(matches), nil
+	matches := reg.Match([]byte(data))
+
+	if matches{
+		return SQLValue(SQLInt(1)), nil
+	}
+	return SQLValue(SQLInt(0)), nil
 }
 
 func (l *SQLLikeExpr) String() string {
@@ -401,12 +434,15 @@ func sqlValueToString(sqlValue SQLValue) (string, error) {
 		default:
 			return strconv.FormatInt(int64(t.Float64()), 10), nil
 		}
+	case SQLDate:
+		return string(v.String()),nil
+	case SQLTimestamp:
+		return string(v.String()),nil
 	}
 
 	// TODO: just return empty string with no error?
 	return "", fmt.Errorf("unable to convert %v to string", sqlValue)
 }
-
 //
 // SQLNotExpr evaluates to the inverse of its child.
 //

@@ -350,7 +350,6 @@ func NewSQLExpr(sqlExpr sqlparser.Expr, tables map[string]*schema.Table) (SQLExp
 			}
 			return &SQLNotEqualsExpr{left, right}, nil
 		case sqlparser.AST_LIKE:
-			left, right, err = reconcileSQLExprs(left, right)
 			if err != nil {
 				return nil, err
 			}
