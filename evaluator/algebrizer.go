@@ -811,7 +811,7 @@ func (a *algebrizer) translatePossibleColumnRefExpr(expr sqlparser.Expr, clause 
 	return a.translateExpr(expr)
 }
 
-func (a *algebrizer) translateLeftRightExprs(left sqlparser.Expr, right sqlparser.Expr, reconcile bool) (SQLExpr, SQLExpr, error) {
+func (a *algebrizer) translateLeftRightExprs(left, right sqlparser.Expr, reconcile bool) (SQLExpr, SQLExpr, error) {
 	leftEval, err := a.translateExpr(left)
 	if err != nil {
 		return nil, nil, err

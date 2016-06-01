@@ -49,9 +49,15 @@ func (t *orderByTerm) clone() *orderByTerm {
 }
 
 type orderByRow struct {
-	terms      []*orderByTerm
+	// terms contains the terms used to create the termValues. Mostly, these are still here
+	// for context and to provide the direction of the sort.
+	terms []*orderByTerm
+
+	// termValues hold the evaluated values of the terms.
 	termValues []SQLValue
-	data       Row
+
+	// data holds the raw data that was evaluated.
+	data Row
 }
 
 type orderByRows []orderByRow
