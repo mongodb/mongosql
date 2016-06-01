@@ -100,7 +100,7 @@ testcases:
   expected: 
     - ["bar"]
     - ["foo"]
-- sql: "SHOW TABLES LIKE 'f'"
+- sql: "SHOW TABLES LIKE 'f%'"
   expected_types: [varchar]
   expected: 
     - ["foo"]
@@ -127,7 +127,7 @@ testcases:
     - ["blah"]
     - ["information_schema"]
     - ["test"]
-- sql: "SHOW DATABASES LIKE 'b'"
+- sql: "SHOW DATABASES LIKE 'b%'"
   expected_types: [varchar]
   expected: 
     - ["blah"]

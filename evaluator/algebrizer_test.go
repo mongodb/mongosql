@@ -1054,7 +1054,6 @@ func TestAlgebrizeExpr(t *testing.T) {
 		})
 
 		Convey("Paren Boolean", func() {
-			// TODO: this seems weird... not sure what is up here
 			test("(1)", SQLInt(1))
 		})
 

@@ -293,8 +293,8 @@ func (a *algebrizer) translateSelect(sel *sqlparser.Select) (PlanStage, error) {
 		}
 
 		// set projected columns globally because column resolution depends on
-		// this list, where group by and having resolve from this list second, and
-		// order by resolves from it first.
+		// this list from which GROUP BY and HAVING resolve from it second, and
+		// ORDER BY resolves from it first.
 		a.projectedColumns = builder.project
 	}
 
