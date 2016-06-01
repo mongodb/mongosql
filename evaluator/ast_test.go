@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
+	"strconv"
 )
 
 func createFieldNameLookup(db *schema.Database) fieldNameLookup {
@@ -303,7 +304,37 @@ func TestEvaluates(t *testing.T) {
 			runTests(evalCtx, tests)
 		})
 
-		SkipConvey("Subject: SQLLikeExpr", func() {
+		Convey("Subject: SQLLikeExpr", func() {
+			tests := []test{
+				test{"'Á Â Ã Ä' LIKE '%'",SQLInt(1)},
+				test{"'Á Â Ã Ä' LIKE 'Á Â Ã Ä'",SQLInt(1)},
+				test{"'Á Â Ã Ä' LIKE 'Á%'",SQLInt(1)},
+				test{"'a' LIKE 'a'", SQLInt(1) },
+				test{"'Adam' LIKE 'am'",SQLInt(0)},
+				test{"'Adam' LIKE 'adaM'",SQLInt(1)}, // mixed case test
+				test{"'Adam' LIKE '%am%'",SQLInt(1)},
+				test{"'Adam' LIKE 'Ada_'",SQLInt(1)},
+				test{"'Adam' LIKE '__am'",SQLInt(1)},
+				test{"'Clever' LIKE '%is'",SQLInt(0)},
+				test{"'Adam is nice' LIKE '%xs '",SQLInt(0)},
+				test{"'Adam is nice' LIKE '%is nice'",SQLInt(1)},
+				test{"'abc' LIKE 'ABC'",SQLInt(1)},    //case sensitive test
+				test{"'abc' LIKE 'ABC '",SQLInt(0)},   // trailing space test
+				test{"'abc' LIKE ' ABC'",SQLInt(0)},   // leading space test
+				test{"'abc' LIKE ' ABC '",SQLInt(0)},  // padded space test
+				test{"'abc' LIKE 'ABC	'",SQLInt(0)}, // trailing tab test
+				test{"'10' LIKE '1%'", SQLInt(1)},
+				test{"'a   ' LIKE 'A   '",SQLInt(1)},
+				test{"CURRENT_DATE() LIKE '2015-05-31%'", SQLInt(0)},
+				test{"(DATE '2008-01-02') LIKE '2008-01%'",SQLInt(1)},
+				test{"NOW() LIKE '" + strconv.Itoa(time.Now().Year()) + "%' ", SQLInt(1)},
+				test{"10 LIKE '1%'", SQLInt(1)},
+				test{"1.20 LIKE '1.2%'", SQLInt(1)},
+				test{"NULL LIKE '1%'", SQLNull},
+				test{"10 LIKE NULL", SQLNull},
+				test{"NULL LIKE NULL", SQLNull},
+			}
+			runTests(evalCtx, tests)
 		})
 
 		Convey("Subject: SQLMultiplyExpr", func() {
