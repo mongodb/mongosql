@@ -26,7 +26,7 @@ type SQLVariableExpr struct {
 	VariableType SQLVariableType
 }
 
-func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (v *SQLVariableExpr) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	switch v.VariableType {
 	case SystemVariable:
 		if value, ok := systemVars[v.Name]; ok {
