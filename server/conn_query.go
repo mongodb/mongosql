@@ -1,10 +1,10 @@
 package server
 
 import (
-	"fmt"
 	"runtime/debug"
 	"strings"
 
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 )
@@ -15,7 +15,7 @@ func (c *conn) handleQuery(sql string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Logf(log.Always, "[conn%v] %s\n", c.connectionID, debug.Stack())
-			err = fmt.Errorf("execute %s error %v", sql, e)
+			err = mysqlerrors.Unknownf("execute %s error %v", sql, e)
 			return
 		}
 	}()
@@ -36,7 +36,7 @@ func (c *conn) handleQuery(sql string) (err error) {
 			}
 		}
 
-		return fmt.Errorf(`parse sql "%s" error: %s`, sql, err)
+		return mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, `parse sql '%s' error: %s`, sql, err)
 	}
 
 	switch v := stmt.(type) {
@@ -51,6 +51,6 @@ func (c *conn) handleQuery(sql string) (err error) {
 	case *sqlparser.DDL:
 		return c.handleDDL(v)
 	default:
-		return fmt.Errorf("statement %T not supported", stmt)
+		return mysqlerrors.Unknownf("statement %T not supported", stmt)
 	}
 }

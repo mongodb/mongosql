@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/deafgoat/mixer/sqlparser"
 )
 
@@ -18,7 +19,7 @@ func (c *conn) handleShow(sql string, stmt *sqlparser.Show) error {
 	case "variables":
 		return c.handleShowVariables(sql, stmt)
 	default:
-		return fmt.Errorf("no support for show (%s) for now", sql)
+		return mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "no support for show (%s) for now", sql)
 	}
 }
 
@@ -56,7 +57,7 @@ func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) error {
 		}
 		table = string(f.Name)
 	default:
-		return fmt.Errorf("do not know how to show columns from type: %T", f)
+		return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", sqlparser.String(f))
 	}
 
 	if stmt.DBFilter != nil {
@@ -66,7 +67,7 @@ func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) error {
 		case *sqlparser.ColName:
 			dbName = string(f.Name)
 		default:
-			return fmt.Errorf("do not know how to in show filter on db type: %T", f)
+			return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", sqlparser.String(f))
 		}
 	}
 
@@ -121,12 +122,12 @@ func (c *conn) handleShowTables(sql string, stmt *sqlparser.Show) error {
 		case *sqlparser.ColName:
 			dbName = string(f.Name)
 		default:
-			return fmt.Errorf("do not know how to show tables from type: %T", f)
+			return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", sqlparser.String(f))
 		}
 	}
 
 	if dbName == "" {
-		return newDefaultError(ER_NO_DB_ERROR)
+		return mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
 	}
 
 	translated := fmt.Sprintf("SELECT TABLE_NAME AS `Tables_in_%s`", dbName)

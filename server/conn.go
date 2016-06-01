@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"net"
 	"net/url"
@@ -14,9 +13,15 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
+)
+
+var (
+	errBadConn       = mysqlerrors.Unknownf("connection was bad")
+	errMalformPacket = mysqlerrors.Defaultf(mysqlerrors.ER_MALFORMED_PACKET)
 )
 
 type conn struct {
@@ -118,17 +123,17 @@ func (c *conn) Session() *mgo.Session {
 func (c *conn) handshake() error {
 	if err := c.writeInitialHandshake(); err != nil {
 		c.writeError(err)
-		return fmt.Errorf("send initial handshake error: %v", err)
+		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "send initial handshake error: %v", err)
 	}
 
 	if err := c.readHandshakeResponse(); err != nil {
 		c.writeError(err)
-		return fmt.Errorf("recv handshake response error: %v", err)
+		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "recv handshake response error: %v", err)
 	}
 
 	if c.server.opts.Auth {
 		if (c.capability & CLIENT_PLUGIN_AUTH) == 0 {
-			err := fmt.Errorf("authentication is only supported using plugins")
+			err := mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_AUTH_MODE)
 			c.writeError(err)
 			return err
 		}
@@ -136,23 +141,23 @@ func (c *conn) handshake() error {
 		if c.clientRequestedAuthPluginName != clearPasswordClientAuthPluginName {
 			if err := c.writeAuthRequestSwitchPacket(clearPasswordClientAuthPluginName); err != nil {
 				c.writeError(err)
-				return fmt.Errorf("send auth request switch error: %v", err)
+				return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "send auth request switch error: %v", err)
 			}
 
 			if err := c.readAuthSwitchResponsePacket(); err != nil {
 				c.writeError(err)
-				return fmt.Errorf("recv auth response error: %v", err)
+				return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "recv auth response error: %v", err)
 			}
 		}
 
 		if err := c.authenticate(); err != nil {
 			c.writeError(err)
-			return fmt.Errorf("failed authentication with MongoDB: %v", err)
+			return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "failed authentication with MongoDB: %v", err)
 		}
 	}
 
 	if err := c.writeOK(nil); err != nil {
-		return fmt.Errorf("write ok error: %v", err)
+		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "write ok error: %v", err)
 	}
 
 	c.sequence = 0
@@ -263,14 +268,14 @@ func (c *conn) readHandshakeResponse() error {
 
 	if (c.capability & CLIENT_SSL) != 0 {
 		if err := c.useTLS(); err != nil {
-			err = fmt.Errorf("ssl configuration error: %v", err)
+			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "ssl configuration error: %v", err)
 			c.writeError(err)
 			return err
 		}
 
 		data, err = c.readPacket()
 		if err != nil {
-			err = fmt.Errorf("continuation after successfull ssl negotiation failed: %v", err)
+			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "continuation after successfull ssl negotiation failed: %v", err)
 			c.writeError(err)
 			return err
 		}
@@ -281,7 +286,7 @@ func (c *conn) readHandshakeResponse() error {
 	} else if c.server.opts.Auth {
 		// We are here because we asked the client to use SSL and they refused. Therefore, we'll
 		// terminate the connection.
-		err := newError(ER_INSECURE_PLAIN_TEXT, "ssl is required when using authentication")
+		err := mysqlerrors.Newf(mysqlerrors.ER_INSECURE_PLAIN_TEXT, "ssl is required when using authentication")
 		log.Log(log.Always, err.Error())
 		c.writeError(err)
 		return err
@@ -409,7 +414,7 @@ func (c *conn) authenticate() error {
 			case "source":
 				credential.Source = value[0]
 			default:
-				return fmt.Errorf("unknown authentication option %q", key)
+				return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "unknown authentication option %q", key)
 			}
 		}
 	}
@@ -440,7 +445,7 @@ func (c *conn) run() {
 
 		if err := c.dispatch(data); err != nil {
 			log.Logf(log.Always, "[conn%v] dispatch error: %v", c.connectionID, err)
-			if err != ErrBadConn {
+			if err != errBadConn {
 				c.writeError(err)
 			}
 		}
@@ -483,8 +488,7 @@ func (c *conn) dispatch(data []byte) error {
 	case COM_STMT_RESET:
 		return c.handleStmtReset(data)
 	default:
-		msg := fmt.Sprintf("command %d not supported now", cmd)
-		return newError(ER_UNKNOWN_COM_ERROR, msg)
+		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COM_ERROR)
 	}
 }
 
@@ -508,21 +512,21 @@ func (c *conn) readPacket() ([]byte, error) {
 	header := []byte{0, 0, 0, 0}
 
 	if _, err := io.ReadFull(c.reader, header); err != nil {
-		return nil, ErrBadConn
+		return nil, errBadConn
 	}
 
 	length := int(uint32(header[0]) | uint32(header[1])<<8 | uint32(header[2])<<16)
 
 	sequence := uint8(header[3])
 	if sequence != c.sequence {
-		return nil, newDefaultError(ER_NET_PACKETS_OUT_OF_ORDER)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NET_PACKETS_OUT_OF_ORDER)
 	}
 
 	c.sequence++
 
 	data := make([]byte, length)
 	if _, err := io.ReadFull(c.reader, data); err != nil {
-		return nil, ErrBadConn
+		return nil, errBadConn
 	}
 
 	if length < maxPayloadLen {
@@ -531,7 +535,7 @@ func (c *conn) readPacket() ([]byte, error) {
 
 	buf, err := c.readPacket()
 	if err != nil {
-		return nil, ErrBadConn
+		return nil, errBadConn
 	}
 
 	return append(data, buf...), nil
@@ -549,9 +553,9 @@ func (c *conn) writePacket(data []byte) error {
 		data[3] = c.sequence
 
 		if n, err := c.writer.Write(data[:4+maxPayloadLen]); err != nil {
-			return ErrBadConn
+			return errBadConn
 		} else if n != (4 + maxPayloadLen) {
-			return ErrBadConn
+			return errBadConn
 		} else {
 			c.sequence++
 			length -= maxPayloadLen
@@ -565,9 +569,9 @@ func (c *conn) writePacket(data []byte) error {
 	data[3] = c.sequence
 
 	if n, err := c.writer.Write(data); err != nil {
-		return ErrBadConn
+		return errBadConn
 	} else if n != len(data) {
-		return ErrBadConn
+		return errBadConn
 	} else {
 		c.sequence++
 		return nil
@@ -577,7 +581,7 @@ func (c *conn) writePacket(data []byte) error {
 func (c *conn) useDB(db string) error {
 	s := c.server.databases[db]
 	if s == nil {
-		return newDefaultError(ER_BAD_DB_ERROR, db)
+		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, db)
 	}
 
 	c.currentDB = s
@@ -604,10 +608,10 @@ func (c *conn) writeOK(r *Result) error {
 }
 
 func (c *conn) writeError(e error) error {
-	var m *sqlError
+	var m *mysqlerrors.MySqlError
 	var ok bool
-	if m, ok = e.(*sqlError); !ok {
-		m = newError(ER_UNKNOWN_ERROR, e.Error())
+	if m, ok = e.(*mysqlerrors.MySqlError); !ok {
+		m = mysqlerrors.Unknownf(e.Error())
 	}
 
 	data := make([]byte, 4, 16+len(m.Message))

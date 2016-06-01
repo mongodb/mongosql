@@ -1,10 +1,10 @@
 package server
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
 )
@@ -89,7 +89,7 @@ func formatValue(value interface{}) ([]byte, error) {
 	case nil:
 		return nil, nil
 	default:
-		return nil, fmt.Errorf("invalid type %T", value)
+		return nil, mysqlerrors.Unknownf("invalid type %T", value)
 	}
 }
 
@@ -131,10 +131,10 @@ func formatField(field *Field, value interface{}) error {
 		field.Type = MYSQL_TYPE_TIMESTAMP
 	case *evaluator.SQLValues:
 		if len(typedV.Values) != 1 {
-			return fmt.Errorf("Operand should contain 1 column")
+			return mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, 1)
 		}
 	default:
-		return fmt.Errorf("unsupported type %T for result set", value)
+		return mysqlerrors.Unknownf("unsupported type %T for result set", value)
 	}
 
 	return nil
@@ -150,7 +150,7 @@ func (c *conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 
 	for i, vs := range values {
 		if len(vs) != len(r.Fields) {
-			return nil, fmt.Errorf("row %d has %d column not equal %d", i, len(vs), len(r.Fields))
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_COUNT_ON_ROW, i)
 		}
 
 		var row []byte
@@ -228,7 +228,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 		numFields := len(columns)
 
 		if numFields == 0 {
-			return fmt.Errorf("no headers returned")
+			return mysqlerrors.Defaultf(mysqlerrors.ER_EMPTY_QUERY)
 		}
 
 		j := 0
@@ -304,11 +304,11 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 	}
 
 	if err = iter.Close(); err != nil {
-		return fmt.Errorf("iterator close error: %v", err)
+		return mysqlerrors.Newf(mysqlerrors.ER_QUERY_ON_FOREIGN_DATA_SOURCE, "iterator close error: %v", err)
 	}
 
 	if err = iter.Err(); err != nil {
-		return fmt.Errorf("iterator err: %v", err)
+		return mysqlerrors.Newf(mysqlerrors.ER_QUERY_ON_FOREIGN_DATA_SOURCE, "iterator err: %v", err)
 	}
 
 	log.Logf(log.DebugLow, "[conn%v] done executing plan", c.ConnectionId())

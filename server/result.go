@@ -2,9 +2,10 @@ package server
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math"
 	"strconv"
+
+	"github.com/10gen/sqlproxy/mysqlerrors"
 )
 
 type Result struct {
@@ -33,12 +34,14 @@ func (r *Resultset) ColumnNumber() int {
 }
 
 func (r *Resultset) GetValue(row, column int) (interface{}, error) {
-	if row >= len(r.Values) || row < 0 {
-		return nil, fmt.Errorf("invalid row index %d", row)
+	if row >= len(r.Values) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WARN_TOO_FEW_RECORDS, row)
+	} else if row < len(r.Values) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WARN_TOO_MANY_RECORDS, row)
 	}
 
 	if column >= len(r.Fields) || column < 0 {
-		return nil, fmt.Errorf("invalid column index %d", column)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WARN_DATA_OUT_OF_RANGE, column, row)
 	}
 
 	return r.Values[row][column], nil
@@ -48,7 +51,7 @@ func (r *Resultset) NameIndex(name string) (int, error) {
 	if column, ok := r.FieldNames[name]; ok {
 		return column, nil
 	} else {
-		return 0, fmt.Errorf("invalid field name %s", name)
+		return 0, mysqlerrors.Unknownf("invalid field name %s", name)
 	}
 }
 
@@ -97,7 +100,7 @@ func (r *Resultset) GetUint(row, column int) (uint64, error) {
 	case nil:
 		return 0, nil
 	default:
-		return 0, fmt.Errorf("data type is %T", v)
+		return 0, mysqlerrors.Unknownf("data type is %T", v)
 	}
 }
 
@@ -147,7 +150,7 @@ func (r *Resultset) GetFloat(row, column int) (float64, error) {
 	case nil:
 		return 0, nil
 	default:
-		return 0, fmt.Errorf("data type is %T", v)
+		return 0, mysqlerrors.Unknownf("data type is %T", v)
 	}
 }
 
@@ -179,7 +182,7 @@ func (r *Resultset) GetString(row, column int) (string, error) {
 	case nil:
 		return "", nil
 	default:
-		return "", fmt.Errorf("data type is %T", v)
+		return "", mysqlerrors.Unknownf("data type is %T", v)
 	}
 }
 
@@ -250,7 +253,7 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 	data := make([]interface{}, len(f))
 
 	if p[0] != OK_HEADER {
-		return nil, ErrMalformPacket
+		return nil, errMalformPacket
 	}
 
 	pos := 1 + ((len(f) + 7 + 2) >> 3)
@@ -393,7 +396,7 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 			}
 
 		default:
-			return nil, fmt.Errorf("Stmt Unknown FieldType %d %s", f[i].Type, f[i].Name)
+			return nil, mysqlerrors.Unknownf("unknown FieldType %d %s", f[i].Type, f[i].Name)
 		}
 	}
 

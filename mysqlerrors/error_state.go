@@ -1,4 +1,4 @@
-package server
+package mysqlerrors
 
 const (
 	DEFAULT_MYSQL_STATE = "HY000"

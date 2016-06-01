@@ -1,9 +1,9 @@
 package server
 
 import (
-	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/deafgoat/mixer/sqlparser"
 )
 
@@ -14,8 +14,8 @@ func (c *conn) handleDDL(ddl *sqlparser.DDL) error {
 		if strings.Index(tableName, "#Tableau") == 0 {
 			return c.writeOK(nil)
 		}
-		return fmt.Errorf("cannot drop table (%s)", tableName)
+		return mysqlerrors.Unknownf("cannot drop table (%s)", tableName)
 	default:
-		return fmt.Errorf("unknown ddl operator (%s)", ddl.Action)
+		return mysqlerrors.Unknownf("unknown ddl operator (%s)", ddl.Action)
 	}
 }

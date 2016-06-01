@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/deafgoat/mixer/sqlparser"
 )
 
@@ -106,7 +107,7 @@ func (c *conn) handleStmtPrepare(sql string) error {
 
 		return nil
 	*/
-	return fmt.Errorf("handleStmtPrepare broken")
+	return mysqlerrors.Defaultf(mysqlerrors.ER_UNSUPPORTED_PS)
 }
 
 func (c *conn) writePrepare(s *stmt) error {
@@ -164,7 +165,7 @@ func (c *conn) writePrepare(s *stmt) error {
 
 func (c *conn) handleStmtExecute(data []byte) error {
 	if len(data) < 9 {
-		return ErrMalformPacket
+		return errMalformPacket
 	}
 
 	pos := 0
@@ -173,7 +174,7 @@ func (c *conn) handleStmtExecute(data []byte) error {
 
 	s, ok := c.stmts[id]
 	if !ok {
-		return newDefaultError(ER_UNKNOWN_STMT_HANDLER,
+		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_STMT_HANDLER,
 			strconv.FormatUint(uint64(id), 10), "stmt_execute")
 	}
 
@@ -181,7 +182,7 @@ func (c *conn) handleStmtExecute(data []byte) error {
 	pos++
 	//now we only support CURSOR_TYPE_NO_CURSOR flag
 	if flag != 0 {
-		return newError(ER_UNKNOWN_ERROR, fmt.Sprintf("unsupported flag %d", flag))
+		return fmt.Errorf("unsupported flag %d", flag)
 	}
 
 	//skip iteration-count, always 1
@@ -196,7 +197,7 @@ func (c *conn) handleStmtExecute(data []byte) error {
 	if paramNum > 0 {
 		nullBitmapLen := (s.params + 7) >> 3
 		if len(data) < (pos + nullBitmapLen + 1) {
-			return ErrMalformPacket
+			return errMalformPacket
 		}
 		nullBitmaps = data[pos : pos+nullBitmapLen]
 		pos += nullBitmapLen
@@ -205,7 +206,7 @@ func (c *conn) handleStmtExecute(data []byte) error {
 		if data[pos] == 1 {
 			pos++
 			if len(data) < (pos + (paramNum << 1)) {
-				return ErrMalformPacket
+				return errMalformPacket
 			}
 
 			paramTypes = data[pos : pos+(paramNum<<1)]
@@ -225,7 +226,7 @@ func (c *conn) handleStmtExecute(data []byte) error {
 	case *sqlparser.Select:
 		err = c.handleSelect(stmt, s.sql, s.args)
 	default:
-		err = fmt.Errorf("command %T not supported now", stmt)
+		err = mysqlerrors.Defaultf(mysqlerrors.ER_UNSUPPORTED_PS)
 	}
 
 	s.ResetParams()
@@ -259,7 +260,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 
 		case MYSQL_TYPE_TINY:
 			if len(paramValues) < (pos + 1) {
-				return ErrMalformPacket
+				return errMalformPacket
 			}
 
 			if isUnsigned {
@@ -273,7 +274,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 
 		case MYSQL_TYPE_SHORT, MYSQL_TYPE_YEAR:
 			if len(paramValues) < (pos + 2) {
-				return ErrMalformPacket
+				return errMalformPacket
 			}
 
 			if isUnsigned {
@@ -286,7 +287,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 
 		case MYSQL_TYPE_INT24, MYSQL_TYPE_LONG:
 			if len(paramValues) < (pos + 4) {
-				return ErrMalformPacket
+				return errMalformPacket
 			}
 
 			if isUnsigned {
@@ -299,7 +300,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 
 		case MYSQL_TYPE_LONGLONG:
 			if len(paramValues) < (pos + 8) {
-				return ErrMalformPacket
+				return errMalformPacket
 			}
 
 			if isUnsigned {
@@ -312,7 +313,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 
 		case MYSQL_TYPE_FLOAT:
 			if len(paramValues) < (pos + 4) {
-				return ErrMalformPacket
+				return errMalformPacket
 			}
 
 			args[i] = float32(math.Float32frombits(binary.LittleEndian.Uint32(paramValues[pos : pos+4])))
@@ -321,7 +322,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 
 		case MYSQL_TYPE_DOUBLE:
 			if len(paramValues) < (pos + 8) {
-				return ErrMalformPacket
+				return errMalformPacket
 			}
 
 			args[i] = math.Float64frombits(binary.LittleEndian.Uint64(paramValues[pos : pos+8]))
@@ -335,7 +336,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 			MYSQL_TYPE_DATE, MYSQL_TYPE_NEWDATE,
 			MYSQL_TYPE_TIMESTAMP, MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIME:
 			if len(paramValues) < (pos + 1) {
-				return ErrMalformPacket
+				return errMalformPacket
 			}
 
 			v, isNull, n, err = lengthEncodedString(paramValues[pos:])
@@ -352,7 +353,7 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 				continue
 			}
 		default:
-			return fmt.Errorf("Stmt Unknown FieldType %d", tp)
+			return mysqlerrors.Unknownf("Stmt Unknown FieldType %d", tp)
 		}
 	}
 	return nil
@@ -360,20 +361,20 @@ func (c *conn) bindStmtArgs(s *stmt, nullBitmap, paramTypes, paramValues []byte)
 
 func (c *conn) handleStmtSendLongData(data []byte) error {
 	if len(data) < 6 {
-		return ErrMalformPacket
+		return errMalformPacket
 	}
 
 	id := binary.LittleEndian.Uint32(data[0:4])
 
 	s, ok := c.stmts[id]
 	if !ok {
-		return newDefaultError(ER_UNKNOWN_STMT_HANDLER,
+		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_STMT_HANDLER,
 			strconv.FormatUint(uint64(id), 10), "stmt_send_longdata")
 	}
 
 	paramID := binary.LittleEndian.Uint16(data[4:6])
 	if paramID >= uint16(s.params) {
-		return newDefaultError(ER_WRONG_ARGUMENTS, "stmt_send_longdata")
+		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, "stmt_send_longdata")
 	}
 
 	if s.args[paramID] == nil {
@@ -383,7 +384,7 @@ func (c *conn) handleStmtSendLongData(data []byte) error {
 			b = append(b, data[6:]...)
 			s.args[paramID] = b
 		} else {
-			return fmt.Errorf("invalid param long data type %T", s.args[paramID])
+			return mysqlerrors.Unknownf("invalid param long data type %T", s.args[paramID])
 		}
 	}
 
@@ -392,14 +393,14 @@ func (c *conn) handleStmtSendLongData(data []byte) error {
 
 func (c *conn) handleStmtReset(data []byte) error {
 	if len(data) < 4 {
-		return ErrMalformPacket
+		return errMalformPacket
 	}
 
 	id := binary.LittleEndian.Uint32(data[0:4])
 
 	s, ok := c.stmts[id]
 	if !ok {
-		return newDefaultError(ER_UNKNOWN_STMT_HANDLER,
+		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_STMT_HANDLER,
 			strconv.FormatUint(uint64(id), 10), "stmt_reset")
 	}
 

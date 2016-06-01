@@ -155,7 +155,7 @@ func formatBinaryDate(n int, data []byte) ([]byte, error) {
 			data[2],
 			data[3])), nil
 	default:
-		return nil, fmt.Errorf("invalid date packet length %d", n)
+		return nil, errMalformPacket
 	}
 }
 
@@ -188,7 +188,7 @@ func formatBinaryDateTime(n int, data []byte) ([]byte, error) {
 			data[6],
 			binary.LittleEndian.Uint32(data[7:11]))), nil
 	default:
-		return nil, fmt.Errorf("invalid datetime packet length %d", n)
+		return nil, errMalformPacket
 	}
 }
 
@@ -221,6 +221,6 @@ func formatBinaryTime(n int, data []byte) ([]byte, error) {
 			binary.LittleEndian.Uint32(data[8:12]),
 		)), nil
 	default:
-		return nil, fmt.Errorf("invalid time packet length %d", n)
+		return nil, errMalformPacket
 	}
 }

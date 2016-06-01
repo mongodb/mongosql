@@ -3,13 +3,13 @@ package server
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"io/ioutil"
 	"net"
 	"runtime"
 	"strings"
 
 	sqlproxy "github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
 )
@@ -53,19 +53,19 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts sqlproxy.Options)
 		}
 		cert, err := tls.LoadX509KeyPair(opts.SSLPEMFile, opts.SSLPEMFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load PEM file '%v': %v", opts.SSLPEMFile, err)
+			return nil, mysqlerrors.Unknownf("failed to load PEM file '%v': %v", opts.SSLPEMFile, err)
 		}
 		s.tlsConfig.Certificates = []tls.Certificate{cert}
 
 		if len(opts.SSLCAFile) > 0 {
 			caCert, err := ioutil.ReadFile(opts.SSLCAFile)
 			if err != nil {
-				return nil, fmt.Errorf("failed to load CA file '%v': %v", opts.SSLCAFile, err)
+				return nil, mysqlerrors.Unknownf("failed to load CA file '%v': %v", opts.SSLCAFile, err)
 			}
 			s.tlsConfig.RootCAs = x509.NewCertPool()
 			ok := s.tlsConfig.RootCAs.AppendCertsFromPEM(caCert)
 			if !ok {
-				return nil, fmt.Errorf("unable to append valid cert from PEM file '%v'", opts.SSLCAFile)
+				return nil, mysqlerrors.Unknownf("unable to append valid cert from PEM file '%v'", opts.SSLCAFile)
 			}
 		}
 	}

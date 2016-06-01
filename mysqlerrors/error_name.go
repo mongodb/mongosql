@@ -1,4 +1,4 @@
-package server
+package mysqlerrors
 
 var mySQLErrName = map[uint16]string{
 	ER_HASHCHK:                                       "hashchk",

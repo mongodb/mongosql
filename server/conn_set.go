@@ -1,9 +1,9 @@
 package server
 
 import (
-	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
 )
@@ -12,7 +12,7 @@ var nstring = sqlparser.String
 
 func (c *conn) handleSet(stmt *sqlparser.Set) error {
 	if len(stmt.Exprs) != 1 {
-		return fmt.Errorf("must set one item once, not %s", nstring(stmt))
+		return mysqlerrors.Unknownf("must set one item once, not %s", nstring(stmt))
 	}
 
 	k := string(stmt.Exprs[0].Name.Name)
@@ -31,22 +31,23 @@ func (c *conn) handleSet(stmt *sqlparser.Set) error {
 		return c.writeOK(nil)
 	default:
 		log.Logf(log.Always, "%s", sqlparser.String(stmt))
-		return fmt.Errorf("set (%s) is not supported now", k)
+		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, k)
 	}
 }
 
 func (c *conn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 	value, ok := val.(sqlparser.NumVal)
 	if !ok {
-		return fmt.Errorf("set autocommit error")
+		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_TYPE_FOR_VAR, "autocommit")
 	}
+
 	switch value[0] {
 	case '1':
 		c.status |= SERVER_STATUS_AUTOCOMMIT
 	case '0':
 		c.status &= ^SERVER_STATUS_AUTOCOMMIT
 	default:
-		return fmt.Errorf("invalid autocommit flag %s", value)
+		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, "autocommit", value)
 	}
 
 	return c.writeOK(nil)
@@ -55,13 +56,13 @@ func (c *conn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 func (c *conn) handleSetNames(val sqlparser.ValExpr) error {
 	value, ok := val.(sqlparser.StrVal)
 	if !ok {
-		return fmt.Errorf("set names charset error")
+		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_TYPE_FOR_VAR, "names")
 	}
 
 	charset := strings.ToLower(string(value))
 	cid, ok := charsetIds[charset]
 	if !ok {
-		return fmt.Errorf("invalid charset %s", charset)
+		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, "names", charset)
 	}
 
 	c.charset = charset
@@ -75,6 +76,6 @@ func (c *conn) handleSetCharacterResults(val sqlparser.ValExpr) error {
 	case *sqlparser.NullVal:
 		return c.writeOK(nil)
 	default:
-		return fmt.Errorf("do not know how to set CHARACTER_SET_RESULTS to: %T %s", expr, sqlparser.String(expr))
+		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, "character_set_results", sqlparser.String(expr))
 	}
 }

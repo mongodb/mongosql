@@ -106,7 +106,7 @@ func (p FieldData) Parse() (f *Field, err error) {
 		pos += n
 
 		if pos+int(f.DefaultValueLength) > len(p) {
-			err = ErrMalformPacket
+			err = errMalformPacket
 			return
 		}
 

@@ -1,4 +1,4 @@
-package server
+package mysqlerrors
 
 const (
 	ER_ERROR_FIRST                                                      uint16 = 1000

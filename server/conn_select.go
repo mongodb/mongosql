@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -82,12 +83,12 @@ func (c *conn) handleFieldList(data []byte) error {
 
 	db := c.server.databases[dbName]
 	if db == nil {
-		return newDefaultError(ER_BAD_DB_ERROR, dbName)
+		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, dbName)
 	}
 
 	tableSchema := db.Tables[table]
 	if tableSchema == nil {
-		return fmt.Errorf("table (%s) does not exist in db (%s)", table, dbName)
+		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_TABLE, table, dbName)
 	}
 
 	fields := []*Field{}
