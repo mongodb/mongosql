@@ -601,7 +601,9 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		return a.resolveColumnExpr(tableName, columnName)
 	case *sqlparser.ComparisonExpr:
 
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, true)
+		reconcile := typedE.Operator != sqlparser.AST_LIKE
+
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, reconcile)
 		if err != nil {
 			return nil, err
 		}
