@@ -64,7 +64,7 @@ var (
 }
 
 %token LEX_ERROR
-%token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT FOR
+%token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT FOR SOME ANY
 %token <empty> ALL DISTINCT PRECISION AS EXISTS IN IS LIKE BETWEEN NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LE GE NE NULL_SAFE_EQUAL
@@ -704,6 +704,18 @@ condition:
 | value_expression IN tuple
   {
     $$ = &ComparisonExpr{Left: $1, Operator: AST_IN, Right: $3}
+  }
+| value_expression compare ALL subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: $2, SubqueryOperator: AST_ALL, Right: $4}
+  }
+| value_expression compare ANY subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: $2, SubqueryOperator: AST_ANY, Right: $4}
+  }
+| value_expression compare SOME subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: $2, SubqueryOperator: AST_SOME, Right: $4}
   }
 | value_expression NOT IN tuple
   {

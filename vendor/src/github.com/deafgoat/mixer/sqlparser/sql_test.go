@@ -69,6 +69,17 @@ func TestCastExpr(t *testing.T) {
 	testParse(t, sql)
 }
 
+func TestSubqueryComparisons(t *testing.T) {
+	sql := "SELECT * FROM foo WHERE a > any (SELECT a FROM foo)"
+	testParse(t, sql)
+
+	sql = "SELECT * FROM foo WHERE a = some (SELECT a FROM foo)"
+	testParse(t, sql)
+
+	sql = "SELECT * FROM foo WHERE a <> ALL (SELECT a FROM foo)"
+	testParse(t, sql)
+}
+
 func TestFunnyNames(t *testing.T) {
 	sql := "select * from columns"
 	testParse(t, sql)

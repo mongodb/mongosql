@@ -80,6 +80,8 @@ var keywords = map[string]int{
 	"not":       NOT,
 	"exists":    EXISTS,
 	"in":        IN,
+	"some":      SOME,
+	"any":       ANY,
 	"is":        IS,
 	"like":      LIKE,
 	"between":   BETWEEN,

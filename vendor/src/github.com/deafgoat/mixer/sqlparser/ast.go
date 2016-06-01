@@ -521,8 +521,9 @@ func (node *ParenBoolExpr) Format(buf *TrackedBuffer) {
 
 // ComparisonExpr represents a two-value comparison expression.
 type ComparisonExpr struct {
-	Operator    string
-	Left, Right ValExpr
+	Operator         string
+	Left, Right      ValExpr
+	SubqueryOperator string
 }
 
 // ComparisonExpr.Operator
@@ -538,6 +539,13 @@ const (
 	AST_NOT_IN   = "not in"
 	AST_LIKE     = "like"
 	AST_NOT_LIKE = "not like"
+)
+
+// ComparisonExpr.SubqueryOperator
+const (
+	AST_ALL  = "all"
+	AST_ANY  = "any"
+	AST_SOME = "some"
 )
 
 func (node *ComparisonExpr) Format(buf *TrackedBuffer) {
