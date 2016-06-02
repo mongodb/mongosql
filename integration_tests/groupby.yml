@@ -1,0 +1,332 @@
+#
+# Data
+#
+data:
+- inline: 
+    db: "test"
+    collection: "groupby"
+    docs:
+    - { _id: 0, a: 1, b: 1, c: 1 }
+    - { _id: 1, a: 2, b: 2, c: ~ }
+    - { _id: 2, a: 2, b: 3 }
+    - { _id: 3, a: 3, b: 3 }
+
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: "groupby"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+#
+# Tests
+# (we are using an order by here as well because output order from MongoDB after a $group and MySQL after a group by is unspecified)
+#
+testcases:
+- sql: "select a from test.foo group by a order by a"
+  description: "no aggregations"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+  - [3]
+- sql: "select a from test.foo group by 1 order by a"
+  description: "no aggregations with ordinal"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+  - [3]
+- sql: "select a as f from test.foo group by f order by a"
+  description: "no aggregations with alias"
+  expected_names: ["f"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+  - [3]
+- sql: "select a, sum(b) from test.foo group by a order by a"
+  description: "single aggregation"
+  expected_names: ["a", "sum(b)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 5]
+  - [3, 3]
+- sql: "select a, sum(b) from test.foo group by 1 order by a"
+  description: "single aggregation with ordinal"
+  expected_names: ["a", "sum(b)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 5]
+  - [3, 3]
+- sql: "select a as f, sum(b) from test.foo group by f order by a"
+  description: "single aggregation with alias"
+  expected_names: ["f", "sum(b)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 5]
+  - [3, 3]
+- sql: "select a, sum(b), count(*) from test.foo group by a order by a"
+  description: "multiple aggregations"
+  expected_names: ["a", "sum(b)", "count(*)"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 1, 1]
+  - [2, 5, 2]
+  - [3, 3, 1]
+- sql: "select a, sum(b), count(*) from test.foo group by 1 order by a"
+  description: "multiple aggregations with ordinal"
+  expected_names: ["a", "sum(b)", "count(*)"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 1, 1]
+  - [2, 5, 2]
+  - [3, 3, 1]
+- sql: "select a as f, sum(b), count(*) from test.foo group by f order by a"
+  description: "multiple aggregations with alias"
+  expected_names: ["f", "sum(b)", "count(*)"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 1, 1]
+  - [2, 5, 2]
+  - [3, 3, 1]
+
+# Distinct
+- sql: "select distinct a from test.foo order by a"
+  description: "distinct single column"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+  - [3]
+- sql: "select distinct a, b from test.foo order by a, b"
+  description: "distinct multiple columns"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 2]
+  - [2, 3]
+  - [3, 3]
+- sql: "select distinct b from test.foo group by a order by a"
+  description: "distinct single column grouped"
+  expected_names: ["b"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+  - [3]
+- sql: "select distinct a, b from test.foo group by a order by a"
+  description: "distinct multiple column grouped"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 2]
+  - [3, 3]
+- sql: "select distinct a, sum(b) from test.foo group by a order by a"
+  description: "distinct multiple column grouped"
+  expected_names: ["a", "sum(b)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 5]
+  - [3, 3]
+
+# Having
+- sql: "select a, sum(b) from test.foo group by a having sum(b) > 1 order by a"
+  description: "having with a single condition"
+  expected_names: ["a", "sum(b)"]
+  expected_types: [int, int]
+  expected: 
+  - [2, 5]
+  - [3, 3]
+- sql: "select a, sum(b) from test.foo group by a having a > 2 AND sum(b) > 1 order by a"
+  description: "having with multiple conditions"
+  expected_names: ["a", "sum(b)"]
+  expected_types: [int, int]
+  expected: 
+  - [3, 3]
+- sql: "select id from test.foo having sum(a) > 4 order by id"
+  description: "having without group by and a non-projected column"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: 
+  - [0]
+- sql: "select id from test.foo group by id having sum(a) > 1 order by id"
+  description: "having using a non-projected column"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+  - [3]
+- sql: "select id from test.foo group by a having sum(a) > 1 order by id"
+  description: "having using a non-projected column"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [3]
+- sql: "select id, sum(a) from test.foo group by a having sum(a) > 1 order by id"
+  description: "having using a non-projected column"
+  expected_names: ["id", "sum(a)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 4]
+  - [3, 3]
+
+# Aggregations
+# Avg
+- sql: "select a, avg(b) from test.foo group by a order by a"
+  description: "avg of column"
+  expected_names: ["a", "avg(b)"]
+  expected_types: [int, float64]
+  expected: 
+  - [1, 1.0]
+  - [2, 2.5]
+  - [3, 3.0]
+- sql: "select a, avg(a+b) from test.foo group by a order by a"
+  description: "avg of an expression"
+  expected_names: ["a", "avg(a+b)"]
+  expected_types: [int, float64]
+  expected: 
+  - [1, 2.0]
+  - [2, 4.5]
+  - [3, 6.0]
+- sql: "select a, avg(distinct a) from test.foo group by a order by a"
+  description: "avg of distinct column"
+  expected_names: ["a", "avg(distinct a)"]
+  expected_types: [int, float64]
+  expected: 
+  - [1, 1.0]
+  - [2, 2.0]
+  - [3, 3.0]
+- sql: "select a, avg(distinct b) from test.foo group by a order by a"
+  description: "avg of distinct column"
+  expected_names: ["a", "avg(distinct b)"]
+  expected_types: [int, float64]
+  expected: 
+  - [1, 1.0]
+  - [2, 2.5]
+  - [3, 3.0]
+
+# Count
+- sql: "select a, count(*) from test.foo group by a order by a"
+  description: "count star"
+  expected_names: ["a", "count(*)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 2]
+  - [3, 1]
+- sql: "select a, count(distinct a) from test.foo group by a order by a"
+  description: "count distinct column"
+  expected_names: ["a", "count(distinct a)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 1]
+  - [3, 1]
+- sql: "select a, count(c) from test.foo group by a order by a"
+  description: "count nullish-column"
+  expected_names: ["a", "count(c)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 0]
+  - [3, 0]
+
+# Max
+- sql: "select a, max(b) from test.foo group by a order by a"
+  description: "max column"
+  expected_names: ["a", "max(b)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 3]
+  - [3, 3]
+- sql: "select a, max(a+b) from test.foo group by a order by a"
+  description: "max expression"
+  expected_names: ["a", "max(a+b)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 2]
+  - [2, 5]
+  - [3, 6]
+
+# Min
+- sql: "select a, min(b) from test.foo group by a order by a"
+  description: "min column"
+  expected_names: ["a", "min(b)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 2]
+  - [3, 3]
+- sql: "select a, min(a+b) from test.foo group by a order by a"
+  description: "min expression"
+  expected_names: ["a", "min(a+b)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 2]
+  - [2, 4]
+  - [3, 6]
+
+# Sum
+- sql: "select a, sum(b) from test.foo group by a order by a"
+  description: "sum of column"
+  expected_names: ["a", "sum(b)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 5]
+  - [3, 3]
+- sql: "select a, sum(a+b) from test.foo group by a order by a"
+  description: "sum of an expression"
+  expected_names: ["a", "sum(a+b)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 2]
+  - [2, 9]
+  - [3, 6]
+- sql: "select a, sum(distinct a) from test.foo group by a order by a"
+  description: "sum of distinct column"
+  expected_names: ["a", "sum(distinct a)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 2]
+  - [3, 3]
+- sql: "select a, sum(distinct b) from test.foo group by a order by a"
+  description: "sum of distinct column"
+  expected_names: ["a", "sum(distinct b)"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 1]
+  - [2, 5]
+  - [3, 3]

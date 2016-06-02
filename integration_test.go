@@ -10,8 +10,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
+
+	"gopkg.in/mgo.v2/bson"
 
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/sqlproxy"
@@ -20,6 +23,7 @@ import (
 	"github.com/10gen/sqlproxy/server"
 	_ "github.com/go-sql-driver/mysql"
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/log"
 	toolsLog "github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/mongorestore"
@@ -40,13 +44,21 @@ const (
 )
 
 type testDataSet struct {
-	ArchiveFile string `yaml:"archive_file"`
+	ArchiveFile string         `yaml:"archive_file"`
+	Inline      *inlineDataSet `yaml:"inline"`
+}
+
+type inlineDataSet struct {
+	Db         string   `yaml:"db"`
+	Collection string   `yaml:"collection"`
+	Docs       []bson.D `yaml:"docs"`
 }
 
 type testCase struct {
 	SQL           string          `yaml:"sql"`
 	Description   string          `yaml:"description"`
 	ExpectedTypes []string        `yaml:"expected_types"`
+	ExpectedNames []string        `yaml:"expected_names"`
 	ExpectedData  [][]interface{} `yaml:"expected"`
 }
 
@@ -86,26 +98,6 @@ func TestBlackBox(t *testing.T) {
 	})
 }
 
-func TestSimpleQueries(t *testing.T) {
-	conf := mustLoadTestSchema("testdata/simple.yml")
-	mustLoadTestData(testMongoHost, testMongoPort, conf)
-
-	Convey("Test simple queries", t, func() {
-		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
-		So(err, ShouldBeNil)
-	})
-}
-
-func TestShowQueries(t *testing.T) {
-	conf := mustLoadTestSchema("testdata/show.yml")
-	mustLoadTestData(testMongoHost, testMongoPort, conf)
-
-	Convey("Test show queries", t, func() {
-		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
-		So(err, ShouldBeNil)
-	})
-}
-
 func TestTableauDemo(t *testing.T) {
 	if !*tableau {
 		t.Skip("skipping tableau test")
@@ -118,6 +110,23 @@ func TestTableauDemo(t *testing.T) {
 		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
 		So(err, ShouldBeNil)
 	})
+}
+
+func TestSelectIntegration(t *testing.T) {
+	files, err := ioutil.ReadDir("integration_tests")
+	if err != nil {
+		panic(err)
+	}
+
+	for _, f := range files {
+		conf := mustLoadTestSchema(path.Join("integration_tests", f.Name()))
+		mustLoadTestData(testMongoHost, testMongoPort, conf)
+
+		Convey(f.Name(), t, func() {
+			err := executeTestCase(t, testMongoHost, testMongoPort, conf)
+			So(err, ShouldBeNil)
+		})
+	}
 }
 
 func buildSchemaMaps(conf *schema.Schema) {
@@ -134,10 +143,7 @@ func buildSchemaMaps(conf *schema.Schema) {
 func compareResults(t *testing.T, expected, actual [][]interface{}) {
 	for rownum, row := range actual {
 		for colnum, col := range row {
-			if rownum > len(expected)-1 {
-				t.Errorf("expected %v rows but got %v", len(expected), len(actual))
-				return
-			}
+			So(rownum, ShouldBeLessThan, len(expected))
 			expectedCol := expected[rownum][colnum]
 			// we don't have a good way of representing
 			// nil in our CSV test results so we check
@@ -152,7 +158,10 @@ func compareResults(t *testing.T, expected, actual [][]interface{}) {
 			if v, ok := expectedCol.(int); ok {
 				expectedCol = int64(v)
 			}
-			So(col, ShouldResemble, expectedCol)
+
+			if col != expectedCol {
+				So(fmt.Sprintf("(%d,%d): %v", rownum, colnum, col), ShouldEqual, fmt.Sprintf("(%d,%d): %v", rownum, colnum, expectedCol))
+			}
 		}
 	}
 	So(len(actual), ShouldEqual, len(expected))
@@ -198,7 +207,7 @@ func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
 				types = append(types, schema.SQLVarchar)
 			}
 
-			actual, err := runSQL(db, query.Query, types)
+			actual, err := runSQL(db, query.Query, types, nil)
 			So(err, ShouldBeNil)
 
 			expectedFile := pathify("testdata", "results", fmt.Sprintf("%v.csv", query.ID))
@@ -242,10 +251,17 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 	if err != nil {
 		return err
 	}
+	log.SetWriter(ioutil.Discard)
 	go s.Run()
 	defer s.Close()
 
-	db, err := sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
+	var db *sql.DB
+	if len(conf.Databases) > 0 {
+		db, err = sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
+	} else {
+		db, err = sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/", testDBAddr))
+	}
+
 	if err != nil {
 		return err
 	}
@@ -257,7 +273,7 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 			description = testCase.Description
 		}
 		Convey(fmt.Sprintf("%v('%v')", description, testCase.SQL), func() {
-			results, err := runSQL(db, testCase.SQL, testCase.ExpectedTypes)
+			results, err := runSQL(db, testCase.SQL, testCase.ExpectedTypes, testCase.ExpectedNames)
 			So(err, ShouldBeNil)
 			compareResults(t, testCase.ExpectedData, results)
 		})
@@ -268,9 +284,18 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 
 func mustLoadTestData(dbhost, dbport string, conf testSchema) {
 	for _, dataSet := range conf.Data {
-		if err := restoreBSON(dbhost, dbport, dataSet.ArchiveFile); err != nil {
-			panic(err)
+		if dataSet.ArchiveFile != "" {
+			if err := restoreBSON(dbhost, dbport, dataSet.ArchiveFile); err != nil {
+				panic(err)
+			}
+		} else if dataSet.Inline != nil {
+			if err := restoreInline(dbhost, dbport, dataSet.Inline); err != nil {
+				panic(err)
+			}
+		} else {
+			panic("expected 'archive_file' or 'inline'")
 		}
+
 	}
 }
 
@@ -303,7 +328,7 @@ func pathify(elem ...string) string {
 	return filepath.Join(elem...)
 }
 
-func restoreBSON(host, port, file string) error {
+func getSslOpts() *options.SSL {
 	var sslOpts *options.SSL
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
 		toolsdb.GetConnectorFuncs = append(toolsdb.GetConnectorFuncs,
@@ -321,12 +346,49 @@ func restoreBSON(host, port, file string) error {
 		}
 	}
 
+	return sslOpts
+}
+
+func restoreInline(host, port string, inline *inlineDataSet) error {
 	connection := &options.Connection{Host: host, Port: port}
 	sessionProvider, err := toolsdb.NewSessionProvider(
 		options.ToolOptions{
 			Auth:       &options.Auth{},
 			Connection: connection,
-			SSL:        sslOpts,
+			SSL:        getSslOpts(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	sessionProvider.SetFlags(toolsdb.DisableSocketTimeout)
+
+	if err != nil {
+		return err
+	}
+
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		return err
+	}
+
+	c := session.DB(inline.Db).C(inline.Collection)
+	c.DropCollection() // don't care about the result
+	bulk := c.Bulk()
+	for _, d := range inline.Docs {
+		bulk.Insert(d)
+	}
+	_, err = bulk.Run()
+	return err
+}
+
+func restoreBSON(host, port, file string) error {
+	connection := &options.Connection{Host: host, Port: port}
+	sessionProvider, err := toolsdb.NewSessionProvider(
+		options.ToolOptions{
+			Auth:       &options.Auth{},
+			Connection: connection,
+			SSL:        getSslOpts(),
 		},
 	)
 	if err != nil {
@@ -363,7 +425,7 @@ func restoreBSON(host, port, file string) error {
 	return restorer.Restore()
 }
 
-func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
+func runSQL(db *sql.DB, query string, types []string, names []string) ([][]interface{}, error) {
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
@@ -375,6 +437,12 @@ func runSQL(db *sql.DB, query string, types []string) ([][]interface{}, error) {
 	}
 	if len(cols) != len(types) {
 		return nil, fmt.Errorf("Number of columns in result set (%v) does not match columns in expected types (%v)", len(cols), len(types))
+	}
+
+	for i, n := range names {
+		if cols[i] != n {
+			return nil, fmt.Errorf("Expected name %q at index %d, but found %q", n, i, cols[i])
+		}
 	}
 
 	result := [][]interface{}{}

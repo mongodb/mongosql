@@ -1,7 +1,5 @@
-# How this test case file works:
 #
-# 1. mongorestore each of these bson files under the "data" section 
-# into the indicated namespace
+# Data
 #
 data:
 - archive_file: testdata/input/test1.bson.gz
@@ -9,9 +7,9 @@ data:
 - archive_file: testdata/input/test3.bson.gz
 - archive_file: testdata/input/test4.bson.gz
 
-# 2. Start a test server using the following schema mapping, which should
-# correspond to the data used in (1)
-
+#
+# Schema
+#
 schema:
 - db: test
   tables:
@@ -128,7 +126,7 @@ schema:
       SqlName: loc.b.c_idx
       SqlType: numeric
 
-# 3. Run each of the following queries, and report any that have errors
+# Tests
 testcases:
 - sql: "SELECT a, b, c, latitude, longitude from test1"
   expected_types: [int, varchar, int, float64, float64]

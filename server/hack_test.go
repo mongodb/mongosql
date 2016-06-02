@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/10gen/sqlproxy/protocol"
+	"github.com/10gen/sqlproxy/server"
 )
 
 func TestString(t *testing.T) {
 	b := []byte("hello world")
-	a := protocol.String(b)
+	a := server.String(b)
 
 	if a != "hello world" {
 		t.Fatal(a)
@@ -30,7 +30,7 @@ func TestString(t *testing.T) {
 func TestByte(t *testing.T) {
 	a := "hello world"
 
-	b := protocol.Slice(a)
+	b := server.Slice(a)
 
 	if !bytes.Equal(b, []byte("hello world")) {
 		t.Fatal(string(b))

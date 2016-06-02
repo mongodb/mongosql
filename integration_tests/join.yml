@@ -1,0 +1,262 @@
+#
+# Data
+#
+data:
+- inline: 
+    db: "test"
+    collection: "join_1"
+    docs:
+    - { _id: 0, a: 1, b: ~ }
+    - { _id: 1, a: 2 }
+    - { _id: 2, a: 3 }
+- inline: 
+    db: "test"
+    collection: "join_2"
+    docs:
+    - { _id: 0, c: 10, d: ~ }
+    - { _id: 1, c: 11 }
+    - { _id: 20, c: 30 }
+
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: "join_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+  - table: bar
+    collection: "join_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+
+#
+# Tests
+#
+testcases:
+
+# Cross Joins
+- sql: "select * from test.foo, test.bar"
+  description: "global star"
+  expected_names: ["id", "a", "b", "id", "c", "d"]
+  expected_types: [int, int, int, int, int, int]
+  expected: 
+  - [0, 1, ~, 0, 10, ~]
+  - [0, 1, ~, 1, 11, ~]
+  - [0, 1, ~, 20, 30, ~]
+  - [1, 2, ~, 0, 10, ~]
+  - [1, 2, ~, 1, 11, ~]
+  - [1, 2, ~, 20, 30, ~]
+  - [2, 3, ~, 0, 10, ~]
+  - [2, 3, ~, 1, 11, ~]
+  - [2, 3, ~, 20, 30, ~]
+- sql: "select foo.*, bar.* from test.foo, test.bar"
+  description: "qualified star"
+  expected_names: ["id", "a", "b", "id", "c", "d"]
+  expected_types: [int, int, int, int, int, int]
+  expected: 
+  - [0, 1, ~, 0, 10, ~]
+  - [0, 1, ~, 1, 11, ~]
+  - [0, 1, ~, 20, 30, ~]
+  - [1, 2, ~, 0, 10, ~]
+  - [1, 2, ~, 1, 11, ~]
+  - [1, 2, ~, 20, 30, ~]
+  - [2, 3, ~, 0, 10, ~]
+  - [2, 3, ~, 1, 11, ~]
+  - [2, 3, ~, 20, 30, ~]
+- sql: "select f.*, b.* from test.foo f, test.bar b"
+  description: "aliased qualified star"
+  expected_names: ["id", "a", "b", "id", "c", "d"]
+  expected_types: [int, int, int, int, int, int]
+  expected: 
+  - [0, 1, ~, 0, 10, ~]
+  - [0, 1, ~, 1, 11, ~]
+  - [0, 1, ~, 20, 30, ~]
+  - [1, 2, ~, 0, 10, ~]
+  - [1, 2, ~, 1, 11, ~]
+  - [1, 2, ~, 20, 30, ~]
+  - [2, 3, ~, 0, 10, ~]
+  - [2, 3, ~, 1, 11, ~]
+  - [2, 3, ~, 20, 30, ~]
+- sql: "select f.*, b.* from test.foo f, (select * from test.bar) b"
+  description: "aliased qualified star with subquery"
+  expected_names: ["id", "a", "b", "id", "c", "d"]
+  expected_types: [int, int, int, int, int, int]
+  expected: 
+  - [0, 1, ~, 0, 10, ~]
+  - [0, 1, ~, 1, 11, ~]
+  - [0, 1, ~, 20, 30, ~]
+  - [1, 2, ~, 0, 10, ~]
+  - [1, 2, ~, 1, 11, ~]
+  - [1, 2, ~, 20, 30, ~]
+  - [2, 3, ~, 0, 10, ~]
+  - [2, 3, ~, 1, 11, ~]
+  - [2, 3, ~, 20, 30, ~]
+
+# Implicit Inner Joins
+- sql: "select a, c from test.foo, test.bar where foo.id = bar.id"
+  description: "implicit inner join"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 10]
+  - [2, 11]
+- sql: "select a, c from test.foo, test.bar where foo.id = bar.id AND foo.a > 1"
+  description: "implicit inner join with additional criteria"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [2, 11]
+- sql: "select a, c from test.foo, test.bar where foo.id = bar.id AND foo.a = 1214"
+  description: "implicit inner join with no results"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: []
+- sql: "select a, c from test.foo, (select * from test.bar) bar where foo.id = bar.id"
+  description: "implicit inner join with subquery"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 10]
+  - [2, 11]
+
+# Inner Joins
+- sql: "select a, c from test.foo inner join test.bar on foo.id = bar.id"
+  description: "inner join"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 10]
+  - [2, 11]
+- sql: "select a, c from test.foo inner join test.bar on foo.id = bar.id AND foo.a > 1"
+  description: "inner join with additional criteria"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [2, 11]
+- sql: "select a, c from test.foo inner join test.bar on foo.a > 1 AND foo.id = bar.id"
+  description: "inner join with additional criteria (reversed)"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [2, 11]
+- sql: "select a, c from test.foo inner join test.bar on foo.id = bar.id AND foo.a = 1214"
+  description: "inner join with no results"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: []
+- sql: "select a, c from test.foo inner join (select * from test.bar) bar on foo.id = bar.id"
+  description: "inner join with subquery"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 10]
+  - [2, 11]
+
+# Left Outer Joins
+- sql: "select a, c from test.foo left outer join test.bar on foo.id = bar.id"
+  description: "left outer join"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 10]
+  - [2, 11]
+  - [3, ~]
+- sql: "select a, c from test.foo left outer join test.bar on foo.id = bar.id AND foo.a > 1"
+  description: "left outer join with additional criteria"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, ~]
+  - [2, 11]
+  - [3, ~]
+- sql: "select a, c from test.foo left outer join test.bar on foo.a > 1 AND foo.id = bar.id"
+  description: "left outer join with additional criteria (reversed)"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, ~]
+  - [2, 11]
+  - [3, ~]
+- sql: "select a, c from test.foo left outer join test.bar on foo.id = bar.id AND foo.a = 1214"
+  description: "left outer join with no results"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, ~]
+  - [2, ~]
+  - [3, ~]
+- sql: "select a, c from test.foo left outer join (select * from test.bar) bar on foo.id = bar.id"
+  description: "left outer join with subquery"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 10]
+  - [2, 11]
+  - [3, ~]
+
+# Right Outer Joins
+- sql: "select a, c from test.foo right outer join test.bar on foo.id = bar.id"
+  description: "right outer join"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 10]
+  - [2, 11]
+  - [~, 30]
+- sql: "select a, c from test.foo right outer join test.bar on foo.id = bar.id AND foo.a > 1"
+  description: "right outer join with additional criteria"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [~, 10]
+  - [2, 11]
+  - [~, 30]
+- sql: "select a, c from test.foo right outer join test.bar on foo.a > 1 AND foo.id = bar.id"
+  description: "right outer join with additional criteria (reversed)"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [~, 10]
+  - [2, 11]
+  - [~, 30]
+- sql: "select a, c from test.foo right outer join test.bar on foo.id = bar.id AND foo.a = 1214"
+  description: "right outer join with no results"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [~, 10]
+  - [~, 11]
+  - [~, 30]
+- sql: "select a, c from test.foo right outer join (select * from test.bar) bar on foo.id = bar.id"
+  description: "right outer join"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 10]
+  - [2, 11]
+  - [~, 30]

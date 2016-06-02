@@ -1,0 +1,116 @@
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: "information_schema_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+  - table: bar
+    collection: "information_schema_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+- db: test2
+  tables:
+  - table: foo
+    collection: "information_schema_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+
+#
+# Tests
+#
+testcases:
+
+# SCHEMATA
+- sql: "select * from information_schema.schemata"
+  description: "schemata full"
+  expected_names: ["CATALOG_NAME", "SCHEMA_NAME", "DEFAULT_CHARACTER_SET_NAME", "DEFAULT_COLLATION_NAME", "SQL_PATH"]
+  expected_types: [string, string, string, string, string]
+  expected: 
+  - ["def", "information_schema", "utf8", "utf8_bin", ""]
+  - ["def", "test", "utf8", "utf8_bin", ""]
+  - ["def", "test2", "utf8", "utf8_bin", ""]
+
+# TABLES
+- sql: "select * from information_schema.tables"
+  description: "tables full"
+  expected_names: ["TABLE_CATALOG", "TABLE_SCHEMA", "TABLE_NAME", "TABLE_TYPE", "TABLE_COMMENT"]
+  expected_types: [string, string, string, string, string]
+  expected: 
+  - ["def", "information_schema", "COLUMNS", "SYSTEM VIEW", ""]
+  - ["def", "information_schema", "SCHEMATA", "SYSTEM VIEW", ""]
+  - ["def", "information_schema", "TABLES", "SYSTEM VIEW", ""]
+  - ["def", "test", "foo", "VIEW", "{ \"collectionName\": \"information_schema_1\" }"]
+  - ["def", "test", "bar", "VIEW", "{ \"collectionName\": \"information_schema_2\" }"]
+  - ["def", "test2", "foo", "VIEW", "{ \"collectionName\": \"information_schema_1\" }"]
+
+# COLUMNS
+- sql: "select * from information_schema.columns"
+  description: "columns full"
+  expected_names: ["TABLE_CATALOG", "TABLE_SCHEMA", "TABLE_NAME", "COLUMN_NAME", "ORDINAL_POSITION", "COLUMN_DEFAULT", "IS_NULLABLE", "DATA_TYPE", 
+    "CHARACTER_MAXIMUM_LENGTH", "CHARACTER_OCTET_LENGTH", "NUMERIC_PRECISION", "NUMERIC_SCALE", "DATETIME_PRECISION", "CHARACTER_SET_NAME",
+    "COLLATION_NAME", "COLUMN_TYPE", "COLUMN_KEY", "EXTRA", "PRIVILEGES", "COLUMN_COMMENT"]
+  expected_types: [string, string, string, string, int64, string, string, string, int64, int64, int64, int64, int64, 
+    string, string, string, string, string, string, string]
+  expected: 
+  - ["def", "information_schema", "COLUMNS", "TABLE_CATALOG", "0", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "TABLE_SCHEMA", "1", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "TABLE_NAME", "2", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "COLUMN_NAME", "3", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "ORDINAL_POSITION", "4", ~, "YES", "int64", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int64", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "COLUMN_DEFAULT", "5", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "IS_NULLABLE", "6", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "DATA_TYPE", "7", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "CHARACTER_MAXIMUM_LENGTH", "8", ~, "YES", "int64", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int64", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "CHARACTER_OCTET_LENGTH", "9", ~, "YES", "int64", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int64", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "NUMERIC_PRECISION", "10", ~, "YES", "int64", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int64", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "NUMERIC_SCALE", "11", ~, "YES", "int64", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int64", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "DATETIME_PRECISION", "12", ~, "YES", "int64", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int64", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "CHARACTER_SET_NAME", "13", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "COLLATION_NAME", "14", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "COLUMN_TYPE", "15", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "COLUMN_KEY", "16", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "EXTRA", "17", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "PRIVILEGES", "18", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "COLUMNS", "COLUMN_COMMENT", "19", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "SCHEMATA", "CATALOG_NAME", "0", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "SCHEMATA", "SCHEMA_NAME", "1", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "SCHEMATA", "DEFAULT_CHARACTER_SET_NAME", "2", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "SCHEMATA", "DEFAULT_COLLATION_NAME", "3", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "SCHEMATA", "SQL_PATH", "4", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "TABLES", "TABLE_CATALOG", "0", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "TABLES", "TABLE_SCHEMA", "1", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "TABLES", "TABLE_NAME", "2", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "TABLES", "TABLE_TYPE", "3", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "information_schema", "TABLES", "TABLE_COMMENT", "4", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", ~, ~, "select", ~]
+  - ["def", "test", "foo", "id", "0", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", ~, ~, "select", "{ \"name\": \"_id\" }"]
+  - ["def", "test", "foo", "a", "1", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", ~, ~, "select", "{ \"name\": \"a\" }"]
+  - ["def", "test", "bar", "id", "0", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", ~, ~, "select", "{ \"name\": \"_id\" }"]
+  - ["def", "test", "bar", "b", "1", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", ~, ~, "select", "{ \"name\": \"b\" }"]
+  - ["def", "test2", "foo", "id", "0", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", ~, ~, "select", "{ \"name\": \"_id\" }"]
+  - ["def", "test2", "foo", "a", "1", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", ~, ~, "select", "{ \"name\": \"a\" }"]
+  

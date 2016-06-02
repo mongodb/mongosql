@@ -1,13 +1,10 @@
-# How this test case file works:
 #
-# 1. mongorestore each of these bson files under the "data" section 
-# into the indicated namespace
+# Data
 #
 data:
 - archive_file: testdata/input/test1.bson.gz
 
-# 2. Start a test server using the following schema mapping, which should
-# correspond to the data used in (1)
+# Schema
 
 schema:
 - db: test
@@ -52,7 +49,9 @@ schema:
       SqlName: a
       SqlType: int64
 
-# 3. Run each of the following queries, and report any that have errors
+#
+# 3. Tests
+#
 testcases:
 - sql: "SHOW COLUMNS FROM foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]

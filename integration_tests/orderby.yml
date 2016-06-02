@@ -1,0 +1,160 @@
+#
+# Data
+#
+data:
+- inline: 
+    db: "test"
+    collection: "orderby"
+    docs:
+    - { _id: 0, a: 2 }
+    - { _id: 1, a: 0 }
+    - { _id: 2, a: 1 }
+    - { _id: 3, a: 2 }
+
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: "orderby"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+
+#
+# Tests
+#
+testcases:
+
+# Single Terms
+- sql: "select id, a from test.foo order by a"
+  description: "single term"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 0]
+  - [2, 1]
+  - [0, 2]
+  - [3, 2]
+- sql: "select id, a from test.foo order by a asc"
+  description: "single term with asc"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 0]
+  - [2, 1]
+  - [0, 2]
+  - [3, 2]
+- sql: "select id, a from test.foo order by a desc"
+  description: "single term with desc"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected: 
+  - [0, 2]
+  - [3, 2]
+  - [2, 1]
+  - [1, 0]
+- sql: "select id, a from test.foo order by 2"
+  description: "single ordinal term"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 0]
+  - [2, 1]
+  - [0, 2]
+  - [3, 2]
+- sql: "select id, a from test.foo order by 2 asc"
+  description: "single ordinal term with asc"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 0]
+  - [2, 1]
+  - [0, 2]
+  - [3, 2]
+- sql: "select id, a from test.foo order by 2 desc"
+  description: "single ordinal term with desc"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected: 
+  - [0, 2]
+  - [3, 2]
+  - [2, 1]
+  - [1, 0]
+- sql: "select id, a as b from test.foo order by b"
+  description: "single aliased term"
+  expected_names: ["id", "b"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 0]
+  - [2, 1]
+  - [0, 2]
+  - [3, 2]
+- sql: "select id, a as b from test.foo order by b asc"
+  description: "single aliased term with asc"
+  expected_names: ["id", "b"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 0]
+  - [2, 1]
+  - [0, 2]
+  - [3, 2]
+- sql: "select id, a as b from test.foo order by b desc"
+  description: "single aliased term with desc"
+  expected_names: ["id", "b"]
+  expected_types: [int, int]
+  expected: 
+  - [0, 2]
+  - [3, 2]
+  - [2, 1]
+  - [1, 0]
+
+# Multiple Terms
+- sql: "select id, a from test.foo order by a, id"
+  description: "multiple terms"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 0]
+  - [2, 1]
+  - [0, 2]
+  - [3, 2]
+- sql: "select id, a from test.foo order by a, id desc"
+  description: "multiple terms with the second desc"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 0]
+  - [2, 1]
+  - [3, 2]
+  - [0, 2]
+- sql: "select id, a from test.foo order by a desc, id"
+  description: "multiple terms with the first desc"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected: 
+  - [0, 2]
+  - [3, 2]
+  - [2, 1]
+  - [1, 0]
+- sql: "select id, a from test.foo order by a desc, id desc"
+  description: "multiple terms with both desc"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected: 
+  - [3, 2]
+  - [0, 2]
+  - [2, 1]
+  - [1, 0]

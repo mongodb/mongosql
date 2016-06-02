@@ -1,0 +1,261 @@
+#
+# Data
+#
+data:
+- inline: 
+    db: "test"
+    collection: "where_1"
+    docs:
+    - { _id: 0, a: 1 }
+    - { _id: 1, a: 2 }
+    - { _id: 2, a: 3 }
+- inline: 
+    db: "test"
+    collection: "where_2"
+    docs:
+    - { _id: 0, a: 2 }
+    - { _id: 1, a: 2 }
+    - { _id: 2, a: 3 }
+
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: "where_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+  - table: bar
+    collection: "where_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+
+#
+# Tests
+#
+testcases:
+
+# Between
+- sql: "select a from test.foo where id between 1 and 4"
+  description: "between distinct values"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+  - [3]
+- sql: "select a from test.foo where id between 1 and 1"
+  description: "between the same value"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+- sql: "select a from test.foo where id between 4 and 1"
+  description: "between reversed values"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: []
+- sql: "select a from test.foo where id between 1 and 2 or id between 2 and 4"
+  description: "multiple betweens"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+  - [3]
+- sql: "select a from test.foo where id not between 1 and 4"
+  description: "not between distinct values"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+
+# Case
+- sql: "select a from foo where (case when a > 1 then true else false end)"
+  description: "case"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+  - [3]
+- sql: "select a from foo where (case when a > 1 then true end)"
+  description: "case without else"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+  - [3]
+- sql: "select a from foo where (case a when 1 then false else true end)"
+  description: "simple case"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+  - [3]
+
+# Exists
+- sql: "select a from foo f1 where exists(select 1 from foo f2 where f1.a > f2.a)"
+  description: "exists"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+  - [3]
+- sql: "select f1.id from foo f1 inner join bar b1 on f1.id = b1.id where exists(select 1 from foo f2 where exists(select 1 from bar b2 where f1.a = b2.a))"
+  description: "exists with joined table and nested exists"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+
+# Greater Than
+- sql: "select a from test.foo where id > 0"
+  description: "greater than"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+  - [3]
+- sql: "select a from test.foo where 2 > id"
+  description: "greater than (reversed)"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+
+# Greater Than Or Equal
+- sql: "select a from test.foo where id >= 0"
+  description: "greater than or equal"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+  - [3]
+- sql: "select a from test.foo where 2 >= id"
+  description: "greater than or equal (reversed)"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+  - [3]
+
+# In
+- sql: "select id from test.foo where id in (0, 2)"
+  description: "in tuple"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: 
+  - [0]
+  - [2]
+- sql: "select id from test.foo where id in (select a from foo)"
+  description: "in non-correlated subquery"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+
+# Less Than
+- sql: "select a from test.foo where id < 2"
+  description: "less than"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+- sql: "select a from test.foo where 1 < id"
+  description: "less than (reversed)"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [3]
+
+# Less Than Or Equal
+- sql: "select a from test.foo where id <= 2"
+  description: "less than or equal"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+  - [3]
+- sql: "select a from test.foo where 0 <= id"
+  description: "less than or equal (reversed)"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+  - [3]
+
+# Subquery
+- sql: "select id from test.foo where a = (select min(a) from test.bar)"
+  description: "non-correlated subquery"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: 
+  - [1]
+- sql: "select a from test.foo where (id, a) = (select id, a from test.bar where foo.id = bar.id AND foo.a = bar.a)"
+  description: "correlated subquery"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+  - [3]
+
+# Tuples
+- sql: "select id from test.foo where (id, a) = (0, 1)"
+  description: "tuple equal"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: 
+  - [0]
+- sql: "select id from test.foo where (a) < 2"
+  description: "tuple greater than"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: 
+  - [0]
+
+# Unary Operators
+- sql: "select a from test.foo where id = ~-1"
+  description: "unary tilde"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+- sql: "select a from test.foo where id = ~-1 + 1"
+  description: "unary tilde in an expression"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+- sql: "select a from test.foo where id = +1"
+  description: "unary plus"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+- sql: "select a from test.foo where id = -(1)"
+  description: "unary minus"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: []

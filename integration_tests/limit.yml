@@ -1,0 +1,48 @@
+#
+# Data
+#
+data:
+- inline: 
+    db: "test"
+    collection: "limit"
+    docs:
+    - { _id: 0, a: 1 }
+    - { _id: 1, a: 2 }
+    - { _id: 2, a: 3 }
+
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: "limit"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+
+#
+# Tests
+#
+testcases:
+
+- sql: "select a from test.foo limit 2"
+  description: "rowcount"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+- sql: "select a from test.foo limit 2, 1"
+  description: "offset and rowcount"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [3]

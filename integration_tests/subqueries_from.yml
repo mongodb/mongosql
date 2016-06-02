@@ -1,0 +1,191 @@
+#
+# Data
+#
+data:
+- inline: 
+    db: "test"
+    collection: "subqueries_from"
+    docs:
+    - { _id: 0, a: 1, b: ~ }
+    - { _id: 1, a: 2 }
+    - { _id: 2, a: 3 }
+
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: "subqueries_from"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+
+#
+# Tests
+#
+testcases:
+- sql: "select * from (select * from test.foo) foo"
+  description: "global *"
+  expected_names: ["id", "a", "b"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, ~]
+  - [1, 2, ~]
+  - [2, 3, ~]
+- sql: "select foo.* from (select * from test.foo) foo"
+  description: "qualified *"
+  expected_names: ["id", "a", "b"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, ~]
+  - [1, 2, ~]
+  - [2, 3, ~]
+- sql: "select foo.*, foo.* from (select * from test.foo) foo"
+  description: "duplicate qualified *"
+  expected_names: ["id", "a", "b", "id", "a", "b"]
+  expected_types: [int, int, int, int, int, int]
+  expected: 
+  - [0, 1, ~, 0, 1, ~]
+  - [1, 2, ~, 1, 2, ~]
+  - [2, 3, ~, 2, 3, ~]
+- sql: "select f.* from (select * from test.foo) f"
+  description: "alias qualified *"
+  expected_names: ["id", "a", "b"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, ~]
+  - [1, 2, ~]
+  - [2, 3, ~]
+- sql: "select id, a, b from (select * from test.foo) foo"
+  description: "columns"
+  expected_names: ["id", "a", "b"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, ~]
+  - [1, 2, ~]
+  - [2, 3, ~]
+- sql: "select ID, A, B from (select * from test.foo) foo"
+  description: "columns with wrong casing"
+  expected_names: ["ID", "A", "B"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, ~]
+  - [1, 2, ~]
+  - [2, 3, ~]
+- sql: "select foo.id, foo.a, foo.b from (select * from test.foo) foo"
+  description: "qualified columns"
+  expected_names: ["id", "a", "b"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, ~]
+  - [1, 2, ~]
+  - [2, 3, ~]
+- sql: "select f.id, f.a, f.b from (select * from test.foo) f"
+  description: "alias qualified columns"
+  expected_names: ["id", "a", "b"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, ~]
+  - [1, 2, ~]
+  - [2, 3, ~]
+- sql: "select id, a, b, id, a, b from (select * from test.foo) foo"
+  description: "duplicate columns"
+  expected_names: ["id", "a", "b", "id", "a", "b"]
+  expected_types: [int, int, int, int, int, int]
+  expected: 
+  - [0, 1, ~, 0, 1, ~]
+  - [1, 2, ~, 1, 2, ~]
+  - [2, 3, ~, 2, 3, ~]
+- sql: "select id as d, a as e, b as f from (select * from test.foo) foo"
+  description: "aliases"
+  expected_names: ["d", "e", "f"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, ~]
+  - [1, 2, ~]
+  - [2, 3, ~]
+- sql: "select id as a, a as b, b as id from (select * from test.foo) foo"
+  description: "aliased as another column"
+  expected_names: ["a", "b", "id"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, ~]
+  - [1, 2, ~]
+  - [2, 3, ~]
+- sql: "select id, a as id, b as id from (select * from test.foo) foo"
+  description: "duplicate aliases"
+  expected_names: ["id", "id", "id"]
+  expected_types: [int, int, int]
+  expected: 
+  - [0, 1, ~]
+  - [1, 2, ~]
+  - [2, 3, ~]
+- sql: "select id, a as ID from (select * from test.foo) foo"
+  description: "aliases differing by case"
+  expected_names: ["id", "ID"]
+  expected_types: [int, int]
+  expected: 
+  - [0, 1]
+  - [1, 2]
+  - [2, 3]
+- sql: "select id, b from (select * from test.foo) foo"
+  description: "subset of columns"
+  expected_names: ["id", "b"]
+  expected_types: [int, int]
+  expected: 
+  - [0, ~]
+  - [1, ~]
+  - [2, ~]
+- sql: "select b, id from (select * from test.foo) foo"
+  description: "subset of columns out of order"
+  expected_names: ["b", "id"]
+  expected_types: [int, int]
+  expected: 
+  - [~, 0]
+  - [~, 1]
+  - [~, 2]
+- sql: "select * from (select id, a from test.foo) foo"
+  description: "global * from column subset"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected: 
+  - [0, 1]
+  - [1, 2]
+  - [2, 3]
+- sql: "select * from (select id as a, a as b from test.foo) foo"
+  description: "global * from aliased column subset"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected: 
+  - [0, 1]
+  - [1, 2]
+  - [2, 3]
+- sql: "select a, b from (select id as a, a as b from test.foo) foo"
+  description: "named columns from aliased column subset"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected: 
+  - [0, 1]
+  - [1, 2]
+  - [2, 3]
+- sql: "select a, b from (select * from (select id as a, a as b from test.foo) foo) f"
+  description: "named columns from aliased column subset from a nested subquery"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected: 
+  - [0, 1]
+  - [1, 2]
+  - [2, 3]
+
