@@ -228,7 +228,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 		numFields := len(columns)
 
 		if numFields == 0 {
-			return mysqlerrors.Defaultf(mysqlerrors.ER_EMPTY_QUERY)
+			return mysqlerrors.Unknownf("No columns found in result set")
 		}
 
 		j := 0

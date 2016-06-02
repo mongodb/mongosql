@@ -1,10 +1,10 @@
 package evaluator
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/deafgoat/mixer/sqlparser"
 )
@@ -31,27 +31,28 @@ type algebrizer struct {
 	resolveProjectedColumnsFirst bool             // indicates whether to resolve a column using the projected columns first or second
 }
 
+func (a *algebrizer) fullName(tableName, columnName string) string {
+	fn := columnName
+	if tableName != "" {
+		fn = tableName + "." + fn
+	}
+
+	return fn
+}
+
 func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error) {
 	var found *Column
 	for _, column := range a.columns {
 		if strings.EqualFold(column.Name, columnName) && (tableName == "" || strings.EqualFold(column.Table, tableName)) {
 			if found != nil {
-				if tableName != "" {
-					return nil, fmt.Errorf("duplicate column name %q in table %q", columnName, tableName)
-				}
-
-				return nil, fmt.Errorf("column %q in the field list is ambiguous", columnName)
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NON_UNIQ_ERROR, a.fullName(tableName, columnName), "field list")
 			}
 			found = column
 		}
 	}
 
 	if found == nil {
-		if tableName == "" {
-			return nil, fmt.Errorf("unknown column %q", columnName)
-		}
-
-		return nil, fmt.Errorf("unknown column %q in table %q", columnName, tableName)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, a.fullName(tableName, columnName), "field list")
 	}
 
 	return found, nil
@@ -121,7 +122,7 @@ func (a *algebrizer) registerColumns(columns []*Column) error {
 	// against the existing columns as well as against itself.
 	for _, c := range columns {
 		if contains(c) {
-			return fmt.Errorf("duplicate column name %q", c.Name)
+			return mysqlerrors.Defaultf(mysqlerrors.ER_DUP_FIELDNAME, a.fullName(c.Table, c.Name))
 		}
 		a.columns = append(a.columns, c)
 	}
@@ -133,7 +134,7 @@ func (a *algebrizer) registerColumns(columns []*Column) error {
 func (a *algebrizer) registerTable(tableName string) error {
 	for _, registeredName := range a.tableNames {
 		if strings.EqualFold(tableName, registeredName) {
-			return fmt.Errorf("not unique table/alias: %q", tableName)
+			return mysqlerrors.Defaultf(mysqlerrors.ER_NONUNIQ_TABLE, tableName)
 		}
 	}
 
@@ -163,7 +164,7 @@ func (a *algebrizer) translateGroupBy(groupby sqlparser.GroupBy) ([]SQLExpr, err
 
 		afs, err := getAggFunctions(key)
 		if len(afs) > 0 {
-			return nil, fmt.Errorf("can't group on %q", afs[0].String())
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_GROUP_FIELD, afs[0].String())
 		}
 
 		keys = append(keys, key)
@@ -184,11 +185,11 @@ func (a *algebrizer) translateLimit(limit *sqlparser.Limit) (SQLInt, SQLInt, err
 
 		offset, ok = eval.(SQLInt)
 		if !ok {
-			return 0, 0, fmt.Errorf("limit offset must be an integer")
+			return 0, 0, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_SPVAR_TYPE_IN_LIMIT)
 		}
 
 		if offset < 0 {
-			return 0, 0, fmt.Errorf("limit offset cannot be negative")
+			return 0, 0, mysqlerrors.Newf(mysqlerrors.ER_SYNTAX_ERROR, "Offset cannot be negative")
 		}
 	}
 
@@ -200,11 +201,11 @@ func (a *algebrizer) translateLimit(limit *sqlparser.Limit) (SQLInt, SQLInt, err
 
 		rowcount, ok = eval.(SQLInt)
 		if !ok {
-			return 0, 0, fmt.Errorf("limit rowcount must be an integer")
+			return 0, 0, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_SPVAR_TYPE_IN_LIMIT)
 		}
 
 		if rowcount < 0 {
-			return 0, 0, fmt.Errorf("limit rowcount cannot be negative")
+			return 0, 0, mysqlerrors.Newf(mysqlerrors.ER_SYNTAX_ERROR, "Rowcount cannot be negative")
 		}
 	}
 
@@ -254,7 +255,7 @@ func (a *algebrizer) translateSelectStatement(selectStatement sqlparser.SelectSt
 	case *sqlparser.SimpleSelect:
 		return a.translateSimpleSelect(typedS)
 	default:
-		return nil, fmt.Errorf("no support for %T", selectStatement)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, sqlparser.String(selectStatement))
 	}
 }
 
@@ -423,7 +424,7 @@ func (a *algebrizer) translateSelectExprs(selectExprs sqlparser.SelectExprs) (Pr
 	}
 
 	if hasGlobalStar && len(selectExprs) > 1 {
-		return nil, fmt.Errorf("cannot have a global * in the field list in conjunction with any other columns")
+		return nil, mysqlerrors.Newf(mysqlerrors.ER_SYNTAX_ERROR, "Cannot have a '*' in conjunction with any other columns")
 	}
 
 	return projectedColumns, nil
@@ -481,7 +482,7 @@ func (a *algebrizer) translateTableExpr(tableExpr sqlparser.TableExpr) (PlanStag
 
 		return NewJoinStage(JoinKind(typedT.Join), left, right, predicate), nil
 	default:
-		return nil, fmt.Errorf("no support for %T", tableExpr)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, sqlparser.String(tableExpr))
 	}
 }
 
@@ -525,7 +526,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 	case *sqlparser.Subquery:
 
 		if aliasName == "" {
-			return nil, fmt.Errorf("every derived table must have it's own alias")
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DERIVED_MUST_HAVE_ALIAS)
 		}
 
 		plan, err := a.translateNamedSelectStatement(typedT.Select, aliasName)
@@ -540,7 +541,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr sqlparser.SimpleTableExp
 
 		return plan, nil
 	default:
-		return nil, fmt.Errorf("no support for %T", tableExpr)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, sqlparser.String(tableExpr))
 	}
 }
 
@@ -592,7 +593,7 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		case sqlparser.AST_DIV:
 			return &SQLDivideExpr{left, right}, nil
 		default:
-			return nil, fmt.Errorf("no support for binary operator '%v'", typedE.Operator)
+			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for binary operator '%v'", typedE.Operator)
 		}
 	case *sqlparser.CaseExpr:
 		return a.translateCaseExpr(typedE)
@@ -656,13 +657,13 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 
 			return &SQLNotExpr{&SQLInExpr{left, right}}, nil
 		default:
-			return nil, fmt.Errorf("no support for operator %q", typedE.Operator)
+			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for operator '%v'", typedE.Operator)
 		}
 	case *sqlparser.CtorExpr:
 		// TODO: currently only supports single argument constructors
 		strVal, ok := typedE.Exprs[0].(sqlparser.StrVal)
 		if !ok {
-			return nil, fmt.Errorf("%v constructor requires string argument: got %T", string(typedE.Name), typedE.Exprs[0])
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "parameter", sqlparser.String(typedE.Exprs[0]))
 		}
 
 		arg := string(strVal)
@@ -675,7 +676,7 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		case sqlparser.AST_TIMESTAMP:
 			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
 		default:
-			return nil, fmt.Errorf("%v constructor is not supported", string(typedE.Name))
+			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for constructor '%v'", string(typedE.Name))
 		}
 	case *sqlparser.ExistsExpr:
 		subquery, err := a.translateSubqueryExpr(typedE.Subquery)
@@ -785,7 +786,7 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 			return &SQLUnaryTildeExpr{child}, nil
 		}
 
-		return nil, fmt.Errorf("invalid unary operator - '%v'", string(typedE.Operator))
+		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for operator '%v'", typedE.Operator)
 
 	case sqlparser.ValTuple:
 
@@ -807,7 +808,7 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 
 		return &SQLTupleExpr{exprs}, nil
 	default:
-		return nil, fmt.Errorf("no support for %T", expr)
+		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for '%v'", sqlparser.String(typedE))
 	}
 }
 
@@ -819,7 +820,7 @@ func (a *algebrizer) translatePossibleColumnRefExpr(expr sqlparser.Expr, clause 
 		}
 
 		if int(n) > len(a.projectedColumns) {
-			return nil, fmt.Errorf("unknown column \"%v\" in %s", n, clause)
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, strconv.Itoa(int(n)), clause)
 		}
 
 		if n >= 0 {
@@ -921,7 +922,7 @@ func (a *algebrizer) translateFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error
 	if a.isAggFunction(name) {
 
 		if len(expr.Exprs) != 1 {
-			return nil, fmt.Errorf("aggregate function cannot contain tuples")
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, name)
 		}
 
 		e := expr.Exprs[0]
@@ -930,11 +931,11 @@ func (a *algebrizer) translateFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error
 		case *sqlparser.StarExpr:
 
 			if name != "count" {
-				return nil, fmt.Errorf(`%q aggregate function can not contain "*"`, name)
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, name)
 			}
 
 			if expr.Distinct {
-				return nil, fmt.Errorf(`count aggregate function can not have distinct "*"`)
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, name)
 			}
 
 			exprs = append(exprs, SQLVarchar("*"))
@@ -947,7 +948,7 @@ func (a *algebrizer) translateFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error
 			}
 			exprs = append(exprs, sqlExpr)
 		default:
-			return nil, fmt.Errorf("no support for %T", e)
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, sqlparser.String(e))
 		}
 
 		return &SQLAggFunctionExpr{name, expr.Distinct, exprs}, nil
@@ -958,7 +959,7 @@ func (a *algebrizer) translateFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error
 		switch typedE := e.(type) {
 		case *sqlparser.StarExpr:
 			if !strings.EqualFold(name, "count") {
-				return nil, fmt.Errorf(`argument to %q cannot contain "*"`, name)
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, name)
 			}
 		case *sqlparser.NonStarExpr:
 			sqlExpr, err := a.translateExpr(typedE.Expr)
@@ -974,11 +975,11 @@ func (a *algebrizer) translateFuncExpr(expr *sqlparser.FuncExpr) (SQLExpr, error
 				case "cast":
 					exprs = append(exprs, SQLVarchar(as))
 				default:
-					return nil, fmt.Errorf("no support for %T", e)
+					return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, sqlparser.String(e))
 				}
 			}
 		default:
-			return nil, fmt.Errorf("no support for %T", expr)
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, sqlparser.String(expr))
 		}
 
 	}

@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 
 	"gopkg.in/mgo.v2/bson"
@@ -103,11 +104,11 @@ func NewMongoSourceStage(schema *schema.Schema, dbName, tableName string, aliasN
 
 	database, ok := schema.Databases[ms.dbName]
 	if !ok {
-		return nil, fmt.Errorf("db %q doesn't exist - table %q", dbName, tableName)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
 	}
 	tableSchema, ok := database.Tables[ms.tableName]
 	if !ok {
-		return nil, fmt.Errorf("table %q doesn't exist in db %q", tableName, dbName)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
 	}
 
 	ms.collectionName = tableSchema.CollectionName
