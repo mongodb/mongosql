@@ -100,7 +100,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 				return nil, err
 			}
 
-			if e != newE {
+			if !hasNew && e != newE {
 				hasNew = true
 				newExprs = (*exprs)[0:i]
 			}
@@ -126,7 +126,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 				return nil, err
 			}
 
-			if t.expr != newE {
+			if !hasNew && t.expr != newE {
 				hasNew = true
 				newTerms = (*terms)[0:i]
 			}
@@ -155,7 +155,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 				return nil, err
 			}
 
-			if pc.Expr != newE {
+			if !hasNew && pc.Expr != newE {
 				hasNew = true
 				newPcs = (*pcs)[0:i]
 			}
