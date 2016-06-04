@@ -9,52 +9,57 @@ import (
 
 func optimizePushDown(o PlanStage) (PlanStage, error) {
 	v := &pushDownOptimizer{}
-	return v.Visit(o)
+	n, err := v.visit(o)
+	if err != nil {
+		return nil, err
+	}
+
+	return n.(PlanStage), nil
 }
 
 type pushDownOptimizer struct {
 }
 
-func (v *pushDownOptimizer) Visit(p PlanStage) (PlanStage, error) {
-	p, err := walkPlanTree(v, p)
+func (v *pushDownOptimizer) visit(n node) (node, error) {
+	n, err := walk(v, n)
 	if err != nil {
 		return nil, err
 	}
 
-	switch typedP := p.(type) {
+	switch typedN := n.(type) {
 	case *FilterStage:
-		p, err = v.visitFilter(typedP)
+		n, err = v.visitFilter(typedN)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize filter: %v", err)
 		}
 	case *GroupByStage:
-		p, err = v.visitGroupBy(typedP)
+		n, err = v.visitGroupBy(typedN)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize group by: %v", err)
 		}
 	case *JoinStage:
-		p, err = v.visitJoin(typedP)
+		n, err = v.visitJoin(typedN)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize join: %v", err)
 		}
 	case *LimitStage:
-		p, err = v.visitLimit(typedP)
+		n, err = v.visitLimit(typedN)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize limit: %v", err)
 		}
 	case *OrderByStage:
-		p, err = v.visitOrderBy(typedP)
+		n, err = v.visitOrderBy(typedN)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize order by: %v", err)
 		}
 	case *ProjectStage:
-		p, err = v.visitProject(typedP)
+		n, err = v.visitProject(typedN)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize project: %v", err)
 		}
 	}
 
-	return p, nil
+	return n, nil
 }
 
 func (v *pushDownOptimizer) canPushDown(ps PlanStage) (*MongoSourceStage, bool) {
@@ -267,12 +272,12 @@ func translateGroupByAggregates(keys []SQLExpr, projectedColumns ProjectedColumn
 
 	for _, projectedColumn := range projectedColumns {
 
-		newExpr, err := translator.Visit(projectedColumn.Expr)
+		newExpr, err := translator.visit(projectedColumn.Expr)
 		if err != nil {
 			return nil, err
 		}
 
-		newExprs = append(newExprs, newExpr)
+		newExprs = append(newExprs, newExpr.(SQLExpr))
 	}
 
 	return &translateGroupByAggregatesResult{translator.group, newExprs, translator.mappingRegistry}, nil
@@ -287,42 +292,42 @@ type groupByAggregateTranslator struct {
 
 // Visit recursively visits each expression in the tree, adds the relavent $group entries, and returns
 // an expression that can be used to generate a subsequent $project.
-func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
+func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 
-	switch typedE := e.(type) {
+	switch typedN := n.(type) {
 	case SQLColumnExpr:
-		fieldName, ok := v.lookupFieldName(typedE.tableName, typedE.columnName)
+		fieldName, ok := v.lookupFieldName(typedN.tableName, typedN.columnName)
 		if !ok {
-			return nil, fmt.Errorf("could not map %v.%v to a field", typedE.tableName, typedE.columnName)
+			return nil, fmt.Errorf("could not map %v.%v to a field", typedN.tableName, typedN.columnName)
 		}
-		if !v.isGroupKey(typedE) {
+		if !v.isGroupKey(typedN) {
 			// since it's not an aggregation function, this implies that it takes the first value of the column.
 			// So project the field, and register the mapping.
-			v.group[dottifyFieldName(typedE.String())] = bson.M{"$first": getProjectedFieldName(fieldName, typedE.Type())}
-			v.mappingRegistry.registerMapping(typedE.tableName, typedE.columnName, dottifyFieldName(typedE.String()))
+			v.group[dottifyFieldName(typedN.String())] = bson.M{"$first": getProjectedFieldName(fieldName, typedN.Type())}
+			v.mappingRegistry.registerMapping(typedN.tableName, typedN.columnName, dottifyFieldName(typedN.String()))
 		} else {
 			// the _id is added to the $group in translateGroupByKeys. We will only be here if the user has also projected
 			// the group key, in which we'll need this to look it up in translateGroupByProject under its name. Hence, all
 			// we need to do is register the mapping.
-			v.mappingRegistry.registerMapping(typedE.tableName, typedE.columnName, groupID+"."+dottifyFieldName(typedE.String()))
+			v.mappingRegistry.registerMapping(typedN.tableName, typedN.columnName, groupID+"."+dottifyFieldName(typedN.String()))
 		}
-		return typedE, nil
+		return typedN, nil
 	case *SQLAggFunctionExpr:
 		var newExpr SQLExpr
-		if typedE.Distinct {
+		if typedN.Distinct {
 			// Distinct aggregation expressions are two-step aggregations. In the $group stage, we use $addToSet
 			// to handle whatever the distinct expression is, which could be a simply field name, or something
 			// more complex like a mathematical computation. We don't care either way, and TranslateExpr handles
 			// generating the correct thing. Once this is done, we create a new SQLAggFunctionExpr whose argument
 			// maps to the newly named field containing the set of values to perform the aggregation on.
-			trans, ok := TranslateExpr(typedE.Exprs[0], v.lookupFieldName)
+			trans, ok := TranslateExpr(typedN.Exprs[0], v.lookupFieldName)
 			if !ok {
-				return nil, fmt.Errorf("could not translate '%v'", typedE.String())
+				return nil, fmt.Errorf("could not translate '%v'", typedN.String())
 			}
-			fieldName := groupDistinctPrefix + dottifyFieldName(typedE.Exprs[0].String())
-			columnType := schema.ColumnType{typedE.Type(), schema.MongoNone}
+			fieldName := groupDistinctPrefix + dottifyFieldName(typedN.Exprs[0].String())
+			columnType := schema.ColumnType{typedN.Type(), schema.MongoNone}
 			newExpr = &SQLAggFunctionExpr{
-				Name:  typedE.Name,
+				Name:  typedN.Name,
 				Exprs: []SQLExpr{SQLColumnExpr{groupTempTable, fieldName, columnType}},
 			}
 			v.group[fieldName] = bson.M{"$addToSet": trans}
@@ -339,23 +344,23 @@ func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 			// a $sum with $cond and $ifNull.
 			var trans interface{}
 			var ok bool
-			if typedE.Name == "count" && typedE.Exprs[0] == SQLVarchar("*") {
+			if typedN.Name == "count" && typedN.Exprs[0] == SQLVarchar("*") {
 				trans = bson.M{"$sum": 1}
-			} else if typedE.Name == "count" {
-				trans, ok = TranslateExpr(typedE.Exprs[0], v.lookupFieldName)
+			} else if typedN.Name == "count" {
+				trans, ok = TranslateExpr(typedN.Exprs[0], v.lookupFieldName)
 				if !ok {
-					return nil, fmt.Errorf("could not translate '%v'", typedE.Exprs[0].String())
+					return nil, fmt.Errorf("could not translate '%v'", typedN.Exprs[0].String())
 				}
 
 				trans = getCountAggregation(trans)
 			} else {
-				trans, ok = TranslateExpr(typedE, v.lookupFieldName)
+				trans, ok = TranslateExpr(typedN, v.lookupFieldName)
 				if !ok {
-					return nil, fmt.Errorf("could not translate '%v'", typedE.String())
+					return nil, fmt.Errorf("could not translate '%v'", typedN.String())
 				}
 			}
-			fieldName := dottifyFieldName(typedE.String())
-			columnType := schema.ColumnType{typedE.Type(), schema.MongoNone}
+			fieldName := dottifyFieldName(typedN.String())
+			columnType := schema.ColumnType{typedN.Type(), schema.MongoNone}
 			newExpr = SQLColumnExpr{groupTempTable, fieldName, columnType}
 			v.group[fieldName] = trans
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, fieldName)
@@ -363,14 +368,14 @@ func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 
 		return newExpr, nil
 
-	default:
-		if v.isGroupKey(e) {
+	case SQLExpr:
+		if v.isGroupKey(typedN) {
 			// the _id is added to the $group in translateGroupByKeys. We will only be here if the user has also projected
 			// the group key, in which we'll need this to look it up in translateGroupByProject under its name. In this,
 			// we need to create a new expr that is simply a field pointing at the nested identifier and register that
 			// mapping.
-			fieldName := dottifyFieldName(e.String())
-			columnType := schema.ColumnType{typedE.Type(), schema.MongoNone}
+			fieldName := dottifyFieldName(typedN.String())
+			columnType := schema.ColumnType{typedN.Type(), schema.MongoNone}
 			newExpr := SQLColumnExpr{groupTempTable, fieldName, columnType}
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, groupID+"."+fieldName)
 			return newExpr, nil
@@ -380,7 +385,10 @@ func (v *groupByAggregateTranslator) Visit(e SQLExpr) (SQLExpr, error) {
 		// 'select a + b from foo group by a' or 'select b + sum(c) from foo group by a'. In this case,
 		// we'll descend into the tree recursively which will build up the $group for the necessary pieces.
 		// Finally, return the now changed expression such that $project can act on them appropriately.
-		return walk(v, e)
+		return walk(v, n)
+	default:
+		// PlanStages will end up here and we don't need to do anything in them.
+		return n, nil
 	}
 }
 
@@ -573,10 +581,12 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	ms.mappingRegistry = newMappingRegistry
 
 	if lookupInfo.remainingPredicate != nil && joinKind == InnerJoin {
-		return v.Visit(&FilterStage{
-			source:  ms,
-			matcher: lookupInfo.remainingPredicate,
-		})
+		f, err := v.visit(NewFilterStage(ms, lookupInfo.remainingPredicate))
+		if err != nil {
+			return nil, err
+		}
+
+		return f.(PlanStage), nil
 	}
 
 	return ms, nil
@@ -777,4 +787,41 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	project.source = ms
 	project.projectedColumns = fixedProjectedColumns
 	return project, nil
+}
+
+type columnFinder struct {
+	columns []*Column
+}
+
+// referencedColumns will take an expression and return all the columns referenced in the expression
+func referencedColumns(e SQLExpr) ([]*Column, error) {
+
+	cf := &columnFinder{}
+
+	_, err := cf.visit(e)
+	if err != nil {
+		return nil, err
+	}
+
+	return cf.columns, nil
+}
+
+func (cf *columnFinder) visit(n node) (node, error) {
+
+	switch typedN := n.(type) {
+	case SQLColumnExpr:
+		column := &Column{
+			Table:     string(typedN.tableName),
+			Name:      string(typedN.columnName),
+			MongoType: typedN.columnType.MongoType,
+			SQLType:   typedN.columnType.SQLType,
+		}
+
+		cf.columns = append(cf.columns, column)
+	case *SQLSubqueryExpr:
+		// TODO: handle this when subqueries are working.
+		return n, nil
+	}
+
+	return walk(cf, n)
 }

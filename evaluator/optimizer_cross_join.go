@@ -2,7 +2,12 @@ package evaluator
 
 func optimizeCrossJoins(p PlanStage) (PlanStage, error) {
 	v := &crossJoinOptimizer{}
-	return v.Visit(p)
+	n, err := v.visit(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return n.(PlanStage), nil
 }
 
 type crossJoinOptimizer struct {
@@ -10,58 +15,55 @@ type crossJoinOptimizer struct {
 	tableNames     []string
 }
 
-func (v *crossJoinOptimizer) Visit(p PlanStage) (PlanStage, error) {
+func (v *crossJoinOptimizer) visit(n node) (node, error) {
 	var err error
-	switch typedP := p.(type) {
+	switch typedN := n.(type) {
 	case *FilterStage:
 		// save the old parts before assigning a new one
 		old := v.predicateParts
-		v.predicateParts, err = splitExpressionIntoParts(typedP.matcher)
+		v.predicateParts, err = splitExpressionIntoParts(typedN.matcher)
 		if err != nil {
 			return nil, err
 		}
 
 		// Walk the children and let the joins optimize with relevant predicateParts
-		source, err := v.Visit(typedP.source)
+		source, err := v.visit(typedN.source)
 		if err != nil {
 			return nil, err
 		}
 
-		if source != typedP.source {
+		if source != typedN.source {
 			if len(v.predicateParts) > 0 {
 				// if the parts haven't been fully utilized,
 				// add a Filter back into the tree with the remaining
 				// parts.
-				p = &FilterStage{
-					source:  source,
-					matcher: v.predicateParts.combine(),
-				}
+				n = NewFilterStage(source.(PlanStage), v.predicateParts.combine())
 			} else {
-				p = source
+				n = source
 			}
 		}
 
 		// reset the parts back to the way it was
 		v.predicateParts = old
-		return p, nil
+		return n, nil
 	case *JoinStage:
-		matcherOk := typedP.matcher == nil
+		matcherOk := typedN.matcher == nil
 		if !matcherOk {
-			switch typedM := typedP.matcher.(type) {
+			switch typedM := typedN.matcher.(type) {
 			case SQLBool:
 				matcherOk = typedM.Value().(bool)
 			}
 		}
-		if matcherOk && (typedP.kind == InnerJoin || typedP.kind == CrossJoin) && len(v.predicateParts) > 0 {
+		if matcherOk && (typedN.kind == InnerJoin || typedN.kind == CrossJoin) && len(v.predicateParts) > 0 {
 			// We have a filter and a join without any criteria
 			v.tableNames = nil
-			left, err := v.Visit(typedP.left)
+			left, err := v.visit(typedN.left)
 			if err != nil {
 				return nil, err
 			}
 			tableNames := v.tableNames
 			v.tableNames = nil
-			right, err := v.Visit(typedP.right)
+			right, err := v.visit(typedN.right)
 			if err != nil {
 				return nil, err
 			}
@@ -84,7 +86,7 @@ func (v *crossJoinOptimizer) Visit(p PlanStage) (PlanStage, error) {
 
 			// if we have parts or the left or right have been changed, we
 			// need a new join operator
-			if len(partsToUse) > 0 || left != typedP.left || right != typedP.right {
+			if len(partsToUse) > 0 || left != typedN.left || right != typedN.right {
 				var predicate SQLExpr
 				kind := CrossJoin
 				if len(partsToUse) > 0 {
@@ -92,22 +94,17 @@ func (v *crossJoinOptimizer) Visit(p PlanStage) (PlanStage, error) {
 					predicate = partsToUse.combine()
 				}
 
-				p = &JoinStage{
-					kind:    kind,
-					left:    left,
-					right:   right,
-					matcher: predicate,
-				}
+				n = NewJoinStage(kind, left.(PlanStage), right.(PlanStage), predicate)
 			}
-			return p, nil
+			return n, nil
 		}
 
 	case *MongoSourceStage:
-		v.tableNames = append(v.tableNames, typedP.aliasName)
-		return p, nil
+		v.tableNames = append(v.tableNames, typedN.aliasName)
+		return n, nil
 	}
 
-	return walkPlanTree(v, p)
+	return walk(v, n)
 }
 
 func (v *crossJoinOptimizer) canUseExpressionPartInJoinClause(part expressionPart) bool {

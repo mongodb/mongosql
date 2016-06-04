@@ -683,7 +683,7 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &SQLExistsExpr{nil, subquery}, nil
+		return &SQLExistsExpr{subquery}, nil
 	case *sqlparser.FalseVal:
 		return SQLFalse, nil
 	case *sqlparser.FuncExpr:

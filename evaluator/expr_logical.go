@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/deafgoat/mixer/sqlparser"
 )
 
 //
@@ -82,7 +81,6 @@ func (_ *SQLEqualsExpr) Type() schema.SQLType {
 // SQLExistsExpr evaluates to true if any result is returned from the subquery.
 //
 type SQLExistsExpr struct {
-	stmt sqlparser.SelectStatement
 	expr *SQLSubqueryExpr
 }
 
@@ -119,18 +117,7 @@ func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (em *SQLExistsExpr) String() string {
-	buf := sqlparser.NewTrackedBuffer(nil)
-
-	switch stmt := em.stmt.(type) {
-	case *sqlparser.Select:
-		stmt.Format(buf)
-	case *sqlparser.SimpleSelect:
-		stmt.Format(buf)
-	case *sqlparser.Union:
-		stmt.Format(buf)
-	}
-
-	return fmt.Sprintf("exists %v", buf.String())
+	return fmt.Sprintf("exists(%s)", em.expr.String())
 }
 
 func (_ *SQLExistsExpr) Type() schema.SQLType {
@@ -376,11 +363,11 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	patternStr := string(pattern)
 
 	// check if pattern ends with a whitespace or tab
-	if strings.HasSuffix(patternStr," ") {
-		patternStr = patternStr[0:len(patternStr) - 1]
+	if strings.HasSuffix(patternStr, " ") {
+		patternStr = patternStr[0 : len(patternStr)-1]
 		patternStr += "\\s$"
-	} else if strings.HasSuffix(patternStr,"\\t") {
-		patternStr = patternStr[0:len(patternStr)-1]
+	} else if strings.HasSuffix(patternStr, "\\t") {
+		patternStr = patternStr[0 : len(patternStr)-1]
 		patternStr += "\\t$"
 	}
 
@@ -392,8 +379,8 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		patternStr = patternStr + "$"
 	}
 
-	patternStr = strings.Replace(patternStr, "_","[\\w]",-1)
-	patternStr = strings.Replace(patternStr, "%","[\\w]*",-1)
+	patternStr = strings.Replace(patternStr, "_", "[\\w]", -1)
+	patternStr = strings.Replace(patternStr, "%", "[\\w]*", -1)
 
 	// (?i) is case insensitive flag
 	reg, err := regexp.Compile("(?i)" + patternStr)
@@ -403,7 +390,7 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	matches := reg.Match([]byte(data))
 
-	if matches{
+	if matches {
 		return SQLValue(SQLInt(1)), nil
 	}
 	return SQLValue(SQLInt(0)), nil
@@ -429,14 +416,15 @@ func sqlValueToString(sqlValue SQLValue) (string, error) {
 			return strconv.FormatInt(int64(t.Float64()), 10), nil
 		}
 	case SQLDate:
-		return string(v.String()),nil
+		return string(v.String()), nil
 	case SQLTimestamp:
-		return string(v.String()),nil
+		return string(v.String()), nil
 	}
 
 	// TODO: just return empty string with no error?
 	return "", fmt.Errorf("unable to convert %v to string", sqlValue)
 }
+
 //
 // SQLNotExpr evaluates to the inverse of its child.
 //

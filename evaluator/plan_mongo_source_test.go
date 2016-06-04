@@ -1,7 +1,6 @@
 package evaluator
 
 import (
-	"encoding/json"
 	"os"
 	"testing"
 
@@ -187,35 +186,5 @@ func TestExtractField(t *testing.T) {
 		val, ok := extractFieldByName("a", nil)
 		So(val, ShouldEqual, nil)
 		So(ok, ShouldBeFalse)
-	})
-}
-
-func TestPipelineJSON(t *testing.T) {
-	Convey("With an array of pipeline stages", t, func() {
-		stages := []bson.D{
-			bson.D{{"$match", bson.D{{"e", bson.D{{"$gte", int64(3)}}}}}},
-			bson.D{{"$sort", bson.D{{"f", -1}}}},
-			bson.D{{"$project", bson.D{{"silly_DOT_e", "$e"}, {"silly_DOT_f", "$f"}}}},
-		}
-
-		Convey("serializing to JSON should produce the correct extended JSON output", func() {
-			jsonOut, err := pipelineJSON(stages, 0)
-			So(err, ShouldBeNil)
-
-			// put the pipeline json into array context so it can be parsed back as an array
-			jsonOut = []byte("[" + string(jsonOut) + "]")
-			parsedJson := []interface{}{}
-
-			err = json.Unmarshal(jsonOut, &parsedJson)
-			So(err, ShouldBeNil)
-			So(parsedJson, ShouldResemble,
-				[]interface{}{
-					map[string]interface{}{"$match": map[string]interface{}{"e": map[string]interface{}{"$gte": map[string]interface{}{"$numberLong": "3"}}}},
-					map[string]interface{}{"$sort": map[string]interface{}{"f": float64(-1)}},
-					map[string]interface{}{"$project": map[string]interface{}{"silly_DOT_e": "$e", "silly_DOT_f": "$f"}},
-				},
-			)
-
-		})
 	})
 }

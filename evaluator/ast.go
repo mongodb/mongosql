@@ -1,185 +1,366 @@
 package evaluator
 
-import (
-	"fmt"
-	"sort"
-	"strconv"
+import "fmt"
 
-	"github.com/10gen/sqlproxy/schema"
-)
-
-//
-// SQLExpr is the base type for a SQL expression.
-//
-type SQLExpr interface {
-	Evaluate(*EvalCtx) (SQLValue, error)
-	String() string
-	Type() schema.SQLType
+type node interface {
+	astnode()
 }
 
-//
-// SQLValue is a SQLExpr with a value.
-//
-type SQLValue interface {
-	SQLExpr
-	Value() interface{}
+type nodeVisitor interface {
+	visit(n node) (node, error)
 }
 
-//
-// SQLNumeric is a numeric SQLValue.
-//
-type SQLNumeric interface {
-	SQLValue
-	Add(o SQLNumeric) SQLNumeric
-	Sub(o SQLNumeric) SQLNumeric
-	Product(o SQLNumeric) SQLNumeric
-	Float64() float64
-}
+// PlanStages
+func (ps *BSONSourceStage) astnode()       {}
+func (ps *DualStage) astnode()             {}
+func (ps *EmptyStage) astnode()            {}
+func (ps *FilterStage) astnode()           {}
+func (ps *GroupByStage) astnode()          {}
+func (ps *JoinStage) astnode()             {}
+func (ps *LimitStage) astnode()            {}
+func (ps *MongoSourceStage) astnode()      {}
+func (ps *OrderByStage) astnode()          {}
+func (ps *ProjectStage) astnode()          {}
+func (ps *SchemaDataSourceStage) astnode() {}
+func (ps *SourceAppendStage) astnode()     {}
+func (ps *SourceRemoveStage) astnode()     {}
 
-// A base type for a binary node.
-type sqlBinaryNode struct {
-	left, right SQLExpr
-}
+// Expressions
+func (e *SQLAggFunctionExpr) astnode()        {}
+func (e *SQLAddExpr) astnode()                {}
+func (e *SQLAndExpr) astnode()                {}
+func (e *SQLCaseExpr) astnode()               {}
+func (e SQLColumnExpr) astnode()              {}
+func (e *SQLConvertExpr) astnode()            {}
+func (e *SQLDivideExpr) astnode()             {}
+func (e *SQLEqualsExpr) astnode()             {}
+func (e *SQLExistsExpr) astnode()             {}
+func (e *SQLGreaterThanExpr) astnode()        {}
+func (e *SQLGreaterThanOrEqualExpr) astnode() {}
+func (e *SQLInExpr) astnode()                 {}
+func (e *SQLLessThanExpr) astnode()           {}
+func (e *SQLLessThanOrEqualExpr) astnode()    {}
+func (e *SQLLikeExpr) astnode()               {}
+func (e *SQLMultiplyExpr) astnode()           {}
+func (e *SQLNotExpr) astnode()                {}
+func (e *SQLNotEqualsExpr) astnode()          {}
+func (e *SQLNullCmpExpr) astnode()            {}
+func (e *SQLOrExpr) astnode()                 {}
+func (e *SQLScalarFunctionExpr) astnode()     {}
+func (e *SQLSubqueryCmpExpr) astnode()        {}
+func (e *SQLSubqueryExpr) astnode()           {}
+func (e *SQLSubtractExpr) astnode()           {}
+func (e *SQLUnaryMinusExpr) astnode()         {}
+func (e *SQLUnaryTildeExpr) astnode()         {}
+func (e *SQLTupleExpr) astnode()              {}
+func (e *SQLVariableExpr) astnode()           {}
 
-type sqlUnaryNode struct {
-	operand SQLExpr
-}
-
-//
-// EvalCtx holds a slice of rows used to evaluate a SQLValue.
-//
-type EvalCtx struct {
-	Rows    []Row
-	ExecCtx *ExecutionCtx
-}
-
-// Matches checks if a given SQLExpr is "truthy" by coercing it to a boolean value.
-// - booleans: the result is simply that same return value
-// - numeric values: the result is true if and only if the value is non-zero.
-// - strings, the result is true if and only if that string can be parsed as a number,
-//   and that number is non-zero.
-func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
-
-	eval, err := expr.Evaluate(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	switch v := eval.(type) {
-	case SQLBool:
-		return bool(v), nil
-	case SQLNumeric:
-		return v.Float64() != float64(0), nil
-	case SQLVarchar:
-		// more info: http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
-		p, err := strconv.ParseFloat(string(v), 64)
-		if err == nil {
-			return p != float64(0), nil
-		}
-		return false, nil
-	}
-
-	// TODO - handle other types with possible values that are "truthy" : dates, etc?
-	return false, nil
-}
-
-// OptimizeSQLExpr takes a SQLExpr and optimizes it by normalizing
-// it into a semantically equivalent tree and partially evaluating
-// any subtrees that evaluatable without data.
-func OptimizeSQLExpr(e SQLExpr) (SQLExpr, error) {
-
-	newE, err := normalize(e)
-	if err != nil {
-		return nil, err
-	}
-
-	newE, err = partiallyEvaluate(newE)
-	if err != nil {
-		return nil, err
-	}
-
-	if e != newE {
-		// normalized and partially evaluated trees might allow for further
-		// optimization
-		return OptimizeSQLExpr(newE)
-	}
-
-	return newE, nil
-}
-
-// SQLExprVisitor is an implementation of the Visitor pattern.
-type SQLExprVisitor interface {
-	// Visit is called with an expression. It returns:
-	// - SQLExpr is the expression used to replace the argument.
-	// - error
-	Visit(SQLExpr) (SQLExpr, error)
-}
+// Values
+func (v SQLBool) astnode()      {}
+func (v SQLDate) astnode()      {}
+func (v SQLFloat) astnode()     {}
+func (v SQLInt) astnode()       {}
+func (v SQLNoValue) astnode()   {}
+func (v SQLNullValue) astnode() {}
+func (v SQLObjectID) astnode()  {}
+func (v SQLVarchar) astnode()   {}
+func (v SQLTimestamp) astnode() {}
+func (v *SQLValues) astnode()   {}
+func (v SQLUint32) astnode()    {}
 
 // walk handles walking the children of the provided expression, calling
-// v.Visit on each child. Some visitor implementations may ignore this
+// v.visit on each child. Some visitor implementations may ignore this
 // method completely, but most will use it as the default implementation
 // for a majority of nodes.
-func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
-	if v == nil || e == nil {
-		return nil, nil
+func walk(v nodeVisitor, n node) (node, error) {
+	visitExpr := func(e SQLExpr) (SQLExpr, error) {
+		n, err := v.visit(e)
+		if err != nil {
+			return nil, err
+		}
+
+		if n == nil {
+			return nil, nil
+		}
+
+		newE, ok := n.(SQLExpr)
+		if !ok {
+			return nil, fmt.Errorf("expected SQLExpr, but got %T", n)
+		}
+
+		return newE, nil
 	}
 
-	switch typedE := e.(type) {
-	case *SQLAggFunctionExpr:
-		hasNewChild := false
-		newChildren := []SQLExpr{}
-		for _, child := range typedE.Exprs {
-			newChild, err := v.Visit(child)
+	visitExprSlice := func(exprs *[]SQLExpr) (*[]SQLExpr, error) {
+		hasNew := false
+		var newExprs []SQLExpr
+		for i, e := range *exprs {
+			newE, err := visitExpr(e)
 			if err != nil {
 				return nil, err
 			}
 
-			if child != newChild {
-				hasNewChild = true
+			if e != newE {
+				hasNew = true
+				newExprs = (*exprs)[0:i]
 			}
 
-			newChildren = append(newChildren, newChild)
+			if hasNew {
+				newExprs = append(newExprs, newE)
+			}
 		}
 
-		if hasNewChild {
-			e = &SQLAggFunctionExpr{typedE.Name, typedE.Distinct, newChildren}
+		if hasNew {
+			return &newExprs, nil
+		}
+
+		return exprs, nil
+	}
+
+	visitOrderByTerms := func(terms *[]*orderByTerm) (*[]*orderByTerm, error) {
+		hasNew := false
+		var newTerms []*orderByTerm
+		for i, t := range *terms {
+			newE, err := visitExpr(t.expr)
+			if err != nil {
+				return nil, err
+			}
+
+			if t.expr != newE {
+				hasNew = true
+				newTerms = (*terms)[0:i]
+			}
+
+			if hasNew {
+				newTerms = append(newTerms, &orderByTerm{
+					ascending: t.ascending,
+					expr:      newE,
+				})
+			}
+		}
+
+		if hasNew {
+			return &newTerms, nil
+		}
+
+		return terms, nil
+	}
+
+	visitProjectedColumns := func(pcs *ProjectedColumns) (*ProjectedColumns, error) {
+		hasNew := false
+		var newPcs ProjectedColumns
+		for i, pc := range *pcs {
+			newE, err := visitExpr(pc.Expr)
+			if err != nil {
+				return nil, err
+			}
+
+			if pc.Expr != newE {
+				hasNew = true
+				newPcs = (*pcs)[0:i]
+			}
+
+			if hasNew {
+				newPcs = append(newPcs, ProjectedColumn{
+					Column: &Column{
+						Table:     pc.Table,
+						Name:      pc.Name,
+						SQLType:   pc.SQLType,
+						MongoType: pc.MongoType,
+					},
+					Expr: newE,
+				})
+			}
+		}
+
+		if hasNew {
+			return &newPcs, nil
+		}
+
+		return pcs, nil
+	}
+
+	visitPlanStage := func(s PlanStage) (PlanStage, error) {
+		n, err := v.visit(s)
+		if err != nil {
+			return nil, err
+		}
+
+		if n == nil {
+			return nil, nil
+		}
+
+		newS, ok := n.(PlanStage)
+		if !ok {
+			return nil, fmt.Errorf("expected PlanStage, but got %T", n)
+		}
+
+		return newS, nil
+	}
+
+	if v == nil || n == nil {
+		return nil, nil
+	}
+
+	switch typedN := n.(type) {
+
+	// PlanStages
+
+	case *DualStage, *EmptyStage, *SchemaDataSourceStage, *MongoSourceStage, *BSONSourceStage:
+		// nothing to do
+	case *FilterStage:
+		source, err := visitPlanStage(typedN.source)
+		if err != nil {
+			return nil, err
+		}
+
+		matcher, err := visitExpr(typedN.matcher)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.source != source || typedN.matcher != matcher {
+			n = NewFilterStage(source, matcher)
+		}
+	case *GroupByStage:
+		source, err := visitPlanStage(typedN.source)
+		if err != nil {
+			return nil, err
+		}
+
+		keys, err := visitExprSlice(&typedN.keys)
+		if err != nil {
+			return nil, err
+		}
+
+		pcs, err := visitProjectedColumns(&typedN.projectedColumns)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.source != source || &typedN.keys != keys || &typedN.projectedColumns != pcs {
+			n = NewGroupByStage(source, *keys, *pcs)
+		}
+	case *JoinStage:
+		left, err := visitPlanStage(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := visitPlanStage(typedN.right)
+		if err != nil {
+			return nil, err
+		}
+
+		matcher, err := visitExpr(typedN.matcher)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.left != left || typedN.right != right || typedN.matcher != matcher {
+			n = NewJoinStage(typedN.kind, left, right, matcher)
+		}
+	case *LimitStage:
+		source, err := visitPlanStage(typedN.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.source != source {
+			n = NewLimitStage(source, typedN.offset, typedN.limit)
+		}
+	case *OrderByStage:
+		source, err := visitPlanStage(typedN.source)
+		if err != nil {
+			return nil, err
+		}
+
+		terms, err := visitOrderByTerms(&typedN.terms)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.source != source || &typedN.terms != terms {
+			n = NewOrderByStage(source, *terms...)
+		}
+	case *ProjectStage:
+		source, err := visitPlanStage(typedN.source)
+		if err != nil {
+			return nil, err
+		}
+
+		pcs, err := visitProjectedColumns(&typedN.projectedColumns)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.source != source || &typedN.projectedColumns != pcs {
+			n = NewProjectStage(source, *pcs...)
+		}
+	case *SourceAppendStage:
+		source, err := visitPlanStage(typedN.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.source != source {
+			n = NewSourceAppendStage(source)
+		}
+	case *SourceRemoveStage:
+		source, err := visitPlanStage(typedN.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.source != source {
+			n = NewSourceRemoveStage(source)
+		}
+
+	// Expressions
+	case *SQLAggFunctionExpr:
+		exprs, err := visitExprSlice(&typedN.Exprs)
+		if err != nil {
+			return nil, err
+		}
+
+		if &typedN.Exprs != exprs {
+			n = &SQLAggFunctionExpr{typedN.Name, typedN.Distinct, *exprs}
 		}
 	case *SQLAddExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
 
-		if typedE.left != left || typedE.right != right {
-			e = &SQLAddExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLAddExpr{left, right}
 		}
 
 	case *SQLAndExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLAndExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLAndExpr{left, right}
 		}
 
 	case *SQLCaseExpr:
 		hasNewCond := false
 		newConds := []caseCondition{}
-		for _, cond := range typedE.caseConditions {
-			m, err := v.Visit(cond.matcher)
+		for _, cond := range typedN.caseConditions {
+			m, err := visitExpr(cond.matcher)
 			if err != nil {
 				return nil, err
 			}
-			t, err := v.Visit(cond.then)
+			t, err := visitExpr(cond.then)
 			if err != nil {
 				return nil, err
 			}
@@ -193,213 +374,216 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 			newConds = append(newConds, newCond)
 		}
 
-		newElse, err := v.Visit(typedE.elseValue)
+		newElse, err := visitExpr(typedN.elseValue)
 		if err != nil {
 			return nil, err
 		}
 
-		if hasNewCond || typedE.elseValue != newElse {
-			e = &SQLCaseExpr{newElse, newConds}
+		if hasNewCond || typedN.elseValue != newElse {
+			n = &SQLCaseExpr{newElse, newConds}
 		}
 	case SQLColumnExpr:
 		// no children
 	case *SQLConvertExpr:
-		expr, err := v.Visit(typedE.expr)
+		expr, err := visitExpr(typedN.expr)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.expr != expr {
-			e = &SQLConvertExpr{expr, typedE.convType}
+		if typedN.expr != expr {
+			n = &SQLConvertExpr{expr, typedN.convType}
 		}
 	case *SQLDivideExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLDivideExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLDivideExpr{left, right}
 		}
 	case *SQLEqualsExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLEqualsExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLEqualsExpr{left, right}
 		}
 
 	case *SQLExistsExpr:
-		// child isn't visitable
+		expr, err := visitExpr(typedN.expr)
+		if err != nil {
+			return nil, err
+		}
+
+		sub, ok := expr.(*SQLSubqueryExpr)
+		if !ok {
+			return nil, fmt.Errorf("SQLExistsExpr requires an evaluator.*SQLSubqueryExpr, but got a %T", sub)
+		}
+
+		if typedN.expr != expr {
+			n = &SQLExistsExpr{sub}
+		}
 	case *SQLGreaterThanExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLGreaterThanExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLGreaterThanExpr{left, right}
 		}
 
 	case *SQLGreaterThanOrEqualExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLGreaterThanOrEqualExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLGreaterThanOrEqualExpr{left, right}
 		}
 
 	case *SQLInExpr:
 
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
 
-		if typedE.left != left || typedE.right != right {
-			e = &SQLInExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLInExpr{left, right}
 		}
 
 	case *SQLLessThanExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLLessThanExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLLessThanExpr{left, right}
 		}
 
 	case *SQLLessThanOrEqualExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLLessThanOrEqualExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLLessThanOrEqualExpr{left, right}
 		}
 
 	case *SQLLikeExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLLikeExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLLikeExpr{left, right}
 		}
 
 	case *SQLMultiplyExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLMultiplyExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLMultiplyExpr{left, right}
 		}
 
 	case *SQLNotExpr:
-		operand, err := v.Visit(typedE.operand)
+		operand, err := visitExpr(typedN.operand)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.operand != operand {
-			e = &SQLNotExpr{operand}
+		if typedN.operand != operand {
+			n = &SQLNotExpr{operand}
 		}
 
 	case *SQLNotEqualsExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLNotEqualsExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLNotEqualsExpr{left, right}
 		}
 
 	case *SQLNullCmpExpr:
-		operand, err := v.Visit(typedE.operand)
+		operand, err := visitExpr(typedN.operand)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.operand != operand {
-			e = &SQLNullCmpExpr{operand}
+		if typedN.operand != operand {
+			n = &SQLNullCmpExpr{operand}
 		}
 
 	case *SQLOrExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLOrExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLOrExpr{left, right}
 		}
 
 	case *SQLScalarFunctionExpr:
-		hasNewChild := false
-		newChildren := []SQLExpr{}
-		for _, child := range typedE.Exprs {
-			newChild, err := v.Visit(child)
-			if err != nil {
-				return nil, err
-			}
 
-			if child != newChild {
-				hasNewChild = true
-			}
-
-			newChildren = append(newChildren, newChild)
-		}
-
-		if hasNewChild {
-			e = &SQLScalarFunctionExpr{typedE.Name, newChildren}
-		}
-	case *SQLSubqueryCmpExpr:
-		left, err := v.Visit(typedE.left)
+		exprs, err := visitExprSlice(&typedN.Exprs)
 		if err != nil {
 			return nil, err
 		}
-		sub, err := v.Visit(typedE.value)
+
+		if &typedN.Exprs != exprs {
+			n = &SQLScalarFunctionExpr{typedN.Name, *exprs}
+		}
+	case *SQLSubqueryCmpExpr:
+		left, err := visitExpr(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+		sub, err := visitExpr(typedN.value)
 		if err != nil {
 			return nil, err
 		}
@@ -409,85 +593,72 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 			return nil, fmt.Errorf("SQLSubqueryCmpExpr requires an evaluator.*SQLSubqueryExpr, but got a %T", sub)
 		}
 
-		if typedE.left != left || typedE.value != value {
-			e = &SQLSubqueryCmpExpr{typedE.In, left, value}
+		if typedN.left != left || typedN.value != value {
+			n = &SQLSubqueryCmpExpr{typedN.In, left, value}
 		}
 
 	case *SQLSubqueryExpr:
-		// child isn't visitable
+		plan, err := visitPlanStage(typedN.plan)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.plan != plan {
+			n = &SQLSubqueryExpr{
+				correlated: typedN.correlated,
+				plan:       plan,
+			}
+		}
 	case *SQLSubtractExpr:
-		left, err := v.Visit(typedE.left)
+		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := v.Visit(typedE.right)
+		right, err := visitExpr(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.left != left || typedE.right != right {
-			e = &SQLSubtractExpr{left, right}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLSubtractExpr{left, right}
 		}
 
 	case *SQLUnaryMinusExpr:
-		operand, err := v.Visit(typedE.operand)
+		operand, err := visitExpr(typedN.operand)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.operand != operand {
-			e = &SQLUnaryMinusExpr{operand}
+		if typedN.operand != operand {
+			n = &SQLUnaryMinusExpr{operand}
 		}
 
 	case *SQLUnaryTildeExpr:
-		operand, err := v.Visit(typedE.operand)
+		operand, err := visitExpr(typedN.operand)
 		if err != nil {
 			return nil, err
 		}
-		if typedE.operand != operand {
-			e = &SQLUnaryTildeExpr{operand}
+		if typedN.operand != operand {
+			n = &SQLUnaryTildeExpr{operand}
 		}
 
 	case *SQLTupleExpr:
-		hasNewChild := false
-		newChildren := []SQLExpr{}
-		for _, child := range typedE.Exprs {
-			newChild, err := v.Visit(child)
-			if err != nil {
-				return nil, err
-			}
-
-			if child != newChild {
-				hasNewChild = true
-			}
-
-			newChildren = append(newChildren, newChild)
+		exprs, err := visitExprSlice(&typedN.Exprs)
+		if err != nil {
+			return nil, err
 		}
-
-		if hasNewChild {
-			e = &SQLTupleExpr{newChildren}
+		if &typedN.Exprs != exprs {
+			n = &SQLTupleExpr{*exprs}
 		}
+	case *SQLVariableExpr:
+		// nothing to do
 
 	// values
-	case SQLBool:
-		// nothing to do
-	case SQLDate:
-		// nothing to do
-	case SQLFloat:
-		// nothing to do
-	case SQLInt:
-		// nothing to do
-	case SQLNullValue:
-		// nothing to do
-	case SQLVarchar:
-		// nothing to do
-	case SQLTimestamp:
-		// nothing to do
-	case *SQLVariableExpr:
+	case SQLBool, SQLDate, SQLFloat, SQLInt, SQLNoValue, SQLNullValue, SQLObjectID, SQLVarchar, SQLTimestamp, SQLUint32:
 		// nothing to do
 	case *SQLValues:
 		hasNewValue := false
 		newValues := []SQLValue{}
-		for _, value := range typedE.Values {
-			newValueExpr, err := v.Visit(value)
+		for _, value := range typedN.Values {
+			newValueExpr, err := visitExpr(value)
 			if err != nil {
 				return nil, err
 			}
@@ -504,256 +675,11 @@ func walk(v SQLExprVisitor, e SQLExpr) (SQLExpr, error) {
 		}
 
 		if hasNewValue {
-			e = &SQLValues{newValues}
+			n = &SQLValues{newValues}
 		}
-
-	case SQLUint32:
-		// nothing to do
 	default:
-		return nil, fmt.Errorf("unsupported expression: %T", typedE)
+		return nil, fmt.Errorf("unsupported node: %T", typedN)
 	}
 
-	return e, nil
-}
-
-// getColumnType accepts a table name and a column name
-// and returns the column type for the given column if
-// it is found in the tables map. If it is not found, it
-// returns a default column type.
-func getColumnType(tables map[string]*schema.Table, tableName, columnName string) *schema.ColumnType {
-
-	none := &schema.ColumnType{schema.SQLNone, schema.MongoNone}
-
-	if tables == nil {
-		return none
-	}
-
-	table, ok := tables[tableName]
-	if !ok {
-		return none
-	}
-
-	column, ok := table.SQLColumns[columnName]
-	if !ok {
-		return none
-	}
-
-	return &schema.ColumnType{column.SqlType, column.MongoType}
-}
-
-// preferentialType accepts a variable number of
-// SQLExprs and returns the type of the SQLExpr
-// with the highest preference.
-func preferentialType(exprs ...SQLExpr) schema.SQLType {
-	if len(exprs) == 0 {
-		return schema.SQLNone
-	}
-
-	var types schema.SQLTypes
-
-	for _, expr := range exprs {
-		types = append(types, expr.Type())
-	}
-
-	sort.Sort(types)
-
-	return types[len(types)-1]
-}
-
-// reconcileSQLExprs takes two SQLExpr and ensures that
-// they are of the same type. If they are of different
-// types but still comparable, it wraps the SQLExpr with
-// a lesser precendence in a SQLConvertExpr. If they are
-// not comparable, it returns a non-nil error.
-func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
-
-	leftType, rightType := left.Type(), right.Type()
-
-	_, leftIsTuple := left.(*SQLTupleExpr)
-	_, leftIsSubquery := left.(*SQLSubqueryExpr)
-
-	_, rightIsTuple := right.(*SQLTupleExpr)
-	_, rightIsSubquery := right.(*SQLSubqueryExpr)
-
-	if leftIsTuple || rightIsTuple || leftIsSubquery || rightIsSubquery {
-		return reconcileSQLTuple(left, right)
-	}
-
-	if leftType == rightType || schema.IsSimilar(leftType, rightType) {
-		return left, right, nil
-	}
-
-	if !schema.CanCompare(leftType, rightType) {
-		return nil, nil, fmt.Errorf("cannot compare '%v' type against '%v' type", leftType, rightType)
-	}
-
-	types := schema.SQLTypes{leftType, rightType}
-	sort.Sort(types)
-
-	if types[0] == schema.SQLObjectID {
-		types[0], types[1] = types[1], types[0]
-	}
-
-	if types[1] == leftType {
-		right = &SQLConvertExpr{right, types[1]}
-	} else {
-		left = &SQLConvertExpr{left, types[1]}
-	}
-
-	return left, right, nil
-}
-
-func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
-
-	getSQLExprs := func(expr SQLExpr) ([]SQLExpr, error) {
-		switch typedE := expr.(type) {
-		case *SQLTupleExpr:
-			return typedE.Exprs, nil
-		case *SQLSubqueryExpr:
-			return typedE.Exprs(), nil
-		}
-		return nil, fmt.Errorf("can not reconcile non-tuple type '%T'", expr)
-	}
-
-	wrapReconciledExprs := func(expr SQLExpr, newExprs []SQLExpr) (SQLExpr, error) {
-		switch typedE := expr.(type) {
-		case *SQLTupleExpr:
-			return &SQLTupleExpr{newExprs}, nil
-		case *SQLSubqueryExpr:
-			plan := typedE.plan
-
-			var projectedColumns ProjectedColumns
-			for i, c := range plan.Columns() {
-				projectedColumns = append(projectedColumns, ProjectedColumn{
-					Column: c,
-					Expr:   newExprs[i],
-				})
-			}
-
-			return &SQLSubqueryExpr{
-				correlated: typedE.correlated,
-				plan:       NewProjectStage(plan, projectedColumns...),
-			}, nil
-		}
-		return nil, fmt.Errorf("can not wrap reconciled non-tuple type '%T'", expr)
-	}
-
-	var leftExprs []SQLExpr
-	var rightExprs []SQLExpr
-	var err error
-
-	if left.Type() == schema.SQLTuple {
-		leftExprs, err = getSQLExprs(left)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	if right.Type() == schema.SQLTuple {
-		rightExprs, err = getSQLExprs(right)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	var newLeftExprs []SQLExpr
-	var newRightExprs []SQLExpr
-
-	// cases here:
-	// (a, b) = (1, 2)
-	// (a) = (1)
-	// (a) in (1, 2)
-	// (a) = (SELECT a FROM foo)
-	if left.Type() == schema.SQLTuple && right.Type() == schema.SQLTuple {
-
-		numLeft, numRight := len(leftExprs), len(rightExprs)
-
-		if numLeft != numRight && numLeft != 1 {
-			return nil, nil, fmt.Errorf("tuple comparison mismatch: expected %v got %v", numLeft, numRight)
-		}
-
-		for i, _ := range rightExprs {
-			leftExpr := leftExprs[0]
-			if numLeft != 1 {
-				leftExpr = leftExprs[i]
-			}
-
-			rightExpr := rightExprs[i]
-
-			newLeftExpr, newRightExpr, err := reconcileSQLExprs(leftExpr, rightExpr)
-			if err != nil {
-				return nil, nil, err
-
-			}
-
-			newRightExprs = append(newRightExprs, newRightExpr)
-			newLeftExprs = append(newLeftExprs, newLeftExpr)
-		}
-
-		if numLeft == 1 {
-			newLeftExprs = newLeftExprs[:1]
-		}
-
-		left, err = wrapReconciledExprs(left, newLeftExprs)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		right, err = wrapReconciledExprs(right, newRightExprs)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return left, right, nil
-	}
-
-	// cases here:
-	// (a) = 1
-	// (SELECT a FROM foo) = 1
-	if left.Type() == schema.SQLTuple && right.Type() != schema.SQLTuple {
-
-		if len(leftExprs) != 1 {
-			return nil, nil, fmt.Errorf("left 'in' operand must have only one value - got %v", len(leftExprs))
-		}
-
-		var newLeftExpr SQLExpr
-
-		newLeftExpr, right, err = reconcileSQLExprs(leftExprs[0], right)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		newLeftExprs = append(newLeftExprs, newLeftExpr)
-
-		left, err = wrapReconciledExprs(left, newLeftExprs)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return left, right, nil
-	}
-
-	// cases here:
-	// a = (1)
-	// a = (SELECT a FROM foo)
-	// a in (1, 2)
-	if left.Type() != schema.SQLTuple && right.Type() == schema.SQLTuple {
-
-		for _, rightExpr := range rightExprs {
-			_, newRightExpr, err := reconcileSQLExprs(left, rightExpr)
-			if err != nil {
-				return nil, nil, err
-			}
-			newRightExprs = append(newRightExprs, newRightExpr)
-		}
-
-		right, err = wrapReconciledExprs(right, newRightExprs)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return left, right, nil
-	}
-
-	return nil, nil, fmt.Errorf("left or right expression must be a tuple")
+	return n, nil
 }

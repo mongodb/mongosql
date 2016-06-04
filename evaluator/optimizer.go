@@ -95,7 +95,7 @@ type expressionPart struct {
 
 func referencedTables(e SQLExpr) ([]string, error) {
 	finder := &sqlExprReferencedTableCollector{}
-	_, err := finder.Visit(e)
+	_, err := finder.visit(e)
 	if err != nil {
 		return nil, err
 	}
@@ -107,10 +107,10 @@ type sqlExprReferencedTableCollector struct {
 	tableNames []string
 }
 
-func (v *sqlExprReferencedTableCollector) Visit(e SQLExpr) (SQLExpr, error) {
-	switch typedE := e.(type) {
+func (v *sqlExprReferencedTableCollector) visit(n node) (node, error) {
+	switch typedN := n.(type) {
 	case SQLColumnExpr:
-		v.tableNames = append(v.tableNames, typedE.tableName)
+		v.tableNames = append(v.tableNames, typedN.tableName)
 	}
-	return walk(v, e)
+	return walk(v, n)
 }

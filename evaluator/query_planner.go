@@ -93,7 +93,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 				Column: pc.Column,
 				Expr:   newExpr,
 			})
-			b.exprCollector.Visit(newExpr)
+			b.exprCollector.Add(newExpr)
 		}
 
 		b.project = projectedColumns
@@ -196,7 +196,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 			if err != nil {
 				return err
 			}
-			b.exprCollector.Visit(replaced)
+			b.exprCollector.Add(replaced)
 
 			projectedColumns = append(projectedColumns, ProjectedColumn{
 				Expr:   replaced,
@@ -212,7 +212,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 		if err != nil {
 			return err
 		}
-		b.exprCollector.Visit(having)
+		b.exprCollector.Add(having)
 
 		b.having = having
 	}
@@ -225,7 +225,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 			if err != nil {
 				return err
 			}
-			b.exprCollector.Visit(replaced)
+			b.exprCollector.Add(replaced)
 
 			orderBy = append(orderBy, &orderByTerm{
 				ascending: obt.ascending,
@@ -245,7 +245,7 @@ func (b *queryPlanBuilder) includeGroupBy(groupBy sqlparser.GroupBy) error {
 		return err
 	}
 
-	b.exprCollector.VisitAll(keys)
+	b.exprCollector.AddAll(keys)
 	b.groupBy = keys
 	return nil
 }
@@ -256,7 +256,7 @@ func (b *queryPlanBuilder) includeHaving(having *sqlparser.Where) error {
 		return err
 	}
 
-	b.exprCollector.Visit(pred)
+	b.exprCollector.Add(pred)
 	b.having = pred
 	return nil
 }
@@ -279,7 +279,7 @@ func (b *queryPlanBuilder) includeOrderBy(orderBy sqlparser.OrderBy) error {
 	}
 
 	for _, obt := range terms {
-		b.exprCollector.Visit(obt.expr)
+		b.exprCollector.Add(obt.expr)
 	}
 	b.orderBy = terms
 	return nil
@@ -292,7 +292,7 @@ func (b *queryPlanBuilder) includeSelect(selectExprs sqlparser.SelectExprs) erro
 	}
 
 	for _, pc := range project {
-		b.exprCollector.Visit(pc.Expr)
+		b.exprCollector.Add(pc.Expr)
 	}
 	b.project = project
 	return nil
@@ -304,7 +304,7 @@ func (b *queryPlanBuilder) includeWhere(where *sqlparser.Where) error {
 		return err
 	}
 
-	b.exprCollector.Visit(pred)
+	b.exprCollector.Add(pred)
 	b.where = pred
 	return nil
 }
@@ -368,52 +368,60 @@ func newExpressionCollector() *expressionCollector {
 
 func (c *expressionCollector) Remove(e SQLExpr) {
 	c.removeMode = true
-	c.Visit(e)
+	c.Add(e)
 	c.removeMode = false
 }
 
 func (c *expressionCollector) RemoveAll(e []SQLExpr) {
 	c.removeMode = true
-	c.VisitAll(e)
+	c.AddAll(e)
 	c.removeMode = false
 }
 
-func (c *expressionCollector) VisitAll(exprs []SQLExpr) {
+func (c *expressionCollector) AddAll(exprs []SQLExpr) {
 	for _, e := range exprs {
-		c.Visit(e)
+		c.Add(e)
 	}
 }
 
-func (v *expressionCollector) Visit(e SQLExpr) (SQLExpr, error) {
-	switch typedE := e.(type) {
+func (c *expressionCollector) Add(e SQLExpr) {
+	c.visit(e)
+}
+
+func (v *expressionCollector) visit(n node) (node, error) {
+	switch typedN := n.(type) {
 	case *SQLAggFunctionExpr:
 		v.inAggFunc = true
 		if v.removeMode {
-			v.allAggFunctions.remove(typedE)
+			v.allAggFunctions.remove(typedN)
 		} else {
-			v.allAggFunctions.add(typedE)
+			v.allAggFunctions.add(typedN)
 		}
-		for _, a := range typedE.Exprs {
-			v.Visit(a)
+		for _, a := range typedN.Exprs {
+			v.visit(a)
 		}
 		v.inAggFunc = false
-		return typedE, nil
+		return typedN, nil
 	case SQLColumnExpr:
 		if v.removeMode {
-			v.allReferencedColumns.remove(typedE)
+			v.allReferencedColumns.remove(typedN)
 		} else {
-			v.allReferencedColumns.add(typedE)
+			v.allReferencedColumns.add(typedN)
 		}
 		if !v.inAggFunc {
 			if v.removeMode {
-				v.allNonAggReferencedColumns.remove(typedE)
+				v.allNonAggReferencedColumns.remove(typedN)
 			} else {
-				v.allNonAggReferencedColumns.add(typedE)
+				v.allNonAggReferencedColumns.add(typedN)
 			}
 		}
-		return typedE, nil
+		return typedN, nil
+	case *SQLSubqueryExpr:
+		// TODO: need to add logic to only collect
+		// columns and agg functions that apply
+		return n, nil
 	default:
-		return walk(v, e)
+		return walk(v, n)
 	}
 }
 
@@ -425,7 +433,7 @@ type aggFunctionFinder struct {
 // aggregation functions it finds within the expression.
 func getAggFunctions(e SQLExpr) ([]*SQLAggFunctionExpr, error) {
 	af := &aggFunctionFinder{}
-	_, err := af.Visit(e)
+	_, err := af.visit(e)
 	if err != nil {
 		return nil, err
 	}
@@ -433,36 +441,49 @@ func getAggFunctions(e SQLExpr) ([]*SQLAggFunctionExpr, error) {
 	return af.aggFuncs, nil
 }
 
-func (af *aggFunctionFinder) Visit(e SQLExpr) (SQLExpr, error) {
-	switch typedE := e.(type) {
-	case *SQLExistsExpr, SQLColumnExpr, SQLNullValue, SQLNumeric, SQLVarchar, *SQLSubqueryExpr, *SQLVariableExpr:
-		return e, nil
+func (af *aggFunctionFinder) visit(n node) (node, error) {
+	switch typedN := n.(type) {
+	case *SQLExistsExpr, SQLColumnExpr, SQLNullValue, SQLNumeric, SQLVarchar, *SQLVariableExpr:
+		return n, nil
 	case *SQLAggFunctionExpr:
-		af.aggFuncs = append(af.aggFuncs, typedE)
+		af.aggFuncs = append(af.aggFuncs, typedN)
+	case *SQLSubqueryExpr:
+		// TODO: need to add logic to only collect
+		// agg functions that apply
+		return n, nil
 	default:
-		return walk(af, e)
+		return walk(af, n)
 	}
 
-	return e, nil
+	return n, nil
 }
 
-type aggFunctionExprReplacer struct{}
+type aggFunctionExprReplacer struct {
+}
 
 func replaceAggFunctionsWithColumns(e SQLExpr) (SQLExpr, error) {
 	v := &aggFunctionExprReplacer{}
-	return v.Visit(e)
+	n, err := v.visit(e)
+	if err != nil {
+		return nil, err
+	}
+
+	return n.(SQLExpr), nil
 }
 
-func (v *aggFunctionExprReplacer) Visit(e SQLExpr) (SQLExpr, error) {
-	switch typedE := e.(type) {
+func (v *aggFunctionExprReplacer) visit(n node) (node, error) {
+	switch typedN := n.(type) {
 	case *SQLAggFunctionExpr:
 		columnType := schema.ColumnType{
-			SQLType:   typedE.Type(),
+			SQLType:   typedN.Type(),
 			MongoType: schema.MongoNone,
 		}
-		return SQLColumnExpr{"", typedE.String(), columnType}, nil
+		return SQLColumnExpr{"", typedN.String(), columnType}, nil
+	case *SQLSubqueryExpr:
+		// TODO: handle parental aggregates in correlated subquery
+		return n, nil
 	default:
-		return walk(v, e)
+		return walk(v, n)
 	}
 }
 
