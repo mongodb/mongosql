@@ -1326,6 +1326,7 @@ func TestJoinPushDown(t *testing.T) {
 							"c":   1,
 							"d.e": 1,
 							"d.f": 1,
+							"g":   1,
 							"_id": 1,
 							"__joined_bar": bson.M{
 								"$cond": bson.M{
@@ -1358,6 +1359,7 @@ func TestJoinPushDown(t *testing.T) {
 							"c":   1,
 							"d.e": 1,
 							"d.f": 1,
+							"g":   1,
 							"_id": 1,
 							"__joined_bar": bson.M{
 								"$cond": bson.M{

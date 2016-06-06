@@ -50,6 +50,11 @@ schema:
         SqlName: f
         SqlType: int
      -
+        Name: g
+        MongoType: bool
+        SqlName: g
+        SqlType: boolean
+     -
         Name: _id
         MongoType: bson.ObjectId
         SqlType: varchar

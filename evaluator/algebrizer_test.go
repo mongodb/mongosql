@@ -129,6 +129,20 @@ func TestAlgebrizeStatements(t *testing.T) {
 				)
 			})
 
+			test("select false", func() PlanStage {
+				return NewProjectStage(
+					NewDualStage(),
+					createProjectedColumnFromSQLExpr("", "false", SQLFalse),
+				)
+			})
+
+			test("select true", func() PlanStage {
+				return NewProjectStage(
+					NewDualStage(),
+					createProjectedColumnFromSQLExpr("", "true", SQLTrue),
+				)
+			})
+
 			test("select 2 + 3 from dual", func() PlanStage {
 				return NewProjectStage(
 					NewDualStage(),
@@ -435,6 +449,35 @@ func TestAlgebrizeStatements(t *testing.T) {
 				source := createMongoSource("foo", "foo")
 				return NewProjectStage(
 					NewFilterStage(source, createSQLColumnExpr("foo", "a", schema.SQLInt, schema.MongoInt)),
+					createProjectedColumn(source, "foo", "a", "", "a"),
+				)
+			})
+
+			test("select a from foo where false", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewFilterStage(source, SQLFalse),
+					createProjectedColumn(source, "foo", "a", "", "a"),
+				)
+			})
+
+			test("select a from foo where true", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewFilterStage(source, SQLTrue),
+					createProjectedColumn(source, "foo", "a", "", "a"),
+				)
+			})
+
+			test("select a from foo where g = true", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewProjectStage(
+					NewFilterStage(source,
+						&SQLEqualsExpr{
+							left:  createSQLColumnExpr("foo", "g", schema.SQLBoolean, schema.MongoBool),
+							right: SQLTrue,
+						},
+					),
 					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
@@ -1035,6 +1078,14 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 		Convey("Null", func() {
 			test("NULL", SQLNull)
+		})
+
+		Convey("True", func() {
+			test("TRUE", SQLTrue)
+		})
+
+		Convey("False", func() {
+			test("FALSE", SQLFalse)
 		})
 
 		Convey("Number", func() {

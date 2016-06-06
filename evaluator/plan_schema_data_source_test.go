@@ -91,9 +91,9 @@ func TestSchemaDataSourceIter(t *testing.T) {
 				names = names[numInformationSchemaColumns:]
 				sort.Strings(names)
 
-				So(len(names), ShouldEqual, 22)
+				So(len(names), ShouldEqual, 23)
 
-				expectedNames := []string{"_id", "_id", "_id", "_id", "_id", "a", "a", "a", "amount", "b", "b", "b", "c", "c", "d", "e", "e", "f", "f", "name", "orderid", "orderid"}
+				expectedNames := []string{"_id", "_id", "_id", "_id", "_id", "a", "a", "a", "amount", "b", "b", "b", "c", "c", "d", "e", "e", "f", "f", "g", "name", "orderid", "orderid"}
 				So(names, ShouldResemble, expectedNames)
 				So(iter.Close(), ShouldBeNil)
 			})
