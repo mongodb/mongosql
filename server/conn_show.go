@@ -25,21 +25,32 @@ func (c *conn) handleShow(sql string, stmt *sqlparser.Show) error {
 
 func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) error {
 
-	translated :=
-		"SELECT COLUMN_NAME AS `Field`" +
-			", COLUMN_TYPE AS `Type`" +
-			", IS_NULLABLE AS `Null`" +
-			", COLUMN_KEY AS `Key`" +
-			", COLUMN_DEFAULT AS `Default`" +
-			", EXTRA AS `Extra`"
-
-	if strings.ToLower(stmt.Modifier) == "full" {
-		translated += ", COLLATION_NAME AS `Collation`" +
-			", PRIVILEGES AS `Privileges`" +
-			", COLUMN_COMMENT AS `Comment`"
+	translated := "SELECT `Field`, `Type`"
+	if strings.EqualFold(stmt.Modifier, "full") {
+		translated += ", `Collation`"
 	}
 
-	translated += " FROM INFORMATION_SCHEMA.COLUMNS"
+	translated += ", `Null`, `Key`, `Default`, `Extra`"
+
+	if strings.EqualFold(stmt.Modifier, "full") {
+		translated += ", `Privileges`, `Comment`"
+	}
+
+	translated += " FROM (" +
+		" SELECT COLUMN_NAME AS `Field`" +
+		", COLUMN_TYPE AS `Type`" +
+		", IS_NULLABLE AS `Null`" +
+		", COLUMN_KEY AS `Key`" +
+		", COLUMN_DEFAULT AS `Default`" +
+		", EXTRA AS `Extra`" +
+		", COLLATION_NAME AS `Collation`" +
+		", PRIVILEGES AS `Privileges`" +
+		", COLUMN_COMMENT AS `Comment`" +
+		", TABLE_NAME" +
+		", TABLE_SCHEMA" +
+		", ORDINAL_POSITION"
+
+	translated += " FROM INFORMATION_SCHEMA.COLUMNS) `is`"
 
 	var dbName string
 	if c.currentDB != nil {
@@ -80,7 +91,7 @@ func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) error {
 	if stmt.LikeOrWhere != nil {
 		switch stmt.LikeOrWhere.(type) {
 		case sqlparser.StrVal:
-			translated += fmt.Sprintf(" AND COLUMN_NAME LIKE %s", sqlparser.String(stmt.LikeOrWhere))
+			translated += fmt.Sprintf(" AND `Field` LIKE %s", sqlparser.String(stmt.LikeOrWhere))
 		default:
 			translated += fmt.Sprintf(" AND %s", sqlparser.String(stmt.LikeOrWhere))
 		}
@@ -92,19 +103,19 @@ func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) error {
 }
 
 func (c *conn) handleShowDatabases(stmt *sqlparser.Show) error {
-	translated := "SELECT SCHEMA_NAME AS `Database`" +
-		" FROM INFORMATION_SCHEMA.SCHEMATA"
+	translated := "SELECT * FROM (SELECT SCHEMA_NAME AS `Database`" +
+		" FROM INFORMATION_SCHEMA.SCHEMATA) `is`"
 
 	if stmt.LikeOrWhere != nil {
 		switch stmt.LikeOrWhere.(type) {
 		case sqlparser.StrVal:
-			translated += fmt.Sprintf(" WHERE SCHEMA_NAME LIKE %s", sqlparser.String(stmt.LikeOrWhere))
+			translated += fmt.Sprintf(" WHERE `Database` LIKE %s", sqlparser.String(stmt.LikeOrWhere))
 		default:
 			translated += fmt.Sprintf(" WHERE %s", sqlparser.String(stmt.LikeOrWhere))
 		}
 	}
 
-	translated += " ORDER BY SCHEMA_NAME"
+	translated += " ORDER BY `Database`"
 
 	return c.handleQuery(translated)
 }
@@ -130,25 +141,28 @@ func (c *conn) handleShowTables(sql string, stmt *sqlparser.Show) error {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
 	}
 
-	translated := fmt.Sprintf("SELECT TABLE_NAME AS `Tables_in_%s`", dbName)
+	columnName := fmt.Sprintf("`Tables_in_%s`", dbName)
 
-	if strings.ToLower(stmt.Modifier) == "full" {
-		translated += ", TABLE_TYPE AS `Type`"
+	translated := fmt.Sprintf("SELECT %s", columnName)
+	if strings.EqualFold(stmt.Modifier, "full") {
+		translated += ", `Type`"
 	}
 
-	translated += " FROM INFORMATION_SCHEMA.TABLES" +
-		fmt.Sprintf(" WHERE TABLE_SCHEMA = '%s'", dbName)
+	translated += " FROM (" +
+		fmt.Sprintf(" SELECT TABLE_NAME AS %s, TABLE_TYPE AS `Type`", columnName) +
+		" FROM INFORMATION_SCHEMA.TABLES " +
+		fmt.Sprintf(" WHERE TABLE_SCHEMA = '%s') `is`", dbName)
 
 	if stmt.LikeOrWhere != nil {
 		switch stmt.LikeOrWhere.(type) {
 		case sqlparser.StrVal:
-			translated += fmt.Sprintf(" AND TABLE_NAME LIKE %s", sqlparser.String(stmt.LikeOrWhere))
+			translated += fmt.Sprintf(" WHERE %s LIKE %s", columnName, sqlparser.String(stmt.LikeOrWhere))
 		default:
-			translated += fmt.Sprintf(" AND %s", sqlparser.String(stmt.LikeOrWhere))
+			translated += fmt.Sprintf(" WHERE %s", sqlparser.String(stmt.LikeOrWhere))
 		}
 	}
 
-	translated += " ORDER BY TABLE_NAME"
+	translated += fmt.Sprintf(" ORDER BY %s", columnName)
 
 	return c.handleQuery(translated)
 }

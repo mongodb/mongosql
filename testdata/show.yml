@@ -89,9 +89,9 @@ testcases:
 - sql: "SHOW FULL COLUMNS FROM foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", "", "", "", "utf8_bin", "select", "{ \"name\": \"a\" }"]
-    - ["b1", "varchar", "YES", "", "", "", "utf8_bin", "select", "{ \"name\": \"b\" }"]
-    - ["c1", "int64", "YES", "", "", "", "utf8_bin", "select", "{ \"name\": \"c\" }"]
+    - ["a1", "int64", "utf8_bin", "YES", "", "", "", "select", "{ \"name\": \"a\" }"]
+    - ["b1", "varchar", "utf8_bin", "YES", "", "", "", "select", "{ \"name\": \"b\" }"]
+    - ["c1", "int64", "utf8_bin", "YES", "", "", "", "select", "{ \"name\": \"c\" }"]
 - sql: "SHOW COLUMNS FROM test2.foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected: []
@@ -104,7 +104,7 @@ testcases:
   expected_types: [varchar]
   expected: 
     - ["foo"]
-- sql: "SHOW TABLES WHERE TABLE_NAME = 'foo'"
+- sql: "SHOW TABLES WHERE Tables_in_test = 'foo'"
   expected_types: [varchar]
   expected: 
     - ["foo"]
@@ -131,7 +131,7 @@ testcases:
   expected_types: [varchar]
   expected: 
     - ["blah"]
-- sql: "SHOW DATABASES WHERE SCHEMA_NAME = 'test'"
+- sql: "SHOW DATABASES WHERE `Database` = 'test'"
   expected_types: [varchar]
   expected: 
     - ["test"]
