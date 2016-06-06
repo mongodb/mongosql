@@ -684,6 +684,8 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 		return &SQLExistsExpr{nil, subquery}, nil
+	case *sqlparser.FalseVal:
+		return SQLFalse, nil
 	case *sqlparser.FuncExpr:
 		return a.translateFuncExpr(typedE)
 	case *sqlparser.NotExpr:
@@ -772,6 +774,8 @@ func (a *algebrizer) translateExpr(expr sqlparser.Expr) (SQLExpr, error) {
 		return SQLVarchar(string(typedE)), nil
 	case *sqlparser.Subquery:
 		return a.translateSubqueryExpr(typedE)
+	case *sqlparser.TrueVal:
+		return SQLTrue, nil
 	case *sqlparser.UnaryExpr:
 
 		child, err := a.translateExpr(typedE.Expr)
