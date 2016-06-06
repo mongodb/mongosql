@@ -132,6 +132,10 @@ var keywords = map[string]int{
 	"time":      TIME,
 	"timestamp": TIMESTAMP,
 	"year":      YEAR,
+
+	// boolean literals
+	"true":  TRUE,
+	"false": FALSE,
 }
 
 // Lex returns the next token form the Tokenizer.

@@ -448,6 +448,8 @@ func (NumVal) IExpr()          {}
 func (ValArg) IExpr()          {}
 func (*NullVal) IExpr()        {}
 func (*ColName) IExpr()        {}
+func (*TrueVal) IExpr()        {}
+func (*FalseVal) IExpr()       {}
 func (ValTuple) IExpr()        {}
 func (*Subquery) IExpr()       {}
 func (*BinaryExpr) IExpr()     {}
@@ -465,6 +467,8 @@ func (StrVal) IBoolExpr()      {}
 func (NumVal) IBoolExpr()      {}
 func (ValArg) IBoolExpr()      {}
 func (*NullVal) IBoolExpr()    {}
+func (*TrueVal) IBoolExpr()    {}
+func (*FalseVal) IBoolExpr()   {}
 func (*ColName) IBoolExpr()    {}
 func (ValTuple) IBoolExpr()    {}
 func (*Subquery) IBoolExpr()   {}
@@ -604,6 +608,8 @@ func (StrVal) IValExpr()      {}
 func (NumVal) IValExpr()      {}
 func (ValArg) IValExpr()      {}
 func (*NullVal) IValExpr()    {}
+func (*TrueVal) IValExpr()    {}
+func (*FalseVal) IValExpr()   {}
 func (*ColName) IValExpr()    {}
 func (ValTuple) IValExpr()    {}
 func (*Subquery) IValExpr()   {}
@@ -640,6 +646,20 @@ type NullVal struct{}
 
 func (node *NullVal) Format(buf *TrackedBuffer) {
 	buf.Fprintf("null")
+}
+
+// TrueVal represents a TRUE value.
+type TrueVal struct{}
+
+func (node *TrueVal) Format(buf *TrackedBuffer) {
+	buf.Fprintf("true")
+}
+
+// FalseVal represents a FALSE value.
+type FalseVal struct{}
+
+func (node *FalseVal) Format(buf *TrackedBuffer) {
+	buf.Fprintf("false")
 }
 
 // ColName represents a column name.

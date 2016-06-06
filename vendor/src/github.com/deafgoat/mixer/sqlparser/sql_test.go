@@ -39,6 +39,17 @@ func TestAliasedWhere(t *testing.T) {
 	testParse(t, sql)
 }
 
+func TestBooleanLiteral(t *testing.T) {
+	sql := "select * from foo.tables where a=true"
+	testParse(t, sql)
+
+	sql = "select false from foo.tables where false"
+	testParse(t, sql)
+
+	sql = "select false from foo.tables order by false"
+	testParse(t, sql)
+}
+
 func TestTimeConstructors(t *testing.T) {
 
 	sql := "select * from foo.tables where a > (DATE '2014-06-01 00:00:00.000')"
