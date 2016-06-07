@@ -2109,6 +2109,27 @@ func TestSelectWithCaseExpr(t *testing.T) {
 			}
 
 		})
+
+		Convey("if a simple select case matches, the correct match should be returned", func() {
+
+			names, values, err := eval.EvaluateRows("test", "select a, (case a when 1 then 'one' else 'not one' end) as p from bar", nil, conn)
+			So(err, ShouldBeNil)
+			So(len(names), ShouldEqual, 2)
+			So(len(values), ShouldEqual, 3)
+
+			So(names, ShouldResemble, []string{"a", "p"})
+
+			expectedValues := [][]evaluator.SQLValue{
+				[]evaluator.SQLValue{evaluator.SQLInt(5), evaluator.SQLVarchar("not one")},
+				[]evaluator.SQLValue{evaluator.SQLInt(1), evaluator.SQLVarchar("one")},
+				[]evaluator.SQLValue{evaluator.SQLInt(6), evaluator.SQLVarchar("not one")},
+			}
+
+			for i, v := range expectedValues {
+				So(values[i], ShouldResemble, []interface{}{v[0], v[1]})
+			}
+
+		})
 	})
 }
 
