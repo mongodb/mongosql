@@ -150,7 +150,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	} else {
 		restore.tempRolesCol = *restore.ToolOptions.HiddenOptions.TempRolesColl
 	}
-	
+
 	if len(restore.OutputOptions.ExcludedCollections) > 0 && restore.ToolOptions.Namespace.Collection != "" {
 		return fmt.Errorf("--collection is not allowed when --excludeCollection is specified")
 	}
@@ -216,13 +216,18 @@ func (restore *MongoRestore) Restore() error {
 			return err
 		}
 	} else if restore.TargetDirectory != "-" {
+		var usedDefaultTarget bool
 		if restore.TargetDirectory == "" {
 			restore.TargetDirectory = "dump"
 			log.Log(log.Always, "using default 'dump' directory")
+			usedDefaultTarget = true
 		}
 		target, err = newActualPath(restore.TargetDirectory)
 		if err != nil {
-			return fmt.Errorf("can't create ActualPath object from path %v: %v", restore.TargetDirectory, err)
+			if usedDefaultTarget {
+				log.Log(log.Always, "see mongorestore --help for usage information")
+			}
+			return fmt.Errorf("mongorestore target '%v' invalid: %v", restore.TargetDirectory, err)
 		}
 		// handle cases where the user passes in a file instead of a directory
 		if !target.IsDir() {
