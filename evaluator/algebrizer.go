@@ -130,7 +130,7 @@ func (a *algebrizer) registerColumns(columns []*Column) error {
 	return nil
 }
 
-// registerTable ensures that we have no duplicate tables.
+// registerTable ensures that we have no duplicate table names or aliases.
 func (a *algebrizer) registerTable(tableName string) error {
 	for _, registeredName := range a.tableNames {
 		if strings.EqualFold(tableName, registeredName) {
