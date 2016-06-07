@@ -95,6 +95,7 @@ buildvariants:
   display_name: Solaris
   expansions:
     cover: "-"
+    gccgoflags: -gccgoflags "-lsocket -lnsl"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.mongodb.org/sunos5/mongodb-sunos5-x86_64-latest.tgz
   run_on:
@@ -213,7 +214,7 @@ functions:
           export PATH=/opt/ldwrapper/bin:$PATH
         fi
         . ./set_gopath.sh
-        ${gorootvars} ${library_path} go build -o sqlproxy main/main.go
+        ${gorootvars} ${library_path} go build ${gccgoflags} -o sqlproxy main/main.go
         echo "Done!"
 
   "download mongod":
@@ -282,7 +283,7 @@ functions:
         fi;
         perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
         if [ '${cover}' != '-' ]; then
-          ${gorootvars} ${library_path} go tool cover -func=coverage_rewrite.out -o coverage.txt
+          ${gorootvars} ${library_path} go tool cover ${gccgoflags} -func=coverage_rewrite.out -o coverage.txt
         fi;
 
   "generate coverage html":
@@ -300,7 +301,7 @@ functions:
         fi;
         perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
         if [ '${cover}' != '-' ]; then
-          ${gorootvars} ${library_path} go tool cover -html=coverage_rewrite.out -o coverage.html
+          ${gorootvars} ${library_path} go tool cover ${gccgoflags} -html=coverage_rewrite.out -o coverage.html
         fi;
 
   "rewrite coverage report":
@@ -411,8 +412,8 @@ tasks:
             export ${library_path}
           fi;
           . ./set_gopath.sh
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -out benchmark_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test -run benchmark_test.go -bench=. -benchmem -benchtime=5s -v -timeout 4h > benchmark.txt 2>&1; if [ $? -ne 0 ]; then cat benchmark.txt; exit 1; else cat benchmark.txt; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go ${gccgoflags} -out benchmark_test.go
+          ${gorootvars} ${library_path} ${gotest_env} go test -run benchmark_test.go ${gccgoflags} -bench=. -benchmem -benchtime=5s -v -timeout 4h > benchmark.txt 2>&1; if [ $? -ne 0 ]; then cat benchmark.txt; exit 1; else cat benchmark.txt; exit 0; fi
     - func: "upload benchmark report"
 
 - name: blackbox
@@ -438,7 +439,7 @@ tasks:
           mkfifo test_pipe
           tee -a blackbox.suite < test_pipe&
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test -blackbox -run TestBlackBox -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe;
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -blackbox -run TestBlackBox -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe;
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -468,7 +469,7 @@ tasks:
           mkfifo test_pipe
           tee -a blackbox-optoff.suite < test_pipe&
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test -blackbox -run TestBlackBox -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test ${gccgoflags} -blackbox -run TestBlackBox -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -502,7 +503,7 @@ tasks:
           . ./set_gopath.sh
           cd evaluator
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test -v ${cover|-coverprofile=coverage.out} > evaluator.suite 2>&1; if [ $? -ne 0 ]; then cat evaluator.suite; exit 1; else cat evaluator.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > evaluator.suite 2>&1; if [ $? -ne 0 ]; then cat evaluator.suite; exit 1; else cat evaluator.suite; exit 0; fi
     - command: shell.exec
       type: test
       params:
@@ -537,7 +538,7 @@ tasks:
           . ./set_gopath.sh
           cd schema
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test -v ${cover|-coverprofile=coverage.out} > schema.suite 2>&1; if [ $? -ne 0 ]; then cat schema.suite; exit 1; else cat schema.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > schema.suite 2>&1; if [ $? -ne 0 ]; then cat schema.suite; exit 1; else cat schema.suite; exit 0; fi
     - command: shell.exec
       params:
         working_dir: src
@@ -571,7 +572,7 @@ tasks:
           fi;
           . ./set_gopath.sh
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -599,7 +600,7 @@ tasks:
           fi;
           . ./set_gopath.sh
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy-optoff.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-optoff.suite; exit 1; else cat sqlproxy-optoff.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test ${gccgoflags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy-optoff.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-optoff.suite; exit 1; else cat sqlproxy-optoff.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -627,7 +628,7 @@ tasks:
             export ${library_path}
           fi;
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test -tableau -run TestTableauDemo -timeout 4h -v ${cover|-coverprofile=coverage.out} > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -tableau -run TestTableauDemo -timeout 4h -v ${cover|-coverprofile=coverage.out} > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
