@@ -965,6 +965,10 @@ when_expression:
   {
     $$ = &When{Cond: $2, Val: $4}
   }
+| WHEN value_expression THEN value_expression
+  {
+    $$ = &When{Cond: $2, Val: $4}
+  }
 
 else_expression_opt:
   {

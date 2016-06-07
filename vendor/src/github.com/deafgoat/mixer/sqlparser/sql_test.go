@@ -80,6 +80,18 @@ func TestCastExpr(t *testing.T) {
 	testParse(t, sql)
 }
 
+func TestCaseExpr(t *testing.T) {
+
+	// simple case expression
+	sql := "SELECT case x when 1 then 2 when 2 then 3 else 4 end from foo.tables"
+	testParse(t, sql)
+
+	// searched case expression
+	sql = "SELECT case when a=1 then 2 when a=2 then 3 else 4 end from foo.tables"
+	testParse(t, sql)
+
+}
+
 func TestSubqueryComparisons(t *testing.T) {
 	sql := "SELECT * FROM foo WHERE a > any (SELECT a FROM foo)"
 	testParse(t, sql)
