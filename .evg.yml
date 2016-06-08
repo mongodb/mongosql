@@ -8,7 +8,7 @@ buildvariants:
   expansions:
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian71-latest.tgz
+    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian71-3.2.7.tgz
   tasks:
   - "!benchmark"
 - name: debian81
@@ -24,7 +24,7 @@ buildvariants:
 - name: linux-64-amazon-ami
   display_name: Amazon Linux (Enterprise)
   expansions:
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-latest.tgz --output mongodb.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.2.7.tgz --output mongodb.tgz
     mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
     mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
     gotest_env: "SQLPROXY_SSLTEST=1"
@@ -38,7 +38,7 @@ buildvariants:
   - osx-1010
   expansions:
     cover: "-"
-    mongo_url: https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-latest.tgz
+    mongo_url: https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-3.2.7.tgz
   tasks:
   - "!benchmark"
 - name: rhel55
@@ -46,7 +46,7 @@ buildvariants:
   expansions:
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel57-latest.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel57-3.2.7.tgz
   run_on:
   - rhel55
   tasks:
@@ -56,7 +56,7 @@ buildvariants:
   expansions:
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel62-latest.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel62-3.2.7.tgz
   run_on:
   - rhel62-test
   tasks:
@@ -65,7 +65,7 @@ buildvariants:
   display_name: RHEL 7.0
   expansions:
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-rhel70-latest.tgz
+    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-rhel70-3.2.7.tgz
   run_on:
   - rhel70
   tasks:
@@ -75,7 +75,7 @@ buildvariants:
   expansions:
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-latest.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.2.7.tgz
   run_on:
   - rhel71-power8-test
   tasks:
@@ -97,7 +97,7 @@ buildvariants:
     cover: "-"
     gccgoflags: -gccgoflags "-lsocket -lnsl"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.mongodb.org/sunos5/mongodb-sunos5-x86_64-latest.tgz
+    mongo_url: http://downloads.mongodb.org/sunos5/mongodb-sunos5-x86_64-3.2.7.tgz
   run_on:
   - solaris
   tasks:
@@ -106,7 +106,7 @@ buildvariants:
   display_name: SLES 11
   expansions:
     cover: "-"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse11-latest.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse11-3.2.7.tgz
   run_on:
   - suse11-test
   tasks:
@@ -115,7 +115,7 @@ buildvariants:
   display_name: SLES 12
   expansions:
     cover: "-"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse12-latest.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse12-3.2.7.tgz
   run_on:
   - suse12-test
   tasks:
@@ -124,7 +124,7 @@ buildvariants:
   display_name: Ubuntu 14.04
   expansions:
     cover: "-"
-    mongo_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-latest.tgz
+    mongo_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.7.tgz
   run_on:
   - ubuntu1404-build
   tasks:
@@ -135,7 +135,7 @@ buildvariants:
   - windows-32
   expansions:
     cover: "-"
-    mongo_url: https://fastdl.mongodb.org/win32/mongodb-win32-i386-latest.zip
+    mongo_url: https://fastdl.mongodb.org/win32/mongodb-win32-i386-3.2.7.zip
     extension: .exe
     # Set storage engine as mmapv1 for 32 bit variants
     # since WiredTiger requires 64 bit support.
@@ -148,7 +148,7 @@ buildvariants:
   - windows-64-vs2013-test
   expansions:
     cover: "-"
-    mongo_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-latest.zip
+    mongo_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.7.zip
     extension: .exe
   tasks:
   - "!benchmark"
