@@ -44,8 +44,14 @@ const (
 )
 
 type testDataSet struct {
-	ArchiveFile string         `yaml:"archive_file"`
-	Inline      *inlineDataSet `yaml:"inline"`
+	// ArchiveFile represents a mongodump file that should be restored.
+	// It will generally be used when a large amount of data is needed
+	// for tests.
+	ArchiveFile string `yaml:"archive_file"`
+	// Inline represents data that is specified in the yaml file.
+	// It will generally be used when a small amount of data is needed
+	// for tests.
+	Inline *inlineDataSet `yaml:"inline"`
 }
 
 type inlineDataSet struct {
@@ -112,7 +118,7 @@ func TestTableauDemo(t *testing.T) {
 	})
 }
 
-func TestSelectIntegration(t *testing.T) {
+func TestIntegration(t *testing.T) {
 	files, err := ioutil.ReadDir("integration_tests")
 	if err != nil {
 		panic(err)
@@ -362,10 +368,6 @@ func restoreInline(host, port string, inline *inlineDataSet) error {
 		return err
 	}
 	sessionProvider.SetFlags(toolsdb.DisableSocketTimeout)
-
-	if err != nil {
-		return err
-	}
 
 	session, err := sessionProvider.GetSession()
 	if err != nil {

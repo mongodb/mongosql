@@ -190,6 +190,6 @@ testcases:
   expected_names: ["a", "p"]
   expected_types: [int, string]
   expected: 
-  - [1, "true"]
-  - [2, "true"]
-  - [3, "true"]
+  - [1, true]
+  - [2, true]
+  - [3, true]
