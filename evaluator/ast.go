@@ -79,10 +79,6 @@ func walk(v nodeVisitor, n node) (node, error) {
 			return nil, err
 		}
 
-		if n == nil {
-			return nil, nil
-		}
-
 		newE, ok := n.(SQLExpr)
 		if !ok {
 			return nil, fmt.Errorf("expected SQLExpr, but got %T", n)
@@ -186,20 +182,12 @@ func walk(v nodeVisitor, n node) (node, error) {
 			return nil, err
 		}
 
-		if n == nil {
-			return nil, nil
-		}
-
 		newS, ok := n.(PlanStage)
 		if !ok {
 			return nil, fmt.Errorf("expected PlanStage, but got %T", n)
 		}
 
 		return newS, nil
-	}
-
-	if v == nil || n == nil {
-		return nil, nil
 	}
 
 	switch typedN := n.(type) {

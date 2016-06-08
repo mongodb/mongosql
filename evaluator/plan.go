@@ -55,9 +55,7 @@ type Iter interface {
 }
 
 // Column contains information used to select data
-// from a query plan. 'Table' and 'Column' define the
-// source of the data while 'View' holds the display
-// header representation of the data.
+// from a PlanStage.
 type Column struct {
 	Table     string
 	Name      string

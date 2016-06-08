@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"strconv"
+
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"strconv"
 )
 
 func createFieldNameLookup(db *schema.Database) fieldNameLookup {
@@ -295,27 +296,27 @@ func TestEvaluates(t *testing.T) {
 
 		Convey("Subject: SQLLikeExpr", func() {
 			tests := []test{
-				test{"'Á Â Ã Ä' LIKE '%'",SQLInt(1)},
-				test{"'Á Â Ã Ä' LIKE 'Á Â Ã Ä'",SQLInt(1)},
-				test{"'Á Â Ã Ä' LIKE 'Á%'",SQLInt(1)},
-				test{"'a' LIKE 'a'", SQLInt(1) },
-				test{"'Adam' LIKE 'am'",SQLInt(0)},
-				test{"'Adam' LIKE 'adaM'",SQLInt(1)}, // mixed case test
-				test{"'Adam' LIKE '%am%'",SQLInt(1)},
-				test{"'Adam' LIKE 'Ada_'",SQLInt(1)},
-				test{"'Adam' LIKE '__am'",SQLInt(1)},
-				test{"'Clever' LIKE '%is'",SQLInt(0)},
-				test{"'Adam is nice' LIKE '%xs '",SQLInt(0)},
-				test{"'Adam is nice' LIKE '%is nice'",SQLInt(1)},
-				test{"'abc' LIKE 'ABC'",SQLInt(1)},    //case sensitive test
-				test{"'abc' LIKE 'ABC '",SQLInt(0)},   // trailing space test
-				test{"'abc' LIKE ' ABC'",SQLInt(0)},   // leading space test
-				test{"'abc' LIKE ' ABC '",SQLInt(0)},  // padded space test
-				test{"'abc' LIKE 'ABC	'",SQLInt(0)}, // trailing tab test
+				test{"'Á Â Ã Ä' LIKE '%'", SQLInt(1)},
+				test{"'Á Â Ã Ä' LIKE 'Á Â Ã Ä'", SQLInt(1)},
+				test{"'Á Â Ã Ä' LIKE 'Á%'", SQLInt(1)},
+				test{"'a' LIKE 'a'", SQLInt(1)},
+				test{"'Adam' LIKE 'am'", SQLInt(0)},
+				test{"'Adam' LIKE 'adaM'", SQLInt(1)}, // mixed case test
+				test{"'Adam' LIKE '%am%'", SQLInt(1)},
+				test{"'Adam' LIKE 'Ada_'", SQLInt(1)},
+				test{"'Adam' LIKE '__am'", SQLInt(1)},
+				test{"'Clever' LIKE '%is'", SQLInt(0)},
+				test{"'Adam is nice' LIKE '%xs '", SQLInt(0)},
+				test{"'Adam is nice' LIKE '%is nice'", SQLInt(1)},
+				test{"'abc' LIKE 'ABC'", SQLInt(1)},   //case sensitive test
+				test{"'abc' LIKE 'ABC '", SQLInt(0)},  // trailing space test
+				test{"'abc' LIKE ' ABC'", SQLInt(0)},  // leading space test
+				test{"'abc' LIKE ' ABC '", SQLInt(0)}, // padded space test
+				test{"'abc' LIKE 'ABC	'", SQLInt(0)}, // trailing tab test
 				test{"'10' LIKE '1%'", SQLInt(1)},
-				test{"'a   ' LIKE 'A   '",SQLInt(1)},
+				test{"'a   ' LIKE 'A   '", SQLInt(1)},
 				test{"CURRENT_DATE() LIKE '2015-05-31%'", SQLInt(0)},
-				test{"(DATE '2008-01-02') LIKE '2008-01%'",SQLInt(1)},
+				test{"(DATE '2008-01-02') LIKE '2008-01%'", SQLInt(1)},
 				test{"NOW() LIKE '" + strconv.Itoa(time.Now().Year()) + "%' ", SQLInt(1)},
 				test{"10 LIKE '1%'", SQLInt(1)},
 				test{"1.20 LIKE '1.2%'", SQLInt(1)},
@@ -798,6 +799,236 @@ func TestMatches(t *testing.T) {
 				So(m, ShouldEqual, t[1])
 			})
 		}
+	})
+}
+
+func TestNewSQLValue(t *testing.T) {
+
+	Convey("When creating a SQLValue with no column type specified calling NewSQLValue on a", t, func() {
+
+		Convey("SQLValue should return the same object passed in", func() {
+			v := SQLTrue
+			newV, err := NewSQLValue(v, schema.SQLBoolean, schema.MongoBool)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, v)
+		})
+
+		Convey("nil value should return SQLNull", func() {
+			v, err := NewSQLValue(nil, schema.SQLNull, schema.MongoBool)
+			So(err, ShouldBeNil)
+			So(v, ShouldResemble, SQLNull)
+		})
+
+		Convey("bson object id should return its string value", func() {
+			v := bson.ObjectId("56a10dd56ce28a89a8ed6edb")
+			newV, err := NewSQLValue(v, schema.SQLVarchar, schema.MongoObjectId)
+			So(err, ShouldBeNil)
+			So(newV, ShouldEqual, v.Hex())
+		})
+
+		Convey("string objects should return the string value", func() {
+			v := "56a10dd56ce28a89a8ed6edb"
+			newV, err := NewSQLValue(v, schema.SQLVarchar, schema.MongoString)
+			So(err, ShouldBeNil)
+			So(newV, ShouldEqual, v)
+		})
+
+		Convey("int objects should return the int value", func() {
+			v1 := int(6)
+			newV, err := NewSQLValue(v1, schema.SQLInt, schema.MongoInt)
+			So(err, ShouldBeNil)
+			So(newV, ShouldEqual, v1)
+
+			v2 := int32(6)
+			newV, err = NewSQLValue(v2, schema.SQLInt, schema.MongoInt)
+			So(err, ShouldBeNil)
+			So(newV, ShouldEqual, v2)
+
+			v3 := uint32(6)
+			newV, err = NewSQLValue(v3, schema.SQLInt, schema.MongoInt)
+			So(err, ShouldBeNil)
+			So(newV, ShouldEqual, v3)
+		})
+
+		Convey("float objects should return the float value", func() {
+			v := float64(6.3)
+			newV, err := NewSQLValue(v, schema.SQLFloat, schema.MongoFloat)
+			So(err, ShouldBeNil)
+			So(newV, ShouldEqual, v)
+		})
+
+		Convey("time objects should return the appropriate value", func() {
+			v := time.Date(2014, time.December, 31, 0, 0, 0, 0, schema.DefaultLocale)
+			newV, err := NewSQLValue(v, schema.SQLDate, schema.MongoDate)
+			So(err, ShouldBeNil)
+
+			sqlDate, ok := newV.(SQLDate)
+			So(ok, ShouldBeTrue)
+			So(sqlDate, ShouldResemble, SQLDate{v})
+
+			v = time.Date(2014, time.December, 31, 10, 0, 0, 0, schema.DefaultLocale)
+			newV, err = NewSQLValue(v, schema.SQLTimestamp, schema.MongoDate)
+			So(err, ShouldBeNil)
+
+			sqlTimestamp, ok := newV.(SQLTimestamp)
+			So(ok, ShouldBeTrue)
+			So(sqlTimestamp, ShouldResemble, SQLTimestamp{v})
+		})
+	})
+
+	Convey("When creating a SQLValue with a column type specified calling NewSQLValue on a", t, func() {
+
+		Convey("a SQLVarchar/SQLVarchar column type should attempt to coerce to the SQLVarchar type", func() {
+
+			t := schema.SQLVarchar
+
+			newV, err := NewSQLValue(t, schema.SQLVarchar, schema.MongoString)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLVarchar(t))
+
+			newV, err = NewSQLValue(6, schema.SQLVarchar, schema.MongoInt)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLVarchar("6"))
+
+			newV, err = NewSQLValue(6.6, schema.SQLVarchar, schema.MongoFloat)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLVarchar("6.6"))
+
+			newV, err = NewSQLValue(int64(6), schema.SQLVarchar, schema.MongoInt64)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLVarchar("6"))
+
+			_id := bson.ObjectId("56a10dd56ce28a89a8ed6edb")
+			newV, err = NewSQLValue(_id, schema.SQLVarchar, schema.MongoObjectId)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLObjectID(_id.Hex()))
+
+		})
+
+		Convey("a SQLInt column type should attempt to coerce to the SQLInt type", func() {
+
+			_, err := NewSQLValue(true, schema.SQLInt, schema.MongoBool)
+			So(err, ShouldNotBeNil)
+
+			_, err = NewSQLValue("6", schema.SQLInt, schema.MongoString)
+			So(err, ShouldNotBeNil)
+
+			newV, err := NewSQLValue(int(6), schema.SQLInt, schema.MongoInt64)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLInt(6))
+
+			newV, err = NewSQLValue(int32(6), schema.SQLInt, schema.MongoInt)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLInt(6))
+
+			newV, err = NewSQLValue(int64(6), schema.SQLInt, schema.MongoInt64)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLInt(6))
+
+			newV, err = NewSQLValue(float64(6.6), schema.SQLInt, schema.MongoFloat)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLInt(6))
+
+		})
+
+		Convey("a SQLFloat column type should attempt to coerce to the SQLFloat type", func() {
+
+			_, err := NewSQLValue(true, schema.SQLFloat, schema.MongoBool)
+			So(err, ShouldNotBeNil)
+
+			_, err = NewSQLValue("6.6", schema.SQLFloat, schema.MongoString)
+			So(err, ShouldNotBeNil)
+
+			newV, err := NewSQLValue(int(6), schema.SQLFloat, schema.MongoInt)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLFloat(6))
+
+			newV, err = NewSQLValue(int32(6), schema.SQLFloat, schema.MongoInt)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLFloat(6))
+
+			newV, err = NewSQLValue(int64(6), schema.SQLFloat, schema.MongoInt64)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLFloat(6))
+
+			newV, err = NewSQLValue(float64(6.6), schema.SQLFloat, schema.MongoFloat)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLFloat(6.6))
+
+		})
+
+		Convey("a SQLDate column type should attempt to coerce to the SQLDate type", func() {
+
+			// Time type
+			v1 := time.Date(2014, time.May, 11, 0, 0, 0, 0, schema.DefaultLocale)
+			v2 := time.Date(2014, time.May, 11, 10, 32, 12, 0, schema.DefaultLocale)
+
+			newV, err := NewSQLValue(v1, schema.SQLDate, schema.MongoDate)
+			So(err, ShouldBeNil)
+
+			sqlDate, ok := newV.(SQLDate)
+			So(ok, ShouldBeTrue)
+			So(sqlDate, ShouldResemble, SQLDate{v1})
+
+			newV, err = NewSQLValue(v2, schema.SQLDate, schema.MongoDate)
+			So(err, ShouldBeNil)
+
+			sqlDate, ok = newV.(SQLDate)
+			So(ok, ShouldBeTrue)
+			So(sqlDate, ShouldResemble, SQLDate{v1})
+
+			// String type
+			dates := []string{"2014-05-11", "2014-05-11 15:04:05", "2014-05-11 15:04:05.233"}
+
+			for _, d := range dates {
+
+				newV, err := NewSQLValue(d, schema.SQLDate, schema.MongoNone)
+				So(err, ShouldBeNil)
+
+				sqlDate, ok := newV.(SQLDate)
+				So(ok, ShouldBeTrue)
+				So(sqlDate, ShouldResemble, SQLDate{v1})
+
+			}
+
+			// invalid dates and those outside valid range
+			// should return the default date
+			dates = []string{"2014-12-44-44", "999-1-1", "10000-1-1"}
+
+			for _, d := range dates {
+				_, err = NewSQLValue(d, schema.SQLDate, schema.MongoNone)
+				So(err, ShouldNotBeNil)
+			}
+		})
+
+		Convey("a SQLTimestamp column type should attempt to coerce to the SQLTimestamp type", func() {
+
+			// Time type
+			v1 := time.Date(2014, time.May, 11, 15, 4, 5, 0, schema.DefaultLocale)
+
+			newV, err := NewSQLValue(v1, schema.SQLTimestamp, schema.MongoNone)
+			So(err, ShouldBeNil)
+
+			sqlTs, ok := newV.(SQLTimestamp)
+			So(ok, ShouldBeTrue)
+			So(sqlTs, ShouldResemble, SQLTimestamp{v1})
+
+			// String type
+			newV, err = NewSQLValue("2014-05-11 15:04:05.000", schema.SQLTimestamp, schema.MongoNone)
+			So(err, ShouldBeNil)
+
+			sqlTs, ok = newV.(SQLTimestamp)
+			So(ok, ShouldBeTrue)
+			So(sqlTs, ShouldResemble, SQLTimestamp{v1})
+
+			// invalid dates should return the default date
+			dates := []string{"2044-12-40", "1966-15-1", "43223-3223"}
+
+			for _, d := range dates {
+				_, err = NewSQLValue(d, schema.SQLTimestamp, schema.MongoNone)
+				So(err, ShouldNotBeNil)
+			}
+		})
 	})
 }
 
