@@ -36,6 +36,7 @@ schema:
       MongoType: int
       SqlName: c
       SqlType: int
+      
 #
 # Tests
 # (we are using an order by here as well because output order from MongoDB after a $group and MySQL after a group by is unspecified)
