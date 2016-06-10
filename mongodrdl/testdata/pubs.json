@@ -1,0 +1,100 @@
+{"_id":105,"amenity":"pub","created_by":"Potlatch 0.10b","location":{"coordinates":[-0.1430911,51.5238028],"type":"Point"},"name":"The Green Man"}
+{"_id":108042,"addr:housenumber":"31","addr:street":"University Street","amenity":"pub","location":{"coordinates":[-0.1355991,51.5235442],"type":"Point"},"name":"The Jeremy Bentham","phone":"020 7387 3033","postal_code":"WC1E 6JL","randomjunk_bot":"reverted edit by FilipeOliveira on 2008-11-24T15:02:32+00:00","toilets":"yes","toilets:access":"customers","toilets:wheelchair":"no","wheelchair":"limited"}
+{"_id":262706,"amenity":"pub","created_by":"Potlatch 0.10f","location":{"coordinates":[-0.7251785,51.03503],"type":"Point"},"name":"The Kings Arms"}
+{"_id":262707,"amenity":"pub","location":{"coordinates":[-0.854808,51.0439],"type":"Point"},"name":"Flying Bull"}
+{"_id":262708,"amenity":"pub","location":{"coordinates":[-0.726258,51.0244],"type":"Point"},"name":"The Duke Of Cumberland"}
+{"_id":262709,"amenity":"pub","location":{"coordinates":[-0.7791497,50.9932238],"type":"Point"},"name":"The Hamilton Arms","postal_code":"GU29 0NZ"}
+{"_id":262710,"accommodation":"yes","amenity":"pub","food":"yes","location":{"coordinates":[-0.8770501,51.0305454],"type":"Point"},"name":"Jolly Drover"}
+{"_id":262712,"amenity":"pub","created_by":"osmeditor2","description":"Nice pub on village green. Very nice on a day like this, far better than being indoors!!!!","location":{"coordinates":[-0.71755,51.0495],"type":"Point"},"name":"The Red Lion"}
+{"_id":262713,"amenity":"pub","location":{"coordinates":[-0.8172247,51.0553623],"type":"Point"},"name":"Black Fox"}
+{"_id":262714,"amenity":"pub","food":"yes","location":{"coordinates":[-0.805651,51.0359],"type":"Point"},"name":"The Rising Sun","real_ale":"yes"}
+{"_id":262768,"amenity":"pub","location":{"coordinates":[-0.8132431,50.9789995],"type":"Point"},"name":"Elsted Inn"}
+{"_id":262779,"amenity":"pub","location":{"coordinates":[-0.8069641,50.993369],"type":"Point"},"name":"Keepers Arms"}
+{"_id":262780,"amenity":"pub","location":{"coordinates":[-0.8824119,50.9700184],"type":"Point"},"name":"The Ship"}
+{"_id":262781,"amenity":"pub","location":{"coordinates":[-0.8504199,51.0083156],"type":"Point"},"name":"The White Horse"}
+{"_id":262801,"amenity":"pub","location":{"coordinates":[-0.8831487,50.9695234],"type":"Point"},"name":"The White Hart"}
+{"_id":262816,"amenity":"pub","location":{"coordinates":[-0.9500042,50.9766164],"type":"Point"},"name":"The Five Bells"}
+{"_id":262820,"amenity":"pub","location":{"coordinates":[-0.9498667,51.0224274],"type":"Point"},"name":"The Cricketers Inn"}
+{"_id":271087,"amenity":"pub","location":{"coordinates":[-1.6013252,50.8981609],"type":"Point"},"name":"Trusty Servant Inn"}
+{"_id":271112,"amenity":"pub","created_by":"Potlatch 0.10b","location":{"coordinates":[-1.5270942,50.8904874],"type":"Point"},"name":"The New Forest"}
+{"_id":271144,"amenity":"pub","location":{"coordinates":[-1.9742222,51.082736],"type":"Point"},"name":"The Wyndham Arms"}
+{"_id":271173,"addr:postcode":"SO24 0RE","amenity":"pub","location":{"coordinates":[-1.2003499,51.08318],"type":"Point"},"name":"The Bush Inn","real_ale":"yes","real_fire":"yes","website":"http://www.thebushinn.co.uk"}
+{"_id":271179,"amenity":"pub","location":{"coordinates":[-1.189166,51.0179819],"type":"Point"},"name":"Milburys"}
+{"_id":271214,"amenity":"pub","location":{"coordinates":[-1.2679477,51.0868307],"type":"Point"},"name":"Chestnut Horse"}
+{"_id":271216,"amenity":"pub","location":{"coordinates":[-1.2715969,51.0859227],"type":"Point"},"name":"The Cricketers"}
+{"_id":271247,"amenity":"pub","location":{"coordinates":[-1.7215,50.8958],"type":"Point"},"name":"The High Corner Inn"}
+{"_id":271252,"amenity":"pub","location":{"coordinates":[-1.3756161,51.0800762],"type":"Point"},"name":"The Plough Inn"}
+{"_id":271262,"amenity":"pub","location":{"coordinates":[-1.6709581,50.9262557],"type":"Point"},"name":"The Royal Oak"}
+{"_id":271300,"amenity":"pub","location":{"coordinates":[-1.5997844,50.7868975],"type":"Point"},"name":"The Hare And Hounds"}
+{"_id":271339,"amenity":"pub","location":{"coordinates":[-1.8568512,51.3535391],"type":"Point"},"name":"The Barge","wheelchair":"no"}
+{"_id":271360,"amenity":"pub","location":{"coordinates":[-2.0343697,51.0097183],"type":"Point"},"name":"The Crown Inn","note":"Currently closed."}
+{"_id":271373,"amenity":"pub","location":{"coordinates":[-1.4706524,51.0230922],"type":"Point"},"name":"Newport Inn"}
+{"_id":271404,"amenity":"pub","location":{"coordinates":[-1.5038697,50.8545729],"type":"Point"},"name":"The Drift Inn"}
+{"_id":271421,"amenity":"pub","location":{"coordinates":[-1.6192422,50.9131996],"type":"Point"},"name":"Sir Walter Tyrrell"}
+{"_id":271448,"amenity":"pub","location":{"coordinates":[-1.9900246,51.1390078],"type":"Point"},"name":"The Bell Inn"}
+{"_id":271466,"amenity":"pub","location":{"coordinates":[-1.5494749,50.7837119],"type":"Point"},"name":"The Red Lion"}
+{"_id":271490,"amenity":"pub","location":{"coordinates":[-1.5114974,51.3072223],"type":"Point"},"name":"The George Inn"}
+{"_id":279265,"amenity":"pub","location":{"coordinates":[-1.5230923,50.8918946],"type":"Point"},"name":"The Happy Cheese"}
+{"_id":376728,"amenity":"pub","location":{"coordinates":[-1.7050619,51.806683],"type":"Point"},"name":"Inn For All Seasons"}
+{"_id":451152,"addr:city":"London","addr:housenumber":"363","addr:postcode":"N3 1DH","addr:street":"Regents Park Road","amenity":"pub","location":{"coordinates":[-0.1945732,51.6008172],"type":"Point"},"name":"The Dignity","toilets":"yes","toilets:access":"customers"}
+{"_id":451154,"amenity":"pub","location":{"coordinates":[-0.1960427,51.5996053],"type":"Point"},"name":"The Catcher In The Rye"}
+{"_id":451271,"amenity":"pub","location":{"coordinates":[-0.1765046,51.6141038],"type":"Point"},"name":"The Tally Ho"}
+{"_id":560504,"amenity":"pub","created_by":"Potlatch 0.10f","location":{"coordinates":[-1.2357353,51.7310912],"type":"Point"},"name":"The Tree"}
+{"_id":573664,"amenity":"pub","location":{"coordinates":[-1.4948026,53.7093524],"type":"Point"},"name":"The British Oak"}
+{"_id":581473,"amenity":"pub","location":{"coordinates":[-1.5060469,53.6811457],"type":"Point"},"name":"Henry Boons"}
+{"_id":581475,"amenity":"pub","location":{"coordinates":[-1.4988685,53.6828125],"type":"Point"},"name":"The Black Rock"}
+{"_id":585119,"amenity":"pub","location":{"coordinates":[-1.2321564,51.7082465],"type":"Point"},"name":"The Kings Arms"}
+{"_id":585120,"amenity":"pub","location":{"coordinates":[-1.4305534,51.8553749],"type":"Point"},"name":"The White Horse"}
+{"_id":603242,"amenity":"pub","location":{"coordinates":[-1.2502902,50.9565412],"type":"Point"},"name":"The Robin Hood","postal_code":"SO32 2AA"}
+{"_id":608191,"amenity":"pub","location":{"coordinates":[-1.31197,50.8806],"type":"Point"},"name":"The Vine Inn"}
+{"_id":611105,"amenity":"pub","location":{"coordinates":[-1.42461,53.7281],"type":"Point"},"name":"The Mexborough Arms"}
+{"_id":611109,"amenity":"pub","location":{"coordinates":[-1.4617749,53.6746585],"type":"Point"},"name":"The Kings Arms"}
+{"_id":611304,"amenity":"pub","location":{"coordinates":[-1.4706048,53.5286044],"type":"Point"},"name":"The Ship Inn"}
+{"_id":611926,"amenity":"pub","location":{"coordinates":[-1.31733,50.8829],"type":"Point"},"name":"Fox And Hounds/Lone Barn"}
+{"_id":648882,"amenity":"pub","created_by":"Potlatch 0.4a","location":{"coordinates":[-0.0918935,51.1362188],"type":"Point"},"name":"The Dukes Head"}
+{"_id":656982,"amenity":"pub","location":{"coordinates":[0.6883652,52.6519244],"type":"Point"},"name":"The Norfolk Hero"}
+{"_id":656984,"amenity":"pub","location":{"coordinates":[0.6888368,52.6476756],"type":"Point"},"name":"The Greyhound"}
+{"_id":657111,"amenity":"pub","created_by":"Potlatch 0.7b","location":{"coordinates":[-1.304305,50.8817694],"type":"Point"},"name":"The Jolly Sailor"}
+{"_id":687275,"amenity":"pub","location":{"coordinates":[-0.1907801,51.6475276],"type":"Point"},"name":"The Old Red Lion","operator":"McMullens"}
+{"_id":692325,"amenity":"pub","location":{"coordinates":[-2.7136229,53.1039952],"type":"Point"},"name":"The Pheasant","source":"GPS survey"}
+{"_id":692327,"amenity":"pub","location":{"coordinates":[-2.6508731,53.1161142],"type":"Point"},"name":"The Nags Head"}
+{"_id":692328,"amenity":"pub","location":{"coordinates":[-2.646203,53.1184928],"type":"Point"},"name":"Dysart Arms"}
+{"_id":696491,"amenity":"pub","location":{"coordinates":[-1.1098075,50.720483],"type":"Point"},"name":"Seaview Hotel","tourism":"hotel"}
+{"_id":696510,"amenity":"pub","location":{"coordinates":[-1.0739324,50.681946],"type":"Point"},"name":"Crab \u0026 Lobster","source":"Bing"}
+{"_id":696548,"amenity":"pub","location":{"coordinates":[-1.0911803,50.6938377],"type":"Point"},"name":"The Pilot Boat Inn"}
+{"_id":820090,"amenity":"pub","location":{"coordinates":[-1.518587,53.7258813],"type":"Point"},"name":"The Nook"}
+{"_id":1529094,"amenity":"pub","location":{"coordinates":[-1.5033504,53.6810328],"type":"Point"},"name":"Harry'S Bar"}
+{"_id":1564771,"amenity":"pub","created_by":"osmeditor2","location":{"coordinates":[-1.2322259,50.9823298],"type":"Point"},"name":"Brushmakers Arms"}
+{"_id":2433320,"addr:city":"Totland","addr:country":"GB","addr:postcode":"PO39 0HY","addr:street":"Highdown Lane","amenity":"pub","location":{"coordinates":[-1.5427212,50.6717547],"type":"Point"},"name":"High Down Inn"}
+{"_id":2433333,"amenity":"pub","location":{"coordinates":[-1.511268,50.6844892],"type":"Point"},"name":"The Red Lion","note":"expensive food, quite good"}
+{"_id":3788923,"amenity":"pub","cuisine":"steak_house","location":{"coordinates":[-0.4783288,52.2522207],"type":"Point"},"name":"The Fox And Hounds"}
+{"_id":3798140,"amenity":"pub","location":{"coordinates":[-1.2086597,50.7094791],"type":"Point"},"name":"The White Hart Inn"}
+{"_id":3835145,"amenity":"pub","location":{"coordinates":[-2.8379403,53.1844793],"type":"Point"},"name":"Ring O' Bells Ph"}
+{"_id":3865117,"amenity":"pub","location":{"coordinates":[-0.5036502,52.164493],"type":"Point"},"name":"The Fox And Hounds","wheelchair":"yes"}
+{"_id":3866129,"amenity":"pub","location":{"coordinates":[-0.4847831,52.1488521],"type":"Point"},"name":"The Anglers Rest"}
+{"_id":3896066,"amenity":"pub","location":{"coordinates":[-1.2912993,50.5793692],"type":"Point"},"name":"The Buddle Inn"}
+{"_id":4082703,"amenity":"pub","location":{"coordinates":[-0.4920456,52.1601477],"type":"Point"},"name":"The Star","wheelchair":"no"}
+{"_id":4156515,"amenity":"pub","camra":"yes","location":{"coordinates":[-0.4688266,52.1413665],"type":"Point"},"name":"The Wellington Arms","real_ale":"yes"}
+{"_id":4156519,"amenity":"pub","created_by":"JOSM","location":{"coordinates":[-0.4684423,52.1419264],"type":"Point"},"name":"The Balloon"}
+{"_id":4160491,"amenity":"pub","location":{"coordinates":[-0.4325746,52.1459306],"type":"Point"},"name":"The New Sportsman"}
+{"_id":4372734,"amenity":"pub","location":{"coordinates":[-1.2517664,50.632149],"type":"Point"},"name":"The Griffin","postal_code":"PO38 3JD"}
+{"_id":4825630,"amenity":"pub","food":"yes","location":{"coordinates":[-0.4657872,52.1330884],"type":"Point"},"name":"The Kings Arms","website":"http://www.thekingsarmsbedford.co.uk/"}
+{"_id":5024948,"amenity":"pub","created_by":"JOSM","location":{"coordinates":[-0.4407783,52.1247935],"type":"Point"},"name":"The Anchor"}
+{"_id":5045684,"amenity":"pub","created_by":"JOSM","location":{"coordinates":[-0.3401749,52.0821249],"type":"Point"},"name":"The Hare And Hounds"}
+{"_id":5046122,"amenity":"pub","location":{"coordinates":[-0.3889219,52.1233166],"type":"Point"},"name":"The Five Bells"}
+{"_id":5468439,"amenity":"pub","location":{"coordinates":[-1.3648877,51.8799615],"type":"Point"},"name":"The Killingworth Castle Inn","wheelchair":"no"}
+{"_id":5660444,"amenity":"pub","created_by":"JOSM","location":{"coordinates":[-1.5071322,51.8061523],"type":"Point"},"name":"The Lamb Inn"}
+{"_id":5660446,"amenity":"pub","location":{"coordinates":[-1.5036035,51.8063148],"type":"Point"},"name":"Crawley Inn"}
+{"_id":6895872,"amenity":"pub","location":{"coordinates":[-0.4830202,52.1398103],"type":"Point"},"name":"The Kalooki Club","website":"http://www.facebook.com/pages/Bedford-United-Kingdom/THE-KALOOKI-CLUB/50261222369"}
+{"_id":6935593,"amenity":"pub","created_by":"JOSM","location":{"coordinates":[-0.4278577,52.1529968],"type":"Point"},"name":"The Century"}
+{"_id":6935741,"amenity":"pub","location":{"coordinates":[-0.4386519,52.14868],"type":"Point"},"name":"The Queens Tavern"}
+{"_id":7117331,"addr:city":"Bedford","addr:housenumber":"157","addr:postcode":"MK40 1DW","addr:street":"Midland Road","amenity":"pub","location":{"coordinates":[-0.476922,52.1348536],"type":"Point"},"name":"The Paddington"}
+{"_id":7616495,"amenity":"pub","location":{"coordinates":[-0.8146601,51.5264588],"type":"Point"},"name":"The Dew Drop Inn"}
+{"_id":7991864,"amenity":"pub","created_by":"Potlatch 0.5d","location":{"coordinates":[-1.2195084,51.7577316],"type":"Point"},"name":"The White Horse"}
+{"_id":8078328,"amenity":"pub","location":{"coordinates":[-1.2464494,50.6860298],"type":"Point"},"name":"The Hare And Hounds"}
+{"_id":8078443,"amenity":"pub","location":{"coordinates":[-1.2266187,50.72504],"type":"Point"},"name":"The Sloop Inn"}
+{"_id":8080888,"amenity":"pub","location":{"coordinates":[-1.2937046,50.7019744],"type":"Point"},"name":"The Medina Railway Tavern"}
+{"_id":8082479,"amenity":"pub","location":{"coordinates":[-1.1659274,50.7234224],"type":"Point"},"name":"The Falcon"}
+{"_id":8084307,"amenity":"pub","location":{"coordinates":[-1.1504577,50.6582648],"type":"Point"},"name":"The Fountain Inn"}
+{"_id":8084315,"amenity":"pub","location":{"coordinates":[-1.1687344,50.6478693],"type":"Point"},"name":"The Stag Inn"}
+{"_id":8085658,"amenity":"pub","location":{"coordinates":[-0.4701926,52.1258739],"type":"Point"},"name":"The Gardeners Arms"}

@@ -1,0 +1,125 @@
+schema:
+- db: schema_test
+  tables:
+  - table: complete_schema
+    collection: complete_schema
+    pipeline: []
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: address.city
+      mongotype: string
+      sqlname: address.city
+      sqltype: varchar
+    - name: address.metadata.tidbit
+      mongotype: string
+      sqlname: address.metadata.tidbit
+      sqltype: varchar
+    - name: address.state
+      mongotype: string
+      sqlname: address.state
+      sqltype: varchar
+    - name: address.street
+      mongotype: string
+      sqlname: address.street
+      sqltype: varchar
+    - name: address.zip
+      mongotype: int
+      sqlname: address.zip
+      sqltype: numeric
+    - name: age
+      mongotype: float64
+      sqlname: age
+      sqltype: numeric
+    - name: birthday
+      mongotype: date
+      sqlname: birthday
+      sqltype: timestamp
+    - name: con man
+      mongotype: bool
+      sqlname: con man
+      sqltype: boolean
+    - name: name
+      mongotype: string
+      sqlname: name
+      sqltype: varchar
+    - name: row
+      mongotype: int
+      sqlname: row
+      sqltype: numeric
+    - name: __MONGOQUERY
+      mongotype: mongo.Filter
+      sqlname: __MONGOQUERY
+      sqltype: varchar
+  - table: complete_schema_numbers
+    collection: complete_schema
+    pipeline:
+    - $unwind:
+        includeArrayIndex: numbers_idx
+        path: $numbers
+    - $unwind:
+        includeArrayIndex: numbers_idx_1
+        path: $numbers
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: address.city
+      mongotype: string
+      sqlname: address.city
+      sqltype: varchar
+    - name: address.metadata.tidbit
+      mongotype: string
+      sqlname: address.metadata.tidbit
+      sqltype: varchar
+    - name: address.state
+      mongotype: string
+      sqlname: address.state
+      sqltype: varchar
+    - name: address.street
+      mongotype: string
+      sqlname: address.street
+      sqltype: varchar
+    - name: address.zip
+      mongotype: int
+      sqlname: address.zip
+      sqltype: numeric
+    - name: age
+      mongotype: float64
+      sqlname: age
+      sqltype: numeric
+    - name: birthday
+      mongotype: date
+      sqlname: birthday
+      sqltype: timestamp
+    - name: con man
+      mongotype: bool
+      sqlname: con man
+      sqltype: boolean
+    - name: name
+      mongotype: string
+      sqlname: name
+      sqltype: varchar
+    - name: numbers
+      mongotype: int
+      sqlname: numbers
+      sqltype: numeric
+    - name: numbers_idx
+      mongotype: int
+      sqlname: numbers_idx
+      sqltype: numeric
+    - name: numbers_idx_1
+      mongotype: int
+      sqlname: numbers_idx_1
+      sqltype: numeric
+    - name: row
+      mongotype: int
+      sqlname: row
+      sqltype: numeric
+    - name: __MONGOQUERY
+      mongotype: mongo.Filter
+      sqlname: __MONGOQUERY
+      sqltype: varchar

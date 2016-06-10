@@ -1,0 +1,52 @@
+schema:
+- db: schema_test
+  tables:
+  - table: nestedArrays
+    collection: nestedArrays
+    pipeline: []
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: name
+      mongotype: string
+      sqlname: name
+      sqltype: varchar
+  - table: nestedArrays_a
+    collection: nestedArrays
+    pipeline:
+    - $unwind:
+        includeArrayIndex: a_idx
+        path: $a
+    - $unwind:
+        includeArrayIndex: a_idx_1
+        path: $a
+    - $unwind:
+        includeArrayIndex: a_idx_2
+        path: $a
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: a
+      mongotype: int
+      sqlname: a
+      sqltype: numeric
+    - name: a_idx
+      mongotype: int
+      sqlname: a_idx
+      sqltype: numeric
+    - name: a_idx_1
+      mongotype: int
+      sqlname: a_idx_1
+      sqltype: numeric
+    - name: a_idx_2
+      mongotype: int
+      sqlname: a_idx_2
+      sqltype: numeric
+    - name: name
+      mongotype: string
+      sqlname: name
+      sqltype: varchar

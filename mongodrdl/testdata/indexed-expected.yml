@@ -1,0 +1,19 @@
+schema:
+- db: indexed
+  tables:
+  - table: test
+    collection: test
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: first
+      MongoType: string
+      SqlName: first
+      SqlType: varchar
+    - Name: second
+      MongoType: string
+      SqlName: second
+      SqlType: varchar

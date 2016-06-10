@@ -1,0 +1,6 @@
+{ "close": 7.45, "detail": [ 1, 2, 3, 4, 5 ], "open" : 4 }
+{ "close": 10.0, "detail": [ 1, 2, 3, 4, 5 ], "open" : 12 }
+{ "close": 10.0, "detail": [ 1, 2, 3, 4, 5 ], "open" : 12.2 }
+{ "close": 4.0, "detail": [ 100 ], "dates": [ ISODate("2009-11-10T23:00:00Z"), ISODate("2009-11-10T23:00:00Z") ] }
+{ "close": 12.3, "docs": [ { a: "b", c : 1 }], "open" : null }
+{ "close": 12.3, "docs": [ { x: "y", d : 1 }] }

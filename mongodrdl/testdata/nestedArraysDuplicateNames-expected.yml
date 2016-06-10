@@ -1,0 +1,124 @@
+schema:
+- db: schema_test
+  tables:
+  - table: nestedArraysDocs
+    collection: nestedArraysDocs
+    pipeline: []
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+  - table: nestedArraysDocs_docs
+    collection: nestedArraysDocs
+    pipeline:
+    - $unwind:
+        includeArrayIndex: docs_idx
+        path: $docs
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: docs.a
+      mongotype: string
+      sqlname: docs.a
+      sqltype: varchar
+    - name: docs.c
+      mongotype: int
+      sqlname: docs.c
+      sqltype: numeric
+    - name: docs_idx
+      mongotype: int
+      sqlname: docs_idx
+      sqltype: numeric
+  - table: nestedArraysDocs_docs_d
+    collection: nestedArraysDocs
+    pipeline:
+    - $unwind:
+        includeArrayIndex: docs_idx
+        path: $docs
+    - $unwind:
+        includeArrayIndex: docs.d_idx
+        path: $docs.d
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: docs.a
+      mongotype: string
+      sqlname: docs.a
+      sqltype: varchar
+    - name: docs.c
+      mongotype: int
+      sqlname: docs.c
+      sqltype: numeric
+    - name: docs.d
+      mongotype: int
+      sqlname: docs.d
+      sqltype: numeric
+    - name: docs.d_idx
+      mongotype: int
+      sqlname: docs.d_idx
+      sqltype: numeric
+    - name: docs_idx
+      mongotype: int
+      sqlname: docs_idx
+      sqltype: numeric
+  - table: nestedArraysDocs_docs_sub
+    collection: nestedArraysDocs
+    pipeline:
+    - $unwind:
+        includeArrayIndex: docs_idx
+        path: $docs
+    - $unwind:
+        includeArrayIndex: docs.sub_idx
+        path: $docs.sub
+    - $unwind:
+        includeArrayIndex: docs.sub_idx_1
+        path: $docs.sub
+    - $unwind:
+        includeArrayIndex: docs.sub_idx_2
+        path: $docs.sub
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: docs.a
+      mongotype: string
+      sqlname: docs.a
+      sqltype: varchar
+    - name: docs.c
+      mongotype: int
+      sqlname: docs.c
+      sqltype: numeric
+    - name: docs.sub.dream
+      mongotype: string
+      sqlname: docs.sub.dream
+      sqltype: varchar
+    - name: docs.sub.dream2
+      mongotype: bool
+      sqlname: docs.sub.dream2
+      sqltype: boolean
+    - name: docs.sub.title
+      mongotype: string
+      sqlname: docs.sub.title
+      sqltype: varchar
+    - name: docs.sub_idx
+      mongotype: int
+      sqlname: docs.sub_idx
+      sqltype: numeric
+    - name: docs.sub_idx_1
+      mongotype: int
+      sqlname: docs.sub_idx_1
+      sqltype: numeric
+    - name: docs.sub_idx_2
+      mongotype: int
+      sqlname: docs.sub_idx_2
+      sqltype: numeric
+    - name: docs_idx
+      mongotype: int
+      sqlname: docs_idx
+      sqltype: numeric

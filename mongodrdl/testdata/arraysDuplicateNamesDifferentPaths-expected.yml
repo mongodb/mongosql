@@ -1,0 +1,87 @@
+schema:
+- db: schema_test
+  tables:
+  - table: arraysDuplicateNamesDifferentPaths
+    collection: arraysDuplicateNamesDifferentPaths
+    pipeline: []
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+  - table: arraysDuplicateNamesDifferentPaths_a_c
+    collection: arraysDuplicateNamesDifferentPaths
+    pipeline:
+    - $unwind:
+        includeArrayIndex: a.c_idx
+        path: $a.c
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: a.c
+      mongotype: int
+      sqlname: a.c
+      sqltype: numeric
+    - name: a.c_idx
+      mongotype: int
+      sqlname: a.c_idx
+      sqltype: numeric
+  - table: arraysDuplicateNamesDifferentPaths_b_c
+    collection: arraysDuplicateNamesDifferentPaths
+    pipeline:
+    - $unwind:
+        includeArrayIndex: b.c_idx
+        path: $b.c
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: b.c
+      mongotype: int
+      sqlname: b.c
+      sqltype: numeric
+    - name: b.c_idx
+      mongotype: int
+      sqlname: b.c_idx
+      sqltype: numeric
+  - table: arraysDuplicateNamesDifferentPaths_d_e_h
+    collection: arraysDuplicateNamesDifferentPaths
+    pipeline:
+    - $unwind:
+        includeArrayIndex: d.e.h_idx
+        path: $d.e.h
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: d.e.h
+      mongotype: int
+      sqlname: d.e.h
+      sqltype: numeric
+    - name: d.e.h_idx
+      mongotype: int
+      sqlname: d.e.h_idx
+      sqltype: numeric
+  - table: arraysDuplicateNamesDifferentPaths_f_g_h
+    collection: arraysDuplicateNamesDifferentPaths
+    pipeline:
+    - $unwind:
+        includeArrayIndex: f.g.h_idx
+        path: $f.g.h
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: f.g.h
+      mongotype: int
+      sqlname: f.g.h
+      sqltype: numeric
+    - name: f.g.h_idx
+      mongotype: int
+      sqlname: f.g.h_idx
+      sqltype: numeric

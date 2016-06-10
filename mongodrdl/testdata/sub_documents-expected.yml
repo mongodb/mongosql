@@ -1,0 +1,15 @@
+schema:
+- db: schema_test
+  tables:
+  - table: sub_documents
+    collection: sub_documents
+    pipeline: []
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: subdoc.math
+      mongotype: float64
+      sqlname: subdoc.math
+      sqltype: numeric

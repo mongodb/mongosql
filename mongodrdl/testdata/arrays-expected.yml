@@ -1,0 +1,112 @@
+schema:
+- db: schema_test
+  tables:
+  - table: arrays
+    collection: arrays
+    pipeline: []
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: close
+      mongotype: float64
+      sqlname: close
+      sqltype: numeric
+    - name: open
+      mongotype: int
+      sqlname: open
+      sqltype: numeric
+  - table: arrays_dates
+    collection: arrays
+    pipeline:
+    - $unwind:
+        includeArrayIndex: dates_idx
+        path: $dates
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: close
+      mongotype: float64
+      sqlname: close
+      sqltype: numeric
+    - name: dates
+      mongotype: date
+      sqlname: dates
+      sqltype: timestamp
+    - name: dates_idx
+      mongotype: int
+      sqlname: dates_idx
+      sqltype: numeric
+    - name: open
+      mongotype: int
+      sqlname: open
+      sqltype: numeric
+  - table: arrays_detail
+    collection: arrays
+    pipeline:
+    - $unwind:
+        includeArrayIndex: detail_idx
+        path: $detail
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: close
+      mongotype: float64
+      sqlname: close
+      sqltype: numeric
+    - name: detail
+      mongotype: int
+      sqlname: detail
+      sqltype: numeric
+    - name: detail_idx
+      mongotype: int
+      sqlname: detail_idx
+      sqltype: numeric
+    - name: open
+      mongotype: int
+      sqlname: open
+      sqltype: numeric
+  - table: arrays_docs
+    collection: arrays
+    pipeline:
+    - $unwind:
+        includeArrayIndex: docs_idx
+        path: $docs
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: close
+      mongotype: float64
+      sqlname: close
+      sqltype: numeric
+    - name: docs.a
+      mongotype: string
+      sqlname: docs.a
+      sqltype: varchar
+    - name: docs.c
+      mongotype: int
+      sqlname: docs.c
+      sqltype: numeric
+    - name: docs.d
+      mongotype: int
+      sqlname: docs.d
+      sqltype: numeric
+    - name: docs.x
+      mongotype: string
+      sqlname: docs.x
+      sqltype: varchar
+    - name: docs_idx
+      mongotype: int
+      sqlname: docs_idx
+      sqltype: numeric
+    - name: open
+      mongotype: int
+      sqlname: open
+      sqltype: numeric

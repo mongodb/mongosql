@@ -1,0 +1,80 @@
+schema:
+- db: schema_test
+  tables:
+  - table: roundtrip
+    collection: roundtrip
+    pipeline: []
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: married
+      mongotype: bool
+      sqlname: married
+      sqltype: boolean
+    - name: name
+      mongotype: string
+      sqlname: name
+      sqltype: varchar
+  - table: roundtrip_arrays
+    collection: roundtrip
+    pipeline:
+    - $unwind:
+        includeArrayIndex: arrays_idx
+        path: $arrays
+    - $unwind:
+        includeArrayIndex: arrays_idx_1
+        path: $arrays
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: arrays
+      mongotype: int
+      sqlname: arrays
+      sqltype: numeric
+    - name: arrays_idx
+      mongotype: int
+      sqlname: arrays_idx
+      sqltype: numeric
+    - name: arrays_idx_1
+      mongotype: int
+      sqlname: arrays_idx_1
+      sqltype: numeric
+    - name: married
+      mongotype: bool
+      sqlname: married
+      sqltype: boolean
+    - name: name
+      mongotype: string
+      sqlname: name
+      sqltype: varchar
+  - table: roundtrip_children
+    collection: roundtrip
+    pipeline:
+    - $unwind:
+        includeArrayIndex: children_idx
+        path: $children
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: children.name
+      mongotype: string
+      sqlname: children.name
+      sqltype: varchar
+    - name: children_idx
+      mongotype: int
+      sqlname: children_idx
+      sqltype: numeric
+    - name: married
+      mongotype: bool
+      sqlname: married
+      sqltype: boolean
+    - name: name
+      mongotype: string
+      sqlname: name
+      sqltype: varchar

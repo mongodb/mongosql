@@ -191,6 +191,33 @@ post:
 
 functions:
 
+  "build MongoDRDL":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src
+      script: |
+        set -o verbose
+        set -o errexit
+        echo "Building MongoDRDL"
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        if [ '${library_path}' != '' ]; then
+          export ${library_path}
+        fi;
+        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
+        # use a wrapper if it's present on the system
+        #
+        if [ -d /opt/ldwrapper/bin ]
+        then
+          export PATH=/opt/ldwrapper/bin:$PATH
+        fi
+        . ./set_gopath.sh
+        ${gorootvars} ${library_path} go build ${gccgoflags} -o drdl mongodrdl/main/mongodrdl.go
+
+        echo "Done!"
+
   "build SQLProxy":
     command: shell.exec
     type: test
@@ -214,7 +241,7 @@ functions:
           export PATH=/opt/ldwrapper/bin:$PATH
         fi
         . ./set_gopath.sh
-        ${gorootvars} ${library_path} go build ${gccgoflags} -o sqlproxy main/main.go
+        ${gorootvars} ${library_path} go build ${gccgoflags} -o sqlproxy main/sqlproxy.go
         echo "Done!"
 
   "download mongod":
@@ -378,6 +405,18 @@ functions:
       display_name: Coverage Report (TXT)
       optional: true
 
+  "upload MongoDRDL":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: src/drdl
+      remote_file: sqlproxy/binaries/${task_id}/mongodrdl${extension}
+      bucket: mciuploads
+      permissions: public-read
+      content_type: application/octet-stream
+      display_name: mongodrdl${extension}
+
   "upload SQLProxy":
     command: s3.put
     params:
@@ -481,6 +520,8 @@ tasks:
     - func: "fetch source"
     - func: "build SQLProxy"
     - func: "upload SQLProxy"
+    - func: "build MongoDRDL"
+    - func: "upload MongoDRDL"
 
 - name: evaluator
   commands:
@@ -517,6 +558,33 @@ tasks:
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
 
+- name: mongodrdl
+  commands:
+    - func: "fetch source"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          . ./set_gopath.sh
+          cd mongodrdl
+          touch coverage.out
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v > mongodrdl.suite 2>&1; if [ $? -ne 0 ]; then cat mongodrdl.suite; exit 1; else cat mongodrdl.suite; fi
+          cd mongo
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v > mongo.suite 2>&1; if [ $? -ne 0 ]; then cat mongo.suite; exit 1; else cat mongo.suite; fi
+          cd ../relational
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v > relational.suite 2>&1; if [ $? -ne 0 ]; then cat relational.suite; exit 1; else cat relational.suite; fi
+          exit 0
 - name: schema
   commands:
     - func: "fetch source"
