@@ -2,12 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package sqlparser
+package parser
 
 import (
 	"errors"
-
-	"github.com/deafgoat/mixer/sqltypes"
+	"github.com/10gen/sqlproxy/parser/sqltypes"
 )
 
 // Instructions for creating new types: If a type

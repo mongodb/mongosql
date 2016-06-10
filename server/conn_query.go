@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/mongodb/mongo-tools/common/log"
 )
 
@@ -22,8 +22,8 @@ func (c *conn) handleQuery(sql string) (err error) {
 
 	sql = strings.TrimRight(sql, ";")
 
-	var stmt sqlparser.Statement
-	stmt, err = sqlparser.Parse(sql)
+	var stmt parser.Statement
+	stmt, err = parser.Parse(sql)
 	if err != nil {
 
 		// This is an ugly hack such that if someone tries to set some parameter to the default
@@ -40,15 +40,15 @@ func (c *conn) handleQuery(sql string) (err error) {
 	}
 
 	switch v := stmt.(type) {
-	case *sqlparser.Select:
+	case *parser.Select:
 		return c.handleSelect(v, sql, nil)
-	case *sqlparser.Set:
+	case *parser.Set:
 		return c.handleSet(v)
-	case *sqlparser.SimpleSelect:
+	case *parser.SimpleSelect:
 		return c.handleSimpleSelect(sql, v)
-	case *sqlparser.Show:
+	case *parser.Show:
 		return c.handleShow(sql, v)
-	case *sqlparser.DDL:
+	case *parser.DDL:
 		return c.handleDDL(v)
 	default:
 		return mysqlerrors.Unknownf("statement %T not supported", stmt)

@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/deafgoat/mixer/hack"
+	"github.com/10gen/sqlproxy/parser/hack"
 )
 
 var (

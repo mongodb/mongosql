@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/10gen/sqlproxy/parser"
 )
 
 var paramFieldData []byte
@@ -29,7 +29,7 @@ type stmt struct {
 
 	args []interface{}
 
-	s sqlparser.Statement
+	s parser.Statement
 
 	sql string
 }
@@ -49,7 +49,7 @@ func (c *conn) handleStmtPrepare(sql string) error {
 		sql = strings.TrimRight(sql, ";")
 
 		var err error
-		s.s, err = sqlparser.Parse(sql)
+		s.s, err = parser.Parse(sql)
 		if err != nil {
 			return fmt.Errorf(`parse sql "%s" error`, sql)
 		}
@@ -58,15 +58,15 @@ func (c *conn) handleStmtPrepare(sql string) error {
 
 		var tableName string
 		switch s := s.s.(type) {
-		case *sqlparser.Select:
+		case *parser.Select:
 			tableName = nstring(s.From)
-		case *sqlparser.Insert:
+		case *parser.Insert:
 			tableName = nstring(s.Table)
-		case *sqlparser.Update:
+		case *parser.Update:
 			tableName = nstring(s.Table)
-		case *sqlparser.Delete:
+		case *parser.Delete:
 			tableName = nstring(s.Table)
-		case *sqlparser.Replace:
+		case *parser.Replace:
 			tableName = nstring(s.Table)
 		default:
 			return fmt.Errorf(`unsupport prepare sql "%s"`, sql)
@@ -223,7 +223,7 @@ func (c *conn) handleStmtExecute(data []byte) error {
 	var err error
 
 	switch stmt := s.s.(type) {
-	case *sqlparser.Select:
+	case *parser.Select:
 		err = c.handleSelect(stmt, s.sql, s.args)
 	default:
 		err = mysqlerrors.Defaultf(mysqlerrors.ER_UNSUPPORTED_PS)

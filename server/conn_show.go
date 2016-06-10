@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/10gen/sqlproxy/parser"
 )
 
-func (c *conn) handleShow(sql string, stmt *sqlparser.Show) error {
+func (c *conn) handleShow(sql string, stmt *parser.Show) error {
 	switch strings.ToLower(stmt.Section) {
 	case "columns":
 		return c.handleShowColumns(sql, stmt)
@@ -23,7 +23,7 @@ func (c *conn) handleShow(sql string, stmt *sqlparser.Show) error {
 	}
 }
 
-func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) error {
+func (c *conn) handleShowColumns(sql string, stmt *parser.Show) error {
 
 	translated := "SELECT `Field`, `Type`"
 	if strings.EqualFold(stmt.Modifier, "full") {
@@ -60,25 +60,25 @@ func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) error {
 	table := ""
 
 	switch f := stmt.From.(type) {
-	case sqlparser.StrVal:
+	case parser.StrVal:
 		table = string(f)
-	case *sqlparser.ColName:
+	case *parser.ColName:
 		if f.Qualifier != nil {
 			dbName = string(f.Qualifier)
 		}
 		table = string(f.Name)
 	default:
-		return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", sqlparser.String(f))
+		return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
 	}
 
 	if stmt.DBFilter != nil {
 		switch f := stmt.DBFilter.(type) {
-		case sqlparser.StrVal:
+		case parser.StrVal:
 			dbName = string(f)
-		case *sqlparser.ColName:
+		case *parser.ColName:
 			dbName = string(f.Name)
 		default:
-			return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", sqlparser.String(f))
+			return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
 		}
 	}
 
@@ -90,10 +90,10 @@ func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) error {
 
 	if stmt.LikeOrWhere != nil {
 		switch stmt.LikeOrWhere.(type) {
-		case sqlparser.StrVal:
-			translated += fmt.Sprintf(" AND `Field` LIKE %s", sqlparser.String(stmt.LikeOrWhere))
+		case parser.StrVal:
+			translated += fmt.Sprintf(" AND `Field` LIKE %s", parser.String(stmt.LikeOrWhere))
 		default:
-			translated += fmt.Sprintf(" AND %s", sqlparser.String(stmt.LikeOrWhere))
+			translated += fmt.Sprintf(" AND %s", parser.String(stmt.LikeOrWhere))
 		}
 	}
 
@@ -102,16 +102,16 @@ func (c *conn) handleShowColumns(sql string, stmt *sqlparser.Show) error {
 	return c.handleQuery(translated)
 }
 
-func (c *conn) handleShowDatabases(stmt *sqlparser.Show) error {
+func (c *conn) handleShowDatabases(stmt *parser.Show) error {
 	translated := "SELECT * FROM (SELECT SCHEMA_NAME AS `Database`" +
 		" FROM INFORMATION_SCHEMA.SCHEMATA) `is`"
 
 	if stmt.LikeOrWhere != nil {
 		switch stmt.LikeOrWhere.(type) {
-		case sqlparser.StrVal:
-			translated += fmt.Sprintf(" WHERE `Database` LIKE %s", sqlparser.String(stmt.LikeOrWhere))
+		case parser.StrVal:
+			translated += fmt.Sprintf(" WHERE `Database` LIKE %s", parser.String(stmt.LikeOrWhere))
 		default:
-			translated += fmt.Sprintf(" WHERE %s", sqlparser.String(stmt.LikeOrWhere))
+			translated += fmt.Sprintf(" WHERE %s", parser.String(stmt.LikeOrWhere))
 		}
 	}
 
@@ -120,7 +120,7 @@ func (c *conn) handleShowDatabases(stmt *sqlparser.Show) error {
 	return c.handleQuery(translated)
 }
 
-func (c *conn) handleShowTables(sql string, stmt *sqlparser.Show) error {
+func (c *conn) handleShowTables(sql string, stmt *parser.Show) error {
 	dbName := ""
 	if c.currentDB != nil {
 		dbName = c.currentDB.Name
@@ -128,12 +128,12 @@ func (c *conn) handleShowTables(sql string, stmt *sqlparser.Show) error {
 
 	if stmt.From != nil {
 		switch f := stmt.From.(type) {
-		case sqlparser.StrVal:
+		case parser.StrVal:
 			dbName = string(f)
-		case *sqlparser.ColName:
+		case *parser.ColName:
 			dbName = string(f.Name)
 		default:
-			return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", sqlparser.String(f))
+			return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
 		}
 	}
 
@@ -155,10 +155,10 @@ func (c *conn) handleShowTables(sql string, stmt *sqlparser.Show) error {
 
 	if stmt.LikeOrWhere != nil {
 		switch stmt.LikeOrWhere.(type) {
-		case sqlparser.StrVal:
-			translated += fmt.Sprintf(" WHERE %s LIKE %s", columnName, sqlparser.String(stmt.LikeOrWhere))
+		case parser.StrVal:
+			translated += fmt.Sprintf(" WHERE %s LIKE %s", columnName, parser.String(stmt.LikeOrWhere))
 		default:
-			translated += fmt.Sprintf(" WHERE %s", sqlparser.String(stmt.LikeOrWhere))
+			translated += fmt.Sprintf(" WHERE %s", parser.String(stmt.LikeOrWhere))
 		}
 	}
 
@@ -167,7 +167,7 @@ func (c *conn) handleShowTables(sql string, stmt *sqlparser.Show) error {
 	return c.handleQuery(translated)
 }
 
-func (c *conn) handleShowVariables(sql string, stmt *sqlparser.Show) error {
+func (c *conn) handleShowVariables(sql string, stmt *parser.Show) error {
 	variables := []interface{}{}
 	r, err := c.buildSimpleShowResultset(variables, "Variable")
 	if err != nil {

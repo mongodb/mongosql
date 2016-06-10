@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package sqlparser
+package parser
 
 import (
 	"bytes"
 	"fmt"
 	"strings"
 
-	"github.com/deafgoat/mixer/sqltypes"
+	"github.com/10gen/sqlproxy/parser/sqltypes"
 )
 
 const EOFCHAR = 0x100
@@ -275,6 +275,9 @@ func (tkn *Tokenizer) scanIdentifier() (int, []byte) {
 	buffer.WriteByte(byte(tkn.lastChar))
 	for tkn.next(); isLetter(tkn.lastChar) || isDigit(tkn.lastChar); tkn.next() {
 		buffer.WriteByte(byte(tkn.lastChar))
+	}
+	if tkn.lastChar == ' ' || tkn.lastChar == '\n' || tkn.lastChar == '\r' || tkn.lastChar == '\t' {
+		tkn.skipBlank()
 	}
 	lowered := bytes.ToLower(buffer.Bytes())
 	if keywordId, found := keywords[string(lowered)]; found {

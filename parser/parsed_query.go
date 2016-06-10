@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package sqlparser
+package parser
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/deafgoat/mixer/sqltypes"
+	"github.com/10gen/sqlproxy/parser/sqltypes"
 )
 
 type BindLocation struct {

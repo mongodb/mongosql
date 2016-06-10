@@ -7,7 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/mongodb/mongo-tools/common/log"
 )
 
@@ -23,7 +23,7 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 	return bindVars
 }
 
-func (c *conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
+func (c *conn) handleSelect(stmt *parser.Select, sql string, args []interface{}) error {
 	log.Logf(log.DebugHigh, "[conn%v] parsed statement: %#v", c.connectionID, stmt)
 
 	var currentDB string
@@ -39,7 +39,7 @@ func (c *conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	return c.streamResultset(fields, iter)
 }
 
-func (c *conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
+func (c *conn) handleSimpleSelect(sql string, stmt *parser.SimpleSelect) error {
 	log.Logf(log.DebugHigh, "[conn%v] parsed statement: %#v", c.connectionID, stmt)
 
 	fields, iter, err := c.server.eval.Evaluate("", sql, stmt, c)

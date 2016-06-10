@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/10gen/sqlproxy/parser"
 )
 
 type queryPlanBuilder struct {
@@ -239,7 +239,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 	return nil
 }
 
-func (b *queryPlanBuilder) includeGroupBy(groupBy sqlparser.GroupBy) error {
+func (b *queryPlanBuilder) includeGroupBy(groupBy parser.GroupBy) error {
 	keys, err := b.algebrizer.translateGroupBy(groupBy)
 	if err != nil {
 		return err
@@ -250,7 +250,7 @@ func (b *queryPlanBuilder) includeGroupBy(groupBy sqlparser.GroupBy) error {
 	return nil
 }
 
-func (b *queryPlanBuilder) includeHaving(having *sqlparser.Where) error {
+func (b *queryPlanBuilder) includeHaving(having *parser.Where) error {
 	pred, err := b.algebrizer.translateExpr(having.Expr)
 	if err != nil {
 		return err
@@ -261,7 +261,7 @@ func (b *queryPlanBuilder) includeHaving(having *sqlparser.Where) error {
 	return nil
 }
 
-func (b *queryPlanBuilder) includeLimit(limit *sqlparser.Limit) error {
+func (b *queryPlanBuilder) includeLimit(limit *parser.Limit) error {
 	offset, rowcount, err := b.algebrizer.translateLimit(limit)
 	if err != nil {
 		return err
@@ -272,7 +272,7 @@ func (b *queryPlanBuilder) includeLimit(limit *sqlparser.Limit) error {
 	return nil
 }
 
-func (b *queryPlanBuilder) includeOrderBy(orderBy sqlparser.OrderBy) error {
+func (b *queryPlanBuilder) includeOrderBy(orderBy parser.OrderBy) error {
 	terms, err := b.algebrizer.translateOrderBy(orderBy)
 	if err != nil {
 		return err
@@ -285,7 +285,7 @@ func (b *queryPlanBuilder) includeOrderBy(orderBy sqlparser.OrderBy) error {
 	return nil
 }
 
-func (b *queryPlanBuilder) includeSelect(selectExprs sqlparser.SelectExprs) error {
+func (b *queryPlanBuilder) includeSelect(selectExprs parser.SelectExprs) error {
 	project, err := b.algebrizer.translateSelectExprs(selectExprs)
 	if err != nil {
 		return err
@@ -298,7 +298,7 @@ func (b *queryPlanBuilder) includeSelect(selectExprs sqlparser.SelectExprs) erro
 	return nil
 }
 
-func (b *queryPlanBuilder) includeWhere(where *sqlparser.Where) error {
+func (b *queryPlanBuilder) includeWhere(where *parser.Where) error {
 	pred, err := b.algebrizer.translateExpr(where.Expr)
 	if err != nil {
 		return err

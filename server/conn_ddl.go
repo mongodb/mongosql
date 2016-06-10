@@ -4,10 +4,10 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/10gen/sqlproxy/parser"
 )
 
-func (c *conn) handleDDL(ddl *sqlparser.DDL) error {
+func (c *conn) handleDDL(ddl *parser.DDL) error {
 	switch ddl.Action {
 	case "drop":
 		tableName := string(ddl.Table)

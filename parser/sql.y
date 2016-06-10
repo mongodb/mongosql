@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 %{
-package sqlparser
+package parser
 
 import "bytes"
 
@@ -89,7 +89,7 @@ var (
 %token <empty> BEGIN COMMIT ROLLBACK
 
 // Charset Tokens
-%token <empty> NAMES 
+%token <empty> NAMES
 
 // Replace
 %token <empty> REPLACE
@@ -259,7 +259,7 @@ set_statement:
   {
     $$ = &Set{Comments: Comments($2), Exprs: $3}
   }
-| SET comment_opt NAMES ID 
+| SET comment_opt NAMES ID
   {
     $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: StrVal($4)}}}
   }
@@ -319,18 +319,18 @@ show_full:
   {
     $$ = AST_SHOW_FULL
   }
-  
+
 
 show_statement:
-  SHOW DATABASES like_or_where_opt 
+  SHOW DATABASES like_or_where_opt
   {
     $$ = &Show{Section: "databases", LikeOrWhere: $3}
   }
-| SHOW VARIABLES like_or_where_opt 
+| SHOW VARIABLES like_or_where_opt
   {
     $$ = &Show{Section: "variables", LikeOrWhere: $3}
   }
-| SHOW TABLES from_opt like_or_where_opt 
+| SHOW TABLES from_opt like_or_where_opt
   {
     $$ = &Show{Section: "tables", From: $3, LikeOrWhere: $4}
   }
@@ -894,6 +894,15 @@ value_expression:
   {
     $$ = &FuncExpr{Name: bytes.ToLower($1), Exprs: $3}
   }
+// Functions and have keywords as their identifiers
+| LEFT '(' select_expression_list ')'
+  {
+    $$ = &FuncExpr{Name: []byte("left"), Exprs: $3}
+  }
+| RIGHT '(' select_expression_list ')'
+  {
+    $$ = &FuncExpr{Name: []byte("right"), Exprs: $3}
+  }
 | sql_id '(' DISTINCT select_expression_list ')'
   {
     $$ = &FuncExpr{Name: bytes.ToLower($1), Distinct: true, Exprs: $4}
@@ -1146,7 +1155,7 @@ update_list:
 update_expression:
   column_name '=' value_expression
   {
-    $$ = &UpdateExpr{Name: $1, Expr: $3} 
+    $$ = &UpdateExpr{Name: $1, Expr: $3}
   }
 
 exists_opt:

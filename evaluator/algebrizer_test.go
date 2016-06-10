@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/10gen/sqlproxy/parser"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -17,10 +17,10 @@ func TestAlgebrizeStatements(t *testing.T) {
 
 	test := func(sql string, expectedPlanFactory func() PlanStage) {
 		Convey(sql, func() {
-			statement, err := sqlparser.Parse(sql)
+			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(sqlparser.SelectStatement)
+			selectStatement := statement.(parser.SelectStatement)
 			actual, err := Algebrize(selectStatement, defaultDbName, testSchema)
 			So(err, ShouldBeNil)
 
@@ -35,10 +35,10 @@ func TestAlgebrizeStatements(t *testing.T) {
 
 	testError := func(sql, message string) {
 		Convey(sql, func() {
-			statement, err := sqlparser.Parse(sql)
+			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(sqlparser.SelectStatement)
+			selectStatement := statement.(parser.SelectStatement)
 			actual, err := Algebrize(selectStatement, defaultDbName, testSchema)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, message)
@@ -931,10 +931,10 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 	test := func(sql string, expected SQLExpr) {
 		Convey(sql, func() {
-			statement, err := sqlparser.Parse("select " + sql + " from foo")
+			statement, err := parser.Parse("select " + sql + " from foo")
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(*sqlparser.Select)
+			selectStatement := statement.(*parser.Select)
 			actualPlan, err := Algebrize(selectStatement, "test", testSchema)
 			So(err, ShouldBeNil)
 

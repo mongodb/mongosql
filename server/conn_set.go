@@ -4,13 +4,13 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/mongodb/mongo-tools/common/log"
 )
 
-var nstring = sqlparser.String
+var nstring = parser.String
 
-func (c *conn) handleSet(stmt *sqlparser.Set) error {
+func (c *conn) handleSet(stmt *parser.Set) error {
 	if len(stmt.Exprs) != 1 {
 		return mysqlerrors.Unknownf("must set one item once, not %s", nstring(stmt))
 	}
@@ -30,13 +30,13 @@ func (c *conn) handleSet(stmt *sqlparser.Set) error {
 		// TODO
 		return c.writeOK(nil)
 	default:
-		log.Logf(log.Always, "%s", sqlparser.String(stmt))
+		log.Logf(log.Always, "%s", parser.String(stmt))
 		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, k)
 	}
 }
 
-func (c *conn) handleSetAutoCommit(val sqlparser.ValExpr) error {
-	value, ok := val.(sqlparser.NumVal)
+func (c *conn) handleSetAutoCommit(val parser.ValExpr) error {
+	value, ok := val.(parser.NumVal)
 	if !ok {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_TYPE_FOR_VAR, "autocommit")
 	}
@@ -53,8 +53,8 @@ func (c *conn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 	return c.writeOK(nil)
 }
 
-func (c *conn) handleSetNames(val sqlparser.ValExpr) error {
-	value, ok := val.(sqlparser.StrVal)
+func (c *conn) handleSetNames(val parser.ValExpr) error {
+	value, ok := val.(parser.StrVal)
 	if !ok {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_TYPE_FOR_VAR, "names")
 	}
@@ -71,11 +71,11 @@ func (c *conn) handleSetNames(val sqlparser.ValExpr) error {
 	return c.writeOK(nil)
 }
 
-func (c *conn) handleSetCharacterResults(val sqlparser.ValExpr) error {
+func (c *conn) handleSetCharacterResults(val parser.ValExpr) error {
 	switch expr := val.(type) {
-	case *sqlparser.NullVal:
+	case *parser.NullVal:
 		return c.writeOK(nil)
 	default:
-		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, "character_set_results", sqlparser.String(expr))
+		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, "character_set_results", parser.String(expr))
 	}
 }

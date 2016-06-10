@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/10gen/sqlproxy/parser"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -86,12 +86,12 @@ func getBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 }
 
 func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
-	statement, err := sqlparser.Parse("select * from " + tableName + " where " + sql)
+	statement, err := parser.Parse("select * from " + tableName + " where " + sql)
 	if err != nil {
 		return nil, err
 	}
 
-	selectStatement := statement.(sqlparser.SelectStatement)
+	selectStatement := statement.(parser.SelectStatement)
 	actualPlan, err := Algebrize(selectStatement, dbName, schema)
 	if err != nil {
 		return nil, err

@@ -5,7 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 )
@@ -47,7 +47,7 @@ func (e *Evaluator) Schema() schema.Schema {
 
 // EvaluateRows executes the query and returns the
 // generated results as a slice of rows.
-func (e *Evaluator) EvaluateRows(db, sql string, ast sqlparser.SelectStatement, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
+func (e *Evaluator) EvaluateRows(db, sql string, ast parser.SelectStatement, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
 
 	columns, iter, err := e.Evaluate(db, sql, ast, conn)
 	if err != nil {
@@ -90,7 +90,7 @@ func (e *Evaluator) EvaluateRows(db, sql string, ast sqlparser.SelectStatement, 
 
 // Evaluate executes the query and returns an iterator
 // capable of going over all the generated results.
-func (e *Evaluator) Evaluate(db, sql string, ast sqlparser.SelectStatement, conn evaluator.ConnectionCtx) ([]*evaluator.Column, evaluator.Iter, error) {
+func (e *Evaluator) Evaluate(db, sql string, ast parser.SelectStatement, conn evaluator.ConnectionCtx) ([]*evaluator.Column, evaluator.Iter, error) {
 
 	plan, executionCtx, err := e.Plan(db, sql, ast, conn)
 	if err != nil {
@@ -110,23 +110,23 @@ func (e *Evaluator) Evaluate(db, sql string, ast sqlparser.SelectStatement, conn
 }
 
 // Plan returns a query plan for the SQL query.
-func (e *Evaluator) Plan(db, sql string, ast sqlparser.SelectStatement, conn evaluator.ConnectionCtx) (evaluator.PlanStage, *evaluator.ExecutionCtx, error) {
+func (e *Evaluator) Plan(db, sql string, ast parser.SelectStatement, conn evaluator.ConnectionCtx) (evaluator.PlanStage, *evaluator.ExecutionCtx, error) {
 
 	var ok bool
 
 	if ast == nil {
-		raw, err := sqlparser.Parse(sql)
+		raw, err := parser.Parse(sql)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		ast, ok = raw.(sqlparser.SelectStatement)
+		ast, ok = raw.(parser.SelectStatement)
 		if !ok {
 			return nil, nil, fmt.Errorf("got a non-select statement in algebrization")
 		}
 	}
 
-	log.Logf(log.DebugLow, "Preparing query plan for: %#v", sqlparser.String(ast))
+	log.Logf(log.DebugLow, "Preparing query plan for: %#v", parser.String(ast))
 
 	plan, err := evaluator.Algebrize(ast, db, e.config)
 	if err != nil {

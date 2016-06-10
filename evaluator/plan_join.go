@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/deafgoat/mixer/sqlparser"
+	"github.com/10gen/sqlproxy/parser"
 )
 
 // JoinStrategy specifies the method a Join
@@ -22,12 +22,12 @@ const (
 type JoinKind string
 
 const (
-	InnerJoin    JoinKind = sqlparser.AST_JOIN
-	StraightJoin JoinKind = sqlparser.AST_STRAIGHT_JOIN
-	LeftJoin     JoinKind = sqlparser.AST_LEFT_JOIN
-	RightJoin    JoinKind = sqlparser.AST_RIGHT_JOIN
-	CrossJoin    JoinKind = sqlparser.AST_CROSS_JOIN
-	NaturalJoin  JoinKind = sqlparser.AST_NATURAL_JOIN
+	InnerJoin    JoinKind = parser.AST_JOIN
+	StraightJoin JoinKind = parser.AST_STRAIGHT_JOIN
+	LeftJoin     JoinKind = parser.AST_LEFT_JOIN
+	RightJoin    JoinKind = parser.AST_RIGHT_JOIN
+	CrossJoin    JoinKind = parser.AST_CROSS_JOIN
+	NaturalJoin  JoinKind = parser.AST_NATURAL_JOIN
 )
 
 // NestedLoop implementation of a JOIN.

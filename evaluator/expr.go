@@ -904,7 +904,7 @@ func (_ *SQLSubqueryCmpExpr) Type() schema.SQLType {
 }
 
 //
-// SQLSubqueryExpr is a wrapper around a sqlparser.SelectStatement representing
+// SQLSubqueryExpr is a wrapper around a parser.SelectStatement representing
 // a subquery.
 //
 type SQLSubqueryExpr struct {
