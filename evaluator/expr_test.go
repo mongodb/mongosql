@@ -427,6 +427,17 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: CONCAT_WS", func() {
+				tests := []test{
+					test{"CONCAT_WS(NULL, NULL)", SQLNull},
+					test{"CONCAT_WS(',','A')", SQLVarchar("A")},
+					test{"CONCAT_WS(',','A', 'B')", SQLVarchar("A,B")},
+					test{"CONCAT_WS(',','A', NULL, 'B')", SQLVarchar("A,B")},
+					test{"CONCAT_WS(',','A', 123, 'B')", SQLVarchar("A,123,B")},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			SkipConvey("Subject: CURRENT_DATE", func() {
 				tests := []test{
 					test{"CURRENT_DATE()", SQLDate{time.Now().UTC()}},
@@ -526,11 +537,35 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: INSTR", func() {
+				tests := []test{
+					test{"INSTR(NULL, NULL)", SQLNull},
+					test{"INSTR('sDg', 'D')", SQLInt(2)},
+					test{"INSTR(124, 124)", SQLInt(1)},
+					test{"INSTR('awesome','so')", SQLInt(4)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: LCASE", func() {
 				tests := []test{
 					test{"LCASE(NULL)", SQLNull},
 					test{"LCASE('sDg')", SQLVarchar("sdg")},
 					test{"LCASE(124)", SQLVarchar("124")},
+					test{"LOWER(NULL)", SQLNull},
+					test{"LOWER('')", SQLVarchar("")},
+					test{"LOWER('A')", SQLVarchar("a")},
+					test{"LOWER('awesome')", SQLVarchar("awesome")},
+					test{"LOWER('AwEsOmE')", SQLVarchar("awesome")},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: LEFT", func() {
+				tests := []test{
+					test{"LEFT(NULL, NULL)", SQLNull},
+					test{"LEFT('sDgcdcdc', 4)", SQLVarchar("sDgc")},
+					test{"LEFT(124, 2)", SQLVarchar("12")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -540,6 +575,10 @@ func TestEvaluates(t *testing.T) {
 					test{"LENGTH(NULL)", SQLNull},
 					test{"LENGTH('sDg')", SQLInt(3)},
 					test{"LENGTH('世界')", SQLInt(6)},
+					test{"CHAR_LENGTH(NULL)", SQLNull},
+					test{"CHAR_LENGTH('')", SQLInt(0)},
+					test{"CHAR_LENGTH('A')", SQLInt(1)},
+					test{"CHAR_LENGTH('AWESOME')", SQLInt(7)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -628,6 +667,15 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: RIGHT", func() {
+				tests := []test{
+					test{"RIGHT(NULL, NULL)", SQLNull},
+					test{"RIGHT('sDgcdcdc', 4)", SQLVarchar("dcdc")},
+					test{"RIGHT(124, 2)", SQLVarchar("24")},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: RTRIM", func() {
 				tests := []test{
 					test{"RTRIM(NULL)", SQLNull},
@@ -666,6 +714,14 @@ func TestEvaluates(t *testing.T) {
 					test{"SUBSTRING('Sakila', -3)", SQLVarchar("ila")},
 					test{"SUBSTRING('Sakila', -5, 3)", SQLVarchar("aki")},
 					test{"SUBSTRING('日本語', 2)", SQLVarchar("本語")},
+					test{"SUBSTR(NULL, 4)", SQLNull},
+					test{"SUBSTR('foobarbar', NULL)", SQLNull},
+					test{"SUBSTR('foobarbar', 4, NULL)", SQLNull},
+					test{"SUBSTR('Quadratically', 5)", SQLVarchar("ratically")},
+					test{"SUBSTR('Quadratically', 5, 6)", SQLVarchar("ratica")},
+					test{"SUBSTR('Sakila', -3)", SQLVarchar("ila")},
+					test{"SUBSTR('Sakila', -5, 3)", SQLVarchar("aki")},
+					test{"SUBSTR('日本語', 2)", SQLVarchar("本語")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -675,6 +731,11 @@ func TestEvaluates(t *testing.T) {
 					test{"UCASE(NULL)", SQLNull},
 					test{"UCASE('sdg')", SQLVarchar("SDG")},
 					test{"UCASE(124)", SQLVarchar("124")},
+					test{"UPPER(NULL)", SQLNull},
+					test{"UPPER('')", SQLVarchar("")},
+					test{"UPPER('a')", SQLVarchar("A")},
+					test{"UPPER('AWESOME')", SQLVarchar("AWESOME")},
+					test{"UPPER('AwEsOmE')", SQLVarchar("AWESOME")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1270,6 +1331,13 @@ func TestTranslateExpr(t *testing.T) {
 		tests := []test{
 			test{"abs(a)", `{"$abs":"$a"}`},
 			test{"concat(a, 'funny')", `{"$concat":["$a",{"$literal":"funny"}]}`},
+			test{"concat(a, null)", `{"$concat":["$a"]}`},
+			test{"concat(a, '')", `{"$concat":["$a",{"$literal":""}]}`},
+			test{"concat_ws(',', a)", `{"$concat":["$a"]}`},
+			test{"concat_ws(',', a, null)", `{"$concat":["$a"]}`},
+			test{"concat_ws(',', a, 'funny')", `{"$concat":["$a",{"$literal":","},{"$literal":"funny"}]}`},
+			test{"concat_ws(',', a, b)", `{"$concat":["$a",{"$literal":","},"$b"]}`},
+			test{"concat_ws(',', a, b, 'hey')", `{"$concat":["$a",{"$literal":","},"$b",{"$literal":","},{"$literal":"hey"}]}`},
 			test{"dayname(a)", `{"$arrayElemAt":[["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],{"$subtract":[{"$dayOfWeek":"$a"},1]}]}`},
 			test{"dayofmonth(a)", `{"$dayOfMonth":"$a"}`},
 			test{"dayofweek(a)", `{"$dayOfWeek":"$a"}`},
@@ -1278,7 +1346,10 @@ func TestTranslateExpr(t *testing.T) {
 			test{"floor(a)", `{"$floor":"$a"}`},
 			test{"hour(a)", `{"$hour":"$a"}`},
 			test{"isnull(a)", `{"$cond":[{"$eq":["$a",null]},1,0]}`},
+			test{"left(a, 2)", `{"$substr":["$a",0,{"$literal":2}]}`},
+			test{"left('abcde', 0)", `{"$substr":[{"$literal":"abcde"},0,{"$literal":0}]}`},
 			test{"lcase(a)", `{"$toLower":"$a"}`},
+			test{"lower(a)", `{"$toLower":"$a"}`},
 			test{"log10(a)", `{"$log10":"$a"}`},
 			test{"minute(a)", `{"$minute":"$a"}`},
 			test{"mod(a, 10)", `{"$mod":["$a",{"$literal":10}]}`},
@@ -1290,8 +1361,11 @@ func TestTranslateExpr(t *testing.T) {
 			test{"sqrt(a)", `{"$sqrt":"$a"}`},
 			test{"substring(a, 2)", `{"$substr":["$a",{"$literal":2},-1]}`},
 			test{"substring(a, 2, 4)", `{"$substr":["$a",{"$literal":2},{"$literal":4}]}`},
+			test{"substr(a, 2)", `{"$substr":["$a",{"$literal":2},-1]}`},
+			test{"substr(a, 2, 4)", `{"$substr":["$a",{"$literal":2},{"$literal":4}]}`},
 			test{"week(a)", `{"$week":"$a"}`},
 			test{"ucase(a)", `{"$toUpper":"$a"}`},
+			test{"upper(a)", `{"$toUpper":"$a"}`},
 			//test{"week(a, 3)", `{"$week":"$a"}`}, Not support second argument
 			//test{"year(a)", `{"$year":"$a"}`}, Parser error
 

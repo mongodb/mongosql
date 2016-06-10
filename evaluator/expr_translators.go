@@ -262,7 +262,41 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 			return coalesce(args), true
 		case "concat":
-			return bson.M{"$concat": args}, true
+			if len(args) < 1 {
+				return nil, false
+			}
+			var nonNullArgs []interface{}
+			for _, value := range args {
+				if value == nil {
+					continue
+				}
+				nonNullArgs = append(nonNullArgs, value)
+			}
+
+			return bson.M{"$concat": nonNullArgs}, true
+		case "concat_ws":
+			if len(args) < 2 {
+				return nil, false
+			}
+
+			var nonNullArgs []interface{}
+			var pushArgs []interface{}
+
+			for _, value := range args[1:] {
+				if value == nil {
+					continue
+				}
+				nonNullArgs = append(nonNullArgs, value)
+			}
+
+			for i, value := range nonNullArgs {
+				pushArgs = append(pushArgs, value)
+				if i != len(nonNullArgs) - 1 {
+					pushArgs = append(pushArgs, args[0])
+				}
+			}
+
+			return bson.M{"$concat": pushArgs}, true
 		case "dayname":
 			if len(args) != 1 {
 				return nil, false
@@ -324,7 +358,13 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 			return bson.M{"$cond": []interface{}{
 				bson.M{"$eq": []interface{}{args[0], nil}}, 1, 0}}, true
-		case "lcase":
+		case "left":
+			if len(args) != 2 {
+				return nil, false
+			}
+
+			return bson.M{"$substr":[]interface{}{args[0], 0, args[1]}}, true
+		case "lcase", "lower":
 			if len(args) != 1 {
 				return nil, false
 			}
@@ -405,7 +445,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$sqrt": args[0]}, true
-		case "substring":
+		case "substring", "substr":
 			if len(args) != 2 && len(args) != 3 {
 				return nil, false
 			}
@@ -423,7 +463,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$week": args[0]}, true
-		case "ucase":
+		case "ucase", "upper":
 			if len(args) != 1 {
 				return nil, false
 			}

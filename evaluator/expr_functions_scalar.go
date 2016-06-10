@@ -158,6 +158,50 @@ func (_ *concatFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, -1)
 }
 
+type concatWsFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat-ws
+func (_ *concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
+	if _, ok := values[0].(SQLNullValue); ok {
+		v = SQLNull
+		return
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			v = nil
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+
+	var bytes bytes.Buffer
+	var separator string = values[0].String()
+	var trimValues []SQLValue = values[1:]
+	for i, value := range trimValues {
+		if _, ok := value.(SQLNullValue); ok {
+			continue
+		}
+		bytes.WriteString(value.String())
+		if i != len(trimValues) - 1 {
+			bytes.WriteString(separator)
+		}
+	}
+
+	v = SQLVarchar(bytes.String())
+	return
+}
+
+func (_ *concatWsFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *concatWsFunc) Validate(exprCount int) error {
+	if ensureArgCount(exprCount, -1) != nil || exprCount < 2 {
+		return ErrIncorrectCount
+	}
+	return nil
+}
+
 type currentDateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curdate
@@ -332,6 +376,22 @@ func (_ *hourFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type instrFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_instr
+func (_ *instrFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	locate := &locateFunc{}
+	return locate.Evaluate([]SQLValue{values[1], values[0]}, ctx)
+}
+
+func (_ *instrFunc) Type() schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *instrFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
+
 type isnullFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_isnull
@@ -374,6 +434,22 @@ func (_ *lcaseFunc) Type() schema.SQLType {
 
 func (_ *lcaseFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type leftFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_left
+func (_ *leftFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	substring := &substringFunc{}
+	return substring.Evaluate([]SQLValue{values[0], SQLInt(1), values[1]}, ctx)
+}
+
+func (_ *leftFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *leftFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
 }
 
 type lengthFunc struct{}
@@ -656,6 +732,27 @@ func (_ *quarterFunc) Type() schema.SQLType {
 
 func (_ *quarterFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type rightFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_right
+func (_ *rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	substring := &substringFunc{}
+	lenVal, ok := values[1].(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+	len := -1 * int(lenVal.Float64())
+	return substring.Evaluate([]SQLValue{values[0], SQLInt(len)}, ctx)
+}
+
+func (_ *rightFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *rightFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
 }
 
 type rtrimFunc struct{}

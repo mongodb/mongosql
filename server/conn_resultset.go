@@ -13,9 +13,9 @@ func formatValue(value interface{}) ([]byte, error) {
 	switch v := value.(type) {
 
 	case evaluator.SQLVarchar:
-		return Slice(string(v)), nil
+		return []byte(string(v)), nil
 	case evaluator.SQLObjectID:
-		return Slice(string(v)), nil
+		return []byte(string(v)), nil
 	case evaluator.SQLInt:
 		return strconv.AppendInt(nil, int64(v), 10), nil
 	case evaluator.SQLUint32:
