@@ -11,10 +11,8 @@ import (
 func TestProjectOperator(t *testing.T) {
 	ctx := &ExecutionCtx{}
 
-	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
-
 	runTest := func(project *ProjectStage, optimize bool, rows []bson.D, expectedRows []Values) {
-		ts := &BSONSourceStage{tableOneName, rows}
+		ts := NewBSONSourceStage(1, tableOneName, rows)
 
 		project = project.clone()
 		var plan PlanStage
@@ -56,12 +54,12 @@ func TestProjectOperator(t *testing.T) {
 
 		projectedColumns := ProjectedColumns{
 			ProjectedColumn{
-				Column: &Column{tableOneName, "a", schema.SQLInt, schema.MongoInt},
-				Expr:   SQLColumnExpr{tableOneName, "a", columnType},
+				Column: &Column{1, "", "a", schema.SQLInt, schema.MongoInt},
+				Expr:   NewSQLColumnExpr(1, tableOneName, "a", schema.SQLInt, schema.MongoInt),
 			},
 			ProjectedColumn{
-				Column: &Column{tableOneName, "b", schema.SQLInt, schema.MongoInt},
-				Expr:   SQLColumnExpr{tableOneName, "b", columnType},
+				Column: &Column{1, "", "b", schema.SQLInt, schema.MongoInt},
+				Expr:   NewSQLColumnExpr(1, tableOneName, "b", schema.SQLInt, schema.MongoInt),
 			},
 		}
 
@@ -70,8 +68,8 @@ func TestProjectOperator(t *testing.T) {
 		}
 
 		expected := []Values{
-			{{tableOneName, "a", SQLInt(6)}, {tableOneName, "b", SQLInt(9)}},
-			{{tableOneName, "a", SQLInt(3)}, {tableOneName, "b", SQLInt(4)}},
+			{{1, "", "a", SQLInt(6)}, {1, "", "b", SQLInt(9)}},
+			{{1, "", "a", SQLInt(3)}, {1, "", "b", SQLInt(4)}},
 		}
 
 		runTest(project, false, rows, expected)

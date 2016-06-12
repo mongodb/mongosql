@@ -37,8 +37,6 @@ func TestEvaluates(t *testing.T) {
 		result SQLExpr
 	}
 
-	columnTypeNumeric := schema.ColumnType{schema.SQLNumeric, schema.MongoInt}
-
 	runTests := func(ctx *EvalCtx, tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
@@ -54,14 +52,11 @@ func TestEvaluates(t *testing.T) {
 	}
 
 	Convey("Subject: Evaluates", t, func() {
-		evalCtx := &EvalCtx{
-			Rows: Rows{{
-				Values{
-					{"bar", "a", 123},
-					{"bar", "b", 456},
-					{"bar", "c", nil}},
-			}},
-		}
+		evalCtx := NewEvalCtx(nil, &Row{Values{
+			{1, "bar", "a", 123},
+			{1, "bar", "b", 456},
+			{1, "bar", "c", nil},
+		}})
 
 		Convey("Subject: SQLAddExpr", func() {
 			tests := []test{
@@ -80,28 +75,26 @@ func TestEvaluates(t *testing.T) {
 			t1 = time.Now()
 			t2 = t1.Add(time.Hour)
 
-			aggCtx := &EvalCtx{
-				Rows: Rows{{
-					Values{
-						{"bar", "a", nil},
-						{"bar", "b", 3},
-						{"bar", "c", nil},
-						{"bar", "g", t1},
-					}}, {
-					Values{
-						{"bar", "a", 3},
-						{"bar", "b", nil},
-						{"bar", "c", nil},
-						{"bar", "g", t2},
-					}}, {
-					Values{
-						{"bar", "a", 5},
-						{"bar", "b", 6},
-						{"bar", "c", nil},
-						{"bar", "g", nil},
-					}},
-				},
-			}
+			aggCtx := NewEvalCtx(nil,
+				&Row{Values{
+					{1, "bar", "a", nil},
+					{1, "bar", "b", 3},
+					{1, "bar", "c", nil},
+					{1, "bar", "g", t1},
+				}},
+				&Row{Values{
+					{1, "bar", "a", 3},
+					{1, "bar", "b", nil},
+					{1, "bar", "c", nil},
+					{1, "bar", "g", t2},
+				}},
+				&Row{Values{
+					{1, "bar", "a", 5},
+					{1, "bar", "b", 6},
+					{1, "bar", "c", nil},
+					{1, "bar", "g", nil},
+				}},
+			)
 
 			Convey("Subject: AVG", func() {
 				tests := []test{
@@ -218,21 +211,21 @@ func TestEvaluates(t *testing.T) {
 
 		Convey("Subject: SQLColumnExpr", func() {
 			Convey("Should return the value of the field when it exists", func() {
-				subject := SQLColumnExpr{"bar", "a", columnTypeNumeric}
+				subject := NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt)
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldEqual, SQLInt(123))
 			})
 
 			Convey("Should return nil when the field is null", func() {
-				subject := SQLColumnExpr{"bar", "c", columnTypeNumeric}
+				subject := NewSQLColumnExpr(1, "bar", "c", schema.SQLInt, schema.MongoInt)
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldHaveSameTypeAs, SQLNull)
 			})
 
 			Convey("Should return nil when the field doesn't exists", func() {
-				subject := SQLColumnExpr{"bar", "no_existy", columnTypeNumeric}
+				subject := NewSQLColumnExpr(1, "bar", "no_existy", schema.SQLInt, schema.MongoInt)
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldHaveSameTypeAs, SQLNull)
@@ -896,7 +889,7 @@ func TestEvaluates(t *testing.T) {
 func TestMatches(t *testing.T) {
 	Convey("Subject: Matches", t, func() {
 
-		evalCtx := &EvalCtx{Rows{}, nil}
+		evalCtx := NewEvalCtx(nil)
 
 		tests := [][]interface{}{
 			[]interface{}{SQLInt(124), true},
@@ -1161,9 +1154,6 @@ func TestOptimizeSQLExpr(t *testing.T) {
 		result   SQLExpr
 	}
 
-	columnTypeNumeric := schema.ColumnType{schema.SQLNumeric, schema.MongoInt}
-	columnTypeInt := schema.ColumnType{schema.SQLInt, schema.MongoInt}
-
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
@@ -1181,24 +1171,24 @@ func TestOptimizeSQLExpr(t *testing.T) {
 	Convey("Subject: OptimizeSQLExpr", t, func() {
 
 		tests := []test{
-			test{"3 = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLInt(3)}},
-			test{"3 < a", "a > 3", &SQLGreaterThanExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLInt(3)}},
-			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLInt(3)}},
-			test{"3 > a", "a < 3", &SQLLessThanExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLInt(3)}},
-			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLInt(3)}},
-			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLInt(3)}},
+			test{"3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
+			test{"3 < a", "a > 3", &SQLGreaterThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
+			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
+			test{"3 > a", "a < 3", &SQLLessThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
+			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
+			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
 			test{"3 + 3 = 6", "true", SQLTrue},
-			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLFloat(3)}},
-			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLInt(3)}},
+			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLFloat(3)}},
+			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
 			test{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
 				&SQLAndExpr{
-					&SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLFloat(3)},
-					&SQLEqualsExpr{SQLColumnExpr{"bar", "b", columnTypeInt}, SQLInt(2)}}},
+					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLFloat(3)},
+					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "b", schema.SQLInt, schema.MongoInt), SQLInt(2)}}},
 			test{"3 + 3 = 6 OR a = 3", "true", SQLTrue},
-			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLInt(3)}},
+			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
 			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
-			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLInt(3)}},
-			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{SQLColumnExpr{"bar", "a", columnTypeNumeric}, SQLInt(3)}},
+			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
+			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
 			test{"DAYNAME('2016-1-1')", "Friday", SQLVarchar("Friday")},
 			test{"(8-7)", "1", SQLInt(1)},
 		}
@@ -1214,10 +1204,6 @@ func TestReconcileSQLExpr(t *testing.T) {
 		reconciledLeft  SQLExpr
 		reconciledRight SQLExpr
 	}
-
-	columnTypeInt := schema.ColumnType{schema.SQLInt, schema.MongoInt}
-	columnTypeNumeric := schema.ColumnType{schema.SQLNumeric, schema.MongoInt}
-	columnTypeDate := schema.ColumnType{schema.SQLTimestamp, schema.MongoDate}
 
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
@@ -1237,9 +1223,9 @@ func TestReconcileSQLExpr(t *testing.T) {
 
 	exprConv := &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLTimestamp}
 	exprTime := &SQLScalarFunctionExpr{"current_timestamp", []SQLExpr{}}
-	exprA := SQLColumnExpr{"bar", "a", columnTypeNumeric}
-	exprB := SQLColumnExpr{"bar", "b", columnTypeInt}
-	exprG := SQLColumnExpr{"bar", "g", columnTypeDate}
+	exprA := NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt)
+	exprB := NewSQLColumnExpr(1, "bar", "b", schema.SQLInt, schema.MongoInt)
+	exprG := NewSQLColumnExpr(1, "bar", "g", schema.SQLTimestamp, schema.MongoDate)
 
 	Convey("Subject: reconcileSQLExpr", t, func() {
 
@@ -1314,9 +1300,6 @@ func TestTranslatePredicate(t *testing.T) {
 		}
 	}
 
-	columnTypeNumeric := schema.ColumnType{schema.SQLNumeric, schema.MongoInt}
-	columnTypeInt := schema.ColumnType{schema.SQLInt, schema.MongoInt}
-
 	Convey("Subject: TranslatePredicate", t, func() {
 		tests := []test{
 			test{"a = 3", `{"a":3}`},
@@ -1352,10 +1335,10 @@ func TestTranslatePredicate(t *testing.T) {
 		runTests(tests)
 
 		partialTests := []partialTest{
-			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{tableTwoName, "a", columnTypeNumeric}, SQLColumnExpr{tableTwoName, "b", columnTypeInt}}},
-			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{tableTwoName, "a", columnTypeNumeric}, SQLColumnExpr{tableTwoName, "b", columnTypeInt}}},
-			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{SQLColumnExpr{tableTwoName, "a", columnTypeNumeric}, SQLColumnExpr{tableTwoName, "b", columnTypeInt}}},
-			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{SQLColumnExpr{tableTwoName, "a", columnTypeNumeric}, SQLColumnExpr{tableTwoName, "b", columnTypeInt}}}},
+			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLNumeric, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
+			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLNumeric, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
+			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLNumeric, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
+			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLNumeric, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}}},
 		}
 
 		runPartialTests(partialTests)

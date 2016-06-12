@@ -11,24 +11,39 @@ import (
 
 // Algebrize takes a parsed SQL statement and returns an algebrized form of the query.
 func Algebrize(selectStatement parser.SelectStatement, dbName string, schema *schema.Schema) (PlanStage, error) {
+	g := &selectIDGenerator{}
 	algebrizer := &algebrizer{
-		dbName: dbName,
-		schema: schema,
+		dbName:            dbName,
+		schema:            schema,
+		selectID:          g.generate(),
+		selectIDGenerator: g,
 	}
 	return algebrizer.translateSelectStatement(selectStatement)
 }
 
+type selectIDGenerator struct {
+	current int
+}
+
+func (g *selectIDGenerator) generate() int {
+	g.current++
+	return g.current
+}
+
 type algebrizer struct {
+	selectIDGenerator            *selectIDGenerator
+	selectID                     int   // the selectID to use for projected columns
+	selectIDsInScope             []int // the selectIDs that are currently used
 	parent                       *algebrizer
-	sourceName                   string // the name of the output. This means we need all projected columns to use this as the table name.
+	aliasName                    string // the name to use for projected columns.
 	dbName                       string // the default database name.
 	schema                       *schema.Schema
 	columns                      []*Column        // all the columns in scope.
 	tableNames                   []string         // all the table names in scope.
 	correlated                   bool             // indicates whether this context is using columns in its parent.
-	hasCorrelatedSubquery        bool             // indicates whether this context has a correlated subquery.
 	projectedColumns             ProjectedColumns // columns to be projected from this scope.
 	resolveProjectedColumnsFirst bool             // indicates whether to resolve a column using the projected columns first or second
+	currentClause                string           // tracks the current clause being processed for the purposes of error messages.
 }
 
 func (a *algebrizer) fullName(tableName, columnName string) string {
@@ -45,14 +60,14 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 	for _, column := range a.columns {
 		if strings.EqualFold(column.Name, columnName) && (tableName == "" || strings.EqualFold(column.Table, tableName)) {
 			if found != nil {
-				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NON_UNIQ_ERROR, a.fullName(tableName, columnName), "field list")
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NON_UNIQ_ERROR, a.fullName(tableName, columnName), a.currentClause)
 			}
 			found = column
 		}
 	}
 
 	if found == nil {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, a.fullName(tableName, columnName), "field list")
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, a.fullName(tableName, columnName), a.currentClause)
 	}
 
 	return found, nil
@@ -78,14 +93,7 @@ func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, e
 
 	column, err := a.lookupColumn(tableName, columnName)
 	if err == nil {
-		return SQLColumnExpr{
-			tableName:  column.Table,
-			columnName: column.Name,
-			columnType: schema.ColumnType{
-				SQLType:   column.SQLType,
-				MongoType: column.MongoType,
-			},
-		}, nil
+		return NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType), nil
 	}
 
 	if !a.resolveProjectedColumnsFirst && tableName == "" {
@@ -110,6 +118,8 @@ func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, e
 func (a *algebrizer) registerColumns(columns []*Column) error {
 	contains := func(c *Column) bool {
 		for _, c2 := range a.columns {
+			// we don't use SelectID here because it's irrelevant to whether a query
+			// is semantically valid.
 			if strings.EqualFold(c.Name, c2.Name) && strings.EqualFold(c.Table, c2.Table) {
 				return true
 			}
@@ -125,6 +135,9 @@ func (a *algebrizer) registerColumns(columns []*Column) error {
 			return mysqlerrors.Defaultf(mysqlerrors.ER_DUP_FIELDNAME, a.fullName(c.Table, c.Name))
 		}
 		a.columns = append(a.columns, c)
+		if !containsInt(a.selectIDsInScope, c.SelectID) {
+			a.selectIDsInScope = append(a.selectIDsInScope, c.SelectID)
+		}
 	}
 
 	return nil
@@ -157,7 +170,7 @@ func (a *algebrizer) translateGroupBy(groupby parser.GroupBy) ([]SQLExpr, error)
 	var keys []SQLExpr
 	for _, g := range groupby {
 
-		key, err := a.translatePossibleColumnRefExpr(g, "group clause")
+		key, err := a.translatePossibleColumnRefExpr(g)
 		if err != nil {
 			return nil, err
 		}
@@ -212,15 +225,6 @@ func (a *algebrizer) translateLimit(limit *parser.Limit) (SQLInt, SQLInt, error)
 	return offset, rowcount, nil
 }
 
-func (a *algebrizer) translateNamedSelectStatement(selectStatement parser.SelectStatement, sourceName string) (PlanStage, error) {
-	algebrizer := &algebrizer{
-		dbName:     a.dbName,
-		schema:     a.schema,
-		sourceName: sourceName,
-	}
-	return algebrizer.translateSelectStatement(selectStatement)
-}
-
 func (a *algebrizer) translateOrderBy(orderby parser.OrderBy) ([]*orderByTerm, error) {
 	var terms []*orderByTerm
 	for _, o := range orderby {
@@ -237,7 +241,7 @@ func (a *algebrizer) translateOrderBy(orderby parser.OrderBy) ([]*orderByTerm, e
 
 func (a *algebrizer) translateOrder(order *parser.Order) (*orderByTerm, error) {
 	ascending := !strings.EqualFold(order.Direction, parser.AST_DESC)
-	e, err := a.translatePossibleColumnRefExpr(order.Expr, "order clause")
+	e, err := a.translatePossibleColumnRefExpr(order.Expr)
 	if err != nil {
 		return nil, err
 	}
@@ -260,6 +264,7 @@ func (a *algebrizer) translateSelectStatement(selectStatement parser.SelectState
 }
 
 func (a *algebrizer) translateSimpleSelect(sel *parser.SimpleSelect) (PlanStage, error) {
+	a.currentClause = "field list"
 	projectedColumns, err := a.translateSelectExprs(sel.SelectExprs)
 	if err != nil {
 		return nil, err
@@ -276,16 +281,14 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	// 1. Translate all the tables, subqueries, and joins in the FROM clause.
 	// This establishes all the columns which are in scope.
 	if sel.From != nil {
+		a.currentClause = "from clause"
 		plan, err := a.translateTableExprs(sel.From)
 		if err != nil {
 			return nil, err
 		}
 
 		builder.from = plan
-
-		// TODO: probably add allowed tableNames in order to filter out subquery columns from
-		// unrelated tables
-		builder.exprCollector = newExpressionCollector()
+		builder.exprCollector = newExpressionCollector(a.selectIDsInScope)
 	}
 
 	// 2. Translate all the other clauses from this scope. We aren't going to create the plan stages
@@ -295,6 +298,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	// before the first PlanStage we have to execute in memory so as to only pull back the columns
 	// we'll actually need.
 	if sel.Where != nil {
+		a.currentClause = "where clause"
 		err := builder.includeWhere(sel.Where)
 		if err != nil {
 			return nil, err
@@ -302,6 +306,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	}
 
 	if sel.SelectExprs != nil {
+		a.currentClause = "field list"
 		err := builder.includeSelect(sel.SelectExprs)
 		if err != nil {
 			return nil, err
@@ -314,6 +319,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	}
 
 	if sel.GroupBy != nil {
+		a.currentClause = "group clause"
 		err := builder.includeGroupBy(sel.GroupBy)
 		if err != nil {
 			return nil, err
@@ -321,6 +327,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	}
 
 	if sel.Having != nil {
+		a.currentClause = "having clause"
 		err := builder.includeHaving(sel.Having)
 		if err != nil {
 			return nil, err
@@ -333,6 +340,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	a.resolveProjectedColumnsFirst = true
 
 	if sel.OrderBy != nil {
+		a.currentClause = "order clause"
 		err := builder.includeOrderBy(sel.OrderBy)
 		if err != nil {
 			return nil, err
@@ -340,13 +348,12 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	}
 
 	if sel.Limit != nil {
+		a.currentClause = "limit clause"
 		err := builder.includeLimit(sel.Limit)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	builder.hasCorrelatedSubquery = a.hasCorrelatedSubquery
 
 	// 3. Build the stages.
 	return builder.build(), nil
@@ -372,19 +379,13 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 				if tableName == "" || strings.EqualFold(tableName, column.Table) {
 					projectedColumns = append(projectedColumns, ProjectedColumn{
 						Column: &Column{
-							Table:     a.sourceName,
+							SelectID:  a.selectID,
+							Table:     a.aliasName,
 							Name:      column.Name,
 							SQLType:   column.SQLType,
 							MongoType: column.MongoType,
 						},
-						Expr: SQLColumnExpr{
-							tableName:  column.Table,
-							columnName: column.Name,
-							columnType: schema.ColumnType{
-								SQLType:   column.SQLType,
-								MongoType: column.MongoType,
-							},
-						},
+						Expr: NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType),
 					})
 				}
 			}
@@ -396,16 +397,22 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 				return nil, err
 			}
 
+			if translatedExpr.Type() == schema.SQLTuple {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, 1)
+			}
+
 			projectedColumn := ProjectedColumn{
 				Expr: translatedExpr,
 				Column: &Column{
-					Table:     a.sourceName,
+					SelectID:  a.selectID,
+					Table:     a.aliasName,
 					MongoType: schema.MongoNone,
 					SQLType:   translatedExpr.Type(),
 				},
 			}
 
 			if sqlCol, ok := translatedExpr.(SQLColumnExpr); ok {
+				projectedColumn.SQLType = sqlCol.columnType.SQLType
 				projectedColumn.MongoType = sqlCol.columnType.MongoType
 			}
 
@@ -442,9 +449,10 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs) (PlanStag
 			plan = temp
 		} else {
 			plan = &JoinStage{
-				left:  plan,
-				right: temp,
-				kind:  CrossJoin,
+				left:    plan,
+				right:   temp,
+				kind:    CrossJoin,
+				matcher: SQLTrue,
 			}
 		}
 	}
@@ -477,7 +485,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 				return nil, err
 			}
 		} else {
-			predicate = SQLBool(true)
+			predicate = SQLTrue
 		}
 
 		return NewJoinStage(JoinKind(typedT.Join), left, right, predicate), nil
@@ -504,9 +512,9 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 		if strings.EqualFold(tableName, "DUAL") {
 			plan = NewDualStage()
 		} else if strings.EqualFold(dbName, informationSchemaDatabase) {
-			plan = NewSchemaDataSourceStage(a.schema, tableName, aliasName)
+			plan = NewSchemaDataSourceStage(a.selectID, a.schema, tableName, aliasName)
 		} else {
-			plan, err = NewMongoSourceStage(a.schema, dbName, tableName, aliasName)
+			plan, err = NewMongoSourceStage(a.selectID, a.schema, dbName, tableName, aliasName)
 			if err != nil {
 				return nil, err
 			}
@@ -529,7 +537,20 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DERIVED_MUST_HAVE_ALIAS)
 		}
 
-		plan, err := a.translateNamedSelectStatement(typedT.Select, aliasName)
+		subqueryAlgebrizer := &algebrizer{
+			aliasName:         aliasName,
+			dbName:            a.dbName,
+			schema:            a.schema,
+			selectID:          a.selectIDGenerator.generate(),
+			selectIDGenerator: a.selectIDGenerator,
+		}
+
+		plan, err := subqueryAlgebrizer.translateSelectStatement(typedT.Select)
+		if err != nil {
+			return nil, err
+		}
+
+		err = a.registerTable(aliasName)
 		if err != nil {
 			return nil, err
 		}
@@ -547,18 +568,16 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 
 func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryExpr, error) {
 	subqueryAlgebrizer := &algebrizer{
-		parent: a,
-		dbName: a.dbName,
-		schema: a.schema,
+		parent:            a,
+		dbName:            a.dbName,
+		schema:            a.schema,
+		selectID:          a.selectIDGenerator.generate(),
+		selectIDGenerator: a.selectIDGenerator,
 	}
 
 	plan, err := subqueryAlgebrizer.translateSelectStatement(expr.Select)
 	if err != nil {
 		return nil, err
-	}
-
-	if subqueryAlgebrizer.correlated {
-		a.hasCorrelatedSubquery = true
 	}
 
 	return &SQLSubqueryExpr{
@@ -820,7 +839,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	}
 }
 
-func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr, clause string) (SQLExpr, error) {
+func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr) (SQLExpr, error) {
 	if numVal, ok := expr.(parser.NumVal); ok {
 		n, err := strconv.ParseInt(parser.String(numVal), 10, 64)
 		if err != nil {
@@ -828,7 +847,7 @@ func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr, clause str
 		}
 
 		if int(n) > len(a.projectedColumns) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, strconv.Itoa(int(n)), clause)
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, strconv.Itoa(int(n)), a.currentClause)
 		}
 
 		if n >= 0 {

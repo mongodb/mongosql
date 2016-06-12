@@ -8,14 +8,14 @@ import (
 
 // bsonDToValues takes a bson.D document and returns
 // the corresponding values.
-func bsonDToValues(tableName string, document bson.D) ([]Value, error) {
+func bsonDToValues(selectID int, tableName string, document bson.D) ([]Value, error) {
 	values := []Value{}
 	for _, v := range document {
 		value, err := NewSQLValue(v.Value, schema.SQLNone, schema.MongoNone)
 		if err != nil {
 			return nil, err
 		}
-		values = append(values, Value{tableName, v.Name, value})
+		values = append(values, Value{selectID, tableName, v.Name, value})
 	}
 	return values, nil
 }

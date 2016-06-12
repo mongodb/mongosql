@@ -128,12 +128,6 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 		prettyPrintPlan(b, typedE.source, d+1)
 	case *SchemaDataSourceStage:
 		b.WriteString("↳ SchemaDataSource:")
-	case *SourceAppendStage:
-		b.WriteString("↳ SourceAppend:\n")
-		prettyPrintPlan(b, typedE.source, d+1)
-	case *SourceRemoveStage:
-		b.WriteString("↳ SourceRemove:\n")
-		prettyPrintPlan(b, typedE.source, d+1)
 	case *MongoSourceStage:
 		b.WriteString(fmt.Sprintf("↳ MongoSource: '%v' (db: '%v', collection: '%v')", typedE.tableName, typedE.dbName, typedE.collectionName))
 

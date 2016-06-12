@@ -9,13 +9,11 @@ import (
 )
 
 func TestOrderByOperator(t *testing.T) {
-	columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
-
 	runTest := func(orderby *OrderByStage, rows []bson.D, expectedRows []Values) {
 
 		ctx := &ExecutionCtx{}
 
-		ts := &BSONSourceStage{tableOneName, nil}
+		ts := NewBSONSourceStage(1, tableOneName, nil)
 
 		orderby.source = ts
 		iter, err := orderby.Open(ctx)
@@ -50,7 +48,7 @@ func TestOrderByOperator(t *testing.T) {
 			Convey("asc", func() {
 
 				terms := []*orderByTerm{
-					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
+					{expr: NewSQLColumnExpr(0, tableOneName, "a", schema.SQLInt, schema.MongoInt), ascending: false},
 				}
 
 				operator := &OrderByStage{
@@ -58,10 +56,10 @@ func TestOrderByOperator(t *testing.T) {
 				}
 
 				expected := []Values{
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(7)}},
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(8)}},
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(8)}},
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(7)}},
 				}
 
 				runTest(operator, data, expected)
@@ -71,7 +69,7 @@ func TestOrderByOperator(t *testing.T) {
 			Convey("desc", func() {
 
 				terms := []*orderByTerm{
-					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
+					{expr: NewSQLColumnExpr(0, tableOneName, "a", schema.SQLInt, schema.MongoInt), ascending: false},
 				}
 
 				operator := &OrderByStage{
@@ -79,10 +77,10 @@ func TestOrderByOperator(t *testing.T) {
 				}
 
 				expected := []Values{
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(8)}},
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(7)}},
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(7)}},
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(8)}},
 				}
 
 				runTest(operator, data, expected)
@@ -95,15 +93,15 @@ func TestOrderByOperator(t *testing.T) {
 
 			Convey("asc + asc", func() {
 				terms := []*orderByTerm{
-					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
-					{expr: SQLColumnExpr{tableOneName, "b", columnType}, ascending: false},
+					{expr: NewSQLColumnExpr(0, tableOneName, "a", schema.SQLInt, schema.MongoInt), ascending: false},
+					{expr: NewSQLColumnExpr(0, tableOneName, "b", schema.SQLInt, schema.MongoInt), ascending: false},
 				}
 
 				expected := []Values{
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(7)}},
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(8)}},
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(7)}},
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(8)}},
 				}
 
 				operator := &OrderByStage{
@@ -115,8 +113,8 @@ func TestOrderByOperator(t *testing.T) {
 
 			Convey("asc + desc", func() {
 				terms := []*orderByTerm{
-					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
-					{expr: SQLColumnExpr{tableOneName, "b", columnType}, ascending: false},
+					{expr: NewSQLColumnExpr(0, tableOneName, "a", schema.SQLInt, schema.MongoInt), ascending: false},
+					{expr: NewSQLColumnExpr(0, tableOneName, "b", schema.SQLInt, schema.MongoInt), ascending: false},
 				}
 
 				operator := &OrderByStage{
@@ -124,10 +122,10 @@ func TestOrderByOperator(t *testing.T) {
 				}
 
 				expected := []Values{
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(8)}},
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(7)}},
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(8)}},
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(7)}},
 				}
 
 				runTest(operator, data, expected)
@@ -136,8 +134,8 @@ func TestOrderByOperator(t *testing.T) {
 
 			Convey("desc + asc", func() {
 				terms := []*orderByTerm{
-					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
-					{expr: SQLColumnExpr{tableOneName, "b", columnType}, ascending: false},
+					{expr: NewSQLColumnExpr(0, tableOneName, "a", schema.SQLInt, schema.MongoInt), ascending: false},
+					{expr: NewSQLColumnExpr(0, tableOneName, "b", schema.SQLInt, schema.MongoInt), ascending: false},
 				}
 
 				operator := &OrderByStage{
@@ -145,10 +143,10 @@ func TestOrderByOperator(t *testing.T) {
 				}
 
 				expected := []Values{
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(7)}},
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(8)}},
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(7)}},
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(8)}},
 				}
 
 				runTest(operator, data, expected)
@@ -157,8 +155,8 @@ func TestOrderByOperator(t *testing.T) {
 
 			Convey("desc + desc", func() {
 				terms := []*orderByTerm{
-					{expr: SQLColumnExpr{tableOneName, "a", columnType}, ascending: false},
-					{expr: SQLColumnExpr{tableOneName, "b", columnType}, ascending: false},
+					{expr: NewSQLColumnExpr(0, tableOneName, "a", schema.SQLInt, schema.MongoInt), ascending: false},
+					{expr: NewSQLColumnExpr(0, tableOneName, "b", schema.SQLInt, schema.MongoInt), ascending: false},
 				}
 
 				operator := &OrderByStage{
@@ -166,10 +164,10 @@ func TestOrderByOperator(t *testing.T) {
 				}
 
 				expected := []Values{
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(8)}},
-					{{"a", "a", SQLInt(7)}, {"b", "b", SQLInt(7)}},
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(8)}},
-					{{"a", "a", SQLInt(6)}, {"b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(7)}, {1, "b", "b", SQLInt(7)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(8)}},
+					{{1, "a", "a", SQLInt(6)}, {1, "b", "b", SQLInt(7)}},
 				}
 
 				runTest(operator, data, expected)

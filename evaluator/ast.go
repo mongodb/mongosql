@@ -22,8 +22,6 @@ func (ps *MongoSourceStage) astnode()      {}
 func (ps *OrderByStage) astnode()          {}
 func (ps *ProjectStage) astnode()          {}
 func (ps *SchemaDataSourceStage) astnode() {}
-func (ps *SourceAppendStage) astnode()     {}
-func (ps *SourceRemoveStage) astnode()     {}
 
 // Expressions
 func (e *SQLAggFunctionExpr) astnode()        {}
@@ -161,6 +159,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 			if hasNew {
 				newPcs = append(newPcs, ProjectedColumn{
 					Column: &Column{
+						SelectID:  pc.SelectID,
 						Table:     pc.Table,
 						Name:      pc.Name,
 						SQLType:   pc.SQLType,
@@ -285,24 +284,6 @@ func walk(v nodeVisitor, n node) (node, error) {
 
 		if typedN.source != source || &typedN.projectedColumns != pcs {
 			n = NewProjectStage(source, *pcs...)
-		}
-	case *SourceAppendStage:
-		source, err := visitPlanStage(typedN.source)
-		if err != nil {
-			return nil, err
-		}
-
-		if typedN.source != source {
-			n = NewSourceAppendStage(source)
-		}
-	case *SourceRemoveStage:
-		source, err := visitPlanStage(typedN.source)
-		if err != nil {
-			return nil, err
-		}
-
-		if typedN.source != source {
-			n = NewSourceRemoveStage(source)
 		}
 
 	// Expressions

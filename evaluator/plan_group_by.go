@@ -5,13 +5,13 @@ import "fmt"
 // orderedGroup holds all the rows belonging to a given key in the groups
 // and an slice of the keys for each group.
 type orderedGroup struct {
-	groups map[string][]Row
+	groups map[string][]*Row
 	keys   []string
 }
 
 type aggRowCtx struct {
 	Row Row
-	Ctx []Row
+	Ctx []*Row
 }
 
 type GroupByStage struct {
@@ -101,7 +101,6 @@ func (gb *GroupByIter) Next(row *Row) bool {
 	}
 
 	rCtx, done := <-gb.outChan
-	gb.ctx.GroupRows = rCtx.Ctx
 	row.Data = rCtx.Row.Data
 
 	return done
@@ -122,7 +121,7 @@ func (gb *GroupByIter) evaluateGroupByKey(row *Row) (string, error) {
 
 	var gbKey string
 
-	evalCtx := &EvalCtx{Rows: Rows{*row}}
+	evalCtx := NewEvalCtx(gb.ctx, row)
 	for _, key := range gb.keys {
 
 		value, err := key.Evaluate(evalCtx)
@@ -140,7 +139,7 @@ func (gb *GroupByIter) evaluateGroupByKey(row *Row) (string, error) {
 func (gb *GroupByIter) createGroups() error {
 
 	gb.finalGrouping = orderedGroup{
-		groups: make(map[string][]Row, 0),
+		groups: make(map[string][]*Row, 0),
 	}
 
 	r := &Row{}
@@ -157,7 +156,7 @@ func (gb *GroupByIter) createGroups() error {
 			gb.finalGrouping.keys = append(gb.finalGrouping.keys, key)
 		}
 
-		gb.finalGrouping.groups[key] = append(gb.finalGrouping.groups[key], *r)
+		gb.finalGrouping.groups[key] = append(gb.finalGrouping.groups[key], r)
 
 		r = &Row{}
 	}
@@ -167,10 +166,10 @@ func (gb *GroupByIter) createGroups() error {
 	return gb.source.Err()
 }
 
-func (gb *GroupByIter) evaluateProjectedColumns(r []Row) (*Row, error) {
+func (gb *GroupByIter) evaluateProjectedColumns(r []*Row) (*Row, error) {
 
 	row := &Row{}
-	evalCtx := &EvalCtx{Rows: r}
+	evalCtx := NewEvalCtx(gb.ctx, r...)
 
 	for _, projectedColumn := range gb.projectedColumns {
 
@@ -180,9 +179,10 @@ func (gb *GroupByIter) evaluateProjectedColumns(r []Row) (*Row, error) {
 		}
 
 		value := Value{
-			Table: projectedColumn.Table,
-			Name:  projectedColumn.Name,
-			Data:  v,
+			SelectID: projectedColumn.SelectID,
+			Table:    projectedColumn.Table,
+			Name:     projectedColumn.Name,
+			Data:     v,
 		}
 
 		row.Data = append(row.Data, value)

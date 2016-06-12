@@ -63,8 +63,8 @@ var (
 
 func setupJoinOperator(on SQLExpr, kind JoinKind) PlanStage {
 
-	ms1 := &BSONSourceStage{tableOneName, customers}
-	ms2 := &BSONSourceStage{tableTwoName, orders}
+	ms1 := NewBSONSourceStage(1, tableOneName, customers)
+	ms2 := NewBSONSourceStage(1, tableTwoName, orders)
 
 	return &JoinStage{
 		left:    ms1,
@@ -80,6 +80,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		criteria := &SQLEqualsExpr{
 			left: &SQLColumnExpr{
+				selectID:   1,
 				tableName:  tableOneName,
 				columnName: "orderid",
 				columnType: schema.ColumnType{
@@ -88,6 +89,7 @@ func TestJoinPlanStage(t *testing.T) {
 				},
 			},
 			right: &SQLColumnExpr{
+				selectID:   1,
 				tableName:  tableTwoName,
 				columnName: "orderid",
 				columnType: schema.ColumnType{

@@ -61,17 +61,19 @@ var (
 )
 
 type SchemaDataSourceStage struct {
+	selectID  int
 	tableName string
 	aliasName string
 	schema    *schema.Schema
 }
 
-func NewSchemaDataSourceStage(schema *schema.Schema, tableName, aliasName string) *SchemaDataSourceStage {
+func NewSchemaDataSourceStage(selectID int, schema *schema.Schema, tableName, aliasName string) *SchemaDataSourceStage {
 	if aliasName == "" {
 		aliasName = tableName
 	}
 
 	return &SchemaDataSourceStage{
+		selectID:  selectID,
 		schema:    schema,
 		tableName: tableName,
 		aliasName: aliasName,
@@ -121,6 +123,7 @@ func (sds *SchemaDataSourceStage) Columns() []*Column {
 	var columns []*Column
 	for _, c := range headers {
 		column := &Column{
+			SelectID:  sds.selectID,
 			Table:     aliasName,
 			Name:      c.name,
 			SQLType:   c.sqlType,
@@ -134,7 +137,7 @@ func (sds *SchemaDataSourceStage) Columns() []*Column {
 
 func (sds *SchemaDataSourceStage) getValue(c isColumn, data interface{}) Value {
 	data, _ = NewSQLValue(data, c.sqlType, schema.MongoNone)
-	return Value{Table: sds.aliasName, Name: c.name, Data: data}
+	return Value{SelectID: sds.selectID, Table: sds.aliasName, Name: c.name, Data: data}
 }
 
 func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {

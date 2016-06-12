@@ -79,7 +79,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 
 			var expected []Values
 			for _, document := range rows {
-				values, err := bsonDToValues(tableTwoName, document)
+				values, err := bsonDToValues(1, tableTwoName, document)
 				So(err, ShouldBeNil)
 				expected = append(expected, values)
 			}
@@ -96,7 +96,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 				ConnectionCtx: cCtx,
 			}
 
-			plan, err := NewMongoSourceStage(cfgOne, dbOne, tableTwoName, "")
+			plan, err := NewMongoSourceStage(1, cfgOne, dbOne, tableTwoName, "")
 			So(err, ShouldBeNil)
 			iter, err := plan.Open(ctx)
 			So(err, ShouldBeNil)

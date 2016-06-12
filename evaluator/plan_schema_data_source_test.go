@@ -27,7 +27,7 @@ func TestSchemaDataSourceIter(t *testing.T) {
 		values := []string{}
 		row := &Row{}
 		for iter.Next(row) {
-			if col, ok := row.GetField(table, column); ok {
+			if col, ok := row.GetField(1, table, column); ok {
 				if colstr, ok := col.(SQLVarchar); ok {
 					values = append(values, string(colstr))
 				} else {
@@ -45,7 +45,7 @@ func TestSchemaDataSourceIter(t *testing.T) {
 		ctx := &ExecutionCtx{}
 
 		Convey("when iterating over tables", func() {
-			plan := NewSchemaDataSourceStage(env.cfgOne, "tables", "")
+			plan := NewSchemaDataSourceStage(1, env.cfgOne, "tables", "")
 
 			Convey("should return all tables when authentication is disabled", func() {
 
@@ -80,7 +80,7 @@ func TestSchemaDataSourceIter(t *testing.T) {
 		})
 
 		Convey("when iterating over columns", func() {
-			plan := NewSchemaDataSourceStage(env.cfgOne, "columns", "")
+			plan := NewSchemaDataSourceStage(1, env.cfgOne, "columns", "")
 
 			Convey("should return all columns when authentication is disabled", func() {
 				ctx.AuthProvider = &fixedAuthProvider{true}

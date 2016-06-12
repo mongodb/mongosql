@@ -74,7 +74,7 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	var sum SQLNumeric = SQLFloat(0)
 	count := 0
 	for _, row := range ctx.Rows {
-		evalCtx := &EvalCtx{Rows: Rows{row}}
+		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
 		for _, expr := range f.Exprs {
 			eval, err := expr.Evaluate(evalCtx)
 			if err != nil {
@@ -94,7 +94,7 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 				}
 			}
 
-			count += 1
+			count++
 
 			n, err := convertToSQLNumeric(eval, ctx)
 			if err == nil && n != nil {
@@ -113,7 +113,7 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
 	var count int64
 	for _, row := range ctx.Rows {
-		evalCtx := &EvalCtx{Rows: Rows{row}}
+		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
 		for _, expr := range f.Exprs {
 			eval, err := expr.Evaluate(evalCtx)
 			if err != nil {
@@ -130,7 +130,7 @@ func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}
 			}
 
 			if eval != nil && eval != SQLNull {
-				count += 1
+				count++
 			}
 		}
 	}
@@ -140,7 +140,7 @@ func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}
 func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
 	var max SQLValue = SQLNull
 	for _, row := range ctx.Rows {
-		evalCtx := &EvalCtx{Rows: Rows{row}}
+		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
 		for _, expr := range f.Exprs {
 			eval, err := expr.Evaluate(evalCtx)
 			if err != nil {
@@ -170,7 +170,7 @@ func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
 func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 	var min SQLValue = SQLNull
 	for _, row := range ctx.Rows {
-		evalCtx := &EvalCtx{Rows: Rows{row}}
+		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
 		for _, expr := range f.Exprs {
 			eval, err := expr.Evaluate(evalCtx)
 			if err != nil {
@@ -203,7 +203,7 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	allNull := true
 
 	for _, row := range ctx.Rows {
-		evalCtx := &EvalCtx{Rows: Rows{row}}
+		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
 		for _, expr := range f.Exprs {
 			eval, err := expr.Evaluate(evalCtx)
 			if err != nil {

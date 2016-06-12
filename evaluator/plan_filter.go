@@ -3,9 +3,8 @@ package evaluator
 // Filter ensures that only rows matching a given criteria are
 // returned.
 type FilterStage struct {
-	matcher     SQLExpr
-	hasSubquery bool
-	source      PlanStage
+	matcher SQLExpr
+	source  PlanStage
 }
 
 func NewFilterStage(source PlanStage, predicate SQLExpr) *FilterStage {
@@ -16,11 +15,10 @@ func NewFilterStage(source PlanStage, predicate SQLExpr) *FilterStage {
 }
 
 type FilterIter struct {
-	matcher     SQLExpr
-	hasSubquery bool
-	execCtx     *ExecutionCtx
-	source      Iter
-	err         error
+	matcher SQLExpr
+	execCtx *ExecutionCtx
+	source  Iter
+	err     error
 }
 
 func (fs *FilterStage) Open(ctx *ExecutionCtx) (Iter, error) {
@@ -29,11 +27,10 @@ func (fs *FilterStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, err
 	}
 	return &FilterIter{
-		matcher:     fs.matcher,
-		hasSubquery: fs.hasSubquery,
-		execCtx:     ctx,
-		source:      sourceIter,
-		err:         nil,
+		matcher: fs.matcher,
+		execCtx: ctx,
+		source:  sourceIter,
+		err:     nil,
 	}, nil
 }
 
@@ -52,26 +49,11 @@ func (fi *FilterIter) Next(row *Row) bool {
 			break
 		}
 
-		evalCtx := &EvalCtx{Rows{*row}, fi.execCtx}
-
-		// add parent row(s) to this subquery's evaluation context
-		if len(fi.execCtx.SrcRows) != 0 {
-			bound := len(fi.execCtx.SrcRows) - 1
-
-			for _, r := range fi.execCtx.SrcRows[:bound] {
-				evalCtx.Rows = append(evalCtx.Rows, *r)
-			}
-
-			// avoid duplication since subquery row is most recently
-			// appended and "*row"
-			if !fi.hasSubquery {
-				evalCtx.Rows = append(evalCtx.Rows, *fi.execCtx.SrcRows[bound])
-			}
-		}
-
 		if fi.matcher == nil {
 			break
 		}
+
+		evalCtx := NewEvalCtx(fi.execCtx, row)
 
 		hasMatch, fi.err = Matches(fi.matcher, evalCtx)
 		if fi.err != nil {
@@ -105,8 +87,7 @@ func (fi *FilterIter) Err() error {
 
 func (fs *FilterStage) clone() *FilterStage {
 	return &FilterStage{
-		source:      fs.source,
-		matcher:     fs.matcher,
-		hasSubquery: fs.hasSubquery,
+		source:  fs.source,
+		matcher: fs.matcher,
 	}
 }

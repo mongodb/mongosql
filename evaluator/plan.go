@@ -57,10 +57,35 @@ type Iter interface {
 // Column contains information used to select data
 // from a PlanStage.
 type Column struct {
+	SelectID  int
 	Table     string
 	Name      string
 	SQLType   schema.SQLType
 	MongoType schema.MongoType
+}
+
+type Columns []*Column
+
+// Unique ensures that only unique columns exist in the resulting slice.
+func (cs Columns) Unique() Columns {
+	var results Columns
+	contains := func(column *Column) bool {
+		for _, c := range results {
+			if c.SelectID == column.SelectID && c.Name == column.Name && c.Table == column.Table {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	for _, c := range cs {
+		if !contains(c) {
+			results = append(results, c)
+		}
+	}
+
+	return results
 }
 
 // ProjectedColumn is a column projection. It contains the SQLExpr for the column
@@ -88,7 +113,7 @@ func (pcs ProjectedColumns) Unique() ProjectedColumns {
 	var results ProjectedColumns
 	contains := func(column *ProjectedColumn) bool {
 		for _, expr := range results {
-			if expr.Column.Name == column.Name && expr.Column.Table == column.Table {
+			if expr.Column.SelectID == column.SelectID && expr.Column.Name == column.Name && expr.Column.Table == column.Table {
 				return true
 			}
 		}

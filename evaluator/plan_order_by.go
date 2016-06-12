@@ -24,8 +24,8 @@ type OrderByIter struct {
 
 	terms []*orderByTerm
 
-	// channel on which to send sorted rows
-	outChan chan Row
+	// channel on which to send sorted data
+	outChan chan Values
 
 	// sorted indicates if the source operator data has been sorted
 	sorted bool
@@ -57,7 +57,7 @@ type orderByRow struct {
 	termValues []SQLValue
 
 	// data holds the raw data that was evaluated.
-	data Row
+	data Values
 }
 
 type orderByRows []orderByRow
@@ -67,7 +67,13 @@ func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &OrderByIter{source: sourceIter, terms: ob.terms, ctx: ctx}, nil
+
+	iter := &OrderByIter{
+		source: sourceIter,
+		terms:  ob.terms,
+		ctx:    ctx}
+
+	return iter, nil
 }
 
 func (ob *OrderByIter) Next(row *Row) bool {
@@ -80,8 +86,8 @@ func (ob *OrderByIter) Next(row *Row) bool {
 		ob.outChan = iterChan(rows)
 	}
 
-	r, done := <-ob.outChan
-	row.Data = r.Data
+	data, done := <-ob.outChan
+	row.Data = data
 
 	return done
 }
@@ -93,11 +99,7 @@ func (ob *OrderByIter) sortRows() (orderByRows, error) {
 
 	for ob.source.Next(row) {
 
-		ctx := &EvalCtx{
-			Rows:    []Row{*row},
-			ExecCtx: ob.ctx,
-		}
-
+		ctx := NewEvalCtx(ob.ctx, row)
 		var values []SQLValue
 		for _, t := range ob.terms {
 			v, err := t.expr.Evaluate(ctx)
@@ -108,7 +110,7 @@ func (ob *OrderByIter) sortRows() (orderByRows, error) {
 			values = append(values, v)
 		}
 
-		obRow := orderByRow{ob.terms, values, *row}
+		obRow := orderByRow{ob.terms, values, row.Data}
 		rows = append(rows, obRow)
 		row = &Row{}
 	}
@@ -128,11 +130,10 @@ func (ob *OrderByIter) sortRows() (orderByRows, error) {
 	ob.sorted = true
 
 	return rows, err
-
 }
 
-func iterChan(rows orderByRows) chan Row {
-	ch := make(chan Row)
+func iterChan(rows orderByRows) chan Values {
+	ch := make(chan Values)
 
 	go func() {
 		for _, row := range rows {

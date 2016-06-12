@@ -12,17 +12,13 @@ type ConnectionCtx interface {
 }
 
 // ExecutionCtx holds execution context information
-// used by each Iterator implemenation.
+// used by each PlanStage Iter implementation.
 type ExecutionCtx struct {
-	Depth int
-
-	// GroupRows holds a set of rows used by each GROUP BY combination
-	GroupRows []Row
-
-	// SrcRows caches the data gotten from a table scan or join node
-	SrcRows []*Row
-
 	ConnectionCtx
+
+	// SrcRows is a row cache used when correlated subqueries
+	// are in the tree.
+	SrcRows []*Row
 
 	AuthProvider AuthProvider
 }
@@ -35,8 +31,25 @@ func NewExecutionCtx(connCtx ConnectionCtx) *ExecutionCtx {
 	}
 }
 
-// EvalCtx holds a slice of rows used to evaluate a SQLValue.
+// EvalCtx holds the current row to use when evaluating a SQLExpr.
 type EvalCtx struct {
-	Rows    []Row
-	ExecCtx *ExecutionCtx
+	*ExecutionCtx
+	Rows []*Row
+}
+
+// NewEvalCtx creates a new evaluation context.
+func NewEvalCtx(execCtx *ExecutionCtx, rows ...*Row) *EvalCtx {
+	return &EvalCtx{
+		ExecutionCtx: execCtx,
+		Rows:         rows,
+	}
+}
+
+// CreateChildExecutionCtx creates a child ExecutionCtx.
+func (ctx *EvalCtx) CreateChildExecutionCtx() *ExecutionCtx {
+	return &ExecutionCtx{
+		ConnectionCtx: ctx.ExecutionCtx.ConnectionCtx,
+		AuthProvider:  ctx.ExecutionCtx.AuthProvider,
+		SrcRows:       append(ctx.Rows, ctx.ExecutionCtx.SrcRows...),
+	}
 }

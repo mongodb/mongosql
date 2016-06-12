@@ -12,7 +12,7 @@ func TestGroupByPlanStage(t *testing.T) {
 	runTest := func(groupBy *GroupByStage, rows []bson.D, expectedRows []Values) {
 		ctx := &ExecutionCtx{}
 
-		bss := &BSONSourceStage{tableOneName, rows}
+		bss := NewBSONSourceStage(1, tableOneName, rows)
 
 		groupBy.source = bss
 
@@ -44,24 +44,23 @@ func TestGroupByPlanStage(t *testing.T) {
 
 		Convey("should return the right result when using an aggregation function", func() {
 
-			columnType := schema.ColumnType{schema.SQLInt, schema.MongoInt}
 			projectedColumns := ProjectedColumns{
 				ProjectedColumn{
-					Column: &Column{tableOneName, "a", columnType.SQLType, columnType.MongoType},
-					Expr:   SQLColumnExpr{tableOneName, "a", columnType},
+					Column: &Column{1, tableOneName, "a", schema.SQLInt, schema.MongoInt},
+					Expr:   NewSQLColumnExpr(1, tableOneName, "a", schema.SQLInt, schema.MongoInt),
 				},
 				ProjectedColumn{
-					Column: &Column{"", "sum(b)", schema.SQLFloat, schema.MongoNone},
+					Column: &Column{1, "", "sum(b)", schema.SQLFloat, schema.MongoNone},
 					Expr: &SQLAggFunctionExpr{
 						Name: "sum",
 						Exprs: []SQLExpr{
-							SQLColumnExpr{tableOneName, "b", columnType},
+							NewSQLColumnExpr(1, tableOneName, "b", schema.SQLInt, schema.MongoInt),
 						},
 					},
 				},
 			}
 
-			keys := []SQLExpr{SQLColumnExpr{tableOneName, "a", columnType}}
+			keys := []SQLExpr{NewSQLColumnExpr(1, tableOneName, "a", schema.SQLInt, schema.MongoInt)}
 
 			operator := &GroupByStage{
 				projectedColumns: projectedColumns,
@@ -69,8 +68,8 @@ func TestGroupByPlanStage(t *testing.T) {
 			}
 
 			expected := []Values{
-				{{tableOneName, "a", SQLInt(6)}, {"", "sum(b)", SQLFloat(15)}},
-				{{tableOneName, "a", SQLInt(7)}, {"", "sum(b)", SQLFloat(9)}},
+				{{1, tableOneName, "a", SQLInt(6)}, {1, "", "sum(b)", SQLFloat(15)}},
+				{{1, tableOneName, "a", SQLInt(7)}, {1, "", "sum(b)", SQLFloat(9)}},
 			}
 
 			runTest(operator, data, expected)

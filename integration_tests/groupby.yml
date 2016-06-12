@@ -115,6 +115,24 @@ testcases:
   - [2, 5, 2]
   - [3, 3, 1]
 
+# Subsequent Subqueries
+- sql: "select sum(a) from foo f group by b order by (select b from foo where f.id = id)"
+  description: "correlated subquery following the group by"
+  expected_names: ["sum(a)"]
+  expected_types: [int]
+  expected: 
+  - [1]
+  - [2]
+  - [5]
+- sql: "select sum(a) from foo f group by b order by (select -b from foo where f.id = id)"
+  description: "correlated subquery following the group by"
+  expected_names: ["sum(a)"]
+  expected_types: [int]
+  expected: 
+  - [5]
+  - [2]
+  - [1]
+
 # Distinct
 - sql: "select distinct a from test.foo order by a"
   description: "distinct single column"

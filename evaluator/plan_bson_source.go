@@ -8,11 +8,22 @@ import (
 // BSONSource is the simple interface for SQLProxy to simulate
 // data coming from a MongoDB installation.
 type BSONSourceStage struct {
+	selectID  int
 	tableName string
 	data      []bson.D
 }
 
+// NewBSONSourceStage constructs a BSONSourceStage with its required values.
+func NewBSONSourceStage(selectID int, tableName string, data []bson.D) *BSONSourceStage {
+	return &BSONSourceStage{
+		selectID:  selectID,
+		tableName: tableName,
+		data:      data,
+	}
+}
+
 type BSONSourceIter struct {
+	selectID  int
 	tableName string
 	data      []bson.D
 	index     int
@@ -20,7 +31,7 @@ type BSONSourceIter struct {
 }
 
 func (bs *BSONSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	return &BSONSourceIter{data: bs.data, tableName: bs.tableName, index: 0}, nil
+	return &BSONSourceIter{selectID: bs.selectID, data: bs.data, tableName: bs.tableName, index: 0}, nil
 }
 
 func (bs *BSONSourceIter) Next(row *Row) bool {
@@ -41,9 +52,10 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 		}
 
 		values = append(values, Value{
-			Table: bs.tableName,
-			Name:  docElem.Name,
-			Data:  value,
+			SelectID: bs.selectID,
+			Table:    bs.tableName,
+			Name:     docElem.Name,
+			Data:     value,
 		})
 	}
 
@@ -57,6 +69,7 @@ func (bs *BSONSourceStage) Columns() []*Column {
 	var columns []*Column
 	for _, v := range bs.data[0] {
 		columns = append(columns, &Column{
+			SelectID:  bs.selectID,
 			Table:     bs.tableName,
 			Name:      v.Name,
 			SQLType:   schema.SQLNone,

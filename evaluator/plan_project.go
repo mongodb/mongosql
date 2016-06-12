@@ -52,10 +52,7 @@ func (pj *ProjectIter) Next(r *Row) bool {
 		return false
 	}
 
-	evalCtx := &EvalCtx{
-		Rows:    Rows{*r},
-		ExecCtx: pj.ctx,
-	}
+	evalCtx := NewEvalCtx(pj.ctx, r)
 
 	values := Values{}
 	for _, projectedColumn := range pj.projectedColumns {
@@ -65,9 +62,10 @@ func (pj *ProjectIter) Next(r *Row) bool {
 			hasNext = false
 		}
 		value := Value{
-			Table: projectedColumn.Table,
-			Name:  projectedColumn.Name,
-			Data:  v,
+			SelectID: projectedColumn.SelectID,
+			Table:    projectedColumn.Table,
+			Name:     projectedColumn.Name,
+			Data:     v,
 		}
 
 		values = append(values, value)
@@ -81,6 +79,7 @@ func (pj *ProjectIter) Next(r *Row) bool {
 func (pj *ProjectStage) Columns() (columns []*Column) {
 	for _, projectedColumn := range pj.projectedColumns {
 		column := &Column{
+			SelectID:  projectedColumn.SelectID,
 			Name:      projectedColumn.Name,
 			Table:     projectedColumn.Table,
 			SQLType:   projectedColumn.SQLType,

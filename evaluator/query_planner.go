@@ -17,9 +17,6 @@ type queryPlanBuilder struct {
 	// while building a GroupByStage.
 	exprCollector *expressionCollector
 
-	// hasCorrelatedSubquery indicates if a correlated sub query exists in the plan.
-	hasCorrelatedSubquery bool
-
 	from     PlanStage
 	where    SQLExpr
 	groupBy  []SQLExpr
@@ -35,11 +32,6 @@ type queryPlanBuilder struct {
 func (b *queryPlanBuilder) build() PlanStage {
 
 	plan := b.from
-
-	if b.hasCorrelatedSubquery {
-		plan = NewSourceAppendStage(plan)
-	}
-
 	plan = b.buildWhere(plan)
 	plan = b.buildGroupBy(plan)
 	plan = b.buildHaving(plan)
@@ -48,14 +40,11 @@ func (b *queryPlanBuilder) build() PlanStage {
 	plan = b.buildLimit(plan)
 	plan = b.buildProject(plan)
 
-	if b.hasCorrelatedSubquery {
-		plan = NewSourceRemoveStage(plan)
-	}
-
 	if b.hasLimit && b.rowcount == 0 {
 		var columns []*Column
 		for _, projectedColumn := range b.project {
 			column := &Column{
+				SelectID:  projectedColumn.SelectID,
 				Name:      projectedColumn.Name,
 				Table:     projectedColumn.Table,
 				SQLType:   projectedColumn.SQLType,
@@ -75,7 +64,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 		var keys []SQLExpr
 		var projectedKeys ProjectedColumns
 		for _, c := range b.project {
-			projectedKeys = append(projectedKeys, *projectedColumnFromExpr(c.Expr))
+			projectedKeys = append(projectedKeys, *b.projectedColumnFromExpr(c.Expr))
 			keys = append(keys, c.Expr)
 
 			// don't want these interfering with b.exprCollector.allNonAggReferencedColumns
@@ -86,7 +75,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 		// as well as all the keys.
 		projectedColumns := projectedKeys
 		for _, e := range b.exprCollector.allNonAggReferencedColumns.copyExprs() {
-			pc := projectedColumnFromExpr(e)
+			pc := b.projectedColumnFromExpr(e)
 			projectedColumns = append(projectedColumns, *pc)
 		}
 
@@ -96,14 +85,13 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 		// any that weren't already a column have now been computed.
 		projectedColumns = ProjectedColumns{}
 		for i, pc := range b.project {
-			newExpr := SQLColumnExpr{
-				tableName:  projectedKeys[i].Table,
-				columnName: projectedKeys[i].Name,
-				columnType: schema.ColumnType{
-					SQLType:   projectedKeys[i].SQLType,
-					MongoType: projectedKeys[i].MongoType,
-				},
-			}
+			newExpr := NewSQLColumnExpr(
+				b.algebrizer.selectID,
+				projectedKeys[i].Table,
+				projectedKeys[i].Name,
+				projectedKeys[i].SQLType,
+				projectedKeys[i].MongoType)
+
 			projectedColumns = append(projectedColumns, ProjectedColumn{
 				Column: pc.Column,
 				Expr:   newExpr,
@@ -127,12 +115,12 @@ func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 		// as any column that is not an aggregate function.
 		var projectedAggregates ProjectedColumns
 		for _, e := range b.exprCollector.allNonAggReferencedColumns.copyExprs() {
-			pc := projectedColumnFromExpr(e)
+			pc := b.projectedColumnFromExpr(e)
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
 
 		for _, e := range b.exprCollector.allAggFunctions.copyExprs() {
-			pc := projectedColumnFromExpr(e)
+			pc := b.projectedColumnFromExpr(e)
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
 
@@ -159,6 +147,7 @@ func (b *queryPlanBuilder) buildLimit(source PlanStage) PlanStage {
 	if b.hasLimit {
 		return NewLimitStage(source, b.offset, b.rowcount)
 	}
+
 	return source
 }
 
@@ -206,7 +195,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 		var projectedColumns ProjectedColumns
 		for _, pc := range b.project {
 			b.exprCollector.Remove(pc.Expr)
-			replaced, err := replaceAggFunctionsWithColumns(pc.Expr)
+			replaced, err := replaceAggFunctionsWithColumns(b.algebrizer.selectID, pc.Expr)
 			if err != nil {
 				return err
 			}
@@ -222,7 +211,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 
 	if b.having != nil {
 		b.exprCollector.Remove(b.having)
-		having, err := replaceAggFunctionsWithColumns(b.having)
+		having, err := replaceAggFunctionsWithColumns(b.algebrizer.selectID, b.having)
 		if err != nil {
 			return err
 		}
@@ -235,7 +224,7 @@ func (b *queryPlanBuilder) replaceAggFunctions() error {
 		var orderBy []*orderByTerm
 		for _, obt := range b.orderBy {
 			b.exprCollector.Remove(obt.expr)
-			replaced, err := replaceAggFunctionsWithColumns(obt.expr)
+			replaced, err := replaceAggFunctionsWithColumns(b.algebrizer.selectID, obt.expr)
 			if err != nil {
 				return err
 			}
@@ -323,6 +312,28 @@ func (b *queryPlanBuilder) includeWhere(where *parser.Where) error {
 	return nil
 }
 
+func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColumn {
+	pc := &ProjectedColumn{
+		Column: &Column{
+			SelectID: b.algebrizer.selectID,
+		},
+		Expr: expr,
+	}
+
+	if sqlCol, ok := expr.(SQLColumnExpr); ok {
+		pc.Name = sqlCol.columnName
+		pc.Table = sqlCol.tableName
+		pc.SQLType = sqlCol.columnType.SQLType
+		pc.MongoType = sqlCol.columnType.MongoType
+	} else {
+		pc.Name = expr.String()
+		pc.SQLType = expr.Type()
+		pc.MongoType = schema.MongoNone
+	}
+
+	return pc
+}
+
 type exprCountMap struct {
 	counts map[string]int
 	exprs  []SQLExpr
@@ -364,6 +375,7 @@ func (m *exprCountMap) copyExprs() []SQLExpr {
 }
 
 type expressionCollector struct {
+	selectIDs                  []int
 	allReferencedColumns       *exprCountMap
 	allNonAggReferencedColumns *exprCountMap
 	allAggFunctions            *exprCountMap
@@ -372,8 +384,9 @@ type expressionCollector struct {
 	removeMode bool
 }
 
-func newExpressionCollector() *expressionCollector {
+func newExpressionCollector(selectIDs []int) *expressionCollector {
 	return &expressionCollector{
+		selectIDs:                  selectIDs,
 		allReferencedColumns:       newExprCountMap(),
 		allNonAggReferencedColumns: newExprCountMap(),
 		allAggFunctions:            newExprCountMap(),
@@ -417,22 +430,25 @@ func (v *expressionCollector) visit(n node) (node, error) {
 		v.inAggFunc = false
 		return typedN, nil
 	case SQLColumnExpr:
-		if v.removeMode {
-			v.allReferencedColumns.remove(typedN)
-		} else {
-			v.allReferencedColumns.add(typedN)
-		}
-		if !v.inAggFunc {
+		if containsInt(v.selectIDs, typedN.selectID) {
 			if v.removeMode {
-				v.allNonAggReferencedColumns.remove(typedN)
+				v.allReferencedColumns.remove(typedN)
 			} else {
-				v.allNonAggReferencedColumns.add(typedN)
+				v.allReferencedColumns.add(typedN)
+			}
+			if !v.inAggFunc {
+				if v.removeMode {
+					v.allNonAggReferencedColumns.remove(typedN)
+				} else {
+					v.allNonAggReferencedColumns.add(typedN)
+				}
 			}
 		}
 		return typedN, nil
 	case *SQLSubqueryExpr:
-		// TODO: need to add logic to only collect
-		// columns and agg functions that apply
+		if typedN.correlated {
+			return walk(v, n)
+		}
 		return n, nil
 	default:
 		return walk(v, n)
@@ -473,10 +489,11 @@ func (af *aggFunctionFinder) visit(n node) (node, error) {
 }
 
 type aggFunctionExprReplacer struct {
+	selectID int
 }
 
-func replaceAggFunctionsWithColumns(e SQLExpr) (SQLExpr, error) {
-	v := &aggFunctionExprReplacer{}
+func replaceAggFunctionsWithColumns(selectID int, e SQLExpr) (SQLExpr, error) {
+	v := &aggFunctionExprReplacer{selectID}
 	n, err := v.visit(e)
 	if err != nil {
 		return nil, err
@@ -488,34 +505,11 @@ func replaceAggFunctionsWithColumns(e SQLExpr) (SQLExpr, error) {
 func (v *aggFunctionExprReplacer) visit(n node) (node, error) {
 	switch typedN := n.(type) {
 	case *SQLAggFunctionExpr:
-		columnType := schema.ColumnType{
-			SQLType:   typedN.Type(),
-			MongoType: schema.MongoNone,
-		}
-		return SQLColumnExpr{"", typedN.String(), columnType}, nil
+		return NewSQLColumnExpr(v.selectID, "", typedN.String(), typedN.Type(), schema.MongoNone), nil
 	case *SQLSubqueryExpr:
 		// TODO: handle parental aggregates in correlated subquery
 		return n, nil
 	default:
 		return walk(v, n)
 	}
-}
-
-func projectedColumnFromExpr(expr SQLExpr) *ProjectedColumn {
-	pc := &ProjectedColumn{
-		Column: &Column{
-			SQLType: expr.Type(),
-		},
-		Expr: expr,
-	}
-
-	if sqlCol, ok := expr.(SQLColumnExpr); ok {
-		pc.Name = sqlCol.columnName
-		pc.Table = sqlCol.tableName
-		pc.MongoType = sqlCol.columnType.MongoType
-	} else {
-		pc.Name = expr.String()
-	}
-
-	return pc
 }

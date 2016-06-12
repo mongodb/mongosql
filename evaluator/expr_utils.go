@@ -96,13 +96,7 @@ func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 	leftType, rightType := left.Type(), right.Type()
 
-	_, leftIsTuple := left.(*SQLTupleExpr)
-	_, leftIsSubquery := left.(*SQLSubqueryExpr)
-
-	_, rightIsTuple := right.(*SQLTupleExpr)
-	_, rightIsSubquery := right.(*SQLSubqueryExpr)
-
-	if leftIsTuple || rightIsTuple || leftIsSubquery || rightIsSubquery {
+	if leftType == schema.SQLTuple || rightType == schema.SQLTuple {
 		return reconcileSQLTuple(left, right)
 	}
 
@@ -199,7 +193,10 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 			return nil, nil, fmt.Errorf("tuple comparison mismatch: expected %v got %v", numLeft, numRight)
 		}
 
-		for i, _ := range rightExprs {
+		hasNewLeft := false
+		hasNewRight := false
+
+		for i := range rightExprs {
 			leftExpr := leftExprs[0]
 			if numLeft != 1 {
 				leftExpr = leftExprs[i]
@@ -213,22 +210,34 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 			}
 
-			newRightExprs = append(newRightExprs, newRightExpr)
+			if leftExpr != newLeftExpr {
+				hasNewLeft = true
+			}
+
+			if rightExpr != newRightExpr {
+				hasNewRight = true
+			}
+
 			newLeftExprs = append(newLeftExprs, newLeftExpr)
+			newRightExprs = append(newRightExprs, newRightExpr)
 		}
 
 		if numLeft == 1 {
 			newLeftExprs = newLeftExprs[:1]
 		}
 
-		left, err = wrapReconciledExprs(left, newLeftExprs)
-		if err != nil {
-			return nil, nil, err
+		if hasNewLeft {
+			left, err = wrapReconciledExprs(left, newLeftExprs)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 
-		right, err = wrapReconciledExprs(right, newRightExprs)
-		if err != nil {
-			return nil, nil, err
+		if hasNewRight {
+			right, err = wrapReconciledExprs(right, newRightExprs)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 
 		return left, right, nil
@@ -245,16 +254,17 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 		var newLeftExpr SQLExpr
 
-		newLeftExpr, right, err = reconcileSQLExprs(leftExprs[0], right)
+		newLeftExpr, _, err = reconcileSQLExprs(leftExprs[0], right)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		newLeftExprs = append(newLeftExprs, newLeftExpr)
-
-		left, err = wrapReconciledExprs(left, newLeftExprs)
-		if err != nil {
-			return nil, nil, err
+		if left != newLeftExpr {
+			newLeftExprs = append(newLeftExprs, newLeftExpr)
+			left, err = wrapReconciledExprs(left, newLeftExprs)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 
 		return left, right, nil
@@ -266,17 +276,23 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	// a in (1, 2)
 	if left.Type() != schema.SQLTuple && right.Type() == schema.SQLTuple {
 
+		hasNewRight := false
 		for _, rightExpr := range rightExprs {
 			_, newRightExpr, err := reconcileSQLExprs(left, rightExpr)
 			if err != nil {
 				return nil, nil, err
 			}
+			if rightExpr != newRightExpr {
+				hasNewRight = true
+			}
 			newRightExprs = append(newRightExprs, newRightExpr)
 		}
 
-		right, err = wrapReconciledExprs(right, newRightExprs)
-		if err != nil {
-			return nil, nil, err
+		if hasNewRight {
+			right, err = wrapReconciledExprs(right, newRightExprs)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 
 		return left, right, nil

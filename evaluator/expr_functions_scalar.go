@@ -13,7 +13,7 @@ import (
 type connectionIdFunc struct{}
 
 func (_ *connectionIdFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLUint32(ctx.ExecCtx.ConnectionId()), nil
+	return SQLUint32(ctx.ExecutionCtx.ConnectionId()), nil
 }
 
 func (_ *connectionIdFunc) Type() schema.SQLType {
@@ -27,7 +27,7 @@ func (_ *connectionIdFunc) Validate(exprCount int) error {
 type dbFunc struct{}
 
 func (_ *dbFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLVarchar(ctx.ExecCtx.DB()), nil
+	return SQLVarchar(ctx.ExecutionCtx.DB()), nil
 }
 
 func (_ *dbFunc) Type() schema.SQLType {

@@ -202,23 +202,36 @@ func (s SQLCaseExpr) Type() schema.SQLType {
 // SQLColumnExpr represents a column reference.
 //
 type SQLColumnExpr struct {
+	selectID   int
 	tableName  string
 	columnName string
 	columnType schema.ColumnType
 }
 
+// NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
+func NewSQLColumnExpr(selectID int, tableName, columnName string, sqlType schema.SQLType, mongoType schema.MongoType) SQLColumnExpr {
+	return SQLColumnExpr{selectID, tableName, columnName, schema.ColumnType{sqlType, mongoType}}
+}
+
 func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+
+	// first check our immediate rows
 	for _, row := range ctx.Rows {
-		for _, data := range row.Data {
-			if data.Table == c.tableName {
-				value, hasValue := row.GetField(c.tableName, c.columnName)
-				if !hasValue || value == nil {
-					return SQLNull, nil
-				}
+		if value, ok := row.GetField(c.selectID, c.tableName, c.columnName); ok {
+			return NewSQLValue(value, c.columnType.SQLType, c.columnType.MongoType)
+		}
+	}
+
+	// If we didn't find it there, search in the src rows, which contain parent
+	// information in the case we are evaluating a correlated column.
+	if ctx.ExecutionCtx != nil {
+		for _, row := range ctx.ExecutionCtx.SrcRows {
+			if value, ok := row.GetField(c.selectID, c.tableName, c.columnName); ok {
 				return NewSQLValue(value, c.columnType.SQLType, c.columnType.MongoType)
 			}
 		}
 	}
+
 	return SQLNull, nil
 }
 
@@ -344,8 +357,6 @@ type SQLExistsExpr struct {
 }
 
 func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	ctx.ExecCtx.Depth += 1
-
 	var it Iter
 	var err error
 	var matches bool
@@ -354,16 +365,15 @@ func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		if it != nil && err == nil {
 			err = it.Err()
 		}
-
-		// add context to error
-		if err != nil {
-			err = fmt.Errorf("ExistsMatcher (%v): %v", ctx.ExecCtx.Depth, err)
-		}
-
-		ctx.ExecCtx.Depth -= 1
 	}()
 
-	it, err = em.expr.plan.Open(ctx.ExecCtx)
+	execCtx := ctx.ExecutionCtx
+
+	if em.expr.correlated {
+		execCtx = ctx.CreateChildExecutionCtx()
+	}
+
+	it, err = em.expr.plan.Open(execCtx)
 	if err != nil {
 		return SQLFalse, err
 	}
@@ -894,8 +904,6 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	ctx.ExecCtx.Depth += 1
-
 	var it Iter
 	defer func() {
 		if it != nil {
@@ -909,16 +917,15 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 				err = it.Err()
 			}
 		}
-
-		if err != nil {
-			err = fmt.Errorf("SubqueryCmp (%v): %v", ctx.ExecCtx.Depth, err)
-		}
-
-		ctx.ExecCtx.Depth -= 1
-
 	}()
 
-	if it, err = sc.value.plan.Open(ctx.ExecCtx); err != nil {
+	execCtx := ctx.ExecutionCtx
+
+	if sc.value.correlated {
+		execCtx = ctx.CreateChildExecutionCtx()
+	}
+
+	if it, err = sc.value.plan.Open(execCtx); err != nil {
 		return SQLFalse, err
 	}
 
@@ -989,6 +996,7 @@ func (se *SQLSubqueryExpr) Exprs() []SQLExpr {
 	exprs := []SQLExpr{}
 	for _, c := range se.plan.Columns() {
 		exprs = append(exprs, SQLColumnExpr{
+			selectID:   c.SelectID,
 			tableName:  c.Table,
 			columnName: c.Name,
 			columnType: schema.ColumnType{
@@ -1003,8 +1011,6 @@ func (se *SQLSubqueryExpr) Exprs() []SQLExpr {
 
 func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error) {
 
-	evalCtx.ExecCtx.Depth += 1
-
 	var it Iter
 	defer func() {
 		if it != nil {
@@ -1018,17 +1024,15 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 				err = it.Err()
 			}
 		}
-
-		// add context to error
-		if err != nil {
-			err = fmt.Errorf("SubqueryValue (%v): %v", evalCtx.ExecCtx.Depth, err)
-		}
-
-		evalCtx.ExecCtx.Depth -= 1
-
 	}()
 
-	it, err = se.plan.Open(evalCtx.ExecCtx)
+	execCtx := evalCtx.ExecutionCtx
+
+	if se.correlated {
+		execCtx = evalCtx.CreateChildExecutionCtx()
+	}
+
+	it, err = se.plan.Open(execCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -1063,6 +1067,11 @@ func (se *SQLSubqueryExpr) String() string {
 }
 
 func (se *SQLSubqueryExpr) Type() schema.SQLType {
+	columns := se.plan.Columns()
+	if len(columns) == 1 {
+		return columns[0].SQLType
+	}
+
 	return schema.SQLTuple
 }
 
@@ -1136,6 +1145,10 @@ func (te SQLTupleExpr) String() string {
 }
 
 func (te SQLTupleExpr) Type() schema.SQLType {
+	if len(te.Exprs) == 1 {
+		return te.Exprs[0].Type()
+	}
+
 	return schema.SQLTuple
 }
 

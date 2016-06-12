@@ -14,24 +14,25 @@ type Row struct {
 
 type Rows []Row
 
-// Value holds row values for an SQL column.
+// Value holds row values for a SQL column.
 type Value struct {
-	Table string
-	Name  string
-	Data  interface{}
+	SelectID int
+	Table    string
+	Name     string
+	Data     interface{}
 }
 
 type Values []Value
 
 var bsonDType = reflect.TypeOf(bson.D{})
 
-// GetField takes a table returns the given value of the given key
-// in the document, or nil if it does not exist.
+// GetField takes a selectID, tableName, and columnName and returns the given value of the given key
+// in the row, or nil if it does not exist.
 // The second return value is a boolean indicating if the field was found or not, to allow
 // the distinction betwen a null value stored in that field from a missing field.
-func (row *Row) GetField(table, name string) (interface{}, bool) {
+func (row *Row) GetField(selectID int, tableName, columnName string) (interface{}, bool) {
 	for _, r := range row.Data {
-		if strings.EqualFold(r.Table, table) && strings.EqualFold(r.Name, name) {
+		if r.SelectID == selectID && strings.EqualFold(r.Table, tableName) && strings.EqualFold(r.Name, columnName) {
 			return r.Data, true
 		}
 	}

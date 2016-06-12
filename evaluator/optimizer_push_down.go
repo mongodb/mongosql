@@ -18,6 +18,7 @@ func optimizePushDown(o PlanStage) (PlanStage, error) {
 }
 
 type pushDownOptimizer struct {
+	selectIDsInScope []int
 }
 
 func (v *pushDownOptimizer) visit(n node) (node, error) {
@@ -27,6 +28,32 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 	}
 
 	switch typedN := n.(type) {
+	// Since we are walking to the bottom of the tree, we'll collect all
+	// the selectIDs that are currently in scope. In the case of Joins,
+	// this could be a combination of the below select ID sources.
+	case *MongoSourceStage:
+		v.selectIDsInScope = append(v.selectIDsInScope, typedN.selectIDs...)
+	case *BSONSourceStage:
+		v.selectIDsInScope = append(v.selectIDsInScope, typedN.selectID)
+	case *SchemaDataSourceStage:
+		v.selectIDsInScope = append(v.selectIDsInScope, typedN.selectID)
+	case *SQLSubqueryExpr:
+		// SQLSubqueryExpr only applies to non-from clauses. This means that
+		// any new selectIDs found inside a SQLSubqueryExpr are invalid outside
+		// of it. However, the selectIDs outside of it are valid inside. This is
+		// the definition of a correlated subquery. So, we'll save off the current
+		// selectIDs and restore them afterwards.
+
+		oldSelectIDsInScope := v.selectIDsInScope
+
+		n, err = walk(v, n)
+		if err != nil {
+			return nil, err
+		}
+
+		v.selectIDsInScope = oldSelectIDsInScope
+
+	// Push Down
 	case *FilterStage:
 		n, err = v.visitFilter(typedN)
 		if err != nil {
@@ -121,11 +148,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		// that can be partially pushed down, so we construct
 		// a new filter with only the part remaining that
 		// cannot be pushed down.
-		return &FilterStage{
-			source:      ms,
-			hasSubquery: filter.hasSubquery,
-			matcher:     localMatcher,
-		}, nil
+		return NewFilterStage(ms, localMatcher), nil
 	}
 
 	// everything was able to be pushed down, so the filter
@@ -325,10 +348,9 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 				return nil, fmt.Errorf("could not translate '%v'", typedN.String())
 			}
 			fieldName := groupDistinctPrefix + dottifyFieldName(typedN.Exprs[0].String())
-			columnType := schema.ColumnType{typedN.Type(), schema.MongoNone}
 			newExpr = &SQLAggFunctionExpr{
 				Name:  typedN.Name,
-				Exprs: []SQLExpr{SQLColumnExpr{groupTempTable, fieldName, columnType}},
+				Exprs: []SQLExpr{NewSQLColumnExpr(0, groupTempTable, fieldName, typedN.Type(), schema.MongoNone)},
 			}
 			v.group[fieldName] = bson.M{"$addToSet": trans}
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, fieldName)
@@ -360,8 +382,7 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 				}
 			}
 			fieldName := dottifyFieldName(typedN.String())
-			columnType := schema.ColumnType{typedN.Type(), schema.MongoNone}
-			newExpr = SQLColumnExpr{groupTempTable, fieldName, columnType}
+			newExpr = NewSQLColumnExpr(0, groupTempTable, fieldName, typedN.Type(), schema.MongoNone)
 			v.group[fieldName] = trans
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, fieldName)
 		}
@@ -375,8 +396,7 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 			// we need to create a new expr that is simply a field pointing at the nested identifier and register that
 			// mapping.
 			fieldName := dottifyFieldName(typedN.String())
-			columnType := schema.ColumnType{typedN.Type(), schema.MongoNone}
-			newExpr := SQLColumnExpr{groupTempTable, fieldName, columnType}
+			newExpr := NewSQLColumnExpr(0, groupTempTable, fieldName, typedN.Type(), schema.MongoNone)
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, groupID+"."+fieldName)
 			return newExpr, nil
 		}
@@ -577,6 +597,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	// 7. build the new operators
 	ms := msLocal.clone()
+	ms.selectIDs = append(ms.selectIDs, msForeign.selectIDs...)
 	ms.pipeline = pipeline
 	ms.mappingRegistry = newMappingRegistry
 
@@ -621,7 +642,6 @@ func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExp
 					}
 
 					if localColumn != nil && foreignColumn != nil {
-
 						combined := combineExpressions(append(exprs[:i], exprs[i+1:]...))
 						return &lookupInfo{localColumn, foreignColumn, combined}, nil
 					}
@@ -736,7 +756,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 			// There might still be fields referenced in this expression
 			// that we still need to project, so collect them and add them to the projection.
-			refdCols, err := referencedColumns(projectedColumn.Expr)
+			refdCols, err := referencedColumns(v.selectIDsInScope, projectedColumn.Expr)
 			if err != nil {
 				return nil, err
 			}
@@ -761,8 +781,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			fixedMappingRegistry.addColumn(projectedColumn.Column)
 			fixedMappingRegistry.registerMapping(projectedColumn.Table, projectedColumn.Name, safeFieldName)
 
-			columnType := schema.ColumnType{projectedColumn.Column.SQLType, projectedColumn.Column.MongoType}
-			columnExpr := SQLColumnExpr{projectedColumn.Column.Table, projectedColumn.Column.Name, columnType}
+			columnExpr := NewSQLColumnExpr(projectedColumn.SelectID, projectedColumn.Column.Table, projectedColumn.Column.Name, projectedColumn.SQLType, projectedColumn.MongoType)
 			fixedProjectedColumns = append(fixedProjectedColumns,
 				ProjectedColumn{
 					Column: projectedColumn.Column,
@@ -790,36 +809,39 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 }
 
 type columnFinder struct {
-	columns []*Column
+	selectIDsInScope []int
+
+	columns Columns
 }
 
 // referencedColumns will take an expression and return all the columns referenced in the expression
-func referencedColumns(e SQLExpr) ([]*Column, error) {
+func referencedColumns(selectIDsInScope []int, e SQLExpr) ([]*Column, error) {
 
-	cf := &columnFinder{}
+	cf := &columnFinder{selectIDsInScope: selectIDsInScope}
 
 	_, err := cf.visit(e)
 	if err != nil {
 		return nil, err
 	}
 
-	return cf.columns, nil
+	return cf.columns.Unique(), nil
 }
 
 func (cf *columnFinder) visit(n node) (node, error) {
 
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
-		column := &Column{
-			Table:     string(typedN.tableName),
-			Name:      string(typedN.columnName),
-			MongoType: typedN.columnType.MongoType,
-			SQLType:   typedN.columnType.SQLType,
-		}
+		if containsInt(cf.selectIDsInScope, typedN.selectID) {
+			column := &Column{
+				SelectID:  typedN.selectID,
+				Table:     typedN.tableName,
+				Name:      typedN.columnName,
+				MongoType: typedN.columnType.MongoType,
+				SQLType:   typedN.columnType.SQLType,
+			}
 
-		cf.columns = append(cf.columns, column)
-	case *SQLSubqueryExpr:
-		// TODO: handle this when subqueries are working.
+			cf.columns = append(cf.columns, column)
+		}
 		return n, nil
 	}
 

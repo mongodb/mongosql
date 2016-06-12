@@ -235,8 +235,9 @@ func (nlp *NestedLoopJoiner) Join(lChan, rChan chan *Row, ctx *ExecutionCtx) cha
 		var nilValues Values
 		for _, c := range columns {
 			nilValues = append(nilValues, Value{
-				Table: c.Table,
-				Name:  c.Name,
+				SelectID: c.SelectID,
+				Table:    c.Table,
+				Name:     c.Name,
 			})
 		}
 		return nilValues
@@ -266,7 +267,7 @@ func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 
 	for _, l := range left {
 		for _, r := range right {
-			evalCtx := &EvalCtx{Rows{*l, *r}, ctx}
+			evalCtx := NewEvalCtx(ctx, l, r)
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
@@ -287,7 +288,7 @@ func (nlp *NestedLoopJoiner) leftJoin(lChan, rChan chan *Row, ch chan Row, ctx *
 
 	for _, l := range left {
 		for _, r := range right {
-			evalCtx := &EvalCtx{Rows{*l, *r}, ctx}
+			evalCtx := NewEvalCtx(ctx, l, r)
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
@@ -315,7 +316,7 @@ func (nlp *NestedLoopJoiner) rightJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 
 	for _, r := range right {
 		for _, l := range left {
-			evalCtx := &EvalCtx{Rows{*l, *r}, ctx}
+			evalCtx := NewEvalCtx(ctx, l, r)
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err

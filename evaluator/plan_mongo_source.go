@@ -62,9 +62,10 @@ func (mr *mappingRegistry) lookupFieldName(tableName, columnName string) (string
 	return field, ok
 }
 
-// MongoSource is the primary interface for SQLProxy to a MongoDB
+// MongoSourceStage is the primary interface for SQLProxy to a MongoDB
 // installation and executes simple queries against collections.
 type MongoSourceStage struct {
+	selectIDs       []int
 	dbName          string
 	tableName       string
 	aliasName       string
@@ -82,7 +83,7 @@ type MongoSourceIter struct {
 	err             error
 }
 
-func NewMongoSourceStage(schema *schema.Schema, dbName, tableName string, aliasName string) (*MongoSourceStage, error) {
+func NewMongoSourceStage(selectID int, schema *schema.Schema, dbName, tableName, aliasName string) (*MongoSourceStage, error) {
 
 	if dbName == "" {
 		return nil, fmt.Errorf("dbName is empty")
@@ -93,6 +94,7 @@ func NewMongoSourceStage(schema *schema.Schema, dbName, tableName string, aliasN
 	}
 
 	ms := &MongoSourceStage{
+		selectIDs: []int{selectID},
 		dbName:    dbName,
 		tableName: tableName,
 		aliasName: aliasName,
@@ -116,6 +118,7 @@ func NewMongoSourceStage(schema *schema.Schema, dbName, tableName string, aliasN
 	ms.mappingRegistry = &mappingRegistry{}
 	for _, c := range tableSchema.RawColumns {
 		column := &Column{
+			SelectID:  selectID,
 			Table:     ms.aliasName,
 			Name:      c.SqlName,
 			SQLType:   c.SqlType,
@@ -132,6 +135,7 @@ func NewMongoSourceStage(schema *schema.Schema, dbName, tableName string, aliasN
 
 func (ms *MongoSourceStage) clone() *MongoSourceStage {
 	return &MongoSourceStage{
+		selectIDs:       ms.selectIDs,
 		dbName:          ms.dbName,
 		tableName:       ms.tableName,
 		aliasName:       ms.aliasName,
@@ -180,8 +184,9 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 		extractedField, _ := extractFieldByName(mappedFieldName, mappedD)
 
 		value := Value{
-			Table: column.Table,
-			Name:  column.Name,
+			SelectID: column.SelectID,
+			Table:    column.Table,
+			Name:     column.Name,
 		}
 
 		value.Data, ms.err = NewSQLValue(extractedField, column.SQLType, column.MongoType)
