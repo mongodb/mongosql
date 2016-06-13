@@ -6,6 +6,11 @@ type EmptyStage struct {
 	columns []*Column
 }
 
+// NewEmptyStage creates a new Empty stage.
+func NewEmptyStage(columns []*Column) *EmptyStage {
+	return &EmptyStage{columns}
+}
+
 type EmptyIter struct{}
 
 func (_ *EmptyStage) Open(ctx *ExecutionCtx) (Iter, error) {

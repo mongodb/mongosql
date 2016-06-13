@@ -3,8 +3,8 @@ package evaluator
 import (
 	"strings"
 
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 type queryPlanBuilder struct {
@@ -27,6 +27,7 @@ type queryPlanBuilder struct {
 	distinct bool
 	orderBy  []*orderByTerm
 	project  ProjectedColumns
+	hasLimit bool
 	offset   int64
 	rowcount int64
 }
@@ -49,6 +50,20 @@ func (b *queryPlanBuilder) build() PlanStage {
 
 	if b.hasCorrelatedSubquery {
 		plan = NewSourceRemoveStage(plan)
+	}
+
+	if b.hasLimit && b.rowcount == 0 {
+		var columns []*Column
+		for _, projectedColumn := range b.project {
+			column := &Column{
+				Name:      projectedColumn.Name,
+				Table:     projectedColumn.Table,
+				SQLType:   projectedColumn.SQLType,
+				MongoType: projectedColumn.MongoType,
+			}
+			columns = append(columns, column)
+		}
+		return NewEmptyStage(columns)
 	}
 
 	return plan
@@ -141,10 +156,9 @@ func (b *queryPlanBuilder) buildHaving(source PlanStage) PlanStage {
 }
 
 func (b *queryPlanBuilder) buildLimit(source PlanStage) PlanStage {
-	if b.offset > 0 || b.rowcount > 0 {
+	if b.hasLimit {
 		return NewLimitStage(source, b.offset, b.rowcount)
 	}
-
 	return source
 }
 
@@ -266,7 +280,7 @@ func (b *queryPlanBuilder) includeLimit(limit *parser.Limit) error {
 	if err != nil {
 		return err
 	}
-
+	b.hasLimit = true
 	b.offset = int64(offset)
 	b.rowcount = int64(rowcount)
 	return nil

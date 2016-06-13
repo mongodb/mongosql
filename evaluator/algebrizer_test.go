@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -882,6 +882,15 @@ func TestAlgebrizeStatements(t *testing.T) {
 					createProjectedColumn(source, "foo", "a", "", "a"),
 				)
 			})
+
+			test("select a from foo limit 10, 0", func() PlanStage {
+				return NewEmptyStage(createMongoSource("foo", "foo").Columns())
+			})
+
+			test("select a from foo limit 0, 0", func() PlanStage {
+				return NewEmptyStage(createMongoSource("foo", "foo").Columns())
+			})
+
 		})
 
 		Convey("errors", func() {
