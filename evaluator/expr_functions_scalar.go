@@ -543,6 +543,33 @@ func (_ *log10Func) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type log2Func struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log2
+func (_ *log2Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	nValue, ok := values[0].(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	n := nValue.Float64()
+
+	if n <= 0 {
+		return SQLFloat(0), nil
+	}
+
+	r := math.Log2(n)
+	return SQLFloat(r), nil
+}
+
+func (_ *log2Func) Type() schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ *log2Func) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
 type ltrimFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ltrim
@@ -653,6 +680,33 @@ func (_ *monthNameFunc) Type() schema.SQLType {
 }
 
 func (_ *monthNameFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+type naturalLogFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log10
+func (_ *naturalLogFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	nValue, ok := values[0].(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	n := nValue.Float64()
+
+	if n <= 0 {
+		return SQLFloat(0), nil
+	}
+
+	r := math.Log(n)
+	return SQLFloat(r), nil
+}
+
+func (_ *naturalLogFunc) Type() schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ *naturalLogFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
@@ -774,6 +828,53 @@ func (_ *rtrimFunc) Type() schema.SQLType {
 
 func (_ *rtrimFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type roundFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_round
+func (_ *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if anyNull(values) {
+		return SQLNull, nil
+	}
+
+	baseValue, ok := values[0].(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+	base := baseValue.Float64()
+
+	decimalValue, ok := values[1].(SQLNumeric)
+	if !ok {
+		return SQLFloat(int(base)), nil
+	}
+	decimal :=  int(decimalValue.Float64())
+
+	if decimal < 0 {
+		return SQLFloat(0), nil
+	}
+
+	// Because GoLang does not have built-in round function
+	var round float64
+	pow := math.Pow(10, float64(decimal))
+	digit := pow * base
+	_, div := math.Modf(digit)
+	if div >= 0.5 {
+		round = math.Ceil(digit)
+	} else {
+		round = math.Floor(digit)
+	}
+	rounded := round / pow
+
+	return SQLFloat(rounded), nil
+}
+
+func (_ *roundFunc) Type() schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ *roundFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
 }
 
 type secondFunc struct{}

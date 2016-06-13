@@ -261,6 +261,17 @@ func TestEvaluates(t *testing.T) {
 			runTests(evalCtx, tests)
 		})
 
+		Convey("Subject: SQLIDivideExpr", func() {
+			tests := []test{
+				test{"0 DIV 0", SQLNull},
+				test{"0 DIV 5", SQLInt(0)},
+				test{"5.5 DIV 2", SQLInt(2)},
+				test{"-5 DIV 2", SQLInt(-2)},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
 		Convey("Subject: SQLInExpr", func() {
 			tests := []test{
 				test{"0 IN(0)", SQLTrue},
@@ -327,12 +338,27 @@ func TestEvaluates(t *testing.T) {
 			runTests(evalCtx, tests)
 		})
 
+		Convey("Subject: SQLModExpr", func() {
+			tests := []test{
+				test{"0 % 0", SQLNull},
+				test{"5 % 2", SQLFloat(1)},
+				test{"5.5 % 2", SQLFloat(1.5)},
+				test{"-5 % -3", SQLFloat(-2)},
+				test{"5 MOD 2", SQLFloat(1)},
+				test{"5.5 MOD 2", SQLFloat(1.5)},
+				test{"-5 MOD -3", SQLFloat(-2)},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
 		Convey("Subject: SQLMultiplyExpr", func() {
 			tests := []test{
 				test{"0 * 0", SQLInt(0)},
 				test{"-1 * 1", SQLInt(-1)},
 				test{"10 * 32", SQLInt(320)},
 				test{"-10 * -32", SQLInt(320)},
+				test{"2.5 * 3", SQLFloat(7.5)},
 			}
 
 			runTests(evalCtx, tests)
@@ -583,6 +609,20 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: LN", func() {
+				tests := []test{
+					test{"LN(NULL)", SQLNull},
+					test{"LN(1)", SQLFloat(0)},
+					test{"LN(16.5)", SQLFloat(2.803360380906535)},
+					test{"LN(-16.5)", SQLFloat(0)},
+					test{"LOG(NULL)", SQLNull},
+					test{"LOG(1)", SQLFloat(0)},
+					test{"LOG(16.5)", SQLFloat(2.803360380906535)},
+					test{"LOG(-16.5)", SQLFloat(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: LOCATE", func() {
 				tests := []test{
 					test{"LOCATE(NULL, 'foobarbar')", SQLNull},
@@ -591,6 +631,15 @@ func TestEvaluates(t *testing.T) {
 					test{"LOCATE('xbar', 'foobarbar')", SQLInt(0)},
 					test{"LOCATE('bar', 'foobarbar', 5)", SQLInt(7)},
 					test{"LOCATE('語', '日本語')", SQLInt(3)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: LOG2", func() {
+				tests := []test{
+					test{"LOG2(NULL)", SQLNull},
+					test{"LOG2(4)", SQLFloat(2)},
+					test{"LOG2(-100)", SQLFloat(0)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -672,6 +721,17 @@ func TestEvaluates(t *testing.T) {
 					test{"RIGHT(NULL, NULL)", SQLNull},
 					test{"RIGHT('sDgcdcdc', 4)", SQLVarchar("dcdc")},
 					test{"RIGHT(124, 2)", SQLVarchar("24")},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: ROUND", func() {
+				tests := []test{
+					test{"ROUND(NULL, NULL)", SQLNull},
+					test{"ROUND(NULL, 4)", SQLNull},
+					test{"ROUND(-16.55555, 4)", SQLFloat(-16.5556)},
+					test{"ROUND(4.56, 1)", SQLFloat(4.6)},
+					test{"ROUND(-16.5, -1)", SQLFloat(0)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1357,6 +1417,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"monthname(a)", `{"$arrayElemAt":[["January","February","March","April","May","June","July","August","September","October","November","December"],{"$subtract":[{"$month":"$a"},1]}]}`},
 			test{"power(a, 10)", `{"$pow":["$a",{"$literal":10}]}`},
 			test{"quarter(a)", `{"$arrayElemAt":[[1,1,1,2,2,2,3,3,3,4,4,4],{"$subtract":[{"$month":"$a"},1]}]}`},
+			test{"round(a, 5)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$add":[{"$multiply":["$a",100000]},0.5]}},{"$floor":{"$subtract":[{"$multiply":["$a",100000]},0.5]}}]},100000]}`},
+			test{"round(a, -5)", `{"$literal":0}`},
 			test{"second(a)", `{"$second":"$a"}`},
 			test{"sqrt(a)", `{"$sqrt":"$a"}`},
 			test{"substring(a, 2)", `{"$substr":["$a",{"$literal":2},-1]}`},

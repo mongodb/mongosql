@@ -79,7 +79,7 @@ var (
 %right <empty> NOT
 %left <empty> '&' '|' '^'
 %left <empty> '+' '-'
-%left <empty> '*' '/' '%'
+%left <empty> '*' '/' '%' MOD DIV
 %nonassoc <empty> '.'
 %left <empty> UNARY
 %right <empty> CASE, WHEN, THEN, ELSE
@@ -867,7 +867,15 @@ value_expression:
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_DIV, Right: $3}
   }
+| value_expression DIV value_expression
+  {
+    $$ = &BinaryExpr{Left: $1, Operator: AST_IDIV, Right: $3}
+  }
 | value_expression '%' value_expression
+  {
+    $$ = &BinaryExpr{Left: $1, Operator: AST_MOD, Right: $3}
+  }
+| value_expression MOD value_expression
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_MOD, Right: $3}
   }
@@ -894,7 +902,11 @@ value_expression:
   {
     $$ = &FuncExpr{Name: bytes.ToLower($1), Exprs: $3}
   }
-// Functions and have keywords as their identifiers
+// functions and have keywords as their identifiers
+| MOD '(' select_expression_list ')'
+  {
+    $$ = &FuncExpr{Name: []byte("mod"), Exprs: $3}
+  }
 | LEFT '(' select_expression_list ')'
   {
     $$ = &FuncExpr{Name: []byte("left"), Exprs: $3}

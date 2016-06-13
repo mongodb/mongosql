@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -148,6 +149,21 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return bson.M{"$gte": []interface{}{left, right}}, true
 
+	case *SQLIDivideExpr:
+
+		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		return bson.M{"$trunc": []interface{}{
+			bson.M{"$div": []interface{}{left, right}}}}, true
+
 	case *SQLLessThanExpr:
 
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
@@ -175,6 +191,20 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		}
 
 		return bson.M{"$lte": []interface{}{left, right}}, true
+
+	case *SQLModExpr:
+
+		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		return bson.M{"$mod": []interface{}{left, right}}, true
 
 	case *SQLMultiplyExpr:
 
@@ -291,7 +321,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 			for i, value := range nonNullArgs {
 				pushArgs = append(pushArgs, value)
-				if i != len(nonNullArgs) - 1 {
+				if i != len(nonNullArgs)-1 {
 					pushArgs = append(pushArgs, args[0])
 				}
 			}
@@ -363,19 +393,31 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				return nil, false
 			}
 
-			return bson.M{"$substr":[]interface{}{args[0], 0, args[1]}}, true
+			return bson.M{"$substr": []interface{}{args[0], 0, args[1]}}, true
 		case "lcase", "lower":
 			if len(args) != 1 {
 				return nil, false
 			}
 
 			return bson.M{"$toLower": args[0]}, true
+		case "log2":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$log": []interface{}{args[0], 2}}, true
 		case "log10":
 			if len(args) != 1 {
 				return nil, false
 			}
 
 			return bson.M{"$log10": args[0]}, true
+		case "ln", "log":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$ln": args[0]}, true
 		case "mod":
 			if len(args) != 2 {
 				return nil, false
@@ -433,6 +475,40 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$subtract": []interface{}{
 					bson.M{"$month": args[0]},
 					1}}}}, true
+		case "round":
+			if len(args) != 2 {
+				return nil, false
+			}
+
+			bsonMap, ok := args[1].(bson.M)
+			if !ok {
+				return nil, false
+			}
+
+			bsonVal, ok := bsonMap["$literal"]
+			if !ok {
+				return nil, false
+			}
+
+			placeVal, ok := bsonVal.(SQLNumeric)
+			if !ok {
+				return nil, false
+			}
+
+			places := placeVal.Float64()
+			decimal := math.Pow(float64(10), places)
+
+			if decimal < 1 {
+				return bson.M{"$literal": 0}, true
+			}
+
+			return bson.M{"$divide": []interface{}{
+				bson.M{"$cond": []interface{}{
+					bson.M{"$gte": []interface{}{args[0], 0}},
+					bson.M{"$floor": bson.M{"$add": []interface{}{
+						bson.M{"$multiply": []interface{}{args[0], decimal}}, 0.5}}},
+					bson.M{"$floor": bson.M{"$subtract": []interface{}{
+						bson.M{"$multiply": []interface{}{args[0], decimal}}, 0.5}}}}}, decimal}}, true
 		case "second":
 			if len(args) != 1 {
 				return nil, false

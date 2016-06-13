@@ -37,10 +37,12 @@ func (e *SQLEqualsExpr) astnode()             {}
 func (e *SQLExistsExpr) astnode()             {}
 func (e *SQLGreaterThanExpr) astnode()        {}
 func (e *SQLGreaterThanOrEqualExpr) astnode() {}
+func (e *SQLIDivideExpr) astnode()            {}
 func (e *SQLInExpr) astnode()                 {}
 func (e *SQLLessThanExpr) astnode()           {}
 func (e *SQLLessThanOrEqualExpr) astnode()    {}
 func (e *SQLLikeExpr) astnode()               {}
+func (e *SQLModExpr) astnode()                {}
 func (e *SQLMultiplyExpr) astnode()           {}
 func (e *SQLNotExpr) astnode()                {}
 func (e *SQLNotEqualsExpr) astnode()          {}
@@ -497,6 +499,19 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 		if typedN.left != left || typedN.right != right {
 			n = &SQLLikeExpr{left, right}
+		}
+
+	case *SQLModExpr:
+		left, err := visitExpr(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := visitExpr(typedN.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLModExpr{left, right}
 		}
 
 	case *SQLMultiplyExpr:

@@ -734,6 +734,7 @@ const (
 	AST_MINUS  = '-'
 	AST_MULT   = '*'
 	AST_DIV    = '/'
+	AST_IDIV    = 'd'
 	AST_MOD    = '%'
 )
 

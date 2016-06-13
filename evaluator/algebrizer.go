@@ -592,6 +592,10 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return &SQLMultiplyExpr{left, right}, nil
 		case parser.AST_DIV:
 			return &SQLDivideExpr{left, right}, nil
+		case parser.AST_IDIV:
+			return &SQLIDivideExpr{left, right}, nil
+		case parser.AST_MOD:
+			return &SQLModExpr{left, right}, nil
 		default:
 			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for binary operator '%v'", typedE.Operator)
 		}

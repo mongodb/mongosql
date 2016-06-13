@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -456,6 +457,42 @@ func (_ *SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
 }
 
 //
+// SQLIDivideExpr evaluates the integer quotient of the left expression divided by the right.
+//
+type SQLIDivideExpr sqlBinaryNode
+
+func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	leftVal, err := convertToSQLNumeric(div.left, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rightVal, err := convertToSQLNumeric(div.right, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if leftVal == nil || rightVal == nil {
+		return SQLNull, nil
+	}
+
+	if rightVal.Float64() == 0 {
+		// NOTE: this is per the mysql manual.
+		return SQLNull, nil
+	}
+
+	return SQLInt(int(leftVal.Float64() / rightVal.Float64())), nil
+}
+
+func (div *SQLIDivideExpr) String() string {
+	return fmt.Sprintf("%v/%v", div.left, div.right)
+}
+
+func (div *SQLIDivideExpr) Type() schema.SQLType {
+	return preferentialType(div.left, div.right)
+}
+
+//
 // SQLInExpr evaluates to true if the left is in any of the values on the right.
 //
 type SQLInExpr sqlBinaryNode
@@ -660,6 +697,42 @@ func (l *SQLLikeExpr) String() string {
 
 func (_ *SQLLikeExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
+}
+
+//
+// SQLModExpr evaluates the modulus of two expressions
+//
+type SQLModExpr sqlBinaryNode
+
+func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	leftVal, err := convertToSQLNumeric(mod.left, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rightVal, err := convertToSQLNumeric(mod.right, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if leftVal == nil || rightVal == nil || rightVal.Float64() == 0 {
+		return SQLNull, nil
+	}
+
+	modVal := math.Mod(leftVal.Float64(), rightVal.Float64())
+	if modVal == -0 {
+		modVal *= -1
+	}
+
+	return SQLFloat(modVal), nil
+}
+
+func (mod *SQLModExpr) String() string {
+	return fmt.Sprintf("%v/%v", mod.left, mod.right)
+}
+
+func (mod *SQLModExpr) Type() schema.SQLType {
+	return preferentialType(mod.left, mod.right)
 }
 
 //

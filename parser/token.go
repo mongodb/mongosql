@@ -133,6 +133,11 @@ var keywords = map[string]int{
 	"timestamp": TIMESTAMP,
 	"year":      YEAR,
 
+	// special tokens for numeric functions
+
+	"div": DIV,
+	"mod": MOD,
+
 	// boolean literals
 	"true":  TRUE,
 	"false": FALSE,
