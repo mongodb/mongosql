@@ -647,6 +647,10 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
+	if _, ok := value.(SQLNoValue); ok {
+		return SQLNull, nil
+	}
+
 	data, err := sqlValueToString(value)
 	if err != nil {
 		return SQLValue(SQLInt(0)), err
@@ -661,11 +665,14 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	pattern, ok := value.(SQLVarchar)
-	if !ok {
-		return SQLValue(SQLInt(0)), nil
+	if _, ok := value.(SQLNoValue); ok {
+		return SQLNull, nil
 	}
-	patternStr := string(pattern)
+
+	patternStr, err := sqlValueToString(value)
+	if err != nil {
+		return SQLValue(SQLInt(0)), err
+	}
 
 	// check if pattern ends with a whitespace or tab
 	if strings.HasSuffix(patternStr, " ") {

@@ -16,6 +16,9 @@ data:
     - { _id: 0, a: 2 }
     - { _id: 1, a: 2 }
     - { _id: 2, a: 3 }
+    collection: "where_3"
+    docs:
+    - { _id: {"$oid" : "53c2ab5e4291b17b666d742a"}, item: 5 }
 
 #
 # Schema
@@ -44,6 +47,17 @@ schema:
     - Name: a
       MongoType: int
       SqlName: a
+      SqlType: int
+  - table: test2
+    collection: "where_3"
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: item
+      MongoType: int
+      SqlName: item
       SqlType: int
 
 #
@@ -258,4 +272,23 @@ testcases:
   description: "unary minus"
   expected_names: ["a"]
   expected_types: [int]
+  expected: []
+
+# Like Operator Tests
+- sql: "SELECT _id from test2 where _id LIKE '53c2ab5e4291b17b666d742a'"
+  description: "matching test on ObjectId with full match"
+  expected_names: ["_id"]
+  expected_types: [string]
+  expected:
+  - [53c2ab5e4291b17b666d742a]
+- sql: "SELECT _id from test2 where _id LIKE '53c2ab5%'"
+  description: "matching test on ObjectId with partial match"
+  expected_names: ["_id"]
+  expected_types: [string]
+  expected:
+  - [53c2ab5e4291b17b666d742a]
+- sql: "SELECT _id from test2 where _id LIKE '667570e9%'"
+  description: "matching test on ObjectId with no match"
+  expected_names: ["_id"]
+  expected_types: [string]
   expected: []

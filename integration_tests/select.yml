@@ -212,3 +212,36 @@ testcases:
   - [1, 2]
   - [2, 3]
   - [3, ~]
+
+# LIKE
+- sql: "select 'HI' like 'HI'"
+  description: "query with one matching string"
+  expected_names: ["'HI' like 'HI'"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "select 'HI' like 'PO'"
+  description: "query with no matching string"
+  expected_names: ["'HI' like 'PO'"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "select (select 2>1) like 1"
+  description: "boolean test nested select with matching results"
+  expected_names: ["(select 2 > 1) like 1"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "select (select 2<1) LIKE (select 4<1)"
+  description: "matching test on node with two select statements"
+  expected_names: ["(select 2 < 1) like (select 4 < 1)"]
+  expected_types: [int]
+  expected:
+  - [1]
+# Test case commented as select (2>1) throws parsing error
+#- sql: "select (2>1) like 1"
+#  description: "query with no matching string lll"
+#  expected_names: ["select (2>1) like 1"]
+#  expected_types: [int]
+#  expected:
+#  - [1]           

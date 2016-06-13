@@ -22,6 +22,7 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	toolsLog "github.com/mongodb/mongo-tools/common/log"
@@ -170,6 +171,7 @@ func compareResults(t *testing.T, expected, actual [][]interface{}) {
 			}
 		}
 	}
+
 	So(len(actual), ShouldEqual, len(expected))
 }
 
@@ -378,7 +380,11 @@ func restoreInline(host, port string, inline *inlineDataSet) error {
 	c.DropCollection() // don't care about the result
 	bulk := c.Bulk()
 	for _, d := range inline.Docs {
-		bulk.Insert(d)
+		doc, err := bsonutil.ConvertJSONValueToBSON(d)
+		if err != nil {
+			panic(fmt.Sprintf("unable to parse extended json %v error: %v", d, err))
+		}
+		bulk.Insert(doc)
 	}
 	_, err = bulk.Run()
 	return err
