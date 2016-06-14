@@ -13,10 +13,11 @@ import (
 func Algebrize(selectStatement parser.SelectStatement, dbName string, schema *schema.Schema) (PlanStage, error) {
 	g := &selectIDGenerator{}
 	algebrizer := &algebrizer{
-		dbName:            dbName,
-		schema:            schema,
-		selectID:          g.generate(),
-		selectIDGenerator: g,
+		dbName:                      dbName,
+		schema:                      schema,
+		selectID:                    g.generate(),
+		selectIDGenerator:           g,
+		projectedColumnAggregateMap: make(map[int]SQLExpr),
 	}
 	return algebrizer.translateSelectStatement(selectStatement)
 }
@@ -30,20 +31,33 @@ func (g *selectIDGenerator) generate() int {
 	return g.current
 }
 
+const (
+	fromClause   = "from clause"
+	whereClause  = "where clause"
+	fieldList    = "field list"
+	groupClause  = "group clause"
+	havingClause = "having clause"
+	orderClause  = "order clause"
+	limitClause  = "limit clause"
+)
+
 type algebrizer struct {
-	selectIDGenerator            *selectIDGenerator
-	selectID                     int   // the selectID to use for projected columns
-	selectIDsInScope             []int // the selectIDs that are currently used
-	parent                       *algebrizer
-	aliasName                    string // the name to use for projected columns.
-	dbName                       string // the default database name.
-	schema                       *schema.Schema
-	columns                      []*Column        // all the columns in scope.
-	tableNames                   []string         // all the table names in scope.
-	correlated                   bool             // indicates whether this context is using columns in its parent.
-	projectedColumns             ProjectedColumns // columns to be projected from this scope.
-	resolveProjectedColumnsFirst bool             // indicates whether to resolve a column using the projected columns first or second
-	currentClause                string           // tracks the current clause being processed for the purposes of error messages.
+	parent            *algebrizer
+	schema            *schema.Schema
+	selectIDGenerator *selectIDGenerator
+
+	selectID                     int                   // the selectID to use for projected columns
+	currentSelectIDs             []int                 // the selectIDs that are currently used
+	aliasName                    string                // the name to use for projected columns.
+	dbName                       string                // the default database name.
+	columns                      []*Column             // all the columns in scope.
+	tableNames                   []string              // all the table names in scope.
+	correlated                   bool                  // indicates whether this context is using columns in its parent.
+	aggregates                   []*SQLAggFunctionExpr // aggregates found in the current scope.
+	projectedColumns             ProjectedColumns      // columns to be projected from this scope.
+	projectedColumnAggregateMap  map[int]SQLExpr       // indicates whether the projected column contains an aggregate.
+	resolveProjectedColumnsFirst bool                  // indicates whether to resolve a column using the projected columns first or second
+	currentClause                string                // tracks the current clause being processed for the purposes of error messages.
 }
 
 func (a *algebrizer) fullName(tableName, columnName string) string {
@@ -135,8 +149,8 @@ func (a *algebrizer) registerColumns(columns []*Column) error {
 			return mysqlerrors.Defaultf(mysqlerrors.ER_DUP_FIELDNAME, a.fullName(c.Table, c.Name))
 		}
 		a.columns = append(a.columns, c)
-		if !containsInt(a.selectIDsInScope, c.SelectID) {
-			a.selectIDsInScope = append(a.selectIDsInScope, c.SelectID)
+		if !containsInt(a.currentSelectIDs, c.SelectID) {
+			a.currentSelectIDs = append(a.currentSelectIDs, c.SelectID)
 		}
 	}
 
@@ -173,11 +187,6 @@ func (a *algebrizer) translateGroupBy(groupby parser.GroupBy) ([]SQLExpr, error)
 		key, err := a.translatePossibleColumnRefExpr(g)
 		if err != nil {
 			return nil, err
-		}
-
-		afs, err := getAggFunctions(key)
-		if len(afs) > 0 {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_GROUP_FIELD, afs[0].String())
 		}
 
 		keys = append(keys, key)
@@ -264,7 +273,7 @@ func (a *algebrizer) translateSelectStatement(selectStatement parser.SelectState
 }
 
 func (a *algebrizer) translateSimpleSelect(sel *parser.SimpleSelect) (PlanStage, error) {
-	a.currentClause = "field list"
+	a.currentClause = fieldList
 	projectedColumns, err := a.translateSelectExprs(sel.SelectExprs)
 	if err != nil {
 		return nil, err
@@ -276,19 +285,28 @@ func (a *algebrizer) translateSimpleSelect(sel *parser.SimpleSelect) (PlanStage,
 func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	builder := &queryPlanBuilder{
 		algebrizer: a,
+		selectID:   a.selectID,
 	}
 
 	// 1. Translate all the tables, subqueries, and joins in the FROM clause.
 	// This establishes all the columns which are in scope.
 	if sel.From != nil {
-		a.currentClause = "from clause"
+		a.currentClause = fromClause
 		plan, err := a.translateTableExprs(sel.From)
 		if err != nil {
 			return nil, err
 		}
 
 		builder.from = plan
-		builder.exprCollector = newExpressionCollector(a.selectIDsInScope)
+
+		selectIDsInScope := a.currentSelectIDs
+		parent := a.parent
+		for parent != nil {
+			selectIDsInScope = append(selectIDsInScope, parent.currentSelectIDs...)
+			parent = parent.parent
+		}
+
+		builder.exprCollector = newExpressionCollector(selectIDsInScope)
 	}
 
 	// 2. Translate all the other clauses from this scope. We aren't going to create the plan stages
@@ -298,7 +316,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	// before the first PlanStage we have to execute in memory so as to only pull back the columns
 	// we'll actually need.
 	if sel.Where != nil {
-		a.currentClause = "where clause"
+		a.currentClause = whereClause
 		err := builder.includeWhere(sel.Where)
 		if err != nil {
 			return nil, err
@@ -306,7 +324,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	}
 
 	if sel.SelectExprs != nil {
-		a.currentClause = "field list"
+		a.currentClause = fieldList
 		err := builder.includeSelect(sel.SelectExprs)
 		if err != nil {
 			return nil, err
@@ -319,7 +337,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	}
 
 	if sel.GroupBy != nil {
-		a.currentClause = "group clause"
+		a.currentClause = groupClause
 		err := builder.includeGroupBy(sel.GroupBy)
 		if err != nil {
 			return nil, err
@@ -327,7 +345,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	}
 
 	if sel.Having != nil {
-		a.currentClause = "having clause"
+		a.currentClause = havingClause
 		err := builder.includeHaving(sel.Having)
 		if err != nil {
 			return nil, err
@@ -340,7 +358,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	a.resolveProjectedColumnsFirst = true
 
 	if sel.OrderBy != nil {
-		a.currentClause = "order clause"
+		a.currentClause = orderClause
 		err := builder.includeOrderBy(sel.OrderBy)
 		if err != nil {
 			return nil, err
@@ -348,12 +366,14 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	}
 
 	if sel.Limit != nil {
-		a.currentClause = "limit clause"
+		a.currentClause = limitClause
 		err := builder.includeLimit(sel.Limit)
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	builder.includeAggregates(a.aggregates)
 
 	// 3. Build the stages.
 	return builder.build(), nil
@@ -392,9 +412,14 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 
 		case *parser.NonStarExpr:
 
+			currentAggregateLength := len(a.aggregates)
 			translatedExpr, err := a.translateExpr(typedE.Expr)
 			if err != nil {
 				return nil, err
+			}
+
+			if currentAggregateLength < len(a.aggregates) {
+				a.projectedColumnAggregateMap[len(projectedColumns)+1] = a.aggregates[currentAggregateLength]
 			}
 
 			if translatedExpr.Type() == schema.SQLTuple {
@@ -538,11 +563,12 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 		}
 
 		subqueryAlgebrizer := &algebrizer{
-			aliasName:         aliasName,
-			dbName:            a.dbName,
-			schema:            a.schema,
-			selectID:          a.selectIDGenerator.generate(),
-			selectIDGenerator: a.selectIDGenerator,
+			aliasName:                   aliasName,
+			dbName:                      a.dbName,
+			schema:                      a.schema,
+			selectID:                    a.selectIDGenerator.generate(),
+			selectIDGenerator:           a.selectIDGenerator,
+			projectedColumnAggregateMap: make(map[int]SQLExpr),
 		}
 
 		plan, err := subqueryAlgebrizer.translateSelectStatement(typedT.Select)
@@ -568,11 +594,12 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 
 func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryExpr, error) {
 	subqueryAlgebrizer := &algebrizer{
-		parent:            a,
-		dbName:            a.dbName,
-		schema:            a.schema,
-		selectID:          a.selectIDGenerator.generate(),
-		selectIDGenerator: a.selectIDGenerator,
+		parent:                      a,
+		dbName:                      a.dbName,
+		schema:                      a.schema,
+		selectID:                    a.selectIDGenerator.generate(),
+		selectIDGenerator:           a.selectIDGenerator,
+		projectedColumnAggregateMap: make(map[int]SQLExpr),
 	}
 
 	plan, err := subqueryAlgebrizer.translateSelectStatement(expr.Select)
@@ -851,6 +878,11 @@ func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr) (SQLExpr, 
 		}
 
 		if n >= 0 {
+			if a.currentClause == groupClause {
+				if agg, ok := a.projectedColumnAggregateMap[int(n)]; ok {
+					return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_GROUP_FIELD, agg.String())
+				}
+			}
 			return a.projectedColumns[n-1].Expr, nil
 		}
 	}
@@ -978,7 +1010,44 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, parser.String(e))
 		}
 
-		return &SQLAggFunctionExpr{name, expr.Distinct, exprs}, nil
+		aggExpr := &SQLAggFunctionExpr{name, expr.Distinct, exprs}
+
+		// We are going to replace the aggregate with a column in the tree and put the aggregate
+		// into the algebrizer (which could be us or any of our parents) that is supposed to do the
+		// aggregation. We determine this by seeing if any of the columns referenced inside
+		// the aggregate pertain to the algebrizer.
+
+		// figure out which "select" should be responsible for aggregating this guy.
+		usedSelectIDs := gatherSelectIDs(aggExpr)
+
+		current := a
+		if len(usedSelectIDs) > 0 {
+			// we must exist somewhere, because we were able to resolve any columns references.
+			// As such, we are going to walk up the tree, starting with us, to figure out which
+			// algebrizer we belong to. Then drop in a SQLColumnExpr here that references the
+			// aggregate.
+			for current != nil {
+				if containsAnyInt(current.currentSelectIDs, usedSelectIDs) {
+					break
+				}
+				current = current.parent
+			}
+		}
+
+		if current == nil {
+			// If we ever get here, this is a bug somewhere. It means we had created a SQLColumnExpr
+			// but associated an invalid selectID with it.
+			return nil, mysqlerrors.Unknownf("aggregate doesn't include any relevant columns")
+		}
+
+		if current.currentClause == whereClause {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_INVALID_GROUP_FUNC_USE)
+		} else if current.currentClause == groupClause {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_GROUP_FIELD, aggExpr.String())
+		}
+
+		current.aggregates = append(current.aggregates, aggExpr)
+		return NewSQLColumnExpr(current.selectID, "", aggExpr.String(), aggExpr.Type(), schema.MongoNone), nil
 	}
 
 	for _, e := range expr.Exprs {
@@ -1012,4 +1081,28 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 	}
 
 	return &SQLScalarFunctionExpr{name, exprs}, nil
+}
+
+type selectIDGatherer struct {
+	selectIDs []int
+}
+
+func gatherSelectIDs(n node) []int {
+	v := &selectIDGatherer{}
+	v.visit(n)
+	return v.selectIDs
+}
+
+func (v *selectIDGatherer) visit(n node) (node, error) {
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
+	}
+
+	switch typedN := n.(type) {
+	case SQLColumnExpr:
+		v.selectIDs = append(v.selectIDs, typedN.selectID)
+	}
+
+	return n, nil
 }

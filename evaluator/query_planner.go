@@ -17,6 +17,9 @@ type queryPlanBuilder struct {
 	// while building a GroupByStage.
 	exprCollector *expressionCollector
 
+	selectID   int
+	aggregates []*SQLAggFunctionExpr
+
 	from     PlanStage
 	where    SQLExpr
 	groupBy  []SQLExpr
@@ -31,6 +34,14 @@ type queryPlanBuilder struct {
 
 func (b *queryPlanBuilder) build() PlanStage {
 
+	if b.hasLimit && b.rowcount == 0 {
+		var columns []*Column
+		for _, projectedColumn := range b.project {
+			columns = append(columns, projectedColumn.Column)
+		}
+		return NewEmptyStage(columns)
+	}
+
 	plan := b.from
 	plan = b.buildWhere(plan)
 	plan = b.buildGroupBy(plan)
@@ -39,21 +50,6 @@ func (b *queryPlanBuilder) build() PlanStage {
 	plan = b.buildOrderBy(plan)
 	plan = b.buildLimit(plan)
 	plan = b.buildProject(plan)
-
-	if b.hasLimit && b.rowcount == 0 {
-		var columns []*Column
-		for _, projectedColumn := range b.project {
-			column := &Column{
-				SelectID:  projectedColumn.SelectID,
-				Name:      projectedColumn.Name,
-				Table:     projectedColumn.Table,
-				SQLType:   projectedColumn.SQLType,
-				MongoType: projectedColumn.MongoType,
-			}
-			columns = append(columns, column)
-		}
-		return NewEmptyStage(columns)
-	}
 
 	return plan
 }
@@ -67,14 +63,14 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 			projectedKeys = append(projectedKeys, *b.projectedColumnFromExpr(c.Expr))
 			keys = append(keys, c.Expr)
 
-			// don't want these interfering with b.exprCollector.allNonAggReferencedColumns
+			// don't want these interfering with b.exprCollector.referencedColumns
 			b.exprCollector.Remove(c.Expr)
 		}
 
 		// projectedColumns will include any column that is not an aggregate function.
 		// as well as all the keys.
 		projectedColumns := projectedKeys
-		for _, e := range b.exprCollector.allNonAggReferencedColumns.copyExprs() {
+		for _, e := range b.exprCollector.referencedColumns.copyExprs() {
 			pc := b.projectedColumnFromExpr(e)
 			projectedColumns = append(projectedColumns, *pc)
 		}
@@ -86,7 +82,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 		projectedColumns = ProjectedColumns{}
 		for i, pc := range b.project {
 			newExpr := NewSQLColumnExpr(
-				b.algebrizer.selectID,
+				b.selectID,
 				projectedKeys[i].Table,
 				projectedKeys[i].Name,
 				projectedKeys[i].SQLType,
@@ -107,28 +103,23 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 
 func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 	plan := source
-	if len(b.groupBy) > 0 || len(b.exprCollector.allAggFunctions.exprs) > 0 {
+	if len(b.groupBy) > 0 || len(b.aggregates) > 0 {
 		// do this now so it doesn't throw off the b.exprCollector.allNonAggReferencedColumns.
 		b.exprCollector.RemoveAll(b.groupBy)
 
 		// projectedAggregates will include all the aggregates as well
-		// as any column that is not an aggregate function.
+		// as any column that was referenced.
 		var projectedAggregates ProjectedColumns
-		for _, e := range b.exprCollector.allNonAggReferencedColumns.copyExprs() {
+		for _, e := range b.exprCollector.referencedColumns.copyExprs() {
 			pc := b.projectedColumnFromExpr(e)
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
-
-		for _, e := range b.exprCollector.allAggFunctions.copyExprs() {
+		for _, e := range b.aggregates {
 			pc := b.projectedColumnFromExpr(e)
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
 
 		plan = NewGroupByStage(plan, b.groupBy, projectedAggregates.Unique())
-
-		// replace aggregation expressions with columns coming out of the GroupByStage
-		// because they have already been aggregated and are now just columns.
-		b.replaceAggFunctions()
 	}
 
 	return plan
@@ -183,63 +174,8 @@ func (b *queryPlanBuilder) buildWhere(source PlanStage) PlanStage {
 	return source
 }
 
-func (b *queryPlanBuilder) replaceAggFunctions() error {
-
-	// since we are replacing aggregates (which likely include columns) with other columns,
-	// we need to update the exprCollection with the new information so that it continues
-	// to be correct. Therefore, we'll be removing the old expressions and adding in
-	// new ones.
-
-	if len(b.project) > 0 {
-
-		var projectedColumns ProjectedColumns
-		for _, pc := range b.project {
-			b.exprCollector.Remove(pc.Expr)
-			replaced, err := replaceAggFunctionsWithColumns(b.algebrizer.selectID, pc.Expr)
-			if err != nil {
-				return err
-			}
-			b.exprCollector.Add(replaced)
-
-			projectedColumns = append(projectedColumns, ProjectedColumn{
-				Expr:   replaced,
-				Column: pc.Column,
-			})
-		}
-		b.project = projectedColumns
-	}
-
-	if b.having != nil {
-		b.exprCollector.Remove(b.having)
-		having, err := replaceAggFunctionsWithColumns(b.algebrizer.selectID, b.having)
-		if err != nil {
-			return err
-		}
-		b.exprCollector.Add(having)
-
-		b.having = having
-	}
-
-	if len(b.orderBy) > 0 {
-		var orderBy []*orderByTerm
-		for _, obt := range b.orderBy {
-			b.exprCollector.Remove(obt.expr)
-			replaced, err := replaceAggFunctionsWithColumns(b.algebrizer.selectID, obt.expr)
-			if err != nil {
-				return err
-			}
-			b.exprCollector.Add(replaced)
-
-			orderBy = append(orderBy, &orderByTerm{
-				ascending: obt.ascending,
-				expr:      replaced,
-			})
-		}
-
-		b.orderBy = orderBy
-	}
-
-	return nil
+func (b *queryPlanBuilder) includeAggregates(aggs []*SQLAggFunctionExpr) {
+	b.aggregates = aggs
 }
 
 func (b *queryPlanBuilder) includeGroupBy(groupBy parser.GroupBy) error {
@@ -315,7 +251,7 @@ func (b *queryPlanBuilder) includeWhere(where *parser.Where) error {
 func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColumn {
 	pc := &ProjectedColumn{
 		Column: &Column{
-			SelectID: b.algebrizer.selectID,
+			SelectID: b.selectID,
 		},
 		Expr: expr,
 	}
@@ -375,21 +311,16 @@ func (m *exprCountMap) copyExprs() []SQLExpr {
 }
 
 type expressionCollector struct {
-	selectIDs                  []int
-	allReferencedColumns       *exprCountMap
-	allNonAggReferencedColumns *exprCountMap
-	allAggFunctions            *exprCountMap
+	selectIDs         []int
+	referencedColumns *exprCountMap
 
-	inAggFunc  bool
 	removeMode bool
 }
 
 func newExpressionCollector(selectIDs []int) *expressionCollector {
 	return &expressionCollector{
-		selectIDs:                  selectIDs,
-		allReferencedColumns:       newExprCountMap(),
-		allNonAggReferencedColumns: newExprCountMap(),
-		allAggFunctions:            newExprCountMap(),
+		selectIDs:         selectIDs,
+		referencedColumns: newExprCountMap(),
 	}
 }
 
@@ -417,31 +348,14 @@ func (c *expressionCollector) Add(e SQLExpr) {
 
 func (v *expressionCollector) visit(n node) (node, error) {
 	switch typedN := n.(type) {
-	case *SQLAggFunctionExpr:
-		v.inAggFunc = true
-		if v.removeMode {
-			v.allAggFunctions.remove(typedN)
-		} else {
-			v.allAggFunctions.add(typedN)
-		}
-		for _, a := range typedN.Exprs {
-			v.visit(a)
-		}
-		v.inAggFunc = false
-		return typedN, nil
 	case SQLColumnExpr:
-		if containsInt(v.selectIDs, typedN.selectID) {
+		// if the tableName is empty, then this must be a replaced aggregate expression
+		// as that is the only legal way to end up with an empty table name.
+		if typedN.tableName != "" && containsInt(v.selectIDs, typedN.selectID) {
 			if v.removeMode {
-				v.allReferencedColumns.remove(typedN)
+				v.referencedColumns.remove(typedN)
 			} else {
-				v.allReferencedColumns.add(typedN)
-			}
-			if !v.inAggFunc {
-				if v.removeMode {
-					v.allNonAggReferencedColumns.remove(typedN)
-				} else {
-					v.allNonAggReferencedColumns.add(typedN)
-				}
+				v.referencedColumns.add(typedN)
 			}
 		}
 		return typedN, nil
@@ -449,65 +363,6 @@ func (v *expressionCollector) visit(n node) (node, error) {
 		if typedN.correlated {
 			return walk(v, n)
 		}
-		return n, nil
-	default:
-		return walk(v, n)
-	}
-}
-
-type aggFunctionFinder struct {
-	aggFuncs []*SQLAggFunctionExpr
-}
-
-// getAggFunctions will take an expression and return all
-// aggregation functions it finds within the expression.
-func getAggFunctions(e SQLExpr) ([]*SQLAggFunctionExpr, error) {
-	af := &aggFunctionFinder{}
-	_, err := af.visit(e)
-	if err != nil {
-		return nil, err
-	}
-
-	return af.aggFuncs, nil
-}
-
-func (af *aggFunctionFinder) visit(n node) (node, error) {
-	switch typedN := n.(type) {
-	case *SQLExistsExpr, SQLColumnExpr, SQLNullValue, SQLNumeric, SQLVarchar, *SQLVariableExpr:
-		return n, nil
-	case *SQLAggFunctionExpr:
-		af.aggFuncs = append(af.aggFuncs, typedN)
-	case *SQLSubqueryExpr:
-		// TODO: need to add logic to only collect
-		// agg functions that apply
-		return n, nil
-	default:
-		return walk(af, n)
-	}
-
-	return n, nil
-}
-
-type aggFunctionExprReplacer struct {
-	selectID int
-}
-
-func replaceAggFunctionsWithColumns(selectID int, e SQLExpr) (SQLExpr, error) {
-	v := &aggFunctionExprReplacer{selectID}
-	n, err := v.visit(e)
-	if err != nil {
-		return nil, err
-	}
-
-	return n.(SQLExpr), nil
-}
-
-func (v *aggFunctionExprReplacer) visit(n node) (node, error) {
-	switch typedN := n.(type) {
-	case *SQLAggFunctionExpr:
-		return NewSQLColumnExpr(v.selectID, "", typedN.String(), typedN.Type(), schema.MongoNone), nil
-	case *SQLSubqueryExpr:
-		// TODO: handle parental aggregates in correlated subquery
 		return n, nil
 	default:
 		return walk(v, n)

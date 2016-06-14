@@ -753,32 +753,66 @@ func TestAlgebrizeStatements(t *testing.T) {
 				)
 			})
 
-			// We have an issue with subqueries and aggregates...
-			// test("select (select sum(foo.a) from foo f) from foo group by b", func() PlanStage {
-			// 	source := createMongoSource(1, "foo", "foo")
-			// 	return NewProjectStage(
-			// 		NewGroupByStage(source,
-			// 			ProjectedColumns{
-			// 				createProjectedColumn(1, source, "foo", "b", "foo", "b"),
-			// 			},
-			// 			ProjectedColumns{
-			// 				createProjectedColumnFromSQLExpr("", "sum(foo.a)", &SQLAggFunctionExpr{
-			// 					Name:  "sum",
-			// 					Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
-			// 				}),
-			// 			},
-			// 		),
-			// 		createProjectedColumnFromSQLExpr("", "(select sum(foo.a) from foo f)",
-			// 			&SQLSubqueryExpr{
-			// 				// correlated: true,
-			// 				plan: NewProjectStage(
-			// 					source,
-			// 					createProjectedColumnFromSQLExpr("", "sum(foo.a)", createSQLColumnExpr("", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-			// 				),
-			// 			},
-			// 		),
-			// 	)
-			// })
+			test("select (select sum(foo.a) from foo as f) from foo group by b", func() PlanStage {
+				foo1Source := createMongoSource(1, "foo", "foo")
+				foo2Source := createMongoSource(2, "foo", "f")
+				return NewProjectStage(
+					NewGroupByStage(foo1Source,
+						[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
+						ProjectedColumns{
+							createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
+								Name: "sum",
+								Exprs: []SQLExpr{
+									createSQLColumnExprFromSource(foo1Source, "foo", "a"),
+								},
+							}),
+						},
+					),
+					createProjectedColumnFromSQLExpr(1, "", "(select sum(foo.a) from foo as f)",
+						&SQLSubqueryExpr{
+							correlated: true,
+							plan: NewProjectStage(
+								foo2Source,
+								createProjectedColumnFromSQLExpr(2, "", "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+							),
+						},
+					),
+				)
+			})
+
+			test("select (select sum(f.a + foo.a) from foo f) from foo group by b", func() PlanStage {
+				foo1Source := createMongoSource(1, "foo", "foo")
+				foo2Source := createMongoSource(2, "foo", "f")
+				return NewProjectStage(
+					NewGroupByStage(foo1Source,
+						[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
+						ProjectedColumns{
+							createProjectedColumn(1, foo1Source, "foo", "a", "foo", "a"),
+						},
+					),
+					createProjectedColumnFromSQLExpr(1, "", "(select sum(f.a+foo.a) from foo as f)",
+						&SQLSubqueryExpr{
+							correlated: true,
+							plan: NewProjectStage(
+								NewGroupByStage(
+									foo2Source,
+									nil,
+									ProjectedColumns{
+										createProjectedColumnFromSQLExpr(2, "", "sum(f.a+foo.a)", &SQLAggFunctionExpr{
+											Name: "sum",
+											Exprs: []SQLExpr{&SQLAddExpr{
+												left:  createSQLColumnExprFromSource(foo2Source, "f", "a"),
+												right: createSQLColumnExprFromSource(foo1Source, "foo", "a"),
+											}},
+										}),
+									},
+								),
+								createProjectedColumnFromSQLExpr(2, "", "sum(f.a+foo.a)", NewSQLColumnExpr(2, "", "sum(f.a+foo.a)", schema.SQLFloat, schema.MongoNone)),
+							),
+						},
+					),
+				)
+			})
 		})
 
 		Convey("having", func() {
@@ -1123,12 +1157,15 @@ func TestAlgebrizeStatements(t *testing.T) {
 			testError("select a from foo limit 'c'", `ERROR 1691 (HY000): A variable of a non-integer based type in LIMIT clause`)
 
 			testError("select a from foo, (select * from (select * from bar where foo.b = b) asdf) wegqweg", `ERROR 1054 (42S22): Unknown column 'foo.b' in 'where clause'`)
+			testError("select a from foo where sum(a) = 10", `ERROR 1111 (HY000): Invalid use of group function`)
 
 			testError("select a from foo order by 2", `ERROR 1054 (42S22): Unknown column '2' in 'order clause'`)
 			testError("select a from foo order by idk", `ERROR 1054 (42S22): Unknown column 'idk' in 'order clause'`)
 
 			testError("select sum(a) from foo group by sum(a)", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
+			testError("select sum(a) from foo group by (a + sum(a))", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
 			testError("select sum(a) from foo group by 1", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
+			testError("select a+sum(a) from foo group by 1", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
 			testError("select sum(a) from foo group by 2", `ERROR 1054 (42S22): Unknown column '2' in 'group clause'`)
 
 			testError("select a from foo, foo", `ERROR 1066 (42000): Not unique table/alias: 'foo'`)

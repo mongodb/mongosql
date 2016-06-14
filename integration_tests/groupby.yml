@@ -176,6 +176,76 @@ testcases:
   - [2, 5]
   - [3, 3]
 
+# Aggregates in Subqueries
+- sql: "select a, (select sum(f.a) from foo limit 1) from foo f"
+  description: "correlated aggregate that gets aggregated by parent"
+  expected_names: ["a", "(select sum(f.a) from foo limit 1)"]
+  expected_types: [int, float64]
+  expected:
+  - [1, 8]
+- sql: "select a, (select sum(a + f.a) from foo) from foo f"
+  description: "correlated aggregate"
+  expected_names: ["a", "(select sum(a+f.a) from foo)"]
+  expected_types: [int, float64]
+  expected:
+  - [1, 12]
+  - [2, 16]
+  - [2, 16]
+  - [3, 20]
+- sql: "select a, (select sum(a + sum(f.a)) from foo) as b from foo f"
+  description: "correlated aggregate"
+  expected_names: ["a", "b"]
+  expected_types: [int, float64]
+  expected:
+  - [1, 40]
+- sql: "select a from foo f group by 1 order by (select sum(f.a) from foo limit 1)"
+  description: "correlated aggregate in order by that gets aggregated by parent"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [3]
+  - [2]
+- sql: "select a from foo f group by 1 order by (select sum(a + f.a) from foo)"
+  description: "correlated aggregate in order by"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+- sql: "select a from foo f having 10 > (select sum(f.a) from foo limit 1)"
+  description: "correlated aggregate in having that gets aggregated by parent"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "select a from foo f having 20 > (select sum(a + f.a) from foo)"
+  description: "correlated aggregate in having"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [2]
+- sql: "select a from foo f group by (select sum(a + f.a) / b from foo)"
+  description: "correlated aggregate in group by"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+- sql: "select sum(a) from foo f group by (select sum(a + f.a) / b from foo)"
+  description: "correlated aggregate in group by"
+  expected_names: ["sum(a)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [4]
+  - [3]
+
+
 # Having
 - sql: "select a, sum(b) from test.foo group by a having sum(b) > 1 order by a"
   description: "having with a single condition"

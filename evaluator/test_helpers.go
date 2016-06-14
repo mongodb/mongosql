@@ -86,7 +86,7 @@ func getBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 }
 
 func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, error) {
-	statement, err := parser.Parse("select * from " + tableName + " where " + sql)
+	statement, err := parser.Parse("select " + sql + " from " + tableName)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,18 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 		return nil, err
 	}
 
-	expr := ((actualPlan.(*ProjectStage)).source.(*FilterStage)).matcher
+	// Depending on the "sql" expression we are getting, the algebrizer could have put it in
+	// either the ProjectStage (for non-aggregate expressions) or a GroupByStage (for aggregate
+	// expressions). We don't know which one the user is asking for, so we'll assume the
+	// GroupByStage if it exists, otherwise the ProjectStage.
+	project := actualPlan.(*ProjectStage)
+	expr := project.projectedColumns[0].Expr
+
+	group, ok := project.source.(*GroupByStage)
+	if ok {
+		expr = group.projectedColumns[0].Expr
+	}
+
 	if conv, ok := expr.(*SQLConvertExpr); ok {
 		expr = conv.expr
 	}

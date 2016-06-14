@@ -14,6 +14,16 @@ const (
 	Dot = "_DOT_"
 )
 
+func containsAnyInt(ints []int, test []int) bool {
+	for _, value := range test {
+		if containsInt(ints, value) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func containsInt(ints []int, i int) bool {
 	for _, value := range ints {
 		if value == i {
