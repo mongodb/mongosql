@@ -2,7 +2,7 @@
 # Data
 #
 data:
-- inline: 
+- inline:
     db: "test"
     collection: "groupby"
     docs:
@@ -36,7 +36,7 @@ schema:
       MongoType: int
       SqlName: c
       SqlType: int
-      
+
 #
 # Tests
 # (we are using an order by here as well because output order from MongoDB after a $group and MySQL after a group by is unspecified)
@@ -46,7 +46,7 @@ testcases:
   description: "no aggregations"
   expected_names: ["a"]
   expected_types: [int]
-  expected: 
+  expected:
   - [1]
   - [2]
   - [3]
@@ -54,7 +54,7 @@ testcases:
   description: "no aggregations with ordinal"
   expected_names: ["a"]
   expected_types: [int]
-  expected: 
+  expected:
   - [1]
   - [2]
   - [3]
@@ -62,7 +62,7 @@ testcases:
   description: "no aggregations with alias"
   expected_names: ["f"]
   expected_types: [int]
-  expected: 
+  expected:
   - [1]
   - [2]
   - [3]
@@ -70,7 +70,7 @@ testcases:
   description: "single aggregation"
   expected_names: ["a", "sum(b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 5]
   - [3, 3]
@@ -78,7 +78,7 @@ testcases:
   description: "single aggregation with ordinal"
   expected_names: ["a", "sum(b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 5]
   - [3, 3]
@@ -86,7 +86,7 @@ testcases:
   description: "single aggregation with alias"
   expected_names: ["f", "sum(b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 5]
   - [3, 3]
@@ -94,7 +94,7 @@ testcases:
   description: "multiple aggregations"
   expected_names: ["a", "sum(b)", "count(*)"]
   expected_types: [int, int, int]
-  expected: 
+  expected:
   - [1, 1, 1]
   - [2, 5, 2]
   - [3, 3, 1]
@@ -102,7 +102,7 @@ testcases:
   description: "multiple aggregations with ordinal"
   expected_names: ["a", "sum(b)", "count(*)"]
   expected_types: [int, int, int]
-  expected: 
+  expected:
   - [1, 1, 1]
   - [2, 5, 2]
   - [3, 3, 1]
@@ -110,7 +110,7 @@ testcases:
   description: "multiple aggregations with alias"
   expected_names: ["f", "sum(b)", "count(*)"]
   expected_types: [int, int, int]
-  expected: 
+  expected:
   - [1, 1, 1]
   - [2, 5, 2]
   - [3, 3, 1]
@@ -120,7 +120,7 @@ testcases:
   description: "correlated subquery following the group by"
   expected_names: ["sum(a)"]
   expected_types: [int]
-  expected: 
+  expected:
   - [1]
   - [2]
   - [5]
@@ -128,7 +128,7 @@ testcases:
   description: "correlated subquery following the group by"
   expected_names: ["sum(a)"]
   expected_types: [int]
-  expected: 
+  expected:
   - [5]
   - [2]
   - [1]
@@ -138,7 +138,7 @@ testcases:
   description: "distinct single column"
   expected_names: ["a"]
   expected_types: [int]
-  expected: 
+  expected:
   - [1]
   - [2]
   - [3]
@@ -146,7 +146,7 @@ testcases:
   description: "distinct multiple columns"
   expected_names: ["a", "b"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 2]
   - [2, 3]
@@ -155,7 +155,7 @@ testcases:
   description: "distinct single column grouped"
   expected_names: ["b"]
   expected_types: [int]
-  expected: 
+  expected:
   - [1]
   - [2]
   - [3]
@@ -163,7 +163,7 @@ testcases:
   description: "distinct multiple column grouped"
   expected_names: ["a", "b"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 2]
   - [3, 3]
@@ -171,7 +171,7 @@ testcases:
   description: "distinct multiple column grouped"
   expected_names: ["a", "sum(b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 5]
   - [3, 3]
@@ -251,26 +251,26 @@ testcases:
   description: "having with a single condition"
   expected_names: ["a", "sum(b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [2, 5]
   - [3, 3]
 - sql: "select a, sum(b) from test.foo group by a having a > 2 AND sum(b) > 1 order by a"
   description: "having with multiple conditions"
   expected_names: ["a", "sum(b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [3, 3]
 - sql: "select id from test.foo having sum(a) > 4 order by id"
   description: "having without group by and a non-projected column"
   expected_names: ["id"]
   expected_types: [int]
-  expected: 
+  expected:
   - [0]
 - sql: "select id from test.foo group by id having sum(a) > 1 order by id"
   description: "having using a non-projected column"
   expected_names: ["id"]
   expected_types: [int]
-  expected: 
+  expected:
   - [1]
   - [2]
   - [3]
@@ -278,14 +278,14 @@ testcases:
   description: "having using a non-projected column"
   expected_names: ["id"]
   expected_types: [int]
-  expected: 
+  expected:
   - [1]
   - [3]
 - sql: "select id, sum(a) from test.foo group by a having sum(a) > 1 order by id"
   description: "having using a non-projected column"
   expected_names: ["id", "sum(a)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 4]
   - [3, 3]
 
@@ -295,7 +295,7 @@ testcases:
   description: "avg of column"
   expected_names: ["a", "avg(b)"]
   expected_types: [int, float64]
-  expected: 
+  expected:
   - [1, 1.0]
   - [2, 2.5]
   - [3, 3.0]
@@ -303,7 +303,7 @@ testcases:
   description: "avg of an expression"
   expected_names: ["a", "avg(a+b)"]
   expected_types: [int, float64]
-  expected: 
+  expected:
   - [1, 2.0]
   - [2, 4.5]
   - [3, 6.0]
@@ -311,7 +311,7 @@ testcases:
   description: "avg of distinct column"
   expected_names: ["a", "avg(distinct a)"]
   expected_types: [int, float64]
-  expected: 
+  expected:
   - [1, 1.0]
   - [2, 2.0]
   - [3, 3.0]
@@ -319,7 +319,7 @@ testcases:
   description: "avg of distinct column"
   expected_names: ["a", "avg(distinct b)"]
   expected_types: [int, float64]
-  expected: 
+  expected:
   - [1, 1.0]
   - [2, 2.5]
   - [3, 3.0]
@@ -329,7 +329,7 @@ testcases:
   description: "count star"
   expected_names: ["a", "count(*)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 2]
   - [3, 1]
@@ -337,7 +337,7 @@ testcases:
   description: "count distinct column"
   expected_names: ["a", "count(distinct a)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 1]
   - [3, 1]
@@ -345,7 +345,7 @@ testcases:
   description: "count nullish-column"
   expected_names: ["a", "count(c)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 0]
   - [3, 0]
@@ -355,7 +355,7 @@ testcases:
   description: "max column"
   expected_names: ["a", "max(b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 3]
   - [3, 3]
@@ -363,7 +363,7 @@ testcases:
   description: "max expression"
   expected_names: ["a", "max(a+b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 2]
   - [2, 5]
   - [3, 6]
@@ -373,7 +373,7 @@ testcases:
   description: "min column"
   expected_names: ["a", "min(b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 2]
   - [3, 3]
@@ -381,7 +381,7 @@ testcases:
   description: "min expression"
   expected_names: ["a", "min(a+b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 2]
   - [2, 4]
   - [3, 6]
@@ -391,7 +391,7 @@ testcases:
   description: "sum of column"
   expected_names: ["a", "sum(b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 5]
   - [3, 3]
@@ -399,7 +399,7 @@ testcases:
   description: "sum of an expression"
   expected_names: ["a", "sum(a+b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 2]
   - [2, 9]
   - [3, 6]
@@ -407,7 +407,7 @@ testcases:
   description: "sum of distinct column"
   expected_names: ["a", "sum(distinct a)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 2]
   - [3, 3]
@@ -415,7 +415,43 @@ testcases:
   description: "sum of distinct column"
   expected_names: ["a", "sum(distinct b)"]
   expected_types: [int, int]
-  expected: 
+  expected:
   - [1, 1]
   - [2, 5]
   - [3, 3]
+
+# Standard Deviation Population
+- sql: "select a, std(b) from test.foo group by a order by a"
+  description: "std population deviation of column"
+  expected_names: ["a", "std(b)"]
+  expected_types: [int, float64]
+  expected:
+  - [1, 0]
+  - [2, 0.5]
+  - [3, 0]
+- sql: "select a, std(distinct a) from test.foo group by a order by a"
+  description: "std population deviation of distinct column"
+  expected_names: ["a", "std(distinct a)"]
+  expected_types: [int, float64]
+  expected:
+  - [1, 0]
+  - [2, 0]
+  - [3, 0]
+
+# Standard Deviation Sample
+- sql: "select a, stddev_samp(b) from test.foo group by a order by a"
+  description: "std sample deviation of column"
+  expected_names: ["a", "stddev_samp(b)"]
+  expected_types: [int, float64]
+  expected:
+  - [1, ~]
+  - [2, 0.7071067811865476]
+  - [3, ~]
+- sql: "select a, stddev_samp(distinct a) from test.foo group by a order by a"
+  description: "std sample deviation of distinct column"
+  expected_names: ["a", "stddev_samp(distinct a)"]
+  expected_types: [int, float64]
+  expected:
+  - [1, ~]
+  - [2, ~]
+  - [3, ~]

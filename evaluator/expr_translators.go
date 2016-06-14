@@ -37,15 +37,17 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 	case *SQLAggFunctionExpr:
 
 		transExpr, ok := TranslateExpr(typedE.Exprs[0], lookupFieldName)
-		if !ok {
+		if !ok || transExpr == nil {
 			return nil, false
 		}
 
 		name := typedE.Name
 
-		if name == "count" && typedE.Exprs[0] == SQLVarchar("*") {
-			return bson.M{"$size": transExpr}, true
-		} else if name == "count" {
+		switch name {
+		case "count":
+			if typedE.Exprs[0] == SQLVarchar("*") {
+				return bson.M{"$size": transExpr}, true
+			}
 			// The below ensure that nulls, undefined, and missing fields
 			// are not part of the count.
 			return bson.M{
@@ -67,9 +69,13 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 					},
 				},
 			}, true
+		case "std", "stddev", "stddev_pop":
+			return bson.M{"$stdDevPop": transExpr}, true
+		case "stddev_samp":
+			return bson.M{"$stdDevSamp": transExpr}, true
+		default:
+			return bson.M{"$" + name: transExpr}, true
 		}
-
-		return bson.M{"$" + name: transExpr}, true
 
 	case *SQLAndExpr:
 

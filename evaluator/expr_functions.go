@@ -3,6 +3,7 @@ package evaluator
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
@@ -15,7 +16,7 @@ var (
 
 //
 // SQLAggFunctionExpr represents an aggregate function. These aggregate
-// functions are avg, sum, count, max, and min.
+// functions are avg, sum, count, max, min, std, stddev, stddev_pop, and stddev_samp.
 //
 type SQLAggFunctionExpr struct {
 	Name     string
@@ -40,6 +41,10 @@ func (f *SQLAggFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return f.maxFunc(ctx)
 	case "min":
 		return f.minFunc(ctx)
+	case "std", "stddev", "stddev_pop":
+		return f.stdFunc(ctx, distinctMap, false)
+	case "stddev_samp":
+		return f.stdFunc(ctx, distinctMap, true)
 	default:
 		return nil, fmt.Errorf("aggregate function '%v' is not supported", f.Name)
 	}
@@ -55,7 +60,7 @@ func (f *SQLAggFunctionExpr) String() string {
 
 func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 	switch f.Name {
-	case "avg", "sum":
+	case "avg", "sum", "std", "stddev", "stddev_pop", "stddev_samp":
 		switch f.Exprs[0].Type() {
 		case schema.SQLInt, schema.SQLInt64:
 			// TODO: this should return a decimal when we have decimal support
@@ -237,6 +242,63 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	}
 
 	return SQLFloat(sum.Float64()), nil
+}
+
+func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]bool, isSamp bool) (SQLValue, error) {
+	var sum SQLNumeric = SQLFloat(0)
+	var data []SQLNumeric
+	var diff float64 = 0.0
+	var avg float64
+	count := 0
+	for _, row := range ctx.Rows {
+		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
+		for _, expr := range f.Exprs {
+			eval, err := expr.Evaluate(evalCtx)
+			if err != nil {
+				return nil, err
+			}
+
+			if eval == SQLNull {
+				continue
+			}
+
+			if distinctMap != nil {
+				if distinctMap[eval] {
+					// already in our distinct map, so we skip this row
+					continue
+				} else {
+					distinctMap[eval] = true
+				}
+			}
+
+			count++
+
+			n, err := convertToSQLNumeric(eval, ctx)
+			if err == nil && n != nil {
+				sum = sum.Add(n)
+				data = append(data, n)
+			}
+		}
+	}
+
+	if count == 0 {
+		return SQLNull, nil
+	}
+
+	avg = sum.Float64() / float64(count)
+
+	for _, val := range data {
+		diff += math.Pow(val.Float64()-avg, 2)
+	}
+
+	// Sample standard deviation
+	if isSamp && count == 1 {
+		return SQLNull, nil
+	} else if isSamp {
+		return SQLFloat(math.Sqrt(diff / float64(count-1))), nil
+	}
+	// Population standard deviation
+	return SQLFloat(math.Sqrt(diff / float64(count))), nil
 }
 
 //

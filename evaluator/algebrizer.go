@@ -173,7 +173,7 @@ func (a *algebrizer) registerTable(tableName string) error {
 // isAggFunction returns true if the byte slice e contains the name of an aggregate function and false otherwise.
 func (a *algebrizer) isAggFunction(name string) bool {
 	switch strings.ToLower(name) {
-	case "avg", "sum", "count", "max", "min":
+	case "avg", "sum", "count", "max", "min", "std", "stddev", "stddev_pop", "stddev_samp":
 		return true
 	default:
 		return false

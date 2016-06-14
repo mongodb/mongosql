@@ -137,16 +137,16 @@ func TestEvaluates(t *testing.T) {
 				runTests(aggCtx, tests)
 			})
 
-			Convey("Subject: SUM", func() {
+			Convey("Subject: COUNT", func() {
 				tests := []test{
-					test{"SUM(NULL)", SQLNull},
-					test{"SUM(a)", SQLFloat(8)},
-					test{"SUM(b)", SQLFloat(9)},
-					test{"SUM(c)", SQLNull},
-					test{"SUM(g)", SQLFloat(0)},
-					test{"SUM('a')", SQLFloat(0)},
-					test{"SUM(-20)", SQLFloat(-60)},
-					test{"SUM(20)", SQLFloat(60)},
+					test{"COUNT(NULL)", SQLInt(0)},
+					test{"COUNT(a)", SQLInt(2)},
+					test{"COUNT(b)", SQLInt(2)},
+					test{"COUNT(c)", SQLInt(0)},
+					test{"COUNT(g)", SQLInt(2)},
+					test{"COUNT('a')", SQLInt(3)},
+					test{"COUNT(-20)", SQLInt(3)},
+					test{"COUNT(20)", SQLInt(3)},
 				}
 				runTests(aggCtx, tests)
 			})
@@ -177,16 +177,38 @@ func TestEvaluates(t *testing.T) {
 				runTests(aggCtx, tests)
 			})
 
-			Convey("Subject: COUNT", func() {
+			Convey("Subject: SUM", func() {
 				tests := []test{
-					test{"COUNT(NULL)", SQLInt(0)},
-					test{"COUNT(a)", SQLInt(2)},
-					test{"COUNT(b)", SQLInt(2)},
-					test{"COUNT(c)", SQLInt(0)},
-					test{"COUNT(g)", SQLInt(2)},
-					test{"COUNT('a')", SQLInt(3)},
-					test{"COUNT(-20)", SQLInt(3)},
-					test{"COUNT(20)", SQLInt(3)},
+					test{"SUM(NULL)", SQLNull},
+					test{"SUM(a)", SQLFloat(8)},
+					test{"SUM(b)", SQLFloat(9)},
+					test{"SUM(c)", SQLNull},
+					test{"SUM(g)", SQLFloat(0)},
+					test{"SUM('a')", SQLFloat(0)},
+					test{"SUM(-20)", SQLFloat(-60)},
+					test{"SUM(20)", SQLFloat(60)},
+				}
+				runTests(aggCtx, tests)
+			})
+
+			Convey("Subject: STDDEV_POP", func() {
+				tests := []test{
+					test{"STD(NULL)", SQLNull},
+					test{"STDDEV(a)", SQLFloat(1)},
+					test{"STDDEV_POP(b)", SQLFloat(1.5)},
+					test{"STD(c)", SQLNull},
+					test{"STD(g)", SQLFloat(0)},
+				}
+				runTests(aggCtx, tests)
+			})
+
+			Convey("Subject: STDDEV_SAMP", func() {
+				tests := []test{
+					test{"STDDEV_SAMP(NULL)", SQLNull},
+					test{"STDDEV_SAMP(a)", SQLFloat(1.4142135623730951)},
+					test{"STDDEV_SAMP(b)", SQLFloat(2.1213203435596424)},
+					test{"STDDEV_SAMP(c)", SQLNull},
+					test{"STDDEV_SAMP(g)", SQLFloat(0)},
 				}
 				runTests(aggCtx, tests)
 			})
@@ -1513,6 +1535,9 @@ func TestTranslateExpr(t *testing.T) {
 			test{"sum(a * b)", `{"$sum":{"$multiply":["$a","$b"]}}`},
 			test{"sum(a)", `{"$sum":"$a"}`},
 			test{"sum(a < 1)", `{"$sum":{"$lt":["$a",{"$literal":1}]}}`},
+			test{"std(a)", `{"$stdDevPop":"$a"}`},
+			test{"stddev(a)", `{"$stdDevPop":"$a"}`},
+			test{"stddev_samp(a)", `{"$stdDevSamp":"$a"}`},
 		}
 
 		runTests(tests)

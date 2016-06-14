@@ -45,6 +45,117 @@ schema:
 #
 # Tests
 #
+# Aggregate
+- sql: "select avg(a) from foo"
+  expected_names: ["avg(a)"]
+  expected_types: [float]
+  expected:
+  - [2]
+
+
+- sql: "select avg(null) from foo"
+  expected_names: ["avg(null)"]
+  expected_types: [float]
+  expected:
+  - [~]
+
+- sql: "select count(a) from foo"
+  expected_names: ["count(a)"]
+  expected_types: [int]
+  expected:
+  - [3]
+
+- sql: "select count(null) from foo"
+  expected_names: ["count(null)"]
+  expected_types: [int]
+  expected:
+  - [0]
+
+- sql: "select max(a) from foo"
+  expected_names: ["max(a)"]
+  expected_types: [int]
+  expected:
+  - [3]
+
+- sql: "select max(null) from foo"
+  expected_names: ["max(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+
+- sql: "select min(a) from foo"
+  expected_names: ["min(a)"]
+  expected_types: [int]
+  expected:
+  - [1]
+
+- sql: "select min(null) from foo"
+  expected_names: ["min(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+
+- sql: "select std(a) from foo"
+  expected_names: ["std(a)"]
+  expected_types: [float]
+  expected:
+  - [0.816496580927726]
+
+- sql: "select stddev(a) from foo"
+  expected_names: ["stddev(a)"]
+  expected_types: [float]
+  expected:
+  - [0.816496580927726]
+
+- sql: "select stddev_pop(a) from foo"
+  expected_names: ["stddev_pop(a)"]
+  expected_types: [float]
+  expected:
+  - [0.816496580927726]
+
+- sql: "select std(null) from foo"
+  expected_names: ["std(null)"]
+  expected_types: [float]
+  expected:
+  - [~]
+
+- sql: "select stddev(null) from foo"
+  expected_names: ["stddev(null)"]
+  expected_types: [float]
+  expected:
+  - [~]
+
+- sql: "select stddev_pop(null) from foo"
+  expected_names: ["stddev_pop(null)"]
+  expected_types: [float]
+  expected:
+  - [~]
+
+- sql: "select stddev_samp(a) from foo"
+  expected_names: ["stddev_samp(a)"]
+  expected_types: [float]
+  expected:
+  - [1]
+
+- sql: "select stddev_samp(null) from foo"
+  expected_names: ["stddev_samp(null)"]
+  expected_types: [float]
+  expected:
+  - [~]
+
+- sql: "select sum(a) from foo"
+  expected_names: ["sum(a)"]
+  expected_types: [int]
+  expected:
+  - [6]
+
+- sql: "select sum(null) from foo"
+  expected_names: ["sum(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+
+# Scalar
 testcases:
 - sql: "select abs(a) from bar"
   expected_names: ["abs(a)"]
