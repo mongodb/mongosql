@@ -883,14 +883,19 @@ func TestAlgebrizeStatements(t *testing.T) {
 				)
 			})
 
-			test("select a from foo limit 10, 0", func() PlanStage {
-				return NewEmptyStage(createMongoSource("foo", "foo").Columns())
+			test("select a from foo limit 10,0", func() PlanStage {
+				source := createMongoSource("foo", "foo")
+				return NewEmptyStage([]*Column{
+					createProjectedColumn(source, "foo", "a", "", "a").Column,
+				})
 			})
 
 			test("select a from foo limit 0, 0", func() PlanStage {
-				return NewEmptyStage(createMongoSource("foo", "foo").Columns())
+				source := createMongoSource("foo", "foo")
+				return NewEmptyStage([]*Column{
+					createProjectedColumn(source, "foo", "a", "", "a").Column,
+				})
 			})
-
 		})
 
 		Convey("errors", func() {
