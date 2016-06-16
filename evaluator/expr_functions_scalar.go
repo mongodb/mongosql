@@ -889,17 +889,22 @@ func (_ *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	}
 	base := baseValue.Float64()
 
-	decimalValue, ok := values[1].(SQLNumeric)
-	if !ok {
-		return SQLFloat(int(base)), nil
-	}
-	decimal := int(decimalValue.Float64())
+	var decimal int
+	if len(values) == 2 {
+		decimalValue, ok := values[1].(SQLNumeric)
+		if !ok {
+			return SQLFloat(int(base)), nil
+		}
+		decimal =  int(decimalValue.Float64())
 
-	if decimal < 0 {
-		return SQLFloat(0), nil
+		if decimal < 0 {
+			return SQLFloat(0), nil
+		}
+	} else {
+		decimal = 0;
 	}
 
-	// Because GoLang does not have built-in round function
+	// Because GoLang does not have a built-in round function
 	var round float64
 	pow := math.Pow(10, float64(decimal))
 	digit := pow * base
@@ -919,7 +924,7 @@ func (_ *roundFunc) Type() schema.SQLType {
 }
 
 func (_ *roundFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 2)
+	return ensureArgCount(exprCount, 1, 2)
 }
 
 type secondFunc struct{}
@@ -1007,9 +1012,13 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 			return SQLVarchar(""), nil
 		}
 
-		str = str[pos : pos+length]
+		if pos + length < len(str) {
+			str = str[pos : pos+length]
+		}
 	} else {
-		str = str[pos:]
+		if pos < len(str) {
+			str = str[pos:]
+		}
 	}
 
 	return SQLVarchar(string(str)), nil
@@ -1056,6 +1065,11 @@ func (_ *weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	_, w := t.ISOWeek()
 
+	// Hack to get week values to align with MySQL.
+	// MySQL starts on Sunday, but Go starts on Monday.
+	if t.Weekday() == 0 {
+		_, w = t.Add(time.Hour * 24).ISOWeek()
+	}
 	return SQLInt(w), nil
 }
 

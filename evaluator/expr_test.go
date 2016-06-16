@@ -777,6 +777,7 @@ func TestEvaluates(t *testing.T) {
 					test{"ROUND(-16.55555, 4)", SQLFloat(-16.5556)},
 					test{"ROUND(4.56, 1)", SQLFloat(4.6)},
 					test{"ROUND(-16.5, -1)", SQLFloat(0)},
+					test{"ROUND(-16.5)", SQLFloat(-17)},
 				}
 				runTests(evalCtx, tests)
 			})

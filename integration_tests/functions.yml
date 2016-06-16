@@ -1,0 +1,909 @@
+#
+# Data
+#
+data:
+- inline:
+    db: "test"
+    collection: "scalar"
+    docs:
+    - { _id: 0, a: 1, b: "hey", c: 1.456, d: {$date: {$numberLong: "969716700000"}}}
+    - { _id: 1, a: ~, b: "yo", c: -121.232, d: {$date: {$numberLong: "969803100000"}}}
+    - { _id: 2, a: -3, b: ~, c: 56.7342, d: {$date: {$numberLong: "972395100000"}}}
+    - { _id: 3, a: 4, b: "this", c: ~, d: ~}
+    - { _id: 4}
+
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: bar
+    collection: "scalar"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+    - Name: c
+      MongoType: float64
+      SqlName: c
+      SqlType: numeric
+    - Name: d
+      MongoType: date
+      SqlName: d
+      SQLType: timestamp
+
+#
+# Tests
+#
+testcases:
+- sql: "select abs(a) from bar"
+  expected_names: ["abs(a)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [~]
+  - [3]
+  - [4]
+  - [~]
+
+- sql: "select a from bar where abs(a) > 1"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [-3]
+  - [4]
+
+- sql: "select abs(null) from bar"
+  expected_names: ["abs(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select ascii(b) from bar"
+  expected_names: ["ascii(b)"]
+  expected_types: [int]
+  expected:
+  - [104]
+  - [121]
+  - [~]
+  - [116]
+  - [~]
+
+- sql: "select b from bar where ascii(b) > 105"
+  expected_names: ["b"]
+  expected_types: [varchar]
+  expected:
+  - ["yo"]
+  - ["this"]
+
+- sql: "select ascii(null) from bar"
+  expected_names: ["ascii(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+# Synonym for length
+- sql: "select char_length(b) from bar"
+  expected_names: ["char_length(b)"]
+  expected_types: [int]
+  expected:
+  - [3]
+  - [2]
+  - [~]
+  - [4]
+  - [~]
+
+- sql: "select length(b) from bar"
+  expected_names: ["length(b)"]
+  expected_types: [int]
+  expected:
+  - [3]
+  - [2]
+  - [~]
+  - [4]
+  - [~]
+
+- sql: "select char_length(b) from bar where char_length(b) > 3"
+  expected_names: ["char_length(b)"]
+  expected_types: [int]
+  expected:
+  - [4]
+
+- sql: "select char_length(null) from bar"
+  expected_names: ["char_length(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select coalesce(null, b) from bar"
+  expected_names: ["coalesce(null, b)"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [~]
+  - ["this"]
+  - [~]
+
+- sql: "select coalesce(null, b) from bar where char_length(coalesce(null, b)) > 3"
+  expected_names: ["coalesce(null, b)"]
+  expected_types: [varchar]
+  expected:
+  - ["this"]
+
+- sql: "select coalesce(null) from bar"
+  expected_names: ["coalesce(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select concat(b, 'a') from bar"
+  expected_names: ["concat(b, 'a')"]
+  expected_types: [varchar]
+  expected:
+  - ["heya"]
+  - ["yoa"]
+  - [~]
+  - ["thisa"]
+  - [~]
+
+- sql: "select concat(b, 'a') from bar where char_length(concat(b, 'a')) > 3"
+  expected_names: ["concat(b, 'a')"]
+  expected_types: [varchar]
+  expected:
+  - ["heya"]
+  - ["thisa"]
+
+- sql: "select concat(null) from bar"
+  expected_names: ["concat(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select concat_ws(',', b, 's') from bar"
+  expected_names: ["concat_ws(',', b, 's')"]
+  expected_types: [varchar]
+  expected:
+  - ["hey,s"]
+  - ["yo,s"]
+  - [~]
+  - ["this,s"]
+  - [~]
+
+- sql: "select concat_ws(',', b, 's') from bar where char_length(concat_ws(',', b, 's')) > 3"
+  expected_names: ["concat_ws(',', b, 's')"]
+  expected_types: [varchar]
+  expected:
+  - ["hey,s"]
+  - ["yo,s"]
+  - ["this,s"]
+
+- sql: "select concat_ws(null) from bar"
+  expected_names: ["concat_ws(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+# Synonym for dayofmonth
+- sql: "select day(d) from bar"
+  expected_names: ["day(d)"]
+  expected_types: [int]
+  expected:
+  - [23]
+  - [24]
+  - [24]
+  - [~]
+  - [~]
+
+- sql: "select dayofmonth(d) from bar"
+  expected_names: ["dayofmonth(d)"]
+  expected_types: [int]
+  expected:
+  - [23]
+  - [24]
+  - [24]
+  - [~]
+  - [~]
+
+- sql: "select day(d) from bar where day(d) > 3"
+  expected_names: ["day(d)"]
+  expected_types: [varchar]
+  expected:
+  - [23]
+  - [24]
+  - [24]
+
+- sql: "select day(null) from bar"
+  expected_names: ["day(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select dayname(d) from bar"
+  expected_names: ["dayname(d)"]
+  expected_types: [varchar]
+  expected:
+  - ["Saturday"]
+  - ["Sunday"]
+  - ["Tuesday"]
+  - [~]
+  - [~]
+
+- sql: "select dayname(d) from bar where char_length(dayname(d)) > 3"
+  expected_names: ["dayname(d)"]
+  expected_types: [varchar]
+  expected:
+  - ["Saturday"]
+  - ["Sunday"]
+  - ["Tuesday"]
+
+- sql: "select dayname(null) from bar"
+  expected_names: ["dayname(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select dayofweek(d) from bar"
+  expected_names: ["dayofweek(d)"]
+  expected_types: [int]
+  expected:
+  - [7]
+  - [1]
+  - [3]
+  - [~]
+  - [~]
+
+- sql: "select dayofweek(d) from bar where dayofweek(d) > 3"
+  expected_names: ["dayofweek(d)"]
+  expected_types: [int]
+  expected:
+  - [7]
+
+- sql: "select dayofweek(null) from bar"
+  expected_names: ["dayofweek(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select dayofyear(d) from bar"
+  expected_names: ["dayofyear(d)"]
+  expected_types: [int]
+  expected:
+  - [267]
+  - [268]
+  - [298]
+  - [~]
+  - [~]
+
+- sql: "select dayofyear(d) from bar where dayofyear(d) > 3"
+  expected_names: ["dayofyear(d)"]
+  expected_types: [int]
+  expected:
+  - [267]
+  - [268]
+  - [298]
+
+- sql: "select dayofyear(null) from bar"
+  expected_names: ["dayofyear(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select exp(a) from bar"
+  expected_names: ["exp(a)"]
+  expected_types: [numeric]
+  expected:
+  - [2.718281828459045]
+  - [~]
+  - [0.049787068367863944]
+  - [54.598150033144236]
+  - [~]
+
+- sql: "select exp(a) from bar where exp(a) > 1"
+  expected_names: ["exp(a)"]
+  expected_types: [numeric]
+  expected:
+  - [2.718281828459045]
+  - [54.598150033144236]
+
+- sql: "select exp(null) from bar"
+  expected_names: ["exp(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select floor(c) from bar"
+  expected_names: ["floor(c)"]
+  expected_types: [numeric]
+  expected:
+  - [1]
+  - [-122]
+  - [56]
+  - [~]
+  - [~]
+
+- sql: "select floor(c) from bar where floor(c) > 1"
+  expected_names: ["floor(c)"]
+  expected_types: [numeric]
+  expected:
+  - [56]
+
+- sql: "select floor(null) from bar"
+  expected_names: ["floor(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+# - sql: "select hour(d) from bar"
+#   expected_names: ["hour(d)"]
+#   expected_types: [int]
+#   expected:
+#   - [9]
+#   - [9]
+#   - [9]
+#   - [~]
+#   - [~]
+
+# - sql: "select hour(d) from bar where hour(d) > 3"
+#   expected_names: ["hour(d)"]
+#   expected_types: [int]
+#   expected:
+#   - [9]
+#   - [9]
+#   - [9]
+
+# - sql: "select hour(null) from bar"
+#   expected_names: ["hour(null)"]
+#   expected_types: [int]
+#   expected:
+#   - [~]
+#   - [~]
+#   - [~]
+#   - [~]
+#   - [~]
+
+- sql: "select isnull(a) from bar"
+  expected_names: ["isnull(a)"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [1]
+  - [0]
+  - [0]
+  - [0]
+
+- sql: "select isnull(a) from bar where isnull(a) = 1"
+  expected_names: ["isnull(a)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [1]
+
+- sql: "select isnull(null) from bar"
+  expected_names: ["isnull(null)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+
+# Synonym for lower
+- sql: "select lcase(b) from bar"
+  expected_names: ["lcase(b)"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [""]
+  - ["this"]
+  - [""]
+
+- sql: "select lower(b) from bar"
+  expected_names: ["lower(b)"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [""]
+  - ["this"]
+  - [""]
+
+- sql: "select lcase(b) from bar where char_length(lcase(b)) > 3"
+  expected_names: ["lcase(b)"]
+  expected_types: [varchar]
+  expected:
+  - ["this"]
+
+- sql: "select lcase(null) from bar"
+  expected_names: ["lcase(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select left(b, 2) from bar"
+  expected_names: ["left(b, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["he"]
+  - ["yo"]
+  - [""]
+  - ["th"]
+  - [""]
+
+- sql: "select left(b, 2) from bar where length(left(b,2)) > 1"
+  expected_names: ["left(b, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["he"]
+  - ["yo"]
+  - ["th"]
+
+- sql: "select left(null, null) from bar"
+  expected_names: ["left(null, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select ln(a) from bar"
+  expected_names: ["ln(a)"]
+  expected_types: [numeric]
+  expected:
+  - [0]
+  - [~]
+  - [~]
+  - [1.3862943611198906]
+  - [~]
+
+- sql: "select ln(a) from bar where ln(a) > 1"
+  expected_names: ["ln(a)"]
+  expected_types: [numeric]
+  expected:
+  - [1.3862943611198906]
+
+- sql: "select ln(null) from bar"
+  expected_names: ["ln(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select log2(a) from bar"
+  expected_names: ["log2(a)"]
+  expected_types: [numeric]
+  expected:
+  - [0]
+  - [~]
+  - [~]
+  - [2]
+  - [~]
+
+- sql: "select log2(a) from bar where log2(a) > 1"
+  expected_names: ["log2(a)"]
+  expected_types: [numeric]
+  expected:
+  - [2]
+
+- sql: "select log2(null) from bar"
+  expected_names: ["log2(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select log10(a) from bar"
+  expected_names: ["log10(a)"]
+  expected_types: [numeric]
+  expected:
+  - [0]
+  - [~]
+  - [~]
+  - [0.6020599913279624]
+  - [~]
+
+- sql: "select log10(a) from bar where log10(a) > 0"
+  expected_names: ["log10(a)"]
+  expected_types: [numeric]
+  expected:
+  - [0.6020599913279624]
+
+- sql: "select log10(null) from bar"
+  expected_names: ["log10(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select minute(d) from bar"
+  expected_names: ["minute(d)"]
+  expected_types: [int]
+  expected:
+  - [45]
+  - [45]
+  - [45]
+  - [~]
+  - [~]
+
+- sql: "select minute(d) from bar where minute(d) > 3"
+  expected_names: ["minute(d)"]
+  expected_types: [int]
+  expected:
+  - [45]
+  - [45]
+  - [45]
+
+- sql: "select minute(null) from bar"
+  expected_names: ["minute(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select mod(a, 3) from bar"
+  expected_names: ["mod(a, 3)"]
+  expected_types: [numeric]
+  expected:
+  - [1]
+  - [~]
+  - [0]
+  - [1]
+  - [~]
+
+- sql: "select mod(a, 3) from bar where mod(a, 3) = 1"
+  expected_names: ["mod(a, 3)"]
+  expected_types: [numeric]
+  expected:
+  - [1]
+  - [1]
+
+- sql: "select mod(3, a) from bar"
+  expected_names: ["mod(3, a)"]
+  expected_types: [numeric]
+  expected:
+  - [0]
+  - [~]
+  - [0]
+  - [3]
+  - [~]
+
+- sql: "select mod(3, a) from bar where mod(3, a) = 3"
+  expected_names: ["mod(3, a)"]
+  expected_types: [numeric]
+  expected:
+  - [3]
+
+- sql: "select mod(null, null) from bar"
+  expected_names: ["mod(null, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+# Synonym for power
+- sql: "select pow(a, 3) from bar"
+  expected_names: ["pow(a, 3)"]
+  expected_types: [numeric]
+  expected:
+  - [1]
+  - [~]
+  - [-27]
+  - [64]
+  - [~]
+
+- sql: "select power(a, 3) from bar"
+  expected_names: ["power(a, 3)"]
+  expected_types: [numeric]
+  expected:
+  - [1]
+  - [~]
+  - [-27]
+  - [64]
+  - [~]
+
+- sql: "select pow(a, 3) from bar where pow(a, 3) > 0"
+  expected_names: ["pow(a, 3)"]
+  expected_types: [numeric]
+  expected:
+  - [1]
+  - [64]
+
+- sql: "select pow(null, null) from bar"
+  expected_names: ["pow(null, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select round(c, 2) from bar"
+  expected_names: ["round(c, 2)"]
+  expected_types: [numeric]
+  expected:
+  - [1.46]
+  - [-121.23]
+  - [56.73]
+  - [~]
+  - [~]
+
+- sql: "select round(c) from bar"
+  expected_names: ["round(c)"]
+  expected_types: [numeric]
+  expected:
+  - [1]
+  - [-121]
+  - [57]
+  - [~]
+  - [~]
+
+- sql: "select round(c, 2) from bar where round(c, 2) > 2"
+  expected_names: ["round(c, 2)"]
+  expected_types: [numeric]
+  expected:
+  - [56.73]
+
+- sql: "select round(null) from bar"
+  expected_names: ["round(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select sqrt(a) from bar"
+  expected_names: ["sqrt(a)"]
+  expected_types: [numeric]
+  expected:
+  - [1]
+  - [~]
+  - [~]
+  - [2]
+  - [~]
+
+- sql: "select sqrt(a) from bar where sqrt(a) > 1"
+  expected_names: ["sqrt(a)"]
+  expected_types: [numeric]
+  expected:
+  - [2]
+
+- sql: "select sqrt(null) from bar"
+  expected_names: ["sqrt(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+# Synonym for substr
+- sql: "select substring(b, 2) from bar"
+  expected_names: ["substring(b, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["ey"]
+  - ["o"]
+  - [""]
+  - ["his"]
+  - [""]
+
+- sql: "select substr(b, 2) from bar"
+  expected_names: ["substr(b, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["ey"]
+  - ["o"]
+  - [""]
+  - ["his"]
+  - [""]
+
+- sql: "select substring(b, 2) from bar where length(substring(b, 2)) > 2"
+  expected_names: ["substring(b, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["his"]
+
+- sql: "select substring(b, 1, 3) from bar"
+  expected_names: ["substring(b, 1, 3)"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [""]
+  - ["thi"]
+  - [""]
+
+- sql: "select substring(b, 1, 3) from bar where length(substring(b, 1, 3)) > 2"
+  expected_names: ["substring(b, 1, 3)"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["thi"]
+
+- sql: "select substring(null, null) from bar"
+  expected_names: ["substring(null, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+# Synonym for upper
+- sql: "select ucase(b) from bar"
+  expected_names: ["ucase(b)"]
+  expected_types: [varchar]
+  expected:
+  - ["HEY"]
+  - ["YO"]
+  - [""]
+  - ["THIS"]
+  - [""]
+
+- sql: "select upper(b) from bar"
+  expected_names: ["upper(b)"]
+  expected_types: [varchar]
+  expected:
+  - ["HEY"]
+  - ["YO"]
+  - [""]
+  - ["THIS"]
+  - [""]
+
+- sql: "select ucase(b) from bar where length(ucase(b)) > 2"
+  expected_names: ["ucase(b)"]
+  expected_types: [varchar]
+  expected:
+  - ["HEY"]
+  - ["THIS"]
+
+- sql: "select ucase(null) from bar"
+  expected_names: ["ucase(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select week(d) from bar"
+  expected_names: ["week(d)"]
+  expected_types: [int]
+  expected:
+  - [38]
+  - [39]
+  - [43]
+  - [~]
+  - [~]
+
+- sql: "select week(d) from bar where week(d) > 3"
+  expected_names: ["week(d)"]
+  expected_types: [int]
+  expected:
+  - [38]
+  - [39]
+  - [43]
+
+- sql: "select week(null) from bar"
+  expected_names: ["week(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+# - sql: "select year(d) from bar"
+#   expected_names: ["year(d)"]
+#   expected_types: [int]
+#   expected:
+#   - [2013]
+#   - [2013]
+#   - [2013]
+#   - [~]
+#   - [~]
+#
+# - sql: "select year(d) from bar where year(d) > 3"
+#   expected_names: ["year(d)"]
+#   expected_types: [int]
+#   expected:
+#   - [2013]
+#   - [2013]
+#
+# - sql: "select year(null) from bar"
+#   expected_names: ["year(null)"]
+#   expected_types: [int]
+#   expected:
+#   - [~]
+#   - [~]
+#   - [~]
+#   - [~]
+#   - [~]
