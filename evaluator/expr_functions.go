@@ -264,6 +264,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"connection_id":     &connectionIdFunc{},
 	"current_date":      &currentDateFunc{},
 	"current_timestamp": &currentTimestampFunc{},
+	"current_user":      &userFunc{},
 	"database":          &dbFunc{},
 	"dayname":           &dayNameFunc{},
 	"day":               &dayOfMonthFunc{},
@@ -297,23 +298,29 @@ var scalarFuncMap = map[string]scalarFunc{
 	"right":             &rightFunc{},
 	"round":             &roundFunc{},
 	"rtrim":             &rtrimFunc{},
-	"sqrt":              &sqrtFunc{},
+	"schema":            &dbFunc{},
 	"second":            &secondFunc{},
+	"session_user":      &userFunc{},
+	"sqrt":              &sqrtFunc{},
 	"substr":            &substringFunc{},
 	"substring":         &substringFunc{},
+	"system_user":       &userFunc{},
 	"ucase":             &ucaseFunc{},
 	"upper":             &ucaseFunc{},
+	"user":              &userFunc{},
+	"version":           &versionFunc{},
 	"week":              &weekFunc{},
 	"year":              &yearFunc{},
 }
 
 func (f *SQLScalarFunctionExpr) RequiresEvalCtx() bool {
-	switch f.Name {
-	case "connection_id", "database":
-		return true
-	default:
-		return false
+	if sf, ok := scalarFuncMap[f.Name]; ok {
+		if r, ok := sf.(RequiresEvalCtx); ok {
+			return r.RequiresEvalCtx()
+		}
 	}
+
+	return false
 }
 
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {

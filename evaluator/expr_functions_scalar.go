@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -14,6 +15,10 @@ type connectionIdFunc struct{}
 
 func (_ *connectionIdFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLUint32(ctx.ExecutionCtx.ConnectionId()), nil
+}
+
+func (_ *connectionIdFunc) RequiresEvalCtx() bool {
+	return true
 }
 
 func (_ *connectionIdFunc) Type() schema.SQLType {
@@ -30,11 +35,51 @@ func (_ *dbFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(ctx.ExecutionCtx.DB()), nil
 }
 
+func (_ *dbFunc) RequiresEvalCtx() bool {
+	return true
+}
+
 func (_ *dbFunc) Type() schema.SQLType {
 	return schema.SQLVarchar
 }
 
 func (_ *dbFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0)
+}
+
+type userFunc struct{}
+
+func (_ *userFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return SQLVarchar(ctx.ExecutionCtx.User()), nil
+}
+
+func (_ *userFunc) RequiresEvalCtx() bool {
+	return true
+}
+
+func (_ *userFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *userFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0)
+}
+
+type versionFunc struct{}
+
+func (_ *versionFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return SQLVarchar(common.VersionStr), nil
+}
+
+func (_ *versionFunc) RequiresEvalCtx() bool {
+	return true
+}
+
+func (_ *versionFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *versionFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
 }
 
@@ -182,7 +227,7 @@ func (_ *concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, er
 			continue
 		}
 		bytes.WriteString(value.String())
-		if i != len(trimValues) - 1 {
+		if i != len(trimValues)-1 {
 			bytes.WriteString(separator)
 		}
 	}
@@ -848,7 +893,7 @@ func (_ *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	if !ok {
 		return SQLFloat(int(base)), nil
 	}
-	decimal :=  int(decimalValue.Float64())
+	decimal := int(decimalValue.Float64())
 
 	if decimal < 0 {
 		return SQLFloat(0), nil

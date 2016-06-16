@@ -9,6 +9,7 @@ type ConnectionCtx interface {
 	ConnectionId() uint32
 	DB() string
 	Session() *mgo.Session
+	User() string
 }
 
 // ExecutionCtx holds execution context information
@@ -52,4 +53,11 @@ func (ctx *EvalCtx) CreateChildExecutionCtx() *ExecutionCtx {
 		AuthProvider:  ctx.ExecutionCtx.AuthProvider,
 		SrcRows:       append(ctx.Rows, ctx.ExecutionCtx.SrcRows...),
 	}
+}
+
+// RequiresEvalCtx is an interface a struct can implement to allow it to
+// be queried for whether or not it requires an EvalCtx, or can be handled
+// in memory.
+type RequiresEvalCtx interface {
+	RequiresEvalCtx() bool
 }

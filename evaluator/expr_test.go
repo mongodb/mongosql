@@ -8,8 +8,10 @@ import (
 
 	"strconv"
 
+	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -28,6 +30,27 @@ func createFieldNameLookup(db *schema.Database) fieldNameLookup {
 
 		return column.Name, true
 	}
+}
+
+type fakeConnectionCtx struct{}
+
+func (_ fakeConnectionCtx) LastInsertId() int64 {
+	return 11
+}
+func (_ fakeConnectionCtx) RowCount() int64 {
+	return 21
+}
+func (_ fakeConnectionCtx) ConnectionId() uint32 {
+	return 42
+}
+func (_ fakeConnectionCtx) DB() string {
+	return "test"
+}
+func (_ fakeConnectionCtx) Session() *mgo.Session {
+	panic("Session is not supported in fakeConnectionCtx")
+}
+func (_ fakeConnectionCtx) User() string {
+	return "test user"
 }
 
 func TestEvaluates(t *testing.T) {
@@ -51,8 +74,12 @@ func TestEvaluates(t *testing.T) {
 		}
 	}
 
+	execCtx := &ExecutionCtx{
+		ConnectionCtx: fakeConnectionCtx{},
+	}
+
 	Convey("Subject: Evaluates", t, func() {
-		evalCtx := NewEvalCtx(nil, &Row{Values{
+		evalCtx := NewEvalCtx(execCtx, &Row{Values{
 			{1, "bar", "a", 123},
 			{1, "bar", "b", 456},
 			{1, "bar", "c", nil},
@@ -75,7 +102,7 @@ func TestEvaluates(t *testing.T) {
 			t1 = time.Now()
 			t2 = t1.Add(time.Hour)
 
-			aggCtx := NewEvalCtx(nil,
+			aggCtx := NewEvalCtx(execCtx,
 				&Row{Values{
 					{1, "bar", "a", nil},
 					{1, "bar", "b", 3},
@@ -457,6 +484,13 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: CONNECTION_ID", func() {
+				tests := []test{
+					test{"CONNECTION_ID()", SQLUint32(42)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			SkipConvey("Subject: CURRENT_DATE", func() {
 				tests := []test{
 					test{"CURRENT_DATE()", SQLDate{time.Now().UTC()}},
@@ -467,6 +501,24 @@ func TestEvaluates(t *testing.T) {
 			SkipConvey("Subject: CURRENT_TIMESTAMP", func() {
 				tests := []test{
 					test{"CURRENT_TIMESTAMP()", SQLTimestamp{time.Now().UTC()}},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: CURRENT_USER/SESSION_USER/SYSTEM_USER/USER", func() {
+				tests := []test{
+					test{"CURRENT_USER()", SQLVarchar("test user")},
+					test{"SESSION_USER()", SQLVarchar("test user")},
+					test{"SYSTEM_USER()", SQLVarchar("test user")},
+					test{"USER()", SQLVarchar("test user")},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: DATABASE/SCHEMA", func() {
+				tests := []test{
+					test{"DATABASE()", SQLVarchar("test")},
+					test{"SCHEMA()", SQLVarchar("test")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -789,6 +841,13 @@ func TestEvaluates(t *testing.T) {
 					test{"UPPER('a')", SQLVarchar("A")},
 					test{"UPPER('AWESOME')", SQLVarchar("AWESOME")},
 					test{"UPPER('AwEsOmE')", SQLVarchar("AWESOME")},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: VERSION", func() {
+				tests := []test{
+					test{"VERSION()", SQLVarchar(common.Version)},
 				}
 				runTests(evalCtx, tests)
 			})

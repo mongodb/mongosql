@@ -34,6 +34,10 @@ func (c *connCtx) Session() *mgo.Session {
 	return c.session
 }
 
+func (c *connCtx) User() string {
+	return ""
+}
+
 func getOptions(t *testing.T) sqlproxy.Options {
 	opts := sqlproxy.Options{
 		MongoURI: "localhost",

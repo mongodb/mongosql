@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"net"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -120,6 +122,11 @@ func (c *conn) Session() *mgo.Session {
 	return c.session
 }
 
+// User returns the current user.
+func (c *conn) User() string {
+	return fmt.Sprintf("%s@%s", c.user, c.conn.RemoteAddr().String())
+}
+
 func (c *conn) handshake() error {
 	if err := c.writeInitialHandshake(); err != nil {
 		c.writeError(err)
@@ -154,6 +161,8 @@ func (c *conn) handshake() error {
 			c.writeError(err)
 			return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "failed authentication with MongoDB: %v", err)
 		}
+	} else {
+		c.user = ""
 	}
 
 	if err := c.writeOK(nil); err != nil {
@@ -172,7 +181,7 @@ func (c *conn) writeInitialHandshake() error {
 	data = append(data, minProtocolVersion)
 
 	//server version[00]
-	data = append(data, serverVersion...)
+	data = append(data, common.VersionStr...)
 	data = append(data, 0)
 
 	//connection id
