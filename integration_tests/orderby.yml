@@ -169,7 +169,6 @@ testcases:
   - [0]
   - [1]
   - [2]
-
 - sql: "select a from foo f order by (select -a from foo where f.id = id)"
   description: "correlated subquery"
   expected_names: ["a"]
@@ -179,3 +178,21 @@ testcases:
   - [2]
   - [1]
   - [0]
+- sql: "select a from foo f order by a * id"
+  description: "order by expression"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+  - [0]
+  - [1]
+  - [2]
+- sql: "select a from foo f order by a > id"
+  description: "order by expression"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [0]
+  - [1]
+  - [2]
+  - [2]

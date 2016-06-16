@@ -1074,7 +1074,7 @@ order_list:
   }
 
 order:
-  value_expression asc_desc_opt
+  expression asc_desc_opt
   {
     $$ = &Order{Expr: $1, Direction: $2}
   }

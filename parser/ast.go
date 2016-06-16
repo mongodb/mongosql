@@ -858,7 +858,7 @@ func (node OrderBy) Format(buf *TrackedBuffer) {
 
 // Order represents an ordering expression.
 type Order struct {
-	Expr      ValExpr
+	Expr      Expr
 	Direction string
 }
 
