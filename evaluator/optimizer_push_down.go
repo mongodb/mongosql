@@ -792,6 +792,10 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 	}
 
+	if len(fieldsToProject) == 0 {
+		return project, nil
+	}
+
 	pipeline := ms.pipeline
 	pipeline = append(pipeline, bson.D{{"$project", fieldsToProject}})
 	ms = ms.clone()

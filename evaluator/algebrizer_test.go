@@ -412,6 +412,20 @@ func TestAlgebrizeStatements(t *testing.T) {
 							),
 						)
 					})
+
+					test("select exists(select 1 from bar) from foo", func() PlanStage {
+						fooSource := createMongoSource(1, "foo", "foo")
+						barSource := createMongoSource(2, "bar", "bar")
+						return NewProjectStage(fooSource,
+							createProjectedColumnFromSQLExpr(1, "", "exists (select 1 from bar)",
+								&SQLExistsExpr{
+									expr: &SQLSubqueryExpr{
+										plan: NewProjectStage(barSource, createProjectedColumnFromSQLExpr(2, "", "1", SQLInt(1))),
+									},
+								},
+							),
+						)
+					})
 				})
 
 				Convey("correlated", func() {

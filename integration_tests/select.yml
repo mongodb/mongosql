@@ -193,6 +193,14 @@ testcases:
   - [1, true]
   - [2, true]
   - [3, true]
+- sql: "select exists(select 1 from test.foo) as p from foo"
+  description: "non-correlated exists"
+  expected_names: ["p"]
+  expected_types: [string]
+  expected: 
+  - [true]
+  - [true]
+  - [true]
 
 # Subqueries
 - sql: "select a, (select a from foo limit 1) as b from foo"

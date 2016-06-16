@@ -291,6 +291,13 @@ func TestOptimizePlan(t *testing.T) {
 						}}},
 					},
 				)
+
+				test("select exists(select a from bar) from foo",
+					[]bson.D{
+						{{"$project", bson.M{
+							"bar_DOT_a": "$a",
+						}}},
+					})
 			})
 		})
 
