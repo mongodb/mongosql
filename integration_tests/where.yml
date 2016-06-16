@@ -16,6 +16,8 @@ data:
     - { _id: 0, a: 2 }
     - { _id: 1, a: 2 }
     - { _id: 2, a: 3 }
+- inline:
+    db: "test"
     collection: "where_3"
     docs:
     - { _id: {"$oid" : "53c2ab5e4291b17b666d742a"}, item: 5 }
