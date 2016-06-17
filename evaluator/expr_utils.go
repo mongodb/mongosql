@@ -324,12 +324,12 @@ func sqlValueToString(sqlValue SQLValue) (string, error) {
 		}
 		return "0", nil
 	case *SQLValues:
-		if len(v.Values)!=1{
+		if len(v.Values) != 1 {
 			return "", fmt.Errorf("left operand should contain 1 column - got %v", len(v.Values))
 		}
 		return sqlValueToString(v.Values[0])
 	default:
-		return string(v.String()),nil
+		return string(v.String()), nil
 	}
 
 	// TODO: just return empty string with no error?

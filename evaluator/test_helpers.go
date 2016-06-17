@@ -1,8 +1,8 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2/bson"
 )
 
