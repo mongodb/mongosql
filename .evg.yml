@@ -11,7 +11,7 @@ buildvariants:
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian71-3.2.7.tgz
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: debian81
   display_name: Debian 8.1
   run_on:
@@ -22,7 +22,7 @@ buildvariants:
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian81-latest.tgz
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: linux-64-amazon-ami
   display_name: Amazon Linux (Enterprise)
   expansions:
@@ -34,7 +34,7 @@ buildvariants:
   run_on:
     - linux-64-amzn-build
   tasks:
-  - "*"
+  - "!check"
 - name: osx
   display_name: OSX 10.10
   run_on:
@@ -44,7 +44,7 @@ buildvariants:
     cover: "-"
     mongo_url: https://downloads.mongodb.org/osx/mongodb-osx-x86_64-3.2.7.tgz
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: rhel55
   display_name: RHEL 5.5
   expansions:
@@ -54,7 +54,7 @@ buildvariants:
   run_on:
   - rhel55
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: rhel62
   display_name: RHEL 6.2
   expansions:
@@ -65,7 +65,7 @@ buildvariants:
   run_on:
   - rhel62-test
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: rhel70
   display_name: RHEL 7.0
   expansions:
@@ -75,7 +75,7 @@ buildvariants:
   run_on:
   - rhel70
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: rhel-71-ppc64le
   display_name: RHEL 7.1 PPC64LE
   expansions:
@@ -87,7 +87,7 @@ buildvariants:
   run_on:
   - rhel71-power8-test
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: rhel-72-s390x
   display_name: RHEL 7.2 s390x
   expansions:
@@ -99,7 +99,7 @@ buildvariants:
   - rhel72-zseries-build
   - rhel72-zseries-test
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: solaris-64-bit
   display_name: Solaris
   expansions:
@@ -110,7 +110,7 @@ buildvariants:
   run_on:
   - solaris
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: suse11-64
   display_name: SLES 11
   expansions:
@@ -120,7 +120,7 @@ buildvariants:
   run_on:
   - suse11-test
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: suse12-64
   display_name: SLES 12
   expansions:
@@ -130,7 +130,7 @@ buildvariants:
   run_on:
   - suse12-test
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: ubuntu1404-64
   display_name: Ubuntu 14.04
   expansions:
@@ -154,7 +154,7 @@ buildvariants:
     # since WiredTiger requires 64 bit support.
     mongod_args: --storageEngine=mmapv1
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 - name: windows-64
   display_name: Windows 64
   run_on:
@@ -166,7 +166,7 @@ buildvariants:
     mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.7.zip
     extension: .exe
   tasks:
-  - "!benchmark"
+  - "!benchmark !check"
 pre:
   - command: shell.track
   - command: shell.exec
@@ -205,6 +205,24 @@ post:
   - command: shell.cleanup
 
 functions:
+
+  "check formatting":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src
+      script: |
+        set -o verbose
+        set -o errexit
+        echo "Checking formatting"
+        unformatted=$(${gorootvars} ${library_path} gofmt -e -l `find . -path ./vendor -prune -o -name '*.go' -print` 2>&1)
+
+        for fn in $unformatted; do
+          echo >&2 "  Unformatted: $fn"
+        done
+        [ -z "$unformatted" ] || exit 1
+
+        echo "Done!"
 
   "build MongoDRDL":
     command: shell.exec
@@ -529,6 +547,12 @@ tasks:
     - func: "generate coverage txt"
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
+
+- name: check
+  tags: ["check"]
+  commands:
+    - func: "fetch source"
+    - func: "check formatting"
 
 - name: dist
   commands:
