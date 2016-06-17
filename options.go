@@ -12,6 +12,8 @@ import (
 )
 
 type Options struct {
+	Version bool `long:"version" description:"display version information"`
+
 	Addr    string `long:"addr" description:"host address to listen on" default:"127.0.0.1:3307"`
 	Verbose []bool `short:"v" long:"verbose" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv)"`
 

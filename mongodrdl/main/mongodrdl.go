@@ -2,11 +2,13 @@
 package main
 
 import (
+	"os"
+
+	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/mongodrdl"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
-	"os"
 )
 
 func main() {
@@ -27,6 +29,11 @@ func main() {
 		log.Logf(log.Always, "positional arguments not allowed: %v", args)
 		log.Logf(log.Always, "try 'mongodrdl --help' for more information")
 		os.Exit(util.ExitBadOptions)
+	}
+
+	if opts.Version {
+		common.PrintVersionAndGitspec("mongodrdl", os.Stdout)
+		os.Exit(0)
 	}
 
 	// print help, if specified

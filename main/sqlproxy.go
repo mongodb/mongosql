@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
 	"github.com/jessevdk/go-flags"
@@ -44,6 +45,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if opts.Version {
+		common.PrintVersionAndGitspec("sqlproxy", os.Stdout)
+		os.Exit(0)
+	}
+
 	err = opts.Validate()
 	if err != nil {
 		log.Logf(log.Always, "invalid options: %v", err)
@@ -72,7 +78,7 @@ func main() {
 	if err != nil {
 		log.Logf(log.Always, "error starting evaluator")
 		log.Logf(log.Always, err.Error())
-		return
+		os.Exit(1)
 	}
 
 	var svr *server.Server
@@ -80,7 +86,7 @@ func main() {
 	if err != nil {
 		log.Logf(log.Always, "error starting server")
 		log.Logf(log.Always, err.Error())
-		return
+		os.Exit(1)
 	}
 
 	sc := make(chan os.Signal, 1)

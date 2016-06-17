@@ -214,7 +214,7 @@ functions:
           export PATH=/opt/ldwrapper/bin:$PATH
         fi
         . ./set_gopath.sh
-        ${gorootvars} ${library_path} go build ${gccgoflags} -o drdl mongodrdl/main/mongodrdl.go
+        ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec $(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr $(git describe)" ${gccgoflags} -o drdl mongodrdl/main/mongodrdl.go
 
         echo "Done!"
 
@@ -241,7 +241,7 @@ functions:
           export PATH=/opt/ldwrapper/bin:$PATH
         fi
         . ./set_gopath.sh
-        ${gorootvars} ${library_path} go build ${gccgoflags} -o sqlproxy main/sqlproxy.go
+        ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec $(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr $(git describe)" ${gccgoflags} -o sqlproxy main/sqlproxy.go
         echo "Done!"
 
   "download mongod":
