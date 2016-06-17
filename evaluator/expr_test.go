@@ -847,7 +847,7 @@ func TestEvaluates(t *testing.T) {
 
 			Convey("Subject: VERSION", func() {
 				tests := []test{
-					test{"VERSION()", SQLVarchar(common.Version)},
+					test{"VERSION()", SQLVarchar(common.VersionStr)},
 				}
 				runTests(evalCtx, tests)
 			})
