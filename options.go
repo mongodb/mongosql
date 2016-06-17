@@ -32,7 +32,7 @@ type Options struct {
 	SSLCAFile            string `long:"ssl-ca-file" description:"path to a CA certs file to use for authenticating certs from a client"`
 
 	// Auth Options
-	Auth bool `long:"auth" description:"use authentication/authorization (SSLPEMFile is require when using auth)"`
+	Auth bool `long:"auth" description:"use authentication/authorization ('ssl-pem-file' is required when using auth)"`
 }
 
 func (o Options) Level() int {
