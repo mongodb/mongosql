@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -421,6 +422,66 @@ func (_ *hourFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type ifFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html#function_if
+func (_ *ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	switch typedV := values[0].(type) {
+	case SQLBool:
+		if typedV {
+			return values[1], nil
+		} else {
+			return values[2], nil
+		}
+	case SQLDate, SQLTimestamp, SQLObjectID:
+		return values[1], nil
+	case SQLNumeric:
+		v := typedV.Float64()
+		if v == 0 {
+			return values[2], nil
+		} else {
+			return values[1], nil
+		}
+	case SQLNullValue:
+		return values[2], nil
+	case SQLVarchar:
+		if v, _ := strconv.ParseFloat(typedV.String(), 64); v == 0 {
+			return values[2], nil
+		} else {
+			return values[1], nil
+		}
+	default:
+		return nil, fmt.Errorf("expression type '%v' is not supported", typedV)
+	}
+	return SQLNull, nil
+}
+
+func (_ *ifFunc) Type() schema.SQLType {
+	return schema.SQLNone
+}
+
+func (_ *ifFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
+type ifnullFunc struct{}
+
+func (_ *ifnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if _, ok := values[0].(SQLNullValue); ok {
+		return values[1], nil
+	} else {
+		return values[0], nil
+	}
+}
+
+func (_ *ifnullFunc) Type() schema.SQLType {
+	return schema.SQLNone
+}
+
+func (_ *ifnullFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
+
 type instrFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_instr
@@ -796,6 +857,31 @@ func (_ *notFunc) Type() schema.SQLType {
 
 func (_ *notFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type nullifFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html
+func (_ *nullifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if _, ok := values[0].(SQLNullValue); ok {
+		return SQLNull, nil
+	} else if _, ok := values[1].(SQLNullValue); ok {
+		return values[0], nil
+	} else {
+		eq, _ := CompareTo(values[0], values[1])
+		if eq == 0 {
+			return SQLNull, nil
+		}
+		return values[0], nil
+	}
+}
+
+func (_ *nullifFunc) Type() schema.SQLType {
+	return schema.SQLNone
+}
+
+func (_ *nullifFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
 }
 
 type powFunc struct{}

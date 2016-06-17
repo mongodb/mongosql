@@ -531,6 +531,71 @@ testcases:
 #   - [~]
 #   - [~]
 
+
+- sql: "select if(a > 0, 2, 3) from bar"
+  expected_names: ["if(a > 0, 2, 3)"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [3]
+  - [3]
+  - [2]
+  - [3]
+
+- sql: "select if(a > 1, 2, 3) from bar where a > 0"
+  expected_names: ["if(a > 1, 2, 3)"]
+  expected_types: [int]
+  expected:
+  - [3]
+  - [2]
+
+- sql: "select if(null, 2, 3) from bar"
+  expected_names: ["if(null, 2, 3)"]
+  expected_types: [int]
+  expected:
+  - [3]
+  - [3]
+  - [3]
+  - [3]
+  - [3]
+
+- sql: "select if(null > 0, 2, 3) from bar"
+  expected_names: ["if(null > 0, 2, 3)"]
+  expected_types: [int]
+  expected:
+  - [3]
+  - [3]
+  - [3]
+  - [3]
+  - [3]
+
+- sql: "select ifnull(a, 2) from bar"
+  expected_names: ["ifnull(a, 2)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [-3]
+  - [4]
+  - [2]
+
+- sql: "select ifnull(a, 2) from bar where a > 0"
+  expected_names: ["ifnull(a, 2)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [4]
+
+- sql: "select ifnull(null, 2) from bar"
+  expected_names: ["ifnull(null, 2)"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [2]
+  - [2]
+  - [2]
+  - [2]
+
 - sql: "select isnull(a) from bar"
   expected_names: ["isnull(a)"]
   expected_types: [int]
@@ -764,6 +829,54 @@ testcases:
 
 - sql: "select mod(null, null) from bar"
   expected_names: ["mod(null, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select nullif(a, a) from bar"
+  expected_names: ["nullif(a, a)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select nullif(a, 1) from bar"
+  expected_names: ["nullif(a, 1)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [-3]
+  - [4]
+  - [~]
+
+- sql: "select nullif(a, 1) from bar where a > 0"
+  expected_names: ["nullif(a, 1)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [4]
+  
+
+- sql: "select nullif(null, null) from bar"
+  expected_names: ["nullif(null, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select nullif(null, 1) from bar"
+  expected_names: ["nullif(null, 1)"]
   expected_types: [int]
   expected:
   - [~]

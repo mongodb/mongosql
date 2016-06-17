@@ -1,14 +1,13 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/mongodb/mongo-tools/common/log"
+	"gopkg.in/mgo.v2/bson"
 	"math"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/10gen/sqlproxy/schema"
-	"github.com/mongodb/mongo-tools/common/log"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // a function that, given a tableName and a columnName, will return
@@ -397,12 +396,36 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{"$ifNull": []interface{}{args[0], nil}},
-					nil}},
-				bson.M{"$literal": nil},
-				bson.M{"$hour": args[0]}}}, true
+			return bson.M{
+				"$cond": []interface{}{
+					bson.M{"$eq": []interface{}{
+						bson.M{
+							"$ifNull": []interface{}{args[0], nil}},
+						nil,
+					}},
+					bson.M{"$literal": nil},
+					bson.M{"$hour": args[0]}}}, true
+		case "if":
+			if len(args) != 3 {
+				return nil, false
+			}
+
+			return bson.M{
+				"$cond": []interface{}{
+					bson.M{"$or": []interface{}{
+						bson.M{"$eq": []interface{}{args[0], 0}},
+						bson.M{"$eq": []interface{}{args[0], nil}},
+						bson.M{"$eq": []interface{}{args[0], false}}}},
+					args[2],
+					args[1],
+				},
+			}, true
+		case "ifnull":
+			if len(args) != 2 {
+				return nil, false
+			}
+
+			return bson.M{"$ifNull": []interface{}{args[0], args[1]}}, true
 		case "isnull":
 			if len(args) != 1 {
 				return nil, false
@@ -495,6 +518,23 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$subtract": []interface{}{
 					bson.M{"$month": args[0]},
 					1}}}}, true
+		case "nullif":
+			if len(args) != 2 {
+				return nil, false
+			}
+
+			return bson.M{"$cond": []interface{}{
+				bson.M{"$eq": []interface{}{
+					bson.M{"$ifNull": []interface{}{
+						args[0], nil,
+					}},
+					nil}},
+				bson.M{"$literal": nil},
+				bson.M{"$cond": []interface{}{
+					bson.M{"$eq": []interface{}{
+						args[0], args[1],
+					}},
+					bson.M{"$literal": nil}, args[0]}}}}, true
 		case "pow", "power":
 			if len(args) != 2 {
 				return nil, false

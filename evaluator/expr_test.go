@@ -657,6 +657,40 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: IF", func() {
+				tests := []test{
+					test{"IF(1<2, 4, 5)", SQLInt(4)},
+					test{"IF(1>2, 4, 5)", SQLInt(5)},
+					test{"IF(1, 4, 5)", SQLInt(4)},
+					test{"IF(-0, 4, 5)", SQLInt(5)},
+					test{"IF(1-1, 4, 5)", SQLInt(5)},
+					test{"IF('cat', 4, 5)", SQLInt(5)},
+					test{"IF('3', 4, 5)", SQLInt(4)},
+					test{"IF('0', 4, 5)", SQLInt(5)},
+					test{"IF('-0.0', 4, 5)", SQLInt(5)},
+					test{"IF('2.2', 4, 5)", SQLInt(4)},
+					test{"IF('true', 4, 5)", SQLInt(5)},
+					test{"IF(null, 4, 'cat')", SQLVarchar("cat")},
+					test{"IF(true, 'dog', 'cat')", SQLVarchar("dog")},
+					test{"IF(false, 'dog', 'cat')", SQLVarchar("cat")},
+					test{"IF('ca.gh', 4, 5)", SQLInt(5)},
+					test{"IF(current_timestamp(), 4, 5)", SQLInt(4)}, // not being parsed as dates, being parsed as string
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: IFNULL", func() {
+				tests := []test{
+					test{"IFNULL(1,0)", SQLInt(1)},
+					test{"IFNULL(NULL,3)", SQLInt(3)},
+					test{"IFNULL(NULL,NULL)", SQLNull},
+					test{"IFNULL('cat', null)", SQLVarchar("cat")},
+					test{"IFNULL(null, 'dog')", SQLVarchar("dog")},
+					test{"IFNULL(1/0, 4)", SQLInt(4)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: ISNULL", func() {
 				tests := []test{
 					test{"ISNULL(a)", SQLInt(0)},
@@ -803,6 +837,22 @@ func TestEvaluates(t *testing.T) {
 					test{"MONTHNAME(NULL)", SQLNull},
 					test{"MONTHNAME('sdg')", SQLNull},
 					test{"MONTHNAME('2016-1-01 10:23:52')", SQLVarchar("January")},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: NULLIF", func() {
+				tests := []test{
+					test{"NULLIF(1,1)", SQLNull},
+					test{"NULLIF(1,3)", SQLInt(1)},
+					test{"NULLIF(null, null)", SQLNull},
+					test{"NULLIF(null, 4)", SQLNull},
+					test{"NULLIF(3, null)", SQLInt(3)},
+					//test{"NULLIF(3, '3')", SQLNull},
+					test{"NULLIF('abc', 'abc')", SQLNull},
+					//test{"NULLIF('abc', 3)", SQLVarchar("abc")},
+					//test{"NULLIF('1', true)", SQLNull},
+					//test{"NULLIF('1', false)", SQLVarchar("1")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1503,6 +1553,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"exp(a)", `{"$exp":"$a"}`},
 			test{"floor(a)", `{"$floor":"$a"}`},
 			test{"hour(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":null},{"$hour":"$a"}]}`},
+			test{"if(a, 2, 3)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":3},{"$cond":[{"$or":[{"$eq":["$a",0]},{"$eq":["$a",null]},{"$eq":["$a",false]}]},{"$literal":3},{"$literal":2}]}]}`},
+			test{"ifnull(a, 1)", `{"$ifNull":["$a",{"$literal":1}]}`},
 			test{"isnull(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},1,0]}`},
 			test{"left(a, 2)", `{"$substr":["$a",0,{"$literal":2}]}`},
 			test{"left('abcde', 0)", `{"$substr":[{"$literal":"abcde"},0,{"$literal":0}]}`},
@@ -1513,6 +1565,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"mod(a, 10)", `{"$mod":["$a",{"$literal":10}]}`},
 			test{"month(a)", `{"$month":"$a"}`},
 			test{"monthname(a)", `{"$arrayElemAt":[["January","February","March","April","May","June","July","August","September","October","November","December"],{"$subtract":[{"$month":"$a"},1]}]}`},
+			test{"nullif(a, 1)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":null},{"$cond":[{"$eq":["$a",{"$literal":1}]},{"$literal":null},"$a"]}]}`},
 			test{"power(a, 10)", `{"$pow":["$a",{"$literal":10}]}`},
 			test{"quarter(a)", `{"$arrayElemAt":[[1,1,1,2,2,2,3,3,3,4,4,4],{"$subtract":[{"$month":"$a"},1]}]}`},
 			test{"round(a, 5)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$add":[{"$multiply":["$a",100000]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$a",100000]},0.5]}}]},100000]}`},
