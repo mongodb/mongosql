@@ -6,6 +6,7 @@ buildvariants:
   run_on:
   - debian71-test
   expansions:
+    build_tags: -tags "sasl ssl"
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian71-3.2.7.tgz
@@ -16,6 +17,7 @@ buildvariants:
   run_on:
   - debian81-test
   expansions:
+    build_tags: -tags "sasl ssl"
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian81-latest.tgz
@@ -24,10 +26,11 @@ buildvariants:
 - name: linux-64-amazon-ami
   display_name: Amazon Linux (Enterprise)
   expansions:
+    build_tags: -tags "sasl ssl"
+    gotest_env: "SQLPROXY_SSLTEST=1"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.2.7.tgz --output mongodb.tgz
     mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
     mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
-    gotest_env: "SQLPROXY_SSLTEST=1"
   run_on:
     - linux-64-amzn-build
   tasks:
@@ -37,6 +40,7 @@ buildvariants:
   run_on:
   - osx-1010
   expansions:
+    build_tags: -tags "sasl ssl"
     cover: "-"
     mongo_url: https://downloads.mongodb.org/osx/mongodb-osx-x86_64-3.2.7.tgz
   tasks:
@@ -54,6 +58,7 @@ buildvariants:
 - name: rhel62
   display_name: RHEL 6.2
   expansions:
+    build_tags: -tags "ssl"
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel62-3.2.7.tgz
@@ -64,6 +69,7 @@ buildvariants:
 - name: rhel70
   display_name: RHEL 7.0
   expansions:
+    build_tags: -tags "sasl ssl"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-rhel70-3.2.7.tgz
   run_on:
@@ -73,6 +79,8 @@ buildvariants:
 - name: rhel-71-ppc64le
   display_name: RHEL 7.1 PPC64LE
   expansions:
+    # RHEL 7.1 PPC64LE machines kerberos setup does not work
+    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'sasl ssl'
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.2.7.tgz
@@ -83,6 +91,7 @@ buildvariants:
 - name: rhel-72-s390x
   display_name: RHEL 7.2 s390x
   expansions:
+    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'sasl ssl'
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-s390x-enterprise-rhel72-latest.tgz
@@ -105,6 +114,7 @@ buildvariants:
 - name: suse11-64
   display_name: SLES 11
   expansions:
+    build_tags: -tags "sasl ssl"
     cover: "-"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse11-3.2.7.tgz
   run_on:
@@ -114,6 +124,7 @@ buildvariants:
 - name: suse12-64
   display_name: SLES 12
   expansions:
+    build_tags: -tags "sasl ssl"
     cover: "-"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse12-3.2.7.tgz
   run_on:
@@ -123,6 +134,7 @@ buildvariants:
 - name: ubuntu1404-64
   display_name: Ubuntu 14.04
   expansions:
+    build_tags: -tags "sasl ssl"
     cover: "-"
     mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.2.7.tgz
   run_on:
@@ -135,6 +147,7 @@ buildvariants:
   - windows-32
   expansions:
     cover: "-"
+    library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
     mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-i386-3.2.7.zip
     extension: .exe
     # Set storage engine as mmapv1 for 32 bit variants
@@ -147,7 +160,9 @@ buildvariants:
   run_on:
   - windows-64-vs2013-test
   expansions:
+    build_tags: -tags "sasl ssl"
     cover: "-"
+    library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
     mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.7.zip
     extension: .exe
   tasks:
@@ -214,7 +229,7 @@ functions:
           export PATH=/opt/ldwrapper/bin:$PATH
         fi
         . ./set_gopath.sh
-        ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec $(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr $(git describe)" ${gccgoflags} -o drdl mongodrdl/main/mongodrdl.go
+        ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec $(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr $(git describe)" ${gccgoflags} ${build_tags} -o drdl mongodrdl/main/mongodrdl.go
 
         echo "Done!"
 
