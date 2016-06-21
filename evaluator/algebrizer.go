@@ -709,25 +709,6 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		default:
 			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for operator '%v'", typedE.Operator)
 		}
-	case *parser.CtorExpr:
-		// TODO: currently only supports single argument constructors
-		strVal, ok := typedE.Exprs[0].(parser.StrVal)
-		if !ok {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "parameter", parser.String(typedE.Exprs[0]))
-		}
-
-		arg := string(strVal)
-
-		switch typedE.Name {
-		case parser.AST_DATE:
-			return NewSQLValue(arg, schema.SQLDate, schema.MongoNone)
-		case parser.AST_DATETIME:
-			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
-		case parser.AST_TIMESTAMP:
-			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
-		default:
-			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for constructor '%v'", string(typedE.Name))
-		}
 	case *parser.ExistsExpr:
 		subquery, err := a.translateSubqueryExpr(typedE.Subquery)
 		if err != nil {
@@ -820,6 +801,20 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		}
 
 		return m, nil
+	case parser.DateVal:
+
+		arg := string(typedE.Val)
+
+		switch typedE.Name {
+		case parser.AST_DATE:
+			return NewSQLValue(arg, schema.SQLDate, schema.MongoNone)
+		case parser.AST_TIME:
+			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
+		case parser.AST_TIMESTAMP, parser.AST_DATETIME:
+			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
+		default:
+			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for constructor '%v'", string(typedE.Name))
+		}
 	case parser.StrVal:
 		return SQLVarchar(string(typedE)), nil
 	case *parser.Subquery:

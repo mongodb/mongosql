@@ -309,12 +309,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 						bson.M{"$eq": []interface{}{
 							bson.M{"$ifNull": []interface{}{value, nil}},
 							nil}},
-						bson.M{"$literal":""}, value}},
+						bson.M{"$literal": ""}, value}},
 					bson.M{"$cond": []interface{}{
 						bson.M{"$eq": []interface{}{
 							bson.M{"$ifNull": []interface{}{value, nil}},
 							nil}},
-						bson.M{"$literal":""}, args[0]}})
+						bson.M{"$literal": ""}, args[0]}})
 			}
 
 			return bson.M{"$concat": pushArgs[:len(pushArgs)-1]}, true
@@ -327,20 +327,20 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$eq": []interface{}{
 					bson.M{"$ifNull": []interface{}{args[0], nil}},
 					nil}},
-				bson.M{"$literal":nil},
+				bson.M{"$literal": nil},
 				bson.M{"$arrayElemAt": []interface{}{
-				[]interface{}{
-					time.Sunday.String(),
-					time.Monday.String(),
-					time.Tuesday.String(),
-					time.Wednesday.String(),
-					time.Thursday.String(),
-					time.Friday.String(),
-					time.Saturday.String(),
-				},
-				bson.M{"$subtract": []interface{}{
-					bson.M{"$dayOfWeek": args[0]},
-					1}}}}}}, true
+					[]interface{}{
+						time.Sunday.String(),
+						time.Monday.String(),
+						time.Tuesday.String(),
+						time.Wednesday.String(),
+						time.Thursday.String(),
+						time.Friday.String(),
+						time.Saturday.String(),
+					},
+					bson.M{"$subtract": []interface{}{
+						bson.M{"$dayOfWeek": args[0]},
+						1}}}}}}, true
 		case "day", "dayofmonth":
 			if len(args) != 1 {
 				return nil, false
@@ -350,7 +350,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$eq": []interface{}{
 					bson.M{"$ifNull": []interface{}{args[0], nil}},
 					nil}},
-				bson.M{"$literal":nil},
+				bson.M{"$literal": nil},
 				bson.M{"$dayOfMonth": args[0]}}}, true
 		case "dayofweek":
 			if len(args) != 1 {
@@ -361,7 +361,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$eq": []interface{}{
 					bson.M{"$ifNull": []interface{}{args[0], nil}},
 					nil}},
-				bson.M{"$literal":nil},
+				bson.M{"$literal": nil},
 				bson.M{"$dayOfWeek": args[0]}}}, true
 		case "dayofyear":
 			if len(args) != 1 {
@@ -372,7 +372,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$eq": []interface{}{
 					bson.M{"$ifNull": []interface{}{args[0], nil}},
 					nil}},
-				bson.M{"$literal":nil},
+				bson.M{"$literal": nil},
 				bson.M{"$dayOfYear": args[0]}}}, true
 		case "exp":
 			if len(args) != 1 {
@@ -395,7 +395,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$eq": []interface{}{
 					bson.M{"$ifNull": []interface{}{args[0], nil}},
 					nil}},
-				bson.M{"$literal":nil},
+				bson.M{"$literal": nil},
 				bson.M{"$hour": args[0]}}}, true
 		case "isnull":
 			if len(args) != 1 {
@@ -458,7 +458,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$eq": []interface{}{
 					bson.M{"$ifNull": []interface{}{args[0], nil}},
 					nil}},
-				bson.M{"$literal":nil},
+				bson.M{"$literal": nil},
 				bson.M{"$minute": args[0]}}}, true
 		case "month":
 			if len(args) != 1 {
@@ -595,7 +595,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$eq": []interface{}{
 					bson.M{"$ifNull": []interface{}{args[0], nil}},
 					nil}},
-				bson.M{"$literal":nil},
+				bson.M{"$literal": nil},
 				bson.M{"$week": args[0]}}}, true
 		case "ucase", "upper":
 			if len(args) != 1 {
@@ -612,7 +612,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$eq": []interface{}{
 					bson.M{"$ifNull": []interface{}{args[0], nil}},
 					nil}},
-				bson.M{"$literal":nil},
+				bson.M{"$literal": nil},
 				bson.M{"$year": args[0]}}}, true
 		}
 	case *SQLSubqueryCmpExpr:

@@ -442,6 +442,7 @@ func (*ComparisonExpr) IExpr() {}
 func (*RangeCond) IExpr()      {}
 func (*NullCheck) IExpr()      {}
 func (*ExistsExpr) IExpr()     {}
+func (DateVal) IExpr()         {}
 func (StrVal) IExpr()          {}
 func (NumVal) IExpr()          {}
 func (ValArg) IExpr()          {}
@@ -454,7 +455,6 @@ func (*Subquery) IExpr()       {}
 func (*BinaryExpr) IExpr()     {}
 func (*UnaryExpr) IExpr()      {}
 func (*FuncExpr) IExpr()       {}
-func (*CtorExpr) IExpr()       {}
 func (*CaseExpr) IExpr()       {}
 
 // BoolExpr represents a boolean expression.
@@ -463,6 +463,7 @@ type BoolExpr interface {
 }
 
 func (StrVal) IBoolExpr()      {}
+func (DateVal) IBoolExpr()     {}
 func (NumVal) IBoolExpr()      {}
 func (ValArg) IBoolExpr()      {}
 func (*NullVal) IBoolExpr()    {}
@@ -474,7 +475,6 @@ func (*Subquery) IBoolExpr()   {}
 func (*BinaryExpr) IBoolExpr() {}
 func (*UnaryExpr) IBoolExpr()  {}
 func (*FuncExpr) IBoolExpr()   {}
-func (*CtorExpr) IBoolExpr()   {}
 func (*CaseExpr) IBoolExpr()   {}
 
 func (*AndExpr) IBoolExpr()        {}
@@ -603,6 +603,7 @@ type ValExpr interface {
 	Expr
 }
 
+func (DateVal) IValExpr()     {}
 func (StrVal) IValExpr()      {}
 func (NumVal) IValExpr()      {}
 func (ValArg) IValExpr()      {}
@@ -615,8 +616,24 @@ func (*Subquery) IValExpr()   {}
 func (*BinaryExpr) IValExpr() {}
 func (*UnaryExpr) IValExpr()  {}
 func (*FuncExpr) IValExpr()   {}
-func (*CtorExpr) IValExpr()   {}
 func (*CaseExpr) IValExpr()   {}
+
+// DateVal represents a date literal.
+type DateVal struct {
+	Name string
+	Val  []byte
+}
+
+const (
+	AST_DATE      = "date"
+	AST_TIME      = "time"
+	AST_TIMESTAMP = "timestamp"
+	AST_DATETIME  = "datetime"
+)
+
+func (node DateVal) Format(buf *TrackedBuffer) {
+	buf.Fprintf("%s(%s)", node.Name, node.Val)
+}
 
 // StrVal represents a string value.
 type StrVal []byte
@@ -772,24 +789,6 @@ func (node *FuncExpr) Format(buf *TrackedBuffer) {
 		distinct = "distinct "
 	}
 	buf.Fprintf("%s(%s%v)", node.Name, distinct, node.Exprs)
-}
-
-// CtorExpr represents a constructor call.
-type CtorExpr struct {
-	Name  string
-	Exprs ValExprs
-}
-
-const (
-	AST_DATE      = "date"
-	AST_TIME      = "time"
-	AST_TIMESTAMP = "timestamp"
-	AST_DATETIME  = "datetime"
-	AST_YEAR      = "year"
-)
-
-func (node *CtorExpr) Format(buf *TrackedBuffer) {
-	buf.Fprintf("%s(%v)", node.Name, node.Exprs)
 }
 
 // CaseExpr represents a CASE expression.

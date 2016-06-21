@@ -205,6 +205,42 @@ func TestEvaluates(t *testing.T) {
 			runTests(evalCtx, tests)
 		})
 
+		Convey("Subject: SQLDateTimeLiterals", func() {
+
+			Convey("Subject: DATE", func() {
+				dateTime, _ := time.Parse("2006-01-02", "2014-04-13")
+				tests := []test{
+					test{"DATE '2014-04-13'", SQLDate{Time: dateTime}},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: TIME", func() {
+				dateTime, _ := time.Parse("15:04:05", "11:49:36")
+				tests := []test{
+					test{"TIME '11:49:36'", SQLTimestamp{Time: dateTime}},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: TIMESTAMP", func() {
+				dateTime, _ := time.Parse("2006-01-02 15:04:05.999999999", "1997-01-31 09:26:50.124")
+				tests := []test{
+					test{"TIMESTAMP '1997-01-31 09:26:50.124'", SQLTimestamp{Time: dateTime}},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: DATETIME", func() {
+				dateTime, _ := time.Parse("2006-01-02 15:04:05.999999999", "1997-01-31 09:26:50.124")
+				tests := []test{
+					test{"DATETIME '1997-01-31 09:26:50.124'", SQLTimestamp{Time: dateTime}},
+				}
+				runTests(evalCtx, tests)
+			})
+
+		})
+
 		Convey("Subject: SQLDivideExpr", func() {
 			tests := []test{
 				test{"-1 / 1", SQLFloat(-1)},

@@ -565,7 +565,7 @@ type log10Func struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log10
 func (_ *log10Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-  if anyNull(values) {
+	if anyNull(values) {
 		return SQLNull, nil
 	}
 
@@ -596,7 +596,7 @@ type log2Func struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log2
 func (_ *log2Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-  if anyNull(values) {
+	if anyNull(values) {
 		return SQLNull, nil
 	}
 
@@ -668,7 +668,7 @@ type modFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_mod
 func (_ *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-  if anyNull(values) {
+	if anyNull(values) {
 		return SQLNull, nil
 	}
 
@@ -690,9 +690,9 @@ func (_ *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	r := math.Mod(n, m)
 
-  if r == -0.0 {
-    r = 0
-  }
+	if r == -0.0 {
+		r = 0
+	}
 
 	return SQLFloat(r), nil
 }
@@ -749,7 +749,7 @@ type naturalLogFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log10
 func (_ *naturalLogFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-  if anyNull(values) {
+	if anyNull(values) {
 		return SQLNull, nil
 	}
 
@@ -916,36 +916,36 @@ func (_ *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		if !ok {
 			return SQLFloat(int(base)), nil
 		}
-		decimal =  int(decimalValue.Float64())
+		decimal = int(decimalValue.Float64())
 
 		if decimal < 0 {
 			return SQLFloat(0), nil
 		}
 	} else {
-		decimal = 0;
+		decimal = 0
 	}
 
 	// Because GoLang does not have a built-in round function
 	var round float64
-  var rounded float64
+	var rounded float64
 	pow := math.Pow(10, float64(decimal))
 	digit := pow * base
 	_, div := math.Modf(digit)
-  if base > 0 {
-  	if div >= 0.5 {
-  		round = math.Ceil(digit)
-  	} else {
-  		round = math.Floor(digit)
-  	}
-  	rounded = round / pow
-  } else {
-    if math.Abs(div) >= 0.5 {
-  		round = math.Floor(digit)
-  	} else {
-  		round = math.Ceil(digit)
-  	}
-  	rounded = round / pow
-  }
+	if base > 0 {
+		if div >= 0.5 {
+			round = math.Ceil(digit)
+		} else {
+			round = math.Floor(digit)
+		}
+		rounded = round / pow
+	} else {
+		if math.Abs(div) >= 0.5 {
+			round = math.Floor(digit)
+		} else {
+			round = math.Ceil(digit)
+		}
+		rounded = round / pow
+	}
 
 	return SQLFloat(rounded), nil
 }
@@ -1043,7 +1043,7 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 			return SQLVarchar(""), nil
 		}
 
-		if pos + length < len(str) {
+		if pos+length < len(str) {
 			str = str[pos : pos+length]
 		}
 	} else {

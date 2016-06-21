@@ -24,6 +24,9 @@ var (
   MODE  =        []byte("mode")
   IF_BYTES =     []byte("if")
   VALUES_BYTES = []byte("values")
+  RIGHT_BYTES =  []byte("right")
+  LEFT_BYTES =   []byte("left")
+  MOD_BYTES =    []byte("mod")
 )
 
 %}
@@ -154,7 +157,6 @@ var (
 %type <updateExpr> update_expression
 %type <empty> exists_opt not_exists_opt ignore_opt non_rename_operation to_opt constraint_opt using_opt
 %type <bytes> sql_id
-%type <str> ctor_type time_type
 %type <empty> force_eof
 
 %type <statement> begin_statement commit_statement rollback_statement
@@ -494,11 +496,6 @@ as_lower_opt:
   {
     $$ = $2
   }
-| AS ctor_type
-  {
-    $$ = []byte($2)
-  }
-
 
 table_expression_list:
   table_expression
@@ -902,26 +899,9 @@ value_expression:
   {
     $$ = &FuncExpr{Name: bytes.ToLower($1), Exprs: $3}
   }
-// functions and have keywords as their identifiers
-| MOD '(' select_expression_list ')'
-  {
-    $$ = &FuncExpr{Name: []byte("mod"), Exprs: $3}
-  }
-| LEFT '(' select_expression_list ')'
-  {
-    $$ = &FuncExpr{Name: []byte("left"), Exprs: $3}
-  }
-| RIGHT '(' select_expression_list ')'
-  {
-    $$ = &FuncExpr{Name: []byte("right"), Exprs: $3}
-  }
 | sql_id '(' DISTINCT select_expression_list ')'
   {
     $$ = &FuncExpr{Name: bytes.ToLower($1), Distinct: true, Exprs: $4}
-  }
-| '(' ctor_type value_expression_list ')'
-  {
-    $$ = &CtorExpr{Name: $2, Exprs: $3}
   }
 | keyword_as_func '(' select_expression_list ')'
   {
@@ -940,6 +920,18 @@ keyword_as_func:
 | VALUES
   {
     $$ = VALUES_BYTES
+  }
+| RIGHT
+  {
+    $$ = RIGHT_BYTES
+  }
+| LEFT
+  {
+    $$ = LEFT_BYTES
+  }
+| MOD
+  {
+    $$ = MOD_BYTES
   }
 
 unary_operator:
@@ -1030,6 +1022,22 @@ TRUE
 | VALUE_ARG
   {
     $$ = ValArg($1)
+  }
+| DATE STRING
+  {
+    $$ = DateVal{Name: AST_DATE, Val: $2}
+  }
+ | TIME STRING
+  {
+    $$ = DateVal{Name: AST_TIME, Val: $2}
+  }
+| TIMESTAMP STRING
+  {
+    $$ = DateVal{Name: AST_TIMESTAMP, Val: $2}
+  }
+| DATETIME STRING
+  {
+    $$ = DateVal{Name: AST_DATETIME, Val: $2}
   }
 | NULL
   {
@@ -1216,34 +1224,6 @@ sql_id:
   ID
   {
     $$ = $1
-  }
-
-ctor_type:
-  time_type
-  {
-    $$ = $1
-  }
-
-time_type:
-  DATE
-  {
-    $$ = AST_DATE
-  }
-| TIME
-  {
-    $$ = AST_TIME
-  }
-| TIMESTAMP
-  {
-    $$ = AST_TIMESTAMP
-  }
-| DATETIME
-  {
-    $$ = AST_DATETIME
-  }
-| YEAR
-  {
-    $$ = AST_YEAR
   }
 
 force_eof:
