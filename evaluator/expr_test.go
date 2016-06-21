@@ -659,11 +659,11 @@ func TestEvaluates(t *testing.T) {
 					test{"LN(NULL)", SQLNull},
 					test{"LN(1)", SQLFloat(0)},
 					test{"LN(16.5)", SQLFloat(2.803360380906535)},
-					test{"LN(-16.5)", SQLFloat(0)},
+					test{"LN(-16.5)", SQLNull},
 					test{"LOG(NULL)", SQLNull},
 					test{"LOG(1)", SQLFloat(0)},
 					test{"LOG(16.5)", SQLFloat(2.803360380906535)},
-					test{"LOG(-16.5)", SQLFloat(0)},
+					test{"LOG(-16.5)", SQLNull},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -684,7 +684,7 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"LOG2(NULL)", SQLNull},
 					test{"LOG2(4)", SQLFloat(2)},
-					test{"LOG2(-100)", SQLFloat(0)},
+					test{"LOG2(-100)", SQLNull},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -695,8 +695,8 @@ func TestEvaluates(t *testing.T) {
 					test{"LOG10('sdg')", SQLNull},
 					test{"LOG10(2)", SQLFloat(0.3010299956639812)},
 					test{"LOG10(100)", SQLFloat(2)},
-					test{"LOG10(0)", SQLFloat(0)},
-					test{"LOG10(-100)", SQLFloat(0)},
+					test{"LOG10(0)", SQLNull},
+					test{"LOG10(-100)", SQLNull},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1434,52 +1434,49 @@ func TestTranslateExpr(t *testing.T) {
 		tests := []test{
 			test{"abs(a)", `{"$abs":"$a"}`},
 			test{"concat(a, 'funny')", `{"$concat":["$a",{"$literal":"funny"}]}`},
-			test{"concat(a, null)", `{"$concat":["$a"]}`},
+			test{"concat(a, null)", `{"$concat":["$a",{"$literal":null}]}`},
 			test{"concat(a, '')", `{"$concat":["$a",{"$literal":""}]}`},
-			test{"concat_ws(',', a)", `{"$concat":["$a"]}`},
-			test{"concat_ws(',', a, null)", `{"$concat":["$a"]}`},
-			test{"concat_ws(',', a, 'funny')", `{"$concat":["$a",{"$literal":","},{"$literal":"funny"}]}`},
-			test{"concat_ws(',', a, b)", `{"$concat":["$a",{"$literal":","},"$b"]}`},
-			test{"concat_ws(',', a, b, 'hey')", `{"$concat":["$a",{"$literal":","},"$b",{"$literal":","},{"$literal":"hey"}]}`},
-			test{"dayname(a)", `{"$arrayElemAt":[["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],{"$subtract":[{"$dayOfWeek":"$a"},1]}]}`},
-			test{"dayofmonth(a)", `{"$dayOfMonth":"$a"}`},
-			test{"dayofweek(a)", `{"$dayOfWeek":"$a"}`},
-			test{"dayofyear(a)", `{"$dayOfYear":"$a"}`},
+			test{"concat_ws(',', a)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":""},"$a"]}]}`},
+			test{"concat_ws(',', a, null)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":""},"$a"]},{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":""},{"$literal":","}]},{"$cond":[{"$eq":[{"$ifNull":[{"$literal":null},null]},null]},{"$literal":""},{"$literal":null}]}]}`},
+			test{"dayname(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":null},{"$arrayElemAt":[["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],{"$subtract":[{"$dayOfWeek":"$a"},1]}]}]}`},
+			test{"dayofmonth(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":null},{"$dayOfMonth":"$a"}]}`},
+			test{"dayofweek(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":null},{"$dayOfWeek":"$a"}]}`},
+			test{"dayofyear(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":null},{"$dayOfYear":"$a"}]}`},
 			test{"exp(a)", `{"$exp":"$a"}`},
 			test{"floor(a)", `{"$floor":"$a"}`},
-			test{"hour(a)", `{"$hour":"$a"}`},
-			test{"isnull(a)", `{"$cond":[{"$eq":["$a",null]},1,0]}`},
+			test{"hour(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":null},{"$hour":"$a"}]}`},
+			test{"isnull(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},1,0]}`},
 			test{"left(a, 2)", `{"$substr":["$a",0,{"$literal":2}]}`},
 			test{"left('abcde', 0)", `{"$substr":[{"$literal":"abcde"},0,{"$literal":0}]}`},
 			test{"lcase(a)", `{"$toLower":"$a"}`},
 			test{"lower(a)", `{"$toLower":"$a"}`},
-			test{"log10(a)", `{"$log10":"$a"}`},
-			test{"minute(a)", `{"$minute":"$a"}`},
+			test{"log10(a)", `{"$cond":[{"$gt":["$a",0]},{"$log10":"$a"},{"$literal":null}]}`},
+			test{"minute(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":null},{"$minute":"$a"}]}`},
 			test{"mod(a, 10)", `{"$mod":["$a",{"$literal":10}]}`},
 			test{"month(a)", `{"$month":"$a"}`},
 			test{"monthname(a)", `{"$arrayElemAt":[["January","February","March","April","May","June","July","August","September","October","November","December"],{"$subtract":[{"$month":"$a"},1]}]}`},
 			test{"power(a, 10)", `{"$pow":["$a",{"$literal":10}]}`},
 			test{"quarter(a)", `{"$arrayElemAt":[[1,1,1,2,2,2,3,3,3,4,4,4],{"$subtract":[{"$month":"$a"},1]}]}`},
-			test{"round(a, 5)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$add":[{"$multiply":["$a",100000]},0.5]}},{"$floor":{"$subtract":[{"$multiply":["$a",100000]},0.5]}}]},100000]}`},
+			test{"round(a, 5)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$add":[{"$multiply":["$a",100000]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$a",100000]},0.5]}}]},100000]}`},
 			test{"round(a, -5)", `{"$literal":0}`},
 			test{"second(a)", `{"$second":"$a"}`},
-			test{"sqrt(a)", `{"$sqrt":"$a"}`},
-			test{"substring(a, 2)", `{"$substr":["$a",{"$literal":2},-1]}`},
-			test{"substring(a, 2, 4)", `{"$substr":["$a",{"$literal":2},{"$literal":4}]}`},
-			test{"substr(a, 2)", `{"$substr":["$a",{"$literal":2},-1]}`},
-			test{"substr(a, 2, 4)", `{"$substr":["$a",{"$literal":2},{"$literal":4}]}`},
-			test{"week(a)", `{"$week":"$a"}`},
+			test{"sqrt(a)", `{"$cond":[{"$gte":["$a",0]},{"$sqrt":"$a"},{"$literal":null}]}`},
+			test{"substring(a, 2)", `{"$substr":["$a",1,-1]}`},
+			test{"substring(a, 2, 4)", `{"$substr":["$a",1,{"$literal":4}]}`},
+			test{"substr(a, 2)", `{"$substr":["$a",1,-1]}`},
+			test{"substr(a, 2, 4)", `{"$substr":["$a",1,{"$literal":4}]}`},
+			test{"week(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":null},{"$week":"$a"}]}`},
 			test{"ucase(a)", `{"$toUpper":"$a"}`},
 			test{"upper(a)", `{"$toUpper":"$a"}`},
 			//test{"week(a, 3)", `{"$week":"$a"}`}, Not support second argument
 			//test{"year(a)", `{"$year":"$a"}`}, Parser error
 
+			test{"count(*)", `{"$size":{"$literal":"*"}}`},
+			test{"count(a + b)", `{"$sum":{"$map":{"as":"i","in":{"$cond":[{"$eq":[{"$ifNull":["$$i",null]},null]},0,1]},"input":{"$add":["$a","$b"]}}}}`},
+			test{"min(a + 4)", `{"$min":{"$add":["$a",{"$literal":4}]}}`},
 			test{"sum(a * b)", `{"$sum":{"$multiply":["$a","$b"]}}`},
 			test{"sum(a)", `{"$sum":"$a"}`},
 			test{"sum(a < 1)", `{"$sum":{"$lt":["$a",{"$literal":1}]}}`},
-			test{"min(a + 4)", `{"$min":{"$add":["$a",{"$literal":4}]}}`},
-			test{"count(*)", `{"$size":{"$literal":"*"}}`},
-			test{"count(a + b)", `{"$sum":{"$map":{"as":"i","in":{"$cond":[{"$eq":[{"$ifNull":["$$i",null]},null]},0,1]},"input":{"$add":["$a","$b"]}}}}`},
 		}
 
 		runTests(tests)
@@ -1517,7 +1514,7 @@ func TestTranslateExpr(t *testing.T) {
 			sqlValueTest{SQLInt(11), `{"$literal":11}`},
 			sqlValueTest{SQLUint32(32), `{"$literal":32}`},
 			sqlValueTest{SQLVarchar("vc"), `{"$literal":"vc"}`},
-			sqlValueTest{SQLNull, "null"},
+			sqlValueTest{SQLNull, `{"$literal":null}`},
 			sqlValueTest{SQLDate{fakeTime}, fmt.Sprintf(`{"$literal":"%v"}`, fakeTime.Format(schema.DateFormat))},
 			sqlValueTest{SQLTimestamp{fakeTime}, fmt.Sprintf(`{"$literal":"%v"}`, fakeTime.Format(schema.TimestampFormat))},
 		}

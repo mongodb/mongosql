@@ -304,7 +304,17 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			var pushArgs []interface{}
 
 			for _, value := range args[1:] {
-				pushArgs = append(pushArgs, value, args[0])
+				pushArgs = append(pushArgs,
+					bson.M{"$cond": []interface{}{
+						bson.M{"$eq": []interface{}{
+							bson.M{"$ifNull": []interface{}{value, nil}},
+							nil}},
+						bson.M{"$literal":""}, value}},
+					bson.M{"$cond": []interface{}{
+						bson.M{"$eq": []interface{}{
+							bson.M{"$ifNull": []interface{}{value, nil}},
+							nil}},
+						bson.M{"$literal":""}, args[0]}})
 			}
 
 			return bson.M{"$concat": pushArgs[:len(pushArgs)-1]}, true
@@ -393,7 +403,9 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{args[0], nil}}, 1, 0}}, true
+				bson.M{"$eq": []interface{}{
+					bson.M{"$ifNull": []interface{}{args[0], nil}},
+					nil}}, 1, 0}}, true
 		case "left":
 			if len(args) != 2 {
 				return nil, false

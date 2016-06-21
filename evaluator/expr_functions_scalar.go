@@ -565,6 +565,10 @@ type log10Func struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log10
 func (_ *log10Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+  if anyNull(values) {
+		return SQLNull, nil
+	}
+
 	nValue, ok := values[0].(SQLNumeric)
 	if !ok {
 		return SQLNull, nil
@@ -573,7 +577,7 @@ func (_ *log10Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	n := nValue.Float64()
 
 	if n <= 0 {
-		return SQLFloat(0), nil
+		return SQLNull, nil
 	}
 
 	r := math.Log10(n)
@@ -592,6 +596,10 @@ type log2Func struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log2
 func (_ *log2Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+  if anyNull(values) {
+		return SQLNull, nil
+	}
+
 	nValue, ok := values[0].(SQLNumeric)
 	if !ok {
 		return SQLNull, nil
@@ -600,7 +608,7 @@ func (_ *log2Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	n := nValue.Float64()
 
 	if n <= 0 {
-		return SQLFloat(0), nil
+		return SQLNull, nil
 	}
 
 	r := math.Log2(n)
@@ -660,6 +668,10 @@ type modFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_mod
 func (_ *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+  if anyNull(values) {
+		return SQLNull, nil
+	}
+
 	nValue, ok := values[0].(SQLNumeric)
 	if !ok {
 		return SQLNull, nil
@@ -677,6 +689,11 @@ func (_ *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	r := math.Mod(n, m)
+
+  if r == -0.0 {
+    r = 0
+  }
+
 	return SQLFloat(r), nil
 }
 
@@ -732,6 +749,10 @@ type naturalLogFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log10
 func (_ *naturalLogFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+  if anyNull(values) {
+		return SQLNull, nil
+	}
+
 	nValue, ok := values[0].(SQLNumeric)
 	if !ok {
 		return SQLNull, nil
@@ -740,7 +761,7 @@ func (_ *naturalLogFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	n := nValue.Float64()
 
 	if n <= 0 {
-		return SQLFloat(0), nil
+		return SQLNull, nil
 	}
 
 	r := math.Log(n)
@@ -906,15 +927,25 @@ func (_ *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 
 	// Because GoLang does not have a built-in round function
 	var round float64
+  var rounded float64
 	pow := math.Pow(10, float64(decimal))
 	digit := pow * base
 	_, div := math.Modf(digit)
-	if div >= 0.5 {
-		round = math.Ceil(digit)
-	} else {
-		round = math.Floor(digit)
-	}
-	rounded := round / pow
+  if base > 0 {
+  	if div >= 0.5 {
+  		round = math.Ceil(digit)
+  	} else {
+  		round = math.Floor(digit)
+  	}
+  	rounded = round / pow
+  } else {
+    if math.Abs(div) >= 0.5 {
+  		round = math.Floor(digit)
+  	} else {
+  		round = math.Ceil(digit)
+  	}
+  	rounded = round / pow
+  }
 
 	return SQLFloat(rounded), nil
 }

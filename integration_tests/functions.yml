@@ -196,9 +196,9 @@ testcases:
   expected:
   - ["hey,s"]
   - ["yo,s"]
-  - [~]
+  - ["s"]
   - ["this,s"]
-  - [~]
+  - ["s"]
 
 - sql: "select concat_ws(',', b, 's') from bar where char_length(concat_ws(',', b, 's')) > 3"
   expected_names: ["concat_ws(',', b, 's')"]
@@ -428,7 +428,7 @@ testcases:
   - [1]
   - [0]
   - [0]
-  - [0]
+  - [1]
 
 - sql: "select isnull(a) from bar where isnull(a) = 1"
   expected_names: ["isnull(a)"]
