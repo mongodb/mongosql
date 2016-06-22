@@ -3,14 +3,14 @@ package evaluator
 // OptimizeSQLExpr takes a SQLExpr and optimizes it by normalizing
 // it into a semantically equivalent tree and partially evaluating
 // any subtrees that evaluatable without data.
-func OptimizeSQLExpr(e SQLExpr) (SQLExpr, error) {
+func OptimizeSQLExpr(ctx *EvalCtx, e SQLExpr) (SQLExpr, error) {
 
 	newE, err := normalize(e)
 	if err != nil {
 		return nil, err
 	}
 
-	newE, err = partiallyEvaluate(newE)
+	newE, err = partiallyEvaluate(ctx, newE)
 	if err != nil {
 		return nil, err
 	}
@@ -18,7 +18,7 @@ func OptimizeSQLExpr(e SQLExpr) (SQLExpr, error) {
 	if e != newE {
 		// normalized and partially evaluated trees might allow for further
 		// optimization
-		return OptimizeSQLExpr(newE)
+		return OptimizeSQLExpr(ctx, newE)
 	}
 
 	return newE, nil
@@ -29,12 +29,12 @@ func OptimizeSQLExpr(e SQLExpr) (SQLExpr, error) {
 // nominateForPartialEvaluation function to gather candidates that are evaluatable. Then
 // it walks the tree from top-down and, when it finds a candidate node, replaces the
 // candidate node with the result of calling Evaluate on the candidate node.
-func partiallyEvaluate(e SQLExpr) (SQLExpr, error) {
+func partiallyEvaluate(ctx *EvalCtx, e SQLExpr) (SQLExpr, error) {
 	candidates, err := nominateForPartialEvaluation(e)
 	if err != nil {
 		return nil, err
 	}
-	v := &partialEvaluator{candidates}
+	v := &partialEvaluator{ctx, candidates}
 	n, err := v.visit(e)
 	if err != nil {
 		return nil, err
@@ -43,6 +43,7 @@ func partiallyEvaluate(e SQLExpr) (SQLExpr, error) {
 }
 
 type partialEvaluator struct {
+	ctx        *EvalCtx
 	candidates map[node]bool
 }
 
@@ -51,9 +52,7 @@ func (v *partialEvaluator) visit(n node) (node, error) {
 		return walk(v, n)
 	}
 
-	// if we need an evaluation context, the partialEvaluatorNominator
-	// is returning bad candidates.
-	return (n.(SQLExpr)).Evaluate(nil)
+	return (n.(SQLExpr)).Evaluate(v.ctx)
 }
 
 // nominateForPartialEvaluation walks a SQLExpr tree from bottom up
@@ -82,6 +81,8 @@ func (v *partialEvaluatorNominator) visit(n node) (node, error) {
 
 	switch typedN := n.(type) {
 	case PlanStage:
+		v.blocked = true
+	case *SQLAssignmentExpr:
 		v.blocked = true
 	case *SQLExistsExpr:
 		v.blocked = true
@@ -231,23 +232,27 @@ func (v *normalizer) visit(n node) (node, error) {
 	return n, nil
 }
 
-func optimizePlanSQLExprs(o PlanStage) (PlanStage, error) {
-	v := &sqlExprOptimizer{}
-	n, err := v.visit(o)
+func optimizePlanSQLExprs(ctx ConnectionCtx, n node) (node, error) {
+	v := &sqlExprOptimizer{
+		ctx: NewEvalCtx(NewExecutionCtx(ctx)),
+	}
+	n, err := v.visit(n)
 	if err != nil {
 		return nil, err
 	}
 
-	return n.(PlanStage), nil
+	return n, nil
 }
 
-type sqlExprOptimizer struct{}
+type sqlExprOptimizer struct {
+	ctx *EvalCtx
+}
 
 func (v *sqlExprOptimizer) visit(n node) (node, error) {
 
 	switch typedN := n.(type) {
 	case SQLExpr:
-		e, err := OptimizeSQLExpr(typedN)
+		e, err := OptimizeSQLExpr(v.ctx, typedN)
 		if err != nil {
 			return nil, err
 		}

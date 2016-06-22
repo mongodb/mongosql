@@ -141,6 +141,32 @@ func (_ *SQLAndExpr) Type() schema.SQLType {
 }
 
 //
+// SQLAssignmentExpr handles assigning a value to a variable.
+//
+type SQLAssignmentExpr struct {
+	variable *SQLVariableExpr
+	expr     SQLExpr
+}
+
+func (e *SQLAssignmentExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	value, err := e.expr.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ctx.SetVariable(e.variable.Name, value, e.variable.Kind)
+	return value, err
+}
+
+func (e *SQLAssignmentExpr) String() string {
+	return fmt.Sprintf("%s := %s", e.variable.String(), e.expr.String())
+}
+
+func (e *SQLAssignmentExpr) Type() schema.SQLType {
+	return e.expr.Type()
+}
+
+//
 // SQLCaseExpr holds a number of cases to evaluate as well as the value
 // to return if any of the cases is matched. If none is matched,
 // 'elseValue' is evaluated and returned.
@@ -1066,6 +1092,10 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 		}
 		eval.Values = append(eval.Values, field)
 	}
+
+	if len(eval.Values) == 1 {
+		return eval.Values[0], nil
+	}
 	return eval, nil
 }
 
@@ -1207,55 +1237,44 @@ func (td *SQLUnaryTildeExpr) Type() schema.SQLType {
 	return td.operand.Type()
 }
 
-var systemVars = map[string]SQLValue{
-	"max_allowed_packet": SQLInt(4194304),
-}
-
-// SQLVariableType indicates the type of variable being referenced.
-type SQLVariableType int
+// VariableKind indicates if the variable is a system variable or a user variable.
+type VariableKind string
 
 const (
-	UserDefinedVariable SQLVariableType = iota
-	SystemVariable
+	// GlobalVariable is a global system variable.
+	GlobalVariable VariableKind = "global"
+	// SessionVariable is a session(local) variable.
+	SessionVariable VariableKind = "session"
+	// UserVariable is a custom variable associated with a session(local).
+	UserVariable VariableKind = "user"
 )
 
 //
 // SQLVariableExpr represents a variable lookup.
 //
 type SQLVariableExpr struct {
-	Name         string
-	VariableType SQLVariableType
+	Name string
+	Kind VariableKind
 }
 
-func (v *SQLVariableExpr) Evaluate(_ *EvalCtx) (SQLValue, error) {
-	switch v.VariableType {
-	case SystemVariable:
-		if value, ok := systemVars[v.Name]; ok {
-			return value, nil
-		}
-	}
-
-	return nil, fmt.Errorf("unknown variable %s", v.String())
+func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return ctx.GetVariable(v.Name, v.Kind)
 }
 
 func (v *SQLVariableExpr) String() string {
-	switch v.VariableType {
-	case UserDefinedVariable:
-		return "@" + v.Name
-	case SystemVariable:
-		return "@@" + v.Name
-	default:
-		return v.Name
+	prefix := ""
+	switch v.Kind {
+	case GlobalVariable:
+		prefix = "@@global."
+	case SessionVariable:
+		prefix = "@@session."
+	case UserVariable:
+		prefix = "@"
 	}
+
+	return prefix + v.Name
 }
 
 func (v *SQLVariableExpr) Type() schema.SQLType {
-	switch v.VariableType {
-	case SystemVariable:
-		if value, ok := systemVars[v.Name]; ok {
-			return value.Type()
-		}
-	}
-
-	return schema.SQLNone
+	return schema.MongoNone
 }

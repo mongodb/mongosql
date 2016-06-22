@@ -19,6 +19,7 @@ type Server struct {
 	eval      *sqlproxy.Evaluator
 	opts      sqlproxy.Options
 	databases map[string]*schema.Database
+	variables *globalVariableContainer
 	tlsConfig *tls.Config
 
 	connCount uint32
@@ -35,6 +36,7 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts sqlproxy.Options)
 		opts:      opts,
 		running:   false,
 		databases: schema.Databases,
+		variables: newGlobalVariableContainer(),
 	}
 
 	var err error
@@ -121,5 +123,4 @@ func (s *Server) onConn(c net.Conn) {
 	}
 
 	conn.run()
-
 }

@@ -11,7 +11,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestAlgebrizeStatements(t *testing.T) {
+func TestAlgebrizeSelect(t *testing.T) {
 
 	testSchema, err := schema.New(testSchema1)
 	if err != nil {
@@ -25,7 +25,7 @@ func TestAlgebrizeStatements(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(parser.SelectStatement)
-			actual, err := Algebrize(selectStatement, defaultDbName, testSchema)
+			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema)
 			So(err, ShouldBeNil)
 
 			expected := expectedPlanFactory()
@@ -45,68 +45,11 @@ func TestAlgebrizeStatements(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(parser.SelectStatement)
-			actual, err := Algebrize(selectStatement, defaultDbName, testSchema)
+			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, message)
 			So(actual, ShouldBeNil)
 		})
-	}
-
-	createSQLColumnExprFromSource := func(source PlanStage, tableName, columnName string) SQLColumnExpr {
-		for _, c := range source.Columns() {
-			if c.Table == tableName && c.Name == columnName {
-				return NewSQLColumnExpr(c.SelectID, c.Table, c.Name, c.SQLType, c.MongoType)
-			}
-		}
-
-		panic("column not found")
-	}
-
-	createProjectedColumnFromColumn := func(newSelectID int, column *Column, projectedTableName, projectedColumnName string) ProjectedColumn {
-		return ProjectedColumn{
-			Column: &Column{
-				SelectID:  newSelectID,
-				Table:     projectedTableName,
-				Name:      projectedColumnName,
-				SQLType:   column.SQLType,
-				MongoType: column.MongoType,
-			},
-			Expr: NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType),
-		}
-	}
-
-	createProjectedColumn := func(selectID int, source PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) ProjectedColumn {
-		for _, c := range source.Columns() {
-			if c.Table == sourceTableName && c.Name == sourceColumnName {
-				return createProjectedColumnFromColumn(selectID, c, projectedTableName, projectedColumnName)
-			}
-		}
-
-		panic(fmt.Sprintf("no column found with the name %q", sourceColumnName))
-	}
-
-	createAllProjectedColumnsFromSource := func(selectID int, source PlanStage, projectedTableName string) ProjectedColumns {
-		results := ProjectedColumns{}
-		for _, c := range source.Columns() {
-			results = append(results, createProjectedColumnFromColumn(selectID, c, projectedTableName, c.Name))
-		}
-
-		return results
-	}
-
-	createProjectedColumnFromSQLExpr := func(selectID int, tableName, columnName string, expr SQLExpr) ProjectedColumn {
-		column := &Column{
-			SelectID: selectID,
-			Table:    tableName,
-			Name:     columnName,
-			SQLType:  expr.Type(),
-		}
-
-		if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
-			column.MongoType = sqlColExpr.columnType.MongoType
-		}
-
-		return ProjectedColumn{Column: column, Expr: expr}
 	}
 
 	createMongoSource := func(selectID int, tableName, aliasName string) PlanStage {
@@ -114,7 +57,7 @@ func TestAlgebrizeStatements(t *testing.T) {
 		return r
 	}
 
-	Convey("Subject: Algebrize Statements", t, func() {
+	Convey("Subject: Algebrize Select Statements", t, func() {
 		Convey("dual queries", func() {
 			test("select 2 + 3", func() PlanStage {
 				return NewProjectStage(
@@ -1175,6 +1118,125 @@ func TestAlgebrizeStatements(t *testing.T) {
 	})
 }
 
+func TestAlgebrizeSet(t *testing.T) {
+
+	testSchema, err := schema.New(testSchema1)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+	defaultDbName := "test"
+
+	test := func(sql string, expectedPlanFactory func() *SetExecutor) {
+		Convey(sql, func() {
+			statement, err := parser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			setStatement := statement.(*parser.Set)
+			actual, err := AlgebrizeSet(setStatement, defaultDbName, testSchema)
+			So(err, ShouldBeNil)
+
+			expected := expectedPlanFactory()
+
+			if ShouldResemble(actual, expected) != "" {
+				fmt.Printf("\nExpected: %# v", pretty.Formatter(expected))
+				fmt.Printf("\nActual: %# v", pretty.Formatter(actual))
+			}
+
+			So(actual, ShouldResemble, expected)
+		})
+	}
+
+	createMongoSource := func(selectID int, tableName, aliasName string) PlanStage {
+		r, _ := NewMongoSourceStage(selectID, testSchema, defaultDbName, tableName, aliasName)
+		return r
+	}
+
+	Convey("Subject: Algebrize Set Statements", t, func() {
+		test("set @t1 = 12", func() *SetExecutor {
+			return NewSetExecutor(
+				[]*SQLAssignmentExpr{
+					&SQLAssignmentExpr{
+						variable: &SQLVariableExpr{
+							Name: "t1",
+							Kind: UserVariable,
+						},
+						expr: SQLInt(12),
+					},
+				},
+			)
+		})
+
+		test("set @@t1 = 12", func() *SetExecutor {
+			return NewSetExecutor(
+				[]*SQLAssignmentExpr{
+					&SQLAssignmentExpr{
+						variable: &SQLVariableExpr{
+							Name: "t1",
+							Kind: SessionVariable,
+						},
+						expr: SQLInt(12),
+					},
+				},
+			)
+		})
+
+		test("set @@global.t1 = 12", func() *SetExecutor {
+			return NewSetExecutor(
+				[]*SQLAssignmentExpr{
+					&SQLAssignmentExpr{
+						variable: &SQLVariableExpr{
+							Name: "t1",
+							Kind: GlobalVariable,
+						},
+						expr: SQLInt(12),
+					},
+				},
+			)
+		})
+
+		test("set @@global.t1 = (select a from foo)", func() *SetExecutor {
+			fooSource := createMongoSource(1, "foo", "foo")
+			return NewSetExecutor(
+				[]*SQLAssignmentExpr{
+					&SQLAssignmentExpr{
+						variable: &SQLVariableExpr{
+							Name: "t1",
+							Kind: GlobalVariable,
+						},
+						expr: &SQLSubqueryExpr{
+							correlated: false,
+							plan: NewProjectStage(
+								fooSource,
+								createProjectedColumn(1, fooSource, "foo", "a", "", "a")),
+						},
+					},
+				},
+			)
+		})
+
+		test("set @@t1=12, @t2=11", func() *SetExecutor {
+			return NewSetExecutor(
+				[]*SQLAssignmentExpr{
+					&SQLAssignmentExpr{
+						variable: &SQLVariableExpr{
+							Name: "t1",
+							Kind: SessionVariable,
+						},
+						expr: SQLInt(12),
+					},
+					&SQLAssignmentExpr{
+						variable: &SQLVariableExpr{
+							Name: "t2",
+							Kind: UserVariable,
+						},
+						expr: SQLInt(11),
+					},
+				},
+			)
+		})
+	})
+}
+
 func TestAlgebrizeExpr(t *testing.T) {
 	testSchema, _ := schema.New(testSchema1)
 	source, _ := NewMongoSourceStage(1, testSchema, "test", "foo", "foo")
@@ -1185,7 +1247,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(*parser.Select)
-			actualPlan, err := Algebrize(selectStatement, "test", testSchema)
+			actualPlan, err := AlgebrizeSelect(selectStatement, "test", testSchema)
 			So(err, ShouldBeNil)
 
 			actual := (actualPlan.(*ProjectStage)).projectedColumns[0].Expr
@@ -1415,8 +1477,11 @@ func TestAlgebrizeExpr(t *testing.T) {
 		})
 
 		Convey("Variable", func() {
-			test("@@max_allowed", &SQLVariableExpr{Name: "max_allowed", VariableType: SystemVariable})
-			test("@hmmm", &SQLVariableExpr{Name: "hmmm", VariableType: UserDefinedVariable})
+			test("@@global.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: GlobalVariable})
+			test("@@session.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: SessionVariable})
+			test("@@local.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: SessionVariable})
+			test("@@test_variable", &SQLVariableExpr{Name: "test_variable", Kind: SessionVariable})
+			test("@hmmm", &SQLVariableExpr{Name: "hmmm", Kind: UserVariable})
 		})
 	})
 }

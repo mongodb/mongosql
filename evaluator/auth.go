@@ -7,8 +7,8 @@ import (
 )
 
 // NewAuthProvider constructs a new lazy auth provider.
-func NewAuthProvider(session *mgo.Session) AuthProvider {
-	return &lazyAuthProvider{session: session}
+func NewAuthProvider(ctx ConnectionCtx) AuthProvider {
+	return &lazyAuthProvider{ctx: ctx}
 }
 
 // AuthProvider provides authorization information.
@@ -32,8 +32,8 @@ func (p *fixedAuthProvider) IsCollectionAllowed(_, _ string) bool {
 }
 
 type lazyAuthProvider struct {
-	session *mgo.Session
-	actual  AuthProvider
+	ctx    ConnectionCtx
+	actual AuthProvider
 }
 
 func (p *lazyAuthProvider) IsDatabaseAllowed(dbName string) bool {
@@ -52,7 +52,7 @@ func (p *lazyAuthProvider) IsCollectionAllowed(dbName, colName string) bool {
 
 func (p *lazyAuthProvider) ensureInitialized() error {
 	if p.actual == nil {
-		a, err := loadAuthProvider(p.session)
+		a, err := loadAuthProvider(p.ctx.Session())
 		if err != nil {
 			log.Logf(log.Always, "failed to initialize auth provider: %v", err)
 			return err

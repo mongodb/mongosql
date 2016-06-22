@@ -11,7 +11,6 @@ import (
 	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -30,27 +29,6 @@ func createFieldNameLookup(db *schema.Database) fieldNameLookup {
 
 		return column.Name, true
 	}
-}
-
-type fakeConnectionCtx struct{}
-
-func (_ fakeConnectionCtx) LastInsertId() int64 {
-	return 11
-}
-func (_ fakeConnectionCtx) RowCount() int64 {
-	return 21
-}
-func (_ fakeConnectionCtx) ConnectionId() uint32 {
-	return 42
-}
-func (_ fakeConnectionCtx) DB() string {
-	return "test"
-}
-func (_ fakeConnectionCtx) Session() *mgo.Session {
-	panic("Session is not supported in fakeConnectionCtx")
-}
-func (_ fakeConnectionCtx) User() string {
-	return "test user"
 }
 
 func TestEvaluates(t *testing.T) {
@@ -225,6 +203,23 @@ func TestEvaluates(t *testing.T) {
 			}
 
 			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLAssignmentExpr", func() {
+			e := &SQLAssignmentExpr{
+				variable: &SQLVariableExpr{
+					Name: "test",
+					Kind: UserVariable,
+				},
+				expr: &SQLAddExpr{
+					left:  SQLInt(1),
+					right: SQLInt(3),
+				},
+			}
+
+			result, err := e.Evaluate(evalCtx)
+			So(err, ShouldBeNil)
+			So(result, ShouldResemble, SQLInt(4))
 		})
 
 		Convey("Subject: SQLDateTimeLiterals", func() {
@@ -1029,15 +1024,15 @@ func TestEvaluates(t *testing.T) {
 
 		Convey("Subject: SQLVariableExpr", func() {
 			tests := []test{
-				test{"@@max_allowed_packet", SQLInt(4194304)},
+				test{"@@test_variable", SQLInt(123)},
 			}
 
 			runTests(evalCtx, tests)
 
 			Convey("Should error when unknown variable is used", func() {
 				subject := &SQLVariableExpr{
-					Name:         "blah",
-					VariableType: SystemVariable,
+					Name: "blah",
+					Kind: SessionVariable,
 				}
 				_, err := subject.Evaluate(evalCtx)
 				So(err, ShouldNotBeNil)
@@ -1329,7 +1324,7 @@ func TestOptimizeSQLExpr(t *testing.T) {
 			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				result, err := OptimizeSQLExpr(e)
+				result, err := OptimizeSQLExpr(createTestEvalCtx(), e)
 				So(err, ShouldBeNil)
 				So(result, ShouldResemble, t.result)
 			})
@@ -1432,7 +1427,7 @@ func TestTranslatePredicate(t *testing.T) {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				e, err = OptimizeSQLExpr(e)
+				e, err = OptimizeSQLExpr(createTestEvalCtx(), e)
 				So(err, ShouldBeNil)
 				match, local := TranslatePredicate(e, lookupFieldName)
 				jsonResult, err := json.Marshal(match)

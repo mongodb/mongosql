@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 
 	"github.com/10gen/sqlproxy/common"
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -55,6 +56,8 @@ type conn struct {
 
 	stmtID uint32
 	stmts  map[uint32]*stmt
+
+	variables *sessionVariableContainer
 }
 
 func newConn(s *Server, c net.Conn) *conn {
@@ -72,8 +75,9 @@ func newConn(s *Server, c net.Conn) *conn {
 			CLIENT_LONG_FLAG |
 			CLIENT_LONG_PASSWORD |
 			CLIENT_SECURE_CONNECTION,
-		charset: DEFAULT_CHARSET,
-		stmts:   make(map[uint32]*stmt),
+		charset:   DEFAULT_CHARSET,
+		stmts:     make(map[uint32]*stmt),
+		variables: newSessionVariableContainer(s.variables),
 	}
 
 	if s.tlsConfig != nil {
@@ -125,6 +129,56 @@ func (c *conn) Session() *mgo.Session {
 // User returns the current user.
 func (c *conn) User() string {
 	return fmt.Sprintf("%s@%s", c.user, c.conn.RemoteAddr().String())
+}
+
+func (c *conn) GetVariable(name string, kind evaluator.VariableKind) (evaluator.SQLValue, error) {
+	switch kind {
+	case evaluator.GlobalVariable, evaluator.SessionVariable:
+		def, err := getSystemVariableDefinition(name)
+		if err != nil {
+			return nil, err
+		}
+
+		if kind == evaluator.GlobalVariable {
+			if value, ok := c.server.variables.getValue(name); ok {
+				return value, nil
+			}
+		} else {
+			if value, ok := c.variables.getSessionVariable(name); ok {
+				return value, nil
+			}
+		}
+
+		return def.defaultValue(), nil
+	default:
+		v, ok := c.variables.getUserVariable(name)
+		if !ok {
+			return nil, nil
+		}
+
+		return v, nil
+	}
+}
+
+func (c *conn) SetVariable(name string, value evaluator.SQLValue, kind evaluator.VariableKind) error {
+
+	switch kind {
+	case evaluator.GlobalVariable, evaluator.SessionVariable:
+		def, err := getSystemVariableDefinition(name)
+		if err != nil {
+			return err
+		}
+
+		scope := globalScope
+		if kind == evaluator.SessionVariable {
+			scope = sessionScope
+		}
+
+		return def.apply(c, scope, value)
+	default:
+		c.variables.setUserVariable(name, value)
+		return nil
+	}
 }
 
 func (c *conn) handshake() error {

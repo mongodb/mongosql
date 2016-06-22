@@ -54,3 +54,12 @@ func (c *conn) handleQuery(sql string) (err error) {
 		return mysqlerrors.Unknownf("statement %T not supported", stmt)
 	}
 }
+
+func (c *conn) handleSet(stmt *parser.Set) error {
+	err := c.server.eval.Set(stmt, c)
+	if err != nil {
+		return err
+	}
+	c.writeOK(nil)
+	return nil
+}

@@ -11,15 +11,23 @@ import (
 
 // PrettyPrintPlan takes a plan and recursively prints its source.
 func PrettyPrintPlan(p PlanStage) string {
+	return prettyPrintNode(p)
+}
 
+// PrettyPrintSet takes a SetExecutor and prints it out.
+func PrettyPrintSet(s *SetExecutor) string {
+	return prettyPrintNode(s)
+}
+
+func prettyPrintNode(n node) string {
 	b := bytes.NewBufferString("")
 
-	prettyPrintPlan(b, p, 0)
+	prettyPrint(b, n, 0)
 
 	return b.String()
 }
 
-func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
+func prettyPrint(b *bytes.Buffer, n node, d int) {
 
 	printTabs := func(b *bytes.Buffer, d int) {
 		for i := 0; i < d; i++ {
@@ -59,18 +67,18 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 
 	printTabs(b, d)
 
-	switch typedE := p.(type) {
+	switch typedN := n.(type) {
 	case *DualStage:
 		b.WriteString("↳ Dual")
 	case *EmptyStage:
 		b.WriteString("↳ Empty")
 	case *FilterStage:
-		b.WriteString(fmt.Sprintf("↳ Filter (%v):\n", typedE.matcher))
+		b.WriteString(fmt.Sprintf("↳ Filter (%v):\n", typedN.matcher))
 
-		prettyPrintPlan(b, typedE.source, d+1)
+		prettyPrint(b, typedN.source, d+1)
 	case *GroupByStage:
 		b.WriteString("↳ GroupBy(")
-		for i, key := range typedE.keys {
+		for i, key := range typedN.keys {
 			if i != 0 {
 				b.WriteString(", ")
 			}
@@ -78,28 +86,28 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 		}
 		b.WriteString("):\n")
 
-		prettyPrintPlan(b, typedE.source, d+1)
+		prettyPrint(b, typedN.source, d+1)
 	case *JoinStage:
 		b.WriteString("↳ Join:\n")
 
-		prettyPrintPlan(b, typedE.left, d+1)
+		prettyPrint(b, typedN.left, d+1)
 		printTabs(b, d+1)
 
-		b.WriteString(fmt.Sprintf("%v\n", typedE.kind))
-		prettyPrintPlan(b, typedE.right, d+1)
+		b.WriteString(fmt.Sprintf("%v\n", typedN.kind))
+		prettyPrint(b, typedN.right, d+1)
 
-		if typedE.matcher != nil {
+		if typedN.matcher != nil {
 			printTabs(b, d+1)
-			b.WriteString(fmt.Sprintf("on %v\n", typedE.matcher.String()))
+			b.WriteString(fmt.Sprintf("on %v\n", typedN.matcher.String()))
 		}
 	case *LimitStage:
-		b.WriteString(fmt.Sprintf("↳ Limit(offset: %v, limit: %v):\n", typedE.offset, typedE.limit))
+		b.WriteString(fmt.Sprintf("↳ Limit(offset: %v, limit: %v):\n", typedN.offset, typedN.limit))
 
-		prettyPrintPlan(b, typedE.source, d+1)
+		prettyPrint(b, typedN.source, d+1)
 	case *OrderByStage:
 		b.WriteString("↳ OrderBy(")
 
-		for i, t := range typedE.terms {
+		for i, t := range typedN.terms {
 			if i != 0 {
 				b.WriteString(", ")
 			}
@@ -113,11 +121,11 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 		}
 
 		b.WriteString("):\n")
-		prettyPrintPlan(b, typedE.source, d+1)
+		prettyPrint(b, typedN.source, d+1)
 	case *ProjectStage:
 		b.WriteString("↳ Project(")
 
-		for i, c := range typedE.projectedColumns {
+		for i, c := range typedN.projectedColumns {
 			if i != 0 {
 				b.WriteString(", ")
 			}
@@ -125,25 +133,32 @@ func prettyPrintPlan(b *bytes.Buffer, p PlanStage, d int) {
 		}
 
 		b.WriteString("):\n")
-		prettyPrintPlan(b, typedE.source, d+1)
+		prettyPrint(b, typedN.source, d+1)
 	case *SchemaDataSourceStage:
 		b.WriteString("↳ SchemaDataSource:")
 	case *MongoSourceStage:
-		b.WriteString(fmt.Sprintf("↳ MongoSource: '%v' (db: '%v', collection: '%v')", typedE.tableName, typedE.dbName, typedE.collectionName))
+		b.WriteString(fmt.Sprintf("↳ MongoSource: '%v' (db: '%v', collection: '%v')", typedN.tableName, typedN.dbName, typedN.collectionName))
 
-		if typedE.aliasName != "" {
-			b.WriteString(fmt.Sprintf(" as '%v'", typedE.aliasName))
+		if typedN.aliasName != "" {
+			b.WriteString(fmt.Sprintf(" as '%v'", typedN.aliasName))
 		}
 
 		b.WriteString(":\n")
-		prettyPipeline, err := pipelineJSON(typedE.pipeline, d+1)
+		prettyPipeline, err := pipelineJSON(typedN.pipeline, d+1)
 		if err != nil { // marshaling as json failed, fall back to Sprintf
-			prettyPipeline = pipelineString(typedE.pipeline, d+1)
+			prettyPipeline = pipelineString(typedN.pipeline, d+1)
 		}
 		b.Write(prettyPipeline)
 	case *BSONSourceStage:
 		b.WriteString("↳ BSONSource:\n")
+	case *SetExecutor:
+		b.WriteString("↳ Set:\n")
+		for _, e := range typedN.assignments {
+			printTabs(b, d+1)
+			b.WriteString(e.String())
+			b.WriteString("\n")
+		}
 	default:
-		panic(fmt.Sprintf("unsupported print operator: %T", typedE))
+		panic(fmt.Sprintf("unsupported print operator: %T", typedN))
 	}
 }

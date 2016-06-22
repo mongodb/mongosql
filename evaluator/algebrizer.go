@@ -9,8 +9,8 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
-// Algebrize takes a parsed SQL statement and returns an algebrized form of the query.
-func Algebrize(selectStatement parser.SelectStatement, dbName string, schema *schema.Schema) (PlanStage, error) {
+// AlgebrizeSelect takes a parsed SQL statement and returns an algebrized form of the query.
+func AlgebrizeSelect(selectStatement parser.SelectStatement, dbName string, schema *schema.Schema) (PlanStage, error) {
 	g := &selectIDGenerator{}
 	algebrizer := &algebrizer{
 		dbName:                      dbName,
@@ -19,7 +19,21 @@ func Algebrize(selectStatement parser.SelectStatement, dbName string, schema *sc
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 	}
+
 	return algebrizer.translateSelectStatement(selectStatement)
+}
+
+func AlgebrizeSet(setStatement *parser.Set, dbName string, schema *schema.Schema) (*SetExecutor, error) {
+	g := &selectIDGenerator{}
+	algebrizer := &algebrizer{
+		dbName:                      dbName,
+		schema:                      schema,
+		selectID:                    g.current,
+		selectIDGenerator:           g,
+		projectedColumnAggregateMap: make(map[int]SQLExpr),
+	}
+
+	return algebrizer.translateSet(setStatement)
 }
 
 type selectIDGenerator struct {
@@ -441,8 +455,10 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 				projectedColumn.MongoType = sqlCol.columnType.MongoType
 			}
 
-			if sqlCol, ok := typedE.Expr.(*parser.ColName); ok {
-				projectedColumn.Name = string(sqlCol.Name)
+			if _, ok := translatedExpr.(*SQLVariableExpr); !ok {
+				if sqlCol, ok := typedE.Expr.(*parser.ColName); ok {
+					projectedColumn.Name = string(sqlCol.Name)
+				}
 			}
 
 			if typedE.As != nil {
@@ -460,6 +476,24 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 	}
 
 	return projectedColumns, nil
+}
+
+func (a *algebrizer) translateSet(set *parser.Set) (*SetExecutor, error) {
+	assignments := []*SQLAssignmentExpr{}
+	for _, e := range set.Exprs {
+		variable := a.translateVariableExpr(e.Name)
+		expr, err := a.translateExpr(e.Expr)
+		if err != nil {
+			return nil, err
+		}
+
+		assignments = append(assignments, &SQLAssignmentExpr{
+			variable: variable,
+			expr:     expr,
+		})
+	}
+
+	return NewSetExecutor(assignments), nil
 }
 
 func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs) (PlanStage, error) {
@@ -655,17 +689,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		columnName := string(typedE.Name)
 
-		if tableName == "" && strings.HasPrefix(columnName, "@") {
-			variableName := strings.TrimPrefix(columnName, "@")
-			variableType := UserDefinedVariable
-			if strings.HasPrefix(variableName, "@") {
-				variableName = strings.TrimPrefix(variableName, "@")
-				variableType = SystemVariable
-			}
-			return &SQLVariableExpr{
-				Name:         variableName,
-				VariableType: variableType,
-			}, nil
+		if strings.HasPrefix(tableName, "@") || (tableName == "" && strings.HasPrefix(columnName, "@")) {
+			return a.translateVariableExpr(typedE), nil
 		}
 
 		return a.resolveColumnExpr(tableName, columnName)
@@ -1076,6 +1101,45 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 	}
 
 	return &SQLScalarFunctionExpr{name, exprs}, nil
+}
+
+func (a *algebrizer) translateVariableExpr(c *parser.ColName) *SQLVariableExpr {
+
+	v := &SQLVariableExpr{
+		Kind: SessionVariable,
+	}
+
+	pos := 0
+	str := string(c.Name)
+	if c.Qualifier != nil {
+		str = string(c.Qualifier) + "." + str
+	}
+
+	if str[pos] == '@' {
+		pos++
+		if len(str) > 1 && str[pos] != '@' {
+			v.Kind = UserVariable
+		} else {
+			pos++
+		}
+	}
+
+	v.Name = str[pos:]
+
+	if v.Kind == SessionVariable {
+		idx := strings.Index(v.Name, ".")
+		if idx >= 0 {
+			switch strings.ToLower(v.Name[:idx+1]) {
+			case "global.":
+				v.Name = v.Name[idx+1:]
+				v.Kind = GlobalVariable
+			case "session.", "local.":
+				v.Name = v.Name[idx+1:]
+			}
+		}
+	}
+
+	return v
 }
 
 type selectIDGatherer struct {

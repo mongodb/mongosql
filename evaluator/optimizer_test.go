@@ -43,9 +43,9 @@ func TestOptimizePlan(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(parser.SelectStatement)
-			plan, err := Algebrize(selectStatement, defaultDbName, testSchema)
+			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema)
 			So(err, ShouldBeNil)
-			actualPlan, err := OptimizePlan(plan)
+			actualPlan, err := OptimizePlan(createTestConnectionCtx(), plan)
 			So(err, ShouldBeNil)
 
 			// fmt.Printf("\nPLAN: %# v", pretty.Formatter(plan))
@@ -890,5 +890,44 @@ func TestOptimizePlan(t *testing.T) {
 				},
 			)
 		})
+	})
+}
+
+func TestOptimizeSet(t *testing.T) {
+	testSchema, err := schema.New(testSchema1)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+	defaultDbName := "test"
+
+	test := func(sql string, expected ...[]bson.D) {
+		Convey(sql, func() {
+			statement, err := parser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			setStatement := statement.(*parser.Set)
+			set, err := AlgebrizeSet(setStatement, defaultDbName, testSchema)
+			So(err, ShouldBeNil)
+			actualSet, err := OptimizeSet(createTestConnectionCtx(), set)
+			So(err, ShouldBeNil)
+
+			pg := &pipelineGatherer{}
+			pg.visit(actualSet)
+
+			actual := pg.pipelines
+
+			So(actual, ShouldResembleDiffed, expected)
+		})
+	}
+
+	Convey("Subject: OptimizeSet", t, func() {
+		test("set @t1 = (select a from foo limit 1)",
+			[]bson.D{
+				{{"$limit", int64(1)}},
+				{{"$project", bson.M{
+					"foo_DOT_a": "$a",
+				}}},
+			},
+		)
 	})
 }

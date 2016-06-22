@@ -23,10 +23,14 @@ func (ps *OrderByStage) astnode()          {}
 func (ps *ProjectStage) astnode()          {}
 func (ps *SchemaDataSourceStage) astnode() {}
 
+// Other Stages
+func (s *SetExecutor) astnode() {}
+
 // Expressions
 func (e *SQLAggFunctionExpr) astnode()        {}
 func (e *SQLAddExpr) astnode()                {}
 func (e *SQLAndExpr) astnode()                {}
+func (e *SQLAssignmentExpr) astnode()         {}
 func (e *SQLCaseExpr) astnode()               {}
 func (e SQLColumnExpr) astnode()              {}
 func (e *SQLConvertExpr) astnode()            {}
@@ -94,6 +98,37 @@ func walk(v nodeVisitor, n node) (node, error) {
 			newE, err := visitExpr(e)
 			if err != nil {
 				return nil, err
+			}
+
+			if !hasNew && e != newE {
+				hasNew = true
+				newExprs = (*exprs)[0:i]
+			}
+
+			if hasNew {
+				newExprs = append(newExprs, newE)
+			}
+		}
+
+		if hasNew {
+			return &newExprs, nil
+		}
+
+		return exprs, nil
+	}
+
+	visitAssignmentSlice := func(exprs *[]*SQLAssignmentExpr) (*[]*SQLAssignmentExpr, error) {
+		hasNew := false
+		var newExprs []*SQLAssignmentExpr
+		for i, e := range *exprs {
+			temp, err := visitExpr(e)
+			if err != nil {
+				return nil, err
+			}
+
+			newE, ok := temp.(*SQLAssignmentExpr)
+			if !ok {
+				return nil, fmt.Errorf("expected an evaluator.*SQLAssignmentExpr, but got a %T", temp)
 			}
 
 			if !hasNew && e != newE {
@@ -286,6 +321,17 @@ func walk(v nodeVisitor, n node) (node, error) {
 			n = NewProjectStage(source, *pcs...)
 		}
 
+	// Other Stages
+	case *SetExecutor:
+		exprs, err := visitAssignmentSlice(&typedN.assignments)
+		if err != nil {
+			return nil, err
+		}
+
+		if &typedN.assignments != exprs {
+			return NewSetExecutor(*exprs), nil
+		}
+
 	// Expressions
 	case *SQLAggFunctionExpr:
 		exprs, err := visitExprSlice(&typedN.Exprs)
@@ -323,6 +369,28 @@ func walk(v nodeVisitor, n node) (node, error) {
 			n = &SQLAndExpr{left, right}
 		}
 
+	case *SQLAssignmentExpr:
+		temp, err := visitExpr(typedN.variable)
+		if err != nil {
+			return nil, err
+		}
+
+		variable, ok := temp.(*SQLVariableExpr)
+		if !ok {
+			return nil, fmt.Errorf("SQLAssignmentExpr requires an evaluator.*SQLVariableExpr, but got a %T", temp)
+		}
+
+		expr, err := visitExpr(typedN.expr)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.variable != variable || typedN.expr != expr {
+			n = &SQLAssignmentExpr{
+				variable: variable,
+				expr:     expr,
+			}
+		}
 	case *SQLCaseExpr:
 		hasNewCond := false
 		newConds := []caseCondition{}

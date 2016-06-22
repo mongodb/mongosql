@@ -45,59 +45,25 @@ func (e *Evaluator) Schema() schema.Schema {
 	return *e.config
 }
 
-// EvaluateRows executes the query and returns the
-// generated results as a slice of rows.
-func (e *Evaluator) EvaluateRows(db, sql string, ast parser.SelectStatement, conn evaluator.ConnectionCtx) ([]string, [][]interface{}, error) {
-
-	columns, iter, err := e.Evaluate(db, sql, ast, conn)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	rows := make([][]interface{}, 0)
-
-	row := &evaluator.Row{}
-
-	for iter.Next(row) {
-		rows = append(rows, row.GetValues())
-		row.Data = evaluator.Values{}
-	}
-
-	if err := iter.Close(); err != nil {
-		return nil, nil, fmt.Errorf("iterator close: %v", err)
-	}
-
-	if err := iter.Err(); err != nil {
-		return nil, nil, fmt.Errorf("iterator err: %v", err)
-	}
-
-	// make sure all rows have same number of values
-	for idx, row := range rows {
-		for len(row) < len(columns) {
-			row = append(row, nil)
-		}
-		rows[idx] = row
-	}
-
-	var headers []string
-
-	for _, column := range columns {
-		headers = append(headers, column.Name)
-	}
-
-	return headers, rows, nil
-}
-
 // Evaluate executes the query and returns an iterator
 // capable of going over all the generated results.
-func (e *Evaluator) Evaluate(db, sql string, ast parser.SelectStatement, conn evaluator.ConnectionCtx) ([]*evaluator.Column, evaluator.Iter, error) {
+func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.ConnectionCtx) ([]*evaluator.Column, evaluator.Iter, error) {
 
-	plan, executionCtx, err := e.Plan(db, sql, ast, conn)
+	log.Logf(log.DebugHigh, "Preparing query plan for: %#v", parser.String(ast))
+
+	plan, err := evaluator.AlgebrizeSelect(ast, conn.DB(), e.config)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	log.Logf(log.DebugLow, "[conn%v] executing plan", conn.ConnectionId())
+	log.Logf(log.DebugHigh, "[conn%v] optimizing plan: \n%v", conn.ConnectionId(), evaluator.PrettyPrintPlan(plan))
+	plan, err = evaluator.OptimizePlan(conn, plan)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	executionCtx := evaluator.NewExecutionCtx(conn)
+	log.Logf(log.DebugHigh, "[conn%v] executing plan: \n%v", conn.ConnectionId(), evaluator.PrettyPrintPlan(plan))
 
 	iter, err := plan.Open(executionCtx)
 	if err != nil {
@@ -109,36 +75,22 @@ func (e *Evaluator) Evaluate(db, sql string, ast parser.SelectStatement, conn ev
 	return columns, iter, nil
 }
 
-// Plan returns a query plan for the SQL query.
-func (e *Evaluator) Plan(db, sql string, ast parser.SelectStatement, conn evaluator.ConnectionCtx) (evaluator.PlanStage, *evaluator.ExecutionCtx, error) {
+func (e *Evaluator) Set(ast *parser.Set, conn evaluator.ConnectionCtx) error {
+	log.Logf(log.DebugLow, "Preparing plan for: %#v", parser.String(ast))
 
-	var ok bool
-
-	if ast == nil {
-		raw, err := parser.Parse(sql)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		ast, ok = raw.(parser.SelectStatement)
-		if !ok {
-			return nil, nil, fmt.Errorf("got a non-select statement in algebrization")
-		}
+	set, err := evaluator.AlgebrizeSet(ast, conn.DB(), e.config)
+	if err != nil {
+		return err
 	}
 
-	log.Logf(log.DebugLow, "Preparing query plan for: %#v", parser.String(ast))
-
-	plan, err := evaluator.Algebrize(ast, db, e.config)
+	log.Logf(log.DebugHigh, "[conn%v] optimizing plan: \n%v", conn.ConnectionId(), evaluator.PrettyPrintSet(set))
+	set, err = evaluator.OptimizeSet(conn, set)
 	if err != nil {
-		return nil, nil, err
-	}
-
-	plan, err = evaluator.OptimizePlan(plan)
-	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	executionCtx := evaluator.NewExecutionCtx(conn)
+	log.Logf(log.DebugHigh, "[conn%v] executing plan: \n%v", conn.ConnectionId(), evaluator.PrettyPrintSet(set))
 
-	return plan, executionCtx, nil
+	return set.Execute(executionCtx)
 }

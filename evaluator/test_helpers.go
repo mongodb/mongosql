@@ -1,8 +1,11 @@
 package evaluator
 
 import (
+	"fmt"
+
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -51,6 +54,111 @@ func constructOrderByTerms(exprs map[string]SQLExpr, values ...string) (terms []
 	return
 }
 
+type fakeConnectionCtx struct{}
+
+func (_ fakeConnectionCtx) LastInsertId() int64 {
+	return 11
+}
+func (_ fakeConnectionCtx) RowCount() int64 {
+	return 21
+}
+func (_ fakeConnectionCtx) ConnectionId() uint32 {
+	return 42
+}
+func (_ fakeConnectionCtx) DB() string {
+	return "test"
+}
+func (_ fakeConnectionCtx) Session() *mgo.Session {
+	panic("Session is not supported in fakeConnectionCtx")
+}
+func (_ fakeConnectionCtx) User() string {
+	return "test user"
+}
+
+func (_ fakeConnectionCtx) GetVariable(name string, kind VariableKind) (SQLValue, error) {
+	if name == "test_variable" {
+		return SQLInt(123), nil
+	}
+
+	return nil, fmt.Errorf("unknown variable")
+}
+func (_ fakeConnectionCtx) SetVariable(name string, value SQLValue, kind VariableKind) error {
+	return nil
+}
+
+func createTestConnectionCtx() ConnectionCtx {
+	return &fakeConnectionCtx{}
+}
+
+func createTestExecutionCtx() *ExecutionCtx {
+	return &ExecutionCtx{
+		ConnectionCtx: createTestConnectionCtx(),
+	}
+}
+
+func createTestEvalCtx() *EvalCtx {
+	return &EvalCtx{
+		ExecutionCtx: createTestExecutionCtx(),
+	}
+}
+
+func createSQLColumnExprFromSource(source PlanStage, tableName, columnName string) SQLColumnExpr {
+	for _, c := range source.Columns() {
+		if c.Table == tableName && c.Name == columnName {
+			return NewSQLColumnExpr(c.SelectID, c.Table, c.Name, c.SQLType, c.MongoType)
+		}
+	}
+
+	panic("column not found")
+}
+
+func createProjectedColumnFromColumn(newSelectID int, column *Column, projectedTableName, projectedColumnName string) ProjectedColumn {
+	return ProjectedColumn{
+		Column: &Column{
+			SelectID:  newSelectID,
+			Table:     projectedTableName,
+			Name:      projectedColumnName,
+			SQLType:   column.SQLType,
+			MongoType: column.MongoType,
+		},
+		Expr: NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType),
+	}
+}
+
+func createProjectedColumn(selectID int, source PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) ProjectedColumn {
+	for _, c := range source.Columns() {
+		if c.Table == sourceTableName && c.Name == sourceColumnName {
+			return createProjectedColumnFromColumn(selectID, c, projectedTableName, projectedColumnName)
+		}
+	}
+
+	panic(fmt.Sprintf("no column found with the name %q", sourceColumnName))
+}
+
+func createAllProjectedColumnsFromSource(selectID int, source PlanStage, projectedTableName string) ProjectedColumns {
+	results := ProjectedColumns{}
+	for _, c := range source.Columns() {
+		results = append(results, createProjectedColumnFromColumn(selectID, c, projectedTableName, c.Name))
+	}
+
+	return results
+}
+
+func createProjectedColumnFromSQLExpr(selectID int, tableName, columnName string, expr SQLExpr) ProjectedColumn {
+	column := &Column{
+		SelectID: selectID,
+		Table:    tableName,
+		Name:     columnName,
+		SQLType:  expr.Type(),
+	}
+
+	if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
+		column.MongoType = sqlColExpr.columnType.MongoType
+	}
+
+	return ProjectedColumn{Column: column, Expr: expr}
+}
+
 func getBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 	switch typedE := expr.(type) {
 	case *SQLAndExpr:
@@ -92,7 +200,7 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 	}
 
 	selectStatement := statement.(parser.SelectStatement)
-	actualPlan, err := Algebrize(selectStatement, dbName, schema)
+	actualPlan, err := AlgebrizeSelect(selectStatement, dbName, schema)
 	if err != nil {
 		return nil, err
 	}

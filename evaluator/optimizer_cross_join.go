@@ -1,13 +1,13 @@
 package evaluator
 
-func optimizeCrossJoins(p PlanStage) (PlanStage, error) {
+func optimizeCrossJoins(n node) (node, error) {
 	v := &crossJoinOptimizer{}
-	n, err := v.visit(p)
+	n, err := v.visit(n)
 	if err != nil {
 		return nil, err
 	}
 
-	return n.(PlanStage), nil
+	return n, nil
 }
 
 type crossJoinOptimizer struct {

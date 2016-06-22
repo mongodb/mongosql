@@ -1,0 +1,78 @@
+#
+# Data
+#
+data:
+- inline: 
+    db: "test"
+    collection: "set_1"
+    docs:
+    - { _id: 0, a: 1 }
+    - { _id: 1, a: 2 }
+    - { _id: 2, a: 3 }
+
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: "set_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+
+#
+# Test Cases
+#
+testcases:
+
+- sql: "set @t1 = 12"
+  verify: "select @t1"
+  description: "user variable"
+  expected_names: ["@t1"]
+  expected_types: [int]
+  expected: 
+  - [12]
+- sql: "set @t1 = (select sum(a) from foo)"
+  verify: "select @t1"
+  description: "user variable with query"
+  expected_names: ["@t1"]
+  expected_types: [int]
+  expected: 
+  - [6]
+- sql: "set @t1 = (select sum(a) from foo), @t2 = 12"
+  verify: "select @t1, @t2"
+  description: "mulitple user variable with query"
+  expected_names: ["@t1", "@t2"]
+  expected_types: [int, int]
+  expected: 
+  - [6, 12]
+- sql: "set @@global.max_allowed_packet=1024"
+  verify: "select @@global.max_allowed_packet"
+  description: "global variable"
+  expected_names: ["@@global.max_allowed_packet"]
+  expected_types: [int]
+  expected: 
+  - [1024]
+- sql: "set @@autocommit=1"
+  verify: "select @@autocommit"
+  description: "session variable"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected: 
+  - [1]
+- sql: "set autocommit=0"
+  verify: "select @@autocommit"
+  description: "session variable"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected: 
+  - [0]
+

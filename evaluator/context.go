@@ -2,8 +2,15 @@ package evaluator
 
 import "gopkg.in/mgo.v2"
 
+// VariableCtx holds variable related information
+type VariableCtx interface {
+	GetVariable(name string, kind VariableKind) (SQLValue, error)
+	SetVariable(name string, value SQLValue, kind VariableKind) error
+}
+
 // ConnectionCtx holds connection context information.
 type ConnectionCtx interface {
+	VariableCtx
 	LastInsertId() int64
 	RowCount() int64
 	ConnectionId() uint32
@@ -28,7 +35,7 @@ type ExecutionCtx struct {
 func NewExecutionCtx(connCtx ConnectionCtx) *ExecutionCtx {
 	return &ExecutionCtx{
 		ConnectionCtx: connCtx,
-		AuthProvider:  NewAuthProvider(connCtx.Session()),
+		AuthProvider:  NewAuthProvider(connCtx),
 	}
 }
 

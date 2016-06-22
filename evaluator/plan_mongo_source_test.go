@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -36,6 +37,13 @@ func (c *connCtx) Session() *mgo.Session {
 
 func (c *connCtx) User() string {
 	return ""
+}
+
+func (c *connCtx) GetVariable(name string, kind VariableKind) (SQLValue, error) {
+	return nil, fmt.Errorf("unknown variable")
+}
+func (c *connCtx) SetVariable(name string, value SQLValue, kind VariableKind) error {
+	return fmt.Errorf("unknown variable")
 }
 
 func getOptions(t *testing.T) sqlproxy.Options {

@@ -1,42 +1,51 @@
 package evaluator
 
-import (
-	"os"
-
-	"github.com/mongodb/mongo-tools/common/log"
-)
+import "os"
 
 // OptimizePlan applies optimizations to the plan tree to
 // aid in performance.
-func OptimizePlan(p PlanStage) (PlanStage, error) {
+func OptimizePlan(ctx ConnectionCtx, p PlanStage) (PlanStage, error) {
+	n, err := optimize(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return n.(PlanStage), nil
+}
+
+func OptimizeSet(ctx ConnectionCtx, s *SetExecutor) (*SetExecutor, error) {
+	n, err := optimize(ctx, s)
+	if err != nil {
+		return nil, err
+	}
+
+	return n.(*SetExecutor), nil
+}
+
+func optimize(ctx ConnectionCtx, n node) (node, error) {
 	if os.Getenv(NoOptimize) != "" {
-		return p, nil
+		return n, nil
 	}
 
-	newP, err := optimizePlanSQLExprs(p)
+	newN, err := optimizePlanSQLExprs(ctx, n)
 	if err != nil {
-		return p, nil
+		return n, nil
 	}
-	p = newP
+	n = newN
 
-	log.Logf(log.DebugHigh, "SQL Expr Optimization query plan: \n%v\n", PrettyPrintPlan(p))
-
-	newP, err = optimizeCrossJoins(p)
+	newN, err = optimizeCrossJoins(n)
 	if err != nil {
-		return p, nil
+		return n, nil
 	}
-	p = newP
+	n = newN
 
-	log.Logf(log.DebugHigh, "Cross Join Optimization query plan: \n%v\n", PrettyPrintPlan(p))
-
-	newP, err = optimizePushDown(p)
+	newN, err = optimizePushDown(n)
 	if err != nil {
-		return p, nil
+		return n, nil
 	}
-	p = newP
+	n = newN
 
-	log.Logf(log.DebugHigh, "Optimized query plan: \n%v\n", PrettyPrintPlan(p))
-	return p, nil
+	return n, nil
 }
 
 func combineExpressions(exprs []SQLExpr) SQLExpr {

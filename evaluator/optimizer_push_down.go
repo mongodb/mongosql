@@ -7,14 +7,14 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func optimizePushDown(o PlanStage) (PlanStage, error) {
+func optimizePushDown(n node) (node, error) {
 	v := &pushDownOptimizer{}
-	n, err := v.visit(o)
+	n, err := v.visit(n)
 	if err != nil {
 		return nil, err
 	}
 
-	return n.(PlanStage), nil
+	return n, nil
 }
 
 type pushDownOptimizer struct {

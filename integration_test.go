@@ -58,11 +58,12 @@ type inlineDataSet struct {
 }
 
 type testCase struct {
-	SQL           string          `yaml:"sql"`
-	Description   string          `yaml:"description"`
-	ExpectedTypes []string        `yaml:"expected_types"`
-	ExpectedNames []string        `yaml:"expected_names"`
-	ExpectedData  [][]interface{} `yaml:"expected"`
+	SQL             string          `yaml:"sql"`
+	VerificationSQL string          `yaml:"verify"`
+	Description     string          `yaml:"description"`
+	ExpectedTypes   []string        `yaml:"expected_types"`
+	ExpectedNames   []string        `yaml:"expected_names"`
+	ExpectedData    [][]interface{} `yaml:"expected"`
 }
 
 type testSchema struct {
@@ -178,11 +179,17 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 			description = testCase.Description
 		}
 		Convey(fmt.Sprintf("%v('%v')", description, testCase.SQL), func() {
-			results, err := runSQL(db, testCase.SQL, testCase.ExpectedTypes, testCase.ExpectedNames)
+			sql := testCase.SQL
+			if testCase.VerificationSQL != "" {
+				_, err := db.Exec(sql)
+				So(err, ShouldBeNil)
+
+				sql = testCase.VerificationSQL
+			}
+			results, err := runSQL(db, sql, testCase.ExpectedTypes, testCase.ExpectedNames)
 			So(err, ShouldBeNil)
 			compareResults(t, testCase.ExpectedData, results)
 		})
-
 	}
 	return nil
 }

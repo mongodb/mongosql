@@ -26,12 +26,7 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 func (c *conn) handleSelect(stmt *parser.Select, sql string, args []interface{}) error {
 	log.Logf(log.DebugHigh, "[conn%v] parsed statement: %#v", c.connectionID, stmt)
 
-	var currentDB string
-	if c.currentDB != nil {
-		currentDB = c.currentDB.Name
-	}
-
-	fields, iter, err := c.server.eval.Evaluate(currentDB, sql, stmt, c)
+	fields, iter, err := c.server.eval.Evaluate(stmt, c)
 	if err != nil {
 		return err
 	}
@@ -42,7 +37,7 @@ func (c *conn) handleSelect(stmt *parser.Select, sql string, args []interface{})
 func (c *conn) handleSimpleSelect(sql string, stmt *parser.SimpleSelect) error {
 	log.Logf(log.DebugHigh, "[conn%v] parsed statement: %#v", c.connectionID, stmt)
 
-	fields, iter, err := c.server.eval.Evaluate("", sql, stmt, c)
+	fields, iter, err := c.server.eval.Evaluate(stmt, c)
 	if err != nil {
 		return err
 	}
