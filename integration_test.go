@@ -3,11 +3,8 @@ package sqlproxy_test
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/csv"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -33,8 +30,7 @@ import (
 
 // test flags
 var (
-	blackbox = flag.Bool("blackbox", false, "Run blackbox tests")
-	tableau  = flag.Bool("tableau", false, "Run tableau tests")
+	tableau = flag.Bool("tableau", false, "Run tableau tests")
 )
 
 const (
@@ -74,35 +70,6 @@ type testSchema struct {
 	Data      []testDataSet      `yaml:"data"`
 	Databases []*schema.Database `yaml:"schema"`
 	TestCases []testCase         `yaml:"testcases"`
-}
-
-func TestBlackBox(t *testing.T) {
-	if !*blackbox {
-		t.Skip("skipping blackbox test")
-	}
-
-	conf := mustLoadTestSchema(pathify("testdata", "blackbox.yml"))
-	mustLoadTestData(testMongoHost, testMongoPort, conf)
-
-	opts := sqlproxy.Options{
-		Addr:     testDBAddr,
-		MongoURI: fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort),
-	}
-	cfg := &schema.Schema{
-		RawDatabases: conf.Databases,
-	}
-	buildSchemaMaps(cfg)
-	s, err := testServer(cfg, opts)
-	if err != nil {
-		panic(err)
-	}
-	defer s.Close()
-	go s.Run()
-
-	Convey("Test blackbox dataset", t, func() {
-		err := executeBlackBoxTestCases(t, conf)
-		So(err, ShouldBeNil)
-	})
 }
 
 func TestTableauDemo(t *testing.T) {
@@ -173,76 +140,6 @@ func compareResults(t *testing.T, expected, actual [][]interface{}) {
 	}
 
 	So(len(actual), ShouldEqual, len(expected))
-}
-
-func executeBlackBoxTestCases(t *testing.T, conf testSchema) error {
-	db, err := sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
-	if err != nil {
-		return fmt.Errorf("mysql open: %v", err)
-	}
-	defer db.Close()
-
-	r, err := os.Open(pathify("testdata", "blackbox_queries.json"))
-	if err != nil {
-		return fmt.Errorf("Open: %v", err)
-	}
-
-	dec := json.NewDecoder(r)
-
-	type queryData struct {
-		ID      string `json:"id"`
-		Query   string `json:"value"`
-		Columns int    `json:"columns"`
-		Rows    int    `json:"rows"`
-	}
-
-	query := queryData{}
-
-	for {
-		err := dec.Decode(&query)
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			return fmt.Errorf("Decode: %v", err)
-		}
-
-		var types []string
-
-		Convey(fmt.Sprintf("Running test query (%v): '%v'", query.ID, query.Query), func() {
-
-			for j := 0; j < query.Columns; j++ {
-				types = append(types, schema.SQLVarchar)
-			}
-
-			actual, err := runSQL(db, query.Query, types, nil)
-			So(err, ShouldBeNil)
-
-			expectedFile := pathify("testdata", "results", fmt.Sprintf("%v.csv", query.ID))
-
-			handle, err := os.OpenFile(expectedFile, os.O_RDONLY, os.ModeExclusive)
-			if err != nil {
-				panic(err)
-			}
-
-			r := csv.NewReader(handle)
-
-			r.FieldsPerRecord = query.Columns
-			data, err := r.ReadAll()
-			So(err, ShouldBeNil)
-
-			// TODO: check header as well
-			data = data[1:]
-			expected := make([][]interface{}, len(data))
-			for i, v := range data {
-				for _, s := range v {
-					expected[i] = append(expected[i], s)
-				}
-			}
-
-			compareResults(t, expected, actual)
-		})
-	}
 }
 
 func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error {

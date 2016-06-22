@@ -511,7 +511,8 @@ tasks:
           mkfifo test_pipe
           tee -a blackbox.suite < test_pipe&
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -blackbox -run TestBlackBox -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe;
+          ${gorootvars} ${library_path} ${gotest_env} go run testdata/blackbox.go ${gccgoflags} -out blackbox_test.go
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -run TestBlackBox -parallel 5 -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe;
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -541,7 +542,8 @@ tasks:
           mkfifo test_pipe
           tee -a blackbox-optoff.suite < test_pipe&
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test ${gccgoflags} -blackbox -run TestBlackBox -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe
+          ${gorootvars} ${library_path} ${gotest_env} go run testdata/blackbox.go ${gccgoflags} -out blackbox_test.go
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test ${gccgoflags} -run TestBlackBox -parallel 5 -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"

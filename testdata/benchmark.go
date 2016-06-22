@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
-	tpl "text/template"
+	"text/template"
 )
 
 var (
@@ -57,16 +58,16 @@ func main() {
 			if err == io.EOF {
 				break
 			}
-			panic(err)
+			panic(fmt.Errorf("decode: %v", err))
 		}
 		if q.ID == "" {
-			panic(err)
+			panic(fmt.Errorf("empty id"))
 		}
 		if q.Database == "" {
-			panic(err)
+			panic(fmt.Errorf("empty database"))
 		}
 		if q.Query == "" {
-			panic(err)
+			panic(fmt.Errorf("empty query"))
 		}
 		queries.Q = append(queries.Q, q)
 	}
@@ -74,8 +75,8 @@ func main() {
 	writeBenchmarkTestFile(fo, queries)
 }
 
-func template(content string, data interface{}, out io.Writer) {
-	tmpl, err := tpl.New("").Parse(content)
+func templateBenchmark(content string, data interface{}, out io.Writer) {
+	tmpl, err := template.New("").Parse(content)
 	if err != nil {
 		panic(err)
 	}
@@ -180,5 +181,5 @@ func BenchmarkQuery{{.ID}}(b *testing.B) {
 }
 {{end}}
 `
-	template(content, queries, out)
+	templateBenchmark(content, queries, out)
 }
