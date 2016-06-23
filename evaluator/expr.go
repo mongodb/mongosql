@@ -21,22 +21,20 @@ type SQLExpr interface {
 }
 
 //
+// SQLArithmetic is used to do arithmetic on all types.
+//
+type SQLArithmetic interface {
+	Int64() int64
+	Float64() float64
+}
+
+//
 // SQLValue is a SQLExpr with a value.
 //
 type SQLValue interface {
 	SQLExpr
+	SQLArithmetic
 	Value() interface{}
-}
-
-//
-// SQLNumeric is a numeric SQLValue.
-//
-type SQLNumeric interface {
-	SQLValue
-	Add(o SQLNumeric) SQLNumeric
-	Sub(o SQLNumeric) SQLNumeric
-	Product(o SQLNumeric) SQLNumeric
-	Float64() float64
 }
 
 // A base type for a binary node.
@@ -63,7 +61,7 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 	switch v := eval.(type) {
 	case SQLBool:
 		return bool(v), nil
-	case SQLNumeric:
+	case SQLInt, SQLFloat, SQLUint32:
 		return v.Float64() != float64(0), nil
 	case SQLVarchar:
 		// more info: http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
@@ -84,21 +82,21 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 type SQLAddExpr sqlBinaryNode
 
 func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := convertToSQLNumeric(add.left, ctx)
+	leftVal, err := add.left.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return SQLFalse, err
 	}
 
-	rightVal, err := convertToSQLNumeric(add.right, ctx)
+	rightVal, err := add.right.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return SQLFalse, err
 	}
 
-	if leftVal == nil || rightVal == nil {
+	if hasNullValue(leftVal, rightVal) {
 		return SQLNull, nil
 	}
 
-	return leftVal.Add(rightVal), nil
+	return NewSQLValue(leftVal.Float64()+rightVal.Float64(), preferentialType(leftVal, rightVal), schema.MongoNone)
 }
 
 func (add *SQLAddExpr) String() string {
@@ -308,25 +306,19 @@ func (ce SQLConvertExpr) Type() schema.SQLType {
 type SQLDivideExpr sqlBinaryNode
 
 func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := convertToSQLNumeric(div.left, ctx)
+	leftVal, err := div.left.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return SQLFalse, err
 	}
 
-	rightVal, err := convertToSQLNumeric(div.right, ctx)
+	rightVal, err := div.right.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return SQLFalse, err
 	}
 
-	if leftVal == nil || rightVal == nil {
+	if rightVal.Float64() == 0 || hasNullValue(leftVal, rightVal) {
 		return SQLNull, nil
 	}
-
-	if rightVal.Float64() == 0 {
-		// NOTE: this is per the mysql manual.
-		return SQLNull, nil
-	}
-
 	return SQLFloat(leftVal.Float64() / rightVal.Float64()), nil
 }
 
@@ -498,12 +490,12 @@ func (_ *SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
 type SQLIDivideExpr sqlBinaryNode
 
 func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := convertToSQLNumeric(div.left, ctx)
+	leftVal, err := div.left.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rightVal, err := convertToSQLNumeric(div.right, ctx)
+	rightVal, err := div.right.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -748,17 +740,17 @@ func (_ *SQLLikeExpr) Type() schema.SQLType {
 type SQLModExpr sqlBinaryNode
 
 func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := convertToSQLNumeric(mod.left, ctx)
+	leftVal, err := mod.left.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return SQLFalse, err
 	}
 
-	rightVal, err := convertToSQLNumeric(mod.right, ctx)
+	rightVal, err := mod.right.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return SQLFalse, err
 	}
 
-	if leftVal == nil || rightVal == nil || rightVal.Float64() == 0 {
+	if math.Abs(rightVal.Float64()) == 0 || hasNullValue(leftVal, rightVal) {
 		return SQLNull, nil
 	}
 
@@ -784,21 +776,21 @@ func (mod *SQLModExpr) Type() schema.SQLType {
 type SQLMultiplyExpr sqlBinaryNode
 
 func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := convertToSQLNumeric(mult.left, ctx)
+	leftVal, err := mult.left.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return SQLFalse, err
 	}
 
-	rightVal, err := convertToSQLNumeric(mult.right, ctx)
+	rightVal, err := mult.right.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return SQLFalse, err
 	}
 
-	if leftVal == nil || rightVal == nil {
+	if hasNullValue(leftVal, rightVal) {
 		return SQLNull, nil
 	}
 
-	return leftVal.Product(rightVal), nil
+	return NewSQLValue(leftVal.Float64()*rightVal.Float64(), preferentialType(leftVal, rightVal), schema.MongoNone)
 }
 
 func (mult *SQLMultiplyExpr) String() string {
@@ -1168,21 +1160,21 @@ func (se *SQLSubqueryExpr) Type() schema.SQLType {
 type SQLSubtractExpr sqlBinaryNode
 
 func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftVal, err := convertToSQLNumeric(sub.left, ctx)
+	leftVal, err := sub.left.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return SQLFalse, err
 	}
 
-	rightVal, err := convertToSQLNumeric(sub.right, ctx)
+	rightVal, err := sub.right.Evaluate(ctx)
 	if err != nil {
-		return nil, err
+		return SQLFalse, err
 	}
 
-	if leftVal == nil || rightVal == nil {
+	if hasNullValue(leftVal, rightVal) {
 		return SQLNull, nil
 	}
 
-	return leftVal.Sub(rightVal), nil
+	return NewSQLValue(leftVal.Float64()-rightVal.Float64(), preferentialType(leftVal, rightVal), schema.MongoNone)
 }
 
 func (sub *SQLSubtractExpr) String() string {
@@ -1245,16 +1237,9 @@ func (te SQLTupleExpr) Type() schema.SQLType {
 type SQLUnaryMinusExpr sqlUnaryNode
 
 func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	val, ok := um.operand.(SQLNumeric)
-	if !ok {
-		if operand, err := um.operand.Evaluate(ctx); err == nil {
-			val, ok = operand.(SQLNumeric)
-		}
-	}
-	if ok {
+	if val, err := um.operand.Evaluate(ctx); err == nil {
 		return NewSQLValue(-val.Float64(), um.Type(), schema.MongoNone)
 	}
-
 	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.operand)
 }
 
@@ -1272,7 +1257,7 @@ func (um *SQLUnaryMinusExpr) Type() schema.SQLType {
 type SQLUnaryTildeExpr sqlUnaryNode
 
 func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	if val, ok := td.operand.(SQLNumeric); ok {
+	if val, ok := td.operand.(SQLValue); ok {
 		return SQLInt(^round(val.Float64())), nil
 	}
 

@@ -76,7 +76,7 @@ func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 }
 
 func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
-	var sum SQLNumeric = SQLFloat(0)
+	sum := 0.0
 	count := 0
 	for _, row := range ctx.Rows {
 		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
@@ -100,11 +100,7 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 			}
 
 			count++
-
-			n, err := convertToSQLNumeric(eval, ctx)
-			if err == nil && n != nil {
-				sum = sum.Add(n)
-			}
+			sum += eval.Float64()
 		}
 	}
 
@@ -112,7 +108,7 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 		return SQLNull, nil
 	}
 
-	return SQLFloat(sum.Float64() / float64(count)), nil
+	return SQLFloat(sum / float64(count)), nil
 }
 
 func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
@@ -204,7 +200,7 @@ func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 
 func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
 
-	var sum SQLNumeric = SQLFloat(0)
+	sum := 0.0
 	allNull := true
 
 	for _, row := range ctx.Rows {
@@ -230,10 +226,7 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 				}
 			}
 
-			n, err := convertToSQLNumeric(eval, ctx)
-			if err == nil && n != nil {
-				sum = sum.Add(n)
-			}
+			sum += eval.Float64()
 		}
 	}
 
@@ -241,12 +234,12 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 		return SQLNull, nil
 	}
 
-	return SQLFloat(sum.Float64()), nil
+	return SQLFloat(sum), nil
 }
 
 func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]bool, isSamp bool) (SQLValue, error) {
-	var sum SQLNumeric = SQLFloat(0)
-	var data []SQLNumeric
+	sum := 0.0
+	var data []SQLValue
 	var diff float64 = 0.0
 	var avg float64
 	count := 0
@@ -272,12 +265,8 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 			}
 
 			count++
-
-			n, err := convertToSQLNumeric(eval, ctx)
-			if err == nil && n != nil {
-				sum = sum.Add(n)
-				data = append(data, n)
-			}
+			sum += eval.Float64()
+			data = append(data, eval)
 		}
 	}
 
@@ -285,7 +274,7 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 		return SQLNull, nil
 	}
 
-	avg = sum.Float64() / float64(count)
+	avg = sum / float64(count)
 
 	for _, val := range data {
 		diff += math.Pow(val.Float64()-avg, 2)

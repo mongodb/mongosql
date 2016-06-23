@@ -93,12 +93,7 @@ func (_ *absFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	numeric, ok := values[0].(SQLNumeric)
-	if !ok {
-		return SQLFloat(0), nil
-	}
-
-	result := math.Abs(numeric.Float64())
+	result := math.Abs(values[0].Float64())
 	return SQLFloat(result), nil
 }
 
@@ -350,9 +345,7 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		return SQLDate{Time: t}, nil
 
 	case string(parser.DATETIME_BYTES):
-		fmt.Println(values[0].String())
 		t, ok := parseDateTime(values[0].String())
-		fmt.Println(t)
 		if !ok {
 			return SQLNull, nil
 		}
@@ -488,12 +481,10 @@ type expFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_exp
 func (_ *expFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	n, ok := values[0].(SQLNumeric)
-	if !ok {
+	if anyNull(values) {
 		return SQLNull, nil
 	}
-
-	r := math.Exp(n.Float64())
+	r := math.Exp(values[0].Float64())
 	return SQLFloat(r), nil
 }
 
@@ -509,12 +500,10 @@ type floorFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_floor
 func (_ *floorFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	n, ok := values[0].(SQLNumeric)
-	if !ok {
+	if anyNull(values) {
 		return SQLNull, nil
 	}
-
-	r := math.Floor(n.Float64())
+	r := math.Floor(values[0].Float64())
 	return SQLFloat(r), nil
 }
 
@@ -559,7 +548,7 @@ func (_ *ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		}
 	case SQLDate, SQLTimestamp, SQLObjectID:
 		return values[1], nil
-	case SQLNumeric:
+	case SQLInt, SQLFloat:
 		v := typedV.Float64()
 		if v == 0 {
 			return values[2], nil
@@ -715,12 +704,8 @@ func (_ *locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	str := []rune(values[1].String())
 	result := 0
 	if len(values) == 3 {
-		posValue, ok := values[2].(SQLNumeric)
-		if !ok {
-			return SQLNull, nil
-		}
 
-		pos := int(posValue.Float64()) - 1 // MySQL uses 1 as a basis
+		pos := int(values[2].Float64()) - 1 // MySQL uses 1 as a basis
 
 		if len(str) <= pos {
 			result = 0
@@ -754,12 +739,7 @@ func (_ *log10Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		return SQLNull, nil
 	}
 
-	nValue, ok := values[0].(SQLNumeric)
-	if !ok {
-		return SQLNull, nil
-	}
-
-	n := nValue.Float64()
+	n := values[0].Float64()
 
 	if n <= 0 {
 		return SQLNull, nil
@@ -785,12 +765,7 @@ func (_ *log2Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	nValue, ok := values[0].(SQLNumeric)
-	if !ok {
-		return SQLNull, nil
-	}
-
-	n := nValue.Float64()
+	n := values[0].Float64()
 
 	if n <= 0 {
 		return SQLNull, nil
@@ -857,17 +832,8 @@ func (_ *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	nValue, ok := values[0].(SQLNumeric)
-	if !ok {
-		return SQLNull, nil
-	}
-
-	mValue, ok := values[1].(SQLNumeric)
-	if !ok {
-		return SQLNull, nil
-	}
-	n := nValue.Float64()
-	m := mValue.Float64()
+	n := values[0].Float64()
+	m := values[1].Float64()
 
 	if m == 0 {
 		return SQLNull, nil
@@ -938,12 +904,7 @@ func (_ *naturalLogFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 		return SQLNull, nil
 	}
 
-	nValue, ok := values[0].(SQLNumeric)
-	if !ok {
-		return SQLNull, nil
-	}
-
-	n := nValue.Float64()
+	n := values[0].Float64()
 
 	if n <= 0 {
 		return SQLNull, nil
@@ -1015,13 +976,7 @@ func (_ *powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	if bNum, ok := values[0].(SQLNumeric); ok {
-		if eNum, ok := values[1].(SQLNumeric); ok {
-			return SQLFloat(math.Pow(bNum.Float64(), eNum.Float64())), nil
-		}
-		return nil, fmt.Errorf("exponent must be a number, but got %t", values[1])
-	}
-	return nil, fmt.Errorf("base must be a number, but got %T", values[0])
+	return SQLFloat(math.Pow(values[0].Float64(), values[1].Float64())), nil
 }
 
 func (_ *powFunc) Type() schema.SQLType {
@@ -1069,11 +1024,7 @@ type rightFunc struct{}
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_right
 func (_ *rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	substring := &substringFunc{}
-	lenVal, ok := values[1].(SQLNumeric)
-	if !ok {
-		return SQLNull, nil
-	}
-	len := -1 * int(lenVal.Float64())
+	len := -1 * values[1].Int64()
 	return substring.Evaluate([]SQLValue{values[0], SQLInt(len)}, ctx)
 }
 
@@ -1114,19 +1065,11 @@ func (_ *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		return SQLNull, nil
 	}
 
-	baseValue, ok := values[0].(SQLNumeric)
-	if !ok {
-		return SQLNull, nil
-	}
-	base := baseValue.Float64()
+	base := values[0].Float64()
 
-	var decimal int
+	var decimal int64
 	if len(values) == 2 {
-		decimalValue, ok := values[1].(SQLNumeric)
-		if !ok {
-			return SQLFloat(int(base)), nil
-		}
-		decimal = int(decimalValue.Float64())
+		decimal = values[1].Int64()
 
 		if decimal < 0 {
 			return SQLFloat(0), nil
@@ -1172,12 +1115,11 @@ type sqrtFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_sqrt
 func (_ *sqrtFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	nValue, ok := values[0].(SQLNumeric)
-	if !ok {
+	if anyNull(values) {
 		return SQLNull, nil
 	}
 
-	n := nValue.Float64()
+	n := values[0].Float64()
 	if n < 0 {
 		return SQLNull, nil
 	}
@@ -1203,12 +1145,7 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	}
 
 	str := []rune(values[0].String())
-	posValue, ok := values[1].(SQLNumeric)
-	if !ok {
-		return SQLNull, nil
-	}
-
-	pos := int(posValue.Float64())
+	pos := int(values[1].Float64())
 
 	if pos > len(str) {
 		return SQLVarchar(""), nil
@@ -1223,12 +1160,7 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	}
 
 	if len(values) == 3 {
-		lenValue, ok := values[2].(SQLNumeric)
-		if !ok {
-			return SQLNull, nil
-		}
-
-		length := int(lenValue.Float64())
+		length := int(values[2].Float64())
 		if length < 1 {
 			return SQLVarchar(""), nil
 		}
@@ -1274,10 +1206,8 @@ func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 		return SQLNull, nil
 	}
 
-	v, ok := values[1].(SQLNumeric)
-	if !ok {
-		return SQLNull, nil
-	}
+	v := values[1]
+
 	_, ok = values[2].(SQLTimestamp)
 
 	switch values[0].(SQLValue).String() {
@@ -1573,7 +1503,7 @@ func runesIndex(r, sep []rune) int {
 }
 
 // roundToDecimalPlaces rounds base to d number of decimal places.
-func roundToDecimalPlaces(d int, base float64) float64 {
+func roundToDecimalPlaces(d int64, base float64) float64 {
 	var rounded float64
 	pow := math.Pow(10, float64(d))
 	digit := pow * base

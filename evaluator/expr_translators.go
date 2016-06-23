@@ -19,7 +19,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 	switch typedE := e.(type) {
 
 	case *SQLAddExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -563,7 +562,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 					return nil, false
 				}
 
-				placeVal, ok := bsonVal.(SQLNumeric)
+				placeVal, ok := bsonVal.(SQLValue)
 				if !ok {
 					return nil, false
 				}
@@ -614,7 +613,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				return nil, false
 			}
 
-			arg1Val, ok := bsonVal.(SQLNumeric)
+			arg1Val, ok := bsonVal.(SQLValue)
 			if !ok {
 				return nil, false
 			}
@@ -662,7 +661,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		// unsupported
 
 	case *SQLSubtractExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false

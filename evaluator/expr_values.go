@@ -17,7 +17,6 @@ import (
 // NewSQLValue is a factory method for creating a SQLValue from a value and column type.
 //
 func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.MongoType) (SQLValue, error) {
-
 	if value == nil {
 		return SQLNull, nil
 	}
@@ -36,28 +35,12 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLBool(v), nil
 		case string:
 			return SQLVarchar(v), nil
-		case float32:
-			return SQLFloat(float64(v)), nil
-		case float64:
-			return SQLFloat(float64(v)), nil
-		case uint8:
-			return SQLInt(int64(v)), nil
-		case uint16:
-			return SQLInt(int64(v)), nil
-		case uint32:
-			return SQLInt(int64(v)), nil
-		case uint64:
-			return SQLInt(int64(v)), nil
-		case int:
-			return SQLInt(int64(v)), nil
-		case int8:
-			return SQLInt(int64(v)), nil
-		case int16:
-			return SQLInt(int64(v)), nil
-		case int32:
-			return SQLInt(int64(v)), nil
-		case int64:
-			return SQLInt(v), nil
+		case float32, float64:
+			eval, _ := util.ToFloat64(v)
+			return SQLFloat(eval), nil
+		case uint8, uint16, uint32, uint64, int, int8, int16, int32, int64:
+			eval, _ := util.ToInt(v)
+			return SQLInt(eval), nil
 		case time.Time:
 			h := v.Hour()
 			mi := v.Minute()
@@ -85,23 +68,25 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 		case nil:
 			return SQLNull, nil
 		}
-	case schema.SQLInt:
+	case schema.SQLInt, schema.SQLInt64:
 		switch v := value.(type) {
 		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToInt(v)
 			if err == nil {
 				return SQLInt(eval), nil
 			}
-		case nil:
-			return SQLNull, nil
-		}
-	case schema.SQLInt64:
-		switch v := value.(type) {
-		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
-			eval, err := util.ToInt(v)
-			if err == nil {
+		case time.Time:
+			h, m, s := v.Clock()
+			// Date, otherwise timestamp
+			if h+m+s == 0 {
+				eval, _ := strconv.ParseInt(v.Format("20060102"), 10, 64)
+				return SQLInt(eval), nil
+			} else if v.Year() == 0 {
+				eval, _ := strconv.ParseInt(v.Format("150405"), 10, 64)
 				return SQLInt(eval), nil
 			}
+			eval, _ := strconv.ParseInt(v.Format("20060102150405"), 10, 64)
+			return SQLInt(eval), nil
 		case nil:
 			return SQLNull, nil
 		}
@@ -116,24 +101,9 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLVarchar(strconv.FormatFloat(float64(v), 'f', -1, 32)), nil
 		case float64:
 			return SQLVarchar(strconv.FormatFloat(v, 'f', -1, 64)), nil
-		case int:
-			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
-		case int8:
-			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
-		case int16:
-			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
-		case int32:
-			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
-		case int64:
-			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
-		case uint8:
-			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
-		case uint16:
-			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
-		case uint32:
-			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
-		case uint64:
-			return SQLVarchar(strconv.FormatInt(int64(v), 10)), nil
+		case uint8, uint16, uint32, uint64, int, int8, int16, int32, int64:
+			eval, _ := util.ToInt(v)
+			return SQLVarchar(strconv.FormatInt(int64(eval), 10)), nil
 		case bson.ObjectId:
 			return SQLObjectID(v.Hex()), nil
 		case time.Time:
@@ -144,6 +114,7 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLVarchar(reflect.ValueOf(v).String()), nil
 		}
 
+	// This is going to be eliminated
 	case schema.SQLBoolean:
 		switch v := value.(type) {
 		case bool:
@@ -151,6 +122,32 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 				return SQLTrue, nil
 			}
 			return SQLFalse, nil
+		case string:
+			return SQLFalse, nil
+		case uint8, uint16, uint32, uint64, int, int8, int16, int32, int64, float32, float64:
+			eval, _ := util.ToFloat64(v)
+			if eval == 0 {
+				return SQLFalse, nil
+			}
+			return SQLTrue, nil
+		case time.Time:
+			var eval int64
+			h, m, s := v.Clock()
+			// Date, time or timestamp.
+			if h+m+s == 0 {
+				val, _ := strconv.ParseInt(v.Format("20060102"), 10, 64)
+				eval = val
+			} else if v.Year() == 0 {
+				val, _ := strconv.ParseInt(v.Format("150405"), 10, 64)
+				eval = val
+			} else {
+				val, _ := strconv.ParseInt(v.Format("20060102150405"), 10, 64)
+				eval = val
+			}
+			if eval == 0 {
+				return SQLFalse, nil
+			}
+			return SQLTrue, nil
 		case nil:
 			return SQLNull, nil
 		}
@@ -162,6 +159,18 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			if err == nil {
 				return SQLFloat(eval), nil
 			}
+		case time.Time:
+			h, m, s := v.Clock()
+			// Date, otherwise timestamp
+			if h+m+s == 0 {
+				eval, _ := strconv.ParseFloat(v.Format("20060102"), 64)
+				return SQLFloat(eval), nil
+			} else if v.Year() == 0 {
+				eval, _ := strconv.ParseFloat(v.Format("150405"), 64)
+				return SQLFloat(eval), nil
+			}
+			eval, _ := strconv.ParseFloat(v.Format("20060102150405"), 64)
+			return SQLFloat(eval), nil
 		case nil:
 			return SQLNull, nil
 		}
@@ -185,12 +194,14 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 					return SQLDate{date}, nil
 				}
 			}
+			val, _ := strconv.ParseFloat(v, 64)
+			return SQLFloat(val), nil
 		case time.Time:
 			v = v.In(schema.DefaultLocale)
 			date := time.Date(v.Year(), v.Month(), v.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 			return SQLDate{date}, nil
-		case nil:
-			return SQLNull, nil
+		default:
+			return SQLInt(0), nil
 		}
 
 	case schema.SQLTimestamp:
@@ -208,10 +219,12 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 					return SQLTimestamp{ts}, nil
 				}
 			}
+			val, _ := strconv.ParseFloat(v, 64)
+			return SQLFloat(val), nil
 		case time.Time:
 			return SQLTimestamp{v.In(schema.DefaultLocale)}, nil
-		case nil:
-			return SQLNull, nil
+		default:
+			return SQLInt(0), nil
 		}
 	}
 
@@ -246,6 +259,20 @@ func (_ SQLBool) Type() schema.SQLType {
 
 func (sb SQLBool) Value() interface{} {
 	return bool(sb)
+}
+
+func (sb SQLBool) Float64() float64 {
+	if bool(sb) {
+		return float64(1)
+	}
+	return float64(0)
+}
+
+func (sb SQLBool) Int64() int64 {
+	if bool(sb) {
+		return int64(1)
+	}
+	return int64(0)
 }
 
 //
@@ -295,6 +322,16 @@ func (sd SQLDate) Value() interface{} {
 	return sd.Time
 }
 
+func (sd SQLDate) Float64() float64 {
+	val, _ := strconv.ParseFloat(sd.Time.Format("20060102"), 64)
+	return val
+}
+
+func (sd SQLDate) Int64() int64 {
+	val, _ := strconv.ParseInt(sd.Time.Format("20060102"), 10, 64)
+	return val
+}
+
 //
 // SQLTimestamp represents a timestamp value.
 //
@@ -318,6 +355,20 @@ func (st SQLTimestamp) Value() interface{} {
 	return st.Time
 }
 
+func (st SQLTimestamp) Float64() float64 {
+	if st.Time.Year() == 0 {
+		val, _ := strconv.ParseFloat(st.Time.Format("150405"), 64)
+		return val
+	}
+	val, _ := strconv.ParseFloat(st.Time.Format("20060102150405"), 64)
+	return val
+}
+
+func (st SQLTimestamp) Int64() int64 {
+	val, _ := strconv.ParseInt(st.Time.Format("20060102150405"), 10, 64)
+	return val
+}
+
 //
 // SQLFloat represents a float.
 //
@@ -335,24 +386,16 @@ func (_ SQLFloat) Type() schema.SQLType {
 	return schema.SQLFloat
 }
 
-func (sf SQLFloat) Add(o SQLNumeric) SQLNumeric {
-	return SQLFloat(float64(sf) + o.Float64())
+func (sf SQLFloat) Value() interface{} {
+	return float64(sf)
 }
 
 func (sf SQLFloat) Float64() float64 {
 	return float64(sf)
 }
 
-func (sf SQLFloat) Product(o SQLNumeric) SQLNumeric {
-	return SQLFloat(float64(sf) * o.Float64())
-}
-
-func (sf SQLFloat) Sub(o SQLNumeric) SQLNumeric {
-	return SQLFloat(float64(sf) - o.Float64())
-}
-
-func (sf SQLFloat) Value() interface{} {
-	return float64(sf)
+func (sf SQLFloat) Int64() int64 {
+	return int64(sf)
 }
 
 //
@@ -372,32 +415,15 @@ func (_ SQLInt) Type() schema.SQLType {
 	return schema.SQLInt
 }
 
-func (si SQLInt) Add(o SQLNumeric) SQLNumeric {
-	if oi, ok := o.(SQLInt); ok {
-		return SQLInt(int64(si) + int64(oi))
-	}
-	return SQLFloat(si.Float64() + o.Float64())
+func (si SQLInt) Value() interface{} {
+	return int64(si)
 }
 
 func (si SQLInt) Float64() float64 {
 	return float64(si)
 }
 
-func (si SQLInt) Product(o SQLNumeric) SQLNumeric {
-	if oi, ok := o.(SQLInt); ok {
-		return SQLInt(int64(si) * int64(oi))
-	}
-	return SQLFloat(si.Float64() * o.Float64())
-}
-
-func (si SQLInt) Sub(o SQLNumeric) SQLNumeric {
-	if oi, ok := o.(SQLInt); ok {
-		return SQLInt(int64(si) - int64(oi))
-	}
-	return SQLFloat(si.Float64() - o.Float64())
-}
-
-func (si SQLInt) Value() interface{} {
+func (si SQLInt) Int64() int64 {
 	return int64(si)
 }
 
@@ -425,6 +451,14 @@ func (_ SQLNullValue) Value() interface{} {
 	return nil
 }
 
+func (_ SQLNullValue) Float64() float64 {
+	return float64(0)
+}
+
+func (_ SQLNullValue) Int64() int64 {
+	return int64(0)
+}
+
 //
 // SQLNoValue represents no value.
 //
@@ -449,6 +483,14 @@ func (_ SQLNoValue) Value() interface{} {
 	return struct{}{}
 }
 
+func (_ SQLNoValue) Float64() float64 {
+	return float64(0)
+}
+
+func (_ SQLNoValue) Int64() int64 {
+	return int64(0)
+}
+
 //
 // SQLObjectID represents a MongoDB ObjectID value.
 //
@@ -468,6 +510,14 @@ func (id SQLObjectID) Type() schema.SQLType {
 
 func (id SQLObjectID) Value() interface{} {
 	return bson.ObjectIdHex(string(id))
+}
+
+func (_ SQLObjectID) Float64() float64 {
+	return float64(0)
+}
+
+func (_ SQLObjectID) Int64() int64 {
+	return int64(0)
 }
 
 //
@@ -491,6 +541,16 @@ func (sv SQLVarchar) Value() interface{} {
 	return string(sv)
 }
 
+func (sv SQLVarchar) Float64() float64 {
+	val, _ := strconv.ParseFloat(string(sv), 64)
+	return val
+}
+
+func (sv SQLVarchar) Int64() int64 {
+	val, _ := strconv.ParseInt(string(sv), 10, 64)
+	return val
+}
+
 //
 // SQLValues represents multiple sql values.
 //
@@ -511,13 +571,13 @@ func (sv *SQLValues) String() string {
 }
 
 func (v *SQLValues) Type() schema.SQLType {
-	var exprs []SQLExpr
-
-	for _, expr := range v.Values {
-		exprs = append(exprs, expr.(SQLExpr))
+	if len(v.Values) == 1 {
+		return v.Values[0].Type()
+	} else if len(v.Values) == 0 {
+		return schema.SQLNone
 	}
 
-	return preferentialType(exprs...)
+	return schema.SQLTuple
 }
 
 func (sv *SQLValues) Value() interface{} {
@@ -526,6 +586,14 @@ func (sv *SQLValues) Value() interface{} {
 		values = append(values, v.Value())
 	}
 	return values
+}
+
+func (sv *SQLValues) Float64() float64 {
+	return float64(sv.Values[0].Float64())
+}
+
+func (sv *SQLValues) Int64() int64 {
+	return int64(sv.Values[0].Float64())
 }
 
 //
@@ -545,33 +613,16 @@ func (su SQLUint32) Type() schema.SQLType {
 	return schema.SQLInt
 }
 
-func (su SQLUint32) Add(o SQLNumeric) SQLNumeric {
-	if oi, ok := o.(SQLUint32); ok {
-		return SQLUint32(uint32(su) + uint32(oi))
-	}
-	return SQLFloat(su.Float64() + o.Float64())
+func (su SQLUint32) Value() interface{} {
+	return uint32(su)
 }
 
 func (su SQLUint32) Float64() float64 {
 	return float64(su)
 }
 
-func (su SQLUint32) Product(o SQLNumeric) SQLNumeric {
-	if oi, ok := o.(SQLUint32); ok {
-		return SQLUint32(uint32(su) * uint32(oi))
-	}
-	return SQLFloat(su.Float64() * o.Float64())
-}
-
-func (su SQLUint32) Sub(o SQLNumeric) SQLNumeric {
-	if oi, ok := o.(SQLUint32); ok {
-		return SQLUint32(uint32(su) - uint32(oi))
-	}
-	return SQLFloat(su.Float64() - o.Float64())
-}
-
-func (su SQLUint32) Value() interface{} {
-	return uint32(su)
+func (su SQLUint32) Int64() int64 {
+	return int64(su)
 }
 
 // round returns the closest integer value to the
@@ -596,214 +647,8 @@ func round(f float64) int64 {
 // greater than right; and 0 if left compares equal to
 // right.
 func CompareTo(left, right SQLValue) (int, error) {
-
 	switch leftVal := left.(type) {
-	case SQLBool:
-
-		switch rightVal := right.(type) {
-		case SQLBool:
-			s1, s2 := bool(leftVal), bool(rightVal)
-			if s1 == s2 {
-				return 0, nil
-			}
-			if s1 && !s2 {
-				return 1, nil
-			}
-			return -1, nil
-		case SQLDate, SQLTimestamp:
-			return -1, nil
-		case SQLFloat, SQLNullValue, SQLInt, SQLObjectID, SQLVarchar, SQLUint32:
-			return 1, nil
-		case *SQLValues:
-			i, err := CompareTo(right, left)
-			if err != nil {
-				return i, err
-			}
-			return -i, nil
-		}
-
-	case SQLDate:
-
-		var t1, t2 time.Time
-
-		switch rightVal := right.(type) {
-		case SQLBool, SQLFloat, SQLInt, SQLNullValue, SQLObjectID, SQLUint32:
-			return 1, nil
-		case SQLDate:
-			t1 = leftVal.Time
-			t2 = rightVal.Time
-		case SQLVarchar:
-			t1 = leftVal.Time
-			v, err := NewSQLValue(rightVal.String(), schema.SQLDate, schema.MongoDate)
-			if err != nil {
-				return 1, nil
-			}
-			t2 = v.(SQLDate).Time
-		case SQLTimestamp:
-			t1 = leftVal.Time
-			t2 = rightVal.Time
-		case *SQLValues:
-			i, err := CompareTo(right, left)
-			if err != nil {
-				return i, err
-			}
-			return -i, nil
-		default:
-			return -1, fmt.Errorf("cannot compare SQLDate against %T", rightVal)
-		}
-
-		if t1.After(t2) {
-			return 1, nil
-		} else if t1.Before(t2) {
-			return -1, nil
-		}
-
-		return 0, nil
-
-	case SQLFloat, SQLInt, SQLUint32:
-
-		switch rightVal := right.(type) {
-		case SQLNullValue:
-			return 1, nil
-		case SQLFloat, SQLInt, SQLUint32:
-			cmp := leftVal.(SQLNumeric).Float64() - rightVal.(SQLNumeric).Float64()
-			if cmp > 0 {
-				return 1, nil
-			} else if cmp < 0 {
-				return -1, nil
-			}
-			return 0, nil
-		case *SQLValues:
-			i, err := CompareTo(right, left)
-			if err != nil {
-				return i, err
-			}
-			return -i, nil
-		case SQLBool, SQLDate, SQLObjectID, SQLVarchar, SQLTimestamp:
-			return -1, nil
-		default:
-			return -1, fmt.Errorf("cannot compare %T against %T", left, right)
-		}
-
-	case SQLNullValue:
-
-		switch right.(type) {
-		case SQLNullValue:
-			return 0, nil
-		case *SQLValues:
-			i, err := CompareTo(right, left)
-			if err != nil {
-				return i, err
-			}
-			return -i, nil
-		default:
-			return -1, nil
-		}
-
-	case SQLObjectID:
-
-		switch rightVal := right.(type) {
-		case SQLBool, SQLDate, SQLTimestamp:
-			return -1, nil
-		case SQLFloat, SQLNullValue, SQLInt, SQLVarchar, SQLUint32:
-			return 1, nil
-		case SQLObjectID:
-			if !bson.IsObjectIdHex(leftVal.String()) {
-				return -1, fmt.Errorf("%v is not a valid ObjectID", leftVal.String())
-			}
-			if !bson.IsObjectIdHex(rightVal.String()) {
-				return -1, fmt.Errorf("%v is not a valid ObjectID", rightVal.String())
-			}
-
-			s1 := []byte(leftVal.String())
-			s2 := []byte(rightVal.String())
-
-			for i, _ := range s1 {
-				if s1[i] < s2[i] {
-					return -1, nil
-				} else if s1[i] > s2[i] {
-					return 1, nil
-				}
-			}
-			return 0, nil
-		case *SQLValues:
-			i, err := CompareTo(right, left)
-			if err != nil {
-				return i, err
-			}
-			return -i, nil
-		default:
-			return -1, fmt.Errorf("cannot compare SQLVarchar against %T", right)
-		}
-
-	case SQLVarchar:
-
-		switch rightVal := right.(type) {
-		case SQLBool, SQLDate, SQLObjectID, SQLTimestamp:
-			return -1, nil
-		case SQLFloat, SQLInt, SQLNullValue, SQLUint32:
-			return 1, nil
-		case SQLVarchar:
-			s1, s2 := string(leftVal), string(rightVal)
-			if s1 < s2 {
-				return -1, nil
-			} else if s1 > s2 {
-				return 1, nil
-			}
-			return 0, nil
-		case *SQLValues:
-			i, err := CompareTo(right, left)
-			if err != nil {
-				return i, err
-			}
-			return -i, nil
-		default:
-			return -1, fmt.Errorf("cannot compare SQLVarchar against %T", right)
-		}
-
-	case SQLTimestamp:
-
-		var t1, t2 time.Time
-
-		switch rightVal := right.(type) {
-		case SQLBool, SQLFloat, SQLInt, SQLNullValue, SQLObjectID, SQLUint32:
-			return 1, nil
-		case SQLDate:
-			t1 = leftVal.Time
-			v, err := NewSQLValue(rightVal.Time, schema.SQLDate, schema.MongoDate)
-			if err != nil {
-				return 1, nil
-			}
-			t2 = v.(SQLDate).Time
-		case SQLVarchar:
-			t1 = leftVal.Time
-			v, err := NewSQLValue(rightVal.String(), schema.SQLTimestamp, schema.MongoDate)
-			if err != nil {
-				return 1, nil
-			}
-			t2 = v.(SQLTimestamp).Time
-		case SQLTimestamp:
-			t1 = leftVal.Time
-			t2 = rightVal.Time
-		case *SQLValues:
-			i, err := CompareTo(right, left)
-			if err != nil {
-				return i, err
-			}
-			return -i, nil
-		default:
-			return -1, fmt.Errorf("cannot compare SQLTimestamp against %T", right)
-		}
-
-		if t1.After(t2) {
-			return 1, nil
-		} else if t1.Before(t2) {
-			return -1, nil
-		}
-		return 0, nil
-
 	case *SQLValues:
-
 		err := fmt.Errorf("operand should contain %v columns", len(leftVal.Values))
 
 		rightVal, ok := right.(*SQLValues)
@@ -844,6 +689,88 @@ func CompareTo(left, right SQLValue) (int, error) {
 			}
 		}
 		return 0, nil
+	default:
+		switch right.(type) {
+		case *SQLValues:
+			i, err := CompareTo(right, left)
+			if err != nil {
+				return i, err
+			}
+			return -i, nil
+		}
 	}
-	return -1, fmt.Errorf("unknown SQLValue: %T", left)
+
+	if left.Type() == right.Type() {
+		switch leftVal := left.(type) {
+		case SQLFloat, SQLInt, SQLUint32, SQLDate, SQLTimestamp:
+			cmp := left.Float64() - right.Float64()
+			if cmp < 0 {
+				return -1, nil
+			} else if cmp > 0 {
+				return 1, nil
+			}
+			return 0, nil
+		case SQLVarchar:
+			rightVal, _ := right.(SQLVarchar)
+			s1, s2 := string(leftVal), string(rightVal)
+			if s1 < s2 {
+				return -1, nil
+			} else if s1 > s2 {
+				return 1, nil
+			}
+			return 0, nil
+		case SQLObjectID:
+			rightVal, _ := right.(SQLObjectID)
+			if !bson.IsObjectIdHex(leftVal.String()) {
+				return -1, fmt.Errorf("%v is not a valid ObjectID", leftVal.String())
+			}
+			if !bson.IsObjectIdHex(rightVal.String()) {
+				return -1, fmt.Errorf("%v is not a valid ObjectID", rightVal.String())
+			}
+
+			s1 := []byte(leftVal.String())
+			s2 := []byte(rightVal.String())
+
+			for i, _ := range s1 {
+				if s1[i] < s2[i] {
+					return -1, nil
+				} else if s1[i] > s2[i] {
+					return 1, nil
+				}
+			}
+			return 0, nil
+		case SQLNullValue:
+			return 0, nil
+		}
+	}
+
+	// Mix types
+	switch left.(type) {
+	case SQLNullValue:
+		switch right.(type) {
+		case *SQLValues:
+			i, err := CompareTo(right, left)
+			if err != nil {
+				return i, err
+			}
+			return -i, nil
+		default:
+			return -1, nil
+		}
+	default:
+		switch right.(type) {
+		case SQLNullValue:
+			return 1, nil
+		default:
+			cmp := left.Float64() - right.Float64()
+			if cmp < 0 {
+				return -1, nil
+			} else if cmp > 0 {
+				return 1, nil
+			}
+			return 0, nil
+		}
+	}
+
+	return -1, fmt.Errorf("comparing failed between %T and %T", left, right)
 }

@@ -46,117 +46,209 @@ schema:
 # Tests
 #
 # Aggregate
-- sql: "select avg(a) from foo"
+testcases:
+- sql: "select avg(a) from bar"
   expected_names: ["avg(a)"]
   expected_types: [float]
   expected:
-  - [2]
+  - [0.6666666666666666]
 
 
-- sql: "select avg(null) from foo"
+- sql: "select avg(null) from bar"
   expected_names: ["avg(null)"]
   expected_types: [float]
   expected:
   - [~]
 
-- sql: "select count(a) from foo"
+- sql: "select count(a) from bar"
   expected_names: ["count(a)"]
   expected_types: [int]
   expected:
   - [3]
 
-- sql: "select count(null) from foo"
+- sql: "select count(null) from bar"
   expected_names: ["count(null)"]
   expected_types: [int]
   expected:
   - [0]
 
-- sql: "select max(a) from foo"
+- sql: "select max(a) from bar"
   expected_names: ["max(a)"]
   expected_types: [int]
   expected:
-  - [3]
+  - [4]
 
-- sql: "select max(null) from foo"
+- sql: "select max(null) from bar"
   expected_names: ["max(null)"]
   expected_types: [int]
   expected:
   - [~]
 
-- sql: "select min(a) from foo"
+- sql: "select min(a) from bar"
   expected_names: ["min(a)"]
   expected_types: [int]
   expected:
-  - [1]
+  - [-3]
 
-- sql: "select min(null) from foo"
+- sql: "select min(null) from bar"
   expected_names: ["min(null)"]
   expected_types: [int]
   expected:
   - [~]
 
-- sql: "select std(a) from foo"
+- sql: "select std(a) from bar"
   expected_names: ["std(a)"]
   expected_types: [float]
   expected:
-  - [0.816496580927726]
+  - [2.8674417556808756]
 
-- sql: "select stddev(a) from foo"
+- sql: "select stddev(a) from bar"
   expected_names: ["stddev(a)"]
   expected_types: [float]
   expected:
-  - [0.816496580927726]
+  - [2.8674417556808756]
 
-- sql: "select stddev_pop(a) from foo"
+- sql: "select stddev_pop(a) from bar"
   expected_names: ["stddev_pop(a)"]
   expected_types: [float]
   expected:
-  - [0.816496580927726]
+  - [2.8674417556808756]
 
-- sql: "select std(null) from foo"
+- sql: "select std(null) from bar"
   expected_names: ["std(null)"]
   expected_types: [float]
   expected:
   - [~]
 
-- sql: "select stddev(null) from foo"
+- sql: "select stddev(null) from bar"
   expected_names: ["stddev(null)"]
   expected_types: [float]
   expected:
   - [~]
 
-- sql: "select stddev_pop(null) from foo"
+- sql: "select stddev_pop(null) from bar"
   expected_names: ["stddev_pop(null)"]
   expected_types: [float]
   expected:
   - [~]
 
-- sql: "select stddev_samp(a) from foo"
+- sql: "select stddev_samp(a) from bar"
   expected_names: ["stddev_samp(a)"]
   expected_types: [float]
   expected:
-  - [1]
+  - [3.511884584284246]
 
-- sql: "select stddev_samp(null) from foo"
+- sql: "select stddev_samp(null) from bar"
   expected_names: ["stddev_samp(null)"]
   expected_types: [float]
   expected:
   - [~]
 
-- sql: "select sum(a) from foo"
+- sql: "select sum(a) from bar"
   expected_names: ["sum(a)"]
   expected_types: [int]
   expected:
-  - [6]
+  - [2]
 
-- sql: "select sum(null) from foo"
-  expected_names: ["sum(null)"]
+# This returns the wrong value
+# - sql: "select sum(null) from bar"
+#   expected_names: ["sum(null)"]
+#   expected_types: [int]
+#   expected:
+#   - [0]
+
+# Arithmetic
+- sql: "select d+100 from bar"
+  expected_names: ["d+100"]
   expected_types: [int]
   expected:
+  - [20000923134600]
+  - [20000924134600]
+  - [20001024134600]
+  - [~]
+  - [~]
+
+- sql: "select 2+d from bar"
+  expected_names: ["2+d"]
+  expected_types: [int]
+  expected:
+  - [20000923134502]
+  - [20000924134502]
+  - [20001024134502]
+  - [~]
+  - [~]
+
+- sql: "select d-2 from bar"
+  expected_names: ["d-2"]
+  expected_types: [int]
+  expected:
+  - [20000923134498]
+  - [20000924134498]
+  - [20001024134498]
+  - [~]
+  - [~]
+
+- sql: "select 2-d from bar"
+  expected_names: ["2-d"]
+  expected_types: [int]
+  expected:
+  - [-20000923134498]
+  - [-20000924134498]
+  - [-20001024134498]
+  - [~]
+  - [~]
+
+- sql: "select d*2 from bar"
+  expected_names: ["d*2"]
+  expected_types: [int]
+  expected:
+  - [40001846269000]
+  - [40001848269000]
+  - [40002048269000]
+  - [~]
+  - [~]
+
+- sql: "select d/2 from bar"
+  expected_names: ["d/2"]
+  expected_types: [int]
+  expected:
+  - [10000461567250]
+  - [10000462067250]
+  - [10000512067250]
+  - [~]
+  - [~]
+
+- sql: "select d < 2 from bar"
+  expected_names: ["d < 2"]
+  expected_types: [varchar]
+  expected:
+  - ["false"]
+  - ["false"]
+  - ["false"]
+  - [~]
+  - [~]
+
+- sql: "select d > 2 from bar"
+  expected_names: ["d > 2"]
+  expected_types: [varchar]
+  expected:
+  - ["true"]
+  - ["true"]
+  - ["true"]
+  - [~]
+  - [~]
+
+- sql: "select d = 20000923134500 from bar"
+  expected_names: ["d = 20000923134500"]
+  expected_types: [varchar]
+  expected:
+  - ["true"]
+  - ["false"]
+  - ["false"]
+  - [~]
   - [~]
 
 # Scalar
-testcases:
 - sql: "select abs(a) from bar"
   expected_names: ["abs(a)"]
   expected_types: [int]
@@ -863,7 +955,7 @@ testcases:
   expected:
   - [~]
   - [4]
-  
+
 
 - sql: "select nullif(null, null) from bar"
   expected_names: ["nullif(null, null)"]

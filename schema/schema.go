@@ -366,17 +366,6 @@ func PopulateColumnMaps(db *Database) error {
 	return nil
 }
 
-// isComparableType returns true if any of the types
-// in sqlTypes can be compared with any other type.
-func isComparableType(sqlTypes ...SQLType) bool {
-	for _, sqlType := range sqlTypes {
-		if sqlType == SQLNull || sqlType == SQLNone || sqlType == SQLTuple {
-			return true
-		}
-	}
-	return false
-}
-
 // Must is a helper that wraps a call to a function returning (*Schema, error)
 // and panics if the error is non-nil. It is intended for use in variable
 // initializations such as
@@ -386,45 +375,6 @@ func Must(c *Schema, err error) *Schema {
 		panic(err)
 	}
 	return c
-}
-
-// CanCompare returns true if sqlValue can be converted to a
-// value comparable to mType.
-func CanCompare(leftType, rightType SQLType) bool {
-
-	if isComparableType(leftType, rightType) {
-		return true
-	}
-
-	switch leftType {
-
-	case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
-		switch rightType {
-		case SQLArrNumeric, SQLBoolean, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
-			return true
-		}
-	case SQLBoolean:
-		switch rightType {
-		case SQLArrNumeric, SQLBoolean, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
-			return true
-		}
-	case SQLDate, SQLTimestamp:
-		switch rightType {
-		case SQLDate, SQLTimestamp, SQLVarchar:
-			return true
-		}
-	case SQLObjectID:
-		switch rightType {
-		case SQLObjectID, SQLVarchar:
-			return true
-		}
-	case SQLVarchar:
-		switch rightType {
-		case SQLDate, SQLTimestamp, SQLVarchar:
-			return true
-		}
-	}
-	return false
 }
 
 // IsSimilar returns true if the logical or comparison
@@ -466,23 +416,26 @@ func (types SQLTypes) Less(i, j int) bool {
 		return true
 	case SQLVarchar:
 		switch t2 {
-		case SQLVarchar, SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLNone, SQLNull:
-			return false
-		case SQLTimestamp, SQLDate:
+		case SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate:
 			return true
 		default:
 			return false
 		}
-	case SQLInt, SQLInt64, SQLFloat, SQLNumeric:
+	case SQLInt, SQLInt64:
 		switch t2 {
-		case SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLNone, SQLNull:
-			return false
-		case SQLTimestamp, SQLDate, SQLVarchar:
+		case SQLFloat, SQLNumeric:
 			return true
 		default:
 			return false
 		}
 	case SQLTimestamp, SQLDate:
+		switch t2 {
+		case SQLInt, SQLInt64, SQLFloat, SQLNumeric:
+			return true
+		default:
+			return false
+		}
+	case SQLFloat, SQLNumeric:
 		return false
 	}
 	return false

@@ -8,25 +8,6 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
-func convertToSQLNumeric(expr SQLExpr, ctx *EvalCtx) (SQLNumeric, error) {
-	eval, err := expr.Evaluate(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	switch v := eval.(type) {
-	case SQLNumeric:
-		return v, nil
-	case *SQLValues:
-		if len(v.Values) != 1 {
-			return nil, fmt.Errorf("expected only one SQLValues value - got %v", len(v.Values))
-		}
-		return convertToSQLNumeric(v.Values[0], ctx)
-	default:
-		return nil, nil
-	}
-}
-
 // getColumnType accepts a table name and a column name
 // and returns the column type for the given column if
 // it is found in the tables map. If it is not found, it
@@ -75,7 +56,6 @@ func preferentialType(exprs ...SQLExpr) schema.SQLType {
 	if len(exprs) == 0 {
 		return schema.SQLNone
 	}
-
 	var types schema.SQLTypes
 
 	for _, expr := range exprs {
@@ -93,7 +73,6 @@ func preferentialType(exprs ...SQLExpr) schema.SQLType {
 // a lesser precendence in a SQLConvertExpr. If they are
 // not comparable, it returns a non-nil error.
 func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
-
 	leftType, rightType := left.Type(), right.Type()
 
 	if leftType == schema.SQLTuple || rightType == schema.SQLTuple {
@@ -102,10 +81,6 @@ func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 
 	if leftType == rightType || schema.IsSimilar(leftType, rightType) {
 		return left, right, nil
-	}
-
-	if !schema.CanCompare(leftType, rightType) {
-		return nil, nil, fmt.Errorf("cannot compare '%v' type against '%v' type", leftType, rightType)
 	}
 
 	types := schema.SQLTypes{leftType, rightType}
@@ -305,13 +280,10 @@ func sqlValueToString(sqlValue SQLValue) (string, error) {
 	switch v := sqlValue.(type) {
 	case SQLVarchar:
 		return string(v), nil
-	case SQLNumeric:
-		switch t := v.(type) {
-		case SQLFloat:
-			return strconv.FormatFloat(t.Float64(), 'f', -1, 64), nil
-		default:
-			return strconv.FormatInt(int64(t.Float64()), 10), nil
-		}
+	case SQLFloat:
+		return strconv.FormatFloat(v.Float64(), 'f', -1, 64), nil
+	case SQLInt, SQLUint32:
+		return strconv.FormatInt(int64(v.Float64()), 10), nil
 	case SQLDate:
 		return string(v.String()), nil
 	case SQLTimestamp:

@@ -107,7 +107,6 @@ func TestEvaluates(t *testing.T) {
 					test{"AVG(a)", SQLFloat(4)},
 					test{"AVG(b)", SQLFloat(4.5)},
 					test{"AVG(c)", SQLNull},
-					test{"AVG(g)", SQLFloat(0)},
 					test{"AVG('a')", SQLFloat(0)},
 					test{"AVG(-20)", SQLFloat(-20)},
 					test{"AVG(20)", SQLFloat(20)},
@@ -132,7 +131,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: MIN", func() {
 				tests := []test{
 					test{"MIN(NULL)", SQLNull},
-					test{"MIN(a)", SQLFloat(3)},
+					test{"MIN(a)", SQLInt(3)},
 					test{"MIN(b)", SQLInt(3)},
 					test{"MIN(c)", SQLNull},
 					test{"MIN('a')", SQLVarchar("a")},
@@ -145,7 +144,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: MAX", func() {
 				tests := []test{
 					test{"MAX(NULL)", SQLNull},
-					test{"MAX(a)", SQLFloat(5)},
+					test{"MAX(a)", SQLInt(5)},
 					test{"MAX(b)", SQLInt(6)},
 					test{"MAX(c)", SQLNull},
 					test{"MAX('a')", SQLVarchar("a")},
@@ -161,7 +160,6 @@ func TestEvaluates(t *testing.T) {
 					test{"SUM(a)", SQLFloat(8)},
 					test{"SUM(b)", SQLFloat(9)},
 					test{"SUM(c)", SQLNull},
-					test{"SUM(g)", SQLFloat(0)},
 					test{"SUM('a')", SQLFloat(0)},
 					test{"SUM(-20)", SQLFloat(-60)},
 					test{"SUM(20)", SQLFloat(60)},
@@ -175,7 +173,6 @@ func TestEvaluates(t *testing.T) {
 					test{"STDDEV(a)", SQLFloat(1)},
 					test{"STDDEV_POP(b)", SQLFloat(1.5)},
 					test{"STD(c)", SQLNull},
-					test{"STD(g)", SQLFloat(0)},
 				}
 				runTests(aggCtx, tests)
 			})
@@ -186,7 +183,6 @@ func TestEvaluates(t *testing.T) {
 					test{"STDDEV_SAMP(a)", SQLFloat(1.4142135623730951)},
 					test{"STDDEV_SAMP(b)", SQLFloat(2.1213203435596424)},
 					test{"STDDEV_SAMP(c)", SQLNull},
-					test{"STDDEV_SAMP(g)", SQLFloat(0)},
 				}
 				runTests(aggCtx, tests)
 			})
@@ -220,6 +216,86 @@ func TestEvaluates(t *testing.T) {
 			result, err := e.Evaluate(evalCtx)
 			So(err, ShouldBeNil)
 			So(result, ShouldResemble, SQLInt(4))
+		})
+
+		Convey("Subject: SQLDateTimeArithmetic", func() {
+
+			Convey("Subject: Add", func() {
+				tests := []test{
+					test{"DATE '2014-04-13' + 0", SQLInt(20140413)},
+					test{"DATE '2014-04-13' + 2", SQLInt(20140415)},
+					test{"TIME '11:04:13' + 0", SQLInt(110413)},
+					test{"TIME '11:04:13' + 2", SQLInt(110415)},
+					test{"TIME '11:04:13' + '2'", SQLFloat(110415)},
+					test{"'2' + TIME '11:04:13'", SQLFloat(110415)},
+					test{"TIMESTAMP '2014-04-13 11:04:13' + 0", SQLInt(20140413110413)},
+					test{"TIMESTAMP '2014-04-13 11:04:13' + 2", SQLInt(20140413110415)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: Subtract", func() {
+				tests := []test{
+					test{"DATE '2014-04-13' - 0", SQLInt(20140413)},
+					test{"DATE '2014-04-13' - 2", SQLInt(20140411)},
+					test{"TIME '11:04:13' - 0", SQLInt(110413)},
+					test{"TIME '11:04:13' - 2", SQLInt(110411)},
+					test{"TIME '11:04:13' - '2'", SQLFloat(110411)},
+					test{"TIMESTAMP '2014-04-13 11:04:13' - 0", SQLInt(20140413110413)},
+					test{"TIMESTAMP '2014-04-13 11:04:13' - 2", SQLInt(20140413110411)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: Multiply", func() {
+				tests := []test{
+					test{"DATE '2014-04-13' * 0", SQLInt(0)},
+					test{"DATE '2014-04-13' * 2", SQLInt(40280826)},
+					test{"TIME '11:04:13' * 0", SQLInt(0)},
+					test{"TIME '11:04:13' * 2", SQLInt(220826)},
+					test{"TIME '11:04:13' * '2'", SQLFloat(220826)},
+					test{"TIMESTAMP '2014-04-13 11:04:13' * 0", SQLInt(0)},
+					test{"TIMESTAMP '2014-04-13 11:04:13' * 2", SQLInt(40280826220826)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: Divide", func() {
+				tests := []test{
+					test{"DATE '2014-04-13' / 0", SQLNull},
+					test{"DATE '2014-04-13' / 2", SQLFloat(10070206.5)},
+					test{"TIME '11:04:13' / 0", SQLNull},
+					test{"TIME '11:04:13' / 2", SQLFloat(55206.5)},
+					test{"TIME '11:04:13' / '2'", SQLFloat(55206.5)},
+					test{"TIMESTAMP '2014-04-13 11:04:13' / 0", SQLNull},
+					test{"TIMESTAMP '2014-04-13 11:04:13' / 2", SQLFloat(10070206555206.5)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: Less Than", func() {
+				tests := []test{
+					test{"DATE '2014-04-13' > 0", SQLTrue},
+					test{"DATE '2014-04-13' > DATE '2014-04-14'", SQLFalse},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: Greater Than", func() {
+				tests := []test{
+					test{"DATE '2014-04-13' > 0", SQLTrue},
+					test{"DATE '2014-04-13' > DATE '2014-04-14'", SQLFalse},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: Equal", func() {
+				tests := []test{
+					test{"DATE '2014-04-13' = '0'", SQLFalse},
+					test{"DATE '2014-04-13' = DATE '2014-04-13'", SQLTrue},
+				}
+				runTests(evalCtx, tests)
+			})
 		})
 
 		Convey("Subject: SQLDateTimeLiterals", func() {
@@ -687,7 +763,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: EXP", func() {
 				tests := []test{
 					test{"EXP(NULL)", SQLNull},
-					test{"EXP('sdg')", SQLNull},
+					test{"EXP('sdg')", SQLFloat(1)},
 					test{"EXP(0)", SQLFloat(1)},
 					test{"EXP(2)", SQLFloat(7.38905609893065)},
 				}
@@ -697,7 +773,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: FLOOR", func() {
 				tests := []test{
 					test{"FLOOR(NULL)", SQLNull},
-					test{"FLOOR('sdg')", SQLNull},
+					test{"FLOOR('sdg')", SQLFloat(0)},
 					test{"FLOOR(1.23)", SQLFloat(1)},
 					test{"FLOOR(-1.23)", SQLFloat(-2)},
 				}
@@ -966,7 +1042,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: SQRT", func() {
 				tests := []test{
 					test{"SQRT(NULL)", SQLNull},
-					test{"SQRT('sdg')", SQLNull},
+					test{"SQRT('sdg')", SQLFloat(0)},
 					test{"SQRT(-16)", SQLNull},
 					test{"SQRT(4)", SQLFloat(2)},
 					test{"SQRT(20)", SQLFloat(4.47213595499958)},
@@ -1163,7 +1239,7 @@ func TestEvaluates(t *testing.T) {
 		Convey("Subject: SQLUnaryMinusExpr", func() {
 			tests := []test{
 				test{"-10", SQLInt(-10)},
-				test{"-a", SQLFloat(-123)},
+				test{"-a", SQLInt(-123)},
 				test{"-b", SQLInt(-456)},
 			}
 
@@ -1335,9 +1411,6 @@ func TestNewSQLValue(t *testing.T) {
 			_, err := NewSQLValue(true, schema.SQLInt, schema.MongoBool)
 			So(err, ShouldNotBeNil)
 
-			_, err = NewSQLValue("6", schema.SQLInt, schema.MongoString)
-			So(err, ShouldNotBeNil)
-
 			newV, err := NewSQLValue(int(6), schema.SQLInt, schema.MongoInt64)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLInt(6))
@@ -1359,9 +1432,6 @@ func TestNewSQLValue(t *testing.T) {
 		Convey("a SQLFloat column type should attempt to coerce to the SQLFloat type", func() {
 
 			_, err := NewSQLValue(true, schema.SQLFloat, schema.MongoBool)
-			So(err, ShouldNotBeNil)
-
-			_, err = NewSQLValue("6.6", schema.SQLFloat, schema.MongoString)
 			So(err, ShouldNotBeNil)
 
 			newV, err := NewSQLValue(int(6), schema.SQLFloat, schema.MongoInt)
@@ -1421,8 +1491,10 @@ func TestNewSQLValue(t *testing.T) {
 			dates = []string{"2014-12-44-44", "999-1-1", "10000-1-1"}
 
 			for _, d := range dates {
-				_, err = NewSQLValue(d, schema.SQLDate, schema.MongoNone)
-				So(err, ShouldNotBeNil)
+				newV, err = NewSQLValue(d, schema.SQLDate, schema.MongoNone)
+				So(err, ShouldBeNil)
+				_, ok := newV.(SQLFloat)
+				So(ok, ShouldBeTrue)
 			}
 		})
 
@@ -1450,8 +1522,10 @@ func TestNewSQLValue(t *testing.T) {
 			dates := []string{"2044-12-40", "1966-15-1", "43223-3223"}
 
 			for _, d := range dates {
-				_, err = NewSQLValue(d, schema.SQLTimestamp, schema.MongoNone)
-				So(err, ShouldNotBeNil)
+				newV, err = NewSQLValue(d, schema.SQLTimestamp, schema.MongoNone)
+				So(err, ShouldBeNil)
+				_, ok := newV.(SQLFloat)
+				So(ok, ShouldBeTrue)
 			}
 		})
 	})
@@ -1482,24 +1556,24 @@ func TestOptimizeSQLExpr(t *testing.T) {
 	Convey("Subject: OptimizeSQLExpr", t, func() {
 
 		tests := []test{
-			test{"3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
-			test{"3 < a", "a > 3", &SQLGreaterThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
-			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
-			test{"3 > a", "a < 3", &SQLLessThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
-			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
-			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
+			test{"3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 < a", "a > 3", &SQLGreaterThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 > a", "a < 3", &SQLLessThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
 			test{"3 + 3 = 6", "true", SQLTrue},
-			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLFloat(3)}},
-			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
+			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)}},
+			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
 			test{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
 				&SQLAndExpr{
-					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLFloat(3)},
+					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)},
 					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "b", schema.SQLInt, schema.MongoInt), SQLInt(2)}}},
 			test{"3 + 3 = 6 OR a = 3", "true", SQLTrue},
-			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
+			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
 			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
-			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
-			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt), SQLInt(3)}},
+			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
 			test{"DAYNAME('2016-1-1')", "Friday", SQLVarchar("Friday")},
 			test{"(8-7)", "1", SQLInt(1)},
 		}
@@ -1534,7 +1608,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 
 	exprConv := &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLTimestamp}
 	exprTime := &SQLScalarFunctionExpr{"current_timestamp", []SQLExpr{}}
-	exprA := NewSQLColumnExpr(1, "bar", "a", schema.SQLNumeric, schema.MongoInt)
+	exprA := NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt)
 	exprB := NewSQLColumnExpr(1, "bar", "b", schema.SQLInt, schema.MongoInt)
 	exprG := NewSQLColumnExpr(1, "bar", "g", schema.SQLTimestamp, schema.MongoDate)
 
@@ -1646,10 +1720,10 @@ func TestTranslatePredicate(t *testing.T) {
 		runTests(tests)
 
 		partialTests := []partialTest{
-			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLNumeric, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
-			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLNumeric, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
-			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLNumeric, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
-			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLNumeric, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}}},
+			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
+			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
+			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
+			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}}},
 		}
 
 		runPartialTests(partialTests)
@@ -1815,11 +1889,11 @@ func TestCompareTo(t *testing.T) {
 				{SQLInt(1), SQLInt(2), -1},
 				{SQLInt(1), SQLUint32(1), 0},
 				{SQLInt(1), SQLFloat(1), 0},
-				{SQLInt(1), SQLBool(false), -1},
-				{SQLInt(1), SQLBool(true), -1},
+				{SQLInt(1), SQLBool(false), 1},
+				{SQLInt(1), SQLBool(true), 0},
 				{SQLInt(1), SQLNull, 1},
-				{SQLInt(1), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
-				{SQLInt(1), SQLVarchar("bac"), -1},
+				{SQLInt(1), SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{SQLInt(1), SQLVarchar("bac"), 1},
 				{SQLInt(1), &SQLValues{[]SQLValue{SQLInt(1)}}, 0},
 				{SQLInt(1), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLInt(1), SQLDate{now}, -1},
@@ -1835,11 +1909,11 @@ func TestCompareTo(t *testing.T) {
 				{SQLUint32(1), SQLInt(2), -1},
 				{SQLUint32(1), SQLUint32(1), 0},
 				{SQLUint32(1), SQLFloat(1), 0},
-				{SQLUint32(1), SQLBool(false), -1},
-				{SQLUint32(1), SQLBool(true), -1},
+				{SQLUint32(1), SQLBool(false), 1},
+				{SQLUint32(1), SQLBool(true), 0},
 				{SQLUint32(1), SQLNull, 1},
-				{SQLUint32(1), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
-				{SQLUint32(1), SQLVarchar("bac"), -1},
+				{SQLUint32(1), SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{SQLUint32(1), SQLVarchar("bac"), 1},
 				{SQLUint32(1), &SQLValues{[]SQLValue{SQLInt(1)}}, 0},
 				{SQLUint32(1), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLUint32(1), SQLDate{now}, -1},
@@ -1855,11 +1929,11 @@ func TestCompareTo(t *testing.T) {
 				{SQLFloat(0.1), SQLInt(2), -1},
 				{SQLFloat(1.1), SQLUint32(1), 1},
 				{SQLFloat(1.1), SQLFloat(1), 1},
-				{SQLFloat(0.1), SQLBool(false), -1},
+				{SQLFloat(0.1), SQLBool(false), 1},
 				{SQLFloat(0.1), SQLBool(true), -1},
 				{SQLFloat(0.1), SQLNull, 1},
-				{SQLFloat(0.1), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
-				{SQLFloat(0.1), SQLVarchar("bac"), -1},
+				{SQLFloat(0.1), SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{SQLFloat(0.1), SQLVarchar("bac"), 1},
 				{SQLFloat(0.0), &SQLValues{[]SQLValue{SQLInt(1)}}, -1},
 				{SQLFloat(0.1), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLFloat(0.1), SQLDate{now}, -1},
@@ -1871,30 +1945,30 @@ func TestCompareTo(t *testing.T) {
 		Convey("Subject: SQLBool", func() {
 			tests := []test{
 				{SQLBool(true), SQLInt(0), 1},
-				{SQLBool(true), SQLInt(1), 1},
-				{SQLBool(true), SQLInt(2), 1},
-				{SQLBool(true), SQLUint32(1), 1},
-				{SQLBool(true), SQLFloat(1), 1},
+				{SQLBool(true), SQLInt(1), 0},
+				{SQLBool(true), SQLInt(2), -1},
+				{SQLBool(true), SQLUint32(1), 0},
+				{SQLBool(true), SQLFloat(1), 0},
 				{SQLBool(true), SQLBool(false), 1},
 				{SQLBool(true), SQLBool(true), 0},
 				{SQLBool(true), SQLNull, 1},
 				{SQLBool(true), SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
 				{SQLBool(true), SQLVarchar("bac"), 1},
-				{SQLBool(true), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
+				{SQLBool(true), &SQLValues{[]SQLValue{SQLInt(1)}}, 0},
 				{SQLBool(true), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLBool(true), SQLDate{now}, -1},
 				{SQLBool(true), SQLTimestamp{now}, -1},
-				{SQLBool(false), SQLInt(0), 1},
-				{SQLBool(false), SQLInt(1), 1},
-				{SQLBool(false), SQLInt(2), 1},
-				{SQLBool(false), SQLUint32(1), 1},
-				{SQLBool(false), SQLFloat(1), 1},
+				{SQLBool(false), SQLInt(0), 0},
+				{SQLBool(false), SQLInt(1), -1},
+				{SQLBool(false), SQLInt(2), -1},
+				{SQLBool(false), SQLUint32(1), -1},
+				{SQLBool(false), SQLFloat(1), -1},
 				{SQLBool(false), SQLBool(false), 0},
 				{SQLBool(false), SQLBool(true), -1},
 				{SQLBool(false), SQLNull, 1},
-				{SQLBool(false), SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
-				{SQLBool(false), SQLVarchar("bac"), 1},
-				{SQLBool(false), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
+				{SQLBool(false), SQLObjectID("56e0750e1d857aea925a4ba1"), 0},
+				{SQLBool(false), SQLVarchar("bac"), 0},
+				{SQLBool(false), &SQLValues{[]SQLValue{SQLInt(1)}}, -1},
 				{SQLBool(false), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLBool(false), SQLDate{now}, -1},
 				{SQLBool(false), SQLTimestamp{now}, -1},
@@ -1918,7 +1992,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLDate{now}, &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLDate{now}, SQLDate{now.Add(-diff)}, 1},
 				{SQLDate{now}, SQLTimestamp{now.Add(diff)}, -1},
-				{SQLDate{now}, SQLTimestamp{now.Add(-diff)}, 1},
+				{SQLDate{now}, SQLTimestamp{now.Add(-diff)}, -1},
 				{SQLDate{now}, SQLDate{now}, 0},
 			}
 			runTests(tests)
@@ -1941,7 +2015,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLTimestamp{now}, SQLTimestamp{now.Add(-diff)}, 1},
 				{SQLTimestamp{now}, SQLTimestamp{now}, 0},
 				{SQLTimestamp{now}, SQLDate{now}, 1},
-				{SQLTimestamp{now}, SQLDate{now.Add(diff)}, -1},
+				{SQLTimestamp{now}, SQLDate{now.Add(diff)}, 1},
 				{SQLTimestamp{now}, SQLDate{now.Add(-diff)}, 1},
 			}
 			runTests(tests)
@@ -1969,17 +2043,17 @@ func TestCompareTo(t *testing.T) {
 
 		Convey("Subject: SQLVarchar", func() {
 			tests := []test{
-				{SQLVarchar("bac"), SQLInt(0), 1},
-				{SQLVarchar("bac"), SQLInt(1), 1},
-				{SQLVarchar("bac"), SQLInt(2), 1},
-				{SQLVarchar("bac"), SQLUint32(1), 1},
-				{SQLVarchar("bac"), SQLFloat(1), 1},
-				{SQLVarchar("bac"), SQLBool(false), -1},
-				{SQLVarchar("bac"), SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
+				{SQLVarchar("bac"), SQLInt(0), 0},
+				{SQLVarchar("bac"), SQLInt(1), -1},
+				{SQLVarchar("bac"), SQLInt(2), -1},
+				{SQLVarchar("bac"), SQLUint32(1), -1},
+				{SQLVarchar("bac"), SQLFloat(1), -1},
+				{SQLVarchar("bac"), SQLBool(false), 0},
+				{SQLVarchar("bac"), SQLObjectID("56e0750e1d857aea925a4ba1"), 0},
 				{SQLVarchar("bac"), SQLVarchar("cba"), -1},
 				{SQLVarchar("bac"), SQLVarchar("bac"), 0},
 				{SQLVarchar("bac"), SQLVarchar("abc"), 1},
-				{SQLVarchar("bac"), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
+				{SQLVarchar("bac"), &SQLValues{[]SQLValue{SQLInt(1)}}, -1},
 				{SQLVarchar("bac"), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLVarchar("bac"), &SQLValues{[]SQLValue{SQLVarchar("bac")}}, 0},
 				{SQLVarchar("bac"), SQLDate{now}, -1},
@@ -1998,9 +2072,9 @@ func TestCompareTo(t *testing.T) {
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLUint32(0), 1},
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLFloat(1.1), -1},
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLFloat(0.1), 1},
-				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLBool(false), -1},
-				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLObjectID("56e0750e1d857aea925a4ba1"), -1},
-				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLVarchar("abc"), -1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLBool(false), 1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLVarchar("abc"), 1},
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, SQLNone, 1},
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, &SQLValues{[]SQLValue{SQLInt(1)}}, 0},
 				{&SQLValues{[]SQLValue{SQLInt(1)}}, &SQLValues{[]SQLValue{SQLInt(-1)}}, 1},
@@ -2015,13 +2089,13 @@ func TestCompareTo(t *testing.T) {
 		Convey("Subject: SQLObjectID", func() {
 
 			tests := []test{
-				{SQLObjectID(oid2), SQLInt(0), 1},
-				{SQLObjectID(oid2), SQLUint32(1), 1},
-				{SQLObjectID(oid2), SQLFloat(1), 1},
-				{SQLObjectID(oid2), SQLVarchar("cba"), 1},
-				{SQLObjectID(oid2), SQLBool(false), -1},
+				{SQLObjectID(oid2), SQLInt(0), 0},
+				{SQLObjectID(oid2), SQLUint32(1), -1},
+				{SQLObjectID(oid2), SQLFloat(1), -1},
+				{SQLObjectID(oid2), SQLVarchar("cba"), 0},
+				{SQLObjectID(oid2), SQLBool(false), 0},
 				{SQLObjectID(oid2), SQLBool(true), -1},
-				{SQLObjectID(oid2), &SQLValues{[]SQLValue{SQLInt(1)}}, 1},
+				{SQLObjectID(oid2), &SQLValues{[]SQLValue{SQLInt(1)}}, -1},
 				{SQLObjectID(oid2), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLObjectID(oid2), SQLDate{now}, -1},
 				{SQLObjectID(oid2), SQLTimestamp{now}, -1},
