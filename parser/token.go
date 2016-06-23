@@ -46,6 +46,7 @@ var keywords = map[string]int{
 	"order":  ORDER,
 	"by":     BY,
 	"limit":  LIMIT,
+	"offset": OFFSET,
 	"for":    FOR,
 
 	"union":     UNION,

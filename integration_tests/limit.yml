@@ -46,7 +46,18 @@ testcases:
   expected_types: [int]
   expected: 
   - [3]
+- sql: "select a from test.foo limit 1 OFFSET 2"
+  description: "offset and rowcount"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [3]
 - sql: "select a from test.foo limit 2, 0"
+  description: "rowcount is 0"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: ~
+- sql: "select a from test.foo limit 0 OFFSET 2"
   description: "rowcount is 0"
   expected_names: ["a"]
   expected_types: [int]

@@ -30,6 +30,17 @@ func TestOrderBy(t *testing.T) {
 	testParse(t, sql)
 }
 
+func TestLimit(t *testing.T) {
+	sql := "select * from foo.tables limit 12"
+	testParse(t, sql)
+
+	sql = "select * from foo.tables limit 10, 12"
+	testParse(t, sql)
+
+	sql = "select * from foo.tables limit 12 offset 10"
+	testParse(t, sql)
+}
+
 func TestAliasedWhere(t *testing.T) {
 	sql := "select * from foo.tables where a"
 	testParse(t, sql)
