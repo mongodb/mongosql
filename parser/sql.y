@@ -27,6 +27,15 @@ var (
   RIGHT_BYTES =  []byte("right")
   LEFT_BYTES =   []byte("left")
   MOD_BYTES =    []byte("mod")
+  YEAR_BYTES         = []byte("year")
+  QUARTER_BYTES      = []byte("quarter")
+  MONTH_BYTES        = []byte("month")
+  WEEK_BYTES         = []byte("week")
+  DAY_BYTES          = []byte("day")
+  HOUR_BYTES         = []byte("hour")
+  MINUTE_BYTES       = []byte("minute")
+  SECOND_BYTES       = []byte("second")
+  MICROSECOND_BYTES  = []byte("microsecond")
 )
 
 %}
@@ -72,7 +81,8 @@ var (
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LE GE NE NULL_SAFE_EQUAL
 %token <empty> '(' '=' '<' '>' '~'
-%token <empty> DATE DATETIME TIME TIMESTAMP YEAR
+%token <empty> DATE DATETIME TIME TIMESTAMP YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND ADD
+%token <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND SQL_TSI_FRAC_SECOND
 
 %left <empty> UNION MINUS EXCEPT INTERSECT
 %left <empty> ','
@@ -932,6 +942,42 @@ keyword_as_func:
 | MOD
   {
     $$ = MOD_BYTES
+  }
+| YEAR
+  {
+    $$ = YEAR_BYTES
+  }
+| QUARTER
+  {
+    $$ = QUARTER_BYTES
+  }
+| MONTH 
+  {
+    $$ = MONTH_BYTES
+  }
+| WEEK 
+  {
+    $$ = WEEK_BYTES
+  }
+| DAY
+  {
+    $$ = DAY_BYTES
+  }
+| HOUR
+  {
+    $$ = HOUR_BYTES
+  }
+| MINUTE 
+  {
+    $$ = MINUTE_BYTES
+  }
+| SECOND 
+  {
+    $$ = SECOND_BYTES
+  }
+| MICROSECOND
+  {
+    $$ = MICROSECOND_BYTES
   }
 
 unary_operator:
