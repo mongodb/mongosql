@@ -1553,7 +1553,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"exp(a)", `{"$exp":"$a"}`},
 			test{"floor(a)", `{"$floor":"$a"}`},
 			test{"hour(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":null},{"$hour":"$a"}]}`},
-			test{"if(a, 2, 3)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":3},{"$cond":[{"$or":[{"$eq":["$a",0]},{"$eq":["$a",null]},{"$eq":["$a",false]}]},{"$literal":3},{"$literal":2}]}]}`},
+			test{"if(a, 2, 3)", `{"$cond":[{"$or":[{"$eq":["$a",0]},{"$eq":["$a",null]},{"$eq":["$a",false]}]},{"$literal":3},{"$literal":2}]}`},
 			test{"ifnull(a, 1)", `{"$ifNull":["$a",{"$literal":1}]}`},
 			test{"isnull(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},1,0]}`},
 			test{"left(a, 2)", `{"$substr":["$a",0,{"$literal":2}]}`},
