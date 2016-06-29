@@ -101,20 +101,30 @@ func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error)
 	return found, nil
 }
 
-func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn, bool) {
+func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn, bool, error) {
+	var result ProjectedColumn
+	found := false
 	for _, pc := range a.projectedColumns {
 		if strings.EqualFold(pc.Name, columnName) {
-			return &pc, true
+			if found {
+				return nil, false, mysqlerrors.Defaultf(mysqlerrors.ER_NON_UNIQ_ERROR, columnName, a.currentClause)
+			}
+			result = pc
+			found = true
 		}
 	}
 
-	return nil, false
+	return &result, found, nil
 }
 
 func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, error) {
 
 	if a.resolveProjectedColumnsFirst && tableName == "" {
-		if expr, ok := a.lookupProjectedColumn(columnName); ok {
+		expr, ok, err := a.lookupProjectedColumn(columnName)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
 			return expr.Expr, nil
 		}
 	}
@@ -125,7 +135,11 @@ func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, e
 	}
 
 	if !a.resolveProjectedColumnsFirst && tableName == "" {
-		if expr, ok := a.lookupProjectedColumn(columnName); ok {
+		expr, ok, err := a.lookupProjectedColumn(columnName)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
 			return expr.Expr, nil
 		}
 	}

@@ -1088,6 +1088,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 			testError("select foo.a from foo f, bar b", `ERROR 1054 (42S22): Unknown column 'foo.a' in 'field list'`)
 			testError("select f.a, * from foo f, bar b", `ERROR 1149 (42000): Cannot have a '*' in conjunction with any other columns`)
 			testError("select a from foo f, bar b", `ERROR 1052 (23000): Column 'a' in field list is ambiguous`)
+			testError("select a, b as a from foo order by a", `ERROR 1052 (23000): Column 'a' in order clause is ambiguous`)
 
 			testError("select (select a, b from foo) from foo", `ERROR 1241 (21000): Operand should contain 1 column(s)`)
 			testError("select * from (select a, b as a from foo) f", `ERROR 1060 (42S21): Duplicate column name 'f.a'`)
