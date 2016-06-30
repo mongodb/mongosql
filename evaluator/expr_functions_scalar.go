@@ -89,7 +89,7 @@ type absFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_abs
 func (_ *absFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -109,7 +109,7 @@ type asciiFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ascii
 func (_ *asciiFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -169,7 +169,7 @@ type concatFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_concat
 func (_ *concatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		v = SQLNull
 		err = nil
 		return
@@ -481,7 +481,7 @@ type expFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_exp
 func (_ *expFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 	r := math.Exp(values[0].Float64())
@@ -500,7 +500,7 @@ type floorFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_floor
 func (_ *floorFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 	r := math.Floor(values[0].Float64())
@@ -638,7 +638,7 @@ type lcaseFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lcase
 func (_ *lcaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -675,7 +675,7 @@ type lengthFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_length
 func (_ *lengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -696,7 +696,7 @@ type locateFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_locate
 func (_ *locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -735,7 +735,7 @@ type log10Func struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log10
 func (_ *log10Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -761,7 +761,7 @@ type log2Func struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log2
 func (_ *log2Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -787,7 +787,7 @@ type ltrimFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ltrim
 func (_ *ltrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -828,7 +828,7 @@ type modFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_mod
 func (_ *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -900,7 +900,7 @@ type naturalLogFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log10
 func (_ *naturalLogFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -972,7 +972,7 @@ func (_ *nullifFunc) Validate(exprCount int) error {
 type powFunc struct{}
 
 func (_ *powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -1040,7 +1040,7 @@ type rtrimFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_rtrim
 func (_ *rtrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -1061,7 +1061,7 @@ type roundFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_round
 func (_ *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -1115,7 +1115,7 @@ type sqrtFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_sqrt
 func (_ *sqrtFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -1140,7 +1140,7 @@ type substringFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_substring
 func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -1321,7 +1321,7 @@ type ucaseFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ucase
 func (_ *ucaseFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -1387,16 +1387,6 @@ func (_ *yearFunc) Validate(exprCount int) error {
 }
 
 // Helper functions
-func anyNull(values []SQLValue) bool {
-	for _, v := range values {
-		if _, ok := v.(SQLNullValue); ok {
-			return true
-		}
-	}
-
-	return false
-}
-
 func evaluateArgs(exprs []SQLExpr, ctx *EvalCtx) ([]SQLValue, error) {
 
 	values := []SQLValue{}

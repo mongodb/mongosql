@@ -113,21 +113,25 @@ func (add *SQLAddExpr) Type() schema.SQLType {
 type SQLAndExpr sqlBinaryNode
 
 func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftMatches, err := Matches(and.left, ctx)
+	left, err := and.left.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rightMatches, err := Matches(and.right, ctx)
+	right, err := and.right.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if leftMatches && rightMatches {
-		return SQLTrue, nil
+	if isFalsy(left) || isFalsy(right) {
+		return SQLFalse, nil
 	}
 
-	return SQLFalse, nil
+	if hasNullValue(left, right) {
+		return SQLNull, nil
+	}
+
+	return SQLTrue, nil
 }
 
 func (and *SQLAndExpr) String() string {
@@ -807,11 +811,21 @@ func (mult *SQLMultiplyExpr) Type() schema.SQLType {
 type SQLNotExpr sqlUnaryNode
 
 func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	m, err := Matches(not.operand, ctx)
+
+	operand, err := not.operand.Evaluate(ctx)
 	if err != nil {
-		return SQLFalse, err
+		return nil, err
 	}
-	return SQLBool(!m), nil
+
+	if hasNullValue(operand) {
+		return SQLNull, nil
+	}
+
+	if !isTruthy(operand) {
+		return SQLTrue, nil
+	}
+
+	return SQLFalse, nil
 }
 
 func (not *SQLNotExpr) String() string {
@@ -887,18 +901,22 @@ func (_ *SQLNullCmpExpr) Type() schema.SQLType {
 type SQLOrExpr sqlBinaryNode
 
 func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	leftMatches, err := Matches(or.left, ctx)
+	left, err := or.left.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rightMatches, err := Matches(or.right, ctx)
+	right, err := or.right.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if leftMatches || rightMatches {
+	if isTruthy(left) || isTruthy(right) {
 		return SQLTrue, nil
+	}
+
+	if hasNullValue(left, right) {
+		return SQLNull, nil
 	}
 
 	return SQLFalse, nil
@@ -1312,4 +1330,39 @@ func (v *SQLVariableExpr) String() string {
 
 func (v *SQLVariableExpr) Type() schema.SQLType {
 	return schema.MongoNone
+}
+
+//
+// SQLXorExpr evaluates to true if and only if one of its children evaluates to true.
+//
+type SQLXorExpr sqlBinaryNode
+
+func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	left, err := xor.left.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	right, err := xor.right.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if hasNullValue(left, right) {
+		return SQLNull, nil
+	}
+
+	if (isFalsy(left) && isTruthy(right)) || (isTruthy(left) && isFalsy(right)) {
+		return SQLTrue, nil
+	}
+
+	return SQLFalse, nil
+}
+
+func (xor *SQLXorExpr) String() string {
+	return fmt.Sprintf("%v xor %v", xor.left, xor.right)
+}
+
+func (_ *SQLXorExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
 }

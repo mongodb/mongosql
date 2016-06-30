@@ -78,6 +78,7 @@ var keywords = map[string]int{
 	"as":        AS,
 	"and":       AND,
 	"or":        OR,
+	"xor":       XOR,
 	"not":       NOT,
 	"exists":    EXISTS,
 	"in":        IN,
@@ -226,7 +227,19 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 		switch ch {
 		case EOFCHAR:
 			return 0, nil
-		case '=', ',', ';', '(', ')', '+', '*', '%', '&', '|', '^', '~':
+		case '=', ',', ';', '(', ')', '+', '*', '%', '^', '~':
+			return int(ch), nil
+		case '&':
+			if tkn.lastChar == '&' {
+				tkn.next()
+				return AND, nil
+			}
+			return int(ch), nil
+		case '|':
+			if tkn.lastChar == '|' {
+				tkn.next()
+				return OR, nil
+			}
 			return int(ch), nil
 		case '?':
 			tkn.posVarIndex++
@@ -286,7 +299,7 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 				tkn.next()
 				return NE, nil
 			} else {
-				return LEX_ERROR, []byte("!")
+				return NOT, nil
 			}
 		case '\'', '"':
 			return tkn.scanString(ch, STRING)

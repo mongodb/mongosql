@@ -436,6 +436,7 @@ type Expr interface {
 
 func (*AndExpr) IExpr()        {}
 func (*OrExpr) IExpr()         {}
+func (*XorExpr) IExpr()        {}
 func (*NotExpr) IExpr()        {}
 func (*ParenBoolExpr) IExpr()  {}
 func (*ComparisonExpr) IExpr() {}
@@ -481,6 +482,7 @@ func (*CaseExpr) IBoolExpr()   {}
 
 func (*AndExpr) IBoolExpr()        {}
 func (*OrExpr) IBoolExpr()         {}
+func (*XorExpr) IBoolExpr()        {}
 func (*NotExpr) IBoolExpr()        {}
 func (*ParenBoolExpr) IBoolExpr()  {}
 func (*ComparisonExpr) IBoolExpr() {}
@@ -504,6 +506,15 @@ type OrExpr struct {
 
 func (node *OrExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v or %v", node.Left, node.Right)
+}
+
+// XorExpr represents an XOR expression.
+type XorExpr struct {
+	Left, Right BoolExpr
+}
+
+func (node *XorExpr) Format(buf *TrackedBuffer) {
+	buf.Fprintf("%v xor %v", node.Left, node.Right)
 }
 
 // NotExpr represents a NOT expression.

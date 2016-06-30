@@ -49,6 +49,40 @@ func hasNullValue(values ...SQLValue) bool {
 	return false
 }
 
+func isFalsy(value SQLValue) bool {
+	switch v := value.(type) {
+	case SQLBool:
+		return !bool(v)
+	case SQLInt, SQLFloat:
+		return v.Float64() == float64(0)
+	case SQLVarchar:
+		p, err := strconv.ParseFloat(string(v), 64)
+		if err == nil {
+			return p == float64(0)
+		}
+		return false
+	default:
+		return false
+	}
+}
+
+func isTruthy(value SQLValue) bool {
+	switch v := value.(type) {
+	case SQLBool:
+		return bool(v)
+	case SQLInt, SQLFloat:
+		return v.Float64() != float64(0)
+	case SQLVarchar:
+		p, err := strconv.ParseFloat(string(v), 64)
+		if err == nil {
+			return p != float64(0)
+		}
+		return false
+	default:
+		return false
+	}
+}
+
 // preferentialType accepts a variable number of
 // SQLExprs and returns the type of the SQLExpr
 // with the highest preference.

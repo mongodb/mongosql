@@ -805,6 +805,14 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		}
 
 		return &SQLOrExpr{left, right}, nil
+	case *parser.XorExpr:
+
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		if err != nil {
+			return nil, err
+		}
+
+		return &SQLXorExpr{left, right}, nil
 	case *parser.ParenBoolExpr:
 		return a.translateExpr(typedE.Expr)
 	case *parser.RangeCond:

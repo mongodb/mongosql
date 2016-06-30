@@ -95,7 +95,7 @@ var (
 %left <empty> ','
 %left <empty> JOIN STRAIGHT_JOIN LEFT RIGHT INNER OUTER CROSS NATURAL USE FORCE
 %left <empty> ON
-%left <empty> AND OR
+%left <empty> AND OR XOR
 %right <empty> NOT
 %left <empty> '&' '|' '^'
 %left <empty> '+' '-'
@@ -703,6 +703,10 @@ boolean_expression:
 | expression OR expression
   {
     $$ = &OrExpr{Left: $1, Right: $3}
+  }
+| expression XOR expression
+  {
+    $$ = &XorExpr{Left: $1, Right: $3}
   }
 | NOT expression
   {

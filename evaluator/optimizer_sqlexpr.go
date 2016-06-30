@@ -154,25 +154,26 @@ func (v *normalizer) visit(n node) (node, error) {
 
 	switch typedN := n.(type) {
 	case *SQLAndExpr:
-		if left, ok := typedN.left.(SQLValue); ok {
-			matches, err := Matches(left, nil)
-			if err != nil {
-				return nil, err
-			}
-			if matches {
-				return typedN.right, nil
-			}
-			return SQLFalse, nil
+		left, leftOk := typedN.left.(SQLValue)
+		right, rightOk := typedN.right.(SQLValue)
+
+		if leftOk && rightOk && isTruthy(right) && isTruthy(left) {
+			return SQLTrue, nil
 		}
-		if right, ok := typedN.right.(SQLValue); ok {
-			matches, err := Matches(right, nil)
-			if err != nil {
-				return nil, err
-			}
-			if matches {
-				return typedN.left, nil
-			}
+
+		if leftOk && isFalsy(left) {
 			return SQLFalse, nil
+		} else if leftOk && isTruthy(left) {
+			return typedN.right, nil
+		}
+		if rightOk && isFalsy(right) {
+			return SQLFalse, nil
+		} else if rightOk && isTruthy(right) {
+			return typedN.left, nil
+		}
+
+		if leftOk && rightOk && hasNullValue(left, right) {
+			return SQLNull, nil
 		}
 	case *SQLEqualsExpr:
 		if shouldFlip(sqlBinaryNode(*typedN)) {
@@ -194,30 +195,64 @@ func (v *normalizer) visit(n node) (node, error) {
 		if shouldFlip(sqlBinaryNode(*typedN)) {
 			return &SQLGreaterThanOrEqualExpr{typedN.right, typedN.left}, nil
 		}
+	case *SQLNotExpr:
+		if operand, ok := typedN.operand.(SQLValue); ok {
+			if hasNullValue(operand) {
+				return SQLNull, nil
+			}
+
+			if isTruthy(operand) {
+				return SQLFalse, nil
+			} else if isFalsy(operand) {
+				return SQLTrue, nil
+			}
+		}
 	case *SQLNotEqualsExpr:
 		if shouldFlip(sqlBinaryNode(*typedN)) {
 			return &SQLNotEqualsExpr{typedN.right, typedN.left}, nil
 		}
 	case *SQLOrExpr:
-		if left, ok := typedN.left.(SQLValue); ok {
-			matches, err := Matches(left, nil)
-			if err != nil {
-				return nil, err
-			}
-			if matches {
-				return SQLTrue, nil
-			}
+		left, leftOk := typedN.left.(SQLValue)
+		right, rightOk := typedN.right.(SQLValue)
+
+		if leftOk && isTruthy(left) {
+			return SQLTrue, nil
+		} else if leftOk && isFalsy(left) {
 			return typedN.right, nil
 		}
-		if right, ok := typedN.right.(SQLValue); ok {
-			matches, err := Matches(right, nil)
-			if err != nil {
-				return nil, err
-			}
-			if matches {
+		if rightOk && isTruthy(right) {
+			return SQLTrue, nil
+		} else if rightOk && isFalsy(right) {
+			return typedN.left, nil
+		}
+
+		if leftOk && rightOk && hasNullValue(left) && hasNullValue(right) {
+			return SQLNull, nil
+		}
+	case *SQLXorExpr:
+		left, leftOk := typedN.left.(SQLValue)
+		right, rightOk := typedN.right.(SQLValue)
+		if leftOk && rightOk && hasNullValue(left, right) {
+			return SQLNull, nil
+		}
+
+		if leftOk && rightOk {
+			if (isFalsy(left) && isTruthy(right)) || (isTruthy(left) && isFalsy(right)) {
 				return SQLTrue, nil
 			}
-			return typedN.left, nil
+			return SQLFalse, nil
+		} else if leftOk {
+			if isTruthy(left) {
+				return &SQLNotExpr{typedN.right}, nil
+			} else if isFalsy(left) {
+				return typedN.right, nil
+			}
+		} else if rightOk {
+			if isTruthy(right) {
+				return &SQLNotExpr{typedN.left}, nil
+			} else if isFalsy(right) {
+				return typedN.left, nil
+			}
 		}
 	case *SQLTupleExpr:
 		if len(typedN.Exprs) == 1 {

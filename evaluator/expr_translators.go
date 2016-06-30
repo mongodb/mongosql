@@ -87,7 +87,31 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$and": []interface{}{left, right}}, true
+		return bson.M{"$cond": []interface{}{
+			bson.M{"$or": []interface{}{
+				bson.M{"$eq": []interface{}{
+					bson.M{
+						"$ifNull": []interface{}{left, nil}},
+					nil,
+				}},
+				bson.M{"$eq": []interface{}{
+					bson.M{
+						"$ifNull": []interface{}{right, nil}},
+					nil,
+				}}}},
+			bson.M{"$cond": []interface{}{
+				bson.M{"$or": []interface{}{
+					bson.M{"$eq": []interface{}{
+						left, false}},
+					bson.M{"$eq": []interface{}{
+						right, false}},
+					bson.M{"$eq": []interface{}{
+						left, 0}},
+					bson.M{"$eq": []interface{}{
+						right, 0}}}},
+				bson.M{"$and": []interface{}{left, right}},
+				bson.M{"$literal": nil}}},
+			bson.M{"$and": []interface{}{left, right}}}}, true
 
 	case *SQLDivideExpr:
 
@@ -231,7 +255,15 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$not": []interface{}{op}}, true
+		return bson.M{
+			"$cond": []interface{}{
+				bson.M{"$eq": []interface{}{
+					bson.M{
+						"$ifNull": []interface{}{op, nil}},
+					nil,
+				}},
+				bson.M{"$literal": nil},
+				bson.M{"$not": []interface{}{op}}}}, true
 
 	case *SQLNotEqualsExpr:
 
@@ -268,7 +300,49 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$or": []interface{}{left, right}}, true
+		return bson.M{"$cond": []interface{}{
+			bson.M{"$and": []interface{}{
+				bson.M{"$eq": []interface{}{
+					bson.M{
+						"$ifNull": []interface{}{left, nil}},
+					nil,
+				}},
+				bson.M{"$eq": []interface{}{
+					bson.M{
+						"$ifNull": []interface{}{right, nil}},
+					nil,
+				}}}},
+			bson.M{"$literal": nil},
+			bson.M{"$or": []interface{}{left, right}}}}, true
+
+	case *SQLXorExpr:
+
+		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		return bson.M{"$cond": []interface{}{
+			bson.M{"$or": []interface{}{
+				bson.M{"$eq": []interface{}{
+					bson.M{
+						"$ifNull": []interface{}{left, nil}},
+					nil,
+				}},
+				bson.M{"$eq": []interface{}{
+					bson.M{
+						"$ifNull": []interface{}{right, nil}},
+					nil,
+				}}}},
+			bson.M{"$literal": nil},
+			bson.M{"$and": []interface{}{
+				bson.M{"$or": []interface{}{left, right}},
+				bson.M{"$not": bson.M{"$and": []interface{}{left, right}}}}}}}, true
 
 	case *SQLScalarFunctionExpr:
 
@@ -713,6 +787,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 // It returns 2 things, a translated predicate that can be sent to MongoDB and
 // a SQLExpr that cannot be sent to MongoDB. Either of these may be nil.
 func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQLExpr) {
+
 	switch typedE := e.(type) {
 	case *SQLAndExpr:
 		left, exLeft := TranslatePredicate(typedE.left, lookupFieldName)

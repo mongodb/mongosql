@@ -50,6 +50,7 @@ func (e *SQLNotExpr) astnode()                {}
 func (e *SQLNotEqualsExpr) astnode()          {}
 func (e *SQLNullCmpExpr) astnode()            {}
 func (e *SQLOrExpr) astnode()                 {}
+func (e *SQLXorExpr) astnode()                {}
 func (e *SQLScalarFunctionExpr) astnode()     {}
 func (e *SQLSubqueryCmpExpr) astnode()        {}
 func (e *SQLSubqueryExpr) astnode()           {}
@@ -618,6 +619,19 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 		if typedN.left != left || typedN.right != right {
 			n = &SQLOrExpr{left, right}
+		}
+
+	case *SQLXorExpr:
+		left, err := visitExpr(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := visitExpr(typedN.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLXorExpr{left, right}
 		}
 
 	case *SQLScalarFunctionExpr:

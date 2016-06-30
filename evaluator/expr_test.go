@@ -190,12 +190,22 @@ func TestEvaluates(t *testing.T) {
 		})
 
 		Convey("Subject: SQLAndExpr", func() {
-			// INT-1040: boolean literals don't work
 			tests := []test{
 				test{"1 AND 1", SQLTrue},
 				test{"1 AND 0", SQLFalse},
 				test{"0 AND 1", SQLFalse},
 				test{"0 AND 0", SQLFalse},
+				test{"1 && 1", SQLTrue},
+				test{"1 && 0", SQLFalse},
+				test{"0 && 1", SQLFalse},
+				test{"0 && 0", SQLFalse},
+				test{"NULL && 0", SQLFalse},
+				test{"NULL && 1", SQLNull},
+				test{"NULL && NULL", SQLNull},
+				test{"true AND true", SQLTrue},
+				test{"true AND false", SQLFalse},
+				test{"false AND true", SQLFalse},
+				test{"false AND false", SQLFalse},
 			}
 
 			runTests(evalCtx, tests)
@@ -525,10 +535,14 @@ func TestEvaluates(t *testing.T) {
 		})
 
 		Convey("Subject: SQLNotExpr", func() {
-			// INT-1040: boolean literals don't work
 			tests := []test{
 				test{"NOT 1", SQLFalse},
 				test{"NOT 0", SQLTrue},
+				test{"NOT true", SQLFalse},
+				test{"NOT false", SQLTrue},
+				test{"NOT NULL", SQLNull},
+				test{"! 1", SQLFalse},
+				test{"! 0", SQLTrue},
 			}
 
 			runTests(evalCtx, tests)
@@ -544,12 +558,33 @@ func TestEvaluates(t *testing.T) {
 		})
 
 		Convey("Subject: SQLOrExpr", func() {
-			// INT-1040: boolean literals don't work
 			tests := []test{
 				test{"1 OR 1", SQLTrue},
 				test{"1 OR 0", SQLTrue},
 				test{"0 OR 1", SQLTrue},
+				test{"NULL OR 1", SQLTrue},
+				test{"NULL OR 0", SQLNull},
+				test{"NULL OR NULL", SQLNull},
 				test{"0 OR 0", SQLFalse},
+				test{"true OR true", SQLTrue},
+				test{"true OR false", SQLTrue},
+				test{"false OR true", SQLTrue},
+				test{"false OR false", SQLFalse},
+				test{"1 || 1", SQLTrue},
+				test{"1 || 0", SQLTrue},
+				test{"0 || 1", SQLTrue},
+				test{"0 || 0", SQLFalse},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLXOrExpr", func() {
+			tests := []test{
+				test{"1 XOR 1", SQLFalse},
+				test{"1 XOR 0", SQLTrue},
+				test{"0 XOR 1", SQLTrue},
+				test{"0 XOR 0", SQLFalse},
 			}
 
 			runTests(evalCtx, tests)
@@ -1571,8 +1606,19 @@ func TestOptimizeSQLExpr(t *testing.T) {
 					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "b", schema.SQLInt, schema.MongoInt), SQLInt(2)}}},
 			test{"3 + 3 = 6 OR a = 3", "true", SQLTrue},
 			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"0 OR NULL", "null", SQLNull},
+			test{"1 OR NULL", "true", SQLTrue},
+			test{"NULL OR NULL", "null", SQLNull},
+			test{"0 AND 6+1 = 6", "false", SQLFalse},
 			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
+			test{"0 AND NULL", "false", SQLFalse},
+			test{"1 AND NULL", "null", SQLNull},
+			test{"1 AND 6+0 = 6", "true", SQLTrue},
 			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 + 3 = 5 XOR a = 3", "true", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 + 3 = 6 XOR a = 3", "a = 3", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}}},
+			test{"!3", "0", SQLFalse},
+			test{"!NULL", "null", SQLNull},
 			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
 			test{"DAYNAME('2016-1-1')", "Friday", SQLVarchar("Friday")},
 			test{"(8-7)", "1", SQLInt(1)},
