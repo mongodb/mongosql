@@ -635,18 +635,18 @@ func walk(v nodeVisitor, n node) (node, error) {
 		if err != nil {
 			return nil, err
 		}
-		sub, err := visitExpr(typedN.value)
+		sub, err := visitExpr(typedN.subqueryExpr)
 		if err != nil {
 			return nil, err
 		}
 
-		value, ok := sub.(*SQLSubqueryExpr)
+		subqueryExpr, ok := sub.(*SQLSubqueryExpr)
 		if !ok {
 			return nil, fmt.Errorf("SQLSubqueryCmpExpr requires an evaluator.*SQLSubqueryExpr, but got a %T", sub)
 		}
 
-		if typedN.left != left || typedN.value != value {
-			n = &SQLSubqueryCmpExpr{typedN.In, left, value}
+		if typedN.left != left || typedN.subqueryExpr != subqueryExpr {
+			n = &SQLSubqueryCmpExpr{typedN.subqueryOp, left, subqueryExpr, typedN.operator}
 		}
 
 	case *SQLSubqueryExpr:

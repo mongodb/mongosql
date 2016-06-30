@@ -355,8 +355,8 @@ func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if hasNoSQLValue(leftVal, rightVal) {
-		return SQLFalse, nil
+	if hasNullValue(leftVal, rightVal) {
+		return SQLNull, nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal)
@@ -436,8 +436,8 @@ func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if hasNoSQLValue(leftVal, rightVal) {
-		return SQLFalse, nil
+	if hasNullValue(leftVal, rightVal) {
+		return SQLNull, nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal)
@@ -472,8 +472,8 @@ func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if hasNoSQLValue(leftVal, rightVal) {
-		return SQLFalse, nil
+	if hasNullValue(leftVal, rightVal) {
+		return SQLNull, nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal)
@@ -602,8 +602,8 @@ func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if hasNoSQLValue(leftVal, rightVal) {
-		return SQLFalse, nil
+	if hasNullValue(leftVal, rightVal) {
+		return SQLNull, nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal)
@@ -638,8 +638,8 @@ func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if hasNoSQLValue(leftVal, rightVal) {
-		return SQLFalse, nil
+	if hasNullValue(leftVal, rightVal) {
+		return SQLNull, nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal)
@@ -847,8 +847,8 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLFalse, err
 	}
 
-	if hasNoSQLValue(leftVal, rightVal) {
-		return SQLFalse, nil
+	if hasNullValue(leftVal, rightVal) {
+		return SQLNull, nil
 	}
 
 	c, err := CompareTo(leftVal, rightVal)
@@ -920,14 +920,25 @@ func (_ *SQLOrExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
+type subqueryOp int
+
+const (
+	subqueryAll = iota
+	subqueryAny
+	subqueryIn
+	subqueryNotIn
+	subquerySome
+)
+
 //
 // SQLSubqueryCmpExpr evaluates to true if left is in any of the
 // rows returned by the SQLSubqueryExpr expression results.
 //
 type SQLSubqueryCmpExpr struct {
-	In    bool
-	left  SQLExpr
-	value *SQLSubqueryExpr
+	subqueryOp   subqueryOp
+	left         SQLExpr
+	subqueryExpr *SQLSubqueryExpr
+	operator     string
 }
 
 func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -954,19 +965,25 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	execCtx := ctx.ExecutionCtx
 
-	if sc.value.correlated {
+	if sc.subqueryExpr.correlated {
 		execCtx = ctx.CreateChildExecutionCtx()
 	}
 
-	if it, err = sc.value.plan.Open(execCtx); err != nil {
+	if it, err = sc.subqueryExpr.plan.Open(execCtx); err != nil {
 		return SQLFalse, err
 	}
 
 	row := &Row{}
 
-	matched := false
+	mismatch, allMatch := true, true
+
+	switch sc.subqueryOp {
+	case subqueryAll, subqueryNotIn:
+		mismatch = false
+	}
 
 	right := &SQLValues{}
+
 	for it.Next(row) {
 
 		values := row.GetValues()
@@ -979,37 +996,70 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 			right.Values = append(right.Values, field)
 		}
 
-		eq := &SQLEqualsExpr{left, right}
-
-		matches, err := Matches(eq, ctx)
-		if err != nil {
-			return SQLFalse, err
-		}
-
-		if matches {
-			matched = true
-			if sc.In {
-				return SQLTrue, err
+		switch sc.subqueryOp {
+		case subqueryAll:
+			expr, err := comparisonExpr(left, right, sc.operator)
+			if err != nil {
+				return SQLFalse, err
+			}
+			matches, err := Matches(expr, ctx)
+			if err != nil {
+				return SQLFalse, err
+			}
+			if !matches {
+				allMatch = false
+			}
+		case subqueryAny, subquerySome:
+			expr, err := comparisonExpr(left, right, sc.operator)
+			if err != nil {
+				return SQLFalse, err
+			}
+			matches, err := Matches(expr, ctx)
+			if err != nil {
+				return SQLFalse, err
+			}
+			if matches {
+				return SQLTrue, nil
+			}
+		case subqueryIn:
+			eq := &SQLEqualsExpr{left, right}
+			matches, err := Matches(eq, ctx)
+			if err != nil {
+				return SQLFalse, err
+			}
+			if matches {
+				return SQLTrue, nil
+			}
+		case subqueryNotIn:
+			neq := &SQLNotEqualsExpr{left, right}
+			matches, err := Matches(neq, ctx)
+			if err != nil {
+				return SQLFalse, err
+			}
+			if !matches {
+				mismatch = true
 			}
 		}
-
 		row, right = &Row{}, &SQLValues{}
-
 	}
 
-	if sc.In {
-		matched = true
-	}
-
-	return SQLBool(!matched), err
+	return SQLBool(!mismatch && allMatch), err
 }
 
 func (sc *SQLSubqueryCmpExpr) String() string {
-	in := "in"
-	if !sc.In {
-		in = "not in"
+	switch sc.subqueryOp {
+	case subqueryAll:
+		return fmt.Sprintf("%v %v all %v", sc.left, sc.operator, sc.subqueryExpr)
+	case subqueryAny:
+		return fmt.Sprintf("%v %v any %v", sc.left, sc.operator, sc.subqueryExpr)
+	case subqueryIn:
+		return fmt.Sprintf("%v in %v", sc.left, sc.subqueryExpr)
+	case subqueryNotIn:
+		return fmt.Sprintf("%v not in %v", sc.left, sc.subqueryExpr)
+	case subquerySome:
+		return fmt.Sprintf("%v %v some %v", sc.left, sc.operator, sc.subqueryExpr)
 	}
-	return fmt.Sprintf("%v %v %v", sc.left, in, sc.value)
+	return ""
 }
 
 func (_ *SQLSubqueryCmpExpr) Type() schema.SQLType {

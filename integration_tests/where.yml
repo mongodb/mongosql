@@ -21,6 +21,14 @@ data:
     collection: "where_3"
     docs:
     - { _id: {"$oid" : "53c2ab5e4291b17b666d742a"}, item: 5 }
+- inline:
+    db: "test"
+    collection: "where_4"
+    docs:
+    - { _id: 0, a: 1, b: ~ }
+    - { _id: 1, a: 2, b: 4 }
+    - { _id: 2, a: 3, b: 2 }
+    - { _id: 3, a: 1, b: 5 }
 
 #
 # Schema
@@ -60,6 +68,21 @@ schema:
     - Name: item
       MongoType: int
       SqlName: item
+      SqlType: int
+  - table: baz
+    collection: "where_4"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
       SqlType: int
 
 #
@@ -236,6 +259,110 @@ testcases:
   expected: 
   - [2]
   - [3]
+- sql: "select id from test.foo where 4 not in (select a from test.bar)"
+  description: "not in subquery"
+  expected_names: ["id"]
+  expected_types: [string]
+  expected:
+  - [0]
+  - [1]
+  - [2]
+- sql: "SELECT * FROM baz WHERE b <> ANY (SELECT _id FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [1, 2, 4]
+  - [2, 3, 2]
+  - [3, 1, 5]
+- sql: "SELECT * FROM baz WHERE a <> SOME (SELECT a FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [0, 1, ~]
+  - [1, 2, 4]
+  - [2, 3, 2]
+  - [3, 1, 5]
+- sql: "SELECT * FROM baz WHERE b <> ALL (SELECT a FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [1, 2, 4]
+  - [3, 1, 5]
+- sql: "SELECT * FROM baz WHERE b < ALL (SELECT a FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected: []
+- sql: "SELECT * FROM baz WHERE b + _id = ANY (SELECT a + b FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [1, 2, 4]
+- sql: "SELECT * FROM baz WHERE b - _id < SOME (SELECT a - _id FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [2, 3, 2]
+- sql: "SELECT * FROM baz WHERE b IN (SELECT a FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [2, 3, 2]
+- sql: "SELECT * FROM baz WHERE b IN (SELECT 4 - _id FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [1, 2, 4]
+  - [2, 3, 2]
+- sql: "SELECT * FROM baz WHERE b NOT IN (SELECT 4 - _id FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [3, 1, 5]
+- sql: "SELECT * FROM baz WHERE b - _id > SOME (SELECT _id FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [1, 2, 4]
+  - [3, 1, 5]
+- sql: "SELECT * FROM baz WHERE _id > ANY (SELECT a FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [2, 3, 2]
+  - [3, 1, 5]
+- sql: "SELECT * FROM baz WHERE b IN (SELECT b FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [1, 2, 4]
+  - [2, 3, 2]
+  - [3, 1, 5]
+- sql: "SELECT * FROM baz WHERE a NOT IN (SELECT a FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected: []
+- sql: "SELECT * FROM baz WHERE _id > ANY (SELECT b FROM baz WHERE _id <> ANY (SELECT b FROM baz))"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [3, 1, 5]
+- sql: "SELECT * FROM baz WHERE _id = ANY (SELECT b FROM baz WHERE _id < ANY (SELECT b FROM baz WHERE a IN (SELECT a from baz)))"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [2, 3, 2]
+- sql: "SELECT * FROM baz WHERE b < ANY (SELECT b + a - _id FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [1, 2, 4]
+  - [2, 3, 2]
+- sql: "SELECT * FROM baz WHERE b > ANY (SELECT b + a - _id FROM baz)"
+  expected_names: ["_id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [1, 2, 4]
+  - [3, 1, 5]
 
 # Tuples
 - sql: "select id from test.foo where (id, a) = (0, 1)"

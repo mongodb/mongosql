@@ -5,14 +5,48 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/parser"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"gopkg.in/mgo.v2/bson"
 )
 
 const (
 	Dot = "_DOT_"
 )
+
+// comparisonExpr returns a SQLExpr formed using op comparison operator.
+func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
+	switch op {
+	case parser.AST_EQ:
+		return &SQLEqualsExpr{left, right}, nil
+	case parser.AST_LT:
+		return &SQLLessThanExpr{left, right}, nil
+	case parser.AST_GT:
+		return &SQLGreaterThanExpr{left, right}, nil
+	case parser.AST_LE:
+		return &SQLLessThanOrEqualExpr{left, right}, nil
+	case parser.AST_GE:
+		return &SQLGreaterThanOrEqualExpr{left, right}, nil
+	case parser.AST_NE:
+		return &SQLNotEqualsExpr{left, right}, nil
+	case parser.AST_LIKE:
+		return &SQLLikeExpr{left, right}, nil
+	case parser.AST_IN:
+		if eval, ok := right.(*SQLSubqueryExpr); ok {
+			return &SQLSubqueryCmpExpr{subqueryIn, left, eval, ""}, nil
+		}
+		return &SQLInExpr{left, right}, nil
+	case parser.AST_NOT_IN:
+		if eval, ok := right.(*SQLSubqueryExpr); ok {
+			return &SQLSubqueryCmpExpr{subqueryNotIn, left, eval, ""}, nil
+		}
+		return &SQLNotExpr{&SQLInExpr{left, right}}, nil
+	default:
+		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for binary operator '%v'", op)
+	}
+}
 
 func containsAnyInt(ints []int, test []int) bool {
 	for _, value := range test {

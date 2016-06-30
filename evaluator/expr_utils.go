@@ -52,15 +52,15 @@ func getColumnType(tables map[string]*schema.Table, tableName, columnName string
 	return &schema.ColumnType{column.SqlType, column.MongoType}
 }
 
-// hasNoSQLValue returns true if any of the value in values
-// is of type SQLNoValue.
-func hasNoSQLValue(values ...SQLValue) bool {
+// hasNullValue returns true if any of the value in values
+// is of type SQLNoValue or SQLNullValue.
+func hasNullValue(values ...SQLValue) bool {
 	for _, value := range values {
 		switch v := value.(type) {
-		case SQLNoValue:
+		case SQLNoValue, SQLNullValue:
 			return true
 		case *SQLValues:
-			if hasNoSQLValue(v.Values...) {
+			if hasNullValue(v.Values...) {
 				return true
 			}
 		}

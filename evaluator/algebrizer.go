@@ -717,37 +717,27 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return nil, err
 		}
 
-		switch typedE.Operator {
-		case parser.AST_EQ:
-			return &SQLEqualsExpr{left, right}, nil
-		case parser.AST_LT:
-			return &SQLLessThanExpr{left, right}, nil
-		case parser.AST_GT:
-			return &SQLGreaterThanExpr{left, right}, nil
-		case parser.AST_LE:
-			return &SQLLessThanOrEqualExpr{left, right}, nil
-		case parser.AST_GE:
-			return &SQLGreaterThanOrEqualExpr{left, right}, nil
-		case parser.AST_NE:
-			return &SQLNotEqualsExpr{left, right}, nil
-		case parser.AST_LIKE:
-			// TODO: Might not want to reconcile expressions in this one...
-			return &SQLLikeExpr{left, right}, nil
-		case parser.AST_IN:
+		if typedE.SubqueryOperator != "" {
 			if eval, ok := right.(*SQLSubqueryExpr); ok {
-				return &SQLSubqueryCmpExpr{true, left, eval}, nil
+				switch typedE.SubqueryOperator {
+				case parser.AST_ALL:
+					return &SQLSubqueryCmpExpr{subqueryAll, left, eval, typedE.Operator}, nil
+				case parser.AST_ANY:
+					return &SQLSubqueryCmpExpr{subqueryAny, left, eval, typedE.Operator}, nil
+				case parser.AST_IN:
+					return &SQLSubqueryCmpExpr{subqueryIn, left, eval, typedE.Operator}, nil
+				case parser.AST_NOT_IN:
+					return &SQLSubqueryCmpExpr{subqueryNotIn, left, eval, typedE.Operator}, nil
+				case parser.AST_SOME:
+					return &SQLSubqueryCmpExpr{subquerySome, left, eval, typedE.Operator}, nil
+				}
 			}
-
-			return &SQLInExpr{left, right}, nil
-		case parser.AST_NOT_IN:
-			if eval, ok := right.(*SQLSubqueryExpr); ok {
-				return &SQLSubqueryCmpExpr{true, left, eval}, nil
-			}
-
-			return &SQLNotExpr{&SQLInExpr{left, right}}, nil
-		default:
-			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for operator '%v'", typedE.Operator)
+			// this should be unreachable because of the parser
+			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for '%v' with '%T'", typedE.SubqueryOperator, right)
 		}
+
+		return comparisonExpr(left, right, typedE.Operator)
+
 	case *parser.ExistsExpr:
 		subquery, err := a.translateSubqueryExpr(typedE.Subquery)
 		if err != nil {
