@@ -550,7 +550,7 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if !ok {
 		child, ok := right.(SQLValue)
 		if !ok {
-			return SQLFalse, fmt.Errorf("right 'in' expression is type %T - expeccted tuple", right)
+			return SQLFalse, fmt.Errorf("right 'in' expression is type %T - expected tuple", right)
 		}
 		rightChild = &SQLValues{[]SQLValue{child}}
 	}
