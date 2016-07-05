@@ -1149,6 +1149,140 @@ func (_ *substringFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2, 3)
 }
 
+const (
+	YEAR        = "year"
+	QUARTER     = "quarter"
+	MONTH       = "month"
+	WEEK        = "week"
+	DAY         = "day"
+	HOUR        = "hour"
+	MINUTE      = "minute"
+	SECOND      = "second"
+	MICROSECOND = "microsecond"
+)
+
+type timestampAddFunc struct{}
+
+//http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampadd
+func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	t, ok := parseDateTime(values[2].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	v, ok := values[1].(SQLNumeric)
+	if !ok {
+		return SQLNull, nil
+	}
+	_, ok = values[2].(SQLTimestamp)
+
+	switch values[0].(SQLValue).String() {
+	case YEAR:
+		if ok {
+			return SQLTimestamp{Time: t.AddDate(int(v.Float64()), 0, 0)}, nil
+		}
+		return SQLDate{Time: t.AddDate(int(v.Float64()), 0, 0)}, nil
+	case QUARTER:
+		if ok {
+			return SQLTimestamp{Time: t.AddDate(0, int(v.Float64())*3, 0)}, nil
+		}
+		return SQLDate{Time: t.AddDate(0, int(v.Float64())*3, 0)}, nil
+	case MONTH:
+		if ok {
+			return SQLTimestamp{Time: t.AddDate(0, int(v.Float64()), 0)}, nil
+		}
+		return SQLDate{Time: t.AddDate(0, int(v.Float64()), 0)}, nil
+	case WEEK:
+		if ok {
+			return SQLTimestamp{Time: t.AddDate(0, 0, int(v.Float64())*7)}, nil
+		}
+		return SQLDate{Time: t.AddDate(0, 0, int(v.Float64())*7)}, nil
+	case DAY:
+		if ok {
+			return SQLTimestamp{Time: t.AddDate(0, 0, int(v.Float64()))}, nil
+		}
+		return SQLDate{Time: t.AddDate(0, 0, int(v.Float64()))}, nil
+	case HOUR:
+		duration, _ := time.ParseDuration(v.String() + "h")
+		return SQLTimestamp{Time: t.Add(duration)}, nil
+	case MINUTE:
+		duration, _ := time.ParseDuration(v.String() + "m")
+		return SQLTimestamp{Time: t.Add(duration)}, nil
+	case SECOND:
+		duration, _ := time.ParseDuration(v.String() + "s")
+		return SQLTimestamp{Time: t.Add(duration)}, nil
+	case MICROSECOND:
+		duration, _ := time.ParseDuration(v.String() + "us")
+		return SQLTimestamp{Time: t.Add(duration)}, nil
+	default:
+		return nil, fmt.Errorf("cannot add '%v' to timestamp", values[0])
+	}
+	return SQLNull, nil
+}
+
+func (t *timestampAddFunc) Type() schema.SQLType {
+	return schema.SQLNone
+}
+
+func (t *timestampAddFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
+type timestampDiffFunc struct{}
+
+//http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampdiff
+func (_ *timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	t1, err := parseDateTime(values[1].String())
+	if !err {
+		return SQLNull, nil
+	}
+
+	t2, err := parseDateTime(values[2].String())
+	if !err {
+		return SQLNull, nil
+	}
+
+	duration := t2.Sub(t1)
+
+	switch values[0].(SQLValue).String() {
+	case YEAR:
+		return SQLInt(math.Floor(float64(numMonths(t1, t2) / 12))), nil
+	case QUARTER:
+		return SQLInt(math.Floor(float64(numMonths(t1, t2) / 3))), nil
+	case MONTH:
+		return SQLInt(numMonths(t1, t2)), nil
+	case WEEK:
+		if t1.After(t2) {
+			return SQLInt(math.Ceil((duration.Hours()) / 24 / 7)), nil
+		}
+		return SQLInt(math.Floor((duration.Hours()) / 24 / 7)), nil
+	case DAY:
+		if t1.After(t2) {
+			return SQLInt(math.Ceil(duration.Hours() / 24)), nil
+		}
+		return SQLInt(math.Floor(duration.Hours() / 24)), nil
+	case HOUR:
+		return SQLInt(duration.Hours()), nil
+	case MINUTE:
+		return SQLInt(duration.Minutes()), nil
+	case SECOND:
+		return SQLInt(duration.Seconds()), nil
+	case MICROSECOND:
+		return SQLInt(duration.Nanoseconds() / 1000), nil
+	default:
+		return nil, fmt.Errorf("cannot add '%v' to timestamp", values[0])
+	}
+	return SQLNull, nil
+}
+
+func (t *timestampDiffFunc) Type() schema.SQLType {
+	return schema.SQLInt
+}
+
+func (t *timestampDiffFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
 type ucaseFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ucase
@@ -1296,4 +1430,40 @@ func runesIndex(r, sep []rune) int {
 	}
 
 	return -1
+}
+
+func numMonths(startDate time.Time, endDate time.Time) int {
+	y1, m1, d1 := startDate.Date()
+	y2, m2, d2 := endDate.Date()
+	months := ((y2 - y1) * 12) + (int(m2) - int(m1))
+	if endDate.After(startDate) {
+		if d2 < d1 {
+			months -= 1
+		} else if d1 == d2 {
+			h1, mn1, s1 := startDate.Clock()
+			ns1 := startDate.Nanosecond()
+			h2, mn2, s2 := endDate.Clock()
+			ns2 := endDate.Nanosecond()
+			t1 := time.Date(y1, m1, d1, h1, mn1, s1, ns1, time.UTC)
+			t2 := time.Date(y1, m1, d1, h2, mn2, s2, ns2, time.UTC)
+			if t1.After(t2) {
+				months -= 1
+			}
+		}
+	} else {
+		if d1 < d2 {
+			months += 1
+		} else if d1 == d2 {
+			h1, mn1, s1 := startDate.Clock()
+			ns1 := startDate.Nanosecond()
+			h2, mn2, s2 := endDate.Clock()
+			ns2 := endDate.Nanosecond()
+			t1 := time.Date(y1, m1, d1, h1, mn1, s1, ns1, time.UTC)
+			t2 := time.Date(y1, m1, d1, h2, mn2, s2, ns2, time.UTC)
+			if t2.After(t1) {
+				months += 1
+			}
+		}
+	}
+	return months
 }

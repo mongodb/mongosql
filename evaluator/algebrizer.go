@@ -856,6 +856,9 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		}
 	case parser.StrVal:
 		return SQLVarchar(string(typedE)), nil
+	//necessary so keywords aren't quoted in sql query
+	case parser.KeywordVal:
+		return SQLVarchar(string(typedE)), nil
 	case *parser.Subquery:
 		return a.translateSubqueryExpr(typedE)
 	case *parser.TrueVal:

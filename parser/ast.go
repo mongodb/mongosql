@@ -446,6 +446,7 @@ func (DateVal) IExpr()         {}
 func (StrVal) IExpr()          {}
 func (NumVal) IExpr()          {}
 func (ValArg) IExpr()          {}
+func (KeywordVal) IExpr()      {}
 func (*NullVal) IExpr()        {}
 func (*ColName) IExpr()        {}
 func (*TrueVal) IExpr()        {}
@@ -466,6 +467,7 @@ func (StrVal) IBoolExpr()      {}
 func (DateVal) IBoolExpr()     {}
 func (NumVal) IBoolExpr()      {}
 func (ValArg) IBoolExpr()      {}
+func (KeywordVal) IBoolExpr()  {}
 func (*NullVal) IBoolExpr()    {}
 func (*TrueVal) IBoolExpr()    {}
 func (*FalseVal) IBoolExpr()   {}
@@ -607,6 +609,7 @@ func (DateVal) IValExpr()     {}
 func (StrVal) IValExpr()      {}
 func (NumVal) IValExpr()      {}
 func (ValArg) IValExpr()      {}
+func (KeywordVal) IValExpr()  {}
 func (*NullVal) IValExpr()    {}
 func (*TrueVal) IValExpr()    {}
 func (*FalseVal) IValExpr()   {}
@@ -655,6 +658,13 @@ type ValArg []byte
 
 func (node ValArg) Format(buf *TrackedBuffer) {
 	buf.WriteArg(string(node[1:]))
+}
+
+//necessary so keywords aren't quoted in sql query
+type KeywordVal []byte
+
+func (node KeywordVal) Format(buf *TrackedBuffer) {
+	buf.Fprintf("%s", []byte(node))
 }
 
 // NullVal represents a NULL value.

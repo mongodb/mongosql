@@ -16,7 +16,6 @@ type fieldNameLookup func(tableName, columnName string) (string, bool)
 
 // TranslateExpr attempts to turn the SQLExpr into MongoDB query language.
 func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, bool) {
-
 	switch typedE := e.(type) {
 
 	case *SQLAddExpr:

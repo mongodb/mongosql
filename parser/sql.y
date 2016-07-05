@@ -20,13 +20,13 @@ func ForceEOF(yylex interface{}) {
 }
 
 var (
-  SHARE =        []byte("share")
-  MODE  =        []byte("mode")
-  IF_BYTES =     []byte("if")
-  VALUES_BYTES = []byte("values")
-  RIGHT_BYTES =  []byte("right")
-  LEFT_BYTES =   []byte("left")
-  MOD_BYTES =    []byte("mod")
+  SHARE              = []byte("share")
+  MODE               = []byte("mode")
+  IF_BYTES           = []byte("if")
+  VALUES_BYTES       = []byte("values")
+  RIGHT_BYTES        = []byte("right")
+  LEFT_BYTES         = []byte("left")
+  MOD_BYTES          = []byte("mod")
   YEAR_BYTES         = []byte("year")
   QUARTER_BYTES      = []byte("quarter")
   MONTH_BYTES        = []byte("month")
@@ -81,8 +81,10 @@ var (
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LE GE NE NULL_SAFE_EQUAL
 %token <empty> '(' '=' '<' '>' '~'
-%token <empty> DATE DATETIME TIME TIMESTAMP YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND ADD
-%token <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND SQL_TSI_FRAC_SECOND
+%token <empty> DATE DATETIME TIME TIMESTAMP
+%token <empty> TIMESTAMPADD TIMESTAMPDIFF YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
+%token <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
+
 
 %left <empty> UNION MINUS EXCEPT INTERSECT
 %left <empty> ','
@@ -147,6 +149,8 @@ var (
 %type <valExprs> value_expression_list
 %type <values> tuple_list
 %type <bytes> keyword_as_func
+%type <bytes> time_interval
+%type <bytes> sql_time_interval
 %type <subquery> subquery
 %type <byt> unary_operator
 %type <colName> column_name
@@ -917,33 +921,63 @@ value_expression:
   {
     $$ = &FuncExpr{Name: $1, Exprs: $3}
   }
+| TIMESTAMPADD '(' time_interval ',' select_expression_list ')'
+  {
+    $$ = &FuncExpr{Name: []byte("timestampadd"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
+  }
+| TIMESTAMPADD '(' sql_time_interval ',' select_expression_list ')'
+  {
+    $$ = &FuncExpr{Name: []byte("timestampadd"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
+  }
+| TIMESTAMPDIFF '(' time_interval ',' select_expression_list ')'
+  {
+    $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: StrVal($3)}}, $5...)}
+  }
+| TIMESTAMPDIFF '(' sql_time_interval ',' select_expression_list ')'
+  {
+    $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: StrVal($3)}}, $5...)}
+  }
 | case_expression
   {
     $$ = $1
   }
 
-keyword_as_func:
-  IF
+sql_time_interval:
+    SQL_TSI_YEAR
   {
-    $$ = IF_BYTES
+    $$ = YEAR_BYTES
   }
-| VALUES
+| SQL_TSI_QUARTER
   {
-    $$ = VALUES_BYTES
+    $$ = QUARTER_BYTES
   }
-| RIGHT
+| SQL_TSI_MONTH
   {
-    $$ = RIGHT_BYTES
+    $$ = MONTH_BYTES
   }
-| LEFT
+| SQL_TSI_WEEK
   {
-    $$ = LEFT_BYTES
+    $$ = WEEK_BYTES
   }
-| MOD
+| SQL_TSI_DAY
   {
-    $$ = MOD_BYTES
+    $$ = DAY_BYTES
   }
-| YEAR
+| SQL_TSI_HOUR
+  {
+    $$ = HOUR_BYTES
+  }
+| SQL_TSI_MINUTE
+  {
+    $$ = MINUTE_BYTES
+  }
+| SQL_TSI_SECOND
+  {
+    $$ = SECOND_BYTES
+  }
+
+time_interval:
+  YEAR
   {
     $$ = YEAR_BYTES
   }
@@ -978,6 +1012,32 @@ keyword_as_func:
 | MICROSECOND
   {
     $$ = MICROSECOND_BYTES
+  }
+
+keyword_as_func:
+  IF
+  {
+    $$ = IF_BYTES
+  }
+| VALUES
+  {
+    $$ = VALUES_BYTES
+  }
+| RIGHT
+  {
+    $$ = RIGHT_BYTES
+  }
+| LEFT
+  {
+    $$ = LEFT_BYTES
+  }
+| MOD
+  {
+    $$ = MOD_BYTES
+  }
+| time_interval
+  {
+    $$ = $1
   }
 
 unary_operator:

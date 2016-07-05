@@ -370,6 +370,8 @@ var scalarFuncMap = map[string]scalarFunc{
 	"substr":            &substringFunc{},
 	"substring":         &substringFunc{},
 	"system_user":       &userFunc{},
+	"timestampadd":      &timestampAddFunc{},
+	"timestampdiff":     &timestampDiffFunc{},
 	"ucase":             &ucaseFunc{},
 	"upper":             &ucaseFunc{},
 	"user":              &userFunc{},
