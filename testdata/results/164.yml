@@ -1,0 +1,3 @@
+expected_names: ["none_Market_nk", "none_State_nk", "usr_CalculationB_ok"]
+expected_types: [varchar, varchar, varchar]
+expected: []

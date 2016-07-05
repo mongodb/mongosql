@@ -1,0 +1,6 @@
+expected_names: ["cnt_Order_ID_ok", "none_Prod_TypeB_nk"]
+expected_types: [float64, varchar]
+expected:
+  - [11329, "FURNITURE"]
+  - [13184, "TECHNOLOGY"]
+  - [30347, "OFFICE SUPPLIES"]

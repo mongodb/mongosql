@@ -1,0 +1,4 @@
+expected_names: ["cnt_Key_ok"]
+expected_types: [int]
+expected:
+  - [16]

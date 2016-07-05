@@ -1,0 +1,6 @@
+expected_names: ["none_strA_nk", "none_z_const_str_nk"]
+expected_types: [varchar, varchar]
+expected:
+  - ["FURNITURE", "CONST"]
+  - ["OFFICE SUPPLIES", "CONST"]
+  - ["TECHNOLOGY", "CONST"]

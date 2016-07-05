@@ -1,0 +1,10 @@
+expected_names: ["none_League_nk"]
+expected_types: [varchar]
+expected:
+  - ["AA"]
+  - ["AL"]
+  - ["FL"]
+  - ["NA"]
+  - ["NL"]
+  - ["PL"]
+  - ["UA"]

@@ -87,14 +87,14 @@ func writeBlackBoxTestFile(out io.Writer, queries Queries) {
 
 import (
 	"database/sql"
-	"encoding/csv"
 	"flag"
 	"fmt"
+	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/schema"
 	_ "github.com/go-sql-driver/mysql"
 	. "github.com/smartystreets/goconvey/convey"
-	"os"
+	"io/ioutil"
 	"sync"
 	"testing"
 )
@@ -105,6 +105,12 @@ var (
 	testProxyAddress = flag.String("testProxyAddress", "127.0.0.1", "test proxy host")
 	testProxyPort    = flag.String("testProxyPort", "3308", "test proxy address")
 )
+
+type resultSchema struct {
+	ExpectedNames   []string        ` + "`yaml:\"expected_names\"`" + `
+	ExpectedTypes   []string        ` + "`yaml:\"expected_types\"`" + `
+	ExpectedData    [][]interface{} ` + "`yaml:\"expected\"`" + `
+}
 
 func setup() {
 	conf := mustLoadTestSchema(pathify("testdata", "blackbox.yml"))
@@ -131,38 +137,22 @@ func setup() {
 }
 
 func runBlackboxQuery(t *testing.T, db *sql.DB, query string, columns, id int) {
-	var types []string
 
-	for j := 0; j < columns; j++ {
-		types = append(types, schema.SQLVarchar)
-	}
+	expectedFile := pathify("testdata", "results", fmt.Sprintf("%v.yml", id))
 
-	actual, err := runSQL(db, query, types, nil)
-	So(err, ShouldBeNil)
-
-	expectedFile := pathify("testdata", "results", fmt.Sprintf("%v.csv", id))
-
-	handle, err := os.OpenFile(expectedFile, os.O_RDONLY, os.ModeExclusive)
+	fileBytes, err := ioutil.ReadFile(expectedFile)
 	if err != nil {
 		panic(err)
 	}
 
-	r := csv.NewReader(handle)
-
-	r.FieldsPerRecord = columns
-	data, err := r.ReadAll()
+	var conf resultSchema
+	err = yaml.Unmarshal(fileBytes, &conf)
 	So(err, ShouldBeNil)
-		
-	// TODO: check header as well
-	data = data[1:]
-	expected := make([][]interface{}, len(data))
-	for i, v := range data {
-		for _, s := range v {
-			expected[i] = append(expected[i], s)
-		}
-	}
 
-	compareResults(t, expected, actual)
+	actual, err := runSQL(db, query, conf.ExpectedTypes, conf.ExpectedNames)
+	So(err, ShouldBeNil)
+
+	compareResults(t, conf.ExpectedData, actual)
 }
 
 {{range .Q}}

@@ -1,0 +1,5 @@
+expected_names: ["none_App_College_nk"]
+expected_types: [varchar]
+expected:
+  - ["COLLEGE GRAD"]
+  - ["HIGH SCHOOL GRAD"]

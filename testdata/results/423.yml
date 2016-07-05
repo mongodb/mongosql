@@ -1,0 +1,7 @@
+expected_names: ["avg_Price_ok", "none_Customer_Segment_nk"]
+expected_types: [float64, varchar]
+expected:
+  - [84.24295534274852, "SMALL BUSINESS"]
+  - [84.9273779749833, "CORPORATE"]
+  - [85.97275632586968, "HOME OFFICE"]
+  - [88.3742148607349, "CONSUMER"]

@@ -1,0 +1,11 @@
+expected_names: ["none_PRECINCT_nk"]
+expected_types: [varchar]
+expected:
+  - ["EAST DISTRICT"]
+  - ["EAST PRECINCT"]
+  - ["N/A"]
+  - ["NORTH PRECINCT"]
+  - ["SOUTH PRECINCT"]
+  - ["SOUTHWEST PRECINCT"]
+  - ["WEST DISTRICT"]
+  - ["WEST PRECINCT"]

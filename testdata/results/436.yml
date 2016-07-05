@@ -1,0 +1,6 @@
+expected_names: ["none_Call_Center_Region_nk", "sum_Sales_Total_ok"]
+expected_types: [varchar, float64]
+expected:
+  - ["CENTRAL", 21059849.41999999]
+  - ["EAST", 50720764.82000011]
+  - ["WEST", 26907323.14000006]

@@ -1,0 +1,8 @@
+expected_names: ["none_Order_Priority_nk"]
+expected_types: [varchar]
+expected:
+  - ["1-URGENT"]
+  - ["2-HIGH"]
+  - ["3-MEDIUM"]
+  - ["4-NOT SPECIFIED"]
+  - ["5-LOW"]

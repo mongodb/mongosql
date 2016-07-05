@@ -1,0 +1,4 @@
+expected_names: ["cnt_strC_ok", "usr_z_count_strC__ok"]
+expected_types: [int, int]
+expected:
+  - [13, 13]

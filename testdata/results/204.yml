@@ -1,0 +1,7 @@
+expected_names: ["none_Customer_Segment_nk"]
+expected_types: [varchar]
+expected:
+  - ["CONSUMER"]
+  - ["CORPORATE"]
+  - ["HOME OFFICE"]
+  - ["SMALL BUSINESS"]

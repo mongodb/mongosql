@@ -1,0 +1,4 @@
+expected_names: ["sum_This_field_has_a_really_long_name_but_it_turns_out_is_just_a_copy_of_Profit_ok", "sum_This_field_has_a_really_long_name_but_it_turns_out_is_just_a_copy_of_Sales_ok"]
+expected_types: [float64, float64]
+expected:
+  - [259527.27268291975, 819827.1002277903]

@@ -1,0 +1,9 @@
+expected_names: ["none_strC_nk"]
+expected_types: [varchar]
+expected:
+  - [~]
+  - ["sixteen"]
+  - ["ten"]
+  - ["three"]
+  - ["twelve"]
+  - ["two"]

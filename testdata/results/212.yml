@@ -1,0 +1,6 @@
+expected_names: ["none_Prod_TypeB_nk"]
+expected_types: [varchar]
+expected:
+  - ["FURNITURE"]
+  - ["OFFICE SUPPLIES"]
+  - ["TECHNOLOGY"]

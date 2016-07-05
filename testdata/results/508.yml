@@ -1,0 +1,6 @@
+expected_names: ["none_Product_nk", "sum_Profit_ok"]
+expected_types: [varchar, float64]
+expected:
+  - ["Earl Grey", 24161.676084449642]
+  - ["Green Tea", -227.14102959393244]
+  - ["Lemon", 29864.718618956664]

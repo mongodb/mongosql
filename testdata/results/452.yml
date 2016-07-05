@@ -1,0 +1,6 @@
+expected_names: ["min_Number_of_Records_ok", "none_Market_nk", "none_Product_nk"]
+expected_types: [float64, varchar, varchar]
+expected:
+  - [1, "East", "Darjeeling"]
+  - [1, "East", "Earl Grey"]
+  - [1, "East", "Green Tea"]

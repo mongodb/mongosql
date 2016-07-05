@@ -1,0 +1,7 @@
+expected_names: ["Market", "avg_Sales_ok", "cnt_Sales_ok", "sum_Sales_ok"]
+expected_types: [varchar, float64, float64, float64]
+expected:
+  - ["Central", 197.2081998545125, 1344, 265047.8206044648]
+  - ["East", 201.10157509580117, 888, 178578.19868507143]
+  - ["South", 154.6552980808202, 672, 103928.36031031117]
+  - ["West", 202.5838695148378, 1344, 272272.720627942]

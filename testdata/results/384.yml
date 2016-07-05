@@ -1,0 +1,6 @@
+expected_names: ["none_a_nk"]
+expected_types: [varchar]
+expected:
+  - ["a"]
+  - ["b"]
+  - ["c"]

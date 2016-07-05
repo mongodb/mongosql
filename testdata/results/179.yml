@@ -1,0 +1,5 @@
+expected_names: ["none_App_Employ_Status_nk"]
+expected_types: [varchar]
+expected:
+  - ["EMPLOYED"]
+  - ["UNEMPLOYED"]

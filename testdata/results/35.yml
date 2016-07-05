@@ -1,0 +1,5 @@
+expected_names: ["cnt_Number_of_Records_ok", "none_Employee_Name_nk"]
+expected_types: [float64, varchar]
+expected:
+  - [8, "Sandra Davis"]
+  - [95, "Sandra Ríos Balderrama"]

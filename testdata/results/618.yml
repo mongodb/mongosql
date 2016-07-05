@@ -1,0 +1,3 @@
+expected_names: ["none_PID_ok", "sum_Gross_Profit_ok", "sum_Sales_Total_ok"]
+expected_types: [varchar, varchar, varchar]
+expected: []

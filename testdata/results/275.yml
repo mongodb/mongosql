@@ -1,0 +1,7 @@
+expected_names: ["none_Market_nk"]
+expected_types: [varchar]
+expected:
+  - ["Central"]
+  - ["East"]
+  - ["South"]
+  - ["West"]

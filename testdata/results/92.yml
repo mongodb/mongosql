@@ -1,0 +1,4 @@
+expected_names: ["sum_Profit_ok"]
+expected_types: [float64]
+expected:
+  - [259527.27268291975]

@@ -1,0 +1,5 @@
+expected_names: ["none_strC_nk", "sum_numD_ok"]
+expected_types: [varchar, float64]
+expected:
+  - [~, -5.540000000000001]
+  - ["sixteen", -10.98]

@@ -1,0 +1,8 @@
+expected_names: ["none_Price_ok"]
+expected_types: [float64]
+expected:
+  - [0.99]
+  - [1.14]
+  - [1.24]
+  - [1.26]
+  - [1.34]
