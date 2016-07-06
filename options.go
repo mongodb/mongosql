@@ -3,9 +3,11 @@ package sqlproxy
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"net"
+	"strings"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -24,6 +26,7 @@ type Options struct {
 	MongoURI               string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to" default:"mongodb://localhost:27017"`
 	MongoSSL               bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
 	MongoPEMFile           string `long:"mongo-ssl-pem-file" description:"path to a file containing the cert and private key for connecting to MongoDB, when using --mongo-ssl"`
+	MongoPEMFilePassword   string `long:"mongo-ssl-pem-file-password" description:"password to decrypt private key in mongo-ssl-pem-file"`
 	MongoAllowInvalidCerts bool   `long:"mongo-ssl-allow-invalid-certs" description:"don't require the cert presented by the MongoDB server to be valid, when using --mongo-ssl"`
 	MongoCAFile            string `long:"mongo-ssl-ca-file" description:"path to a CA certs file to use for authenticating certs from MongoDB, when using --mongo-ssl"`
 	MongoTimeout           int64  `long:"mongo-timeout" description:"seconds to wait for a server to respond when connecting or on follow up operations" default:"30" hidden:"true"`
@@ -60,6 +63,7 @@ func (o Options) Validate() error {
 	}
 
 	return nil
+
 }
 
 // GetDialInfo populates a *mgo.DialInfo object according to
@@ -80,15 +84,50 @@ func GetDialInfo(opts Options) (*mgo.DialInfo, error) {
 	dialInfo.Timeout = time.Duration(opts.MongoTimeout) * time.Second
 
 	if opts.MongoSSL {
-		var certs []tls.Certificate
+		var certificates []tls.Certificate
 		var rootCA *x509.CertPool
+
 		if len(opts.MongoPEMFile) > 0 {
-			// assume same file includes both private key and cert data.
-			cert, err := tls.LoadX509KeyPair(opts.MongoPEMFile, opts.MongoPEMFile)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load pem key file '%v': %v", opts.MongoPEMFile, err)
+			// assume same file includes both private key and certificate data
+			if len(opts.MongoPEMFilePassword) == 0 {
+				certificate, err := tls.LoadX509KeyPair(opts.MongoPEMFile, opts.MongoPEMFile)
+				if err != nil {
+					return nil, fmt.Errorf("failed to load PEM file '%v': %v", opts.MongoPEMFile, err)
+				}
+				certificates = append(certificates, certificate)
+			} else {
+				pemFile, err := ioutil.ReadFile(opts.MongoPEMFile)
+				if err != nil {
+					return nil, fmt.Errorf("failed to load PEM file '%v': %v", opts.MongoPEMFile, err)
+				}
+
+				var parsedPEMBlock, keyPEMBlock *pem.Block
+				var certPEMBlock []byte
+
+				for {
+					parsedPEMBlock, pemFile = pem.Decode(pemFile)
+					if parsedPEMBlock == nil {
+						break
+					}
+
+					if parsedPEMBlock.Type == "PRIVATE KEY" || strings.HasSuffix(parsedPEMBlock.Type, " PRIVATE KEY") {
+						decryptedBlock, err := x509.DecryptPEMBlock(parsedPEMBlock, []byte(opts.MongoPEMFilePassword))
+						if err != nil {
+							return nil, fmt.Errorf("failed to decrypt PEM file '%v': %v", opts.MongoPEMFile, err)
+						}
+						keyPEMBlock = &pem.Block{Type: parsedPEMBlock.Type, Bytes: decryptedBlock}
+					} else {
+						certPEMBlock = append(certPEMBlock, pem.EncodeToMemory(parsedPEMBlock)...)
+					}
+				}
+
+				certificate, err := tls.X509KeyPair(certPEMBlock, pem.EncodeToMemory(keyPEMBlock))
+				if err != nil {
+					return nil, fmt.Errorf("failed to load PEM certificate '%v': %v", opts.MongoPEMFile, err)
+				}
+				certificates = append(certificates, certificate)
 			}
-			certs = append(certs, cert)
+
 		}
 
 		if len(opts.MongoCAFile) > 0 {
@@ -106,7 +145,7 @@ func GetDialInfo(opts Options) (*mgo.DialInfo, error) {
 		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
 			sslConf := &tls.Config{
 				// in the future, certificates could be included here to allow x509 auth.
-				Certificates:       certs,
+				Certificates:       certificates,
 				RootCAs:            rootCA,
 				InsecureSkipVerify: opts.MongoAllowInvalidCerts,
 			}
