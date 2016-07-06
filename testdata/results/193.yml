@@ -1,0 +1,11 @@
+expected_names: ["none_PRECINCT_nk", "usr_Avg_Rape_Per_Tract_ok"]
+expected_types: [varchar, float64]
+expected: 
+ - ["EAST DISTRICT", 0.0000]
+ - ["EAST PRECINCT", 0.1096]
+ - ["N/A", 0.0000]
+ - ["NORTH PRECINCT", 0.0833]
+ - ["SOUTH PRECINCT", 0.1731]
+ - ["SOUTHWEST PRECINCT", 0.0648]
+ - ["WEST DISTRICT", 0.0000]
+ - ["WEST PRECINCT", 0.1754]

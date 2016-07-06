@@ -1,0 +1,4 @@
+expected_names: ["TEMP_z_min_dateD___CAIFDBAFGG__A_", "min_float_dateD__ok"]
+expected_types: [varchar, int64]
+expected:
+ - ["1979-04-01", 19790401]

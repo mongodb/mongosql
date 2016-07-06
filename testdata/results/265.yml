@@ -1,0 +1,7 @@
+expected_names: ["avg_Gross_Profit_ok", "mn_Order_Date_ok", "none_Call_Center_Region_nk", "none_Order_ID_ok", "none_Product_Container_nk", "sum_Price_ok", "yr_Order_Date_ok"]
+expected_types: [float64, float64, varchar, float64, varchar, float64, float64]
+expected: 
+ - [-93.18, 10, "WEST", 23143, "MEDIUM BOX", 11.3300, 2002]
+ - [-38.72, 7, "WEST", 47653, "MEDIUM BOX", 21.7800, 2002]
+ - [-21.82, 7, "WEST", 7266, "MEDIUM BOX", 9.7700, 2002]
+ - [4660.61, 7, "WEST", 30086, "MEDIUM BOX", 500.9800, 2002]

@@ -1,0 +1,4 @@
+expected_names: ["sum_Customer_Balance_ok", "sum_Order_Quantity_ok"]
+expected_types: [int64, int64]
+expected:
+ - [235300311, 1390980]

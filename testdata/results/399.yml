@@ -1,0 +1,4 @@
+expected_names: ["none_Type_nk", "sum_Profit_ok", "sum_Sales_ok", "yr_Date_ok"]
+expected_types: [varchar, float64, float64, float64]
+expected: 
+ - ["Decaf", 43532, 170114, 1998]

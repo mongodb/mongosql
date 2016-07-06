@@ -1,0 +1,7 @@
+expected_names:  ["min_Number_of_Records_ok", "none_Market_nk", "none_Product_Type_nk", "sum_Budget_Profit_ok"]
+expected_types: [float64, varchar, varchar, float64]
+expected: 
+  - [1, "Central", "Coffee", 24220]
+  - [1, "Central", "Espresso", 28520]
+  - [1, "Central", "Herbal Tea", 22740]
+  - [1, "Central", "Tea", 17100]

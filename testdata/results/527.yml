@@ -1,0 +1,8 @@
+expected_names: ["ctd_Player_ok", "none_League_nk", "sum_AB_ok"]
+expected_types: [float64, varchar, float64]
+expected: 
+ - [138, "PL", 38425]
+ - [263, "UA", 30439]
+ - [285, "FL", 81510]
+ - [299, "NA", 89412]
+ - [860, "AA", 353892]

@@ -1,0 +1,6 @@
+expected_names:  ["none_Market_nk", "sum_Budget_Margin_ok"]
+expected_types: [varchar, float64]
+expected: 
+  - ["Central", 146140]
+  - ["East", 93400]
+  - ["South", 57460]

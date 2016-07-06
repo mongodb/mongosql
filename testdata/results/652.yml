@@ -1,0 +1,5 @@
+expected_names: ["avg_Budget_COGS_ok", "avg_Budget_Margin_ok", "avg_Budget_Profit_ok", "avg_Budget_Sales_ok", "avg_COGS_ok", "avg_Inventory_ok", "avg_Margin_ok", "avg_Marketing_ok", "avg_Profit_ok", "avg_Sales_ok", "avg_Total_Expenses_ok", "yr_Date_ok"]
+expected_types: [float64, float64, float64, float64, float64, float64, float64, float64, float64, float64, float64, float64]
+expected: 
+ - [74.8305, 100.8192, 60.9134, 175.6497, 84.4331, 749.3814, 104.2933, 31.1850, 49.82391713747646, 188.86958568738228, 54.61252354048964, 1998]
+ - [74.8305, 100.8192, 60.9134, 175.6497, 84.4331, 749.3814, 104.2933, 31.1850, 72.36406435165713, 197.1130415385075, 53.51653013182675, 1999]

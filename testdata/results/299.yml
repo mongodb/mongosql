@@ -1,0 +1,7 @@
+expected_names: ["cnt_Sales_ok", "max_Sales_ok", "min_Sales_ok", "none_Market_nk", "std_Sales_ok", "sum_Sales_ok", "var_Sales_ok"]
+expected_types: [float64, float64, float64, varchar, float64, float64, float64]
+expected: 
+ - [672, 678, 39, "South", 96.31340605553528, 103928.36031031117, 9276.272186018421]
+ - [888, 912, 39, "East", 172.52705068030164, 178578.19868507143, 29765.58321644337]
+ - [1344, 716.134196286224, 23, "Central", 144.780253947023, 265047.8206044648, 20961.321932964467]
+ - [1344, 912, 17, "West", 161.5215444557201, 272272.720627942, 26089.209323361163]

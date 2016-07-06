@@ -1,0 +1,4 @@
+expected_names:  ["sum_Another_Margin_ok", "sum_Margin_ok", "sum_My_Margin_ok", "sum_Profit_ok"]
+expected_types: [float64, float64, float64, float64]
+expected: 
+  - [443038, 443038, 443038, 259527.27268291975]

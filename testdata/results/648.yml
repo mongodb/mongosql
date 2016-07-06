@@ -1,0 +1,3 @@
+expected_names: ['none_Call_Center_Region_nk', 'none_Customer_Name_nk', 'sum_Customer_Balance_ok', 'sum_Order_Quantity_ok', 'yr_Order_Date_ok']
+expected_types: [varchar, varchar, varchar, varchar, varchar]
+expected: []

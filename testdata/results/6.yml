@@ -1,0 +1,7 @@
+expected_names: ["none_Market_nk", "sum_Sales_ok", "yr_Date_ok"]
+expected_types: [varchar, float64, float64]
+expected: 
+ - ["East", 87398, 1998]
+ - ["East", 91180.19868507145, 1999]
+ - ["West", 133235, 1998]
+ - ["West", 139037.7206279422, 1999]

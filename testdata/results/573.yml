@@ -1,0 +1,7 @@
+expected_names: ["sum_Close_Price_ok", "yr_Date_ok"]
+expected_types: [float64, float64]
+expected: 
+ - [15689.459999999995, 2003]
+ - [36290.79999999995, 2002]
+ - [40376.639999999985, 2001]
+ - [74178.63000000009, 2000]

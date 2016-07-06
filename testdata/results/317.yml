@@ -1,0 +1,4 @@
+expected_names:  ["TEMP_z_max_strC___DFJIBAEFCD__A_", "max_len_strC__ok"]
+expected_types: [varchar, float64]
+expected: 
+  - ["two", 8]

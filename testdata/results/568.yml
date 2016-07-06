@@ -1,0 +1,9 @@
+expected_names: ["TEMP_Avg_Rape_Per_Tract__DGDBIHAADB__A_", "TEMP_Avg_Rape_Per_Tract__HDEJFCFIH__A_", "none_PRECINCT_nk"]
+expected_types: [float64, float64, varchar]
+expected: 
+ - [12, 0, "EAST DISTRICT"]
+ - [12, 0, "N/A"]
+ - [12, 0, "WEST DISTRICT"]
+ - [216, 14, "SOUTHWEST PRECINCT"]
+ - [228, 25, "EAST PRECINCT"]
+ - [672, 56, "NORTH PRECINCT"]

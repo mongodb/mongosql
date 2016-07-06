@@ -1,0 +1,7 @@
+expected_names:  ["none_Market_nk", "sum_Misc_ok", "sum_Profit_ok"]
+expected_types: [varchar, float64, float64]
+expected: 
+  - ["Central", 640, 93849.0540094155]
+  - ["East", 400, 59211.73021597625]
+  - ["South", 318, 32476.6410848847]
+  - ["West", 668, 73989.84737264347]

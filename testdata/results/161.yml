@@ -1,0 +1,3 @@
+expected_names: ['sum_COGS_ok']
+expected_types: [varchar]
+expected: []

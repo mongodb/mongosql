@@ -1,0 +1,8 @@
+expected_names:  ["none_Year_ok", "sum_Doubles_ok"]
+expected_types: [float64, float64]
+expected: 
+  - [1871, 434]
+  - [1872, 567]
+  - [1873, 556]
+  - [1874, 633]
+  - [1875, 839]

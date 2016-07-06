@@ -1,0 +1,10 @@
+expected_names: ["none_BCHBFJ_ok", "sum_Number_of_Records_ok"]
+expected_types: [varchar, float64]
+expected: 
+ - ["2001-01-01", 6]
+ - ["2001-01-02", 8]
+ - ["2001-01-03", 8]
+ - ["2001-01-04", 8]
+ - ["2001-01-05", 8]
+ - ["2001-01-06", 8]
+ - ["2001-01-07", 4]

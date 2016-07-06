@@ -1,0 +1,4 @@
+expected_names: ["none_z_dateadd_quarter_AD_DB_ok"]
+expected_types: [varchar]
+expected: 
+ - ["2013-06-30"]

@@ -1,0 +1,3 @@
+expected_names: ['none_Customer_Name_nk', 'sum_Customer_Balance_ok']
+expected_types: [varchar, varchar]
+expected: []

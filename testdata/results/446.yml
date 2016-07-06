@@ -1,0 +1,11 @@
+expected_names: ["none_Product_Type_nk", "sum_Sales_ok", "yr_Date_ok"]
+expected_types: [varchar, float64, float64]
+expected: 
+ - ["Coffee", 52235, 1998]
+ - ["Coffee", 54728.381972364536, 1999]
+ - ["Espresso", 54028, 1998]
+ - ["Espresso", 56665.78073553169, 1999]
+ - ["Herbal Tea", 49733, 1998]
+ - ["Herbal Tea", 52123.13478736606, 1999]
+ - ["Tea", 41656, 1998]
+ - ["Tea", 43663.47989096883, 1999]

@@ -1,0 +1,7 @@
+expected_names:  ["none_Product_Type_nk", "sum_COGS_ok", "sum_Profit_ok"]
+expected_types: [varchar, float64, float64]
+expected: 
+  - ["Coffee", 12514, -7174.137661443642]
+  - ["Espresso", 8628, -7523.111409271854]
+  - ["Herbal Tea", 12834, -6599.784738842616]
+  - ["Tea", 10556, -11708.238150175035]

@@ -1,0 +1,4 @@
+expected_names:  ["sum_ABS_Test_ok", "sum_Gross_Profit_ok"]
+expected_types: [float64, float64]
+expected: 
+  - [31093408.100000426, 24607040.479999956]

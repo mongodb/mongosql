@@ -1,0 +1,10 @@
+expected_names: ["Minus_Discount__bin_", "max_Discount_ok", "min_Discount_ok"]
+expected_types: [float64, float64, float64]
+expected: 
+ - [-8, 0.39, 0.36]
+ - [-6, 0.3, 0.27]
+ - [-5, 0.24, 0.21]
+ - [-3, 0.15, 0.11]
+ - [-2, 0.1, 0.06]
+ - [-1, 0.05, 0.01]
+ - [-0, 0, 0]

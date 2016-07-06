@@ -1,0 +1,5 @@
+expected_names: ["TEMP_ProfitSpotlight__BHJGICDBHG__A_", "yr_Date_ok"]
+expected_types: [float64, float64]
+expected: 
+ - [105826, 1998]
+ - [153701.27268291975, 1999]

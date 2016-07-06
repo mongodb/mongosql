@@ -1,0 +1,4 @@
+expected_names:  ["sum_Budget_COGS_ok", "sum_Budget_Margin_ok"]
+expected_types: [float64, float64]
+expected: 
+  - [317880, 428280]

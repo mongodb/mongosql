@@ -1,0 +1,5 @@
+expected_names:  ["Market_Size", "Product_Type", "Type", "sum_Budget_Profit_ok"]
+expected_types: [varchar, varchar, varchar, float64]
+expected: 
+  - ["Major Market", "Espresso", "Decaf", 16780]
+  - ["Major Market", "Espresso", "Regular", 27160]

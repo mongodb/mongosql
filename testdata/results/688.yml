@@ -1,0 +1,4 @@
+expected_names: ["TEMP_z_max_dateD___EAFIDBBGB__A_", "max_float_dateD__ok"]
+expected_types: [varchar, int64]
+expected:
+ - ["1999-08-20", 19990820]

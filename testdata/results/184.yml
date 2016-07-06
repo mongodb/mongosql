@@ -1,0 +1,11 @@
+expected_names:  ["none_MONTH_nk", "sum_AUTOTHEFT_ok"]
+expected_types: [varchar, float64]
+expected: 
+  - ["April", 814]
+  - ["August", 798]
+  - ["July", 774]
+  - ["June", 602]
+  - ["May", 597]
+  - ["November", 883]
+  - ["October", 904]
+  - ["September", 777]

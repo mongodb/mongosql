@@ -1,0 +1,4 @@
+expected_names: ["sum_Additions_ok", "sum_Budget_Additions_ok", "sum_Budget_COGS_ok", "sum_Budget_Margin_ok", "sum_Budget_Payroll_ok", "sum_Budget_Profit_ok", "sum_Budget_Sales_ok", "sum_COGS_ok", "sum_Ending_ok", "sum_Inventory_ok", "sum_Item_Count_ok", "sum_Margin_Rate_ok", "sum_Margin_ok", "sum_Marketing_ok", "sum_Misc_ok", "sum_Number_of_Records_ok", "sum_Opening_ok", "sum_Payroll_ok", "sum_Profit_Ratio_ok", "sum_Profit_ok", "sum_Sales_ok", "sum_Total_Expenses_ok", "sum_birst_constant_one_ok", "sum_row_ok"]
+expected_types: [int64, int64, int64, int64, int64, int64, int64, int64, int64, int64, int64, float64, int64, int64, int64, int64, int64, int64, float64, float64, float64, float64, varchar, int64]
+expected:
+ - [859548, 800280, 317880, 428280, 70480, 258760, 746160, 358672, 3241210, 3183372, 4248, 234660.7600000002, 443038, 132474, 2026, 4248, 3183372, 97494, 89924.07999999994, 259527.27268291975, 819827.1002277903, 229666.11000000016, ~, 0]

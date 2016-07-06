@@ -1,0 +1,7 @@
+expected_names: ["cnt_Number_of_Records_ok", "none_Product_Type_nk", "sum_Additions_ok", "sum_Budget_Additions_ok", "sum_Budget_COGS_ok"]
+expected_types: [float64, varchar, float64, float64, float64]
+expected: 
+ - [960, "Tea", 191104, 172580, 57140]
+ - [1056, "Coffee", 227968, 231520, 96880]
+ - [1056, "Herbal Tea", 225622, 195040, 73060]
+ - [1176, "Espresso", 214854, 201140, 90800]

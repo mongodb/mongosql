@@ -1,0 +1,5 @@
+expected_names: ["avg_Close_Price_ok", "cnt_Close_Price_ok", "max_Close_Price_ok", "min_Close_Price_ok", "none_Industry_nk", "std_Close_Price_ok", "sum_Close_Price_ok", "var_Close_Price_ok"]
+expected_types: [float64, float64, float64, float64, varchar, float64, float64, float64]
+expected: 
+ - [13.777104867614822, 17298, 79.25, 0.09, "Software", 13.158269516962589, 238316.3600000012, 173.1400566810269]
+ - [15.470740197277298, 12267, 80.06, 0.07, "Hardware", 14.568105338658178, 189779.57000000062, 212.2296931582409]
