@@ -36,6 +36,11 @@ var (
   MINUTE_BYTES       = []byte("minute")
   SECOND_BYTES       = []byte("second")
   MICROSECOND_BYTES  = []byte("microsecond")
+  CHAR_BYTES         = []byte("char")
+  DATE_BYTES         = []byte("date")
+  DATETIME_BYTES     = []byte("datetime")
+  FLOAT_BYTES        = []byte("float")
+  INTEGER_BYTES      = []byte("integer")
 )
 
 %}
@@ -84,7 +89,7 @@ var (
 %token <empty> DATE DATETIME TIME TIMESTAMP
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
 %token <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
-
+%token <empty> CONVERT CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
 
 %left <empty> UNION MINUS EXCEPT INTERSECT
 %left <empty> ','
@@ -151,6 +156,7 @@ var (
 %type <bytes> keyword_as_func
 %type <bytes> time_interval
 %type <bytes> sql_time_interval
+%type <bytes> sql_types
 %type <subquery> subquery
 %type <byt> unary_operator
 %type <colName> column_name
@@ -937,6 +943,10 @@ value_expression:
   {
     $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: StrVal($3)}}, $5...)}
   }
+| CONVERT '(' select_expression ',' sql_types ')'
+  {
+    $$ = &FuncExpr{Name: []byte("convert"), Exprs: append(SelectExprs{$3, &NonStarExpr{Expr: KeywordVal($5)}})}
+  }
 | case_expression
   {
     $$ = $1
@@ -1013,6 +1023,56 @@ time_interval:
   {
     $$ = MICROSECOND_BYTES
   }
+
+sql_types:
+  CHAR
+    {
+      $$ = CHAR_BYTES
+    }
+  | DATE
+    {
+      $$ = DATE_BYTES
+    }
+  | DATETIME
+    {
+      $$ = DATETIME_BYTES
+    }
+  | SIGNED
+    {
+      $$ = INTEGER_BYTES
+    }
+  | SIGNED INTEGER
+    {
+      $$ = INTEGER_BYTES
+    }
+  | UNSIGNED
+    {
+      $$ = INTEGER_BYTES
+    }
+  | UNSIGNED INTEGER
+    {
+      $$ = INTEGER_BYTES
+    }
+  | SQL_BIGINT
+    {
+      $$ = INTEGER_BYTES
+    }
+  | SQL_VARCHAR
+    {
+      $$ = CHAR_BYTES
+    }
+  | SQL_DATE
+    {
+      $$ = DATE_BYTES
+    }
+  | SQL_TIMESTAMP
+    {
+      $$ = DATETIME_BYTES
+    }
+  | SQL_DOUBLE
+    {
+      $$ = FLOAT_BYTES
+    }
 
 keyword_as_func:
   IF

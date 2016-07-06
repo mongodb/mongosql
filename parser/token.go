@@ -160,6 +160,18 @@ var keywords = map[string]int{
 	// boolean literals
 	"true":  TRUE,
 	"false": FALSE,
+
+	// convert tokens
+	"convert":       CONVERT,
+	"char":          CHAR,
+	"signed":        SIGNED,
+	"unsigned":      UNSIGNED,
+	"integer":       INTEGER,
+	"sql_bigint":    SQL_BIGINT,
+	"sql_varchar":   SQL_VARCHAR,
+	"sql_date":      SQL_DATE,
+	"sql_double":    SQL_DOUBLE,
+	"sql_timestamp": SQL_TIMESTAMP,
 }
 
 // Lex returns the next token form the Tokenizer.

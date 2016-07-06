@@ -737,7 +737,20 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		}
 
 		return comparisonExpr(left, right, typedE.Operator)
+	case parser.DateVal:
 
+		arg := string(typedE.Val)
+
+		switch typedE.Name {
+		case parser.AST_DATE:
+			return NewSQLValue(arg, schema.SQLDate, schema.MongoNone)
+		case parser.AST_TIME:
+			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
+		case parser.AST_TIMESTAMP, parser.AST_DATETIME:
+			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
+		default:
+			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for constructor '%v'", string(typedE.Name))
+		}
 	case *parser.ExistsExpr:
 		subquery, err := a.translateSubqueryExpr(typedE.Subquery)
 		if err != nil {
@@ -748,6 +761,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		return SQLFalse, nil
 	case *parser.FuncExpr:
 		return a.translateFuncExpr(typedE)
+	case parser.KeywordVal:
+		return SQLVarchar(string(typedE)), nil
 	case *parser.NotExpr:
 		child, err := a.translateExpr(typedE.Expr)
 		if err != nil {
@@ -830,24 +845,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		}
 
 		return m, nil
-	case parser.DateVal:
-
-		arg := string(typedE.Val)
-
-		switch typedE.Name {
-		case parser.AST_DATE:
-			return NewSQLValue(arg, schema.SQLDate, schema.MongoNone)
-		case parser.AST_TIME:
-			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
-		case parser.AST_TIMESTAMP, parser.AST_DATETIME:
-			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
-		default:
-			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for constructor '%v'", string(typedE.Name))
-		}
 	case parser.StrVal:
-		return SQLVarchar(string(typedE)), nil
-	//necessary so keywords aren't quoted in sql query
-	case parser.KeywordVal:
 		return SQLVarchar(string(typedE)), nil
 	case *parser.Subquery:
 		return a.translateSubqueryExpr(typedE)

@@ -660,7 +660,9 @@ func (node ValArg) Format(buf *TrackedBuffer) {
 	buf.WriteArg(string(node[1:]))
 }
 
-//necessary so keywords aren't quoted in sql query
+// necessary so keywords aren't quoted in output of SQL query
+// (i.e. the output column from SELECT TIMESTAMPADD(YEAR, 1, DATE "2006-01-02")
+// should be TIMESTAMPADD(YEAR, 1, DATE "2006-01-02") and not TIMESTAMPADD('YEAR', 1, DATE "2006-01-02"))
 type KeywordVal []byte
 
 func (node KeywordVal) Format(buf *TrackedBuffer) {

@@ -544,6 +544,67 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: CONVERT", func() {
+				d, err := time.Parse("2006-01-02", "2006-05-11")
+				So(err, ShouldBeNil)
+				t, err := time.Parse("2006-01-02 15:04:05", "2006-05-11 12:32:12")
+				So(err, ShouldBeNil)
+				dt, err := time.Parse("2006-01-02 15:04:05", "2006-05-11 00:00:00")
+				So(err, ShouldBeNil)
+
+				tests := []test{
+					test{"CONVERT(NULL, SIGNED)", SQLNull},
+					test{"CONVERT(3, SIGNED)", SQLInt(3)},
+					test{"CONVERT(3.4, SIGNED)", SQLInt(3)},
+					test{"CONVERT(3.5, SIGNED INTEGER)", SQLInt(4)},
+					test{"CONVERT(-3.4, SIGNED INTEGER)", SQLInt(-3)},
+					test{"CONVERT(33245368230, SQL_BIGINT)", SQLInt(33245368230)},
+					test{"CONVERT('janna', UNSIGNED INTEGER)", SQLInt(0)},
+					test{"CONVERT('423', UNSIGNED)", SQLInt(423)},
+					test{"CONVERT('16a', SIGNED)", SQLInt(0)},
+					test{"CONVERT(true, SIGNED)", SQLInt(1)},
+					test{"CONVERT(false, SIGNED)", SQLInt(0)},
+					test{"CONVERT(DATE '2006-05-11', SIGNED)", SQLInt(20060511)},
+					test{"CONVERT(TIMESTAMP '2006-05-11 12:32:12', SIGNED)", SQLInt(20060511123212)},
+					test{"CONVERT(NULL, SQL_DOUBLE)", SQLNull},
+					test{"CONVERT(3, SQL_DOUBLE)", SQLFloat(3)},
+					test{"CONVERT(-3.4, SQL_DOUBLE)", SQLFloat(-3.4)},
+					test{"CONVERT('janna', SQL_DOUBLE)", SQLFloat(0)},
+					test{"CONVERT('4.4', SQL_DOUBLE)", SQLFloat(4.4)},
+					test{"CONVERT('16a', SQL_DOUBLE)", SQLFloat(0)},
+					test{"CONVERT(true, SQL_DOUBLE)", SQLFloat(1)},
+					test{"CONVERT(false, SQL_DOUBLE)", SQLFloat(0)},
+					test{"CONVERT(DATE '2006-05-11', SQL_DOUBLE)", SQLFloat(20060511)},
+					test{"CONVERT(TIMESTAMP '2006-05-11 12:32:12', SQL_DOUBLE)", SQLFloat(20060511123212)},
+					test{"CONVERT(NULL, CHAR)", SQLNull},
+					test{"CONVERT(3, CHAR)", SQLVarchar("3")},
+					test{"CONVERT(-3.4, SQL_VARCHAR)", SQLVarchar("-3.4")},
+					test{"CONVERT('janna', CHAR)", SQLVarchar("janna")},
+					test{"CONVERT('16a', CHAR)", SQLVarchar("16a")},
+					test{"CONVERT(true, CHAR)", SQLVarchar("1")},
+					test{"CONVERT(false, CHAR)", SQLVarchar("0")},
+					test{"CONVERT(DATE '2006-05-11', CHAR)", SQLVarchar("2006-05-11")},
+					test{"CONVERT(TIMESTAMP '2006-05-11 12:32:12', CHAR)", SQLVarchar("2006-05-11 12:32:12")},
+					test{"CONVERT(NULL, DATE)", SQLNull},
+					test{"CONVERT(3, DATE)", SQLNull},
+					test{"CONVERT(-3.4, SQL_DATE)", SQLNull},
+					test{"CONVERT('janna', DATE)", SQLNull},
+					test{"CONVERT('2006-05-11', DATE)", SQLDate{Time: d}},
+					test{"CONVERT(true, DATE)", SQLNull},
+					test{"CONVERT(DATE '2006-05-11', DATE)", SQLDate{Time: d}},
+					test{"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DATE)", SQLDate{Time: d}},
+					test{"CONVERT(NULL, DATETIME)", SQLNull},
+					test{"CONVERT(3, SQL_TIMESTAMP)", SQLNull},
+					test{"CONVERT(-3.4, DATETIME)", SQLNull},
+					test{"CONVERT('janna', DATETIME)", SQLNull},
+					test{"CONVERT('2006-05-11', DATETIME)", SQLTimestamp{Time: dt}},
+					test{"CONVERT(true, DATETIME)", SQLNull},
+					test{"CONVERT(DATE '2006-05-11', SQL_TIMESTAMP)", SQLTimestamp{Time: dt}},
+					test{"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DATETIME)", SQLTimestamp{Time: t}},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			SkipConvey("Subject: CURRENT_DATE", func() {
 				tests := []test{
 					test{"CURRENT_DATE()", SQLDate{time.Now().UTC()}},

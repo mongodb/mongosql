@@ -324,6 +324,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"concat":            &concatFunc{},
 	"concat_ws":         &concatWsFunc{},
 	"connection_id":     &connectionIdFunc{},
+	"convert":           &convertFunc{},
 	"current_date":      &currentDateFunc{},
 	"current_timestamp": &currentTimestampFunc{},
 	"current_user":      &userFunc{},

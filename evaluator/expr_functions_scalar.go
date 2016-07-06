@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/common"
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -246,6 +247,129 @@ func (_ *concatWsFunc) Validate(exprCount int) error {
 		return ErrIncorrectCount
 	}
 	return nil
+}
+
+type convertFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/cast-functions.html#function_convert
+func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	_, ok := values[0].(SQLNullValue)
+	if ok {
+		return SQLNull, nil
+	}
+
+	switch values[1].String() {
+	case string(parser.INTEGER_BYTES):
+		var i int64
+		switch typedV := values[0].(type) {
+		case SQLDate:
+			i, _ = strconv.ParseInt(strings.Replace(typedV.String(), "-", "", -1), 10, 64)
+		case SQLTimestamp:
+			stripped := strings.Replace(strings.Replace(strings.Replace(typedV.String(), "-", "", -1), ":", "", -1), " ", "", -1)
+			i, _ = strconv.ParseInt(stripped, 10, 64)
+		case SQLFloat:
+			i = int64(roundToDecimalPlaces(0, typedV.Float64()))
+		case SQLInt:
+			i = int64(typedV)
+		case SQLVarchar:
+			i, _ = strconv.ParseInt(typedV.String(), 10, 64)
+		case SQLBool:
+			if typedV {
+				i = 1
+			} else {
+				i = 0
+			}
+		default:
+			return SQLNull, nil
+		}
+
+		return SQLInt(i), nil
+
+	case string(parser.FLOAT_BYTES):
+		var f float64
+		switch typedV := values[0].(type) {
+		case SQLDate:
+			f, _ = strconv.ParseFloat(strings.Replace(typedV.String(), "-", "", -1), 64)
+		case SQLTimestamp:
+			stripped := strings.Replace(strings.Replace(strings.Replace(typedV.String(), "-", "", -1), ":", "", -1), " ", "", -1)
+			f, _ = strconv.ParseFloat(stripped, 64)
+		case SQLFloat:
+			f = float64(typedV)
+		case SQLInt:
+			f = float64(typedV)
+		case SQLVarchar:
+			f, _ = strconv.ParseFloat(typedV.String(), 64)
+		case SQLBool:
+			if typedV {
+				f = float64(1)
+			} else {
+				f = float64(0)
+			}
+		default:
+			return SQLNull, nil
+		}
+
+		return SQLFloat(f), nil
+
+	case string(parser.CHAR_BYTES):
+		var s string
+		switch typedV := values[0].(type) {
+		case SQLDate, SQLTimestamp:
+			s = typedV.String()
+		case SQLFloat:
+			s = strconv.FormatFloat(typedV.Float64(), 'f', -1, 64)
+		case SQLInt:
+			s = strconv.FormatInt(int64(typedV), 10)
+		case SQLVarchar:
+			s = typedV.String()
+		case SQLBool:
+			if typedV {
+				s = "1"
+			} else {
+				s = "0"
+			}
+		default:
+			return SQLNull, nil
+		}
+
+		return SQLVarchar(s), nil
+
+	case string(parser.DATE_BYTES):
+		_, ok := values[0].(SQLTimestamp)
+		var s string
+		if ok {
+			s = (values[0].String())[:10]
+		} else {
+			s = values[0].String()
+		}
+		t, ok := parseDateTime(s)
+		if !ok {
+			return SQLNull, nil
+		}
+
+		return SQLDate{Time: t}, nil
+
+	case string(parser.DATETIME_BYTES):
+		fmt.Println(values[0].String())
+		t, ok := parseDateTime(values[0].String())
+		fmt.Println(t)
+		if !ok {
+			return SQLNull, nil
+		}
+
+		return SQLTimestamp{Time: t}, nil
+
+	default:
+		return SQLNull, nil
+	}
+}
+
+func (_ *convertFunc) Type() schema.SQLType {
+	return schema.SQLNone
+}
+
+func (_ *convertFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
 }
 
 type currentDateFunc struct{}
@@ -1011,27 +1135,7 @@ func (_ *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		decimal = 0
 	}
 
-	// Because GoLang does not have a built-in round function
-	var round float64
-	var rounded float64
-	pow := math.Pow(10, float64(decimal))
-	digit := pow * base
-	_, div := math.Modf(digit)
-	if base > 0 {
-		if div >= 0.5 {
-			round = math.Ceil(digit)
-		} else {
-			round = math.Floor(digit)
-		}
-		rounded = round / pow
-	} else {
-		if math.Abs(div) >= 0.5 {
-			round = math.Floor(digit)
-		} else {
-			round = math.Ceil(digit)
-		}
-		rounded = round / pow
-	}
+	rounded := roundToDecimalPlaces(decimal, base)
 
 	return SQLFloat(rounded), nil
 }
@@ -1404,34 +1508,6 @@ func ensureArgCount(exprCount int, counts ...int) error {
 	return nil
 }
 
-func parseDateTime(value string) (time.Time, bool) {
-	for _, f := range schema.TimestampCtorFormats {
-		t, err := time.Parse(f, value)
-		if err == nil {
-			return t, true
-		}
-	}
-	return time.Time{}, false
-}
-
-func runesIndex(r, sep []rune) int {
-	for i := 0; i <= len(r)-len(sep); i++ {
-		found := true
-		for j := 0; j < len(sep); j++ {
-			if r[i+j] != sep[j] {
-				found = false
-				break
-			}
-		}
-
-		if found {
-			return i
-		}
-	}
-
-	return -1
-}
-
 func numMonths(startDate time.Time, endDate time.Time) int {
 	y1, m1, d1 := startDate.Date()
 	y2, m2, d2 := endDate.Date()
@@ -1466,4 +1542,54 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 		}
 	}
 	return months
+}
+
+func parseDateTime(value string) (time.Time, bool) {
+	for _, f := range schema.TimestampCtorFormats {
+		t, err := time.Parse(f, value)
+		if err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
+}
+
+func runesIndex(r, sep []rune) int {
+	for i := 0; i <= len(r)-len(sep); i++ {
+		found := true
+		for j := 0; j < len(sep); j++ {
+			if r[i+j] != sep[j] {
+				found = false
+				break
+			}
+		}
+
+		if found {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// roundToDecimalPlaces rounds base to d number of decimal places.
+func roundToDecimalPlaces(d int, base float64) float64 {
+	var rounded float64
+	pow := math.Pow(10, float64(d))
+	digit := pow * base
+	_, div := math.Modf(digit)
+	if base > 0 {
+		if div >= 0.5 {
+			rounded = math.Ceil(digit) / pow
+		} else {
+			rounded = math.Floor(digit) / pow
+		}
+	} else {
+		if math.Abs(div) >= 0.5 {
+			rounded = math.Floor(digit) / pow
+		} else {
+			rounded = math.Ceil(digit) / pow
+		}
+	}
+	return rounded
 }
