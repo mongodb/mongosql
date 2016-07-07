@@ -110,7 +110,7 @@ func GetDialInfo(opts Options) (*mgo.DialInfo, error) {
 						break
 					}
 
-					if parsedPEMBlock.Type == "PRIVATE KEY" || strings.HasSuffix(parsedPEMBlock.Type, " PRIVATE KEY") {
+					if (parsedPEMBlock.Type == "PRIVATE KEY" || strings.HasSuffix(parsedPEMBlock.Type, " PRIVATE KEY")) && keyPEMBlock == nil {
 						decryptedBlock, err := x509.DecryptPEMBlock(parsedPEMBlock, []byte(opts.MongoPEMFilePassword))
 						if err != nil {
 							return nil, fmt.Errorf("failed to decrypt PEM file '%v': %v", opts.MongoPEMFile, err)
