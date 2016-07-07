@@ -3,7 +3,6 @@ package evaluator
 import (
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
@@ -52,16 +51,8 @@ func hasNullValue(values ...SQLValue) bool {
 
 func isFalsy(value SQLValue) bool {
 	switch v := value.(type) {
-	case SQLBool:
-		return !bool(v)
-	case SQLInt, SQLFloat:
+	case SQLInt, SQLFloat, SQLUint32, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
 		return v.Float64() == float64(0)
-	case SQLVarchar:
-		p, err := strconv.ParseFloat(string(v), 64)
-		if err == nil {
-			return p == float64(0)
-		}
-		return false
 	default:
 		return false
 	}
@@ -69,16 +60,8 @@ func isFalsy(value SQLValue) bool {
 
 func isTruthy(value SQLValue) bool {
 	switch v := value.(type) {
-	case SQLBool:
-		return bool(v)
-	case SQLInt, SQLFloat:
+	case SQLInt, SQLFloat, SQLUint32, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
 		return v.Float64() != float64(0)
-	case SQLVarchar:
-		p, err := strconv.ParseFloat(string(v), 64)
-		if err == nil {
-			return p != float64(0)
-		}
-		return false
 	default:
 		return false
 	}

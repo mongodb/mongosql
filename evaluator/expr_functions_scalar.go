@@ -515,6 +515,68 @@ func (_ *floorFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type greatestFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_greatest
+func (_ *greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if anyNull(values) {
+		return SQLNull, nil
+	}
+
+	valExprs := []SQLExpr{}
+	for _, val := range values {
+		valExprs = append(valExprs, val)
+	}
+	convertTo := preferentialType(valExprs...)
+
+	convertedVals := []SQLValue{}
+	for _, val := range values {
+		newVal := convertType(val, convertTo)
+		convertedVals = append(convertedVals, newVal)
+	}
+
+	var greatest SQLValue
+	var greatestIdx int
+
+	c, err := CompareTo(convertedVals[0], convertedVals[1])
+	if c == -1 {
+		greatest, greatestIdx = values[1], 1
+	} else {
+		greatest, greatestIdx = values[0], 0
+	}
+
+	for i := 2; i < len(values); i++ {
+		c, err = CompareTo(greatest, convertedVals[i])
+		if err != nil {
+			return SQLNull, err
+		}
+		if c == -1 {
+			greatest, greatestIdx = values[i], i
+		}
+	}
+
+	allTimeVals, timestamp := returnTimestampType(values)
+	if allTimeVals && timestamp {
+		t, _ := parseDateTime(values[greatestIdx].String())
+		return SQLTimestamp{Time: t}, nil
+	} else if convertTo == schema.SQLInt || convertTo == schema.SQLFloat {
+		return convertedVals[greatestIdx], nil
+	} else {
+		return values[greatestIdx], nil
+	}
+}
+
+func (_ *greatestFunc) Type() schema.SQLType {
+	return schema.SQLNone
+}
+
+func (_ *greatestFunc) Validate(exprCount int) error {
+	if exprCount < 2 {
+		return ErrIncorrectVarCount
+	}
+	return nil
+}
+
 type hourFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_hour
@@ -615,7 +677,9 @@ type isnullFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_isnull
 func (_ *isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	matcher := &SQLNullCmpExpr{values[0]}
+	_, ok := values[0].(SQLNullValue)
+	matcher := SQLBool(ok)
+
 	result, err := Matches(matcher, ctx)
 	if err != nil {
 		return nil, err
@@ -653,6 +717,68 @@ func (_ *lcaseFunc) Type() schema.SQLType {
 
 func (_ *lcaseFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type leastFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_least
+func (_ *leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if anyNull(values) {
+		return SQLNull, nil
+	}
+
+	valExprs := []SQLExpr{}
+	for _, val := range values {
+		valExprs = append(valExprs, val)
+	}
+	convertTo := preferentialType(valExprs...)
+
+	convertedVals := []SQLValue{}
+	for _, val := range values {
+		newVal := convertType(val, convertTo)
+		convertedVals = append(convertedVals, newVal)
+	}
+
+	var least SQLValue
+	var leastIdx int
+
+	c, err := CompareTo(convertedVals[0], convertedVals[1])
+	if c == -1 {
+		least, leastIdx = convertedVals[0], 0
+	} else {
+		least, leastIdx = convertedVals[1], 1
+	}
+
+	for i := 2; i < len(values); i++ {
+		c, err = CompareTo(least, convertedVals[i])
+		if err != nil {
+			return SQLNull, err
+		}
+		if c == 1 {
+			least, leastIdx = values[i], i
+		}
+	}
+
+	allTimeVals, timestamp := returnTimestampType(values)
+	if allTimeVals && timestamp {
+		t, _ := parseDateTime(values[leastIdx].String())
+		return SQLTimestamp{Time: t}, nil
+	} else if convertTo == schema.SQLInt || convertTo == schema.SQLFloat {
+		return convertedVals[leastIdx], nil
+	} else {
+		return values[leastIdx], nil
+	}
+}
+
+func (_ *leastFunc) Type() schema.SQLType {
+	return schema.SQLNone
+}
+
+func (_ *leastFunc) Validate(exprCount int) error {
+	if exprCount < 2 {
+		return ErrIncorrectVarCount
+	}
+	return nil
 }
 
 type leftFunc struct{}
@@ -1387,6 +1513,42 @@ func (_ *yearFunc) Validate(exprCount int) error {
 }
 
 // Helper functions
+func anyNull(values []SQLValue) bool {
+	for _, v := range values {
+		if _, ok := v.(SQLNullValue); ok {
+			return true
+		}
+	}
+
+	return false
+}
+
+// convertType converts val to the SQL type indicated by t.
+func convertType(val SQLValue, t schema.SQLType) SQLValue {
+	switch t {
+	case schema.SQLInt:
+		return SQLInt(val.Int64())
+	case schema.SQLFloat:
+		return SQLFloat(val.Float64())
+	case schema.SQLVarchar:
+		return SQLVarchar(val.String())
+	case schema.SQLDate:
+		t, _ := parseDateTime(val.String())
+		return SQLDate{Time: t}
+	case schema.SQLTimestamp:
+		t, _ := parseDateTime(val.String())
+		return SQLTimestamp{Time: t}
+	case schema.SQLBoolean:
+		if val.Float64() == 0 {
+			return SQLFalse
+		}
+		return SQLTrue
+	default:
+		return SQLInt(0)
+	}
+	return SQLInt(0)
+}
+
 func evaluateArgs(exprs []SQLExpr, ctx *EvalCtx) ([]SQLValue, error) {
 
 	values := []SQLValue{}
@@ -1462,6 +1624,26 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 		}
 	}
 	return months
+}
+
+// returnTimestampType checks if all SQLValues are either type SQLTimestamp or SQLDate
+// and there is at least one SQLTimestamp type. This is necessary because if the former is true,
+// SQL will always return a SQLTimestamp type in the greatest and least functions.
+// i.e. SELECT GREATEST(DATE "2006-05-11", TIMESTAMP "2005-04-12", DATE "2004-06-04")
+// returns TIMESTAMP "2006-05-11 00:00:00"
+func returnTimestampType(values []SQLValue) (bool, bool) {
+	allTimeTypes := true
+	timestamp := false
+	for _, v := range values {
+		if _, ok := v.(SQLTimestamp); !ok {
+			if _, ok := v.(SQLDate); !ok {
+				allTimeTypes = false
+			}
+		} else {
+			timestamp = true
+		}
+	}
+	return allTimeTypes, timestamp
 }
 
 func parseDateTime(value string) (time.Time, bool) {

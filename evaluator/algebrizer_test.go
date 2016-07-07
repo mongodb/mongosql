@@ -1328,18 +1328,32 @@ func TestAlgebrizeExpr(t *testing.T) {
 		SkipConvey("In", func() {
 		})
 
+		Convey("Is", func() {
+			test("a is true", &SQLIsExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLBool(true),
+			})
+		})
+
+		Convey("Is Not", func() {
+			test("a is not true", &SQLNotExpr{&SQLIsExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLBool(true),
+			}})
+		})
+
 		Convey("Is Null", func() {
-			test("a IS NULL", &SQLNullCmpExpr{
-				createSQLColumnExpr("a"),
+			test("a IS NULL", &SQLIsExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLNull,
 			})
 		})
 
 		Convey("Is Not Null", func() {
-			test("a IS NOT NULL", &SQLNotExpr{
-				&SQLNullCmpExpr{
-					createSQLColumnExpr("a"),
-				},
-			})
+			test("a IS NOT NULL", &SQLNotExpr{&SQLIsExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLNull,
+			}})
 		})
 
 		Convey("Less Than", func() {

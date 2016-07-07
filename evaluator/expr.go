@@ -581,6 +581,50 @@ func (_ *SQLInExpr) Type() schema.SQLType {
 }
 
 //
+// SQLIsExpr evaluates to true if the left is equal to the boolean value on the right.
+//
+type SQLIsExpr sqlBinaryNode
+
+func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	leftVal, err := is.left.Evaluate(ctx)
+	if err != nil {
+		return SQLFalse, err
+	}
+
+	rightVal, err := is.right.Evaluate(ctx)
+	if err != nil {
+		return SQLFalse, err
+	}
+
+	if _, ok := leftVal.(SQLNullValue); ok {
+		if _, ok := rightVal.(SQLBool); ok {
+			return SQLFalse, nil
+		} else {
+			return SQLTrue, nil
+		}
+	}
+
+	if hasNullValue(leftVal, rightVal) {
+		return SQLFalse, nil
+	}
+
+	if isTruthy(leftVal) && isTruthy(rightVal) || isFalsy(leftVal) && isFalsy(rightVal) {
+		return SQLTrue, nil
+	}
+
+	return SQLFalse, nil
+
+}
+
+func (is *SQLIsExpr) String() string {
+	return fmt.Sprintf("%v is %v", is.left, is.right)
+}
+
+func (_ *SQLIsExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
+//
 // SQLLessThanExpr evaluates to true when the left is less than the right.
 //
 type SQLLessThanExpr sqlBinaryNode
@@ -829,28 +873,6 @@ func (neq *SQLNotEqualsExpr) String() string {
 }
 
 func (_ *SQLNotEqualsExpr) Type() schema.SQLType {
-	return schema.SQLBoolean
-}
-
-//
-// SQLNullCmpExpr evaluates to true if its value evaluates to null.
-//
-type SQLNullCmpExpr sqlUnaryNode
-
-func (nm *SQLNullCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	eval, err := nm.operand.Evaluate(ctx)
-	if err != nil {
-		return SQLFalse, nil
-	}
-	_, ok := eval.(SQLNullValue)
-	return SQLBool(ok), nil
-}
-
-func (nm *SQLNullCmpExpr) String() string {
-	return fmt.Sprintf("%v is null", nm.operand.String())
-}
-
-func (_ *SQLNullCmpExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 

@@ -428,9 +428,16 @@ func (types SQLTypes) Less(i, j int) bool {
 		default:
 			return false
 		}
-	case SQLTimestamp, SQLDate:
+	case SQLTimestamp:
 		switch t2 {
 		case SQLInt, SQLInt64, SQLFloat, SQLNumeric:
+			return true
+		default:
+			return false
+		}
+	case SQLDate:
+		switch t2 {
+		case SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp:
 			return true
 		default:
 			return false

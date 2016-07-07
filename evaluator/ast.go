@@ -41,6 +41,7 @@ func (e *SQLGreaterThanExpr) astnode()        {}
 func (e *SQLGreaterThanOrEqualExpr) astnode() {}
 func (e *SQLIDivideExpr) astnode()            {}
 func (e *SQLInExpr) astnode()                 {}
+func (e *SQLIsExpr) astnode()                 {}
 func (e *SQLLessThanExpr) astnode()           {}
 func (e *SQLLessThanOrEqualExpr) astnode()    {}
 func (e *SQLLikeExpr) astnode()               {}
@@ -48,7 +49,6 @@ func (e *SQLModExpr) astnode()                {}
 func (e *SQLMultiplyExpr) astnode()           {}
 func (e *SQLNotExpr) astnode()                {}
 func (e *SQLNotEqualsExpr) astnode()          {}
-func (e *SQLNullCmpExpr) astnode()            {}
 func (e *SQLOrExpr) astnode()                 {}
 func (e *SQLXorExpr) astnode()                {}
 func (e *SQLScalarFunctionExpr) astnode()     {}
@@ -511,6 +511,16 @@ func walk(v nodeVisitor, n node) (node, error) {
 		if typedN.left != left || typedN.right != right {
 			n = &SQLInExpr{left, right}
 		}
+	case *SQLIsExpr:
+		// The right child does not need to be evaluated because it will only ever be True, False, Null or Unknown.
+		left, err := visitExpr(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.left != left {
+			n = &SQLIsExpr{left, typedN.right}
+		}
 
 	case *SQLLessThanExpr:
 		left, err := visitExpr(typedN.left)
@@ -597,15 +607,6 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 		if typedN.left != left || typedN.right != right {
 			n = &SQLNotEqualsExpr{left, right}
-		}
-
-	case *SQLNullCmpExpr:
-		operand, err := visitExpr(typedN.operand)
-		if err != nil {
-			return nil, err
-		}
-		if typedN.operand != operand {
-			n = &SQLNullCmpExpr{operand}
 		}
 
 	case *SQLOrExpr:

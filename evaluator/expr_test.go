@@ -420,6 +420,48 @@ func TestEvaluates(t *testing.T) {
 			runTests(evalCtx, tests)
 		})
 
+		Convey("Subject: SQLIsExpr", func() {
+			tests := []test{
+				test{"1 is true", SQLTrue},
+				test{"null is true", SQLFalse},
+				test{"null is unknown", SQLTrue},
+				test{"1 is unknown", SQLFalse},
+				test{"true is true", SQLTrue},
+				test{"0 is false", SQLTrue},
+				test{"1 is false", SQLFalse},
+				test{"'1' is true", SQLTrue},
+				test{"'0.0' is true", SQLFalse},
+				test{"'cats' is false", SQLTrue},
+				test{"DATE '2006-05-04' is false", SQLFalse},
+				test{"TIMESTAMP '2008-04-06 15:32:23' is true", SQLTrue},
+				test{"1 is null", SQLFalse},
+				test{"null is null", SQLTrue},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLIsNotExpr", func() {
+			tests := []test{
+				test{"1 is not true", SQLFalse},
+				test{"null is not true", SQLTrue},
+				test{"null is not unknown", SQLFalse},
+				test{"1 is not unknown", SQLTrue},
+				test{"false is not true", SQLTrue},
+				test{"0 is not false", SQLFalse},
+				test{"1 is not false", SQLTrue},
+				test{"'1' is not true", SQLFalse},
+				test{"'0.0' is not true", SQLTrue},
+				test{"'cats' is not false", SQLFalse},
+				test{"DATE '2006-05-04' is not false", SQLTrue},
+				test{"TIMESTAMP '2008-04-06 15:32:23' is not true", SQLFalse},
+				test{"1 is not null", SQLTrue},
+				test{"null is not null", SQLFalse},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
 		Convey("Subject: SQLIDivideExpr", func() {
 			tests := []test{
 				test{"0 DIV 0", SQLNull},
@@ -545,15 +587,6 @@ func TestEvaluates(t *testing.T) {
 				test{"NOT NULL", SQLNull},
 				test{"! 1", SQLFalse},
 				test{"! 0", SQLTrue},
-			}
-
-			runTests(evalCtx, tests)
-		})
-
-		Convey("Subject: SQLNullCmpExpr", func() {
-			tests := []test{
-				test{"1 IS NULL", SQLFalse},
-				test{"NULL IS NULL", SQLTrue},
 			}
 
 			runTests(evalCtx, tests)
@@ -817,6 +850,39 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: GREATEST", func() {
+				d, err := time.Parse("2006-01-02", "2006-05-11")
+				So(err, ShouldBeNil)
+				t, err := time.Parse("2006-01-02 15:04:05", "2006-05-11 12:32:23")
+				So(err, ShouldBeNil)
+
+				tests := []test{
+					test{"GREATEST(NULL, 1, 2)", SQLNull},
+					test{"GREATEST(1,3,2)", SQLInt(3)},
+					test{"GREATEST(2,2.3)", SQLFloat(2.3)},
+					test{"GREATEST('cats', '4', '2')", SQLVarchar("cats")},
+					test{"GREATEST('dog', 'cats', 'bird')", SQLVarchar("dog")},
+					test{"GREATEST('cat', 'bird', 2)", SQLInt(2)},
+					test{"GREATEST('cat', 2.2)", SQLFloat(2.2)},
+					test{"GREATEST(false, true)", SQLBool(true)},
+					test{"GREATEST(DATE '2005-05-11', DATE '2006-05-11', DATE '2000-05-11')", SQLDate{Time: d}},
+					test{"GREATEST(DATE '2006-05-11', 14, 4235)", SQLInt(20060511)},
+					test{"GREATEST(DATE '2006-05-11', 14, 20080622)", SQLInt(20080622)},
+					test{"GREATEST(DATE '2006-05-11', 14, 20080622.1)", SQLFloat(20080622.1)},
+					test{"GREATEST(DATE '2006-05-11', 14, 4235.2)", SQLFloat(20060511.0)},
+					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', DATE '2006-05-11')", SQLTimestamp{Time: t}},
+					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', 12, 345)", SQLInt(20060511123223)},
+					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', 20080923124345.3)", SQLFloat(20080923124345.3)},
+					test{"GREATEST(DATE '2006-05-11', 'cat', '2007-04-11')", SQLVarchar("2007-04-11")},
+					test{"GREATEST(DATE '2006-05-11', 20080912, '2007-04-11')", SQLInt(20080912)},
+					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', TIMESTAMP '2006-05-11 10:32:45')", SQLTimestamp{Time: t}},
+					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', 20080913, DATE '2007-08-23')", SQLInt(20060511123223)},
+					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', '2008-09-13')", SQLVarchar("2008-09-13")},
+					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', '2005-09-13')", SQLTimestamp{Time: t}},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: HOUR", func() {
 				tests := []test{
 					test{"HOUR(NULL)", SQLNull},
@@ -889,6 +955,40 @@ func TestEvaluates(t *testing.T) {
 					test{"LOWER('A')", SQLVarchar("a")},
 					test{"LOWER('awesome')", SQLVarchar("awesome")},
 					test{"LOWER('AwEsOmE')", SQLVarchar("awesome")},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: LEAST", func() {
+				d, err := time.Parse("2006-01-02", "2005-05-11")
+				So(err, ShouldBeNil)
+				t, err := time.Parse("2006-01-02 15:04:05", "2006-05-11 00:00:00")
+				So(err, ShouldBeNil)
+				t1, err := time.Parse("2006-01-02 15:04:05", "2006-05-11 10:32:23")
+				So(err, ShouldBeNil)
+
+				tests := []test{
+					test{"LEAST(NULL, 1, 2)", SQLNull},
+					test{"LEAST(1,3,2)", SQLInt(1)},
+					test{"LEAST(2,2.3)", SQLFloat(2.0)},
+					test{"LEAST('cats', '4', '2')", SQLVarchar("2")},
+					test{"LEAST('dog', 'cats', 'bird')", SQLVarchar("bird")},
+					test{"LEAST(false, true)", SQLBool(false)},
+					test{"LEAST(DATE '2005-05-11', DATE '2006-05-11', DATE '2007-05-11')", SQLDate{Time: d}},
+					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', DATE '2006-05-11')", SQLTimestamp{Time: t}},
+					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', TIMESTAMP '2006-05-11 10:32:23')", SQLTimestamp{Time: t1}},
+					test{"LEAST('cat', 'bird', 2)", SQLInt(0)},
+					test{"LEAST('cat', 2.2)", SQLFloat(0)},
+					test{"LEAST(DATE '2006-05-11', 14, 4235)", SQLInt(14)},
+					test{"LEAST(DATE '2006-05-11', 14, 20080622.1)", SQLFloat(14.0)},
+					test{"LEAST(DATE '2006-05-11', 14, 4235.2)", SQLFloat(14.0)},
+					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', 12, 345)", SQLInt(12)},
+					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', 20080923124345.3)", SQLFloat(20060511123223.0)},
+					test{"LEAST(DATE '2006-05-11', 'cat', '2007-04-11')", SQLVarchar("cat")},
+					test{"LEAST(DATE '2006-05-11', 20080912, '2007-04-11')", SQLInt(0)},
+					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', 20080913, DATE '2007-08-23')", SQLInt(20070823)},
+					test{"LEAST(TIMESTAMP '2006-05-11 10:32:23', '2008-09-13')", SQLTimestamp{Time: t1}},
+					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', '2005-09-13')", SQLVarchar("2005-09-13")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1550,6 +1650,7 @@ func TestNewSQLValue(t *testing.T) {
 			for _, d := range dates {
 				newV, err = NewSQLValue(d, schema.SQLDate, schema.MongoNone)
 				So(err, ShouldBeNil)
+
 				_, ok := newV.(SQLFloat)
 				So(ok, ShouldBeTrue)
 			}
@@ -1774,7 +1875,6 @@ func TestTranslatePredicate(t *testing.T) {
 			test{"a IN(1,3,5)", `{"a":{"$in":[1,3,5]}}`},
 			test{"g IN('2016-02-03 12:23:11.392')", `{"g":{"$in":["2016-02-03T12:23:11.392Z"]}}`},
 			test{"h IN('2016-02-03 12:23:11.392')", `{"h":{"$in":["2016-02-03T00:00:00Z"]}}`},
-			test{"a IS NULL", `{"a":null}`},
 			test{"NOT (a > 3)", `{"a":{"$not":{"$gt":3}}}`},
 			test{"NOT (NOT (a > 3))", `{"a":{"$gt":3}}`},
 			test{"NOT (a = 3)", `{"a":{"$ne":3}}`},
@@ -2130,8 +2230,6 @@ func TestCompareTo(t *testing.T) {
 				{SQLVarchar("bac"), &SQLValues{[]SQLValue{SQLInt(1)}}, -1},
 				{SQLVarchar("bac"), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLVarchar("bac"), &SQLValues{[]SQLValue{SQLVarchar("bac")}}, 0},
-				{SQLVarchar("bac"), SQLDate{now}, -1},
-				{SQLVarchar("bac"), SQLTimestamp{now}, -1},
 			}
 			runTests(tests)
 		})
@@ -2180,5 +2278,55 @@ func TestCompareTo(t *testing.T) {
 			runTests(tests)
 		})
 
+	})
+}
+
+func TestIsTruthyIsFalsy(t *testing.T) {
+
+	Convey("isTruthy, isFalsy", t, func() {
+		d, err := time.Parse("2006-01-02", "2003-01-02")
+		So(err, ShouldBeNil)
+		t, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 12:30:09")
+		So(err, ShouldBeNil)
+
+		Convey("Subject: isTruthy", func() {
+			truthy := isTruthy(SQLTimestamp{t})
+			So(truthy, ShouldBeTrue)
+
+			truthy = isTruthy(SQLDate{d})
+			So(truthy, ShouldBeTrue)
+
+			truthy = isTruthy(SQLInt(0))
+			So(truthy, ShouldBeFalse)
+
+			truthy = isTruthy(SQLInt(1))
+			So(truthy, ShouldBeTrue)
+
+			truthy = isTruthy(SQLVarchar("dsf"))
+			So(truthy, ShouldBeFalse)
+
+			truthy = isTruthy(SQLVarchar("16"))
+			So(truthy, ShouldBeTrue)
+		})
+
+		Convey("Subject: isFalsy", func() {
+			truthy := isFalsy(SQLTimestamp{t})
+			So(truthy, ShouldBeFalse)
+
+			truthy = isFalsy(SQLDate{d})
+			So(truthy, ShouldBeFalse)
+
+			truthy = isFalsy(SQLInt(0))
+			So(truthy, ShouldBeTrue)
+
+			truthy = isFalsy(SQLInt(1))
+			So(truthy, ShouldBeFalse)
+
+			truthy = isFalsy(SQLVarchar("dsf"))
+			So(truthy, ShouldBeTrue)
+
+			truthy = isFalsy(SQLVarchar("16"))
+			So(truthy, ShouldBeFalse)
+		})
 	})
 }

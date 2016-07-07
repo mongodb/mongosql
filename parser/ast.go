@@ -441,7 +441,6 @@ func (*NotExpr) IExpr()        {}
 func (*ParenBoolExpr) IExpr()  {}
 func (*ComparisonExpr) IExpr() {}
 func (*RangeCond) IExpr()      {}
-func (*NullCheck) IExpr()      {}
 func (*ExistsExpr) IExpr()     {}
 func (DateVal) IExpr()         {}
 func (StrVal) IExpr()          {}
@@ -452,6 +451,7 @@ func (*NullVal) IExpr()        {}
 func (*ColName) IExpr()        {}
 func (*TrueVal) IExpr()        {}
 func (*FalseVal) IExpr()       {}
+func (*UnknownVal) IExpr()     {}
 func (ValTuple) IExpr()        {}
 func (*Subquery) IExpr()       {}
 func (*BinaryExpr) IExpr()     {}
@@ -464,22 +464,22 @@ type BoolExpr interface {
 	Expr
 }
 
-func (StrVal) IBoolExpr()      {}
-func (DateVal) IBoolExpr()     {}
-func (NumVal) IBoolExpr()      {}
-func (ValArg) IBoolExpr()      {}
-func (KeywordVal) IBoolExpr()  {}
-func (*NullVal) IBoolExpr()    {}
-func (*TrueVal) IBoolExpr()    {}
-func (*FalseVal) IBoolExpr()   {}
-func (*ColName) IBoolExpr()    {}
-func (ValTuple) IBoolExpr()    {}
-func (*Subquery) IBoolExpr()   {}
-func (*BinaryExpr) IBoolExpr() {}
-func (*UnaryExpr) IBoolExpr()  {}
-func (*FuncExpr) IBoolExpr()   {}
-func (*CaseExpr) IBoolExpr()   {}
-
+func (StrVal) IBoolExpr()          {}
+func (DateVal) IBoolExpr()         {}
+func (NumVal) IBoolExpr()          {}
+func (ValArg) IBoolExpr()          {}
+func (KeywordVal) IBoolExpr()      {}
+func (*NullVal) IBoolExpr()        {}
+func (*TrueVal) IBoolExpr()        {}
+func (*FalseVal) IBoolExpr()       {}
+func (*UnknownVal) IBoolExpr()     {}
+func (*ColName) IBoolExpr()        {}
+func (ValTuple) IBoolExpr()        {}
+func (*Subquery) IBoolExpr()       {}
+func (*BinaryExpr) IBoolExpr()     {}
+func (*UnaryExpr) IBoolExpr()      {}
+func (*FuncExpr) IBoolExpr()       {}
+func (*CaseExpr) IBoolExpr()       {}
 func (*AndExpr) IBoolExpr()        {}
 func (*OrExpr) IBoolExpr()         {}
 func (*XorExpr) IBoolExpr()        {}
@@ -487,7 +487,6 @@ func (*NotExpr) IBoolExpr()        {}
 func (*ParenBoolExpr) IBoolExpr()  {}
 func (*ComparisonExpr) IBoolExpr() {}
 func (*RangeCond) IBoolExpr()      {}
-func (*NullCheck) IBoolExpr()      {}
 func (*ExistsExpr) IBoolExpr()     {}
 
 // AndExpr represents an AND expression.
@@ -555,6 +554,8 @@ const (
 	AST_NOT_IN   = "not in"
 	AST_LIKE     = "like"
 	AST_NOT_LIKE = "not like"
+	AST_IS       = "is"
+	AST_IS_NOT   = "is not"
 )
 
 // ComparisonExpr.SubqueryOperator
@@ -585,22 +586,6 @@ func (node *RangeCond) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v %s %v and %v", node.Left, node.Operator, node.From, node.To)
 }
 
-// NullCheck represents an IS NULL or an IS NOT NULL expression.
-type NullCheck struct {
-	Operator string
-	Expr     ValExpr
-}
-
-// NullCheck.Operator
-const (
-	AST_IS_NULL     = "is null"
-	AST_IS_NOT_NULL = "is not null"
-)
-
-func (node *NullCheck) Format(buf *TrackedBuffer) {
-	buf.Fprintf("%v %s", node.Expr, node.Operator)
-}
-
 // ExistsExpr represents an EXISTS expression.
 type ExistsExpr struct {
 	Subquery *Subquery
@@ -624,6 +609,7 @@ func (KeywordVal) IValExpr()  {}
 func (*NullVal) IValExpr()    {}
 func (*TrueVal) IValExpr()    {}
 func (*FalseVal) IValExpr()   {}
+func (*UnknownVal) IValExpr() {}
 func (*ColName) IValExpr()    {}
 func (ValTuple) IValExpr()    {}
 func (*Subquery) IValExpr()   {}
@@ -699,6 +685,13 @@ type FalseVal struct{}
 
 func (node *FalseVal) Format(buf *TrackedBuffer) {
 	buf.Fprintf("false")
+}
+
+// UnknownVal represents a UNKNOWN value.
+type UnknownVal struct{}
+
+func (node *UnknownVal) Format(buf *TrackedBuffer) {
+	buf.Fprintf("unknown")
 }
 
 // ColName represents a column name.

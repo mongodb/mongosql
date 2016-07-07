@@ -159,8 +159,9 @@ var keywords = map[string]int{
 	"mod": MOD,
 
 	// boolean literals
-	"true":  TRUE,
-	"false": FALSE,
+	"true":    TRUE,
+	"false":   FALSE,
+	"unknown": UNKNOWN,
 
 	// convert tokens
 	"convert":       CONVERT,

@@ -279,15 +279,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return bson.M{"$ne": []interface{}{left, right}}, true
 
-	case *SQLNullCmpExpr:
-
-		op, ok := TranslateExpr(typedE.operand, lookupFieldName)
-		if !ok {
-			return nil, false
-		}
-
-		return bson.M{"$eq": []interface{}{op, nil}}, true
-
 	case *SQLOrExpr:
 
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
@@ -947,12 +938,6 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 			return negate(match), &SQLNotExpr{ex}
 		}
 
-	case *SQLNullCmpExpr:
-		name, ok := getFieldName(typedE.operand, lookupFieldName)
-		if !ok {
-			return nil, e
-		}
-		return bson.M{name: nil}, nil
 	case *SQLOrExpr:
 		left, exLeft := TranslatePredicate(typedE.left, lookupFieldName)
 		if exLeft != nil {

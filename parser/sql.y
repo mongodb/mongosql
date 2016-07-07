@@ -81,7 +81,7 @@ var (
 }
 
 %token LEX_ERROR
-%token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE
+%token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN
 %token <empty> ALL DISTINCT PRECISION AS EXISTS IN IS LIKE BETWEEN NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LE GE NE NULL_SAFE_EQUAL
@@ -152,6 +152,7 @@ var (
 %type <valExpr> value value_expression
 %type <tuple> tuple
 %type <valExprs> value_expression_list
+%type <valExpr> boolean_value
 %type <values> tuple_list
 %type <bytes> keyword_as_func
 %type <bytes> time_interval
@@ -760,15 +761,23 @@ condition:
   }
 | value_expression IS NULL
   {
-    $$ = &NullCheck{Operator: AST_IS_NULL, Expr: $1}
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS, Right: &NullVal{}}
   }
 | value_expression IS NOT NULL
   {
-    $$ = &NullCheck{Operator: AST_IS_NOT_NULL, Expr: $1}
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS_NOT, Right: &NullVal{}}
   }
 | EXISTS subquery
   {
     $$ = &ExistsExpr{Subquery: $2}
+  }
+| value_expression IS boolean_value
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS, Right: $3}
+  }
+| value_expression IS NOT boolean_value
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS_NOT, Right: $4}
   }
 
 compare:
@@ -1173,15 +1182,7 @@ column_name:
   }
 
 value:
-TRUE
-  {
-    $$ = &TrueVal{}
-  }
-| FALSE
-  {
-    $$ = &FalseVal{}
-  }
-| STRING
+STRING
   {
     $$ = StrVal($1)
   }
@@ -1212,6 +1213,24 @@ TRUE
 | NULL
   {
     $$ = &NullVal{}
+  }
+| boolean_value
+  {
+    $$ = $1
+  }
+
+boolean_value:
+TRUE
+  {
+    $$ = &TrueVal{}
+  }
+| FALSE
+  {
+    $$ = &FalseVal{}
+  }
+| UNKNOWN
+  {
+    $$ = &UnknownVal{}
   }
 
 group_by_opt:

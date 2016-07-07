@@ -710,11 +710,17 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		return a.resolveColumnExpr(tableName, columnName)
 	case *parser.ComparisonExpr:
 
-		reconcile := typedE.Operator != parser.AST_LIKE
+		reconcile := typedE.Operator != parser.AST_LIKE && typedE.Operator != parser.AST_IS && typedE.Operator != parser.AST_IS_NOT
 
 		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, reconcile)
 		if err != nil {
 			return nil, err
+		}
+
+		if typedE.Operator == parser.AST_IS {
+			return &SQLIsExpr{left, right}, nil
+		} else if typedE.Operator == parser.AST_IS_NOT {
+			return &SQLNotExpr{&SQLIsExpr{left, right}}, nil
 		}
 
 		if typedE.SubqueryOperator != "" {
@@ -770,18 +776,6 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		}
 
 		return &SQLNotExpr{child}, nil
-	case *parser.NullCheck:
-		val, err := a.translateExpr(typedE.Expr)
-		if err != nil {
-			return nil, err
-		}
-
-		var child SQLExpr = &SQLNullCmpExpr{val}
-		if typedE.Operator == parser.AST_IS_NOT_NULL {
-			child = &SQLNotExpr{child}
-		}
-
-		return child, nil
 	case *parser.NullVal:
 		return SQLNull, nil
 	case parser.NumVal:
@@ -874,7 +868,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		}
 
 		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for operator '%v'", typedE.Operator)
-
+	case *parser.UnknownVal:
+		return SQLNull, nil
 	case parser.ValTuple:
 
 		var exprs []SQLExpr

@@ -703,13 +703,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 	if left.Type() == right.Type() {
 		switch leftVal := left.(type) {
 		case SQLFloat, SQLInt, SQLUint32, SQLDate, SQLTimestamp:
-			cmp := left.Float64() - right.Float64()
-			if cmp < 0 {
-				return -1, nil
-			} else if cmp > 0 {
-				return 1, nil
-			}
-			return 0, nil
+			return compareFloats(left.Float64(), right.Float64())
 		case SQLVarchar:
 			rightVal, _ := right.(SQLVarchar)
 			s1, s2 := string(leftVal), string(rightVal)
@@ -757,20 +751,61 @@ func CompareTo(left, right SQLValue) (int, error) {
 		default:
 			return -1, nil
 		}
+	case SQLVarchar:
+		switch right.(type) {
+		case SQLDate, SQLTimestamp:
+			// MySQL throws an error if you try to compare varchar =,<,> date/timestamp.
+			// It works the other way around, however (i.e. date/timestamp =,<,> varchar).
+			return -1, fmt.Errorf("Illegal mix of collations %T and %T", left, right)
+		case SQLNullValue:
+			return 1, nil
+		default:
+			return compareFloats(left.Float64(), right.Float64())
+		}
+	case SQLDate:
+		switch right.(type) {
+		case SQLVarchar:
+			t, ok := parseDateTime(right.String())
+			if !ok {
+				t, _ = parseDateTime("0001-01-01")
+			}
+			return compareFloats(left.Float64(), SQLDate{Time: t}.Float64())
+		case SQLNullValue:
+			return 1, nil
+		default:
+			return compareFloats(left.Float64(), right.Float64())
+		}
+	case SQLTimestamp:
+		switch right.(type) {
+		case SQLVarchar:
+			t, ok := parseDateTime(right.String())
+			if !ok {
+				t, _ = parseDateTime("0001-01-01 00:00:00")
+			}
+			return compareFloats(left.Float64(), SQLTimestamp{Time: t}.Float64())
+		case SQLNullValue:
+			return 1, nil
+		default:
+			return compareFloats(left.Float64(), right.Float64())
+		}
 	default:
 		switch right.(type) {
 		case SQLNullValue:
 			return 1, nil
 		default:
-			cmp := left.Float64() - right.Float64()
-			if cmp < 0 {
-				return -1, nil
-			} else if cmp > 0 {
-				return 1, nil
-			}
-			return 0, nil
+			return compareFloats(left.Float64(), right.Float64())
 		}
 	}
 
 	return -1, fmt.Errorf("comparing failed between %T and %T", left, right)
+}
+
+func compareFloats(left, right float64) (int, error) {
+	cmp := left - right
+	if cmp < 0 {
+		return -1, nil
+	} else if cmp > 0 {
+		return 1, nil
+	}
+	return 0, nil
 }
