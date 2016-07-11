@@ -14,6 +14,18 @@ var (
 	ErrIncorrectCount    = errors.New("incorrect parameter count in function")
 )
 
+const (
+	avgAggregateName          = "avg"
+	countAggregateName        = "count"
+	maxAggregateName          = "max"
+	minAggregateName          = "min"
+	stdAggregateName          = "std"
+	stddevAggregateName       = "stddev"
+	stddevPopAggregateName    = "stddev_pop"
+	stddevSampleAggregateName = "stddev_samp"
+	sumAggregateName          = "sum"
+)
+
 //
 // SQLAggFunctionExpr represents an aggregate function. These aggregate
 // functions are avg, sum, count, max, min, std, stddev, stddev_pop, and stddev_samp.
@@ -31,19 +43,19 @@ func (f *SQLAggFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	switch f.Name {
-	case "avg":
+	case avgAggregateName:
 		return f.avgFunc(ctx, distinctMap)
-	case "sum":
+	case sumAggregateName:
 		return f.sumFunc(ctx, distinctMap)
-	case "count":
+	case countAggregateName:
 		return f.countFunc(ctx, distinctMap)
-	case "max":
+	case maxAggregateName:
 		return f.maxFunc(ctx)
-	case "min":
+	case minAggregateName:
 		return f.minFunc(ctx)
-	case "std", "stddev", "stddev_pop":
+	case stdAggregateName, stddevAggregateName, stddevPopAggregateName:
 		return f.stdFunc(ctx, distinctMap, false)
-	case "stddev_samp":
+	case stddevSampleAggregateName:
 		return f.stdFunc(ctx, distinctMap, true)
 	default:
 		return nil, fmt.Errorf("aggregate function '%v' is not supported", f.Name)
@@ -60,7 +72,7 @@ func (f *SQLAggFunctionExpr) String() string {
 
 func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 	switch f.Name {
-	case "avg", "sum", "std", "stddev", "stddev_pop", "stddev_samp":
+	case avgAggregateName, sumAggregateName, stdAggregateName, stddevAggregateName, stddevPopAggregateName, stddevSampleAggregateName:
 		switch f.Exprs[0].Type() {
 		case schema.SQLInt, schema.SQLInt64:
 			// TODO: this should return a decimal when we have decimal support
@@ -68,7 +80,7 @@ func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 		default:
 			return schema.SQLFloat
 		}
-	case "count":
+	case countAggregateName:
 		return schema.SQLInt
 	}
 
@@ -302,6 +314,13 @@ type scalarFunc interface {
 	Evaluate([]SQLValue, *EvalCtx) (SQLValue, error)
 	Validate(exprCount int) error
 	Type() schema.SQLType
+}
+
+func NewIfScalarFunctionExpr(condition, truePart, falsePart SQLExpr) *SQLScalarFunctionExpr {
+	return &SQLScalarFunctionExpr{
+		Name:  "if",
+		Exprs: []SQLExpr{condition, truePart, falsePart},
+	}
 }
 
 var scalarFuncMap = map[string]scalarFunc{

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gopkg.in/mgo.v2/bson"
@@ -30,7 +31,9 @@ import (
 
 // test flags
 var (
-	tableau = flag.Bool("tableau", false, "Run tableau tests")
+	tableau     = flag.Bool("tableau", false, "Run tableau tests")
+	ymlfile     = flag.String("ymlfile", "", "The yml test file to run")
+	ymltestname = flag.String("ymltestname", "", "The test name in the yml file to run")
 )
 
 const (
@@ -94,6 +97,9 @@ func TestIntegration(t *testing.T) {
 	}
 
 	for _, f := range files {
+		if *ymlfile != "" && !strings.Contains(f.Name(), *ymlfile) {
+			continue
+		}
 		conf := mustLoadTestSchema(path.Join("integration_tests", f.Name()))
 		mustLoadTestData(testMongoHost, testMongoPort, conf)
 
@@ -178,6 +184,10 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 		if testCase.Description != "" {
 			description = testCase.Description
 		}
+		if *ymltestname != "" && !strings.Contains(description, *ymltestname) {
+			continue
+		}
+
 		Convey(fmt.Sprintf("%v('%v')", description, testCase.SQL), func() {
 			sql := testCase.SQL
 			if testCase.VerificationSQL != "" {

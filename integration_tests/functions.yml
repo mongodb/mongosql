@@ -150,12 +150,11 @@ testcases:
   expected:
   - [2]
 
-# This returns the wrong value
-# - sql: "select sum(null) from bar"
-#   expected_names: ["sum(null)"]
-#   expected_types: [int]
-#   expected:
-#   - [0]
+- sql: "select sum(null) from bar"
+  expected_names: ["sum(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
 
 # Arithmetic
 - sql: "select d+100 from bar"

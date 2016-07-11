@@ -1,13 +1,14 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/schema"
-	"github.com/mongodb/mongo-tools/common/log"
-	"gopkg.in/mgo.v2/bson"
 	"math"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/mongodb/mongo-tools/common/log"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // a function that, given a tableName and a columnName, will return
@@ -41,7 +42,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		name := typedE.Name
 
 		switch name {
-		case "count":
+		case countAggregateName:
 			if typedE.Exprs[0] == SQLVarchar("*") {
 				return bson.M{"$size": transExpr}, true
 			}
@@ -66,9 +67,9 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 					},
 				},
 			}, true
-		case "std", "stddev", "stddev_pop":
+		case stdAggregateName, stddevAggregateName, stddevPopAggregateName:
 			return bson.M{"$stdDevPop": transExpr}, true
-		case "stddev_samp":
+		case stddevSampleAggregateName:
 			return bson.M{"$stdDevSamp": transExpr}, true
 		default:
 			return bson.M{"$" + name: transExpr}, true

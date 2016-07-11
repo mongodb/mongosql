@@ -414,59 +414,59 @@ func TestOptimizePlan(t *testing.T) {
 				},
 			)
 
-			test("select sum(a), sum(b) from foo group by c",
+			test("select max(a), max(b) from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
 							{"foo_DOT_c", "$c"},
 						},
-						"sum(foo_DOT_a)": bson.M{
-							"$sum": "$a",
+						"max(foo_DOT_a)": bson.M{
+							"$max": "$a",
 						},
-						"sum(foo_DOT_b)": bson.M{
-							"$sum": "$b",
+						"max(foo_DOT_b)": bson.M{
+							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
 						"_id":            0,
-						"sum(foo_DOT_a)": "$sum(foo_DOT_a)",
-						"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						"max(foo_DOT_a)": "$max(foo_DOT_a)",
+						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 					{{"$project", bson.M{
-						"sum(foo_DOT_a)": "$sum(foo_DOT_a)",
-						"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						"max(foo_DOT_a)": "$max(foo_DOT_a)",
+						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 				},
 			)
 
-			test("select c, sum(a), sum(b) from foo group by c",
+			test("select c, max(a), max(b) from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
 							{"foo_DOT_c", "$c"},
 						},
-						"sum(foo_DOT_a)": bson.M{
-							"$sum": "$a",
+						"max(foo_DOT_a)": bson.M{
+							"$max": "$a",
 						},
-						"sum(foo_DOT_b)": bson.M{
-							"$sum": "$b",
+						"max(foo_DOT_b)": bson.M{
+							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
 						"_id":            0,
 						"foo_DOT_c":      "$_id.foo_DOT_c",
-						"sum(foo_DOT_a)": "$sum(foo_DOT_a)",
-						"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						"max(foo_DOT_a)": "$max(foo_DOT_a)",
+						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 					{{"$project", bson.M{
 						"foo_DOT_c":      "$foo_DOT_c",
-						"sum(foo_DOT_a)": "$sum(foo_DOT_a)",
-						"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						"max(foo_DOT_a)": "$max(foo_DOT_a)",
+						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 				},
 			)
 
-			test("select a, sum(b) from foo group by c",
+			test("select a, max(b) from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
@@ -475,23 +475,23 @@ func TestOptimizePlan(t *testing.T) {
 						"foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"sum(foo_DOT_b)": bson.M{
-							"$sum": "$b",
+						"max(foo_DOT_b)": bson.M{
+							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
 						"_id":            0,
 						"foo_DOT_a":      "$foo_DOT_a",
-						"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 					{{"$project", bson.M{
 						"foo_DOT_a":      "$foo_DOT_a",
-						"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 				},
 			)
 
-			test("select a, sum(distinct b) from foo group by c",
+			test("select a, max(distinct b) from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
@@ -507,16 +507,16 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$project", bson.M{
 						"_id":                     0,
 						"foo_DOT_a":               "$foo_DOT_a",
-						"sum(distinct foo_DOT_b)": bson.M{"$sum": "$distinct foo_DOT_b"},
+						"max(distinct foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
 						"foo_DOT_a":               "$foo_DOT_a",
-						"sum(distinct foo_DOT_b)": "$sum(distinct foo_DOT_b)",
+						"max(distinct foo_DOT_b)": "$max(distinct foo_DOT_b)",
 					}}},
 				},
 			)
 
-			test("select a, sum(distinct b), c from foo group by c",
+			test("select a, max(distinct b), c from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
@@ -533,17 +533,17 @@ func TestOptimizePlan(t *testing.T) {
 						"_id":                     0,
 						"foo_DOT_c":               "$_id.foo_DOT_c",
 						"foo_DOT_a":               "$foo_DOT_a",
-						"sum(distinct foo_DOT_b)": bson.M{"$sum": "$distinct foo_DOT_b"},
+						"max(distinct foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
 						"foo_DOT_a":               "$foo_DOT_a",
 						"foo_DOT_c":               "$foo_DOT_c",
-						"sum(distinct foo_DOT_b)": "$sum(distinct foo_DOT_b)",
+						"max(distinct foo_DOT_b)": "$max(distinct foo_DOT_b)",
 					}}},
 				},
 			)
 
-			test("select a + sum(b) from foo group by c",
+			test("select a + max(b) from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
@@ -552,17 +552,17 @@ func TestOptimizePlan(t *testing.T) {
 						"foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"sum(foo_DOT_b)": bson.M{
-							"$sum": "$b",
+						"max(foo_DOT_b)": bson.M{
+							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
 						"_id":            0,
 						"foo_DOT_a":      "$foo_DOT_a",
-						"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a+sum(foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$sum(foo_DOT_b)"}},
+						"foo_DOT_a+max(foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$max(foo_DOT_b)"}},
 					}}},
 				},
 			)
@@ -592,7 +592,7 @@ func TestOptimizePlan(t *testing.T) {
 			// 	},
 			// )
 
-			test("select a + c + sum(b) from foo group by c",
+			test("select a + c + max(b) from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
@@ -601,23 +601,23 @@ func TestOptimizePlan(t *testing.T) {
 						"foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"sum(foo_DOT_b)": bson.M{
-							"$sum": "$b",
+						"max(foo_DOT_b)": bson.M{
+							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
 						"_id":            0,
 						"foo_DOT_a":      "$foo_DOT_a",
 						"foo_DOT_c":      "$_id.foo_DOT_c",
-						"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a+foo_DOT_c+sum(foo_DOT_b)": bson.M{"$add": []interface{}{bson.M{"$add": []interface{}{"$foo_DOT_a", "$foo_DOT_c"}}, "$sum(foo_DOT_b)"}},
+						"foo_DOT_a+foo_DOT_c+max(foo_DOT_b)": bson.M{"$add": []interface{}{bson.M{"$add": []interface{}{"$foo_DOT_a", "$foo_DOT_c"}}, "$max(foo_DOT_b)"}},
 					}}},
 				},
 			)
 
-			test("select a + sum(distinct b) from foo group by c",
+			test("select a + max(distinct b) from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
@@ -633,15 +633,15 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$project", bson.M{
 						"_id":                     0,
 						"foo_DOT_a":               "$foo_DOT_a",
-						"sum(distinct foo_DOT_b)": bson.M{"$sum": "$distinct foo_DOT_b"},
+						"max(distinct foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a+sum(distinct foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$sum(distinct foo_DOT_b)"}},
+						"foo_DOT_a+max(distinct foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$max(distinct foo_DOT_b)"}},
 					}}},
 				},
 			)
 
-			test("select c + sum(distinct b) from foo group by c",
+			test("select c + max(distinct b) from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
@@ -654,15 +654,15 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$project", bson.M{
 						"_id":                     0,
 						"foo_DOT_c":               "$_id.foo_DOT_c",
-						"sum(distinct foo_DOT_b)": bson.M{"$sum": "$distinct foo_DOT_b"},
+						"max(distinct foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_c+sum(distinct foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_c", "$sum(distinct foo_DOT_b)"}},
+						"foo_DOT_c+max(distinct foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_c", "$max(distinct foo_DOT_b)"}},
 					}}},
 				},
 			)
 
-			test("select sum(distinct a + b) from foo group by c",
+			test("select max(distinct a + b) from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
@@ -674,15 +674,15 @@ func TestOptimizePlan(t *testing.T) {
 					}}},
 					{{"$project", bson.M{
 						"_id": 0,
-						"sum(distinct foo_DOT_a+foo_DOT_b)": bson.M{"$sum": "$distinct foo_DOT_a+foo_DOT_b"},
+						"max(distinct foo_DOT_a+foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_a+foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
-						"sum(distinct foo_DOT_a+foo_DOT_b)": "$sum(distinct foo_DOT_a+foo_DOT_b)",
+						"max(distinct foo_DOT_a+foo_DOT_b)": "$max(distinct foo_DOT_a+foo_DOT_b)",
 					}}},
 				},
 			)
 
-			test("select a + sum(distinct a + b) from foo group by c",
+			test("select a + max(distinct a + b) from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
@@ -698,10 +698,55 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$project", bson.M{
 						"_id":                               0,
 						"foo_DOT_a":                         "$foo_DOT_a",
-						"sum(distinct foo_DOT_a+foo_DOT_b)": bson.M{"$sum": "$distinct foo_DOT_a+foo_DOT_b"},
+						"max(distinct foo_DOT_a+foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_a+foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a+sum(distinct foo_DOT_a+foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$sum(distinct foo_DOT_a+foo_DOT_b)"}},
+						"foo_DOT_a+max(distinct foo_DOT_a+foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$max(distinct foo_DOT_a+foo_DOT_b)"}},
+					}}},
+				},
+			)
+
+			test("select sum(a) from foo",
+				[]bson.D{
+					{{"$group", bson.M{
+						"_id":            bson.D{},
+						"sum(foo_DOT_a)": bson.M{"$sum": "$a"},
+						"sum(foo_DOT_a)_count": bson.M{
+							"$sum": bson.M{
+								"$cond": []interface{}{
+									bson.M{
+										"$eq": []interface{}{
+											bson.M{
+												"$ifNull": []interface{}{
+													"$a",
+													nil,
+												},
+											},
+											nil,
+										},
+									},
+									0,
+									1,
+								},
+							},
+						},
+					}}},
+					{{"$project", bson.M{
+						"_id": 0,
+						"sum(foo_DOT_a)": bson.M{
+							"$cond": []interface{}{
+								bson.M{"$or": []interface{}{
+									bson.M{"$eq": []interface{}{"$sum(foo_DOT_a)_count", 0}},
+									bson.M{"$eq": []interface{}{"$sum(foo_DOT_a)_count", nil}},
+									bson.M{"$eq": []interface{}{"$sum(foo_DOT_a)_count", false}},
+								}},
+								bson.M{"$literal": nil},
+								"$sum(foo_DOT_a)",
+							},
+						},
+					}}},
+					{{"$project", bson.M{
+						"sum(foo_DOT_a)": "$sum(foo_DOT_a)",
 					}}},
 				},
 			)
@@ -788,29 +833,29 @@ func TestOptimizePlan(t *testing.T) {
 		})
 
 		Convey("having", func() {
-			test("select sum(a) from foo group by c having sum(b) = 10",
+			test("select max(a) from foo group by c having max(b) = 10",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
 							{"foo_DOT_c", "$c"},
 						},
-						"sum(foo_DOT_a)": bson.M{
-							"$sum": "$a",
+						"max(foo_DOT_a)": bson.M{
+							"$max": "$a",
 						},
-						"sum(foo_DOT_b)": bson.M{
-							"$sum": "$b",
+						"max(foo_DOT_b)": bson.M{
+							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
 						"_id":            0,
-						"sum(foo_DOT_a)": "$sum(foo_DOT_a)",
-						"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						"max(foo_DOT_a)": "$max(foo_DOT_a)",
+						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 					{{"$match", bson.M{
-						"sum(foo_DOT_b)": int64(10),
+						"max(foo_DOT_b)": int64(10),
 					}}},
 					{{"$project", bson.M{
-						"sum(foo_DOT_a)": "$sum(foo_DOT_a)",
+						"max(foo_DOT_a)": "$max(foo_DOT_a)",
 					}}},
 				},
 			)
@@ -840,23 +885,23 @@ func TestOptimizePlan(t *testing.T) {
 				},
 			)
 
-			test("select a from foo group by a order by sum(b)",
+			test("select a from foo group by a order by max(b)",
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
 							{"foo_DOT_a", "$a"},
 						},
-						"sum(foo_DOT_b)": bson.M{
-							"$sum": "$b",
+						"max(foo_DOT_b)": bson.M{
+							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
 						"_id":            0,
 						"foo_DOT_a":      "$_id.foo_DOT_a",
-						"sum(foo_DOT_b)": "$sum(foo_DOT_b)",
+						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 					{{"$sort", bson.D{
-						{"sum(foo_DOT_b)", 1},
+						{"max(foo_DOT_b)", 1},
 					}}},
 					{{"$project", bson.M{
 						"foo_DOT_a": "$foo_DOT_a",

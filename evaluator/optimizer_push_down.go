@@ -251,8 +251,13 @@ func translateGroupByKeys(keys []SQLExpr, lookupFieldName fieldNameLookup) (bson
 // translateGroupByAggregatesResult is just a holder for the results from translateGroupByAggregates.
 type translateGroupByAggregatesResult struct {
 	group           bson.M
-	exprs           []SQLExpr
+	exprs           []*namedExpr
 	mappingRegistry *mappingRegistry
+}
+
+type namedExpr struct {
+	name string
+	expr SQLExpr
 }
 
 // translateGroupByAggregates takes the key expressions and the select expressions and generates a
@@ -287,7 +292,7 @@ func translateGroupByAggregates(keys []SQLExpr, projectedColumns ProjectedColumn
 
 	// represents all the expressions that should be passed on to $project such that translateGroupByProject
 	// is able to do its work without redoing a bunch of the conditionals and special casing here.
-	newExprs := []SQLExpr{}
+	namedExprs := []*namedExpr{}
 
 	// translator will "accumulate" all the group fields. Below, we iterate over each select expressions, which
 	// account for all the fields that need to be present in the $group.
@@ -300,10 +305,15 @@ func translateGroupByAggregates(keys []SQLExpr, projectedColumns ProjectedColumn
 			return nil, err
 		}
 
-		newExprs = append(newExprs, newExpr.(SQLExpr))
+		namedExpr := &namedExpr{
+			name: dottifyFieldName(projectedColumn.Expr.String()),
+			expr: newExpr.(SQLExpr),
+		}
+
+		namedExprs = append(namedExprs, namedExpr)
 	}
 
-	return &translateGroupByAggregatesResult{translator.group, newExprs, translator.mappingRegistry}, nil
+	return &translateGroupByAggregatesResult{translator.group, namedExprs, translator.mappingRegistry}, nil
 }
 
 type groupByAggregateTranslator struct {
@@ -312,6 +322,10 @@ type groupByAggregateTranslator struct {
 	lookupFieldName fieldNameLookup
 	mappingRegistry *mappingRegistry
 }
+
+const (
+	sumAggregateCountSuffix = "_count"
+)
 
 // Visit recursively visits each expression in the tree, adds the relavent $group entries, and returns
 // an expression that can be used to generate a subsequent $project.
@@ -366,9 +380,9 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 			// a $sum with $cond and $ifNull.
 			var trans interface{}
 			var ok bool
-			if typedN.Name == "count" && typedN.Exprs[0] == SQLVarchar("*") {
+			if typedN.Name == countAggregateName && typedN.Exprs[0] == SQLVarchar("*") {
 				trans = bson.M{"$sum": 1}
-			} else if typedN.Name == "count" {
+			} else if typedN.Name == countAggregateName {
 				trans, ok = TranslateExpr(typedN.Exprs[0], v.lookupFieldName)
 				if !ok {
 					return nil, fmt.Errorf("could not translate '%v'", typedN.Exprs[0].String())
@@ -381,10 +395,33 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 					return nil, fmt.Errorf("could not translate '%v'", typedN.String())
 				}
 			}
+
 			fieldName := dottifyFieldName(typedN.String())
-			newExpr = NewSQLColumnExpr(0, groupTempTable, fieldName, typedN.Type(), schema.MongoNone)
 			v.group[fieldName] = trans
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, fieldName)
+
+			if typedN.Name == sumAggregateName {
+				// summing a column with all nulls should result in a null sum. However, MongoDB
+				// returns 0. So, we'll add in an arbitrary count operator to count the number
+				// of non-nulls and, in the following $project, we'll check this to know whether
+				// or not to use the sum or to use null.
+				countTrans, ok := TranslateExpr(typedN.Exprs[0], v.lookupFieldName)
+				if !ok {
+					return nil, fmt.Errorf("could not translate '%v'", typedN.Exprs[0].String())
+				}
+				countFieldName := dottifyFieldName(typedN.String() + sumAggregateCountSuffix)
+				v.group[countFieldName] = getCountAggregation(countTrans)
+				v.mappingRegistry.registerMapping(groupTempTable, countFieldName, countFieldName)
+
+				newExpr = NewIfScalarFunctionExpr(
+					NewSQLColumnExpr(0, groupTempTable, countFieldName, schema.SQLInt64, schema.MongoNone),
+					NewSQLColumnExpr(0, groupTempTable, fieldName, typedN.Type(), schema.MongoNone),
+					SQLNull,
+				)
+			} else {
+				newExpr = NewSQLColumnExpr(0, groupTempTable, fieldName, typedN.Type(), schema.MongoNone)
+			}
+
 		}
 
 		return newExpr, nil
@@ -441,11 +478,11 @@ func getCountAggregation(expr interface{}) bson.M {
 // translateGroupByAggregates, so this is simply a process of either adding a field to the $project, or
 // completing two-step aggregations. Two-step aggregations that needs completing are expressions like
 // 'sum(distinct a)' or 'a + b' where b was part of the group key.
-func translateGroupByProject(exprs []SQLExpr, lookupFieldName fieldNameLookup) (bson.M, error) {
+func translateGroupByProject(exprs []*namedExpr, lookupFieldName fieldNameLookup) (bson.M, error) {
 	project := bson.M{groupID: 0}
 	for _, expr := range exprs {
 
-		switch typedE := expr.(type) {
+		switch typedE := expr.expr.(type) {
 		case SQLColumnExpr:
 			// Any one-step aggregations will end up here as they were fully performed in the $group. So, simple
 			// column references ('select a') and simple aggregations ('select sum(a)').
@@ -454,14 +491,14 @@ func translateGroupByProject(exprs []SQLExpr, lookupFieldName fieldNameLookup) (
 				return nil, fmt.Errorf("unable to get a field name for %v.%v", typedE.tableName, typedE.columnName)
 			}
 
-			project[dottifyFieldName(typedE.String())] = "$" + fieldName
+			project[expr.name] = "$" + fieldName
 		default:
 			// Any two-step aggregations will end up here to complete the second step.
-			trans, ok := TranslateExpr(expr, lookupFieldName)
+			trans, ok := TranslateExpr(expr.expr, lookupFieldName)
 			if !ok {
-				return nil, fmt.Errorf("unable to translate '%v'", expr.String())
+				return nil, fmt.Errorf("unable to translate '%v'", expr.expr.String())
 			}
-			project[dottifyFieldName(typedE.String())] = trans
+			project[expr.name] = trans
 		}
 	}
 
