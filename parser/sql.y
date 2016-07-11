@@ -20,27 +20,38 @@ func ForceEOF(yylex interface{}) {
 }
 
 var (
-  SHARE              = []byte("share")
-  MODE               = []byte("mode")
-  IF_BYTES           = []byte("if")
-  VALUES_BYTES       = []byte("values")
-  RIGHT_BYTES        = []byte("right")
-  LEFT_BYTES         = []byte("left")
-  MOD_BYTES          = []byte("mod")
-  YEAR_BYTES         = []byte("year")
-  QUARTER_BYTES      = []byte("quarter")
-  MONTH_BYTES        = []byte("month")
-  WEEK_BYTES         = []byte("week")
-  DAY_BYTES          = []byte("day")
-  HOUR_BYTES         = []byte("hour")
-  MINUTE_BYTES       = []byte("minute")
-  SECOND_BYTES       = []byte("second")
-  MICROSECOND_BYTES  = []byte("microsecond")
-  CHAR_BYTES         = []byte("char")
-  DATE_BYTES         = []byte("date")
-  DATETIME_BYTES     = []byte("datetime")
-  FLOAT_BYTES        = []byte("float")
-  INTEGER_BYTES      = []byte("integer")
+  SHARE                    = []byte("share")
+  MODE                     = []byte("mode")
+  IF_BYTES                 = []byte("if")
+  VALUES_BYTES             = []byte("values")
+  RIGHT_BYTES              = []byte("right")
+  LEFT_BYTES               = []byte("left")
+  MOD_BYTES                = []byte("mod")
+  YEAR_BYTES               = []byte("year")
+  QUARTER_BYTES            = []byte("quarter")
+  MONTH_BYTES              = []byte("month")
+  WEEK_BYTES               = []byte("week")
+  DAY_BYTES                = []byte("day")
+  HOUR_BYTES               = []byte("hour")
+  MINUTE_BYTES             = []byte("minute")
+  SECOND_BYTES             = []byte("second")
+  MICROSECOND_BYTES        = []byte("microsecond")
+  SECOND_MICROSECOND_BYTES = []byte("second_microsecond")
+  MINUTE_MICROSECOND_BYTES = []byte("minute_microsecond")
+  MINUTE_SECOND_BYTES      = []byte("minute_second")
+  HOUR_MICROSECOND_BYTES   = []byte("hour_microsecond")
+  HOUR_SECOND_BYTES        = []byte("hour_second")
+  HOUR_MINUTE_BYTES        = []byte("hour_minute")
+  DAY_MICROSECOND_BYTES    = []byte("day_microsecond")
+  DAY_SECOND_BYTES         = []byte("day_second")
+  DAY_MINUTE_BYTES         = []byte("day_minute")
+  DAY_HOUR_BYTES           = []byte("day_hour")
+  YEAR_MONTH_BYTES         = []byte("year_month")
+  CHAR_BYTES               = []byte("char")
+  DATE_BYTES               = []byte("date")
+  DATETIME_BYTES           = []byte("datetime")
+  FLOAT_BYTES              = []byte("float")
+  INTEGER_BYTES            = []byte("integer")
 )
 
 %}
@@ -84,9 +95,12 @@ var (
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LPAREN RPAREN TILDE
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP
-%token <empty> TIMESTAMPADD TIMESTAMPDIFF YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
+%token <empty> TIMESTAMPADD TIMESTAMPDIFF YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND EXTRACT DATE_ADD
+%token <empty> DATE_SUB INTERVAL STR_TO_DATE
 %token <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
 %token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
+%token <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND
+%token <empty> DAY_MINUTE DAY_HOUR YEAR_MONTH
 
 %nonassoc <empty> FROM
 %left <empty> UNION MINUS EXCEPT INTERSECT
@@ -158,6 +172,7 @@ var (
 %type <bytes> keyword_as_func
 %type <bytes> time_interval
 %type <bytes> sql_time_interval
+%type <bytes> sql_time_unit
 %type <bytes> sql_types
 %type <subquery> subquery
 %type <byt> unary_operator
@@ -990,11 +1005,11 @@ expression:
   }
 | TIMESTAMPDIFF LPAREN time_interval COMMA select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: StrVal($3)}}, $5...)}
+    $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
   }
 | TIMESTAMPDIFF LPAREN sql_time_interval COMMA select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: StrVal($3)}}, $5...)}
+    $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
   }
 | CONVERT LPAREN expression COMMA sql_types RPAREN
   {
@@ -1007,6 +1022,50 @@ expression:
 | CAST LPAREN expression AS sql_types PRECISION RPAREN
   {
     $$ = &FuncExpr{Name: []byte("convert"), Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
+  }
+| DATE LPAREN select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("date"), Exprs: SelectExprs{$3}}
+  }
+| EXTRACT LPAREN time_interval FROM select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("extract"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5)}
+  }
+| EXTRACT LPAREN sql_time_unit FROM select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("extract"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5)}
+  }
+| EXTRACT LPAREN sql_time_interval FROM select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("extract"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5)}
+  }
+| DATE_ADD LPAREN select_expression COMMA INTERVAL select_expression time_interval RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("date_add"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+  }
+| DATE_ADD LPAREN select_expression COMMA INTERVAL select_expression sql_time_unit RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("date_add"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+  }
+| DATE_ADD LPAREN select_expression COMMA INTERVAL select_expression sql_time_interval RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("date_add"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+  }
+| DATE_SUB LPAREN select_expression COMMA INTERVAL select_expression time_interval RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("date_sub"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+  }
+| DATE_SUB LPAREN select_expression COMMA INTERVAL select_expression sql_time_unit RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("date_sub"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+  }
+| DATE_SUB LPAREN select_expression COMMA INTERVAL select_expression sql_time_interval RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("date_sub"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+  }
+| STR_TO_DATE LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("str_to_date"), Exprs: $3}
   }
 
 sql_time_interval:
@@ -1079,6 +1138,52 @@ time_interval:
 | MICROSECOND
   {
     $$ = MICROSECOND_BYTES
+  }
+
+sql_time_unit:
+  SECOND_MICROSECOND
+  {
+    $$ = SECOND_MICROSECOND_BYTES
+  }
+| MINUTE_MICROSECOND
+  {
+    $$ = MINUTE_MICROSECOND_BYTES
+  }
+| MINUTE_SECOND
+  {
+    $$ = MINUTE_SECOND_BYTES
+  }
+| HOUR_MICROSECOND
+  {
+    $$ = HOUR_MICROSECOND_BYTES
+  }
+| HOUR_SECOND
+  {
+    $$ = HOUR_SECOND_BYTES
+  }
+| HOUR_MINUTE
+  {
+    $$ = HOUR_MINUTE_BYTES
+  }
+| DAY_MICROSECOND
+  {
+    $$ = DAY_MICROSECOND_BYTES
+  }
+| DAY_SECOND
+  {
+    $$ = DAY_SECOND_BYTES
+  }
+| DAY_MINUTE
+  {
+    $$ = DAY_MINUTE_BYTES
+  }
+| DAY_HOUR
+  {
+    $$ = DAY_HOUR_BYTES
+  }
+| YEAR_MONTH
+  {
+    $$ = YEAR_MONTH_BYTES
   }
 
 sql_types:

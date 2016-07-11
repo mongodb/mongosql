@@ -467,6 +467,35 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$exp": args[0]}, true
+		case "extract":
+			if len(args) != 2 {
+				return nil, false
+			}
+
+			bsonMap, ok := args[0].(bson.M)
+			if !ok {
+				return nil, false
+			}
+
+			bsonVal, ok := bsonMap["$literal"]
+			if !ok {
+				return nil, false
+			}
+
+			unitVal, ok := bsonVal.(SQLValue)
+			if !ok {
+				return nil, false
+			}
+
+			unit := unitVal.String()
+
+			switch unit {
+			case "year", "month", "hour", "minute", "second":
+				return wrapSingleArgFuncWithNullCheck("$"+unit, args[1]), true
+			case "day":
+				return wrapSingleArgFuncWithNullCheck("$dayOfMonth", args[1]), true
+			}
+
 		case "floor":
 			if len(args) != 1 {
 				return nil, false
@@ -744,6 +773,24 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 				return wrapSingleArgFuncWithNullCheck("$week", args[0]), true
 			}
+		case "weekday":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return wrapInCond(
+				nil,
+				bson.M{"$mod": []interface{}{
+					bson.M{"$add": []interface{}{
+						bson.M{"$mod": []interface{}{
+							bson.M{"$subtract": []interface{}{
+								bson.M{"$dayOfWeek": args[0]}, 2,
+							}}, 7,
+						}}, 7,
+					}}, 7,
+				}},
+				wrapInNullCheck(args[0]),
+			), true
 		case "ucase", "upper":
 			if len(args) != 1 {
 				return nil, false

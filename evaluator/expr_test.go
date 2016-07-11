@@ -850,6 +850,79 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: DATE", func() {
+				d, err := time.Parse("2006-01-02", "2016-03-01")
+				So(err, ShouldBeNil)
+
+				tests := []test{
+					test{"DATE(NULL)", SQLNull},
+					test{"DATE(23)", SQLNull},
+					test{"DATE('cat')", SQLNull},
+					test{"DATE(TIMESTAMP '2016-03-01 12:32:23')", SQLDate{Time: d}},
+					test{"DATE(DATETIME '2016-03-01 11:12:23')", SQLDate{Time: d}},
+					test{"DATE(DATE '2016-03-01')", SQLDate{Time: d}},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: DATE_ADD", func() {
+				d, err := time.Parse("2006-01-02", "2003-01-02")
+				So(err, ShouldBeNil)
+				t, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 12:30:09")
+				So(err, ShouldBeNil)
+				d2, err := time.Parse("2006-01-02", "2003-11-30")
+				So(err, ShouldBeNil)
+
+				tests := []test{
+					test{"DATE_ADD('2002-01-02', INTERVAL 1 YEAR)", SQLDate{Time: d}},
+					test{"DATE_ADD('2003-08-31', INTERVAL 1 QUARTER)", SQLDate{Time: d2}},
+					test{"DATE_ADD('2003-10-31', INTERVAL 1 MONTH)", SQLDate{Time: d2}},
+					test{"DATE_ADD('2003-01-01', INTERVAL 1 DAY)", SQLDate{Time: d}},
+					test{"DATE_ADD('2003-01-02 14:30:09', INTERVAL -2 HOUR)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:23:09', INTERVAL 7 MINUTE)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:30:12', INTERVAL -3 SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:32:10', INTERVAL '-2:1' MINUTE_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 05:27:06', INTERVAL '7:3:3' HOUR_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 15:32:09', INTERVAL '-3:2' HOUR_MINUTE)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2002-12-31 10:27:05', INTERVAL '2 2:3:4' DAY_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2002-12-31 10:27:09', INTERVAL '2 2:3' DAY_MINUTE)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-01 08:30:09', INTERVAL '1 4' DAY_HOUR)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2000-09-02 12:30:09', INTERVAL '2-4' YEAR_MONTH)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:33:09', INTERVAL '-3' HOUR_MINUTE)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 10:28:06', INTERVAL '2 2:3' DAY_SECOND)", SQLTimestamp{Time: t}},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: DATE_SUB", func() {
+				d, err := time.Parse("2006-01-02", "2003-01-02")
+				So(err, ShouldBeNil)
+				t, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 12:30:09")
+				So(err, ShouldBeNil)
+				d2, err := time.Parse("2006-01-02", "2003-11-30")
+				So(err, ShouldBeNil)
+
+				tests := []test{
+					test{"DATE_SUB('2004-01-02', INTERVAL 1 YEAR)", SQLDate{Time: d}},
+					test{"DATE_SUB('2003-04-02', INTERVAL 1 QUARTER)", SQLDate{Time: d}},
+					test{"DATE_SUB('2003-12-31', INTERVAL 1 MONTH)", SQLDate{Time: d2}},
+					test{"DATE_SUB('2003-01-03', INTERVAL 1 DAY)", SQLDate{Time: d}},
+					test{"DATE_SUB('2003-01-02 10:30:09', INTERVAL -2 HOUR)", SQLTimestamp{Time: t}},
+					test{"DATE_SUB('2003-01-02 12:37:09', INTERVAL 7 MINUTE)", SQLTimestamp{Time: t}},
+					test{"DATE_SUB('2003-01-02 12:30:12', INTERVAL 3 SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_SUB('2003-01-02 12:32:10', INTERVAL '2:1' MINUTE_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_SUB('2003-01-02 19:33:12', INTERVAL '7:3:3' HOUR_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_SUB('2003-01-02 15:32:09', INTERVAL '3:2' HOUR_MINUTE)", SQLTimestamp{Time: t}},
+					test{"DATE_SUB('2003-01-04 14:33:13', INTERVAL '2 2:3:4' DAY_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_SUB('2003-01-04 14:33:09', INTERVAL '2 2:3' DAY_MINUTE)", SQLTimestamp{Time: t}},
+					test{"DATE_SUB('2003-01-03 16:30:09', INTERVAL '1 4' DAY_HOUR)", SQLTimestamp{Time: t}},
+					test{"DATE_SUB('2005-05-02 12:30:09', INTERVAL '2-4' YEAR_MONTH)", SQLTimestamp{Time: t}},
+					test{"DATE_SUB('2003-01-02 12:33:09', INTERVAL '3' HOUR_MINUTE)", SQLTimestamp{Time: t}},
+					test{"DATE_SUB('2003-01-02 14:32:12', INTERVAL '2 2:3' DAY_SECOND)", SQLTimestamp{Time: t}},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: DAYNAME", func() {
 				tests := []test{
 					test{"DAYNAME(NULL)", SQLNull},
@@ -896,6 +969,33 @@ func TestEvaluates(t *testing.T) {
 					test{"EXP('sdg')", SQLFloat(1)},
 					test{"EXP(0)", SQLFloat(1)},
 					test{"EXP(2)", SQLFloat(7.38905609893065)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: EXTRACT", func() {
+				tests := []test{
+					test{"EXTRACT(YEAR FROM NULL)", SQLNull},
+					test{"EXTRACT(YEAR FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(2006)},
+					test{"EXTRACT(QUARTER FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(2)},
+					test{"EXTRACT(WEEK FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(14)},
+					test{"EXTRACT(DAY FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(7)},
+					test{"EXTRACT(HOUR FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(7)},
+					test{"EXTRACT(MINUTE FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(14)},
+					test{"EXTRACT(SECOND FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(23)},
+					test{"EXTRACT(MICROSECOND FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(0)},
+					test{"EXTRACT(YEAR_MONTH FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(200604)},
+					test{"EXTRACT(DAY_HOUR FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(707)},
+					test{"EXTRACT(DAY_MINUTE FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(70714)},
+					test{"EXTRACT(DAY_SECOND FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(7071423)},
+					test{"EXTRACT(DAY_MICROSECOND FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(7071423000000)},
+					test{"EXTRACT(HOUR_MINUTE FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(714)},
+					test{"EXTRACT(HOUR_SECOND FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(71423)},
+					test{"EXTRACT(HOUR_MICROSECOND FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(71423000000)},
+					test{"EXTRACT(MINUTE_SECOND FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(1423)},
+					test{"EXTRACT(MINUTE_MICROSECOND FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(1423000000)},
+					test{"EXTRACT(SECOND_MICROSECOND FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(23000000)},
+					test{"EXTRACT(SQL_TSI_MINUTE FROM TIMESTAMP '2006-04-07 07:14:23')", SQLInt(14)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1134,6 +1234,25 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: MAKEDATE", func() {
+				d, err := time.Parse("2006-01-02", "2000-02-01")
+				So(err, ShouldBeNil)
+				d1, err := time.Parse("2006-01-02", "2012-02-01")
+				So(err, ShouldBeNil)
+				d2, err := time.Parse("2006-01-02", "1977-03-07")
+				So(err, ShouldBeNil)
+
+				tests := []test{
+					test{"MAKEDATE(NULL, 4)", SQLNull},
+					test{"MAKEDATE(2004, 0)", SQLNull},
+					test{"MAKEDATE('sdg', 32)", SQLDate{Time: d}},
+					test{"MAKEDATE(2000, 32)", SQLDate{Time: d}},
+					test{"MAKEDATE(12, 32)", SQLDate{Time: d1}},
+					test{"MAKEDATE(77, 66)", SQLDate{Time: d2}},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: MINUTE", func() {
 				tests := []test{
 					test{"MINUTE(NULL)", SQLNull},
@@ -1270,6 +1389,31 @@ func TestEvaluates(t *testing.T) {
 					test{"SUBSTR('Sakila', -3)", SQLVarchar("ila")},
 					test{"SUBSTR('Sakila', -5, 3)", SQLVarchar("aki")},
 					test{"SUBSTR('日本語', 2)", SQLVarchar("本語")},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: STR_TO_DATE", func() {
+				d, err := time.Parse("2006-01-02", "2016-04-03")
+				So(err, ShouldBeNil)
+				t, err := time.Parse("2006-01-02 15:04:05", "2016-04-03 12:22:22")
+				So(err, ShouldBeNil)
+				t1, err := time.Parse("2006-01-02 15:04:05", "2005-04-02 00:12:00")
+				So(err, ShouldBeNil)
+				t2, err := time.Parse("2006-01-02 15:04:05", "2016-04-03 12:22:00")
+				So(err, ShouldBeNil)
+
+				tests := []test{
+					test{"STR_TO_DATE(NULL, 4)", SQLNull},
+					test{"STR_TO_DATE('foobarbar', NULL)", SQLNull},
+					test{"STR_TO_DATE('2016-04-03','%Y-%m-%d')", SQLDate{d}},
+					test{"STR_TO_DATE('04,03,2016', '%m,%d,%Y')", SQLDate{d}},
+					test{"STR_TO_DATE('04,03,a16', '%m,%d,a%y')", SQLDate{d}},
+					test{"STR_TO_DATE('2016-04-03 12:22:22', '%Y-%m-%d %H:%i:%s')", SQLTimestamp{t}},
+					test{"STR_TO_DATE('2016-04-03 12:22', '%Y-%m-%d %H:%i')", SQLTimestamp{t2}},
+					test{"STR_TO_DATE('2005-04-02 12', '%Y-%m-%d %i')", SQLTimestamp{t1}},
+					test{"STR_TO_DATE('Apr 03, 2016', '%b %d, %Y')", SQLDate{d}},
+					test{"STR_TO_DATE('Tue 2016-04-03', '%a %Y-%m-%d')", SQLDate{d}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1423,11 +1567,71 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: WEEKDAY", func() {
+				tests := []test{
+					test{"WEEKDAY(NULL)", SQLNull},
+					test{"WEEKDAY('sdg')", SQLNull},
+					test{"WEEKDAY('2016-1-01 10:23:52')", SQLInt(4)},
+					test{"WEEKDAY('2005-05-11')", SQLInt(2)},
+					test{"WEEKDAY(DATE '2016-7-10')", SQLInt(6)},
+					test{"WEEKDAY(DATE '2016-7-11')", SQLInt(0)},
+					test{"WEEKDAY(TIMESTAMP '2016-7-13 21:22:23')", SQLInt(2)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: WEEKOFYEAR", func() {
+				tests := []test{
+					test{"WEEKOFYEAR(NULL)", SQLNull},
+					test{"WEEKOFYEAR('sdg')", SQLNull},
+					test{"WEEKOFYEAR('2008-02-20')", SQLInt(8)},
+					test{"WEEKOFYEAR('2009-01-01')", SQLInt(1)},
+					test{"WEEKOFYEAR(DATE '2009-01-05')", SQLInt(2)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			SkipConvey("Subject: YEAR", func() {
 				tests := []test{
 					test{"YEAR(NULL)", SQLNull},
 					test{"YEAR('sdg')", SQLNull},
 					test{"YEAR('2016-1-01 10:23:52')", SQLInt(53)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			SkipConvey("Subject: YEARWEEK", func() {
+				tests := []test{
+					test{"YEARWEEK(NULL)", SQLNull},
+					test{"YEARWEEK('sdg')", SQLNull},
+					test{"YEARWEEK('2000-01-01')", SQLInt(199252)},
+					test{"YEARWEEK('2001-01-01')", SQLInt(200053)},
+					test{"YEARWEEK('2002-01-01')", SQLInt(200152)},
+					test{"YEARWEEK('2003-01-01')", SQLInt(200252)},
+					test{"YEARWEEK('2004-01-01')", SQLInt(200352)},
+					test{"YEARWEEK('2005-01-01')", SQLInt(200452)},
+					test{"YEARWEEK('2006-01-01')", SQLInt(200601)},
+					test{"YEARWEEK('2000-01-06')", SQLInt(200001)},
+					test{"YEARWEEK('2001-01-06')", SQLInt(200053)},
+					test{"YEARWEEK('2002-01-06')", SQLInt(200201)},
+					test{"YEARWEEK('2003-01-06')", SQLInt(200301)},
+					test{"YEARWEEK('2004-01-06')", SQLInt(200401)},
+					test{"YEARWEEK('2005-01-06')", SQLInt(200501)},
+					test{"YEARWEEK('2006-01-06')", SQLInt(200601)},
+					test{"YEARWEEK('2000-01-01',1)", SQLInt(199252)},
+					test{"YEARWEEK('2001-01-01',1)", SQLInt(200101)},
+					test{"YEARWEEK('2002-01-01',1)", SQLInt(200201)},
+					test{"YEARWEEK('2003-01-01',1)", SQLInt(200301)},
+					test{"YEARWEEK('2004-01-01',1)", SQLInt(200401)},
+					test{"YEARWEEK('2005-01-01',1)", SQLInt(200453)},
+					test{"YEARWEEK('2006-01-01',1)", SQLInt(200552)},
+					test{"YEARWEEK('2000-01-06',1)", SQLInt(200001)},
+					test{"YEARWEEK('2001-01-06',1)", SQLInt(200101)},
+					test{"YEARWEEK('2002-01-06',1)", SQLInt(200201)},
+					test{"YEARWEEK('2003-01-06',1)", SQLInt(200301)},
+					test{"YEARWEEK('2004-01-06',1)", SQLInt(200402)},
+					test{"YEARWEEK('2005-01-06',1)", SQLInt(200501)},
+					test{"YEARWEEK('2006-01-06',1)", SQLInt(200601)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -2047,6 +2251,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"dayofweek(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$dayOfWeek":"$a"}]}`},
 			test{"dayofyear(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$dayOfYear":"$a"}]}`},
 			test{"exp(a)", `{"$exp":"$a"}`},
+			test{"extract(year from a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$year":"$a"}]}`},
 			test{"floor(a)", `{"$floor":"$a"}`},
 			test{"hour(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$hour":"$a"}]}`},
 			test{"if(a, 2, 3)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":["$a",0]},{"$eq":["$a",false]}]},{"$literal":3},{"$literal":2}]}`},
@@ -2075,6 +2280,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"substr(a, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$substr":["$a",1,{"$literal":4}]}]}`},
 			test{"week(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$week":"$a"}]}`},
 			test{"week(a, 0)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$week":"$a"}]}`},
+			test{"weekday(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$mod":[{"$add":[{"$mod":[{"$subtract":[{"$dayOfWeek":"$a"},2]},7]},7]},7]}]}`},
+
 			test{"ucase(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$toUpper":"$a"}]}`},
 			test{"upper(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$toUpper":"$a"}]}`},
 			test{"year(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$year":"$a"}]}`},

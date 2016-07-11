@@ -397,6 +397,85 @@ func (_ *currentTimestampFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
 }
 
+type dateFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date
+func (_ *dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if _, ok := values[0].(SQLDate); !ok {
+		if _, ok := values[0].(SQLTimestamp); !ok {
+			return SQLNull, nil
+		}
+	}
+
+	t, ok := parseDateTime((values[0].String())[:10])
+	if !ok {
+		return SQLNull, nil
+	}
+
+	return SQLDate{Time: t}, nil
+}
+
+func (_ *dateFunc) Type() schema.SQLType {
+	return schema.SQLDate
+}
+
+func (_ *dateFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+type dateAddFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-add
+func (_ *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	_, ok := parseDateTime(values[0].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	timestampadd := &timestampAddFunc{}
+	args, neg := dateArithmeticArgs(values[1])
+	unit, interval, err := calculateInterval(values[2].String(), args, neg)
+
+	if err != nil {
+		return SQLNull, nil
+	}
+
+	return timestampadd.Evaluate([]SQLValue{SQLVarchar(unit), SQLInt(interval), values[0]}, ctx)
+
+}
+
+func (_ *dateAddFunc) Type() schema.SQLType {
+	return schema.SQLNone
+}
+
+func (_ *dateAddFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
+type dateSubFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-sub
+func (_ *dateSubFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	dateadd := &dateAddFunc{}
+
+	v := values[1].String()
+	if string(v[0]) != "-" {
+		v = "-" + v
+	} else {
+		v = v[1:]
+	}
+
+	return dateadd.Evaluate([]SQLValue{values[0], SQLVarchar(v), values[2]}, ctx)
+}
+
+func (_ *dateSubFunc) Type() schema.SQLType {
+	return schema.SQLNone
+}
+
+func (_ *dateSubFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
 type dayNameFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_dayname
@@ -496,6 +575,118 @@ func (_ *expFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+const (
+	YEAR               = "year"
+	QUARTER            = "quarter"
+	MONTH              = "month"
+	WEEK               = "week"
+	DAY                = "day"
+	HOUR               = "hour"
+	MINUTE             = "minute"
+	SECOND             = "second"
+	MICROSECOND        = "microsecond"
+	YEAR_MONTH         = "year_month"
+	DAY_HOUR           = "day_hour"
+	DAY_MINUTE         = "day_minute"
+	DAY_SECOND         = "day_second"
+	DAY_MICROSECOND    = "day_microsecond"
+	HOUR_MINUTE        = "hour_minute"
+	HOUR_SECOND        = "hour_second"
+	HOUR_MICROSECOND   = "hour_microsecond"
+	MINUTE_SECOND      = "minute_second"
+	MINUTE_MICROSECOND = "minute_microsecond"
+	SECOND_MICROSECOND = "second_microsecond"
+)
+
+type extractFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_extract
+func (_ *extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	t, ok := parseDateTime(values[1].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	units := [6]int{t.Year(), int(t.Month()), t.Day(), t.Hour(), t.Minute(), t.Second()}
+
+	var unitStrs [6]string
+	// For certain units, we need to concatenate the unit values as strings before returning the int value
+	// as to not lose any number's place value.
+	// i.e. SELECT EXTRACT(DAY_MINUTE FROM "2006-04-03 06:03:23") should return 30603, not 363.
+	for idx, val := range units {
+		u := strconv.Itoa(val)
+		if len(u) == 1 {
+			u = "0" + u
+		}
+		unitStrs[idx] = u
+	}
+
+	switch values[0].String() {
+	case YEAR:
+		return SQLInt(units[0]), nil
+	case QUARTER:
+		return SQLInt(int(math.Ceil(float64(units[1]) / 3.0))), nil
+	case MONTH:
+		return SQLInt(units[1]), nil
+	case WEEK:
+		_, w := t.ISOWeek()
+		return SQLInt(w), nil
+	case DAY:
+		return SQLInt(units[2]), nil
+	case HOUR:
+		return SQLInt(units[3]), nil
+	case MINUTE:
+		return SQLInt(units[4]), nil
+	case SECOND:
+		return SQLInt(units[5]), nil
+	case MICROSECOND:
+		return SQLInt(0), nil
+	case YEAR_MONTH:
+		ym, _ := strconv.Atoi(unitStrs[0] + unitStrs[1])
+		return SQLInt(ym), nil
+	case DAY_HOUR:
+		dh, _ := strconv.Atoi(unitStrs[2] + unitStrs[3])
+		return SQLInt(dh), nil
+	case DAY_MINUTE:
+		dm, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4])
+		return SQLInt(dm), nil
+	case DAY_SECOND:
+		ds, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4] + unitStrs[5])
+		return SQLInt(ds), nil
+	case DAY_MICROSECOND:
+		dms, _ := strconv.Atoi(unitStrs[2] + unitStrs[3] + unitStrs[4] + unitStrs[5] + "000000")
+		return SQLInt(dms), nil
+	case HOUR_MINUTE:
+		hm, _ := strconv.Atoi(unitStrs[3] + unitStrs[4])
+		return SQLInt(hm), nil
+	case HOUR_SECOND:
+		hs, _ := strconv.Atoi(unitStrs[3] + unitStrs[4] + unitStrs[5])
+		return SQLInt(hs), nil
+	case HOUR_MICROSECOND:
+		hms, _ := strconv.Atoi(unitStrs[3] + unitStrs[4] + unitStrs[5] + "000000")
+		return SQLInt(hms), nil
+	case MINUTE_SECOND:
+		ms, _ := strconv.Atoi(unitStrs[4] + unitStrs[5])
+		return SQLInt(ms), nil
+	case MINUTE_MICROSECOND:
+		mms, _ := strconv.Atoi(unitStrs[4] + unitStrs[5] + "000000")
+		return SQLInt(mms), nil
+	case SECOND_MICROSECOND:
+		sms, _ := strconv.Atoi(unitStrs[5] + "000000")
+		return SQLInt(sms), nil
+	default:
+		return nil, fmt.Errorf("unit type '%v' is not supported", values[0].String())
+	}
+}
+
+func (_ *extractFunc) Type() schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *extractFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
+
 type floorFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_floor
@@ -555,7 +746,7 @@ func (_ *greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		}
 	}
 
-	allTimeVals, timestamp := returnTimestampType(values)
+	allTimeVals, timestamp := areAllTimeTypes(values)
 	if allTimeVals && timestamp {
 		t, _ := parseDateTime(values[greatestIdx].String())
 		return SQLTimestamp{Time: t}, nil
@@ -759,7 +950,7 @@ func (_ *leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 		}
 	}
 
-	allTimeVals, timestamp := returnTimestampType(values)
+	allTimeVals, timestamp := areAllTimeTypes(values)
 	if allTimeVals && timestamp {
 		t, _ := parseDateTime(values[leastIdx].String())
 		return SQLTimestamp{Time: t}, nil
@@ -928,6 +1119,44 @@ func (_ *ltrimFunc) Type() schema.SQLType {
 
 func (_ *ltrimFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type makeDateFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_makedate
+func (_ *makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if anyNull(values) {
+		return SQLNull, nil
+	}
+
+	y := values[0].Int64()
+	if y < 0 || y > 9999 {
+		return SQLNull, nil
+	}
+	if y >= 0 && y <= 69 {
+		y += 2000
+	} else if y >= 70 && y <= 99 {
+		y += 1900
+	}
+
+	d := values[1].Int64()
+	if d <= 0 {
+		return SQLNull, nil
+	}
+
+	t := time.Date(int(y), 1, 0, 0, 0, 0, 0, time.UTC)
+	duration := time.Duration(d*24) * time.Hour
+
+	return SQLDate{Time: t.Add(duration)}, nil
+
+}
+
+func (_ *makeDateFunc) Type() schema.SQLType {
+	return schema.SQLDate
+}
+
+func (_ *makeDateFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
 }
 
 type minuteFunc struct{}
@@ -1262,6 +1491,73 @@ func (_ *sqrtFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type strToDateFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_str-to-date
+func (_ *strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	str, ok := values[0].(SQLVarchar)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	ft, ok := values[1].(SQLVarchar)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	s := str.String()
+	f := ft.String()
+	fmtTokens := map[string]string{
+		"%a": "Mon", "%b": "Jan", "%c": "1", "%d": "02", "%e": "2", "%H": "15", "%i": "04", "%k": "13", "%M": "January",
+		"%m": "01", "%S": "05", "%s": "05", "%T": "15:04:05", "%W": "Monday", "%w": "Mon", "%Y": "2006", "%y": "06",
+	}
+
+	format := ""
+	skipToken := false
+	ts := false
+	for idx, char := range f {
+		if !skipToken {
+			if char == 37 && idx != len(f)-1 {
+				token := "%" + string(f[idx+1])
+				skipToken = true
+				goToken := fmtTokens[token]
+				if goToken != "" {
+					format += goToken
+				} else {
+					return SQLNull, nil
+				}
+				if token == "%H" || token == "%i" || token == "%k" || token == "%p" ||
+					token == "%S" || token == "%s" || token == "%T" {
+					ts = true
+				}
+			} else {
+				format += string(char)
+			}
+		} else {
+			skipToken = false
+		}
+	}
+
+	d, err := time.Parse(format, s)
+	if err != nil {
+		return SQLNull, nil
+	}
+
+	if ts {
+		return SQLTimestamp{d}, nil
+	}
+
+	return SQLDate{d}, nil
+}
+
+func (_ *strToDateFunc) Type() schema.SQLType {
+	return schema.SQLNone
+}
+
+func (_ *strToDateFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
+
 type substringFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_substring
@@ -1311,18 +1607,6 @@ func (_ *substringFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2, 3)
 }
 
-const (
-	YEAR        = "year"
-	QUARTER     = "quarter"
-	MONTH       = "month"
-	WEEK        = "week"
-	DAY         = "day"
-	HOUR        = "hour"
-	MINUTE      = "minute"
-	SECOND      = "second"
-	MICROSECOND = "microsecond"
-)
-
 type timestampAddFunc struct{}
 
 //http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampadd
@@ -1345,7 +1629,7 @@ func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 			return SQLTimestamp{Time: t.AddDate(int(v.Int64()), 0, 0)}, nil
 		}
 		return SQLDate{t.AddDate(int(v.Int64()), 0, 0)}, nil
-	case string(parser.QUARTER_BYTES):
+	case QUARTER:
 		y, m, d := t.Date()
 		mo := int(((int64(m)+v.Int64()*3)%12 + 12) % 12)
 		if mo == 0 {
@@ -1622,6 +1906,46 @@ func (_ *weekFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 2)
 }
 
+type weekdayFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_weekday
+func (_ *weekdayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	t, ok := parseDateTime(values[0].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	w := int(t.Weekday())
+	if w == 0 {
+		w = 7
+	}
+	return SQLInt(w - 1), nil
+}
+
+func (_ *weekdayFunc) Type() schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *weekdayFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+type weekOfYearFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_weekofyear
+func (_ *weekOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	week := &weekFunc{}
+	return week.Evaluate([]SQLValue{values[0], SQLInt(3)}, ctx)
+}
+
+func (_ *weekOfYearFunc) Type() schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *weekOfYearFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
 type yearFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_year
@@ -1642,6 +1966,54 @@ func (_ *yearFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type yearWeekFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_yearweek
+func (_ *yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	t, ok := parseDateTime(values[0].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	var v uint
+	if len(values) == 2 {
+		v = uint(values[1].(SQLInt))
+		if v == 0 {
+			v = 2
+		} else if v == 1 {
+			v = 3
+		}
+	} else {
+		v = 2
+	}
+
+	weekFunc := &weekFunc{}
+	w, _ := weekFunc.Evaluate([]SQLValue{values[0], SQLInt(v)}, ctx)
+
+	week, ok := w.(SQLInt)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	y := t.Year()
+	wk := int(week)
+	if t.Month() == 1 && (wk == 52 || wk == 53) {
+		y -= 1
+	} else if t.Month() == 12 && (wk == 0 || wk == 1) {
+		y += 1
+	}
+
+	return SQLInt(y*100 + wk), nil
+}
+
+func (_ *yearWeekFunc) Type() schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *yearWeekFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1, 2)
+}
+
 // Helper functions
 func anyNull(values []SQLValue) bool {
 	for _, v := range values {
@@ -1651,6 +2023,52 @@ func anyNull(values []SQLValue) bool {
 	}
 
 	return false
+}
+
+// calculateInterval converts each of the values in args to unit, and returns the sum of these multiplied by neg.
+func calculateInterval(unit string, args []int, neg int) (string, int, error) {
+	var val int
+	var u string
+	sp := strings.SplitAfter(unit, "_")
+	if len(sp) > 1 {
+		u = string(sp[1])
+	} else {
+		u = unit
+	}
+
+	switch len(args) {
+	case 4:
+		if unit != DAY_SECOND && unit != DAY_MICROSECOND {
+			return unit, 0, fmt.Errorf("invalid argument length")
+		}
+		val = args[0]*24*60*60 + args[1]*60*60 + args[2]*60 + args[3]
+	case 3:
+		switch unit {
+		case DAY_MINUTE:
+			val = args[0]*24*60 + args[1]*60 + args[2]
+		case DAY_SECOND, DAY_MICROSECOND, HOUR_SECOND, HOUR_MICROSECOND:
+			val = args[0]*60*60 + args[1]*60 + args[2]
+		default:
+			return unit, 0, fmt.Errorf("invalid argument length")
+		}
+	case 2:
+		switch unit {
+		case YEAR_MONTH:
+			val = args[0]*12 + args[1]
+		case DAY_HOUR:
+			val = args[0]*24 + args[1]
+		case DAY_MINUTE, HOUR_MINUTE, DAY_SECOND, DAY_MICROSECOND, HOUR_SECOND, HOUR_MICROSECOND, MINUTE_SECOND, MINUTE_MICROSECOND:
+			val = args[0]*60 + args[1]
+		default:
+			return unit, 0, fmt.Errorf("invalid argument length")
+		}
+	case 1:
+		val = args[0]
+	default:
+		return unit, 0, fmt.Errorf("invalid argument length")
+	}
+
+	return u, val * neg, nil
 }
 
 // convertType converts val to the SQL type indicated by t.
@@ -1691,6 +2109,36 @@ func dayOneWeekOne(d time.Time, iso bool, monStart bool) int {
 		day1 = 1
 	}
 	return day1
+}
+
+// dateArithmeticArgs parses val and returns an integer slice stripped of any spaces, colons, etc.
+// It also returns whether the first character in val is "-", indicating whether the arguments should be negative.
+func dateArithmeticArgs(val SQLValue) ([]int, int) {
+	var args []int
+	neg := 1
+	prev := -1
+	curr := ""
+	for idx, char := range val.String() {
+		if idx == 0 && char == 45 {
+			neg = -1
+		}
+		if char >= 48 && char <= 57 {
+			if prev >= 48 && char <= 57 {
+				curr += string(char)
+			} else {
+				curr = string(char)
+			}
+			prev = int(char)
+		} else if prev != -1 {
+			c, _ := strconv.Atoi(curr)
+			args = append(args, c)
+			curr = ""
+			prev = int(char)
+		}
+	}
+	c, _ := strconv.Atoi(curr)
+	args = append(args, c)
+	return args, neg
 }
 
 func evaluateArgs(exprs []SQLExpr, ctx *EvalCtx) ([]SQLValue, error) {
@@ -1770,12 +2218,12 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 	return months
 }
 
-// returnTimestampType checks if all SQLValues are either type SQLTimestamp or SQLDate
+// areAllTimeTypes checks if all SQLValues are either type SQLTimestamp or SQLDate
 // and there is at least one SQLTimestamp type. This is necessary because if the former is true,
-// SQL will always return a SQLTimestamp type in the greatest and least functions.
+// MySQL will always return a SQLTimestamp type in the greatest and least functions.
 // i.e. SELECT GREATEST(DATE "2006-05-11", TIMESTAMP "2005-04-12", DATE "2004-06-04")
 // returns TIMESTAMP "2006-05-11 00:00:00"
-func returnTimestampType(values []SQLValue) (bool, bool) {
+func areAllTimeTypes(values []SQLValue) (bool, bool) {
 	allTimeTypes := true
 	timestamp := false
 	for _, v := range values {

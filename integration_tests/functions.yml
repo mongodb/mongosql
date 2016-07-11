@@ -42,6 +42,7 @@ schema:
       SqlName: d
       SQLType: timestamp
 
+
 #
 # Tests
 #
@@ -566,6 +567,53 @@ testcases:
   - [~]
   - [~]
   - [~]
+  - [~]
+
+- sql: "select extract(year from d) from bar"
+  expected_names: ["extract(year, d)"]
+  expected_types: [int]
+  expected:
+  - [2000]
+  - [2000]
+  - [2000]
+  - [~]
+  - [~]
+
+- sql: "select extract(hour from d) from bar"
+  expected_names: ["extract(hour, d)"]
+  expected_types: [int]
+  expected:
+  - [13]
+  - [13]
+  - [13]
+  - [~]
+  - [~]
+
+- sql: "select extract(day from d) from bar"
+  expected_names: ["extract(day, d)"]
+  expected_types: [int]
+  expected:
+  - [23]
+  - [24]
+  - [24]
+  - [~]
+  - [~]
+
+- sql: "select extract(year_month from d) from bar"
+  expected_names: ["extract(year_month, d)"]
+  expected_types: [int]
+  expected:
+  - [200009]
+  - [200009]
+  - [200010]
+  - [~]
+  - [~]
+
+- sql: "select extract(day from d) from bar where a > 0"
+  expected_names: ["extract(day, d)"]
+  expected_types: [int]
+  expected:
+  - [23]
   - [~]
 
 - sql: "select floor(c) from bar"
@@ -1196,6 +1244,33 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select weekday(d) from bar"
+  expected_names: ["weekday(d)"]
+  expected_types: [int]
+  expected:
+  - [5]
+  - [6]
+  - [1]
+  - [~]
+  - [~]
+
+- sql: "select weekday(d) from bar where weekday(d) > 3"
+  expected_names: ["weekday(d)"]
+  expected_types: [int]
+  expected:
+  - [5]
+  - [6]
+
+- sql: "select weekday(null) from bar"
+  expected_names: ["weekday(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
 - sql: "select week(d, 0) from bar"
   expected_names: ["week(d, 0)"]
   expected_types: [int]
@@ -1276,32 +1351,33 @@ testcases:
   - [~]
   - [~]
 
-# - sql: "select year(d) from bar"
-#   expected_names: ["year(d)"]
-#   expected_types: [int]
-#   expected:
-#   - [2013]
-#   - [2013]
-#   - [2013]
-#   - [~]
-#   - [~]
-#
-# - sql: "select year(d) from bar where year(d) > 3"
-#   expected_names: ["year(d)"]
-#   expected_types: [int]
-#   expected:
-#   - [2013]
-#   - [2013]
-#
-# - sql: "select year(null) from bar"
-#   expected_names: ["year(null)"]
-#   expected_types: [int]
-#   expected:
-#   - [~]
-#   - [~]
-#   - [~]
-#   - [~]
-#   - [~]
+- sql: "select year(d) from bar"
+  expected_names: ["year(d)"]
+  expected_types: [int]
+  expected:
+  - [2000]
+  - [2000]
+  - [2000]
+  - [~]
+  - [~]
+
+- sql: "select year(d) from bar where year(d) > 3"
+  expected_names: ["year(d)"]
+  expected_types: [int]
+  expected:
+  - [2000]
+  - [2000]
+  - [2000]
+
+- sql: "select year(null) from bar"
+  expected_names: ["year(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
 
 # Logical Operations
 - sql: "select a || c from bar"
