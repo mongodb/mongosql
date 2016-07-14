@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -967,6 +968,23 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 		}
 
 		return bson.M{"$or": cond}, nil
+	case *SQLRegexExpr:
+		name, ok := getFieldName(typedE.operand, lookupFieldName)
+		if !ok {
+			return nil, e
+		}
+		pattern, ok := typedE.pattern.(SQLVarchar)
+		if !ok {
+			return nil, e
+		}
+		// We need to check if the pattern is valid Extended POSIX regex
+		// because MongoDB supports a superset of this specification called
+		// PCRE.
+		_, err := regexp.CompilePOSIX(pattern.String())
+		if err != nil {
+			return nil, e
+		}
+		return bson.M{name: bson.M{"$regex": bson.RegEx{pattern.String(), ""}}}, nil
 	}
 
 	return nil, e
@@ -1009,6 +1027,8 @@ func negate(op bson.M) bson.M {
 						return bson.M{name: innerValue}
 					case "$nin":
 						return bson.M{name: bson.M{"$in": innerValue}}
+					case "$regex":
+						return bson.M{name: bson.M{"$nin": []interface{}{innerValue}}}
 					case "$not":
 						return bson.M{name: innerValue}
 					}

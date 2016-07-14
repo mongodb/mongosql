@@ -847,6 +847,17 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		}
 
 		return m, nil
+	case *parser.RegexExpr:
+		operand, err := a.translateExpr(typedE.Operand)
+		if err != nil {
+			return nil, err
+		}
+
+		pattern, err := a.translateExpr(typedE.Pattern)
+		if err != nil {
+			return nil, err
+		}
+		return &SQLRegexExpr{operand, pattern}, nil
 	case parser.StrVal:
 		return SQLVarchar(string(typedE)), nil
 	case *parser.Subquery:

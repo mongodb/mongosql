@@ -70,6 +70,7 @@ var keywords = map[string]int{
 
 	"distinct":  DISTINCT,
 	"precision": PRECISION,
+	"regexp":    REGEXP,
 	"case":      CASE,
 	"when":      WHEN,
 	"then":      THEN,

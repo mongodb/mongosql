@@ -84,7 +84,7 @@ var (
 %token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN
 %token <empty> ALL DISTINCT PRECISION AS EXISTS IN IS LIKE BETWEEN NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
-%token <empty> LE GE NE NULL_SAFE_EQUAL
+%token <empty> LE GE NE NULL_SAFE_EQUAL REGEXP
 %token <empty> '(' '=' '<' '>' '~'
 %token <empty> DATE DATETIME TIME TIMESTAMP
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
@@ -781,6 +781,14 @@ condition:
   {
     $$ = &ComparisonExpr{Left: $1, Operator: AST_IS_NOT, Right: &NullVal{}}
   }
+| value_expression REGEXP value_expression
+  {
+    $$ = &RegexExpr{Operand: $1, Pattern: $3}
+  }
+| value_expression NOT REGEXP value_expression
+  {
+    $$ = &NotExpr{&RegexExpr{Operand: $1, Pattern: $4}}
+  }
 | EXISTS subquery
   {
     $$ = &ExistsExpr{Subquery: $2}
@@ -1022,11 +1030,11 @@ time_interval:
   {
     $$ = QUARTER_BYTES
   }
-| MONTH 
+| MONTH
   {
     $$ = MONTH_BYTES
   }
-| WEEK 
+| WEEK
   {
     $$ = WEEK_BYTES
   }
@@ -1038,11 +1046,11 @@ time_interval:
   {
     $$ = HOUR_BYTES
   }
-| MINUTE 
+| MINUTE
   {
     $$ = MINUTE_BYTES
   }
-| SECOND 
+| SECOND
   {
     $$ = SECOND_BYTES
   }

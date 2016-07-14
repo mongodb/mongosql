@@ -922,6 +922,50 @@ const (
 )
 
 //
+// SQLRegexExpr evaluates to true if the operand matches the regex patttern.
+//
+type SQLRegexExpr struct {
+	operand, pattern SQLExpr
+}
+
+func (reg *SQLRegexExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	operandVal, err := reg.operand.Evaluate(ctx)
+	if err != nil {
+		return SQLFalse, err
+	}
+
+	patternVal, err := reg.pattern.Evaluate(ctx)
+	if err != nil {
+		return SQLFalse, err
+	}
+
+	if hasNullValue(operandVal, patternVal) {
+		return SQLNull, nil
+	}
+
+	pattern, patternOK := patternVal.(SQLVarchar)
+	if patternOK {
+		matcher, err := regexp.CompilePOSIX(pattern.String())
+		if err != nil {
+			return SQLFalse, err
+		}
+		match := matcher.Find([]byte(operandVal.String()))
+		if match != nil {
+			return SQLTrue, nil
+		}
+	}
+	return SQLFalse, nil
+}
+
+func (reg *SQLRegexExpr) String() string {
+	return fmt.Sprintf("%s matches %s", reg.operand.String(), reg.pattern.String())
+}
+
+func (_ *SQLRegexExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
+//
 // SQLSubqueryCmpExpr evaluates to true if left is in any of the
 // rows returned by the SQLSubqueryExpr expression results.
 //

@@ -625,6 +625,42 @@ func TestEvaluates(t *testing.T) {
 			runTests(evalCtx, tests)
 		})
 
+		Convey("Subject: SQLNotRegexExpr", func() {
+			tests := []test{
+				test{"'ABC123' NOT REGEXP 'AB'", SQLFalse},
+				test{"'ABC123' NOT REGEXP 'ABD'", SQLTrue},
+				test{"'ABC123' NOT REGEXP '[[:alpha:]]'", SQLFalse},
+				test{"'fofo' NOT REGEXP '^fo'", SQLFalse},
+				test{"'fofo' NOT REGEXP '^f.*$'", SQLFalse},
+				test{"'pi' NOT REGEXP 'pi|apa'", SQLFalse},
+				test{"'abcde' NOT REGEXP 'a[bcd]{2}e'", SQLTrue},
+				test{"'abcde' NOT REGEXP 'a[bcd]{1,10}e'", SQLFalse},
+				test{"null REGEXP 'abc'", SQLNull},
+				test{"'a' REGEXP null", SQLNull},
+				test{"2-1 NOT REGEXP '1'", SQLFalse},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLRegexExpr", func() {
+			tests := []test{
+				test{"'ABC123' REGEXP 'AB'", SQLTrue},
+				test{"'ABC123' REGEXP 'ABD'", SQLFalse},
+				test{"'ABC123' REGEXP '[[:alpha:]]'", SQLTrue},
+				test{"'fofo' REGEXP '^fo'", SQLTrue},
+				test{"'fofo' REGEXP '^f.*$'", SQLTrue},
+				test{"'pi' REGEXP 'pi|apa'", SQLTrue},
+				test{"'abcde' REGEXP 'a[bcd]{2}e'", SQLFalse},
+				test{"'abcde' REGEXP 'a[bcd]{1,10}e'", SQLTrue},
+				test{"null REGEXP 'abc'", SQLNull},
+				test{"'a' REGEXP null", SQLNull},
+				test{"2-1 REGEXP '1'", SQLTrue},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
 		Convey("Subject: SQLScalarFunctionExpr", func() {
 
 			Convey("Subject: ABS", func() {
@@ -1889,10 +1925,15 @@ func TestTranslatePredicate(t *testing.T) {
 			test{"NOT (a > 3 AND a < 10)", `{"$nor":[{"$and":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}]}`},
 			test{"NOT (NOT (a > 3 AND a < 10))", `{"$or":[{"$and":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}]}`},
 			test{"NOT (a > 3 OR a < 10)", `{"$nor":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}`},
-
 			// This looks weird. It's because json.Marshal doesn't know how to deal with bson.DocElem which we used
 			// because order matters for $regex and $options. However, the go driver does know and will handle this correctly.
 			test{"a LIKE '%un%'", `{"a":[{"Name":"$regex","Value":"^.*un.*$"},{"Name":"$options","Value":"i"}]}`},
+			test{"a REGEXP 'abc'", `{"a":{"$regex":{"Pattern":"abc","Options":""}}}`},
+			test{"a REGEXP '(.* )?'", `{"a":{"$regex":{"Pattern":"(.* )?","Options":""}}}`},
+			test{"a REGEXP 'a' OR 'b'", `{"a":{"$regex":{"Pattern":"a","Options":""}}}`},
+			test{"a NOT REGEXP 'a' OR 'b'", `{"a":{"$nin":[{"Pattern":"a","Options":""}]}}`},
+			test{"a NOT REGEXP 'abc'", `{"a":{"$nin":[{"Pattern":"abc","Options":""}]}}`},
+			test{"a NOT REGEXP '(.* )?'", `{"a":{"$nin":[{"Pattern":"(.* )?","Options":""}]}}`},
 		}
 
 		runTests(tests)

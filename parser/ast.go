@@ -441,6 +441,7 @@ func (*XorExpr) IExpr()        {}
 func (*NotExpr) IExpr()        {}
 func (*ParenBoolExpr) IExpr()  {}
 func (*ComparisonExpr) IExpr() {}
+func (*RegexExpr) IExpr()      {}
 func (*RangeCond) IExpr()      {}
 func (*ExistsExpr) IExpr()     {}
 func (DateVal) IExpr()         {}
@@ -487,6 +488,7 @@ func (*XorExpr) IBoolExpr()        {}
 func (*NotExpr) IBoolExpr()        {}
 func (*ParenBoolExpr) IBoolExpr()  {}
 func (*ComparisonExpr) IBoolExpr() {}
+func (*RegexExpr) IBoolExpr()      {}
 func (*RangeCond) IBoolExpr()      {}
 func (*ExistsExpr) IBoolExpr()     {}
 
@@ -585,6 +587,16 @@ const (
 
 func (node *RangeCond) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v %s %v and %v", node.Left, node.Operator, node.From, node.To)
+}
+
+// RegexExor represents a Regex expression that matches a pattern with an expression.
+type RegexExpr struct {
+	Operand ValExpr
+	Pattern ValExpr
+}
+
+func (node *RegexExpr) Format(buf *TrackedBuffer) {
+	buf.Fprintf("%v regexp %v", node.Operand, node.Pattern)
 }
 
 // ExistsExpr represents an EXISTS expression.
