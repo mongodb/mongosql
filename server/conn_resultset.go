@@ -45,7 +45,10 @@ func formatValue(value interface{}) ([]byte, error) {
 	case evaluator.SQLNullValue, *evaluator.SQLNullValue, evaluator.SQLNoValue:
 		return nil, nil
 	case evaluator.SQLBool:
-		return strconv.AppendBool(nil, bool(v)), nil
+		if bool(v) {
+			return []byte{'1'}, nil
+		}
+		return []byte{'0'}, nil
 	case *evaluator.SQLValues:
 		return formatValue(v.Values[0])
 
@@ -85,7 +88,10 @@ func formatValue(value interface{}) ([]byte, error) {
 	case string:
 		return Slice(v), nil
 	case bool:
-		return strconv.AppendBool(nil, v), nil
+		if v {
+			return []byte{'1'}, nil
+		}
+		return []byte{'0'}, nil
 	case nil:
 		return nil, nil
 	default:
@@ -102,7 +108,7 @@ func formatField(field *Field, value interface{}) error {
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
 	case evaluator.SQLBool:
 		field.Charset = 33
-		field.Type = MYSQL_TYPE_BIT
+		field.Type = MYSQL_TYPE_TINY
 	case evaluator.SQLUint32:
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_LONGLONG

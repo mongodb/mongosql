@@ -219,31 +219,31 @@ testcases:
 
 - sql: "select d < 2 from bar"
   expected_names: ["d < 2"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
-  - ["false"]
-  - ["false"]
-  - ["false"]
+  - [0]
+  - [0]
+  - [0]
   - [~]
   - [~]
 
 - sql: "select d > 2 from bar"
   expected_names: ["d > 2"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
-  - ["true"]
-  - ["true"]
-  - ["true"]
+  - [1]
+  - [1]
+  - [1]
   - [~]
   - [~]
 
 - sql: "select d = 20000923134500 from bar"
   expected_names: ["d = 20000923134500"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
-  - ["true"]
-  - ["false"]
-  - ["false"]
+  - [1]
+  - [0]
+  - [0]
   - [~]
   - [~]
 
