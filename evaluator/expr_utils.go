@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -310,34 +311,44 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	return nil, nil, fmt.Errorf("left or right expression must be a tuple")
 }
 
-func sqlValueToString(sqlValue SQLValue) (string, error) {
-	switch v := sqlValue.(type) {
-	case SQLVarchar:
-		return string(v), nil
-	case SQLFloat:
-		return strconv.FormatFloat(v.Float64(), 'f', -1, 64), nil
-	case SQLInt, SQLUint32:
-		return strconv.FormatInt(int64(v.Float64()), 10), nil
-	case SQLDate:
-		return string(v.String()), nil
-	case SQLTimestamp:
-		return string(v.String()), nil
-	case SQLObjectID:
-		return string(v.String()), nil
-	case SQLBool:
-		if v {
-			return "1", nil
+const (
+	regexCharsToEscape    = ".^$*+?()[{\\|"
+	likePatternEscapeChar = '\\'
+)
+
+func convertSQLValueToPattern(value SQLValue) string {
+	pattern := value.String()
+	regex := "^"
+	escaped := false
+	for _, c := range pattern {
+		if !escaped && c == likePatternEscapeChar {
+			escaped = true
+			continue
 		}
-		return "0", nil
-	case *SQLValues:
-		if len(v.Values) != 1 {
-			return "", fmt.Errorf("left operand should contain 1 column - got %v", len(v.Values))
+
+		switch {
+		case c == '_':
+			if escaped {
+				regex += "_"
+			} else {
+				regex += "."
+			}
+		case c == '%':
+			if escaped {
+				regex += "%"
+			} else {
+				regex += ".*"
+			}
+		case strings.Contains(regexCharsToEscape, string(c)):
+			regex += "\\" + string(c)
+		default:
+			regex += string(c)
 		}
-		return sqlValueToString(v.Values[0])
-	default:
-		return string(v.String()), nil
+
+		escaped = false
 	}
 
-	// TODO: just return empty string with no error?
-	return "", fmt.Errorf("unable to convert %v to string", sqlValue)
+	regex += "$"
+
+	return regex
 }

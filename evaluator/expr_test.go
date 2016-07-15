@@ -466,33 +466,35 @@ func TestEvaluates(t *testing.T) {
 
 		Convey("Subject: SQLLikeExpr", func() {
 			tests := []test{
-				test{"'Á Â Ã Ä' LIKE '%'", SQLInt(1)},
-				test{"'Á Â Ã Ä' LIKE 'Á Â Ã Ä'", SQLInt(1)},
-				test{"'Á Â Ã Ä' LIKE 'Á%'", SQLInt(1)},
-				test{"'a' LIKE 'a'", SQLInt(1)},
-				test{"'Adam' LIKE 'am'", SQLInt(0)},
-				test{"'Adam' LIKE 'adaM'", SQLInt(1)}, // mixed case test
-				test{"'Adam' LIKE '%am%'", SQLInt(1)},
-				test{"'Adam' LIKE 'Ada_'", SQLInt(1)},
-				test{"'Adam' LIKE '__am'", SQLInt(1)},
-				test{"'Clever' LIKE '%is'", SQLInt(0)},
-				test{"'Adam is nice' LIKE '%xs '", SQLInt(0)},
-				test{"'Adam is nice' LIKE '%is nice'", SQLInt(1)},
-				test{"'abc' LIKE 'ABC'", SQLInt(1)},   //case sensitive test
-				test{"'abc' LIKE 'ABC '", SQLInt(0)},  // trailing space test
-				test{"'abc' LIKE ' ABC'", SQLInt(0)},  // leading space test
-				test{"'abc' LIKE ' ABC '", SQLInt(0)}, // padded space test
-				test{"'abc' LIKE 'ABC	'", SQLInt(0)}, // trailing tab test
-				test{"'10' LIKE '1%'", SQLInt(1)},
-				test{"'a   ' LIKE 'A   '", SQLInt(1)},
-				test{"CURRENT_DATE() LIKE '2015-05-31%'", SQLInt(0)},
-				test{"(DATE '2008-01-02') LIKE '2008-01%'", SQLInt(1)},
-				test{"NOW() LIKE '" + strconv.Itoa(time.Now().Year()) + "%' ", SQLInt(1)},
-				test{"10 LIKE '1%'", SQLInt(1)},
-				test{"1.20 LIKE '1.2%'", SQLInt(1)},
+				test{"'Á Â Ã Ä' LIKE '%'", SQLTrue},
+				test{"'Á Â Ã Ä' LIKE 'Á Â Ã Ä'", SQLTrue},
+				test{"'Á Â Ã Ä' LIKE 'Á%'", SQLTrue},
+				test{"'a' LIKE 'a'", SQLTrue},
+				test{"'Adam' LIKE 'am'", SQLFalse},
+				test{"'Adam' LIKE 'adaM'", SQLTrue}, // mixed case test
+				test{"'Adam' LIKE '%am%'", SQLTrue},
+				test{"'Adam' LIKE 'Ada_'", SQLTrue},
+				test{"'Adam' LIKE '__am'", SQLTrue},
+				test{"'Clever' LIKE '%is'", SQLFalse},
+				test{"'Adam is nice' LIKE '%xs '", SQLFalse},
+				test{"'Adam is nice' LIKE '%is nice'", SQLTrue},
+				test{"'abc' LIKE 'ABC'", SQLTrue},    //case sensitive test
+				test{"'abc' LIKE 'ABC '", SQLFalse},  // trailing space test
+				test{"'abc' LIKE ' ABC'", SQLFalse},  // leading space test
+				test{"'abc' LIKE ' ABC '", SQLFalse}, // padded space test
+				test{"'abc' LIKE 'ABC	'", SQLFalse}, // trailing tab test
+				test{"'10' LIKE '1%'", SQLTrue},
+				test{"'a   ' LIKE 'A   '", SQLTrue},
+				test{"CURRENT_DATE() LIKE '2015-05-31%'", SQLFalse},
+				test{"(DATE '2008-01-02') LIKE '2008-01%'", SQLTrue},
+				test{"NOW() LIKE '" + strconv.Itoa(time.Now().Year()) + "%' ", SQLTrue},
+				test{"10 LIKE '1%'", SQLTrue},
+				test{"1.20 LIKE '1.2%'", SQLTrue},
 				test{"NULL LIKE '1%'", SQLNull},
 				test{"10 LIKE NULL", SQLNull},
 				test{"NULL LIKE NULL", SQLNull},
+				test{"'David_' LIKE 'David\\_'", SQLTrue},
+				test{"'David%' LIKE 'David\\%'", SQLTrue},
 			}
 			runTests(evalCtx, tests)
 		})
@@ -1308,6 +1310,26 @@ func TestEvaluates(t *testing.T) {
 	})
 }
 
+func TestSQLLikeExprConvertToPattern(t *testing.T) {
+	test := func(syntax, expected string) {
+		Convey(fmt.Sprintf("XXX LIKE '%s' should convert to pattern '%s'", syntax, expected), func() {
+			pattern := convertSQLValueToPattern(SQLVarchar(syntax))
+			So(pattern, ShouldEqual, expected)
+		})
+	}
+
+	Convey("Subject: SQLLikeExpr.convertToPattern", t, func() {
+		test("David", "^David$")
+		test("Da\\vid", "^David$")
+		test("Da\\\\vid", "^Da\\\\vid$")
+		test("Da_id", "^Da.id$")
+		test("Da\\_id", "^Da_id$")
+		test("Da%d", "^Da.*d$")
+		test("Da\\%d", "^Da%d$")
+		test("Sto_. %ow", "^Sto.\\. .*ow$")
+	})
+}
+
 func TestMatches(t *testing.T) {
 	Convey("Subject: Matches", t, func() {
 
@@ -1622,6 +1644,8 @@ func TestOptimizeSQLExpr(t *testing.T) {
 			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
 			test{"DAYNAME('2016-1-1')", "Friday", SQLVarchar("Friday")},
 			test{"(8-7)", "1", SQLInt(1)},
+			test{"a LIKE NULL", "null", SQLNull},
+			test{"4 LIKE NULL", "null", SQLNull},
 		}
 
 		runTests(tests)
@@ -1761,6 +1785,10 @@ func TestTranslatePredicate(t *testing.T) {
 			test{"NOT (a > 3 AND a < 10)", `{"$nor":[{"$and":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}]}`},
 			test{"NOT (NOT (a > 3 AND a < 10))", `{"$or":[{"$and":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}]}`},
 			test{"NOT (a > 3 OR a < 10)", `{"$nor":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}`},
+
+			// This looks weird. It's because json.Marshal doesn't know how to deal with bson.DocElem which we used
+			// because order matters for $regex and $options. However, the go driver does know and will handle this correctly.
+			test{"a LIKE '%un%'", `{"a":[{"Name":"$regex","Value":"^.*un.*$"},{"Name":"$options","Value":"i"}]}`},
 		}
 
 		runTests(tests)

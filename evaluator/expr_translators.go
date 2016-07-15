@@ -907,6 +907,29 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 			return nil, e
 		}
 		return match, nil
+	case *SQLLikeExpr:
+		// we cannot do a like comparison on an ObjectID in mongodb.
+		if typedE.left.Type() == schema.SQLObjectID {
+			return nil, e
+		}
+
+		name, ok := getFieldName(typedE.left, lookupFieldName)
+		if !ok {
+			return nil, e
+		}
+
+		value, ok := typedE.right.(SQLValue)
+		if !ok {
+			return nil, e
+		}
+
+		if hasNullValue(value) {
+			return nil, e
+		}
+
+		pattern := convertSQLValueToPattern(value)
+
+		return bson.M{name: bson.D{{"$regex", pattern}, {"$options", "i"}}}, nil
 	case *SQLNotEqualsExpr:
 		match, ok := translateOperator("$ne", typedE.left, typedE.right, lookupFieldName)
 		if !ok {

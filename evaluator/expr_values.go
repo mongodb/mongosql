@@ -248,9 +248,9 @@ func (sb SQLBool) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (sb SQLBool) String() string {
 	if sb {
-		return "true"
+		return "1"
 	}
-	return "false"
+	return "0"
 }
 
 func (_ SQLBool) Type() schema.SQLType {
@@ -408,7 +408,7 @@ func (si SQLInt) Evaluate(_ *EvalCtx) (SQLValue, error) {
 }
 
 func (si SQLInt) String() string {
-	return strconv.Itoa(int(si))
+	return strconv.FormatInt(si.Int64(), 10)
 }
 
 func (_ SQLInt) Type() schema.SQLType {
@@ -606,7 +606,7 @@ func (su SQLUint32) Evaluate(_ *EvalCtx) (SQLValue, error) {
 }
 
 func (su SQLUint32) String() string {
-	return strconv.FormatFloat(float64(su), 'f', -1, 32)
+	return strconv.FormatInt(su.Int64(), 10)
 }
 
 func (su SQLUint32) Type() schema.SQLType {

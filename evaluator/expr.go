@@ -5,7 +5,6 @@ import (
 	"math"
 	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -662,72 +661,32 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	value, err := l.left.Evaluate(ctx)
 	if err != nil {
-		return SQLValue(SQLInt(0)), err
+		return nil, err
 	}
 
-	if _, ok := value.(SQLNullValue); ok {
+	if hasNullValue(value) {
 		return SQLNull, nil
 	}
 
-	if _, ok := value.(SQLNoValue); ok {
-		return SQLNull, nil
-	}
-
-	data, err := sqlValueToString(value)
-	if err != nil {
-		return SQLValue(SQLInt(0)), err
-	}
+	data := value.String()
 
 	value, err = l.right.Evaluate(ctx)
 	if err != nil {
-		return SQLValue(SQLInt(0)), err
+		return nil, err
 	}
 
-	if _, ok := value.(SQLNullValue); ok {
+	if hasNullValue(value) {
 		return SQLNull, nil
 	}
 
-	if _, ok := value.(SQLNoValue); ok {
-		return SQLNull, nil
-	}
+	pattern := "(?i)" + convertSQLValueToPattern(value)
 
-	patternStr, err := sqlValueToString(value)
+	matches, err := regexp.Match(pattern, []byte(data))
 	if err != nil {
-		return SQLValue(SQLInt(0)), err
+		return nil, err
 	}
 
-	// check if pattern ends with a whitespace or tab
-	if strings.HasSuffix(patternStr, " ") {
-		patternStr = patternStr[0 : len(patternStr)-1]
-		patternStr += "\\s$"
-	} else if strings.HasSuffix(patternStr, "\\t") {
-		patternStr = patternStr[0 : len(patternStr)-1]
-		patternStr += "\\t$"
-	}
-
-	if !strings.HasPrefix(patternStr, "_") && !strings.HasPrefix(patternStr, "%") {
-		patternStr = "^" + patternStr
-	}
-
-	if !strings.HasSuffix(patternStr, "_") && !strings.HasSuffix(patternStr, "%") {
-		patternStr = patternStr + "$"
-	}
-
-	patternStr = strings.Replace(patternStr, "_", "[\\w]", -1)
-	patternStr = strings.Replace(patternStr, "%", "[\\w]*", -1)
-
-	// (?i) is case insensitive flag
-	reg, err := regexp.Compile("(?i)" + patternStr)
-	if err != nil {
-		return SQLValue(SQLInt(0)), err
-	}
-
-	matches := reg.Match([]byte(data))
-
-	if matches {
-		return SQLValue(SQLInt(1)), nil
-	}
-	return SQLValue(SQLInt(0)), nil
+	return SQLBool(matches), nil
 }
 
 func (l *SQLLikeExpr) String() string {

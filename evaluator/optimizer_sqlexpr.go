@@ -195,6 +195,12 @@ func (v *normalizer) visit(n node) (node, error) {
 		if shouldFlip(sqlBinaryNode(*typedN)) {
 			return &SQLGreaterThanOrEqualExpr{typedN.right, typedN.left}, nil
 		}
+	case *SQLLikeExpr:
+		if right, ok := typedN.right.(SQLValue); ok {
+			if hasNullValue(right) {
+				return SQLNull, nil
+			}
+		}
 	case *SQLNotExpr:
 		if operand, ok := typedN.operand.(SQLValue); ok {
 			if hasNullValue(operand) {
