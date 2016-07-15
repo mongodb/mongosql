@@ -1,0 +1,21 @@
+MongoDB Connector for BI README
+
+COMPONENTS
+
+  bin/sqlproxy  - The proxy process.
+  bin/mongodrdl - The schema generator.
+
+RUNNING
+
+  For sqlproxy command line options invoke:
+
+    $ ./bin/sqlproxy --help
+
+  For mongodrdl command line options invoke:
+
+    $ ./bin/mongodrdl --help
+
+
+DOCUMENTATION
+
+  https://docs.mongodb.com/bi-connector/components/

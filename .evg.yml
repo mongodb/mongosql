@@ -10,6 +10,9 @@ buildvariants:
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian71-3.2.7.tgz
+    push_arch: x86_64-debian71
+    push_name: linux
+    push_path: linux
   tasks:
   - "!benchmark !check"
 - name: debian81
@@ -21,6 +24,9 @@ buildvariants:
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian81-latest.tgz
+    push_arch: x86_64-debian81
+    push_name: linux
+    push_path: linux
   tasks:
   - "!benchmark !check"
 - name: linux-64-amazon-ami
@@ -31,6 +37,9 @@ buildvariants:
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.2.7.tgz --output mongodb.tgz
     mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
     mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
+    push_arch: x86_64-enterprise-amzn64
+    push_name: linux
+    push_path: linux
   run_on:
     - linux-64-amzn-build
   tasks:
@@ -43,6 +52,9 @@ buildvariants:
     build_tags: -tags "sasl ssl"
     cover: "-"
     mongo_url: https://downloads.mongodb.org/osx/mongodb-osx-x86_64-3.2.7.tgz
+    push_arch: x86_64
+    push_name: osx
+    push_path: osx
   tasks:
   - "!benchmark !check"
 - name: rhel55
@@ -51,6 +63,9 @@ buildvariants:
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel57-3.2.7.tgz
+    push_arch: x86_64-rhel55
+    push_name: linux
+    push_path: linux
   run_on:
   - rhel55
   tasks:
@@ -62,6 +77,9 @@ buildvariants:
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel62-3.2.7.tgz
+    push_arch: x86_64-rhel62
+    push_name: linux
+    push_path: linux
   run_on:
   - rhel62-test
   tasks:
@@ -72,6 +90,9 @@ buildvariants:
     build_tags: -tags "sasl ssl"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-rhel70-3.2.7.tgz
+    push_arch: x86_64-rhel70
+    push_name: linux
+    push_path: linux
   run_on:
   - rhel70
   tasks:
@@ -84,6 +105,9 @@ buildvariants:
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.2.7.tgz
+    push_arch: ppc64le-rhel71
+    push_name: linux
+    push_path: linux
   run_on:
   - rhel71-power8-test
   tasks:
@@ -95,6 +119,9 @@ buildvariants:
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-s390x-enterprise-rhel72-latest.tgz
+    push_arch: s390x-enterprise-rhel72
+    push_name: linux
+    push_path: linux
   run_on:
   - rhel72-zseries-build
   - rhel72-zseries-test
@@ -108,6 +135,9 @@ buildvariants:
     gccgoflags: -gccgoflags "-lsocket -lnsl"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.mongodb.org/sunos5/mongodb-sunos5-x86_64-3.2.7.tgz
+    push_arch: x86_64
+    push_name: sunos5
+    push_path: sunos5
   run_on:
   - solaris
   tasks:
@@ -118,6 +148,9 @@ buildvariants:
     build_tags: -tags "sasl ssl"
     cover: "-"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse11-3.2.7.tgz
+    push_arch: x86_64-suse11
+    push_name: linux
+    push_path: linux
   run_on:
   - suse11-test
   tasks:
@@ -128,6 +161,9 @@ buildvariants:
     build_tags: -tags "sasl ssl"
     cover: "-"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse12-3.2.7.tgz
+    push_arch: x86_64-suse12
+    push_name: linux
+    push_path: linux
   run_on:
   - suse12-test
   tasks:
@@ -138,6 +174,9 @@ buildvariants:
     build_tags: -tags "sasl ssl"
     cover: "-"
     mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.2.7.tgz
+    push_arch: x86_64-ubuntu1404
+    push_name: linux
+    push_path: linux
   run_on:
   - ubuntu1404-build
   tasks:
@@ -147,13 +186,18 @@ buildvariants:
   run_on:
   - windows-32
   expansions:
+    archive_format: zip
     cover: "-"
+    extension: .exe
     library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
     mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-i386-3.2.7.zip
-    extension: .exe
     # Set storage engine as mmapv1 for 32 bit variants
     # since WiredTiger requires 64 bit support.
     mongod_args: --storageEngine=mmapv1
+    push_arch: i386
+    push_name: win32
+    push_path: win32
+    separator: \\
   tasks:
   - "!benchmark !check"
 - name: windows-64
@@ -161,11 +205,16 @@ buildvariants:
   run_on:
   - windows-64-vs2013-test
   expansions:
+    archive_format: zip
     build_tags: -tags "sasl ssl"
     cover: "-"
+    extension: .exe
     library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
     mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.7.zip
-    extension: .exe
+    push_arch: x86_64
+    push_name: win32
+    push_path: win32
+    separator: \\
   tasks:
   - "!benchmark !check"
 pre:
@@ -248,7 +297,7 @@ functions:
           export PATH=/opt/ldwrapper/bin:$PATH
         fi
         . ./set_gopath.sh
-        ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec $(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr $(git describe)" ${gccgoflags} ${build_tags} -o drdl mongodrdl/main/mongodrdl.go
+        ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec=$(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr=$(git describe)" ${gccgoflags} ${build_tags} -o drdl mongodrdl/main/mongodrdl.go
 
         echo "Done!"
 
@@ -275,8 +324,22 @@ functions:
           export PATH=/opt/ldwrapper/bin:$PATH
         fi
         . ./set_gopath.sh
-        ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec $(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr $(git describe)" ${gccgoflags} -o sqlproxy main/sqlproxy.go
+        ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec=$(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr=$(git describe)" ${gccgoflags} -o sqlproxy main/sqlproxy.go
         echo "Done!"
+
+  "create release":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src
+      script: |
+        set -o verbose
+        set -o errexit
+        rm -rf build
+        mkdir build
+        cp drdl sqlproxy build
+        ${python|python} buildscripts/make_archive.py -o release.${archive_format|tgz} --format ${archive_format|tgz} --transform build/sqlproxy=bin/sqlproxy${extension} --transform build/drdl=bin/mongodrdl${extension} --transform distsrc/README=README --transform distsrc/THIRD-PARTY-NOTICES=THIRD-PARTY-NOTICES LICENSE distsrc${separator|/}README distsrc${separator|/}THIRD-PARTY-NOTICES build${separator|/}sqlproxy build${separator|/}drdl
+        echo version: $(git --git-dir .git describe) > version.yml
 
   "download mongod":
     command: shell.exec
@@ -439,29 +502,17 @@ functions:
       display_name: Coverage Report (TXT)
       optional: true
 
-  "upload MongoDRDL":
+  "upload release":
     command: s3.put
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/drdl
-      remote_file: sqlproxy/binaries/${task_id}/mongodrdl${extension}
+      local_file: src/release.${archive_format|tgz}
+      remote_file: sqlproxy/binaries/${push_path}/mongodb-bi-${push_name}-${push_arch}-${version}.${archive_format|tgz}
       bucket: mciuploads
       permissions: public-read
       content_type: application/octet-stream
-      display_name: mongodrdl${extension}
-
-  "upload SQLProxy":
-    command: s3.put
-    params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/sqlproxy
-      remote_file: sqlproxy/binaries/${task_id}/sqlproxy${extension}
-      bucket: mciuploads
-      permissions: public-read
-      content_type: application/octet-stream
-      display_name: sqlproxy${extension}
+      display_name: mongodb-bi-${push_name}-${push_arch}-${version}.${archive_format|tgz}
 
 tasks:
 - name: benchmark
@@ -561,9 +612,12 @@ tasks:
   commands:
     - func: "fetch source"
     - func: "build SQLProxy"
-    - func: "upload SQLProxy"
     - func: "build MongoDRDL"
-    - func: "upload MongoDRDL"
+    - func: "create release"
+    - command: expansions.update
+      params:
+        file: src/version.yml
+    - func: "upload release"
 
 - name: evaluator
   commands:
