@@ -1226,31 +1226,31 @@ testcases:
 # Logical Operations
 - sql: "select a || c from bar"
   expected_names: ["a or c"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
-  - ["true"]
-  - ["true"]
-  - ["true"]
-  - ["true"]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
   - [~]
 
 - sql: "select a || null from bar"
   expected_names: ["a or null"]
   expected_types: [varchar]
   expected:
-  - ["true"]
+  - [1]
   - [~]
-  - ["true"]
-  - ["true"]
+  - [1]
+  - [1]
   - [~]
 
 - sql: "select a && c from bar"
   expected_names: ["a and c"]
   expected_types: [varchar]
   expected:
-  - ["true"]
+  - [1]
   - [~]
-  - ["true"]
+  - [1]
   - [~]
   - [~]
 
@@ -1266,12 +1266,12 @@ testcases:
 
 - sql: "select !a from bar"
   expected_names: ["not a"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
-  - ["false"]
+  - [0]
   - [~]
-  - ["false"]
-  - ["false"]
+  - [0]
+  - [0]
   - [~]
 
 - sql: "select !null from bar"
@@ -1288,9 +1288,9 @@ testcases:
   expected_names: ["a xor c"]
   expected_types: [varchar]
   expected:
-  - ["false"]
+  - [0]
   - [~]
-  - ["false"]
+  - [0]
   - [~]
   - [~]
 
