@@ -75,4 +75,11 @@ testcases:
   expected_types: [int]
   expected: 
   - [0]
+- sql: "SET NAMES utf8"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_results"
+  description: "pseudo session variable"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_results"]
+  expected_types: [string, string, string]
+  expected: 
+  - ["utf8", "utf8", "utf8"]
 

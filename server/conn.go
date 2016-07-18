@@ -139,6 +139,11 @@ func (c *conn) GetVariable(name string, kind evaluator.VariableKind) (evaluator.
 			return nil, err
 		}
 
+		defRead, ok := def.(readableVariableDefinition)
+		if !ok {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_VAR_CANT_BE_READ, name)
+		}
+
 		if kind == evaluator.GlobalVariable {
 			if value, ok := c.server.variables.getValue(name); ok {
 				return value, nil
@@ -149,7 +154,7 @@ func (c *conn) GetVariable(name string, kind evaluator.VariableKind) (evaluator.
 			}
 		}
 
-		return def.defaultValue(), nil
+		return defRead.defaultValue(), nil
 	default:
 		v, ok := c.variables.getUserVariable(name)
 		if !ok {
@@ -169,12 +174,17 @@ func (c *conn) SetVariable(name string, value evaluator.SQLValue, kind evaluator
 			return err
 		}
 
+		defWrite, ok := def.(settableVariableDefinition)
+		if !ok {
+			return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, name)
+		}
+
 		scope := globalScope
 		if kind == evaluator.SessionVariable {
 			scope = sessionScope
 		}
 
-		return def.apply(c, scope, value)
+		return defWrite.apply(c, scope, value)
 	default:
 		c.variables.setUserVariable(name, value)
 		return nil
