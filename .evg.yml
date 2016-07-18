@@ -16,7 +16,7 @@ buildvariants:
   tasks:
   - "!benchmark !check"
 - name: debian81
-  display_name: Debian 8.1
+  display_name: Debian 8.1 (nightly)
   run_on:
   - debian81-test
   expansions:
@@ -113,7 +113,7 @@ buildvariants:
   tasks:
   - "!benchmark !check"
 - name: rhel-72-s390x
-  display_name: RHEL 7.2 s390x
+  display_name: RHEL 7.2 s390x (nightly)
   expansions:
     build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'sasl ssl'
     cover: "-"
