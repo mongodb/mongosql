@@ -104,6 +104,7 @@ buildvariants:
   display_name: Solaris
   expansions:
     cover: "-"
+    gotest_env: "GOARCH=amd64 GOOS=solaris"
     gccgoflags: -gccgoflags "-lsocket -lnsl"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.mongodb.org/sunos5/mongodb-sunos5-x86_64-3.2.7.tgz
@@ -200,7 +201,7 @@ pre:
         exit 0
 post:
   - command: gotest.parse_files
-    params: 
+    params:
       files: ["src/*.suite", "src/**/*.suite", "src/**/**/*.suite"]
   - command: shell.cleanup
 
