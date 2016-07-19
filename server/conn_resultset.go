@@ -99,41 +99,41 @@ func formatValue(value interface{}) ([]byte, error) {
 	}
 }
 
-func formatField(field *Field, value interface{}) error {
+func formatField(collationID uint16, field *Field, value interface{}) error {
 	switch typedV := value.(type) {
 
 	case evaluator.SQLFloat:
-		field.Charset = 63
+		field.Charset = collationID
 		field.Type = MYSQL_TYPE_FLOAT
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
 	case evaluator.SQLBool:
-		field.Charset = 33
+		field.Charset = collationID
 		field.Type = MYSQL_TYPE_TINY
 	case evaluator.SQLUint32:
-		field.Charset = 63
+		field.Charset = collationID
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG
 	case evaluator.SQLInt:
-		field.Charset = 63
+		field.Charset = collationID
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
 	case evaluator.SQLVarchar:
-		field.Charset = 33
+		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
 	case evaluator.SQLObjectID:
-		field.Charset = 33
+		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
 	case evaluator.SQLValues:
-		field.Charset = 33
+		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
 	case nil, *evaluator.SQLNullValue, evaluator.SQLNullValue, evaluator.SQLNoValue:
-		field.Charset = 33
+		field.Charset = collationID
 		field.Type = MYSQL_TYPE_NULL
 	case evaluator.SQLDate:
-		field.Charset = 33
+		field.Charset = collationID
 		field.Type = MYSQL_TYPE_DATE
 	case evaluator.SQLTimestamp:
-		field.Charset = 33
+		field.Charset = collationID
 		field.Type = MYSQL_TYPE_TIMESTAMP
 	case *evaluator.SQLValues:
 		if len(typedV.Values) != 1 {
@@ -150,6 +150,7 @@ func (c *conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 	r := new(Resultset)
 
 	r.Fields = make([]*Field, len(names))
+	collationID := uint16(c.getCollationID())
 
 	var b []byte
 	var err error
@@ -166,7 +167,7 @@ func (c *conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 				r.Fields[j] = field
 				field.Name = Slice(names[j])
 
-				if err = formatField(field, value); err != nil {
+				if err = formatField(collationID, field, value); err != nil {
 					return nil, err
 				}
 			}
@@ -192,7 +193,7 @@ func (c *conn) buildResultset(names []string, values [][]interface{}) (*Resultse
 			r.Fields[j] = field
 			field.Name = Slice(nm)
 
-			if err = formatField(field, evaluator.SQLVarchar("")); err != nil {
+			if err = formatField(collationID, field, evaluator.SQLVarchar("")); err != nil {
 				return nil, err
 			}
 		}
@@ -227,6 +228,8 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 		return err
 	}
 
+	collationID := uint16(c.getCollationID())
+
 	var wroteHeaders bool
 
 	writeHeaders := func() error {
@@ -251,7 +254,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 				Name: Slice(columns[j].Name),
 			}
 
-			if err = formatField(field, value); err != nil {
+			if err = formatField(collationID, field, value); err != nil {
 				return err
 			}
 

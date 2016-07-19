@@ -536,6 +536,6 @@ var collationNames = map[string]collationId{
 
 const (
 	DEFAULT_CHARSET                    = "utf8"
-	DEFAULT_COLLATION_ID   collationId = 33
-	DEFAULT_COLLATION_NAME string      = "utf8_general_ci"
+	DEFAULT_COLLATION_ID   collationId = 83
+	DEFAULT_COLLATION_NAME string      = "utf8_bin"
 )

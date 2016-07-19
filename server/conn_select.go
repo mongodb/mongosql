@@ -56,7 +56,9 @@ func (c *conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 
 	field.OrgName = name
 
-	formatField(field, value)
+	collationID := uint16(c.getCollationID())
+
+	formatField(collationID, field, value)
 
 	r := &Resultset{Fields: []*Field{field}}
 	row, err := formatValue(value)
@@ -86,6 +88,8 @@ func (c *conn) handleFieldList(data []byte) error {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_TABLE, table, dbName)
 	}
 
+	collationID := uint16(c.getCollationID())
+
 	fields := []*Field{}
 
 	for _, field := range tableSchema.RawColumns {
@@ -96,7 +100,7 @@ func (c *conn) handleFieldList(data []byte) error {
 		if err != nil {
 			return err
 		}
-		if err = formatField(f, value); err != nil {
+		if err = formatField(collationID, f, value); err != nil {
 			return err
 		}
 		fields = append(fields, f)

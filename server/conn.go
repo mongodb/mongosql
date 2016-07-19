@@ -14,7 +14,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
@@ -42,8 +41,6 @@ type conn struct {
 	capability   uint32
 	connectionID uint32
 	status       uint16
-	collation    collationId
-	charset      string
 	user         string
 	currentDB    *schema.Database
 	lastInsertID int64
@@ -69,13 +66,11 @@ func newConn(s *Server, c net.Conn) *conn {
 		writer:       c,
 		connectionID: atomic.AddUint32(&s.connCount, 1),
 		status:       SERVER_STATUS_AUTOCOMMIT,
-		collation:    DEFAULT_COLLATION_ID,
 		capability: CLIENT_PROTOCOL_41 |
 			CLIENT_CONNECT_WITH_DB |
 			CLIENT_LONG_FLAG |
 			CLIENT_LONG_PASSWORD |
 			CLIENT_SECURE_CONNECTION,
-		charset:   DEFAULT_CHARSET,
 		stmts:     make(map[uint32]*stmt),
 		variables: newSessionVariableContainer(s.variables),
 	}
@@ -129,6 +124,14 @@ func (c *conn) Session() *mgo.Session {
 // User returns the current user.
 func (c *conn) User() string {
 	return fmt.Sprintf("%s@%s", c.user, c.conn.RemoteAddr().String())
+}
+
+func (c *conn) mustGetVariable(name string, kind evaluator.VariableKind) evaluator.SQLValue {
+	value, err := c.GetVariable(name, kind)
+	if err != nil {
+		panic(err)
+	}
+	return value
 }
 
 func (c *conn) GetVariable(name string, kind evaluator.VariableKind) (evaluator.SQLValue, error) {
@@ -245,7 +248,10 @@ func (c *conn) writeInitialHandshake() error {
 	data = append(data, minProtocolVersion)
 
 	//server version[00]
-	data = append(data, common.VersionStr...)
+	version := c.mustGetVariable(versionVariableName, evaluator.GlobalVariable)
+	versionComment := c.mustGetVariable(versionCommentVariableName, evaluator.GlobalVariable)
+
+	data = append(data, fmt.Sprintf("%s %s", version, versionComment)...)
 	data = append(data, 0)
 
 	//connection id
@@ -269,8 +275,8 @@ func (c *conn) writeInitialHandshake() error {
 	//capability flag lower 2 bytes
 	data = append(data, byte(c.capability), byte(c.capability>>8))
 
-	//charset, utf-8 default
-	data = append(data, uint8(c.collation))
+	//charset
+	data = append(data, c.getCollationID())
 
 	//status
 	data = append(data, byte(c.status), byte(c.status>>8))
@@ -712,4 +718,13 @@ func (c *conn) writeEOF(status uint16) error {
 	}
 
 	return c.writePacket(data)
+}
+
+func (c *conn) getCollationID() uint8 {
+	collation := c.mustGetVariable(collationConnectionVariableName, evaluator.SessionVariable)
+	if collation == evaluator.SQLNull {
+		collation = evaluator.SQLVarchar(DEFAULT_COLLATION_NAME)
+	}
+	collationID := collationNames[collation.String()]
+	return uint8(collationID)
 }
