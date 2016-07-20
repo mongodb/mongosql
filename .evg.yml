@@ -681,11 +681,31 @@ tasks:
           cd ../relational
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v > relational.suite 2>&1; if [ $? -ne 0 ]; then cat relational.suite; exit 1; else cat relational.suite; fi
           exit 0
+
+- name: parser
+  commands:
+    - func: "fetch source"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          . ./set_gopath.sh
+          cd parser
+          touch coverage.out
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v > parser.suite 2>&1; if [ $? -ne 0 ]; then cat parser.suite; exit 1; else cat parser.suite; exit 0; fi
+
 - name: schema
   commands:
     - func: "fetch source"
-    - func: "download mongod"
-    - func: "start mongod"
     - command: shell.exec
       type: test
       params:
