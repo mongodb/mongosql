@@ -69,15 +69,29 @@ func TestBooleanLiteral(t *testing.T) {
 	testParse(t, sql)
 }
 
+func TestBoolArithExpr(t *testing.T) {
+	sql := "select (5>6)=1"
+	testParse(t, sql)
+
+	sql = "select (5>6)+1"
+	testParse(t, sql)
+
+	sql = "select (5>6)+(5<8)"
+	testParse(t, sql)
+
+	sql = "select 3+(5<8)"
+	testParse(t, sql)
+
+	sql = "select 3+(5>8)"
+	testParse(t, sql)
+}
+
 func TestTimeConstructors(t *testing.T) {
 
 	sql := "select * from foo.tables where a > (DATE '2014-06-01 00:00:00.000')"
 	testParse(t, sql)
 
 	sql = "select * from foo.tables where a > (DATETIME '2014-06-01 00:00:00.000')"
-	testParse(t, sql)
-
-	sql = "select * from foo.tables where a > (YEAR '2014-06-01 00:00:00.000')"
 	testParse(t, sql)
 
 	sql = "select * from foo.tables where a > (TIME '2014-06-01 00:00:00.000')"

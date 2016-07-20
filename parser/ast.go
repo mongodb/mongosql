@@ -358,7 +358,7 @@ type JoinTableExpr struct {
 	LeftExpr  TableExpr
 	Join      string
 	RightExpr TableExpr
-	On        BoolExpr
+	On        Expr
 }
 
 // JoinTableExpr.Join
@@ -431,7 +431,6 @@ func (node *Where) Format(buf *TrackedBuffer) {
 // Expr represents an expression.
 type Expr interface {
 	IExpr()
-	IBoolExpr()
 	SQLNode
 }
 
@@ -439,7 +438,6 @@ func (*AndExpr) IExpr()        {}
 func (*OrExpr) IExpr()         {}
 func (*XorExpr) IExpr()        {}
 func (*NotExpr) IExpr()        {}
-func (*ParenBoolExpr) IExpr()  {}
 func (*ComparisonExpr) IExpr() {}
 func (*RegexExpr) IExpr()      {}
 func (*RangeCond) IExpr()      {}
@@ -461,40 +459,9 @@ func (*UnaryExpr) IExpr()      {}
 func (*FuncExpr) IExpr()       {}
 func (*CaseExpr) IExpr()       {}
 
-// BoolExpr represents a boolean expression.
-type BoolExpr interface {
-	Expr
-}
-
-func (StrVal) IBoolExpr()          {}
-func (DateVal) IBoolExpr()         {}
-func (NumVal) IBoolExpr()          {}
-func (ValArg) IBoolExpr()          {}
-func (KeywordVal) IBoolExpr()      {}
-func (*NullVal) IBoolExpr()        {}
-func (*TrueVal) IBoolExpr()        {}
-func (*FalseVal) IBoolExpr()       {}
-func (*UnknownVal) IBoolExpr()     {}
-func (*ColName) IBoolExpr()        {}
-func (ValTuple) IBoolExpr()        {}
-func (*Subquery) IBoolExpr()       {}
-func (*BinaryExpr) IBoolExpr()     {}
-func (*UnaryExpr) IBoolExpr()      {}
-func (*FuncExpr) IBoolExpr()       {}
-func (*CaseExpr) IBoolExpr()       {}
-func (*AndExpr) IBoolExpr()        {}
-func (*OrExpr) IBoolExpr()         {}
-func (*XorExpr) IBoolExpr()        {}
-func (*NotExpr) IBoolExpr()        {}
-func (*ParenBoolExpr) IBoolExpr()  {}
-func (*ComparisonExpr) IBoolExpr() {}
-func (*RegexExpr) IBoolExpr()      {}
-func (*RangeCond) IBoolExpr()      {}
-func (*ExistsExpr) IBoolExpr()     {}
-
 // AndExpr represents an AND expression.
 type AndExpr struct {
-	Left, Right BoolExpr
+	Left, Right Expr
 }
 
 func (node *AndExpr) Format(buf *TrackedBuffer) {
@@ -503,7 +470,7 @@ func (node *AndExpr) Format(buf *TrackedBuffer) {
 
 // OrExpr represents an OR expression.
 type OrExpr struct {
-	Left, Right BoolExpr
+	Left, Right Expr
 }
 
 func (node *OrExpr) Format(buf *TrackedBuffer) {
@@ -512,7 +479,7 @@ func (node *OrExpr) Format(buf *TrackedBuffer) {
 
 // XorExpr represents an XOR expression.
 type XorExpr struct {
-	Left, Right BoolExpr
+	Left, Right Expr
 }
 
 func (node *XorExpr) Format(buf *TrackedBuffer) {
@@ -521,26 +488,17 @@ func (node *XorExpr) Format(buf *TrackedBuffer) {
 
 // NotExpr represents a NOT expression.
 type NotExpr struct {
-	Expr BoolExpr
+	Expr Expr
 }
 
 func (node *NotExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("not %v", node.Expr)
 }
 
-// ParenBoolExpr represents a parenthesized boolean expression.
-type ParenBoolExpr struct {
-	Expr BoolExpr
-}
-
-func (node *ParenBoolExpr) Format(buf *TrackedBuffer) {
-	buf.Fprintf("(%v)", node.Expr)
-}
-
 // ComparisonExpr represents a two-value comparison expression.
 type ComparisonExpr struct {
 	Operator         string
-	Left, Right      ValExpr
+	Left, Right      Expr
 	SubqueryOperator string
 }
 
@@ -575,8 +533,8 @@ func (node *ComparisonExpr) Format(buf *TrackedBuffer) {
 // RangeCond represents a BETWEEN or a NOT BETWEEN expression.
 type RangeCond struct {
 	Operator string
-	Left     ValExpr
-	From, To ValExpr
+	Left     Expr
+	Range    Expr
 }
 
 // RangeCond.Operator
@@ -586,13 +544,17 @@ const (
 )
 
 func (node *RangeCond) Format(buf *TrackedBuffer) {
-	buf.Fprintf("%v %s %v and %v", node.Left, node.Operator, node.From, node.To)
+	rangeExpr, ok := node.Range.(*AndExpr)
+	if !ok {
+		buf.Fprintf("%v %s %v", node.Left, node.Operator, node.Range)
+	}
+	buf.Fprintf("%v %s %v and %v", node.Left, node.Operator, rangeExpr.Left, rangeExpr.Right)
 }
 
 // RegexExor represents a Regex expression that matches a pattern with an expression.
 type RegexExpr struct {
-	Operand ValExpr
-	Pattern ValExpr
+	Operand Expr
+	Pattern Expr
 }
 
 func (node *RegexExpr) Format(buf *TrackedBuffer) {
@@ -607,29 +569,6 @@ type ExistsExpr struct {
 func (node *ExistsExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("exists %v", node.Subquery)
 }
-
-// ValExpr represents a value expression.
-type ValExpr interface {
-	IValExpr()
-	Expr
-}
-
-func (DateVal) IValExpr()     {}
-func (StrVal) IValExpr()      {}
-func (NumVal) IValExpr()      {}
-func (ValArg) IValExpr()      {}
-func (KeywordVal) IValExpr()  {}
-func (*NullVal) IValExpr()    {}
-func (*TrueVal) IValExpr()    {}
-func (*FalseVal) IValExpr()   {}
-func (*UnknownVal) IValExpr() {}
-func (*ColName) IValExpr()    {}
-func (ValTuple) IValExpr()    {}
-func (*Subquery) IValExpr()   {}
-func (*BinaryExpr) IValExpr() {}
-func (*UnaryExpr) IValExpr()  {}
-func (*FuncExpr) IValExpr()   {}
-func (*CaseExpr) IValExpr()   {}
 
 // DateVal represents a date literal.
 type DateVal struct {
@@ -731,24 +670,24 @@ func escape(buf *TrackedBuffer, name []byte) {
 // Tuple represents a tuple. It can be ValTuple, Subquery.
 type Tuple interface {
 	ITuple()
-	ValExpr
+	Expr
 }
 
 func (ValTuple) ITuple()  {}
 func (*Subquery) ITuple() {}
 
 // ValTuple represents a tuple of actual values.
-type ValTuple ValExprs
+type ValTuple Exprs
 
 func (node ValTuple) Format(buf *TrackedBuffer) {
-	buf.Fprintf("(%v)", ValExprs(node))
+	buf.Fprintf("(%v)", Exprs(node))
 }
 
-// ValExprs represents a list of value expressions.
+// Exprs represents a list of value expressions.
 // It's not a valid expression because it's not parenthesized.
-type ValExprs []ValExpr
+type Exprs []Expr
 
-func (node ValExprs) Format(buf *TrackedBuffer) {
+func (node Exprs) Format(buf *TrackedBuffer) {
 	var prefix string
 	for _, n := range node {
 		buf.Fprintf("%s%v", prefix, n)
@@ -822,9 +761,9 @@ func (node *FuncExpr) Format(buf *TrackedBuffer) {
 
 // CaseExpr represents a CASE expression.
 type CaseExpr struct {
-	Expr  ValExpr
+	Expr  Expr
 	Whens []*When
-	Else  ValExpr
+	Else  Expr
 }
 
 func (node *CaseExpr) Format(buf *TrackedBuffer) {
@@ -843,8 +782,8 @@ func (node *CaseExpr) Format(buf *TrackedBuffer) {
 
 // When represents a WHEN sub-expression.
 type When struct {
-	Cond BoolExpr
-	Val  ValExpr
+	Cond Expr
+	Val  Expr
 }
 
 func (node *When) Format(buf *TrackedBuffer) {
@@ -863,7 +802,7 @@ func (node Values) Format(buf *TrackedBuffer) {
 }
 
 // GroupBy represents a GROUP BY clause.
-type GroupBy []ValExpr
+type GroupBy []Expr
 
 func (node GroupBy) Format(buf *TrackedBuffer) {
 	prefix := " group by "
@@ -902,7 +841,7 @@ func (node *Order) Format(buf *TrackedBuffer) {
 
 // Limit represents a LIMIT clause.
 type Limit struct {
-	Offset, Rowcount ValExpr
+	Offset, Rowcount Expr
 }
 
 func (node *Limit) Format(buf *TrackedBuffer) {
@@ -930,7 +869,7 @@ func (node UpdateExprs) Format(buf *TrackedBuffer) {
 // UpdateExpr represents an update expression.
 type UpdateExpr struct {
 	Name *ColName
-	Expr ValExpr
+	Expr Expr
 }
 
 func (node *UpdateExpr) Format(buf *TrackedBuffer) {
@@ -1004,7 +943,7 @@ func (*SimpleSelect) IInsertRows()      {}
 
 type Admin struct {
 	Name   []byte
-	Values ValExprs
+	Values Exprs
 }
 
 func (*Admin) IStatement() {}
@@ -1023,10 +962,10 @@ const (
 type Show struct {
 	Section     string
 	Key         string
-	From        ValExpr
+	From        Expr
 	LikeOrWhere Expr
 	Modifier    string
-	DBFilter    ValExpr
+	DBFilter    Expr
 }
 
 func (*Show) IStatement() {}

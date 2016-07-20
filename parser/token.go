@@ -159,7 +159,7 @@ var keywords = map[string]int{
 
 	// special tokens for numeric functions
 
-	"div": DIV,
+	"div": IDIV,
 	"mod": MOD,
 
 	// boolean literals
@@ -232,20 +232,38 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 		switch ch {
 		case EOFCHAR:
 			return 0, nil
-		case '=', ',', ';', '(', ')', '+', '*', '%', '^', '~':
+		case '=':
+			return EQ, nil
+		case ',':
+			return COMMA, nil
+		case ';':
 			return int(ch), nil
+		case '(':
+			return LPAREN, nil
+		case ')':
+			return RPAREN, nil
+		case '+':
+			return PLUS, nil
+		case '*':
+			return TIMES, nil
+		case '%':
+			return MOD, nil
+		case '^':
+			return CARET, nil
+		case '~':
+			return TILDE, nil
 		case '&':
 			if tkn.lastChar == '&' {
 				tkn.next()
 				return AND, nil
 			}
-			return int(ch), nil
+			return BIT_AND, nil
 		case '|':
 			if tkn.lastChar == '|' {
 				tkn.next()
 				return OR, nil
 			}
-			return int(ch), nil
+			return BIT_OR, nil
 		case '?':
 			tkn.posVarIndex++
 			buf := new(bytes.Buffer)
@@ -255,7 +273,7 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 			if isDigit(tkn.lastChar) {
 				return tkn.scanNumber(true)
 			} else {
-				return int(ch), nil
+				return DOT, nil
 			}
 		case '/':
 			switch tkn.lastChar {
@@ -266,14 +284,14 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 				tkn.next()
 				return tkn.scanCommentType2()
 			default:
-				return int(ch), nil
+				return DIV, nil
 			}
 		case '-':
 			if tkn.lastChar == '-' {
 				tkn.next()
 				return tkn.scanCommentType1("--")
 			} else {
-				return int(ch), nil
+				return SUB, nil
 			}
 		case '<':
 			switch tkn.lastChar {
@@ -290,14 +308,14 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 					return LE, nil
 				}
 			default:
-				return int(ch), nil
+				return LT, nil
 			}
 		case '>':
 			if tkn.lastChar == '=' {
 				tkn.next()
 				return GE, nil
 			} else {
-				return int(ch), nil
+				return GT, nil
 			}
 		case '!':
 			if tkn.lastChar == '=' {

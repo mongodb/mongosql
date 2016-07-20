@@ -70,6 +70,11 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 		}
 	case schema.SQLInt, schema.SQLInt64:
 		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLInt(1), nil
+			}
+			return SQLInt(0), nil
 		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToInt(v)
 			if err == nil {
@@ -154,6 +159,11 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 
 	case schema.SQLFloat, schema.SQLNumeric, schema.SQLArrNumeric:
 		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLFloat(1), nil
+			}
+			return SQLFloat(0), nil
 		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToFloat64(v)
 			if err == nil {

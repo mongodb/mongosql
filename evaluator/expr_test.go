@@ -541,6 +541,29 @@ func TestEvaluates(t *testing.T) {
 			runTests(evalCtx, tests)
 		})
 
+		Convey("Subject: Mix Arithmetic and Boolean", func() {
+			tests := []test{
+				test{"(5<6) + 1", SQLInt(2)},
+				test{"(5<6) && (6>4)", SQLTrue},
+				test{"(5<6) || (6>4)", SQLTrue},
+				test{"(5<6) XOR (6>4)", SQLFalse},
+				test{"(5<6)<7", SQLTrue},
+				test{"1+(5<6)", SQLInt(2)},
+				test{"1+(5>6)", SQLInt(1)},
+				test{"1+(NULL>6)", SQLNull},
+				test{"NULL+(5>6)", SQLNull},
+				test{"20/(5<6)", SQLFloat(20)},
+				test{"20*(5<6)", SQLInt(20)},
+				test{"20/5<6", SQLTrue},
+				test{"20*5<6", SQLFalse},
+				test{"20+5<6", SQLFalse},
+				test{"20-5<6", SQLFalse},
+				test{"20+true", SQLInt(21)},
+				test{"20+false", SQLInt(20)},
+			}
+			runTests(evalCtx, tests)
+		})
+
 		Convey("Subject: SQLModExpr", func() {
 			tests := []test{
 				test{"0 % 0", SQLNull},
@@ -1605,10 +1628,11 @@ func TestNewSQLValue(t *testing.T) {
 
 		Convey("a SQLInt column type should attempt to coerce to the SQLInt type", func() {
 
-			_, err := NewSQLValue(true, schema.SQLInt, schema.MongoBool)
-			So(err, ShouldNotBeNil)
+			newV, err := NewSQLValue(true, schema.SQLInt, schema.MongoBool)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLInt(1))
 
-			newV, err := NewSQLValue(int(6), schema.SQLInt, schema.MongoInt64)
+			newV, err = NewSQLValue(int(6), schema.SQLInt, schema.MongoInt64)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLInt(6))
 
@@ -1628,10 +1652,11 @@ func TestNewSQLValue(t *testing.T) {
 
 		Convey("a SQLFloat column type should attempt to coerce to the SQLFloat type", func() {
 
-			_, err := NewSQLValue(true, schema.SQLFloat, schema.MongoBool)
-			So(err, ShouldNotBeNil)
+			newV, err := NewSQLValue(true, schema.SQLFloat, schema.MongoBool)
+			So(err, ShouldBeNil)
+			So(newV, ShouldResemble, SQLFloat(1))
 
-			newV, err := NewSQLValue(int(6), schema.SQLFloat, schema.MongoInt)
+			newV, err = NewSQLValue(int(6), schema.SQLFloat, schema.MongoInt)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLFloat(6))
 

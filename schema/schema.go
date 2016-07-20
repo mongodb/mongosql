@@ -416,6 +416,13 @@ func (types SQLTypes) Less(i, j int) bool {
 		return true
 	case SQLVarchar:
 		switch t2 {
+		case SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate, SQLBoolean:
+			return true
+		default:
+			return false
+		}
+	case SQLBoolean:
+		switch t2 {
 		case SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate:
 			return true
 		default:

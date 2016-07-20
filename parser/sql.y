@@ -63,10 +63,8 @@ var (
   tableName   *TableName
   indexHints  *IndexHints
   expr        Expr
-  boolExpr    BoolExpr
-  valExpr     ValExpr
   tuple       Tuple
-  valExprs    ValExprs
+  exprs       Exprs
   values      Values
   subquery    *Subquery
   caseExpr    *CaseExpr
@@ -81,26 +79,30 @@ var (
 }
 
 %token LEX_ERROR
-%token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN
-%token <empty> ALL DISTINCT PRECISION AS EXISTS IN IS LIKE BETWEEN NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
+%token <empty> SELECT INSERT UPDATE DELETE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN
+%token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
-%token <empty> LE GE NE NULL_SAFE_EQUAL REGEXP
-%token <empty> '(' '=' '<' '>' '~'
+%token <empty> LPAREN RPAREN TILDE
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
 %token <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
 %token <empty> CONVERT CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
 
+%nonassoc <empty> FROM
 %left <empty> UNION MINUS EXCEPT INTERSECT
-%left <empty> ','
+%left <empty> COMMA
 %left <empty> JOIN STRAIGHT_JOIN LEFT RIGHT INNER OUTER CROSS NATURAL USE FORCE
 %left <empty> ON
-%left <empty> AND OR XOR
 %right <empty> NOT
-%left <empty> '&' '|' '^'
-%left <empty> '+' '-'
-%left <empty> '*' '/' '%' MOD DIV
-%nonassoc <empty> '.'
+%left <empty> OR XOR
+%nonassoc <empty> BETWEEN
+%left <empty> AND
+%left <empty> NE EQ NULL_SAFE_EQUAL IS LIKE REGEXP IN
+%left <empty> LT GT LE GE
+%left <empty> BIT_AND BIT_OR CARET
+%left <empty> PLUS SUB
+%left <empty> TIMES MOD DIV IDIV
+%nonassoc <empty> DOT
 %left <empty> UNARY
 %right <empty> CASE, WHEN, THEN, ELSE
 %left <empty> END
@@ -133,6 +135,7 @@ var (
 %type <statement> create_statement alter_statement rename_statement drop_statement
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
+%type <str> all_any_some
 %type <str> distinct_opt
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
@@ -146,13 +149,11 @@ var (
 %type <indexHints> index_hint_list
 %type <bytes2> index_list
 %type <expr> where_expression_opt
-%type <boolExpr> boolean_expression condition
-%type <str> compare
 %type <insRows> row_list
-%type <valExpr> value value_expression
+%type <expr> value
 %type <tuple> tuple
-%type <valExprs> value_expression_list
-%type <valExpr> boolean_value
+%type <expr> boolean_value
+%type <exprs> expression_list
 %type <values> tuple_list
 %type <bytes> keyword_as_func
 %type <bytes> time_interval
@@ -164,8 +165,8 @@ var (
 %type <caseExpr> case_expression
 %type <whens> when_expression_list
 %type <when> when_expression
-%type <valExpr> value_expression_opt else_expression_opt
-%type <valExprs> group_by_opt
+%type <expr> expression_opt else_expression_opt
+%type <exprs> group_by_opt
 %type <expr> having_opt
 %type <orderBy> order_by_opt order_list
 %type <order> order
@@ -185,9 +186,9 @@ var (
 %type <statement> show_statement
 %type <statement> admin_statement
 
-%type <valExpr> from_opt
+%type <expr> from_opt
 %type <expr> like_or_where_opt
-%type <valExpr> show_from_in show_from_in_opt
+%type <expr> show_from_in show_from_in_opt
 %type <str> show_full
 %type <str> show_variable_modifier
 %%
@@ -307,17 +308,17 @@ rollback_statement:
   }
 
 admin_statement:
-  ADMIN sql_id '(' value_expression_list ')'
+  ADMIN sql_id LPAREN expression_list RPAREN
   {
     $$ = &Admin{Name : $2, Values : $4}
   }
 
 show_from_in:
-  FROM value_expression
+  FROM expression
   {
     $$ = $2
   }
-| IN value_expression
+| IN expression
   {
     $$ = $2
   }
@@ -326,11 +327,11 @@ show_from_in_opt:
   {
     $$ = nil
   }
-| FROM value_expression
+| FROM expression
   {
     $$ = $2
   }
-| IN value_expression
+| IN expression
   {
     $$ = $2
   }
@@ -486,13 +487,13 @@ select_expression_list:
   {
     $$ = SelectExprs{$1}
   }
-| select_expression_list ',' select_expression
+| select_expression_list COMMA select_expression
   {
     $$ = append($$, $3)
   }
 
 select_expression:
-  '*'
+  TIMES
   {
     $$ = &StarExpr{}
   }
@@ -504,19 +505,9 @@ select_expression:
   {
     $$ = &NonStarExpr{Expr: $1, As: $2}
   }
-| ID '.' '*'
+| ID DOT TIMES
   {
     $$ = &StarExpr{TableName: $1}
-  }
-
-expression:
-  boolean_expression
-  {
-    $$ = $1
-  }
-| value_expression
-  {
-    $$ = $1
   }
 
 as_lower_opt:
@@ -537,7 +528,7 @@ table_expression_list:
   {
     $$ = TableExprs{$1}
   }
-| table_expression_list ',' table_expression
+| table_expression_list COMMA table_expression
   {
     $$ = append($$, $3)
   }
@@ -547,7 +538,7 @@ table_expression:
   {
     $$ = &AliasedTableExpr{Expr:$1, As: $2, Hints: $3}
   }
-| '(' table_expression ')'
+| LPAREN table_expression RPAREN
   {
     $$ = &ParenTableExpr{Expr: $2}
   }
@@ -555,7 +546,7 @@ table_expression:
   {
     $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3}
   }
-| table_expression join_type table_expression ON boolean_expression %prec JOIN
+| table_expression join_type table_expression ON expression %prec JOIN
   {
     $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3, On: $5}
   }
@@ -616,7 +607,7 @@ ID
   {
     $$ = &TableName{Name: $1}
   }
-| ID '.' ID
+| ID DOT ID
   {
     $$ = &TableName{Qualifier: $1, Name: $3}
   }
@@ -632,11 +623,11 @@ ID
   {
     $$ = &TableName{Name: []byte("tables")}
   }
-| ID '.' COLUMNS // hack for tokenizer, maybe cleaner way
+| ID DOT COLUMNS // hack for tokenizer, maybe cleaner way
   {
     $$ = &TableName{Qualifier: $1, Name: []byte("columns")}
   }
-| ID '.' TABLES // hack for tokenizer, maybe cleaner way
+| ID DOT TABLES // hack for tokenizer, maybe cleaner way
   {
     $$ = &TableName{Qualifier: $1, Name: []byte("tables")}
   }
@@ -646,7 +637,7 @@ ID
   {
     $$ = &TableName{Name: $1}
   }
-| ID '.' ID
+| ID DOT ID
   {
     $$ = &TableName{Qualifier: $1, Name: $3}
   }
@@ -655,15 +646,15 @@ index_hint_list:
   {
     $$ = nil
   }
-| USE INDEX '(' index_list ')'
+| USE INDEX LPAREN index_list RPAREN
   {
     $$ = &IndexHints{Type: AST_USE, Indexes: $4}
   }
-| IGNORE INDEX '(' index_list ')'
+| IGNORE INDEX LPAREN index_list RPAREN
   {
     $$ = &IndexHints{Type: AST_IGNORE, Indexes: $4}
   }
-| FORCE INDEX '(' index_list ')'
+| FORCE INDEX LPAREN index_list RPAREN
   {
     $$ = &IndexHints{Type: AST_FORCE, Indexes: $4}
   }
@@ -673,7 +664,7 @@ index_list:
   {
     $$ = [][]byte{$1}
   }
-| index_list ',' sql_id
+| index_list COMMA sql_id
   {
     $$ = append($1, $3)
   }
@@ -695,7 +686,7 @@ like_or_where_opt:
   {
     $$ = $2
   }
-| LIKE value_expression
+| LIKE expression
   {
     $$ = $2
   }
@@ -704,132 +695,23 @@ from_opt:
   {
     $$ = nil
   }
-| FROM value_expression
+| FROM expression
   {
     $$ = $2
   }
 
-boolean_expression:
-  condition
-| expression AND expression
+all_any_some:
+ALL
   {
-    $$ = &AndExpr{Left: $1, Right: $3}
+    $$ = AST_ALL
   }
-| expression OR expression
+| SOME
   {
-    $$ = &OrExpr{Left: $1, Right: $3}
+    $$ = AST_SOME
   }
-| expression XOR expression
+| ANY
   {
-    $$ = &XorExpr{Left: $1, Right: $3}
-  }
-| NOT expression
-  {
-    $$ = &NotExpr{Expr: $2}
-  }
-| '(' boolean_expression ')'
-  {
-    $$ = &ParenBoolExpr{Expr: $2}
-  }
-
-condition:
-  value_expression compare value_expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: $2, Right: $3}
-  }
-| value_expression IN tuple
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_IN, Right: $3}
-  }
-| value_expression compare ALL subquery
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: $2, SubqueryOperator: AST_ALL, Right: $4}
-  }
-| value_expression compare ANY subquery
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: $2, SubqueryOperator: AST_ANY, Right: $4}
-  }
-| value_expression compare SOME subquery
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: $2, SubqueryOperator: AST_SOME, Right: $4}
-  }
-| value_expression NOT IN tuple
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_NOT_IN, Right: $4}
-  }
-| value_expression LIKE value_expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_LIKE, Right: $3}
-  }
-| value_expression NOT LIKE value_expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_NOT_LIKE, Right: $4}
-  }
-| value_expression BETWEEN value_expression AND value_expression
-  {
-    $$ = &RangeCond{Left: $1, Operator: AST_BETWEEN, From: $3, To: $5}
-  }
-| value_expression NOT BETWEEN value_expression AND value_expression
-  {
-    $$ = &RangeCond{Left: $1, Operator: AST_NOT_BETWEEN, From: $4, To: $6}
-  }
-| value_expression IS NULL
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS, Right: &NullVal{}}
-  }
-| value_expression IS NOT NULL
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS_NOT, Right: &NullVal{}}
-  }
-| value_expression REGEXP value_expression
-  {
-    $$ = &RegexExpr{Operand: $1, Pattern: $3}
-  }
-| value_expression NOT REGEXP value_expression
-  {
-    $$ = &NotExpr{&RegexExpr{Operand: $1, Pattern: $4}}
-  }
-| EXISTS subquery
-  {
-    $$ = &ExistsExpr{Subquery: $2}
-  }
-| value_expression IS boolean_value
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS, Right: $3}
-  }
-| value_expression IS NOT boolean_value
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS_NOT, Right: $4}
-  }
-
-compare:
-  '='
-  {
-    $$ = AST_EQ
-  }
-| '<'
-  {
-    $$ = AST_LT
-  }
-| '>'
-  {
-    $$ = AST_GT
-  }
-| LE
-  {
-    $$ = AST_LE
-  }
-| GE
-  {
-    $$ = AST_GE
-  }
-| NE
-  {
-    $$ = AST_NE
-  }
-| NULL_SAFE_EQUAL
-  {
-    $$ = AST_NSE
+    $$ = AST_ANY
   }
 
 row_list:
@@ -847,13 +729,13 @@ tuple_list:
   {
     $$ = Values{$1}
   }
-| tuple_list ',' tuple
+| tuple_list COMMA tuple
   {
     $$ = append($1, $3)
   }
 
 tuple:
-  '(' value_expression_list ')'
+  LPAREN expression_list RPAREN
   {
     $$ = ValTuple($2)
   }
@@ -863,22 +745,22 @@ tuple:
   }
 
 subquery:
-  '(' select_statement ')'
+  LPAREN select_statement RPAREN
   {
     $$ = &Subquery{$2}
   }
 
-value_expression_list:
-  value_expression
+expression_list:
+  expression
   {
-    $$ = ValExprs{$1}
+    $$ = Exprs{$1}
   }
-| value_expression_list ',' value_expression
+| expression_list COMMA expression
   {
     $$ = append($1, $3)
   }
 
-value_expression:
+expression:
   value
   {
     $$ = $1
@@ -891,47 +773,115 @@ value_expression:
   {
     $$ = $1
   }
-| value_expression '&' value_expression
+| expression BIT_AND expression
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_BITAND, Right: $3}
   }
-| value_expression '|' value_expression
+| expression BIT_OR expression
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_BITOR, Right: $3}
   }
-| value_expression '^' value_expression
+| expression CARET expression
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_BITXOR, Right: $3}
   }
-| value_expression '+' value_expression
+| expression PLUS expression
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_PLUS, Right: $3}
   }
-| value_expression '-' value_expression
+| expression SUB expression
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_MINUS, Right: $3}
   }
-| value_expression '*' value_expression
+| expression TIMES expression
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_MULT, Right: $3}
   }
-| value_expression '/' value_expression
+| expression DIV expression
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_DIV, Right: $3}
   }
-| value_expression DIV value_expression
+| expression IDIV expression
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_IDIV, Right: $3}
   }
-| value_expression '%' value_expression
+| expression MOD expression
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_MOD, Right: $3}
   }
-| value_expression MOD value_expression
+| expression EQ expression
   {
-    $$ = &BinaryExpr{Left: $1, Operator: AST_MOD, Right: $3}
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_EQ, Right: $3}
   }
-| unary_operator value_expression %prec UNARY
+| expression EQ all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_EQ, SubqueryOperator: $3, Right: $4}
+  }
+| expression NE expression
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NE, Right: $3}
+  }
+| expression NE all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NE, SubqueryOperator: $3, Right: $4}
+  }
+| expression NULL_SAFE_EQUAL expression
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NSE, Right: $3}
+  }
+| expression NULL_SAFE_EQUAL all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NSE, SubqueryOperator: $3, Right: $4}
+  }
+| expression LT expression
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_LT, Right: $3}
+  }
+| expression LT all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_LT, SubqueryOperator: $3, Right: $4}
+  }
+| expression GT expression
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_GT, Right: $3}
+  }
+| expression GT all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_GT, SubqueryOperator: $3, Right: $4}
+  }
+| expression LE expression
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_LE, Right: $3}
+  }
+| expression LE all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_LE, SubqueryOperator: $3, Right: $4}
+  }
+| expression GE expression
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_GE, Right: $3}
+  }
+| expression GE all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_GE, SubqueryOperator: $3, Right: $4}
+  }
+| expression AND expression
+  {
+    $$ = &AndExpr{Left: $1, Right: $3}
+  }
+| expression OR expression
+  {
+    $$ = &OrExpr{Left: $1, Right: $3}
+  }
+| expression XOR expression
+  {
+    $$ = &XorExpr{Left: $1, Right: $3}
+  }
+| NOT expression
+  {
+    $$ = &NotExpr{Expr: $2}
+  }
+| unary_operator expression %prec UNARY
   {
     if num, ok := $2.(NumVal); ok {
       switch $1 {
@@ -946,19 +896,75 @@ value_expression:
       $$ = &UnaryExpr{Operator: $1, Expr: $2}
     }
   }
-| sql_id '(' ')'
+| expression IN tuple
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IN, Right: $3}
+  }
+| expression NOT IN tuple
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NOT_IN, Right: $4}
+  }
+| expression LIKE expression
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_LIKE, Right: $3}
+  }
+| expression NOT LIKE expression
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NOT_LIKE, Right: $4}
+  }
+| expression IS NULL
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS, Right: &NullVal{}}
+  }
+| expression IS NOT NULL
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS_NOT, Right: &NullVal{}}
+  }
+| expression IS boolean_value
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS, Right: $3}
+  }
+| expression IS NOT boolean_value
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS_NOT, Right: $4}
+  }
+| expression REGEXP expression
+  {
+    $$ = &RegexExpr{Operand: $1, Pattern: $3}
+  }
+| expression NOT REGEXP expression
+  {
+    $$ = &NotExpr{&RegexExpr{Operand: $1, Pattern: $4}}
+  }
+| EXISTS subquery
+  {
+    $$ = &ExistsExpr{Subquery: $2}
+  }
+| expression BETWEEN expression
+  {
+    $$ = &RangeCond{Left: $1, Operator: AST_BETWEEN, Range: $3}
+  }
+| expression NOT BETWEEN expression
+  {
+    $$ = &RangeCond{Left: $1, Operator: AST_NOT_BETWEEN, Range: $4}
+  }
+| case_expression
+  {
+    $$ = $1
+  }
+| sql_id LPAREN RPAREN
   {
     $$ = &FuncExpr{Name: bytes.ToLower($1)}
   }
-| sql_id '(' select_expression_list ')'
+| sql_id LPAREN select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: bytes.ToLower($1), Exprs: $3}
   }
-| sql_id '(' DISTINCT select_expression_list ')'
+| sql_id LPAREN DISTINCT select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: bytes.ToLower($1), Distinct: true, Exprs: $4}
   }
-| keyword_as_func '(' select_expression_list ')'
+| keyword_as_func LPAREN select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: $1, Exprs: $3}
   }
@@ -966,37 +972,33 @@ value_expression:
   {
     $$ = &FuncExpr{Name: []byte("current_timestamp")}
   }
-| CURRENT_TIMESTAMP '(' select_expression_list ')'
+| CURRENT_TIMESTAMP LPAREN select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: []byte("current_timestamp")}
   }
-| CURRENT_TIMESTAMP '(' ')'
+| CURRENT_TIMESTAMP LPAREN RPAREN
   {
     $$ = &FuncExpr{Name: []byte("current_timestamp")}
   }
-| TIMESTAMPADD '(' time_interval ',' select_expression_list ')'
+| TIMESTAMPADD LPAREN time_interval COMMA select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: []byte("timestampadd"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
   }
-| TIMESTAMPADD '(' sql_time_interval ',' select_expression_list ')'
+| TIMESTAMPADD LPAREN sql_time_interval COMMA select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: []byte("timestampadd"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
   }
-| TIMESTAMPDIFF '(' time_interval ',' select_expression_list ')'
+| TIMESTAMPDIFF LPAREN time_interval COMMA select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: StrVal($3)}}, $5...)}
   }
-| TIMESTAMPDIFF '(' sql_time_interval ',' select_expression_list ')'
+| TIMESTAMPDIFF LPAREN sql_time_interval COMMA select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: StrVal($3)}}, $5...)}
   }
-| CONVERT '(' select_expression ',' sql_types ')'
+| CONVERT LPAREN select_expression COMMA sql_types RPAREN
   {
     $$ = &FuncExpr{Name: []byte("convert"), Exprs: append(SelectExprs{$3, &NonStarExpr{Expr: KeywordVal($5)}})}
-  }
-| case_expression
-  {
-    $$ = $1
   }
 
 sql_time_interval:
@@ -1148,30 +1150,30 @@ keyword_as_func:
   }
 
 unary_operator:
-  '+'
+  PLUS
   {
     $$ = AST_UPLUS
   }
-| '-'
+| SUB
   {
     $$ = AST_UMINUS
   }
-| '~'
+| TILDE
   {
     $$ = AST_TILDA
   }
 
 case_expression:
-  CASE value_expression_opt when_expression_list else_expression_opt END
+  CASE expression_opt when_expression_list else_expression_opt END
   {
     $$ = &CaseExpr{Expr: $2, Whens: $3, Else: $4}
   }
 
-value_expression_opt:
+expression_opt:
   {
     $$ = nil
   }
-| value_expression
+| expression
   {
     $$ = $1
   }
@@ -1187,11 +1189,7 @@ when_expression_list:
   }
 
 when_expression:
-  WHEN boolean_expression THEN value_expression
-  {
-    $$ = &When{Cond: $2, Val: $4}
-  }
-| WHEN value_expression THEN value_expression
+  WHEN expression THEN expression
   {
     $$ = &When{Cond: $2, Val: $4}
   }
@@ -1200,7 +1198,7 @@ else_expression_opt:
   {
     $$ = nil
   }
-| ELSE value_expression
+| ELSE expression
   {
     $$ = $2
   }
@@ -1210,7 +1208,7 @@ column_name:
   {
     $$ = &ColName{Name: $1}
   }
-| ID '.' sql_id
+| ID DOT sql_id
   {
     $$ = &ColName{Qualifier: $1, Name: $3}
   }
@@ -1271,7 +1269,7 @@ group_by_opt:
   {
     $$ = nil
   }
-| GROUP BY value_expression_list
+| GROUP BY expression_list
   {
     $$ = $3
   }
@@ -1299,7 +1297,7 @@ order_list:
   {
     $$ = OrderBy{$1}
   }
-| order_list ',' order
+| order_list COMMA order
   {
     $$ = append($1, $3)
   }
@@ -1327,15 +1325,15 @@ limit_opt:
   {
     $$ = nil
   }
-| LIMIT value_expression
+| LIMIT expression
   {
     $$ = &Limit{Rowcount: $2}
   }
-| LIMIT value_expression ',' value_expression
+| LIMIT expression COMMA expression
   {
     $$ = &Limit{Offset: $2, Rowcount: $4}
   }
-| LIMIT value_expression OFFSET value_expression
+| LIMIT expression OFFSET expression
   {
     $$ = &Limit{Offset: $4, Rowcount: $2}
   }
@@ -1365,7 +1363,7 @@ column_list_opt:
   {
     $$ = nil
   }
-| '(' column_list ')'
+| LPAREN column_list RPAREN
   {
     $$ = $2
   }
@@ -1375,7 +1373,7 @@ column_list:
   {
     $$ = Columns{&NonStarExpr{Expr: $1}}
   }
-| column_list ',' column_name
+| column_list COMMA column_name
   {
     $$ = append($$, &NonStarExpr{Expr: $3})
   }
@@ -1394,13 +1392,13 @@ update_list:
   {
     $$ = UpdateExprs{$1}
   }
-| update_list ',' update_expression
+| update_list COMMA update_expression
   {
     $$ = append($1, $3)
   }
 
 update_expression:
-  column_name '=' value_expression
+  column_name EQ expression
   {
     $$ = &UpdateExpr{Name: $1, Expr: $3}
   }
