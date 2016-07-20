@@ -238,7 +238,7 @@ func (sds *SchemaDataSourceStage) gatherSchemataRows(ctx *ExecutionCtx) []Values
 			sds.getValue(isSchemataHeaders[1], informationSchemaDatabase),
 			sds.getValue(isSchemataHeaders[2], isCharacterSetName),
 			sds.getValue(isSchemataHeaders[3], isCollationName),
-			sds.getValue(isSchemataHeaders[4], nil),
+			sds.getValue(isSchemataHeaders[4], ""),
 		},
 	}
 
@@ -252,7 +252,7 @@ func (sds *SchemaDataSourceStage) gatherSchemataRows(ctx *ExecutionCtx) []Values
 			sds.getValue(isSchemataHeaders[1], db.Name),
 			sds.getValue(isSchemataHeaders[2], isCharacterSetName),
 			sds.getValue(isSchemataHeaders[3], isCollationName),
-			sds.getValue(isSchemataHeaders[4], nil),
+			sds.getValue(isSchemataHeaders[4], ""),
 		}
 
 		rows = append(rows, row)
