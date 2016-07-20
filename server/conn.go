@@ -161,7 +161,7 @@ func (c *conn) GetVariable(name string, kind evaluator.VariableKind) (evaluator.
 	default:
 		v, ok := c.variables.getUserVariable(name)
 		if !ok {
-			return nil, nil
+			return evaluator.SQLNull, nil
 		}
 
 		return v, nil

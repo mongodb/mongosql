@@ -48,3 +48,11 @@ testcases:
   expected_types: [int, int]
   expected: 
   - [2, 8]
+
+# Variables
+- sql: "select @lkjasdflkjasdf"
+  description: "unset user variable"
+  expected_names: ["@lkjasdflkjasdf"]
+  expected_types: [~]
+  expected: 
+  - [~]
