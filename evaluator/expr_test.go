@@ -1036,6 +1036,9 @@ func TestEvaluates(t *testing.T) {
 					test{"LOCATE('bar', 'foobarbar')", SQLInt(4)},
 					test{"LOCATE('xbar', 'foobarbar')", SQLInt(0)},
 					test{"LOCATE('bar', 'foobarbar', 5)", SQLInt(7)},
+					test{"LOCATE('bar', 'foobarbar', 4)", SQLInt(4)},
+					test{"LOCATE('e', 'dvd', 6)", SQLInt(0)},
+					test{"LOCATE('f', 'asdf', 4)", SQLInt(4)},
 					test{"LOCATE('語', '日本語')", SQLInt(3)},
 				}
 				runTests(evalCtx, tests)
@@ -1194,6 +1197,7 @@ func TestEvaluates(t *testing.T) {
 					test{"SUBSTRING('foobarbar', 4, NULL)", SQLNull},
 					test{"SUBSTRING('Quadratically', 5)", SQLVarchar("ratically")},
 					test{"SUBSTRING('Quadratically', 5, 6)", SQLVarchar("ratica")},
+					test{"SUBSTRING('Quadratically', 12, 2)", SQLVarchar("ly")},
 					test{"SUBSTRING('Sakila', -3)", SQLVarchar("ila")},
 					test{"SUBSTRING('Sakila', -5, 3)", SQLVarchar("aki")},
 					test{"SUBSTRING('日本語', 2)", SQLVarchar("本語")},

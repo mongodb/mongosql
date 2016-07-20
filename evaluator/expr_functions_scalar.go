@@ -834,11 +834,11 @@ func (_ *locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 		pos := int(values[2].Float64()) - 1 // MySQL uses 1 as a basis
 
 		if len(str) <= pos {
-			result = 0
+			return SQLInt(0), nil
 		} else {
 			str = str[pos:]
 			result = runesIndex(str, substr)
-			if result > 0 {
+			if result >= 0 {
 				result += pos
 			}
 		}
@@ -1291,7 +1291,7 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 			return SQLVarchar(""), nil
 		}
 
-		if pos+length < len(str) {
+		if pos+length <= len(str) {
 			str = str[pos : pos+length]
 		}
 	} else {
