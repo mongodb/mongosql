@@ -58,6 +58,11 @@ var (
 		{"PRIVILEGES", schema.SQLVarchar},
 		{"COLUMN_COMMENT", schema.SQLVarchar},
 	}
+
+	isVariableHeaders = []isColumn{
+		{"VARIABLE_NAME", schema.SQLVarchar},
+		{"VARIABLE_VALUE", schema.SQLVarchar},
+	}
 )
 
 type SchemaDataSourceStage struct {
@@ -95,6 +100,10 @@ func (sds *SchemaDataSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		it.rows = sds.gatherSchemataRows(ctx)
 	case "tables":
 		it.rows = sds.gatherTableRows(ctx)
+	case "global_variables":
+		it.rows = sds.gatherVariableRows(ctx, GlobalVariable)
+	case "session_variables":
+		it.rows = sds.gatherVariableRows(ctx, SessionVariable)
 	default:
 		return nil, fmt.Errorf("unsupported %q table %q", informationSchemaDatabase, sds.tableName)
 	}
@@ -113,6 +122,8 @@ func (sds *SchemaDataSourceStage) Columns() []*Column {
 		headers = isSchemataHeaders
 	case "tables":
 		headers = isTablesHeaders
+	case "global_variables", "session_variables":
+		headers = isVariableHeaders
 	}
 
 	aliasName := sds.aliasName
@@ -172,7 +183,9 @@ func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {
 	}
 
 	appendRows(isColumnHeaders, "COLUMNS")
+	appendRows(isVariableHeaders, "GLOBAL_VARIABLES")
 	appendRows(isSchemataHeaders, "SCHEMATA")
+	appendRows(isVariableHeaders, "SESSION_VARIABLES")
 	appendRows(isTablesHeaders, "TABLES")
 
 	for _, db := range sds.schema.RawDatabases {
@@ -260,7 +273,21 @@ func (sds *SchemaDataSourceStage) gatherTableRows(ctx *ExecutionCtx) []Values {
 		Values{
 			sds.getValue(isTablesHeaders[0], isCatalogName),
 			sds.getValue(isTablesHeaders[1], informationSchemaDatabase),
+			sds.getValue(isTablesHeaders[2], "GLOBAL_VARIABLES"),
+			sds.getValue(isTablesHeaders[3], "SYSTEM VIEW"),
+			sds.getValue(isTablesHeaders[4], ""),
+		},
+		Values{
+			sds.getValue(isTablesHeaders[0], isCatalogName),
+			sds.getValue(isTablesHeaders[1], informationSchemaDatabase),
 			sds.getValue(isTablesHeaders[2], "SCHEMATA"),
+			sds.getValue(isTablesHeaders[3], "SYSTEM VIEW"),
+			sds.getValue(isTablesHeaders[4], ""),
+		},
+		Values{
+			sds.getValue(isTablesHeaders[0], isCatalogName),
+			sds.getValue(isTablesHeaders[1], informationSchemaDatabase),
+			sds.getValue(isTablesHeaders[2], "SESSION_VARIABLES"),
 			sds.getValue(isTablesHeaders[3], "SYSTEM VIEW"),
 			sds.getValue(isTablesHeaders[4], ""),
 		},
@@ -292,7 +319,21 @@ func (sds *SchemaDataSourceStage) gatherTableRows(ctx *ExecutionCtx) []Values {
 
 			rows = append(rows, row)
 		}
+	}
 
+	return rows
+}
+
+func (sds *SchemaDataSourceStage) gatherVariableRows(ctx *ExecutionCtx, kind VariableKind) []Values {
+	rows := []Values{}
+
+	for k, v := range ctx.Variables(kind) {
+		row := Values{
+			sds.getValue(isVariableHeaders[0], k),
+			sds.getValue(isVariableHeaders[1], v),
+		}
+
+		rows = append(rows, row)
 	}
 
 	return rows

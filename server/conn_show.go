@@ -168,12 +168,24 @@ func (c *conn) handleShowTables(sql string, stmt *parser.Show) error {
 }
 
 func (c *conn) handleShowVariables(sql string, stmt *parser.Show) error {
-	variables := []interface{}{}
-	r, err := c.buildSimpleShowResultset(variables, "Variable")
-	if err != nil {
-		return err
+
+	tableName := strings.ToUpper(stmt.Modifier)
+
+	translated := fmt.Sprintf("SELECT * FROM (SELECT VARIABLE_NAME AS `Variable_name`, VARIABLE_VALUE AS `Value`"+
+		" FROM INFORMATION_SCHEMA.%s_VARIABLES) `is`", tableName)
+
+	if stmt.LikeOrWhere != nil {
+		switch stmt.LikeOrWhere.(type) {
+		case parser.StrVal:
+			translated += fmt.Sprintf(" WHERE `Variable_name` LIKE %s", parser.String(stmt.LikeOrWhere))
+		default:
+			translated += fmt.Sprintf(" WHERE %s", parser.String(stmt.LikeOrWhere))
+		}
 	}
-	return c.writeResultset(c.status, r)
+
+	translated += " ORDER BY `Variable_name`"
+
+	return c.handleQuery(translated)
 }
 
 func (c *conn) buildSimpleShowResultset(values []interface{}, name string) (*Resultset, error) {

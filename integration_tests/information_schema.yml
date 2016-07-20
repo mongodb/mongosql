@@ -62,7 +62,9 @@ testcases:
   expected_types: [string, string, string, string, string]
   expected: 
   - ["def", "information_schema", "COLUMNS", "SYSTEM VIEW", ""]
+  - ["def", "information_schema", "GLOBAL_VARIABLES", "SYSTEM VIEW", ""]
   - ["def", "information_schema", "SCHEMATA", "SYSTEM VIEW", ""]
+  - ["def", "information_schema", "SESSION_VARIABLES", "SYSTEM VIEW", ""]
   - ["def", "information_schema", "TABLES", "SYSTEM VIEW", ""]
   - ["def", "test", "foo", "VIEW", "{ \"collectionName\": \"information_schema_1\" }"]
   - ["def", "test", "bar", "VIEW", "{ \"collectionName\": \"information_schema_2\" }"]
@@ -97,11 +99,15 @@ testcases:
   - ["def", "information_schema", "COLUMNS", "EXTRA", "17", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
   - ["def", "information_schema", "COLUMNS", "PRIVILEGES", "18", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
   - ["def", "information_schema", "COLUMNS", "COLUMN_COMMENT", "19", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
+  - ["def", "information_schema", "GLOBAL_VARIABLES", "VARIABLE_NAME", "0", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
+  - ["def", "information_schema", "GLOBAL_VARIABLES", "VARIABLE_VALUE", "1", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
   - ["def", "information_schema", "SCHEMATA", "CATALOG_NAME", "0", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
   - ["def", "information_schema", "SCHEMATA", "SCHEMA_NAME", "1", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
   - ["def", "information_schema", "SCHEMATA", "DEFAULT_CHARACTER_SET_NAME", "2", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
   - ["def", "information_schema", "SCHEMATA", "DEFAULT_COLLATION_NAME", "3", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
   - ["def", "information_schema", "SCHEMATA", "SQL_PATH", "4", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
+  - ["def", "information_schema", "SESSION_VARIABLES", "VARIABLE_NAME", "0", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
+  - ["def", "information_schema", "SESSION_VARIABLES", "VARIABLE_VALUE", "1", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
   - ["def", "information_schema", "TABLES", "TABLE_CATALOG", "0", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
   - ["def", "information_schema", "TABLES", "TABLE_SCHEMA", "1", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
   - ["def", "information_schema", "TABLES", "TABLE_NAME", "2", ~, "YES", "varchar", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "varchar", "", "", "select", ""]
@@ -114,3 +120,18 @@ testcases:
   - ["def", "test2", "foo", "id", "0", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", "", "", "select", "{ \"name\": \"_id\" }"]
   - ["def", "test2", "foo", "a", "1", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", "", "", "select", "{ \"name\": \"a\" }"]
   
+# GLOBAL_VARIABLES
+- sql: "select * from information_schema.global_variables order by variable_name limit 1"
+  description: "global variables"
+  expected_names: ["VARIABLE_NAME", "VARIABLE_VALUE"]
+  expected_types: [string, string]
+  expected: 
+  - ["autocommit", "1"]
+
+# SESSION VARIABLES
+- sql: "select * from information_schema.session_variables order by variable_name limit 1"
+  description: "session variables"
+  expected_names: ["VARIABLE_NAME", "VARIABLE_VALUE"]
+  expected_types: [string, string]
+  expected: 
+  - ["autocommit", "1"]

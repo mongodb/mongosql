@@ -119,7 +119,7 @@ var (
 
 // Show
 %token <empty> SHOW
-%token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS
+%token <empty> DATABASES TABLES PROXY VARIABLES FULL SESSION GLOBAL COLUMNS
 
 // DDL Tokens
 %token <empty> CREATE ALTER DROP RENAME
@@ -189,6 +189,7 @@ var (
 %type <expr> like_or_where_opt
 %type <valExpr> show_from_in show_from_in_opt
 %type <str> show_full
+%type <str> show_variable_modifier
 %%
 
 any_command:
@@ -343,15 +344,28 @@ show_full:
     $$ = AST_SHOW_FULL
   }
 
+show_variable_modifier:
+  {
+    $$ = AST_SHOW_SESSION_VARIABLE
+  }
+| SESSION
+  {
+    $$ = AST_SHOW_SESSION_VARIABLE
+  }
+| GLOBAL
+  {
+    $$ = AST_SHOW_GLOBAL_VARIABLE
+  }
+
 
 show_statement:
   SHOW DATABASES like_or_where_opt
   {
     $$ = &Show{Section: "databases", LikeOrWhere: $3}
   }
-| SHOW VARIABLES like_or_where_opt
+| SHOW show_variable_modifier VARIABLES like_or_where_opt
   {
-    $$ = &Show{Section: "variables", LikeOrWhere: $3}
+    $$ = &Show{Section: "variables", Modifier: $2, LikeOrWhere: $4}
   }
 | SHOW TABLES from_opt like_or_where_opt
   {

@@ -46,6 +46,10 @@ func (c *connCtx) SetVariable(name string, value SQLValue, kind VariableKind) er
 	return fmt.Errorf("unknown variable")
 }
 
+func (c *connCtx) Variables(kind VariableKind) map[string]SQLValue {
+	return make(map[string]SQLValue)
+}
+
 func getOptions(t *testing.T) sqlproxy.Options {
 	opts := sqlproxy.Options{
 		MongoURI: "localhost",

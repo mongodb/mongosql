@@ -6,6 +6,7 @@ import "gopkg.in/mgo.v2"
 type VariableCtx interface {
 	GetVariable(name string, kind VariableKind) (SQLValue, error)
 	SetVariable(name string, value SQLValue, kind VariableKind) error
+	Variables(kind VariableKind) map[string]SQLValue
 }
 
 // ConnectionCtx holds connection context information.

@@ -86,6 +86,10 @@ func (_ fakeConnectionCtx) SetVariable(name string, value SQLValue, kind Variabl
 	return nil
 }
 
+func (_ fakeConnectionCtx) Variables(kind VariableKind) map[string]SQLValue {
+	return make(map[string]SQLValue, 0)
+}
+
 func createTestConnectionCtx() ConnectionCtx {
 	return &fakeConnectionCtx{}
 }

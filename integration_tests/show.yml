@@ -139,3 +139,23 @@ testcases:
 #  expected: 
 #    - ["test"]
 #    - ["blah"]
+
+- sql: "SHOW VARIABLES LIKE '%auto%'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["autocommit", "1"]
+    - ["sql_auto_is_null", "0"]
+- sql: "SHOW SESSION VARIABLES LIKE '%auto%'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["autocommit", "1"]
+    - ["sql_auto_is_null", "0"]
+- sql: "SHOW GLOBAL VARIABLES LIKE '%auto%'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["autocommit", "1"]
+    - ["sql_auto_is_null", "0"]
+- sql: "SHOW GLOBAL VARIABLES WHERE Variable_name = 'autocommit'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["autocommit", "1"]

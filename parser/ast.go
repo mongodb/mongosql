@@ -6,6 +6,7 @@ package parser
 
 import (
 	"errors"
+
 	"github.com/10gen/sqlproxy/parser/sqltypes"
 )
 
@@ -1001,8 +1002,10 @@ func (node *Admin) Format(buf *TrackedBuffer) {
 }
 
 const (
-	AST_SHOW_NO_MOD = ""
-	AST_SHOW_FULL   = "full"
+	AST_SHOW_NO_MOD           = ""
+	AST_SHOW_FULL             = "full"
+	AST_SHOW_SESSION_VARIABLE = "session"
+	AST_SHOW_GLOBAL_VARIABLE  = "global"
 )
 
 type Show struct {

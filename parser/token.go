@@ -123,6 +123,8 @@ var keywords = map[string]int{
 	"variables": VARIABLES,
 	"columns":   COLUMNS,
 	"full":      FULL,
+	"session":   SESSION,
+	"global":    GLOBAL,
 
 	// for mixer admin
 	"admin": ADMIN,

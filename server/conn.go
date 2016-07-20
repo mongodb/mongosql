@@ -194,6 +194,40 @@ func (c *conn) SetVariable(name string, value evaluator.SQLValue, kind evaluator
 	}
 }
 
+func (c *conn) Variables(kind evaluator.VariableKind) map[string]evaluator.SQLValue {
+	results := make(map[string]evaluator.SQLValue)
+	switch kind {
+	case evaluator.GlobalVariable:
+		for _, def := range systemVariableDefinitions {
+			if defRead, ok := def.(readableVariableDefinition); ok {
+				value, ok := c.server.variables.getValue(def.name())
+				if !ok {
+					value = defRead.defaultValue()
+				}
+
+				results[def.name()] = value
+			}
+		}
+	case evaluator.SessionVariable:
+		for _, def := range systemVariableDefinitions {
+			if defRead, ok := def.(readableVariableDefinition); ok {
+				value, ok := c.variables.getSessionVariable(def.name())
+				if !ok {
+					value = defRead.defaultValue()
+				}
+
+				results[def.name()] = value
+			}
+		}
+	default:
+		for k, v := range c.variables.userVariables {
+			results[k] = v
+		}
+	}
+
+	return results
+}
+
 func (c *conn) handshake() error {
 	if err := c.writeInitialHandshake(); err != nil {
 		c.writeError(err)

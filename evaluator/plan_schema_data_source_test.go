@@ -8,7 +8,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const numInformationSchemaColumns = 30
+const numInformationSchemaColumns = 34
 
 type fakeAuthProvider struct{}
 
@@ -56,9 +56,9 @@ func TestSchemaDataSourceIter(t *testing.T) {
 				names := gatherValues("tables", "TABLE_NAME", iter)
 				sort.Strings(names)
 
-				So(len(names), ShouldEqual, 10)
+				So(len(names), ShouldEqual, 12)
 
-				expectedNames := []string{"COLUMNS", "SCHEMATA", "TABLES", "bar", "bar", "bar", "baz", "foo", "foo", "silly"}
+				expectedNames := []string{"COLUMNS", "GLOBAL_VARIABLES", "SCHEMATA", "SESSION_VARIABLES", "TABLES", "bar", "bar", "bar", "baz", "foo", "foo", "silly"}
 				So(names, ShouldResemble, expectedNames)
 				So(iter.Close(), ShouldBeNil)
 			})
@@ -71,9 +71,9 @@ func TestSchemaDataSourceIter(t *testing.T) {
 				names := gatherValues("tables", "TABLE_NAME", iter)
 				sort.Strings(names)
 
-				So(len(names), ShouldEqual, 6)
+				So(len(names), ShouldEqual, 8)
 
-				expectedNames := []string{"COLUMNS", "SCHEMATA", "TABLES", "bar", "bar", "baz"}
+				expectedNames := []string{"COLUMNS", "GLOBAL_VARIABLES", "SCHEMATA", "SESSION_VARIABLES", "TABLES", "bar", "bar", "baz"}
 				So(names, ShouldResemble, expectedNames)
 				So(iter.Close(), ShouldBeNil)
 			})
