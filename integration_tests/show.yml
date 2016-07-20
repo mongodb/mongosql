@@ -56,9 +56,9 @@ testcases:
 - sql: "SHOW COLUMNS FROM foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", "", "", ""]
-    - ["b1", "varchar", "YES", "", "", ""]
-    - ["c1", "int64", "YES", "", "", ""]
+    - ["a1", "int64", "YES", "", ~, ""]
+    - ["b1", "varchar", "YES", "", ~, ""]
+    - ["c1", "int64", "YES", "", ~, ""]
 # - sql: "SHOW COLUMNS FROM foo LIKE 'b'" // NEEDS PARSER SUPPORT
 #   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
 #   expected:
@@ -70,27 +70,27 @@ testcases:
 - sql: "SHOW COLUMNS FROM test.foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", "", "", ""]
-    - ["b1", "varchar", "YES", "", "", ""]
-    - ["c1", "int64", "YES", "", "", ""]
+    - ["a1", "int64", "YES", "", ~, ""]
+    - ["b1", "varchar", "YES", "", ~, ""]
+    - ["c1", "int64", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM foo FROM test"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", "", "", ""]
-    - ["b1", "varchar", "YES", "", "", ""]
-    - ["c1", "int64", "YES", "", "", ""]
+    - ["a1", "int64", "YES", "", ~, ""]
+    - ["b1", "varchar", "YES", "", ~, ""]
+    - ["c1", "int64", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN foo IN test"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", "", "", ""]
-    - ["b1", "varchar", "YES", "", "", ""]
-    - ["c1", "int64", "YES", "", "", ""]
+    - ["a1", "int64", "YES", "", ~, ""]
+    - ["b1", "varchar", "YES", "", ~, ""]
+    - ["c1", "int64", "YES", "", ~, ""]
 - sql: "SHOW FULL COLUMNS FROM foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "utf8_bin", "YES", "", "", "", "select", "{ \"name\": \"a\" }"]
-    - ["b1", "varchar", "utf8_bin", "YES", "", "", "", "select", "{ \"name\": \"b\" }"]
-    - ["c1", "int64", "utf8_bin", "YES", "", "", "", "select", "{ \"name\": \"c\" }"]
+    - ["a1", "int64", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"a\" }"]
+    - ["b1", "varchar", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"b\" }"]
+    - ["c1", "int64", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"c\" }"]
 - sql: "SHOW COLUMNS FROM test2.foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected: []
