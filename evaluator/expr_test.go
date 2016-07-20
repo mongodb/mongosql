@@ -1256,8 +1256,6 @@ func TestEvaluates(t *testing.T) {
 				So(err, ShouldBeNil)
 				dt, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 01:00:00")
 				So(err, ShouldBeNil)
-				mt, err := time.Parse("2006-01-02 15:04:05.000000", "2003-01-02 12:30:09.000001")
-				So(err, ShouldBeNil)
 
 				tests := []test{
 					test{"TIMESTAMPADD(YEAR, 1, DATE '2002-01-02')", SQLDate{Time: d}},
@@ -1268,7 +1266,7 @@ func TestEvaluates(t *testing.T) {
 					test{"TIMESTAMPADD(HOUR, 1, DATE '2003-01-02')", SQLTimestamp{Time: dt}},
 					test{"TIMESTAMPADD(MINUTE, 60, DATE '2003-01-02')", SQLTimestamp{Time: dt}},
 					test{"TIMESTAMPADD(SECOND, 3600, DATE '2003-01-02')", SQLTimestamp{Time: dt}},
-					test{"TIMESTAMPADD(MICROSECOND, 1, TIMESTAMP '2003-01-02 12:30:09')", SQLTimestamp{Time: mt}},
+					test{"TIMESTAMPADD(MICROSECOND, 1, TIMESTAMP '2003-01-02 12:30:09')", SQLTimestamp{Time: t}},
 					test{"TIMESTAMPADD(DAY, 1, TIMESTAMP '2003-01-01 12:30:09')", SQLTimestamp{Time: t}},
 					test{"TIMESTAMPADD(WEEK, 2, TIMESTAMP '2002-12-19 12:30:09')", SQLTimestamp{Time: t}},
 					test{"TIMESTAMPADD(SQL_TSI_YEAR, 2, TIMESTAMP '2001-01-02 12:30:09')", SQLTimestamp{Time: t}},

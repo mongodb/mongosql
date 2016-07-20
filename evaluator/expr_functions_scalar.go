@@ -1334,46 +1334,85 @@ func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 
 	v := values[1]
 
-	_, ok = values[2].(SQLTimestamp)
+	ts := false
+	if len(values[2].String()) > 10 {
+		ts = true
+	}
 
-	switch values[0].(SQLValue).String() {
+	switch values[0].String() {
 	case YEAR:
-		if ok {
-			return SQLTimestamp{Time: t.AddDate(int(v.Float64()), 0, 0)}, nil
+		if ts {
+			return SQLTimestamp{Time: t.AddDate(int(v.Int64()), 0, 0)}, nil
 		}
-		return SQLDate{Time: t.AddDate(int(v.Float64()), 0, 0)}, nil
-	case QUARTER:
-		if ok {
-			return SQLTimestamp{Time: t.AddDate(0, int(v.Float64())*3, 0)}, nil
+		return SQLDate{t.AddDate(int(v.Int64()), 0, 0)}, nil
+	case string(parser.QUARTER_BYTES):
+		y, m, d := t.Date()
+		mo := int(((int64(m)+v.Int64()*3)%12 + 12) % 12)
+		if mo == 0 {
+			mo = 12
 		}
-		return SQLDate{Time: t.AddDate(0, int(v.Float64())*3, 0)}, nil
+		if v.Int64()*3 >= 12 || (v.Int64()*3) <= -12 {
+			y += int(v.Int64() * 3 / 12)
+		}
+		if mo-int(m) < 0 && (v.Int64()*3) > 0 {
+			y += 1
+		} else if mo-int(m) > 0 && (v.Int64()*3) < 0 {
+			y -= 1
+		}
+		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, time.UTC)).Day()
+		if d > lastDayMonth {
+			d = lastDayMonth
+		}
+
+		if ts {
+			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, time.UTC)}, nil
+		}
+		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, time.UTC)}, nil
 	case MONTH:
-		if ok {
-			return SQLTimestamp{Time: t.AddDate(0, int(v.Float64()), 0)}, nil
+		y, m, d := t.Date()
+		mo := int(((int64(m)+v.Int64())%12 + 12) % 12)
+		if mo == 0 {
+			mo = 12
 		}
-		return SQLDate{Time: t.AddDate(0, int(v.Float64()), 0)}, nil
+		if v.Int64() >= 12 || v.Int64() <= -12 {
+			y += int(v.Int64() / 12)
+		}
+		if mo-int(m) < 0 && v.Int64() > 0 {
+			y += 1
+		} else if mo-int(m) > 0 && v.Int64() < 0 {
+			y -= 1
+		}
+		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, time.UTC)).Day()
+		if d > lastDayMonth {
+			d = lastDayMonth
+		}
+
+		if ts {
+			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, time.UTC)}, nil
+		}
+		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, time.UTC)}, nil
 	case WEEK:
-		if ok {
-			return SQLTimestamp{Time: t.AddDate(0, 0, int(v.Float64())*7)}, nil
+		if ts {
+			return SQLTimestamp{t.AddDate(0, 0, int(v.Float64())*7)}, nil
 		}
-		return SQLDate{Time: t.AddDate(0, 0, int(v.Float64())*7)}, nil
+		return SQLDate{t.AddDate(0, 0, int(v.Float64())*7)}, nil
 	case DAY:
-		if ok {
-			return SQLTimestamp{Time: t.AddDate(0, 0, int(v.Float64()))}, nil
+		if ts {
+			return SQLTimestamp{t.AddDate(0, 0, int(v.Float64()))}, nil
 		}
-		return SQLDate{Time: t.AddDate(0, 0, int(v.Float64()))}, nil
+		return SQLDate{t.AddDate(0, 0, int(v.Float64()))}, nil
 	case HOUR:
 		duration, _ := time.ParseDuration(v.String() + "h")
-		return SQLTimestamp{Time: t.Add(duration)}, nil
+		return SQLTimestamp{t.Add(duration)}, nil
 	case MINUTE:
 		duration, _ := time.ParseDuration(v.String() + "m")
-		return SQLTimestamp{Time: t.Add(duration)}, nil
+		return SQLTimestamp{t.Add(duration)}, nil
 	case SECOND:
 		duration, _ := time.ParseDuration(v.String() + "s")
-		return SQLTimestamp{Time: t.Add(duration)}, nil
+		return SQLTimestamp{t.Add(duration)}, nil
 	case MICROSECOND:
-		duration, _ := time.ParseDuration(v.String() + "us")
-		return SQLTimestamp{Time: t.Add(duration)}, nil
+		// Microsecond not supported, so return the original time
+		return SQLTimestamp{Time: t}, nil
 	default:
 		return nil, fmt.Errorf("cannot add '%v' to timestamp", values[0])
 	}
@@ -1404,7 +1443,7 @@ func (_ *timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue,
 
 	duration := t2.Sub(t1)
 
-	switch values[0].(SQLValue).String() {
+	switch values[0].String() {
 	case YEAR:
 		return SQLInt(math.Floor(float64(numMonths(t1, t2) / 12))), nil
 	case QUARTER:
