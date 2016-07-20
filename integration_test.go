@@ -123,16 +123,9 @@ func buildSchemaMaps(conf *schema.Schema) {
 
 func compareResults(t *testing.T, expected, actual [][]interface{}) {
 	for rownum, row := range actual {
-		for colnum, col := range row {
+		for colnum, actualCol := range row {
 			So(rownum, ShouldBeLessThan, len(expected))
 			expectedCol := expected[rownum][colnum]
-			// we don't have a good way of representing
-			// nil in our CSV test results so we check
-			// for an empty string when we expect nil
-			if col == nil && expectedCol == "" {
-				col = ""
-			}
-
 			// our YAML parser converts numbers in the
 			// int range to int but we need them to be
 			// int64
@@ -140,8 +133,8 @@ func compareResults(t *testing.T, expected, actual [][]interface{}) {
 				expectedCol = int64(v)
 			}
 
-			if col != expectedCol {
-				So(fmt.Sprintf("(%d,%d): %v", rownum, colnum, col), ShouldEqual, fmt.Sprintf("(%d,%d): %v", rownum, colnum, expectedCol))
+			if actualCol != expectedCol {
+				So(fmt.Sprintf("(%d,%d): %v", rownum, colnum, actualCol), ShouldEqual, fmt.Sprintf("(%d,%d): %v", rownum, colnum, expectedCol))
 			}
 		}
 	}
