@@ -716,12 +716,34 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				wrapInNullCheck(args[0]),
 			), true
 		case "week":
-			// TODO: this needs to take into account the second argument
-			if len(args) != 1 {
+			if len(args) < 1 || len(args) > 2 {
 				return nil, false
 			}
 
-			return wrapSingleArgFuncWithNullCheck("$week", args[0]), true
+			mode := 0
+			if len(args) == 2 {
+				bsonMap, ok := args[1].(bson.M)
+				if !ok {
+					return nil, false
+				}
+
+				bsonVal, ok := bsonMap["$literal"]
+				if !ok {
+					return nil, false
+				}
+
+				arg1Val, ok := bsonVal.(SQLValue)
+				if !ok {
+					return nil, false
+				}
+
+				mode = int(arg1Val.Float64())
+			}
+
+			if mode == 0 {
+
+				return wrapSingleArgFuncWithNullCheck("$week", args[0]), true
+			}
 		case "ucase", "upper":
 			if len(args) != 1 {
 				return nil, false

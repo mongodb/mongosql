@@ -1507,20 +1507,111 @@ type weekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_week
 func (_ *weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	// TODO: this one takes a mode as an optional second argument...
 	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
 
-	_, w := t.ISOWeek()
-
-	// Hack to get week values to align with MySQL.
-	// MySQL starts on Sunday, but Go starts on Monday.
-	if t.Weekday() == 0 {
-		_, w = t.Add(time.Hour * 24).ISOWeek()
+	y := t.Year()
+	d := time.Date(y, 1, 1, 0, 0, 0, 0, time.UTC)
+	iso := false
+	mondayFirst := false
+	smallRange := false
+	weekday := int(d.Weekday())
+	var days int
+	var day1 int
+	if len(values) == 2 {
+		v, _ := values[1].(SQLInt)
+		switch v {
+		case 1:
+			mondayFirst = true
+			iso = true
+			day1 = dayOneWeekOne(d, iso, mondayFirst)
+		case 2:
+			smallRange = true
+			day1 = dayOneWeekOne(d, iso, mondayFirst)
+		case 3:
+			smallRange = true
+			mondayFirst = true
+			iso = true
+			day1 = dayOneWeekOne(d, iso, mondayFirst)
+		case 4:
+			iso = true
+			day1 = dayOneWeekOne(d, iso, mondayFirst)
+		case 5:
+			mondayFirst = true
+			day1 = dayOneWeekOne(d, iso, mondayFirst)
+		case 6:
+			smallRange = true
+			iso = true
+			day1 = dayOneWeekOne(d, iso, mondayFirst)
+		case 7:
+			mondayFirst = true
+			smallRange = true
+			day1 = dayOneWeekOne(d, iso, mondayFirst)
+		default:
+			day1 = dayOneWeekOne(d, iso, mondayFirst)
+		}
+	} else {
+		day1 = dayOneWeekOne(d, iso, mondayFirst)
 	}
-	return SQLInt(w), nil
+
+	if mondayFirst {
+		if weekday == 0 {
+			weekday = 7
+		}
+		weekday -= 1
+	}
+
+	yearDay := t.YearDay()
+	days = yearDay - day1
+
+	if days < 0 {
+		if !smallRange {
+			return SQLInt(0), nil
+		} else {
+			y -= 1
+			d = time.Date(y, 1, 1, 0, 0, 0, 0, time.UTC)
+			t = time.Date(y, 12, 31, 0, 0, 0, 0, time.UTC)
+			day1 = dayOneWeekOne(d, iso, mondayFirst)
+			days = t.YearDay() - day1
+			return SQLInt(days/7 + 1), nil
+		}
+	}
+
+	if days < 7 && iso {
+		firstDay := (8 - int(d.Weekday())) % 7
+		if mondayFirst {
+			firstDay += 1
+		}
+		if day1 == 0 {
+			firstDay = 7
+		}
+
+		if yearDay >= firstDay {
+			if firstDay == day1 {
+				return SQLInt(1), nil
+			}
+			return SQLInt(2), nil
+		}
+	}
+
+	if smallRange && days >= 52*7 {
+		weekday = int(t.AddDate(1, 0, 0).Weekday())
+		if mondayFirst {
+			if weekday == 0 {
+				weekday = 7
+			}
+			weekday -= 1
+		}
+		if weekday < 4 {
+			if iso || (!iso && weekday == 0) {
+				return SQLInt(1), nil
+			}
+		}
+	}
+
+	return SQLInt(days/7 + 1), nil
 }
 
 func (_ *weekFunc) Type() schema.SQLType {
@@ -1528,7 +1619,7 @@ func (_ *weekFunc) Type() schema.SQLType {
 }
 
 func (_ *weekFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
+	return ensureArgCount(exprCount, 1, 2)
 }
 
 type yearFunc struct{}
@@ -1586,6 +1677,20 @@ func convertType(val SQLValue, t schema.SQLType) SQLValue {
 		return SQLInt(0)
 	}
 	return SQLInt(0)
+}
+
+func dayOneWeekOne(d time.Time, iso bool, monStart bool) int {
+	day1 := (8 - int(d.Weekday())) % 7
+	if monStart {
+		day1 += 1
+	}
+	if day1 == 0 {
+		day1 = 7
+	}
+	if day1 > 4 && iso {
+		day1 = 1
+	}
+	return day1
 }
 
 func evaluateArgs(exprs []SQLExpr, ctx *EvalCtx) ([]SQLValue, error) {

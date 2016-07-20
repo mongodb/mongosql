@@ -1196,6 +1196,86 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select week(d, 0) from bar"
+  expected_names: ["week(d, 0)"]
+  expected_types: [int]
+  expected:
+  - [38]
+  - [39]
+  - [43]
+  - [~]
+  - [~]
+
+- sql: "select week(d, 1) from bar"
+  expected_names: ["week(d, 1)"]
+  expected_types: [int]
+  expected:
+  - [38]
+  - [38]
+  - [43]
+  - [~]
+  - [~]
+
+- sql: "select week(d, 2) from bar"
+  expected_names: ["week(d, 2)"]
+  expected_types: [int]
+  expected:
+  - [38]
+  - [39]
+  - [43]
+  - [~]
+  - [~]
+
+- sql: "select week(d, 3) from bar"
+  expected_names: ["week(d, 3)"]
+  expected_types: [int]
+  expected:
+  - [38]
+  - [38]
+  - [43]
+  - [~]
+  - [~]
+
+- sql: "select week(d, 4) from bar"
+  expected_names: ["week(d, 4)"]
+  expected_types: [int]
+  expected:
+  - [38]
+  - [39]
+  - [43]
+  - [~]
+  - [~]
+
+- sql: "select week(d, 5) from bar"
+  expected_names: ["week(d, 5)"]
+  expected_types: [int]
+  expected:
+  - [38]
+  - [38]
+  - [43]
+  - [~]
+  - [~]
+
+- sql: "select week(d, 6) from bar"
+  expected_names: ["week(d, 6)"]
+  expected_types: [int]
+  expected:
+  - [38]
+  - [39]
+  - [43]
+  - [~]
+  - [~]
+
+- sql: "select week(d, 7) from bar"
+  expected_names: ["week(d, 7)"]
+  expected_types: [int]
+  expected:
+  - [38]
+  - [38]
+  - [43]
+  - [~]
+  - [~]
+
 # - sql: "select year(d) from bar"
 #   expected_names: ["year(d)"]
 #   expected_types: [int]
