@@ -86,7 +86,7 @@ var (
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LE GE NE NULL_SAFE_EQUAL REGEXP
 %token <empty> '(' '=' '<' '>' '~'
-%token <empty> DATE DATETIME TIME TIMESTAMP
+%token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
 %token <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
 %token <empty> CONVERT CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
@@ -961,6 +961,18 @@ value_expression:
 | keyword_as_func '(' select_expression_list ')'
   {
     $$ = &FuncExpr{Name: $1, Exprs: $3}
+  }
+| CURRENT_TIMESTAMP
+  {
+    $$ = &FuncExpr{Name: []byte("current_timestamp")}
+  }
+| CURRENT_TIMESTAMP '(' select_expression_list ')'
+  {
+    $$ = &FuncExpr{Name: []byte("current_timestamp")}
+  }
+| CURRENT_TIMESTAMP '(' ')'
+  {
+    $$ = &FuncExpr{Name: []byte("current_timestamp")}
   }
 | TIMESTAMPADD '(' time_interval ',' select_expression_list ')'
   {

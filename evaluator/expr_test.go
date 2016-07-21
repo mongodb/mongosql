@@ -797,6 +797,7 @@ func TestEvaluates(t *testing.T) {
 			SkipConvey("Subject: CURRENT_TIMESTAMP", func() {
 				tests := []test{
 					test{"CURRENT_TIMESTAMP()", SQLTimestamp{time.Now().UTC()}},
+					test{"CURRENT_TIMESTAMP", SQLTimestamp{time.Now().UTC()}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -946,6 +947,7 @@ func TestEvaluates(t *testing.T) {
 					test{"IF(false, 'dog', 'cat')", SQLVarchar("cat")},
 					test{"IF('ca.gh', 4, 5)", SQLInt(5)},
 					test{"IF(current_timestamp(), 4, 5)", SQLInt(4)}, // not being parsed as dates, being parsed as string
+					test{"IF(current_timestamp, 4, 5)", SQLInt(4)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1835,6 +1837,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 			test{"a / b", exprA, exprB},
 			test{"'2010-01-01' and g", exprConv, exprG},
 			test{"g in ('2010-01-01',current_timestamp())", exprG, &SQLTupleExpr{[]SQLExpr{exprConv, exprTime}}},
+			test{"g in ('2010-01-01',current_timestamp)", exprG, &SQLTupleExpr{[]SQLExpr{exprConv, exprTime}}},
 		}
 
 		runTests(tests)
