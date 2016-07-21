@@ -18,6 +18,38 @@ type fieldNameLookup func(tableName, columnName string) (string, bool)
 
 // TranslateExpr attempts to turn the SQLExpr into MongoDB query language.
 func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, bool) {
+	wrapInEQ := func(left, right interface{}) interface{} {
+		return bson.M{"$eq": []interface{}{left, right}}
+	}
+
+	wrapInIfNull := func(v, ifNull interface{}) interface{} {
+		return bson.M{"$ifNull": []interface{}{v, ifNull}}
+	}
+
+	wrapInNullCheck := func(v interface{}) interface{} {
+		return wrapInEQ(wrapInIfNull(v, nil), nil)
+	}
+
+	wrapInCond := func(truePart, falsePart interface{}, conds ...interface{}) interface{} {
+		var condition interface{}
+
+		if len(conds) > 1 {
+			condition = bson.M{"$or": conds}
+		} else {
+			condition = conds[0]
+		}
+
+		return bson.M{"$cond": []interface{}{condition, truePart, falsePart}}
+	}
+
+	wrapSingleArgFuncWithNullCheck := func(name string, arg interface{}) interface{} {
+		return wrapInCond(
+			nil,
+			bson.M{name: arg},
+			wrapInNullCheck(arg),
+		)
+	}
+
 	switch typedE := e.(type) {
 
 	case *SQLAddExpr:
@@ -348,10 +380,10 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			if len(args) != 1 {
 				return nil, false
 			}
+
 			return bson.M{"$abs": args[0]}, true
 		case "coalesce":
-			var coalesce func(args []interface{}) interface{}
-
+			var coalesce func([]interface{}) interface{}
 			coalesce = func(args []interface{}) interface{} {
 				if len(args) == 0 {
 					return nil
@@ -365,6 +397,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			if len(args) < 1 {
 				return nil, false
 			}
+
 			return bson.M{"$concat": args}, true
 		case "concat_ws":
 			if len(args) < 2 {
@@ -393,11 +426,8 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{"$ifNull": []interface{}{args[0], nil}},
-					nil}},
-				bson.M{"$literal": nil},
+			return wrapInCond(
+				nil,
 				bson.M{"$arrayElemAt": []interface{}{
 					[]interface{}{
 						time.Sunday.String(),
@@ -410,40 +440,27 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 					},
 					bson.M{"$subtract": []interface{}{
 						bson.M{"$dayOfWeek": args[0]},
-						1}}}}}}, true
+						1}}}},
+				wrapInNullCheck(args[0]),
+			), true
 		case "day", "dayofmonth":
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{"$ifNull": []interface{}{args[0], nil}},
-					nil}},
-				bson.M{"$literal": nil},
-				bson.M{"$dayOfMonth": args[0]}}}, true
+			return wrapSingleArgFuncWithNullCheck("$dayOfMonth", args[0]), true
 		case "dayofweek":
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{"$ifNull": []interface{}{args[0], nil}},
-					nil}},
-				bson.M{"$literal": nil},
-				bson.M{"$dayOfWeek": args[0]}}}, true
+			return wrapSingleArgFuncWithNullCheck("$dayOfWeek", args[0]), true
 		case "dayofyear":
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{"$ifNull": []interface{}{args[0], nil}},
-					nil}},
-				bson.M{"$literal": nil},
-				bson.M{"$dayOfYear": args[0]}}}, true
+			return wrapSingleArgFuncWithNullCheck("$dayOfYear", args[0]), true
 		case "exp":
 			if len(args) != 1 {
 				return nil, false
@@ -461,53 +478,52 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{"$ifNull": []interface{}{args[0], nil}},
-					nil}},
-				bson.M{"$literal": nil},
-				bson.M{"$hour": args[0]}}}, true
+			return wrapSingleArgFuncWithNullCheck("$hour", args[0]), true
 		case "if":
 			if len(args) != 3 {
 				return nil, false
 			}
 
-			return bson.M{
-				"$cond": []interface{}{
-					bson.M{"$or": []interface{}{
-						bson.M{"$eq": []interface{}{args[0], 0}},
-						bson.M{"$eq": []interface{}{args[0], nil}},
-						bson.M{"$eq": []interface{}{args[0], false}}}},
-					args[2],
-					args[1],
-				},
-			}, true
+			return wrapInCond(
+				args[2],
+				args[1],
+				wrapInNullCheck(args[0]),
+				wrapInEQ(args[0], 0),
+				wrapInEQ(args[0], false),
+			), true
 		case "ifnull":
 			if len(args) != 2 {
 				return nil, false
 			}
 
-			return bson.M{"$ifNull": []interface{}{args[0], args[1]}}, true
+			return wrapInIfNull(args[0], args[1]), true
 		case "isnull":
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{"$ifNull": []interface{}{args[0], nil}},
-					nil}}, 1, 0}}, true
+			return wrapInCond(
+				1,
+				0,
+				wrapInNullCheck(args[0]),
+			), true
 		case "left":
 			if len(args) != 2 {
 				return nil, false
 			}
 
-			return bson.M{"$substr": []interface{}{args[0], 0, args[1]}}, true
+			return wrapInCond(
+				nil,
+				bson.M{"$substr": []interface{}{args[0], 0, args[1]}},
+				wrapInNullCheck(args[0]),
+				wrapInNullCheck(args[1]),
+			), true
 		case "lcase", "lower":
 			if len(args) != 1 {
 				return nil, false
 			}
-			return bson.M{"$toLower": args[0]}, true
+
+			return wrapSingleArgFuncWithNullCheck("$toLower", args[0]), true
 		case "log", "ln":
 			if len(args) != 1 {
 				return nil, false
@@ -545,58 +561,54 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{"$ifNull": []interface{}{args[0], nil}},
-					nil}},
-				bson.M{"$literal": nil},
-				bson.M{"$minute": args[0]}}}, true
+			return wrapSingleArgFuncWithNullCheck("$minute", args[0]), true
 		case "month":
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return bson.M{"$month": args[0]}, true
+			return wrapSingleArgFuncWithNullCheck("$month", args[0]), true
 		case "monthname":
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return bson.M{"$arrayElemAt": []interface{}{
-				[]interface{}{
-					time.January.String(),
-					time.February.String(),
-					time.March.String(),
-					time.April.String(),
-					time.May.String(),
-					time.June.String(),
-					time.July.String(),
-					time.August.String(),
-					time.September.String(),
-					time.October.String(),
-					time.November.String(),
-					time.December.String(),
-				},
-				bson.M{"$subtract": []interface{}{
-					bson.M{"$month": args[0]},
-					1}}}}, true
+			return wrapInCond(
+				nil,
+				bson.M{"$arrayElemAt": []interface{}{
+					[]interface{}{
+						time.January.String(),
+						time.February.String(),
+						time.March.String(),
+						time.April.String(),
+						time.May.String(),
+						time.June.String(),
+						time.July.String(),
+						time.August.String(),
+						time.September.String(),
+						time.October.String(),
+						time.November.String(),
+						time.December.String(),
+					},
+					bson.M{"$subtract": []interface{}{
+						bson.M{"$month": args[0]},
+						1}}}},
+				wrapInNullCheck(args[0]),
+			), true
 		case "nullif":
 			if len(args) != 2 {
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{"$ifNull": []interface{}{
-						args[0], nil,
-					}},
-					nil}},
-				bson.M{"$literal": nil},
-				bson.M{"$cond": []interface{}{
-					bson.M{"$eq": []interface{}{
-						args[0], args[1],
-					}},
-					bson.M{"$literal": nil}, args[0]}}}}, true
+			return wrapInCond(
+				nil,
+				wrapInCond(
+					nil,
+					args[0],
+					wrapInEQ(args[0], args[1]),
+				),
+				wrapInNullCheck(args[0]),
+			), true
 		case "pow", "power":
 			if len(args) != 2 {
 				return nil, false
@@ -608,11 +620,15 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				return nil, false
 			}
 
-			return bson.M{"$arrayElemAt": []interface{}{
-				[]interface{}{1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4},
-				bson.M{"$subtract": []interface{}{
-					bson.M{"$month": args[0]},
-					1}}}}, true
+			return wrapInCond(
+				nil,
+				bson.M{"$arrayElemAt": []interface{}{
+					[]interface{}{1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4},
+					bson.M{"$subtract": []interface{}{
+						bson.M{"$month": args[0]},
+						1}}}},
+				wrapInNullCheck(args[0]),
+			), true
 		case "round":
 			if !(len(args) == 2 || len(args) == 1) {
 				return nil, false
@@ -656,15 +672,17 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				return nil, false
 			}
 
-			return bson.M{"$second": args[0]}, true
+			return wrapSingleArgFuncWithNullCheck("$second", args[0]), true
 		case "sqrt":
 			if len(args) != 1 {
 				return nil, false
 			}
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$gte": []interface{}{args[0], 0}},
+
+			return wrapInCond(
 				bson.M{"$sqrt": args[0]},
-				bson.M{"$literal": nil}}}, true
+				nil,
+				bson.M{"$gte": []interface{}{args[0], 0}},
+			), true
 		case "substring", "substr":
 			if len(args) != 2 && len(args) != 3 {
 				return nil, false
@@ -692,36 +710,30 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				arg2 = args[2]
 			}
 
-			return bson.M{"$substr": []interface{}{args[0], arg1, arg2}}, true
+			return wrapInCond(
+				nil,
+				bson.M{"$substr": []interface{}{args[0], arg1, arg2}},
+				wrapInNullCheck(args[0]),
+			), true
 		case "week":
 			// TODO: this needs to take into account the second argument
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{"$ifNull": []interface{}{args[0], nil}},
-					nil}},
-				bson.M{"$literal": nil},
-				bson.M{"$week": args[0]}}}, true
+			return wrapSingleArgFuncWithNullCheck("$week", args[0]), true
 		case "ucase", "upper":
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return bson.M{"$toUpper": args[0]}, true
+			return wrapSingleArgFuncWithNullCheck("$toUpper", args[0]), true
 		case "year":
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{"$ifNull": []interface{}{args[0], nil}},
-					nil}},
-				bson.M{"$literal": nil},
-				bson.M{"$year": args[0]}}}, true
+			return wrapSingleArgFuncWithNullCheck("$year", args[0]), true
 		}
 	case *SQLSubqueryCmpExpr:
 

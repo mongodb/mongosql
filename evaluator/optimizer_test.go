@@ -736,8 +736,8 @@ func TestOptimizePlan(t *testing.T) {
 						"sum(foo_DOT_a)": bson.M{
 							"$cond": []interface{}{
 								bson.M{"$or": []interface{}{
+									bson.M{"$eq": []interface{}{bson.M{"$ifNull": []interface{}{"$sum(foo_DOT_a)_count", nil}}, nil}},
 									bson.M{"$eq": []interface{}{"$sum(foo_DOT_a)_count", 0}},
-									bson.M{"$eq": []interface{}{"$sum(foo_DOT_a)_count", nil}},
 									bson.M{"$eq": []interface{}{"$sum(foo_DOT_a)_count", false}},
 								}},
 								bson.M{"$literal": nil},
