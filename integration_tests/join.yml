@@ -7,14 +7,14 @@ data:
     collection: "join_1"
     docs:
     - { _id: 0, a: 1, b: ~ }
-    - { _id: 1, a: 2 }
+    - { _id: 1, a: 2, b: 1 }
     - { _id: 2, a: 3 }
 - inline: 
     db: "test"
     collection: "join_2"
     docs:
     - { _id: 0, c: 10, d: ~ }
-    - { _id: 1, c: 11 }
+    - { _id: 1, c: 11, d: 1 }
     - { _id: 20, c: 30 }
 
 #
@@ -66,13 +66,13 @@ testcases:
   expected_types: [int, int, int, int, int, int]
   expected: 
   - [0, 1, ~, 0, 10, ~]
-  - [0, 1, ~, 1, 11, ~]
+  - [0, 1, ~, 1, 11, 1]
   - [0, 1, ~, 20, 30, ~]
-  - [1, 2, ~, 0, 10, ~]
-  - [1, 2, ~, 1, 11, ~]
-  - [1, 2, ~, 20, 30, ~]
+  - [1, 2, 1, 0, 10, ~]
+  - [1, 2, 1, 1, 11, 1]
+  - [1, 2, 1, 20, 30, ~]
   - [2, 3, ~, 0, 10, ~]
-  - [2, 3, ~, 1, 11, ~]
+  - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
 - sql: "select foo.*, bar.* from test.foo, test.bar"
   description: "qualified star"
@@ -80,13 +80,13 @@ testcases:
   expected_types: [int, int, int, int, int, int]
   expected: 
   - [0, 1, ~, 0, 10, ~]
-  - [0, 1, ~, 1, 11, ~]
+  - [0, 1, ~, 1, 11, 1]
   - [0, 1, ~, 20, 30, ~]
-  - [1, 2, ~, 0, 10, ~]
-  - [1, 2, ~, 1, 11, ~]
-  - [1, 2, ~, 20, 30, ~]
+  - [1, 2, 1, 0, 10, ~]
+  - [1, 2, 1, 1, 11, 1]
+  - [1, 2, 1, 20, 30, ~]
   - [2, 3, ~, 0, 10, ~]
-  - [2, 3, ~, 1, 11, ~]
+  - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
 - sql: "select f.*, b.* from test.foo f, test.bar b"
   description: "aliased qualified star"
@@ -94,13 +94,13 @@ testcases:
   expected_types: [int, int, int, int, int, int]
   expected: 
   - [0, 1, ~, 0, 10, ~]
-  - [0, 1, ~, 1, 11, ~]
+  - [0, 1, ~, 1, 11, 1]
   - [0, 1, ~, 20, 30, ~]
-  - [1, 2, ~, 0, 10, ~]
-  - [1, 2, ~, 1, 11, ~]
-  - [1, 2, ~, 20, 30, ~]
+  - [1, 2, 1, 0, 10, ~]
+  - [1, 2, 1, 1, 11, 1]
+  - [1, 2, 1, 20, 30, ~]
   - [2, 3, ~, 0, 10, ~]
-  - [2, 3, ~, 1, 11, ~]
+  - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
 - sql: "select f.*, b.* from test.foo f, (select * from test.bar) b"
   description: "aliased qualified star with subquery"
@@ -108,13 +108,13 @@ testcases:
   expected_types: [int, int, int, int, int, int]
   expected: 
   - [0, 1, ~, 0, 10, ~]
-  - [0, 1, ~, 1, 11, ~]
+  - [0, 1, ~, 1, 11, 1]
   - [0, 1, ~, 20, 30, ~]
-  - [1, 2, ~, 0, 10, ~]
-  - [1, 2, ~, 1, 11, ~]
-  - [1, 2, ~, 20, 30, ~]
+  - [1, 2, 1, 0, 10, ~]
+  - [1, 2, 1, 1, 11, 1]
+  - [1, 2, 1, 20, 30, ~]
   - [2, 3, ~, 0, 10, ~]
-  - [2, 3, ~, 1, 11, ~]
+  - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
 
 # Implicit Inner Joins
@@ -176,6 +176,12 @@ testcases:
   expected: 
   - [1, 10]
   - [2, 11]
+- sql: "select a, c from test.foo inner join test.bar on foo.b = bar.d"
+  description: "inner join with null on the left"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [2, 11] 
 
 # Left Outer Joins
 - sql: "select a, c from test.foo left outer join test.bar on foo.id = bar.id"
@@ -218,6 +224,14 @@ testcases:
   - [1, 10]
   - [2, 11]
   - [3, ~]
+- sql: "select a, c from test.foo left outer join test.bar on foo.b = bar.d"
+  description: "left outer join with null on the left"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, ~]
+  - [2, 11]
+  - [3, ~] 
 
 # Right Outer Joins
 - sql: "select a, c from test.foo right outer join test.bar on foo.id = bar.id"

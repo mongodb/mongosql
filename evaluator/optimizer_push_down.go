@@ -586,6 +586,15 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	// 6. build the pipeline
 	pipeline := msLocal.pipeline
 
+	if joinKind == InnerJoin {
+		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
+		// $match to ensure account for this incompatibility. Effectively, we eliminate the
+		// left hand document when the left hand field is null.
+
+		match := bson.M{localFieldName: bson.M{"$ne": nil}}
+		pipeline = append(pipeline, bson.D{{"$match", match}})
+	}
+
 	lookup := bson.M{
 		"from":         msForeign.collectionName,
 		"localField":   localFieldName,
@@ -594,6 +603,33 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	}
 
 	pipeline = append(pipeline, bson.D{{"$lookup", lookup}})
+
+	if joinKind == LeftJoin {
+		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
+		// $project to ensure account for this incompatibility. Effectively, when our left
+		// hand field is null, we'll empty the joined results prior to unwinding.
+		project := bson.M{}
+
+		// enumerate all local fields
+		for _, c := range msLocal.mappingRegistry.columns {
+			fieldName, ok := msLocal.mappingRegistry.lookupFieldName(c.Table, c.Name)
+			if !ok {
+				panic("Unable to find field mapping for column. This should never happen.")
+			}
+			project[fieldName] = 1
+		}
+
+		project[asField] = bson.M{"$cond": []interface{}{
+			bson.M{"$eq": []interface{}{
+				bson.M{"$ifNull": []interface{}{"$" + localFieldName, nil}},
+				nil,
+			}},
+			bson.M{"$literal": []interface{}{}},
+			"$" + asField,
+		}}
+
+		pipeline = append(pipeline, bson.D{{"$project", project}})
+	}
 
 	unwind := bson.M{
 		"path": "$" + asField,

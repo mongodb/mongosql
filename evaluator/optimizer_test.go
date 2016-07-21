@@ -81,6 +81,7 @@ func TestOptimizePlan(t *testing.T) {
 				Convey("inner join", func() {
 					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a",
 						[]bson.D{
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "bar",
 								"localField":   "a",
@@ -100,6 +101,7 @@ func TestOptimizePlan(t *testing.T) {
 
 					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a AND foo.b > 10",
 						[]bson.D{
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "bar",
 								"localField":   "a",
@@ -122,6 +124,7 @@ func TestOptimizePlan(t *testing.T) {
 
 					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a AND bar.b > 10",
 						[]bson.D{
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "bar",
 								"localField":   "a",
@@ -144,6 +147,7 @@ func TestOptimizePlan(t *testing.T) {
 
 					test("select foo.a, bar.b from foo, bar where foo.a = bar.a",
 						[]bson.D{
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "bar",
 								"localField":   "a",
@@ -171,6 +175,25 @@ func TestOptimizePlan(t *testing.T) {
 								"foreignField": "a",
 								"as":           "__joined_bar",
 							}}},
+							{{"$project", bson.M{
+								"_id": 1,
+								"a":   1,
+								"b":   1,
+								"c":   1,
+								"d.e": 1,
+								"d.f": 1,
+								"g":   1,
+								"__joined_bar": bson.M{
+									"$cond": []interface{}{
+										bson.M{"$eq": []interface{}{
+											bson.M{"$ifNull": []interface{}{"$a", nil}},
+											nil,
+										}},
+										bson.M{"$literal": []interface{}{}},
+										"$__joined_bar",
+									},
+								},
+							}}},
 							{{"$unwind", bson.M{
 								"path": "$__joined_bar",
 								"preserveNullAndEmptyArrays": true,
@@ -189,6 +212,25 @@ func TestOptimizePlan(t *testing.T) {
 								"localField":   "a",
 								"foreignField": "a",
 								"as":           "__joined_bar",
+							}}},
+							{{"$project", bson.M{
+								"_id": 1,
+								"a":   1,
+								"b":   1,
+								"c":   1,
+								"d.e": 1,
+								"d.f": 1,
+								"g":   1,
+								"__joined_bar": bson.M{
+									"$cond": []interface{}{
+										bson.M{"$eq": []interface{}{
+											bson.M{"$ifNull": []interface{}{"$a", nil}},
+											nil,
+										}},
+										bson.M{"$literal": []interface{}{}},
+										"$__joined_bar",
+									},
+								},
 							}}},
 							{{"$unwind", bson.M{
 								"path": "$__joined_bar",
@@ -222,6 +264,25 @@ func TestOptimizePlan(t *testing.T) {
 								"localField":   "a",
 								"foreignField": "a",
 								"as":           "__joined_bar",
+							}}},
+							{{"$project", bson.M{
+								"_id": 1,
+								"a":   1,
+								"b":   1,
+								"c":   1,
+								"d.e": 1,
+								"d.f": 1,
+								"g":   1,
+								"__joined_bar": bson.M{
+									"$cond": []interface{}{
+										bson.M{"$eq": []interface{}{
+											bson.M{"$ifNull": []interface{}{"$a", nil}},
+											nil,
+										}},
+										bson.M{"$literal": []interface{}{}},
+										"$__joined_bar",
+									},
+								},
 							}}},
 							{{"$unwind", bson.M{
 								"path": "$__joined_bar",
