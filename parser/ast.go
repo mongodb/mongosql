@@ -785,7 +785,11 @@ const (
 )
 
 func (node *BinaryExpr) Format(buf *TrackedBuffer) {
-	buf.Fprintf("%v%c%v", node.Left, node.Operator, node.Right)
+	if node.Operator == AST_IDIV {
+		buf.Fprintf("%v DIV %v", node.Left, node.Right)
+	} else {
+		buf.Fprintf("%v %c %v", node.Left, node.Operator, node.Right)
+	}
 }
 
 // UnaryExpr represents a unary value expression.
