@@ -103,13 +103,13 @@ func TestTimeConstructors(t *testing.T) {
 
 func TestCastExpr(t *testing.T) {
 
-	sql := "SELECT CAST(3/3 AS int precision) from foo.tables"
+	sql := "SELECT CAST(3/3 AS signed) from foo.tables"
 	testParse(t, sql)
 
 	sql = "SELECT CAST(3/3 AS datetime) from foo.tables"
 	testParse(t, sql)
 
-	sql = "SELECT (100 * (CASE WHEN 1 = 0 THEN NULL ELSE CAST((CASE WHEN (flights201406.cancelled = '1') THEN 1 ELSE 0 END) AS DOUBLE PRECISION) / 1 END)) from foo.tables"
+	sql = "SELECT (100 * (CASE WHEN 1 = 0 THEN NULL ELSE CAST((CASE WHEN (flights201406.cancelled = '1') THEN 1 ELSE 0 END) AS SQL_DOUBLE PRECISION) / 1 END)) from foo.tables"
 	testParse(t, sql)
 }
 

@@ -169,6 +169,7 @@ var keywords = map[string]int{
 
 	// convert tokens
 	"convert":       CONVERT,
+	"cast":          CAST,
 	"char":          CHAR,
 	"signed":        SIGNED,
 	"unsigned":      UNSIGNED,

@@ -86,7 +86,7 @@ var (
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
 %token <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
-%token <empty> CONVERT CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
+%token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
 
 %nonassoc <empty> FROM
 %left <empty> UNION MINUS EXCEPT INTERSECT
@@ -996,9 +996,17 @@ expression:
   {
     $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: StrVal($3)}}, $5...)}
   }
-| CONVERT LPAREN select_expression COMMA sql_types RPAREN
+| CONVERT LPAREN expression COMMA sql_types RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("convert"), Exprs: append(SelectExprs{$3, &NonStarExpr{Expr: KeywordVal($5)}})}
+    $$ = &FuncExpr{Name: []byte("convert"), Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
+  }
+| CAST LPAREN expression AS sql_types RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("convert"), Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
+  }
+| CAST LPAREN expression AS sql_types PRECISION RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("convert"), Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
   }
 
 sql_time_interval:
