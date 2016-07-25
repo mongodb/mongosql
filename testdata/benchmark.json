@@ -25,6 +25,15 @@
 {"id":"5022","query":"SELECT i FROM bignestedarray where i>995", "db": "fullblackbox"}
 {"id":"5023","query":"SELECT count(*) FROM bignestedarray where i>995", "db": "fullblackbox"}
 
+{"id":"5024","query":"SELECT count(*) as countstar FROM bigarray_array ba join bigarray b  on b._id=ba._id", "db": "fullblackbox"}
+{"id":"5025","query":"SELECT count(*) as countstar FROM bigarray_array", "db": "fullblackbox"}
+{"id":"5026","query":"SELECT count(*) as countstar FROM bigobjarray b join bigobjarray_array ba on b._id=ba._id", "db": "fullblackbox"}
+{"id":"5027","query":"SELECT count(*) as countone FROM bigobjarray b join bigobjarray_array ba on b._id=ba._id where b.i>995", "db": "fullblackbox"}
+{"id":"5028","query":"SELECT count(*) as countone FROM bigobjarray_array where i>995", "db": "fullblackbox"}
+{"id":"5029","query":"SELECT count(*) FROM bignestedarray b join bignestedarray_array ba on b._id=ba._id where b.i>995", "db": "fullblackbox"}
+{"id":"5030","query":"SELECT count(*) FROM bignestedarray_array_inner where i>995", "db": "fullblackbox"}
+{"id":"5031","query":"SELECT count(*) FROM bignestedarray b join bignestedarray_array_inner ai on b._id=ai._id where b.i>995", "db": "fullblackbox"}
+
 {"id":"2","query":"SELECT `Date` AS `none_Date_ok`,   `Market` AS `none_Market_nk`,   SUM(`Sales`) AS `sum_Sales_ok`,   SUM((CASE WHEN (`Market` = 'East') THEN 0 WHEN NOT (`Market` = 'East') THEN `Sales` ELSE NULL END)) AS `sum_Strange_Measure_ok` FROM Starbucks GROUP BY `Date`,   `Market` ORDER BY 1, 2, 3, 4", "db": "fullblackbox" }
 {"id":"3","query":"SELECT `Latitude` AS `none_Latitude_ok`,   `Longitude` AS `none_Longitude_ok`,   `PointOrder` AS `none_PointOrder_ok`,   `PolygonID` AS `none_PolygonID_ok` FROM Election WHERE (`State` = 'WA') ORDER BY 1, 2, 3, 4", "db": "fullblackbox" }
 {"id":"4","query":"SELECT `Market` AS `none_Market_nk` FROM Starbucks WHERE (`Market` IS NULL) ORDER BY 1 LIMIT 1", "db": "fullblackbox" }

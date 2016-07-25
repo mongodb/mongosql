@@ -1,0 +1,4 @@
+expected_names: ["countstar"]
+expected_types: [float64]
+expected:
+- [499500]

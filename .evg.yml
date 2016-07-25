@@ -43,7 +43,23 @@ buildvariants:
   run_on:
     - linux-64-amzn-build
   tasks:
-  - "!check"
+  - "!benchmark !check"
+- name: linux-64-amazon-ami-benchmarks
+  display_name: Amazon Linux (Enterprise Benchmarks)
+  expansions:
+    build_tags: -tags "sasl ssl"
+    gotest_env: "SQLPROXY_SSLTEST=1"
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.2.7.tgz --output mongodb.tgz
+    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
+    mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
+    push_arch: x86_64-enterprise-amzn64
+    push_name: linux
+    push_path: linux
+  run_on:
+    - linux-64-amzn-build
+  batchtime: 1440 # 1 day
+  tasks:
+  - "benchmark"
 - name: osx
   display_name: OSX 10.10
   run_on:
