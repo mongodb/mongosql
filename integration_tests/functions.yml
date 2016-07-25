@@ -1459,3 +1459,59 @@ testcases:
   - [~]
   - [~]
   - [~]
+
+# Comparison Operations
+- sql: "select a = 1 from bar"
+  expected_names: ["a = 1"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [~]
+  - [0]
+  - [0]
+  - [~]
+- sql: "select a > 1 from bar"
+  expected_names: ["a > 1"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [~]
+  - [0]
+  - [1]
+  - [~]
+- sql: "select a >= 1 from bar"
+  expected_names: ["a >= 1"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [~]
+  - [0]
+  - [1]
+  - [~]
+- sql: "select a < 1 from bar"
+  expected_names: ["a < 1"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [~]
+  - [1]
+  - [0]
+  - [~]
+- sql: "select a <= 1 from bar"
+  expected_names: ["a <= 1"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [~]
+  - [1]
+  - [0]
+  - [~]
+- sql: "select a != 1 from bar"
+  expected_names: ["a != 1"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [~]
+  - [1]
+  - [1]
+  - [~]

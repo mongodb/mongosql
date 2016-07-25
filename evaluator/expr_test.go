@@ -2291,7 +2291,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"min(a + 4)", `{"$min":{"$add":["$a",{"$literal":4}]}}`},
 			test{"sum(a * b)", `{"$sum":{"$multiply":["$a","$b"]}}`},
 			test{"sum(a)", `{"$sum":"$a"}`},
-			test{"sum(a < 1)", `{"$sum":{"$lt":["$a",{"$literal":1}]}}`},
+			test{"sum(a < 1)", `{"$sum":{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":[{"$ifNull":[{"$literal":1},null]},null]}]},null,{"$lt":["$a",{"$literal":1}]}]}}`},
 			test{"std(a)", `{"$stdDevPop":"$a"}`},
 			test{"stddev(a)", `{"$stdDevPop":"$a"}`},
 			test{"stddev_samp(a)", `{"$stdDevSamp":"$a"}`},

@@ -245,7 +245,19 @@ func TestOptimizePlan(t *testing.T) {
 								"d.f": 1,
 								"g":   1,
 								"__joined_bar": bson.M{"$cond": bson.M{
-									"if":   bson.M{"$gt": []interface{}{"$b", bson.M{"$literal": SQLInt(10)}}},
+									"if": bson.M{"$cond": []interface{}{
+										bson.M{"$or": []interface{}{
+											bson.M{"$eq": []interface{}{
+												bson.M{"$ifNull": []interface{}{"$b", nil}},
+												nil,
+											}},
+											bson.M{"$eq": []interface{}{
+												bson.M{"$ifNull": []interface{}{bson.M{"$literal": SQLInt(10)}, nil}},
+												nil,
+											}}}},
+										nil,
+										bson.M{"$gt": []interface{}{"$b", bson.M{"$literal": SQLInt(10)}}},
+									}},
 									"then": "$__joined_bar",
 									"else": nil,
 								}},
@@ -297,7 +309,19 @@ func TestOptimizePlan(t *testing.T) {
 								"d.f": 1,
 								"g":   1,
 								"__joined_bar": bson.M{"$cond": bson.M{
-									"if":   bson.M{"$gt": []interface{}{"$__joined_bar.b", bson.M{"$literal": SQLInt(10)}}},
+									"if": bson.M{"$cond": []interface{}{
+										bson.M{"$or": []interface{}{
+											bson.M{"$eq": []interface{}{
+												bson.M{"$ifNull": []interface{}{"$__joined_bar.b", nil}},
+												nil,
+											}},
+											bson.M{"$eq": []interface{}{
+												bson.M{"$ifNull": []interface{}{bson.M{"$literal": SQLInt(10)}, nil}},
+												nil,
+											}}}},
+										nil,
+										bson.M{"$gt": []interface{}{"$__joined_bar.b", bson.M{"$literal": SQLInt(10)}}},
+									}},
 									"then": "$__joined_bar",
 									"else": nil,
 								}},

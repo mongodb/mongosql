@@ -172,7 +172,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$eq": []interface{}{left, right}}, true
+		return wrapInCond(
+			nil,
+			bson.M{"$eq": []interface{}{left, right}},
+			wrapInNullCheck(left),
+			wrapInNullCheck(right),
+		), true
 
 	case SQLColumnExpr:
 
@@ -194,7 +199,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$gt": []interface{}{left, right}}, true
+		return wrapInCond(
+			nil,
+			bson.M{"$gt": []interface{}{left, right}},
+			wrapInNullCheck(left),
+			wrapInNullCheck(right),
+		), true
 
 	case *SQLGreaterThanOrEqualExpr:
 
@@ -208,7 +218,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$gte": []interface{}{left, right}}, true
+		return wrapInCond(
+			nil,
+			bson.M{"$gte": []interface{}{left, right}},
+			wrapInNullCheck(left),
+			wrapInNullCheck(right),
+		), true
 
 	case *SQLIDivideExpr:
 
@@ -237,7 +252,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$lt": []interface{}{left, right}}, true
+		return wrapInCond(
+			nil,
+			bson.M{"$lt": []interface{}{left, right}},
+			wrapInNullCheck(left),
+			wrapInNullCheck(right),
+		), true
 
 	case *SQLLessThanOrEqualExpr:
 
@@ -251,7 +271,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$lte": []interface{}{left, right}}, true
+		return wrapInCond(
+			nil,
+			bson.M{"$lte": []interface{}{left, right}},
+			wrapInNullCheck(left),
+			wrapInNullCheck(right),
+		), true
 
 	case *SQLModExpr:
 
@@ -288,15 +313,11 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{
-			"$cond": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{
-						"$ifNull": []interface{}{op, nil}},
-					nil,
-				}},
-				bson.M{"$literal": nil},
-				bson.M{"$not": []interface{}{op}}}}, true
+		return wrapInCond(
+			nil,
+			bson.M{"$not": op},
+			wrapInNullCheck(op),
+		), true
 
 	case *SQLNotEqualsExpr:
 
@@ -310,7 +331,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$ne": []interface{}{left, right}}, true
+		return wrapInCond(
+			nil,
+			bson.M{"$ne": []interface{}{left, right}},
+			wrapInNullCheck(left),
+			wrapInNullCheck(right),
+		), true
 
 	case *SQLOrExpr:
 
