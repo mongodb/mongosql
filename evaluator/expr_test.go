@@ -1984,70 +1984,6 @@ func TestNewSQLValue(t *testing.T) {
 	})
 }
 
-func TestOptimizeSQLExpr(t *testing.T) {
-
-	type test struct {
-		sql      string
-		expected string
-		result   SQLExpr
-	}
-
-	runTests := func(tests []test) {
-		schema, err := schema.New(testSchema3)
-		So(err, ShouldBeNil)
-		for _, t := range tests {
-			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
-				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
-				So(err, ShouldBeNil)
-				result, err := OptimizeSQLExpr(createTestEvalCtx(), e)
-				So(err, ShouldBeNil)
-				So(result, ShouldResemble, t.result)
-			})
-		}
-	}
-
-	Convey("Subject: OptimizeSQLExpr", t, func() {
-
-		tests := []test{
-			test{"3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 < a", "a > 3", &SQLGreaterThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 > a", "a < 3", &SQLLessThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 + 3 = 6", "true", SQLTrue},
-			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)}},
-			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
-				&SQLAndExpr{
-					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)},
-					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "b", schema.SQLInt, schema.MongoInt), SQLInt(2)}}},
-			test{"3 + 3 = 6 OR a = 3", "true", SQLTrue},
-			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"0 OR NULL", "null", SQLNull},
-			test{"1 OR NULL", "true", SQLTrue},
-			test{"NULL OR NULL", "null", SQLNull},
-			test{"0 AND 6+1 = 6", "false", SQLFalse},
-			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
-			test{"0 AND NULL", "false", SQLFalse},
-			test{"1 AND NULL", "null", SQLNull},
-			test{"1 AND 6+0 = 6", "true", SQLTrue},
-			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 + 3 = 5 XOR a = 3", "true", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 + 3 = 6 XOR a = 3", "a = 3", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}}},
-			test{"!3", "0", SQLFalse},
-			test{"!NULL", "null", SQLNull},
-			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"DAYNAME('2016-1-1')", "Friday", SQLVarchar("Friday")},
-			test{"(8-7)", "1", SQLInt(1)},
-			test{"a LIKE NULL", "null", SQLNull},
-			test{"4 LIKE NULL", "null", SQLNull},
-		}
-
-		runTests(tests)
-	})
-}
-
 func TestReconcileSQLExpr(t *testing.T) {
 
 	type test struct {
@@ -2116,8 +2052,9 @@ func TestTranslatePredicate(t *testing.T) {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				e, err = OptimizeSQLExpr(createTestEvalCtx(), e)
+				n, err := optimizeEvaluations(createTestEvalCtx(), e)
 				So(err, ShouldBeNil)
+				e = n.(SQLExpr)
 				match, local := TranslatePredicate(e, lookupFieldName)
 				jsonResult, err := json.Marshal(match)
 				So(err, ShouldBeNil)

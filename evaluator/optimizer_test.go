@@ -1207,3 +1207,115 @@ func TestOptimizeSet(t *testing.T) {
 		)
 	})
 }
+
+func TestOptimizeEvaluations(t *testing.T) {
+
+	type test struct {
+		sql      string
+		expected string
+		result   SQLExpr
+	}
+
+	runTests := func(tests []test) {
+		schema, err := schema.New(testSchema3)
+		So(err, ShouldBeNil)
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
+				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
+				So(err, ShouldBeNil)
+				result, err := optimizeEvaluations(createTestEvalCtx(), e)
+				So(err, ShouldBeNil)
+				So(result, ShouldResemble, t.result)
+			})
+		}
+	}
+
+	Convey("Subject: optimizeEvaluations", t, func() {
+
+		tests := []test{
+			test{"3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 < a", "a > 3", &SQLGreaterThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 > a", "a < 3", &SQLLessThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 + 3 = 6", "true", SQLTrue},
+			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)}},
+			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
+				&SQLAndExpr{
+					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)},
+					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "b", schema.SQLInt, schema.MongoInt), SQLInt(2)}}},
+			test{"3 + 3 = 6 OR a = 3", "true", SQLTrue},
+			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"0 OR NULL", "null", SQLNull},
+			test{"1 OR NULL", "true", SQLTrue},
+			test{"NULL OR NULL", "null", SQLNull},
+			test{"0 AND 6+1 = 6", "false", SQLFalse},
+			test{"3 + 3 = 5 AND a = 3", "false", SQLFalse},
+			test{"0 AND NULL", "false", SQLFalse},
+			test{"1 AND NULL", "null", SQLNull},
+			test{"1 AND 6+0 = 6", "true", SQLTrue},
+			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 + 3 = 5 XOR a = 3", "true", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 + 3 = 6 XOR a = 3", "a = 3", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}}},
+			test{"!3", "0", SQLFalse},
+			test{"!NULL", "null", SQLNull},
+			test{"a = (~1 + 1 + (+4))", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"DAYNAME('2016-1-1')", "Friday", SQLVarchar("Friday")},
+			test{"(8-7)", "1", SQLInt(1)},
+			test{"a LIKE NULL", "null", SQLNull},
+			test{"4 LIKE NULL", "null", SQLNull},
+			test{"a = NULL", "null", SQLNull},
+			test{"a > NULL", "null", SQLNull},
+			test{"a >= NULL", "null", SQLNull},
+			test{"a < NULL", "null", SQLNull},
+			test{"a <= NULL", "null", SQLNull},
+			test{"a != NULL", "null", SQLNull},
+
+			test{"abs(NULL)", "null", SQLNull},
+			test{"abs(-10)", "10", SQLFloat(10)},
+			test{"ascii(NULL)", "null", SQLNull},
+			test{"ascii('a')", "97", SQLInt(97)},
+			test{"coalesce(NULL, 10, a)", "10", SQLInt(10)},
+			test{"coalesce(NULL, 10, 20)", "10", SQLInt(10)},
+			test{"concat(NULL, a)", "null", SQLNull},
+			test{"concat(a, NULL)", "null", SQLNull},
+			test{"concat('go', 'lang')", "golang", SQLVarchar("golang")},
+			test{"concat_ws(NULL, a)", "null", SQLNull},
+			test{"convert(NULL, SIGNED)", "null", SQLNull},
+			test{"exp(NULL)", "null", SQLNull},
+			test{"exp(2)", "7.38905609893065", SQLFloat(7.38905609893065)},
+			test{"greatest(a, NULL)", "null", SQLNull},
+			test{"greatest(2, 3)", "3", SQLInt(3)},
+			test{"ifnull(NULL, a)", "bar.a", NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt)},
+			test{"ifnull(10, a)", "10", SQLInt(10)},
+			test{"least(a, NULL)", "null", SQLNull},
+			test{"least(2, 3)", "3", SQLInt(2)},
+			test{"locate('bar', 'foobar', NULL)", "null", SQLNull},
+			test{"locate('bar', 'foobar')", "4", SQLInt(4)},
+			test{"makedate(2000, NULL)", "null", SQLNull},
+			test{"makedate(NULL, 10)", "null", SQLNull},
+			test{"mod(10, 2)", "0", SQLFloat(0)},
+			test{"mod(NULL, 2)", "null", SQLNull},
+			test{"mod(10, NULL)", "null", SQLNull},
+			test{"nullif(NULL, a)", "null", SQLNull},
+			test{"nullif(a, NULL)", "bar.a", NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt)},
+			test{"pow(a, NULL)", "null", SQLNull},
+			test{"pow(NULL, a)", "null", SQLNull},
+			test{"pow(2,2)", "4", SQLFloat(4)},
+			test{"round(NULL)", "null", SQLNull},
+			test{"round(NULL, 2)", "null", SQLNull},
+			test{"round(2, NULL)", "null", SQLNull},
+			test{"round(2, 2)", "2", SQLFloat(2)},
+			test{"substring(NULL, 2)", "null", SQLNull},
+			test{"substring(NULL, 2, 3)", "null", SQLNull},
+			test{"substring('foobar', NULL)", "null", SQLNull},
+			test{"substring('foobar', NULL, 2)", "null", SQLNull},
+			test{"substring('foobar', 2, NULL)", "null", SQLNull},
+			test{"substring('foobar', 2, 3)", "oob", SQLVarchar("oob")},
+		}
+
+		runTests(tests)
+	})
+}

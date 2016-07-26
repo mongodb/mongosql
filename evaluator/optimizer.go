@@ -27,7 +27,9 @@ func optimize(ctx ConnectionCtx, n node) (node, error) {
 		return n, nil
 	}
 
-	newN, err := optimizePlanSQLExprs(ctx, n)
+	evalCtx := NewEvalCtx(NewExecutionCtx(ctx))
+
+	newN, err := optimizeEvaluations(evalCtx, n)
 	if err != nil {
 		return n, nil
 	}

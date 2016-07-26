@@ -316,6 +316,10 @@ type scalarFunc interface {
 	Type() schema.SQLType
 }
 
+type normalizingScalarFunc interface {
+	normalize(*SQLScalarFunctionExpr) SQLExpr
+}
+
 func NewIfScalarFunctionExpr(condition, truePart, falsePart SQLExpr) *SQLScalarFunctionExpr {
 	return &SQLScalarFunctionExpr{
 		Name:  "if",
@@ -400,16 +404,6 @@ var scalarFuncMap = map[string]scalarFunc{
 	"yearweek":          &yearWeekFunc{},
 }
 
-func (f *SQLScalarFunctionExpr) RequiresEvalCtx() bool {
-	if sf, ok := scalarFuncMap[f.Name]; ok {
-		if r, ok := sf.(RequiresEvalCtx); ok {
-			return r.RequiresEvalCtx()
-		}
-	}
-
-	return false
-}
-
 func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	sf, ok := scalarFuncMap[f.Name]
 	if ok {
@@ -427,6 +421,26 @@ func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return nil, fmt.Errorf("scalar function '%v' is not supported", string(f.Name))
+}
+
+func (f *SQLScalarFunctionExpr) normalize() node {
+	if sf, ok := scalarFuncMap[f.Name]; ok {
+		if nsf, ok := sf.(normalizingScalarFunc); ok {
+			return nsf.normalize(f)
+		}
+	}
+
+	return f
+}
+
+func (f *SQLScalarFunctionExpr) RequiresEvalCtx() bool {
+	if sf, ok := scalarFuncMap[f.Name]; ok {
+		if r, ok := sf.(RequiresEvalCtx); ok {
+			return r.RequiresEvalCtx()
+		}
+	}
+
+	return false
 }
 
 func (f *SQLScalarFunctionExpr) String() string {

@@ -572,6 +572,14 @@ func (sv *SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sv, nil
 }
 
+func (sv *SQLValues) normalize() node {
+	if len(sv.Values) == 1 {
+		return sv.Values[0]
+	}
+
+	return sv
+}
+
 func (sv *SQLValues) String() string {
 	var values []string
 	for _, n := range sv.Values {

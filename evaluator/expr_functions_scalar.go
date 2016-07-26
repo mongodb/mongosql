@@ -156,6 +156,16 @@ func (_ *coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return SQLNull, nil
 }
 
+func (_ *coalesceFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	for _, expr := range f.Exprs {
+		if v, ok := expr.(SQLValue); ok && v != SQLNull {
+			return v
+		}
+	}
+
+	return f
+}
+
 func (_ *coalesceFunc) Type() schema.SQLType {
 	return schema.SQLNone
 }
@@ -189,6 +199,14 @@ func (_ *concatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err 
 	v = SQLVarchar(bytes.String())
 	err = nil
 	return
+}
+
+func (_ *concatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *concatFunc) Type() schema.SQLType {
@@ -230,6 +248,14 @@ func (_ *concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, er
 
 	v = SQLVarchar(bytes.String())
 	return
+}
+
+func (_ *concatWsFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if f.Exprs[0] == SQLNull {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *concatWsFunc) Type() schema.SQLType {
@@ -709,7 +735,7 @@ type greatestFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_greatest
 func (_ *greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -754,6 +780,14 @@ func (_ *greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	} else {
 		return values[greatestIdx], nil
 	}
+}
+
+func (_ *greatestFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *greatestFunc) Type() schema.SQLType {
@@ -839,6 +873,16 @@ func (_ *ifnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	}
 }
 
+func (_ *ifnullFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if f.Exprs[0] == SQLNull {
+		return f.Exprs[1]
+	} else if v, ok := f.Exprs[0].(SQLValue); ok {
+		return v
+	}
+
+	return f
+}
+
 func (_ *ifnullFunc) Type() schema.SQLType {
 	return schema.SQLNone
 }
@@ -913,7 +957,7 @@ type leastFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_least
 func (_ *leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -958,6 +1002,14 @@ func (_ *leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	} else {
 		return values[leastIdx], nil
 	}
+}
+
+func (_ *leastFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *leastFunc) Type() schema.SQLType {
@@ -1037,6 +1089,14 @@ func (_ *locateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	}
 
 	return SQLInt(result + 1), nil
+}
+
+func (_ *locateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *locateFunc) Type() schema.SQLType {
@@ -1124,7 +1184,7 @@ type makeDateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_makedate
 func (_ *makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if anyNull(values) {
+	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
 
@@ -1147,7 +1207,14 @@ func (_ *makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	duration := time.Duration(d*24) * time.Hour
 
 	return SQLDate{Time: t.Add(duration)}, nil
+}
 
+func (_ *makeDateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *makeDateFunc) Type() schema.SQLType {
@@ -1200,6 +1267,14 @@ func (_ *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLFloat(r), nil
+}
+
+func (_ *modFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *modFunc) Type() schema.SQLType {
@@ -1315,6 +1390,18 @@ func (_ *nullifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	}
 }
 
+func (_ *nullifFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if f.Exprs[0] == SQLNull {
+		return SQLNull
+	}
+
+	if f.Exprs[1] == SQLNull {
+		return f.Exprs[0]
+	}
+
+	return f
+}
+
 func (_ *nullifFunc) Type() schema.SQLType {
 	return schema.SQLNone
 }
@@ -1331,6 +1418,14 @@ func (_ *powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLFloat(math.Pow(values[0].Float64(), values[1].Float64())), nil
+}
+
+func (_ *powFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *powFunc) Type() schema.SQLType {
@@ -1435,6 +1530,14 @@ func (_ *roundFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	rounded := roundToDecimalPlaces(decimal, base)
 
 	return SQLFloat(rounded), nil
+}
+
+func (_ *roundFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *roundFunc) Type() schema.SQLType {
@@ -1596,6 +1699,14 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	}
 
 	return SQLVarchar(string(str)), nil
+}
+
+func (_ *substringFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *substringFunc) Type() schema.SQLType {
@@ -2014,15 +2125,6 @@ func (_ *yearWeekFunc) Validate(exprCount int) error {
 }
 
 // Helper functions
-func anyNull(values []SQLValue) bool {
-	for _, v := range values {
-		if _, ok := v.(SQLNullValue); ok {
-			return true
-		}
-	}
-
-	return false
-}
 
 // calculateInterval converts each of the values in args to unit, and returns the sum of these multiplied by neg.
 func calculateInterval(unit string, args []int, neg int) (string, int, error) {

@@ -10,6 +10,16 @@ type nodeVisitor interface {
 	visit(n node) (node, error)
 }
 
+type normalizingNode interface {
+	// normalize will attempt to change the node into
+	// a more recognizable form (that may be more amenable
+	// to MongoDB's query language) and/or applies short circuiting
+	// rules that makes evaluation unnecessary based on
+	// recognizable patterns. Each node is responsible
+	// for deciding those patterns itself.
+	normalize() node
+}
+
 // PlanStages
 func (ps *BSONSourceStage) astnode()       {}
 func (ps *DualStage) astnode()             {}

@@ -49,6 +49,23 @@ func hasNullValue(values ...SQLValue) bool {
 	return false
 }
 
+// hasNullExpr returns true if any of the expr in exprs
+// is of type SQLNoValue or SQLNullValue.
+func hasNullExpr(exprs ...SQLExpr) bool {
+	for _, e := range exprs {
+		switch typedE := e.(type) {
+		case SQLNoValue, SQLNullValue:
+			return true
+		case *SQLTupleExpr:
+			return hasNullExpr(typedE.Exprs...)
+		case *SQLValues:
+			return hasNullValue(typedE.Values...)
+		}
+	}
+
+	return false
+}
+
 func isFalsy(value SQLValue) bool {
 	switch v := value.(type) {
 	case SQLInt, SQLFloat, SQLUint32, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
@@ -334,4 +351,14 @@ func convertSQLValueToPattern(value SQLValue) string {
 	regex += "$"
 
 	return regex
+}
+
+func shouldFlip(n sqlBinaryNode) bool {
+	if _, ok := n.left.(SQLValue); ok {
+		if _, ok := n.right.(SQLValue); !ok {
+			return true
+		}
+	}
+
+	return false
 }

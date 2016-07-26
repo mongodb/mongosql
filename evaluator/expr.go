@@ -133,6 +133,24 @@ func (and *SQLAndExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLTrue, nil
 }
 
+func (and *SQLAndExpr) normalize() node {
+	left, leftOk := and.left.(SQLValue)
+	if leftOk && isFalsy(left) {
+		return SQLFalse
+	} else if leftOk && isTruthy(left) {
+		return and.right
+	}
+
+	right, rightOk := and.right.(SQLValue)
+	if rightOk && isFalsy(right) {
+		return SQLFalse
+	} else if rightOk && isTruthy(right) {
+		return and.left
+	}
+
+	return and
+}
+
 func (and *SQLAndExpr) String() string {
 	return fmt.Sprintf("%v and %v", and.left, and.right)
 }
@@ -362,6 +380,18 @@ func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
+func (eq *SQLEqualsExpr) normalize() node {
+	if hasNullExpr(eq.left, eq.right) {
+		return SQLNull
+	}
+
+	if shouldFlip(sqlBinaryNode(*eq)) {
+		return &SQLEqualsExpr{eq.right, eq.left}
+	}
+
+	return eq
+}
+
 func (eq *SQLEqualsExpr) String() string {
 	return fmt.Sprintf("%v = %v", eq.left, eq.right)
 }
@@ -442,6 +472,18 @@ func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
+func (gt *SQLGreaterThanExpr) normalize() node {
+	if hasNullExpr(gt.left, gt.right) {
+		return SQLNull
+	}
+
+	if shouldFlip(sqlBinaryNode(*gt)) {
+		return &SQLLessThanExpr{gt.right, gt.left}
+	}
+
+	return gt
+}
+
 func (gt *SQLGreaterThanExpr) String() string {
 	return fmt.Sprintf("%v>%v", gt.left, gt.right)
 }
@@ -477,6 +519,18 @@ func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLFalse, err
+}
+
+func (gte *SQLGreaterThanOrEqualExpr) normalize() node {
+	if hasNullExpr(gte.left, gte.right) {
+		return SQLNull
+	}
+
+	if shouldFlip(sqlBinaryNode(*gte)) {
+		return &SQLLessThanOrEqualExpr{gte.right, gte.left}
+	}
+
+	return gte
 }
 
 func (gte *SQLGreaterThanOrEqualExpr) String() string {
@@ -652,6 +706,18 @@ func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
+func (lt *SQLLessThanExpr) normalize() node {
+	if hasNullExpr(lt.left, lt.right) {
+		return SQLNull
+	}
+
+	if shouldFlip(sqlBinaryNode(*lt)) {
+		return &SQLGreaterThanExpr{lt.right, lt.left}
+	}
+
+	return lt
+}
+
 func (lt *SQLLessThanExpr) String() string {
 	return fmt.Sprintf("%v<%v", lt.left, lt.right)
 }
@@ -686,6 +752,18 @@ func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLBool(c <= 0), nil
 	}
 	return SQLFalse, err
+}
+
+func (lte *SQLLessThanOrEqualExpr) normalize() node {
+	if hasNullExpr(lte.left, lte.right) {
+		return SQLNull
+	}
+
+	if shouldFlip(sqlBinaryNode(*lte)) {
+		return &SQLGreaterThanOrEqualExpr{lte.right, lte.left}
+	}
+
+	return lte
 }
 
 func (lte *SQLLessThanOrEqualExpr) String() string {
@@ -731,6 +809,16 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLBool(matches), nil
+}
+
+func (l *SQLLikeExpr) normalize() node {
+	if right, ok := l.right.(SQLValue); ok {
+		if hasNullValue(right) {
+			return SQLNull
+		}
+	}
+
+	return l
 }
 
 func (l *SQLLikeExpr) String() string {
@@ -831,6 +919,22 @@ func (not *SQLNotExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, nil
 }
 
+func (not *SQLNotExpr) normalize() node {
+	if operand, ok := not.operand.(SQLValue); ok {
+		if hasNullValue(operand) {
+			return SQLNull
+		}
+
+		if isTruthy(operand) {
+			return SQLFalse
+		} else if isFalsy(operand) {
+			return SQLTrue
+		}
+	}
+
+	return not
+}
+
 func (not *SQLNotExpr) String() string {
 	return fmt.Sprintf("not %v", not.operand)
 }
@@ -868,6 +972,18 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return SQLFalse, err
 }
 
+func (neq *SQLNotEqualsExpr) normalize() node {
+	if hasNullExpr(neq.left, neq.right) {
+		return SQLNull
+	}
+
+	if shouldFlip(sqlBinaryNode(*neq)) {
+		return &SQLNotEqualsExpr{neq.right, neq.left}
+	}
+
+	return neq
+}
+
 func (neq *SQLNotEqualsExpr) String() string {
 	return fmt.Sprintf("%v != %v", neq.left, neq.right)
 }
@@ -901,6 +1017,25 @@ func (or *SQLOrExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLFalse, nil
+}
+
+func (or *SQLOrExpr) normalize() node {
+	left, leftOk := or.left.(SQLValue)
+
+	if leftOk && isTruthy(left) {
+		return SQLTrue
+	} else if leftOk && isFalsy(left) {
+		return or.right
+	}
+
+	right, rightOk := or.right.(SQLValue)
+	if rightOk && isTruthy(right) {
+		return SQLTrue
+	} else if rightOk && isFalsy(right) {
+		return or.left
+	}
+
+	return or
 }
 
 func (or *SQLOrExpr) String() string {
@@ -1254,6 +1389,14 @@ func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return &SQLValues{values}, nil
 }
 
+func (te *SQLTupleExpr) normalize() node {
+	if len(te.Exprs) == 1 {
+		return te.Exprs[0]
+	}
+
+	return te
+}
+
 func (te SQLTupleExpr) String() string {
 	prefix := "("
 	for i, expr := range te.Exprs {
@@ -1382,6 +1525,28 @@ func (xor *SQLXorExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	return SQLFalse, nil
+}
+
+func (xor *SQLXorExpr) normalize() node {
+	left, leftOk := xor.left.(SQLValue)
+	if leftOk {
+		if isTruthy(left) {
+			return &SQLNotExpr{xor.right}
+		} else if isFalsy(left) {
+			return xor.right
+		}
+	}
+
+	right, rightOk := xor.right.(SQLValue)
+	if rightOk {
+		if isTruthy(right) {
+			return &SQLNotExpr{xor.left}
+		} else if isFalsy(right) {
+			return xor.left
+		}
+	}
+
+	return xor
 }
 
 func (xor *SQLXorExpr) String() string {
