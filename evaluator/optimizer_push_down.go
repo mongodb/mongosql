@@ -553,7 +553,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	}
 
 	// 3. find the local column and the foreign column
-	lookupInfo, err := getLocalAndForeignColumns(msLocal.aliasName, msForeign.aliasName, join.matcher)
+	lookupInfo, err := getLocalAndForeignColumns(msLocal, msForeign, join.matcher)
 	if err != nil {
 		return join, nil
 	}
@@ -568,7 +568,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		return join, nil
 	}
 
-	asField := dottifyFieldName(joinedFieldNamePrefix + msForeign.collectionName)
+	asField := dottifyFieldName(joinedFieldNamePrefix + msForeign.aliasNames[0])
 
 	// 5. compute all the mappings from the msForeign mapping registry to be nested under
 	// the 'asField' we used above.
@@ -596,7 +596,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	}
 
 	lookup := bson.M{
-		"from":         msForeign.collectionName,
+		"from":         msForeign.collectionNames[0],
 		"localField":   localFieldName,
 		"foreignField": foreignFieldName,
 		"as":           asField,
@@ -669,6 +669,9 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	}
 
 	// 7. build the new operators
+	msLocal.aliasNames = append(msLocal.aliasNames, msForeign.aliasNames...)
+	msLocal.tableNames = append(msLocal.tableNames, msForeign.tableNames...)
+	msLocal.collectionNames = append(msLocal.collectionNames, msForeign.collectionNames...)
 	ms := msLocal.clone()
 	ms.selectIDs = append(ms.selectIDs, msForeign.selectIDs...)
 	ms.pipeline = pipeline
@@ -692,9 +695,8 @@ type lookupInfo struct {
 	remainingPredicate SQLExpr
 }
 
-func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExpr) (*lookupInfo, error) {
+func getLocalAndForeignColumns(localTable, foreignTable *MongoSourceStage, e SQLExpr) (*lookupInfo, error) {
 	exprs := splitExpression(e)
-
 	// find a SQLEqualsExpr where the left and right are columns from the local and foreign tables
 	for i, expr := range exprs {
 		if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
@@ -702,15 +704,15 @@ func getLocalAndForeignColumns(localTableName, foreignTableName string, e SQLExp
 			if column1, ok := equalExpr.left.(SQLColumnExpr); ok {
 				if column2, ok := equalExpr.right.(SQLColumnExpr); ok {
 					var localColumn, foreignColumn *SQLColumnExpr
-					if column1.tableName == localTableName {
+					if containsString(localTable.aliasNames, column1.tableName) {
 						localColumn = &column1
-					} else if column1.tableName == foreignTableName {
+					} else if containsString(foreignTable.aliasNames, column1.tableName) {
 						foreignColumn = &column1
 					}
 
-					if column2.tableName == localTableName {
+					if containsString(localTable.aliasNames, column2.tableName) {
 						localColumn = &column2
-					} else if column2.tableName == foreignTableName {
+					} else if containsString(foreignTable.aliasNames, column2.tableName) {
 						foreignColumn = &column2
 					}
 
@@ -798,7 +800,6 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	if !ok {
 		return project, nil
 	}
-
 	fieldsToProject := bson.M{}
 
 	// This will contain the rebuilt mapping registry reflecting fields re-mapped by projection.

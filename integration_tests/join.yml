@@ -16,6 +16,28 @@ data:
     - { _id: 0, c: 10, d: ~ }
     - { _id: 1, c: 11, d: 1 }
     - { _id: 20, c: 30 }
+- inline: 
+    db: "test"
+    collection: "join_3"
+    docs:
+    - { _id: 0, a: 4, c: 10, d: ~ }
+    - { _id: 1, a: 3, c: 11, d: 1 }
+    - { _id: 2, a: 14, c: 30 }
+    - { _id: 3, c: 30 }
+- inline: 
+    db: "test"
+    collection: "join_4"
+    docs:
+    - { _id: 0, a: 3, b: 5, c: 10, d: ~ }
+    - { _id: 1, a: 2, b: 6, c: 11, d: 1 }
+    - { _id: 20, c: 30 }
+- inline: 
+    db: "test"
+    collection: "join_5"
+    docs:
+    - { _id: 0, b: 5, c: 10, e: 3}
+    - { _id: 1, b: 8, c: 11, e: 5}
+    - { _id: 20, c: 30 }
 
 #
 # Schema
@@ -52,6 +74,67 @@ schema:
     - Name: d
       MongoType: int
       SqlName: d
+      SqlType: int
+  - table: baz
+    collection: "join_3"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+  - table: foobar
+    collection: "join_4"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+  - table: barbaz
+    collection: "join_5"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: e
+      MongoType: int
+      SqlName: e
       SqlType: int
 
 #
@@ -182,6 +265,52 @@ testcases:
   expected_types: [int, int]
   expected: 
   - [2, 11] 
+- sql: "select foo.a, bar.c, baz.d from test.foo inner join test.bar on foo.id = bar.id inner join test.baz on bar.id = baz.id"
+  description: "inner join with three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 10, ~]
+  - [2, 11, 1]
+- sql: "select foo.a, bar.c, baz.d, foobar.b from test.foo inner join test.bar on foo.id = bar.id inner join test.baz on bar.id = baz.id inner join test.foobar on baz.id = foobar.id"
+  description: "inner join with four tables"
+  expected_names: ["a", "c", "d", "b"]
+  expected_types: [int, int, int, int]
+  expected: 
+  - [1, 10, ~, 5]
+  - [2, 11, 1, 6]
+- sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from test.foo inner join test.bar on foo.id = bar.id inner join test.baz on bar.id = baz.id inner join test.foobar on baz.id = foobar.id inner join test.barbaz on foobar.id = barbaz.id"
+  description: "inner join with five tables"
+  expected_names: ["a", "c", "d", "b", "e"]
+  expected_types: [int, int, int, int, int]
+  expected: 
+  - [1, 10, ~, 5, 3]
+  - [2, 11, 1, 6, 5]
+- sql: "select foo.a, bar.c, baz.d from test.foo inner join test.bar on foo.id = bar.id inner join test.baz on bar.id = baz.id AND foo.a > 1"
+  description: "inner join with three tables with additional criteria"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [2, 11, 1]
+- sql: "select foo.a, bar.c, baz.d from test.foo inner join test.bar on foo.a > 1 AND foo.id = bar.id inner join test.baz on bar.id = baz.id"
+  description: "inner join with three tables with additional criteria (reversed)"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [2, 11, 1]
+- sql: "select foo.a, bar.c, baz.d from test.foo inner join (select * from test.bar) bar on foo.id = bar.id inner join test.baz on bar.id = baz.id"
+  description: "inner join with subquery and three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 10, ~]
+  - [2, 11, 1]
+- sql: "select foo.a, bar.c, baz.d from test.foo inner join test.bar on foo.b = bar.d inner join test.baz on bar.d = baz.d"
+  description: "inner join with null on the left and three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [2, 11, 1] 
 
 # Left Outer Joins
 - sql: "select a, c from test.foo left outer join test.bar on foo.id = bar.id"
@@ -232,6 +361,62 @@ testcases:
   - [1, ~]
   - [2, 11]
   - [3, ~] 
+- sql: "select foo.a, bar.c, baz.d from test.foo left outer join test.bar on foo.id = bar.id left outer join test.baz on bar.id = baz.id"
+  description: "left outer join with three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 10, ~]
+  - [2, 11, 1]
+  - [3, ~, ~]
+- sql: "select foo.a, bar.c, baz.d, foobar.b from test.foo left outer join test.bar on foo.id = bar.id left outer join test.baz on bar.id = baz.id left outer join test.foobar on baz.id = foobar.id"
+  description: "left outer join with four tables"
+  expected_names: ["a", "c", "d", "b"]
+  expected_types: [int, int, int, int]
+  expected: 
+  - [1, 10, ~, 5]
+  - [2, 11, 1, 6]
+  - [3, ~, ~, ~]
+- sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from test.foo left outer join test.bar on foo.id = bar.id left outer join test.baz on bar.id = baz.id left outer join test.foobar on baz.id = foobar.id left outer join test.barbaz on foobar.id = barbaz.id"
+  description: "left outer join with five tables"
+  expected_names: ["a", "c", "d", "b", "e"]
+  expected_types: [int, int, int, int, int]
+  expected: 
+  - [1, 10, ~, 5, 3]
+  - [2, 11, 1, 6, 5]
+  - [3, ~, ~, ~, ~]
+- sql: "select foo.a, bar.c, baz.d from test.foo left outer join test.bar on foo.id = bar.id left outer join test.baz on bar.id = baz.id AND foo.a > 1"
+  description: "left outer join with three tables with additional criteria"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 10, ~]
+  - [2, 11, 1]
+  - [3, ~, ~]
+- sql: "select foo.a, bar.c, baz.d from test.foo left outer join test.bar on foo.a > 1 AND foo.id = bar.id left outer join test.baz on bar.id = baz.id"
+  description: "left outer join with three tables with additional criteria (reversed)"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, ~, ~]
+  - [2, 11, 1]
+  - [3, ~, ~]
+- sql: "select foo.a, bar.c, baz.d from test.foo left outer join (select * from test.bar) bar on foo.id = bar.id left outer join test.baz on bar.id = baz.id"
+  description: "left outer join with subquery and three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 10, ~]
+  - [2, 11, 1]
+  - [3, ~, ~]
+- sql: "select foo.a, bar.c, baz.d from test.foo left outer join test.bar on foo.b = bar.d left outer join test.baz on bar.d = baz.d"
+  description: "left outer join with null on the left and three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, ~, ~] 
+  - [2, 11, 1]
+  - [3, ~, ~]
 
 # Right Outer Joins
 - sql: "select a, c from test.foo right outer join test.bar on foo.id = bar.id"
@@ -274,3 +459,63 @@ testcases:
   - [1, 10]
   - [2, 11]
   - [~, 30]
+- sql: "select foo.a, bar.c, baz.d from test.foo right outer join test.bar on foo.id = bar.id right outer join test.baz on bar.id = baz.id"
+  description: "right outer join with three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 10, ~]
+  - [2, 11, 1]
+  - [~, ~, ~]
+  - [~, ~, ~]
+- sql: "select foo.a, bar.c, baz.d, foobar.b from test.foo right outer join test.bar on foo.id = bar.id right outer join test.baz on bar.id = baz.id right outer join test.foobar on baz.id = foobar.id"
+  description: "right outer join with four tables"
+  expected_names: ["a", "c", "d", "b"]
+  expected_types: [int, int, int, int]
+  expected: 
+  - [1, 10, ~, 5]
+  - [2, 11, 1, 6]
+  - [~, ~, ~, ~]
+- sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from test.foo left outer join test.bar on foo.id = bar.id left outer join test.baz on bar.id = baz.id left outer join test.foobar on baz.id = foobar.id left outer join test.barbaz on foobar.id = barbaz.id"
+  description: "right outer join with five tables"
+  expected_names: ["a", "c", "d", "b", "e"]
+  expected_types: [int, int, int, int, int]
+  expected: 
+  - [1, 10, ~, 5, 3]
+  - [2, 11, 1, 6, 5]
+  - [3, ~, ~, ~, ~]
+- sql: "select foo.a, bar.c, baz.d from test.foo right outer join test.bar on foo.id = bar.id right outer join test.baz on bar.id = baz.id AND foo.a > 1"
+  description: "right outer join with three tables with additional criteria"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [~, ~, ~]
+  - [2, 11, 1]
+  - [~, ~, ~]
+  - [~, ~, ~]
+- sql: "select foo.a, bar.c, baz.d from test.foo right outer join test.bar on foo.a > 1 AND foo.id = bar.id right outer join test.baz on bar.id = baz.id"
+  description: "left outer join with three tables with additional criteria (reversed)"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [~, 10, ~]
+  - [2, 11, 1]
+  - [~, ~, ~]
+  - [~, ~, ~]
+- sql: "select foo.a, bar.c, baz.d from test.foo right outer join (select * from test.bar) bar on foo.id = bar.id right outer join test.baz on bar.id = baz.id"
+  description: "right outer join with subquery and three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 10, ~]
+  - [2, 11, 1]
+  - [~, ~, ~]
+  - [~, ~, ~]
+- sql: "select foo.a, bar.c, baz.d from test.foo left outer join test.bar on foo.b = bar.d left outer join test.baz on bar.d = baz.d"
+  description: "right outer join with null on the right and three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, ~, ~] 
+  - [2, 11, 1]
+  - [3, ~, ~]

@@ -67,16 +67,14 @@ func (mr *mappingRegistry) lookupFieldName(tableName, columnName string) (string
 type MongoSourceStage struct {
 	selectIDs       []int
 	dbName          string
-	tableName       string
-	aliasName       string
-	collectionName  string
+	tableNames      []string
+	aliasNames      []string
+	collectionNames []string
 	mappingRegistry *mappingRegistry
 	pipeline        []bson.D
 }
 
 type MongoSourceIter struct {
-	tableName       string
-	aliasName       string
 	mappingRegistry *mappingRegistry
 	ctx             *ExecutionCtx
 	iter            FindResults
@@ -94,38 +92,38 @@ func NewMongoSourceStage(selectID int, schema *schema.Schema, dbName, tableName,
 	}
 
 	ms := &MongoSourceStage{
-		selectIDs: []int{selectID},
-		dbName:    dbName,
-		tableName: tableName,
-		aliasName: aliasName,
+		selectIDs:  []int{selectID},
+		dbName:     dbName,
+		tableNames: []string{tableName},
+		aliasNames: []string{aliasName},
 	}
 
-	if ms.aliasName == "" {
-		ms.aliasName = ms.tableName
+	if len(ms.aliasNames) == 0 || ms.aliasNames[0] == "" {
+		ms.aliasNames = ms.tableNames
 	}
 
 	database, ok := schema.Databases[ms.dbName]
 	if !ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
 	}
-	tableSchema, ok := database.Tables[ms.tableName]
+	tableSchema, ok := database.Tables[ms.tableNames[0]]
 	if !ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
 	}
 
-	ms.collectionName = tableSchema.CollectionName
+	ms.collectionNames = []string{tableSchema.CollectionName}
 
 	ms.mappingRegistry = &mappingRegistry{}
 	for _, c := range tableSchema.RawColumns {
 		column := &Column{
 			SelectID:  selectID,
-			Table:     ms.aliasName,
+			Table:     ms.aliasNames[0],
 			Name:      c.SqlName,
 			SQLType:   c.SqlType,
 			MongoType: c.MongoType,
 		}
 		ms.mappingRegistry.addColumn(column)
-		ms.mappingRegistry.registerMapping(ms.aliasName, c.SqlName, c.Name)
+		ms.mappingRegistry.registerMapping(ms.aliasNames[0], c.SqlName, c.Name)
 	}
 
 	ms.pipeline = tableSchema.Pipeline
@@ -137,9 +135,9 @@ func (ms *MongoSourceStage) clone() *MongoSourceStage {
 	return &MongoSourceStage{
 		selectIDs:       ms.selectIDs,
 		dbName:          ms.dbName,
-		tableName:       ms.tableName,
-		aliasName:       ms.aliasName,
-		collectionName:  ms.collectionName,
+		tableNames:      ms.tableNames,
+		aliasNames:      ms.aliasNames,
+		collectionNames: ms.collectionNames,
 		mappingRegistry: ms.mappingRegistry,
 		pipeline:        ms.pipeline,
 	}
@@ -147,11 +145,9 @@ func (ms *MongoSourceStage) clone() *MongoSourceStage {
 
 // Open establishes a connection to database collection for this table.
 func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	mgoIter := MgoFindResults{ctx.Session().DB(ms.dbName).C(ms.collectionName).Pipe(ms.pipeline).AllowDiskUse().Iter()}
+	mgoIter := MgoFindResults{ctx.Session().DB(ms.dbName).C(ms.collectionNames[0]).Pipe(ms.pipeline).AllowDiskUse().Iter()}
 
 	return &MongoSourceIter{
-		tableName:       ms.tableName,
-		aliasName:       ms.aliasName,
 		mappingRegistry: ms.mappingRegistry,
 		ctx:             ctx,
 		iter:            mgoIter,

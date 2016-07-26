@@ -137,10 +137,10 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 	case *SchemaDataSourceStage:
 		b.WriteString("↳ SchemaDataSource:")
 	case *MongoSourceStage:
-		b.WriteString(fmt.Sprintf("↳ MongoSource: '%v' (db: '%v', collection: '%v')", typedN.tableName, typedN.dbName, typedN.collectionName))
+		b.WriteString(fmt.Sprintf("↳ MongoSource: '%v' (db: '%v', collection: '%v')", typedN.tableNames, typedN.dbName, typedN.collectionNames))
 
-		if typedN.aliasName != "" {
-			b.WriteString(fmt.Sprintf(" as '%v'", typedN.aliasName))
+		if typedN.aliasNames[0] != "" {
+			b.WriteString(fmt.Sprintf(" as '%v'", typedN.aliasNames))
 		}
 
 		b.WriteString(":\n")

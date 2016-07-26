@@ -100,7 +100,7 @@ func (v *crossJoinOptimizer) visit(n node) (node, error) {
 		}
 
 	case *MongoSourceStage:
-		v.tableNames = append(v.tableNames, typedN.aliasName)
+		v.tableNames = append(v.tableNames, typedN.aliasNames...)
 		return n, nil
 	}
 
