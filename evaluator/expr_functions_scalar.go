@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -70,7 +69,7 @@ func (_ *userFunc) Validate(exprCount int) error {
 type versionFunc struct{}
 
 func (_ *versionFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLVarchar(common.VersionStr), nil
+	return ctx.GetVariable("version", GlobalVariable)
 }
 
 func (_ *versionFunc) RequiresEvalCtx() bool {

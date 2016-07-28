@@ -56,3 +56,10 @@ testcases:
   expected_types: [~]
   expected: 
   - [~]
+
+- sql: "select @@version = version();"
+  description: "version"
+  expected_names: ["@@version = version()"]
+  expected_types: [string]
+  expected: 
+  - [1]
