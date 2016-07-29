@@ -322,7 +322,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
 							createProjectedColumnFromSQLExpr(1, "", "(select a from bar)",
 								&SQLSubqueryExpr{
-									plan: NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "", "a")),
+									plan: NewCacheStage(2,
+										NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "", "a")),
+									),
 								},
 							),
 						)
@@ -335,7 +337,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
 							createProjectedColumnFromSQLExpr(1, "", "b",
 								&SQLSubqueryExpr{
-									plan: NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "", "a")),
+									plan: NewCacheStage(2,
+										NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "", "a")),
+									),
 								},
 							),
 						)
@@ -350,7 +354,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 							createProjectedColumn(1, foo1Source, "foo", "a", "", "a"),
 							createProjectedColumnFromSQLExpr(1, "", "(select foo.a from foo, bar)",
 								&SQLSubqueryExpr{
-									plan: NewProjectStage(join, createProjectedColumn(2, join, "foo", "a", "", "a")),
+									plan: NewCacheStage(2,
+										NewProjectStage(join, createProjectedColumn(2, join, "foo", "a", "", "a")),
+									),
 								},
 							),
 						)
@@ -363,7 +369,12 @@ func TestAlgebrizeSelect(t *testing.T) {
 							createProjectedColumnFromSQLExpr(1, "", "exists (select 1 from bar)",
 								&SQLExistsExpr{
 									expr: &SQLSubqueryExpr{
-										plan: NewProjectStage(barSource, createProjectedColumnFromSQLExpr(2, "", "1", SQLInt(1))),
+										plan: NewCacheStage(2,
+											NewProjectStage(
+												barSource,
+												createProjectedColumnFromSQLExpr(2, "", "1", SQLInt(1)),
+											),
+										),
 									},
 								},
 							),
@@ -534,26 +545,28 @@ func TestAlgebrizeSelect(t *testing.T) {
 									left: createSQLColumnExprFromSource(fooSource, "foo", "b"),
 									right: &SQLSubqueryExpr{
 										correlated: false,
-										plan: NewProjectStage(
-											NewFilterStage(
-												barSource,
-												&SQLExistsExpr{
-													expr: &SQLSubqueryExpr{
-														correlated: true,
-														plan: NewProjectStage(
-															NewFilterStage(
-																foo3Source,
-																&SQLEqualsExpr{
-																	left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-																	right: createSQLColumnExprFromSource(foo3Source, "foo", "a"),
-																},
+										plan: NewCacheStage(2,
+											NewProjectStage(
+												NewFilterStage(
+													barSource,
+													&SQLExistsExpr{
+														expr: &SQLSubqueryExpr{
+															correlated: true,
+															plan: NewProjectStage(
+																NewFilterStage(
+																	foo3Source,
+																	&SQLEqualsExpr{
+																		left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
+																		right: createSQLColumnExprFromSource(foo3Source, "foo", "a"),
+																	},
+																),
+																createProjectedColumnFromSQLExpr(3, "", "1", SQLInt(1)),
 															),
-															createProjectedColumnFromSQLExpr(3, "", "1", SQLInt(1)),
-														),
+														},
 													},
-												},
+												),
+												createProjectedColumn(2, barSource, "bar", "b", "", "b"),
 											),
-											createProjectedColumn(2, barSource, "bar", "b", "", "b"),
 										),
 									},
 								},
@@ -792,9 +805,11 @@ func TestAlgebrizeSelect(t *testing.T) {
 								fooSource,
 								&SQLExistsExpr{
 									expr: &SQLSubqueryExpr{
-										plan: NewProjectStage(
-											barSource,
-											createProjectedColumnFromSQLExpr(2, "", "1", SQLInt(1)),
+										plan: NewCacheStage(2,
+											NewProjectStage(
+												barSource,
+												createProjectedColumnFromSQLExpr(2, "", "1", SQLInt(1)),
+											),
 										),
 									},
 								},
@@ -1024,9 +1039,11 @@ func TestAlgebrizeSelect(t *testing.T) {
 								fooSource,
 								&orderByTerm{
 									expr: &SQLSubqueryExpr{
-										plan: NewProjectStage(
-											barSource,
-											createProjectedColumn(2, barSource, "bar", "a", "", "a"),
+										plan: NewCacheStage(2,
+											NewProjectStage(
+												barSource,
+												createProjectedColumn(2, barSource, "bar", "a", "", "a"),
+											),
 										),
 									},
 									ascending: true,
@@ -1206,9 +1223,11 @@ func TestAlgebrizeSet(t *testing.T) {
 						},
 						expr: &SQLSubqueryExpr{
 							correlated: false,
-							plan: NewProjectStage(
-								fooSource,
-								createProjectedColumn(1, fooSource, "foo", "a", "", "a")),
+							plan: NewCacheStage(1,
+								NewProjectStage(
+									fooSource,
+									createProjectedColumn(1, fooSource, "foo", "a", "", "a")),
+							),
 						},
 					},
 				},

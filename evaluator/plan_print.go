@@ -70,6 +70,9 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 	switch typedN := n.(type) {
 	case *DualStage:
 		b.WriteString("↳ Dual")
+	case *CacheStage:
+		b.WriteString("↳ Cache\n")
+		prettyPrint(b, typedN.source, d+1)
 	case *EmptyStage:
 		b.WriteString("↳ Empty")
 	case *FilterStage:

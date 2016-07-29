@@ -29,6 +29,10 @@ type ExecutionCtx struct {
 	// are in the tree.
 	SrcRows []*Row
 
+	// CacheRows is a row cache used to minimize the number of pushdowns
+	// resulting from non-correlated subqueries.
+	CacheRows map[string]interface{}
+
 	AuthProvider AuthProvider
 }
 
@@ -37,6 +41,7 @@ func NewExecutionCtx(connCtx ConnectionCtx) *ExecutionCtx {
 	return &ExecutionCtx{
 		ConnectionCtx: connCtx,
 		AuthProvider:  NewAuthProvider(connCtx),
+		CacheRows:     make(map[string]interface{}),
 	}
 }
 
