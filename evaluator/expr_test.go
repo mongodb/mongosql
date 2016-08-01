@@ -8,7 +8,6 @@ import (
 
 	"strconv"
 
-	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
@@ -1513,13 +1512,6 @@ func TestEvaluates(t *testing.T) {
 					test{"UPPER('a')", SQLVarchar("A")},
 					test{"UPPER('AWESOME')", SQLVarchar("AWESOME")},
 					test{"UPPER('AwEsOmE')", SQLVarchar("AWESOME")},
-				}
-				runTests(evalCtx, tests)
-			})
-
-			Convey("Subject: VERSION", func() {
-				tests := []test{
-					test{"VERSION()", SQLVarchar(common.VersionStr)},
 				}
 				runTests(evalCtx, tests)
 			})
