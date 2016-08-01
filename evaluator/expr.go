@@ -296,6 +296,10 @@ func (c SQLColumnExpr) Type() schema.SQLType {
 	return c.columnType.SQLType
 }
 
+func (c SQLColumnExpr) isAggregateReplacementColumn() bool {
+	return c.tableName == ""
+}
+
 //
 // SQLConvertExpr wraps a SQLExpr that can be
 // converted to another SQLType.

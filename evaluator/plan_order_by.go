@@ -7,15 +7,17 @@ import (
 
 // OrderBy sorts records according to one or more keys.
 type OrderByStage struct {
-	source PlanStage
-	terms  []*orderByTerm
+	source          PlanStage
+	terms           []*orderByTerm
+	requiredColumns []SQLExpr
 }
 
 // NewOrderByStage returns a new order by stage.
-func NewOrderByStage(source PlanStage, terms ...*orderByTerm) *OrderByStage {
+func NewOrderByStage(source PlanStage, reqCols []SQLExpr, terms ...*orderByTerm) *OrderByStage {
 	return &OrderByStage{
-		source: source,
-		terms:  terms,
+		source:          source,
+		terms:           terms,
+		requiredColumns: reqCols,
 	}
 }
 
@@ -163,8 +165,9 @@ func (ob *OrderByStage) Columns() (columns []*Column) {
 
 func (ob *OrderByStage) clone() *OrderByStage {
 	return &OrderByStage{
-		source: ob.source,
-		terms:  ob.terms,
+		source:          ob.source,
+		terms:           ob.terms,
+		requiredColumns: ob.requiredColumns,
 	}
 }
 

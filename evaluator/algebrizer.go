@@ -306,7 +306,6 @@ func (a *algebrizer) translateSimpleSelect(sel *parser.SimpleSelect) (PlanStage,
 	if err != nil {
 		return nil, err
 	}
-
 	return NewProjectStage(NewDualStage(), projectedColumns...), nil
 }
 
@@ -333,8 +332,13 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 			selectIDsInScope = append(selectIDsInScope, parent.currentSelectIDs...)
 			parent = parent.parent
 		}
-
 		builder.exprCollector = newExpressionCollector(selectIDsInScope)
+
+		err = builder.includeFrom(plan)
+		if err != nil {
+			return nil, err
+		}
+
 	}
 
 	// 2. Translate all the other clauses from this scope. We aren't going to create the plan stages
@@ -511,7 +515,6 @@ func (a *algebrizer) translateSet(set *parser.Set) (*SetExecutor, error) {
 }
 
 func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs) (PlanStage, error) {
-
 	var plan PlanStage
 	for i, tableExpr := range tableExprs {
 		temp, err := a.translateTableExpr(tableExpr)
@@ -521,12 +524,7 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs) (PlanStag
 		if i == 0 {
 			plan = temp
 		} else {
-			plan = &JoinStage{
-				left:    plan,
-				right:   temp,
-				kind:    CrossJoin,
-				matcher: SQLTrue,
-			}
+			plan = NewJoinStage(CrossJoin, plan, temp, SQLTrue, []SQLExpr{})
 		}
 	}
 
@@ -534,8 +532,10 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs) (PlanStag
 }
 
 func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, error) {
+
 	switch typedT := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
+
 		return a.translateSimpleTableExpr(typedT.Expr, string(typedT.As))
 	case *parser.ParenTableExpr:
 		return a.translateTableExpr(typedT.Expr)
@@ -546,6 +546,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 		if err != nil {
 			return nil, err
 		}
+
 		right, err := a.translateTableExpr(typedT.RightExpr)
 		if err != nil {
 			return nil, err
@@ -560,8 +561,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 		} else {
 			predicate = SQLTrue
 		}
-
-		return NewJoinStage(JoinKind(typedT.Join), left, right, predicate), nil
+		return NewJoinStage(JoinKind(typedT.Join), left, right, predicate, []SQLExpr{}), nil
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, parser.String(tableExpr))
 	}
@@ -570,7 +570,11 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, aliasName string) (PlanStage, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.TableName:
+
 		tableName := string(typedT.Name)
+		if a.aliasName != "" {
+			aliasName = a.aliasName
+		}
 		if aliasName == "" {
 			aliasName = tableName
 		}

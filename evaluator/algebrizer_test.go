@@ -57,6 +57,28 @@ func TestAlgebrizeSelect(t *testing.T) {
 		return r
 	}
 
+	createReqCols := func(source []PlanStage, cols []string, selectIDs map[string]int) []SQLExpr {
+		var reqCols []SQLExpr
+		for _, s := range source {
+			for _, c := range s.Columns() {
+				if containsString(cols, c.Table+"."+c.Name) {
+					col := createProjectedColumnFromColumn(selectIDs[c.Table+"."+c.Name], c, c.Table, c.Name)
+					reqCols = append(reqCols, col.Expr)
+				}
+			}
+		}
+		return reqCols
+	}
+
+	createReqColsStar := func(source PlanStage, tableName string, selectID int) []SQLExpr {
+		var reqCols []SQLExpr
+		allCols := createAllProjectedColumnsFromSource(selectID, source, tableName)
+		for _, c := range allCols {
+			reqCols = append(reqCols, c.Expr)
+		}
+		return reqCols
+	}
+
 	Convey("Subject: Algebrize Select Statements", t, func() {
 		Convey("dual queries", func() {
 			test("select 2 + 3", func() PlanStage {
@@ -97,14 +119,14 @@ func TestAlgebrizeSelect(t *testing.T) {
 		Convey("from", func() {
 			Convey("subqueries", func() {
 				test("select a from (select a from foo) f", func() PlanStage {
-					source := createMongoSource(2, "foo", "foo")
-					subquery := NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "f", "a"))
+					source := createMongoSource(2, "foo", "f")
+					subquery := NewProjectStage(source, createProjectedColumnSubquery(2, source, "f", "a", "a"))
 					return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
 				})
 
 				test("select f.a from (select a from foo) f", func() PlanStage {
-					source := createMongoSource(2, "foo", "foo")
-					subquery := NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "f", "a"))
+					source := createMongoSource(2, "foo", "f")
+					subquery := NewProjectStage(source, createProjectedColumnSubquery(2, source, "f", "a", "a"))
 					return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
 				})
 			})
@@ -113,7 +135,8 @@ func TestAlgebrizeSelect(t *testing.T) {
 				test("select foo.a, bar.a from foo, bar", func() PlanStage {
 					fooSource := createMongoSource(1, "foo", "foo")
 					barSource := createMongoSource(1, "bar", "bar")
-					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue)
+					reqCols := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
+					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, reqCols)
 					return NewProjectStage(join,
 						createProjectedColumn(1, join, "foo", "a", "", "a"),
 						createProjectedColumn(1, join, "bar", "a", "", "a"),
@@ -123,7 +146,8 @@ func TestAlgebrizeSelect(t *testing.T) {
 				test("select f.a, bar.a from foo f, bar", func() PlanStage {
 					fooSource := createMongoSource(1, "foo", "f")
 					barSource := createMongoSource(1, "bar", "bar")
-					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue)
+					reqCols := createReqCols([]PlanStage{fooSource, barSource}, []string{"f.a", "bar.a"}, map[string]int{"f.a": 1, "bar.a": 1})
+					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, reqCols)
 					return NewProjectStage(join,
 						createProjectedColumn(1, join, "f", "a", "", "a"),
 						createProjectedColumn(1, join, "bar", "a", "", "a"),
@@ -133,7 +157,8 @@ func TestAlgebrizeSelect(t *testing.T) {
 				test("select f.a, b.a from foo f, bar b", func() PlanStage {
 					fooSource := createMongoSource(1, "foo", "f")
 					barSource := createMongoSource(1, "bar", "b")
-					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue)
+					reqCols := createReqCols([]PlanStage{fooSource, barSource}, []string{"f.a", "b.a"}, map[string]int{"f.a": 1, "b.a": 1})
+					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, reqCols)
 					return NewProjectStage(join,
 						createProjectedColumn(1, join, "f", "a", "", "a"),
 						createProjectedColumn(1, join, "b", "a", "", "a"),
@@ -143,11 +168,13 @@ func TestAlgebrizeSelect(t *testing.T) {
 				test("select foo.a, bar.a from foo inner join bar on foo.b = bar.b", func() PlanStage {
 					fooSource := createMongoSource(1, "foo", "foo")
 					barSource := createMongoSource(1, "bar", "bar")
+					reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
+					reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
 					join := NewJoinStage(InnerJoin, fooSource, barSource,
 						&SQLEqualsExpr{
 							left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
 							right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-						})
+						}, append(reqColsJoin, reqColsSelect...))
 					return NewProjectStage(join,
 						createProjectedColumn(1, join, "foo", "a", "", "a"),
 						createProjectedColumn(1, join, "bar", "a", "", "a"),
@@ -157,11 +184,13 @@ func TestAlgebrizeSelect(t *testing.T) {
 				test("select foo.a, bar.a from foo join bar on foo.b = bar.b", func() PlanStage {
 					fooSource := createMongoSource(1, "foo", "foo")
 					barSource := createMongoSource(1, "bar", "bar")
+					reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
+					reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
 					join := NewJoinStage(InnerJoin, fooSource, barSource,
 						&SQLEqualsExpr{
 							left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
 							right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-						})
+						}, append(reqColsJoin, reqColsSelect...))
 					return NewProjectStage(join,
 						createProjectedColumn(1, join, "foo", "a", "", "a"),
 						createProjectedColumn(1, join, "bar", "a", "", "a"),
@@ -171,11 +200,13 @@ func TestAlgebrizeSelect(t *testing.T) {
 				test("select foo.a, bar.a from foo left outer join bar on foo.b = bar.b", func() PlanStage {
 					fooSource := createMongoSource(1, "foo", "foo")
 					barSource := createMongoSource(1, "bar", "bar")
+					reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
+					reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
 					join := NewJoinStage(LeftJoin, fooSource, barSource,
 						&SQLEqualsExpr{
 							left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
 							right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-						})
+						}, append(reqColsJoin, reqColsSelect...))
 					return NewProjectStage(join,
 						createProjectedColumn(1, join, "foo", "a", "", "a"),
 						createProjectedColumn(1, join, "bar", "a", "", "a"),
@@ -185,11 +216,13 @@ func TestAlgebrizeSelect(t *testing.T) {
 				test("select foo.a, bar.a from foo right outer join bar on foo.b = bar.b", func() PlanStage {
 					fooSource := createMongoSource(1, "foo", "foo")
 					barSource := createMongoSource(1, "bar", "bar")
+					reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
+					reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
 					join := NewJoinStage(RightJoin, fooSource, barSource,
 						&SQLEqualsExpr{
 							left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
 							right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-						})
+						}, append(reqColsJoin, reqColsSelect...))
 					return NewProjectStage(join,
 						createProjectedColumn(1, join, "foo", "a", "", "a"),
 						createProjectedColumn(1, join, "bar", "a", "", "a"),
@@ -242,14 +275,18 @@ func TestAlgebrizeSelect(t *testing.T) {
 				test("select * from foo, bar", func() PlanStage {
 					fooSource := createMongoSource(1, "foo", "foo")
 					barSource := createMongoSource(1, "bar", "bar")
-					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue)
+					fooCols := createReqColsStar(fooSource, "foo", 1)
+					barCols := createReqColsStar(barSource, "bar", 1)
+					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, append(fooCols, barCols...))
 					return NewProjectStage(join, createAllProjectedColumnsFromSource(1, join, "")...)
 				})
 
 				test("select foo.*, bar.* from foo, bar", func() PlanStage {
 					fooSource := createMongoSource(1, "foo", "foo")
 					barSource := createMongoSource(1, "bar", "bar")
-					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue)
+					fooCols := createReqColsStar(fooSource, "foo", 1)
+					barCols := createReqColsStar(barSource, "bar", 1)
+					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, append(fooCols, barCols...))
 					return NewProjectStage(join, createAllProjectedColumnsFromSource(1, join, "")...)
 				})
 			})
@@ -349,7 +386,8 @@ func TestAlgebrizeSelect(t *testing.T) {
 						foo1Source := createMongoSource(1, "foo", "foo")
 						foo2Source := createMongoSource(2, "foo", "foo")
 						barSource := createMongoSource(2, "bar", "bar")
-						join := NewJoinStage(CrossJoin, foo2Source, barSource, SQLTrue)
+						reqCols := createReqCols([]PlanStage{foo2Source}, []string{"foo.a"}, map[string]int{"foo.a": 2})
+						join := NewJoinStage(CrossJoin, foo2Source, barSource, SQLTrue, reqCols)
 						return NewProjectStage(foo1Source,
 							createProjectedColumn(1, foo1Source, "foo", "a", "", "a"),
 							createProjectedColumnFromSQLExpr(1, "", "(select foo.a from foo, bar)",
@@ -405,36 +443,42 @@ func TestAlgebrizeSelect(t *testing.T) {
 		Convey("where", func() {
 			test("select a from foo where a", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
-					NewFilterStage(source, NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt)),
+					NewFilterStage(source, NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt), reqCols),
 					createProjectedColumn(1, source, "foo", "a", "", "a"),
 				)
 			})
 
 			test("select a from foo where false", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
-					NewFilterStage(source, SQLFalse),
+					NewFilterStage(source, SQLFalse, reqCols),
 					createProjectedColumn(1, source, "foo", "a", "", "a"),
 				)
 			})
 
 			test("select a from foo where true", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
-					NewFilterStage(source, SQLTrue),
+					NewFilterStage(source, SQLTrue, reqCols),
 					createProjectedColumn(1, source, "foo", "a", "", "a"),
 				)
 			})
 
 			test("select a from foo where g = true", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqColsWhere := createReqCols([]PlanStage{source}, []string{"foo.g"}, map[string]int{"foo.g": 1})
+				reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
 					NewFilterStage(source,
 						&SQLEqualsExpr{
 							left:  NewSQLColumnExpr(1, "foo", "g", schema.SQLBoolean, schema.MongoBool),
 							right: SQLTrue,
 						},
+						append(reqColsWhere, reqColsSelect...),
 					),
 					createProjectedColumn(1, source, "foo", "a", "", "a"),
 				)
@@ -442,12 +486,14 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select a from foo where a > 10", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
 					NewFilterStage(source,
 						&SQLGreaterThanExpr{
 							left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
 							right: SQLInt(10),
 						},
+						reqCols,
 					),
 					createProjectedColumn(1, source, "foo", "a", "", "a"),
 				)
@@ -455,12 +501,15 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select a as b from foo where b > 10", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqColsWhere := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+				reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
 					NewFilterStage(source,
 						&SQLGreaterThanExpr{
 							left:  NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
 							right: SQLInt(10),
 						},
+						append(reqColsWhere, reqColsSelect...),
 					),
 					createProjectedColumn(1, source, "foo", "a", "", "b"),
 				)
@@ -471,6 +520,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 					test("select a from foo where (b) = (select b from bar where foo.a = bar.a)", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(2, "bar", "bar")
+						reqColsSelect := createReqCols([]PlanStage{fooSource}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+						reqColsSet := createReqCols([]PlanStage{fooSource}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+						reqColsSub := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a", "bar.b"}, map[string]int{"foo.a": 1, "bar.a": 2, "bar.b": 2})
 						return NewProjectStage(
 							NewFilterStage(
 								fooSource,
@@ -485,11 +537,13 @@ func TestAlgebrizeSelect(t *testing.T) {
 													left:  createSQLColumnExprFromSource(fooSource, "foo", "a"),
 													right: createSQLColumnExprFromSource(barSource, "bar", "a"),
 												},
+												reqColsSub,
 											),
 											createProjectedColumn(2, barSource, "bar", "b", "", "b"),
 										),
 									},
 								},
+								append(reqColsSet, reqColsSelect...),
 							),
 							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
 						)
@@ -499,6 +553,10 @@ func TestAlgebrizeSelect(t *testing.T) {
 						fooSource := createMongoSource(1, "foo", "f")
 						barSource := createMongoSource(2, "bar", "bar")
 						foo3Source := createMongoSource(3, "foo", "foo")
+						reqColsSelect := createReqCols([]PlanStage{fooSource}, []string{"f.a"}, map[string]int{"f.a": 1})
+						reqColsSet := createReqCols([]PlanStage{fooSource}, []string{"f.b"}, map[string]int{"f.b": 1})
+						reqColsSub := createReqCols([]PlanStage{barSource}, []string{"bar.b"}, map[string]int{"bar.b": 2})
+						reqColsSub2 := createReqCols([]PlanStage{fooSource, foo3Source}, []string{"foo.a", "f.a"}, map[string]int{"foo.a": 3, "f.a": 1})
 						return NewProjectStage(
 							NewFilterStage(
 								fooSource,
@@ -519,16 +577,19 @@ func TestAlgebrizeSelect(t *testing.T) {
 																	left:  createSQLColumnExprFromSource(fooSource, "f", "a"),
 																	right: createSQLColumnExprFromSource(foo3Source, "foo", "a"),
 																},
+																reqColsSub2,
 															),
 															createProjectedColumnFromSQLExpr(3, "", "1", SQLInt(1)),
 														),
 													},
 												},
+												append(reqColsSelect, reqColsSub...),
 											),
 											createProjectedColumn(2, barSource, "bar", "b", "", "b"),
 										),
 									},
 								},
+								append(reqColsSet, reqColsSelect...),
 							),
 							createProjectedColumn(1, fooSource, "f", "a", "", "a"),
 						)
@@ -538,6 +599,11 @@ func TestAlgebrizeSelect(t *testing.T) {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(2, "bar", "bar")
 						foo3Source := createMongoSource(3, "foo", "foo")
+						reqColsSelect := createReqCols([]PlanStage{fooSource}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+						reqColsSet := createReqCols([]PlanStage{fooSource}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+						reqColsSub := createReqCols([]PlanStage{barSource}, []string{"bar.a", "bar.b"}, map[string]int{"bar.a": 2, "bar.b": 2})
+						reqColsSub2 := createReqCols([]PlanStage{foo3Source}, []string{"foo.a"}, map[string]int{"foo.a": 3})
+						reqColsSub3 := createReqCols([]PlanStage{barSource}, []string{"bar.a"}, map[string]int{"bar.a": 2})
 						return NewProjectStage(
 							NewFilterStage(
 								fooSource,
@@ -559,17 +625,20 @@ func TestAlgebrizeSelect(t *testing.T) {
 																		left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
 																		right: createSQLColumnExprFromSource(foo3Source, "foo", "a"),
 																	},
+																	append(reqColsSub3, reqColsSub2...),
 																),
 																createProjectedColumnFromSQLExpr(3, "", "1", SQLInt(1)),
 															),
 														},
 													},
+													reqColsSub,
 												),
 												createProjectedColumn(2, barSource, "bar", "b", "", "b"),
 											),
 										),
 									},
 								},
+								append(reqColsSet, reqColsSelect...),
 							),
 							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
 						)
@@ -581,6 +650,8 @@ func TestAlgebrizeSelect(t *testing.T) {
 		Convey("group by", func() {
 			test("select sum(a) from foo", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
 				return NewProjectStage(
 					NewGroupByStage(source,
 						nil,
@@ -590,6 +661,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 							}),
 						},
+						append([]SQLExpr{reqColsSum}, reqColsAgg...),
 					),
 					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
@@ -597,6 +669,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select sum(a) from foo group by b", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
 				return NewProjectStage(
 					NewGroupByStage(source,
 						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
@@ -606,6 +681,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 							}),
 						},
+						append(append([]SQLExpr{reqColsSum}, reqColsGroupBy...), reqColsAgg...),
 					),
 					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
@@ -613,6 +689,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select a, sum(a) from foo group by b", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+				reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
 				return NewProjectStage(
 					NewGroupByStage(source,
 						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
@@ -623,6 +702,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 							}),
 						},
+						append(append(reqColsSelect, reqColsSum), reqColsGroupBy...),
 					),
 					createProjectedColumn(1, source, "foo", "a", "", "a"),
 					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
@@ -631,6 +711,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select sum(a) from foo group by b order by sum(a)", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
 				return NewProjectStage(
 					NewOrderByStage(
 						NewGroupByStage(source,
@@ -641,7 +724,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
 							},
+							append(append([]SQLExpr{reqColsSum}, reqColsGroupBy...), reqColsAgg...),
 						),
+						[]SQLExpr{reqColsSum},
 						&orderByTerm{
 							expr:      NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
 							ascending: true,
@@ -653,6 +738,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select sum(a) as sum_a from foo group by b order by sum_a", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
 				return NewProjectStage(
 					NewOrderByStage(
 						NewGroupByStage(source,
@@ -663,7 +751,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
 							},
+							append(append([]SQLExpr{reqColsSum}, reqCols...), reqColsAgg...),
 						),
+						[]SQLExpr{reqColsSum},
 						&orderByTerm{
 							expr:      NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
 							ascending: true,
@@ -676,6 +766,12 @@ func TestAlgebrizeSelect(t *testing.T) {
 			test("select sum(a) from foo f group by b order by (select c from foo where f._id = _id)", func() PlanStage {
 				foo1Source := createMongoSource(1, "foo", "f")
 				foo2Source := createMongoSource(2, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{foo1Source}, []string{"f.b", "f._id"}, map[string]int{"f.a": 1, "f.b": 1})
+				reqColsAgg := createReqCols([]PlanStage{foo1Source}, []string{"f.a"}, map[string]int{"f.a": 1})
+				reqColsSum := NewSQLColumnExpr(1, "", "sum(f.a)", "float64", "")
+				reqColsSub := createReqCols([]PlanStage{foo1Source}, []string{"f._id"}, map[string]int{"f._id": 1})
+				reqColsSub2 := createReqCols([]PlanStage{foo2Source}, []string{"foo.c"}, map[string]int{"foo.c": 2})
+				reqColsWhere := createReqCols([]PlanStage{foo2Source}, []string{"foo._id"}, map[string]int{"foo._id": 2})
 				return NewProjectStage(
 					NewOrderByStage(
 						NewGroupByStage(foo1Source,
@@ -687,7 +783,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "a")},
 								}),
 							},
+							append(append([]SQLExpr{reqColsSum}, reqCols...), reqColsAgg...),
 						),
+						append([]SQLExpr{reqColsSum}, reqColsSub...),
 						&orderByTerm{
 							expr: &SQLSubqueryExpr{
 								correlated: true,
@@ -698,6 +796,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 											left:  createSQLColumnExprFromSource(foo1Source, "f", "_id"),
 											right: createSQLColumnExprFromSource(foo2Source, "foo", "_id"),
 										},
+										append(append(reqColsSub, reqColsWhere...), reqColsSub2...),
 									),
 									createProjectedColumn(2, foo2Source, "foo", "c", "", "c"),
 								),
@@ -712,6 +811,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 			test("select (select sum(foo.a) from foo as f) from foo group by b", func() PlanStage {
 				foo1Source := createMongoSource(1, "foo", "foo")
 				foo2Source := createMongoSource(2, "foo", "f")
+				reqCols := createReqCols([]PlanStage{foo1Source, foo2Source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+				reqColsAgg := createReqCols([]PlanStage{foo1Source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
 				return NewProjectStage(
 					NewGroupByStage(foo1Source,
 						[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
@@ -723,6 +825,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 								},
 							}),
 						},
+						append(append([]SQLExpr{reqColsSum}, reqCols...), reqColsAgg...),
 					),
 					createProjectedColumnFromSQLExpr(1, "", "(select sum(foo.a) from foo as f)",
 						&SQLSubqueryExpr{
@@ -739,12 +842,17 @@ func TestAlgebrizeSelect(t *testing.T) {
 			test("select (select sum(f.a + foo.a) from foo f) from foo group by b", func() PlanStage {
 				foo1Source := createMongoSource(1, "foo", "foo")
 				foo2Source := createMongoSource(2, "foo", "f")
+				reqCols := createReqCols([]PlanStage{foo1Source, foo2Source}, []string{"foo.b", "foo.a"}, map[string]int{"foo.b": 1, "foo.a": 1})
+				reqColsAgg1 := createReqCols([]PlanStage{foo2Source}, []string{"f.a"}, map[string]int{"f.a": 2})
+				reqColsAgg2 := createReqCols([]PlanStage{foo1Source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+				reqColsSum := NewSQLColumnExpr(2, "", "sum(f.a+foo.a)", "float64", "")
 				return NewProjectStage(
 					NewGroupByStage(foo1Source,
 						[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
 						ProjectedColumns{
 							createProjectedColumn(1, foo1Source, "foo", "a", "foo", "a"),
 						},
+						reqCols,
 					),
 					createProjectedColumnFromSQLExpr(1, "", "(select sum(f.a+foo.a) from foo as f)",
 						&SQLSubqueryExpr{
@@ -762,6 +870,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 											}},
 										}),
 									},
+									append(append([]SQLExpr{reqColsSum}, reqColsAgg1...), reqColsAgg2...),
 								),
 								createProjectedColumnFromSQLExpr(2, "", "sum(f.a+foo.a)", NewSQLColumnExpr(2, "", "sum(f.a+foo.a)", schema.SQLFloat, schema.MongoNone)),
 							),
@@ -774,6 +883,9 @@ func TestAlgebrizeSelect(t *testing.T) {
 		Convey("having", func() {
 			test("select a from foo group by b having sum(a) > 10", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+				reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
 				return NewProjectStage(
 					NewFilterStage(
 						NewGroupByStage(source,
@@ -785,11 +897,13 @@ func TestAlgebrizeSelect(t *testing.T) {
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
 							},
+							append(append(reqColsSelect, reqColsGroupBy...), reqColsSum),
 						),
 						&SQLGreaterThanExpr{
 							left:  NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
 							right: SQLInt(10),
 						},
+						append(reqColsSelect, reqColsSum),
 					),
 					createProjectedColumn(1, source, "foo", "a", "", "a"),
 				)
@@ -800,6 +914,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 					test("select a from foo having exists(select 1 from bar)", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(2, "bar", "bar")
+						reqCols := createReqCols([]PlanStage{fooSource}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 						return NewProjectStage(
 							NewFilterStage(
 								fooSource,
@@ -813,6 +928,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 										),
 									},
 								},
+								reqCols,
 							),
 							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
 						)
@@ -824,12 +940,14 @@ func TestAlgebrizeSelect(t *testing.T) {
 		Convey("distinct", func() {
 			test("select distinct a from foo", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
 					NewGroupByStage(source,
 						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 						ProjectedColumns{
 							createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 						},
+						reqCols,
 					),
 					createProjectedColumn(1, source, "foo", "a", "", "a"),
 				)
@@ -837,6 +955,8 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select distinct sum(a) from foo", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
 				return NewProjectStage(
 					NewGroupByStage(
 						NewGroupByStage(source,
@@ -847,11 +967,13 @@ func TestAlgebrizeSelect(t *testing.T) {
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
 							},
+							append([]SQLExpr{reqColsSum}, reqColsAgg...),
 						),
 						[]SQLExpr{NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
 						ProjectedColumns{
 							createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 						},
+						[]SQLExpr{reqColsSum},
 					),
 					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
@@ -859,6 +981,8 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select distinct sum(a) from foo having sum(a) > 20", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
 				return NewProjectStage(
 					NewGroupByStage(
 						NewFilterStage(
@@ -870,16 +994,19 @@ func TestAlgebrizeSelect(t *testing.T) {
 										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 									}),
 								},
+								append([]SQLExpr{reqColsSum}, reqColsAgg...),
 							),
 							&SQLGreaterThanExpr{
 								left:  NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
 								right: SQLInt(20),
 							},
+							[]SQLExpr{reqColsSum},
 						),
 						[]SQLExpr{NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
 						ProjectedColumns{
 							createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 						},
+						[]SQLExpr{reqColsSum},
 					),
 					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 				)
@@ -889,8 +1016,10 @@ func TestAlgebrizeSelect(t *testing.T) {
 		Convey("order by", func() {
 			test("select a from foo order by a", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
 					NewOrderByStage(source,
+						reqCols,
 						&orderByTerm{
 							expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
 							ascending: true,
@@ -902,8 +1031,10 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select a as b from foo order by b", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
 					NewOrderByStage(source,
+						reqCols,
 						&orderByTerm{
 							expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
 							ascending: true,
@@ -915,8 +1046,10 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select a from foo order by foo.a", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
 					NewOrderByStage(source,
+						reqCols,
 						&orderByTerm{
 							expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
 							ascending: true,
@@ -928,8 +1061,10 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select a as b from foo order by foo.a", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
 					NewOrderByStage(source,
+						reqCols,
 						&orderByTerm{
 							expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
 							ascending: true,
@@ -941,8 +1076,10 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select a from foo order by 1", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
 					NewOrderByStage(source,
+						reqCols,
 						&orderByTerm{
 							expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
 							ascending: true,
@@ -954,8 +1091,10 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select * from foo order by 2", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqColsStar(source, "foo", 1)
 				return NewProjectStage(
 					NewOrderByStage(source,
+						reqCols,
 						&orderByTerm{
 							expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
 							ascending: true,
@@ -967,8 +1106,10 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select foo.* from foo order by 2", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqColsStar(source, "foo", 1)
 				return NewProjectStage(
 					NewOrderByStage(source,
+						reqCols,
 						&orderByTerm{
 							expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
 							ascending: true,
@@ -980,9 +1121,11 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select foo.*, foo.a from foo order by 2", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqColsStar(source, "foo", 1)
 				columns := append(createAllProjectedColumnsFromSource(1, source, ""), createProjectedColumn(1, source, "foo", "a", "", "a"))
 				return NewProjectStage(
 					NewOrderByStage(source,
+						reqCols,
 						&orderByTerm{
 							expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
 							ascending: true,
@@ -994,8 +1137,10 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select a from foo order by -1", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
 				return NewProjectStage(
 					NewOrderByStage(source,
+						reqCols,
 						&orderByTerm{
 							expr:      SQLInt(-1),
 							ascending: true,
@@ -1007,8 +1152,10 @@ func TestAlgebrizeSelect(t *testing.T) {
 
 			test("select a + b as c from foo order by c - b", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
+				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a", "foo.b"}, map[string]int{"foo.a": 1, "foo.b": 1})
 				return NewProjectStage(
 					NewOrderByStage(source,
+						reqCols,
 						&orderByTerm{
 							expr: &SQLSubtractExpr{
 								left: &SQLAddExpr{
@@ -1034,9 +1181,11 @@ func TestAlgebrizeSelect(t *testing.T) {
 					test("select a from foo order by (select a from bar)", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(2, "bar", "bar")
+						reqCols := createReqCols([]PlanStage{fooSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 2})
 						return NewProjectStage(
 							NewOrderByStage(
 								fooSource,
+								reqCols,
 								&orderByTerm{
 									expr: &SQLSubqueryExpr{
 										plan: NewCacheStage(2,
@@ -1516,6 +1665,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 			test("@@local.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: SessionVariable})
 			test("@@test_variable", &SQLVariableExpr{Name: "test_variable", Kind: SessionVariable})
 			test("@hmmm", &SQLVariableExpr{Name: "hmmm", Kind: UserVariable})
+
 		})
 	})
 }

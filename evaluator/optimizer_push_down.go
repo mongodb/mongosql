@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2/bson"
@@ -18,7 +19,8 @@ func optimizePushDown(n node) (node, error) {
 }
 
 type pushDownOptimizer struct {
-	selectIDsInScope []int
+	selectIDsInScope  []int
+	tableNamesInScope []string
 }
 
 func (v *pushDownOptimizer) visit(n node) (node, error) {
@@ -33,6 +35,7 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 	// this could be a combination of the below select ID sources.
 	case *MongoSourceStage:
 		v.selectIDsInScope = append(v.selectIDsInScope, typedN.selectIDs...)
+		v.tableNamesInScope = append(v.tableNamesInScope, typedN.aliasNames...)
 	case *BSONSourceStage:
 		v.selectIDsInScope = append(v.selectIDsInScope, typedN.selectID)
 	case *SchemaDataSourceStage:
@@ -45,6 +48,7 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 		// selectIDs and restore them afterwards.
 
 		oldSelectIDsInScope := v.selectIDsInScope
+		oldTableNamesInScope := v.tableNamesInScope
 
 		n, err = walk(v, n)
 		if err != nil {
@@ -52,6 +56,7 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 		}
 
 		v.selectIDsInScope = oldSelectIDsInScope
+		v.tableNamesInScope = oldTableNamesInScope
 
 	// Push Down
 	case *FilterStage:
@@ -59,16 +64,49 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize filter: %v", err)
 		}
+
+		if fs, ok := n.(*FilterStage); ok {
+			if _, ok := fs.source.(*MongoSourceStage); ok {
+				projSource, err := v.pushdownProject(fs.requiredColumns, fs.source)
+				if err != nil {
+					return nil, fmt.Errorf("unable to optimize FilterStage project: %v", err)
+				}
+				n = NewFilterStage(projSource, fs.matcher, fs.requiredColumns)
+			}
+		}
 	case *GroupByStage:
 		n, err = v.visitGroupBy(typedN)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize group by: %v", err)
 		}
+
+		if _, ok := typedN.source.(*MongoSourceStage); ok && n == typedN {
+			projSource, err := v.pushdownProject(typedN.requiredColumns, typedN.source)
+			if err != nil {
+				return nil, fmt.Errorf("unable to optimize GroupBy project: %v", err)
+			}
+			n = NewGroupByStage(projSource, typedN.keys, typedN.projectedColumns, typedN.requiredColumns)
+		}
+
 	case *JoinStage:
 		n, err = v.visitJoin(typedN)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize join: %v", err)
 		}
+
+		if n == typedN {
+			projSourceLeft, err := v.getRequiredColumnsForJoin(typedN.left, typedN.requiredColumns, leftJoinChild)
+			if err != nil {
+				return nil, fmt.Errorf("unable to optimize JoinStage left project: %v", err)
+			}
+			projSourceRight, err := v.getRequiredColumnsForJoin(typedN.right, typedN.requiredColumns, rightJoinChild)
+			if err != nil {
+				return nil, fmt.Errorf("unable to optimize JoinStage right project: %v", err)
+			}
+
+			n = NewJoinStage(typedN.kind, projSourceLeft, projSourceRight, typedN.matcher, typedN.requiredColumns)
+		}
+
 	case *LimitStage:
 		n, err = v.visitLimit(typedN)
 		if err != nil {
@@ -78,6 +116,14 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 		n, err = v.visitOrderBy(typedN)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize order by: %v", err)
+		}
+
+		if _, ok := typedN.source.(*MongoSourceStage); ok && n == typedN {
+			projSource, err := v.pushdownProject(typedN.requiredColumns, typedN.source)
+			if err != nil {
+				return nil, fmt.Errorf("unable to optimize OrderBy project: %v", err)
+			}
+			n = NewOrderByStage(projSource, typedN.requiredColumns, typedN.terms...)
 		}
 	case *ProjectStage:
 		n, err = v.visitProject(typedN)
@@ -148,7 +194,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		// that can be partially pushed down, so we construct
 		// a new filter with only the part remaining that
 		// cannot be pushed down.
-		return NewFilterStage(ms, localMatcher), nil
+		return NewFilterStage(ms, localMatcher, filter.requiredColumns), nil
 	}
 
 	// everything was able to be pushed down, so the filter
@@ -678,7 +724,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	ms.mappingRegistry = newMappingRegistry
 
 	if lookupInfo.remainingPredicate != nil && joinKind == InnerJoin {
-		f, err := v.visit(NewFilterStage(ms, lookupInfo.remainingPredicate))
+		f, err := v.visit(NewFilterStage(ms, lookupInfo.remainingPredicate, join.requiredColumns))
 		if err != nil {
 			return nil, err
 		}
@@ -924,4 +970,54 @@ func (cf *columnFinder) visit(n node) (node, error) {
 	}
 
 	return walk(cf, n)
+}
+
+// pushdownProject is called when a stage could not be pushed down. It uses requiredColumns to create and
+// visit a new projectStage in order to project out only the columns needed for the rest of the query so that
+// we do not have to pull all data from a table into memory.
+func (v *pushDownOptimizer) pushdownProject(requiredColumns []SQLExpr, source PlanStage) (PlanStage, error) {
+	var projectedCols []ProjectedColumn
+	for _, expr := range requiredColumns {
+		if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
+			column := &Column{
+				SelectID:  sqlColExpr.selectID,
+				Table:     sqlColExpr.tableName,
+				Name:      sqlColExpr.columnName,
+				SQLType:   sqlColExpr.Type(),
+				MongoType: sqlColExpr.columnType.MongoType,
+			}
+			projectedCols = append(projectedCols, ProjectedColumn{Column: column, Expr: expr})
+		}
+	}
+	project := NewProjectStage(source, projectedCols...)
+	projSource, err := v.visitProject(project)
+	if err != nil {
+		return nil, fmt.Errorf("unable to optimize project: %v", err)
+	}
+	return projSource, nil
+}
+
+// getRequiredColumnsForJoin determines which columns in requiredColumns belong to which side of a join. Once this is determined,
+// pushdownProject is called to project the proper columns.
+func (v *pushDownOptimizer) getRequiredColumnsForJoin(plan PlanStage, requiredColumns []SQLExpr, joinChild JoinChild) (PlanStage, error) {
+	var requiredChildColumns []SQLExpr
+	if _, ok := plan.(*MongoSourceStage); ok {
+		for _, c := range requiredColumns {
+			tableName := strings.Split(c.String(), ".")[0]
+			// Joins are left deep, so we need to search all but the right-most table in scope for the table
+			// on the left side of the join. We only need to search the right-most table in scope for the table
+			// on the right side of the join.
+			if joinChild == leftJoinChild {
+				if containsString(v.tableNamesInScope[:len(v.tableNamesInScope)-1], tableName) {
+					requiredChildColumns = append(requiredChildColumns, c)
+				}
+			} else {
+				if v.tableNamesInScope[len(v.tableNamesInScope)-1] == tableName {
+					requiredChildColumns = append(requiredChildColumns, c)
+				}
+			}
+		}
+		return v.pushdownProject(requiredChildColumns, plan)
+	}
+	return plan, nil
 }

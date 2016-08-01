@@ -28,14 +28,16 @@ type GroupByStage struct {
 	// keys holds the expression(s) to group by. For example, in
 	// select a, count(b) from foo group by a,
 	// keys will hold the parsed column name 'a'.
-	keys []SQLExpr
+	keys            []SQLExpr
+	requiredColumns []SQLExpr
 }
 
-func NewGroupByStage(source PlanStage, keys []SQLExpr, projectedColumns ProjectedColumns) *GroupByStage {
+func NewGroupByStage(source PlanStage, keys []SQLExpr, projectedColumns ProjectedColumns, reqCols []SQLExpr) *GroupByStage {
 	return &GroupByStage{
 		source:           source,
 		keys:             keys,
 		projectedColumns: projectedColumns,
+		requiredColumns:  reqCols,
 	}
 }
 
@@ -220,5 +222,6 @@ func (gb *GroupByStage) clone() *GroupByStage {
 		source:           gb.source,
 		keys:             gb.keys,
 		projectedColumns: gb.projectedColumns,
+		requiredColumns:  gb.requiredColumns,
 	}
 }

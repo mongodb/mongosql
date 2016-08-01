@@ -3,14 +3,16 @@ package evaluator
 // Filter ensures that only rows matching a given criteria are
 // returned.
 type FilterStage struct {
-	matcher SQLExpr
-	source  PlanStage
+	matcher         SQLExpr
+	source          PlanStage
+	requiredColumns []SQLExpr
 }
 
-func NewFilterStage(source PlanStage, predicate SQLExpr) *FilterStage {
+func NewFilterStage(source PlanStage, predicate SQLExpr, reqCols []SQLExpr) *FilterStage {
 	return &FilterStage{
-		source:  source,
-		matcher: predicate,
+		source:          source,
+		matcher:         predicate,
+		requiredColumns: reqCols,
 	}
 }
 
@@ -87,7 +89,8 @@ func (fi *FilterIter) Err() error {
 
 func (fs *FilterStage) clone() *FilterStage {
 	return &FilterStage{
-		source:  fs.source,
-		matcher: fs.matcher,
+		source:          fs.source,
+		matcher:         fs.matcher,
+		requiredColumns: fs.requiredColumns,
 	}
 }

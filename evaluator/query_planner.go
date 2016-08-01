@@ -21,6 +21,7 @@ type queryPlanBuilder struct {
 	aggregates []*SQLAggFunctionExpr
 
 	from     PlanStage
+	join     []SQLExpr
 	where    SQLExpr
 	groupBy  []SQLExpr
 	having   SQLExpr
@@ -42,7 +43,7 @@ func (b *queryPlanBuilder) build() PlanStage {
 		return NewEmptyStage(columns)
 	}
 
-	plan := b.from
+	plan := b.buildFrom(b.from)
 	plan = b.buildWhere(plan)
 	plan = b.buildGroupBy(plan)
 	plan = b.buildHaving(plan)
@@ -50,7 +51,6 @@ func (b *queryPlanBuilder) build() PlanStage {
 	plan = b.buildOrderBy(plan)
 	plan = b.buildLimit(plan)
 	plan = b.buildProject(plan)
-
 	return plan
 }
 
@@ -59,6 +59,8 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 	if b.distinct {
 		var keys []SQLExpr
 		var projectedKeys ProjectedColumns
+		reqCols := b.exprCollector.referencedColumns.copyExprs()
+
 		for _, c := range b.project {
 			projectedKeys = append(projectedKeys, *b.projectedColumnFromExpr(c.Expr))
 			keys = append(keys, c.Expr)
@@ -75,7 +77,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 			projectedColumns = append(projectedColumns, *pc)
 		}
 
-		plan = NewGroupByStage(plan, keys, projectedColumns.Unique())
+		plan = NewGroupByStage(plan, keys, projectedColumns.Unique(), reqCols)
 
 		// now we must replace all the project values with columns as
 		// any that weren't already a column have now been computed.
@@ -104,22 +106,33 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 	plan := source
 	if len(b.groupBy) > 0 || len(b.aggregates) > 0 {
-		// do this now so it doesn't throw off the b.exprCollector.allNonAggReferencedColumns.
+		reqCols := b.exprCollector.referencedColumns.copyExprs()
+
 		b.exprCollector.RemoveAll(b.groupBy)
+		for _, a := range b.aggregates {
+			b.exprCollector.Remove(a)
+		}
 
 		// projectedAggregates will include all the aggregates as well
 		// as any column that was referenced.
 		var projectedAggregates ProjectedColumns
 		for _, e := range b.exprCollector.referencedColumns.copyExprs() {
-			pc := b.projectedColumnFromExpr(e)
-			projectedAggregates = append(projectedAggregates, *pc)
+			if col, ok := e.(SQLColumnExpr); ok {
+				if !col.isAggregateReplacementColumn() {
+					pc := b.projectedColumnFromExpr(e)
+					projectedAggregates = append(projectedAggregates, *pc)
+				}
+			} else {
+				pc := b.projectedColumnFromExpr(e)
+				projectedAggregates = append(projectedAggregates, *pc)
+			}
 		}
 		for _, e := range b.aggregates {
 			pc := b.projectedColumnFromExpr(e)
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
 
-		plan = NewGroupByStage(plan, b.groupBy, projectedAggregates.Unique())
+		plan = NewGroupByStage(plan, b.groupBy, projectedAggregates.Unique(), reqCols)
 	}
 
 	return plan
@@ -127,8 +140,10 @@ func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 
 func (b *queryPlanBuilder) buildHaving(source PlanStage) PlanStage {
 	if b.having != nil {
+		reqCols := b.exprCollector.referencedColumns.copyExprs()
+
 		b.exprCollector.Remove(b.having)
-		return NewFilterStage(source, b.having)
+		return NewFilterStage(source, b.having, reqCols)
 	}
 
 	return source
@@ -144,11 +159,13 @@ func (b *queryPlanBuilder) buildLimit(source PlanStage) PlanStage {
 
 func (b *queryPlanBuilder) buildOrderBy(source PlanStage) PlanStage {
 	if len(b.orderBy) > 0 {
+		reqCols := b.exprCollector.referencedColumns.copyExprs()
+
 		for _, obt := range b.orderBy {
 			b.exprCollector.Remove(obt.expr)
 		}
 
-		return NewOrderByStage(source, b.orderBy...)
+		return NewOrderByStage(source, reqCols, b.orderBy...)
 	}
 
 	return source
@@ -167,15 +184,64 @@ func (b *queryPlanBuilder) buildProject(source PlanStage) PlanStage {
 
 func (b *queryPlanBuilder) buildWhere(source PlanStage) PlanStage {
 	if b.where != nil {
-		b.exprCollector.Remove(b.where)
-		return NewFilterStage(source, b.where)
-	}
+		var reqCols []SQLExpr
+		for _, e := range b.exprCollector.referencedColumns.copyExprs() {
+			if col, ok := e.(SQLColumnExpr); ok {
+				if !col.isAggregateReplacementColumn() {
+					reqCols = append(reqCols, col)
+				}
+			}
+		}
 
+		b.exprCollector.Remove(b.where)
+
+		return NewFilterStage(source, b.where, reqCols)
+	}
 	return source
+}
+
+func (b *queryPlanBuilder) buildFrom(source PlanStage) PlanStage {
+	switch typedS := source.(type) {
+	case *JoinStage:
+		if typedL, ok := typedS.left.(*JoinStage); ok {
+			typedS.left = b.buildFrom(typedL)
+		}
+		if b.from != nil {
+			reqCols := b.exprCollector.referencedColumns.copyExprs()
+
+			if b.join != nil {
+				for _, c := range b.join {
+					if strings.Contains(typedS.matcher.String(), c.String()) {
+						b.exprCollector.Remove(c)
+					}
+				}
+			}
+			return NewJoinStage(typedS.kind, typedS.left, typedS.right, typedS.matcher, reqCols)
+		}
+	}
+	return source
+}
+
+func (b *queryPlanBuilder) includeFrom(p PlanStage) error {
+	switch typedP := p.(type) {
+	case *JoinStage:
+		if typedL, ok := typedP.left.(*JoinStage); ok {
+			err := b.includeFrom(typedL)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	b.exprCollector.getJoinOnVals(p)
+	b.join = b.exprCollector.referencedColumns.exprs
+	return nil
 }
 
 func (b *queryPlanBuilder) includeAggregates(aggs []*SQLAggFunctionExpr) {
 	b.aggregates = aggs
+	for _, a := range b.aggregates {
+		b.exprCollector.Add(a)
+	}
 }
 
 func (b *queryPlanBuilder) includeGroupBy(groupBy parser.GroupBy) error {
@@ -349,9 +415,7 @@ func (c *expressionCollector) Add(e SQLExpr) {
 func (v *expressionCollector) visit(n node) (node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
-		// if the tableName is empty, then this must be a replaced aggregate expression
-		// as that is the only legal way to end up with an empty table name.
-		if typedN.tableName != "" && containsInt(v.selectIDs, typedN.selectID) {
+		if containsInt(v.selectIDs, typedN.selectID) {
 			if v.removeMode {
 				v.referencedColumns.remove(typedN)
 			} else {
@@ -364,6 +428,25 @@ func (v *expressionCollector) visit(n node) (node, error) {
 			return walk(v, n)
 		}
 		return n, nil
+	default:
+		return walk(v, n)
+	}
+}
+
+func (c *expressionCollector) getJoinOnVals(ps PlanStage) {
+	v := &joinOnVals{c}
+	v.visit(ps)
+}
+
+type joinOnVals struct {
+	exprCollector *expressionCollector
+}
+
+func (v *joinOnVals) visit(n node) (node, error) {
+	switch typedN := n.(type) {
+	case *JoinStage:
+		v.exprCollector.Add(typedN.matcher)
+		return typedN, nil
 	default:
 		return walk(v, n)
 	}

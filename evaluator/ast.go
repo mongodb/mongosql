@@ -234,7 +234,6 @@ func walk(v nodeVisitor, n node) (node, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		newS, ok := n.(PlanStage)
 		if !ok {
 			return nil, fmt.Errorf("expected PlanStage, but got %T", n)
@@ -270,7 +269,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 
 		if typedN.source != source || typedN.matcher != matcher {
-			n = NewFilterStage(source, matcher)
+			n = NewFilterStage(source, matcher, typedN.requiredColumns)
 		}
 	case *GroupByStage:
 		source, err := visitPlanStage(typedN.source)
@@ -289,13 +288,14 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 
 		if typedN.source != source || &typedN.keys != keys || &typedN.projectedColumns != pcs {
-			n = NewGroupByStage(source, *keys, *pcs)
+			n = NewGroupByStage(source, *keys, *pcs, typedN.requiredColumns)
 		}
 	case *JoinStage:
 		left, err := visitPlanStage(typedN.left)
 		if err != nil {
 			return nil, err
 		}
+
 		right, err := visitPlanStage(typedN.right)
 		if err != nil {
 			return nil, err
@@ -307,7 +307,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 
 		if typedN.left != left || typedN.right != right || typedN.matcher != matcher {
-			n = NewJoinStage(typedN.kind, left, right, matcher)
+			n = NewJoinStage(typedN.kind, left, right, matcher, typedN.requiredColumns)
 		}
 	case *LimitStage:
 		source, err := visitPlanStage(typedN.source)
@@ -330,7 +330,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 
 		if typedN.source != source || &typedN.terms != terms {
-			n = NewOrderByStage(source, *terms...)
+			n = NewOrderByStage(source, typedN.requiredColumns, *terms...)
 		}
 	case *ProjectStage:
 		source, err := visitPlanStage(typedN.source)
