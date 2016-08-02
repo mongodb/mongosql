@@ -1280,12 +1280,24 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 	}()
 
 	execCtx := evalCtx.ExecutionCtx
+	plan := se.plan
 
 	if se.correlated {
 		execCtx = evalCtx.CreateChildExecutionCtx()
+		newPlan, err := replaceColumnWithConstant(plan, execCtx)
+		if err != nil {
+			return nil, err
+		}
+		plan, ok := newPlan.(PlanStage)
+		if !ok {
+			panic("replaceColumnWithConstant returns something that is not a PlanStage")
+		}
+		plan, err = OptimizePlan(execCtx, plan)
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	it, err = se.plan.Open(execCtx)
+	it, err = plan.Open(execCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -1330,6 +1342,31 @@ func (se *SQLSubqueryExpr) Type() schema.SQLType {
 	}
 
 	return schema.SQLTuple
+}
+
+// constantColumnReplacer holds the execution context, which has the data
+// used to replace the column expressions.
+type constantColumnReplacer struct {
+	ctx *ExecutionCtx
+}
+
+// replaceColumnWithConstant kicks off the replacement of column expressions.
+func replaceColumnWithConstant(n node, ctx *ExecutionCtx) (node, error) {
+	v := &constantColumnReplacer{ctx}
+	n, err := v.visit(n)
+	return n, err
+}
+
+func (v *constantColumnReplacer) visit(n node) (node, error) {
+	switch typedN := n.(type) {
+	case SQLColumnExpr:
+		for _, row := range v.ctx.SrcRows {
+			if val, ok := row.GetField(typedN.selectID, typedN.tableName, typedN.columnName); ok {
+				return NewSQLValue(val, typedN.columnType.SQLType, typedN.columnType.MongoType)
+			}
+		}
+	}
+	return walk(v, n)
 }
 
 //

@@ -115,7 +115,8 @@ func walk(v nodeVisitor, n node) (node, error) {
 
 			if !hasNew && e != newE {
 				hasNew = true
-				newExprs = (*exprs)[0:i]
+				newExprs = make([]SQLExpr, i, len(*exprs))
+				copy(newExprs, (*exprs)[:i])
 			}
 
 			if hasNew {
@@ -146,7 +147,8 @@ func walk(v nodeVisitor, n node) (node, error) {
 
 			if !hasNew && e != newE {
 				hasNew = true
-				newExprs = (*exprs)[0:i]
+				newExprs = make([]*SQLAssignmentExpr, i, len(*exprs))
+				copy(newExprs, (*exprs)[:i])
 			}
 
 			if hasNew {
@@ -172,7 +174,8 @@ func walk(v nodeVisitor, n node) (node, error) {
 
 			if !hasNew && t.expr != newE {
 				hasNew = true
-				newTerms = (*terms)[0:i]
+				newTerms = make([]*orderByTerm, i, len(*terms))
+				copy(newTerms, (*terms)[:i])
 			}
 
 			if hasNew {
@@ -201,7 +204,8 @@ func walk(v nodeVisitor, n node) (node, error) {
 
 			if !hasNew && pc.Expr != newE {
 				hasNew = true
-				newPcs = (*pcs)[0:i]
+				newPcs = make([]ProjectedColumn, i, len(*pcs))
+				copy(newPcs, (*pcs)[:i])
 			}
 
 			if hasNew {
