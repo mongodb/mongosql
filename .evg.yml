@@ -354,7 +354,7 @@ functions:
         rm -rf build
         mkdir build
         cp drdl sqlproxy build
-        ${python|python} buildscripts/make_archive.py -o release.${archive_format|tgz} --format ${archive_format|tgz} --transform build/sqlproxy=bin/sqlproxy${extension} --transform build/drdl=bin/mongodrdl${extension} --transform distsrc/README=README --transform distsrc/THIRD-PARTY-NOTICES=THIRD-PARTY-NOTICES LICENSE distsrc${separator|/}README distsrc${separator|/}THIRD-PARTY-NOTICES build${separator|/}sqlproxy build${separator|/}drdl
+        ${python|python} buildscripts/make_archive.py -o release.${archive_format|tgz} --format ${archive_format|tgz} --transform build/sqlproxy=bin/mongosqld${extension} --transform build/drdl=bin/mongodrdl${extension} --transform distsrc/README=README --transform distsrc/THIRD-PARTY-NOTICES=THIRD-PARTY-NOTICES LICENSE distsrc${separator|/}README distsrc${separator|/}THIRD-PARTY-NOTICES build${separator|/}sqlproxy build${separator|/}drdl
         echo version: $(git --git-dir .git describe) > version.yml
 
   "download mongod":
