@@ -32,7 +32,7 @@ type Options struct {
 	MongoTimeout           int64  `long:"mongo-timeout" description:"seconds to wait for a server to respond when connecting or on follow up operations" default:"30" hidden:"true"`
 
 	// SSL Options
-	SSLPEMFile           string `long:"ssl-pem-file" description:"path to a file containing the cert and private key estabolishing a connection with a client"`
+	SSLPEMFile           string `long:"ssl-pem-file" description:"path to a file containing the cert and private key establishing a connection with a client"`
 	SSLAllowInvalidCerts bool   `long:"ssl-allow-invalid-certs" description:"don't require the cert presented by the client to be valid"`
 	SSLCAFile            string `long:"ssl-ca-file" description:"path to a CA certs file to use for authenticating certs from a client"`
 
