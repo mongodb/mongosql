@@ -116,6 +116,12 @@ testcases:
   expected:
   - [2]
   - [3]
+- sql: "select a from baz where b = 5 and a between 1 and 4"
+  description: "between distinct values"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
 - sql: "select a from test.foo where id between 1 and 1"
   description: "between the same value"
   expected_names: ["a"]

@@ -808,21 +808,17 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		return &SQLXorExpr{left, right}, nil
 	case *parser.RangeCond:
-		rangeExpr, ok := typedE.Range.(*parser.AndExpr)
-		if !ok {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_SYNTAX_ERROR)
-		}
 		left, err := a.translateExpr(typedE.Left)
 		if err != nil {
 			return nil, err
 		}
 
-		to, err := a.translateExpr(rangeExpr.Right)
+		to, err := a.translateExpr(typedE.To)
 		if err != nil {
 			return nil, err
 		}
 
-		from, err := a.translateExpr(rangeExpr.Left)
+		from, err := a.translateExpr(typedE.From)
 		if err != nil {
 			return nil, err
 		}

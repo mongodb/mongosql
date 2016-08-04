@@ -534,7 +534,7 @@ func (node *ComparisonExpr) Format(buf *TrackedBuffer) {
 type RangeCond struct {
 	Operator string
 	Left     Expr
-	Range    Expr
+	From, To Expr
 }
 
 // RangeCond.Operator
@@ -544,11 +544,7 @@ const (
 )
 
 func (node *RangeCond) Format(buf *TrackedBuffer) {
-	rangeExpr, ok := node.Range.(*AndExpr)
-	if !ok {
-		buf.Fprintf("%v %s %v", node.Left, node.Operator, node.Range)
-	}
-	buf.Fprintf("%v %s %v and %v", node.Left, node.Operator, rangeExpr.Left, rangeExpr.Right)
+	buf.Fprintf("%v %s from %v to %v", node.Left, node.Operator, node.From, node.To)
 }
 
 // RegexExor represents a Regex expression that matches a pattern with an expression.

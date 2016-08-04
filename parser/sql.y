@@ -109,8 +109,8 @@ var (
 %left <empty> ON
 %right <empty> NOT
 %left <empty> OR XOR
-%nonassoc <empty> BETWEEN
 %left <empty> AND
+%nonassoc <empty> BETWEEN
 %left <empty> NE EQ NULL_SAFE_EQUAL IS LIKE REGEXP IN
 %left <empty> LT GT LE GE
 %left <empty> BIT_AND BIT_OR CARET
@@ -154,7 +154,7 @@ var (
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
 %type <bytes> as_lower_opt as_opt
-%type <expr> expression
+%type <expr> expression expr
 %type <tableExprs> table_expression_list
 %type <tableExpr> table_expression
 %type <str> join_type
@@ -776,6 +776,16 @@ expression_list:
   }
 
 expression:
+  expr %prec BETWEEN
+    {
+      $$ = $1
+    }
+  | expression AND expression %prec NOT
+    {
+      $$ = &AndExpr{Left: $1, Right: $3}
+    }
+
+expr:
   value
   {
     $$ = $1
@@ -880,10 +890,6 @@ expression:
   {
     $$ = &ComparisonExpr{Left: $1, Operator: AST_GE, SubqueryOperator: $3, Right: $4}
   }
-| expression AND expression
-  {
-    $$ = &AndExpr{Left: $1, Right: $3}
-  }
 | expression OR expression
   {
     $$ = &OrExpr{Left: $1, Right: $3}
@@ -955,13 +961,13 @@ expression:
   {
     $$ = &ExistsExpr{Subquery: $2}
   }
-| expression BETWEEN expression
+| expression BETWEEN expression AND expression
   {
-    $$ = &RangeCond{Left: $1, Operator: AST_BETWEEN, Range: $3}
+    $$ = &RangeCond{Left: $1, Operator: AST_BETWEEN, From: $3, To: $5}
   }
-| expression NOT BETWEEN expression
+| expression NOT BETWEEN expression AND expression
   {
-    $$ = &RangeCond{Left: $1, Operator: AST_NOT_BETWEEN, Range: $4}
+    $$ = &RangeCond{Left: $1, Operator: AST_NOT_BETWEEN, From: $4, To: $6}
   }
 | case_expression
   {
