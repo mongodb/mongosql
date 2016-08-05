@@ -156,16 +156,6 @@ func (_ *coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return SQLNull, nil
 }
 
-func (_ *coalesceFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	for _, expr := range f.Exprs {
-		if v, ok := expr.(SQLValue); ok && v != SQLNull {
-			return v
-		}
-	}
-
-	return f
-}
-
 func (_ *coalesceFunc) Type() schema.SQLType {
 	return schema.SQLNone
 }

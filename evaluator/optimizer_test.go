@@ -1277,8 +1277,6 @@ func TestOptimizeEvaluations(t *testing.T) {
 			test{"abs(-10)", "10", SQLFloat(10)},
 			test{"ascii(NULL)", "null", SQLNull},
 			test{"ascii('a')", "97", SQLInt(97)},
-			test{"coalesce(NULL, 10, a)", "10", SQLInt(10)},
-			test{"coalesce(NULL, 10, 20)", "10", SQLInt(10)},
 			test{"concat(NULL, a)", "null", SQLNull},
 			test{"concat(a, NULL)", "null", SQLNull},
 			test{"concat('go', 'lang')", "golang", SQLVarchar("golang")},
