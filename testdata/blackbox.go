@@ -107,9 +107,9 @@ var (
 )
 
 type resultSchema struct {
-	ExpectedNames   []string        ` + "`yaml:\"expected_names\"`" + `
-	ExpectedTypes   []string        ` + "`yaml:\"expected_types\"`" + `
-	ExpectedData    [][]interface{} ` + "`yaml:\"expected\"`" + `
+	ExpectedNames []string        ` + "`yaml:\"expected_names\"`" + `
+	ExpectedTypes []string        ` + "`yaml:\"expected_types\"`" + `
+	ExpectedData  [][]interface{} ` + "`yaml:\"expected\"`" + `
 }
 
 func setup() {

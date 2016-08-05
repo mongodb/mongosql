@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/shopspring/decimal"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -31,6 +31,9 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLNull, nil
 		case bson.ObjectId:
 			return SQLObjectID(v.Hex()), nil
+		case bson.Decimal128:
+			d, err := decimal.NewFromString(v.String())
+			return SQLDecimal128(d), err
 		case bool:
 			return SQLBool(v), nil
 		case string:
@@ -111,6 +114,9 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLVarchar(strconv.FormatInt(int64(eval), 10)), nil
 		case bson.ObjectId:
 			return SQLObjectID(v.Hex()), nil
+		case bson.Decimal128:
+			d, err := decimal.NewFromString(v.String())
+			return SQLDecimal128(d), err
 		case time.Time:
 			return SQLVarchar(v.String()), nil
 		case nil:
@@ -119,7 +125,6 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLVarchar(reflect.ValueOf(v).String()), nil
 		}
 
-	// This is going to be eliminated
 	case schema.SQLBoolean:
 		switch v := value.(type) {
 		case bool:
@@ -157,6 +162,39 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			return SQLNull, nil
 		}
 
+	case schema.SQLDecimal128:
+		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLDecimal128(decimal.NewFromFloat(1)), nil
+			}
+			return SQLDecimal128(decimal.Zero), nil
+		case bson.Decimal128:
+			d, err := decimal.NewFromString(v.String())
+			return SQLDecimal128(d), err
+		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
+			eval, err := util.ToFloat64(v)
+			if err == nil {
+				return SQLDecimal128(decimal.NewFromFloat(eval)), nil
+			}
+		case decimal.Decimal:
+			return SQLDecimal128(v), nil
+		case time.Time:
+			h, m, s := v.Clock()
+			// Date, otherwise timestamp
+			if h+m+s == 0 {
+				eval, _ := strconv.ParseFloat(v.Format("20060102"), 64)
+				return SQLDecimal128(decimal.NewFromFloat(eval)), nil
+			} else if v.Year() == 0 {
+				eval, _ := strconv.ParseFloat(v.Format("150405"), 64)
+				return SQLDecimal128(decimal.NewFromFloat(eval)), nil
+			}
+			eval, _ := strconv.ParseFloat(v.Format("20060102150405"), 64)
+			return SQLDecimal128(decimal.NewFromFloat(eval)), nil
+		case nil:
+			return SQLNull, nil
+		}
+
 	case schema.SQLFloat, schema.SQLNumeric, schema.SQLArrNumeric:
 		switch v := value.(type) {
 		case bool:
@@ -164,6 +202,9 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 				return SQLFloat(1), nil
 			}
 			return SQLFloat(0), nil
+		case bson.Decimal128:
+			d, err := decimal.NewFromString(v.String())
+			return SQLDecimal128(d), err
 		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToFloat64(v)
 			if err == nil {
@@ -252,8 +293,29 @@ const SQLTrue = SQLBool(true)
 // SQLFalse is a constant SQLBool(false).
 const SQLFalse = SQLBool(false)
 
+func (sb SQLBool) Decimal128() decimal.Decimal {
+	if bool(sb) {
+		return decimal.NewFromFloat(1)
+	}
+	return decimal.Zero
+}
+
 func (sb SQLBool) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sb, nil
+}
+
+func (sb SQLBool) Float64() float64 {
+	if bool(sb) {
+		return float64(1)
+	}
+	return float64(0)
+}
+
+func (sb SQLBool) Int64() int64 {
+	if bool(sb) {
+		return int64(1)
+	}
+	return int64(0)
 }
 
 func (sb SQLBool) String() string {
@@ -269,20 +331,6 @@ func (_ SQLBool) Type() schema.SQLType {
 
 func (sb SQLBool) Value() interface{} {
 	return bool(sb)
-}
-
-func (sb SQLBool) Float64() float64 {
-	if bool(sb) {
-		return float64(1)
-	}
-	return float64(0)
-}
-
-func (sb SQLBool) Int64() int64 {
-	if bool(sb) {
-		return int64(1)
-	}
-	return int64(0)
 }
 
 //
@@ -316,8 +364,22 @@ type SQLDate struct {
 	Time time.Time
 }
 
+func (sd SQLDate) Decimal128() decimal.Decimal {
+	return decimal.NewFromFloat(sd.Float64())
+}
+
 func (sd SQLDate) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sd, nil
+}
+
+func (sd SQLDate) Float64() float64 {
+	val, _ := strconv.ParseFloat(sd.Time.Format("20060102"), 64)
+	return val
+}
+
+func (sd SQLDate) Int64() int64 {
+	val, _ := strconv.ParseInt(sd.Time.Format("20060102"), 10, 64)
+	return val
 }
 
 func (sd SQLDate) String() string {
@@ -332,16 +394,6 @@ func (sd SQLDate) Value() interface{} {
 	return sd.Time
 }
 
-func (sd SQLDate) Float64() float64 {
-	val, _ := strconv.ParseFloat(sd.Time.Format("20060102"), 64)
-	return val
-}
-
-func (sd SQLDate) Int64() int64 {
-	val, _ := strconv.ParseInt(sd.Time.Format("20060102"), 10, 64)
-	return val
-}
-
 //
 // SQLTimestamp represents a timestamp value.
 //
@@ -349,20 +401,12 @@ type SQLTimestamp struct {
 	Time time.Time
 }
 
+func (st SQLTimestamp) Decimal128() decimal.Decimal {
+	return decimal.NewFromFloat(st.Float64())
+}
+
 func (st SQLTimestamp) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return st, nil
-}
-
-func (st SQLTimestamp) String() string {
-	return st.Time.Format("2006-01-02 15:04:05")
-}
-
-func (_ SQLTimestamp) Type() schema.SQLType {
-	return schema.SQLTimestamp
-}
-
-func (st SQLTimestamp) Value() interface{} {
-	return st.Time
 }
 
 func (st SQLTimestamp) Float64() float64 {
@@ -379,13 +423,37 @@ func (st SQLTimestamp) Int64() int64 {
 	return val
 }
 
+func (st SQLTimestamp) String() string {
+	return st.Time.Format("2006-01-02 15:04:05")
+}
+
+func (_ SQLTimestamp) Type() schema.SQLType {
+	return schema.SQLTimestamp
+}
+
+func (st SQLTimestamp) Value() interface{} {
+	return st.Time
+}
+
 //
 // SQLFloat represents a float.
 //
 type SQLFloat float64
 
+func (sf SQLFloat) Decimal128() decimal.Decimal {
+	return decimal.NewFromFloat(float64(sf))
+}
+
 func (sf SQLFloat) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return sf, nil
+}
+
+func (sf SQLFloat) Float64() float64 {
+	return float64(sf)
+}
+
+func (sf SQLFloat) Int64() int64 {
+	return int64(sf)
 }
 
 func (sf SQLFloat) String() string {
@@ -400,21 +468,25 @@ func (sf SQLFloat) Value() interface{} {
 	return float64(sf)
 }
 
-func (sf SQLFloat) Float64() float64 {
-	return float64(sf)
-}
-
-func (sf SQLFloat) Int64() int64 {
-	return int64(sf)
-}
-
 //
 // SQLInt represents a 64-bit integer value.
 //
 type SQLInt int64
 
+func (si SQLInt) Decimal128() decimal.Decimal {
+	return decimal.NewFromFloat(float64(si))
+}
+
 func (si SQLInt) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return si, nil
+}
+
+func (si SQLInt) Float64() float64 {
+	return float64(si)
+}
+
+func (si SQLInt) Int64() int64 {
+	return int64(si)
 }
 
 func (si SQLInt) String() string {
@@ -429,14 +501,6 @@ func (si SQLInt) Value() interface{} {
 	return int64(si)
 }
 
-func (si SQLInt) Float64() float64 {
-	return float64(si)
-}
-
-func (si SQLInt) Int64() int64 {
-	return int64(si)
-}
-
 //
 // SQLNullValue represents a null.
 //
@@ -445,8 +509,20 @@ type SQLNullValue struct{}
 // SQLNull is a constant SQLNullValue.
 var SQLNull = SQLNullValue{}
 
+func (_ SQLNullValue) Decimal128() decimal.Decimal {
+	return decimal.Zero
+}
+
 func (nv SQLNullValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return nv, nil
+}
+
+func (_ SQLNullValue) Float64() float64 {
+	return float64(0)
+}
+
+func (_ SQLNullValue) Int64() int64 {
+	return int64(0)
 }
 
 func (nv SQLNullValue) String() string {
@@ -461,14 +537,6 @@ func (_ SQLNullValue) Value() interface{} {
 	return nil
 }
 
-func (_ SQLNullValue) Float64() float64 {
-	return float64(0)
-}
-
-func (_ SQLNullValue) Int64() int64 {
-	return int64(0)
-}
-
 //
 // SQLNoValue represents no value.
 //
@@ -477,8 +545,20 @@ type SQLNoValue struct{}
 // SQLNone is a constant SQLNoValue.
 var SQLNone = SQLNoValue{}
 
+func (_ SQLNoValue) Decimal128() decimal.Decimal {
+	return decimal.Zero
+}
+
 func (sn SQLNoValue) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sn, nil
+}
+
+func (_ SQLNoValue) Float64() float64 {
+	return float64(0)
+}
+
+func (_ SQLNoValue) Int64() int64 {
+	return int64(0)
 }
 
 func (sn SQLNoValue) String() string {
@@ -493,12 +573,39 @@ func (_ SQLNoValue) Value() interface{} {
 	return struct{}{}
 }
 
-func (_ SQLNoValue) Float64() float64 {
-	return float64(0)
+//
+// SQLDecimal128 represents a decimal 128 value.
+//
+type SQLDecimal128 decimal.Decimal
+
+func (sd SQLDecimal128) Decimal128() decimal.Decimal {
+	return decimal.Decimal(sd)
 }
 
-func (_ SQLNoValue) Int64() int64 {
-	return int64(0)
+func (sd SQLDecimal128) Evaluate(_ *EvalCtx) (SQLValue, error) {
+	return sd, nil
+}
+
+func (sd SQLDecimal128) Float64() float64 {
+	// second return value is f represents sd exactly
+	f, _ := decimal.Decimal(sd).Float64()
+	return f
+}
+
+func (sd SQLDecimal128) Int64() int64 {
+	return decimal.Decimal(sd).Round(0).IntPart()
+}
+
+func (sd SQLDecimal128) String() string {
+	return decimal.Decimal(sd).String()
+}
+
+func (_ SQLDecimal128) Type() schema.SQLType {
+	return schema.SQLDecimal128
+}
+
+func (sd SQLDecimal128) Value() interface{} {
+	return decimal.Decimal(sd)
 }
 
 //
@@ -506,8 +613,20 @@ func (_ SQLNoValue) Int64() int64 {
 //
 type SQLObjectID string
 
+func (_ SQLObjectID) Decimal128() decimal.Decimal {
+	return decimal.Zero
+}
+
 func (id SQLObjectID) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return id, nil
+}
+
+func (_ SQLObjectID) Float64() float64 {
+	return float64(0)
+}
+
+func (_ SQLObjectID) Int64() int64 {
+	return int64(0)
 }
 
 func (id SQLObjectID) String() string {
@@ -522,21 +641,27 @@ func (id SQLObjectID) Value() interface{} {
 	return bson.ObjectIdHex(string(id))
 }
 
-func (_ SQLObjectID) Float64() float64 {
-	return float64(0)
-}
-
-func (_ SQLObjectID) Int64() int64 {
-	return int64(0)
-}
-
 //
 // SQLVarchar represents a string value.
 //
 type SQLVarchar string
 
+func (sv SQLVarchar) Decimal128() decimal.Decimal {
+	return decimal.NewFromFloat(sv.Float64())
+}
+
 func (sv SQLVarchar) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return sv, nil
+}
+
+func (sv SQLVarchar) Float64() float64 {
+	val, _ := strconv.ParseFloat(string(sv), 64)
+	return val
+}
+
+func (sv SQLVarchar) Int64() int64 {
+	val, _ := strconv.ParseInt(string(sv), 10, 64)
+	return val
 }
 
 func (sv SQLVarchar) String() string {
@@ -551,16 +676,6 @@ func (sv SQLVarchar) Value() interface{} {
 	return string(sv)
 }
 
-func (sv SQLVarchar) Float64() float64 {
-	val, _ := strconv.ParseFloat(string(sv), 64)
-	return val
-}
-
-func (sv SQLVarchar) Int64() int64 {
-	val, _ := strconv.ParseInt(string(sv), 10, 64)
-	return val
-}
-
 //
 // SQLValues represents multiple sql values.
 //
@@ -568,8 +683,20 @@ type SQLValues struct {
 	Values []SQLValue
 }
 
+func (sv *SQLValues) Decimal128() decimal.Decimal {
+	return decimal.NewFromFloat(sv.Float64())
+}
+
 func (sv *SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return sv, nil
+}
+
+func (sv *SQLValues) Float64() float64 {
+	return float64(sv.Values[0].Float64())
+}
+
+func (sv *SQLValues) Int64() int64 {
+	return int64(sv.Values[0].Float64())
 }
 
 func (sv *SQLValues) normalize() node {
@@ -606,21 +733,25 @@ func (sv *SQLValues) Value() interface{} {
 	return values
 }
 
-func (sv *SQLValues) Float64() float64 {
-	return float64(sv.Values[0].Float64())
-}
-
-func (sv *SQLValues) Int64() int64 {
-	return int64(sv.Values[0].Float64())
-}
-
 //
 // SQLUint32 represents an unsigned 32-bit integer.
 //
 type SQLUint32 uint32
 
+func (su SQLUint32) Decimal128() decimal.Decimal {
+	return decimal.NewFromFloat(su.Float64())
+}
+
 func (su SQLUint32) Evaluate(_ *EvalCtx) (SQLValue, error) {
 	return su, nil
+}
+
+func (su SQLUint32) Float64() float64 {
+	return float64(su)
+}
+
+func (su SQLUint32) Int64() int64 {
+	return int64(su)
 }
 
 func (su SQLUint32) String() string {
@@ -633,31 +764,6 @@ func (su SQLUint32) Type() schema.SQLType {
 
 func (su SQLUint32) Value() interface{} {
 	return uint32(su)
-}
-
-func (su SQLUint32) Float64() float64 {
-	return float64(su)
-}
-
-func (su SQLUint32) Int64() int64 {
-	return int64(su)
-}
-
-// round returns the closest integer value to the
-// float - round half down for negative values and
-// round half up otherwise.
-func round(f float64) int64 {
-	v := f
-
-	if v < 0.0 {
-		v += 0.5
-	}
-
-	if f < 0 && v == math.Floor(v) {
-		return int64(v - 1)
-	}
-
-	return int64(math.Floor(v))
 }
 
 // CompareTo compares two SQLValues. It returns -1 if
@@ -720,8 +826,8 @@ func CompareTo(left, right SQLValue) (int, error) {
 
 	if left.Type() == right.Type() {
 		switch leftVal := left.(type) {
-		case SQLFloat, SQLInt, SQLUint32, SQLDate, SQLTimestamp:
-			return compareFloats(left.Float64(), right.Float64())
+		case SQLDate, SQLDecimal128, SQLFloat, SQLInt, SQLUint32, SQLTimestamp:
+			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		case SQLVarchar:
 			rightVal, _ := right.(SQLVarchar)
 			s1, s2 := string(leftVal), string(rightVal)
@@ -778,7 +884,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 		case SQLNullValue:
 			return 1, nil
 		default:
-			return compareFloats(left.Float64(), right.Float64())
+			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		}
 	case SQLDate:
 		switch right.(type) {
@@ -791,7 +897,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 		case SQLNullValue:
 			return 1, nil
 		default:
-			return compareFloats(left.Float64(), right.Float64())
+			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		}
 	case SQLTimestamp:
 		switch right.(type) {
@@ -804,26 +910,16 @@ func CompareTo(left, right SQLValue) (int, error) {
 		case SQLNullValue:
 			return 1, nil
 		default:
-			return compareFloats(left.Float64(), right.Float64())
+			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		}
 	default:
 		switch right.(type) {
 		case SQLNullValue:
 			return 1, nil
 		default:
-			return compareFloats(left.Float64(), right.Float64())
+			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		}
 	}
 
 	return -1, fmt.Errorf("comparing failed between %T and %T", left, right)
-}
-
-func compareFloats(left, right float64) (int, error) {
-	cmp := left - right
-	if cmp < 0 {
-		return -1, nil
-	} else if cmp > 0 {
-		return 1, nil
-	}
-	return 0, nil
 }

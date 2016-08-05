@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/shopspring/decimal"
 )
 
 //
@@ -25,7 +26,18 @@ type SQLExpr interface {
 type SQLArithmetic interface {
 	Int64() int64
 	Float64() float64
+	Decimal128() decimal.Decimal
 }
+
+// Arithmetic consts
+type ArithmeticOperator byte
+
+const (
+	ADD ArithmeticOperator = iota
+	DIV
+	MULT
+	SUB
+)
 
 //
 // SQLValue is a SQLExpr with a value.
@@ -62,6 +74,8 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 		return bool(v), nil
 	case SQLInt, SQLFloat, SQLUint32:
 		return v.Float64() != float64(0), nil
+	case SQLDecimal128:
+		return decimal.Zero.Equals(v.Decimal128()), nil
 	case SQLVarchar:
 		// more info: http://stackoverflow.com/questions/12221211/how-does-string-truthiness-work-in-mysql
 		p, err := strconv.ParseFloat(string(v), 64)
@@ -95,7 +109,7 @@ func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	return NewSQLValue(leftVal.Float64()+rightVal.Float64(), preferentialType(leftVal, rightVal), schema.MongoNone)
+	return doArithmetic(leftVal, rightVal, ADD)
 }
 
 func (add *SQLAddExpr) String() string {
@@ -293,6 +307,11 @@ func (c SQLColumnExpr) Type() schema.SQLType {
 	if c.columnType.MongoType == schema.MongoObjectId && c.columnType.SQLType == schema.SQLVarchar {
 		return schema.SQLObjectID
 	}
+
+	if c.columnType.MongoType == schema.MongoDecimal128 {
+		return schema.SQLDecimal128
+	}
+
 	return c.columnType.SQLType
 }
 
@@ -344,7 +363,8 @@ func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if rightVal.Float64() == 0 || hasNullValue(leftVal, rightVal) {
 		return SQLNull, nil
 	}
-	return SQLFloat(leftVal.Float64() / rightVal.Float64()), nil
+
+	return doArithmetic(leftVal, rightVal, DIV)
 }
 
 func (div *SQLDivideExpr) String() string {
@@ -889,7 +909,7 @@ func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	return NewSQLValue(leftVal.Float64()*rightVal.Float64(), preferentialType(leftVal, rightVal), schema.MongoNone)
+	return doArithmetic(leftVal, rightVal, MULT)
 }
 
 func (mult *SQLMultiplyExpr) String() string {
@@ -1393,7 +1413,7 @@ func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	return NewSQLValue(leftVal.Float64()-rightVal.Float64(), preferentialType(leftVal, rightVal), schema.MongoNone)
+	return doArithmetic(leftVal, rightVal, SUB)
 }
 
 func (sub *SQLSubtractExpr) String() string {

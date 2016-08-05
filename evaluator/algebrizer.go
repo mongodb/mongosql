@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/shopspring/decimal"
 )
 
 // AlgebrizeSelect takes a parsed SQL statement and returns an algebrized form of the query.
@@ -787,18 +788,31 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	case *parser.NullVal:
 		return SQLNull, nil
 	case parser.NumVal:
-		// try to parse as int first
-		if i, err := strconv.ParseInt(parser.String(expr), 10, 64); err == nil {
+		exprString := parser.String(expr)
+
+		// try to parse as int64 first
+		if i, err := strconv.ParseInt(exprString, 10, 64); err == nil {
 			return SQLInt(i), nil
 		}
 
-		// if it's not a valid int, try parsing as float instead
-		f, err := strconv.ParseFloat(parser.String(expr), 64)
+		// if it's not a valid int64, try parsing as float64 instead
+		f, err := strconv.ParseFloat(exprString, 64)
 		if err != nil {
 			return nil, err
 		}
 
-		return SQLFloat(f), nil
+		float := strconv.FormatFloat(f, 'f', -1, 64)
+		if float == exprString {
+			return SQLFloat(f), nil
+		}
+
+		// if using a float64 reduces our precision, use decimal128
+		d, err := decimal.NewFromString(exprString)
+		if err != nil {
+			return nil, err
+		}
+
+		return SQLDecimal128(d), nil
 	case *parser.OrExpr:
 
 		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)

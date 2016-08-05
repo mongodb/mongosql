@@ -96,6 +96,10 @@ schema:
         Name: b
         MongoType: string
         SqlType: varchar
+     -
+        Name: c
+        MongoType: bson.Decimal128
+        SqlType: numeric
 -
   db: test2
   tables:
@@ -159,7 +163,7 @@ schema:
 		So(cfg.Databases["test1"].Name, ShouldEqual, "test1")
 		So(cfg.Databases["test1"].Tables["foo"].CollectionName, ShouldEqual, "foo")
 
-		So(len(cfg.Databases["test1"].Tables["foo"].RawColumns), ShouldEqual, 2)
+		So(len(cfg.Databases["test1"].Tables["foo"].RawColumns), ShouldEqual, 3)
 
 		So(cfg.Databases["test1"].Tables["foo"].RawColumns[0].SqlName, ShouldEqual, "a")
 

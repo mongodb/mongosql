@@ -3,10 +3,9 @@ package evaluator
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
-
-	"strconv"
 
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"

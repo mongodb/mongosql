@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -88,8 +89,14 @@ func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 }
 
 func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
-	sum := 0.0
-	count := 0
+	count := 0.0
+
+	sum := decimal.Zero
+
+	isDecimal := false
+
+	floatSum, correction := 0.0, 0.0
+
 	for _, row := range ctx.Rows {
 		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
 		for _, expr := range f.Exprs {
@@ -112,7 +119,20 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 			}
 
 			count++
-			sum += eval.Float64()
+
+			if isDecimal || eval.Type() == schema.SQLDecimal128 {
+				isDecimal = true
+				sum = sum.Add(eval.Decimal128())
+				continue
+			}
+
+			// this avoids catastrophic cancellation in
+			// summing a series of floats or mixed types.
+			floatEval := eval.Float64()
+			floatEval, correction = fast2Sum(floatEval, correction)
+			floatSum, floatEval = twoSum(floatSum, floatEval)
+			correction += floatEval
+
 		}
 	}
 
@@ -120,11 +140,18 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 		return SQLNull, nil
 	}
 
-	return SQLFloat(sum / float64(count)), nil
+	if isDecimal {
+		avg := sum.Div(decimal.NewFromFloat(count))
+		return SQLDecimal128(avg), nil
+	}
+
+	floatSum += correction
+	return SQLFloat(floatSum / count), nil
 }
 
 func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
-	var count int64
+	count := 0
+
 	for _, row := range ctx.Rows {
 		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
 		for _, expr := range f.Exprs {
@@ -189,6 +216,7 @@ func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			if eval != SQLNull {
 				if min == SQLNull {
 					min = eval
@@ -202,6 +230,7 @@ func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			if compared > 0 {
 				min = eval
 			}
@@ -212,7 +241,12 @@ func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 
 func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
 
-	sum := 0.0
+	floatSum, correction := 0.0, 0.0
+
+	isDecimal := false
+
+	sum := decimal.Zero
+
 	allNull := true
 
 	for _, row := range ctx.Rows {
@@ -231,14 +265,24 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 
 			if distinctMap != nil {
 				if distinctMap[eval] {
-					// already in our distinct map, so we skip this row
 					continue
 				} else {
 					distinctMap[eval] = true
 				}
 			}
 
-			sum += eval.Float64()
+			if isDecimal || eval.Type() == schema.SQLDecimal128 {
+				isDecimal = true
+				sum = sum.Add(eval.Decimal128())
+				continue
+			}
+
+			// this avoids catastrophic cancellation in
+			// summing a series of floats or mixed types.
+			floatEval := eval.Float64()
+			floatEval, correction = fast2Sum(floatEval, correction)
+			floatSum, floatEval = twoSum(floatSum, floatEval)
+			correction += floatEval
 		}
 	}
 
@@ -246,15 +290,24 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 		return SQLNull, nil
 	}
 
-	return SQLFloat(sum), nil
+	if isDecimal {
+		return SQLDecimal128(sum), nil
+	}
+
+	floatSum += correction
+
+	return SQLFloat(floatSum), nil
 }
 
 func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]bool, isSamp bool) (SQLValue, error) {
-	sum := 0.0
 	var data []SQLValue
-	var diff float64 = 0.0
-	var avg float64
-	count := 0
+
+	sum := decimal.Zero
+
+	floatSum, correction, count := 0.0, 0.0, 0.0
+
+	isDecimal := false
+
 	for _, row := range ctx.Rows {
 		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
 		for _, expr := range f.Exprs {
@@ -277,8 +330,20 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 			}
 
 			count++
-			sum += eval.Float64()
 			data = append(data, eval)
+
+			if isDecimal || eval.Type() == schema.SQLDecimal128 {
+				isDecimal = true
+				sum = sum.Add(eval.Decimal128())
+				continue
+			}
+
+			// this avoids catastrophic cancellation in
+			// summing a series of floats or mixed types.
+			floatEval := eval.Float64()
+			floatEval, correction = fast2Sum(floatEval, correction)
+			floatSum, floatEval = twoSum(floatSum, floatEval)
+			correction += floatEval
 		}
 	}
 
@@ -286,7 +351,31 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 		return SQLNull, nil
 	}
 
-	avg = sum / float64(count)
+	if isDecimal {
+		diff := decimal.Zero
+		avg := sum.Div(decimal.NewFromFloat(count))
+
+		for _, v := range data {
+			val := v.Decimal128().Sub(avg)
+			diff = diff.Add(val.Mul(val))
+		}
+
+		// Sample standard deviation
+		if isSamp && count == 1 {
+			return SQLNull, nil
+		} else if isSamp {
+			diff = diff.Div(decimal.NewFromFloat(count - 1))
+			return SQLDecimal128(diff), nil
+		}
+
+		// Population standard deviation
+		diff = diff.Div(decimal.NewFromFloat(count))
+		return SQLDecimal128(diff), nil
+	}
+
+	floatSum += correction
+	avg := floatSum / float64(count)
+	diff := 0.0
 
 	for _, val := range data {
 		diff += math.Pow(val.Float64()-avg, 2)
@@ -298,6 +387,7 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	} else if isSamp {
 		return SQLFloat(math.Sqrt(diff / float64(count-1))), nil
 	}
+
 	// Population standard deviation
 	return SQLFloat(math.Sqrt(diff / float64(count))), nil
 }

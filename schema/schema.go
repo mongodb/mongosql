@@ -26,6 +26,7 @@ const (
 	SQLInt                = "int"
 	SQLInt64              = "int64"
 	SQLFloat              = "float64"
+	SQLDecimal128         = "decimal128"
 	SQLVarchar            = "varchar"
 	SQLTimestamp          = "timestamp"
 	SQLDate               = "date"
@@ -37,38 +38,52 @@ const (
 	SQLTuple              = "sqltuple"
 )
 
+const (
+	zeroInt    = int64(0)
+	zeroFloat  = float64(0)
+	zeroString = ""
+)
+
+var (
+	zeroDecimal128, _ = bson.ParseDecimal128("0")
+	zeroTime          = time.Time{}
+	zeroBSON          = bson.ObjectId("")
+)
+
 // ZeroValue returns the zero value for sqlType.
 func (sqlType SQLType) ZeroValue() interface{} {
 	switch sqlType {
 	case SQLNumeric, SQLInt, SQLInt64:
-		return int64(0)
+		return zeroInt
 	case SQLFloat, SQLArrNumeric:
-		return float64(0)
+		return zeroFloat
 	case SQLVarchar:
-		return ""
+		return zeroString
 	case SQLTimestamp, SQLDate:
-		return time.Time{}
+		return zeroTime
 	case SQLBoolean:
 		return false
 	case SQLNone, SQLNull:
 		return nil
 	case SQLObjectID:
-		return bson.ObjectId("")
+		return zeroBSON
+	case SQLDecimal128:
+		return zeroDecimal128
 	}
 	return ""
 }
 
 const (
-	MongoInt      MongoType = "int"
-	MongoInt64              = "int64"
-	MongoFloat              = "float64"
-	MongoDecimal            = "decimal"
-	MongoString             = "string"
-	MongoGeo2D              = "geo.2darray"
-	MongoObjectId           = "bson.ObjectId"
-	MongoBool               = "bool"
-	MongoDate               = "date"
-	MongoNone               = ""
+	MongoInt        MongoType = "int"
+	MongoInt64                = "int64"
+	MongoFloat                = "float64"
+	MongoDecimal128           = "bson.Decimal128"
+	MongoString               = "string"
+	MongoGeo2D                = "geo.2darray"
+	MongoObjectId             = "bson.ObjectId"
+	MongoBool                 = "bool"
+	MongoDate                 = "date"
+	MongoNone                 = ""
 )
 
 type (
@@ -123,6 +138,36 @@ var (
 
 func (c *Column) validateType() error {
 	switch MongoType(c.MongoType) {
+	case MongoBool:
+		switch SQLType(c.SqlType) {
+		case SQLBoolean:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoDate:
+		switch SQLType(c.SqlType) {
+		case SQLDate, SQLTimestamp:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoDecimal128:
+		switch SQLType(c.SqlType) {
+		case SQLDecimal128, SQLNumeric, SQLVarchar:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoFloat:
+		switch SQLType(c.SqlType) {
+		case SQLFloat, SQLNumeric, SQLVarchar:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
+	case MongoGeo2D:
+		switch SQLType(c.SqlType) {
+		case SQLArrNumeric:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
 	case MongoInt:
 		switch SQLType(c.SqlType) {
 		case SQLInt, SQLInt64, SQLNumeric, SQLVarchar:
@@ -135,45 +180,15 @@ func (c *Column) validateType() error {
 		default:
 			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
 		}
-	case MongoFloat:
-		switch SQLType(c.SqlType) {
-		case SQLFloat, SQLNumeric, SQLVarchar:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
-		}
-	case MongoDecimal:
-		switch SQLType(c.SqlType) {
-		case SQLNumeric, SQLVarchar:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
-		}
-	case MongoString:
-		switch SQLType(c.SqlType) {
-		case SQLVarchar:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
-		}
-	case MongoGeo2D:
-		switch SQLType(c.SqlType) {
-		case SQLArrNumeric:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
-		}
 	case MongoObjectId:
 		switch SQLType(c.SqlType) {
 		case SQLVarchar:
 		default:
 			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
 		}
-	case MongoBool:
+	case MongoString:
 		switch SQLType(c.SqlType) {
-		case SQLBoolean:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
-		}
-	case MongoDate:
-		switch SQLType(c.SqlType) {
-		case SQLDate, SQLTimestamp:
+		case SQLVarchar:
 		default:
 			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
 		}
@@ -379,7 +394,7 @@ func Must(c *Schema, err error) *Schema {
 
 // IsSimilar returns true if the logical or comparison
 // operations can be carried on leftType against rightType
-// with no need for type conversion in MongoDB.
+// with no need for type conversion.
 func IsSimilar(leftType, rightType SQLType) bool {
 	switch leftType {
 	case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
@@ -416,41 +431,46 @@ func (types SQLTypes) Less(i, j int) bool {
 		return true
 	case SQLVarchar:
 		switch t2 {
-		case SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate, SQLBoolean:
+		case SQLDecimal128, SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate, SQLBoolean:
 			return true
 		default:
 			return false
 		}
 	case SQLBoolean:
 		switch t2 {
-		case SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate:
+		case SQLDecimal128, SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate:
 			return true
 		default:
 			return false
 		}
 	case SQLInt, SQLInt64:
 		switch t2 {
-		case SQLFloat, SQLNumeric:
+		case SQLDecimal128, SQLFloat, SQLNumeric:
 			return true
 		default:
 			return false
 		}
 	case SQLTimestamp:
 		switch t2 {
-		case SQLInt, SQLInt64, SQLFloat, SQLNumeric:
+		case SQLDecimal128, SQLInt, SQLInt64, SQLFloat, SQLNumeric:
 			return true
 		default:
 			return false
 		}
 	case SQLDate:
 		switch t2 {
-		case SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp:
+		case SQLDecimal128, SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp:
 			return true
 		default:
 			return false
 		}
 	case SQLFloat, SQLNumeric:
-		return false
+		switch t2 {
+		case SQLDecimal128:
+			return true
+		default:
+			return false
+		}
 	}
 	return false
 }

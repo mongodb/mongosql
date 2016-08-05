@@ -9,7 +9,7 @@ buildvariants:
     build_tags: -tags "sasl ssl"
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian71-3.2.7.tgz
+    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian71-3.3.10.tgz
     push_arch: x86_64-debian71
     push_name: linux
     push_path: linux
@@ -34,7 +34,7 @@ buildvariants:
   expansions:
     build_tags: -tags "sasl ssl"
     gotest_env: "SQLPROXY_SSLTEST=1"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.2.7.tgz --output mongodb.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.3.10.tgz --output mongodb.tgz
     mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
     mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
     push_arch: x86_64-enterprise-amzn64
@@ -49,7 +49,7 @@ buildvariants:
   expansions:
     build_tags: -tags "sasl ssl"
     gotest_env: "SQLPROXY_SSLTEST=1"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.2.7.tgz --output mongodb.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.3.10.tgz --output mongodb.tgz
     mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
     mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
     push_arch: x86_64-enterprise-amzn64
@@ -67,7 +67,7 @@ buildvariants:
   expansions:
     build_tags: -tags "sasl ssl"
     cover: "-"
-    mongo_url: https://downloads.mongodb.org/osx/mongodb-osx-x86_64-3.2.7.tgz
+    mongo_url: https://downloads.mongodb.org/osx/mongodb-osx-x86_64-3.3.10.tgz
     push_arch: x86_64
     push_name: osx
     push_path: osx
@@ -78,7 +78,7 @@ buildvariants:
   expansions:
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel57-3.2.7.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel57-3.3.10.tgz
     push_arch: x86_64-rhel55
     push_name: linux
     push_path: linux
@@ -92,7 +92,7 @@ buildvariants:
     build_tags: -tags "ssl"
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel62-3.2.7.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel62-3.3.10.tgz
     push_arch: x86_64-rhel62
     push_name: linux
     push_path: linux
@@ -105,7 +105,7 @@ buildvariants:
   expansions:
     build_tags: -tags "sasl ssl"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-rhel70-3.2.7.tgz
+    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-rhel70-3.3.10.tgz
     push_arch: x86_64-rhel70
     push_name: linux
     push_path: linux
@@ -120,7 +120,7 @@ buildvariants:
     build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'sasl ssl'
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.2.7.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.10.tgz
     push_arch: ppc64le-rhel71
     push_name: linux
     push_path: linux
@@ -150,7 +150,7 @@ buildvariants:
     gotest_env: "GOARCH=amd64 GOOS=solaris"
     gccgoflags: -gccgoflags "-lsocket -lnsl"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.mongodb.org/sunos5/mongodb-sunos5-x86_64-3.2.7.tgz
+    mongo_url: http://downloads.mongodb.org/sunos5/mongodb-sunos5-x86_64-3.3.10.tgz
     push_arch: x86_64
     push_name: sunos5
     push_path: sunos5
@@ -163,7 +163,7 @@ buildvariants:
   expansions:
     build_tags: -tags "sasl ssl"
     cover: "-"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse11-3.2.7.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse11-3.3.10.tgz
     push_arch: x86_64-suse11
     push_name: linux
     push_path: linux
@@ -176,7 +176,7 @@ buildvariants:
   expansions:
     build_tags: -tags "sasl ssl"
     cover: "-"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse12-3.2.7.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse12-3.3.10.tgz
     push_arch: x86_64-suse12
     push_name: linux
     push_path: linux
@@ -189,7 +189,7 @@ buildvariants:
   expansions:
     build_tags: -tags "sasl ssl"
     cover: "-"
-    mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.2.7.tgz
+    mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.3.10.tgz
     push_arch: x86_64-ubuntu1404
     push_name: linux
     push_path: linux
@@ -206,7 +206,7 @@ buildvariants:
     cover: "-"
     extension: .exe
     library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
-    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-i386-3.2.7.zip
+    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-i386-3.3.10.zip
     # Set storage engine as mmapv1 for 32 bit variants
     # since WiredTiger requires 64 bit support.
     mongod_args: --storageEngine=mmapv1
@@ -226,7 +226,7 @@ buildvariants:
     cover: "-"
     extension: .exe
     library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
-    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.7.zip
+    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.3.10.zip
     push_arch: x86_64
     push_name: win32
     push_path: win32
@@ -376,27 +376,27 @@ functions:
     params:
       working_dir: src
       script: |
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/attendees.bson.gz --output testdata/input/attendees.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/Batters.bson.gz --output testdata/input/Batters.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/Calcs.bson.gz --output testdata/input/Calcs.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/DateTime.bson.gz --output testdata/input/DateTime.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/Election.bson.gz --output testdata/input/Election.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/Fischeriris.bson.gz --output testdata/input/Fischeriris.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/Loan.bson.gz --output testdata/input/Loan.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/NumericBins.bson.gz --output testdata/input/NumericBins.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/Rei.bson.gz --output testdata/input/Rei.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/SeattleCrime.bson.gz --output testdata/input/SeattleCrime.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/Securities.bson.gz --output testdata/input/Securities.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/SpecialData.bson.gz --output testdata/input/SpecialData.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/Staples.bson.gz --output testdata/input/Staples.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/Starbucks.bson.gz --output testdata/input/Starbucks.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/UTStarcom.bson.gz --output testdata/input/UTStarcom.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/xy.bson.gz --output testdata/input/xy.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/bigarray.bson.gz --output testdata/input/bigarray.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/bigcoll.bson.gz --output testdata/input/bigcoll.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/bignestedarray.bson.gz --output testdata/input/bignestedarray.bson.gz
-        curl -s http://s3.amazonaws.com/noexpire/sqlproxy/data/bigobjarray.bson.gz --output testdata/input/bigobjarray.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.gz --output testdata/input/attendees.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Batters.bson.gz --output testdata/input/Batters.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Calcs.bson.gz --output testdata/input/Calcs.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DateTime.bson.gz --output testdata/input/DateTime.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Election.bson.gz --output testdata/input/Election.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Fischeriris.bson.gz --output testdata/input/Fischeriris.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Loan.bson.gz --output testdata/input/Loan.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/NumericBins.bson.gz --output testdata/input/NumericBins.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalRei.bson.gz --output testdata/input/Rei.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/SeattleCrime.bson.gz --output testdata/input/SeattleCrime.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Securities.bson.gz --output testdata/input/Securities.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/SpecialData.bson.gz --output testdata/input/SpecialData.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalStaples.bson.gz --output testdata/input/Staples.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Starbucks.bson.gz --output testdata/input/Starbucks.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalUTStarcom.bson.gz --output testdata/input/UTStarcom.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/xy.bson.gz --output testdata/input/xy.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigarray.bson.gz --output testdata/input/bigarray.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigcoll.bson.gz --output testdata/input/bigcoll.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bignestedarray.bson.gz --output testdata/input/bignestedarray.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigobjarray.bson.gz --output testdata/input/bigobjarray.bson.gz
 
   "fetch source" :
     - command: git.get_project

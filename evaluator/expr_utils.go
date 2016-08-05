@@ -2,11 +2,127 @@ package evaluator
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/shopspring/decimal"
 )
+
+const (
+	regexCharsToEscape    = ".^$*+?()[{\\|"
+	likePatternEscapeChar = '\\'
+)
+
+func compareDecimal128(left, right decimal.Decimal) (int, error) {
+	return left.Cmp(right), nil
+}
+
+func compareFloats(left, right float64) (int, error) {
+	cmp := left - right
+	if cmp < 0 {
+		return -1, nil
+	} else if cmp > 0 {
+		return 1, nil
+	}
+	return 0, nil
+}
+
+func convertSQLValueToPattern(value SQLValue) string {
+	pattern := value.String()
+	regex := "^"
+	escaped := false
+	for _, c := range pattern {
+		if !escaped && c == likePatternEscapeChar {
+			escaped = true
+			continue
+		}
+
+		switch {
+		case c == '_':
+			if escaped {
+				regex += "_"
+			} else {
+				regex += "."
+			}
+		case c == '%':
+			if escaped {
+				regex += "%"
+			} else {
+				regex += ".*"
+			}
+		case strings.Contains(regexCharsToEscape, string(c)):
+			regex += "\\" + string(c)
+		default:
+			regex += string(c)
+		}
+
+		escaped = false
+	}
+
+	regex += "$"
+
+	return regex
+}
+
+// doArithmetic performs the given arithmetic operation using
+// leftVal and rightVal as operands.
+func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, error) {
+
+	preferenceType := preferentialType(leftVal, rightVal)
+	useDecimal := preferenceType == schema.SQLDecimal128
+
+	var value interface{}
+
+	switch op {
+	case ADD:
+		if useDecimal {
+			value = leftVal.Decimal128().Add(rightVal.Decimal128())
+		} else {
+			value = leftVal.Float64() + rightVal.Float64()
+		}
+	case DIV:
+		if useDecimal {
+			div := leftVal.Decimal128().Div(rightVal.Decimal128())
+			return SQLDecimal128(div), nil
+		} else {
+			return SQLFloat(leftVal.Float64() / rightVal.Float64()), nil
+		}
+	case MULT:
+		if useDecimal {
+			value = leftVal.Decimal128().Mul(rightVal.Decimal128())
+		} else {
+			value = leftVal.Float64() * rightVal.Float64()
+		}
+	case SUB:
+		if useDecimal {
+			value = leftVal.Decimal128().Sub(rightVal.Decimal128())
+		} else {
+			value = leftVal.Float64() - rightVal.Float64()
+		}
+	default:
+		return nil, fmt.Errorf("unrecognized arithmetic operator: %v", op)
+	}
+
+	return NewSQLValue(value, preferenceType, schema.MongoNone)
+}
+
+// fast2Sum returns the exact unevaluated sum of a and b
+// where the first member is the float64 nearest the sum
+// (ties to even) and the second member is the remainder
+// (assuming |b| <= |a|).
+//
+// T. J. Dekker. A floating-point technique for extending
+// the available precision. Numerische Mathematik,
+// 18(3):224–242, 1971.
+func fast2Sum(a, b float64) (float64, float64) {
+	var s, z, t float64
+	s = a + b
+	z = s - a
+	t = b - z
+	return s, t
+}
 
 // getColumnType accepts a table name and a column name
 // and returns the column type for the given column if
@@ -311,46 +427,21 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	return nil, nil, fmt.Errorf("left or right expression must be a tuple")
 }
 
-const (
-	regexCharsToEscape    = ".^$*+?()[{\\|"
-	likePatternEscapeChar = '\\'
-)
+// round returns the closest integer value to the
+// float - round half down for negative values and
+// round half up otherwise.
+func round(f float64) int64 {
+	v := f
 
-func convertSQLValueToPattern(value SQLValue) string {
-	pattern := value.String()
-	regex := "^"
-	escaped := false
-	for _, c := range pattern {
-		if !escaped && c == likePatternEscapeChar {
-			escaped = true
-			continue
-		}
-
-		switch {
-		case c == '_':
-			if escaped {
-				regex += "_"
-			} else {
-				regex += "."
-			}
-		case c == '%':
-			if escaped {
-				regex += "%"
-			} else {
-				regex += ".*"
-			}
-		case strings.Contains(regexCharsToEscape, string(c)):
-			regex += "\\" + string(c)
-		default:
-			regex += string(c)
-		}
-
-		escaped = false
+	if v < 0.0 {
+		v += 0.5
 	}
 
-	regex += "$"
+	if f < 0 && v == math.Floor(v) {
+		return int64(v - 1)
+	}
 
-	return regex
+	return int64(math.Floor(v))
 }
 
 func shouldFlip(n sqlBinaryNode) bool {
@@ -361,4 +452,24 @@ func shouldFlip(n sqlBinaryNode) bool {
 	}
 
 	return false
+}
+
+// twoSum returns the exact unevaluated sum of a and b,
+// where the first member is the double nearest the sum
+// (ties to even) and the second member is the remainder.
+//
+// O. Møller. Quasi double-precision in floating-point
+// addition. BIT, 5:37–50, 1965.
+//
+// D. Knuth. The Art of Computer Programming, vol 2.
+// Addison-Wesley, Reading, MA, 3rd ed, 1998.
+func twoSum(a, b float64) (float64, float64) {
+	var s, aPrime, bPrime, deltaA, deltaB, t float64
+	s = a + b
+	aPrime = s - b
+	bPrime = s - aPrime
+	deltaA = a - aPrime
+	deltaB = b - bPrime
+	t = deltaA + deltaB
+	return s, t
 }

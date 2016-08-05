@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -133,8 +134,26 @@ func compareResults(t *testing.T, expected, actual [][]interface{}) {
 				expectedCol = int64(v)
 			}
 
+			// Because of the int conversion behavior,
+			// if our actual result is a float64, we
+			// need to convert it to an int64
+			if _, ok := expectedCol.(int64); ok {
+				if v, ok := actualCol.(float64); ok {
+					actualCol = int64(v)
+				}
+			}
+
 			if actualCol != expectedCol {
-				So(fmt.Sprintf("(%d,%d): %v", rownum, colnum, actualCol), ShouldEqual, fmt.Sprintf("(%d,%d): %v", rownum, colnum, expectedCol))
+				expectedFloat, err1 := strconv.ParseFloat(fmt.Sprintf("%v", expectedCol), 64)
+				actualFloat, err2 := strconv.ParseFloat(fmt.Sprintf("%v", actualCol), 64)
+
+				// account for minute floating point imprecision
+				if err1 == nil && err2 == nil {
+					// default tolerance is 0.0000000001
+					So(actualFloat, ShouldAlmostEqual, expectedFloat, 0.000000001)
+				} else {
+					So(fmt.Sprintf("(%d,%d): %v", rownum, colnum, actualCol), ShouldEqual, fmt.Sprintf("(%d,%d): %v", rownum, colnum, expectedCol))
+				}
 			}
 		}
 	}
@@ -389,6 +408,7 @@ func runSQL(db *sql.DB, query string, types []string, names []string) ([][]inter
 			}
 			resultRow = append(resultRow, v)
 		}
+
 		result = append(result, resultRow)
 	}
 

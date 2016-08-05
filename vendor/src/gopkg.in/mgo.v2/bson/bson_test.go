@@ -71,10 +71,10 @@ func makeZeroDoc(value interface{}) (zero interface{}) {
 	case reflect.Ptr:
 		pv := reflect.New(v.Type().Elem())
 		zero = pv.Interface()
-	case reflect.Slice, reflect.Int:
+	case reflect.Slice, reflect.Int, reflect.Int64, reflect.Struct:
 		zero = reflect.New(t).Interface()
 	default:
-		panic("unsupported doc type")
+		panic("unsupported doc type: " + t.Name())
 	}
 	return zero
 }
@@ -1053,6 +1053,13 @@ type inlineDupMap struct {
 type inlineBadKeyMap struct {
 	M map[int]int ",inline"
 }
+type inlineUnexported struct {
+	M          map[string]interface{} ",inline"
+	unexported ",inline"
+}
+type unexported struct {
+	A int
+}
 
 type getterSetterD bson.D
 
@@ -1284,6 +1291,7 @@ var twoWayCrossItems = []crossTypeItem{
 	{&inlineMapInt{A: 1, M: map[string]int{"b": 2}}, map[string]int{"a": 1, "b": 2}},
 	{&inlineMapInt{A: 1, M: nil}, map[string]int{"a": 1}},
 	{&inlineMapMyM{A: 1, M: MyM{"b": MyM{"c": 3}}}, map[string]interface{}{"a": 1, "b": map[string]interface{}{"c": 3}}},
+	{&inlineUnexported{M: map[string]interface{}{"b": 1}, unexported: unexported{A: 2}}, map[string]interface{}{"b": 1, "a": 2}},
 
 	// []byte <=> Binary
 	{&struct{ B []byte }{[]byte("abc")}, map[string]bson.Binary{"b": bson.Binary{Data: []byte("abc")}}},
@@ -1572,6 +1580,9 @@ func (s *S) TestObjectIdJSONMarshaling(c *C) {
 	}
 }
 
+// --------------------------------------------------------------------------
+// Spec tests
+
 type specTest struct {
 	Description string
 	Documents   []struct {
@@ -1811,5 +1822,11 @@ func (s *S) BenchmarkUnmarshalRaw(c *C) {
 	}
 	if err != nil {
 		panic(err)
+	}
+}
+
+func (s *S) BenchmarkNewObjectId(c *C) {
+	for i := 0; i < c.N; i++ {
+		bson.NewObjectId()
 	}
 }

@@ -4,11 +4,22 @@
 data:
 - inline: 
     db: "test"
-    collection: "select"
+    collection: "select_1"
     docs:
     - { _id: 0, a: 1, b: ~ }
     - { _id: 1, a: 2 }
     - { _id: 2, a: 3 }
+
+# TODO(wisdom): holding off testing here until the
+# tools support importing NumberDecimal (TOOLS-1328)
+#
+# - inline:
+#     db: "test"
+#     collection: "select_2"
+#     docs:
+#     - { _id: 0, a: {$numberDecimal: "4.23923983489893498238923982389"} }
+#     - { _id: 1, a: {$numberDecimal: "5.82389287238739829873982389233"} }
+#     - { _id: 2, a: {$numberDecimal: "8.21193948757647389238923892389"} }
 
 #
 # Schema
@@ -17,7 +28,7 @@ schema:
 - db: test
   tables:
   - table: foo
-    collection: "select"
+    collection: "select_1"
     columns:
     - Name: _id
       MongoType: int
@@ -31,6 +42,17 @@ schema:
       MongoType: int
       SqlName: b
       SqlType: int
+  - table: bar
+    collection: "select_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: bson.Decimal128
+      SqlName: a
+      SqlType: numeric
 
 #
 # Tests
@@ -246,10 +268,9 @@ testcases:
   expected_types: [int]
   expected:
   - [1]
-# Test case commented as select (2>1) throws parsing error
-#- sql: "select (2>1) like 1"
-#  description: "query with no matching string lll"
-#  expected_names: ["select (2>1) like 1"]
-#  expected_types: [int]
-#  expected:
-#  - [1]           
+- sql: "select (2>1) like 1"
+  description: "query with no matching string lll"
+  expected_names: ["(2 > 1) like 1"]
+  expected_types: [int]
+  expected:
+  - [1]

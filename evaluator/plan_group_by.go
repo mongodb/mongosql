@@ -1,7 +1,5 @@
 package evaluator
 
-import "fmt"
-
 // orderedGroup holds all the rows belonging to a given key in the groups
 // and an slice of the keys for each group.
 type orderedGroup struct {
@@ -131,8 +129,7 @@ func (gb *GroupByIter) evaluateGroupByKey(row *Row) (string, error) {
 			return "", err
 		}
 
-		// TODO: might be better to use a hash for this
-		gbKey += fmt.Sprintf("%#v", value)
+		gbKey += value.String()
 	}
 
 	return gbKey, nil

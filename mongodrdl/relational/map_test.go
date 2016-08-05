@@ -511,11 +511,14 @@ func TestTypeMapping(t *testing.T) {
 	Convey("Given an empty collection.", t, func() {
 		collection := mongo.NewCollection("test")
 		noIndexes := []mgo.Index{}
+		decimal128, err := bson.ParseDecimal128("4.124")
+		So(err, ShouldBeNil)
 
 		var num1 int32 = 42
 		var num2 int64 = 100000000
 		var num3 float32 = 1.0
 		var num4 float64 = 1000.34001
+		var num5 bson.Decimal128 = decimal128
 
 		typeTests := [][]interface{}{
 			{"string", "varchar", "Hello, world"},
@@ -523,6 +526,7 @@ func TestTypeMapping(t *testing.T) {
 			{"int64", "numeric", num2},
 			{"float32", "numeric", num3},
 			{"float64", "numeric", num4},
+			{"bson.Decimal128", "numeric", num5},
 			{"bool", "boolean", true},
 			{"date", "timestamp", time.Date(2015, 1, 1, 1, 1, 1, 1, time.UTC)},
 			{"[]uint8", "varchar", []byte{1, 2, 3, 4, 5}},

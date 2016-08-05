@@ -784,9 +784,9 @@ schema:
       SqlName: pid
       SqlType: int
     - Name: Price
-      MongoType: float64
+      MongoType: bson.Decimal128
       SqlName: price
-      SqlType: float64
+      SqlType: numeric
     - Name: Prod Type1
       MongoType: string
       SqlName: prod type1

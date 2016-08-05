@@ -115,10 +115,16 @@ type Column struct {
 	SqlType   string
 }
 
+func isNumeric(mongoType string) bool {
+	return strings.HasPrefix(mongoType, "int") ||
+		strings.HasPrefix(mongoType, "float") ||
+		mongoType == "bson.Decimal128"
+}
+
 func newColumn(name string, mongoType string) *Column {
 	var sqlType string
 	switch {
-	case strings.HasPrefix(mongoType, "int") || strings.HasPrefix(mongoType, "float"):
+	case isNumeric(mongoType):
 		sqlType = "numeric"
 	case mongoType == "bool":
 		sqlType = "boolean"

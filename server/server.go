@@ -12,6 +12,7 @@ import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/shopspring/decimal"
 )
 
 // Server manages connections with clients.
@@ -31,6 +32,9 @@ type Server struct {
 
 // New creates a NewServer.
 func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts sqlproxy.Options) (*Server, error) {
+
+	decimal.DivisionPrecision = 34
+
 	s := &Server{
 		eval:      eval,
 		opts:      opts,

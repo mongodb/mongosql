@@ -9,5 +9,5 @@ golang.org/x/crypto/ssh/terminal	a7ead6ddf06233883deca151dffaef2effbf498f
 github.com/10gen/candiedyaml   97add471e803228548f07606c5c73e3d80752ce5
 github.com/kr/pretty   add1dbc86daf0f983cd4a48ceb39deb95c729b67
 github.com/kr/text   bb797dc4fb8320488f47bf11de07a733d7233e1f
-gopkg.in/mgo.v2			547dc79326ed904c42940deac38d9747ec936659
+gopkg.in/mgo.v2   01084657862d7b12d3b10ffd0394357abf8f8bc2
 gopkg.in/tomb.v2			                    14b3d72120e8d10ea6e6b7f87f7175734b1faab8

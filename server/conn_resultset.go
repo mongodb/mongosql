@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/shopspring/decimal"
 )
 
 func formatValue(value interface{}) ([]byte, error) {
@@ -18,6 +19,8 @@ func formatValue(value interface{}) ([]byte, error) {
 		return []byte(string(v)), nil
 	case evaluator.SQLInt:
 		return strconv.AppendInt(nil, int64(v), 10), nil
+	case evaluator.SQLDecimal128:
+		return []byte(decimal.Decimal(v).String()), nil
 	case evaluator.SQLUint32:
 		return strconv.AppendUint(nil, uint64(v), 10), nil
 	case evaluator.SQLFloat:
@@ -105,6 +108,11 @@ func formatField(collationID uint16, field *Field, value interface{}) error {
 	case evaluator.SQLFloat:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_FLOAT
+		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
+	case evaluator.SQLDecimal128:
+		field.Charset = collationID
+		field.Type = MYSQL_TYPE_DECIMAL
+		field.Decimal = 0x51
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
 	case evaluator.SQLBool:
 		field.Charset = collationID
