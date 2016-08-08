@@ -1,7 +1,7 @@
-expected_names:  ["none_Market_nk", "sum_COGS_ok", "sum_Item_Count_ok"]
-expected_types: [varchar, float64, float64]
-expected: 
-  - ["Central", 113108, 1344]
-  - ["East", 75854, 888]
-  - ["South", 43900, 672]
-  - ["West", 125810, 1344]
+expected_names: ["none_Market_nk", "sum_COGS_ok", "sum_Item_Count_ok"]
+expected_types: [varchar, int64, int64]
+expected:
+- ["Central", 113108, 1344]
+- ["East", 75854, 888]
+- ["South", 43900, 672]
+- ["West", 125810, 1344]

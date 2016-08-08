@@ -1,6 +1,6 @@
 expected_names: ["cnt_Customer_Balance_ok", "none_Call_Center_Region_nk", "std_Customer_Balance_ok", "sum_Customer_Balance_ok", "xsq_Customer_Balance_ok"]
-expected_types: [float64, varchar, float64, int64, int64]
+expected_types: [int64, varchar, float64, int64, int64]
 expected:
- - [11727, "CENTRAL", 3202.6921902861454, 46795479, 307009275821]
- - [14922, "WEST", 3056.494065920439, 63781448, 412016820292]
- - [28211, "EAST", 3124.5822042896266, 124723384, 826827991276]
+- [11727, "CENTRAL", 3202.6921902861454, 46795479, 307009275821]
+- [14922, "WEST", 3056.494065920439, 63781448, 412016820292]
+- [28211, "EAST", 3124.5822042896266, 124723384, 826827991276]

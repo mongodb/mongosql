@@ -1,5 +1,5 @@
 expected_names: ["sum_Additions_ok", "sum_Budget_Additions_ok", "sum_Budget_COGS_ok", "sum_Budget_Margin_ok", "sum_Budget_Payroll_ok", "sum_Budget_Profit_ok", "sum_Budget_Sales_ok", "sum_COGS_ok", "sum_Ending_ok", "sum_Inventory_ok", "sum_Item_Count_ok", "sum_Margin_Rate_ok", "sum_Margin_ok", "sum_Marketing_ok", "sum_Misc_ok", "sum_Number_of_Records_ok", "sum_Opening_ok", "sum_Payroll_ok", "sum_Profit_Ratio_ok", "sum_Profit_ok", "sum_Sales_ok", "sum_Total_Expenses_ok", "sum_birst_constant_one_ok", "yr_Date_ok"]
-expected_types: [int64, int64, int64, int64, int64, int64, int64, int64, int64, int64, int64, float64, int64, int64, int64, int64, int64, int64, float64, float64, int64, int64, varchar, int64]
-expected: 
- - [429774, 400140, 158940, 214140, 35240, 129380, 373080, 179336, 1620605, 1591686, 2124, 117330.37999999968, 221519, 66237, 1013, 2124, 1591686, 48747, 44962.03999999996, 153701.27268291975, 418668.10022778995, 113669.11000000002, ~, 1999]
- - [429774, 400140, 158940, 214140, 35240, 129380, 373080, 179336, 1620605, 1591686, 2124, 117330.37999999971, 221519, 66237, 1013, 2124, 1591686, 48747, 44962.03999999996, 105826, 401159, 115997, ~, 1998]
+expected_types: [int64, int64, int64, int64, int64, int64, int64, int64, int64, int64, int64, float64, int64, int64, int64, int64, int64, int64, float64, int64, int64, int64, varchar, int64]
+expected:
+- [429774, 400140, 158940, 214140, 35240, 129380, 373080, 179336, 1620605, 1591686, 2124, 117330.38, 221519, 66237, 1013, 2124, 1591686, 48747, 44962.04, 105826, 401159, 115997, ~, 1998]
+- [429774, 400140, 158940, 214140, 35240, 129380, 373080, 179336, 1620605, 1591686, 2124, 117330.38, 221519, 66237, 1013, 2124, 1591686, 48747, 44962.04, 153701.27268291984, 418668.1002277897, 113669.11, ~, 1999]

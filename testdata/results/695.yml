@@ -1,4 +1,4 @@
-expected_names:  ["TEMP_z_min_strC___DJJCFEABJH__A_", "min_len_strC__ok"]
-expected_types: [varchar, float64]
-expected: 
-  - ["eight", 3]
+expected_names: ["TEMP_z_min_strC___DJJCFEABJH__A_", "min_len_strC__ok"]
+expected_types: [varchar, int64]
+expected:
+- ["eight", 3]

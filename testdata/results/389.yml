@@ -1,4 +1,4 @@
 expected_names: ["sum_maxint_sum_ok"]
 expected_types: [int64]
 expected:
- - [365072219990]
+- [365072219990]

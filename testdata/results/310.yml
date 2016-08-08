@@ -1,4 +1,4 @@
 expected_names: ["min_numA_nk", "usr_z_min_numA__nk"]
 expected_types: [float64, float64]
 expected:
-  - [-15.7, -15.7]
+- [-15.7, -15.7]

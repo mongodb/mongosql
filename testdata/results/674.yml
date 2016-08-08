@@ -1,5 +1,5 @@
-expected_names:  ["none_Type_nk", "sum_COGS_ok", "sum_Profit_ok"]
-expected_types: [varchar, float64, float64]
-expected: 
-  - ["Decaf", 155696, 106742.51325789465]
-  - ["Regular", 202976, 152784.75942502532]
+expected_names: ["none_Type_nk", "sum_COGS_ok", "sum_Profit_ok"]
+expected_types: [varchar, int64, float64]
+expected:
+- ["Decaf", 155696, 106742.51325789462]
+- ["Regular", 202976, 152784.7594250252]

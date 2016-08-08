@@ -1,4 +1,4 @@
-expected_names:  ["sum_Margin_ok"]
-expected_types: [float64]
-expected: 
-  - [443038]
+expected_names: ["sum_Margin_ok"]
+expected_types: [int64]
+expected:
+- [443038]

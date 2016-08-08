@@ -1,5 +1,5 @@
 expected_names: ["none_Call_Center_Region_nk", "none_Customer_State_nk", "sum_Gross_Profit_ok"]
 expected_types: [varchar, varchar, float64]
 expected:
-  - ["EAST", "ALABAMA", 733064.9900000009]
-  - ["WEST", "ARIZONA", 951267.56]
+- ["EAST", "ALABAMA", 733064.99]
+- ["WEST", "ARIZONA", 951267.56]

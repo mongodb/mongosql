@@ -1,7 +1,7 @@
 expected_names: ["none_Product_nk", "usr_User_Agg_ok"]
 expected_types: [varchar, float64]
 expected:
-  - ["Chamomile", 6922.9814959644145]
-  - ["Columbian", 4176.433558064186]
-  - ["Decaf Espresso", 4222.967152324628]
-  - ["Decaf Irish Cream", 5897.944789302988]
+- ["Chamomile", 6922.9814959644145]
+- ["Columbian", 4176.433558064186]
+- ["Decaf Espresso", 4222.967152324628]
+- ["Decaf Irish Cream", 5897.944789302989]

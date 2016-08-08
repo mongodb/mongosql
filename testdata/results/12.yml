@@ -1,9 +1,9 @@
 expected_names: ["Product", "State", "none_Market_Size_nk", "none_Market_nk", "sum_Sales_ok", "yr_Date_ok"]
-expected_types: [varchar, varchar, varchar, varchar, float64, float64]
-expected: 
- - ["Amaretto", "California", "Major Market", "West", 1324, 1998]
- - ["Amaretto", "California", "Major Market", "West", 1390.6324356544364, 1999]
- - ["Amaretto", "Colorado", "Major Market", "Central", 3183, 1998]
- - ["Amaretto", "Colorado", "Major Market", "Central", 3322.4790274486422, 1999]
- - ["Caffe Latte", "California", "Major Market", "West", 5875, 1998]
- - ["Caffe Latte", "California", "Major Market", "West", 6128.041308988655, 1999]
+expected_types: [varchar, varchar, varchar, varchar, int64, int64]
+expected:
+- ["Amaretto", "California", "Major Market", "West", 1324, 1998]
+- ["Amaretto", "California", "Major Market", "West", 1390.6324356544364, 1999]
+- ["Amaretto", "Colorado", "Major Market", "Central", 3183, 1998]
+- ["Amaretto", "Colorado", "Major Market", "Central", 3322.4790274486422, 1999]
+- ["Caffe Latte", "California", "Major Market", "West", 5875, 1998]
+- ["Caffe Latte", "California", "Major Market", "West", 6128.041308988655, 1999]

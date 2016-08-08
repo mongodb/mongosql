@@ -1,4 +1,4 @@
 expected_names: ["cnt_numA_ok", "usr_z_count_numA__ok"]
-expected_types: [int, int]
+expected_types: [int64, int64]
 expected:
-  - [8, 8]
+- [8, 8]

@@ -1,8 +1,8 @@
-expected_names:  ["none_Customer_Name_nk", "sum_Customer_Balance_ok", "sum_Item_Count_ok"]
-expected_types: [varchar, float64, float64]
-expected: 
-  - ["Dave Hallsten", 124548, 23]
-  - ["David Wiener", 268332, 50]
-  - ["Elizabeth Moffitt", 131545, 34]
-  - ["Grace Kelly", 179709, 43]
-  - ["Herbert Flentye", 116610, 23]
+expected_names: ["none_Customer_Name_nk", "sum_Customer_Balance_ok", "sum_Item_Count_ok"]
+expected_types: [varchar, int64, int64]
+expected:
+- ["Dave Hallsten", 124548, 23]
+- ["David Wiener", 268332, 50]
+- ["Elizabeth Moffitt", 131545, 34]
+- ["Grace Kelly", 179709, 43]
+- ["Herbert Flentye", 116610, 23]

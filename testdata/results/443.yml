@@ -1,5 +1,5 @@
 expected_names: ["none_Market_nk", "none_Type_nk", "sum_Profit_ok"]
 expected_types: [varchar, varchar, float64]
 expected:
-  - ["Central", "Decaf", 43246.21664486123]
-  - ["Central", "Regular", 50602.8373645543]
+- ["Central", "Decaf", 43246.21664486122]
+- ["Central", "Regular", 50602.83736455427]

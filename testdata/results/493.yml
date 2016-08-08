@@ -1,5 +1,5 @@
 expected_names: ["none_Market_Size_nk", "sum_Sales_ok"]
 expected_types: [varchar, float64]
 expected:
-  - ["Major Market", 425154.4897648655]
-  - ["Small Market", 394672.6104629236]
+- ["Major Market", 425154.48976486607]
+- ["Small Market", 394672.6104629237]

@@ -1,3 +1,3 @@
-expected_names: ['none_Call_Center_Region_nk', 'none_Customer_State_nk', 'sum_Gross_Profit_ok']
+expected_names: ["none_Call_Center_Region_nk", "none_Customer_State_nk", "sum_Gross_Profit_ok"]
 expected_types: [varchar, varchar, varchar]
 expected: []

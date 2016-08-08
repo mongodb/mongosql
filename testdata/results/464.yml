@@ -1,4 +1,4 @@
 expected_names: ["none_Date_ok", "none_One_Year_ok"]
-expected_types: [varchar, float64]
-expected: 
- - ["1998-01-01 00:00:00", 365]
+expected_types: [varchar, int64]
+expected:
+- ["1998-01-01 00:00:00", 365]

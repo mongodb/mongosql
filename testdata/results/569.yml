@@ -1,4 +1,4 @@
-expected_names:  ["none_MONTH_nk", "sum_AUTOTHEFT_ok"]
-expected_types: [varchar, float64]
-expected: 
-  - ["November", 58]
+expected_names: ["none_MONTH_nk", "sum_AUTOTHEFT_ok"]
+expected_types: [varchar, int64]
+expected:
+- ["November", 58]

@@ -1,5 +1,5 @@
 expected_names: ["sum_Margin_ok", "sum_Profit_ok", "sum_Sales_ok", "yr_Date_ok"]
-expected_types: [float64, float64, float64, float64]
-expected: 
- - [221519, 105826, 401159, 1998]
- - [221519, 153701.27268291975, 418668.10022778995, 1999]
+expected_types: [int64, int64, int64, int64]
+expected:
+- [221519, 105826, 401159, 1998]
+- [221519, 153701.27268291984, 418668.1002277897, 1999]

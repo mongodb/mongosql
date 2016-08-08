@@ -1,6 +1,6 @@
 expected_names: ["none_Ship_Mode_nk"]
 expected_types: [varchar]
 expected:
-  - ["DELIVERY TRUCK"]
-  - ["EXPRESS AIR"]
-  - ["REGULAR AIR"]
+- ["DELIVERY TRUCK"]
+- ["EXPRESS AIR"]
+- ["REGULAR AIR"]

@@ -1,7 +1,7 @@
 expected_names: ["none_Product_Type_nk"]
 expected_types: [varchar]
 expected:
-  - ["Coffee"]
-  - ["Espresso"]
-  - ["Herbal Tea"]
-  - ["Tea"]
+- ["Coffee"]
+- ["Espresso"]
+- ["Herbal Tea"]
+- ["Tea"]

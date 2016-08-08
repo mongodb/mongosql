@@ -1,7 +1,7 @@
 expected_names: ["none_BBAEFH_nk"]
 expected_types: [varchar]
 expected:
-  - ["*Anonymous*"]
-  - ["*Public*"]
-  - ["HOME OFFICE"]
-  - ["SMALL BUSINESS"]
+- ["*Anonymous*"]
+- ["*Public*"]
+- ["HOME OFFICE"]
+- ["SMALL BUSINESS"]

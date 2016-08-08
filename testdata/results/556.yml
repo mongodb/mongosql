@@ -1,4 +1,4 @@
-expected_names:  ["sum_Budget_COGS_ok", "sum_Sales_ok", "sum_Stupid_Calc_ok", "sum_Total_Expenses_ok"]
-expected_types: [float64, float64, float64, float64]
-expected: 
-  - [317880, 819827.1002277903, -110400, 229666.11000000016]
+expected_names: ["sum_Budget_COGS_ok", "sum_Sales_ok", "sum_Stupid_Calc_ok", "sum_Total_Expenses_ok"]
+expected_types: [int64, float64, int64, float64]
+expected:
+- [317880, 819827.1002277897, -110400, 229666.11]

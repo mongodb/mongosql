@@ -1,5 +1,5 @@
 expected_names: ["none_Product_In_Stock_nk"]
 expected_types: [varchar]
 expected:
-  - ["NO"]
-  - ["YES"]
+- ["NO"]
+- ["YES"]

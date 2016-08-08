@@ -1,6 +1,6 @@
-expected_names:  ["Market", "sum_COGS_ok"]
-expected_types: [varchar, float64]
-expected: 
-  - ["Central", 113108]
-  - ["East", 75854]
-  - ["South", 43900]
+expected_names: ["Market", "sum_COGS_ok"]
+expected_types: [varchar, int64]
+expected:
+- ["Central", 113108]
+- ["East", 75854]
+- ["South", 43900]

@@ -1,4 +1,4 @@
-expected_names:  ["sum_Budget_COGS_ok", "sum_Number_of_Records_ok", "sum_Total_Expenses_ok", "sum_birst_constant_one_ok", "sum_row_ok"]
-expected_types: [float64, float64, float64, varchar, float64]
-expected: 
-  - [317880, 4248, 229666.11000000016, ~, 0]
+expected_names: ["sum_Budget_COGS_ok", "sum_Number_of_Records_ok", "sum_Total_Expenses_ok", "sum_birst_constant_one_ok", "sum_row_ok"]
+expected_types: [int64, int64, float64, varchar, int64]
+expected:
+- [317880, 4248, 229666.11, ~, 0]

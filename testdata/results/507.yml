@@ -1,6 +1,6 @@
 expected_names: ["State__group_", "sum_Profit_ok"]
 expected_types: [varchar, float64]
 expected:
-  - ["California", 31786.60260164303]
-  - ["Colorado", 25361.77831168862]
-  - ["Florida", 12308.931431896486]
+- ["California", 31786.60260164301]
+- ["Colorado", 25361.778311688624]
+- ["Florida", 12308.931431896483]

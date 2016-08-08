@@ -1,6 +1,6 @@
 expected_names: ["none_Call_Center_Region_nk"]
 expected_types: [varchar]
 expected:
-  - ["CENTRAL"]
-  - ["EAST"]
-  - ["WEST"]
+- ["CENTRAL"]
+- ["EAST"]
+- ["WEST"]

@@ -1,5 +1,5 @@
 expected_names: ["none_Calculation_ADJAEACBJEHDAHHD_ok", "none_Calculation_CIBAEACBJEFDBJBG_ok", "none_Calculation_DCEAEACBJEGFAEFI_ok", "none_Calculation_IACAEACBJEEDGBJI_ok", "none_Calculation_IBDAEACBJEGCHBCG_ok", "none_Calculation_IHCAEACBJEHFJCIB_ok"]
 expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-expected: 
- - ["1997-04-16", "1997-04-01 00:00:42", "1997-04-16 00:00:42", "1997-04-01", "1997-04-16", "1997-04-16 00:00:42"]
- - ["1997-10-30", "1997-10-15 00:00:42", "1997-10-30 00:00:42", "1997-10-15", "1997-10-30", "1997-10-30 00:00:42"]
+expected:
+- ["1997-04-16", "1997-04-01 00:00:42", "1997-04-16 00:00:42", "1997-04-01", "1997-04-16", "1997-04-16 00:00:42"]
+- ["1997-10-30", "1997-10-15 00:00:42", "1997-10-30 00:00:42", "1997-10-15", "1997-10-30", "1997-10-30 00:00:42"]
