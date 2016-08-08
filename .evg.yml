@@ -314,7 +314,6 @@ functions:
         fi
         . ./set_gopath.sh
         ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec=$(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr=$(git describe)" ${gccgoflags} ${build_tags} -o drdl mongodrdl/main/mongodrdl.go
-
         echo "Done!"
 
   "build SQLProxy":
