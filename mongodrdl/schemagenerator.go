@@ -15,6 +15,7 @@ import (
 type SchemaGenerator struct {
 	ToolOptions   *options.ToolOptions
 	OutputOptions *OutputOptions
+	SampleOptions *SampleOptions
 	provider      *db.SessionProvider
 }
 

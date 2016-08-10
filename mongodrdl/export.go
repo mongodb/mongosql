@@ -67,7 +67,7 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 	}
 
 	log.Logf(log.Info, "Exporting tables for %q.", collection.FullName)
-	pipeline := collection.Pipe([]bson.M{{"$sample": bson.M{"size": 1000}}}).AllowDiskUse()
+	pipeline := collection.Pipe([]bson.M{{"$sample": bson.M{"size": schemaGen.SampleOptions.SampleSize}}}).AllowDiskUse()
 	iter := pipeline.Iter()
 	if iter.Err() != nil {
 		return iter.Err()

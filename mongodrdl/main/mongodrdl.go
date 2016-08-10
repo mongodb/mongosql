@@ -18,6 +18,9 @@ func main() {
 	outputOpts := &mongodrdl.OutputOptions{}
 	opts.AddOptions(outputOpts)
 
+	sampleOpts := &mongodrdl.SampleOptions{}
+	opts.AddOptions(sampleOpts)
+
 	args, err := opts.Parse()
 	if err != nil {
 		log.Logf(log.Always, "error parsing command line options: %v", err)
@@ -52,6 +55,7 @@ func main() {
 	schemaGen := mongodrdl.SchemaGenerator{
 		ToolOptions:   opts,
 		OutputOptions: outputOpts,
+		SampleOptions: sampleOpts,
 	}
 
 	if err = schemaGen.Init(); err != nil {
