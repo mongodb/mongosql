@@ -35,6 +35,7 @@ func NewSchemaGenerator(db, collection, outputFile string, sslOptions *options.S
 		OutputOptions: &OutputOptions{
 			Out: outputFile,
 		},
+		SampleOptions: &SampleOptions{SampleSize: 1000},
 	}
 
 	gen.Init()

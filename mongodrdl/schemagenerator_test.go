@@ -35,7 +35,7 @@ func getSslOpts() *options.SSL {
 				return nil
 			},
 		}
-		sslOpts = &options.SSL{
+		return &options.SSL{
 			UseSSL:              true,
 			SSLPEMKeyFile:       "../testdata/client.pem",
 			SSLAllowInvalidCert: true,
@@ -62,6 +62,7 @@ func TestConfiguration(t *testing.T) {
 			OutputOptions: &mongodrdl.OutputOptions{
 				Out: "out/testdb.yml",
 			},
+			SampleOptions: &mongodrdl.SampleOptions{SampleSize: 1000},
 		}
 
 		gen.Init()
@@ -98,6 +99,7 @@ func TestRoundtrips(t *testing.T) {
 				OutputOptions: &mongodrdl.OutputOptions{
 					Out: "out/indexed.yml",
 				},
+				SampleOptions: &mongodrdl.SampleOptions{SampleSize: 1000},
 			}
 
 			gen.Init()
@@ -143,6 +145,7 @@ func TestRoundtrips(t *testing.T) {
 				OutputOptions: &mongodrdl.OutputOptions{
 					Out: "out/admin.yml",
 				},
+				SampleOptions: &mongodrdl.SampleOptions{SampleSize: 1000},
 			}
 			gen.Init()
 
@@ -189,6 +192,7 @@ func TestRoundtrips(t *testing.T) {
 					Out:               "out/complete_schema_synthetic.yml",
 					CustomFilterField: "__MONGOQUERY",
 				},
+				SampleOptions: &mongodrdl.SampleOptions{SampleSize: 1000},
 			}
 
 			compareYaml(gen, "complete_schema", "complete_schema_synthetic-expected")
