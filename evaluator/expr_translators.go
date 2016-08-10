@@ -1182,11 +1182,7 @@ func getValue(e SQLExpr) (interface{}, bool) {
 	}
 
 	if cons.Type() == schema.SQLDecimal128 {
-		parsed, err := bson.ParseDecimal128(cons.String())
-		if err != nil {
-			return nil, false
-		}
-		return parsed, true
+		return nil, false
 	}
 
 	return cons.Value(), true
