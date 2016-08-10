@@ -78,7 +78,7 @@ buildvariants:
   expansions:
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel57-3.3.10.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel57-3.3.8.tgz
     push_arch: x86_64-rhel55
     push_name: linux
     push_path: linux
@@ -206,7 +206,7 @@ buildvariants:
     cover: "-"
     extension: .exe
     library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
-    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-i386-3.3.10.zip
+    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-i386-3.3.3.zip
     # Set storage engine as mmapv1 for 32 bit variants
     # since WiredTiger requires 64 bit support.
     mongod_args: --storageEngine=mmapv1
