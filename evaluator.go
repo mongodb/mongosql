@@ -22,11 +22,11 @@ func NewEvaluator(cfg *schema.Schema, opts Options) (*Evaluator, error) {
 		return nil, err
 	}
 
-	log.Logf(log.Always, "connecting to mongodb at %v.", info.Addrs)
+	log.Logf(log.Always, "connecting to mongodb at %v", info.Addrs)
 
 	session, err := mgo.DialWithInfo(info)
 	if err != nil {
-		log.Logf(log.Always, "connecting to mongodb failed.")
+		log.Logf(log.Always, "connecting to mongodb failed")
 		return nil, fmt.Errorf("connecting to mongodb failed: %v", err.Error())
 	}
 

@@ -116,9 +116,9 @@ func (c *conn) RowCount() int64 {
 	return c.affectedRows
 }
 
-// Session returns the mgo.Session currently opened with MongoDB.
-func (c *conn) Session() *mgo.Session {
-	return c.session
+// Session returns a new mgo.Session connected to MongoDB.
+func (c *conn) Session() (session *mgo.Session) {
+	return c.session.Copy()
 }
 
 // User returns the current user.
