@@ -91,9 +91,6 @@ func TestTimeConstructors(t *testing.T) {
 	sql := "select * from foo.tables where a > (DATE '2014-06-01 00:00:00.000')"
 	testParse(t, sql)
 
-	sql = "select * from foo.tables where a > (DATETIME '2014-06-01 00:00:00.000')"
-	testParse(t, sql)
-
 	sql = "select * from foo.tables where a > (TIME '2014-06-01 00:00:00.000')"
 	testParse(t, sql)
 

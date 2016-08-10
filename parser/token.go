@@ -133,7 +133,6 @@ var keywords = map[string]int{
 
 	// time related constructors
 	"date":               DATE,
-	"datetime":           DATETIME,
 	"time":               TIME,
 	"timestamp":          TIMESTAMP,
 	"current_timestamp":  CURRENT_TIMESTAMP,
@@ -259,6 +258,10 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 			return LPAREN, nil
 		case ')':
 			return RPAREN, nil
+		case '{':
+			return LBRACE, nil
+		case '}':
+			return RBRACE, nil
 		case '+':
 			return PLUS, nil
 		case '*':

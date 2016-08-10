@@ -312,6 +312,7 @@ func TestEvaluates(t *testing.T) {
 				dateTime, _ := time.Parse("2006-01-02", "2014-04-13")
 				tests := []test{
 					test{"DATE '2014-04-13'", SQLDate{Time: dateTime}},
+					test{"{d '2014-04-13'}", SQLDate{Time: dateTime}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -320,6 +321,7 @@ func TestEvaluates(t *testing.T) {
 				dateTime, _ := time.Parse("15:04:05", "11:49:36")
 				tests := []test{
 					test{"TIME '11:49:36'", SQLTimestamp{Time: dateTime}},
+					test{"{t '11:49:36'}", SQLTimestamp{Time: dateTime}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -328,14 +330,7 @@ func TestEvaluates(t *testing.T) {
 				dateTime, _ := time.Parse("2006-01-02 15:04:05.999999999", "1997-01-31 09:26:50.124")
 				tests := []test{
 					test{"TIMESTAMP '1997-01-31 09:26:50.124'", SQLTimestamp{Time: dateTime}},
-				}
-				runTests(evalCtx, tests)
-			})
-
-			Convey("Subject: DATETIME", func() {
-				dateTime, _ := time.Parse("2006-01-02 15:04:05.999999999", "1997-01-31 09:26:50.124")
-				tests := []test{
-					test{"DATETIME '1997-01-31 09:26:50.124'", SQLTimestamp{Time: dateTime}},
+					test{"{ts '1997-01-31 09:26:50.124'}", SQLTimestamp{Time: dateTime}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -797,13 +792,13 @@ func TestEvaluates(t *testing.T) {
 					test{"CONVERT(DATE '2006-05-11', DATE)", SQLDate{Time: d}},
 					test{"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DATE)", SQLDate{Time: d}},
 					test{"CONVERT(NULL, DATETIME)", SQLNull},
-					test{"CONVERT(3, SQL_TIMESTAMP)", SQLNull},
 					test{"CONVERT(-3.4, DATETIME)", SQLNull},
 					test{"CONVERT('janna', DATETIME)", SQLNull},
 					test{"CONVERT('2006-05-11', DATETIME)", SQLTimestamp{Time: dt}},
 					test{"CONVERT(true, DATETIME)", SQLNull},
-					test{"CONVERT(DATE '2006-05-11', SQL_TIMESTAMP)", SQLTimestamp{Time: dt}},
+					test{"CONVERT(3, SQL_TIMESTAMP)", SQLNull},
 					test{"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DATETIME)", SQLTimestamp{Time: t}},
+					test{"CONVERT(DATE '2006-05-11', SQL_TIMESTAMP)", SQLTimestamp{Time: dt}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -857,7 +852,6 @@ func TestEvaluates(t *testing.T) {
 					test{"DATE(23)", SQLNull},
 					test{"DATE('cat')", SQLNull},
 					test{"DATE(TIMESTAMP '2016-03-01 12:32:23')", SQLDate{Time: d}},
-					test{"DATE(DATETIME '2016-03-01 11:12:23')", SQLDate{Time: d}},
 					test{"DATE(DATE '2016-03-01')", SQLDate{Time: d}},
 				}
 				runTests(evalCtx, tests)
@@ -2272,11 +2266,12 @@ func TestTranslateExpr(t *testing.T) {
 func TestCompareTo(t *testing.T) {
 
 	var (
-		diff = time.Duration(969 * time.Hour)
-		now  = time.Now()
-		oid1 = bson.NewObjectId().Hex()
-		oid2 = bson.NewObjectId().Hex()
-		oid3 = bson.NewObjectId().Hex()
+		diff        = time.Duration(969 * time.Hour)
+		sameDayDiff = time.Duration(1)
+		now         = time.Now()
+		oid1        = bson.NewObjectId().Hex()
+		oid2        = bson.NewObjectId().Hex()
+		oid3        = bson.NewObjectId().Hex()
 	)
 
 	Convey("Subject: CompareTo", t, func() {
@@ -2407,7 +2402,7 @@ func TestCompareTo(t *testing.T) {
 				{SQLDate{now}, &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLDate{now}, SQLDate{now.Add(-diff)}, 1},
 				{SQLDate{now}, SQLTimestamp{now.Add(diff)}, -1},
-				{SQLDate{now}, SQLTimestamp{now.Add(-diff)}, -1},
+				{SQLDate{now}, SQLTimestamp{now.Add(-diff)}, 1},
 				{SQLDate{now}, SQLDate{now}, 0},
 			}
 			runTests(tests)
@@ -2429,8 +2424,9 @@ func TestCompareTo(t *testing.T) {
 				{SQLTimestamp{now}, SQLTimestamp{now.Add(diff)}, -1},
 				{SQLTimestamp{now}, SQLTimestamp{now.Add(-diff)}, 1},
 				{SQLTimestamp{now}, SQLTimestamp{now}, 0},
-				{SQLTimestamp{now}, SQLDate{now}, 1},
-				{SQLTimestamp{now}, SQLDate{now.Add(diff)}, 1},
+				{SQLTimestamp{now}, SQLDate{now}, 0},
+				{SQLTimestamp{now.Add(sameDayDiff)}, SQLDate{now}, 1},
+				{SQLTimestamp{now}, SQLDate{now.Add(diff)}, -1},
 				{SQLTimestamp{now}, SQLDate{now.Add(-diff)}, 1},
 			}
 			runTests(tests)

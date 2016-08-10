@@ -419,6 +419,10 @@ func (st SQLTimestamp) Float64() float64 {
 }
 
 func (st SQLTimestamp) Int64() int64 {
+	if st.Time.Year() == 0 {
+		val, _ := strconv.ParseInt(st.Time.Format("150405"), 10, 64)
+		return val
+	}
 	val, _ := strconv.ParseInt(st.Time.Format("20060102150405"), 10, 64)
 	return val
 }
@@ -823,7 +827,6 @@ func CompareTo(left, right SQLValue) (int, error) {
 			return -i, nil
 		}
 	}
-
 	if left.Type() == right.Type() {
 		switch leftVal := left.(type) {
 		case SQLDate, SQLDecimal128, SQLFloat, SQLInt, SQLUint32, SQLTimestamp:
@@ -861,9 +864,8 @@ func CompareTo(left, right SQLValue) (int, error) {
 			return 0, nil
 		}
 	}
-
 	// Mix types
-	switch left.(type) {
+	switch lVal := left.(type) {
 	case SQLNullValue:
 		switch right.(type) {
 		case *SQLValues:
@@ -887,20 +889,27 @@ func CompareTo(left, right SQLValue) (int, error) {
 			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		}
 	case SQLDate:
-		switch right.(type) {
+		switch rVal := right.(type) {
 		case SQLVarchar:
 			t, ok := parseDateTime(right.String())
 			if !ok {
 				t, _ = parseDateTime("0001-01-01")
 			}
 			return compareFloats(left.Float64(), SQLDate{Time: t}.Float64())
+		case SQLTimestamp:
+			if rVal.Time.Before(lVal.Time) {
+				return 1, nil
+			} else if rVal.Time.After(lVal.Time) {
+				return -1, nil
+			}
+			return 0, nil
 		case SQLNullValue:
 			return 1, nil
 		default:
 			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		}
 	case SQLTimestamp:
-		switch right.(type) {
+		switch rVal := right.(type) {
 		case SQLVarchar:
 			t, ok := parseDateTime(right.String())
 			if !ok {
@@ -909,6 +918,13 @@ func CompareTo(left, right SQLValue) (int, error) {
 			return compareFloats(left.Float64(), SQLTimestamp{Time: t}.Float64())
 		case SQLNullValue:
 			return 1, nil
+		case SQLDate:
+			if rVal.Time.Before(lVal.Time) {
+				return 1, nil
+			} else if rVal.Time.After(lVal.Time) {
+				return -1, nil
+			}
+			return 0, nil
 		default:
 			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		}

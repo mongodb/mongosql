@@ -72,6 +72,11 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 
 	preferenceType := preferentialType(leftVal, rightVal)
 	useDecimal := preferenceType == schema.SQLDecimal128
+	// We check if both operands are timestamp or date because arithmetic
+	// between dates results in an integer.
+	if preferenceType == schema.SQLDate || preferenceType == schema.SQLTimestamp {
+		preferenceType = schema.SQLInt
+	}
 
 	var value interface{}
 

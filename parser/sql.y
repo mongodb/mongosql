@@ -93,7 +93,7 @@ var (
 %token <empty> SELECT INSERT UPDATE DELETE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN
 %token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
-%token <empty> LPAREN RPAREN TILDE
+%token <empty> LPAREN RPAREN LBRACE RBRACE TILDE
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND EXTRACT DATE_ADD
 %token <empty> DATE_SUB INTERVAL STR_TO_DATE
@@ -1201,10 +1201,6 @@ sql_types:
     {
       $$ = DATE_BYTES
     }
-  | DATETIME
-    {
-      $$ = DATETIME_BYTES
-    }
   | SIGNED
     {
       $$ = INTEGER_BYTES
@@ -1240,6 +1236,18 @@ sql_types:
   | SQL_DOUBLE
     {
       $$ = FLOAT_BYTES
+    }
+  // We don't want to parse datetime as a token since MySQL allows
+  // it to be a table name. As a result we parse it as a standard
+  // ID and check it to see if it matches datetime.
+  | ID
+    {
+      if bytes.Equal(bytes.ToLower($1), []byte("datetime")) {
+        $$ = DATETIME_BYTES
+      } else {
+        yylex.Error("expecting datetime")
+        return 1
+      }
     }
 
 keyword_as_func:
@@ -1357,9 +1365,18 @@ STRING
   {
     $$ = DateVal{Name: AST_TIMESTAMP, Val: $2}
   }
-| DATETIME STRING
+| LBRACE ID STRING RBRACE
   {
-    $$ = DateVal{Name: AST_DATETIME, Val: $2}
+    if bytes.Equal(bytes.ToLower($2), []byte("d")) {
+      $$ = DateVal{Name: AST_DATE, Val: $3}
+    } else if bytes.Equal(bytes.ToLower($2), []byte("t")) {
+      $$ = DateVal{Name: AST_TIME, Val: $3}
+    } else if bytes.Equal(bytes.ToLower($2), []byte("ts")) {
+      $$ = DateVal{Name: AST_TIMESTAMP, Val: $3}
+    } else {
+      yylex.Error("expecting d, t, or ts")
+      return 1
+    }
   }
 | NULL
   {
