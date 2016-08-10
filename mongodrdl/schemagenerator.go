@@ -22,13 +22,14 @@ type Schema struct {
 	Databases []*relational.Database `yaml:"schema"`
 }
 
-func NewSchemaGenerator(db string, collection string, outputFile string) *SchemaGenerator {
+func NewSchemaGenerator(db, collection, outputFile string, sslOptions *options.SSL) *SchemaGenerator {
 	gen := &SchemaGenerator{
 		ToolOptions: &options.ToolOptions{
 			Namespace: &options.Namespace{
 				DB:         db,
 				Collection: collection,
 			},
+			SSL: sslOptions,
 		},
 		OutputOptions: &OutputOptions{
 			Out: outputFile,

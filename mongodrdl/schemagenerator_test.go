@@ -3,6 +3,7 @@ package mongodrdl_test
 import (
 	"fmt"
 	yaml "github.com/10gen/candiedyaml"
+	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/mongodrdl"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -12,16 +13,41 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 )
 
 const (
-	DBNAME = "schema_test"
+	DatabaseName = "schema_test"
+	SSLTestKey   = "SQLPROXY_SSLTEST"
 )
+
+func getSslOpts() *options.SSL {
+	var sslOpts *options.SSL
+
+	if len(os.Getenv(SSLTestKey)) > 0 {
+		db.GetConnectorFuncs = []db.GetConnectorFunc{
+			func(opts options.ToolOptions) db.DBConnector {
+				if opts.SSL.UseSSL {
+					return &sqlproxy.SSLDBConnector{}
+				}
+				return nil
+			},
+		}
+		sslOpts = &options.SSL{
+			UseSSL:              true,
+			SSLPEMKeyFile:       "../testdata/client.pem",
+			SSLAllowInvalidCert: true,
+		}
+	}
+
+	return sslOpts
+}
 
 func TestConfiguration(t *testing.T) {
 
+	sslOptions := getSslOpts()
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 
 	Convey("Verify configuration options", t, func() {
@@ -31,6 +57,7 @@ func TestConfiguration(t *testing.T) {
 					DB:         "testdb",
 					Collection: "mongoddl",
 				},
+				SSL: sslOptions,
 			},
 			OutputOptions: &mongodrdl.OutputOptions{
 				Out: "out/testdb.yml",
@@ -43,11 +70,11 @@ func TestConfiguration(t *testing.T) {
 			So(gen.OutputOptions.Out, ShouldEqual, "out/testdb.yml")
 		})
 
-		Convey("DB should mongoddl", func() {
+		Convey("DB should be mongoddl", func() {
 			So(gen.ToolOptions.Namespace.DB, ShouldEqual, "testdb")
 		})
 
-		Convey("Collection should mongoddl", func() {
+		Convey("Collection should be mongoddl", func() {
 			So(gen.ToolOptions.Namespace.Collection, ShouldEqual, "mongoddl")
 		})
 
@@ -57,6 +84,8 @@ func TestConfiguration(t *testing.T) {
 
 func TestRoundtrips(t *testing.T) {
 
+	sslOptions := getSslOpts()
+
 	Convey("Collection filtering", t, func() {
 		Convey("Should ignore system.* collections", func() {
 			gen := &mongodrdl.SchemaGenerator{
@@ -64,11 +93,13 @@ func TestRoundtrips(t *testing.T) {
 					Namespace: &options.Namespace{
 						DB: "indexed",
 					},
+					SSL: sslOptions,
 				},
 				OutputOptions: &mongodrdl.OutputOptions{
 					Out: "out/indexed.yml",
 				},
 			}
+
 			gen.Init()
 
 			session, err := gen.Connect()
@@ -107,6 +138,7 @@ func TestRoundtrips(t *testing.T) {
 					Namespace: &options.Namespace{
 						DB: "admin",
 					},
+					SSL: sslOptions,
 				},
 				OutputOptions: &mongodrdl.OutputOptions{
 					Out: "out/admin.yml",
@@ -148,9 +180,10 @@ func TestRoundtrips(t *testing.T) {
 			gen := &mongodrdl.SchemaGenerator{
 				ToolOptions: &options.ToolOptions{
 					Namespace: &options.Namespace{
-						DB:         DBNAME,
+						DB:         DatabaseName,
 						Collection: "complete_schema",
 					},
+					SSL: sslOptions,
 				},
 				OutputOptions: &mongodrdl.OutputOptions{
 					Out:               "out/complete_schema_synthetic.yml",
@@ -164,7 +197,7 @@ func TestRoundtrips(t *testing.T) {
 }
 
 func testJson(collection string) {
-	gen := mongodrdl.NewSchemaGenerator(DBNAME, collection, fmt.Sprintf("out/%s.yml", collection))
+	gen := mongodrdl.NewSchemaGenerator(DatabaseName, collection, fmt.Sprintf("out/%s.yml", collection), getSslOpts())
 	compareYaml(gen, collection, collection+"-expected")
 }
 
@@ -175,13 +208,13 @@ func compareYaml(gen *mongodrdl.SchemaGenerator, collection string, expectedName
 	So(err, ShouldBeNil)
 
 	defer session.Close()
-	db := session.DB(DBNAME)
+	db := session.DB(DatabaseName)
 	So(db, ShouldNotBeNil)
 	coll := db.C(collection)
 	So(coll, ShouldNotBeNil)
 	err = coll.DropCollection()
 
-	importJson(gen, DBNAME, collection, fmt.Sprintf("testdata/%s.json", collection))
+	importJson(gen, DatabaseName, collection, fmt.Sprintf("testdata/%s.json", collection))
 
 	schema, err := gen.Generate()
 	So(err, ShouldBeNil)
@@ -208,6 +241,7 @@ func importJson(schema *mongodrdl.SchemaGenerator, dbName string, collName strin
 		DB:         schema.ToolOptions.DB,
 		Collection: schema.ToolOptions.Collection,
 	}
+	opts.SSL = getSslOpts()
 	opts.Quiet = true
 	opts.SetVerbosity("0")
 
