@@ -8,6 +8,7 @@ import (
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
+	"gopkg.in/mgo.v2/bson"
 )
 
 //
@@ -87,6 +88,27 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 
 	// TODO - handle other types with possible values that are "truthy" : dates, etc?
 	return false, nil
+}
+
+//
+// MongoFilterExpr holds a MongoDB filter expression
+//
+type MongoFilterExpr struct {
+	column SQLColumnExpr
+	expr   SQLExpr
+	query  bson.M
+}
+
+func (fe *MongoFilterExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	return nil, fmt.Errorf("could not evaluate predicate with mongo filter expression")
+}
+
+func (fe *MongoFilterExpr) String() string {
+	return fmt.Sprintf("%v=%v", fe.column.String(), fe.expr.String())
+}
+
+func (_ *MongoFilterExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
 }
 
 //

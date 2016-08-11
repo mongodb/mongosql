@@ -68,6 +68,7 @@ type testCase struct {
 	ExpectedTypes   []string        `yaml:"expected_types"`
 	ExpectedNames   []string        `yaml:"expected_names"`
 	ExpectedData    [][]interface{} `yaml:"expected"`
+	PushDownOnly    bool            `yaml:"pushdown_only"`
 }
 
 type testSchema struct {
@@ -193,7 +194,13 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 	}
 	defer db.Close()
 
+	noPushDownMode := os.Getenv(evaluator.NoPushDown) != ""
+
 	for _, testCase := range conf.TestCases {
+		if testCase.PushDownOnly && noPushDownMode {
+			continue
+		}
+
 		description := testCase.SQL
 		if testCase.Description != "" {
 			description = testCase.Description

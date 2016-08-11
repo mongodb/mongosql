@@ -44,6 +44,7 @@ func (k *KillCommand) astnode() {}
 func (s *SetCommand) astnode()  {}
 
 // Expressions
+func (m *MongoFilterExpr) astnode()           {}
 func (e *SQLAggFunctionExpr) astnode()        {}
 func (e *SQLAddExpr) astnode()                {}
 func (e *SQLAndExpr) astnode()                {}
@@ -376,6 +377,8 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 
 	// Expressions
+	case *MongoFilterExpr:
+		// nothing to do
 	case *SQLAggFunctionExpr:
 		exprs, err := visitExprSlice(&typedN.Exprs)
 		if err != nil {

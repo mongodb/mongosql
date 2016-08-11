@@ -199,6 +199,9 @@ func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {
 			}
 
 			for i, column := range table.RawColumns {
+				if column.MongoType == schema.MongoFilter {
+					continue
+				}
 
 				row := Values{
 					sds.getValue(isColumnHeaders[0], isCatalogName),

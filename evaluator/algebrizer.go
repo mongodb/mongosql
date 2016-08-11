@@ -140,6 +140,9 @@ func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, e
 
 	column, err := a.lookupColumn(tableName, columnName)
 	if err == nil {
+		if a.currentClause != whereClause && column.MongoType == schema.MongoFilter {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, column.Name, column.Table)
+		}
 		return NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType), nil
 	}
 
@@ -154,7 +157,7 @@ func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, e
 	}
 
 	// we didn't find it in the current scope, so we need to search our parent,
-	// and let it search its parent, etc...
+	// and let it search its parent, etc.
 	if a.parent != nil {
 		expr, parentErr := a.parent.resolveColumnExpr(tableName, columnName)
 		if parentErr == nil {
@@ -451,6 +454,10 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 			}
 
 			for _, column := range a.columns {
+				if column.MongoType == schema.MongoFilter {
+					continue
+				}
+
 				if tableName == "" || strings.EqualFold(tableName, column.Table) {
 					projectedColumns = append(projectedColumns, ProjectedColumn{
 						Column: &Column{
@@ -494,6 +501,12 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 			if sqlCol, ok := translatedExpr.(SQLColumnExpr); ok {
 				projectedColumn.SQLType = sqlCol.columnType.SQLType
 				projectedColumn.MongoType = sqlCol.columnType.MongoType
+				/*
+					TODO: BI-568 (requires test updates)
+					if projectedColumn.Column.Table == "" {
+						projectedColumn.Column.Table = sqlCol.tableName
+					}
+				*/
 			}
 
 			if _, ok := translatedExpr.(*SQLVariableExpr); !ok {

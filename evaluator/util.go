@@ -1,12 +1,13 @@
 package evaluator
 
 import (
+	"encoding/json"
 	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
-
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -28,6 +29,14 @@ const (
 func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 	switch op {
 	case sqlOpEQ:
+		// BI-235: Allow users to pass custom $match stage
+		if isMongoFilterExpr(left) {
+			filter, err := parseMongoFilter(left, right)
+			if err != nil {
+				return nil, err
+			}
+			return &MongoFilterExpr{left.(SQLColumnExpr), right, filter}, nil
+		}
 		return &SQLEqualsExpr{left, right}, nil
 	case sqlOpLT:
 		return &SQLLessThanExpr{left, right}, nil
@@ -238,4 +247,27 @@ func getKey(key string, doc bson.D) (interface{}, bool) {
 		return nil, false
 	}
 	return getKey(key[index+1:], subDoc)
+}
+
+func isMongoFilterExpr(expr SQLExpr) bool {
+	if colExpr, ok := expr.(SQLColumnExpr); ok {
+		if colExpr.columnType.MongoType == schema.MongoFilter {
+			return true
+		}
+	}
+	return false
+}
+
+func parseMongoFilter(left, right SQLExpr) (bson.M, error) {
+	if _, ok := right.(SQLVarchar); !ok {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_CANT_USE_OPTION_HERE, left.String())
+	}
+
+	filter := bson.M{}
+	err := json.Unmarshal([]byte(right.String()), &filter)
+	if err != nil {
+		return nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "parse mongo filter error: %s", err)
+	}
+
+	return filter, nil
 }

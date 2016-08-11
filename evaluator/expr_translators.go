@@ -1061,6 +1061,8 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQLExpr) {
 
 	switch typedE := e.(type) {
+	case *MongoFilterExpr:
+		return typedE.query, nil
 	case *SQLAndExpr:
 		left, exLeft := TranslatePredicate(typedE.left, lookupFieldName)
 		right, exRight := TranslatePredicate(typedE.right, lookupFieldName)

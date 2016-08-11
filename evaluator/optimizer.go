@@ -24,10 +24,6 @@ func OptimizePlan(ctx ConnectionCtx, p PlanStage) (PlanStage, error) {
 }
 
 func optimize(ctx ConnectionCtx, n node) (node, error) {
-	if os.Getenv(NoOptimize) != "" {
-		return n, nil
-	}
-
 	evalCtx := NewEvalCtx(NewExecutionCtx(ctx))
 
 	newN, err := optimizeEvaluations(evalCtx, n)
@@ -35,6 +31,10 @@ func optimize(ctx ConnectionCtx, n node) (node, error) {
 		return n, nil
 	}
 	n = newN
+
+	if os.Getenv(NoPushDown) != "" {
+		return n, nil
+	}
 
 	newN, err = optimizeCrossJoins(n)
 	if err != nil {

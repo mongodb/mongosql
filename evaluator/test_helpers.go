@@ -116,6 +116,9 @@ func createTestEvalCtx() *EvalCtx {
 
 func createSQLColumnExprFromSource(source PlanStage, tableName, columnName string) SQLColumnExpr {
 	for _, c := range source.Columns() {
+		if c.MongoType == schema.MongoFilter {
+			continue
+		}
 		if c.Table == tableName && c.Name == columnName {
 			return NewSQLColumnExpr(c.SelectID, c.Table, c.Name, c.SQLType, c.MongoType)
 		}
@@ -141,6 +144,9 @@ func createProjectedColumnFromColumn(newSelectID int, column *Column, projectedT
 // the column tableName which is necessary for subqueries.
 func createProjectedColumnSubquery(selectID int, source PlanStage, projectedTableName, sourceColumnName, projectedColumnName string) ProjectedColumn {
 	for _, c := range source.Columns() {
+		if c.MongoType == schema.MongoFilter {
+			continue
+		}
 		if c.Table == projectedTableName && c.Name == sourceColumnName {
 			return ProjectedColumn{
 				Column: &Column{
@@ -160,6 +166,9 @@ func createProjectedColumnSubquery(selectID int, source PlanStage, projectedTabl
 
 func createProjectedColumn(selectID int, source PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) ProjectedColumn {
 	for _, c := range source.Columns() {
+		if c.MongoType == schema.MongoFilter {
+			continue
+		}
 		if c.Table == sourceTableName && c.Name == sourceColumnName {
 			return createProjectedColumnFromColumn(selectID, c, projectedTableName, projectedColumnName)
 		}
@@ -171,6 +180,9 @@ func createProjectedColumn(selectID int, source PlanStage, sourceTableName, sour
 func createAllProjectedColumnsFromSource(selectID int, source PlanStage, projectedTableName string) ProjectedColumns {
 	results := ProjectedColumns{}
 	for _, c := range source.Columns() {
+		if c.MongoType == schema.MongoFilter {
+			continue
+		}
 		results = append(results, createProjectedColumnFromColumn(selectID, c, projectedTableName, c.Name))
 	}
 

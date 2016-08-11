@@ -21,7 +21,7 @@ type MongoSourceStage struct {
 	pipeline        []bson.D
 }
 
-func NewMongoSourceStage(selectID int, schema *schema.Schema, dbName, tableName, aliasName string) (*MongoSourceStage, error) {
+func NewMongoSourceStage(selectID int, drdl *schema.Schema, dbName, tableName, aliasName string) (*MongoSourceStage, error) {
 
 	if dbName == "" {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
@@ -42,7 +42,7 @@ func NewMongoSourceStage(selectID int, schema *schema.Schema, dbName, tableName,
 		ms.aliasNames = ms.tableNames
 	}
 
-	database, ok := schema.Databases[ms.dbName]
+	database, ok := drdl.Databases[ms.dbName]
 	if !ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
 	}

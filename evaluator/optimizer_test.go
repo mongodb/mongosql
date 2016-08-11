@@ -31,7 +31,7 @@ func (v *pipelineGatherer) visit(n node) (node, error) {
 }
 
 func TestOptimizePlan(t *testing.T) {
-	testSchema, err := schema.New(testSchema1)
+	testSchema, err := schema.New(testSchema4)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
@@ -251,13 +251,14 @@ func TestOptimizePlan(t *testing.T) {
 								"as":           "__joined_bar",
 							}}},
 							{{"$project", bson.M{
-								"_id": 1,
-								"a":   1,
-								"b":   1,
-								"c":   1,
-								"d.e": 1,
-								"d.f": 1,
-								"g":   1,
+								"_id":    1,
+								"a":      1,
+								"b":      1,
+								"c":      1,
+								"d.e":    1,
+								"d.f":    1,
+								"filter": 1,
+								"g":      1,
 								"__joined_bar": bson.M{
 									"$cond": []interface{}{
 										bson.M{"$eq": []interface{}{
@@ -289,13 +290,14 @@ func TestOptimizePlan(t *testing.T) {
 								"as":           "__joined_bar",
 							}}},
 							{{"$project", bson.M{
-								"_id": 1,
-								"a":   1,
-								"b":   1,
-								"c":   1,
-								"d.e": 1,
-								"d.f": 1,
-								"g":   1,
+								"_id":    1,
+								"a":      1,
+								"b":      1,
+								"c":      1,
+								"d.e":    1,
+								"d.f":    1,
+								"filter": 1,
+								"g":      1,
 								"__joined_bar": bson.M{
 									"$cond": []interface{}{
 										bson.M{"$eq": []interface{}{
@@ -312,13 +314,14 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": true,
 							}}},
 							{{"$project", bson.M{
-								"_id": 1,
-								"a":   1,
-								"b":   1,
-								"c":   1,
-								"d.e": 1,
-								"d.f": 1,
-								"g":   1,
+								"_id":    1,
+								"a":      1,
+								"b":      1,
+								"c":      1,
+								"d.e":    1,
+								"d.f":    1,
+								"filter": 1,
+								"g":      1,
 								"__joined_bar": bson.M{"$cond": bson.M{
 									"if": bson.M{"$cond": []interface{}{
 										bson.M{"$or": []interface{}{
@@ -353,13 +356,14 @@ func TestOptimizePlan(t *testing.T) {
 								"as":           "__joined_bar",
 							}}},
 							{{"$project", bson.M{
-								"_id": 1,
-								"a":   1,
-								"b":   1,
-								"c":   1,
-								"d.e": 1,
-								"d.f": 1,
-								"g":   1,
+								"_id":    1,
+								"a":      1,
+								"b":      1,
+								"c":      1,
+								"d.e":    1,
+								"d.f":    1,
+								"filter": 1,
+								"g":      1,
 								"__joined_bar": bson.M{
 									"$cond": []interface{}{
 										bson.M{"$eq": []interface{}{
@@ -376,13 +380,14 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": true,
 							}}},
 							{{"$project", bson.M{
-								"_id": 1,
-								"a":   1,
-								"b":   1,
-								"c":   1,
-								"d.e": 1,
-								"d.f": 1,
-								"g":   1,
+								"_id":    1,
+								"a":      1,
+								"b":      1,
+								"c":      1,
+								"d.e":    1,
+								"d.f":    1,
+								"filter": 1,
+								"g":      1,
 								"__joined_bar": bson.M{"$cond": bson.M{
 									"if": bson.M{"$cond": []interface{}{
 										bson.M{"$or": []interface{}{
@@ -417,13 +422,14 @@ func TestOptimizePlan(t *testing.T) {
 								"as":           "__joined_bar",
 							}}},
 							{{"$project", bson.M{
-								"_id": 1,
-								"a":   1,
-								"b":   1,
-								"c":   1,
-								"d.e": 1,
-								"d.f": 1,
-								"g":   1,
+								"_id":    1,
+								"a":      1,
+								"b":      1,
+								"c":      1,
+								"d.e":    1,
+								"d.f":    1,
+								"filter": 1,
+								"g":      1,
 								"__joined_bar": bson.M{
 									"$cond": []interface{}{
 										bson.M{"$eq": []interface{}{
@@ -452,6 +458,7 @@ func TestOptimizePlan(t *testing.T) {
 								"c":                1,
 								"d.e":              1,
 								"d.f":              1,
+								"filter":           1,
 								"g":                1,
 								"__joined_bar._id": 1,
 								"__joined_bar.a":   1,
@@ -1235,6 +1242,43 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$skip", int64(10)}},
 					{{"$limit", int64(20)}},
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+					}}},
+				},
+			)
+		})
+
+		Convey("custom mongo filter", func() {
+			test(`select a from foo where filter='{"a": {"$gt": 3}}'`,
+				[]bson.D{
+					{{"$match", bson.M{
+						"a": map[string]interface{}{
+							"$gt": float64(3),
+						},
+					}}},
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+					}}},
+				},
+			)
+
+			test(`select a from foo where filter='{"a": {"$elemMatch": {"$gte": 80, "$lt": 85}}}' or b = 40`,
+				[]bson.D{
+					{{"$match", bson.M{
+						"$or": []interface{}{
+							bson.M{
+								"a": map[string]interface{}{
+									"$elemMatch": map[string]interface{}{
+										"$gte": float64(80),
+										"$lt":  float64(85),
+									}},
+							},
+							bson.M{
+								"b": int64(40),
+							},
+						}},
+					}},
 					{{"$project", bson.M{
 						"foo_DOT_a": "$a",
 					}}},

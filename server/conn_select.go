@@ -94,6 +94,10 @@ func (c *conn) handleFieldList(data []byte) error {
 	fields := []*Field{}
 
 	for _, field := range tableSchema.RawColumns {
+		if field.MongoType == schema.MongoFilter {
+			continue
+		}
+
 		f := &Field{}
 		f.Name = []byte(field.SqlName)
 		zeroValue := field.SqlType.ZeroValue()

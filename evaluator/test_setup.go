@@ -16,7 +16,7 @@ var (
 	tableTwoName   = "bar"
 	tableThreeName = "baz"
 	SSLTestKey     = "SQLPROXY_SSLTEST"
-	NoOptimize     = "SQLPROXY_OPTIMIZE_OFF"
+	NoPushDown     = "SQLPROXY_PUSHDOWN_OFF"
 
 	testSchema1 = []byte(`
 schema:
@@ -58,6 +58,7 @@ schema:
         Name: _id
         MongoType: bson.ObjectId
         SqlType: varchar
+
   -
      table: bar
      collection: bar
@@ -152,6 +153,7 @@ schema:
         Name: _id
         MongoType: bson.ObjectId
         SqlType: varchar
+
 `)
 
 	testSchema2 = []byte(`
@@ -311,6 +313,89 @@ schema:
      -
         Name: f
         MongoType: string
+        SqlType: varchar
+`)
+
+	testSchema4 = []byte(
+		`
+url: localhost
+log_level: vv
+schema:
+-
+  db: test
+  tables:
+  -
+     table: foo
+     collection: foo
+     columns:
+     -
+        Name: a
+        MongoType: int
+        SqlType: int
+     -
+        Name: b
+        MongoType: int
+        SqlType: int
+     -
+        Name: c
+        MongoType: int
+        SqlType: int
+     -
+        Name: d.e
+        MongoType: int
+        SqlName: e
+        SqlType: int
+     -
+        Name: d.f
+        MongoType: int
+        SqlName: f
+        SqlType: int
+     -
+        Name: g
+        MongoType: bool
+        SqlName: g
+        SqlType: boolean
+     -
+        Name: _id
+        MongoType: bson.ObjectId
+        SqlType: varchar
+     -
+        Name: filter
+        MongoType: mongo.Filter
+        SqlName: filter
+        SqlType: varchar
+
+  -
+     table: bar
+     collection: bar
+     columns:
+     -
+        Name: a
+        MongoType: int
+        SqlType: int
+     -
+        Name: b
+        MongoType: int
+        SqlType: int
+     -
+        Name: _id
+        MongoType: bson.ObjectId
+        SqlType: varchar
+  -
+     table: baz
+     collection: baz
+     columns:
+     -
+        Name: a
+        MongoType: int
+        SqlType: int
+     -
+        Name: b
+        MongoType: int
+        SqlType: int
+     -
+        Name: _id
+        MongoType: bson.ObjectId
         SqlType: varchar
 `)
 )

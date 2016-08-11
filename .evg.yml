@@ -539,7 +539,7 @@ tasks:
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
 
-- name: blackbox-optoff
+- name: blackbox-nopushdown
   commands:
     - func: "fetch source"
     - func: "download test data"
@@ -560,10 +560,10 @@ tasks:
           fi;
           . ./set_gopath.sh
           mkfifo test_pipe
-          tee -a blackbox-optoff.suite < test_pipe&
+          tee -a blackbox-nopushdown.suite < test_pipe&
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go run testdata/blackbox.go ${gccgoflags} -out blackbox_test.go
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test ${gccgoflags} -run TestBlackBox -parallel 10 -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${gccgoflags} -run TestBlackBox -parallel 10 -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -731,7 +731,7 @@ tasks:
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
 
-- name: sqlproxy-optoff
+- name: sqlproxy-nopushdown
   commands:
     - func: "fetch source"
     - func: "download test data"
@@ -752,7 +752,7 @@ tasks:
           fi;
           . ./set_gopath.sh
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_OPTIMIZE_OFF=0 go test ${gccgoflags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy-optoff.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-optoff.suite; exit 1; else cat sqlproxy-optoff.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${gccgoflags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy-nopushdown.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-nopushdown.suite; exit 1; else cat sqlproxy-nopushdown.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"

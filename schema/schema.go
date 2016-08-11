@@ -84,6 +84,7 @@ const (
 	MongoObjectId             = "bson.ObjectId"
 	MongoBool                 = "bool"
 	MongoDate                 = "date"
+	MongoFilter               = "mongo.Filter"
 	MongoNone                 = ""
 )
 
@@ -193,6 +194,12 @@ func (c *Column) validateType() error {
 		default:
 			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
 		}
+	case MongoFilter:
+		switch SQLType(c.SqlType) {
+		case SQLVarchar:
+		default:
+			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		}
 	default:
 		return fmt.Errorf("unsupported mongo type: '%s'", c.MongoType)
 	}
@@ -200,10 +207,20 @@ func (c *Column) validateType() error {
 }
 
 func (t *Table) validateColumnTypes() error {
+
+	haveMongoFilter := false
+
 	for _, c := range t.RawColumns {
 		err := c.validateType()
 		if err != nil {
 			return err
+		}
+
+		if c.MongoType == MongoFilter {
+			if haveMongoFilter {
+				return fmt.Errorf("can not have more than one mongo filter in collection '%s'", t.CollectionName)
+			}
+			haveMongoFilter = true
 		}
 	}
 	return nil

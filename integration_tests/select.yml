@@ -86,6 +86,10 @@ schema:
       MongoType: int
       SqlName: z
       SqlType: int
+    - Name: mfil
+      MongoType: mongo.Filter
+      SqlName: mfil
+      SqlType: varchar
 
 - db: randomDB
   tables:
@@ -494,3 +498,39 @@ testcases:
   - [1]
   - [1]
   - [1]
+
+# Mongo filter
+- sql: "select y, z from tuples where mfil='{\"x\": {\"$lte\": 4}}'"
+  pushdown_only: true
+  description: "lone custom filter predicate expression"
+  expected_names: ["y", "z"]
+  expected_types: [int, int]
+  expected:
+  - [1, 0]
+  - [1, 5]
+- sql: "select y, z from tuples where y = 6 or mfil='{\"x\": {\"$lte\": 4}}'"
+  pushdown_only: true
+  description: "custom filter with other expressions"
+  expected_names: ["y", "z"]
+  expected_types: [int, int]
+  expected:
+  - [1, 0]
+  - [6, 1]
+  - [1, 5]
+- sql: "select y, z from tuples where (z < 5 and mfil='{\"_id\": {\"$gte\": 5}}') or id = 3"
+  pushdown_only: true
+  description: "custom filter with conjunction"
+  expected_names: ["y", "z"]
+  expected_types: [int, int]
+  expected:
+  - [1, 5]
+- sql: "select y, z from tuples where (x > 4 or mfil='{\"_id\": {\"$gt\": 2}}') or id = 3"
+  pushdown_only: true
+  description: "custom filter with disjunction"
+  expected_names: ["y", "z"]
+  expected_types: [int, int]
+  expected:
+  - [1, 5]
+  - [1, 5]
+  - [6, 1]
+  - [1, 5]
