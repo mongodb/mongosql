@@ -66,7 +66,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{"$add": []interface{}{left, right}}, true
 
 	case *SQLAggFunctionExpr:
-
 		transExpr, ok := TranslateExpr(typedE.Exprs[0], lookupFieldName)
 		if !ok || transExpr == nil {
 			return nil, false
@@ -147,7 +146,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			bson.M{"$and": []interface{}{left, right}}}}, true
 
 	case *SQLDivideExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -161,7 +159,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{"$divide": []interface{}{left, right}}, true
 
 	case *SQLEqualsExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -180,7 +177,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case SQLColumnExpr:
-
 		name, ok := lookupFieldName(typedE.tableName, typedE.columnName)
 		if !ok {
 			return nil, false
@@ -188,7 +184,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return getProjectedFieldName(name, typedE.columnType.SQLType), true
 
 	case *SQLGreaterThanExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -207,7 +202,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLGreaterThanOrEqualExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -226,7 +220,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLIDivideExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -241,7 +234,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			bson.M{"$div": []interface{}{left, right}}}}, true
 
 	case *SQLLessThanExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -260,7 +252,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLLessThanOrEqualExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -279,7 +270,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLModExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -293,7 +283,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{"$mod": []interface{}{left, right}}, true
 
 	case *SQLMultiplyExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -307,7 +296,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{"$multiply": []interface{}{left, right}}, true
 
 	case *SQLNotExpr:
-
 		op, ok := TranslateExpr(typedE.operand, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -320,7 +308,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLNotEqualsExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -339,7 +326,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLOrExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -366,7 +352,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			bson.M{"$or": []interface{}{left, right}}}}, true
 
 	case *SQLXorExpr:
-
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
 			return nil, false
@@ -395,7 +380,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$not": bson.M{"$and": []interface{}{left, right}}}}}}}, true
 
 	case *SQLScalarFunctionExpr:
-
 		args, ok := translateExprs(lookupFieldName, typedE.Exprs...)
 		if !ok {
 			return nil, false
@@ -831,7 +815,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return wrapSingleArgFuncWithNullCheck("$year", args[0]), true
 		}
 	case *SQLSubqueryCmpExpr:
-
 		// unsupported
 
 	case *SQLSubtractExpr:
@@ -850,19 +833,15 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 	// SQL builtin types
 
 	case SQLDate:
-
 		return bson.M{"$literal": typedE.Time.Format(schema.DateFormat)}, true
 
 	case SQLBool, SQLFloat, SQLInt, SQLUint32, SQLVarchar:
-
 		return bson.M{"$literal": typedE}, true
 
 	case SQLNullValue:
-
 		return bson.M{"$literal": nil}, true
 
 	case SQLTimestamp:
-
 		return bson.M{"$literal": typedE.Time.Format(schema.TimestampFormat)}, true
 
 		/*
@@ -870,14 +849,54 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			case *SQLCaseExpr:
 			case *SQLUnaryMinusExpr:
 			case *SQLUnaryTildeExpr:
-			case *SQLTupleExpr:
-			case *SQLInExpr:
-		*/
+			case *SQLTupleExpr:*/
+
+	case *SQLInExpr:
+		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		exprs := getSQLInExprs(typedE.right)
+		if exprs == nil {
+			return nil, false
+		}
+
+		nullInValues := false
+		var right []interface{}
+		for _, expr := range exprs {
+			if expr == SQLNull {
+				nullInValues = true
+				continue
+			}
+			val, ok := TranslateExpr(expr, lookupFieldName)
+			if !ok {
+				return nil, false
+			}
+			right = append(right, val)
+		}
+
+		return wrapInCond(
+			nil,
+			wrapInCond(
+				true,
+				wrapInCond(
+					nil,
+					false,
+					bson.M{"$eq": []interface{}{nullInValues, true}},
+				),
+				bson.M{"$gt": []interface{}{
+					bson.M{"$size": bson.M{"$filter": bson.M{"input": right,
+						"as":   "item",
+						"cond": bson.M{"$eq": []interface{}{"$$item", left}},
+					}}},
+					bson.M{"$literal": 0},
+				}}),
+			wrapInNullCheck(left),
+		), true
 
 	}
-
 	log.Logf(log.DebugHigh, "Unable to push down group down expression: %#v (%T)\n", e, e)
-
 	return nil, false
 
 }
@@ -958,28 +977,8 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 			return nil, e
 		}
 
-		var exprs []SQLExpr
-
-		// The right child could be a non-SQLValues SQLValue
-		// if OptimizeExpr optimizes away the tuple. For
-		// example in these sorts of cases: (1) or (8-7).
-		// It could be of type *SQLValues when each of the
-		// expressions in the tuple are evaluated to a SQLValue.
-		// Finally, it could be of type *SQLTupleExpr when
-		// OptimizeExpr yielded no change.
-		sqlValue, isSQLValue := typedE.right.(SQLValue)
-		sqlValues, isSQLValues := typedE.right.(*SQLValues)
-		sqlTupleExpr, isSQLTupleExpr := typedE.right.(*SQLTupleExpr)
-
-		if isSQLValues {
-			for _, value := range sqlValues.Values {
-				exprs = append(exprs, value.(SQLExpr))
-			}
-		} else if isSQLValue {
-			exprs = []SQLExpr{sqlValue.(SQLExpr)}
-		} else if isSQLTupleExpr {
-			exprs = sqlTupleExpr.Exprs
-		} else {
+		exprs := getSQLInExprs(typedE.right)
+		if exprs == nil {
 			return nil, e
 		}
 

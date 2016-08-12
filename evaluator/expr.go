@@ -634,9 +634,17 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 			return SQLFalse, fmt.Errorf("left operand should contain 1 column - got %v", len(leftChild.Values))
 		}
 		left = leftChild.Values[0]
+	} else {
+		if _, ok = left.(SQLNullValue); ok {
+			return SQLNull, nil
+		}
 	}
 
+	nullInValues := false
 	for _, right := range rightChild.Values {
+		if right == SQLNull {
+			nullInValues = true
+		}
 		eq := &SQLEqualsExpr{left, right}
 		m, err := Matches(eq, ctx)
 		if err != nil {
@@ -647,7 +655,19 @@ func (in *SQLInExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		}
 	}
 
+	if nullInValues {
+		return SQLNull, nil
+	}
+
 	return SQLFalse, nil
+}
+
+func (in *SQLInExpr) normalize() node {
+	if hasNullExpr(in.left) {
+		return SQLNull
+	}
+
+	return in
 }
 
 func (in *SQLInExpr) String() string {
@@ -1432,7 +1452,6 @@ type SQLTupleExpr struct {
 }
 
 func (te SQLTupleExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-
 	var values []SQLValue
 
 	for _, v := range te.Exprs {

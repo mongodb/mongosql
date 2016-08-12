@@ -478,3 +478,30 @@ func twoSum(a, b float64) (float64, float64) {
 	t = deltaA + deltaB
 	return s, t
 }
+
+func getSQLInExprs(right SQLExpr) []SQLExpr {
+	var exprs []SQLExpr
+
+	// The right child could be a non-SQLValues SQLValue
+	// if the tuple can be evaluated and/or simplified. For
+	// example in these sorts of cases: (1), (8-7), (date "2005-03-22").
+	// The right child could be of type *SQLValues when each of the
+	// expressions in the tuple are evaluated to a SQLValue.
+	// Finally, it could be of type *SQLTupleExpr when
+	// OptimizeExpr yielded no change.
+	sqlValue, isSQLValue := right.(SQLValue)
+	sqlValues, isSQLValues := right.(*SQLValues)
+	sqlTupleExpr, isSQLTupleExpr := right.(*SQLTupleExpr)
+
+	if isSQLValues {
+		for _, value := range sqlValues.Values {
+			exprs = append(exprs, value.(SQLExpr))
+		}
+	} else if isSQLValue {
+		exprs = []SQLExpr{sqlValue.(SQLExpr)}
+	} else if isSQLTupleExpr {
+		exprs = sqlTupleExpr.Exprs
+	}
+
+	return exprs
+}

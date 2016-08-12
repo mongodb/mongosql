@@ -472,6 +472,8 @@ func TestEvaluates(t *testing.T) {
 				test{"-1 IN(1)", SQLFalse},
 				test{"0 IN(10, 0)", SQLTrue},
 				test{"-1 IN(1, 10)", SQLFalse},
+				test{"NULL IN(0, 1)", SQLNull},
+				test{"NULL IN(0, NULL)", SQLNull},
 			}
 
 			runTests(evalCtx, tests)
@@ -2217,6 +2219,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"std(a)", `{"$stdDevPop":"$a"}`},
 			test{"stddev(a)", `{"$stdDevPop":"$a"}`},
 			test{"stddev_samp(a)", `{"$stdDevSamp":"$a"}`},
+			test{"a in (2,3,5)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$cond":[{"$gt":[{"$size":{"$filter":{"as":"item","cond":{"$eq":["$$item","$a"]},"input":[{"$literal":2},{"$literal":3},{"$literal":5}]}}},{"$literal":0}]},true,{"$cond":[{"$eq":[false,true]},null,false]}]}]}`},
 		}
 
 		runTests(tests)

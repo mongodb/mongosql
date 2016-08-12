@@ -524,7 +524,6 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 
 	case *SQLInExpr:
-
 		left, err := visitExpr(typedN.left)
 		if err != nil {
 			return nil, err
@@ -533,7 +532,6 @@ func walk(v nodeVisitor, n node) (node, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		if typedN.left != left || typedN.right != right {
 			n = &SQLInExpr{left, right}
 		}

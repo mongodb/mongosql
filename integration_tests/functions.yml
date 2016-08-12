@@ -1515,3 +1515,76 @@ testcases:
   - [1]
   - [1]
   - [~]
+- sql: "select a in (4,7,2,1) from bar"
+  expected_names: ["a in (4, 7, 2, 1)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [~]
+  - [0]
+  - [1]
+  - [~]
+- sql: "select b in ('hey','this','hi') from bar"
+  expected_names: ["b in ('hey', 'this', 'hi')"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [0]
+  - [~]
+  - [1]
+  - [~]
+- sql: "select null in (4, 7, 2, 1) from bar"
+  expected_names: ["null in (4, 7, 2, 1)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select a in (null) from bar"
+  expected_names: ["a in (null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select 1 in (2,5,3) from bar"
+  expected_names: ["1 in (2, 5, 3)"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+- sql: "select a in (null, -3) from bar"
+  expected_names: ["a in (null, -3)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [1]
+  - [~]
+  - [~]
+- sql: "select 1 in (a) from bar"
+  expected_names: ["1 in (a)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [~]
+  - [0]
+  - [0]
+  - [~]
+# needs SQLConvertExpr to convert all types to each other before this works, mismatched column types
+#- sql: "select a in (b) from bar"
+#  expected_names: ["a in (b)"]
+#  expected_types: [int]
+#  expected:
+#  - [0]
+#  - [~]
+#  - [~]
+#  - [0]
+#  - [~]
