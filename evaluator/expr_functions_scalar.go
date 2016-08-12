@@ -282,7 +282,8 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		case SQLInt:
 			i = int64(typedV)
 		case SQLVarchar:
-			i, _ = strconv.ParseInt(typedV.String(), 10, 64)
+			f, _ := strconv.ParseFloat(typedV.String(), 64)
+			i = int64(f)
 		case SQLBool:
 			if typedV {
 				i = 1

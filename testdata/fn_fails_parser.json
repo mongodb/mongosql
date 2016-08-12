@@ -1,1 +1,0 @@
-{"id": "387", "query": "SELECT CONVERT(LTRIM(CONVERT(`DateTime`, SQL_VARCHAR)), SQL_DATE) AS `none_BCHBFJ_ok`, SUM(CONVERT(1, SQL_BIGINT)) AS `sum_Number_of_Records_ok` FROM DateTime GROUP BY CONVERT(LTRIM(CONVERT(`DateTime`, SQL_VARCHAR)), SQL_DATE) ORDER BY 1, 2", "columns": 2, "rows": 1}
