@@ -28,7 +28,7 @@ func NewMongoSourceStage(selectID int, schema *schema.Schema, dbName, tableName,
 	}
 
 	if tableName == "" {
-		return nil, fmt.Errorf(mysqlerrors.ER_NO_TABLES_USED)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_TABLES_USED)
 	}
 
 	ms := &MongoSourceStage{
