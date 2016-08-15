@@ -918,7 +918,13 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		switch typedE.Operator {
 		case parser.AST_UMINUS:
-			return &SQLUnaryMinusExpr{child}, nil
+			switch child.Type() {
+			case schema.SQLNull, schema.SQLDecimal128, schema.SQLFloat, schema.SQLNumeric, schema.SQLArrNumeric, schema.SQLInt, schema.SQLInt64:
+				return &SQLUnaryMinusExpr{child}, nil
+			case schema.SQLVarchar:
+				return &SQLUnaryMinusExpr{&SQLConvertExpr{child, schema.SQLFloat}}, nil
+			}
+			return &SQLUnaryMinusExpr{&SQLConvertExpr{child, schema.SQLInt}}, nil
 		case parser.AST_TILDA:
 			return &SQLUnaryTildeExpr{child}, nil
 		}

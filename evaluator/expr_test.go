@@ -1664,9 +1664,17 @@ func TestEvaluates(t *testing.T) {
 
 		Convey("Subject: SQLUnaryMinusExpr", func() {
 			tests := []test{
-				test{"-10", SQLInt(-10)},
-				test{"-a", SQLInt(-123)},
-				test{"-b", SQLInt(-456)},
+				test{"- 10", SQLInt(-10)},
+				test{"- a", SQLInt(-123)},
+				test{"- b", SQLInt(-456)},
+				test{"- null", SQLNull},
+				test{"- true", SQLInt(-1)},
+				test{"- false", SQLInt(0)},
+				test{"- date '2005-05-11'", SQLInt(-20050511)},
+				test{"- timestamp '2005-05-11 12:22:04'", SQLInt(-20050511122204)},
+				test{"- '4' ", SQLFloat(-4)},
+				test{"- 6.7", SQLFloat(-6.7)},
+				test{"- '3.3'", SQLFloat(-3.3)},
 			}
 
 			runTests(evalCtx, tests)

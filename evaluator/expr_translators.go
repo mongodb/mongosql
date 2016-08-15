@@ -847,9 +847,20 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		/*
 			TODO: implement these
 			case *SQLCaseExpr:
-			case *SQLUnaryMinusExpr:
 			case *SQLUnaryTildeExpr:
 			case *SQLTupleExpr:*/
+
+	case *SQLUnaryMinusExpr:
+		operand, ok := TranslateExpr(typedE.operand, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		return wrapInCond(
+			nil,
+			bson.M{"$multiply": []interface{}{-1, operand}},
+			wrapInNullCheck(operand),
+		), true
 
 	case *SQLInExpr:
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)

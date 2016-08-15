@@ -1504,6 +1504,9 @@ type SQLUnaryMinusExpr sqlUnaryNode
 
 func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if val, err := um.operand.Evaluate(ctx); err == nil {
+		if val == SQLNull {
+			return SQLNull, nil
+		}
 		return NewSQLValue(-val.Float64(), um.Type()), nil
 	}
 	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.operand)
@@ -1515,6 +1518,22 @@ func (um *SQLUnaryMinusExpr) String() string {
 
 func (um *SQLUnaryMinusExpr) Type() schema.SQLType {
 	return um.operand.Type()
+}
+
+func (um *SQLUnaryMinusExpr) normalize() node {
+	if um.operand == SQLNull {
+		return SQLNull
+	}
+
+	if um.operand == SQLTrue {
+		return SQLInt(-1)
+	}
+
+	if um.operand == SQLFalse {
+		return SQLInt(0)
+	}
+
+	return um
 }
 
 //
