@@ -135,7 +135,7 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 			Name:     column.Name,
 		}
 
-		value.Data, ms.err = NewSQLValue(extractedField, column.SQLType, column.MongoType)
+		value.Data, ms.err = NewSQLValueFromSQLColumnExpr(extractedField, column.SQLType, column.MongoType)
 		if ms.err != nil {
 			return false
 		}

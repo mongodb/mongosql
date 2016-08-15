@@ -133,7 +133,7 @@ func (_ *asciiFunc) Validate(exprCount int) error {
 type castFunc struct{}
 
 func (_ *castFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return NewSQLValue(values[0].Value(), schema.SQLType(values[1].String()), schema.MongoNone)
+	return NewSQLValue(values[0].Value(), schema.SQLType(values[1].String())), nil
 }
 
 func (_ *castFunc) Type() schema.SQLType {

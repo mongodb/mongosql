@@ -277,7 +277,7 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// first check our immediate rows
 	for _, row := range ctx.Rows {
 		if value, ok := row.GetField(c.selectID, c.tableName, c.columnName); ok {
-			return NewSQLValue(value, c.columnType.SQLType, c.columnType.MongoType)
+			return NewSQLValueFromSQLColumnExpr(value, c.columnType.SQLType, c.columnType.MongoType)
 		}
 	}
 
@@ -286,7 +286,7 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if ctx.ExecutionCtx != nil {
 		for _, row := range ctx.ExecutionCtx.SrcRows {
 			if value, ok := row.GetField(c.selectID, c.tableName, c.columnName); ok {
-				return NewSQLValue(value, c.columnType.SQLType, c.columnType.MongoType)
+				return NewSQLValueFromSQLColumnExpr(value, c.columnType.SQLType, c.columnType.MongoType)
 			}
 		}
 	}
@@ -333,7 +333,7 @@ func (ce SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewSQLValue(v.Value(), ce.convType, schema.MongoNone)
+	return NewSQLValue(v.Value(), ce.convType), nil
 }
 
 func (ce SQLConvertExpr) String() string {
@@ -1203,7 +1203,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		values := row.GetValues()
 
 		for _, value := range values {
-			field, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)
+			field, err := NewSQLValueFromSQLColumnExpr(value, schema.SQLNone, schema.MongoNone)
 			if err != nil {
 				return SQLFalse, err
 			}
@@ -1362,7 +1362,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 
 	eval := &SQLValues{}
 	for _, value := range values {
-		field, err := NewSQLValue(value, schema.SQLNone, schema.MongoNone)
+		field, err := NewSQLValueFromSQLColumnExpr(value, schema.SQLNone, schema.MongoNone)
 		if err != nil {
 			return nil, err
 		}
@@ -1406,7 +1406,7 @@ func (v *constantColumnReplacer) visit(n node) (node, error) {
 	case SQLColumnExpr:
 		for _, row := range v.ctx.SrcRows {
 			if val, ok := row.GetField(typedN.selectID, typedN.tableName, typedN.columnName); ok {
-				return NewSQLValue(val, typedN.columnType.SQLType, typedN.columnType.MongoType)
+				return NewSQLValueFromSQLColumnExpr(val, typedN.columnType.SQLType, typedN.columnType.MongoType)
 			}
 		}
 	}
@@ -1504,7 +1504,7 @@ type SQLUnaryMinusExpr sqlUnaryNode
 
 func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if val, err := um.operand.Evaluate(ctx); err == nil {
-		return NewSQLValue(-val.Float64(), um.Type(), schema.MongoNone)
+		return NewSQLValue(-val.Float64(), um.Type()), nil
 	}
 	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.operand)
 }

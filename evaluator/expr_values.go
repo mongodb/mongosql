@@ -13,10 +13,225 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+// NewSQLValue is a factory method for creating a SQLValue from
+// an in-memory value and column type.
 //
-// NewSQLValue is a factory method for creating a SQLValue from a value and column type.
-//
-func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.MongoType) (SQLValue, error) {
+// For a full description of its behavior, please see http://bit.ly/2bhWuyw
+func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
+
+	if value == nil {
+		return SQLNull
+	}
+
+	if v, ok := value.(SQLValue); ok {
+		return v
+	}
+
+	switch sqlType {
+
+	case schema.SQLBoolean:
+		v := NewSQLValue(value, schema.SQLFloat)
+		if v.Float64() == 0 {
+			return SQLFalse
+		}
+		return SQLTrue
+
+	case schema.SQLDate:
+		switch v := value.(type) {
+		case bson.ObjectId:
+			return SQLDate{v.Time()}
+		case string:
+			for _, format := range schema.TimestampCtorFormats {
+				d, err := time.Parse(format, v)
+				if err == nil {
+					date := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+					return SQLDate{date}
+				}
+			}
+			return SQLDate{time.Time{}}
+		case time.Time:
+			v = v.In(schema.DefaultLocale)
+			date := time.Date(v.Year(), v.Month(), v.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+			return SQLDate{date}
+		default:
+			return SQLDate{time.Time{}}
+		}
+
+	case schema.SQLDecimal128:
+		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLDecimal128(decimal.NewFromFloat(1))
+			}
+			return SQLDecimal128(decimal.NewFromFloat(0))
+		case bson.ObjectId:
+			dec, _ := decimal.NewFromString(v.String())
+			return SQLDecimal128(dec)
+		case bson.Decimal128:
+			dec, _ := decimal.NewFromString(v.String())
+			return SQLDecimal128(dec)
+		case float32:
+			return SQLDecimal128(decimal.NewFromFloat(float64(v)))
+		case float64:
+			return SQLDecimal128(decimal.NewFromFloat(v))
+		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64:
+			flt, _ := util.ToFloat64(v)
+			return SQLDecimal128(decimal.NewFromFloat(flt))
+		case string:
+			dec, err := decimal.NewFromString(v)
+			if err == nil {
+				return SQLDecimal128(dec)
+			}
+			value = NewSQLValue(value, schema.SQLFloat)
+			flt, _ := value.(SQLFloat)
+			return SQLDecimal128(decimal.NewFromFloat(float64(flt)))
+		case time.Time:
+			h, m, s := v.Clock()
+
+			if h+m+s == 0 {
+				flt, _ := strconv.ParseFloat(v.Format("20060102"), 64)
+				return SQLDecimal128(decimal.NewFromFloat(flt))
+			} else if v.Year() == 0 {
+				flt, _ := strconv.ParseFloat(v.Format("150405"), 64)
+				return SQLDecimal128(decimal.NewFromFloat(flt))
+			}
+			flt, _ := strconv.ParseFloat(v.Format("20060102150405"), 64)
+			return SQLDecimal128(decimal.NewFromFloat(flt))
+		default:
+			return SQLDecimal128(decimal.Zero)
+		}
+
+	case schema.SQLFloat:
+		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLFloat(1)
+			}
+			return SQLFloat(0)
+		case bson.ObjectId:
+			return NewSQLValue(v.Time(), schema.SQLFloat)
+		case bson.Decimal128:
+			dec, _ := decimal.NewFromString(v.String())
+			flt, _ := dec.Float64()
+			return SQLFloat(flt)
+		case float32:
+			return SQLFloat(float64(v))
+		case float64:
+			return SQLFloat(v)
+		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64:
+			flt, _ := util.ToFloat64(v)
+			return SQLFloat(flt)
+		case string:
+			flt, _ := strconv.ParseFloat(v, 64)
+			return SQLFloat(flt)
+		case time.Time:
+			h, m, s := v.Clock()
+
+			if h+m+s == 0 {
+				flt, _ := strconv.ParseFloat(v.Format("20060102"), 64)
+				return SQLFloat(flt)
+			} else if v.Year() == 0 {
+				flt, _ := strconv.ParseFloat(v.Format("150405"), 64)
+				return SQLFloat(flt)
+			}
+			flt, _ := strconv.ParseFloat(v.Format("20060102150405"), 64)
+			return SQLFloat(flt)
+		default:
+			return SQLFloat(0.0)
+		}
+
+	case schema.SQLInt, schema.SQLInt64:
+		flt := NewSQLValue(value, schema.SQLFloat)
+		return SQLInt(flt.Int64())
+
+	case schema.SQLNumeric:
+		return NewSQLValue(value, schema.SQLFloat)
+
+	case schema.SQLObjectID:
+		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLObjectID("1")
+			}
+			return SQLObjectID("0")
+		case bson.ObjectId:
+			return SQLObjectID(v.Hex())
+		case bson.Decimal128:
+			return SQLObjectID(v.String())
+		case float32, float64:
+			flt, _ := util.ToFloat64(v)
+			return SQLObjectID(strconv.FormatFloat(flt, 'f', -1, 64))
+		case int, int8, int16, int32, uint8, uint16, uint32:
+			val, _ := util.ToInt(v)
+			return SQLObjectID(strconv.FormatInt(int64(val), 10))
+		case int64:
+			return SQLObjectID(strconv.FormatInt(int64(v), 10))
+		case string:
+			return SQLObjectID(v)
+		case uint64:
+			return SQLObjectID(strconv.FormatUint(v, 10))
+		case time.Time:
+			return SQLObjectID(bson.NewObjectIdWithTime(v).Hex())
+		default:
+			return SQLObjectID("")
+		}
+
+	case schema.SQLTimestamp:
+		switch v := value.(type) {
+		case bson.ObjectId:
+			return SQLTimestamp{v.Time()}
+		case string:
+			for _, format := range schema.TimestampCtorFormats {
+				d, err := time.Parse(format, v)
+				if err == nil {
+					ts := time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
+						d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
+					return SQLTimestamp{ts}
+				}
+			}
+			return SQLTimestamp{time.Time{}}
+		case time.Time:
+			return SQLTimestamp{v.In(schema.DefaultLocale)}
+		default:
+			return SQLTimestamp{time.Time{}}
+		}
+
+	case schema.SQLVarchar:
+		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLVarchar("1")
+			}
+			return SQLVarchar("0")
+		case bson.ObjectId:
+			return SQLObjectID(v.Hex())
+		case bson.Decimal128:
+			dec, _ := decimal.NewFromString(v.String())
+			return SQLDecimal128(dec)
+		case float32:
+			return SQLVarchar(strconv.FormatFloat(float64(v), 'f', -1, 32))
+		case float64:
+			return SQLVarchar(strconv.FormatFloat(v, 'f', -1, 64))
+		case uint8, uint16, uint32, uint64, int, int8, int16, int32, int64:
+			val, _ := util.ToInt(v)
+			return SQLVarchar(strconv.FormatInt(int64(val), 10))
+		case string:
+			return SQLVarchar(v)
+		case time.Time:
+			return SQLVarchar(v.String())
+		default:
+			return SQLVarchar(reflect.ValueOf(v).String())
+		}
+	}
+
+	panic(fmt.Errorf("can't convert this type to a SQLValue: %T", value))
+
+}
+
+// NewSQLValueFromSQLColumnExpr is a factory method for creating a SQLValue
+// from a given column expression value. It converts the value to the appropriate
+// SQLValue using the provided SQLType and MongoType.
+func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mongoType schema.MongoType) (SQLValue, error) {
 	if value == nil {
 		return SQLNull, nil
 	}
@@ -51,11 +266,11 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 			ns := v.Nanosecond()
 
 			if ns == 0 && sd == 0 && mi == 0 && h == 0 {
-				return NewSQLValue(v, schema.SQLDate, mongoType)
+				return NewSQLValueFromSQLColumnExpr(v, schema.SQLDate, mongoType)
 			}
 
 			// SQLDateTime and SQLTimestamp can be handled similarly
-			return NewSQLValue(v, schema.SQLTimestamp, mongoType)
+			return NewSQLValueFromSQLColumnExpr(v, schema.SQLTimestamp, mongoType)
 		default:
 			panic(fmt.Errorf("can't convert this type to a SQLValue: %T", v))
 		}
@@ -102,7 +317,10 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType, mongoType schema.Mon
 	case schema.SQLVarchar:
 		switch v := value.(type) {
 		case bool:
-			return SQLVarchar(strconv.FormatBool(v)), nil
+			if v {
+				return SQLVarchar("1"), nil
+			}
+			return SQLVarchar("0"), nil
 		case string:
 			return SQLVarchar(v), nil
 		case float32:

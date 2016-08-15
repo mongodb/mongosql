@@ -46,7 +46,7 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 
 		var value SQLValue
 
-		value, bs.err = NewSQLValue(docElem.Value, schema.SQLNone, schema.MongoNone)
+		value, bs.err = NewSQLValueFromSQLColumnExpr(docElem.Value, schema.SQLNone, schema.MongoNone)
 		if bs.err != nil {
 			return false
 		}

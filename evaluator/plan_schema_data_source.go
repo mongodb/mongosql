@@ -147,7 +147,7 @@ func (sds *SchemaDataSourceStage) Columns() []*Column {
 }
 
 func (sds *SchemaDataSourceStage) getValue(c isColumn, data interface{}) Value {
-	data, _ = NewSQLValue(data, c.sqlType, schema.MongoNone)
+	data, _ = NewSQLValueFromSQLColumnExpr(data, c.sqlType, schema.MongoNone)
 	return Value{SelectID: sds.selectID, Table: sds.aliasName, Name: c.name, Data: data}
 }
 

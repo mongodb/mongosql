@@ -72,8 +72,9 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 
 	preferenceType := preferentialType(leftVal, rightVal)
 	useDecimal := preferenceType == schema.SQLDecimal128
-	// We check if both operands are timestamp or date because arithmetic
-	// between dates results in an integer.
+
+	// check if both operands are timestamp or date since
+	// arithmetic between time types result in an integer
 	if preferenceType == schema.SQLDate || preferenceType == schema.SQLTimestamp {
 		preferenceType = schema.SQLInt
 	}
@@ -110,7 +111,7 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 		return nil, fmt.Errorf("unrecognized arithmetic operator: %v", op)
 	}
 
-	return NewSQLValue(value, preferenceType, schema.MongoNone)
+	return NewSQLValue(value, preferenceType), nil
 }
 
 // fast2Sum returns the exact unevaluated sum of a and b

@@ -22,32 +22,32 @@ type ColumnType struct {
 }
 
 const (
-	SQLNumeric    SQLType = "numeric"
+	SQLArrNumeric SQLType = "numeric[]"
+	SQLBoolean            = "boolean"
+	SQLDate               = "date"
+	SQLDecimal128         = "decimal128"
+	SQLFloat              = "float64"
 	SQLInt                = "int"
 	SQLInt64              = "int64"
-	SQLFloat              = "float64"
-	SQLDecimal128         = "decimal128"
-	SQLVarchar            = "varchar"
-	SQLTimestamp          = "timestamp"
-	SQLDate               = "date"
-	SQLBoolean            = "boolean"
-	SQLArrNumeric         = "numeric[]"
-	SQLNull               = "null"
 	SQLNone               = ""
+	SQLNull               = "null"
+	SQLNumeric            = "numeric"
 	SQLObjectID           = "objectid"
+	SQLTimestamp          = "timestamp"
 	SQLTuple              = "sqltuple"
+	SQLVarchar            = "varchar"
 )
 
 const (
-	zeroInt    = int64(0)
 	zeroFloat  = float64(0)
+	zeroInt    = int64(0)
 	zeroString = ""
 )
 
 var (
 	zeroDecimal128, _ = bson.ParseDecimal128("0")
-	zeroTime          = time.Time{}
 	zeroBSON          = bson.ObjectId("")
+	zeroTime          = time.Time{}
 )
 
 // ZeroValue returns the zero value for sqlType.

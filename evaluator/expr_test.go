@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/shopspring/decimal"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -234,8 +235,8 @@ func TestEvaluates(t *testing.T) {
 					test{"DATE '2014-04-13' + 2", SQLInt(20140415)},
 					test{"TIME '11:04:13' + 0", SQLInt(110413)},
 					test{"TIME '11:04:13' + 2", SQLInt(110415)},
-					test{"TIME '11:04:13' + '2'", SQLFloat(110415)},
-					test{"'2' + TIME '11:04:13'", SQLFloat(110415)},
+					test{"TIME '11:04:13' + '2'", SQLInt(110415)},
+					test{"'2' + TIME '11:04:13'", SQLInt(110415)},
 					test{"TIMESTAMP '2014-04-13 11:04:13' + 0", SQLInt(20140413110413)},
 					test{"TIMESTAMP '2014-04-13 11:04:13' + 2", SQLInt(20140413110415)},
 				}
@@ -248,7 +249,7 @@ func TestEvaluates(t *testing.T) {
 					test{"DATE '2014-04-13' - 2", SQLInt(20140411)},
 					test{"TIME '11:04:13' - 0", SQLInt(110413)},
 					test{"TIME '11:04:13' - 2", SQLInt(110411)},
-					test{"TIME '11:04:13' - '2'", SQLFloat(110411)},
+					test{"TIME '11:04:13' - '2'", SQLInt(110411)},
 					test{"TIMESTAMP '2014-04-13 11:04:13' - 0", SQLInt(20140413110413)},
 					test{"TIMESTAMP '2014-04-13 11:04:13' - 2", SQLInt(20140413110411)},
 				}
@@ -261,7 +262,7 @@ func TestEvaluates(t *testing.T) {
 					test{"DATE '2014-04-13' * 2", SQLInt(40280826)},
 					test{"TIME '11:04:13' * 0", SQLInt(0)},
 					test{"TIME '11:04:13' * 2", SQLInt(220826)},
-					test{"TIME '11:04:13' * '2'", SQLFloat(220826)},
+					test{"TIME '11:04:13' * '2'", SQLInt(220826)},
 					test{"TIMESTAMP '2014-04-13 11:04:13' * 0", SQLInt(0)},
 					test{"TIMESTAMP '2014-04-13 11:04:13' * 2", SQLInt(40280826220826)},
 				}
@@ -1750,62 +1751,308 @@ func TestMatches(t *testing.T) {
 
 func TestNewSQLValue(t *testing.T) {
 
-	Convey("When creating a SQLValue with no column type specified calling NewSQLValue on a", t, func() {
+	type test struct {
+		input    interface{}
+		sqlType  schema.SQLType
+		sqlValue SQLValue
+	}
+
+	runTests := func(tests []test) {
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%v (%T) as '%v' should convert into %v (%T)", t.input, t.input, t.sqlType, t.sqlValue, t.sqlValue), func() {
+				So(NewSQLValue(t.input, t.sqlType).String(), ShouldEqual, t.sqlValue.String())
+			})
+		}
+	}
+
+	getDate := func(t time.Time) time.Time {
+		y, m, d := t.Date()
+		return time.Date(y, m, d, 0, 0, 0, 0, schema.DefaultLocale)
+	}
+
+	var (
+		intVal              = 3
+		floatVal            = 3.13
+		strFloatVal         = "3.23"
+		timeVal             = time.Now().In(schema.DefaultLocale)
+		timeValParsed       = getDate(timeVal)
+		strTimeVal          = "2006-01-01 11:10:12"
+		strTimeValParsed, _ = time.Parse("2006-1-2 15:4:5", strTimeVal)
+		strTimeValDate      = getDate(strTimeValParsed)
+		objectIDVal         = bson.NewObjectId()
+		sqlVal              = SQLInt(0)
+		zeroTime            = time.Time{}
+		defaultSQLDate      = SQLDate{zeroTime}
+	)
+
+	Convey("Subject: NewSQLValue", t, func() {
+
+		Convey("Subject: SQLNull", func() {
+			tests := []test{
+				test{nil, schema.SQLBoolean, SQLNull},
+				test{nil, schema.SQLDate, SQLNull},
+				test{nil, schema.SQLDecimal128, SQLNull},
+				test{nil, schema.SQLFloat, SQLNull},
+				test{nil, schema.SQLInt, SQLNull},
+				test{nil, schema.SQLInt64, SQLNull},
+				test{nil, schema.SQLNumeric, SQLNull},
+				test{nil, schema.SQLObjectID, SQLNull},
+				test{nil, schema.SQLVarchar, SQLNull},
+			}
+
+			runTests(tests)
+
+		})
+
+		Convey("Subject: SQLValue", func() {
+			tests := []test{
+				test{sqlVal, schema.SQLBoolean, sqlVal},
+				test{sqlVal, schema.SQLDate, sqlVal},
+				test{sqlVal, schema.SQLDecimal128, sqlVal},
+				test{sqlVal, schema.SQLFloat, sqlVal},
+				test{sqlVal, schema.SQLInt, sqlVal},
+				test{sqlVal, schema.SQLInt64, sqlVal},
+				test{sqlVal, schema.SQLNumeric, sqlVal},
+				test{sqlVal, schema.SQLObjectID, sqlVal},
+				test{sqlVal, schema.SQLVarchar, sqlVal},
+			}
+
+			runTests(tests)
+
+		})
+
+		Convey("Subject: SQLBoolean", func() {
+			tests := []test{
+				test{false, schema.SQLBoolean, SQLFalse},
+				test{true, schema.SQLBoolean, SQLTrue},
+				test{floatVal, schema.SQLBoolean, SQLTrue},
+				test{0.0, schema.SQLBoolean, SQLFalse},
+				test{objectIDVal, schema.SQLBoolean, SQLTrue},
+				test{intVal, schema.SQLBoolean, SQLTrue},
+				test{0, schema.SQLBoolean, SQLFalse},
+				test{strFloatVal, schema.SQLBoolean, SQLTrue},
+				test{"0.000", schema.SQLBoolean, SQLFalse},
+				test{"1.0", schema.SQLBoolean, SQLTrue},
+				test{strTimeVal, schema.SQLBoolean, SQLFalse},
+				test{timeVal, schema.SQLBoolean, SQLTrue},
+			}
+
+			runTests(tests)
+
+		})
+
+		Convey("Subject: SQLDate", func() {
+			tests := []test{
+				test{false, schema.SQLDate, defaultSQLDate},
+				test{true, schema.SQLDate, defaultSQLDate},
+				test{floatVal, schema.SQLDate, defaultSQLDate},
+				test{0.0, schema.SQLDate, defaultSQLDate},
+				test{objectIDVal, schema.SQLDate, SQLDate{objectIDVal.Time()}},
+				test{intVal, schema.SQLDate, defaultSQLDate},
+				test{0, schema.SQLDate, defaultSQLDate},
+				test{strFloatVal, schema.SQLDate, defaultSQLDate},
+				test{"0.000", schema.SQLDate, defaultSQLDate},
+				test{"1.0", schema.SQLDate, defaultSQLDate},
+				test{strTimeVal, schema.SQLDate, SQLDate{strTimeValDate}},
+				test{timeVal, schema.SQLDate, SQLDate{timeValParsed}},
+			}
+
+			runTests(tests)
+
+		})
+
+		Convey("Subject: SQLDecimal128", func() {
+			tests := []test{
+				test{false, schema.SQLDecimal128, SQLDecimal128(decimal.New(0, 0))},
+				test{true, schema.SQLDecimal128, SQLDecimal128(decimal.New(1, 0))},
+				test{floatVal, schema.SQLDecimal128, SQLDecimal128(decimal.NewFromFloat(floatVal))},
+				test{0.0, schema.SQLDecimal128, SQLDecimal128(decimal.New(0, 0))},
+				test{objectIDVal, schema.SQLDecimal128, SQLDecimal128(decimal.New(0, 0))},
+				test{intVal, schema.SQLDecimal128, SQLDecimal128(decimal.NewFromFloat(float64(intVal)))},
+				test{0, schema.SQLDecimal128, SQLDecimal128(decimal.New(0, 0))},
+				test{strFloatVal, schema.SQLDecimal128, SQLDecimal128(decimal.NewFromFloat(floatVal + .1))},
+				test{"0.000", schema.SQLDecimal128, SQLDecimal128(decimal.New(0, 0))},
+				test{"1.0", schema.SQLDecimal128, SQLDecimal128(decimal.New(1, 0))},
+			}
+
+			runTests(tests)
+
+		})
+
+		Convey("Subject: SQLFloat, SQLNumeric", func() {
+			tests := []test{
+
+				//
+				// SQLFloat
+				//
+				test{false, schema.SQLFloat, SQLFloat(0.0)},
+				test{true, schema.SQLFloat, SQLFloat(1.0)},
+				test{floatVal, schema.SQLFloat, SQLFloat(floatVal)},
+				test{0.0, schema.SQLFloat, SQLFloat(0.0)},
+				test{intVal, schema.SQLFloat, SQLFloat(float64(intVal))},
+				test{0, schema.SQLFloat, SQLFloat(0.0)},
+				test{strFloatVal, schema.SQLFloat, SQLFloat(3.23)},
+				test{"0.000", schema.SQLFloat, SQLFloat(0.0)},
+				test{"1.0", schema.SQLFloat, SQLFloat(1.0)},
+
+				//
+				// SQLNumeric
+				//
+				test{false, schema.SQLNumeric, SQLFloat(0.0)},
+				test{true, schema.SQLNumeric, SQLFloat(1.0)},
+				test{floatVal, schema.SQLNumeric, SQLFloat(floatVal)},
+				test{0.0, schema.SQLNumeric, SQLFloat(0.0)},
+				test{intVal, schema.SQLNumeric, SQLFloat(float64(intVal))},
+				test{0, schema.SQLNumeric, SQLFloat(0.0)},
+				test{strFloatVal, schema.SQLNumeric, SQLFloat(3.23)},
+				test{"0.000", schema.SQLNumeric, SQLFloat(0.0)},
+				test{"1.0", schema.SQLNumeric, SQLFloat(1.0)},
+			}
+
+			runTests(tests)
+
+		})
+
+		Convey("Subject: SQLInt, SQLInt64", func() {
+			tests := []test{
+
+				test{false, schema.SQLInt, SQLInt(0)},
+				test{true, schema.SQLInt, SQLInt(1)},
+				test{floatVal, schema.SQLInt, SQLInt(int64(floatVal))},
+				test{0.0, schema.SQLInt, SQLInt(0)},
+				test{intVal, schema.SQLInt, SQLInt(intVal)},
+				test{0, schema.SQLInt, SQLInt(0)},
+				test{strFloatVal, schema.SQLInt, SQLInt(3)},
+				test{"0.000", schema.SQLInt, SQLInt(0)},
+				test{"1.0", schema.SQLInt, SQLInt(1)},
+			}
+
+			runTests(tests)
+
+		})
+
+		Convey("Subject: SQLObjectID", func() {
+			tests := []test{
+				test{false, schema.SQLObjectID, SQLObjectID("0")},
+				test{true, schema.SQLObjectID, SQLObjectID("1")},
+				test{floatVal, schema.SQLObjectID, SQLObjectID(strconv.FormatFloat(floatVal, 'f', -1, 64))},
+				test{0.0, schema.SQLObjectID, SQLObjectID("0")},
+				test{objectIDVal, schema.SQLObjectID, SQLObjectID(objectIDVal.Hex())},
+				test{intVal, schema.SQLObjectID, SQLObjectID(strconv.FormatInt(int64(intVal), 10))},
+				test{0, schema.SQLObjectID, SQLObjectID("0")},
+				test{strFloatVal, schema.SQLObjectID, SQLObjectID(strFloatVal)},
+				test{"0.000", schema.SQLObjectID, SQLObjectID("0.000")},
+				test{"1.0", schema.SQLObjectID, SQLObjectID("1.0")},
+				test{strTimeVal, schema.SQLObjectID, SQLObjectID(strTimeVal)},
+				test{timeVal, schema.SQLObjectID, SQLObjectID(bson.NewObjectIdWithTime(timeVal).Hex())},
+			}
+
+			runTests(tests)
+
+		})
+
+		Convey("Subject: SQLTimestamp", func() {
+			tests := []test{
+				test{false, schema.SQLTimestamp, SQLTimestamp{zeroTime}},
+				test{true, schema.SQLTimestamp, SQLTimestamp{zeroTime}},
+				test{floatVal, schema.SQLTimestamp, SQLTimestamp{zeroTime}},
+				test{0.0, schema.SQLTimestamp, SQLTimestamp{zeroTime}},
+				test{objectIDVal, schema.SQLTimestamp, SQLTimestamp{objectIDVal.Time()}},
+				test{intVal, schema.SQLTimestamp, SQLTimestamp{zeroTime}},
+				test{0, schema.SQLTimestamp, SQLTimestamp{zeroTime}},
+				test{strFloatVal, schema.SQLTimestamp, SQLTimestamp{zeroTime}},
+				test{"0.000", schema.SQLTimestamp, SQLTimestamp{zeroTime}},
+				test{"1.0", schema.SQLTimestamp, SQLTimestamp{zeroTime}},
+				test{strTimeVal, schema.SQLTimestamp, SQLTimestamp{strTimeValParsed}},
+				test{timeVal, schema.SQLTimestamp, SQLTimestamp{timeVal}},
+			}
+
+			runTests(tests)
+
+		})
+
+		Convey("Subject: SQLVarchar", func() {
+			tests := []test{
+				test{false, schema.SQLVarchar, SQLVarchar("0")},
+				test{true, schema.SQLVarchar, SQLVarchar("1")},
+				test{floatVal, schema.SQLVarchar, SQLVarchar(strconv.FormatFloat(floatVal, 'f', -1, 64))},
+				test{0.0, schema.SQLVarchar, SQLVarchar("0")},
+				test{objectIDVal, schema.SQLVarchar, SQLVarchar(objectIDVal.Hex())},
+				test{intVal, schema.SQLVarchar, SQLVarchar(strconv.FormatInt(int64(intVal), 10))},
+				test{0, schema.SQLVarchar, SQLVarchar("0")},
+				test{strFloatVal, schema.SQLVarchar, SQLVarchar(strFloatVal)},
+				test{"0.000", schema.SQLVarchar, SQLVarchar("0.000")},
+				test{"1.0", schema.SQLVarchar, SQLVarchar("1.0")},
+				test{strTimeVal, schema.SQLVarchar, SQLVarchar(strTimeVal)},
+				test{timeVal, schema.SQLVarchar, SQLVarchar(timeVal.String())},
+			}
+
+			runTests(tests)
+
+		})
+
+	})
+
+}
+
+func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
+
+	Convey("When creating a SQLValue with no column type specified calling NewSQLValueFromSQLColumnExpr on a", t, func() {
 
 		Convey("SQLValue should return the same object passed in", func() {
 			v := SQLTrue
-			newV, err := NewSQLValue(v, schema.SQLBoolean, schema.MongoBool)
+			newV, err := NewSQLValueFromSQLColumnExpr(v, schema.SQLBoolean, schema.MongoBool)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, v)
 		})
 
 		Convey("nil value should return SQLNull", func() {
-			v, err := NewSQLValue(nil, schema.SQLNull, schema.MongoBool)
+			v, err := NewSQLValueFromSQLColumnExpr(nil, schema.SQLNull, schema.MongoBool)
 			So(err, ShouldBeNil)
 			So(v, ShouldResemble, SQLNull)
 		})
 
 		Convey("bson object id should return its string value", func() {
 			v := bson.ObjectId("56a10dd56ce28a89a8ed6edb")
-			newV, err := NewSQLValue(v, schema.SQLVarchar, schema.MongoObjectId)
+			newV, err := NewSQLValueFromSQLColumnExpr(v, schema.SQLVarchar, schema.MongoObjectId)
 			So(err, ShouldBeNil)
 			So(newV, ShouldEqual, v.Hex())
 		})
 
 		Convey("string objects should return the string value", func() {
 			v := "56a10dd56ce28a89a8ed6edb"
-			newV, err := NewSQLValue(v, schema.SQLVarchar, schema.MongoString)
+			newV, err := NewSQLValueFromSQLColumnExpr(v, schema.SQLVarchar, schema.MongoString)
 			So(err, ShouldBeNil)
 			So(newV, ShouldEqual, v)
 		})
 
 		Convey("int objects should return the int value", func() {
 			v1 := int(6)
-			newV, err := NewSQLValue(v1, schema.SQLInt, schema.MongoInt)
+			newV, err := NewSQLValueFromSQLColumnExpr(v1, schema.SQLInt, schema.MongoInt)
 			So(err, ShouldBeNil)
 			So(newV, ShouldEqual, v1)
 
 			v2 := int32(6)
-			newV, err = NewSQLValue(v2, schema.SQLInt, schema.MongoInt)
+			newV, err = NewSQLValueFromSQLColumnExpr(v2, schema.SQLInt, schema.MongoInt)
 			So(err, ShouldBeNil)
 			So(newV, ShouldEqual, v2)
 
 			v3 := uint32(6)
-			newV, err = NewSQLValue(v3, schema.SQLInt, schema.MongoInt)
+			newV, err = NewSQLValueFromSQLColumnExpr(v3, schema.SQLInt, schema.MongoInt)
 			So(err, ShouldBeNil)
 			So(newV, ShouldEqual, v3)
 		})
 
 		Convey("float objects should return the float value", func() {
 			v := float64(6.3)
-			newV, err := NewSQLValue(v, schema.SQLFloat, schema.MongoFloat)
+			newV, err := NewSQLValueFromSQLColumnExpr(v, schema.SQLFloat, schema.MongoFloat)
 			So(err, ShouldBeNil)
 			So(newV, ShouldEqual, v)
 		})
 
 		Convey("time objects should return the appropriate value", func() {
 			v := time.Date(2014, time.December, 31, 0, 0, 0, 0, schema.DefaultLocale)
-			newV, err := NewSQLValue(v, schema.SQLDate, schema.MongoDate)
+			newV, err := NewSQLValueFromSQLColumnExpr(v, schema.SQLDate, schema.MongoDate)
 			So(err, ShouldBeNil)
 
 			sqlDate, ok := newV.(SQLDate)
@@ -1813,7 +2060,7 @@ func TestNewSQLValue(t *testing.T) {
 			So(sqlDate, ShouldResemble, SQLDate{v})
 
 			v = time.Date(2014, time.December, 31, 10, 0, 0, 0, schema.DefaultLocale)
-			newV, err = NewSQLValue(v, schema.SQLTimestamp, schema.MongoDate)
+			newV, err = NewSQLValueFromSQLColumnExpr(v, schema.SQLTimestamp, schema.MongoDate)
 			So(err, ShouldBeNil)
 
 			sqlTimestamp, ok := newV.(SQLTimestamp)
@@ -1822,30 +2069,30 @@ func TestNewSQLValue(t *testing.T) {
 		})
 	})
 
-	Convey("When creating a SQLValue with a column type specified calling NewSQLValue on a", t, func() {
+	Convey("When creating a SQLValue with a column type specified calling NewSQLValueFromSQLColumnExpr on a", t, func() {
 
 		Convey("a SQLVarchar/SQLVarchar column type should attempt to coerce to the SQLVarchar type", func() {
 
 			t := schema.SQLVarchar
 
-			newV, err := NewSQLValue(t, schema.SQLVarchar, schema.MongoString)
+			newV, err := NewSQLValueFromSQLColumnExpr(t, schema.SQLVarchar, schema.MongoString)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLVarchar(t))
 
-			newV, err = NewSQLValue(6, schema.SQLVarchar, schema.MongoInt)
+			newV, err = NewSQLValueFromSQLColumnExpr(6, schema.SQLVarchar, schema.MongoInt)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLVarchar("6"))
 
-			newV, err = NewSQLValue(6.6, schema.SQLVarchar, schema.MongoFloat)
+			newV, err = NewSQLValueFromSQLColumnExpr(6.6, schema.SQLVarchar, schema.MongoFloat)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLVarchar("6.6"))
 
-			newV, err = NewSQLValue(int64(6), schema.SQLVarchar, schema.MongoInt64)
+			newV, err = NewSQLValueFromSQLColumnExpr(int64(6), schema.SQLVarchar, schema.MongoInt64)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLVarchar("6"))
 
 			_id := bson.ObjectId("56a10dd56ce28a89a8ed6edb")
-			newV, err = NewSQLValue(_id, schema.SQLVarchar, schema.MongoObjectId)
+			newV, err = NewSQLValueFromSQLColumnExpr(_id, schema.SQLVarchar, schema.MongoObjectId)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLObjectID(_id.Hex()))
 
@@ -1853,23 +2100,23 @@ func TestNewSQLValue(t *testing.T) {
 
 		Convey("a SQLInt column type should attempt to coerce to the SQLInt type", func() {
 
-			newV, err := NewSQLValue(true, schema.SQLInt, schema.MongoBool)
+			newV, err := NewSQLValueFromSQLColumnExpr(true, schema.SQLInt, schema.MongoBool)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLInt(1))
 
-			newV, err = NewSQLValue(int(6), schema.SQLInt, schema.MongoInt64)
+			newV, err = NewSQLValueFromSQLColumnExpr(int(6), schema.SQLInt, schema.MongoInt64)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLInt(6))
 
-			newV, err = NewSQLValue(int32(6), schema.SQLInt, schema.MongoInt)
+			newV, err = NewSQLValueFromSQLColumnExpr(int32(6), schema.SQLInt, schema.MongoInt)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLInt(6))
 
-			newV, err = NewSQLValue(int64(6), schema.SQLInt, schema.MongoInt64)
+			newV, err = NewSQLValueFromSQLColumnExpr(int64(6), schema.SQLInt, schema.MongoInt64)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLInt(6))
 
-			newV, err = NewSQLValue(float64(6.6), schema.SQLInt, schema.MongoFloat)
+			newV, err = NewSQLValueFromSQLColumnExpr(float64(6.6), schema.SQLInt, schema.MongoFloat)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLInt(6))
 
@@ -1877,23 +2124,23 @@ func TestNewSQLValue(t *testing.T) {
 
 		Convey("a SQLFloat column type should attempt to coerce to the SQLFloat type", func() {
 
-			newV, err := NewSQLValue(true, schema.SQLFloat, schema.MongoBool)
+			newV, err := NewSQLValueFromSQLColumnExpr(true, schema.SQLFloat, schema.MongoBool)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLFloat(1))
 
-			newV, err = NewSQLValue(int(6), schema.SQLFloat, schema.MongoInt)
+			newV, err = NewSQLValueFromSQLColumnExpr(int(6), schema.SQLFloat, schema.MongoInt)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLFloat(6))
 
-			newV, err = NewSQLValue(int32(6), schema.SQLFloat, schema.MongoInt)
+			newV, err = NewSQLValueFromSQLColumnExpr(int32(6), schema.SQLFloat, schema.MongoInt)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLFloat(6))
 
-			newV, err = NewSQLValue(int64(6), schema.SQLFloat, schema.MongoInt64)
+			newV, err = NewSQLValueFromSQLColumnExpr(int64(6), schema.SQLFloat, schema.MongoInt64)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLFloat(6))
 
-			newV, err = NewSQLValue(float64(6.6), schema.SQLFloat, schema.MongoFloat)
+			newV, err = NewSQLValueFromSQLColumnExpr(float64(6.6), schema.SQLFloat, schema.MongoFloat)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLFloat(6.6))
 
@@ -1905,14 +2152,14 @@ func TestNewSQLValue(t *testing.T) {
 			v1 := time.Date(2014, time.May, 11, 0, 0, 0, 0, schema.DefaultLocale)
 			v2 := time.Date(2014, time.May, 11, 10, 32, 12, 0, schema.DefaultLocale)
 
-			newV, err := NewSQLValue(v1, schema.SQLDate, schema.MongoDate)
+			newV, err := NewSQLValueFromSQLColumnExpr(v1, schema.SQLDate, schema.MongoDate)
 			So(err, ShouldBeNil)
 
 			sqlDate, ok := newV.(SQLDate)
 			So(ok, ShouldBeTrue)
 			So(sqlDate, ShouldResemble, SQLDate{v1})
 
-			newV, err = NewSQLValue(v2, schema.SQLDate, schema.MongoDate)
+			newV, err = NewSQLValueFromSQLColumnExpr(v2, schema.SQLDate, schema.MongoDate)
 			So(err, ShouldBeNil)
 
 			sqlDate, ok = newV.(SQLDate)
@@ -1924,7 +2171,7 @@ func TestNewSQLValue(t *testing.T) {
 
 			for _, d := range dates {
 
-				newV, err := NewSQLValue(d, schema.SQLDate, schema.MongoNone)
+				newV, err := NewSQLValueFromSQLColumnExpr(d, schema.SQLDate, schema.MongoNone)
 				So(err, ShouldBeNil)
 
 				sqlDate, ok := newV.(SQLDate)
@@ -1938,7 +2185,7 @@ func TestNewSQLValue(t *testing.T) {
 			dates = []string{"2014-12-44-44", "999-1-1", "10000-1-1"}
 
 			for _, d := range dates {
-				newV, err = NewSQLValue(d, schema.SQLDate, schema.MongoNone)
+				newV, err = NewSQLValueFromSQLColumnExpr(d, schema.SQLDate, schema.MongoNone)
 				So(err, ShouldBeNil)
 
 				_, ok := newV.(SQLFloat)
@@ -1951,7 +2198,7 @@ func TestNewSQLValue(t *testing.T) {
 			// Time type
 			v1 := time.Date(2014, time.May, 11, 15, 4, 5, 0, schema.DefaultLocale)
 
-			newV, err := NewSQLValue(v1, schema.SQLTimestamp, schema.MongoNone)
+			newV, err := NewSQLValueFromSQLColumnExpr(v1, schema.SQLTimestamp, schema.MongoNone)
 			So(err, ShouldBeNil)
 
 			sqlTs, ok := newV.(SQLTimestamp)
@@ -1959,7 +2206,7 @@ func TestNewSQLValue(t *testing.T) {
 			So(sqlTs, ShouldResemble, SQLTimestamp{v1})
 
 			// String type
-			newV, err = NewSQLValue("2014-05-11 15:04:05.000", schema.SQLTimestamp, schema.MongoNone)
+			newV, err = NewSQLValueFromSQLColumnExpr("2014-05-11 15:04:05.000", schema.SQLTimestamp, schema.MongoNone)
 			So(err, ShouldBeNil)
 
 			sqlTs, ok = newV.(SQLTimestamp)
@@ -1970,7 +2217,7 @@ func TestNewSQLValue(t *testing.T) {
 			dates := []string{"2044-12-40", "1966-15-1", "43223-3223"}
 
 			for _, d := range dates {
-				newV, err = NewSQLValue(d, schema.SQLTimestamp, schema.MongoNone)
+				newV, err = NewSQLValueFromSQLColumnExpr(d, schema.SQLTimestamp, schema.MongoNone)
 				So(err, ShouldBeNil)
 				_, ok := newV.(SQLFloat)
 				So(ok, ShouldBeTrue)
@@ -2013,7 +2260,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 
 		tests := []test{
 			test{"a = 3", exprA, SQLInt(3)},
-			test{"g - '2010-01-01'", exprG, exprConv},
+			test{"g - '2010-01-01'", &SQLConvertExpr{exprG, schema.SQLInt}, &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLInt}},
 			test{"a in (3)", exprA, SQLInt(3)},
 			test{"a in (2,3)", exprA, &SQLTupleExpr{[]SQLExpr{SQLInt(2), SQLInt(3)}}},
 			test{"(a) in (3)", exprA, SQLInt(3)},

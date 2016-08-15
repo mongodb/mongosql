@@ -681,9 +681,35 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		return &SQLAndExpr{left, right}, nil
 	case *parser.BinaryExpr:
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, true)
+		left, err := a.translateExpr(typedE.Left)
 		if err != nil {
 			return nil, err
+		}
+
+		right, err := a.translateExpr(typedE.Right)
+		if err != nil {
+			return nil, err
+		}
+
+		// check if both operands are timestamp or date since
+		// arithmetic between time types result in an integer
+		preferenceType := preferentialType(left, right)
+
+		if preferenceType == schema.SQLDate || preferenceType == schema.SQLTimestamp {
+			left, _, err = reconcileSQLExprs(left, SQLInt(0))
+			if err != nil {
+				return nil, err
+			}
+
+			_, right, err = reconcileSQLExprs(SQLInt(0), right)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			left, right, err = a.translateLeftRightExprs(typedE.Left, typedE.Right, true)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		switch typedE.Operator {
@@ -758,11 +784,11 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		switch typedE.Name {
 		case parser.AST_DATE:
-			return NewSQLValue(arg, schema.SQLDate, schema.MongoNone)
+			return NewSQLValueFromSQLColumnExpr(arg, schema.SQLDate, schema.MongoNone)
 		case parser.AST_TIME:
-			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
+			return NewSQLValueFromSQLColumnExpr(arg, schema.SQLTimestamp, schema.MongoNone)
 		case parser.AST_TIMESTAMP, parser.AST_DATETIME:
-			return NewSQLValue(arg, schema.SQLTimestamp, schema.MongoNone)
+			return NewSQLValueFromSQLColumnExpr(arg, schema.SQLTimestamp, schema.MongoNone)
 		default:
 			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for constructor '%v'", string(typedE.Name))
 		}

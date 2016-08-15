@@ -96,7 +96,7 @@ func (c *conn) handleFieldList(data []byte) error {
 		f := &Field{}
 		f.Name = []byte(field.SqlName)
 		zeroValue := field.SqlType.ZeroValue()
-		value, err := evaluator.NewSQLValue(zeroValue, schema.SQLNone, schema.MongoNone)
+		value, err := evaluator.NewSQLValueFromSQLColumnExpr(zeroValue, schema.SQLNone, schema.MongoNone)
 		if err != nil {
 			return err
 		}

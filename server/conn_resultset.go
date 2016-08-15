@@ -253,7 +253,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 		var value evaluator.SQLValue
 		for j < numFields {
 			zeroValue := columns[j].SQLType.ZeroValue()
-			value, err = evaluator.NewSQLValue(zeroValue, columns[j].SQLType, columns[j].MongoType)
+			value, err = evaluator.NewSQLValueFromSQLColumnExpr(zeroValue, columns[j].SQLType, columns[j].MongoType)
 			if err != nil {
 				return err
 			}

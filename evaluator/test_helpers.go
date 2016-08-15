@@ -14,7 +14,7 @@ import (
 func bsonDToValues(selectID int, tableName string, document bson.D) ([]Value, error) {
 	values := []Value{}
 	for _, v := range document {
-		value, err := NewSQLValue(v.Value, schema.SQLNone, schema.MongoNone)
+		value, err := NewSQLValueFromSQLColumnExpr(v.Value, schema.SQLNone, schema.MongoNone)
 		if err != nil {
 			return nil, err
 		}
