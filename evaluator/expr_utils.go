@@ -111,7 +111,7 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 		return nil, fmt.Errorf("unrecognized arithmetic operator: %v", op)
 	}
 
-	return NewSQLValue(value, preferenceType), nil
+	return NewSQLValueFromSQLColumnExpr(value, preferenceType, schema.MongoNone)
 }
 
 // fast2Sum returns the exact unevaluated sum of a and b
