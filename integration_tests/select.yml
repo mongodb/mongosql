@@ -197,6 +197,14 @@ testcases:
   - [~]
   - ["gt"]
   - ["gt"]
+- sql: "select (case when b is null then 'n' else 'not null' end) as p from foo"
+  description: "case without else"
+  expected_names: ["p"]
+  expected_types: [string]
+  expected: 
+  - ["n"]
+  - ["n"]
+  - ["n"]
 - sql: "select (case a when 1 then 'one' else 'not one' end) as p from foo"
   description: "simple case"
   expected_names: ["p"]
@@ -205,6 +213,38 @@ testcases:
   - ['one']
   - ["not one"]
   - ["not one"]
+- sql: "select (case a when 1 then 'one' end) as p from foo"
+  description: "simple case"
+  expected_names: ["p"]
+  expected_types: [string]
+  expected: 
+  - ['one']
+  - [~]
+  - [~]
+- sql: "select (case when a > (case when b is null then 1 else 2 end) then 'gt' else 'lt' end) as p from foo"
+  description: "case"
+  expected_names: ["p"]
+  expected_types: [string]
+  expected: 
+  - ["lt"]
+  - ["gt"]
+  - ["gt"]
+- sql: "select (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) as p from foo"
+  description: "case"
+  expected_names: ["p"]
+  expected_types: [string]
+  expected: 
+  - ["less"]
+  - ["1"]
+  - ["1"]
+- sql: "select (case when (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) = '1' then 1 end) as p from foo"
+  description: "case"
+  expected_names: ["p"]
+  expected_types: [int]
+  expected: 
+  - [~]
+  - [1]
+  - [1]
 
 # Exists
 - sql: "select a, exists(select 1 from selECTtest.foo) as p from foo"

@@ -307,6 +307,16 @@ func TestEvaluates(t *testing.T) {
 			})
 		})
 
+		Convey("Subject: SQLCaseExpr", func() {
+			tests := []test{
+				test{"CASE 3 WHEN 3 THEN 'three' WHEN 1 THEN 'one' ELSE 'else' END", SQLVarchar("three")},
+				test{"CASE WHEN 5 > 3 THEN 'true' else 'false' END", SQLVarchar("true")},
+				test{"CASE WHEN a = 123 THEN 'yes' else 'no' END", SQLVarchar("yes")},
+				test{"CASE WHEN a = 245 THEN 'yes' END", SQLNull},
+			}
+			runTests(evalCtx, tests)
+		})
+
 		Convey("Subject: SQLDateTimeLiterals", func() {
 
 			Convey("Subject: DATE", func() {
@@ -2475,6 +2485,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"stddev(a)", `{"$stdDevPop":"$a"}`},
 			test{"stddev_samp(a)", `{"$stdDevSamp":"$a"}`},
 			test{"a in (2,3,5)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$cond":[{"$gt":[{"$size":{"$filter":{"as":"item","cond":{"$eq":["$$item","$a"]},"input":[{"$literal":2},{"$literal":3},{"$literal":5}]}}},{"$literal":0}]},true,{"$cond":[{"$eq":[false,true]},null,false]}]}]}`},
+			test{"case when a > 1 then 'gt' else 'lt' end", `{"$cond":[{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":[{"$ifNull":[{"$literal":1},null]},null]}]},null,{"$gt":["$a",{"$literal":1}]}]},{"$literal":"gt"},{"$literal":"lt"}]}`},
 		}
 
 		runTests(tests)

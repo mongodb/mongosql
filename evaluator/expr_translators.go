@@ -846,9 +846,52 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		/*
 			TODO: implement these
-			case *SQLCaseExpr:
 			case *SQLUnaryTildeExpr:
 			case *SQLTupleExpr:*/
+
+	case *SQLCaseExpr:
+		elseValue, ok := TranslateExpr(typedE.elseValue, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		var conditions []interface{}
+		var thens []interface{}
+		for _, condition := range typedE.caseConditions {
+			var c interface{}
+			if matcher, ok := condition.matcher.(*SQLEqualsExpr); ok {
+				newMatcher := &SQLOrExpr{matcher, &SQLEqualsExpr{matcher.left, SQLTrue}}
+				c, ok = TranslateExpr(newMatcher, lookupFieldName)
+				if !ok {
+					return nil, false
+				}
+			} else {
+				c, ok = TranslateExpr(condition.matcher, lookupFieldName)
+				if !ok {
+					return nil, false
+				}
+			}
+
+			then, ok := TranslateExpr(condition.then, lookupFieldName)
+			if !ok {
+				return nil, false
+			}
+
+			conditions = append(conditions, c)
+			thens = append(thens, then)
+		}
+
+		if len(conditions) != len(thens) {
+			return nil, false
+		}
+
+		cases := elseValue
+
+		for i := len(conditions) - 1; i >= 0; i-- {
+			cases = wrapInCond(thens[i], cases, conditions[i])
+		}
+
+		return cases, true
 
 	case *SQLUnaryMinusExpr:
 		operand, ok := TranslateExpr(typedE.operand, lookupFieldName)

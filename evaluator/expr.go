@@ -63,7 +63,6 @@ type sqlUnaryNode struct {
 // - strings, the result is true if and only if that string can be parsed as a number,
 //   and that number is non-zero.
 func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
-
 	eval, err := expr.Evaluate(ctx)
 	if err != nil {
 		return false, err
@@ -381,7 +380,6 @@ func (div *SQLDivideExpr) Type() schema.SQLType {
 type SQLEqualsExpr sqlBinaryNode
 
 func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-
 	leftVal, err := eq.left.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
