@@ -83,7 +83,7 @@ buildvariants:
     push_name: linux
     push_path: linux
   run_on:
-  - rhel55
+  - rhel55-test
   tasks:
   - "!benchmark !check"
 - name: rhel62
