@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mysqlerrors"
@@ -78,12 +79,12 @@ func (c *conn) handleFieldList(data []byte) error {
 
 	dbName := c.currentDB.Name
 
-	db := c.server.databases[dbName]
+	db := c.server.databases[strings.ToLower(dbName)]
 	if db == nil {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, dbName)
 	}
 
-	tableSchema := db.Tables[table]
+	tableSchema := db.Tables[strings.ToLower(table)]
 	if tableSchema == nil {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_TABLE, table, dbName)
 	}

@@ -572,21 +572,25 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 	switch typedT := tableExpr.(type) {
 	case *parser.TableName:
 
-		tableName := string(typedT.Name)
+		tableName := strings.ToLower(string(typedT.Name))
 		if a.aliasName != "" {
 			aliasName = a.aliasName
 		}
+
 		if aliasName == "" {
 			aliasName = tableName
 		}
 
-		dbName := strings.ToLower(string(typedT.Qualifier))
+		dbName := string(typedT.Qualifier)
 		if dbName == "" {
 			dbName = a.dbName
 		}
 
+		dbName = strings.ToLower(dbName)
+
 		var plan PlanStage
 		var err error
+
 		if strings.EqualFold(tableName, "DUAL") {
 			plan = NewDualStage()
 		} else if strings.EqualFold(dbName, informationSchemaDatabase) {

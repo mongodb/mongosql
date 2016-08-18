@@ -46,11 +46,13 @@ func NewMongoSourceStage(selectID int, schema *schema.Schema, dbName, tableName,
 	if !ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
 	}
+
 	tableSchema, ok := database.Tables[ms.tableNames[0]]
 	if !ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
 	}
 
+	ms.dbName = database.Name
 	ms.collectionNames = []string{tableSchema.CollectionName}
 
 	ms.mappingRegistry = &mappingRegistry{}

@@ -240,35 +240,39 @@ func (s *Schema) Load(data []byte) error {
 	theirs.Databases = make(map[string]*Database)
 
 	for _, db := range theirs.RawDatabases {
-		if _, ok := theirs.Databases[db.Name]; ok {
+		dbName := strings.ToLower(db.Name)
+
+		if _, ok := theirs.Databases[dbName]; ok {
 			return fmt.Errorf("duplicate database in schema data: '%s'", db.Name)
 		}
 
-		theirs.Databases[db.Name] = db
+		theirs.Databases[dbName] = db
 
-		ours := s.Databases[db.Name]
+		ours := s.Databases[dbName]
 
 		if ours == nil {
 			// The entire DB is missing, copy the whole thing in.
-			s.Databases[db.Name] = db
+			s.Databases[dbName] = db
 			s.RawDatabases = append(s.RawDatabases, db)
 		} else {
 			// The schema being loaded refers to a DB that is already loaded
 			// in the current schema. Need to merge tables.
 			for _, table := range db.RawTables {
-				if ours.Tables[table.Name] != nil {
+				tableName := strings.ToLower(table.Name)
+				if ours.Tables[tableName] != nil {
 					return fmt.Errorf("table config conflict in db: %s table: %s", db.Name, table.Name)
 				}
 
-				ours.Tables[table.Name] = table
+				ours.Tables[tableName] = table
 				ours.RawTables = append(ours.RawTables, table)
 			}
 		}
 
-		if err := PopulateColumnMaps(s.Databases[db.Name]); err != nil {
+		if err := PopulateColumnMaps(s.Databases[dbName]); err != nil {
 			return err
 		}
-		if err := HandlePipeline(s.Databases[db.Name]); err != nil {
+
+		if err := HandlePipeline(s.Databases[dbName]); err != nil {
 			return err
 		}
 	}
@@ -323,13 +327,13 @@ func PopulateColumnMaps(db *Database) error {
 			return err
 		}
 
-		// TODO: consider lowercasing table names in config since we do
-		// that in the query planner in constructing the TableScan node.
-		if _, ok := db.Tables[tbl.Name]; ok {
+		tblName := strings.ToLower(tbl.Name)
+
+		if _, ok := db.Tables[tblName]; ok {
 			return fmt.Errorf("duplicate table [%s].", tbl.Name)
 		}
 
-		db.Tables[tbl.Name] = tbl
+		db.Tables[tblName] = tbl
 
 		tbl.Columns = make(map[string]*Column)
 		tbl.SQLColumns = make(map[string]*Column)

@@ -114,11 +114,13 @@ func TestIntegration(t *testing.T) {
 func buildSchemaMaps(conf *schema.Schema) {
 	conf.Databases = make(map[string]*schema.Database)
 	for _, db := range conf.RawDatabases {
+		dbName := strings.ToLower(db.Name)
 		db.Tables = make(map[string]*schema.Table)
 		for _, table := range db.RawTables {
-			db.Tables[table.Name] = table
+			tableName := strings.ToLower(table.Name)
+			db.Tables[tableName] = table
 		}
-		conf.Databases[db.Name] = db
+		conf.Databases[dbName] = db
 	}
 }
 

@@ -692,7 +692,7 @@ func (c *conn) writePacket(data []byte) error {
 }
 
 func (c *conn) useDB(db string) error {
-	s := c.server.databases[db]
+	s := c.server.databases[strings.ToLower(db)]
 	if s == nil {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, db)
 	}

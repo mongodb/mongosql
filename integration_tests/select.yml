@@ -3,7 +3,7 @@
 #
 data:
 - inline: 
-    db: "test"
+    db: "SelectTest"
     collection: "select_1"
     docs:
     - { _id: 0, a: 1, b: ~ }
@@ -25,9 +25,9 @@ data:
 # Schema
 #
 schema:
-- db: test
+- db: SelectTest
   tables:
-  - table: foo
+  - table: fOo
     collection: "select_1"
     columns:
     - Name: _id
@@ -42,7 +42,7 @@ schema:
       MongoType: int
       SqlName: b
       SqlType: int
-  - table: bar
+  - table: BAr
     collection: "select_2"
     columns:
     - Name: _id
@@ -58,7 +58,7 @@ schema:
 # Tests
 #
 testcases:
-- sql: "select * from test.foo"
+- sql: "select * from SelectTest.foo"
   description: "global *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -66,7 +66,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select foo.* from test.foo"
+- sql: "select foo.* from SELEctTest.Foo"
   description: "qualified *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -74,7 +74,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select foo.*, foo.* from test.foo"
+- sql: "select foo.*, foo.* from selectTest.FOO"
   description: "duplicate qualified *"
   expected_names: ["id", "a", "b", "id", "a", "b"]
   expected_types: [int, int, int, int, int, int]
@@ -82,7 +82,7 @@ testcases:
   - [0, 1, ~, 0, 1, ~]
   - [1, 2, ~, 1, 2, ~]
   - [2, 3, ~, 2, 3, ~]
-- sql: "select f.* from test.foo f"
+- sql: "select f.* from selecttest.fOo f"
   description: "alias qualified *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -90,7 +90,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a, b from test.foo"
+- sql: "select id, a, b from selecttEst.foo"
   description: "columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -98,7 +98,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select ID, A, B from test.foo"
+- sql: "select ID, A, B from selecttest.FOO"
   description: "columns with wrong casing"
   expected_names: ["ID", "A", "B"]
   expected_types: [int, int, int]
@@ -106,7 +106,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select foo.id, foo.a, foo.b from test.foo"
+- sql: "select foo.id, foo.a, foo.b from sElecttest.foo"
   description: "qualified columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -114,7 +114,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select f.id, f.a, f.b from test.foo f"
+- sql: "select f.id, f.a, f.b from selecttest.foo f"
   description: "alias qualified columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -122,7 +122,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a, b, id, a, b from test.foo"
+- sql: "select id, a, b, id, a, b from SELECTTESt.foo"
   description: "duplicate columns"
   expected_names: ["id", "a", "b", "id", "a", "b"]
   expected_types: [int, int, int, int, int, int]
@@ -130,7 +130,7 @@ testcases:
   - [0, 1, ~, 0, 1, ~]
   - [1, 2, ~, 1, 2, ~]
   - [2, 3, ~, 2, 3, ~]
-- sql: "select id as d, a as e, b as f from test.foo"
+- sql: "select id as d, a as e, b as f from selECTtest.foo"
   description: "aliases"
   expected_names: ["d", "e", "f"]
   expected_types: [int, int, int]
@@ -138,7 +138,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id as a, a as b, b as id from test.foo"
+- sql: "select id as a, a as b, b as id from selECTtest.Foo"
   description: "aliased as another column"
   expected_names: ["a", "b", "id"]
   expected_types: [int, int, int]
@@ -146,7 +146,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a as id, b as id from test.foo"
+- sql: "select id, a as id, b as id from selECTtest.foO"
   description: "duplicate aliases"
   expected_names: ["id", "id", "id"]
   expected_types: [int, int, int]
@@ -154,7 +154,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a as ID from test.foo"
+- sql: "select id, a as ID from selECTtest.foo"
   description: "aliases differing by case"
   expected_names: ["id", "ID"]
   expected_types: [int, int]
@@ -162,7 +162,7 @@ testcases:
   - [0, 1]
   - [1, 2]
   - [2, 3]
-- sql: "select id, b from test.foo"
+- sql: "select id, b from selECTtest.foo"
   description: "subset of columns"
   expected_names: ["id", "b"]
   expected_types: [int, int]
@@ -170,7 +170,7 @@ testcases:
   - [0, ~]
   - [1, ~]
   - [2, ~]
-- sql: "select b, id from test.foo"
+- sql: "select b, id from selECTtest.foo"
   description: "subset of columns out of order"
   expected_names: ["b", "id"]
   expected_types: [int, int]
@@ -207,7 +207,7 @@ testcases:
   - ["not one"]
 
 # Exists
-- sql: "select a, exists(select 1 from test.foo) as p from foo"
+- sql: "select a, exists(select 1 from selECTtest.foo) as p from foo"
   description: "non-correlated exists"
   expected_names: ["a", "p"]
   expected_types: [int, int]
@@ -215,7 +215,7 @@ testcases:
   - [1, 1]
   - [2, 1]
   - [3, 1]
-- sql: "select exists(select 1 from test.foo) as p from foo"
+- sql: "select exists(select 1 from selECTtest.foo) as p from foo"
   description: "non-correlated exists"
   expected_names: ["p"]
   expected_types: [int]
