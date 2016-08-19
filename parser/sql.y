@@ -140,6 +140,10 @@ var (
 %token <empty> SHOW
 %token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS
 
+// Kill
+%token <empty> KILL
+%token <empty> CONNECTION QUERY
+
 // Scope
 %token <empty> SESSION GLOBAL 
 
@@ -208,6 +212,7 @@ var (
 %type <statement> begin_statement commit_statement rollback_statement
 %type <statement> replace_statement
 %type <statement> show_statement
+%type <statement> kill_statement
 %type <statement> admin_statement
 
 %type <expr> from_opt
@@ -215,6 +220,7 @@ var (
 %type <expr> show_from_in show_from_in_opt
 %type <str> show_full
 %type <str> scope_modifier
+%type <str> kill_modifier
 %%
 
 any_command:
@@ -238,6 +244,7 @@ command:
 | drop_statement
 | begin_statement
 | commit_statement
+| kill_statement
 | rollback_statement
 | replace_statement
 | show_statement
@@ -415,6 +422,16 @@ show_full:
     $$ = AST_SHOW_FULL
   }
 
+kill_modifier:
+  CONNECTION
+  {
+    $$ = AST_KILL_CONNECTION
+  }
+| QUERY
+  {
+    $$ = AST_KILL_QUERY
+  }
+
 scope_modifier:
   {
     $$ = AST_SESSION_SCOPE
@@ -449,6 +466,16 @@ show_statement:
 | SHOW show_full COLUMNS show_from_in show_from_in_opt
   {
     $$ = &Show{Section: "columns", From: $4, Modifier: $2, DBFilter: $5}
+  }
+
+kill_statement:
+  KILL expression
+  {
+    $$ = &Kill{Scope: AST_KILL_CONNECTION, ID: $2}
+  }
+| KILL kill_modifier expression
+  {
+    $$ = &Kill{Scope: $2, ID: $3}
   }
 
 create_statement:

@@ -6,6 +6,11 @@ type node interface {
 	astnode()
 }
 
+type command interface {
+	node
+	Execute(ctx *ExecutionCtx) Executor
+}
+
 type nodeVisitor interface {
 	visit(n node) (node, error)
 }
@@ -34,8 +39,9 @@ func (ps *OrderByStage) astnode()          {}
 func (ps *ProjectStage) astnode()          {}
 func (ps *SchemaDataSourceStage) astnode() {}
 
-// Other Stages
-func (s *SetExecutor) astnode() {}
+// CommandStages
+func (k *KillCommand) astnode() {}
+func (s *SetCommand) astnode()  {}
 
 // Expressions
 func (e *SQLAggFunctionExpr) astnode()        {}
@@ -349,14 +355,23 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 
 	// Other Stages
-	case *SetExecutor:
+	case *KillCommand:
+		visitID, err := visitExpr(typedN.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.ID != visitID {
+			return NewKillCommand(visitID, typedN.Scope), nil
+		}
+	case *SetCommand:
 		exprs, err := visitAssignmentSlice(&typedN.assignments)
 		if err != nil {
 			return nil, err
 		}
 
 		if &typedN.assignments != exprs {
-			return NewSetExecutor(*exprs), nil
+			return NewSetCommand(*exprs), nil
 		}
 
 	// Expressions

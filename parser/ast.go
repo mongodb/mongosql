@@ -972,3 +972,19 @@ func (*Show) IStatement() {}
 func (node *Show) Format(buf *TrackedBuffer) {
 	buf.Fprintf("show %s %s %v %v", node.Section, node.Key, node.From, node.LikeOrWhere)
 }
+
+const (
+	AST_KILL_CONNECTION = "connection"
+	AST_KILL_QUERY      = "query"
+)
+
+func (*Kill) IStatement() {}
+
+type Kill struct {
+	Scope string
+	ID    Expr
+}
+
+func (node *Kill) Format(buf *TrackedBuffer) {
+	buf.Fprintf("kill %s %v", node.Scope, node.ID)
+}

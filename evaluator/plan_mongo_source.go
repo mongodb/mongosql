@@ -88,14 +88,29 @@ func (ms *MongoSourceStage) clone() *MongoSourceStage {
 // Open establishes a connection to database collection for this table.
 func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	mgoSession := ctx.Session()
-	mgoIter := MgoFindResults{mgoSession.DB(ms.dbName).C(ms.collectionNames[0]).Pipe(ms.pipeline).AllowDiskUse().Iter()}
+
+	errChan := make(chan error, 1)
+
+	var iter FindResults
+
+	go func() {
+		iter = MgoFindResults{mgoSession.DB(ms.dbName).C(ms.collectionNames[0]).Pipe(ms.pipeline).AllowDiskUse().Iter()}
+		errChan <- nil
+	}()
+
+	select {
+	case <-ctx.ConnectionCtx.Tomb().Dying():
+		return nil, ctx.ConnectionCtx.Tomb().Err()
+	case <-errChan:
+	}
 
 	return &MongoSourceIter{
 		mappingRegistry: ms.mappingRegistry,
 		ctx:             ctx,
 		session:         mgoSession,
-		iter:            mgoIter,
-		err:             nil}, nil
+		iter:            iter,
+		err:             nil,
+	}, nil
 }
 
 type MongoSourceIter struct {
@@ -107,19 +122,13 @@ type MongoSourceIter struct {
 }
 
 func (ms *MongoSourceIter) Next(row *Row) bool {
-	if ms.iter == nil {
+
+	document := &bson.D{}
+	if !ms.iter.Next(document) {
 		return false
 	}
 
-	var hasNext bool
-
-	d := &bson.D{}
-	hasNext = ms.iter.Next(d)
-	if !hasNext {
-		return false
-	}
-
-	mappedD := d.Map()
+	mappedDocument := document.Map()
 
 	for _, column := range ms.mappingRegistry.columns {
 
@@ -129,7 +138,7 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 			return false
 		}
 
-		extractedField, _ := extractFieldByName(mappedFieldName, mappedD)
+		extractedField, _ := extractFieldByName(mappedFieldName, mappedDocument)
 
 		value := Value{
 			SelectID: column.SelectID,
@@ -153,8 +162,9 @@ func (ms *MongoSourceStage) Columns() []*Column {
 }
 
 func (ms *MongoSourceIter) Close() error {
+	err := ms.iter.Close()
 	ms.session.Close()
-	return ms.iter.Close()
+	return err
 }
 
 func (ms *MongoSourceIter) Err() error {

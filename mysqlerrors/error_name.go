@@ -95,7 +95,7 @@ var mySQLErrName = map[uint16]string{
 	ER_CANT_DROP_FIELD_OR_KEY:                        "Can't DROP '%-.192s'; check that column/key exists",
 	ER_INSERT_INFO:                                   "Records: %ld  Duplicates: %ld  Warnings: %ld",
 	ER_UPDATE_TABLE_USED:                             "You can't specify target table '%-.192s' for update in FROM clause",
-	ER_NO_SUCH_THREAD:                                "Unknown thread id: %lu",
+	ER_NO_SUCH_THREAD:                                "Unknown thread id: %v",
 	ER_KILL_DENIED_ERROR:                             "You are not owner of thread %lu",
 	ER_NO_TABLES_USED:                                "No tables used",
 	ER_TOO_BIG_SET:                                   "Too many strings for column %-.192s and SET",

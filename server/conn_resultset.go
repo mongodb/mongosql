@@ -284,40 +284,56 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 
 	var b []byte
 
-	evaluatorRow := &evaluator.Row{}
+	rowChan := make(chan []interface{}, 1)
 
-	for iter.Next(evaluatorRow) {
+	go func() {
+		evaluatorRow := &evaluator.Row{}
+		for iter.Next(evaluatorRow) {
+			rowChan <- evaluatorRow.GetValues()
+			evaluatorRow.Data = evaluator.Values{}
+		}
+		close(rowChan)
+	}()
 
-		values := evaluatorRow.GetValues()
+streamer:
+	for {
+		select {
+		case values, ok := <-rowChan:
+			if !ok {
+				break streamer
+			}
 
-		// write the headers once
-		if !wroteHeaders {
-			if err = writeHeaders(); err != nil {
+			// write the headers once
+			if !wroteHeaders {
+				if err = writeHeaders(); err != nil {
+					return err
+				}
+				wroteHeaders = true
+			}
+
+			data = data[0:4]
+
+			for _, value := range values {
+				b, err = formatValue(value)
+				if err != nil {
+					return err
+				}
+				if b == nil {
+					data = append(data, 0xfb)
+				} else {
+					data = append(data, putLengthEncodedString(b)...)
+				}
+			}
+
+			// write each row as a separate packet
+			if err := c.writePacket(data); err != nil {
 				return err
 			}
-			wroteHeaders = true
+
+		case <-c.tomb.Dying():
+			iter.Close()
+			return c.tomb.Err()
 		}
-
-		data = data[0:4]
-
-		for _, value := range values {
-			b, err = formatValue(value)
-			if err != nil {
-				return err
-			}
-			if b == nil {
-				data = append(data, 0xfb)
-			} else {
-				data = append(data, putLengthEncodedString(b)...)
-			}
-		}
-
-		// write each row as a separate packet
-		if err := c.writePacket(data); err != nil {
-			return err
-		}
-
-		evaluatorRow.Data = evaluator.Values{}
 	}
 
 	if err = iter.Close(); err != nil {

@@ -9,6 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"gopkg.in/tomb.v2"
 )
 
 type connCtx struct {
@@ -31,6 +32,10 @@ func (c *connCtx) DB() string {
 	return ""
 }
 
+func (c *connCtx) Kill(id uint32, scope KillScope) error {
+	return nil
+}
+
 func (c *connCtx) Session() *mgo.Session {
 	return c.session
 }
@@ -42,8 +47,13 @@ func (c *connCtx) User() string {
 func (c *connCtx) GetVariable(name string, kind VariableKind) (SQLValue, error) {
 	return nil, fmt.Errorf("unknown variable")
 }
+
 func (c *connCtx) SetVariable(name string, value SQLValue, kind VariableKind) error {
 	return fmt.Errorf("unknown variable")
+}
+
+func (c *connCtx) Tomb() *tomb.Tomb {
+	return &tomb.Tomb{}
 }
 
 func (c *connCtx) Variables(kind VariableKind) map[string]SQLValue {

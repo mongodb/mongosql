@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"gopkg.in/tomb.v2"
 )
 
 // bsonDToValues takes a bson.D document and returns
@@ -68,11 +69,18 @@ func (_ fakeConnectionCtx) ConnectionId() uint32 {
 func (_ fakeConnectionCtx) DB() string {
 	return "test"
 }
+func (_ fakeConnectionCtx) Kill(id uint32, scope KillScope) error {
+	return nil
+}
 func (_ fakeConnectionCtx) Session() *mgo.Session {
 	panic("Session is not supported in fakeConnectionCtx")
 }
 func (_ fakeConnectionCtx) User() string {
 	return "test user"
+}
+
+func (_ fakeConnectionCtx) Tomb() *tomb.Tomb {
+	return nil
 }
 
 func (_ fakeConnectionCtx) GetVariable(name string, kind VariableKind) (SQLValue, error) {

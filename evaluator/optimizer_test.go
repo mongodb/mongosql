@@ -1244,7 +1244,7 @@ func TestOptimizePlan(t *testing.T) {
 	})
 }
 
-func TestOptimizeSet(t *testing.T) {
+func TestOptimizeCommand(t *testing.T) {
 	testSchema, err := schema.New(testSchema1)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
@@ -1257,9 +1257,9 @@ func TestOptimizeSet(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			setStatement := statement.(*parser.Set)
-			set, err := AlgebrizeSet(setStatement, defaultDbName, testSchema)
+			set, err := AlgebrizeCommand(setStatement, defaultDbName, testSchema)
 			So(err, ShouldBeNil)
-			actualSet, err := OptimizeSet(createTestConnectionCtx(), set)
+			actualSet, err := OptimizeCommand(createTestConnectionCtx(), set)
 			So(err, ShouldBeNil)
 
 			pg := &pipelineGatherer{}

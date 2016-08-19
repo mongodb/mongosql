@@ -7,6 +7,7 @@ import (
 	"net"
 	"runtime"
 	"strings"
+	"sync"
 
 	sqlproxy "github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/mysqlerrors"
@@ -17,11 +18,14 @@ import (
 
 // Server manages connections with clients.
 type Server struct {
-	eval      *sqlproxy.Evaluator
-	opts      sqlproxy.Options
-	databases map[string]*schema.Database
-	variables *globalVariableContainer
-	tlsConfig *tls.Config
+	sync.Mutex
+
+	eval              *sqlproxy.Evaluator
+	opts              sqlproxy.Options
+	databases         map[string]*schema.Database
+	activeConnections map[uint32]*conn
+	variables         *globalVariableContainer
+	tlsConfig         *tls.Config
 
 	connCount uint32
 
@@ -36,11 +40,12 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts sqlproxy.Options)
 	decimal.DivisionPrecision = 34
 
 	s := &Server{
-		eval:      eval,
-		opts:      opts,
-		running:   false,
-		databases: schema.Databases,
-		variables: newGlobalVariableContainer(),
+		eval:              eval,
+		opts:              opts,
+		running:           false,
+		activeConnections: make(map[uint32]*conn),
+		databases:         schema.Databases,
+		variables:         newGlobalVariableContainer(),
 	}
 
 	var err error
@@ -125,6 +130,10 @@ func (s *Server) onConn(c net.Conn) {
 		c.Close()
 		return
 	}
+
+	s.Lock()
+	s.activeConnections[conn.ConnectionId()] = conn
+	s.Unlock()
 
 	conn.run()
 }

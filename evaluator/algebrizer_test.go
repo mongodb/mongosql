@@ -1285,7 +1285,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 	})
 }
 
-func TestAlgebrizeSet(t *testing.T) {
+func TestAlgebrizeCommand(t *testing.T) {
 
 	testSchema, err := schema.New(testSchema1)
 	if err != nil {
@@ -1293,13 +1293,12 @@ func TestAlgebrizeSet(t *testing.T) {
 	}
 	defaultDbName := "test"
 
-	test := func(sql string, expectedPlanFactory func() *SetExecutor) {
+	test := func(sql string, expectedPlanFactory func() command) {
 		Convey(sql, func() {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			setStatement := statement.(*parser.Set)
-			actual, err := AlgebrizeSet(setStatement, defaultDbName, testSchema)
+			actual, err := AlgebrizeCommand(statement, defaultDbName, testSchema)
 			So(err, ShouldBeNil)
 
 			expected := expectedPlanFactory()
@@ -1318,9 +1317,34 @@ func TestAlgebrizeSet(t *testing.T) {
 		return r
 	}
 
+	Convey("Subject: Algebrize Kill Statements", t, func() {
+		test("kill 3", func() command {
+			return NewKillCommand(SQLInt(3), KillConnection)
+		})
+		test("kill query 3", func() command {
+			return NewKillCommand(SQLInt(3), KillQuery)
+		})
+		test("kill query 5*3", func() command {
+			return NewKillCommand(
+				&SQLMultiplyExpr{
+					SQLInt(5),
+					SQLInt(3),
+				}, KillQuery,
+			)
+		})
+		test("kill connection 5-3", func() command {
+			return NewKillCommand(
+				&SQLSubtractExpr{
+					SQLInt(5),
+					SQLInt(3),
+				}, KillConnection,
+			)
+		})
+	})
+
 	Convey("Subject: Algebrize Set Statements", t, func() {
-		test("set @t1 = 12", func() *SetExecutor {
-			return NewSetExecutor(
+		test("set @t1 = 12", func() command {
+			return NewSetCommand(
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{
@@ -1333,8 +1357,8 @@ func TestAlgebrizeSet(t *testing.T) {
 			)
 		})
 
-		test("set @@t1 = 12", func() *SetExecutor {
-			return NewSetExecutor(
+		test("set @@t1 = 12", func() command {
+			return NewSetCommand(
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{
@@ -1347,8 +1371,8 @@ func TestAlgebrizeSet(t *testing.T) {
 			)
 		})
 
-		test("set @@global.t1 = 12", func() *SetExecutor {
-			return NewSetExecutor(
+		test("set @@global.t1 = 12", func() command {
+			return NewSetCommand(
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{
@@ -1361,9 +1385,9 @@ func TestAlgebrizeSet(t *testing.T) {
 			)
 		})
 
-		test("set @@global.t1 = (select a from foo)", func() *SetExecutor {
+		test("set @@global.t1 = (select a from foo)", func() command {
 			fooSource := createMongoSource(1, "foo", "foo")
-			return NewSetExecutor(
+			return NewSetCommand(
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{
@@ -1383,8 +1407,8 @@ func TestAlgebrizeSet(t *testing.T) {
 			)
 		})
 
-		test("set @@t1=12, @t2=11", func() *SetExecutor {
-			return NewSetExecutor(
+		test("set @@t1=12, @t2=11", func() command {
+			return NewSetCommand(
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{

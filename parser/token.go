@@ -138,6 +138,10 @@ var keywords = map[string]int{
 	"session":   SESSION,
 	"global":    GLOBAL,
 
+	"kill":       KILL,
+	"connection": CONNECTION,
+	"query":      QUERY,
+
 	// for mixer admin
 	"admin": ADMIN,
 	"proxy": PROXY,

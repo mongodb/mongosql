@@ -1,6 +1,8 @@
 package evaluator
 
-import "github.com/10gen/sqlproxy/schema"
+import (
+	"github.com/10gen/sqlproxy/schema"
+)
 
 // PlanStage represents a single a node in the Plan tree.
 type PlanStage interface {
@@ -52,6 +54,11 @@ type Iter interface {
 	// error otherwise. Callers should always call the Err method to check whether
 	// any error was encountered during processing they are finished with an iterator.
 	Err() error
+}
+
+// Executor represents an object that can run a command.
+type Executor interface {
+	Run() error
 }
 
 // Column contains information used to select data

@@ -1,23 +1,47 @@
 package evaluator
 
-// SetExecutor handles setting variables.
-type SetExecutor struct {
+// SetCommand handles setting variables.
+type SetCommand struct {
 	assignments []*SQLAssignmentExpr
 }
 
-// NewSetExecutor creates a new SetExecutor.
-func NewSetExecutor(assignments []*SQLAssignmentExpr) *SetExecutor {
-	return &SetExecutor{assignments}
+type SetExecutor struct {
+	assignments []*SQLAssignmentExpr
+	ctx         *ExecutionCtx
 }
 
-func (s *SetExecutor) Execute(ctx *ExecutionCtx) error {
-	evalCtx := NewEvalCtx(ctx)
-	for _, a := range s.assignments {
-		_, err := a.Evaluate(evalCtx)
-		if err != nil {
-			return err
+// NewSetCommand creates a new SetCommand.
+func NewSetCommand(assignments []*SQLAssignmentExpr) *SetCommand {
+	return &SetCommand{assignments}
+}
+
+func (s *SetCommand) Execute(ctx *ExecutionCtx) Executor {
+	return &SetExecutor{s.assignments, ctx}
+}
+
+func (s *SetExecutor) Run() error {
+
+	executorChan := make(chan error)
+
+	var err error
+
+	go func() {
+		evalCtx := NewEvalCtx(s.ctx)
+		for _, a := range s.assignments {
+			_, pErr := a.Evaluate(evalCtx)
+			if pErr != nil {
+				executorChan <- pErr
+			}
 		}
+
+		executorChan <- nil
+	}()
+
+	select {
+	case <-s.ctx.ConnectionCtx.Tomb().Dying():
+		err = s.ctx.ConnectionCtx.Tomb().Err()
+	case err = <-executorChan:
 	}
 
-	return nil
+	return err
 }

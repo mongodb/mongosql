@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -9,6 +10,26 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 )
+
+func AlgebrizeCommand(stmt parser.Statement, dbName string, schema *schema.Schema) (command, error) {
+	g := &selectIDGenerator{}
+	algebrizer := &algebrizer{
+		dbName:                      dbName,
+		schema:                      schema,
+		selectID:                    g.current,
+		selectIDGenerator:           g,
+		projectedColumnAggregateMap: make(map[int]SQLExpr),
+	}
+
+	switch typedStmt := stmt.(type) {
+	case *parser.Kill:
+		return algebrizer.translateKill(typedStmt)
+	case *parser.Set:
+		return algebrizer.translateSet(typedStmt)
+	default:
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, fmt.Sprintf("statement %T", typedStmt))
+	}
+}
 
 // AlgebrizeSelect takes a parsed SQL statement and returns an algebrized form of the query.
 func AlgebrizeSelect(selectStatement parser.SelectStatement, dbName string, schema *schema.Schema) (PlanStage, error) {
@@ -22,19 +43,6 @@ func AlgebrizeSelect(selectStatement parser.SelectStatement, dbName string, sche
 	}
 
 	return algebrizer.translateSelectStatement(selectStatement)
-}
-
-func AlgebrizeSet(setStatement *parser.Set, dbName string, schema *schema.Schema) (*SetExecutor, error) {
-	g := &selectIDGenerator{}
-	algebrizer := &algebrizer{
-		dbName:                      dbName,
-		schema:                      schema,
-		selectID:                    g.current,
-		selectIDGenerator:           g,
-		projectedColumnAggregateMap: make(map[int]SQLExpr),
-	}
-
-	return algebrizer.translateSet(setStatement)
 }
 
 type selectIDGenerator struct {
@@ -222,6 +230,20 @@ func (a *algebrizer) translateGroupBy(groupby parser.GroupBy) ([]SQLExpr, error)
 	}
 
 	return keys, nil
+}
+
+func (a *algebrizer) translateKill(kill *parser.Kill) (*KillCommand, error) {
+	killID, err := a.translateExpr(kill.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	switch kill.Scope {
+	case parser.AST_KILL_QUERY:
+		return NewKillCommand(killID, KillQuery), nil
+	default:
+		return NewKillCommand(killID, KillConnection), nil
+	}
 }
 
 func (a *algebrizer) translateLimit(limit *parser.Limit) (SQLInt, SQLInt, error) {
@@ -497,7 +519,7 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 	return projectedColumns, nil
 }
 
-func (a *algebrizer) translateSet(set *parser.Set) (*SetExecutor, error) {
+func (a *algebrizer) translateSet(set *parser.Set) (*SetCommand, error) {
 	assignments := []*SQLAssignmentExpr{}
 	for _, e := range set.Exprs {
 		variable := a.translateVariableExpr(e.Name)
@@ -512,7 +534,7 @@ func (a *algebrizer) translateSet(set *parser.Set) (*SetExecutor, error) {
 		})
 	}
 
-	return NewSetExecutor(assignments), nil
+	return NewSetCommand(assignments), nil
 }
 
 func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs) (PlanStage, error) {

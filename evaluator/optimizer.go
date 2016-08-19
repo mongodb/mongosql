@@ -2,6 +2,16 @@ package evaluator
 
 import "os"
 
+// OptimizeCommand applies optimizations to the command
+// plan tree to aid in performance.
+func OptimizeCommand(ctx ConnectionCtx, c command) (command, error) {
+	n, err := optimize(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	return n.(command), nil
+}
+
 // OptimizePlan applies optimizations to the plan tree to
 // aid in performance.
 func OptimizePlan(ctx ConnectionCtx, p PlanStage) (PlanStage, error) {
@@ -11,15 +21,6 @@ func OptimizePlan(ctx ConnectionCtx, p PlanStage) (PlanStage, error) {
 	}
 
 	return n.(PlanStage), nil
-}
-
-func OptimizeSet(ctx ConnectionCtx, s *SetExecutor) (*SetExecutor, error) {
-	n, err := optimize(ctx, s)
-	if err != nil {
-		return nil, err
-	}
-
-	return n.(*SetExecutor), nil
 }
 
 func optimize(ctx ConnectionCtx, n node) (node, error) {

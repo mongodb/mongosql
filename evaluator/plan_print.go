@@ -9,14 +9,14 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+// PrettyPrintCommand takes a command and prints it out.
+func PrettyPrintCommand(c command) string {
+	return prettyPrintNode(c)
+}
+
 // PrettyPrintPlan takes a plan and recursively prints its source.
 func PrettyPrintPlan(p PlanStage) string {
 	return prettyPrintNode(p)
-}
-
-// PrettyPrintSet takes a SetExecutor and prints it out.
-func PrettyPrintSet(s *SetExecutor) string {
-	return prettyPrintNode(s)
 }
 
 func prettyPrintNode(n node) string {
@@ -68,6 +68,8 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 	printTabs(b, d)
 
 	switch typedN := n.(type) {
+	case *BSONSourceStage:
+		b.WriteString("↳ BSONSource:\n")
 	case *DualStage:
 		b.WriteString("↳ Dual")
 	case *CacheStage:
@@ -103,10 +105,29 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 			printTabs(b, d+1)
 			b.WriteString(fmt.Sprintf("on %v\n", typedN.matcher.String()))
 		}
+	case *KillCommand:
+		scope := "connection"
+		if typedN.Scope == KillQuery {
+			scope = "query"
+		}
+		b.WriteString(fmt.Sprintf("↳ Kill %v %v:\n", scope, typedN.ID))
 	case *LimitStage:
 		b.WriteString(fmt.Sprintf("↳ Limit(offset: %v, limit: %v):\n", typedN.offset, typedN.limit))
 
 		prettyPrint(b, typedN.source, d+1)
+	case *MongoSourceStage:
+		b.WriteString(fmt.Sprintf("↳ MongoSource: '%v' (db: '%v', collection: '%v')", typedN.tableNames, typedN.dbName, typedN.collectionNames))
+
+		if typedN.aliasNames[0] != "" {
+			b.WriteString(fmt.Sprintf(" as '%v'", typedN.aliasNames))
+		}
+
+		b.WriteString(":\n")
+		prettyPipeline, err := pipelineJSON(typedN.pipeline, d+1)
+		if err != nil { // marshaling as json failed, fall back to Sprintf
+			prettyPipeline = pipelineString(typedN.pipeline, d+1)
+		}
+		b.Write(prettyPipeline)
 	case *OrderByStage:
 		b.WriteString("↳ OrderBy(")
 
@@ -139,22 +160,7 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 		prettyPrint(b, typedN.source, d+1)
 	case *SchemaDataSourceStage:
 		b.WriteString("↳ SchemaDataSource:")
-	case *MongoSourceStage:
-		b.WriteString(fmt.Sprintf("↳ MongoSource: '%v' (db: '%v', collection: '%v')", typedN.tableNames, typedN.dbName, typedN.collectionNames))
-
-		if typedN.aliasNames[0] != "" {
-			b.WriteString(fmt.Sprintf(" as '%v'", typedN.aliasNames))
-		}
-
-		b.WriteString(":\n")
-		prettyPipeline, err := pipelineJSON(typedN.pipeline, d+1)
-		if err != nil { // marshaling as json failed, fall back to Sprintf
-			prettyPipeline = pipelineString(typedN.pipeline, d+1)
-		}
-		b.Write(prettyPipeline)
-	case *BSONSourceStage:
-		b.WriteString("↳ BSONSource:\n")
-	case *SetExecutor:
+	case *SetCommand:
 		b.WriteString("↳ Set:\n")
 		for _, e := range typedN.assignments {
 			printTabs(b, d+1)

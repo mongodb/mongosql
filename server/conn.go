@@ -19,6 +19,7 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/tomb.v2"
 )
 
 var (
@@ -32,6 +33,7 @@ type conn struct {
 	server  *Server
 	session *mgo.Session
 	closed  bool
+	tomb    *tomb.Tomb
 
 	conn     net.Conn
 	reader   *bufio.Reader
@@ -64,6 +66,7 @@ func newConn(s *Server, c net.Conn) *conn {
 		conn:         c,
 		reader:       bufio.NewReaderSize(c, 1024),
 		writer:       c,
+		tomb:         &tomb.Tomb{},
 		connectionID: atomic.AddUint32(&s.connCount, 1),
 		status:       SERVER_STATUS_AUTOCOMMIT,
 		capability: CLIENT_PROTOCOL_41 |
@@ -93,6 +96,70 @@ func newConn(s *Server, c net.Conn) *conn {
 	return newConn
 }
 
+func (c *conn) authenticate() error {
+
+	credential := &mgo.Credential{
+		Username: c.user,
+		Password: string(c.clientAuthResponse),
+	}
+
+	if c.currentDB != nil {
+		credential.Source = c.currentDB.Name
+	}
+
+	// parse user for extra information other than just the username
+	// format is username?mechanism=PLAIN&source=db. This is the same
+	// as a query string, so everything should be url encoded.
+	idx := strings.Index(credential.Username, "?")
+	var err error
+	if idx > 0 {
+		credential.Username, err = url.QueryUnescape(c.user[:idx])
+		if err != nil {
+			return err
+		}
+		values, err := url.ParseQuery(c.user[idx+1:])
+		if err != nil {
+			return err
+		}
+		for key, value := range values {
+			switch strings.ToLower(key) {
+			case "mechanism":
+				credential.Mechanism = value[0]
+			case "source":
+				credential.Source = value[0]
+			default:
+				return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "unknown authentication option %q", key)
+			}
+		}
+	}
+
+	return c.session.Login(credential)
+}
+
+func (c *conn) close() error {
+	if c.closed {
+		return nil
+	}
+
+	connID := c.ConnectionId()
+
+	c.server.Lock()
+	delete(c.server.activeConnections, connID)
+	c.server.Unlock()
+
+	c.tomb.Kill(mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED))
+
+	c.session.Close()
+
+	c.conn.Close()
+
+	c.closed = true
+
+	log.Logf(log.Info, "[conn%v] end connection %v", c.connectionID, c.conn.RemoteAddr())
+
+	return nil
+}
+
 // ConnectionId returns the connection's identifier.
 func (c *conn) ConnectionId() uint32 {
 	return c.connectionID
@@ -106,32 +173,51 @@ func (c *conn) DB() string {
 	return c.currentDB.Name
 }
 
-// LastInsertId returns the last insert id.
-func (c *conn) LastInsertId() int64 {
-	return c.lastInsertID
-}
+func (c *conn) dispatch(data []byte) error {
+	cmd := data[0]
+	data = data[1:]
 
-// RowCount returns the number of rows affected by the last statement.
-func (c *conn) RowCount() int64 {
-	return c.affectedRows
-}
-
-// Session returns a new mgo.Session connected to MongoDB.
-func (c *conn) Session() (session *mgo.Session) {
-	return c.session.Copy()
-}
-
-// User returns the current user.
-func (c *conn) User() string {
-	return fmt.Sprintf("%s@%s", c.user, c.conn.RemoteAddr().String())
-}
-
-func (c *conn) mustGetVariable(name string, kind evaluator.VariableKind) evaluator.SQLValue {
-	value, err := c.GetVariable(name, kind)
-	if err != nil {
-		panic(err)
+	switch cmd {
+	case COM_QUIT:
+		c.close()
+		return nil
+	case COM_QUERY:
+		return c.handleQuery(String(data))
+	case COM_PING:
+		return c.writeOK(nil)
+	case COM_INIT_DB:
+		if err := c.useDB(String(data)); err != nil {
+			return err
+		}
+		return c.writeOK(nil)
+	case COM_FIELD_LIST:
+		return c.handleFieldList(data)
+	case COM_STMT_PREPARE:
+		return c.handleStmtPrepare(String(data))
+	case COM_STMT_EXECUTE:
+		return c.handleStmtExecute(data)
+	case COM_STMT_CLOSE:
+		return c.handleStmtClose(data)
+	case COM_STMT_SEND_LONG_DATA:
+		return c.handleStmtSendLongData(data)
+	case COM_STMT_RESET:
+		return c.handleStmtReset(data)
+	default:
+		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COM_ERROR)
 	}
-	return value
+}
+
+func (c *conn) Tomb() *tomb.Tomb {
+	return c.tomb
+}
+
+func (c *conn) getCollationID() uint8 {
+	collation := c.mustGetVariable(collationConnectionVariableName, evaluator.SessionVariable)
+	if collation == evaluator.SQLNull {
+		collation = evaluator.SQLVarchar(DEFAULT_COLLATION_NAME)
+	}
+	collationID := collationNames[collation.String()]
+	return uint8(collationID)
 }
 
 func (c *conn) GetVariable(name string, kind evaluator.VariableKind) (evaluator.SQLValue, error) {
@@ -166,66 +252,6 @@ func (c *conn) GetVariable(name string, kind evaluator.VariableKind) (evaluator.
 
 		return v, nil
 	}
-}
-
-func (c *conn) SetVariable(name string, value evaluator.SQLValue, kind evaluator.VariableKind) error {
-
-	switch kind {
-	case evaluator.GlobalVariable, evaluator.SessionVariable:
-		def, err := getSystemVariableDefinition(name)
-		if err != nil {
-			return err
-		}
-
-		defWrite, ok := def.(settableVariableDefinition)
-		if !ok {
-			return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, name)
-		}
-
-		scope := globalScope
-		if kind == evaluator.SessionVariable {
-			scope = sessionScope
-		}
-
-		return defWrite.apply(c, scope, value)
-	default:
-		c.variables.setUserVariable(name, value)
-		return nil
-	}
-}
-
-func (c *conn) Variables(kind evaluator.VariableKind) map[string]evaluator.SQLValue {
-	results := make(map[string]evaluator.SQLValue)
-	switch kind {
-	case evaluator.GlobalVariable:
-		for _, def := range systemVariableDefinitions {
-			if defRead, ok := def.(readableVariableDefinition); ok {
-				value, ok := c.server.variables.getValue(def.name())
-				if !ok {
-					value = defRead.defaultValue()
-				}
-
-				results[def.name()] = value
-			}
-		}
-	case evaluator.SessionVariable:
-		for _, def := range systemVariableDefinitions {
-			if defRead, ok := def.(readableVariableDefinition); ok {
-				value, ok := c.variables.getSessionVariable(def.name())
-				if !ok {
-					value = defRead.defaultValue()
-				}
-
-				results[def.name()] = value
-			}
-		}
-	default:
-		for k, v := range c.variables.userVariables {
-			results[k] = v
-		}
-	}
-
-	return results
 }
 
 func (c *conn) handshake() error {
@@ -275,79 +301,51 @@ func (c *conn) handshake() error {
 	return nil
 }
 
-func (c *conn) writeInitialHandshake() error {
-	data := make([]byte, 4, 128)
-
-	//min version 10
-	data = append(data, minProtocolVersion)
-
-	//server version[00]
-	version := c.mustGetVariable(versionVariableName, evaluator.GlobalVariable)
-	versionComment := c.mustGetVariable(versionCommentVariableName, evaluator.GlobalVariable)
-
-	data = append(data, fmt.Sprintf("%s %s", version, versionComment)...)
-	data = append(data, 0)
-
-	//connection id
-	data = append(data, byte(c.connectionID), byte(c.connectionID>>8), byte(c.connectionID>>16), byte(c.connectionID>>24))
-
-	//auth-plugin-data-part-1
-	count := 0
-	for count < 8 && count < len(c.authPluginData) {
-		data = append(data, c.authPluginData[count])
-		count++
-	}
-	// must have at least 8 bytes
-	for count < 8 {
-		data = append(data, 0)
-		count++
+func (c *conn) Kill(id uint32, scope evaluator.KillScope) error {
+	if c.ConnectionId() == id {
+		return mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED)
 	}
 
-	//filler [00]
-	data = append(data, 0)
-
-	//capability flag lower 2 bytes
-	data = append(data, byte(c.capability), byte(c.capability>>8))
-
-	//charset
-	data = append(data, c.getCollationID())
-
-	//status
-	data = append(data, byte(c.status), byte(c.status>>8))
-
-	//below 13 byte may not be used
-	//capability flag upper 2 bytes
-	data = append(data, byte(c.capability>>16), byte(c.capability>>24))
-
-	if (c.capability & CLIENT_PLUGIN_AUTH) != 0 {
-		data = append(data, byte(len(c.authPluginData)))
-	} else {
-		data = append(data, 0)
+	c.server.Lock()
+	k, ok := c.server.activeConnections[id]
+	if !ok {
+		c.server.Unlock()
+		return mysqlerrors.Defaultf(mysqlerrors.ER_NO_SUCH_THREAD, id)
 	}
 
-	//reserved 10 [00]
-	data = append(data, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+	c.server.Unlock()
 
-	if (c.capability & CLIENT_SECURE_CONNECTION) != 0 {
-		count := 0
-		if len(c.authPluginData) > 8 {
-			data = append(data, c.authPluginData[8:]...)
-			count = len(c.authPluginData) - 8
-		}
+	switch scope {
+	case evaluator.KillQuery:
+		k.tomb.Kill(mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED))
+		return nil
+	default:
+		return k.close()
+	}
+}
 
-		for count < 13 {
-			data = append(data, 0)
-			count++
-		}
+// LastInsertId returns the last insert id.
+func (c *conn) LastInsertId() int64 {
+	return c.lastInsertID
+}
+
+func (c *conn) mustGetVariable(name string, kind evaluator.VariableKind) evaluator.SQLValue {
+	value, err := c.GetVariable(name, kind)
+	if err != nil {
+		panic(err)
+	}
+	return value
+}
+
+func (c *conn) readAuthSwitchResponsePacket() error {
+	data, err := c.readPacket()
+	if err != nil {
+		return err
 	}
 
-	if (c.capability & CLIENT_PLUGIN_AUTH) != 0 {
-		// auth-plugin-name string[NUL]
-		data = append(data, []byte(c.authPluginName)...)
-		data = append(data, 0)
-	}
+	c.clientAuthResponse = data[:len(data)-1]
 
-	return c.writePacket(data)
+	return nil
 }
 
 func (c *conn) readHandshakeResponse() error {
@@ -454,85 +452,42 @@ func (c *conn) readHandshakeResponse() error {
 	return nil
 }
 
-func (c *conn) writeAuthRequestSwitchPacket(pluginName string) error {
+func (c *conn) readPacket() ([]byte, error) {
+	header := []byte{0, 0, 0, 0}
 
-	data := make([]byte, 4, 128)
+	if _, err := io.ReadFull(c.reader, header); err != nil {
+		return nil, errBadConn
+	}
 
-	// status [1]
-	data = append(data, 0xFE)
+	length := int(uint32(header[0]) | uint32(header[1])<<8 | uint32(header[2])<<16)
 
-	// plugin name string[NUL]
-	data = append(data, []byte(pluginName)...)
-	data = append(data, 0)
+	sequence := uint8(header[3])
+	if sequence != c.sequence {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NET_PACKETS_OUT_OF_ORDER)
+	}
 
-	// auth plugin data string[EOF]
-	// nothing to add
+	c.sequence++
 
-	return c.writePacket(data)
-}
+	data := make([]byte, length)
+	if _, err := io.ReadFull(c.reader, data); err != nil {
+		return nil, errBadConn
+	}
 
-func (c *conn) readAuthSwitchResponsePacket() error {
-	data, err := c.readPacket()
+	if length < maxPayloadLen {
+		return data, nil
+	}
+
+	buf, err := c.readPacket()
 	if err != nil {
-		return err
+		return nil, errBadConn
 	}
 
-	c.clientAuthResponse = data[:len(data)-1]
-
-	return nil
+	return append(data, buf...), nil
 }
 
-func (c *conn) useTLS() error {
-
-	tlsc := tls.Server(c.conn, c.server.tlsConfig)
-	if err := tlsc.Handshake(); err != nil {
-		return err
-	}
-	c.conn = tlsc
-	c.reader = bufio.NewReaderSize(c.conn, 1024)
-	c.writer = c.conn
-
-	return nil
-}
-
-func (c *conn) authenticate() error {
-
-	credential := &mgo.Credential{
-		Username: c.user,
-		Password: string(c.clientAuthResponse),
-	}
-
-	if c.currentDB != nil {
-		credential.Source = c.currentDB.Name
-	}
-
-	// parse user for extra information other than just the username
-	// format is username?mechanism=PLAIN&source=db. This is the same
-	// as a query string, so everything should be url encoded.
-	idx := strings.Index(credential.Username, "?")
-	var err error
-	if idx > 0 {
-		credential.Username, err = url.QueryUnescape(c.user[:idx])
-		if err != nil {
-			return err
-		}
-		values, err := url.ParseQuery(c.user[idx+1:])
-		if err != nil {
-			return err
-		}
-		for key, value := range values {
-			switch strings.ToLower(key) {
-			case "mechanism":
-				credential.Mechanism = value[0]
-			case "source":
-				credential.Source = value[0]
-			default:
-				return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "unknown authentication option %q", key)
-			}
-		}
-	}
-
-	return c.session.Login(credential)
+// RowCount returns the number of rows affected by the last statement.
+func (c *conn) RowCount() int64 {
+	return c.affectedRows
 }
 
 func (c *conn) run() {
@@ -571,87 +526,223 @@ func (c *conn) run() {
 	}
 }
 
-func (c *conn) dispatch(data []byte) error {
-	cmd := data[0]
-	data = data[1:]
+// Session returns a new mgo.Session connected to MongoDB.
+func (c *conn) Session() (session *mgo.Session) {
+	return c.session.Copy()
+}
 
-	switch cmd {
-	case COM_QUIT:
-		c.close()
-		return nil
-	case COM_QUERY:
-		return c.handleQuery(String(data))
-	case COM_PING:
-		return c.writeOK(nil)
-	case COM_INIT_DB:
-		if err := c.useDB(String(data)); err != nil {
+func (c *conn) SetVariable(name string, value evaluator.SQLValue, kind evaluator.VariableKind) error {
+
+	switch kind {
+	case evaluator.GlobalVariable, evaluator.SessionVariable:
+		def, err := getSystemVariableDefinition(name)
+		if err != nil {
 			return err
 		}
-		return c.writeOK(nil)
-	case COM_FIELD_LIST:
-		return c.handleFieldList(data)
-	case COM_STMT_PREPARE:
-		return c.handleStmtPrepare(String(data))
-	case COM_STMT_EXECUTE:
-		return c.handleStmtExecute(data)
-	case COM_STMT_CLOSE:
-		return c.handleStmtClose(data)
-	case COM_STMT_SEND_LONG_DATA:
-		return c.handleStmtSendLongData(data)
-	case COM_STMT_RESET:
-		return c.handleStmtReset(data)
+
+		defWrite, ok := def.(settableVariableDefinition)
+		if !ok {
+			return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, name)
+		}
+
+		scope := globalScope
+		if kind == evaluator.SessionVariable {
+			scope = sessionScope
+		}
+
+		return defWrite.apply(c, scope, value)
 	default:
-		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COM_ERROR)
+		c.variables.setUserVariable(name, value)
+		return nil
 	}
 }
 
-func (c *conn) close() error {
-	if c.closed {
-		return nil
+func (c *conn) useDB(db string) error {
+	s := c.server.databases[strings.ToLower(db)]
+	if s == nil {
+		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, db)
 	}
 
-	c.session.Close()
+	c.currentDB = s
+	return nil
+}
 
-	c.conn.Close()
+// User returns the current user.
+func (c *conn) User() string {
+	return fmt.Sprintf("%s@%s", c.user, c.conn.RemoteAddr().String())
+}
 
-	c.closed = true
+func (c *conn) useTLS() error {
 
-	log.Logf(log.Info, "[conn%v] end connection %v", c.connectionID, c.conn.RemoteAddr())
+	tlsc := tls.Server(c.conn, c.server.tlsConfig)
+	if err := tlsc.Handshake(); err != nil {
+		return err
+	}
+	c.conn = tlsc
+	c.reader = bufio.NewReaderSize(c.conn, 1024)
+	c.writer = c.conn
 
 	return nil
 }
 
-func (c *conn) readPacket() ([]byte, error) {
-	header := []byte{0, 0, 0, 0}
+func (c *conn) Variables(kind evaluator.VariableKind) map[string]evaluator.SQLValue {
+	results := make(map[string]evaluator.SQLValue)
+	switch kind {
+	case evaluator.GlobalVariable:
+		for _, def := range systemVariableDefinitions {
+			if defRead, ok := def.(readableVariableDefinition); ok {
+				value, ok := c.server.variables.getValue(def.name())
+				if !ok {
+					value = defRead.defaultValue()
+				}
 
-	if _, err := io.ReadFull(c.reader, header); err != nil {
-		return nil, errBadConn
+				results[def.name()] = value
+			}
+		}
+	case evaluator.SessionVariable:
+		for _, def := range systemVariableDefinitions {
+			if defRead, ok := def.(readableVariableDefinition); ok {
+				value, ok := c.variables.getSessionVariable(def.name())
+				if !ok {
+					value = defRead.defaultValue()
+				}
+
+				results[def.name()] = value
+			}
+		}
+	default:
+		for k, v := range c.variables.userVariables {
+			results[k] = v
+		}
 	}
 
-	length := int(uint32(header[0]) | uint32(header[1])<<8 | uint32(header[2])<<16)
+	return results
+}
 
-	sequence := uint8(header[3])
-	if sequence != c.sequence {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NET_PACKETS_OUT_OF_ORDER)
+func (c *conn) writeAuthRequestSwitchPacket(pluginName string) error {
+
+	data := make([]byte, 4, 128)
+
+	// status [1]
+	data = append(data, 0xFE)
+
+	// plugin name string[NUL]
+	data = append(data, []byte(pluginName)...)
+	data = append(data, 0)
+
+	// auth plugin data string[EOF]
+	// nothing to add
+
+	return c.writePacket(data)
+}
+
+func (c *conn) writeEOF(status uint16) error {
+	data := make([]byte, 4, 9)
+
+	data = append(data, EOF_HEADER)
+	if c.capability&CLIENT_PROTOCOL_41 > 0 {
+		data = append(data, 0, 0)
+		data = append(data, byte(status), byte(status>>8))
 	}
 
-	c.sequence++
+	return c.writePacket(data)
+}
 
-	data := make([]byte, length)
-	if _, err := io.ReadFull(c.reader, data); err != nil {
-		return nil, errBadConn
+func (c *conn) writeError(e error) error {
+	var m *mysqlerrors.MySqlError
+	var ok bool
+	if m, ok = e.(*mysqlerrors.MySqlError); !ok {
+		m = mysqlerrors.Unknownf(e.Error())
 	}
 
-	if length < maxPayloadLen {
-		return data, nil
+	data := make([]byte, 4, 16+len(m.Message))
+
+	data = append(data, ERR_HEADER)
+	data = append(data, byte(m.Code), byte(m.Code>>8))
+
+	if c.capability&CLIENT_PROTOCOL_41 > 0 {
+		data = append(data, '#')
+		data = append(data, m.State...)
 	}
 
-	buf, err := c.readPacket()
-	if err != nil {
-		return nil, errBadConn
+	data = append(data, m.Message...)
+
+	return c.writePacket(data)
+}
+
+func (c *conn) writeInitialHandshake() error {
+	data := make([]byte, 4, 128)
+
+	//min version 10
+	data = append(data, minProtocolVersion)
+
+	//server version[00]
+	version := c.mustGetVariable(versionVariableName, evaluator.GlobalVariable)
+	versionComment := c.mustGetVariable(versionCommentVariableName, evaluator.GlobalVariable)
+
+	data = append(data, fmt.Sprintf("%s %s", version, versionComment)...)
+	data = append(data, 0)
+
+	//connection id
+	data = append(data, byte(c.connectionID), byte(c.connectionID>>8), byte(c.connectionID>>16), byte(c.connectionID>>24))
+
+	//auth-plugin-data-part-1
+	count := 0
+	for count < 8 && count < len(c.authPluginData) {
+		data = append(data, c.authPluginData[count])
+		count++
+	}
+	// must have at least 8 bytes
+	for count < 8 {
+		data = append(data, 0)
+		count++
 	}
 
-	return append(data, buf...), nil
+	//filler [00]
+	data = append(data, 0)
+
+	//capability flag lower 2 bytes
+	data = append(data, byte(c.capability), byte(c.capability>>8))
+
+	//charset
+	data = append(data, c.getCollationID())
+
+	//status
+	data = append(data, byte(c.status), byte(c.status>>8))
+
+	//below 13 byte may not be used
+	//capability flag upper 2 bytes
+	data = append(data, byte(c.capability>>16), byte(c.capability>>24))
+
+	if (c.capability & CLIENT_PLUGIN_AUTH) != 0 {
+		data = append(data, byte(len(c.authPluginData)))
+	} else {
+		data = append(data, 0)
+	}
+
+	//reserved 10 [00]
+	data = append(data, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+	if (c.capability & CLIENT_SECURE_CONNECTION) != 0 {
+		count := 0
+		if len(c.authPluginData) > 8 {
+			data = append(data, c.authPluginData[8:]...)
+			count = len(c.authPluginData) - 8
+		}
+
+		for count < 13 {
+			data = append(data, 0)
+			count++
+		}
+	}
+
+	if (c.capability & CLIENT_PLUGIN_AUTH) != 0 {
+		// auth-plugin-name string[NUL]
+		data = append(data, []byte(c.authPluginName)...)
+		data = append(data, 0)
+	}
+
+	return c.writePacket(data)
 }
 
 func (c *conn) writePacket(data []byte) error {
@@ -691,16 +782,6 @@ func (c *conn) writePacket(data []byte) error {
 	}
 }
 
-func (c *conn) useDB(db string) error {
-	s := c.server.databases[strings.ToLower(db)]
-	if s == nil {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, db)
-	}
-
-	c.currentDB = s
-	return nil
-}
-
 func (c *conn) writeOK(r *Result) error {
 	if r == nil {
 		r = &Result{Status: c.status}
@@ -718,47 +799,4 @@ func (c *conn) writeOK(r *Result) error {
 	}
 
 	return c.writePacket(data)
-}
-
-func (c *conn) writeError(e error) error {
-	var m *mysqlerrors.MySqlError
-	var ok bool
-	if m, ok = e.(*mysqlerrors.MySqlError); !ok {
-		m = mysqlerrors.Unknownf(e.Error())
-	}
-
-	data := make([]byte, 4, 16+len(m.Message))
-
-	data = append(data, ERR_HEADER)
-	data = append(data, byte(m.Code), byte(m.Code>>8))
-
-	if c.capability&CLIENT_PROTOCOL_41 > 0 {
-		data = append(data, '#')
-		data = append(data, m.State...)
-	}
-
-	data = append(data, m.Message...)
-
-	return c.writePacket(data)
-}
-
-func (c *conn) writeEOF(status uint16) error {
-	data := make([]byte, 4, 9)
-
-	data = append(data, EOF_HEADER)
-	if c.capability&CLIENT_PROTOCOL_41 > 0 {
-		data = append(data, 0, 0)
-		data = append(data, byte(status), byte(status>>8))
-	}
-
-	return c.writePacket(data)
-}
-
-func (c *conn) getCollationID() uint8 {
-	collation := c.mustGetVariable(collationConnectionVariableName, evaluator.SessionVariable)
-	if collation == evaluator.SQLNull {
-		collation = evaluator.SQLVarchar(DEFAULT_COLLATION_NAME)
-	}
-	collationID := collationNames[collation.String()]
-	return uint8(collationID)
 }

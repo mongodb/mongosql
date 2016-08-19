@@ -96,8 +96,8 @@ func (v *partialEvaluatorNominator) visit(n node) (node, error) {
 		switch typedN := n.(type) {
 		case RequiresEvalCtx:
 			v.blocked = typedN.RequiresEvalCtx()
-		case PlanStage, *SetExecutor, *SQLAssignmentExpr, *SQLExistsExpr, SQLColumnExpr,
-			*SQLSubqueryCmpExpr, *SQLSubqueryExpr, *SQLAggFunctionExpr:
+		case *KillCommand, PlanStage, *SetCommand, *SQLAssignmentExpr, SQLColumnExpr,
+			*SQLExistsExpr, *SQLSubqueryCmpExpr, *SQLSubqueryExpr, *SQLAggFunctionExpr:
 			v.blocked = true
 		}
 

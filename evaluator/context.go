@@ -1,6 +1,9 @@
 package evaluator
 
-import "gopkg.in/mgo.v2"
+import (
+	"gopkg.in/mgo.v2"
+	"gopkg.in/tomb.v2"
+)
 
 // VariableCtx holds variable related information
 type VariableCtx interface {
@@ -15,9 +18,11 @@ type ConnectionCtx interface {
 	LastInsertId() int64
 	RowCount() int64
 	ConnectionId() uint32
+	Tomb() *tomb.Tomb
 	DB() string
 	Session() *mgo.Session
 	User() string
+	Kill(uint32, KillScope) error
 }
 
 // ExecutionCtx holds execution context information

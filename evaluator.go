@@ -63,6 +63,7 @@ func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.Connecti
 	}
 
 	executionCtx := evaluator.NewExecutionCtx(conn)
+
 	log.Logf(log.DebugHigh, "[conn%v] executing plan: \n%v", conn.ConnectionId(), evaluator.PrettyPrintPlan(plan))
 
 	iter, err := plan.Open(executionCtx)
@@ -75,22 +76,23 @@ func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.Connecti
 	return columns, iter, nil
 }
 
-func (e *Evaluator) Set(ast *parser.Set, conn evaluator.ConnectionCtx) error {
+func (e *Evaluator) EvaluateCommand(ast parser.Statement, conn evaluator.ConnectionCtx) (evaluator.Executor, error) {
 	log.Logf(log.DebugLow, "Preparing plan for: %#v", parser.String(ast))
 
-	set, err := evaluator.AlgebrizeSet(ast, conn.DB(), e.config)
+	stmt, err := evaluator.AlgebrizeCommand(ast, conn.DB(), e.config)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	log.Logf(log.DebugHigh, "[conn%v] optimizing plan: \n%v", conn.ConnectionId(), evaluator.PrettyPrintSet(set))
-	set, err = evaluator.OptimizeSet(conn, set)
+	log.Logf(log.DebugHigh, "[conn%v] optimizing plan: \n%v", conn.ConnectionId(), evaluator.PrettyPrintCommand(stmt))
+
+	command, err := evaluator.OptimizeCommand(conn, stmt)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	executionCtx := evaluator.NewExecutionCtx(conn)
-	log.Logf(log.DebugHigh, "[conn%v] executing plan: \n%v", conn.ConnectionId(), evaluator.PrettyPrintSet(set))
 
-	return set.Execute(executionCtx)
+	return command.Execute(executionCtx), nil
+
 }
