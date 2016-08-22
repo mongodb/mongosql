@@ -9,6 +9,12 @@ data:
     - { _id: 0, a: 1, b: ~ }
     - { _id: 1, a: 2 }
     - { _id: 2, a: 3 }
+- inline:
+    db: "randomDB"
+    collection: "select_3"
+    docs:
+    - { a: 2 , b: 3}
+
 
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
@@ -53,6 +59,19 @@ schema:
       MongoType: bson.Decimal128
       SqlName: a
       SqlType: numeric
+- db: randomDB
+  tables:
+  - table: foo
+    collection: "select_3"
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat
+      SqlType: int
 
 #
 # Tests
@@ -314,3 +333,21 @@ testcases:
   expected_types: [int]
   expected:
   - [1]
+- sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat from randomDB.foo"
+  description: "long identifier names"
+  expected_names: ["ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat"]
+  expected_types: [int]
+  expected:
+  - [2]
+- sql: "select `ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat` from randomDB.foo"
+  description: "long identifier name with dot"
+  expected_names: ["ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat"]
+  expected_types: [int]
+  expected:
+  - [3]
+- sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat r from randomDB.foo"
+  description: "long identifier name with alias"
+  expected_names: ["r"]
+  expected_types: [int]
+  expected:
+  - [2]
