@@ -2,7 +2,7 @@
 # Data
 #
 data:
-- inline: 
+- inline:
     db: "SelectTest"
     collection: "select_1"
     docs:
@@ -10,11 +10,19 @@ data:
     - { _id: 1, a: 2 }
     - { _id: 2, a: 3 }
 - inline:
+    db: "SelectTest"
+    collection: "select_4"
+    docs:
+    - { _id: 1, x: 4, y: 1, z: 0 }
+    - { _id: 2, x: 7, y: 1, z: 5 }
+    - { _id: 3, x: 5, y: 1, z: 5 }
+    - { _id: 4, x: 7, y: 6, z: 1 }
+    - { _id: 5, x: 4, y: 1, z: 5 }
+- inline:
     db: "randomDB"
     collection: "select_3"
     docs:
     - { a: 2 , b: 3}
-
 
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
@@ -59,6 +67,26 @@ schema:
       MongoType: bson.Decimal128
       SqlName: a
       SqlType: numeric
+  - table: tuples
+    collection: "select_4"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: x
+      MongoType: int
+      SqlName: x
+      SqlType: int
+    - Name: y
+      MongoType: int
+      SqlName: y
+      SqlType: int
+    - Name: z
+      MongoType: int
+      SqlName: z
+      SqlType: int
+
 - db: randomDB
   tables:
   - table: foo
@@ -198,7 +226,8 @@ testcases:
   - [~, 1]
   - [~, 2]
 
-# Expressions
+### Expressions
+
 # Case
 - sql: "select (case when a > 1 then 'gt' else 'lt' end) as p from foo"
   description: "case"
@@ -333,6 +362,8 @@ testcases:
   expected_types: [int]
   expected:
   - [1]
+
+# Long Identifer Names
 - sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat from randomDB.foo"
   description: "long identifier names"
   expected_names: ["ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat"]
@@ -351,3 +382,115 @@ testcases:
   expected_types: [int]
   expected:
   - [2]
+
+# Row comparisons
+- sql: "select (x, y, z) < (4, null, 9) from tuples"
+  description: "lt row comparison with null"
+  expected_names: ["(x, y, z) < (4, null, 9)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [0]
+  - [0]
+  - [0]
+  - [~]
+- sql: "select (x, y, z) <= (4, 5, null) from tuples"
+  description: "triple lte row comparison with null"
+  expected_names: ["(x, y, z) <= (4, 5, null)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [0]
+  - [0]
+  - [0]
+  - [1]
+- sql: "select (z, x) >= (2, 6) from tuples"
+  description: "gte row comparison without null"
+  expected_names: ["(z, x) >= (2, 6)"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [1]
+  - [1]
+  - [0]
+  - [1]
+- sql: "select (x, y) >= (4, null) from tuples"
+  description: "gte row comparison with null"
+  expected_names: ["(x, y) >= (4, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [1]
+  - [1]
+  - [1]
+  - [~]
+- sql: "select (z, y, x) > (1, 5, 2) from tuples"
+  description: "triple gt row comparison without null"
+  expected_names: ["(z, y, x) > (1, 5, 2)"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+- sql: "select (z, null, x) > (1, x, 2) from tuples"
+  description: "triple gt row comparison with null"
+  expected_names: ["(z, null, x) > (1, x, 2)"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [1]
+  - [1]
+  - [~]
+  - [1]
+- sql: "select (x, y, z) = (null, null, 9) from tuples"
+  description: "triple eq row comparison with null"
+  expected_names: ["(x, y, z) = (null, null, 9)"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+  - [0]
+- sql: "select (y, x) = (1, 4) from tuples"
+  description: "eq row comparison without null"
+  expected_names: ["(y, x) = (1, 4)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [0]
+  - [0]
+  - [0]
+  - [1]
+- sql: "select (y, x) = (1, null) from tuples"
+  description: "eq row comparison with null"
+  expected_names: ["(y, x) = (1, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [0]
+  - [~]
+- sql: "select (y, x-z) != (1, 2) from tuples"
+  description: "neq row comparison without null"
+  expected_names: ["(y, x-z) != (1, 2)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [0]
+  - [1]
+  - [1]
+  - [1]
+- sql: "select (y+z, x-z) != (null, 4) from tuples"
+  description: "neq row comparison with null"
+  expected_names: ["(y+z, x-z) != (null, 4)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [1]
+  - [1]
+  - [1]
+  - [1]

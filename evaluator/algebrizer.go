@@ -803,6 +803,22 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for '%v' with '%T'", typedE.SubqueryOperator, right)
 		}
 
+		_, leftIsSubquery := left.(*SQLSubqueryExpr)
+		_, rightIsSubquery := right.(*SQLSubqueryExpr)
+		canTranslate := (!leftIsSubquery && !rightIsSubquery) &&
+			(left.Type() == schema.SQLTuple || right.Type() == schema.SQLTuple)
+
+		shouldTranslate := containsString(
+			[]string{
+				sqlOpNEQ, sqlOpEQ,
+				sqlOpGT, sqlOpGTE,
+				sqlOpLT, sqlOpLTE,
+			}, typedE.Operator)
+
+		if canTranslate && shouldTranslate {
+			return translateTupleExpr(left, right, typedE.Operator)
+		}
+
 		return comparisonExpr(left, right, typedE.Operator)
 	case parser.DateVal:
 

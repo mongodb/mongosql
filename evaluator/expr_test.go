@@ -1670,6 +1670,13 @@ func TestEvaluates(t *testing.T) {
 				varcharResult := sqlVarchar.(SQLVarchar)
 				So(varcharResult, ShouldEqual, SQLVarchar("10"))
 			})
+
+			Convey("Should evaluate early if possible", func() {
+				tests := []test{
+					test{"(1, 3) > (2, 4)", SQLFalse},
+				}
+				runTests(evalCtx, tests)
+			})
 		})
 
 		Convey("Subject: SQLUnaryMinusExpr", func() {

@@ -6,39 +6,47 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/10gen/sqlproxy/parser"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"gopkg.in/mgo.v2/bson"
 )
 
 const (
-	Dot = "_DOT_"
+	Dot        = "_DOT_"
+	sqlOpEQ    = "="
+	sqlOpNEQ   = "!="
+	sqlOpGT    = ">"
+	sqlOpGTE   = ">="
+	sqlOpLT    = "<"
+	sqlOpLTE   = "<="
+	sqlOpLike  = "like"
+	sqlOpIn    = "in"
+	sqlOpNotIn = "not in"
 )
 
 // comparisonExpr returns a SQLExpr formed using op comparison operator.
 func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 	switch op {
-	case parser.AST_EQ:
+	case sqlOpEQ:
 		return &SQLEqualsExpr{left, right}, nil
-	case parser.AST_LT:
+	case sqlOpLT:
 		return &SQLLessThanExpr{left, right}, nil
-	case parser.AST_GT:
+	case sqlOpGT:
 		return &SQLGreaterThanExpr{left, right}, nil
-	case parser.AST_LE:
+	case sqlOpLTE:
 		return &SQLLessThanOrEqualExpr{left, right}, nil
-	case parser.AST_GE:
+	case sqlOpGTE:
 		return &SQLGreaterThanOrEqualExpr{left, right}, nil
-	case parser.AST_NE:
+	case sqlOpNEQ:
 		return &SQLNotEqualsExpr{left, right}, nil
-	case parser.AST_LIKE:
+	case sqlOpLike:
 		return &SQLLikeExpr{left, right}, nil
-	case parser.AST_IN:
+	case sqlOpIn:
 		if eval, ok := right.(*SQLSubqueryExpr); ok {
 			return &SQLSubqueryCmpExpr{subqueryIn, left, eval, ""}, nil
 		}
 		return &SQLInExpr{left, right}, nil
-	case parser.AST_NOT_IN:
+	case sqlOpNotIn:
 		if eval, ok := right.(*SQLSubqueryExpr); ok {
 			return &SQLSubqueryCmpExpr{subqueryNotIn, left, eval, ""}, nil
 		}

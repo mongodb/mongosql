@@ -12,34 +12,53 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+const (
+	mgoOperatorEQ  = "$eq"
+	mgoOperatorNEQ = "$ne"
+	mgoOperatorGT  = "$gt"
+	mgoOperatorGTE = "$gte"
+	mgoOperatorLT  = "$lt"
+	mgoOperatorLTE = "$lte"
+
+	mgoOperatorIfNull = "$ifNull"
+	mgoOperatorOR     = "$or"
+	mgoOperatorCond   = "$cond"
+	mgoOperatorAND    = "$and"
+)
+
+var (
+	mgoNullLiteral = bson.M{"$literal": nil}
+)
+
 // a function that, given a tableName and a columnName, will return
 // the field name coming back from mongodb.
 type fieldNameLookup func(tableName, columnName string) (string, bool)
 
 // TranslateExpr attempts to turn the SQLExpr into MongoDB query language.
 func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, bool) {
-	wrapInEQ := func(left, right interface{}) interface{} {
-		return bson.M{"$eq": []interface{}{left, right}}
+
+	wrapInOp := func(op string, left, right interface{}) interface{} {
+		return bson.M{op: []interface{}{left, right}}
 	}
 
 	wrapInIfNull := func(v, ifNull interface{}) interface{} {
-		return bson.M{"$ifNull": []interface{}{v, ifNull}}
+		return bson.M{mgoOperatorIfNull: []interface{}{v, ifNull}}
 	}
 
 	wrapInNullCheck := func(v interface{}) interface{} {
-		return wrapInEQ(wrapInIfNull(v, nil), nil)
+		return wrapInOp(mgoOperatorEQ, wrapInIfNull(v, nil), nil)
 	}
 
 	wrapInCond := func(truePart, falsePart interface{}, conds ...interface{}) interface{} {
 		var condition interface{}
 
 		if len(conds) > 1 {
-			condition = bson.M{"$or": conds}
+			condition = bson.M{mgoOperatorOR: conds}
 		} else {
 			condition = conds[0]
 		}
 
-		return bson.M{"$cond": []interface{}{condition, truePart, falsePart}}
+		return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
 	}
 
 	wrapSingleArgFuncWithNullCheck := func(name string, arg interface{}) interface{} {
@@ -86,9 +105,9 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 						"input": transExpr,
 						"as":    "i",
 						"in": bson.M{
-							"$cond": []interface{}{
-								bson.M{"$eq": []interface{}{
-									bson.M{"$ifNull": []interface{}{
+							mgoOperatorCond: []interface{}{
+								bson.M{mgoOperatorEQ: []interface{}{
+									bson.M{mgoOperatorIfNull: []interface{}{
 										"$$i",
 										nil}},
 									nil}},
@@ -119,31 +138,31 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$cond": []interface{}{
-			bson.M{"$or": []interface{}{
-				bson.M{"$eq": []interface{}{
+		return bson.M{mgoOperatorCond: []interface{}{
+			bson.M{mgoOperatorOR: []interface{}{
+				bson.M{mgoOperatorEQ: []interface{}{
 					bson.M{
-						"$ifNull": []interface{}{left, nil}},
+						mgoOperatorIfNull: []interface{}{left, nil}},
 					nil,
 				}},
-				bson.M{"$eq": []interface{}{
+				bson.M{mgoOperatorEQ: []interface{}{
 					bson.M{
-						"$ifNull": []interface{}{right, nil}},
+						mgoOperatorIfNull: []interface{}{right, nil}},
 					nil,
 				}}}},
-			bson.M{"$cond": []interface{}{
-				bson.M{"$or": []interface{}{
-					bson.M{"$eq": []interface{}{
+			bson.M{mgoOperatorCond: []interface{}{
+				bson.M{mgoOperatorOR: []interface{}{
+					bson.M{mgoOperatorEQ: []interface{}{
 						left, false}},
-					bson.M{"$eq": []interface{}{
+					bson.M{mgoOperatorEQ: []interface{}{
 						right, false}},
-					bson.M{"$eq": []interface{}{
+					bson.M{mgoOperatorEQ: []interface{}{
 						left, 0}},
-					bson.M{"$eq": []interface{}{
+					bson.M{mgoOperatorEQ: []interface{}{
 						right, 0}}}},
-				bson.M{"$and": []interface{}{left, right}},
-				bson.M{"$literal": nil}}},
-			bson.M{"$and": []interface{}{left, right}}}}, true
+				bson.M{mgoOperatorAND: []interface{}{left, right}},
+				mgoNullLiteral}},
+			bson.M{mgoOperatorAND: []interface{}{left, right}}}}, true
 
 	case *SQLDivideExpr:
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
@@ -171,7 +190,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return wrapInCond(
 			nil,
-			bson.M{"$eq": []interface{}{left, right}},
+			bson.M{mgoOperatorEQ: []interface{}{left, right}},
 			wrapInNullCheck(left),
 			wrapInNullCheck(right),
 		), true
@@ -196,7 +215,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return wrapInCond(
 			nil,
-			bson.M{"$gt": []interface{}{left, right}},
+			bson.M{mgoOperatorGT: []interface{}{left, right}},
 			wrapInNullCheck(left),
 			wrapInNullCheck(right),
 		), true
@@ -214,7 +233,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return wrapInCond(
 			nil,
-			bson.M{"$gte": []interface{}{left, right}},
+			bson.M{mgoOperatorGTE: []interface{}{left, right}},
 			wrapInNullCheck(left),
 			wrapInNullCheck(right),
 		), true
@@ -246,7 +265,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return wrapInCond(
 			nil,
-			bson.M{"$lt": []interface{}{left, right}},
+			bson.M{mgoOperatorLT: []interface{}{left, right}},
 			wrapInNullCheck(left),
 			wrapInNullCheck(right),
 		), true
@@ -264,7 +283,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return wrapInCond(
 			nil,
-			bson.M{"$lte": []interface{}{left, right}},
+			bson.M{mgoOperatorLTE: []interface{}{left, right}},
 			wrapInNullCheck(left),
 			wrapInNullCheck(right),
 		), true
@@ -320,7 +339,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return wrapInCond(
 			nil,
-			bson.M{"$ne": []interface{}{left, right}},
+			bson.M{mgoOperatorNEQ: []interface{}{left, right}},
 			wrapInNullCheck(left),
 			wrapInNullCheck(right),
 		), true
@@ -336,20 +355,77 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$cond": []interface{}{
-			bson.M{"$and": []interface{}{
-				bson.M{"$eq": []interface{}{
-					bson.M{
-						"$ifNull": []interface{}{left, nil}},
-					nil,
-				}},
-				bson.M{"$eq": []interface{}{
-					bson.M{
-						"$ifNull": []interface{}{right, nil}},
-					nil,
-				}}}},
-			bson.M{"$literal": nil},
-			bson.M{"$or": []interface{}{left, right}}}}, true
+		leftIsFalse := bson.M{mgoOperatorOR: []interface{}{
+			bson.M{mgoOperatorEQ: []interface{}{left, false}},
+			bson.M{mgoOperatorEQ: []interface{}{left, 0}},
+		}}
+
+		leftIsTrue := bson.M{mgoOperatorOR: []interface{}{
+			bson.M{mgoOperatorNEQ: []interface{}{left, false}},
+			bson.M{mgoOperatorNEQ: []interface{}{left, 0}},
+		}}
+
+		rightIsFalse := bson.M{mgoOperatorOR: []interface{}{
+			bson.M{mgoOperatorEQ: []interface{}{right, false}},
+			bson.M{mgoOperatorEQ: []interface{}{right, 0}},
+		}}
+
+		rightIsTrue := bson.M{mgoOperatorOR: []interface{}{
+			bson.M{mgoOperatorNEQ: []interface{}{right, false}},
+			bson.M{mgoOperatorNEQ: []interface{}{right, 0}},
+		}}
+
+		leftIsNull := bson.M{mgoOperatorEQ: []interface{}{
+			bson.M{
+				mgoOperatorIfNull: []interface{}{left, nil}},
+			nil,
+		}}
+
+		rightIsNull := bson.M{mgoOperatorEQ: []interface{}{
+			bson.M{
+				mgoOperatorIfNull: []interface{}{right, nil}},
+			nil,
+		}}
+
+		nullOrFalse := bson.M{mgoOperatorOR: []interface{}{
+			bson.M{mgoOperatorAND: []interface{}{
+				rightIsNull, leftIsFalse,
+			}},
+			bson.M{mgoOperatorAND: []interface{}{
+				leftIsNull, rightIsFalse,
+			}},
+		}}
+
+		nullOrTrue := bson.M{mgoOperatorOR: []interface{}{
+			bson.M{mgoOperatorAND: []interface{}{
+				rightIsNull, leftIsTrue,
+			}},
+			bson.M{mgoOperatorAND: []interface{}{
+				leftIsNull, rightIsTrue,
+			}},
+		}}
+
+		nullOrNull := bson.M{mgoOperatorAND: []interface{}{
+			leftIsNull, rightIsNull,
+		}}
+
+		return bson.M{mgoOperatorCond: []interface{}{
+			nullOrNull,
+			mgoNullLiteral,
+			wrapInCond(
+				mgoNullLiteral,
+				wrapInCond(
+					true,
+					wrapInCond(
+						mgoNullLiteral,
+						bson.M{mgoOperatorOR: []interface{}{left, right}},
+						wrapInNullCheck(left),
+						wrapInNullCheck(right),
+					),
+					nullOrTrue,
+				),
+				nullOrFalse,
+			)}}, true
 
 	case *SQLXorExpr:
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
@@ -362,22 +438,22 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		return bson.M{"$cond": []interface{}{
-			bson.M{"$or": []interface{}{
-				bson.M{"$eq": []interface{}{
+		return bson.M{mgoOperatorCond: []interface{}{
+			bson.M{mgoOperatorOR: []interface{}{
+				bson.M{mgoOperatorEQ: []interface{}{
 					bson.M{
-						"$ifNull": []interface{}{left, nil}},
+						mgoOperatorIfNull: []interface{}{left, nil}},
 					nil,
 				}},
-				bson.M{"$eq": []interface{}{
+				bson.M{mgoOperatorEQ: []interface{}{
 					bson.M{
-						"$ifNull": []interface{}{right, nil}},
+						mgoOperatorIfNull: []interface{}{right, nil}},
 					nil,
 				}}}},
-			bson.M{"$literal": nil},
-			bson.M{"$and": []interface{}{
-				bson.M{"$or": []interface{}{left, right}},
-				bson.M{"$not": bson.M{"$and": []interface{}{left, right}}}}}}}, true
+			mgoNullLiteral,
+			bson.M{mgoOperatorAND: []interface{}{
+				bson.M{mgoOperatorOR: []interface{}{left, right}},
+				bson.M{"$not": bson.M{mgoOperatorAND: []interface{}{left, right}}}}}}}, true
 
 	case *SQLScalarFunctionExpr:
 		args, ok := translateExprs(lookupFieldName, typedE.Exprs...)
@@ -399,7 +475,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 					return nil
 				}
 				replacement := coalesce(args[1:])
-				return bson.M{"$ifNull": []interface{}{args[0], replacement}}
+				return bson.M{mgoOperatorIfNull: []interface{}{args[0], replacement}}
 			}
 
 			return coalesce(args), true
@@ -418,14 +494,14 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 			for _, value := range args[1:] {
 				pushArgs = append(pushArgs,
-					bson.M{"$cond": []interface{}{
-						bson.M{"$eq": []interface{}{
-							bson.M{"$ifNull": []interface{}{value, nil}},
+					bson.M{mgoOperatorCond: []interface{}{
+						bson.M{mgoOperatorEQ: []interface{}{
+							bson.M{mgoOperatorIfNull: []interface{}{value, nil}},
 							nil}},
 						bson.M{"$literal": ""}, value}},
-					bson.M{"$cond": []interface{}{
-						bson.M{"$eq": []interface{}{
-							bson.M{"$ifNull": []interface{}{value, nil}},
+					bson.M{mgoOperatorCond: []interface{}{
+						bson.M{mgoOperatorEQ: []interface{}{
+							bson.M{mgoOperatorIfNull: []interface{}{value, nil}},
 							nil}},
 						bson.M{"$literal": ""}, args[0]}})
 			}
@@ -527,8 +603,8 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				args[2],
 				args[1],
 				wrapInNullCheck(args[0]),
-				wrapInEQ(args[0], 0),
-				wrapInEQ(args[0], false),
+				wrapInOp(mgoOperatorEQ, args[0], 0),
+				wrapInOp(mgoOperatorEQ, args[0], false),
 			), true
 		case "ifnull":
 			if len(args) != 2 {
@@ -567,28 +643,28 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			if len(args) != 1 {
 				return nil, false
 			}
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$gt": []interface{}{args[0], 0}},
+			return bson.M{mgoOperatorCond: []interface{}{
+				bson.M{mgoOperatorGT: []interface{}{args[0], 0}},
 				bson.M{"$ln": args[0]},
-				bson.M{"$literal": nil}}}, true
+				mgoNullLiteral}}, true
 		case "log2":
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$gt": []interface{}{args[0], 0}},
+			return bson.M{mgoOperatorCond: []interface{}{
+				bson.M{mgoOperatorGT: []interface{}{args[0], 0}},
 				bson.M{"$log": []interface{}{args[0], 2}},
-				bson.M{"$literal": nil}}}, true
+				mgoNullLiteral}}, true
 		case "log10":
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return bson.M{"$cond": []interface{}{
-				bson.M{"$gt": []interface{}{args[0], 0}},
+			return bson.M{mgoOperatorCond: []interface{}{
+				bson.M{mgoOperatorGT: []interface{}{args[0], 0}},
 				bson.M{"$log10": args[0]},
-				bson.M{"$literal": nil}}}, true
+				mgoNullLiteral}}, true
 		case "mod":
 			if len(args) != 2 {
 				return nil, false
@@ -644,7 +720,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				wrapInCond(
 					nil,
 					args[0],
-					wrapInEQ(args[0], args[1]),
+					wrapInOp(mgoOperatorEQ, args[0], args[1]),
 				),
 				wrapInNullCheck(args[0]),
 			), true
@@ -700,8 +776,8 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			return bson.M{"$divide": []interface{}{
-				bson.M{"$cond": []interface{}{
-					bson.M{"$gte": []interface{}{args[0], 0}},
+				bson.M{mgoOperatorCond: []interface{}{
+					bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
 					bson.M{"$floor": bson.M{"$add": []interface{}{
 						bson.M{"$multiply": []interface{}{args[0], decimal}}, 0.5}}},
 					bson.M{"$ceil": bson.M{"$subtract": []interface{}{
@@ -720,7 +796,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return wrapInCond(
 				bson.M{"$sqrt": args[0]},
 				nil,
-				bson.M{"$gte": []interface{}{args[0], 0}},
+				bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
 			), true
 		case "substring", "substr":
 			if len(args) != 2 && len(args) != 3 {
@@ -839,15 +915,14 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{"$literal": typedE}, true
 
 	case SQLNullValue:
-		return bson.M{"$literal": nil}, true
+		return mgoNullLiteral, true
 
 	case SQLTimestamp:
 		return bson.M{"$literal": typedE.Time.Format(schema.TimestampFormat)}, true
 
 		/*
 			TODO: implement these
-			case *SQLUnaryTildeExpr:
-			case *SQLTupleExpr:*/
+			case *SQLUnaryTildeExpr:*/
 
 	case *SQLCaseExpr:
 		elseValue, ok := TranslateExpr(typedE.elseValue, lookupFieldName)
@@ -893,6 +968,19 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return cases, true
 
+	case *SQLTupleExpr:
+		var transExprs []interface{}
+
+		for _, expr := range typedE.Exprs {
+			transExpr, ok := TranslateExpr(expr, lookupFieldName)
+			if !ok {
+				return nil, false
+			}
+			transExprs = append(transExprs, transExpr)
+		}
+
+		return transExprs, true
+
 	case *SQLUnaryMinusExpr:
 		operand, ok := TranslateExpr(typedE.operand, lookupFieldName)
 		if !ok {
@@ -937,20 +1025,32 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				wrapInCond(
 					nil,
 					false,
-					bson.M{"$eq": []interface{}{nullInValues, true}},
+					bson.M{mgoOperatorEQ: []interface{}{nullInValues, true}},
 				),
-				bson.M{"$gt": []interface{}{
+				bson.M{mgoOperatorGT: []interface{}{
 					bson.M{"$size": bson.M{"$filter": bson.M{"input": right,
 						"as":   "item",
-						"cond": bson.M{"$eq": []interface{}{"$$item", left}},
+						"cond": bson.M{mgoOperatorEQ: []interface{}{"$$item", left}},
 					}}},
 					bson.M{"$literal": 0},
 				}}),
 			wrapInNullCheck(left),
 		), true
 
+	case *SQLValues:
+		var transExprs []interface{}
+
+		for _, expr := range typedE.Values {
+			transExpr, ok := TranslateExpr(expr, lookupFieldName)
+			if !ok {
+				return nil, false
+			}
+			transExprs = append(transExprs, transExpr)
+		}
+
+		return transExprs, true
 	}
-	log.Logf(log.DebugHigh, "Unable to push down group down expression: %#v (%T)\n", e, e)
+	log.Logf(log.DebugHigh, "Unable to push down expression: %#v (%T)\n", e, e)
 	return nil, false
 
 }
@@ -974,21 +1074,21 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 			match = right
 		} else {
 			cond := []interface{}{}
-			if v, ok := left["$and"]; ok {
+			if v, ok := left[mgoOperatorAND]; ok {
 				array := v.([]interface{})
 				cond = append(cond, array...)
 			} else {
 				cond = append(cond, left)
 			}
 
-			if v, ok := right["$and"]; ok {
+			if v, ok := right[mgoOperatorAND]; ok {
 				array := v.([]interface{})
 				cond = append(cond, array...)
 			} else {
 				cond = append(cond, right)
 			}
 
-			match = bson.M{"$and": cond}
+			match = bson.M{mgoOperatorAND: cond}
 		}
 
 		if exLeft == nil && exRight == nil {
@@ -1014,13 +1114,13 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 
 		return bson.M{name: fieldValue}, nil
 	case *SQLGreaterThanExpr:
-		match, ok := translateOperator("$gt", typedE.left, typedE.right, lookupFieldName)
+		match, ok := translateOperator(mgoOperatorGT, typedE.left, typedE.right, lookupFieldName)
 		if !ok {
 			return nil, e
 		}
 		return match, nil
 	case *SQLGreaterThanOrEqualExpr:
-		match, ok := translateOperator("$gte", typedE.left, typedE.right, lookupFieldName)
+		match, ok := translateOperator(mgoOperatorGTE, typedE.left, typedE.right, lookupFieldName)
 		if !ok {
 			return nil, e
 		}
@@ -1048,13 +1148,13 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 
 		return bson.M{name: bson.M{"$in": values}}, nil
 	case *SQLLessThanExpr:
-		match, ok := translateOperator("$lt", typedE.left, typedE.right, lookupFieldName)
+		match, ok := translateOperator(mgoOperatorLT, typedE.left, typedE.right, lookupFieldName)
 		if !ok {
 			return nil, e
 		}
 		return match, nil
 	case *SQLLessThanOrEqualExpr:
-		match, ok := translateOperator("$lte", typedE.left, typedE.right, lookupFieldName)
+		match, ok := translateOperator(mgoOperatorLTE, typedE.left, typedE.right, lookupFieldName)
 		if !ok {
 			return nil, e
 		}
@@ -1083,7 +1183,7 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 
 		return bson.M{name: bson.D{{"$regex", pattern}, {"$options", "i"}}}, nil
 	case *SQLNotEqualsExpr:
-		match, ok := translateOperator("$ne", typedE.left, typedE.right, lookupFieldName)
+		match, ok := translateOperator(mgoOperatorNEQ, typedE.left, typedE.right, lookupFieldName)
 		if !ok {
 			return nil, e
 		}
@@ -1113,26 +1213,27 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 
 		cond := []interface{}{}
 
-		if v, ok := left["$or"]; ok {
+		if v, ok := left[mgoOperatorOR]; ok {
 			array := v.([]interface{})
 			cond = append(cond, array...)
 		} else {
 			cond = append(cond, left)
 		}
 
-		if v, ok := right["$or"]; ok {
+		if v, ok := right[mgoOperatorOR]; ok {
 			array := v.([]interface{})
 			cond = append(cond, array...)
 		} else {
 			cond = append(cond, right)
 		}
 
-		return bson.M{"$or": cond}, nil
+		return bson.M{mgoOperatorOR: cond}, nil
 	case *SQLRegexExpr:
 		name, ok := getFieldName(typedE.operand, lookupFieldName)
 		if !ok {
 			return nil, e
 		}
+
 		pattern, ok := typedE.pattern.(SQLVarchar)
 		if !ok {
 			return nil, e
@@ -1169,21 +1270,21 @@ func negate(op bson.M) bson.M {
 		name, value := getSingleMapEntry(op)
 		if strings.HasPrefix(name, "$") {
 			switch name {
-			case "$or":
+			case mgoOperatorOR:
 				return bson.M{"$nor": value}
 			case "$nor":
-				return bson.M{"$or": value}
+				return bson.M{mgoOperatorOR: value}
 			}
 		} else if innerOp, ok := value.(bson.M); ok {
 			if len(innerOp) == 1 {
 				innerName, innerValue := getSingleMapEntry(innerOp)
 				if strings.HasPrefix(innerName, "$") {
 					switch innerName {
-					case "$eq":
-						return bson.M{name: bson.M{"$ne": innerValue}}
+					case mgoOperatorEQ:
+						return bson.M{name: bson.M{mgoOperatorNEQ: innerValue}}
 					case "$in":
 						return bson.M{name: bson.M{"$nin": innerValue}}
-					case "$ne":
+					case mgoOperatorNEQ:
 						return bson.M{name: innerValue}
 					case "$nin":
 						return bson.M{name: bson.M{"$in": innerValue}}
@@ -1197,7 +1298,7 @@ func negate(op bson.M) bson.M {
 				}
 			}
 		} else {
-			return bson.M{name: bson.M{"$ne": value}}
+			return bson.M{name: bson.M{mgoOperatorNEQ: value}}
 		}
 	}
 
@@ -1241,20 +1342,6 @@ func getValue(e SQLExpr) (interface{}, bool) {
 	return cons.Value(), true
 }
 
-func translateExprs(lookupFieldName fieldNameLookup, exprs ...SQLExpr) ([]interface{}, bool) {
-	results := []interface{}{}
-	for _, e := range exprs {
-		r, ok := TranslateExpr(e, lookupFieldName)
-		if !ok {
-			return nil, false
-		}
-
-		results = append(results, r)
-	}
-
-	return results, true
-}
-
 // getProjectedFieldName returns an interface to project the given field.
 func getProjectedFieldName(fieldName string, fieldType schema.SQLType) interface{} {
 
@@ -1272,4 +1359,18 @@ func getProjectedFieldName(fieldName string, fieldType schema.SQLType) interface
 	}
 
 	return "$" + fieldName
+}
+
+func translateExprs(lookupFieldName fieldNameLookup, exprs ...SQLExpr) ([]interface{}, bool) {
+	results := []interface{}{}
+	for _, e := range exprs {
+		r, ok := TranslateExpr(e, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		results = append(results, r)
+	}
+
+	return results, true
 }

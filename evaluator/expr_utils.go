@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 )
@@ -153,6 +154,36 @@ func getColumnType(tables map[string]*schema.Table, tableName, columnName string
 	}
 
 	return &schema.ColumnType{column.SqlType, column.MongoType}
+}
+
+func getSQLTupleExprs(left, right SQLExpr) ([]SQLExpr, []SQLExpr, error) {
+
+	getExprs := func(expr SQLExpr) ([]SQLExpr, error) {
+		switch typedE := expr.(type) {
+		case *SQLTupleExpr:
+			return typedE.Exprs, nil
+		case *SQLValues:
+			var exprs []SQLExpr
+			for _, value := range typedE.Values {
+				exprs = append(exprs, value)
+			}
+			return exprs, nil
+		default:
+			return nil, fmt.Errorf("invalid SQLTupleExpr type '%T'", expr)
+		}
+	}
+
+	leftExprs, err := getExprs(left)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rightExprs, err := getExprs(right)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return leftExprs, rightExprs, nil
 }
 
 // hasNullValue returns true if any of the value in values
@@ -322,7 +353,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 		numLeft, numRight := len(leftExprs), len(rightExprs)
 
 		if numLeft != numRight && numLeft != 1 {
-			return nil, nil, fmt.Errorf("tuple comparison mismatch: expected %v got %v", numLeft, numRight)
+			return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, numLeft)
 		}
 
 		hasNewLeft := false
@@ -381,7 +412,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	if left.Type() == schema.SQLTuple && right.Type() != schema.SQLTuple {
 
 		if len(leftExprs) != 1 {
-			return nil, nil, fmt.Errorf("left 'in' operand must have only one value - got %v", len(leftExprs))
+			return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, len(leftExprs))
 		}
 
 		var newLeftExpr SQLExpr
@@ -505,4 +536,67 @@ func getSQLInExprs(right SQLExpr) []SQLExpr {
 	}
 
 	return exprs
+}
+
+func translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) (SQLExpr, error) {
+	left, right, err := getSQLTupleExprs(leftExpr, rightExpr)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(left) != len(right) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, len(left))
+	}
+
+	var constructTupleExpr func(string, []SQLExpr, []SQLExpr, bool) (SQLExpr, error)
+	constructTupleExpr = func(op string, left, right []SQLExpr, isEqual bool) (SQLExpr, error) {
+		if len(left) == 1 {
+			return comparisonExpr(left[0], right[0], op)
+		} else {
+			rightChild, err := constructTupleExpr(op, left[1:], right[1:], isEqual)
+			if !isEqual {
+				return &SQLOrExpr{&SQLNotEqualsExpr{left[0], right[0]}, rightChild}, err
+			}
+			return &SQLAndExpr{&SQLEqualsExpr{left[0], right[0]}, rightChild}, err
+		}
+	}
+
+	var translationFunc func(int) (SQLExpr, error)
+	translationFunc = func(i int) (SQLExpr, error) {
+		if len(left[i:]) == 0 {
+			return SQLFalse, nil
+		} else {
+			var leftChild SQLExpr
+			var err error
+
+			if i == 0 {
+				cmpOp := op
+				if op == sqlOpLTE {
+					cmpOp = sqlOpLT
+				} else if op == sqlOpGTE {
+					cmpOp = sqlOpGT
+				}
+				leftChild, err = comparisonExpr(left[0], right[0], cmpOp)
+			} else {
+				leftChild, err = constructTupleExpr(op, left[:i+1], right[:i+1], true)
+			}
+
+			if err != nil {
+				return nil, err
+			}
+
+			rightChild, err := translationFunc(i + 1)
+
+			return &SQLOrExpr{leftChild, rightChild}, err
+		}
+	}
+
+	switch op {
+	case sqlOpEQ:
+		return constructTupleExpr(op, left, right, true)
+	case sqlOpNEQ:
+		return constructTupleExpr(op, left, right, false)
+	default:
+		return translationFunc(0)
+	}
 }

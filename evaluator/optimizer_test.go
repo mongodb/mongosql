@@ -1347,6 +1347,9 @@ func TestOptimizeEvaluations(t *testing.T) {
 			test{"a < NULL", "null", SQLNull},
 			test{"a <= NULL", "null", SQLNull},
 			test{"a != NULL", "null", SQLNull},
+			test{"(1, 3) > (3, 4)", "SQLFalse", SQLFalse},
+			test{"(4, 3) > (3, 4)", "SQLTrue", SQLTrue},
+			test{"(4, 31) > (4, 4)", "SQLTrue", SQLTrue},
 
 			test{"abs(NULL)", "null", SQLNull},
 			test{"abs(-10)", "10", SQLFloat(10)},
