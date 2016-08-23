@@ -122,7 +122,10 @@ var (
 %left <empty> END
 
 // Transaction Tokens
-%token <empty> BEGIN COMMIT ROLLBACK
+%token <bytes> BEGIN COMMIT ROLLBACK
+%token <bytes> TRANSACTION ISOLATION LEVEL
+%token <bytes> READ WRITE ONLY
+%token <bytes> REPEATABLE COMMITTED UNCOMMITTED SERIALIZABLE
 
 // Charset Tokens
 %token <empty> NAMES
@@ -135,7 +138,10 @@ var (
 
 // Show
 %token <empty> SHOW
-%token <empty> DATABASES TABLES PROXY VARIABLES FULL SESSION GLOBAL COLUMNS
+%token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS
+
+// Scope
+%token <empty> SESSION GLOBAL 
 
 // DDL Tokens
 %token <empty> CREATE ALTER DROP RENAME
@@ -192,6 +198,9 @@ var (
 %type <updateExprs> on_dup_opt
 %type <updateExprs> update_list
 %type <updateExpr> update_expression
+%type <bytes> transaction_characteristics
+%type <bytes> transaction_characteristic
+%type <bytes> transaction_level
 %type <empty> exists_opt not_exists_opt ignore_opt non_rename_operation to_opt constraint_opt using_opt
 %type <bytes> sql_id
 %type <empty> force_eof
@@ -205,7 +214,7 @@ var (
 %type <expr> like_or_where_opt
 %type <expr> show_from_in show_from_in_opt
 %type <str> show_full
-%type <str> show_variable_modifier
+%type <str> scope_modifier
 %%
 
 any_command:
@@ -303,6 +312,52 @@ set_statement:
   {
     $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: StrVal($4)}}}
   }
+| SET scope_modifier TRANSACTION transaction_characteristics
+  {
+    $$ = &Set{Comments: append([][]byte{}, []byte($2), []byte("transaction"), $4)}
+  }
+
+transaction_characteristics:
+  transaction_characteristic
+  {
+    $$ = $1
+  }
+| transaction_characteristics COMMA transaction_characteristic
+  {
+    $$ = append($1, append([]byte(", "), $3...)...)
+  }
+
+transaction_characteristic:
+  ISOLATION LEVEL transaction_level
+  {
+    $$ = append([]byte("isolation level "), $3...)
+  }
+| READ WRITE
+  {
+    $$ = []byte("read write")
+  }
+| READ ONLY
+  {
+    $$ = []byte("read only")
+  }
+
+transaction_level:
+  REPEATABLE READ
+  {
+    $$ = []byte("repeatable read")
+  }
+| READ COMMITTED
+  {
+    $$ = []byte("read committed")
+  }
+| READ UNCOMMITTED
+  {
+    $$ = []byte("read uncommitted")
+  }
+| SERIALIZABLE
+  {
+    $$ = []byte("serializable")
+  }
 
 begin_statement:
   BEGIN
@@ -360,17 +415,17 @@ show_full:
     $$ = AST_SHOW_FULL
   }
 
-show_variable_modifier:
+scope_modifier:
   {
-    $$ = AST_SHOW_SESSION_VARIABLE
+    $$ = AST_SESSION_SCOPE
   }
 | SESSION
   {
-    $$ = AST_SHOW_SESSION_VARIABLE
+    $$ = AST_SESSION_SCOPE
   }
 | GLOBAL
   {
-    $$ = AST_SHOW_GLOBAL_VARIABLE
+    $$ = AST_GLOBAL_SCOPE
   }
 
 
@@ -379,7 +434,7 @@ show_statement:
   {
     $$ = &Show{Section: "databases", LikeOrWhere: $3}
   }
-| SHOW show_variable_modifier VARIABLES like_or_where_opt
+| SHOW scope_modifier VARIABLES like_or_where_opt
   {
     $$ = &Show{Section: "variables", Modifier: $2, LikeOrWhere: $4}
   }

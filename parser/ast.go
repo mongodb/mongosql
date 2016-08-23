@@ -219,8 +219,11 @@ func (node *DDL) Format(buf *TrackedBuffer) {
 type Comments [][]byte
 
 func (node Comments) Format(buf *TrackedBuffer) {
-	for _, c := range node {
-		buf.Fprintf("%s ", c)
+	for i, c := range node {
+		buf.Fprintf("%s", c)
+		if i != len(node)-1 {
+			buf.Fprintf(" ")
+		}
 	}
 }
 
@@ -949,10 +952,10 @@ func (node *Admin) Format(buf *TrackedBuffer) {
 }
 
 const (
-	AST_SHOW_NO_MOD           = ""
-	AST_SHOW_FULL             = "full"
-	AST_SHOW_SESSION_VARIABLE = "session"
-	AST_SHOW_GLOBAL_VARIABLE  = "global"
+	AST_SHOW_NO_MOD   = ""
+	AST_SHOW_FULL     = "full"
+	AST_SESSION_SCOPE = "session"
+	AST_GLOBAL_SCOPE  = "global"
 )
 
 type Show struct {

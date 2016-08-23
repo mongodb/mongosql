@@ -80,6 +80,40 @@ testcases:
   description: "pseudo session variable"
   expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_results"]
   expected_types: [string, string, string]
-  expected: 
+  expected:
   - ["utf8", "utf8", "utf8"]
-
+- sql: "set session transaction isolation level read committed"
+  verify: "select @@autocommit"
+  description: "set session transaction with isolation level"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "set session transaction read write"
+  verify: "select @@autocommit"
+  description: "set session transaction without isolation level"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "set global transaction read write"
+  verify: "select @@autocommit"
+  description: "set global transaction without isolation level"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "set transaction isolation level serializable"
+  verify: "select @@autocommit"
+  description: "set global transaction with isolation level"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "set transaction read write, read only, isolation level repeatable read"
+  verify: "select @@autocommit"
+  description: "set multiple transaction characteristics"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected:
+  - [1]

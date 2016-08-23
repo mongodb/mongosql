@@ -111,9 +111,20 @@ var keywords = map[string]int{
 	"unique": UNIQUE,
 	"using":  USING,
 
-	"begin":    BEGIN,
-	"rollback": ROLLBACK,
-	"commit":   COMMIT,
+	// Transaction Tokens
+	"begin":        BEGIN,
+	"commit":       COMMIT,
+	"rollback":     ROLLBACK,
+	"transaction":  TRANSACTION,
+	"isolation":    ISOLATION,
+	"level":        LEVEL,
+	"read":         READ,
+	"write":        WRITE,
+	"only":         ONLY,
+	"repeatable":   REPEATABLE,
+	"committed":    COMMITTED,
+	"uncommitted":  UNCOMMITTED,
+	"serializable": SERIALIZABLE,
 
 	"names":   NAMES,
 	"replace": REPLACE,
