@@ -73,6 +73,12 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 
 	preferenceType := preferentialType(leftVal, rightVal)
 	useDecimal := preferenceType == schema.SQLDecimal128
+	hasUnsigned := leftVal.Type() == schema.SQLUint64 || rightVal.Type() == schema.SQLUint64
+	// TODO: BI-556 handle overflow properly
+	if hasUnsigned {
+		useDecimal = true
+		preferenceType = schema.SQLDecimal128
+	}
 
 	// check if both operands are timestamp or date since
 	// arithmetic between time types result in an integer
@@ -221,7 +227,7 @@ func hasNullExpr(exprs ...SQLExpr) bool {
 
 func isFalsy(value SQLValue) bool {
 	switch v := value.(type) {
-	case SQLInt, SQLFloat, SQLUint32, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
+	case SQLInt, SQLFloat, SQLUint32, SQLUint64, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
 		return v.Float64() == float64(0)
 	default:
 		return false
@@ -230,7 +236,7 @@ func isFalsy(value SQLValue) bool {
 
 func isTruthy(value SQLValue) bool {
 	switch v := value.(type) {
-	case SQLInt, SQLFloat, SQLUint32, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
+	case SQLInt, SQLFloat, SQLUint32, SQLUint64, SQLTimestamp, SQLDate, SQLVarchar, SQLObjectID, SQLBool:
 		return v.Float64() != float64(0)
 	default:
 		return false

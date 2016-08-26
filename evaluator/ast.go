@@ -91,6 +91,7 @@ func (v SQLVarchar) astnode()    {}
 func (v SQLTimestamp) astnode()  {}
 func (v *SQLValues) astnode()    {}
 func (v SQLUint32) astnode()     {}
+func (v SQLUint64) astnode()     {}
 
 // walk handles walking the children of the provided expression, calling
 // v.visit on each child. Some visitor implementations may ignore this
@@ -771,7 +772,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 		// nothing to do
 
 	// values
-	case SQLBool, SQLDate, SQLDecimal128, SQLFloat, SQLInt, SQLNoValue, SQLNullValue, SQLObjectID, SQLVarchar, SQLTimestamp, SQLUint32:
+	case SQLBool, SQLDate, SQLDecimal128, SQLFloat, SQLInt, SQLNoValue, SQLNullValue, SQLObjectID, SQLVarchar, SQLTimestamp, SQLUint32, SQLUint64:
 		// nothing to do
 	case *SQLValues:
 		hasNewValue := false

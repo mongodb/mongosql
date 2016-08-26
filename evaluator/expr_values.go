@@ -144,6 +144,10 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 		flt := NewSQLValue(value, schema.SQLFloat)
 		return SQLInt(flt.Int64())
 
+	case schema.SQLUint64:
+		flt := NewSQLValue(value, schema.SQLFloat)
+		return SQLUint64(flt.Uint64())
+
 	case schema.SQLNumeric:
 		return NewSQLValue(value, schema.SQLFloat)
 
@@ -256,9 +260,17 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 		case float32, float64:
 			eval, _ := util.ToFloat64(v)
 			return SQLFloat(eval), nil
-		case uint8, uint16, uint32, uint64, int, int8, int16, int32, int64:
+		case int, int8, int16, int32, int64:
 			eval, _ := util.ToInt(v)
 			return SQLInt(eval), nil
+		case uint8:
+			return SQLUint64(uint64(v)), nil
+		case uint16:
+			return SQLUint64(uint64(v)), nil
+		case uint32:
+			return SQLUint64(uint64(v)), nil
+		case uint64:
+			return SQLUint64(uint64(v)), nil
 		case time.Time:
 			h := v.Hour()
 			mi := v.Minute()
@@ -313,7 +325,41 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 		case nil:
 			return SQLNull, nil
 		}
-
+	case schema.SQLUint64:
+		switch v := value.(type) {
+		case bool:
+			if v {
+				return SQLUint64(1), nil
+			}
+			return SQLUint64(0), nil
+		case int, int8, int16, int32, int64, float32, float64:
+			eval, err := util.ToInt(v)
+			if err == nil {
+				return SQLUint64(eval), nil
+			}
+		case uint8:
+			return SQLUint64(uint64(v)), nil
+		case uint16:
+			return SQLUint64(uint64(v)), nil
+		case uint32:
+			return SQLUint64(uint64(v)), nil
+		case uint64:
+			return SQLUint64(v), nil
+		case time.Time:
+			h, m, s := v.Clock()
+			// Date, otherwise timestamp
+			if h+m+s == 0 {
+				eval, _ := strconv.ParseInt(v.Format("20060102"), 10, 64)
+				return SQLUint64(eval), nil
+			} else if v.Year() == 0 {
+				eval, _ := strconv.ParseInt(v.Format("150405"), 10, 64)
+				return SQLUint64(eval), nil
+			}
+			eval, _ := strconv.ParseInt(v.Format("20060102150405"), 10, 64)
+			return SQLUint64(eval), nil
+		case nil:
+			return SQLNull, nil
+		}
 	case schema.SQLVarchar:
 		switch v := value.(type) {
 		case bool:
@@ -547,6 +593,13 @@ func (_ SQLBool) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
+func (sb SQLBool) Uint64() uint64 {
+	if bool(sb) {
+		return uint64(1)
+	}
+	return uint64(0)
+}
+
 func (sb SQLBool) Value() interface{} {
 	return bool(sb)
 }
@@ -608,6 +661,11 @@ func (_ SQLDate) Type() schema.SQLType {
 	return schema.SQLDate
 }
 
+func (sd SQLDate) Uint64() uint64 {
+	val, _ := strconv.ParseUint(sd.Time.Format("20060102"), 10, 64)
+	return val
+}
+
 func (sd SQLDate) Value() interface{} {
 	return sd.Time
 }
@@ -653,6 +711,15 @@ func (_ SQLTimestamp) Type() schema.SQLType {
 	return schema.SQLTimestamp
 }
 
+func (st SQLTimestamp) Uint64() uint64 {
+	if st.Time.Year() == 0 {
+		val, _ := strconv.ParseUint(st.Time.Format("150405"), 10, 64)
+		return val
+	}
+	val, _ := strconv.ParseUint(st.Time.Format("20060102150405"), 10, 64)
+	return val
+}
+
 func (st SQLTimestamp) Value() interface{} {
 	return st.Time
 }
@@ -686,6 +753,10 @@ func (_ SQLFloat) Type() schema.SQLType {
 	return schema.SQLFloat
 }
 
+func (sf SQLFloat) Uint64() uint64 {
+	return uint64(sf)
+}
+
 func (sf SQLFloat) Value() interface{} {
 	return float64(sf)
 }
@@ -717,6 +788,10 @@ func (si SQLInt) String() string {
 
 func (_ SQLInt) Type() schema.SQLType {
 	return schema.SQLInt
+}
+
+func (si SQLInt) Uint64() uint64 {
+	return uint64(si)
 }
 
 func (si SQLInt) Value() interface{} {
@@ -755,6 +830,10 @@ func (_ SQLNullValue) Type() schema.SQLType {
 	return schema.SQLNull
 }
 
+func (_ SQLNullValue) Uint64() uint64 {
+	return uint64(0)
+}
+
 func (_ SQLNullValue) Value() interface{} {
 	return nil
 }
@@ -789,6 +868,10 @@ func (sn SQLNoValue) String() string {
 
 func (_ SQLNoValue) Type() schema.SQLType {
 	return schema.SQLNone
+}
+
+func (_ SQLNoValue) Uint64() uint64 {
+	return uint64(0)
 }
 
 func (_ SQLNoValue) Value() interface{} {
@@ -826,6 +909,10 @@ func (_ SQLDecimal128) Type() schema.SQLType {
 	return schema.SQLDecimal128
 }
 
+func (sd SQLDecimal128) Uint64() uint64 {
+	return uint64(decimal.Decimal(sd).Round(0).IntPart())
+}
+
 func (sd SQLDecimal128) Value() interface{} {
 	return decimal.Decimal(sd)
 }
@@ -857,6 +944,10 @@ func (id SQLObjectID) String() string {
 
 func (id SQLObjectID) Type() schema.SQLType {
 	return schema.SQLObjectID
+}
+
+func (_ SQLObjectID) Uint64() uint64 {
+	return uint64(0)
 }
 
 func (id SQLObjectID) Value() interface{} {
@@ -892,6 +983,11 @@ func (sv SQLVarchar) String() string {
 
 func (_ SQLVarchar) Type() schema.SQLType {
 	return schema.SQLVarchar
+}
+
+func (sv SQLVarchar) Uint64() uint64 {
+	val, _ := strconv.ParseUint(string(sv), 10, 64)
+	return val
 }
 
 func (sv SQLVarchar) Value() interface{} {
@@ -947,6 +1043,10 @@ func (v *SQLValues) Type() schema.SQLType {
 	return schema.SQLTuple
 }
 
+func (sv *SQLValues) Uint64() uint64 {
+	return sv.Values[0].Uint64()
+}
+
 func (sv *SQLValues) Value() interface{} {
 	values := []interface{}{}
 	for _, v := range sv.Values {
@@ -984,8 +1084,50 @@ func (su SQLUint32) Type() schema.SQLType {
 	return schema.SQLInt
 }
 
+func (su SQLUint32) Uint64() uint64 {
+	return uint64(su)
+}
+
 func (su SQLUint32) Value() interface{} {
 	return uint32(su)
+}
+
+//
+// SQLUint64 represents an unsigned 64-bit integer.
+//
+type SQLUint64 uint64
+
+func (su SQLUint64) Decimal128() decimal.Decimal {
+	d, _ := decimal.NewFromString(su.String())
+	return d
+}
+
+func (su SQLUint64) Evaluate(_ *EvalCtx) (SQLValue, error) {
+	return su, nil
+}
+
+func (su SQLUint64) Float64() float64 {
+	return float64(su)
+}
+
+func (su SQLUint64) Int64() int64 {
+	return int64(su)
+}
+
+func (su SQLUint64) String() string {
+	return strconv.FormatUint(uint64(su), 10)
+}
+
+func (su SQLUint64) Type() schema.SQLType {
+	return schema.SQLUint64
+}
+
+func (su SQLUint64) Uint64() uint64 {
+	return uint64(su)
+}
+
+func (su SQLUint64) Value() interface{} {
+	return uint64(su)
 }
 
 // CompareTo compares two SQLValues. It returns -1 if
@@ -1047,7 +1189,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 	}
 	if left.Type() == right.Type() {
 		switch leftVal := left.(type) {
-		case SQLDate, SQLDecimal128, SQLFloat, SQLInt, SQLUint32, SQLTimestamp:
+		case SQLDate, SQLDecimal128, SQLFloat, SQLInt, SQLUint32, SQLUint64, SQLTimestamp:
 			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		case SQLVarchar:
 			rightVal, _ := right.(SQLVarchar)

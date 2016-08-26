@@ -752,7 +752,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		case parser.AST_MOD:
 			return &SQLModExpr{left, right}, nil
 		default:
-			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for binary operator '%v'", typedE.Operator)
+
+			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for binary operator '%v'", string(typedE.Operator))
 		}
 	case *parser.CaseExpr:
 		return a.translateCaseExpr(typedE)
@@ -861,6 +862,11 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		// try to parse as int64 first
 		if i, err := strconv.ParseInt(exprString, 10, 64); err == nil {
 			return SQLInt(i), nil
+		}
+
+		// next try to parse as uint64
+		if i, err := strconv.ParseUint(exprString, 10, 64); err == nil {
+			return SQLUint64(i), nil
 		}
 
 		// if it's not a valid int64, try parsing as float64 instead

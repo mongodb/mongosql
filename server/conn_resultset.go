@@ -23,6 +23,8 @@ func formatValue(value interface{}) ([]byte, error) {
 		return []byte(decimal.Decimal(v).String()), nil
 	case evaluator.SQLUint32:
 		return strconv.AppendUint(nil, uint64(v), 10), nil
+	case evaluator.SQLUint64:
+		return strconv.AppendUint(nil, uint64(v), 10), nil
 	case evaluator.SQLFloat:
 		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
 	case evaluator.SQLValues:
@@ -118,6 +120,10 @@ func formatField(collationID uint16, field *Field, value interface{}) error {
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_TINY
 	case evaluator.SQLUint32:
+		field.Charset = collationID
+		field.Type = MYSQL_TYPE_LONGLONG
+		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG
+	case evaluator.SQLUint64:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG

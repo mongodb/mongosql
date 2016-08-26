@@ -35,6 +35,7 @@ const (
 	SQLObjectID           = "objectid"
 	SQLTimestamp          = "timestamp"
 	SQLTuple              = "sqltuple"
+	SQLUint64             = "sqluint64"
 	SQLVarchar            = "varchar"
 )
 
@@ -401,9 +402,9 @@ func Must(c *Schema, err error) *Schema {
 // with no need for type conversion.
 func IsSimilar(leftType, rightType SQLType) bool {
 	switch leftType {
-	case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
+	case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric, SQLUint64:
 		switch rightType {
-		case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric:
+		case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric, SQLUint64:
 			return true
 		}
 	case SQLDate, SQLTimestamp:
@@ -435,35 +436,42 @@ func (types SQLTypes) Less(i, j int) bool {
 		return true
 	case SQLVarchar:
 		switch t2 {
-		case SQLDecimal128, SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate, SQLBoolean:
+		case SQLDecimal128, SQLInt, SQLInt64, SQLUint64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate, SQLBoolean:
 			return true
 		default:
 			return false
 		}
 	case SQLBoolean:
 		switch t2 {
-		case SQLDecimal128, SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate:
+		case SQLDecimal128, SQLInt, SQLInt64, SQLUint64, SQLFloat, SQLNumeric, SQLTimestamp, SQLDate:
 			return true
 		default:
 			return false
 		}
 	case SQLInt, SQLInt64:
 		switch t2 {
-		case SQLDecimal128, SQLFloat, SQLNumeric:
+		case SQLDecimal128, SQLFloat, SQLNumeric, SQLUint64:
 			return true
 		default:
 			return false
 		}
 	case SQLTimestamp:
 		switch t2 {
-		case SQLDecimal128, SQLInt, SQLInt64, SQLFloat, SQLNumeric:
+		case SQLDecimal128, SQLInt, SQLInt64, SQLUint64, SQLFloat, SQLNumeric:
+			return true
+		default:
+			return false
+		}
+	case SQLUint64:
+		switch t2 {
+		case SQLDecimal128, SQLFloat:
 			return true
 		default:
 			return false
 		}
 	case SQLDate:
 		switch t2 {
-		case SQLDecimal128, SQLInt, SQLInt64, SQLFloat, SQLNumeric, SQLTimestamp:
+		case SQLDecimal128, SQLInt, SQLInt64, SQLUint64, SQLFloat, SQLNumeric, SQLTimestamp:
 			return true
 		default:
 			return false

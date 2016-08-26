@@ -24,9 +24,10 @@ type SQLExpr interface {
 // SQLArithmetic is used to do arithmetic on all types.
 //
 type SQLArithmetic interface {
-	Int64() int64
-	Float64() float64
 	Decimal128() decimal.Decimal
+	Float64() float64
+	Int64() int64
+	Uint64() uint64
 }
 
 // Arithmetic consts
@@ -71,7 +72,7 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 	switch v := eval.(type) {
 	case SQLBool:
 		return bool(v), nil
-	case SQLInt, SQLFloat, SQLUint32:
+	case SQLInt, SQLFloat, SQLUint32, SQLUint64:
 		return v.Float64() != float64(0), nil
 	case SQLDecimal128:
 		return decimal.Zero.Equals(v.Decimal128()), nil
@@ -1535,16 +1536,29 @@ func (um *SQLUnaryMinusExpr) normalize() node {
 }
 
 //
-// SQLUnaryTildeExpr evaluates to the bitwise complement of the expression.
+// SQLUnaryTildeExpr invert all bits in the operand
+// and returns an unsigned 64-bit integer.
 //
 type SQLUnaryTildeExpr sqlUnaryNode
 
 func (td *SQLUnaryTildeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	if val, ok := td.operand.(SQLValue); ok {
-		return SQLInt(^round(val.Float64())), nil
+	expr, err := td.operand.Evaluate(ctx)
+	if err != nil {
+		return SQLFalse, err
 	}
 
-	return td.operand.Evaluate(ctx)
+	if v, ok := expr.(SQLValue); ok {
+		return SQLUint64(^uint64(v.Int64())), nil
+	}
+
+	return SQLUint64(^uint64(0)), nil
+}
+
+func (td *SQLUnaryTildeExpr) normalize() node {
+	if v, ok := td.operand.(SQLValue); ok {
+		return SQLUint64(^uint64(v.Int64()))
+	}
+	return td
 }
 
 func (td *SQLUnaryTildeExpr) String() string {
@@ -1630,7 +1644,7 @@ func (xor *SQLXorExpr) normalize() node {
 		if isTruthy(left) {
 			return &SQLNotExpr{xor.right}
 		} else if isFalsy(left) {
-			return xor.right
+			return &SQLOrExpr{SQLFalse, xor.right}
 		}
 	}
 
@@ -1639,7 +1653,7 @@ func (xor *SQLXorExpr) normalize() node {
 		if isTruthy(right) {
 			return &SQLNotExpr{xor.left}
 		} else if isFalsy(right) {
-			return xor.left
+			return &SQLOrExpr{SQLFalse, xor.left}
 		}
 	}
 

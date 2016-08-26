@@ -1940,7 +1940,6 @@ func TestNewSQLValue(t *testing.T) {
 
 		Convey("Subject: SQLInt, SQLInt64", func() {
 			tests := []test{
-
 				test{false, schema.SQLInt, SQLInt(0)},
 				test{true, schema.SQLInt, SQLInt(1)},
 				test{floatVal, schema.SQLInt, SQLInt(int64(floatVal))},
@@ -1990,6 +1989,23 @@ func TestNewSQLValue(t *testing.T) {
 				test{"1.0", schema.SQLTimestamp, SQLTimestamp{zeroTime}},
 				test{strTimeVal, schema.SQLTimestamp, SQLTimestamp{strTimeValParsed}},
 				test{timeVal, schema.SQLTimestamp, SQLTimestamp{timeVal}},
+			}
+
+			runTests(tests)
+
+		})
+
+		Convey("Subject: SQLUint64", func() {
+			tests := []test{
+				test{false, schema.SQLUint64, SQLUint64(0)},
+				test{true, schema.SQLUint64, SQLUint64(1)},
+				test{floatVal, schema.SQLUint64, SQLUint64(uint64(floatVal))},
+				test{0.0, schema.SQLUint64, SQLUint64(0)},
+				test{intVal, schema.SQLUint64, SQLUint64(uint64(intVal))},
+				test{0, schema.SQLUint64, SQLUint64(0)},
+				test{strFloatVal, schema.SQLUint64, SQLUint64(3)},
+				test{"0.000", schema.SQLUint64, SQLUint64(0)},
+				test{"1.0", schema.SQLUint64, SQLUint64(1)},
 			}
 
 			runTests(tests)
@@ -2604,6 +2620,27 @@ func TestCompareTo(t *testing.T) {
 				{SQLUint32(1), &SQLValues{[]SQLValue{SQLNone}}, 1},
 				{SQLUint32(1), SQLDate{now}, -1},
 				{SQLUint32(1), SQLTimestamp{now}, -1},
+			}
+			runTests(tests)
+		})
+
+		Convey("Subject: SQLUint64", func() {
+			tests := []test{
+				{SQLUint64(1), SQLInt(0), 1},
+				{SQLUint64(1), SQLInt(1), 0},
+				{SQLUint64(1), SQLInt(2), -1},
+				{SQLUint64(1), SQLUint32(1), 0},
+				{SQLUint64(1), SQLUint64(1), 0},
+				{SQLUint64(1), SQLFloat(1), 0},
+				{SQLUint64(1), SQLBool(false), 1},
+				{SQLUint64(1), SQLBool(true), 0},
+				{SQLUint64(1), SQLNull, 1},
+				{SQLUint64(1), SQLObjectID("56e0750e1d857aea925a4ba1"), 1},
+				{SQLUint64(1), SQLVarchar("bac"), 1},
+				{SQLUint64(1), &SQLValues{[]SQLValue{SQLInt(1)}}, 0},
+				{SQLUint64(1), &SQLValues{[]SQLValue{SQLNone}}, 1},
+				{SQLUint64(1), SQLDate{now}, -1},
+				{SQLUint64(1), SQLTimestamp{now}, -1},
 			}
 			runTests(tests)
 		})

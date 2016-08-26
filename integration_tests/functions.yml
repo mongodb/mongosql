@@ -1442,7 +1442,7 @@ testcases:
 
 - sql: "select a xor c from bar"
   expected_names: ["a xor c"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
   - [0]
   - [~]
@@ -1450,9 +1450,29 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select 23 xor 'ssd' from bar"
+  expected_names: ["23 xor 'ssd'"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+
+- sql: "select 23 xor 0 from bar"
+  expected_names: ["23 xor 0"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+
 - sql: "select a xor null from bar"
   expected_names: ["a xor null"]
-  expected_types: [varchar]
+  expected_types: [int]
   expected:
   - [~]
   - [~]
