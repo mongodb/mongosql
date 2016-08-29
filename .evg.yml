@@ -169,25 +169,6 @@ buildvariants:
   - ubuntu1404-build
   tasks:
   - "!benchmark"
-- name: windows-32
-  display_name: Windows 32
-  run_on:
-  - windows-32
-  expansions:
-    archive_format: zip
-    cover: "-"
-    extension: .exe
-    library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
-    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-i386-3.3.3.zip
-    # Set storage engine as mmapv1 for 32 bit variants
-    # since WiredTiger requires 64 bit support.
-    mongod_args: --storageEngine=mmapv1
-    push_arch: i386
-    push_name: win32
-    push_path: win32
-    separator: \\
-  tasks:
-  - "!benchmark !check"
 - name: windows-64
   display_name: Windows 64
   run_on:
