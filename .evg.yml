@@ -143,21 +143,6 @@ buildvariants:
   - rhel72-zseries-test
   tasks:
   - "!benchmark !check"
-- name: solaris-64-bit
-  display_name: Solaris
-  expansions:
-    cover: "-"
-    gotest_env: "GOARCH=amd64 GOOS=solaris"
-    gccgoflags: -gccgoflags "-lsocket -lnsl"
-    library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.mongodb.org/sunos5/mongodb-sunos5-x86_64-3.3.10.tgz
-    push_arch: x86_64
-    push_name: sunos5
-    push_path: sunos5
-  run_on:
-  - solaris
-  tasks:
-  - "!benchmark !check"
 - name: suse11-64
   display_name: SLES 11
   expansions:
