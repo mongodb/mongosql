@@ -73,19 +73,6 @@ buildvariants:
     push_path: osx
   tasks:
   - "!benchmark !check"
-- name: rhel55
-  display_name: RHEL 5.5
-  expansions:
-    cover: "-"
-    library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel57-3.3.8.tgz
-    push_arch: x86_64-rhel55
-    push_name: linux
-    push_path: linux
-  run_on:
-  - rhel55-test
-  tasks:
-  - "!benchmark !check"
 - name: rhel62
   display_name: RHEL 6.2
   expansions:
