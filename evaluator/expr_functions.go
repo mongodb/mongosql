@@ -126,13 +126,20 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 				continue
 			}
 
+			floatEval := eval.Float64()
+
+			// handle AVG(X) overflowing float64 range
+			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
+				sum = sum.Add(decimal.NewFromFloat(runningSum))
+				sum = sum.Add(decimal.NewFromFloat(floatEval))
+				isDecimal = true
+			}
+
 			// this avoids catastrophic cancellation in
 			// summing a series of floats or mixed types.
-			floatEval := eval.Float64()
 			floatEval, correction = fast2Sum(floatEval, correction)
 			floatSum, floatEval = twoSum(floatSum, floatEval)
 			correction += floatEval
-
 		}
 	}
 
@@ -140,17 +147,21 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 		return SQLNull, nil
 	}
 
+	floatSum += correction
+
 	if isDecimal {
 		avg := sum.Div(decimal.NewFromFloat(count))
 		return SQLDecimal128(avg), nil
 	}
 
-	floatSum += correction
 	return SQLFloat(floatSum / count), nil
 }
 
 func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
-	count := 0
+	intCount, floatCount := int64(0), float64(math.MaxInt64)
+	decimalCount := decimal.NewFromFloat(math.MaxFloat64)
+
+	inFloatRange, inDecimalRange := false, false
 
 	for _, row := range ctx.Rows {
 		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
@@ -162,19 +173,34 @@ func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}
 
 			if distinctMap != nil {
 				if distinctMap[eval] {
-					// already in our distinct map, so we skip this row
 					continue
 				} else {
 					distinctMap[eval] = true
 				}
 			}
 
+			inFloatRange = intCount == math.MaxInt64
+			inDecimalRange = floatCount == math.MaxFloat64
+
 			if eval != nil && eval != SQLNull {
-				count++
+				if inDecimalRange {
+					decimalCount.Add(decimal.NewFromFloat(1.0))
+				} else if inFloatRange {
+					floatCount++
+				} else {
+					intCount++
+				}
 			}
 		}
 	}
-	return SQLInt(count), nil
+
+	if inDecimalRange {
+		return SQLDecimal128(decimalCount), nil
+	} else if inFloatRange {
+		return SQLFloat(floatCount), nil
+	}
+
+	return SQLInt(intCount), nil
 }
 
 func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
@@ -271,15 +297,24 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 				}
 			}
 
-			if isDecimal || eval.Type() == schema.SQLDecimal128 {
+			evalType := eval.Type()
+			if isDecimal || evalType == schema.SQLDecimal128 {
 				isDecimal = true
 				sum = sum.Add(eval.Decimal128())
 				continue
 			}
 
+			floatEval := eval.Float64()
+
+			// handle SUM(X) overflowing float64 range
+			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
+				sum = sum.Add(decimal.NewFromFloat(runningSum))
+				sum = sum.Add(decimal.NewFromFloat(floatEval))
+				isDecimal = true
+			}
+
 			// this avoids catastrophic cancellation in
 			// summing a series of floats or mixed types.
-			floatEval := eval.Float64()
 			floatEval, correction = fast2Sum(floatEval, correction)
 			floatSum, floatEval = twoSum(floatSum, floatEval)
 			correction += floatEval
@@ -330,6 +365,7 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 			}
 
 			count++
+
 			data = append(data, eval)
 
 			if isDecimal || eval.Type() == schema.SQLDecimal128 {
@@ -338,9 +374,17 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 				continue
 			}
 
+			floatEval := eval.Float64()
+
+			// handle STDDEV(X) overflowing float64 range
+			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
+				sum = sum.Add(decimal.NewFromFloat(runningSum))
+				sum = sum.Add(decimal.NewFromFloat(floatEval))
+				isDecimal = true
+			}
+
 			// this avoids catastrophic cancellation in
 			// summing a series of floats or mixed types.
-			floatEval := eval.Float64()
 			floatEval, correction = fast2Sum(floatEval, correction)
 			floatSum, floatEval = twoSum(floatSum, floatEval)
 			correction += floatEval

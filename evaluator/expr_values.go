@@ -255,6 +255,8 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			return SQLDecimal128(d), err
 		case bool:
 			return SQLBool(v), nil
+		case decimal.Decimal:
+			return SQLDecimal128(v), nil
 		case string:
 			return SQLVarchar(v), nil
 		case float32, float64:
@@ -305,6 +307,9 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 				return SQLInt(1), nil
 			}
 			return SQLInt(0), nil
+		case bson.Decimal128:
+			d, err := decimal.NewFromString(v.String())
+			return SQLDecimal128(d), err
 		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToInt(v)
 			if err == nil {
@@ -332,6 +337,9 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 				return SQLUint64(1), nil
 			}
 			return SQLUint64(0), nil
+		case bson.Decimal128:
+			d, err := decimal.NewFromString(v.String())
+			return SQLDecimal128(d), err
 		case int, int8, int16, int32, int64, float32, float64:
 			eval, err := util.ToInt(v)
 			if err == nil {
@@ -767,7 +775,8 @@ func (sf SQLFloat) Value() interface{} {
 type SQLInt int64
 
 func (si SQLInt) Decimal128() decimal.Decimal {
-	return decimal.NewFromFloat(float64(si))
+	d, _ := decimal.NewFromString(si.String())
+	return d
 }
 
 func (si SQLInt) Evaluate(_ *EvalCtx) (SQLValue, error) {
@@ -960,7 +969,8 @@ func (id SQLObjectID) Value() interface{} {
 type SQLVarchar string
 
 func (sv SQLVarchar) Decimal128() decimal.Decimal {
-	return decimal.NewFromFloat(sv.Float64())
+	d, _ := decimal.NewFromString(sv.String())
+	return d
 }
 
 func (sv SQLVarchar) Evaluate(_ *EvalCtx) (SQLValue, error) {
@@ -1002,7 +1012,8 @@ type SQLValues struct {
 }
 
 func (sv *SQLValues) Decimal128() decimal.Decimal {
-	return decimal.NewFromFloat(sv.Float64())
+	d, _ := decimal.NewFromString(sv.String())
+	return d
 }
 
 func (sv *SQLValues) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -1061,7 +1072,8 @@ func (sv *SQLValues) Value() interface{} {
 type SQLUint32 uint32
 
 func (su SQLUint32) Decimal128() decimal.Decimal {
-	return decimal.NewFromFloat(su.Float64())
+	d, _ := decimal.NewFromString(su.String())
+	return d
 }
 
 func (su SQLUint32) Evaluate(_ *EvalCtx) (SQLValue, error) {
