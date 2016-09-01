@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -1348,8 +1349,9 @@ func TestAlgebrizeCommand(t *testing.T) {
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{
-							Name: "t1",
-							Kind: UserVariable,
+							Name:  "t1",
+							Kind:  variable.UserKind,
+							Scope: variable.SessionScope,
 						},
 						expr: SQLInt(12),
 					},
@@ -1362,8 +1364,9 @@ func TestAlgebrizeCommand(t *testing.T) {
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{
-							Name: "t1",
-							Kind: SessionVariable,
+							Name:  "t1",
+							Kind:  variable.SystemKind,
+							Scope: variable.SessionScope,
 						},
 						expr: SQLInt(12),
 					},
@@ -1376,8 +1379,9 @@ func TestAlgebrizeCommand(t *testing.T) {
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{
-							Name: "t1",
-							Kind: GlobalVariable,
+							Name:  "t1",
+							Kind:  variable.SystemKind,
+							Scope: variable.GlobalScope,
 						},
 						expr: SQLInt(12),
 					},
@@ -1391,8 +1395,9 @@ func TestAlgebrizeCommand(t *testing.T) {
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{
-							Name: "t1",
-							Kind: GlobalVariable,
+							Name:  "t1",
+							Kind:  variable.SystemKind,
+							Scope: variable.GlobalScope,
 						},
 						expr: &SQLSubqueryExpr{
 							correlated: false,
@@ -1412,15 +1417,17 @@ func TestAlgebrizeCommand(t *testing.T) {
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{
-							Name: "t1",
-							Kind: SessionVariable,
+							Name:  "t1",
+							Kind:  variable.SystemKind,
+							Scope: variable.SessionScope,
 						},
 						expr: SQLInt(12),
 					},
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{
-							Name: "t2",
-							Kind: UserVariable,
+							Name:  "t2",
+							Kind:  variable.UserKind,
+							Scope: variable.SessionScope,
 						},
 						expr: SQLInt(11),
 					},
@@ -1687,11 +1694,11 @@ func TestAlgebrizeExpr(t *testing.T) {
 		})
 
 		Convey("Variable", func() {
-			test("@@global.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: GlobalVariable})
-			test("@@session.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: SessionVariable})
-			test("@@local.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: SessionVariable})
-			test("@@test_variable", &SQLVariableExpr{Name: "test_variable", Kind: SessionVariable})
-			test("@hmmm", &SQLVariableExpr{Name: "hmmm", Kind: UserVariable})
+			test("@@global.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: variable.SystemKind, Scope: variable.GlobalScope})
+			test("@@session.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: variable.SystemKind, Scope: variable.SessionScope})
+			test("@@local.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: variable.SystemKind, Scope: variable.SessionScope})
+			test("@@test_variable", &SQLVariableExpr{Name: "test_variable", Kind: variable.SystemKind, Scope: variable.SessionScope})
+			test("@hmmm", &SQLVariableExpr{Name: "hmmm", Kind: variable.UserKind, Scope: variable.SessionScope})
 
 		})
 	})

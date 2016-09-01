@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -209,7 +210,7 @@ func (e *SQLAssignmentExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	err = ctx.SetVariable(e.variable.Name, value, e.variable.Kind)
+	err = ctx.Variables().Set(variable.Name(e.variable.Name), e.variable.Scope, e.variable.Kind, value.Value())
 	return value, err
 }
 
@@ -1603,27 +1604,49 @@ const (
 	UserVariable VariableKind = "user"
 )
 
+func (k VariableKind) scopeAndKind() (variable.Scope, variable.Kind) {
+	scope := variable.SessionScope
+	kind := variable.SystemKind
+	if k == UserVariable {
+		kind = variable.UserKind
+	} else if k == GlobalVariable {
+		scope = variable.GlobalScope
+	}
+
+	return scope, kind
+}
+
 //
 // SQLVariableExpr represents a variable lookup.
 //
 type SQLVariableExpr struct {
-	Name string
-	Kind VariableKind
+	Name  string
+	Kind  variable.Kind
+	Scope variable.Scope
 }
 
 func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	return ctx.GetVariable(v.Name, v.Kind)
+
+	value, err := ctx.Variables().Get(variable.Name(v.Name), v.Scope, v.Kind)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSQLValueFromSQLColumnExpr(value.Value, value.SQLType, schema.MongoNone)
 }
 
 func (v *SQLVariableExpr) String() string {
 	prefix := ""
 	switch v.Kind {
-	case GlobalVariable:
-		prefix = "@@global."
-	case SessionVariable:
-		prefix = "@@session."
-	case UserVariable:
+	case variable.UserKind:
 		prefix = "@"
+	default:
+		switch v.Scope {
+		case variable.GlobalScope:
+			prefix = "@@global."
+		case variable.SessionScope:
+			prefix = "@@session."
+		}
 	}
 
 	return prefix + v.Name

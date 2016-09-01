@@ -227,7 +227,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 
 	c.affectedRows = int64(-1)
 
-	status := c.status
+	status := c.status()
 
 	columnLen := putLengthEncodedInt(uint64(len(columns)))
 

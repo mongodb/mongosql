@@ -69,7 +69,7 @@ func (_ *userFunc) Validate(exprCount int) error {
 type versionFunc struct{}
 
 func (_ *versionFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return ctx.GetVariable("version", GlobalVariable)
+	return SQLVarchar(ctx.Variables().Version), nil
 }
 
 func (_ *versionFunc) RequiresEvalCtx() bool {

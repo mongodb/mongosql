@@ -12,6 +12,7 @@ import (
 	sqlproxy "github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/shopspring/decimal"
 )
@@ -24,7 +25,7 @@ type Server struct {
 	opts              sqlproxy.Options
 	databases         map[string]*schema.Database
 	activeConnections map[uint32]*conn
-	variables         *globalVariableContainer
+	variables         *variable.Container
 	tlsConfig         *tls.Config
 
 	connCount uint32
@@ -45,7 +46,7 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts sqlproxy.Options)
 		running:           false,
 		activeConnections: make(map[uint32]*conn),
 		databases:         schema.Databases,
-		variables:         newGlobalVariableContainer(),
+		variables:         variable.NewGlobalContainer(),
 	}
 
 	var err error

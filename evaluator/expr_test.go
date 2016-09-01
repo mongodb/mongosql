@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
@@ -213,8 +214,9 @@ func TestEvaluates(t *testing.T) {
 		Convey("Subject: SQLAssignmentExpr", func() {
 			e := &SQLAssignmentExpr{
 				variable: &SQLVariableExpr{
-					Name: "test",
-					Kind: UserVariable,
+					Name:  "test",
+					Kind:  variable.UserKind,
+					Scope: variable.SessionScope,
 				},
 				expr: &SQLAddExpr{
 					left:  SQLInt(1),
@@ -1699,15 +1701,17 @@ func TestEvaluates(t *testing.T) {
 
 		Convey("Subject: SQLVariableExpr", func() {
 			tests := []test{
-				test{"@@test_variable", SQLInt(123)},
+				test{"@@autocommit", SQLBool(true)},
+				test{"@@global.autocommit", SQLBool(true)},
 			}
 
 			runTests(evalCtx, tests)
 
 			Convey("Should error when unknown variable is used", func() {
 				subject := &SQLVariableExpr{
-					Name: "blah",
-					Kind: SessionVariable,
+					Name:  "blah",
+					Kind:  variable.SystemKind,
+					Scope: variable.SessionScope,
 				}
 				_, err := subject.Evaluate(evalCtx)
 				So(err, ShouldNotBeNil)

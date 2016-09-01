@@ -17,6 +17,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/tomb.v2"
@@ -42,7 +43,6 @@ type conn struct {
 
 	capability   uint32
 	connectionID uint32
-	status       uint16
 	user         string
 	currentDB    *schema.Database
 	lastInsertID int64
@@ -56,7 +56,7 @@ type conn struct {
 	stmtID uint32
 	stmts  map[uint32]*stmt
 
-	variables *sessionVariableContainer
+	variables *variable.Container
 }
 
 func newConn(s *Server, c net.Conn) *conn {
@@ -68,14 +68,13 @@ func newConn(s *Server, c net.Conn) *conn {
 		writer:       c,
 		tomb:         &tomb.Tomb{},
 		connectionID: atomic.AddUint32(&s.connCount, 1),
-		status:       SERVER_STATUS_AUTOCOMMIT,
 		capability: CLIENT_PROTOCOL_41 |
 			CLIENT_CONNECT_WITH_DB |
 			CLIENT_LONG_FLAG |
 			CLIENT_LONG_PASSWORD |
 			CLIENT_SECURE_CONNECTION,
 		stmts:     make(map[uint32]*stmt),
-		variables: newSessionVariableContainer(s.variables),
+		variables: variable.NewSessionContainer(s.variables),
 	}
 
 	if s.tlsConfig != nil {
@@ -212,46 +211,8 @@ func (c *conn) Tomb() *tomb.Tomb {
 }
 
 func (c *conn) getCollationID() uint8 {
-	collation := c.mustGetVariable(collationConnectionVariableName, evaluator.SessionVariable)
-	if collation == evaluator.SQLNull {
-		collation = evaluator.SQLVarchar(DEFAULT_COLLATION_NAME)
-	}
-	collationID := collationNames[collation.String()]
+	collationID := collationNames[c.variables.CollationConnection]
 	return uint8(collationID)
-}
-
-func (c *conn) GetVariable(name string, kind evaluator.VariableKind) (evaluator.SQLValue, error) {
-	switch kind {
-	case evaluator.GlobalVariable, evaluator.SessionVariable:
-		def, err := getSystemVariableDefinition(name)
-		if err != nil {
-			return nil, err
-		}
-
-		defRead, ok := def.(readableVariableDefinition)
-		if !ok {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_VAR_CANT_BE_READ, name)
-		}
-
-		if kind == evaluator.GlobalVariable {
-			if value, ok := c.server.variables.getValue(name); ok {
-				return value, nil
-			}
-		} else {
-			if value, ok := c.variables.getSessionVariable(name); ok {
-				return value, nil
-			}
-		}
-
-		return defRead.defaultValue(), nil
-	default:
-		v, ok := c.variables.getUserVariable(name)
-		if !ok {
-			return evaluator.SQLNull, nil
-		}
-
-		return v, nil
-	}
 }
 
 func (c *conn) handshake() error {
@@ -327,14 +288,6 @@ func (c *conn) Kill(id uint32, scope evaluator.KillScope) error {
 // LastInsertId returns the last insert id.
 func (c *conn) LastInsertId() int64 {
 	return c.lastInsertID
-}
-
-func (c *conn) mustGetVariable(name string, kind evaluator.VariableKind) evaluator.SQLValue {
-	value, err := c.GetVariable(name, kind)
-	if err != nil {
-		panic(err)
-	}
-	return value
 }
 
 func (c *conn) readAuthSwitchResponsePacket() error {
@@ -531,30 +484,12 @@ func (c *conn) Session() (session *mgo.Session) {
 	return c.session.Copy()
 }
 
-func (c *conn) SetVariable(name string, value evaluator.SQLValue, kind evaluator.VariableKind) error {
-
-	switch kind {
-	case evaluator.GlobalVariable, evaluator.SessionVariable:
-		def, err := getSystemVariableDefinition(name)
-		if err != nil {
-			return err
-		}
-
-		defWrite, ok := def.(settableVariableDefinition)
-		if !ok {
-			return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, name)
-		}
-
-		scope := globalScope
-		if kind == evaluator.SessionVariable {
-			scope = sessionScope
-		}
-
-		return defWrite.apply(c, scope, value)
-	default:
-		c.variables.setUserVariable(name, value)
-		return nil
+func (c *conn) status() uint16 {
+	if c.variables.AutoCommit {
+		return SERVER_STATUS_AUTOCOMMIT
 	}
+
+	return 0
 }
 
 func (c *conn) useDB(db string) error {
@@ -585,38 +520,8 @@ func (c *conn) useTLS() error {
 	return nil
 }
 
-func (c *conn) Variables(kind evaluator.VariableKind) map[string]evaluator.SQLValue {
-	results := make(map[string]evaluator.SQLValue)
-	switch kind {
-	case evaluator.GlobalVariable:
-		for _, def := range systemVariableDefinitions {
-			if defRead, ok := def.(readableVariableDefinition); ok {
-				value, ok := c.server.variables.getValue(def.name())
-				if !ok {
-					value = defRead.defaultValue()
-				}
-
-				results[def.name()] = value
-			}
-		}
-	case evaluator.SessionVariable:
-		for _, def := range systemVariableDefinitions {
-			if defRead, ok := def.(readableVariableDefinition); ok {
-				value, ok := c.variables.getSessionVariable(def.name())
-				if !ok {
-					value = defRead.defaultValue()
-				}
-
-				results[def.name()] = value
-			}
-		}
-	default:
-		for k, v := range c.variables.userVariables {
-			results[k] = v
-		}
-	}
-
-	return results
+func (c *conn) Variables() *variable.Container {
+	return c.variables
 }
 
 func (c *conn) writeAuthRequestSwitchPacket(pluginName string) error {
@@ -677,8 +582,8 @@ func (c *conn) writeInitialHandshake() error {
 	data = append(data, minProtocolVersion)
 
 	//server version[00]
-	version := c.mustGetVariable(versionVariableName, evaluator.GlobalVariable)
-	versionComment := c.mustGetVariable(versionCommentVariableName, evaluator.GlobalVariable)
+	version := c.server.variables.Version
+	versionComment := c.server.variables.VersionComment
 
 	data = append(data, fmt.Sprintf("%s %s", version, versionComment)...)
 	data = append(data, 0)
@@ -708,7 +613,8 @@ func (c *conn) writeInitialHandshake() error {
 	data = append(data, c.getCollationID())
 
 	//status
-	data = append(data, byte(c.status), byte(c.status>>8))
+	status := c.status()
+	data = append(data, byte(status), byte(status>>8))
 
 	//below 13 byte may not be used
 	//capability flag upper 2 bytes
@@ -784,7 +690,7 @@ func (c *conn) writePacket(data []byte) error {
 
 func (c *conn) writeOK(r *Result) error {
 	if r == nil {
-		r = &Result{Status: c.status}
+		r = &Result{Status: c.status()}
 	}
 	data := make([]byte, 4, 32)
 

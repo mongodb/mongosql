@@ -1,0 +1,49 @@
+package variable
+
+import "github.com/10gen/sqlproxy/mysqlerrors"
+
+func convertBool(v interface{}) (bool, bool) {
+	switch tv := v.(type) {
+	case bool:
+		return tv, true
+	case int:
+		return tv == 1, true
+	case int16:
+		return tv == 1, true
+	case int32:
+		return tv == 1, true
+	case int64:
+		return tv == 1, true
+	default:
+		return false, false
+	}
+}
+
+func convertInt64(v interface{}) (int64, bool) {
+	switch tv := v.(type) {
+	case int:
+		return int64(tv), true
+	case int16:
+		return int64(tv), true
+	case int32:
+		return int64(tv), true
+	case int64:
+		return tv, true
+	default:
+		return 0, false
+	}
+}
+
+func convertString(v interface{}) (string, bool) {
+	s, ok := v.(string)
+	return s, ok
+}
+
+func invalidValueError(n Name, v interface{}) error {
+	return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, n, v)
+
+}
+
+func wrongTypeError(n Name, v interface{}) error {
+	return mysqlerrors.Newf(mysqlerrors.ER_WRONG_TYPE_FOR_VAR, "Incorrect arg type for variable %s: %T", n, v)
+}

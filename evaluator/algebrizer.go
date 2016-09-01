@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 )
 
@@ -1237,7 +1238,8 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 func (a *algebrizer) translateVariableExpr(c *parser.ColName) *SQLVariableExpr {
 
 	v := &SQLVariableExpr{
-		Kind: SessionVariable,
+		Kind:  variable.SystemKind,
+		Scope: variable.SessionScope,
 	}
 
 	pos := 0
@@ -1249,7 +1251,7 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) *SQLVariableExpr {
 	if str[pos] == '@' {
 		pos++
 		if len(str) > 1 && str[pos] != '@' {
-			v.Kind = UserVariable
+			v.Kind = variable.UserKind
 		} else {
 			pos++
 		}
@@ -1257,13 +1259,13 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) *SQLVariableExpr {
 
 	v.Name = str[pos:]
 
-	if v.Kind == SessionVariable {
+	if v.Kind != variable.UserKind {
 		idx := strings.Index(v.Name, ".")
 		if idx >= 0 {
 			switch strings.ToLower(v.Name[:idx+1]) {
 			case "global.":
 				v.Name = v.Name[idx+1:]
-				v.Kind = GlobalVariable
+				v.Scope = variable.GlobalScope
 			case "session.", "local.":
 				v.Name = v.Name[idx+1:]
 			}

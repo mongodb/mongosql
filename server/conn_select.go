@@ -113,7 +113,7 @@ func (c *conn) handleFieldList(data []byte) error {
 
 	log.Logf(log.DebugLow, "handleFieldList table: %v, wildcard: %v", table, wildcard)
 
-	return c.writeFieldList(c.status, fields)
+	return c.writeFieldList(c.status(), fields)
 }
 
 func (c *conn) writeFieldList(status uint16, fs []*Field) error {

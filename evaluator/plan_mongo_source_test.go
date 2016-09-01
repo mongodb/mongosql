@@ -1,11 +1,11 @@
 package evaluator
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
 	"github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/variable"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -44,20 +44,12 @@ func (c *connCtx) User() string {
 	return ""
 }
 
-func (c *connCtx) GetVariable(name string, kind VariableKind) (SQLValue, error) {
-	return nil, fmt.Errorf("unknown variable")
-}
-
-func (c *connCtx) SetVariable(name string, value SQLValue, kind VariableKind) error {
-	return fmt.Errorf("unknown variable")
+func (c *connCtx) Variables() *variable.Container {
+	return variable.NewSessionContainer(variable.NewGlobalContainer())
 }
 
 func (c *connCtx) Tomb() *tomb.Tomb {
 	return &tomb.Tomb{}
-}
-
-func (c *connCtx) Variables(kind VariableKind) map[string]SQLValue {
-	return make(map[string]SQLValue)
 }
 
 func getOptions(t *testing.T) sqlproxy.Options {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"gopkg.in/tomb.v2"
@@ -83,19 +84,8 @@ func (_ fakeConnectionCtx) Tomb() *tomb.Tomb {
 	return nil
 }
 
-func (_ fakeConnectionCtx) GetVariable(name string, kind VariableKind) (SQLValue, error) {
-	if name == "test_variable" {
-		return SQLInt(123), nil
-	}
-
-	return nil, fmt.Errorf("unknown variable")
-}
-func (_ fakeConnectionCtx) SetVariable(name string, value SQLValue, kind VariableKind) error {
-	return nil
-}
-
-func (_ fakeConnectionCtx) Variables(kind VariableKind) map[string]SQLValue {
-	return make(map[string]SQLValue, 0)
+func (_ fakeConnectionCtx) Variables() *variable.Container {
+	return variable.NewSessionContainer(variable.NewGlobalContainer())
 }
 
 func createTestConnectionCtx() ConnectionCtx {

@@ -1,20 +1,13 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/variable"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/tomb.v2"
 )
 
-// VariableCtx holds variable related information
-type VariableCtx interface {
-	GetVariable(name string, kind VariableKind) (SQLValue, error)
-	SetVariable(name string, value SQLValue, kind VariableKind) error
-	Variables(kind VariableKind) map[string]SQLValue
-}
-
 // ConnectionCtx holds connection context information.
 type ConnectionCtx interface {
-	VariableCtx
 	LastInsertId() int64
 	RowCount() int64
 	ConnectionId() uint32
@@ -23,6 +16,7 @@ type ConnectionCtx interface {
 	Session() *mgo.Session
 	User() string
 	Kill(uint32, KillScope) error
+	Variables() *variable.Container
 }
 
 // ExecutionCtx holds execution context information

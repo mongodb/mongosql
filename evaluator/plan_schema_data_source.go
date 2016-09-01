@@ -327,13 +327,15 @@ func (sds *SchemaDataSourceStage) gatherTableRows(ctx *ExecutionCtx) []Values {
 	return rows
 }
 
-func (sds *SchemaDataSourceStage) gatherVariableRows(ctx *ExecutionCtx, kind VariableKind) []Values {
+func (sds *SchemaDataSourceStage) gatherVariableRows(ctx *ExecutionCtx, variableKind VariableKind) []Values {
 	rows := []Values{}
 
-	for k, v := range ctx.Variables(kind) {
+	scope, kind := variableKind.scopeAndKind()
+
+	for _, value := range ctx.Variables().List(scope, kind) {
 		row := Values{
-			sds.getValue(isVariableHeaders[0], k),
-			sds.getValue(isVariableHeaders[1], v),
+			sds.getValue(isVariableHeaders[0], value.Name),
+			sds.getValue(isVariableHeaders[1], value.Value),
 		}
 
 		rows = append(rows, row)

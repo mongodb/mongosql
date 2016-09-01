@@ -140,7 +140,7 @@ func (c *conn) writePrepare(s *stmt) error {
 			}
 		}
 
-		if err := c.writeEOF(c.status); err != nil {
+		if err := c.writeEOF(c.status()); err != nil {
 			return err
 		}
 	}
@@ -155,7 +155,7 @@ func (c *conn) writePrepare(s *stmt) error {
 			}
 		}
 
-		if err := c.writeEOF(c.status); err != nil {
+		if err := c.writeEOF(c.status()); err != nil {
 			return err
 		}
 
