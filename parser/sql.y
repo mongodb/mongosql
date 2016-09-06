@@ -140,7 +140,7 @@ var (
 
 // Show
 %token <empty> SHOW
-%token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS
+%token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS COLLATION PROCESSLIST STATUS CHARSET
 
 // Kill
 %token <empty> KILL
@@ -221,7 +221,7 @@ var (
 %type <expr> like_or_where_opt
 %type <expr> show_from_in show_from_in_opt
 %type <str> show_full
-%type <str> scope_modifier
+%type <str> scope_modifier_opt
 %type <str> kill_modifier
 %%
 
@@ -342,7 +342,7 @@ set_statement:
       &UpdateExpr{Name: &ColName{Name:[]byte("@@collation_connection")}, Expr: &ColName{Name:[]byte("@@collation_database")}},
     }}
   }
-| SET scope_modifier TRANSACTION transaction_characteristics
+| SET scope_modifier_opt TRANSACTION transaction_characteristics
   {
     $$ = &Set{Comments: append([][]byte{}, []byte($2), []byte("transaction"), $4)}
   }
@@ -455,7 +455,7 @@ kill_modifier:
     $$ = AST_KILL_QUERY
   }
 
-scope_modifier:
+scope_modifier_opt:
   {
     $$ = AST_SESSION_SCOPE
   }
@@ -474,7 +474,7 @@ show_statement:
   {
     $$ = &Show{Section: "databases", LikeOrWhere: $3}
   }
-| SHOW scope_modifier VARIABLES like_or_where_opt
+| SHOW scope_modifier_opt VARIABLES like_or_where_opt
   {
     $$ = &Show{Section: "variables", Modifier: $2, LikeOrWhere: $4}
   }
@@ -489,6 +489,30 @@ show_statement:
 | SHOW show_full COLUMNS show_from_in show_from_in_opt
   {
     $$ = &Show{Section: "columns", From: $4, Modifier: $2, DBFilter: $5}
+  }
+| SHOW show_full PROCESSLIST
+  {
+    $$ = &Show{Section: "processlist", Modifier: $2}
+  }
+| SHOW scope_modifier_opt STATUS like_or_where_opt
+  {
+    $$ = &Show{Section: "status", Modifier: $2, LikeOrWhere: $4}
+  }
+| SHOW CHARACTER SET like_or_where_opt
+  {
+    $$ = &Show{Section: "charset", LikeOrWhere: $4}
+  }
+| SHOW CHARSET like_or_where_opt
+  {
+    $$ = &Show{Section: "charset", LikeOrWhere: $3}
+  }
+| SHOW TABLE STATUS show_from_in_opt like_or_where_opt
+  {
+    $$ = &Show{Section: "tablestatus", From: $4, LikeOrWhere: $5}
+  }
+| SHOW COLLATION like_or_where_opt
+  {
+    $$ = &Show{Section: "collation", LikeOrWhere: $3}
   }
 
 kill_statement:
