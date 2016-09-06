@@ -89,7 +89,7 @@ func (f *SQLAggFunctionExpr) Type() schema.SQLType {
 }
 
 func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
-	count := 0.0
+	count := uint64(0)
 
 	sum := decimal.Zero
 
@@ -130,8 +130,6 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 
 			// handle AVG(X) overflowing float64 range
 			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
-				sum = sum.Add(decimal.NewFromFloat(runningSum))
-				sum = sum.Add(decimal.NewFromFloat(floatEval))
 				isDecimal = true
 			}
 
@@ -150,18 +148,16 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	floatSum += correction
 
 	if isDecimal {
-		avg := sum.Div(decimal.NewFromFloat(count))
+		sum = sum.Add(decimal.NewFromFloat(floatSum))
+		avg := sum.Div(decimal.NewFromFloat(float64(count)))
 		return SQLDecimal128(avg), nil
 	}
 
-	return SQLFloat(floatSum / count), nil
+	return SQLFloat(floatSum / float64(count)), nil
 }
 
 func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}]bool) (SQLValue, error) {
-	intCount, floatCount := int64(0), float64(math.MaxInt64)
-	decimalCount := decimal.NewFromFloat(math.MaxFloat64)
-
-	inFloatRange, inDecimalRange := false, false
+	count, fCount := uint64(0), float64(math.MaxUint64)
 
 	for _, row := range ctx.Rows {
 		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
@@ -179,28 +175,19 @@ func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}
 				}
 			}
 
-			inFloatRange = intCount == math.MaxInt64
-			inDecimalRange = floatCount == math.MaxFloat64
-
-			if eval != nil && eval != SQLNull {
-				if inDecimalRange {
-					decimalCount.Add(decimal.NewFromFloat(1.0))
-				} else if inFloatRange {
-					floatCount++
-				} else {
-					intCount++
-				}
+			if count >= math.MaxUint64 {
+				fCount++
+			} else {
+				count++
 			}
 		}
 	}
 
-	if inDecimalRange {
-		return SQLDecimal128(decimalCount), nil
-	} else if inFloatRange {
-		return SQLFloat(floatCount), nil
+	if count == math.MaxUint64 {
+		return SQLFloat(fCount), nil
 	}
 
-	return SQLInt(intCount), nil
+	return SQLInt(count), nil
 }
 
 func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
@@ -308,8 +295,6 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 
 			// handle SUM(X) overflowing float64 range
 			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
-				sum = sum.Add(decimal.NewFromFloat(runningSum))
-				sum = sum.Add(decimal.NewFromFloat(floatEval))
 				isDecimal = true
 			}
 
@@ -325,11 +310,12 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 		return SQLNull, nil
 	}
 
+	floatSum += correction
+
 	if isDecimal {
+		sum = sum.Add(decimal.NewFromFloat(floatSum))
 		return SQLDecimal128(sum), nil
 	}
-
-	floatSum += correction
 
 	return SQLFloat(floatSum), nil
 }
@@ -378,8 +364,6 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 
 			// handle STDDEV(X) overflowing float64 range
 			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
-				sum = sum.Add(decimal.NewFromFloat(runningSum))
-				sum = sum.Add(decimal.NewFromFloat(floatEval))
 				isDecimal = true
 			}
 
@@ -395,8 +379,11 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 		return SQLNull, nil
 	}
 
+	floatSum += correction
+
 	if isDecimal {
 		diff := decimal.Zero
+		sum = sum.Add(decimal.NewFromFloat(floatSum))
 		avg := sum.Div(decimal.NewFromFloat(count))
 
 		for _, v := range data {
@@ -417,8 +404,7 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 		return SQLDecimal128(diff), nil
 	}
 
-	floatSum += correction
-	avg := floatSum / float64(count)
+	avg := floatSum / count
 	diff := 0.0
 
 	for _, val := range data {
@@ -429,11 +415,11 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	if isSamp && count == 1 {
 		return SQLNull, nil
 	} else if isSamp {
-		return SQLFloat(math.Sqrt(diff / float64(count-1))), nil
+		return SQLFloat(math.Sqrt(diff/count - 1)), nil
 	}
 
 	// Population standard deviation
-	return SQLFloat(math.Sqrt(diff / float64(count))), nil
+	return SQLFloat(math.Sqrt(diff / count)), nil
 }
 
 //
