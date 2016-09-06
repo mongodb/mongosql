@@ -934,7 +934,8 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 type columnFinder struct {
 	selectIDsInScope []int
-	columns          Columns
+
+	columns Columns
 }
 
 // referencedColumns will take an expression and return all the columns referenced in the expression

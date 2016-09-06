@@ -14,7 +14,6 @@ import (
 const (
 	regexCharsToEscape    = ".^$*+?()[{\\|"
 	likePatternEscapeChar = '\\'
-	maxPrecisionInt       = int64(1 << 53)
 )
 
 func compareDecimal128(left, right decimal.Decimal) (int, error) {
@@ -74,12 +73,8 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 
 	preferenceType := preferentialType(leftVal, rightVal)
 	useDecimal := preferenceType == schema.SQLDecimal128
-
-	leftType := leftVal.Type()
-	rightType := rightVal.Type()
-
-	hasUnsigned := leftType == schema.SQLUint64 || rightType == schema.SQLUint64
-
+	hasUnsigned := leftVal.Type() == schema.SQLUint64 || rightVal.Type() == schema.SQLUint64
+	// TODO: BI-556 handle overflow properly
 	if hasUnsigned {
 		useDecimal = true
 		preferenceType = schema.SQLDecimal128
@@ -91,61 +86,36 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 		preferenceType = schema.SQLInt
 	}
 
-	leftFloat := leftVal.Float64()
-	rightFloat := rightVal.Float64()
-
-	leftDecimal := leftVal.Decimal128()
-	rightDecimal := rightVal.Decimal128()
-
-	// use decimal type if Float64() value loses precision
-	useDecimal = useDecimal || leftVal.Int64() > maxPrecisionInt || rightVal.Int64() > maxPrecisionInt
-
 	var value interface{}
-
-	exact := false
 
 	switch op {
 	case ADD:
-		decimalSum := leftDecimal.Add(rightDecimal)
-		floatSum := leftFloat + rightFloat
-		_, exact = decimalSum.Float64()
-		if useDecimal || !exact {
-			value = decimalSum
+		if useDecimal {
+			value = leftVal.Decimal128().Add(rightVal.Decimal128())
 		} else {
-			value = floatSum
+			value = leftVal.Float64() + rightVal.Float64()
 		}
 	case DIV:
-		decimalResult := leftDecimal.Div(rightDecimal)
-		floatResult := leftFloat / rightFloat
-		_, exact = decimalResult.Float64()
-		if useDecimal || !exact {
-			return SQLDecimal128(decimalResult), nil
-		}
-		return SQLFloat(floatResult), nil
-	case MULT:
-		decimalProduct := leftDecimal.Mul(rightDecimal)
-		floatProduct := leftFloat * rightFloat
-		_, exact = decimalProduct.Float64()
-		if useDecimal || !exact {
-			value = decimalProduct
+		if useDecimal {
+			div := leftVal.Decimal128().Div(rightVal.Decimal128())
+			return SQLDecimal128(div), nil
 		} else {
-			value = floatProduct
+			return SQLFloat(leftVal.Float64() / rightVal.Float64()), nil
+		}
+	case MULT:
+		if useDecimal {
+			value = leftVal.Decimal128().Mul(rightVal.Decimal128())
+		} else {
+			value = leftVal.Float64() * rightVal.Float64()
 		}
 	case SUB:
-		decimalDiff := leftDecimal.Sub(rightDecimal)
-		floatDiff := leftFloat - rightFloat
-		_, exact = decimalDiff.Float64()
-		if useDecimal || !exact {
-			value = decimalDiff
+		if useDecimal {
+			value = leftVal.Decimal128().Sub(rightVal.Decimal128())
 		} else {
-			value = floatDiff
+			value = leftVal.Float64() - rightVal.Float64()
 		}
 	default:
 		return nil, fmt.Errorf("unrecognized arithmetic operator: %v", op)
-	}
-
-	if !exact || useDecimal {
-		return SQLDecimal128(value.(decimal.Decimal)), nil
 	}
 
 	return NewSQLValueFromSQLColumnExpr(value, preferenceType, schema.MongoNone)

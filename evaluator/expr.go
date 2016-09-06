@@ -140,7 +140,7 @@ func (add *SQLAddExpr) String() string {
 }
 
 func (add *SQLAddExpr) Type() schema.SQLType {
-	return schema.SQLFloat
+	return preferentialType(add.left, add.right)
 }
 
 //
@@ -395,7 +395,7 @@ func (div *SQLDivideExpr) String() string {
 }
 
 func (div *SQLDivideExpr) Type() schema.SQLType {
-	return schema.SQLFloat
+	return preferentialType(div.left, div.right)
 }
 
 //
@@ -959,7 +959,7 @@ func (mult *SQLMultiplyExpr) String() string {
 }
 
 func (mult *SQLMultiplyExpr) Type() schema.SQLType {
-	return schema.SQLFloat
+	return preferentialType(mult.left, mult.right)
 }
 
 //
@@ -1463,7 +1463,7 @@ func (sub *SQLSubtractExpr) String() string {
 }
 
 func (sub *SQLSubtractExpr) Type() schema.SQLType {
-	return schema.SQLFloat
+	return preferentialType(sub.left, sub.right)
 }
 
 //

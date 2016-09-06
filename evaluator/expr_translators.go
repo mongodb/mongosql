@@ -90,11 +90,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			return nil, false
 		}
 
-		dataType := typedE.Exprs[0].Type()
-		if dataType == schema.SQLTimestamp || dataType == schema.SQLDate {
-			return nil, false
-		}
-
 		name := typedE.Name
 
 		switch name {
