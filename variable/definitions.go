@@ -19,6 +19,8 @@ const (
 	CollationServer             = "collation_server"
 	InteractiveTimeoutSecs      = "interactive_timeout"
 	MaxAllowedPacket            = "max_allowed_packet"
+	MongoDBGitVersion           = "mongodb_git_version"
+	MongoDBVersion              = "mongodb_version"
 	SqlAutoIsNull               = "sql_auto_is_null"
 	Version                     = "version"
 	VersionComment              = "version_comment"
@@ -136,6 +138,32 @@ func init() {
 		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.MaxAllowedPacket },
 		SetValue:         setMaxAllowedPacket,
+	}
+
+	definitions[MongoDBGitVersion] = &definition{
+		Name:             MongoDBGitVersion,
+		Kind:             SystemKind,
+		AllowedSetScopes: Scope(0), // not allowed to be set
+		SQLType:          schema.SQLBoolean,
+		GetValue: func(c *Container) interface{} {
+			if c.MongoDBInfo == nil {
+				return nil
+			}
+			return c.MongoDBInfo.GitVersion
+		},
+	}
+
+	definitions[MongoDBVersion] = &definition{
+		Name:             MongoDBVersion,
+		Kind:             SystemKind,
+		AllowedSetScopes: Scope(0), // not allowed to be set
+		SQLType:          schema.SQLBoolean,
+		GetValue: func(c *Container) interface{} {
+			if c.MongoDBInfo == nil {
+				return nil
+			}
+			return c.MongoDBInfo.Version
+		},
 	}
 
 	definitions[SqlAutoIsNull] = &definition{

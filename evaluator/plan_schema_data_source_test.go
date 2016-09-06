@@ -2,23 +2,14 @@ package evaluator
 
 import (
 	"sort"
-	"strings"
 	"testing"
 
+	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/variable"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 const numInformationSchemaColumns = 34
-
-type fakeAuthProvider struct{}
-
-func (p *fakeAuthProvider) IsDatabaseAllowed(dbName string) bool {
-	return strings.HasPrefix(dbName, "test")
-}
-
-func (p *fakeAuthProvider) IsCollectionAllowed(dbName string, colName string) bool {
-	return strings.Contains(colName, "a")
-}
 
 func TestSchemaDataSourceIter(t *testing.T) {
 	env := setupEnv(t)
@@ -42,14 +33,19 @@ func TestSchemaDataSourceIter(t *testing.T) {
 	}
 
 	Convey("Given a SchemaDataSource", t, func() {
-		ctx := &ExecutionCtx{}
+		variables := variable.NewSessionContainer(variable.NewGlobalContainer())
+
+		connCtx := &fakeConnectionCtx{variables}
+		ctx := &ExecutionCtx{
+			ConnectionCtx: connCtx,
+		}
 
 		Convey("when iterating over tables", func() {
 			plan := NewSchemaDataSourceStage(1, env.cfgOne, "tables", "")
 
 			Convey("should return all tables when authentication is disabled", func() {
 
-				ctx.AuthProvider = &fixedAuthProvider{true}
+				variables.MongoDBInfo = getMongoDBInfo(env.cfgOne, mongodb.AllPrivileges)
 				iter, err := plan.Open(ctx)
 				So(err, ShouldBeNil)
 
@@ -64,7 +60,14 @@ func TestSchemaDataSourceIter(t *testing.T) {
 			})
 
 			Convey("should return allowed tables when authentication is enabled", func() {
-				ctx.AuthProvider = &fakeAuthProvider{}
+				info := getMongoDBInfo(env.cfgOne, mongodb.NoPrivileges)
+				info.Privileges = mongodb.AllPrivileges
+				info.Databases["test"].Privileges = mongodb.AllPrivileges
+				info.Databases["test"].Collections["bar"].Privileges = mongodb.AllPrivileges
+				info.Databases["test"].Collections["baz"].Privileges = mongodb.AllPrivileges
+				info.Databases["test2"].Privileges = mongodb.AllPrivileges
+				info.Databases["test2"].Collections["bar"].Privileges = mongodb.AllPrivileges
+				variables.MongoDBInfo = info
 				iter, err := plan.Open(ctx)
 				So(err, ShouldBeNil)
 
@@ -83,7 +86,7 @@ func TestSchemaDataSourceIter(t *testing.T) {
 			plan := NewSchemaDataSourceStage(1, env.cfgOne, "columns", "")
 
 			Convey("should return all columns when authentication is disabled", func() {
-				ctx.AuthProvider = &fixedAuthProvider{true}
+				variables.MongoDBInfo = getMongoDBInfo(env.cfgOne, mongodb.AllPrivileges)
 				iter, err := plan.Open(ctx)
 				So(err, ShouldBeNil)
 
@@ -99,7 +102,14 @@ func TestSchemaDataSourceIter(t *testing.T) {
 			})
 
 			Convey("should return allowed columns when authentication is enabled", func() {
-				ctx.AuthProvider = &fakeAuthProvider{}
+				info := getMongoDBInfo(env.cfgOne, mongodb.NoPrivileges)
+				info.Privileges = mongodb.AllPrivileges
+				info.Databases["test"].Privileges = mongodb.AllPrivileges
+				info.Databases["test"].Collections["bar"].Privileges = mongodb.AllPrivileges
+				info.Databases["test"].Collections["baz"].Privileges = mongodb.AllPrivileges
+				info.Databases["test2"].Privileges = mongodb.AllPrivileges
+				info.Databases["test2"].Collections["bar"].Privileges = mongodb.AllPrivileges
+				variables.MongoDBInfo = info
 				iter, err := plan.Open(ctx)
 				So(err, ShouldBeNil)
 

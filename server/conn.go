@@ -17,6 +17,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
@@ -542,6 +543,10 @@ func (c *conn) Tomb() *tomb.Tomb {
 }
 
 func (c *conn) useDB(db string) error {
+	if !c.variables.MongoDBInfo.IsAnyAllowedDatabase(mongodb.DatabaseName(db)) {
+		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, db)
+	}
+
 	s := c.server.databases[strings.ToLower(db)]
 	if s == nil {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, db)

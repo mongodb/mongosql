@@ -108,7 +108,9 @@ func TestMongoSourcePlanStage(t *testing.T) {
 				So(collectionTwo.Insert(row), ShouldBeNil)
 			}
 
-			cCtx := &connCtx{session}
+			cCtx := &connCtx{
+				session: session,
+			}
 
 			ctx := &ExecutionCtx{
 				ConnectionCtx: cCtx,

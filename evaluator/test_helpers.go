@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
@@ -56,7 +57,9 @@ func constructOrderByTerms(exprs map[string]SQLExpr, values ...string) (terms []
 	return
 }
 
-type fakeConnectionCtx struct{}
+type fakeConnectionCtx struct {
+	variables *variable.Container
+}
 
 func (_ fakeConnectionCtx) LastInsertId() int64 {
 	return 11
@@ -74,18 +77,19 @@ func (_ fakeConnectionCtx) Kill(id uint32, scope KillScope) error {
 	return nil
 }
 func (_ fakeConnectionCtx) Session() *mgo.Session {
-	panic("Session is not supported in fakeConnectionCtx")
+	return nil
 }
 func (_ fakeConnectionCtx) User() string {
 	return "test user"
 }
-
 func (_ fakeConnectionCtx) Tomb() *tomb.Tomb {
 	return nil
 }
-
-func (_ fakeConnectionCtx) Variables() *variable.Container {
-	return variable.NewSessionContainer(variable.NewGlobalContainer())
+func (f fakeConnectionCtx) Variables() *variable.Container {
+	if f.variables == nil {
+		f.variables = variable.NewSessionContainer(variable.NewGlobalContainer())
+	}
+	return f.variables
 }
 
 func createTestConnectionCtx() ConnectionCtx {
@@ -233,4 +237,37 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 	}
 
 	return expr, nil
+}
+
+// getMongoDBInfo returns Info without looking up the information in MongoDB by setting
+// all privileges to the specified privileges.
+func getMongoDBInfo(sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
+	i := &mongodb.Info{
+		Privileges: privileges,
+		Databases:  make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo),
+	}
+	for _, db := range sch.RawDatabases {
+		dbInfo := &mongodb.DatabaseInfo{
+			Privileges:  privileges,
+			Name:        mongodb.DatabaseName(db.Name),
+			Collections: make(map[mongodb.CollectionName]*mongodb.CollectionInfo),
+		}
+
+		i.Databases[dbInfo.Name] = dbInfo
+
+		for _, col := range db.RawTables {
+			if _, ok := dbInfo.Collections[mongodb.CollectionName(col.Name)]; ok {
+				continue
+			}
+
+			colInfo := &mongodb.CollectionInfo{
+				Privileges: privileges,
+				Name:       mongodb.CollectionName(col.Name),
+			}
+
+			dbInfo.Collections[colInfo.Name] = colInfo
+		}
+	}
+
+	return i
 }

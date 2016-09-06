@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -261,13 +262,18 @@ func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {
 	appendRows(isVariableHeaders, "SESSION_VARIABLES")
 	appendRows(isTablesHeaders, "TABLES")
 
+	info := ctx.Variables().MongoDBInfo
+	if !info.IsAnyAllowed() {
+		return rows
+	}
+
 	for _, db := range sds.schema.RawDatabases {
-		if !ctx.AuthProvider.IsDatabaseAllowed(db.Name) {
+		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(db.Name)) {
 			continue
 		}
 
 		for _, table := range db.RawTables {
-			if !ctx.AuthProvider.IsCollectionAllowed(db.Name, table.CollectionName) {
+			if !info.IsAnyAllowedCollection(mongodb.DatabaseName(db.Name), mongodb.CollectionName(table.CollectionName)) {
 				continue
 			}
 
@@ -318,8 +324,13 @@ func (sds *SchemaDataSourceStage) gatherSchemataRows(ctx *ExecutionCtx) []Values
 		},
 	}
 
+	info := ctx.Variables().MongoDBInfo
+	if !info.IsAnyAllowed() {
+		return rows
+	}
+
 	for _, db := range sds.schema.RawDatabases {
-		if !ctx.AuthProvider.IsDatabaseAllowed(db.Name) {
+		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(db.Name)) {
 			continue
 		}
 
@@ -376,13 +387,18 @@ func (sds *SchemaDataSourceStage) gatherTableRows(ctx *ExecutionCtx) []Values {
 		},
 	}
 
+	info := ctx.Variables().MongoDBInfo
+	if !info.IsAnyAllowed() {
+		return rows
+	}
+
 	for _, db := range sds.schema.RawDatabases {
-		if !ctx.AuthProvider.IsDatabaseAllowed(db.Name) {
+		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(db.Name)) {
 			continue
 		}
 
 		for _, table := range db.RawTables {
-			if !ctx.AuthProvider.IsCollectionAllowed(db.Name, table.CollectionName) {
+			if !info.IsAnyAllowedCollection(mongodb.DatabaseName(db.Name), mongodb.CollectionName(table.CollectionName)) {
 				continue
 			}
 

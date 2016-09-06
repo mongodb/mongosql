@@ -316,9 +316,9 @@ functions:
       script: |
         set -o verbose
         set -o errexit
-        rm -rf mongodb || true
-        mkdir mongodb
-        cd mongodb
+        rm -rf bin || true
+        mkdir bin
+        cd bin
         curl -s ${mongo_url} --output mongodb.tgz
         ${decompress} mongodb.tgz
         chmod +x ./mongodb-*/bin/*
@@ -427,9 +427,9 @@ functions:
         set -o verbose
         rm -rf ../dbFiles && mkdir -p ../dbFiles;
         echo "Starting mongod...";
-        ./mongodb/mongod${extension} ${mongod_args} --dbpath ../dbFiles --setParameter=enableTestCommands=1
+        ./bin/mongod${extension} ${mongod_args} --dbpath ../dbFiles --setParameter=enableTestCommands=1
         echo "Waiting for mongod to start up..."
-        ./mongodb/mongo${extension} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")' ${mongo_args}
+        ./bin/mongo${extension} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")' ${mongo_args}
         echo "Done!"
 
   "upload coverage html report":
@@ -576,6 +576,38 @@ tasks:
     - func: "fetch source"
     - func: "check formatting"
 
+- name: collation
+  commands:
+    - func: "fetch source"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          . ./set_gopath.sh
+          cd collation
+          touch coverage.out
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > collation.suite 2>&1; if [ $? -ne 0 ]; then cat collation.suite; exit 1; else cat collation.suite; exit 0; fi
+    - command: shell.exec
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          mv collation/coverage.out .
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
+
 - name: dist
   commands:
     - func: "fetch source"
@@ -616,6 +648,40 @@ tasks:
         script: |
           set -o verbose
           mv evaluator/coverage.out .
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
+
+- name: mongodb
+  commands:
+    - func: "fetch source"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          . ./set_gopath.sh
+          cd mongodb
+          touch coverage.out
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > mongodb.suite 2>&1; if [ $? -ne 0 ]; then cat mongodb.suite; exit 1; else cat mongodb.suite; exit 0; fi
+    - command: shell.exec
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          mv mongodb/coverage.out .
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -670,38 +736,6 @@ tasks:
           cd parser
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v > parser.suite 2>&1; if [ $? -ne 0 ]; then cat parser.suite; exit 1; else cat parser.suite; exit 0; fi
-
-- name: schema
-  commands:
-    - func: "fetch source"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          . ./set_gopath.sh
-          cd schema
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > schema.suite 2>&1; if [ $? -ne 0 ]; then cat schema.suite; exit 1; else cat schema.suite; exit 0; fi
-    - command: shell.exec
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          mv schema/coverage.out .
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
 
 - name: sqlproxy
   commands:
@@ -781,6 +815,38 @@ tasks:
           fi;
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -tableau -run TestTableauDemo -timeout 4h -v ${cover|-coverprofile=coverage.out} > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
+
+- name: variable
+  commands:
+    - func: "fetch source"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          . ./set_gopath.sh
+          cd variable
+          touch coverage.out
+          ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > variable.suite 2>&1; if [ $? -ne 0 ]; then cat variable.suite; exit 1; else cat variable.suite; exit 0; fi
+    - command: shell.exec
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          mv variable/coverage.out .
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"

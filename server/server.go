@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	sqlproxy "github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
@@ -125,6 +126,15 @@ func (s *Server) onConn(c net.Conn) {
 
 		conn.close()
 	}()
+
+	schema := s.eval.Schema()
+	info, err := mongodb.LoadInfo(conn.session, &schema, s.opts.Auth)
+	if err != nil {
+		log.Logf(log.Always, "[conn%v] error retrieving information from MongoDB: %v", conn.ConnectionId(), err)
+		c.Close()
+		return
+	}
+	conn.variables.MongoDBInfo = info
 
 	if err := conn.handshake(); err != nil {
 		log.Logf(log.Always, "[conn%v] handshake error: %v", conn.ConnectionId(), err)

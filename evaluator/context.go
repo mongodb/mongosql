@@ -8,14 +8,14 @@ import (
 
 // ConnectionCtx holds connection context information.
 type ConnectionCtx interface {
+	ConnectionId() uint32
+	DB() string
+	Kill(uint32, KillScope) error
 	LastInsertId() int64
 	RowCount() int64
-	ConnectionId() uint32
-	Tomb() *tomb.Tomb
-	DB() string
 	Session() *mgo.Session
+	Tomb() *tomb.Tomb
 	User() string
-	Kill(uint32, KillScope) error
 	Variables() *variable.Container
 }
 
@@ -31,15 +31,12 @@ type ExecutionCtx struct {
 	// CacheRows is a row cache used to minimize the number of pushdowns
 	// resulting from non-correlated subqueries.
 	CacheRows map[string]interface{}
-
-	AuthProvider AuthProvider
 }
 
 // NewExecutionCtx creates a new execution context.
 func NewExecutionCtx(connCtx ConnectionCtx) *ExecutionCtx {
 	return &ExecutionCtx{
 		ConnectionCtx: connCtx,
-		AuthProvider:  NewAuthProvider(connCtx),
 		CacheRows:     make(map[string]interface{}),
 	}
 }
@@ -62,7 +59,6 @@ func NewEvalCtx(execCtx *ExecutionCtx, rows ...*Row) *EvalCtx {
 func (ctx *EvalCtx) CreateChildExecutionCtx() *ExecutionCtx {
 	return &ExecutionCtx{
 		ConnectionCtx: ctx.ExecutionCtx.ConnectionCtx,
-		AuthProvider:  ctx.ExecutionCtx.AuthProvider,
 		SrcRows:       append(ctx.Rows, ctx.ExecutionCtx.SrcRows...),
 	}
 }

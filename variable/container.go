@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/common"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -29,6 +30,7 @@ type Container struct {
 	CollationDatabase      *collation.Collation
 	CollationServer        *collation.Collation
 	MaxAllowedPacket       int64
+	MongoDBInfo            *mongodb.Info
 	SQLAutoIsNull          bool
 	Version                string
 	VersionComment         string
@@ -49,6 +51,7 @@ func NewGlobalContainer() *Container {
 		CollationDatabase:      collation.Must(collation.Get("utf8_bin")),
 		CollationServer:        collation.Must(collation.Get("utf8_bin")),
 		MaxAllowedPacket:       1073741824,
+		MongoDBInfo:            nil,
 		SQLAutoIsNull:          false,
 		Version:                "5.7.12",
 		VersionComment:         "mongosqld " + common.VersionStr,
@@ -70,8 +73,10 @@ func NewSessionContainer(global *Container) *Container {
 	}
 
 	for _, def := range definitions {
-		value := def.GetValue(global)
-		def.SetValue(c, value)
+		if def.GetValue != nil && def.SetValue != nil {
+			value := def.GetValue(global)
+			def.SetValue(c, value)
+		}
 	}
 
 	return c
