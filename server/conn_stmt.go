@@ -10,17 +10,6 @@ import (
 	"github.com/10gen/sqlproxy/parser"
 )
 
-var paramFieldData []byte
-var columnFieldData []byte
-
-func init() {
-	var p = &Field{Name: []byte("?")}
-	var c = &Field{}
-
-	paramFieldData = p.Dump()
-	columnFieldData = c.Dump()
-}
-
 type stmt struct {
 	id uint32
 
@@ -131,9 +120,11 @@ func (c *conn) writePrepare(s *stmt) error {
 	}
 
 	if s.params > 0 {
+		paramField := &Field{Name: []byte("?")}
+		paramFieldData := paramField.Dump(c.variables.CharacterSetResults)
 		for i := 0; i < s.params; i++ {
 			data = data[0:4]
-			data = append(data, []byte(paramFieldData)...)
+			data = append(data, paramFieldData...)
 
 			if err := c.writePacket(data); err != nil {
 				return err
@@ -146,9 +137,11 @@ func (c *conn) writePrepare(s *stmt) error {
 	}
 
 	if s.columns > 0 {
+		columnField := &Field{}
+		columnFieldData := columnField.Dump(c.variables.CharacterSetResults)
 		for i := 0; i < s.columns; i++ {
 			data = data[0:4]
-			data = append(data, []byte(columnFieldData)...)
+			data = append(data, columnFieldData...)
 
 			if err := c.writePacket(data); err != nil {
 				return err

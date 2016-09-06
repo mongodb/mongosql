@@ -10,11 +10,11 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func formatValue(value interface{}) ([]byte, error) {
+func (c *conn) formatValue(value interface{}) ([]byte, error) {
 	switch v := value.(type) {
 
 	case evaluator.SQLVarchar:
-		return []byte(string(v)), nil
+		return c.variables.CharacterSetResults.Encode(Slice(string(v))), nil
 	case evaluator.SQLObjectID:
 		return []byte(string(v)), nil
 	case evaluator.SQLInt:
@@ -30,7 +30,7 @@ func formatValue(value interface{}) ([]byte, error) {
 	case evaluator.SQLValues:
 		slice := []byte{}
 		for _, value := range v.Values {
-			b, err := formatValue(value)
+			b, err := c.formatValue(value)
 			if err != nil {
 				return nil, err
 			}
@@ -40,7 +40,7 @@ func formatValue(value interface{}) ([]byte, error) {
 	case *evaluator.SQLTupleExpr:
 		slice := []byte{}
 		for _, expr := range v.Exprs {
-			b, err := formatValue(expr)
+			b, err := c.formatValue(expr)
 			if err != nil {
 				return nil, err
 			}
@@ -55,7 +55,7 @@ func formatValue(value interface{}) ([]byte, error) {
 		}
 		return []byte{'0'}, nil
 	case *evaluator.SQLValues:
-		return formatValue(v.Values[0])
+		return c.formatValue(v.Values[0])
 
 	// SQL time related values
 	case evaluator.SQLDate:
@@ -91,7 +91,7 @@ func formatValue(value interface{}) ([]byte, error) {
 	case []byte:
 		return v, nil
 	case string:
-		return Slice(v), nil
+		return c.variables.CharacterSetResults.Encode(Slice(v)), nil
 	case bool:
 		if v {
 			return []byte{'1'}, nil
@@ -160,62 +160,6 @@ func formatField(collationID uint16, field *Field, value interface{}) error {
 	return nil
 }
 
-func (c *conn) buildResultset(names []string, values [][]interface{}) (*Resultset, error) {
-	r := new(Resultset)
-
-	r.Fields = make([]*Field, len(names))
-	collationID := uint16(c.getCollationID())
-
-	var b []byte
-	var err error
-
-	for i, vs := range values {
-		if len(vs) != len(r.Fields) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_COUNT_ON_ROW, i)
-		}
-
-		var row []byte
-		for j, value := range vs {
-			if i == 0 {
-				field := &Field{}
-				r.Fields[j] = field
-				field.Name = Slice(names[j])
-
-				if err = formatField(collationID, field, value); err != nil {
-					return nil, err
-				}
-			}
-
-			b, err = formatValue(value)
-			if err != nil {
-				return nil, err
-			}
-
-			if b == nil {
-				row = append(row, 0xfb)
-			} else {
-				row = append(row, putLengthEncodedString(b)...)
-			}
-		}
-
-		r.RowDatas = append(r.RowDatas, row)
-	}
-
-	if len(values) == 0 {
-		for j, nm := range names {
-			field := &Field{}
-			r.Fields[j] = field
-			field.Name = Slice(nm)
-
-			if err = formatField(collationID, field, evaluator.SQLVarchar("")); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return r, nil
-}
-
 // streamResultset implements the COM_QUERY response.
 // More at https://dev.mysql.com/doc/internals/en/com-query-response.html
 func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter) error {
@@ -242,7 +186,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 		return err
 	}
 
-	collationID := uint16(c.getCollationID())
+	collationID := uint16(c.variables.CharacterSetResults.DefaultCollationID)
 
 	var wroteHeaders bool
 
@@ -264,8 +208,9 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 				return err
 			}
 
+			name := c.variables.CharacterSetResults.Encode(Slice(columns[j].Name))
 			field := &Field{
-				Name: Slice(columns[j].Name),
+				Name: name,
 			}
 
 			if err = formatField(collationID, field, value); err != nil {
@@ -273,7 +218,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 			}
 
 			data = data[0:4]
-			data = append(data, field.Dump()...)
+			data = append(data, field.Dump(c.variables.CharacterSetResults)...)
 
 			// write a column definition packet for each
 			// column in the result set
@@ -320,7 +265,7 @@ streamer:
 			data = data[0:4]
 
 			for _, value := range values {
-				b, err = formatValue(value)
+				b, err = c.formatValue(value)
 				if err != nil {
 					return err
 				}
@@ -359,43 +304,4 @@ streamer:
 	}
 
 	return c.writeEOF(status)
-}
-
-func (c *conn) writeResultset(status uint16, r *Resultset) error {
-	c.affectedRows = int64(-1)
-
-	columnLen := putLengthEncodedInt(uint64(len(r.Fields)))
-
-	data := make([]byte, 4, 1024)
-
-	data = append(data, columnLen...)
-	if err := c.writePacket(data); err != nil {
-		return err
-	}
-
-	for _, v := range r.Fields {
-		data = data[0:4]
-		data = append(data, v.Dump()...)
-		if err := c.writePacket(data); err != nil {
-			return err
-		}
-	}
-
-	if err := c.writeEOF(status); err != nil {
-		return err
-	}
-
-	for _, v := range r.RowDatas {
-		data = data[0:4]
-		data = append(data, v...)
-		if err := c.writePacket(data); err != nil {
-			return err
-		}
-	}
-
-	if err := c.writeEOF(status); err != nil {
-		return err
-	}
-
-	return nil
 }

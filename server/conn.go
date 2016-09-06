@@ -14,6 +14,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
@@ -181,18 +182,21 @@ func (c *conn) dispatch(data []byte) error {
 		c.close()
 		return nil
 	case COM_QUERY:
-		return c.handleQuery(String(data))
+		s := String(c.variables.CharacterSetClient.Decode(data))
+		return c.handleQuery(s)
 	case COM_PING:
 		return c.writeOK(nil)
 	case COM_INIT_DB:
-		if err := c.useDB(String(data)); err != nil {
+		s := String(c.variables.CharacterSetClient.Decode(data))
+		if err := c.useDB(s); err != nil {
 			return err
 		}
 		return c.writeOK(nil)
 	case COM_FIELD_LIST:
 		return c.handleFieldList(data)
 	case COM_STMT_PREPARE:
-		return c.handleStmtPrepare(String(data))
+		s := String(c.variables.CharacterSetClient.Decode(data))
+		return c.handleStmtPrepare(s)
 	case COM_STMT_EXECUTE:
 		return c.handleStmtExecute(data)
 	case COM_STMT_CLOSE:
@@ -208,11 +212,6 @@ func (c *conn) dispatch(data []byte) error {
 
 func (c *conn) Tomb() *tomb.Tomb {
 	return c.tomb
-}
-
-func (c *conn) getCollationID() uint8 {
-	collationID := collationNames[c.variables.CollationConnection]
-	return uint8(collationID)
 }
 
 func (c *conn) handshake() error {
@@ -320,9 +319,16 @@ func (c *conn) readHandshakeResponse() error {
 		//skip max packet size
 		pos += 4
 
-		//charset, skip, if you want to use another charset, use set names
-		//c.collation = CollationId(data[pos])
+		//charset
+		col, err := collation.GetByID(collation.ID(data[pos]))
 		pos++
+
+		if err == nil {
+			err = c.variables.Set("names", variable.SessionScope, variable.SystemKind, string(col.Charset.Name))
+		}
+		if err != nil {
+			log.Logf(log.Always, "failed to set collation: %v", err)
+		}
 
 		//skip reserved 23[00]
 		pos += 23
@@ -357,8 +363,9 @@ func (c *conn) readHandshakeResponse() error {
 	}
 
 	//user name string[NUL]
-	c.user = string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
-	pos += len(c.user) + 1
+	userBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
+	pos += len(userBytes) + 1
+	c.user = String(c.variables.CharacterSetClient.Decode(userBytes))
 
 	//auth response string[NUL]
 	if (c.capability & CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0 {
@@ -381,9 +388,10 @@ func (c *conn) readHandshakeResponse() error {
 	}
 
 	if (c.capability & CLIENT_CONNECT_WITH_DB) != 0 {
-		db := string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
-		pos += len(db) + 1
+		dbBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
+		pos += len(dbBytes) + 1
 
+		db := String(c.variables.CharacterSetClient.Decode(dbBytes))
 		if err := c.useDB(db); err != nil {
 			return err
 		}
@@ -394,8 +402,13 @@ func (c *conn) readHandshakeResponse() error {
 	}
 
 	if (c.capability & CLIENT_PLUGIN_AUTH) != 0 {
-		c.clientRequestedAuthPluginName = string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
-		pos += len(c.clientRequestedAuthPluginName) + 1
+		clientPluginNameBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
+		pos += len(clientPluginNameBytes) + 1
+
+		c.clientRequestedAuthPluginName = String(c.variables.CharacterSetClient.Decode(clientPluginNameBytes))
+		if err != nil {
+			return err
+		}
 	}
 
 	if (c.capability & CLIENT_CONNECT_ATTRS) != 0 {
@@ -610,7 +623,7 @@ func (c *conn) writeInitialHandshake() error {
 	data = append(data, byte(c.capability), byte(c.capability>>8))
 
 	//charset
-	data = append(data, c.getCollationID())
+	data = append(data, uint8(c.variables.CharacterSetResults.DefaultCollationID))
 
 	//status
 	status := c.status()

@@ -1,6 +1,9 @@
 package variable
 
 import (
+	"fmt"
+
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
@@ -18,16 +21,15 @@ type Container struct {
 	// backing storage for non-user variables below
 	//
 
-	AutoCommit             bool
-	CharacterSetClient     string
-	CharacterSetConnection string
-	CharacterSetResults    string
-	CollationConnection    string
-	CollationServer        string
-	MaxAllowedPacket       int64
-	SQLAutoIsNull          bool
-	Version                string
-	VersionComment         string
+	AutoCommit          bool
+	CharacterSetClient  *collation.Charset
+	CharacterSetResults *collation.Charset
+	CollationConnection *collation.Collation
+	CollationServer     *collation.Collation
+	MaxAllowedPacket    int64
+	SQLAutoIsNull       bool
+	Version             string
+	VersionComment      string
 }
 
 // NewGlobalContainer creates a container with a GlobalScope.
@@ -36,16 +38,15 @@ func NewGlobalContainer() *Container {
 		scope: GlobalScope,
 
 		// default values
-		AutoCommit:             true,
-		CharacterSetClient:     "utf8",
-		CharacterSetConnection: "utf8",
-		CharacterSetResults:    "utf8",
-		CollationConnection:    "utf8_bin",
-		CollationServer:        "utf8_bin",
-		MaxAllowedPacket:       1073741824,
-		SQLAutoIsNull:          false,
-		Version:                "5.7.12",
-		VersionComment:         "MongoDB SQLProxy " + common.VersionStr,
+		AutoCommit:          true,
+		CharacterSetClient:  collation.MustCharset(collation.GetCharset("utf8")),
+		CharacterSetResults: collation.MustCharset(collation.GetCharset("utf8")),
+		CollationConnection: collation.Must(collation.Get("utf8_bin")),
+		CollationServer:     collation.Must(collation.Get("utf8_bin")),
+		MaxAllowedPacket:    1073741824,
+		SQLAutoIsNull:       false,
+		Version:             "5.7.12",
+		VersionComment:      "mongosqld " + common.VersionStr,
 	}
 }
 
@@ -83,7 +84,7 @@ func (c *Container) List(scope Scope, kind Kind) []Value {
 			values = append(values, Value{
 				Name:    Name(k),
 				Kind:    UserKind,
-				SQLType: schema.MongoNone,
+				SQLType: schema.SQLNone,
 				Value:   v,
 			})
 		}
@@ -110,7 +111,7 @@ func (c *Container) List(scope Scope, kind Kind) []Value {
 		return c.parent.List(scope, kind)
 	}
 
-	panic("internal error: illegal scope")
+	panic(fmt.Sprintf("internal error: illegal scope %v", scope))
 }
 
 // Get gets the value of the variable with the specified name, scope, and kind.
@@ -178,5 +179,5 @@ func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) er
 		return c.parent.Set(name, scope, kind, value)
 	}
 
-	panic("internal error: illegal scope")
+	panic(fmt.Sprintf("internal error: illegal scope %v", scope))
 }

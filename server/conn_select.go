@@ -46,36 +46,11 @@ func (c *conn) handleSimpleSelect(sql string, stmt *parser.SimpleSelect) error {
 	return c.streamResultset(fields, iter)
 }
 
-func (c *conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
-	field := &Field{}
-
-	field.Name = name
-
-	if asName != nil {
-		field.Name = asName
-	}
-
-	field.OrgName = name
-
-	collationID := uint16(c.getCollationID())
-
-	formatField(collationID, field, value)
-
-	r := &Resultset{Fields: []*Field{field}}
-	row, err := formatValue(value)
-	if err != nil {
-		return nil, err
-	}
-	r.RowDatas = append(r.RowDatas, putLengthEncodedString(row))
-
-	return r, nil
-}
-
 func (c *conn) handleFieldList(data []byte) error {
 
 	index := bytes.IndexByte(data, 0x00)
-	table := string(data[0:index])
-	wildcard := string(data[index+1:])
+	table := String(c.variables.CharacterSetClient.Decode(data[0:index]))
+	wildcard := String(c.variables.CharacterSetClient.Decode(data[index+1:]))
 
 	dbName := c.currentDB.Name
 
@@ -89,7 +64,7 @@ func (c *conn) handleFieldList(data []byte) error {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_TABLE, table, dbName)
 	}
 
-	collationID := uint16(c.getCollationID())
+	collationID := uint16(c.variables.CharacterSetResults.DefaultCollationID)
 
 	fields := []*Field{}
 
@@ -123,7 +98,7 @@ func (c *conn) writeFieldList(status uint16, fs []*Field) error {
 
 	for _, v := range fs {
 		data = data[0:4]
-		data = append(data, v.Dump()...)
+		data = append(data, v.Dump(c.variables.CharacterSetResults)...)
 		if err := c.writePacket(data); err != nil {
 			return err
 		}

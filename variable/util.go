@@ -6,7 +6,11 @@ func convertBool(v interface{}) (bool, bool) {
 	switch tv := v.(type) {
 	case bool:
 		return tv, true
+	case byte:
+		return tv == 1, true
 	case int:
+		return tv == 1, true
+	case int8:
 		return tv == 1, true
 	case int16:
 		return tv == 1, true
@@ -21,7 +25,11 @@ func convertBool(v interface{}) (bool, bool) {
 
 func convertInt64(v interface{}) (int64, bool) {
 	switch tv := v.(type) {
+	case byte:
+		return int64(tv), true
 	case int:
+		return int64(tv), true
+	case int8:
 		return int64(tv), true
 	case int16:
 		return int64(tv), true

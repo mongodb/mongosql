@@ -187,29 +187,3 @@ func (c *conn) handleShowVariables(sql string, stmt *parser.Show) error {
 
 	return c.handleQuery(translated)
 }
-
-func (c *conn) buildSimpleShowResultset(values []interface{}, name string) (*Resultset, error) {
-
-	r := new(Resultset)
-
-	field := &Field{}
-
-	field.Name = Slice(name)
-	field.Charset = 33
-	field.Type = MYSQL_TYPE_VAR_STRING
-
-	r.Fields = []*Field{field}
-
-	var row []byte
-	var err error
-
-	for _, value := range values {
-		row, err = formatValue(value)
-		if err != nil {
-			return nil, err
-		}
-		r.RowDatas = append(r.RowDatas, putLengthEncodedString(row))
-	}
-
-	return r, nil
-}

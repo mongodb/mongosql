@@ -2,6 +2,8 @@ package server
 
 import (
 	"encoding/binary"
+
+	"github.com/10gen/sqlproxy/collation"
 )
 
 type FieldData []byte
@@ -117,7 +119,7 @@ func (p FieldData) Parse() (f *Field, err error) {
 	return
 }
 
-func (f *Field) Dump() []byte {
+func (f *Field) Dump(cs *collation.Charset) []byte {
 	if f.Data != nil {
 		return []byte(f.Data)
 	}
@@ -126,15 +128,15 @@ func (f *Field) Dump() []byte {
 
 	data := make([]byte, 0, l)
 
-	data = append(data, putLengthEncodedString([]byte("def"))...)
+	data = append(data, putLengthEncodedString(cs.Decode([]byte("def")))...)
 
-	data = append(data, putLengthEncodedString(f.Schema)...)
+	data = append(data, putLengthEncodedString(cs.Decode(f.Schema))...)
 
-	data = append(data, putLengthEncodedString(f.Table)...)
-	data = append(data, putLengthEncodedString(f.OrgTable)...)
+	data = append(data, putLengthEncodedString(cs.Decode(f.Table))...)
+	data = append(data, putLengthEncodedString(cs.Decode(f.OrgTable))...)
 
-	data = append(data, putLengthEncodedString(f.Name)...)
-	data = append(data, putLengthEncodedString(f.OrgName)...)
+	data = append(data, putLengthEncodedString(cs.Decode(f.Name))...)
+	data = append(data, putLengthEncodedString(cs.Decode(f.OrgName))...)
 
 	data = append(data, 0x0c)
 

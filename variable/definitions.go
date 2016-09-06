@@ -1,6 +1,7 @@
 package variable
 
 import (
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -47,7 +48,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.CharacterSetClient },
+		GetValue:         func(c *Container) interface{} { return string(c.CharacterSetClient.Name) },
 		SetValue:         setCharacterSetClient,
 	}
 
@@ -56,7 +57,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.CharacterSetConnection },
+		GetValue:         func(c *Container) interface{} { return string(c.CollationConnection.Charset.Name) },
 		SetValue:         setCharacterSetConnection,
 	}
 
@@ -65,7 +66,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.CharacterSetResults },
+		GetValue:         func(c *Container) interface{} { return string(c.CharacterSetResults.Name) },
 		SetValue:         setCharacterSetResults,
 	}
 
@@ -74,7 +75,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.CollationConnection },
+		GetValue:         func(c *Container) interface{} { return string(c.CollationConnection.Name) },
 		SetValue:         setCollationConnection,
 	}
 
@@ -83,7 +84,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.CollationServer },
+		GetValue:         func(c *Container) interface{} { return string(c.CollationServer.Name) },
 		SetValue:         setCollationServer,
 	}
 
@@ -153,9 +154,11 @@ func setCharacterSetClient(c *Container, v interface{}) error {
 		return wrongTypeError(characterSetClient, v)
 	}
 
-	// TODO: validate valid character set
-
-	c.CharacterSetClient = s
+	cs, err := collation.GetCharset(collation.CharsetName(s))
+	if err != nil {
+		return err
+	}
+	c.CharacterSetClient = cs
 	return nil
 }
 
@@ -169,11 +172,17 @@ func setCharacterSetConnection(c *Container, v interface{}) error {
 		return wrongTypeError(characterSetConnection, v)
 	}
 
-	// TODO: set collation_connection to the default collation for charset.
+	cs, err := collation.GetCharset(collation.CharsetName(s))
+	if err != nil {
+		return err
+	}
 
-	// TODO: validate valid character set
+	col, err := collation.GetByID(cs.DefaultCollationID)
+	if err != nil {
+		return err
+	}
 
-	c.CharacterSetConnection = s
+	c.CollationConnection = col
 	return nil
 }
 
@@ -187,9 +196,11 @@ func setCharacterSetResults(c *Container, v interface{}) error {
 		return wrongTypeError(characterSetResults, v)
 	}
 
-	// TODO: validate valid character set
-
-	c.CharacterSetResults = s
+	cs, err := collation.GetCharset(collation.CharsetName(s))
+	if err != nil {
+		return err
+	}
+	c.CharacterSetResults = cs
 	return nil
 }
 
@@ -203,9 +214,12 @@ func setCollationConnection(c *Container, v interface{}) error {
 		return wrongTypeError(collationConnection, v)
 	}
 
-	// TODO: validate valid collation
+	col, err := collation.Get(collation.Name(s))
+	if err != nil {
+		return err
+	}
 
-	c.CollationConnection = s
+	c.CollationConnection = col
 	return nil
 }
 
@@ -219,9 +233,12 @@ func setCollationServer(c *Container, v interface{}) error {
 		return wrongTypeError(collationServer, v)
 	}
 
-	// TODO: validate valid collation
+	col, err := collation.Get(collation.Name(s))
+	if err != nil {
+		return err
+	}
 
-	c.CollationServer = s
+	c.CollationServer = col
 	return nil
 }
 
@@ -240,22 +257,23 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 }
 
 func setNames(c *Container, v interface{}) error {
-	s, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(names, v)
+	err := setCharacterSetClient(c, v)
+	if err != nil {
+		return err
 	}
 
-	c.CharacterSetClient = s
-	c.CharacterSetConnection = s
-	c.CharacterSetResults = s
+	err = setCharacterSetConnection(c, v)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	return setCharacterSetResults(c, v)
 }
 
 func setSQLAutoIsNull(c *Container, v interface{}) error {
 	b, ok := convertBool(v)
 	if !ok {
-		return wrongTypeError(maxAllowedPacket, v)
+		return wrongTypeError(sqlAutoIsNull, v)
 	}
 
 	c.SQLAutoIsNull = b
