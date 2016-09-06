@@ -10,11 +10,12 @@ const (
 	autocommit             Name = "autocommit"
 	characterSetClient          = "character_set_client"
 	characterSetConnection      = "character_set_connection"
+	characterSetDatabase        = "character_set_database"
 	characterSetResults         = "character_set_results"
 	collationConnection         = "collation_connection"
+	collationDatabase           = "collation_database"
 	collationServer             = "collation_server"
 	maxAllowedPacket            = "max_allowed_packet"
-	names                       = "names"
 	sqlAutoIsNull               = "sql_auto_is_null"
 	version                     = "version"
 	versionComment              = "version_comment"
@@ -61,6 +62,15 @@ func init() {
 		SetValue:         setCharacterSetConnection,
 	}
 
+	definitions[characterSetDatabase] = &definition{
+		Name:             characterSetDatabase,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLVarchar,
+		GetValue:         func(c *Container) interface{} { return string(c.CollationDatabase.Charset.Name) },
+		SetValue:         setCharacterSetDatabase,
+	}
+
 	definitions[characterSetResults] = &definition{
 		Name:             characterSetResults,
 		Kind:             SystemKind,
@@ -79,6 +89,15 @@ func init() {
 		SetValue:         setCollationConnection,
 	}
 
+	definitions[collationDatabase] = &definition{
+		Name:             collationDatabase,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLVarchar,
+		GetValue:         func(c *Container) interface{} { return string(c.CollationDatabase.Name) },
+		SetValue:         setCollationDatabase,
+	}
+
 	definitions[collationServer] = &definition{
 		Name:             collationServer,
 		Kind:             SystemKind,
@@ -95,15 +114,6 @@ func init() {
 		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.MaxAllowedPacket },
 		SetValue:         setMaxAllowedPacket,
-	}
-
-	definitions[names] = &definition{
-		Name:             names,
-		Kind:             SystemKind,
-		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
-		// cannot get this value...
-		SetValue: setNames,
 	}
 
 	definitions[sqlAutoIsNull] = &definition{
@@ -186,6 +196,30 @@ func setCharacterSetConnection(c *Container, v interface{}) error {
 	return nil
 }
 
+func setCharacterSetDatabase(c *Container, v interface{}) error {
+	if v == nil {
+		return invalidValueError(characterSetDatabase, nil)
+	}
+
+	s, ok := convertString(v)
+	if !ok {
+		return wrongTypeError(characterSetDatabase, v)
+	}
+
+	cs, err := collation.GetCharset(collation.CharsetName(s))
+	if err != nil {
+		return err
+	}
+
+	col, err := collation.GetByID(cs.DefaultCollationID)
+	if err != nil {
+		return err
+	}
+
+	c.CollationDatabase = col
+	return nil
+}
+
 func setCharacterSetResults(c *Container, v interface{}) error {
 	if v == nil {
 		return invalidValueError(characterSetResults, nil)
@@ -223,6 +257,25 @@ func setCollationConnection(c *Container, v interface{}) error {
 	return nil
 }
 
+func setCollationDatabase(c *Container, v interface{}) error {
+	if v == nil {
+		return invalidValueError(collationDatabase, nil)
+	}
+
+	s, ok := convertString(v)
+	if !ok {
+		return wrongTypeError(collationDatabase, v)
+	}
+
+	col, err := collation.Get(collation.Name(s))
+	if err != nil {
+		return err
+	}
+
+	c.CollationDatabase = col
+	return nil
+}
+
 func setCollationServer(c *Container, v interface{}) error {
 	if v == nil {
 		return invalidValueError(collationServer, nil)
@@ -254,20 +307,6 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 
 	c.MaxAllowedPacket = i
 	return nil
-}
-
-func setNames(c *Container, v interface{}) error {
-	err := setCharacterSetClient(c, v)
-	if err != nil {
-		return err
-	}
-
-	err = setCharacterSetConnection(c, v)
-	if err != nil {
-		return err
-	}
-
-	return setCharacterSetResults(c, v)
 }
 
 func setSQLAutoIsNull(c *Container, v interface{}) error {

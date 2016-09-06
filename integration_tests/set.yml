@@ -75,27 +75,41 @@ testcases:
   expected_types: [int]
   expected: 
   - [0]
+- sql: "SET CHARACTER SET latin1"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
+  description: "pseudo session variable"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
+  expected:
+  - ["latin1", "utf8", "utf8", "latin1", "utf8_bin", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES utf8"
-  verify: "select @@character_set_client, @@character_set_connection, @@character_set_results, @@collation_connection, @@collation_server"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "pseudo session variable"
-  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_results", "@@collation_connection", "@@collation_server"]
-  expected_types: [string, string, string, string, string]
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
   expected:
-  - ["utf8", "utf8", "utf8", "utf8_general_ci", "utf8_bin"]
+  - ["utf8", "utf8", "utf8", "utf8", "utf8_general_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET NAMES latin1"
-  verify: "select @@character_set_client, @@character_set_connection, @@character_set_results, @@collation_connection, @@collation_server"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "pseudo session variable"
-  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_results", "@@collation_connection", "@@collation_server"]
-  expected_types: [string, string, string, string, string]
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
   expected:
-  - ["latin1", "latin1", "latin1", "latin1_swedish_ci", "utf8_bin"]
+  - ["latin1", "latin1", "utf8", "latin1", "latin1_swedish_ci", "utf8_bin", "utf8_bin"]
+- sql: "SET NAMES latin1 COLLATE latin1_danish_ci"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
+  description: "pseudo session variable"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
+  expected:
+  - ["latin1", "latin1", "utf8", "latin1", "latin1_danish_ci", "utf8_bin", "utf8_bin"]
 - sql: "SET @@character_set_connection = 'latin1'"
-  verify: "select @@character_set_client, @@character_set_connection, @@character_set_results, @@collation_connection, @@collation_server"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
   description: "pseudo session variable"
-  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_results", "@@collation_connection", "@@collation_server"]
-  expected_types: [string, string, string, string, string]
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
   expected:
-  - ["utf8", "latin1", "utf8", "latin1_swedish_ci", "utf8_bin"]
+  - ["utf8", "latin1", "utf8", "utf8", "latin1_swedish_ci", "utf8_bin", "utf8_bin"]
 - sql: "set session transaction isolation level read committed"
   verify: "select @@autocommit"
   description: "set session transaction with isolation level"

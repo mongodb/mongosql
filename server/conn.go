@@ -324,7 +324,12 @@ func (c *conn) readHandshakeResponse() error {
 		pos++
 
 		if err == nil {
-			err = c.variables.Set("names", variable.SessionScope, variable.SystemKind, string(col.Charset.Name))
+			for _, x := range []string{"@@character_set_client", "@@character_set_connection", "@@character_set_results"} {
+				err = c.variables.Set(variable.Name(x), variable.SessionScope, variable.SystemKind, string(col.Charset.Name))
+				if err != nil {
+					break
+				}
+			}
 		}
 		if err != nil {
 			log.Logf(log.Always, "failed to set collation: %v", err)
@@ -512,6 +517,7 @@ func (c *conn) useDB(db string) error {
 	}
 
 	c.currentDB = s
+	c.variables.CollationDatabase = c.variables.CollationServer
 	return nil
 }
 

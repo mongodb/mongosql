@@ -129,6 +129,8 @@ var (
 
 // Charset Tokens
 %token <empty> NAMES
+%token <empty> CHARACTER
+%token <empty> COLLATE
 
 // Replace
 %token <empty> REPLACE
@@ -317,7 +319,28 @@ set_statement:
   }
 | SET comment_opt NAMES ID
   {
-    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: StrVal($4)}}}
+    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($4)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($4)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_connection")}, Expr: StrVal($4)},
+    }}
+  }
+| SET comment_opt NAMES ID COLLATE ID
+  {
+    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($4)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($4)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_connection")}, Expr: StrVal($4)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@collation_connection")}, Expr: StrVal($6)},
+    }}
+  }
+| SET comment_opt CHARACTER SET ID
+  {
+    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_client")}, Expr: StrVal($5)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@character_set_results")}, Expr: StrVal($5)},
+      &UpdateExpr{Name: &ColName{Name:[]byte("@@collation_connection")}, Expr: &ColName{Name:[]byte("@@collation_database")}},
+    }}
   }
 | SET scope_modifier TRANSACTION transaction_characteristics
   {

@@ -13,7 +13,32 @@ func testParse(t *testing.T, sql string) Statement {
 }
 
 func TestSet(t *testing.T) {
+	sql := "set @@temp = 'gbk'"
+	testParse(t, sql)
+
+	sql = "set @@global.temp = 'gbk'"
+	testParse(t, sql)
+
+	sql = "set @@session.temp = 'gbk'"
+	testParse(t, sql)
+
+	sql = "set @@local.temp = 'gbk'"
+	testParse(t, sql)
+
+	sql = "set @temp = 'gbk'"
+	testParse(t, sql)
+}
+
+func TestSetNames(t *testing.T) {
 	sql := "set names gbk"
+	testParse(t, sql)
+
+	sql = "set names gbk collate lks"
+	testParse(t, sql)
+}
+
+func TestSetCharset(t *testing.T) {
+	sql := "set character set gbk"
 	testParse(t, sql)
 }
 

@@ -126,8 +126,10 @@ var keywords = map[string]int{
 	"uncommitted":  UNCOMMITTED,
 	"serializable": SERIALIZABLE,
 
-	"names":   NAMES,
-	"replace": REPLACE,
+	"names":     NAMES,
+	"character": CHARACTER,
+	"collate":   COLLATE,
+	"replace":   REPLACE,
 
 	"show":      SHOW,
 	"databases": DATABASES,

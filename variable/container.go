@@ -25,6 +25,7 @@ type Container struct {
 	CharacterSetClient  *collation.Charset
 	CharacterSetResults *collation.Charset
 	CollationConnection *collation.Collation
+	CollationDatabase   *collation.Collation
 	CollationServer     *collation.Collation
 	MaxAllowedPacket    int64
 	SQLAutoIsNull       bool
@@ -42,6 +43,7 @@ func NewGlobalContainer() *Container {
 		CharacterSetClient:  collation.MustCharset(collation.GetCharset("utf8")),
 		CharacterSetResults: collation.MustCharset(collation.GetCharset("utf8")),
 		CollationConnection: collation.Must(collation.Get("utf8_bin")),
+		CollationDatabase:   collation.Must(collation.Get("utf8_bin")),
 		CollationServer:     collation.Must(collation.Get("utf8_bin")),
 		MaxAllowedPacket:    1073741824,
 		SQLAutoIsNull:       false,
@@ -63,10 +65,8 @@ func NewSessionContainer(global *Container) *Container {
 	}
 
 	for _, def := range definitions {
-		if def.GetValue != nil && def.SetValue != nil {
-			value := def.GetValue(global)
-			def.SetValue(c, value)
-		}
+		value := def.GetValue(global)
+		def.SetValue(c, value)
 	}
 
 	return c
