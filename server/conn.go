@@ -324,7 +324,7 @@ func (c *conn) readHandshakeResponse() error {
 		pos++
 
 		if err == nil {
-			for _, x := range []string{"@@character_set_client", "@@character_set_connection", "@@character_set_results"} {
+			for _, x := range []string{"character_set_client", "character_set_connection", "character_set_results"} {
 				err = c.variables.Set(variable.Name(x), variable.SessionScope, variable.SystemKind, string(col.Charset.Name))
 				if err != nil {
 					break
