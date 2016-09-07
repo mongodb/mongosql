@@ -72,7 +72,6 @@ type algebrizer struct {
 
 	selectID                     int                   // the selectID to use for projected columns
 	currentSelectIDs             []int                 // the selectIDs that are currently used
-	aliasName                    string                // the name to use for projected columns.
 	dbName                       string                // the default database name.
 	columns                      []*Column             // all the columns in scope.
 	tableNames                   []string              // all the table names in scope.
@@ -459,7 +458,6 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 					projectedColumns = append(projectedColumns, ProjectedColumn{
 						Column: &Column{
 							SelectID:  a.selectID,
-							Table:     a.aliasName,
 							Name:      column.Name,
 							SQLType:   column.SQLType,
 							MongoType: column.MongoType,
@@ -489,7 +487,6 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 				Expr: translatedExpr,
 				Column: &Column{
 					SelectID:  a.selectID,
-					Table:     a.aliasName,
 					MongoType: schema.MongoNone,
 					SQLType:   translatedExpr.Type(),
 				},
@@ -648,7 +645,6 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 		}
 
 		subqueryAlgebrizer := &algebrizer{
-			aliasName:                   aliasName,
 			dbName:                      a.dbName,
 			schema:                      a.schema,
 			selectID:                    a.selectIDGenerator.generate(),
@@ -660,6 +656,8 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 		if err != nil {
 			return nil, err
 		}
+
+		plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, aliasName)
 
 		err = a.registerTable(aliasName)
 		if err != nil {

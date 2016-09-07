@@ -167,6 +167,9 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 			b.WriteString(e.String())
 			b.WriteString("\n")
 		}
+	case *SubquerySourceStage:
+		b.WriteString("↳ Subquery(" + typedN.aliasName + "):\n")
+		prettyPrint(b, typedN.source, d+1)
 	default:
 		panic(fmt.Sprintf("unsupported print operator: %T", typedN))
 	}

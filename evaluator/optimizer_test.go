@@ -488,58 +488,79 @@ func TestOptimizePlan(t *testing.T) {
 				})
 
 				Convey("no push down, project columns", func() {
-					test("select foo.a from foo inner join bar on foo.a < bar.a")
-					// []bson.D{
-					// 	{{"$project", bson.M{
-					// 		"foo_DOT_a": "$a",
-					// 	}}},
-					// },
-					// []bson.D{
-					// 	{{"$project", bson.M{
-					// 		"bar_DOT_a": "$a",
-					// 	}}},
-					// },
-					test("select foo.a from foo inner join bar on foo.a < foo.b")
-					// []bson.D{
-					// 	{{"$project", bson.M{
-					// 		"foo_DOT_a": "$a",
-					// 		"foo_DOT_b": "$b",
-					// 	}}},
-					// },
-					test("select foo.a from foo, bar where foo.a < bar.a")
-					// []bson.D{
-					// 	{{"$project", bson.M{
-					// 		"foo_DOT_a": "$a",
-					// 	}}},
-					// },
-					// []bson.D{
-					// 	{{"$project", bson.M{
-					// 		"bar_DOT_a": "$a",
-					// 	}}},
-					// },
-					test("select foo.a from foo left join bar on foo.a < bar.a")
-					// 	[]bson.D{
-					// 		{{"$project", bson.M{
-					// 			"foo_DOT_a": "$a",
-					// 		}}},
-					// 	},
-					// 	[]bson.D{
-					// 		{{"$project", bson.M{
-					// 			"bar_DOT_a": "$a",
-					// 		}}},
-					// 	},
-
-					test("select foo.a from foo right join bar on foo.a < bar.a") // []bson.D{
-					// 	{{"$project", bson.M{
-					// 		"foo_DOT_a": "$a",
-					// 	}}},
-					// },
-					// []bson.D{
-					// 	{{"$project", bson.M{
-					// 		"bar_DOT_a": "$a",
-					// 	}}},
-					// },
-
+					test("select foo.a from foo inner join bar on foo.a < bar.a",
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"bar_DOT_a": "$a",
+							}}},
+						},
+					)
+					test("select foo.a from foo inner join bar on foo.a < foo.b",
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+								"foo_DOT_b": "$b",
+							}}},
+						},
+					)
+					test("select foo.a from foo, bar where foo.a < bar.a",
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"bar_DOT_a": "$a",
+							}}},
+						},
+					)
+					test("select foo.a from foo left join bar on foo.a < bar.a",
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"bar_DOT_a": "$a",
+							}}},
+						},
+					)
+					test("select foo.a from foo right join bar on foo.a < bar.a",
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"bar_DOT_a": "$a",
+							}}},
+						},
+					)
+					test("select foo.a, b.b from foo, (select a, b from bar) b where foo.a = b.a",
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"bar_DOT_a": "$a",
+								"bar_DOT_b": "$b",
+							}}},
+							{{"$project", bson.M{
+								"b_DOT_a": "$bar_DOT_a",
+								"b_DOT_b": "$bar_DOT_b",
+							}}},
+						},
+					)
 				})
 			})
 		})
@@ -603,11 +624,11 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$match", bson.M{
 						"a": int64(10),
 					}}},
-					// {{"$project", bson.M{
-					// 	"foo_DOT_a": "$a",
-					// 	"foo_DOT_b": "$b",
-					// 	"foo_DOT_c": "$c",
-					// }}},
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+						"foo_DOT_b": "$b",
+						"foo_DOT_c": "$c",
+					}}},
 				},
 			)
 
@@ -616,23 +637,24 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$match", bson.M{
 						"a": int64(10),
 					}}},
-					// {{"$project", bson.M{
-					// 	"foo_DOT_a": "$a",
-					// 	"foo_DOT_b": "$b",
-					// 	"foo_DOT_c": "$c",
-					// }}},
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+						"foo_DOT_b": "$b",
+						"foo_DOT_c": "$c",
+					}}},
 				},
 			)
 
 			Convey("no push down, project columns", func() {
-				test("select a from foo where b < c") // []bson.D{
-				// 	{{"$project", bson.M{
-				// 		"foo_DOT_a": "$a",
-				// 		"foo_DOT_b": "$b",
-				// 		"foo_DOT_c": "$c",
-				// 	}}},
-				// },
-
+				test("select a from foo where b < c",
+					[]bson.D{
+						{{"$project", bson.M{
+							"foo_DOT_a": "$a",
+							"foo_DOT_b": "$b",
+							"foo_DOT_c": "$c",
+						}}},
+					},
+				)
 			})
 		})
 
@@ -1212,14 +1234,14 @@ func TestOptimizePlan(t *testing.T) {
 			)
 
 			Convey("no push down, project columns", func() {
-				test("select a from foo order by a > b")
-				// []bson.D{
-				// 	{{"$project", bson.M{
-				// 		"foo_DOT_a": "$a",
-				// 		"foo_DOT_b": "$b",
-				// 	}}},
-				// },
-
+				test("select a from foo order by a > b",
+					[]bson.D{
+						{{"$project", bson.M{
+							"foo_DOT_a": "$a",
+							"foo_DOT_b": "$b",
+						}}},
+					},
+				)
 			})
 		})
 

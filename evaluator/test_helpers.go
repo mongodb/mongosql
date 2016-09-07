@@ -130,29 +130,6 @@ func createProjectedColumnFromColumn(newSelectID int, column *Column, projectedT
 	}
 }
 
-// createProjectedColumnSubquery creates a projectedColumn from the source using the projectedTableName which is the aliasName, rather than
-// the column tableName which is necessary for subqueries.
-func createProjectedColumnSubquery(selectID int, source PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) ProjectedColumn {
-	for _, c := range source.Columns() {
-		if c.MongoType == schema.MongoFilter {
-			continue
-		}
-		if c.Table == sourceTableName && c.Name == sourceColumnName {
-			return ProjectedColumn{
-				Column: &Column{
-					SelectID:  selectID,
-					Table:     projectedTableName,
-					Name:      projectedColumnName,
-					SQLType:   c.SQLType,
-					MongoType: c.MongoType,
-				},
-				Expr: NewSQLColumnExpr(c.SelectID, sourceTableName, c.Name, c.SQLType, c.MongoType),
-			}
-		}
-	}
-	panic(fmt.Sprintf("no column found with the name %q", sourceColumnName))
-}
-
 func createProjectedColumn(selectID int, source PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) ProjectedColumn {
 	for _, c := range source.Columns() {
 		if c.MongoType == schema.MongoFilter {

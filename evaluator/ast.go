@@ -38,6 +38,7 @@ func (ps *MongoSourceStage) astnode()      {}
 func (ps *OrderByStage) astnode()          {}
 func (ps *ProjectStage) astnode()          {}
 func (ps *SchemaDataSourceStage) astnode() {}
+func (ps *SubquerySourceStage) astnode()   {}
 
 // CommandStages
 func (k *KillCommand) astnode() {}
@@ -354,6 +355,15 @@ func walk(v nodeVisitor, n node) (node, error) {
 
 		if typedN.source != source || &typedN.projectedColumns != pcs {
 			n = NewProjectStage(source, *pcs...)
+		}
+	case *SubquerySourceStage:
+		source, err := visitPlanStage(typedN.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.source != source {
+			n = NewSubquerySourceStage(source, typedN.selectID, typedN.aliasName)
 		}
 
 	// Other Stages

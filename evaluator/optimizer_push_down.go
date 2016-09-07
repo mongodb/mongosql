@@ -94,17 +94,28 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 			return nil, fmt.Errorf("unable to optimize join: %v", err)
 		}
 
-		if n == typedN {
-			projSourceLeft, err := v.getRequiredColumnsForJoin(typedN.left, typedN.requiredColumns, leftJoinChild)
-			if err != nil {
-				return nil, fmt.Errorf("unable to optimize JoinStage left project: %v", err)
-			}
-			projSourceRight, err := v.getRequiredColumnsForJoin(typedN.right, typedN.requiredColumns, rightJoinChild)
-			if err != nil {
-				return nil, fmt.Errorf("unable to optimize JoinStage right project: %v", err)
+		if typedN, ok := n.(*JoinStage); ok {
+			left := typedN.left
+			right := typedN.right
+			if ms, ok := left.(*MongoSourceStage); ok {
+				requiredColumns := v.getRequiredColumnsForJoinSide(ms.aliasNames, typedN.requiredColumns)
+				left, err = v.pushdownProject(requiredColumns, left)
+				if err != nil {
+					return nil, fmt.Errorf("unable to optimize JoinStage left project: %v", err)
+				}
 			}
 
-			n = NewJoinStage(typedN.kind, projSourceLeft, projSourceRight, typedN.matcher, typedN.requiredColumns)
+			if ms, ok := right.(*MongoSourceStage); ok {
+				requiredColumns := v.getRequiredColumnsForJoinSide(ms.aliasNames, typedN.requiredColumns)
+				right, err = v.pushdownProject(requiredColumns, right)
+				if err != nil {
+					return nil, fmt.Errorf("unable to optimize JoinStage right project: %v", err)
+				}
+			}
+
+			if left != typedN.left || right != typedN.right {
+				n = NewJoinStage(typedN.kind, left, right, typedN.matcher, typedN.requiredColumns)
+			}
 		}
 
 	case *LimitStage:
@@ -130,6 +141,24 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize project: %v", err)
 		}
+	case *SubquerySourceStage:
+		oldSelectIDsInScope := v.selectIDsInScope
+		oldTableNamesInScope := v.tableNamesInScope
+
+		// Inside a SubquerySourceStage, there are no selectIDs or tableNames
+		// in scope. However, after we are finished, the existing selectIDs
+		// and tableNames are in scope as well as the additional selectID and
+		// aliasName of the subquery.
+		v.selectIDsInScope = []int{}
+		v.tableNamesInScope = []string{}
+
+		n, err = v.visitSubquerySource(typedN)
+		if err != nil {
+			return nil, fmt.Errorf("unable to optimize subquery source: %v", err)
+		}
+
+		v.selectIDsInScope = append(oldSelectIDsInScope, typedN.selectID)
+		v.tableNamesInScope = append(oldTableNamesInScope, typedN.aliasName)
 	}
 
 	return n, nil
@@ -932,6 +961,37 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	return project, nil
 }
 
+func (v *pushDownOptimizer) visitSubquerySource(subquery *SubquerySourceStage) (PlanStage, error) {
+	// Check if we can optimize further, if the child operator has a MongoSource.
+	ms, ok := v.canPushDown(subquery.source)
+	if !ok {
+		return subquery, nil
+	}
+
+	mappingRegistry := mappingRegistry{}
+	for _, column := range ms.mappingRegistry.columns {
+		fieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.Name)
+		if !ok {
+			return subquery, nil
+		}
+
+		mappingRegistry.addColumn(&Column{
+			SelectID:  column.SelectID,
+			Name:      column.Name,
+			Table:     subquery.aliasName,
+			SQLType:   column.SQLType,
+			MongoType: column.MongoType,
+		})
+
+		mappingRegistry.registerMapping(subquery.aliasName, column.Name, fieldName)
+	}
+
+	ms = ms.clone()
+	ms.aliasNames = []string{subquery.aliasName}
+	ms.mappingRegistry = &mappingRegistry
+	return ms, nil
+}
+
 type columnFinder struct {
 	selectIDsInScope []int
 	columns          Columns
@@ -975,51 +1035,36 @@ func (cf *columnFinder) visit(n node) (node, error) {
 // visit a new projectStage in order to project out only the columns needed for the rest of the query so that
 // we do not have to pull all data from a table into memory.
 func (v *pushDownOptimizer) pushdownProject(requiredColumns []SQLExpr, source PlanStage) (PlanStage, error) {
-	// TODO: temporary, as pushdownProject doesn't work for certain types of queries
-	return source, nil
-
-	// var projectedCols []ProjectedColumn
-	// for _, expr := range requiredColumns {
-	// 	if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
-	// 		column := &Column{
-	// 			SelectID:  sqlColExpr.selectID,
-	// 			Table:     sqlColExpr.tableName,
-	// 			Name:      sqlColExpr.columnName,
-	// 			SQLType:   sqlColExpr.Type(),
-	// 			MongoType: sqlColExpr.columnType.MongoType,
-	// 		}
-	// 		projectedCols = append(projectedCols, ProjectedColumn{Column: column, Expr: expr})
-	// 	}
-	// }
-	// project := NewProjectStage(source, projectedCols...)
-	// projSource, err := v.visitProject(project)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("unable to optimize project: %v", err)
-	// }
-	// return projSource, nil
+	var projectedCols []ProjectedColumn
+	for _, expr := range requiredColumns {
+		if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
+			column := &Column{
+				SelectID:  sqlColExpr.selectID,
+				Table:     sqlColExpr.tableName,
+				Name:      sqlColExpr.columnName,
+				SQLType:   sqlColExpr.Type(),
+				MongoType: sqlColExpr.columnType.MongoType,
+			}
+			projectedCols = append(projectedCols, ProjectedColumn{Column: column, Expr: expr})
+		}
+	}
+	project := NewProjectStage(source, projectedCols...)
+	projSource, err := v.visitProject(project)
+	if err != nil {
+		return nil, fmt.Errorf("unable to optimize project: %v", err)
+	}
+	return projSource, nil
 }
 
-// getRequiredColumnsForJoin determines which columns in requiredColumns belong to which side of a join. Once this is determined,
-// pushdownProject is called to project the proper columns.
-func (v *pushDownOptimizer) getRequiredColumnsForJoin(plan PlanStage, requiredColumns []SQLExpr, joinChild JoinChild) (PlanStage, error) {
-	var requiredChildColumns []SQLExpr
-	if _, ok := plan.(*MongoSourceStage); ok {
-		for _, c := range requiredColumns {
-			tableName := strings.Split(c.String(), ".")[0]
-			// Joins are left deep, so we need to search all but the right-most table in scope for the table
-			// on the left side of the join. We only need to search the right-most table in scope for the table
-			// on the right side of the join.
-			if joinChild == leftJoinChild {
-				if containsString(v.tableNamesInScope[:len(v.tableNamesInScope)-1], tableName) {
-					requiredChildColumns = append(requiredChildColumns, c)
-				}
-			} else {
-				if v.tableNamesInScope[len(v.tableNamesInScope)-1] == tableName {
-					requiredChildColumns = append(requiredChildColumns, c)
-				}
-			}
+func (v *pushDownOptimizer) getRequiredColumnsForJoinSide(tableNames []string, requiredColumns []SQLExpr) []SQLExpr {
+	var result []SQLExpr
+	for _, expr := range requiredColumns {
+		tableName := strings.Split(expr.String(), ".")[0]
+
+		if containsString(tableNames, tableName) {
+			result = append(result, expr)
 		}
-		return v.pushdownProject(requiredChildColumns, plan)
 	}
-	return plan, nil
+
+	return result
 }
