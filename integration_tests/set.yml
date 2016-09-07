@@ -40,6 +40,13 @@ testcases:
   expected_types: [int]
   expected: 
   - [12]
+- sql: "set @lowercase = 12"
+  verify: "select @LOWERCASE"
+  description: "user variable case sensitivity"
+  expected_names: ["@LOWERCASE"]
+  expected_types: [int]
+  expected: 
+  - [12]
 - sql: "set @t1 = (select sum(a) from foo)"
   verify: "select @t1"
   description: "user variable with query"
@@ -65,6 +72,13 @@ testcases:
   verify: "select @@autocommit"
   description: "session variable"
   expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected: 
+  - [1]
+- sql: "set @@AutoCommit=1"
+  verify: "select @@AUTOCOMMIT"
+  description: "system variable case sensitivity"
+  expected_names: ["@@AUTOCOMMIT"]
   expected_types: [int]
   expected: 
   - [1]

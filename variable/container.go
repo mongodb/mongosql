@@ -2,6 +2,7 @@ package variable
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/common"
@@ -117,12 +118,14 @@ func (c *Container) List(scope Scope, kind Kind) []Value {
 // Get gets the value of the variable with the specified name, scope, and kind.
 func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 
+	lowerName := Name(strings.ToLower(string(name)))
+
 	if kind == UserKind {
 		if scope != SessionScope {
 			panic("internal error: cannot get user variable from a global scope")
 		}
 
-		v, _ := c.userValues[name]
+		v, _ := c.userValues[lowerName]
 
 		return Value{
 			Name:    name,
@@ -133,7 +136,7 @@ func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 	}
 
 	if c.scope == scope {
-		if def, ok := definitions[name]; ok && def.Kind == kind {
+		if def, ok := definitions[lowerName]; ok && def.Kind == kind {
 			return Value{
 				Name:    name,
 				Kind:    def.Kind,
@@ -151,16 +154,18 @@ func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 // Set sets the value of a variable with the specified name, scope, and kind.
 func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) error {
 
+	lowerName := Name(strings.ToLower(string(name)))
+
 	if kind == UserKind {
 		if scope != SessionScope {
 			panic("internal error: cannot set user variable on a global scope")
 		}
 
-		c.userValues[name] = value
+		c.userValues[lowerName] = value
 		return nil
 	}
 
-	def, ok := definitions[name]
+	def, ok := definitions[lowerName]
 	if !ok {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, name)
 	}
