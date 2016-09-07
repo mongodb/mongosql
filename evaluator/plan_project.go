@@ -71,6 +71,7 @@ func (pj *ProjectIter) Next(r *Row) bool {
 		values = append(values, value)
 
 	}
+
 	r.Data = values
 
 	return true

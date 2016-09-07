@@ -370,10 +370,6 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 
 	// 2. Translate all the other clauses from this scope. We aren't going to create the plan stages
 	// yet because the expressions may need to be substituted if a group by exists.
-	// Also, in the future, since we are collecting what columns are required at each stage, we'll be
-	// able to add a RequiredColumns() function to PlanStage that will let us push down a $project
-	// before the first PlanStage we have to execute in memory so as to only pull back the columns
-	// we'll actually need.
 	if sel.Where != nil {
 		a.currentClause = whereClause
 		err := builder.includeWhere(sel.Where)
@@ -886,7 +882,12 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		// if it's not a valid int64, try parsing as float64 instead
 		f, err := strconv.ParseFloat(exprString, 64)
 		if err != nil {
-			return nil, err
+			// try parsing as a decimal if the number's too large
+			d, err := decimal.NewFromString(exprString)
+			if err != nil {
+				return nil, err
+			}
+			return SQLDecimal128(d), nil
 		}
 
 		float := strconv.FormatFloat(f, 'f', -1, 64)
