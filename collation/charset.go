@@ -35,14 +35,23 @@ func (cs *Charset) Encode(bytes []byte) []byte {
 
 // GetCharset gets the character set for the specified name.
 func GetCharset(s CharsetName) (*Charset, error) {
-	e, ok := charsetEncodings[s]
-	if !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_CHARACTER_SET, s)
-	}
 
-	collationID, ok := charsets[s]
-	if !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_CHARACTER_SET, s)
+	var e encoding.Encoding
+	var collationID ID
+	if s == "" {
+		e = encoding.Nop
+		collationID = 0
+	} else {
+		var ok bool
+		e, ok = charsetEncodings[s]
+		if !ok {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_CHARACTER_SET, s)
+		}
+
+		collationID, ok = charsets[s]
+		if !ok {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_CHARACTER_SET, s)
+		}
 	}
 
 	return &Charset{

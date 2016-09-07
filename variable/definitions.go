@@ -76,8 +76,13 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.CharacterSetResults.Name) },
-		SetValue:         setCharacterSetResults,
+		GetValue: func(c *Container) interface{} {
+			if c.CharacterSetResults.Name == "" {
+				return nil
+			}
+			return string(c.CharacterSetResults.Name)
+		},
+		SetValue: setCharacterSetResults,
 	}
 
 	definitions[collationConnection] = &definition{
@@ -222,7 +227,7 @@ func setCharacterSetDatabase(c *Container, v interface{}) error {
 
 func setCharacterSetResults(c *Container, v interface{}) error {
 	if v == nil {
-		return invalidValueError(characterSetResults, nil)
+		v = ""
 	}
 
 	s, ok := convertString(v)
