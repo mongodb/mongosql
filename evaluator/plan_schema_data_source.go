@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -63,6 +64,15 @@ var (
 		{"VARIABLE_NAME", schema.SQLVarchar},
 		{"VARIABLE_VALUE", schema.SQLVarchar},
 	}
+
+	isCollationHeaders = []isColumn{
+		{"COLLATION_NAME", schema.SQLVarchar},
+		{"CHARACTER_SET_NAME", schema.SQLVarchar},
+		{"ID", schema.SQLVarchar},
+		{"IS_DEFAULT", schema.SQLVarchar},
+		{"IS_COMPILED", schema.SQLVarchar},
+		{"SORTLEN", schema.SQLVarchar},
+	}
 )
 
 type SchemaDataSourceStage struct {
@@ -94,6 +104,8 @@ func (sds *SchemaDataSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		tableName: sds.aliasName,
 	}
 	switch strings.ToLower(sds.tableName) {
+	case "collations":
+		it.rows = sds.gatherCollationRows(ctx)
 	case "columns":
 		it.rows = sds.gatherColumnRows(ctx)
 	case "schemata":
@@ -116,6 +128,8 @@ func (sds *SchemaDataSourceStage) Columns() []*Column {
 	var headers []isColumn
 
 	switch strings.ToLower(sds.tableName) {
+	case "collations":
+		headers = isCollationHeaders
 	case "columns":
 		headers = isColumnHeaders
 	case "schemata":
@@ -149,6 +163,34 @@ func (sds *SchemaDataSourceStage) Columns() []*Column {
 func (sds *SchemaDataSourceStage) getValue(c isColumn, data interface{}) Value {
 	data, _ = NewSQLValueFromSQLColumnExpr(data, c.sqlType, schema.MongoNone)
 	return Value{SelectID: sds.selectID, Table: sds.aliasName, Name: c.name, Data: data}
+}
+
+func (sds *SchemaDataSourceStage) gatherCollationRows(ctx *ExecutionCtx) []Values {
+
+	collations := collation.GetAll()
+
+	rows := []Values{}
+
+	for _, c := range collations {
+		isDefault := "No"
+
+		if c.Default {
+			isDefault = "Yes"
+		}
+
+		row := Values{
+			sds.getValue(isCollationHeaders[0], c.Name),
+			sds.getValue(isCollationHeaders[1], string(c.Charset.Name)),
+			sds.getValue(isCollationHeaders[2], uint8(c.ID)),
+			sds.getValue(isCollationHeaders[3], isDefault),
+			sds.getValue(isCollationHeaders[4], "Yes"),
+			sds.getValue(isCollationHeaders[5], c.SortLen),
+		}
+
+		rows = append(rows, row)
+	}
+
+	return rows
 }
 
 func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {
@@ -302,6 +344,7 @@ func (sds *SchemaDataSourceStage) gatherTableRows(ctx *ExecutionCtx) []Values {
 			sds.getValue(isTablesHeaders[4], ""),
 		},
 	}
+
 	for _, db := range sds.schema.RawDatabases {
 		if !ctx.AuthProvider.IsDatabaseAllowed(db.Name) {
 			continue

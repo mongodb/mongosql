@@ -12,6 +12,8 @@ func (c *conn) handleShow(sql string, stmt *parser.Show) error {
 	switch strings.ToLower(stmt.Section) {
 	case "columns":
 		return c.handleShowColumns(sql, stmt)
+	case "collation":
+		return c.handleShowCollation(stmt)
 	case "databases", "schemas":
 		return c.handleShowDatabases(stmt)
 	case "tables":
@@ -21,6 +23,32 @@ func (c *conn) handleShow(sql string, stmt *parser.Show) error {
 	default:
 		return mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "no support for show (%s) for now", sql)
 	}
+}
+
+func (c *conn) handleShowCollation(stmt *parser.Show) error {
+
+	translated := "SELECT * FROM (" +
+		" SELECT COLLATION_NAME AS `Collation`" +
+		", CHARACTER_SET_NAME AS `Charset`" +
+		", ID AS `Id`" +
+		", IS_DEFAULT AS `Default`" +
+		", IS_COMPILED AS `Compiled`" +
+		", SORTLEN AS `Sortlen`"
+
+	translated += " FROM INFORMATION_SCHEMA.COLLATIONS) `is`"
+
+	if stmt.LikeOrWhere != nil {
+		switch stmt.LikeOrWhere.(type) {
+		case parser.StrVal:
+			translated += fmt.Sprintf(" WHERE `Collation` LIKE %s", parser.String(stmt.LikeOrWhere))
+		default:
+			translated += fmt.Sprintf(" WHERE %s", parser.String(stmt.LikeOrWhere))
+		}
+	}
+
+	translated += " ORDER BY `Collation`"
+
+	return c.handleQuery(translated)
 }
 
 func (c *conn) handleShowColumns(sql string, stmt *parser.Show) error {

@@ -159,3 +159,10 @@ testcases:
   expected_types: [varchar, varchar]
   expected: 
     - ["autocommit", "1"]
+- sql: "SHOW COLLATION LIKE '%sinhala%'"
+  expected_types: [varchar, varchar, int, varchar, varchar, int]
+  expected:
+    - ["utf16_sinhala_ci", "utf16", 120, "No", "Yes", 8]
+    - ["utf32_sinhala_ci", "utf32", 179, "No", "Yes", 8]
+    - ["utf8_sinhala_ci", "utf8", 211, "No", "Yes", 8]
+    - ["utf8mb4_sinhala_ci", "utf8mb4", 243, "No", "Yes", 8]

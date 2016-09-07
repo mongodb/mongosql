@@ -568,7 +568,6 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 
 	switch typedT := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
-
 		return a.translateSimpleTableExpr(typedT.Expr, string(typedT.As))
 	case *parser.ParenTableExpr:
 		return a.translateTableExpr(typedT.Expr)
