@@ -605,9 +605,6 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 	case *parser.TableName:
 
 		tableName := strings.ToLower(string(typedT.Name))
-		if a.aliasName != "" {
-			aliasName = a.aliasName
-		}
 
 		if aliasName == "" {
 			aliasName = tableName

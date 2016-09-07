@@ -975,25 +975,28 @@ func (cf *columnFinder) visit(n node) (node, error) {
 // visit a new projectStage in order to project out only the columns needed for the rest of the query so that
 // we do not have to pull all data from a table into memory.
 func (v *pushDownOptimizer) pushdownProject(requiredColumns []SQLExpr, source PlanStage) (PlanStage, error) {
-	var projectedCols []ProjectedColumn
-	for _, expr := range requiredColumns {
-		if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
-			column := &Column{
-				SelectID:  sqlColExpr.selectID,
-				Table:     sqlColExpr.tableName,
-				Name:      sqlColExpr.columnName,
-				SQLType:   sqlColExpr.Type(),
-				MongoType: sqlColExpr.columnType.MongoType,
-			}
-			projectedCols = append(projectedCols, ProjectedColumn{Column: column, Expr: expr})
-		}
-	}
-	project := NewProjectStage(source, projectedCols...)
-	projSource, err := v.visitProject(project)
-	if err != nil {
-		return nil, fmt.Errorf("unable to optimize project: %v", err)
-	}
-	return projSource, nil
+	// TODO: temporary, as pushdownProject doesn't work for certain types of queries
+	return source, nil
+
+	// var projectedCols []ProjectedColumn
+	// for _, expr := range requiredColumns {
+	// 	if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
+	// 		column := &Column{
+	// 			SelectID:  sqlColExpr.selectID,
+	// 			Table:     sqlColExpr.tableName,
+	// 			Name:      sqlColExpr.columnName,
+	// 			SQLType:   sqlColExpr.Type(),
+	// 			MongoType: sqlColExpr.columnType.MongoType,
+	// 		}
+	// 		projectedCols = append(projectedCols, ProjectedColumn{Column: column, Expr: expr})
+	// 	}
+	// }
+	// project := NewProjectStage(source, projectedCols...)
+	// projSource, err := v.visitProject(project)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("unable to optimize project: %v", err)
+	// }
+	// return projSource, nil
 }
 
 // getRequiredColumnsForJoin determines which columns in requiredColumns belong to which side of a join. Once this is determined,

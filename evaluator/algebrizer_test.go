@@ -120,14 +120,20 @@ func TestAlgebrizeSelect(t *testing.T) {
 		Convey("from", func() {
 			Convey("subqueries", func() {
 				test("select a from (select a from foo) f", func() PlanStage {
-					source := createMongoSource(2, "foo", "f")
-					subquery := NewProjectStage(source, createProjectedColumnSubquery(2, source, "f", "a", "a"))
+					source := createMongoSource(2, "foo", "foo")
+					subquery := NewProjectStage(source, createProjectedColumnSubquery(2, source, "foo", "a", "f", "a"))
 					return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
 				})
 
 				test("select f.a from (select a from foo) f", func() PlanStage {
-					source := createMongoSource(2, "foo", "f")
-					subquery := NewProjectStage(source, createProjectedColumnSubquery(2, source, "f", "a", "a"))
+					source := createMongoSource(2, "foo", "foo")
+					subquery := NewProjectStage(source, createProjectedColumnSubquery(2, source, "foo", "a", "f", "a"))
+					return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
+				})
+
+				test("select f.a from (select test.a from foo test) f", func() PlanStage {
+					source := createMongoSource(2, "foo", "test")
+					subquery := NewProjectStage(source, createProjectedColumnSubquery(2, source, "test", "a", "f", "a"))
 					return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
 				})
 			})
