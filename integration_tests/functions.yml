@@ -42,7 +42,6 @@ schema:
       SqlName: d
       SQLType: timestamp
 
-
 #
 # Tests
 #
@@ -1177,6 +1176,52 @@ testcases:
   - [~]
   - [~]
   - [~]
+
+- sql: "select truncate(null, 2) from bar"
+  expected_names: ["truncate(null, 2)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select truncate(c, null) from bar"
+  expected_names: ["truncate(c, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select truncate(c, 2) from bar"
+  expected_names: ["truncate(c, 2)"]
+  expected_types: [numeric]
+  expected:
+  - [1.45]
+  - [-121.23]
+  - [56.73]
+  - [~]
+  - [~]
+
+- sql: "select truncate(c, -2) from bar"
+  expected_names: ["truncate(c, -2)"]
+  expected_types: [numeric]
+  expected:
+  - [0]
+  - [-100]
+  - [0]
+  - [~]
+  - [~]
+
+- sql: "select truncate(c, 2) from bar where c > 10"
+  expected_names: ["truncate(c, 2)"]
+  expected_types: [numeric]
+  expected:
+  - [56.73]
 
 # Synonym for upper
 - sql: "select ucase(b) from bar"

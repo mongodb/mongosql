@@ -1867,6 +1867,39 @@ func (t *timestampDiffFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
 }
 
+type truncateFunc struct{}
+
+//http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_truncate
+func (_ *truncateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	var truncated float64
+	x := values[0].Float64()
+	d := values[1].Float64()
+
+	if d >= 0 {
+		pow := math.Pow(10, d)
+		i, _ := math.Modf(x * pow)
+		truncated = i / pow
+	} else {
+		pow := math.Pow(10, math.Abs(d))
+		i, _ := math.Modf(x / pow)
+		truncated = i * pow
+	}
+
+	return SQLFloat(truncated), nil
+}
+
+func (_ *truncateFunc) Type() schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ *truncateFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
+
 type ucaseFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ucase

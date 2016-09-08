@@ -1510,6 +1510,23 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: TRUNCATE", func() {
+				tests := []test{
+					test{"TRUNCATE(NULL, 2)", SQLNull},
+					test{"TRUNCATE(1234.1234, NULL)", SQLNull},
+					test{"TRUNCATE(1 / 0, 2)", SQLNull},
+					test{"TRUNCATE(1234.1234, 1 / 0)", SQLNull},
+					test{"TRUNCATE(1234.1234, 3)", SQLFloat(1234.123)},
+					test{"TRUNCATE(1234.1234, 5)", SQLFloat(1234.1234)},
+					test{"TRUNCATE(1234.1234, 0)", SQLFloat(1234)},
+					test{"TRUNCATE(1234.1234, -3)", SQLFloat(1000)},
+					test{"TRUNCATE(1234.1234, -5)", SQLFloat(0)},
+					test{"TRUNCATE(-1234.1234, 3)", SQLFloat(-1234.123)},
+					test{"TRUNCATE(-1234.1234, -3)", SQLFloat(-1000)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: UCASE", func() {
 				tests := []test{
 					test{"UCASE(NULL)", SQLNull},
@@ -2494,6 +2511,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"substring(a, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$substr":["$a",1,{"$literal":4}]}]}`},
 			test{"substr(a, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$substr":["$a",1,-1]}]}`},
 			test{"substr(a, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$substr":["$a",1,{"$literal":4}]}]}`},
+			test{"truncate(a, 3)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$multiply":["$a",1000]}},{"$ceil":{"$multiply":["$a",1000]}}]},1000]}`},
+			test{"truncate(a, -3)", `{"$multiply":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$divide":["$a",1000]}},{"$ceil":{"$divide":["$a",1000]}}]},1000]}`},
 			test{"week(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$week":"$a"}]}`},
 			test{"week(a, 0)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$week":"$a"}]}`},
 			test{"weekday(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$mod":[{"$add":[{"$mod":[{"$subtract":[{"$dayOfWeek":"$a"},2]},7]},7]},7]}]}`},

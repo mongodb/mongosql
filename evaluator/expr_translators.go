@@ -835,6 +835,48 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$substr": []interface{}{args[0], arg1, arg2}},
 				wrapInNullCheck(args[0]),
 			), true
+		case "truncate":
+			if len(args) != 2 {
+				return nil, false
+			}
+
+			bsonMap, ok := args[1].(bson.M)
+			if !ok {
+				return nil, false
+			}
+
+			bsonVal, ok := bsonMap["$literal"]
+			if !ok {
+				return nil, false
+			}
+
+			dVal, ok := bsonVal.(SQLValue)
+			if !ok {
+				return nil, false
+			}
+
+			d := dVal.Float64()
+			if d >= 0 {
+				pow := math.Pow(10, d)
+				return bson.M{"$divide": []interface{}{
+					bson.M{mgoOperatorCond: []interface{}{
+						bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
+						bson.M{"$floor": bson.M{"$multiply": []interface{}{
+							args[0], pow}}},
+						bson.M{"$ceil": bson.M{"$multiply": []interface{}{
+							args[0], pow}}}}},
+					pow}}, true
+			} else {
+				pow := math.Pow(10, math.Abs(d))
+				return bson.M{"$multiply": []interface{}{
+					bson.M{mgoOperatorCond: []interface{}{
+						bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
+						bson.M{"$floor": bson.M{"$divide": []interface{}{
+							args[0], pow}}},
+						bson.M{"$ceil": bson.M{"$divide": []interface{}{
+							args[0], pow}}}}},
+					pow}}, true
+			}
 		case "week":
 			if len(args) < 1 || len(args) > 2 {
 				return nil, false
