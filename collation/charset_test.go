@@ -14,7 +14,7 @@ func TestGetCharset(t *testing.T) {
 			subject, err := collation.GetCharset(collation.CharsetName("utf8"))
 			So(err, ShouldBeNil)
 			So(subject.Name, ShouldEqual, collation.CharsetName("utf8"))
-			So(subject.DefaultCollationID, ShouldEqual, collation.ID(33))
+			So(subject.DefaultCollationName, ShouldEqual, collation.Name("utf8_general_ci"))
 		})
 
 		Convey("With an invalid CharsetName", func() {
@@ -30,7 +30,7 @@ func TestMustGetCharset(t *testing.T) {
 		Convey("With a valid CharsetName", func() {
 			subject := collation.MustCharset(collation.GetCharset(collation.CharsetName("utf8")))
 			So(subject.Name, ShouldEqual, collation.CharsetName("utf8"))
-			So(subject.DefaultCollationID, ShouldEqual, collation.ID(33))
+			So(subject.DefaultCollationName, ShouldEqual, collation.Name("utf8_general_ci"))
 		})
 
 		Convey("With an invalid CharsetName", func() {

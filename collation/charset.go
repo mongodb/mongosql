@@ -5,16 +5,39 @@ import (
 	"golang.org/x/text/encoding"
 )
 
+func init() {
+	charsetByName = make(map[CharsetName]*Charset, 0)
+	charsetByCollationName = make(map[Name]*Charset, 0)
+
+	for _, charset := range charsets {
+		charsetByCollationName[charset.DefaultCollationName] = charset
+		charsetByName[charset.Name] = charset
+	}
+}
+
+var charsetByName map[CharsetName]*Charset
+var charsetByCollationName map[Name]*Charset
+
 // CharsetName is the name of a character set.
 type CharsetName string
 
 // Charset is a set of characters.
 type Charset struct {
-	Name               CharsetName
-	DefaultCollationID ID
+	Name                 CharsetName
+	DefaultCollationName Name
+	Description          string
+	MaxLen               uint8
 
 	decoder *encoding.Decoder
 	encoder *encoding.Encoder
+}
+
+var NullCharset = &Charset{
+	Name:                 CharsetName(""),
+	DefaultCollationName: "binary",
+	Description:          "NULL",
+	encoder:              encoding.ReplaceUnsupported(encoding.Nop.NewEncoder()),
+	decoder:              encoding.Nop.NewDecoder(),
 }
 
 // Decode converts the given encoded bytes to UTF-8. It returns the converted bytes or nil, err if any error occurred.
@@ -33,33 +56,28 @@ func (cs *Charset) Encode(bytes []byte) []byte {
 	return b
 }
 
+// GetAllCharsets gets all available character sets.
+func GetAllCharsets() []*Charset {
+	return charsets
+}
+
 // GetCharset gets the character set for the specified name.
 func GetCharset(s CharsetName) (*Charset, error) {
-
-	var e encoding.Encoding
-	var collationID ID
-	if s == "" {
-		e = encoding.Nop
-		collationID = 0
-	} else {
-		var ok bool
-		e, ok = charsetEncodings[s]
-		if !ok {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_CHARACTER_SET, s)
-		}
-
-		collationID, ok = charsets[s]
-		if !ok {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_CHARACTER_SET, s)
-		}
+	// ensure the character set is supported
+	e, ok := charsetEncodings[s]
+	if !ok {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_CHARACTER_SET, s)
 	}
 
-	return &Charset{
-		Name:               CharsetName(s),
-		DefaultCollationID: collationID,
-		decoder:            e.NewDecoder(),
-		encoder:            encoding.ReplaceUnsupported(e.NewEncoder()),
-	}, nil
+	charset, ok := charsetByName[s]
+	if !ok {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_CHARACTER_SET, s)
+	}
+
+	charset.decoder = e.NewDecoder()
+	charset.encoder = encoding.ReplaceUnsupported(e.NewEncoder())
+
+	return charset, nil
 }
 
 // MustCharset gets a Charset or panics.

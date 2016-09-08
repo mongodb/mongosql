@@ -192,7 +192,7 @@ func setCharacterSetConnection(c *Container, v interface{}) error {
 		return err
 	}
 
-	col, err := collation.GetByID(cs.DefaultCollationID)
+	col, err := collation.Get(cs.DefaultCollationName)
 	if err != nil {
 		return err
 	}
@@ -216,7 +216,7 @@ func setCharacterSetDatabase(c *Container, v interface{}) error {
 		return err
 	}
 
-	col, err := collation.GetByID(cs.DefaultCollationID)
+	col, err := collation.Get(cs.DefaultCollationName)
 	if err != nil {
 		return err
 	}
@@ -227,7 +227,8 @@ func setCharacterSetDatabase(c *Container, v interface{}) error {
 
 func setCharacterSetResults(c *Container, v interface{}) error {
 	if v == nil {
-		v = ""
+		c.CharacterSetResults = collation.NullCharset
+		return nil
 	}
 
 	s, ok := convertString(v)

@@ -10,6 +10,8 @@ import (
 
 func (c *conn) handleShow(sql string, stmt *parser.Show) error {
 	switch strings.ToLower(stmt.Section) {
+	case "charset":
+		return c.handleShowCharset(stmt)
 	case "columns":
 		return c.handleShowColumns(sql, stmt)
 	case "collation":
@@ -23,6 +25,30 @@ func (c *conn) handleShow(sql string, stmt *parser.Show) error {
 	default:
 		return mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "no support for show (%s) for now", sql)
 	}
+}
+
+func (c *conn) handleShowCharset(stmt *parser.Show) error {
+
+	translated := "SELECT * FROM (" +
+		" SELECT CHARACTER_SET_NAME AS `Charset`" +
+		", DESCRIPTION AS `Description`" +
+		", DEFAULT_COLLATE_NAME AS `Default collation`" +
+		", MAXLEN AS `Maxlen`"
+
+	translated += " FROM INFORMATION_SCHEMA.CHARACTER_SETS) `is`"
+
+	if stmt.LikeOrWhere != nil {
+		switch stmt.LikeOrWhere.(type) {
+		case parser.StrVal:
+			translated += fmt.Sprintf(" WHERE `Charset` LIKE %s", parser.String(stmt.LikeOrWhere))
+		default:
+			translated += fmt.Sprintf(" WHERE %s", parser.String(stmt.LikeOrWhere))
+		}
+	}
+
+	translated += " ORDER BY `Charset`"
+
+	return c.handleQuery(translated)
 }
 
 func (c *conn) handleShowCollation(stmt *parser.Show) error {

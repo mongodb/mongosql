@@ -628,8 +628,13 @@ func (c *conn) writeInitialHandshake() error {
 	//capability flag lower 2 bytes
 	data = append(data, byte(c.capability), byte(c.capability>>8))
 
+	col, err := collation.Get(c.variables.CharacterSetResults.DefaultCollationName)
+	if err != nil {
+		return err
+	}
+
 	//charset
-	data = append(data, uint8(c.variables.CharacterSetResults.DefaultCollationID))
+	data = append(data, uint8(col.ID))
 
 	//status
 	status := c.status()

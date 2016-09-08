@@ -68,10 +68,17 @@ var (
 	isCollationHeaders = []isColumn{
 		{"COLLATION_NAME", schema.SQLVarchar},
 		{"CHARACTER_SET_NAME", schema.SQLVarchar},
-		{"ID", schema.SQLVarchar},
+		{"ID", schema.SQLInt64},
 		{"IS_DEFAULT", schema.SQLVarchar},
 		{"IS_COMPILED", schema.SQLVarchar},
-		{"SORTLEN", schema.SQLVarchar},
+		{"SORTLEN", schema.SQLInt64},
+	}
+
+	isCharsetHeaders = []isColumn{
+		{"CHARACTER_SET_NAME", schema.SQLVarchar},
+		{"DEFAULT_COLLATE_NAME", schema.SQLVarchar},
+		{"DESCRIPTION", schema.SQLVarchar},
+		{"MAXLEN", schema.SQLInt64},
 	}
 )
 
@@ -104,6 +111,8 @@ func (sds *SchemaDataSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		tableName: sds.aliasName,
 	}
 	switch strings.ToLower(sds.tableName) {
+	case "character_sets":
+		it.rows = sds.gatherCharsetRows(ctx)
 	case "collations":
 		it.rows = sds.gatherCollationRows(ctx)
 	case "columns":
@@ -128,6 +137,8 @@ func (sds *SchemaDataSourceStage) Columns() []*Column {
 	var headers []isColumn
 
 	switch strings.ToLower(sds.tableName) {
+	case "character_sets":
+		headers = isCharsetHeaders
 	case "collations":
 		headers = isCollationHeaders
 	case "columns":
@@ -163,6 +174,26 @@ func (sds *SchemaDataSourceStage) Columns() []*Column {
 func (sds *SchemaDataSourceStage) getValue(c isColumn, data interface{}) Value {
 	data, _ = NewSQLValueFromSQLColumnExpr(data, c.sqlType, schema.MongoNone)
 	return Value{SelectID: sds.selectID, Table: sds.aliasName, Name: c.name, Data: data}
+}
+
+func (sds *SchemaDataSourceStage) gatherCharsetRows(ctx *ExecutionCtx) []Values {
+
+	charsets := collation.GetAllCharsets()
+
+	rows := []Values{}
+
+	for _, c := range charsets {
+		row := Values{
+			sds.getValue(isCharsetHeaders[0], string(c.Name)),
+			sds.getValue(isCharsetHeaders[1], string(c.DefaultCollationName)),
+			sds.getValue(isCharsetHeaders[2], c.Description),
+			sds.getValue(isCharsetHeaders[3], uint8(c.MaxLen)),
+		}
+
+		rows = append(rows, row)
+	}
+
+	return rows
 }
 
 func (sds *SchemaDataSourceStage) gatherCollationRows(ctx *ExecutionCtx) []Values {

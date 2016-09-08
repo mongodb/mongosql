@@ -166,3 +166,14 @@ testcases:
     - ["utf32_sinhala_ci", "utf32", 179, "No", "Yes", 8]
     - ["utf8_sinhala_ci", "utf8", 211, "No", "Yes", 8]
     - ["utf8mb4_sinhala_ci", "utf8mb4", 243, "No", "Yes", 8]
+- sql: "SHOW CHARSET LIKE '%cp1%'"
+  expected_types: [varchar, varchar, varchar, int]
+  expected:
+    - ["cp1250", "Windows Central European", "cp1250_general_ci", 1]
+    - ["cp1251", "Windows Cyrillic", "cp1251_general_ci", 1]
+    - ["cp1256", "Windows Arabic", "cp1256_general_ci", 1]
+    - ["cp1257", "Windows Baltic", "cp1257_general_ci", 1]
+- sql: "SHOW CHARSET LIKE 'eucjpms'"
+  expected_types: [varchar, varchar, varchar, int]
+  expected:
+    - ["eucjpms", "UJIS for Windows Japanese", "eucjpms_japanese_ci", 3]

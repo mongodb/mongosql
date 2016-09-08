@@ -3,6 +3,7 @@ package server
 import (
 	"strconv"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
@@ -186,7 +187,10 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 		return err
 	}
 
-	collationID := uint16(c.variables.CharacterSetResults.DefaultCollationID)
+	col, err := collation.Get(c.variables.CharacterSetResults.DefaultCollationName)
+	if err != nil {
+		return err
+	}
 
 	var wroteHeaders bool
 
@@ -213,7 +217,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 				Name: name,
 			}
 
-			if err = formatField(collationID, field, value); err != nil {
+			if err = formatField(uint16(col.ID), field, value); err != nil {
 				return err
 			}
 

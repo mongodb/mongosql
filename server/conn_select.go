@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
@@ -64,7 +65,10 @@ func (c *conn) handleFieldList(data []byte) error {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_TABLE, table, dbName)
 	}
 
-	collationID := uint16(c.variables.CharacterSetResults.DefaultCollationID)
+	col, err := collation.Get(c.variables.CharacterSetResults.DefaultCollationName)
+	if err != nil {
+		return err
+	}
 
 	fields := []*Field{}
 
@@ -80,7 +84,7 @@ func (c *conn) handleFieldList(data []byte) error {
 		if err != nil {
 			return err
 		}
-		if err = formatField(collationID, f, value); err != nil {
+		if err = formatField(uint16(col.ID), f, value); err != nil {
 			return err
 		}
 		fields = append(fields, f)
