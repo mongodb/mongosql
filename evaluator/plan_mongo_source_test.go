@@ -53,9 +53,9 @@ func (c *connCtx) Tomb() *tomb.Tomb {
 }
 
 func getOptions(t *testing.T) sqlproxy.Options {
-	opts := sqlproxy.Options{
-		MongoURI: "localhost",
-	}
+	opts, _ := sqlproxy.NewOptions()
+	opts.MongoURI = "localhost"
+
 	// ssl is turned on
 	if len(os.Getenv(SSLTestKey)) > 0 {
 		t.Logf("Testing with SSL turned on.")

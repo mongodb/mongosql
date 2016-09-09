@@ -10,7 +10,6 @@ import (
 	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
-	"github.com/jessevdk/go-flags"
 	"github.com/mongodb/mongo-tools/common/log"
 )
 
@@ -39,15 +38,45 @@ func (ll *LogLevel) Level() int {
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	opts := sqlproxy.Options{}
-	_, err := flags.Parse(&opts)
+	opts, err := sqlproxy.NewOptions()
+	if err != nil {
+		os.Exit(1)
+	}
+
+	err = opts.Parse()
 	if err != nil {
 		os.Exit(1)
 	}
 
 	if opts.Version {
-		common.PrintVersionAndGitspec("sqlproxy", os.Stdout)
+		common.PrintVersionAndGitspec("mongosqld", os.Stdout)
 		os.Exit(0)
+	}
+
+	if opts.PrintHelp(os.Stdout) {
+		os.Exit(0)
+	}
+
+	if len(opts.LogPath) > 0 {
+		mode := os.O_WRONLY
+		if _, err := os.Stat(opts.LogPath); err != nil {
+			mode = mode | os.O_CREATE
+		}
+
+		if opts.LogAppend {
+			mode = mode | os.O_APPEND
+		} else {
+			mode = mode | os.O_TRUNC
+		}
+
+		logfile, err := os.OpenFile(opts.LogPath, mode, 0600)
+		if err != nil {
+			log.Logf(log.Always, "failed to open logfile: %v", err)
+			os.Exit(1)
+		}
+		defer logfile.Close()
+
+		log.SetWriter(logfile)
 	}
 
 	err = opts.Validate()

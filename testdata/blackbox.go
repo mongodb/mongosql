@@ -116,10 +116,10 @@ func setup() {
 	conf := mustLoadTestSchema(pathify("testdata", "blackbox.yml"))
 	mustLoadTestData(testMongoHost, testMongoPort, conf)
 
-	opts := sqlproxy.Options{
-		Addr:     testDBAddr,
-		MongoURI: fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort),
-	}
+	opts, _ := sqlproxy.NewOptions()
+	opts.Addr = testDBAddr
+	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort)
+
 	cfg := &schema.Schema{
 		RawDatabases: conf.Databases,
 	}

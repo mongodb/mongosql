@@ -169,10 +169,12 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 	cfg := &schema.Schema{
 		RawDatabases: conf.Databases,
 	}
-	opts := sqlproxy.Options{
-		Addr:     testDBAddr,
-		MongoURI: fmt.Sprintf("mongodb://%v:%v", dbhost, dbport),
+	opts, err := sqlproxy.NewOptions()
+	if err != nil {
+		return err
 	}
+	opts.Addr = testDBAddr
+	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", dbhost, dbport)
 	buildSchemaMaps(cfg)
 	s, err := testServer(cfg, opts)
 	if err != nil {

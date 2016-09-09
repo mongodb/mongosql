@@ -5,39 +5,99 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"strings"
 	"time"
 
+	"github.com/jessevdk/go-flags"
 	"gopkg.in/mgo.v2"
 )
 
+var usage = "sqlproxy <options>"
+
 type Options struct {
+	*AuthOpts
+	*ConnectionOpts
+	*GeneralOpts
+	*LogOpts
+	*MongoOpts
+	*SchemaOpts
+	*SSLOpts
+	parser *flags.Parser
+}
+
+type OptionGroup interface {
+	Name() string
+}
+
+type AuthOpts struct {
+	Auth bool `long:"auth" description:"use authentication/authorization ('ssl-pem-file' is required when using auth)"`
+}
+
+func (_ AuthOpts) Name() string {
+	return "Authentication"
+}
+
+type ConnectionOpts struct {
+	Addr string `long:"addr" description:"host address to listen on" default:"127.0.0.1:3307"`
+}
+
+func (_ ConnectionOpts) Name() string {
+	return "Connection"
+}
+
+type GeneralOpts struct {
+	Help    bool `short:"h" long:"help" description:"print usage"`
 	Version bool `long:"version" description:"display version information"`
+}
 
-	Addr    string `long:"addr" description:"host address to listen on" default:"127.0.0.1:3307"`
-	Verbose []bool `short:"v" long:"verbose" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv)"`
+func (_ GeneralOpts) Name() string {
+	return "General"
+}
 
-	Schema    string `long:"schema" description:"the path to a schema file"`
-	SchemaDir string `long:"schema-dir" description:"the path to a directory containing schema files to load"`
+type LogOpts struct {
+	LogAppend bool   `long:"logappend" description:"append new loggin output to existing log file"`
+	LogPath   string `long:"logpath" description:"path to a log file for storing logging output (defaults to stderr)"`
+	Verbose   []bool `short:"v" long:"verbose" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv)"`
+}
 
-	// Mongo Options
-	MongoURI               string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to" default:"mongodb://localhost:27017"`
-	MongoSSL               bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
-	MongoPEMFile           string `long:"mongo-ssl-pem-file" description:"path to a file containing the cert and private key for connecting to MongoDB, when using --mongo-ssl"`
-	MongoPEMFilePassword   string `long:"mongo-ssl-pem-file-password" description:"password to decrypt private key in mongo-ssl-pem-file"`
+func (_ LogOpts) Name() string {
+	return "Log"
+}
+
+type MongoOpts struct {
 	MongoAllowInvalidCerts bool   `long:"mongo-ssl-allow-invalid-certs" description:"don't require the cert presented by the MongoDB server to be valid, when using --mongo-ssl"`
 	MongoCAFile            string `long:"mongo-ssl-ca-file" description:"path to a CA certs file to use for authenticating certs from MongoDB, when using --mongo-ssl"`
+	MongoPEMFile           string `long:"mongo-ssl-pem-file" description:"path to a file containing the cert and private key for connecting to MongoDB, when using --mongo-ssl"`
+	MongoPEMFilePassword   string `long:"mongo-ssl-pem-file-password" description:"password to decrypt private key in mongo-ssl-pem-file"`
+	MongoSSL               bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
 	MongoTimeout           int64  `long:"mongo-timeout" description:"seconds to wait for a server to respond when connecting or on follow up operations" default:"30" hidden:"true"`
+	MongoURI               string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to" default:"mongodb://localhost:27017"`
+}
 
-	// SSL Options
-	SSLPEMFile           string `long:"ssl-pem-file" description:"path to a file containing the cert and private key establishing a connection with a client"`
+func (_ MongoOpts) Name() string {
+	return "Mongo"
+}
+
+type SchemaOpts struct {
+	Schema    string `long:"schema" description:"the path to a schema file"`
+	SchemaDir string `long:"schema-dir" description:"the path to a directory containing schema files to load"`
+}
+
+func (_ SchemaOpts) Name() string {
+	return "Schema"
+}
+
+type SSLOpts struct {
 	SSLAllowInvalidCerts bool   `long:"ssl-allow-invalid-certs" description:"don't require the cert presented by the client to be valid"`
 	SSLCAFile            string `long:"ssl-ca-file" description:"path to a CA certs file to use for authenticating certs from a client"`
+	SSLPEMFile           string `long:"ssl-pem-file" description:"path to a file containing the cert and private key establishing a connection with a client"`
+}
 
-	// Auth Options
-	Auth bool `long:"auth" description:"use authentication/authorization ('ssl-pem-file' is required when using auth)"`
+func (_ SSLOpts) Name() string {
+	return "SSL"
 }
 
 func (o Options) Level() int {
@@ -46,6 +106,46 @@ func (o Options) Level() int {
 
 func (o Options) IsQuiet() bool {
 	return false
+}
+
+func NewOptions() (Options, error) {
+	opts := Options{
+		AuthOpts:       &AuthOpts{},
+		ConnectionOpts: &ConnectionOpts{},
+		GeneralOpts:    &GeneralOpts{},
+		LogOpts:        &LogOpts{},
+		MongoOpts:      &MongoOpts{},
+		SchemaOpts:     &SchemaOpts{},
+		SSLOpts:        &SSLOpts{},
+		parser:         flags.NewNamedParser(usage, flags.None),
+	}
+
+	groups := []OptionGroup{
+		opts.AuthOpts,
+		opts.ConnectionOpts,
+		opts.GeneralOpts,
+		opts.LogOpts,
+		opts.MongoOpts,
+		opts.SchemaOpts,
+		opts.SSLOpts,
+	}
+
+	for _, group := range groups {
+		header := fmt.Sprintf("%s options", group.Name())
+		if _, err := opts.parser.AddGroup(header, "", group); err != nil {
+			return Options{}, err
+		}
+	}
+
+	return opts, nil
+}
+
+func (o Options) Parse() error {
+	if _, err := o.parser.Parse(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (o Options) Validate() error {
@@ -63,7 +163,14 @@ func (o Options) Validate() error {
 	}
 
 	return nil
+}
 
+func (o Options) PrintHelp(w io.Writer) bool {
+	if o.Help {
+		o.parser.WriteHelp(w)
+	}
+
+	return o.Help
 }
 
 // GetDialInfo populates a *mgo.DialInfo object according to
