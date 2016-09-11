@@ -22,16 +22,18 @@ type Container struct {
 	// backing storage for non-user variables below
 	//
 
-	AutoCommit          bool
-	CharacterSetClient  *collation.Charset
-	CharacterSetResults *collation.Charset
-	CollationConnection *collation.Collation
-	CollationDatabase   *collation.Collation
-	CollationServer     *collation.Collation
-	MaxAllowedPacket    int64
-	SQLAutoIsNull       bool
-	Version             string
-	VersionComment      string
+	AutoCommit             bool
+	CharacterSetClient     *collation.Charset
+	CharacterSetResults    *collation.Charset
+	CollationConnection    *collation.Collation
+	CollationDatabase      *collation.Collation
+	CollationServer        *collation.Collation
+	MaxAllowedPacket       int64
+	SQLAutoIsNull          bool
+	Version                string
+	VersionComment         string
+	InteractiveTimeoutSecs int64
+	WaitTimeoutSecs        int64
 }
 
 // NewGlobalContainer creates a container with a GlobalScope.
@@ -40,16 +42,18 @@ func NewGlobalContainer() *Container {
 		scope: GlobalScope,
 
 		// default values
-		AutoCommit:          true,
-		CharacterSetClient:  collation.MustCharset(collation.GetCharset("utf8")),
-		CharacterSetResults: collation.MustCharset(collation.GetCharset("utf8")),
-		CollationConnection: collation.Must(collation.Get("utf8_bin")),
-		CollationDatabase:   collation.Must(collation.Get("utf8_bin")),
-		CollationServer:     collation.Must(collation.Get("utf8_bin")),
-		MaxAllowedPacket:    1073741824,
-		SQLAutoIsNull:       false,
-		Version:             "5.7.12",
-		VersionComment:      "mongosqld " + common.VersionStr,
+		AutoCommit:             true,
+		CharacterSetClient:     collation.MustCharset(collation.GetCharset("utf8")),
+		CharacterSetResults:    collation.MustCharset(collation.GetCharset("utf8")),
+		CollationConnection:    collation.Must(collation.Get("utf8_bin")),
+		CollationDatabase:      collation.Must(collation.Get("utf8_bin")),
+		CollationServer:        collation.Must(collation.Get("utf8_bin")),
+		MaxAllowedPacket:       1073741824,
+		SQLAutoIsNull:          false,
+		Version:                "5.7.12",
+		VersionComment:         "mongosqld " + common.VersionStr,
+		InteractiveTimeoutSecs: 28800,
+		WaitTimeoutSecs:        28800,
 	}
 }
 

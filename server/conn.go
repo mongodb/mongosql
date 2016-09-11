@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
@@ -20,6 +21,7 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/mongodb/mongo-tools/common/log"
+
 	"gopkg.in/mgo.v2"
 	"gopkg.in/tomb.v2"
 )
@@ -210,10 +212,6 @@ func (c *conn) dispatch(data []byte) error {
 	}
 }
 
-func (c *conn) Tomb() *tomb.Tomb {
-	return c.tomb
-}
-
 func (c *conn) handshake() error {
 	if err := c.writeInitialHandshake(); err != nil {
 		c.writeError(err)
@@ -324,8 +322,14 @@ func (c *conn) readHandshakeResponse() error {
 		pos++
 
 		if err == nil {
-			for _, x := range []string{"character_set_client", "character_set_connection", "character_set_results"} {
-				err = c.variables.Set(variable.Name(x), variable.SessionScope, variable.SystemKind, string(col.Charset.Name))
+			names := []variable.Name{
+				variable.CharacterSetClient,
+				variable.CharacterSetConnection,
+				variable.CharacterSetResults,
+			}
+
+			for _, name := range names {
+				err = c.variables.Set(name, variable.SessionScope, variable.SystemKind, string(col.Charset.Name))
 				if err != nil {
 					break
 				}
@@ -386,6 +390,10 @@ func (c *conn) readHandshakeResponse() error {
 	} else {
 		c.clientAuthResponse = data[pos : pos+bytes.IndexByte(data[pos:], 0)]
 		pos += len(c.clientAuthResponse) + 1
+	}
+
+	if (c.capability & CLIENT_INTERACTIVE) != 0 {
+		c.variables.WaitTimeoutSecs = c.variables.InteractiveTimeoutSecs
 	}
 
 	if pos == len(data) {
@@ -475,14 +483,33 @@ func (c *conn) run() {
 		c.close()
 	}()
 
-	for {
-		data, err := c.readPacket()
+	type packetRead struct {
+		data []byte
+		err  error
+	}
 
-		if err != nil {
+	packetReadChan := make(chan packetRead)
+	var pkt packetRead
+
+	for {
+		go func() {
+			data, err := c.readPacket()
+			packetReadChan <- packetRead{data, err}
+		}()
+
+		waitTimeout := time.Duration(c.variables.WaitTimeoutSecs) * time.Second
+
+		select {
+		case <-time.After(waitTimeout):
+			log.Logf(log.Always, "[conn%v] timed out", c.connectionID)
 			return
+		case pkt = <-packetReadChan:
+			if pkt.err != nil {
+				return
+			}
 		}
 
-		if err := c.dispatch(data); err != nil {
+		if err := c.dispatch(pkt.data); err != nil {
 			log.Logf(log.Always, "[conn%v] dispatch error: %v", c.connectionID, err)
 			if err != errBadConn {
 				c.writeError(err)
@@ -508,6 +535,10 @@ func (c *conn) status() uint16 {
 	}
 
 	return 0
+}
+
+func (c *conn) Tomb() *tomb.Tomb {
+	return c.tomb
 }
 
 func (c *conn) useDB(db string) error {
