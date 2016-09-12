@@ -49,7 +49,7 @@ func (e *Evaluator) Schema() schema.Schema {
 // capable of going over all the generated results.
 func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.ConnectionCtx) ([]*evaluator.Column, evaluator.Iter, error) {
 
-	log.Logf(log.DebugHigh, "Preparing query plan for: %#v", parser.String(ast))
+	log.Logf(log.DebugHigh, "[conn%v] preparing query plan for: %#v", conn.ConnectionId(), parser.String(ast))
 
 	plan, err := evaluator.AlgebrizeSelect(ast, conn.DB(), e.config)
 	if err != nil {

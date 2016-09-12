@@ -3,6 +3,7 @@ package server
 import (
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
@@ -16,11 +17,7 @@ func (c *conn) handleCommand(stmt parser.Statement) error {
 		return err
 	}
 
-	err = executor.Run()
-
-	log.Logf(log.DebugLow, "[conn%v] done executing plan", c.ConnectionId())
-
-	if err != nil {
+	if err = executor.Run(); err != nil {
 		return err
 	}
 
@@ -33,8 +30,6 @@ func (c *conn) handleQuery(sql string) (err error) {
 		c.tomb = &tomb.Tomb{}
 	}
 
-	log.Logf(log.DebugLow, "[conn%v] %s\n", c.connectionID, sql)
-
 	defer func() {
 		if e := recover(); e != nil {
 			log.Logf(log.Always, "[conn%v] %s\n", c.connectionID, debug.Stack())
@@ -45,35 +40,45 @@ func (c *conn) handleQuery(sql string) (err error) {
 
 	sql = strings.TrimRight(sql, ";")
 
+	startTime := time.Now()
+
+	log.Logf(log.DebugLow, `[conn%v] parsing "%s"`, c.connectionID, sql)
+
 	var stmt parser.Statement
+
 	stmt, err = parser.Parse(sql)
 	if err != nil {
-
 		// This is an ugly hack such that if someone tries to set some parameter to the default
 		// ignore.  This is because the sql parser barfs.  We should probably fix there for reals.
 		sqlUpper := strings.ToUpper(sql)
 		if len(sqlUpper) > 3 && sqlUpper[0:4] == "SET " {
 			if len(sqlUpper) > 7 && sqlUpper[len(sqlUpper)-8:] == "=DEFAULT" {
 				// wow, this is ugly
+				log.Logf(log.DebugLow, "[conn%v] done executing plan in %v", c.ConnectionId(), time.Now().Sub(startTime))
 				return c.writeOK(nil)
 			}
 		}
-
+		log.Logf(log.DebugLow, "[conn%v] done executing plan in %v", c.ConnectionId(), time.Now().Sub(startTime))
 		return mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, `parse sql '%s' error: %s`, sql, err)
 	}
 
 	switch v := stmt.(type) {
 	case *parser.Select:
-		return c.handleSelect(v, sql, nil)
+		err = c.handleSelect(v, sql, nil)
+		log.Logf(log.DebugLow, "[conn%v] done executing plan in %v", c.ConnectionId(), time.Now().Sub(startTime))
 	case *parser.SimpleSelect:
-		return c.handleSimpleSelect(sql, v)
+		err = c.handleSimpleSelect(sql, v)
+		log.Logf(log.DebugLow, "[conn%v] done executing plan in %v", c.ConnectionId(), time.Now().Sub(startTime))
 	case *parser.Show:
-		return c.handleShow(sql, v)
+		err = c.handleShow(sql, v)
 	case *parser.DDL:
-		return c.handleDDL(v)
+		err = c.handleDDL(v)
 	case *parser.Kill, *parser.Set:
-		return c.handleCommand(stmt)
+		err = c.handleCommand(stmt)
+		log.Logf(log.DebugLow, "[conn%v] done executing plan in %v", c.ConnectionId(), time.Now().Sub(startTime))
 	default:
-		return mysqlerrors.Unknownf("statement %T not supported", stmt)
+		err = mysqlerrors.Unknownf("statement %T not supported", stmt)
 	}
+
+	return err
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/shopspring/decimal"
 )
 
@@ -298,8 +297,6 @@ streamer:
 	if err = iter.Err(); err != nil {
 		return mysqlerrors.Newf(mysqlerrors.ER_QUERY_ON_FOREIGN_DATA_SOURCE, "iterator err: %v", err)
 	}
-
-	log.Logf(log.DebugLow, "[conn%v] done executing plan", c.ConnectionId())
 
 	if !wroteHeaders {
 		if err = writeHeaders(); err != nil {
