@@ -201,23 +201,31 @@ func (g *geo) modifyPath(path string) string {
 	}
 }
 
-func tryGetType(ctx *mappingContext, path string, tc *mongo.TypeContainer) (mongo.Type, bool) {
+func tryGetType(ctx *mappingContext, path string, tc *mongo.TypeContainer) (mType mongo.Type, ok bool) {
 
 	var types sortByDescendingCountTypeSlice = tc.Types
 	types.Sort()
 
+	defer func() {
+		if mongo.UUIDSubtype3Encoding != "" {
+			log.Logf(log.Info, `Using type %s for table "%s", column "%s"`, mongo.UUIDSubtype3Map[mongo.UUIDSubtype3Encoding], ctx.table.Name, path)
+		}
+	}()
+
 	// even if we have no types for this field, certain types of indexes
 	// dictate certain "schemas" and we can leverage that.
 	if indexedType, ok := tryGetTypeFromIndex(ctx, path, types); ok {
-		return indexedType, true
+		mType = indexedType
+		return mType, true
 	}
 
 	if types.Len() == 0 {
-		return nil, false
+		return mType, false
 	}
 
 	if types.Len() == 1 {
-		return types[0], true
+		mType = types[0]
+		return mType, true
 	}
 
 	// we only care about the top 2
@@ -249,17 +257,20 @@ func tryGetType(ctx *mappingContext, path string, tc *mongo.TypeContainer) (mong
 				newA := mongo.NewArray()
 				newA.Types = append(newA.Types, newD)
 				newA.SetCount(array.Count() + t.Count())
-				return newA, true
+				mType = newA
+				return mType, true
 			} else if t.Name() == itemType.Name() {
-				return array, true
+				mType = array
+				return mType, true
 			}
 		}
 	}
 
 	// Either neither were an array, or the array's item type and the other top type
 	// are incompatible so we'll just return the first one.
-	log.Logf(log.Info, "Type conflict for table %q, column %q: using type %q.", ctx.table.Name, path, types[0].Name())
-	return types[0], true
+	log.Logf(log.Info, `Type conflict for table "%s", column "%s": using type %q`, ctx.table.Name, path, types[0].Name())
+	mType = types[0]
+	return mType, true
 }
 
 func tryGetTypeFromIndex(ctx *mappingContext, path string, types sortByDescendingCountTypeSlice) (mongo.Type, bool) {

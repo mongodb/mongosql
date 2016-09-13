@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	DatabaseName = "schema_test"
+	DatabaseName = "test"
 	SSLTestKey   = "SQLPROXY_SSLTEST"
 )
 

@@ -633,11 +633,21 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		return join, nil
 	}
 
+	// prevent join pushdown when UUID subtype 3 encoding is different
+	localMongoType := lookupInfo.localColumn.columnType.MongoType
+	foreignMongoType := lookupInfo.foreignColumn.columnType.MongoType
+	if isUUID(localMongoType) && isUUID(foreignMongoType) {
+		if localMongoType != foreignMongoType {
+			return join, nil
+		}
+	}
+
 	// 4. get lookup fields
 	localFieldName, ok := msLocal.mappingRegistry.lookupFieldName(lookupInfo.localColumn.tableName, lookupInfo.localColumn.columnName)
 	if !ok {
 		return join, nil
 	}
+
 	foreignFieldName, ok := msForeign.mappingRegistry.lookupFieldName(lookupInfo.foreignColumn.tableName, lookupInfo.foreignColumn.columnName)
 	if !ok {
 		return join, nil

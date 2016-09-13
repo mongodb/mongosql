@@ -17,6 +17,8 @@ func (c *conn) formatValue(value interface{}) ([]byte, error) {
 		return c.variables.CharacterSetResults.Encode(Slice(string(v))), nil
 	case evaluator.SQLObjectID:
 		return []byte(string(v)), nil
+	case evaluator.SQLUUID:
+		return []byte(v.String()), nil
 	case evaluator.SQLInt:
 		return strconv.AppendInt(nil, int64(v), 10), nil
 	case evaluator.SQLDecimal128:
@@ -134,6 +136,9 @@ func formatField(collationID uint16, field *Field, value interface{}) error {
 	case evaluator.SQLVarchar:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
+	case evaluator.SQLUUID:
+		field.Charset = collationID
+		field.Type = MYSQL_TYPE_VAR_STRING
 	case evaluator.SQLObjectID:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
@@ -203,18 +208,11 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 
 		j := 0
 
-		var value evaluator.SQLValue
 		for j < numFields {
 			zeroValue := columns[j].SQLType.ZeroValue()
-			value, err = evaluator.NewSQLValueFromSQLColumnExpr(zeroValue, columns[j].SQLType, columns[j].MongoType)
-			if err != nil {
-				return err
-			}
-
+			value := evaluator.NewSQLValue(zeroValue, columns[j].SQLType)
 			name := c.variables.CharacterSetResults.Encode(Slice(columns[j].Name))
-			field := &Field{
-				Name: name,
-			}
+			field := &Field{Name: name}
 
 			if err = formatField(uint16(col.ID), field, value); err != nil {
 				return err
@@ -228,7 +226,6 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 			if err := c.writePacket(data); err != nil {
 				return err
 			}
-
 			j++
 		}
 

@@ -47,6 +47,7 @@ func TestMapping(t *testing.T) {
 		})
 
 		Convey("With a flat document", func() {
+
 			err := collection.IncludeSample(bson.D{
 				{"a", 1},
 				{"b", 1},
@@ -520,6 +521,14 @@ func TestTypeMapping(t *testing.T) {
 		var num4 float64 = 1000.34001
 		var num5 bson.Decimal128 = decimal128
 
+		data := []byte{
+			0x08, 0x07, 0x06, 0x05,
+			0x04, 0x03, 0x02, 0x01,
+			0x10, 0x0f, 0x0e, 0x0d,
+			0x0c, 0x0b, 0x0a, 0x09,
+		}
+
+		mongo.UUIDSubtype3Encoding = "java"
 		typeTests := [][]interface{}{
 			{"string", "varchar", "Hello, world"},
 			{"int32", "numeric", num1},
@@ -530,6 +539,8 @@ func TestTypeMapping(t *testing.T) {
 			{"bool", "boolean", true},
 			{"date", "timestamp", time.Date(2015, 1, 1, 1, 1, 1, 1, time.UTC)},
 			{"[]uint8", "varchar", []byte{1, 2, 3, 4, 5}},
+			{"bson.UUID", "varchar", bson.Binary{0x04, data}},
+			{"bson.UUID_Java_Legacy", "varchar", bson.Binary{0x03, data}},
 		}
 
 		for _, typeTest := range typeTests {

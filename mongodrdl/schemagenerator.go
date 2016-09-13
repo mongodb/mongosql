@@ -3,6 +3,7 @@ package mongodrdl
 import (
 	"fmt"
 	yaml "github.com/10gen/candiedyaml"
+	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -61,6 +62,8 @@ func (schemaGen *SchemaGenerator) Init() error {
 	if schemaGen.ToolOptions.SSL == nil {
 		schemaGen.ToolOptions.SSL = &options.SSL{}
 	}
+
+	mongo.UUIDSubtype3Encoding = schemaGen.OutputOptions.UUIDSubtype3Encoding
 
 	schemaGen.provider, err = db.NewSessionProvider(*schemaGen.ToolOptions)
 	if err != nil {

@@ -1,5 +1,5 @@
 schema:
-- db: schema_test
+- db: test
   tables:
   - table: roundtrip
     collection: roundtrip

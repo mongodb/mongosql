@@ -2903,3 +2903,117 @@ func TestIsTruthyIsFalsy(t *testing.T) {
 		})
 	})
 }
+
+func TestIsUUID(t *testing.T) {
+	Convey("isUUID", t, func() {
+		So(isUUID(schema.MongoUUID), ShouldBeTrue)
+		So(isUUID(schema.MongoUUIDCSharp), ShouldBeTrue)
+		So(isUUID(schema.MongoUUIDJava), ShouldBeTrue)
+		So(isUUID(schema.MongoUUIDOld), ShouldBeTrue)
+		So(isUUID(schema.MongoString), ShouldBeFalse)
+		So(isUUID(schema.MongoGeo2D), ShouldBeFalse)
+		So(isUUID(schema.MongoObjectId), ShouldBeFalse)
+		So(isUUID(schema.MongoBool), ShouldBeFalse)
+		So(isUUID(schema.MongoInt), ShouldBeFalse)
+		So(isUUID(schema.MongoInt64), ShouldBeFalse)
+	})
+}
+
+func TestGetBinaryFromExpr(t *testing.T) {
+
+	Convey("getBinaryFromExpr", t, func() {
+
+		expected := []byte{
+			0x01, 0x02, 0x03, 0x04,
+			0x05, 0x06, 0x07, 0x08,
+			0x09, 0x0a, 0x0b, 0x0c,
+			0x0d, 0x0e, 0x0f, 0x10,
+		}
+
+		Convey("Subject: invalid SQLExpr", func() {
+			_, ok := getBinaryFromExpr(schema.MongoUUID, SQLVarchar("3"))
+			So(ok, ShouldBeFalse)
+		})
+
+		Convey("Subject: valid SQLExpr with dashes", func() {
+			b, ok := getBinaryFromExpr(schema.MongoUUID, SQLVarchar("01020304-0506-0708-090a-0b0c0d0e0f10"))
+			So(ok, ShouldBeTrue)
+			So(b.Kind, ShouldEqual, 0x04)
+			So(b.Data, ShouldResemble, expected)
+
+			b, ok = getBinaryFromExpr(schema.MongoUUIDOld, SQLVarchar("01020304-0506-0708-090a-0b0c0d0e0f10"))
+			So(ok, ShouldBeTrue)
+			So(b.Kind, ShouldEqual, 0x03)
+			So(b.Data, ShouldResemble, expected)
+		})
+
+		Convey("Subject: valid SQLExpr without dashes", func() {
+			b, ok := getBinaryFromExpr(schema.MongoUUIDJava, SQLVarchar("0807060504030201100f0e0d0c0b0a09"))
+			So(ok, ShouldBeTrue)
+			So(b.Kind, ShouldEqual, 0x03)
+			So(b.Data, ShouldResemble, expected)
+
+			b, ok = getBinaryFromExpr(schema.MongoUUIDCSharp, SQLVarchar("0403020106050807090a0b0c0d0e0f10"))
+			So(ok, ShouldBeTrue)
+			So(b.Kind, ShouldEqual, 0x03)
+			So(b.Data, ShouldResemble, expected)
+		})
+	})
+}
+
+func TestNormalizeUUID(t *testing.T) {
+
+	Convey("normalizeUUID", t, func() {
+		expected := []byte{
+			0x01, 0x02, 0x03, 0x04,
+			0x05, 0x06, 0x07, 0x08,
+			0x09, 0x0a, 0x0b, 0x0c,
+			0x0d, 0x0e, 0x0f, 0x10,
+		}
+
+		Convey("Subject: standard UUID", func() {
+			bytes := []byte{
+				0x01, 0x02, 0x03, 0x04,
+				0x05, 0x06, 0x07, 0x08,
+				0x09, 0x0a, 0x0b, 0x0c,
+				0x0d, 0x0e, 0x0f, 0x10,
+			}
+			So(normalizeUUID(schema.MongoUUID, bytes), ShouldBeNil)
+			So(bytes, ShouldResemble, expected)
+		})
+
+		Convey("Subject: old UUID", func() {
+			bytes := []byte{
+				0x01, 0x02, 0x03, 0x04,
+				0x05, 0x06, 0x07, 0x08,
+				0x09, 0x0a, 0x0b, 0x0c,
+				0x0d, 0x0e, 0x0f, 0x10,
+			}
+			So(normalizeUUID(schema.MongoUUIDOld, bytes), ShouldBeNil)
+			So(bytes, ShouldResemble, expected)
+		})
+
+		Convey("Subject: C# Legacy UUID", func() {
+			bytes := []byte{
+				0x04, 0x03, 0x02, 0x01,
+				0x06, 0x05, 0x08, 0x07,
+				0x09, 0x0a, 0x0b, 0x0c,
+				0x0d, 0x0e, 0x0f, 0x10,
+			}
+			So(normalizeUUID(schema.MongoUUIDCSharp, bytes), ShouldBeNil)
+			So(bytes, ShouldResemble, expected)
+		})
+
+		Convey("Subject: Java Legacy UUID", func() {
+			bytes := []byte{
+				0x08, 0x07, 0x06, 0x05,
+				0x04, 0x03, 0x02, 0x01,
+				0x10, 0x0f, 0x0e, 0x0d,
+				0x0c, 0x0b, 0x0a, 0x09,
+			}
+			So(normalizeUUID(schema.MongoUUIDJava, bytes), ShouldBeNil)
+			So(bytes, ShouldResemble, expected)
+		})
+
+	})
+}

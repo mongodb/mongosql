@@ -3,15 +3,15 @@
 #
 data:
 - inline:
-    db: "SelectTest"
+    db: "sTest"
     collection: "select_1"
     docs:
     - { _id: 0, a: 1, b: ~ }
     - { _id: 1, a: 2 }
     - { _id: 2, a: 3 }
 - inline:
-    db: "SelectTest"
-    collection: "select_4"
+    db: "sTest"
+    collection: "select_2"
     docs:
     - { _id: 1, x: 4, y: 1, z: 0 }
     - { _id: 2, x: 7, y: 1, z: 5 }
@@ -19,10 +19,15 @@ data:
     - { _id: 4, x: 7, y: 6, z: 1 }
     - { _id: 5, x: 4, y: 1, z: 5 }
 - inline:
-    db: "randomDB"
-    collection: "select_3"
+    db: "test"
+    collection: "select_1"
     docs:
     - { a: 2 , b: 3}
+- inline:
+    db: "test"
+    collection: "select_2"
+    docs:
+    - {uuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "04"}, csharp:  {"$binary": "BAMCAQYFCAcJCgsMDQ4PEA==", "$type": "03"}, java: {"$binary": "CAcGBQQDAgEQDw4NDAsKCQ==", "$type": "03"}, olduuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "03"} }
 
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
@@ -39,7 +44,7 @@ data:
 # Schema
 #
 schema:
-- db: SelectTest
+- db: sTest
   tables:
   - table: fOo
     collection: "select_1"
@@ -56,19 +61,8 @@ schema:
       MongoType: int
       SqlName: b
       SqlType: int
-  - table: BAr
-    collection: "select_2"
-    columns:
-    - Name: _id
-      MongoType: int
-      SqlName: id
-      SqlType: int
-    - Name: a
-      MongoType: bson.Decimal128
-      SqlName: a
-      SqlType: numeric
   - table: tuples
-    collection: "select_4"
+    collection: "select_2"
     columns:
     - Name: _id
       MongoType: int
@@ -90,11 +84,10 @@ schema:
       MongoType: mongo.Filter
       SqlName: mfil
       SqlType: varchar
-
-- db: randomDB
+- db: test
   tables:
-  - table: foo
-    collection: "select_3"
+  - table: bar
+    collection: "select_1"
     columns:
     - Name: a
       MongoType: int
@@ -104,12 +97,30 @@ schema:
       MongoType: int
       SqlName: ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat
       SqlType: int
-
+  - table: uuid
+    collection: "select_2"
+    columns:
+    - Name: csharp
+      MongoType: bson.UUID_CSharp_Legacy
+      SqlName: csharp
+      SqlType: varchar
+    - Name: java
+      MongoType: bson.UUID_Java_Legacy
+      SqlName: java
+      SqlType: varchar
+    - Name: olduuid
+      MongoType: bson.UUID_Old
+      SqlName: olduuid
+      SqlType: varchar
+    - Name: uuid
+      MongoType: bson.UUID
+      SqlName: uuid
+      SqlType: varchar
 #
 # Tests
 #
 testcases:
-- sql: "select * from SelectTest.foo"
+- sql: "select * from sTest.foo"
   description: "global *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -117,7 +128,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select foo.* from SELEctTest.Foo"
+- sql: "select foo.* from STest.Foo"
   description: "qualified *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -125,7 +136,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select foo.*, foo.* from selectTest.FOO"
+- sql: "select foo.*, foo.* from STest.FOO"
   description: "duplicate qualified *"
   expected_names: ["id", "a", "b", "id", "a", "b"]
   expected_types: [int, int, int, int, int, int]
@@ -133,7 +144,7 @@ testcases:
   - [0, 1, ~, 0, 1, ~]
   - [1, 2, ~, 1, 2, ~]
   - [2, 3, ~, 2, 3, ~]
-- sql: "select f.* from selecttest.fOo f"
+- sql: "select f.* from Stest.fOo f"
   description: "alias qualified *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -141,7 +152,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a, b from selecttEst.foo"
+- sql: "select id, a, b from StEst.foo"
   description: "columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -149,7 +160,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select ID, A, B from selecttest.FOO"
+- sql: "select ID, A, B from Stest.FOO"
   description: "columns with wrong casing"
   expected_names: ["ID", "A", "B"]
   expected_types: [int, int, int]
@@ -157,7 +168,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select foo.id, foo.a, foo.b from sElecttest.foo"
+- sql: "select foo.id, foo.a, foo.b from Stest.foo"
   description: "qualified columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -165,7 +176,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select f.id, f.a, f.b from selecttest.foo f"
+- sql: "select f.id, f.a, f.b from Stest.foo f"
   description: "alias qualified columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -173,7 +184,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a, b, id, a, b from SELECTTESt.foo"
+- sql: "select id, a, b, id, a, b from STESt.foo"
   description: "duplicate columns"
   expected_names: ["id", "a", "b", "id", "a", "b"]
   expected_types: [int, int, int, int, int, int]
@@ -181,7 +192,7 @@ testcases:
   - [0, 1, ~, 0, 1, ~]
   - [1, 2, ~, 1, 2, ~]
   - [2, 3, ~, 2, 3, ~]
-- sql: "select id as d, a as e, b as f from selECTtest.foo"
+- sql: "select id as d, a as e, b as f from Stest.foo"
   description: "aliases"
   expected_names: ["d", "e", "f"]
   expected_types: [int, int, int]
@@ -189,7 +200,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id as a, a as b, b as id from selECTtest.Foo"
+- sql: "select id as a, a as b, b as id from Stest.Foo"
   description: "aliased as another column"
   expected_names: ["a", "b", "id"]
   expected_types: [int, int, int]
@@ -197,7 +208,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a as id, b as id from selECTtest.foO"
+- sql: "select id, a as id, b as id from Stest.foO"
   description: "duplicate aliases"
   expected_names: ["id", "id", "id"]
   expected_types: [int, int, int]
@@ -205,7 +216,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a as ID from selECTtest.foo"
+- sql: "select id, a as ID from Stest.foo"
   description: "aliases differing by case"
   expected_names: ["id", "ID"]
   expected_types: [int, int]
@@ -213,7 +224,7 @@ testcases:
   - [0, 1]
   - [1, 2]
   - [2, 3]
-- sql: "select id, b from selECTtest.foo"
+- sql: "select id, b from Stest.foo"
   description: "subset of columns"
   expected_names: ["id", "b"]
   expected_types: [int, int]
@@ -221,7 +232,7 @@ testcases:
   - [0, ~]
   - [1, ~]
   - [2, ~]
-- sql: "select b, id from selECTtest.foo"
+- sql: "select b, id from Stest.foo"
   description: "subset of columns out of order"
   expected_names: ["b", "id"]
   expected_types: [int, int]
@@ -299,7 +310,7 @@ testcases:
   - [1]
 
 # Exists
-- sql: "select a, exists(select 1 from selECTtest.foo) as p from foo"
+- sql: "select a, exists(select 1 from STEST.foo) as p from foo"
   description: "non-correlated exists"
   expected_names: ["a", "p"]
   expected_types: [int, int]
@@ -307,7 +318,7 @@ testcases:
   - [1, 1]
   - [2, 1]
   - [3, 1]
-- sql: "select exists(select 1 from selECTtest.foo) as p from foo"
+- sql: "select exists(select 1 from Stest.foo) as p from foo"
   description: "non-correlated exists"
   expected_names: ["p"]
   expected_types: [int]
@@ -368,19 +379,19 @@ testcases:
   - [1]
 
 # Long Identifer Names
-- sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat from randomDB.foo"
+- sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat from test.bar"
   description: "long identifier names"
   expected_names: ["ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat"]
   expected_types: [int]
   expected:
   - [2]
-- sql: "select `ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat` from randomDB.foo"
+- sql: "select `ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat` from test.bar"
   description: "long identifier name with dot"
   expected_names: ["ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat"]
   expected_types: [int]
   expected:
   - [3]
-- sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat r from randomDB.foo"
+- sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat r from test.bar"
   description: "long identifier name with alias"
   expected_names: ["r"]
   expected_types: [int]
@@ -566,3 +577,35 @@ testcases:
   expected_types: [varchar]
   expected:
   - [85070591730234615847396907784232501249]
+
+# UUID
+- sql: "select * from test.uuid"
+  description: "uuid bit fiddling"
+  expected_names: ["csharp", "java", "olduuid", "uuid"]
+  expected_types: [varchar, varchar, varchar, varchar]
+  expected:
+  - ["01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10"]
+- sql: "select csharp from test.uuid where csharp=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
+  description: "uuid where clause"
+  expected_names: ["csharp"]
+  expected_types: [varchar]
+  expected:
+  - ["01020304-0506-0708-090a-0b0c0d0e0f10"]
+- sql: "select t2.java from test.uuid t1 INNER JOIN test.uuid t2 on t1.java=t2.java where t1.olduuid=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
+  description: "join using same uuid subtype 3 encoding"
+  expected_names: ["java"]
+  expected_types: ["varchar"]
+  expected:
+  - ["01020304-0506-0708-090a-0b0c0d0e0f10"]
+- sql: "select s.uuid, t.java, q.csharp, r.olduuid from test.uuid q INNER JOIN test.uuid r on q.java = r.java INNER JOIN test.uuid s on r.csharp = s.csharp INNER JOIN test.uuid t on r.olduuid = t.csharp where t.uuid = \"01020304-0506-0708-090a-0b0c0d0e0f10\""
+  description: "nested join using mixed uuid subtype 3 encodings"
+  expected_names: ["uuid", "java", "csharp", "olduuid", ]
+  expected_types: [varchar, varchar, varchar, varchar]
+  expected:
+  - ["01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10"]
+- sql: "select t2.olduuid from test.uuid t1 INNER JOIN test.uuid t2 on t1.csharp=t2.java where t1.olduuid=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
+  description: "join using different uuid subtype 3 encodings"
+  expected_names: ["olduuid"]
+  expected_types: ["varchar"]
+  expected:
+  - ["01020304-0506-0708-090a-0b0c0d0e0f10"]

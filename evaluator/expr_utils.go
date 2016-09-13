@@ -8,6 +8,7 @@ import (
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/shopspring/decimal"
 )
 
@@ -16,6 +17,17 @@ const (
 	likePatternEscapeChar = '\\'
 	maxPrecisionInt       = int64(1 << 53)
 )
+
+func compareBytes(left, right []byte) (int, error) {
+	for i, _ := range left {
+		if left[i] < right[i] {
+			return -1, nil
+		} else if left[i] > right[i] {
+			return 1, nil
+		}
+	}
+	return 0, nil
+}
 
 func compareDecimal128(left, right decimal.Decimal) (int, error) {
 	return left.Cmp(right), nil
@@ -273,6 +285,40 @@ func isTruthy(value SQLValue) bool {
 	}
 }
 
+// isUUID returns true if mongoType is of the UUID subtype.
+func isUUID(mongoType schema.MongoType) bool {
+	uuidTypes := []string{
+		schema.MongoUUID,
+		schema.MongoUUIDCSharp,
+		schema.MongoUUIDJava,
+		schema.MongoUUIDOld,
+	}
+	return util.StringSliceContains(uuidTypes, string(mongoType))
+}
+
+// normalizeUUID takes a UUID's kind and bytes and converts
+// the bytes to the standard UUID representation.
+func normalizeUUID(kind schema.MongoType, bytes []byte) error {
+	if len(bytes) != 16 {
+		return fmt.Errorf("expected UUID bytes to be 16, not %d", len(bytes))
+	}
+
+	switch kind {
+	case schema.MongoUUID, schema.MongoUUIDOld:
+		return nil
+	case schema.MongoUUIDCSharp:
+		reverseByteArray(bytes, 0, 4)
+		reverseByteArray(bytes, 4, 2)
+		reverseByteArray(bytes, 6, 2)
+	case schema.MongoUUIDJava:
+		reverseByteArray(bytes, 0, 8)
+		reverseByteArray(bytes, 8, 8)
+	default:
+		return fmt.Errorf("unrecognized UUID type: %v", kind)
+	}
+	return nil
+}
+
 // preferentialType accepts a variable number of
 // SQLExprs and returns the type of the SQLExpr
 // with the highest preference.
@@ -297,6 +343,7 @@ func preferentialType(exprs ...SQLExpr) schema.SQLType {
 // a lesser precendence in a SQLConvertExpr. If they are
 // not comparable, it returns a non-nil error.
 func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
+
 	leftType, rightType := left.Type(), right.Type()
 
 	if leftType == schema.SQLTuple || rightType == schema.SQLTuple {
@@ -498,6 +545,16 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	}
 
 	return nil, nil, fmt.Errorf("left or right expression must be a tuple")
+}
+
+// reverseByteArray reverses elements in data, beginning
+// at start and ending at start + length.
+func reverseByteArray(data []byte, start, length int) {
+	for left, right := start, start+length-1; left < right; left, right = left+1, right-1 {
+		temp := data[left]
+		data[left] = data[right]
+		data[right] = temp
+	}
 }
 
 // round returns the closest integer value to the

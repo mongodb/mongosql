@@ -134,7 +134,7 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 
 		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.Name)
 		if !ok {
-			ms.err = fmt.Errorf("Unable to find mapping from %v.%v to a field name.", column.Table, column.Name)
+			ms.err = fmt.Errorf("unable to find mapping from %v.%v to a field name", column.Table, column.Name)
 			return false
 		}
 

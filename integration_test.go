@@ -110,6 +110,24 @@ func TestIntegration(t *testing.T) {
 			So(err, ShouldBeNil)
 		})
 	}
+
+	connection := &options.Connection{Host: testMongoHost, Port: testMongoPort}
+	sessionProvider, _ := toolsdb.NewSessionProvider(
+		options.ToolOptions{
+			Auth:       &options.Auth{},
+			Connection: connection,
+			SSL:        getSslOpts(),
+		},
+	)
+
+	session, _ := sessionProvider.GetSession()
+
+	for _, f := range files {
+		conf := mustLoadTestSchema(path.Join("integration_tests", f.Name()))
+		for _, database := range conf.Databases {
+			session.DB(database.Name).DropDatabase()
+		}
+	}
 }
 
 func buildSchemaMaps(conf *schema.Schema) {

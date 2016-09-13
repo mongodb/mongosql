@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"encoding/hex"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -101,7 +102,7 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 			return SQLDecimal128(decimal.Zero)
 		}
 
-	case schema.SQLFloat:
+	case schema.SQLFloat, schema.SQLNumeric, schema.SQLArrNumeric:
 		switch v := value.(type) {
 		case bool:
 			if v {
@@ -147,9 +148,6 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 	case schema.SQLUint64:
 		flt := NewSQLValue(value, schema.SQLFloat)
 		return SQLUint64(flt.Uint64())
-
-	case schema.SQLNumeric:
-		return NewSQLValue(value, schema.SQLFloat)
 
 	case schema.SQLObjectID:
 		switch v := value.(type) {
@@ -200,6 +198,10 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 			return SQLTimestamp{time.Time{}}
 		}
 
+	case schema.SQLUUID:
+		v, _ := NewSQLValueFromUUID(value, sqlType, schema.MongoUUID)
+		return v
+
 	case schema.SQLVarchar:
 		switch v := value.(type) {
 		case bool:
@@ -230,6 +232,38 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 
 	panic(fmt.Errorf("can't convert this type to a SQLValue: %T", value))
 
+}
+
+// NewSQLValueFromUUID is a factory method for creating a SQLUUID
+// from a given value
+func NewSQLValueFromUUID(value interface{}, sqlType schema.SQLType, mongoType schema.MongoType) (SQLValue, error) {
+
+	err := fmt.Errorf("unable to convert '%v' (%T) to %v", value, value, sqlType)
+
+	if !isUUID(mongoType) {
+		return nil, err
+	}
+
+	if sqlType != schema.SQLVarchar {
+		return nil, err
+	}
+
+	switch v := value.(type) {
+	case bson.Binary:
+		if err := normalizeUUID(mongoType, v.Data); err != nil {
+			return nil, err
+		}
+
+		return SQLUUID{mongoType, v.Data}, nil
+	case string:
+		b, ok := getBinaryFromExpr(mongoType, SQLVarchar(v))
+		if !ok {
+			return nil, err
+		}
+		return SQLUUID{mongoType, b.Data}, nil
+	}
+
+	return nil, err
 }
 
 // NewSQLValueFromSQLColumnExpr is a factory method for creating a SQLValue
@@ -369,6 +403,10 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			return SQLNull, nil
 		}
 	case schema.SQLVarchar:
+		if isUUID(mongoType) {
+			return NewSQLValueFromUUID(value, sqlType, mongoType)
+		}
+
 		switch v := value.(type) {
 		case bool:
 			if v {
@@ -927,6 +965,51 @@ func (sd SQLDecimal128) Value() interface{} {
 }
 
 //
+// SQLUUID represents a MongoDB UUID value.
+//
+type SQLUUID struct {
+	kind  schema.MongoType
+	bytes []byte
+}
+
+func (_ SQLUUID) Decimal128() decimal.Decimal {
+	return decimal.Zero
+}
+
+func (uuid SQLUUID) Evaluate(_ *EvalCtx) (SQLValue, error) {
+	return uuid, nil
+}
+
+func (_ SQLUUID) Float64() float64 {
+	return float64(0)
+}
+
+func (_ SQLUUID) Int64() int64 {
+	return int64(0)
+}
+
+func (uuid SQLUUID) String() string {
+	str := hex.EncodeToString(uuid.bytes)
+	return str[0:8] +
+		"-" + str[8:12] +
+		"-" + str[12:16] +
+		"-" + str[16:20] +
+		"-" + str[20:]
+}
+
+func (_ SQLUUID) Type() schema.SQLType {
+	return schema.SQLUUID
+}
+
+func (_ SQLUUID) Uint64() uint64 {
+	return uint64(0)
+}
+
+func (uuid SQLUUID) Value() interface{} {
+	return uuid.bytes
+}
+
+//
 // SQLObjectID represents a MongoDB ObjectID value.
 //
 type SQLObjectID string
@@ -1199,6 +1282,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 			return -i, nil
 		}
 	}
+
 	if left.Type() == right.Type() {
 		switch leftVal := left.(type) {
 		case SQLDate, SQLDecimal128, SQLFloat, SQLInt, SQLUint32, SQLUint64, SQLTimestamp:
@@ -1223,20 +1307,19 @@ func CompareTo(left, right SQLValue) (int, error) {
 
 			s1 := []byte(leftVal.String())
 			s2 := []byte(rightVal.String())
-
-			for i, _ := range s1 {
-				if s1[i] < s2[i] {
-					return -1, nil
-				} else if s1[i] > s2[i] {
-					return 1, nil
-				}
-			}
-			return 0, nil
+			return compareBytes(s1, s2)
 		case SQLNullValue:
 			return 0, nil
+		case SQLUUID:
+			rightVal, ok := right.(SQLUUID)
+			if !ok {
+				return -1, fmt.Errorf("%v is not a valid UUID", right.String())
+			}
+			return compareBytes(leftVal.bytes, rightVal.bytes)
 		}
 	}
-	// Mix types
+
+	// Different types
 	switch lVal := left.(type) {
 	case SQLNullValue:
 		switch right.(type) {
@@ -1300,6 +1383,15 @@ func CompareTo(left, right SQLValue) (int, error) {
 		default:
 			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		}
+	case SQLUUID:
+		switch right.(type) {
+		case SQLVarchar:
+			uuid, _ := getBinaryFromExpr(schema.MongoUUID, right)
+			return compareBytes(lVal.bytes, uuid.Data)
+		default:
+			return compareDecimal128(left.Decimal128(), right.Decimal128())
+		}
+
 	default:
 		switch right.(type) {
 		case SQLNullValue:

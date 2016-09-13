@@ -11,6 +11,16 @@ const (
 	DocumentSchemaTypeName = "document"
 )
 
+var (
+	UUIDSubtype3Encoding = ""
+	UUIDSubtype3Map      = map[string]string{
+		"java":   "bson.UUID_Java_Legacy",
+		"csharp": "bson.UUID_CSharp_Legacy",
+		"old":    "bson.UUID_Old",
+	}
+	uuidMongoType = "bson.UUID"
+)
+
 // +++++++++++++++++++++
 type Type interface {
 	Name() string
@@ -117,7 +127,6 @@ func (c *TypeContainer) getOrAddScalar(name string) *Scalar {
 		t = NewScalar(name)
 		c.Types = append(c.Types, t)
 	}
-
 	return t.(*Scalar)
 }
 
@@ -149,7 +158,25 @@ func (c *TypeContainer) includeSample(value interface{}) error {
 		s := c.getOrAddScalar("date")
 		s.includeSample()
 	default:
-		s := c.getOrAddScalar(fmt.Sprintf("%T", v))
+		var s *Scalar
+
+		switch b := v.(type) {
+		case bson.Binary:
+			switch b.Kind {
+			case 0x03:
+				if UUIDSubtype3Encoding == "" {
+					return fmt.Errorf("Found binary subtype 3 (UUID). Please specify desired encoding using the `-b` flag")
+				}
+				s = c.getOrAddScalar(UUIDSubtype3Map[UUIDSubtype3Encoding])
+			case 0x04:
+				s = c.getOrAddScalar(uuidMongoType)
+			default:
+				return fmt.Errorf("Found unsupported binary subtype: %v", b.Kind)
+			}
+		default:
+			s = c.getOrAddScalar(fmt.Sprintf("%T", v))
+		}
+
 		s.includeSample()
 	}
 

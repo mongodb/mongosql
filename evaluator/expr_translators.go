@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"encoding/hex"
 	"math"
 	"regexp"
 	"strconv"
@@ -903,7 +904,6 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			}
 
 			if mode == 0 {
-
 				return wrapSingleArgFuncWithNullCheck("$week", args[0]), true
 			}
 		case "weekday":
@@ -960,6 +960,13 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 	case SQLBool, SQLFloat, SQLInt, SQLUint32, SQLUint64, SQLVarchar:
 		return bson.M{"$literal": typedE}, true
+
+	case SQLUUID:
+		value := bson.Binary{Kind: 0x03, Data: typedE.bytes}
+		if typedE.kind == schema.MongoUUID {
+			value.Kind = 0x04
+		}
+		return value, true
 
 	case SQLNullValue:
 		return mgoNullLiteral, true
@@ -1151,17 +1158,11 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 		}
 
 	case *SQLEqualsExpr:
-		name, ok := getFieldName(typedE.left, lookupFieldName)
+		match, ok := translateOperator(mgoOperatorEQ, typedE.left, typedE.right, lookupFieldName)
 		if !ok {
 			return nil, e
 		}
-
-		fieldValue, ok := getValue(typedE.right)
-		if !ok {
-			return nil, e
-		}
-
-		return bson.M{name: fieldValue}, nil
+		return match, nil
 	case *SQLGreaterThanExpr:
 		match, ok := translateOperator(mgoOperatorGT, typedE.left, typedE.right, lookupFieldName)
 		if !ok {
@@ -1311,7 +1312,23 @@ func translateOperator(op string, nameExpr, valExpr SQLExpr, lookupFieldName fie
 		return nil, false
 	}
 
-	return bson.M{name: bson.M{op: fieldValue}}, true
+	colExpr, ok := nameExpr.(SQLColumnExpr)
+	mType := colExpr.columnType.MongoType
+	if ok && isUUID(mType) {
+		binary, ok := getBinaryFromExpr(mType, valExpr)
+		if !ok {
+			return nil, false
+		}
+		fieldValue = binary
+	}
+
+	translation := bson.M{name: bson.M{op: fieldValue}}
+
+	if op == mgoOperatorEQ {
+		translation = bson.M{name: fieldValue}
+	}
+
+	return translation, true
 }
 
 func negate(op bson.M) bson.M {
@@ -1354,6 +1371,28 @@ func negate(op bson.M) bson.M {
 	// $not only works as a meta operator on a single operator
 	// so simulate $not using $nor
 	return bson.M{"$nor": []interface{}{op}}
+}
+
+// getBinaryFromExpr attempts to convert e to a bson.Binary -
+// that represents a MongoDB UUID - using mType.
+func getBinaryFromExpr(mType schema.MongoType, e SQLExpr) (bson.Binary, bool) {
+	// we accept UUIDs as string arguments
+	uuidString := strings.Replace(e.String(), "-", "", -1)
+	bytes, err := hex.DecodeString(uuidString)
+	if err != nil {
+		return bson.Binary{}, false
+	}
+
+	err = normalizeUUID(mType, bytes)
+	if err != nil {
+		return bson.Binary{}, false
+	}
+
+	if mType == schema.MongoUUID {
+		return bson.Binary{Kind: 0x04, Data: bytes}, true
+	}
+
+	return bson.Binary{Kind: 0x03, Data: bytes}, true
 }
 
 func getSingleMapEntry(m bson.M) (string, interface{}) {

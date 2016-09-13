@@ -22,6 +22,24 @@ type ColumnType struct {
 }
 
 const (
+	MongoBool       MongoType = "bool"
+	MongoDecimal128           = "bson.Decimal128"
+	MongoDate                 = "date"
+	MongoFilter               = "mongo.Filter"
+	MongoFloat                = "float64"
+	MongoGeo2D                = "geo.2darray"
+	MongoInt                  = "int"
+	MongoInt64                = "int64"
+	MongoNone                 = ""
+	MongoObjectId             = "bson.ObjectId"
+	MongoString               = "string"
+	MongoUUID                 = "bson.UUID"
+	MongoUUIDOld              = "bson.UUID_Old"
+	MongoUUIDJava             = "bson.UUID_Java_Legacy"
+	MongoUUIDCSharp           = "bson.UUID_CSharp_Legacy"
+)
+
+const (
 	SQLArrNumeric SQLType = "numeric[]"
 	SQLBoolean            = "boolean"
 	SQLDate               = "date"
@@ -36,6 +54,7 @@ const (
 	SQLTimestamp          = "timestamp"
 	SQLTuple              = "sqltuple"
 	SQLUint64             = "sqluint64"
+	SQLUUID               = "uuid"
 	SQLVarchar            = "varchar"
 )
 
@@ -73,20 +92,6 @@ func (sqlType SQLType) ZeroValue() interface{} {
 	}
 	return ""
 }
-
-const (
-	MongoInt        MongoType = "int"
-	MongoInt64                = "int64"
-	MongoFloat                = "float64"
-	MongoDecimal128           = "bson.Decimal128"
-	MongoString               = "string"
-	MongoGeo2D                = "geo.2darray"
-	MongoObjectId             = "bson.ObjectId"
-	MongoBool                 = "bool"
-	MongoDate                 = "date"
-	MongoFilter               = "mongo.Filter"
-	MongoNone                 = ""
-)
 
 type (
 	Column struct {
@@ -139,71 +144,51 @@ var (
 )
 
 func (c *Column) validateType() error {
-	switch MongoType(c.MongoType) {
+	err := fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+
+	switch c.MongoType {
 	case MongoBool:
-		switch SQLType(c.SqlType) {
-		case SQLBoolean:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		if c.SqlType == SQLBoolean {
+			err = nil
 		}
 	case MongoDate:
-		switch SQLType(c.SqlType) {
+		switch c.SqlType {
 		case SQLDate, SQLTimestamp:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+			err = nil
 		}
 	case MongoDecimal128:
-		switch SQLType(c.SqlType) {
+		switch c.SqlType {
 		case SQLDecimal128, SQLNumeric, SQLVarchar:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+			err = nil
 		}
 	case MongoFloat:
-		switch SQLType(c.SqlType) {
+		switch c.SqlType {
 		case SQLFloat, SQLNumeric, SQLVarchar:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+			err = nil
 		}
 	case MongoGeo2D:
-		switch SQLType(c.SqlType) {
-		case SQLArrNumeric:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+		if c.SqlType == SQLArrNumeric {
+			err = nil
 		}
 	case MongoInt:
-		switch SQLType(c.SqlType) {
+		switch c.SqlType {
 		case SQLInt, SQLInt64, SQLNumeric, SQLVarchar:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+			err = nil
 		}
 	case MongoInt64:
-		switch SQLType(c.SqlType) {
+		switch c.SqlType {
 		case SQLInt64, SQLNumeric, SQLVarchar:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+			err = nil
 		}
-	case MongoObjectId:
-		switch SQLType(c.SqlType) {
-		case SQLVarchar:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
-		}
-	case MongoString:
-		switch SQLType(c.SqlType) {
-		case SQLVarchar:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
-		}
-	case MongoFilter:
-		switch SQLType(c.SqlType) {
-		case SQLVarchar:
-		default:
-			return fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+	case MongoObjectId, MongoString, MongoFilter, MongoUUID, MongoUUIDCSharp, MongoUUIDJava, MongoUUIDOld:
+		if c.SqlType == SQLVarchar {
+			err = nil
 		}
 	default:
-		return fmt.Errorf("unsupported mongo type: '%s'", c.MongoType)
+		err = fmt.Errorf("unsupported mongo type: '%s'", c.MongoType)
 	}
-	return nil
+
+	return err
 }
 
 func (t *Table) validateColumnTypes() error {

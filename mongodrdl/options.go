@@ -10,8 +10,9 @@ See http://docs.mongodb.org/manual/reference/program/mongodrdl/ for more informa
 
 // OutputOptions defines the set of options for writing schema.
 type OutputOptions struct {
-	CustomFilterField string `long:"customFilterField" short:"f" description:"the name of the field to use with a custom mongo filter field (defaults to no custom filter field)"`
-	Out               string `long:"out" short:"o" description:"output file, or '-' for standard out (defaults to standard out)" default-mask:"-"`
+	CustomFilterField    string `long:"customFilterField" value-name:"<filter-field-name>" short:"f" description:"the name of the field to use with a custom mongo filter field (defaults to no custom filter field)"`
+	UUIDSubtype3Encoding string `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
+	Out                  string `long:"out" short:"o" description:"output file, or '-' for standard out (defaults to standard out)" default-mask:"-"`
 }
 
 // Name returns a human-readable group name for output options.
