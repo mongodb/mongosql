@@ -73,7 +73,7 @@ func NewSessionContainer(global *Container) *Container {
 	}
 
 	for _, def := range definitions {
-		if def.GetValue != nil && def.SetValue != nil {
+		if !def.Dummy && def.GetValue != nil && def.SetValue != nil {
 			value := def.GetValue(global)
 			def.SetValue(c, value)
 		}

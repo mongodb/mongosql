@@ -126,7 +126,7 @@ testcases:
   expected_names: ["VARIABLE_NAME", "VARIABLE_VALUE"]
   expected_types: [string, string]
   expected: 
-  - ["autocommit", "1"]
+  - ["Ndb_slave_max_replicated_epoch", "unimplemented"]
 
 # SESSION VARIABLES
 - sql: "select * from information_schema.session_variables order by variable_name limit 1"
@@ -134,4 +134,4 @@ testcases:
   expected_names: ["VARIABLE_NAME", "VARIABLE_VALUE"]
   expected_types: [string, string]
   expected: 
-  - ["autocommit", "1"]
+  - ["Ndb_slave_max_replicated_epoch", "unimplemented"]

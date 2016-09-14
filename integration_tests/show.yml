@@ -140,21 +140,36 @@ testcases:
 #    - ["test"]
 #    - ["blah"]
 
-- sql: "SHOW VARIABLES LIKE '%auto%'"
+- sql: "SHOW VARIABLES LIKE '%auto_incr%'"
   expected_types: [varchar, varchar]
   expected: 
-    - ["autocommit", "1"]
-    - ["sql_auto_is_null", "0"]
-- sql: "SHOW SESSION VARIABLES LIKE '%auto%'"
+    - ["auto_increment_increment", "1"]
+    - ["auto_increment_offset", "1"]
+- sql: "SHOW SESSION VARIABLES LIKE '%auto_incr%'"
   expected_types: [varchar, varchar]
   expected: 
-    - ["autocommit", "1"]
-    - ["sql_auto_is_null", "0"]
-- sql: "SHOW GLOBAL VARIABLES LIKE '%auto%'"
+    - ["auto_increment_increment", "1"]
+    - ["auto_increment_offset", "1"]
+- sql: "SHOW GLOBAL VARIABLES LIKE '%auto_incr%'"
   expected_types: [varchar, varchar]
   expected: 
-    - ["autocommit", "1"]
-    - ["sql_auto_is_null", "0"]
+    - ["auto_increment_increment", "1"]
+    - ["auto_increment_offset", "1"]
+- sql: "SHOW VARIABLES LIKE '%info%'"
+  expected_types: [varchar, varchar]
+  expected:
+    - ["master_info_repository", "FILE"]
+    - ["ndbinfo_database", "ndbinfo"]
+    - ["ndbinfo_max_bytes", "0"]
+    - ["ndbinfo_max_rows", "10"]
+    - ["ndbinfo_offline", "0"]
+    - ["ndbinfo_show_hidden", "0"]
+    - ["ndbinfo_table_prefix", "ndb$"]
+    - ["ndbinfo_version", ""]
+    - ["relay_log_info_file", "relay-log.info"]
+    - ["relay_log_info_repository", "FILE"]
+    - ["sync_master_info", "10000"]
+    - ["sync_relay_log_info", "10000"]
 - sql: "SHOW GLOBAL VARIABLES WHERE Variable_name = 'autocommit'"
   expected_types: [varchar, varchar]
   expected: 

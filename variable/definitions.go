@@ -28,6 +28,7 @@ const (
 )
 
 type definition struct {
+	Dummy            bool
 	Name             Name
 	Kind             Kind
 	AllowedSetScopes Scope
@@ -45,6 +46,13 @@ const (
 )
 
 func init() {
+	// Unimplemented variables
+	for _, udef := range unimplementedDefinitions {
+		udef.Dummy = true
+		definitions[udef.Name] = udef
+	}
+
+	//  variables
 	definitions[Autocommit] = &definition{
 		Name:             Autocommit,
 		Kind:             SystemKind,

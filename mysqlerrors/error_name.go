@@ -622,7 +622,7 @@ var mySQLErrName = map[uint16]string{
 	WARN_OPTION_IGNORED:                                                 "<%-.64s> option ignored",
 	WARN_PLUGIN_DELETE_BUILTIN:                                          "Built-in plugins cannot be deleted",
 	WARN_PLUGIN_BUSY:                                                    "Plugin is busy and will be uninstalled on shutdown",
-	ER_VARIABLE_IS_READONLY:                                             "%s variable '%s' is read-only. Use SET %s to assign the value",
+	ER_VARIABLE_IS_READONLY:                                             "%s variable '%s' is read-only.",
 	ER_WARN_ENGINE_TRANSACTION_ROLLBACK:                                 "Storage engine %s does not support rollback for this statement. Transaction rolled back and must be restarted",
 	ER_SLAVE_HEARTBEAT_FAILURE:                                          "Unexpected master's heartbeat data: %s",
 	ER_SLAVE_HEARTBEAT_VALUE_OUT_OF_RANGE:                               "The requested value for the heartbeat period is either negative or exceeds the maximum allowed (%s seconds).",

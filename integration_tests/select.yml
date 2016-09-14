@@ -609,3 +609,17 @@ testcases:
   expected_types: ["varchar"]
   expected:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10"]
+
+# Variables
+- sql: "SELECT COUNT(Variable_name) from information_schema.session_variables"
+  expected_types: [integer]
+  expected:
+    - ["651"]
+- sql: "SELECT COUNT(Variable_name) from information_schema.global_variables"
+  expected_types: [integer]
+  expected:
+    - ["651"]
+- sql: "SELECT COUNT(Variable_name) from information_schema.global_variables WHERE Variable_name LIKE '%validate%'"
+  expected_types: [integer]
+  expected:
+    - ["9"]
