@@ -25,6 +25,8 @@ type Container struct {
 
 	AutoCommit             bool
 	CharacterSetClient     *collation.Charset
+	CharacterSetConnection *collation.Charset
+	CharacterSetDatabase   *collation.Charset
 	CharacterSetResults    *collation.Charset
 	CollationConnection    *collation.Collation
 	CollationDatabase      *collation.Collation
@@ -46,6 +48,8 @@ func NewGlobalContainer() *Container {
 		// default values
 		AutoCommit:             true,
 		CharacterSetClient:     collation.MustCharset(collation.GetCharset("utf8")),
+		CharacterSetConnection: collation.MustCharset(collation.GetCharset("utf8")),
+		CharacterSetDatabase:   collation.MustCharset(collation.GetCharset("utf8")),
 		CharacterSetResults:    collation.MustCharset(collation.GetCharset("utf8")),
 		CollationConnection:    collation.Must(collation.Get("utf8_bin")),
 		CollationDatabase:      collation.Must(collation.Get("utf8_bin")),

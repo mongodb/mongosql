@@ -196,6 +196,7 @@ testcases:
 - sql: "SHOW COLLATION LIKE '%sinhala%'"
   expected_types: [varchar, varchar, int, varchar, varchar, int]
   expected:
+    - ["ucs2_sinhala_ci", "ucs2", 147, "No", "Yes", 8]
     - ["utf16_sinhala_ci", "utf16", 120, "No", "Yes", 8]
     - ["utf32_sinhala_ci", "utf32", 179, "No", "Yes", 8]
     - ["utf8_sinhala_ci", "utf8", 211, "No", "Yes", 8]

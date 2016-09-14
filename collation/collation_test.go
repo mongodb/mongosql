@@ -15,7 +15,7 @@ func TestGet(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(subject.Name, ShouldEqual, collation.Name("utf8_bin"))
 			So(subject.ID, ShouldEqual, collation.ID(83))
-			So(subject.Charset.Name, ShouldEqual, collation.CharsetName("utf8"))
+			So(subject.DefaultCharsetName, ShouldEqual, collation.CharsetName("utf8"))
 		})
 
 		Convey("With an invalid Name", func() {
@@ -33,7 +33,7 @@ func TestGetByID(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(subject.Name, ShouldEqual, collation.Name("utf8_bin"))
 			So(subject.ID, ShouldEqual, collation.ID(83))
-			So(subject.Charset.Name, ShouldEqual, collation.CharsetName("utf8"))
+			So(subject.DefaultCharsetName, ShouldEqual, collation.CharsetName("utf8"))
 		})
 
 		Convey("With an invalid ID", func() {
@@ -50,7 +50,7 @@ func TestMust(t *testing.T) {
 			subject := collation.Must(collation.Get(collation.Name("utf8_bin")))
 			So(subject.Name, ShouldEqual, collation.Name("utf8_bin"))
 			So(subject.ID, ShouldEqual, collation.ID(83))
-			So(subject.Charset.Name, ShouldEqual, collation.CharsetName("utf8"))
+			So(subject.DefaultCharsetName, ShouldEqual, collation.CharsetName("utf8"))
 		})
 
 		Convey("With an invalid CharsetName", func() {

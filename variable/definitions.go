@@ -76,7 +76,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.CollationConnection.Charset.Name) },
+		GetValue:         func(c *Container) interface{} { return string(c.CharacterSetConnection.Name) },
 		SetValue:         setCharacterSetConnection,
 	}
 
@@ -85,7 +85,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.CollationDatabase.Charset.Name) },
+		GetValue:         func(c *Container) interface{} { return string(c.CharacterSetDatabase.Name) },
 		SetValue:         setCharacterSetDatabase,
 	}
 
@@ -259,6 +259,7 @@ func setCharacterSetConnection(c *Container, v interface{}) error {
 		return err
 	}
 
+	c.CharacterSetConnection = cs
 	c.CollationConnection = col
 	return nil
 }
@@ -283,6 +284,7 @@ func setCharacterSetDatabase(c *Container, v interface{}) error {
 		return err
 	}
 
+	c.CharacterSetDatabase = cs
 	c.CollationDatabase = col
 	return nil
 }
@@ -321,6 +323,12 @@ func setCollationConnection(c *Container, v interface{}) error {
 		return err
 	}
 
+	cs, err := collation.GetCharset(col.DefaultCharsetName)
+	if err != nil {
+		return err
+	}
+
+	c.CharacterSetConnection = cs
 	c.CollationConnection = col
 	return nil
 }
@@ -340,6 +348,12 @@ func setCollationDatabase(c *Container, v interface{}) error {
 		return err
 	}
 
+	cs, err := collation.GetCharset(col.DefaultCharsetName)
+	if err != nil {
+		return err
+	}
+
+	c.CharacterSetDatabase = cs
 	c.CollationDatabase = col
 	return nil
 }

@@ -32,6 +32,7 @@ type Charset struct {
 	encoder *encoding.Encoder
 }
 
+// NullCharset is the noop charset.
 var NullCharset = &Charset{
 	Name:                 CharsetName(""),
 	DefaultCollationName: "binary",

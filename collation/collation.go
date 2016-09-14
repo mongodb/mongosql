@@ -37,10 +37,10 @@ type Collation struct {
 	// ID is the id of the collation.
 	ID ID
 	// Default indicates if this collation is
-	// the default for its characters.
+	// the default for its character set.
 	Default bool
-	// Charset is the charset for the collation.
-	Charset *Charset
+	// DefaultCharsetName indicates the default character set for this collation.
+	DefaultCharsetName CharsetName
 }
 
 // GetAll gets all available collations.
@@ -68,17 +68,9 @@ func Get(name Name) (*Collation, error) {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COLLATION, fmt.Sprintf("name(%v)", name))
 	}
 
-	if collation.Charset != nil {
-		return collation, nil
-	}
-
 	parts := strings.SplitN(string(collation.Name), "_", 2)
-	cs, err := GetCharset(CharsetName(parts[0]))
-	if err != nil {
-		return nil, err
-	}
+	collation.DefaultCharsetName = CharsetName(parts[0])
 
-	collation.Charset = cs
 	return collation, nil
 }
 
@@ -89,17 +81,9 @@ func GetByID(id ID) (*Collation, error) {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COLLATION, fmt.Sprintf("id(%v)", id))
 	}
 
-	if collation.Charset != nil {
-		return collation, nil
-	}
-
 	parts := strings.SplitN(string(collation.Name), "_", 2)
-	cs, err := GetCharset(CharsetName(parts[0]))
-	if err != nil {
-		return nil, err
-	}
+	collation.DefaultCharsetName = CharsetName(parts[0])
 
-	collation.Charset = cs
 	return collation, nil
 }
 
