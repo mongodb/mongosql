@@ -2,9 +2,9 @@ package collation
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
+	"golang.org/x/text/language"
 )
 
 func init() {
@@ -28,6 +28,9 @@ type ID uint8
 
 // Collation defines a collation.
 type Collation struct {
+	language        language.Tag
+	caseInsensitive bool
+
 	// SortLen is related to the amount of memory
 	// required to sort strings expressed in
 	// collation's character set.
@@ -36,8 +39,7 @@ type Collation struct {
 	Name Name
 	// ID is the id of the collation.
 	ID ID
-	// Default indicates if this collation is
-	// the default for its character set.
+	// Default indicates if this collation is the default for its character set.
 	Default bool
 	// DefaultCharsetName indicates the default character set for this collation.
 	DefaultCharsetName CharsetName
@@ -68,9 +70,6 @@ func Get(name Name) (*Collation, error) {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COLLATION, fmt.Sprintf("name(%v)", name))
 	}
 
-	parts := strings.SplitN(string(collation.Name), "_", 2)
-	collation.DefaultCharsetName = CharsetName(parts[0])
-
 	return collation, nil
 }
 
@@ -80,9 +79,6 @@ func GetByID(id ID) (*Collation, error) {
 	if !ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COLLATION, fmt.Sprintf("id(%v)", id))
 	}
-
-	parts := strings.SplitN(string(collation.Name), "_", 2)
-	collation.DefaultCharsetName = CharsetName(parts[0])
 
 	return collation, nil
 }
