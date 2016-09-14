@@ -216,7 +216,7 @@ func (sds *SchemaDataSourceStage) gatherCollationRows(ctx *ExecutionCtx) []Value
 
 		row := Values{
 			sds.getValue(isCollationHeaders[0], c.Name),
-			sds.getValue(isCollationHeaders[1], string(c.DefaultCharsetName)),
+			sds.getValue(isCollationHeaders[1], string(c.CharsetName)),
 			sds.getValue(isCollationHeaders[2], uint8(c.ID)),
 			sds.getValue(isCollationHeaders[3], isDefault),
 			sds.getValue(isCollationHeaders[4], "Yes"),

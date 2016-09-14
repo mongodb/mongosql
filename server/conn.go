@@ -369,7 +369,7 @@ func (c *conn) readHandshakeResponse() error {
 			}
 
 			for _, name := range names {
-				err = c.variables.Set(name, variable.SessionScope, variable.SystemKind, string(col.DefaultCharsetName))
+				err = c.variables.Set(name, variable.SessionScope, variable.SystemKind, string(col.CharsetName))
 				if err != nil {
 					break
 				}

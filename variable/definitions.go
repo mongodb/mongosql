@@ -323,7 +323,7 @@ func setCollationConnection(c *Container, v interface{}) error {
 		return err
 	}
 
-	cs, err := collation.GetCharset(col.DefaultCharsetName)
+	cs, err := collation.GetCharset(col.CharsetName)
 	if err != nil {
 		return err
 	}
@@ -348,7 +348,7 @@ func setCollationDatabase(c *Container, v interface{}) error {
 		return err
 	}
 
-	cs, err := collation.GetCharset(col.DefaultCharsetName)
+	cs, err := collation.GetCharset(col.CharsetName)
 	if err != nil {
 		return err
 	}
