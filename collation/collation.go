@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
+	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 )
 
@@ -30,6 +31,7 @@ type ID uint8
 type Collation struct {
 	language        language.Tag
 	caseInsensitive bool
+	collator        *collate.Collator
 
 	// SortLen is related to the amount of memory
 	// required to sort strings expressed in
@@ -45,22 +47,28 @@ type Collation struct {
 	DefaultCharsetName CharsetName
 }
 
-// GetAll gets all available collations.
-func GetAll() []*Collation {
-	allCollations := []*Collation{}
-
-	for _, collation := range collations {
-		c, err := Get(collation.Name)
-		if err != nil {
-			// certain character sets aren't supported
-			// thus collations that rely on such sets
-			// are omitted
-			continue
-		}
-		allCollations = append(allCollations, c)
+func (c *Collation) ensureCollator() {
+	if c.collator != nil {
+		return
 	}
 
-	return allCollations
+	opts := []collate.Option{collate.OptionsFromTag(c.language)}
+	if c.caseInsensitive {
+		opts = append(opts, collate.IgnoreCase)
+	}
+
+	c.collator = collate.New(c.language, opts...)
+}
+
+// CompareString returns an integer comparing the two strings. The result will be 0 if a==b, -1 if a < b, and +1 if a > b.
+func (c *Collation) CompareString(a, b string) int {
+	c.ensureCollator()
+	return c.collator.CompareString(a, b)
+}
+
+// GetAll gets all available collations.
+func GetAll() []*Collation {
+	return collations
 }
 
 // Get gets a collation by its name.
