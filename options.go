@@ -33,7 +33,7 @@ type OptionGroup interface {
 }
 
 type AuthOpts struct {
-	Auth bool `long:"auth" description:"use authentication/authorization ('ssl-pem-file' is required when using auth)"`
+	Auth bool `long:"auth" description:"use authentication/authorization ('sslPEMKeyFile' is required when using auth)"`
 }
 
 func (_ AuthOpts) Name() string {
@@ -58,8 +58,8 @@ func (_ GeneralOpts) Name() string {
 }
 
 type LogOpts struct {
-	LogAppend bool   `long:"logappend" description:"append new loggin output to existing log file"`
-	LogPath   string `long:"logpath" description:"path to a log file for storing logging output (defaults to stderr)"`
+	LogAppend bool   `long:"logAppend" description:"append new logging output to existing log file"`
+	LogPath   string `long:"logPath" description:"path to a log file for storing logging output (defaults to stderr)"`
 	Verbose   []bool `short:"v" long:"verbose" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv)"`
 }
 
@@ -68,10 +68,10 @@ func (_ LogOpts) Name() string {
 }
 
 type MongoOpts struct {
-	MongoAllowInvalidCerts bool   `long:"mongo-ssl-allow-invalid-certs" description:"don't require the cert presented by the MongoDB server to be valid, when using --mongo-ssl"`
-	MongoCAFile            string `long:"mongo-ssl-ca-file" description:"path to a CA certs file to use for authenticating certs from MongoDB, when using --mongo-ssl"`
-	MongoPEMFile           string `long:"mongo-ssl-pem-file" description:"path to a file containing the cert and private key for connecting to MongoDB, when using --mongo-ssl"`
-	MongoPEMFilePassword   string `long:"mongo-ssl-pem-file-password" description:"password to decrypt private key in mongo-ssl-pem-file"`
+	MongoAllowInvalidCerts bool   `long:"mongo-sslAllowInvalidCertificates" description:"don't require the certificate presented by the MongoDB server to be valid, when using --mongo-ssl"`
+	MongoCAFile            string `long:"mongo-sslCAFile" description:"path to a CA certificate file to use for authenticating certificates from MongoDB, when using --mongo-ssl"`
+	MongoPEMFile           string `long:"mongo-sslPEMKeyFile" description:"path to a file containing the certificate and private key for connecting to MongoDB, when using --mongo-ssl"`
+	MongoPEMFilePassword   string `long:"mongo-sslPEMKeyPassword" description:"password to decrypt private key in mongo-sslPEMKeyFile"`
 	MongoSSL               bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
 	MongoTimeout           int64  `long:"mongo-timeout" description:"seconds to wait for a server to respond when connecting or on follow up operations" default:"30" hidden:"true"`
 	MongoURI               string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to" default:"mongodb://localhost:27017"`
@@ -83,7 +83,7 @@ func (_ MongoOpts) Name() string {
 
 type SchemaOpts struct {
 	Schema    string `long:"schema" description:"the path to a schema file"`
-	SchemaDir string `long:"schema-dir" description:"the path to a directory containing schema files to load"`
+	SchemaDir string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
 }
 
 func (_ SchemaOpts) Name() string {
@@ -91,9 +91,9 @@ func (_ SchemaOpts) Name() string {
 }
 
 type SSLOpts struct {
-	SSLAllowInvalidCerts bool   `long:"ssl-allow-invalid-certs" description:"don't require the cert presented by the client to be valid"`
-	SSLCAFile            string `long:"ssl-ca-file" description:"path to a CA certs file to use for authenticating certs from a client"`
-	SSLPEMFile           string `long:"ssl-pem-file" description:"path to a file containing the cert and private key establishing a connection with a client"`
+	SSLAllowInvalidCerts bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
+	SSLCAFile            string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
+	SSLPEMFile           string `long:"sslPEMKeyFile" description:"path to a file containing the certificate and private key establishing a connection with a client"`
 }
 
 func (_ SSLOpts) Name() string {
@@ -150,16 +150,16 @@ func (o Options) Parse() error {
 
 func (o Options) Validate() error {
 	if o.Schema == "" && o.SchemaDir == "" {
-		return fmt.Errorf("must specify either --schema or --schema-dir")
+		return fmt.Errorf("must specify either --schema or --schemaDirectory")
 	}
 	if o.Schema != "" && o.SchemaDir != "" {
-		return fmt.Errorf("must specify only one of --schema or --schema-dir")
+		return fmt.Errorf("must specify only one of --schema or --schemaDirectory")
 	}
 	if !o.MongoSSL && (len(o.MongoPEMFile) > 0 || len(o.MongoCAFile) > 0 || o.MongoAllowInvalidCerts) {
 		return fmt.Errorf("must specify --mongo-ssl to use SSL options")
 	}
 	if o.Auth && o.SSLPEMFile == "" {
-		return fmt.Errorf("must specify --ssl-pem-file when using --auth")
+		return fmt.Errorf("must specify --sslPEMKeyFile when using --auth")
 	}
 
 	return nil
