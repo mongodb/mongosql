@@ -3,6 +3,8 @@ package evaluator
 import (
 	"fmt"
 	"sort"
+
+	"github.com/10gen/sqlproxy/collation"
 )
 
 // OrderBy sorts records according to one or more keys.
@@ -23,6 +25,8 @@ func NewOrderByStage(source PlanStage, reqCols []SQLExpr, terms ...*orderByTerm)
 
 type OrderByIter struct {
 	source Iter
+
+	collation *collation.Collation
 
 	terms []*orderByTerm
 
@@ -71,9 +75,11 @@ func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	iter := &OrderByIter{
-		source: sourceIter,
-		terms:  ob.terms,
-		ctx:    ctx}
+		source:    sourceIter,
+		terms:     ob.terms,
+		ctx:       ctx,
+		collation: ob.Collation(),
+	}
 
 	return iter, nil
 }
@@ -101,7 +107,7 @@ func (ob *OrderByIter) sortRows() (orderByRows, error) {
 
 	for ob.source.Next(row) {
 
-		ctx := NewEvalCtx(ob.ctx, row)
+		ctx := NewEvalCtx(ob.ctx, ob.collation, row)
 		var values []SQLValue
 		for _, t := range ob.terms {
 			v, err := t.expr.Evaluate(ctx)
@@ -161,6 +167,10 @@ func (ob *OrderByIter) Err() error {
 
 func (ob *OrderByStage) Columns() (columns []*Column) {
 	return ob.source.Columns()
+}
+
+func (ob *OrderByStage) Collation() *collation.Collation {
+	return ob.source.Collation()
 }
 
 func (ob *OrderByStage) clone() *OrderByStage {

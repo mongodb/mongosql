@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/variable"
 	"gopkg.in/mgo.v2"
@@ -47,14 +48,22 @@ func NewExecutionCtx(connCtx ConnectionCtx) *ExecutionCtx {
 type EvalCtx struct {
 	*ExecutionCtx
 	Rows []*Row
+
+	collation *collation.Collation
 }
 
 // NewEvalCtx creates a new evaluation context.
-func NewEvalCtx(execCtx *ExecutionCtx, rows ...*Row) *EvalCtx {
+func NewEvalCtx(execCtx *ExecutionCtx, collation *collation.Collation, rows ...*Row) *EvalCtx {
 	return &EvalCtx{
 		ExecutionCtx: execCtx,
 		Rows:         rows,
+		collation:    collation,
 	}
+}
+
+// WithRows copies the EvalCtx but uses new rows.
+func (ctx *EvalCtx) WithRows(rows ...*Row) *EvalCtx {
+	return NewEvalCtx(ctx.ExecutionCtx, ctx.collation, rows...)
 }
 
 // CreateChildExecutionCtx creates a child ExecutionCtx.

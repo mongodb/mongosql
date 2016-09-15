@@ -1,5 +1,7 @@
 package evaluator
 
+import "github.com/10gen/sqlproxy/collation"
+
 // ProjectStage handles taking sourced rows and projecting them into a different shape.
 type ProjectStage struct {
 	// projectedColumns holds the columns and/or expressions used in
@@ -21,6 +23,8 @@ func NewProjectStage(source PlanStage, projectedColumns ...ProjectedColumn) *Pro
 type ProjectIter struct {
 	source Iter
 
+	collation *collation.Collation
+
 	projectedColumns ProjectedColumns
 
 	// err holds any error that may have occurred during processing
@@ -40,6 +44,7 @@ func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		projectedColumns: pj.projectedColumns,
 		ctx:              ctx,
 		source:           sourceIter,
+		collation:        pj.Collation(),
 	}, nil
 
 }
@@ -52,7 +57,7 @@ func (pj *ProjectIter) Next(r *Row) bool {
 		return false
 	}
 
-	evalCtx := NewEvalCtx(pj.ctx, r)
+	evalCtx := NewEvalCtx(pj.ctx, pj.collation, r)
 
 	values := Values{}
 	for _, projectedColumn := range pj.projectedColumns {
@@ -93,6 +98,10 @@ func (pj *ProjectStage) Columns() (columns []*Column) {
 	}
 
 	return columns
+}
+
+func (pj *ProjectStage) Collation() *collation.Collation {
+	return pj.source.Collation()
 }
 
 func (pj *ProjectIter) Close() error {

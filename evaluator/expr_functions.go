@@ -98,7 +98,7 @@ func (f *SQLAggFunctionExpr) avgFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	floatSum, correction := 0.0, 0.0
 
 	for _, row := range ctx.Rows {
-		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
+		evalCtx := ctx.WithRows(row)
 		for _, expr := range f.Exprs {
 			eval, err := expr.Evaluate(evalCtx)
 			if err != nil {
@@ -162,7 +162,7 @@ func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}
 	inDecimalRange, decimalOne := false, decimal.NewFromFloat(1.0)
 
 	for _, row := range ctx.Rows {
-		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
+		evalCtx := ctx.WithRows(row)
 		for _, expr := range f.Exprs {
 			eval, err := expr.Evaluate(evalCtx)
 			if err != nil {
@@ -202,7 +202,7 @@ func (f *SQLAggFunctionExpr) countFunc(ctx *EvalCtx, distinctMap map[interface{}
 func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
 	var max SQLValue = SQLNull
 	for _, row := range ctx.Rows {
-		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
+		evalCtx := ctx.WithRows(row)
 		for _, expr := range f.Exprs {
 			eval, err := expr.Evaluate(evalCtx)
 			if err != nil {
@@ -232,7 +232,7 @@ func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
 func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 	var min SQLValue = SQLNull
 	for _, row := range ctx.Rows {
-		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
+		evalCtx := ctx.WithRows(row)
 		for _, expr := range f.Exprs {
 			eval, err := expr.Evaluate(evalCtx)
 			if err != nil {
@@ -272,7 +272,7 @@ func (f *SQLAggFunctionExpr) sumFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	allNull := true
 
 	for _, row := range ctx.Rows {
-		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
+		evalCtx := ctx.WithRows(row)
 		for _, expr := range f.Exprs {
 			eval, err := expr.Evaluate(evalCtx)
 			if err != nil {
@@ -339,7 +339,7 @@ func (f *SQLAggFunctionExpr) stdFunc(ctx *EvalCtx, distinctMap map[interface{}]b
 	isDecimal := false
 
 	for _, row := range ctx.Rows {
-		evalCtx := NewEvalCtx(ctx.ExecutionCtx, row)
+		evalCtx := ctx.WithRows(row)
 		for _, expr := range f.Exprs {
 			eval, err := expr.Evaluate(evalCtx)
 			if err != nil {

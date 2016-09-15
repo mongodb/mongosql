@@ -197,7 +197,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		}
 
 		if !matches {
-			return &EmptyStage{filter.Columns()}, nil
+			return &EmptyStage{filter.Columns(), filter.Collation()}, nil
 		}
 
 		// otherwise, the filter simply gets removed from the tree

@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/client"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/variable"
 	. "github.com/smartystreets/goconvey/convey"
@@ -70,13 +71,13 @@ func getOptions(t *testing.T) options.SqldOptions {
 		opts.MongoAllowInvalidCerts = true
 		opts.MongoPEMKeyFile = "testdata/client.pem"
 	}
-
 	return opts
 }
 
 func TestMongoSourcePlanStage(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
+	infoOne := getMongoDBInfo(cfgOne, mongodb.AllPrivileges)
 	sessionProvider, err := client.NewSqldSessionProvider(getOptions(t))
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
@@ -128,7 +129,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 				ConnectionCtx: cCtx,
 			}
 
-			plan, err := NewMongoSourceStage(1, cfgOne, dbOne, tableTwoName, "")
+			plan, err := NewMongoSourceStage(1, cfgOne, infoOne, dbOne, tableTwoName, "")
 			So(err, ShouldBeNil)
 			iter, err := plan.Open(ctx)
 			So(err, ShouldBeNil)

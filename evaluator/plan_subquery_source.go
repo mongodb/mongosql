@@ -1,5 +1,7 @@
 package evaluator
 
+import "github.com/10gen/sqlproxy/collation"
+
 // SubquerySourceStage handles taking sourced rows and projecting them into an alias.
 type SubquerySourceStage struct {
 	// aliasName is the alias for all the columns from the subquery.
@@ -59,6 +61,10 @@ func (s *SubquerySourceStage) Columns() []*Column {
 	}
 
 	return columns
+}
+
+func (s *SubquerySourceStage) Collation() *collation.Collation {
+	return s.source.Collation()
 }
 
 func (s *SubquerySourceStage) clone() *SubquerySourceStage {

@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -77,6 +78,10 @@ func (bs *BSONSourceStage) Columns() []*Column {
 		})
 	}
 	return columns
+}
+
+func (_ *BSONSourceStage) Collation() *collation.Collation {
+	return collation.Default
 }
 
 func (bs *BSONSourceIter) Close() error {

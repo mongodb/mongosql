@@ -1,5 +1,7 @@
 package evaluator
 
+import "github.com/10gen/sqlproxy/collation"
+
 // Dual simulates a source for queries that don't require fields.
 // It only ever returns one row.
 type DualStage struct{}
@@ -26,6 +28,10 @@ func (di *DualIter) Next(row *Row) bool {
 
 func (d *DualStage) Columns() (columns []*Column) {
 	return []*Column{}
+}
+
+func (d *DualStage) Collation() *collation.Collation {
+	return collation.Default
 }
 
 func (_ *DualIter) Close() error {

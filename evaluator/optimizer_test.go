@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
@@ -35,6 +36,7 @@ func TestOptimizePlan(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
+	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
 	defaultDbName := "test"
 
 	test := func(sql string, expected ...[]bson.D) {
@@ -43,7 +45,7 @@ func TestOptimizePlan(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(parser.SelectStatement)
-			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema)
+			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema, testInfo)
 			So(err, ShouldBeNil)
 			actualPlan, err := OptimizePlan(createTestConnectionCtx(), plan)
 			So(err, ShouldBeNil)
@@ -1310,6 +1312,7 @@ func TestOptimizeCommand(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
+	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
 	defaultDbName := "test"
 
 	test := func(sql string, expected ...[]bson.D) {
@@ -1318,7 +1321,7 @@ func TestOptimizeCommand(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			setStatement := statement.(*parser.Set)
-			set, err := AlgebrizeCommand(setStatement, defaultDbName, testSchema)
+			set, err := AlgebrizeCommand(setStatement, defaultDbName, testSchema, testInfo)
 			So(err, ShouldBeNil)
 			actualSet, err := OptimizeCommand(createTestConnectionCtx(), set)
 			So(err, ShouldBeNil)

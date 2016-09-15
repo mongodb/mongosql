@@ -96,7 +96,7 @@ func loadDatabases(s *mgo.Session, sch *schema.Schema) (map[DatabaseName]*Databa
 			return nil, err
 		}
 		dbInfo := &DatabaseInfo{
-			Name:        DatabaseName(dbSchema.Name),
+			Name:        DatabaseName(strings.ToLower(dbSchema.Name)),
 			Collections: cols,
 		}
 		dbInfos[dbInfo.Name] = dbInfo

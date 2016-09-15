@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -14,6 +15,9 @@ type PlanStage interface {
 
 	// Columns returns the ordered set of columns that are contained in results from this plan.
 	Columns() []*Column
+
+	// Collation returns the collation to use for comparisons.
+	Collation() *collation.Collation
 }
 
 // Iter represents an object that can iterate through a set of rows.

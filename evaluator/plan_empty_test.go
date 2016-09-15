@@ -3,6 +3,7 @@ package evaluator
 import (
 	"testing"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -20,6 +21,7 @@ func TestEmptyOperator(t *testing.T) {
 					MongoType: schema.MongoInt,
 				},
 			},
+			collation.Default,
 		}
 
 		Convey("Open should return nil error", func() {

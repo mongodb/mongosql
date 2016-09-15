@@ -583,6 +583,7 @@ func (c *conn) Tomb() *tomb.Tomb {
 }
 
 func (c *conn) useDB(db string) error {
+	db = strings.ToLower(db)
 	if !c.variables.MongoDBInfo.IsAnyAllowedDatabase(mongodb.DatabaseName(db)) {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, db)
 	}

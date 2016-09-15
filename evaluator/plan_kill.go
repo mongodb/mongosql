@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/util"
 )
@@ -47,7 +48,7 @@ func (k *KillExecutor) Run() error {
 	var err error
 
 	go func() {
-		evalCtx := NewEvalCtx(k.ctx)
+		evalCtx := NewEvalCtx(k.ctx, collation.Default)
 
 		eval, pErr := k.ID.Evaluate(evalCtx)
 		if pErr != nil {

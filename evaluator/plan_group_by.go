@@ -1,5 +1,7 @@
 package evaluator
 
+import "github.com/10gen/sqlproxy/collation"
+
 // orderedGroup holds all the rows belonging to a given key in the groups
 // and an slice of the keys for each group.
 type orderedGroup struct {
@@ -52,9 +54,14 @@ func (gb *GroupByStage) Columns() (columns []*Column) {
 	return columns
 }
 
+func (gb *GroupByStage) Collation() *collation.Collation {
+	return gb.source.Collation()
+}
+
 // GroupBy groups records according to one or more fields.
 type GroupByIter struct {
-	source Iter
+	source    Iter
+	collation *collation.Collation
 
 	projectedColumns ProjectedColumns
 	keys             []SQLExpr
@@ -86,6 +93,7 @@ func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		source:           sourceIter,
 		projectedColumns: gb.projectedColumns,
 		keys:             gb.keys,
+		collation:        gb.Collation(),
 	}
 
 	return iter, nil
@@ -121,7 +129,7 @@ func (gb *GroupByIter) evaluateGroupByKey(row *Row) (string, error) {
 
 	var gbKey string
 
-	evalCtx := NewEvalCtx(gb.ctx, row)
+	evalCtx := NewEvalCtx(gb.ctx, gb.collation, row)
 	for _, key := range gb.keys {
 
 		value, err := key.Evaluate(evalCtx)
@@ -168,7 +176,7 @@ func (gb *GroupByIter) createGroups() error {
 func (gb *GroupByIter) evaluateProjectedColumns(r []*Row) (*Row, error) {
 
 	row := &Row{}
-	evalCtx := NewEvalCtx(gb.ctx, r...)
+	evalCtx := NewEvalCtx(gb.ctx, gb.collation, r...)
 
 	for _, projectedColumn := range gb.projectedColumns {
 

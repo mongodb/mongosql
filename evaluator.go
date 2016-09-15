@@ -48,7 +48,7 @@ func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.Connecti
 
 	conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan: "%v"`, parser.String(ast))
 
-	plan, err := evaluator.AlgebrizeSelect(ast, conn.DB(), e.config)
+	plan, err := evaluator.AlgebrizeSelect(ast, conn.DB(), e.config, conn.Variables().MongoDBInfo)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -77,7 +77,7 @@ func (e *Evaluator) EvaluateCommand(ast parser.Statement, conn evaluator.Connect
 
 	conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan: "%v"`, parser.String(ast))
 
-	stmt, err := evaluator.AlgebrizeCommand(ast, conn.DB(), e.config)
+	stmt, err := evaluator.AlgebrizeCommand(ast, conn.DB(), e.config, conn.Variables().MongoDBInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -94,5 +94,4 @@ func (e *Evaluator) EvaluateCommand(ast parser.Statement, conn evaluator.Connect
 	executionCtx := evaluator.NewExecutionCtx(conn)
 
 	return command.Execute(executionCtx), nil
-
 }

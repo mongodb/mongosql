@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
@@ -57,7 +58,7 @@ func TestEvaluates(t *testing.T) {
 	}
 
 	Convey("Subject: Evaluates", t, func() {
-		evalCtx := NewEvalCtx(execCtx, &Row{Values{
+		evalCtx := NewEvalCtx(execCtx, collation.Default, &Row{Values{
 			{1, "bar", "a", 123},
 			{1, "bar", "b", 456},
 			{1, "bar", "c", nil},
@@ -80,7 +81,7 @@ func TestEvaluates(t *testing.T) {
 			t1 = time.Now()
 			t2 = t1.Add(time.Hour)
 
-			aggCtx := NewEvalCtx(execCtx,
+			aggCtx := NewEvalCtx(execCtx, collation.Default,
 				&Row{Values{
 					{1, "bar", "a", nil},
 					{1, "bar", "b", 3},
@@ -1768,7 +1769,7 @@ func TestSQLLikeExprConvertToPattern(t *testing.T) {
 func TestMatches(t *testing.T) {
 	Convey("Subject: Matches", t, func() {
 
-		evalCtx := NewEvalCtx(nil)
+		evalCtx := NewEvalCtx(nil, collation.Default)
 
 		tests := [][]interface{}{
 			[]interface{}{SQLInt(124), true},

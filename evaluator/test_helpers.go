@@ -219,8 +219,10 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 		return nil, err
 	}
 
+	info := getMongoDBInfo(schema, mongodb.AllPrivileges)
+
 	selectStatement := statement.(parser.SelectStatement)
-	actualPlan, err := AlgebrizeSelect(selectStatement, dbName, schema)
+	actualPlan, err := AlgebrizeSelect(selectStatement, dbName, schema, info)
 	if err != nil {
 		return nil, err
 	}

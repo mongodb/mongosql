@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
@@ -18,6 +20,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
+	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
 	defaultDbName := "test"
 
 	test := func(sql string, expectedPlanFactory func() PlanStage) {
@@ -26,7 +29,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(parser.SelectStatement)
-			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema)
+			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema, testInfo)
 			So(err, ShouldBeNil)
 
 			expected := expectedPlanFactory()
@@ -46,7 +49,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(parser.SelectStatement)
-			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema)
+			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema, testInfo)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, message)
 			So(actual, ShouldBeNil)
@@ -54,7 +57,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 	}
 
 	createMongoSource := func(selectID int, tableName, aliasName string) PlanStage {
-		r, _ := NewMongoSourceStage(selectID, testSchema, defaultDbName, tableName, aliasName)
+		r, _ := NewMongoSourceStage(selectID, testSchema, testInfo, defaultDbName, tableName, aliasName)
 		return r
 	}
 
@@ -1234,14 +1237,14 @@ func TestAlgebrizeSelect(t *testing.T) {
 				source := createMongoSource(1, "foo", "foo")
 				return NewEmptyStage([]*Column{
 					createProjectedColumn(1, source, "foo", "a", "", "a").Column,
-				})
+				}, collation.Default)
 			})
 
 			test("select a from foo limit 0, 0", func() PlanStage {
 				source := createMongoSource(1, "foo", "foo")
 				return NewEmptyStage([]*Column{
 					createProjectedColumn(1, source, "foo", "a", "", "a").Column,
-				})
+				}, collation.Default)
 			})
 		})
 
@@ -1299,6 +1302,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
+	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
 	defaultDbName := "test"
 
 	test := func(sql string, expectedPlanFactory func() command) {
@@ -1306,7 +1310,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			actual, err := AlgebrizeCommand(statement, defaultDbName, testSchema)
+			actual, err := AlgebrizeCommand(statement, defaultDbName, testSchema, testInfo)
 			So(err, ShouldBeNil)
 
 			expected := expectedPlanFactory()
@@ -1321,7 +1325,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 	}
 
 	createMongoSource := func(selectID int, tableName, aliasName string) PlanStage {
-		r, _ := NewMongoSourceStage(selectID, testSchema, defaultDbName, tableName, aliasName)
+		r, _ := NewMongoSourceStage(selectID, testSchema, testInfo, defaultDbName, tableName, aliasName)
 		return r
 	}
 
@@ -1446,7 +1450,8 @@ func TestAlgebrizeCommand(t *testing.T) {
 
 func TestAlgebrizeExpr(t *testing.T) {
 	testSchema, _ := schema.New(testSchema1)
-	source, _ := NewMongoSourceStage(1, testSchema, "test", "foo", "foo")
+	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
+	source, _ := NewMongoSourceStage(1, testSchema, testInfo, "test", "foo", "foo")
 
 	test := func(sql string, expected SQLExpr) {
 		Convey(sql, func() {
@@ -1454,7 +1459,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(*parser.Select)
-			actualPlan, err := AlgebrizeSelect(selectStatement, "test", testSchema)
+			actualPlan, err := AlgebrizeSelect(selectStatement, "test", testSchema, testInfo)
 			So(err, ShouldBeNil)
 
 			actual := (actualPlan.(*ProjectStage)).projectedColumns[0].Expr

@@ -3,6 +3,7 @@ package evaluator
 import (
 	"strings"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -40,7 +41,7 @@ func (b *queryPlanBuilder) build() PlanStage {
 		for _, projectedColumn := range b.project {
 			columns = append(columns, projectedColumn.Column)
 		}
-		return NewEmptyStage(columns)
+		return NewEmptyStage(columns, collation.Default)
 	}
 
 	plan := b.buildFrom(b.from)

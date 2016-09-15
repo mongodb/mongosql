@@ -28,7 +28,10 @@ func OptimizePlan(ctx ConnectionCtx, p PlanStage) (PlanStage, error) {
 }
 
 func optimize(ctx ConnectionCtx, n node) (node, error) {
-	evalCtx := NewEvalCtx(NewExecutionCtx(ctx))
+	// we use the collation connection during optimization because the thing
+	// that gets evaluated during this phase are literal values.
+	evalCtx := NewEvalCtx(NewExecutionCtx(ctx), ctx.Variables().CollationConnection)
+
 	logger := ctx.Logger(log.OptimizerComponent)
 
 	newN, err := optimizeEvaluations(evalCtx, n)

@@ -1,5 +1,7 @@
 package evaluator
 
+import "github.com/10gen/sqlproxy/collation"
+
 // CacheStage caches data returned by subqueries so we can avoid repeated pushdown
 type CacheStage struct {
 	source PlanStage // source is the operator that provides the data to project
@@ -40,6 +42,10 @@ func (cs *CacheStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 func (cs *CacheStage) Columns() (columns []*Column) {
 	return cs.source.Columns()
+}
+
+func (cs *CacheStage) Collation() *collation.Collation {
+	return cs.source.Collation()
 }
 
 type CacheResult struct {

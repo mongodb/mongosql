@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/parser"
 )
 
@@ -42,21 +43,24 @@ type NestedLoopJoiner struct {
 	leftColumns  []*Column
 	rightColumns []*Column
 	kind         JoinKind
+	collation    *collation.Collation
 	errChan      chan error
 }
 
 // SortMerge implementation of a JOIN.
 type SortMergeJoiner struct {
-	matcher SQLExpr
-	kind    JoinKind
-	errChan chan error
+	matcher   SQLExpr
+	kind      JoinKind
+	collation *collation.Collation
+	errChan   chan error
 }
 
 // Hash implementation of a JOIN.
 type HashJoiner struct {
-	matcher SQLExpr
-	kind    JoinKind
-	errChan chan error
+	matcher   SQLExpr
+	kind      JoinKind
+	collation *collation.Collation
+	errChan   chan error
 }
 
 // Joiner wraps the basic Join function that is
@@ -98,16 +102,16 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	right, err := join.right.Open(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	iter := &JoinIter{
-		left:    left,
-		right:   right,
-		ctx:     ctx,
+		left:  left,
+		right: right,
+		ctx:   ctx,
+
 		errChan: make(chan error, 1),
 	}
 
@@ -117,7 +121,7 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	go iter.fetchRows(left, leftRows, iter.errChan)
 	go iter.fetchRows(right, rightRows, iter.errChan)
 
-	joiner := NewJoiner(join.strategy, join.kind, join.matcher, join.left.Columns(), join.right.Columns(), iter.errChan)
+	joiner := NewJoiner(join.strategy, join.kind, join.Collation(), join.matcher, join.left.Columns(), join.right.Columns(), iter.errChan)
 
 	iter.onChan = joiner.Join(leftRows, rightRows, ctx)
 
@@ -193,6 +197,10 @@ func (join *JoinStage) Columns() []*Column {
 	return append(left, right...)
 }
 
+func (join *JoinStage) Collation() *collation.Collation {
+	return join.left.Collation()
+}
+
 func (join *JoinIter) Err() error {
 
 	if err := join.left.Err(); err != nil {
@@ -221,15 +229,15 @@ func (join *JoinStage) clone() *JoinStage {
 // strategy. The implementation uses the supplied matcher in
 // evaluating the join criteria and performs joins according
 // to the joinType
-func NewJoiner(s JoinStrategy, kind JoinKind, matcher SQLExpr, leftColumns, rightColumns []*Column, errChan chan error) Joiner {
+func NewJoiner(s JoinStrategy, kind JoinKind, collation *collation.Collation, matcher SQLExpr, leftColumns, rightColumns []*Column, errChan chan error) Joiner {
 
 	switch s {
 	case NestedLoop:
-		return &NestedLoopJoiner{matcher, leftColumns, rightColumns, kind, errChan}
+		return &NestedLoopJoiner{matcher, leftColumns, rightColumns, kind, collation, errChan}
 	case SortMerge:
-		return &SortMergeJoiner{matcher, kind, errChan}
+		return &SortMergeJoiner{matcher, kind, collation, errChan}
 	case Hash:
-		return &HashJoiner{matcher, kind, errChan}
+		return &HashJoiner{matcher, kind, collation, errChan}
 	default:
 		panic(fmt.Sprintf("unsupported join strategy: %v", s))
 	}
@@ -286,7 +294,7 @@ func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 
 	for _, l := range left {
 		for _, r := range right {
-			evalCtx := NewEvalCtx(ctx, l, r)
+			evalCtx := NewEvalCtx(ctx, nlp.collation, l, r)
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
@@ -307,7 +315,7 @@ func (nlp *NestedLoopJoiner) leftJoin(lChan, rChan chan *Row, ch chan Row, ctx *
 
 	for _, l := range left {
 		for _, r := range right {
-			evalCtx := NewEvalCtx(ctx, l, r)
+			evalCtx := NewEvalCtx(ctx, nlp.collation, l, r)
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
@@ -335,7 +343,7 @@ func (nlp *NestedLoopJoiner) rightJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 
 	for _, r := range right {
 		for _, l := range left {
-			evalCtx := NewEvalCtx(ctx, l, r)
+			evalCtx := NewEvalCtx(ctx, nlp.collation, l, r)
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err

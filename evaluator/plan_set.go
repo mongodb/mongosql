@@ -1,5 +1,7 @@
 package evaluator
 
+import "github.com/10gen/sqlproxy/collation"
+
 // SetCommand handles setting variables.
 type SetCommand struct {
 	assignments []*SQLAssignmentExpr
@@ -26,7 +28,7 @@ func (s *SetExecutor) Run() error {
 	var err error
 
 	go func() {
-		evalCtx := NewEvalCtx(s.ctx)
+		evalCtx := NewEvalCtx(s.ctx, collation.Default)
 		for _, a := range s.assignments {
 			_, pErr := a.Evaluate(evalCtx)
 			if pErr != nil {

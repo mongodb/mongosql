@@ -1,5 +1,7 @@
 package evaluator
 
+import "github.com/10gen/sqlproxy/collation"
+
 // Limit restricts the number of rows returned by a query.
 type LimitStage struct {
 	// limit is the maximum number of rows to return
@@ -67,6 +69,10 @@ func (l *LimitIter) Next(row *Row) bool {
 
 func (l *LimitStage) Columns() (columns []*Column) {
 	return l.source.Columns()
+}
+
+func (l *LimitStage) Collation() *collation.Collation {
+	return l.source.Collation()
 }
 
 func (l *LimitIter) Close() error {

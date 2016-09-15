@@ -1,5 +1,7 @@
 package evaluator
 
+import "github.com/10gen/sqlproxy/collation"
+
 // Filter ensures that only rows matching a given criteria are
 // returned.
 type FilterStage struct {
@@ -17,10 +19,11 @@ func NewFilterStage(source PlanStage, predicate SQLExpr, reqCols []SQLExpr) *Fil
 }
 
 type FilterIter struct {
-	matcher SQLExpr
-	execCtx *ExecutionCtx
-	source  Iter
-	err     error
+	matcher   SQLExpr
+	execCtx   *ExecutionCtx
+	source    Iter
+	collation *collation.Collation
+	err       error
 }
 
 func (fs *FilterStage) Open(ctx *ExecutionCtx) (Iter, error) {
@@ -29,15 +32,20 @@ func (fs *FilterStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, err
 	}
 	return &FilterIter{
-		matcher: fs.matcher,
-		execCtx: ctx,
-		source:  sourceIter,
-		err:     nil,
+		matcher:   fs.matcher,
+		execCtx:   ctx,
+		source:    sourceIter,
+		err:       nil,
+		collation: fs.Collation(),
 	}, nil
 }
 
 func (fs *FilterStage) Columns() (columns []*Column) {
 	return fs.source.Columns()
+}
+
+func (fs *FilterStage) Collation() *collation.Collation {
+	return fs.source.Collation()
 }
 
 func (fi *FilterIter) Next(row *Row) bool {
@@ -55,7 +63,7 @@ func (fi *FilterIter) Next(row *Row) bool {
 			break
 		}
 
-		evalCtx := NewEvalCtx(fi.execCtx, row)
+		evalCtx := NewEvalCtx(fi.execCtx, fi.collation, row)
 
 		hasMatch, fi.err = Matches(fi.matcher, evalCtx)
 		if fi.err != nil {
