@@ -7,10 +7,10 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/mongodb/mongo-tools/common/log"
 )
 
 func makeBindVars(args []interface{}) map[string]interface{} {
@@ -26,8 +26,6 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 }
 
 func (c *conn) handleSelect(stmt *parser.Select, sql string, args []interface{}) error {
-	log.Logf(log.DebugHigh, "[conn%v] parsed statement: %#v", c.connectionID, stmt)
-
 	fields, iter, err := c.server.eval.Evaluate(stmt, c)
 	if err != nil {
 		return err
@@ -37,8 +35,6 @@ func (c *conn) handleSelect(stmt *parser.Select, sql string, args []interface{})
 }
 
 func (c *conn) handleSimpleSelect(sql string, stmt *parser.SimpleSelect) error {
-	log.Logf(log.DebugHigh, "[conn%v] parsed statement: %#v", c.connectionID, stmt)
-
 	fields, iter, err := c.server.eval.Evaluate(stmt, c)
 	if err != nil {
 		return err
@@ -90,7 +86,7 @@ func (c *conn) handleFieldList(data []byte) error {
 		fields = append(fields, f)
 	}
 
-	log.Logf(log.DebugLow, "handleFieldList table: %v, wildcard: %v", table, wildcard)
+	c.Logger(log.NetworkComponent).Logf(log.DebugHigh, "handleFieldList table: %v, wildcard: %v", table, wildcard)
 
 	return c.writeFieldList(c.status(), fields)
 }

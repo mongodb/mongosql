@@ -379,7 +379,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 		case *SQLSubqueryExpr:
 			return typedE.Exprs(), nil
 		}
-		return nil, fmt.Errorf("can not reconcile non-tuple type '%T'", expr)
+		return nil, fmt.Errorf("cannot reconcile non-tuple type '%T'", expr)
 	}
 
 	wrapReconciledExprs := func(expr SQLExpr, newExprs []SQLExpr) (SQLExpr, error) {
@@ -402,7 +402,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 				plan:       NewProjectStage(plan, projectedColumns...),
 			}, nil
 		}
-		return nil, fmt.Errorf("can not wrap reconciled non-tuple type '%T'", expr)
+		return nil, fmt.Errorf("cannot wrap reconciled non-tuple type '%T'", expr)
 	}
 
 	var leftExprs []SQLExpr

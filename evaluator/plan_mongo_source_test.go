@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/variable"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
@@ -16,39 +17,44 @@ type connCtx struct {
 	session *mgo.Session
 }
 
-func (c *connCtx) LastInsertId() int64 {
+func (_ *connCtx) LastInsertId() int64 {
 	return int64(0)
 }
 
-func (c *connCtx) RowCount() int64 {
+func (_ *connCtx) RowCount() int64 {
 	return int64(0)
 }
 
-func (c *connCtx) ConnectionId() uint32 {
+func (_ *connCtx) ConnectionId() uint32 {
 	return uint32(0)
 }
 
-func (c *connCtx) DB() string {
+func (_ *connCtx) DB() string {
 	return ""
 }
 
-func (c *connCtx) Kill(id uint32, scope KillScope) error {
+func (_ *connCtx) Kill(id uint32, scope KillScope) error {
 	return nil
+}
+
+func (_ *connCtx) Logger(_ string) *log.Logger {
+	lg := log.GlobalLogger()
+	return &lg
 }
 
 func (c *connCtx) Session() *mgo.Session {
 	return c.session
 }
 
-func (c *connCtx) User() string {
+func (_ *connCtx) User() string {
 	return ""
 }
 
-func (c *connCtx) Variables() *variable.Container {
+func (_ *connCtx) Variables() *variable.Container {
 	return variable.NewSessionContainer(variable.NewGlobalContainer())
 }
 
-func (c *connCtx) Tomb() *tomb.Tomb {
+func (_ *connCtx) Tomb() *tomb.Tomb {
 	return &tomb.Tomb{}
 }
 

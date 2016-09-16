@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2/bson"
 )
 
-func optimizePushDown(n node) (node, error) {
-	v := &pushDownOptimizer{}
+func optimizePushDown(logger *log.Logger, n node) (node, error) {
+	v := &pushDownOptimizer{logger: logger}
 	n, err := v.visit(n)
 	if err != nil {
 		return nil, err
@@ -19,6 +20,7 @@ func optimizePushDown(n node) (node, error) {
 }
 
 type pushDownOptimizer struct {
+	logger            *log.Logger
 	selectIDsInScope  []int
 	tableNamesInScope []string
 }
@@ -69,7 +71,7 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 			if _, ok := fs.source.(*MongoSourceStage); ok {
 				projSource, err := v.pushdownProject(fs.requiredColumns, fs.source)
 				if err != nil {
-					return nil, fmt.Errorf("unable to optimize FilterStage project: %v", err)
+					return nil, fmt.Errorf("unable to optimize filter project: %v", err)
 				}
 				n = NewFilterStage(projSource, fs.matcher, fs.requiredColumns)
 			}
@@ -83,7 +85,7 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 		if _, ok := typedN.source.(*MongoSourceStage); ok && n == typedN {
 			projSource, err := v.pushdownProject(typedN.requiredColumns, typedN.source)
 			if err != nil {
-				return nil, fmt.Errorf("unable to optimize GroupBy project: %v", err)
+				return nil, fmt.Errorf("unable to optimize group by project: %v", err)
 			}
 			n = NewGroupByStage(projSource, typedN.keys, typedN.projectedColumns, typedN.requiredColumns)
 		}
@@ -132,7 +134,7 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 		if _, ok := typedN.source.(*MongoSourceStage); ok && n == typedN {
 			projSource, err := v.pushdownProject(typedN.requiredColumns, typedN.source)
 			if err != nil {
-				return nil, fmt.Errorf("unable to optimize OrderBy project: %v", err)
+				return nil, fmt.Errorf("unable to optimize order by project: %v", err)
 			}
 			n = NewOrderByStage(projSource, typedN.requiredColumns, typedN.terms...)
 		}
@@ -206,6 +208,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		if matchBody == nil {
 			// no pieces of the matcher are able to be pushed down,
 			// so there is no change in the operator tree.
+			v.logger.Warnf(log.DebugHigh, "cannot push down filter expression: %v", filter.matcher.String())
 			return filter, nil
 		}
 
@@ -251,12 +254,14 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	// 1. Translate keys
 	keys, err := translateGroupByKeys(gb.keys, ms.mappingRegistry.lookupFieldName)
 	if err != nil {
+		v.logger.Warnf(log.DebugHigh, "cannot translate group by keys: %v", err)
 		return gb, nil
 	}
 
 	// 2. Translate aggregations
 	result, err := translateGroupByAggregates(gb.keys, gb.projectedColumns, ms.mappingRegistry.lookupFieldName)
 	if err != nil {
+		v.logger.Warnf(log.DebugHigh, "cannot translate group by aggregates: %v", err)
 		return gb, nil
 	}
 
@@ -265,6 +270,7 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	// 3. Translate the final project
 	project, err := translateGroupByProject(result.exprs, result.mappingRegistry.lookupFieldName)
 	if err != nil {
+		v.logger.Warnf(log.DebugHigh, "cannot translate group by project: %v", err)
 		return gb, nil
 	}
 
@@ -587,6 +593,7 @@ const (
 func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	if join.matcher == nil {
+		v.logger.Warnf(log.DebugHigh, "cannot push down join stage, matcher is nil")
 		return join, nil
 	}
 
@@ -608,6 +615,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		foreignSource = join.right
 		joinKind = LeftJoin
 	default:
+		v.logger.Warnf(log.DebugHigh, "cannot push down %v join", joinKind)
 		return join, nil
 	}
 
@@ -624,12 +632,14 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	}
 
 	if len(msForeign.pipeline) > 0 {
+		v.logger.Warnf(log.DebugHigh, "cannot push down join stage, foreign table has pipeline: %#v", msForeign.pipeline)
 		return join, nil
 	}
 
 	// 3. find the local column and the foreign column
 	lookupInfo, err := getLocalAndForeignColumns(msLocal, msForeign, join.matcher)
 	if err != nil {
+		v.logger.Warnf(log.DebugHigh, "cannot push down join stage: %v", err)
 		return join, nil
 	}
 
@@ -638,6 +648,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	foreignMongoType := lookupInfo.foreignColumn.columnType.MongoType
 	if isUUID(localMongoType) && isUUID(foreignMongoType) {
 		if localMongoType != foreignMongoType {
+			v.logger.Warnf(log.DebugHigh, "cannot push down join stage, found different criteria UUID - %v and %v", localMongoType, foreignMongoType)
 			return join, nil
 		}
 	}
@@ -645,11 +656,13 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	// 4. get lookup fields
 	localFieldName, ok := msLocal.mappingRegistry.lookupFieldName(lookupInfo.localColumn.tableName, lookupInfo.localColumn.columnName)
 	if !ok {
+		v.logger.Warnf(log.DebugHigh, "cannot find referenced local join column %#v in lookup", lookupInfo.localColumn)
 		return join, nil
 	}
 
 	foreignFieldName, ok := msForeign.mappingRegistry.lookupFieldName(lookupInfo.foreignColumn.tableName, lookupInfo.foreignColumn.columnName)
 	if !ok {
+		v.logger.Warnf(log.DebugHigh, "cannot find referenced foreign join column %#v in lookup", lookupInfo.foreignColumn)
 		return join, nil
 	}
 
@@ -727,6 +740,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 		ifPart, ok := TranslateExpr(lookupInfo.remainingPredicate, newMappingRegistry.lookupFieldName)
 		if !ok {
+			v.logger.Warnf(log.DebugHigh, "cannot translate remaining left join expression %#v", lookupInfo.remainingPredicate)
 			return join, nil
 		}
 
@@ -745,6 +759,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		for _, c := range msLocal.mappingRegistry.columns {
 			field, ok := msLocal.mappingRegistry.lookupFieldName(c.Table, c.Name)
 			if !ok {
+				v.logger.Warnf(log.DebugHigh, "cannot find referenced join column %#v in lookup", c)
 				return join, nil
 			}
 			project[field] = 1
@@ -862,6 +877,7 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 
 		fieldName, ok := ms.mappingRegistry.lookupFieldName(tableName, columnName)
 		if !ok {
+			v.logger.Warnf(log.DebugHigh, "cannot find referenced order by column %v.%v in lookup", tableName, columnName)
 			return orderBy, nil
 		}
 		direction := 1
@@ -885,6 +901,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	if !ok {
 		return project, nil
 	}
+
 	fieldsToProject := bson.M{}
 
 	// This will contain the rebuilt mapping registry reflecting fields re-mapped by projection.
@@ -917,12 +934,13 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			// that we still need to project, so collect them and add them to the projection.
 			refdCols, err := referencedColumns(v.selectIDsInScope, projectedColumn.Expr)
 			if err != nil {
+				v.logger.Warnf(log.DebugHigh, "cannot find referenced project expression: %v", err)
 				return nil, err
 			}
 			for _, refdCol := range refdCols {
 				fieldName, ok := ms.mappingRegistry.lookupFieldName(refdCol.Table, refdCol.Name)
 				if !ok {
-					// TODO log that optimization gave up here.
+					v.logger.Warnf(log.DebugHigh, "cannot find referenced column %#v in lookup", refdCol)
 					return project, nil
 				}
 
@@ -952,6 +970,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	}
 
 	if len(fieldsToProject) == 0 {
+		v.logger.Warnf(log.DebugHigh, "no fields for project push down")
 		return project, nil
 	}
 
@@ -982,6 +1001,7 @@ func (v *pushDownOptimizer) visitSubquerySource(subquery *SubquerySourceStage) (
 	for _, column := range ms.mappingRegistry.columns {
 		fieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.Name)
 		if !ok {
+			v.logger.Warnf(log.DebugHigh, "cannot find referenced subquery column %#v in lookup", column)
 			return subquery, nil
 		}
 

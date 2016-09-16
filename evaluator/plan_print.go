@@ -110,7 +110,7 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 		if typedN.Scope == KillQuery {
 			scope = "query"
 		}
-		b.WriteString(fmt.Sprintf("↳ Kill %v %v:\n", scope, typedN.ID))
+		b.WriteString(fmt.Sprintf("↳ Kill %v %v", scope, typedN.ID))
 	case *LimitStage:
 		b.WriteString(fmt.Sprintf("↳ Limit(offset: %v, limit: %v):\n", typedN.offset, typedN.limit))
 
@@ -122,12 +122,14 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 			b.WriteString(fmt.Sprintf(" as '%v'", typedN.aliasNames))
 		}
 
-		b.WriteString(":\n")
-		prettyPipeline, err := pipelineJSON(typedN.pipeline, d+1)
-		if err != nil { // marshaling as json failed, fall back to Sprintf
-			prettyPipeline = pipelineString(typedN.pipeline, d+1)
+		if len(typedN.pipeline) > 0 {
+			b.WriteString(":\n")
+			prettyPipeline, err := pipelineJSON(typedN.pipeline, d+1)
+			if err != nil { // marshaling as json failed, fall back to Sprintf
+				prettyPipeline = pipelineString(typedN.pipeline, d+1)
+			}
+			b.Write(prettyPipeline)
 		}
-		b.Write(prettyPipeline)
 	case *OrderByStage:
 		b.WriteString("↳ OrderBy(")
 

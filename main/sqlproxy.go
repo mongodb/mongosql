@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"runtime"
@@ -8,45 +9,29 @@ import (
 
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/common"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
-	"github.com/mongodb/mongo-tools/common/log"
 )
-
-type LogLevel struct {
-	level string
-}
-
-func (ll *LogLevel) IsQuiet() bool {
-	return false
-}
-
-func (ll *LogLevel) Level() int {
-	switch ll.level {
-	case "always", "error":
-		return log.Always
-	case "info":
-		return log.Info
-	case "v", "debug":
-		return log.DebugLow
-	case "vv":
-		return log.DebugHigh
-	}
-	return log.Info
-}
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	opts, err := sqlproxy.NewOptions()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "error generating command line options: %v\n", err)
 		os.Exit(1)
 	}
 
 	err = opts.Parse()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "error parsing command line options: %v\n", err)
+		fmt.Fprintln(os.Stderr, "try 'mongosqld --help' for more information")
 		os.Exit(1)
 	}
+
+	// set global log level
+	log.SetVerbosity(opts.LogOpts)
 
 	if opts.Version {
 		common.PrintVersionAndGitspec("mongosqld", os.Stdout)
@@ -71,7 +56,7 @@ func main() {
 
 		logfile, err := os.OpenFile(opts.LogPath, mode, 0600)
 		if err != nil {
-			log.Logf(log.Always, "failed to open logfile: %v", err)
+			fmt.Fprintf(os.Stderr, "error opening log file: %v\n", err)
 			os.Exit(1)
 		}
 		defer logfile.Close()
@@ -81,7 +66,7 @@ func main() {
 
 	err = opts.Validate()
 	if err != nil {
-		log.Logf(log.Always, "invalid options: %v", err)
+		fmt.Fprintf(os.Stderr, "invalid options: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -89,32 +74,32 @@ func main() {
 	if len(opts.Schema) > 0 {
 		err = cfg.LoadFile(opts.Schema)
 		if err != nil {
-			log.Logf(log.Always, "failed to load schema: %v", err)
+			fmt.Fprintf(os.Stderr, "error loading schema: %v\n", err)
 			os.Exit(1)
 		}
 	}
+
 	if len(opts.SchemaDir) > 0 {
 		err = cfg.LoadDir(opts.SchemaDir)
 		if err != nil {
-			log.Logf(log.Always, "failed to load schema: %v", err)
+			fmt.Fprintf(os.Stderr, "error loading schema: %v\n", err)
 			os.Exit(1)
 		}
 	}
 
-	log.SetVerbosity(opts)
-
 	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)
 	if err != nil {
-		log.Logf(log.Always, "error starting evaluator")
-		log.Logf(log.Always, err.Error())
+		fmt.Fprintf(os.Stderr, "connecting to mongodb failed: %v\n", err)
 		os.Exit(1)
 	}
 
-	var svr *server.Server
-	svr, err = server.New(cfg, evaluator, opts)
+	logger := log.NewComponentLogger(log.NetworkComponent, log.GlobalLogger())
+
+	logger.Logf(log.Always, "[initandlisten] connecting to mongodb at %v", opts.MongoOpts.MongoURI)
+
+	svr, err := server.New(cfg, evaluator, opts)
 	if err != nil {
-		log.Logf(log.Always, "error starting server")
-		log.Logf(log.Always, err.Error())
+		fmt.Fprintf(os.Stderr, "error starting server: %v", err)
 		os.Exit(1)
 	}
 
@@ -126,8 +111,9 @@ func main() {
 
 	go func() {
 		sig := <-sc
-		log.Logf(log.Info, "Got signal [%d] to exit.", sig)
+		logger.Logf(log.Info, "[initandlisten] got %s signal, now exiting...", sig.String())
 		svr.Close()
+		logger.Logf(log.Info, "[initandlisten] shutting down with code 0")
 	}()
 
 	svr.Run()

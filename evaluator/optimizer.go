@@ -1,6 +1,10 @@
 package evaluator
 
-import "os"
+import (
+	"os"
+
+	"github.com/10gen/sqlproxy/log"
+)
 
 // OptimizeCommand applies optimizations to the command
 // plan tree to aid in performance.
@@ -25,25 +29,30 @@ func OptimizePlan(ctx ConnectionCtx, p PlanStage) (PlanStage, error) {
 
 func optimize(ctx ConnectionCtx, n node) (node, error) {
 	evalCtx := NewEvalCtx(NewExecutionCtx(ctx))
+	logger := ctx.Logger(log.OptimizerComponent)
 
 	newN, err := optimizeEvaluations(evalCtx, n)
 	if err != nil {
+		logger.Warnf(log.DebugHigh, err.Error())
 		return n, nil
 	}
 	n = newN
 
 	if os.Getenv(NoPushDown) != "" {
+		logger.Warnf(log.DebugHigh, "pushdown turned off")
 		return n, nil
 	}
 
 	newN, err = optimizeCrossJoins(n)
 	if err != nil {
+		logger.Warnf(log.DebugHigh, err.Error())
 		return n, nil
 	}
 	n = newN
 
-	newN, err = optimizePushDown(n)
+	newN, err = optimizePushDown(logger, n)
 	if err != nil {
+		logger.Warnf(log.DebugHigh, err.Error())
 		return n, nil
 	}
 	n = newN

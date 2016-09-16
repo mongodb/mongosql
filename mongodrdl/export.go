@@ -2,12 +2,16 @@ package mongodrdl
 
 import (
 	"fmt"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
-	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
+)
+
+var (
+	logger = log.NewComponentLogger(relational.MongodrdlComponent, log.GlobalLogger())
 )
 
 func (schemaGen *SchemaGenerator) Connect() (*mgo.Session, error) {
@@ -25,7 +29,7 @@ func (schemaGen *SchemaGenerator) ExportSchemaForDatabase() (*relational.Databas
 		return nil, err
 	}
 
-	log.Logf(log.Info, "Exporting schema for database %q.", schemaGen.ToolOptions.DB)
+	logger.Logf(log.Info, "Exporting schema for database %q.", schemaGen.ToolOptions.DB)
 	db := session.DB(schemaGen.ToolOptions.DB)
 	names, err := db.CollectionNames()
 	if err != nil {
@@ -62,11 +66,11 @@ func (schemaGen *SchemaGenerator) ExportSchemaForCollection() (*relational.Datab
 
 func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, collection *mgo.Collection) error {
 	if strings.HasPrefix(collection.Name, "system.") {
-		log.Logf(log.Info, "Skipping system collection %q.", collection.Name)
+		logger.Logf(log.Info, "Skipping system collection %q.", collection.Name)
 		return nil
 	}
 
-	log.Logf(log.Info, "Exporting tables for %q.", collection.FullName)
+	logger.Logf(log.Info, "Exporting tables for %q.", collection.FullName)
 	pipeline := collection.Pipe([]bson.M{{"$sample": bson.M{"size": schemaGen.SampleOptions.SampleSize}}}).AllowDiskUse()
 	iter := pipeline.Iter()
 	if iter.Err() != nil {
@@ -78,10 +82,10 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 	var doc bson.D
 	for iter.Next(&doc) {
 		// NOTE: Perhaps marshal to json???
-		log.Logf(log.DebugHigh, "Including sample: %v", doc)
+		logger.Logf(log.DebugHigh, "Including sample: %v", doc)
 		err := col.IncludeSample(doc)
 		if err != nil {
-			log.Logf(log.Always, "Error including sample: %+v", doc)
+			logger.Logf(log.Always, "Error including sample: %+v", doc)
 			return err
 		}
 	}

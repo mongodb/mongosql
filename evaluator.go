@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 )
 
@@ -22,11 +22,8 @@ func NewEvaluator(cfg *schema.Schema, opts Options) (*Evaluator, error) {
 		return nil, err
 	}
 
-	log.Logf(log.Always, "connecting to mongodb at %v", info.Addrs)
-
 	session, err := mgo.DialWithInfo(info)
 	if err != nil {
-		log.Logf(log.Always, "connecting to mongodb failed")
 		return nil, fmt.Errorf("connecting to mongodb failed: %v", err.Error())
 	}
 
@@ -49,14 +46,14 @@ func (e *Evaluator) Schema() schema.Schema {
 // capable of going over all the generated results.
 func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.ConnectionCtx) ([]*evaluator.Column, evaluator.Iter, error) {
 
-	log.Logf(log.DebugHigh, "[conn%v] preparing query plan for: %#v", conn.ConnectionId(), parser.String(ast))
+	conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan: "%v"`, parser.String(ast))
 
 	plan, err := evaluator.AlgebrizeSelect(ast, conn.DB(), e.config)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	log.Logf(log.DebugHigh, "[conn%v] optimizing plan: \n%v", conn.ConnectionId(), evaluator.PrettyPrintPlan(plan))
+	conn.Logger(log.OptimizerComponent).Logf(log.DebugHigh, "optimizing query plan: \n%v", evaluator.PrettyPrintPlan(plan))
 	plan, err = evaluator.OptimizePlan(conn, plan)
 	if err != nil {
 		return nil, nil, err
@@ -64,7 +61,7 @@ func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.Connecti
 
 	executionCtx := evaluator.NewExecutionCtx(conn)
 
-	log.Logf(log.DebugHigh, "[conn%v] executing plan: \n%v", conn.ConnectionId(), evaluator.PrettyPrintPlan(plan))
+	conn.Logger(log.EvaluatorComponent).Logf(log.DebugHigh, "executing query plan: \n%v", evaluator.PrettyPrintPlan(plan))
 
 	iter, err := plan.Open(executionCtx)
 	if err != nil {
@@ -77,19 +74,22 @@ func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.Connecti
 }
 
 func (e *Evaluator) EvaluateCommand(ast parser.Statement, conn evaluator.ConnectionCtx) (evaluator.Executor, error) {
-	log.Logf(log.DebugLow, "Preparing plan for: %#v", parser.String(ast))
+
+	conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan: "%v"`, parser.String(ast))
 
 	stmt, err := evaluator.AlgebrizeCommand(ast, conn.DB(), e.config)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Logf(log.DebugHigh, "[conn%v] optimizing plan: \n%v", conn.ConnectionId(), evaluator.PrettyPrintCommand(stmt))
+	conn.Logger(log.OptimizerComponent).Logf(log.DebugHigh, "optimizing query plan: \n%v", evaluator.PrettyPrintCommand(stmt))
 
 	command, err := evaluator.OptimizeCommand(conn, stmt)
 	if err != nil {
 		return nil, err
 	}
+
+	conn.Logger(log.EvaluatorComponent).Logf(log.DebugHigh, "executing query plan: \n%v", evaluator.PrettyPrintCommand(stmt))
 
 	executionCtx := evaluator.NewExecutionCtx(conn)
 

@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/variable"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/tomb.v2"
@@ -14,6 +15,7 @@ type ConnectionCtx interface {
 	LastInsertId() int64
 	RowCount() int64
 	Session() *mgo.Session
+	Logger(string) *log.Logger
 	Tomb() *tomb.Tomb
 	User() string
 	Variables() *variable.Container

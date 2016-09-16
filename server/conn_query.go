@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/tomb.v2"
 )
 
@@ -32,7 +32,7 @@ func (c *conn) handleQuery(sql string) (err error) {
 
 	defer func() {
 		if e := recover(); e != nil {
-			log.Logf(log.Always, "[conn%v] %s\n", c.connectionID, debug.Stack())
+			c.logger.Logf(log.Info, "%s\n", debug.Stack())
 			err = mysqlerrors.Unknownf("execute %s error %v", sql, e)
 			return
 		}
@@ -42,7 +42,11 @@ func (c *conn) handleQuery(sql string) (err error) {
 
 	startTime := time.Now()
 
-	log.Logf(log.DebugLow, `[conn%v] parsing "%s"`, c.connectionID, sql)
+	logTimeTaken := func() {
+		c.logger.Logf(log.Info, "done executing query in %vms", time.Now().Sub(startTime).Nanoseconds()/1000000)
+	}
+
+	c.logger.Logf(log.DebugLow, `parsing "%s"`, sql)
 
 	var stmt parser.Statement
 
@@ -54,28 +58,28 @@ func (c *conn) handleQuery(sql string) (err error) {
 		if len(sqlUpper) > 3 && sqlUpper[0:4] == "SET " {
 			if len(sqlUpper) > 7 && sqlUpper[len(sqlUpper)-8:] == "=DEFAULT" {
 				// wow, this is ugly
-				log.Logf(log.DebugLow, "[conn%v] done executing plan in %v", c.ConnectionId(), time.Now().Sub(startTime))
+				logTimeTaken()
 				return c.writeOK(nil)
 			}
 		}
-		log.Logf(log.DebugLow, "[conn%v] done executing plan in %v", c.ConnectionId(), time.Now().Sub(startTime))
+		logTimeTaken()
 		return mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, `parse sql '%s' error: %s`, sql, err)
 	}
 
 	switch v := stmt.(type) {
 	case *parser.Select:
 		err = c.handleSelect(v, sql, nil)
-		log.Logf(log.DebugLow, "[conn%v] done executing plan in %v", c.ConnectionId(), time.Now().Sub(startTime))
+		logTimeTaken()
 	case *parser.SimpleSelect:
 		err = c.handleSimpleSelect(sql, v)
-		log.Logf(log.DebugLow, "[conn%v] done executing plan in %v", c.ConnectionId(), time.Now().Sub(startTime))
+		logTimeTaken()
 	case *parser.Show:
 		err = c.handleShow(sql, v)
 	case *parser.DDL:
 		err = c.handleDDL(v)
 	case *parser.Kill, *parser.Set:
 		err = c.handleCommand(stmt)
-		log.Logf(log.DebugLow, "[conn%v] done executing plan in %v", c.ConnectionId(), time.Now().Sub(startTime))
+		logTimeTaken()
 	default:
 		err = mysqlerrors.Unknownf("statement %T not supported", stmt)
 	}

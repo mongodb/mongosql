@@ -12,6 +12,13 @@ const (
 	KillQuery
 )
 
+func (scope KillScope) String() string {
+	if scope == KillConnection {
+		return "connection"
+	}
+	return "query"
+}
+
 // KillCommand handles killing connection or queries.
 type KillCommand struct {
 	ID    SQLExpr

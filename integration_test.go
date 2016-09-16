@@ -18,12 +18,12 @@ import (
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/log"
 	toolsLog "github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/mongorestore"
@@ -187,22 +187,29 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 	cfg := &schema.Schema{
 		RawDatabases: conf.Databases,
 	}
+
 	opts, err := sqlproxy.NewOptions()
 	if err != nil {
 		return err
 	}
+
 	opts.Addr = testDBAddr
 	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", dbhost, dbport)
+
 	buildSchemaMaps(cfg)
+
 	s, err := testServer(cfg, opts)
 	if err != nil {
 		return err
 	}
+
 	log.SetWriter(ioutil.Discard)
+
 	go s.Run()
 	defer s.Close()
 
 	var db *sql.DB
+
 	if len(conf.Databases) > 0 {
 		db, err = sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
 	} else {
@@ -242,6 +249,7 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 			compareResults(t, testCase.ExpectedData, results)
 		})
 	}
+
 	return nil
 }
 
@@ -258,7 +266,6 @@ func mustLoadTestData(dbhost, dbport string, conf testSchema) {
 		} else {
 			panic("expected 'archive_file' or 'inline'")
 		}
-
 	}
 }
 
@@ -293,6 +300,7 @@ func pathify(elem ...string) string {
 
 func getSslOpts() *options.SSL {
 	var sslOpts *options.SSL
+
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
 		toolsdb.GetConnectorFuncs = append(toolsdb.GetConnectorFuncs,
 			func(opts options.ToolOptions) toolsdb.DBConnector {
@@ -324,8 +332,8 @@ func restoreInline(host, port string, inline *inlineDataSet) error {
 	if err != nil {
 		return err
 	}
-	sessionProvider.SetFlags(toolsdb.DisableSocketTimeout)
 
+	sessionProvider.SetFlags(toolsdb.DisableSocketTimeout)
 	session, err := sessionProvider.GetSession()
 	if err != nil {
 		return err
@@ -334,6 +342,7 @@ func restoreInline(host, port string, inline *inlineDataSet) error {
 	c := session.DB(inline.Db).C(inline.Collection)
 	c.DropCollection() // don't care about the result
 	bulk := c.Bulk()
+
 	for _, d := range inline.Docs {
 		doc, err := bsonutil.ConvertJSONValueToBSON(d)
 		if err != nil {
@@ -341,6 +350,7 @@ func restoreInline(host, port string, inline *inlineDataSet) error {
 		}
 		bulk.Insert(doc)
 	}
+
 	_, err = bulk.Run()
 	return err
 }
@@ -357,12 +367,8 @@ func restoreBSON(host, port, file string) error {
 	if err != nil {
 		return err
 	}
+
 	sessionProvider.SetFlags(toolsdb.DisableSocketTimeout)
-
-	if err != nil {
-		return err
-	}
-
 	toolsLog.SetVerbosity(&options.Verbosity{Quiet: true})
 
 	restorer := mongorestore.MongoRestore{
@@ -394,10 +400,12 @@ func runSQL(db *sql.DB, query string, types []string, names []string) ([][]inter
 		return nil, err
 	}
 	defer rows.Close()
+
 	cols, err := rows.Columns()
 	if err != nil {
 		return nil, err
 	}
+
 	if len(cols) != len(types) {
 		return nil, fmt.Errorf("Number of columns in result set (%v) does not match columns in expected types (%v)", len(cols), len(types))
 	}
@@ -453,9 +461,11 @@ func testServer(cfg *schema.Schema, opts sqlproxy.Options) (*server.Server, erro
 		opts.MongoAllowInvalidCerts = true
 		opts.MongoPEMFile = testClientPEMFile
 	}
+
 	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)
 	if err != nil {
 		return nil, err
 	}
+
 	return server.New(cfg, evaluator, opts)
 }

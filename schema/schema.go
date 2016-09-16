@@ -203,7 +203,7 @@ func (t *Table) validateColumnTypes() error {
 
 		if c.MongoType == MongoFilter {
 			if haveMongoFilter {
-				return fmt.Errorf("can not have more than one mongo filter in collection '%s'", t.CollectionName)
+				return fmt.Errorf("cannot have more than one mongo filter in collection '%s'", t.CollectionName)
 			}
 			haveMongoFilter = true
 		}

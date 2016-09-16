@@ -10,11 +10,11 @@ import (
 	"sync"
 
 	sqlproxy "github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
-	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/shopspring/decimal"
 )
 
@@ -50,11 +50,13 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts sqlproxy.Options)
 		variables:         variable.NewGlobalContainer(),
 	}
 
-	var err error
 	netProto := "tcp"
 	if strings.Contains(netProto, "/") {
 		netProto = "unix"
 	}
+
+	var err error
+
 	s.listener, err = net.Listen(netProto, opts.Addr)
 	if err != nil {
 		return nil, err
@@ -64,10 +66,12 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts sqlproxy.Options)
 		s.tlsConfig = &tls.Config{
 			InsecureSkipVerify: opts.SSLAllowInvalidCerts || opts.SSLCAFile == "",
 		}
+
 		cert, err := tls.LoadX509KeyPair(opts.SSLPEMFile, opts.SSLPEMFile)
 		if err != nil {
 			return nil, mysqlerrors.Unknownf("failed to load PEM file '%v': %v", opts.SSLPEMFile, err)
 		}
+
 		s.tlsConfig.Certificates = []tls.Certificate{cert}
 
 		if len(opts.SSLCAFile) > 0 {
@@ -90,12 +94,15 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts sqlproxy.Options)
 func (s *Server) Run() {
 	s.running = true
 
-	log.Logf(log.Always, "waiting for connections at %v", s.listener.Addr())
+	logger := log.NewComponentLogger(log.NetworkComponent, log.GlobalLogger())
+	logger.Logf(log.Always, "[initandlisten] waiting for connections at %v", s.listener.Addr())
 
 	for s.running {
 		conn, err := s.listener.Accept()
 		if err != nil {
-			log.Log(log.Always, err.Error())
+			if s.running {
+				logger.Logf(log.Always, "[initandlisten] %v", err)
+			}
 			continue
 		}
 
@@ -114,14 +121,20 @@ func (s *Server) Close() {
 func (s *Server) onConn(c net.Conn) {
 	conn := newConn(s, c)
 
-	log.Logf(log.Info, "connection accepted from %v #%v", c.RemoteAddr(), conn.ConnectionId())
+	// this isn't critical so neglecting to lock active connections
+	pluralize, numConns := "", len(s.activeConnections)
+	if numConns != 0 {
+		pluralize = "s"
+	}
+
+	conn.logger.Logf(log.Info, "connection #%v accepted from %v (%v connection%v now open)", conn.connectionID, c.RemoteAddr(), numConns+1, pluralize)
 
 	defer func() {
 		if err := recover(); err != nil {
 			const size = 4096
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			log.Logf(log.Always, "[conn%v] panic with %v: %v\n%s", conn.ConnectionId(), c.RemoteAddr(), err, buf)
+			conn.logger.Logf(log.Always, "panic with %v: %v\n%s", c.RemoteAddr(), err, buf)
 		}
 
 		conn.close()
@@ -130,14 +143,15 @@ func (s *Server) onConn(c net.Conn) {
 	schema := s.eval.Schema()
 	info, err := mongodb.LoadInfo(conn.session, &schema, s.opts.Auth)
 	if err != nil {
-		log.Logf(log.Always, "[conn%v] error retrieving information from MongoDB: %v", conn.ConnectionId(), err)
+		conn.logger.Errf(log.Always, "error retrieving information from MongoDB: %v", err)
 		c.Close()
 		return
 	}
+
 	conn.variables.MongoDBInfo = info
 
 	if err := conn.handshake(); err != nil {
-		log.Logf(log.Always, "[conn%v] handshake error: %v", conn.ConnectionId(), err)
+		conn.logger.Errf(log.Always, "handshake error: %v", err)
 		c.Close()
 		return
 	}

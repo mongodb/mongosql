@@ -17,11 +17,11 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
-	"github.com/mongodb/mongo-tools/common/log"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/tomb.v2"
@@ -39,6 +39,7 @@ type conn struct {
 	session *mgo.Session
 	closed  bool
 	tomb    *tomb.Tomb
+	logger  *log.Logger
 
 	conn     net.Conn
 	reader   *bufio.Reader
@@ -81,6 +82,7 @@ func newConn(s *Server, c net.Conn) *conn {
 		variables: variable.NewSessionContainer(s.variables),
 	}
 
+	newConn.logger = newConn.Logger(log.NetworkComponent)
 	if s.tlsConfig != nil {
 		newConn.capability |= CLIENT_SSL
 	}
@@ -158,7 +160,13 @@ func (c *conn) close() error {
 
 	c.closed = true
 
-	log.Logf(log.Info, "[conn%v] end connection %v", c.connectionID, c.conn.RemoteAddr())
+	// this isn't critical so neglecting to lock
+	pluralize := ""
+	numConns := len(c.server.activeConnections)
+	if numConns == 0 {
+		pluralize = "s"
+	}
+	c.logger.Logf(log.Always, "end connection %v (%v connection%v now open)", c.conn.RemoteAddr(), numConns, pluralize)
 
 	return nil
 }
@@ -214,17 +222,20 @@ func (c *conn) dispatch(data []byte) error {
 }
 
 func (c *conn) handshake() error {
+	c.logger.Logf(log.DebugHigh, "writing initial handshake")
 	if err := c.writeInitialHandshake(); err != nil {
 		c.writeError(err)
 		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "send initial handshake error: %v", err)
 	}
 
+	c.logger.Logf(log.DebugHigh, "reading handshake response")
 	if err := c.readHandshakeResponse(); err != nil {
 		c.writeError(err)
 		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "recv handshake response error: %v", err)
 	}
 
 	if c.server.opts.Auth {
+		c.logger.Logf(log.DebugHigh, "configuring client authentication")
 		if (c.capability & CLIENT_PLUGIN_AUTH) == 0 {
 			err := mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_AUTH_MODE)
 			c.writeError(err)
@@ -232,17 +243,20 @@ func (c *conn) handshake() error {
 		}
 
 		if c.clientRequestedAuthPluginName != clearPasswordClientAuthPluginName {
+			c.logger.Logf(log.DebugHigh, "sending authentication switch request")
 			if err := c.writeAuthRequestSwitchPacket(clearPasswordClientAuthPluginName); err != nil {
 				c.writeError(err)
 				return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "send auth request switch error: %v", err)
 			}
 
+			c.logger.Logf(log.DebugHigh, "reading authentication switch response")
 			if err := c.readAuthSwitchResponsePacket(); err != nil {
 				c.writeError(err)
 				return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "recv auth response error: %v", err)
 			}
 		}
 
+		c.logger.Logf(log.DebugHigh, "authenticating client response")
 		if err := c.authenticate(); err != nil {
 			c.writeError(err)
 			return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "failed authentication with MongoDB: %v", err)
@@ -274,6 +288,8 @@ func (c *conn) Kill(id uint32, scope evaluator.KillScope) error {
 
 	c.server.Unlock()
 
+	c.logger.Logf(log.DebugHigh, "kill %v requested for [conn%v]", scope, k.ConnectionId())
+
 	switch scope {
 	case evaluator.KillQuery:
 		k.tomb.Kill(mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED))
@@ -286,6 +302,17 @@ func (c *conn) Kill(id uint32, scope evaluator.KillScope) error {
 // LastInsertId returns the last insert id.
 func (c *conn) LastInsertId() int64 {
 	return c.lastInsertID
+}
+
+// ConnectionId returns the connection's identifier.
+func (c *conn) Logger(componentStr string) *log.Logger {
+	component, globalLogger := "", log.GlobalLogger()
+	if componentStr != "" {
+		component = fmt.Sprintf("%-10v [conn%v]", componentStr, c.connectionID)
+	} else {
+		component = fmt.Sprintf("%-10v [conn%v]", globalLogger.GetComponent(), c.connectionID)
+	}
+	return log.NewComponentLogger(component, globalLogger)
 }
 
 func (c *conn) readAuthSwitchResponsePacket() error {
@@ -337,7 +364,7 @@ func (c *conn) readHandshakeResponse() error {
 			}
 		}
 		if err != nil {
-			log.Logf(log.Always, "failed to set collation: %v", err)
+			c.logger.Warnf(log.Info, "failed to set collation: %v", err)
 		}
 
 		//skip reserved 23[00]
@@ -367,7 +394,7 @@ func (c *conn) readHandshakeResponse() error {
 		// We are here because we asked the client to use SSL and they refused. Therefore, we'll
 		// terminate the connection.
 		err := mysqlerrors.Newf(mysqlerrors.ER_INSECURE_PLAIN_TEXT, "ssl is required when using authentication")
-		log.Log(log.Always, err.Error())
+		c.logger.Errf(log.Always, err.Error())
 		c.writeError(err)
 		return err
 	}
@@ -477,10 +504,8 @@ func (c *conn) run() {
 			const size = 4096
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-
-			log.Logf(log.Always, "%v, %s", err, buf)
+			c.logger.Errf(log.Info, "%v, %s", err, buf)
 		}
-
 		c.close()
 	}()
 
@@ -502,7 +527,7 @@ func (c *conn) run() {
 
 		select {
 		case <-time.After(waitTimeout):
-			log.Logf(log.Always, "[conn%v] timed out", c.connectionID)
+			c.logger.Logf(log.Always, "client wait time out after %v", waitTimeout.String())
 			return
 		case pkt = <-packetReadChan:
 			if pkt.err != nil {
@@ -511,7 +536,7 @@ func (c *conn) run() {
 		}
 
 		if err := c.dispatch(pkt.data); err != nil {
-			log.Logf(log.Always, "[conn%v] dispatch error: %v", c.connectionID, err)
+			c.logger.Logf(log.Always, "dispatch error: %v", err)
 			if err != errBadConn {
 				c.writeError(err)
 			}

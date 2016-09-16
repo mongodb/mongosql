@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -1104,9 +1103,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 		return transExprs, true
 	}
-	log.Logf(log.DebugHigh, "Unable to push down expression: %#v (%T)\n", e, e)
 	return nil, false
-
 }
 
 // TranslatePredicate attempts to turn the SQLExpr into mongodb query language.

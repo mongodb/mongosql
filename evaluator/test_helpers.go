@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -63,6 +64,10 @@ type fakeConnectionCtx struct {
 
 func (_ fakeConnectionCtx) LastInsertId() int64 {
 	return 11
+}
+func (_ fakeConnectionCtx) Logger(_ string) *log.Logger {
+	lg := log.GlobalLogger()
+	return &lg
 }
 func (_ fakeConnectionCtx) RowCount() int64 {
 	return 21

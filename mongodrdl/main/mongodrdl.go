@@ -2,11 +2,12 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/10gen/sqlproxy/common"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodrdl"
-	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
 )
@@ -23,14 +24,14 @@ func main() {
 
 	args, err := opts.Parse()
 	if err != nil {
-		log.Logf(log.Always, "error parsing command line options: %v", err)
-		log.Logf(log.Always, "try 'mongodrdl --help' for more information")
+		fmt.Fprintf(os.Stderr, "error parsing command line options: %v\n", err)
+		fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
 	if len(args) > 0 {
-		log.Logf(log.Always, "positional arguments not allowed: %v", args)
-		log.Logf(log.Always, "try 'mongodrdl --help' for more information")
+		fmt.Fprintf(os.Stderr, "positional arguments not allowed: %v\n", args)
+		fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -59,13 +60,13 @@ func main() {
 	}
 
 	if err = schemaGen.Init(); err != nil {
-		log.Logf(log.Always, "Failed: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed: %v\n", err)
 		os.Exit(util.ExitError)
 	}
 
 	_, err = schemaGen.Generate()
 	if err != nil {
-		log.Logf(log.Always, "Failed: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed: %v\n", err)
 		if err == util.ErrTerminated {
 			os.Exit(util.ExitKill)
 		}

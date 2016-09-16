@@ -543,7 +543,7 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			// SQLProxy only allows for converting strings to
 			// time objects during pushdown or when performing
 			// in-memory processing. Otherwise, string data
-			// coming from MongoDB can not be treated like a
+			// coming from MongoDB cannot be treated like a
 			// time object.
 			if mongoType != schema.MongoNone {
 				break
