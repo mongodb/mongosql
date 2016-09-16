@@ -3,6 +3,7 @@ package evaluator
 import (
 	"testing"
 
+	"github.com/10gen/sqlproxy/collation"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -11,7 +12,7 @@ func TestSubquerySourceStage(t *testing.T) {
 	ctx := &ExecutionCtx{}
 
 	runTest := func(s *SubquerySourceStage, optimize bool, rows []bson.D, expectedRows []Values) {
-		ts := NewBSONSourceStage(1, tableOneName, rows)
+		ts := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
 		var plan PlanStage
 		var err error

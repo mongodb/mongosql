@@ -49,7 +49,7 @@ type EvalCtx struct {
 	*ExecutionCtx
 	Rows []*Row
 
-	collation *collation.Collation
+	Collation *collation.Collation
 }
 
 // NewEvalCtx creates a new evaluation context.
@@ -57,13 +57,13 @@ func NewEvalCtx(execCtx *ExecutionCtx, collation *collation.Collation, rows ...*
 	return &EvalCtx{
 		ExecutionCtx: execCtx,
 		Rows:         rows,
-		collation:    collation,
+		Collation:    collation,
 	}
 }
 
 // WithRows copies the EvalCtx but uses new rows.
 func (ctx *EvalCtx) WithRows(rows ...*Row) *EvalCtx {
-	return NewEvalCtx(ctx.ExecutionCtx, ctx.collation, rows...)
+	return NewEvalCtx(ctx.ExecutionCtx, ctx.Collation, rows...)
 }
 
 // CreateChildExecutionCtx creates a child ExecutionCtx.

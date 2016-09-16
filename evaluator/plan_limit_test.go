@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/10gen/sqlproxy/collation"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -16,7 +17,7 @@ func TestLimitPlanStage(t *testing.T) {
 	runTest := func(limit *LimitStage, rows []bson.D, expectedRows []Values) {
 		ctx := &ExecutionCtx{}
 
-		ts := NewBSONSourceStage(1, tableOneName, rows)
+		ts := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 		limit.source = ts
 
 		iter, err := limit.Open(ctx)

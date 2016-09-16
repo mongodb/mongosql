@@ -745,7 +745,7 @@ func (_ *greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	var greatest SQLValue
 	var greatestIdx int
 
-	c, err := CompareTo(convertedVals[0], convertedVals[1])
+	c, err := CompareTo(convertedVals[0], convertedVals[1], ctx.Collation)
 	if c == -1 {
 		greatest, greatestIdx = values[1], 1
 	} else {
@@ -753,7 +753,7 @@ func (_ *greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	}
 
 	for i := 2; i < len(values); i++ {
-		c, err = CompareTo(greatest, convertedVals[i])
+		c, err = CompareTo(greatest, convertedVals[i], ctx.Collation)
 		if err != nil {
 			return SQLNull, err
 		}
@@ -967,7 +967,7 @@ func (_ *leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	var least SQLValue
 	var leastIdx int
 
-	c, err := CompareTo(convertedVals[0], convertedVals[1])
+	c, err := CompareTo(convertedVals[0], convertedVals[1], ctx.Collation)
 	if c == -1 {
 		least, leastIdx = convertedVals[0], 0
 	} else {
@@ -975,7 +975,7 @@ func (_ *leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	}
 
 	for i := 2; i < len(values); i++ {
-		c, err = CompareTo(least, convertedVals[i])
+		c, err = CompareTo(least, convertedVals[i], ctx.Collation)
 		if err != nil {
 			return SQLNull, err
 		}
@@ -1373,7 +1373,7 @@ func (_ *nullifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	} else if _, ok := values[1].(SQLNullValue); ok {
 		return values[0], nil
 	} else {
-		eq, _ := CompareTo(values[0], values[1])
+		eq, _ := CompareTo(values[0], values[1], ctx.Collation)
 		if eq == 0 {
 			return SQLNull, nil
 		}

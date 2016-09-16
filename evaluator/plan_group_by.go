@@ -76,6 +76,8 @@ type GroupByIter struct {
 	// the keys as read from the source operator
 	finalGrouping orderedGroup
 
+	keyBuffer *collation.KeyBuffer
+
 	// channel on which to send rows derived from the final grouping
 	outChan chan aggRowCtx
 
@@ -94,6 +96,7 @@ func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		projectedColumns: gb.projectedColumns,
 		keys:             gb.keys,
 		collation:        gb.Collation(),
+		keyBuffer:        &collation.KeyBuffer{},
 	}
 
 	return iter, nil
@@ -115,6 +118,7 @@ func (gb *GroupByIter) Next(row *Row) bool {
 }
 
 func (gb *GroupByIter) Close() error {
+	gb.keyBuffer.Reset()
 	return gb.source.Close()
 }
 
@@ -137,7 +141,7 @@ func (gb *GroupByIter) evaluateGroupByKey(row *Row) (string, error) {
 			return "", err
 		}
 
-		gbKey += value.String()
+		gbKey += gb.collation.KeyFromString(gb.keyBuffer, value.String())
 	}
 
 	return gbKey, nil

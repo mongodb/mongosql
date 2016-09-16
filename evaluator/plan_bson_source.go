@@ -11,14 +11,16 @@ import (
 type BSONSourceStage struct {
 	selectID  int
 	tableName string
+	collation *collation.Collation
 	data      []bson.D
 }
 
 // NewBSONSourceStage constructs a BSONSourceStage with its required values.
-func NewBSONSourceStage(selectID int, tableName string, data []bson.D) *BSONSourceStage {
+func NewBSONSourceStage(selectID int, tableName string, collation *collation.Collation, data []bson.D) *BSONSourceStage {
 	return &BSONSourceStage{
 		selectID:  selectID,
 		tableName: tableName,
+		collation: collation,
 		data:      data,
 	}
 }
@@ -80,8 +82,8 @@ func (bs *BSONSourceStage) Columns() []*Column {
 	return columns
 }
 
-func (_ *BSONSourceStage) Collation() *collation.Collation {
-	return collation.Default
+func (bs *BSONSourceStage) Collation() *collation.Collation {
+	return bs.collation
 }
 
 func (bs *BSONSourceIter) Close() error {

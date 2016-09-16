@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
@@ -18,7 +19,7 @@ func TestFilterPlanStage(t *testing.T) {
 
 		ctx := &ExecutionCtx{}
 
-		bss := NewBSONSourceStage(1, tableTwoName, rows)
+		bss := NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
 
 		filter.source = bss
 		iter, err := filter.Open(ctx)

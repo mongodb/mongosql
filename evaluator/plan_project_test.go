@@ -3,6 +3,7 @@ package evaluator
 import (
 	"testing"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
@@ -12,7 +13,7 @@ func TestProjectOperator(t *testing.T) {
 	ctx := &ExecutionCtx{}
 
 	runTest := func(project *ProjectStage, optimize bool, rows []bson.D, expectedRows []Values) {
-		ts := NewBSONSourceStage(1, tableOneName, rows)
+		ts := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
 		project = project.clone()
 		var plan PlanStage

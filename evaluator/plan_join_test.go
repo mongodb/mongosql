@@ -3,6 +3,7 @@ package evaluator
 import (
 	"testing"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
@@ -63,8 +64,8 @@ var (
 
 func setupJoinOperator(on SQLExpr, kind JoinKind) PlanStage {
 
-	ms1 := NewBSONSourceStage(1, tableOneName, customers)
-	ms2 := NewBSONSourceStage(1, tableTwoName, orders)
+	ms1 := NewBSONSourceStage(1, tableOneName, collation.Default, customers)
+	ms2 := NewBSONSourceStage(1, tableTwoName, collation.Default, orders)
 
 	return &JoinStage{
 		left:    ms1,

@@ -66,7 +66,10 @@ type orderByRow struct {
 	data Values
 }
 
-type orderByRows []orderByRow
+type orderByRows struct {
+	rows      []orderByRow
+	collation *collation.Collation
+}
 
 func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	sourceIter, err := ob.source.Open(ctx)
@@ -100,13 +103,14 @@ func (ob *OrderByIter) Next(row *Row) bool {
 	return done
 }
 
-func (ob *OrderByIter) sortRows() (orderByRows, error) {
-	rows := orderByRows{}
+func (ob *OrderByIter) sortRows() ([]orderByRow, error) {
+	rows := orderByRows{
+		collation: ob.collation,
+	}
 
 	row := &Row{}
 
 	for ob.source.Next(row) {
-
 		ctx := NewEvalCtx(ob.ctx, ob.collation, row)
 		var values []SQLValue
 		for _, t := range ob.terms {
@@ -119,7 +123,7 @@ func (ob *OrderByIter) sortRows() (orderByRows, error) {
 		}
 
 		obRow := orderByRow{ob.terms, values, row.Data}
-		rows = append(rows, obRow)
+		rows.rows = append(rows.rows, obRow)
 		row = &Row{}
 	}
 
@@ -137,10 +141,10 @@ func (ob *OrderByIter) sortRows() (orderByRows, error) {
 
 	ob.sorted = true
 
-	return rows, err
+	return rows.rows, err
 }
 
-func iterChan(rows orderByRows) chan Values {
+func iterChan(rows []orderByRow) chan Values {
 	ch := make(chan Values)
 
 	go func() {
@@ -185,24 +189,25 @@ func (ob *OrderByStage) clone() *OrderByStage {
 // helper functions to order data
 //
 func (rows orderByRows) Len() int {
-	return len(rows)
+	return len(rows.rows)
 }
 
 func (rows orderByRows) Swap(i, j int) {
-	rows[i], rows[j] = rows[j], rows[i]
+	rows.rows[i], rows.rows[j] = rows.rows[j], rows.rows[i]
 }
 
 func (rows orderByRows) Less(i, j int) bool {
 
-	r1 := rows[i]
-	r2 := rows[j]
+	r1 := rows.rows[i]
+	r2 := rows.rows[j]
 
 	for i, t := range r1.terms {
 
 		left := r1.termValues[i]
 		right := r2.termValues[i]
 
-		cmp, err := CompareTo(left, right)
+		cmp, err := CompareTo(left, right, rows.collation)
+
 		if err != nil {
 			panic(err)
 		}

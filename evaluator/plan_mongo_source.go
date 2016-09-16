@@ -106,6 +106,7 @@ func (ms *MongoSourceStage) clone() *MongoSourceStage {
 		tableNames:      ms.tableNames,
 		aliasNames:      ms.aliasNames,
 		collectionNames: ms.collectionNames,
+		collation:       ms.collation,
 		mappingRegistry: ms.mappingRegistry,
 		pipeline:        ms.pipeline,
 	}

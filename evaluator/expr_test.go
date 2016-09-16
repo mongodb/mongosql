@@ -2601,7 +2601,7 @@ func TestCompareTo(t *testing.T) {
 		runTests := func(tests []test) {
 			for _, t := range tests {
 				Convey(fmt.Sprintf("comparing '%v' (%T) to '%v' (%T) should return %v", t.left, t.left, t.right, t.right, t.expected), func() {
-					compareTo, err := CompareTo(t.left, t.right)
+					compareTo, err := CompareTo(t.left, t.right, collation.Default)
 					So(err, ShouldBeNil)
 					So(compareTo, ShouldEqual, t.expected)
 				})

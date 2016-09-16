@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/util"
 	"github.com/shopspring/decimal"
@@ -1229,7 +1230,7 @@ func (su SQLUint64) Value() interface{} {
 // left compares less than right; 1, if left compares
 // greater than right; and 0 if left compares equal to
 // right.
-func CompareTo(left, right SQLValue) (int, error) {
+func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error) {
 	switch leftVal := left.(type) {
 	case *SQLValues:
 		err := fmt.Errorf("operand should contain %v columns", len(leftVal.Values))
@@ -1262,7 +1263,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 				return 0, nil
 			}
 
-			c, err := CompareTo(leftVal.Values[i], rightVal.Values[i])
+			c, err := CompareTo(leftVal.Values[i], rightVal.Values[i], collation)
 			if err != nil {
 				return c, err
 			}
@@ -1275,7 +1276,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 	default:
 		switch right.(type) {
 		case *SQLValues:
-			i, err := CompareTo(right, left)
+			i, err := CompareTo(right, left, collation)
 			if err != nil {
 				return i, err
 			}
@@ -1289,13 +1290,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 			return compareDecimal128(left.Decimal128(), right.Decimal128())
 		case SQLVarchar:
 			rightVal, _ := right.(SQLVarchar)
-			s1, s2 := string(leftVal), string(rightVal)
-			if s1 < s2 {
-				return -1, nil
-			} else if s1 > s2 {
-				return 1, nil
-			}
-			return 0, nil
+			return collation.CompareString(string(leftVal), string(rightVal)), nil
 		case SQLObjectID:
 			rightVal, _ := right.(SQLObjectID)
 			if !bson.IsObjectIdHex(leftVal.String()) {
@@ -1324,7 +1319,7 @@ func CompareTo(left, right SQLValue) (int, error) {
 	case SQLNullValue:
 		switch right.(type) {
 		case *SQLValues:
-			i, err := CompareTo(right, left)
+			i, err := CompareTo(right, left, collation)
 			if err != nil {
 				return i, err
 			}

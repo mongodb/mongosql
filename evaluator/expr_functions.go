@@ -217,7 +217,7 @@ func (f *SQLAggFunctionExpr) maxFunc(ctx *EvalCtx) (SQLValue, error) {
 				continue
 			}
 
-			compared, err := CompareTo(max, eval)
+			compared, err := CompareTo(max, eval, ctx.Collation)
 			if err != nil {
 				return nil, err
 			}
@@ -248,7 +248,7 @@ func (f *SQLAggFunctionExpr) minFunc(ctx *EvalCtx) (SQLValue, error) {
 				continue
 			}
 
-			compared, err := CompareTo(min, eval)
+			compared, err := CompareTo(min, eval, ctx.Collation)
 			if err != nil {
 				return nil, err
 			}

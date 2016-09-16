@@ -418,7 +418,7 @@ func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal)
+	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
 		return SQLBool(c == 0), nil
 	}
@@ -511,7 +511,7 @@ func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal)
+	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
 		return SQLBool(c > 0), nil
 	}
@@ -559,7 +559,7 @@ func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal)
+	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
 		return SQLBool(c >= 0), nil
 	}
@@ -765,7 +765,7 @@ func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal)
+	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
 		return SQLBool(c < 0), nil
 	}
@@ -813,7 +813,7 @@ func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal)
+	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
 		return SQLBool(c <= 0), nil
 	}
@@ -1030,7 +1030,7 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal)
+	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
 		return SQLBool(c != 0), nil
 	}
