@@ -18,10 +18,19 @@ func init() {
 		collationByName[collation.Name] = collation
 		collationByID[collation.ID] = collation
 	}
+
+	Default = Must(Get("utf8_bin"))
+	DefaultCharset = MustCharset(GetCharset("utf8"))
 }
 
 var collationByID map[ID]*Collation
 var collationByName map[Name]*Collation
+
+// Default is the default Collation.
+var Default *Collation
+
+// DefaultCharset is the default Charset.
+var DefaultCharset *Charset
 
 // Name is the name of a collation.
 type Name string
