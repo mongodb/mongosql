@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/10gen/sqlproxy/parser"
 )
@@ -87,21 +86,11 @@ func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr, reqCo
 }
 
 type JoinIter struct {
-	strategy     JoinStrategy
-	kind         JoinKind
-	matcher      SQLExpr
-	joiner       Joiner
-	left, right  Iter
-	leftColumns  []*Column
-	rightColumns []*Column
-	execCtx      *ExecutionCtx
-
-	leftRows  chan *Row
-	rightRows chan *Row
-	onChan    chan Row
-	errChan   chan error
-	init      sync.Once
-	err       error
+	left, right Iter
+	ctx         *ExecutionCtx
+	onChan      chan Row
+	errChan     chan error
+	err         error
 }
 
 func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
@@ -109,54 +98,74 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	right, err := join.right.Open(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return &JoinIter{
-		kind:         join.kind,
-		strategy:     join.strategy,
-		matcher:      join.matcher,
-		left:         left,
-		right:        right,
-		leftColumns:  join.left.Columns(),
-		rightColumns: join.right.Columns(),
-		execCtx:      ctx,
-	}, nil
+	iter := &JoinIter{
+		left:    left,
+		right:   right,
+		ctx:     ctx,
+		errChan: make(chan error, 1),
+	}
+
+	leftRows := make(chan *Row)
+	rightRows := make(chan *Row)
+
+	go iter.fetchRows(left, leftRows, iter.errChan)
+	go iter.fetchRows(right, rightRows, iter.errChan)
+
+	joiner := NewJoiner(join.strategy, join.kind, join.matcher, join.left.Columns(), join.right.Columns(), iter.errChan)
+
+	iter.onChan = joiner.Join(leftRows, rightRows, ctx)
+
+	return iter, nil
 }
 
 // fetchRows reads Row objects from a given Iter, and publishes them on channel ch, closing it when
 // the iterator is exhausted. Errors encountered during iteration are published on errChan.
-func fetchRows(it Iter, ch chan *Row, errChan chan error) {
+func (iter *JoinIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 	r := &Row{}
 
-	for it.Next(r) {
-		ch <- r
-		r = &Row{}
-	}
-	close(ch)
+	syncChan := make(chan *Row)
 
-	if err := it.Err(); err != nil {
-		errChan <- err
+	go func() {
+		for it.Next(r) {
+			syncChan <- r
+			r = &Row{}
+		}
+		close(syncChan)
+	}()
+
+	for {
+		select {
+		case row, ok := <-syncChan:
+			if !ok {
+				close(ch)
+				return
+			}
+
+			if err := it.Err(); err != nil {
+				errChan <- err
+				return
+			}
+
+			ch <- row
+		case <-iter.ctx.Tomb().Dying():
+			errChan <- iter.ctx.Tomb().Err()
+			return
+		}
 	}
 }
 
-func (join *JoinIter) Next(row *Row) bool {
-	join.init.Do(func() {
-		join.errChan = make(chan error, 1)
-		join.leftRows = make(chan *Row)
-		join.rightRows = make(chan *Row)
-		go fetchRows(join.left, join.leftRows, join.errChan)
-		go fetchRows(join.right, join.rightRows, join.errChan)
-		joiner := NewJoiner(join.strategy, join.kind, join.matcher, join.leftColumns, join.rightColumns, join.errChan)
-		join.onChan = joiner.Join(join.leftRows, join.rightRows, join.execCtx)
-	})
+func (iter *JoinIter) Next(row *Row) bool {
 	select {
-	case err := <-join.errChan:
-		join.err = err
+	case err := <-iter.errChan:
+		iter.err = err
 		return false
-	case data, ok := <-join.onChan:
+	case data, ok := <-iter.onChan:
 		row.Data = data.Data
 		if !ok {
 			return false

@@ -99,7 +99,7 @@ func TestJoinPlanStage(t *testing.T) {
 			},
 		}
 
-		ctx := &ExecutionCtx{}
+		ctx := createTestExecutionCtx()
 
 		row := &Row{}
 

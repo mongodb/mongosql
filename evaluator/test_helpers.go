@@ -88,7 +88,7 @@ func (_ fakeConnectionCtx) User() string {
 	return "test user"
 }
 func (_ fakeConnectionCtx) Tomb() *tomb.Tomb {
-	return nil
+	return &tomb.Tomb{}
 }
 func (f fakeConnectionCtx) Variables() *variable.Container {
 	if f.variables == nil {
