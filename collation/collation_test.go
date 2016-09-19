@@ -23,8 +23,8 @@ func TestCompareString(t *testing.T) {
 			test(subject, "a", "b", -1)
 			test(subject, "b", "a", 1)
 			test(subject, "a", "a", 0)
-			test(subject, "a", "A", -1)
-			test(subject, "A", "a", 1)
+			test(subject, "a", "A", 1)
+			test(subject, "A", "a", -1)
 		})
 
 		Convey("utf8_general_ci", func() {

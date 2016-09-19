@@ -1,10 +1,6 @@
 package server
 
-import (
-	"encoding/binary"
-
-	"github.com/10gen/sqlproxy/collation"
-)
+import "github.com/10gen/sqlproxy/collation"
 
 type FieldData []byte
 
@@ -23,100 +19,6 @@ type Field struct {
 
 	DefaultValueLength uint64
 	DefaultValue       []byte
-}
-
-func (p FieldData) Parse() (f *Field, err error) {
-	f = new(Field)
-
-	f.Data = p
-
-	var n int
-	pos := 0
-	//skip catelog, always def
-	n, err = skipLengthEncodedString(p)
-	if err != nil {
-		return
-	}
-	pos += n
-
-	//schema
-	f.Schema, _, n, err = lengthEncodedString(p[pos:])
-	if err != nil {
-		return
-	}
-	pos += n
-
-	//table
-	f.Table, _, n, err = lengthEncodedString(p[pos:])
-	if err != nil {
-		return
-	}
-	pos += n
-
-	//org_table
-	f.OrgTable, _, n, err = lengthEncodedString(p[pos:])
-	if err != nil {
-		return
-	}
-	pos += n
-
-	//name
-	f.Name, _, n, err = lengthEncodedString(p[pos:])
-	if err != nil {
-		return
-	}
-	pos += n
-
-	//org_name
-	f.OrgName, _, n, err = lengthEncodedString(p[pos:])
-	if err != nil {
-		return
-	}
-	pos += n
-
-	//skip oc
-	pos += 1
-
-	//charset
-	f.Charset = binary.LittleEndian.Uint16(p[pos:])
-	pos += 2
-
-	//column length
-	f.ColumnLength = binary.LittleEndian.Uint32(p[pos:])
-	pos += 4
-
-	//type
-	f.Type = p[pos]
-	pos++
-
-	//flag
-	f.Flag = binary.LittleEndian.Uint16(p[pos:])
-	pos += 2
-
-	//decimals 1
-	f.Decimal = p[pos]
-	pos++
-
-	//filter [0x00][0x00]
-	pos += 2
-
-	f.DefaultValue = nil
-	//if more data, command was field list
-	if len(p) > pos {
-		//length of default value lenenc-int
-		f.DefaultValueLength, _, n = lengthEncodedInt(p[pos:])
-		pos += n
-
-		if pos+int(f.DefaultValueLength) > len(p) {
-			err = errMalformPacket
-			return
-		}
-
-		//default value string[$len]
-		f.DefaultValue = p[pos:(pos + int(f.DefaultValueLength))]
-	}
-
-	return
 }
 
 func (f *Field) Dump(cs *collation.Charset) []byte {

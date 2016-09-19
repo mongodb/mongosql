@@ -3,6 +3,7 @@ package collation
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"golang.org/x/text/collate"
@@ -40,6 +41,7 @@ type ID uint8
 
 // Collation defines a collation.
 type Collation struct {
+	binary           bool
 	language         language.Tag
 	ignoreCase       bool
 	ignoreDiacritics bool
@@ -81,6 +83,11 @@ func (c *Collation) ensureCollator() {
 
 // CompareString returns an integer comparing the two strings. The result will be 0 if a==b, -1 if a < b, and +1 if a > b.
 func (c *Collation) CompareString(a, b string) int {
+
+	if c.binary {
+		return strings.Compare(a, b)
+	}
+
 	c.ensureCollator()
 	return c.collator.CompareString(a, b)
 }
@@ -98,6 +105,10 @@ func (b *KeyBuffer) Reset() {
 // KeyFromString returns the collation key for str. Passing the buffer buf may avoid memory allocations.
 // The returned string will point to an allocation in KeyBuffer and will retain valid until the next call to buffer.Reset().
 func (c *Collation) KeyFromString(b *KeyBuffer, s string) string {
+	if c.binary {
+		return s
+	}
+
 	c.ensureCollator()
 	keyBytes := c.collator.KeyFromString(&b.buffer, s)
 	return string(keyBytes)

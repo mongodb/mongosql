@@ -24,7 +24,7 @@ import (
 	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
 
-	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2"	
 	"gopkg.in/tomb.v2"
 )
 
@@ -456,10 +456,8 @@ func (c *conn) readHandshakeResponse() error {
 		clientPluginNameBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
 		pos += len(clientPluginNameBytes) + 1
 
-		c.clientRequestedAuthPluginName = String(c.variables.CharacterSetClient.Decode(clientPluginNameBytes))
-		if err != nil {
-			return err
-		}
+		// this is always a utf8 string
+		c.clientRequestedAuthPluginName = String(clientPluginNameBytes)
 	}
 
 	if (c.capability & CLIENT_CONNECT_ATTRS) != 0 {
@@ -632,6 +630,7 @@ func (c *conn) writeAuthRequestSwitchPacket(pluginName string) error {
 	data = append(data, 0xFE)
 
 	// plugin name string[NUL]
+	// this is a utf8 string
 	data = append(data, []byte(pluginName)...)
 	data = append(data, 0)
 
@@ -709,13 +708,8 @@ func (c *conn) writeInitialHandshake() error {
 	//capability flag lower 2 bytes
 	data = append(data, byte(c.capability), byte(c.capability>>8))
 
-	col, err := collation.Get(c.variables.CharacterSetResults.DefaultCollationName)
-	if err != nil {
-		return err
-	}
-
 	//charset
-	data = append(data, uint8(col.ID))
+	data = append(data, uint8(collation.Default.ID))
 
 	//status
 	status := c.status()

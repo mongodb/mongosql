@@ -206,6 +206,7 @@ func TestExtractField(t *testing.T) {
 				So(ok, ShouldBeFalse)
 			}
 		})
+
 	})
 
 	Convey(`Extraction of a non-document should return (nil, false)`, t, func() {
