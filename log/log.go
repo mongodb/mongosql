@@ -144,12 +144,12 @@ func NewComponentLogger(component string, logger Logger) *Logger {
 
 //// Log Writer Interface
 type logWriter struct {
-	logger            *Logger
-	minVerbosityosity int
+	logger       *Logger
+	minVerbosity int
 }
 
 func (lgw *logWriter) Write(message []byte) (int, error) {
-	lgw.logger.Log(lgw.minVerbosityosity, string(message))
+	lgw.logger.Log(lgw.minVerbosity, string(message))
 	return len(message), nil
 }
 
