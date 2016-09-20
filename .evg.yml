@@ -498,7 +498,7 @@ functions:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/release.${archive_format|tgz}
+      local_file: src/github.com/10gen/sqlproxy/release.${archive_format|tgz}
       remote_file: sqlproxy/binaries/${push_path}/mongodb-bi-${push_name}-${push_arch}-${version}.${archive_format|tgz}
       bucket: mciuploads
       permissions: public-read
@@ -675,7 +675,7 @@ tasks:
     - func: "create release"
     - command: expansions.update
       params:
-        file: src/version.yml
+        file: src/github.com/10gen/sqlproxy/version.yml
     - func: "upload release"
 
 - name: evaluator

@@ -18,6 +18,9 @@ sed -i.bak -e "s/built-without-version-string/$(git describe)/" \
 rm -rf vendor/pkg
 mkdir -p bin
 
+# for users on go1.5
+export GO15VENDOREXPERIMENT=1
+
 echo "Building mongosqld..."
 go build -o "bin/mongosqld" -tags "$tags" "main/sqlproxy.go"
 ./bin/mongosqld --version

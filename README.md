@@ -5,6 +5,7 @@ git clone git@github.com:10gen/sqlproxy.git $GOPATH/src/github.com/10gen/sqlprox
 cd $GOPATH/src/github.com/10gen/sqlproxy && ./build.sh
 ./bin/mongosqld --schema sample.conf
 ```
+<sub>need go version >= 1.5*</sub>
 
 Connect using TCP protocol with MySQL client
 ```
