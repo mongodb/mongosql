@@ -111,6 +111,7 @@ buildvariants:
     push_arch: ppc64le-rhel71
     push_name: linux
     push_path: linux
+    using_go14: true
   run_on:
   - rhel71-power8-test
   tasks:
@@ -124,6 +125,7 @@ buildvariants:
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-s390x-enterprise-rhel72-latest.tgz
     push_arch: s390x-enterprise-rhel72
     push_name: linux
+    using_go14: true
     push_path: linux
   run_on:
   - rhel72-zseries-build
@@ -195,23 +197,6 @@ pre:
         mkdir src
   - command: shell.exec
     params:
-      working_dir: src
-      silent: true
-      script: |
-        echo "Building credential file..."
-        cat > creds.yml <<END_OF_CREDS
-        credentials:  {
-          github: "${github_token}",
-        }
-        providers:
-          aws:
-            aws_id: "${aws_key}"
-            aws_secret: "${aws_secret}"
-
-        END_OF_CREDS
-        echo "Done!"
-  - command: shell.exec
-    params:
       silent: true
       script: |
         ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongooplog; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos; pkill -f buildlogger.py; pkill -f smoke.py} >/dev/null 2>&1
@@ -229,7 +214,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/10gen/sqlproxy
       script: |
         set -o verbose
         set -o errexit
@@ -247,7 +232,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/10gen/sqlproxy
       script: |
         set -o verbose
         set -o errexit
@@ -258,6 +243,16 @@ functions:
         if [ '${library_path}' != '' ]; then
           export ${library_path}
         fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir src && mv vendor/* src && mv src vendor
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+        else
+          export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+        fi;
         # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
         # use a wrapper if it's present on the system
         #
@@ -265,7 +260,6 @@ functions:
         then
           export PATH=/opt/ldwrapper/bin:$PATH
         fi
-        . ./set_gopath.sh
         ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec=$(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr=$(git describe)" ${gccgoflags} ${build_tags} -o drdl mongodrdl/main/mongodrdl.go
         echo "Done!"
 
@@ -273,7 +267,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/10gen/sqlproxy
       script: |
         set -o verbose
         set -o errexit
@@ -290,8 +284,17 @@ functions:
         if [ -d /opt/ldwrapper/bin ]
         then
           export PATH=/opt/ldwrapper/bin:$PATH
-        fi
-        . ./set_gopath.sh
+        fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir src && mv vendor/* src && mv src vendor
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+        else
+          export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+        fi;
         ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec=$(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr=$(git describe)" ${gccgoflags} -o sqlproxy main/sqlproxy.go
         echo "Done!"
 
@@ -299,7 +302,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/10gen/sqlproxy
       script: |
         set -o verbose
         set -o errexit
@@ -312,7 +315,7 @@ functions:
   "download mongod":
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/10gen/sqlproxy
       script: |
         set -o verbose
         set -o errexit
@@ -327,7 +330,7 @@ functions:
   "download test data":
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/10gen/sqlproxy
       script: |
         curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.gz --output testdata/input/attendees.bson.gz
         curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
@@ -354,24 +357,33 @@ functions:
   "fetch source" :
     - command: git.get_project
       params:
-        directory: src
+        directory: src/github.com/10gen/sqlproxy
     - command: git.apply_patch
       type: test
       params:
-        directory: src
+        directory: src/github.com/10gen/sqlproxy
 
   "generate coverage txt":
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/10gen/sqlproxy
       script: |
         set -o verbose
         if [ "Windows_NT" = "$OS" ]; then
           set -o igncr
         fi;
-        . ./set_gopath.sh
         if [ '${library_path}' != '' ]; then
           export ${library_path}
+        fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir src && mv vendor/* src && mv src vendor
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+        else
+          export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
         fi;
         perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
         if [ '${cover}' != '-' ]; then
@@ -381,15 +393,24 @@ functions:
   "generate coverage html":
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/10gen/sqlproxy
       script: |
         set -o verbose
         if [ "Windows_NT" = "$OS" ]; then
           set -o igncr
         fi;
-        . ./set_gopath.sh
         if [ '${library_path}' != '' ]; then
           export ${library_path}
+        fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir src && mv vendor/* src && mv src vendor
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+        else
+          export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
         fi;
         perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
         if [ '${cover}' != '-' ]; then
@@ -399,29 +420,31 @@ functions:
   "rewrite coverage report":
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/10gen/sqlproxy
       script: |
         if [ "Windows_NT" = "$OS" ]; then
           set -o igncr
         fi;
-        . ./set_gopath.sh
         if [ '${library_path}' != '' ]; then
           export ${library_path}
+        fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir src && mv vendor/* src && mv src vendor
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+        else
+          export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
         fi;
         perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
         exit 0
 
-  "setup creds":
-    command: shell.exec
-    params:
-      script: |
-        set -o verbose
-        cp creds.yml src
-
   "start mongod":
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/10gen/sqlproxy
       background: true
       script: |
         set -o verbose
@@ -493,7 +516,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
@@ -503,7 +526,16 @@ tasks:
           if [ '${library_path}' != '' ]; then
             export ${library_path}
           fi;
-          . ./set_gopath.sh
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
           ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go ${gccgoflags} -out benchmark_test.go
           ${gorootvars} ${library_path} ${gotest_env} go test -run benchmark_test.go ${gccgoflags} -bench=. -benchmem -benchtime=5s -v -timeout 4h > benchmark.txt 2>&1; if [ $? -ne 0 ]; then cat benchmark.txt; exit 1; else cat benchmark.txt; exit 0; fi
     - func: "upload benchmark report"
@@ -517,7 +549,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
@@ -527,7 +559,16 @@ tasks:
           if [ '${library_path}' != '' ]; then
             export ${library_path}
           fi;
-          . ./set_gopath.sh
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
           mkfifo test_pipe
           tee -a blackbox.suite < test_pipe&
           touch coverage.out
@@ -548,7 +589,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
@@ -558,7 +599,16 @@ tasks:
           if [ '${library_path}' != '' ]; then
             export ${library_path}
           fi;
-          . ./set_gopath.sh
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
           mkfifo test_pipe
           tee -a blackbox-nopushdown.suite < test_pipe&
           touch coverage.out
@@ -582,7 +632,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
@@ -592,13 +642,22 @@ tasks:
           if [ '${library_path}' != '' ]; then
             export ${library_path}
           fi;
-          . ./set_gopath.sh
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
           cd collation
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > collation.suite 2>&1; if [ $? -ne 0 ]; then cat collation.suite; exit 1; else cat collation.suite; exit 0; fi
     - command: shell.exec
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           mv collation/coverage.out .
@@ -627,7 +686,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
@@ -637,14 +696,23 @@ tasks:
           if [ '${library_path}' != '' ]; then
             export ${library_path}
           fi;
-          . ./set_gopath.sh
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
           cd evaluator
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > evaluator.suite 2>&1; if [ $? -ne 0 ]; then cat evaluator.suite; exit 1; else cat evaluator.suite; exit 0; fi
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           mv evaluator/coverage.out .
@@ -662,7 +730,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
@@ -672,13 +740,22 @@ tasks:
           if [ '${library_path}' != '' ]; then
             export ${library_path}
           fi;
-          . ./set_gopath.sh
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
           cd mongodb
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > mongodb.suite 2>&1; if [ $? -ne 0 ]; then cat mongodb.suite; exit 1; else cat mongodb.suite; exit 0; fi
     - command: shell.exec
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           mv mongodb/coverage.out .
@@ -696,7 +773,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
@@ -706,7 +783,16 @@ tasks:
           if [ '${library_path}' != '' ]; then
             export ${library_path}
           fi;
-          . ./set_gopath.sh
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
           cd mongodrdl
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v > mongodrdl.suite 2>&1; if [ $? -ne 0 ]; then cat mongodrdl.suite; exit 1; else cat mongodrdl.suite; fi
@@ -722,7 +808,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
@@ -732,7 +818,16 @@ tasks:
           if [ '${library_path}' != '' ]; then
             export ${library_path}
           fi;
-          . ./set_gopath.sh
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
           cd parser
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v > parser.suite 2>&1; if [ $? -ne 0 ]; then cat parser.suite; exit 1; else cat parser.suite; exit 0; fi
@@ -746,7 +841,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
@@ -756,7 +851,16 @@ tasks:
           if [ '${library_path}' != '' ]; then
             export ${library_path}
           fi;
-          . ./set_gopath.sh
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
     - func: "rewrite coverage report"
@@ -774,7 +878,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
@@ -784,7 +888,16 @@ tasks:
           if [ '${library_path}' != '' ]; then
             export ${library_path}
           fi;
-          . ./set_gopath.sh
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${gccgoflags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy-nopushdown.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-nopushdown.suite; exit 1; else cat sqlproxy-nopushdown.suite; exit 0; fi
     - func: "rewrite coverage report"
@@ -802,16 +915,25 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
           if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
           fi;
-          . ./set_gopath.sh
           if [ '${library_path}' != '' ]; then
             export ${library_path}
+          fi;
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
           fi;
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -tableau -run TestTableauDemo -timeout 4h -v ${cover|-coverprofile=coverage.out} > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
@@ -827,7 +949,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           set -o errexit
@@ -837,13 +959,22 @@ tasks:
           if [ '${library_path}' != '' ]; then
             export ${library_path}
           fi;
-          . ./set_gopath.sh
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir src && mv vendor/* src && mv src vendor
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
           cd variable
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > variable.suite 2>&1; if [ $? -ne 0 ]; then cat variable.suite; exit 1; else cat variable.suite; exit 0; fi
     - command: shell.exec
       params:
-        working_dir: src
+        working_dir: src/github.com/10gen/sqlproxy
         script: |
           set -o verbose
           mv variable/coverage.out .

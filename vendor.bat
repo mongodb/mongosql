@@ -17,14 +17,14 @@ for /F "eol=; tokens=1,2,3" %%i in (Godeps) do (
 
 	go get -u -d "!package!" >nul 2>&1
 	echo Setting package to version !version!
-	cd "%GOPATH%\src\!package!"
+	cd "%GOPATH%\!package!"
 	git checkout !version! >nul 2>&1
 
 	if not "!dest!"=="" (
 		cd "%GOPATH%"
-		if exist "%GOPATH%\src\!dest!" rd /s /q "%GOPATH%\src\!dest!"
-		xcopy "%GOPATH%\src\!package!" "%GOPATH%\src\!dest!" /Y /S /I >nul 2>&1
-		rd /s /q "%GOPATH%\src\!package!"
+		if exist "%GOPATH%\!dest!" rd /s /q "%GOPATH%\!dest!"
+		xcopy "%GOPATH%\!package!" "%GOPATH%\!dest!" /Y /S /I >nul 2>&1
+		rd /s /q "%GOPATH%\!package!"
 	)
 )
 
