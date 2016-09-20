@@ -1,4 +1,4 @@
-package sqlproxy
+package db
 
 import (
 	"crypto/tls"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	proxyOpts "github.com/10gen/sqlproxy/options"
+
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"

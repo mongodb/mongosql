@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
 )
@@ -17,7 +18,7 @@ import (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	opts, err := sqlproxy.NewOptions()
+	opts, err := options.NewOptions()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error generating command line options: %v\n", err)
 		os.Exit(1)

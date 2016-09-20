@@ -125,8 +125,8 @@ buildvariants:
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-s390x-enterprise-rhel72-latest.tgz
     push_arch: s390x-enterprise-rhel72
     push_name: linux
-    using_go14: true
     push_path: linux
+    using_go14: true
   run_on:
   - rhel72-zseries-build
   - rhel72-zseries-test
@@ -162,7 +162,6 @@ buildvariants:
   display_name: Ubuntu 14.04
   expansions:
     build_tags: -tags "sasl ssl"
-    cover: "-"
     mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.3.10.tgz
     push_arch: x86_64-ubuntu1404
     push_name: linux
@@ -246,12 +245,16 @@ functions:
         if [ '${using_go14}' != '' ]; then
           SQL_PROXY_PKG='github.com/10gen/sqlproxy'
           rm -rf .gopath/
-          mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+          mkdir -p .gopath/src/github.com/10gen
           ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir src && mv vendor/* src && mv src vendor
+          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
           export GOPATH=`pwd`/vendor:`pwd`/.gopath
         else
-          export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
         fi;
         # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
         # use a wrapper if it's present on the system
@@ -259,8 +262,11 @@ functions:
         if [ -d /opt/ldwrapper/bin ]
         then
           export PATH=/opt/ldwrapper/bin:$PATH
-        fi
-        ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec=$(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr=$(git describe)" ${gccgoflags} ${build_tags} -o drdl mongodrdl/main/mongodrdl.go
+        fi;
+        sed -i.bak -e "s/built-without-version-string/$(git describe)/" \
+           -e "s/built-without-git-spec/$(git rev-parse HEAD)/" \
+           common/version.go
+        ${gorootvars} ${library_path} go build ${gccgoflags} ${build_tags} -o drdl mongodrdl/main/mongodrdl.go
         echo "Done!"
 
   "build SQLProxy":
@@ -288,14 +294,21 @@ functions:
         if [ '${using_go14}' != '' ]; then
           SQL_PROXY_PKG='github.com/10gen/sqlproxy'
           rm -rf .gopath/
-          mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+          mkdir -p .gopath/src/github.com/10gen
           ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir src && mv vendor/* src && mv src vendor
+          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
           export GOPATH=`pwd`/vendor:`pwd`/.gopath
         else
-          export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
         fi;
-        ${gorootvars} ${library_path} go build -ldflags "-X github.com/10gen/sqlproxy/common.Gitspec=$(git rev-parse HEAD) -X github.com/10gen/sqlproxy/common.VersionStr=$(git describe)" ${gccgoflags} -o sqlproxy main/sqlproxy.go
+        sed -i.bak -e "s/built-without-version-string/$(git describe)/" \
+           -e "s/built-without-git-spec/$(git rev-parse HEAD)/" \
+           common/version.go
+        ${gorootvars} ${library_path} go build ${gccgoflags} -o sqlproxy main/sqlproxy.go
         echo "Done!"
 
   "create release":
@@ -363,58 +376,84 @@ functions:
       params:
         directory: src/github.com/10gen/sqlproxy
 
-  "generate coverage txt":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        set -o verbose
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir src && mv vendor/* src && mv src vendor
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-        else
-          export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-        fi;
-        perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
-        if [ '${cover}' != '-' ]; then
-          ${gorootvars} ${library_path} go tool cover ${gccgoflags} -func=coverage_rewrite.out -o coverage.txt
-        fi;
-
   "generate coverage html":
     command: shell.exec
     params:
       working_dir: src/github.com/10gen/sqlproxy
       script: |
         set -o verbose
+        set -o errexit
+        echo "Building SQLProxy"
         if [ "Windows_NT" = "$OS" ]; then
           set -o igncr
         fi;
         if [ '${library_path}' != '' ]; then
           export ${library_path}
         fi;
+        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
+        # use a wrapper if it's present on the system
+        #
+        if [ -d /opt/ldwrapper/bin ]
+        then
+          export PATH=/opt/ldwrapper/bin:$PATH
+        fi;
         if [ '${using_go14}' != '' ]; then
           SQL_PROXY_PKG='github.com/10gen/sqlproxy'
           rm -rf .gopath/
-          mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+          mkdir -p .gopath/src/github.com/10gen
           ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir src && mv vendor/* src && mv src vendor
+          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
           export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          echo "gopath is $GOPATH"
         else
-          export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
         fi;
-        perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
         if [ '${cover}' != '-' ]; then
           ${gorootvars} ${library_path} go tool cover ${gccgoflags} -html=coverage_rewrite.out -o coverage.html
+        fi;
+
+  "generate coverage txt":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        set -o verbose
+        set -o errexit
+        echo "Building SQLProxy"
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        if [ '${library_path}' != '' ]; then
+          export ${library_path}
+        fi;
+        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
+        # use a wrapper if it's present on the system
+        #
+        if [ -d /opt/ldwrapper/bin ]
+        then
+          export PATH=/opt/ldwrapper/bin:$PATH
+        fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/github.com/10gen
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          echo "gopath is $GOPATH"
+        else
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
+        fi;
+        if [ '${cover}' != '-' ]; then
+          ${gorootvars} ${library_path} go tool cover ${gccgoflags} -func=coverage_rewrite.out -o coverage.txt
         fi;
 
   "rewrite coverage report":
@@ -422,22 +461,6 @@ functions:
     params:
       working_dir: src/github.com/10gen/sqlproxy
       script: |
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir src && mv vendor/* src && mv src vendor
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-        else
-          export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-        fi;
         perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
         exit 0
 
@@ -455,12 +478,24 @@ functions:
         ./bin/mongo${extension} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")' ${mongo_args}
         echo "Done!"
 
+  "upload benchmark report":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: src/github.com/10gen/sqlproxy/benchmark.txt
+      remote_file: sqlproxy/benchmarks/${build_variant}/${task_id}.txt
+      bucket: mciuploads
+      permissions: public-read
+      content_type: text/plain
+      display_name: Benchmark Report (TXT)
+
   "upload coverage html report":
     command: s3.put
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/coverage.html
+      local_file: src/github.com/10gen/sqlproxy/coverage.html
       remote_file: sqlproxy/coverage/${task_id}.html
       bucket: mciuploads
       permissions: public-read
@@ -468,24 +503,12 @@ functions:
       display_name: Coverage Report (HTML)
       optional: true
 
-  "upload benchmark report":
-    command: s3.put
-    params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/benchmark.txt
-      remote_file: sqlproxy/benchmarks/${build_variant}/${task_id}.txt
-      bucket: mciuploads
-      permissions: public-read
-      content_type: text/plain
-      display_name: Benchmark Report (TXT)
-
   "upload coverage txt report":
     command: s3.put
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/coverage.txt
+      local_file: src/github.com/10gen/sqlproxy/coverage.txt
       remote_file: sqlproxy/coverage/${task_id}.txt
       bucket: mciuploads
       permissions: public-read
@@ -529,12 +552,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go ${gccgoflags} -out benchmark_test.go
           ${gorootvars} ${library_path} ${gotest_env} go test -run benchmark_test.go ${gccgoflags} -bench=. -benchmem -benchtime=5s -v -timeout 4h > benchmark.txt 2>&1; if [ $? -ne 0 ]; then cat benchmark.txt; exit 1; else cat benchmark.txt; exit 0; fi
@@ -562,12 +589,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           mkfifo test_pipe
           tee -a blackbox.suite < test_pipe&
@@ -602,12 +633,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           mkfifo test_pipe
           tee -a blackbox-nopushdown.suite < test_pipe&
@@ -645,12 +680,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           cd collation
           touch coverage.out
@@ -699,12 +738,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           cd evaluator
           touch coverage.out
@@ -743,12 +786,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           cd mongodb
           touch coverage.out
@@ -786,12 +833,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           cd mongodrdl
           touch coverage.out
@@ -821,12 +872,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           cd parser
           touch coverage.out
@@ -854,12 +909,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
@@ -891,12 +950,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${gccgoflags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy-nopushdown.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-nopushdown.suite; exit 1; else cat sqlproxy-nopushdown.suite; exit 0; fi
@@ -928,12 +991,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${gccgoflags} -tableau -run TestTableauDemo -timeout 4h -v ${cover|-coverprofile=coverage.out} > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
@@ -962,12 +1029,16 @@ tasks:
           if [ '${using_go14}' != '' ]; then
             SQL_PROXY_PKG='github.com/10gen/sqlproxy'
             rm -rf .gopath/
-            mkdir -p .gopath/src/"$(dirname "${SQL_PROXY_PKG}")"
+            mkdir -p .gopath/src/github.com/10gen
             ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir src && mv vendor/* src && mv src vendor
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
             export GOPATH=`pwd`/vendor:`pwd`/.gopath
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
           fi;
           cd variable
           touch coverage.out

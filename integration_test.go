@@ -19,6 +19,7 @@ import (
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
+	proxyOpts "github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
 	_ "github.com/go-sql-driver/mysql"
@@ -188,7 +189,7 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 		RawDatabases: conf.Databases,
 	}
 
-	opts, err := sqlproxy.NewOptions()
+	opts, err := proxyOpts.NewOptions()
 	if err != nil {
 		return err
 	}
@@ -455,7 +456,7 @@ func runSQL(db *sql.DB, query string, types []string, names []string) ([][]inter
 	return result, nil
 }
 
-func testServer(cfg *schema.Schema, opts sqlproxy.Options) (*server.Server, error) {
+func testServer(cfg *schema.Schema, opts proxyOpts.Options) (*server.Server, error) {
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
 		opts.MongoSSL = true
 		opts.MongoAllowInvalidCerts = true

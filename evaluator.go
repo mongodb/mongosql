@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2"
@@ -13,11 +14,11 @@ import (
 type Evaluator struct {
 	config  *schema.Schema
 	session *mgo.Session
-	options Options
+	options options.Options
 }
 
-func NewEvaluator(cfg *schema.Schema, opts Options) (*Evaluator, error) {
-	info, err := GetDialInfo(opts)
+func NewEvaluator(cfg *schema.Schema, opts options.Options) (*Evaluator, error) {
+	info, err := options.GetDialInfo(opts)
 	if err != nil {
 		return nil, err
 	}

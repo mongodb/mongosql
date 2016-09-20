@@ -1,4 +1,4 @@
-package sqlproxy
+package options
 
 import (
 	"crypto/tls"

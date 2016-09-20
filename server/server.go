@@ -13,6 +13,7 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
@@ -23,7 +24,7 @@ type Server struct {
 	sync.Mutex
 
 	eval              *sqlproxy.Evaluator
-	opts              sqlproxy.Options
+	opts              options.Options
 	databases         map[string]*schema.Database
 	activeConnections map[uint32]*conn
 	variables         *variable.Container
@@ -37,7 +38,7 @@ type Server struct {
 }
 
 // New creates a NewServer.
-func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts sqlproxy.Options) (*Server, error) {
+func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts options.Options) (*Server, error) {
 
 	decimal.DivisionPrecision = 34
 

@@ -90,7 +90,7 @@ import (
 	"flag"
 	"fmt"
 	yaml "github.com/10gen/candiedyaml"
-	"github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	_ "github.com/go-sql-driver/mysql"
 	. "github.com/smartystreets/goconvey/convey"
@@ -116,7 +116,7 @@ func setup() {
 	conf := mustLoadTestSchema(pathify("testdata", "blackbox.yml"))
 	mustLoadTestData(testMongoHost, testMongoPort, conf)
 
-	opts, _ := sqlproxy.NewOptions()
+	opts, _ := options.NewOptions()
 	opts.Addr = testDBAddr
 	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort)
 

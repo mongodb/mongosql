@@ -4,8 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/db"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/variable"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
@@ -58,8 +59,8 @@ func (_ *connCtx) Tomb() *tomb.Tomb {
 	return &tomb.Tomb{}
 }
 
-func getOptions(t *testing.T) sqlproxy.Options {
-	opts, _ := sqlproxy.NewOptions()
+func getOptions(t *testing.T) options.Options {
+	opts, _ := options.NewOptions()
 	opts.MongoURI = "localhost"
 
 	// ssl is turned on
@@ -75,7 +76,7 @@ func getOptions(t *testing.T) sqlproxy.Options {
 func TestMongoSourcePlanStage(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
-	sessionProvider, err := sqlproxy.NewSessionProvider(getOptions(t))
+	sessionProvider, err := db.NewSessionProvider(getOptions(t))
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 		return
@@ -199,7 +200,6 @@ func TestExtractField(t *testing.T) {
 				So(ok, ShouldBeFalse)
 			}
 		})
-
 	})
 
 	Convey(`Extraction of a non-document should return (nil, false)`, t, func() {
