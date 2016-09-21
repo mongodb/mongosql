@@ -19,14 +19,14 @@ import (
 	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
-	proxyOpts "github.com/10gen/sqlproxy/options"
+	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
+	"github.com/10gen/sqlproxy/testutils"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
-	toolsLog "github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
+	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/mongorestore"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -112,10 +112,10 @@ func TestIntegration(t *testing.T) {
 		})
 	}
 
-	connection := &options.Connection{Host: testMongoHost, Port: testMongoPort}
+	connection := &toolsoptions.Connection{Host: testMongoHost, Port: testMongoPort}
 	sessionProvider, _ := toolsdb.NewSessionProvider(
-		options.ToolOptions{
-			Auth:       &options.Auth{},
+		toolsoptions.ToolOptions{
+			Auth:       &toolsoptions.Auth{},
 			Connection: connection,
 			SSL:        getSslOpts(),
 		},
@@ -130,7 +130,6 @@ func TestIntegration(t *testing.T) {
 		}
 	}
 }
-
 func buildSchemaMaps(conf *schema.Schema) {
 	conf.Databases = make(map[string]*schema.Database)
 	for _, db := range conf.RawDatabases {
@@ -189,7 +188,7 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 		RawDatabases: conf.Databases,
 	}
 
-	opts, err := proxyOpts.NewOptions()
+	opts, err := options.NewSqldOptions()
 	if err != nil {
 		return err
 	}
@@ -299,33 +298,11 @@ func pathify(elem ...string) string {
 	return filepath.Join(elem...)
 }
 
-func getSslOpts() *options.SSL {
-	var sslOpts *options.SSL
-
-	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
-		toolsdb.GetConnectorFuncs = append(toolsdb.GetConnectorFuncs,
-			func(opts options.ToolOptions) toolsdb.DBConnector {
-				if opts.SSL.UseSSL {
-					return &sqlproxy.SSLDBConnector{}
-				}
-				return nil
-			},
-		)
-		sslOpts = &options.SSL{
-			UseSSL:              true,
-			SSLPEMKeyFile:       "testdata/client.pem",
-			SSLAllowInvalidCert: true,
-		}
-	}
-
-	return sslOpts
-}
-
 func restoreInline(host, port string, inline *inlineDataSet) error {
-	connection := &options.Connection{Host: host, Port: port}
+	connection := &toolsoptions.Connection{Host: host, Port: port}
 	sessionProvider, err := toolsdb.NewSessionProvider(
-		options.ToolOptions{
-			Auth:       &options.Auth{},
+		toolsoptions.ToolOptions{
+			Auth:       &toolsoptions.Auth{},
 			Connection: connection,
 			SSL:        getSslOpts(),
 		},
@@ -357,10 +334,10 @@ func restoreInline(host, port string, inline *inlineDataSet) error {
 }
 
 func restoreBSON(host, port, file string) error {
-	connection := &options.Connection{Host: host, Port: port}
+	connection := &toolsoptions.Connection{Host: host, Port: port}
 	sessionProvider, err := toolsdb.NewSessionProvider(
-		options.ToolOptions{
-			Auth:       &options.Auth{},
+		toolsoptions.ToolOptions{
+			Auth:       &toolsoptions.Auth{},
 			Connection: connection,
 			SSL:        getSslOpts(),
 		},
@@ -370,13 +347,13 @@ func restoreBSON(host, port, file string) error {
 	}
 
 	sessionProvider.SetFlags(toolsdb.DisableSocketTimeout)
-	toolsLog.SetVerbosity(&options.Verbosity{Quiet: true})
+	log.SetVerbosity(&toolsoptions.Verbosity{Quiet: true})
 
 	restorer := mongorestore.MongoRestore{
-		ToolOptions: &options.ToolOptions{
+		ToolOptions: &toolsoptions.ToolOptions{
 			Connection: connection,
-			Namespace:  &options.Namespace{},
-			HiddenOptions: &options.HiddenOptions{
+			Namespace:  &toolsoptions.Namespace{},
+			HiddenOptions: &toolsoptions.HiddenOptions{
 				NumDecodingWorkers: 10,
 				BulkBufferSize:     1000,
 			},
@@ -456,7 +433,17 @@ func runSQL(db *sql.DB, query string, types []string, names []string) ([][]inter
 	return result, nil
 }
 
-func testServer(cfg *schema.Schema, opts proxyOpts.Options) (*server.Server, error) {
+func getSslOpts() *toolsoptions.SSL {
+	var sslOpts *toolsoptions.SSL
+
+	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
+		return testutils.GetSSLOpts()
+	}
+
+	return sslOpts
+}
+
+func testServer(cfg *schema.Schema, opts options.SqldOptions) (*server.Server, error) {
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
 		opts.MongoSSL = true
 		opts.MongoAllowInvalidCerts = true

@@ -116,7 +116,7 @@ func setup() {
 	conf := mustLoadTestSchema(pathify("testdata", "blackbox.yml"))
 	mustLoadTestData(testMongoHost, testMongoPort, conf)
 
-	opts, _ := options.NewOptions()
+	opts, _ := options.NewSqldOptions()
 	opts.Addr = testDBAddr
 	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort)
 

@@ -21,6 +21,7 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
 
 	"gopkg.in/mgo.v2"
@@ -139,7 +140,18 @@ func (c *conn) authenticate() error {
 		}
 	}
 
-	return c.session.Login(credential)
+	if credential.Mechanism == "" {
+		credential.Mechanism = "SCRAM-SHA-1"
+	}
+
+	c.logger.Logf(log.DebugHigh, "attempting to authenticate principal '%v' on '%v' using '%v'", credential.Username, credential.Source, credential.Mechanism)
+
+	if err = c.session.Login(credential); err != nil {
+		return err
+	}
+
+	c.logger.Logf(log.DebugHigh, "successfully authenticated as principal '%v' on '%v'", credential.Username, credential.Source)
+	return nil
 }
 
 func (c *conn) close() error {
@@ -162,12 +174,9 @@ func (c *conn) close() error {
 	c.closed = true
 
 	// this isn't critical so neglecting to lock
-	pluralize := ""
 	numConns := len(c.server.activeConnections)
-	if numConns == 0 {
-		pluralize = "s"
-	}
-	c.logger.Logf(log.Always, "end connection %v (%v connection%v now open)", c.conn.RemoteAddr(), numConns, pluralize)
+	pluralized := util.Pluralize(numConns, "connection", "connections")
+	c.logger.Logf(log.Always, "end connection %v (%v %v now open)", c.conn.RemoteAddr(), numConns, pluralized)
 
 	return nil
 }

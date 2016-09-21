@@ -4,23 +4,24 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodrdl"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/10gen/sqlproxy/options"
+	"github.com/10gen/sqlproxy/util"
 )
 
 func main() {
-	// initialize command-line opts
-	opts := options.New("mongodrdl", mongodrdl.Usage, options.EnabledOptions{true, true, true})
 
-	outputOpts := &mongodrdl.OutputOptions{}
-	opts.AddOptions(outputOpts)
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	sampleOpts := &mongodrdl.SampleOptions{}
-	opts.AddOptions(sampleOpts)
+	opts, err := options.NewDrdlOptions()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error generating command line options: %v\n", err)
+		os.Exit(util.ExitError)
+	}
 
 	args, err := opts.Parse()
 	if err != nil {
@@ -35,18 +36,23 @@ func main() {
 		os.Exit(util.ExitBadOptions)
 	}
 
+	log.SetVerbosity(opts.DrdlLog)
+
 	if opts.Version {
 		common.PrintVersionAndGitspec("mongodrdl", os.Stdout)
-		os.Exit(0)
+		os.Exit(util.ExitClean)
 	}
 
 	// print help, if specified
 	if opts.PrintHelp(false) {
-		return
+		os.Exit(util.ExitClean)
 	}
 
-	// init logger
-	log.SetVerbosity(opts.Verbosity)
+	if err = opts.Validate(); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
+		os.Exit(util.ExitBadOptions)
+	}
 
 	// connect directly, unless a replica set name is explicitly specified
 	_, setName := util.ParseConnectionString(opts.Host)
@@ -55,8 +61,8 @@ func main() {
 
 	schemaGen := mongodrdl.SchemaGenerator{
 		ToolOptions:   opts,
-		OutputOptions: outputOpts,
-		SampleOptions: sampleOpts,
+		OutputOptions: opts.DrdlOutput,
+		SampleOptions: opts.DrdlSample,
 	}
 
 	if err = schemaGen.Init(); err != nil {

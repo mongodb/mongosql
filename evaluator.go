@@ -1,8 +1,7 @@
 package sqlproxy
 
 import (
-	"fmt"
-
+	"github.com/10gen/sqlproxy/client"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/options"
@@ -14,21 +13,21 @@ import (
 type Evaluator struct {
 	config  *schema.Schema
 	session *mgo.Session
-	options options.Options
+	options options.SqldOptions
 }
 
-func NewEvaluator(cfg *schema.Schema, opts options.Options) (*Evaluator, error) {
-	info, err := options.GetDialInfo(opts)
+func NewEvaluator(cfg *schema.Schema, opts options.SqldOptions) (*Evaluator, error) {
+	sp, err := client.NewSqldSessionProvider(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	session, err := mgo.DialWithInfo(info)
-	if err != nil {
-		return nil, fmt.Errorf("connecting to mongodb failed: %v", err.Error())
-	}
+	sp.SetFlags(client.DisableSocketTimeout)
 
-	session.SetSocketTimeout(0)
+	session, err := sp.GetSession()
+	if err != nil {
+		return nil, err
+	}
 
 	return &Evaluator{cfg, session, opts}, nil
 }

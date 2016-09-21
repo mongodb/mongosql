@@ -1,3 +1,4 @@
+// Main package for the mongosqld tool.
 package main
 
 import (
@@ -13,34 +14,35 @@ import (
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
+	"github.com/10gen/sqlproxy/util"
 )
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	opts, err := options.NewOptions()
+	opts, err := options.NewSqldOptions()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error generating command line options: %v\n", err)
-		os.Exit(1)
+		os.Exit(util.ExitError)
 	}
 
 	err = opts.Parse()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error parsing command line options: %v\n", err)
 		fmt.Fprintln(os.Stderr, "try 'mongosqld --help' for more information")
-		os.Exit(1)
+		os.Exit(util.ExitBadOptions)
 	}
 
 	// set global log level
-	log.SetVerbosity(opts.LogOpts)
+	log.SetVerbosity(opts.SqldLog)
 
 	if opts.Version {
 		common.PrintVersionAndGitspec("mongosqld", os.Stdout)
-		os.Exit(0)
+		os.Exit(util.ExitClean)
 	}
 
 	if opts.PrintHelp(os.Stdout) {
-		os.Exit(0)
+		os.Exit(util.ExitClean)
 	}
 
 	if len(opts.LogPath) > 0 {
@@ -58,7 +60,7 @@ func main() {
 		logfile, err := os.OpenFile(opts.LogPath, mode, 0600)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error opening log file: %v\n", err)
-			os.Exit(1)
+			os.Exit(util.ExitError)
 		}
 		defer logfile.Close()
 
@@ -68,7 +70,7 @@ func main() {
 	err = opts.Validate()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "invalid options: %v\n", err)
-		os.Exit(1)
+		os.Exit(util.ExitBadOptions)
 	}
 
 	cfg := &schema.Schema{}
@@ -76,7 +78,7 @@ func main() {
 		err = cfg.LoadFile(opts.Schema)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error loading schema: %v\n", err)
-			os.Exit(1)
+			os.Exit(util.ExitError)
 		}
 	}
 
@@ -84,24 +86,24 @@ func main() {
 		err = cfg.LoadDir(opts.SchemaDir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error loading schema: %v\n", err)
-			os.Exit(1)
+			os.Exit(util.ExitError)
 		}
 	}
 
 	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "connecting to mongodb failed: %v\n", err)
-		os.Exit(1)
+		os.Exit(util.ExitError)
 	}
 
 	logger := log.NewComponentLogger(log.NetworkComponent, log.GlobalLogger())
 
-	logger.Logf(log.Always, "[initandlisten] connecting to mongodb at %v", opts.MongoOpts.MongoURI)
+	logger.Logf(log.Always, "[initandlisten] connecting to mongodb at %v", opts.SqldMongoConnection.MongoURI)
 
 	svr, err := server.New(cfg, evaluator, opts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error starting server: %v", err)
-		os.Exit(1)
+		os.Exit(util.ExitError)
 	}
 
 	sc := make(chan os.Signal, 1)
@@ -118,4 +120,5 @@ func main() {
 	}()
 
 	svr.Run()
+	os.Exit(util.ExitClean)
 }

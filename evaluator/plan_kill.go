@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/10gen/sqlproxy/util"
 )
 
 type KillScope byte

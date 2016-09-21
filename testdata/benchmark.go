@@ -127,7 +127,7 @@ func setup() {
 		RawDatabases: config.Databases,
 	}
 
-	opts, _ := sqlproxy.NewOptions()
+	opts, _ := sqlproxy.NewSqldOptions()
 	opts.Addr = fmt.Sprintf("%v:%v", *testProxyAddress, *testProxyPort)
 	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", *testMongoDBHost, *testMongoDBPort)
  

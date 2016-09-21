@@ -9,12 +9,13 @@ import (
 	"strings"
 	"sync"
 
-	sqlproxy "github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 )
@@ -24,7 +25,7 @@ type Server struct {
 	sync.Mutex
 
 	eval              *sqlproxy.Evaluator
-	opts              options.Options
+	opts              options.SqldOptions
 	databases         map[string]*schema.Database
 	activeConnections map[uint32]*conn
 	variables         *variable.Container
@@ -38,7 +39,7 @@ type Server struct {
 }
 
 // New creates a NewServer.
-func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts options.Options) (*Server, error) {
+func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts options.SqldOptions) (*Server, error) {
 
 	decimal.DivisionPrecision = 34
 
@@ -123,12 +124,9 @@ func (s *Server) onConn(c net.Conn) {
 	conn := newConn(s, c)
 
 	// this isn't critical so neglecting to lock active connections
-	pluralize, numConns := "", len(s.activeConnections)
-	if numConns != 0 {
-		pluralize = "s"
-	}
-
-	conn.logger.Logf(log.Info, "connection #%v accepted from %v (%v connection%v now open)", conn.connectionID, c.RemoteAddr(), numConns+1, pluralize)
+	numConns := len(s.activeConnections)
+	pluralized := util.Pluralize(numConns, "connection", "connections")
+	conn.logger.Logf(log.Info, "connection #%v accepted from %v (%v %v now open)", conn.connectionID, c.RemoteAddr(), numConns+1, pluralized)
 
 	defer func() {
 		if err := recover(); err != nil {

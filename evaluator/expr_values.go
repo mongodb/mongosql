@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/10gen/sqlproxy/util"
 	"github.com/shopspring/decimal"
 	"gopkg.in/mgo.v2/bson"
 )

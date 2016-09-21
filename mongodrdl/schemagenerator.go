@@ -1,42 +1,41 @@
 package mongodrdl
 
 import (
-	"fmt"
 	yaml "github.com/10gen/candiedyaml"
+	"github.com/10gen/sqlproxy/client"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/10gen/sqlproxy/options"
+	"github.com/10gen/sqlproxy/util"
 	"io"
 	"os"
 	"path/filepath"
 )
 
 type SchemaGenerator struct {
-	ToolOptions   *options.ToolOptions
-	OutputOptions *OutputOptions
-	SampleOptions *SampleOptions
-	provider      *db.SessionProvider
+	ToolOptions   *options.DrdlOptions
+	OutputOptions *options.DrdlOutput
+	SampleOptions *options.DrdlSample
+	provider      *client.SessionProvider
 }
 
 type Schema struct {
 	Databases []*relational.Database `yaml:"schema"`
 }
 
-func NewSchemaGenerator(db, collection, outputFile string, sslOptions *options.SSL) *SchemaGenerator {
+func NewSchemaGenerator(db, collection, outputFile string, sslOptions *options.DrdlSSL) *SchemaGenerator {
 	gen := &SchemaGenerator{
-		ToolOptions: &options.ToolOptions{
-			Namespace: &options.Namespace{
+		ToolOptions: &options.DrdlOptions{
+			DrdlNamespace: &options.DrdlNamespace{
 				DB:         db,
 				Collection: collection,
 			},
-			SSL: sslOptions,
+			DrdlSSL: sslOptions,
 		},
-		OutputOptions: &OutputOptions{
+		OutputOptions: &options.DrdlOutput{
 			Out: outputFile,
 		},
-		SampleOptions: &SampleOptions{SampleSize: 1000},
+		SampleOptions: &options.DrdlSample{SampleSize: 1000},
 	}
 
 	gen.Init()
@@ -45,32 +44,29 @@ func NewSchemaGenerator(db, collection, outputFile string, sslOptions *options.S
 }
 
 func (schemaGen *SchemaGenerator) Init() error {
-	err := schemaGen.validateOptions()
-	if err != nil {
-		return err
-	}
-
 	if schemaGen.OutputOptions.Out == "" {
 		schemaGen.OutputOptions.Out = "-"
 	}
-	if schemaGen.ToolOptions.Connection == nil {
-		schemaGen.ToolOptions.Connection = &options.Connection{}
+	if schemaGen.ToolOptions.DrdlConnection == nil {
+		schemaGen.ToolOptions.DrdlConnection = &options.DrdlConnection{}
 	}
-	if schemaGen.ToolOptions.Auth == nil {
-		schemaGen.ToolOptions.Auth = &options.Auth{}
+	if schemaGen.ToolOptions.DrdlAuth == nil {
+		schemaGen.ToolOptions.DrdlAuth = &options.DrdlAuth{}
 	}
-	if schemaGen.ToolOptions.SSL == nil {
-		schemaGen.ToolOptions.SSL = &options.SSL{}
+	if schemaGen.ToolOptions.DrdlSSL == nil {
+		schemaGen.ToolOptions.DrdlSSL = &options.DrdlSSL{}
 	}
 
 	mongo.UUIDSubtype3Encoding = schemaGen.OutputOptions.UUIDSubtype3Encoding
 
-	schemaGen.provider, err = db.NewSessionProvider(*schemaGen.ToolOptions)
+	var err error
+
+	schemaGen.provider, err = client.NewDrdlSessionProvider(*schemaGen.ToolOptions)
 	if err != nil {
 		return err
 	}
 
-	schemaGen.provider.SetFlags(db.DisableSocketTimeout)
+	schemaGen.provider.SetFlags(client.DisableSocketTimeout)
 
 	return nil
 }
@@ -119,16 +115,6 @@ func (schemaGen *SchemaGenerator) Generate() (*Schema, error) {
 		return nil, err
 	}
 	return schema, nil
-}
-
-func (schemaGen *SchemaGenerator) validateOptions() error {
-	switch {
-	case schemaGen.ToolOptions.Namespace.DB == "":
-		return fmt.Errorf("cannot export a schema without a specified database")
-	case schemaGen.ToolOptions.Namespace.DB == "" && schemaGen.ToolOptions.Namespace.Collection != "":
-		return fmt.Errorf("cannot export a schema for a collection without a specified database")
-	}
-	return nil
 }
 
 func (schemaGen *SchemaGenerator) getOutputWriter() (io.WriteCloser, error) {

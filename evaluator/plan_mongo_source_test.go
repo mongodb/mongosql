@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/10gen/sqlproxy/db"
+	"github.com/10gen/sqlproxy/client"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/variable"
@@ -59,8 +59,8 @@ func (_ *connCtx) Tomb() *tomb.Tomb {
 	return &tomb.Tomb{}
 }
 
-func getOptions(t *testing.T) options.Options {
-	opts, _ := options.NewOptions()
+func getOptions(t *testing.T) options.SqldOptions {
+	opts, _ := options.NewSqldOptions()
 	opts.MongoURI = "localhost"
 
 	// ssl is turned on
@@ -70,19 +70,24 @@ func getOptions(t *testing.T) options.Options {
 		opts.MongoAllowInvalidCerts = true
 		opts.MongoPEMFile = "testdata/client.pem"
 	}
+
 	return opts
 }
 
 func TestMongoSourcePlanStage(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
-	sessionProvider, err := db.NewSessionProvider(getOptions(t))
+	sessionProvider, err := client.NewSqldSessionProvider(getOptions(t))
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 		return
 	}
 
-	session := sessionProvider.GetSession()
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("failed to get session: %v", err)
+		return
+	}
 	collectionTwo := session.DB(dbOne).C(tableTwoName)
 
 	Convey("With a simple test configuration...", t, func() {
