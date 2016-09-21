@@ -40,6 +40,7 @@ type conn struct {
 	closed  bool
 	tomb    *tomb.Tomb
 	logger  *log.Logger
+	startDb string
 
 	conn     net.Conn
 	reader   *bufio.Reader
@@ -433,9 +434,7 @@ func (c *conn) readHandshakeResponse() error {
 		pos += len(dbBytes) + 1
 
 		db := String(c.variables.CharacterSetClient.Decode(dbBytes))
-		if err := c.useDB(db); err != nil {
-			return err
-		}
+		c.startDb = db
 	}
 
 	if pos == len(data) {

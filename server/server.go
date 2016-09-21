@@ -141,18 +141,25 @@ func (s *Server) onConn(c net.Conn) {
 		conn.close()
 	}()
 
+	err := conn.handshake()
+	if err != nil {
+		conn.logger.Errf(log.Always, "handshake error: %v", err)
+		c.Close()
+		return
+	}
+
 	schema := s.eval.Schema()
-	info, err := mongodb.LoadInfo(conn.session, &schema, s.opts.Auth)
+	conn.variables.MongoDBInfo, err = mongodb.LoadInfo(conn.session, &schema, s.opts.Auth)
 	if err != nil {
 		conn.logger.Errf(log.Always, "error retrieving information from MongoDB: %v", err)
 		c.Close()
 		return
 	}
 
-	conn.variables.MongoDBInfo = info
-
-	if err := conn.handshake(); err != nil {
-		conn.logger.Errf(log.Always, "handshake error: %v", err)
+	if conn.startDb != "" {
+		if err := conn.useDB(conn.startDb); err != nil {
+			conn.logger.Errf(log.Always, "error connecting to db %v: %v", conn.startDb, err)
+		}
 		c.Close()
 		return
 	}
