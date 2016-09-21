@@ -1596,8 +1596,12 @@ func (td *SQLUnaryTildeExpr) Type() schema.SQLType {
 type VariableKind string
 
 const (
+	// GlobalStatus is a global server status variable.
+	GlobalStatus VariableKind = "global_status"
 	// GlobalVariable is a global system variable.
 	GlobalVariable VariableKind = "global"
+	// SessionStatus is a session(local) server status variable
+	SessionStatus VariableKind = "session_status"
 	// SessionVariable is a session(local) variable.
 	SessionVariable VariableKind = "session"
 	// UserVariable is a custom variable associated with a session(local).
@@ -1607,10 +1611,16 @@ const (
 func (k VariableKind) scopeAndKind() (variable.Scope, variable.Kind) {
 	scope := variable.SessionScope
 	kind := variable.SystemKind
-	if k == UserVariable {
-		kind = variable.UserKind
-	} else if k == GlobalVariable {
+	switch k {
+	case GlobalStatus:
+		kind = variable.StatusKind
+		fallthrough
+	case GlobalVariable:
 		scope = variable.GlobalScope
+	case SessionStatus:
+		kind = variable.StatusKind
+	case UserVariable:
+		kind = variable.UserKind
 	}
 
 	return scope, kind

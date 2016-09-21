@@ -623,3 +623,15 @@ testcases:
   expected_types: [integer]
   expected:
     - ["9"]
+- sql: "SELECT COUNT(Variable_name) from information_schema.session_status"
+  expected_types: [integer]
+  expected:
+    - ["515"]
+- sql: "SELECT COUNT(Variable_name) from information_schema.global_status"
+  expected_types: [integer]
+  expected:
+    - ["515"]
+- sql: "SELECT COUNT(Variable_name) from information_schema.global_status WHERE Variable_name LIKE 'Qcache%'"
+  expected_types: [integer]
+  expected:
+    - ["8"]

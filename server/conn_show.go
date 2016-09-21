@@ -18,10 +18,12 @@ func (c *conn) handleShow(sql string, stmt *parser.Show) error {
 		return c.handleShowCollation(stmt)
 	case "databases", "schemas":
 		return c.handleShowDatabases(stmt)
+	case "status":
+		return c.handleShowStatus(stmt)
 	case "tables":
 		return c.handleShowTables(sql, stmt)
 	case "variables":
-		return c.handleShowVariables(sql, stmt)
+		return c.handleShowVariables(stmt)
 	default:
 		return mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "no support for show (%s) for now", sql)
 	}
@@ -221,12 +223,12 @@ func (c *conn) handleShowTables(sql string, stmt *parser.Show) error {
 	return c.handleQuery(translated)
 }
 
-func (c *conn) handleShowVariables(sql string, stmt *parser.Show) error {
-
+func (c *conn) handleShowVariableKind(stmt *parser.Show, kind string) error {
 	tableName := strings.ToUpper(stmt.Modifier)
+	kind = strings.ToUpper(kind)
 
 	translated := fmt.Sprintf("SELECT * FROM (SELECT VARIABLE_NAME AS `Variable_name`, VARIABLE_VALUE AS `Value`"+
-		" FROM INFORMATION_SCHEMA.%s_VARIABLES) `is`", tableName)
+		" FROM INFORMATION_SCHEMA.%s_%s) `is`", tableName, kind)
 
 	if stmt.LikeOrWhere != nil {
 		switch stmt.LikeOrWhere.(type) {
@@ -240,4 +242,12 @@ func (c *conn) handleShowVariables(sql string, stmt *parser.Show) error {
 	translated += " ORDER BY `Variable_name`"
 
 	return c.handleQuery(translated)
+}
+
+func (c *conn) handleShowStatus(stmt *parser.Show) error {
+	return c.handleShowVariableKind(stmt, "STATUS")
+}
+
+func (c *conn) handleShowVariables(stmt *parser.Show) error {
+	return c.handleShowVariableKind(stmt, "VARIABLES")
 }

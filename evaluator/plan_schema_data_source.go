@@ -126,6 +126,10 @@ func (sds *SchemaDataSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		it.rows = sds.gatherVariableRows(ctx, GlobalVariable)
 	case "session_variables":
 		it.rows = sds.gatherVariableRows(ctx, SessionVariable)
+	case "global_status":
+		it.rows = sds.gatherVariableRows(ctx, GlobalStatus)
+	case "session_status":
+		it.rows = sds.gatherVariableRows(ctx, SessionStatus)
 	default:
 		return nil, fmt.Errorf("unsupported %q table %q", informationSchemaDatabase, sds.tableName)
 	}
@@ -148,7 +152,7 @@ func (sds *SchemaDataSourceStage) Columns() []*Column {
 		headers = isSchemataHeaders
 	case "tables":
 		headers = isTablesHeaders
-	case "global_variables", "session_variables":
+	case "global_variables", "session_variables", "global_status", "session_status":
 		headers = isVariableHeaders
 	}
 

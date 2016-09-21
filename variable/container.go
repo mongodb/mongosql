@@ -109,6 +109,10 @@ func (c *Container) List(scope Scope, kind Kind) []Value {
 				continue
 			}
 
+			if def.Kind != kind {
+				continue
+			}
+
 			values = append(values, Value{
 				Name:    def.Name,
 				Kind:    def.Kind,
@@ -172,6 +176,10 @@ func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) er
 
 		c.userValues[lowerName] = value
 		return nil
+	}
+
+	if kind == StatusKind {
+		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, name)
 	}
 
 	def, ok := definitions[lowerName]
