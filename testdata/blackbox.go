@@ -119,6 +119,8 @@ func setup() {
 	opts, _ := options.NewSqldOptions()
 	opts.Addr = testDBAddr
 	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort)
+	opts.NoUnixSocket = new(bool)
+	*opts.NoUnixSocket = true
 
 	cfg := &schema.Schema{
 		RawDatabases: conf.Databases,

@@ -195,6 +195,8 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 
 	opts.Addr = testDBAddr
 	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", dbhost, dbport)
+	opts.NoUnixSocket = new(bool)
+	*opts.NoUnixSocket = true
 
 	buildSchemaMaps(cfg)
 

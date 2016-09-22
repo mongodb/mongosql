@@ -43,6 +43,19 @@ func convertString(v interface{}) (string, bool) {
 	return s, ok
 }
 
+func kindToString(k Kind) string {
+	switch k {
+	case SystemKind:
+		return "system"
+	case StatusKind:
+		return "status"
+	case UserKind:
+		return "user"
+	default:
+		return "unknown kind"
+	}
+}
+
 func invalidValueError(n Name, v interface{}) error {
 	return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, n, v)
 

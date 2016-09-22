@@ -33,6 +33,7 @@ type Container struct {
 	CollationServer        *collation.Collation
 	MaxAllowedPacket       int64
 	MongoDBInfo            *mongodb.Info
+	Socket                 string
 	SQLAutoIsNull          bool
 	Version                string
 	VersionComment         string
@@ -56,6 +57,7 @@ func NewGlobalContainer() *Container {
 		CollationServer:        collation.Default,
 		MaxAllowedPacket:       1073741824,
 		MongoDBInfo:            nil,
+		Socket:                 "",
 		SQLAutoIsNull:          false,
 		Version:                "5.7.12",
 		VersionComment:         "mongosqld " + common.VersionStr,
@@ -197,6 +199,10 @@ func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) er
 		}
 
 		return mysqlerrors.Defaultf(mysqlerrors.ER_LOCAL_VARIABLE, name)
+	}
+
+	if def.SetValue == nil {
+		return mysqlerrors.Defaultf(mysqlerrors.ER_VARIABLE_IS_READONLY, kindToString(kind), name)
 	}
 
 	if c.scope == scope {

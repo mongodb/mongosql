@@ -4545,14 +4545,6 @@ var unimplementedDefinitions = []*definition{
 		SetValue:         setDummyValue("slow_query_log_file"),
 	},
 	&definition{
-		Name:             "socket",
-		Kind:             SystemKind,
-		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         getDummyValue("/tmp/mysql.sock", "socket"),
-		SetValue:         setDummyValueErr("socket"),
-	},
-	&definition{
 		Name:             "sort_buffer_size",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,

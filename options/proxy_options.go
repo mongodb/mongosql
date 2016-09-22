@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/10gen/sqlproxy/util"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -19,6 +20,7 @@ type SqldOptions struct {
 	*SqldLog
 	*SqldMongoConnection
 	*SqldSchema
+	*SqldSocket
 	parser *flags.Parser
 }
 
@@ -37,6 +39,16 @@ type SqldClientConnection struct {
 
 func (_ SqldClientConnection) Name() string {
 	return "Client Connection"
+}
+
+type SqldSocket struct {
+	FilePermissions  *string `long:"filePermissions" description:"permissions to set on UNIX domain socket file (default to 0700)" default:"0700"`
+	NoUnixSocket     *bool   `long:"noUnixSocket" description:"disable listening on UNIX domain sockets"`
+	UnixSocketPrefix *string `long:"unixSocketPrefix" description:"alternative directory for UNIX domain sockets (default to /tmp)" default:"/tmp"`
+}
+
+func (_ SqldSocket) Name() string {
+	return "Socket"
 }
 
 type SqldGeneral struct {
@@ -101,6 +113,7 @@ func NewSqldOptions() (SqldOptions, error) {
 		SqldLog:              &SqldLog{},
 		SqldMongoConnection:  &SqldMongoConnection{},
 		SqldSchema:           &SqldSchema{},
+		SqldSocket:           &SqldSocket{},
 		parser:               flags.NewNamedParser(usage, flags.None),
 	}
 
@@ -115,6 +128,13 @@ func NewSqldOptions() (SqldOptions, error) {
 	for _, group := range groups {
 		header := fmt.Sprintf("%s options", group.Name())
 		if _, err := opts.parser.AddGroup(header, "", group); err != nil {
+			return SqldOptions{}, err
+		}
+	}
+
+	if !util.IsWindowsOS {
+		header := fmt.Sprintf("%s options", opts.SqldSocket.Name())
+		if _, err := opts.parser.AddGroup(header, "", opts.SqldSocket); err != nil {
 			return SqldOptions{}, err
 		}
 	}
@@ -171,6 +191,22 @@ func (o SqldOptions) Validate() error {
 	}
 	if o.MongoSSLFipsMode && runtime.GOOS == "darwin" {
 		return fmt.Errorf("this version of mongosqld was not compiled with FIPS support")
+	}
+	if o.FilePermissions != nil {
+		if _, err := strconv.ParseInt(*o.FilePermissions, 8, 64); err != nil {
+			return fmt.Errorf("value after --filePermissions must be valid octal")
+		}
+	}
+	if util.IsWindowsOS {
+		if o.NoUnixSocket != nil {
+			return fmt.Errorf("cannot use Unix-specific option --noUnixSocket on Windows")
+		}
+		if o.UnixSocketPrefix != nil {
+			return fmt.Errorf("cannot use Unix-specific option --unixSocketPrefix on Windows")
+		}
+		if o.FilePermissions != nil {
+			return fmt.Errorf("cannot use Unix-specific option --filePermissions on Windows")
+		}
 	}
 
 	return nil

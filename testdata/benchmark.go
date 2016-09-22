@@ -130,6 +130,8 @@ func setup() {
 	opts, _ := sqlproxy.NewSqldOptions()
 	opts.Addr = fmt.Sprintf("%v:%v", *testProxyAddress, *testProxyPort)
 	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", *testMongoDBHost, *testMongoDBPort)
+	opts.NoUnixSocket = new(bool)
+	*opts.NoUnixSocket = true
  
 	buildSchemaMaps(cfg)
 

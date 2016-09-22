@@ -11,3 +11,7 @@ Connect using TCP protocol with MySQL client
 ```
 mysql --protocol=tcp --port 3307
 ```
+Connect using UNIX socket with MySQL client
+```
+mysql --socket /tmp/mongosqld-3307.sock
+```

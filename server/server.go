@@ -3,7 +3,6 @@ package server
 import (
 	"net"
 	"runtime"
-	"strings"
 	"sync"
 
 	"github.com/10gen/sqlproxy"
@@ -34,7 +33,7 @@ type Server struct {
 
 	running bool
 
-	listener net.Listener
+	listeners []net.Listener
 }
 
 // New creates a NewServer.
@@ -51,14 +50,9 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts options.SqldOptio
 		variables:         variable.NewGlobalContainer(),
 	}
 
-	netProto := "tcp"
-	if strings.Contains(netProto, "/") {
-		netProto = "unix"
-	}
-
 	var err error
 
-	s.listener, err = net.Listen(netProto, opts.Addr)
+	err = s.populateListeners()
 	if err != nil {
 		return nil, err
 	}
@@ -76,12 +70,30 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts options.SqldOptio
 // Run starts the server and begins accepting connections.
 func (s *Server) Run() {
 	s.running = true
-
 	logger := log.NewComponentLogger(log.NetworkComponent, log.GlobalLogger())
-	logger.Logf(log.Always, "[initandlisten] waiting for connections at %v", s.listener.Addr())
 
+	// start new go routine for each additional listener
+	for _, listener := range s.listeners[1:] {
+		logger.Logf(log.Always, "[initandlisten] waiting for connections at %v", listener.Addr())
+
+		go func() {
+			for s.running {
+				conn, err := listener.Accept()
+				if err != nil {
+					if s.running {
+						logger.Logf(log.Always, "[initandlisten] %v", err)
+					}
+					continue
+				}
+				go s.onConn(conn)
+			}
+
+		}()
+	}
+
+	logger.Logf(log.Always, "[initandlisten] waiting for connections at %v", s.listeners[0].Addr())
 	for s.running {
-		conn, err := s.listener.Accept()
+		conn, err := s.listeners[0].Accept()
 		if err != nil {
 			if s.running {
 				logger.Logf(log.Always, "[initandlisten] %v", err)
@@ -105,8 +117,10 @@ func (s *Server) Run() {
 // Close stops the server and stops accepting connections.
 func (s *Server) Close() {
 	s.running = false
-	if s.listener != nil {
-		s.listener.Close()
+	for _, listener := range s.listeners {
+		if listener != nil {
+			listener.Close()
+		}
 	}
 
 	// interrrupt any in-progress queries

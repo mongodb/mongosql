@@ -1,8 +1,7 @@
 package server
 
 const (
-	mysqlVersion                       string = "5.7.12"
-	mysqlVersionCommentPrefix          string = "MongoDB SQLProxy "
+	defaultPort                        string = "3307"
 	minProtocolVersion                 byte   = 10
 	maxPayloadLen                      int    = 1<<24 - 1
 	timeFormat                                = "2006-01-02 15:04:05"

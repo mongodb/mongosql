@@ -1,11 +1,10 @@
 package variable
 
 import (
-	"runtime"
-
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/util"
 )
 
 const (
@@ -21,6 +20,7 @@ const (
 	MaxAllowedPacket            = "max_allowed_packet"
 	MongoDBGitVersion           = "mongodb_git_version"
 	MongoDBVersion              = "mongodb_version"
+	Socket                      = "socket"
 	SqlAutoIsNull               = "sql_auto_is_null"
 	Version                     = "version"
 	VersionComment              = "version_comment"
@@ -40,10 +40,6 @@ type definition struct {
 }
 
 var definitions = make(map[Name]*definition)
-
-const (
-	isWindowsOS = runtime.GOOS == "windows"
-)
 
 func init() {
 	// Unimplemented variables
@@ -172,6 +168,14 @@ func init() {
 			}
 			return c.MongoDBInfo.Version
 		},
+	}
+
+	definitions[Socket] = &definition{
+		Name:             Socket,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLVarchar,
+		GetValue:         func(c *Container) interface{} { return c.Socket },
 	}
 
 	definitions[SqlAutoIsNull] = &definition{
@@ -423,7 +427,7 @@ func setWaitTimeoutSecs(c *Container, v interface{}) error {
 
 	upperLimit := int64(31536000)
 
-	if isWindowsOS {
+	if util.IsWindowsOS {
 		upperLimit = int64(2147483)
 	}
 
