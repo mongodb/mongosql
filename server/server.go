@@ -149,7 +149,7 @@ func (s *Server) onConn(c net.Conn) {
 	}
 
 	schema := s.eval.Schema()
-	conn.variables.MongoDBInfo, err = mongodb.LoadInfo(conn.session, &schema, s.opts.Auth)
+	conn.variables.MongoDBInfo, err = mongodb.LoadInfo(conn.Session(), &schema, s.opts.Auth)
 	if err != nil {
 		conn.logger.Errf(log.Always, "error retrieving information from MongoDB: %v", err)
 		c.Close()
@@ -159,9 +159,9 @@ func (s *Server) onConn(c net.Conn) {
 	if conn.startDb != "" {
 		if err := conn.useDB(conn.startDb); err != nil {
 			conn.logger.Errf(log.Always, "error connecting to db %v: %v", conn.startDb, err)
+			c.Close()
+			return
 		}
-		c.Close()
-		return
 	}
 
 	s.Lock()
