@@ -38,6 +38,23 @@ func convertInt64(v interface{}) (int64, bool) {
 	}
 }
 
+func convertUint64(v interface{}) (uint64, bool) {
+	switch tv := v.(type) {
+	case byte:
+		return uint64(tv), true
+	case uint:
+		return uint64(tv), true
+	case uint16:
+		return uint64(tv), true
+	case uint32:
+		return uint64(tv), true
+	case uint64:
+		return tv, true
+	default:
+		return 0, false
+	}
+}
+
 func convertString(v interface{}) (string, bool) {
 	s, ok := v.(string)
 	return s, ok

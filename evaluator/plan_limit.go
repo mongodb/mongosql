@@ -5,15 +5,15 @@ import "github.com/10gen/sqlproxy/collation"
 // Limit restricts the number of rows returned by a query.
 type LimitStage struct {
 	// limit is the maximum number of rows to return
-	limit int64
+	limit uint64
 
 	// offset keeps a 0-indexed offset of where to start returning rows
-	offset int64
+	offset uint64
 
 	source PlanStage
 }
 
-func NewLimitStage(source PlanStage, offset int64, limit int64) *LimitStage {
+func NewLimitStage(source PlanStage, offset uint64, limit uint64) *LimitStage {
 	return &LimitStage{
 		source: source,
 		offset: offset,
@@ -22,7 +22,7 @@ func NewLimitStage(source PlanStage, offset int64, limit int64) *LimitStage {
 }
 
 type LimitIter struct {
-	limit, offset, total int64
+	limit, offset, total uint64
 
 	source Iter
 }

@@ -24,7 +24,7 @@ import (
 	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
 
-	"gopkg.in/mgo.v2"	
+	"gopkg.in/mgo.v2"
 	"gopkg.in/tomb.v2"
 )
 

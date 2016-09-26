@@ -29,7 +29,28 @@ func TestAlgebrizeSelect(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(parser.SelectStatement)
-			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema, testInfo)
+			vars := createTestVariables(testInfo)
+			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, vars, testSchema)
+			So(err, ShouldBeNil)
+
+			expected := expectedPlanFactory()
+
+			if ShouldResemble(actual, expected) != "" {
+				fmt.Printf("\nExpected: %# v", pretty.Formatter(expected))
+				fmt.Printf("\nActual: %# v", pretty.Formatter(actual))
+			}
+
+			So(actual, ShouldResemble, expected)
+		})
+	}
+
+	testVariables := func(sql string, vars *variable.Container, expectedPlanFactory func() PlanStage) {
+		Convey(sql, func() {
+			statement, err := parser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			selectStatement := statement.(parser.SelectStatement)
+			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, vars, testSchema)
 			So(err, ShouldBeNil)
 
 			expected := expectedPlanFactory()
@@ -49,7 +70,8 @@ func TestAlgebrizeSelect(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(parser.SelectStatement)
-			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema, testInfo)
+			vars := createTestVariables(testInfo)
+			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, vars, testSchema)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, message)
 			So(actual, ShouldBeNil)
@@ -139,6 +161,21 @@ func TestAlgebrizeSelect(t *testing.T) {
 					subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "test", "a", "", "a")), 2, "f")
 					return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
 				})
+
+				testVariables("select g.a from (select a from foo) g",
+					&variable.Container{
+						SQLSelectLimit: 5,
+						MongoDBInfo:    testInfo,
+					},
+					func() PlanStage {
+						source := createMongoSource(2, "foo", "foo")
+						subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "", "a")), 2, "g")
+						return NewLimitStage(
+							NewProjectStage(subquery, createProjectedColumn(1, subquery, "g", "a", "", "a")),
+							0,
+							5,
+						)
+					})
 			})
 
 			Convey("joins", func() {
@@ -1246,6 +1283,50 @@ func TestAlgebrizeSelect(t *testing.T) {
 					createProjectedColumn(1, source, "foo", "a", "", "a").Column,
 				}, collation.Default)
 			})
+
+			testVariables("select a from foo",
+				&variable.Container{
+					SQLSelectLimit: 10,
+					MongoDBInfo:    testInfo,
+				},
+				func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					return NewLimitStage(
+						NewProjectStage(
+							source,
+							createProjectedColumn(1, source, "foo", "a", "", "a"),
+						),
+						0,
+						10,
+					)
+				})
+
+			testVariables("select b from foo",
+				&variable.Container{
+					SQLSelectLimit: 18446744073709551615,
+					MongoDBInfo:    testInfo,
+				},
+				func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					return NewProjectStage(
+						source,
+						createProjectedColumn(1, source, "foo", "b", "", "b"),
+					)
+				})
+
+			testVariables("select b from foo limit 10, 20",
+				&variable.Container{
+					SQLSelectLimit: 5,
+					MongoDBInfo:    testInfo,
+				},
+				func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					return NewProjectStage(
+						NewLimitStage(source, 10, 20),
+						createProjectedColumn(1, source, "foo", "b", "", "b"),
+					)
+				})
+
 		})
 
 		Convey("errors", func() {
@@ -1459,7 +1540,8 @@ func TestAlgebrizeExpr(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(*parser.Select)
-			actualPlan, err := AlgebrizeSelect(selectStatement, "test", testSchema, testInfo)
+			vars := createTestVariables(testInfo)
+			actualPlan, err := AlgebrizeSelect(selectStatement, "test", vars, testSchema)
 			So(err, ShouldBeNil)
 
 			actual := (actualPlan.(*ProjectStage)).projectedColumns[0].Expr
