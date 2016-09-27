@@ -17,12 +17,12 @@ mkdir -p bin
 export GO15VENDOREXPERIMENT=1
 
 echo "Building mongosqld..."
-go build -o "bin/mongosqld" -tags "ssl sasl" "main/sqlproxy.go"
+go build -o "bin/mongosqld" "main/sqlproxy.go"
 ./bin/mongosqld --version
 
 # SSL build fails on OS X 10.11 (TOOLS-995)
 echo "\nBuilding mongodrdl..."
-go build -o "bin/mongodrdl" -tags "ssl sasl" "mongodrdl/main/mongodrdl.go"
+go build -o "bin/mongodrdl" "mongodrdl/main/mongodrdl.go"
 ./bin/mongodrdl --version
 
 mv -f common/version.go.bak common/version.go

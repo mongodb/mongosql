@@ -434,7 +434,7 @@ func runSQL(db *sql.DB, query string, types []string, names []string) ([][]inter
 }
 
 func getSslOpts() *toolsoptions.SSL {
-	var sslOpts *toolsoptions.SSL
+	sslOpts := &toolsoptions.SSL{}
 
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
 		return testutils.GetSSLOpts()
@@ -447,7 +447,7 @@ func testServer(cfg *schema.Schema, opts options.SqldOptions) (*server.Server, e
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
 		opts.MongoSSL = true
 		opts.MongoAllowInvalidCerts = true
-		opts.MongoPEMFile = testClientPEMFile
+		opts.MongoPEMKeyFile = testClientPEMFile
 	}
 
 	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)

@@ -6,7 +6,6 @@ buildvariants:
   run_on:
   - debian71-test
   expansions:
-    build_tags: -tags "sasl ssl"
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian71-3.3.10.tgz
@@ -20,7 +19,6 @@ buildvariants:
   run_on:
   - debian81-test
   expansions:
-    build_tags: -tags "sasl ssl"
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian81-latest.tgz
@@ -32,12 +30,10 @@ buildvariants:
 - name: linux-64-amazon-ami
   display_name: Amazon Linux (Enterprise)
   expansions:
-    build_tags: -tags "sasl ssl"
     gotest_env: "SQLPROXY_SSLTEST=1"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.3.10.tgz --output mongodb.tgz
     mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
     mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
-    test_args: -tags ssl
     push_arch: x86_64-enterprise-amzn64
     push_name: linux
     push_path: linux
@@ -48,7 +44,6 @@ buildvariants:
 - name: linux-64-amazon-ami-benchmarks
   display_name: Amazon Linux (Enterprise Benchmarks)
   expansions:
-    build_tags: -tags "sasl ssl"
     gotest_env: "SQLPROXY_SSLTEST=1"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.3.10.tgz --output mongodb.tgz
     mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
@@ -66,7 +61,6 @@ buildvariants:
   run_on:
   - osx-1010
   expansions:
-    build_tags: -tags "sasl ssl"
     cover: "-"
     mongo_url: https://downloads.mongodb.org/osx/mongodb-osx-x86_64-3.3.10.tgz
     push_arch: x86_64
@@ -77,7 +71,6 @@ buildvariants:
 - name: rhel62
   display_name: RHEL 6.2
   expansions:
-    build_tags: -tags "ssl sasl"
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel62-3.3.10.tgz
@@ -91,7 +84,6 @@ buildvariants:
 - name: rhel70
   display_name: RHEL 7.0
   expansions:
-    build_tags: -tags "sasl ssl"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-rhel70-3.3.10.tgz
     push_arch: x86_64-rhel70
@@ -105,7 +97,7 @@ buildvariants:
   display_name: RHEL 7.1 PPC64LE
   expansions:
     # RHEL 7.1 PPC64LE machines kerberos setup does not work
-    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'sasl ssl'
+    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)"
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.10.tgz
@@ -120,7 +112,7 @@ buildvariants:
 - name: rhel-72-s390x
   display_name: RHEL 7.2 s390x (nightly)
   expansions:
-    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'sasl ssl'
+    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)"
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-s390x-enterprise-rhel72-latest.tgz
@@ -136,7 +128,6 @@ buildvariants:
 - name: suse11-64
   display_name: SLES 11
   expansions:
-    build_tags: -tags "sasl ssl"
     cover: "-"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse11-3.3.10.tgz
     push_arch: x86_64-suse11
@@ -149,7 +140,6 @@ buildvariants:
 - name: suse12-64
   display_name: SLES 12
   expansions:
-    build_tags: -tags "sasl ssl"
     cover: "-"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse12-3.3.10.tgz
     push_arch: x86_64-suse12
@@ -162,7 +152,6 @@ buildvariants:
 - name: ubuntu1404-64
   display_name: Ubuntu 14.04
   expansions:
-    build_tags: -tags "sasl ssl"
     mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.3.10.tgz
     push_arch: x86_64-ubuntu1404
     push_name: linux
@@ -177,7 +166,6 @@ buildvariants:
   - windows-64-vs2013-test
   expansions:
     archive_format: zip
-    build_tags: -tags "sasl ssl"
     cover: "-"
     extension: .exe
     library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"

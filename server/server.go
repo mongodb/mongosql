@@ -1,23 +1,21 @@
 package server
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"io/ioutil"
 	"net"
 	"runtime"
 	"strings"
 	"sync"
 
 	"github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/client/openssl"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
+	cfg "github.com/spacemonkeygo/openssl"
 )
 
 // Server manages connections with clients.
@@ -29,7 +27,7 @@ type Server struct {
 	databases         map[string]*schema.Database
 	activeConnections map[uint32]*conn
 	variables         *variable.Container
-	tlsConfig         *tls.Config
+	tlsConfig         *cfg.Ctx
 
 	connCount uint32
 
@@ -64,28 +62,10 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts options.SqldOptio
 		return nil, err
 	}
 
-	if len(opts.SSLPEMFile) > 0 {
-		s.tlsConfig = &tls.Config{
-			InsecureSkipVerify: opts.SSLAllowInvalidCerts || opts.SSLCAFile == "",
-		}
-
-		cert, err := tls.LoadX509KeyPair(opts.SSLPEMFile, opts.SSLPEMFile)
+	if len(opts.SSLPEMKeyFile) > 0 {
+		s.tlsConfig, err = openssl.SetupSqldCtx(opts, true)
 		if err != nil {
-			return nil, mysqlerrors.Unknownf("failed to load PEM file '%v': %v", opts.SSLPEMFile, err)
-		}
-
-		s.tlsConfig.Certificates = []tls.Certificate{cert}
-
-		if len(opts.SSLCAFile) > 0 {
-			caCert, err := ioutil.ReadFile(opts.SSLCAFile)
-			if err != nil {
-				return nil, mysqlerrors.Unknownf("failed to load CA file '%v': %v", opts.SSLCAFile, err)
-			}
-			s.tlsConfig.RootCAs = x509.NewCertPool()
-			ok := s.tlsConfig.RootCAs.AppendCertsFromPEM(caCert)
-			if !ok {
-				return nil, mysqlerrors.Unknownf("unable to append valid cert from PEM file '%v'", opts.SSLCAFile)
-			}
+			return nil, err
 		}
 	}
 

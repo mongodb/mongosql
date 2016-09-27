@@ -3,7 +3,6 @@ package server
 import (
 	"bufio"
 	"bytes"
-	"crypto/tls"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -15,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/10gen/sqlproxy/client/openssl"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
@@ -596,11 +596,15 @@ func (c *conn) User() string {
 }
 
 func (c *conn) useTLS() error {
+	tlsc, err := openssl.Server(c.conn, c.server.tlsConfig)
+	if err != nil {
+		return err
+	}
 
-	tlsc := tls.Server(c.conn, c.server.tlsConfig)
 	if err := tlsc.Handshake(); err != nil {
 		return err
 	}
+
 	c.conn = tlsc
 	c.reader = bufio.NewReaderSize(c.conn, 1024)
 	c.writer = c.conn

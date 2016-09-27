@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -26,11 +27,12 @@ type OptionGroup interface {
 }
 
 type SqldClientConnection struct {
-	Auth                 bool   `long:"auth" description:"use authentication/authorization ('sslPEMKeyFile' is required when using auth)"`
-	Addr                 string `long:"addr" description:"host address to listen on" default:"127.0.0.1:3307"`
-	SSLAllowInvalidCerts bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
-	SSLCAFile            string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
-	SSLPEMFile           string `long:"sslPEMKeyFile" description:"path to a file containing the certificate and private key establishing a connection with a client"`
+	Auth                  bool   `long:"auth" description:"use authentication/authorization ('sslPEMKeyFile' is required when using auth)"`
+	Addr                  string `long:"addr" description:"host address to listen on" default:"127.0.0.1:3307"`
+	SSLAllowInvalidCerts  bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
+	SSLCAFile             string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
+	SSLPEMKeyFile         string `long:"sslPEMKeyFile" description:"path to a file containing the certificate and private key establishing a connection with a client"`
+	SSLPEMKeyFilePassword string `long:"sslPEMKeyPassword" description:"password to decrypt private key in --sslPEMKeyFile"`
 }
 
 func (_ SqldClientConnection) Name() string {
@@ -74,8 +76,8 @@ type SqldMongoConnection struct {
 	MongoCAFile              string `long:"mongo-sslCAFile" value-name:"<filename>" description:"path to a CA certificate file to use for authenticating certificates from MongoDB, when using --mongo-ssl"`
 	MongoSSLCRLFile          string `long:"mongo-sslCRLFile" value-name:"<filename>" description:"the .pem file containing the certificate revocation list"`
 	MongoSSLFipsMode         bool   `long:"mongo-sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
-	MongoPEMFile             string `long:"mongo-sslPEMKeyFile" value-name:"<filename>" description:"path to a file containing the certificate and private key for connecting to MongoDB, when using --mongo-ssl"`
-	MongoPEMFilePassword     string `long:"mongo-sslPEMKeyPassword" description:"password to decrypt private key in mongo-sslPEMKeyFile"`
+	MongoPEMKeyFile          string `long:"mongo-sslPEMKeyFile" value-name:"<filename>" description:"path to a file containing the certificate and private key for connecting to MongoDB, when using --mongo-ssl"`
+	MongoPEMKeyFilePassword  string `long:"mongo-sslPEMKeyPassword" description:"password to decrypt private key in mongo-sslPEMKeyFile"`
 	MongoTimeout             int64  `long:"mongo-timeout" description:"seconds to wait for a server to respond when connecting or on follow up operations" default:"30" hidden:"true"`
 }
 
@@ -146,10 +148,10 @@ func (opts SqldOptions) Parse() error {
 
 func (o SqldOptions) hasSSLOptionsSet() bool {
 	return o.MongoCAFile != "" ||
-		o.MongoPEMFile != "" ||
+		o.MongoPEMKeyFile != "" ||
 		o.MongoCAFile != "" ||
 		o.MongoSSLCRLFile != "" ||
-		o.MongoPEMFilePassword != "" ||
+		o.MongoPEMKeyFilePassword != "" ||
 		o.MongoSSLFipsMode ||
 		o.MongoAllowInvalidCerts
 }
@@ -164,8 +166,11 @@ func (o SqldOptions) Validate() error {
 	if !o.MongoSSL && o.hasSSLOptionsSet() {
 		return fmt.Errorf("must specify --mongo-ssl to use SSL options")
 	}
-	if o.Auth && o.SSLPEMFile == "" {
+	if o.Auth && o.SSLPEMKeyFile == "" {
 		return fmt.Errorf("must specify --sslPEMKeyFile when using --auth")
+	}
+	if o.MongoSSLFipsMode && runtime.GOOS == "darwin" {
+		return fmt.Errorf("this version of mongosqld was not compiled with FIPS support")
 	}
 
 	return nil

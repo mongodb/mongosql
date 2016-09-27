@@ -1,4 +1,3 @@
-// +build ssl
 // +build -darwin
 
 package openssl

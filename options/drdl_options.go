@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"runtime"
 	"strconv"
 
 	"github.com/jessevdk/go-flags"
@@ -233,6 +234,8 @@ func (o DrdlOptions) Validate() error {
 		return fmt.Errorf("cannot export a schema without a specified database")
 	case o.DrdlNamespace.DB == "" && o.DrdlNamespace.Collection != "":
 		return fmt.Errorf("cannot export a schema for a collection without a specified database")
+	case o.DrdlSSL.SSLFipsMode == true && runtime.GOOS == "darwin":
+		return fmt.Errorf("this version of mongodrdl was not compiled with FIPS support")
 	}
 	return nil
 }

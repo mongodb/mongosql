@@ -102,7 +102,7 @@ func main() {
 
 	svr, err := server.New(cfg, evaluator, opts)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error starting server: %v", err)
+		fmt.Fprintf(os.Stderr, "error starting server: %v\n", err)
 		os.Exit(util.ExitError)
 	}
 

@@ -96,7 +96,7 @@ func (s *SSLDBConnector) ConfigureSqld(opts options.SqldOptions) error {
 
 	s.dialInfo = dialInfo
 
-	ctx, err := setupSqldCtx(opts)
+	ctx, err := SetupSqldCtx(opts, false)
 	if err != nil {
 		return fmt.Errorf("openssl configuration: %v", err)
 	}
@@ -213,7 +213,7 @@ func setupDrdlCtx(opts options.DrdlOptions) (*openssl.Ctx, error) {
 	return ctx, nil
 }
 
-func setupSqldCtx(opts options.SqldOptions) (*openssl.Ctx, error) {
+func SetupSqldCtx(opts options.SqldOptions, isClient bool) (*openssl.Ctx, error) {
 	var ctx *openssl.Ctx
 	var err error
 
@@ -236,18 +236,34 @@ func setupSqldCtx(opts options.SqldOptions) (*openssl.Ctx, error) {
 	// @STRENGTH - Sort ciphers based on strength
 	ctx.SetCipherList("HIGH:!EXPORT:!aNULL@STRENGTH")
 
+	var pemKeyFile, pemFilePassword, caFile, crlFile string
+	var allowInvalidCerts bool
+
+	if isClient {
+		pemKeyFile = opts.SSLPEMKeyFile
+		pemFilePassword = opts.SSLPEMKeyFilePassword
+		caFile = opts.SSLCAFile
+		allowInvalidCerts = opts.SSLAllowInvalidCerts
+	} else {
+		pemKeyFile = opts.MongoPEMKeyFile
+		pemFilePassword = opts.MongoPEMKeyFilePassword
+		caFile = opts.MongoCAFile
+		allowInvalidCerts = opts.MongoAllowInvalidCerts
+		crlFile = opts.MongoSSLCRLFile
+	}
+
 	// add the PEM key file with the cert and private key, if specified
-	if opts.MongoPEMFile != "" {
-		if err = ctx.UseCertificateChainFile(opts.MongoPEMFile); err != nil {
+	if pemKeyFile != "" {
+		if err = ctx.UseCertificateChainFile(pemKeyFile); err != nil {
 			return nil, fmt.Errorf("UseCertificateChainFile: %v", err)
 		}
-		if opts.MongoPEMFilePassword != "" {
+		if pemFilePassword != "" {
 			if err = ctx.UsePrivateKeyFileWithPassword(
-				opts.MongoPEMFile, openssl.FiletypePEM, opts.MongoPEMFilePassword); err != nil {
+				pemKeyFile, openssl.FiletypePEM, pemFilePassword); err != nil {
 				return nil, fmt.Errorf("UsePrivateKeyFile: %v", err)
 			}
 		} else {
-			if err = ctx.UsePrivateKeyFile(opts.MongoPEMFile, openssl.FiletypePEM); err != nil {
+			if err = ctx.UsePrivateKeyFile(pemKeyFile, openssl.FiletypePEM); err != nil {
 				return nil, fmt.Errorf("UsePrivateKeyFile: %v", err)
 			}
 		}
@@ -264,19 +280,19 @@ func setupSqldCtx(opts options.SqldOptions) (*openssl.Ctx, error) {
 	// Disable session caching (see SERVER-10261)
 	ctx.SetSessionCacheMode(openssl.SessionCacheOff)
 
-	if opts.MongoCAFile != "" {
-		calist, err := openssl.LoadClientCAFile(opts.MongoCAFile)
+	if caFile != "" {
+		calist, err := openssl.LoadClientCAFile(caFile)
 		if err != nil {
 			return nil, fmt.Errorf("LoadClientCAFile: %v", err)
 		}
 		ctx.SetClientCAList(calist)
 
-		if err = ctx.LoadVerifyLocations(opts.MongoCAFile, ""); err != nil {
+		if err = ctx.LoadVerifyLocations(caFile, ""); err != nil {
 			return nil, fmt.Errorf("LoadVerifyLocations: %v", err)
 		}
 
 		var verifyOption openssl.VerifyOptions
-		if opts.MongoAllowInvalidCerts {
+		if allowInvalidCerts {
 			verifyOption = openssl.VerifyNone
 		} else {
 			verifyOption = openssl.VerifyPeer
@@ -284,15 +300,21 @@ func setupSqldCtx(opts options.SqldOptions) (*openssl.Ctx, error) {
 		ctx.SetVerify(verifyOption, nil)
 	}
 
-	if opts.MongoSSLCRLFile != "" {
+	if crlFile != "" {
 		store := ctx.GetCertificateStore()
 		store.SetFlags(openssl.CRLCheck)
 		lookup, err := store.AddLookup(openssl.X509LookupFile())
 		if err != nil {
 			return nil, fmt.Errorf("AddLookup(X509LookupFile()): %v", err)
 		}
-		lookup.LoadCRLFile(opts.MongoSSLCRLFile)
+		lookup.LoadCRLFile(crlFile)
 	}
 
 	return ctx, nil
+}
+
+// Server wraps an existing stream connection and puts it in the accept state
+// for any subsequent handshakes.
+func Server(conn net.Conn, ctx *openssl.Ctx) (*openssl.Conn, error) {
+	return openssl.Server(conn, ctx)
 }

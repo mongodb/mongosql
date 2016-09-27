@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/10gen/sqlproxy/client/openssl"
 	"github.com/10gen/sqlproxy/client/plain"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/password"
@@ -21,17 +22,10 @@ type SessionProvider struct {
 
 type (
 	sessionFlag uint32
-
-	GetConnectorFunc func(opts options.Options) DBConnector
 )
 
-// Session flags.
 const (
 	DisableSocketTimeout sessionFlag = 0
-)
-
-var (
-	GetConnectorFuncs = []GetConnectorFunc{}
 )
 
 func (self *SessionProvider) GetSession() (*mgo.Session, error) {
@@ -106,10 +100,8 @@ func NewSqldSessionProvider(opts options.SqldOptions) (*SessionProvider, error) 
 }
 
 func getConnector(opts options.Options) DBConnector {
-	for _, getConnectorFunc := range GetConnectorFuncs {
-		if connector := getConnectorFunc(opts); connector != nil {
-			return connector
-		}
+	if opts.UseSSL() {
+		return &openssl.SSLDBConnector{}
 	}
 	return &plain.PlainDBConnector{}
 }

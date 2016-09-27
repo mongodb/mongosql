@@ -68,7 +68,7 @@ func getOptions(t *testing.T) options.SqldOptions {
 		t.Logf("Testing with SSL turned on.")
 		opts.MongoSSL = true
 		opts.MongoAllowInvalidCerts = true
-		opts.MongoPEMFile = "testdata/client.pem"
+		opts.MongoPEMKeyFile = "testdata/client.pem"
 	}
 
 	return opts
