@@ -97,7 +97,7 @@ buildvariants:
   display_name: RHEL 7.1 PPC64LE
   expansions:
     # RHEL 7.1 PPC64LE machines kerberos setup does not work
-    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)"
+    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.10.tgz
@@ -112,7 +112,7 @@ buildvariants:
 - name: rhel-72-s390x
   display_name: RHEL 7.2 s390x (nightly)
   expansions:
-    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)"
+    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-s390x-enterprise-rhel72-latest.tgz
@@ -255,7 +255,7 @@ functions:
         sed -i.bak -e "s/built-without-version-string/$(git describe)/" \
            -e "s/built-without-git-spec/$(git rev-parse HEAD)/" \
            common/version.go
-        ${gorootvars} ${library_path} go build ${gccgoflags} ${build_tags} -o drdl mongodrdl/main/mongodrdl.go
+        ${gorootvars} ${library_path} go build ${build_tags} -o drdl mongodrdl/main/mongodrdl.go
         echo "Done!"
 
   "build SQLProxy":
@@ -297,7 +297,7 @@ functions:
         sed -i.bak -e "s/built-without-version-string/$(git describe)/" \
            -e "s/built-without-git-spec/$(git rev-parse HEAD)/" \
            common/version.go
-        ${gorootvars} ${library_path} go build ${gccgoflags} -o sqlproxy main/sqlproxy.go
+        ${gorootvars} ${library_path} go build ${build_tags} -o sqlproxy main/sqlproxy.go
         echo "Done!"
 
   "create release":
@@ -409,7 +409,7 @@ functions:
           fi;
         fi;
         if [ '${cover}' != '-' ]; then
-          ${gorootvars} ${library_path} go tool cover ${gccgoflags} -html=coverage_rewrite.out -o coverage.html
+          ${gorootvars} ${library_path} go tool cover ${build_tags} -html=coverage_rewrite.out -o coverage.html
         fi;
 
   "generate coverage txt":
@@ -449,7 +449,7 @@ functions:
           fi;
         fi;
         if [ '${cover}' != '-' ]; then
-          ${gorootvars} ${library_path} go tool cover ${gccgoflags} -func=coverage_rewrite.out -o coverage.txt
+          ${gorootvars} ${library_path} go tool cover ${build_tags} -func=coverage_rewrite.out -o coverage.txt
         fi;
 
   "rewrite coverage report":
@@ -559,8 +559,8 @@ tasks:
               export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
             fi;
           fi;
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go ${gccgoflags} -out benchmark_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run benchmark_test.go ${gccgoflags} -bench=. -benchmem -benchtime=5s -v -timeout 4h > benchmark.txt 2>&1; if [ $? -ne 0 ]; then cat benchmark.txt; exit 1; else cat benchmark.txt; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -out benchmark_test.go
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run benchmark_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 4h > benchmark.txt 2>&1; if [ $? -ne 0 ]; then cat benchmark.txt; exit 1; else cat benchmark.txt; exit 0; fi
     - func: "upload benchmark report"
 
 - name: blackbox
@@ -599,8 +599,8 @@ tasks:
           mkfifo test_pipe
           tee -a blackbox.suite < test_pipe&
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/blackbox.go ${gccgoflags} -out blackbox_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${gccgoflags} -run TestBlackBox -parallel 10 -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe;
+          ${gorootvars} ${library_path} ${gotest_env} go run testdata/blackbox.go -out blackbox_test.go
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -run TestBlackBox -parallel 10 -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe;
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -643,8 +643,8 @@ tasks:
           mkfifo test_pipe
           tee -a blackbox-nopushdown.suite < test_pipe&
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/blackbox.go ${gccgoflags} -out blackbox_test.go
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${gccgoflags} -run TestBlackBox -parallel 10 -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe
+          ${gorootvars} ${library_path} ${gotest_env} go run testdata/blackbox.go ${build_tags} -out blackbox_test.go
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -run TestBlackBox -parallel 10 -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -689,7 +689,7 @@ tasks:
           fi;
           cd collation
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > collation.suite 2>&1; if [ $? -ne 0 ]; then cat collation.suite; exit 1; else cat collation.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v ${cover|-coverprofile=coverage.out} > collation.suite 2>&1; if [ $? -ne 0 ]; then cat collation.suite; exit 1; else cat collation.suite; exit 0; fi
     - command: shell.exec
       params:
         working_dir: src/github.com/10gen/sqlproxy
@@ -747,7 +747,7 @@ tasks:
           fi;
           cd evaluator
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > evaluator.suite 2>&1; if [ $? -ne 0 ]; then cat evaluator.suite; exit 1; else cat evaluator.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v ${cover|-coverprofile=coverage.out} > evaluator.suite 2>&1; if [ $? -ne 0 ]; then cat evaluator.suite; exit 1; else cat evaluator.suite; exit 0; fi
     - command: shell.exec
       type: test
       params:
@@ -795,7 +795,7 @@ tasks:
           fi;
           cd mongodb
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > mongodb.suite 2>&1; if [ $? -ne 0 ]; then cat mongodb.suite; exit 1; else cat mongodb.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v ${cover|-coverprofile=coverage.out} > mongodb.suite 2>&1; if [ $? -ne 0 ]; then cat mongodb.suite; exit 1; else cat mongodb.suite; exit 0; fi
     - command: shell.exec
       params:
         working_dir: src/github.com/10gen/sqlproxy
@@ -842,11 +842,11 @@ tasks:
           fi;
           cd mongodrdl
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${gccgoflags} -v > mongodrdl.suite 2>&1; if [ $? -ne 0 ]; then cat mongodrdl.suite; exit 1; else cat mongodrdl.suite; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > mongodrdl.suite 2>&1; if [ $? -ne 0 ]; then cat mongodrdl.suite; exit 1; else cat mongodrdl.suite; fi
           cd mongo
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${gccgoflags} -v > mongo.suite 2>&1; if [ $? -ne 0 ]; then cat mongo.suite; exit 1; else cat mongo.suite; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > mongo.suite 2>&1; if [ $? -ne 0 ]; then cat mongo.suite; exit 1; else cat mongo.suite; fi
           cd ../relational
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${gccgoflags} -v > relational.suite 2>&1; if [ $? -ne 0 ]; then cat relational.suite; exit 1; else cat relational.suite; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > relational.suite 2>&1; if [ $? -ne 0 ]; then cat relational.suite; exit 1; else cat relational.suite; fi
           exit 0
 
 - name: parser
@@ -881,7 +881,7 @@ tasks:
           fi;
           cd parser
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${gccgoflags} -v > parser.suite 2>&1; if [ $? -ne 0 ]; then cat parser.suite; exit 1; else cat parser.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > parser.suite 2>&1; if [ $? -ne 0 ]; then cat parser.suite; exit 1; else cat parser.suite; exit 0; fi
 
 - name: sqlproxy
   commands:
@@ -917,7 +917,7 @@ tasks:
             fi;
           fi;
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${gccgoflags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -958,7 +958,7 @@ tasks:
             fi;
           fi;
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${gccgoflags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy-nopushdown.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-nopushdown.suite; exit 1; else cat sqlproxy-nopushdown.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy-nopushdown.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-nopushdown.suite; exit 1; else cat sqlproxy-nopushdown.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -999,7 +999,7 @@ tasks:
             fi;
           fi;
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${gccgoflags} -tableau -run TestTableauDemo -timeout 4h -v ${cover|-coverprofile=coverage.out} > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -tableau -run TestTableauDemo -timeout 4h -v ${cover|-coverprofile=coverage.out} > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -1038,7 +1038,7 @@ tasks:
           fi;
           cd variable
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${gccgoflags} -v ${cover|-coverprofile=coverage.out} > variable.suite 2>&1; if [ $? -ne 0 ]; then cat variable.suite; exit 1; else cat variable.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v ${cover|-coverprofile=coverage.out} > variable.suite 2>&1; if [ $? -ne 0 ]; then cat variable.suite; exit 1; else cat variable.suite; exit 0; fi
     - command: shell.exec
       params:
         working_dir: src/github.com/10gen/sqlproxy
