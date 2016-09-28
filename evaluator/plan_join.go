@@ -231,7 +231,7 @@ func NewJoiner(s JoinStrategy, kind JoinKind, matcher SQLExpr, leftColumns, righ
 	case Hash:
 		return &HashJoiner{matcher, kind, errChan}
 	default:
-		panic(fmt.Sprintf("unknown join strategy: %v", s))
+		panic(fmt.Sprintf("unsupported join strategy: %v", s))
 	}
 }
 

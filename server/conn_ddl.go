@@ -16,6 +16,6 @@ func (c *conn) handleDDL(ddl *parser.DDL) error {
 		}
 		return mysqlerrors.Unknownf("cannot drop table (%s)", tableName)
 	default:
-		return mysqlerrors.Unknownf("unknown ddl operator (%s)", ddl.Action)
+		return mysqlerrors.Unknownf("unsupported ddl operator (%s)", ddl.Action)
 	}
 }
