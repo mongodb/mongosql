@@ -30,6 +30,7 @@ buildvariants:
 - name: linux-64-amazon-ami
   display_name: Amazon Linux (Enterprise)
   expansions:
+    build_tags: -tags ssl
     gotest_env: "SQLPROXY_SSLTEST=1"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.3.10.tgz --output mongodb.tgz
     mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
@@ -409,7 +410,7 @@ functions:
           fi;
         fi;
         if [ '${cover}' != '-' ]; then
-          ${gorootvars} ${library_path} go tool cover ${build_tags} -html=coverage_rewrite.out -o coverage.html
+          ${gorootvars} ${library_path} go tool cover -html=coverage_rewrite.out -o coverage.html
         fi;
 
   "generate coverage txt":
@@ -449,7 +450,7 @@ functions:
           fi;
         fi;
         if [ '${cover}' != '-' ]; then
-          ${gorootvars} ${library_path} go tool cover ${build_tags} -func=coverage_rewrite.out -o coverage.txt
+          ${gorootvars} ${library_path} go tool cover -func=coverage_rewrite.out -o coverage.txt
         fi;
 
   "rewrite coverage report":
