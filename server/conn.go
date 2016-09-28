@@ -36,12 +36,13 @@ var (
 type conn struct {
 	sync.Mutex
 
-	server  *Server
-	session *mgo.Session
-	closed  bool
-	tomb    *tomb.Tomb
-	logger  *log.Logger
-	startDb string
+	server    *Server
+	session   *mgo.Session
+	closed    bool
+	tomb      *tomb.Tomb
+	logger    *log.Logger
+	startDb   string
+	queryChan chan struct{}
 
 	conn     net.Conn
 	reader   *bufio.Reader
@@ -73,6 +74,7 @@ func newConn(s *Server, c net.Conn) *conn {
 		conn:         c,
 		reader:       bufio.NewReaderSize(c, 1024),
 		writer:       c,
+		queryChan:    make(chan struct{}),
 		tomb:         &tomb.Tomb{},
 		connectionID: atomic.AddUint32(&s.connCount, 1),
 		capability: CLIENT_PROTOCOL_41 |
@@ -529,6 +531,7 @@ func (c *conn) run() {
 		go func() {
 			data, err := c.readPacket()
 			packetReadChan <- packetRead{data, err}
+			c.queryChan = make(chan struct{})
 		}()
 
 		waitTimeout := time.Duration(c.variables.WaitTimeoutSecs) * time.Second
@@ -536,9 +539,11 @@ func (c *conn) run() {
 		select {
 		case <-time.After(waitTimeout):
 			c.logger.Logf(log.Always, "client wait time out after %v", waitTimeout.String())
+			close(c.queryChan)
 			return
 		case pkt = <-packetReadChan:
 			if pkt.err != nil {
+				close(c.queryChan)
 				return
 			}
 		}
@@ -551,9 +556,11 @@ func (c *conn) run() {
 		}
 
 		if c.closed {
+			close(c.queryChan)
 			return
 		}
 
+		close(c.queryChan)
 		c.sequence = 0
 	}
 }

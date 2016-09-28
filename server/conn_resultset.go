@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
@@ -288,11 +289,13 @@ streamer:
 	}
 
 	if err = iter.Close(); err != nil {
-		return mysqlerrors.Newf(mysqlerrors.ER_QUERY_ON_FOREIGN_DATA_SOURCE, "iterator close error: %v", err)
+		c.logger.Errf(log.DebugHigh, "iterator close err: %v", err)
+		return err
 	}
 
 	if err = iter.Err(); err != nil {
-		return mysqlerrors.Newf(mysqlerrors.ER_QUERY_ON_FOREIGN_DATA_SOURCE, "iterator err: %v", err)
+		c.logger.Errf(log.DebugHigh, "iterator err: %v", err)
+		return err
 	}
 
 	if !wroteHeaders {

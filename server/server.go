@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/client/openssl"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/util"
@@ -90,6 +91,13 @@ func (s *Server) Run() {
 
 		go s.onConn(conn)
 	}
+
+	// wait for all active client connections to return
+	// cleanly before terminating
+	for _, conn := range s.activeConnections {
+		<-conn.queryChan
+		conn.close()
+	}
 }
 
 // Close stops the server and stops accepting connections.
@@ -98,6 +106,13 @@ func (s *Server) Close() {
 	if s.listener != nil {
 		s.listener.Close()
 	}
+
+	// interrrupt any in-progress queries
+	s.Lock()
+	for _, conn := range s.activeConnections {
+		conn.tomb.Kill(mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED))
+	}
+	s.Unlock()
 }
 
 func (s *Server) onConn(c net.Conn) {
