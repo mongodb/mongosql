@@ -3,7 +3,6 @@ package collation
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/kr/pretty"
@@ -86,7 +85,13 @@ func (c *Collation) ensureCollator() {
 func (c *Collation) CompareString(a, b string) int {
 
 	if c.binary {
-		return strings.Compare(a, b)
+		if a == b {
+			return 0
+		}
+		if a < b {
+			return -1
+		}
+		return +1
 	}
 
 	c.ensureCollator()
