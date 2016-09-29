@@ -7,7 +7,6 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/kr/pretty"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -58,13 +57,11 @@ func NewMongoSourceStage(selectID int, drdl *schema.Schema, info *mongodb.Info, 
 
 	dbInfo, ok := info.Databases[mongodb.DatabaseName(ms.dbName)]
 	if !ok {
-		fmt.Printf("\n%# v", pretty.Formatter(info))
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
 	}
 
 	colInfo, ok := dbInfo.Collections[mongodb.CollectionName(tableSchema.CollectionName)]
 	if !ok {
-		fmt.Printf("\n%# v", pretty.Formatter(dbInfo))
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
 	}
 
