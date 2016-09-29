@@ -1,0 +1,91 @@
+schema:
+  - db: viewDB
+    tables:
+    - table: base
+      collection: base
+      pipeline: []
+      columns:
+      - Name: _id
+        MongoType: bson.ObjectId
+        SqlName: _id
+        SqlType: varchar
+    - table: base_loc
+      collection: base
+      pipeline:
+      - $unwind:
+          includeArrayIndex: loc_idx
+          path: $loc
+      columns:
+      - Name: _id
+        MongoType: bson.ObjectId
+        SqlName: _id
+        SqlType: varchar
+      - Name: loc.coordinates
+        MongoType: geo.2darray
+        SqlName: loc.coordinates
+        SqlType: numeric[]
+      - Name: loc.type
+        MongoType: string
+        SqlName: loc.type
+        SqlType: varchar
+      - Name: loc_idx
+        MongoType: int
+        SqlName: loc_idx
+        SqlType: numeric
+    - table: view
+      collection: view
+      pipeline: []
+      columns:
+      - Name: _id
+        MongoType: bson.ObjectId
+        SqlName: _id
+        SqlType: varchar
+    - table: view_loc
+      collection: view
+      pipeline:
+      - $unwind:
+          includeArrayIndex: loc_idx
+          path: $loc
+      columns:
+      - Name: _id
+        MongoType: bson.ObjectId
+        SqlName: _id
+        SqlType: varchar
+      - Name: loc.type
+        MongoType: string
+        SqlName: loc.type
+        SqlType: varchar
+      - Name: loc_idx
+        MongoType: int
+        SqlName: loc_idx
+        SqlType: numeric
+    - table: view_loc_coordinates
+      collection: view
+      pipeline:
+      - $unwind:
+          includeArrayIndex: loc_idx
+          path: $loc
+      - $unwind:
+          includeArrayIndex: loc.coordinates_idx
+          path: $loc.coordinates
+      columns:
+      - Name: _id
+        MongoType: bson.ObjectId
+        SqlName: _id
+        SqlType: varchar
+      - Name: loc.coordinates
+        MongoType: float64
+        SqlName: loc.coordinates
+        SqlType: numeric
+      - Name: loc.coordinates_idx
+        MongoType: int
+        SqlName: loc.coordinates_idx
+        SqlType: numeric
+      - Name: loc.type
+        MongoType: string
+        SqlName: loc.type
+        SqlType: varchar
+      - Name: loc_idx
+        MongoType: int
+        SqlName: loc_idx
+        SqlType: numeric

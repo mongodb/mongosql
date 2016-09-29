@@ -24,7 +24,7 @@ import (
 	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
 
-	"gopkg.in/mgo.v2"	
+	"gopkg.in/mgo.v2"
 	"gopkg.in/tomb.v2"
 )
 
@@ -529,7 +529,9 @@ func (c *conn) run() {
 		go func() {
 			data, err := c.readPacket()
 			packetReadChan <- packetRead{data, err}
+			c.Lock()
 			c.queryChan = make(chan struct{})
+			c.Unlock()
 		}()
 
 		waitTimeout := time.Duration(c.variables.WaitTimeoutSecs) * time.Second

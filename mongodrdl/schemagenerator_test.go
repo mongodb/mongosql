@@ -121,6 +121,110 @@ func TestRoundtrips(t *testing.T) {
 			So(toString(output), ShouldEqual, toString(expected))
 		})
 
+		Convey("Should work with mongodb views containing no geo index", func() {
+			gen := &mongodrdl.SchemaGenerator{
+				ToolOptions: &options.DrdlOptions{
+					DrdlNamespace: &options.DrdlNamespace{
+						DB: "viewDB",
+					},
+					DrdlSSL: sslOptions,
+				},
+				OutputOptions: &options.DrdlOutput{
+					Out: "out/views-expected.yml",
+				},
+				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+			}
+
+			gen.Init()
+
+			session, err := gen.Connect()
+			So(err, ShouldBeNil)
+			db := session.DB(gen.ToolOptions.DrdlNamespace.DB)
+			defer func() {
+				db.DropDatabase()
+				session.Close()
+			}()
+
+			So(db.C("base").Insert(
+				bson.M{"a": 1, "b": 123},
+				bson.M{"a": 2, "b": 134},
+				bson.M{"a": 3, "b": "s"},
+			), ShouldBeNil)
+
+			So(db.Run(bson.D{
+				{"create", "view"},
+				{"viewOn", "base"},
+				{"pipeline", []bson.M{{"$match": bson.M{"a": 3}}}},
+			}, &struct{}{}), ShouldBeNil)
+
+			// for views, get indexes should return an error
+			_, err = db.C("view").Indexes()
+			So(err, ShouldNotBeNil)
+
+			gen.Generate()
+
+			output, err := readYaml(gen.OutputOptions.Out)
+			expected, err := readYaml("testdata/view-expected.yml")
+			So(err, ShouldBeNil)
+			So(toString(output), ShouldEqual, toString(expected))
+		})
+
+		Convey("Should work with mongodb views containing geo index", func() {
+			gen := &mongodrdl.SchemaGenerator{
+				ToolOptions: &options.DrdlOptions{
+					DrdlNamespace: &options.DrdlNamespace{
+						DB: "viewDB",
+					},
+					DrdlSSL: sslOptions,
+				},
+				OutputOptions: &options.DrdlOutput{
+					Out: "out/views-geo-expected.yml",
+				},
+				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+			}
+
+			gen.Init()
+
+			session, err := gen.Connect()
+			So(err, ShouldBeNil)
+			defer session.Close()
+
+			db := session.DB(gen.ToolOptions.DrdlNamespace.DB)
+			defer db.DropDatabase()
+
+			base := db.C("base")
+			So(base.Insert(bson.M{"loc": []bson.M{
+				bson.M{"type": "Point"},
+				bson.M{"coordinates": []interface{}{-73.88, 40.78}}}},
+			), ShouldBeNil)
+
+			idx := mgo.Index{
+				Key:  []string{"$2d:loc.coordinates"},
+				Bits: 26,
+			}
+			So(base.EnsureIndex(idx), ShouldBeNil)
+			indexes, err := base.Indexes()
+			So(err, ShouldBeNil)
+			So(indexes, ShouldNotBeNil)
+
+			So(db.Run(bson.D{
+				{"create", "view"},
+				{"viewOn", "base"},
+				{"pipeline", []bson.M{}},
+			}, &struct{}{}), ShouldBeNil)
+
+			// for views, get indexes should return an error
+			_, err = db.C("view").Indexes()
+			So(err, ShouldNotBeNil)
+
+			gen.Generate()
+
+			output, err := readYaml(gen.OutputOptions.Out)
+			expected, err := readYaml("testdata/view-geo-expected.yml")
+			So(err, ShouldBeNil)
+			So(toString(output), ShouldEqual, toString(expected))
+		})
+
 		Convey("Should ignore system.* collections in admin", func() {
 			gen := &mongodrdl.SchemaGenerator{
 				ToolOptions: &options.DrdlOptions{

@@ -1,0 +1,35 @@
+schema:
+- db: viewDB
+  tables:
+  - table: base
+    collection: base
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: numeric
+  - table: view
+    collection: view
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar

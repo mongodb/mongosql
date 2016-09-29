@@ -12,8 +12,9 @@ const (
 )
 
 type Database struct {
-	Name   string     `yaml:"db"`
-	Tables TableSlice `yaml:"tables"`
+	Name   string              `yaml:"db"`
+	Tables TableSlice          `yaml:"tables"`
+	Views  map[string]struct{} `yaml:"-"`
 }
 
 func NewDatabase(name string) *Database {

@@ -8,7 +8,7 @@ buildvariants:
   expansions:
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian71-3.3.10.tgz
+    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian71-3.3.15.tgz
     push_arch: x86_64-debian71
     push_name: linux
     push_path: linux
@@ -32,7 +32,7 @@ buildvariants:
   expansions:
     build_tags: -tags ssl
     gotest_env: "SQLPROXY_SSLTEST=1"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.3.10.tgz --output mongodb.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.3.15.tgz --output mongodb.tgz
     mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
     mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
     push_arch: x86_64-enterprise-amzn64
@@ -46,7 +46,7 @@ buildvariants:
   display_name: Amazon Linux (Enterprise Benchmarks)
   expansions:
     gotest_env: "SQLPROXY_SSLTEST=1"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.3.10.tgz --output mongodb.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.3.15.tgz --output mongodb.tgz
     mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
     mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
     push_arch: x86_64-enterprise-amzn64
@@ -63,7 +63,7 @@ buildvariants:
   - osx-1010
   expansions:
     cover: "-"
-    mongo_url: https://downloads.mongodb.org/osx/mongodb-osx-x86_64-3.3.10.tgz
+    mongo_url: https://downloads.mongodb.org/osx/mongodb-osx-x86_64-3.3.15.tgz
     push_arch: x86_64
     push_name: osx
     push_path: osx
@@ -74,7 +74,7 @@ buildvariants:
   expansions:
     cover: "-"
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel62-3.3.10.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel62-3.3.15.tgz
     push_arch: x86_64-rhel62
     push_name: linux
     push_path: linux
@@ -86,7 +86,7 @@ buildvariants:
   display_name: RHEL 7.0
   expansions:
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-rhel70-3.3.10.tgz
+    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-rhel70-3.3.15.tgz
     push_arch: x86_64-rhel70
     push_name: linux
     push_path: linux
@@ -101,7 +101,7 @@ buildvariants:
     build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
     cover: "-"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.10.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.15.tgz
     push_arch: ppc64le-rhel71
     push_name: linux
     push_path: linux
@@ -130,7 +130,7 @@ buildvariants:
   display_name: SLES 11
   expansions:
     cover: "-"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse11-3.3.10.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse11-3.3.15.tgz
     push_arch: x86_64-suse11
     push_name: linux
     push_path: linux
@@ -142,7 +142,7 @@ buildvariants:
   display_name: SLES 12
   expansions:
     cover: "-"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse12-3.3.10.tgz
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse12-3.3.15.tgz
     push_arch: x86_64-suse12
     push_name: linux
     push_path: linux
@@ -153,7 +153,7 @@ buildvariants:
 - name: ubuntu1404-64
   display_name: Ubuntu 14.04
   expansions:
-    mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.3.10.tgz
+    mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.3.15.tgz
     push_arch: x86_64-ubuntu1404
     push_name: linux
     push_path: linux
@@ -170,7 +170,7 @@ buildvariants:
     cover: "-"
     extension: .exe
     library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
-    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.3.10.zip
+    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.3.15.zip
     push_arch: x86_64
     push_name: win32
     push_path: win32
@@ -470,7 +470,7 @@ functions:
         set -o verbose
         rm -rf ../dbFiles && mkdir -p ../dbFiles;
         echo "Starting mongod...";
-        ./bin/mongod${extension} ${mongod_args} --dbpath ../dbFiles --setParameter=enableTestCommands=1
+        ./bin/mongod${extension} ${mongod_args} --dbpath ../dbFiles
         echo "Waiting for mongod to start up..."
         ./bin/mongo${extension} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")' ${mongo_args}
         echo "Done!"

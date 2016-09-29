@@ -90,11 +90,60 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 		}
 	}
 
+	if err := iter.Close(); err != nil {
+		return err
+	}
+
+	if err := iter.Err(); err != nil {
+		return err
+	}
+
+	if database.Views == nil {
+		var result struct {
+			Cursor struct {
+				ID         int64
+				FirstBatch []bson.Raw "firstBatch"
+			}
+		}
+
+		err := collection.Database.Run(bson.D{{"listCollections", 1}}, &result)
+		if err != nil {
+			return err
+		}
+
+		iter := collection.NewIter(nil, result.Cursor.FirstBatch, result.Cursor.ID, nil)
+		var colResult struct {
+			Name string `bson:"name"`
+			Type string `bson:"type"`
+		}
+
+		database.Views = map[string]struct{}{}
+
+		for iter.Next(&colResult) {
+			if colResult.Type == "view" {
+				database.Views[colResult.Name] = struct{}{}
+			}
+		}
+
+		if err = iter.Close(); err != nil {
+			return err
+		}
+
+		if err = iter.Err(); err != nil {
+			return err
+		}
+	}
+
+	if _, ok := database.Views[collection.Name]; ok {
+		return database.Map(col, []mgo.Index{})
+	}
+
 	// Indexes are needed in order to determine certain
 	// types like geo fields.
 	indexes, err := collection.Indexes()
 	if err != nil {
 		return err
 	}
+
 	return database.Map(col, indexes)
 }

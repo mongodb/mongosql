@@ -114,11 +114,11 @@ func main() {
 
 	go func() {
 		sig := <-sc
-		logger.Logf(log.Info, "[initandlisten] got %s signal, now exiting...", sig.String())
+		logger.Logf(log.Info, "[signalProcessingThread] got %s signal, now exiting...", sig.String())
 		svr.Close()
-		logger.Logf(log.Info, "[initandlisten] shutting down with code 0")
 	}()
 
 	svr.Run()
+	logger.Logf(log.Info, "[signalProcessingThread] shutting down with code 0")
 	os.Exit(util.ExitClean)
 }
