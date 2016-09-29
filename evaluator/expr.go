@@ -1059,6 +1059,73 @@ func (_ *SQLNotEqualsExpr) Type() schema.SQLType {
 }
 
 //
+// SQLNullSafeEqualsExpr behaves like the = operator,
+// but returns 1 rather than NULL if both operands are
+// NULL, and 0 rather than NULL if one operand is NULL.
+//
+type SQLNullSafeEqualsExpr sqlBinaryNode
+
+func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+
+	leftVal, err := nse.left.Evaluate(ctx)
+	if err != nil {
+		return SQLFalse, err
+	}
+
+	rightVal, err := nse.right.Evaluate(ctx)
+	if err != nil {
+		return SQLFalse, err
+	}
+
+	if leftVal == SQLNull {
+		if rightVal == SQLNull {
+			return SQLTrue, nil
+		}
+		return SQLFalse, nil
+	}
+
+	if rightVal == SQLNull {
+		if leftVal == SQLNull {
+			return SQLTrue, nil
+		}
+		return SQLFalse, nil
+	}
+
+	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
+	if err == nil {
+		return SQLBool(c == 0), nil
+	}
+
+	return SQLFalse, err
+}
+
+func (nse *SQLNullSafeEqualsExpr) normalize() node {
+	if nse.left == SQLNull {
+		if nse.right == SQLNull {
+			return SQLTrue
+		}
+		return SQLFalse
+	}
+
+	if nse.right == SQLNull {
+		if nse.left == SQLNull {
+			return SQLTrue
+		}
+		return SQLFalse
+	}
+
+	return nse
+}
+
+func (nse *SQLNullSafeEqualsExpr) String() string {
+	return fmt.Sprintf("%v <=> %v", nse.left, nse.right)
+}
+
+func (_ *SQLNullSafeEqualsExpr) Type() schema.SQLType {
+	return schema.SQLBoolean
+}
+
+//
 // SQLOrExpr evaluates to true if any of its children evaluate to true.
 //
 type SQLOrExpr sqlBinaryNode

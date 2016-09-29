@@ -762,7 +762,6 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		case parser.AST_MOD:
 			return &SQLModExpr{left, right}, nil
 		default:
-
 			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for binary operator '%v'", string(typedE.Operator))
 		}
 	case *parser.CaseExpr:
@@ -824,6 +823,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 				sqlOpNEQ, sqlOpEQ,
 				sqlOpGT, sqlOpGTE,
 				sqlOpLT, sqlOpLTE,
+				sqlOpNSE,
 			}, typedE.Operator)
 
 		if canTranslate && shouldTranslate {

@@ -1604,6 +1604,13 @@ func TestAlgebrizeExpr(t *testing.T) {
 			})
 		})
 
+		Convey("NullSafeEquals", func() {
+			test("a <=> 1", &SQLNullSafeEqualsExpr{
+				left:  createSQLColumnExpr("a"),
+				right: SQLInt(1),
+			})
+		})
+
 		SkipConvey("Not In", func() {
 		})
 

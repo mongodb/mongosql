@@ -16,6 +16,7 @@ const (
 	Dot        = "_DOT_"
 	sqlOpEQ    = "="
 	sqlOpNEQ   = "!="
+	sqlOpNSE   = "<=>"
 	sqlOpGT    = ">"
 	sqlOpGTE   = ">="
 	sqlOpLT    = "<"
@@ -50,6 +51,8 @@ func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 		return &SQLNotEqualsExpr{left, right}, nil
 	case sqlOpLike:
 		return &SQLLikeExpr{left, right}, nil
+	case sqlOpNSE:
+		return &SQLNullSafeEqualsExpr{left, right}, nil
 	case sqlOpIn:
 		if eval, ok := right.(*SQLSubqueryExpr); ok {
 			return &SQLSubqueryCmpExpr{subqueryIn, left, eval, ""}, nil
@@ -61,7 +64,7 @@ func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 		}
 		return &SQLNotExpr{&SQLInExpr{left, right}}, nil
 	default:
-		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for binary operator '%v'", op)
+		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for comparison operator '%v'", op)
 	}
 }
 

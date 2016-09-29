@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
+	"github.com/kr/pretty"
 	"github.com/shopspring/decimal"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
@@ -619,6 +620,21 @@ func TestEvaluates(t *testing.T) {
 				test{"NOT NULL", SQLNull},
 				test{"! 1", SQLFalse},
 				test{"! 0", SQLTrue},
+			}
+
+			runTests(evalCtx, tests)
+		})
+
+		Convey("Subject: SQLNullSafeEqualsExpr", func() {
+			tests := []test{
+				test{"0 <=> 0", SQLTrue},
+				test{"-1 <=> 1", SQLFalse},
+				test{"10 <=> 10", SQLTrue},
+				test{"-10 <=> -10", SQLTrue},
+				test{"1 <=> 1", SQLTrue},
+				test{"NULL <=> NULL", SQLTrue},
+				test{"1 <=> NULL", SQLFalse},
+				test{"NULL <=> 1", SQLFalse},
 			}
 
 			runTests(evalCtx, tests)
@@ -2466,7 +2482,11 @@ func TestTranslateExpr(t *testing.T) {
 				So(ok, ShouldBeTrue)
 				jsonResult, err := json.Marshal(translated)
 				So(err, ShouldBeNil)
-				So(string(jsonResult), ShouldResembleDiffed, t.expected)
+				if ShouldResembleDiffed(string(jsonResult), t.expected) != "" {
+					fmt.Printf("\nExpected: %# v", pretty.Formatter(t.expected))
+					fmt.Printf("\nActual: %# v", pretty.Formatter(string(jsonResult)))
+				}
+
 			})
 		}
 	}
@@ -2533,6 +2553,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"stddev_samp(a)", `{"$stdDevSamp":"$a"}`},
 			test{"a in (2,3,5)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$cond":[{"$gt":[{"$size":{"$filter":{"as":"item","cond":{"$eq":["$$item","$a"]},"input":[{"$literal":2},{"$literal":3},{"$literal":5}]}}},{"$literal":0}]},true,{"$cond":[{"$eq":[false,true]},null,false]}]}]}`},
 			test{"case when a > 1 then 'gt' else 'lt' end", `{"$cond":[{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":[{"$ifNull":[{"$literal":1},null]},null]}]},null,{"$gt":["$a",{"$literal":1}]}]},{"$literal":"gt"},{"$literal":"lt"}]}`},
+
+			test{"a <=> 5", `{"$eq": ["$a", {$literal: 5} ]}`},
 		}
 
 		runTests(tests)

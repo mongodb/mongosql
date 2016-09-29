@@ -349,6 +349,19 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			wrapInNullCheck(right),
 		), true
 
+	case *SQLNullSafeEqualsExpr:
+		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		if !ok {
+			return nil, false
+		}
+
+		return bson.M{mgoOperatorEQ: []interface{}{left, right}}, true
+
 	case *SQLOrExpr:
 		left, ok := TranslateExpr(typedE.left, lookupFieldName)
 		if !ok {
