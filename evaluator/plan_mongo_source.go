@@ -71,7 +71,7 @@ func NewMongoSourceStage(selectID int, drdl *schema.Schema, info *mongodb.Info, 
 		var err error
 		ms.collation, err = collation.FromMongoDB(colInfo.Collation)
 		if err != nil {
-			return nil, mysqlerrors.Newf(mysqlerrors.ER_UNKNOWN_COLLATION, "unable to translate MongoDB's collation for "+dbName+"."+tableName)
+			return nil, mysqlerrors.Newf(mysqlerrors.ER_UNKNOWN_COLLATION, "unable to translate MongoDB's collation for \"%s\".\"%s\": %v", dbName, tableName, err)
 		}
 	}
 

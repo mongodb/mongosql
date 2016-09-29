@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/kr/pretty"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 	"gopkg.in/mgo.v2"
@@ -118,42 +119,48 @@ func (c *Collation) KeyFromString(b *KeyBuffer, s string) string {
 func FromMongoDB(mc *mgo.Collation) (*Collation, error) {
 	t, err := language.Parse(mc.Locale)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to translate locale (%s): %v", mc.Locale, err)
 	}
 
-	t, err = t.SetTypeForKey("ka", mc.Alternate)
-	if err != nil {
-		return nil, err
+	fmt.Printf("\n%# v", pretty.Formatter(mc))
+
+	if mc.Alternate != "non-ignorable" {
+		// Go's collate package doesn't support non-ignorable
+
+		t, err = t.SetTypeForKey("ka", mc.Alternate)
+		if err != nil {
+			return nil, fmt.Errorf("unable to translate alternate (%s): %v", mc.Alternate, err)
+		}
 	}
 
 	t, err = t.SetTypeForKey("kb", strconv.FormatBool(mc.Backwards))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to translate backwards (%v): %v", mc.Backwards, err)
 	}
 
 	t, err = t.SetTypeForKey("kc", strconv.FormatBool(mc.CaseLevel))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to translate caseLevel (%v): %v", mc.CaseLevel, err)
 	}
 
 	t, err = t.SetTypeForKey("kf", mc.CaseFirst)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to translate caseFirst (%s): %v", mc.CaseFirst, err)
 	}
 
 	t, err = t.SetTypeForKey("kk", strconv.FormatBool(mc.Normalization))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to translate normalization (%v): %v", mc.Normalization, err)
 	}
 
 	t, err = t.SetTypeForKey("kn", strconv.FormatBool(mc.NumericOrdering))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to translate numeric ordering (%v): %v", mc.NumericOrdering, err)
 	}
 
 	t, err = t.SetTypeForKey("kv", mc.MaxVariable)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to translate maxVariable (%s): %v", mc.MaxVariable, err)
 	}
 
 	if mc.Strength > 0 {
@@ -172,7 +179,7 @@ func FromMongoDB(mc *mgo.Collation) (*Collation, error) {
 		}
 		t, err = t.SetTypeForKey("ks", value)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to translate strength (%v): %v", mc.Strength, err)
 		}
 	}
 

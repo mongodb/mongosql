@@ -1,0 +1,51 @@
+#
+# Data
+#
+data:
+- inline:
+    db: "cTest"
+    collection: "collation_1"
+    collation: { locale: "en_US", strength: 1 }
+    docs:
+    - { _id: 0, a: "a" }
+    - { _id: 1, a: "B" }
+    - { _id: 2, a: "A" }
+
+schema:
+- db: cTest
+  tables:
+  - table: foo
+    collection: "collation_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: string
+      SqlName: a
+      SqlType: varchar
+
+testcases:
+- sql: "select * from foo order by a"
+  description: "order by"
+  expected_names: ["id", "a"]
+  expected_types: [int, string]
+  expected: 
+  - [0, "a"]
+  - [2, "A"]
+  - [1, "B"]
+- sql: "select a, sum(id) from foo group by a"
+  description: "group by"
+  expected_names: ["a", "sum(id)"]
+  expected_types: [string, int]
+  expected: 
+  - ["a", 2]
+  - ["B", 1]
+- sql: "select id from foo where a = 'A'"
+  description: "where"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: 
+  - [0]
+  - [2]

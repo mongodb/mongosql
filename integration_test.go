@@ -59,6 +59,7 @@ type testDataSet struct {
 type inlineDataSet struct {
 	Db         string   `yaml:"db"`
 	Collection string   `yaml:"collection"`
+	Collation  bson.D   `yaml:"collation"`
 	Docs       []bson.D `yaml:"docs"`
 }
 
@@ -319,8 +320,18 @@ func restoreInline(host, port string, inline *inlineDataSet) error {
 		return err
 	}
 
-	c := session.DB(inline.Db).C(inline.Collection)
+	db := session.DB(inline.Db)
+	c := db.C(inline.Collection)
 	c.DropCollection() // don't care about the result
+
+	if len(inline.Collation) > 0 {
+		var result bson.D
+		err = db.Run(bson.D{{"create", inline.Collection}, {"collation", inline.Collation}}, &result)
+		if err != nil {
+			return err
+		}
+	}
+
 	bulk := c.Bulk()
 
 	for _, d := range inline.Docs {
