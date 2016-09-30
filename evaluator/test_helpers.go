@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -110,6 +111,13 @@ func createTestExecutionCtx() *ExecutionCtx {
 func createTestEvalCtx() *EvalCtx {
 	return &EvalCtx{
 		ExecutionCtx: createTestExecutionCtx(),
+	}
+}
+
+func createTestVariables(info *mongodb.Info) *variable.Container {
+	return &variable.Container{
+		SQLSelectLimit: math.MaxUint64,
+		MongoDBInfo:    info,
 	}
 }
 
@@ -222,7 +230,8 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 	info := getMongoDBInfo(schema, mongodb.AllPrivileges)
 
 	selectStatement := statement.(parser.SelectStatement)
-	actualPlan, err := AlgebrizeSelect(selectStatement, dbName, schema, info)
+	vars := createTestVariables(info)
+	actualPlan, err := AlgebrizeSelect(selectStatement, dbName, vars, schema)
 	if err != nil {
 		return nil, err
 	}

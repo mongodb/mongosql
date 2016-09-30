@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -35,18 +36,18 @@ func AlgebrizeCommand(stmt parser.Statement, dbName string, schema *schema.Schem
 }
 
 // AlgebrizeSelect takes a parsed SQL statement and returns an algebrized form of the query.
-func AlgebrizeSelect(selectStatement parser.SelectStatement, dbName string, schema *schema.Schema, info *mongodb.Info) (PlanStage, error) {
+func AlgebrizeSelect(selectStatement parser.SelectStatement, dbName string, vars *variable.Container, schema *schema.Schema) (PlanStage, error) {
 	g := &selectIDGenerator{}
 	algebrizer := &algebrizer{
 		dbName:                      dbName,
 		schema:                      schema,
-		info:                        info,
+		info:                        vars.MongoDBInfo,
 		selectID:                    g.generate(),
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 	}
 
-	return algebrizer.translateSelectStatement(selectStatement)
+	return algebrizer.translateRootSelectStatement(selectStatement, vars)
 }
 
 type selectIDGenerator struct {
@@ -253,23 +254,26 @@ func (a *algebrizer) translateKill(kill *parser.Kill) (*KillCommand, error) {
 	}
 }
 
-func (a *algebrizer) translateLimit(limit *parser.Limit) (SQLInt, SQLInt, error) {
-	var rowcount SQLInt
-	var offset SQLInt
-	var ok bool
+func (a *algebrizer) translateLimit(limit *parser.Limit) (SQLUint64, SQLUint64, error) {
+	var rowcount SQLUint64
+	var offset SQLUint64
+
 	if limit.Offset != nil {
 		eval, err := a.translateExpr(limit.Offset)
 		if err != nil {
 			return 0, 0, err
 		}
 
-		offset, ok = eval.(SQLInt)
-		if !ok {
+		switch typedE := eval.(type) {
+		case SQLUint64:
+			offset = typedE
+		case SQLInt:
+			if typedE < 0 {
+				return 0, 0, mysqlerrors.Newf(mysqlerrors.ER_SYNTAX_ERROR, "Offset cannot be negative")
+			}
+			offset = SQLUint64(typedE.Uint64())
+		default:
 			return 0, 0, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_SPVAR_TYPE_IN_LIMIT)
-		}
-
-		if offset < 0 {
-			return 0, 0, mysqlerrors.Newf(mysqlerrors.ER_SYNTAX_ERROR, "Offset cannot be negative")
 		}
 	}
 
@@ -279,13 +283,16 @@ func (a *algebrizer) translateLimit(limit *parser.Limit) (SQLInt, SQLInt, error)
 			return 0, 0, err
 		}
 
-		rowcount, ok = eval.(SQLInt)
-		if !ok {
+		switch typedE := eval.(type) {
+		case SQLUint64:
+			rowcount = typedE
+		case SQLInt:
+			if typedE < 0 {
+				return 0, 0, mysqlerrors.Newf(mysqlerrors.ER_SYNTAX_ERROR, "Rowcount cannot be negative")
+			}
+			rowcount = SQLUint64(typedE.Uint64())
+		default:
 			return 0, 0, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_SPVAR_TYPE_IN_LIMIT)
-		}
-
-		if rowcount < 0 {
-			return 0, 0, mysqlerrors.Newf(mysqlerrors.ER_SYNTAX_ERROR, "Rowcount cannot be negative")
 		}
 	}
 
@@ -317,6 +324,27 @@ func (a *algebrizer) translateOrder(order *parser.Order) (*orderByTerm, error) {
 		expr:      e,
 		ascending: ascending,
 	}, nil
+}
+
+func (a *algebrizer) translateRootSelectStatement(selectStatement parser.SelectStatement, vars *variable.Container) (PlanStage, error) {
+	plan, err := a.translateSelectStatement(selectStatement)
+	if err != nil {
+		return nil, err
+	}
+
+	// explicit limit takes precedence
+	s, ok := selectStatement.(*parser.Select)
+	if ok && s.Limit != nil {
+		return plan, nil
+	}
+
+	// only add the system-wide limit if it has been changed from the default
+	// otherwise, we can't push down queries by default
+	if vars.SQLSelectLimit != math.MaxUint64 {
+		plan = NewLimitStage(plan, 0, vars.SQLSelectLimit)
+	}
+
+	return plan, nil
 }
 
 func (a *algebrizer) translateSelectStatement(selectStatement parser.SelectStatement) (PlanStage, error) {

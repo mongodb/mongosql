@@ -2,6 +2,7 @@ package variable
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
@@ -35,6 +36,7 @@ type Container struct {
 	MongoDBInfo            *mongodb.Info
 	Socket                 string
 	SQLAutoIsNull          bool
+	SQLSelectLimit         uint64
 	Version                string
 	VersionComment         string
 	InteractiveTimeoutSecs int64
@@ -59,6 +61,7 @@ func NewGlobalContainer() *Container {
 		MongoDBInfo:            nil,
 		Socket:                 "",
 		SQLAutoIsNull:          false,
+		SQLSelectLimit:         math.MaxUint64,
 		Version:                "5.7.12",
 		VersionComment:         "mongosqld " + common.VersionStr,
 		InteractiveTimeoutSecs: 28800,

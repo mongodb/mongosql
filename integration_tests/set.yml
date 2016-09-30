@@ -166,3 +166,15 @@ testcases:
   expected_types: [int]
   expected:
   - [1]
+- sql: "set @@sql_select_limit = 10"
+  verify: "select @@sql_select_limit"
+  description: "set session select limit to valid value"
+  expected_names: ["@@sql_select_limit"]
+  expected_types: [uint]
+  expected:
+  - [10]
+- sql: "set @@sql_select_limit = -5"
+  verify: "select @@sql_select_limit"
+  description: "set session select limit to invalid value"
+  expected_names: []
+  expected_types: [uint]

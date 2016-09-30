@@ -48,7 +48,7 @@ func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.Connecti
 
 	conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan: "%v"`, parser.String(ast))
 
-	plan, err := evaluator.AlgebrizeSelect(ast, conn.DB(), e.config, conn.Variables().MongoDBInfo)
+	plan, err := evaluator.AlgebrizeSelect(ast, conn.DB(), conn.Variables(), e.config)
 	if err != nil {
 		return nil, nil, err
 	}

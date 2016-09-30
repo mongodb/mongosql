@@ -970,7 +970,19 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 	case SQLDate:
 		return bson.M{"$literal": typedE.Time.Format(schema.DateFormat)}, true
 
-	case SQLBool, SQLFloat, SQLInt, SQLUint32, SQLUint64, SQLVarchar:
+	case SQLUint64:
+		val, ok := getValue(typedE)
+		if !ok {
+			return nil, false
+		}
+
+		ui := val.(uint64)
+		if ui > math.MaxInt64 {
+			return nil, false
+		}
+		return bson.M{"$literal": typedE}, true
+
+	case SQLBool, SQLFloat, SQLInt, SQLUint32, SQLVarchar:
 		return bson.M{"$literal": typedE}, true
 
 	case SQLUUID:

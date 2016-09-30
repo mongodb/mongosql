@@ -45,7 +45,8 @@ func TestOptimizePlan(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(parser.SelectStatement)
-			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testSchema, testInfo)
+			vars := createTestVariables(testInfo)
+			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, vars, testSchema)
 			So(err, ShouldBeNil)
 			actualPlan, err := OptimizePlan(createTestConnectionCtx(), plan)
 			So(err, ShouldBeNil)
@@ -59,6 +60,27 @@ func TestOptimizePlan(t *testing.T) {
 			actual := pg.pipelines
 
 			So(actual, ShouldResembleDiffed, expected)
+		})
+	}
+
+	testNoPushdown := func(sql string) {
+		Convey(sql, func() {
+			statement, err := parser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			selectStatement := statement.(parser.SelectStatement)
+			vars := createTestVariables(testInfo)
+			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, vars, testSchema)
+			So(err, ShouldBeNil)
+			actualPlan, err := OptimizePlan(createTestConnectionCtx(), plan)
+			So(err, ShouldBeNil)
+
+			pg := &pipelineGatherer{}
+			pg.visit(actualPlan)
+
+			actual := pg.pipelines
+
+			So(len(actual), ShouldEqual, 0)
 		})
 	}
 
@@ -1250,7 +1272,7 @@ func TestOptimizePlan(t *testing.T) {
 		Convey("limit", func() {
 			test("select a from foo limit 10",
 				[]bson.D{
-					{{"$limit", int64(10)}},
+					{{"$limit", uint64(10)}},
 					{{"$project", bson.M{
 						"foo_DOT_a": "$a",
 					}}},
@@ -1259,13 +1281,15 @@ func TestOptimizePlan(t *testing.T) {
 
 			test("select a from foo limit 10, 20",
 				[]bson.D{
-					{{"$skip", int64(10)}},
-					{{"$limit", int64(20)}},
+					{{"$skip", uint64(10)}},
+					{{"$limit", uint64(20)}},
 					{{"$project", bson.M{
 						"foo_DOT_a": "$a",
 					}}},
 				},
 			)
+
+			testNoPushdown("select a from foo limit 18446744073709551614")
 		})
 
 		Convey("custom mongo filter", func() {
@@ -1338,7 +1362,7 @@ func TestOptimizeCommand(t *testing.T) {
 	Convey("Subject: OptimizeSet", t, func() {
 		test("set @t1 = (select a from foo limit 1)",
 			[]bson.D{
-				{{"$limit", int64(1)}},
+				{{"$limit", uint64(1)}},
 				{{"$project", bson.M{
 					"foo_DOT_a": "$a",
 				}}},

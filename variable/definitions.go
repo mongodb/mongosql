@@ -21,7 +21,8 @@ const (
 	MongoDBGitVersion           = "mongodb_git_version"
 	MongoDBVersion              = "mongodb_version"
 	Socket                      = "socket"
-	SqlAutoIsNull               = "sql_auto_is_null"
+	SQLAutoIsNull               = "sql_auto_is_null"
+	SQLSelectLimit              = "sql_select_limit"
 	Version                     = "version"
 	VersionComment              = "version_comment"
 	WaitTimeoutSecs             = "wait_timeout"
@@ -178,13 +179,22 @@ func init() {
 		GetValue:         func(c *Container) interface{} { return c.Socket },
 	}
 
-	definitions[SqlAutoIsNull] = &definition{
-		Name:             SqlAutoIsNull,
+	definitions[SQLAutoIsNull] = &definition{
+		Name:             SQLAutoIsNull,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLBoolean,
 		GetValue:         func(c *Container) interface{} { return c.SQLAutoIsNull },
 		SetValue:         setSQLAutoIsNull,
+	}
+
+	definitions[SQLSelectLimit] = &definition{
+		Name:             SQLSelectLimit,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLUint64,
+		GetValue:         func(c *Container) interface{} { return c.SQLSelectLimit },
+		SetValue:         setSQLSelectLimit,
 	}
 
 	definitions[Version] = &definition{
@@ -412,10 +422,28 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 func setSQLAutoIsNull(c *Container, v interface{}) error {
 	b, ok := convertBool(v)
 	if !ok {
-		return wrongTypeError(SqlAutoIsNull, v)
+		return wrongTypeError(SQLAutoIsNull, v)
 	}
 
 	c.SQLAutoIsNull = b
+	return nil
+}
+
+func setSQLSelectLimit(c *Container, v interface{}) error {
+	i, ok := convertUint64(v)
+	if !ok {
+		if j, ok := convertInt64(v); ok {
+			if j < 0 {
+				i = 0
+			} else {
+				i = uint64(j)
+			}
+		} else {
+			return wrongTypeError(SQLSelectLimit, v)
+		}
+	}
+
+	c.SQLSelectLimit = i
 	return nil
 }
 

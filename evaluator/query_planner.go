@@ -30,8 +30,8 @@ type queryPlanBuilder struct {
 	orderBy  []*orderByTerm
 	project  ProjectedColumns
 	hasLimit bool
-	offset   int64
-	rowcount int64
+	offset   uint64
+	rowcount uint64
 }
 
 func (b *queryPlanBuilder) build() PlanStage {
@@ -273,8 +273,8 @@ func (b *queryPlanBuilder) includeLimit(limit *parser.Limit) error {
 		return err
 	}
 	b.hasLimit = true
-	b.offset = int64(offset)
-	b.rowcount = int64(rowcount)
+	b.offset = uint64(offset)
+	b.rowcount = uint64(rowcount)
 	return nil
 }
 

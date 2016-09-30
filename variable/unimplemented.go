@@ -4617,14 +4617,6 @@ var unimplementedDefinitions = []*definition{
 		SetValue:         setDummyValue("sql_safe_updates"),
 	},
 	&definition{
-		Name:             "sql_select_limit",
-		Kind:             SystemKind,
-		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt64,
-		GetValue:         getDummyValue(0, "sql_select_limit"),
-		SetValue:         setDummyValue("sql_select_limit"),
-	},
-	&definition{
 		Name:             "sql_slave_skip_counter",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
