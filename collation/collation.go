@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/kr/pretty"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 	"gopkg.in/mgo.v2"
@@ -126,8 +125,6 @@ func FromMongoDB(mc *mgo.Collation) (*Collation, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to translate locale (%s): %v", mc.Locale, err)
 	}
-
-	fmt.Printf("\n%# v", pretty.Formatter(mc))
 
 	if mc.Alternate != "non-ignorable" {
 		// Go's collate package doesn't support non-ignorable
