@@ -106,14 +106,12 @@ func (s *Server) Run() {
 
 	// wait for all active client connections to return
 	// cleanly before terminating
-	s.Lock()
 	for _, conn := range s.activeConnections {
 		conn.Lock()
 		<-conn.queryChan
 		conn.Unlock()
 		conn.close()
 	}
-	s.Unlock()
 }
 
 // Close stops the server and stops accepting connections.
