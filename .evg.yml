@@ -194,7 +194,7 @@ pre:
 post:
   - command: gotest.parse_files
     params:
-      files: ["src/*.suite", "src/**/*.suite", "src/**/**/*.suite"]
+      files: ["src/github.com/10gen/sqlproxy/*.suite", "src/github.com/10gen/sqlproxy/**/*.suite", "src/github.com/10gen/sqlproxy/**/**/*.suite"]
   - command: shell.cleanup
 
 functions:
