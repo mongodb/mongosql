@@ -130,6 +130,8 @@ func TestIntegration(t *testing.T) {
 			session.DB(database.Name).DropDatabase()
 		}
 	}
+
+	session.Close()
 }
 func buildSchemaMaps(conf *schema.Schema) {
 	conf.Databases = make(map[string]*schema.Database)
@@ -343,6 +345,7 @@ func restoreInline(host, port string, inline *inlineDataSet) error {
 	}
 
 	_, err = bulk.Run()
+	session.Close()
 	return err
 }
 

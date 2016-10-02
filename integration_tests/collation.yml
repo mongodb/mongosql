@@ -35,7 +35,7 @@ testcases:
   - [0, "a"]
   - [2, "A"]
   - [1, "B"]
-- sql: "select a, sum(id) from foo group by a"
+- sql: "select a, sum(id) from foo group by a order by a"
   description: "group by"
   expected_names: ["a", "sum(id)"]
   expected_types: [string, int]
