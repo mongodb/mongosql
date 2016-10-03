@@ -20,6 +20,15 @@ func (schemaGen *SchemaGenerator) Connect() (*mgo.Session, error) {
 		return nil, fmt.Errorf("can't create session: %v", err)
 	}
 
+	bi, err := session.BuildInfo()
+	if err != nil {
+		return nil, fmt.Errorf("can't create session: %v", err)
+	}
+
+	if !bi.VersionAtLeast(3, 2, 0) {
+		return nil, fmt.Errorf("server version is %v but version >= 3.2.0 required", bi.Version)
+	}
+
 	return session, nil
 }
 
