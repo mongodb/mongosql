@@ -12,6 +12,14 @@ func testParse(t *testing.T, sql string) Statement {
 	return stmt
 }
 
+func testParseError(t *testing.T, sql string) Statement {
+	stmt, err := Parse(sql)
+	if err == nil {
+		t.Fatalf("sql: %s should cause error")
+	}
+	return stmt
+}
+
 func TestSet(t *testing.T) {
 	sql := "set @@temp = 'gbk'"
 	testParse(t, sql)
@@ -237,4 +245,63 @@ func TestMixer(t *testing.T) {
 	if String(testParse(t, sql).(*Show).DBFilter) != "'bar'" {
 		t.Fatalf("db wrong: %s", String(testParse(t, sql).(*Show).DBFilter))
 	}
+}
+
+func TestExplain(t *testing.T) {
+	sql := "explain foo"
+	testParse(t, sql)
+
+	sql = "explain foo a"
+	testParse(t, sql)
+
+	sql = "explain foo 'a%'"
+	testParse(t, sql)
+
+	sql = "describe foo 'a%'"
+	testParse(t, sql)
+
+	sql = "desc foo 'a%'"
+	testParse(t, sql)
+
+	sql = "explain foo 'a%' b"
+	testParseError(t, sql)
+
+	sql = "explain extended select * from foo"
+	testParse(t, sql)
+
+	sql = "explain partitions select * from foo"
+	testParse(t, sql)
+
+	sql = "explain format=json select * from foo"
+	testParse(t, sql)
+
+	sql = "explain format=traditional select * from foo"
+	testParse(t, sql)
+
+	sql = "explain partitions (select * from foo)"
+	testParse(t, sql)
+
+	sql = "describe partitions select * from foo"
+	testParse(t, sql)
+
+	sql = "desc partitions select * from foo"
+	testParse(t, sql)
+
+	sql = "explain bogus select * from foo"
+	testParseError(t, sql)
+
+	sql = "explain extended bogus"
+	testParseError(t, sql)
+
+	sql = "explain extended for connection bogus"
+	testParseError(t, sql)
+
+	sql = "explain extended for connection 1"
+	testParse(t, sql)
+
+	sql = "describe extended select * from foo"
+	testParse(t, sql)
+
+	sql = "desc extended select * from foo"
+	testParse(t, sql)
 }

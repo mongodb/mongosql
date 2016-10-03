@@ -405,6 +405,11 @@ func runSQL(db *sql.DB, query string, types []string, names []string) ([][]inter
 	}
 
 	for i, n := range names {
+		// This is a hack to get around candiedyaml converting "Null" to ""
+		if n == "" {
+			n = "Null"
+		}
+
 		if cols[i] != n {
 			return nil, fmt.Errorf("Expected name %q at index %d, but found %q", n, i, cols[i])
 		}

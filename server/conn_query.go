@@ -80,6 +80,8 @@ func (c *conn) handleQuery(sql string) (err error) {
 	case *parser.Kill, *parser.Set:
 		err = c.handleCommand(stmt)
 		logTimeTaken()
+	case *parser.Explain:
+		err = c.handleExplain(sql, v)
 	default:
 		err = mysqlerrors.Unknownf("statement %T not supported", stmt)
 	}

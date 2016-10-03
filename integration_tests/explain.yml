@@ -1,0 +1,76 @@
+#
+# Data
+#
+data:
+- inline: 
+    db: "test"
+    collection: "set_1"
+    docs:
+    - { _id: 0, a: 1, ab: 1}
+    - { _id: 1, a: 2, ab: 2}
+    - { _id: 2, a: 3, ab: 3}
+
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: "set_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: ab
+      MongoType: int
+      SqlName: ab
+      SqlType: int
+
+#
+# Test Cases
+#
+testcases:
+
+- sql: "explain foo"
+  description: "explain entire table"
+  expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
+  expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
+  expected:
+  - ["id", "int", "YES", "", "NULL", ""]
+  - ["a", "int", "YES", "", "NULL", ""]
+  - ["ab", "int", "YES", "", "NULL", ""]
+
+- sql: "explain foo a"
+  description: "explain entire table"
+  expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
+  expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
+  expected:
+  - ["a", "int", "YES", "", "NULL", ""]
+
+- sql: "explain foo 'a%'"
+  description: "explain entire table"
+  expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
+  expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
+  expected:
+  - ["a", "int", "YES", "", "NULL", ""]
+  - ["ab", "int", "YES", "", "NULL", ""]
+
+- sql: "describe foo a"
+  description: "explain entire table"
+  expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
+  expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
+  expected:
+  - ["a", "int", "YES", "", "NULL", ""]
+
+- sql: "desc foo a"
+  description: "explain entire table"
+  expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
+  expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
+  expected:
+  - ["a", "int", "YES", "", "NULL", ""]

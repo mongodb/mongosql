@@ -144,6 +144,14 @@ var keywords = map[string]int{
 	"session":     SESSION,
 	"global":      GLOBAL,
 
+	"explain":     EXPLAIN,
+	"describe":    DESCRIBE,
+	"extended":    EXTENDED,
+	"partitions":  PARTITIONS,
+	"format":      FORMAT,
+	"traditional": TRADITIONAL,
+	"json":        JSON,
+
 	"kill":       KILL,
 	"connection": CONNECTION,
 	"query":      QUERY,

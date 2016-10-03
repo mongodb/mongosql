@@ -974,6 +974,28 @@ func (node *Show) Format(buf *TrackedBuffer) {
 }
 
 const (
+	AST_EXPLAIN_EXTENDED           = "extended"
+	AST_EXPLAIN_FORMAT_JSON        = "json"
+	AST_EXPLAIN_FORMAT_TRADITIONAL = "traditional"
+	AST_EXPLAIN_PARTITIONS         = "partitions"
+)
+
+type Explain struct {
+	Section     string
+	Table       *TableName
+	Column      *ColName
+	ExplainType string
+	Connection  []byte
+	Statement   Statement
+}
+
+func (*Explain) IStatement() {}
+
+func (node *Explain) Format(buf *TrackedBuffer) {
+	buf.Fprintf("explain %v %v", node.Table, node.Column)
+}
+
+const (
 	AST_KILL_CONNECTION = "connection"
 	AST_KILL_QUERY      = "query"
 )

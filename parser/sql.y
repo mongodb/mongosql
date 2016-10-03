@@ -142,6 +142,10 @@ var (
 %token <empty> SHOW
 %token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS COLLATION PROCESSLIST STATUS CHARSET
 
+// Explain
+%token <empty> EXPLAIN DESCRIBE
+%token <empty> EXTENDED PARTITIONS FORMAT TRADITIONAL JSON
+
 // Kill
 %token <empty> KILL
 %token <empty> CONNECTION QUERY
@@ -171,7 +175,7 @@ var (
 %type <tableExpr> table_expression
 %type <str> join_type
 %type <smTableExpr> simple_table_expression
-%type <tableName> dml_table_expression
+%type <tableName> dml_table_expression table_name
 %type <indexHints> index_hint_list
 %type <bytes2> index_list
 %type <expr> where_expression_opt
@@ -188,7 +192,7 @@ var (
 %type <bytes> sql_types
 %type <subquery> subquery
 %type <byt> unary_operator
-%type <colName> column_name
+%type <colName> column_name column_name_opt
 %type <caseExpr> case_expression
 %type <whens> when_expression_list
 %type <when> when_expression
@@ -210,18 +214,23 @@ var (
 %type <empty> exists_opt not_exists_opt ignore_opt non_rename_operation to_opt constraint_opt using_opt
 %type <bytes> sql_id
 %type <empty> force_eof
+%type <empty> explain_alias
 
 %type <statement> begin_statement commit_statement rollback_statement
 %type <statement> replace_statement
 %type <statement> show_statement
 %type <statement> kill_statement
 %type <statement> admin_statement
+%type <statement> explain_statement
+%type <statement> explainable_stmt
 
 %type <expr> from_opt
 %type <expr> like_or_where_opt
 %type <expr> show_from_in show_from_in_opt
 %type <str> show_full
 %type <str> scope_modifier_opt
+%type <str> explain_type
+%type <str> format_name
 %type <str> kill_modifier
 %%
 
@@ -251,6 +260,7 @@ command:
 | replace_statement
 | show_statement
 | admin_statement
+| explain_statement
 
 select_statement:
   SELECT comment_opt distinct_opt select_expression_list
@@ -513,6 +523,74 @@ show_statement:
 | SHOW COLLATION like_or_where_opt
   {
     $$ = &Show{Section: "collation", LikeOrWhere: $3}
+  }
+
+format_name:
+  TRADITIONAL
+  {
+    $$ = AST_EXPLAIN_FORMAT_TRADITIONAL
+  }
+| JSON
+  {
+    $$ = AST_EXPLAIN_FORMAT_JSON
+  }
+
+explain_type:
+  EXTENDED
+  {
+    $$ = AST_EXPLAIN_EXTENDED
+  }
+| PARTITIONS
+  {
+    $$ = AST_EXPLAIN_PARTITIONS
+  }
+| FORMAT EQ format_name
+  {
+    $$ = $3
+  } 
+
+explainable_stmt:
+  select_statement
+  {
+    $$ = $1
+  }
+| LPAREN explainable_stmt RPAREN
+  {
+    $$ = $2
+  }
+
+explain_alias:
+  EXPLAIN
+  {
+    $$ = $1
+  }
+| DESCRIBE
+  {
+    $$ = $1
+  }
+| DESC
+  {
+    $$ = $1
+  }
+
+table_name:
+  sql_id
+  {
+    $$ = &TableName{Name: $1}
+  }
+  
+explain_statement:
+  explain_alias table_name column_name_opt
+  {
+    $$ = &Explain{Section: "table", Table: $2, Column: $3}
+  }
+| explain_alias explain_type explainable_stmt
+  {
+    $$ = &Explain{Section: "plan", ExplainType: $2, Statement: $3}
+  }
+| explain_alias explain_type FOR CONNECTION NUMBER
+  {
+    $$ = &Explain{Section: "plan", ExplainType: $2, Connection: $5}
   }
 
 kill_statement:
@@ -1467,6 +1545,19 @@ column_name:
 | ID DOT sql_id
   {
     $$ = &ColName{Qualifier: $1, Name: $3}
+  }
+
+column_name_opt:
+  {
+    $$ = nil
+  }
+| sql_id
+  {
+    $$ = &ColName{Name: $1}
+  }
+| STRING
+  {
+    $$ = &ColName{Name: $1}
   }
 
 value:
