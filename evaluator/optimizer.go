@@ -53,7 +53,7 @@ func optimize(ctx ConnectionCtx, n node) (node, error) {
 	}
 	n = newN
 
-	newN, err = optimizePushDown(logger, n)
+	newN, err = optimizePushDown(ctx, logger, n)
 	if err != nil {
 		logger.Warnf(log.DebugHigh, err.Error())
 		return n, nil

@@ -2367,7 +2367,10 @@ func TestTranslatePredicate(t *testing.T) {
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
-		lookupFieldName := createFieldNameLookup(schema.Databases[dbOne])
+		translator := &pushDownTranslator{
+			ctx:             &connCtx{},
+			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
+		}
 
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
@@ -2376,7 +2379,7 @@ func TestTranslatePredicate(t *testing.T) {
 				n, err := optimizeEvaluations(createTestEvalCtx(), e)
 				So(err, ShouldBeNil)
 				e = n.(SQLExpr)
-				match, local := TranslatePredicate(e, lookupFieldName)
+				match, local := translator.TranslatePredicate(e)
 				jsonResult, err := json.Marshal(match)
 				So(err, ShouldBeNil)
 				So(string(jsonResult), ShouldEqual, t.expected)
@@ -2395,13 +2398,16 @@ func TestTranslatePredicate(t *testing.T) {
 	runPartialTests := func(tests []partialTest) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
-		lookupFieldName := createFieldNameLookup(schema.Databases[dbOne])
+		translator := &pushDownTranslator{
+			ctx:             &connCtx{},
+			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
+		}
 
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\" and locally evaluate %q", t.sql, t.expected, t.localDesc), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				match, local := TranslatePredicate(e, lookupFieldName)
+				match, local := translator.TranslatePredicate(e)
 				jsonResult, err := json.Marshal(match)
 				So(err, ShouldBeNil)
 				So(string(jsonResult), ShouldEqual, t.expected)
@@ -2472,13 +2478,16 @@ func TestTranslateExpr(t *testing.T) {
 
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
-		lookupFieldName := createFieldNameLookup(schema.Databases[dbOne])
 		So(err, ShouldBeNil)
+		translator := &pushDownTranslator{
+			ctx:             &connCtx{},
+			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
+		}
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				translated, ok := TranslateExpr(e, lookupFieldName)
+				translated, ok := translator.TranslateExpr(e)
 				So(ok, ShouldBeTrue)
 				jsonResult, err := json.Marshal(translated)
 				So(err, ShouldBeNil)
@@ -2568,11 +2577,15 @@ func TestTranslateExpr(t *testing.T) {
 
 	runSQLValueTests := func(tests []sqlValueTest) {
 		schema, err := schema.New(testSchema3)
-		lookupFieldName := createFieldNameLookup(schema.Databases["test"])
 		So(err, ShouldBeNil)
+		translator := &pushDownTranslator{
+			ctx:             &connCtx{},
+			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
+		}
+
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sqlValue, t.expected), func() {
-				match, ok := TranslateExpr(t.sqlValue, lookupFieldName)
+				match, ok := translator.TranslateExpr(t.sqlValue)
 				So(ok, ShouldBeTrue)
 				jsonResult, err := json.Marshal(match)
 				So(err, ShouldBeNil)

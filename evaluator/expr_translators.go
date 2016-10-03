@@ -30,12 +30,17 @@ var (
 	mgoNullLiteral = bson.M{"$literal": nil}
 )
 
+type pushDownTranslator struct {
+	ctx             ConnectionCtx
+	lookupFieldName fieldNameLookup
+}
+
 // a function that, given a tableName and a columnName, will return
 // the field name coming back from mongodb.
 type fieldNameLookup func(tableName, columnName string) (string, bool)
 
 // TranslateExpr attempts to turn the SQLExpr into MongoDB query language.
-func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, bool) {
+func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 	wrapInOp := func(op string, left, right interface{}) interface{} {
 		return bson.M{op: []interface{}{left, right}}
@@ -72,12 +77,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 	switch typedE := e.(type) {
 
 	case *SQLAddExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -85,7 +90,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{"$add": []interface{}{left, right}}, true
 
 	case *SQLAggFunctionExpr:
-		transExpr, ok := TranslateExpr(typedE.Exprs[0], lookupFieldName)
+		transExpr, ok := t.TranslateExpr(typedE.Exprs[0])
 		if !ok || transExpr == nil {
 			return nil, false
 		}
@@ -133,12 +138,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 
 	case *SQLAndExpr:
 
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -170,12 +175,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			bson.M{mgoOperatorAND: []interface{}{left, right}}}}, true
 
 	case *SQLDivideExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -183,12 +188,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{"$divide": []interface{}{left, right}}, true
 
 	case *SQLEqualsExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -201,19 +206,19 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case SQLColumnExpr:
-		name, ok := lookupFieldName(typedE.tableName, typedE.columnName)
+		name, ok := t.lookupFieldName(typedE.tableName, typedE.columnName)
 		if !ok {
 			return nil, false
 		}
 		return getProjectedFieldName(name, typedE.columnType.SQLType), true
 
 	case *SQLGreaterThanExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -226,12 +231,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLGreaterThanOrEqualExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -244,12 +249,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLIDivideExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -258,12 +263,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			bson.M{"$div": []interface{}{left, right}}}}, true
 
 	case *SQLLessThanExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -276,12 +281,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLLessThanOrEqualExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -294,12 +299,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLModExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -307,12 +312,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{"$mod": []interface{}{left, right}}, true
 
 	case *SQLMultiplyExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -320,7 +325,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{"$multiply": []interface{}{left, right}}, true
 
 	case *SQLNotExpr:
-		op, ok := TranslateExpr(typedE.operand, lookupFieldName)
+		op, ok := t.TranslateExpr(typedE.operand)
 		if !ok {
 			return nil, false
 		}
@@ -332,12 +337,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLNotEqualsExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -350,12 +355,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLNullSafeEqualsExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -363,12 +368,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{mgoOperatorEQ: []interface{}{left, right}}, true
 
 	case *SQLOrExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -446,12 +451,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			)}}, true
 
 	case *SQLXorExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -474,9 +479,13 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				bson.M{"$not": bson.M{mgoOperatorAND: []interface{}{left, right}}}}}}}, true
 
 	case *SQLScalarFunctionExpr:
-		args, ok := translateExprs(lookupFieldName, typedE.Exprs...)
-		if !ok {
-			return nil, false
+		args := []interface{}{}
+		for _, e := range typedE.Exprs {
+			r, ok := t.TranslateExpr(e)
+			if !ok {
+				return nil, false
+			}
+			args = append(args, r)
 		}
 
 		switch typedE.Name {
@@ -953,12 +962,12 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		// unsupported
 
 	case *SQLSubtractExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
 
-		right, ok := TranslateExpr(typedE.right, lookupFieldName)
+		right, ok := t.TranslateExpr(typedE.right)
 		if !ok {
 			return nil, false
 		}
@@ -971,7 +980,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return bson.M{"$literal": typedE.Time.Format(schema.DateFormat)}, true
 
 	case SQLUint64:
-		val, ok := getValue(typedE)
+		val, ok := t.getValue(typedE)
 		if !ok {
 			return nil, false
 		}
@@ -1003,7 +1012,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			case *SQLUnaryTildeExpr:*/
 
 	case *SQLCaseExpr:
-		elseValue, ok := TranslateExpr(typedE.elseValue, lookupFieldName)
+		elseValue, ok := t.TranslateExpr(typedE.elseValue)
 		if !ok {
 			return nil, false
 		}
@@ -1014,18 +1023,18 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 			var c interface{}
 			if matcher, ok := condition.matcher.(*SQLEqualsExpr); ok {
 				newMatcher := &SQLOrExpr{matcher, &SQLEqualsExpr{matcher.left, SQLTrue}}
-				c, ok = TranslateExpr(newMatcher, lookupFieldName)
+				c, ok = t.TranslateExpr(newMatcher)
 				if !ok {
 					return nil, false
 				}
 			} else {
-				c, ok = TranslateExpr(condition.matcher, lookupFieldName)
+				c, ok = t.TranslateExpr(condition.matcher)
 				if !ok {
 					return nil, false
 				}
 			}
 
-			then, ok := TranslateExpr(condition.then, lookupFieldName)
+			then, ok := t.TranslateExpr(condition.then)
 			if !ok {
 				return nil, false
 			}
@@ -1050,7 +1059,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		var transExprs []interface{}
 
 		for _, expr := range typedE.Exprs {
-			transExpr, ok := TranslateExpr(expr, lookupFieldName)
+			transExpr, ok := t.TranslateExpr(expr)
 			if !ok {
 				return nil, false
 			}
@@ -1060,7 +1069,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		return transExprs, true
 
 	case *SQLUnaryMinusExpr:
-		operand, ok := TranslateExpr(typedE.operand, lookupFieldName)
+		operand, ok := t.TranslateExpr(typedE.operand)
 		if !ok {
 			return nil, false
 		}
@@ -1072,7 +1081,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		), true
 
 	case *SQLInExpr:
-		left, ok := TranslateExpr(typedE.left, lookupFieldName)
+		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
 			return nil, false
 		}
@@ -1089,7 +1098,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 				nullInValues = true
 				continue
 			}
-			val, ok := TranslateExpr(expr, lookupFieldName)
+			val, ok := t.TranslateExpr(expr)
 			if !ok {
 				return nil, false
 			}
@@ -1119,7 +1128,7 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 		var transExprs []interface{}
 
 		for _, expr := range typedE.Values {
-			transExpr, ok := TranslateExpr(expr, lookupFieldName)
+			transExpr, ok := t.TranslateExpr(expr)
 			if !ok {
 				return nil, false
 			}
@@ -1134,14 +1143,14 @@ func TranslateExpr(e SQLExpr, lookupFieldName fieldNameLookup) (interface{}, boo
 // TranslatePredicate attempts to turn the SQLExpr into mongodb query language.
 // It returns 2 things, a translated predicate that can be sent to MongoDB and
 // a SQLExpr that cannot be sent to MongoDB. Either of these may be nil.
-func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQLExpr) {
+func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 
 	switch typedE := e.(type) {
 	case *MongoFilterExpr:
 		return typedE.query, nil
 	case *SQLAndExpr:
-		left, exLeft := TranslatePredicate(typedE.left, lookupFieldName)
-		right, exRight := TranslatePredicate(typedE.right, lookupFieldName)
+		left, exLeft := t.TranslatePredicate(typedE.left)
+		right, exRight := t.TranslatePredicate(typedE.right)
 
 		var match bson.M
 		if left == nil && right == nil {
@@ -1180,25 +1189,25 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 		}
 
 	case *SQLEqualsExpr:
-		match, ok := translateOperator(mgoOperatorEQ, typedE.left, typedE.right, lookupFieldName)
+		match, ok := t.translateOperator(mgoOperatorEQ, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
 		return match, nil
 	case *SQLGreaterThanExpr:
-		match, ok := translateOperator(mgoOperatorGT, typedE.left, typedE.right, lookupFieldName)
+		match, ok := t.translateOperator(mgoOperatorGT, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
 		return match, nil
 	case *SQLGreaterThanOrEqualExpr:
-		match, ok := translateOperator(mgoOperatorGTE, typedE.left, typedE.right, lookupFieldName)
+		match, ok := t.translateOperator(mgoOperatorGTE, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
 		return match, nil
 	case *SQLInExpr:
-		name, ok := getFieldName(typedE.left, lookupFieldName)
+		name, ok := t.getFieldName(typedE.left)
 		if !ok {
 			return nil, e
 		}
@@ -1211,7 +1220,7 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 		values := []interface{}{}
 
 		for _, expr := range exprs {
-			value, ok := getValue(expr)
+			value, ok := t.getValue(expr)
 			if !ok {
 				return nil, e
 			}
@@ -1220,13 +1229,13 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 
 		return bson.M{name: bson.M{"$in": values}}, nil
 	case *SQLLessThanExpr:
-		match, ok := translateOperator(mgoOperatorLT, typedE.left, typedE.right, lookupFieldName)
+		match, ok := t.translateOperator(mgoOperatorLT, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
 		return match, nil
 	case *SQLLessThanOrEqualExpr:
-		match, ok := translateOperator(mgoOperatorLTE, typedE.left, typedE.right, lookupFieldName)
+		match, ok := t.translateOperator(mgoOperatorLTE, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
@@ -1237,7 +1246,7 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 			return nil, e
 		}
 
-		name, ok := getFieldName(typedE.left, lookupFieldName)
+		name, ok := t.getFieldName(typedE.left)
 		if !ok {
 			return nil, e
 		}
@@ -1255,13 +1264,13 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 
 		return bson.M{name: bson.D{{"$regex", pattern}, {"$options", "i"}}}, nil
 	case *SQLNotEqualsExpr:
-		match, ok := translateOperator(mgoOperatorNEQ, typedE.left, typedE.right, lookupFieldName)
+		match, ok := t.translateOperator(mgoOperatorNEQ, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
 		return match, nil
 	case *SQLNotExpr:
-		match, ex := TranslatePredicate(typedE.operand, lookupFieldName)
+		match, ex := t.TranslatePredicate(typedE.operand)
 		if match == nil {
 			return nil, e
 		} else if ex == nil {
@@ -1272,12 +1281,12 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 		}
 
 	case *SQLOrExpr:
-		left, exLeft := TranslatePredicate(typedE.left, lookupFieldName)
+		left, exLeft := t.TranslatePredicate(typedE.left)
 		if exLeft != nil {
 			// cannot partially translate an OR
 			return nil, e
 		}
-		right, exRight := TranslatePredicate(typedE.right, lookupFieldName)
+		right, exRight := t.TranslatePredicate(typedE.right)
 		if exRight != nil {
 			// cannot partially translate an OR
 			return nil, e
@@ -1301,7 +1310,7 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 
 		return bson.M{mgoOperatorOR: cond}, nil
 	case *SQLRegexExpr:
-		name, ok := getFieldName(typedE.operand, lookupFieldName)
+		name, ok := t.getFieldName(typedE.operand)
 		if !ok {
 			return nil, e
 		}
@@ -1323,13 +1332,13 @@ func TranslatePredicate(e SQLExpr, lookupFieldName fieldNameLookup) (bson.M, SQL
 	return nil, e
 }
 
-func translateOperator(op string, nameExpr, valExpr SQLExpr, lookupFieldName fieldNameLookup) (bson.M, bool) {
-	name, ok := getFieldName(nameExpr, lookupFieldName)
+func (t *pushDownTranslator) translateOperator(op string, nameExpr, valExpr SQLExpr) (bson.M, bool) {
+	name, ok := t.getFieldName(nameExpr)
 	if !ok {
 		return nil, false
 	}
 
-	fieldValue, ok := getValue(valExpr)
+	fieldValue, ok := t.getValue(valExpr)
 	if !ok {
 		return nil, false
 	}
@@ -1429,16 +1438,16 @@ func getSingleMapEntry(m bson.M) (string, interface{}) {
 	panic("map has no entries!")
 }
 
-func getFieldName(e SQLExpr, lookupFieldName fieldNameLookup) (string, bool) {
+func (t *pushDownTranslator) getFieldName(e SQLExpr) (string, bool) {
 	switch field := e.(type) {
 	case SQLColumnExpr:
-		return lookupFieldName(field.tableName, field.columnName)
+		return t.lookupFieldName(field.tableName, field.columnName)
 	default:
 		return "", false
 	}
 }
 
-func getValue(e SQLExpr) (interface{}, bool) {
+func (t *pushDownTranslator) getValue(e SQLExpr) (interface{}, bool) {
 
 	cons, ok := e.(SQLValue)
 	if !ok {
@@ -1446,10 +1455,23 @@ func getValue(e SQLExpr) (interface{}, bool) {
 	}
 
 	if cons.Type() == schema.SQLDecimal128 {
-		return nil, false
+		return t.translateDecimal(cons)
 	}
 
 	return cons.Value(), true
+}
+
+func (t *pushDownTranslator) translateDecimal(cons SQLValue) (interface{}, bool) {
+	if !t.ctx.Variables().MongoDBInfo.VersionAtLeast(3, 3, 15) {
+		return nil, false
+	}
+
+	parsed, err := bson.ParseDecimal128(cons.String())
+	if err != nil {
+		return nil, false
+	}
+
+	return parsed, true
 }
 
 // getProjectedFieldName returns an interface to project the given field.
@@ -1469,18 +1491,4 @@ func getProjectedFieldName(fieldName string, fieldType schema.SQLType) interface
 	}
 
 	return "$" + fieldName
-}
-
-func translateExprs(lookupFieldName fieldNameLookup, exprs ...SQLExpr) ([]interface{}, bool) {
-	results := []interface{}{}
-	for _, e := range exprs {
-		r, ok := TranslateExpr(e, lookupFieldName)
-		if !ok {
-			return nil, false
-		}
-
-		results = append(results, r)
-	}
-
-	return results, true
 }
