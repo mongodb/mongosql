@@ -75,7 +75,11 @@ func (b *catalogBuilder) buildFromSchema() error {
 					return mysqlerrors.Newf(mysqlerrors.ER_UNKNOWN_COLLATION, "unable to translate MongoDB's collation for \"%s\".\"%s\": %v", dbConfig.Name, tblConfig.Name, err)
 				}
 			}
-			t := NewMongoTable(tblConfig, col)
+			tableType := BaseTable
+			if collection.IsView {
+				tableType = View
+			}
+			t := NewMongoTable(tblConfig, tableType, col)
 			err = d.AddTable(t)
 			if err != nil {
 				return err

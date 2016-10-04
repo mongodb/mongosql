@@ -92,9 +92,9 @@ testcases:
   - ["def", "information_schema", "USER_PRIVILEGES", "SYSTEM VIEW", "utf8_bin",""]
   - ["def", "information_schema", "VIEWS", "SYSTEM VIEW", "utf8_bin",""]
   - ["def", "information_schema", "ndb_transid_mysql_connection_map", "SYSTEM VIEW", "utf8_bin", ""]
-  - ["def", "test", "bar", "VIEW", "utf8_bin", "{ \"collectionName\": \"information_schema_2\" }"]
-  - ["def", "test", "foo", "VIEW", "utf8_bin", "{ \"collectionName\": \"information_schema_1\" }"]
-  - ["def", "test2", "foo", "VIEW", "utf8_bin", "{ \"collectionName\": \"information_schema_1\" }"]
+  - ["def", "test", "bar", "BASE TABLE", "utf8_bin", "{ \"collectionName\": \"information_schema_2\" }"]
+  - ["def", "test", "foo", "BASE TABLE", "utf8_bin", "{ \"collectionName\": \"information_schema_1\" }"]
+  - ["def", "test2", "foo", "BASE TABLE", "utf8_bin", "{ \"collectionName\": \"information_schema_1\" }"]
 
 # COLUMNS
 - sql: "select * from information_schema.columns where table_schema like 'test%' order by table_schema, table_name, ordinal_position"

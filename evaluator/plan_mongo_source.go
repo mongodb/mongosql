@@ -18,6 +18,7 @@ type MongoSourceStage struct {
 	tableNames      []string
 	aliasNames      []string
 	collectionNames []string
+	tableType       catalog.TableType
 	mappingRegistry *mappingRegistry
 	pipeline        []bson.D
 }
@@ -30,6 +31,7 @@ func NewMongoSourceStage(db *catalog.Database, table *catalog.MongoTable, select
 		dbName:     string(db.Name),
 		tableNames: []string{string(table.Name())},
 		aliasNames: []string{aliasName},
+		tableType:  table.Type(),
 	}
 
 	if len(ms.aliasNames) == 0 || ms.aliasNames[0] == "" {
@@ -40,15 +42,20 @@ func NewMongoSourceStage(db *catalog.Database, table *catalog.MongoTable, select
 	ms.collectionNames = []string{table.CollectionName}
 
 	ms.mappingRegistry = &mappingRegistry{}
+
+	primaryKeys := catalog.Columns(table.PrimaryKeys())
+
 	for _, c := range table.Columns() {
 		mc := c.(*catalog.MongoColumn)
 		column := &Column{
-			SelectID:  selectID,
-			Table:     ms.aliasNames[0],
-			Name:      string(mc.Name()),
-			SQLType:   mc.Type(),
-			MongoType: mc.MongoType,
+			SelectID:   selectID,
+			Table:      ms.aliasNames[0],
+			Name:       string(mc.Name()),
+			SQLType:    mc.Type(),
+			MongoType:  mc.MongoType,
+			PrimaryKey: primaryKeys.Contains(mc.Name()),
 		}
+
 		ms.mappingRegistry.addColumn(column)
 		ms.mappingRegistry.registerMapping(ms.aliasNames[0], string(mc.Name()), string(mc.MongoName))
 	}
@@ -59,6 +66,10 @@ func NewMongoSourceStage(db *catalog.Database, table *catalog.MongoTable, select
 }
 
 func (ms *MongoSourceStage) clone() *MongoSourceStage {
+	pipeline := []bson.D{}
+	for _, stage := range ms.pipeline {
+		pipeline = append(pipeline, stage)
+	}
 	return &MongoSourceStage{
 		selectIDs:       ms.selectIDs,
 		dbName:          ms.dbName,
@@ -67,8 +78,12 @@ func (ms *MongoSourceStage) clone() *MongoSourceStage {
 		collectionNames: ms.collectionNames,
 		collation:       ms.collation,
 		mappingRegistry: ms.mappingRegistry,
-		pipeline:        ms.pipeline,
+		pipeline:        pipeline,
 	}
+}
+
+func (ms *MongoSourceStage) isView() bool {
+	return ms.tableType == catalog.View
 }
 
 // Open establishes a connection to database collection for this table.
@@ -187,6 +202,15 @@ func (mr *mappingRegistry) copy() *mappingRegistry {
 	}
 
 	return newMappingRegistry
+}
+
+func (mr *mappingRegistry) isPrimaryKey(name string) bool {
+	for _, column := range mr.columns {
+		if column.Name == name {
+			return column.PrimaryKey
+		}
+	}
+	return false
 }
 
 func (mr *mappingRegistry) lookupFieldName(tableName, columnName string) (string, bool) {

@@ -120,6 +120,9 @@ type Table interface {
 	Column(string) (Column, error)
 	// Columns gets the columns for the table.
 	Columns() []Column
+	// PrimaryKeys returns the primary keys
+	// for this table.
+	PrimaryKeys() []Column
 	// Comments gets the comments for the table.
 	Comments() string
 	// Type is the type of the table.
@@ -137,4 +140,17 @@ type Column interface {
 	Type() schema.SQLType
 	// Comments gets the comments for the column.
 	Comments() string
+}
+
+type Columns []Column
+
+// Contains returns true if the given name
+// matches one of the columns in cols.
+func (cols Columns) Contains(name ColumnName) bool {
+	for _, c := range cols {
+		if strings.ToLower(string(c.Name())) == strings.ToLower(string(name)) {
+			return true
+		}
+	}
+	return false
 }

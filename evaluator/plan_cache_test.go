@@ -55,11 +55,11 @@ func TestCacheOperator(t *testing.T) {
 
 		projectedColumns := ProjectedColumns{
 			ProjectedColumn{
-				Column: &Column{1, "", "a", schema.SQLInt, schema.MongoInt},
+				Column: &Column{1, "", "a", schema.SQLInt, schema.MongoInt, false},
 				Expr:   NewSQLColumnExpr(1, tableOneName, "a", schema.SQLInt, schema.MongoInt),
 			},
 			ProjectedColumn{
-				Column: &Column{1, "", "b", schema.SQLInt, schema.MongoInt},
+				Column: &Column{1, "", "b", schema.SQLInt, schema.MongoInt, false},
 				Expr:   NewSQLColumnExpr(1, tableOneName, "b", schema.SQLInt, schema.MongoInt),
 			},
 		}

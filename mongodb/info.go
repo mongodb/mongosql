@@ -52,6 +52,9 @@ type CollectionInfo struct {
 	Privileges Privilege
 	// Collation is the default collation of the collection.
 	Collation *mgo.Collation
+	// IsView is true if the collection is a MongoDB view
+	// and false otherwise.
+	IsView bool
 }
 
 // LoadInfo looks up information from MongoDB.
@@ -152,6 +155,7 @@ func loadCollections(s *mgo.Session, dbSchema *schema.Database) (map[CollectionN
 		}
 
 		colInfo.Collation = colResult.Options.Collation
+		colInfo.IsView = colResult.Type == "view"
 	}
 
 	if err := iter.Close(); err != nil {

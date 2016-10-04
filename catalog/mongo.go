@@ -11,22 +11,29 @@ import (
 )
 
 // NewMongoTable creates a new MongoTable.
-func NewMongoTable(t *schema.Table, collation *collation.Collation) *MongoTable {
+func NewMongoTable(t *schema.Table, tableType TableType, collation *collation.Collation) *MongoTable {
 	var columns []*MongoColumn
+	var primaryKeys []Column
 	for _, c := range t.RawColumns {
-		columns = append(columns, &MongoColumn{
+		mc := &MongoColumn{
 			name:      ColumnName(c.SqlName),
 			sqlType:   c.SqlType,
 			MongoName: c.Name,
 			MongoType: c.MongoType,
 			comments:  fmt.Sprintf(`{ "name": "%s" }`, c.Name),
-		})
+		}
+		columns = append(columns, mc)
+		if isPrimaryKey(t, mc.MongoName) {
+			primaryKeys = append(primaryKeys, mc)
+		}
 	}
 
 	return &MongoTable{
 		name:           TableName(t.Name),
 		collation:      collation,
 		columns:        columns,
+		tableType:      tableType,
+		primaryKeys:    primaryKeys,
 		CollectionName: t.CollectionName,
 		Pipeline:       t.Pipeline,
 		comments:       fmt.Sprintf(`{ "collectionName": "%s" }`, t.CollectionName),
@@ -35,10 +42,12 @@ func NewMongoTable(t *schema.Table, collation *collation.Collation) *MongoTable 
 
 // MongoTable is a table whose data comes from elsewhere.
 type MongoTable struct {
-	name      TableName
-	collation *collation.Collation
-	columns   []*MongoColumn
-	comments  string
+	name        TableName
+	collation   *collation.Collation
+	columns     []*MongoColumn
+	primaryKeys []Column
+	comments    string
+	tableType   TableType
 
 	CollectionName string
 	Pipeline       []bson.D
@@ -79,9 +88,15 @@ func (t *MongoTable) Comments() string {
 	return t.comments
 }
 
+// PrimaryKeys returns the primary keys for
+// the table.
+func (t *MongoTable) PrimaryKeys() []Column {
+	return t.primaryKeys
+}
+
 // Type is the type of the table.
 func (t *MongoTable) Type() TableType {
-	return View
+	return t.tableType
 }
 
 // MongoColumn is an mongo table column.
@@ -107,4 +122,38 @@ func (c *MongoColumn) Type() schema.SQLType {
 // Comments gets the comments for the column.
 func (c *MongoColumn) Comments() string {
 	return c.comments
+}
+
+func isPrimaryKey(t *schema.Table, mongoName string) bool {
+	if mongoName == "_id" {
+		return true
+	}
+
+	for _, d := range t.Pipeline {
+		unwindVal, ok := d.Map()["$unwind"]
+		if !ok {
+			return false
+		}
+
+		unwind, ok := unwindVal.(bson.D)
+		if !ok {
+			return false
+		}
+
+		arrayIndexNameVal, ok := unwind.Map()["includeArrayIndex"]
+		if !ok {
+			continue
+		}
+
+		arrayIndexName, ok := arrayIndexNameVal.(string)
+		if !ok {
+			continue
+		}
+
+		if mongoName == arrayIndexName {
+			return true
+		}
+	}
+
+	return false
 }

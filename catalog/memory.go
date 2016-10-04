@@ -59,6 +59,12 @@ func (t *InMemoryTable) Comments() string {
 	return ""
 }
 
+// PrimaryKeys returns the primary keys for
+// the table.
+func (t *InMemoryTable) PrimaryKeys() []Column {
+	return nil
+}
+
 // Type is the type of the table.
 func (t *InMemoryTable) Type() TableType {
 	return BaseTable

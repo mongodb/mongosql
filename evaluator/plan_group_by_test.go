@@ -48,11 +48,11 @@ func TestGroupByPlanStage(t *testing.T) {
 
 			projectedColumns := ProjectedColumns{
 				ProjectedColumn{
-					Column: &Column{1, tableOneName, "a", schema.SQLVarchar, schema.MongoInt},
+					Column: &Column{1, tableOneName, "a", schema.SQLVarchar, schema.MongoInt, false},
 					Expr:   NewSQLColumnExpr(1, tableOneName, "a", schema.SQLVarchar, schema.MongoString),
 				},
 				ProjectedColumn{
-					Column: &Column{1, "", "sum(b)", schema.SQLFloat, schema.MongoNone},
+					Column: &Column{1, "", "sum(b)", schema.SQLFloat, schema.MongoNone, false},
 					Expr: &SQLAggFunctionExpr{
 						Name: "sum",
 						Exprs: []SQLExpr{

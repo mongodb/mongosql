@@ -115,8 +115,8 @@ testcases:
 - sql: "SHOW FULL TABLES"
   expected_types: [varchar, varchar]
   expected: 
-   - ["bar", "VIEW"]
-   - ["foo", "VIEW"]
+   - ["bar", "BASE TABLE"]
+   - ["foo", "BASE TABLE"]
 - sql: "SHOW TABLES FROM nonono"
   expected_types: [varchar]
   expected: []

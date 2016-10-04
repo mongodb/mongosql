@@ -89,7 +89,8 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 				projectedKeys[i].Table,
 				projectedKeys[i].Name,
 				projectedKeys[i].SQLType,
-				projectedKeys[i].MongoType)
+				projectedKeys[i].MongoType,
+			)
 
 			projectedColumns = append(projectedColumns, ProjectedColumn{
 				Column: pc.Column,

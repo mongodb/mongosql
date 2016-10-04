@@ -95,10 +95,11 @@ func (sqlType SQLType) ZeroValue() interface{} {
 
 type (
 	Column struct {
-		Name      string    `yaml:"Name"`
-		MongoType MongoType `yaml:"MongoType"`
-		SqlName   string    `yaml:"SqlName"`
-		SqlType   SQLType   `yaml:"SqlType"`
+		Name       string    `yaml:"Name"`
+		MongoType  MongoType `yaml:"MongoType"`
+		SqlName    string    `yaml:"SqlName"`
+		SqlType    SQLType   `yaml:"SqlType"`
+		PrimaryKey bool      `yaml:"PrimaryKey"`
 	}
 
 	Table struct {
@@ -366,16 +367,18 @@ func PopulateColumnMaps(db *Database) error {
 				tbl.SQLColumns[c.SqlName] = c
 				resolvedRawColumns = append(resolvedRawColumns, c)
 			}
+
 		}
 
 		for _, column := range geo2DField {
 			// add longitude and latitude SqlName
 			for j, suffix := range []string{"_longitude", "_latitude"} {
 				c := &Column{
-					Name:      fmt.Sprintf("%v.%v", column.Name, j),
-					SqlName:   column.SqlName + suffix,
-					SqlType:   SQLArrNumeric,
-					MongoType: SQLFloat,
+					Name:       fmt.Sprintf("%v.%v", column.Name, j),
+					SqlName:    column.SqlName + suffix,
+					SqlType:    SQLArrNumeric,
+					MongoType:  SQLFloat,
+					PrimaryKey: column.PrimaryKey,
 				}
 				tbl.Columns[c.Name] = c
 				tbl.SQLColumns[c.SqlName] = c

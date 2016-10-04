@@ -68,11 +68,12 @@ type Executor interface {
 // Column contains information used to select data
 // from a PlanStage.
 type Column struct {
-	SelectID  int
-	Table     string
-	Name      string
-	SQLType   schema.SQLType
-	MongoType schema.MongoType
+	SelectID   int
+	Table      string
+	Name       string
+	SQLType    schema.SQLType
+	MongoType  schema.MongoType
+	PrimaryKey bool
 }
 
 type Columns []*Column

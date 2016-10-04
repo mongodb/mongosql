@@ -60,6 +60,12 @@ func (t *DynamicTable) Comments() string {
 	return ""
 }
 
+// PrimaryKeys returns the primary keys for
+// the table.
+func (t *DynamicTable) PrimaryKeys() []Column {
+	return nil
+}
+
 // Type is the type of the table.
 func (t *DynamicTable) Type() TableType {
 	return t.tableType

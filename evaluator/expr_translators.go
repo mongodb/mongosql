@@ -30,31 +30,20 @@ var (
 	mgoNullLiteral = bson.M{"$literal": nil}
 )
 
-type pushDownTranslator struct {
-	ctx             ConnectionCtx
-	lookupFieldName fieldNameLookup
-}
-
-// a function that, given a tableName and a columnName, will return
-// the field name coming back from mongodb.
-type fieldNameLookup func(tableName, columnName string) (string, bool)
-
-// TranslateExpr attempts to turn the SQLExpr into MongoDB query language.
-func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
-
-	wrapInOp := func(op string, left, right interface{}) interface{} {
+var (
+	wrapInOp = func(op string, left, right interface{}) interface{} {
 		return bson.M{op: []interface{}{left, right}}
 	}
 
-	wrapInIfNull := func(v, ifNull interface{}) interface{} {
+	wrapInIfNull = func(v, ifNull interface{}) interface{} {
 		return bson.M{mgoOperatorIfNull: []interface{}{v, ifNull}}
 	}
 
-	wrapInNullCheck := func(v interface{}) interface{} {
+	wrapInNullCheck = func(v interface{}) interface{} {
 		return wrapInOp(mgoOperatorEQ, wrapInIfNull(v, nil), nil)
 	}
 
-	wrapInCond := func(truePart, falsePart interface{}, conds ...interface{}) interface{} {
+	wrapInCond = func(truePart, falsePart interface{}, conds ...interface{}) interface{} {
 		var condition interface{}
 
 		if len(conds) > 1 {
@@ -66,13 +55,22 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
 	}
 
-	wrapSingleArgFuncWithNullCheck := func(name string, arg interface{}) interface{} {
-		return wrapInCond(
-			nil,
-			bson.M{name: arg},
-			wrapInNullCheck(arg),
-		)
+	wrapSingleArgFuncWithNullCheck = func(name string, arg interface{}) interface{} {
+		return wrapInCond(nil, bson.M{name: arg}, wrapInNullCheck(arg))
 	}
+)
+
+type pushDownTranslator struct {
+	ctx             ConnectionCtx
+	lookupFieldName fieldNameLookup
+}
+
+// a function that, given a tableName and a columnName, will return
+// the field name coming back from mongodb.
+type fieldNameLookup func(tableName, columnName string) (string, bool)
+
+// TranslateExpr attempts to turn the SQLExpr into MongoDB query language.
+func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 	switch typedE := e.(type) {
 

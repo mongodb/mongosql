@@ -11,7 +11,7 @@ import (
 func TestDynamicSourceStage(t *testing.T) {
 
 	tableName := "foo"
-	table := catalog.NewDynamicTable(tableName, catalog.View, func() []*catalog.DataRow {
+	table := catalog.NewDynamicTable(tableName, catalog.BaseTable, func() []*catalog.DataRow {
 		return []*catalog.DataRow{
 			catalog.NewDataRow(1, 2),
 			catalog.NewDataRow(2, 3),

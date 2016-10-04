@@ -28,6 +28,16 @@ data:
     collection: "select_2"
     docs:
     - {uuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "04"}, csharp:  {"$binary": "BAMCAQYFCAcJCgsMDQ4PEA==", "$type": "03"}, java: {"$binary": "CAcGBQQDAgEQDw4NDAsKCQ==", "$type": "03"}, olduuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "03"} }
+- inline:
+    db: "test"
+    collection: "select_3"
+    docs:
+    - { _id: "57f422f941a74e324fb5c44a", a: 1, b: 2, c: [ { x: 4, y: [4, 5, 6], z: 9 }, { x: 1, y: [1, 4, 5], z: 11 } ] }
+- inline:
+    db: "test"
+    collection: "select_4"
+    docs:
+    - { _id: "57f422f941a74e324fb5c44a", a: 1, c: [ { y: [] }, { y: [1, 4, 5] } ] }
 
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
@@ -116,11 +126,167 @@ schema:
       MongoType: bson.UUID
       SqlName: uuid
       SqlType: varchar
+  - table: test
+    collection: "select_3"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: numeric
+  - table: test_c
+    collection: "select_3"
+    pipeline:
+    - $unwind:
+        includeArrayIndex: c_idx
+        path: $c
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: numeric
+    - Name: c.x
+      MongoType: float64
+      SqlName: c.x
+      SqlType: numeric
+    - Name: c.z
+      MongoType: float64
+      SqlName: c.z
+      SqlType: numeric
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: numeric
+  - table: test_c_y
+    collection: "select_3"
+    pipeline:
+    - $unwind:
+        includeArrayIndex: c_idx
+        path: $c
+    - $unwind:
+        includeArrayIndex: c.y_idx
+        path: $c.y
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: numeric
+    - Name: c.x
+      MongoType: float64
+      SqlName: c.x
+      SqlType: numeric
+    - Name: c.y
+      MongoType: float64
+      SqlName: c.y
+      SqlType: numeric
+    - Name: c.y_idx
+      MongoType: int
+      SqlName: c.y_idx
+      SqlType: numeric
+    - Name: c.z
+      MongoType: float64
+      SqlName: c.z
+      SqlType: numeric
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: numeric
+  - table: test_empty
+    collection: select_4
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+      PrimaryKey: true
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+  - table: test_c_empty
+    collection: select_4
+    pipeline:
+    - $unwind:
+        includeArrayIndex: c_idx
+        path: $c
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+      PrimaryKey: true
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: numeric
+      PrimaryKey: true
+  - table: test_c_y_empty
+    collection: select_4
+    pipeline:
+    - $unwind:
+        includeArrayIndex: c_idx
+        path: $c
+    - $unwind:
+        includeArrayIndex: c.y_idx
+        path: $c.y
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+      PrimaryKey: true
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: c.y
+      MongoType: float64
+      SqlName: c.y
+      SqlType: numeric
+    - Name: c.y_idx
+      MongoType: int
+      SqlName: c.y_idx
+      SqlType: numeric
+      PrimaryKey: true
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: numeric
+      PrimaryKey: true
 #
 # Tests
 #
 testcases:
-- sql: "select * from sTest.foo"
+- sql: "select * FROM sTest.foo"
   description: "global *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -128,7 +294,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select foo.* from STest.Foo"
+- sql: "select foo.* FROM STest.Foo"
   description: "qualified *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -136,7 +302,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select foo.*, foo.* from STest.FOO"
+- sql: "select foo.*, foo.* FROM STest.FOO"
   description: "duplicate qualified *"
   expected_names: ["id", "a", "b", "id", "a", "b"]
   expected_types: [int, int, int, int, int, int]
@@ -144,7 +310,7 @@ testcases:
   - [0, 1, ~, 0, 1, ~]
   - [1, 2, ~, 1, 2, ~]
   - [2, 3, ~, 2, 3, ~]
-- sql: "select f.* from Stest.fOo f"
+- sql: "select f.* FROM Stest.fOo f"
   description: "alias qualified *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -152,7 +318,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a, b from StEst.foo"
+- sql: "select id, a, b FROM StEst.foo"
   description: "columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -160,7 +326,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select ID, A, B from Stest.FOO"
+- sql: "select ID, A, B FROM Stest.FOO"
   description: "columns with wrong casing"
   expected_names: ["ID", "A", "B"]
   expected_types: [int, int, int]
@@ -168,7 +334,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select foo.id, foo.a, foo.b from Stest.foo"
+- sql: "select foo.id, foo.a, foo.b FROM Stest.foo"
   description: "qualified columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -176,7 +342,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select f.id, f.a, f.b from Stest.foo f"
+- sql: "select f.id, f.a, f.b FROM Stest.foo f"
   description: "alias qualified columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -184,7 +350,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a, b, id, a, b from STESt.foo"
+- sql: "select id, a, b, id, a, b FROM STESt.foo"
   description: "duplicate columns"
   expected_names: ["id", "a", "b", "id", "a", "b"]
   expected_types: [int, int, int, int, int, int]
@@ -192,7 +358,7 @@ testcases:
   - [0, 1, ~, 0, 1, ~]
   - [1, 2, ~, 1, 2, ~]
   - [2, 3, ~, 2, 3, ~]
-- sql: "select id as d, a as e, b as f from Stest.foo"
+- sql: "select id as d, a as e, b as f FROM Stest.foo"
   description: "aliases"
   expected_names: ["d", "e", "f"]
   expected_types: [int, int, int]
@@ -200,7 +366,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id as a, a as b, b as id from Stest.Foo"
+- sql: "select id as a, a as b, b as id FROM Stest.Foo"
   description: "aliased as another column"
   expected_names: ["a", "b", "id"]
   expected_types: [int, int, int]
@@ -208,7 +374,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a as id, b as id from Stest.foO"
+- sql: "select id, a as id, b as id FROM Stest.foO"
   description: "duplicate aliases"
   expected_names: ["id", "id", "id"]
   expected_types: [int, int, int]
@@ -216,7 +382,7 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-- sql: "select id, a as ID from Stest.foo"
+- sql: "select id, a as ID FROM Stest.foo"
   description: "aliases differing by case"
   expected_names: ["id", "ID"]
   expected_types: [int, int]
@@ -224,7 +390,7 @@ testcases:
   - [0, 1]
   - [1, 2]
   - [2, 3]
-- sql: "select id, b from Stest.foo"
+- sql: "select id, b FROM Stest.foo"
   description: "subset of columns"
   expected_names: ["id", "b"]
   expected_types: [int, int]
@@ -232,7 +398,7 @@ testcases:
   - [0, ~]
   - [1, ~]
   - [2, ~]
-- sql: "select b, id from Stest.foo"
+- sql: "select b, id FROM Stest.foo"
   description: "subset of columns out of order"
   expected_names: ["b", "id"]
   expected_types: [int, int]
@@ -244,7 +410,7 @@ testcases:
 ### Expressions
 
 # Case
-- sql: "select (case when a > 1 then 'gt' else 'lt' end) as p from foo"
+- sql: "select (case when a > 1 then 'gt' else 'lt' end) as p FROM foo"
   description: "case"
   expected_names: ["p"]
   expected_types: [string]
@@ -252,7 +418,7 @@ testcases:
   - ["lt"]
   - ["gt"]
   - ["gt"]
-- sql: "select (case when a > 1 then 'gt' end) as p from foo"
+- sql: "select (case when a > 1 then 'gt' end) as p FROM foo"
   description: "case without else"
   expected_names: ["p"]
   expected_types: [string]
@@ -260,7 +426,7 @@ testcases:
   - [~]
   - ["gt"]
   - ["gt"]
-- sql: "select (case when b is null then 'n' else 'not null' end) as p from foo"
+- sql: "select (case when b is null then 'n' else 'not null' end) as p FROM foo"
   description: "case without else"
   expected_names: ["p"]
   expected_types: [string]
@@ -268,7 +434,7 @@ testcases:
   - ["n"]
   - ["n"]
   - ["n"]
-- sql: "select (case a when 1 then 'one' else 'not one' end) as p from foo"
+- sql: "select (case a when 1 then 'one' else 'not one' end) as p FROM foo"
   description: "simple case"
   expected_names: ["p"]
   expected_types: [string]
@@ -276,7 +442,7 @@ testcases:
   - ['one']
   - ["not one"]
   - ["not one"]
-- sql: "select (case a when 1 then 'one' end) as p from foo"
+- sql: "select (case a when 1 then 'one' end) as p FROM foo"
   description: "simple case"
   expected_names: ["p"]
   expected_types: [string]
@@ -284,7 +450,7 @@ testcases:
   - ['one']
   - [~]
   - [~]
-- sql: "select (case when a > (case when b is null then 1 else 2 end) then 'gt' else 'lt' end) as p from foo"
+- sql: "select (case when a > (case when b is null then 1 else 2 end) then 'gt' else 'lt' end) as p FROM foo"
   description: "case"
   expected_names: ["p"]
   expected_types: [string]
@@ -292,7 +458,7 @@ testcases:
   - ["lt"]
   - ["gt"]
   - ["gt"]
-- sql: "select (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) as p from foo"
+- sql: "select (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) as p FROM foo"
   description: "case"
   expected_names: ["p"]
   expected_types: [string]
@@ -300,7 +466,7 @@ testcases:
   - ["less"]
   - ["1"]
   - ["1"]
-- sql: "select (case when (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) = '1' then 1 end) as p from foo"
+- sql: "select (case when (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) = '1' then 1 end) as p FROM foo"
   description: "case"
   expected_names: ["p"]
   expected_types: [int]
@@ -310,7 +476,7 @@ testcases:
   - [1]
 
 # Exists
-- sql: "select a, exists(select 1 from STEST.foo) as p from foo"
+- sql: "select a, exists(select 1 FROM STEST.foo) as p FROM foo"
   description: "non-correlated exists"
   expected_names: ["a", "p"]
   expected_types: [int, int]
@@ -318,7 +484,7 @@ testcases:
   - [1, 1]
   - [2, 1]
   - [3, 1]
-- sql: "select exists(select 1 from Stest.foo) as p from foo"
+- sql: "select exists(select 1 FROM Stest.foo) as p FROM foo"
   description: "non-correlated exists"
   expected_names: ["p"]
   expected_types: [int]
@@ -328,7 +494,7 @@ testcases:
   - [1]
 
 # Subqueries
-- sql: "select a, (select a from foo limit 1) as b from foo"
+- sql: "select a, (select a FROM foo limit 1) as b FROM foo"
   description: "non-correlated subquery"
   expected_names: ["a", "b"]
   expected_types: [int, int]
@@ -337,7 +503,7 @@ testcases:
   - [2, 1]
   - [3, 1]
 
-- sql: "select a, (select a from foo where f.id = id - 1) as b from foo f"
+- sql: "select a, (select a FROM foo where f.id = id - 1) as b FROM foo f"
   description: "correlated subquery"
   expected_names: ["a", "b"]
   expected_types: [int, int]
@@ -379,19 +545,19 @@ testcases:
   - [1]
 
 # Long Identifer Names
-- sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat from test.bar"
+- sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat FROM test.bar"
   description: "long identifier names"
   expected_names: ["ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat"]
   expected_types: [int]
   expected:
   - [2]
-- sql: "select `ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat` from test.bar"
+- sql: "select `ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat` FROM test.bar"
   description: "long identifier name with dot"
   expected_names: ["ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat"]
   expected_types: [int]
   expected:
   - [3]
-- sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat r from test.bar"
+- sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat r FROM test.bar"
   description: "long identifier name with alias"
   expected_names: ["r"]
   expected_types: [int]
@@ -399,7 +565,7 @@ testcases:
   - [2]
 
 # Row comparisons
-- sql: "select (x, y, z) < (4, null, 9) from tuples"
+- sql: "select (x, y, z) < (4, null, 9) FROM tuples"
   description: "lt row comparison with null"
   expected_names: ["(x, y, z) < (4, null, 9)"]
   expected_types: [int]
@@ -409,7 +575,7 @@ testcases:
   - [0]
   - [0]
   - [~]
-- sql: "select (x, y, z) <= (4, 5, null) from tuples"
+- sql: "select (x, y, z) <= (4, 5, null) FROM tuples"
   description: "triple lte row comparison with null"
   expected_names: ["(x, y, z) <= (4, 5, null)"]
   expected_types: [int]
@@ -419,7 +585,7 @@ testcases:
   - [0]
   - [0]
   - [1]
-- sql: "select (z, x) >= (2, 6) from tuples"
+- sql: "select (z, x) >= (2, 6) FROM tuples"
   description: "gte row comparison without null"
   expected_names: ["(z, x) >= (2, 6)"]
   expected_types: [int]
@@ -429,7 +595,7 @@ testcases:
   - [1]
   - [0]
   - [1]
-- sql: "select (x, y) >= (4, null) from tuples"
+- sql: "select (x, y) >= (4, null) FROM tuples"
   description: "gte row comparison with null"
   expected_names: ["(x, y) >= (4, null)"]
   expected_types: [int]
@@ -439,7 +605,7 @@ testcases:
   - [1]
   - [1]
   - [~]
-- sql: "select (z, y, x) > (1, 5, 2) from tuples"
+- sql: "select (z, y, x) > (1, 5, 2) FROM tuples"
   description: "triple gt row comparison without null"
   expected_names: ["(z, y, x) > (1, 5, 2)"]
   expected_types: [int]
@@ -449,7 +615,7 @@ testcases:
   - [1]
   - [1]
   - [1]
-- sql: "select (z, null, x) > (1, x, 2) from tuples"
+- sql: "select (z, null, x) > (1, x, 2) FROM tuples"
   description: "triple gt row comparison with null"
   expected_names: ["(z, null, x) > (1, x, 2)"]
   expected_types: [int]
@@ -459,7 +625,7 @@ testcases:
   - [1]
   - [~]
   - [1]
-- sql: "select (x, y, z) = (null, null, 9) from tuples"
+- sql: "select (x, y, z) = (null, null, 9) FROM tuples"
   description: "triple eq row comparison with null"
   expected_names: ["(x, y, z) = (null, null, 9)"]
   expected_types: [int]
@@ -469,7 +635,7 @@ testcases:
   - [0]
   - [0]
   - [0]
-- sql: "select (y, x) = (1, 4) from tuples"
+- sql: "select (y, x) = (1, 4) FROM tuples"
   description: "eq row comparison without null"
   expected_names: ["(y, x) = (1, 4)"]
   expected_types: [int]
@@ -479,7 +645,7 @@ testcases:
   - [0]
   - [0]
   - [1]
-- sql: "select (y, x) = (1, null) from tuples"
+- sql: "select (y, x) = (1, null) FROM tuples"
   description: "eq row comparison with null"
   expected_names: ["(y, x) = (1, null)"]
   expected_types: [int]
@@ -489,7 +655,7 @@ testcases:
   - [~]
   - [0]
   - [~]
-- sql: "select (y, x-z) != (1, 2) from tuples"
+- sql: "select (y, x-z) != (1, 2) FROM tuples"
   description: "neq row comparison without null"
   expected_names: ["(y, x-z) != (1, 2)"]
   expected_types: [int]
@@ -499,7 +665,7 @@ testcases:
   - [1]
   - [1]
   - [1]
-- sql: "select (y+z, x-z) != (null, 4) from tuples"
+- sql: "select (y+z, x-z) != (null, 4) FROM tuples"
   description: "neq row comparison with null"
   expected_names: ["(y+z, x-z) != (null, 4)"]
   expected_types: [int]
@@ -509,7 +675,7 @@ testcases:
   - [1]
   - [1]
   - [1]
-- sql: "select (a, b) <=> (1, 4) from foo"
+- sql: "select (a, b) <=> (1, 4) FROM foo"
   description: "nse row comparison without null"
   expected_names: ["(a, b) <=> (1, 4)"]
   expected_types: [int]
@@ -517,7 +683,7 @@ testcases:
   - [1]
   - [0]
   - [0]
-- sql: "select (a, b) <=> (2, NULL) from foo"
+- sql: "select (a, b) <=> (2, NULL) FROM foo"
   description: "nse row comparison with null"
   expected_names: ["(a, b) <=> (2, null)"]
   expected_types: [int]
@@ -525,7 +691,7 @@ testcases:
   - [0]
   - [1]
   - [0]
-- sql: "select 1 <=> 1, NULL <=> NULL, 1 <=> NULL from dual"
+- sql: "select 1 <=> 1, NULL <=> NULL, 1 <=> NULL FROM dual"
   description: "nse row comparison with null"
   expected_names: ["1 <=> 1", "null <=> null", "1 <=> null"]
   expected_types: [int, int, int]
@@ -533,7 +699,7 @@ testcases:
   - [1, 1, 0]
 
 # Mongo filter
-- sql: "select y, z from tuples where mfil='{\"x\": {\"$lte\": 4}}'"
+- sql: "select y, z FROM tuples where mfil='{\"x\": {\"$lte\": 4}}'"
   pushdown_only: true
   description: "lone custom filter predicate expression"
   expected_names: ["y", "z"]
@@ -541,7 +707,7 @@ testcases:
   expected:
   - [1, 0]
   - [1, 5]
-- sql: "select y, z from tuples where y = 6 or mfil='{\"x\": {\"$lte\": 4}}'"
+- sql: "select y, z FROM tuples where y = 6 or mfil='{\"x\": {\"$lte\": 4}}'"
   pushdown_only: true
   description: "custom filter with other expressions"
   expected_names: ["y", "z"]
@@ -550,14 +716,14 @@ testcases:
   - [1, 0]
   - [6, 1]
   - [1, 5]
-- sql: "select y, z from tuples where (z < 5 and mfil='{\"_id\": {\"$gte\": 5}}') or id = 3"
+- sql: "select y, z FROM tuples where (z < 5 AND mfil='{\"_id\": {\"$gte\": 5}}') or id = 3"
   pushdown_only: true
   description: "custom filter with conjunction"
   expected_names: ["y", "z"]
   expected_types: [int, int]
   expected:
   - [1, 5]
-- sql: "select y, z from tuples where (x > 4 or mfil='{\"_id\": {\"$gt\": 2}}') or id = 3"
+- sql: "select y, z FROM tuples where (x > 4 or mfil='{\"_id\": {\"$gt\": 2}}') or id = 3"
   pushdown_only: true
   description: "custom filter with disjunction"
   expected_names: ["y", "z"]
@@ -601,31 +767,31 @@ testcases:
   - [85070591730234615847396907784232501249]
 
 # UUID
-- sql: "select * from test.uuid"
+- sql: "select * FROM test.uuid"
   description: "uuid bit fiddling"
   expected_names: ["csharp", "java", "olduuid", "uuid"]
   expected_types: [varchar, varchar, varchar, varchar]
   expected:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10"]
-- sql: "select csharp from test.uuid where csharp=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
+- sql: "select csharp FROM test.uuid where csharp=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
   description: "uuid where clause"
   expected_names: ["csharp"]
   expected_types: [varchar]
   expected:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10"]
-- sql: "select t2.java from test.uuid t1 INNER JOIN test.uuid t2 on t1.java=t2.java where t1.olduuid=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
+- sql: "select t2.java FROM test.uuid t1 INNER JOIN test.uuid t2 ON t1.java=t2.java where t1.olduuid=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
   description: "join using same uuid subtype 3 encoding"
   expected_names: ["java"]
   expected_types: ["varchar"]
   expected:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10"]
-- sql: "select s.uuid, t.java, q.csharp, r.olduuid from test.uuid q INNER JOIN test.uuid r on q.java = r.java INNER JOIN test.uuid s on r.csharp = s.csharp INNER JOIN test.uuid t on r.olduuid = t.csharp where t.uuid = \"01020304-0506-0708-090a-0b0c0d0e0f10\""
-  description: "nested join using mixed uuid subtype 3 encodings"
+- sql: "select s.uuid, t.java, q.csharp, r.olduuid FROM test.uuid q INNER JOIN test.uuid r ON q.java = r.java INNER JOIN test.uuid s ON r.csharp = s.csharp INNER JOIN test.uuid t ON r.olduuid = t.csharp where t.uuid = \"01020304-0506-0708-090a-0b0c0d0e0f10\""
+  description: "nested JOIN using mixed uuid subtype 3 encodings"
   expected_names: ["uuid", "java", "csharp", "olduuid", ]
   expected_types: [varchar, varchar, varchar, varchar]
   expected:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10"]
-- sql: "select t2.olduuid from test.uuid t1 INNER JOIN test.uuid t2 on t1.csharp=t2.java where t1.olduuid=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
+- sql: "select t2.olduuid FROM test.uuid t1 INNER JOIN test.uuid t2 ON t1.csharp=t2.java where t1.olduuid=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
   description: "join using different uuid subtype 3 encodings"
   expected_names: ["olduuid"]
   expected_types: ["varchar"]
@@ -633,27 +799,79 @@ testcases:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10"]
 
 # Variables
-- sql: "SELECT COUNT(Variable_name) from information_schema.session_variables"
-  expected_types: [integer]
+- sql: "SELECT COUNT(Variable_name) FROM information_schema.session_variables"
+  expected_types: [int]
   expected:
-    - ["651"]
-- sql: "SELECT COUNT(Variable_name) from information_schema.global_variables"
-  expected_types: [integer]
+    - [651]
+- sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables"
+  expected_types: [int]
   expected:
-    - ["651"]
-- sql: "SELECT COUNT(Variable_name) from information_schema.global_variables WHERE Variable_name LIKE '%validate%'"
-  expected_types: [integer]
+    - [651]
+- sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables WHERE Variable_name LIKE '%validate%'"
+  expected_types: [int]
   expected:
-    - ["9"]
-- sql: "SELECT COUNT(Variable_name) from information_schema.session_status"
-  expected_types: [integer]
+    - [9]
+- sql: "SELECT COUNT(Variable_name) FROM information_schema.session_status"
+  expected_types: [int]
   expected:
-    - ["515"]
-- sql: "SELECT COUNT(Variable_name) from information_schema.global_status"
-  expected_types: [integer]
+    - [515]
+- sql: "SELECT COUNT(Variable_name) FROM information_schema.global_status"
+  expected_types: [int]
   expected:
-    - ["515"]
-- sql: "SELECT COUNT(Variable_name) from information_schema.global_status WHERE Variable_name LIKE 'Qcache%'"
-  expected_types: [integer]
+    - [515]
+- sql: "SELECT COUNT(Variable_name) FROM information_schema.global_status WHERE Variable_name LIKE 'Qcache%'"
+  expected_types: [int]
   expected:
-    - ["8"]
+    - [8]
+
+# Self Joins
+- sql: "SELECT * FROM test.test_c a left JOIN test.test_c b ON a._id=b._id AND b.c_idx=a.c_idx ORDER BY 11"
+  expected_types: [varchar, int, int, int, int, int, varchar, int, int, int, int, int]
+  expected_names: ["_id", "a", "b", "c.x", "c.z", "c_idx", "_id", "a", "b", "c.x", "c.z", "c_idx"]
+  expected:
+  - ["57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0, "57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0]
+  - ["57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1, "57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1]
+- sql: "SELECT * FROM test.test_c a JOIN test.test_c b ORDER BY 4, 12, 11"
+  expected_names: ["_id", "a", "b", "c.x", "c.z", "c_idx", "_id", "a", "b", "c.x", "c.z", "c_idx"]
+  expected_types: [varchar, int, int, int, int, int, varchar, int, int, int, int, int]
+  expected:
+  - ["57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1, "57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0]
+  - ["57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1, "57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1]
+  - ["57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0, "57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0]
+  - ["57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0, "57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1]
+- sql: "SELECT b.`c.x`, b.`c.z`, b.`c_idx`, c.`c.x`, c.`c.y` FROM test.test a JOIN test.test_c b ON a._id=b._id JOIN test.test_c_y c ON a._id=c._id AND b.c_idx=c.c_idx ORDER BY 1, 2, 3, 4, 5"
+  expected_names: ["c.x", "c.z", "c_idx", "c.x", "c.y"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [1, 11, 1, 1, 1]
+  - [1, 11, 1, 1, 4]
+  - [1, 11, 1, 1, 5]
+  - [4, 9, 0, 4, 4]
+  - [4, 9, 0, 4, 5]
+  - [4, 9, 0, 4, 6]
+- sql: "SELECT `c.y_idx` FROM test.test_c_y ORDER BY 1 DESC"
+  expected_names: ["c.y_idx"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [2]
+  - [1]
+  - [1]
+  - [0]
+  - [0]
+- sql: "SELECT a.`c.y_idx` FROM test.test_empty b LEFT JOIN test.test_c_y_empty a ON a._id=b._id ORDER BY 1"
+  expected_names: ["c.y_idx"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [1]
+  - [2]
+- sql: "SELECT `c.y` FROM test.test_empty a JOIN test.test_c_empty b ON a._id=b._id LEFT JOIN test.test_c_y_empty c ON c._id=b._id and c.c_idx=b.c_idx ORDER BY 1 DESC"
+  expected_names: ["c.y"]
+  expected_types: [int]
+  expected:
+  - [5]
+  - [4]
+  - [1]
+  - [~]
+
