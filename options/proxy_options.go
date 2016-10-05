@@ -52,6 +52,7 @@ func (_ SqldSocket) Name() string {
 }
 
 type SqldGeneral struct {
+	Fork    bool `long:"fork" description:"fork mongosqld process"`
 	Help    bool `short:"h" long:"help" description:"print usage"`
 	Version bool `long:"version" description:"display version information"`
 }
@@ -207,6 +208,9 @@ func (o SqldOptions) Validate() error {
 		if o.FilePermissions != nil {
 			return fmt.Errorf("cannot use Unix-specific option --filePermissions on Windows")
 		}
+	}
+	if o.Fork && o.LogPath == "" {
+		return fmt.Errorf("must specify --logPath when using --fork")
 	}
 
 	return nil
