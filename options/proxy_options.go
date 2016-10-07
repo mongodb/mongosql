@@ -178,6 +178,9 @@ func (o SqldOptions) hasSSLOptionsSet() bool {
 }
 
 func (o SqldOptions) Validate() error {
+	if o.Version || o.Help {
+		return nil
+	}
 	if o.Schema == "" && o.SchemaDir == "" {
 		return fmt.Errorf("must specify either --schema or --schemaDirectory")
 	}
