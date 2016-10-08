@@ -9,6 +9,8 @@ sed -i.bak -e "s/built-without-version-string/$(git describe)/" \
            -e "s/built-without-git-spec/$(git rev-parse HEAD)/" \
            common/version.go
 
+trap "mv -f common/version.go.bak common/version.go; exit" EXIT HUP
+
 # remove stale packages
 rm -rf vendor/pkg
 mkdir -p bin
@@ -24,5 +26,3 @@ go build -o "bin/mongosqld" "main/sqlproxy.go"
 echo "\nBuilding mongodrdl..."
 go build -o "bin/mongodrdl" "mongodrdl/main/mongodrdl.go"
 ./bin/mongodrdl --version
-
-mv -f common/version.go.bak common/version.go
