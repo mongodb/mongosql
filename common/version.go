@@ -7,10 +7,10 @@ import (
 
 var (
 	// VersionStr represents the version of the binaries.
-	VersionStr = "v2.0.0-beta4-6-g6825f26"
+	VersionStr = "built-without-version-string"
 
 	// Gitspec is the git commit hash the binaries were built from.
-	Gitspec = "6825f26020aff69acf58300badcd8c06177e706a"
+	Gitspec = "built-without-git-spec"
 )
 
 // PrintVersionAndGitspec prints out the version and the gitspec.
