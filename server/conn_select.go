@@ -24,7 +24,7 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 	return bindVars
 }
 
-func (c *conn) handleSelect(stmt *parser.Select, sql string, args []interface{}) error {
+func (c *conn) handleSelect(stmt parser.SelectStatement, sql string, args []interface{}) error {
 	fields, iter, err := c.server.eval.Evaluate(stmt, c)
 	if err != nil {
 		return err

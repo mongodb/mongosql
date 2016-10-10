@@ -140,6 +140,12 @@ func (iter *JoinIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 			syncChan <- r
 			r = &Row{}
 		}
+
+		if err := it.Err(); err != nil {
+			errChan <- err
+		}
+
+		it.Close()
 		close(syncChan)
 	}()
 

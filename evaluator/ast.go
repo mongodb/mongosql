@@ -39,6 +39,7 @@ func (ps *MongoSourceStage) astnode()    {}
 func (ps *OrderByStage) astnode()        {}
 func (ps *ProjectStage) astnode()        {}
 func (ps *SubquerySourceStage) astnode() {}
+func (ps *UnionStage) astnode()          {}
 
 // CommandStages
 func (k *KillCommand) astnode() {}
@@ -366,6 +367,20 @@ func walk(v nodeVisitor, n node) (node, error) {
 
 		if typedN.source != source {
 			n = NewSubquerySourceStage(source, typedN.selectID, typedN.aliasName)
+		}
+	case *UnionStage:
+		left, err := visitPlanStage(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := visitPlanStage(typedN.right)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.left != left || typedN.right != right {
+			n = NewUnionStage(typedN.kind, left, right)
 		}
 
 	// Other Stages

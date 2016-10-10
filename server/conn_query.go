@@ -62,6 +62,9 @@ func (c *conn) handleQuery(sql string) (err error) {
 	case *parser.SimpleSelect:
 		err = c.handleSimpleSelect(sql, v)
 		logTimeTaken()
+	case *parser.Union:
+		err = c.handleSelect(v, sql, nil)
+		logTimeTaken()
 	case *parser.Show:
 		err = c.handleShow(sql, v)
 	case *parser.DDL:

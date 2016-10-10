@@ -44,6 +44,7 @@ func NewGroupByStage(source PlanStage, keys []SQLExpr, projectedColumns Projecte
 func (gb *GroupByStage) Columns() (columns []*Column) {
 	for _, expr := range gb.projectedColumns {
 		column := &Column{
+			SelectID:  expr.SelectID,
 			Name:      expr.Name,
 			Table:     expr.Table,
 			SQLType:   expr.SQLType,

@@ -172,6 +172,18 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 	case *SubquerySourceStage:
 		b.WriteString("↳ Subquery(" + typedN.aliasName + "):\n")
 		prettyPrint(b, typedN.source, d+1)
+	case *UnionStage:
+		kind := " distinct"
+		if typedN.kind == UnionAll {
+			kind = " all"
+		}
+		b.WriteString(fmt.Sprintf("↳ Union (%s):\n", kind))
+
+		prettyPrint(b, typedN.left, d+1)
+		printTabs(b, d+1)
+
+		b.WriteString("\n")
+		prettyPrint(b, typedN.right, d+1)
 	default:
 		panic(fmt.Sprintf("unsupported print operator: %T", typedN))
 	}

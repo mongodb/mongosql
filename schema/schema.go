@@ -402,25 +402,6 @@ func Must(c *Schema, err error) *Schema {
 	return c
 }
 
-// IsSimilar returns true if the logical or comparison
-// operations can be carried on leftType against rightType
-// with no need for type conversion.
-func IsSimilar(leftType, rightType SQLType) bool {
-	switch leftType {
-	case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric, SQLUint64:
-		switch rightType {
-		case SQLArrNumeric, SQLFloat, SQLInt, SQLInt64, SQLNumeric, SQLUint64:
-			return true
-		}
-	case SQLDate, SQLTimestamp:
-		switch rightType {
-		case SQLDate, SQLTimestamp:
-			return true
-		}
-	}
-	return false
-}
-
 type SQLTypes []SQLType
 
 func (types SQLTypes) Len() int {

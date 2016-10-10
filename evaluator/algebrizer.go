@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/catalog"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -14,12 +15,14 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// AlgebrizeCommand takes a parse SQL statement and returns an algebrized form of the command.
+// AlgebrizeCommand takes a parsed SQL statement and returns an algebrized form of the command.
 func AlgebrizeCommand(stmt parser.Statement, dbName string, catalog *catalog.Catalog) (command, error) {
 	g := &selectIDGenerator{}
+	l := log.NewComponentLogger(log.AlgebrizerComponent, log.GlobalLogger())
 	algebrizer := &algebrizer{
 		dbName:                      dbName,
 		catalog:                     catalog,
+		logger:                      l,
 		selectID:                    g.current,
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
@@ -38,9 +41,11 @@ func AlgebrizeCommand(stmt parser.Statement, dbName string, catalog *catalog.Cat
 // AlgebrizeSelect takes a parsed SQL statement and returns an algebrized form of the query.
 func AlgebrizeSelect(selectStatement parser.SelectStatement, dbName string, vars *variable.Container, catalog *catalog.Catalog) (PlanStage, error) {
 	g := &selectIDGenerator{}
+	l := log.NewComponentLogger(log.AlgebrizerComponent, log.GlobalLogger())
 	algebrizer := &algebrizer{
 		dbName:                      dbName,
 		catalog:                     catalog,
+		logger:                      l,
 		selectID:                    g.generate(),
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
@@ -72,6 +77,7 @@ type algebrizer struct {
 	parent            *algebrizer
 	catalog           *catalog.Catalog
 	selectIDGenerator *selectIDGenerator
+	logger            *log.Logger
 
 	selectID                     int                   // the selectID to use for projected columns
 	currentSelectIDs             []int                 // the selectIDs that are currently used
@@ -84,6 +90,17 @@ type algebrizer struct {
 	projectedColumnAggregateMap  map[int]SQLExpr       // indicates whether the projected column contains an aggregate.
 	resolveProjectedColumnsFirst bool                  // indicates whether to resolve a column using the projected columns first or second
 	currentClause                string                // tracks the current clause being processed for the purposes of error messages.
+}
+
+func (a *algebrizer) clone() *algebrizer {
+	return &algebrizer{
+		parent:                      a,
+		catalog:                     a.catalog,
+		dbName:                      a.dbName,
+		selectID:                    a.selectID,
+		selectIDGenerator:           a.selectIDGenerator,
+		projectedColumnAggregateMap: make(map[int]SQLExpr),
+	}
 }
 
 func (a *algebrizer) fullName(tableName, columnName string) string {
@@ -351,6 +368,8 @@ func (a *algebrizer) translateSelectStatement(selectStatement parser.SelectState
 		return a.translateSelect(typedS)
 	case *parser.SimpleSelect:
 		return a.translateSimpleSelect(typedS)
+	case *parser.Union:
+		return a.translateUnion(typedS)
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, parser.String(selectStatement))
 	}
@@ -461,6 +480,48 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 
 	// 3. Build the stages.
 	return builder.build(), nil
+}
+
+func (a *algebrizer) translateUnion(union *parser.Union) (PlanStage, error) {
+	var err error
+
+	left, err := a.translateSelectStatement(union.Left)
+	if err != nil {
+		return nil, err
+	}
+
+	right, err := a.clone().translateSelectStatement(union.Right)
+	if err != nil {
+		return nil, err
+	}
+
+	leftCols := left.Columns()
+	rightCols := right.Columns()
+
+	if len(leftCols) != len(rightCols) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_NUMBER_OF_COLUMNS_IN_SELECT)
+	}
+
+	switch union.Type {
+	case parser.AST_UNION:
+		var projectedColumns ProjectedColumns
+		var keys []SQLExpr
+		var reqCols []SQLExpr
+		unionStage := NewUnionStage(UnionDistinct, left, right)
+
+		for _, col := range unionStage.Columns() {
+			expr := NewSQLColumnExpr(col.SelectID, col.Table, col.Name, col.SQLType, col.MongoType)
+			keys = append(keys, expr)
+			projectedColumns = append(projectedColumns, ProjectedColumn{Column: col, Expr: expr})
+		}
+		reqCols = keys
+
+		return NewGroupByStage(unionStage, keys, projectedColumns, reqCols), nil
+	case parser.AST_UNION_ALL:
+		return NewUnionStage(UnionAll, left, right), nil
+	default:
+		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "cannot perform set operation '%s'", union.Type)
+	}
 }
 
 func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (ProjectedColumns, error) {
