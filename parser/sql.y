@@ -52,6 +52,10 @@ var (
   DATETIME_BYTES           = []byte("datetime")
   FLOAT_BYTES              = []byte("float")
   INTEGER_BYTES            = []byte("integer")
+  COUNT_BYTES              = []byte("count")
+  DATABASE_BYTES           = []byte("database")
+  SCHEMA_BYTES             = []byte("schema")
+  USER_BYTES               = []byte("user")
 )
 
 %}
@@ -101,6 +105,9 @@ var (
 %token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
 %token <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND
 %token <empty> DAY_MINUTE DAY_HOUR YEAR_MONTH
+%token <empty> BINARY MASTER LOGS DATABASE SCHEMA EVENT FUNCTION PROCEDURE BINLOG EVENTS TRIGGER USER
+%token <empty> ENGINE MUTEX ENGINES STORAGE ERRORS COUNT CODE GRANTS OPEN PLUGINS PRIVILEGES
+%token <empty> PROFILE PROFILES RELAYLOG SLAVE HOSTS TRIGGERS WARNINGS CHANNEL INDEXES KEYS SCHEMAS
 
 %nonassoc <empty> FROM
 %left <empty> UNION MINUS EXCEPT INTERSECT
@@ -224,7 +231,8 @@ var (
 %type <statement> explain_statement
 %type <statement> explainable_stmt
 
-%type <expr> from_opt
+%type <empty> if_not_exists_opt storage_opt
+%type <expr> in_opt from_opt
 %type <expr> like_or_where_opt
 %type <expr> show_from_in show_from_in_opt
 %type <str> show_full
@@ -232,6 +240,7 @@ var (
 %type <str> explain_type
 %type <str> format_name
 %type <str> kill_modifier
+%type <bytes> for_user_opt for_channel_opt
 %%
 
 any_command:
@@ -478,27 +487,186 @@ scope_modifier_opt:
     $$ = AST_GLOBAL_SCOPE
   }
 
-
 show_statement:
-  SHOW DATABASES like_or_where_opt
+  SHOW BINARY LOGS
+  {
+    $$ = &Show{Section: "binary logs"}
+  }
+| SHOW MASTER LOGS
+  {
+    $$ = &Show{Section: "master logs"}
+  }
+| SHOW BINLOG EVENTS in_opt from_opt limit_opt
+  {
+    $$ = &Show{Section: "binlog events"}
+  }
+| SHOW CREATE DATABASE if_not_exists_opt ID
+  {
+    $$ = &Show{Section: "create database", Modifier: string($5)}
+  }
+| SHOW CREATE SCHEMA if_not_exists_opt ID
+  {
+    $$ = &Show{Section: "create schema", Modifier: string($5)}
+  }
+| SHOW CREATE EVENT ID
+  {
+    $$ = &Show{Section: "create event", Modifier: string($4)}
+  }
+| SHOW CREATE FUNCTION ID
+  {
+    $$ = &Show{Section: "create function", Modifier: string($4)}
+  }
+| SHOW CREATE PROCEDURE ID
+  {
+    $$ = &Show{Section: "create procedure", Modifier: string($4)}
+  }
+| SHOW CREATE TABLE ID
+  {
+    $$ = &Show{Section: "create table", Modifier: string($4)}
+  }
+| SHOW CREATE TRIGGER ID
+  {
+    $$ = &Show{Section: "create trigger", Modifier: string($4)}
+  }
+| SHOW CREATE USER ID
+  {
+    $$ = &Show{Section: "create user", Modifier: string($4)}
+  }
+| SHOW CREATE VIEW ID
+  {
+    $$ = &Show{Section: "create view", Modifier: string($4)}
+  }
+| SHOW ENGINE sql_id STATUS
+  {
+    $$ = &Show{Section: "engine", Modifier: string($3)}
+  }
+| SHOW ENGINE sql_id MUTEX
+  {
+    $$ = &Show{Section: "engine", Modifier: string($3)}
+  }
+| SHOW storage_opt ENGINES 
+  {
+    $$ = &Show{Section: "engines"}
+  }
+| SHOW ERRORS limit_opt
+  {
+    $$ = &Show{Section: "errors"}
+  }
+| SHOW COUNT LPAREN TIMES RPAREN ERRORS
+  {
+    $$ = &Show{Section: "count(*) errors"}
+  }
+| SHOW EVENTS show_from_in_opt like_or_where_opt 
+  {
+    $$ = &Show{Section: "events"}
+  }
+| SHOW FUNCTION CODE ID
+  {
+    $$ = &Show{Section: "function code", Modifier: string($4)}
+  }
+| SHOW FUNCTION STATUS like_or_where_opt
+  {
+    $$ = &Show{Section: "function status"}
+  }
+| SHOW GRANTS for_user_opt
+  {
+    $$ = &Show{Section: "grants", Modifier: string($3)}
+  }
+| SHOW INDEX show_from_in show_from_in_opt where_expression_opt
+  {
+    $$ = &Show{Section: "index"}
+  }
+| SHOW INDEXES show_from_in show_from_in_opt where_expression_opt
+  {
+    $$ = &Show{Section: "indexes"}
+  }
+| SHOW KEYS show_from_in show_from_in_opt where_expression_opt
+  {
+    $$ = &Show{Section: "keys"}
+  }
+| SHOW MASTER STATUS
+  {
+    $$ = &Show{Section: "master status"}
+  }
+| SHOW OPEN TABLES show_from_in_opt like_or_where_opt
+  {
+    $$ = &Show{Section: "open tables"}
+  }
+| SHOW PLUGINS
+  {
+    $$ = &Show{Section: "plugins"}
+  }
+| SHOW PRIVILEGES
+  {
+    $$ = &Show{Section: "privileges"}
+  }
+| SHOW PROCEDURE CODE ID
+  {
+    $$ = &Show{Section: "procedure code", Modifier: string($4)}
+  }
+| SHOW PROCEDURE STATUS like_or_where_opt
+  {
+    $$ = &Show{Section: "procedure status"}
+  }
+| SHOW PROFILE
+  {
+    $$ = &Show{Section: "profile"}
+  }
+| SHOW PROFILES
+  {
+    $$ = &Show{Section: "profiles"}
+  }
+| SHOW RELAYLOG EVENTS in_opt from_opt limit_opt
+  {
+    $$ = &Show{Section: "relaylog events"}
+  }
+| SHOW SLAVE HOSTS
+  {
+    $$ = &Show{Section: "slave hosts"}
+  }
+| SHOW SLAVE STATUS for_channel_opt
+  {
+    $$ = &Show{Section: "slave status", Modifier: string($4)}
+  }
+| SHOW TABLE STATUS show_from_in_opt like_or_where_opt
+  {
+    $$ = &Show{Section: "table status"}
+  }
+| SHOW TRIGGERS show_from_in_opt like_or_where_opt
+  {
+    $$ = &Show{Section: "table status"}
+  }
+| SHOW WARNINGS limit_opt
+  {
+    $$ = &Show{Section: "warnings"}
+  }
+| SHOW COUNT LPAREN TIMES RPAREN WARNINGS
+  {
+    $$ = &Show{Section: "count(*) errors"}
+  }
+| SHOW DATABASES like_or_where_opt
   {
     $$ = &Show{Section: "databases", LikeOrWhere: $3}
+  }
+| SHOW SCHEMAS like_or_where_opt
+  {
+    $$ = &Show{Section: "schemas", LikeOrWhere: $3}
   }
 | SHOW scope_modifier_opt VARIABLES like_or_where_opt
   {
     $$ = &Show{Section: "variables", Modifier: $2, LikeOrWhere: $4}
   }
-| SHOW TABLES from_opt like_or_where_opt
+| SHOW show_full TABLES from_opt like_or_where_opt
   {
-    $$ = &Show{Section: "tables", From: $3, LikeOrWhere: $4}
+    $$ = &Show{Section: "tables", Modifier: $2, From: $4, LikeOrWhere: $5}
   }
 | SHOW PROXY sql_id from_opt like_or_where_opt
   {
     $$ = &Show{Section: "proxy", Key: string($3), From: $4, LikeOrWhere: $5}
   }
-| SHOW show_full COLUMNS show_from_in show_from_in_opt
+| SHOW show_full COLUMNS show_from_in show_from_in_opt like_or_where_opt
   {
-    $$ = &Show{Section: "columns", From: $4, Modifier: $2, DBFilter: $5}
+    $$ = &Show{Section: "columns", From: $4, Modifier: $2, DBFilter: $5, LikeOrWhere: $6}
   }
 | SHOW show_full PROCESSLIST
   {
@@ -515,10 +683,6 @@ show_statement:
 | SHOW CHARSET like_or_where_opt
   {
     $$ = &Show{Section: "charset", LikeOrWhere: $3}
-  }
-| SHOW TABLE STATUS show_from_in_opt like_or_where_opt
-  {
-    $$ = &Show{Section: "tablestatus", From: $4, LikeOrWhere: $5}
   }
 | SHOW COLLATION like_or_where_opt
   {
@@ -913,6 +1077,24 @@ like_or_where_opt:
     $$ = $2
   }
 
+in_opt:
+  {
+    $$ = nil
+  }
+| IN expression
+  {
+    $$ = $2
+  }
+
+if_not_exists_opt:
+  {
+    $$ = struct{}{}
+  }
+| IF NOT EXISTS
+  {
+    $$ = struct{}{}
+  }
+
 from_opt:
   {
     $$ = nil
@@ -920,6 +1102,33 @@ from_opt:
 | FROM expression
   {
     $$ = $2
+  }
+
+for_channel_opt:
+  {
+    $$ = nil
+  }
+| FOR CHANNEL ID 
+  {
+    $$ = $3
+  }
+
+for_user_opt:
+  {
+    $$ = nil
+  }
+| FOR ID
+  {
+    $$ = $2
+  }
+
+storage_opt:
+  {
+    $$ = struct{}{}
+  }
+| STORAGE
+  {
+    $$ = struct{}{}
   }
 
 all_any_some:
@@ -1192,9 +1401,17 @@ expr:
   {
     $$ = &FuncExpr{Name: bytes.ToLower($1), Distinct: true, Exprs: $4}
   }
+| keyword_as_func LPAREN RPAREN
+  {
+    $$ = &FuncExpr{Name: $1}
+  }
 | keyword_as_func LPAREN select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: $1, Exprs: $3}
+  }
+| keyword_as_func LPAREN DISTINCT select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: $1, Distinct: true, Exprs: $4}
   }
 | CURRENT_TIMESTAMP
   {
@@ -1444,7 +1661,7 @@ sql_types:
     {
       $$ = FLOAT_BYTES
     }
-  // We don't want to parse datetime as a token since MySQL allows
+  // We do not want to parse datetime as a token since MySQL allows
   // it to be a table name. As a result we parse it as a standard
   // ID and check it to see if it matches datetime.
   | ID
@@ -1481,6 +1698,22 @@ keyword_as_func:
 | time_interval
   {
     $$ = $1
+  }
+| COUNT
+  {
+    $$ = COUNT_BYTES
+  }
+| DATABASE
+  {
+    $$ = DATABASE_BYTES
+  }
+| SCHEMA 
+  {
+    $$ = SCHEMA_BYTES
+  }
+| USER
+  {
+    $$ = USER_BYTES
   }
 
 unary_operator:

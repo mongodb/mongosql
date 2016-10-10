@@ -25,7 +25,7 @@ func (c *conn) handleShow(sql string, stmt *parser.Show) error {
 	case "variables":
 		return c.handleShowVariables(stmt)
 	default:
-		return mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "no support for show (%s) for now", sql)
+		return c.handleShowNotImplemented(sql, stmt)
 	}
 }
 
@@ -100,7 +100,7 @@ func (c *conn) handleShowColumns(sql string, stmt *parser.Show) error {
 		", COLUMN_DEFAULT AS `Default`" +
 		", EXTRA AS `Extra`" +
 		", COLLATION_NAME AS `Collation`" +
-		", PRIVILEGES AS `Privileges`" +
+		", `PRIVILEGES` AS `Privileges`" +
 		", COLUMN_COMMENT AS `Comment`" +
 		", TABLE_NAME" +
 		", TABLE_SCHEMA" +

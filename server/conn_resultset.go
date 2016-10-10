@@ -212,7 +212,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 		for j < numFields {
 			zeroValue := columns[j].SQLType.ZeroValue()
 			value := evaluator.NewSQLValue(zeroValue, columns[j].SQLType)
-			name := c.variables.CharacterSetResults.Encode(Slice(columns[j].Name))
+			name := Slice(columns[j].Name)
 			field := &Field{Name: name}
 
 			if err = formatField(uint16(col.ID), field, value); err != nil {

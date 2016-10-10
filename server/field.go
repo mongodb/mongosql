@@ -30,15 +30,15 @@ func (f *Field) Dump(cs *collation.Charset) []byte {
 
 	data := make([]byte, 0, l)
 
-	data = append(data, putLengthEncodedString(cs.Decode([]byte("def")))...)
+	data = append(data, putLengthEncodedString(cs.Encode([]byte("def")))...)
 
-	data = append(data, putLengthEncodedString(cs.Decode(f.Schema))...)
+	data = append(data, putLengthEncodedString(cs.Encode(f.Schema))...)
 
-	data = append(data, putLengthEncodedString(cs.Decode(f.Table))...)
-	data = append(data, putLengthEncodedString(cs.Decode(f.OrgTable))...)
+	data = append(data, putLengthEncodedString(cs.Encode(f.Table))...)
+	data = append(data, putLengthEncodedString(cs.Encode(f.OrgTable))...)
 
-	data = append(data, putLengthEncodedString(cs.Decode(f.Name))...)
-	data = append(data, putLengthEncodedString(cs.Decode(f.OrgName))...)
+	data = append(data, putLengthEncodedString(cs.Encode(f.Name))...)
+	data = append(data, putLengthEncodedString(cs.Encode(f.OrgName))...)
 
 	data = append(data, 0x0c)
 

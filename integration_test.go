@@ -400,7 +400,7 @@ func runSQL(db *sql.DB, query string, types []string, names []string) ([][]inter
 		return nil, err
 	}
 
-	if len(cols) != len(types) {
+	if len(types) > 0 && len(cols) != len(types) {
 		return nil, fmt.Errorf("Number of columns in result set (%v) does not match columns in expected types (%v)", len(cols), len(types))
 	}
 

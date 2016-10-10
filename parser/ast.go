@@ -6,6 +6,7 @@ package parser
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/10gen/sqlproxy/parser/sqltypes"
 )
@@ -659,7 +660,7 @@ func (node *ColName) Format(buf *TrackedBuffer) {
 }
 
 func escape(buf *TrackedBuffer, name []byte) {
-	if _, ok := keywords[string(name)]; ok {
+	if _, ok := keywords[strings.ToLower(string(name))]; ok {
 		buf.Fprintf("`%s`", name)
 	} else {
 		buf.Fprintf("%s", name)
