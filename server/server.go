@@ -52,16 +52,16 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts options.SqldOptio
 
 	var err error
 
-	err = s.populateListeners()
-	if err != nil {
-		return nil, err
-	}
-
 	if len(opts.SSLPEMKeyFile) > 0 {
 		s.tlsConfig, err = openssl.SetupSqldCtx(opts, true)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	err = s.populateListeners()
+	if err != nil {
+		return nil, err
 	}
 
 	return s, nil

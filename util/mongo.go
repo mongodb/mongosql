@@ -9,7 +9,7 @@ const (
 	InvalidDBChars         = "/\\. \"\x00$"
 	InvalidCollectionChars = "$\x00"
 	DefaultHost            = "localhost"
-	DefaultPort            = "27017"
+	DefaultMongoDPort      = "27017"
 )
 
 // Extract the replica set name and the list of hosts from the connection string
@@ -38,7 +38,7 @@ func CreateConnectionAddrs(host, port string) []string {
 	if host == "" {
 		host = DefaultHost
 		if port == "" {
-			host += fmt.Sprintf(":%v", DefaultPort)
+			host += fmt.Sprintf(":%v", DefaultMongoDPort)
 		}
 	}
 

@@ -23,7 +23,7 @@ func (s *Server) populateListeners() error {
 	if s.opts.NoUnixSocket == nil || (s.opts.NoUnixSocket != nil && !*s.opts.NoUnixSocket) {
 		_, port, err := net.SplitHostPort(s.opts.Addr)
 		if err != nil {
-			port = defaultPort
+			port = DefaultServerPort
 		}
 
 		socketName := fmt.Sprintf("mongosqld-%s.sock", port)

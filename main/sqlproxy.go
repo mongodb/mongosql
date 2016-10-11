@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -154,6 +155,16 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error starting server: %v\n", err)
 		os.Exit(util.ExitError)
 	}
+
+	defer func() {
+		if opts.NoUnixSocket == nil || (opts.NoUnixSocket != nil && !*opts.NoUnixSocket) {
+			_, port, err := net.SplitHostPort(opts.Addr)
+			if err != nil {
+				port = server.DefaultServerPort
+			}
+			os.Remove(fmt.Sprintf("%s/mongosqld-%s.sock", *opts.UnixSocketPrefix, port))
+		}
+	}()
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc,
