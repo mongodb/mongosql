@@ -52,17 +52,6 @@ func (c *conn) handleQuery(sql string) (err error) {
 
 	stmt, err = parser.Parse(sql)
 	if err != nil {
-		// This is an ugly hack such that if someone tries to set some parameter to the default
-		// ignore.  This is because the sql parser barfs.  We should probably fix there for reals.
-		sqlUpper := strings.ToUpper(sql)
-		if len(sqlUpper) > 3 && sqlUpper[0:4] == "SET " {
-			if len(sqlUpper) > 7 && sqlUpper[len(sqlUpper)-8:] == "=DEFAULT" {
-				// wow, this is ugly
-				logTimeTaken()
-				return c.writeOK(nil)
-			}
-		}
-		logTimeTaken()
 		return mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, `parse sql '%s' error: %s`, sql, err)
 	}
 

@@ -208,6 +208,14 @@ func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) er
 		return mysqlerrors.Defaultf(mysqlerrors.ER_VARIABLE_IS_READONLY, kindToString(kind), name)
 	}
 
+	if fmt.Sprintf("%v", value) == "default" {
+		value, err := NewGlobalContainer().Get(name, GlobalScope, kind)
+		if err != nil {
+			return err
+		}
+		return c.Set(name, scope, kind, value.Value)
+	}
+
 	if c.scope == scope {
 		return def.SetValue(c, value)
 	} else if c.parent != nil {

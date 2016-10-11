@@ -178,3 +178,10 @@ testcases:
   description: "set session select limit to invalid value"
   expected_names: []
   expected_types: [uint]
+- sql: "set @@sql_select_limit = default"
+  verify: "select @@sql_select_limit"
+  description: "set session select limit to default"
+  expected_names: ["@@sql_select_limit"]
+  expected_types: [uint]
+  expected:
+  - [18446744073709551615]

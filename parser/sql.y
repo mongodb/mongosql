@@ -1758,6 +1758,10 @@ update_expression:
   {
     $$ = &UpdateExpr{Name: $1, Expr: $3}
   }
+| column_name EQ DEFAULT
+  {
+    $$ = &UpdateExpr{Name: $1, Expr: StrVal("default")}
+  }
 
 exists_opt:
   { $$ = struct{}{} }
