@@ -118,49 +118,45 @@ func loadCollections(s *mgo.Session, dbSchema *schema.Database) (map[CollectionN
 	}
 
 	err := s.DB(dbSchema.Name).Run(bson.D{{"listCollections", 1}, {"cursor", struct{}{}}}, &result)
-	if err == nil {
-		colInfos := make(map[CollectionName]*CollectionInfo)
-		for _, t := range dbSchema.RawTables {
-			name := CollectionName(t.CollectionName)
-			if _, ok := colInfos[name]; ok {
-				// Because multiple tables can be mapped to the same collection,
-				// we can skip collections we've already included.
-				continue
-			}
-
-			colInfos[name] = &CollectionInfo{
-				Name: name,
-			}
+	if err != nil {
+		return nil, err
+	}
+	colInfos := make(map[CollectionName]*CollectionInfo)
+	for _, t := range dbSchema.RawTables {
+		name := CollectionName(t.CollectionName)
+		if _, ok := colInfos[name]; ok {
+			// Because multiple tables can be mapped to the same collection,
+			// we can skip collections we've already included.
+			continue
 		}
 
-		ns := strings.SplitN(result.Cursor.NS, ".", 2)
-		iter := s.DB(ns[0]).C(ns[1]).NewIter(nil, result.Cursor.FirstBatch, result.Cursor.ID, nil)
-		var colResult struct {
-			Name    string
-			Type    string
-			Options struct {
-				Collation *mgo.Collation
-			}
+		colInfos[name] = &CollectionInfo{
+			Name: name,
 		}
-
-		for iter.Next(&colResult) {
-			colInfo, ok := colInfos[CollectionName(colResult.Name)]
-			if !ok {
-				continue
-			}
-
-			colInfo.Collation = colResult.Options.Collation
-		}
-		err := iter.Err()
-		if err != nil {
-			return nil, err
-		}
-		err = iter.Close()
-		if err != nil {
-			return nil, err
-		}
-		return colInfos, nil
 	}
 
-	return nil, err
+	ns := strings.SplitN(result.Cursor.NS, ".", 2)
+	iter := s.DB(ns[0]).C(ns[1]).NewIter(nil, result.Cursor.FirstBatch, result.Cursor.ID, nil)
+	var colResult struct {
+		Name    string
+		Type    string
+		Options struct {
+			Collation *mgo.Collation
+		}
+	}
+
+	for iter.Next(&colResult) {
+		colInfo, ok := colInfos[CollectionName(colResult.Name)]
+		if !ok {
+			continue
+		}
+
+		colInfo.Collation = colResult.Options.Collation
+	}
+
+	if err := iter.Close(); err != nil {
+		return nil, err
+	}
+
+	return colInfos, iter.Err()
 }

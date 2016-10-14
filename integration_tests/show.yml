@@ -39,7 +39,7 @@ schema:
         MongoType: int64
         SqlName: c
         SqlType: int64
-- db: blah
+- db: Blah
   tables:
   - table: foo
     collection: foo
@@ -123,13 +123,13 @@ testcases:
 - sql: "SHOW DATABASES"
   expected_types: [varchar]
   expected: 
-    - ["blah"]
+    - ["Blah"]
     - ["information_schema"]
     - ["test"]
 - sql: "SHOW DATABASES LIKE 'b%'"
   expected_types: [varchar]
   expected: 
-    - ["blah"]
+    - ["Blah"]
 - sql: "SHOW DATABASES WHERE `Database` = 'test'"
   expected_types: [varchar]
   expected: 
@@ -137,13 +137,13 @@ testcases:
 - sql: "SHOW SCHEMAS"
   expected_types: [varchar]
   expected: 
-    - ["blah"]
+    - ["Blah"]
     - ["information_schema"]
     - ["test"]
 - sql: "SHOW SCHEMAS LIKE 'b%'"
   expected_types: [varchar]
   expected: 
-    - ["blah"]
+    - ["Blah"]
 - sql: "SHOW SCHEMAS WHERE `Database` = 'test'"
   expected_types: [varchar]
   expected: 

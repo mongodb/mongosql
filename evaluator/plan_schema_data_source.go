@@ -276,12 +276,12 @@ func (sds *SchemaDataSourceStage) gatherColumnRows(ctx *ExecutionCtx) []Values {
 	}
 
 	for _, db := range sds.schema.RawDatabases {
-		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(db.Name)) {
+		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(strings.ToLower(db.Name))) {
 			continue
 		}
 
 		for _, table := range db.RawTables {
-			if !info.IsAnyAllowedCollection(mongodb.DatabaseName(db.Name), mongodb.CollectionName(table.CollectionName)) {
+			if !info.IsAnyAllowedCollection(mongodb.DatabaseName(strings.ToLower(db.Name)), mongodb.CollectionName(table.CollectionName)) {
 				continue
 			}
 
@@ -338,7 +338,7 @@ func (sds *SchemaDataSourceStage) gatherSchemataRows(ctx *ExecutionCtx) []Values
 	}
 
 	for _, db := range sds.schema.RawDatabases {
-		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(db.Name)) {
+		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(strings.ToLower(db.Name))) {
 			continue
 		}
 
@@ -401,12 +401,12 @@ func (sds *SchemaDataSourceStage) gatherTableRows(ctx *ExecutionCtx) []Values {
 	}
 
 	for _, db := range sds.schema.RawDatabases {
-		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(db.Name)) {
+		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(strings.ToLower(db.Name))) {
 			continue
 		}
 
 		for _, table := range db.RawTables {
-			if !info.IsAnyAllowedCollection(mongodb.DatabaseName(db.Name), mongodb.CollectionName(table.CollectionName)) {
+			if !info.IsAnyAllowedCollection(mongodb.DatabaseName(strings.ToLower(db.Name)), mongodb.CollectionName(table.CollectionName)) {
 				continue
 			}
 
