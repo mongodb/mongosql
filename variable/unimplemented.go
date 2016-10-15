@@ -2101,7 +2101,7 @@ var unimplementedDefinitions = []*definition{
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         getDummyValue("unimplemented", "innodb_version"),
+		GetValue:         getDummyValue("unsupported", "innodb_version"),
 		SetValue:         setDummyValueErr("innodb_version"),
 	},
 	&definition{
@@ -3165,7 +3165,7 @@ var unimplementedDefinitions = []*definition{
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         getDummyValue("unimplemented", "ndb_recv_thread_cpu_mask"),
+		GetValue:         getDummyValue("unsupported", "ndb_recv_thread_cpu_mask"),
 		SetValue:         setDummyValue("ndb_recv_thread_cpu_mask"),
 	},
 	&definition{
@@ -3205,7 +3205,7 @@ var unimplementedDefinitions = []*definition{
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         getDummyValue("unimplemented", "Ndb_slave_max_replicated_epoch"),
+		GetValue:         getDummyValue("unsupported", "Ndb_slave_max_replicated_epoch"),
 		SetValue:         setDummyValueErr("Ndb_slave_max_replicated_epoch"),
 	},
 	&definition{
@@ -8696,14 +8696,14 @@ var unimplementedDefinitions = []*definition{
 
 func getDummyValue(v interface{}, name string) func(*Container) interface{} {
 	return func(c *Container) interface{} {
-		log.Warnf(log.DebugHigh, `the variable "%s" is unimplemented. returning default value, %v`, name, v)
+		log.Warnf(log.DebugHigh, `the variable "%s" is unsupported. returning default value, %v`, name, v)
 		return v
 	}
 }
 
 func setDummyValue(name string) func(*Container, interface{}) error {
 	return func(c *Container, v interface{}) error {
-		log.Warnf(log.DebugHigh, `the variable "%s" is unimplemented. setting it will have no effect.`, name)
+		log.Warnf(log.DebugHigh, `the variable "%s" is unsupported. setting it will have no effect.`, name)
 		return nil
 	}
 }
