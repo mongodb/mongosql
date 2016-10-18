@@ -102,6 +102,11 @@ func (c *DynamicColumn) Name() ColumnName {
 	return c.name
 }
 
+// PrimaryKey indicates whether this column is part of the primary key.
+func (c *DynamicColumn) PrimaryKey() bool {
+	return false
+}
+
 // Type gets the type of the column.
 func (c *DynamicColumn) Type() schema.SQLType {
 	return c.sqlType

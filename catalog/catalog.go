@@ -133,6 +133,8 @@ type ColumnName string
 type Column interface {
 	// Name gets the name of the column
 	Name() ColumnName
+	// PrimaryKey indicates if this column is part of the primary key.
+	PrimaryKey() bool
 	// Type is the type of the column.
 	Type() schema.SQLType
 	// Comments gets the comments for the column.
