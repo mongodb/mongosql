@@ -99,11 +99,6 @@ func (c *InMemoryColumn) Name() ColumnName {
 	return c.name
 }
 
-// PrimaryKey indicates whether this column is part of the primary key.
-func (c *InMemoryColumn) PrimaryKey() bool {
-	return false
-}
-
 // Type gets the type of the column.
 func (c *InMemoryColumn) Type() schema.SQLType {
 	return c.sqlType

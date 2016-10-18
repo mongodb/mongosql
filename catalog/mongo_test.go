@@ -57,25 +57,21 @@ func TestMongoTable(t *testing.T) {
 		column, err := t.Column("id")
 		So(err, ShouldBeNil)
 		So(string(column.Name()), ShouldEqual, "id")
-		So(column.PrimaryKey(), ShouldBeTrue)
 		So(column.(*catalog.MongoColumn).MongoName, ShouldEqual, "_id")
 
 		column, err = t.Column("value")
 		So(err, ShouldBeNil)
 		So(string(column.Name()), ShouldEqual, "value")
-		So(column.PrimaryKey(), ShouldBeFalse)
 		So(column.(*catalog.MongoColumn).MongoName, ShouldEqual, "a")
 
 		column, err = t.Column("idx1")
 		So(err, ShouldBeNil)
 		So(string(column.Name()), ShouldEqual, "idx1")
-		So(column.PrimaryKey(), ShouldBeTrue)
 		So(column.(*catalog.MongoColumn).MongoName, ShouldEqual, "a_idx")
 
 		column, err = t.Column("idx2")
 		So(err, ShouldBeNil)
 		So(string(column.Name()), ShouldEqual, "idx2")
-		So(column.PrimaryKey(), ShouldBeTrue)
 		So(column.(*catalog.MongoColumn).MongoName, ShouldEqual, "a_idx_1")
 	})
 }

@@ -15,12 +15,11 @@ func NewMongoTable(t *schema.Table, collation *collation.Collation) *MongoTable 
 	var columns []*MongoColumn
 	for _, c := range t.RawColumns {
 		columns = append(columns, &MongoColumn{
-			name:       ColumnName(c.SqlName),
-			sqlType:    c.SqlType,
-			MongoName:  c.Name,
-			MongoType:  c.MongoType,
-			comments:   fmt.Sprintf(`{ "name": "%s" }`, c.Name),
-			primaryKey: isPrimaryKey(t, c),
+			name:      ColumnName(c.SqlName),
+			sqlType:   c.SqlType,
+			MongoName: c.Name,
+			MongoType: c.MongoType,
+			comments:  fmt.Sprintf(`{ "name": "%s" }`, c.Name),
 		})
 	}
 
@@ -32,38 +31,6 @@ func NewMongoTable(t *schema.Table, collation *collation.Collation) *MongoTable 
 		Pipeline:       t.Pipeline,
 		comments:       fmt.Sprintf(`{ "collectionName": "%s" }`, t.CollectionName),
 	}
-}
-
-func isPrimaryKey(t *schema.Table, c *schema.Column) bool {
-	if c.Name == "_id" {
-		return true
-	}
-
-	for _, d := range t.Pipeline {
-		unwindVal, ok := d.Map()["$unwind"]
-		if !ok {
-			return false
-		}
-		unwind, ok := unwindVal.(bson.D)
-		if !ok {
-			return false
-		}
-
-		arrayIndexNameVal, ok := unwind.Map()["includeArrayIndex"]
-		if !ok {
-			continue
-		}
-
-		arrayIndexName, ok := arrayIndexNameVal.(string)
-		if !ok {
-			continue
-		}
-		if c.Name == arrayIndexName {
-			return true
-		}
-	}
-
-	return false
 }
 
 // MongoTable is a table whose data comes from elsewhere.
@@ -119,10 +86,9 @@ func (t *MongoTable) Type() TableType {
 
 // MongoColumn is an mongo table column.
 type MongoColumn struct {
-	comments   string
-	name       ColumnName
-	primaryKey bool
-	sqlType    schema.SQLType
+	comments string
+	name     ColumnName
+	sqlType  schema.SQLType
 
 	MongoName string
 	MongoType schema.MongoType
@@ -131,11 +97,6 @@ type MongoColumn struct {
 // Name gets the name of the column.
 func (c *MongoColumn) Name() ColumnName {
 	return c.name
-}
-
-// PrimaryKey indicates whether this column is part of the primary key.
-func (c *MongoColumn) PrimaryKey() bool {
-	return c.primaryKey
 }
 
 // Type gets the type of the column.
