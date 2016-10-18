@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/client"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -16,7 +17,9 @@ import (
 )
 
 type connCtx struct {
-	session *mgo.Session
+	catalog   *catalog.Catalog
+	session   *mgo.Session
+	variables *variable.Container
 }
 
 func (_ *connCtx) LastInsertId() int64 {
@@ -52,8 +55,12 @@ func (_ *connCtx) User() string {
 	return ""
 }
 
-func (_ *connCtx) Variables() *variable.Container {
-	return variable.NewSessionContainer(variable.NewGlobalContainer())
+func (c *connCtx) Catalog() *catalog.Catalog {
+	return c.catalog
+}
+
+func (c *connCtx) Variables() *variable.Container {
+	return c.variables
 }
 
 func (_ *connCtx) Tomb() *tomb.Tomb {
@@ -78,6 +85,8 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
 	infoOne := getMongoDBInfo(cfgOne, mongodb.AllPrivileges)
+	variablesOne := createTestVariables(infoOne)
+	catalogOne := getCatalogFromSchema(cfgOne, variablesOne)
 	sessionProvider, err := client.NewSqldSessionProvider(getOptions(t))
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
@@ -122,14 +131,25 @@ func TestMongoSourcePlanStage(t *testing.T) {
 			}
 
 			cCtx := &connCtx{
-				session: session,
+				catalog:   catalogOne,
+				session:   session,
+				variables: variablesOne,
 			}
 
 			ctx := &ExecutionCtx{
 				ConnectionCtx: cCtx,
 			}
 
-			plan, err := NewMongoSourceStage(1, cfgOne, infoOne, dbOne, tableTwoName, "")
+			db, err := catalogOne.Database(dbOne)
+			if err != nil {
+				panic("database doesn't exist")
+			}
+			table, err := db.Table(tableTwoName)
+			if err != nil {
+				panic("table doesn't exist")
+			}
+
+			plan := NewMongoSourceStage(db, table.(*catalog.MongoTable), 1, "")
 			So(err, ShouldBeNil)
 			iter, err := plan.Open(ctx)
 			So(err, ShouldBeNil)

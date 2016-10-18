@@ -110,7 +110,7 @@ func (c *conn) handleShowColumns(sql string, stmt *parser.Show) error {
 
 	var dbName string
 	if c.currentDB != nil {
-		dbName = c.currentDB.Name
+		dbName = string(c.currentDB.Name)
 	}
 
 	table := ""
@@ -179,7 +179,7 @@ func (c *conn) handleShowDatabases(stmt *parser.Show) error {
 func (c *conn) handleShowTables(sql string, stmt *parser.Show) error {
 	dbName := ""
 	if c.currentDB != nil {
-		dbName = c.currentDB.Name
+		dbName = string(c.currentDB.Name)
 	}
 
 	if stmt.From != nil {

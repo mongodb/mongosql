@@ -26,19 +26,19 @@ type normalizingNode interface {
 }
 
 // PlanStages
-func (ps *BSONSourceStage) astnode()       {}
-func (ps *CacheStage) astnode()            {}
-func (ps *DualStage) astnode()             {}
-func (ps *EmptyStage) astnode()            {}
-func (ps *FilterStage) astnode()           {}
-func (ps *GroupByStage) astnode()          {}
-func (ps *JoinStage) astnode()             {}
-func (ps *LimitStage) astnode()            {}
-func (ps *MongoSourceStage) astnode()      {}
-func (ps *OrderByStage) astnode()          {}
-func (ps *ProjectStage) astnode()          {}
-func (ps *SchemaDataSourceStage) astnode() {}
-func (ps *SubquerySourceStage) astnode()   {}
+func (ps *BSONSourceStage) astnode()     {}
+func (ps *CacheStage) astnode()          {}
+func (ps *DynamicSourceStage) astnode()  {}
+func (ps *DualStage) astnode()           {}
+func (ps *EmptyStage) astnode()          {}
+func (ps *FilterStage) astnode()         {}
+func (ps *GroupByStage) astnode()        {}
+func (ps *JoinStage) astnode()           {}
+func (ps *LimitStage) astnode()          {}
+func (ps *MongoSourceStage) astnode()    {}
+func (ps *OrderByStage) astnode()        {}
+func (ps *ProjectStage) astnode()        {}
+func (ps *SubquerySourceStage) astnode() {}
 
 // CommandStages
 func (k *KillCommand) astnode() {}
@@ -258,7 +258,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 
 	// PlanStages
 
-	case *DualStage, *EmptyStage, *SchemaDataSourceStage, *MongoSourceStage, *BSONSourceStage:
+	case *DualStage, *DynamicSourceStage, *EmptyStage, *MongoSourceStage, *BSONSourceStage:
 		// nothing to do
 	case *CacheStage:
 		source, err := visitPlanStage(typedN.source)

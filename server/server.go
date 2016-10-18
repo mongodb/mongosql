@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/10gen/sqlproxy"
+	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/client/openssl"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -24,7 +25,6 @@ type Server struct {
 
 	eval              *sqlproxy.Evaluator
 	opts              options.SqldOptions
-	databases         map[string]*schema.Database
 	activeConnections map[uint32]*conn
 	variables         *variable.Container
 	tlsConfig         *cfg.Ctx
@@ -46,7 +46,6 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts options.SqldOptio
 		opts:              opts,
 		running:           false,
 		activeConnections: make(map[uint32]*conn),
-		databases:         schema.Databases,
 		variables:         variable.NewGlobalContainer(),
 	}
 
@@ -161,6 +160,13 @@ func (s *Server) onConn(c net.Conn) {
 	conn.variables.MongoDBInfo, err = mongodb.LoadInfo(conn.Session(), &schema, s.opts.Auth)
 	if err != nil {
 		conn.logger.Errf(log.Always, "error retrieving information from MongoDB: %v", err)
+		c.Close()
+		return
+	}
+
+	conn.catalog, err = catalog.Build(&schema, conn.variables)
+	if err != nil {
+		conn.logger.Errf(log.Always, "error building catalog: %v", err)
 		c.Close()
 		return
 	}

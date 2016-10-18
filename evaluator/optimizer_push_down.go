@@ -42,7 +42,7 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 		v.tableNamesInScope = append(v.tableNamesInScope, typedN.aliasNames...)
 	case *BSONSourceStage:
 		v.selectIDsInScope = append(v.selectIDsInScope, typedN.selectID)
-	case *SchemaDataSourceStage:
+	case *DynamicSourceStage:
 		v.selectIDsInScope = append(v.selectIDsInScope, typedN.selectID)
 	case *SQLSubqueryExpr:
 		// SQLSubqueryExpr only applies to non-from clauses. This means that

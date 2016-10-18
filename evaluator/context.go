@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/variable"
@@ -19,6 +20,7 @@ type ConnectionCtx interface {
 	Logger(string) *log.Logger
 	Tomb() *tomb.Tomb
 	User() string
+	Catalog() *catalog.Catalog
 	Variables() *variable.Container
 }
 

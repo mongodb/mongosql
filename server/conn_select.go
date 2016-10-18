@@ -3,12 +3,11 @@ package server
 import (
 	"bytes"
 	"fmt"
-	"strings"
 
+	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -46,19 +45,19 @@ func (c *conn) handleSimpleSelect(sql string, stmt *parser.SimpleSelect) error {
 func (c *conn) handleFieldList(data []byte) error {
 
 	index := bytes.IndexByte(data, 0x00)
-	table := String(c.variables.CharacterSetClient.Decode(data[0:index]))
+	tableName := String(c.variables.CharacterSetClient.Decode(data[0:index]))
 	wildcard := String(c.variables.CharacterSetClient.Decode(data[index+1:]))
 
 	dbName := c.currentDB.Name
 
-	db := c.server.databases[strings.ToLower(dbName)]
-	if db == nil {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, dbName)
+	db, err := c.catalog.Database(string(dbName))
+	if err != nil {
+		return err
 	}
 
-	tableSchema := db.Tables[strings.ToLower(table)]
-	if tableSchema == nil {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_TABLE, table, dbName)
+	tableSchema, err := db.Table(tableName)
+	if err != nil {
+		return err
 	}
 
 	col, err := collation.Get(c.variables.CharacterSetResults.DefaultCollationName)
@@ -68,14 +67,14 @@ func (c *conn) handleFieldList(data []byte) error {
 
 	fields := []*Field{}
 
-	for _, field := range tableSchema.RawColumns {
-		if field.MongoType == schema.MongoFilter {
+	for _, column := range tableSchema.Columns() {
+		if mongoColumn, ok := column.(*catalog.MongoColumn); ok && mongoColumn.MongoType == schema.MongoFilter {
 			continue
 		}
 
 		f := &Field{}
-		f.Name = []byte(field.SqlName)
-		zeroValue := field.SqlType.ZeroValue()
+		f.Name = []byte(column.Name())
+		zeroValue := column.Type().ZeroValue()
 		value, err := evaluator.NewSQLValueFromSQLColumnExpr(zeroValue, schema.SQLNone, schema.MongoNone)
 		if err != nil {
 			return err
@@ -86,7 +85,7 @@ func (c *conn) handleFieldList(data []byte) error {
 		fields = append(fields, f)
 	}
 
-	c.Logger(log.NetworkComponent).Logf(log.DebugHigh, "handleFieldList table: %v, wildcard: %v", table, wildcard)
+	c.Logger(log.NetworkComponent).Logf(log.DebugHigh, "handleFieldList table: %v, wildcard: %v", tableName, wildcard)
 
 	return c.writeFieldList(c.status(), fields)
 }

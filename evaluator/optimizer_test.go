@@ -37,6 +37,8 @@ func TestOptimizePlan(t *testing.T) {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
+	testVariables := createTestVariables(testInfo)
+	testCatalog := getCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
 
 	test := func(sql string, expected ...[]bson.D) {
@@ -45,8 +47,7 @@ func TestOptimizePlan(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(parser.SelectStatement)
-			vars := createTestVariables(testInfo)
-			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, vars, testSchema)
+			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 			actualPlan, err := OptimizePlan(createTestConnectionCtx(), plan)
 			So(err, ShouldBeNil)
@@ -69,8 +70,7 @@ func TestOptimizePlan(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			selectStatement := statement.(parser.SelectStatement)
-			vars := createTestVariables(testInfo)
-			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, vars, testSchema)
+			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 			actualPlan, err := OptimizePlan(createTestConnectionCtx(), plan)
 			So(err, ShouldBeNil)
@@ -1337,6 +1337,8 @@ func TestOptimizeCommand(t *testing.T) {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
+	testVariables := createTestVariables(testInfo)
+	testCatalog := getCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
 
 	test := func(sql string, expected ...[]bson.D) {
@@ -1345,7 +1347,7 @@ func TestOptimizeCommand(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			setStatement := statement.(*parser.Set)
-			set, err := AlgebrizeCommand(setStatement, defaultDbName, testSchema, testInfo)
+			set, err := AlgebrizeCommand(setStatement, defaultDbName, testCatalog)
 			So(err, ShouldBeNil)
 			actualSet, err := OptimizeCommand(createTestConnectionCtx(), set)
 			So(err, ShouldBeNil)

@@ -1,6 +1,8 @@
 package mongodb
 
 import (
+	"strings"
+
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -37,7 +39,7 @@ func (i *Info) IsAllowed(p Privilege) bool {
 
 // IsAnyAllowedDatabase indicates if any privileges exist.
 func (i *Info) IsAnyAllowedDatabase(name DatabaseName) bool {
-	if dbInfo, ok := i.Databases[name]; ok {
+	if dbInfo, ok := i.Databases[DatabaseName(strings.ToLower(string(name)))]; ok {
 		return dbInfo.Privileges != NoPrivileges
 	}
 
@@ -46,7 +48,7 @@ func (i *Info) IsAnyAllowedDatabase(name DatabaseName) bool {
 
 // IsAllowedDatabase indicates whether any privileges are granted on the specified database.
 func (i *Info) IsAllowedDatabase(name DatabaseName, p Privilege) bool {
-	if dbInfo, ok := i.Databases[name]; ok {
+	if dbInfo, ok := i.Databases[DatabaseName(strings.ToLower(string(name)))]; ok {
 		return (dbInfo.Privileges & p) == p
 	}
 
@@ -55,7 +57,7 @@ func (i *Info) IsAllowedDatabase(name DatabaseName, p Privilege) bool {
 
 // IsAnyAllowedCollection indicates whether any privileges are granted on the specified collection.
 func (i *Info) IsAnyAllowedCollection(dbName DatabaseName, colName CollectionName) bool {
-	if dbInfo, ok := i.Databases[dbName]; ok {
+	if dbInfo, ok := i.Databases[DatabaseName(strings.ToLower(string(dbName)))]; ok {
 		if colInfo, ok := dbInfo.Collections[colName]; ok {
 			return colInfo.Privileges != NoPrivileges
 		}
@@ -66,7 +68,7 @@ func (i *Info) IsAnyAllowedCollection(dbName DatabaseName, colName CollectionNam
 
 // IsAllowedCollection indicates whether the privilege is granted on the specified collection.
 func (i *Info) IsAllowedCollection(dbName DatabaseName, colName CollectionName, p Privilege) bool {
-	if dbInfo, ok := i.Databases[dbName]; ok {
+	if dbInfo, ok := i.Databases[DatabaseName(strings.ToLower(string(dbName)))]; ok {
 		if colInfo, ok := dbInfo.Collections[colName]; ok {
 			return (colInfo.Privileges & p) == p
 		}

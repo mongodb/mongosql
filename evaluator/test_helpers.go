@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
@@ -72,6 +73,9 @@ func (_ fakeConnectionCtx) Logger(_ string) *log.Logger {
 }
 func (_ fakeConnectionCtx) RowCount() int64 {
 	return 21
+}
+func (_ fakeConnectionCtx) Catalog() *catalog.Catalog {
+	return nil
 }
 func (_ fakeConnectionCtx) ConnectionId() uint32 {
 	return 42
@@ -227,11 +231,11 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 		return nil, err
 	}
 
-	info := getMongoDBInfo(schema, mongodb.AllPrivileges)
-
 	selectStatement := statement.(parser.SelectStatement)
+	info := getMongoDBInfo(schema, mongodb.AllPrivileges)
 	vars := createTestVariables(info)
-	actualPlan, err := AlgebrizeSelect(selectStatement, dbName, vars, schema)
+	catalog := getCatalogFromSchema(schema, vars)
+	actualPlan, err := AlgebrizeSelect(selectStatement, dbName, vars, catalog)
 	if err != nil {
 		return nil, err
 	}
@@ -286,4 +290,12 @@ func getMongoDBInfo(sch *schema.Schema, privileges mongodb.Privilege) *mongodb.I
 	}
 
 	return i
+}
+
+func getCatalogFromSchema(schema *schema.Schema, variables *variable.Container) *catalog.Catalog {
+	c, err := catalog.Build(schema, variables)
+	if err != nil {
+		panic(fmt.Sprintf("unable to build catalog: %v", err))
+	}
+	return c
 }

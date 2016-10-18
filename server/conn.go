@@ -14,13 +14,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/client/openssl"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
 
@@ -52,7 +51,7 @@ type conn struct {
 	capability   uint32
 	connectionID uint32
 	user         string
-	currentDB    *schema.Database
+	currentDB    *catalog.Database
 	lastInsertID int64
 	affectedRows int64
 
@@ -64,6 +63,7 @@ type conn struct {
 	stmtID uint32
 	stmts  map[uint32]*stmt
 
+	catalog   *catalog.Catalog
 	variables *variable.Container
 }
 
@@ -113,7 +113,7 @@ func (c *conn) authenticate() error {
 	}
 
 	if c.currentDB != nil {
-		credential.Source = c.currentDB.Name
+		credential.Source = string(c.currentDB.Name)
 	}
 
 	// parse user for extra information other than just the username
@@ -183,6 +183,11 @@ func (c *conn) close() error {
 	return nil
 }
 
+// Catalog returns the catalog.
+func (c *conn) Catalog() *catalog.Catalog {
+	return c.catalog
+}
+
 // ConnectionId returns the connection's identifier.
 func (c *conn) ConnectionId() uint32 {
 	return c.connectionID
@@ -193,7 +198,7 @@ func (c *conn) DB() string {
 	if c.currentDB == nil {
 		return ""
 	}
-	return c.currentDB.Name
+	return string(c.currentDB.Name)
 }
 
 func (c *conn) dispatch(data []byte) error {
@@ -583,17 +588,12 @@ func (c *conn) Tomb() *tomb.Tomb {
 }
 
 func (c *conn) useDB(db string) error {
-	db = strings.ToLower(db)
-	if !c.variables.MongoDBInfo.IsAnyAllowedDatabase(mongodb.DatabaseName(db)) {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, db)
+	d, err := c.catalog.Database(db)
+	if err != nil {
+		return err
 	}
 
-	s := c.server.databases[strings.ToLower(db)]
-	if s == nil {
-		return mysqlerrors.Defaultf(mysqlerrors.ER_BAD_DB_ERROR, db)
-	}
-
-	c.currentDB = s
+	c.currentDB = d
 	c.variables.CollationDatabase = c.variables.CollationServer
 	return nil
 }

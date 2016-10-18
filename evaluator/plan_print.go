@@ -70,6 +70,8 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 	switch typedN := n.(type) {
 	case *BSONSourceStage:
 		b.WriteString("↳ BSONSource:\n")
+	case *DynamicSourceStage:
+		b.WriteString(fmt.Sprintf("↳ DynamicSource (%s):\n", typedN.aliasName))
 	case *DualStage:
 		b.WriteString("↳ Dual")
 	case *CacheStage:
@@ -160,8 +162,6 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 
 		b.WriteString("):\n")
 		prettyPrint(b, typedN.source, d+1)
-	case *SchemaDataSourceStage:
-		b.WriteString("↳ SchemaDataSource:")
 	case *SetCommand:
 		b.WriteString("↳ Set:\n")
 		for _, e := range typedN.assignments {

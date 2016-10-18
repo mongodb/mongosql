@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -14,12 +14,12 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func AlgebrizeCommand(stmt parser.Statement, dbName string, schema *schema.Schema, info *mongodb.Info) (command, error) {
+// AlgebrizeCommand takes a parse SQL statement and returns an algebrized form of the command.
+func AlgebrizeCommand(stmt parser.Statement, dbName string, catalog *catalog.Catalog) (command, error) {
 	g := &selectIDGenerator{}
 	algebrizer := &algebrizer{
 		dbName:                      dbName,
-		schema:                      schema,
-		info:                        info,
+		catalog:                     catalog,
 		selectID:                    g.current,
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
@@ -36,12 +36,11 @@ func AlgebrizeCommand(stmt parser.Statement, dbName string, schema *schema.Schem
 }
 
 // AlgebrizeSelect takes a parsed SQL statement and returns an algebrized form of the query.
-func AlgebrizeSelect(selectStatement parser.SelectStatement, dbName string, vars *variable.Container, schema *schema.Schema) (PlanStage, error) {
+func AlgebrizeSelect(selectStatement parser.SelectStatement, dbName string, vars *variable.Container, catalog *catalog.Catalog) (PlanStage, error) {
 	g := &selectIDGenerator{}
 	algebrizer := &algebrizer{
 		dbName:                      dbName,
-		schema:                      schema,
-		info:                        vars.MongoDBInfo,
+		catalog:                     catalog,
 		selectID:                    g.generate(),
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
@@ -71,8 +70,7 @@ const (
 
 type algebrizer struct {
 	parent            *algebrizer
-	schema            *schema.Schema
-	info              *mongodb.Info
+	catalog           *catalog.Catalog
 	selectIDGenerator *selectIDGenerator
 
 	selectID                     int                   // the selectID to use for projected columns
@@ -650,12 +648,23 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 
 		if strings.EqualFold(tableName, "DUAL") {
 			plan = NewDualStage()
-		} else if strings.EqualFold(dbName, informationSchemaDatabase) {
-			plan = NewSchemaDataSourceStage(a.selectID, a.schema, tableName, aliasName)
 		} else {
-			plan, err = NewMongoSourceStage(a.selectID, a.schema, a.info, dbName, tableName, aliasName)
+			db, err := a.catalog.Database(dbName)
 			if err != nil {
 				return nil, err
+			}
+			table, err := db.Table(tableName)
+			if err != nil {
+				return nil, err
+			}
+
+			switch t := table.(type) {
+			case *catalog.MongoTable:
+				plan = NewMongoSourceStage(db, t, a.selectID, aliasName)
+			case *catalog.DynamicTable:
+				plan = NewDynamicSourceStage(t, a.selectID, aliasName)
+			default:
+				return nil, fmt.Errorf("unknown table type: %T", t)
 			}
 		}
 
@@ -678,8 +687,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 
 		subqueryAlgebrizer := &algebrizer{
 			dbName:                      a.dbName,
-			schema:                      a.schema,
-			info:                        a.info,
+			catalog:                     a.catalog,
 			selectID:                    a.selectIDGenerator.generate(),
 			selectIDGenerator:           a.selectIDGenerator,
 			projectedColumnAggregateMap: make(map[int]SQLExpr),
@@ -712,8 +720,7 @@ func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryE
 	subqueryAlgebrizer := &algebrizer{
 		parent:                      a,
 		dbName:                      a.dbName,
-		schema:                      a.schema,
-		info:                        a.info,
+		catalog:                     a.catalog,
 		selectID:                    a.selectIDGenerator.generate(),
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),

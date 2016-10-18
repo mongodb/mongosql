@@ -3,10 +3,8 @@ package evaluator
 import (
 	"fmt"
 
+	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/10gen/sqlproxy/schema"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -24,20 +22,13 @@ type MongoSourceStage struct {
 	pipeline        []bson.D
 }
 
-func NewMongoSourceStage(selectID int, drdl *schema.Schema, info *mongodb.Info, dbName, tableName, aliasName string) (*MongoSourceStage, error) {
-
-	if dbName == "" {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
-	}
-
-	if tableName == "" {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_TABLES_USED)
-	}
+// NewMongoSourceStage creates a new MongoSourceStage from a catalog.MongoTable.
+func NewMongoSourceStage(db *catalog.Database, table *catalog.MongoTable, selectID int, aliasName string) *MongoSourceStage {
 
 	ms := &MongoSourceStage{
 		selectIDs:  []int{selectID},
-		dbName:     dbName,
-		tableNames: []string{tableName},
+		dbName:     string(db.Name),
+		tableNames: []string{string(table.Name())},
 		aliasNames: []string{aliasName},
 	}
 
@@ -45,55 +36,26 @@ func NewMongoSourceStage(selectID int, drdl *schema.Schema, info *mongodb.Info, 
 		ms.aliasNames = ms.tableNames
 	}
 
-	database, ok := drdl.Databases[ms.dbName]
-	if !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
-	}
-
-	tableSchema, ok := database.Tables[ms.tableNames[0]]
-	if !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
-	}
-
-	dbInfo, ok := info.Databases[mongodb.DatabaseName(ms.dbName)]
-	if !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
-	}
-
-	colInfo, ok := dbInfo.Collections[mongodb.CollectionName(tableSchema.CollectionName)]
-	if !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_TABLE_ERROR, dbName+"."+tableName)
-	}
-
-	if colInfo.Collation == nil {
-		ms.collation = collation.Default
-	} else {
-		var err error
-		ms.collation, err = collation.FromMongoDB(colInfo.Collation)
-		if err != nil {
-			return nil, mysqlerrors.Newf(mysqlerrors.ER_UNKNOWN_COLLATION, "unable to translate MongoDB's collation for \"%s\".\"%s\": %v", dbName, tableName, err)
-		}
-	}
-
-	ms.dbName = database.Name
-	ms.collectionNames = []string{tableSchema.CollectionName}
+	ms.collation = table.Collation()
+	ms.collectionNames = []string{table.CollectionName}
 
 	ms.mappingRegistry = &mappingRegistry{}
-	for _, c := range tableSchema.RawColumns {
+	for _, c := range table.Columns() {
+		mc := c.(*catalog.MongoColumn)
 		column := &Column{
 			SelectID:  selectID,
 			Table:     ms.aliasNames[0],
-			Name:      c.SqlName,
-			SQLType:   c.SqlType,
-			MongoType: c.MongoType,
+			Name:      string(mc.Name()),
+			SQLType:   mc.Type(),
+			MongoType: mc.MongoType,
 		}
 		ms.mappingRegistry.addColumn(column)
-		ms.mappingRegistry.registerMapping(ms.aliasNames[0], c.SqlName, c.Name)
+		ms.mappingRegistry.registerMapping(ms.aliasNames[0], string(mc.Name()), string(mc.MongoName))
 	}
 
-	ms.pipeline = tableSchema.Pipeline
+	ms.pipeline = table.Pipeline
 
-	return ms, nil
+	return ms
 }
 
 func (ms *MongoSourceStage) clone() *MongoSourceStage {

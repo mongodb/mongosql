@@ -48,7 +48,7 @@ func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.Connecti
 
 	conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan: "%v"`, parser.String(ast))
 
-	plan, err := evaluator.AlgebrizeSelect(ast, conn.DB(), conn.Variables(), e.config)
+	plan, err := evaluator.AlgebrizeSelect(ast, conn.DB(), conn.Variables(), conn.Catalog())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -73,11 +73,12 @@ func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.Connecti
 	return columns, iter, nil
 }
 
+// EvaluateCommand creates an executor in which to execute the command.
 func (e *Evaluator) EvaluateCommand(ast parser.Statement, conn evaluator.ConnectionCtx) (evaluator.Executor, error) {
 
 	conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan: "%v"`, parser.String(ast))
 
-	stmt, err := evaluator.AlgebrizeCommand(ast, conn.DB(), e.config, conn.Variables().MongoDBInfo)
+	stmt, err := evaluator.AlgebrizeCommand(ast, conn.DB(), conn.Catalog())
 	if err != nil {
 		return nil, err
 	}
