@@ -22,6 +22,7 @@ const (
 
 const (
 	defaultComponent    = "MONGOSQLD"
+	ControlComponent    = "CONTROL"
 	OptimizerComponent  = "OPTIMIZER"
 	EvaluatorComponent  = "EXECUTOR"
 	NetworkComponent    = "NETWORK"

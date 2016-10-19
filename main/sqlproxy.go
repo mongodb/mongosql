@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 
 	"github.com/10gen/sqlproxy"
@@ -118,6 +119,29 @@ func setupLog(opts options.SqldOptions) (*os.File, *log.Logger) {
 	return logfile, log.NewComponentLogger(log.NetworkComponent, log.GlobalLogger())
 }
 
+func logStartupInfo(opts options.SqldOptions) {
+	controlLogger := log.NewComponentLogger(log.ControlComponent, log.GlobalLogger())
+
+	controlLogger.Logf(log.Always, "[initandlisten] mongosqld version: %v", common.VersionStr)
+	controlLogger.Logf(log.Always, "[initandlisten] git version: %v", common.Gitspec)
+	controlLogger.Logf(log.Always, "[initandlisten] arguments %v", os.Args[1:])
+
+	// Production release version strings should not contain a "-", whereas all development releases should, e.g.
+	// Production release: v2.0.1
+	// Development release: v2.0.0-beta5 or v2.0.0-beta5-8-gfad1111
+	if strings.Contains(common.VersionStr, "-") {
+		controlLogger.Logf(log.Always, "[initandlisten]")
+		controlLogger.Logf(log.Always, "[initandlisten] ** NOTE: This is a development version (%v) of mongosqld.", common.VersionStr)
+		controlLogger.Logf(log.Always, "[initandlisten] **       Not recommended for production.")
+		controlLogger.Logf(log.Always, "[initandlisten]")
+	}
+
+	if !opts.Auth {
+		controlLogger.Logf(log.Always, "[initandlisten] ** WARNING: Access control is not enabled for mongosqld.")
+		controlLogger.Logf(log.Always, "[initandlisten]")
+	}
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -147,6 +171,8 @@ func main() {
 	if logfile != nil {
 		defer logfile.Close()
 	}
+
+	logStartupInfo(opts)
 
 	logger.Logf(log.Always, "[initandlisten] connecting to mongodb at %v", opts.SqldMongoConnection.MongoURI)
 
