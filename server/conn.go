@@ -554,7 +554,7 @@ func (c *conn) run() {
 		}
 
 		if err := c.dispatch(pkt.data); err != nil {
-			c.logger.Logf(log.Always, "dispatch error: %v", err)
+			c.logger.Errf(log.Always, "dispatch error: %v", err)
 			if err != errBadConn {
 				c.writeError(err)
 			}
