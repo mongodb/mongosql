@@ -47,7 +47,7 @@ func TestMongoTable(t *testing.T) {
 	tblConfig := config.RawDatabases[0].RawTables[0]
 
 	Convey("Subject: MongoTable", t, func() {
-		t := catalog.NewMongoTable(tblConfig, collation.Default)
+		t := catalog.NewMongoTable(tblConfig, catalog.BaseTable, collation.Default)
 
 		So(string(t.Name()), ShouldEqual, "foo")
 		So(t.CollectionName, ShouldEqual, "fooCollection")
