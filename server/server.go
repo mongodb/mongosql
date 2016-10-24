@@ -84,11 +84,11 @@ func (s *Server) Run() {
 				}
 				go s.onConn(conn)
 			}
-
 		}()
 	}
 
 	logger.Logf(log.Always, "[initandlisten] waiting for connections at %v", s.listeners[0].Addr())
+
 	for s.running {
 		conn, err := s.listeners[0].Accept()
 		if err != nil {
@@ -104,9 +104,6 @@ func (s *Server) Run() {
 	// wait for all active client connections to return
 	// cleanly before terminating
 	for _, conn := range s.activeConnections {
-		conn.Lock()
-		<-conn.queryChan
-		conn.Unlock()
 		conn.close()
 	}
 }
@@ -114,6 +111,7 @@ func (s *Server) Run() {
 // Close stops the server and stops accepting connections.
 func (s *Server) Close() {
 	s.running = false
+
 	for _, listener := range s.listeners {
 		if listener != nil {
 			listener.Close()
@@ -131,26 +129,24 @@ func (s *Server) Close() {
 func (s *Server) onConn(c net.Conn) {
 	conn := newConn(s, c)
 
+	defer func() {
+		if err := recover(); err != nil {
+			buf := make([]byte, 4096)
+			buf = buf[:runtime.Stack(buf, false)]
+			conn.logger.Errf(log.Info, "%v, %s", err, buf)
+		}
+		c.Close()
+		conn.close()
+	}()
+
 	// this isn't critical so neglecting to lock active connections
 	numConns := len(s.activeConnections)
 	pluralized := util.Pluralize(numConns, "connection", "connections")
-	conn.logger.Logf(log.Info, "connection #%v accepted from %v (%v %v now open)", conn.connectionID, c.RemoteAddr(), numConns+1, pluralized)
-
-	defer func() {
-		if err := recover(); err != nil {
-			const size = 4096
-			buf := make([]byte, size)
-			buf = buf[:runtime.Stack(buf, false)]
-			conn.logger.Logf(log.Always, "panic with %v: %v\n%s", c.RemoteAddr(), err, buf)
-		}
-
-		conn.close()
-	}()
+	conn.logger.Logf(log.Info, "connection #%v accepted from %v (%v %v now open)", conn.connectionID, c.RemoteAddr().String(), numConns+1, pluralized)
 
 	err := conn.handshake()
 	if err != nil {
 		conn.logger.Errf(log.Always, "handshake error: %v", err)
-		c.Close()
 		return
 	}
 

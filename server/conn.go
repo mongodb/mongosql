@@ -36,13 +36,13 @@ var (
 type conn struct {
 	sync.Mutex
 
-	server    *Server
-	session   *mgo.Session
-	closed    bool
-	tomb      *tomb.Tomb
-	logger    *log.Logger
-	startDb   string
-	queryChan chan struct{}
+	server       *Server
+	session      *mgo.Session
+	tomb         *tomb.Tomb
+	logger       *log.Logger
+	startDb      string
+	hasCurrentOp bool
+	closer       sync.Once
 
 	conn     net.Conn
 	reader   *bufio.Reader
@@ -75,7 +75,6 @@ func newConn(s *Server, c net.Conn) *conn {
 		conn:         c,
 		reader:       bufio.NewReaderSize(c, 1024),
 		writer:       c,
-		queryChan:    make(chan struct{}),
 		tomb:         &tomb.Tomb{},
 		connectionID: atomic.AddUint32(&s.connCount, 1),
 		capability: CLIENT_PROTOCOL_41 |
@@ -158,28 +157,30 @@ func (c *conn) authenticate() error {
 }
 
 func (c *conn) close() error {
-	if c.closed {
-		return nil
+	onceBody := func() {
+		connID := c.ConnectionId()
+		c.server.Lock()
+		delete(c.server.activeConnections, connID)
+		c.server.Unlock()
+
+		c.tomb.Kill(mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED))
+
+		// wait for any running queries to be interrupted
+		for c.hasCurrentOp {
+			time.Sleep(time.Duration(100 * time.Millisecond))
+		}
+
+		c.session.Close()
+
+		c.conn.Close()
+
+		// this isn't critical so neglecting to lock
+		numConns := len(c.server.activeConnections)
+		pluralized := util.Pluralize(numConns, "connection", "connections")
+		c.logger.Logf(log.Always, "end connection %v (%v %v now open)", c.conn.RemoteAddr(), numConns, pluralized)
 	}
 
-	connID := c.ConnectionId()
-
-	c.server.Lock()
-	delete(c.server.activeConnections, connID)
-	c.server.Unlock()
-
-	c.tomb.Kill(mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED))
-
-	c.session.Close()
-
-	c.conn.Close()
-
-	c.closed = true
-
-	// this isn't critical so neglecting to lock
-	numConns := len(c.server.activeConnections)
-	pluralized := util.Pluralize(numConns, "connection", "connections")
-	c.logger.Logf(log.Always, "end connection %v (%v %v now open)", c.conn.RemoteAddr(), numConns, pluralized)
+	c.closer.Do(onceBody)
 
 	return nil
 }
@@ -241,6 +242,7 @@ func (c *conn) dispatch(data []byte) error {
 
 func (c *conn) handshake() error {
 	c.logger.Logf(log.DebugHigh, "writing initial handshake")
+
 	if err := c.writeInitialHandshake(); err != nil {
 		c.writeError(err)
 		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "send initial handshake error: %v", err)
@@ -534,10 +536,8 @@ func (c *conn) RowCount() int64 {
 
 func (c *conn) run() {
 	defer func() {
-		r := recover()
-		if err, ok := r.(error); ok {
-			const size = 4096
-			buf := make([]byte, size)
+		if err := recover(); err != nil {
+			buf := make([]byte, 4096)
 			buf = buf[:runtime.Stack(buf, false)]
 			c.logger.Errf(log.Info, "%v, %s", err, buf)
 		}
@@ -556,9 +556,7 @@ func (c *conn) run() {
 		go func() {
 			data, err := c.readPacket()
 			packetReadChan <- packetRead{data, err}
-			c.Lock()
-			c.queryChan = make(chan struct{})
-			c.Unlock()
+			c.hasCurrentOp = true
 		}()
 
 		waitTimeout := time.Duration(c.variables.WaitTimeoutSecs) * time.Second
@@ -566,11 +564,11 @@ func (c *conn) run() {
 		select {
 		case <-time.After(waitTimeout):
 			c.logger.Logf(log.Always, "client wait time out after %v", waitTimeout.String())
-			close(c.queryChan)
+			c.hasCurrentOp = false
 			return
 		case pkt = <-packetReadChan:
 			if pkt.err != nil {
-				close(c.queryChan)
+				c.hasCurrentOp = false
 				return
 			}
 		}
@@ -582,12 +580,7 @@ func (c *conn) run() {
 			}
 		}
 
-		if c.closed {
-			close(c.queryChan)
-			return
-		}
-
-		close(c.queryChan)
+		c.hasCurrentOp = false
 		c.sequence = 0
 	}
 }
