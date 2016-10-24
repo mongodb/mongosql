@@ -73,7 +73,7 @@ func Matches(expr SQLExpr, ctx *EvalCtx) (bool, error) {
 
 	switch v := eval.(type) {
 	case SQLBool:
-		return bool(v), nil
+		return v.Bool(), nil
 	case SQLInt, SQLFloat, SQLUint32, SQLUint64:
 		return v.Float64() != float64(0), nil
 	case SQLDecimal128:
@@ -427,7 +427,7 @@ func (eq *SQLEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return SQLBool(c == 0), nil
+		return NewSQLBool(c == 0), nil
 	}
 
 	return SQLFalse, err
@@ -486,7 +486,7 @@ func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		matches = true
 	}
 
-	return SQLBool(matches), it.Close()
+	return NewSQLBool(matches), it.Close()
 }
 
 func (em *SQLExistsExpr) String() string {
@@ -520,7 +520,7 @@ func (gt *SQLGreaterThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return SQLBool(c > 0), nil
+		return NewSQLBool(c > 0), nil
 	}
 	return SQLFalse, err
 }
@@ -568,7 +568,7 @@ func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return SQLBool(c >= 0), nil
+		return NewSQLBool(c >= 0), nil
 	}
 
 	return SQLFalse, err
@@ -777,7 +777,7 @@ func (lt *SQLLessThanExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return SQLBool(c < 0), nil
+		return NewSQLBool(c < 0), nil
 	}
 	return SQLFalse, err
 }
@@ -825,7 +825,7 @@ func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return SQLBool(c <= 0), nil
+		return NewSQLBool(c <= 0), nil
 	}
 	return SQLFalse, err
 }
@@ -884,7 +884,7 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	return SQLBool(matches), nil
+	return NewSQLBool(matches), nil
 }
 
 func (l *SQLLikeExpr) normalize() node {
@@ -1042,7 +1042,7 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return SQLBool(c != 0), nil
+		return NewSQLBool(c != 0), nil
 	}
 
 	return SQLFalse, err
@@ -1103,7 +1103,7 @@ func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	c, err := CompareTo(leftVal, rightVal, ctx.Collation)
 	if err == nil {
-		return SQLBool(c == 0), nil
+		return NewSQLBool(c == 0), nil
 	}
 
 	return SQLFalse, err
@@ -1356,7 +1356,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		row, right = &Row{}, &SQLValues{}
 	}
 
-	return SQLBool(!mismatch && allMatch), err
+	return NewSQLBool(!mismatch && allMatch), err
 }
 
 func (sc *SQLSubqueryCmpExpr) String() string {

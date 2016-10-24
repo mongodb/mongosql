@@ -50,11 +50,26 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 	switch sqlType {
 
 	case schema.SQLBoolean:
-		v := NewSQLValue(value, schema.SQLFloat)
-		if v.Float64() == 0 {
+		switch v := value.(type) {
+		case bool:
+			return NewSQLBool(v)
+		case bson.ObjectId:
+			return SQLTrue
+		case bson.Decimal128:
+			dec, _ := decimal.NewFromString(v.String())
+			flt, _ := dec.Float64()
+			return SQLBool(flt)
+		case float32, float64, int, int8, int16, int32, int64, uint8, uint16, uint32, uint64:
+			flt, _ := util.ToFloat64(v)
+			return SQLBool(flt)
+		case string:
+			flt, _ := strconv.ParseFloat(v, 64)
+			return SQLBool(flt)
+		case time.Time:
+			return SQLTrue
+		default:
 			return SQLFalse
 		}
-		return SQLTrue
 
 	case schema.SQLDate:
 		switch v := value.(type) {
@@ -307,7 +322,7 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			d, err := decimal.NewFromString(v.String())
 			return SQLDecimal128(d), err
 		case bool:
-			return SQLBool(v), nil
+			return NewSQLBool(v), nil
 		case decimal.Decimal:
 			return SQLDecimal128(v), nil
 		case string:
@@ -462,31 +477,32 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			}
 			return SQLFalse, nil
 		case string:
-			return SQLFalse, nil
-		case uint8, uint16, uint32, uint64, int, int8, int16, int32, int64, float32, float64:
-			eval, _ := util.ToFloat64(v)
-			if eval == 0 {
+			f, err := strconv.ParseFloat(v, 64)
+			if err != nil {
 				return SQLFalse, nil
 			}
-			return SQLTrue, nil
+			return SQLBool(f), nil
+		case uint8, uint16, uint32, uint64, int, int8, int16, int32, int64, float32, float64:
+			eval, _ := util.ToFloat64(v)
+			return SQLBool(eval), nil
 		case time.Time:
 			var eval int64
 			h, m, s := v.Clock()
 			// Date, time or timestamp.
 			if h+m+s == 0 {
 				val, _ := strconv.ParseInt(v.Format("20060102"), 10, 64)
+				// TODO: should we handle the error here?
 				eval = val
 			} else if v.Year() == 0 {
 				val, _ := strconv.ParseInt(v.Format("150405"), 10, 64)
+				// TODO: should we handle the error here?
 				eval = val
 			} else {
 				val, _ := strconv.ParseInt(v.Format("20060102150405"), 10, 64)
+				// TODO: should we handle the error here?
 				eval = val
 			}
-			if eval == 0 {
-				return SQLFalse, nil
-			}
-			return SQLTrue, nil
+			return SQLBool(eval), nil
 		case nil:
 			return SQLNull, nil
 		}

@@ -196,3 +196,7 @@ testcases:
   expected_types: [varchar, int, varchar, float64, int]
   expected:
     - [570e927965d33734a8605c2b, 1, hello, 23.0, 1]
+- sql: "SELECT (true + true)"
+  expected_types: [float]
+  expected:
+    - [2]

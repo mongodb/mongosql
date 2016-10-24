@@ -102,6 +102,10 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 		preferenceType = schema.SQLInt
 	}
 
+	if preferenceType == schema.SQLBoolean {
+		preferenceType = schema.SQLFloat
+	}
+
 	leftFloat := leftVal.Float64()
 	rightFloat := rightVal.Float64()
 

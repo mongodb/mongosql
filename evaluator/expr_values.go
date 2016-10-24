@@ -16,19 +16,23 @@ import (
 //
 // SQLBool represents a boolean.
 //
-type SQLBool bool
+type SQLBool float64
 
-// SQLTrue is a constant SQLBool(true).
-const SQLTrue = SQLBool(true)
+// SQLTrue is a constant SQLBool(1).
+const SQLTrue = SQLBool(1)
 
-// SQLFalse is a constant SQLBool(false).
-const SQLFalse = SQLBool(false)
+// SQLFalse is a constant SQLBool(0).
+const SQLFalse = SQLBool(0)
+
+func NewSQLBool(b bool) SQLBool {
+	if b {
+		return SQLTrue
+	}
+	return SQLFalse
+}
 
 func (sb SQLBool) Decimal128() decimal.Decimal {
-	if bool(sb) {
-		return decimal.NewFromFloat(1)
-	}
-	return decimal.Zero
+	return decimal.NewFromFloat(sb.Float64())
 }
 
 func (sb SQLBool) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -36,24 +40,15 @@ func (sb SQLBool) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 }
 
 func (sb SQLBool) Float64() float64 {
-	if bool(sb) {
-		return float64(1)
-	}
-	return float64(0)
+	return float64(sb)
 }
 
 func (sb SQLBool) Int64() int64 {
-	if bool(sb) {
-		return int64(1)
-	}
-	return int64(0)
+	return int64(sb)
 }
 
 func (sb SQLBool) String() string {
-	if sb {
-		return "1"
-	}
-	return "0"
+	return strconv.FormatFloat(sb.Float64(), 'f', -1, 64)
 }
 
 func (_ SQLBool) Type() schema.SQLType {
@@ -61,14 +56,18 @@ func (_ SQLBool) Type() schema.SQLType {
 }
 
 func (sb SQLBool) Uint64() uint64 {
-	if bool(sb) {
-		return uint64(1)
-	}
-	return uint64(0)
+	return uint64(sb)
+}
+
+func (sb SQLBool) Bool() bool {
+	return sb > 0
 }
 
 func (sb SQLBool) Value() interface{} {
-	return bool(sb)
+	if sb > 0 {
+		return true
+	}
+	return false
 }
 
 //

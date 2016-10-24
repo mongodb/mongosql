@@ -622,7 +622,7 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 			f, _ := strconv.ParseFloat(typedV.String(), 64)
 			i = int64(f)
 		case SQLBool:
-			if typedV {
+			if typedV.Bool() {
 				i = 1
 			} else {
 				i = 0
@@ -648,7 +648,7 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		case SQLVarchar:
 			f, _ = strconv.ParseFloat(typedV.String(), 64)
 		case SQLBool:
-			if typedV {
+			if typedV.Bool() {
 				f = float64(1)
 			} else {
 				f = float64(0)
@@ -671,7 +671,7 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		case SQLVarchar:
 			s = typedV.String()
 		case SQLBool:
-			if typedV {
+			if typedV.Bool() {
 				s = "1"
 			} else {
 				s = "0"
@@ -1231,7 +1231,7 @@ type ifFunc struct{}
 func (_ *ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	switch typedV := values[0].(type) {
 	case SQLBool:
-		if typedV {
+		if typedV.Bool() {
 			return values[1], nil
 		} else {
 			return values[2], nil
@@ -1357,13 +1357,13 @@ type isnullFunc struct{}
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_isnull
 func (_ *isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	_, ok := values[0].(SQLNullValue)
-	matcher := SQLBool(ok)
+	matcher := NewSQLBool(ok)
 
 	result, err := Matches(matcher, ctx)
 	if err != nil {
 		return nil, err
 	}
-	if SQLBool(result) == SQLTrue {
+	if NewSQLBool(result) == SQLTrue {
 		return SQLInt(1), nil
 	}
 	return SQLInt(0), nil
@@ -1729,7 +1729,7 @@ func (_ *notFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	if SQLBool(result) == SQLTrue {
+	if NewSQLBool(result) == SQLTrue {
 		return SQLInt(1), nil
 	}
 	return SQLInt(0), nil

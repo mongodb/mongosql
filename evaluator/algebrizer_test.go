@@ -1634,14 +1634,14 @@ func TestAlgebrizeExpr(t *testing.T) {
 		Convey("Is", func() {
 			test("a is true", &SQLIsExpr{
 				left:  createSQLColumnExpr("a"),
-				right: SQLBool(true),
+				right: SQLTrue,
 			})
 		})
 
 		Convey("Is Not", func() {
 			test("a is not true", &SQLNotExpr{&SQLIsExpr{
 				left:  createSQLColumnExpr("a"),
-				right: SQLBool(true),
+				right: SQLTrue,
 			}})
 		})
 

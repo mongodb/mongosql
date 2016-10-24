@@ -53,7 +53,7 @@ func (c *conn) formatValue(value interface{}) ([]byte, error) {
 	case evaluator.SQLNullValue, *evaluator.SQLNullValue, evaluator.SQLNoValue:
 		return nil, nil
 	case evaluator.SQLBool:
-		if bool(v) {
+		if v.Bool() {
 			return []byte{'1'}, nil
 		}
 		return []byte{'0'}, nil

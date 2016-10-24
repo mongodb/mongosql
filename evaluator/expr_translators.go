@@ -1043,7 +1043,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		}
 		return bson.M{"$literal": typedE}, true
 
-	case SQLBool, SQLFloat, SQLInt, SQLUint32, SQLVarchar:
+	case SQLBool:
+		return bson.M{"$literal": typedE.Bool()}, true
+
+	case SQLFloat, SQLInt, SQLUint32, SQLVarchar:
 		return bson.M{"$literal": typedE}, true
 
 	case SQLUUID:
