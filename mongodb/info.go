@@ -1,8 +1,10 @@
 package mongodb
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 
 	"gopkg.in/mgo.v2"
@@ -36,7 +38,9 @@ func (i *Info) VersionAtLeast(version ...int) bool {
 
 // DatabaseInfo is the configuration of a database in MongoDB.
 type DatabaseInfo struct {
-	// Nme is the name of the database.
+	caseSensitiveName string
+
+	// Name is the name of the database.
 	Name DatabaseName
 	// Privileges is a union of all the collection privileges.
 	Privileges Privilege
@@ -58,7 +62,7 @@ type CollectionInfo struct {
 }
 
 // LoadInfo looks up information from MongoDB.
-func LoadInfo(s *mgo.Session, sch *schema.Schema, requireAuth bool) (*Info, error) {
+func LoadInfo(logger *log.Logger, s *mgo.Session, config *schema.Schema, requireAuth bool) (*Info, error) {
 	session := s.Clone()
 	defer session.Close()
 
@@ -66,11 +70,9 @@ func LoadInfo(s *mgo.Session, sch *schema.Schema, requireAuth bool) (*Info, erro
 	if err != nil {
 		return nil, err
 	}
+	logger.Logf(log.Info, "connected to MongoDB %v, %v", buildInfo.Version, buildInfo.GitVersion)
 
-	dbs, err := loadDatabases(session, sch)
-	if err != nil {
-		return nil, err
-	}
+	dbs := createDatabasesFromSchema(config)
 
 	i := &Info{
 		buildInfo:  &buildInfo,
@@ -80,7 +82,7 @@ func LoadInfo(s *mgo.Session, sch *schema.Schema, requireAuth bool) (*Info, erro
 	}
 
 	if requireAuth {
-		err = i.loadAuthInfo(s)
+		err = i.loadAuthInfo(logger, s)
 		if err != nil {
 			return nil, err
 		}
@@ -88,27 +90,66 @@ func LoadInfo(s *mgo.Session, sch *schema.Schema, requireAuth bool) (*Info, erro
 		i.setAllPrivileges(AllPrivileges)
 	}
 
+	i.loadMetadata(logger, s)
+
 	return i, nil
 }
 
-func loadDatabases(s *mgo.Session, sch *schema.Schema) (map[DatabaseName]*DatabaseInfo, error) {
-	dbInfos := make(map[DatabaseName]*DatabaseInfo, len(sch.RawDatabases))
-	for _, dbSchema := range sch.RawDatabases {
-		cols, err := loadCollections(s, dbSchema)
-		if err != nil {
-			return nil, err
-		}
+func createDatabasesFromSchema(config *schema.Schema) map[DatabaseName]*DatabaseInfo {
+	dbInfos := make(map[DatabaseName]*DatabaseInfo, len(config.RawDatabases))
+	for _, dbSchema := range config.RawDatabases {
 		dbInfo := &DatabaseInfo{
-			Name:        DatabaseName(strings.ToLower(dbSchema.Name)),
-			Collections: cols,
+			caseSensitiveName: dbSchema.Name,
+			Name:              DatabaseName(strings.ToLower(dbSchema.Name)),
+			Collections:       make(map[CollectionName]*CollectionInfo),
 		}
 		dbInfos[dbInfo.Name] = dbInfo
+		for _, tblSchema := range dbSchema.RawTables {
+			name := CollectionName(tblSchema.CollectionName)
+			if _, ok := dbInfo.Collections[name]; ok {
+				// Because multiple tables can be mapped to the same collection,
+				// we can skip collections we've already included.
+				continue
+			}
+
+			dbInfo.Collections[name] = &CollectionInfo{
+				Name: name,
+			}
+		}
 	}
 
-	return dbInfos, nil
+	return dbInfos
 }
 
-func loadCollections(s *mgo.Session, dbSchema *schema.Database) (map[CollectionName]*CollectionInfo, error) {
+func (i *Info) loadMetadata(logger *log.Logger, s *mgo.Session) error {
+	c := s.Clone()
+	defer c.Close()
+	for _, dbInfo := range i.Databases {
+		err := dbInfo.loadMetadata(logger, c)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *mgo.Session) error {
+
+	if (dbInfo.Privileges & ListCollectionsPrivilege) == 0 {
+
+		logger.Warnf(log.Always, "user does not have the 'listCollections' privileges on database '%v'", dbInfo.caseSensitiveName)
+
+		// User can't list collections on this database. This means
+		// we can't determine if the collection is a view or what
+		// the collation is. Hence, we need to mark the database
+		// and all the collections underneath as having no
+		// privileges.
+		dbInfo.Privileges = NoPrivileges
+		for _, colInfo := range dbInfo.Collections {
+			colInfo.Privileges = NoPrivileges
+		}
+		return nil
+	}
 
 	var result struct {
 		Collections []bson.Raw
@@ -120,22 +161,10 @@ func loadCollections(s *mgo.Session, dbSchema *schema.Database) (map[CollectionN
 		}
 	}
 
-	err := s.DB(dbSchema.Name).Run(bson.D{{"listCollections", 1}, {"cursor", struct{}{}}}, &result)
+	logger.Logf(log.DebugHigh, "running listCollections on database '%v'", dbInfo.caseSensitiveName)
+	err := s.DB(dbInfo.caseSensitiveName).Run(bson.D{{"listCollections", 1}, {"cursor", struct{}{}}}, &result)
 	if err != nil {
-		return nil, err
-	}
-	colInfos := make(map[CollectionName]*CollectionInfo)
-	for _, t := range dbSchema.RawTables {
-		name := CollectionName(t.CollectionName)
-		if _, ok := colInfos[name]; ok {
-			// Because multiple tables can be mapped to the same collection,
-			// we can skip collections we've already included.
-			continue
-		}
-
-		colInfos[name] = &CollectionInfo{
-			Name: name,
-		}
+		return fmt.Errorf("failed to run listCollections on database '%v': %v", dbInfo.caseSensitiveName, err)
 	}
 
 	ns := strings.SplitN(result.Cursor.NS, ".", 2)
@@ -149,7 +178,7 @@ func loadCollections(s *mgo.Session, dbSchema *schema.Database) (map[CollectionN
 	}
 
 	for iter.Next(&colResult) {
-		colInfo, ok := colInfos[CollectionName(colResult.Name)]
+		colInfo, ok := dbInfo.Collections[CollectionName(colResult.Name)]
 		if !ok {
 			continue
 		}
@@ -159,8 +188,8 @@ func loadCollections(s *mgo.Session, dbSchema *schema.Database) (map[CollectionN
 	}
 
 	if err := iter.Close(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return colInfos, iter.Err()
+	return iter.Err()
 }

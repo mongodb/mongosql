@@ -1,7 +1,10 @@
 package mongodb
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/10gen/sqlproxy/log"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -15,16 +18,19 @@ const (
 	NoPrivileges = 0
 
 	// AllPrivileges is the union of all the privileges.
-	AllPrivileges = FindPrivilege
+	AllPrivileges = FindPrivilege | ListCollectionsPrivilege
 )
 
 const (
 	// FindPrivilege is the privilege to query a database.
 	FindPrivilege = 1 << iota
+	// ListCollectionsPrivilege is the privilege to list the collections of a database.
+	ListCollectionsPrivilege
 )
 
 var privilegeMap = map[string]Privilege{
-	"find": FindPrivilege,
+	"find":            FindPrivilege,
+	"listCollections": ListCollectionsPrivilege,
 }
 
 // IsAnyAllowed indicates if any privileges exist.
@@ -79,17 +85,18 @@ func (i *Info) IsAllowedCollection(dbName DatabaseName, colName CollectionName, 
 
 // loadAuthInfo gathers the authorization information from MongoDB and propogates
 // it to the Info tree.
-func (i *Info) loadAuthInfo(s *mgo.Session) error {
+func (i *Info) loadAuthInfo(logger *log.Logger, s *mgo.Session) error {
 	c := s.Clone()
-	defer s.Close()
+	defer c.Close()
 	cmd := bson.D{
 		{"connectionStatus", 1},
 		{"showPrivileges", 1},
 	}
 	var result connectionStatusResult
+	logger.Log(log.DebugHigh, "loading privilege information for current user")
 	err := c.Run(cmd, &result)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load privilege information for the current user: %v", err)
 	}
 
 	i.loadAuthInfoFromConnectionStatus(&result)

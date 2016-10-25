@@ -157,7 +157,7 @@ func (s *Server) onConn(c net.Conn) {
 	}
 
 	schema := s.eval.Schema()
-	conn.variables.MongoDBInfo, err = mongodb.LoadInfo(conn.Session(), &schema, s.opts.Auth)
+	conn.variables.MongoDBInfo, err = mongodb.LoadInfo(conn.logger, conn.Session(), &schema, s.opts.Auth)
 	if err != nil {
 		conn.logger.Errf(log.Always, "error retrieving information from MongoDB: %v", err)
 		c.Close()

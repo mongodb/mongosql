@@ -6,6 +6,7 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
@@ -57,7 +58,8 @@ schema:
 		sch, err := schema.New([]byte(schemaString))
 		So(err, ShouldBeNil)
 
-		info, err := mongodb.LoadInfo(s, sch, false)
+		logger := log.GlobalLogger()
+		info, err := mongodb.LoadInfo(&logger, s, sch, false)
 		So(err, ShouldBeNil)
 
 		So(info.Privileges, ShouldEqual, mongodb.AllPrivileges)

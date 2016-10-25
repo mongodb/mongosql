@@ -52,7 +52,7 @@ func TestLoadAuthInfoFromConnectionStatus(t *testing.T) {
 					},
 					bson.M{
 						"resource": bson.M{"db": "test2", "collection": "d"},
-						"actions":  []interface{}{"find"},
+						"actions":  []interface{}{"find", "listCollections"},
 					},
 				},
 			},
@@ -74,11 +74,11 @@ func TestLoadAuthInfoFromConnectionStatus(t *testing.T) {
 		test1, ok := info.Databases[DatabaseName("test1")]
 		So(ok, ShouldBeTrue)
 		So(len(test1.Collections), ShouldEqual, 2)
-		So(test1.Privileges, ShouldEqual, AllPrivileges)
+		So(test1.Privileges, ShouldEqual, FindPrivilege)
 
 		a, ok := test1.Collections[CollectionName("a")]
 		So(ok, ShouldBeTrue)
-		So(a.Privileges, ShouldEqual, AllPrivileges)
+		So(a.Privileges, ShouldEqual, FindPrivilege)
 
 		b, ok := test1.Collections[CollectionName("b")]
 		So(ok, ShouldBeTrue)
