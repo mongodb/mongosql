@@ -1177,7 +1177,7 @@ func mergePipeline(local, foreign *MongoSourceStage, joinKind JoinKind) (*consol
 			path := fmt.Sprintf("%v", fieldPath)[1:]
 			arrayIdx := fmt.Sprintf("%v", fieldIdx)
 
-			if !util.StringSliceContains(pipeline.arrayPaths, path) {
+			if !util.StringSliceContains(pipeline.arrayPathIndexes, arrayIdx) {
 				pipeline.arrayPaths = append(pipeline.arrayPaths, path)
 				pipeline.arrayPathIndexes = append(pipeline.arrayPathIndexes, arrayIdx)
 				_, ok = fields["preserveNullAndEmptyArrays"]

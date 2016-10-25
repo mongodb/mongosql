@@ -38,6 +38,11 @@ data:
     collection: "select_4"
     docs:
     - { _id: "57f422f941a74e324fb5c44a", a: 1, c: [ { y: [] }, { y: [1, 4, 5] } ] }
+- inline:
+    db: "test"
+    collection: "select_5"
+    docs:
+    - { _id: "57f422f941a74e324fb5c44a", a: 1, c: [ [3, 2] ] }
 
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
@@ -282,6 +287,48 @@ schema:
       SqlName: c_idx
       SqlType: numeric
       PrimaryKey: true
+  - table: test_array
+    collection: select_5
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+  - table: test_array_array
+    collection: select_5
+    pipeline:
+    - $unwind:
+        includeArrayIndex: c_idx
+        path: $c
+    - $unwind:
+        includeArrayIndex: c_idx_1
+        path: $c
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: c
+      MongoType: float64
+      SqlName: c
+      SqlType: numeric
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: numeric
+    - Name: c_idx_1
+      MongoType: int
+      SqlName: c_idx_1
+      SqlType: numeric
 #
 # Tests
 #
@@ -874,4 +921,9 @@ testcases:
   - [4]
   - [1]
   - [~]
-
+- sql: "select * from test.test_array a join test.test_array_array b on a._id=b._id;"
+  expected_names: ["_id", "a", "_id", "a", "c", "c_idx", "c_idx_1"]
+  expected_types: [varchar, int, varchar, int, int, int, int]
+  expected:
+  - ["57f422f941a74e324fb5c44a", 1, "57f422f941a74e324fb5c44a", 1, 3, 0, 0]
+  - ["57f422f941a74e324fb5c44a", 1, "57f422f941a74e324fb5c44a", 1, 2, 0, 1]
