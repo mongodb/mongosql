@@ -46,3 +46,7 @@ schema:
       mongotype: int
       sqlname: a_idx_2
       sqltype: numeric
+    - name: name
+      mongotype: string
+      sqlname: name
+      sqltype: varchar

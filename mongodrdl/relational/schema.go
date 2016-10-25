@@ -2,9 +2,10 @@ package relational
 
 import (
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 	"sort"
 	"strings"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
 const (
@@ -43,6 +44,7 @@ type Table struct {
 	Pipeline       []map[string]interface{} `yaml:"pipeline"`
 	Columns        ColumnSlice              `yaml:"columns"`
 	Parent         *Table                   `yaml:"-"`
+	PrimaryKey     ColumnSlice              `yaml:"-"`
 }
 
 func newTable(name string, collectionName string) *Table {
@@ -74,12 +76,19 @@ func (t *Table) addUnwind(path string, indexFieldName string) {
 	t.Pipeline = append(t.Pipeline, unwind)
 }
 
-func (t *Table) copyParent() error {
+func (t *Table) copyParent(primaryKeyOnly bool) error {
 	if t.Parent == nil {
 		return nil
 	}
 
-	for _, copy := range t.Parent.Columns {
+	t.PrimaryKey = append(t.Parent.PrimaryKey, t.PrimaryKey...)
+
+	source := t.Parent.Columns
+	if primaryKeyOnly {
+		source = t.Parent.PrimaryKey
+	}
+
+	for _, copy := range source {
 		if t.Columns.containsName(copy.Name) {
 			return fmt.Errorf("A column with the name %s already exists.", copy.Name)
 		}

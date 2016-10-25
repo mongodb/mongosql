@@ -2,12 +2,13 @@ package mongodrdl
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"strings"
 )
 
 var (
@@ -144,7 +145,7 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 	}
 
 	if _, ok := database.Views[collection.Name]; ok {
-		return database.Map(col, []mgo.Index{})
+		return database.Map(col, []mgo.Index{}, schemaGen.OutputOptions.PreJoined)
 	}
 
 	// Indexes are needed in order to determine certain
@@ -154,5 +155,5 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 		return err
 	}
 
-	return database.Map(col, indexes)
+	return database.Map(col, indexes, schemaGen.OutputOptions.PreJoined)
 }

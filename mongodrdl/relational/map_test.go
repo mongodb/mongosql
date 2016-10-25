@@ -3,15 +3,16 @@ package relational_test
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"strconv"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestMapping(t *testing.T) {
@@ -23,7 +24,7 @@ func TestMapping(t *testing.T) {
 
 		Convey("Without any documents", func() {
 			Convey("Mapping the collection", func() {
-				err := database.Map(collection, noIndexes)
+				err := database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in no tables", func() {
@@ -37,7 +38,7 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err := database.Map(collection, noIndexes)
+				err := database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in no tables", func() {
@@ -55,7 +56,7 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 1 table", func() {
@@ -84,7 +85,7 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 1 table", func() {
@@ -111,7 +112,28 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, false)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 tables", func() {
+					So(len(database.Tables), ShouldEqual, 2)
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "a")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_b")
+					So(len(table.Columns), ShouldEqual, 2)
+					So(table.Columns[0].Name, ShouldEqual, "b")
+					So(table.Columns[1].Name, ShouldEqual, "b_idx")
+					assertPipeline(table.Pipeline, unwind{"b", 1})
+				})
+			})
+
+			Convey("Mapping the collection preJoined", func() {
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 tables", func() {
@@ -133,6 +155,70 @@ func TestMapping(t *testing.T) {
 			})
 		})
 
+		Convey("With a document containing a composite identifier and an array", func() {
+			err := collection.IncludeSample(bson.D{
+				{"_id", bson.D{
+					{"a", 1},
+					{"b", 1},
+				}},
+				{"c", 1},
+				{"d", []interface{}{1, 2, 3}},
+			})
+
+			So(err, ShouldBeNil)
+
+			Convey("Mapping the collection", func() {
+				err = database.Map(collection, noIndexes, false)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 tables", func() {
+					So(len(database.Tables), ShouldEqual, 2)
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 3)
+					So(table.Columns[0].Name, ShouldEqual, "_id.a")
+					So(table.Columns[1].Name, ShouldEqual, "_id.b")
+					So(table.Columns[2].Name, ShouldEqual, "c")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_d")
+					So(len(table.Columns), ShouldEqual, 4)
+					So(table.Columns[0].Name, ShouldEqual, "_id.a")
+					So(table.Columns[1].Name, ShouldEqual, "_id.b")
+					So(table.Columns[2].Name, ShouldEqual, "d")
+					So(table.Columns[3].Name, ShouldEqual, "d_idx")
+					assertPipeline(table.Pipeline, unwind{"d", 1})
+				})
+			})
+
+			Convey("Mapping the collection preJoined", func() {
+				err = database.Map(collection, noIndexes, true)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 tables", func() {
+					So(len(database.Tables), ShouldEqual, 2)
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 3)
+					So(table.Columns[0].Name, ShouldEqual, "_id.a")
+					So(table.Columns[1].Name, ShouldEqual, "_id.b")
+					So(table.Columns[2].Name, ShouldEqual, "c")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_d")
+					So(len(table.Columns), ShouldEqual, 5)
+					So(table.Columns[0].Name, ShouldEqual, "_id.a")
+					So(table.Columns[1].Name, ShouldEqual, "_id.b")
+					So(table.Columns[2].Name, ShouldEqual, "c")
+					So(table.Columns[3].Name, ShouldEqual, "d")
+					So(table.Columns[4].Name, ShouldEqual, "d_idx")
+					assertPipeline(table.Pipeline, unwind{"d", 1})
+				})
+			})
+		})
+
 		Convey("With a document containing an array of documents with different fields", func() {
 			err := collection.IncludeSample(bson.D{
 				{"a", 1},
@@ -144,7 +230,31 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, false)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 tables", func() {
+					So(len(database.Tables), ShouldEqual, 2)
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "a")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_b")
+					So(len(table.Columns), ShouldEqual, 4)
+					So(table.Columns[0].Name, ShouldEqual, "b.c")
+					So(table.Columns[1].Name, ShouldEqual, "b.d")
+					So(table.Columns[2].Name, ShouldEqual, "b.e")
+					So(table.Columns[3].Name, ShouldEqual, "b_idx")
+					So(len(table.Pipeline), ShouldEqual, 1)
+					assertPipeline(table.Pipeline, unwind{"b", 1})
+				})
+			})
+
+			Convey("Mapping the collection preJoined", func() {
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 tables", func() {
@@ -181,7 +291,30 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, false)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 tables", func() {
+					So(len(database.Tables), ShouldEqual, 2)
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 3)
+					So(table.Columns[0].Name, ShouldEqual, "a")
+					So(table.Columns[1].Name, ShouldEqual, "b.e")
+					So(table.Columns[2].Name, ShouldEqual, "f")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_b_c")
+					So(len(table.Columns), ShouldEqual, 2)
+					So(table.Columns[0].Name, ShouldEqual, "b.c.d")
+					So(table.Columns[1].Name, ShouldEqual, "b.c_idx")
+					assertPipeline(table.Pipeline, unwind{"b.c", 1})
+				})
+			})
+
+			Convey("Mapping the collection preJoined", func() {
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 tables", func() {
@@ -218,7 +351,29 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, false)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 tables", func() {
+					So(len(database.Tables), ShouldEqual, 2)
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "a")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_b")
+					So(len(table.Columns), ShouldEqual, 3)
+					So(table.Columns[0].Name, ShouldEqual, "b")
+					So(table.Columns[1].Name, ShouldEqual, "b_idx")
+					So(table.Columns[2].Name, ShouldEqual, "b_idx_1")
+					assertPipeline(table.Pipeline, unwind{"b", 2})
+				})
+			})
+
+			Convey("Mapping the collection preJoined", func() {
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 tables", func() {
@@ -253,7 +408,35 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, false)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 3 tables", func() {
+					So(len(database.Tables), ShouldEqual, 3)
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "a")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_b_d")
+					So(len(table.Columns), ShouldEqual, 2)
+					So(table.Columns[0].Name, ShouldEqual, "b.d")
+					So(table.Columns[1].Name, ShouldEqual, "b.d_idx")
+					assertPipeline(table.Pipeline, unwind{"b.d", 1})
+
+					table = database.Tables[2]
+					So(table.Name, ShouldEqual, collection.Name+"_c_d")
+					So(len(table.Columns), ShouldEqual, 2)
+					So(table.Columns[0].Name, ShouldEqual, "c.d")
+					So(table.Columns[1].Name, ShouldEqual, "c.d_idx")
+					assertPipeline(table.Pipeline, unwind{"c.d", 1})
+				})
+			})
+
+			Convey("Mapping the collection preJoined", func() {
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 3 tables", func() {
@@ -269,7 +452,6 @@ func TestMapping(t *testing.T) {
 					So(len(table.Columns), ShouldEqual, 3)
 					So(table.Columns[0].Name, ShouldEqual, "a")
 					So(table.Columns[1].Name, ShouldEqual, "b.d")
-					So(table.Columns[2].Name, ShouldEqual, "b.d_idx")
 					assertPipeline(table.Pipeline, unwind{"b.d", 1})
 
 					table = database.Tables[2]
@@ -294,7 +476,30 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, false)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 tables", func() {
+					So(len(database.Tables), ShouldEqual, 2)
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "a")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_b")
+					So(len(table.Columns), ShouldEqual, 4)
+					So(table.Columns[0].Name, ShouldEqual, "b.c")
+					So(table.Columns[1].Name, ShouldEqual, "b.d")
+					So(table.Columns[2].Name, ShouldEqual, "b.e")
+					So(table.Columns[3].Name, ShouldEqual, "b_idx")
+					assertPipeline(table.Pipeline, unwind{"b", 1})
+				})
+			})
+
+			Convey("Mapping the collection preJoined", func() {
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 tables", func() {
@@ -329,7 +534,38 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, false)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 3 tables", func() {
+					So(len(database.Tables), ShouldEqual, 3)
+
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "a")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_b")
+					So(len(table.Columns), ShouldEqual, 3)
+					So(table.Columns[0].Name, ShouldEqual, "b.c")
+					So(table.Columns[1].Name, ShouldEqual, "b.e")
+					So(table.Columns[2].Name, ShouldEqual, "b_idx")
+					assertPipeline(table.Pipeline, unwind{"b", 1})
+
+					table = database.Tables[2]
+					So(table.Name, ShouldEqual, collection.Name+"_b_d")
+					So(len(table.Columns), ShouldEqual, 3)
+					So(table.Columns[0].Name, ShouldEqual, "b.d")
+					So(table.Columns[1].Name, ShouldEqual, "b.d_idx")
+					So(table.Columns[2].Name, ShouldEqual, "b_idx")
+					assertPipeline(table.Pipeline, unwind{"b", 1}, unwind{"b.d", 1})
+				})
+			})
+
+			Convey("Mapping the collection preJoined", func() {
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 3 tables", func() {
@@ -375,7 +611,38 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, false)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 3 tables", func() {
+					So(len(database.Tables), ShouldEqual, 3)
+
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "a")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_b")
+					So(len(table.Columns), ShouldEqual, 3)
+					So(table.Columns[0].Name, ShouldEqual, "b.c")
+					So(table.Columns[1].Name, ShouldEqual, "b.e")
+					So(table.Columns[2].Name, ShouldEqual, "b_idx")
+					assertPipeline(table.Pipeline, unwind{"b", 1})
+
+					table = database.Tables[2]
+					So(table.Name, ShouldEqual, collection.Name+"_b_d")
+					So(len(table.Columns), ShouldEqual, 3)
+					So(table.Columns[0].Name, ShouldEqual, "b.d.e")
+					So(table.Columns[1].Name, ShouldEqual, "b.d_idx")
+					So(table.Columns[2].Name, ShouldEqual, "b_idx")
+					assertPipeline(table.Pipeline, unwind{"b", 1}, unwind{"b.d", 1})
+				})
+			})
+
+			Convey("Mapping the collection preJoined", func() {
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 3 tables", func() {
@@ -421,7 +688,30 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, false)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 tables", func() {
+					So(len(database.Tables), ShouldEqual, 2)
+
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "a")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_b")
+					So(len(table.Columns), ShouldEqual, 3)
+					So(table.Columns[0].Name, ShouldEqual, "b")
+					So(table.Columns[1].Name, ShouldEqual, "b_idx")
+					So(table.Columns[2].Name, ShouldEqual, "b_idx_1")
+					assertPipeline(table.Pipeline, unwind{"b", 2})
+				})
+			})
+
+			Convey("Mapping the collection preJoined", func() {
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 tables", func() {
@@ -457,7 +747,33 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping the collection", func() {
-				err = database.Map(collection, noIndexes)
+				err = database.Map(collection, noIndexes, false)
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 tables", func() {
+					So(len(database.Tables), ShouldEqual, 2)
+
+					table := database.Tables[0]
+					So(table.Name, ShouldEqual, collection.Name)
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "a")
+					assertPipeline(table.Pipeline)
+
+					table = database.Tables[1]
+					So(table.Name, ShouldEqual, collection.Name+"_b")
+					So(len(table.Columns), ShouldEqual, 6)
+					So(table.Columns[0].Name, ShouldEqual, "b.c")
+					So(table.Columns[1].Name, ShouldEqual, "b.d")
+					So(table.Columns[2].Name, ShouldEqual, "b.e")
+					So(table.Columns[3].Name, ShouldEqual, "b.f")
+					So(table.Columns[4].Name, ShouldEqual, "b_idx")
+					So(table.Columns[5].Name, ShouldEqual, "b_idx_1")
+					assertPipeline(table.Pipeline, unwind{"b", 2})
+				})
+			})
+
+			Convey("Mapping the collection preJoined", func() {
+				err = database.Map(collection, noIndexes, true)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 tables", func() {
@@ -491,7 +807,7 @@ func TestMapping(t *testing.T) {
 			err := otherCollection.IncludeSample(bson.D{
 				{"a", 1},
 			})
-			err = database.Map(otherCollection, noIndexes)
+			err = database.Map(otherCollection, noIndexes, true)
 
 			err = collection.IncludeSample(bson.D{
 				{"a", 1},
@@ -500,7 +816,7 @@ func TestMapping(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Mapping should result in an error", func() {
-				err := database.Map(collection, noIndexes)
+				err := database.Map(collection, noIndexes, true)
 				So(err, ShouldNotBeNil)
 			})
 		})
@@ -548,7 +864,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{typeTest[0].(string), typeTest[2]}})
 
 				database := relational.NewDatabase("test")
-				database.Map(collection, noIndexes)
+				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
 				for _, c := range table.Columns {
@@ -568,7 +884,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", 2.562}})
 
 				database := relational.NewDatabase("test")
-				database.Map(collection, noIndexes)
+				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
 				So(len(table.Columns), ShouldEqual, 1)
@@ -584,7 +900,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", "funny"}})
 
 				database := relational.NewDatabase("test")
-				database.Map(collection, noIndexes)
+				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
 				So(len(table.Columns), ShouldEqual, 2)
@@ -603,7 +919,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{"string1", "string2", "string3"}}})
 
 				database := relational.NewDatabase("test")
-				database.Map(collection, noIndexes)
+				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
 				So(len(table.Columns), ShouldEqual, 1)
@@ -619,7 +935,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{1, 2, 3}}})
 
 				database := relational.NewDatabase("test")
-				database.Map(collection, noIndexes)
+				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
 				So(len(table.Columns), ShouldEqual, 2)
@@ -638,7 +954,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{"string2", "string3", 4}}})
 
 				database := relational.NewDatabase("test")
-				database.Map(collection, noIndexes)
+				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
 				So(len(table.Columns), ShouldEqual, 2)
@@ -655,7 +971,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{"string2", []interface{}{3, 3}}}})
 
 				database := relational.NewDatabase("test")
-				database.Map(collection, noIndexes)
+				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
 				So(len(table.Columns), ShouldEqual, 3)
@@ -675,7 +991,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{"string2", []interface{}{3, 3}, "string3", "string4"}}})
 
 				database := relational.NewDatabase("test")
-				database.Map(collection, noIndexes)
+				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
 				So(len(table.Columns), ShouldEqual, 2)
@@ -692,7 +1008,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{2, []interface{}{3, 3}, 3, 4}}})
 
 				database := relational.NewDatabase("test")
-				database.Map(collection, noIndexes)
+				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
 				So(len(table.Columns), ShouldEqual, 3)
@@ -716,7 +1032,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", 6}})
 
 				database := relational.NewDatabase("test")
-				database.Map(collection, noIndexes)
+				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
 				So(len(table.Columns), ShouldEqual, 2)
@@ -735,7 +1051,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{2, []interface{}{3, 3}, 3, 4}}})
 
 				database := relational.NewDatabase("test")
-				database.Map(collection, noIndexes)
+				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
 				So(len(table.Columns), ShouldEqual, 3)
@@ -760,7 +1076,7 @@ func TestTypeMapping(t *testing.T) {
 			collection.IncludeSample(bson.D{{"a", 3}})
 
 			database := relational.NewDatabase("test")
-			err := database.Map(collection, noIndexes)
+			err := database.Map(collection, noIndexes, true)
 			So(err, ShouldBeNil)
 
 			table := database.Tables[0]
@@ -775,7 +1091,7 @@ func TestTypeMapping(t *testing.T) {
 			collection.IncludeSample(bson.D{{"a", []interface{}{"string3"}}})
 
 			database := relational.NewDatabase("test")
-			err := database.Map(collection, noIndexes)
+			err := database.Map(collection, noIndexes, true)
 			So(err, ShouldBeNil)
 
 			table := database.Tables[0]
@@ -792,7 +1108,7 @@ func TestTypeMapping(t *testing.T) {
 			collection.IncludeSample(bson.D{{"a", 1}, {"b", nil}})
 
 			database := relational.NewDatabase("test")
-			err := database.Map(collection, noIndexes)
+			err := database.Map(collection, noIndexes, true)
 			So(err, ShouldBeNil)
 
 			table := database.Tables[0]
@@ -806,7 +1122,7 @@ func TestTypeMapping(t *testing.T) {
 			collection.IncludeSample(bson.D{{"a", 1}, {"b", []interface{}{nil, nil}}})
 
 			database := relational.NewDatabase("test")
-			err := database.Map(collection, noIndexes)
+			err := database.Map(collection, noIndexes, true)
 			So(err, ShouldBeNil)
 
 			table := database.Tables[0]
@@ -828,7 +1144,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"a", nil}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					// no columns will remove the entire table
@@ -839,7 +1155,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"a", []interface{}{1, 2}}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -853,7 +1169,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"b", bson.D{{"c", []interface{}{1, 2}}}}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -867,7 +1183,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"b", []interface{}{bson.D{{"c", []interface{}{1, 2}}}}}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -884,7 +1200,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"a", bson.D{{"x", 1}, {"y", 2}}}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -901,7 +1217,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"a", 10}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -923,7 +1239,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"a", nil}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					// no columns will remove the entire table
@@ -936,7 +1252,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"a", bson.D{{"coordinates", []interface{}{1, 2}}}}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -952,7 +1268,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"a", []interface{}{1, 2}}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -969,7 +1285,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"a", bson.D{{"type", "LineString"}, {"coordinates", []interface{}{[]interface{}{1, 2}, []interface{}{3, 4}}}}}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -983,7 +1299,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"a", 10}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -997,7 +1313,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"b", bson.D{{"c", []interface{}{1, 2}}}}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -1011,7 +1327,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"b", bson.D{{"c", bson.D{{"coordinates", []interface{}{1, 2}}}}}}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -1025,7 +1341,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"b", []interface{}{bson.D{{"c", []interface{}{1, 2}}}}}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]
@@ -1042,7 +1358,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"b", []interface{}{bson.D{{"c", bson.D{{"coordinates", []interface{}{1, 2}}}}}}}})
 
 					database := relational.NewDatabase("test")
-					err := database.Map(collection, geoIndexes)
+					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
 					table := database.Tables[0]

@@ -46,6 +46,14 @@ schema:
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
+    - name: docs.a
+      mongotype: string
+      sqlname: docs.a
+      sqltype: varchar
+    - name: docs.c
+      mongotype: int
+      sqlname: docs.c
+      sqltype: numeric
     - name: docs.d
       mongotype: int
       sqlname: docs.d
@@ -78,6 +86,14 @@ schema:
       mongotype: bson.ObjectId
       sqlname: _id
       sqltype: varchar
+    - name: docs.a
+      mongotype: string
+      sqlname: docs.a
+      sqltype: varchar
+    - name: docs.c
+      mongotype: int
+      sqlname: docs.c
+      sqltype: numeric
     - name: docs.sub.dream
       mongotype: string
       sqlname: docs.sub.dream

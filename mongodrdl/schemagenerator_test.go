@@ -2,6 +2,11 @@ package mongodrdl_test
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"testing"
+	"time"
+
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/sqlproxy/mongodrdl"
 	"github.com/10gen/sqlproxy/options"
@@ -12,10 +17,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"io/ioutil"
-	"os"
-	"testing"
-	"time"
 )
 
 const (
@@ -47,7 +48,8 @@ func TestConfiguration(t *testing.T) {
 				DrdlSSL: sslOptions,
 			},
 			OutputOptions: &options.DrdlOutput{
-				Out: "out/testdb.yml",
+				Out:       "out/testdb.yml",
+				PreJoined: true,
 			},
 			SampleOptions: &options.DrdlSample{SampleSize: 1000},
 		}
@@ -84,7 +86,8 @@ func TestRoundtrips(t *testing.T) {
 					DrdlSSL: sslOptions,
 				},
 				OutputOptions: &options.DrdlOutput{
-					Out: "out/indexed.yml",
+					Out:       "out/indexed.yml",
+					PreJoined: true,
 				},
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
 			}
@@ -130,7 +133,8 @@ func TestRoundtrips(t *testing.T) {
 					DrdlSSL: sslOptions,
 				},
 				OutputOptions: &options.DrdlOutput{
-					Out: "out/views-expected.yml",
+					Out:       "out/views-expected.yml",
+					PreJoined: true,
 				},
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
 			}
@@ -178,7 +182,8 @@ func TestRoundtrips(t *testing.T) {
 					DrdlSSL: sslOptions,
 				},
 				OutputOptions: &options.DrdlOutput{
-					Out: "out/views-geo-expected.yml",
+					Out:       "out/views-geo-expected.yml",
+					PreJoined: true,
 				},
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
 			}
@@ -234,7 +239,8 @@ func TestRoundtrips(t *testing.T) {
 					DrdlSSL: sslOptions,
 				},
 				OutputOptions: &options.DrdlOutput{
-					Out: "out/admin.yml",
+					Out:       "out/admin.yml",
+					PreJoined: true,
 				},
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
 			}
@@ -266,7 +272,10 @@ func TestRoundtrips(t *testing.T) {
 
 		for _, f := range files {
 			Convey(fmt.Sprintf("With %s", f), func() {
-				testJson(f)
+				testJson(f, false)
+			})
+			Convey(fmt.Sprintf("With %s prejoined", f), func() {
+				testJson(f, true)
 			})
 		}
 
@@ -282,6 +291,7 @@ func TestRoundtrips(t *testing.T) {
 				OutputOptions: &options.DrdlOutput{
 					Out:               "out/complete_schema_synthetic.yml",
 					CustomFilterField: "__MONGOQUERY",
+					PreJoined:         true,
 				},
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
 			}
@@ -291,9 +301,14 @@ func TestRoundtrips(t *testing.T) {
 	})
 }
 
-func testJson(collection string) {
+func testJson(collection string, prejoined bool) {
 	gen := mongodrdl.NewSchemaGenerator(DatabaseName, collection, fmt.Sprintf("out/%s.yml", collection), getSslOpts())
-	compareYaml(gen, collection, collection+"-expected")
+	gen.OutputOptions.PreJoined = prejoined
+	name := collection + "-expected"
+	if prejoined {
+		name += "-prejoined"
+	}
+	compareYaml(gen, collection, name)
 }
 
 func compareYaml(gen *mongodrdl.SchemaGenerator, collection string, expectedName string) {

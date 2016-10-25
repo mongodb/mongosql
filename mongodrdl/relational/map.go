@@ -2,11 +2,12 @@ package relational
 
 import (
 	"fmt"
+	"sort"
+	"strings"
+
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"gopkg.in/mgo.v2"
-	"sort"
-	"strings"
 )
 
 const (
@@ -28,19 +29,20 @@ func (slice fieldSlice) Sort()              { sort.Sort(slice) }
 // +++++++++++++++++++++
 
 type mappingContext struct {
-	db      *Database
-	table   *Table
-	indexes []mgo.Index
+	db           *Database
+	table        *Table
+	indexes      []mgo.Index
+	inPrimaryKey bool
 }
 
-func (d *Database) Map(c *mongo.Collection, idxs []mgo.Index) error {
+func (d *Database) Map(c *mongo.Collection, idxs []mgo.Index, preJoined bool) error {
 	logger.Logf(log.Info, "Adding table %q.", c.Name)
 	t, err := d.AddTable(c.Name, c.Name)
 	if err != nil {
 		return err
 	}
 
-	ctx := &mappingContext{d, t, idxs}
+	ctx := &mappingContext{d, t, idxs, false}
 
 	err = mapDocument(ctx, "", &c.Document)
 	if err != nil {
@@ -49,8 +51,8 @@ func (d *Database) Map(c *mongo.Collection, idxs []mgo.Index) error {
 
 	var tables []*Table
 	for _, t := range d.Tables {
+		t.copyParent(!preJoined)
 		if len(t.Columns) > 0 {
-			t.copyParent()
 			tables = append(tables, t)
 		} else {
 			logger.Logf(log.Info, "Removed table %q: had no columns.", t.Name)
@@ -86,20 +88,28 @@ func mapDocument(ctx *mappingContext, path string, doc *mongo.Document) error {
 			}
 			arrayTable.Parent = ctx.table
 
-			newCtx := &mappingContext{ctx.db, arrayTable, ctx.indexes}
+			newCtx := &mappingContext{ctx.db, arrayTable, ctx.indexes, false}
 			err = mapArray(newCtx, fieldName, v, 0)
 			if err != nil {
 				return err
 			}
 		case *mongo.Document:
+			oldInPrimaryKey := ctx.inPrimaryKey
+			if fieldName == "_id" {
+				ctx.inPrimaryKey = true
+			}
 			err := mapDocument(ctx, fieldName, v)
 			if err != nil {
 				return err
 			}
+			ctx.inPrimaryKey = oldInPrimaryKey
 		case *mongo.Scalar:
-			_, err := ctx.table.AddColumn(fieldName, v.Name())
+			c, err := ctx.table.AddColumn(fieldName, v.Name())
 			if err != nil {
 				return err
+			}
+			if fieldName == "_id" || ctx.inPrimaryKey {
+				ctx.table.PrimaryKey = append(ctx.table.PrimaryKey, c)
 			}
 		case *geo:
 			fieldName := v.modifyPath(fieldName)
@@ -125,11 +135,12 @@ func mapArray(ctx *mappingContext, path string, array *mongo.Array, depth int) e
 		indexName += fmt.Sprintf("_%v", depth)
 	}
 
-	_, err := ctx.table.AddColumn(indexName, "int")
+	c, err := ctx.table.AddColumn(indexName, "int")
 	if err != nil {
 		return err
 	}
 
+	ctx.table.PrimaryKey = append(ctx.table.PrimaryKey, c)
 	ctx.table.addUnwind(path, indexName)
 
 	switch v := fieldType.(type) {

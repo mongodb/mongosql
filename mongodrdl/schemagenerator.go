@@ -1,15 +1,16 @@
 package mongodrdl
 
 import (
+	"io"
+	"os"
+	"path/filepath"
+
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/sqlproxy/client"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/util"
-	"io"
-	"os"
-	"path/filepath"
 )
 
 type SchemaGenerator struct {

@@ -43,6 +43,14 @@ schema:
       mongotype: int
       sqlname: arrays_idx_1
       sqltype: numeric
+    - name: married
+      mongotype: bool
+      sqlname: married
+      sqltype: boolean
+    - name: name
+      mongotype: string
+      sqlname: name
+      sqltype: varchar
   - table: roundtrip_children
     collection: roundtrip
     pipeline:
@@ -62,3 +70,11 @@ schema:
       mongotype: int
       sqlname: children_idx
       sqltype: numeric
+    - name: married
+      mongotype: bool
+      sqlname: married
+      sqltype: boolean
+    - name: name
+      mongotype: string
+      sqlname: name
+      sqltype: varchar
