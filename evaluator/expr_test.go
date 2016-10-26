@@ -794,6 +794,7 @@ func TestEvaluates(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				tests := []test{
+					test{"ADDDATE(NULL, INTERVAL 1 YEAR)", SQLNull},
 					test{"ADDDATE('2002-01-02', INTERVAL 1 YEAR)", SQLDate{Time: d}},
 					test{"ADDDATE('2003-08-31', INTERVAL 1 QUARTER)", SQLDate{Time: d2}},
 					test{"ADDDATE('2003-10-31', INTERVAL 1 MONTH)", SQLDate{Time: d2}},
@@ -1780,6 +1781,38 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: TIMESTAMP", func() {
+				t1, err := time.Parse("2006-01-02 15:04:05.000000", "2010-01-01 22:35:10.523236")
+				So(err, ShouldBeNil)
+				t2, err := time.Parse("2006-01-02 15:04:05.000000", "2010-01-01 23:33:11.400000")
+				So(err, ShouldBeNil)
+				t3, err := time.Parse("2006-01-02 15:04:05", "2004-01-01 00:00:00")
+				So(err, ShouldBeNil)
+				t4, err := time.Parse("2006-01-02 15:04:05", "2003-12-31 00:00:00")
+				So(err, ShouldBeNil)
+				t5, err := time.Parse("2006-01-02 15:04:05.000000", "2003-12-31 12:00:12.300000")
+				So(err, ShouldBeNil)
+				t6, err := time.Parse("2006-01-02 15:04:05", "2003-12-31 12:23:23")
+				So(err, ShouldBeNil)
+
+				tests := []test{
+					test{"TIMESTAMP(NULL)", SQLNull},
+					test{"TIMESTAMP(NULL, NULL)", SQLNull},
+					test{"TIMESTAMP(NULL, '12:22:22')", SQLNull},
+					test{"TIMESTAMP('2002-01-02', NULL)", SQLNull},
+					test{"TIMESTAMP('2010-01-01 11:11:11', '11:71:11')", SQLNull},
+					test{"TIMESTAMP('2010-01-01 11:11:11', '11:23:59.5232355')", SQLTimestamp{Time: t1}},
+					test{"TIMESTAMP('2010-01-01 11:11:11', '12:22.4:12')", SQLTimestamp{Time: t2}},
+					test{"TIMESTAMP('2003-12-31 12:00:00', '12:00:00')", SQLTimestamp{Time: t3}},
+					test{"TIMESTAMP('2003-12-31')", SQLTimestamp{Time: t4}},
+					test{"TIMESTAMP('2003-12-31 12:00:00', '12.3:10:30')", SQLTimestamp{Time: t5}},
+					test{"TIMESTAMP('2003-12-31 12:23:23')", SQLTimestamp{Time: t6}},
+
+					// TODO: unsupported TIMESTAMP('2010-01-01 11:11:11', '12212')
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: TIMESTAMPADD", func() {
 				d, err := time.Parse("2006-01-02", "2003-01-02")
 				So(err, ShouldBeNil)
@@ -1910,7 +1943,6 @@ func TestEvaluates(t *testing.T) {
 					test{"TIMEDIFF(NULL, '2000:11:11 00:00:00')", SQLNull},
 					test{"TIMEDIFF('2000:11:11 00:00:00', '2000:09:31 00:00:00.000231')", SQLNull},
 					test{"TIMEDIFF('2000:09:11 00:00:00', '2000:09:31 00:00:01:323211')", SQLNull},
-
 					test{"TIMEDIFF('2008-12-31 23:59:59.000001','2008-12-31 23:59:58.000001')", SQLVarchar("00:00:01.000000")},
 					test{"TIMEDIFF('2000:11:11 00:00:00', '2000:11:11 10:00:00.000231')", SQLVarchar("-10:00:00.000231")},
 					test{"TIMEDIFF('2000:01:01 00:00:00','2000:01:01 00:00:00.000001')", SQLVarchar("-00:00:00.000001")},

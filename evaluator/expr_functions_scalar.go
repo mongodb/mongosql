@@ -140,6 +140,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"system_user":       &userFunc{},
 	"tan":               singleArgFloatMathFunc(math.Tan),
 	"timediff":          &timeDiffFunc{},
+	"timestamp":         &timestampFunc{},
 	"timestampadd":      &timestampAddFunc{},
 	"timestampdiff":     &timestampDiffFunc{},
 	"time_to_sec":       &timeToSecFunc{},
@@ -411,6 +412,13 @@ type addDateFunc struct{}
 func (_ *addDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	adder := &dateAddFunc{}
 	return adder.Evaluate(values, ctx)
+}
+
+func (_ *addDateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+	return f
 }
 
 func (_ *addDateFunc) Type() schema.SQLType {
@@ -815,7 +823,6 @@ func (_ *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	timestampadd := &timestampAddFunc{}
 	args, neg := dateArithmeticArgs(values[1])
 	unit, interval, err := calculateInterval(values[2].String(), args, neg)
-
 	if err != nil {
 		return SQLNull, nil
 	}
@@ -846,6 +853,14 @@ func (_ *dateSubFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	}
 
 	return dateadd.Evaluate([]SQLValue{values[0], SQLVarchar(v), values[2]}, ctx)
+}
+
+func (_ *dateSubFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *dateSubFunc) Type() schema.SQLType {
@@ -1128,6 +1143,14 @@ func (_ *fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return SQLDate{date.In(schema.DefaultLocale)}, nil
 }
 
+func (_ *fromDaysFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
 func (_ *fromDaysFunc) Type() schema.SQLType {
 	return schema.SQLDate
 }
@@ -1394,6 +1417,14 @@ func (_ *lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	year, month, _ := t.Date()
 	first := time.Date(year, month, 1, 0, 0, 0, 0, t.Location())
 	return SQLDate{first.AddDate(0, 1, -1)}, nil
+}
+
+func (_ *lastDayFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *lastDayFunc) Type() schema.SQLType {
@@ -2092,6 +2123,14 @@ func (_ *subDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return subtractor.Evaluate(values, ctx)
 }
 
+func (_ *subDateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
 func (_ *subDateFunc) Type() schema.SQLType {
 	return schema.SQLTimestamp
 }
@@ -2373,12 +2412,65 @@ func (_ *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return SQLVarchar(string(buf[w:])), nil
 }
 
-func (_ *timeDiffFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 2)
+func (_ *timeDiffFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *timeDiffFunc) Type() schema.SQLType {
 	return schema.SQLVarchar
+}
+
+func (_ *timeDiffFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
+
+type timestampFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_timestamp
+func (_ *timestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	t, ok := parseDateTime(values[0].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	t = t.In(schema.DefaultLocale)
+
+	if len(values) == 1 {
+		return SQLTimestamp{t}, nil
+	}
+
+	d, ok := parseDuration(values[1])
+	if !ok {
+		return SQLNull, nil
+	}
+
+	t = t.Add(d).Round(time.Microsecond)
+
+	return SQLTimestamp{t}, nil
+}
+
+func (_ *timestampFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *timestampFunc) Type() schema.SQLType {
+	return schema.SQLTimestamp
+}
+
+func (_ *timestampFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1, 2)
 }
 
 type timestampAddFunc struct{}
@@ -2611,6 +2703,14 @@ func (_ *timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	}
 
 	return SQLFloat(result), nil
+}
+
+func (_ *timeToSecFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *timeToSecFunc) Type() schema.SQLType {
@@ -3181,6 +3281,111 @@ func parseDateTime(value string) (time.Time, bool) {
 		}
 	}
 	return time.Time{}, false
+}
+
+func parseDuration(v SQLValue) (time.Duration, bool) {
+	buf := []byte(v.String())
+
+	h, m, s, i := 0, 0, 0, 0
+	hours, mins, secs, frac := []byte{}, []byte{}, []byte{}, []byte{}
+
+	emitToken := func(buf []byte, v byte) int {
+		w, l := 0, len(buf)-1
+		for w < l {
+			if buf[w] == v {
+				break
+			}
+			w++
+		}
+		return w
+	}
+
+	emitFrac := func(buf []byte) int {
+		i := bytes.IndexByte(buf, '.')
+		if i != -1 {
+			if len(frac) == 0 {
+				x := 0
+				for x < len(buf)-i-1 {
+					idx := i + x + 1
+					if buf[idx] == ':' || buf[idx] == '.' {
+						break
+					}
+					x++
+				}
+				frac = buf[i+1 : i+x+1]
+			}
+		}
+		return i
+	}
+
+	h = emitToken(buf, ':')
+
+	if h != 0 {
+		hours, buf, i = buf[0:h], buf[h+1:], emitFrac(buf[0:h+1])
+		if i != -1 {
+			secs, hours = hours[:i], hours[:0]
+		} else {
+			m = emitToken(buf, ':')
+			if m != 0 {
+				mins, buf, i = buf[0:m], buf[m+1:], emitFrac(buf[0:m+1])
+				if i != -1 {
+					mins = mins[:i]
+				} else {
+					s = emitToken(buf, ':')
+					if s != 0 {
+						secs, i = buf[0:s], emitFrac(buf[0:s+1])
+						if i != -1 {
+							secs = secs[:i]
+						} else {
+							secs = buf
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if len(mins) > 0 {
+		if m, err := strconv.Atoi(string(mins)); err != nil || m > 60 {
+			return 0, false
+		}
+	}
+
+	if len(secs) > 0 {
+		if s, err := strconv.ParseFloat(string(secs), 64); err != nil || s > 60 {
+			return 0, false
+		}
+	}
+
+	str := ""
+
+	if len(hours) != 0 {
+		str = fmt.Sprintf("%vh", string(hours))
+	}
+
+	if len(mins) != 0 {
+		str = fmt.Sprintf("%v%vm", str, string(mins))
+	}
+
+	switch len(secs) {
+	case 0:
+		if len(frac) != 0 {
+			str = fmt.Sprintf("%v0.%vs", str, string(frac))
+		}
+	default:
+		if len(frac) != 0 {
+			str = fmt.Sprintf("%v%v.%vs", str, string(secs), string(frac))
+		} else {
+			str = fmt.Sprintf("%v%vs", str, string(secs))
+		}
+	}
+
+	dur, err := time.ParseDuration(str)
+	if err != nil {
+		return 0, false
+	}
+
+	return dur, true
 }
 
 func runesIndex(r, sep []rune) int {

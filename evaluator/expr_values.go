@@ -170,7 +170,11 @@ func (st SQLTimestamp) Int64() int64 {
 }
 
 func (st SQLTimestamp) String() string {
-	return st.Time.Format("2006-01-02 15:04:05")
+	ms := st.Time.Round(time.Microsecond)
+	if ms.Equal(st.Time) {
+		return st.Time.Format("2006-01-02 15:04:05")
+	}
+	return st.Time.Format("2006-01-02 15:04:05.000000")
 }
 
 func (_ SQLTimestamp) Type() schema.SQLType {

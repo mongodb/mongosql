@@ -2,6 +2,7 @@ package server
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
@@ -64,8 +65,10 @@ func (c *conn) formatValue(value interface{}) ([]byte, error) {
 	case evaluator.SQLDate:
 		return Slice(v.Time.Format(schema.DateFormat)), nil
 	case evaluator.SQLTimestamp:
+		if strings.Contains(v.Time.String(), ".") {
+			return Slice(v.Time.Format(schema.TimestampFormatMicros)), nil
+		}
 		return Slice(v.Time.Format(schema.TimestampFormat)), nil
-
 	// TODO (INT-1036): get rid of these and only use SQLValues here.
 	case int8:
 		return strconv.AppendInt(nil, int64(v), 10), nil

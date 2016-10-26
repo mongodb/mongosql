@@ -1452,6 +1452,14 @@ expr:
   {
     $$ = &FuncExpr{Name: []byte("to_days"), Exprs: append(SelectExprs{$3})}
   }
+| TIMESTAMP LPAREN select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("timestamp"), Exprs: append(SelectExprs{$3})}
+  }
+| TIMESTAMP LPAREN select_expression COMMA select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: []byte("timestamp"), Exprs: append(SelectExprs{$3, $5})}
+  }
 | TIMESTAMPADD LPAREN time_interval COMMA select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: []byte("timestampadd"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}

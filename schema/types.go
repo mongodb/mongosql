@@ -14,9 +14,10 @@ type ColumnType struct {
 }
 
 const (
-	DateFormat      = "2006-01-02"
-	TimeFormat      = "15:04:05"
-	TimestampFormat = "2006-01-02 15:04:05"
+	DateFormat            = "2006-01-02"
+	TimeFormat            = "15:04:05"
+	TimestampFormat       = "2006-01-02 15:04:05"
+	TimestampFormatMicros = "2006-01-02 15:04:05.000000"
 )
 
 var (
