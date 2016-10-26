@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -1410,7 +1411,13 @@ func (_ *powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	return SQLFloat(math.Pow(values[0].Float64(), values[1].Float64())), nil
+	pow := math.Pow(values[0].Float64(), values[1].Float64())
+
+	if math.IsNaN(pow) {
+		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("pow(%v,%v)", values[0], values[1]))
+	}
+
+	return SQLFloat(pow), nil
 }
 
 func (_ *powFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {

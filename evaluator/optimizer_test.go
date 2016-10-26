@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
@@ -1480,7 +1481,6 @@ func TestOptimizeEvaluations(t *testing.T) {
 			test{"pow(a, NULL)", "null", SQLNull},
 			test{"pow(NULL, a)", "null", SQLNull},
 			test{"pow(2,2)", "4", SQLFloat(4)},
-			test{"round(NULL)", "null", SQLNull},
 			test{"round(NULL, 2)", "null", SQLNull},
 			test{"round(2, NULL)", "null", SQLNull},
 			test{"round(2, 2)", "2", SQLFloat(2)},
@@ -1493,5 +1493,37 @@ func TestOptimizeEvaluations(t *testing.T) {
 		}
 
 		runTests(tests)
+
+	})
+}
+
+func TestOptimizeEvaluationFailures(t *testing.T) {
+
+	type test struct {
+		sql string
+		err error
+	}
+
+	runTests := func(tests []test) {
+		schema, err := schema.New(testSchema3)
+		So(err, ShouldBeNil)
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%q should fail with error %q", t.sql, t.err), func() {
+				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
+				So(err, ShouldBeNil)
+				_, err = optimizeEvaluations(createTestEvalCtx(), e)
+				So(err, ShouldResemble, t.err)
+			})
+		}
+	}
+
+	Convey("Subject: optimizeEvaluations failures", t, func() {
+
+		tests := []test{
+			test{"pow(-2,2.2)", mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", "pow(-2,2.2)")},
+		}
+
+		runTests(tests)
+
 	})
 }
