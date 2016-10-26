@@ -825,9 +825,11 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		// check if both operands are timestamp or date since
 		// arithmetic between time types result in an integer
-		preferenceType := preferentialType(left, right)
+		isTimeType := func(v SQLExpr) bool {
+			return v.Type() == schema.SQLDate || v.Type() == schema.SQLTimestamp
+		}
 
-		if preferenceType == schema.SQLDate || preferenceType == schema.SQLTimestamp {
+		if isTimeType(left) || isTimeType(right) {
 			left, _, err = reconcileSQLExprs(left, SQLInt(0))
 			if err != nil {
 				return nil, err

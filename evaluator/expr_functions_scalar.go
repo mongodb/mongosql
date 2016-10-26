@@ -385,8 +385,10 @@ type currentDateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curdate
 func (_ *currentDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	value := time.Now().In(schema.DefaultLocale)
-	return SQLDate{value}, nil
+	now := time.Now()
+	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+	return SQLDate{t}, nil
+
 }
 
 func (_ *currentDateFunc) Type() schema.SQLType {

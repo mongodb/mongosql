@@ -164,6 +164,7 @@ var keywords = map[string]int{
 	"date":               DATE,
 	"time":               TIME,
 	"timestamp":          TIMESTAMP,
+	"current_date":       CURRENT_DATE,
 	"current_timestamp":  CURRENT_TIMESTAMP,
 	"timestampadd":       TIMESTAMPADD,
 	"timestampdiff":      TIMESTAMPDIFF,

@@ -538,6 +538,7 @@ func TestEvaluates(t *testing.T) {
 				test{"'10' LIKE '1%'", SQLTrue},
 				test{"'a   ' LIKE 'A   '", SQLTrue},
 				test{"CURRENT_DATE() LIKE '2015-05-31%'", SQLFalse},
+				test{"CURDATE() LIKE '2015-05-31%'", SQLFalse},
 				test{"(DATE '2008-01-02') LIKE '2008-01%'", SQLTrue},
 				test{"NOW() LIKE '" + strconv.Itoa(time.Now().Year()) + "%' ", SQLTrue},
 				test{"10 LIKE '1%'", SQLTrue},
