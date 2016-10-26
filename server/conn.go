@@ -209,6 +209,7 @@ func (c *conn) dispatch(data []byte) error {
 
 	switch cmd {
 	case COM_QUIT:
+		c.hasCurrentOp = false
 		c.close()
 		return nil
 	case COM_QUERY:
