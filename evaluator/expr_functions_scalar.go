@@ -13,6 +13,202 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+const (
+	shortTimeFormat = "2006-01-02"
+)
+
+var (
+	zeroDate, _ = time.ParseInLocation(shortTimeFormat, "0000-00-00", schema.DefaultLocale)
+)
+
+//
+// SQLScalarFunctionExpr represents a scalar function.
+//
+type SQLScalarFunctionExpr struct {
+	Name  string
+	Exprs []SQLExpr
+}
+
+type scalarFunc interface {
+	Evaluate([]SQLValue, *EvalCtx) (SQLValue, error)
+	Validate(exprCount int) error
+	Type() schema.SQLType
+}
+
+type normalizingScalarFunc interface {
+	normalize(*SQLScalarFunctionExpr) SQLExpr
+}
+
+func NewIfScalarFunctionExpr(condition, truePart, falsePart SQLExpr) *SQLScalarFunctionExpr {
+	return &SQLScalarFunctionExpr{
+		Name:  "if",
+		Exprs: []SQLExpr{condition, truePart, falsePart},
+	}
+}
+
+var scalarFuncMap = map[string]scalarFunc{
+	"abs":     singleArgFloatMathFunc(math.Abs),
+	"acos":    singleArgFloatMathFunc(math.Acos),
+	"adddate": &addDateFunc{},
+	"asin":    singleArgFloatMathFunc(math.Asin),
+	"atan": multiArgFloatMathFunc{
+		single: singleArgFloatMathFunc(math.Atan),
+		dual:   dualArgFloatMathFunc(math.Atan2),
+	},
+	"atan2":             dualArgFloatMathFunc(math.Atan2),
+	"ascii":             &asciiFunc{},
+	"cast":              &castFunc{},
+	"ceil":              singleArgFloatMathFunc(math.Ceil),
+	"ceiling":           singleArgFloatMathFunc(math.Ceil),
+	"char_length":       &characterLengthFunc{},
+	"character_length":  &characterLengthFunc{},
+	"coalesce":          &coalesceFunc{},
+	"concat":            &concatFunc{},
+	"concat_ws":         &concatWsFunc{},
+	"connection_id":     &connectionIdFunc{},
+	"convert":           &convertFunc{},
+	"cos":               singleArgFloatMathFunc(math.Cos),
+	"cot":               &cotFunc{},
+	"curdate":           &currentDateFunc{},
+	"current_date":      &currentDateFunc{},
+	"current_timestamp": &currentTimestampFunc{},
+	"current_user":      &userFunc{},
+	"database":          &dbFunc{},
+	"date":              &dateFunc{},
+	"date_add":          &dateAddFunc{},
+	"date_sub":          &dateSubFunc{},
+	"day":               &dayOfMonthFunc{},
+	"dayname":           &dayNameFunc{},
+	"dayofmonth":        &dayOfMonthFunc{},
+	"dayofweek":         &dayOfWeekFunc{},
+	"dayofyear":         &dayOfYearFunc{},
+	"degrees":           singleArgFloatMathFunc(func(f float64) float64 { return f * 180 / math.Pi }),
+	"exp":               singleArgFloatMathFunc(math.Exp),
+	"extract":           &extractFunc{},
+	"floor":             singleArgFloatMathFunc(math.Floor),
+	"from_days":         &fromDaysFunc{},
+	"greatest":          &greatestFunc{},
+	"hour":              &hourFunc{},
+	"if":                &ifFunc{},
+	"ifnull":            &ifnullFunc{},
+	"instr":             &instrFunc{},
+	"isnull":            &isnullFunc{},
+	"last_day":          &lastDayFunc{},
+	"lcase":             &lcaseFunc{},
+	"least":             &leastFunc{},
+	"left":              &leftFunc{},
+	"length":            &lengthFunc{},
+	"ln":                singleArgFloatMathFunc(math.Log),
+	"locate":            &locateFunc{},
+	"log":               singleArgFloatMathFunc(math.Log),
+	"log2":              singleArgFloatMathFunc(math.Log2),
+	"log10":             singleArgFloatMathFunc(math.Log10),
+	"lower":             &lcaseFunc{},
+	"ltrim":             &ltrimFunc{},
+	"makedate":          &makeDateFunc{},
+	"mid":               &midFunc{},
+	"minute":            &minuteFunc{},
+	"mod":               dualArgFloatMathFunc(math.Mod),
+	"month":             &monthFunc{},
+	"monthname":         &monthNameFunc{},
+	"not":               &notFunc{},
+	"now":               &currentTimestampFunc{},
+	"nullif":            &nullifFunc{},
+	"pi":                &constantFunc{SQLFloat(math.Pi)},
+	"pow":               &powFunc{},
+	"power":             &powFunc{},
+	"quarter":           &quarterFunc{},
+	"radians":           singleArgFloatMathFunc(func(f float64) float64 { return f * math.Pi / 180 }),
+	"replace":           &replaceFunc{},
+	"right":             &rightFunc{},
+	"round":             &roundFunc{},
+	"rtrim":             &rtrimFunc{},
+	"schema":            &dbFunc{},
+	"second":            &secondFunc{},
+	"session_user":      &userFunc{},
+	"sign":              &signFunc{},
+	"sqrt":              singleArgFloatMathFunc(math.Sqrt),
+	"space":             &spaceFunc{},
+	"str_to_date":       &strToDateFunc{},
+	"subdate":           &subDateFunc{},
+	"substr":            &substringFunc{},
+	"substring":         &substringFunc{},
+	"system_user":       &userFunc{},
+	"tan":               singleArgFloatMathFunc(math.Tan),
+	"timediff":          &timeDiffFunc{},
+	"timestampadd":      &timestampAddFunc{},
+	"timestampdiff":     &timestampDiffFunc{},
+	"time_to_sec":       &timeToSecFunc{},
+	"trim":              &trimFunc{},
+	"truncate":          &truncateFunc{},
+	"ucase":             &ucaseFunc{},
+	"upper":             &ucaseFunc{},
+	"user":              &userFunc{},
+	"utc_timestamp":     &utcTimestampFunc{},
+	"version":           &versionFunc{},
+	"week":              &weekFunc{},
+	"weekday":           &weekdayFunc{},
+	"weekofyear":        &weekOfYearFunc{},
+	"year":              &yearFunc{},
+	"yearweek":          &yearWeekFunc{},
+}
+
+func (f *SQLScalarFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	sf, ok := scalarFuncMap[f.Name]
+	if ok {
+		err := sf.Validate(len(f.Exprs))
+		if err != nil {
+			return nil, fmt.Errorf("%v '%v'", err.Error(), f.Name)
+		}
+
+		values, err := evaluateArgs(f.Exprs, ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		return sf.Evaluate(values, ctx)
+	}
+
+	return nil, fmt.Errorf("scalar function '%v' is not supported", string(f.Name))
+}
+
+func (f *SQLScalarFunctionExpr) normalize() node {
+	if sf, ok := scalarFuncMap[f.Name]; ok {
+		if nsf, ok := sf.(normalizingScalarFunc); ok {
+			return nsf.normalize(f)
+		}
+	}
+
+	return f
+}
+
+func (f *SQLScalarFunctionExpr) RequiresEvalCtx() bool {
+	if sf, ok := scalarFuncMap[f.Name]; ok {
+		if r, ok := sf.(RequiresEvalCtx); ok {
+			return r.RequiresEvalCtx()
+		}
+	}
+
+	return false
+}
+
+func (f *SQLScalarFunctionExpr) String() string {
+	var exprs []string
+	for _, expr := range f.Exprs {
+		exprs = append(exprs, expr.String())
+	}
+	return fmt.Sprintf("%s(%v)", f.Name, strings.Join(exprs, ","))
+}
+
+func (f *SQLScalarFunctionExpr) Type() schema.SQLType {
+	sf, ok := scalarFuncMap[f.Name]
+	if ok {
+		return sf.Type()
+	}
+
+	return schema.SQLNone
+}
+
 type constantFunc struct {
 	value SQLValue
 }
@@ -203,6 +399,22 @@ func (_ *versionFunc) Type() schema.SQLType {
 
 func (_ *versionFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
+}
+
+type addDateFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_adddate
+func (_ *addDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	adder := &dateAddFunc{}
+	return adder.Evaluate(values, ctx)
+}
+
+func (_ *addDateFunc) Type() schema.SQLType {
+	return schema.SQLTimestamp
+}
+
+func (_ *addDateFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
 }
 
 type asciiFunc struct{}
@@ -832,6 +1044,45 @@ func (_ *extractFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
+type fromDaysFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_from-days
+func (_ *fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	value := values[0].Float64()
+
+	if value <= 365.5 || value >= 3652499.5 {
+		// Go's zero time starts January 1, year 1, 00:00:00 UTC
+		// and thus can not represent the date "0000-00-00". To
+		// handle this, we return a varchar instead
+		return SQLVarchar("0000-00-00"), nil
+	}
+
+	target, maxGoDurationHours := int64(math.Floor(math.Abs(value-366))), int64(106751)
+
+	date := zeroDate
+
+	for target > 0 && target > maxGoDurationHours {
+		date = date.Add(time.Duration(maxGoDurationHours*24) * time.Hour)
+		target -= maxGoDurationHours
+	}
+
+	date = date.Add(time.Duration(target*24) * time.Hour)
+
+	return SQLDate{date.In(schema.DefaultLocale)}, nil
+}
+
+func (_ *fromDaysFunc) Type() schema.SQLType {
+	return schema.SQLDate
+}
+
+func (_ *fromDaysFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
 type greatestFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_greatest
@@ -1030,6 +1281,32 @@ func (_ *isnullFunc) Type() schema.SQLType {
 }
 
 func (_ *isnullFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+type lastDayFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_last-day
+func (_ *lastDayFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	t, ok := parseDateTime(values[0].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	year, month, _ := t.Date()
+	first := time.Date(year, month, 1, 0, 0, 0, 0, t.Location())
+	return SQLDate{first.AddDate(0, 1, -1)}, nil
+}
+
+func (_ *lastDayFunc) Type() schema.SQLType {
+	return schema.SQLDate
+}
+
+func (_ *lastDayFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
@@ -1252,7 +1529,7 @@ func (_ *makeDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		return SQLNull, nil
 	}
 
-	t := time.Date(int(y), 1, 0, 0, 0, 0, 0, time.UTC)
+	t := time.Date(int(y), 1, 0, 0, 0, 0, 0, schema.DefaultLocale)
 	duration := time.Duration(d*24) * time.Hour
 
 	return SQLDate{Time: t.Add(duration)}, nil
@@ -1713,6 +1990,22 @@ func (_ *strToDateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
+type subDateFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_subdate
+func (_ *subDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	subtractor := &dateSubFunc{}
+	return subtractor.Evaluate(values, ctx)
+}
+
+func (_ *subDateFunc) Type() schema.SQLType {
+	return schema.SQLTimestamp
+}
+
+func (_ *subDateFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2, 3)
+}
+
 type substringFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_substring
@@ -1770,6 +2063,142 @@ func (_ *substringFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2, 3)
 }
 
+type timeDiffFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_timediff
+func (_ *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	expr1, ok := parseDateTime(values[0].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	expr2, ok := parseDateTime(values[1].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	d := expr1.Sub(expr2)
+
+	fmtDef := func(buf []byte, v int) int {
+		def := []byte{':', '0', '0', ':', '0', '0'}
+		w := len(buf)
+		for _, b := range def[v:] {
+			w--
+			buf[w] = b
+		}
+		return w
+	}
+
+	fmtFrac := func(buf []byte, v uint64, prec int) (nw int, nv uint64) {
+		w := len(buf)
+		print := false
+		for i := 0; i < prec; i++ {
+			digit := v % 10
+			print = print || digit != 0
+			if print {
+				w--
+				buf[w] = byte(digit) + '0'
+			}
+			v /= 10
+		}
+
+		for len(buf)-w < 6 {
+			w--
+			buf[w] = '0'
+		}
+		w--
+		buf[w] = '.'
+		return w, v
+	}
+
+	fmtInt := func(buf []byte, v uint64) int {
+		w := len(buf)
+		if v == 0 {
+			w--
+			buf[w] = '0'
+		} else {
+			for v > 0 {
+				w--
+				buf[w] = byte(v%10) + '0'
+				v /= 10
+			}
+		}
+		for len(buf)-w < 2 {
+			w--
+			buf[w] = '0'
+		}
+		return w
+	}
+
+	buf := [16]byte{}
+	w := len(buf)
+
+	u := uint64(d)
+	neg := d < 0
+	if neg {
+		u = -u
+	}
+
+	if u < uint64(time.Second) {
+		var prec int
+		switch {
+		case u == 0:
+			return SQLVarchar("00:00:00.000000"), nil
+		default:
+			prec = 6
+		}
+		w, u = fmtFrac(buf[:w], u, prec)
+		w = fmtInt(buf[:w], u)
+		w = fmtDef(buf[:w], 0)
+	} else {
+		w, u = fmtFrac(buf[:w], u, 9)
+
+		// u is now integer seconds
+		w = fmtInt(buf[:w], u%60)
+		u /= 60
+
+		w--
+		buf[w] = ':'
+
+		// u is now integer minutes
+		if u > 0 {
+			w = fmtInt(buf[:w], u%60)
+			u /= 60
+
+			w--
+			buf[w] = ':'
+
+			// u is now integer hours
+			if u > 0 {
+				w = fmtInt(buf[:w], u)
+			} else {
+				w = fmtDef(buf[:w], 4)
+			}
+		} else {
+			w = fmtDef(buf[:w], 1)
+		}
+	}
+
+	if neg {
+		w--
+		buf[w] = '-'
+	}
+
+	return SQLVarchar(string(buf[w:])), nil
+}
+
+func (_ *timeDiffFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
+
+func (_ *timeDiffFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
 type timestampAddFunc struct{}
 
 //http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_timestampadd
@@ -1806,15 +2235,15 @@ func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 		} else if mo-int(m) > 0 && (v.Int64()*3) < 0 {
 			y -= 1
 		}
-		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, time.UTC)).Day()
+		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, schema.DefaultLocale)).Day()
 		if d > lastDayMonth {
 			d = lastDayMonth
 		}
 
 		if ts {
-			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, time.UTC)}, nil
+			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, schema.DefaultLocale)}, nil
 		}
-		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, time.UTC)}, nil
+		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
 	case MONTH:
 		y, m, d := t.Date()
 		mo := int(((int64(m)+v.Int64())%12 + 12) % 12)
@@ -1829,15 +2258,15 @@ func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 		} else if mo-int(m) > 0 && v.Int64() < 0 {
 			y -= 1
 		}
-		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, time.UTC)).Day()
+		lastDayMonth := 32 - (time.Date(y, time.Month(mo), 32, 0, 0, 0, 0, schema.DefaultLocale)).Day()
 		if d > lastDayMonth {
 			d = lastDayMonth
 		}
 
 		if ts {
-			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, time.UTC)}, nil
+			return SQLTimestamp{time.Date(y, time.Month(mo), d, t.Hour(), t.Minute(), t.Second(), 0, schema.DefaultLocale)}, nil
 		}
-		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, time.UTC)}, nil
+		return SQLDate{time.Date(y, time.Month(mo), d, 0, 0, 0, 0, schema.DefaultLocale)}, nil
 	case WEEK:
 		if ts {
 			return SQLTimestamp{t.AddDate(0, 0, int(v.Float64())*7)}, nil
@@ -1926,6 +2355,88 @@ func (t *timestampDiffFunc) Type() schema.SQLType {
 
 func (t *timestampDiffFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
+}
+
+type timeToSecFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_time-to-sec
+func (_ *timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	components := strings.Split(values[0].String(), ":")
+	result := 0.0
+	componentized := true
+
+	if len(components) == 1 {
+		cmp, err := strconv.ParseFloat(components[0], 64)
+		if err != nil {
+			return nil, err
+		}
+
+		component := strconv.FormatFloat(math.Trunc(float64(cmp)), 'f', -1, 64)
+
+		l := len(component)
+		components, componentized = []string{"0", "0", "0"}, false
+
+		// MySQL interprets abbreviated values without colons using the
+		// assumption that the two rightmost digits represent seconds.
+		switch l {
+		case 1, 2:
+			components[2] = component
+		case 3, 4:
+			components[1], components[2] = component[:l-2], component[l-2:l]
+		case 5:
+			components[0], components[1], components[2] = component[:l-4], component[l-4:l-2], component[l-2:l]
+		default:
+			components[0], components[1], components[2] = component[:l-4], component[l-4:l-2], component[l-2:l]
+		}
+	}
+
+	signBit := false
+
+	for i := 0; i < 3 && i < len(components); i++ {
+		component, err := strconv.ParseFloat(components[i], 64)
+		if err != nil {
+			return nil, err
+		}
+
+		cmp := math.Trunc(float64(component))
+
+		switch i {
+		// more on valid time types at https://dev.mysql.com/doc/refman/5.5/en/time.html
+		case 0:
+			if cmp > 838 || cmp < -838 {
+				if !componentized {
+					return SQLNull, nil
+				}
+				cmp = math.Copysign(838.0, cmp)
+				components = []string{"", "59", "59"}
+			}
+		default:
+			if cmp > 59 {
+				return SQLNull, nil
+			}
+		}
+
+		signBit = signBit || math.Signbit(cmp)
+		result += math.Abs(cmp) * (3600.0 / (math.Pow(60, float64(i))))
+	}
+
+	if signBit {
+		return SQLFloat(math.Copysign(result, -1)), nil
+	}
+
+	return SQLFloat(result), nil
+}
+
+func (_ *timeToSecFunc) Type() schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ *timeToSecFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
 }
 
 type trimFunc struct{}
@@ -2023,6 +2534,21 @@ func (_ *ucaseFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type utcTimestampFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_utc-timestamp
+func (_ *utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return SQLTimestamp{time.Now().In(time.UTC)}, nil
+}
+
+func (_ *utcTimestampFunc) Type() schema.SQLType {
+	return schema.SQLTimestamp
+}
+
+func (_ *utcTimestampFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0)
+}
+
 type weekFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_week
@@ -2033,7 +2559,7 @@ func (_ *weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	}
 
 	y := t.Year()
-	d := time.Date(y, 1, 1, 0, 0, 0, 0, time.UTC)
+	d := time.Date(y, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
 	iso := false
 	mondayFirst := false
 	smallRange := false
@@ -2091,8 +2617,8 @@ func (_ *weekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 			return SQLInt(0), nil
 		} else {
 			y -= 1
-			d = time.Date(y, 1, 1, 0, 0, 0, 0, time.UTC)
-			t = time.Date(y, 12, 31, 0, 0, 0, 0, time.UTC)
+			d = time.Date(y, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
+			t = time.Date(y, 12, 31, 0, 0, 0, 0, schema.DefaultLocale)
 			day1 = dayOneWeekOne(d, iso, mondayFirst)
 			days = t.YearDay() - day1
 			return SQLInt(days/7 + 1), nil
@@ -2421,8 +2947,8 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 			ns1 := startDate.Nanosecond()
 			h2, mn2, s2 := endDate.Clock()
 			ns2 := endDate.Nanosecond()
-			t1 := time.Date(y1, m1, d1, h1, mn1, s1, ns1, time.UTC)
-			t2 := time.Date(y1, m1, d1, h2, mn2, s2, ns2, time.UTC)
+			t1 := time.Date(y1, m1, d1, h1, mn1, s1, ns1, schema.DefaultLocale)
+			t2 := time.Date(y1, m1, d1, h2, mn2, s2, ns2, schema.DefaultLocale)
 			if t1.After(t2) {
 				months -= 1
 			}
@@ -2435,8 +2961,8 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 			ns1 := startDate.Nanosecond()
 			h2, mn2, s2 := endDate.Clock()
 			ns2 := endDate.Nanosecond()
-			t1 := time.Date(y1, m1, d1, h1, mn1, s1, ns1, time.UTC)
-			t2 := time.Date(y1, m1, d1, h2, mn2, s2, ns2, time.UTC)
+			t1 := time.Date(y1, m1, d1, h1, mn1, s1, ns1, schema.DefaultLocale)
+			t2 := time.Date(y1, m1, d1, h2, mn2, s2, ns2, schema.DefaultLocale)
 			if t2.After(t1) {
 				months += 1
 			}

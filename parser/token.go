@@ -168,6 +168,7 @@ var keywords = map[string]int{
 	"current_timestamp":  CURRENT_TIMESTAMP,
 	"timestampadd":       TIMESTAMPADD,
 	"timestampdiff":      TIMESTAMPDIFF,
+	"utc_timestamp":      UTC_TIMESTAMP,
 	"year":               YEAR,
 	"quarter":            QUARTER,
 	"month":              MONTH,
@@ -198,8 +199,12 @@ var keywords = map[string]int{
 	"day_hour":           DAY_HOUR,
 	"year_month":         YEAR_MONTH,
 	"interval":           INTERVAL,
+	"adddate":            ADDDATE,
 	"date_add":           DATE_ADD,
 	"date_sub":           DATE_SUB,
+	"subdate":            SUBDATE,
+	"from_days":          FROM_DAYS,
+	"to_days":            TO_DAYS,
 	"str_to_date":        STR_TO_DATE,
 
 	// special tokens for functions
