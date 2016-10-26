@@ -202,6 +202,12 @@ var keywords = map[string]int{
 	"date_sub":           DATE_SUB,
 	"str_to_date":        STR_TO_DATE,
 
+	// special tokens for functions
+	"both":     BOTH,
+	"leading":  LEADING,
+	"trailing": TRAILING,
+	"trim":     TRIM,
+
 	// special tokens for numeric functions
 
 	"div": IDIV,

@@ -302,19 +302,8 @@ testcases:
   - [~]
   - [~]
 
-# Synonym for length
 - sql: "select char_length(b) from bar"
   expected_names: ["char_length(b)"]
-  expected_types: [int]
-  expected:
-  - [3]
-  - [2]
-  - [~]
-  - [4]
-  - [~]
-
-- sql: "select length(b) from bar"
-  expected_names: ["length(b)"]
   expected_types: [int]
   expected:
   - [3]
@@ -331,6 +320,32 @@ testcases:
 
 - sql: "select char_length(null) from bar"
   expected_names: ["char_length(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select character_length(b) from bar"
+  expected_names: ["character_length(b)"]
+  expected_types: [int]
+  expected:
+  - [3]
+  - [2]
+  - [~]
+  - [4]
+  - [~]
+
+- sql: "select character_length(b) from bar where character_length(b) > 3"
+  expected_names: ["character_length(b)"]
+  expected_types: [int]
+  expected:
+  - [4]
+
+- sql: "select character_length(null) from bar"
+  expected_names: ["character_length(null)"]
   expected_types: [int]
   expected:
   - [~]
@@ -761,6 +776,32 @@ testcases:
   - [1]
   - [1]
 
+- sql: "select length(b) from bar"
+  expected_names: ["length(b)"]
+  expected_types: [int]
+  expected:
+  - [3]
+  - [2]
+  - [~]
+  - [4]
+  - [~]
+
+- sql: "select length(b) from bar where char_length(b) > 3"
+  expected_names: ["length(b)"]
+  expected_types: [int]
+  expected:
+  - [4]
+
+- sql: "select length(null) from bar"
+  expected_names: ["length(null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
 # Synonym for lower
 - sql: "select lcase(b) from bar"
   expected_names: ["lcase(b)"]
@@ -903,6 +944,23 @@ testcases:
   - [~]
   - [~]
   - [~]
+
+- sql: "select mid(b, 1, 3) from bar"
+  expected_names: ["mid(b, 1, 3)"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [~]
+  - ["thi"]
+  - [~]
+
+- sql: "select mid(b, 1, 3) from bar where length(mid(b, 1, 3)) > 2"
+  expected_names: ["mid(b, 1, 3)"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["thi"]
 
 - sql: "select minute(d) from bar"
   expected_names: ["minute(d)"]
@@ -1061,6 +1119,16 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select replace(b, 'y', 'free') from bar"
+  expected_names: ["replace(b, 'y', 'free')"]
+  expected_types: [string]
+  expected:
+  - ["hefree"]
+  - ["freeo"]
+  - [~]
+  - ["this"]
+  - [~]
+
 - sql: "select round(c, 2) from bar"
   expected_names: ["round(c, 2)"]
   expected_types: [numeric]
@@ -1095,6 +1163,16 @@ testcases:
   - [~]
   - [~]
   - [~]
+  - [~]
+
+- sql: "select space(a) from bar"
+  expected_names: ["space(a)"]
+  expected_types: [string]
+  expected:
+  - [" "]
+  - [~]
+  - [""]
+  - ["    "]
   - [~]
 
 - sql: "select sqrt(a) from bar"
@@ -1175,6 +1253,26 @@ testcases:
   - [~]
   - [~]
   - [~]
+  - [~]
+
+- sql: "select trim(b) from bar"
+  expected_names: ["trim(b)"]
+  expected_types: [string]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [~]
+  - ["this"]
+  - [~]
+
+- sql: "select trim(BOTH 'y' FROM b) from bar"
+  expected_names: ["trim(b, 'both', 'y')"]
+  expected_types: [string]
+  expected:
+  - ["he"]
+  - ["o"]
+  - [~]
+  - ["this"]
   - [~]
 
 - sql: "select truncate(null, 2) from bar"

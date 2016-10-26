@@ -145,6 +145,27 @@ func (_ *castFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
+type characterLengthFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_char_length
+func (_ *characterLengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	value := []rune(values[0].String())
+
+	return SQLInt(len(value)), nil
+}
+
+func (_ *characterLengthFunc) Type() schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *characterLengthFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
 type coalesceFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_coalesce
@@ -1219,6 +1240,23 @@ func (_ *makeDateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
+type midFunc struct {
+	wrapped substringFunc
+}
+
+// http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_mid
+func (m *midFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return m.wrapped.Evaluate(values, ctx)
+}
+
+func (m *midFunc) Type() schema.SQLType {
+	return m.wrapped.Type()
+}
+
+func (_ *midFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
 type minuteFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_minute
@@ -1468,6 +1506,29 @@ func (_ *quarterFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type replaceFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_replace
+func (_ *replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	s := values[0].String()
+	old := values[1].String()
+	new := values[2].String()
+
+	return SQLVarchar(strings.Replace(s, old, new, -1)), nil
+}
+
+func (_ *replaceFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *replaceFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
 type rightFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_right
@@ -1565,6 +1626,30 @@ func (_ *secondFunc) Type() schema.SQLType {
 }
 
 func (_ *secondFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+type spaceFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_space
+func (_ *spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	n := values[0].Int64()
+	if n < 1 {
+		return SQLVarchar(""), nil
+	}
+
+	return SQLVarchar(strings.Repeat(" ", int(n))), nil
+}
+
+func (_ *spaceFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *spaceFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
@@ -1865,7 +1950,6 @@ func (_ *timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue,
 	default:
 		return nil, fmt.Errorf("cannot add '%v' to timestamp", values[0])
 	}
-	return SQLNull, nil
 }
 
 func (t *timestampDiffFunc) Type() schema.SQLType {
@@ -1874,6 +1958,47 @@ func (t *timestampDiffFunc) Type() schema.SQLType {
 
 func (t *timestampDiffFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
+}
+
+type trimFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_trim
+func (_ *trimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	value := values[0].String()
+	end := "both"
+	toTrim := " "
+	if len(values) == 3 {
+		end = values[1].String()
+		toTrim = values[2].String()
+	}
+
+	save := ""
+	for save != value {
+		save = value
+		switch end {
+		case "both":
+			value = strings.TrimPrefix(value, toTrim)
+			value = strings.TrimSuffix(value, toTrim)
+		case "leading":
+			value = strings.TrimPrefix(value, toTrim)
+		case "trailing":
+			value = strings.TrimSuffix(value, toTrim)
+		}
+	}
+
+	return SQLVarchar(value), nil
+}
+
+func (_ *trimFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *trimFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1, 3)
 }
 
 type truncateFunc struct{}

@@ -209,7 +209,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 	} else {
 		var matchBody bson.M
 		t := &pushDownTranslator{
-			ctx:             v.ctx,
+			versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 			lookupFieldName: ms.mappingRegistry.lookupFieldName,
 		}
 		matchBody, localMatcher = t.TranslatePredicate(filter.matcher)
@@ -326,7 +326,7 @@ func (v *pushDownOptimizer) translateGroupByKeys(keys []SQLExpr, lookupFieldName
 	keyDocumentElements := bson.D{}
 
 	t := &pushDownTranslator{
-		ctx:             v.ctx,
+		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 		lookupFieldName: lookupFieldName,
 	}
 
@@ -426,7 +426,7 @@ const (
 // an expression that can be used to generate a subsequent $project.
 func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 	t := &pushDownTranslator{
-		ctx:             v.ctx,
+		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 		lookupFieldName: v.lookupFieldName,
 	}
 	switch typedN := n.(type) {
@@ -580,7 +580,7 @@ func (v *pushDownOptimizer) translateGroupByProject(exprs []*namedExpr, lookupFi
 	project := bson.M{groupID: 0}
 
 	t := &pushDownTranslator{
-		ctx:             v.ctx,
+		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 		lookupFieldName: lookupFieldName,
 	}
 
@@ -1029,7 +1029,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	if lookupInfo.remainingPredicate != nil && joinKind == LeftJoin {
 
 		t := &pushDownTranslator{
-			ctx:             v.ctx,
+			versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 			lookupFieldName: newMappingRegistry.lookupFieldName,
 		}
 
@@ -1301,7 +1301,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	}
 
 	t := &pushDownTranslator{
-		ctx:             v.ctx,
+		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 		lookupFieldName: ms.mappingRegistry.lookupFieldName,
 	}
 

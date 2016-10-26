@@ -56,6 +56,7 @@ var (
   DATABASE_BYTES           = []byte("database")
   SCHEMA_BYTES             = []byte("schema")
   USER_BYTES               = []byte("user")
+  REPLACE_BYTES            = []byte("replace")
 )
 
 %}
@@ -104,7 +105,7 @@ var (
 %token <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
 %token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
 %token <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND
-%token <empty> DAY_MINUTE DAY_HOUR YEAR_MONTH
+%token <empty> DAY_MINUTE DAY_HOUR YEAR_MONTH BOTH LEADING TRAILING TRIM
 %token <empty> BINARY MASTER LOGS DATABASE SCHEMA EVENT FUNCTION PROCEDURE BINLOG EVENTS TRIGGER USER
 %token <empty> ENGINE MUTEX ENGINES STORAGE ERRORS COUNT CODE GRANTS OPEN PLUGINS PRIVILEGES
 %token <empty> PROFILE PROFILES RELAYLOG SLAVE HOSTS TRIGGERS WARNINGS CHANNEL INDEXES KEYS SCHEMAS
@@ -240,7 +241,7 @@ var (
 %type <str> explain_type
 %type <str> format_name
 %type <str> kill_modifier
-%type <bytes> for_user_opt for_channel_opt
+%type <bytes> for_user_opt for_channel_opt both_leading_trailing_opt
 %%
 
 any_command:
@@ -1505,9 +1506,31 @@ expr:
   {
     $$ = &FuncExpr{Name: []byte("str_to_date"), Exprs: $3}
   }
+| TRIM LPAREN select_expression RPAREN 
+  {
+    $$ = &FuncExpr{Name: []byte("trim"), Exprs: []SelectExpr{$3}}
+  }
+| TRIM LPAREN both_leading_trailing_opt select_expression FROM select_expression RPAREN 
+  {
+    $$ = &FuncExpr{Name: []byte("trim"), Exprs: []SelectExpr{$6, &NonStarExpr{Expr: StrVal($3)}, $4}}
+  }
+
+both_leading_trailing_opt:
+  BOTH 
+  {
+    $$ = []byte("both")
+  }
+| LEADING
+  {
+    $$ = []byte("leading")
+  }
+| TRAILING
+  {
+    $$ = []byte("trailing")
+  }
 
 sql_time_interval:
-    SQL_TSI_YEAR
+  SQL_TSI_YEAR
   {
     $$ = YEAR_BYTES
   }
@@ -1722,6 +1745,10 @@ keyword_as_func:
 | USER
   {
     $$ = USER_BYTES
+  }
+| REPLACE
+  {
+    $$ = REPLACE_BYTES
   }
 
 unary_operator:

@@ -736,6 +736,21 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: CHAR_LENGTH", func() {
+				tests := []test{
+					test{"CHAR_LENGTH(NULL)", SQLNull},
+					test{"CHAR_LENGTH('sDg')", SQLInt(3)},
+					test{"CHAR_LENGTH('世界')", SQLInt(2)},
+					test{"CHAR_LENGTH('')", SQLInt(0)},
+
+					test{"CHARACTER_LENGTH(NULL)", SQLNull},
+					test{"CHARACTER_LENGTH('sDg')", SQLInt(3)},
+					test{"CHARACTER_LENGTH('世界')", SQLInt(2)},
+					test{"CHARACTER_LENGTH('')", SQLInt(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: COALESCE", func() {
 				tests := []test{
 					test{"COALESCE(NULL)", SQLNull},
@@ -1195,10 +1210,6 @@ func TestEvaluates(t *testing.T) {
 					test{"LENGTH(NULL)", SQLNull},
 					test{"LENGTH('sDg')", SQLInt(3)},
 					test{"LENGTH('世界')", SQLInt(6)},
-					test{"CHAR_LENGTH(NULL)", SQLNull},
-					test{"CHAR_LENGTH('')", SQLInt(0)},
-					test{"CHAR_LENGTH('A')", SQLInt(1)},
-					test{"CHAR_LENGTH('AWESOME')", SQLInt(7)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1280,6 +1291,17 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: MID", func() {
+				tests := []test{
+					test{"MID('foobarbar', 4, NULL)", SQLNull},
+					test{"MID('Quadratically', 5, 6)", SQLVarchar("ratica")},
+					test{"MID('Quadratically', 12, 2)", SQLVarchar("ly")},
+					test{"MID('Sakila', -5, 3)", SQLVarchar("aki")},
+					test{"MID('日本語', 2, 1)", SQLVarchar("本")},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: MINUTE", func() {
 				tests := []test{
 					test{"MINUTE(NULL)", SQLNull},
@@ -1348,6 +1370,15 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: REPLACE", func() {
+				tests := []test{
+					test{"REPLACE(NULL, NULL, NULL)", SQLNull},
+					test{"REPLACE('sDgcdcdc', 'D', 'd')", SQLVarchar("sdgcdcdc")},
+					test{"REPLACE('www.mysql.com', 'w', 'Ww')", SQLVarchar("WwWwWw.mysql.com")},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: RIGHT", func() {
 				tests := []test{
 					test{"RIGHT(NULL, NULL)", SQLNull},
@@ -1382,6 +1413,15 @@ func TestEvaluates(t *testing.T) {
 					test{"SECOND(NULL)", SQLNull},
 					test{"SECOND('sdg')", SQLNull},
 					test{"SECOND('10:23:52')", SQLInt(52)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: SPACE", func() {
+				tests := []test{
+					test{"SPACE(NULL)", SQLNull},
+					test{"SPACE(5)", SQLVarchar("     ")},
+					test{"SPACE(-3)", SQLVarchar("")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1526,6 +1566,17 @@ func TestEvaluates(t *testing.T) {
 					test{"TIMESTAMPDIFF(SQL_TSI_MINUTE, TIMESTAMP '2002-01-01 12:30:09', TIMESTAMP '2002-01-01 13:02:33')", SQLInt(32)},
 					test{"TIMESTAMPDIFF(SQL_TSI_MINUTE, TIMESTAMP '2002-01-01 12:30:09', DATE '2002-01-02')", SQLInt(689)},
 					test{"TIMESTAMPDIFF(SQL_TSI_SECOND, TIMESTAMP '2002-01-01 12:30:09', TIMESTAMP '2002-01-02 14:40:33')", SQLInt(94224)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: TRIM", func() {
+				tests := []test{
+					test{"TRIM(NULL)", SQLNull},
+					test{"TRIM('   bar   ')", SQLVarchar("bar")},
+					test{"TRIM(BOTH 'xyz' FROM 'xyzbarxyzxyz')", SQLVarchar("bar")},
+					test{"TRIM(LEADING 'xyz' FROM 'xyzbarxyzxyz')", SQLVarchar("barxyzxyz")},
+					test{"TRIM(TRAILING 'xyz' FROM 'xyzbarxyzxyz')", SQLVarchar("xyzbar")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -2371,7 +2422,7 @@ func TestTranslatePredicate(t *testing.T) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		translator := &pushDownTranslator{
-			ctx:             &connCtx{},
+			versionAtLeast:  func(_ ...int) bool { return true },
 			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
 		}
 
@@ -2402,7 +2453,7 @@ func TestTranslatePredicate(t *testing.T) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		translator := &pushDownTranslator{
-			ctx:             &connCtx{},
+			versionAtLeast:  func(_ ...int) bool { return true },
 			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
 		}
 
@@ -2482,8 +2533,9 @@ func TestTranslateExpr(t *testing.T) {
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
+
 		translator := &pushDownTranslator{
-			ctx:             &connCtx{},
+			versionAtLeast:  func(_ ...int) bool { return true },
 			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
 		}
 		for _, t := range tests {
@@ -2507,6 +2559,8 @@ func TestTranslateExpr(t *testing.T) {
 
 		tests := []test{
 			test{"abs(a)", `{"$abs":"$a"}`},
+			test{"char_length(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$strLenCP":"$a"}]}`},
+			test{"character_length(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$strLenCP":"$a"}]}`},
 			test{"concat(a, 'funny')", `{"$concat":["$a",{"$literal":"funny"}]}`},
 			test{"concat(a, null)", `{"$concat":["$a",{"$literal":null}]}`},
 			test{"concat(a, '')", `{"$concat":["$a",{"$literal":""}]}`},
@@ -2523,11 +2577,13 @@ func TestTranslateExpr(t *testing.T) {
 			test{"if(a, 2, 3)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":["$a",0]},{"$eq":["$a",false]}]},{"$literal":3},{"$literal":2}]}`},
 			test{"ifnull(a, 1)", `{"$ifNull":["$a",{"$literal":1}]}`},
 			test{"isnull(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},1,0]}`},
+			test{"length(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$strLenBytes":"$a"}]}`},
 			test{"left(a, 2)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":[{"$ifNull":[{"$literal":2},null]},null]}]},null,{"$substr":["$a",0,{"$literal":2}]}]}`},
 			test{"left('abcde', 0)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":[{"$literal":"abcde"},null]},null]},{"$eq":[{"$ifNull":[{"$literal":0},null]},null]}]},null,{"$substr":[{"$literal":"abcde"},0,{"$literal":0}]}]}`},
 			test{"lcase(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$toLower":"$a"}]}`},
 			test{"lower(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$toLower":"$a"}]}`},
 			test{"log10(a)", `{"$cond":[{"$gt":["$a",0]},{"$log10":"$a"},{"$literal":null}]}`},
+			test{"mid(a, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$substr":["$a",1,{"$literal":4}]}]}`},
 			test{"minute(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$minute":"$a"}]}`},
 			test{"mod(a, 10)", `{"$mod":["$a",{"$literal":10}]}`},
 			test{"month(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$month":"$a"}]}`},
@@ -2582,7 +2638,7 @@ func TestTranslateExpr(t *testing.T) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
 		translator := &pushDownTranslator{
-			ctx:             &connCtx{},
+			versionAtLeast:  func(_ ...int) bool { return true },
 			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
 		}
 

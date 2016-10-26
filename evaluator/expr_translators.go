@@ -61,7 +61,7 @@ var (
 )
 
 type pushDownTranslator struct {
-	ctx             ConnectionCtx
+	versionAtLeast  func(...int) bool
 	lookupFieldName fieldNameLookup
 }
 
@@ -493,6 +493,16 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			}
 
 			return bson.M{"$abs": args[0]}, true
+		case "char_length", "character_length":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			if !t.versionAtLeast(3, 3, 12) {
+				return nil, false
+			}
+
+			return wrapSingleArgFuncWithNullCheck("$strLenCP", args[0]), true
 		case "coalesce":
 			var coalesce func([]interface{}) interface{}
 			coalesce = func(args []interface{}) interface{} {
@@ -658,6 +668,16 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				wrapInNullCheck(args[0]),
 				wrapInNullCheck(args[1]),
 			), true
+		case "length":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			if !t.versionAtLeast(3, 3, 12) {
+				return nil, false
+			}
+
+			return wrapSingleArgFuncWithNullCheck("$strLenBytes", args[0]), true
 		case "lcase", "lower":
 			if len(args) != 1 {
 				return nil, false
@@ -690,6 +710,34 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{mgoOperatorGT: []interface{}{args[0], 0}},
 				bson.M{"$log10": args[0]},
 				mgoNullLiteral}}, true
+		case "mid":
+			if len(args) != 3 {
+				return nil, false
+			}
+
+			bsonMap, ok := args[1].(bson.M)
+			if !ok {
+				return nil, false
+			}
+
+			bsonVal, ok := bsonMap["$literal"]
+			if !ok {
+				return nil, false
+			}
+
+			arg1Val, ok := bsonVal.(SQLValue)
+			if !ok {
+				return nil, false
+			}
+
+			arg1 := int(arg1Val.Float64()) - 1
+			arg2 := args[2]
+
+			return wrapInCond(
+				nil,
+				bson.M{"$substr": []interface{}{args[0], arg1, arg2}},
+				wrapInNullCheck(args[0]),
+			), true
 		case "mod":
 			if len(args) != 2 {
 				return nil, false
@@ -1460,7 +1508,7 @@ func (t *pushDownTranslator) getValue(e SQLExpr) (interface{}, bool) {
 }
 
 func (t *pushDownTranslator) translateDecimal(cons SQLValue) (interface{}, bool) {
-	if !t.ctx.Variables().MongoDBInfo.VersionAtLeast(3, 3, 15) {
+	if !t.versionAtLeast(3, 3, 15) {
 		return nil, false
 	}
 
