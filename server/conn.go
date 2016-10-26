@@ -19,6 +19,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
@@ -282,8 +283,29 @@ func (c *conn) handshake() error {
 		c.user = ""
 	}
 
+	schema := c.server.eval.Schema()
+	var err error
+	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.Session(), &schema, c.server.opts.Auth)
+	if err != nil {
+		c.writeError(err)
+		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error retrieving information from MongoDB: %v", err)
+	}
+
+	c.catalog, err = catalog.Build(&schema, c.variables)
+	if err != nil {
+		c.writeError(err)
+		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error building catalog: %v", err)
+	}
+
+	if c.startDb != "" {
+		if err := c.useDB(c.startDb); err != nil {
+			c.writeError(err)
+			return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error using database %v: %v", c.startDb, err)
+		}
+	}
+
 	if err := c.writeOK(nil); err != nil {
-		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "write ok error: %v", err)
+		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "write ok: %v", err)
 	}
 
 	c.sequence = 0

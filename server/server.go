@@ -6,10 +6,8 @@ import (
 	"sync"
 
 	"github.com/10gen/sqlproxy"
-	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/client/openssl"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
@@ -154,29 +152,6 @@ func (s *Server) onConn(c net.Conn) {
 		conn.logger.Errf(log.Always, "handshake error: %v", err)
 		c.Close()
 		return
-	}
-
-	schema := s.eval.Schema()
-	conn.variables.MongoDBInfo, err = mongodb.LoadInfo(conn.logger, conn.Session(), &schema, s.opts.Auth)
-	if err != nil {
-		conn.logger.Errf(log.Always, "error retrieving information from MongoDB: %v", err)
-		c.Close()
-		return
-	}
-
-	conn.catalog, err = catalog.Build(&schema, conn.variables)
-	if err != nil {
-		conn.logger.Errf(log.Always, "error building catalog: %v", err)
-		c.Close()
-		return
-	}
-
-	if conn.startDb != "" {
-		if err := conn.useDB(conn.startDb); err != nil {
-			conn.logger.Errf(log.Always, "error connecting to db %v: %v", conn.startDb, err)
-			c.Close()
-			return
-		}
 	}
 
 	s.Lock()
