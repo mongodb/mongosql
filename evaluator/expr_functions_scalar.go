@@ -13,6 +13,126 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+type constantFunc struct {
+	value SQLValue
+}
+
+func (c *constantFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return c.value, nil
+}
+
+func (c *constantFunc) Type() schema.SQLType {
+	return c.value.Type()
+}
+
+func (_ *constantFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0)
+}
+
+type singleArgFloatMathFunc func(float64) float64
+
+func (f singleArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	result := f(values[0].Float64())
+	if math.IsNaN(result) {
+		return SQLNull, nil
+	}
+	if math.IsInf(result, 0) {
+		return SQLNull, nil
+	}
+	if result == -0 {
+		result = 0
+	}
+	return SQLFloat(result), nil
+}
+
+func (_ singleArgFloatMathFunc) Type() schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ singleArgFloatMathFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+func (_ singleArgFloatMathFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+type dualArgFloatMathFunc func(float64, float64) float64
+
+func (f dualArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	result := f(values[0].Float64(), values[1].Float64())
+	if math.IsNaN(result) {
+		return SQLNull, nil
+	}
+	if math.IsInf(result, 0) {
+		return SQLNull, nil
+	}
+	if result == -0 {
+		result = 0
+	}
+	return SQLFloat(result), nil
+}
+
+func (_ dualArgFloatMathFunc) Type() schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ dualArgFloatMathFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
+
+func (_ dualArgFloatMathFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+type multiArgFloatMathFunc struct {
+	single singleArgFloatMathFunc
+	dual   dualArgFloatMathFunc
+}
+
+func (f multiArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	if len(values) == 1 {
+		return f.single.Evaluate(values, ctx)
+	}
+	return f.dual.Evaluate(values, ctx)
+}
+
+func (_ multiArgFloatMathFunc) Type() schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ multiArgFloatMathFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1, 2)
+}
+
+func (_ multiArgFloatMathFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
 type connectionIdFunc struct{}
 
 func (_ *connectionIdFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -83,26 +203,6 @@ func (_ *versionFunc) Type() schema.SQLType {
 
 func (_ *versionFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
-}
-
-type absFunc struct{}
-
-// http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_abs
-func (_ *absFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	result := math.Abs(values[0].Float64())
-	return SQLFloat(result), nil
-}
-
-func (_ *absFunc) Type() schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (_ *absFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
 }
 
 type asciiFunc struct{}
@@ -403,6 +503,30 @@ func (_ *convertFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
+type cotFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_cot
+func (_ *cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	tan := math.Tan(values[0].Float64())
+	if tan == 0 {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("'cot(%v)'", values[0].Float64()))
+	}
+
+	return SQLFloat(1 / tan), nil
+}
+
+func (_ *cotFunc) Type() schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ *cotFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
 type currentDateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curdate
@@ -596,25 +720,6 @@ func (_ *dayOfYearFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
-type expFunc struct{}
-
-// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_exp
-func (_ *expFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-	r := math.Exp(values[0].Float64())
-	return SQLFloat(r), nil
-}
-
-func (_ *expFunc) Type() schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (_ *expFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
-}
-
 const (
 	YEAR               = "year"
 	QUARTER            = "quarter"
@@ -725,25 +830,6 @@ func (_ *extractFunc) Type() schema.SQLType {
 
 func (_ *extractFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
-}
-
-type floorFunc struct{}
-
-// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_floor
-func (_ *floorFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-	r := math.Floor(values[0].Float64())
-	return SQLFloat(r), nil
-}
-
-func (_ *floorFunc) Type() schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (_ *floorFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
 }
 
 type greatestFunc struct{}
@@ -1122,58 +1208,6 @@ func (_ *locateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2, 3)
 }
 
-type log10Func struct{}
-
-// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log10
-func (_ *log10Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	n := values[0].Float64()
-
-	if n <= 0 {
-		return SQLNull, nil
-	}
-
-	r := math.Log10(n)
-	return SQLFloat(r), nil
-}
-
-func (_ *log10Func) Type() schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (_ *log10Func) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
-}
-
-type log2Func struct{}
-
-// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log2
-func (_ *log2Func) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	n := values[0].Float64()
-
-	if n <= 0 {
-		return SQLNull, nil
-	}
-
-	r := math.Log2(n)
-	return SQLFloat(r), nil
-}
-
-func (_ *log2Func) Type() schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (_ *log2Func) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
-}
-
 type ltrimFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ltrim
@@ -1277,46 +1311,6 @@ func (_ *minuteFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
-type modFunc struct{}
-
-// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_mod
-func (_ *modFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	n := values[0].Float64()
-	m := values[1].Float64()
-
-	if m == 0 {
-		return SQLNull, nil
-	}
-
-	r := math.Mod(n, m)
-
-	if r == -0.0 {
-		r = 0
-	}
-
-	return SQLFloat(r), nil
-}
-
-func (_ *modFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if hasNullExpr(f.Exprs...) {
-		return SQLNull
-	}
-
-	return f
-}
-
-func (_ *modFunc) Type() schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (_ *modFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 2)
-}
-
 type monthFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_month
@@ -1354,32 +1348,6 @@ func (_ *monthNameFunc) Type() schema.SQLType {
 }
 
 func (_ *monthNameFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
-}
-
-type naturalLogFunc struct{}
-
-// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_log10
-func (_ *naturalLogFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	n := values[0].Float64()
-
-	if n <= 0 {
-		return SQLNull, nil
-	}
-
-	r := math.Log(n)
-	return SQLFloat(r), nil
-}
-
-func (_ *naturalLogFunc) Type() schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (_ *naturalLogFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
@@ -1442,38 +1410,6 @@ func (_ *nullifFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
-type powFunc struct{}
-
-func (_ *powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	pow := math.Pow(values[0].Float64(), values[1].Float64())
-
-	if math.IsNaN(pow) {
-		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("pow(%v,%v)", values[0], values[1]))
-	}
-
-	return SQLFloat(pow), nil
-}
-
-func (_ *powFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if hasNullExpr(f.Exprs...) {
-		return SQLNull
-	}
-
-	return f
-}
-
-func (_ *powFunc) Type() schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (_ *powFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 2)
-}
-
 type quarterFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_quarter
@@ -1504,6 +1440,37 @@ func (_ *quarterFunc) Type() schema.SQLType {
 
 func (_ *quarterFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type powFunc struct{}
+
+func (_ *powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	n := math.Pow(values[0].Float64(), values[1].Float64())
+	if math.IsNaN(n) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("pow(%v,%v)", values[0].Float64(), values[1].Float64()))
+	}
+
+	return SQLFloat(math.Pow(values[0].Float64(), values[1].Float64())), nil
+}
+
+func (_ *powFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *powFunc) Type() schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ *powFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
 }
 
 type replaceFunc struct{}
@@ -1629,6 +1596,32 @@ func (_ *secondFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type signFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_sign
+func (_ *signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	v := values[0].Float64()
+	if v < 0 {
+		return SQLInt(-1), nil
+	}
+	if v > 0 {
+		return SQLInt(1), nil
+	}
+	return SQLInt(0), nil
+}
+
+func (_ *signFunc) Type() schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *signFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
 type spaceFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_space
@@ -1650,31 +1643,6 @@ func (_ *spaceFunc) Type() schema.SQLType {
 }
 
 func (_ *spaceFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 1)
-}
-
-type sqrtFunc struct{}
-
-// https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html#function_sqrt
-func (_ *sqrtFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	n := values[0].Float64()
-	if n < 0 {
-		return SQLNull, nil
-	}
-
-	r := math.Sqrt(n)
-	return SQLFloat(r), nil
-}
-
-func (_ *sqrtFunc) Type() schema.SQLType {
-	return schema.SQLFloat
-}
-
-func (_ *sqrtFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 

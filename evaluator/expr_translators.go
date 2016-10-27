@@ -493,6 +493,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			}
 
 			return bson.M{"$abs": args[0]}, true
+		case "ceil":
+			if len(args) != 1 {
+				return nil, false
+			}
+
+			return bson.M{"$ceil": args[0]}, true
 		case "char_length", "character_length":
 			if len(args) != 1 {
 				return nil, false

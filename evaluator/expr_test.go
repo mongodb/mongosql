@@ -724,6 +724,53 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: ACOS", func() {
+				tests := []test{
+					test{"ACOS(NULL)", SQLNull},
+					test{"ACOS(20)", SQLNull},
+					test{"ACOS(-20)", SQLNull},
+					test{"ACOS('C')", SQLFloat(1.5707963267948966)},
+					test{"ACOS(0)", SQLFloat(1.5707963267948966)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: ASIN", func() {
+				tests := []test{
+					test{"ASIN(NULL)", SQLNull},
+					test{"ASIN(20)", SQLNull},
+					test{"ASIN(-20)", SQLNull},
+					test{"ASIN('C')", SQLFloat(0)},
+					test{"ASIN(0)", SQLFloat(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: ATAN", func() {
+				tests := []test{
+					test{"ATAN(NULL)", SQLNull},
+					test{"ATAN(20)", SQLFloat(1.5208379310729538)},
+					test{"ATAN(-20)", SQLFloat(-1.5208379310729538)},
+					test{"ATAN('C')", SQLFloat(0)},
+					test{"ATAN(0)", SQLFloat(0)},
+					test{"ATAN(NULL, NULL)", SQLNull},
+					test{"ATAN(-2, 2)", SQLFloat(-0.7853981633974483)},
+					test{"ATAN('C', 2)", SQLFloat(0)},
+					test{"ATAN(0, 2)", SQLFloat(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: ATAN2", func() {
+				tests := []test{
+					test{"ATAN2(NULL, NULL)", SQLNull},
+					test{"ATAN2(-2, 2)", SQLFloat(-0.7853981633974483)},
+					test{"ATAN2('C', 2)", SQLFloat(0)},
+					test{"ATAN2(0, 2)", SQLFloat(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: ASCII", func() {
 				tests := []test{
 					test{"ASCII(NULL)", SQLNull},
@@ -732,6 +779,30 @@ func TestEvaluates(t *testing.T) {
 					test{"ASCII('AWESOME')", SQLInt(65)},
 					test{"ASCII('¢')", SQLInt(194)},
 					test{"ASCII('Č')", SQLInt(196)}, // This is actually 268, but the first byte is 196
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: CEIL", func() {
+				tests := []test{
+					test{"CEIL(NULL)", SQLNull},
+					test{"CEIL(20)", SQLFloat(20)},
+					test{"CEIL(-20)", SQLFloat(-20)},
+					test{"CEIL('C')", SQLFloat(0)},
+					test{"CEIL(0.56)", SQLFloat(1)},
+					test{"CEIL(-0.56)", SQLFloat(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: CEILING", func() {
+				tests := []test{
+					test{"CEIL(NULL)", SQLNull},
+					test{"CEIL(20)", SQLFloat(20)},
+					test{"CEIL(-20)", SQLFloat(-20)},
+					test{"CEIL('C')", SQLFloat(0)},
+					test{"CEIL(0.56)", SQLFloat(1)},
+					test{"CEIL(-0.56)", SQLFloat(0)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -851,6 +922,36 @@ func TestEvaluates(t *testing.T) {
 					test{"CONVERT(DATE '2006-05-11', SQL_TIMESTAMP)", SQLTimestamp{Time: dt}},
 				}
 				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: COS", func() {
+				tests := []test{
+					test{"COS(NULL)", SQLNull},
+					test{"COS(20)", SQLFloat(0.40808206181339196)},
+					test{"COS(-20)", SQLFloat(0.40808206181339196)},
+					test{"COS('C')", SQLFloat(1)},
+					test{"COS(0)", SQLFloat(1)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: COT", func() {
+				tests := []test{
+					test{"COT(NULL)", SQLNull},
+					test{"COT(20)", SQLFloat(0.4469951089489166)},
+					test{"COT(-20)", SQLFloat(-0.4469951089489166)},
+				}
+				runTests(evalCtx, tests)
+
+				Convey("Should error when out of range", func() {
+					subject := &SQLScalarFunctionExpr{
+						Name:  "cot",
+						Exprs: []SQLExpr{SQLFloat(0)},
+					}
+					_, err := subject.Evaluate(evalCtx)
+					So(err, ShouldNotBeNil)
+				})
+
 			})
 
 			SkipConvey("Subject: CURRENT_DATE", func() {
@@ -1001,6 +1102,15 @@ func TestEvaluates(t *testing.T) {
 					test{"DAYOFYEAR(14)", SQLNull},
 					test{"DAYOFYEAR('2016-1-1')", SQLInt(1)},
 					test{"DAYOFYEAR('2016-01-01')", SQLInt(1)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: DEGREES", func() {
+				tests := []test{
+					test{"DEGREES(NULL)", SQLNull},
+					test{"DEGREES(20)", SQLFloat(1145.9155902616465)},
+					test{"DEGREES(-20)", SQLFloat(-1145.9155902616465)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1358,6 +1468,13 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: PI", func() {
+				tests := []test{
+					test{"PI()", SQLFloat(3.141592653589793116)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: QUARTER", func() {
 				tests := []test{
 					test{"QUARTER(NULL)", SQLNull},
@@ -1366,6 +1483,15 @@ func TestEvaluates(t *testing.T) {
 					test{"QUARTER('2016-4-01 10:23:52')", SQLInt(2)},
 					test{"QUARTER('2016-8-01 10:23:52')", SQLInt(3)},
 					test{"QUARTER('2016-11-01 10:23:52')", SQLInt(4)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: RADIANS", func() {
+				tests := []test{
+					test{"RADIANS(NULL)", SQLNull},
+					test{"RADIANS(1145.9155902616465)", SQLFloat(20)},
+					test{"RADIANS(-1145.9155902616465)", SQLFloat(-20)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1413,6 +1539,16 @@ func TestEvaluates(t *testing.T) {
 					test{"SECOND(NULL)", SQLNull},
 					test{"SECOND('sdg')", SQLNull},
 					test{"SECOND('10:23:52')", SQLInt(52)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: SIGN", func() {
+				tests := []test{
+					test{"SIGN(NULL)", SQLNull},
+					test{"SIGN(-42)", SQLInt(-1)},
+					test{"SIGN(0)", SQLInt(0)},
+					test{"SIGN(42)", SQLInt(1)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1481,6 +1617,17 @@ func TestEvaluates(t *testing.T) {
 					test{"STR_TO_DATE('2005-04-02 12', '%Y-%m-%d %i')", SQLTimestamp{t1}},
 					test{"STR_TO_DATE('Apr 03, 2016', '%b %d, %Y')", SQLDate{d}},
 					test{"STR_TO_DATE('Tue 2016-04-03', '%a %Y-%m-%d')", SQLDate{d}},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: TAN", func() {
+				tests := []test{
+					test{"TAN(NULL)", SQLNull},
+					test{"TAN(20)", SQLFloat(2.2371609442247427)},
+					test{"TAN(-20)", SQLFloat(-2.2371609442247427)},
+					test{"TAN('C')", SQLFloat(0)},
+					test{"TAN(0)", SQLFloat(0)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -2533,7 +2680,6 @@ func TestTranslateExpr(t *testing.T) {
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
-
 		translator := &pushDownTranslator{
 			versionAtLeast:  func(_ ...int) bool { return true },
 			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
@@ -2559,6 +2705,7 @@ func TestTranslateExpr(t *testing.T) {
 
 		tests := []test{
 			test{"abs(a)", `{"$abs":"$a"}`},
+			test{"ceil(a)", `{"$ceil":"$a"}`},
 			test{"char_length(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$strLenCP":"$a"}]}`},
 			test{"character_length(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$strLenCP":"$a"}]}`},
 			test{"concat(a, 'funny')", `{"$concat":["$a",{"$literal":"funny"}]}`},

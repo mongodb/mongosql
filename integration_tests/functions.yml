@@ -250,7 +250,7 @@ testcases:
 # Scalar
 - sql: "select abs(a) from bar"
   expected_names: ["abs(a)"]
-  expected_types: [int]
+  expected_types: [float64]
   expected:
   - [1]
   - [~]
@@ -260,19 +260,59 @@ testcases:
 
 - sql: "select a from bar where abs(a) > 1"
   expected_names: ["a"]
-  expected_types: [int]
+  expected_types: [float64]
   expected:
   - [-3]
   - [4]
 
 - sql: "select abs(null) from bar"
   expected_names: ["abs(null)"]
-  expected_types: [int]
+  expected_types: [float64]
   expected:
   - [~]
   - [~]
   - [~]
   - [~]
+  - [~]
+
+- sql: "select acos(a) from bar"
+  expected_names: ["acos(a)"]
+  expected_types: [float64]
+  expected:
+  - [0]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select asin(a) from bar"
+  expected_names: ["asin(a)"]
+  expected_types: [float64]
+  expected:
+  - [1]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select atan(a) from bar"
+  expected_names: ["atan(a)"]
+  expected_types: [float64]
+  expected:
+  - [0]
+  - [~]
+  - [-1.2490457723982544]
+  - [1.3258176636680323]
+  - [~]
+
+- sql: "select atan(a, 2) from bar"
+  expected_names: ["atan(a, 2)"]
+  expected_types: [float64]
+  expected:
+  - [0]
+  - [~]
+  - [-0.982793723247329]
+  - [1.1071487177940904]
   - [~]
 
 - sql: "select ascii(b) from bar"
@@ -299,6 +339,26 @@ testcases:
   - [~]
   - [~]
   - [~]
+  - [~]
+  - [~]
+
+- sql: "select ceil(c) from bar"
+  expected_names: ["ceil(c)"]
+  expected_types: [float64]
+  expected:
+  - [2]
+  - [-121]
+  - [57]
+  - [~]
+  - [~]
+
+- sql: "select ceiling(c) from bar"
+  expected_names: ["ceiling(c)"]
+  expected_types: [float64]
+  expected:
+  - [2]
+  - [-121]
+  - [57]
   - [~]
   - [~]
 
@@ -433,6 +493,36 @@ testcases:
   - [~]
   - [~]
   - [~]
+  - [~]
+
+- sql: "select cos(a) from bar"
+  expected_names: ["cos(a)"]
+  expected_types: [float64]
+  expected:
+  - [0.5403023058681398]
+  - [~]
+  - [-0.9899924966004454]
+  - [-0.6536436208636119]
+  - [~]
+
+- sql: "select cot(a) from bar"
+  expected_names: ["cot(a)"]
+  expected_types: [float64]
+  expected:
+  - [0.6420926159343306]
+  - [~]
+  - [7.015252551434534]
+  - [0.8636911544506167]
+  - [~]
+
+- sql: "select degrees(a) from bar"
+  expected_names: ["degrees(a)"]
+  expected_types: [float64]
+  expected:
+  - [57.29577951308232]
+  - [~]
+  - [-171.88733853924697]
+  - [229.1831180523293]
   - [~]
 
 # Synonym for dayofmonth
@@ -776,32 +866,6 @@ testcases:
   - [1]
   - [1]
 
-- sql: "select length(b) from bar"
-  expected_names: ["length(b)"]
-  expected_types: [int]
-  expected:
-  - [3]
-  - [2]
-  - [~]
-  - [4]
-  - [~]
-
-- sql: "select length(b) from bar where char_length(b) > 3"
-  expected_names: ["length(b)"]
-  expected_types: [int]
-  expected:
-  - [4]
-
-- sql: "select length(null) from bar"
-  expected_names: ["length(null)"]
-  expected_types: [int]
-  expected:
-  - [~]
-  - [~]
-  - [~]
-  - [~]
-  - [~]
-
 # Synonym for lower
 - sql: "select lcase(b) from bar"
   expected_names: ["lcase(b)"]
@@ -859,6 +923,32 @@ testcases:
 
 - sql: "select left(null, null) from bar"
   expected_names: ["left(null, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select length(b) from bar"
+  expected_names: ["length(b)"]
+  expected_types: [int]
+  expected:
+  - [3]
+  - [2]
+  - [~]
+  - [4]
+  - [~]
+
+- sql: "select length(b) from bar where char_length(b) > 3"
+  expected_names: ["length(b)"]
+  expected_types: [int]
+  expected:
+  - [4]
+
+- sql: "select length(null) from bar"
+  expected_names: ["length(null)"]
   expected_types: [int]
   expected:
   - [~]
@@ -1081,7 +1171,12 @@ testcases:
   - [~]
   - [~]
 
-# Synonym for power
+- sql: "select pi()"
+  expected_names: ["pi()"]
+  expected_types: [numeric]
+  expected:
+  - [3.141592653589793116]
+
 - sql: "select pow(a, 3) from bar"
   expected_names: ["pow(a, 3)"]
   expected_types: [numeric]
@@ -1111,12 +1206,22 @@ testcases:
 
 - sql: "select pow(null, null) from bar"
   expected_names: ["pow(null, null)"]
-  expected_types: [int]
+  expected_types: [float64]
   expected:
   - [~]
   - [~]
   - [~]
   - [~]
+  - [~]
+
+- sql: "select radians(a) from bar"
+  expected_names: ["radians(a)"]
+  expected_types: [float64]
+  expected:
+  - [0.017453292519943295]
+  - [~]
+  - [-0.05235987755982989]
+  - [0.06981317007977318]
   - [~]
 
 - sql: "select replace(b, 'y', 'free') from bar"
@@ -1165,6 +1270,16 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select sign(a) from bar"
+  expected_names: ["sign(a)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [~]
+  - [-1]
+  - [1]
+  - [~]
+
 - sql: "select space(a) from bar"
   expected_names: ["space(a)"]
   expected_types: [string]
@@ -1201,7 +1316,6 @@ testcases:
   - [~]
   - [~]
 
-# Synonym for substr
 - sql: "select substring(b, 2) from bar"
   expected_names: ["substring(b, 2)"]
   expected_types: [varchar]
@@ -1253,6 +1367,16 @@ testcases:
   - [~]
   - [~]
   - [~]
+  - [~]
+
+- sql: "select tan(a) from bar"
+  expected_names: ["tan(a)"]
+  expected_types: [float64]
+  expected:
+  - [1.5574077246549023]
+  - [~]
+  - [0.1425465430742778]
+  - [1.1578212823495775]
   - [~]
 
 - sql: "select trim(b) from bar"
