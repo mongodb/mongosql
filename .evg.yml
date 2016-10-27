@@ -161,6 +161,18 @@ buildvariants:
   - ubuntu1404-build
   tasks:
   - "!benchmark"
+- name: ubuntu1404-64-race
+  display_name: Ubuntu 14.04 (Race Detector)
+  expansions:
+    mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.3.15.tgz
+    push_arch: x86_64-ubuntu1404
+    push_name: linux
+    push_path: linux
+    test_args: -race
+  run_on:
+  - ubuntu1404-build
+  tasks:
+  - "!benchmark !check"
 - name: windows-64
   display_name: Windows 64
   run_on:
