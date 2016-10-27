@@ -398,6 +398,13 @@ func (div *SQLDivideExpr) Type() schema.SQLType {
 	return schema.SQLFloat
 }
 
+func (div *SQLDivideExpr) normalize() node {
+	if hasNullExpr(div.left, div.right) {
+		return SQLNull
+	}
+	return div
+}
+
 //
 // SQLEqualsExpr evaluates to true if the left equals the right.
 //
@@ -603,11 +610,7 @@ func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return nil, err
 	}
 
-	if leftVal == nil || rightVal == nil {
-		return SQLNull, nil
-	}
-
-	if rightVal.Float64() == 0 {
+	if rightVal.Float64() == 0 || hasNullValue(leftVal, rightVal) {
 		// NOTE: this is per the mysql manual.
 		return SQLNull, nil
 	}
@@ -621,6 +624,13 @@ func (div *SQLIDivideExpr) String() string {
 
 func (div *SQLIDivideExpr) Type() schema.SQLType {
 	return preferentialType(div.left, div.right)
+}
+
+func (div *SQLIDivideExpr) normalize() node {
+	if hasNullExpr(div.left, div.right) {
+		return SQLNull
+	}
+	return div
 }
 
 //

@@ -476,6 +476,8 @@ func TestEvaluates(t *testing.T) {
 				test{"0 DIV 5", SQLInt(0)},
 				test{"5.5 DIV 2", SQLInt(2)},
 				test{"-5 DIV 2", SQLInt(-2)},
+				test{"NULL DIV 1", SQLNull},
+				test{"1 DIV NULL", SQLNull},
 			}
 
 			runTests(evalCtx, tests)

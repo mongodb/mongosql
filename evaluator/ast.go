@@ -569,6 +569,19 @@ func walk(v nodeVisitor, n node) (node, error) {
 			n = &SQLGreaterThanOrEqualExpr{left, right}
 		}
 
+	case *SQLIDivideExpr:
+		left, err := visitExpr(typedN.left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := visitExpr(typedN.right)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.left != left || typedN.right != right {
+			n = &SQLIDivideExpr{left, right}
+		}
+
 	case *SQLInExpr:
 		left, err := visitExpr(typedN.left)
 		if err != nil {
