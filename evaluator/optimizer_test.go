@@ -1348,7 +1348,7 @@ func TestOptimizeCommand(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			setStatement := statement.(*parser.Set)
-			set, err := AlgebrizeCommand(setStatement, defaultDbName, testCatalog)
+			set, err := AlgebrizeCommand(setStatement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 			actualSet, err := OptimizeCommand(createTestConnectionCtx(), set)
 			So(err, ShouldBeNil)

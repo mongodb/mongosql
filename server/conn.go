@@ -81,26 +81,20 @@ func newConn(s *Server, c net.Conn) *conn {
 			CLIENT_CONNECT_WITH_DB |
 			CLIENT_LONG_FLAG |
 			CLIENT_LONG_PASSWORD |
-			CLIENT_SECURE_CONNECTION,
-		stmts:     make(map[uint32]*stmt),
-		variables: variable.NewSessionContainer(s.variables),
+			CLIENT_SECURE_CONNECTION |
+			CLIENT_PLUGIN_AUTH |
+			CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA,
+		stmts:          make(map[uint32]*stmt),
+		variables:      variable.NewSessionContainer(s.variables),
+		authPluginName: nativePasswordClientAuthPluginName,
 	}
 
 	newConn.logger = newConn.Logger(log.NetworkComponent)
+
 	if s.tlsConfig != nil {
 		newConn.capability |= CLIENT_SSL
 	}
-	if s.opts.Auth {
-		newConn.authPluginName = clearPasswordClientAuthPluginName
-		newConn.capability |= CLIENT_PLUGIN_AUTH | CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
-	} else {
-		// We are going to leave this as native password auth because
-		// when auth isn't turned on, using clear-text will still require
-		// the client to opt-in which, when no password is going to be sent,
-		// is just annoying.
-		newConn.authPluginName = nativePasswordClientAuthPluginName
-		newConn.authPluginData, _ = randomBuf(20)
-	}
+	newConn.authPluginData, _ = randomBuf(20)
 
 	return newConn
 }
@@ -257,12 +251,6 @@ func (c *conn) handshake() error {
 
 	if c.server.opts.Auth {
 		c.logger.Logf(log.DebugHigh, "configuring client authentication")
-		if (c.capability & CLIENT_PLUGIN_AUTH) == 0 {
-			err := mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_AUTH_MODE)
-			c.writeError(err)
-			return err
-		}
-
 		if c.clientRequestedAuthPluginName != clearPasswordClientAuthPluginName {
 			c.logger.Logf(log.DebugHigh, "sending authentication switch request")
 			if err := c.writeAuthRequestSwitchPacket(clearPasswordClientAuthPluginName); err != nil {
@@ -282,7 +270,10 @@ func (c *conn) handshake() error {
 			c.writeError(err)
 			return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "failed authentication with MongoDB: %v", err)
 		}
-	} else {
+	} else if c.user != "" {
+		if c.user != "ODBC" && c.capability&CLIENT_ODBC == 0 {
+			c.logger.Warnf(log.Info, "ignoring provided credentials for '%v'; authentication is not enabled", c.user)
+		}
 		c.user = ""
 	}
 
@@ -318,7 +309,6 @@ func (c *conn) handshake() error {
 	}
 
 	c.sequence = 0
-
 	return nil
 }
 
@@ -733,7 +723,7 @@ func (c *conn) writeInitialHandshake() error {
 	data = append(data, byte(c.capability), byte(c.capability>>8))
 
 	//charset
-	data = append(data, uint8(collation.Default.ID))
+	data = append(data, byte(collation.Default.ID))
 
 	//status
 	status := c.status()
@@ -744,7 +734,11 @@ func (c *conn) writeInitialHandshake() error {
 	data = append(data, byte(c.capability>>16), byte(c.capability>>24))
 
 	if (c.capability & CLIENT_PLUGIN_AUTH) != 0 {
-		data = append(data, byte(len(c.authPluginData)))
+		max := len(c.authPluginData)
+		if max > 0 && max < 21 {
+			max = 21
+		}
+		data = append(data, byte(max))
 	} else {
 		data = append(data, 0)
 	}

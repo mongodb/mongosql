@@ -16,7 +16,7 @@ import (
 )
 
 // AlgebrizeCommand takes a parsed SQL statement and returns an algebrized form of the command.
-func AlgebrizeCommand(stmt parser.Statement, dbName string, catalog *catalog.Catalog) (command, error) {
+func AlgebrizeCommand(stmt parser.Statement, dbName string, vars *variable.Container, catalog *catalog.Catalog) (command, error) {
 	g := &selectIDGenerator{}
 	l := log.NewComponentLogger(log.AlgebrizerComponent, log.GlobalLogger())
 	algebrizer := &algebrizer{
@@ -26,6 +26,7 @@ func AlgebrizeCommand(stmt parser.Statement, dbName string, catalog *catalog.Cat
 		selectID:                    g.current,
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
+		variables:                   vars,
 	}
 
 	switch typedStmt := stmt.(type) {
@@ -49,9 +50,10 @@ func AlgebrizeSelect(selectStatement parser.SelectStatement, dbName string, vars
 		selectID:                    g.generate(),
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
+		variables:                   vars,
 	}
 
-	return algebrizer.translateRootSelectStatement(selectStatement, vars)
+	return algebrizer.translateRootSelectStatement(selectStatement)
 }
 
 type selectIDGenerator struct {
@@ -76,6 +78,7 @@ const (
 type algebrizer struct {
 	parent            *algebrizer
 	catalog           *catalog.Catalog
+	variables         *variable.Container
 	selectIDGenerator *selectIDGenerator
 	logger            *log.Logger
 
@@ -100,6 +103,7 @@ func (a *algebrizer) clone() *algebrizer {
 		selectID:                    a.selectID,
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
+		variables:                   a.variables,
 	}
 }
 
@@ -341,7 +345,7 @@ func (a *algebrizer) translateOrder(order *parser.Order) (*orderByTerm, error) {
 	}, nil
 }
 
-func (a *algebrizer) translateRootSelectStatement(selectStatement parser.SelectStatement, vars *variable.Container) (PlanStage, error) {
+func (a *algebrizer) translateRootSelectStatement(selectStatement parser.SelectStatement) (PlanStage, error) {
 	plan, err := a.translateSelectStatement(selectStatement)
 	if err != nil {
 		return nil, err
@@ -355,8 +359,8 @@ func (a *algebrizer) translateRootSelectStatement(selectStatement parser.SelectS
 
 	// only add the system-wide limit if it has been changed from the default
 	// otherwise, we can't push down queries by default
-	if vars.SQLSelectLimit != math.MaxUint64 {
-		plan = NewLimitStage(plan, 0, vars.SQLSelectLimit)
+	if a.variables.SQLSelectLimit != math.MaxUint64 {
+		plan = NewLimitStage(plan, 0, a.variables.SQLSelectLimit)
 	}
 
 	return plan, nil
@@ -1337,8 +1341,9 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 func (a *algebrizer) translateVariableExpr(c *parser.ColName) *SQLVariableExpr {
 
 	v := &SQLVariableExpr{
-		Kind:  variable.SystemKind,
-		Scope: variable.SessionScope,
+		Kind:    variable.SystemKind,
+		Scope:   variable.SessionScope,
+		sqlType: schema.SQLNone,
 	}
 
 	pos := 0
@@ -1369,6 +1374,11 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) *SQLVariableExpr {
 				v.Name = v.Name[idx+1:]
 			}
 		}
+	}
+
+	value, err := a.variables.Get(variable.Name(v.Name), v.Scope, v.Kind)
+	if err == nil {
+		v.sqlType = value.SQLType
 	}
 
 	return v

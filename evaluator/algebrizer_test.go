@@ -1396,7 +1396,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			actual, err := AlgebrizeCommand(statement, defaultDbName, testCatalog)
+			actual, err := AlgebrizeCommand(statement, defaultDbName, testVars, testCatalog)
 			So(err, ShouldBeNil)
 
 			expected := expectedPlanFactory()

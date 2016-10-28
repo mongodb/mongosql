@@ -2204,8 +2204,8 @@ var unimplementedDefinitions = []*definition{
 		Name:             "large_files_support",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLNone,
-		GetValue:         getDummyValue(nil, "large_files_support"),
+		SQLType:          schema.SQLBoolean,
+		GetValue:         getDummyValue(false, "large_files_support"),
 		SetValue:         setDummyValueErr("large_files_support"),
 	},
 	&definition{
@@ -2284,8 +2284,8 @@ var unimplementedDefinitions = []*definition{
 		Name:             "locked_in_memory",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLNone,
-		GetValue:         getDummyValue(nil, "locked_in_memory"),
+		SQLType:          schema.SQLBoolean,
+		GetValue:         getDummyValue(false, "locked_in_memory"),
 		SetValue:         setDummyValueErr("locked_in_memory"),
 	},
 	&definition{
@@ -2756,8 +2756,8 @@ var unimplementedDefinitions = []*definition{
 		Name:             "myisam_recover_options",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLNone,
-		GetValue:         getDummyValue(nil, "myisam_recover_options"),
+		SQLType:          schema.SQLVarchar,
+		GetValue:         getDummyValue("OFF", "myisam_recover_options"),
 		SetValue:         setDummyValueErr("myisam_recover_options"),
 	},
 	&definition{
@@ -3396,8 +3396,8 @@ var unimplementedDefinitions = []*definition{
 		Name:             "old",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLNone,
-		GetValue:         getDummyValue(nil, "old"),
+		SQLType:          schema.SQLBoolean,
+		GetValue:         getDummyValue(false, "old"),
 		SetValue:         setDummyValueErr("old"),
 	},
 	&definition{
@@ -3933,7 +3933,7 @@ var unimplementedDefinitions = []*definition{
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         getDummyValue("0", "query_cache_type"),
+		GetValue:         getDummyValue("OFF", "query_cache_type"),
 		SetValue:         setDummyValue("query_cache_type"),
 	},
 	&definition{
@@ -4380,8 +4380,8 @@ var unimplementedDefinitions = []*definition{
 		Name:             "skip_show_database",
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLNone,
-		GetValue:         getDummyValue(nil, "skip_show_database"),
+		SQLType:          schema.SQLBoolean,
+		GetValue:         getDummyValue(false, "skip_show_database"),
 		SetValue:         setDummyValueErr("skip_show_database"),
 	},
 	&definition{
@@ -4757,7 +4757,7 @@ var unimplementedDefinitions = []*definition{
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         getDummyValue("", "system_time_zone"),
+		GetValue:         getDummyValue("UTC", "system_time_zone"),
 		SetValue:         setDummyValueErr("system_time_zone"),
 	},
 	&definition{
@@ -4869,7 +4869,7 @@ var unimplementedDefinitions = []*definition{
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         getDummyValue("", "time_zone"),
+		GetValue:         getDummyValue("SYSTEM", "time_zone"),
 		SetValue:         setDummyValue("time_zone"),
 	},
 	&definition{
@@ -8696,7 +8696,6 @@ var unimplementedDefinitions = []*definition{
 
 func getDummyValue(v interface{}, name string) func(*Container) interface{} {
 	return func(c *Container) interface{} {
-		log.Warnf(log.DebugHigh, `the variable "%s" is unsupported. returning default value, %v`, name, v)
 		return v
 	}
 }

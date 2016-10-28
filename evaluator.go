@@ -89,7 +89,7 @@ func (e *Evaluator) EvaluateCommand(ast parser.Statement, conn evaluator.Connect
 
 	conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan: "%v"`, parser.String(ast))
 
-	stmt, err := evaluator.AlgebrizeCommand(ast, conn.DB(), conn.Catalog())
+	stmt, err := evaluator.AlgebrizeCommand(ast, conn.DB(), conn.Variables(), conn.Catalog())
 	if err != nil {
 		return nil, err
 	}

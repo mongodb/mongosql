@@ -1707,9 +1707,10 @@ func (k VariableKind) scopeAndKind() (variable.Scope, variable.Kind) {
 // SQLVariableExpr represents a variable lookup.
 //
 type SQLVariableExpr struct {
-	Name  string
-	Kind  variable.Kind
-	Scope variable.Scope
+	Name    string
+	Kind    variable.Kind
+	Scope   variable.Scope
+	sqlType schema.SQLType
 }
 
 func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -1740,7 +1741,7 @@ func (v *SQLVariableExpr) String() string {
 }
 
 func (v *SQLVariableExpr) Type() schema.SQLType {
-	return schema.MongoNone
+	return v.sqlType
 }
 
 //
