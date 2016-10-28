@@ -1399,6 +1399,17 @@ func TestOptimizeEvaluations(t *testing.T) {
 	Convey("Subject: optimizeEvaluations", t, func() {
 
 		tests := []test{
+			test{"3 / '3'", "1", SQLFloat(1)},
+			test{"3 * '3'", "9", SQLInt(9)},
+			test{"3 + '3'", "6", SQLInt(6)},
+			test{"3 - '3'", "0", SQLInt(0)},
+			test{"3 div '3'", "1", SQLInt(1)},
+			test{"3 = '3'", "true", SQLTrue},
+			test{"3 <= '3'", "true", SQLTrue},
+			test{"3 >= '3'", "true", SQLTrue},
+			test{"3 < '3'", "false", SQLFalse},
+			test{"3 > '3'", "false", SQLFalse},
+			test{"3 <=> '3'", "true", SQLTrue},
 			test{"3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
 			test{"3 < a", "a > 3", &SQLGreaterThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
 			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
