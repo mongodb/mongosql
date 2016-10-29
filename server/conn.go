@@ -294,6 +294,12 @@ func (c *conn) handshake() error {
 		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error retrieving information from MongoDB: %v", err)
 	}
 
+	if !c.variables.MongoDBInfo.VersionAtLeast(3, 2, 0) {
+		err = fmt.Errorf("server version is %v but version >= 3.2.0 required", c.variables.MongoDBInfo.Version)
+		c.writeError(err)
+		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, err.Error())
+	}
+
 	c.catalog, err = catalog.Build(&schema, c.variables)
 	if err != nil {
 		c.writeError(err)

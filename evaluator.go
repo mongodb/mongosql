@@ -1,6 +1,8 @@
 package sqlproxy
 
 import (
+	"fmt"
+
 	"github.com/10gen/sqlproxy/client"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
@@ -27,6 +29,15 @@ func NewEvaluator(cfg *schema.Schema, opts options.SqldOptions) (*Evaluator, err
 	session, err := sp.GetSession()
 	if err != nil {
 		return nil, err
+	}
+
+	bi, err := session.BuildInfo()
+	if err != nil {
+		return nil, fmt.Errorf("can't fetch build information: %v", err)
+	}
+
+	if !bi.VersionAtLeast(3, 2, 0) {
+		return nil, fmt.Errorf("server version is %v but version >= 3.2.0 required", bi.Version)
 	}
 
 	return &Evaluator{cfg, session, opts}, nil

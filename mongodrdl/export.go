@@ -23,7 +23,7 @@ func (schemaGen *SchemaGenerator) Connect() (*mgo.Session, error) {
 
 	bi, err := session.BuildInfo()
 	if err != nil {
-		return nil, fmt.Errorf("can't create session: %v", err)
+		return nil, fmt.Errorf("can't fetch build information: %v", err)
 	}
 
 	if !bi.VersionAtLeast(3, 2, 0) {
