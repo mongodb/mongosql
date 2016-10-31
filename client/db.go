@@ -25,7 +25,7 @@ type (
 )
 
 const (
-	DisableSocketTimeout sessionFlag = 0
+	DisableSocketTimeout sessionFlag = iota + 1
 )
 
 func (self *SessionProvider) GetSession() (*mgo.Session, error) {
@@ -42,6 +42,7 @@ func (self *SessionProvider) GetSession() (*mgo.Session, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to db server: %v", err)
 	}
+	self.refresh()
 
 	return self.masterSession.Copy(), nil
 }
@@ -83,6 +84,8 @@ func NewDrdlSessionProvider(opts options.DrdlOptions) (*SessionProvider, error) 
 		return nil, err
 	}
 
+	provider.SetFlags(DisableSocketTimeout)
+
 	return provider, nil
 }
 
@@ -95,6 +98,8 @@ func NewSqldSessionProvider(opts options.SqldOptions) (*SessionProvider, error) 
 	if err != nil {
 		return nil, err
 	}
+
+	provider.SetFlags(DisableSocketTimeout)
 
 	return provider, nil
 }

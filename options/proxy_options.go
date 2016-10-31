@@ -91,7 +91,6 @@ type SqldMongoConnection struct {
 	MongoSSLFipsMode         bool   `long:"mongo-sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
 	MongoPEMKeyFile          string `long:"mongo-sslPEMKeyFile" value-name:"<filename>" description:"path to a file containing the certificate and private key for connecting to MongoDB, when using --mongo-ssl"`
 	MongoPEMKeyFilePassword  string `long:"mongo-sslPEMKeyPassword" description:"password to decrypt private key in mongo-sslPEMKeyFile"`
-	MongoTimeout             int64  `long:"mongo-timeout" description:"seconds to wait for a server to respond when connecting or on follow up operations" default:"30" hidden:"true"`
 }
 
 func (_ SqldMongoConnection) Name() string {

@@ -2,7 +2,6 @@ package plain
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/util"
@@ -17,11 +16,9 @@ type PlainDBConnector struct {
 func (v *PlainDBConnector) ConfigureDrdl(opts options.DrdlOptions) error {
 	connectionAddrs := util.CreateConnectionAddrs(opts.Host, opts.Port)
 
-	timeout := time.Duration(opts.Timeout) * time.Second
-
 	v.dialInfo = &mgo.DialInfo{
 		Addrs:          connectionAddrs,
-		Timeout:        timeout,
+		FailFast:       true,
 		Direct:         opts.Direct,
 		ReplicaSetName: opts.ReplicaSetName,
 		Username:       opts.DrdlAuth.Username,
@@ -60,7 +57,7 @@ func (v *PlainDBConnector) ConfigureSqld(opts options.SqldOptions) error {
 		return fmt.Errorf("unsupported: --mongo-uri may not contain GSSAPI hostname")
 	}
 
-	v.dialInfo.Timeout = time.Duration(opts.MongoTimeout) * time.Second
+	v.dialInfo.FailFast = true
 
 	return nil
 }

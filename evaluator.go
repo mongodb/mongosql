@@ -24,8 +24,6 @@ func NewEvaluator(cfg *schema.Schema, opts options.SqldOptions) (*Evaluator, err
 		return nil, err
 	}
 
-	sp.SetFlags(client.DisableSocketTimeout)
-
 	session, err := sp.GetSession()
 	if err != nil {
 		return nil, err

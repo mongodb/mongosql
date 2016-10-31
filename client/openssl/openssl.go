@@ -4,7 +4,6 @@ package openssl
 import (
 	"fmt"
 	"net"
-	"time"
 
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/util"
@@ -52,11 +51,9 @@ func (s *SSLDBConnector) ConfigureDrdl(opts options.DrdlOptions) error {
 		return conn, err
 	}
 
-	timeout := time.Duration(opts.Timeout) * time.Second
-
 	s.dialInfo = &mgo.DialInfo{
 		Addrs:          connectionAddrs,
-		Timeout:        timeout,
+		FailFast:       true,
 		Direct:         opts.Direct,
 		ReplicaSetName: opts.ReplicaSetName,
 		DialServer:     dialer,
@@ -92,7 +89,7 @@ func (s *SSLDBConnector) ConfigureSqld(opts options.SqldOptions) error {
 		return fmt.Errorf("unsupported: --mongo-uri may not contain GSSAPI hostname")
 	}
 
-	dialInfo.Timeout = time.Duration(opts.MongoTimeout) * time.Second
+	dialInfo.FailFast = true
 
 	s.dialInfo = dialInfo
 

@@ -67,8 +67,6 @@ func (schemaGen *SchemaGenerator) Init() error {
 		return err
 	}
 
-	schemaGen.provider.SetFlags(client.DisableSocketTimeout)
-
 	return nil
 }
 

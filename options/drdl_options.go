@@ -108,13 +108,13 @@ func (v *DrdlLog) IsQuiet() bool {
 }
 
 type DrdlConnection struct {
-	Host    string `short:"h" long:"host" value-name:"<hostname>" description:"mongodb host to connect to (setname/host1,host2 for replica sets)"`
-	Port    string `long:"port" value-name:"<port>" description:"server port (can also use --host hostname:port)"`
-	Timeout int    `long:"dialTimeout" default:"3" hidden:"true" description:"dial timeout in seconds"`
+	Host string `short:"h" long:"host" value-name:"<hostname>" description:"mongodb host to connect to (setname/host1,host2 for replica sets)"`
+	Port string `long:"port" value-name:"<port>" description:"server port (can also use --host hostname:port)"`
 }
 
 func (*DrdlConnection) Name() string {
 	return "Connection"
+
 }
 
 type DrdlKerberos struct {
