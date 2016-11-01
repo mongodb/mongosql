@@ -133,6 +133,7 @@ func TestIntegration(t *testing.T) {
 
 	session.Close()
 }
+
 func buildSchemaMaps(conf *schema.Schema) {
 	conf.Databases = make(map[string]*schema.Database)
 	for _, db := range conf.RawDatabases {

@@ -21,7 +21,6 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
 
 	"gopkg.in/mgo.v2"
@@ -34,15 +33,17 @@ var (
 )
 
 type conn struct {
-	sync.Mutex
+	server  *Server
+	session *mgo.Session
+	tomb    *tomb.Tomb
+	logger  *log.Logger
+	startDb string
 
-	server       *Server
-	session      *mgo.Session
-	tomb         *tomb.Tomb
-	logger       *log.Logger
-	startDb      string
-	hasCurrentOp bool
-	closer       sync.Once
+	// synchronization variables for
+	// terminating connection
+	closer       *sync.Cond
+	closed       int32
+	queryRunning int32
 
 	conn     net.Conn
 	reader   *bufio.Reader
@@ -76,6 +77,9 @@ func newConn(s *Server, c net.Conn) *conn {
 		reader:       bufio.NewReaderSize(c, 1024),
 		writer:       c,
 		tomb:         &tomb.Tomb{},
+		closer:       sync.NewCond(&sync.Mutex{}),
+		closed:       0,
+		queryRunning: 0,
 		connectionID: atomic.AddUint32(&s.connCount, 1),
 		capability: CLIENT_PROTOCOL_41 |
 			CLIENT_CONNECT_WITH_DB |
@@ -150,33 +154,23 @@ func (c *conn) authenticate() error {
 	return nil
 }
 
-func (c *conn) close() error {
-	onceBody := func() {
-		connID := c.ConnectionId()
-		c.server.Lock()
-		delete(c.server.activeConnections, connID)
-		c.server.Unlock()
-
-		c.tomb.Kill(mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED))
-
-		// wait for any running queries to be interrupted
-		for c.hasCurrentOp {
-			time.Sleep(time.Duration(100 * time.Millisecond))
-		}
-
-		c.session.Close()
-
-		c.conn.Close()
-
-		// this isn't critical so neglecting to lock
-		numConns := len(c.server.activeConnections)
-		pluralized := util.Pluralize(numConns, "connection", "connections")
-		c.logger.Logf(log.Always, "end connection %v (%v %v now open)", c.conn.RemoteAddr(), numConns, pluralized)
+func (c *conn) close() {
+	if !atomic.CompareAndSwapInt32(&c.closed, 0, 1) {
+		return
 	}
 
-	c.closer.Do(onceBody)
+	c.tomb.Kill(mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED))
 
-	return nil
+	// wait for any running queries to be interrupted
+	c.closer.L.Lock()
+	for atomic.LoadInt32(&c.queryRunning) != 0 {
+		c.closer.Wait()
+	}
+
+	c.closer.L.Unlock()
+	c.session.Close()
+	c.conn.Close()
+	go c.server.removeConnection(c)
 }
 
 // Catalog returns the catalog.
@@ -203,7 +197,7 @@ func (c *conn) dispatch(data []byte) error {
 
 	switch cmd {
 	case COM_QUIT:
-		c.hasCurrentOp = false
+		atomic.StoreInt32(&c.queryRunning, 0)
 		c.close()
 		return nil
 	case COM_QUERY:
@@ -317,24 +311,13 @@ func (c *conn) Kill(id uint32, scope evaluator.KillScope) error {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED)
 	}
 
-	c.server.Lock()
-	k, ok := c.server.activeConnections[id]
-	if !ok {
-		c.server.Unlock()
-		return mysqlerrors.Defaultf(mysqlerrors.ER_NO_SUCH_THREAD, id)
+	c.logger.Logf(log.DebugHigh, "kill %v requested for [conn%v]", scope, id)
+
+	if scope == evaluator.KillQuery {
+		return c.server.killQuery(id)
 	}
 
-	c.server.Unlock()
-
-	c.logger.Logf(log.DebugHigh, "kill %v requested for [conn%v]", scope, k.ConnectionId())
-
-	switch scope {
-	case evaluator.KillQuery:
-		k.tomb.Kill(mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED))
-		return nil
-	default:
-		return k.close()
-	}
+	return c.server.killConnection(id)
 }
 
 // LastInsertId returns the last insert id.
@@ -553,7 +536,7 @@ func (c *conn) run() {
 		go func() {
 			data, err := c.readPacket()
 			packetReadChan <- packetRead{data, err}
-			c.hasCurrentOp = true
+			atomic.StoreInt32(&c.queryRunning, 1)
 		}()
 
 		waitTimeout := time.Duration(c.variables.WaitTimeoutSecs) * time.Second
@@ -561,11 +544,13 @@ func (c *conn) run() {
 		select {
 		case <-time.After(waitTimeout):
 			c.logger.Logf(log.Always, "client wait time out after %v", waitTimeout.String())
-			c.hasCurrentOp = false
+			atomic.StoreInt32(&c.queryRunning, 0)
+			c.closer.Signal()
 			return
 		case pkt = <-packetReadChan:
 			if pkt.err != nil {
-				c.hasCurrentOp = false
+				atomic.StoreInt32(&c.queryRunning, 0)
+				c.closer.Signal()
 				return
 			}
 		}
@@ -577,7 +562,8 @@ func (c *conn) run() {
 			}
 		}
 
-		c.hasCurrentOp = false
+		atomic.StoreInt32(&c.queryRunning, 0)
+		c.closer.Signal()
 		c.sequence = 0
 	}
 }
