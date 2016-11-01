@@ -281,6 +281,11 @@ schema:
         SqlName: h
         SqlType: date
      -
+        Name: s
+        MongoType: string
+        SqlName: s
+        SqlType: varchar
+     -
         Name: _id
         MongoType: bson.ObjectId
         SqlType: varchar

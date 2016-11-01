@@ -502,7 +502,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 			return nil, err
 		}
 		if typedN.expr != expr {
-			n = &SQLConvertExpr{expr, typedN.convType}
+			n = &SQLConvertExpr{expr, typedN.convType, SQLNone}
 		}
 	case *SQLDivideExpr:
 		left, err := visitExpr(typedN.left)

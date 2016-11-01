@@ -167,7 +167,8 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 		return SQLDecimal128(value.(decimal.Decimal)), nil
 	}
 
-	return NewSQLValue(value, preferenceType), nil
+	val, _ := NewSQLValue(value, preferenceType, "")
+	return val, nil
 }
 
 // fast2Sum returns the exact unevaluated sum of a and b

@@ -2317,7 +2317,8 @@ func TestNewSQLValue(t *testing.T) {
 	runTests := func(tests []test) {
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%v (%T) as '%v' should convert into %v (%T)", t.input, t.input, t.sqlType, t.sqlValue, t.sqlValue), func() {
-				So(NewSQLValue(t.input, t.sqlType).String(), ShouldEqual, t.sqlValue.String())
+				val, _ := NewSQLValue(t.input, t.sqlType, "")
+				So(val.String(), ShouldEqual, t.sqlValue.String())
 			})
 		}
 	}
@@ -2823,7 +2824,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 		}
 	}
 
-	exprConv := &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLTimestamp}
+	exprConv := &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLTimestamp, SQLNone}
 	exprTime := &SQLScalarFunctionExpr{"current_timestamp", []SQLExpr{}}
 	exprA := NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt)
 	exprB := NewSQLColumnExpr(1, "bar", "b", schema.SQLInt, schema.MongoInt)
@@ -2833,7 +2834,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 
 		tests := []test{
 			test{"a = 3", exprA, SQLInt(3)},
-			test{"g - '2010-01-01'", &SQLConvertExpr{exprG, schema.SQLInt}, &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLInt}},
+			test{"g - '2010-01-01'", &SQLConvertExpr{exprG, schema.SQLInt, SQLNone}, &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLInt, SQLNone}},
 			test{"a in (3)", exprA, SQLInt(3)},
 			test{"a in (2,3)", exprA, &SQLTupleExpr{[]SQLExpr{SQLInt(2), SQLInt(3)}}},
 			test{"(a) in (3)", exprA, SQLInt(3)},
@@ -2968,6 +2969,49 @@ func TestTranslatePredicate(t *testing.T) {
 	})
 }
 
+func TestExprNoPushdown(t *testing.T) {
+
+	type test struct {
+		sql string
+	}
+
+	runTests := func(tests []test) {
+		schema, err := schema.New(testSchema3)
+		So(err, ShouldBeNil)
+		db, ok := schema.Database(dbOne)
+		So(ok, ShouldBeTrue)
+		translator := &pushDownTranslator{
+			versionAtLeast:  func(_ ...int) bool { return true },
+			lookupFieldName: createFieldNameLookup(db),
+		}
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%q should not be pushed down", t.sql), func() {
+				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
+				So(err, ShouldBeNil)
+				n, err := optimizeEvaluations(createTestEvalCtx(), e)
+				So(err, ShouldBeNil)
+				e = n.(SQLExpr)
+				_, ok := translator.TranslateExpr(e)
+				So(ok, ShouldBeFalse)
+			})
+		}
+	}
+
+	Convey("Subject: ExprNoPushdown", t, func() {
+
+		tests := []test{
+			test{"concat(s, a)"},
+			test{"abs(s)"},
+			test{"round(s)"},
+			test{"length(a)"},
+			test{"dayname(a)"},
+		}
+
+		runTests(tests)
+
+	})
+}
+
 func TestTranslateExpr(t *testing.T) {
 
 	type test struct {
@@ -2988,6 +3032,9 @@ func TestTranslateExpr(t *testing.T) {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
+				n, err := optimizeEvaluations(createTestEvalCtx(), e)
+				So(err, ShouldBeNil)
+				e = n.(SQLExpr)
 				translated, ok := translator.TranslateExpr(e)
 				So(ok, ShouldBeTrue)
 				jsonResult, err := json.Marshal(translated)
@@ -3005,56 +3052,56 @@ func TestTranslateExpr(t *testing.T) {
 
 			test{"abs(a)", `{"$abs":"$a"}`},
 			test{"ceil(a)", `{"$ceil":"$a"}`},
-			test{"char_length(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$strLenCP":"$a"}]}`},
-			test{"character_length(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$strLenCP":"$a"}]}`},
-			test{"concat(a, 'funny')", `{"$concat":["$a",{"$literal":"funny"}]}`},
-			test{"concat(a, null)", `{"$concat":["$a",{"$literal":null}]}`},
-			test{"concat(a, '')", `{"$concat":["$a",{"$literal":""}]}`},
-			test{"concat_ws(',', a)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":""},"$a"]}]}`},
-			test{"concat_ws(',', a, null)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":""},"$a"]},{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":""},{"$literal":","}]},{"$cond":[{"$eq":[{"$ifNull":[{"$literal":null},null]},null]},{"$literal":""},{"$literal":null}]}]}`},
-			test{"dayname(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$arrayElemAt":[["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],{"$subtract":[{"$dayOfWeek":"$a"},1]}]}]}`},
-			test{"dayofmonth(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$dayOfMonth":"$a"}]}`},
-			test{"dayofweek(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$dayOfWeek":"$a"}]}`},
-			test{"dayofyear(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$dayOfYear":"$a"}]}`},
+			test{"char_length(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$strLenCP":"$s"}]}`},
+			test{"character_length(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$strLenCP":"$s"}]}`},
+			test{"concat(s, 'funny')", `{"$concat":["$s",{"$literal":"funny"}]}`},
+			test{"concat(s, null)", `{"$literal":null}`},
+			test{"concat(s, '')", `{"$concat":["$s",{"$literal":""}]}`},
+			test{"concat_ws(',', s)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},"$s"]}]}`},
+			test{"concat_ws(',', s, null)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},"$s"]},{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},{"$literal":","}]},{"$cond":[{"$eq":[{"$ifNull":[{"$literal":null},null]},null]},{"$literal":""},{"$literal":null}]}]}`},
+			test{"dayname(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$arrayElemAt":[["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],{"$subtract":[{"$dayOfWeek":"$g"},1]}]}]}`},
+			test{"dayofmonth(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$dayOfMonth":"$g"}]}`},
+			test{"dayofweek(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$dayOfWeek":"$g"}]}`},
+			test{"dayofyear(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$dayOfYear":"$g"}]}`},
 			test{"exp(a)", `{"$exp":"$a"}`},
-			test{"extract(year from a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$year":"$a"}]}`},
+			test{"extract(year from g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$year":"$g"}]}`},
 			test{"floor(a)", `{"$floor":"$a"}`},
-			test{"hour(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$hour":"$a"}]}`},
+			test{"hour(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$hour":"$g"}]}`},
 			test{"if(a, 2, 3)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":["$a",0]},{"$eq":["$a",false]}]},{"$literal":3},{"$literal":2}]}`},
 			test{"ifnull(a, 1)", `{"$ifNull":["$a",{"$literal":1}]}`},
 			test{"isnull(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},1,0]}`},
-			test{"length(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$strLenBytes":"$a"}]}`},
-			test{"left(a, 2)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":[{"$ifNull":[{"$literal":2},null]},null]}]},null,{"$substr":["$a",0,{"$literal":2}]}]}`},
-			test{"left('abcde', 0)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":[{"$literal":"abcde"},null]},null]},{"$eq":[{"$ifNull":[{"$literal":0},null]},null]}]},null,{"$substr":[{"$literal":"abcde"},0,{"$literal":0}]}]}`},
-			test{"lcase(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$toLower":"$a"}]}`},
-			test{"lower(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$toLower":"$a"}]}`},
+			test{"length(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$strLenBytes":"$s"}]}`},
+			test{"left(s, 2)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":[{"$literal":2},null]},null]}]},null,{"$substr":["$s",0,{"$literal":2}]}]}`},
+			test{"left('abcde', 0)", `{"$literal":""}`},
+			test{"lcase(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toLower":"$s"}]}`},
+			test{"lower(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toLower":"$s"}]}`},
 			test{"log10(a)", `{"$cond":[{"$gt":["$a",0]},{"$log10":"$a"},{"$literal":null}]}`},
-			test{"mid(a, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$substr":["$a",1,{"$literal":4}]}]}`},
-			test{"minute(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$minute":"$a"}]}`},
+			test{"mid(s, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substr":["$s",1,{"$literal":4}]}]}`},
+			test{"minute(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$minute":"$g"}]}`},
 			test{"mod(a, 10)", `{"$mod":["$a",{"$literal":10}]}`},
-			test{"month(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$month":"$a"}]}`},
-			test{"monthname(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$arrayElemAt":[["January","February","March","April","May","June","July","August","September","October","November","December"],{"$subtract":[{"$month":"$a"},1]}]}]}`},
+			test{"month(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$month":"$g"}]}`},
+			test{"monthname(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$arrayElemAt":[["January","February","March","April","May","June","July","August","September","October","November","December"],{"$subtract":[{"$month":"$g"},1]}]}]}`},
 			test{"nullif(a, 1)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$cond":[{"$eq":["$a",{"$literal":1}]},null,"$a"]}]}`},
 			test{"power(a, 10)", `{"$pow":["$a",{"$literal":10}]}`},
-			test{"quarter(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$arrayElemAt":[[1,1,1,2,2,2,3,3,3,4,4,4],{"$subtract":[{"$month":"$a"},1]}]}]}`},
+			test{"quarter(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$arrayElemAt":[[1,1,1,2,2,2,3,3,3,4,4,4],{"$subtract":[{"$month":"$g"},1]}]}]}`},
 			test{"round(a, 5)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$add":[{"$multiply":["$a",100000]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$a",100000]},0.5]}}]},100000]}`},
 			test{"round(a, -5)", `{"$literal":0}`},
 
-			test{"second(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$second":"$a"}]}`},
+			test{"second(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$second":"$g"}]}`},
 			test{"sqrt(a)", `{"$cond":[{"$gte":["$a",0]},{"$sqrt":"$a"},null]}`},
-			test{"substring(a, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$substr":["$a",1,-1]}]}`},
-			test{"substring(a, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$substr":["$a",1,{"$literal":4}]}]}`},
-			test{"substr(a, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$substr":["$a",1,-1]}]}`},
-			test{"substr(a, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$substr":["$a",1,{"$literal":4}]}]}`},
+			test{"substring(s, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substr":["$s",1,-1]}]}`},
+			test{"substring(s, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substr":["$s",1,{"$literal":4}]}]}`},
+			test{"substr(s, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substr":["$s",1,-1]}]}`},
+			test{"substr(s, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substr":["$s",1,{"$literal":4}]}]}`},
 			test{"truncate(a, 3)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$multiply":["$a",1000]}},{"$ceil":{"$multiply":["$a",1000]}}]},1000]}`},
 			test{"truncate(a, -3)", `{"$multiply":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$divide":["$a",1000]}},{"$ceil":{"$divide":["$a",1000]}}]},1000]}`},
-			test{"week(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$week":"$a"}]}`},
-			test{"week(a, 0)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$week":"$a"}]}`},
-			test{"weekday(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$mod":[{"$add":[{"$mod":[{"$subtract":[{"$dayOfWeek":"$a"},2]},7]},7]},7]}]}`},
+			test{"week(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$week":"$g"}]}`},
+			test{"week(g, 0)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$week":"$g"}]}`},
+			test{"weekday(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$mod":[{"$add":[{"$mod":[{"$subtract":[{"$dayOfWeek":"$g"},2]},7]},7]},7]}]}`},
 
-			test{"ucase(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$toUpper":"$a"}]}`},
-			test{"upper(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$toUpper":"$a"}]}`},
-			test{"year(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$year":"$a"}]}`},
+			test{"ucase(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toUpper":"$s"}]}`},
+			test{"upper(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toUpper":"$s"}]}`},
+			test{"year(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$year":"$g"}]}`},
 
 			test{"count(*)", `{"$size":{"$literal":"*"}}`},
 			test{"count(a + b)", `{"$sum":{"$map":{"as":"i","in":{"$cond":[{"$eq":[{"$ifNull":["$$i",null]},null]},0,1]},"input":{"$add":["$a","$b"]}}}}`},

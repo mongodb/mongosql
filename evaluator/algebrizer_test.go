@@ -1798,8 +1798,8 @@ func TestAlgebrizeExpr(t *testing.T) {
 		Convey("Unary Minus", func() {
 			test("-a", &SQLUnaryMinusExpr{createSQLColumnExpr("a")})
 			test("-c", &SQLUnaryMinusExpr{createSQLColumnExpr("c")})
-			test("-g", &SQLUnaryMinusExpr{&SQLConvertExpr{createSQLColumnExpr("g"), schema.SQLInt}})
-			test("-_id", &SQLUnaryMinusExpr{&SQLConvertExpr{createSQLColumnExpr("_id"), schema.SQLInt}})
+			test("-g", &SQLUnaryMinusExpr{&SQLConvertExpr{createSQLColumnExpr("g"), schema.SQLInt, SQLNone}})
+			test("-_id", &SQLUnaryMinusExpr{&SQLConvertExpr{createSQLColumnExpr("_id"), schema.SQLInt, SQLNone}})
 		})
 
 		Convey("Unary Tilde", func() {

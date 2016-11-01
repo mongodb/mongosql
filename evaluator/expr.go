@@ -347,8 +347,9 @@ func (c SQLColumnExpr) isAggregateReplacementColumn() bool {
 // converted to another SQLType.
 //
 type SQLConvertExpr struct {
-	expr     SQLExpr
-	convType schema.SQLType
+	expr         SQLExpr
+	convType     schema.SQLType
+	defaultValue SQLValue
 }
 
 func (ce SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -356,7 +357,13 @@ func (ce SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewSQLValue(v.Value(), ce.convType), nil
+
+	if ce.defaultValue != SQLNone {
+		return NewSQLValueWithDefault(v.Value(), ce.convType, ce.expr.Type(), ce.defaultValue), nil
+	}
+
+	val, _ := NewSQLValue(v.Value(), ce.convType, ce.expr.Type())
+	return val, nil
 }
 
 func (ce SQLConvertExpr) String() string {
@@ -1598,7 +1605,8 @@ func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		if val == SQLNull {
 			return SQLNull, nil
 		}
-		return NewSQLValue(-val.Float64(), um.Type()), nil
+		difference, _ := NewSQLValue(-val.Float64(), um.Type(), "")
+		return difference, nil
 	}
 	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.operand)
 }

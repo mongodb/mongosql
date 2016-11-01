@@ -90,7 +90,7 @@ func (i *dynamicDataSourceIter) Next(row *Row) bool {
 
 	row.Data = Values{}
 	for x := 0; x < len(i.dataRow.Values); x++ {
-		sqlValue := NewSQLValue(i.dataRow.Values[x], i.columns[x].Type())
+		sqlValue, _ := NewSQLValue(i.dataRow.Values[x], i.columns[x].Type(), "")
 		row.Data = append(row.Data, Value{
 			SelectID: i.selectID,
 			Table:    i.tableName,

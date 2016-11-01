@@ -1089,9 +1089,9 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			case schema.SQLNull, schema.SQLDecimal128, schema.SQLFloat, schema.SQLNumeric, schema.SQLArrNumeric, schema.SQLInt, schema.SQLInt64:
 				return &SQLUnaryMinusExpr{child}, nil
 			case schema.SQLVarchar:
-				return &SQLUnaryMinusExpr{&SQLConvertExpr{child, schema.SQLFloat}}, nil
+				return &SQLUnaryMinusExpr{&SQLConvertExpr{child, schema.SQLFloat, SQLNone}}, nil
 			}
-			return &SQLUnaryMinusExpr{&SQLConvertExpr{child, schema.SQLInt}}, nil
+			return &SQLUnaryMinusExpr{&SQLConvertExpr{child, schema.SQLInt, SQLNone}}, nil
 		case parser.AST_TILDA:
 			return &SQLUnaryTildeExpr{child}, nil
 		}
@@ -1337,7 +1337,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 
 	}
 
-	return &SQLScalarFunctionExpr{name, exprs}, nil
+	return NewSQLScalarFunctionExpr(name, exprs), nil
 }
 
 func (a *algebrizer) translateVariableExpr(c *parser.ColName) *SQLVariableExpr {
