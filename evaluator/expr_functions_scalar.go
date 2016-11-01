@@ -83,6 +83,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"dayofweek":         &dayOfWeekFunc{},
 	"dayofyear":         &dayOfYearFunc{},
 	"degrees":           singleArgFloatMathFunc(func(f float64) float64 { return f * 180 / math.Pi }),
+	"elt":               &eltFunc{},
 	"exp":               singleArgFloatMathFunc(math.Exp),
 	"extract":           &extractFunc{},
 	"floor":             singleArgFloatMathFunc(math.Floor),
@@ -91,6 +92,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"hour":              &hourFunc{},
 	"if":                &ifFunc{},
 	"ifnull":            &ifnullFunc{},
+	"insert":            &insertFunc{},
 	"instr":             &instrFunc{},
 	"isnull":            &isnullFunc{},
 	"last_day":          &lastDayFunc{},
@@ -133,6 +135,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"subdate":           &subDateFunc{},
 	"substr":            &substringFunc{},
 	"substring":         &substringFunc{},
+	"substring_index":   &substringIndexFunc{},
 	"system_user":       &userFunc{},
 	"tan":               singleArgFloatMathFunc(math.Tan),
 	"timediff":          &timeDiffFunc{},
@@ -955,6 +958,55 @@ const (
 	SECOND_MICROSECOND = "second_microsecond"
 )
 
+type eltFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_elt
+func (_ *eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+
+	if hasNullValue(values[0]) {
+		return SQLNull, nil
+	}
+
+	idx := values[0].Int64()
+	if idx <= 0 || int(idx) >= len(values) {
+		return SQLNull, nil
+	}
+
+	result := values[idx]
+	if result == SQLNull {
+		return SQLNull, nil
+	}
+
+	return SQLVarchar(result.String()), nil
+}
+
+func (_ *eltFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *eltFunc) Validate(exprCount int) error {
+	if exprCount <= 1 {
+		return ErrIncorrectCount
+	}
+
+	return nil
+}
+
+func (_ *eltFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs[0]) {
+		return SQLNull
+	}
+
+	if v, ok := f.Exprs[0].(SQLValue); ok {
+		idx := v.Int64()
+		if idx <= 0 || int(idx) > len(f.Exprs) {
+			return SQLNull
+		}
+	}
+
+	return f
+}
+
 type extractFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_extract
@@ -1241,6 +1293,47 @@ func (_ *ifnullFunc) Type() schema.SQLType {
 
 func (_ *ifnullFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
+}
+
+type insertFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_insert
+func (_ *insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	s := values[0].String()
+	pos := int(values[1].Int64()) - 1
+	length := int(values[2].Int64())
+	newstr := values[3].String()
+
+	if pos < 0 || pos > len(s) {
+		return values[0], nil
+	}
+
+	if pos+length < 0 || pos+length > len(s) {
+		return SQLVarchar(s[:pos] + newstr), nil
+	}
+
+	return SQLVarchar(s[:pos] + newstr + s[pos+length:]), nil
+}
+
+func (_ *insertFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *insertFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 4)
+}
+
+func (_ *insertFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 type instrFunc struct{}
@@ -2061,6 +2154,94 @@ func (_ *substringFunc) Type() schema.SQLType {
 
 func (_ *substringFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2, 3)
+}
+
+type substringIndexFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_substring-index
+func (_ *substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+
+	matches := func(r []rune, pos int, delim []rune) bool {
+		for i, j := pos, 0; i < len(r) && j < len(delim); i, j = i+1, j+1 {
+			if r[i] != delim[j] {
+				return false
+			}
+		}
+		return true
+	}
+
+	reverse := func(r []rune) {
+		for i, j := 0, len(r)-1; i < len(r)/2; i, j = i+1, j-1 {
+			r[i], r[j] = r[j], r[i]
+		}
+	}
+
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	r := []rune(values[0].String())
+	delim := []rune(values[1].String())
+	count := int(values[2].Int64())
+
+	if count == 0 {
+		return SQLVarchar(""), nil
+	}
+
+	reversed := count < 0
+	if reversed {
+		reverse(r)
+		reverse(delim)
+
+		count = -count
+	}
+
+	matchCount := 0
+	i := 0
+	for {
+		if matches(r, i, delim) {
+			matchCount++
+			i += len(delim)
+		} else {
+			i++
+		}
+
+		if i >= len(r) || matchCount >= count {
+			break
+		}
+	}
+
+	if matchCount >= count {
+		r = r[:i-len(delim)]
+	}
+
+	if reversed {
+		reverse(r)
+	}
+
+	return SQLVarchar(string(r)), nil
+}
+
+func (_ *substringIndexFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *substringIndexFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
+func (_ *substringIndexFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	if v, ok := f.Exprs[2].(SQLValue); ok {
+		if v.Int64() == 0 {
+			return SQLVarchar("")
+		}
+	}
+
+	return f
 }
 
 type timeDiffFunc struct{}

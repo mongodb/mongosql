@@ -1474,6 +1474,8 @@ func TestOptimizeEvaluations(t *testing.T) {
 			test{"concat('go', 'lang')", "golang", SQLVarchar("golang")},
 			test{"concat_ws(NULL, a)", "null", SQLNull},
 			test{"convert(NULL, SIGNED)", "null", SQLNull},
+			test{"elt(NULL, 'a', 'b')", "null", SQLNull},
+			test{"elt(4, 'a', 'b')", "null", SQLNull},
 			test{"exp(NULL)", "null", SQLNull},
 			test{"exp(2)", "7.38905609893065", SQLFloat(7.38905609893065)},
 			test{"greatest(a, NULL)", "null", SQLNull},
@@ -1504,6 +1506,8 @@ func TestOptimizeEvaluations(t *testing.T) {
 			test{"substring('foobar', NULL, 2)", "null", SQLNull},
 			test{"substring('foobar', 2, NULL)", "null", SQLNull},
 			test{"substring('foobar', 2, 3)", "oob", SQLVarchar("oob")},
+			test{"substring_index(NULL, 'o', 0)", "", SQLNull},
+			test{"substring_index('foobar', 'o', 0)", "", SQLVarchar("")},
 		}
 
 		runTests(tests)

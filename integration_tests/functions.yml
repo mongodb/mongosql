@@ -646,6 +646,16 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select elt(a, 'a', 'b', 'c') from bar"
+  expected_names: ["elt(a, 'a', 'b', 'c')"]
+  expected_types: [string]
+  expected:
+  - ["a"]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
 - sql: "select exp(a) from bar"
   expected_names: ["exp(a)"]
   expected_types: [numeric]
@@ -838,6 +848,16 @@ testcases:
   - [2]
   - [2]
   - [2]
+
+- sql: "select insert(b, 2, 4, 'What') from bar"
+  expected_names: ["insert(b, 2, 4, 'What')"]
+  expected_types: [string]
+  expected:
+  - ["hWhat"]
+  - ["yWhat"]
+  - [~]
+  - ["tWhat"]
+  - [~]
 
 - sql: "select isnull(a) from bar"
   expected_names: ["isnull(a)"]
@@ -1367,6 +1387,16 @@ testcases:
   - [~]
   - [~]
   - [~]
+  - [~]
+
+- sql: "select substring_index(b, 'y', 1) from bar"
+  expected_names: ["substring_index(b, 'y', 1)"]
+  expected_types: [string]
+  expected:
+  - ["he"]
+  - [""]
+  - [~]
+  - ["this"]
   - [~]
 
 - sql: "select tan(a) from bar"

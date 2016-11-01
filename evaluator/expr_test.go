@@ -1162,6 +1162,18 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: ELT", func() {
+				tests := []test{
+					test{"ELT(NULL, 'a', 'b')", SQLNull},
+					test{"ELT(0, 'a', 'b')", SQLNull},
+					test{"ELT(1, 'a', 'b')", SQLVarchar("a")},
+					test{"ELT(2, 'a', 'b')", SQLVarchar("b")},
+					test{"ELT(3, 'a', 'b', NULL)", SQLNull},
+					test{"ELT(4, 'a', 'b', NULL)", SQLNull},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: EXP", func() {
 				tests := []test{
 					test{"EXP(NULL)", SQLNull},
@@ -1316,6 +1328,16 @@ func TestEvaluates(t *testing.T) {
 					test{"ISNULL(a)", SQLInt(0)},
 					test{"ISNULL(c)", SQLInt(1)},
 					test{`ISNULL("")`, SQLInt(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: INSERT", func() {
+				tests := []test{
+					test{"INSERT('Quadratic', NULL, 4, 'What')", SQLNull},
+					test{"INSERT('Quadratic', 3, 4, 'What')", SQLVarchar("QuWhattic")},
+					test{"INSERT('Quadratic', -1, 4, 'What')", SQLVarchar("Quadratic")},
+					test{"INSERT('Quadratic', 3, 100, 'What')", SQLVarchar("QuWhat")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1683,6 +1705,21 @@ func TestEvaluates(t *testing.T) {
 					test{"SUBSTR('Sakila', -3)", SQLVarchar("ila")},
 					test{"SUBSTR('Sakila', -5, 3)", SQLVarchar("aki")},
 					test{"SUBSTR('日本語', 2)", SQLVarchar("本語")},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: SUBSTRING_INDEX", func() {
+				tests := []test{
+					test{"SUBSTRING_INDEX('www.cmysql.com', '.', NULL)", SQLNull},
+					test{"SUBSTRING_INDEX('www.cmysql.com', '.', 0)", SQLVarchar("")},
+					test{"SUBSTRING_INDEX('www.cmysql.com', '.', 1)", SQLVarchar("www")},
+					test{"SUBSTRING_INDEX('www.cmysql.com', '.c', 1)", SQLVarchar("www")},
+					test{"SUBSTRING_INDEX('www.cmysql.com', '.', 2)", SQLVarchar("www.cmysql")},
+					test{"SUBSTRING_INDEX('www.cmysql.com', '.', 1000)", SQLVarchar("www.cmysql.com")},
+					test{"SUBSTRING_INDEX('www.cmysql.com', '.c', 2)", SQLVarchar("www.cmysql")},
+					test{"SUBSTRING_INDEX('www.cmysql.com', '.', -2)", SQLVarchar("cmysql.com")},
+					test{"SUBSTRING_INDEX('www.cmysql.com', '.', -1)", SQLVarchar("com")},
 				}
 				runTests(evalCtx, tests)
 			})

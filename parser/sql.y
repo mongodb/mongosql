@@ -57,6 +57,7 @@ var (
   SCHEMA_BYTES             = []byte("schema")
   USER_BYTES               = []byte("user")
   REPLACE_BYTES            = []byte("replace")
+  INSERT_BYTES             = []byte("insert")
 )
 
 %}
@@ -1798,6 +1799,10 @@ keyword_as_func:
 | REPLACE
   {
     $$ = REPLACE_BYTES
+  }
+| INSERT
+  {
+    $$ = INSERT_BYTES
   }
 
 unary_operator:
