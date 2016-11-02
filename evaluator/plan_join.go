@@ -141,10 +141,6 @@ func (iter *JoinIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 			r = &Row{}
 		}
 
-		if err := it.Err(); err != nil {
-			errChan <- err
-		}
-
 		it.Close()
 		close(syncChan)
 	}()
@@ -153,12 +149,11 @@ func (iter *JoinIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 		select {
 		case row, ok := <-syncChan:
 			if !ok {
-				close(ch)
-				return
-			}
+				if err := it.Err(); err != nil {
+					errChan <- err
+				}
 
-			if err := it.Err(); err != nil {
-				errChan <- err
+				close(ch)
 				return
 			}
 
