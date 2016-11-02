@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"bytes"
 	"io/ioutil"
 	"log"
 	"os"
@@ -21,6 +22,9 @@ func TestWatcher(t *testing.T) {
 	}
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
+	output := new(bytes.Buffer)
+	log.SetOutput(output)
+	defer func() { t.Log(output.String()) }()
 
 	_, filename, _, _ := runtime.Caller(0)
 	originalRoot := filepath.Join(filepath.Dir(filename), "integration_testing")
@@ -62,7 +66,8 @@ func TestWatcher(t *testing.T) {
 	Convey("Subject: Watcher operations", t, func() {
 		input := make(chan messaging.WatcherCommand)
 		output := make(chan messaging.Folders)
-		watcher := NewWatcher(root, -1, time.Millisecond, input, output, ".go")
+		excludedDirs := []string{}
+		watcher := NewWatcher(root, -1, time.Millisecond, input, output, ".go", excludedDirs)
 
 		go watcher.Listen()
 

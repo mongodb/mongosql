@@ -43,7 +43,7 @@ function loadTheme(thmID)
 	var fullPath = convey.config.themePath
 					+ convey.config.themes[convey.theme].filename;
 
-	if (linkTag.length == 0)
+	if (linkTag.length === 0)
 	{
 		$('head').append('<link rel="stylesheet" href="'
 			+ fullPath + '" id="themeRef">');
@@ -66,15 +66,15 @@ function initPoller()
 
 	$(convey.poller).on('pollsuccess', function(event, data)
 	{
-		if (convey.status != "starting")
+		if (convey.status !== "starting")
 			hideServerDown();
 
 		// These two if statements determine if the server is now busy
 		// (and wasn't before) or is not busy (regardless of whether it was before)
-		if ((!convey.status || convey.status == "idle")
-				&& data.status && data.status != "idle")
+		if ((!convey.status || convey.status === "idle")
+				&& data.status && data.status !== "idle")
 			$('#run-tests').addClass('spin-slowly disabled');
-		else if (convey.status != "idle" && data.status == "idle")
+		else if (convey.status !== "idle" && data.status === "idle")
 		{
 			$('#run-tests').removeClass('spin-slowly disabled');
 		}
@@ -132,7 +132,7 @@ function wireup()
 
 	$('#stories').on('click', '.toggle-all-pkg', function(event)
 	{
-		if ($(this).closest('.story-pkg').data('pkg-state') == "expanded")
+		if ($(this).closest('.story-pkg').data('pkg-state') === "expanded")
 			collapseAll();
 		else
 			expandAll();
@@ -149,7 +149,7 @@ function wireup()
 		var newSetting = $(this).data('pkg-expand-collapse');
 		convey.packageStates = {};
 		save('pkg-expand-collapse', newSetting);
-		if (newSetting == "expanded")
+		if (newSetting === "expanded")
 			expandAll();
 		else
 			collapseAll();
@@ -158,7 +158,7 @@ function wireup()
 	{
 		var newSetting = $(this).data('show-debug-output');
 		save('show-debug-output', newSetting);
-		if (newSetting == "show")
+		if (newSetting === "show")
 			$('.story-line-desc .message').show();
 		else
 			$('.story-line-desc .message').hide();
@@ -170,6 +170,40 @@ function wireup()
 		save('ui-effects', newSetting);
 	});
 	// End settings wireup
+
+	//wireup the notification-settings switches
+	$('.enum#notification').on('click', 'li:not(.sel)', function()
+	{
+		var enabled = $(this).data('notification');
+		log("Turning notifications " + enabled ? 'on' : 'off');
+		save('notifications', enabled);
+
+		if (notif() && 'Notification' in window)
+		{
+			if (Notification.permission !== 'denied')
+			{
+				Notification.requestPermission(function(per)
+				{
+					if (!('permission' in Notification))
+					{
+						Notification.permission = per;
+					}
+				});
+			}
+			else
+				log("Permission denied to show desktop notification");
+		}
+
+		setNotifUI()
+	});
+
+	$('.enum#notification-level').on('click', 'li:not(.sel)', function()
+	{
+		var level = $(this).data('notification-level');
+		convey.notificationLevel = level;
+		save('notification-level', level);
+	});
+	// End notification-settings
 
 	convey.layout.header = $('header').first();
 	convey.layout.frame = $('.frame').first();
@@ -222,23 +256,7 @@ function wireup()
 
 	$('#toggle-notif').click(function()
 	{
-		log("Turning notifications " + (notif() ? "off" : "on"));
-		$(this).toggleClass("fa-bell-o fa-bell " + convey.layout.selClass);
-		save('notifications', !notif());
-
-		if (notif() && 'Notification' in window)
-		{
-			if (Notification.permission !== 'denied')
-			{
-				Notification.requestPermission(function(per)
-				{
-					if (!('permission' in Notification))
-						Notification.permission = per;
-				});
-			}
-			else
-				log("Permission denied to show desktop notification");
-		}
+		toggle($('.settings-notification'), $(this));
 	});
 
 	$('#show-history').click(function()
@@ -248,7 +266,7 @@ function wireup()
 
 	$('#show-settings').click(function()
 	{
-		toggle($('.settings'), $(this));
+		toggle($('.settings-general'), $(this));
 	});
 
 	$('#show-gen').click(function() {
@@ -256,15 +274,6 @@ function wireup()
 		if (window.focus)
 			writer.focus();
 	});
-
-	// Wire-up the tipsy tooltips
-	$('.controls li, .pkg-cover-name').tipsy({ live: true });
-	$('footer .replay').tipsy({ live: true, gravity: 'e' });
-	$('#path').tipsy({ delayIn: 500 });
-	$('.ignore').tipsy({ live: true, gravity: $.fn.tipsy.autoNS });
-	$('.disabled').tipsy({ live: true, gravity: $.fn.tipsy.autoNS });
-	$('#logo').tipsy({ gravity: 'w' });
-
 
 	$('.toggler').not('.narrow').prepend('<i class="fa fa-angle-up fa-lg"></i>');
 	$('.toggler.narrow').prepend('<i class="fa fa-angle-down fa-lg"></i>');
@@ -388,16 +397,46 @@ function wireup()
 
 		return suppress(e);
 	});
-	$('body').on('keyup', 'input, textarea, select', function(e)
+	$('body').on('keydown', 'input, textarea, select', function(e)
 	{
 		// If user is typing something, don't let this event bubble
 		// up to the document to annoyingly fire keyboard shortcuts
-		suppress(e);
+		e.stopPropagation();
 	});
+
+	// Wire-up the tipsy tooltips
+	setTooltips();
 
 	// Keep everything positioned and sized properly on window resize
 	reframe();
 	$(window).resize(reframe);
+}
+
+function setTooltips()
+{
+	var tips = {
+		'#path': { delayIn: 500 },
+		'#logo': { gravity: 'w' },
+		'.controls li, .pkg-cover-name': { live: false },
+		'footer .replay': { live: false, gravity: 'e' },
+		'.ignore': { live: false, gravity: $.fn.tipsy.autoNS },
+		'.disabled': { live: false, gravity: $.fn.tipsy.autoNS }
+	};
+
+	for (var key in tips)
+	{
+		$(key).each(function(el)
+		{
+			if(!$(this).tipsy(true))
+				$(this).tipsy(tips[key]);
+		});
+	}
+}
+
+function setNotifUI()
+{
+	var $toggleNotif = $('#toggle-notif').addClass(notif() ? "fa-bell" : "fa-bell-o");
+	$toggleNotif.removeClass(!notif() ? "fa-bell" : "fa-bell-o");
 }
 
 function expandAll()
@@ -441,7 +480,7 @@ function collapsePackage(pkgId)
 function togglePackage(storyPkgElem)
 {
 	var pkgId = $(storyPkgElem).data('pkg');
-	if ($(storyPkgElem).data('pkg-state') == "expanded")
+	if ($(storyPkgElem).data('pkg-state') === "expanded")
 	{
 		collapsePackage(pkgId);
 		convey.packageStates[$(storyPkgElem).data('pkg-name')] = "collapsed";
@@ -474,11 +513,19 @@ function loadSettingsFromStorage()
 	var uiEffects = get("ui-effects");
 	if (uiEffects === null)
 		uiEffects = "true";
-	convey.uiEffects = uiEffects == "true";
+	convey.uiEffects = uiEffects === "true";
 	enumSel("ui-effects", uiEffects);
 
-	if (notif())
-		$('#toggle-notif').toggleClass("fa-bell-o fa-bell " + convey.layout.selClass);
+	enumSel("notification", ""+notif());
+	var notifLevel = get("notification-level");
+	if (notifLevel === null) 
+	{
+		notifLevel = '.*';
+	}
+	convey.notificationLevel = notifLevel;
+	enumSel("notification-level", notifLevel);
+
+	setNotifUI();
 }
 
 
@@ -512,7 +559,7 @@ function process(data, status, jqxhr)
 		$('#play-pause').toggleClass("throb " + convey.layout.selClass);
 	}
 
-	if (current() && data.Revision == current().results.Revision)
+	if (current() && data.Revision === current().results.Revision)
 	{
 		log("No changes");
 		changeStatus(current().overall.status);	// re-assures that status is unchanged
@@ -555,7 +602,7 @@ function process(data, status, jqxhr)
 		current().overall.duration += pkg.Elapsed;
 		pkg._id = uniqueID++;
 
-		if (pkg.Outcome == "build failure")
+		if (pkg.Outcome === "build failure")
 		{
 			current().overall.failedBuilds++;
 			current().failedBuilds.push(pkg);
@@ -563,13 +610,13 @@ function process(data, status, jqxhr)
 		}
 
 
-		if (pkg.Outcome == "no go code")
+		if (pkg.Outcome === "no go code")
 			packages.nogofiles.push(pkg);
-		else if (pkg.Outcome == "no test files")
+		else if (pkg.Outcome === "no test files")
 			packages.notestfiles.push(pkg);
-		else if (pkg.Outcome == "no test functions")
+		else if (pkg.Outcome === "no test functions")
 			packages.notestfn.push(pkg);
-		else if (pkg.Outcome == "ignored" || pkg.Outcome == "disabled")
+		else if (pkg.Outcome === "ignored" || pkg.Outcome === "disabled")
 			packages.ignored.push(pkg);
 		else
 		{
@@ -588,7 +635,7 @@ function process(data, status, jqxhr)
 			test._pkgid = pkg._id;
 			test._pkg = pkg.PackageName;
 
-			if (test.Stories.length == 0)
+			if (test.Stories.length === 0)
 			{
 				// Here we've got ourselves a classic Go test,
 				// not a GoConvey test that has stories and assertions
@@ -708,7 +755,7 @@ function process(data, status, jqxhr)
 	current().overall.panics = current().assertions.panicked.length;
 	current().overall.failures = current().assertions.failed.length;
 	current().overall.skipped = current().assertions.skipped.length;
-	
+
 	current().overall.coverage = Math.round((coverageAvgHelper.coverageSum / (coverageAvgHelper.countedPackages || 1)) * 100) / 100;
 	current().overall.duration = Math.round(current().overall.duration * 1000) / 1000;
 
@@ -767,9 +814,10 @@ function process(data, status, jqxhr)
 
 	// Now add the momentjs time to the new frame in the history
 	convey.intervalFuncs.momentjs();
-	
+
 	// Show notification, if enabled
-	if (notif())
+	var levelRegex = new RegExp("("+convey.notificationLevel+")", "i");
+	if (notif() && current().overall.status.class.match(levelRegex))
 	{
 		log("Showing notification");
 		if (convey.notif)
@@ -778,7 +826,7 @@ function process(data, status, jqxhr)
 			convey.notif.close();
 		}
 
-		var notifText = notifSummary(current())
+		var notifText = notifSummary(current());
 
 		convey.notif = new Notification(notifText.title, {
 			body: notifText.body,
@@ -789,30 +837,16 @@ function process(data, status, jqxhr)
 	}
 
 	// Update title in title bar
-	if (current().overall.passed == current().overall.assertions && current().overall.status.class == "ok")
+	if (current().overall.passed === current().overall.assertions && current().overall.status.class === "ok")
 		$('title').text("GoConvey (ALL PASS)");
 	else
 		$('title').text("GoConvey [" + current().overall.status.text + "] " + current().overall.passed + "/" + current().overall.assertions);
 
+	setTooltips();
+
 	// All done!
 	log("Processing complete");
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Updates the entire UI given a frame from the history
 function renderFrame(frame)
@@ -859,14 +893,14 @@ function renderFrame(frame)
 	var pkgDefaultView = get('pkg-expand-collapse');
 	$('.story-pkg.expanded').each(function()
 	{
-		if (pkgDefaultView == "collapsed" && convey.packageStates[$(this).data('pkg-name')] != "expanded")
+		if (pkgDefaultView === "collapsed" && convey.packageStates[$(this).data('pkg-name')] !== "expanded")
 			collapsePackage($(this).data('pkg'));
 	});
 
 	redrawCoverageBars();
 
 	$('#assert-count').html("<b>"+frame.overall.assertions+"</b> assertion"
-							+ (frame.overall.assertions != 1 ? "s" : ""));
+							+ (frame.overall.assertions !== 1 ? "s" : ""));
 	$('#skip-count').html("<b>"+frame.assertions.skipped.length + "</b> skipped");
 	$('#fail-count').html("<b>"+frame.assertions.failed.length + "</b> failed");
 	$('#panic-count').html("<b>"+frame.assertions.panicked.length + "</b> panicked");
@@ -879,7 +913,7 @@ function renderFrame(frame)
 
 	$('.history .item').removeClass('selected');
 
-	if (get('show-debug-output') == "hide")
+	if (get('show-debug-output') === "hide")
 		$('.story-line-desc .message').hide();
 
 	log("Rendering finished");
@@ -897,7 +931,7 @@ function enumSel(id, val)
 	{
 		$('.enum#'+id+' > li').each(function()
 		{
-			if ($(this).data(id).toString() == val)
+			if ($(this).data(id).toString() === val)
 			{
 				$(this).addClass(convey.layout.selClass).siblings().removeClass(convey.layout.selClass);
 				return false;
@@ -945,7 +979,7 @@ function changeStatus(newStatus, isHistoricalFrame)
 	if (!newStatus || !newStatus.class || !newStatus.text)
 		newStatus = convey.statuses.pass;
 
-	var sameStatus = newStatus.class == convey.overallClass;
+	var sameStatus = newStatus.class === convey.overallClass;
 
 	// The CSS class .flash and the jQuery UI 'pulsate' effect don't play well together.
 	// This series of callbacks does the flickering/pulsating as well as
@@ -961,14 +995,14 @@ function changeStatus(newStatus, isHistoricalFrame)
 		{
 			$(this).text(newStatus.text);
 
-			if (newStatus != convey.statuses.pass)	// only flicker extra when not currently passing
+			if (newStatus !== convey.statuses.pass)	// only flicker extra when not currently passing
 			{
 				$(this).effect("pulsate", {times: 1}, 300, function()
 				{
 					$(this).effect("pulsate", {times: 1}, 500, function()
 					{
-						if (newStatus == convey.statuses.panic
-								|| newStatus == convey.statuses.buildfail)
+						if (newStatus === convey.statuses.panic
+								|| newStatus === convey.statuses.buildfail)
 							$(this).addClass('flash');
 						else
 							$(this).removeClass('flash');
@@ -994,7 +1028,7 @@ function updateWatchPath()
 	$.get("/watch", function(data)
 	{
 		var newPath = $.trim(data);
-		if (newPath != $('#path').val())
+		if (newPath !== $('#path').val())
 			convey.framesOnSamePath = 1;
 		$('#path').val(newPath);
 	});
@@ -1005,7 +1039,7 @@ function notifSummary(frame)
 	var body = frame.overall.passed + " passed, ";
 
 	if (frame.overall.failedBuilds)
-		body += frame.overall.failedBuilds + " build" + (frame.overall.failedBuilds != 1 ? "s" : "") + " failed, ";
+		body += frame.overall.failedBuilds + " build" + (frame.overall.failedBuilds !== 1 ? "s" : "") + " failed, ";
 	if (frame.overall.failures)
 		body += frame.overall.failures + " failed, ";
 	if (frame.overall.panics)
@@ -1066,7 +1100,7 @@ function colorizeCoverageBars()
 function getFrame(id)
 {
 	for (var i in convey.history)
-		if (convey.history[i].id == id)
+		if (convey.history[i].id === id)
 			return convey.history[i];
 }
 
@@ -1139,7 +1173,7 @@ function sortPackages(a, b)
 	var aPkg = splitPathName(a.PackageName);
 	var bPkg = splitPathName(b.PackageName);
 
-	if (aPkg.length == 0 || bPkg.length == 0)
+	if (aPkg.length === 0 || bPkg.length === 0)
 		return 0;
 
 	var aName = aPkg.parts[aPkg.parts.length - 1].toLowerCase();
@@ -1163,7 +1197,7 @@ function sortPackages(a, b)
 function get(key)
 {
 	var val = localStorage.getItem(key);
-	if (val && (val[0] == '[' || val[0] == '{'))
+	if (val && (val[0] === '[' || val[0] === '{'))
 		return JSON.parse(val);
 	else
 		return val;
@@ -1171,7 +1205,7 @@ function get(key)
 
 function save(key, val)
 {
-	if (typeof val === 'object' || typeof val === 'array')
+	if (typeof val === 'object')
 		val = JSON.stringify(val);
 	else if (typeof val === 'number' || typeof val === 'boolean')
 		val = val.toString();
@@ -1242,11 +1276,11 @@ function assignStatus(obj)
 {
 	if (obj._skipped)
 		obj._status = 'skip';
-	else if (obj.Outcome == "ignored")
+	else if (obj.Outcome === "ignored")
 		obj._status = convey.statuses.ignored;
 	else if (obj._panicked)
 		obj._status = convey.statuses.panic;
-	else if (obj._failed || obj.Outcome == "failed")
+	else if (obj._failed || obj.Outcome === "failed")
 		obj._status = convey.statuses.fail;
 	else
 		obj._status = convey.statuses.pass;
@@ -1256,7 +1290,7 @@ function showCoverDelta(delta)
 {
 	if (delta > 0)
 		return "+" + delta + "%";
-	else if (delta == 0)
+	else if (delta === 0)
 		return "±" + delta + "%";
 	else
 		return delta + "%";
@@ -1284,7 +1318,7 @@ function customMarkupPipes()
 	};
 	Mark.pipes.needsDiff = function(test)
 	{
-		return !!test.Failure && (test.Expected != "" || test.Actual != "");
+		return !!test.Failure && (test.Expected !== "" || test.Actual !== "");
 	};
 	Mark.pipes.coveragePct = function(str)
 	{
