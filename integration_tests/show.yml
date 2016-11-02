@@ -217,10 +217,10 @@ testcases:
     - ["cp1251", "Windows Cyrillic", "cp1251_general_ci", 1]
     - ["cp1256", "Windows Arabic", "cp1256_general_ci", 1]
     - ["cp1257", "Windows Baltic", "cp1257_general_ci", 1]
-- sql: "SHOW CHARSET LIKE 'eucjpms'"
+- sql: "SHOW CHARSET LIKE 'macce'"
   expected_types: [varchar, varchar, varchar, int]
   expected:
-    - ["eucjpms", "UJIS for Windows Japanese", "eucjpms_japanese_ci", 3]
+    - ["macce", "Mac Central European", "macce_general_ci", 1]
 
 
 

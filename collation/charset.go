@@ -28,8 +28,7 @@ type Charset struct {
 	Description          string
 	MaxLen               uint8
 
-	decoder *encoding.Decoder
-	encoder *encoding.Encoder
+	encoding encoding.Encoding
 }
 
 // NullCharset is the noop charset.
@@ -37,15 +36,14 @@ var NullCharset = &Charset{
 	Name:                 CharsetName(""),
 	DefaultCollationName: "binary",
 	Description:          "NULL",
-	encoder:              encoding.ReplaceUnsupported(encoding.Nop.NewEncoder()),
-	decoder:              encoding.Nop.NewDecoder(),
+	encoding:             encoding.Nop,
 }
 
 // Decode converts the given encoded bytes to UTF-8. It returns the converted bytes or nil, err if any error occurred.
 func (cs *Charset) Decode(bytes []byte) []byte {
 	// we are skipping errors because, according to research, errors should never be raised. In addition,
 	// we don't ever want to fail during reading because of a failed encoding. We'll just read gibberish instead.
-	b, _ := cs.decoder.Bytes(bytes)
+	b, _ := cs.encoding.NewDecoder().Bytes(bytes)
 	return b
 }
 
@@ -53,7 +51,7 @@ func (cs *Charset) Decode(bytes []byte) []byte {
 func (cs *Charset) Encode(bytes []byte) []byte {
 	// we are skipping errors because, according to research, errors should never be raised. In addition,
 	// we don't ever want to fail during writing because of a failed encoding. We'll just write gibberish instead.
-	b, _ := cs.encoder.Bytes(bytes)
+	b, _ := encoding.ReplaceUnsupported(cs.encoding.NewEncoder()).Bytes(bytes)
 	return b
 }
 
@@ -64,19 +62,10 @@ func GetAllCharsets() []*Charset {
 
 // GetCharset gets the character set for the specified name.
 func GetCharset(s CharsetName) (*Charset, error) {
-	// ensure the character set is supported
-	e, ok := charsetEncodings[s]
-	if !ok {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_CHARACTER_SET, s)
-	}
-
 	charset, ok := charsetByName[s]
 	if !ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_CHARACTER_SET, s)
 	}
-
-	charset.decoder = e.NewDecoder()
-	charset.encoder = encoding.ReplaceUnsupported(e.NewEncoder())
 
 	return charset, nil
 }
