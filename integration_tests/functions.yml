@@ -1290,6 +1290,16 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select sin(a) from bar"
+  expected_names: ["sin(a)"]
+  expected_types: [float64]
+  expected:
+  - [0.8414709848078965]
+  - [~]
+  - [-0.1411200080598672]
+  - [-0.7568024953079282]
+  - [~]
+
 - sql: "select sign(a) from bar"
   expected_names: ["sign(a)"]
   expected_types: [int]

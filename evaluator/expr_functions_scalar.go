@@ -129,6 +129,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"second":            &secondFunc{},
 	"session_user":      &userFunc{},
 	"sign":              &signFunc{},
+	"sin":               singleArgFloatMathFunc(math.Sin),
 	"sqrt":              singleArgFloatMathFunc(math.Sqrt),
 	"space":             &spaceFunc{},
 	"str_to_date":       &strToDateFunc{},

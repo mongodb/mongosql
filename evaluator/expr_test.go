@@ -1674,6 +1674,18 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: SIN", func() {
+				tests := []test{
+					test{"SIN(NULL)", SQLNull},
+					test{"SIN(20)", SQLFloat(0.9129452507276277)},
+					test{"SIN(-20)", SQLFloat(-0.9129452507276277)},
+					test{"SIN('C')", SQLFloat(0)},
+					test{"SIN(0)", SQLFloat(0)},
+					test{"SIN(3.141592653589793116)", SQLFloat(1.2246467991473515e-16)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: SPACE", func() {
 				tests := []test{
 					test{"SPACE(NULL)", SQLNull},
