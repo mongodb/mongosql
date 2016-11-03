@@ -14,7 +14,7 @@ import (
 func NewMongoTable(t *schema.Table, tableType TableType, collation *collation.Collation) *MongoTable {
 	var columns []*MongoColumn
 	var primaryKeys []Column
-	for _, c := range t.RawColumns {
+	for _, c := range t.Columns {
 		mc := &MongoColumn{
 			name:      ColumnName(c.SqlName),
 			sqlType:   c.SqlType,

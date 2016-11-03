@@ -199,7 +199,7 @@ func getColumnType(tables map[string]*schema.Table, tableName, columnName string
 		return none
 	}
 
-	column, ok := table.SQLColumns[columnName]
+	column, ok := table.Column(columnName)
 	if !ok {
 		return none
 	}

@@ -42,7 +42,7 @@ func (b *catalogBuilder) build() error {
 
 func (b *catalogBuilder) buildFromSchema() error {
 	info := b.variables.MongoDBInfo
-	for _, dbConfig := range b.schema.RawDatabases {
+	for _, dbConfig := range b.schema.Databases {
 		if !info.IsAnyAllowedDatabase(mongodb.DatabaseName(dbConfig.Name)) {
 			continue
 		}
@@ -58,7 +58,7 @@ func (b *catalogBuilder) buildFromSchema() error {
 		if !ok {
 			continue
 		}
-		for _, tblConfig := range dbConfig.RawTables {
+		for _, tblConfig := range dbConfig.Tables {
 			if !info.IsAnyAllowedCollection(mongodb.DatabaseName(dbConfig.Name), mongodb.CollectionName(tblConfig.CollectionName)) {
 				continue
 			}

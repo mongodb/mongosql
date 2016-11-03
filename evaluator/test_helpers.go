@@ -266,7 +266,7 @@ func getMongoDBInfo(sch *schema.Schema, privileges mongodb.Privilege) *mongodb.I
 		Privileges: privileges,
 		Databases:  make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo),
 	}
-	for _, db := range sch.RawDatabases {
+	for _, db := range sch.Databases {
 		dbInfo := &mongodb.DatabaseInfo{
 			Privileges:  privileges,
 			Name:        mongodb.DatabaseName(db.Name),
@@ -275,7 +275,7 @@ func getMongoDBInfo(sch *schema.Schema, privileges mongodb.Privilege) *mongodb.I
 
 		i.Databases[dbInfo.Name] = dbInfo
 
-		for _, col := range db.RawTables {
+		for _, col := range db.Tables {
 			if _, ok := dbInfo.Collections[mongodb.CollectionName(col.Name)]; ok {
 				continue
 			}

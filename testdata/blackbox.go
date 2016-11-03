@@ -123,9 +123,11 @@ func setup() {
 	*opts.NoUnixSocket = true
 
 	cfg := &schema.Schema{
-		RawDatabases: conf.Databases,
+		Databases: conf.Databases,
 	}
-	buildSchemaMaps(cfg)
+	if err := cfg.Validate(); err != nil {
+		panic(err)		
+	}
 	s, err := testServer(cfg, opts)
 	if err != nil {
 		panic(err)

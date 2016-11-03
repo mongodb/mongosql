@@ -134,19 +134,6 @@ func TestIntegration(t *testing.T) {
 	session.Close()
 }
 
-func buildSchemaMaps(conf *schema.Schema) {
-	conf.Databases = make(map[string]*schema.Database)
-	for _, db := range conf.RawDatabases {
-		dbName := strings.ToLower(db.Name)
-		db.Tables = make(map[string]*schema.Table)
-		for _, table := range db.RawTables {
-			tableName := strings.ToLower(table.Name)
-			db.Tables[tableName] = table
-		}
-		conf.Databases[dbName] = db
-	}
-}
-
 func compareResults(t *testing.T, expected, actual [][]interface{}) {
 	for rownum, row := range actual {
 		for colnum, actualCol := range row {
@@ -189,7 +176,10 @@ func compareResults(t *testing.T, expected, actual [][]interface{}) {
 func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error {
 	// make a test server using the embedded database
 	cfg := &schema.Schema{
-		RawDatabases: conf.Databases,
+		Databases: conf.Databases,
+	}
+	if err := cfg.Validate(); err != nil {
+		panic(err)
 	}
 
 	opts, err := options.NewSqldOptions()
@@ -201,8 +191,6 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", dbhost, dbport)
 	opts.NoUnixSocket = new(bool)
 	*opts.NoUnixSocket = true
-
-	buildSchemaMaps(cfg)
 
 	s, err := testServer(cfg, opts)
 	if err != nil {
@@ -286,15 +274,6 @@ func mustLoadTestSchema(path string) testSchema {
 	err = yaml.Unmarshal(fileBytes, &conf)
 	if err != nil {
 		panic(err)
-	}
-
-	for _, db := range conf.Databases {
-		if err := schema.PopulateColumnMaps(db); err != nil {
-			panic(err)
-		}
-		if err := schema.HandlePipeline(db); err != nil {
-			panic(err)
-		}
 	}
 
 	return conf

@@ -44,7 +44,7 @@ schema:
 func TestMongoTable(t *testing.T) {
 
 	config := schema.Must(schema.New(testSchema))
-	tblConfig := config.RawDatabases[0].RawTables[0]
+	tblConfig := config.Databases[0].Tables[0]
 
 	Convey("Subject: MongoTable", t, func() {
 		t := catalog.NewMongoTable(tblConfig, catalog.BaseTable, collation.Default)

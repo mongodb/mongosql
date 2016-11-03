@@ -1,8 +1,9 @@
-package schema
+package schema_test
 
 import (
 	"testing"
 
+	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -53,24 +54,24 @@ schema:
 
 	Convey("Schema should parse correctly", t, func() {
 
-		cfg, err := New(testSchemaData)
+		cfg, err := schema.New(testSchemaData)
 		So(err, ShouldBeNil)
 
-		So(len(cfg.RawDatabases), ShouldEqual, 2)
-		So(len(cfg.RawDatabases[0].RawTables), ShouldEqual, 1)
-		So(len(cfg.RawDatabases[1].RawTables), ShouldEqual, 2)
-		So(cfg.RawDatabases[0].Name, ShouldEqual, "test1")
+		So(len(cfg.Databases), ShouldEqual, 2)
+		So(cfg.Databases[0].Name, ShouldEqual, "test1")
+		So(len(cfg.Databases[0].Tables), ShouldEqual, 1)
+		So(len(cfg.Databases[1].Tables), ShouldEqual, 2)
 
-		So(cfg.RawDatabases[0].RawTables[0].Name, ShouldEqual, "foo")
-		So(cfg.RawDatabases[0].RawTables[0].CollectionName, ShouldEqual, "foo")
-		So(cfg.Databases["test1"].Name, ShouldEqual, "test1")
-		So(cfg.Databases["test1"].Tables["foo"].CollectionName, ShouldEqual, "foo")
+		So(cfg.Databases[0].Tables[0].Name, ShouldEqual, "foo")
+		So(cfg.Databases[0].Tables[0].CollectionName, ShouldEqual, "foo")
+		So(cfg.Databases[0].Name, ShouldEqual, "test1")
+		So(cfg.Databases[0].Tables[0].CollectionName, ShouldEqual, "foo")
 
-		So(len(cfg.Databases["test1"].Tables["foo"].RawColumns), ShouldEqual, 2)
+		So(len(cfg.Databases[0].Tables[0].Columns), ShouldEqual, 2)
 
-		So(cfg.Databases["test1"].Tables["foo"].RawColumns[0].SqlName, ShouldEqual, "a")
+		So(cfg.Databases[0].Tables[0].Columns[0].SqlName, ShouldEqual, "a")
 
-		So(cfg.Databases["test2"].Tables["bar"].Pipeline, ShouldResemble, []bson.D{
+		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, []bson.D{
 			bson.D{{"$unwind", "$x"}},
 			bson.D{{"$sort", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", int64(-1)}}}},
 			bson.D{{"$project", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", bson.D{{"$add", []interface{}{"$a", int64(10)}}}}}}}})
@@ -140,34 +141,34 @@ schema:
 `)
 
 	Convey("Schema should parse correctly", t, func() {
-		cfg := &Schema{}
+		cfg := &schema.Schema{}
 
 		err := cfg.Load(testSchemaDataSub)
 		So(err, ShouldBeNil)
 
-		So(len(cfg.RawDatabases), ShouldEqual, 3)
-		So(len(cfg.RawDatabases[0].RawTables), ShouldEqual, 1)
-		So(len(cfg.RawDatabases[1].RawTables), ShouldEqual, 1)
-		So(len(cfg.RawDatabases[2].RawTables), ShouldEqual, 2)
-		So(len(cfg.RawDatabases[2].RawTables[0].RawColumns), ShouldEqual, 3)
-		So(len(cfg.RawDatabases[2].RawTables[1].RawColumns), ShouldEqual, 0)
+		So(len(cfg.Databases), ShouldEqual, 3)
+		So(len(cfg.Databases[0].Tables), ShouldEqual, 1)
+		So(len(cfg.Databases[1].Tables), ShouldEqual, 1)
+		So(len(cfg.Databases[2].Tables), ShouldEqual, 2)
+		So(len(cfg.Databases[2].Tables[0].Columns), ShouldEqual, 3)
+		So(len(cfg.Databases[2].Tables[1].Columns), ShouldEqual, 0)
 
-		So(cfg.RawDatabases[2].RawTables[0].RawColumns[0].SqlName, ShouldEqual, "c")
-		So(cfg.RawDatabases[2].RawTables[0].RawColumns[1].SqlName, ShouldEqual, "d_longitude")
-		So(cfg.RawDatabases[2].RawTables[0].RawColumns[2].SqlName, ShouldEqual, "d_latitude")
+		So(cfg.Databases[2].Tables[0].Columns[0].SqlName, ShouldEqual, "c")
+		So(cfg.Databases[2].Tables[0].Columns[1].SqlName, ShouldEqual, "d_longitude")
+		So(cfg.Databases[2].Tables[0].Columns[2].SqlName, ShouldEqual, "d_latitude")
 
-		So(cfg.RawDatabases[0].Name, ShouldEqual, "test1")
+		So(cfg.Databases[0].Name, ShouldEqual, "test1")
 
-		So(cfg.RawDatabases[0].RawTables[0].Name, ShouldEqual, "foo")
-		So(cfg.RawDatabases[0].RawTables[0].CollectionName, ShouldEqual, "foo")
-		So(cfg.Databases["test1"].Name, ShouldEqual, "test1")
-		So(cfg.Databases["test1"].Tables["foo"].CollectionName, ShouldEqual, "foo")
+		So(cfg.Databases[0].Tables[0].Name, ShouldEqual, "foo")
+		So(cfg.Databases[0].Tables[0].CollectionName, ShouldEqual, "foo")
+		So(cfg.Databases[0].Name, ShouldEqual, "test1")
+		So(cfg.Databases[0].Tables[0].CollectionName, ShouldEqual, "foo")
 
-		So(len(cfg.Databases["test1"].Tables["foo"].RawColumns), ShouldEqual, 3)
+		So(len(cfg.Databases[0].Tables[0].Columns), ShouldEqual, 3)
 
-		So(cfg.Databases["test1"].Tables["foo"].RawColumns[0].SqlName, ShouldEqual, "a")
+		So(cfg.Databases[0].Tables[0].Columns[0].SqlName, ShouldEqual, "a")
 
-		So(cfg.Databases["test2"].Tables["bar"].Pipeline, ShouldResemble, []bson.D{
+		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, []bson.D{
 			bson.D{{"$unwind", "$x"}},
 			bson.D{{"$sort", bson.D{{"a", int64(1)}, {"b", int64(1)}, {"c", int64(-1)}}}}})
 	})
@@ -246,7 +247,7 @@ schema:
 
 `)
 
-	cfg, err := New(testSchemaDataRoot)
+	cfg, err := schema.New(testSchemaDataRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,30 +257,20 @@ schema:
 		t.Fatal(err)
 	}
 
-	if cfg.Databases["test1"] == nil {
-		t.Fatal("where is test1")
-	}
-	if cfg.Databases["test2"] == nil {
-		t.Fatal("where is test2")
-	}
-	if cfg.Databases["test3"] == nil {
-		t.Fatal("where is test3")
-	}
-
-	if len(cfg.RawDatabases) != 3 {
+	if len(cfg.Databases) != 3 {
 		t.Fatal(cfg)
 	}
 
-	if len(cfg.Databases["test1"].RawTables) != 1 {
+	if len(cfg.Databases[0].Tables) != 1 {
 		t.Fatal("test1 wrong")
 	}
 
-	if len(cfg.Databases["test2"].RawTables) != 1 {
+	if len(cfg.Databases[1].Tables) != 2 {
 		t.Fatal("test3 wrong")
 	}
 
-	if len(cfg.Databases["test3"].RawTables) != 2 {
-		t.Fatal("test3 wrong")
+	if len(cfg.Databases[2].Tables) != 1 {
+		t.Fatal("test2 wrong")
 	}
 
 }
@@ -327,7 +318,7 @@ schema:
 
 `)
 
-	cfg, err := New(testSchemaDataRoot)
+	cfg, err := schema.New(testSchemaDataRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,11 +327,38 @@ schema:
 	if err == nil {
 		t.Fatal("should have conflicted")
 	}
+}
 
+func TestDuplicateColumnName(t *testing.T) {
+	var testSchemaDataRoot = []byte(
+		`
+schema:
+-
+  db: test3
+  tables:
+  -
+     table: foo
+     collection: foo
+     columns:
+     -
+        Name: a
+        MongoType: int
+        SqlName: B
+        SqlType: int
+     -
+        Name: b
+        MongoType: string
+        SqlType: varchar
+`)
+
+	_, err := schema.New(testSchemaDataRoot)
+	if err == nil {
+		t.Fatal("should have conflicted")
+	}
 }
 
 func TestReadFile(t *testing.T) {
-	cfg := &Schema{}
+	cfg := &schema.Schema{}
 	err := cfg.LoadFile("test_data/foo.conf")
 	if err != nil {
 		t.Fatal(err)
@@ -351,7 +369,7 @@ func TestReadFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(cfg.RawDatabases) != 3 {
-		t.Fatalf("num RawDatabases wrong: %d", len(cfg.RawDatabases))
+	if len(cfg.Databases) != 3 {
+		t.Fatalf("num RawDatabases wrong: %d", len(cfg.Databases))
 	}
 }

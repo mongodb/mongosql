@@ -96,15 +96,15 @@ func LoadInfo(logger *log.Logger, s *mgo.Session, config *schema.Schema, require
 }
 
 func createDatabasesFromSchema(config *schema.Schema) map[DatabaseName]*DatabaseInfo {
-	dbInfos := make(map[DatabaseName]*DatabaseInfo, len(config.RawDatabases))
-	for _, dbSchema := range config.RawDatabases {
+	dbInfos := make(map[DatabaseName]*DatabaseInfo, len(config.Databases))
+	for _, dbSchema := range config.Databases {
 		dbInfo := &DatabaseInfo{
 			caseSensitiveName: dbSchema.Name,
 			Name:              DatabaseName(strings.ToLower(dbSchema.Name)),
 			Collections:       make(map[CollectionName]*CollectionInfo),
 		}
 		dbInfos[dbInfo.Name] = dbInfo
-		for _, tblSchema := range dbSchema.RawTables {
+		for _, tblSchema := range dbSchema.Tables {
 			name := CollectionName(tblSchema.CollectionName)
 			if _, ok := dbInfo.Collections[name]; ok {
 				// Because multiple tables can be mapped to the same collection,

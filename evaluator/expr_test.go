@@ -19,13 +19,13 @@ import (
 func createFieldNameLookup(db *schema.Database) fieldNameLookup {
 
 	return func(tableName, columnName string) (string, bool) {
-		table := db.Tables[tableName]
-		if table == nil {
+		table, ok := db.Table(tableName)
+		if !ok {
 			return "", false
 		}
 
-		column := table.SQLColumns[columnName]
-		if column == nil {
+		column, ok := table.Column(columnName)
+		if !ok {
 			return "", false
 		}
 
@@ -2760,9 +2760,12 @@ func TestTranslatePredicate(t *testing.T) {
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
+
+		db, ok := schema.Database(dbOne)
+		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
 			versionAtLeast:  func(_ ...int) bool { return true },
-			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
+			lookupFieldName: createFieldNameLookup(db),
 		}
 
 		for _, t := range tests {
@@ -2791,9 +2794,11 @@ func TestTranslatePredicate(t *testing.T) {
 	runPartialTests := func(tests []partialTest) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
+		db, ok := schema.Database(dbOne)
+		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
 			versionAtLeast:  func(_ ...int) bool { return true },
-			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
+			lookupFieldName: createFieldNameLookup(db),
 		}
 
 		for _, t := range tests {
@@ -2872,9 +2877,11 @@ func TestTranslateExpr(t *testing.T) {
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
+		db, ok := schema.Database(dbOne)
+		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
 			versionAtLeast:  func(_ ...int) bool { return true },
-			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
+			lookupFieldName: createFieldNameLookup(db),
 		}
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
@@ -2976,9 +2983,11 @@ func TestTranslateExpr(t *testing.T) {
 	runSQLValueTests := func(tests []sqlValueTest) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
+		db, ok := schema.Database(dbOne)
+		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
 			versionAtLeast:  func(_ ...int) bool { return true },
-			lookupFieldName: createFieldNameLookup(schema.Databases[dbOne]),
+			lookupFieldName: createFieldNameLookup(db),
 		}
 
 		for _, t := range tests {
