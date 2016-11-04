@@ -76,6 +76,17 @@ type Column struct {
 	PrimaryKey bool
 }
 
+func (c *Column) clone() *Column {
+	return &Column{
+		SelectID:   c.SelectID,
+		Table:      c.Table,
+		Name:       c.Name,
+		SQLType:    c.SQLType,
+		MongoType:  c.MongoType,
+		PrimaryKey: c.PrimaryKey,
+	}
+}
+
 type Columns []*Column
 
 // Unique ensures that only unique columns exist in the resulting slice.
