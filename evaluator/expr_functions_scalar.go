@@ -78,6 +78,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"date":              &dateFunc{},
 	"date_add":          &dateAddFunc{},
 	"date_sub":          &dateSubFunc{},
+	"date_format":       &dateFormatFunc{},
 	"day":               &dayOfMonthFunc{},
 	"dayname":           &dayNameFunc{},
 	"dayofmonth":        &dayOfMonthFunc{},
@@ -795,7 +796,7 @@ type currentDateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curdate
 func (_ *currentDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	now := time.Now()
+	now := time.Now().In(schema.DefaultLocale)
 	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 	return SQLDate{t}, nil
 
@@ -813,7 +814,7 @@ type currentTimestampFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_now
 func (_ *currentTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	value := time.Now().UTC()
+	value := time.Now().Round(time.Second).In(schema.DefaultLocale)
 	return SQLTimestamp{value}, nil
 }
 
@@ -909,6 +910,158 @@ func (_ *dateSubFunc) Type() schema.SQLType {
 
 func (_ *dateSubFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
+}
+
+type dateFormatFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-format
+func (_ *dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	date, ok := parseDateTime(values[0].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	v1, ok := values[1].(SQLVarchar)
+	if !ok {
+		return SQLNull, nil
+	}
+
+	date = date.In(schema.DefaultLocale)
+	format := v1.String()
+
+	fmtTokens := map[string]string{
+		"%a": "Mon",
+		"%b": "Jan",
+		"%c": "1",
+		"%e": "2",
+		"%i": "04",
+		"%l": "3",
+		"%M": "January",
+		"%m": "01",
+		"%p": "PM",
+		"%r": "03:04:05 PM",
+		"%S": "05",
+		"%s": "05",
+		"%T": "15:04:05",
+		"%W": "Monday",
+		"%Y": "2006",
+		"%y": "06",
+		"%%": "*",
+	}
+
+	noPad := func(s string) (string, error) {
+		str := date.Format(s)
+		if len(str) == 2 && str[0] == '0' {
+			str = str[1:]
+		}
+		return str, nil
+	}
+
+	suffixFmt := func(i int) (string, error) {
+		formatted := date.Format(strconv.Itoa(i))
+		i, err := strconv.Atoi(formatted)
+		if err != nil {
+			return "", err
+		}
+		suffix := "th"
+		switch i % 10 {
+		case 1:
+			suffix = "st"
+		case 2:
+			suffix = "nd"
+		}
+		return formatted + suffix, nil
+	}
+
+	weekFmt := func(i int) (string, error) {
+		wf := &weekFunc{}
+		args := []SQLValue{SQLDate{date}, SQLInt(i)}
+		eval, err := wf.Evaluate(args, ctx)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%02v", eval.String()), nil
+	}
+
+	yearFmt := func(i int) (string, error) {
+		yw := &yearWeekFunc{}
+		args := []SQLValue{SQLDate{date}, SQLInt(i)}
+		eval, err := yw.Evaluate(args, ctx)
+		if err != nil {
+			return "", err
+		}
+		return eval.String()[:4], nil
+	}
+
+	zeroPad := func(s string) (string, error) {
+		return fmt.Sprintf("%02v", date.Format(s)), nil
+	}
+
+	specialFmtTokens := map[string]func() (string, error){
+		"%D": func() (string, error) { return suffixFmt(2) },
+		"%d": func() (string, error) { return zeroPad("2") },
+		"%f": func() (string, error) { return date.Format(".000000")[1:], nil },
+		"%H": func() (string, error) { return zeroPad("15") },
+		"%h": func() (string, error) { return zeroPad("3") },
+		"%I": func() (string, error) { return zeroPad("3") },
+		"%j": func() (string, error) { return fmt.Sprintf("%03v", date.YearDay()), nil },
+		"%k": func() (string, error) { return noPad("15") },
+		"%U": func() (string, error) { return weekFmt(0) },
+		"%u": func() (string, error) { return weekFmt(1) },
+		"%V": func() (string, error) { return weekFmt(2) },
+		"%v": func() (string, error) { return weekFmt(3) },
+		"%w": func() (string, error) { return strconv.Itoa(int(date.Weekday())), nil },
+		"%X": func() (string, error) { return yearFmt(0) },
+		"%x": func() (string, error) { return yearFmt(1) },
+	}
+
+	for specifier, token := range fmtTokens {
+		format = strings.Replace(format, specifier, token, -1)
+	}
+
+	format = date.Format(format)
+
+	for specifier, formatter := range specialFmtTokens {
+		if strings.Contains(format, specifier) {
+			replacement, err := formatter()
+			if err != nil {
+				return nil, err
+			}
+			format = strings.Replace(format, specifier, replacement, -1)
+		}
+	}
+
+	// %x case
+	i := strings.Index(format, "%")
+	for i != -1 {
+		format = format[:i] + format[i+1:]
+		i = strings.Index(format[i+1:], "%")
+	}
+
+	// %% case
+	format = strings.Replace(format, "*", "%", -1)
+
+	return SQLVarchar(format), nil
+}
+
+func (_ *dateFormatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *dateFormatFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *dateFormatFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
 }
 
 type dayNameFunc struct{}
@@ -1169,7 +1322,17 @@ func (_ *fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		return SQLVarchar("0000-00-00"), nil
 	}
 
-	target, maxGoDurationHours := int64(math.Floor(math.Abs(value-366))), int64(106751)
+	abs := math.Abs(value - 366)
+	target, maxGoDurationHours := int64(math.Ceil(abs)), int64(106751)
+
+	// edge cases
+	if math.Ceil(abs) == 1 {
+		target = 0
+	}
+
+	if math.Floor(abs) == 3652133 {
+		target = 3652133
+	}
 
 	date := zeroDate
 
@@ -1178,7 +1341,7 @@ func (_ *fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		target -= maxGoDurationHours
 	}
 
-	date = date.Add(time.Duration(target*24) * time.Hour)
+	date = date.Add(time.Duration(target*24) * time.Hour).Round(time.Second)
 
 	return SQLDate{date.In(schema.DefaultLocale)}, nil
 }
@@ -2395,7 +2558,7 @@ func (_ *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		return w
 	}
 
-	buf := [16]byte{}
+	buf := [30]byte{}
 	w := len(buf)
 
 	u := uint64(d)
@@ -2860,7 +3023,7 @@ type utcTimestampFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_utc-timestamp
 func (_ *utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLTimestamp{time.Now().In(time.UTC)}, nil
+	return SQLTimestamp{time.Now().Round(time.Second).In(schema.DefaultLocale)}, nil
 }
 
 func (_ *utcTimestampFunc) Type() schema.SQLType {
@@ -3100,6 +3263,26 @@ func (_ *yearWeekFunc) Validate(exprCount int) error {
 
 // Helper functions
 
+// areAllTimeTypes checks if all SQLValues are either type SQLTimestamp or SQLDate
+// and there is at least one SQLTimestamp type. This is necessary because if the former is true,
+// MySQL will always return a SQLTimestamp type in the greatest and least functions.
+// i.e. SELECT GREATEST(DATE "2006-05-11", TIMESTAMP "2005-04-12", DATE "2004-06-04")
+// returns TIMESTAMP "2006-05-11 00:00:00"
+func areAllTimeTypes(values []SQLValue) (bool, bool) {
+	allTimeTypes := true
+	timestamp := false
+	for _, v := range values {
+		if _, ok := v.(SQLTimestamp); !ok {
+			if _, ok := v.(SQLDate); !ok {
+				allTimeTypes = false
+			}
+		} else {
+			timestamp = true
+		}
+	}
+	return allTimeTypes, timestamp
+}
+
 // calculateInterval converts each of the values in args to unit, and returns the sum of these multiplied by neg.
 func calculateInterval(unit string, args []int, neg int) (string, int, error) {
 	var val int
@@ -3172,20 +3355,6 @@ func convertType(val SQLValue, t schema.SQLType) SQLValue {
 	return SQLInt(0)
 }
 
-func dayOneWeekOne(d time.Time, iso bool, monStart bool) int {
-	day1 := (8 - int(d.Weekday())) % 7
-	if monStart {
-		day1 += 1
-	}
-	if day1 == 0 {
-		day1 = 7
-	}
-	if day1 > 4 && iso {
-		day1 = 1
-	}
-	return day1
-}
-
 // dateArithmeticArgs parses val and returns an integer slice stripped of any spaces, colons, etc.
 // It also returns whether the first character in val is "-", indicating whether the arguments should be negative.
 func dateArithmeticArgs(val SQLValue) ([]int, int) {
@@ -3216,20 +3385,18 @@ func dateArithmeticArgs(val SQLValue) ([]int, int) {
 	return args, neg
 }
 
-func evaluateArgs(exprs []SQLExpr, ctx *EvalCtx) ([]SQLValue, error) {
-
-	values := []SQLValue{}
-
-	for _, expr := range exprs {
-		value, err := expr.Evaluate(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		values = append(values, value)
+func dayOneWeekOne(d time.Time, iso bool, monStart bool) int {
+	day1 := (8 - int(d.Weekday())) % 7
+	if monStart {
+		day1 += 1
 	}
-
-	return values, nil
+	if day1 == 0 {
+		day1 = 7
+	}
+	if day1 > 4 && iso {
+		day1 = 1
+	}
+	return day1
 }
 
 func ensureArgCount(exprCount int, counts ...int) error {
@@ -3255,6 +3422,22 @@ func ensureArgCount(exprCount int, counts ...int) error {
 	}
 
 	return nil
+}
+
+func evaluateArgs(exprs []SQLExpr, ctx *EvalCtx) ([]SQLValue, error) {
+
+	values := []SQLValue{}
+
+	for _, expr := range exprs {
+		value, err := expr.Evaluate(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		values = append(values, value)
+	}
+
+	return values, nil
 }
 
 func numMonths(startDate time.Time, endDate time.Time) int {
@@ -3293,26 +3476,6 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 	return months
 }
 
-// areAllTimeTypes checks if all SQLValues are either type SQLTimestamp or SQLDate
-// and there is at least one SQLTimestamp type. This is necessary because if the former is true,
-// MySQL will always return a SQLTimestamp type in the greatest and least functions.
-// i.e. SELECT GREATEST(DATE "2006-05-11", TIMESTAMP "2005-04-12", DATE "2004-06-04")
-// returns TIMESTAMP "2006-05-11 00:00:00"
-func areAllTimeTypes(values []SQLValue) (bool, bool) {
-	allTimeTypes := true
-	timestamp := false
-	for _, v := range values {
-		if _, ok := v.(SQLTimestamp); !ok {
-			if _, ok := v.(SQLDate); !ok {
-				allTimeTypes = false
-			}
-		} else {
-			timestamp = true
-		}
-	}
-	return allTimeTypes, timestamp
-}
-
 func parseDateTime(value string) (time.Time, bool) {
 	for _, f := range schema.TimestampCtorFormats {
 		t, err := time.Parse(f, value)
@@ -3342,18 +3505,16 @@ func parseDuration(v SQLValue) (time.Duration, bool) {
 
 	emitFrac := func(buf []byte) int {
 		i := bytes.IndexByte(buf, '.')
-		if i != -1 {
-			if len(frac) == 0 {
-				x := 0
-				for x < len(buf)-i-1 {
-					idx := i + x + 1
-					if buf[idx] == ':' || buf[idx] == '.' {
-						break
-					}
-					x++
+		if i != -1 && len(frac) == 0 {
+			x := 0
+			for x < len(buf)-i-1 {
+				idx := i + x + 1
+				if buf[idx] == ':' || buf[idx] == '.' {
+					break
 				}
-				frac = buf[i+1 : i+x+1]
+				x++
 			}
+			frac = buf[i+1 : i+x+1]
 		}
 		return i
 	}
@@ -3428,24 +3589,6 @@ func parseDuration(v SQLValue) (time.Duration, bool) {
 	return dur, true
 }
 
-func runesIndex(r, sep []rune) int {
-	for i := 0; i <= len(r)-len(sep); i++ {
-		found := true
-		for j := 0; j < len(sep); j++ {
-			if r[i+j] != sep[j] {
-				found = false
-				break
-			}
-		}
-
-		if found {
-			return i
-		}
-	}
-
-	return -1
-}
-
 // roundToDecimalPlaces rounds base to d number of decimal places.
 func roundToDecimalPlaces(d int64, base float64) float64 {
 	var rounded float64
@@ -3466,4 +3609,22 @@ func roundToDecimalPlaces(d int64, base float64) float64 {
 		}
 	}
 	return rounded
+}
+
+func runesIndex(r, sep []rune) int {
+	for i := 0; i <= len(r)-len(sep); i++ {
+		found := true
+		for j := 0; j < len(sep); j++ {
+			if r[i+j] != sep[j] {
+				found = false
+				break
+			}
+		}
+
+		if found {
+			return i
+		}
+	}
+
+	return -1
 }

@@ -1100,6 +1100,27 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: DATE_FORMAT", func() {
+				tests := []test{
+					test{"DATE_FORMAT('2009-10-04', NULL)", SQLNull},
+					test{"DATE_FORMAT(NULL, '2009-10-04')", SQLNull},
+					test{"DATE_FORMAT('2009-10-04 22:23:00', '%W %M %Y')", SQLVarchar("Sunday October 2009")},
+					test{"DATE_FORMAT('2007-10-04 22:23:00', '%H:%i:%s')", SQLVarchar("22:23:00")},
+					test{"DATE_FORMAT('1900-10-04 22:23:00', '%D %y %a %d %m %b %j')", SQLVarchar("4th 00 Thu 04 10 Oct 277")},
+					test{"DATE_FORMAT('1997-10-04 22:23:00', '%H %k %I %r %T %S %w')", SQLVarchar("22 22 10 10:23:00 PM 22:23:00 00 6")},
+					test{"DATE_FORMAT('1999-01-01', '%X %V')", SQLVarchar("1998 52")},
+					test{"DATE_FORMAT('1989-05-14 01:03:01.232335','%a|%b|%c|%D|%d|%e|%f|%H|%h|%I|%i|%j|%k|%l|%M|%m|%p|%r|%S|%s|%T|%U|%u|%V|%v|%W|%w|%X|%x|%Y|%y|%%|%x')", SQLVarchar("Sun|May|5|14th|14|14|232335|01|01|01|03|134|1|1|May|05|AM|01:03:01 AM|01|01|01:03:01|20|19|20|19|Sunday|0|1989|1989|1989|89|%|1989")},
+					test{"DATE_FORMAT('1900-10-04 22:23:00', '%a|%b|%c|%D|%d|%e|%f|%H|%h|%I|%i|%j|%k|%l|%M|%m|%p|%r|%S|%s|%T|%U|%u|%V|%v|%W|%w|%X|%x|%Y|%y|%%|%x')", SQLVarchar("Thu|Oct|10|4th|04|4|000000|22|10|10|23|277|22|10|October|10|PM|10:23:00 PM|00|00|22:23:00|39|40|39|40|Thursday|4|1900|1900|1900|00|%|1900")},
+					test{"DATE_FORMAT('1983-07-05 23:22', '%a|%b|%c|%D|%d|%e|%f|%H|%h|%I|%i|%j|%k|%l|%M|%m|%p|%r|%S|%s|%T|%U|%u|%V|%v|%W|%w|%X|%x|%Y|%y|%%|%x')", SQLVarchar("Tue|Jul|7|5th|05|5|000000|23|11|11|22|186|23|11|July|07|PM|11:22:00 PM|00|00|23:22:00|27|27|27|27|Tuesday|2|1983|1983|1983|83|%|1983")},
+					// TODO: unsupported cases involving zero days, months, years
+					// test{"DATE_FORMAT('2006-06-00', '%d')", SQLVarchar("00")},
+					// test{"DATE_FORMAT('2000-00-00', '%m')", SQLVarchar("00")},
+					// test{"DATE_FORMAT('2000-00-00', '%M')", SQLNull},
+					// test{"DATE_FORMAT('0000-00-00', '%Y')", SQLNull},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: DATE_SUB, SUBDATE", func() {
 				d, err := time.Parse("2006-01-02", "2003-01-02")
 				So(err, ShouldBeNil)
@@ -1795,6 +1816,48 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: TIME_TO_SEC", func() {
+
+				tests := []test{
+					test{"TIME_TO_SEC(NULL)", SQLNull},
+					test{"TIME_TO_SEC('22:23:00')", SQLFloat(80580)},
+					test{"TIME_TO_SEC('12:34')", SQLFloat(45240)},
+					test{"TIME_TO_SEC('00:39:38')", SQLFloat(2378)},
+					test{"TIME_TO_SEC(1010103)", SQLFloat(363663)},
+					test{"TIME_TO_SEC('2222')", SQLFloat(1342)},
+					test{"TIME_TO_SEC(101010)", SQLFloat(36610)},
+					test{"TIME_TO_SEC(-222)", SQLFloat(-142)},
+					test{"TIME_TO_SEC('-22:33:32')", SQLFloat(-81212)},
+					test{"TIME_TO_SEC(535911)", SQLFloat(194351)},
+					test{"TIME_TO_SEC('-850:00:00')", SQLFloat(-3020399)},
+					test{"TIME_TO_SEC('-838:59:59')", SQLFloat(-3020399)},
+					test{"TIME_TO_SEC(CONCAT('48:2','4:59'))", SQLFloat(174299)},
+					test{"TIME_TO_SEC(535959.9)", SQLFloat(194399)},
+					test{"TIME_TO_SEC(534422333)", SQLNull},
+					test{"TIME_TO_SEC(539911)", SQLNull},
+					test{"TIME_TO_SEC(8991111)", SQLNull},
+
+					// TODO: unsupported TIME_TO_SEC('-5359:11')
+				}
+
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: TIMEDIFF", func() {
+				tests := []test{
+					test{"TIMEDIFF('2000:11:11 00:00:00', NULL)", SQLNull},
+					test{"TIMEDIFF(NULL, '2000:11:11 00:00:00')", SQLNull},
+					test{"TIMEDIFF('2000:11:11 00:00:00', '2000:09:31 00:00:00.000231')", SQLNull},
+					test{"TIMEDIFF('2000:09:11 00:00:00', '2000:09:31 00:00:01:323211')", SQLNull},
+					test{"TIMEDIFF('2008-12-31 23:59:59.000001','2008-12-31 23:59:58.000001')", SQLVarchar("00:00:01.000000")},
+					test{"TIMEDIFF('2000:11:11 00:00:00', '2000:11:11 10:00:00.000231')", SQLVarchar("-10:00:00.000231")},
+					test{"TIMEDIFF('2000:01:01 00:00:00','2000:01:01 00:00:00.000001')", SQLVarchar("-00:00:00.000001")},
+					test{"TIMEDIFF('2008-12-31 23:59:59.000001','2008-12-30 01:01:01.000002')", SQLVarchar("46:58:57.999999")},
+				}
+
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: TIMESTAMP", func() {
 				t1, err := time.Parse("2006-01-02 15:04:05.000000", "2010-01-01 22:35:10.523236")
 				So(err, ShouldBeNil)
@@ -1919,48 +1982,6 @@ func TestEvaluates(t *testing.T) {
 					test{"TRIM(BOTH 'xyz' FROM 'xyzbarxyzxyz')", SQLVarchar("bar")},
 					test{"TRIM(LEADING 'xyz' FROM 'xyzbarxyzxyz')", SQLVarchar("barxyzxyz")},
 					test{"TRIM(TRAILING 'xyz' FROM 'xyzbarxyzxyz')", SQLVarchar("xyzbar")},
-				}
-
-				runTests(evalCtx, tests)
-			})
-
-			Convey("Subject: TIME_TO_SEC", func() {
-
-				tests := []test{
-					test{"TIME_TO_SEC(NULL)", SQLNull},
-					test{"TIME_TO_SEC('22:23:00')", SQLFloat(80580)},
-					test{"TIME_TO_SEC('12:34')", SQLFloat(45240)},
-					test{"TIME_TO_SEC('00:39:38')", SQLFloat(2378)},
-					test{"TIME_TO_SEC(1010103)", SQLFloat(363663)},
-					test{"TIME_TO_SEC('2222')", SQLFloat(1342)},
-					test{"TIME_TO_SEC(101010)", SQLFloat(36610)},
-					test{"TIME_TO_SEC(-222)", SQLFloat(-142)},
-					test{"TIME_TO_SEC('-22:33:32')", SQLFloat(-81212)},
-					test{"TIME_TO_SEC(535911)", SQLFloat(194351)},
-					test{"TIME_TO_SEC('-850:00:00')", SQLFloat(-3020399)},
-					test{"TIME_TO_SEC('-838:59:59')", SQLFloat(-3020399)},
-					test{"TIME_TO_SEC(CONCAT('48:2','4:59'))", SQLFloat(174299)},
-					test{"TIME_TO_SEC(535959.9)", SQLFloat(194399)},
-					test{"TIME_TO_SEC(534422333)", SQLNull},
-					test{"TIME_TO_SEC(539911)", SQLNull},
-					test{"TIME_TO_SEC(8991111)", SQLNull},
-
-					// TODO: unsupported TIME_TO_SEC('-5359:11')
-				}
-
-				runTests(evalCtx, tests)
-			})
-
-			Convey("Subject: TIMEDIFF", func() {
-				tests := []test{
-					test{"TIMEDIFF('2000:11:11 00:00:00', NULL)", SQLNull},
-					test{"TIMEDIFF(NULL, '2000:11:11 00:00:00')", SQLNull},
-					test{"TIMEDIFF('2000:11:11 00:00:00', '2000:09:31 00:00:00.000231')", SQLNull},
-					test{"TIMEDIFF('2000:09:11 00:00:00', '2000:09:31 00:00:01:323211')", SQLNull},
-					test{"TIMEDIFF('2008-12-31 23:59:59.000001','2008-12-31 23:59:58.000001')", SQLVarchar("00:00:01.000000")},
-					test{"TIMEDIFF('2000:11:11 00:00:00', '2000:11:11 10:00:00.000231')", SQLVarchar("-10:00:00.000231")},
-					test{"TIMEDIFF('2000:01:01 00:00:00','2000:01:01 00:00:00.000001')", SQLVarchar("-00:00:00.000001")},
-					test{"TIMEDIFF('2008-12-31 23:59:59.000001','2008-12-30 01:01:01.000002')", SQLVarchar("46:58:57.999999")},
 				}
 
 				runTests(evalCtx, tests)

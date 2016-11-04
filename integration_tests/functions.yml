@@ -47,12 +47,21 @@ schema:
 #
 # Aggregate
 testcases:
+- sql: "select adddate(d, interval 7 minute) from bar"
+  expected_names: ["adddate(d, 7, minute)"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-23 13:52:00"]
+  - ["2000-09-24 13:52:00"]
+  - ["2000-10-24 13:52:00"]
+  - [~]
+  - [~]
+
 - sql: "select avg(a) from bar"
   expected_names: ["avg(a)"]
   expected_types: [float]
   expected:
   - [0.6666666666666666]
-
 
 - sql: "select avg(null) from bar"
   expected_names: ["avg(null)"]
@@ -71,6 +80,16 @@ testcases:
   expected_types: [int]
   expected:
   - [0]
+
+- sql: "select from_days(c*6363) from bar"
+  expected_names: ["from_days(c*6363)"]
+  expected_types: [varchar]
+  expected:
+  - ["0025-05-14"]
+  - ["0000-00-00"]
+  - ["0988-05-20"]
+  - [~]
+  - [~]
 
 - sql: "select max(a) from bar"
   expected_names: ["max(a)"]
@@ -525,14 +544,14 @@ testcases:
   - [0.8636911544506167]
   - [~]
 
-- sql: "select degrees(a) from bar"
-  expected_names: ["degrees(a)"]
-  expected_types: [float64]
+- sql: "select date_format(d, '%W %M %Y') from bar"
+  expected_names: ["date_format(d, '%W %M %Y')"]
+  expected_types: [varchar]
   expected:
-  - [57.29577951308232]
+  - ["Saturday September 2000"]
+  - ["Sunday September 2000"]
+  - ["Tuesday October 2000"]
   - [~]
-  - [-171.88733853924697]
-  - [229.1831180523293]
   - [~]
 
 # Synonym for dayofmonth
@@ -654,6 +673,16 @@ testcases:
   - [~]
   - [~]
   - [~]
+  - [~]
+
+- sql: "select degrees(a) from bar"
+  expected_names: ["degrees(a)"]
+  expected_types: [float64]
+  expected:
+  - [57.29577951308232]
+  - [~]
+  - [-171.88733853924697]
+  - [229.1831180523293]
   - [~]
 
 - sql: "select elt(a, 'a', 'b', 'c') from bar"
@@ -895,6 +924,16 @@ testcases:
   - [1]
   - [1]
   - [1]
+
+- sql: "select last_day(d) from bar"
+  expected_names: ["last_day(d)"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-30"]
+  - ["2000-09-30"]
+  - ["2000-10-31"]
+  - [~]
+  - [~]
 
 # Synonym for lower
 - sql: "select lcase(b) from bar"
@@ -1356,6 +1395,16 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select subdate(d, interval 433 minute) from bar"
+  expected_names: ["subdate(d, 433, minute)"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-23 06:32:00"]
+  - ["2000-09-24 06:32:00"]
+  - ["2000-10-24 06:32:00"]
+  - [~]
+  - [~]
+
 - sql: "select substring(b, 2) from bar"
   expected_names: ["substring(b, 2)"]
   expected_types: [varchar]
@@ -1427,6 +1476,16 @@ testcases:
   - [~]
   - [0.1425465430742778]
   - [1.1578212823495775]
+  - [~]
+
+- sql: "select time_to_sec(c+84754) from bar"
+  expected_names: ["time_to_sec(c+84754)"]
+  expected_types: [float64]
+  expected:
+  - [31675]
+  - [31592]
+  - [31690]
+  - [~]
   - [~]
 
 - sql: "select trim(b) from bar"
