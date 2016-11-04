@@ -283,6 +283,11 @@ func (c *Column) validate() error {
 		case SQLInt64, SQLNumeric, SQLVarchar:
 			err = nil
 		}
+	case MongoNumber:
+		switch c.SqlType {
+		case SQLInt, SQLInt64, SQLFloat, SQLDecimal128, SQLNumeric:
+			err = nil
+		}
 	case MongoObjectId, MongoString, MongoFilter, MongoUUID, MongoUUIDCSharp, MongoUUIDJava, MongoUUIDOld:
 		if c.SqlType == SQLVarchar {
 			err = nil

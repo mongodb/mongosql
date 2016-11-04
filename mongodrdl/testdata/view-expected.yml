@@ -12,11 +12,11 @@ schema:
     - Name: a
       MongoType: int
       SqlName: a
-      SqlType: numeric
+      SqlType: int
     - Name: b
       MongoType: int
       SqlName: b
-      SqlType: numeric
+      SqlType: int
   - table: view
     collection: view
     pipeline: []
@@ -28,7 +28,7 @@ schema:
     - Name: a
       MongoType: int
       SqlName: a
-      SqlType: numeric
+      SqlType: int
     - Name: b
       MongoType: string
       SqlName: b

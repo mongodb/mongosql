@@ -12,9 +12,9 @@ schema:
     - name: close
       mongotype: float64
       sqlname: close
-      sqltype: numeric
+      sqltype: float64
     - name: open
-      mongotype: int
+      mongotype: number
       sqlname: open
       sqltype: numeric
   - table: arrays_dates
@@ -35,7 +35,7 @@ schema:
     - name: dates_idx
       mongotype: int
       sqlname: dates_idx
-      sqltype: numeric
+      sqltype: int
   - table: arrays_detail
     collection: arrays
     pipeline:
@@ -50,11 +50,11 @@ schema:
     - name: detail
       mongotype: int
       sqlname: detail
-      sqltype: numeric
+      sqltype: int
     - name: detail_idx
       mongotype: int
       sqlname: detail_idx
-      sqltype: numeric
+      sqltype: int
   - table: arrays_docs
     collection: arrays
     pipeline:
@@ -73,11 +73,11 @@ schema:
     - name: docs.c
       mongotype: int
       sqlname: docs.c
-      sqltype: numeric
+      sqltype: int
     - name: docs.d
       mongotype: int
       sqlname: docs.d
-      sqltype: numeric
+      sqltype: int
     - name: docs.x
       mongotype: string
       sqlname: docs.x
@@ -85,4 +85,4 @@ schema:
     - name: docs_idx
       mongotype: int
       sqlname: docs_idx
-      sqltype: numeric
+      sqltype: int

@@ -31,7 +31,7 @@ schema:
       - Name: loc_idx
         MongoType: int
         SqlName: loc_idx
-        SqlType: numeric
+        SqlType: int
     - table: view
       collection: view
       pipeline: []
@@ -58,7 +58,7 @@ schema:
       - Name: loc_idx
         MongoType: int
         SqlName: loc_idx
-        SqlType: numeric
+        SqlType: int
     - table: view_loc_coordinates
       collection: view
       pipeline:
@@ -76,11 +76,11 @@ schema:
       - Name: loc.coordinates
         MongoType: float64
         SqlName: loc.coordinates
-        SqlType: numeric
+        SqlType: float64
       - Name: loc.coordinates_idx
         MongoType: int
         SqlName: loc.coordinates_idx
-        SqlType: numeric
+        SqlType: int
       - Name: loc.type
         MongoType: string
         SqlName: loc.type
@@ -88,4 +88,4 @@ schema:
       - Name: loc_idx
         MongoType: int
         SqlName: loc_idx
-        SqlType: numeric
+        SqlType: int

@@ -33,16 +33,16 @@ schema:
     - name: a
       mongotype: int
       sqlname: a
-      sqltype: numeric
+      sqltype: int
     - name: a_idx
       mongotype: int
       sqlname: a_idx
-      sqltype: numeric
+      sqltype: int
     - name: a_idx_1
       mongotype: int
       sqlname: a_idx_1
-      sqltype: numeric
+      sqltype: int
     - name: a_idx_2
       mongotype: int
       sqlname: a_idx_2
-      sqltype: numeric
+      sqltype: int

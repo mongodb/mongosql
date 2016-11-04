@@ -3,7 +3,6 @@ package relational
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -125,22 +124,26 @@ type Column struct {
 	SqlType   string
 }
 
-func isNumeric(mongoType string) bool {
-	return strings.HasPrefix(mongoType, "int") ||
-		strings.HasPrefix(mongoType, "float") ||
-		mongoType == "bson.Decimal128"
-}
-
 func newColumn(name string, mongoType string) *Column {
 	var sqlType string
-	switch {
-	case isNumeric(mongoType):
+	switch mongoType {
+	case "number":
 		sqlType = "numeric"
-	case mongoType == "bool":
+	case "int", "int32":
+		mongoType = "int"
+		sqlType = "int"
+	case "int64":
+		sqlType = "int64"
+	case "float32", "float64":
+		mongoType = "float64"
+		sqlType = "float64"
+	case "bson.Decimal128":
+		sqlType = "decimal128"
+	case "bool":
 		sqlType = "boolean"
-	case mongoType == "date":
+	case "date":
 		sqlType = "timestamp"
-	case mongoType == "geo.2darray":
+	case "geo.2darray":
 		sqlType = "numeric[]"
 	default:
 		sqlType = "varchar"

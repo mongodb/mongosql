@@ -23,11 +23,11 @@ schema:
     - name: a.c
       mongotype: int
       sqlname: a.c
-      sqltype: numeric
+      sqltype: int
     - name: a.c_idx
       mongotype: int
       sqlname: a.c_idx
-      sqltype: numeric
+      sqltype: int
   - table: arraysDuplicateNamesDifferentPaths_b_c
     collection: arraysDuplicateNamesDifferentPaths
     pipeline:
@@ -42,11 +42,11 @@ schema:
     - name: b.c
       mongotype: int
       sqlname: b.c
-      sqltype: numeric
+      sqltype: int
     - name: b.c_idx
       mongotype: int
       sqlname: b.c_idx
-      sqltype: numeric
+      sqltype: int
   - table: arraysDuplicateNamesDifferentPaths_d_e_h
     collection: arraysDuplicateNamesDifferentPaths
     pipeline:
@@ -61,11 +61,11 @@ schema:
     - name: d.e.h
       mongotype: int
       sqlname: d.e.h
-      sqltype: numeric
+      sqltype: int
     - name: d.e.h_idx
       mongotype: int
       sqlname: d.e.h_idx
-      sqltype: numeric
+      sqltype: int
   - table: arraysDuplicateNamesDifferentPaths_f_g_h
     collection: arraysDuplicateNamesDifferentPaths
     pipeline:
@@ -80,8 +80,8 @@ schema:
     - name: f.g.h
       mongotype: int
       sqlname: f.g.h
-      sqltype: numeric
+      sqltype: int
     - name: f.g.h_idx
       mongotype: int
       sqlname: f.g.h_idx
-      sqltype: numeric
+      sqltype: int

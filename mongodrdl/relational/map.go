@@ -285,11 +285,22 @@ func tryGetType(ctx *mappingContext, path string, tc *mongo.TypeContainer) (mTyp
 		}
 	}
 
-	// Either neither were an array, or the array's item type and the other top type
-	// are incompatible so we'll just return the first one.
-	logger.Logf(log.Info, `Type conflict for table "%s", column "%s": using type %q`, ctx.table.Name, path, types[0].Name())
-	mType = types[0]
+	if isNumeric(types[0]) && isNumeric(types[1]) {
+		mType = mongo.NewScalar("number")
+	} else {
+		// Either neither were an array, or the array's item type and the other top type
+		// are incompatible so we'll just return the first one.
+		logger.Logf(log.Info, `Type conflict for table "%s", column "%s": using type %q`, ctx.table.Name, path, types[0].Name())
+		mType = types[0]
+	}
 	return mType, true
+}
+
+func isNumeric(t mongo.Type) bool {
+	name := t.Name()
+	return strings.HasPrefix(name, "int") ||
+		strings.HasPrefix(name, "float") ||
+		name == "bson.Decimal128"
 }
 
 func tryGetTypeFromIndex(ctx *mappingContext, path string, types sortByDescendingCountTypeSlice) (mongo.Type, bool) {

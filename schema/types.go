@@ -56,6 +56,7 @@ const (
 	MongoInt                  = "int"
 	MongoInt64                = "int64"
 	MongoNone                 = ""
+	MongoNumber               = "number"
 	MongoObjectId             = "bson.ObjectId"
 	MongoString               = "string"
 	MongoUUID                 = "bson.UUID"

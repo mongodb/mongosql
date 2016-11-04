@@ -28,11 +28,11 @@ schema:
     - name: address.zip
       mongotype: int
       sqlname: address.zip
-      sqltype: numeric
+      sqltype: int
     - name: age
       mongotype: float64
       sqlname: age
-      sqltype: numeric
+      sqltype: float64
     - name: birthday
       mongotype: date
       sqlname: birthday
@@ -48,7 +48,7 @@ schema:
     - name: row
       mongotype: int
       sqlname: row
-      sqltype: numeric
+      sqltype: int
     - name: __MONGOQUERY
       mongotype: mongo.Filter
       sqlname: __MONGOQUERY
@@ -86,11 +86,11 @@ schema:
     - name: address.zip
       mongotype: int
       sqlname: address.zip
-      sqltype: numeric
+      sqltype: int
     - name: age
       mongotype: float64
       sqlname: age
-      sqltype: numeric
+      sqltype: float64
     - name: birthday
       mongotype: date
       sqlname: birthday
@@ -106,19 +106,19 @@ schema:
     - name: numbers
       mongotype: int
       sqlname: numbers
-      sqltype: numeric
+      sqltype: int
     - name: numbers_idx
       mongotype: int
       sqlname: numbers_idx
-      sqltype: numeric
+      sqltype: int
     - name: numbers_idx_1
       mongotype: int
       sqlname: numbers_idx_1
-      sqltype: numeric
+      sqltype: int
     - name: row
       mongotype: int
       sqlname: row
-      sqltype: numeric
+      sqltype: int
     - name: __MONGOQUERY
       mongotype: mongo.Filter
       sqlname: __MONGOQUERY

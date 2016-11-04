@@ -27,11 +27,11 @@ schema:
     - name: docs.c
       mongotype: int
       sqlname: docs.c
-      sqltype: numeric
+      sqltype: int
     - name: docs_idx
       mongotype: int
       sqlname: docs_idx
-      sqltype: numeric
+      sqltype: int
   - table: nestedArraysDocs_docs_d
     collection: nestedArraysDocs
     pipeline:
@@ -49,15 +49,15 @@ schema:
     - name: docs.d
       mongotype: int
       sqlname: docs.d
-      sqltype: numeric
+      sqltype: int
     - name: docs.d_idx
       mongotype: int
       sqlname: docs.d_idx
-      sqltype: numeric
+      sqltype: int
     - name: docs_idx
       mongotype: int
       sqlname: docs_idx
-      sqltype: numeric
+      sqltype: int
   - table: nestedArraysDocs_docs_sub
     collection: nestedArraysDocs
     pipeline:
@@ -93,16 +93,16 @@ schema:
     - name: docs.sub_idx
       mongotype: int
       sqlname: docs.sub_idx
-      sqltype: numeric
+      sqltype: int
     - name: docs.sub_idx_1
       mongotype: int
       sqlname: docs.sub_idx_1
-      sqltype: numeric
+      sqltype: int
     - name: docs.sub_idx_2
       mongotype: int
       sqlname: docs.sub_idx_2
-      sqltype: numeric
+      sqltype: int
     - name: docs_idx
       mongotype: int
       sqlname: docs_idx
-      sqltype: numeric
+      sqltype: int

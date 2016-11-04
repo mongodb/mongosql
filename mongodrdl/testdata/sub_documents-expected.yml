@@ -12,4 +12,4 @@ schema:
     - name: subdoc.math
       mongotype: float64
       sqlname: subdoc.math
-      sqltype: numeric
+      sqltype: float64

@@ -34,15 +34,15 @@ schema:
     - name: arrays
       mongotype: int
       sqlname: arrays
-      sqltype: numeric
+      sqltype: int
     - name: arrays_idx
       mongotype: int
       sqlname: arrays_idx
-      sqltype: numeric
+      sqltype: int
     - name: arrays_idx_1
       mongotype: int
       sqlname: arrays_idx_1
-      sqltype: numeric
+      sqltype: int
     - name: married
       mongotype: bool
       sqlname: married
@@ -69,7 +69,7 @@ schema:
     - name: children_idx
       mongotype: int
       sqlname: children_idx
-      sqltype: numeric
+      sqltype: int
     - name: married
       mongotype: bool
       sqlname: married

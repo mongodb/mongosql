@@ -836,6 +836,7 @@ func TestTypeMapping(t *testing.T) {
 		var num3 float32 = 1.0
 		var num4 float64 = 1000.34001
 		var num5 bson.Decimal128 = decimal128
+		var num6 int = 21
 
 		data := []byte{
 			0x08, 0x07, 0x06, 0x05,
@@ -843,15 +844,15 @@ func TestTypeMapping(t *testing.T) {
 			0x10, 0x0f, 0x0e, 0x0d,
 			0x0c, 0x0b, 0x0a, 0x09,
 		}
-
 		mongo.UUIDSubtype3Encoding = "java"
 		typeTests := [][]interface{}{
 			{"string", "varchar", "Hello, world"},
-			{"int32", "numeric", num1},
-			{"int64", "numeric", num2},
-			{"float32", "numeric", num3},
-			{"float64", "numeric", num4},
-			{"bson.Decimal128", "numeric", num5},
+			{"int", "int", num6},
+			{"int", "int", num1},
+			{"int64", "int64", num2},
+			{"float64", "float64", num3},
+			{"float64", "float64", num4},
+			{"bson.Decimal128", "decimal128", num5},
 			{"bool", "boolean", true},
 			{"date", "timestamp", time.Date(2015, 1, 1, 1, 1, 1, 1, time.UTC)},
 			{"[]uint8", "varchar", []byte{1, 2, 3, 4, 5}},
@@ -860,8 +861,8 @@ func TestTypeMapping(t *testing.T) {
 		}
 
 		for _, typeTest := range typeTests {
-			Convey(fmt.Sprintf("Should map %s to %s", typeTest[0].(string), typeTest[1].(string)), func() {
-				collection.IncludeSample(bson.D{{typeTest[0].(string), typeTest[2]}})
+			Convey(fmt.Sprintf("Should map %T to %s/%s", typeTest[2], typeTest[0], typeTest[1].(string)), func() {
+				collection.IncludeSample(bson.D{{"field", typeTest[2]}})
 
 				database := relational.NewDatabase("test")
 				database.Map(collection, noIndexes, true)
@@ -875,7 +876,7 @@ func TestTypeMapping(t *testing.T) {
 		}
 
 		Convey("Should use the majority type for a field", func() {
-			Convey("When the majority type is a scalar and the minority is a scalar", func() {
+			Convey("When the majority type is a scalar and the minority is a non-numeric scalar", func() {
 				collection.IncludeSample(bson.D{{"a", 1}})
 				collection.IncludeSample(bson.D{{"a", 2}})
 				collection.IncludeSample(bson.D{{"a", 3}})
@@ -890,6 +891,24 @@ func TestTypeMapping(t *testing.T) {
 				So(len(table.Columns), ShouldEqual, 1)
 				So(table.Columns[0].Name, ShouldEqual, "a")
 				So(table.Columns[0].MongoType, ShouldEqual, "int")
+				So(table.Columns[0].SqlType, ShouldEqual, "int")
+			})
+
+			Convey("When the majority type is a numeric scalar and the minority is a numeric scalar", func() {
+				collection.IncludeSample(bson.D{{"a", 1}})
+				collection.IncludeSample(bson.D{{"a", 2}})
+				collection.IncludeSample(bson.D{{"a", 3}})
+				collection.IncludeSample(bson.D{{"a", 3.5123}})
+				collection.IncludeSample(bson.D{{"a", 4}})
+				collection.IncludeSample(bson.D{{"a", 2.562}})
+
+				database := relational.NewDatabase("test")
+				database.Map(collection, noIndexes, true)
+
+				table := database.Tables[0]
+				So(len(table.Columns), ShouldEqual, 1)
+				So(table.Columns[0].Name, ShouldEqual, "a")
+				So(table.Columns[0].MongoType, ShouldEqual, "number")
 				So(table.Columns[0].SqlType, ShouldEqual, "numeric")
 			})
 
@@ -906,10 +925,10 @@ func TestTypeMapping(t *testing.T) {
 				So(len(table.Columns), ShouldEqual, 2)
 				So(table.Columns[0].Name, ShouldEqual, "a")
 				So(table.Columns[0].MongoType, ShouldEqual, "int")
-				So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[0].SqlType, ShouldEqual, "int")
 				So(table.Columns[1].Name, ShouldEqual, "a_idx")
 				So(table.Columns[1].MongoType, ShouldEqual, "int")
-				So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[1].SqlType, ShouldEqual, "int")
 			})
 
 			Convey("When the majority is a scalar and the minority is an array whose item type is incompatible", func() {
@@ -925,7 +944,7 @@ func TestTypeMapping(t *testing.T) {
 				So(len(table.Columns), ShouldEqual, 1)
 				So(table.Columns[0].Name, ShouldEqual, "a")
 				So(table.Columns[0].MongoType, ShouldEqual, "int")
-				So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[0].SqlType, ShouldEqual, "int")
 			})
 
 			Convey("When the majority is a scalar and the minority is an array whose item type is compatible", func() {
@@ -941,15 +960,15 @@ func TestTypeMapping(t *testing.T) {
 				So(len(table.Columns), ShouldEqual, 2)
 				So(table.Columns[0].Name, ShouldEqual, "a")
 				So(table.Columns[0].MongoType, ShouldEqual, "int")
-				So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[0].SqlType, ShouldEqual, "int")
 				So(table.Columns[1].Name, ShouldEqual, "a_idx")
 				So(table.Columns[1].MongoType, ShouldEqual, "int")
-				So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[1].SqlType, ShouldEqual, "int")
 			})
 		})
 
 		Convey("Should use the majority type for an array", func() {
-			Convey("When the majority type is a scalar and the minority is a scalar", func() {
+			Convey("When the majority type is a numeric scalar and the minority is a non-numeric scalar", func() {
 				collection.IncludeSample(bson.D{{"a", []interface{}{1, 2, 3, "string1"}}})
 				collection.IncludeSample(bson.D{{"a", []interface{}{"string2", "string3", 4}}})
 
@@ -960,10 +979,27 @@ func TestTypeMapping(t *testing.T) {
 				So(len(table.Columns), ShouldEqual, 2)
 				So(table.Columns[0].Name, ShouldEqual, "a")
 				So(table.Columns[0].MongoType, ShouldEqual, "int")
+				So(table.Columns[0].SqlType, ShouldEqual, "int")
+				So(table.Columns[1].Name, ShouldEqual, "a_idx")
+				So(table.Columns[1].MongoType, ShouldEqual, "int")
+				So(table.Columns[1].SqlType, ShouldEqual, "int")
+			})
+
+			Convey("When the majority type is a numeric scalar and the minority is a numeric scalar", func() {
+				collection.IncludeSample(bson.D{{"a", []interface{}{1, 2, 3, 515.2323}}})
+				collection.IncludeSample(bson.D{{"a", []interface{}{4232.32, 32.23, 4}}})
+
+				database := relational.NewDatabase("test")
+				database.Map(collection, noIndexes, true)
+
+				table := database.Tables[0]
+				So(len(table.Columns), ShouldEqual, 2)
+				So(table.Columns[0].Name, ShouldEqual, "a")
+				So(table.Columns[0].MongoType, ShouldEqual, "number")
 				So(table.Columns[0].SqlType, ShouldEqual, "numeric")
 				So(table.Columns[1].Name, ShouldEqual, "a_idx")
 				So(table.Columns[1].MongoType, ShouldEqual, "int")
-				So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[1].SqlType, ShouldEqual, "int")
 			})
 
 			Convey("When the majority is an array and the minority is incompatible", func() {
@@ -977,13 +1013,13 @@ func TestTypeMapping(t *testing.T) {
 				So(len(table.Columns), ShouldEqual, 3)
 				So(table.Columns[0].Name, ShouldEqual, "a")
 				So(table.Columns[0].MongoType, ShouldEqual, "int")
-				So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[0].SqlType, ShouldEqual, "int")
 				So(table.Columns[1].Name, ShouldEqual, "a_idx")
 				So(table.Columns[1].MongoType, ShouldEqual, "int")
-				So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[1].SqlType, ShouldEqual, "int")
 				So(table.Columns[2].Name, ShouldEqual, "a_idx_1")
 				So(table.Columns[2].MongoType, ShouldEqual, "int")
-				So(table.Columns[2].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[2].SqlType, ShouldEqual, "int")
 			})
 
 			Convey("When the majority is a scalar and the minority is an array whose item type is incompatible", func() {
@@ -1000,7 +1036,7 @@ func TestTypeMapping(t *testing.T) {
 				So(table.Columns[0].SqlType, ShouldEqual, "varchar")
 				So(table.Columns[1].Name, ShouldEqual, "a_idx")
 				So(table.Columns[1].MongoType, ShouldEqual, "int")
-				So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[1].SqlType, ShouldEqual, "int")
 			})
 
 			Convey("When the majority is a scalar and the minority is an array whose item type is compatible", func() {
@@ -1014,13 +1050,13 @@ func TestTypeMapping(t *testing.T) {
 				So(len(table.Columns), ShouldEqual, 3)
 				So(table.Columns[0].Name, ShouldEqual, "a")
 				So(table.Columns[0].MongoType, ShouldEqual, "int")
-				So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[0].SqlType, ShouldEqual, "int")
 				So(table.Columns[1].Name, ShouldEqual, "a_idx")
 				So(table.Columns[1].MongoType, ShouldEqual, "int")
-				So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[1].SqlType, ShouldEqual, "int")
 				So(table.Columns[2].Name, ShouldEqual, "a_idx_1")
 				So(table.Columns[2].MongoType, ShouldEqual, "int")
-				So(table.Columns[2].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[2].SqlType, ShouldEqual, "int")
 			})
 		})
 
@@ -1038,10 +1074,10 @@ func TestTypeMapping(t *testing.T) {
 				So(len(table.Columns), ShouldEqual, 2)
 				So(table.Columns[0].Name, ShouldEqual, "a")
 				So(table.Columns[0].MongoType, ShouldEqual, "int")
-				So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[0].SqlType, ShouldEqual, "int")
 				So(table.Columns[1].Name, ShouldEqual, "a_idx")
 				So(table.Columns[1].MongoType, ShouldEqual, "int")
-				So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[1].SqlType, ShouldEqual, "int")
 			})
 		})
 
@@ -1057,17 +1093,17 @@ func TestTypeMapping(t *testing.T) {
 				So(len(table.Columns), ShouldEqual, 3)
 				So(table.Columns[0].Name, ShouldEqual, "a")
 				So(table.Columns[0].MongoType, ShouldEqual, "int")
-				So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[0].SqlType, ShouldEqual, "int")
 				So(table.Columns[1].Name, ShouldEqual, "a_idx")
 				So(table.Columns[1].MongoType, ShouldEqual, "int")
-				So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[1].SqlType, ShouldEqual, "int")
 				So(table.Columns[2].Name, ShouldEqual, "a_idx_1")
 				So(table.Columns[2].MongoType, ShouldEqual, "int")
-				So(table.Columns[2].SqlType, ShouldEqual, "numeric")
+				So(table.Columns[2].SqlType, ShouldEqual, "int")
 			})
 		})
 
-		Convey("Should use the first type for a field when there is no majority of scalar types", func() {
+		Convey("Should use the first type for a field when there is no majority of scalar types and one is non-numeric", func() {
 			collection.IncludeSample(bson.D{{"a", 1}})
 			collection.IncludeSample(bson.D{{"a", "string1"}})
 			collection.IncludeSample(bson.D{{"a", 2}})
@@ -1083,6 +1119,25 @@ func TestTypeMapping(t *testing.T) {
 			So(len(table.Columns), ShouldEqual, 1)
 			So(table.Columns[0].Name, ShouldEqual, "a")
 			So(table.Columns[0].MongoType, ShouldEqual, "int") // we use a stable sort and int was first
+			So(table.Columns[0].SqlType, ShouldEqual, "int")
+		})
+
+		Convey("Should use the first type for a field when there is no majority of scalar types and both are numeric", func() {
+			collection.IncludeSample(bson.D{{"a", 1}})
+			collection.IncludeSample(bson.D{{"a", 32.23}})
+			collection.IncludeSample(bson.D{{"a", 2}})
+			collection.IncludeSample(bson.D{{"a", 42.23}})
+			collection.IncludeSample(bson.D{{"a", 235.52}})
+			collection.IncludeSample(bson.D{{"a", 3}})
+
+			database := relational.NewDatabase("test")
+			err := database.Map(collection, noIndexes, true)
+			So(err, ShouldBeNil)
+
+			table := database.Tables[0]
+			So(len(table.Columns), ShouldEqual, 1)
+			So(table.Columns[0].Name, ShouldEqual, "a")
+			So(table.Columns[0].MongoType, ShouldEqual, "number")
 			So(table.Columns[0].SqlType, ShouldEqual, "numeric")
 		})
 
@@ -1098,10 +1153,10 @@ func TestTypeMapping(t *testing.T) {
 			So(len(table.Columns), ShouldEqual, 2)
 			So(table.Columns[0].Name, ShouldEqual, "a")
 			So(table.Columns[0].MongoType, ShouldEqual, "int") // we use a stable sort and int was first
-			So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+			So(table.Columns[0].SqlType, ShouldEqual, "int")
 			So(table.Columns[1].Name, ShouldEqual, "a_idx")
 			So(table.Columns[1].MongoType, ShouldEqual, "int")
-			So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+			So(table.Columns[1].SqlType, ShouldEqual, "int")
 		})
 
 		Convey("Should not include a field when it has no types", func() {
@@ -1115,7 +1170,7 @@ func TestTypeMapping(t *testing.T) {
 			So(len(table.Columns), ShouldEqual, 1)
 			So(table.Columns[0].Name, ShouldEqual, "a")
 			So(table.Columns[0].MongoType, ShouldEqual, "int")
-			So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+			So(table.Columns[0].SqlType, ShouldEqual, "int")
 		})
 
 		Convey("Should not include an array when it has no types", func() {
@@ -1129,7 +1184,7 @@ func TestTypeMapping(t *testing.T) {
 			So(len(table.Columns), ShouldEqual, 1)
 			So(table.Columns[0].Name, ShouldEqual, "a")
 			So(table.Columns[0].MongoType, ShouldEqual, "int")
-			So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+			So(table.Columns[0].SqlType, ShouldEqual, "int")
 		})
 
 		Convey("When indexes are present", func() {
@@ -1193,7 +1248,7 @@ func TestTypeMapping(t *testing.T) {
 					So(table.Columns[0].SqlType, ShouldEqual, "numeric[]")
 					So(table.Columns[1].Name, ShouldEqual, "b_idx")
 					So(table.Columns[1].MongoType, ShouldEqual, "int")
-					So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+					So(table.Columns[1].SqlType, ShouldEqual, "int")
 				})
 
 				Convey("Should map with a document sample", func() {
@@ -1207,10 +1262,10 @@ func TestTypeMapping(t *testing.T) {
 					So(len(table.Columns), ShouldEqual, 2)
 					So(table.Columns[0].Name, ShouldEqual, "a.x")
 					So(table.Columns[0].MongoType, ShouldEqual, "int")
-					So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+					So(table.Columns[0].SqlType, ShouldEqual, "int")
 					So(table.Columns[1].Name, ShouldEqual, "a.y")
 					So(table.Columns[1].MongoType, ShouldEqual, "int")
-					So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+					So(table.Columns[1].SqlType, ShouldEqual, "int")
 				})
 
 				Convey("Should fallback to majority type with a non-document/non-array sample", func() {
@@ -1224,7 +1279,7 @@ func TestTypeMapping(t *testing.T) {
 					So(len(table.Columns), ShouldEqual, 1)
 					So(table.Columns[0].Name, ShouldEqual, "a")
 					So(table.Columns[0].MongoType, ShouldEqual, "int")
-					So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+					So(table.Columns[0].SqlType, ShouldEqual, "int")
 				})
 			})
 
@@ -1306,7 +1361,7 @@ func TestTypeMapping(t *testing.T) {
 					So(len(table.Columns), ShouldEqual, 1)
 					So(table.Columns[0].Name, ShouldEqual, "a")
 					So(table.Columns[0].MongoType, ShouldEqual, "int")
-					So(table.Columns[0].SqlType, ShouldEqual, "numeric")
+					So(table.Columns[0].SqlType, ShouldEqual, "int")
 				})
 
 				Convey("Should map the array form in a nested document", func() {
@@ -1351,7 +1406,7 @@ func TestTypeMapping(t *testing.T) {
 					So(table.Columns[0].SqlType, ShouldEqual, "numeric[]")
 					So(table.Columns[1].Name, ShouldEqual, "b_idx")
 					So(table.Columns[1].MongoType, ShouldEqual, "int")
-					So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+					So(table.Columns[1].SqlType, ShouldEqual, "int")
 				})
 
 				Convey("Should map the geoJson form in an array", func() {
@@ -1368,7 +1423,7 @@ func TestTypeMapping(t *testing.T) {
 					So(table.Columns[0].SqlType, ShouldEqual, "numeric[]")
 					So(table.Columns[1].Name, ShouldEqual, "b_idx")
 					So(table.Columns[1].MongoType, ShouldEqual, "int")
-					So(table.Columns[1].SqlType, ShouldEqual, "numeric")
+					So(table.Columns[1].SqlType, ShouldEqual, "int")
 				})
 			})
 		})

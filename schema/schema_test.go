@@ -42,6 +42,10 @@ schema:
         Name: b
         MongoType: int
         SqlType: int
+     -
+        Name: c
+        MongoType: number
+        SqlType: numeric
      pipeline:
      - $unwind : "$x"
      - $sort: { a: 1, b: 1, c: -1 }
