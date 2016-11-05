@@ -158,16 +158,16 @@ func (s *Server) killQuery(connID uint32) error {
 }
 
 func (s *Server) removeConnection(c *conn) {
-	activeConnections := len(s.activeConnections)
-	pluralized := util.Pluralize(activeConnections-1, "connection", "connections")
-	c.logger.Logf(log.Always, "end connection %v (%v %v now open)", c.conn.RemoteAddr(), activeConnections-1, pluralized)
 	s.activeConnectionsMx.Lock()
 	delete(s.activeConnections, c.ConnectionId())
 	if atomic.LoadInt32(&s.closed) == 1 && len(s.activeConnections) == 0 {
 		s.terminated = true
 		close(s.terminateChan)
 	}
+	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()
+	pluralized := util.Pluralize(activeConnections, "connection", "connections")
+	c.logger.Logf(log.Always, "end connection %v (%v %v now open)", c.conn.RemoteAddr(), activeConnections, pluralized)
 }
 
 func (s *Server) serveConnection(c net.Conn) {
