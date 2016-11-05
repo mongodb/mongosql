@@ -1812,6 +1812,10 @@ keyword_as_func:
   {
     $$ = INSERT_BYTES
   }
+| CHAR
+  {
+    $$ = CHAR_BYTES
+  }
 
 unary_operator:
   PLUS

@@ -856,6 +856,20 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: CHAR", func() {
+				tests := []test{
+					test{"CHAR(NULL)", SQLVarchar("")},
+					test{"CHAR(77,121,83,81,'76')", SQLVarchar("MySQL")},
+					test{"CHAR(77,121,NULL, 83, NULL, 81,'76')", SQLVarchar("MySQL")},
+					test{"CHAR(256)", SQLVarchar(string([]byte{1, 0}))},
+					test{"CHAR(512)", SQLVarchar(string([]byte{2, 0}))},
+					test{"CHAR(513)", SQLVarchar(string([]byte{2, 1}))},
+					test{"CHAR(256, 512)", SQLVarchar(string([]byte{1, 0, 2, 0}))},
+					test{"CHAR(65537)", SQLVarchar(string([]byte{1, 0, 1}))},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: CHAR_LENGTH", func() {
 				tests := []test{
 					test{"CHAR_LENGTH(NULL)", SQLNull},

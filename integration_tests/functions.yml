@@ -362,6 +362,16 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select char(a + 50, 65) from bar"
+  expected_names: ["char(a+50, 65)"]
+  expected_types: [varchar]
+  expected:
+  - ["3A"]
+  - ["A"]
+  - ["/A"]
+  - ["6A"]
+  - ["A"]
+
 - sql: "select char_length(b) from bar"
   expected_names: ["char_length(b)"]
   expected_types: [int]

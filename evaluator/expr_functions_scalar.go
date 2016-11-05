@@ -60,6 +60,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"cast":              &castFunc{},
 	"ceil":              singleArgFloatMathFunc(math.Ceil),
 	"ceiling":           singleArgFloatMathFunc(math.Ceil),
+	"char":              &charFunc{},
 	"char_length":       &characterLengthFunc{},
 	"character_length":  &characterLengthFunc{},
 	"coalesce":          &coalesceFunc{},
@@ -467,6 +468,45 @@ func (_ *castFunc) Type() schema.SQLType {
 
 func (_ *castFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
+}
+
+type charFunc struct{}
+
+func (_ *charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+
+	var bytes []byte
+	for _, i := range values {
+		if i == SQLNull {
+			continue
+		}
+		v := i.Int64()
+		if v >= 256 {
+			var temp []byte
+			num := v / 255
+			v = v % 256
+			for num >= 256 {
+				temp = append(temp, 0)
+				num /= 255
+			}
+			bytes = append(bytes, uint8(num))
+			bytes = append(bytes, temp...)
+		}
+		bytes = append(bytes, uint8(v))
+	}
+
+	return SQLVarchar(string(bytes)), nil
+}
+
+func (_ *charFunc) Type() schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *charFunc) Validate(exprCount int) error {
+	if exprCount == 0 {
+		return ErrIncorrectCount
+	}
+
+	return nil
 }
 
 type characterLengthFunc struct{}
