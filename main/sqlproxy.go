@@ -3,7 +3,6 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -184,11 +183,7 @@ func main() {
 
 	defer func() {
 		if opts.NoUnixSocket == nil || (opts.NoUnixSocket != nil && !*opts.NoUnixSocket) {
-			_, port, err := net.SplitHostPort(opts.Addr)
-			if err != nil {
-				port = server.DefaultServerPort
-			}
-			os.Remove(fmt.Sprintf("%s/mongosqld-%s.sock", *opts.UnixSocketPrefix, port))
+			os.Remove(fmt.Sprintf("%s/mysql.sock", *opts.UnixSocketPrefix))
 		}
 	}()
 

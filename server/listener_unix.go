@@ -21,13 +21,7 @@ func (s *Server) populateListeners() error {
 	s.listeners = append(s.listeners, listener)
 
 	if s.opts.NoUnixSocket == nil || (s.opts.NoUnixSocket != nil && !*s.opts.NoUnixSocket) {
-		_, port, err := net.SplitHostPort(s.opts.Addr)
-		if err != nil {
-			port = DefaultServerPort
-		}
-
-		socketName := fmt.Sprintf("mongosqld-%s.sock", port)
-		socket := fmt.Sprintf("%s/%s", *s.opts.UnixSocketPrefix, socketName)
+		socket := fmt.Sprintf("%s/%s", *s.opts.UnixSocketPrefix, "mysql.sock")
 		s.variables.Socket = socket
 
 		permissions, err := strconv.ParseInt(*s.opts.FilePermissions, 8, 64)
