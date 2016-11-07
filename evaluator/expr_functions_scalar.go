@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
@@ -146,6 +147,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"timestampadd":      &timestampAddFunc{},
 	"timestampdiff":     &timestampDiffFunc{},
 	"time_to_sec":       &timeToSecFunc{},
+	"to_days":           &toDaysFunc{},
 	"trim":              &trimFunc{},
 	"truncate":          &truncateFunc{},
 	"ucase":             &ucaseFunc{},
@@ -1313,17 +1315,40 @@ func (_ *fromDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		return SQLNull, nil
 	}
 
-	value := values[0].Float64()
+	parseNumeric := func(s string) string {
+		f := func(r rune) bool {
+			return !unicode.IsNumber(r) &&
+				(r != 46 /* unicode '.' */)
+		}
+		n := strings.FieldsFunc(s, f)
+		if len(n) > 0 {
+			return n[0]
+		}
+		return ""
+	}
 
-	if value <= 365.5 || value >= 3652499.5 {
+	v := values[0].String()
+	neg := len(v) > 0 && v[0] == '-'
+	if neg {
+		v = v[1:]
+	}
+	value, err := strconv.ParseFloat(parseNumeric(v), 64)
+	if err != nil {
+		return SQLVarchar("0000-00-00"), nil
+	}
+	if neg {
+		value = -value
+	}
+
+	if value <= 365.5 || value >= 3652499.5 || value <= 0 {
 		// Go's zero time starts January 1, year 1, 00:00:00 UTC
 		// and thus can not represent the date "0000-00-00". To
 		// handle this, we return a varchar instead
 		return SQLVarchar("0000-00-00"), nil
 	}
 
-	abs := math.Abs(value - 366)
-	target, maxGoDurationHours := int64(math.Ceil(abs)), int64(106751)
+	abs, maxGoDurationHours := math.Abs(value-366), int64(106751)
+	target := int64(math.Floor(abs + .5))
 
 	// edge cases
 	if math.Ceil(abs) == 1 {
@@ -2518,8 +2543,7 @@ func (_ *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	}
 
 	fmtFrac := func(buf []byte, v uint64, prec int) (nw int, nv uint64) {
-		w := len(buf)
-		print := false
+		w, print := len(buf), false
 		for i := 0; i < prec; i++ {
 			digit := v % 10
 			print = print || digit != 0
@@ -2530,12 +2554,15 @@ func (_ *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 			v /= 10
 		}
 
-		for len(buf)-w < 6 {
+		if w != len(buf) {
+			for len(buf)-w < 6 {
+				w--
+				buf[w] = '0'
+			}
 			w--
-			buf[w] = '0'
+			buf[w] = '.'
 		}
-		w--
-		buf[w] = '.'
+
 		return w, v
 	}
 
@@ -2579,8 +2606,19 @@ func (_ *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		w = fmtInt(buf[:w], u)
 		w = fmtDef(buf[:w], 0)
 	} else {
+		p := len(buf[:w])
 		w, u = fmtFrac(buf[:w], u, 9)
-
+		// add fractional zeroes if
+		// seconds is non-zero
+		if u%60 != 0 && p == w {
+			i := 0
+			for i < 6 {
+				w--
+				buf[w], i = '0', i+1
+			}
+			w--
+			buf[w] = '.'
+		}
 		// u is now integer seconds
 		w = fmtInt(buf[:w], u%60)
 		u /= 60
@@ -2963,6 +3001,49 @@ func (_ *trimFunc) Type() schema.SQLType {
 
 func (_ *trimFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 3)
+}
+
+type toDaysFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-days
+func (_ *toDaysFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	date, ok := parseDateTime(values[0].String())
+	if !ok {
+		return SQLNull, nil
+	}
+
+	start, _ := time.ParseInLocation(shortTimeFormat, "0000-01-01", schema.DefaultLocale)
+	target, maxGoDurationHours := 1.0, int64(2562024)
+	date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+	for date.Sub(start).Hours() > 24 {
+		for date.Sub(start).Hours() > float64(maxGoDurationHours) {
+			date = date.Add(time.Duration(-maxGoDurationHours) * time.Hour)
+			target += float64(106751)
+		}
+		date, target = date.AddDate(0, 0, -1), target+1
+	}
+
+	return SQLFloat(target), nil
+}
+
+func (_ *toDaysFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *toDaysFunc) Type() schema.SQLType {
+	return schema.SQLFloat
+}
+
+func (_ *toDaysFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
 }
 
 type truncateFunc struct{}
@@ -3492,17 +3573,6 @@ func parseDuration(v SQLValue) (time.Duration, bool) {
 	h, m, s, i := 0, 0, 0, 0
 	hours, mins, secs, frac := []byte{}, []byte{}, []byte{}, []byte{}
 
-	emitToken := func(buf []byte, v byte) int {
-		w, l := 0, len(buf)-1
-		for w < l {
-			if buf[w] == v {
-				break
-			}
-			w++
-		}
-		return w
-	}
-
 	emitFrac := func(buf []byte) int {
 		i := bytes.IndexByte(buf, '.')
 		if i != -1 && len(frac) == 0 {
@@ -3517,6 +3587,46 @@ func parseDuration(v SQLValue) (time.Duration, bool) {
 			frac = buf[i+1 : i+x+1]
 		}
 		return i
+	}
+
+	emitToken := func(buf []byte, v byte) int {
+		w, l := 0, len(buf)-1
+		for w < l {
+			if buf[w] == v {
+				break
+			}
+			w++
+		}
+		return w
+	}
+
+	fmtNumeric := func(buf []byte) []byte {
+		x, l, w := -1, len(buf), len(buf)
+		i := bytes.IndexByte(buf, '.')
+		tmp := make([]byte, w+2)
+		if i != -1 {
+			w = i + 2
+			copy(tmp[w:], buf[i:])
+		} else {
+			i, w = l, l+2
+		}
+
+		for w > 0 && i > 0 {
+			w, x, i = w-1, x+1, i-1
+			if x%2 == 0 && x > 0 {
+				tmp[w], w = ':', w-1
+			}
+			tmp[w] = buf[i]
+			if x == 4 {
+				break
+			}
+		}
+
+		return append(buf[:i], tmp[w:]...)
+	}
+
+	if bytes.IndexByte(buf, ':') == -1 {
+		buf = fmtNumeric(buf)
 	}
 
 	h = emitToken(buf, ':')

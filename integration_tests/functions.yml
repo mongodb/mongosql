@@ -81,16 +81,6 @@ testcases:
   expected:
   - [0]
 
-- sql: "select from_days(c*6363) from bar"
-  expected_names: ["from_days(c*6363)"]
-  expected_types: [varchar]
-  expected:
-  - ["0025-05-14"]
-  - ["0000-00-00"]
-  - ["0988-05-20"]
-  - [~]
-  - [~]
-
 - sql: "select max(a) from bar"
   expected_names: ["max(a)"]
   expected_types: [int]
@@ -795,6 +785,16 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select from_days(c*6363) from bar"
+  expected_names: ["from_days(c*6363)"]
+  expected_types: [varchar]
+  expected:
+  - ["0025-05-14"]
+  - ["0000-00-00"]
+  - ["0988-05-20"]
+  - [~]
+  - [~]
+
 # - sql: "select hour(d) from bar"
 #   expected_names: ["hour(d)"]
 #   expected_types: [int]
@@ -1485,6 +1485,36 @@ testcases:
   - [31675]
   - [31592]
   - [31690]
+  - [~]
+  - [~]
+
+- sql: "select timediff(d, '2000-09-22 00:00:00') from bar"
+  expected_names: ["timediff(d, '2000-09-22 00:00:00')"]
+  expected_types: [varchar]
+  expected:
+  - ["37:45:00"]
+  - ["61:45:00"]
+  - ["781:45:00"]
+  - [~]
+  - [~]
+
+- sql: "select timestamp(d, '12:15:18') as a, timestamp(d, '140928') as b from bar"
+  expected_names: ["a", "b"]
+  expected_types: [varchar, varchar]
+  expected:
+  - ["2000-09-24 02:00:18", "2000-09-24 03:54:28"]
+  - ["2000-09-25 02:00:18", "2000-09-25 03:54:28"]
+  - ["2000-10-25 02:00:18", "2000-10-25 03:54:28"]
+  - [~, ~]
+  - [~, ~]
+
+- sql: "select to_days(d) from bar"
+  expected_names: ["to_days(d)"]
+  expected_types: [float64]
+  expected:
+  - [730751]
+  - [730752]
+  - [730782]
   - [~]
   - [~]
 

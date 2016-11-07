@@ -102,8 +102,7 @@ var (
 %token <empty> LPAREN RPAREN LBRACE RBRACE TILDE
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND EXTRACT DATE_ADD ADDDATE
-%token <empty> DATE_SUB INTERVAL STR_TO_DATE SUBDATE
-%token <empty> FROM_DAYS TO_DAYS
+%token <empty> DATE_SUB INTERVAL SUBDATE
 %token <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
 %token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
 %token <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND
@@ -1444,21 +1443,9 @@ expr:
   {
     $$ = &FuncExpr{Name: []byte("utc_timestamp")}
   }
-| FROM_DAYS LPAREN select_expression RPAREN
+| TIMESTAMP LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("from_days"), Exprs: append(SelectExprs{$3})}
-  }
-| TO_DAYS LPAREN select_expression RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("to_days"), Exprs: append(SelectExprs{$3})}
-  }
-| TIMESTAMP LPAREN select_expression RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("timestamp"), Exprs: append(SelectExprs{$3})}
-  }
-| TIMESTAMP LPAREN select_expression COMMA select_expression RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("timestamp"), Exprs: append(SelectExprs{$3, $5})}
+    $$ = &FuncExpr{Name: []byte("timestamp"), Exprs: $3}
   }
 | TIMESTAMPADD LPAREN time_interval COMMA select_expression_list RPAREN
   {
@@ -1559,10 +1546,6 @@ expr:
 | DATE_SUB LPAREN select_expression COMMA INTERVAL select_expression sql_time_interval RPAREN
   {
     $$ = &FuncExpr{Name: []byte("date_sub"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
-  }
-| STR_TO_DATE LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("str_to_date"), Exprs: $3}
   }
 | TRIM LPAREN select_expression RPAREN 
   {

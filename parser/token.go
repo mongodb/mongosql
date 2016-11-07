@@ -203,9 +203,6 @@ var keywords = map[string]int{
 	"date_add":           DATE_ADD,
 	"date_sub":           DATE_SUB,
 	"subdate":            SUBDATE,
-	"from_days":          FROM_DAYS,
-	"to_days":            TO_DAYS,
-	"str_to_date":        STR_TO_DATE,
 
 	// special tokens for functions
 	"both":     BOTH,

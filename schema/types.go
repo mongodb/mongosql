@@ -27,6 +27,8 @@ var (
 	// for constructing a SQL timestamp.
 	TimestampCtorFormats = []string{
 		"15:4:5",
+		"060102",
+		"06-01-02",
 		"2006-1-2",
 		"2006-1-2 15",
 		"2006-1-2 15:4",

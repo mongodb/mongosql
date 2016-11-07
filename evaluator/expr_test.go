@@ -1112,11 +1112,6 @@ func TestEvaluates(t *testing.T) {
 					test{"DATE_FORMAT('1989-05-14 01:03:01.232335','%a|%b|%c|%D|%d|%e|%f|%H|%h|%I|%i|%j|%k|%l|%M|%m|%p|%r|%S|%s|%T|%U|%u|%V|%v|%W|%w|%X|%x|%Y|%y|%%|%x')", SQLVarchar("Sun|May|5|14th|14|14|232335|01|01|01|03|134|1|1|May|05|AM|01:03:01 AM|01|01|01:03:01|20|19|20|19|Sunday|0|1989|1989|1989|89|%|1989")},
 					test{"DATE_FORMAT('1900-10-04 22:23:00', '%a|%b|%c|%D|%d|%e|%f|%H|%h|%I|%i|%j|%k|%l|%M|%m|%p|%r|%S|%s|%T|%U|%u|%V|%v|%W|%w|%X|%x|%Y|%y|%%|%x')", SQLVarchar("Thu|Oct|10|4th|04|4|000000|22|10|10|23|277|22|10|October|10|PM|10:23:00 PM|00|00|22:23:00|39|40|39|40|Thursday|4|1900|1900|1900|00|%|1900")},
 					test{"DATE_FORMAT('1983-07-05 23:22', '%a|%b|%c|%D|%d|%e|%f|%H|%h|%I|%i|%j|%k|%l|%M|%m|%p|%r|%S|%s|%T|%U|%u|%V|%v|%W|%w|%X|%x|%Y|%y|%%|%x')", SQLVarchar("Tue|Jul|7|5th|05|5|000000|23|11|11|22|186|23|11|July|07|PM|11:22:00 PM|00|00|23:22:00|27|27|27|27|Tuesday|2|1983|1983|1983|83|%|1983")},
-					// TODO: unsupported cases involving zero days, months, years
-					// test{"DATE_FORMAT('2006-06-00', '%d')", SQLVarchar("00")},
-					// test{"DATE_FORMAT('2000-00-00', '%m')", SQLVarchar("00")},
-					// test{"DATE_FORMAT('2000-00-00', '%M')", SQLNull},
-					// test{"DATE_FORMAT('0000-00-00', '%Y')", SQLNull},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1269,6 +1264,8 @@ func TestEvaluates(t *testing.T) {
 				t1 := time.Date(0001, 1, 1, 0, 0, 0, 0, schema.DefaultLocale)
 				t2 := time.Date(2000, 7, 3, 0, 0, 0, 0, schema.DefaultLocale)
 				t3 := time.Date(10000, 3, 15, 0, 0, 0, 0, schema.DefaultLocale)
+				t4 := time.Date(0005, 6, 29, 0, 0, 0, 0, schema.DefaultLocale)
+				t5 := time.Date(2112, 1, 8, 0, 0, 0, 0, schema.DefaultLocale)
 
 				tests := []test{
 					test{"FROM_DAYS(NULL)", SQLNull},
@@ -1279,12 +1276,13 @@ func TestEvaluates(t *testing.T) {
 					test{"FROM_DAYS(223.33)", SQLVarchar("0000-00-00")},
 					test{"FROM_DAYS(365.33)", SQLVarchar("0000-00-00")},
 					test{"FROM_DAYS(3652499.5)", SQLVarchar("0000-00-00")},
+					test{"FROM_DAYS(-771399.216)", SQLVarchar("0000-00-00")},
 					test{"FROM_DAYS(365.93)", SQLDate{t1}},
 					test{"FROM_DAYS(343+23)", SQLDate{t1}},
 					test{"FROM_DAYS(730669)", SQLDate{t2}},
 					test{"FROM_DAYS(3652499.3)", SQLDate{t3}},
-
-					// TODO: unsupported FROM_DAYS('2006-05-11')
+					test{"FROM_DAYS('2006-05-11')", SQLDate{t4}},
+					test{"FROM_DAYS(771399.216)", SQLDate{t5}},
 				}
 
 				runTests(evalCtx, tests)
@@ -1836,8 +1834,7 @@ func TestEvaluates(t *testing.T) {
 					test{"TIME_TO_SEC(534422333)", SQLNull},
 					test{"TIME_TO_SEC(539911)", SQLNull},
 					test{"TIME_TO_SEC(8991111)", SQLNull},
-
-					// TODO: unsupported TIME_TO_SEC('-5359:11')
+					test{"TIME_TO_SEC('-5359:11')", SQLFloat(-3020399)},
 				}
 
 				runTests(evalCtx, tests)
@@ -1871,6 +1868,8 @@ func TestEvaluates(t *testing.T) {
 				So(err, ShouldBeNil)
 				t6, err := time.Parse("2006-01-02 15:04:05", "2003-12-31 12:23:23")
 				So(err, ShouldBeNil)
+				t7, err := time.Parse("2006-01-02 15:04:05", "2010-01-01 12:33:23")
+				So(err, ShouldBeNil)
 
 				tests := []test{
 					test{"TIMESTAMP(NULL)", SQLNull},
@@ -1884,8 +1883,8 @@ func TestEvaluates(t *testing.T) {
 					test{"TIMESTAMP('2003-12-31')", SQLTimestamp{Time: t4}},
 					test{"TIMESTAMP('2003-12-31 12:00:00', '12.3:10:30')", SQLTimestamp{Time: t5}},
 					test{"TIMESTAMP('2003-12-31 12:23:23')", SQLTimestamp{Time: t6}},
-
-					// TODO: unsupported TIMESTAMP('2010-01-01 11:11:11', '12212')
+					test{"TIMESTAMP('2010-01-01 11:11:11', '12212')", SQLTimestamp{Time: t7}},
+					test{"TIMESTAMP('2010-01-01 11:11:11', 12212)", SQLTimestamp{Time: t7}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1972,6 +1971,30 @@ func TestEvaluates(t *testing.T) {
 					test{"TIMESTAMPDIFF(SQL_TSI_MINUTE, TIMESTAMP '2002-01-01 12:30:09', DATE '2002-01-02')", SQLInt(689)},
 					test{"TIMESTAMPDIFF(SQL_TSI_SECOND, TIMESTAMP '2002-01-01 12:30:09', TIMESTAMP '2002-01-02 14:40:33')", SQLInt(94224)},
 				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: TO_DAYS", func() {
+				tests := []test{
+					test{"TO_DAYS(NULL)", SQLNull},
+					test{"TO_DAYS('')", SQLNull},
+					test{"TO_DAYS('0000-00-00')", SQLNull},
+					test{"TO_DAYS('0000-01-01')", SQLFloat(1)},
+					test{"TO_DAYS('0000-11-11')", SQLFloat(315)},
+					test{"TO_DAYS('00-11-11')", SQLFloat(730800)},
+					test{"TO_DAYS('950501')", SQLFloat(728779)},
+					test{"TO_DAYS(950501)", SQLFloat(728779)},
+					test{"TO_DAYS('1995-05-01')", SQLFloat(728779)},
+					test{"TO_DAYS('2007-10-07')", SQLFloat(733321)},
+					test{"TO_DAYS(881111)", SQLFloat(726417)},
+					test{"TO_DAYS('2006-01-02')", SQLFloat(732678)},
+					test{"TO_DAYS('1452-04-15')", SQLFloat(530437)},
+					test{"TO_DAYS('4222-12-12')", SQLFloat(1542399)},
+					test{"TO_DAYS('2000-09-23 13:45:00')", SQLFloat(730751)},
+					test{"TO_DAYS('2000-09-24 13:45:00')", SQLFloat(730752)},
+					test{"TO_DAYS('2000-10-24 13:45:00')", SQLFloat(730782)},
+				}
+
 				runTests(evalCtx, tests)
 			})
 
