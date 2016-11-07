@@ -1376,6 +1376,8 @@ func TestAlgebrizeSelect(t *testing.T) {
 			testError("select a from foo, foo", `ERROR 1066 (42000): Not unique table/alias: 'foo'`)
 			testError("select a from foo as bar, bar", `ERROR 1066 (42000): Not unique table/alias: 'bar'`)
 			testError("select a from foo as g, foo as g", `ERROR 1066 (42000): Not unique table/alias: 'g'`)
+
+			testError("select a from foo left outer join bar where a = 10", `ERROR 1064 (42000): A left join requires criteria`)
 		})
 	})
 }

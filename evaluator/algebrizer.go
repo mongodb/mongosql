@@ -682,9 +682,12 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 			if err != nil {
 				return nil, err
 			}
+		} else if typedT.Join == parser.AST_LEFT_JOIN || typedT.Join == parser.AST_RIGHT_JOIN {
+			return nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "A %s requires criteria", typedT.Join)
 		} else {
 			predicate = SQLTrue
 		}
+
 		return NewJoinStage(JoinKind(typedT.Join), left, right, predicate, []SQLExpr{}), nil
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, parser.String(tableExpr))
