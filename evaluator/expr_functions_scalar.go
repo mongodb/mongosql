@@ -832,18 +832,12 @@ type dateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_date
 func (_ *dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if _, ok := values[0].(SQLDate); !ok {
-		if _, ok := values[0].(SQLTimestamp); !ok {
-			return SQLNull, nil
-		}
-	}
-
-	t, ok := parseDateTime((values[0].String())[:10])
+	t, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
 
-	return SQLDate{Time: t}, nil
+	return SQLDate{Time: t.Truncate(24 * time.Hour)}, nil
 }
 
 func (_ *dateFunc) Type() schema.SQLType {

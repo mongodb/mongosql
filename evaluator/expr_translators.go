@@ -1029,7 +1029,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 	// SQL builtin types
 
 	case SQLDate:
-		return bson.M{"$literal": typedE.Time.Format(schema.DateFormat)}, true
+		return typedE.Time, true
 
 	case SQLUint64:
 		val, ok := t.getValue(typedE)
@@ -1060,11 +1060,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return mgoNullLiteral, true
 
 	case SQLTimestamp:
-		return bson.M{"$literal": typedE.Time.Format(schema.TimestampFormat)}, true
-
-		/*
-			TODO: implement these
-			case *SQLUnaryTildeExpr:*/
+		return typedE.Time, true
 
 	case *SQLCaseExpr:
 		elseValue, ok := t.TranslateExpr(typedE.elseValue)

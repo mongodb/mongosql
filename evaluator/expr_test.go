@@ -3093,10 +3093,8 @@ func TestTranslateExpr(t *testing.T) {
 		}
 	}
 
-	fakeTime := time.Now()
-
 	Convey("Subject: TranslateExpr with SQLValue", t, func() {
-
+		t, _ := time.Parse("2006 Jan 02 15:04:05", "2012 Dec 07 12:15:30.918273645")
 		sqlValueTests := []sqlValueTest{
 			sqlValueTest{SQLTrue, `{"$literal":true}`},
 			sqlValueTest{SQLFalse, `{"$literal":false}`},
@@ -3105,8 +3103,8 @@ func TestTranslateExpr(t *testing.T) {
 			sqlValueTest{SQLUint32(32), `{"$literal":32}`},
 			sqlValueTest{SQLVarchar("vc"), `{"$literal":"vc"}`},
 			sqlValueTest{SQLNull, `{"$literal":null}`},
-			sqlValueTest{SQLDate{fakeTime}, fmt.Sprintf(`{"$literal":"%v"}`, fakeTime.Format(schema.DateFormat))},
-			sqlValueTest{SQLTimestamp{fakeTime}, fmt.Sprintf(`{"$literal":"%v"}`, fakeTime.Format(schema.TimestampFormat))},
+			sqlValueTest{SQLDate{t}, `"2012-12-07T12:15:30.918273645Z"`},
+			sqlValueTest{SQLTimestamp{t}, `"2012-12-07T12:15:30.918273645Z"`},
 		}
 
 		runSQLValueTests(sqlValueTests)
