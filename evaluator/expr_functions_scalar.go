@@ -2880,9 +2880,14 @@ func (_ *timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 		return SQLNull, nil
 	}
 
+	dateParts := strings.Split(values[0].String(), " ")
+	hasDatePart := len(dateParts) == 2
 	components := strings.Split(values[0].String(), ":")
-	result := 0.0
-	componentized := true
+	if hasDatePart {
+		components = strings.Split(dateParts[1], ":")
+	}
+
+	result, componentized := 0.0, true
 
 	if len(components) == 1 {
 		cmp, err := strconv.ParseFloat(components[0], 64)

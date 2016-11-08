@@ -1835,6 +1835,8 @@ func TestEvaluates(t *testing.T) {
 					test{"TIME_TO_SEC(539911)", SQLNull},
 					test{"TIME_TO_SEC(8991111)", SQLNull},
 					test{"TIME_TO_SEC('-5359:11')", SQLFloat(-3020399)},
+					test{"TIME_TO_SEC('2004-07-09 10:17:35')", SQLFloat(37055)},
+					test{"TIME_TO_SEC('2004-07-09 10:17:35.238238')", SQLFloat(37055)},
 				}
 
 				runTests(evalCtx, tests)
