@@ -24,7 +24,7 @@ func (c *conn) formatValue(value interface{}) ([]byte, error) {
 	case evaluator.SQLInt:
 		return strconv.AppendInt(nil, int64(v), 10), nil
 	case evaluator.SQLDecimal128:
-		return []byte(decimal.Decimal(v).String()), nil
+		return []byte(formatDecimal(decimal.Decimal(v))), nil
 	case evaluator.SQLUint32:
 		return strconv.AppendUint(nil, uint64(v), 10), nil
 	case evaluator.SQLUint64:

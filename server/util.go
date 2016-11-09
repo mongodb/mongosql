@@ -5,6 +5,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 func randomBuf(size int) ([]byte, error) {
@@ -223,4 +226,37 @@ func formatBinaryTime(n int, data []byte) ([]byte, error) {
 	default:
 		return nil, errMalformPacket
 	}
+}
+
+func formatDecimal(d decimal.Decimal) string {
+
+	exp := int(d.Exponent())
+	if exp >= 0 {
+		return d.String()
+	}
+
+	str := d.String()
+	sign := d.Cmp(decimal.Zero) < 0
+	if sign {
+		str = str[1:]
+	}
+
+	var relExp int
+	idx := strings.Index(str, ".")
+	if idx >= 0 {
+		relExp = exp + (len(str) - 1 - idx)
+	} else {
+		relExp = exp
+		str += "."
+	}
+
+	if relExp < 0 {
+		str += strings.Repeat("0", -relExp)
+	}
+
+	if sign {
+		return "-" + str
+	}
+
+	return str
 }
