@@ -11,6 +11,8 @@ import (
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
+	"github.com/shopspring/decimal"
+
 	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -1723,8 +1725,10 @@ func TestAlgebrizeExpr(t *testing.T) {
 		Convey("Number", func() {
 			test("20", SQLInt(20))
 			test("-20", SQLInt(-20))
-			test("20.2", SQLFloat(20.2))
-			test("-20.2", SQLFloat(-20.2))
+			test("202E-1", SQLFloat(20.2))
+			test("-202E-1", SQLFloat(-20.2))
+			test("20.2", SQLDecimal128(decimal.New(202, -1)))
+			test("-20.2", SQLDecimal128(decimal.New(-202, -1)))
 		})
 
 		Convey("Or", func() {

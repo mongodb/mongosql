@@ -55,9 +55,8 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 			return NewSQLBool(v)
 		case bson.ObjectId:
 			return SQLTrue
-		case bson.Decimal128:
-			dec, _ := decimal.NewFromString(v.String())
-			flt, _ := dec.Float64()
+		case decimal.Decimal:
+			flt, _ := v.Float64()
 			return SQLBool(flt)
 		case float32, float64, int, int8, int16, int32, int64, uint8, uint16, uint32, uint64:
 			flt, _ := util.ToFloat64(v)
@@ -102,9 +101,8 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 		case bson.ObjectId:
 			dec, _ := decimal.NewFromString(v.String())
 			return SQLDecimal128(dec)
-		case bson.Decimal128:
-			dec, _ := decimal.NewFromString(v.String())
-			return SQLDecimal128(dec)
+		case decimal.Decimal:
+			return SQLDecimal128(v)
 		case float32:
 			return SQLDecimal128(decimal.NewFromFloat(float64(v)))
 		case float64:
@@ -145,9 +143,8 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 			return SQLFloat(0)
 		case bson.ObjectId:
 			return NewSQLValue(v.Time(), schema.SQLFloat)
-		case bson.Decimal128:
-			dec, _ := decimal.NewFromString(v.String())
-			flt, _ := dec.Float64()
+		case decimal.Decimal:
+			flt, _ := v.Float64()
 			return SQLFloat(flt)
 		case float32:
 			return SQLFloat(float64(v))
@@ -192,8 +189,8 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 			return SQLObjectID("0")
 		case bson.ObjectId:
 			return SQLObjectID(v.Hex())
-		case bson.Decimal128:
-			return SQLObjectID(v.String())
+		case decimal.Decimal:
+			return SQLObjectID(util.FormatDecimal(v))
 		case float32, float64:
 			flt, _ := util.ToFloat64(v)
 			return SQLObjectID(strconv.FormatFloat(flt, 'f', -1, 64))
@@ -245,9 +242,8 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 			return SQLVarchar("0")
 		case bson.ObjectId:
 			return SQLObjectID(v.Hex())
-		case bson.Decimal128:
-			dec, _ := decimal.NewFromString(v.String())
-			return SQLDecimal128(dec)
+		case decimal.Decimal:
+			return SQLVarchar(util.FormatDecimal(v))
 		case float32:
 			return SQLVarchar(strconv.FormatFloat(float64(v), 'f', -1, 32))
 		case float64:
@@ -264,8 +260,7 @@ func NewSQLValue(value interface{}, sqlType schema.SQLType) SQLValue {
 		}
 	}
 
-	panic(fmt.Errorf("can't convert this type to a SQLValue: %T", value))
-
+	panic(fmt.Errorf("can't convert this type to a SQLValue(%v): %T", sqlType, value))
 }
 
 // NewSQLValueFromUUID is a factory method for creating a SQLUUID
@@ -321,10 +316,10 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 		case bson.Decimal128:
 			d, err := decimal.NewFromString(v.String())
 			return SQLDecimal128(d), err
-		case bool:
-			return NewSQLBool(v), nil
 		case decimal.Decimal:
 			return SQLDecimal128(v), nil
+		case bool:
+			return NewSQLBool(v), nil
 		case string:
 			return SQLVarchar(v), nil
 		case float32, float64:
@@ -377,7 +372,9 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			return SQLInt(0), nil
 		case bson.Decimal128:
 			d, err := decimal.NewFromString(v.String())
-			return SQLDecimal128(d), err
+			return SQLInt(d.IntPart()), err
+		case decimal.Decimal:
+			return SQLInt(v.IntPart()), nil
 		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToInt(v)
 			if err == nil {
@@ -407,7 +404,9 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			return SQLUint64(0), nil
 		case bson.Decimal128:
 			d, err := decimal.NewFromString(v.String())
-			return SQLDecimal128(d), err
+			return SQLUint64(d.IntPart()), err
+		case decimal.Decimal:
+			return SQLUint64(v.IntPart()), nil
 		case int, int8, int16, int32, int64, float32, float64:
 			eval, err := util.ToInt(v)
 			if err == nil {
@@ -459,8 +458,9 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 		case bson.ObjectId:
 			return SQLObjectID(v.Hex()), nil
 		case bson.Decimal128:
-			d, err := decimal.NewFromString(v.String())
-			return SQLDecimal128(d), err
+			return SQLVarchar(v.String()), nil
+		case decimal.Decimal:
+			return SQLVarchar(util.FormatDecimal(v)), nil
 		case time.Time:
 			return SQLVarchar(v.String()), nil
 		case nil:
@@ -517,13 +517,13 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 		case bson.Decimal128:
 			d, err := decimal.NewFromString(v.String())
 			return SQLDecimal128(d), err
+		case decimal.Decimal:
+			return SQLDecimal128(v), nil
 		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToFloat64(v)
 			if err == nil {
 				return SQLDecimal128(decimal.NewFromFloat(eval)), nil
 			}
-		case decimal.Decimal:
-			return SQLDecimal128(v), nil
 		case time.Time:
 			h, m, s := v.Clock()
 			// Date, otherwise timestamp
@@ -550,6 +550,9 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 		case bson.Decimal128:
 			d, err := decimal.NewFromString(v.String())
 			return SQLDecimal128(d), err
+		case decimal.Decimal:
+			flt, _ := v.Float64()
+			return SQLFloat(flt), nil
 		case int, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64:
 			eval, err := util.ToFloat64(v)
 			if err == nil {

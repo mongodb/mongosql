@@ -9,12 +9,12 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/util"
 	"github.com/shopspring/decimal"
 )
 
-func (c *conn) formatValue(value interface{}) ([]byte, error) {
+func (c *conn) formatValue(value evaluator.SQLValue) ([]byte, error) {
 	switch v := value.(type) {
-
 	case evaluator.SQLVarchar:
 		return c.variables.CharacterSetResults.Encode(Slice(string(v))), nil
 	case evaluator.SQLObjectID:
@@ -24,33 +24,13 @@ func (c *conn) formatValue(value interface{}) ([]byte, error) {
 	case evaluator.SQLInt:
 		return strconv.AppendInt(nil, int64(v), 10), nil
 	case evaluator.SQLDecimal128:
-		return []byte(formatDecimal(decimal.Decimal(v))), nil
+		return []byte(util.FormatDecimal(decimal.Decimal(v))), nil
 	case evaluator.SQLUint32:
 		return strconv.AppendUint(nil, uint64(v), 10), nil
 	case evaluator.SQLUint64:
 		return strconv.AppendUint(nil, uint64(v), 10), nil
 	case evaluator.SQLFloat:
 		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
-	case evaluator.SQLValues:
-		slice := []byte{}
-		for _, value := range v.Values {
-			b, err := c.formatValue(value)
-			if err != nil {
-				return nil, err
-			}
-			slice = append(slice, b...)
-		}
-		return slice, nil
-	case *evaluator.SQLTupleExpr:
-		slice := []byte{}
-		for _, expr := range v.Exprs {
-			b, err := c.formatValue(expr)
-			if err != nil {
-				return nil, err
-			}
-			slice = append(slice, b...)
-		}
-		return slice, nil
 	case evaluator.SQLNullValue, *evaluator.SQLNullValue, evaluator.SQLNoValue:
 		return nil, nil
 	case evaluator.SQLBool:
@@ -69,42 +49,6 @@ func (c *conn) formatValue(value interface{}) ([]byte, error) {
 			return Slice(v.Time.Format(schema.TimestampFormatMicros)), nil
 		}
 		return Slice(v.Time.Format(schema.TimestampFormat)), nil
-	// TODO (INT-1036): get rid of these and only use SQLValues here.
-	case int8:
-		return strconv.AppendInt(nil, int64(v), 10), nil
-	case int16:
-		return strconv.AppendInt(nil, int64(v), 10), nil
-	case int32:
-		return strconv.AppendInt(nil, int64(v), 10), nil
-	case int64:
-		return strconv.AppendInt(nil, int64(v), 10), nil
-	case int:
-		return strconv.AppendInt(nil, int64(v), 10), nil
-	case uint8:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case uint16:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case uint32:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case uint64:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case uint:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case float32:
-		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
-	case float64:
-		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
-	case []byte:
-		return v, nil
-	case string:
-		return c.variables.CharacterSetResults.Encode(Slice(v)), nil
-	case bool:
-		if v {
-			return []byte{'1'}, nil
-		}
-		return []byte{'0'}, nil
-	case nil:
-		return nil, nil
 	default:
 		return nil, mysqlerrors.Unknownf("invalid type %T", value)
 	}
@@ -239,7 +183,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 
 	var b []byte
 
-	rowChan := make(chan []interface{}, 1)
+	rowChan := make(chan []evaluator.SQLValue, 1)
 
 	go func() {
 		evaluatorRow := &evaluator.Row{}

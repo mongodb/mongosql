@@ -1302,11 +1302,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		values := row.GetValues()
 
 		for _, value := range values {
-			field, err := NewSQLValueFromSQLColumnExpr(value, schema.SQLNone, schema.MongoNone)
-			if err != nil {
-				return SQLFalse, err
-			}
-			right.Values = append(right.Values, field)
+			right.Values = append(right.Values, value)
 		}
 
 		switch sc.subqueryOp {
@@ -1461,11 +1457,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 
 	eval := &SQLValues{}
 	for _, value := range values {
-		field, err := NewSQLValueFromSQLColumnExpr(value, schema.SQLNone, schema.MongoNone)
-		if err != nil {
-			return nil, err
-		}
-		eval.Values = append(eval.Values, field)
+		eval.Values = append(eval.Values, value)
 	}
 
 	if len(eval.Values) == 1 {
@@ -1505,7 +1497,7 @@ func (v *constantColumnReplacer) visit(n node) (node, error) {
 	case SQLColumnExpr:
 		for _, row := range v.ctx.SrcRows {
 			if val, ok := row.GetField(typedN.selectID, typedN.tableName, typedN.columnName); ok {
-				return NewSQLValueFromSQLColumnExpr(val, typedN.columnType.SQLType, typedN.columnType.MongoType)
+				return val, nil
 			}
 		}
 	}

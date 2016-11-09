@@ -12,6 +12,8 @@ import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/util"
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -679,6 +681,8 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 			} else {
 				i = 0
 			}
+		case SQLDecimal128:
+			i = decimal.Decimal(typedV).Round(0).IntPart()
 		default:
 			return SQLNull, nil
 		}
@@ -705,6 +709,8 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 			} else {
 				f = float64(0)
 			}
+		case SQLDecimal128:
+			f = typedV.Float64()
 		default:
 			return SQLNull, nil
 		}
@@ -728,6 +734,8 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 			} else {
 				s = "0"
 			}
+		case SQLDecimal128:
+			s = util.FormatDecimal(decimal.Decimal(typedV))
 		default:
 			return SQLNull, nil
 		}
@@ -1425,11 +1433,11 @@ func (_ *greatestFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	if allTimeVals && timestamp {
 		t, _ := parseDateTime(values[greatestIdx].String())
 		return SQLTimestamp{Time: t}, nil
-	} else if convertTo == schema.SQLInt || convertTo == schema.SQLFloat {
-		return convertedVals[greatestIdx], nil
-	} else {
+	} else if convertTo == schema.SQLDate || convertTo == schema.SQLTimestamp {
 		return values[greatestIdx], nil
 	}
+
+	return convertedVals[greatestIdx], nil
 }
 
 func (_ *greatestFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -1722,11 +1730,11 @@ func (_ *leastFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	if allTimeVals && timestamp {
 		t, _ := parseDateTime(values[leastIdx].String())
 		return SQLTimestamp{Time: t}, nil
-	} else if convertTo == schema.SQLInt || convertTo == schema.SQLFloat {
-		return convertedVals[leastIdx], nil
-	} else {
+	} else if convertTo == schema.SQLDate || convertTo == schema.SQLTimestamp {
 		return values[leastIdx], nil
 	}
+
+	return convertedVals[leastIdx], nil
 }
 
 func (_ *leastFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -3429,8 +3437,8 @@ func convertType(val SQLValue, t schema.SQLType) SQLValue {
 			return SQLFalse
 		}
 		return SQLTrue
-	default:
-		return SQLInt(0)
+	case schema.SQLDecimal128:
+		return SQLDecimal128(val.Decimal128())
 	}
 	return SQLInt(0)
 }

@@ -90,11 +90,7 @@ func (i *dynamicDataSourceIter) Next(row *Row) bool {
 
 	row.Data = Values{}
 	for x := 0; x < len(i.dataRow.Values); x++ {
-		sqlValue, err := NewSQLValueFromSQLColumnExpr(i.dataRow.Values[x], i.columns[x].Type(), schema.MongoNone)
-		if err != nil {
-			i.err = err
-			return false
-		}
+		sqlValue := NewSQLValue(i.dataRow.Values[x], i.columns[x].Type())
 		row.Data = append(row.Data, Value{
 			SelectID: i.selectID,
 			Table:    i.tableName,

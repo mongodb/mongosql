@@ -134,6 +134,10 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 		floatResult := leftFloat / rightFloat
 		_, exact = decimalResult.Float64()
 		if useDecimal || !exact {
+			// 4 comes from the div_precision_increment variable which
+			// we do not allow to be set.
+			scale := leftDecimal.Exponent() - 4
+			decimalResult = decimalResult.Round(-scale)
 			return SQLDecimal128(decimalResult), nil
 		}
 		return SQLFloat(floatResult), nil
@@ -163,7 +167,7 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 		return SQLDecimal128(value.(decimal.Decimal)), nil
 	}
 
-	return NewSQLValueFromSQLColumnExpr(value, preferenceType, schema.MongoNone)
+	return NewSQLValue(value, preferenceType), nil
 }
 
 // fast2Sum returns the exact unevaluated sum of a and b

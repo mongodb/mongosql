@@ -974,6 +974,22 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	case parser.NumVal:
 		exprString := parser.String(expr)
 
+		// http://dev.mysql.com/doc/refman/5.7/en/precision-math-numbers.html
+		if strings.ContainsAny(exprString, "Ee") {
+			f, err := strconv.ParseFloat(exprString, 64)
+			if err != nil {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "double", exprString)
+			}
+			return SQLFloat(f), nil
+		}
+		if strings.Contains(exprString, ".") {
+			d, err := decimal.NewFromString(exprString)
+			if err != nil {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "decimal", exprString)
+			}
+			return SQLDecimal128(d), nil
+		}
+
 		// try to parse as int64 first
 		if i, err := strconv.ParseInt(exprString, 10, 64); err == nil {
 			return SQLInt(i), nil
@@ -984,29 +1000,12 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return SQLUint64(i), nil
 		}
 
-		// if it's not a valid int64, try parsing as float64 instead
-		f, err := strconv.ParseFloat(exprString, 64)
+		// if this doesn't work, we can still use a decimal...
+		i, err := decimal.NewFromString(exprString)
 		if err != nil {
-			// try parsing as a decimal if the number's too large
-			d, err := decimal.NewFromString(exprString)
-			if err != nil {
-				return nil, err
-			}
-			return SQLDecimal128(d), nil
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "integer", exprString)
 		}
-
-		float := strconv.FormatFloat(f, 'f', -1, 64)
-		if float == exprString {
-			return SQLFloat(f), nil
-		}
-
-		// if using a float64 reduces our precision, use decimal128
-		d, err := decimal.NewFromString(exprString)
-		if err != nil {
-			return nil, err
-		}
-
-		return SQLDecimal128(d), nil
+		return SQLDecimal128(i), nil
 	case *parser.OrExpr:
 
 		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)

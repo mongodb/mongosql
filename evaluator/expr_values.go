@@ -476,7 +476,10 @@ func (id SQLObjectID) Value() interface{} {
 type SQLVarchar string
 
 func (sv SQLVarchar) Decimal128() decimal.Decimal {
-	d, _ := decimal.NewFromString(sv.String())
+	d, err := decimal.NewFromString(sv.String())
+	if err != nil {
+		return decimal.Zero
+	}
 	return d
 }
 

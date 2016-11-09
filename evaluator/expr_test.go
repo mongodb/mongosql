@@ -60,9 +60,9 @@ func TestEvaluates(t *testing.T) {
 
 	Convey("Subject: Evaluates", t, func() {
 		evalCtx := NewEvalCtx(execCtx, collation.Default, &Row{Values{
-			{1, "bar", "a", 123},
-			{1, "bar", "b", 456},
-			{1, "bar", "c", nil},
+			{1, "bar", "a", SQLInt(123)},
+			{1, "bar", "b", SQLInt(456)},
+			{1, "bar", "c", SQLNull},
 		}})
 
 		Convey("Subject: SQLAddExpr", func() {
@@ -89,22 +89,22 @@ func TestEvaluates(t *testing.T) {
 
 			aggCtx := NewEvalCtx(execCtx, collation.Default,
 				&Row{Values{
-					{1, "bar", "a", nil},
-					{1, "bar", "b", 3},
-					{1, "bar", "c", nil},
-					{1, "bar", "g", t1},
+					{1, "bar", "a", SQLNull},
+					{1, "bar", "b", SQLInt(3)},
+					{1, "bar", "c", SQLNull},
+					{1, "bar", "g", SQLDate{t1}},
 				}},
 				&Row{Values{
-					{1, "bar", "a", 3},
-					{1, "bar", "b", nil},
-					{1, "bar", "c", nil},
-					{1, "bar", "g", t2},
+					{1, "bar", "a", SQLInt(3)},
+					{1, "bar", "b", SQLNull},
+					{1, "bar", "c", SQLNull},
+					{1, "bar", "g", SQLDate{t2}},
 				}},
 				&Row{Values{
-					{1, "bar", "a", 5},
-					{1, "bar", "b", 6},
-					{1, "bar", "c", nil},
-					{1, "bar", "g", nil},
+					{1, "bar", "a", SQLInt(5)},
+					{1, "bar", "b", SQLInt(6)},
+					{1, "bar", "c", SQLNull},
+					{1, "bar", "g", SQLNull},
 				}},
 			)
 
@@ -280,6 +280,8 @@ func TestEvaluates(t *testing.T) {
 
 			Convey("Subject: Divide", func() {
 				tests := []test{
+					test{"1.2 / 0.2", SQLDecimal128(decimal.New(600000, -5))},
+					test{"1.2 / 0.23", SQLDecimal128(decimal.New(521739, -5))},
 					test{"DATE '2014-04-13' / 0", SQLNull},
 					test{"DATE '2014-04-13' / 2", SQLFloat(10070206.5)},
 					test{"TIME '11:04:13' / 0", SQLNull},
@@ -605,7 +607,7 @@ func TestEvaluates(t *testing.T) {
 				test{"-1 * 1", SQLInt(-1)},
 				test{"10 * 32", SQLInt(320)},
 				test{"-10 * -32", SQLInt(320)},
-				test{"2.5 * 3", SQLFloat(7.5)},
+				test{"2.5 * 3", SQLDecimal128(decimal.New(75, -1))},
 			}
 
 			runTests(evalCtx, tests)
@@ -1297,20 +1299,20 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"GREATEST(NULL, 1, 2)", SQLNull},
 					test{"GREATEST(1,3,2)", SQLInt(3)},
-					test{"GREATEST(2,2.3)", SQLFloat(2.3)},
+					test{"GREATEST(2,2.3)", SQLDecimal128(decimal.New(23, -1))},
 					test{"GREATEST('cats', '4', '2')", SQLVarchar("cats")},
 					test{"GREATEST('dog', 'cats', 'bird')", SQLVarchar("dog")},
 					test{"GREATEST('cat', 'bird', 2)", SQLInt(2)},
-					test{"GREATEST('cat', 2.2)", SQLFloat(2.2)},
+					test{"GREATEST('cat', 2.2)", SQLDecimal128(decimal.New(22, -1))},
 					test{"GREATEST(false, true)", SQLTrue},
 					test{"GREATEST(DATE '2005-05-11', DATE '2006-05-11', DATE '2000-05-11')", SQLDate{Time: d}},
 					test{"GREATEST(DATE '2006-05-11', 14, 4235)", SQLInt(20060511)},
 					test{"GREATEST(DATE '2006-05-11', 14, 20080622)", SQLInt(20080622)},
-					test{"GREATEST(DATE '2006-05-11', 14, 20080622.1)", SQLFloat(20080622.1)},
-					test{"GREATEST(DATE '2006-05-11', 14, 4235.2)", SQLFloat(20060511.0)},
+					test{"GREATEST(DATE '2006-05-11', 14, 20080622.1)", SQLDecimal128(decimal.New(200806221, -1))},
+					test{"GREATEST(DATE '2006-05-11', 14, 4235.2)", SQLDecimal128(decimal.New(20060511, 0))},
 					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', DATE '2006-05-11')", SQLTimestamp{Time: t}},
 					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', 12, 345)", SQLInt(20060511123223)},
-					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', 20080923124345.3)", SQLFloat(20080923124345.3)},
+					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', 20080923124345.3)", SQLDecimal128(decimal.New(200809231243453, -1))},
 					test{"GREATEST(DATE '2006-05-11', 'cat', '2007-04-11')", SQLVarchar("2007-04-11")},
 					test{"GREATEST(DATE '2006-05-11', 20080912, '2007-04-11')", SQLInt(20080912)},
 					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', TIMESTAMP '2006-05-11 10:32:45')", SQLTimestamp{Time: t}},
@@ -1438,7 +1440,7 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"LEAST(NULL, 1, 2)", SQLNull},
 					test{"LEAST(1,3,2)", SQLInt(1)},
-					test{"LEAST(2,2.3)", SQLFloat(2.0)},
+					test{"LEAST(2,2.3)", SQLDecimal128(decimal.New(2, 0))},
 					test{"LEAST('cats', '4', '2')", SQLVarchar("2")},
 					test{"LEAST('dog', 'cats', 'bird')", SQLVarchar("bird")},
 					test{"LEAST(false, true)", SQLFalse},
@@ -1446,12 +1448,12 @@ func TestEvaluates(t *testing.T) {
 					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', DATE '2006-05-11')", SQLTimestamp{Time: t}},
 					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', TIMESTAMP '2006-05-11 10:32:23')", SQLTimestamp{Time: t1}},
 					test{"LEAST('cat', 'bird', 2)", SQLInt(0)},
-					test{"LEAST('cat', 2.2)", SQLFloat(0)},
+					test{"LEAST('cat', 2.2)", SQLDecimal128(decimal.Zero)},
 					test{"LEAST(DATE '2006-05-11', 14, 4235)", SQLInt(14)},
-					test{"LEAST(DATE '2006-05-11', 14, 20080622.1)", SQLFloat(14.0)},
-					test{"LEAST(DATE '2006-05-11', 14, 4235.2)", SQLFloat(14.0)},
+					test{"LEAST(DATE '2006-05-11', 14, 20080622.1)", SQLDecimal128(decimal.New(14, 0))},
+					test{"LEAST(DATE '2006-05-11', 14, 4235.2)", SQLDecimal128(decimal.New(14, 0))},
 					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', 12, 345)", SQLInt(12)},
-					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', 20080923124345.3)", SQLFloat(20060511123223.0)},
+					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', 20080923124345.3)", SQLDecimal128(decimal.New(20060511123223, 0))},
 					test{"LEAST(DATE '2006-05-11', 'cat', '2007-04-11')", SQLVarchar("cat")},
 					test{"LEAST(DATE '2006-05-11', 20080912, '2007-04-11')", SQLInt(0)},
 					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', 20080913, DATE '2007-08-23')", SQLInt(20070823)},
@@ -2211,7 +2213,7 @@ func TestEvaluates(t *testing.T) {
 				test{"- date '2005-05-11'", SQLInt(-20050511)},
 				test{"- timestamp '2005-05-11 12:22:04'", SQLInt(-20050511122204)},
 				test{"- '4' ", SQLFloat(-4)},
-				test{"- 6.7", SQLFloat(-6.7)},
+				test{"- 6.7", SQLDecimal128(decimal.New(-67, -1))},
 				test{"- '3.3'", SQLFloat(-3.3)},
 			}
 

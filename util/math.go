@@ -3,6 +3,9 @@ package util
 import (
 	"fmt"
 	"reflect"
+	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 // MaxInt returns the maximum of two integers.
@@ -83,4 +86,38 @@ func ToFloat64(number interface{}) (float64, error) {
 	}
 	// no check for "ok" here, since we know it will work
 	return asInterface.(float64), nil
+}
+
+// FormatDecimal formats a decimal into a string.
+func FormatDecimal(d decimal.Decimal) string {
+
+	exp := int(d.Exponent())
+	if exp >= 0 {
+		return d.String()
+	}
+
+	str := d.String()
+	sign := d.Cmp(decimal.Zero) < 0
+	if sign {
+		str = str[1:]
+	}
+
+	var relExp int
+	idx := strings.Index(str, ".")
+	if idx >= 0 {
+		relExp = exp + (len(str) - 1 - idx)
+	} else {
+		relExp = exp
+		str += "."
+	}
+
+	if relExp < 0 {
+		str += strings.Repeat("0", -relExp)
+	}
+
+	if sign {
+		return "-" + str
+	}
+
+	return str
 }
