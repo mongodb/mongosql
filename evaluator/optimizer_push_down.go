@@ -622,7 +622,6 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 				c1, _ := equalExpr.left.(SQLColumnExpr)
 				c2, _ := equalExpr.right.(SQLColumnExpr)
 				if c1.selectID == c2.selectID {
-
 					c1Name, c1RegistryIdx, ok := lookupSQLColumn(c1.tableName, c1.columnName, registries)
 					if !ok {
 						panic("Unable to find field mapping for merge c1. This should never happen.")
@@ -693,46 +692,19 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 
 	newMappingRegistry.columns = append(newMappingRegistry.columns, msForeign.mappingRegistry.columns...)
 
-	project := bson.M{}
-
-	// project all local columns into top-level
-	for _, c := range msLocal.mappingRegistry.columns {
-		fieldName, ok := msLocal.mappingRegistry.lookupFieldName(c.Table, c.Name)
-		if !ok {
-			panic("Unable to find field mapping for column. This should never happen.")
-		}
-		project[dottifyFieldName(fieldName)] = getProjectedFieldName(fieldName, schema.SQLNull)
-	}
-
-	// project all the unwound paths and all index paths
-	// to exclude foreign arrays with no records (for left
-	// joins
-	idxChecks := []interface{}{}
-	for i, arrayPathIdx := range newPipeline.arrayPathIndexes {
-		idxChecks = append(idxChecks, wrapInNullCheck("$"+arrayPathIdx))
-		arrayPath := newPipeline.arrayPaths[i]
-		project[dottifyFieldName(arrayPath)] = getProjectedFieldName(arrayPath, schema.SQLNull)
-		project[dottifyFieldName(arrayPathIdx)] = getProjectedFieldName(arrayPathIdx, schema.SQLNull)
-	}
-
 	if msForeign.mappingRegistry.fields != nil {
 		for tableName, columns := range msForeign.mappingRegistry.fields {
 			for columnName, fieldName := range columns {
 				joinFieldName := fieldName
-				dottifiedName := getProjectedFieldName(fieldName, schema.SQLNull)
 				if join.kind == LeftJoin {
 					joinFieldName = dottifyFieldName(fmt.Sprintf("%v.%v", tableName, fieldName))
-					project[joinFieldName] = wrapInCond(nil, dottifiedName, idxChecks...)
 				} else {
 					joinFieldName = dottifyFieldName(joinFieldName)
-					project[joinFieldName] = dottifiedName
 				}
 				newMappingRegistry.registerMapping(tableName, columnName, joinFieldName)
 			}
 		}
 	}
-
-	pipeline = append(pipeline, bson.D{{"$project", project}})
 
 	ms.mappingRegistry, ms.pipeline = newMappingRegistry, pipeline
 
