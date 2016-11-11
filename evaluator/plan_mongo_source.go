@@ -5,7 +5,6 @@ import (
 
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -88,14 +87,12 @@ func (ms *MongoSourceStage) isView() bool {
 
 // Open establishes a connection to database collection for this table.
 func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	mgoSession := ctx.Session()
-
 	errChan := make(chan error, 1)
 
 	var iter FindResults
 
 	go func() {
-		iter = MgoFindResults{mgoSession.DB(ms.dbName).C(ms.collectionNames[0]).Pipe(ms.pipeline).AllowDiskUse().Iter()}
+		iter = MgoFindResults{ctx.Session().DB(ms.dbName).C(ms.collectionNames[0]).Pipe(ms.pipeline).AllowDiskUse().Iter()}
 		errChan <- nil
 	}()
 
@@ -108,7 +105,6 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	return &MongoSourceIter{
 		mappingRegistry: ms.mappingRegistry,
 		ctx:             ctx,
-		session:         mgoSession,
 		iter:            iter,
 		err:             nil,
 	}, nil
@@ -118,7 +114,6 @@ type MongoSourceIter struct {
 	mappingRegistry *mappingRegistry
 	ctx             *ExecutionCtx
 	iter            FindResults
-	session         *mgo.Session
 	err             error
 }
 
@@ -168,9 +163,7 @@ func (ms *MongoSourceStage) Collation() *collation.Collation {
 }
 
 func (ms *MongoSourceIter) Close() error {
-	err := ms.iter.Close()
-	ms.session.Close()
-	return err
+	return ms.iter.Close()
 }
 
 func (ms *MongoSourceIter) Err() error {

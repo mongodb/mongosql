@@ -273,7 +273,7 @@ func (c *conn) handshake() error {
 
 	schema := c.server.eval.Schema()
 	var err error
-	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.Session(), &schema, c.server.opts.Auth)
+	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session, &schema, c.server.opts.Auth)
 	if err != nil {
 		c.writeError(err)
 		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error retrieving information from MongoDB: %v", err)
@@ -570,7 +570,7 @@ func (c *conn) run() {
 
 // Session returns a new mgo.Session connected to MongoDB.
 func (c *conn) Session() (session *mgo.Session) {
-	return c.session.Copy()
+	return c.session
 }
 
 func (c *conn) status() uint16 {

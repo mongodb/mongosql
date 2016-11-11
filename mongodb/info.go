@@ -62,10 +62,7 @@ type CollectionInfo struct {
 }
 
 // LoadInfo looks up information from MongoDB.
-func LoadInfo(logger *log.Logger, s *mgo.Session, config *schema.Schema, requireAuth bool) (*Info, error) {
-	session := s.Clone()
-	defer session.Close()
-
+func LoadInfo(logger *log.Logger, session *mgo.Session, config *schema.Schema, requireAuth bool) (*Info, error) {
 	buildInfo, err := session.BuildInfo()
 	if err != nil {
 		return nil, err
@@ -82,7 +79,7 @@ func LoadInfo(logger *log.Logger, s *mgo.Session, config *schema.Schema, require
 	}
 
 	if requireAuth {
-		err = i.loadAuthInfo(logger, s)
+		err = i.loadAuthInfo(logger, session)
 		if err != nil {
 			return nil, err
 		}
@@ -90,7 +87,7 @@ func LoadInfo(logger *log.Logger, s *mgo.Session, config *schema.Schema, require
 		i.setAllPrivileges(AllPrivileges)
 	}
 
-	i.loadMetadata(logger, s)
+	i.loadMetadata(logger, session)
 
 	return i, nil
 }
