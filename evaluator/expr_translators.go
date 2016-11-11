@@ -1028,6 +1028,9 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 	// SQL builtin types
 
+	case SQLDecimal128:
+		return t.translateDecimal(typedE)
+
 	case SQLDate:
 		return typedE.Time, true
 
