@@ -87,14 +87,12 @@ func writeBlackBoxTestFile(out io.Writer, queries Queries) {
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
 	yaml "github.com/10gen/candiedyaml"
-	"github.com/10gen/sqlproxy/options"
-	"github.com/10gen/sqlproxy/schema"
 	_ "github.com/go-sql-driver/mysql"
 	. "github.com/smartystreets/goconvey/convey"
 	"io/ioutil"
+	"path/filepath"
 	"sync"
 	"testing"
 )
@@ -102,8 +100,6 @@ import (
 var (
 	once             sync.Once
 	db               *sql.DB
-	testProxyAddress = flag.String("testProxyAddress", "127.0.0.1", "test proxy host")
-	testProxyPort    = flag.String("testProxyPort", "3308", "test proxy address")
 )
 
 type resultSchema struct {
@@ -113,36 +109,12 @@ type resultSchema struct {
 }
 
 func setup() {
-	conf := mustLoadTestSchema(pathify("testdata", "blackbox.yml"))
-	mustLoadTestData(testMongoHost, testMongoPort, conf)
-
-	opts, _ := options.NewSqldOptions()
-	opts.Addr = testDBAddr
-	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort)
-	opts.NoUnixSocket = new(bool)
-	*opts.NoUnixSocket = true
-
-	cfg := &schema.Schema{
-		Databases: conf.Databases,
-	}
-	if err := cfg.Validate(); err != nil {
-		panic(err)		
-	}
-	s, err := testServer(cfg, opts)
-	if err != nil {
-		panic(err)
-	}
-	go s.Run()
-
-	db, err = sql.Open("mysql", fmt.Sprintf("root@tcp(%v:%v)/%v", *testProxyAddress, *testProxyPort, conf.Databases[0].Name))
-	if err != nil {
-		panic(err)
-	}
+	_, _, db = prepareForTestCase(filepath.Join("testdata", "blackbox.yml"))
 }
 
-func runBlackboxQuery(t *testing.T, db *sql.DB, query string, columns, id int) {
+func runBlackboxQuery(db *sql.DB, query string, id int) {
 
-	expectedFile := pathify("testdata", "results", fmt.Sprintf("%v.yml", id))
+	expectedFile := filepath.Join("testdata", "results", fmt.Sprintf("%v.yml", id))
 
 	fileBytes, err := ioutil.ReadFile(expectedFile)
 	if err != nil {
@@ -156,7 +128,7 @@ func runBlackboxQuery(t *testing.T, db *sql.DB, query string, columns, id int) {
 	actual, err := runSQL(db, query, conf.ExpectedTypes, conf.ExpectedNames)
 	So(err, ShouldBeNil)
 
-	compareResults(t, conf.ExpectedData, actual)
+	compareResults(conf.ExpectedData, actual)
 }
 
 {{range .Q}}
@@ -164,11 +136,10 @@ func TestBlackBox{{.ID}}(t *testing.T) {
 	t.Parallel()
 	query := "{{.Query}}"
 	once.Do(setup)
-	columns := {{.Columns}}
 	id := {{.ID}}
 
 	Convey(fmt.Sprintf("Testing blackbox query %v", id), t, func() {
-		runBlackboxQuery(t, db, query, columns, id)
+		runBlackboxQuery(db, query, id)
 	})
 
 }

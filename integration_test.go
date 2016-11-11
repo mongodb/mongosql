@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -65,6 +64,7 @@ type inlineDataSet struct {
 
 type testCase struct {
 	SQL             string          `yaml:"sql"`
+	CleanupSQL      string          `yaml:"sql_cleanup"`
 	VerificationSQL string          `yaml:"verify"`
 	Description     string          `yaml:"description"`
 	ExpectedTypes   []string        `yaml:"expected_types"`
@@ -85,13 +85,15 @@ func TestTableauDemo(t *testing.T) {
 		t.Skip("skipping tableau test")
 	}
 
-	conf := mustLoadTestSchema("testdata/tableau.yml")
-	mustLoadTestData(testMongoHost, testMongoPort, conf)
+	conf, s, db := prepareForTestCase("testdata/tableau.yml")
 
 	Convey("Test tableau dataset", t, func() {
-		err := executeTestCase(t, testMongoHost, testMongoPort, conf)
+		err := executeTestCase(conf, db)
 		So(err, ShouldBeNil)
 	})
+
+	db.Close()
+	s.Close()
 }
 
 func TestIntegration(t *testing.T) {
@@ -104,13 +106,16 @@ func TestIntegration(t *testing.T) {
 		if *ymlfile != "" && !strings.Contains(f.Name(), *ymlfile) {
 			continue
 		}
-		conf := mustLoadTestSchema(path.Join("integration_tests", f.Name()))
-		mustLoadTestData(testMongoHost, testMongoPort, conf)
+
+		conf, s, db := prepareForTestCase(path.Join("integration_tests", f.Name()))
 
 		Convey(f.Name(), t, func() {
-			err := executeTestCase(t, testMongoHost, testMongoPort, conf)
+			err := executeTestCase(conf, db)
 			So(err, ShouldBeNil)
 		})
+
+		db.Close()
+		s.Close()
 	}
 
 	connection := &toolsoptions.Connection{Host: testMongoHost, Port: testMongoPort}
@@ -134,7 +139,48 @@ func TestIntegration(t *testing.T) {
 	session.Close()
 }
 
-func compareResults(t *testing.T, expected, actual [][]interface{}) {
+func prepareForTestCase(filePath string) (conf testSchema, s *server.Server, db *sql.DB) {
+	conf = mustLoadTestSchema(filePath)
+	mustLoadTestData(testMongoHost, testMongoPort, conf)
+
+	// make a test server using the embedded database
+	cfg := &schema.Schema{
+		Databases: conf.Databases,
+	}
+	if err := cfg.Validate(); err != nil {
+		panic(err)
+	}
+
+	opts, err := options.NewSqldOptions()
+	if err != nil {
+		panic(err)
+	}
+
+	opts.Addr = testDBAddr
+	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort)
+	opts.NoUnixSocket = new(bool)
+	*opts.NoUnixSocket = true
+
+	s = testServer(cfg, opts)
+
+	log.SetWriter(ioutil.Discard)
+
+	go s.Run()
+
+	if len(conf.Databases) > 0 {
+		db, err = sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
+	} else {
+		db, err = sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/", testDBAddr))
+	}
+
+	if err != nil {
+		panic(err)
+	}
+
+	return
+}
+
+func compareResults(expected [][]interface{}, actual [][]interface{}) {
 	for rownum, row := range actual {
 		for colnum, actualCol := range row {
 			So(rownum, ShouldBeLessThan, len(expected))
@@ -173,47 +219,7 @@ func compareResults(t *testing.T, expected, actual [][]interface{}) {
 	So(len(actual), ShouldEqual, len(expected))
 }
 
-func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error {
-	// make a test server using the embedded database
-	cfg := &schema.Schema{
-		Databases: conf.Databases,
-	}
-	if err := cfg.Validate(); err != nil {
-		panic(err)
-	}
-
-	opts, err := options.NewSqldOptions()
-	if err != nil {
-		return err
-	}
-
-	opts.Addr = testDBAddr
-	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", dbhost, dbport)
-	opts.NoUnixSocket = new(bool)
-	*opts.NoUnixSocket = true
-
-	s, err := testServer(cfg, opts)
-	if err != nil {
-		return err
-	}
-
-	log.SetWriter(ioutil.Discard)
-
-	go s.Run()
-	defer s.Close()
-
-	var db *sql.DB
-
-	if len(conf.Databases) > 0 {
-		db, err = sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/%v", testDBAddr, conf.Databases[0].Name))
-	} else {
-		db, err = sql.Open("mysql", fmt.Sprintf("root@tcp(%v)/", testDBAddr))
-	}
-
-	if err != nil {
-		return err
-	}
-	defer db.Close()
+func executeTestCase(conf testSchema, db *sql.DB) error {
 
 	noPushDownMode := os.Getenv(evaluator.NoPushDown) != ""
 
@@ -240,7 +246,11 @@ func executeTestCase(t *testing.T, dbhost, dbport string, conf testSchema) error
 			}
 			results, err := runSQL(db, sql, testCase.ExpectedTypes, testCase.ExpectedNames)
 			So(err, ShouldBeNil)
-			compareResults(t, testCase.ExpectedData, results)
+			if testCase.CleanupSQL != "" {
+				_, err := db.Exec(testCase.CleanupSQL)
+				So(err, ShouldBeNil)
+			}
+			compareResults(testCase.ExpectedData, results)
 		})
 	}
 
@@ -277,10 +287,6 @@ func mustLoadTestSchema(path string) testSchema {
 	}
 
 	return conf
-}
-
-func pathify(elem ...string) string {
-	return filepath.Join(elem...)
 }
 
 func restoreInline(host, port string, inline *inlineDataSet) error {
@@ -444,7 +450,7 @@ func getSslOpts() *toolsoptions.SSL {
 	return sslOpts
 }
 
-func testServer(cfg *schema.Schema, opts options.SqldOptions) (*server.Server, error) {
+func testServer(cfg *schema.Schema, opts options.SqldOptions) *server.Server {
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
 		opts.MongoSSL = true
 		opts.MongoAllowInvalidCerts = true
@@ -453,8 +459,13 @@ func testServer(cfg *schema.Schema, opts options.SqldOptions) (*server.Server, e
 
 	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return server.New(cfg, evaluator, opts)
+	s, err := server.New(cfg, evaluator, opts)
+	if err != nil {
+		panic(err)
+	}
+
+	return s
 }
