@@ -32,11 +32,12 @@ func (s *SubquerySourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	for _, column := range s.source.Columns() {
 		projectedColumns = append(projectedColumns, ProjectedColumn{
 			Column: &Column{
-				SelectID:  s.selectID,
-				Name:      column.Name,
-				Table:     s.aliasName,
-				MongoType: column.MongoType,
-				SQLType:   column.SQLType,
+				SelectID:   s.selectID,
+				Name:       column.Name,
+				Table:      s.aliasName,
+				MongoType:  column.MongoType,
+				SQLType:    column.SQLType,
+				PrimaryKey: column.PrimaryKey,
 			},
 			Expr: NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType),
 		})

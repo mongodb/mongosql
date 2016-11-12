@@ -658,7 +658,7 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 		return newExprs
 	}
 
-	newPipeline, err := mergePipeline(msLocal, msForeign, join.kind)
+	newPipeline, err := v.mergePipeline(msLocal, msForeign, join.kind)
 	if err != nil {
 		v.logger.Logf(log.DebugHigh, "cannot merge pipelines: %v", err)
 		return nil, nil
@@ -701,7 +701,9 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 		if !ok {
 			panic("Unable to find field mapping for column. This should never happen.")
 		}
-		project[sanitizeFieldName(fieldName)] = getProjectedFieldName(fieldName, schema.SQLNull)
+		dottified := sanitizeFieldName(fieldName)
+		project[dottified] = getProjectedFieldName(fieldName, schema.SQLNull)
+		newMappingRegistry.registerMapping(c.Table, c.Name, dottified)
 	}
 
 	// project all the unwound paths and all index paths
@@ -764,20 +766,34 @@ func (v *pushDownOptimizer) meetsMergePKCriteria(local, foreign *MongoSourceStag
 
 	exprs := splitExpression(matcher)
 
-	numPK := func(columns []*Column) int {
+	numPK := func(columns []*Column, table string) int {
 		n, keys := 0, make(map[string]struct{})
 		for _, c := range columns {
-			if _, counted := keys[c.Name]; !counted && c.PrimaryKey {
+			if _, counted := keys[c.Name]; !counted && c.PrimaryKey && c.Table == table {
 				n, keys[c.Name] = n+1, struct{}{}
 			}
 		}
 		return n
 	}
 
-	numLocalPK := numPK(local.mappingRegistry.columns)
-	numForeignPK := numPK(foreign.mappingRegistry.columns)
+	// When we attempt to merge two different arrays (tables) of
+	// the same underlying MongoDB collection, we only require
+	// one primary key equality match.
+	//
+	// For example, the join criteria "test_array1 JOIN test_array1"
+	// requires as many primary keys as are specified in the DRDL
+	// file for "test_array1". However, if we attempted to merge
+	// "test_array1 JOIN test_array2", instead we'd only need an
+	// equality on the base table's primary key field.
+	//
+	isSameArrayJoin := local.tableNames[0] == foreign.tableNames[0]
+	numRequiredPKConjunctions := 1
 
-	numRequiredPKConjunctions := util.MinInt(numLocalPK, numForeignPK)
+	if isSameArrayJoin && len(local.tableNames) == 1 {
+		numLocalPK := numPK(local.mappingRegistry.columns, local.aliasNames[0])
+		numForeignPK := numPK(foreign.mappingRegistry.columns, foreign.aliasNames[0])
+		numRequiredPKConjunctions = util.MinInt(numLocalPK, numForeignPK)
+	}
 
 	if numRequiredPKConjunctions == 0 {
 		v.logger.Logf(log.DebugHigh, "cannot merge join stage, table has no primary key")
@@ -789,6 +805,8 @@ func (v *pushDownOptimizer) meetsMergePKCriteria(local, foreign *MongoSourceStag
 	v.logger.Logf(log.DebugHigh, "join merge: examining match criteria...")
 
 	registries := []*mappingRegistry{local.mappingRegistry, foreign.mappingRegistry}
+
+	seenPrimaryKeys := make(map[string]struct{})
 
 	for _, expr := range exprs {
 		if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
@@ -829,16 +847,23 @@ func (v *pushDownOptimizer) meetsMergePKCriteria(local, foreign *MongoSourceStag
 			}
 
 			if columnOneName != columnTwoName {
-				v.logger.Logf(log.DebugHigh, "join merge: criteria contains unmatched primary keys (%v and %v), moving on...", column1.String(), column2.String())
+				v.logger.Logf(log.DebugHigh, "join merge: criteria contains unmatched primary keys (%v and %v), moving on...", columnOneName, columnTwoName)
 				continue
 			}
+
+			if _, ok := seenPrimaryKeys[columnOneName]; ok {
+				v.logger.Logf(log.DebugHigh, "join merge: ignoring duplicate primary key criteria '%v' and moving on...", column1.String())
+				continue
+			}
+
+			seenPrimaryKeys[columnOneName] = struct{}{}
 
 			numPKConjunctions++
 		}
 	}
 
 	if numPKConjunctions < numRequiredPKConjunctions {
-		v.logger.Logf(log.DebugHigh, "join merge: criteria conjunction contains %v primary key equality %v (need %v)",
+		v.logger.Logf(log.DebugHigh, "join merge: criteria conjunction contains %v unique primary key equality %v (need %v)",
 			numPKConjunctions, util.Pluralize(numPKConjunctions, "pair", "pairs"), numRequiredPKConjunctions)
 		return false
 	}
@@ -1139,51 +1164,87 @@ type consolidatedPipeline struct {
 	arrayPathIndexes []string
 }
 
-func mergePipeline(local, foreign *MongoSourceStage, joinKind JoinKind) (*consolidatedPipeline, error) {
+func (v *pushDownOptimizer) mergePipeline(local, foreign *MongoSourceStage, joinKind JoinKind) (*consolidatedPipeline, error) {
 	pipeline := &consolidatedPipeline{}
 
+	augmentProjection := func(stage interface{}) (bson.D, error) {
+		project, ok := stage.(bson.M)
+		if !ok {
+			return bson.D{}, fmt.Errorf("found unexpected type %T for project stage in local table (%v) pipeline", stage, local.aliasNames)
+		}
+
+		prefixPathPresent := func(project bson.M, fieldName string) bool {
+			names := strings.Split(fieldName, ".")
+			for i := 0; i < len(names); i++ {
+				if _, ok := project[sanitizeFieldName(strings.Join(names[:i], "."))]; ok {
+					return true
+				}
+			}
+			return false
+		}
+
+		for _, c := range foreign.mappingRegistry.columns {
+			fieldName, ok := foreign.mappingRegistry.lookupFieldName(c.Table, c.Name)
+			if !ok {
+				return nil, fmt.Errorf("cannot find referenced foreign column %v.%v in projection lookup", c.Table, c.Name)
+			}
+
+			if _, ok := project[fieldName]; !ok && !prefixPathPresent(project, fieldName) {
+				v.logger.Logf(log.DebugHigh, "augmenting local table with column '%v'.'%v'", c.Table, c.Name)
+				project[fieldName] = 1
+				foreign.mappingRegistry.registerMapping(c.Table, c.Name, fieldName)
+			}
+		}
+
+		return bson.D{{"$project", project}}, nil
+	}
+
 	getPathsAndPipeline := func(stages []bson.D, isLocal bool) error {
-		preservedNullAndEmptyArrays := false
-
 		for _, stage := range stages {
-
 			bsonStage, ok := stage.Map()["$unwind"]
 			if !ok {
 				if isLocal {
-					pipeline.stages = append(pipeline.stages, stage)
+					// for projections, ensure all foreign columns are included
+					if bsonStage, ok = stage.Map()["$project"]; ok {
+						project, err := augmentProjection(bsonStage)
+						if err != nil {
+							return err
+						}
+						pipeline.stages = append(pipeline.stages, project)
+					} else {
+						pipeline.stages = append(pipeline.stages, stage)
+					}
 					continue
 				} else {
-					fmt.Errorf("found unmergeable stage in foreign table (%v) pipeline: %#v", foreign.aliasNames, stage)
+					return fmt.Errorf("found unmergeable stage in foreign table (%v) pipeline: %#v", foreign.aliasNames, stage)
 				}
 			}
 
 			unwind, ok := bsonStage.(bson.D)
 			if !ok {
-				fmt.Errorf("found unordered unwind stage in foreign table (%v) pipeline: %T", foreign.aliasNames, stage)
+				return fmt.Errorf("found unordered unwind stage in foreign table (%v) pipeline: %T", foreign.aliasNames, stage)
 			}
 
 			fields := unwind.Map()
 			fieldPath, ok := fields["path"]
 			if !ok {
-				fmt.Errorf("could not find unwind path in foreign table %v: %#v", foreign.aliasNames, stage)
+				return fmt.Errorf("could not find unwind path in foreign table %v: %#v", foreign.aliasNames, stage)
 			}
 
 			fieldIdx, ok := fields["includeArrayIndex"]
 			if !ok {
-				fmt.Errorf("could not find unwind array index in foreign table %v: %#v", foreign.aliasNames, stage)
+				return fmt.Errorf("could not find unwind array index in foreign table %v: %#v", foreign.aliasNames, stage)
 			}
 
 			// strip dollar sign prefix
 			path := fmt.Sprintf("%v", fieldPath)[1:]
 			arrayIdx := fmt.Sprintf("%v", fieldIdx)
-
 			if !util.StringSliceContains(pipeline.arrayPathIndexes, arrayIdx) {
 				pipeline.arrayPaths = append(pipeline.arrayPaths, path)
 				pipeline.arrayPathIndexes = append(pipeline.arrayPathIndexes, arrayIdx)
 				_, ok = fields["preserveNullAndEmptyArrays"]
-				if !ok && joinKind == LeftJoin && !isLocal && !preservedNullAndEmptyArrays {
+				if !ok && joinKind == LeftJoin && !isLocal {
 					unwind = append(unwind, bson.DocElem{"preserveNullAndEmptyArrays", true})
-					preservedNullAndEmptyArrays = true
 				}
 				pipeline.stages = append(pipeline.stages, bson.D{{"$unwind", unwind}})
 			}
@@ -1322,7 +1383,9 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 				v.logger.Warnf(log.DebugHigh, "cannot find referenced project expression: %v", err)
 				return nil, err
 			}
+
 			for _, refdCol := range refdCols {
+				refdCol.PrimaryKey = projectedColumn.PrimaryKey
 				fieldName, ok := ms.mappingRegistry.lookupFieldName(refdCol.Table, refdCol.Name)
 				if !ok {
 					v.logger.Warnf(log.DebugHigh, "cannot find referenced column %#v in lookup", refdCol)
@@ -1450,15 +1513,23 @@ func (cf *columnFinder) visit(n node) (node, error) {
 // visit a new projectStage in order to project out only the columns needed for the rest of the query so that
 // we do not have to pull all data from a table into memory.
 func (v *pushDownOptimizer) pushdownProject(requiredColumns []SQLExpr, source PlanStage) (PlanStage, error) {
+	sf := &sourceFinder{}
+	_, err := sf.visit(source)
+	if err != nil {
+		return nil, err
+	}
+
 	var projectedCols []ProjectedColumn
 	for _, expr := range requiredColumns {
+
 		if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
 			column := &Column{
-				SelectID:  sqlColExpr.selectID,
-				Table:     sqlColExpr.tableName,
-				Name:      sqlColExpr.columnName,
-				SQLType:   sqlColExpr.Type(),
-				MongoType: sqlColExpr.columnType.MongoType,
+				SelectID:   sqlColExpr.selectID,
+				Table:      sqlColExpr.tableName,
+				Name:       sqlColExpr.columnName,
+				SQLType:    sqlColExpr.Type(),
+				MongoType:  sqlColExpr.columnType.MongoType,
+				PrimaryKey: sf.source.mappingRegistry.isPrimaryKey(sqlColExpr.columnName),
 			}
 			projectedCols = append(projectedCols, ProjectedColumn{Column: column, Expr: expr})
 		}
@@ -1481,4 +1552,24 @@ func (v *pushDownOptimizer) getRequiredColumnsForJoinSide(tableNames []string, r
 	}
 
 	return result
+}
+
+// sourceFinder is used within projection pushdown
+// to locate the MongoSource stage to project.
+type sourceFinder struct {
+	source *MongoSourceStage
+}
+
+func (f *sourceFinder) visit(n node) (node, error) {
+	n, err := walk(f, n)
+	if err != nil {
+		return nil, err
+	}
+
+	switch typedN := n.(type) {
+	case *MongoSourceStage:
+		f.source = typedN
+	}
+
+	return n, nil
 }

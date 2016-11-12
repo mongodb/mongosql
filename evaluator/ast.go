@@ -224,11 +224,12 @@ func walk(v nodeVisitor, n node) (node, error) {
 			if hasNew {
 				newPcs = append(newPcs, ProjectedColumn{
 					Column: &Column{
-						SelectID:  pc.SelectID,
-						Table:     pc.Table,
-						Name:      pc.Name,
-						SQLType:   pc.SQLType,
-						MongoType: pc.MongoType,
+						SelectID:   pc.SelectID,
+						Table:      pc.Table,
+						Name:       pc.Name,
+						SQLType:    pc.SQLType,
+						MongoType:  pc.MongoType,
+						PrimaryKey: pc.PrimaryKey,
 					},
 					Expr: newE,
 				})

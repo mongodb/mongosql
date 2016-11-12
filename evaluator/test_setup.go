@@ -402,6 +402,99 @@ schema:
         Name: _id
         MongoType: bson.ObjectId
         SqlType: varchar
+  -
+    table: merge
+    collection: merge
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: float64
+  - table: merge_b
+    collection: merge
+    pipeline:
+    - $unwind:
+        includeArrayIndex: b_idx
+        path: $b
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: float64
+    - Name: b_idx
+      MongoType: int
+      SqlName: b_idx
+      SqlType: int
+  - table: merge_c
+    collection: merge
+    pipeline:
+    - $unwind:
+        includeArrayIndex: c_idx
+        path: $c
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: c
+      MongoType: float64
+      SqlName: c
+      SqlType: float64
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: int
+  - table: merge_d
+    collection: merge
+    pipeline:
+    - $unwind:
+        includeArrayIndex: d_idx
+        path: $d
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: d_idx
+      MongoType: int
+      SqlName: d_idx
+      SqlType: int
+  - table: merge_d_a
+    collection: merge
+    pipeline:
+    - $unwind:
+        includeArrayIndex: d_idx
+        path: $d
+    - $unwind:
+        includeArrayIndex: d.a_idx
+        path: $d.a
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: d.a
+      MongoType: float64
+      SqlName: d.a
+      SqlType: float64
+    - Name: d.a_idx
+      MongoType: int
+      SqlName: d.a_idx
+      SqlType: int
+    - Name: d_idx
+      MongoType: int
+      SqlName: d_idx
+      SqlType: int
+
 `)
 )
 

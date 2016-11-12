@@ -816,21 +816,21 @@ func TestAlgebrizeSelect(t *testing.T) {
 				)
 			})
 
-			test("select sum(a) from foo f group by b order by (select c from foo where f._id = _id)", func() PlanStage {
+			test("select sum(a) from foo f group by b order by (select c from foo where f.b = b)", func() PlanStage {
 				foo1Source := createMongoSource(1, "foo", "f")
 				foo2Source := createMongoSource(2, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{foo1Source}, []string{"f.b", "f._id"}, map[string]int{"f.a": 1, "f.b": 1})
+				reqCols := createReqCols([]PlanStage{foo1Source}, []string{"f.b", "f.b"}, map[string]int{"f.a": 1, "f.b": 1})
 				reqColsAgg := createReqCols([]PlanStage{foo1Source}, []string{"f.a"}, map[string]int{"f.a": 1})
 				reqColsSum := NewSQLColumnExpr(1, "", "sum(f.a)", "float64", "")
-				reqColsSub := createReqCols([]PlanStage{foo1Source}, []string{"f._id"}, map[string]int{"f._id": 1})
+				reqColsSub := createReqCols([]PlanStage{foo1Source}, []string{"f.b"}, map[string]int{"f.b": 1})
 				reqColsSub2 := createReqCols([]PlanStage{foo2Source}, []string{"foo.c"}, map[string]int{"foo.c": 2})
-				reqColsWhere := createReqCols([]PlanStage{foo2Source}, []string{"foo._id"}, map[string]int{"foo._id": 2})
+				reqColsWhere := createReqCols([]PlanStage{foo2Source}, []string{"foo.b"}, map[string]int{"foo.b": 2})
 				return NewProjectStage(
 					NewOrderByStage(
 						NewGroupByStage(foo1Source,
 							[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "b")},
 							ProjectedColumns{
-								createProjectedColumn(1, foo1Source, "f", "_id", "f", "_id"),
+								createProjectedColumn(1, foo1Source, "f", "b", "f", "b"),
 								createProjectedColumnFromSQLExpr(1, "", "sum(f.a)", &SQLAggFunctionExpr{
 									Name:  "sum",
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "a")},
@@ -846,8 +846,8 @@ func TestAlgebrizeSelect(t *testing.T) {
 									NewFilterStage(
 										foo2Source,
 										&SQLEqualsExpr{
-											left:  createSQLColumnExprFromSource(foo1Source, "f", "_id"),
-											right: createSQLColumnExprFromSource(foo2Source, "foo", "_id"),
+											left:  createSQLColumnExprFromSource(foo1Source, "f", "b"),
+											right: createSQLColumnExprFromSource(foo2Source, "foo", "b"),
 										},
 										append(append(reqColsSub, reqColsWhere...), reqColsSub2...),
 									),

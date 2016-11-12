@@ -552,10 +552,11 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 				if tableName == "" || strings.EqualFold(tableName, column.Table) {
 					projectedColumns = append(projectedColumns, ProjectedColumn{
 						Column: &Column{
-							SelectID:  a.selectID,
-							Name:      column.Name,
-							SQLType:   column.SQLType,
-							MongoType: column.MongoType,
+							SelectID:   a.selectID,
+							Name:       column.Name,
+							SQLType:    column.SQLType,
+							MongoType:  column.MongoType,
+							PrimaryKey: column.PrimaryKey,
 						},
 						Expr: NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType),
 					})

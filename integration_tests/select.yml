@@ -43,6 +43,11 @@ data:
     collection: "select_5"
     docs:
     - { _id: "57f422f941a74e324fb5c44a", a: 1, c: [ [3, 2] ] }
+- inline:
+    db: "test"
+    collection: "select_6"
+    docs:
+    - { _id: "57f422f941a74e324fb5c44a", "address": {"building": "1007", "coord": [-73.856077, 40.848447], "street": "Morris Park Ave", "zipcode": "10462"}, "borough": "Bronx", "cuisine": "Bakery", "grades": [{"date": {"$date": 1393804800000}, "grade": "A", "score": 2}, {"date": {"$date": 1378857600000}, "grade": "A", "score": 6}, {"date": {"$date": 1358985600000}, "grade": "A", "score": 10}, {"date": {"$date": 1322006400000}, "grade": "A", "score": 9}, {"date": {"$date": 1299715200000}, "grade": "B", "score": 14}], "name": "Morris Park Bake Shop", "restaurant_id": "30075445"}
 
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
@@ -221,7 +226,7 @@ schema:
       SqlName: c_idx
       SqlType: numeric
   - table: test_empty
-    collection: select_4
+    collection: "select_4"
     pipeline: []
     columns:
     - Name: _id
@@ -234,7 +239,7 @@ schema:
       SqlName: a
       SqlType: numeric
   - table: test_c_empty
-    collection: select_4
+    collection: "select_4"
     pipeline:
     - $unwind:
         includeArrayIndex: c_idx
@@ -255,7 +260,7 @@ schema:
       SqlType: numeric
       PrimaryKey: true
   - table: test_c_y_empty
-    collection: select_4
+    collection: "select_4"
     pipeline:
     - $unwind:
         includeArrayIndex: c_idx
@@ -288,7 +293,7 @@ schema:
       SqlType: numeric
       PrimaryKey: true
   - table: test_array
-    collection: select_5
+    collection: "select_5"
     pipeline: []
     columns:
     - Name: _id
@@ -300,7 +305,7 @@ schema:
       SqlName: a
       SqlType: numeric
   - table: test_array_array
-    collection: select_5
+    collection: "select_5"
     pipeline:
     - $unwind:
         includeArrayIndex: c_idx
@@ -329,6 +334,145 @@ schema:
       MongoType: int
       SqlName: c_idx_1
       SqlType: numeric
+  - table: restaurants
+    collection: "select_6"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: address.building
+      MongoType: string
+      SqlName: address.building
+      SqlType: varchar
+    - Name: address.street
+      MongoType: string
+      SqlName: address.street
+      SqlType: varchar
+    - Name: address.zipcode
+      MongoType: string
+      SqlName: address.zipcode
+      SqlType: varchar
+    - Name: borough
+      MongoType: string
+      SqlName: borough
+      SqlType: varchar
+    - Name: cuisine
+      MongoType: string
+      SqlName: cuisine
+      SqlType: varchar
+    - Name: name
+      MongoType: string
+      SqlName: name
+      SqlType: varchar
+    - Name: restaurant_id
+      MongoType: string
+      SqlName: restaurant_id
+      SqlType: varchar
+  - table: restaurants_address_coord
+    collection: "select_6"
+    pipeline:
+    - $unwind:
+        includeArrayIndex: address.coord_idx
+        path: $address.coord
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: address.building
+      MongoType: string
+      SqlName: address.building
+      SqlType: varchar
+    - Name: address.coord
+      MongoType: float64
+      SqlName: address.coord
+      SqlType: numeric
+    - Name: address.coord_idx
+      MongoType: int
+      SqlName: address.coord_idx
+      SqlType: numeric
+    - Name: address.street
+      MongoType: string
+      SqlName: address.street
+      SqlType: varchar
+    - Name: address.zipcode
+      MongoType: string
+      SqlName: address.zipcode
+      SqlType: varchar
+    - Name: borough
+      MongoType: string
+      SqlName: borough
+      SqlType: varchar
+    - Name: cuisine
+      MongoType: string
+      SqlName: cuisine
+      SqlType: varchar
+    - Name: name
+      MongoType: string
+      SqlName: name
+      SqlType: varchar
+    - Name: restaurant_id
+      MongoType: string
+      SqlName: restaurant_id
+      SqlType: varchar
+  - table: restaurants_grades
+    collection: "select_6"
+    pipeline:
+    - $unwind:
+        includeArrayIndex: grades_idx
+        path: $grades
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: address.building
+      MongoType: string
+      SqlName: address.building
+      SqlType: varchar
+    - Name: address.street
+      MongoType: string
+      SqlName: address.street
+      SqlType: varchar
+    - Name: address.zipcode
+      MongoType: string
+      SqlName: address.zipcode
+      SqlType: varchar
+    - Name: borough
+      MongoType: string
+      SqlName: borough
+      SqlType: varchar
+    - Name: cuisine
+      MongoType: string
+      SqlName: cuisine
+      SqlType: varchar
+    - Name: grades.date
+      MongoType: date
+      SqlName: grades.date
+      SqlType: timestamp
+    - Name: grades.grade
+      MongoType: string
+      SqlName: grades.grade
+      SqlType: varchar
+    - Name: grades.score
+      MongoType: int
+      SqlName: grades.score
+      SqlType: numeric
+    - Name: grades_idx
+      MongoType: int
+      SqlName: grades_idx
+      SqlType: numeric
+    - Name: name
+      MongoType: string
+      SqlName: name
+      SqlType: varchar
+    - Name: restaurant_id
+      MongoType: string
+      SqlName: restaurant_id
+      SqlType: varchar
+
 #
 # Tests
 #
@@ -928,6 +1072,7 @@ testcases:
   expected_names: ["c.y_idx"]
   expected_types: [int]
   expected:
+  - [~]
   - [0]
   - [1]
   - [2]
@@ -945,3 +1090,14 @@ testcases:
   expected:
   - ["57f422f941a74e324fb5c44a", 1, "57f422f941a74e324fb5c44a", 1, 3, 0, 0]
   - ["57f422f941a74e324fb5c44a", 1, "57f422f941a74e324fb5c44a", 1, 2, 0, 1]
+- sql: "SELECT restaurants.borough AS borough FROM test.restaurants INNER JOIN test.restaurants_grades ON restaurants._id = restaurants_grades._id INNER JOIN test.restaurants_address_coord ON restaurants._id = restaurants_address_coord._id group by borough"
+  expected_names: ["borough"]
+  expected_types: [varchar]
+  expected:
+  - ["Bronx"]
+- sql: "SELECT restaurants.borough AS borough FROM test.restaurants_address_coord INNER JOIN test.restaurants_grades ON restaurants_address_coord._id = restaurants_grades._id INNER JOIN test.restaurants ON restaurants_grades._id = restaurants._id group by borough"
+  expected_names: ["borough"]
+  expected_types: [varchar]
+  expected:
+  - ["Bronx"]
+

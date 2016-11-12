@@ -92,6 +92,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 				projectedKeys[i].MongoType,
 			)
 
+			pc.Column.PrimaryKey = projectedKeys[i].PrimaryKey
 			projectedColumns = append(projectedColumns, ProjectedColumn{
 				Column: pc.Column,
 				Expr:   newExpr,
@@ -209,6 +210,7 @@ func (b *queryPlanBuilder) buildFrom(source PlanStage) PlanStage {
 			typedS.left = b.buildFrom(typedL)
 		}
 		if b.from != nil {
+
 			reqCols := b.exprCollector.referencedColumns.copyExprs()
 
 			if b.join != nil {
@@ -218,6 +220,7 @@ func (b *queryPlanBuilder) buildFrom(source PlanStage) PlanStage {
 					}
 				}
 			}
+
 			return NewJoinStage(typedS.kind, typedS.left, typedS.right, typedS.matcher, reqCols)
 		}
 	}
