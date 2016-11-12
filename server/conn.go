@@ -540,19 +540,24 @@ func (c *conn) run() {
 		}()
 
 		waitTimeout := time.Duration(c.variables.WaitTimeoutSecs) * time.Second
+		timer := time.NewTimer(waitTimeout)
+		var timeoutTime time.Time
 
 		select {
-		case <-time.After(waitTimeout):
+		case timeoutTime = <-timer.C:
 			c.logger.Logf(log.Always, "client wait time out after %v", waitTimeout.String())
+		case pkt = <-packetReadChan:
+			if pkt.err != nil {
+				c.logger.Logf(log.Always, "client read error: %v", pkt.err)
+			}
+		}
+
+		timer.Stop()
+
+		if !timeoutTime.IsZero() || pkt.err != nil {
 			atomic.StoreInt32(&c.queryRunning, 0)
 			c.closer.Signal()
 			return
-		case pkt = <-packetReadChan:
-			if pkt.err != nil {
-				atomic.StoreInt32(&c.queryRunning, 0)
-				c.closer.Signal()
-				return
-			}
 		}
 
 		if err := c.dispatch(pkt.data); err != nil {
