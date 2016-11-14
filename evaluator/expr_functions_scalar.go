@@ -634,7 +634,7 @@ func (_ *concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, er
 }
 
 func (_ *concatWsFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
-	if f.Exprs[0] == SQLNull {
+	if len(f.Exprs) >= 2 && f.Exprs[0] == SQLNull {
 		return SQLNull
 	}
 

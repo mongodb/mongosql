@@ -504,8 +504,8 @@ testcases:
   - ["yo,s"]
   - ["this,s"]
 
-- sql: "select concat_ws(null) from bar"
-  expected_names: ["concat_ws(null)"]
+- sql: "select concat_ws(null, a) from bar"
+  expected_names: ["concat_ws(null, a)"]
   expected_types: [int]
   expected:
   - [~]
