@@ -547,7 +547,7 @@ func (c *conn) run() {
 		case timeoutTime = <-timer.C:
 			c.logger.Logf(log.Always, "client wait time out after %v", waitTimeout.String())
 		case pkt = <-packetReadChan:
-			if pkt.err != nil {
+			if pkt.err != nil && atomic.LoadInt32(&c.closed) != 1 {
 				c.logger.Logf(log.Always, "client read error: %v", pkt.err)
 			}
 		}
