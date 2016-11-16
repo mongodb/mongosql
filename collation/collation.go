@@ -10,6 +10,8 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
+const defaultCollationName = Name("utf8_bin")
+
 func init() {
 	collationByID = make(map[ID]*Collation, 0)
 	collationByName = make(map[Name]*Collation, 0)
@@ -19,8 +21,15 @@ func init() {
 		collationByID[collation.ID] = collation
 	}
 
-	Default = Must(Get("utf8_bin"))
-	DefaultCharset = MustCharset(GetCharset("utf8"))
+	Default = Must(Get(defaultCollationName))
+	DefaultCharset = MustCharset(GetCharset(Default.CharsetName))
+	NullCharset = &Charset{
+		Name:                 CharsetName(""),
+		DefaultCollationName: defaultCollationName,
+		Description:          DefaultCharset.Description,
+		MaxLen:               DefaultCharset.MaxLen,
+		encoding:             DefaultCharset.encoding,
+	}
 }
 
 var collationByID map[ID]*Collation
@@ -28,9 +37,6 @@ var collationByName map[Name]*Collation
 
 // Default is the default Collation.
 var Default *Collation
-
-// DefaultCharset is the default Charset.
-var DefaultCharset *Charset
 
 // Name is the name of a collation.
 type Name string

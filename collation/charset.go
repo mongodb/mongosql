@@ -31,13 +31,12 @@ type Charset struct {
 	encoding encoding.Encoding
 }
 
-// NullCharset is the noop charset.
-var NullCharset = &Charset{
-	Name:                 CharsetName(""),
-	DefaultCollationName: "binary",
-	Description:          "NULL",
-	encoding:             encoding.Nop,
-}
+// DefaultCharset is the default Charset.
+var DefaultCharset *Charset
+
+// NullCharset represents the fact the the client set the character set to null, but
+// ultimately reflects the use of the default collation and charset.
+var NullCharset *Charset
 
 // Decode converts the given encoded bytes to UTF-8. It returns the converted bytes or nil, err if any error occurred.
 func (cs *Charset) Decode(bytes []byte) []byte {
