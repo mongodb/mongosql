@@ -50,49 +50,50 @@ func (c *conn) formatValue(value evaluator.SQLValue) ([]byte, error) {
 		}
 		return Slice(v.Time.Format(schema.TimestampFormat)), nil
 	default:
-		return nil, mysqlerrors.Unknownf("invalid type %T", value)
+		return nil, mysqlerrors.Unknownf("unsupported type %T for result set", value)
 	}
 }
 
-func formatField(collationID uint16, field *Field, value interface{}) error {
+func formatField(collationID uint16, field *Field, value evaluator.SQLValue) error {
 	switch typedV := value.(type) {
 
 	case evaluator.SQLFloat:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_FLOAT
-		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
+		field.Decimal = 0x1f
+		field.Flag = BINARY_FLAG
 	case evaluator.SQLDecimal128:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_DECIMAL
 		field.Decimal = 0x51
-		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
+		field.Flag = BINARY_FLAG
 	case evaluator.SQLBool:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_TINY
 	case evaluator.SQLUint32:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_LONGLONG
-		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG
+		field.Flag = BINARY_FLAG | UNSIGNED_FLAG
 	case evaluator.SQLUint64:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_LONGLONG
-		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG
+		field.Flag = BINARY_FLAG | UNSIGNED_FLAG
 	case evaluator.SQLInt:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_LONGLONG
-		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
+		field.Flag = BINARY_FLAG
 	case evaluator.SQLVarchar:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
+		field.ColumnLength = 0xffffff
 	case evaluator.SQLUUID:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
+		field.ColumnLength = 36 // 6B29FC40-CA47-1067-B31D-00DD010662DA
 	case evaluator.SQLObjectID:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
-	case evaluator.SQLValues:
-		field.Charset = collationID
-		field.Type = MYSQL_TYPE_VAR_STRING
+		field.ColumnLength = 24 // 582c98cdea11582c488616ee
 	case nil, *evaluator.SQLNullValue, evaluator.SQLNullValue, evaluator.SQLNoValue:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_NULL
@@ -106,6 +107,7 @@ func formatField(collationID uint16, field *Field, value interface{}) error {
 		if len(typedV.Values) != 1 {
 			return mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, 1)
 		}
+		return formatField(collationID, field, typedV.Values[0])
 	default:
 		return mysqlerrors.Unknownf("unsupported type %T for result set", value)
 	}
