@@ -1034,6 +1034,14 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			SkipConvey("Subject: CURTIME", func() {
+				tests := []test{
+					test{"CURRENT_TIMESTAMP()", SQLTimestamp{time.Now().UTC()}},
+					test{"CURRENT_TIMESTAMP", SQLTimestamp{time.Now().UTC()}},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: CURRENT_USER/SESSION_USER/SYSTEM_USER/USER", func() {
 				tests := []test{
 					test{"CURRENT_USER()", SQLVarchar("test user")},

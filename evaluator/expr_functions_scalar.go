@@ -77,6 +77,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"current_date":      &currentDateFunc{},
 	"current_timestamp": &currentTimestampFunc{},
 	"current_user":      &userFunc{},
+	"curtime":           &curtimeFunc{},
 	"database":          &dbFunc{},
 	"date":              &dateFunc{},
 	"date_add":          &dateAddFunc{},
@@ -155,6 +156,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"ucase":             &ucaseFunc{},
 	"upper":             &ucaseFunc{},
 	"user":              &userFunc{},
+	"utc_time":          &curtimeFunc{},
 	"utc_timestamp":     &utcTimestampFunc{},
 	"version":           &versionFunc{},
 	"week":              &weekFunc{},
@@ -833,6 +835,21 @@ func (_ *currentTimestampFunc) Type() schema.SQLType {
 }
 
 func (_ *currentTimestampFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0)
+}
+
+type curtimeFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_curtime
+func (_ *curtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return SQLTimestamp{time.Now().In(schema.DefaultLocale)}, nil
+}
+
+func (_ *curtimeFunc) Type() schema.SQLType {
+	return schema.SQLTimestamp
+}
+
+func (_ *curtimeFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 0)
 }
 
