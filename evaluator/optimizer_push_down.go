@@ -295,7 +295,7 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 		// in the tree that either haven't yet been pushed down, or cannot be. Either way, we output of a push-down must be
 		// exactly the same as the output of a non-pushed-down group.
 		mappingRegistry.addColumn(projectedColumn.Column)
-		mappingRegistry.registerMapping(projectedColumn.Table, projectedColumn.Name, dottifyFieldName(projectedColumn.Expr.String()))
+		mappingRegistry.registerMapping(projectedColumn.Table, projectedColumn.Name, sanitizeFieldName(projectedColumn.Expr.String()))
 	}
 
 	ms = ms.clone()
@@ -336,7 +336,7 @@ func (v *pushDownOptimizer) translateGroupByKeys(keys []SQLExpr, lookupFieldName
 			return nil, fmt.Errorf("could not translate '%v'", key.String())
 		}
 
-		keyDocumentElements = append(keyDocumentElements, bson.DocElem{dottifyFieldName(key.String()), translatedKey})
+		keyDocumentElements = append(keyDocumentElements, bson.DocElem{sanitizeFieldName(key.String()), translatedKey})
 	}
 
 	return keyDocumentElements, nil
@@ -400,7 +400,7 @@ func (v *pushDownOptimizer) translateGroupByAggregates(keys []SQLExpr, projected
 		}
 
 		namedExpr := &namedExpr{
-			name: dottifyFieldName(projectedColumn.Expr.String()),
+			name: sanitizeFieldName(projectedColumn.Expr.String()),
 			expr: newExpr.(SQLExpr),
 		}
 
@@ -438,13 +438,13 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 		if !v.isGroupKey(typedN) {
 			// since it's not an aggregation function, this implies that it takes the first value of the column.
 			// So project the field, and register the mapping.
-			v.group[dottifyFieldName(typedN.String())] = bson.M{"$first": getProjectedFieldName(fieldName, typedN.Type())}
-			v.mappingRegistry.registerMapping(typedN.tableName, typedN.columnName, dottifyFieldName(typedN.String()))
+			v.group[sanitizeFieldName(typedN.String())] = bson.M{"$first": getProjectedFieldName(fieldName, typedN.Type())}
+			v.mappingRegistry.registerMapping(typedN.tableName, typedN.columnName, sanitizeFieldName(typedN.String()))
 		} else {
 			// the _id is added to the $group in translateGroupByKeys. We will only be here if the user has also projected
 			// the group key, in which we'll need this to look it up in translateGroupByProject under its name. Hence, all
 			// we need to do is register the mapping.
-			v.mappingRegistry.registerMapping(typedN.tableName, typedN.columnName, groupID+"."+dottifyFieldName(typedN.String()))
+			v.mappingRegistry.registerMapping(typedN.tableName, typedN.columnName, groupID+"."+sanitizeFieldName(typedN.String()))
 		}
 		return typedN, nil
 	case *SQLAggFunctionExpr:
@@ -459,7 +459,7 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 			if !ok {
 				return nil, fmt.Errorf("could not translate '%v'", typedN.String())
 			}
-			fieldName := groupDistinctPrefix + dottifyFieldName(typedN.Exprs[0].String())
+			fieldName := groupDistinctPrefix + sanitizeFieldName(typedN.Exprs[0].String())
 			newExpr = &SQLAggFunctionExpr{
 				Name:  typedN.Name,
 				Exprs: []SQLExpr{NewSQLColumnExpr(0, groupTempTable, fieldName, typedN.Type(), schema.MongoNone)},
@@ -494,7 +494,7 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 				}
 			}
 
-			fieldName := dottifyFieldName(typedN.String())
+			fieldName := sanitizeFieldName(typedN.String())
 			v.group[fieldName] = trans
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, fieldName)
 
@@ -507,7 +507,7 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 				if !ok {
 					return nil, fmt.Errorf("could not translate '%v'", typedN.Exprs[0].String())
 				}
-				countFieldName := dottifyFieldName(typedN.String() + sumAggregateCountSuffix)
+				countFieldName := sanitizeFieldName(typedN.String() + sumAggregateCountSuffix)
 				v.group[countFieldName] = getCountAggregation(countTrans)
 				v.mappingRegistry.registerMapping(groupTempTable, countFieldName, countFieldName)
 
@@ -530,7 +530,7 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 			// the group key, in which we'll need this to look it up in translateGroupByProject under its name. In this,
 			// we need to create a new expr that is simply a field pointing at the nested identifier and register that
 			// mapping.
-			fieldName := dottifyFieldName(typedN.String())
+			fieldName := sanitizeFieldName(typedN.String())
 			newExpr := NewSQLColumnExpr(0, groupTempTable, fieldName, typedN.Type(), schema.MongoNone)
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, groupID+"."+fieldName)
 			return newExpr, nil
@@ -701,7 +701,7 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 		if !ok {
 			panic("Unable to find field mapping for column. This should never happen.")
 		}
-		project[dottifyFieldName(fieldName)] = getProjectedFieldName(fieldName, schema.SQLNull)
+		project[sanitizeFieldName(fieldName)] = getProjectedFieldName(fieldName, schema.SQLNull)
 	}
 
 	// project all the unwound paths and all index paths
@@ -711,8 +711,8 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 	for i, arrayPathIdx := range newPipeline.arrayPathIndexes {
 		idxChecks = append(idxChecks, wrapInNullCheck("$"+arrayPathIdx))
 		arrayPath := newPipeline.arrayPaths[i]
-		project[dottifyFieldName(arrayPath)] = getProjectedFieldName(arrayPath, schema.SQLNull)
-		project[dottifyFieldName(arrayPathIdx)] = getProjectedFieldName(arrayPathIdx, schema.SQLNull)
+		project[sanitizeFieldName(arrayPath)] = getProjectedFieldName(arrayPath, schema.SQLNull)
+		project[sanitizeFieldName(arrayPathIdx)] = getProjectedFieldName(arrayPathIdx, schema.SQLNull)
 	}
 
 	if msForeign.mappingRegistry.fields != nil {
@@ -721,10 +721,10 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 				joinFieldName := fieldName
 				dottifiedName := getProjectedFieldName(fieldName, schema.SQLNull)
 				if join.kind == LeftJoin {
-					joinFieldName = dottifyFieldName(fmt.Sprintf("%v.%v", tableName, fieldName))
+					joinFieldName = sanitizeFieldName(fmt.Sprintf("%v.%v", tableName, fieldName))
 					project[joinFieldName] = wrapInCond(nil, dottifiedName, idxChecks...)
 				} else {
-					joinFieldName = dottifyFieldName(joinFieldName)
+					joinFieldName = sanitizeFieldName(joinFieldName)
 					project[joinFieldName] = dottifiedName
 				}
 				newMappingRegistry.registerMapping(tableName, columnName, joinFieldName)
@@ -956,7 +956,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		return join, nil
 	}
 
-	asField := dottifyFieldName(joinedFieldNamePrefix + msForeign.aliasNames[0])
+	asField := sanitizeFieldName(joinedFieldNamePrefix + msForeign.aliasNames[0])
 
 	// 5. compute all the mappings from the msForeign mapping registry to be nested under
 	// the 'asField' we used above.
@@ -1329,7 +1329,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 					return project, nil
 				}
 
-				safeFieldName := dottifyFieldName(fieldName)
+				safeFieldName := sanitizeFieldName(fieldName)
 				fieldsToProject[safeFieldName] = getProjectedFieldName(fieldName, refdCol.SQLType)
 				fixedMappingRegistry.addColumn(refdCol)
 				fixedMappingRegistry.registerMapping(refdCol.Table, refdCol.Name, safeFieldName)
@@ -1337,7 +1337,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 			fixedProjectedColumns = append(fixedProjectedColumns, projectedColumn)
 		} else {
-			safeFieldName := dottifyFieldName(projectedColumn.Expr.String())
+			safeFieldName := sanitizeFieldName(projectedColumn.Expr.String())
 			fieldsToProject[safeFieldName] = projectedField
 			fixedMappingRegistry.addColumn(projectedColumn.Column)
 			fixedMappingRegistry.registerMapping(projectedColumn.Table, projectedColumn.Name, safeFieldName)

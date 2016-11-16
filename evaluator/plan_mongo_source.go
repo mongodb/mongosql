@@ -144,7 +144,7 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 
 		value.Data, ms.err = NewSQLValueFromSQLColumnExpr(extractedField, column.SQLType, column.MongoType)
 		if ms.err != nil {
-			ms.err = fmt.Errorf("column '%v': %v", deDottifyFieldName(mappedFieldName), ms.err)
+			ms.err = fmt.Errorf("column '%v': %v", unsanitizeFieldName(mappedFieldName), ms.err)
 			return false
 		}
 

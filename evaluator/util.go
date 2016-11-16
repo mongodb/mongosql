@@ -14,6 +14,7 @@ import (
 
 const (
 	Dot        = "_DOT_"
+	Dollar     = "_DOLLAR_"
 	sqlOpEQ    = "="
 	sqlOpNEQ   = "!="
 	sqlOpNSE   = "<=>"
@@ -109,14 +110,16 @@ func containsStringInsensitive(strs []string, str string) bool {
 	})
 }
 
-// dottifyFieldName translates any dots in a field name into the Dot constant
-func dottifyFieldName(fieldName string) string {
-	return strings.Replace(fieldName, ".", Dot, -1)
+// sanitizeFieldName translates any disallowed characters in a field name into an appropriate replacement.
+func sanitizeFieldName(fieldName string) string {
+	r := strings.Replace(fieldName, ".", Dot, -1)
+	return strings.Replace(r, "$", Dollar, -1)
 }
 
-// deDottifyFieldName translates any Dot constant in a field name into a '.'
-func deDottifyFieldName(fieldName string) string {
-	return strings.Replace(fieldName, Dot, ".", -1)
+// unsanitizeFieldName translates any replacement characters in a field name into their original value.
+func unsanitizeFieldName(fieldName string) string {
+	r := strings.Replace(fieldName, Dot, ".", -1)
+	return strings.Replace(r, Dollar, "$", -1)
 }
 
 // extractFieldByName takes a field name and document, and returns a value representing
