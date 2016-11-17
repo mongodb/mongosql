@@ -1056,27 +1056,7 @@ func (_ *dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	}
 
 	date = date.In(schema.DefaultLocale)
-	format := v1.String()
-
-	fmtTokens := map[string]string{
-		"%a": "Mon",
-		"%b": "Jan",
-		"%c": "1",
-		"%e": "2",
-		"%i": "04",
-		"%l": "3",
-		"%M": "January",
-		"%m": "01",
-		"%p": "PM",
-		"%r": "03:04:05 PM",
-		"%S": "05",
-		"%s": "05",
-		"%T": "15:04:05",
-		"%W": "Monday",
-		"%Y": "2006",
-		"%y": "06",
-		"%%": "*",
-	}
+	format := []rune(v1.String())
 
 	noPad := func(s string) (string, error) {
 		str := date.Format(s)
@@ -1126,51 +1106,70 @@ func (_ *dateFormatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 		return fmt.Sprintf("%02v", date.Format(s)), nil
 	}
 
-	specialFmtTokens := map[string]func() (string, error){
-		"%D": func() (string, error) { return suffixFmt(2) },
-		"%d": func() (string, error) { return zeroPad("2") },
-		"%f": func() (string, error) { return date.Format(".000000")[1:], nil },
-		"%H": func() (string, error) { return zeroPad("15") },
-		"%h": func() (string, error) { return zeroPad("3") },
-		"%I": func() (string, error) { return zeroPad("3") },
-		"%j": func() (string, error) { return fmt.Sprintf("%03v", date.YearDay()), nil },
-		"%k": func() (string, error) { return noPad("15") },
-		"%U": func() (string, error) { return weekFmt(0) },
-		"%u": func() (string, error) { return weekFmt(1) },
-		"%V": func() (string, error) { return weekFmt(2) },
-		"%v": func() (string, error) { return weekFmt(3) },
-		"%w": func() (string, error) { return strconv.Itoa(int(date.Weekday())), nil },
-		"%X": func() (string, error) { return yearFmt(0) },
-		"%x": func() (string, error) { return yearFmt(1) },
+	fmtTokens := map[rune]string{
+		'a': "Mon",
+		'b': "Jan",
+		'c': "1",
+		'e': "2",
+		'i': "04",
+		'l': "3",
+		'M': "January",
+		'm': "01",
+		'p': "PM",
+		'r': "03:04:05 PM",
+		'S': "05",
+		's': "05",
+		'T': "15:04:05",
+		'W': "Monday",
+		'Y': "2006",
+		'y': "06",
 	}
 
-	for specifier, token := range fmtTokens {
-		format = strings.Replace(format, specifier, token, -1)
+	formatters := map[rune]func() (string, error){
+		'D': func() (string, error) { return suffixFmt(2) },
+		'd': func() (string, error) { return zeroPad("2") },
+		'f': func() (string, error) { return date.Format(".000000")[1:], nil },
+		'H': func() (string, error) { return zeroPad("15") },
+		'h': func() (string, error) { return zeroPad("3") },
+		'I': func() (string, error) { return zeroPad("3") },
+		'j': func() (string, error) { return fmt.Sprintf("%03v", date.YearDay()), nil },
+		'k': func() (string, error) { return noPad("15") },
+		'U': func() (string, error) { return weekFmt(0) },
+		'u': func() (string, error) { return weekFmt(1) },
+		'V': func() (string, error) { return weekFmt(2) },
+		'v': func() (string, error) { return weekFmt(3) },
+		'w': func() (string, error) { return strconv.Itoa(int(date.Weekday())), nil },
+		'X': func() (string, error) { return yearFmt(0) },
+		'x': func() (string, error) { return yearFmt(1) },
+		'%': func() (string, error) { return "%", nil },
 	}
 
-	format = date.Format(format)
-
-	for specifier, formatter := range specialFmtTokens {
-		if strings.Contains(format, specifier) {
-			replacement, err := formatter()
-			if err != nil {
-				return nil, err
-			}
-			format = strings.Replace(format, specifier, replacement, -1)
+	for k, v := range fmtTokens {
+		localV := v
+		formatters[k] = func() (string, error) {
+			return date.Format(localV), nil
 		}
 	}
 
-	// %x case
-	i := strings.Index(format, "%")
-	for i != -1 {
-		format = format[:i] + format[i+1:]
-		i = strings.Index(format[i+1:], "%")
+	var result string
+	for i := 0; i < len(format); i++ {
+		if format[i] == '%' && i != len(format)-1 {
+			if formatter, ok := formatters[format[i+1]]; ok {
+				s, err := formatter()
+				if err != nil {
+					return SQLNull, err
+				}
+				result += s
+				i++
+			} else {
+				result += string(format[i])
+			}
+		} else {
+			result += string(format[i])
+		}
 	}
 
-	// %% case
-	format = strings.Replace(format, "*", "%", -1)
-
-	return SQLVarchar(format), nil
+	return SQLVarchar(result), nil
 }
 
 func (_ *dateFormatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {

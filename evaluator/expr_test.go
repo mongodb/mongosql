@@ -1113,7 +1113,10 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"DATE_FORMAT('2009-10-04', NULL)", SQLNull},
 					test{"DATE_FORMAT(NULL, '2009-10-04')", SQLNull},
+					test{"DATE_FORMAT('2009-10-04 22:23:00', '%W %M 01 %Y')", SQLVarchar("Sunday October 01 2009")},
 					test{"DATE_FORMAT('2009-10-04 22:23:00', '%W %M %Y')", SQLVarchar("Sunday October 2009")},
+					test{"DATE_FORMAT('2007-10-04 22:23:00', '%H:01:%i:%s')", SQLVarchar("22:01:23:00")},
+					test{"DATE_FORMAT('2007-10-04 22:23:00', '%H:%g:01%%:%i:%s%')", SQLVarchar("22:%g:01%:23:00%")},
 					test{"DATE_FORMAT('2007-10-04 22:23:00', '%H:%i:%s')", SQLVarchar("22:23:00")},
 					test{"DATE_FORMAT('1900-10-04 22:23:00', '%D %y %a %d %m %b %j')", SQLVarchar("4th 00 Thu 04 10 Oct 277")},
 					test{"DATE_FORMAT('1997-10-04 22:23:00', '%H %k %I %r %T %S %w')", SQLVarchar("22 22 10 10:23:00 PM 22:23:00 00 6")},
