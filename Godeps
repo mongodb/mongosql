@@ -13,5 +13,5 @@ github.com/spacemonkeygo/openssl 6b1c8e0d11cbec09b111e263e28a5a089a06fba1 github
 github.com/spacemonkeygo/spacelog ae95ccc1eb0c8ce2496c43177430efd61930f7e4
 golang.org/x/crypto	a7ead6ddf06233883deca151dffaef2effbf498f	github.com/golang/crypto
 golang.org/x/text   ceefd2213ed29504fff30155163c8f59827734f3	github.com/golang/text
-gopkg.in/mgo.v2   61b714da88cdcf7ab3663d758bb035506fcf9d2b	github.com/10gen/mgo
+gopkg.in/mgo.v2   7ddd511871dec26ace0517365e4e496b545159b5	github.com/10gen/mgo
 gopkg.in/tomb.v2			                    14b3d72120e8d10ea6e6b7f87f7175734b1faab8
