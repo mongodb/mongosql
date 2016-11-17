@@ -183,7 +183,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		return bson.M{"$divide": []interface{}{left, right}}, true
+		return wrapInCond(
+			nil,
+			bson.M{"$divide": []interface{}{left, right}},
+			bson.M{"$eq": []interface{}{right, 0}},
+		), true
 
 	case *SQLEqualsExpr:
 		left, ok := t.TranslateExpr(typedE.left)
@@ -257,8 +261,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		return bson.M{"$trunc": []interface{}{
-			bson.M{"$div": []interface{}{left, right}}}}, true
+		return wrapInCond(
+			nil,
+			bson.M{"$trunc": []interface{}{bson.M{"$divide": []interface{}{left, right}}}},
+			bson.M{"$eq": []interface{}{right, 0}},
+		), true
 
 	case *SQLLessThanExpr:
 		left, ok := t.TranslateExpr(typedE.left)

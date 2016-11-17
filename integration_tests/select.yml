@@ -456,6 +456,24 @@ testcases:
 
 ### Expressions
 
+- sql: "select a / id FROM foo"
+  description: "divide"
+  expected_names: ["a/id"]
+  expected_types: [float64]
+  expected: 
+  - [~]
+  - [2.0]
+  - [1.5]
+
+- sql: "select a DIV id FROM foo"
+  description: "divide"
+  expected_names: ["adid"]
+  expected_types: [int]
+  expected: 
+  - [~]
+  - [2]
+  - [1]
+
 # Case
 - sql: "select (case when a > 1 then 'gt' else 'lt' end) as p FROM foo"
   description: "case"
