@@ -3008,6 +3008,12 @@ func TestExprNoPushdown(t *testing.T) {
 			test{"round(s)"},
 			test{"length(a)"},
 			test{"dayname(a)"},
+			test{"s + s"},
+			test{"s - s"},
+			test{"s * s"},
+			test{"s / s"},
+			test{"s div s"},
+			test{`s % s`},
 		}
 
 		runTests(tests)

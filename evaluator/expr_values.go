@@ -64,10 +64,7 @@ func (sb SQLBool) Bool() bool {
 }
 
 func (sb SQLBool) Value() interface{} {
-	if sb > 0 {
-		return true
-	}
-	return false
+	return sb
 }
 
 //

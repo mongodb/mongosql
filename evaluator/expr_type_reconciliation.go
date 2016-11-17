@@ -25,9 +25,9 @@ func isSimilar(leftType, rightType schema.SQLType) bool {
 		return true
 	}
 	switch leftType {
-	case schema.SQLArrNumeric, schema.SQLFloat, schema.SQLInt, schema.SQLInt64, schema.SQLNumeric, schema.SQLUint64:
+	case schema.SQLArrNumeric, schema.SQLFloat, schema.SQLInt, schema.SQLInt64, schema.SQLNumeric, schema.SQLUint64, schema.SQLDecimal128:
 		switch rightType {
-		case schema.SQLArrNumeric, schema.SQLFloat, schema.SQLInt, schema.SQLInt64, schema.SQLNumeric, schema.SQLUint64:
+		case schema.SQLArrNumeric, schema.SQLFloat, schema.SQLInt, schema.SQLInt64, schema.SQLNumeric, schema.SQLUint64, schema.SQLDecimal128:
 			return true
 		}
 	case schema.SQLDate, schema.SQLTimestamp:
@@ -650,6 +650,42 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 	}
 
 	return nil, fmt.Errorf("unable to convert '%v' (%T) to %v", value, value, sqlType)
+}
+
+func convertExprs(exprs []SQLExpr, convTypes []schema.SQLType, defaults []SQLValue) []SQLExpr {
+	if len(convTypes) < len(exprs) {
+		// There is an error in how this function is being used
+		panic("convTypes shorter than exprs")
+	} else if len(convTypes) != len(defaults) {
+		// There is an error in how this function is being used
+		panic("convTypes not same length as defaults")
+	}
+	newExprs := make([]SQLExpr, len(exprs))
+	for i, expr := range exprs {
+		convType := convTypes[i]
+		defaultValue := defaults[i]
+		exprType := expr.Type()
+		if isSimilar(exprType, convType) {
+			newExprs[i] = expr
+		} else {
+			newExprs[i] = &SQLConvertExpr{
+				expr,
+				convType,
+				defaultValue,
+			}
+		}
+	}
+	return newExprs
+}
+
+func convertAllExprs(exprs []SQLExpr, convType schema.SQLType, defaultValue SQLValue) []SQLExpr {
+	convTypes := make([]schema.SQLType, len(exprs))
+	defaults := make([]SQLValue, len(exprs))
+	for i := range exprs {
+		convTypes[i] = convType
+		defaults[i] = defaultValue
+	}
+	return convertExprs(exprs, convTypes, defaults)
 }
 
 // preferentialType accepts a variable number of

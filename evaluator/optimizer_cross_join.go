@@ -51,7 +51,7 @@ func (v *crossJoinOptimizer) visit(n node) (node, error) {
 		if !matcherOk {
 			switch typedM := typedN.matcher.(type) {
 			case SQLBool:
-				matcherOk = typedM.Value().(bool)
+				matcherOk = typedM.Float64() > 0
 			}
 		}
 		if matcherOk && (typedN.kind == InnerJoin || typedN.kind == CrossJoin) && len(v.predicateParts) > 0 {

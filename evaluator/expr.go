@@ -117,6 +117,11 @@ func (_ *MongoFilterExpr) Type() schema.SQLType {
 //
 type SQLAddExpr sqlBinaryNode
 
+func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLAddExpr{reconciled[0], reconciled[1]}
+}
+
 func (add *SQLAddExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := add.left.Evaluate(ctx)
 	if err != nil {
@@ -379,6 +384,11 @@ func (ce SQLConvertExpr) Type() schema.SQLType {
 //
 type SQLDivideExpr sqlBinaryNode
 
+func NewSQLDivideExpr(left, right SQLExpr) *SQLDivideExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLDivideExpr{reconciled[0], reconciled[1]}
+}
+
 func (div *SQLDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := div.left.Evaluate(ctx)
 	if err != nil {
@@ -605,6 +615,11 @@ func (_ *SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
 // SQLIDivideExpr evaluates the integer quotient of the left expression divided by the right.
 //
 type SQLIDivideExpr sqlBinaryNode
+
+func NewSQLIDivideExpr(left, right SQLExpr) *SQLIDivideExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLIDivideExpr{reconciled[0], reconciled[1]}
+}
 
 func (div *SQLIDivideExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := div.left.Evaluate(ctx)
@@ -917,6 +932,11 @@ func (_ *SQLLikeExpr) Type() schema.SQLType {
 //
 type SQLModExpr sqlBinaryNode
 
+func NewSQLModExpr(left, right SQLExpr) *SQLModExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLModExpr{reconciled[0], reconciled[1]}
+}
+
 func (mod *SQLModExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := mod.left.Evaluate(ctx)
 	if err != nil {
@@ -952,6 +972,11 @@ func (mod *SQLModExpr) Type() schema.SQLType {
 // SQLMultiplyExpr evaluates to the product of two expressions
 //
 type SQLMultiplyExpr sqlBinaryNode
+
+func NewSQLMultiplyExpr(left, right SQLExpr) *SQLMultiplyExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLMultiplyExpr{reconciled[0], reconciled[1]}
+}
 
 func (mult *SQLMultiplyExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := mult.left.Evaluate(ctx)
@@ -1515,6 +1540,11 @@ func (v *constantColumnReplacer) visit(n node) (node, error) {
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
 //
 type SQLSubtractExpr sqlBinaryNode
+
+func NewSQLSubtractExpr(left, right SQLExpr) *SQLSubtractExpr {
+	reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLFloat, SQLNone)
+	return &SQLSubtractExpr{reconciled[0], reconciled[1]}
+}
 
 func (sub *SQLSubtractExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := sub.left.Evaluate(ctx)

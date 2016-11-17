@@ -56,49 +56,11 @@ type normalizingScalarFunc interface {
 }
 
 func convertAllArgs(f *SQLScalarFunctionExpr, convType schema.SQLType, defaultValue SQLValue) *SQLScalarFunctionExpr {
-	newExprs := make([]SQLExpr, len(f.Exprs))
-	for i, expr := range f.Exprs {
-		exprType := expr.Type()
-		if isSimilar(exprType, convType) {
-			newExprs[i] = expr
-		} else {
-			newExprs[i] = &SQLConvertExpr{
-				expr,
-				convType,
-				defaultValue,
-			}
-		}
-	}
+	newExprs := convertAllExprs(f.Exprs, convType, defaultValue)
 	return &SQLScalarFunctionExpr{
 		f.Name,
 		newExprs,
 	}
-}
-
-func convertExprs(exprs []SQLExpr, convTypes []schema.SQLType, defaults []SQLValue) []SQLExpr {
-	if len(convTypes) < len(exprs) {
-		// There is an error in how this function is being used
-		panic("convTypes shorter than exprs")
-	} else if len(convTypes) != len(defaults) {
-		// There is an error in how this function is being used
-		panic("convTypes not same length as defaults")
-	}
-	newExprs := make([]SQLExpr, len(exprs))
-	for i, expr := range exprs {
-		convType := convTypes[i]
-		defaultValue := defaults[i]
-		exprType := expr.Type()
-		if isSimilar(exprType, convType) {
-			newExprs[i] = expr
-		} else {
-			newExprs[i] = &SQLConvertExpr{
-				expr,
-				convType,
-				defaultValue,
-			}
-		}
-	}
-	return newExprs
 }
 
 func NewIfScalarFunctionExpr(condition, truePart, falsePart SQLExpr) *SQLScalarFunctionExpr {

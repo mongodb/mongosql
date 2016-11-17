@@ -855,17 +855,17 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		switch typedE.Operator {
 		case parser.AST_PLUS:
-			return &SQLAddExpr{left, right}, nil
+			return NewSQLAddExpr(left, right), nil
 		case parser.AST_MINUS:
-			return &SQLSubtractExpr{left, right}, nil
+			return NewSQLSubtractExpr(left, right), nil
 		case parser.AST_MULT:
-			return &SQLMultiplyExpr{left, right}, nil
+			return NewSQLMultiplyExpr(left, right), nil
 		case parser.AST_DIV:
-			return &SQLDivideExpr{left, right}, nil
+			return NewSQLDivideExpr(left, right), nil
 		case parser.AST_IDIV:
-			return &SQLIDivideExpr{left, right}, nil
+			return NewSQLIDivideExpr(left, right), nil
 		case parser.AST_MOD:
-			return &SQLModExpr{left, right}, nil
+			return NewSQLModExpr(left, right), nil
 		default:
 			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for binary operator '%v'", string(typedE.Operator))
 		}
