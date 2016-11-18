@@ -53,6 +53,8 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts options.SqldOptio
 		variables:         variable.NewGlobalContainer(),
 	}
 
+	s.variables.MongoDBStrictDecimalParsingOn32 = opts.StrictDecimalParsingOn32
+
 	var err error
 
 	if len(opts.SSLPEMKeyFile) > 0 {

@@ -759,6 +759,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 			selectID:                    a.selectIDGenerator.generate(),
 			selectIDGenerator:           a.selectIDGenerator,
 			projectedColumnAggregateMap: make(map[int]SQLExpr),
+			variables:                   a.variables,
 		}
 
 		plan, err := subqueryAlgebrizer.translateSelectStatement(typedT.Select)
@@ -792,6 +793,7 @@ func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryE
 		selectID:                    a.selectIDGenerator.generate(),
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
+		variables:                   a.variables,
 	}
 
 	plan, err := subqueryAlgebrizer.translateSelectStatement(expr.Select)
@@ -974,8 +976,12 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	case parser.NumVal:
 		exprString := parser.String(expr)
 
+		useFloats := !a.variables.MongoDBInfo.VersionAtLeast(3, 3, 15) && !a.variables.MongoDBStrictDecimalParsingOn32
+
 		// http://dev.mysql.com/doc/refman/5.7/en/precision-math-numbers.html
-		if strings.ContainsAny(exprString, "Ee") {
+		// Because MongoDB 3.2 does not support decimals, we are going to override any decimal literal and parse it as a float
+		// when connected to < MongoDB 3.4 AND the user hasn't informed us that we should force the use of decimals against 3.2.
+		if strings.ContainsAny(exprString, "Ee") || (useFloats && strings.Contains(exprString, ".")) {
 			f, err := strconv.ParseFloat(exprString, 64)
 			if err != nil {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "double", exprString)
@@ -1000,7 +1006,14 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return SQLUint64(i), nil
 		}
 
-		// if this doesn't work, we can still use a decimal...
+		if useFloats {
+			f, err := strconv.ParseFloat(exprString, 64)
+			if err != nil {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "integer", exprString)
+			}
+			return SQLFloat(f), nil
+		}
+
 		i, err := decimal.NewFromString(exprString)
 		if err != nil {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "integer", exprString)

@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -1729,6 +1730,16 @@ func TestAlgebrizeExpr(t *testing.T) {
 			test("-202E-1", SQLFloat(-20.2))
 			test("20.2", SQLDecimal128(decimal.New(202, -1)))
 			test("-20.2", SQLDecimal128(decimal.New(-202, -1)))
+			d, _ := decimal.NewFromString("100000000000000000000000000000000000")
+			test("100000000000000000000000000000000000", SQLDecimal128(d))
+
+			oldVersionArray := testInfo.VersionArray
+			testInfo.VersionArray = []int{3, 2, 0}
+			test("30.2", SQLFloat(30.2))
+			test("-30.2", SQLFloat(-30.2))
+			f, _ := strconv.ParseFloat("1000000000000000000000000000000000000", 64)
+			test("1000000000000000000000000000000000000", SQLFloat(f))
+			testInfo.VersionArray = oldVersionArray
 		})
 
 		Convey("Or", func() {

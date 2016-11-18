@@ -8,24 +8,25 @@ import (
 )
 
 const (
-	Autocommit             Name = "autocommit"
-	CharacterSetClient          = "character_set_client"
-	CharacterSetConnection      = "character_set_connection"
-	CharacterSetDatabase        = "character_set_database"
-	CharacterSetResults         = "character_set_results"
-	CollationConnection         = "collation_connection"
-	CollationDatabase           = "collation_database"
-	CollationServer             = "collation_server"
-	InteractiveTimeoutSecs      = "interactive_timeout"
-	MaxAllowedPacket            = "max_allowed_packet"
-	MongoDBGitVersion           = "mongodb_git_version"
-	MongoDBVersion              = "mongodb_version"
-	Socket                      = "socket"
-	SQLAutoIsNull               = "sql_auto_is_null"
-	SQLSelectLimit              = "sql_select_limit"
-	Version                     = "version"
-	VersionComment              = "version_comment"
-	WaitTimeoutSecs             = "wait_timeout"
+	Autocommit                      Name = "autocommit"
+	CharacterSetClient                   = "character_set_client"
+	CharacterSetConnection               = "character_set_connection"
+	CharacterSetDatabase                 = "character_set_database"
+	CharacterSetResults                  = "character_set_results"
+	CollationConnection                  = "collation_connection"
+	CollationDatabase                    = "collation_database"
+	CollationServer                      = "collation_server"
+	InteractiveTimeoutSecs               = "interactive_timeout"
+	MaxAllowedPacket                     = "max_allowed_packet"
+	MongoDBStrictDecimalParsingOn32      = "mongodb_strict_decimal_parsing_on_32"
+	MongoDBGitVersion                    = "mongodb_git_version"
+	MongoDBVersion                       = "mongodb_version"
+	Socket                               = "socket"
+	SQLAutoIsNull                        = "sql_auto_is_null"
+	SQLSelectLimit                       = "sql_select_limit"
+	Version                              = "version"
+	VersionComment                       = "version_comment"
+	WaitTimeoutSecs                      = "wait_timeout"
 )
 
 type definition struct {
@@ -143,6 +144,15 @@ func init() {
 		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.MaxAllowedPacket },
 		SetValue:         setMaxAllowedPacket,
+	}
+
+	definitions[MongoDBStrictDecimalParsingOn32] = &definition{
+		Name:             MongoDBStrictDecimalParsingOn32,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLInt,
+		GetValue:         func(c *Container) interface{} { return c.MongoDBStrictDecimalParsingOn32 },
+		SetValue:         setMongoDBStrictDecimalParsingOn32,
 	}
 
 	definitions[MongoDBGitVersion] = &definition{
@@ -416,6 +426,16 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 	}
 
 	c.MaxAllowedPacket = i
+	return nil
+}
+
+func setMongoDBStrictDecimalParsingOn32(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
+	if !ok {
+		return wrongTypeError(MongoDBStrictDecimalParsingOn32, v)
+	}
+
+	c.MongoDBStrictDecimalParsingOn32 = b
 	return nil
 }
 

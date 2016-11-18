@@ -98,8 +98,9 @@ func (_ SqldMongoConnection) Name() string {
 }
 
 type SqldSchema struct {
-	Schema    string `long:"schema" description:"the path to a schema file"`
-	SchemaDir string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
+	Schema                   string `long:"schema" description:"the path to a schema file"`
+	SchemaDir                string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
+	StrictDecimalParsingOn32 bool   `long:"strictDecimalParsingOn32" description:"parse decimal literals as decimal data type when connected to a 3.2 server (this prevents certain operations since MongoDB 3.2 does not support the decimal data type)"`
 }
 
 func (_ SqldSchema) Name() string {

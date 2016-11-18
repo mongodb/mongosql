@@ -121,3 +121,21 @@ schema:
 		}
 	})
 }
+
+func TestVersionAtLeast(t *testing.T) {
+	Convey("Subject: VersionAtLeast", t, func() {
+		info := &mongodb.Info{
+			VersionArray: []int{3, 2, 1},
+		}
+
+		So(info.VersionAtLeast(3, 2, 1), ShouldBeTrue)
+		So(info.VersionAtLeast(3, 2, 2), ShouldBeFalse)
+		So(info.VersionAtLeast(3, 3, 0), ShouldBeFalse)
+		So(info.VersionAtLeast(4, 0, 0), ShouldBeFalse)
+		So(info.VersionAtLeast(4, 4, 4), ShouldBeFalse)
+		So(info.VersionAtLeast(3, 2, 0), ShouldBeTrue)
+		So(info.VersionAtLeast(3, 0, 2), ShouldBeTrue)
+		So(info.VersionAtLeast(2, 3, 3), ShouldBeTrue)
+	})
+
+}

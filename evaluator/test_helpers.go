@@ -263,8 +263,10 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 // all privileges to the specified privileges.
 func getMongoDBInfo(sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
 	i := &mongodb.Info{
-		Privileges: privileges,
-		Databases:  make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo),
+		Privileges:   privileges,
+		Databases:    make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo),
+		Version:      "3.4.0",
+		VersionArray: []int{3, 4, 0},
 	}
 	for _, db := range sch.Databases {
 		dbInfo := &mongodb.DatabaseInfo{

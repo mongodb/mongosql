@@ -19,8 +19,6 @@ type CollectionName string
 
 // Info is the configuration of MongoDB at runtime.
 type Info struct {
-	buildInfo *mgo.BuildInfo
-
 	// Git version is the git hash of the mongodb server.
 	GitVersion string
 	// Databases is information about databases by name.
@@ -29,11 +27,21 @@ type Info struct {
 	Privileges Privilege
 	// Version is the version of mongodb server.
 	Version string
+	// VersionArray are the components of the version.
+	VersionArray []int
 }
 
 // VersionAtLeast indicates whether the MongoDB version is at least the required version.
 func (i *Info) VersionAtLeast(version ...int) bool {
-	return i.buildInfo.VersionAtLeast(version...)
+	for idx, vi := range version {
+		if idx == len(i.VersionArray) {
+			return false
+		}
+		if ivi := i.VersionArray[idx]; ivi != vi {
+			return ivi >= vi
+		}
+	}
+	return true
 }
 
 // DatabaseInfo is the configuration of a database in MongoDB.
@@ -72,10 +80,10 @@ func LoadInfo(logger *log.Logger, session *mgo.Session, config *schema.Schema, r
 	dbs := createDatabasesFromSchema(config)
 
 	i := &Info{
-		buildInfo:  &buildInfo,
-		Databases:  dbs,
-		GitVersion: buildInfo.GitVersion,
-		Version:    buildInfo.Version,
+		Databases:    dbs,
+		GitVersion:   buildInfo.GitVersion,
+		Version:      buildInfo.Version,
+		VersionArray: buildInfo.VersionArray,
 	}
 
 	if requireAuth {
