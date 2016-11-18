@@ -45,6 +45,7 @@ buildvariants:
 - name: linux-64-amazon-ami-benchmarks
   display_name: Amazon Linux (Enterprise Benchmarks)
   expansions:
+    build_tags: -tags ssl
     gotest_env: "SQLPROXY_SSLTEST=1"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.3.15.tgz --output mongodb.tgz
     mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
@@ -572,8 +573,10 @@ tasks:
               export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
             fi;
           fi;
+          mkfifo test_pipe
+          tee -a benchmark.txt < test_pipe&
           ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -out benchmark_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run benchmark_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 4h > benchmark.txt 2>&1; if [ $? -ne 0 ]; then cat benchmark.txt; exit 1; else cat benchmark.txt; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run benchmark_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 4h > test_pipe
     - func: "upload benchmark report"
 
 - name: blackbox

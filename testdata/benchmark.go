@@ -89,10 +89,10 @@ func writeBenchmarkTestFile(out io.Writer, queries Queries) {
 
 import (
 	"database/sql"
-	"fmt"
 	"flag"
-	"github.com/10gen/sqlproxy"
+	"fmt"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/options"
 	_ "github.com/go-sql-driver/mysql"
 	"sync"
 	"testing"
@@ -124,23 +124,19 @@ func setup() {
 	mustLoadTestData(*testMongoDBHost, *testMongoDBPort, config)
 
 	cfg := &schema.Schema{
-		RawDatabases: config.Databases,
+		Databases: config.Databases,
 	}
 
-	opts, _ := sqlproxy.NewSqldOptions()
+	opts, _ := options.NewSqldOptions()
 	opts.Addr = fmt.Sprintf("%v:%v", *testProxyAddress, *testProxyPort)
 	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", *testMongoDBHost, *testMongoDBPort)
 	opts.NoUnixSocket = new(bool)
 	*opts.NoUnixSocket = true
- 
-	buildSchemaMaps(cfg)
 
-	s, err := testServer(cfg, opts)
-	if err != nil {
-	    panic(err)
-	}
+	s := testServer(cfg, opts)
 	go s.Run()
 
+	var err error
 	db1, err = sql.Open("mysql", fmt.Sprintf("root@tcp(%v:%v)/%v", *testProxyAddress, *testProxyPort, *testProxyDB1))
 	if err != nil {
 	    panic(err)
