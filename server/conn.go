@@ -279,8 +279,19 @@ func (c *conn) handshake() error {
 		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error retrieving information from MongoDB: %v", err)
 	}
 
-	if !c.variables.MongoDBInfo.VersionAtLeast(3, 2, 0) {
-		err = fmt.Errorf("server version is %v but version >= 3.2.0 required", c.variables.MongoDBInfo.Version)
+	err = c.variables.MongoDBInfo.SetCompatibleVersion(c.server.variables.MongoDBVersionCompatibility)
+	if err != nil {
+		c.writeError(err)
+		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error setting compatibility version: %v", err)
+	}
+	c.logger.Logf(log.Info, "connected to MongoDB %v, %v", c.variables.MongoDBInfo.Version, c.variables.MongoDBInfo.GitVersion)
+
+	if c.variables.MongoDBInfo.CompatibleVersion != "" {
+		c.logger.Logf(log.Info, "MongoDB version compatibility is %v", c.variables.MongoDBInfo.CompatibleVersion)
+	}
+
+	if !c.variables.MongoDBInfo.VersionAtLeast(3, 2) {
+		err = fmt.Errorf("MongoDB version is %v but version >= 3.2 required", c.variables.MongoDBInfo.Version)
 		c.writeError(err)
 		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, err.Error())
 	}

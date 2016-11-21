@@ -24,24 +24,24 @@ type Container struct {
 	// backing storage for non-user variables below
 	//
 
-	AutoCommit                      bool
-	CharacterSetClient              *collation.Charset
-	CharacterSetConnection          *collation.Charset
-	CharacterSetDatabase            *collation.Charset
-	CharacterSetResults             *collation.Charset
-	CollationConnection             *collation.Collation
-	CollationDatabase               *collation.Collation
-	CollationServer                 *collation.Collation
-	MaxAllowedPacket                int64
-	MongoDBInfo                     *mongodb.Info
-	MongoDBStrictDecimalParsingOn32 bool
-	Socket                          string
-	SQLAutoIsNull                   bool
-	SQLSelectLimit                  uint64
-	Version                         string
-	VersionComment                  string
-	InteractiveTimeoutSecs          int64
-	WaitTimeoutSecs                 int64
+	AutoCommit                  bool
+	CharacterSetClient          *collation.Charset
+	CharacterSetConnection      *collation.Charset
+	CharacterSetDatabase        *collation.Charset
+	CharacterSetResults         *collation.Charset
+	CollationConnection         *collation.Collation
+	CollationDatabase           *collation.Collation
+	CollationServer             *collation.Collation
+	MaxAllowedPacket            int64
+	MongoDBInfo                 *mongodb.Info
+	MongoDBVersionCompatibility string
+	Socket                      string
+	SQLAutoIsNull               bool
+	SQLSelectLimit              uint64
+	Version                     string
+	VersionComment              string
+	InteractiveTimeoutSecs      int64
+	WaitTimeoutSecs             int64
 }
 
 // NewGlobalContainer creates a container with a GlobalScope.
@@ -50,17 +50,17 @@ func NewGlobalContainer() *Container {
 		scope: GlobalScope,
 
 		// default values
-		AutoCommit:                      true,
-		CharacterSetClient:              collation.DefaultCharset,
-		CharacterSetConnection:          collation.DefaultCharset,
-		CharacterSetDatabase:            collation.DefaultCharset,
-		CharacterSetResults:             collation.DefaultCharset,
-		CollationConnection:             collation.Default,
-		CollationDatabase:               collation.Default,
-		CollationServer:                 collation.Default,
-		MaxAllowedPacket:                1073741824,
-		MongoDBInfo:                     nil,
-		MongoDBStrictDecimalParsingOn32: false,
+		AutoCommit:                  true,
+		CharacterSetClient:          collation.DefaultCharset,
+		CharacterSetConnection:      collation.DefaultCharset,
+		CharacterSetDatabase:        collation.DefaultCharset,
+		CharacterSetResults:         collation.DefaultCharset,
+		CollationConnection:         collation.Default,
+		CollationDatabase:           collation.Default,
+		CollationServer:             collation.Default,
+		MaxAllowedPacket:            1073741824,
+		MongoDBInfo:                 nil,
+		MongoDBVersionCompatibility: "",
 		Socket:                 "",
 		SQLAutoIsNull:          false,
 		SQLSelectLimit:         math.MaxUint64,

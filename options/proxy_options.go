@@ -82,15 +82,16 @@ func (lo SqldLog) IsQuiet() bool {
 }
 
 type SqldMongoConnection struct {
-	MongoSSL                 bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
-	MongoURI                 string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to" default:"mongodb://localhost:27017"`
-	MongoAllowInvalidCerts   bool   `long:"mongo-sslAllowInvalidCertificates" description:"don't require the certificate presented by the MongoDB server to be valid, when using --mongo-ssl"`
-	MongoSSLAllowInvalidHost bool   `long:"mongo-sslAllowInvalidHostnames" description:"bypass the validation for server name"`
-	MongoCAFile              string `long:"mongo-sslCAFile" value-name:"<filename>" description:"path to a CA certificate file to use for authenticating certificates from MongoDB, when using --mongo-ssl"`
-	MongoSSLCRLFile          string `long:"mongo-sslCRLFile" value-name:"<filename>" description:"the .pem file containing the certificate revocation list"`
-	MongoSSLFipsMode         bool   `long:"mongo-sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
-	MongoPEMKeyFile          string `long:"mongo-sslPEMKeyFile" value-name:"<filename>" description:"path to a file containing the certificate and private key for connecting to MongoDB, when using --mongo-ssl"`
-	MongoPEMKeyFilePassword  string `long:"mongo-sslPEMKeyPassword" description:"password to decrypt private key in mongo-sslPEMKeyFile"`
+	MongoSSL                  bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
+	MongoURI                  string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to" default:"mongodb://localhost:27017"`
+	MongoAllowInvalidCerts    bool   `long:"mongo-sslAllowInvalidCertificates" description:"don't require the certificate presented by the MongoDB server to be valid, when using --mongo-ssl"`
+	MongoSSLAllowInvalidHost  bool   `long:"mongo-sslAllowInvalidHostnames" description:"bypass the validation for server name"`
+	MongoCAFile               string `long:"mongo-sslCAFile" value-name:"<filename>" description:"path to a CA certificate file to use for authenticating certificates from MongoDB, when using --mongo-ssl"`
+	MongoSSLCRLFile           string `long:"mongo-sslCRLFile" value-name:"<filename>" description:"the .pem file containing the certificate revocation list"`
+	MongoSSLFipsMode          bool   `long:"mongo-sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
+	MongoPEMKeyFile           string `long:"mongo-sslPEMKeyFile" value-name:"<filename>" description:"path to a file containing the certificate and private key for connecting to MongoDB, when using --mongo-ssl"`
+	MongoPEMKeyFilePassword   string `long:"mongo-sslPEMKeyPassword" description:"password to decrypt private key in mongo-sslPEMKeyFile"`
+	MongoVersionCompatibility string `long:"mongo-versionCompatibility" description:"indicates the mongodb version with which to be compatible (only necessary when used with mixed version replica sets)."`
 }
 
 func (_ SqldMongoConnection) Name() string {
@@ -98,9 +99,8 @@ func (_ SqldMongoConnection) Name() string {
 }
 
 type SqldSchema struct {
-	Schema                   string `long:"schema" description:"the path to a schema file"`
-	SchemaDir                string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
-	StrictDecimalParsingOn32 bool   `long:"strictDecimalParsingOn32" description:"parse decimal literals as decimal data type when connected to a 3.2 server (this prevents certain operations since MongoDB 3.2 does not support the decimal data type)"`
+	Schema    string `long:"schema" description:"the path to a schema file"`
+	SchemaDir string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
 }
 
 func (_ SqldSchema) Name() string {

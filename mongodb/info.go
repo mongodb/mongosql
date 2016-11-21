@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/10gen/sqlproxy/log"
@@ -25,19 +26,49 @@ type Info struct {
 	Databases map[DatabaseName]*DatabaseInfo
 	// Privileges is a union of all the database privileges
 	Privileges Privilege
-	// Version is the version of mongodb server.
+	// Version is the version of the mongodb server.
 	Version string
 	// VersionArray are the components of the version.
 	VersionArray []int
+	// CompatibleVersion is the version of the mongodb server we will pretend we are talking to.
+	CompatibleVersion string
+	// CompatibleVersionArray are the components of the compatible version.
+	CompatibleVersionArray []int
 }
 
 // VersionAtLeast indicates whether the MongoDB version is at least the required version.
 func (i *Info) VersionAtLeast(version ...int) bool {
-	for idx, vi := range version {
-		if idx == len(i.VersionArray) {
+	if len(i.CompatibleVersionArray) > 0 {
+		return versionAtLeast(i.CompatibleVersionArray, version)
+	}
+	return versionAtLeast(i.VersionArray, version)
+}
+
+// SetCompatibleVersion sets the compatible version and compatible version array.
+func (i *Info) SetCompatibleVersion(compatibleVersion string) error {
+	var array []int
+	if compatibleVersion != "" {
+		parts := strings.Split(compatibleVersion, ".")
+		for _, p := range parts {
+			i, err := strconv.Atoi(p)
+			if err != nil {
+				return fmt.Errorf("expected an integer: %v", err)
+			}
+			array = append(array, i)
+		}
+	}
+
+	i.CompatibleVersion = compatibleVersion
+	i.CompatibleVersionArray = array
+	return nil
+}
+
+func versionAtLeast(versionArray []int, userVersion []int) bool {
+	for idx, vi := range userVersion {
+		if idx == len(versionArray) {
 			return false
 		}
-		if ivi := i.VersionArray[idx]; ivi != vi {
+		if ivi := versionArray[idx]; ivi != vi {
 			return ivi >= vi
 		}
 	}
@@ -75,7 +106,6 @@ func LoadInfo(logger *log.Logger, session *mgo.Session, config *schema.Schema, r
 	if err != nil {
 		return nil, err
 	}
-	logger.Logf(log.Info, "connected to MongoDB %v, %v", buildInfo.Version, buildInfo.GitVersion)
 
 	dbs := createDatabasesFromSchema(config)
 

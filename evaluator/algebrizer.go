@@ -976,7 +976,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	case parser.NumVal:
 		exprString := parser.String(expr)
 
-		useFloats := !a.variables.MongoDBInfo.VersionAtLeast(3, 3, 15) && !a.variables.MongoDBStrictDecimalParsingOn32
+		useFloats := !a.variables.MongoDBInfo.VersionAtLeast(3, 3, 15)
 
 		// http://dev.mysql.com/doc/refman/5.7/en/precision-math-numbers.html
 		// Because MongoDB 3.2 does not support decimals, we are going to override any decimal literal and parse it as a float

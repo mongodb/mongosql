@@ -8,25 +8,25 @@ import (
 )
 
 const (
-	Autocommit                      Name = "autocommit"
-	CharacterSetClient                   = "character_set_client"
-	CharacterSetConnection               = "character_set_connection"
-	CharacterSetDatabase                 = "character_set_database"
-	CharacterSetResults                  = "character_set_results"
-	CollationConnection                  = "collation_connection"
-	CollationDatabase                    = "collation_database"
-	CollationServer                      = "collation_server"
-	InteractiveTimeoutSecs               = "interactive_timeout"
-	MaxAllowedPacket                     = "max_allowed_packet"
-	MongoDBStrictDecimalParsingOn32      = "mongodb_strict_decimal_parsing_on_32"
-	MongoDBGitVersion                    = "mongodb_git_version"
-	MongoDBVersion                       = "mongodb_version"
-	Socket                               = "socket"
-	SQLAutoIsNull                        = "sql_auto_is_null"
-	SQLSelectLimit                       = "sql_select_limit"
-	Version                              = "version"
-	VersionComment                       = "version_comment"
-	WaitTimeoutSecs                      = "wait_timeout"
+	Autocommit                  Name = "autocommit"
+	CharacterSetClient               = "character_set_client"
+	CharacterSetConnection           = "character_set_connection"
+	CharacterSetDatabase             = "character_set_database"
+	CharacterSetResults              = "character_set_results"
+	CollationConnection              = "collation_connection"
+	CollationDatabase                = "collation_database"
+	CollationServer                  = "collation_server"
+	InteractiveTimeoutSecs           = "interactive_timeout"
+	MaxAllowedPacket                 = "max_allowed_packet"
+	MongoDBVersionCompatibility      = "mongodb_version_compatibility"
+	MongoDBGitVersion                = "mongodb_git_version"
+	MongoDBVersion                   = "mongodb_version"
+	Socket                           = "socket"
+	SQLAutoIsNull                    = "sql_auto_is_null"
+	SQLSelectLimit                   = "sql_select_limit"
+	Version                          = "version"
+	VersionComment                   = "version_comment"
+	WaitTimeoutSecs                  = "wait_timeout"
 )
 
 type definition struct {
@@ -146,13 +146,13 @@ func init() {
 		SetValue:         setMaxAllowedPacket,
 	}
 
-	definitions[MongoDBStrictDecimalParsingOn32] = &definition{
-		Name:             MongoDBStrictDecimalParsingOn32,
+	definitions[MongoDBVersionCompatibility] = &definition{
+		Name:             MongoDBVersionCompatibility,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.MongoDBStrictDecimalParsingOn32 },
-		SetValue:         setMongoDBStrictDecimalParsingOn32,
+		SQLType:          schema.SQLVarchar,
+		GetValue:         func(c *Container) interface{} { return c.MongoDBVersionCompatibility },
+		SetValue:         setMongoDBVersionCompatibility,
 	}
 
 	definitions[MongoDBGitVersion] = &definition{
@@ -429,13 +429,19 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 	return nil
 }
 
-func setMongoDBStrictDecimalParsingOn32(c *Container, v interface{}) error {
-	b, ok := convertBool(v)
+func setMongoDBVersionCompatibility(c *Container, v interface{}) error {
+	s, ok := convertString(v)
 	if !ok {
-		return wrongTypeError(MongoDBStrictDecimalParsingOn32, v)
+		return wrongTypeError(MongoDBVersionCompatibility, v)
 	}
 
-	c.MongoDBStrictDecimalParsingOn32 = b
+	if c.MongoDBInfo != nil {
+		err := c.MongoDBInfo.SetCompatibleVersion(s)
+		if err != nil {
+			return err
+		}
+	}
+	c.MongoDBVersionCompatibility = s
 	return nil
 }
 
