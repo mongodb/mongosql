@@ -845,7 +845,9 @@ tasks:
           fi;
           cd mongodb
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v ${cover|-coverprofile=coverage.out} > mongodb.suite 2>&1; if [ $? -ne 0 ]; then cat mongodb.suite; exit 1; else cat mongodb.suite; exit 0; fi
+          mkfifo test_pipe
+          tee -a mongodb.suite < test_pipe&
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v ${cover|-coverprofile=coverage.out} > test_pipe 2>&1
     - command: shell.exec
       params:
         working_dir: src/github.com/10gen/sqlproxy

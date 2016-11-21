@@ -1,21 +1,54 @@
 package mongodb_test
 
 import (
+	"os"
 	"testing"
 
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+	toolsdb "github.com/mongodb/mongo-tools/common/db"
+	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+const (
+	testMongoHost = "127.0.0.1"
+	testMongoPort = "27017"
+)
+
+func getSslOpts() *toolsoptions.SSL {
+	sslOpts := &toolsoptions.SSL{}
+
+	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
+		return &toolsoptions.SSL{
+			UseSSL:              true,
+			SSLPEMKeyFile:       "../testdata/client.pem",
+			SSLAllowInvalidCert: true,
+		}
+	}
+
+	return sslOpts
+}
 
 func TestLoadInfo(t *testing.T) {
 	Convey("Subject: LoadInfo", t, func() {
 
-		s, err := mgo.Dial("mongodb://localhost:27017")
+		connection := &toolsoptions.Connection{Host: testMongoHost, Port: testMongoPort}
+		sessionProvider, err := toolsdb.NewSessionProvider(
+			toolsoptions.ToolOptions{
+				Auth:       &toolsoptions.Auth{},
+				Connection: connection,
+				SSL:        getSslOpts(),
+			},
+		)
+		So(err, ShouldBeNil)
+
+		s, err := sessionProvider.GetSession()
+		defer s.Close()
 		So(err, ShouldBeNil)
 
 		db := s.DB("mongodb_info_test")
