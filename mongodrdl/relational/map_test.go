@@ -875,6 +875,15 @@ func TestTypeMapping(t *testing.T) {
 			})
 		}
 
+		Convey("Should ignore bson.MongoTimestamp", func() {
+			collection.IncludeSample(bson.D{{"field", bson.MongoTimestamp(1234)}})
+
+			database := relational.NewDatabase("test")
+			database.Map(collection, noIndexes, true)
+
+			So(len(database.Tables), ShouldEqual, 0)
+		})
+
 		Convey("Should use the majority type for a field", func() {
 			Convey("When the majority type is a scalar and the minority is a non-numeric scalar", func() {
 				collection.IncludeSample(bson.D{{"a", 1}})

@@ -2,13 +2,15 @@ package mongo
 
 import (
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 	"time"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
 const (
-	ArraySchemaTypeName    = "array"
-	DocumentSchemaTypeName = "document"
+	ArraySchemaTypeName     = "array"
+	DocumentSchemaTypeName  = "document"
+	TimestampSchemaTypeName = "bson.MongoTimestamp"
 )
 
 var (

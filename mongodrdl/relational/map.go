@@ -104,6 +104,10 @@ func mapDocument(ctx *mappingContext, path string, doc *mongo.Document) error {
 			}
 			ctx.inPrimaryKey = oldInPrimaryKey
 		case *mongo.Scalar:
+			if v.Name() == mongo.TimestampSchemaTypeName {
+				logger.Logf(log.Info, "ignoring timestamp column '%s' in table '%s'", fieldName, ctx.table.Name)
+				continue
+			}
 			c, err := ctx.table.AddColumn(fieldName, v.Name())
 			if err != nil {
 				return err
