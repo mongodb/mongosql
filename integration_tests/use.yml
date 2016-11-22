@@ -1,0 +1,34 @@
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: "foo"
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+- db: test2
+  tables:
+  - table: bar
+    collection: "bar"
+    columns:
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+
+#
+# Tests
+#
+testcases:
+
+- sql: "use test2"
+  verify: "select b from bar"
+  description: "use"
+  expected_names: ["b"]
+  expected_types: [string]
+  expected: []

@@ -5,10 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/tomb.v2"
+
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
-	"gopkg.in/tomb.v2"
 )
 
 func (c *conn) handleCommand(stmt parser.Statement) error {
@@ -56,6 +57,8 @@ func (c *conn) handleQuery(sql string) (err error) {
 	}
 
 	switch v := stmt.(type) {
+	case *parser.Use:
+		err = c.handleUse(v)
 	case *parser.Select:
 		err = c.handleSelect(v, sql, nil)
 		logTimeTaken()

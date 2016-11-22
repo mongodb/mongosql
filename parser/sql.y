@@ -170,7 +170,7 @@ var (
 
 %type <statement> command
 %type <selStmt> select_statement
-%type <statement> insert_statement update_statement delete_statement set_statement
+%type <statement> insert_statement update_statement delete_statement set_statement use_statement
 %type <statement> create_statement alter_statement rename_statement drop_statement
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
@@ -273,6 +273,7 @@ command:
 | show_statement
 | admin_statement
 | explain_statement
+| use_statement
 
 select_statement:
   SELECT comment_opt distinct_opt select_expression_list
@@ -288,6 +289,11 @@ select_statement:
     $$ = &Union{Type: $2, Left: $1, Right: $3}
   }
 
+use_statement:
+  USE ID
+  {
+    $$ = &Use{DBName: $2}
+  }
 
 insert_statement:
   INSERT comment_opt INTO dml_table_expression column_list_opt row_list on_dup_opt

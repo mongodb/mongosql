@@ -59,6 +59,15 @@ func (*Update) IStatement() {}
 func (*Delete) IStatement() {}
 func (*Set) IStatement()    {}
 func (*DDL) IStatement()    {}
+func (*Use) IStatement()    {}
+
+type Use struct {
+	DBName []byte
+}
+
+func (u *Use) Format(buf *TrackedBuffer) {
+	buf.Fprintf("USE %s", u.DBName)
+}
 
 // SelectStatement any SELECT statement.
 type SelectStatement interface {

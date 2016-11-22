@@ -48,6 +48,7 @@ var keywords = map[string]int{
 	"limit":  LIMIT,
 	"offset": OFFSET,
 	"for":    FOR,
+	"use":    USE,
 
 	"union":     UNION,
 	"all":       ALL,
@@ -63,7 +64,6 @@ var keywords = map[string]int{
 	"outer":         OUTER,
 	"cross":         CROSS,
 	"natural":       NATURAL,
-	"use":           USE,
 	"force":         FORCE,
 	"on":            ON,
 	"into":          INTO,
