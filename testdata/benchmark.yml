@@ -1385,11 +1385,11 @@ schema:
         - Name: loc.coordinates.0
           MongoType: float64
           SqlName: latitude
-          SqlType: float64
+          SqlType: numeric[]
         - Name: loc.coordinates.1
           MongoType: float64
           SqlName: longitude
-          SqlType: float64
+          SqlType: numeric[]
         - Name: airport_city
           MongoType: string
           SqlName: airport_city
