@@ -1069,6 +1069,7 @@ testcases:
   - [0]
   - [0]
 - sql: "SELECT a.`c.y_idx` FROM test.test_empty b LEFT JOIN test.test_c_y_empty a ON a._id=b._id ORDER BY 1"
+  pushdown_only: true
   expected_names: ["c.y_idx"]
   expected_types: [int]
   expected:
