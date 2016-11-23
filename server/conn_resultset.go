@@ -85,7 +85,7 @@ func formatField(collationID uint16, field *Field, value evaluator.SQLValue) err
 	case evaluator.SQLVarchar:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
-		field.ColumnLength = 0xffffff
+		field.ColumnLength = 0xffff
 	case evaluator.SQLUUID:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
