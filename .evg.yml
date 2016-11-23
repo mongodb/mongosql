@@ -271,6 +271,7 @@ functions:
            common/version.go
         ${gorootvars} ${library_path} go build ${build_tags} -o drdl mongodrdl/main/mongodrdl.go
         echo "Done!"
+        echo version: $(git --git-dir .git describe) > version.yml
 
   "build SQLProxy":
     command: shell.exec
@@ -325,14 +326,13 @@ functions:
         rm -rf build
         mkdir build
         cp drdl sqlproxy build
-        echo version: $(git --git-dir .git describe) > version.yml
         if [ "Windows_NT" = "$OS" ]; then
           curl -O http://boxes.10gen.com/build/openssl-1.0.1t-vs2015-installed.tgz
           tar zxvf openssl-1.0.1t-vs2015-installed.tgz
           cp openssl/bin/ssleay32.dll openssl/bin/libeay32.dll build
-          ${python|python} buildscripts/make_archive.py -o release.${archive_format|tgz} --format ${archive_format|tgz} --transform build/sqlproxy=bin/mongosqld${extension} --transform build/drdl=bin/mongodrdl${extension} --transform build/ssleay32.dll=bin/ssleay32.dll --transform build/libeay32.dll=bin/libeay32.dll --transform distsrc/README=README --transform distsrc/THIRD-PARTY-NOTICES=THIRD-PARTY-NOTICES LICENSE distsrc${separator|/}README distsrc${separator|/}THIRD-PARTY-NOTICES build${separator|/}sqlproxy build${separator|/}drdl build${separator|/}libeay32.dll build${separator|/}ssleay32.dll
+          ${python|python} buildscripts/make_archive.py -o release.${archive_format|tgz} --format ${archive_format|tgz} --transform build/sqlproxy=mongodb-bi-${push_name}-${push_arch}-${version}/bin/mongosqld${extension} --transform build/drdl=mongodb-bi-${push_name}-${push_arch}-${version}/bin/mongodrdl${extension} --transform build/ssleay32.dll=mongodb-bi-${push_name}-${push_arch}-${version}/bin/ssleay32.dll --transform build/libeay32.dll=mongodb-bi-${push_name}-${push_arch}-${version}/bin/libeay32.dll --transform distsrc/README=mongodb-bi-${push_name}-${push_arch}-${version}/README --transform distsrc/THIRD-PARTY-NOTICES=mongodb-bi-${push_name}-${push_arch}-${version}/THIRD-PARTY-NOTICES --transform LICENSE=mongodb-bi-${push_name}-${push_arch}-${version}/LICENSE LICENSE distsrc${separator|/}README distsrc${separator|/}THIRD-PARTY-NOTICES build${separator|/}sqlproxy build${separator|/}drdl build${separator|/}libeay32.dll build${separator|/}ssleay32.dll
         else
-          ${python|python} buildscripts/make_archive.py -o release.${archive_format|tgz} --format ${archive_format|tgz} --transform build/sqlproxy=bin/mongosqld${extension} --transform build/drdl=bin/mongodrdl${extension} --transform distsrc/README=README --transform distsrc/THIRD-PARTY-NOTICES=THIRD-PARTY-NOTICES LICENSE distsrc${separator|/}README distsrc${separator|/}THIRD-PARTY-NOTICES build${separator|/}sqlproxy build${separator|/}drdl
+          ${python|python} buildscripts/make_archive.py -o release.${archive_format|tgz} --format ${archive_format|tgz} --transform build/sqlproxy=mongodb-bi-${push_name}-${push_arch}-${version}/bin/mongosqld${extension} --transform build/drdl=mongodb-bi-${push_name}-${push_arch}-${version}/bin/mongodrdl${extension} --transform distsrc/README=mongodb-bi-${push_name}-${push_arch}-${version}/README --transform distsrc/THIRD-PARTY-NOTICES=mongodb-bi-${push_name}-${push_arch}-${version}/THIRD-PARTY-NOTICES --transform LICENSE=mongodb-bi-${push_name}-${push_arch}-${version}/LICENSE LICENSE distsrc${separator|/}README distsrc${separator|/}THIRD-PARTY-NOTICES build${separator|/}sqlproxy build${separator|/}drdl
         fi;
 
   "download mongod":
@@ -757,10 +757,10 @@ tasks:
     - func: "fetch source"
     - func: "build SQLProxy"
     - func: "build MongoDRDL"
-    - func: "create release"
     - command: expansions.update
       params:
         file: src/github.com/10gen/sqlproxy/version.yml
+    - func: "create release"
     - func: "upload release"
 
 - name: evaluator
