@@ -44,7 +44,7 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) *SQLScalarFunctionEx
 type scalarFunc interface {
 	Evaluate([]SQLValue, *EvalCtx) (SQLValue, error)
 	Validate(exprCount int) error
-	Type() schema.SQLType
+	Type([]SQLExpr) schema.SQLType
 }
 
 type reconcilingScalarFunc interface {
@@ -247,7 +247,7 @@ func (f *SQLScalarFunctionExpr) String() string {
 func (f *SQLScalarFunctionExpr) Type() schema.SQLType {
 	sf, ok := scalarFuncMap[f.Name]
 	if ok {
-		return sf.Type()
+		return sf.Type(f.Exprs)
 	}
 
 	return schema.SQLNone
@@ -261,7 +261,7 @@ func (c *constantFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return c.value, nil
 }
 
-func (c *constantFunc) Type() schema.SQLType {
+func (c *constantFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return c.value.Type()
 }
 
@@ -289,7 +289,7 @@ func (f singleArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLVa
 	return SQLFloat(result), nil
 }
 
-func (_ singleArgFloatMathFunc) Type() schema.SQLType {
+func (_ singleArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
@@ -334,7 +334,7 @@ func (f dualArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValu
 	return SQLFloat(result), nil
 }
 
-func (_ dualArgFloatMathFunc) Type() schema.SQLType {
+func (_ dualArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
@@ -375,7 +375,7 @@ func (f multiArgFloatMathFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLVal
 	return f.dual.Evaluate(values, ctx)
 }
 
-func (_ multiArgFloatMathFunc) Type() schema.SQLType {
+func (_ multiArgFloatMathFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
@@ -401,7 +401,7 @@ func (_ *connectionIdFunc) RequiresEvalCtx() bool {
 	return true
 }
 
-func (_ *connectionIdFunc) Type() schema.SQLType {
+func (_ *connectionIdFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -419,7 +419,7 @@ func (_ *dbFunc) RequiresEvalCtx() bool {
 	return true
 }
 
-func (_ *dbFunc) Type() schema.SQLType {
+func (_ *dbFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -437,7 +437,7 @@ func (_ *userFunc) RequiresEvalCtx() bool {
 	return true
 }
 
-func (_ *userFunc) Type() schema.SQLType {
+func (_ *userFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -455,7 +455,7 @@ func (_ *versionFunc) RequiresEvalCtx() bool {
 	return true
 }
 
-func (_ *versionFunc) Type() schema.SQLType {
+func (_ *versionFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -478,7 +478,7 @@ func (_ *addDateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *addDateFunc) Type() schema.SQLType {
+func (_ *addDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
@@ -504,7 +504,7 @@ func (_ *asciiFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLInt(c), nil
 }
 
-func (_ *asciiFunc) Type() schema.SQLType {
+func (_ *asciiFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -519,7 +519,7 @@ func (_ *castFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return val, nil
 }
 
-func (_ *castFunc) Type() schema.SQLType {
+func (_ *castFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -554,7 +554,7 @@ func (_ *charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(string(bytes)), nil
 }
 
-func (_ *charFunc) Type() schema.SQLType {
+func (_ *charFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -579,7 +579,7 @@ func (_ *characterLengthFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValu
 	return SQLInt(len(value)), nil
 }
 
-func (_ *characterLengthFunc) Type() schema.SQLType {
+func (_ *characterLengthFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -603,7 +603,7 @@ func (_ *coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return SQLNull, nil
 }
 
-func (_ *coalesceFunc) Type() schema.SQLType {
+func (_ *coalesceFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -650,7 +650,7 @@ func (_ *concatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *concatFunc) Type() schema.SQLType {
+func (_ *concatFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -707,7 +707,7 @@ func (_ *concatWsFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExp
 	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
 }
 
-func (_ *concatWsFunc) Type() schema.SQLType {
+func (_ *concatWsFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -838,7 +838,7 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	}
 }
 
-func (_ *convertFunc) Type() schema.SQLType {
+func (_ *convertFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -862,7 +862,7 @@ func (_ *cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLFloat(1 / tan), nil
 }
 
-func (_ *cotFunc) Type() schema.SQLType {
+func (_ *cotFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
@@ -880,7 +880,7 @@ func (_ *currentDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, e
 
 }
 
-func (_ *currentDateFunc) Type() schema.SQLType {
+func (_ *currentDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }
 
@@ -896,7 +896,7 @@ func (_ *currentTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLVal
 	return SQLTimestamp{value}, nil
 }
 
-func (_ *currentTimestampFunc) Type() schema.SQLType {
+func (_ *currentTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
@@ -911,7 +911,7 @@ func (_ *curtimeFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLTimestamp{time.Now().In(schema.DefaultLocale)}, nil
 }
 
-func (_ *curtimeFunc) Type() schema.SQLType {
+func (_ *curtimeFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
@@ -931,7 +931,7 @@ func (_ *dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLDate{Time: t.Truncate(24 * time.Hour)}, nil
 }
 
-func (_ *dateFunc) Type() schema.SQLType {
+func (_ *dateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }
 
@@ -959,7 +959,7 @@ func (_ *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 
 }
 
-func (_ *dateAddFunc) Type() schema.SQLType {
+func (_ *dateAddFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -991,7 +991,7 @@ func (_ *dateSubFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *dateSubFunc) Type() schema.SQLType {
+func (_ *dateSubFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -1142,7 +1142,7 @@ func (_ *dateFormatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *dateFormatFunc) Type() schema.SQLType {
+func (_ *dateFormatFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -1166,7 +1166,7 @@ func (_ *dayNameFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (_ *dayNameFunc) Type() schema.SQLType {
+func (_ *dayNameFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -1190,7 +1190,7 @@ func (_ *dayOfMonthFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionE
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (_ *dayOfMonthFunc) Type() schema.SQLType {
+func (_ *dayOfMonthFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -1214,7 +1214,7 @@ func (_ *dayOfWeekFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionEx
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (_ *dayOfWeekFunc) Type() schema.SQLType {
+func (_ *dayOfWeekFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -1238,7 +1238,7 @@ func (_ *dayOfYearFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionEx
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (_ *dayOfYearFunc) Type() schema.SQLType {
+func (_ *dayOfYearFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -1291,7 +1291,7 @@ func (_ *eltFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(result.String()), nil
 }
 
-func (_ *eltFunc) Type() schema.SQLType {
+func (_ *eltFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -1409,7 +1409,7 @@ func (_ *extractFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr
 	}
 }
 
-func (_ *extractFunc) Type() schema.SQLType {
+func (_ *extractFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -1489,7 +1489,7 @@ func (_ *fromDaysFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *fromDaysFunc) Type() schema.SQLType {
+func (_ *fromDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }
 
@@ -1556,7 +1556,7 @@ func (_ *greatestFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *greatestFunc) Type() schema.SQLType {
+func (_ *greatestFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -1583,7 +1583,7 @@ func (_ *hourFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLTimestamp, SQLNull)
 }
 
-func (_ *hourFunc) Type() schema.SQLType {
+func (_ *hourFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -1629,7 +1629,7 @@ func (_ *ifFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return f
 }
 
-func (_ *ifFunc) Type() schema.SQLType {
+func (_ *ifFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -1661,7 +1661,7 @@ func (_ *ifnullFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr 
 	return f
 }
 
-func (_ *ifnullFunc) Type() schema.SQLType {
+func (_ *ifnullFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -1694,7 +1694,7 @@ func (_ *insertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 	return SQLVarchar(s[:pos] + newstr + s[pos+length:]), nil
 }
 
-func (_ *insertFunc) Type() schema.SQLType {
+func (_ *insertFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -1718,7 +1718,7 @@ func (_ *instrFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return locate.Evaluate([]SQLValue{values[1], values[0]}, ctx)
 }
 
-func (_ *instrFunc) Type() schema.SQLType {
+func (_ *instrFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -1747,7 +1747,7 @@ func (_ *isnullFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr 
 	return f
 }
 
-func (_ *isnullFunc) Type() schema.SQLType {
+func (_ *isnullFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -1781,7 +1781,7 @@ func (_ *lastDayFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *lastDayFunc) Type() schema.SQLType {
+func (_ *lastDayFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }
 
@@ -1806,7 +1806,7 @@ func (_ *lcaseFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
 }
 
-func (_ *lcaseFunc) Type() schema.SQLType {
+func (_ *lcaseFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -1873,7 +1873,7 @@ func (_ *leastFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *leastFunc) Type() schema.SQLType {
+func (_ *leastFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -1902,7 +1902,7 @@ func (_ *leftFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (_ *leftFunc) Type() schema.SQLType {
+func (_ *leftFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -1927,7 +1927,7 @@ func (_ *lengthFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr 
 	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
 }
 
-func (_ *lengthFunc) Type() schema.SQLType {
+func (_ *lengthFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -1974,7 +1974,7 @@ func (_ *locateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *locateFunc) Type() schema.SQLType {
+func (_ *locateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -1995,7 +1995,7 @@ func (_ *ltrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(value), nil
 }
 
-func (_ *ltrimFunc) Type() schema.SQLType {
+func (_ *ltrimFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -2040,7 +2040,7 @@ func (_ *makeDateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *makeDateFunc) Type() schema.SQLType {
+func (_ *makeDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }
 
@@ -2067,8 +2067,8 @@ func (_ *midFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (m *midFunc) Type() schema.SQLType {
-	return m.wrapped.Type()
+func (m *midFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return m.wrapped.Type(exprs)
 }
 
 func (_ *midFunc) Validate(exprCount int) error {
@@ -2091,7 +2091,7 @@ func (_ *minuteFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr 
 	return convertAllArgs(f, schema.SQLTimestamp, SQLNull)
 }
 
-func (_ *minuteFunc) Type() schema.SQLType {
+func (_ *minuteFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -2115,7 +2115,7 @@ func (_ *monthFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (_ *monthFunc) Type() schema.SQLType {
+func (_ *monthFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -2139,7 +2139,7 @@ func (_ *monthNameFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionEx
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (_ *monthNameFunc) Type() schema.SQLType {
+func (_ *monthNameFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -2161,7 +2161,7 @@ func (_ *notFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(0), nil
 }
 
-func (_ *notFunc) Type() schema.SQLType {
+func (_ *notFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -2202,7 +2202,7 @@ func (_ *nullifFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr 
 	return f
 }
 
-func (_ *nullifFunc) Type() schema.SQLType {
+func (_ *nullifFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -2238,7 +2238,7 @@ func (_ *quarterFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (_ *quarterFunc) Type() schema.SQLType {
+func (_ *quarterFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -2273,7 +2273,7 @@ func (_ *powFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLFloat, SQLNone)
 }
 
-func (_ *powFunc) Type() schema.SQLType {
+func (_ *powFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
@@ -2296,7 +2296,7 @@ func (_ *replaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	return SQLVarchar(strings.Replace(s, old, new, -1)), nil
 }
 
-func (_ *replaceFunc) Type() schema.SQLType {
+func (_ *replaceFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -2313,7 +2313,7 @@ func (_ *rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return substring.Evaluate([]SQLValue{values[0], SQLInt(len)}, ctx)
 }
 
-func (_ *rightFunc) Type() schema.SQLType {
+func (_ *rightFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -2334,7 +2334,7 @@ func (_ *rtrimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(value), nil
 }
 
-func (_ *rtrimFunc) Type() schema.SQLType {
+func (_ *rtrimFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -2380,7 +2380,7 @@ func (_ *roundFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLFloat, SQLNone)
 }
 
-func (_ *roundFunc) Type() schema.SQLType {
+func (_ *roundFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
@@ -2411,7 +2411,7 @@ func (_ *secondFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr 
 	return convertAllArgs(f, schema.SQLTimestamp, SQLNull)
 }
 
-func (_ *secondFunc) Type() schema.SQLType {
+func (_ *secondFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -2437,7 +2437,7 @@ func (_ *signFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLInt(0), nil
 }
 
-func (_ *signFunc) Type() schema.SQLType {
+func (_ *signFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -2461,7 +2461,7 @@ func (_ *spaceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	return SQLVarchar(strings.Repeat(" ", int(n))), nil
 }
 
-func (_ *spaceFunc) Type() schema.SQLType {
+func (_ *spaceFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -2528,7 +2528,7 @@ func (_ *strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	return SQLDate{d}, nil
 }
 
-func (_ *strToDateFunc) Type() schema.SQLType {
+func (_ *strToDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -2552,7 +2552,7 @@ func (_ *subDateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *subDateFunc) Type() schema.SQLType {
+func (_ *subDateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
@@ -2619,7 +2619,7 @@ func (_ *substringFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionEx
 	}
 }
 
-func (_ *substringFunc) Type() schema.SQLType {
+func (_ *substringFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -2693,7 +2693,7 @@ func (_ *substringIndexFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue
 	return SQLVarchar(string(r)), nil
 }
 
-func (_ *substringIndexFunc) Type() schema.SQLType {
+func (_ *substringIndexFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -2864,7 +2864,7 @@ func (_ *timeDiffFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *timeDiffFunc) Type() schema.SQLType {
+func (_ *timeDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -2909,7 +2909,7 @@ func (_ *timestampFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *timestampFunc) Type() schema.SQLType {
+func (_ *timestampFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
@@ -3013,7 +3013,7 @@ func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 	return SQLNull, nil
 }
 
-func (t *timestampAddFunc) Type() schema.SQLType {
+func (t *timestampAddFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLNone
 }
 
@@ -3067,7 +3067,7 @@ func (_ *timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue,
 	}
 }
 
-func (t *timestampDiffFunc) Type() schema.SQLType {
+func (t *timestampDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -3162,7 +3162,7 @@ func (_ *timeToSecFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *timeToSecFunc) Type() schema.SQLType {
+func (_ *timeToSecFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
@@ -3203,7 +3203,7 @@ func (_ *trimFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLVarchar(value), nil
 }
 
-func (_ *trimFunc) Type() schema.SQLType {
+func (_ *trimFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -3246,7 +3246,7 @@ func (_ *toDaysFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 	return f
 }
 
-func (_ *toDaysFunc) Type() schema.SQLType {
+func (_ *toDaysFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
@@ -3289,7 +3289,7 @@ func (_ *truncateFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExp
 	}
 }
 
-func (_ *truncateFunc) Type() schema.SQLType {
+func (_ *truncateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLFloat
 }
 
@@ -3314,7 +3314,7 @@ func (_ *ucaseFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLVarchar, SQLNone)
 }
 
-func (_ *ucaseFunc) Type() schema.SQLType {
+func (_ *ucaseFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLVarchar
 }
 
@@ -3329,7 +3329,7 @@ func (_ *utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 	return SQLTimestamp{time.Now().Round(time.Second).In(schema.DefaultLocale)}, nil
 }
 
-func (_ *utcTimestampFunc) Type() schema.SQLType {
+func (_ *utcTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLTimestamp
 }
 
@@ -3458,7 +3458,7 @@ func (_ *weekFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	}
 }
 
-func (_ *weekFunc) Type() schema.SQLType {
+func (_ *weekFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -3486,7 +3486,7 @@ func (_ *weekdayFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (_ *weekdayFunc) Type() schema.SQLType {
+func (_ *weekdayFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -3502,7 +3502,7 @@ func (_ *weekOfYearFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, er
 	return week.Evaluate([]SQLValue{values[0], SQLInt(3)}, ctx)
 }
 
-func (_ *weekOfYearFunc) Type() schema.SQLType {
+func (_ *weekOfYearFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -3526,7 +3526,7 @@ func (_ *yearFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 	return convertAllArgs(f, schema.SQLDate, SQLNull)
 }
 
-func (_ *yearFunc) Type() schema.SQLType {
+func (_ *yearFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
@@ -3574,7 +3574,7 @@ func (_ *yearWeekFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 	return SQLInt(y*100 + wk), nil
 }
 
-func (_ *yearWeekFunc) Type() schema.SQLType {
+func (_ *yearWeekFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLInt
 }
 
