@@ -374,33 +374,36 @@ func (c *conn) readHandshakeResponse() error {
 		c.capability = binary.LittleEndian.Uint32(data[:4])
 		pos += 4
 
-		//skip max packet size
-		pos += 4
+		// in the case of SSL, some clients won't send anything else until SSL is negotiated.
+		if len(data) > 4 {
+			//skip max packet size
+			pos += 4
 
-		//charset
-		col, err := collation.GetByID(collation.ID(data[pos]))
-		pos++
+			//charset
+			col, err := collation.GetByID(collation.ID(data[pos]))
+			pos++
 
-		if err == nil {
-			names := []variable.Name{
-				variable.CharacterSetClient,
-				variable.CharacterSetConnection,
-				variable.CharacterSetResults,
-			}
+			if err == nil {
+				names := []variable.Name{
+					variable.CharacterSetClient,
+					variable.CharacterSetConnection,
+					variable.CharacterSetResults,
+				}
 
-			for _, name := range names {
-				err = c.variables.Set(name, variable.SessionScope, variable.SystemKind, string(col.CharsetName))
-				if err != nil {
-					break
+				for _, name := range names {
+					err = c.variables.Set(name, variable.SessionScope, variable.SystemKind, string(col.CharsetName))
+					if err != nil {
+						break
+					}
 				}
 			}
-		}
-		if err != nil {
-			c.logger.Warnf(log.Info, "failed to set collation: %v", err)
-		}
+			if err != nil {
+				c.logger.Warnf(log.Info, "failed to set collation: %v", err)
+			}
 
-		//skip reserved 23[00]
-		pos += 23
+			//skip reserved 23[00]
+			pos += 23
+		}
 	}
 
 	readHeader()
