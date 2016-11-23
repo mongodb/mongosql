@@ -111,13 +111,14 @@ func (iter *UnionIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 func mergeColumnsByType(lcols, rcols []*Column) []*Column {
 	outCols := make([]*Column, len(lcols))
 
+	sorter := &schema.SQLTypesSorter{}
 	for i, lcol := range lcols {
 		rcol := rcols[i]
-		sqlTypes := schema.SQLTypes{lcol.SQLType, rcol.SQLType}
-		sort.Sort(sqlTypes)
+		sorter.Types = []schema.SQLType{lcol.SQLType, rcol.SQLType}
+		sort.Sort(sorter)
 
 		outCol := lcol.clone()
-		outCol.SQLType = sqlTypes[1] // Use "gte" type
+		outCol.SQLType = sorter.Types[1] // Use "gte" type
 		outCols[i] = outCol
 	}
 

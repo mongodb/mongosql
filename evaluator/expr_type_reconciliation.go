@@ -692,18 +692,22 @@ func convertAllExprs(exprs []SQLExpr, convType schema.SQLType, defaultValue SQLV
 // SQLExprs and returns the type of the SQLExpr
 // with the highest preference.
 func preferentialType(exprs ...SQLExpr) schema.SQLType {
+	s := &schema.SQLTypesSorter{}
+	return preferentialTypeWithSorter(s, exprs...)
+}
+
+func preferentialTypeWithSorter(s *schema.SQLTypesSorter, exprs ...SQLExpr) schema.SQLType {
 	if len(exprs) == 0 {
 		return schema.SQLNone
 	}
-	var types schema.SQLTypes
 
 	for _, expr := range exprs {
-		types = append(types, expr.Type())
+		s.Types = append(s.Types, expr.Type())
 	}
 
-	sort.Sort(types)
+	sort.Sort(s)
 
-	return types[len(types)-1]
+	return s.Types[len(s.Types)-1]
 }
 
 // reconcileSQLExprs takes two SQLExpr and ensures that
@@ -723,17 +727,19 @@ func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 		return left, right, nil
 	}
 
-	types := schema.SQLTypes{leftType, rightType}
-	sort.Sort(types)
+	sorter := &schema.SQLTypesSorter{
+		Types: []schema.SQLType{leftType, rightType},
+	}
+	sort.Sort(sorter)
 
-	if types[0] == schema.SQLObjectID {
-		types[0], types[1] = types[1], types[0]
+	if sorter.Types[0] == schema.SQLObjectID {
+		sorter.Types[0], sorter.Types[1] = sorter.Types[1], sorter.Types[0]
 	}
 
-	if types[1] == leftType {
-		right = &SQLConvertExpr{right, types[1], SQLNone}
+	if sorter.Types[1] == leftType {
+		right = &SQLConvertExpr{right, sorter.Types[1], SQLNone}
 	} else {
-		left = &SQLConvertExpr{left, types[1], SQLNone}
+		left = &SQLConvertExpr{left, sorter.Types[1], SQLNone}
 	}
 
 	return left, right, nil

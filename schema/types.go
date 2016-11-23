@@ -125,20 +125,31 @@ func (sqlType SQLType) ZeroValue() interface{} {
 	return ""
 }
 
-type SQLTypes []SQLType
-
-func (types SQLTypes) Len() int {
-	return len(types)
+type SQLTypesSorter struct {
+	Types               []SQLType
+	VarcharHighPriority bool
 }
 
-func (types SQLTypes) Swap(i, j int) {
-	types[i], types[j] = types[j], types[i]
+func (s *SQLTypesSorter) Len() int {
+	return len(s.Types)
 }
 
-func (types SQLTypes) Less(i, j int) bool {
+func (s *SQLTypesSorter) Swap(i, j int) {
+	s.Types[i], s.Types[j] = s.Types[j], s.Types[i]
+}
 
-	t1 := types[i]
-	t2 := types[j]
+func (s *SQLTypesSorter) Less(i, j int) bool {
+
+	t1 := s.Types[i]
+	t2 := s.Types[j]
+
+	if s.VarcharHighPriority {
+		if t1 == SQLVarchar {
+			return false
+		} else if t2 == SQLVarchar {
+			return true
+		}
+	}
 
 	switch t1 {
 	case SQLNone, SQLNull:
