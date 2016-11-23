@@ -32,17 +32,12 @@ type ExecutionCtx struct {
 	// SrcRows is a row cache used when correlated subqueries
 	// are in the tree.
 	SrcRows []*Row
-
-	// CacheRows is a row cache used to minimize the number of pushdowns
-	// resulting from non-correlated subqueries.
-	CacheRows map[string]interface{}
 }
 
 // NewExecutionCtx creates a new execution context.
 func NewExecutionCtx(connCtx ConnectionCtx) *ExecutionCtx {
 	return &ExecutionCtx{
 		ConnectionCtx: connCtx,
-		CacheRows:     make(map[string]interface{}),
 	}
 }
 

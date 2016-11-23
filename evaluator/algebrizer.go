@@ -802,10 +802,6 @@ func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryE
 		return nil, err
 	}
 
-	if !subqueryAlgebrizer.correlated {
-		plan = NewCacheStage(subqueryAlgebrizer.selectID, plan)
-	}
-
 	return &SQLSubqueryExpr{
 		plan:       plan,
 		correlated: subqueryAlgebrizer.correlated,

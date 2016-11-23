@@ -1780,7 +1780,7 @@ func TestOptimizePlan(t *testing.T) {
 				},
 			)
 
-			Convey("subqueries", func() {
+			Convey("correlated subqueries", func() {
 				test("select a, (select foo.b from bar) from foo",
 					[]bson.D{
 						{{"$project", bson.M{
@@ -1789,26 +1789,6 @@ func TestOptimizePlan(t *testing.T) {
 						}}},
 					},
 				)
-
-				test("select a, (select b from bar) from foo",
-					[]bson.D{
-						{{"$project", bson.M{
-							"foo_DOT_a": "$a",
-						}}},
-					},
-					[]bson.D{
-						{{"$project", bson.M{
-							"bar_DOT_b": "$b",
-						}}},
-					},
-				)
-
-				test("select exists(select a from bar) from foo",
-					[]bson.D{
-						{{"$project", bson.M{
-							"bar_DOT_a": "$a",
-						}}},
-					})
 			})
 		})
 
@@ -2512,8 +2492,57 @@ func TestOptimizePlan(t *testing.T) {
 	})
 }
 
-func TestOptimizeCommand(t *testing.T) {
-	testSchema, err := schema.New(testSchema1)
+type subqueryFinder struct {
+	count         int
+	firstSubquery *SQLSubqueryExpr
+}
+
+func (v *subqueryFinder) visit(n node) (node, error) {
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
+	}
+
+	switch typedN := n.(type) {
+	case *SQLSubqueryExpr:
+		v.count += 1
+		v.firstSubquery = typedN
+	}
+
+	return n, nil
+}
+
+type sourceStageReplacer struct {
+	data            []bson.D
+	existing        int
+	replaced        int
+	lastSourceStage *BSONSourceStage
+}
+
+func (v *sourceStageReplacer) visit(n node) (node, error) {
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
+	}
+
+	switch typedN := n.(type) {
+	case *BSONSourceStage:
+		v.existing += 1
+		if v.lastSourceStage == nil {
+			v.lastSourceStage = typedN
+		}
+	case *MongoSourceStage:
+		bs := NewBSONSourceStage(typedN.selectIDs[0], typedN.tableNames[0], typedN.collation, v.data[0:1])
+		v.data = v.data[1:]
+		v.replaced += 1
+		n = bs
+	}
+
+	return n, nil
+}
+
+func TestOptimizeSubqueryPlan(t *testing.T) {
+	testSchema, err := schema.New(testSchema4)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
@@ -2522,19 +2551,25 @@ func TestOptimizeCommand(t *testing.T) {
 	testCatalog := getCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
 
-	test := func(sql string, expected ...[]bson.D) {
+	testOptimize := func(sql string, expected ...[]bson.D) {
 		Convey(sql, func() {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			setStatement := statement.(*parser.Set)
-			set, err := AlgebrizeCommand(setStatement, defaultDbName, testVariables, testCatalog)
+			selectStatement := statement.(parser.SelectStatement)
+			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
-			actualSet, err := OptimizeCommand(createTestConnectionCtx(), set)
+			ctx := createTestConnectionCtx()
+			optimized, err := optimizeSubqueries(ctx, ctx.Logger(""), plan, false)
 			So(err, ShouldBeNil)
 
+			finder := &subqueryFinder{}
+			finder.visit(optimized)
+
+			subqueryPlan := finder.firstSubquery.plan
+
 			pg := &pipelineGatherer{}
-			pg.visit(actualSet)
+			pg.visit(subqueryPlan)
 
 			actual := pg.pipelines
 
@@ -2542,15 +2577,109 @@ func TestOptimizeCommand(t *testing.T) {
 		})
 	}
 
-	Convey("Subject: OptimizeSet", t, func() {
-		test("set @t1 = (select a from foo limit 1)",
-			[]bson.D{
-				{{"$limit", uint64(1)}},
-				{{"$project", bson.M{
-					"foo_DOT_a": "$a",
-				}}},
-			},
-		)
+	testExecute := func(sql string, data []bson.D) {
+		Convey(sql, func() {
+			statement, err := parser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			selectStatement := statement.(parser.SelectStatement)
+			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testVariables, testCatalog)
+			So(err, ShouldBeNil)
+
+			//fmt.Printf("\n%+v\n", PrettyPrintPlan(plan))
+
+			sourceReplacer := &sourceStageReplacer{data: data}
+			replaced, err := sourceReplacer.visit(plan)
+			So(err, ShouldBeNil)
+			So(sourceReplacer.existing, ShouldEqual, 0)
+
+			//fmt.Printf("\n%+v\n", PrettyPrintPlan(replaced.(PlanStage)))
+
+			ctx := createTestConnectionCtx()
+			optimized, err := optimizeSubqueries(ctx, ctx.Logger(""), replaced, true)
+			So(err, ShouldBeNil)
+
+			sourceReplacer = &sourceStageReplacer{}
+			sourceReplacer.visit(optimized)
+			So(sourceReplacer.existing, ShouldEqual, 1)
+			So(sourceReplacer.replaced, ShouldEqual, 0)
+		})
+	}
+
+	Convey("Subject: OptimizeSubqueryPlan", t, func() {
+		Convey("subquery optimization", func() {
+			testOptimize("select a, (select b from bar) from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						"bar_DOT_b": "$b",
+					}}},
+				})
+			testOptimize("select exists(select a from bar) from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						"bar_DOT_a": "$a",
+					}}},
+				})
+			testOptimize("select a from bar where `a` = (select `b` from bar where b=2)",
+				[]bson.D{
+					{{"$match", bson.M{
+						"b": int64(2),
+					}}},
+					{{"$project", bson.M{
+						"bar_DOT_b": "$b",
+					}}},
+				})
+			testOptimize("select a from bar where `a` = (select `b` from bar where b = (select a from bar where a=1))",
+				[]bson.D{
+					bson.D{{"$project", bson.M{
+						"bar_DOT_b": "$b",
+					}}},
+					bson.D{{"$project", bson.M{
+						"bar_DOT_b": "$bar_DOT_b",
+					}}},
+				},
+				[]bson.D{
+					bson.D{{"$match", bson.M{
+						"a": int64(1),
+					}}},
+					bson.D{{"$project", bson.M{
+						"bar_DOT_a": "$a",
+					}}},
+				})
+			testOptimize("select a from bar where (`a`, `b`) = (select `c`, `b` from foo where b=2)",
+				[]bson.D{
+					{{"$match", bson.M{
+						"b": int64(2),
+					}}},
+					{{"$project", bson.M{
+						"foo_DOT_c": "$c",
+						"foo_DOT_b": "$b",
+					}}},
+				})
+		})
+		Convey("subquery execution and replacement", func() {
+			testExecute("select a, (select b from bar) from foo",
+				[]bson.D{
+					{{"b", 1}},
+					{{"a", 1}},
+				})
+			testExecute("select a from bar where `a` = (select `b` from bar where b=2)",
+				[]bson.D{
+					{{"b", 2}},
+					{{"a", 2}},
+				})
+			testExecute("select a from bar where `a` = (select `b` from bar where b = (select a from bar where a=1))",
+				[]bson.D{
+					{{"a", 1}},
+					{{"b", 1}},
+					{{"a", 1}},
+				})
+			testExecute("select a from bar where (`a`, `b`) = (select `c`, `b` from foo where b=2)",
+				[]bson.D{
+					{{"b", 1}, {"c", 1}},
+					{{"a", 1}},
+				})
+		})
 	})
 }
 

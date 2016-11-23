@@ -286,6 +286,12 @@ testcases:
   - [3]
 
 # Subquery
+- sql: "select id from test.foo where a = (select a from test.bar where id = (select id from test.foo limit 1))"
+  description: "non-correlated nested subqueries"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [1]
 - sql: "select id from test.foo where a = (select min(a) from test.bar)"
   description: "non-correlated subquery"
   expected_names: ["id"]

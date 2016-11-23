@@ -9,7 +9,7 @@ import (
 // OptimizeCommand applies optimizations to the command
 // plan tree to aid in performance.
 func OptimizeCommand(ctx ConnectionCtx, c command) (command, error) {
-	n, err := optimize(ctx, c)
+	n, err := optimize(ctx, c, false)
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +19,7 @@ func OptimizeCommand(ctx ConnectionCtx, c command) (command, error) {
 // OptimizePlan applies optimizations to the plan tree to
 // aid in performance.
 func OptimizePlan(ctx ConnectionCtx, p PlanStage) (PlanStage, error) {
-	n, err := optimize(ctx, p)
+	n, err := optimize(ctx, p, false)
 	if err != nil {
 		return nil, err
 	}
@@ -27,14 +27,25 @@ func OptimizePlan(ctx ConnectionCtx, p PlanStage) (PlanStage, error) {
 	return n.(PlanStage), nil
 }
 
-func optimize(ctx ConnectionCtx, n node) (node, error) {
+func optimize(ctx ConnectionCtx, n node, isSubquery bool) (node, error) {
+	var newN node
+	var err error
 
 	logger := ctx.Logger(log.OptimizerComponent)
+
+	if !isSubquery {
+		newN, err = optimizeSubqueries(ctx, logger, n, true)
+		if err != nil {
+			logger.Warnf(log.DebugHigh, err.Error())
+			return n, nil
+		}
+		n = newN
+	}
 
 	// we use the collation connection during optimization because the nodes
 	// that get evaluated during this phase are literal values.
 	evalCtx := NewEvalCtx(NewExecutionCtx(ctx), ctx.Variables().CollationConnection)
-	newN, err := optimizeEvaluations(evalCtx, n)
+	newN, err = optimizeEvaluations(evalCtx, n)
 	if err != nil {
 		logger.Warnf(log.DebugHigh, err.Error())
 		return n, nil
