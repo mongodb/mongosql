@@ -81,7 +81,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	},
 	"atan2":             dualArgFloatMathFunc(math.Atan2),
 	"ascii":             &asciiFunc{},
-	"cast":              &castFunc{},
+	"cast":              &convertFunc{},
 	"ceil":              singleArgFloatMathFunc(math.Ceil),
 	"ceiling":           singleArgFloatMathFunc(math.Ceil),
 	"char":              &charFunc{},
@@ -512,21 +512,6 @@ func (_ *asciiFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
-type castFunc struct{}
-
-func (_ *castFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	val, _ := NewSQLValue(values[0].Value(), schema.SQLType(values[1].String()), values[0].Type())
-	return val, nil
-}
-
-func (_ *castFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLNone
-}
-
-func (_ *castFunc) Validate(exprCount int) error {
-	return ensureArgCount(exprCount, 2)
-}
-
 type charFunc struct{}
 
 func (_ *charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
@@ -604,7 +589,8 @@ func (_ *coalesceFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 }
 
 func (_ *coalesceFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLNone
+	sorter := &schema.SQLTypesSorter{VarcharHighPriority: true}
+	return preferentialTypeWithSorter(sorter, exprs...)
 }
 
 func (_ *coalesceFunc) Validate(exprCount int) error {
@@ -839,6 +825,20 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 }
 
 func (_ *convertFunc) Type(exprs []SQLExpr) schema.SQLType {
+	if v, ok := exprs[1].(SQLValue); ok {
+		switch v.String() {
+		case string(parser.INTEGER_BYTES):
+			return schema.SQLInt
+		case string(parser.FLOAT_BYTES):
+			return schema.SQLFloat
+		case string(parser.CHAR_BYTES):
+			return schema.SQLVarchar
+		case string(parser.DATE_BYTES):
+			return schema.SQLDate
+		case string(parser.DATETIME_BYTES):
+			return schema.SQLTimestamp
+		}
+	}
 	return schema.SQLNone
 }
 
@@ -956,11 +956,23 @@ func (_ *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	}
 
 	return timestampadd.Evaluate([]SQLValue{SQLVarchar(unit), SQLInt(interval), values[0]}, ctx)
-
 }
 
 func (_ *dateAddFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLNone
+	if exprs[0].Type() == schema.SQLTimestamp {
+		return schema.SQLTimestamp
+	}
+
+	if exprs[0].Type() == schema.SQLDate {
+		if unit, ok := exprs[2].(SQLValue); ok {
+			switch unit.String() {
+			case HOUR, MINUTE, SECOND:
+				return schema.SQLTimestamp
+			}
+		}
+	}
+
+	return schema.SQLVarchar
 }
 
 func (_ *dateAddFunc) Validate(exprCount int) error {
@@ -992,7 +1004,7 @@ func (_ *dateSubFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (_ *dateSubFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLNone
+	return (&dateAddFunc{}).Type(exprs)
 }
 
 func (_ *dateSubFunc) Validate(exprCount int) error {
@@ -1557,7 +1569,7 @@ func (_ *greatestFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (_ *greatestFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLNone
+	return preferentialType(exprs...)
 }
 
 func (_ *greatestFunc) Validate(exprCount int) error {
@@ -1630,7 +1642,8 @@ func (_ *ifFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
 }
 
 func (_ *ifFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLNone
+	s := &schema.SQLTypesSorter{VarcharHighPriority: true}
+	return preferentialTypeWithSorter(s, exprs[1:]...)
 }
 
 func (_ *ifFunc) Validate(exprCount int) error {
@@ -1662,7 +1675,8 @@ func (_ *ifnullFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr 
 }
 
 func (_ *ifnullFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLNone
+	s := &schema.SQLTypesSorter{VarcharHighPriority: true}
+	return preferentialTypeWithSorter(s, exprs...)
 }
 
 func (_ *ifnullFunc) Validate(exprCount int) error {
@@ -1874,7 +1888,7 @@ func (_ *leastFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
 }
 
 func (_ *leastFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLNone
+	return preferentialType(exprs...)
 }
 
 func (_ *leastFunc) Validate(exprCount int) error {
@@ -2203,7 +2217,7 @@ func (_ *nullifFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr 
 }
 
 func (_ *nullifFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLNone
+	return exprs[0].Type()
 }
 
 func (_ *nullifFunc) Validate(exprCount int) error {
@@ -2529,7 +2543,7 @@ func (_ *strToDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 }
 
 func (_ *strToDateFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLNone
+	return schema.SQLTimestamp
 }
 
 func (_ *strToDateFunc) Validate(exprCount int) error {
@@ -3014,7 +3028,12 @@ func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 }
 
 func (t *timestampAddFunc) Type(exprs []SQLExpr) schema.SQLType {
-	return schema.SQLNone
+	if v, ok := exprs[2].(SQLValue); ok {
+		if len(v.String()) > 10 {
+			return schema.SQLTimestamp
+		}
+	}
+	return schema.SQLDate
 }
 
 func (t *timestampAddFunc) Validate(exprCount int) error {

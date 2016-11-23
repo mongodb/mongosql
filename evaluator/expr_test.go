@@ -53,6 +53,24 @@ func TestEvaluates(t *testing.T) {
 		}
 	}
 
+	type typeTest struct {
+		sql    string
+		result schema.SQLType
+	}
+
+	runTypeTests := func(ctx *EvalCtx, tests []typeTest) {
+		schema, err := schema.New(testSchema3)
+		So(err, ShouldBeNil)
+		for _, t := range tests {
+			Convey(fmt.Sprintf("%q should be %v", t.sql, t.result), func() {
+				subject, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
+				So(err, ShouldBeNil)
+				result := subject.Type()
+				So(result, ShouldResemble, t.result)
+			})
+		}
+	}
+
 	execCtx := &ExecutionCtx{
 		ConnectionCtx: fakeConnectionCtx{},
 	}
@@ -896,6 +914,12 @@ func TestEvaluates(t *testing.T) {
 					test{"COALESCE(NULL, NULL, NULL)", SQLNull},
 				}
 				runTests(evalCtx, tests)
+
+				typeTests := []typeTest{
+					typeTest{"COALESCE(NULL, 1, 'A')", schema.SQLVarchar},
+					typeTest{"COALESCE(NULL, 1, 23)", schema.SQLInt},
+				}
+				runTypeTests(evalCtx, typeTests)
 			})
 
 			Convey("Subject: CONCAT", func() {
@@ -986,6 +1010,16 @@ func TestEvaluates(t *testing.T) {
 					test{"CONVERT(DATE '2006-05-11', SQL_TIMESTAMP)", SQLTimestamp{Time: dt}},
 				}
 				runTests(evalCtx, tests)
+
+				typeTests := []typeTest{
+					typeTest{"CONVERT(DATE '2006-05-11', SIGNED)", schema.SQLInt},
+					typeTest{"CONVERT(true, SQL_DOUBLE)", schema.SQLFloat},
+					typeTest{"CONVERT('16a', CHAR)", schema.SQLVarchar},
+					typeTest{"CONVERT('2006-05-11', DATE)", schema.SQLDate},
+					typeTest{"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DATETIME)", schema.SQLTimestamp},
+					typeTest{"CONVERT(DATE '2006-05-11', SQL_TIMESTAMP)", schema.SQLTimestamp},
+				}
+				runTypeTests(evalCtx, typeTests)
 			})
 
 			Convey("Subject: COS", func() {
@@ -1107,6 +1141,13 @@ func TestEvaluates(t *testing.T) {
 					test{"DATE_ADD('2003-01-02 10:28:06', INTERVAL '2 2:3' DAY_SECOND)", SQLTimestamp{Time: t}},
 				}
 				runTests(evalCtx, tests)
+
+				typeTests := []typeTest{
+					typeTest{"DATE_ADD('2002-01-02', INTERVAL 1 YEAR)", schema.SQLVarchar},
+					typeTest{"DATE_ADD(DATE '2002-01-02', INTERVAL 1 HOUR)", schema.SQLTimestamp},
+					typeTest{"DATE_ADD(TIMESTAMP '2003-01-02 10:28:06', INTERVAL '2 2:3' DAY_SECOND)", schema.SQLTimestamp},
+				}
+				runTypeTests(evalCtx, typeTests)
 			})
 
 			Convey("Subject: DATE_FORMAT", func() {
@@ -1162,6 +1203,13 @@ func TestEvaluates(t *testing.T) {
 					test{"DATE_SUB('2003-01-02 14:32:12', INTERVAL '2 2:3' DAY_SECOND)", SQLTimestamp{Time: t}},
 				}
 				runTests(evalCtx, tests)
+
+				typeTests := []typeTest{
+					typeTest{"DATE_SUB('2002-01-02', INTERVAL 1 YEAR)", schema.SQLVarchar},
+					typeTest{"DATE_SUB(DATE '2002-01-02', INTERVAL 1 HOUR)", schema.SQLTimestamp},
+					typeTest{"DATE_SUB(TIMESTAMP '2003-01-02 10:28:06', INTERVAL '2 2:3' DAY_SECOND)", schema.SQLTimestamp},
+				}
+				runTypeTests(evalCtx, typeTests)
 			})
 
 			Convey("Subject: DAYNAME", func() {
@@ -1331,6 +1379,12 @@ func TestEvaluates(t *testing.T) {
 					test{"GREATEST(TIMESTAMP '2006-05-11 12:32:23', '2005-09-13')", SQLTimestamp{Time: t}},
 				}
 				runTests(evalCtx, tests)
+
+				typeTests := []typeTest{
+					typeTest{"GREATEST(DATE '2005-05-11', DATE '2006-05-11', DATE '2000-05-11')", schema.SQLDate},
+					typeTest{"GREATEST(1, 123.52, 'something')", schema.SQLDecimal128},
+				}
+				runTypeTests(evalCtx, typeTests)
 			})
 
 			Convey("Subject: HOUR", func() {
@@ -1363,6 +1417,14 @@ func TestEvaluates(t *testing.T) {
 					test{"IF(current_timestamp, 4, 5)", SQLInt(4)},
 				}
 				runTests(evalCtx, tests)
+
+				typeTests := []typeTest{
+					typeTest{"IF('ca.gh', 4, 5)", schema.SQLInt},
+					typeTest{"IF('ca.gh', 4, 5.3)", schema.SQLDecimal128},
+					typeTest{"IF('ca.gh', 'sdf', 5.2)", schema.SQLVarchar},
+					typeTest{"IF('ca.gh', 'sdf', NULL)", schema.SQLVarchar},
+				}
+				runTypeTests(evalCtx, typeTests)
 			})
 
 			Convey("Subject: IFNULL", func() {
@@ -1375,6 +1437,13 @@ func TestEvaluates(t *testing.T) {
 					test{"IFNULL(1/0, 4)", SQLInt(4)},
 				}
 				runTests(evalCtx, tests)
+
+				typeTests := []typeTest{
+					typeTest{"IFNULL(4, 5)", schema.SQLInt},
+					typeTest{"IFNULL(4, 5.3)", schema.SQLDecimal128},
+					typeTest{"IFNULL('sdf', NULL)", schema.SQLVarchar},
+				}
+				runTypeTests(evalCtx, typeTests)
 			})
 
 			Convey("Subject: ISNULL", func() {
@@ -1471,6 +1540,12 @@ func TestEvaluates(t *testing.T) {
 					test{"LEAST(TIMESTAMP '2006-05-11 12:32:23', '2005-09-13')", SQLVarchar("2005-09-13")},
 				}
 				runTests(evalCtx, tests)
+
+				typeTests := []typeTest{
+					typeTest{"LEAST(DATE '2005-05-11', DATE '2006-05-11', DATE '2000-05-11')", schema.SQLDate},
+					typeTest{"LEAST(1, 123.52, 'something')", schema.SQLDecimal128},
+				}
+				runTypeTests(evalCtx, typeTests)
 			})
 
 			Convey("Subject: LEFT", func() {
@@ -1633,6 +1708,12 @@ func TestEvaluates(t *testing.T) {
 					//test{"NULLIF('1', false)", SQLVarchar("1")},
 				}
 				runTests(evalCtx, tests)
+
+				typeTests := []typeTest{
+					typeTest{"NULLIF(3, null)", schema.SQLInt},
+					typeTest{"NULLIF('abc', 'abc')", schema.SQLVarchar},
+				}
+				runTypeTests(evalCtx, typeTests)
 			})
 
 			Convey("Subject: PI", func() {
@@ -1933,6 +2014,12 @@ func TestEvaluates(t *testing.T) {
 					test{"TIMESTAMPADD(SQL_TSI_SECOND, 1, TIMESTAMP '2003-01-02 12:30:08')", SQLTimestamp{Time: t}},
 				}
 				runTests(evalCtx, tests)
+
+				typeTests := []typeTest{
+					typeTest{"TIMESTAMPADD(SQL_TSI_QUARTER, 2, DATE '2002-07-02')", schema.SQLDate},
+					typeTest{"TIMESTAMPADD(SQL_TSI_SECOND, 1, TIMESTAMP '2003-01-02 12:30:08')", schema.SQLTimestamp},
+				}
+				runTypeTests(evalCtx, typeTests)
 			})
 
 			Convey("Subject: TIMESTAMPDIFF", func() {
