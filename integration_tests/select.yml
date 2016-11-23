@@ -477,6 +477,14 @@ schema:
 # Tests
 #
 testcases:
+- sql: "select 3.141592653589793 FROM sTest.foo"
+  description: "numeric literal"
+  expected_names: ["3.141592653589793"]
+  expected_types: [float]
+  expected:
+  - [3.141592653589793]
+  - [3.141592653589793]
+  - [3.141592653589793]
 - sql: "select * FROM sTest.foo"
   description: "global *"
   expected_names: ["id", "a", "b"]
