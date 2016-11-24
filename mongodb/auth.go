@@ -86,15 +86,13 @@ func (i *Info) IsAllowedCollection(dbName DatabaseName, colName CollectionName, 
 // loadAuthInfo gathers the authorization information from MongoDB and propogates
 // it to the Info tree.
 func (i *Info) loadAuthInfo(logger *log.Logger, s *mgo.Session) error {
-	c := s.Clone()
-	defer c.Close()
 	cmd := bson.D{
 		{"connectionStatus", 1},
 		{"showPrivileges", 1},
 	}
 	var result connectionStatusResult
 	logger.Log(log.DebugHigh, "loading privilege information for current user")
-	err := c.Run(cmd, &result)
+	err := s.Run(cmd, &result)
 	if err != nil {
 		return fmt.Errorf("failed to load privilege information for the current user: %v", err)
 	}

@@ -164,6 +164,17 @@ func (c *conn) close() {
 	// wait for any running queries to be interrupted
 	c.closer.L.Lock()
 	for atomic.LoadInt32(&c.queryRunning) != 0 {
+		// this establishes a deadline by which we'll forcefully
+		// terminate the client connection to ensure we can
+		// cleanly terminate the server when we're blocked on a
+		// client read/write.
+		go func() {
+			timer := time.NewTimer(5 * time.Second)
+			<-timer.C
+			timer.Stop()
+			atomic.StoreInt32(&c.queryRunning, 0)
+			c.closer.Signal()
+		}()
 		c.closer.Wait()
 	}
 
@@ -284,7 +295,7 @@ func (c *conn) handshake() error {
 		c.writeError(err)
 		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error setting compatibility version: %v", err)
 	}
-	c.logger.Logf(log.Info, "connected to MongoDB %v, %v", c.variables.MongoDBInfo.Version, c.variables.MongoDBInfo.GitVersion)
+	c.logger.Logf(log.Info, "connected to MongoDB %v, git version: %v", c.variables.MongoDBInfo.Version, c.variables.MongoDBInfo.GitVersion)
 
 	if c.variables.MongoDBInfo.CompatibleVersion != "" {
 		c.logger.Logf(log.Info, "MongoDB version compatibility is %v", c.variables.MongoDBInfo.CompatibleVersion)

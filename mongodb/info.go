@@ -102,6 +102,11 @@ type CollectionInfo struct {
 
 // LoadInfo looks up information from MongoDB.
 func LoadInfo(logger *log.Logger, session *mgo.Session, config *schema.Schema, requireAuth bool) (*Info, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Warnf(log.DebugHigh, "information access MongoDB session possibly closed: %v", r)
+		}
+	}()
 	buildInfo, err := session.BuildInfo()
 	if err != nil {
 		return nil, err
@@ -157,10 +162,8 @@ func createDatabasesFromSchema(config *schema.Schema) map[DatabaseName]*Database
 }
 
 func (i *Info) loadMetadata(logger *log.Logger, s *mgo.Session) error {
-	c := s.Clone()
-	defer c.Close()
 	for _, dbInfo := range i.Databases {
-		err := dbInfo.loadMetadata(logger, c)
+		err := dbInfo.loadMetadata(logger, s)
 		if err != nil {
 			return err
 		}

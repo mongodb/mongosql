@@ -181,16 +181,18 @@ func (s *Server) serveConnection(c net.Conn) {
 			buf = buf[:runtime.Stack(buf, false)]
 			conn.logger.Errf(log.Info, "%v, %s", err, buf)
 		}
-		c.Close()
 		conn.close()
 	}()
 
 	s.addConnection(conn)
 
+	atomic.StoreInt32(&conn.queryRunning, 1)
 	if err := conn.handshake(); err != nil {
 		conn.logger.Errf(log.Always, "handshake error: %v", err)
+		atomic.StoreInt32(&conn.queryRunning, 0)
 		return
 	}
+	atomic.StoreInt32(&conn.queryRunning, 0)
 
 	conn.run()
 }

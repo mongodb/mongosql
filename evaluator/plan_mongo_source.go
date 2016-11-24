@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/log"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -92,6 +93,16 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	var iter FindResults
 
 	go func() {
+		// As we're using the same session per client connection, it
+		// is possible that the connection is closed asynchronously
+		// while a query is in flight - e.g. if the server is terminated
+		// - in such cases, the session call below will cause a panic.
+		// We recover here to avoid a panic message in the logs.
+		defer func() {
+			if r := recover(); r != nil {
+				ctx.Logger(log.NetworkComponent).Warnf(log.DebugHigh, "data access MongoDB session closed: %v", r)
+			}
+		}()
 		iter = MgoFindResults{ctx.Session().DB(ms.dbName).C(ms.collectionNames[0]).Pipe(ms.pipeline).AllowDiskUse().Iter()}
 		errChan <- nil
 	}()
