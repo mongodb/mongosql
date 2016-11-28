@@ -75,10 +75,10 @@
       ]
     }
   ],
-  "release_notes_link": "https://docs.mongodb.com/bi-connector/master/",
+  "release_notes_link": "https://docs.mongodb.com/bi-connector/master/release-notes/",
   "previous_releases_link": "",
   "development_releases_link": "",
-  "manual_link": "",
+  "manual_link": "https://docs.mongodb.com/bi-connector/master/",
   "supported_browsers_link": "",
   "tutorial_link": ""
 }
