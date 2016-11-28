@@ -2,6 +2,7 @@
 
 ### Components
 `mongosqld` - The proxy process.
+
 `mongodrdl` - The schema generator.
 
 For `mongosqld` command line options invoke:
