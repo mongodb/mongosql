@@ -856,7 +856,7 @@ func (_ *cotFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
 	tan := math.Tan(values[0].Float64())
 	if tan == 0 {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("'cot(%v)'", values[0].Float64()))
+		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("'cot(%v)'", values[0].Float64()))
 	}
 
 	return SQLFloat(1 / tan), nil
@@ -1407,7 +1407,7 @@ func (_ *extractFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		sms, _ := strconv.Atoi(unitStrs[5] + "000000")
 		return SQLInt(sms), nil
 	default:
-		return nil, fmt.Errorf("unit type '%v' is not supported", values[0].String())
+		return SQLNull, fmt.Errorf("unit type '%v' is not supported", values[0].String())
 	}
 }
 
@@ -1632,7 +1632,7 @@ func (_ *ifFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 			return values[1], nil
 		}
 	default:
-		return nil, fmt.Errorf("expression type '%v' is not supported", typedV)
+		return SQLNull, fmt.Errorf("expression type '%v' is not supported", typedV)
 	}
 	return SQLNull, nil
 }
@@ -1749,11 +1749,13 @@ func (_ *isnullFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error)
 
 	result, err := Matches(matcher, ctx)
 	if err != nil {
-		return nil, err
+		return SQLNull, err
 	}
+
 	if NewSQLBool(result) == SQLTrue {
 		return SQLInt(1), nil
 	}
+
 	return SQLInt(0), nil
 }
 
@@ -2167,7 +2169,7 @@ func (_ *notFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	matcher := &SQLNotExpr{values[0]}
 	result, err := Matches(matcher, ctx)
 	if err != nil {
-		return nil, err
+		return SQLNull, err
 	}
 	if NewSQLBool(result) == SQLTrue {
 		return SQLInt(1), nil
@@ -2267,12 +2269,16 @@ func (_ *powFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	n := math.Pow(values[0].Float64(), values[1].Float64())
-	if math.IsNaN(n) {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("pow(%v,%v)", values[0].Float64(), values[1].Float64()))
+	v0 := values[0].Float64()
+	v1 := values[1].Float64()
+
+	n := math.Pow(v0, v1)
+	zeroBaseExpNeg := v0 == 0 && v1 < 0
+	if math.IsNaN(n) || zeroBaseExpNeg {
+		return SQLNull, mysqlerrors.Defaultf(mysqlerrors.ER_DATA_OUT_OF_RANGE, "DOUBLE", fmt.Sprintf("pow(%v,%v)", values[0].Float64(), values[1].Float64()))
 	}
 
-	return SQLFloat(math.Pow(values[0].Float64(), values[1].Float64())), nil
+	return SQLFloat(math.Pow(v0, v1)), nil
 }
 
 func (_ *powFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
@@ -3022,7 +3028,7 @@ func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 		// Microsecond not supported, so return the original time
 		return SQLTimestamp{Time: t}, nil
 	default:
-		return nil, fmt.Errorf("cannot add '%v' to timestamp", values[0])
+		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
 	}
 	return SQLNull, nil
 }
@@ -3082,7 +3088,7 @@ func (_ *timestampDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue,
 	case MICROSECOND:
 		return SQLInt(duration.Nanoseconds() / 1000), nil
 	default:
-		return nil, fmt.Errorf("cannot add '%v' to timestamp", values[0])
+		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
 	}
 }
 
@@ -3114,7 +3120,7 @@ func (_ *timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	if len(components) == 1 {
 		cmp, err := strconv.ParseFloat(components[0], 64)
 		if err != nil {
-			return nil, err
+			return SQLNull, err
 		}
 
 		component := strconv.FormatFloat(math.Trunc(float64(cmp)), 'f', -1, 64)
@@ -3141,7 +3147,7 @@ func (_ *timeToSecFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	for i := 0; i < 3 && i < len(components); i++ {
 		component, err := strconv.ParseFloat(components[i], 64)
 		if err != nil {
-			return nil, err
+			return SQLNull, err
 		}
 
 		cmp := math.Trunc(float64(component))
@@ -3771,7 +3777,7 @@ func evaluateArgs(exprs []SQLExpr, ctx *EvalCtx) ([]SQLValue, error) {
 	for _, expr := range exprs {
 		value, err := expr.Evaluate(ctx)
 		if err != nil {
-			return nil, err
+			return []SQLValue{}, err
 		}
 
 		values = append(values, value)

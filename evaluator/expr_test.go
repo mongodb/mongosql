@@ -3178,7 +3178,6 @@ func TestTranslateExpr(t *testing.T) {
 			test{"month(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$month":"$g"}]}`},
 			test{"monthname(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$arrayElemAt":[["January","February","March","April","May","June","July","August","September","October","November","December"],{"$subtract":[{"$month":"$g"},1]}]}]}`},
 			test{"nullif(a, 1)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$cond":[{"$eq":["$a",{"$literal":1}]},null,"$a"]}]}`},
-			test{"power(a, 10)", `{"$pow":["$a",{"$literal":10}]}`},
 			test{"quarter(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$arrayElemAt":[[1,1,1,2,2,2,3,3,3,4,4,4],{"$subtract":[{"$month":"$g"},1]}]}]}`},
 			test{"round(a, 5)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$add":[{"$multiply":["$a",100000]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$a",100000]},0.5]}}]},100000]}`},
 			test{"round(a, -5)", `{"$literal":0}`},

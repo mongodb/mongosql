@@ -810,12 +810,6 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				),
 				wrapInNullCheck(args[0]),
 			), true
-		case "pow", "power":
-			if len(args) != 2 {
-				return nil, false
-			}
-
-			return bson.M{"$pow": []interface{}{args[0], args[1]}}, true
 		case "quarter":
 			if len(args) != 1 {
 				return nil, false
