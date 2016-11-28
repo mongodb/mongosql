@@ -3340,6 +3340,14 @@ func (_ *truncateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
+func (_ *truncateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
 type ucaseFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_ucase

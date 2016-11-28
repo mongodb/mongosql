@@ -616,10 +616,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			unitVal, ok := bsonVal.(SQLValue)
-			if !ok {
-				return nil, false
-			}
+			unitVal, _ := NewSQLValue(bsonVal, schema.SQLVarchar, schema.SQLNone)
 
 			unit := unitVal.String()
 
@@ -738,10 +735,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			arg1Val, ok := bsonVal.(SQLValue)
-			if !ok {
-				return nil, false
-			}
+			arg1Val, _ := NewSQLValue(bsonVal, schema.SQLInt, schema.SQLNone)
 
 			arg1 := int(arg1Val.Float64()) - 1
 			arg2 := args[2]
@@ -840,10 +834,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 					return nil, false
 				}
 
-				placeVal, ok := bsonVal.(SQLValue)
-				if !ok {
-					return nil, false
-				}
+				placeVal, _ := NewSQLValue(bsonVal, schema.SQLFloat, schema.SQLNone)
 
 				places := placeVal.Float64()
 				decimal = math.Pow(float64(10), places)
@@ -893,10 +884,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			arg1Val, ok := bsonVal.(SQLValue)
-			if !ok {
-				return nil, false
-			}
+			arg1Val, _ := NewSQLValue(bsonVal, schema.SQLInt, schema.SQLNone)
 
 			arg1 := int(arg1Val.Float64()) - 1
 
@@ -925,10 +913,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			dVal, ok := bsonVal.(SQLValue)
-			if !ok {
-				return nil, false
-			}
+			dVal, _ := NewSQLValue(bsonVal, schema.SQLFloat, schema.SQLNone)
 
 			d := dVal.Float64()
 			if d >= 0 {
@@ -957,7 +942,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			mode := 0
+			mode := int64(0)
 			if len(args) == 2 {
 				bsonMap, ok := args[1].(bson.M)
 				if !ok {
@@ -969,12 +954,8 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 					return nil, false
 				}
 
-				arg1Val, ok := bsonVal.(SQLValue)
-				if !ok {
-					return nil, false
-				}
-
-				mode = int(arg1Val.Float64())
+				arg1Val, _ := NewSQLValue(bsonVal, schema.SQLInt, schema.SQLNone)
+				mode = arg1Val.Int64()
 			}
 
 			if mode == 0 {
@@ -1026,49 +1007,6 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		}
 
 		return bson.M{"$subtract": []interface{}{left, right}}, true
-
-	// SQL builtin types
-
-	case SQLDecimal128:
-		d, ok := t.translateDecimal(typedE)
-		if !ok {
-			return nil, false
-		}
-		return bson.M{"$literal": d}, true
-
-	case SQLDate:
-		return typedE.Time, true
-
-	case SQLUint64:
-		val, ok := t.getValue(typedE)
-		if !ok {
-			return nil, false
-		}
-
-		ui := val.(uint64)
-		if ui > math.MaxInt64 {
-			return nil, false
-		}
-		return bson.M{"$literal": typedE}, true
-
-	case SQLBool:
-		return bson.M{"$literal": typedE.Bool()}, true
-
-	case SQLFloat, SQLInt, SQLUint32, SQLVarchar:
-		return bson.M{"$literal": typedE}, true
-
-	case SQLUUID:
-		value := bson.Binary{Kind: 0x03, Data: typedE.bytes}
-		if typedE.kind == schema.MongoUUID {
-			value.Kind = 0x04
-		}
-		return value, true
-
-	case SQLNullValue:
-		return mgoNullLiteral, true
-
-	case SQLTimestamp:
-		return typedE.Time, true
 
 	case *SQLCaseExpr:
 		elseValue, ok := t.TranslateExpr(typedE.elseValue)
@@ -1182,6 +1120,57 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				}}),
 			wrapInNullCheck(left),
 		), true
+
+	// SQL Values
+	case SQLDecimal128:
+		d, ok := t.translateDecimal(typedE)
+		if !ok {
+			return nil, false
+		}
+		return bson.M{"$literal": d}, true
+
+	case SQLDate:
+		return typedE.Time, true
+
+	case SQLUint64:
+		val, ok := t.getValue(typedE)
+		if !ok {
+			return nil, false
+		}
+
+		ui := val.(uint64)
+		if ui > math.MaxInt64 {
+			return nil, false
+		}
+		return bson.M{"$literal": val}, true
+
+	case SQLBool:
+		return bson.M{"$literal": typedE.Bool()}, true
+
+	case SQLFloat:
+		return bson.M{"$literal": typedE.Value()}, true
+
+	case SQLInt:
+		return bson.M{"$literal": typedE.Value()}, true
+
+	case SQLUint32:
+		return bson.M{"$literal": typedE.Value()}, true
+
+	case SQLVarchar:
+		return bson.M{"$literal": typedE.Value()}, true
+
+	case SQLUUID:
+		value := bson.Binary{Kind: 0x03, Data: typedE.bytes}
+		if typedE.kind == schema.MongoUUID {
+			value.Kind = 0x04
+		}
+		return value, true
+
+	case SQLNullValue:
+		return mgoNullLiteral, true
+
+	case SQLTimestamp:
+		return typedE.Time, true
 
 	case *SQLValues:
 		var transExprs []interface{}
