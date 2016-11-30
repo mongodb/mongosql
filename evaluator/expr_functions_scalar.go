@@ -2624,9 +2624,11 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 		if length < 1 {
 			return SQLVarchar(""), nil
 		}
-
-		if pos+length <= len(str) {
-			str = str[pos : pos+length]
+		if pos <= len(str) {
+			str = str[pos:]
+		}
+		if length <= len(str) {
+			str = str[:length]
 		}
 	} else {
 		if pos < len(str) {
