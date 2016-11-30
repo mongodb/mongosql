@@ -943,6 +943,10 @@ type dateAddFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-add
 func (_ *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
 	_, ok := parseDateTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
@@ -956,6 +960,14 @@ func (_ *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	}
 
 	return timestampadd.Evaluate([]SQLValue{SQLVarchar(unit), SQLInt(interval), values[0]}, ctx)
+}
+
+func (_ *dateAddFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *dateAddFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -983,6 +995,10 @@ type dateSubFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-sub
 func (_ *dateSubFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
 	dateadd := &dateAddFunc{}
 
 	v := values[1].String()

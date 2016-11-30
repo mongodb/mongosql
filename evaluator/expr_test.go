@@ -1123,6 +1123,8 @@ func TestEvaluates(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				tests := []test{
+					test{"DATE_ADD('2002-01-02', INTERVAL NULL YEAR)", SQLNull},
+					test{"DATE_ADD(NULL, INTERVAL 1 YEAR)", SQLNull},
 					test{"DATE_ADD('2002-01-02', INTERVAL 1 YEAR)", SQLDate{Time: d}},
 					test{"DATE_ADD('2003-08-31', INTERVAL 1 QUARTER)", SQLDate{Time: d2}},
 					test{"DATE_ADD('2003-10-31', INTERVAL 1 MONTH)", SQLDate{Time: d2}},
@@ -1180,6 +1182,8 @@ func TestEvaluates(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				tests := []test{
+					test{"DATE_SUB('2004-01-02', INTERVAL NULL YEAR)", SQLNull},
+					test{"DATE_SUB(NULL, INTERVAL 1 YEAR)", SQLNull},
 					test{"DATE_SUB('2004-01-02', INTERVAL 1 YEAR)", SQLDate{Time: d}},
 					test{"DATE_SUB('2003-04-02', INTERVAL 1 QUARTER)", SQLDate{Time: d}},
 					test{"DATE_SUB('2003-12-31', INTERVAL 1 MONTH)", SQLDate{Time: d2}},
