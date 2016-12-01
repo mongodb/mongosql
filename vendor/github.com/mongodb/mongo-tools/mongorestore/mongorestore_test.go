@@ -35,10 +35,8 @@ func TestMongorestore(t *testing.T) {
 			Host: testServer,
 			Port: testPort,
 		},
-		Auth:          &auth,
-		SSL:           &ssl,
-		Namespace:     &options.Namespace{},
-		HiddenOptions: &options.HiddenOptions{},
+		Auth: &auth,
+		SSL:  &ssl,
 	}
 	inputOptions := &InputOptions{}
 	outputOptions := &OutputOptions{
@@ -46,19 +44,22 @@ func TestMongorestore(t *testing.T) {
 		NumInsertionWorkers:    1,
 		WriteConcern:           "majority",
 	}
+	nsOptions := &NSOptions{}
 	Convey("With a test MongoRestore", t, func() {
 		provider, err := db.NewSessionProvider(*toolOptions)
 		if err != nil {
-			log.Logf(log.Always, "error connecting to host: %v", err)
+			log.Logvf(log.Always, "error connecting to host: %v", err)
 			os.Exit(util.ExitError)
 		}
 		restore := MongoRestore{
 			ToolOptions:     toolOptions,
 			OutputOptions:   outputOptions,
 			InputOptions:    inputOptions,
+			NSOptions:       nsOptions,
 			SessionProvider: provider,
 		}
 		session, _ := provider.GetSession()
+		defer session.Close()
 		c1 := session.DB("db1").C("c1")
 		c1.DropCollection()
 		Convey("and an explicit target restores from that dump directory", func() {
@@ -72,8 +73,8 @@ func TestMongorestore(t *testing.T) {
 
 		Convey("and an target of '-' restores from standard input", func() {
 			bsonFile, err := os.Open("testdata/testdirs/db1/c1.bson")
-			toolOptions.Namespace.Collection = "c1"
-			toolOptions.Namespace.DB = "db1"
+			restore.NSOptions.Collection = "c1"
+			restore.NSOptions.DB = "db1"
 			So(err, ShouldBeNil)
 			restore.stdin = bsonFile
 			restore.TargetDirectory = "-"

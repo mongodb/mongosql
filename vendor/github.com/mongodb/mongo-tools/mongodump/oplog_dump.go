@@ -17,18 +17,18 @@ func (dump *MongoDump) determineOplogCollectionName() error {
 		return fmt.Errorf("error running command: %v", err)
 	}
 	if _, ok := masterDoc["hosts"]; ok {
-		log.Logf(log.DebugLow, "determined cluster to be a replica set")
-		log.Logf(log.DebugHigh, "oplog located in local.oplog.rs")
+		log.Logvf(log.DebugLow, "determined cluster to be a replica set")
+		log.Logvf(log.DebugHigh, "oplog located in local.oplog.rs")
 		dump.oplogCollection = "oplog.rs"
 		return nil
 	}
 	if isMaster := masterDoc["ismaster"]; util.IsFalsy(isMaster) {
-		log.Logf(log.Info, "mongodump is not connected to a master")
+		log.Logvf(log.Info, "mongodump is not connected to a master")
 		return fmt.Errorf("not connected to master")
 	}
 
-	log.Logf(log.DebugLow, "not connected to a replica set, assuming master/slave")
-	log.Logf(log.DebugHigh, "oplog located in local.oplog.$main")
+	log.Logvf(log.DebugLow, "not connected to a replica set, assuming master/slave")
+	log.Logvf(log.DebugHigh, "oplog located in local.oplog.$main")
 	dump.oplogCollection = "oplog.$main"
 	return nil
 
@@ -56,9 +56,9 @@ func (dump *MongoDump) checkOplogTimestampExists(ts bson.MongoTimestamp) (bool, 
 		return false, fmt.Errorf("unable to read entry from oplog: %v", err)
 	}
 
-	log.Logf(log.DebugHigh, "oldest oplog entry has timestamp %v", oldestOplogEntry.Timestamp)
+	log.Logvf(log.DebugHigh, "oldest oplog entry has timestamp %v", oldestOplogEntry.Timestamp)
 	if oldestOplogEntry.Timestamp > ts {
-		log.Logf(log.Info, "oldest oplog entry of timestamp %v is older than %v",
+		log.Logvf(log.Info, "oldest oplog entry of timestamp %v is older than %v",
 			oldestOplogEntry.Timestamp, ts)
 		return false, nil
 	}
@@ -73,18 +73,12 @@ func (dump *MongoDump) DumpOplogAfterTimestamp(ts bson.MongoTimestamp) error {
 		return err
 	}
 	defer session.Close()
-	intent := dump.manager.Oplog()
-	err = intent.BSONFile.Open()
-	if err != nil {
-		return fmt.Errorf("error opening output stream for dumping oplog: %v", err)
-	}
-	defer intent.BSONFile.Close()
 	session.SetPrefetch(1.0) // mimic exhaust cursor
 	queryObj := bson.M{"ts": bson.M{"$gt": ts}}
 	oplogQuery := session.DB("local").C(dump.oplogCollection).Find(queryObj).LogReplay()
-	oplogCount, err := dump.dumpQueryToWriter(oplogQuery, dump.manager.Oplog())
+	oplogCount, err := dump.dumpQueryToIntent(oplogQuery, dump.manager.Oplog(), dump.getResettableOutputBuffer())
 	if err == nil {
-		log.Logf(log.Always, "\tdumped %v oplog %v",
+		log.Logvf(log.Always, "\tdumped %v oplog %v",
 			oplogCount, util.Pluralize(int(oplogCount), "entry", "entries"))
 	}
 	return err

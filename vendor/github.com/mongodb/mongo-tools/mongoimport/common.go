@@ -4,18 +4,52 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2/bson"
 	"gopkg.in/tomb.v2"
-	"io"
-	"sort"
-	"strconv"
-	"strings"
-	"sync"
 )
+
+type ParseGrace int
+
+const (
+	pgAutoCast ParseGrace = iota
+	pgSkipField
+	pgSkipRow
+	pgStop
+)
+
+// ValidatePG ensures the user-provided parseGrace is one of the allowed
+// values.
+func ValidatePG(pg string) (ParseGrace, error) {
+	switch pg {
+	case "autoCast":
+		return pgAutoCast, nil
+	case "skipField":
+		return pgSkipField, nil
+	case "skipRow":
+		return pgSkipRow, nil
+	case "stop":
+		return pgStop, nil
+	default:
+		return pgAutoCast, fmt.Errorf("invalid parse grace: %s", pg)
+	}
+}
+
+// ParsePG interprets the user-provided parseGrace, assuming it is valid.
+func ParsePG(pg string) (res ParseGrace) {
+	res, _ = ValidatePG(pg)
+	return
+}
 
 // Converter is an interface that adds the basic Convert method which returns a
 // valid BSON document that has been converted by the underlying implementation.
@@ -46,31 +80,25 @@ type sizeTracker interface {
 // sizeTrackingReader implements Reader and sizeTracker by wrapping an io.Reader and keeping track
 // of the total number of bytes read from each call to Read().
 type sizeTrackingReader struct {
-	reader         io.Reader
-	bytesRead      int64
-	bytesReadMutex sync.Mutex
+	bytesRead int64
+	reader    io.Reader
 }
 
 func (str *sizeTrackingReader) Size() int64 {
-	str.bytesReadMutex.Lock()
-	bytes := str.bytesRead
-	str.bytesReadMutex.Unlock()
+	bytes := atomic.LoadInt64(&str.bytesRead)
 	return bytes
 }
 
 func (str *sizeTrackingReader) Read(p []byte) (n int, err error) {
 	n, err = str.reader.Read(p)
-	str.bytesReadMutex.Lock()
-	str.bytesRead += int64(n)
-	str.bytesReadMutex.Unlock()
+	atomic.AddInt64(&str.bytesRead, int64(n))
 	return
 }
 
 func newSizeTrackingReader(reader io.Reader) *sizeTrackingReader {
 	return &sizeTrackingReader{
-		reader:         reader,
-		bytesRead:      0,
-		bytesReadMutex: sync.Mutex{},
+		reader:    reader,
+		bytesRead: 0,
 	}
 }
 
@@ -121,7 +149,7 @@ func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 		if val != nil {
 			hasDocumentKey = true
 		}
-		upsertDocument = append(upsertDocument, bson.DocElem{key, val})
+		upsertDocument = append(upsertDocument, bson.DocElem{Name: key, Value: val})
 	}
 	if !hasDocumentKey {
 		return nil
@@ -169,22 +197,6 @@ func doSequentialStreaming(workers []*importWorker, readDocs chan Converter, out
 	}
 }
 
-// getParsedValue returns the appropriate concrete type for the given token
-// it first attempts to convert it to an int, if that doesn't succeed, it
-// attempts conversion to a float, if that doesn't succeed, it returns the
-// token as is.
-func getParsedValue(token string) interface{} {
-	parsedInt, err := strconv.Atoi(token)
-	if err == nil {
-		return parsedInt
-	}
-	parsedFloat, err := strconv.ParseFloat(token, 64)
-	if err == nil {
-		return parsedFloat
-	}
-	return token
-}
-
 // getUpsertValue takes a given BSON document and a given field, and returns the
 // field's associated value in the document. The field is specified using dot
 // notation for nested fields. e.g. "person.age" would return 34 would return
@@ -230,7 +242,7 @@ func filterIngestError(stopOnError bool, err error) error {
 	if stopOnError || db.IsConnectionError(err) {
 		return err
 	}
-	log.Logf(log.Always, "error inserting documents: %v", err)
+	log.Logvf(log.Always, "error inserting documents: %v", err)
 	return nil
 }
 
@@ -258,7 +270,7 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 func setNestedValue(key string, value interface{}, document *bson.D) {
 	index := strings.Index(key, ".")
 	if index == -1 {
-		*document = append(*document, bson.DocElem{key, value})
+		*document = append(*document, bson.DocElem{Name: key, Value: value})
 		return
 	}
 	keyName := key[0:index]
@@ -274,7 +286,7 @@ func setNestedValue(key string, value interface{}, document *bson.D) {
 	}
 	setNestedValue(key[index+1:], value, subDocument)
 	if !existingKey {
-		*document = append(*document, bson.DocElem{keyName, subDocument})
+		*document = append(*document, bson.DocElem{Name: keyName, Value: subDocument})
 	}
 }
 
@@ -287,9 +299,8 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 		numDecoders = 1
 	}
 	var importWorkers []*importWorker
-	wg := &sync.WaitGroup{}
-	mt := &sync.Mutex{}
-	importTomb := &tomb.Tomb{}
+	wg := new(sync.WaitGroup)
+	importTomb := new(tomb.Tomb)
 	inChan := readDocs
 	outChan := outputChan
 	for i := 0; i < numDecoders; i++ {
@@ -309,8 +320,6 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 			// only set the first worker error and cause sibling goroutines
 			// to terminate immediately
 			err := iw.processDocuments(ordered)
-			mt.Lock()
-			defer mt.Unlock()
 			if err != nil && retErr == nil {
 				retErr = err
 				iw.tomb.Kill(err)
@@ -328,27 +337,55 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 	return
 }
 
-// tokensToBSON reads in slice of records - along with ordered fields names -
+// coercionError should only be used as a specific error type to check
+// whether tokensToBSON wants the row to print
+type coercionError struct{}
+
+func (coercionError) Error() string { return "coercionError" }
+
+// tokensToBSON reads in slice of records - along with ordered column names -
 // and returns a BSON document for the record.
-func tokensToBSON(fields, tokens []string, numProcessed uint64) (bson.D, error) {
-	log.Logf(log.DebugHigh, "got line: %v", tokens)
+func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, ignoreBlanks bool) (bson.D, error) {
+	log.Logvf(log.DebugHigh, "got line: %v", tokens)
 	var parsedValue interface{}
 	document := bson.D{}
 	for index, token := range tokens {
-		parsedValue = getParsedValue(token)
-		if index < len(fields) {
-			if strings.Index(fields[index], ".") != -1 {
-				setNestedValue(fields[index], parsedValue, &document)
+		if token == "" && ignoreBlanks {
+			continue
+		}
+		if index < len(colSpecs) {
+			parsedValue, err := colSpecs[index].Parser.Parse(token)
+			if err != nil {
+				log.Logvf(log.DebugHigh, "parse failure in document #%d for column '%s',"+
+					"could not parse token '%s' to type %s",
+					numProcessed, colSpecs[index].Name, token, colSpecs[index].TypeName)
+				switch colSpecs[index].ParseGrace {
+				case pgAutoCast:
+					parsedValue = autoParse(token)
+				case pgSkipField:
+					continue
+				case pgSkipRow:
+					log.Logvf(log.Always, "skipping row #%d: %v", numProcessed, tokens)
+					return nil, coercionError{}
+				case pgStop:
+					return nil, fmt.Errorf("type coercion failure in document #%d for column '%s', "+
+						"could not parse token '%s' to type %s",
+						numProcessed, colSpecs[index].Name, token, colSpecs[index].TypeName)
+				}
+			}
+			if strings.Index(colSpecs[index].Name, ".") != -1 {
+				setNestedValue(colSpecs[index].Name, parsedValue, &document)
 			} else {
-				document = append(document, bson.DocElem{fields[index], parsedValue})
+				document = append(document, bson.DocElem{Name: colSpecs[index].Name, Value: parsedValue})
 			}
 		} else {
+			parsedValue = autoParse(token)
 			key := "field" + strconv.Itoa(index)
-			if util.StringSliceContains(fields, key) {
+			if util.StringSliceContains(ColumnNames(colSpecs), key) {
 				return nil, fmt.Errorf("duplicate field name - on %v - for token #%v ('%v') in document #%v",
 					key, index+1, parsedValue, numProcessed)
 			}
-			document = append(document, bson.DocElem{key, parsedValue})
+			document = append(document, bson.DocElem{Name: key, Value: parsedValue})
 		}
 	}
 	return document, nil
@@ -399,9 +436,9 @@ func validateReaderFields(fields []string) error {
 		return err
 	}
 	if len(fields) == 1 {
-		log.Logf(log.Info, "using field: %v", fields[0])
+		log.Logvf(log.Info, "using field: %v", fields[0])
 	} else {
-		log.Logf(log.Info, "using fields: %v", strings.Join(fields, ","))
+		log.Logvf(log.Info, "using fields: %v", strings.Join(fields, ","))
 	}
 	return nil
 }
@@ -423,6 +460,9 @@ func (iw *importWorker) processDocuments(ordered bool) error {
 			document, err := converter.Convert()
 			if err != nil {
 				return err
+			}
+			if document == nil {
+				continue
 			}
 			iw.processedDocumentChan <- document
 		case <-iw.tomb.Dying():

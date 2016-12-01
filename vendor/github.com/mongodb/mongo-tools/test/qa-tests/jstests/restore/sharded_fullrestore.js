@@ -1,44 +1,45 @@
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/sharding_28.config.js');
+  }
 
-   if (typeof getToolTest === 'undefined') {
-       load('jstests/configs/sharding_28.config.js');
-   }
+  if (dump_targets === "archive") {
+    print('skipping test incompatable with archiving');
+    return assert(true);
+  }
 
+  var targetPath = 'restore_full_restore';
+  var toolTest = getToolTest('fullrestore');
+  var commonToolArgs = getCommonToolArguments();
 
-   if (dump_targets == "archive") {
-       print('skipping test incompatable with archiving');
-       return assert(true);
-   }
+  var sourceDB = toolTest.db.getSiblingDB('blahblah');
 
-    var toolTest = getToolTest('fullrestore');
-    var commonToolArgs = getCommonToolArguments();
+  // put in some sample data
+  var data = [];
+  for (var i=0; i<100; i++) {
+    data.push({x: 1});
+  }
+  sourceDB.test.insertMany(data);
 
-    var sourceDB = toolTest.db.getSiblingDB('blahblah');
+  // dump the data
+  var ret = toolTest.runTool.apply(toolTest, ['dump']
+    .concat(getDumpTarget(targetPath))
+    .concat(commonToolArgs));
+  assert.eq(ret, 0, "dump of full sharded system should have succeeded");
 
-    // put in some sample data
-    for(var i=0;i<100;i++){
-      sourceDB.test.insert({x:1})
-    }
+  // a full restore should fail
+  ret = toolTest.runTool.apply(toolTest, ['restore']
+    .concat(getRestoreTarget(targetPath))
+    .concat(commonToolArgs));
+  assert.neq(ret, 0, "restore of full sharded system should have failed");
 
-    // dump the data
-    var ret = toolTest.runTool.apply( toolTest, ['dump'].
-            concat(getDumpTarget()).
-            concat(commonToolArgs));
-    assert.eq(ret, 0, "dump of full sharded system should have succeeded")
+  // delete the config dir
+  resetDbpath(targetPath + "/config");
 
-    // a full restore should fail
-    var ret = toolTest.runTool.apply( toolTest, ['restore'].
-            concat(getRestoreTarget()).
-            concat(commonToolArgs));
-    assert.neq(ret, 0, "restore of full sharded system should have failed")
-    
-    // delete the config dir
-    resetDbpath("dump/config")
-
-    // *now* the restore should succeed
-    var ret = toolTest.runTool.apply( toolTest, ['restore'].
-            concat(getRestoreTarget()).
-            concat(commonToolArgs));
-    assert.eq(ret, 0, "restore of sharded system without config db should have succeeded")
+  // *now* the restore should succeed
+  ret = toolTest.runTool.apply(toolTest, ['restore']
+    .concat(getRestoreTarget(targetPath))
+    .concat(commonToolArgs));
+  assert.eq(ret, 0, "restore of sharded system without config db should have succeeded");
 
 }());

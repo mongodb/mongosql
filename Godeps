@@ -5,7 +5,7 @@ github.com/jessevdk/go-flags	aa34304f81c710f34c76e964a3d996ec1330711d
 github.com/jtolds/gls	9a4a02dbe491bef4bab3c24fd9f3087d6c4c6690
 github.com/kr/pretty   add1dbc86daf0f983cd4a48ceb39deb95c729b67
 github.com/kr/text   bb797dc4fb8320488f47bf11de07a733d7233e1f
-github.com/mongodb/mongo-tools			59a747af41d51498b6ee04cd9c86d7155962b442
+github.com/mongodb/mongo-tools			3cc9a07766fb55de63e81a13e72f3c5a7c07f477
 github.com/shopspring/decimal	d6f52241f332c63811249bd79a522406bea1a7c9
 github.com/smartystreets/assertions				edb6e295a22c57a2aa353b2f0729b6eff9f9f4b7
 github.com/smartystreets/goconvey				1.6.2

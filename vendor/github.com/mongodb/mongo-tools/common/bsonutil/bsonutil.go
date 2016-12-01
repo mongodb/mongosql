@@ -55,7 +55,10 @@ func GetExtendedBsonD(doc bson.D) (bson.D, error) {
 		if err != nil {
 			return nil, err
 		}
-		bsonDoc = append(bsonDoc, bson.DocElem{docElem.Name, bsonValue})
+		bsonDoc = append(bsonDoc, bson.DocElem{
+			Name:  docElem.Name,
+			Value: bsonValue,
+		})
 	}
 	return bsonDoc, nil
 }
@@ -179,8 +182,8 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 				tsDoc = internalDoc
 			case bson.D:
 				tsDoc = internalDoc.Map()
-		 	default:
-					return nil, errors.New("expected $timestamp key to have internal document")
+			default:
+				return nil, errors.New("expected $timestamp key to have internal document")
 			}
 
 			if seconds, ok := tsDoc["t"]; ok {
@@ -203,6 +206,15 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 			}
 			// see BSON spec for details on the bit fiddling here
 			return bson.MongoTimestamp(int64(ts.Seconds)<<32 | int64(ts.Increment)), nil
+		}
+
+		if jsonValue, ok := doc["$numberDecimal"]; ok {
+			switch v := jsonValue.(type) {
+			case string:
+				return bson.ParseDecimal128(v)
+			default:
+				return nil, errors.New("expected $numberDecimal field to have string value")
+			}
 		}
 
 		if _, ok := doc["$undefined"]; ok {

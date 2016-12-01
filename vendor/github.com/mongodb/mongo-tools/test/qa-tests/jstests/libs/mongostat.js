@@ -4,32 +4,111 @@ var exitCodeErr = 1;
 var exitCodeBadOptions = 3;
 var exitCodeStopped = 4;
 
-var rowRegex = /^sh\d+\|\s/;
+// NOTE: On Windows, stopMongoProgramByPid doesn't terminiate a process in a
+// way that it can control its exit code.
+if (_isWindows()) {
+  exitCodeStopped = exitCodeErr;
+}
 
-var portRegex = /^sh\d+\| \S+:(\d+)(\s+\S+){16}/; // I counted like 22 fields, so 16 is just a number that should indicate that we're actually looking at a stat line
+var rowRegex = /^sh\d+\|\s/;
+// portRegex finds the port on a line which has enough whitespace-delimited
+// values to be considered a stat line and not an error message
+var portRegex = /^sh\d+\|\s+\S+:(\d+)(\s+\S+){16}/;
+
+function statRows() {
+  return rawMongoProgramOutput()
+    .split("\n")
+    .filter(function(r) {
+      return r.match(rowRegex);
+    })
+    .map(function(r) {
+      return r.replace(/^sh\d+\| /, "");
+    });
+}
+
+function statFields(row) {
+  return row.split(/\s/).filter(function(s) {
+    return s !== "";
+  });
+}
+
+function getLatestChunk() {
+  var output = rawMongoProgramOutput();
+  // mongostat outputs a blank line between each set of stats when there are
+  // multiple hosts; we want just one chunk of stat lines
+  var lineChunks = output.split("| \n");
+  if (lineChunks.length === 1) {
+    return lineChunks[0];
+  }
+  return lineChunks[lineChunks.length - 2];
+}
+
+function latestPortCounts() {
+  var portCounts = {};
+  getLatestChunk().split("\n").forEach(function(r) {
+    var matches = r.match(portRegex);
+    if (matches === null) {
+      return;
+    }
+    var port = matches[1];
+    if (!portCounts[port]) {
+      portCounts[port] = 0;
+    }
+    portCounts[port]++;
+  });
+  return portCounts;
+}
+
+function hasPort(port) {
+  port = String(port);
+  return function() {
+    return latestPortCounts()[port] >= 1;
+  };
+}
+
+function lacksPort(port) {
+  port = String(port);
+  return function() {
+    return latestPortCounts()[port] === undefined;
+  };
+}
+
+function hasOnlyPorts(expectedPorts) {
+  expectedPorts = expectedPorts.map(String);
+  return function() {
+    var portCounts = latestPortCounts();
+    for (var port in portCounts) {
+      if (expectedPorts.indexOf(port) === -1) {
+        return false;
+      }
+    }
+    for (var i in expectedPorts) {
+      if (portCounts[expectedPorts[i]] !== 1) {
+        return false;
+      }
+    }
+    return true;
+  };
+}
+
+function statCheck(args, checker) {
+  clearRawMongoProgramOutput();
+  pid = startMongoProgramNoConnect.apply(null, args);
+  try {
+    assert.soon(checker, "discoverTest wait timed out");
+    return true;
+  } catch (e) {
+    return false;
+  } finally {
+    stopMongoProgramByPid(pid);
+  }
+}
 
 function discoverTest(ports, connectHost) {
-    clearRawMongoProgramOutput();
-    x = runMongoProgram.apply(null, [ "mongostat", "--host", connectHost, "--rowcount", 7, "--noheaders", "--discover" ]);
-    return statOutputPortCheck(ports);
+  return statCheck(["mongostat",
+      "--host", connectHost,
+      "--noheaders",
+      "--discover"],
+    hasOnlyPorts(ports));
 }
 
-function statOutputPortCheck(ports) {
-    var portMap = {};
-    ports.forEach(function(p) {
-        portMap[p] = true;
-    });
-    foundRows = rawMongoProgramOutput().split("\n").filter(function(r) {
-        return r.match(portRegex);
-    });
-    foundPorts = foundRows.map(function(r) {
-        return r.match(portRegex)[1];
-    });
-    foundPorts.forEach(function(p) {
-        portMap[p] = false;
-    });
-    somePortsUnseen = ports.some(function(p) {
-        return portMap[p];
-    });
-    return !somePortsUnseen;
-}

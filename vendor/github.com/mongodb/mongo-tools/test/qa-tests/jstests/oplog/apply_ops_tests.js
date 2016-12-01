@@ -1,16 +1,17 @@
-if (typeof getToolTest === 'undefined') {
-  load('jstests/configs/plain_28.config.js');
-}
-
 /*
  * This test creates a fake oplog and uses it to test correct behavior of
  * --oplogns and --seconds
  */
-
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
+
   var OPLOG_INSERT_CODE = 'i';
   var OPLOG_UPDATE_CODE = 'u';
-  var OPLOG_COMMAND_CODE = 'c';
+  // unused: OPLOG_COMMAND_CODE = 'c';
   var CURRENT_OPLOG_VERSION = 2;
 
   // Oplog TS is in seconds since unix epoch
@@ -23,7 +24,7 @@ if (typeof getToolTest === 'undefined') {
   db.dropDatabase();
 
   // Create capped collection
-  db.createCollection('rs_test', { capped: true, max: 4 });
+  db.createCollection('rs_test', {capped: true, max: 4});
   // Create test collection
   db.createCollection('greatest_hits');
 
@@ -68,14 +69,13 @@ if (typeof getToolTest === 'undefined') {
     'target collection should be empty before mongooplog runs');
 
   if (toolTest.isSharded) {
-    // When applying ops to a sharded cluster, 
+    // When applying ops to a sharded cluster,
     assert(toolTest.runTool.apply(toolTest, args) !== 0,
       'mongooplog should fail when running applyOps on a sharded cluster');
 
-    var output = rawMongoProgramOutput();
     var expectedError =
       'error applying ops: applyOps not allowed through mongos';
-    assert(output.indexOf(expectedError) !== -1,
+    assert.strContains.soon(expectedError, rawMongoProgramOutput,
       'mongooplog crash should output the correct error message');
 
     assert.eq(0, db.greatest_hits.count({}),
@@ -88,7 +88,7 @@ if (typeof getToolTest === 'undefined') {
     assert.eq(6, db.greatest_hits.count({}),
       'mongooplog should apply all operations');
     tracks.forEach(function(track, index) {
-      assert.eq(1, db.greatest_hits.count({ _id: track, index: index }),
+      assert.eq(1, db.greatest_hits.count({_id: track, index: index}),
         'mongooplog should have inserted a doc with _id="' + track + '" and ' +
         'updated it to have index=' + index);
     });
@@ -99,7 +99,7 @@ if (typeof getToolTest === 'undefined') {
     assert.eq(6, db.greatest_hits.count({}),
       'mongooplog should apply all operations');
     tracks.forEach(function(track, index) {
-      assert.eq(1, db.greatest_hits.count({ _id: track, index: index }),
+      assert.eq(1, db.greatest_hits.count({_id: track, index: index}),
         'mongooplog should have inserted a doc with _id="' + track + '" and ' +
         'updated it to have index=' + index);
     });
@@ -116,7 +116,7 @@ if (typeof getToolTest === 'undefined') {
     assert.eq(3, db.greatest_hits.count({}),
       '`mongooplog --seconds 25000` should apply 3 operations');
     tracks.slice(0, 3).forEach(function(track, index) {
-      assert.eq(1, db.greatest_hits.count({ _id: track, index: index }),
+      assert.eq(1, db.greatest_hits.count({_id: track, index: index}),
         'mongooplog should have inserted a doc with _id="' + track + '" and ' +
         'updated it to have index=' + index);
     });
@@ -134,4 +134,4 @@ if (typeof getToolTest === 'undefined') {
   }
 
   toolTest.stop();
-})();
+}());

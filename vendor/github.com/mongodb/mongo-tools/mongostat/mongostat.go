@@ -2,15 +2,18 @@
 package mongostat
 
 import (
-	"fmt"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/mongostat/stat_consumer"
+	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
+	"github.com/mongodb/mongo-tools/mongostat/status"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // MongoStat is a container for the user-specified options and
@@ -38,9 +41,6 @@ type MongoStat struct {
 
 	// Mutex to handle safe concurrent adding to or looping over discovered nodes.
 	nodesLock sync.RWMutex
-
-	// Internal storage of the name the user seeded with, for error checking.
-	startNode string
 }
 
 // ConfigShard holds a mapping for the format of shard hosts as they
@@ -53,14 +53,8 @@ type ConfigShard struct {
 // NodeMonitor contains the connection pool for a single host and collects the
 // mongostat data for that host on a regular interval.
 type NodeMonitor struct {
-	host            string
+	host, alias     string
 	sessionProvider *db.SessionProvider
-
-	// Enable/Disable collection of optional fields.
-	All bool
-
-	// The previous result of the ServerStatus command used to calculate diffs.
-	LastStatus *ServerStatus
 
 	// The time at which the node monitor last processed an update successfully.
 	LastUpdate time.Time
@@ -73,11 +67,14 @@ type NodeMonitor struct {
 // synchronized with the timing of when the polling samples are collected.
 // Only works with a single host at a time.
 type SyncClusterMonitor struct {
-	// Channel to listen for incoming stat data.
-	ReportChan chan StatLine
+	// Channel to listen for incoming stat data
+	ReportChan chan *status.ServerStatus
 
-	// Used to format the StatLines for printing.
-	Formatter LineFormatter
+	// Channel to listen for incoming errors
+	ErrorChan chan *status.NodeError
+
+	// Creates and consumes StatLines using ServerStatuses
+	Consumer *stat_consumer.StatConsumer
 }
 
 // ClusterMonitor maintains an internal representation of a cluster's state,
@@ -85,16 +82,13 @@ type SyncClusterMonitor struct {
 // this internal state on an interval.
 type ClusterMonitor interface {
 	// Monitor() triggers monitoring and dumping output to begin
-	// maxRows is the number of times to dump output before exiting. If <0,
-	// Monitor() will run indefinitely.
-	// done is a channel to send an error if one is encountered. A nil value will
-	// be sent on this channel if Monitor() completes with no error.
 	// sleep is the interval to sleep between output dumps.
-	Monitor(maxRows int, done chan error, sleep time.Duration, startNode string)
+	// returns an error if it fails, and nil when monitoring ends
+	Monitor(sleep time.Duration) error
 
 	// Update signals the ClusterMonitor implementation to refresh its internal
-	// state using the data contained in the provided StatLine.
-	Update(statLine StatLine)
+	// state using the data contained in the provided ServerStatus.
+	Update(stat *status.ServerStatus, err *status.NodeError)
 }
 
 // AsyncClusterMonitor is an implementation of ClusterMonitor that writes output
@@ -103,126 +97,141 @@ type AsyncClusterMonitor struct {
 	Discover bool
 
 	// Channel to listen for incoming stat data
-	ReportChan chan StatLine
+	ReportChan chan *status.ServerStatus
+
+	// Channel to listen for incoming errors
+	ErrorChan chan *status.NodeError
 
 	// Map of hostname -> latest stat data for the host
-	LastStatLines map[string]*StatLine
+	LastStatLines map[string]*line.StatLine
 
 	// Mutex to protect access to LastStatLines
-	mapLock sync.Mutex
+	mapLock sync.RWMutex
 
-	// Used to format the StatLines for printing
-	Formatter LineFormatter
+	// Creates and consumes StatLines using ServerStatuses
+	Consumer *stat_consumer.StatConsumer
 }
 
 // Update refreshes the internal state of the cluster monitor with the data
 // in the StatLine. SyncClusterMonitor's implementation of Update blocks
 // until it has written out its state, so that output is always dumped exactly
 // once for each poll.
-func (cluster *SyncClusterMonitor) Update(statLine StatLine) {
-	cluster.ReportChan <- statLine
+func (cluster *SyncClusterMonitor) Update(stat *status.ServerStatus, err *status.NodeError) {
+	if err != nil {
+		cluster.ErrorChan <- err
+		return
+	}
+	cluster.ReportChan <- stat
 }
 
 // Monitor waits for data on the cluster's report channel. Once new data comes
 // in, it formats and then displays it to stdout.
-func (cluster *SyncClusterMonitor) Monitor(maxRows int, done chan error, sleep time.Duration, _ string) {
-	go func() {
-		rowCount := 0
-		hasData := false
-		for {
-			newStat := <-cluster.ReportChan
-			if newStat.Error != nil && !hasData {
-				done <- newStat.Error
-				return
+func (cluster *SyncClusterMonitor) Monitor(_ time.Duration) error {
+	receivedData := false
+	for {
+		var statLine *line.StatLine
+		var ok bool
+		select {
+		case stat := <-cluster.ReportChan:
+			statLine, ok = cluster.Consumer.Update(stat)
+			if !ok {
+				continue
 			}
-			hasData = true
-
-			out := cluster.Formatter.FormatLines([]StatLine{newStat}, rowCount, false)
-			fmt.Print(out)
-			rowCount++
-			if maxRows > 0 && rowCount >= maxRows {
-				break
+		case err := <-cluster.ErrorChan:
+			if !receivedData {
+				return err
+			}
+			statLine = &line.StatLine{
+				Error:  err,
+				Fields: map[string]string{"host": err.Host},
 			}
 		}
-		done <- nil
-	}()
+		receivedData = true
+		if cluster.Consumer.FormatLines([]*line.StatLine{statLine}) {
+			return nil
+		}
+	}
 }
 
 // updateHostInfo updates the internal map with the given StatLine data.
 // Safe for concurrent access.
-func (cluster *AsyncClusterMonitor) updateHostInfo(stat StatLine) {
+func (cluster *AsyncClusterMonitor) updateHostInfo(stat *line.StatLine) {
 	cluster.mapLock.Lock()
 	defer cluster.mapLock.Unlock()
-	cluster.LastStatLines[stat.Key] = &stat
+	host := stat.Fields["host"]
+	cluster.LastStatLines[host] = stat
 }
 
 // printSnapshot formats and dumps the current state of all the stats collected.
-func (cluster *AsyncClusterMonitor) printSnapshot(lineCount int, discover bool) {
-	cluster.mapLock.Lock()
-	defer cluster.mapLock.Unlock()
-	lines := make([]StatLine, 0, len(cluster.LastStatLines))
+// returns whether the program should now exit
+func (cluster *AsyncClusterMonitor) printSnapshot() bool {
+	cluster.mapLock.RLock()
+	defer cluster.mapLock.RUnlock()
+	lines := make([]*line.StatLine, 0, len(cluster.LastStatLines))
 	for _, stat := range cluster.LastStatLines {
-		lines = append(lines, *stat)
+		lines = append(lines, stat)
 	}
-	out := cluster.Formatter.FormatLines(lines, lineCount, true)
-
-	// Mark all the host lines that we encountered as having been printed
-	for _, stat := range cluster.LastStatLines {
-		stat.LastPrinted = stat.Time
+	if len(lines) == 0 {
+		return false
 	}
-
-	fmt.Print(out)
+	return cluster.Consumer.FormatLines(lines)
 }
 
 // Update sends a new StatLine on the cluster's report channel.
-func (cluster *AsyncClusterMonitor) Update(statLine StatLine) {
-	cluster.ReportChan <- statLine
+func (cluster *AsyncClusterMonitor) Update(stat *status.ServerStatus, err *status.NodeError) {
+	if err != nil {
+		cluster.ErrorChan <- err
+		return
+	}
+	cluster.ReportChan <- stat
 }
 
 // The Async implementation of Monitor starts the goroutines that listen for incoming stat data,
 // and dump snapshots at a regular interval.
-func (cluster *AsyncClusterMonitor) Monitor(maxRows int, done chan error, sleep time.Duration, startNode string) {
-	receivedData := false
-	gotFirstStat := make(chan struct{})
+func (cluster *AsyncClusterMonitor) Monitor(sleep time.Duration) error {
+	select {
+	case stat := <-cluster.ReportChan:
+		cluster.Consumer.Update(stat)
+	case err := <-cluster.ErrorChan:
+		// error out if the first result is an error
+		return err
+	}
+
 	go func() {
 		for {
-			newStat := <-cluster.ReportChan
-			cluster.updateHostInfo(newStat)
-
-			// Wait until we get an update from the node the user seeded with
-			if !receivedData && newStat.Key == startNode {
-				receivedData = true
-				if newStat.Error != nil {
-					done <- newStat.Error
-					return
+			select {
+			case stat := <-cluster.ReportChan:
+				statLine, ok := cluster.Consumer.Update(stat)
+				if ok {
+					cluster.updateHostInfo(statLine)
 				}
-				gotFirstStat <- struct{}{}
+			case err := <-cluster.ErrorChan:
+				cluster.updateHostInfo(&line.StatLine{
+					Error:  err,
+					Fields: map[string]string{"host": err.Host},
+				})
 			}
 		}
 	}()
 
-	go func() {
-		// Wait for the first bit of data to hit the channel before printing anything:
-		<-gotFirstStat
-		rowCount := 0
-		for {
-			time.Sleep(sleep)
-			cluster.printSnapshot(rowCount, cluster.Discover)
-			rowCount++
-			if maxRows > 0 && rowCount >= maxRows {
-				break
-			}
+	for range time.Tick(sleep) {
+		if cluster.printSnapshot() {
+			break
 		}
-		done <- nil
-	}()
+	}
+	return nil
 }
 
 // NewNodeMonitor copies the same connection settings from an instance of
 // ToolOptions, but monitors fullHost.
-func NewNodeMonitor(opts options.ToolOptions, fullHost string, all bool) (*NodeMonitor, error) {
+func NewNodeMonitor(opts options.ToolOptions, fullHost string) (*NodeMonitor, error) {
 	optsCopy := opts
 	host, port := parseHostPort(fullHost)
-	optsCopy.Connection = &options.Connection{Host: host, Port: port}
+	optsCopy.Connection = &options.Connection{
+		Host:    host,
+		Port:    port,
+		Timeout: opts.Timeout,
+	}
 	optsCopy.Direct = true
 	sessionProvider, err := db.NewSessionProvider(optsCopy)
 	if err != nil {
@@ -231,27 +240,22 @@ func NewNodeMonitor(opts options.ToolOptions, fullHost string, all bool) (*NodeM
 	return &NodeMonitor{
 		host:            fullHost,
 		sessionProvider: sessionProvider,
-		LastStatus:      nil,
 		LastUpdate:      time.Now(),
-		All:             all,
 		Err:             nil,
 	}, nil
 }
 
-// Report collects the stat info for a single node, and sends the result on
-// the "out" channel. If it fails, the error is stored in the NodeMonitor Err field.
-func (node *NodeMonitor) Poll(discover chan string, all bool, checkShards bool) *StatLine {
-	result := &ServerStatus{}
-	log.Logf(log.DebugHigh, "getting session on server: %v", node.host)
+// Report collects the stat info for a single node and sends found hostnames on
+// the "discover" channel if checkShards is true.
+func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.ServerStatus, error) {
+	stat := &status.ServerStatus{}
+	log.Logvf(log.DebugHigh, "getting session on server: %v", node.host)
 	s, err := node.sessionProvider.GetSession()
 	if err != nil {
-		log.Logf(log.DebugLow, "got error getting session to server %v", node.host)
-		node.Err = err
-		node.LastStatus = nil
-		statLine := StatLine{Key: node.host, Host: node.host, Error: err}
-		return &statLine
+		log.Logvf(log.DebugLow, "got error getting session to server %v", node.host)
+		return nil, err
 	}
-	log.Logf(log.DebugHigh, "got session on server: %v", node.host)
+	log.Logvf(log.DebugHigh, "got session on server: %v", node.host)
 
 	// The read pref for the session must be set to 'secondary' to enable using
 	// the driver with 'direct' connections, which disables the built-in
@@ -263,36 +267,30 @@ func (node *NodeMonitor) Poll(discover chan string, all bool, checkShards bool) 
 	s.SetSocketTimeout(0)
 	defer s.Close()
 
-	err = s.DB("admin").Run(bson.D{{"serverStatus", 1}, {"recordStats", 0}}, result)
+	err = s.DB("admin").Run(bson.D{{"serverStatus", 1}, {"recordStats", 0}}, stat)
 	if err != nil {
-		log.Logf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
-		result = nil
-		statLine := StatLine{Key: node.host, Host: node.host, Error: err}
-		return &statLine
+		log.Logvf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
+		return nil, err
 	}
-
-	defer func() {
-		node.LastStatus = result
-	}()
+	statMap := make(map[string]interface{})
+	s.DB("admin").Run(bson.D{{"serverStatus", 1}, {"recordStats", 0}}, statMap)
+	stat.Flattened = status.Flatten(statMap)
 
 	node.Err = nil
-	result.SampleTime = time.Now()
+	stat.SampleTime = time.Now()
 
-	var statLine *StatLine
-	if node.LastStatus != nil && result != nil {
-		statLine = NewStatLine(*node.LastStatus, *result, node.host, all)
-	}
-
-	if result.Repl != nil && discover != nil {
-		for _, host := range result.Repl.Hosts {
+	if stat.Repl != nil && discover != nil {
+		for _, host := range stat.Repl.Hosts {
 			discover <- host
 		}
-		for _, host := range result.Repl.Passives {
+		for _, host := range stat.Repl.Passives {
 			discover <- host
 		}
 	}
-	if discover != nil && statLine != nil && statLine.IsMongos && checkShards {
-		log.Logf(log.DebugLow, "checking config database to discover shards")
+	node.alias = stat.Host
+	stat.Host = node.host
+	if discover != nil && stat != nil && status.IsMongos(stat) && checkShards {
+		log.Logvf(log.DebugLow, "checking config database to discover shards")
 		shardCursor := s.DB("config").C("shards").Find(bson.M{}).Iter()
 		shard := ConfigShard{}
 		for shardCursor.Next(&shard) {
@@ -304,27 +302,28 @@ func (node *NodeMonitor) Poll(discover chan string, all bool, checkShards bool) 
 		shardCursor.Close()
 	}
 
-	return statLine
+	return stat, nil
 }
 
-// Watch spawns a goroutine to continuously collect and process stats for
-// a single node on a regular interval. At each interval, the goroutine triggers
-// the node's Report function with the 'discover' and 'out' channels.
+// Watch continuously collects and processes stats for a single node on a
+// regular interval. At each interval, it triggers the node's Poll function
+// with the 'discover' channel.
 func (node *NodeMonitor) Watch(sleep time.Duration, discover chan string, cluster ClusterMonitor) {
-	go func() {
-		cycle := uint64(0)
-		for {
-			log.Logf(log.DebugHigh, "polling server: %v", node.host)
-			statLine := node.Poll(discover, node.All, cycle%10 == 1)
+	var cycle uint64
+	for ticker := time.Tick(sleep); ; <-ticker {
+		log.Logvf(log.DebugHigh, "polling server: %v", node.host)
+		stat, err := node.Poll(discover, cycle%10 == 0)
 
-			if statLine != nil {
-				log.Logf(log.DebugHigh, "successfully got statline from host: %v", node.host)
-				cluster.Update(*statLine)
-			}
-			time.Sleep(sleep)
-			cycle++
+		if stat != nil {
+			log.Logvf(log.DebugHigh, "successfully got statline from host: %v", node.host)
 		}
-	}()
+		var nodeError *status.NodeError
+		if err != nil {
+			nodeError = status.NewNodeError(node.host, err)
+		}
+		cluster.Update(stat, nodeError)
+		cycle++
+	}
 }
 
 func parseHostPort(fullHostName string) (string, string) {
@@ -334,26 +333,32 @@ func parseHostPort(fullHostName string) (string, string) {
 	return fullHostName, "27017"
 }
 
-// AddNewNode adds a new host name to be monitored and spawns
-// the necessary goroutines to collect data from it.
+// AddNewNode adds a new host name to be monitored and spawns the necessary
+// goroutine to collect data from it.
 func (mstat *MongoStat) AddNewNode(fullhost string) error {
 	mstat.nodesLock.Lock()
 	defer mstat.nodesLock.Unlock()
 
-	if len(mstat.Nodes) == 0 {
-		mstat.startNode = fullhost
-	}
+	// Remove the 'shardXX/' prefix from the hostname, if applicable
+	pieces := strings.Split(fullhost, "/")
+	fullhost = pieces[len(pieces)-1]
 
-	if _, hasKey := mstat.Nodes[fullhost]; !hasKey {
-		log.Logf(log.DebugLow, "adding new host to monitoring: %v", fullhost)
-		// Create a new node monitor for this host.
-		node, err := NewNodeMonitor(*mstat.Options, fullhost, mstat.StatOptions.All)
-		if err != nil {
-			return err
-		}
-		mstat.Nodes[fullhost] = node
-		node.Watch(mstat.SleepInterval, mstat.Discovered, mstat.Cluster)
+	if _, hasKey := mstat.Nodes[fullhost]; hasKey {
+		return nil
 	}
+	for _, node := range mstat.Nodes {
+		if node.alias == fullhost {
+			return nil
+		}
+	}
+	log.Logvf(log.DebugLow, "adding new host to monitoring: %v", fullhost)
+	// Create a new node monitor for this host
+	node, err := NewNodeMonitor(*mstat.Options, fullhost)
+	if err != nil {
+		return err
+	}
+	mstat.Nodes[fullhost] = node
+	go node.Watch(mstat.SleepInterval, mstat.Discovered, mstat.Cluster)
 	return nil
 }
 
@@ -366,14 +371,10 @@ func (mstat *MongoStat) Run() error {
 				newHost := <-mstat.Discovered
 				err := mstat.AddNewNode(newHost)
 				if err != nil {
-					log.Logf(log.Always, "can't add discovered node %v: %v", newHost, err)
+					log.Logvf(log.Always, "can't add discovered node %v: %v", newHost, err)
 				}
 			}
 		}()
 	}
-
-	// Channel to wait
-	finished := make(chan error)
-	go mstat.Cluster.Monitor(mstat.StatOptions.RowCount, finished, mstat.SleepInterval, mstat.startNode)
-	return <-finished
+	return mstat.Cluster.Monitor(mstat.SleepInterval)
 }

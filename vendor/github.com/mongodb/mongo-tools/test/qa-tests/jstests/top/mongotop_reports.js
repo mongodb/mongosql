@@ -1,66 +1,19 @@
 // mongotop_reports.js; ensure that running mongotop reports accurately on operations
 // going on in namespaces
-//
 var testName = 'mongotop_reports';
 load('jstests/top/util/mongotop_common.js');
 
 (function() {
   jsTest.log('Testing mongotop\'s reporting fidelity');
+  var assert = extendedAssert;
   var read = 'read';
   var write = 'write';
-
-  var runTests = function(topology, passthrough) {
-    var readShell = '\nprint(\'starting read\'); \n' +
-      'for (var i = 0; i < 1000000; ++i) \n{ ' +
-      '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){}); \n' +
-      '  sleep(1); \n' +
-      '}\n';
-
-    var writeShell = '\nprint(\'starting write\'); \n' +
-      'for (var i = 0; i < 1000000; ++i) { \n' +
-      '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); \n' +
-      '  sleep(1); \n' +
-      '}\n';
-
-    var readWriteShell = '\nprint(\'starting read/write\'); \n' +
-      'for (var i = 0; i < 1000000; ++i) \n{ ' +
-      '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); \n' +
-      '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){}); \n' +
-      '  sleep(1); \n' +
-      '}\n';
-
-    var testSpaces = [
-      ['foo.bar'],
-      ['foo.bar', 'bar.foo']
-    ];
-
-    var tests = [{
-      name: read,
-      indicators: [read],
-      shellCommand: readShell,
-    }, {
-      name: write,
-      indicators: [write],
-      shellCommand: writeShell,
-    }, {
-      name: read + '/' + write,
-      indicators: [read, write],
-      shellCommand: readWriteShell,
-    }];
-
-    tests.forEach(function(test) {
-      testSpaces.forEach(function(testSpace) {
-        test.namespaces = testSpace;
-        runReportTest(topology, passthrough, test);
-      });
-    })
-  };
 
   var runReportTest = function(topology, passthrough, test) {
     jsTest.log('Using ' + passthrough.name + ' passthrough on ' + test.name + ' shell');
     var t = topology.init(passthrough);
     var conn = t.connection();
-    db = conn.getDB('foo');
+    db = conn.getDB('foo'); // eslint-disable-line no-native-reassign
     db.dropDatabase();
     assert.eq(db.bar.count(), 0, 'drop failed');
 
@@ -69,29 +22,26 @@ load('jstests/top/util/mongotop_common.js');
       var authCommand = '\n db.getSiblingDB(\'admin\').auth(\'' + authUser + '\',\'' + authPassword + '\'); \n';
       test.shellCommand = authCommand + test.shellCommand;
     }
-    startParallelShell(test.shellCommand);
+    var shellWorkload = startParallelShell(test.shellCommand);
 
     // allow for command to actually start
     sleep(5000);
 
     // ensure tool runs without error
     clearRawMongoProgramOutput();
-    assert.eq(runMongoProgram.apply(this, ['mongotop', '--port', conn.port, '--json', '--rowcount', 1].concat(passthrough.args)), 0, 'failed 1');
-    var output = '';
-    var shellOutput = rawMongoProgramOutput();
-    jsTest.log('shell output: ' + shellOutput);
-    shellOutput.split('\n').forEach(function(line) {
-      if (line.match(shellOutputRegex)) {
-        output = line;
-        jsTest.log('raw output: ' + output);
-      }
-    });
-
-    var parsedOutput = JSON.parse(extractJSON(output));
-    assert(typeof parsedOutput === 'object', 'invalid JSON 1')
+    var ret = executeProgram(['mongotop', '--port', conn.port, '--json', '--rowcount', 1].concat(passthrough.args));
+    assert.eq(ret.exitCode, 0, 'failed 1');
+    var parsedOutput;
+    assert.eq.soon('object', function() {
+      parsedOutput = JSON.parse(extractJSON(ret.getOutput()));
+      return typeof parsedOutput;
+    }, 'invalid JSON 1');
 
     // ensure only the active namespaces reports a non-zero value
     for (var namespace in parsedOutput.totals) {
+      if (!parsedOutput.totals.hasOwnProperty(namespace)) {
+        continue;
+      }
       var isAuthActivity = namespace.indexOf('.system.') !== -1;
       var isReplActivity = namespace.indexOf('local.') !== -1;
 
@@ -104,7 +54,7 @@ load('jstests/top/util/mongotop_common.js');
       assert.neq(nsDetails, undefined, 'no details reported for namespace ' + namespace);
 
       var comparator = 'eq';
-      var shouldHaveActivity = test.namespaces.filter(function(testSpace) {
+      var shouldHaveActivity = test.namespaces.filter(function(testSpace) { // eslint-disable-line no-loop-func
         return testSpace === namespace;
       });
 
@@ -113,7 +63,7 @@ load('jstests/top/util/mongotop_common.js');
         comparator = 'neq';
       }
 
-      test.indicators.forEach(function(indicator) {
+      test.indicators.forEach(function(indicator) { // eslint-disable-line no-loop-func
         ['count', 'time'].forEach(function(metric) {
           assert[comparator](nsDetails[indicator][metric], 0, 'unexpected ' + indicator + ' activity on ' + namespace + '; ' + metric + ': ' + nsDetails[indicator][metric]);
           if (test.indicators.length === 1) {
@@ -141,6 +91,56 @@ load('jstests/top/util/mongotop_common.js');
       });
     }
     t.stop();
+
+    // Swallow the exit code for the shell per SERVER-25777.
+    shellWorkload();
+  };
+
+  var runTests = function(topology, passthrough) {
+    var readShell = '\nprint(\'starting read\'); \n' +
+      'for (var i = 0; i < 1000000; ++i) \n{ ' +
+      '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){}); \n' +
+      '  sleep(1); \n' +
+      '}\n';
+
+    var writeShell = '\nprint(\'starting write\'); \n' +
+      'for (var i = 0; i < 1000000; ++i) { \n' +
+      '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); \n' +
+      '  sleep(1); \n' +
+      '}\n';
+
+    var readWriteShell = '\nprint(\'starting read/write\'); \n' +
+      'for (var i = 0; i < 1000000; ++i) \n{ ' +
+      '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); \n' +
+      '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){}); \n' +
+      '  sleep(1); \n' +
+      '}\n';
+
+    var testSpaces = [
+      ['foo.bar'],
+      ['foo.bar', 'bar.foo'],
+    ];
+
+    var tests = [{
+      name: read,
+      indicators: [read],
+      shellCommand: readShell,
+    }, {
+      name: write,
+      indicators: [write],
+      shellCommand: writeShell,
+    }, {
+      name: read + '/' + write,
+      indicators: [read, write],
+      shellCommand: readWriteShell,
+    }];
+
+    tests.forEach(function(test) {
+      testSpaces.forEach(function(testSpace) {
+        test.namespaces = testSpace;
+        runReportTest(topology, passthrough, test);
+      });
+    });
   };
 
   // run with plain and auth passthroughs
@@ -148,4 +148,4 @@ load('jstests/top/util/mongotop_common.js');
     runTests(standaloneTopology, passthrough);
     runTests(replicaSetTopology, passthrough);
   });
-})();
+}());

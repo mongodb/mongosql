@@ -2,16 +2,16 @@ package archive
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/intents"
-	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 	"hash"
 	"hash/crc32"
 	"io"
 	"os"
 	"testing"
+
+	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/intents"
+	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var testIntents = []*intents.Intent{
@@ -50,56 +50,35 @@ func (*closingBuffer) Close() error {
 	return nil
 }
 
+type testNotifier struct{}
+
+func (n *testNotifier) Notify() {}
+
 func TestBasicMux(t *testing.T) {
 	var err error
 
 	Convey("with 10000 docs in each of five collections", t, func() {
 		buf := &closingBuffer{bytes.Buffer{}}
 
-		mux := NewMultiplexer(buf)
+		mux := NewMultiplexer(buf, new(testNotifier))
 		muxIns := map[string]*MuxIn{}
 
 		inChecksum := map[string]hash.Hash{}
-		inLength := map[string]int{}
+		inLengths := map[string]*int{}
 		outChecksum := map[string]hash.Hash{}
-		outLength := map[string]int{}
+		outLengths := map[string]*int{}
 
 		// To confirm that what we multiplex is the same as what we demultiplex, we
 		// create input and output hashes for each namespace. After we finish
 		// multiplexing and demultiplexing we will compare all of the CRCs for each
 		// namespace
-		for _, dbc := range testIntents {
-			inChecksum[dbc.Namespace()] = crc32.NewIEEE()
-			muxIns[dbc.Namespace()] = &MuxIn{Intent: dbc, Mux: mux}
-		}
 		errChan := make(chan error)
-		for index, dbc := range testIntents {
-			closeDbc := dbc
-			go func() {
-				err = muxIns[closeDbc.Namespace()].Open()
-				if err != nil {
-					errChan <- err
-					return
-				}
-				staticBSONBuf := make([]byte, db.MaxBSONSize)
-				for i := 0; i < 10000; i++ {
+		makeIns(testIntents, mux, inChecksum, muxIns, inLengths, errChan)
 
-					bsonBytes, _ := bson.Marshal(testDoc{Bar: index * i, Baz: closeDbc.Namespace()})
-					bsonBuf := staticBSONBuf[:len(bsonBytes)]
-					copy(bsonBuf, bsonBytes)
-					muxIns[closeDbc.Namespace()].Write(bsonBuf)
-					inChecksum[closeDbc.Namespace()].Write(bsonBuf)
-					inLength[closeDbc.Namespace()] += len(bsonBuf)
-				}
-				err = muxIns[closeDbc.Namespace()].Close()
-				errChan <- err
-			}()
-		}
 		Convey("each document should be multiplexed", func() {
-			fmt.Fprintf(os.Stderr, "About to mux\n")
 			go mux.Run()
 
-			for _ = range testIntents {
+			for range testIntents {
 				err := <-errChan
 				So(err, ShouldBeNil)
 			}
@@ -110,45 +89,23 @@ func TestBasicMux(t *testing.T) {
 			demux := &Demultiplexer{In: buf}
 			demuxOuts := map[string]*RegularCollectionReceiver{}
 
-			for _, dbc := range testIntents {
-				outChecksum[dbc.Namespace()] = crc32.NewIEEE()
-				demuxOuts[dbc.Namespace()] = &RegularCollectionReceiver{Intent: dbc, Demux: demux}
-				demuxOuts[dbc.Namespace()].Open()
-			}
 			errChan := make(chan error)
-			for _, dbc := range testIntents {
-				closeDbc := dbc
-				go func() {
-					bs := make([]byte, db.MaxBSONSize)
-					var readErr error
-					//var length int
-					var i int
-					for {
-						i++
-						var length int
-						length, readErr = demuxOuts[closeDbc.Namespace()].Read(bs)
-						if readErr != nil {
-							break
-						}
-						outChecksum[closeDbc.Namespace()].Write(bs[:length])
-						outLength[closeDbc.Namespace()] += len(bs[:length])
-					}
-					if readErr == io.EOF {
-						readErr = nil
-					}
-					errChan <- readErr
-				}()
-			}
+			makeOuts(testIntents, demux, outChecksum, demuxOuts, outLengths, errChan)
+
 			Convey("and demultiplexed successfully", func() {
 				demux.Run()
 				So(err, ShouldBeNil)
-				for _ = range testIntents {
+
+				for range testIntents {
 					err := <-errChan
 					So(err, ShouldBeNil)
 				}
 				for _, dbc := range testIntents {
-					So(inLength[dbc.Namespace()], ShouldEqual, outLength[dbc.Namespace()])
-					So(inChecksum[dbc.Namespace()].Sum([]byte{}), ShouldResemble, outChecksum[dbc.Namespace()].Sum([]byte{}))
+					ns := dbc.Namespace()
+					So(*inLengths[ns], ShouldEqual, *outLengths[ns])
+					inSum := inChecksum[ns].Sum([]byte{})
+					outSum := outChecksum[ns].Sum([]byte{})
+					So(inSum, ShouldResemble, outSum)
 				}
 			})
 		})
@@ -157,88 +114,32 @@ func TestBasicMux(t *testing.T) {
 }
 
 func TestParallelMux(t *testing.T) {
-
-	Convey("parllel mux/demux over a pipe", t, func() {
+	Convey("parallel mux/demux over a pipe", t, func() {
 		readPipe, writePipe, err := os.Pipe()
 		So(err, ShouldBeNil)
 
-		mux := NewMultiplexer(writePipe)
+		mux := NewMultiplexer(writePipe, new(testNotifier))
 		muxIns := map[string]*MuxIn{}
 
 		demux := &Demultiplexer{In: readPipe}
 		demuxOuts := map[string]*RegularCollectionReceiver{}
 
 		inChecksum := map[string]hash.Hash{}
-		inLength := map[string]int{}
+		inLengths := map[string]*int{}
 
 		outChecksum := map[string]hash.Hash{}
-		outLength := map[string]int{}
-
-		for _, dbc := range testIntents {
-			inChecksum[dbc.Namespace()] = crc32.NewIEEE()
-			outChecksum[dbc.Namespace()] = crc32.NewIEEE()
-
-			muxIns[dbc.Namespace()] = &MuxIn{Intent: dbc, Mux: mux}
-
-			demuxOuts[dbc.Namespace()] = &RegularCollectionReceiver{Intent: dbc, Demux: demux}
-		}
+		outLengths := map[string]*int{}
 
 		writeErrChan := make(chan error)
 		readErrChan := make(chan error)
 
-		for index, dbc := range testIntents {
-			closeDbc := dbc
-			go func() {
-				err = muxIns[closeDbc.Namespace()].Open()
-				if err != nil {
-					writeErrChan <- nil
-					return
-				}
-				staticBSONBuf := make([]byte, db.MaxBSONSize)
-				for i := 0; i < 10000; i++ {
-
-					bsonBytes, _ := bson.Marshal(testDoc{Bar: index * i, Baz: closeDbc.Namespace()})
-					bsonBuf := staticBSONBuf[:len(bsonBytes)]
-					copy(bsonBuf, bsonBytes)
-					muxIns[closeDbc.Namespace()].Write(bsonBuf)
-					inChecksum[closeDbc.Namespace()].Write(bsonBuf)
-					inLength[closeDbc.Namespace()] += len(bsonBuf)
-				}
-
-				err = muxIns[closeDbc.Namespace()].Close()
-				writeErrChan <- err
-			}()
-		}
-
-		for _, dbc := range testIntents {
-			closeDbc := dbc
-			go func() {
-				demuxOuts[closeDbc.Namespace()].Open()
-				bs := make([]byte, db.MaxBSONSize)
-				var readErr error
-				//var length int
-				var i int
-				for {
-					i++
-					var length int
-					length, readErr = demuxOuts[closeDbc.Namespace()].Read(bs)
-					if readErr != nil {
-						break
-					}
-					outChecksum[closeDbc.Namespace()].Write(bs[:length])
-					outLength[closeDbc.Namespace()] += len(bs[:length])
-				}
-				if readErr == io.EOF {
-					readErr = nil
-				}
-				readErrChan <- readErr
-			}()
-		}
+		makeIns(testIntents, mux, inChecksum, muxIns, inLengths, writeErrChan)
+		makeOuts(testIntents, demux, outChecksum, demuxOuts, outLengths, readErrChan)
 
 		go demux.Run()
 		go mux.Run()
 
-		for _ = range testIntents {
+		for range testIntents {
 			err := <-writeErrChan
 			So(err, ShouldBeNil)
 			err = <-readErrChan
@@ -246,13 +147,83 @@ func TestParallelMux(t *testing.T) {
 		}
 		close(mux.Control)
 		muxErr := <-mux.Completed
-
 		So(muxErr, ShouldBeNil)
 
 		for _, dbc := range testIntents {
-			So(inLength[dbc.Namespace()], ShouldEqual, outLength[dbc.Namespace()])
-			So(inChecksum[dbc.Namespace()].Sum([]byte{}), ShouldResemble, outChecksum[dbc.Namespace()].Sum([]byte{}))
+			ns := dbc.Namespace()
+			So(*inLengths[ns], ShouldEqual, *outLengths[ns])
+			inSum := inChecksum[ns].Sum([]byte{})
+			outSum := outChecksum[ns].Sum([]byte{})
+			So(inSum, ShouldResemble, outSum)
 		}
 	})
 	return
+}
+
+func makeIns(testIntents []*intents.Intent, mux *Multiplexer, inChecksum map[string]hash.Hash, muxIns map[string]*MuxIn, inLengths map[string]*int, errCh chan<- error) {
+	for index, dbc := range testIntents {
+		ns := dbc.Namespace()
+		sum := crc32.NewIEEE()
+		muxIn := &MuxIn{Intent: dbc, Mux: mux}
+		inLength := 0
+
+		inChecksum[ns] = sum
+		muxIns[ns] = muxIn
+		inLengths[ns] = &inLength
+
+		go func(index int) {
+			err := muxIn.Open()
+			if err != nil {
+				errCh <- err
+				return
+			}
+			staticBSONBuf := make([]byte, db.MaxBSONSize)
+			for i := 0; i < 10000; i++ {
+				bsonBytes, _ := bson.Marshal(testDoc{Bar: index * i, Baz: ns})
+				bsonBuf := staticBSONBuf[:len(bsonBytes)]
+				copy(bsonBuf, bsonBytes)
+				muxIn.Write(bsonBuf)
+				sum.Write(bsonBuf)
+				inLength += len(bsonBuf)
+			}
+			err = muxIn.Close()
+			errCh <- err
+		}(index)
+	}
+}
+
+func makeOuts(testIntents []*intents.Intent, demux *Demultiplexer, outChecksum map[string]hash.Hash, demuxOuts map[string]*RegularCollectionReceiver, outLengths map[string]*int, errCh chan<- error) {
+	for _, dbc := range testIntents {
+		ns := dbc.Namespace()
+		sum := crc32.NewIEEE()
+		muxOut := &RegularCollectionReceiver{
+			Intent: dbc,
+			Demux:  demux,
+			Origin: ns,
+		}
+		outLength := 0
+
+		outChecksum[ns] = sum
+		demuxOuts[ns] = muxOut
+		outLengths[ns] = &outLength
+
+		demuxOuts[ns].Open()
+		go func() {
+			bs := make([]byte, db.MaxBSONSize)
+			var err error
+			for {
+				var length int
+				length, err = muxOut.Read(bs)
+				if err != nil {
+					break
+				}
+				sum.Write(bs[:length])
+				outLength += len(bs[:length])
+			}
+			if err == io.EOF {
+				err = nil
+			}
+			errCh <- err
+		}()
+	}
 }

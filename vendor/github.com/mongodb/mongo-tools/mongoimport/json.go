@@ -3,12 +3,13 @@ package mongoimport
 import (
 	"errors"
 	"fmt"
+	"io"
+	"strings"
+
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
-	"io"
-	"strings"
 )
 
 // JSONInputReader is an implementation of InputReader that reads documents
@@ -86,6 +87,11 @@ func (r *JSONInputReader) ReadAndValidateHeader() error {
 	return nil
 }
 
+// ReadAndValidateTypedHeader is a no-op for JSON imports; always returns nil.
+func (r *JSONInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) error {
+	return nil
+}
+
 // StreamDocument takes a boolean indicating if the documents should be streamed
 // in read order and a channel on which to stream the documents processed from
 // the underlying reader. Returns a non-nil error if encountered
@@ -143,13 +149,13 @@ func (c JSONConverter) Convert() (bson.D, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling bytes on document #%v: %v", c.index, err)
 	}
-	log.Logf(log.DebugHigh, "got line: %v", document)
+	log.Logvf(log.DebugHigh, "got line: %v", document)
 
 	bsonD, err := bsonutil.GetExtendedBsonD(document)
 	if err != nil {
 		return nil, fmt.Errorf("error getting extended BSON for document #%v: %v", c.index, err)
 	}
-	log.Logf(log.DebugHigh, "got extended line: %#v", bsonD)
+	log.Logvf(log.DebugHigh, "got extended line: %#v", bsonD)
 	return bsonD, nil
 }
 
