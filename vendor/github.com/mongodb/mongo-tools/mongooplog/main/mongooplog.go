@@ -12,8 +12,6 @@ import (
 )
 
 func main() {
-	go signals.Handle()
-
 	// initialize command line options
 	opts := options.New("mongooplog", mongooplog.Usage,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: false})
@@ -22,19 +20,19 @@ func main() {
 	sourceOpts := &mongooplog.SourceOptions{}
 	opts.AddOptions(sourceOpts)
 
-	log.Logf(log.Always, "warning: mongooplog is deprecated, and will be removed completely in a future release")
+	log.Logvf(log.Always, "warning: mongooplog is deprecated, and will be removed completely in a future release")
 
 	// parse the command line options
 	args, err := opts.Parse()
 	if err != nil {
-		log.Logf(log.Always, "error parsing command line options: %v", err)
-		log.Logf(log.Always, "try 'mongooplog --help' for more information")
+		log.Logvf(log.Always, "error parsing command line options: %v", err)
+		log.Logvf(log.Always, "try 'mongooplog --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
 	if len(args) != 0 {
-		log.Logf(log.Always, "positional arguments not allowed: %v", args)
-		log.Logf(log.Always, "try 'mongooplog --help' for more information")
+		log.Logvf(log.Always, "positional arguments not allowed: %v", args)
+		log.Logvf(log.Always, "try 'mongooplog --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -50,6 +48,7 @@ func main() {
 
 	// init logger
 	log.SetVerbosity(opts.Verbosity)
+	signals.Handle()
 
 	// connect directly, unless a replica set name is explicitly specified
 	_, setName := util.ParseConnectionString(opts.Host)
@@ -58,14 +57,15 @@ func main() {
 
 	// validate the mongooplog options
 	if sourceOpts.From == "" {
-		log.Logf(log.Always, "command line error: need to specify --from")
+		log.Logvf(log.Always, "command line error: need to specify --from")
 		os.Exit(util.ExitBadOptions)
 	}
 
 	// create a session provider for the destination server
 	sessionProviderTo, err := db.NewSessionProvider(*opts)
+	defer sessionProviderTo.Close()
 	if err != nil {
-		log.Logf(log.Always, "error connecting to destination host: %v", err)
+		log.Logvf(log.Always, "error connecting to destination host: %v", err)
 		os.Exit(util.ExitError)
 	}
 
@@ -73,8 +73,9 @@ func main() {
 	opts.Connection.Host = sourceOpts.From
 	opts.Connection.Port = ""
 	sessionProviderFrom, err := db.NewSessionProvider(*opts)
+	defer sessionProviderFrom.Close()
 	if err != nil {
-		log.Logf(log.Always, "error connecting to source host: %v", err)
+		log.Logvf(log.Always, "error connecting to source host: %v", err)
 		os.Exit(util.ExitError)
 	}
 
@@ -88,7 +89,7 @@ func main() {
 
 	// kick it off
 	if err := oplog.Run(); err != nil {
-		log.Logf(log.Always, "error: %v", err)
+		log.Logvf(log.Always, "error: %v", err)
 		os.Exit(util.ExitError)
 	}
 

@@ -1,13 +1,14 @@
-if (typeof getToolTest === 'undefined') {
-  load('jstests/configs/plain_28.config.js');
-}
-
 /*
  * Tests that we provide helpful output when user tries to use flags that were
  * deprecated in 2.7.x
  */
-
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
+
   var toolTest = getToolTest('oplogDeprecatedFlagTest');
   var commonToolArgs = getCommonToolArguments();
   var expectedError = 'error parsing command line options: --dbpath and related ' +
@@ -18,10 +19,8 @@ if (typeof getToolTest === 'undefined') {
     assert(toolTest.runTool.apply(toolTest, args) !== 0,
       'mongooplog should fail when --dbpath specified');
 
-    var output = rawMongoProgramOutput();
-    
-    assert(output.indexOf(expectedError) !== -1,
-      'mongooplog should output the correct error message');
+    assert.strContains.soon(expectedError, rawMongoProgramOutput,
+        'mongooplog should output the correct error message');
   };
 
   verifyFlagFails('--dbpath');
@@ -29,4 +28,4 @@ if (typeof getToolTest === 'undefined') {
   verifyFlagFails('--journal');
 
   toolTest.stop();
-})();
+}());

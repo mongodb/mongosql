@@ -8,7 +8,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"reflect"
 	"time"
 )
 
@@ -58,6 +57,9 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 			return nil, errors.New("expected ObjectId to contain 24 hexadecimal characters")
 		}
 		return bson.ObjectIdHex(s), nil
+
+	case json.Decimal128:
+		return v.Decimal128, nil
 
 	case json.Date: // Date
 		n := int64(v)
@@ -113,7 +115,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 		return bson.Undefined, nil
 
 	default:
-		return nil, fmt.Errorf("conversion of JSON type '%v' unsupported", v)
+		return nil, fmt.Errorf("conversion of JSON value '%v' of type '%T' not supported", v, v)
 	}
 }
 
@@ -190,6 +192,9 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 	case bson.ObjectId: // ObjectId
 		return json.ObjectId(v.Hex()), nil
 
+	case bson.Decimal128:
+		return json.Decimal128{v}, nil
+
 	case time.Time: // Date
 		return json.Date(v.Unix()*1000 + int64(v.Nanosecond()/1e6)), nil
 
@@ -253,7 +258,7 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("conversion of BSON type '%v' not supported %v", reflect.TypeOf(x), x)
+	return nil, fmt.Errorf("conversion of BSON value '%v' of type '%T' not supported", x, x)
 }
 
 // GetBSONValueAsJSON is equivalent to ConvertBSONValueToJSON, but does not mutate its argument.
@@ -281,7 +286,10 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			out = append(out, bson.DocElem{value.Name, jsonValue})
+			out = append(out, bson.DocElem{
+				Name:  value.Name,
+				Value: jsonValue,
+			})
 		}
 		return MarshalD(out), nil
 	case MarshalD:
@@ -309,6 +317,9 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 
 	case bson.ObjectId: // ObjectId
 		return json.ObjectId(v.Hex()), nil
+
+	case bson.Decimal128:
+		return json.Decimal128{v}, nil
 
 	case time.Time: // Date
 		return json.Date(v.Unix()*1000 + int64(v.Nanosecond()/1e6)), nil
@@ -373,5 +384,5 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("conversion of BSON type '%v' not supported %v", reflect.TypeOf(x), x)
+	return nil, fmt.Errorf("conversion of BSON value '%v' of type '%T' not supported", x, x)
 }

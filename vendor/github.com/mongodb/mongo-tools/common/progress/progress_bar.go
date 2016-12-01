@@ -4,10 +4,10 @@ package progress
 import (
 	"bytes"
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/text"
 	"io"
-	"sync"
 	"time"
+
+	"github.com/mongodb/mongo-tools/common/text"
 )
 
 const (
@@ -17,54 +17,6 @@ const (
 	BarLeft         = "["
 	BarRight        = "]"
 )
-
-// countProgressor is an implementation of Progressor that uses
-type countProgressor struct {
-	max     int64
-	current int64
-	*sync.Mutex
-}
-
-func (c *countProgressor) Progress() (int64, int64) {
-	c.Lock()
-	defer c.Unlock()
-	return c.max, c.current
-}
-func (c *countProgressor) Inc(amount int64) {
-	c.Lock()
-	defer c.Unlock()
-	c.current += amount
-}
-
-func (c *countProgressor) Set(amount int64) {
-	c.Lock()
-	defer c.Unlock()
-	c.current = amount
-}
-
-func NewCounter(max int64) *countProgressor {
-	return &countProgressor{max, 0, &sync.Mutex{}}
-}
-
-// Progressor can be implemented to allow an object to hook up to a progress.Bar.
-type Progressor interface {
-	// Progress returns a pair of integers: the total amount to reach 100%, and
-	// the amount completed. This method is called by progress.Bar to
-	// determine what percentage to display.
-	Progress() (int64, int64)
-}
-
-// Updateable is a Progressor which also exposes the ability for the progressing
-// value to be incremented, or reset.
-type Updateable interface {
-	// Inc increments the current progress counter by the given amount.
-	Inc(amount int64)
-
-	// Set resets the progress counter to the given amount.
-	Set(amount int64)
-
-	Progressor
-}
 
 // Bar is a tool for concurrently monitoring the progress
 // of a task with a simple linear ASCII visualization
@@ -135,7 +87,7 @@ func (pb *Bar) Stop() {
 }
 
 func (pb *Bar) formatCounts() (string, string) {
-	maxCount, currentCount := pb.Watching.Progress()
+	currentCount, maxCount := pb.Watching.Progress()
 	if pb.IsBytes {
 		return text.FormatByteAmount(maxCount), text.FormatByteAmount(currentCount)
 	}
@@ -145,7 +97,7 @@ func (pb *Bar) formatCounts() (string, string) {
 // computes all necessary values renders to the bar's Writer
 func (pb *Bar) renderToWriter() {
 	pb.hasRendered = true
-	maxCount, currentCount := pb.Watching.Progress()
+	currentCount, maxCount := pb.Watching.Progress()
 	maxStr, currentStr := pb.formatCounts()
 	if maxCount == 0 {
 		// if we have no max amount, just print a count
@@ -165,7 +117,7 @@ func (pb *Bar) renderToWriter() {
 
 func (pb *Bar) renderToGridRow(grid *text.GridWriter) {
 	pb.hasRendered = true
-	maxCount, currentCount := pb.Watching.Progress()
+	currentCount, maxCount := pb.Watching.Progress()
 	maxStr, currentStr := pb.formatCounts()
 	if maxCount == 0 {
 		// if we have no max amount, just print a count

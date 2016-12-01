@@ -3,18 +3,29 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/progress"
+	"github.com/mongodb/mongo-tools/common/signals"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongorestore"
-	"os"
+)
+
+const (
+	progressBarLength   = 24
+	progressBarWaitTime = time.Second * 3
 )
 
 func main() {
 	// initialize command-line opts
 	opts := options.New("mongorestore", mongorestore.Usage,
-		options.EnabledOptions{Auth: true, Connection: true, Namespace: true})
+		options.EnabledOptions{Auth: true, Connection: true})
+	nsOpts := &mongorestore.NSOptions{}
+	opts.AddOptions(nsOpts)
 	inputOpts := &mongorestore.InputOptions{}
 	opts.AddOptions(inputOpts)
 	outputOpts := &mongorestore.OutputOptions{}
@@ -22,10 +33,14 @@ func main() {
 
 	extraArgs, err := opts.Parse()
 	if err != nil {
-		log.Logf(log.Always, "error parsing command line options: %v", err)
-		log.Logf(log.Always, "try 'mongorestore --help' for more information")
+		log.Logvf(log.Always, "error parsing command line options: %v", err)
+		log.Logvf(log.Always, "try 'mongorestore --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
+
+	// Allow the db connector to fall back onto the current database when no
+	// auth database is given; the standard -d/-c options go into nsOpts now
+	opts.Namespace = &options.Namespace{DB: nsOpts.DB}
 
 	// print help or version info, if specified
 	if opts.PrintHelp(false) {
@@ -40,8 +55,8 @@ func main() {
 
 	targetDir, err := getTargetDirFromArgs(extraArgs, inputOpts.Directory)
 	if err != nil {
-		log.Logf(log.Always, "%v", err)
-		log.Logf(log.Always, "try 'mongorestore --help' for more information")
+		log.Logvf(log.Always, "%v", err)
+		log.Logvf(log.Always, "try 'mongorestore --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 	targetDir = util.ToUniversalPath(targetDir)
@@ -52,24 +67,36 @@ func main() {
 	opts.ReplicaSetName = setName
 
 	provider, err := db.NewSessionProvider(*opts)
+	defer provider.Close()
 	if err != nil {
-		log.Logf(log.Always, "error connecting to host: %v", err)
+		log.Logvf(log.Always, "error connecting to host: %v", err)
 		os.Exit(util.ExitError)
 	}
 	provider.SetBypassDocumentValidation(outputOpts.BypassDocumentValidation)
 
 	// disable TCP timeouts for restore jobs
 	provider.SetFlags(db.DisableSocketTimeout)
+
+	// start up the progress bar manager
+	progressManager := progress.NewBarWriter(log.Writer(0), progressBarWaitTime, progressBarLength, true)
+	progressManager.Start()
+	defer progressManager.Stop()
+
 	restore := mongorestore.MongoRestore{
 		ToolOptions:     opts,
 		OutputOptions:   outputOpts,
 		InputOptions:    inputOpts,
+		NSOptions:       nsOpts,
 		TargetDirectory: targetDir,
 		SessionProvider: provider,
+		ProgressManager: progressManager,
 	}
 
+	finishedChan := signals.HandleWithInterrupt(restore.HandleInterrupt)
+	defer close(finishedChan)
+
 	if err = restore.Restore(); err != nil {
-		log.Logf(log.Always, "Failed: %v", err)
+		log.Logvf(log.Always, "Failed: %v", err)
 		if err == util.ErrTerminated {
 			os.Exit(util.ExitKill)
 		}
@@ -99,7 +126,7 @@ func getTargetDirFromArgs(extraArgs []string, dirFlag string) (string, error) {
 
 	case dirFlag != "":
 		// if we have no extra args and a --dir flag, use the --dir flag
-		log.Log(log.Info, "using --dir flag instead of arguments")
+		log.Logv(log.Info, "using --dir flag instead of arguments")
 		return dirFlag, nil
 
 	default:

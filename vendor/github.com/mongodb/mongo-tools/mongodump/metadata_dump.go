@@ -1,8 +1,9 @@
 package mongodump
 
 import (
-	"bufio"
 	"fmt"
+	"io"
+
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
@@ -25,10 +26,8 @@ type IndexDocumentFromDB struct {
 
 // dumpMetadata gets the metadata for a collection and writes it
 // in readable JSON format.
-func (dump *MongoDump) dumpMetadata(intent *intents.Intent) error {
-	var err error
+func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOutputBuffer) (err error) {
 
-	nsID := fmt.Sprintf("%v.%v", intent.DB, intent.C)
 	meta := Metadata{
 		// We have to initialize Indexes to an empty slice, not nil, so that an empty
 		// array is marshalled into json instead of null. That is, {indexes:[]} is okay
@@ -51,7 +50,7 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent) error {
 	// We keep a running list of all the indexes
 	// for the current collection as we iterate over the cursor, and include
 	// that list as the "indexes" field of the metadata document.
-	log.Logf(log.DebugHigh, "\treading indexes for `%v`", nsID)
+	log.Logvf(log.DebugHigh, "\treading indexes for `%v`", intent.Namespace())
 
 	session, err := dump.sessionProvider.GetSession()
 	if err != nil {
@@ -59,49 +58,65 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent) error {
 	}
 	defer session.Close()
 
-	// get the indexes
-	indexesIter, err := db.GetIndexes(session.DB(intent.DB).C(intent.C))
-	if err != nil {
-		return err
-	}
-	if indexesIter == nil {
-		log.Logf(log.Always, "the collection %v appears to have been dropped after the dump started", intent.Namespace())
-		return nil
-	}
-
-	indexOpts := &bson.D{}
-	for indexesIter.Next(indexOpts) {
-		convertedIndex, err := bsonutil.ConvertBSONValueToJSON(*indexOpts)
+	if intent.IsView() {
+		log.Logvf(log.DebugLow, "not dumping indexes metadata for '%v' because it is a view", intent.Namespace())
+	} else {
+		// get the indexes
+		indexesIter, err := db.GetIndexes(session.DB(intent.DB).C(intent.C))
 		if err != nil {
-			return fmt.Errorf("error converting index (%#v): %v", convertedIndex, err)
+			return err
 		}
-		meta.Indexes = append(meta.Indexes, convertedIndex)
-	}
+		if indexesIter == nil {
+			log.Logvf(log.Always, "the collection %v appears to have been dropped after the dump started", intent.Namespace())
+			return nil
+		}
 
-	if err := indexesIter.Err(); err != nil {
-		return fmt.Errorf("error getting indexes for collection `%v`: %v", nsID, err)
+		indexOpts := &bson.D{}
+		for indexesIter.Next(indexOpts) {
+			convertedIndex, err := bsonutil.ConvertBSONValueToJSON(*indexOpts)
+			if err != nil {
+				return fmt.Errorf("error converting index (%#v): %v", convertedIndex, err)
+			}
+			meta.Indexes = append(meta.Indexes, convertedIndex)
+		}
+
+		if err := indexesIter.Err(); err != nil {
+			return fmt.Errorf("error getting indexes for collection `%v`: %v", intent.Namespace(), err)
+		}
 	}
 
 	// Finally, we send the results to the writer as JSON bytes
 	jsonBytes, err := json.Marshal(meta)
 	if err != nil {
-		return fmt.Errorf("error marshalling metadata json for collection `%v`: %v", nsID, err)
+		return fmt.Errorf("error marshalling metadata json for collection `%v`: %v", intent.Namespace(), err)
 	}
 
 	err = intent.MetadataFile.Open()
 	if err != nil {
 		return err
 	}
-	defer intent.MetadataFile.Close()
-	// make a buffered writer for nicer disk i/o
-	w := bufio.NewWriter(intent.MetadataFile)
-	_, err = w.Write(jsonBytes)
-	if err != nil {
-		return fmt.Errorf("error writing metadata for collection `%v` to disk: %v", nsID, err)
+	defer func() {
+		closeErr := intent.MetadataFile.Close()
+		if err == nil && closeErr != nil {
+			err = fmt.Errorf("error writing metadata for collection `%v` to disk: %v", intent.Namespace(), closeErr)
+		}
+	}()
+
+	var f io.Writer
+	f = intent.MetadataFile
+	if buffer != nil {
+		buffer.Reset(f)
+		f = buffer
+		defer func() {
+			closeErr := buffer.Close()
+			if err == nil && closeErr != nil {
+				err = fmt.Errorf("error writing metadata for collection `%v` to disk: %v", intent.Namespace(), closeErr)
+			}
+		}()
 	}
-	err = w.Flush()
+	_, err = f.Write(jsonBytes)
 	if err != nil {
-		return fmt.Errorf("error writing metadata for collection `%v` to disk: %v", nsID, err)
+		err = fmt.Errorf("error writing metadata for collection `%v` to disk: %v", intent.Namespace(), err)
 	}
-	return nil
+	return
 }

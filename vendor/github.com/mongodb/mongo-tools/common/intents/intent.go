@@ -2,16 +2,29 @@
 package intents
 
 import (
-	"github.com/mongodb/mongo-tools/common/log"
-	"gopkg.in/mgo.v2/bson"
+	"fmt"
 	"io"
-	"sync"
+
+	"github.com/mongodb/mongo-tools/common"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/util"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type file interface {
 	io.ReadWriteCloser
 	Open() error
 	Pos() int64
+}
+
+// DestinationConflictError occurs when multiple namespaces map to the same
+// destination.
+type DestinationConflictError struct {
+	Src, Dst string
+}
+
+func (e DestinationConflictError) Error() string {
+	return fmt.Sprintf("destination conflict: %s (src) => %s (dst)", e.Src, e.Dst)
 }
 
 // FileNeedsIOBuffer is an interface that denotes that a struct needs
@@ -26,7 +39,7 @@ type FileNeedsIOBuffer interface {
 // mongorestore first scans the directory to generate a list
 // of all files to restore and what they map to. TODO comments
 type Intent struct {
-	// Namespace info
+	// Destination namespace info
 	DB string
 	C  string
 
@@ -96,6 +109,14 @@ func (intent *Intent) IsSpecialCollection() bool {
 	return intent.IsSystemIndexes() || intent.IsUsers() || intent.IsRoles() || intent.IsAuthVersion()
 }
 
+func (it *Intent) IsView() bool {
+	if it.Options == nil {
+		return false
+	}
+	_, isView := it.Options.Map()["viewOn"]
+	return isView
+}
+
 func (existing *Intent) MergeIntent(intent *Intent) {
 	// merge new intent into old intent
 	if existing.BSONFile == nil {
@@ -130,8 +151,7 @@ type Manager struct {
 	// we need different scheduling order depending on the target
 	// mongod/mongos and whether or not we are multi threading;
 	// the IntentPrioritizer interface encapsulates this.
-	prioritizer     IntentPrioritizer
-	priotitizerLock *sync.Mutex
+	prioritizer IntentPrioritizer
 
 	// special cases that should be saved but not be part of the queue.
 	// used to deal with oplog and user/roles restoration, which are
@@ -147,6 +167,10 @@ type Manager struct {
 
 	// Indicates if an the manager has seen two conflicting oplogs.
 	oplogConflict bool
+
+	// prevent conflicting destinations by checking which sources map to the
+	// same namespace
+	destinations map[string][]string
 }
 
 func NewIntentManager() *Manager {
@@ -154,10 +178,10 @@ func NewIntentManager() *Manager {
 		intents:                 map[string]*Intent{},
 		specialIntents:          map[string]*Intent{},
 		intentsByDiscoveryOrder: []*Intent{},
-		priotitizerLock:         &sync.Mutex{},
 		indexIntents:            map[string]*Intent{},
 		smartPickOplog:          false,
 		oplogConflict:           false,
+		destinations:            map[string][]string{},
 	}
 }
 
@@ -228,27 +252,51 @@ func (manager *Manager) PutOplogIntent(intent *Intent, managerKey string) {
 }
 
 func (manager *Manager) putNormalIntent(intent *Intent) {
+	manager.putNormalIntentWithNamespace(intent.Namespace(), intent)
+}
+
+func (manager *Manager) putNormalIntentWithNamespace(ns string, intent *Intent) {
 	// BSON and metadata files for the same collection are merged
 	// into the same intent. This is done to allow for simple
 	// pairing of BSON + metadata without keeping track of the
 	// state of the filepath walker
-	if existing := manager.intents[intent.Namespace()]; existing != nil {
+	if existing := manager.intents[ns]; existing != nil {
+		if existing.Namespace() != intent.Namespace() {
+			// remove old destination, add new one
+			dst := existing.Namespace()
+			dsts := manager.destinations[dst]
+			i := util.StringSliceIndex(dsts, ns)
+			manager.destinations[dst] = append(dsts[:i], dsts[i+1:]...)
+
+			dsts = manager.destinations[intent.Namespace()]
+			manager.destinations[intent.Namespace()] = append(dsts, ns)
+		}
 		existing.MergeIntent(intent)
 		return
 	}
 
 	// if key doesn't already exist, add it to the manager
-	manager.intents[intent.Namespace()] = intent
+	manager.intents[ns] = intent
 	manager.intentsByDiscoveryOrder = append(manager.intentsByDiscoveryOrder, intent)
+
+	manager.destinations[intent.Namespace()] = append(manager.destinations[intent.Namespace()], ns)
 }
 
-// Put inserts an intent into the manager. Intents for the same collection
-// are merged together, so that BSON and metadata files for the same collection
-// are returned in the same intent.
+// Put inserts an intent into the manager with the same source namespace as
+// its destinations.
 func (manager *Manager) Put(intent *Intent) {
+	manager.PutWithNamespace(intent.Namespace(), intent)
+}
+
+// PutWithNamespace inserts an intent into the manager with the source set
+// to the provided namespace. Intents for the same collection are merged
+// together, so that BSON and metadata files for the same collection are
+// returned in the same intent.
+func (manager *Manager) PutWithNamespace(ns string, intent *Intent) {
 	if intent == nil {
 		panic("cannot insert nil *Intent into IntentManager")
 	}
+	db, _ := common.SplitNamespace(ns)
 
 	// bucket special-case collections
 	if intent.IsOplog() {
@@ -257,38 +305,50 @@ func (manager *Manager) Put(intent *Intent) {
 	}
 	if intent.IsSystemIndexes() {
 		if intent.BSONFile != nil {
-			manager.indexIntents[intent.DB] = intent
-			manager.specialIntents[intent.Namespace()] = intent
+			manager.indexIntents[db] = intent
+			manager.specialIntents[ns] = intent
 		}
 		return
 	}
 	if intent.IsUsers() {
 		if intent.BSONFile != nil {
 			manager.usersIntent = intent
-			manager.specialIntents[intent.Namespace()] = intent
+			manager.specialIntents[ns] = intent
 		}
 		return
 	}
 	if intent.IsRoles() {
 		if intent.BSONFile != nil {
 			manager.rolesIntent = intent
-			manager.specialIntents[intent.Namespace()] = intent
+			manager.specialIntents[ns] = intent
 		}
 		return
 	}
 	if intent.IsAuthVersion() {
 		if intent.BSONFile != nil {
 			manager.versionIntent = intent
-			manager.specialIntents[intent.Namespace()] = intent
+			manager.specialIntents[ns] = intent
 		}
 		return
 	}
 
-	manager.putNormalIntent(intent)
+	manager.putNormalIntentWithNamespace(ns, intent)
 }
 
 func (manager *Manager) GetOplogConflict() bool {
 	return manager.oplogConflict
+}
+
+func (manager *Manager) GetDestinationConflicts() (errs []DestinationConflictError) {
+	for dst, srcs := range manager.destinations {
+		if len(srcs) <= 1 {
+			continue
+		}
+		for _, src := range srcs {
+			errs = append(errs, DestinationConflictError{Dst: dst, Src: src})
+		}
+	}
+	return
 }
 
 // Intents returns a slice containing all of the intents in the manager.
@@ -328,11 +388,7 @@ func (manager *Manager) IntentForNamespace(ns string) *Intent {
 // Pop returns the next available intent from the manager. If the manager is
 // empty, it returns nil. Pop is thread safe.
 func (manager *Manager) Pop() *Intent {
-	manager.priotitizerLock.Lock()
-	defer manager.priotitizerLock.Unlock()
-
-	intent := manager.prioritizer.Get()
-	return intent
+	return manager.prioritizer.Get()
 }
 
 // Peek returns a copy of a stored intent from the manager without removing
@@ -352,8 +408,6 @@ func (manager *Manager) Peek() *Intent {
 // Finish tells the prioritizer that mongorestore is done restoring
 // the given collection intent.
 func (manager *Manager) Finish(intent *Intent) {
-	manager.priotitizerLock.Lock()
-	defer manager.priotitizerLock.Unlock()
 	manager.prioritizer.Finish(intent)
 }
 
@@ -399,13 +453,13 @@ func (manager *Manager) AuthVersion() *Intent {
 func (manager *Manager) Finalize(pType PriorityType) {
 	switch pType {
 	case Legacy:
-		log.Log(log.DebugHigh, "finalizing intent manager with legacy prioritizer")
+		log.Logv(log.DebugHigh, "finalizing intent manager with legacy prioritizer")
 		manager.prioritizer = NewLegacyPrioritizer(manager.intentsByDiscoveryOrder)
 	case LongestTaskFirst:
-		log.Log(log.DebugHigh, "finalizing intent manager with longest task first prioritizer")
+		log.Logv(log.DebugHigh, "finalizing intent manager with longest task first prioritizer")
 		manager.prioritizer = NewLongestTaskFirstPrioritizer(manager.intentsByDiscoveryOrder)
 	case MultiDatabaseLTF:
-		log.Log(log.DebugHigh, "finalizing intent manager with multi-database longest task first prioritizer")
+		log.Logv(log.DebugHigh, "finalizing intent manager with multi-database longest task first prioritizer")
 		manager.prioritizer = NewMultiDatabaseLTFPrioritizer(manager.intentsByDiscoveryOrder)
 	default:
 		panic("cannot initialize IntentPrioritizer with unknown type")

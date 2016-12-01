@@ -1,29 +1,31 @@
 (function() {
+  load("jstests/libs/mongostat.js");
+  var port = allocatePort();
+  var m = startMongod(
+    "--auth",
+    "--port", port,
+    "--dbpath", MongoRunner.dataPath+"stat_auth"+port,
+    "--nohttpinterface",
+    "--bind_ip", "127.0.0.1");
 
-load("jstests/libs/mongostat.js");
-
-port = allocatePorts(1);
-
-baseName = "stat_auth";
-
-m = startMongod("--auth", "--port", port[0], "--dbpath", MongoRunner.dataPath + baseName + port[0], "--nohttpinterface", "--bind_ip", "127.0.0.1");
-
-db = m.getDB("admin");
-
-db.createUser({
+  var db = m.getDB("admin");
+  db.createUser({
     user: "foobar",
     pwd: "foobar",
     roles: jsTest.adminUserRoles
-});
+  });
 
-assert(db.auth("foobar", "foobar"), "auth failed");
+  assert(db.auth("foobar", "foobar"), "auth failed");
 
-x = runMongoProgram("mongostat", "--host", "127.0.0.1:" + port[0], "--username", "foobar", "--password", "foobar", "--rowcount", "1", "--authenticationDatabase", "admin");
+  var args = ["mongostat",
+    "--host", "127.0.0.1:" + port,
+    "--rowcount", "1",
+    "--authenticationDatabase", "admin",
+    "--username", "foobar"];
 
-assert.eq(x, 0, "mongostat should exit successfully with foobar:foobar");
+  var x = runMongoProgram.apply(null, args.concat("--password", "foobar"));
+  assert.eq(x, exitCodeSuccess, "mongostat should exit successfully with foobar:foobar");
 
-x = runMongoProgram("mongostat", "--host", "127.0.0.1:" + port[0], "--username", "foobar", "--password", "wrong", "--rowcount", "1", "--authenticationDatabase", "admin");
-
-assert.eq(x, exitCodeErr, "mongostat should exit with an error exit code with foobar:wrong");
-
+  x = runMongoProgram.apply(null, args.concat("--password", "wrong"));
+  assert.eq(x, exitCodeErr, "mongostat should exit with an error exit code with foobar:wrong");
 }());

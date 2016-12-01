@@ -5,39 +5,48 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
 
-func TestManagerAttachAndDetach(t *testing.T) {
-	writeBuffer := &bytes.Buffer{}
-	var manager *Manager
+type safeBuffer struct {
+	sync.Mutex
+	bytes.Buffer
+}
 
-	Convey("With an empty progress.Manager", t, func() {
-		manager = NewProgressBarManager(writeBuffer, time.Second)
+func (b *safeBuffer) Write(p []byte) (n int, err error) {
+	b.Lock()
+	defer b.Unlock()
+	return b.Buffer.Write(p)
+}
+
+func (b *safeBuffer) String() string {
+	b.Lock()
+	defer b.Unlock()
+	return b.Buffer.String()
+}
+
+func (b *safeBuffer) Reset() {
+	b.Lock()
+	defer b.Unlock()
+	b.Buffer.Reset()
+}
+
+func TestManagerAttachAndDetach(t *testing.T) {
+	writeBuffer := new(safeBuffer)
+	var manager *BarWriter
+
+	Convey("With an empty progress.BarWriter", t, func() {
+		manager = NewBarWriter(writeBuffer, time.Second, 10, false)
 		So(manager, ShouldNotBeNil)
 
 		Convey("adding 3 bars", func() {
-			watching := NewCounter(10)
-			watching.Inc(5)
-			pbar1 := &Bar{
-				Name:      "\nTEST1",
-				Watching:  watching,
-				BarLength: 10,
-			}
-			manager.Attach(pbar1)
-			pbar2 := &Bar{
-				Name:      "\nTEST2",
-				Watching:  watching,
-				BarLength: 10,
-			}
-			manager.Attach(pbar2)
-			pbar3 := &Bar{
-				Name:      "\nTEST3",
-				Watching:  watching,
-				BarLength: 10,
-			}
-			manager.Attach(pbar3)
+			progressor := NewCounter(10)
+			progressor.Inc(5)
+			manager.Attach("TEST1", progressor)
+			manager.Attach("TEST2", progressor)
+			manager.Attach("TEST3", progressor)
 
 			So(len(manager.bars), ShouldEqual, 3)
 
@@ -50,7 +59,7 @@ func TestManagerAttachAndDetach(t *testing.T) {
 			})
 
 			Convey("detaching the second bar", func() {
-				manager.Detach(pbar2)
+				manager.Detach("TEST2")
 				So(len(manager.bars), ShouldEqual, 2)
 
 				Convey("should print 1,3", func() {
@@ -67,13 +76,7 @@ func TestManagerAttachAndDetach(t *testing.T) {
 				})
 
 				Convey("but adding a new bar should print 1,2,4", func() {
-					watching := NewCounter(10)
-					pbar4 := &Bar{
-						Name:      "\nTEST4",
-						Watching:  watching,
-						BarLength: 10,
-					}
-					manager.Attach(pbar4)
+					manager.Attach("TEST4", progressor)
 
 					So(len(manager.bars), ShouldEqual, 3)
 					manager.renderAllBars()
@@ -101,23 +104,16 @@ func TestManagerAttachAndDetach(t *testing.T) {
 	})
 }
 
-// This test has some race stuff in it, but it's very unlikely the timing
-// will result in issues here.
 func TestManagerStartAndStop(t *testing.T) {
-	writeBuffer := &bytes.Buffer{}
-	var manager *Manager
+	writeBuffer := new(safeBuffer)
+	var manager *BarWriter
 
-	Convey("With a progress.Manager with a waitTime of 10 ms and one bar", t, func() {
-		manager = NewProgressBarManager(writeBuffer, time.Millisecond*10)
+	Convey("With a progress.BarWriter with a waitTime of 10 ms and one bar", t, func() {
+		manager = NewBarWriter(writeBuffer, time.Millisecond*10, 10, false)
 		So(manager, ShouldNotBeNil)
 		watching := NewCounter(10)
 		watching.Inc(5)
-		pbar := &Bar{
-			Name:      "\nTEST",
-			Watching:  watching,
-			BarLength: 10,
-		}
-		manager.Attach(pbar)
+		manager.Attach("TEST", watching)
 
 		So(manager.waitTime, ShouldEqual, time.Millisecond*10)
 		So(len(manager.bars), ShouldEqual, 1)
@@ -142,13 +138,13 @@ func TestManagerStartAndStop(t *testing.T) {
 
 func TestNumberOfWrites(t *testing.T) {
 	var cw *CountWriter
-	var manager *Manager
+	var manager *BarWriter
 	Convey("With a test manager and counting writer", t, func() {
 		cw = new(CountWriter)
-		manager = NewProgressBarManager(cw, time.Millisecond*10)
+		manager = NewBarWriter(cw, time.Millisecond*10, 10, false)
 		So(manager, ShouldNotBeNil)
 
-		manager.Attach(&Bar{Name: "1", Watching: NewCounter(10), BarLength: 10})
+		manager.Attach("1", NewCounter(10))
 
 		Convey("with one attached bar", func() {
 			So(len(manager.bars), ShouldEqual, 1)
@@ -160,7 +156,7 @@ func TestNumberOfWrites(t *testing.T) {
 		})
 
 		Convey("with two bars attached", func() {
-			manager.Attach(&Bar{Name: "2", Watching: NewCounter(10), BarLength: 10})
+			manager.Attach("2", NewCounter(10))
 			So(len(manager.bars), ShouldEqual, 2)
 
 			Convey("three writes should be made per render, since an empty write is added", func() {
@@ -171,7 +167,7 @@ func TestNumberOfWrites(t *testing.T) {
 
 		Convey("with 57 bars attached", func() {
 			for i := 2; i <= 57; i++ {
-				manager.Attach(&Bar{Name: strconv.Itoa(i), Watching: NewCounter(10), BarLength: 10})
+				manager.Attach(strconv.Itoa(i), NewCounter(10))
 			}
 			So(len(manager.bars), ShouldEqual, 57)
 

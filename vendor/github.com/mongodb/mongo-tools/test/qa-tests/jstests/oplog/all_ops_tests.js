@@ -1,13 +1,14 @@
-if (typeof getToolTest === 'undefined') {
-  load('jstests/configs/plain_28.config.js');
-}
-
 /*
  * This test creates a fake oplog and uses it to test correct behavior of
  * all possible op codes.
  */
-
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
+
   var OPLOG_INSERT_CODE = 'i';
   var OPLOG_COMMAND_CODE = 'c';
   var OPLOG_UPDATE_CODE = 'u';
@@ -24,17 +25,17 @@ if (typeof getToolTest === 'undefined') {
   db.getSiblingDB('rs').dropDatabase();
 
   // Create capped collection
-  db.getSiblingDB('rs').createCollection('rs_test', { capped: true, size: 4 });
+  db.getSiblingDB('rs').createCollection('rs_test', {capped: true, size: 4});
 
   // Add a bunch of operations to the fake oplog
-  
+
   // Create a collection to drop
   db.getSiblingDB('rs').rs_test.insert({
     ts: new Timestamp(),
     v: CURRENT_OPLOG_VERSION,
     op: OPLOG_COMMAND_CODE,
     ns: "foo.$cmd",
-    o: { create: "baz" }
+    o: {create: "baz"}
   });
 
   // Insert a doc
@@ -67,7 +68,7 @@ if (typeof getToolTest === 'undefined') {
     v: CURRENT_OPLOG_VERSION,
     op: OPLOG_COMMAND_CODE,
     ns: "foo.$cmd",
-    o: { create: "bar" }
+    o: {create: "bar"}
   });
 
   // Insert 2 docs
@@ -129,21 +130,20 @@ if (typeof getToolTest === 'undefined') {
     h: 6,
     op: OPLOG_NOOP_CODE,
     ns: 'foo.bar',
-    o: { x: 'noop' }
+    o: {x: 'noop'}
   });
 
   var args = ['oplog', '--oplogns', 'rs.rs_test',
     '--from', '127.0.0.1:' + toolTest.port].concat(commonToolArgs);
 
   if (toolTest.isSharded) {
-    // When applying ops to a sharded cluster, 
+    // When applying ops to a sharded cluster,
     assert(toolTest.runTool.apply(toolTest, args) !== 0,
       'mongooplog should fail when running applyOps on a sharded cluster');
 
-    var output = rawMongoProgramOutput();
     var expectedError =
       'error applying ops: applyOps not allowed through mongos';
-    assert(output.indexOf(expectedError) !== -1,
+    assert.strContains.soon(expectedError, rawMongoProgramOutput,
       'mongooplog crash should output the correct error message');
 
     assert.eq(0, db.bar.count({}),
@@ -156,9 +156,9 @@ if (typeof getToolTest === 'undefined') {
     assert.eq(1, db.bar.count({}),
       'mongooplog should apply all operations');
     assert.eq(0, db.baz.count({}), 'mongooplog should have dropped db');
-    assert.eq(1, db.bar.count({ _id: 2 }),
+    assert.eq(1, db.bar.count({_id: 2}),
       'mongooplog should have applied correct ops');
   }
 
   toolTest.stop();
-})();
+}());

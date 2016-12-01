@@ -2,6 +2,9 @@ package mongoimport
 
 import (
 	"fmt"
+	"io"
+	"testing"
+
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -9,8 +12,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 	"gopkg.in/tomb.v2"
-	"io"
-	"testing"
 )
 
 func init() {
@@ -23,56 +24,72 @@ var (
 	index         = uint64(0)
 	csvConverters = []CSVConverter{
 		CSVConverter{
-			fields: []string{"field1", "field2", "field3"},
-			data:   []string{"a", "b", "c"},
-			index:  index,
+			colSpecs: []ColumnSpec{
+				{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+			},
+			data:  []string{"a", "b", "c"},
+			index: index,
 		},
 		CSVConverter{
-			fields: []string{"field4", "field5", "field6"},
-			data:   []string{"d", "e", "f"},
-			index:  index,
+			colSpecs: []ColumnSpec{
+				{"field4", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field5", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field6", new(FieldAutoParser), pgAutoCast, "auto"},
+			},
+			data:  []string{"d", "e", "f"},
+			index: index,
 		},
 		CSVConverter{
-			fields: []string{"field7", "field8", "field9"},
-			data:   []string{"d", "e", "f"},
-			index:  index,
+			colSpecs: []ColumnSpec{
+				{"field7", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field8", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field9", new(FieldAutoParser), pgAutoCast, "auto"},
+			},
+			data:  []string{"d", "e", "f"},
+			index: index,
 		},
 		CSVConverter{
-			fields: []string{"field10", "field11", "field12"},
-			data:   []string{"d", "e", "f"},
-			index:  index,
+			colSpecs: []ColumnSpec{
+				{"field10", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field11", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field12", new(FieldAutoParser), pgAutoCast, "auto"},
+			},
+			data:  []string{"d", "e", "f"},
+			index: index,
 		},
 		CSVConverter{
-			fields: []string{"field13", "field14", "field15"},
-			data:   []string{"d", "e", "f"},
-			index:  index,
+			colSpecs: []ColumnSpec{
+				{"field13", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field14", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field15", new(FieldAutoParser), pgAutoCast, "auto"},
+			},
+			data:  []string{"d", "e", "f"},
+			index: index,
 		},
 	}
 	expectedDocuments = []bson.D{
-		bson.D{
-			bson.DocElem{"field1", "a"},
-			bson.DocElem{"field2", "b"},
-			bson.DocElem{"field3", "c"},
-		},
-		bson.D{
-			bson.DocElem{"field4", "d"},
-			bson.DocElem{"field5", "e"},
-			bson.DocElem{"field6", "f"},
-		},
-		bson.D{
-			bson.DocElem{"field7", "d"},
-			bson.DocElem{"field8", "e"},
-			bson.DocElem{"field9", "f"},
-		},
-		bson.D{
-			bson.DocElem{"field10", "d"},
-			bson.DocElem{"field11", "e"},
-			bson.DocElem{"field12", "f"},
-		},
-		bson.D{
-			bson.DocElem{"field13", "d"},
-			bson.DocElem{"field14", "e"},
-			bson.DocElem{"field15", "f"},
+		{
+			{"field1", "a"},
+			{"field2", "b"},
+			{"field3", "c"},
+		}, {
+			{"field4", "d"},
+			{"field5", "e"},
+			{"field6", "f"},
+		}, {
+			{"field7", "d"},
+			{"field8", "e"},
+			{"field9", "f"},
+		}, {
+			{"field10", "d"},
+			{"field11", "e"},
+			{"field12", "f"},
+		}, {
+			{"field13", "d"},
+			{"field14", "e"},
+			{"field15", "f"},
 		},
 	}
 )
@@ -132,7 +149,8 @@ func TestGetUpsertValue(t *testing.T) {
 			So(getUpsertValue("a", bsonDocument), ShouldEqual, 3)
 		})
 		Convey("the value of the key should be correct for nested document fields", func() {
-			bsonDocument := bson.D{{"a", bson.D{{"b", 4}}}}
+			inner := bson.D{{"b", 4}}
+			bsonDocument := bson.D{{"a", inner}}
 			So(getUpsertValue("a.b", bsonDocument), ShouldEqual, 4)
 		})
 		Convey("the value of the key should be nil for unnested document "+
@@ -142,7 +160,8 @@ func TestGetUpsertValue(t *testing.T) {
 		})
 		Convey("the value of the key should be nil for nested document "+
 			"fields that do not exist", func() {
-			bsonDocument := bson.D{{"a", bson.D{{"b", 4}}}}
+			inner := bson.D{{"b", 4}}
+			bsonDocument := bson.D{{"a", inner}}
 			So(getUpsertValue("a.c", bsonDocument), ShouldBeNil)
 		})
 		Convey("the value of the key should be nil for nil document values", func() {
@@ -175,7 +194,8 @@ func TestConstructUpsertDocument(t *testing.T) {
 		})
 		Convey("the key/value combination in the upsert document should be "+
 			"correct for nested documents with several fields", func() {
-			bsonDocument := bson.D{{"a", bson.D{{testCollection, 4}}}, {"b", "string value"}}
+			inner := bson.D{{testCollection, 4}}
+			bsonDocument := bson.D{{"a", inner}, {"b", "string value"}}
 			upsertFields := []string{"a.c"}
 			expectedDocument := bson.D{{"a.c", 4}}
 			upsertDocument := constructUpsertDocument(upsertFields,
@@ -192,29 +212,14 @@ func TestConstructUpsertDocument(t *testing.T) {
 	})
 }
 
-func TestGetParsedValue(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
-
-	Convey("Given a string token to parse", t, func() {
-		Convey("an int token should return the underlying int value", func() {
-			So(getParsedValue("3"), ShouldEqual, 3)
-		})
-		Convey("a float token should return the underlying float value", func() {
-			So(getParsedValue(".33"), ShouldEqual, 0.33)
-		})
-		Convey("a string token should return the underlying string value", func() {
-			So(getParsedValue("sd"), ShouldEqual, "sd")
-		})
-	})
-}
-
 func TestSetNestedValue(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 
 	Convey("Given a field, its value, and an existing BSON document...", t, func() {
+		b := bson.D{{"c", "d"}}
 		currentDocument := bson.D{
-			bson.DocElem{"a", 3},
-			bson.DocElem{"b", &bson.D{bson.DocElem{"c", "d"}}},
+			{"a", 3},
+			{"b", &b},
 		}
 		Convey("ensure top level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
@@ -226,7 +231,7 @@ func TestSetNestedValue(t *testing.T) {
 		})
 		Convey("ensure new nested top-level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
-			expectedDocument := bson.D{bson.DocElem{"b", "4"}}
+			expectedDocument := bson.D{{"b", "4"}}
 			setNestedValue("c.b", "4", testDocument)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 3)
@@ -235,7 +240,7 @@ func TestSetNestedValue(t *testing.T) {
 		})
 		Convey("ensure existing nested level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
-			expectedDocument := bson.D{bson.DocElem{"c", "d"}, bson.DocElem{"d", 9}}
+			expectedDocument := bson.D{{"c", "d"}, {"d", 9}}
 			setNestedValue("b.d", 9, testDocument)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 2)
@@ -244,7 +249,7 @@ func TestSetNestedValue(t *testing.T) {
 		})
 		Convey("ensure subsequent calls update fields accordingly", func() {
 			testDocument := &currentDocument
-			expectedDocumentOne := bson.D{bson.DocElem{"c", "d"}, bson.DocElem{"d", 9}}
+			expectedDocumentOne := bson.D{{"c", "d"}, {"d", 9}}
 			expectedDocumentTwo := bson.DocElem{"f", 23}
 			setNestedValue("b.d", 9, testDocument)
 			newDocument := *testDocument
@@ -264,29 +269,32 @@ func TestRemoveBlankFields(t *testing.T) {
 
 	Convey("Given an unordered BSON document", t, func() {
 		Convey("the same document should be returned if there are no blanks", func() {
-			bsonDocument := bson.D{bson.DocElem{"a", 3}, bson.DocElem{"b", "hello"}}
+			bsonDocument := bson.D{{"a", 3}, {"b", "hello"}}
 			So(removeBlankFields(bsonDocument), ShouldResemble, bsonDocument)
 		})
 		Convey("a new document without blanks should be returned if there are "+
 			" blanks", func() {
+			d := bson.D{
+				{"a", ""},
+				{"b", ""},
+			}
+			e := bson.D{
+				{"a", ""},
+				{"b", 1},
+			}
 			bsonDocument := bson.D{
-				bson.DocElem{"a", 0},
-				bson.DocElem{"b", ""},
-				bson.DocElem{"c", ""},
-				bson.DocElem{"d", &bson.D{
-					bson.DocElem{"a", ""},
-					bson.DocElem{"b", ""},
-				}},
-				bson.DocElem{"e", &bson.D{
-					bson.DocElem{"a", ""},
-					bson.DocElem{"b", 1},
-				}},
+				{"a", 0},
+				{"b", ""},
+				{"c", ""},
+				{"d", &d},
+				{"e", &e},
+			}
+			inner := bson.D{
+				{"b", 1},
 			}
 			expectedDocument := bson.D{
-				bson.DocElem{"a", 0},
-				bson.DocElem{"e", bson.D{
-					bson.DocElem{"b", 1},
-				}},
+				{"a", 0},
+				{"e", inner},
 			}
 			So(removeBlankFields(bsonDocument), ShouldResemble, expectedDocument)
 		})
@@ -296,51 +304,69 @@ func TestRemoveBlankFields(t *testing.T) {
 func TestTokensToBSON(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 
-	Convey("Given an slice of fields and tokens to convert to BSON", t, func() {
-		Convey("the expected ordered BSON should be produced for the fields/tokens given", func() {
-			fields := []string{"a", "b", "c"}
+	Convey("Given an slice of column specs and tokens to convert to BSON", t, func() {
+		Convey("the expected ordered BSON should be produced for the given"+
+			"column specs and tokens", func() {
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			tokens := []string{"1", "2", "hello"}
 			expectedDocument := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
-				bson.DocElem{"c", "hello"},
+				{"a", int32(1)},
+				{"b", int32(2)},
+				{"c", "hello"},
 			}
-			bsonD, err := tokensToBSON(fields, tokens, uint64(0))
+			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
 			So(err, ShouldBeNil)
 			So(bsonD, ShouldResemble, expectedDocument)
 		})
 		Convey("if there are more tokens than fields, additional fields should be prefixed"+
 			" with 'fields' and an index indicating the header number", func() {
-			fields := []string{"a", "b", "c"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			tokens := []string{"1", "2", "hello", "mongodb", "user"}
 			expectedDocument := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
-				bson.DocElem{"c", "hello"},
-				bson.DocElem{"field3", "mongodb"},
-				bson.DocElem{"field4", "user"},
+				{"a", int32(1)},
+				{"b", int32(2)},
+				{"c", "hello"},
+				{"field3", "mongodb"},
+				{"field4", "user"},
 			}
-			bsonD, err := tokensToBSON(fields, tokens, uint64(0))
+			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
 			So(err, ShouldBeNil)
 			So(bsonD, ShouldResemble, expectedDocument)
 		})
 		Convey("an error should be thrown if duplicate headers are found", func() {
-			fields := []string{"a", "b", "field3"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			tokens := []string{"1", "2", "hello", "mongodb", "user"}
-			_, err := tokensToBSON(fields, tokens, uint64(0))
+			_, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
 			So(err, ShouldNotBeNil)
 		})
 		Convey("fields with nested values should be set appropriately", func() {
-			fields := []string{"a", "b", "c.a"}
-			tokens := []string{"1", "2", "hello"}
-			expectedDocument := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
-				bson.DocElem{"c", bson.D{
-					bson.DocElem{"a", "hello"},
-				}},
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c.a", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
-			bsonD, err := tokensToBSON(fields, tokens, uint64(0))
+			tokens := []string{"1", "2", "hello"}
+			c := bson.D{
+				{"a", "hello"},
+			}
+			expectedDocument := bson.D{
+				{"a", int32(1)},
+				{"b", int32(2)},
+				{"c", c},
+			}
+			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
 			So(err, ShouldBeNil)
 			So(expectedDocument[0].Name, ShouldResemble, bsonD[0].Name)
 			So(expectedDocument[0].Value, ShouldResemble, bsonD[0].Value)
@@ -359,26 +385,33 @@ func TestProcessDocuments(t *testing.T) {
 		index := uint64(0)
 		csvConverters := []CSVConverter{
 			CSVConverter{
-				fields: []string{"field1", "field2", "field3"},
-				data:   []string{"a", "b", "c"},
-				index:  index,
+				colSpecs: []ColumnSpec{
+					{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+				},
+				data:  []string{"a", "b", "c"},
+				index: index,
 			},
 			CSVConverter{
-				fields: []string{"field4", "field5", "field6"},
-				data:   []string{"d", "e", "f"},
-				index:  index,
+				colSpecs: []ColumnSpec{
+					{"field4", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field5", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field6", new(FieldAutoParser), pgAutoCast, "auto"},
+				},
+				data:  []string{"d", "e", "f"},
+				index: index,
 			},
 		}
 		expectedDocuments := []bson.D{
-			bson.D{
-				bson.DocElem{"field1", "a"},
-				bson.DocElem{"field2", "b"},
-				bson.DocElem{"field3", "c"},
-			},
-			bson.D{
-				bson.DocElem{"field4", "d"},
-				bson.DocElem{"field5", "e"},
-				bson.DocElem{"field6", "f"},
+			{
+				{"field1", "a"},
+				{"field2", "b"},
+				{"field3", "c"},
+			}, {
+				{"field4", "d"},
+				{"field5", "e"},
+				{"field6", "f"},
 			},
 		}
 		Convey("processDocuments should execute the expected conversion for documents, "+
@@ -498,9 +531,12 @@ func TestStreamDocuments(t *testing.T) {
 		Convey("the entire pipeline should complete with error if an error is encountered", func() {
 			// stream in some documents - create duplicate headers to simulate an error
 			csvConverter := CSVConverter{
-				fields: []string{"field1", "field2"},
-				data:   []string{"a", "b", "c"},
-				index:  uint64(0),
+				colSpecs: []ColumnSpec{
+					{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
+				},
+				data:  []string{"a", "b", "c"},
+				index: uint64(0),
 			}
 			inputChannel <- csvConverter
 			close(inputChannel)

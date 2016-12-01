@@ -1,20 +1,19 @@
 // mongotop_sharded.js; ensure that running mongotop against a sharded cluster
 // fails with a useful error message
-//
 var testName = 'mongotop_sharded';
-var expectedError = 'cannot run mongotop against a mongos';
-load('jstests/top/util/mongotop_common.js');
-
 (function() {
   jsTest.log('Testing mongotop against sharded cluster');
+  load('jstests/top/util/mongotop_common.js');
+  var assert = extendedAssert;
 
-  var verifyOutput = function(shellOutput) {
+  var expectedError = 'cannot run mongotop against a mongos';
+  var verifyOutput = function(getOutput) {
+    assert.strContains.soon(expectedError, getOutput, 'error message must appear at least once');
+    var shellOutput = getOutput();
     jsTest.log('shell output: ' + shellOutput);
     shellOutput.split('\n').forEach(function(line) {
       // check the displayed error message
-      if (line.match(shellOutputRegex)) {
-        assert.neq(line.match(expectedError), null, 'unexpeced error message');
-      }
+      assert.neq(line.match(expectedError), null, 'unexpeced error message');
     });
   };
 
@@ -30,13 +29,13 @@ load('jstests/top/util/mongotop_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongotop', '--port', conn.port, '--help'].concat(passthrough.args)), 0, 'failed 2');
 
     // anything that runs against the mongos server should fail
-    clearRawMongoProgramOutput();
-    assert.neq(runMongoProgram.apply(this, ['mongotop', '--port', conn.port].concat(passthrough.args)), 0, 'succeeded 1');
-    verifyOutput(rawMongoProgramOutput());
+    var result = executeProgram(['mongotop', '--port', conn.port].concat(passthrough.args));
+    assert.neq(result.exitCode, 0, 'expected failure against a mongos');
+    verifyOutput(result.getOutput);
 
-    clearRawMongoProgramOutput();
-    assert.neq(runMongoProgram.apply(this, ['mongotop', '--port', conn.port, '2'].concat(passthrough.args)), 0, 'succeeded 2');
-    verifyOutput(rawMongoProgramOutput());
+    result = executeProgram(['mongotop', '--port', conn.port, '2'].concat(passthrough.args));
+    assert.neq(result.exitCode, 0, 'expected failure against a mongos');
+    verifyOutput(result.getOutput);
 
     t.stop();
   };
@@ -45,4 +44,4 @@ load('jstests/top/util/mongotop_common.js');
   passthroughs.forEach(function(passthrough) {
     runTests(shardedClusterTopology, passthrough);
   });
-})();
+}());

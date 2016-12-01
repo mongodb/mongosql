@@ -2,15 +2,16 @@ package mongorestore
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // oplogMaxCommandSize sets the maximum size for multiple buffered ops in the
@@ -21,15 +22,18 @@ const oplogMaxCommandSize = 1024 * 1024 * 8
 
 // RestoreOplog attempts to restore a MongoDB oplog.
 func (restore *MongoRestore) RestoreOplog() error {
-	log.Log(log.Always, "replaying oplog")
+	log.Logv(log.Always, "replaying oplog")
 	intent := restore.manager.Oplog()
 	if intent == nil {
 		// this should not be reached
-		log.Log(log.Always, "no oplog file provided, skipping oplog application")
+		log.Logv(log.Always, "no oplog file provided, skipping oplog application")
 		return nil
 	}
 	if err := intent.BSONFile.Open(); err != nil {
 		return err
+	}
+	if fileNeedsIOBuffer, ok := intent.BSONFile.(intents.FileNeedsIOBuffer); ok {
+		fileNeedsIOBuffer.TakeIOBuffer(make([]byte, db.MaxBSONSize))
 	}
 	defer intent.BSONFile.Close()
 	// NewBufferlessBSONSource reads each bson document into its own buffer
@@ -38,23 +42,16 @@ func (restore *MongoRestore) RestoreOplog() error {
 	bsonSource := db.NewDecodedBSONSource(db.NewBufferlessBSONSource(intent.BSONFile))
 	defer bsonSource.Close()
 
-	entryArray := make([]interface{}, 0, 1024)
 	rawOplogEntry := &bson.Raw{}
 
 	var totalOps int64
-	var entrySize, bufferedBytes int
+	var entrySize int
 
 	oplogProgressor := progress.NewCounter(intent.BSONSize)
-	bar := progress.Bar{
-		Name:      "oplog",
-		Watching:  oplogProgressor,
-		WaitTime:  3 * time.Second,
-		Writer:    log.Writer(0),
-		BarLength: progressBarLength,
-		IsBytes:   true,
+	if restore.ProgressManager != nil {
+		restore.ProgressManager.Attach("oplog", oplogProgressor)
+		defer restore.ProgressManager.Detach("oplog")
 	}
-	bar.Start()
-	defer bar.Stop()
 
 	session, err := restore.SessionProvider.GetSession()
 	if err != nil {
@@ -62,19 +59,8 @@ func (restore *MongoRestore) RestoreOplog() error {
 	}
 	defer session.Close()
 
-	// To restore the oplog, we iterate over the oplog entries,
-	// filling up a buffer. Once the buffer reaches max document size,
-	// apply the current buffered ops and reset the buffer.
 	for bsonSource.Next(rawOplogEntry) {
 		entrySize = len(rawOplogEntry.Data)
-		if bufferedBytes+entrySize > oplogMaxCommandSize {
-			err = restore.ApplyOps(session, entryArray)
-			if err != nil {
-				return fmt.Errorf("error applying oplog: %v", err)
-			}
-			entryArray = make([]interface{}, 0, 1024)
-			bufferedBytes = 0
-		}
 
 		entryAsOplog := db.Oplog{}
 		err = bson.Unmarshal(rawOplogEntry.Data, &entryAsOplog)
@@ -86,7 +72,7 @@ func (restore *MongoRestore) RestoreOplog() error {
 			continue
 		}
 		if !restore.TimestampBeforeLimit(entryAsOplog.Timestamp) {
-			log.Logf(
+			log.Logvf(
 				log.DebugLow,
 				"timestamp %v is not below limit of %v; ending oplog restoration",
 				entryAsOplog.Timestamp,
@@ -96,19 +82,17 @@ func (restore *MongoRestore) RestoreOplog() error {
 		}
 
 		totalOps++
-		bufferedBytes += entrySize
 		oplogProgressor.Inc(int64(entrySize))
-		entryArray = append(entryArray, entryAsOplog)
-	}
-	// finally, flush the remaining entries
-	if len(entryArray) > 0 {
-		err = restore.ApplyOps(session, entryArray)
+		err = restore.ApplyOps(session, []interface{}{entryAsOplog})
 		if err != nil {
 			return fmt.Errorf("error applying oplog: %v", err)
 		}
 	}
+	if fileNeedsIOBuffer, ok := intent.BSONFile.(intents.FileNeedsIOBuffer); ok {
+		fileNeedsIOBuffer.ReleaseIOBuffer()
+	}
 
-	log.Logf(log.Info, "applied %v ops", totalOps)
+	log.Logvf(log.Info, "applied %v ops", totalOps)
 	return nil
 
 }

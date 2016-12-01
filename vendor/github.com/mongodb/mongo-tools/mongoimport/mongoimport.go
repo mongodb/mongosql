@@ -27,6 +27,13 @@ const (
 	JSON = "json"
 )
 
+// Modes accepted by mongoimport.
+const (
+	modeInsert = "insert"
+	modeUpsert = "upsert"
+	modeMerge  = "merge"
+)
+
 const (
 	workerBufferSize  = 16
 	progressBarLength = 24
@@ -73,6 +80,11 @@ type InputReader interface {
 	// a non-nil error if the fields from the header line are invalid; returns
 	// nil otherwise. No-op for JSON input readers.
 	ReadAndValidateHeader() error
+
+	// ReadAndValidateTypedHeader is the same as ReadAndValidateHeader,
+	// except it also parses types from the fields of the header. Parse errors
+	// will be handled according parseGrace.
+	ReadAndValidateTypedHeader(parseGrace ParseGrace) error
 
 	// embedded io.Reader that tracks number of bytes read, to allow feeding into progress bar.
 	sizeTracker
@@ -126,6 +138,10 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 				return fmt.Errorf("incompatible options: --fieldFile and --headerline")
 			}
 		}
+
+		if _, err := ValidatePG(imp.InputOptions.ParseGrace); err != nil {
+			return err
+		}
 	} else {
 		// input type is JSON
 		if imp.InputOptions.HeaderLine {
@@ -140,35 +156,60 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 		if imp.IngestOptions.IgnoreBlanks {
 			return fmt.Errorf("can not use --ignoreBlanks when input type is JSON")
 		}
+		if imp.InputOptions.ColumnsHaveTypes {
+			return fmt.Errorf("can not use --columnsHaveTypes when input type is JSON")
+		}
 	}
 
+	// deprecated
+	if imp.IngestOptions.Upsert == true {
+		imp.IngestOptions.Mode = modeUpsert
+	}
+
+	// parse UpsertFields, may set default mode to modeUpsert
 	if imp.IngestOptions.UpsertFields != "" {
-		imp.IngestOptions.Upsert = true
+		if imp.IngestOptions.Mode == "" {
+			imp.IngestOptions.Mode = modeUpsert
+		} else if imp.IngestOptions.Mode == modeInsert {
+			return fmt.Errorf("can not use --upsertFields with --mode=insert")
+		}
 		imp.upsertFields = strings.Split(imp.IngestOptions.UpsertFields, ",")
 		if err := validateFields(imp.upsertFields); err != nil {
 			return fmt.Errorf("invalid --upsertFields argument: %v", err)
 		}
-	} else if imp.IngestOptions.Upsert {
+	} else if imp.IngestOptions.Mode != modeInsert {
 		imp.upsertFields = []string{"_id"}
 	}
 
-	if imp.IngestOptions.Upsert {
+	// set default mode, must be after parsing UpsertFields
+	if imp.IngestOptions.Mode == "" {
+		imp.IngestOptions.Mode = modeInsert
+	}
+
+	// double-check mode choices
+	if !(imp.IngestOptions.Mode == modeInsert ||
+		imp.IngestOptions.Mode == modeUpsert ||
+		imp.IngestOptions.Mode == modeMerge) {
+		return fmt.Errorf("invalid --mode argument: %v", imp.IngestOptions.Mode)
+	}
+
+	if imp.IngestOptions.Mode != modeInsert {
 		imp.IngestOptions.MaintainInsertionOrder = true
-		log.Logf(log.Info, "using upsert fields: %v", imp.upsertFields)
+		log.Logvf(log.Info, "using upsert fields: %v", imp.upsertFields)
 	}
 
 	// set the number of decoding workers to use for imports
-	if imp.ToolOptions.NumDecodingWorkers <= 0 {
-		imp.ToolOptions.NumDecodingWorkers = imp.ToolOptions.MaxProcs
+	if imp.IngestOptions.NumDecodingWorkers <= 0 {
+		imp.IngestOptions.NumDecodingWorkers = imp.ToolOptions.MaxProcs
 	}
-	log.Logf(log.DebugLow, "using %v decoding workers", imp.ToolOptions.NumDecodingWorkers)
+	log.Logvf(log.DebugLow, "using %v decoding workers", imp.IngestOptions.NumDecodingWorkers)
 
 	// set the number of insertion workers to use for imports
 	if imp.IngestOptions.NumInsertionWorkers <= 0 {
 		imp.IngestOptions.NumInsertionWorkers = 1
 	}
 
-	log.Logf(log.DebugLow, "using %v insert workers", imp.IngestOptions.NumInsertionWorkers)
+	log.Logvf(log.DebugLow, "using %v insert workers", imp.IngestOptions.NumInsertionWorkers)
 
 	// if --maintainInsertionOrder is set, we can only allow 1 insertion worker
 	if imp.IngestOptions.MaintainInsertionOrder {
@@ -176,8 +217,8 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 	}
 
 	// get the number of documents per batch
-	if imp.ToolOptions.BulkBufferSize <= 0 || imp.ToolOptions.BulkBufferSize > 1000 {
-		imp.ToolOptions.BulkBufferSize = 1000
+	if imp.IngestOptions.BulkBufferSize <= 0 || imp.IngestOptions.BulkBufferSize > 1000 {
+		imp.IngestOptions.BulkBufferSize = 1000
 	}
 
 	// ensure no more than one positional argument is supplied
@@ -200,13 +241,13 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 
 	// ensure we have a valid string to use for the collection
 	if imp.ToolOptions.Collection == "" {
-		log.Logf(log.Always, "no collection specified")
+		log.Logvf(log.Always, "no collection specified")
 		fileBaseName := filepath.Base(imp.InputOptions.File)
 		lastDotIndex := strings.LastIndex(fileBaseName, ".")
 		if lastDotIndex != -1 {
 			fileBaseName = fileBaseName[0:lastDotIndex]
 		}
-		log.Logf(log.Always, "using filename '%v' as collection", fileBaseName)
+		log.Logvf(log.Always, "using filename '%v' as collection", fileBaseName)
 		imp.ToolOptions.Collection = fileBaseName
 	}
 	err = util.ValidateCollectionName(imp.ToolOptions.Collection)
@@ -229,11 +270,11 @@ func (imp *MongoImport) getSourceReader() (io.ReadCloser, int64, error) {
 		if err != nil {
 			return nil, -1, err
 		}
-		log.Logf(log.Info, "filesize: %v bytes", fileStat.Size())
+		log.Logvf(log.Info, "filesize: %v bytes", fileStat.Size())
 		return file, int64(fileStat.Size()), err
 	}
 
-	log.Logf(log.Info, "reading from stdin")
+	log.Logvf(log.Info, "reading from stdin")
 
 	// Stdin has undefined max size, so return 0
 	return os.Stdin, 0, nil
@@ -266,7 +307,12 @@ func (imp *MongoImport) ImportDocuments() (uint64, error) {
 	}
 
 	if imp.InputOptions.HeaderLine {
-		if err = inputReader.ReadAndValidateHeader(); err != nil {
+		if imp.InputOptions.ColumnsHaveTypes {
+			err = inputReader.ReadAndValidateTypedHeader(ParsePG(imp.InputOptions.ParseGrace))
+		} else {
+			err = inputReader.ReadAndValidateHeader()
+		}
+		if err != nil {
 			return 0, err
 		}
 	}
@@ -300,9 +346,9 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 	if imp.ToolOptions.Port != "" {
 		connURL = connURL + ":" + imp.ToolOptions.Port
 	}
-	log.Logf(log.Always, "connected to: %v", connURL)
+	log.Logvf(log.Always, "connected to: %v", connURL)
 
-	log.Logf(log.Info, "ns: %v.%v",
+	log.Logvf(log.Info, "ns: %v.%v",
 		imp.ToolOptions.Namespace.DB,
 		imp.ToolOptions.Namespace.Collection)
 
@@ -311,7 +357,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 	if err != nil {
 		return 0, fmt.Errorf("error checking connected node type: %v", err)
 	}
-	log.Logf(log.Info, "connected to node type: %v", imp.nodeType)
+	log.Logvf(log.Info, "connected to node type: %v", imp.nodeType)
 
 	if err = imp.configureSession(session); err != nil {
 		return 0, fmt.Errorf("error configuring session: %v", err)
@@ -319,7 +365,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 
 	// drop the database if necessary
 	if imp.IngestOptions.Drop {
-		log.Logf(log.Always, "dropping: %v.%v",
+		log.Logvf(log.Always, "dropping: %v.%v",
 			imp.ToolOptions.DB,
 			imp.ToolOptions.Collection)
 		collection := session.DB(imp.ToolOptions.DB).
@@ -367,16 +413,13 @@ func (imp *MongoImport) ingestDocuments(readDocs chan bson.D) (retErr error) {
 	// 3. There is an insertion/update error - e.g. duplicate key
 	//    error - and stopOnError is set to true
 
-	wg := &sync.WaitGroup{}
-	mt := &sync.Mutex{}
+	wg := new(sync.WaitGroup)
 	for i := 0; i < numInsertionWorkers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			// only set the first insertion error and cause sibling goroutines to terminate immediately
 			err := imp.runInsertionWorker(readDocs)
-			mt.Lock()
-			defer mt.Unlock()
 			if err != nil && retErr == nil {
 				retErr = err
 				imp.Kill(err)
@@ -424,16 +467,15 @@ func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
 		return fmt.Errorf("error configuring session: %v", err)
 	}
 	collection := session.DB(imp.ToolOptions.DB).C(imp.ToolOptions.Collection)
-	ignoreBlanks := imp.IngestOptions.IgnoreBlanks && imp.InputOptions.Type != JSON
 
 	var inserter flushInserter
-	if imp.IngestOptions.Upsert {
-		inserter = imp.newUpserter(collection)
-	} else {
-		inserter = db.NewBufferedBulkInserter(collection, imp.ToolOptions.BulkBufferSize, !imp.IngestOptions.StopOnError)
+	if imp.IngestOptions.Mode == modeInsert {
+		inserter = db.NewBufferedBulkInserter(collection, imp.IngestOptions.BulkBufferSize, !imp.IngestOptions.StopOnError)
 		if !imp.IngestOptions.MaintainInsertionOrder {
 			inserter.(*db.BufferedBulkInserter).Unordered()
 		}
+	} else {
+		inserter = imp.newUpserter(collection)
 	}
 
 readLoop:
@@ -442,10 +484,6 @@ readLoop:
 		case document, alive := <-readDocs:
 			if !alive {
 				break readLoop
-			}
-			// ignore blank fields if specified
-			if ignoreBlanks {
-				document = removeBlankFields(document)
 			}
 			err = filterIngestError(imp.IngestOptions.StopOnError, inserter.Insert(document))
 			if err != nil {
@@ -457,7 +495,20 @@ readLoop:
 		}
 	}
 
-	return filterIngestError(imp.IngestOptions.StopOnError, inserter.Flush())
+	err = inserter.Flush()
+	// TOOLS-349 correct import count for bulk operations
+	if bulkError, ok := err.(*mgo.BulkError); ok {
+		failedDocs := make(map[int]bool) // index of failures
+		for _, failure := range bulkError.Cases() {
+			failedDocs[failure.Index] = true
+		}
+		numFailures := len(failedDocs)
+		if numFailures > 0 {
+			log.Logvf(log.Always, "num failures: %d", numFailures)
+			atomic.AddUint64(&imp.insertionCount, ^uint64(numFailures-1))
+		}
+	}
+	return filterIngestError(imp.IngestOptions.StopOnError, err)
 }
 
 type upserter struct {
@@ -478,10 +529,12 @@ func (up *upserter) Insert(doc interface{}) error {
 	document := doc.(bson.D)
 	selector := constructUpsertDocument(up.imp.upsertFields, document)
 	var err error
-	if selector == nil {
+	if selector == nil { // modeInsert || doc-not-exist
 		err = up.collection.Insert(document)
-	} else {
+	} else if up.imp.IngestOptions.Mode == modeUpsert {
 		_, err = up.collection.Upsert(selector, document)
+	} else { // modeMerge
+		_, err = up.collection.Upsert(selector, bson.M{"$set": document})
 	}
 	return err
 }
@@ -492,30 +545,62 @@ func (up *upserter) Flush() error {
 	return nil
 }
 
+func splitInlineHeader(header string) (headers []string) {
+	var level uint8
+	var currentField string
+	for _, c := range header {
+		if c == '(' {
+			level++
+		} else if c == ')' && level > 0 {
+			level--
+		}
+		if c == ',' && level == 0 {
+			headers = append(headers, currentField)
+			currentField = ""
+		} else {
+			currentField = currentField + string(c)
+		}
+	}
+	headers = append(headers, currentField) // add last field
+	return
+}
+
 // getInputReader returns an implementation of InputReader based on the input type
 func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
-	var fields []string
+	var colSpecs []ColumnSpec
+	var headers []string
 	var err error
 	if imp.InputOptions.Fields != nil {
-		fields = strings.Split(*imp.InputOptions.Fields, ",")
+		headers = splitInlineHeader(*imp.InputOptions.Fields)
 	} else if imp.InputOptions.FieldFile != nil {
-		fields, err = util.GetFieldsFromFile(*imp.InputOptions.FieldFile)
+		headers, err = util.GetFieldsFromFile(*imp.InputOptions.FieldFile)
 		if err != nil {
 			return nil, err
 		}
 	}
+	if imp.InputOptions.ColumnsHaveTypes {
+		colSpecs, err = ParseTypedHeaders(headers, ParsePG(imp.InputOptions.ParseGrace))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		colSpecs = ParseAutoHeaders(headers)
+	}
 
 	// header fields validation can only happen once we have an input reader
 	if !imp.InputOptions.HeaderLine {
-		if err = validateReaderFields(fields); err != nil {
+		if err = validateReaderFields(ColumnNames(colSpecs)); err != nil {
 			return nil, err
 		}
 	}
 
+	out := os.Stdout
+
+	ignoreBlanks := imp.IngestOptions.IgnoreBlanks && imp.InputOptions.Type != JSON
 	if imp.InputOptions.Type == CSV {
-		return NewCSVInputReader(fields, in, imp.ToolOptions.NumDecodingWorkers), nil
+		return NewCSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks), nil
 	} else if imp.InputOptions.Type == TSV {
-		return NewTSVInputReader(fields, in, imp.ToolOptions.NumDecodingWorkers), nil
+		return NewTSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks), nil
 	}
-	return NewJSONInputReader(imp.InputOptions.JSONArray, in, imp.ToolOptions.NumDecodingWorkers), nil
+	return NewJSONInputReader(imp.InputOptions.JSONArray, in, imp.IngestOptions.NumDecodingWorkers), nil
 }
