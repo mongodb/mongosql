@@ -63,11 +63,21 @@ testcases:
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["b1", "varchar", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS FROM foo FROM test LIKE 'b%'"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["b1", "varchar", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM foo WHERE type = 'varchar'"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["b1", "varchar", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM test.foo"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "int64", "YES", "", ~, ""]
+    - ["b1", "varchar", "YES", "", ~, ""]
+    - ["c1", "int64", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS IN test.foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["a1", "int64", "YES", "", ~, ""]
@@ -91,9 +101,6 @@ testcases:
     - ["a1", "int64", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"a\" }"]
     - ["b1", "varchar", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"b\" }"]
     - ["c1", "int64", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"c\" }"]
-- sql: "SHOW COLUMNS FROM test2.foo"
-  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-  expected: []
 - sql: "SHOW TABLES"
   expected_types: [varchar]
   expected: 
@@ -117,9 +124,6 @@ testcases:
   expected: 
    - ["bar", "BASE TABLE"]
    - ["foo", "BASE TABLE"]
-- sql: "SHOW TABLES FROM nonono"
-  expected_types: [varchar]
-  expected: []
 - sql: "SHOW DATABASES"
   expected_types: [varchar]
   expected: 
@@ -231,7 +235,7 @@ testcases:
   expected: []
 - sql: "SHOW BINLOG EVENTS"
   expected: []
-- sql: "SHOW BINLOG EVENTS IN 'temp'"
+- sql: "SHOW BINLOG EVENTS IN `temp`"
   expected: []
 - sql: "SHOW BINLOG EVENTS FROM 10"
   expected: []

@@ -9,6 +9,7 @@ import (
 )
 
 func (c *conn) handleShow(sql string, stmt *parser.Show) error {
+
 	switch strings.ToLower(stmt.Section) {
 	case "charset":
 		return c.handleShowCharset(stmt)
@@ -119,30 +120,24 @@ func (c *conn) handleShowColumns(sql string, stmt *parser.Show) error {
 	case parser.StrVal:
 		table = string(f)
 	case *parser.ColName:
-		if f.Qualifier != nil {
-			dbName = string(f.Qualifier)
-		}
+		dbName = string(f.Qualifier)
 		table = string(f.Name)
 	default:
 		return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
 	}
 
-	if stmt.DBFilter != nil {
-		switch f := stmt.DBFilter.(type) {
-		case parser.StrVal:
-			dbName = string(f)
-		case *parser.ColName:
-			dbName = string(f.Name)
-		default:
-			return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
-		}
+	if dbName == "" {
+		return mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
+	}
+
+	if db, err := c.catalog.Database(dbName); err != nil {
+		return err
+	} else if _, err := db.Table(table); err != nil {
+		return err
 	}
 
 	translated += fmt.Sprintf(" WHERE TABLE_NAME = '%s'", table)
-
-	if dbName != "" {
-		translated += fmt.Sprintf(" AND TABLE_SCHEMA = '%s'", dbName)
-	}
+	translated += fmt.Sprintf(" AND TABLE_SCHEMA = '%s'", dbName)
 
 	if stmt.LikeOrWhere != nil {
 		switch stmt.LikeOrWhere.(type) {
@@ -186,8 +181,6 @@ func (c *conn) handleShowTables(sql string, stmt *parser.Show) error {
 		switch f := stmt.From.(type) {
 		case parser.StrVal:
 			dbName = string(f)
-		case *parser.ColName:
-			dbName = string(f.Name)
 		default:
 			return mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
 		}
@@ -195,6 +188,8 @@ func (c *conn) handleShowTables(sql string, stmt *parser.Show) error {
 
 	if dbName == "" {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
+	} else if _, err := c.catalog.Database(dbName); err != nil {
+		return err
 	}
 
 	columnName := fmt.Sprintf("`Tables_in_%s`", dbName)

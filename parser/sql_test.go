@@ -214,36 +214,30 @@ func TestMixer(t *testing.T) {
 	sql = "show variables LIKE 'foo'"
 	testParse(t, sql)
 
-	sql = "show columns from 'foo'"
+	sql = "show columns from `foo`"
 	testParse(t, sql)
 
-	sql = "show columns in 'foo'"
+	sql = "show columns in `foo`"
 	testParse(t, sql)
 	if testParse(t, sql).(*Show).Modifier != "" {
 		t.Fatal("modifier wrong")
 	}
 
-	sql = "show full columns from 'foo'"
+	sql = "show full columns from `foo`"
 	if testParse(t, sql).(*Show).Modifier != "full" {
 		t.Fatal("modifier wrong")
 	}
 
-	sql = "show columns from 'foo' from 'bar'"
+	sql = "show columns from `foo` from `bar`"
 	testParse(t, sql)
-	if String(testParse(t, sql).(*Show).From) != "'foo'" {
+	if String(testParse(t, sql).(*Show).From) != "bar.foo" {
 		t.Fatalf("table wrong: %s", String(testParse(t, sql).(*Show).From))
-	}
-	if String(testParse(t, sql).(*Show).DBFilter) != "'bar'" {
-		t.Fatalf("db wrong: %s", String(testParse(t, sql).(*Show).DBFilter))
 	}
 
-	sql = "show columns in 'foo' in 'bar'"
+	sql = "show columns in `foo` in `bar`"
 	testParse(t, sql)
-	if String(testParse(t, sql).(*Show).From) != "'foo'" {
+	if String(testParse(t, sql).(*Show).From) != "bar.foo" {
 		t.Fatalf("table wrong: %s", String(testParse(t, sql).(*Show).From))
-	}
-	if String(testParse(t, sql).(*Show).DBFilter) != "'bar'" {
-		t.Fatalf("db wrong: %s", String(testParse(t, sql).(*Show).DBFilter))
 	}
 }
 

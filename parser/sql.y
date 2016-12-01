@@ -224,6 +224,7 @@ var (
 %type <bytes> sql_id
 %type <empty> force_eof
 %type <empty> explain_alias
+%type <empty> in_or_from
 
 %type <statement> begin_statement commit_statement rollback_statement
 %type <statement> replace_statement
@@ -434,27 +435,31 @@ admin_statement:
     $$ = &Admin{Name : $2, Values : $4}
   }
 
+in_or_from:
+  IN 
+| FROM
+
 show_from_in:
-  FROM expression
+  in_or_from ID DOT ID 
   {
-    $$ = $2
+    $$ = &ColName{Qualifier: $2, Name: $4}
   }
-| IN expression
+| in_or_from ID in_or_from ID
   {
-    $$ = $2
+    $$ = &ColName{Qualifier: $4, Name: $2}
+  }
+| in_or_from ID 
+  {
+    $$ = StrVal($2)
   }
 
 show_from_in_opt:
   {
     $$ = nil
   }
-| FROM expression
+| show_from_in
   {
-    $$ = $2
-  }
-| IN expression
-  {
-    $$ = $2
+    $$ = $1
   }
 
 show_full:
@@ -574,15 +579,15 @@ show_statement:
   {
     $$ = &Show{Section: "grants", Modifier: string($3)}
   }
-| SHOW INDEX show_from_in show_from_in_opt where_expression_opt
+| SHOW INDEX show_from_in where_expression_opt
   {
     $$ = &Show{Section: "index"}
   }
-| SHOW INDEXES show_from_in show_from_in_opt where_expression_opt
+| SHOW INDEXES show_from_in where_expression_opt
   {
     $$ = &Show{Section: "indexes"}
   }
-| SHOW KEYS show_from_in show_from_in_opt where_expression_opt
+| SHOW KEYS show_from_in where_expression_opt
   {
     $$ = &Show{Section: "keys"}
   }
@@ -658,7 +663,7 @@ show_statement:
   {
     $$ = &Show{Section: "variables", Modifier: $2, LikeOrWhere: $4}
   }
-| SHOW show_full TABLES from_opt like_or_where_opt
+| SHOW show_full TABLES show_from_in_opt like_or_where_opt
   {
     $$ = &Show{Section: "tables", Modifier: $2, From: $4, LikeOrWhere: $5}
   }
@@ -666,9 +671,9 @@ show_statement:
   {
     $$ = &Show{Section: "proxy", Key: string($3), From: $4, LikeOrWhere: $5}
   }
-| SHOW show_full COLUMNS show_from_in show_from_in_opt like_or_where_opt
+| SHOW show_full COLUMNS show_from_in like_or_where_opt
   {
-    $$ = &Show{Section: "columns", From: $4, Modifier: $2, DBFilter: $5, LikeOrWhere: $6}
+    $$ = &Show{Section: "columns", From: $4, Modifier: $2, LikeOrWhere: $5}
   }
 | SHOW show_full PROCESSLIST
   {

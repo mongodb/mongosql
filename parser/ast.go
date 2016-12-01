@@ -965,7 +965,6 @@ type Show struct {
 	From        Expr
 	LikeOrWhere Expr
 	Modifier    string
-	DBFilter    Expr
 }
 
 func (*Show) IStatement() {}
