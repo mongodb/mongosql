@@ -355,10 +355,6 @@ func restoreBSON(host, port, file string) error {
 		ToolOptions: &toolsoptions.ToolOptions{
 			Connection: connection,
 			Namespace:  &toolsoptions.Namespace{},
-			HiddenOptions: &toolsoptions.HiddenOptions{
-				NumDecodingWorkers: 10,
-				BulkBufferSize:     1000,
-			},
 		},
 		InputOptions: &mongorestore.InputOptions{Gzip: true, Archive: file},
 		OutputOptions: &mongorestore.OutputOptions{
@@ -367,6 +363,10 @@ func restoreBSON(host, port, file string) error {
 			NumParallelCollections: 1,
 			NumInsertionWorkers:    10,
 			MaintainInsertionOrder: true,
+		},
+		NSOptions: &mongorestore.NSOptions{
+			DB:         "",
+			Collection: "",
 		},
 		SessionProvider: sessionProvider,
 	}
