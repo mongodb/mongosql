@@ -144,7 +144,7 @@ func (i *Info) loadAuthInfoFromConnectionStatus(result *connectionStatusResult) 
 				}
 			}
 
-			addPrivilege(DatabaseName(priv.Resource.DB), CollectionName(priv.Resource.Collection), privileges)
+			addPrivilege(DatabaseName(strings.ToLower(priv.Resource.DB)), CollectionName(priv.Resource.Collection), privileges)
 		}
 	}
 
