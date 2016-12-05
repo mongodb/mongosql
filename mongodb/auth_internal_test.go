@@ -37,12 +37,12 @@ func TestLoadAuthInfoFromConnectionStatus(t *testing.T) {
 				},
 				"authenticatedUserPrivileges": []interface{}{
 					bson.M{
-						// default for test1
-						"resource": bson.M{"db": "test1", "collection": ""},
+						// default for TEST1
+						"resource": bson.M{"db": "TEST1", "collection": ""},
 						"actions":  []interface{}{"role1", "find", "role2"},
 					},
 					bson.M{
-						"resource": bson.M{"db": "test1", "collection": "b"},
+						"resource": bson.M{"db": "TEST1", "collection": "b"},
 						"actions":  []interface{}{"role1"},
 					},
 					bson.M{
