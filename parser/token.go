@@ -268,6 +268,10 @@ var keywords = map[string]int{
 	"indexes":    INDEXES,
 	"keys":       KEYS,
 	"schemas":    SCHEMAS,
+
+	// odbc tokens
+	"fn": FN,
+	"oj": OJ,
 }
 
 // Lex returns the next token form the Tokenizer.

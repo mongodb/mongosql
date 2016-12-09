@@ -1,0 +1,110 @@
+#
+# Data
+#
+data:
+- inline: 
+    db: "test"
+    collection: "odbc_1"
+    docs:
+    - { _id: 0, a: 1, b: ~ }
+    - { _id: 1, a: 2, b: 1 }
+    - { _id: 2, a: 3 }
+- inline: 
+    db: "test"
+    collection: "odbc_2"
+    docs:
+    - { _id: 0, c: 10, d: ~ }
+    - { _id: 1, c: 11, d: 1 }
+    - { _id: 20, c: 30 }
+
+#
+# Schema
+#
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: "odbc_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+  - table: bar
+    collection: "odbc_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+
+#
+# Tests
+#
+testcases:
+
+# Functions
+- sql: "select id, {fn exp(a)} from foo"
+  description: "odbc function"
+  expected_names: ["id", "exp(a)"]
+  expected_types: [int, float64]
+  expected: 
+  - [0, 2.718281828459045]
+  - [1, 7]
+  - [2, 20]
+
+# Values
+- sql: "select {t '12:40:30'} as `time`"
+  description: "odbc time literal"
+  expected_names: ["time"]
+  expected_types: [string]
+  expected: 
+  - ["0000-01-01 12:40:30"]
+
+- sql: "select {ts '2012-01-02 12:40:30'} as `ts`"
+  description: "odbc timestamp literal"
+  expected_names: ["ts"]
+  expected_types: [string]
+  expected: 
+  - ["2012-01-02 12:40:30"]
+
+- sql: "select {d '2012-01-02'} as `d`"
+  description: "odbc date literal"
+  expected_names: ["d"]
+  expected_types: [string]
+  expected: 
+  - ["2012-01-02"]
+
+# Outer Join
+- sql: "select foo.id, bar.id from { OJ foo LEFT OUTER JOIN bar ON foo.id=bar.id }"
+  description: "odbc left outer join"
+  expected_names: ["id", "id"]
+  expected_types: [int, int]
+  expected: 
+  - [0, 0]
+  - [1, 1]
+  - [2, ~]
+
+- sql: "select foo.id, bar.id from { OJ foo INNER JOIN bar ON foo.id=bar.id }"
+  description: "mysql specific odbc inner join"
+  expected_names: ["id", "id"]
+  expected_types: [int, int]
+  expected: 
+  - [0, 0]
+  - [1, 1]

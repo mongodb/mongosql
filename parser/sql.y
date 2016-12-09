@@ -110,6 +110,7 @@ var (
 %token <empty> BINARY MASTER LOGS DATABASE SCHEMA EVENT FUNCTION PROCEDURE BINLOG EVENTS TRIGGER USER
 %token <empty> ENGINE MUTEX ENGINES STORAGE ERRORS COUNT CODE GRANTS OPEN PLUGINS PRIVILEGES
 %token <empty> PROFILE PROFILES RELAYLOG SLAVE HOSTS TRIGGERS WARNINGS CHANNEL INDEXES KEYS SCHEMAS
+%token <empty> FN OJ
 
 %nonassoc <empty> FROM
 %left <empty> UNION MINUS EXCEPT INTERSECT
@@ -179,9 +180,9 @@ var (
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
 %type <bytes> as_lower_opt as_opt
-%type <expr> expression expr
+%type <expr> expression expr func_expr
 %type <tableExprs> table_expression_list
-%type <tableExpr> table_expression
+%type <tableExpr> table_expression join_expression
 %type <str> join_type
 %type <smTableExpr> simple_table_expression
 %type <tableName> dml_table_expression table_name
@@ -941,7 +942,17 @@ table_expression:
   {
     $$ = &ParenTableExpr{Expr: $2}
   }
-| table_expression join_type table_expression %prec JOIN
+| join_expression
+  {
+    $$ = $1
+  }
+| LBRACE OJ join_expression RBRACE
+  {
+    $$ = $3
+  }
+
+join_expression:
+  table_expression join_type table_expression %prec JOIN
   {
     $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3}
   }
@@ -1402,7 +1413,17 @@ expr:
   {
     $$ = $1
   }
-| sql_id LPAREN RPAREN
+| func_expr
+  {
+    $$ = $1
+  }
+| LBRACE FN func_expr RBRACE
+  {
+    $$ = $3
+  }
+
+func_expr:
+  sql_id LPAREN RPAREN
   {
     $$ = &FuncExpr{Name: bytes.ToLower($1)}
   }
