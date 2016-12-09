@@ -236,6 +236,26 @@ testcases:
   - [1]
   - [2]
 
+# Not
+- sql: "select id from test.foo where not (2 < 1) or (3 < 4)"
+  description: "not precedence"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [1]
+  - [2]
+
+# Not
+- sql: "select id from test.foo where not 2 < 1 or 3 < 4"
+  description: "not precedence 2"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [1]
+  - [2]
+
 # Regex
 - sql: "select * from test.reg where a REGEXP '^f.*$'"
   description: "regex filter"

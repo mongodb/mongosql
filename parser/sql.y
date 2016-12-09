@@ -117,18 +117,17 @@ var (
 %left <empty> COMMA
 %left <empty> JOIN STRAIGHT_JOIN LEFT RIGHT INNER OUTER CROSS NATURAL USE FORCE
 %left <empty> ON
-%right <empty> NOT
-%left <empty> OR XOR
+%left <empty> OR 
+%left <empty> XOR
 %left <empty> AND
-%nonassoc <empty> BETWEEN
-%left <empty> NE EQ NULL_SAFE_EQUAL IS LIKE REGEXP IN
-%left <empty> LT GT LE GE
+%right <empty> NOT
+%left <empty> BETWEEN CASE WHEN THEN ELSE
+%left <empty> EQ NULL_SAFE_EQUAL GE GT LE LT NE IS LIKE REGEXP IN
 %left <empty> BIT_AND BIT_OR CARET
 %left <empty> PLUS SUB
 %left <empty> TIMES MOD DIV IDIV
 %nonassoc <empty> DOT
 %left <empty> UNARY
-%right <empty> CASE, WHEN, THEN, ELSE
 %left <empty> END
 
 // Transaction Tokens
@@ -180,7 +179,7 @@ var (
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
 %type <bytes> as_lower_opt as_opt
-%type <expr> expression expr func_expr
+%type <expr> expression bool_pri predicate bit_expr simple_expr func_expr
 %type <tableExprs> table_expression_list
 %type <tableExpr> table_expression join_expression
 %type <str> join_type
@@ -1215,17 +1214,180 @@ expression_list:
     $$ = append($1, $3)
   }
 
-expression:
-  expr %prec BETWEEN
-    {
-      $$ = $1
-    }
-  | expression AND expression %prec NOT
-    {
-      $$ = &AndExpr{Left: $1, Right: $3}
-    }
 
-expr:
+expression:
+  expression OR expression
+  {
+    $$ = &OrExpr{Left: $1, Right: $3}
+  }
+| expression XOR expression
+  {
+    $$ = &XorExpr{Left: $1, Right: $3}
+  }
+| expression AND expression
+  {
+    $$ = &AndExpr{Left: $1, Right: $3}
+  }
+| NOT expression
+  {
+    $$ = &NotExpr{Expr: $2}
+  }
+| bool_pri IS boolean_value
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS, Right: $3}
+  }
+| bool_pri IS NOT boolean_value
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS_NOT, Right: $4}
+  }
+| bool_pri
+
+
+bool_pri:
+  bool_pri IS NULL
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS, Right: &NullVal{}}
+  }
+| bool_pri IS NOT NULL
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS_NOT, Right: &NullVal{}}
+  }
+| bool_pri EQ predicate
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_EQ, Right: $3}
+  }
+| bool_pri EQ all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_EQ, SubqueryOperator: $3, Right: $4}
+  }
+| bool_pri NE predicate
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NE, Right: $3}
+  }
+| bool_pri NE all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NE, SubqueryOperator: $3, Right: $4}
+  }
+| bool_pri NULL_SAFE_EQUAL predicate
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NSE, Right: $3}
+  }
+| bool_pri NULL_SAFE_EQUAL all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NSE, SubqueryOperator: $3, Right: $4}
+  }
+| bool_pri LT predicate
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_LT, Right: $3}
+  }
+| bool_pri LT all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_LT, SubqueryOperator: $3, Right: $4}
+  }
+| bool_pri GT predicate
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_GT, Right: $3}
+  }
+| bool_pri GT all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_GT, SubqueryOperator: $3, Right: $4}
+  }
+| bool_pri LE predicate
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_LE, Right: $3}
+  }
+| bool_pri LE all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_LE, SubqueryOperator: $3, Right: $4}
+  }
+| bool_pri GE predicate
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_GE, Right: $3}
+  }
+| bool_pri GE all_any_some subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_GE, SubqueryOperator: $3, Right: $4}
+  }
+| predicate
+
+
+predicate:
+  bit_expr IN tuple
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IN, Right: $3}
+  }
+| bit_expr NOT IN tuple
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NOT_IN, Right: $4}
+  }
+| bit_expr BETWEEN bit_expr AND predicate
+  {
+    $$ = &RangeCond{Left: $1, Operator: AST_BETWEEN, From: $3, To: $5}
+  }
+| bit_expr NOT BETWEEN bit_expr AND predicate
+  {
+    $$ = &RangeCond{Left: $1, Operator: AST_NOT_BETWEEN, From: $4, To: $6}
+  }
+| bit_expr LIKE simple_expr
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_LIKE, Right: $3}
+  }
+| bit_expr NOT LIKE simple_expr
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NOT_LIKE, Right: $4}
+  }
+| bit_expr REGEXP bit_expr
+  {
+    $$ = &RegexExpr{Operand: $1, Pattern: $3}
+  }
+| bit_expr NOT REGEXP bit_expr
+  {
+    $$ = &NotExpr{&RegexExpr{Operand: $1, Pattern: $4}}
+  }
+| bit_expr
+
+
+bit_expr:
+  bit_expr BIT_AND bit_expr
+  {
+    $$ = &BinaryExpr{Left: $1, Operator: AST_BITAND, Right: $3}
+  }
+| bit_expr BIT_OR bit_expr
+  {
+    $$ = &BinaryExpr{Left: $1, Operator: AST_BITOR, Right: $3}
+  }
+| bit_expr PLUS bit_expr
+  {
+    $$ = &BinaryExpr{Left: $1, Operator: AST_PLUS, Right: $3}
+  }
+| bit_expr SUB bit_expr
+  {
+    $$ = &BinaryExpr{Left: $1, Operator: AST_MINUS, Right: $3}
+  }
+| bit_expr TIMES bit_expr
+  {
+    $$ = &BinaryExpr{Left: $1, Operator: AST_MULT, Right: $3}
+  }
+| bit_expr DIV bit_expr
+  {
+    $$ = &BinaryExpr{Left: $1, Operator: AST_DIV, Right: $3}
+  }
+| bit_expr IDIV bit_expr
+  {
+    $$ = &BinaryExpr{Left: $1, Operator: AST_IDIV, Right: $3}
+  }
+| bit_expr MOD bit_expr
+  {
+    $$ = &BinaryExpr{Left: $1, Operator: AST_MOD, Right: $3}
+  }
+| bit_expr CARET bit_expr
+  {
+    $$ = &BinaryExpr{Left: $1, Operator: AST_BITXOR, Right: $3}
+  }
+| simple_expr
+
+
+simple_expr:
   value
   {
     $$ = $1
@@ -1238,111 +1400,7 @@ expr:
   {
     $$ = $1
   }
-| expression BIT_AND expression
-  {
-    $$ = &BinaryExpr{Left: $1, Operator: AST_BITAND, Right: $3}
-  }
-| expression BIT_OR expression
-  {
-    $$ = &BinaryExpr{Left: $1, Operator: AST_BITOR, Right: $3}
-  }
-| expression CARET expression
-  {
-    $$ = &BinaryExpr{Left: $1, Operator: AST_BITXOR, Right: $3}
-  }
-| expression PLUS expression
-  {
-    $$ = &BinaryExpr{Left: $1, Operator: AST_PLUS, Right: $3}
-  }
-| expression SUB expression
-  {
-    $$ = &BinaryExpr{Left: $1, Operator: AST_MINUS, Right: $3}
-  }
-| expression TIMES expression
-  {
-    $$ = &BinaryExpr{Left: $1, Operator: AST_MULT, Right: $3}
-  }
-| expression DIV expression
-  {
-    $$ = &BinaryExpr{Left: $1, Operator: AST_DIV, Right: $3}
-  }
-| expression IDIV expression
-  {
-    $$ = &BinaryExpr{Left: $1, Operator: AST_IDIV, Right: $3}
-  }
-| expression MOD expression
-  {
-    $$ = &BinaryExpr{Left: $1, Operator: AST_MOD, Right: $3}
-  }
-| expression EQ expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_EQ, Right: $3}
-  }
-| expression EQ all_any_some subquery
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_EQ, SubqueryOperator: $3, Right: $4}
-  }
-| expression NE expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_NE, Right: $3}
-  }
-| expression NE all_any_some subquery
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_NE, SubqueryOperator: $3, Right: $4}
-  }
-| expression NULL_SAFE_EQUAL expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_NSE, Right: $3}
-  }
-| expression NULL_SAFE_EQUAL all_any_some subquery
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_NSE, SubqueryOperator: $3, Right: $4}
-  }
-| expression LT expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_LT, Right: $3}
-  }
-| expression LT all_any_some subquery
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_LT, SubqueryOperator: $3, Right: $4}
-  }
-| expression GT expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_GT, Right: $3}
-  }
-| expression GT all_any_some subquery
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_GT, SubqueryOperator: $3, Right: $4}
-  }
-| expression LE expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_LE, Right: $3}
-  }
-| expression LE all_any_some subquery
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_LE, SubqueryOperator: $3, Right: $4}
-  }
-| expression GE expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_GE, Right: $3}
-  }
-| expression GE all_any_some subquery
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_GE, SubqueryOperator: $3, Right: $4}
-  }
-| expression OR expression
-  {
-    $$ = &OrExpr{Left: $1, Right: $3}
-  }
-| expression XOR expression
-  {
-    $$ = &XorExpr{Left: $1, Right: $3}
-  }
-| NOT expression
-  {
-    $$ = &NotExpr{Expr: $2}
-  }
-| unary_operator expression %prec UNARY
+| unary_operator simple_expr
   {
     if num, ok := $2.(NumVal); ok {
       switch $1 {
@@ -1357,57 +1415,9 @@ expr:
       $$ = &UnaryExpr{Operator: $1, Expr: $2}
     }
   }
-| expression IN tuple
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_IN, Right: $3}
-  }
-| expression NOT IN tuple
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_NOT_IN, Right: $4}
-  }
-| expression LIKE expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_LIKE, Right: $3}
-  }
-| expression NOT LIKE expression
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_NOT_LIKE, Right: $4}
-  }
-| expression IS NULL
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS, Right: &NullVal{}}
-  }
-| expression IS NOT NULL
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS_NOT, Right: &NullVal{}}
-  }
-| expression IS boolean_value
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS, Right: $3}
-  }
-| expression IS NOT boolean_value
-  {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_IS_NOT, Right: $4}
-  }
-| expression REGEXP expression
-  {
-    $$ = &RegexExpr{Operand: $1, Pattern: $3}
-  }
-| expression NOT REGEXP expression
-  {
-    $$ = &NotExpr{&RegexExpr{Operand: $1, Pattern: $4}}
-  }
 | EXISTS subquery
   {
     $$ = &ExistsExpr{Subquery: $2}
-  }
-| expression BETWEEN expression AND expression
-  {
-    $$ = &RangeCond{Left: $1, Operator: AST_BETWEEN, From: $3, To: $5}
-  }
-| expression NOT BETWEEN expression AND expression
-  {
-    $$ = &RangeCond{Left: $1, Operator: AST_NOT_BETWEEN, From: $4, To: $6}
   }
 | case_expression
   {
