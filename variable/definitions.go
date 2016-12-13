@@ -159,7 +159,7 @@ func init() {
 		Name:             MongoDBGitVersion,
 		Kind:             SystemKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLBoolean,
+		SQLType:          schema.SQLVarchar,
 		GetValue: func(c *Container) interface{} {
 			if c.MongoDBInfo == nil {
 				return nil
@@ -172,7 +172,7 @@ func init() {
 		Name:             MongoDBVersion,
 		Kind:             SystemKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLBoolean,
+		SQLType:          schema.SQLVarchar,
 		GetValue: func(c *Container) interface{} {
 			if c.MongoDBInfo == nil {
 				return nil
