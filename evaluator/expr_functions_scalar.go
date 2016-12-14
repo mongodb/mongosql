@@ -953,7 +953,7 @@ func (_ *dateAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	}
 
 	timestampadd := &timestampAddFunc{}
-	args, neg := dateArithmeticArgs(values[1])
+	args, neg := dateArithmeticArgs(values[2].String(), values[1])
 	unit, interval, err := calculateInterval(values[2].String(), args, neg)
 	if err != nil {
 		return SQLNull, nil
@@ -3043,8 +3043,8 @@ func (_ *timestampAddFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, 
 		duration, _ := time.ParseDuration(v.String() + "s")
 		return SQLTimestamp{t.Add(duration)}, nil
 	case MICROSECOND:
-		// Microsecond not supported, so return the original time
-		return SQLTimestamp{Time: t}, nil
+		duration, _ := time.ParseDuration(v.String() + "us")
+		return SQLTimestamp{Time: t.Add(duration)}, nil
 	default:
 		return SQLNull, fmt.Errorf("cannot add '%v' to timestamp", values[0])
 	}
@@ -3666,29 +3666,51 @@ func calculateInterval(unit string, args []int, neg int) (string, int, error) {
 		u = unit
 	}
 
+	const day int = 24
+	const hour int = 60
+	const minute int = 60
+	const second int = 1000000
+
 	switch len(args) {
-	case 4:
-		if unit != DAY_SECOND && unit != DAY_MICROSECOND {
+	case 5:
+		switch unit {
+		case DAY_MICROSECOND:
+			val = args[0]*day*hour*minute*second + args[1]*hour*minute*second + args[2]*minute*second + args[3]*second + args[4]
+		default:
 			return unit, 0, fmt.Errorf("invalid argument length")
 		}
-		val = args[0]*24*60*60 + args[1]*60*60 + args[2]*60 + args[3]
+	case 4:
+		switch unit {
+		case DAY_MICROSECOND, HOUR_MICROSECOND:
+			val = args[0]*hour*minute*second + args[1]*minute*second + args[2]*second + args[3]
+		case DAY_SECOND:
+			val = args[0]*day*hour*minute + args[1]*hour*minute + args[2]*minute + args[3]
+		default:
+			return unit, 0, fmt.Errorf("invalid argument length")
+		}
 	case 3:
 		switch unit {
+		case DAY_MICROSECOND, HOUR_MICROSECOND, MINUTE_MICROSECOND:
+			val = args[0]*minute*second + args[1]*second + args[2]
+		case DAY_SECOND, HOUR_SECOND:
+			val = args[0]*hour*minute + args[1]*minute + args[2]
 		case DAY_MINUTE:
-			val = args[0]*24*60 + args[1]*60 + args[2]
-		case DAY_SECOND, DAY_MICROSECOND, HOUR_SECOND, HOUR_MICROSECOND:
-			val = args[0]*60*60 + args[1]*60 + args[2]
+			val = args[0]*day*hour + args[1]*hour + args[2]
 		default:
 			return unit, 0, fmt.Errorf("invalid argument length")
 		}
 	case 2:
 		switch unit {
+		case DAY_MICROSECOND, HOUR_MICROSECOND, MINUTE_MICROSECOND, SECOND_MICROSECOND:
+			val = args[0]*second + args[1]
+		case DAY_SECOND, HOUR_SECOND, MINUTE_SECOND:
+			val = args[0]*minute + args[1]
+		case DAY_MINUTE, HOUR_MINUTE:
+			val = args[0]*hour + args[1]
+		case DAY_HOUR:
+			val = args[0]*day + args[1]
 		case YEAR_MONTH:
 			val = args[0]*12 + args[1]
-		case DAY_HOUR:
-			val = args[0]*24 + args[1]
-		case DAY_MINUTE, HOUR_MINUTE, DAY_SECOND, DAY_MICROSECOND, HOUR_SECOND, HOUR_MICROSECOND, MINUTE_SECOND, MINUTE_MICROSECOND:
-			val = args[0]*60 + args[1]
 		default:
 			return unit, 0, fmt.Errorf("invalid argument length")
 		}
@@ -3729,7 +3751,7 @@ func convertType(val SQLValue, t schema.SQLType) SQLValue {
 
 // dateArithmeticArgs parses val and returns an integer slice stripped of any spaces, colons, etc.
 // It also returns whether the first character in val is "-", indicating whether the arguments should be negative.
-func dateArithmeticArgs(val SQLValue) ([]int, int) {
+func dateArithmeticArgs(unit string, val SQLValue) ([]int, int) {
 	var args []int
 	neg := 1
 	prev := -1
@@ -3751,6 +3773,9 @@ func dateArithmeticArgs(val SQLValue) ([]int, int) {
 			curr = ""
 			prev = int(char)
 		}
+	}
+	if unit != MICROSECOND && strings.HasSuffix(unit, MICROSECOND) {
+		curr = curr + strings.Repeat("0", 6-len(curr))
 	}
 	c, _ := strconv.Atoi(curr)
 	args = append(args, c)
