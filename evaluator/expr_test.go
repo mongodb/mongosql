@@ -1123,6 +1123,31 @@ func TestEvaluates(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				tests := []test{
+					test{"DATE_ADD('2002-12-31 10:27:04.500000', INTERVAL '2 2:3:4.5' DAY_MICROSECOND)", SQLTimestamp{Time: t}},
+
+					test{"DATE_ADD('2003-01-02 10:28:05.500000', INTERVAL '2:2:3.5' DAY_MICROSECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 10:28:05.500000', INTERVAL '2:2:3.5' HOUR_MICROSECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2002-12-31 10:27:05', INTERVAL '2 2:3:4' DAY_SECOND)", SQLTimestamp{Time: t}},
+
+					test{"DATE_ADD('2003-01-02 12:27:04.500000', INTERVAL '3:4.5' DAY_MICROSECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:27:04.500000', INTERVAL '3:4.5' HOUR_MICROSECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:27:04.500000', INTERVAL '3:4.5' MINUTE_MICROSECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 10:27:05', INTERVAL '2:3:4' DAY_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 10:27:05', INTERVAL '2:3:4' HOUR_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2002-12-31 10:27:09', INTERVAL '2 2:3' DAY_MINUTE)", SQLTimestamp{Time: t}},
+
+					test{"DATE_ADD('2003-01-02 12:30:04.500000', INTERVAL '4.5' DAY_MICROSECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:30:04.500000', INTERVAL '4.5' HOUR_MICROSECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:30:04.500000', INTERVAL '4.5' MINUTE_MICROSECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:30:04.500000', INTERVAL '4.5' SECOND_MICROSECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:32:10', INTERVAL '-2:1' DAY_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:32:10', INTERVAL '-2:1' HOUR_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:32:10', INTERVAL '-2:1' MINUTE_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 15:32:09', INTERVAL '-3:2' DAY_MINUTE)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 15:32:09', INTERVAL '-3:2' HOUR_MINUTE)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2002-12-31 10:30:09', INTERVAL '2 2' DAY_HOUR)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2000-09-02 12:30:09', INTERVAL '2-4' YEAR_MONTH)", SQLTimestamp{Time: t}},
+
 					test{"DATE_ADD('2002-01-02', INTERVAL NULL YEAR)", SQLNull},
 					test{"DATE_ADD(NULL, INTERVAL 1 YEAR)", SQLNull},
 					test{"DATE_ADD('2002-01-02', INTERVAL 1 YEAR)", SQLDate{Time: d}},
@@ -1132,15 +1157,7 @@ func TestEvaluates(t *testing.T) {
 					test{"DATE_ADD('2003-01-02 14:30:09', INTERVAL -2 HOUR)", SQLTimestamp{Time: t}},
 					test{"DATE_ADD('2003-01-02 12:23:09', INTERVAL 7 MINUTE)", SQLTimestamp{Time: t}},
 					test{"DATE_ADD('2003-01-02 12:30:12', INTERVAL -3 SECOND)", SQLTimestamp{Time: t}},
-					test{"DATE_ADD('2003-01-02 12:32:10', INTERVAL '-2:1' MINUTE_SECOND)", SQLTimestamp{Time: t}},
-					test{"DATE_ADD('2003-01-02 05:27:06', INTERVAL '7:3:3' HOUR_SECOND)", SQLTimestamp{Time: t}},
-					test{"DATE_ADD('2003-01-02 15:32:09', INTERVAL '-3:2' HOUR_MINUTE)", SQLTimestamp{Time: t}},
-					test{"DATE_ADD('2002-12-31 10:27:05', INTERVAL '2 2:3:4' DAY_SECOND)", SQLTimestamp{Time: t}},
-					test{"DATE_ADD('2002-12-31 10:27:09', INTERVAL '2 2:3' DAY_MINUTE)", SQLTimestamp{Time: t}},
-					test{"DATE_ADD('2003-01-01 08:30:09', INTERVAL '1 4' DAY_HOUR)", SQLTimestamp{Time: t}},
-					test{"DATE_ADD('2000-09-02 12:30:09', INTERVAL '2-4' YEAR_MONTH)", SQLTimestamp{Time: t}},
-					test{"DATE_ADD('2003-01-02 12:33:09', INTERVAL '-3' HOUR_MINUTE)", SQLTimestamp{Time: t}},
-					test{"DATE_ADD('2003-01-02 10:28:06', INTERVAL '2 2:3' DAY_SECOND)", SQLTimestamp{Time: t}},
+					test{"DATE_ADD('2003-01-02 12:30:08.999999', INTERVAL 1 MICROSECOND)", SQLTimestamp{Time: t}},
 				}
 				runTests(evalCtx, tests)
 
@@ -2000,6 +2017,7 @@ func TestEvaluates(t *testing.T) {
 				So(err, ShouldBeNil)
 				dt, err := time.Parse("2006-01-02 15:04:05", "2003-01-02 01:00:00")
 				So(err, ShouldBeNil)
+				t2 := t.Add(time.Duration(1) * time.Microsecond)
 
 				tests := []test{
 					test{"TIMESTAMPADD(YEAR, 1, DATE '2002-01-02')", SQLDate{Time: d}},
@@ -2010,7 +2028,7 @@ func TestEvaluates(t *testing.T) {
 					test{"TIMESTAMPADD(HOUR, 1, DATE '2003-01-02')", SQLTimestamp{Time: dt}},
 					test{"TIMESTAMPADD(MINUTE, 60, DATE '2003-01-02')", SQLTimestamp{Time: dt}},
 					test{"TIMESTAMPADD(SECOND, 3600, DATE '2003-01-02')", SQLTimestamp{Time: dt}},
-					test{"TIMESTAMPADD(MICROSECOND, 1, TIMESTAMP '2003-01-02 12:30:09')", SQLTimestamp{Time: t}},
+					test{"TIMESTAMPADD(MICROSECOND, 1, TIMESTAMP '2003-01-02 12:30:09')", SQLTimestamp{Time: t2}},
 					test{"TIMESTAMPADD(DAY, 1, TIMESTAMP '2003-01-01 12:30:09')", SQLTimestamp{Time: t}},
 					test{"TIMESTAMPADD(WEEK, 2, TIMESTAMP '2002-12-19 12:30:09')", SQLTimestamp{Time: t}},
 					test{"TIMESTAMPADD(SQL_TSI_YEAR, 2, TIMESTAMP '2001-01-02 12:30:09')", SQLTimestamp{Time: t}},
