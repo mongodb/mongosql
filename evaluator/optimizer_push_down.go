@@ -909,7 +909,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		foreignSource = join.right
 		joinKind = LeftJoin
 	default:
-		v.logger.Warnf(log.DebugHigh, "cannot push down %v join", joinKind)
+		v.logger.Warnf(log.DebugHigh, "cannot push down %v", join.kind)
 		return join, nil
 	}
 
