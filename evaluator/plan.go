@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"strings"
+
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -87,7 +89,30 @@ func (c *Column) clone() *Column {
 	}
 }
 
+func (c *Column) expr() SQLColumnExpr {
+	return NewSQLColumnExpr(c.SelectID, c.Table, c.Name, c.SQLType, c.MongoType)
+}
+
+func (c *Column) projectAs(name string) ProjectedColumn {
+	clone := c.clone()
+	clone.Name = name
+	return ProjectedColumn{
+		Column: clone,
+		Expr:   c.expr(),
+	}
+}
+
 type Columns []*Column
+
+func (cs Columns) FindByName(name string) (*Column, bool) {
+	for _, c := range cs {
+		if strings.ToLower(name) == strings.ToLower(c.Name) {
+			return c, true
+		}
+	}
+
+	return nil, false
+}
 
 // Unique ensures that only unique columns exist in the resulting slice.
 func (cs Columns) Unique() Columns {

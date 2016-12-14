@@ -51,13 +51,11 @@ func (e *Evaluator) Schema() schema.Schema {
 	return *e.config
 }
 
-// Evaluate executes the query and returns an iterator
-// capable of going over all the generated results.
-func (e *Evaluator) Evaluate(ast parser.SelectStatement, conn evaluator.ConnectionCtx) ([]*evaluator.Column, evaluator.Iter, error) {
+// EvaluateQuery creates an iterator in order to stream results.
+func (e *Evaluator) EvaluateQuery(ast parser.Statement, conn evaluator.ConnectionCtx) ([]*evaluator.Column, evaluator.Iter, error) {
+	//conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan for parsed sql: "%v"`, parser.String(ast))
 
-	conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan: "%v"`, parser.String(ast))
-
-	plan, err := evaluator.AlgebrizeSelect(ast, conn.DB(), conn.Variables(), conn.Catalog())
+	plan, err := evaluator.AlgebrizeQuery(ast, conn.DB(), conn.Variables(), conn.Catalog())
 	if err != nil {
 		return nil, nil, err
 	}

@@ -1,0 +1,307 @@
+package evaluator
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/10gen/sqlproxy/catalog"
+	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/parser"
+)
+
+func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {
+
+	switch strings.ToLower(show.Section) {
+	case "charset":
+		return a.translateShowCharset(show)
+	case "collation":
+		return a.translateShowCollation(show)
+	case "columns":
+		return a.translateShowColumns(show)
+	case "databases", "schemas":
+		return a.translateShowDatabases(show)
+	case "status":
+		return a.translateShowVariables(show, "STATUS")
+	case "tables":
+		return a.translateShowTables(show)
+	case "variables":
+		return a.translateShowVariables(show, "VARIABLES")
+	default:
+		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "no support for show (%s)", show.Section)
+	}
+}
+
+func (a *algebrizer) translateShowCharset(show *parser.Show) (PlanStage, error) {
+
+	info := showInfo{
+		dbName:        "INFORMATION_SCHEMA",
+		tableName:     "CHARACTER_SETS",
+		columnNames:   []string{"CHARACTER_SET_NAME", "DESCRIPTION", "DEFAULT_COLLATE_NAME", "MAXLEN"},
+		columnAliases: []string{"Charset", "Description", "Default collation", "Maxlen"},
+		orderBy:       "Charset",
+		predicate:     a.translateShowLikeOrWhere("Charset", show.LikeOrWhere),
+	}
+
+	return a.translateShowInfo(&info)
+}
+
+func (a *algebrizer) translateShowCollation(show *parser.Show) (PlanStage, error) {
+
+	info := showInfo{
+		dbName:        "INFORMATION_SCHEMA",
+		tableName:     "COLLATIONS",
+		columnNames:   []string{"COLLATION_NAME", "CHARACTER_SET_NAME", "ID", "IS_DEFAULT", "IS_COMPILED", "SORTLEN"},
+		columnAliases: []string{"Collation", "Charset", "Id", "Default", "Compiled", "Sortlen"},
+		orderBy:       "Collation",
+		predicate:     a.translateShowLikeOrWhere("Collation", show.LikeOrWhere),
+	}
+
+	return a.translateShowInfo(&info)
+}
+
+func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) {
+	info := showInfo{
+		dbName:    "INFORMATION_SCHEMA",
+		tableName: "COLUMNS",
+		columnNames: []string{
+			"COLUMN_NAME", "COLUMN_TYPE", "IS_NULLABLE", "COLUMN_KEY",
+			"COLUMN_DEFAULT", "EXTRA", "PRIVILEGES", "COLUMN_COMMENT",
+			"TABLE_NAME", "TABLE_SCHEMA", "ORDINAL_POSITION"},
+		columnAliases: []string{
+			"Field", "Type", "Null", "Key",
+			"Default", "Extra"},
+		orderBy: "ORDINAL_POSITION",
+	}
+
+	dbName := a.dbName
+	table := ""
+
+	switch f := show.From.(type) {
+	case parser.StrVal:
+		table = string(f)
+	case *parser.ColName:
+		dbName = string(f.Qualifier)
+		table = string(f.Name)
+	default:
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
+	}
+
+	if dbName == "" {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
+	}
+
+	if db, err := a.catalog.Database(dbName); err != nil {
+		return nil, err
+	} else if tbl, err := db.Table(table); err != nil {
+		return nil, err
+	} else {
+		dbName = string(db.Name)
+		table = string(tbl.Name())
+	}
+
+	if strings.EqualFold(show.Modifier, "full") {
+		info.columnNames = append(info.columnNames[:2], append([]string{"COLLATION_NAME"}, info.columnNames[2:]...)...)
+		info.columnAliases = append(info.columnAliases[:2], append([]string{"Collation"}, info.columnAliases[2:]...)...)
+		info.columnAliases = append(info.columnAliases, "Privileges", "Comment")
+	}
+
+	info.predicate = &parser.AndExpr{
+		Left: &parser.ComparisonExpr{
+			Operator: parser.AST_EQ,
+			Left: &parser.ColName{
+				Name: []byte("TABLE_NAME"),
+			},
+			Right: parser.StrVal([]byte(table)),
+		},
+		Right: &parser.ComparisonExpr{
+			Operator: parser.AST_EQ,
+			Left: &parser.ColName{
+				Name: []byte("TABLE_SCHEMA"),
+			},
+			Right: parser.StrVal([]byte(dbName)),
+		},
+	}
+
+	likeWhere := a.translateShowLikeOrWhere("Field", show.LikeOrWhere)
+	if likeWhere != nil {
+		info.predicate = &parser.AndExpr{
+			Left:  info.predicate,
+			Right: likeWhere,
+		}
+	}
+
+	return a.translateShowInfo(&info)
+}
+
+func (a *algebrizer) translateShowDatabases(show *parser.Show) (PlanStage, error) {
+
+	info := showInfo{
+		dbName:        "INFORMATION_SCHEMA",
+		tableName:     "SCHEMATA",
+		columnNames:   []string{"SCHEMA_NAME"},
+		columnAliases: []string{"Database"},
+		orderBy:       "Database",
+		predicate:     a.translateShowLikeOrWhere("Database", show.LikeOrWhere),
+	}
+
+	return a.translateShowInfo(&info)
+}
+
+func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
+	dbName := a.dbName
+
+	if show.From != nil {
+		switch f := show.From.(type) {
+		case parser.StrVal:
+			dbName = string(f)
+		default:
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
+		}
+	}
+
+	var columnName string
+	if dbName == "" {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
+	} else if db, err := a.catalog.Database(dbName); err != nil {
+		return nil, err
+	} else {
+		columnName = "Tables_in_" + dbName
+		dbName = string(db.Name)
+	}
+
+	info := showInfo{
+		dbName:        "INFORMATION_SCHEMA",
+		tableName:     "TABLES",
+		columnNames:   []string{"TABLE_NAME", "TABLE_TYPE", "TABLE_SCHEMA"},
+		columnAliases: []string{columnName},
+		orderBy:       columnName,
+	}
+
+	if strings.EqualFold(show.Modifier, "full") {
+		info.columnAliases = append(info.columnAliases, "Type")
+	}
+
+	info.predicate = &parser.ComparisonExpr{
+		Operator: parser.AST_EQ,
+		Left: &parser.ColName{
+			Name: []byte("TABLE_SCHEMA"),
+		},
+		Right: parser.StrVal([]byte(dbName)),
+	}
+
+	likeWhere := a.translateShowLikeOrWhere(columnName, show.LikeOrWhere)
+	if likeWhere != nil {
+		info.predicate = &parser.AndExpr{
+			Left:  info.predicate,
+			Right: likeWhere,
+		}
+	}
+
+	return a.translateShowInfo(&info)
+}
+
+func (a *algebrizer) translateShowVariables(show *parser.Show, kind string) (PlanStage, error) {
+	tableName := strings.ToUpper(show.Modifier)
+	kind = strings.ToUpper(kind)
+
+	info := showInfo{
+		dbName:        "INFORMATION_SCHEMA",
+		tableName:     fmt.Sprintf("%s_%s", tableName, kind),
+		columnNames:   []string{"VARIABLE_NAME", "VARIABLE_VALUE"},
+		columnAliases: []string{"Variable_name", "Value"},
+		orderBy:       "Variable_name",
+		predicate:     a.translateShowLikeOrWhere("Variable_name", show.LikeOrWhere),
+	}
+
+	return a.translateShowInfo(&info)
+}
+
+func (a *algebrizer) translateShowLikeOrWhere(likeColumnName string, expr parser.Expr) parser.Expr {
+	if expr == nil {
+		return nil
+	}
+
+	if strVal, ok := expr.(parser.StrVal); ok {
+		expr = &parser.ComparisonExpr{
+			Operator: parser.AST_LIKE,
+			Left:     &parser.ColName{Name: []byte(likeColumnName)},
+			Right:    strVal,
+		}
+	}
+
+	return expr
+}
+
+type showInfo struct {
+	dbName        string
+	tableName     string
+	columnNames   []string
+	columnAliases []string
+	orderBy       string
+	predicate     parser.Expr
+}
+
+func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
+	subA := a.newSubqueryAlgebrizer()
+	db, err := subA.catalog.Database(info.dbName)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	tbl, err := db.Table(info.tableName)
+	if err != nil {
+		panic(err.Error())
+	}
+	var plan PlanStage = NewDynamicSourceStage(tbl.(*catalog.DynamicTable), subA.selectID, string(tbl.Name()))
+	columns := Columns(plan.Columns())
+	var projectedColumns ProjectedColumns
+	for i, columnName := range info.columnNames {
+		c, ok := columns.FindByName(columnName)
+		if !ok {
+			panic(fmt.Sprintf("cannot find column %s", columnName))
+		}
+		var columnAlias string
+		if i < len(info.columnAliases) {
+			columnAlias = info.columnAliases[i]
+		} else {
+			columnAlias = c.Name
+		}
+		projectedColumns = append(projectedColumns, c.projectAs(columnAlias))
+	}
+	plan = NewProjectStage(plan, projectedColumns...)
+	plan = NewSubquerySourceStage(plan, subA.selectID, "t")
+	a.registerTable("t")
+	a.registerColumns(plan.Columns())
+
+	if info.predicate != nil {
+		translated, err := a.translateExpr(info.predicate)
+		if err != nil {
+			return nil, err
+		}
+		plan = NewFilterStage(plan, translated, []SQLExpr{})
+	}
+
+	if len(info.orderBy) > 0 {
+		c, err := a.resolveColumnExpr("t", info.orderBy)
+		if err != nil {
+			panic(err.Error())
+		}
+		plan = NewOrderByStage(plan, []SQLExpr{}, &orderByTerm{
+			expr:      c,
+			ascending: true,
+		})
+	}
+
+	// in case we needed more columns from the base table than should be returned...
+	if len(info.columnNames) > len(info.columnAliases) {
+		columns := Columns(plan.Columns())
+		var projectedColumns ProjectedColumns
+		for _, columnName := range info.columnAliases {
+			c, _ := columns.FindByName(columnName)
+			projectedColumns = append(projectedColumns, c.projectAs(columnName))
+		}
+		plan = NewProjectStage(plan, projectedColumns...)
+	}
+
+	return plan, nil
+}

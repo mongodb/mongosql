@@ -236,7 +236,7 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 	info := getMongoDBInfo(schema, mongodb.AllPrivileges)
 	vars := createTestVariables(info)
 	catalog := getCatalogFromSchema(schema, vars)
-	actualPlan, err := AlgebrizeSelect(selectStatement, dbName, vars, catalog)
+	actualPlan, err := AlgebrizeQuery(selectStatement, dbName, vars, catalog)
 	if err != nil {
 		return nil, err
 	}

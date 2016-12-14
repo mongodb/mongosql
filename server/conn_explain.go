@@ -28,7 +28,7 @@ func (c *conn) handleExplainTable(sql string, stmt *parser.Explain) error {
 		show.LikeOrWhere = parser.StrVal(stmt.Column.Name)
 	}
 
-	return c.handleShowColumns(sql, show)
+	return c.handleShow(sql, show)
 }
 
 func (c *conn) handleExplainPlan(sql string, stmt *parser.Explain) error {

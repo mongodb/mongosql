@@ -39,8 +39,7 @@ func AlgebrizeCommand(stmt parser.Statement, dbName string, vars *variable.Conta
 	}
 }
 
-// AlgebrizeSelect takes a parsed SQL statement and returns an algebrized form of the query.
-func AlgebrizeSelect(selectStatement parser.SelectStatement, dbName string, vars *variable.Container, catalog *catalog.Catalog) (PlanStage, error) {
+func AlgebrizeQuery(statement parser.Statement, dbName string, vars *variable.Container, catalog *catalog.Catalog) (PlanStage, error) {
 	g := &selectIDGenerator{}
 	l := log.NewComponentLogger(log.AlgebrizerComponent, log.GlobalLogger())
 	algebrizer := &algebrizer{
@@ -53,7 +52,14 @@ func AlgebrizeSelect(selectStatement parser.SelectStatement, dbName string, vars
 		variables:                   vars,
 	}
 
-	return algebrizer.translateRootSelectStatement(selectStatement)
+	switch typedStmt := statement.(type) {
+	case parser.SelectStatement:
+		return algebrizer.translateRootSelectStatement(typedStmt)
+	case *parser.Show:
+		return algebrizer.translateShow(typedStmt)
+	default:
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, fmt.Sprintf("statement %T", typedStmt))
+	}
 }
 
 type selectIDGenerator struct {
@@ -101,6 +107,17 @@ func (a *algebrizer) clone() *algebrizer {
 		catalog:                     a.catalog,
 		dbName:                      a.dbName,
 		selectID:                    a.selectID,
+		selectIDGenerator:           a.selectIDGenerator,
+		projectedColumnAggregateMap: make(map[int]SQLExpr),
+		variables:                   a.variables,
+	}
+}
+
+func (a *algebrizer) newSubqueryAlgebrizer() *algebrizer {
+	return &algebrizer{
+		dbName:                      a.dbName,
+		catalog:                     a.catalog,
+		selectID:                    a.selectIDGenerator.generate(),
 		selectIDGenerator:           a.selectIDGenerator,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 		variables:                   a.variables,
@@ -754,14 +771,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DERIVED_MUST_HAVE_ALIAS)
 		}
 
-		subqueryAlgebrizer := &algebrizer{
-			dbName:                      a.dbName,
-			catalog:                     a.catalog,
-			selectID:                    a.selectIDGenerator.generate(),
-			selectIDGenerator:           a.selectIDGenerator,
-			projectedColumnAggregateMap: make(map[int]SQLExpr),
-			variables:                   a.variables,
-		}
+		subqueryAlgebrizer := a.newSubqueryAlgebrizer()
 
 		plan, err := subqueryAlgebrizer.translateSelectStatement(typedT.Select)
 		if err != nil {
