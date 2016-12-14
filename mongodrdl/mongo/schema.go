@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	ArraySchemaTypeName     = "array"
-	DocumentSchemaTypeName  = "document"
-	TimestampSchemaTypeName = "bson.MongoTimestamp"
+	ArraySchemaTypeName       = "array"
+	DocumentSchemaTypeName    = "document"
+	TimestampSchemaTypeName   = "bson.MongoTimestamp"
+	BinaryType0SchemaTypeName = "[]uint8"
 )
 
 var (

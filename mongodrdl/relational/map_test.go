@@ -855,7 +855,6 @@ func TestTypeMapping(t *testing.T) {
 			{"bson.Decimal128", "decimal128", num5},
 			{"bool", "boolean", true},
 			{"date", "timestamp", time.Date(2015, 1, 1, 1, 1, 1, 1, time.UTC)},
-			{"[]uint8", "varchar", []byte{1, 2, 3, 4, 5}},
 			{"bson.UUID", "varchar", bson.Binary{0x04, data}},
 			{"bson.UUID_Java_Legacy", "varchar", bson.Binary{0x03, data}},
 		}
@@ -877,6 +876,15 @@ func TestTypeMapping(t *testing.T) {
 
 		Convey("Should ignore bson.MongoTimestamp", func() {
 			collection.IncludeSample(bson.D{{"field", bson.MongoTimestamp(1234)}})
+
+			database := relational.NewDatabase("test")
+			database.Map(collection, noIndexes, true)
+
+			So(len(database.Tables), ShouldEqual, 0)
+		})
+
+		Convey("Should ignore []uint8", func() {
+			collection.IncludeSample(bson.D{{"field", []uint8{0, 1}}})
 
 			database := relational.NewDatabase("test")
 			database.Map(collection, noIndexes, true)

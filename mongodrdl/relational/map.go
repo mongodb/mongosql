@@ -104,16 +104,21 @@ func mapDocument(ctx *mappingContext, path string, doc *mongo.Document) error {
 			}
 			ctx.inPrimaryKey = oldInPrimaryKey
 		case *mongo.Scalar:
-			if v.Name() == mongo.TimestampSchemaTypeName {
+			switch v.Name() {
+			case mongo.TimestampSchemaTypeName:
 				logger.Logf(log.Info, "ignoring timestamp column '%s' in table '%s'", fieldName, ctx.table.Name)
 				continue
-			}
-			c, err := ctx.table.AddColumn(fieldName, v.Name())
-			if err != nil {
-				return err
-			}
-			if fieldName == "_id" || ctx.inPrimaryKey {
-				ctx.table.PrimaryKey = append(ctx.table.PrimaryKey, c)
+			case mongo.BinaryType0SchemaTypeName:
+				logger.Logf(log.Info, "ignoring binary type 0 column '%s' in table '%s'", fieldName, ctx.table.Name)
+				continue
+			default:
+				c, err := ctx.table.AddColumn(fieldName, v.Name())
+				if err != nil {
+					return err
+				}
+				if fieldName == "_id" || ctx.inPrimaryKey {
+					ctx.table.PrimaryKey = append(ctx.table.PrimaryKey, c)
+				}
 			}
 		case *geo:
 			fieldName := v.modifyPath(fieldName)
