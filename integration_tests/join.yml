@@ -2,21 +2,21 @@
 # Data
 #
 data:
-- inline: 
+- inline:
     db: "test"
     collection: "join_1"
     docs:
     - { _id: 0, a: 1, b: ~ }
     - { _id: 1, a: 2, b: 1 }
     - { _id: 2, a: 3 }
-- inline: 
+- inline:
     db: "test"
     collection: "join_2"
     docs:
     - { _id: 0, c: 10, d: ~ }
     - { _id: 1, c: 11, d: 1 }
     - { _id: 20, c: 30 }
-- inline: 
+- inline:
     db: "test"
     collection: "join_3"
     docs:
@@ -24,20 +24,35 @@ data:
     - { _id: 1, a: 3, c: 11, d: 1 }
     - { _id: 2, a: 14, c: 30 }
     - { _id: 3, c: 30 }
-- inline: 
+- inline:
     db: "test"
     collection: "join_4"
     docs:
     - { _id: 0, a: 3, b: 5, c: 10, d: ~ }
     - { _id: 1, a: 2, b: 6, c: 11, d: 1 }
     - { _id: 20, c: 30 }
-- inline: 
+- inline:
     db: "test"
     collection: "join_5"
     docs:
     - { _id: 0, b: 5, c: 10, e: 3}
     - { _id: 1, b: 8, c: 11, e: 5}
     - { _id: 20, c: 30 }
+- inline:
+    db: "test"
+    collection: "join_6"
+    docs:
+    - { _id: 1, rnum: 0, c1: 10, c2: 15 }
+    - { _id: 2, rnum: 1, c1: 20, c2: 25 }
+    - { _id: 3, rnum: 2, c2: 50}
+- inline:
+    db: "test"
+    collection: "join_7"
+    docs:
+    - { _id: 0, c2: "BB"}
+    - { _id: 1, c2: "DD"}
+    - { _id: 2, c2: "EE"}
+    - { _id: 3, c2: "FF"}
 
 #
 # Schema
@@ -136,6 +151,38 @@ schema:
       MongoType: int
       SqlName: e
       SqlType: int
+  - table: tjoin1
+    collection: "join_6"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: c1
+      MongoType: float64
+      SqlName: c1
+      SqlType: float64
+    - Name: c2
+      MongoType: float64
+      SqlName: c2
+      SqlType: float64
+    - Name: rnum
+      MongoType: float64
+      SqlName: rnum
+      SqlType: float64
+  - table: tjoin2
+    collection: "join_7"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: c2
+      MongoType: string
+      SqlName: c2
+      SqlType: varchar
 
 #
 # Tests
@@ -199,6 +246,23 @@ testcases:
   - [2, 3, ~, 0, 10, ~]
   - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
+- sql: "select tx.rnum,tx.c1, tx.c2, ty.c2 from tjoin1 tx, tjoin2 ty order by 1, 2, 3, 4"
+  description: "BI-857"
+  expected_names: ["rnum", "c1", "c2", "c2"]
+  expected_types: [int, int, int, varchar]
+  expected:
+  - [0, 10, 15, "BB"]
+  - [0, 10, 15, "DD"]
+  - [0, 10, 15, "EE"]
+  - [0, 10, 15, "FF"]
+  - [1, 20, 25, "BB"]
+  - [1, 20, 25, "DD"]
+  - [1, 20, 25, "EE"]
+  - [1, 20, 25, "FF"]
+  - [2, ~, 50, "BB"]
+  - [2, ~, 50, "DD"]
+  - [2, ~, 50, "EE"]
+  - [2, ~, 50, "FF"]
 
 # Implicit Inner Joins
 - sql: "select a, c from test.foo, test.bar where foo.id = bar.id"

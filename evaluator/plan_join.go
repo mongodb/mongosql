@@ -66,7 +66,7 @@ type HashJoiner struct {
 // Joiner wraps the basic Join function that is
 // used to combine data from two different sources.
 type Joiner interface {
-	Join(left, right chan *Row, ctx *ExecutionCtx) chan Row
+	Join(left, right <-chan *Row, ctx *ExecutionCtx) <-chan Values
 }
 
 // Join implements the operator interface for
@@ -92,26 +92,27 @@ func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr, reqCo
 type JoinIter struct {
 	left, right Iter
 	ctx         *ExecutionCtx
-	onChan      chan Row
+	onChan      <-chan Values
 	errChan     chan error
 	err         error
 }
 
 func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
+
 	left, err := join.left.Open(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	right, err := join.right.Open(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	iter := &JoinIter{
-		left:  left,
-		right: right,
-		ctx:   ctx,
-
+		left:    left,
+		right:   right,
+		ctx:     ctx,
 		errChan: make(chan error, 1),
 	}
 
@@ -121,7 +122,15 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	go iter.fetchRows(left, leftRows, iter.errChan)
 	go iter.fetchRows(right, rightRows, iter.errChan)
 
-	joiner := NewJoiner(join.strategy, join.kind, join.Collation(), join.matcher, join.left.Columns(), join.right.Columns(), iter.errChan)
+	joiner := NewJoiner(
+		join.strategy,
+		join.kind,
+		join.Collation(),
+		join.matcher,
+		join.left.Columns(),
+		join.right.Columns(),
+		iter.errChan,
+	)
 
 	iter.onChan = joiner.Join(leftRows, rightRows, ctx)
 
@@ -130,7 +139,7 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 // fetchRows reads Row objects from a given Iter, and publishes them on channel ch, closing it when
 // the iterator is exhausted. Errors encountered during iteration are published on errChan.
-func (iter *JoinIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
+func (iter *JoinIter) fetchRows(it Iter, ch chan<- *Row, errChan chan error) {
 	r := &Row{}
 
 	syncChan := make(chan *Row)
@@ -152,7 +161,6 @@ func (iter *JoinIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 				if err := it.Err(); err != nil {
 					errChan <- err
 				}
-
 				close(ch)
 				return
 			}
@@ -166,16 +174,17 @@ func (iter *JoinIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 }
 
 func (iter *JoinIter) Next(row *Row) bool {
+	var ok bool
 	select {
 	case err := <-iter.errChan:
 		iter.err = err
 		return false
-	case data, ok := <-iter.onChan:
-		row.Data = data.Data
+	case row.Data, ok = <-iter.onChan:
 		if !ok {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -185,11 +194,7 @@ func (join *JoinIter) Close() error {
 		return err
 	}
 
-	if err := join.right.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return join.right.Close()
 }
 
 func (join *JoinStage) Columns() []*Column {
@@ -244,20 +249,20 @@ func NewJoiner(s JoinStrategy, kind JoinKind, collation *collation.Collation, ma
 	}
 }
 
-// readFromChan reads data from the ch channel and
-// returns all the data read as a slice of Rows.
-func readFromChan(ch chan *Row) []*Row {
-	r := []*Row{}
+// readFromChan reads data from the ch and
+// returns all the data read as a Row slice.
+func readFromChan(ch <-chan *Row) []*Row {
+	rows := []*Row{}
 
-	for data := range ch {
-		r = append(r, data)
+	for row := range ch {
+		rows = append(rows, row)
 	}
 
-	return r
+	return rows
 }
 
 // NestedLoopJoiner implementation.
-func (nlp *NestedLoopJoiner) Join(lChan, rChan chan *Row, ctx *ExecutionCtx) chan Row {
+func (nlp *NestedLoopJoiner) Join(lChan, rChan <-chan *Row, ctx *ExecutionCtx) <-chan Values {
 
 	getNilValues := func(columns []*Column) Values {
 		var nilValues Values
@@ -271,27 +276,26 @@ func (nlp *NestedLoopJoiner) Join(lChan, rChan chan *Row, ctx *ExecutionCtx) cha
 		return nilValues
 	}
 
-	ch := make(chan Row)
+	ch := make(chan Values)
 
 	switch nlp.kind {
+	case CrossJoin:
+		go nlp.crossJoin(lChan, rChan, ch, ctx)
 	case InnerJoin:
 		go nlp.innerJoin(lChan, rChan, ch, ctx)
 	case LeftJoin:
 		go nlp.leftJoin(lChan, rChan, ch, ctx, getNilValues(nlp.rightColumns))
 	case RightJoin:
 		go nlp.rightJoin(lChan, rChan, ch, ctx, getNilValues(nlp.leftColumns))
-	case StraightJoin:
-	case CrossJoin:
-		go nlp.crossJoin(lChan, rChan, ch, ctx)
-	case NaturalJoin:
+	case NaturalJoin, StraightJoin:
 	}
 
 	return ch
 }
 
-func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row, ctx *ExecutionCtx) {
-	left := readFromChan(lChan)
-	right := readFromChan(rChan)
+func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan <-chan *Row, ch chan<- Values, ctx *ExecutionCtx) {
+
+	left, right := readFromChan(lChan), readFromChan(rChan)
 
 	for _, l := range left {
 		for _, r := range right {
@@ -300,7 +304,9 @@ func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 			if err != nil {
 				nlp.errChan <- err
 			} else if m {
-				ch <- Row{Data: append(l.Data, r.Data...)}
+				values := make(Values, len(l.Data)+len(r.Data))
+				copy(values, append(l.Data, r.Data...))
+				ch <- append(l.Data, r.Data...)
 			}
 		}
 	}
@@ -308,9 +314,9 @@ func (nlp *NestedLoopJoiner) innerJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) leftJoin(lChan, rChan chan *Row, ch chan Row, ctx *ExecutionCtx, nilRightValues Values) {
-	left := readFromChan(lChan)
-	right := readFromChan(rChan)
+func (nlp *NestedLoopJoiner) leftJoin(lChan, rChan <-chan *Row, ch chan<- Values, ctx *ExecutionCtx, nilRightValues Values) {
+
+	left, right := readFromChan(lChan), readFromChan(rChan)
 
 	var hasMatch bool
 
@@ -322,12 +328,16 @@ func (nlp *NestedLoopJoiner) leftJoin(lChan, rChan chan *Row, ch chan Row, ctx *
 				nlp.errChan <- err
 			} else if m {
 				hasMatch = true
-				ch <- Row{Data: append(l.Data, r.Data...)}
+				values := make(Values, len(l.Data)+len(r.Data))
+				copy(values, append(l.Data, r.Data...))
+				ch <- values
 			}
 		}
 
 		if !hasMatch {
-			ch <- Row{Data: append(l.Data, nilRightValues...)}
+			values := make(Values, len(nilRightValues)+len(l.Data))
+			copy(values, append(l.Data, nilRightValues...))
+			ch <- values
 		}
 
 		hasMatch = false
@@ -336,9 +346,9 @@ func (nlp *NestedLoopJoiner) leftJoin(lChan, rChan chan *Row, ch chan Row, ctx *
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) rightJoin(lChan, rChan chan *Row, ch chan Row, ctx *ExecutionCtx, nilLeftValues Values) {
-	left := readFromChan(lChan)
-	right := readFromChan(rChan)
+func (nlp *NestedLoopJoiner) rightJoin(lChan, rChan <-chan *Row, ch chan<- Values, ctx *ExecutionCtx, nilLeftValues Values) {
+
+	left, right := readFromChan(lChan), readFromChan(rChan)
 
 	var hasMatch bool
 
@@ -350,12 +360,16 @@ func (nlp *NestedLoopJoiner) rightJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 				nlp.errChan <- err
 			} else if m {
 				hasMatch = true
-				ch <- Row{Data: append(l.Data, r.Data...)}
+				values := make(Values, len(l.Data)+len(r.Data))
+				copy(values, append(l.Data, r.Data...))
+				ch <- values
 			}
 		}
 
 		if !hasMatch {
-			ch <- Row{Data: append(nilLeftValues, r.Data...)}
+			values := make(Values, len(nilLeftValues)+len(r.Data))
+			copy(values, append(nilLeftValues, r.Data...))
+			ch <- values
 		}
 
 		hasMatch = false
@@ -364,13 +378,14 @@ func (nlp *NestedLoopJoiner) rightJoin(lChan, rChan chan *Row, ch chan Row, ctx 
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) crossJoin(lChan, rChan chan *Row, ch chan Row, _ *ExecutionCtx) {
-	left := readFromChan(lChan)
-	right := readFromChan(rChan)
+func (nlp *NestedLoopJoiner) crossJoin(lChan, rChan <-chan *Row, ch chan<- Values, _ *ExecutionCtx) {
+	left, right := readFromChan(lChan), readFromChan(rChan)
 
 	for _, l := range left {
 		for _, r := range right {
-			ch <- Row{Data: append(l.Data, r.Data...)}
+			values := make(Values, len(l.Data)+len(r.Data))
+			copy(values, append(l.Data, r.Data...))
+			ch <- values
 		}
 	}
 
@@ -378,11 +393,11 @@ func (nlp *NestedLoopJoiner) crossJoin(lChan, rChan chan *Row, ch chan Row, _ *E
 }
 
 // SortMergeJoiner implementation.
-func (smj *SortMergeJoiner) Join(lChan, rChan chan *Row, ctx *ExecutionCtx) chan Row {
+func (smj *SortMergeJoiner) Join(lChan, rChan <-chan *Row, ctx *ExecutionCtx) <-chan Values {
 	return nil
 }
 
 // HashJoiner implementation.
-func (hj *HashJoiner) Join(lChan, rChan chan *Row, ctx *ExecutionCtx) chan Row {
+func (hj *HashJoiner) Join(lChan, rChan <-chan *Row, ctx *ExecutionCtx) <-chan Values {
 	return nil
 }
