@@ -155,9 +155,10 @@ func prepareForTestCase(filePath string) (conf testSchema, s *server.Server, db 
 	if err != nil {
 		panic(err)
 	}
+	options.EnsureOptsNotNil(&opts)
 
-	opts.Addr = testDBAddr
-	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort)
+	*opts.Addr = testDBAddr
+	*opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", testMongoHost, testMongoPort)
 	opts.NoUnixSocket = new(bool)
 	*opts.NoUnixSocket = true
 
@@ -452,9 +453,9 @@ func getSslOpts() *toolsoptions.SSL {
 
 func testServer(cfg *schema.Schema, opts options.SqldOptions) *server.Server {
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
-		opts.MongoSSL = true
-		opts.MongoAllowInvalidCerts = true
-		opts.MongoPEMKeyFile = testClientPEMFile
+		*opts.MongoSSL = true
+		*opts.MongoAllowInvalidCerts = true
+		*opts.MongoPEMKeyFile = testClientPEMFile
 	}
 
 	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)

@@ -901,6 +901,40 @@ tasks:
           ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > relational.suite 2>&1; if [ $? -ne 0 ]; then cat relational.suite; exit 1; else cat relational.suite; fi
           exit 0
 
+- name: options
+  commands:
+    - func: "fetch source"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/10gen/sqlproxy
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/github.com/10gen
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
+          fi;
+          cd options
+          touch coverage.out
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > options.suite 2>&1; if [ $? -ne 0 ]; then cat options.suite; exit 1; else cat options.suite; exit 0; fi
+
 - name: parser
   commands:
     - func: "fetch source"

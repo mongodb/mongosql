@@ -19,20 +19,20 @@ import (
 	"github.com/10gen/sqlproxy/util"
 )
 
-func getConfig(opts options.SqldOptions) *schema.Schema {
+func getSchema(opts options.SqldOptions) *schema.Schema {
 	var err error
 
 	cfg := &schema.Schema{}
-	if len(opts.Schema) > 0 {
-		err = cfg.LoadFile(opts.Schema)
+	if len(*opts.Schema) > 0 {
+		err = cfg.LoadFile(*opts.Schema)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error loading schema: %v\n", err)
 			os.Exit(util.ExitError)
 		}
 	}
 
-	if len(opts.SchemaDir) > 0 {
-		err = cfg.LoadDir(opts.SchemaDir)
+	if len(*opts.SchemaDir) > 0 {
+		err = cfg.LoadDir(*opts.SchemaDir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error loading schema: %v\n", err)
 			os.Exit(util.ExitError)
@@ -92,21 +92,21 @@ func setupLog(opts options.SqldOptions) (*os.File, *log.Logger) {
 	var err error
 
 	// set global log level
-	log.SetVerbosity(opts.SqldLog)
+	log.SetVerbosity(*opts.SqldLog)
 
-	if len(opts.LogPath) > 0 {
+	if len(*opts.LogPath) > 0 {
 		mode := os.O_WRONLY
-		if _, err = os.Stat(opts.LogPath); err != nil {
+		if _, err = os.Stat(*opts.LogPath); err != nil {
 			mode = mode | os.O_CREATE
 		}
 
-		if opts.LogAppend {
+		if *opts.LogAppend {
 			mode = mode | os.O_APPEND
 		} else {
 			mode = mode | os.O_TRUNC
 		}
 
-		logfile, err = os.OpenFile(opts.LogPath, mode, 0600)
+		logfile, err = os.OpenFile(*opts.LogPath, mode, 0600)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error opening log file: %v\n", err)
 			os.Exit(util.ExitError)
@@ -123,7 +123,7 @@ func logStartupInfo(opts options.SqldOptions) {
 
 	controlLogger.Logf(log.Always, "[initandlisten] mongosqld version: %v", common.VersionStr)
 	controlLogger.Logf(log.Always, "[initandlisten] git version: %v", common.Gitspec)
-	controlLogger.Logf(log.Always, "[initandlisten] arguments %v", os.Args[1:])
+	controlLogger.Logf(log.Always, "[initandlisten] arguments: %v", opts)
 
 	// Production release version strings should not contain a "-", whereas all development releases should, e.g.
 	// Production release: v2.0.1
@@ -135,7 +135,7 @@ func logStartupInfo(opts options.SqldOptions) {
 		controlLogger.Logf(log.Always, "[initandlisten]")
 	}
 
-	if !opts.Auth {
+	if opts.Auth == nil || !*opts.Auth {
 		controlLogger.Logf(log.Always, "[initandlisten] ** WARNING: Access control is not enabled for mongosqld.")
 		controlLogger.Logf(log.Always, "[initandlisten]")
 	}
@@ -146,7 +146,7 @@ func main() {
 
 	opts := getOptions()
 
-	if opts.Version {
+	if opts.Version != nil && *opts.Version {
 		common.PrintVersionAndGitspec("mongosqld", os.Stdout)
 		os.Exit(util.ExitClean)
 	}
@@ -155,11 +155,15 @@ func main() {
 		os.Exit(util.ExitClean)
 	}
 
-	if opts.Fork {
+	if opts.Fork != nil && *opts.Fork {
 		daemonize()
 	}
 
-	cfg := getConfig(opts)
+	logStartupInfo(opts)
+
+	options.EnsureOptsNotNil(&opts)
+
+	cfg := getSchema(opts)
 	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "connecting to mongodb failed: %v\n", err)
@@ -171,9 +175,7 @@ func main() {
 		defer logfile.Close()
 	}
 
-	logStartupInfo(opts)
-
-	logger.Logf(log.Always, "[initandlisten] connecting to mongodb at %v", opts.SqldMongoConnection.MongoURI)
+	logger.Logf(log.Always, "[initandlisten] connecting to mongodb at %v", *opts.SqldMongoConnection.MongoURI)
 
 	svr, err := server.New(cfg, evaluator, opts)
 	if err != nil {

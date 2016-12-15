@@ -33,7 +33,7 @@ func (v *PlainDBConnector) ConfigureDrdl(opts options.DrdlOptions) error {
 func (v *PlainDBConnector) ConfigureSqld(opts options.SqldOptions) error {
 	var err error
 
-	v.dialInfo, err = mgo.ParseURL(opts.MongoURI)
+	v.dialInfo, err = mgo.ParseURL(*opts.MongoURI)
 	if err != nil {
 		return err
 	}
