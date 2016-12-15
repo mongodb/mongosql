@@ -68,7 +68,7 @@ func (s *SSLDBConnector) ConfigureDrdl(opts options.DrdlOptions) error {
 
 func (s *SSLDBConnector) ConfigureSqld(opts options.SqldOptions) error {
 
-	dialInfo, err := mgo.ParseURL(opts.MongoURI)
+	dialInfo, err := mgo.ParseURL(*opts.MongoURI)
 	if err != nil {
 		return fmt.Errorf("parse URL: %v", err)
 	}
@@ -103,7 +103,7 @@ func (s *SSLDBConnector) ConfigureSqld(opts options.SqldOptions) error {
 	var flags openssl.DialFlags
 	flags = 0
 
-	if opts.MongoAllowInvalidCerts || opts.MongoSSLAllowInvalidHost || opts.MongoCAFile == "" {
+	if *opts.MongoAllowInvalidCerts || *opts.MongoSSLAllowInvalidHost || *opts.MongoCAFile == "" {
 		flags = openssl.InsecureSkipHostVerification
 	}
 
@@ -237,16 +237,16 @@ func SetupSqldCtx(opts options.SqldOptions, isClient bool) (*openssl.Ctx, error)
 	var allowInvalidCerts bool
 
 	if isClient {
-		pemKeyFile = opts.SSLPEMKeyFile
-		pemFilePassword = opts.SSLPEMKeyFilePassword
-		caFile = opts.SSLCAFile
-		allowInvalidCerts = opts.SSLAllowInvalidCerts
+		pemKeyFile = *opts.SSLPEMKeyFile
+		pemFilePassword = *opts.SSLPEMKeyFilePassword
+		caFile = *opts.SSLCAFile
+		allowInvalidCerts = *opts.SSLAllowInvalidCerts
 	} else {
-		pemKeyFile = opts.MongoPEMKeyFile
-		pemFilePassword = opts.MongoPEMKeyFilePassword
-		caFile = opts.MongoCAFile
-		allowInvalidCerts = opts.MongoAllowInvalidCerts
-		crlFile = opts.MongoSSLCRLFile
+		pemKeyFile = *opts.MongoPEMKeyFile
+		pemFilePassword = *opts.MongoPEMKeyFilePassword
+		caFile = *opts.MongoCAFile
+		allowInvalidCerts = *opts.MongoAllowInvalidCerts
+		crlFile = *opts.MongoSSLCRLFile
 	}
 
 	// add the PEM key file with the cert and private key, if specified

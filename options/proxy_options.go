@@ -1,8 +1,10 @@
 package options
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -24,17 +26,45 @@ type SqldOptions struct {
 	parser *flags.Parser
 }
 
+func (s SqldOptions) String() string {
+	var buffer bytes.Buffer
+	for i, opts := 0, reflect.ValueOf(s); i < opts.NumField(); i++ {
+		// Skip any non-exported fields
+		if !opts.Field(i).Elem().CanSet() {
+			continue
+		}
+		for j, subOpts := 0, opts.Field(i).Elem(); j < subOpts.NumField(); j++ {
+			// Make sure that the field's Kind is a pointer so that we don't attempt to populate SqldLog.SetVerbosity
+			if subOpts.Field(j).Kind() == reflect.Ptr && !subOpts.Field(j).IsNil() {
+				flagString := subOpts.Type().Field(j).Tag.Get("long")
+				if flagString == "" {
+					flagString = subOpts.Type().Field(j).Tag.Get("short")
+				}
+				var argVal string
+				if strings.HasSuffix(flagString, "sslPEMKeyPassword") {
+					argVal = "<password>"
+				} else {
+					argVal = fmt.Sprintf("%v", subOpts.Field(j).Elem().Interface())
+				}
+				buffer.WriteString("--" + flagString + " " + argVal + " ")
+			}
+		}
+
+	}
+	return strings.TrimSpace(buffer.String())
+}
+
 type OptionGroup interface {
 	Name() string
 }
 
 type SqldClientConnection struct {
-	Auth                  bool   `long:"auth" description:"use authentication/authorization ('sslPEMKeyFile' is required when using auth)"`
-	Addr                  string `long:"addr" description:"host address to listen on" default:"127.0.0.1:3307"`
-	SSLAllowInvalidCerts  bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
-	SSLCAFile             string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
-	SSLPEMKeyFile         string `long:"sslPEMKeyFile" description:"path to a file containing the certificate and private key establishing a connection with a client"`
-	SSLPEMKeyFilePassword string `long:"sslPEMKeyPassword" description:"password to decrypt private key in --sslPEMKeyFile"`
+	Auth                  *bool   `long:"auth" description:"use authentication/authorization ('sslPEMKeyFile' is required when using auth)"`
+	Addr                  *string `long:"addr" description:"host address to listen on" default-mask:"127.0.0.1:3307"`
+	SSLAllowInvalidCerts  *bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
+	SSLCAFile             *string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
+	SSLPEMKeyFile         *string `long:"sslPEMKeyFile" description:"path to a file containing the certificate and private key establishing a connection with a client"`
+	SSLPEMKeyFilePassword *string `long:"sslPEMKeyPassword" description:"password to decrypt private key in --sslPEMKeyFile"`
 }
 
 func (_ SqldClientConnection) Name() string {
@@ -42,9 +72,9 @@ func (_ SqldClientConnection) Name() string {
 }
 
 type SqldSocket struct {
-	FilePermissions  *string `long:"filePermissions" description:"permissions to set on UNIX domain socket file (default to 0700)" default:"0700"`
+	FilePermissions  *string `long:"filePermissions" description:"permissions to set on UNIX domain socket file (default to 0700)" default-mask:"0700"`
 	NoUnixSocket     *bool   `long:"noUnixSocket" description:"disable listening on UNIX domain sockets"`
-	UnixSocketPrefix *string `long:"unixSocketPrefix" description:"alternative directory for UNIX domain sockets (default to /tmp)" default:"/tmp"`
+	UnixSocketPrefix *string `long:"unixSocketPrefix" description:"alternative directory for UNIX domain sockets (default to /tmp)" default-mask:"/tmp"`
 }
 
 func (_ SqldSocket) Name() string {
@@ -52,9 +82,9 @@ func (_ SqldSocket) Name() string {
 }
 
 type SqldGeneral struct {
-	Fork    bool `long:"fork" description:"fork mongosqld process"`
-	Help    bool `short:"h" long:"help" description:"print usage"`
-	Version bool `long:"version" description:"display version information"`
+	Fork    *bool `long:"fork" description:"fork mongosqld process"`
+	Help    *bool `short:"h" long:"help" description:"print usage"`
+	Version *bool `long:"version" description:"display version information"`
 }
 
 func (_ SqldGeneral) Name() string {
@@ -62,11 +92,11 @@ func (_ SqldGeneral) Name() string {
 }
 
 type SqldLog struct {
-	LogAppend    bool               `long:"logAppend" description:"append new logging output to existing log file"`
-	LogPath      string             `long:"logPath" description:"path to a log file for storing logging output (defaults to stderr)"`
+	LogAppend    *bool              `long:"logAppend" description:"append new logging output to existing log file"`
+	LogPath      *string            `long:"logPath" description:"path to a log file for storing logging output (defaults to stderr)"`
 	SetVerbosity func(string) error `short:"v" long:"verbose" value-name:"<level>" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv, or specify a numeric value, e.g. --verbose=N)" optional:"true" optional-value:""`
-	Quiet        bool               `long:"quiet" description:"hide all log output"`
-	VLevel       int                `no-flag:"true"`
+	Quiet        *bool              `long:"quiet" description:"hide all log output"`
+	VLevel       *int               `no-flag:"true" long:"verbose"`
 }
 
 func (_ SqldLog) Name() string {
@@ -74,24 +104,27 @@ func (_ SqldLog) Name() string {
 }
 
 func (lo SqldLog) Level() int {
-	return lo.VLevel
+	if lo.VLevel == nil {
+		return 0
+	}
+	return *lo.VLevel
 }
 
 func (lo SqldLog) IsQuiet() bool {
-	return lo.Quiet
+	return !isFalseOrUnset(lo.Quiet)
 }
 
 type SqldMongoConnection struct {
-	MongoSSL                  bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
-	MongoURI                  string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to" default:"mongodb://localhost:27017"`
-	MongoAllowInvalidCerts    bool   `long:"mongo-sslAllowInvalidCertificates" description:"don't require the certificate presented by the MongoDB server to be valid, when using --mongo-ssl"`
-	MongoSSLAllowInvalidHost  bool   `long:"mongo-sslAllowInvalidHostnames" description:"bypass the validation for server name"`
-	MongoCAFile               string `long:"mongo-sslCAFile" value-name:"<filename>" description:"path to a CA certificate file to use for authenticating certificates from MongoDB, when using --mongo-ssl"`
-	MongoSSLCRLFile           string `long:"mongo-sslCRLFile" value-name:"<filename>" description:"the .pem file containing the certificate revocation list"`
-	MongoSSLFipsMode          bool   `long:"mongo-sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
-	MongoPEMKeyFile           string `long:"mongo-sslPEMKeyFile" value-name:"<filename>" description:"path to a file containing the certificate and private key for connecting to MongoDB, when using --mongo-ssl"`
-	MongoPEMKeyFilePassword   string `long:"mongo-sslPEMKeyPassword" description:"password to decrypt private key in mongo-sslPEMKeyFile"`
-	MongoVersionCompatibility string `long:"mongo-versionCompatibility" description:"indicates the mongodb version with which to be compatible (only necessary when used with mixed version replica sets)."`
+	MongoSSL                  *bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
+	MongoURI                  *string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to" default-mask:"mongodb://localhost:27017"`
+	MongoAllowInvalidCerts    *bool   `long:"mongo-sslAllowInvalidCertificates" description:"don't require the certificate presented by the MongoDB server to be valid, when using --mongo-ssl"`
+	MongoSSLAllowInvalidHost  *bool   `long:"mongo-sslAllowInvalidHostnames" description:"bypass the validation for server name"`
+	MongoCAFile               *string `long:"mongo-sslCAFile" value-name:"<filename>" description:"path to a CA certificate file to use for authenticating certificates from MongoDB, when using --mongo-ssl"`
+	MongoSSLCRLFile           *string `long:"mongo-sslCRLFile" value-name:"<filename>" description:"the .pem file containing the certificate revocation list"`
+	MongoSSLFipsMode          *bool   `long:"mongo-sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
+	MongoPEMKeyFile           *string `long:"mongo-sslPEMKeyFile" value-name:"<filename>" description:"path to a file containing the certificate and private key for connecting to MongoDB, when using --mongo-ssl"`
+	MongoPEMKeyFilePassword   *string `long:"mongo-sslPEMKeyPassword" description:"password to decrypt private key in mongo-sslPEMKeyFile"`
+	MongoVersionCompatibility *string `long:"mongo-versionCompatibility" description:"indicates the mongodb version with which to be compatible (only necessary when used with mixed version replica sets)."`
 }
 
 func (_ SqldMongoConnection) Name() string {
@@ -99,8 +132,8 @@ func (_ SqldMongoConnection) Name() string {
 }
 
 type SqldSchema struct {
-	Schema    string `long:"schema" description:"the path to a schema file"`
-	SchemaDir string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
+	Schema    *string `long:"schema" description:"the path to a schema file"`
+	SchemaDir *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
 }
 
 func (_ SqldSchema) Name() string {
@@ -146,14 +179,15 @@ func NewSqldOptions() (SqldOptions, error) {
 func (opts SqldOptions) Parse() error {
 	// called when -v or --verbose is parsed
 	opts.SetVerbosity = func(val string) error {
+		opts.VLevel = new(int)
 		if i, err := strconv.Atoi(val); err == nil {
-			opts.VLevel = opts.VLevel + i // -v=N or --verbose=N
+			*opts.VLevel = *opts.VLevel + i // -v=N or --verbose=N
 		} else if matched, _ := regexp.MatchString(`^v+$`, val); matched {
-			opts.VLevel = opts.VLevel + len(val) + 1 // handles the -vvv cases
+			*opts.VLevel = *opts.VLevel + len(val) + 1 // handles the -vvv cases
 		} else if matched, _ := regexp.MatchString(`^v+=[0-9]$`, val); matched {
-			opts.VLevel = parseVal(val) // i.e. -vv=3
+			*opts.VLevel = parseVal(val) // i.e. -vv=3
 		} else if val == "" {
-			opts.VLevel = opts.VLevel + 1 // increment for every occurrence of flag
+			*opts.VLevel = *opts.VLevel + 1 // increment for every occurrence of flag
 		} else {
 			return fmt.Errorf("invalid verbosity value given")
 		}
@@ -168,32 +202,31 @@ func (opts SqldOptions) Parse() error {
 }
 
 func (o SqldOptions) hasSSLOptionsSet() bool {
-	return o.MongoCAFile != "" ||
-		o.MongoPEMKeyFile != "" ||
-		o.MongoCAFile != "" ||
-		o.MongoSSLCRLFile != "" ||
-		o.MongoPEMKeyFilePassword != "" ||
-		o.MongoSSLFipsMode ||
-		o.MongoAllowInvalidCerts
+	return !isEmptyOrUnset(o.MongoCAFile) ||
+		!isEmptyOrUnset(o.MongoPEMKeyFile) ||
+		!isEmptyOrUnset(o.MongoSSLCRLFile) ||
+		!isEmptyOrUnset(o.MongoPEMKeyFilePassword) ||
+		!isFalseOrUnset(o.MongoSSLFipsMode) ||
+		!isFalseOrUnset(o.MongoAllowInvalidCerts)
 }
 
 func (o SqldOptions) Validate() error {
-	if o.Version || o.Help {
+	if !isFalseOrUnset(o.Version) || !isFalseOrUnset(o.Help) {
 		return nil
 	}
-	if o.Schema == "" && o.SchemaDir == "" {
+	if isEmptyOrUnset(o.Schema) && isEmptyOrUnset(o.SchemaDir) {
 		return fmt.Errorf("must specify either --schema or --schemaDirectory")
 	}
-	if o.Schema != "" && o.SchemaDir != "" {
+	if !isEmptyOrUnset(o.Schema) && !isEmptyOrUnset(o.SchemaDir) {
 		return fmt.Errorf("must specify only one of --schema or --schemaDirectory")
 	}
-	if !o.MongoSSL && o.hasSSLOptionsSet() {
+	if isFalseOrUnset(o.MongoSSL) && o.hasSSLOptionsSet() {
 		return fmt.Errorf("must specify --mongo-ssl to use SSL options")
 	}
-	if o.Auth && o.SSLPEMKeyFile == "" {
+	if !isFalseOrUnset(o.Auth) && isEmptyOrUnset(o.SSLPEMKeyFile) {
 		return fmt.Errorf("must specify --sslPEMKeyFile when using --auth")
 	}
-	if o.MongoSSLFipsMode && runtime.GOOS == "darwin" {
+	if !isFalseOrUnset(o.MongoSSLFipsMode) && runtime.GOOS == "darwin" {
 		return fmt.Errorf("this version of mongosqld was not compiled with FIPS support")
 	}
 	if o.FilePermissions != nil {
@@ -212,27 +245,56 @@ func (o SqldOptions) Validate() error {
 			return fmt.Errorf("cannot use Unix-specific option --filePermissions on Windows")
 		}
 	}
-	if o.Fork && o.LogPath == "" {
+	if !isFalseOrUnset(o.Fork) && isEmptyOrUnset(o.LogPath) {
 		return fmt.Errorf("must specify --logPath when using --fork")
 	}
 
 	return nil
 }
 
+// EnsureOptsNotNil initializes all member pointers of all member structs of the SqldOptions object accessible via
+// optsPtr to be non-nil. The values stored at the resulting addresses are either the zero value for the type or
+// the default-mask value of the member pointer, if present.
+func EnsureOptsNotNil(optsPtr *SqldOptions) {
+	// We assume optsPtr and all of the members of *optsPtr are non-nil because they are created via NewSqldOpts
+	if optsPtr == nil {
+		panic("nil SqldOptions pointer")
+	}
+	for i, opts := 0, reflect.ValueOf(optsPtr).Elem(); i < opts.NumField(); i++ {
+		if opts.Field(i).Kind() == reflect.Ptr && opts.Field(i).IsNil() {
+			panic("nil SqldOptions field")
+		}
+		for j, subOpts := 0, opts.Field(i).Elem(); j < subOpts.NumField(); j++ {
+			// Allocate space for field and set value to default-mask value, if present,
+			// or zero value otherwise.
+			if subOpts.Field(j).Kind() == reflect.Ptr && subOpts.Field(j).IsNil() {
+				subOpts.Field(j).Set(reflect.New(subOpts.Field(j).Type().Elem()))
+				if defaultVal := subOpts.Type().Field(j).Tag.Get("default-mask"); defaultVal != "" {
+					if subOpts.Field(j).Elem().Kind() != reflect.String {
+						panic("Support for non-string default-mask values has not yet been implemented.")
+					}
+					subOpts.Field(j).Elem().Set(reflect.ValueOf(defaultVal))
+				}
+			}
+		}
+	}
+
+}
+
 func (o SqldOptions) PrintHelp(w io.Writer) bool {
-	if o.Help {
+	if !isFalseOrUnset(o.Help) {
 		o.parser.WriteHelp(w)
 	}
 
-	return o.Help
+	return !isFalseOrUnset(o.Help)
 }
 
 func (o SqldOptions) UseFIPSMode() bool {
-	return o.SqldMongoConnection.MongoSSLFipsMode
+	return !isFalseOrUnset(o.SqldMongoConnection.MongoSSLFipsMode)
 }
 
 func (o SqldOptions) UseSSL() bool {
-	return o.SqldMongoConnection.MongoSSL
+	return !isFalseOrUnset(o.SqldMongoConnection.MongoSSL)
 }
 
 func parseVal(val string) int {
@@ -242,4 +304,12 @@ func parseVal(val string) int {
 		panic(fmt.Errorf("value was not a valid integer: %v", err))
 	}
 	return ret
+}
+
+func isFalseOrUnset(b *bool) bool {
+	return b == nil || !*b
+}
+
+func isEmptyOrUnset(s *string) bool {
+	return s == nil || *s == ""
 }

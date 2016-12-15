@@ -14,7 +14,7 @@ const (
 )
 
 func (s *Server) populateListeners() error {
-	listener, err := net.Listen("tcp", s.opts.Addr)
+	listener, err := net.Listen("tcp", *s.opts.Addr)
 	if err != nil {
 		return err
 	}

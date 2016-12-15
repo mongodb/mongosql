@@ -69,14 +69,15 @@ func (_ *connCtx) Tomb() *tomb.Tomb {
 
 func getOptions(t *testing.T) options.SqldOptions {
 	opts, _ := options.NewSqldOptions()
-	opts.MongoURI = "localhost"
+	options.EnsureOptsNotNil(&opts)
+	*opts.MongoURI = "localhost"
 
 	// ssl is turned on
 	if len(os.Getenv(SSLTestKey)) > 0 {
 		t.Logf("Testing with SSL turned on.")
-		opts.MongoSSL = true
-		opts.MongoAllowInvalidCerts = true
-		opts.MongoPEMKeyFile = "testdata/client.pem"
+		*opts.MongoSSL = true
+		*opts.MongoAllowInvalidCerts = true
+		*opts.MongoPEMKeyFile = "testdata/client.pem"
 	}
 	return opts
 }

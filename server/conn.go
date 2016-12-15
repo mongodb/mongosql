@@ -254,7 +254,7 @@ func (c *conn) handshake() error {
 		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "recv handshake response error: %v", err)
 	}
 
-	if c.server.opts.Auth {
+	if *c.server.opts.Auth {
 		c.logger.Logf(log.DebugHigh, "configuring client authentication")
 		if c.clientRequestedAuthPluginName != clearPasswordClientAuthPluginName {
 			c.logger.Logf(log.DebugHigh, "sending authentication switch request")
@@ -284,7 +284,7 @@ func (c *conn) handshake() error {
 
 	schema := c.server.eval.Schema()
 	var err error
-	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session, &schema, c.server.opts.Auth)
+	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session, &schema, *c.server.opts.Auth)
 	if err != nil {
 		c.writeError(err)
 		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error retrieving information from MongoDB: %v", err)
@@ -436,7 +436,7 @@ func (c *conn) readHandshakeResponse() error {
 		// We need to read the handshake response header again because, now that we have TLS, the
 		// client resends its handshake response packet.
 		readHeader()
-	} else if c.server.opts.Auth {
+	} else if *c.server.opts.Auth {
 		// We are here because we asked the client to use SSL and they refused. Therefore, we'll
 		// terminate the connection.
 		err := mysqlerrors.Newf(mysqlerrors.ER_INSECURE_PLAIN_TEXT, "ssl is required when using authentication")

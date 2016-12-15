@@ -53,11 +53,11 @@ func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts options.SqldOptio
 		variables:         variable.NewGlobalContainer(),
 	}
 
-	s.variables.MongoDBVersionCompatibility = opts.MongoVersionCompatibility
+	s.variables.MongoDBVersionCompatibility = *opts.MongoVersionCompatibility
 
 	var err error
 
-	if len(opts.SSLPEMKeyFile) > 0 {
+	if len(*opts.SSLPEMKeyFile) > 0 {
 		s.tlsConfig, err = openssl.SetupSqldCtx(opts, true)
 		if err != nil {
 			return nil, err
