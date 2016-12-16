@@ -45,11 +45,6 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 			[]string{"Procedure", "sql_mode", "time_zone", "Create Procedure", "character_set_client", "collation_connection", "Database Collation"},
 			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
-	case "create table":
-		r, err = c.buildEmptyResultset(
-			[]string{"Table", "Create Table"},
-			[]schema.SQLType{schema.SQLVarchar, schema.SQLVarchar},
-		)
 	case "create trigger":
 		r, err = c.buildEmptyResultset(
 			[]string{"Trigger", "sql_mode", "time_zone", "SQL Original Statement", "character_set_client", "collation_connection", "Database Collation", "Created"},

@@ -53,7 +53,10 @@ func (e *Evaluator) Schema() schema.Schema {
 
 // EvaluateQuery creates an iterator in order to stream results.
 func (e *Evaluator) EvaluateQuery(ast parser.Statement, conn evaluator.ConnectionCtx) ([]*evaluator.Column, evaluator.Iter, error) {
-	//conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan for parsed sql: "%v"`, parser.String(ast))
+	switch ast.(type) {
+	case parser.SelectStatement:
+		conn.Logger(log.AlgebrizerComponent).Logf(log.Info, `generating query plan for parsed sql: "%v"`, parser.String(ast))
+	}
 
 	plan, err := evaluator.AlgebrizeQuery(ast, conn.DB(), conn.Variables(), conn.Catalog())
 	if err != nil {

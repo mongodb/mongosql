@@ -263,8 +263,6 @@ testcases:
   expected: []
 - sql: "SHOW CREATE PROCEDURE proc_name"
   expected: []
-- sql: "SHOW CREATE TABLE table_name"
-  expected: []
 - sql: "SHOW CREATE TRIGGER trigger_name"
   expected: []
 - sql: "SHOW CREATE USER user_name"

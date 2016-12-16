@@ -537,9 +537,17 @@ show_statement:
   {
     $$ = &Show{Section: "create procedure", Modifier: string($4)}
   }
+| SHOW CREATE TABLE ID DOT ID
+  {
+    $$ = &Show{Section: "create table", From: &ColName{$6, $4}}
+  }
+| SHOW CREATE TABLE DOT ID
+  {
+    $$ = &Show{Section: "create table", From: StrVal($5)}
+  }
 | SHOW CREATE TABLE ID
   {
-    $$ = &Show{Section: "create table", Modifier: string($4)}
+    $$ = &Show{Section: "create table", From: StrVal($4)}
   }
 | SHOW CREATE TRIGGER ID
   {

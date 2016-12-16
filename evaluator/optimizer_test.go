@@ -47,8 +47,7 @@ func TestOptimizePlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(parser.SelectStatement)
-			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testVariables, testCatalog)
+			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 			actualPlan, err := OptimizePlan(createTestConnectionCtx(), plan)
 			So(err, ShouldBeNil)
@@ -71,8 +70,7 @@ func TestOptimizePlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(parser.SelectStatement)
-			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testVariables, testCatalog)
+			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 			actualPlan, err := OptimizePlan(createTestConnectionCtx(), plan)
 			So(err, ShouldBeNil)
@@ -2556,8 +2554,7 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(parser.SelectStatement)
-			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testVariables, testCatalog)
+			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 			ctx := createTestConnectionCtx()
 			optimized, err := optimizeSubqueries(ctx, ctx.Logger(""), plan, false)
@@ -2582,8 +2579,7 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(parser.SelectStatement)
-			plan, err := AlgebrizeSelect(selectStatement, defaultDbName, testVariables, testCatalog)
+			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
 
 			//fmt.Printf("\n%+v\n", PrettyPrintPlan(plan))

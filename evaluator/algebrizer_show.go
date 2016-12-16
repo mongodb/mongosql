@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {
@@ -18,6 +19,8 @@ func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {
 		return a.translateShowCollation(show)
 	case "columns":
 		return a.translateShowColumns(show)
+	case "create table":
+		return a.translateShowCreateTable(show)
 	case "databases", "schemas":
 		return a.translateShowDatabases(show)
 	case "status":
@@ -65,12 +68,19 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 		tableName: "COLUMNS",
 		columnNames: []string{
 			"COLUMN_NAME", "COLUMN_TYPE", "IS_NULLABLE", "COLUMN_KEY",
-			"COLUMN_DEFAULT", "EXTRA", "PRIVILEGES", "COLUMN_COMMENT",
-			"TABLE_NAME", "TABLE_SCHEMA", "ORDINAL_POSITION"},
+			"COLUMN_DEFAULT", "EXTRA", "TABLE_NAME", "TABLE_SCHEMA",
+			"ORDINAL_POSITION"},
 		columnAliases: []string{
 			"Field", "Type", "Null", "Key",
 			"Default", "Extra"},
 		orderBy: "ORDINAL_POSITION",
+	}
+
+	if strings.EqualFold(show.Modifier, "full") {
+		info.columnNames = append(info.columnNames[:2], append([]string{"COLLATION_NAME"}, info.columnNames[2:]...)...)
+		info.columnNames = append(info.columnNames[:7], append([]string{"PRIVILEGES", "COLUMN_COMMENT"}, info.columnNames[7:]...)...)
+		info.columnAliases = append(info.columnAliases[:2], append([]string{"Collation"}, info.columnAliases[2:]...)...)
+		info.columnAliases = append(info.columnAliases, "Privileges", "Comment")
 	}
 
 	dbName := a.dbName
@@ -99,12 +109,6 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 		table = string(tbl.Name())
 	}
 
-	if strings.EqualFold(show.Modifier, "full") {
-		info.columnNames = append(info.columnNames[:2], append([]string{"COLLATION_NAME"}, info.columnNames[2:]...)...)
-		info.columnAliases = append(info.columnAliases[:2], append([]string{"Collation"}, info.columnAliases[2:]...)...)
-		info.columnAliases = append(info.columnAliases, "Privileges", "Comment")
-	}
-
 	info.predicate = &parser.AndExpr{
 		Left: &parser.ComparisonExpr{
 			Operator: parser.AST_EQ,
@@ -131,6 +135,55 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 	}
 
 	return a.translateShowInfo(&info)
+}
+
+func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, error) {
+	dbName := a.dbName
+	tableName := ""
+
+	switch f := show.From.(type) {
+	case parser.StrVal:
+		tableName = string(f)
+	case *parser.ColName:
+		dbName = string(f.Qualifier)
+		tableName = string(f.Name)
+	default:
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
+	}
+
+	if dbName == "" {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
+	}
+
+	var table catalog.Table
+
+	if db, err := a.catalog.Database(dbName); err != nil {
+		return nil, err
+	} else if table, err = db.Table(tableName); err != nil {
+		return nil, err
+	}
+
+	createTableSQL := catalog.GenerateCreateTable(table)
+
+	return NewProjectStage(
+		NewDualStage(),
+		ProjectedColumn{
+			Column: &Column{
+				SelectID: a.selectID,
+				Name:     "Table",
+				SQLType:  schema.SQLVarchar,
+			},
+			Expr: SQLVarchar(string(table.Name())),
+		},
+		ProjectedColumn{
+			Column: &Column{
+				SelectID: a.selectID,
+				Name:     "Create Table",
+				SQLType:  schema.SQLVarchar,
+			},
+			Expr: SQLVarchar(createTableSQL),
+		},
+	), nil
 }
 
 func (a *algebrizer) translateShowDatabases(show *parser.Show) (PlanStage, error) {
@@ -172,12 +225,13 @@ func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
 	info := showInfo{
 		dbName:        "INFORMATION_SCHEMA",
 		tableName:     "TABLES",
-		columnNames:   []string{"TABLE_NAME", "TABLE_TYPE", "TABLE_SCHEMA"},
+		columnNames:   []string{"TABLE_NAME", "TABLE_SCHEMA"},
 		columnAliases: []string{columnName},
 		orderBy:       columnName,
 	}
 
 	if strings.EqualFold(show.Modifier, "full") {
+		info.columnNames = append(info.columnNames[:1], append([]string{"TABLE_TYPE"}, info.columnNames[1:]...)...)
 		info.columnAliases = append(info.columnAliases, "Type")
 	}
 
@@ -298,7 +352,9 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 		var projectedColumns ProjectedColumns
 		for _, columnName := range info.columnAliases {
 			c, _ := columns.FindByName(columnName)
-			projectedColumns = append(projectedColumns, c.projectAs(columnName))
+			projectedColumn := c.projectAs(columnName)
+			projectedColumn.SelectID = a.selectID
+			projectedColumns = append(projectedColumns, projectedColumn)
 		}
 		plan = NewProjectStage(plan, projectedColumns...)
 	}

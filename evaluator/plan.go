@@ -96,6 +96,7 @@ func (c *Column) expr() SQLColumnExpr {
 func (c *Column) projectAs(name string) ProjectedColumn {
 	clone := c.clone()
 	clone.Name = name
+	clone.Table = ""
 	return ProjectedColumn{
 		Column: clone,
 		Expr:   c.expr(),

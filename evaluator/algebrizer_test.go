@@ -14,11 +14,13 @@ import (
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 
+	"strings"
+
 	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestAlgebrizeSelect(t *testing.T) {
+func TestAlgebrizeQuery(t *testing.T) {
 
 	testSchema, err := schema.New(testSchema1)
 	if err != nil {
@@ -34,8 +36,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(parser.SelectStatement)
-			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, testVars, testCatalog)
+			actual, err := AlgebrizeQuery(statement, defaultDbName, testVars, testCatalog)
 			So(err, ShouldBeNil)
 
 			expected := expectedPlanFactory()
@@ -54,8 +55,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(parser.SelectStatement)
-			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, vars, testCatalog)
+			actual, err := AlgebrizeQuery(statement, defaultDbName, vars, testCatalog)
 			So(err, ShouldBeNil)
 
 			expected := expectedPlanFactory()
@@ -74,8 +74,7 @@ func TestAlgebrizeSelect(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(parser.SelectStatement)
-			actual, err := AlgebrizeSelect(selectStatement, defaultDbName, testVars, testCatalog)
+			actual, err := AlgebrizeQuery(statement, defaultDbName, testVars, testCatalog)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, message)
 			So(actual, ShouldBeNil)
@@ -111,895 +110,1364 @@ func TestAlgebrizeSelect(t *testing.T) {
 		return reqCols
 	}
 
-	Convey("Subject: Algebrize Select Statements", t, func() {
-		Convey("dual queries", func() {
-			test("select 2 + 3", func() PlanStage {
-				return NewProjectStage(
-					NewDualStage(),
-					createProjectedColumnFromSQLExpr(1, "", "2+3", &SQLAddExpr{
-						left:  SQLInt(2),
-						right: SQLInt(3),
-					}),
-				)
-			})
-
-			test("select false", func() PlanStage {
-				return NewProjectStage(
-					NewDualStage(),
-					createProjectedColumnFromSQLExpr(1, "", "false", SQLFalse),
-				)
-			})
-
-			test("select true", func() PlanStage {
-				return NewProjectStage(
-					NewDualStage(),
-					createProjectedColumnFromSQLExpr(1, "", "true", SQLTrue),
-				)
-			})
-
-			test("select 2 + 3 from dual", func() PlanStage {
-				return NewProjectStage(
-					NewDualStage(),
-					createProjectedColumnFromSQLExpr(1, "", "2+3", &SQLAddExpr{
-						left:  SQLInt(2),
-						right: SQLInt(3),
-					}),
-				)
-			})
-		})
-
-		Convey("from", func() {
-			Convey("subqueries", func() {
-				test("select a from (select a from foo) f", func() PlanStage {
-					source := createMongoSource(2, "foo", "foo")
-					subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "", "a")), 2, "f")
-					return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
-				})
-
-				test("select f.a from (select a from foo) f", func() PlanStage {
-					source := createMongoSource(2, "foo", "foo")
-					subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "", "a")), 2, "f")
-					return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
-				})
-
-				test("select f.a from (select test.a from foo test) f", func() PlanStage {
-					source := createMongoSource(2, "foo", "test")
-					subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "test", "a", "", "a")), 2, "f")
-					return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
-				})
-
-				testVariables("select g.a from (select a from foo) g",
-					&variable.Container{
-						SQLSelectLimit: 5,
-						MongoDBInfo:    testInfo,
-					},
-					func() PlanStage {
-						source := createMongoSource(2, "foo", "foo")
-						subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "", "a")), 2, "g")
-						return NewLimitStage(
-							NewProjectStage(subquery, createProjectedColumn(1, subquery, "g", "a", "", "a")),
-							0,
-							5,
-						)
-					})
-			})
-
-			Convey("joins", func() {
-				test("select foo.a, bar.a from foo, bar", func() PlanStage {
-					fooSource := createMongoSource(1, "foo", "foo")
-					barSource := createMongoSource(1, "bar", "bar")
-					reqCols := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
-					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, reqCols)
-					return NewProjectStage(join,
-						createProjectedColumn(1, join, "foo", "a", "", "a"),
-						createProjectedColumn(1, join, "bar", "a", "", "a"),
-					)
-				})
-
-				test("select f.a, bar.a from foo f, bar", func() PlanStage {
-					fooSource := createMongoSource(1, "foo", "f")
-					barSource := createMongoSource(1, "bar", "bar")
-					reqCols := createReqCols([]PlanStage{fooSource, barSource}, []string{"f.a", "bar.a"}, map[string]int{"f.a": 1, "bar.a": 1})
-					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, reqCols)
-					return NewProjectStage(join,
-						createProjectedColumn(1, join, "f", "a", "", "a"),
-						createProjectedColumn(1, join, "bar", "a", "", "a"),
-					)
-				})
-
-				test("select f.a, b.a from foo f, bar b", func() PlanStage {
-					fooSource := createMongoSource(1, "foo", "f")
-					barSource := createMongoSource(1, "bar", "b")
-					reqCols := createReqCols([]PlanStage{fooSource, barSource}, []string{"f.a", "b.a"}, map[string]int{"f.a": 1, "b.a": 1})
-					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, reqCols)
-					return NewProjectStage(join,
-						createProjectedColumn(1, join, "f", "a", "", "a"),
-						createProjectedColumn(1, join, "b", "a", "", "a"),
-					)
-				})
-
-				test("select foo.a, bar.a from foo inner join bar on foo.b = bar.b", func() PlanStage {
-					fooSource := createMongoSource(1, "foo", "foo")
-					barSource := createMongoSource(1, "bar", "bar")
-					reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
-					reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
-					join := NewJoinStage(InnerJoin, fooSource, barSource,
-						&SQLEqualsExpr{
-							left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
-							right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-						}, append(reqColsJoin, reqColsSelect...))
-					return NewProjectStage(join,
-						createProjectedColumn(1, join, "foo", "a", "", "a"),
-						createProjectedColumn(1, join, "bar", "a", "", "a"),
-					)
-				})
-
-				test("select foo.a, bar.a from foo join bar on foo.b = bar.b", func() PlanStage {
-					fooSource := createMongoSource(1, "foo", "foo")
-					barSource := createMongoSource(1, "bar", "bar")
-					reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
-					reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
-					join := NewJoinStage(InnerJoin, fooSource, barSource,
-						&SQLEqualsExpr{
-							left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
-							right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-						}, append(reqColsJoin, reqColsSelect...))
-					return NewProjectStage(join,
-						createProjectedColumn(1, join, "foo", "a", "", "a"),
-						createProjectedColumn(1, join, "bar", "a", "", "a"),
-					)
-				})
-
-				test("select foo.a, bar.a from foo left outer join bar on foo.b = bar.b", func() PlanStage {
-					fooSource := createMongoSource(1, "foo", "foo")
-					barSource := createMongoSource(1, "bar", "bar")
-					reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
-					reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
-					join := NewJoinStage(LeftJoin, fooSource, barSource,
-						&SQLEqualsExpr{
-							left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
-							right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-						}, append(reqColsJoin, reqColsSelect...))
-					return NewProjectStage(join,
-						createProjectedColumn(1, join, "foo", "a", "", "a"),
-						createProjectedColumn(1, join, "bar", "a", "", "a"),
-					)
-				})
-
-				test("select foo.a, bar.a from foo right outer join bar on foo.b = bar.b", func() PlanStage {
-					fooSource := createMongoSource(1, "foo", "foo")
-					barSource := createMongoSource(1, "bar", "bar")
-					reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
-					reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
-					join := NewJoinStage(RightJoin, fooSource, barSource,
-						&SQLEqualsExpr{
-							left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
-							right: createSQLColumnExprFromSource(barSource, "bar", "b"),
-						}, append(reqColsJoin, reqColsSelect...))
-					return NewProjectStage(join,
-						createProjectedColumn(1, join, "foo", "a", "", "a"),
-						createProjectedColumn(1, join, "bar", "a", "", "a"),
-					)
-				})
-			})
-		})
-
-		Convey("select", func() {
-			Convey("star simple queries", func() {
-				test("select * from foo", func() PlanStage {
-					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "")...)
-				})
-
-				test("select foo.* from foo", func() PlanStage {
-					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "")...)
-				})
-
-				test("select f.* from foo f", func() PlanStage {
-					source := createMongoSource(1, "foo", "f")
-					return NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "")...)
-				})
-
-				test("select a, foo.* from foo", func() PlanStage {
-					source := createMongoSource(1, "foo", "foo")
-					columns := append(
-						ProjectedColumns{createProjectedColumn(1, source, "foo", "a", "", "a")},
-						createAllProjectedColumnsFromSource(1, source, "")...)
-					return NewProjectStage(source, columns...)
-				})
-
-				test("select foo.*, a from foo", func() PlanStage {
-					source := createMongoSource(1, "foo", "foo")
-					columns := append(
-						createAllProjectedColumnsFromSource(1, source, ""),
-						createProjectedColumn(1, source, "foo", "a", "", "a"))
-					return NewProjectStage(source, columns...)
-				})
-
-				test("select a, f.* from foo f", func() PlanStage {
-					source := createMongoSource(1, "foo", "f")
-					columns := append(
-						ProjectedColumns{createProjectedColumn(1, source, "f", "a", "", "a")},
-						createAllProjectedColumnsFromSource(1, source, "")...)
-					return NewProjectStage(source, columns...)
-				})
-
-				test("select * from foo, bar", func() PlanStage {
-					fooSource := createMongoSource(1, "foo", "foo")
-					barSource := createMongoSource(1, "bar", "bar")
-					fooCols := createReqColsStar(fooSource, "foo", 1)
-					barCols := createReqColsStar(barSource, "bar", 1)
-					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, append(fooCols, barCols...))
-					return NewProjectStage(join, createAllProjectedColumnsFromSource(1, join, "")...)
-				})
-
-				test("select foo.*, bar.* from foo, bar", func() PlanStage {
-					fooSource := createMongoSource(1, "foo", "foo")
-					barSource := createMongoSource(1, "bar", "bar")
-					fooCols := createReqColsStar(fooSource, "foo", 1)
-					barCols := createReqColsStar(barSource, "bar", 1)
-					join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, append(fooCols, barCols...))
-					return NewProjectStage(join, createAllProjectedColumnsFromSource(1, join, "")...)
-				})
-			})
-
-			Convey("non-star simple queries", func() {
-				test("select a from foo", func() PlanStage {
-					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(source, createProjectedColumn(1, source, "foo", "a", "", "a"))
-				})
-
-				test("select a from foo f", func() PlanStage {
-					source := createMongoSource(1, "foo", "f")
-					return NewProjectStage(source, createProjectedColumn(1, source, "f", "a", "", "a"))
-				})
-
-				test("select f.a from foo f", func() PlanStage {
-					source := createMongoSource(1, "foo", "f")
-					return NewProjectStage(source, createProjectedColumn(1, source, "f", "a", "", "a"))
-				})
-
-				test("select a as b from foo", func() PlanStage {
-					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(source, createProjectedColumn(1, source, "foo", "a", "", "b"))
-				})
-
-				test("select a + 2 from foo", func() PlanStage {
-					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(source,
-						createProjectedColumnFromSQLExpr(1, "", "a+2",
-							&SQLAddExpr{
-								left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
-								right: SQLInt(2),
-							},
-						),
-					)
-				})
-
-				test("select a + 2 as b from foo", func() PlanStage {
-					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(source,
-						createProjectedColumnFromSQLExpr(1, "", "b",
-							&SQLAddExpr{
-								left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
-								right: SQLInt(2),
-							},
-						),
-					)
-				})
-
-				test("select ASCII(a) from foo", func() PlanStage {
-					source := createMongoSource(1, "foo", "foo")
-					return NewProjectStage(source,
-						createProjectedColumnFromSQLExpr(1, "", "ascii(a)",
-							&SQLScalarFunctionExpr{
-								Name:  "ascii",
-								Exprs: []SQLExpr{NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt)},
-							},
-						),
-					)
-				})
-			})
-
-			Convey("subqueries", func() {
-
-				Convey("non-correlated", func() {
-					test("select a, (select a from bar) from foo", func() PlanStage {
-						fooSource := createMongoSource(1, "foo", "foo")
-						barSource := createMongoSource(2, "bar", "bar")
-						return NewProjectStage(fooSource,
-							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
-							createProjectedColumnFromSQLExpr(1, "", "(select a from bar)",
-								&SQLSubqueryExpr{
-									plan: NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "", "a")),
-								},
-							),
-						)
-					})
-
-					test("select a, (select a from bar) as b from foo", func() PlanStage {
-						fooSource := createMongoSource(1, "foo", "foo")
-						barSource := createMongoSource(2, "bar", "bar")
-						return NewProjectStage(fooSource,
-							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
-							createProjectedColumnFromSQLExpr(1, "", "b",
-								&SQLSubqueryExpr{
-									plan: NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "", "a")),
-								},
-							),
-						)
-					})
-
-					test("select a, (select foo.a from foo, bar) from foo", func() PlanStage {
-						foo1Source := createMongoSource(1, "foo", "foo")
-						foo2Source := createMongoSource(2, "foo", "foo")
-						barSource := createMongoSource(2, "bar", "bar")
-						reqCols := createReqCols([]PlanStage{foo2Source}, []string{"foo.a"}, map[string]int{"foo.a": 2})
-						join := NewJoinStage(CrossJoin, foo2Source, barSource, SQLTrue, reqCols)
-						return NewProjectStage(foo1Source,
-							createProjectedColumn(1, foo1Source, "foo", "a", "", "a"),
-							createProjectedColumnFromSQLExpr(1, "", "(select foo.a from foo, bar)",
-								&SQLSubqueryExpr{
-									plan: NewProjectStage(join, createProjectedColumn(2, join, "foo", "a", "", "a")),
-								},
-							),
-						)
-					})
-
-					test("select exists(select 1 from bar) from foo", func() PlanStage {
-						fooSource := createMongoSource(1, "foo", "foo")
-						barSource := createMongoSource(2, "bar", "bar")
-						return NewProjectStage(fooSource,
-							createProjectedColumnFromSQLExpr(1, "", "exists (select 1 from bar)",
-								&SQLExistsExpr{
-									expr: &SQLSubqueryExpr{
-										plan: NewProjectStage(
-											barSource,
-											createProjectedColumnFromSQLExpr(2, "", "1", SQLInt(1)),
-										),
-									},
-								},
-							),
-						)
-					})
-				})
-
-				Convey("correlated", func() {
-					test("select a, (select foo.a from bar) from foo", func() PlanStage {
-						fooSource := createMongoSource(1, "foo", "foo")
-						barSource := createMongoSource(2, "bar", "bar")
-						return NewProjectStage(
-							fooSource,
-							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
-							createProjectedColumnFromSQLExpr(1, "", "(select foo.a from bar)",
-								&SQLSubqueryExpr{
-									plan:       NewProjectStage(barSource, createProjectedColumn(2, fooSource, "foo", "a", "", "a")),
-									correlated: true,
-								},
-							),
-						)
-					})
-				})
-			})
-
-		})
-
-		Convey("where", func() {
-			test("select a from foo where a", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewFilterStage(source, NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt), reqCols),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
-			})
-
-			test("select a from foo where false", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewFilterStage(source, SQLFalse, reqCols),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
-			})
-
-			test("select a from foo where true", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewFilterStage(source, SQLTrue, reqCols),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
-			})
-
-			test("select a from foo where g = true", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqColsWhere := createReqCols([]PlanStage{source}, []string{"foo.g"}, map[string]int{"foo.g": 1})
-				reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewFilterStage(source,
-						&SQLEqualsExpr{
-							left:  NewSQLColumnExpr(1, "foo", "g", schema.SQLBoolean, schema.MongoBool),
-							right: SQLTrue,
-						},
-						append(reqColsWhere, reqColsSelect...),
+	Convey("Subject: AlgebrizeQuery", t, func() {
+		Convey("Show Statements", func() {
+			isDBName := "INFORMATION_SCHEMA"
+			informationSchemaDB, _ := testCatalog.Database(isDBName)
+			subqueryAliasName := "t"
+			Convey("charset", func() {
+				tbl, _ := informationSchemaDB.Table("CHARACTER_SETS")
+				So(err, ShouldBeNil)
+				source := NewDynamicSourceStage(tbl.(*catalog.DynamicTable), 2, "CHARACTER_SETS")
+				subquery := NewSubquerySourceStage(
+					NewProjectStage(
+						source,
+						createProjectedColumn(2, source, "CHARACTER_SETS", "CHARACTER_SET_NAME", "", "Charset"),
+						createProjectedColumn(2, source, "CHARACTER_SETS", "DESCRIPTION", "", "Description"),
+						createProjectedColumn(2, source, "CHARACTER_SETS", "DEFAULT_COLLATE_NAME", "", "Default collation"),
+						createProjectedColumn(2, source, "CHARACTER_SETS", "MAXLEN", "", "Maxlen"),
 					),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
+					2,
+					subqueryAliasName,
 				)
-			})
-
-			test("select a from foo where a > 10", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewFilterStage(source,
-						&SQLGreaterThanExpr{
-							left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
-							right: SQLInt(10),
-						},
-						reqCols,
-					),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
-			})
-
-			test("select a as b from foo where b > 10", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqColsWhere := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
-				reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewFilterStage(source,
-						&SQLGreaterThanExpr{
-							left:  NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
-							right: SQLInt(10),
-						},
-						append(reqColsWhere, reqColsSelect...),
-					),
-					createProjectedColumn(1, source, "foo", "a", "", "b"),
-				)
-			})
-
-			Convey("subqueries", func() {
-				Convey("correlated", func() {
-					test("select a from foo where (b) = (select b from bar where foo.a = bar.a)", func() PlanStage {
-						fooSource := createMongoSource(1, "foo", "foo")
-						barSource := createMongoSource(2, "bar", "bar")
-						reqColsSelect := createReqCols([]PlanStage{fooSource}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-						reqColsSet := createReqCols([]PlanStage{fooSource}, []string{"foo.b"}, map[string]int{"foo.b": 1})
-						reqColsSub := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a", "bar.b"}, map[string]int{"foo.a": 1, "bar.a": 2, "bar.b": 2})
-						return NewProjectStage(
-							NewFilterStage(
-								fooSource,
-								&SQLEqualsExpr{
-									left: createSQLColumnExprFromSource(fooSource, "foo", "b"),
-									right: &SQLSubqueryExpr{
-										correlated: true,
-										plan: NewProjectStage(
-											NewFilterStage(
-												barSource,
-												&SQLEqualsExpr{
-													left:  createSQLColumnExprFromSource(fooSource, "foo", "a"),
-													right: createSQLColumnExprFromSource(barSource, "bar", "a"),
-												},
-												reqColsSub,
-											),
-											createProjectedColumn(2, barSource, "bar", "b", "", "b"),
-										),
-									},
-								},
-								append(reqColsSet, reqColsSelect...),
-							),
-							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
-						)
-					})
-
-					test("select a from foo f where (b) = (select b from bar where exists(select 1 from foo where f.a = a))", func() PlanStage {
-						fooSource := createMongoSource(1, "foo", "f")
-						barSource := createMongoSource(2, "bar", "bar")
-						foo3Source := createMongoSource(3, "foo", "foo")
-						reqColsSelect := createReqCols([]PlanStage{fooSource}, []string{"f.a"}, map[string]int{"f.a": 1})
-						reqColsSet := createReqCols([]PlanStage{fooSource}, []string{"f.b"}, map[string]int{"f.b": 1})
-						reqColsSub := createReqCols([]PlanStage{barSource}, []string{"bar.b"}, map[string]int{"bar.b": 2})
-						reqColsSub2 := createReqCols([]PlanStage{fooSource, foo3Source}, []string{"foo.a", "f.a"}, map[string]int{"foo.a": 3, "f.a": 1})
-						return NewProjectStage(
-							NewFilterStage(
-								fooSource,
-								&SQLEqualsExpr{
-									left: createSQLColumnExprFromSource(fooSource, "f", "b"),
-									right: &SQLSubqueryExpr{
-										correlated: true,
-										plan: NewProjectStage(
-											NewFilterStage(
-												barSource,
-												&SQLExistsExpr{
-													expr: &SQLSubqueryExpr{
-														correlated: true,
-														plan: NewProjectStage(
-															NewFilterStage(
-																foo3Source,
-																&SQLEqualsExpr{
-																	left:  createSQLColumnExprFromSource(fooSource, "f", "a"),
-																	right: createSQLColumnExprFromSource(foo3Source, "foo", "a"),
-																},
-																reqColsSub2,
-															),
-															createProjectedColumnFromSQLExpr(3, "", "1", SQLInt(1)),
-														),
-													},
-												},
-												append(reqColsSelect, reqColsSub...),
-											),
-											createProjectedColumn(2, barSource, "bar", "b", "", "b"),
-										),
-									},
-								},
-								append(reqColsSet, reqColsSelect...),
-							),
-							createProjectedColumn(1, fooSource, "f", "a", "", "a"),
-						)
-					})
-
-					test("select a from foo where (b) = (select b from bar where exists(select 1 from foo where bar.a = a))", func() PlanStage {
-						fooSource := createMongoSource(1, "foo", "foo")
-						barSource := createMongoSource(2, "bar", "bar")
-						foo3Source := createMongoSource(3, "foo", "foo")
-						reqColsSelect := createReqCols([]PlanStage{fooSource}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-						reqColsSet := createReqCols([]PlanStage{fooSource}, []string{"foo.b"}, map[string]int{"foo.b": 1})
-						reqColsSub := createReqCols([]PlanStage{barSource}, []string{"bar.a", "bar.b"}, map[string]int{"bar.a": 2, "bar.b": 2})
-						reqColsSub2 := createReqCols([]PlanStage{foo3Source}, []string{"foo.a"}, map[string]int{"foo.a": 3})
-						reqColsSub3 := createReqCols([]PlanStage{barSource}, []string{"bar.a"}, map[string]int{"bar.a": 2})
-						return NewProjectStage(
-							NewFilterStage(
-								fooSource,
-								&SQLEqualsExpr{
-									left: createSQLColumnExprFromSource(fooSource, "foo", "b"),
-									right: &SQLSubqueryExpr{
-										correlated: false,
-										plan: NewProjectStage(
-											NewFilterStage(
-												barSource,
-												&SQLExistsExpr{
-													expr: &SQLSubqueryExpr{
-														correlated: true,
-														plan: NewProjectStage(
-															NewFilterStage(
-																foo3Source,
-																&SQLEqualsExpr{
-																	left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
-																	right: createSQLColumnExprFromSource(foo3Source, "foo", "a"),
-																},
-																append(reqColsSub3, reqColsSub2...),
-															),
-															createProjectedColumnFromSQLExpr(3, "", "1", SQLInt(1)),
-														),
-													},
-												},
-												reqColsSub,
-											),
-											createProjectedColumn(2, barSource, "bar", "b", "", "b"),
-										),
-									},
-								},
-								append(reqColsSet, reqColsSelect...),
-							),
-							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
-						)
-					})
-				})
-			})
-		})
-
-		Convey("group by", func() {
-			test("select sum(a) from foo", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
-				return NewProjectStage(
-					NewGroupByStage(source,
-						nil,
-						ProjectedColumns{
-							createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
-								Name:  "sum",
-								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
-							}),
-						},
-						append([]SQLExpr{reqColsSum}, reqColsAgg...),
-					),
-					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-				)
-			})
-
-			test("select sum(a) from foo group by b", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
-				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
-				return NewProjectStage(
-					NewGroupByStage(source,
-						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-						ProjectedColumns{
-							createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
-								Name:  "sum",
-								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
-							}),
-						},
-						append(append([]SQLExpr{reqColsSum}, reqColsGroupBy...), reqColsAgg...),
-					),
-					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-				)
-			})
-
-			test("select a, sum(a) from foo group by b", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
-				reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
-				return NewProjectStage(
-					NewGroupByStage(source,
-						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-						ProjectedColumns{
-							createProjectedColumn(1, source, "foo", "a", "foo", "a"),
-							createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
-								Name:  "sum",
-								Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
-							}),
-						},
-						append(append(reqColsSelect, reqColsSum), reqColsGroupBy...),
-					),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-				)
-			})
-
-			test("select sum(a) from foo group by b order by sum(a)", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
-				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
-				return NewProjectStage(
-					NewOrderByStage(
-						NewGroupByStage(source,
-							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
-									Name:  "sum",
-									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
-								}),
-							},
-							append(append([]SQLExpr{reqColsSum}, reqColsGroupBy...), reqColsAgg...),
-						),
-						[]SQLExpr{reqColsSum},
+				test("show charset", func() PlanStage {
+					return NewOrderByStage(
+						subquery,
+						[]SQLExpr{},
 						&orderByTerm{
-							expr:      NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
 							ascending: true,
 						},
-					),
-					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-				)
-			})
-
-			test("select sum(a) as sum_a from foo group by b order by sum_a", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
-				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
-				return NewProjectStage(
-					NewOrderByStage(
-						NewGroupByStage(source,
-							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
-									Name:  "sum",
-									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
-								}),
+					)
+				})
+				test("show charset like 'n'", func() PlanStage {
+					return NewOrderByStage(
+						NewFilterStage(
+							subquery,
+							&SQLLikeExpr{
+								left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
+								right: SQLVarchar("n"),
 							},
-							append(append([]SQLExpr{reqColsSum}, reqCols...), reqColsAgg...),
+							[]SQLExpr{},
 						),
-						[]SQLExpr{reqColsSum},
+						[]SQLExpr{},
 						&orderByTerm{
-							expr:      NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
 							ascending: true,
 						},
-					),
-					createProjectedColumnFromSQLExpr(1, "", "sum_a", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-				)
-			})
-
-			test("select sum(a) from foo f group by b order by (select c from foo where f.b = b)", func() PlanStage {
-				foo1Source := createMongoSource(1, "foo", "f")
-				foo2Source := createMongoSource(2, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{foo1Source}, []string{"f.b", "f.b"}, map[string]int{"f.a": 1, "f.b": 1})
-				reqColsAgg := createReqCols([]PlanStage{foo1Source}, []string{"f.a"}, map[string]int{"f.a": 1})
-				reqColsSum := NewSQLColumnExpr(1, "", "sum(f.a)", "float64", "")
-				reqColsSub := createReqCols([]PlanStage{foo1Source}, []string{"f.b"}, map[string]int{"f.b": 1})
-				reqColsSub2 := createReqCols([]PlanStage{foo2Source}, []string{"foo.c"}, map[string]int{"foo.c": 2})
-				reqColsWhere := createReqCols([]PlanStage{foo2Source}, []string{"foo.b"}, map[string]int{"foo.b": 2})
-				return NewProjectStage(
-					NewOrderByStage(
-						NewGroupByStage(foo1Source,
-							[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "b")},
-							ProjectedColumns{
-								createProjectedColumn(1, foo1Source, "f", "b", "f", "b"),
-								createProjectedColumnFromSQLExpr(1, "", "sum(f.a)", &SQLAggFunctionExpr{
-									Name:  "sum",
-									Exprs: []SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "a")},
-								}),
+					)
+				})
+				test("show charset where `Charset` = 'n'", func() PlanStage {
+					return NewOrderByStage(
+						NewFilterStage(
+							subquery,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
+								right: SQLVarchar("n"),
 							},
-							append(append([]SQLExpr{reqColsSum}, reqCols...), reqColsAgg...),
+							[]SQLExpr{},
 						),
-						append([]SQLExpr{reqColsSum}, reqColsSub...),
+						[]SQLExpr{},
 						&orderByTerm{
-							expr: &SQLSubqueryExpr{
-								correlated: true,
-								plan: NewProjectStage(
+							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
+							ascending: true,
+						},
+					)
+				})
+			})
+			Convey("collation", func() {
+				tbl, _ := informationSchemaDB.Table("COLLATIONS")
+				So(err, ShouldBeNil)
+				source := NewDynamicSourceStage(tbl.(*catalog.DynamicTable), 2, "COLLATIONS")
+				subquery := NewSubquerySourceStage(
+					NewProjectStage(
+						source,
+						createProjectedColumn(2, source, "COLLATIONS", "COLLATION_NAME", "", "Collation"),
+						createProjectedColumn(2, source, "COLLATIONS", "CHARACTER_SET_NAME", "", "Charset"),
+						createProjectedColumn(2, source, "COLLATIONS", "ID", "", "Id"),
+						createProjectedColumn(2, source, "COLLATIONS", "IS_DEFAULT", "", "Default"),
+						createProjectedColumn(2, source, "COLLATIONS", "IS_COMPILED", "", "Compiled"),
+						createProjectedColumn(2, source, "COLLATIONS", "SORTLEN", "", "Sortlen"),
+					),
+					2,
+					subqueryAliasName,
+				)
+				test("show collation", func() PlanStage {
+					return NewOrderByStage(
+						subquery,
+						[]SQLExpr{},
+						&orderByTerm{
+							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
+							ascending: true,
+						},
+					)
+				})
+				test("show collation like 'n'", func() PlanStage {
+					return NewOrderByStage(
+						NewFilterStage(
+							subquery,
+							&SQLLikeExpr{
+								left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
+								right: SQLVarchar("n"),
+							},
+							[]SQLExpr{},
+						),
+						[]SQLExpr{},
+						&orderByTerm{
+							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
+							ascending: true,
+						},
+					)
+				})
+				test("show collation where `Collation` = 'n'", func() PlanStage {
+					return NewOrderByStage(
+						NewFilterStage(
+							subquery,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
+								right: SQLVarchar("n"),
+							},
+							[]SQLExpr{},
+						),
+						[]SQLExpr{},
+						&orderByTerm{
+							expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
+							ascending: true,
+						},
+					)
+				})
+			})
+			Convey("columns", func() {
+				tbl, _ := informationSchemaDB.Table("COLUMNS")
+				So(err, ShouldBeNil)
+				source := NewDynamicSourceStage(tbl.(*catalog.DynamicTable), 2, "COLUMNS")
+				Convey("plain", func() {
+					subquery := NewSubquerySourceStage(
+						NewProjectStage(
+							source,
+							createProjectedColumn(2, source, "COLUMNS", "COLUMN_NAME", "", "Field"),
+							createProjectedColumn(2, source, "COLUMNS", "COLUMN_TYPE", "", "Type"),
+							createProjectedColumn(2, source, "COLUMNS", "IS_NULLABLE", "", "Null"),
+							createProjectedColumn(2, source, "COLUMNS", "COLUMN_KEY", "", "Key"),
+							createProjectedColumn(2, source, "COLUMNS", "COLUMN_DEFAULT", "", "Default"),
+							createProjectedColumn(2, source, "COLUMNS", "EXTRA", "", "Extra"),
+							createProjectedColumn(2, source, "COLUMNS", "TABLE_NAME", "", "TABLE_NAME"),
+							createProjectedColumn(2, source, "COLUMNS", "TABLE_SCHEMA", "", "TABLE_SCHEMA"),
+							createProjectedColumn(2, source, "COLUMNS", "ORDINAL_POSITION", "", "ORDINAL_POSITION"),
+						),
+						2,
+						subqueryAliasName,
+					)
+					for _, from := range []string{"from foo", "from test.foo", "from foo from test", "in foo in test", "from foo in test", "in foo from test"} {
+						test(fmt.Sprintf("show columns %s", from), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
 									NewFilterStage(
-										foo2Source,
-										&SQLEqualsExpr{
-											left:  createSQLColumnExprFromSource(foo1Source, "f", "b"),
-											right: createSQLColumnExprFromSource(foo2Source, "foo", "b"),
+										subquery,
+										&SQLAndExpr{
+											left: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_NAME"),
+												right: SQLVarchar("foo"),
+											},
+											right: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+												right: SQLVarchar(defaultDbName),
+											},
 										},
-										append(append(reqColsSub, reqColsWhere...), reqColsSub2...),
+										[]SQLExpr{},
 									),
-									createProjectedColumn(2, foo2Source, "foo", "c", "", "c"),
-								),
-							},
-							ascending: true,
-						},
-					),
-					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(f.a)", schema.SQLFloat, schema.MongoNone)),
-				)
-			})
-
-			test("select (select sum(foo.a) from foo as f) from foo group by b", func() PlanStage {
-				foo1Source := createMongoSource(1, "foo", "foo")
-				foo2Source := createMongoSource(2, "foo", "f")
-				reqCols := createReqCols([]PlanStage{foo1Source, foo2Source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
-				reqColsAgg := createReqCols([]PlanStage{foo1Source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
-				return NewProjectStage(
-					NewGroupByStage(foo1Source,
-						[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
-						ProjectedColumns{
-							createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
-								Name: "sum",
-								Exprs: []SQLExpr{
-									createSQLColumnExprFromSource(foo1Source, "foo", "a"),
-								},
-							}),
-						},
-						append(append([]SQLExpr{reqColsSum}, reqCols...), reqColsAgg...),
-					),
-					createProjectedColumnFromSQLExpr(1, "", "(select sum(foo.a) from foo as f)",
-						&SQLSubqueryExpr{
-							correlated: true,
-							plan: NewProjectStage(
-								foo2Source,
-								createProjectedColumnFromSQLExpr(2, "", "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-							),
-						},
-					),
-				)
-			})
-
-			test("select (select sum(f.a + foo.a) from foo f) from foo group by b", func() PlanStage {
-				foo1Source := createMongoSource(1, "foo", "foo")
-				foo2Source := createMongoSource(2, "foo", "f")
-				reqCols := createReqCols([]PlanStage{foo1Source, foo2Source}, []string{"foo.b", "foo.a"}, map[string]int{"foo.b": 1, "foo.a": 1})
-				reqColsAgg1 := createReqCols([]PlanStage{foo2Source}, []string{"f.a"}, map[string]int{"f.a": 2})
-				reqColsAgg2 := createReqCols([]PlanStage{foo1Source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				reqColsSum := NewSQLColumnExpr(2, "", "sum(f.a+foo.a)", "float64", "")
-				return NewProjectStage(
-					NewGroupByStage(foo1Source,
-						[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
-						ProjectedColumns{
-							createProjectedColumn(1, foo1Source, "foo", "a", "foo", "a"),
-						},
-						reqCols,
-					),
-					createProjectedColumnFromSQLExpr(1, "", "(select sum(f.a+foo.a) from foo as f)",
-						&SQLSubqueryExpr{
-							correlated: true,
-							plan: NewProjectStage(
-								NewGroupByStage(
-									foo2Source,
-									nil,
-									ProjectedColumns{
-										createProjectedColumnFromSQLExpr(2, "", "sum(f.a+foo.a)", &SQLAggFunctionExpr{
-											Name: "sum",
-											Exprs: []SQLExpr{&SQLAddExpr{
-												left:  createSQLColumnExprFromSource(foo2Source, "f", "a"),
-												right: createSQLColumnExprFromSource(foo1Source, "foo", "a"),
-											}},
-										}),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "ORDINAL_POSITION"),
+										ascending: true,
 									},
-									append(append([]SQLExpr{reqColsSum}, reqColsAgg1...), reqColsAgg2...),
 								),
-								createProjectedColumnFromSQLExpr(2, "", "sum(f.a+foo.a)", NewSQLColumnExpr(2, "", "sum(f.a+foo.a)", schema.SQLFloat, schema.MongoNone)),
-							),
-						},
-					),
-				)
-			})
-		})
-
-		Convey("having", func() {
-			test("select a from foo group by b having sum(a) > 10", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
-				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
-				return NewProjectStage(
-					NewFilterStage(
-						NewGroupByStage(source,
-							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
-							ProjectedColumns{
-								createProjectedColumn(1, source, "foo", "a", "foo", "a"),
-								createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
-									Name:  "sum",
-									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
-								}),
-							},
-							append(append(reqColsSelect, reqColsGroupBy...), reqColsSum),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Field", "", "Field"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Type", "", "Type"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Null", "", "Null"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Key", "", "Key"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Default", "", "Default"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Extra", "", "Extra"),
+							)
+						})
+						test(fmt.Sprintf("show columns %s like 'n'", from), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
+									NewFilterStage(
+										subquery,
+										&SQLAndExpr{
+											left: &SQLAndExpr{
+												left: &SQLEqualsExpr{
+													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_NAME"),
+													right: SQLVarchar("foo"),
+												},
+												right: &SQLEqualsExpr{
+													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+													right: SQLVarchar(defaultDbName),
+												},
+											},
+											right: &SQLLikeExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Field"),
+												right: SQLVarchar("n"),
+											},
+										},
+										[]SQLExpr{},
+									),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "ORDINAL_POSITION"),
+										ascending: true,
+									},
+								),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Field", "", "Field"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Type", "", "Type"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Null", "", "Null"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Key", "", "Key"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Default", "", "Default"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Extra", "", "Extra"),
+							)
+						})
+						test(fmt.Sprintf("show columns %s where `Field` = 'n'", from), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
+									NewFilterStage(
+										subquery,
+										&SQLAndExpr{
+											left: &SQLAndExpr{
+												left: &SQLEqualsExpr{
+													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_NAME"),
+													right: SQLVarchar("foo"),
+												},
+												right: &SQLEqualsExpr{
+													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+													right: SQLVarchar(defaultDbName),
+												},
+											},
+											right: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Field"),
+												right: SQLVarchar("n"),
+											},
+										},
+										[]SQLExpr{},
+									),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "ORDINAL_POSITION"),
+										ascending: true,
+									},
+								),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Field", "", "Field"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Type", "", "Type"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Null", "", "Null"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Key", "", "Key"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Default", "", "Default"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Extra", "", "Extra"),
+							)
+						})
+					}
+				})
+				Convey("full", func() {
+					subquery := NewSubquerySourceStage(
+						NewProjectStage(
+							source,
+							createProjectedColumn(2, source, "COLUMNS", "COLUMN_NAME", "", "Field"),
+							createProjectedColumn(2, source, "COLUMNS", "COLUMN_TYPE", "", "Type"),
+							createProjectedColumn(2, source, "COLUMNS", "COLLATION_NAME", "", "Collation"),
+							createProjectedColumn(2, source, "COLUMNS", "IS_NULLABLE", "", "Null"),
+							createProjectedColumn(2, source, "COLUMNS", "COLUMN_KEY", "", "Key"),
+							createProjectedColumn(2, source, "COLUMNS", "COLUMN_DEFAULT", "", "Default"),
+							createProjectedColumn(2, source, "COLUMNS", "EXTRA", "", "Extra"),
+							createProjectedColumn(2, source, "COLUMNS", "PRIVILEGES", "", "Privileges"),
+							createProjectedColumn(2, source, "COLUMNS", "COLUMN_COMMENT", "", "Comment"),
+							createProjectedColumn(2, source, "COLUMNS", "TABLE_NAME", "", "TABLE_NAME"),
+							createProjectedColumn(2, source, "COLUMNS", "TABLE_SCHEMA", "", "TABLE_SCHEMA"),
+							createProjectedColumn(2, source, "COLUMNS", "ORDINAL_POSITION", "", "ORDINAL_POSITION"),
 						),
-						&SQLGreaterThanExpr{
-							left:  NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
-							right: SQLInt(10),
-						},
-						append(reqColsSelect, reqColsSum),
-					),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
-			})
-
-			Convey("subqueries", func() {
-				Convey("non-correlated", func() {
-					test("select a from foo having exists(select 1 from bar)", func() PlanStage {
-						fooSource := createMongoSource(1, "foo", "foo")
-						barSource := createMongoSource(2, "bar", "bar")
-						reqCols := createReqCols([]PlanStage{fooSource}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-						return NewProjectStage(
-							NewFilterStage(
-								fooSource,
-								&SQLExistsExpr{
-									expr: &SQLSubqueryExpr{
-										plan: NewProjectStage(
-											barSource,
-											createProjectedColumnFromSQLExpr(2, "", "1", SQLInt(1)),
-										),
+						2,
+						subqueryAliasName,
+					)
+					for _, from := range []string{"from foo", "from test.foo", "from foo from test", "in foo in test", "from foo in test", "in foo from test"} {
+						test(fmt.Sprintf("show full columns %s", from), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
+									NewFilterStage(
+										subquery,
+										&SQLAndExpr{
+											left: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_NAME"),
+												right: SQLVarchar("foo"),
+											},
+											right: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+												right: SQLVarchar(defaultDbName),
+											},
+										},
+										[]SQLExpr{},
+									),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "ORDINAL_POSITION"),
+										ascending: true,
 									},
-								},
-								reqCols,
-							),
-							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
+								),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Field", "", "Field"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Type", "", "Type"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Collation", "", "Collation"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Null", "", "Null"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Key", "", "Key"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Default", "", "Default"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Extra", "", "Extra"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Privileges", "", "Privileges"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Comment", "", "Comment"),
+							)
+						})
+						test(fmt.Sprintf("show full columns %s like 'n'", from), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
+									NewFilterStage(
+										subquery,
+										&SQLAndExpr{
+											left: &SQLAndExpr{
+												left: &SQLEqualsExpr{
+													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_NAME"),
+													right: SQLVarchar("foo"),
+												},
+												right: &SQLEqualsExpr{
+													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+													right: SQLVarchar(defaultDbName),
+												},
+											},
+											right: &SQLLikeExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Field"),
+												right: SQLVarchar("n"),
+											},
+										},
+										[]SQLExpr{},
+									),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "ORDINAL_POSITION"),
+										ascending: true,
+									},
+								),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Field", "", "Field"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Type", "", "Type"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Collation", "", "Collation"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Null", "", "Null"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Key", "", "Key"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Default", "", "Default"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Extra", "", "Extra"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Privileges", "", "Privileges"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Comment", "", "Comment"),
+							)
+						})
+						test(fmt.Sprintf("show full columns %s where `Field` = 'n'", from), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
+									NewFilterStage(
+										subquery,
+										&SQLAndExpr{
+											left: &SQLAndExpr{
+												left: &SQLEqualsExpr{
+													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_NAME"),
+													right: SQLVarchar("foo"),
+												},
+												right: &SQLEqualsExpr{
+													left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+													right: SQLVarchar(defaultDbName),
+												},
+											},
+											right: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Field"),
+												right: SQLVarchar("n"),
+											},
+										},
+										[]SQLExpr{},
+									),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "ORDINAL_POSITION"),
+										ascending: true,
+									},
+								),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Field", "", "Field"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Type", "", "Type"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Collation", "", "Collation"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Null", "", "Null"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Key", "", "Key"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Default", "", "Default"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Extra", "", "Extra"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Privileges", "", "Privileges"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Comment", "", "Comment"),
+							)
+						})
+					}
+				})
+			})
+			Convey("create table", func() {
+				testDB, _ := testCatalog.Database("test")
+				tbl, _ := testDB.Table("foo")
+				createTableSQL := catalog.GenerateCreateTable(tbl)
+				test("show create table foo", func() PlanStage {
+					return NewProjectStage(
+						NewDualStage(),
+						ProjectedColumn{
+							Column: &Column{
+								SelectID: 1,
+								Name:     "Table",
+								SQLType:  schema.SQLVarchar,
+							},
+							Expr: SQLVarchar(string(tbl.Name())),
+						},
+						ProjectedColumn{
+							Column: &Column{
+								SelectID: 1,
+								Name:     "Create Table",
+								SQLType:  schema.SQLVarchar,
+							},
+							Expr: SQLVarchar(createTableSQL),
+						},
+					)
+				})
+				test("show create table .foo", func() PlanStage {
+					return NewProjectStage(
+						NewDualStage(),
+						ProjectedColumn{
+							Column: &Column{
+								SelectID: 1,
+								Name:     "Table",
+								SQLType:  schema.SQLVarchar,
+							},
+							Expr: SQLVarchar(string(tbl.Name())),
+						},
+						ProjectedColumn{
+							Column: &Column{
+								SelectID: 1,
+								Name:     "Create Table",
+								SQLType:  schema.SQLVarchar,
+							},
+							Expr: SQLVarchar(createTableSQL),
+						},
+					)
+				})
+				test("show create table test.foo", func() PlanStage {
+					return NewProjectStage(
+						NewDualStage(),
+						ProjectedColumn{
+							Column: &Column{
+								SelectID: 1,
+								Name:     "Table",
+								SQLType:  schema.SQLVarchar,
+							},
+							Expr: SQLVarchar(string(tbl.Name())),
+						},
+						ProjectedColumn{
+							Column: &Column{
+								SelectID: 1,
+								Name:     "Create Table",
+								SQLType:  schema.SQLVarchar,
+							},
+							Expr: SQLVarchar(createTableSQL),
+						},
+					)
+				})
+			})
+			Convey("databases/schemas", func() {
+				tbl, _ := informationSchemaDB.Table("SCHEMATA")
+				So(err, ShouldBeNil)
+				source := NewDynamicSourceStage(tbl.(*catalog.DynamicTable), 2, "SCHEMATA")
+				subquery := NewSubquerySourceStage(
+					NewProjectStage(
+						source,
+						createProjectedColumn(2, source, "SCHEMATA", "SCHEMA_NAME", "", "Database"),
+					),
+					2,
+					subqueryAliasName,
+				)
+				for _, name := range []string{"databases", "schemas"} {
+					test(fmt.Sprintf("show %s", name), func() PlanStage {
+						return NewOrderByStage(
+							subquery,
+							[]SQLExpr{},
+							&orderByTerm{
+								expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
+								ascending: true,
+							},
 						)
 					})
+					test(fmt.Sprintf("show %s like 'n'", name), func() PlanStage {
+						return NewOrderByStage(
+							NewFilterStage(
+								subquery,
+								&SQLLikeExpr{
+									left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
+									right: SQLVarchar("n"),
+								},
+								[]SQLExpr{},
+							),
+							[]SQLExpr{},
+							&orderByTerm{
+								expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
+								ascending: true,
+							},
+						)
+					})
+					test(fmt.Sprintf("show %s where `Database` = 'n'", name), func() PlanStage {
+						return NewOrderByStage(
+							NewFilterStage(
+								subquery,
+								&SQLEqualsExpr{
+									left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
+									right: SQLVarchar("n"),
+								},
+								[]SQLExpr{},
+							),
+							[]SQLExpr{},
+							&orderByTerm{
+								expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
+								ascending: true,
+							},
+						)
+					})
+				}
+			})
+			Convey("status/variables", func() {
+				for _, kind := range []string{"status", "variables"} {
+					for _, scope := range []string{"", "global", "session"} {
+						actualScope := scope
+						if actualScope == "" {
+							actualScope = "session"
+						}
+						tbl, _ := informationSchemaDB.Table(fmt.Sprintf("%s_%s", actualScope, kind))
+						actualTableName := string(tbl.Name())
+						So(err, ShouldBeNil)
+						source := NewDynamicSourceStage(tbl.(*catalog.DynamicTable), 2, actualTableName)
+						subquery := NewSubquerySourceStage(
+							NewProjectStage(
+								source,
+								createProjectedColumn(2, source, actualTableName, "VARIABLE_NAME", "", "Variable_name"),
+								createProjectedColumn(2, source, actualTableName, "VARIABLE_VALUE", "", "Value"),
+							),
+							2,
+							subqueryAliasName,
+						)
+						showName := strings.TrimSpace(scope + " " + kind)
+						test(fmt.Sprintf("show %s", showName), func() PlanStage {
+							return NewOrderByStage(
+								subquery,
+								[]SQLExpr{},
+								&orderByTerm{
+									expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
+									ascending: true,
+								},
+							)
+						})
+						test(fmt.Sprintf("show %s like 'n'", showName), func() PlanStage {
+							return NewOrderByStage(
+								NewFilterStage(
+									subquery,
+									&SQLLikeExpr{
+										left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
+										right: SQLVarchar("n"),
+									},
+									[]SQLExpr{},
+								),
+								[]SQLExpr{},
+								&orderByTerm{
+									expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
+									ascending: true,
+								},
+							)
+						})
+						test(fmt.Sprintf("show %s where Variable_name = 'n'", showName), func() PlanStage {
+							return NewOrderByStage(
+								NewFilterStage(
+									subquery,
+									&SQLEqualsExpr{
+										left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
+										right: SQLVarchar("n"),
+									},
+									[]SQLExpr{},
+								),
+								[]SQLExpr{},
+								&orderByTerm{
+									expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
+									ascending: true,
+								},
+							)
+						})
+					}
+				}
+			})
+			Convey("tables", func() {
+				tbl, _ := informationSchemaDB.Table("TABLES")
+				So(err, ShouldBeNil)
+				source := NewDynamicSourceStage(tbl.(*catalog.DynamicTable), 2, "TABLES")
+				columnName := "Tables_in_" + defaultDbName
+				Convey("plain", func() {
+					subquery := NewSubquerySourceStage(
+						NewProjectStage(
+							source,
+							createProjectedColumn(2, source, "TABLES", "TABLE_NAME", "", columnName),
+							createProjectedColumn(2, source, "TABLES", "TABLE_SCHEMA", "", "TABLE_SCHEMA"),
+						),
+						2,
+						subqueryAliasName,
+					)
+
+					for _, from := range []string{"", " from test", " in test"} {
+						test(fmt.Sprintf("show tables%s", from), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
+									NewFilterStage(
+										subquery,
+										&SQLEqualsExpr{
+											left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+											right: SQLVarchar("test"),
+										},
+										[]SQLExpr{},
+									),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+										ascending: true,
+									},
+								),
+								createProjectedColumn(1, subquery, subquery.aliasName, columnName, "", columnName),
+							)
+						})
+						test(fmt.Sprintf("show tables%s like 'n'", from), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
+									NewFilterStage(
+										subquery,
+										&SQLAndExpr{
+											left: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+												right: SQLVarchar("test"),
+											},
+											right: &SQLLikeExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+												right: SQLVarchar("n"),
+											},
+										},
+										[]SQLExpr{},
+									),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+										ascending: true,
+									},
+								),
+								createProjectedColumn(1, subquery, subquery.aliasName, columnName, "", columnName),
+							)
+						})
+						test(fmt.Sprintf("show tables%s where `%s` = 'n'", from, columnName), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
+									NewFilterStage(
+										subquery,
+										&SQLAndExpr{
+											left: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+												right: SQLVarchar("test"),
+											},
+											right: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+												right: SQLVarchar("n"),
+											},
+										},
+										[]SQLExpr{},
+									),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+										ascending: true,
+									},
+								),
+								createProjectedColumn(1, subquery, subquery.aliasName, columnName, "", columnName),
+							)
+						})
+					}
+				})
+				Convey("full", func() {
+					subquery := NewSubquerySourceStage(
+						NewProjectStage(
+							source,
+							createProjectedColumn(2, source, "TABLES", "TABLE_NAME", "", columnName),
+							createProjectedColumn(2, source, "TABLES", "TABLE_TYPE", "", "Type"),
+							createProjectedColumn(2, source, "TABLES", "TABLE_SCHEMA", "", "TABLE_SCHEMA"),
+						),
+						2,
+						subqueryAliasName,
+					)
+
+					for _, from := range []string{"", " from test", " in test"} {
+						test(fmt.Sprintf("show full tables%s", from), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
+									NewFilterStage(
+										subquery,
+										&SQLEqualsExpr{
+											left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+											right: SQLVarchar("test"),
+										},
+										[]SQLExpr{},
+									),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+										ascending: true,
+									},
+								),
+								createProjectedColumn(1, subquery, subquery.aliasName, columnName, "", columnName),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Type", "", "Type"),
+							)
+						})
+						test(fmt.Sprintf("show full tables%s like 'n'", from), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
+									NewFilterStage(
+										subquery,
+										&SQLAndExpr{
+											left: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+												right: SQLVarchar("test"),
+											},
+											right: &SQLLikeExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+												right: SQLVarchar("n"),
+											},
+										},
+										[]SQLExpr{},
+									),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+										ascending: true,
+									},
+								),
+								createProjectedColumn(1, subquery, subquery.aliasName, columnName, "", columnName),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Type", "", "Type"),
+							)
+						})
+						test(fmt.Sprintf("show full tables%s where `%s` = 'n'", from, columnName), func() PlanStage {
+							return NewProjectStage(
+								NewOrderByStage(
+									NewFilterStage(
+										subquery,
+										&SQLAndExpr{
+											left: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "TABLE_SCHEMA"),
+												right: SQLVarchar("test"),
+											},
+											right: &SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+												right: SQLVarchar("n"),
+											},
+										},
+										[]SQLExpr{},
+									),
+									[]SQLExpr{},
+									&orderByTerm{
+										expr:      createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+										ascending: true,
+									},
+								),
+								createProjectedColumn(1, subquery, subquery.aliasName, columnName, "", columnName),
+								createProjectedColumn(1, subquery, subquery.aliasName, "Type", "", "Type"),
+							)
+						})
+					}
 				})
 			})
 		})
 
-		Convey("distinct", func() {
-			test("select distinct a from foo", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewGroupByStage(source,
-						[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
-						ProjectedColumns{
-							createProjectedColumn(1, source, "foo", "a", "foo", "a"),
-						},
-						reqCols,
-					),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
+		Convey("Select Statements", func() {
+			Convey("dual queries", func() {
+				test("select 2 + 3", func() PlanStage {
+					return NewProjectStage(
+						NewDualStage(),
+						createProjectedColumnFromSQLExpr(1, "", "2+3", &SQLAddExpr{
+							left:  SQLInt(2),
+							right: SQLInt(3),
+						}),
+					)
+				})
+
+				test("select false", func() PlanStage {
+					return NewProjectStage(
+						NewDualStage(),
+						createProjectedColumnFromSQLExpr(1, "", "false", SQLFalse),
+					)
+				})
+
+				test("select true", func() PlanStage {
+					return NewProjectStage(
+						NewDualStage(),
+						createProjectedColumnFromSQLExpr(1, "", "true", SQLTrue),
+					)
+				})
+
+				test("select 2 + 3 from dual", func() PlanStage {
+					return NewProjectStage(
+						NewDualStage(),
+						createProjectedColumnFromSQLExpr(1, "", "2+3", &SQLAddExpr{
+							left:  SQLInt(2),
+							right: SQLInt(3),
+						}),
+					)
+				})
 			})
 
-			test("select distinct sum(a) from foo", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
-				return NewProjectStage(
-					NewGroupByStage(
+			Convey("from", func() {
+				Convey("subqueries", func() {
+					test("select a from (select a from foo) f", func() PlanStage {
+						source := createMongoSource(2, "foo", "foo")
+						subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "", "a")), 2, "f")
+						return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
+					})
+
+					test("select f.a from (select a from foo) f", func() PlanStage {
+						source := createMongoSource(2, "foo", "foo")
+						subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "", "a")), 2, "f")
+						return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
+					})
+
+					test("select f.a from (select test.a from foo test) f", func() PlanStage {
+						source := createMongoSource(2, "foo", "test")
+						subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "test", "a", "", "a")), 2, "f")
+						return NewProjectStage(subquery, createProjectedColumn(1, subquery, "f", "a", "", "a"))
+					})
+
+					testVariables("select g.a from (select a from foo) g",
+						&variable.Container{
+							SQLSelectLimit: 5,
+							MongoDBInfo:    testInfo,
+						},
+						func() PlanStage {
+							source := createMongoSource(2, "foo", "foo")
+							subquery := NewSubquerySourceStage(NewProjectStage(source, createProjectedColumn(2, source, "foo", "a", "", "a")), 2, "g")
+							return NewLimitStage(
+								NewProjectStage(subquery, createProjectedColumn(1, subquery, "g", "a", "", "a")),
+								0,
+								5,
+							)
+						})
+				})
+
+				Convey("joins", func() {
+					test("select foo.a, bar.a from foo, bar", func() PlanStage {
+						fooSource := createMongoSource(1, "foo", "foo")
+						barSource := createMongoSource(1, "bar", "bar")
+						reqCols := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
+						join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, reqCols)
+						return NewProjectStage(join,
+							createProjectedColumn(1, join, "foo", "a", "", "a"),
+							createProjectedColumn(1, join, "bar", "a", "", "a"),
+						)
+					})
+
+					test("select f.a, bar.a from foo f, bar", func() PlanStage {
+						fooSource := createMongoSource(1, "foo", "f")
+						barSource := createMongoSource(1, "bar", "bar")
+						reqCols := createReqCols([]PlanStage{fooSource, barSource}, []string{"f.a", "bar.a"}, map[string]int{"f.a": 1, "bar.a": 1})
+						join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, reqCols)
+						return NewProjectStage(join,
+							createProjectedColumn(1, join, "f", "a", "", "a"),
+							createProjectedColumn(1, join, "bar", "a", "", "a"),
+						)
+					})
+
+					test("select f.a, b.a from foo f, bar b", func() PlanStage {
+						fooSource := createMongoSource(1, "foo", "f")
+						barSource := createMongoSource(1, "bar", "b")
+						reqCols := createReqCols([]PlanStage{fooSource, barSource}, []string{"f.a", "b.a"}, map[string]int{"f.a": 1, "b.a": 1})
+						join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, reqCols)
+						return NewProjectStage(join,
+							createProjectedColumn(1, join, "f", "a", "", "a"),
+							createProjectedColumn(1, join, "b", "a", "", "a"),
+						)
+					})
+
+					test("select foo.a, bar.a from foo inner join bar on foo.b = bar.b", func() PlanStage {
+						fooSource := createMongoSource(1, "foo", "foo")
+						barSource := createMongoSource(1, "bar", "bar")
+						reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
+						reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
+						join := NewJoinStage(InnerJoin, fooSource, barSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
+								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
+							}, append(reqColsJoin, reqColsSelect...))
+						return NewProjectStage(join,
+							createProjectedColumn(1, join, "foo", "a", "", "a"),
+							createProjectedColumn(1, join, "bar", "a", "", "a"),
+						)
+					})
+
+					test("select foo.a, bar.a from foo join bar on foo.b = bar.b", func() PlanStage {
+						fooSource := createMongoSource(1, "foo", "foo")
+						barSource := createMongoSource(1, "bar", "bar")
+						reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
+						reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
+						join := NewJoinStage(InnerJoin, fooSource, barSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
+								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
+							}, append(reqColsJoin, reqColsSelect...))
+						return NewProjectStage(join,
+							createProjectedColumn(1, join, "foo", "a", "", "a"),
+							createProjectedColumn(1, join, "bar", "a", "", "a"),
+						)
+					})
+
+					test("select foo.a, bar.a from foo left outer join bar on foo.b = bar.b", func() PlanStage {
+						fooSource := createMongoSource(1, "foo", "foo")
+						barSource := createMongoSource(1, "bar", "bar")
+						reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
+						reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
+						join := NewJoinStage(LeftJoin, fooSource, barSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
+								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
+							}, append(reqColsJoin, reqColsSelect...))
+						return NewProjectStage(join,
+							createProjectedColumn(1, join, "foo", "a", "", "a"),
+							createProjectedColumn(1, join, "bar", "a", "", "a"),
+						)
+					})
+
+					test("select foo.a, bar.a from foo right outer join bar on foo.b = bar.b", func() PlanStage {
+						fooSource := createMongoSource(1, "foo", "foo")
+						barSource := createMongoSource(1, "bar", "bar")
+						reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
+						reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
+						join := NewJoinStage(RightJoin, fooSource, barSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
+								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
+							}, append(reqColsJoin, reqColsSelect...))
+						return NewProjectStage(join,
+							createProjectedColumn(1, join, "foo", "a", "", "a"),
+							createProjectedColumn(1, join, "bar", "a", "", "a"),
+						)
+					})
+				})
+			})
+
+			Convey("select", func() {
+				Convey("star simple queries", func() {
+					test("select * from foo", func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						return NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "")...)
+					})
+
+					test("select foo.* from foo", func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						return NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "")...)
+					})
+
+					test("select f.* from foo f", func() PlanStage {
+						source := createMongoSource(1, "foo", "f")
+						return NewProjectStage(source, createAllProjectedColumnsFromSource(1, source, "")...)
+					})
+
+					test("select a, foo.* from foo", func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						columns := append(
+							ProjectedColumns{createProjectedColumn(1, source, "foo", "a", "", "a")},
+							createAllProjectedColumnsFromSource(1, source, "")...)
+						return NewProjectStage(source, columns...)
+					})
+
+					test("select foo.*, a from foo", func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						columns := append(
+							createAllProjectedColumnsFromSource(1, source, ""),
+							createProjectedColumn(1, source, "foo", "a", "", "a"))
+						return NewProjectStage(source, columns...)
+					})
+
+					test("select a, f.* from foo f", func() PlanStage {
+						source := createMongoSource(1, "foo", "f")
+						columns := append(
+							ProjectedColumns{createProjectedColumn(1, source, "f", "a", "", "a")},
+							createAllProjectedColumnsFromSource(1, source, "")...)
+						return NewProjectStage(source, columns...)
+					})
+
+					test("select * from foo, bar", func() PlanStage {
+						fooSource := createMongoSource(1, "foo", "foo")
+						barSource := createMongoSource(1, "bar", "bar")
+						fooCols := createReqColsStar(fooSource, "foo", 1)
+						barCols := createReqColsStar(barSource, "bar", 1)
+						join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, append(fooCols, barCols...))
+						return NewProjectStage(join, createAllProjectedColumnsFromSource(1, join, "")...)
+					})
+
+					test("select foo.*, bar.* from foo, bar", func() PlanStage {
+						fooSource := createMongoSource(1, "foo", "foo")
+						barSource := createMongoSource(1, "bar", "bar")
+						fooCols := createReqColsStar(fooSource, "foo", 1)
+						barCols := createReqColsStar(barSource, "bar", 1)
+						join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue, append(fooCols, barCols...))
+						return NewProjectStage(join, createAllProjectedColumnsFromSource(1, join, "")...)
+					})
+				})
+
+				Convey("non-star simple queries", func() {
+					test("select a from foo", func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						return NewProjectStage(source, createProjectedColumn(1, source, "foo", "a", "", "a"))
+					})
+
+					test("select a from foo f", func() PlanStage {
+						source := createMongoSource(1, "foo", "f")
+						return NewProjectStage(source, createProjectedColumn(1, source, "f", "a", "", "a"))
+					})
+
+					test("select f.a from foo f", func() PlanStage {
+						source := createMongoSource(1, "foo", "f")
+						return NewProjectStage(source, createProjectedColumn(1, source, "f", "a", "", "a"))
+					})
+
+					test("select a as b from foo", func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						return NewProjectStage(source, createProjectedColumn(1, source, "foo", "a", "", "b"))
+					})
+
+					test("select a + 2 from foo", func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						return NewProjectStage(source,
+							createProjectedColumnFromSQLExpr(1, "", "a+2",
+								&SQLAddExpr{
+									left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+									right: SQLInt(2),
+								},
+							),
+						)
+					})
+
+					test("select a + 2 as b from foo", func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						return NewProjectStage(source,
+							createProjectedColumnFromSQLExpr(1, "", "b",
+								&SQLAddExpr{
+									left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+									right: SQLInt(2),
+								},
+							),
+						)
+					})
+
+					test("select ASCII(a) from foo", func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						return NewProjectStage(source,
+							createProjectedColumnFromSQLExpr(1, "", "ascii(a)",
+								&SQLScalarFunctionExpr{
+									Name:  "ascii",
+									Exprs: []SQLExpr{NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt)},
+								},
+							),
+						)
+					})
+				})
+
+				Convey("subqueries", func() {
+
+					Convey("non-correlated", func() {
+						test("select a, (select a from bar) from foo", func() PlanStage {
+							fooSource := createMongoSource(1, "foo", "foo")
+							barSource := createMongoSource(2, "bar", "bar")
+							return NewProjectStage(fooSource,
+								createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
+								createProjectedColumnFromSQLExpr(1, "", "(select a from bar)",
+									&SQLSubqueryExpr{
+										plan: NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "", "a")),
+									},
+								),
+							)
+						})
+
+						test("select a, (select a from bar) as b from foo", func() PlanStage {
+							fooSource := createMongoSource(1, "foo", "foo")
+							barSource := createMongoSource(2, "bar", "bar")
+							return NewProjectStage(fooSource,
+								createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
+								createProjectedColumnFromSQLExpr(1, "", "b",
+									&SQLSubqueryExpr{
+										plan: NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "a", "", "a")),
+									},
+								),
+							)
+						})
+
+						test("select a, (select foo.a from foo, bar) from foo", func() PlanStage {
+							foo1Source := createMongoSource(1, "foo", "foo")
+							foo2Source := createMongoSource(2, "foo", "foo")
+							barSource := createMongoSource(2, "bar", "bar")
+							reqCols := createReqCols([]PlanStage{foo2Source}, []string{"foo.a"}, map[string]int{"foo.a": 2})
+							join := NewJoinStage(CrossJoin, foo2Source, barSource, SQLTrue, reqCols)
+							return NewProjectStage(foo1Source,
+								createProjectedColumn(1, foo1Source, "foo", "a", "", "a"),
+								createProjectedColumnFromSQLExpr(1, "", "(select foo.a from foo, bar)",
+									&SQLSubqueryExpr{
+										plan: NewProjectStage(join, createProjectedColumn(2, join, "foo", "a", "", "a")),
+									},
+								),
+							)
+						})
+
+						test("select exists(select 1 from bar) from foo", func() PlanStage {
+							fooSource := createMongoSource(1, "foo", "foo")
+							barSource := createMongoSource(2, "bar", "bar")
+							return NewProjectStage(fooSource,
+								createProjectedColumnFromSQLExpr(1, "", "exists (select 1 from bar)",
+									&SQLExistsExpr{
+										expr: &SQLSubqueryExpr{
+											plan: NewProjectStage(
+												barSource,
+												createProjectedColumnFromSQLExpr(2, "", "1", SQLInt(1)),
+											),
+										},
+									},
+								),
+							)
+						})
+					})
+
+					Convey("correlated", func() {
+						test("select a, (select foo.a from bar) from foo", func() PlanStage {
+							fooSource := createMongoSource(1, "foo", "foo")
+							barSource := createMongoSource(2, "bar", "bar")
+							return NewProjectStage(
+								fooSource,
+								createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
+								createProjectedColumnFromSQLExpr(1, "", "(select foo.a from bar)",
+									&SQLSubqueryExpr{
+										plan:       NewProjectStage(barSource, createProjectedColumn(2, fooSource, "foo", "a", "", "a")),
+										correlated: true,
+									},
+								),
+							)
+						})
+					})
+				})
+
+			})
+
+			Convey("where", func() {
+				test("select a from foo where a", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewFilterStage(source, NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt), reqCols),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+					)
+				})
+
+				test("select a from foo where false", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewFilterStage(source, SQLFalse, reqCols),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+					)
+				})
+
+				test("select a from foo where true", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewFilterStage(source, SQLTrue, reqCols),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+					)
+				})
+
+				test("select a from foo where g = true", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqColsWhere := createReqCols([]PlanStage{source}, []string{"foo.g"}, map[string]int{"foo.g": 1})
+					reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewFilterStage(source,
+							&SQLEqualsExpr{
+								left:  NewSQLColumnExpr(1, "foo", "g", schema.SQLBoolean, schema.MongoBool),
+								right: SQLTrue,
+							},
+							append(reqColsWhere, reqColsSelect...),
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+					)
+				})
+
+				test("select a from foo where a > 10", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewFilterStage(source,
+							&SQLGreaterThanExpr{
+								left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								right: SQLInt(10),
+							},
+							reqCols,
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+					)
+				})
+
+				test("select a as b from foo where b > 10", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqColsWhere := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+					reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewFilterStage(source,
+							&SQLGreaterThanExpr{
+								left:  NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+								right: SQLInt(10),
+							},
+							append(reqColsWhere, reqColsSelect...),
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "b"),
+					)
+				})
+
+				Convey("subqueries", func() {
+					Convey("correlated", func() {
+						test("select a from foo where (b) = (select b from bar where foo.a = bar.a)", func() PlanStage {
+							fooSource := createMongoSource(1, "foo", "foo")
+							barSource := createMongoSource(2, "bar", "bar")
+							reqColsSelect := createReqCols([]PlanStage{fooSource}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+							reqColsSet := createReqCols([]PlanStage{fooSource}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+							reqColsSub := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a", "bar.b"}, map[string]int{"foo.a": 1, "bar.a": 2, "bar.b": 2})
+							return NewProjectStage(
+								NewFilterStage(
+									fooSource,
+									&SQLEqualsExpr{
+										left: createSQLColumnExprFromSource(fooSource, "foo", "b"),
+										right: &SQLSubqueryExpr{
+											correlated: true,
+											plan: NewProjectStage(
+												NewFilterStage(
+													barSource,
+													&SQLEqualsExpr{
+														left:  createSQLColumnExprFromSource(fooSource, "foo", "a"),
+														right: createSQLColumnExprFromSource(barSource, "bar", "a"),
+													},
+													reqColsSub,
+												),
+												createProjectedColumn(2, barSource, "bar", "b", "", "b"),
+											),
+										},
+									},
+									append(reqColsSet, reqColsSelect...),
+								),
+								createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
+							)
+						})
+
+						test("select a from foo f where (b) = (select b from bar where exists(select 1 from foo where f.a = a))", func() PlanStage {
+							fooSource := createMongoSource(1, "foo", "f")
+							barSource := createMongoSource(2, "bar", "bar")
+							foo3Source := createMongoSource(3, "foo", "foo")
+							reqColsSelect := createReqCols([]PlanStage{fooSource}, []string{"f.a"}, map[string]int{"f.a": 1})
+							reqColsSet := createReqCols([]PlanStage{fooSource}, []string{"f.b"}, map[string]int{"f.b": 1})
+							reqColsSub := createReqCols([]PlanStage{barSource}, []string{"bar.b"}, map[string]int{"bar.b": 2})
+							reqColsSub2 := createReqCols([]PlanStage{fooSource, foo3Source}, []string{"foo.a", "f.a"}, map[string]int{"foo.a": 3, "f.a": 1})
+							return NewProjectStage(
+								NewFilterStage(
+									fooSource,
+									&SQLEqualsExpr{
+										left: createSQLColumnExprFromSource(fooSource, "f", "b"),
+										right: &SQLSubqueryExpr{
+											correlated: true,
+											plan: NewProjectStage(
+												NewFilterStage(
+													barSource,
+													&SQLExistsExpr{
+														expr: &SQLSubqueryExpr{
+															correlated: true,
+															plan: NewProjectStage(
+																NewFilterStage(
+																	foo3Source,
+																	&SQLEqualsExpr{
+																		left:  createSQLColumnExprFromSource(fooSource, "f", "a"),
+																		right: createSQLColumnExprFromSource(foo3Source, "foo", "a"),
+																	},
+																	reqColsSub2,
+																),
+																createProjectedColumnFromSQLExpr(3, "", "1", SQLInt(1)),
+															),
+														},
+													},
+													append(reqColsSelect, reqColsSub...),
+												),
+												createProjectedColumn(2, barSource, "bar", "b", "", "b"),
+											),
+										},
+									},
+									append(reqColsSet, reqColsSelect...),
+								),
+								createProjectedColumn(1, fooSource, "f", "a", "", "a"),
+							)
+						})
+
+						test("select a from foo where (b) = (select b from bar where exists(select 1 from foo where bar.a = a))", func() PlanStage {
+							fooSource := createMongoSource(1, "foo", "foo")
+							barSource := createMongoSource(2, "bar", "bar")
+							foo3Source := createMongoSource(3, "foo", "foo")
+							reqColsSelect := createReqCols([]PlanStage{fooSource}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+							reqColsSet := createReqCols([]PlanStage{fooSource}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+							reqColsSub := createReqCols([]PlanStage{barSource}, []string{"bar.a", "bar.b"}, map[string]int{"bar.a": 2, "bar.b": 2})
+							reqColsSub2 := createReqCols([]PlanStage{foo3Source}, []string{"foo.a"}, map[string]int{"foo.a": 3})
+							reqColsSub3 := createReqCols([]PlanStage{barSource}, []string{"bar.a"}, map[string]int{"bar.a": 2})
+							return NewProjectStage(
+								NewFilterStage(
+									fooSource,
+									&SQLEqualsExpr{
+										left: createSQLColumnExprFromSource(fooSource, "foo", "b"),
+										right: &SQLSubqueryExpr{
+											correlated: false,
+											plan: NewProjectStage(
+												NewFilterStage(
+													barSource,
+													&SQLExistsExpr{
+														expr: &SQLSubqueryExpr{
+															correlated: true,
+															plan: NewProjectStage(
+																NewFilterStage(
+																	foo3Source,
+																	&SQLEqualsExpr{
+																		left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
+																		right: createSQLColumnExprFromSource(foo3Source, "foo", "a"),
+																	},
+																	append(reqColsSub3, reqColsSub2...),
+																),
+																createProjectedColumnFromSQLExpr(3, "", "1", SQLInt(1)),
+															),
+														},
+													},
+													reqColsSub,
+												),
+												createProjectedColumn(2, barSource, "bar", "b", "", "b"),
+											),
+										},
+									},
+									append(reqColsSet, reqColsSelect...),
+								),
+								createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
+							)
+						})
+					})
+				})
+			})
+
+			Convey("group by", func() {
+				test("select sum(a) from foo", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
+					return NewProjectStage(
 						NewGroupByStage(source,
 							nil,
 							ProjectedColumns{
@@ -1010,23 +1478,300 @@ func TestAlgebrizeSelect(t *testing.T) {
 							},
 							append([]SQLExpr{reqColsSum}, reqColsAgg...),
 						),
-						[]SQLExpr{NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
-						ProjectedColumns{
-							createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-						},
-						[]SQLExpr{reqColsSum},
-					),
-					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-				)
+						createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					)
+				})
+
+				test("select sum(a) from foo group by b", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+					reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
+					return NewProjectStage(
+						NewGroupByStage(source,
+							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+							ProjectedColumns{
+								createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
+									Name:  "sum",
+									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+								}),
+							},
+							append(append([]SQLExpr{reqColsSum}, reqColsGroupBy...), reqColsAgg...),
+						),
+						createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					)
+				})
+
+				test("select a, sum(a) from foo group by b", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+					reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
+					return NewProjectStage(
+						NewGroupByStage(source,
+							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+							ProjectedColumns{
+								createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+								createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
+									Name:  "sum",
+									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+								}),
+							},
+							append(append(reqColsSelect, reqColsSum), reqColsGroupBy...),
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+						createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					)
+				})
+
+				test("select sum(a) from foo group by b order by sum(a)", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+					reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
+					return NewProjectStage(
+						NewOrderByStage(
+							NewGroupByStage(source,
+								[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+								ProjectedColumns{
+									createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
+										Name:  "sum",
+										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+									}),
+								},
+								append(append([]SQLExpr{reqColsSum}, reqColsGroupBy...), reqColsAgg...),
+							),
+							[]SQLExpr{reqColsSum},
+							&orderByTerm{
+								expr:      NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+								ascending: true,
+							},
+						),
+						createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					)
+				})
+
+				test("select sum(a) as sum_a from foo group by b order by sum_a", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+					reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
+					return NewProjectStage(
+						NewOrderByStage(
+							NewGroupByStage(source,
+								[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+								ProjectedColumns{
+									createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
+										Name:  "sum",
+										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+									}),
+								},
+								append(append([]SQLExpr{reqColsSum}, reqCols...), reqColsAgg...),
+							),
+							[]SQLExpr{reqColsSum},
+							&orderByTerm{
+								expr:      NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+								ascending: true,
+							},
+						),
+						createProjectedColumnFromSQLExpr(1, "", "sum_a", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					)
+				})
+
+				test("select sum(a) from foo f group by b order by (select c from foo where f.b = b)", func() PlanStage {
+					foo1Source := createMongoSource(1, "foo", "f")
+					foo2Source := createMongoSource(2, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{foo1Source}, []string{"f.b", "f.b"}, map[string]int{"f.a": 1, "f.b": 1})
+					reqColsAgg := createReqCols([]PlanStage{foo1Source}, []string{"f.a"}, map[string]int{"f.a": 1})
+					reqColsSum := NewSQLColumnExpr(1, "", "sum(f.a)", "float64", "")
+					reqColsSub := createReqCols([]PlanStage{foo1Source}, []string{"f.b"}, map[string]int{"f.b": 1})
+					reqColsSub2 := createReqCols([]PlanStage{foo2Source}, []string{"foo.c"}, map[string]int{"foo.c": 2})
+					reqColsWhere := createReqCols([]PlanStage{foo2Source}, []string{"foo.b"}, map[string]int{"foo.b": 2})
+					return NewProjectStage(
+						NewOrderByStage(
+							NewGroupByStage(foo1Source,
+								[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "b")},
+								ProjectedColumns{
+									createProjectedColumn(1, foo1Source, "f", "b", "f", "b"),
+									createProjectedColumnFromSQLExpr(1, "", "sum(f.a)", &SQLAggFunctionExpr{
+										Name:  "sum",
+										Exprs: []SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "a")},
+									}),
+								},
+								append(append([]SQLExpr{reqColsSum}, reqCols...), reqColsAgg...),
+							),
+							append([]SQLExpr{reqColsSum}, reqColsSub...),
+							&orderByTerm{
+								expr: &SQLSubqueryExpr{
+									correlated: true,
+									plan: NewProjectStage(
+										NewFilterStage(
+											foo2Source,
+											&SQLEqualsExpr{
+												left:  createSQLColumnExprFromSource(foo1Source, "f", "b"),
+												right: createSQLColumnExprFromSource(foo2Source, "foo", "b"),
+											},
+											append(append(reqColsSub, reqColsWhere...), reqColsSub2...),
+										),
+										createProjectedColumn(2, foo2Source, "foo", "c", "", "c"),
+									),
+								},
+								ascending: true,
+							},
+						),
+						createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(f.a)", schema.SQLFloat, schema.MongoNone)),
+					)
+				})
+
+				test("select (select sum(foo.a) from foo as f) from foo group by b", func() PlanStage {
+					foo1Source := createMongoSource(1, "foo", "foo")
+					foo2Source := createMongoSource(2, "foo", "f")
+					reqCols := createReqCols([]PlanStage{foo1Source, foo2Source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+					reqColsAgg := createReqCols([]PlanStage{foo1Source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
+					return NewProjectStage(
+						NewGroupByStage(foo1Source,
+							[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
+							ProjectedColumns{
+								createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
+									Name: "sum",
+									Exprs: []SQLExpr{
+										createSQLColumnExprFromSource(foo1Source, "foo", "a"),
+									},
+								}),
+							},
+							append(append([]SQLExpr{reqColsSum}, reqCols...), reqColsAgg...),
+						),
+						createProjectedColumnFromSQLExpr(1, "", "(select sum(foo.a) from foo as f)",
+							&SQLSubqueryExpr{
+								correlated: true,
+								plan: NewProjectStage(
+									foo2Source,
+									createProjectedColumnFromSQLExpr(2, "", "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+								),
+							},
+						),
+					)
+				})
+
+				test("select (select sum(f.a + foo.a) from foo f) from foo group by b", func() PlanStage {
+					foo1Source := createMongoSource(1, "foo", "foo")
+					foo2Source := createMongoSource(2, "foo", "f")
+					reqCols := createReqCols([]PlanStage{foo1Source, foo2Source}, []string{"foo.b", "foo.a"}, map[string]int{"foo.b": 1, "foo.a": 1})
+					reqColsAgg1 := createReqCols([]PlanStage{foo2Source}, []string{"f.a"}, map[string]int{"f.a": 2})
+					reqColsAgg2 := createReqCols([]PlanStage{foo1Source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					reqColsSum := NewSQLColumnExpr(2, "", "sum(f.a+foo.a)", "float64", "")
+					return NewProjectStage(
+						NewGroupByStage(foo1Source,
+							[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
+							ProjectedColumns{
+								createProjectedColumn(1, foo1Source, "foo", "a", "foo", "a"),
+							},
+							reqCols,
+						),
+						createProjectedColumnFromSQLExpr(1, "", "(select sum(f.a+foo.a) from foo as f)",
+							&SQLSubqueryExpr{
+								correlated: true,
+								plan: NewProjectStage(
+									NewGroupByStage(
+										foo2Source,
+										nil,
+										ProjectedColumns{
+											createProjectedColumnFromSQLExpr(2, "", "sum(f.a+foo.a)", &SQLAggFunctionExpr{
+												Name: "sum",
+												Exprs: []SQLExpr{&SQLAddExpr{
+													left:  createSQLColumnExprFromSource(foo2Source, "f", "a"),
+													right: createSQLColumnExprFromSource(foo1Source, "foo", "a"),
+												}},
+											}),
+										},
+										append(append([]SQLExpr{reqColsSum}, reqColsAgg1...), reqColsAgg2...),
+									),
+									createProjectedColumnFromSQLExpr(2, "", "sum(f.a+foo.a)", NewSQLColumnExpr(2, "", "sum(f.a+foo.a)", schema.SQLFloat, schema.MongoNone)),
+								),
+							},
+						),
+					)
+				})
 			})
 
-			test("select distinct sum(a) from foo having sum(a) > 20", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
-				return NewProjectStage(
-					NewGroupByStage(
+			Convey("having", func() {
+				test("select a from foo group by b having sum(a) > 10", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqColsSelect := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					reqColsGroupBy := createReqCols([]PlanStage{source}, []string{"foo.b"}, map[string]int{"foo.b": 1})
+					reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
+					return NewProjectStage(
 						NewFilterStage(
+							NewGroupByStage(source,
+								[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+								ProjectedColumns{
+									createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+									createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
+										Name:  "sum",
+										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+									}),
+								},
+								append(append(reqColsSelect, reqColsGroupBy...), reqColsSum),
+							),
+							&SQLGreaterThanExpr{
+								left:  NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+								right: SQLInt(10),
+							},
+							append(reqColsSelect, reqColsSum),
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+					)
+				})
+
+				Convey("subqueries", func() {
+					Convey("non-correlated", func() {
+						test("select a from foo having exists(select 1 from bar)", func() PlanStage {
+							fooSource := createMongoSource(1, "foo", "foo")
+							barSource := createMongoSource(2, "bar", "bar")
+							reqCols := createReqCols([]PlanStage{fooSource}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+							return NewProjectStage(
+								NewFilterStage(
+									fooSource,
+									&SQLExistsExpr{
+										expr: &SQLSubqueryExpr{
+											plan: NewProjectStage(
+												barSource,
+												createProjectedColumnFromSQLExpr(2, "", "1", SQLInt(1)),
+											),
+										},
+									},
+									reqCols,
+								),
+								createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
+							)
+						})
+					})
+				})
+			})
+
+			Convey("distinct", func() {
+				test("select distinct a from foo", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewGroupByStage(source,
+							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+							ProjectedColumns{
+								createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+							},
+							reqCols,
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+					)
+				})
+
+				test("select distinct sum(a) from foo", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
+					return NewProjectStage(
+						NewGroupByStage(
 							NewGroupByStage(source,
 								nil,
 								ProjectedColumns{
@@ -1037,336 +1782,364 @@ func TestAlgebrizeSelect(t *testing.T) {
 								},
 								append([]SQLExpr{reqColsSum}, reqColsAgg...),
 							),
-							&SQLGreaterThanExpr{
-								left:  NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
-								right: SQLInt(20),
+							[]SQLExpr{NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
+							ProjectedColumns{
+								createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
 							},
 							[]SQLExpr{reqColsSum},
 						),
-						[]SQLExpr{NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
-						ProjectedColumns{
-							createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-						},
-						[]SQLExpr{reqColsSum},
-					),
-					createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
-				)
-			})
-		})
+						createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					)
+				})
 
-		Convey("order by", func() {
-			test("select a from foo order by a", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewOrderByStage(source,
-						reqCols,
-						&orderByTerm{
-							expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
-							ascending: true,
-						},
-					),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
-			})
-
-			test("select a as b from foo order by b", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewOrderByStage(source,
-						reqCols,
-						&orderByTerm{
-							expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
-							ascending: true,
-						},
-					),
-					createProjectedColumn(1, source, "foo", "a", "", "b"),
-				)
+				test("select distinct sum(a) from foo having sum(a) > 20", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqColsAgg := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					reqColsSum := NewSQLColumnExpr(1, "", "sum(foo.a)", "float64", "")
+					return NewProjectStage(
+						NewGroupByStage(
+							NewFilterStage(
+								NewGroupByStage(source,
+									nil,
+									ProjectedColumns{
+										createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", &SQLAggFunctionExpr{
+											Name:  "sum",
+											Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+										}),
+									},
+									append([]SQLExpr{reqColsSum}, reqColsAgg...),
+								),
+								&SQLGreaterThanExpr{
+									left:  NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+									right: SQLInt(20),
+								},
+								[]SQLExpr{reqColsSum},
+							),
+							[]SQLExpr{NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
+							ProjectedColumns{
+								createProjectedColumnFromSQLExpr(1, "", "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+							},
+							[]SQLExpr{reqColsSum},
+						),
+						createProjectedColumnFromSQLExpr(1, "", "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+					)
+				})
 			})
 
-			test("select a from foo order by foo.a", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewOrderByStage(source,
-						reqCols,
-						&orderByTerm{
-							expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
-							ascending: true,
-						},
-					),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
-			})
+			Convey("order by", func() {
+				test("select a from foo order by a", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewOrderByStage(source,
+							reqCols,
+							&orderByTerm{
+								expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								ascending: true,
+							},
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+					)
+				})
 
-			test("select a as b from foo order by foo.a", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewOrderByStage(source,
-						reqCols,
-						&orderByTerm{
-							expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
-							ascending: true,
-						},
-					),
-					createProjectedColumn(1, source, "foo", "a", "", "b"),
-				)
-			})
+				test("select a as b from foo order by b", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewOrderByStage(source,
+							reqCols,
+							&orderByTerm{
+								expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								ascending: true,
+							},
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "b"),
+					)
+				})
 
-			test("select a from foo order by 1", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewOrderByStage(source,
-						reqCols,
-						&orderByTerm{
-							expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
-							ascending: true,
-						},
-					),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
-			})
+				test("select a from foo order by foo.a", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewOrderByStage(source,
+							reqCols,
+							&orderByTerm{
+								expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								ascending: true,
+							},
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+					)
+				})
 
-			test("select * from foo order by 2", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqColsStar(source, "foo", 1)
-				return NewProjectStage(
-					NewOrderByStage(source,
-						reqCols,
-						&orderByTerm{
-							expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
-							ascending: true,
-						},
-					),
-					createAllProjectedColumnsFromSource(1, source, "")...,
-				)
-			})
+				test("select a as b from foo order by foo.a", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewOrderByStage(source,
+							reqCols,
+							&orderByTerm{
+								expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								ascending: true,
+							},
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "b"),
+					)
+				})
 
-			test("select foo.* from foo order by 2", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqColsStar(source, "foo", 1)
-				return NewProjectStage(
-					NewOrderByStage(source,
-						reqCols,
-						&orderByTerm{
-							expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
-							ascending: true,
-						},
-					),
-					createAllProjectedColumnsFromSource(1, source, "")...,
-				)
-			})
+				test("select a from foo order by 1", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewOrderByStage(source,
+							reqCols,
+							&orderByTerm{
+								expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								ascending: true,
+							},
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+					)
+				})
 
-			test("select foo.*, foo.a from foo order by 2", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqColsStar(source, "foo", 1)
-				columns := append(createAllProjectedColumnsFromSource(1, source, ""), createProjectedColumn(1, source, "foo", "a", "", "a"))
-				return NewProjectStage(
-					NewOrderByStage(source,
-						reqCols,
-						&orderByTerm{
-							expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
-							ascending: true,
-						},
-					),
-					columns...,
-				)
-			})
+				test("select * from foo order by 2", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqColsStar(source, "foo", 1)
+					return NewProjectStage(
+						NewOrderByStage(source,
+							reqCols,
+							&orderByTerm{
+								expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+								ascending: true,
+							},
+						),
+						createAllProjectedColumnsFromSource(1, source, "")...,
+					)
+				})
 
-			test("select a from foo order by -1", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
-				return NewProjectStage(
-					NewOrderByStage(source,
-						reqCols,
-						&orderByTerm{
-							expr:      SQLInt(-1),
-							ascending: true,
-						},
-					),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
-			})
+				test("select foo.* from foo order by 2", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqColsStar(source, "foo", 1)
+					return NewProjectStage(
+						NewOrderByStage(source,
+							reqCols,
+							&orderByTerm{
+								expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+								ascending: true,
+							},
+						),
+						createAllProjectedColumnsFromSource(1, source, "")...,
+					)
+				})
 
-			test("select a + b as c from foo order by c - b", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				reqCols := createReqCols([]PlanStage{source}, []string{"foo.a", "foo.b"}, map[string]int{"foo.a": 1, "foo.b": 1})
-				return NewProjectStage(
-					NewOrderByStage(source,
-						reqCols,
-						&orderByTerm{
-							expr: &SQLSubtractExpr{
-								left: &SQLAddExpr{
-									left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+				test("select foo.*, foo.a from foo order by 2", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqColsStar(source, "foo", 1)
+					columns := append(createAllProjectedColumnsFromSource(1, source, ""), createProjectedColumn(1, source, "foo", "a", "", "a"))
+					return NewProjectStage(
+						NewOrderByStage(source,
+							reqCols,
+							&orderByTerm{
+								expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+								ascending: true,
+							},
+						),
+						columns...,
+					)
+				})
+
+				test("select a from foo order by -1", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a"}, map[string]int{"foo.a": 1})
+					return NewProjectStage(
+						NewOrderByStage(source,
+							reqCols,
+							&orderByTerm{
+								expr:      SQLInt(-1),
+								ascending: true,
+							},
+						),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
+					)
+				})
+
+				test("select a + b as c from foo order by c - b", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					reqCols := createReqCols([]PlanStage{source}, []string{"foo.a", "foo.b"}, map[string]int{"foo.a": 1, "foo.b": 1})
+					return NewProjectStage(
+						NewOrderByStage(source,
+							reqCols,
+							&orderByTerm{
+								expr: &SQLSubtractExpr{
+									left: &SQLAddExpr{
+										left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+										right: NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+									},
 									right: NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
 								},
+								ascending: true,
+							},
+						),
+						createProjectedColumnFromSQLExpr(1, "", "c",
+							&SQLAddExpr{
+								left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
 								right: NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
 							},
-							ascending: true,
-						},
-					),
-					createProjectedColumnFromSQLExpr(1, "", "c",
-						&SQLAddExpr{
-							left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
-							right: NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
-						},
-					),
-				)
-			})
-
-			Convey("subqueries", func() {
-				Convey("non-correlated", func() {
-					test("select a from foo order by (select a from bar)", func() PlanStage {
-						fooSource := createMongoSource(1, "foo", "foo")
-						barSource := createMongoSource(2, "bar", "bar")
-						reqCols := createReqCols([]PlanStage{fooSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 2})
-						return NewProjectStage(
-							NewOrderByStage(
-								fooSource,
-								reqCols,
-								&orderByTerm{
-									expr: &SQLSubqueryExpr{
-										plan: NewProjectStage(
-											barSource,
-											createProjectedColumn(2, barSource, "bar", "a", "", "a"),
-										),
-									},
-									ascending: true,
-								},
-							),
-							createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
-						)
-					})
-				})
-
-			})
-		})
-
-		Convey("limit", func() {
-			test("select a from foo limit 10", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				return NewProjectStage(
-					NewLimitStage(source, 0, 10),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
-			})
-
-			test("select a from foo limit 10, 20", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				return NewProjectStage(
-					NewLimitStage(source, 10, 20),
-					createProjectedColumn(1, source, "foo", "a", "", "a"),
-				)
-			})
-
-			test("select a from foo limit 10,0", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				return NewEmptyStage([]*Column{
-					createProjectedColumn(1, source, "foo", "a", "", "a").Column,
-				}, collation.Default)
-			})
-
-			test("select a from foo limit 0, 0", func() PlanStage {
-				source := createMongoSource(1, "foo", "foo")
-				return NewEmptyStage([]*Column{
-					createProjectedColumn(1, source, "foo", "a", "", "a").Column,
-				}, collation.Default)
-			})
-
-			testVariables("select a from foo",
-				&variable.Container{
-					SQLSelectLimit: 10,
-					MongoDBInfo:    testInfo,
-				},
-				func() PlanStage {
-					source := createMongoSource(1, "foo", "foo")
-					return NewLimitStage(
-						NewProjectStage(
-							source,
-							createProjectedColumn(1, source, "foo", "a", "", "a"),
 						),
-						0,
-						10,
 					)
 				})
 
-			testVariables("select b from foo",
-				&variable.Container{
-					SQLSelectLimit: 18446744073709551615,
-					MongoDBInfo:    testInfo,
-				},
-				func() PlanStage {
+				Convey("subqueries", func() {
+					Convey("non-correlated", func() {
+						test("select a from foo order by (select a from bar)", func() PlanStage {
+							fooSource := createMongoSource(1, "foo", "foo")
+							barSource := createMongoSource(2, "bar", "bar")
+							reqCols := createReqCols([]PlanStage{fooSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 2})
+							return NewProjectStage(
+								NewOrderByStage(
+									fooSource,
+									reqCols,
+									&orderByTerm{
+										expr: &SQLSubqueryExpr{
+											plan: NewProjectStage(
+												barSource,
+												createProjectedColumn(2, barSource, "bar", "a", "", "a"),
+											),
+										},
+										ascending: true,
+									},
+								),
+								createProjectedColumn(1, fooSource, "foo", "a", "", "a"),
+							)
+						})
+					})
+
+				})
+			})
+
+			Convey("limit", func() {
+				test("select a from foo limit 10", func() PlanStage {
 					source := createMongoSource(1, "foo", "foo")
 					return NewProjectStage(
-						source,
-						createProjectedColumn(1, source, "foo", "b", "", "b"),
+						NewLimitStage(source, 0, 10),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
 					)
 				})
 
-			testVariables("select b from foo limit 10, 20",
-				&variable.Container{
-					SQLSelectLimit: 5,
-					MongoDBInfo:    testInfo,
-				},
-				func() PlanStage {
+				test("select a from foo limit 10, 20", func() PlanStage {
 					source := createMongoSource(1, "foo", "foo")
 					return NewProjectStage(
 						NewLimitStage(source, 10, 20),
-						createProjectedColumn(1, source, "foo", "b", "", "b"),
+						createProjectedColumn(1, source, "foo", "a", "", "a"),
 					)
 				})
 
-		})
+				test("select a from foo limit 10,0", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					return NewEmptyStage([]*Column{
+						createProjectedColumn(1, source, "foo", "a", "", "a").Column,
+					}, collation.Default)
+				})
 
-		Convey("errors", func() {
-			testError("select a", `ERROR 1054 (42S22): Unknown column 'a' in 'field list'`)
+				test("select a from foo limit 0, 0", func() PlanStage {
+					source := createMongoSource(1, "foo", "foo")
+					return NewEmptyStage([]*Column{
+						createProjectedColumn(1, source, "foo", "a", "", "a").Column,
+					}, collation.Default)
+				})
 
-			testError("select a from idk", `ERROR 1146 (42S02): Table 'test.idk' doesn't exist`)
-			testError("select idk from foo", `ERROR 1054 (42S22): Unknown column 'idk' in 'field list'`)
-			testError("select f.a from foo", `ERROR 1054 (42S22): Unknown column 'f.a' in 'field list'`)
-			testError("select foo.a from foo f", `ERROR 1054 (42S22): Unknown column 'foo.a' in 'field list'`)
-			testError("select a + idk from foo", `ERROR 1054 (42S22): Unknown column 'idk' in 'field list'`)
+				testVariables("select a from foo",
+					&variable.Container{
+						SQLSelectLimit: 10,
+						MongoDBInfo:    testInfo,
+					},
+					func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						return NewLimitStage(
+							NewProjectStage(
+								source,
+								createProjectedColumn(1, source, "foo", "a", "", "a"),
+							),
+							0,
+							10,
+						)
+					})
 
-			testError("select a, * from foo", `ERROR 1149 (42000): Cannot have a '*' in conjunction with any other columns`)
-			testError("select *, * from foo", `ERROR 1149 (42000): Cannot have a '*' in conjunction with any other columns`)
-			testError("select *, a from foo", `ERROR 1149 (42000): Cannot have a '*' in conjunction with any other columns`)
+				testVariables("select b from foo",
+					&variable.Container{
+						SQLSelectLimit: 18446744073709551615,
+						MongoDBInfo:    testInfo,
+					},
+					func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						return NewProjectStage(
+							source,
+							createProjectedColumn(1, source, "foo", "b", "", "b"),
+						)
+					})
 
-			testError("select a from foo, bar", `ERROR 1052 (23000): Column 'a' in field list is ambiguous`)
-			testError("select foo.a from foo f, bar b", `ERROR 1054 (42S22): Unknown column 'foo.a' in 'field list'`)
-			testError("select f.a, * from foo f, bar b", `ERROR 1149 (42000): Cannot have a '*' in conjunction with any other columns`)
-			testError("select a from foo f, bar b", `ERROR 1052 (23000): Column 'a' in field list is ambiguous`)
-			testError("select a, b as a from foo order by a", `ERROR 1052 (23000): Column 'a' in order clause is ambiguous`)
+				testVariables("select b from foo limit 10, 20",
+					&variable.Container{
+						SQLSelectLimit: 5,
+						MongoDBInfo:    testInfo,
+					},
+					func() PlanStage {
+						source := createMongoSource(1, "foo", "foo")
+						return NewProjectStage(
+							NewLimitStage(source, 10, 20),
+							createProjectedColumn(1, source, "foo", "b", "", "b"),
+						)
+					})
 
-			testError("select (select a, b from foo) from foo", `ERROR 1241 (21000): Operand should contain 1 column(s)`)
-			testError("select * from (select a, b as a from foo) f", `ERROR 1060 (42S21): Duplicate column name 'f.a'`)
-			testError("select foo.a from (select a from foo)", `ERROR 1248 (42000): Every derived table must have its own alias`)
+			})
 
-			testError("select a from foo limit -10", `ERROR 1149 (42000): Rowcount cannot be negative`)
-			testError("select a from foo limit -10, 20", `ERROR 1149 (42000): Offset cannot be negative`)
-			testError("select a from foo limit -10, -20", `ERROR 1149 (42000): Offset cannot be negative`)
-			testError("select a from foo limit b", `ERROR 1691 (HY000): A variable of a non-integer based type in LIMIT clause`)
-			testError("select a from foo limit 'c'", `ERROR 1691 (HY000): A variable of a non-integer based type in LIMIT clause`)
+			Convey("errors", func() {
+				testError("select a", `ERROR 1054 (42S22): Unknown column 'a' in 'field list'`)
 
-			testError("select a from foo, (select * from (select * from bar where foo.b = b) asdf) wegqweg", `ERROR 1054 (42S22): Unknown column 'foo.b' in 'where clause'`)
-			testError("select a from foo where sum(a) = 10", `ERROR 1111 (HY000): Invalid use of group function`)
+				testError("select a from idk", `ERROR 1146 (42S02): Table 'test.idk' doesn't exist`)
+				testError("select idk from foo", `ERROR 1054 (42S22): Unknown column 'idk' in 'field list'`)
+				testError("select f.a from foo", `ERROR 1054 (42S22): Unknown column 'f.a' in 'field list'`)
+				testError("select foo.a from foo f", `ERROR 1054 (42S22): Unknown column 'foo.a' in 'field list'`)
+				testError("select a + idk from foo", `ERROR 1054 (42S22): Unknown column 'idk' in 'field list'`)
 
-			testError("select a from foo order by 2", `ERROR 1054 (42S22): Unknown column '2' in 'order clause'`)
-			testError("select a from foo order by idk", `ERROR 1054 (42S22): Unknown column 'idk' in 'order clause'`)
+				testError("select a, * from foo", `ERROR 1149 (42000): Cannot have a '*' in conjunction with any other columns`)
+				testError("select *, * from foo", `ERROR 1149 (42000): Cannot have a '*' in conjunction with any other columns`)
+				testError("select *, a from foo", `ERROR 1149 (42000): Cannot have a '*' in conjunction with any other columns`)
 
-			testError("select sum(a) from foo group by sum(a)", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
-			testError("select sum(a) from foo group by (a + sum(a))", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
-			testError("select sum(a) from foo group by 1", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
-			testError("select a+sum(a) from foo group by 1", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
-			testError("select sum(a) from foo group by 2", `ERROR 1054 (42S22): Unknown column '2' in 'group clause'`)
+				testError("select a from foo, bar", `ERROR 1052 (23000): Column 'a' in field list is ambiguous`)
+				testError("select foo.a from foo f, bar b", `ERROR 1054 (42S22): Unknown column 'foo.a' in 'field list'`)
+				testError("select f.a, * from foo f, bar b", `ERROR 1149 (42000): Cannot have a '*' in conjunction with any other columns`)
+				testError("select a from foo f, bar b", `ERROR 1052 (23000): Column 'a' in field list is ambiguous`)
+				testError("select a, b as a from foo order by a", `ERROR 1052 (23000): Column 'a' in order clause is ambiguous`)
 
-			testError("select a from foo, foo", `ERROR 1066 (42000): Not unique table/alias: 'foo'`)
-			testError("select a from foo as bar, bar", `ERROR 1066 (42000): Not unique table/alias: 'bar'`)
-			testError("select a from foo as g, foo as g", `ERROR 1066 (42000): Not unique table/alias: 'g'`)
+				testError("select (select a, b from foo) from foo", `ERROR 1241 (21000): Operand should contain 1 column(s)`)
+				testError("select * from (select a, b as a from foo) f", `ERROR 1060 (42S21): Duplicate column name 'f.a'`)
+				testError("select foo.a from (select a from foo)", `ERROR 1248 (42000): Every derived table must have its own alias`)
 
-			testError("select a from foo left outer join bar where a = 10", `ERROR 1064 (42000): A left join requires criteria`)
+				testError("select a from foo limit -10", `ERROR 1149 (42000): Rowcount cannot be negative`)
+				testError("select a from foo limit -10, 20", `ERROR 1149 (42000): Offset cannot be negative`)
+				testError("select a from foo limit -10, -20", `ERROR 1149 (42000): Offset cannot be negative`)
+				testError("select a from foo limit b", `ERROR 1691 (HY000): A variable of a non-integer based type in LIMIT clause`)
+				testError("select a from foo limit 'c'", `ERROR 1691 (HY000): A variable of a non-integer based type in LIMIT clause`)
+
+				testError("select a from foo, (select * from (select * from bar where foo.b = b) asdf) wegqweg", `ERROR 1054 (42S22): Unknown column 'foo.b' in 'where clause'`)
+				testError("select a from foo where sum(a) = 10", `ERROR 1111 (HY000): Invalid use of group function`)
+
+				testError("select a from foo order by 2", `ERROR 1054 (42S22): Unknown column '2' in 'order clause'`)
+				testError("select a from foo order by idk", `ERROR 1054 (42S22): Unknown column 'idk' in 'order clause'`)
+
+				testError("select sum(a) from foo group by sum(a)", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
+				testError("select sum(a) from foo group by (a + sum(a))", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
+				testError("select sum(a) from foo group by 1", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
+				testError("select a+sum(a) from foo group by 1", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
+				testError("select sum(a) from foo group by 2", `ERROR 1054 (42S22): Unknown column '2' in 'group clause'`)
+
+				testError("select a from foo, foo", `ERROR 1066 (42000): Not unique table/alias: 'foo'`)
+				testError("select a from foo as bar, bar", `ERROR 1066 (42000): Not unique table/alias: 'bar'`)
+				testError("select a from foo as g, foo as g", `ERROR 1066 (42000): Not unique table/alias: 'g'`)
+
+				testError("select a from foo left outer join bar where a = 10", `ERROR 1064 (42000): A left join requires criteria`)
+			})
 		})
 	})
 }
@@ -1539,8 +2312,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 			statement, err := parser.Parse("select " + sql + " from foo")
 			So(err, ShouldBeNil)
 
-			selectStatement := statement.(*parser.Select)
-			actualPlan, err := AlgebrizeSelect(selectStatement, "test", testVars, testCatalog)
+			actualPlan, err := AlgebrizeQuery(statement, "test", testVars, testCatalog)
 			So(err, ShouldBeNil)
 
 			actual := (actualPlan.(*ProjectStage)).projectedColumns[0].Expr

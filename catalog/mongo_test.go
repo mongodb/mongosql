@@ -9,40 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var testSchema = []byte(`
-schema:
-- db: test
-  tables:
-  - table: foo
-    collection: fooCollection
-    pipeline:
-    - $unwind:
-        includeArrayIndex: a_idx
-        path: "$a"
-    - $unwind:
-        includeArrayIndex: a_idx_1
-        path: "$a"
-    columns:
-    - Name: _id
-      MongoType: bson.ObjectId
-      SqlType: varchar
-      SqlName: id
-    - Name: a
-      MongoType: int
-      SqlType: int
-      SqlName: value
-    - Name: a_idx
-      MongoType: int
-      SqlType: int
-      SqlName: idx1
-    - Name: a_idx_1
-      MongoType: int
-      SqlType: int
-      SqlName: idx2
-`)
-
 func TestMongoTable(t *testing.T) {
-
 	config := schema.Must(schema.New(testSchema))
 	tblConfig := config.Databases[0].Tables[0]
 
