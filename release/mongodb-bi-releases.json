@@ -1,0 +1,117 @@
+{
+   "current": true,
+   "date": "DATE",
+   "development_release": DEV-RELEASE,
+   "githash": "GITHASH",
+   "notes": "https://docs.mongodb.com/bi-connector/master/release-notes",
+   "production_release": PROD-RELEASE,
+   "release_candidate": RC-CANDIDATE,
+   "version": "VERSION",
+   "downloads": [
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/LINUX-64-AMAZON-AMI"
+         },
+         "edition": "enterprise",
+         "target": "amzn"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/OSX"
+         },
+         "edition": "enterprise",
+         "target": "osx"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/WINDOWS-64"
+         },
+         "edition": "enterprise",
+         "target": "windows_x86_64"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/UBUNTU1404-64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "ubuntu1404"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL62"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel62"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL70"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel70"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/DEBIAN71"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "debian71"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/DEBIAN81"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "debian81"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SUSE11-64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "suse11"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SUSE12-64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "suse12"
+      },
+      {
+         "arch": "ppc64le",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL-71-PPC64LE"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel71"
+      },
+      {
+         "arch": "s390x",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL-72-S390X"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel72"
+      }
+   ]
+}
