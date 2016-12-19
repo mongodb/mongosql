@@ -145,8 +145,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 						NewFilterStage(
 							subquery,
 							&SQLLikeExpr{
-								left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
-								right: SQLVarchar("n"),
+								left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, "Charset"),
+								right:  SQLVarchar("n"),
+								escape: SQLVarchar("\\"),
 							},
 							[]SQLExpr{},
 						),
@@ -207,8 +208,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 						NewFilterStage(
 							subquery,
 							&SQLLikeExpr{
-								left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
-								right: SQLVarchar("n"),
+								left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, "Collation"),
+								right:  SQLVarchar("n"),
+								escape: SQLVarchar("\\"),
 							},
 							[]SQLExpr{},
 						),
@@ -307,8 +309,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 												},
 											},
 											right: &SQLLikeExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Field"),
-												right: SQLVarchar("n"),
+												left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, "Field"),
+												right:  SQLVarchar("n"),
+												escape: SQLVarchar("\\"),
 											},
 										},
 										[]SQLExpr{},
@@ -438,8 +441,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 												},
 											},
 											right: &SQLLikeExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Field"),
-												right: SQLVarchar("n"),
+												left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, "Field"),
+												right:  SQLVarchar("n"),
+												escape: SQLVarchar("\\"),
 											},
 										},
 										[]SQLExpr{},
@@ -600,8 +604,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 							NewFilterStage(
 								subquery,
 								&SQLLikeExpr{
-									left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
-									right: SQLVarchar("n"),
+									left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, "Database"),
+									right:  SQLVarchar("n"),
+									escape: SQLVarchar("\\"),
 								},
 								[]SQLExpr{},
 							),
@@ -667,8 +672,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 								NewFilterStage(
 									subquery,
 									&SQLLikeExpr{
-										left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
-										right: SQLVarchar("n"),
+										left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, "Variable_name"),
+										right:  SQLVarchar("n"),
+										escape: SQLVarchar("\\"),
 									},
 									[]SQLExpr{},
 								),
@@ -747,8 +753,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 												right: SQLVarchar("test"),
 											},
 											right: &SQLLikeExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-												right: SQLVarchar("n"),
+												left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+												right:  SQLVarchar("n"),
+												escape: SQLVarchar("\\"),
 											},
 										},
 										[]SQLExpr{},
@@ -835,8 +842,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 												right: SQLVarchar("test"),
 											},
 											right: &SQLLikeExpr{
-												left:  createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
-												right: SQLVarchar("n"),
+												left:   createSQLColumnExprFromSource(subquery, subquery.aliasName, columnName),
+												right:  SQLVarchar("n"),
+												escape: SQLVarchar("\\"),
 											},
 										},
 										[]SQLExpr{},

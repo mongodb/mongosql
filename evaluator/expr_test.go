@@ -577,6 +577,10 @@ func TestEvaluates(t *testing.T) {
 				test{"NULL LIKE NULL", SQLNull},
 				test{"'David_' LIKE 'David\\_'", SQLTrue},
 				test{"'David%' LIKE 'David\\%'", SQLTrue},
+				test{"'David_' LIKE 'David|_' ESCAPE '|'", SQLTrue},
+				test{"'David\\_' LIKE 'David\\_' ESCAPE ''", SQLTrue},
+				test{"'David_' LIKE 'David\\_' ESCAPE char(92)", SQLTrue},
+				test{"'David_' LIKE 'David|_' {escape '|'}", SQLTrue},
 			}
 			runTests(evalCtx, tests)
 		})
@@ -2382,7 +2386,7 @@ func TestEvaluates(t *testing.T) {
 func TestSQLLikeExprConvertToPattern(t *testing.T) {
 	test := func(syntax, expected string) {
 		Convey(fmt.Sprintf("XXX LIKE '%s' should convert to pattern '%s'", syntax, expected), func() {
-			pattern := convertSQLValueToPattern(SQLVarchar(syntax))
+			pattern := convertSQLValueToPattern(SQLVarchar(syntax), '\\')
 			So(pattern, ShouldEqual, expected)
 		})
 	}

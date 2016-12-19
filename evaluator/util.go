@@ -22,7 +22,6 @@ const (
 	sqlOpGTE   = ">="
 	sqlOpLT    = "<"
 	sqlOpLTE   = "<="
-	sqlOpLike  = "like"
 	sqlOpIn    = "in"
 	sqlOpNotIn = "not in"
 )
@@ -50,8 +49,6 @@ func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 		return &SQLGreaterThanOrEqualExpr{left, right}, nil
 	case sqlOpNEQ:
 		return &SQLNotEqualsExpr{left, right}, nil
-	case sqlOpLike:
-		return &SQLLikeExpr{left, right}, nil
 	case sqlOpNSE:
 		return &SQLNullSafeEqualsExpr{left, right}, nil
 	case sqlOpIn:

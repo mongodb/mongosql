@@ -907,7 +907,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		return a.resolveColumnExpr(tableName, columnName)
 	case *parser.ComparisonExpr:
 
-		reconcile := typedE.Operator != parser.AST_LIKE && typedE.Operator != parser.AST_IS && typedE.Operator != parser.AST_IS_NOT
+		reconcile := typedE.Operator != parser.AST_IS && typedE.Operator != parser.AST_IS_NOT
 
 		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, reconcile)
 		if err != nil {
@@ -983,6 +983,29 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		return a.translateFuncExpr(typedE)
 	case parser.KeywordVal:
 		return SQLVarchar(string(typedE)), nil
+	case *parser.LikeExpr:
+		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		if err != nil {
+			return nil, err
+		}
+
+		var escape SQLExpr
+		if typedE.Escape != nil {
+			escape, err = a.translateExpr(typedE.Escape)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			escape = SQLVarchar("\\")
+		}
+
+		expr := &SQLLikeExpr{left, right, escape}
+
+		if typedE.Operator == parser.AST_NOT_LIKE {
+			return &SQLNotExpr{expr}, nil
+		}
+
+		return expr, nil
 	case *parser.NotExpr:
 		child, err := a.translateExpr(typedE.Expr)
 		if err != nil {

@@ -1308,7 +1308,22 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 			return nil, e
 		}
 
-		pattern := convertSQLValueToPattern(value)
+		escape, ok := typedE.escape.(SQLValue)
+		if !ok {
+			return nil, e
+		}
+
+		escapeSeq := []rune(escape.String())
+		if len(escapeSeq) > 1 {
+			return nil, e
+		}
+
+		var escapeChar rune
+		if len(escapeSeq) == 1 {
+			escapeChar = escapeSeq[0]
+		}
+
+		pattern := convertSQLValueToPattern(value, escapeChar)
 
 		return bson.M{name: bson.D{{"$regex", pattern}, {"$options", "i"}}}, nil
 	case *SQLNotEqualsExpr:

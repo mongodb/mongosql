@@ -631,8 +631,12 @@ func walk(v nodeVisitor, n node) (node, error) {
 		if err != nil {
 			return nil, err
 		}
-		if typedN.left != left || typedN.right != right {
-			n = &SQLLikeExpr{left, right}
+		escape, err := visitExpr(typedN.escape)
+		if err != nil {
+			return nil, err
+		}
+		if typedN.left != left || typedN.right != right || typedN.escape != escape {
+			n = &SQLLikeExpr{left, right, escape}
 		}
 
 	case *SQLModExpr:

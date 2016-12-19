@@ -276,10 +276,11 @@ func (a *algebrizer) translateShowLikeOrWhere(likeColumnName string, expr parser
 	}
 
 	if strVal, ok := expr.(parser.StrVal); ok {
-		expr = &parser.ComparisonExpr{
+		expr = &parser.LikeExpr{
 			Operator: parser.AST_LIKE,
 			Left:     &parser.ColName{Name: []byte(likeColumnName)},
 			Right:    strVal,
+			Escape:   parser.StrVal("\\"),
 		}
 	}
 

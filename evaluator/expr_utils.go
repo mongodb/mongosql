@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	regexCharsToEscape    = ".^$*+?()[{\\|"
-	likePatternEscapeChar = '\\'
-	maxPrecisionInt       = int64(1 << 53)
+	regexCharsToEscape = ".^$*+?()[{\\|"
+	maxPrecisionInt    = int64(1 << 53)
 )
 
 func compareBytes(left, right []byte) (int, error) {
@@ -42,12 +41,12 @@ func compareFloats(left, right float64) (int, error) {
 	return 0, nil
 }
 
-func convertSQLValueToPattern(value SQLValue) string {
+func convertSQLValueToPattern(value SQLValue, escapeChar rune) string {
 	pattern := value.String()
 	regex := "^"
 	escaped := false
 	for _, c := range pattern {
-		if !escaped && c == likePatternEscapeChar {
+		if !escaped && c == escapeChar {
 			escaped = true
 			continue
 		}

@@ -108,7 +108,7 @@ var (
 %token <empty> BINARY MASTER LOGS DATABASE SCHEMA EVENT FUNCTION PROCEDURE BINLOG EVENTS TRIGGER USER
 %token <empty> ENGINE MUTEX ENGINES STORAGE ERRORS COUNT CODE GRANTS OPEN PLUGINS PRIVILEGES
 %token <empty> PROFILE PROFILES RELAYLOG SLAVE HOSTS TRIGGERS WARNINGS CHANNEL INDEXES KEYS SCHEMAS
-%token <empty> FN OJ
+%token <empty> FN OJ ESCAPE
 
 %nonassoc <empty> YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
 %nonassoc <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND DAY_MINUTE DAY_HOUR YEAR_MONTH
@@ -189,7 +189,7 @@ var (
 %type <tableName> dml_table_expression table_name
 %type <indexHints> index_hint_list
 %type <bytes2> index_list
-%type <expr> where_expression_opt
+%type <expr> where_expression_opt like_escape_opt
 %type <insRows> row_list
 %type <expr> value
 %type <tuple> tuple
@@ -1365,13 +1365,13 @@ predicate:
   {
     $$ = &RangeCond{Left: $1, Operator: AST_NOT_BETWEEN, From: $4, To: $6}
   }
-| bit_expr LIKE simple_expr
+| bit_expr LIKE simple_expr like_escape_opt
   {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_LIKE, Right: $3}
+    $$ = &LikeExpr{Left: $1, Operator: AST_LIKE, Right: $3, Escape: $4}
   }
-| bit_expr NOT LIKE simple_expr
+| bit_expr NOT LIKE simple_expr like_escape_opt
   {
-    $$ = &ComparisonExpr{Left: $1, Operator: AST_NOT_LIKE, Right: $4}
+    $$ = &LikeExpr{Left: $1, Operator: AST_NOT_LIKE, Right: $4, Escape: $5}
   }
 | bit_expr REGEXP bit_expr
   {
@@ -1626,6 +1626,19 @@ func_expr:
 | TRIM LPAREN both_leading_trailing_opt select_expression FROM select_expression RPAREN 
   {
     $$ = &FuncExpr{Name: []byte("trim"), Exprs: []SelectExpr{$6, &NonStarExpr{Expr: StrVal($3)}, $4}}
+  }
+
+like_escape_opt:
+  {
+    $$ = StrVal("\\")
+  }
+| ESCAPE simple_expr
+  {
+    $$ = $2
+  }
+| LBRACE ESCAPE simple_expr RBRACE
+  {
+    $$ = $3
   }
 
 both_leading_trailing_opt:

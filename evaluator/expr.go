@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
@@ -875,7 +876,11 @@ func (_ *SQLLessThanOrEqualExpr) Type() schema.SQLType {
 //
 // SQLLikeExpr evaluates to true if the left is 'like' the right.
 //
-type SQLLikeExpr sqlBinaryNode
+type SQLLikeExpr struct {
+	left   SQLExpr
+	right  SQLExpr
+	escape SQLExpr
+}
 
 func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
@@ -899,7 +904,22 @@ func (l *SQLLikeExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		return SQLNull, nil
 	}
 
-	pattern := "(?i)" + convertSQLValueToPattern(value)
+	escape, err := l.escape.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	escapeSeq := []rune(escape.String())
+	if len(escapeSeq) > 1 {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, "ESCAPE")
+	}
+
+	var escapeChar rune
+	if len(escapeSeq) == 1 {
+		escapeChar = escapeSeq[0]
+	}
+
+	pattern := "(?i)" + convertSQLValueToPattern(value, escapeChar)
 
 	matches, err := regexp.Match(pattern, []byte(data))
 	if err != nil {

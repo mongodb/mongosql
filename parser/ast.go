@@ -452,6 +452,7 @@ func (*OrExpr) IExpr()         {}
 func (*XorExpr) IExpr()        {}
 func (*NotExpr) IExpr()        {}
 func (*ComparisonExpr) IExpr() {}
+func (*LikeExpr) IExpr()       {}
 func (*RegexExpr) IExpr()      {}
 func (*RangeCond) IExpr()      {}
 func (*ExistsExpr) IExpr()     {}
@@ -517,19 +518,17 @@ type ComparisonExpr struct {
 
 // ComparisonExpr.Operator
 const (
-	AST_EQ       = "="
-	AST_LT       = "<"
-	AST_GT       = ">"
-	AST_LE       = "<="
-	AST_GE       = ">="
-	AST_NE       = "!="
-	AST_NSE      = "<=>"
-	AST_IN       = "in"
-	AST_NOT_IN   = "not in"
-	AST_LIKE     = "like"
-	AST_NOT_LIKE = "not like"
-	AST_IS       = "is"
-	AST_IS_NOT   = "is not"
+	AST_EQ     = "="
+	AST_LT     = "<"
+	AST_GT     = ">"
+	AST_LE     = "<="
+	AST_GE     = ">="
+	AST_NE     = "!="
+	AST_NSE    = "<=>"
+	AST_IN     = "in"
+	AST_NOT_IN = "not in"
+	AST_IS     = "is"
+	AST_IS_NOT = "is not"
 )
 
 // ComparisonExpr.SubqueryOperator
@@ -541,6 +540,30 @@ const (
 
 func (node *ComparisonExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v %s %v", node.Left, node.Operator, node.Right)
+}
+
+// LikeExpr.Operator
+const (
+	AST_LIKE     = "like"
+	AST_NOT_LIKE = "not like"
+)
+
+// LikeExpr represents a two-value comparison expression.
+type LikeExpr struct {
+	Operator    string
+	Left, Right Expr
+	Escape      Expr
+}
+
+func (node *LikeExpr) Format(buf *TrackedBuffer) {
+	switch typedN := node.Escape.(type) {
+	case StrVal:
+		if string(typedN) == "\\" {
+			buf.Fprintf("%v %s %v", node.Left, node.Operator, node.Right)
+			return
+		}
+	}
+	buf.Fprintf("%v %s %v escape %v", node.Left, node.Operator, node.Right, node.Escape)
 }
 
 // RangeCond represents a BETWEEN or a NOT BETWEEN expression.

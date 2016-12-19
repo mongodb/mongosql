@@ -209,6 +209,7 @@ var keywords = map[string]int{
 	"leading":  LEADING,
 	"trailing": TRAILING,
 	"trim":     TRIM,
+	"escape":   ESCAPE,
 	"row":      ROW,
 
 	// special tokens for numeric functions
