@@ -1036,6 +1036,8 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: COT", func() {
 				tests := []test{
 					test{"COT(NULL)", SQLNull},
+					test{"COT(19)", SQLFloat(6.596764247280111)},
+					test{"COT(-19)", SQLFloat(-6.596764247280111)},
 				}
 				runTests(evalCtx, tests)
 
@@ -1823,6 +1825,8 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: SIN", func() {
 				tests := []test{
 					test{"SIN(NULL)", SQLNull},
+					test{"SIN(19)", SQLFloat(0.14987720966295234)},
+					test{"SIN(-19)", SQLFloat(-0.14987720966295234)},
 					test{"SIN('C')", SQLFloat(0)},
 					test{"SIN(0)", SQLFloat(0)},
 				}
@@ -1920,6 +1924,8 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: TAN", func() {
 				tests := []test{
 					test{"TAN(NULL)", SQLNull},
+					test{"TAN(19)", SQLFloat(0.15158947061240008)},
+					test{"TAN(-19)", SQLFloat(-0.15158947061240008)},
 					test{"TAN('C')", SQLFloat(0)},
 					test{"TAN(0)", SQLFloat(0)},
 				}
