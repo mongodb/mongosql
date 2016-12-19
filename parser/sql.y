@@ -439,7 +439,11 @@ in_or_from:
 | FROM
 
 show_from_in:
-  in_or_from ID DOT ID 
+  in_or_from DOT ID 
+  {
+    $$ = StrVal($3)
+  }
+| in_or_from ID DOT ID 
   {
     $$ = &ColName{Qualifier: $2, Name: $4}
   }
@@ -998,6 +1002,10 @@ simple_table_expression:
 ID
   {
     $$ = &TableName{Name: $1}
+  }
+| DOT ID
+  {
+    $$ = &TableName{Name: $2}
   }
 | ID DOT ID
   {

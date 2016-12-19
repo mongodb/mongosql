@@ -83,6 +83,12 @@ testcases:
     - ["a1", "int64", "YES", "", ~, ""]
     - ["b1", "varchar", "YES", "", ~, ""]
     - ["c1", "int64", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS IN .foo"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "int64", "YES", "", ~, ""]
+    - ["b1", "varchar", "YES", "", ~, ""]
+    - ["c1", "int64", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM foo FROM test"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
