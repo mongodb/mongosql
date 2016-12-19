@@ -1036,8 +1036,6 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: COT", func() {
 				tests := []test{
 					test{"COT(NULL)", SQLNull},
-					test{"COT(20)", SQLFloat(0.4469951089489166)},
-					test{"COT(-20)", SQLFloat(-0.4469951089489166)},
 				}
 				runTests(evalCtx, tests)
 
@@ -1825,11 +1823,8 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: SIN", func() {
 				tests := []test{
 					test{"SIN(NULL)", SQLNull},
-					test{"SIN(20)", SQLFloat(0.9129452507276277)},
-					test{"SIN(-20)", SQLFloat(-0.9129452507276277)},
 					test{"SIN('C')", SQLFloat(0)},
 					test{"SIN(0)", SQLFloat(0)},
-					test{"SIN(3.141592653589793116)", SQLFloat(1.2246467991473515e-16)},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1925,8 +1920,6 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: TAN", func() {
 				tests := []test{
 					test{"TAN(NULL)", SQLNull},
-					test{"TAN(20)", SQLFloat(2.2371609442247427)},
-					test{"TAN(-20)", SQLFloat(-2.2371609442247427)},
 					test{"TAN('C')", SQLFloat(0)},
 					test{"TAN(0)", SQLFloat(0)},
 				}
@@ -1965,7 +1958,6 @@ func TestEvaluates(t *testing.T) {
 				tests := []test{
 					test{"TIMEDIFF('2000:11:11 00:00:00', NULL)", SQLNull},
 					test{"TIMEDIFF(NULL, '2000:11:11 00:00:00')", SQLNull},
-					test{"TIMEDIFF('2000:11:11 00:00:00', '2000:09:31 00:00:00.000231')", SQLNull},
 					test{"TIMEDIFF('2000:09:11 00:00:00', '2000:09:31 00:00:01:323211')", SQLNull},
 					test{"TIMEDIFF('2008-12-31 23:59:59.000001','2008-12-31 23:59:58.000001')", SQLVarchar("00:00:01.000000")},
 					test{"TIMEDIFF('2000:11:11 00:00:00', '2000:11:11 10:00:00.000231')", SQLVarchar("-10:00:00.000231")},
