@@ -4,48 +4,52 @@
       "version": "VERSION",
       "platform": [
         {
+          "name": "Amazon Linux x64",
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/LINUX-64-AMAZON-AMI"
+        },
+        {
           "name": "Debian 7.1 x64",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/v2/debian71"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/DEBIAN71"
         },
         {
           "name": "Debian 8.1 x64",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/v2/debian81"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/DEBIAN81"
         },
         {
           "name": "OS X x64",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/v2/osx"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/OSX"
         },
         {
           "name": "RedHat / CentOS 6.2+ x64",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/v2/rhel62"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL62"
         },
         {
           "name": "RedHat / CentOS 7.0+ x64",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/v2/rhel70"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL70"
         },
         {
           "name": "RedHat / CentOS 7.1 ppc64le (IBM POWER)",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/v2/rhel-71-ppc64le"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL-71-PPC64LE"
         },
         {
           "name": "RedHat / CentOS 7.2 s390x (IBM SYSTEM Z)",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/v2/rhel-72-s390x"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL-72-S390X"
         },
         {
           "name": "SUSE 11 x64",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/v2/suse11-64"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SUSE11-64"
         },
         {
           "name": "SUSE 12 x64",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/v2/suse12-64"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SUSE12-64"
         },
         {
           "name": "Ubuntu 14.04 x64",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/v2/ubuntu1404-64"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/UBUNTU1404-64"
         },
         {
           "name": "Windows x64",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/v2/windows-64"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/WINDOWS-64"
         }
       ]
     },
@@ -54,23 +58,23 @@
       "platform": [
         {
           "name": "Centos/RHEL 6",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-centos6-rpms.tar.bz2"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-centos6-rpms.tar.bz2"
         },
         {
           "name": "Centos/RHEL 7",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-centos7-rpms.tar.bz2"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-centos7-rpms.tar.bz2"
         },
         {
           "name": "Debian 8 (jessie)",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-jessie-debs.tar.bz2"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-jessie-debs.tar.bz2"
         },
         {
           "name": "Ubuntu 12 (precise)",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-precise-debs.tar.bz2"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-precise-debs.tar.bz2"
         },
         {
           "name": "Ubuntu 14 (trusty)",
-          "download_link": "https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-trusty-debs.tar.bz2"
+          "download_link": "https://S3_BUCKET.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-trusty-debs.tar.bz2"
         }
       ]
     }
