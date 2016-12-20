@@ -284,6 +284,11 @@ func (b *catalogBuilder) addColumnsTable(d *Database) error {
 		for _, db := range c.Databases() {
 			for _, tbl := range db.Tables() {
 				for i, col := range tbl.Columns() {
+					columnType := translateColumnType(col.Type())
+					dataType := columnType
+					if idx := strings.Index(dataType, "("); idx >= 0 {
+						dataType = dataType[:idx]
+					}
 					rows = append(rows, NewDataRow(
 						string(c.Name),
 						string(db.Name),
@@ -292,7 +297,7 @@ func (b *catalogBuilder) addColumnsTable(d *Database) error {
 						i,
 						nil,
 						"YES",
-						string(col.Type()),
+						dataType,
 						nil,
 						nil,
 						nil,
@@ -300,7 +305,7 @@ func (b *catalogBuilder) addColumnsTable(d *Database) error {
 						nil,
 						string(tbl.Collation().CharsetName),
 						string(tbl.Collation().Name),
-						string(col.Type()),
+						columnType,
 						"",
 						"",
 						"select",

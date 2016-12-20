@@ -56,57 +56,57 @@ testcases:
 - sql: "SHOW COLUMNS FROM foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", "", ~, ""]
-    - ["b1", "varchar", "YES", "", ~, ""]
-    - ["c1", "int64", "YES", "", ~, ""]
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN foo IN test LIKE 'b%'"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["b1", "varchar", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM foo FROM test LIKE 'b%'"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["b1", "varchar", "YES", "", ~, ""]
-- sql: "SHOW COLUMNS FROM foo WHERE type = 'varchar'"
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS FROM foo WHERE type = 'varchar(65535)'"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["b1", "varchar", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM test.foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", "", ~, ""]
-    - ["b1", "varchar", "YES", "", ~, ""]
-    - ["c1", "int64", "YES", "", ~, ""]
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN test.foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", "", ~, ""]
-    - ["b1", "varchar", "YES", "", ~, ""]
-    - ["c1", "int64", "YES", "", ~, ""]
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN .foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", "", ~, ""]
-    - ["b1", "varchar", "YES", "", ~, ""]
-    - ["c1", "int64", "YES", "", ~, ""]
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM foo FROM test"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", "", ~, ""]
-    - ["b1", "varchar", "YES", "", ~, ""]
-    - ["c1", "int64", "YES", "", ~, ""]
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN foo IN test"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "YES", "", ~, ""]
-    - ["b1", "varchar", "YES", "", ~, ""]
-    - ["c1", "int64", "YES", "", ~, ""]
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW FULL COLUMNS FROM foo"
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
-    - ["a1", "int64", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"a\" }"]
-    - ["b1", "varchar", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"b\" }"]
-    - ["c1", "int64", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"c\" }"]
+    - ["a1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"a\" }"]
+    - ["b1", "varchar(65535)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"b\" }"]
+    - ["c1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"c\" }"]
 - sql: "SHOW TABLES"
   expected_types: [varchar]
   expected: 

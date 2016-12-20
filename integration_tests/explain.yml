@@ -42,35 +42,35 @@ testcases:
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
   expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
   expected:
-  - ["id", "int", "YES", "", "NULL", ""]
-  - ["a", "int", "YES", "", "NULL", ""]
-  - ["ab", "int", "YES", "", "NULL", ""]
+  - ["id", "bigint(20)", "YES", "", "NULL", ""]
+  - ["a", "bigint(20)", "YES", "", "NULL", ""]
+  - ["ab", "bigint(20)", "YES", "", "NULL", ""]
 
 - sql: "explain foo a"
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
   expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
   expected:
-  - ["a", "int", "YES", "", "NULL", ""]
+  - ["a", "bigint(20)", "YES", "", "NULL", ""]
 
 - sql: "explain foo 'a%'"
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
   expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
   expected:
-  - ["a", "int", "YES", "", "NULL", ""]
-  - ["ab", "int", "YES", "", "NULL", ""]
+  - ["a", "bigint(20)", "YES", "", "NULL", ""]
+  - ["ab", "bigint(20)", "YES", "", "NULL", ""]
 
 - sql: "describe foo a"
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
   expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
   expected:
-  - ["a", "int", "YES", "", "NULL", ""]
+  - ["a", "bigint(20)", "YES", "", "NULL", ""]
 
 - sql: "desc foo a"
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
   expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
   expected:
-  - ["a", "int", "YES", "", "NULL", ""]
+  - ["a", "bigint(20)", "YES", "", "NULL", ""]

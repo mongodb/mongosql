@@ -4,9 +4,6 @@ import (
 	"bytes"
 
 	"strings"
-
-	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // GenerateCreateTable generates a create table statement for the table.
@@ -29,7 +26,11 @@ func GenerateCreateTable(table Table) string {
 		}
 
 		buf.WriteString("  `" + string(column.Name()) + "`")
-		buf.WriteString(" " + translateColumnType(col, column.Type()))
+		colType := translateColumnType(column.Type())
+		buf.WriteString(" " + colType)
+		if strings.HasPrefix(colType, "varchar") {
+			buf.WriteString(" COLLATE " + string(col.Name))
+		}
 		buf.WriteString(" DEFAULT NULL")
 		if column.Comments() != "" {
 			buf.WriteString(" COMMENT '" + strings.Replace(column.Comments(), "'", "''", -1) + "'")
@@ -65,31 +66,4 @@ func GenerateCreateTable(table Table) string {
 	}
 
 	return buf.String()
-}
-
-func translateColumnType(collation *collation.Collation, sqlType schema.SQLType) string {
-	switch sqlType {
-	case schema.SQLBoolean:
-		return "tinyint(1)"
-	case schema.SQLDate:
-		return "date"
-	case schema.SQLDecimal128:
-		return "decimal"
-	case schema.SQLFloat, schema.SQLArrNumeric:
-		return "double"
-	case schema.SQLInt, schema.SQLInt64:
-		return "bigint(20)"
-	case schema.SQLObjectID:
-		return "varchar(24) COLLATE " + string(collation.Name)
-	case schema.SQLTimestamp:
-		return "datetime"
-	case schema.SQLUint64:
-		return "bigint(20) unsigned"
-	case schema.SQLUUID:
-		return "varchar(36) COLLATE " + string(collation.Name)
-	case schema.SQLVarchar:
-		return "varchar(65535) COLLATE " + string(collation.Name)
-	default:
-		return "<unknown>"
-	}
 }

@@ -105,12 +105,12 @@ testcases:
   expected_types: [string, string, string, string, int64, string, string, string, int64, int64, int64, int64, int64,
     string, string, string, string, string, string, string]
   expected:
-  - ["def", "test", "bar", "id", "0", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", "", "", "select", "{ \"name\": \"_id\" }"]
-  - ["def", "test", "bar", "b", "1", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", "", "", "select", "{ \"name\": \"b\" }"]
-  - ["def", "test", "foo", "id", "0", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", "", "", "select", "{ \"name\": \"_id\" }"]
-  - ["def", "test", "foo", "a", "1", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", "", "", "select", "{ \"name\": \"a\" }"]
-  - ["def", "test2", "foo", "id", "0", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", "", "", "select", "{ \"name\": \"_id\" }"]
-  - ["def", "test2", "foo", "a", "1", ~, "YES", "int", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "int", "", "", "select", "{ \"name\": \"a\" }"]
+  - ["def", "test", "bar", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }"]
+  - ["def", "test", "bar", "b", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"b\" }"]
+  - ["def", "test", "foo", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }"]
+  - ["def", "test", "foo", "a", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"a\" }"]
+  - ["def", "test2", "foo", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }"]
+  - ["def", "test2", "foo", "a", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"a\" }"]
 
 # GLOBAL_VARIABLES
 - sql: "select * from information_schema.global_variables order by variable_name limit 1"
