@@ -1114,6 +1114,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return &SQLUnaryMinusExpr{&SQLConvertExpr{child, schema.SQLInt, SQLNone}}, nil
 		case parser.AST_TILDA:
 			return &SQLUnaryTildeExpr{child}, nil
+		case parser.AST_UPLUS:
+			return child, nil
 		}
 
 		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for operator '%v'", typedE.Operator)

@@ -2361,8 +2361,15 @@ func TestEvaluates(t *testing.T) {
 			})
 		})
 
-		SkipConvey("Subject: SQLUnaryPlusExpr", func() {
-			// TODO: what this is supposed to do?
+		Convey("Subject: SQLUnaryPlusExpr", func() {
+			tests := []test{
+				test{"+1", SQLInt(1)},
+				test{"+'string'", SQLVarchar("string")},
+				test{"+a", SQLInt(123)},
+			}
+
+			runTests(evalCtx, tests)
+
 		})
 
 		SkipConvey("Subject: SQLUnaryTildeExpr", func() {
