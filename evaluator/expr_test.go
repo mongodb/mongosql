@@ -2319,6 +2319,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Should evaluate early if possible", func() {
 				tests := []test{
 					test{"(1, 3) > (2, 4)", SQLFalse},
+					test{"(1, 3) > ROW(2, 4)", SQLFalse},
 				}
 				runTests(evalCtx, tests)
 			})
