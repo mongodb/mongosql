@@ -54,7 +54,7 @@ func (v *crossJoinOptimizer) visit(n node) (node, error) {
 				matcherOk = typedM.Float64() > 0
 			}
 		}
-		if matcherOk && (typedN.kind == InnerJoin || typedN.kind == CrossJoin) && len(v.predicateParts) > 0 {
+		if matcherOk && (typedN.kind == InnerJoin || typedN.kind == CrossJoin || typedN.kind == StraightJoin) && len(v.predicateParts) > 0 {
 			// We have a filter and a join without any criteria
 			v.tableNames = nil
 			left, err := v.visit(typedN.left)

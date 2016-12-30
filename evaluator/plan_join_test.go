@@ -231,5 +231,38 @@ func TestJoinPlanStage(t *testing.T) {
 			So(iter.Err(), ShouldBeNil)
 
 		})
+
+		Convey("a straight join should return correct results", func() {
+
+			operator := setupJoinOperator(criteria, StraightJoin)
+
+			iter, err := operator.Open(ctx)
+			So(err, ShouldBeNil)
+
+			expectedResults := []struct {
+				Name   interface{}
+				Amount interface{}
+			}{
+				{"personA", 1000},
+				{"personA", 450},
+				{"personB", 1300},
+				{"personD", 390},
+			}
+
+			for iter.Next(row) {
+				So(len(row.Data), ShouldEqual, 6)
+				So(row.Data[0].Table, ShouldEqual, tableOneName)
+				So(row.Data[4].Table, ShouldEqual, tableTwoName)
+				So(row.Data[0].Data, ShouldEqual, expectedResults[i].Name)
+				So(row.Data[4].Data, ShouldEqual, expectedResults[i].Amount)
+				i++
+			}
+
+			So(i, ShouldEqual, 4)
+
+			So(iter.Close(), ShouldBeNil)
+			So(iter.Err(), ShouldBeNil)
+
+		})
 	})
 }

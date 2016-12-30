@@ -1061,6 +1061,21 @@ func TestAlgebrizeQuery(t *testing.T) {
 							createProjectedColumn(1, join, "bar", "a", "", "a"),
 						)
 					})
+					test("select foo.a, bar.a from foo straight_join bar on foo.b = bar.b", func() PlanStage {
+						fooSource := createMongoSource(1, "foo", "foo")
+						barSource := createMongoSource(1, "bar", "bar")
+						reqColsJoin := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.b", "bar.b"}, map[string]int{"foo.b": 1, "bar.b": 1})
+						reqColsSelect := createReqCols([]PlanStage{fooSource, barSource}, []string{"foo.a", "bar.a"}, map[string]int{"foo.a": 1, "bar.a": 1})
+						join := NewJoinStage(StraightJoin, fooSource, barSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
+								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
+							}, append(reqColsJoin, reqColsSelect...))
+						return NewProjectStage(join,
+							createProjectedColumn(1, join, "foo", "a", "", "a"),
+							createProjectedColumn(1, join, "bar", "a", "", "a"),
+						)
+					})
 				})
 			})
 

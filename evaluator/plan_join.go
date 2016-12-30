@@ -281,13 +281,13 @@ func (nlp *NestedLoopJoiner) Join(lChan, rChan <-chan *Row, ctx *ExecutionCtx) <
 	switch nlp.kind {
 	case CrossJoin:
 		go nlp.crossJoin(lChan, rChan, ch, ctx)
-	case InnerJoin:
+	case InnerJoin, StraightJoin:
 		go nlp.innerJoin(lChan, rChan, ch, ctx)
 	case LeftJoin:
 		go nlp.leftJoin(lChan, rChan, ch, ctx, getNilValues(nlp.rightColumns))
 	case RightJoin:
 		go nlp.rightJoin(lChan, rChan, ch, ctx, getNilValues(nlp.leftColumns))
-	case NaturalJoin, StraightJoin:
+	case NaturalJoin:
 	}
 
 	return ch

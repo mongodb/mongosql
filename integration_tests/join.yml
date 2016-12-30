@@ -376,6 +376,91 @@ testcases:
   expected: 
   - [2, 11, 1] 
 
+# Straight Joins
+- sql: "select a, c from test.foo straight_join test.bar on foo.id = bar.id"
+  description: "straight join"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 10]
+  - [2, 11]
+- sql: "select a, c from test.foo straight_join test.bar on foo.id = bar.id AND foo.a > 1"
+  description: "straight join with additional criteria"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [2, 11]
+- sql: "select a, c from test.foo straight_join test.bar on foo.a > 1 AND foo.id = bar.id"
+  description: "straight join with additional criteria (reversed)"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [2, 11]
+- sql: "select a, c from test.foo straight_join test.bar on foo.id = bar.id AND foo.a = 1214"
+  description: "straight join with no results"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: []
+- sql: "select a, c from test.foo straight_join (select * from test.bar) bar on foo.id = bar.id"
+  description: "straight join with subquery"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [1, 10]
+  - [2, 11]
+- sql: "select a, c from test.foo straight_join test.bar on foo.b = bar.d"
+  description: "straight join with null on the left"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected: 
+  - [2, 11] 
+- sql: "select foo.a, bar.c, baz.d from test.foo straight_join test.bar on foo.id = bar.id straight_join test.baz on bar.id = baz.id"
+  description: "straight join with three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 10, ~]
+  - [2, 11, 1]
+- sql: "select foo.a, bar.c, baz.d, foobar.b from test.foo straight_join test.bar on foo.id = bar.id straight_join test.baz on bar.id = baz.id straight_join test.foobar on baz.id = foobar.id"
+  description: "straight join with four tables"
+  expected_names: ["a", "c", "d", "b"]
+  expected_types: [int, int, int, int]
+  expected: 
+  - [1, 10, ~, 5]
+  - [2, 11, 1, 6]
+- sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from test.foo straight_join test.bar on foo.id = bar.id straight_join test.baz on bar.id = baz.id straight_join test.foobar on baz.id = foobar.id straight_join test.barbaz on foobar.id = barbaz.id"
+  description: "straight join with five tables"
+  expected_names: ["a", "c", "d", "b", "e"]
+  expected_types: [int, int, int, int, int]
+  expected: 
+  - [1, 10, ~, 5, 3]
+  - [2, 11, 1, 6, 5]
+- sql: "select foo.a, bar.c, baz.d from test.foo straight_join test.bar on foo.id = bar.id straight_join test.baz on bar.id = baz.id AND foo.a > 1"
+  description: "straight join with three tables with additional criteria"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [2, 11, 1]
+- sql: "select foo.a, bar.c, baz.d from test.foo straight_join test.bar on foo.a > 1 AND foo.id = bar.id straight_join test.baz on bar.id = baz.id"
+  description: "straight join with three tables with additional criteria (reversed)"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [2, 11, 1]
+- sql: "select foo.a, bar.c, baz.d from test.foo straight_join (select * from test.bar) bar on foo.id = bar.id straight_join test.baz on bar.id = baz.id"
+  description: "straight join with subquery and three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [1, 10, ~]
+  - [2, 11, 1]
+- sql: "select foo.a, bar.c, baz.d from test.foo straight_join test.bar on foo.b = bar.d straight_join test.baz on bar.d = baz.d"
+  description: "straight join with null on the left and three tables"
+  expected_names: ["a", "c", "d"]
+  expected_types: [int, int, int]
+  expected: 
+  - [2, 11, 1] 
+
 # Left Outer Joins
 - sql: "select a, c from test.foo left outer join test.bar on foo.id = bar.id"
   description: "left outer join"

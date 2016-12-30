@@ -666,7 +666,7 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 
 	pipeline := newPipeline.stages
 
-	if join.kind == InnerJoin {
+	if join.kind == InnerJoin || join.kind == StraightJoin {
 		// Since MongoDB does not compare nulls in the same way as MySQL,
 		// we need an extra $match to ensure account for this.
 		// Effectively, we eliminate the left hand document
@@ -908,6 +908,10 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		localSource = join.left
 		foreignSource = join.right
 		joinKind = LeftJoin
+	case StraightJoin:
+		localSource = join.left
+		foreignSource = join.right
+		joinKind = StraightJoin
 	default:
 		v.logger.Warnf(log.DebugHigh, "cannot push down %v", join.kind)
 		return join, nil
@@ -999,7 +1003,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	// 6. build the pipeline
 	pipeline := msLocal.pipeline
 
-	if joinKind == InnerJoin {
+	if joinKind == InnerJoin || joinKind == StraightJoin {
 		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
 		// $match to ensure account for this incompatibility. Effectively, we eliminate the
 		// left hand document when the left hand field is null.
@@ -1097,7 +1101,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	ms.pipeline = pipeline
 	ms.mappingRegistry = newMappingRegistry
 
-	if lookupInfo.remainingPredicate != nil && joinKind == InnerJoin {
+	if lookupInfo.remainingPredicate != nil && (joinKind == InnerJoin || joinKind == StraightJoin) {
 		f, err := v.visit(NewFilterStage(ms, lookupInfo.remainingPredicate, join.requiredColumns))
 		if err != nil {
 			return nil, err
