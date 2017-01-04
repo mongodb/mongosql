@@ -128,9 +128,10 @@ func setup() {
 	}
 
 	opts, _ := options.NewSqldOptions()
-	opts.Addr = fmt.Sprintf("%v:%v", *testProxyAddress, *testProxyPort)
-	opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", *testMongoDBHost, *testMongoDBPort)
-	opts.NoUnixSocket = new(bool)
+	options.EnsureOptsNotNil(&opts)
+
+	*opts.Addr = fmt.Sprintf("%v:%v", *testProxyAddress, *testProxyPort)
+	*opts.MongoURI = fmt.Sprintf("mongodb://%v:%v", *testMongoDBHost, *testMongoDBPort)
 	*opts.NoUnixSocket = true
 
 	s := testServer(cfg, opts)
