@@ -402,7 +402,19 @@ func (a *algebrizer) translateSimpleSelect(sel *parser.SimpleSelect) (PlanStage,
 	if err != nil {
 		return nil, err
 	}
-	return NewProjectStage(NewDualStage(), projectedColumns...), nil
+
+	plan := NewProjectStage(NewDualStage(), projectedColumns...)
+
+	if sel.Limit != nil {
+		a.currentClause = limitClause
+		offset, limit, err := a.translateLimit(sel.Limit)
+		if err != nil {
+			return nil, err
+		}
+		return NewLimitStage(plan, uint64(offset), uint64(limit)), nil
+	}
+
+	return plan, nil
 }
 
 func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {

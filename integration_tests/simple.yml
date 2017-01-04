@@ -204,3 +204,21 @@ testcases:
   expected_types: [float]
   expected:
     - [2]
+- sql: "select @@version limit 1"
+  expected_types: [varchar]
+  expected:
+    - ["5.7.12"]
+- sql: "select @@version limit 0, 1"
+  expected_types: [varchar]
+  expected:
+    - ["5.7.12"]
+- sql: "select @@version limit 0, 0"
+  expected_types: [varchar]
+  expected: ~
+- sql: "select @@version limit 0 OFFSET 2"
+  expected_types: [varchar]
+  expected: ~
+- sql: "select @@version limit 1 OFFSET 0"
+  expected_types: [varchar]
+  expected:
+    - ["5.7.12"]

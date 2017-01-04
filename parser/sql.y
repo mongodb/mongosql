@@ -278,10 +278,23 @@ command:
 | explain_statement
 | use_statement
 
+
 select_statement:
   SELECT comment_opt distinct_opt select_expression_list
   {
     $$ = &SimpleSelect{Comments: Comments($2), Distinct: $3, SelectExprs: $4}
+  }
+| SELECT comment_opt distinct_opt select_expression LIMIT NUMBER
+  {
+    $$ = &SimpleSelect{Comments: Comments($2), Distinct: $3, SelectExprs: []SelectExpr{$4}, Limit: &Limit{Rowcount: NumVal($6)}}
+  }
+| SELECT comment_opt distinct_opt select_expression LIMIT NUMBER COMMA NUMBER
+  {
+    $$ = &SimpleSelect{Comments: Comments($2), Distinct: $3, SelectExprs: []SelectExpr{$4}, Limit: &Limit{Offset: NumVal($6), Rowcount: NumVal($8)}}
+  }
+| SELECT comment_opt distinct_opt select_expression LIMIT NUMBER OFFSET NUMBER
+  {
+    $$ = &SimpleSelect{Comments: Comments($2), Distinct: $3, SelectExprs: []SelectExpr{$4}, Limit: &Limit{Offset: NumVal($8), Rowcount: NumVal($6)}}
   }
 | SELECT comment_opt distinct_opt select_expression_list FROM table_expression_list where_expression_opt group_by_opt having_opt order_by_opt limit_opt lock_opt
   {
@@ -291,6 +304,7 @@ select_statement:
   {
     $$ = &Union{Type: $2, Left: $1, Right: $3}
   }
+
 
 use_statement:
   USE ID

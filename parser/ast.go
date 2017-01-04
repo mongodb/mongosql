@@ -940,6 +940,7 @@ type SimpleSelect struct {
 	Comments    Comments
 	Distinct    string
 	SelectExprs SelectExprs
+	Limit       *Limit
 }
 
 func (node *SimpleSelect) Format(buf *TrackedBuffer) {
