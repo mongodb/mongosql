@@ -101,17 +101,18 @@ var (
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LPAREN RPAREN LBRACE RBRACE TILDE
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP
-%token <empty> TIMESTAMPADD TIMESTAMPDIFF YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND EXTRACT DATE_ADD ADDDATE
-%token <empty> DATE_SUB INTERVAL SUBDATE ROW
-%token <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
+%token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
+%token <empty> DATE_SUB SUBDATE ROW
 %token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
-%token <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND
-%token <empty> DAY_MINUTE DAY_HOUR YEAR_MONTH BOTH LEADING TRAILING TRIM
+%token <empty> BOTH LEADING TRAILING TRIM
 %token <empty> BINARY MASTER LOGS DATABASE SCHEMA EVENT FUNCTION PROCEDURE BINLOG EVENTS TRIGGER USER
 %token <empty> ENGINE MUTEX ENGINES STORAGE ERRORS COUNT CODE GRANTS OPEN PLUGINS PRIVILEGES
 %token <empty> PROFILE PROFILES RELAYLOG SLAVE HOSTS TRIGGERS WARNINGS CHANNEL INDEXES KEYS SCHEMAS
 %token <empty> FN OJ
 
+%nonassoc <empty> YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
+%nonassoc <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND DAY_MINUTE DAY_HOUR YEAR_MONTH
+%nonassoc <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
 %nonassoc <empty> FROM
 %left <empty> UNION MINUS EXCEPT INTERSECT
 %left <empty> COMMA
@@ -129,6 +130,7 @@ var (
 %nonassoc <empty> DOT
 %left <empty> UNARY
 %left <empty> END
+%left <empty> INTERVAL
 
 // Transaction Tokens
 %token <bytes> BEGIN COMMIT ROLLBACK
@@ -195,6 +197,7 @@ var (
 %type <exprs> expression_list
 %type <values> tuple_list
 %type <bytes> keyword_as_func
+%type <bytes> interval_unit
 %type <bytes> time_interval
 %type <bytes> sql_time_interval
 %type <bytes> sql_time_unit
@@ -921,7 +924,7 @@ select_expression:
     $$ = &StarExpr{TableName: $1}
   }
 
-as_lower_opt:
+as_lower_opt: %prec INTERVAL
   {
     $$ = nil
   }
@@ -1380,9 +1383,42 @@ bit_expr:
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_PLUS, Right: $3}
   }
+| bit_expr PLUS INTERVAL expression interval_unit %prec PLUS
+  {
+    $$ = &FuncExpr{
+      Name: []byte("date_add"),
+      Exprs: append(SelectExprs{
+        &NonStarExpr{Expr: $1},
+        &NonStarExpr{Expr: $4},
+        &NonStarExpr{Expr: KeywordVal($5)},
+      }),
+    }
+  }
+| INTERVAL expression interval_unit PLUS bit_expr %prec INTERVAL
+  {
+    $$ = &FuncExpr{
+      Name: []byte("date_add"),
+      Exprs: append(SelectExprs{
+        &NonStarExpr{Expr: $5},
+        &NonStarExpr{Expr: $2},
+        &NonStarExpr{Expr: KeywordVal($3)},
+      }),
+    }
+  }
 | bit_expr SUB bit_expr
   {
     $$ = &BinaryExpr{Left: $1, Operator: AST_MINUS, Right: $3}
+  }
+| bit_expr SUB INTERVAL expression interval_unit %prec SUB
+  {
+    $$ = &FuncExpr{
+      Name: []byte("subdate"),
+      Exprs: append(SelectExprs{
+        &NonStarExpr{Expr: $1},
+        &NonStarExpr{Expr: $4},
+        &NonStarExpr{Expr: KeywordVal($5)},
+      }),
+    }
   }
 | bit_expr TIMES bit_expr
   {
@@ -1541,27 +1577,11 @@ func_expr:
   {
     $$ = &FuncExpr{Name: []byte("date"), Exprs: SelectExprs{$3}}
   }
-| EXTRACT LPAREN time_interval FROM select_expression RPAREN
+| EXTRACT LPAREN interval_unit FROM select_expression RPAREN
   {
     $$ = &FuncExpr{Name: []byte("extract"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5)}
   }
-| EXTRACT LPAREN sql_time_unit FROM select_expression RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("extract"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5)}
-  }
-| EXTRACT LPAREN sql_time_interval FROM select_expression RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("extract"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5)}
-  }
-| ADDDATE LPAREN select_expression COMMA INTERVAL select_expression time_interval RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("adddate"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
-  }
-| ADDDATE LPAREN select_expression COMMA INTERVAL select_expression sql_time_unit RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("adddate"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
-  }
-| ADDDATE LPAREN select_expression COMMA INTERVAL select_expression sql_time_interval RPAREN
+| ADDDATE LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
   {
     $$ = &FuncExpr{Name: []byte("adddate"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
   }
@@ -1569,27 +1589,11 @@ func_expr:
   {
     $$ = &FuncExpr{Name: []byte("adddate"), Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
   }
-| DATE_ADD LPAREN select_expression COMMA INTERVAL select_expression time_interval RPAREN
+| DATE_ADD LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
   {
     $$ = &FuncExpr{Name: []byte("date_add"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
   }
-| DATE_ADD LPAREN select_expression COMMA INTERVAL select_expression sql_time_unit RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("date_add"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
-  }
-| DATE_ADD LPAREN select_expression COMMA INTERVAL select_expression sql_time_interval RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("date_add"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
-  }
-| SUBDATE LPAREN select_expression COMMA INTERVAL select_expression time_interval RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("subdate"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
-  }
-| SUBDATE LPAREN select_expression COMMA INTERVAL select_expression sql_time_unit RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("subdate"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
-  }
-| SUBDATE LPAREN select_expression COMMA INTERVAL select_expression sql_time_interval RPAREN
+| SUBDATE LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
   {
     $$ = &FuncExpr{Name: []byte("subdate"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
   }
@@ -1597,15 +1601,7 @@ func_expr:
   {
     $$ = &FuncExpr{Name: []byte("subdate"), Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
   }
-| DATE_SUB LPAREN select_expression COMMA INTERVAL select_expression time_interval RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("date_sub"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
-  }
-| DATE_SUB LPAREN select_expression COMMA INTERVAL select_expression sql_time_unit RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("date_sub"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
-  }
-| DATE_SUB LPAREN select_expression COMMA INTERVAL select_expression sql_time_interval RPAREN
+| DATE_SUB LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
   {
     $$ = &FuncExpr{Name: []byte("date_sub"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
   }
@@ -1630,6 +1626,20 @@ both_leading_trailing_opt:
 | TRAILING
   {
     $$ = []byte("trailing")
+  }
+
+interval_unit:
+  time_interval
+  {
+    $$ = $1
+  }
+| sql_time_unit
+  {
+    $$ = $1
+  }
+| sql_time_interval
+  {
+    $$ = $1
   }
 
 sql_time_interval:
@@ -1956,7 +1966,7 @@ STRING
   {
     $$ = DateVal{Name: AST_DATE, Val: $2}
   }
- | TIME STRING
+| TIME STRING
   {
     $$ = DateVal{Name: AST_TIME, Val: $2}
   }
