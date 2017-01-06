@@ -3,7 +3,7 @@
    "date": "DATE",
    "development_release": DEV-RELEASE,
    "githash": "GITHASH",
-   "notes": "https://docs.mongodb.com/bi-connector/master/release-notes",
+   "notes": "https://docs.mongodb.com/bi-connector/master/release-notes/#bi-NOTES_ANCHOR",
    "production_release": PROD-RELEASE,
    "release_candidate": RC-CANDIDATE,
    "version": "VERSION",

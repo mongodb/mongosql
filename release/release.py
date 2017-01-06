@@ -27,7 +27,7 @@ UNITS = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']
 USAGE = """
 BI Connector Release tool 0.1
 Usage:
-  release.py (--version=VERSION)
+  release.py (-v VERSION | --version=VERSION)
   release.py (-h | --help)
 Options:
   -h --help     Show this screen.
@@ -122,6 +122,10 @@ class BIReleaser(object):
             sys.exit(0)
 
         for build_name in builds:
+            # don't upload binaries for race buildvariant
+            if "race" in build_name:
+                print("Skipping build %s..." % (build_name))
+                continue
             url = "%s/builds/%s" % (EVG_BASE, build_name)
             print("Fetching build %s..." % (url))
             response = requests.get(url, headers=headers)
@@ -330,6 +334,7 @@ class BIReleaser(object):
         self.upload_full_artifacts()
         if not self.__dev_release:
             self.upload_current_artifacts()
+        shutil.rmtree(self.__temp_dir)
 
     def verify_website_links(self):
         """Verifies that the download URLs exist and are valid.
@@ -342,7 +347,6 @@ class BIReleaser(object):
             else:
                 print('%s URL returned %s' % (url, request[0]['status']))
                 sys.exit(1)
-        shutil.rmtree(self.__temp_dir)
 
     def write_releases_entry(self):
         """Writes new release information to file.
@@ -361,12 +365,18 @@ class BIReleaser(object):
             print err
             sys.exit(1)
 
+        dev_release = "false"
+        prod_release = "true"
+        rc_candidate = "false"
+
         if self.__dev_release:
             dev_release = "true"
             prod_release = "false"
 
         if "-" in self.__release_version:
             rc_candidate = "true"
+
+        notes_anchor = self.__release_version.replace(".", "-", -1)
 
         # update new release information in template file
         with open(new_releases_file, "w") as file_handle:
@@ -379,8 +389,9 @@ class BIReleaser(object):
                 line = line.replace(
                     "RC-CANDIDATE", rc_candidate, -1).replace(
                         "PROD-RELEASE", prod_release, -1).replace(
-                            "VERSION", self.__release_version, -1).replace(
-                                "DATE", str(datetime.date.today()), -1)
+                            "NOTES_ANCHOR", notes_anchor, -1).replace(
+                                "VERSION", self.__release_version, -1).replace(
+                                    "DATE", str(datetime.date.today()), -1)
 
                 for url, entry in self.__urls.items():
                     basename = os.path.basename(entry)
