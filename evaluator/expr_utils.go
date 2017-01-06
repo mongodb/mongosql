@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
@@ -470,5 +471,337 @@ func translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) (SQLExpr, error)
 		return constructTupleExpr(op, left, right, false)
 	default:
 		return translationFunc(0)
+	}
+}
+
+const maxDateParts = 8
+const maxHour = 838
+const maxMinute = 59
+const maxSecond = 59
+const twoDigitPartYear = 70
+const timeSeparator = ':'
+
+// this is a port of mysql's str_to_datetime function.
+func strToDateTime(s string, full bool) (time.Time, bool) {
+
+	// skip space at start
+	var str int
+	for str = 0; str < len(s); str++ {
+		if !isSpace(s[str]) {
+			break
+		}
+	}
+
+	if str >= len(s) || !isDigit(s[str]) {
+		return time.Time{}, false
+	}
+
+	const (
+		yearIdx        = 0
+		monthIdx       = 1
+		dayIdx         = 2
+		hourIdx        = 3
+		minuteIdx      = 4
+		secondIdx      = 5
+		microsecondIdx = 6
+	)
+
+	date := make([]int, maxDateParts)
+	dateLengths := make([]int, maxDateParts)
+	yearLength := 2
+	fieldLength := 2
+	internalFormat := false
+
+	// calc number of digits in first part.
+	var pos int
+	for pos = str; pos < len(s); pos++ {
+		if !isDigit(s[pos]) && s[pos] != 'T' {
+			break
+		}
+	}
+
+	dateLengths[yearIdx] = 0
+	numDigits := pos - str
+	if numDigits == len(s) || s[pos] == '.' {
+		// found date in internal format (only numbers like YYYYMMDD)
+		if numDigits == 4 || numDigits == 8 || numDigits >= 14 {
+			yearLength = 4
+			fieldLength = 4
+		}
+		internalFormat = true
+	} else {
+		fieldLength = 4
+	}
+
+	var state int
+	notZeroDate := false
+	lastFieldPos := str
+	for state = 0; state < maxDateParts-1 && str < len(s) && isDigit(s[str]); state++ {
+		start := str
+		tempValue := int(s[str]) - int('0')
+		str++
+
+		// gather up all the digits for the current part
+		scanUntilDelim := !internalFormat && state != microsecondIdx
+		fieldLength--
+		for str < len(s) && isDigit(s[str]) && (scanUntilDelim || fieldLength > 0) {
+			tempValue = tempValue*10 + (int(s[str]) - int('0'))
+			str++
+			fieldLength--
+		}
+
+		dateLengths[state] = str - start
+		if tempValue > 999999 {
+			return time.Time{}, false
+		}
+
+		date[state] = tempValue
+		if tempValue > 0 {
+			notZeroDate = true
+		}
+
+		// all fields except for year and fractional seconds are of length 2.
+		fieldLength = 2
+
+		lastFieldPos = str
+		if lastFieldPos == len(s) {
+			state++
+			break
+		}
+
+		// Allow a 'T' after day to allow CCYYMMDDT type of fields
+		if state == dayIdx && s[str] == 'T' {
+			str++
+			continue
+		}
+
+		if state == secondIdx {
+			if s[str] == '.' { //followed by a period
+				str++
+				fieldLength = 6
+			}
+			continue
+		}
+
+		for str < len(s) && (isPunct(s[str]) || isSpace(s[str])) {
+			if isSpace(s[str]) {
+				if state != dayIdx { // only allow space between date and time
+					return time.Time{}, false
+				}
+			}
+			str++
+		}
+
+		if state == microsecondIdx {
+			state++
+		}
+		lastFieldPos = str
+	}
+
+	str = lastFieldPos
+
+	numFields := state
+	for state < maxDateParts {
+		dateLengths[state] = 0
+		date[state] = 0
+		state++
+	}
+
+	if !internalFormat {
+		yearLength = dateLengths[yearIdx]
+
+		if yearLength == 0 {
+			return time.Time{}, false
+		}
+	}
+
+	fractionalLength := dateLengths[microsecondIdx]
+	if fractionalLength < 6 {
+		date[microsecondIdx] *= int(math.Pow10(6 - fractionalLength))
+	}
+
+	if yearLength == 2 && notZeroDate {
+		if date[yearIdx] < twoDigitPartYear {
+			date[yearIdx] += 2000
+		} else {
+			date[yearIdx] += 1900
+		}
+	}
+
+	if numFields < 3 ||
+		(numFields <= 3 && full) ||
+		(date[yearIdx] == 0 && date[monthIdx] == 0 && date[dayIdx] == 0) ||
+		date[yearIdx] > 9999 ||
+		date[monthIdx] > 12 ||
+		date[dayIdx] > daysInMonth(time.Month(date[monthIdx]), date[yearIdx]) ||
+		date[hourIdx] > 23 || date[monthIdx] > 59 || date[secondIdx] > 59 {
+		return time.Time{}, false
+	}
+
+	return time.Date(date[yearIdx], time.Month(date[monthIdx]), date[dayIdx], date[hourIdx], date[minuteIdx], date[secondIdx], date[microsecondIdx]*1000, schema.DefaultLocale), true
+}
+
+func daysInMonth(m time.Month, year int) int {
+	// This is equivalent to time.daysIn(m, year).
+	return time.Date(year, m+1, 0, 0, 0, 0, 0, time.UTC).Day()
+}
+
+// this is a port of mysql's str_to_time function.
+func strToTime(s string) (time.Duration, bool) {
+	parts := make([]int, 5)
+	const (
+		dayIdx         = 0
+		hourIdx        = 1
+		minuteIdx      = 2
+		secondIdx      = 3
+		microsecondIdx = 4
+	)
+
+	negative := false
+	state := 0
+	str := 0
+	for ; str < len(s); str++ {
+		if !isSpace(s[str]) {
+			break
+		}
+	}
+
+	if str < len(s) && str == '-' {
+		negative = true
+	}
+
+	if str == len(s) {
+		return time.Duration(0), false
+	}
+
+	value := 0
+	for ; str < len(s) && isDigit(s[str]); str++ {
+		value = value*10 + int((s[str] - '0'))
+	}
+
+	endOfDays := str
+
+	for ; str < len(s); str++ {
+		if !isSpace(s[str]) {
+			break
+		}
+	}
+
+	foundDays := false
+	foundHours := false
+	if str+1 < len(s) && str != endOfDays && isDigit(s[str]) {
+		parts[dayIdx] = value
+		state = hourIdx
+		foundDays = true
+	} else if str+1 < len(s) && s[str] == timeSeparator && isDigit(s[str+1]) {
+		parts[hourIdx] = value
+		state = minuteIdx
+		foundHours = true
+		str++
+	} else {
+		parts[hourIdx] = value / 10000
+		parts[minuteIdx] = value / 100 % 100
+		parts[secondIdx] = value % 100
+		state = secondIdx
+	}
+
+	if state != secondIdx {
+		for {
+			for value = 0; str < len(s) && isDigit(s[str]); str++ {
+				value = value*10 + int(s[str]-'0')
+			}
+
+			parts[state] = value
+			state++
+			if state == microsecondIdx || (len(s)-str) < 2 || s[str] != timeSeparator || !isDigit(s[str+1]) {
+				break
+			}
+			str++
+		}
+
+		if state != secondIdx {
+			if !foundDays && !foundHours {
+				parts[microsecondIdx] = parts[minuteIdx]
+				parts[secondIdx] = parts[hourIdx]
+				parts[minuteIdx] = parts[dayIdx]
+			}
+		}
+	}
+
+	if str+1 < len(s) && s[str] == '.' && isDigit(s[str+1]) {
+		str++
+		value = 0
+		fieldLength := 0
+		for ; str < len(s) && isDigit(s[str]) && fieldLength < 6; str++ {
+			value = value*10 + int(s[str]-'0')
+			fieldLength++
+		}
+
+		parts[microsecondIdx] = value * int(math.Pow10(6-fieldLength))
+	}
+
+	// garbage at the end...
+	if str != len(s) {
+		return time.Duration(0), false
+	}
+
+	if parts[minuteIdx] >= 60 || parts[secondIdx] >= 60 {
+		return time.Duration(0), false
+	}
+
+	hour := parts[dayIdx]*24 + parts[hourIdx]
+	result := time.Duration(hour)*time.Hour +
+		time.Duration(parts[minuteIdx])*time.Minute +
+		time.Duration(parts[secondIdx])*time.Second +
+		time.Duration(parts[microsecondIdx])*time.Microsecond
+	if negative {
+		result = -result
+	}
+
+	if hour <= maxHour && (hour != maxHour || parts[minuteIdx] != maxMinute ||
+		parts[secondIdx] != maxSecond || parts[microsecondIdx] > 0) {
+		return result, true
+	}
+
+	// out of range... usually would add a warning
+	return time.Duration(maxHour)*time.Hour +
+		time.Duration(maxMinute)*time.Minute +
+		time.Duration(maxSecond)*time.Second, true
+}
+
+func maxUint(is ...uint) uint {
+	max := is[0]
+	for i := 1; i < len(is); i++ {
+		if is[i] > max {
+			max = is[i]
+		}
+	}
+	return max
+}
+
+func isDigit(c byte) bool {
+	switch c {
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		return true
+	default:
+		return false
+	}
+}
+
+func isPunct(c byte) bool {
+	switch c {
+	case '.', '#', '@', ':', '$', '^', '/', '-':
+		return true
+	default:
+		return false
+	}
+}
+
+func isSpace(c byte) bool {
+	switch c {
+	case ' ':
+		return true
+	default:
+		return false
 	}
 }

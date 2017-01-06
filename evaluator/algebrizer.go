@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/log"
@@ -963,11 +964,26 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		switch typedE.Name {
 		case parser.AST_DATE:
-			return NewSQLValueFromSQLColumnExpr(arg, schema.SQLDate, schema.MongoNone)
+			date, ok := parseDateTime(arg)
+			if !ok || date.Hour() > 0 || date.Minute() > 0 || date.Second() > 0 || date.Nanosecond() > 0 {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE, "DATE", arg)
+			}
+			return SQLDate{date}, nil
 		case parser.AST_TIME:
-			return NewSQLValueFromSQLColumnExpr(arg, schema.SQLTimestamp, schema.MongoNone)
+			dur, ok := strToTime(arg)
+			if !ok {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE, "TIME", arg)
+			}
+
+			date := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC).Add(dur)
+
+			return SQLTimestamp{date}, nil
 		case parser.AST_TIMESTAMP, parser.AST_DATETIME:
-			return NewSQLValueFromSQLColumnExpr(arg, schema.SQLTimestamp, schema.MongoNone)
+			date, ok := strToDateTime(arg, true)
+			if !ok {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE, "DATETIME", arg)
+			}
+			return SQLTimestamp{date}, nil
 		default:
 			return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "No support for constructor '%v'", string(typedE.Name))
 		}

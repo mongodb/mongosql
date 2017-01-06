@@ -2337,10 +2337,20 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 			actualPlan, err := AlgebrizeQuery(statement, "test", testVars, testCatalog)
 			So(err, ShouldBeNil)
-
 			actual := (actualPlan.(*ProjectStage)).projectedColumns[0].Expr
-
 			So(actual, ShouldResemble, expected)
+		})
+	}
+
+	testError := func(sql, message string) {
+		Convey(sql, func() {
+			statement, err := parser.Parse("select " + sql + " from foo")
+			So(err, ShouldBeNil)
+
+			actual, err := AlgebrizeQuery(statement, "test", testVars, testCatalog)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldResemble, message)
+			So(actual, ShouldBeNil)
 		})
 	}
 
@@ -2377,8 +2387,16 @@ func TestAlgebrizeExpr(t *testing.T) {
 		SkipConvey("Case", func() {
 		})
 
-		SkipConvey("Ctor", func() {
-			test("TIMESTAMP '2014-06-07 00:00:00.000'", SQLDate{time.Now()})
+		Convey("Date", func() {
+			expected := time.Date(2006, time.December, 31, 0, 0, 0, 0, time.UTC)
+			test("DATE '2006-12-31'", SQLDate{expected})
+			test("DATE '06-12-31'", SQLDate{expected})
+			test("DATE '20061231'", SQLDate{expected})
+			test("DATE '061231'", SQLDate{expected})
+
+			testError("DATE '2014-13-07'", "ERROR 1525 (HY000): Incorrect DATE value: '2014-13-07'")
+			testError("DATE '2014-12-32'", "ERROR 1525 (HY000): Incorrect DATE value: '2014-12-32'")
+			testError("DATE '2006-12-31 10:32:46'", "ERROR 1525 (HY000): Incorrect DATE value: '2006-12-31 10:32:46'")
 		})
 
 		Convey("Divide", func() {
@@ -2579,6 +2597,31 @@ func TestAlgebrizeExpr(t *testing.T) {
 				left:  createSQLColumnExpr("a"),
 				right: SQLInt(1),
 			})
+		})
+
+		Convey("Time", func() {
+			expected := time.Date(0, 1, 1, 10, 32, 46, 5000, time.UTC)
+			test("TIME '10:32:46.000005'", SQLTimestamp{expected})
+			test("TIME '103246.000005'", SQLTimestamp{expected})
+
+			testError("TIME '2014-12-32'", "ERROR 1525 (HY000): Incorrect TIME value: '2014-12-32'")
+			testError("TIME '2006-12-31 10:32:46.000005'", "ERROR 1525 (HY000): Incorrect TIME value: '2006-12-31 10:32:46.000005'")
+		})
+
+		Convey("Timestamp", func() {
+			expected := time.Date(2014, 6, 7, 10, 32, 46, 5000, time.UTC)
+			test("TIMESTAMP '2014-06-07 10:32:46.000005'", SQLTimestamp{expected})
+			test("TIMESTAMP '2014-6-7 10:32:46.000005'", SQLTimestamp{expected})
+			test("TIMESTAMP '14-06-07 10:32:46.000005'", SQLTimestamp{expected})
+			test("TIMESTAMP '14-6-7 10:32:46.000005'", SQLTimestamp{expected})
+			test("TIMESTAMP '2014:06:07 10:32:46.000005'", SQLTimestamp{expected})
+			test("TIMESTAMP '14:06:07 10:32:46.000005'", SQLTimestamp{expected})
+			test("TIMESTAMP '20140607103246.000005'", SQLTimestamp{expected})
+			test("TIMESTAMP '140607103246.000005'", SQLTimestamp{expected})
+			test("TIMESTAMP '146.07103246.000005'", SQLTimestamp{expected})
+			test("TIMESTAMP '14.06.07.10.32.46.000005'", SQLTimestamp{expected})
+
+			testError("TIMESTAMP '2014-06-07'", "ERROR 1525 (HY000): Incorrect DATETIME value: '2014-06-07'")
 		})
 
 		Convey("Tuple", func() {

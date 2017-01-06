@@ -931,6 +931,14 @@ func (_ *dateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 	return SQLDate{Time: t.Truncate(24 * time.Hour)}, nil
 }
 
+func (_ *dateFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
 func (_ *dateFunc) Type(exprs []SQLExpr) schema.SQLType {
 	return schema.SQLDate
 }
@@ -1599,16 +1607,23 @@ type hourFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_hour
 func (_ *hourFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
-	if !ok {
+	if values[0] == SQLNull {
 		return SQLNull, nil
+	}
+	t, ok := parseTime(values[0].String())
+	if !ok {
+		return SQLInt(0), nil
 	}
 
 	return SQLInt(int(t.Hour())), nil
 }
 
-func (_ *hourFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLTimestamp, SQLNull)
+func (_ *hourFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *hourFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -2111,16 +2126,24 @@ type minuteFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_minute
 func (_ *minuteFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	t, ok := parseDateTime(values[0].String())
-	if !ok {
+	if values[0] == SQLNull {
 		return SQLNull, nil
+	}
+
+	t, ok := parseTime(values[0].String())
+	if !ok {
+		return SQLInt(0), nil
 	}
 
 	return SQLInt(int(t.Minute())), nil
 }
 
-func (_ *minuteFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLTimestamp, SQLNull)
+func (_ *minuteFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *minuteFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -2428,23 +2451,24 @@ type secondFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_second
 func (_ *secondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if len(values) == 1 {
-		sd, ok := values[0].(SQLDate)
-		if ok {
-			return SQLInt(int(sd.Time.Second())), nil
-		}
+	if values[0] == SQLNull {
+		return SQLNull, nil
 	}
 
-	t, ok := parseDateTime(values[0].String())
+	t, ok := parseTime(values[0].String())
 	if !ok {
-		return SQLNull, nil
+		return SQLInt(0), nil
 	}
 
 	return SQLInt(int(t.Second())), nil
 }
 
-func (_ *secondFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	return convertAllArgs(f, schema.SQLTimestamp, SQLNull)
+func (_ *secondFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 func (_ *secondFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -2761,12 +2785,12 @@ func (_ *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		return SQLNull, nil
 	}
 
-	expr1, ok := parseDateTime(values[0].String())
+	expr1, ok := parseTime(values[0].String())
 	if !ok {
 		return SQLNull, nil
 	}
 
-	expr2, ok := parseDateTime(values[1].String())
+	expr2, ok := parseTime(values[1].String())
 	if !ok {
 		return SQLNull, nil
 	}
@@ -3873,14 +3897,23 @@ func numMonths(startDate time.Time, endDate time.Time) int {
 	return months
 }
 
-func parseDateTime(value string) (time.Time, bool) {
-	for _, f := range schema.TimestampCtorFormats {
-		t, err := time.Parse(f, value)
-		if err == nil {
-			return t, true
+func parseDateTime(s string) (time.Time, bool) {
+	return strToDateTime(s, false)
+}
+
+func parseTime(s string) (time.Time, bool) {
+	if len(s) >= 12 {
+		// probably a datetime
+		dt, ok := strToDateTime(s, true)
+		if ok {
+			return dt, true
 		}
 	}
-	return time.Time{}, false
+
+	// the result will be 0 if parsing failed, so we don't care about the result.
+	dur, ok := strToTime(s)
+
+	return time.Date(0, 1, 1, 0, 0, 0, 0, schema.DefaultLocale).Add(dur), ok
 }
 
 func parseDuration(v SQLValue) (time.Duration, bool) {

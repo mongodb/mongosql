@@ -1114,6 +1114,10 @@ func TestEvaluates(t *testing.T) {
 					test{"DATE('cat')", SQLNull},
 					test{"DATE(TIMESTAMP '2016-03-01 12:32:23')", SQLDate{Time: d}},
 					test{"DATE(DATE '2016-03-01')", SQLDate{Time: d}},
+					test{"DATE('2016-03-01')", SQLDate{Time: d}},
+					test{"DATE('20160301')", SQLDate{Time: d}},
+					test{"DATE(20160301)", SQLDate{Time: d}},
+					test{"DATE(160301)", SQLDate{Time: d}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1415,7 +1419,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: HOUR", func() {
 				tests := []test{
 					test{"HOUR(NULL)", SQLNull},
-					test{"HOUR('sdg')", SQLNull},
+					test{"HOUR('sdg')", SQLInt(0)},
 					test{"HOUR('10:23:52')", SQLInt(10)},
 				}
 				runTests(evalCtx, tests)
@@ -1682,7 +1686,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: MINUTE", func() {
 				tests := []test{
 					test{"MINUTE(NULL)", SQLNull},
-					test{"MINUTE('sdg')", SQLNull},
+					test{"MINUTE('sdg')", SQLInt(0)},
 					test{"MINUTE('10:23:52')", SQLInt(23)},
 				}
 				runTests(evalCtx, tests)
@@ -1810,7 +1814,7 @@ func TestEvaluates(t *testing.T) {
 			Convey("Subject: SECOND", func() {
 				tests := []test{
 					test{"SECOND(NULL)", SQLNull},
-					test{"SECOND('sdg')", SQLNull},
+					test{"SECOND('sdg')", SQLInt(0)},
 					test{"SECOND('10:23:52')", SQLInt(52)},
 				}
 				runTests(evalCtx, tests)
@@ -2003,6 +2007,7 @@ func TestEvaluates(t *testing.T) {
 					test{"TIMESTAMP('2010-01-01 11:11:11', '11:23:59.5232355')", SQLTimestamp{Time: t1}},
 					test{"TIMESTAMP('2010-01-01 11:11:11', '12:22.4:12')", SQLTimestamp{Time: t2}},
 					test{"TIMESTAMP('2003-12-31 12:00:00', '12:00:00')", SQLTimestamp{Time: t3}},
+					test{"TIMESTAMP(20031231)", SQLTimestamp{Time: t4}},
 					test{"TIMESTAMP('2003-12-31')", SQLTimestamp{Time: t4}},
 					test{"TIMESTAMP('2003-12-31 12:00:00', '12.3:10:30')", SQLTimestamp{Time: t5}},
 					test{"TIMESTAMP('2003-12-31 12:23:23')", SQLTimestamp{Time: t6}},
@@ -2883,7 +2888,7 @@ func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
 
 			// invalid dates and those outside valid range
 			// should return the default date
-			dates = []string{"2014-12-44-44", "999-1-1", "10000-1-1"}
+			dates = []string{"2014-12-44-44", "10000-1-1"}
 
 			for _, d := range dates {
 				newV, err = NewSQLValueFromSQLColumnExpr(d, schema.SQLDate, schema.MongoNone)

@@ -20,29 +20,7 @@ const (
 	TimestampFormatMicros = "2006-01-02 15:04:05.000000"
 )
 
-var (
-	DefaultLocale = time.UTC
-
-	// TimestampCtorFormats holds the various formats
-	// for constructing a SQL timestamp.
-	TimestampCtorFormats = []string{
-		"15:4:5",
-		"060102",
-		"06-01-02",
-		"2006-1-2",
-		"2006-1-2 15",
-		"2006-1-2 15:4",
-		"2006-1-2 15:4:5",
-		"2006-1-2 15:4:5.000",
-		"2006-1-2 15:4:5.000000",
-		"2006:1:2",
-		"2006:1:2 15",
-		"2006:1:2 15:4",
-		"2006:1:2 15:4:5",
-		"2006:1:2 15:4:5.000",
-		"2006:1:2 15:4:5.000000",
-	}
-)
+var DefaultLocale = time.UTC
 
 // MongoType is the type that exists in MongoDB.
 type MongoType string

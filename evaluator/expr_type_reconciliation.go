@@ -83,12 +83,10 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 		case bson.ObjectId:
 			return SQLDate{v.Time()}, false
 		case string:
-			for _, format := range schema.TimestampCtorFormats {
-				d, err := time.Parse(format, v)
-				if err == nil {
-					date := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-					return SQLDate{date}, false
-				}
+			date, ok := parseDateTime(v)
+			if ok {
+				date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+				return SQLDate{date}, false
 			}
 			return SQLDate{time.Time{}}, true
 		case time.Time:
@@ -216,19 +214,14 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 		default:
 			return SQLObjectID(""), true
 		}
-
 	case schema.SQLTimestamp:
 		switch v := value.(type) {
 		case bson.ObjectId:
 			return SQLTimestamp{v.Time()}, false
 		case string:
-			for _, format := range schema.TimestampCtorFormats {
-				d, err := time.Parse(format, v)
-				if err == nil {
-					ts := time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
-						d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
-					return SQLTimestamp{ts}, false
-				}
+			date, ok := parseDateTime(v)
+			if ok {
+				return SQLTimestamp{date}, false
 			}
 			return SQLTimestamp{time.Time{}}, true
 		case time.Time:
@@ -597,7 +590,6 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 		}
 
 	case schema.SQLDate:
-		var date time.Time
 		switch v := value.(type) {
 		case string:
 			// SQLProxy only allows for converting strings to
@@ -608,12 +600,10 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 			if mongoType != schema.MongoNone {
 				break
 			}
-			for _, format := range schema.TimestampCtorFormats {
-				d, err := time.Parse(format, v)
-				if err == nil {
-					date = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-					return SQLDate{date}, nil
-				}
+			date, ok := parseDateTime(v)
+			if ok {
+				date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+				return SQLDate{date}, nil
 			}
 			val, _ := strconv.ParseFloat(v, 64)
 			return SQLFloat(val), nil
@@ -626,19 +616,14 @@ func NewSQLValueFromSQLColumnExpr(value interface{}, sqlType schema.SQLType, mon
 		}
 
 	case schema.SQLTimestamp:
-		var ts time.Time
 		switch v := value.(type) {
 		case string:
 			if mongoType != schema.MongoNone {
 				break
 			}
-			for _, format := range schema.TimestampCtorFormats {
-				d, err := time.Parse(format, v)
-				if err == nil {
-					ts = time.Date(d.Year(), d.Month(), d.Day(), d.Hour(),
-						d.Minute(), d.Second(), d.Nanosecond(), schema.DefaultLocale)
-					return SQLTimestamp{ts}, nil
-				}
+			date, ok := parseDateTime(v)
+			if ok {
+				return SQLTimestamp{date}, nil
 			}
 			val, _ := strconv.ParseFloat(v, 64)
 			return SQLFloat(val), nil
