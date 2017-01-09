@@ -101,6 +101,7 @@ import (
 var (
 	db1              *sql.DB
 	db2              *sql.DB
+	db3              *sql.DB
 	once sync.Once
 	testMongoDBHost  = flag.String("testMongoDBHost", "127.0.0.1", "test mongod host")
 	testMongoDBPort  = flag.String("testMongoDBPort", "27017", "test mongod port")
@@ -108,6 +109,7 @@ var (
 	testProxyPort    = flag.String("testProxyPort", "3308", "test proxy address")
 	testProxyDB1     = flag.String("testProxyDB1", "fullblackbox", "test proxy database 1")
 	testProxyDB2     = flag.String("testProxyDB2", "tableau", "test proxy database 2")
+	testProxyDB3     = flag.String("testProxyDB3", "tpch", "test proxy database 3")
 	testConfig       = flag.String("conf", "testdata/benchmark.yml", "test proxy DRDL file")
 )
 
@@ -115,8 +117,10 @@ var (
 func getDB(dbName string) *sql.DB {
 	if dbName == *testProxyDB1 {
 		return db1
+	} else if dbName == *testProxyDB2 {
+		return db2
 	}
-    return db2
+    return db3
 }
 
 func setup() {
@@ -144,6 +148,11 @@ func setup() {
 	}
 
 	db2, err = sql.Open("mysql", fmt.Sprintf("root@tcp(%v:%v)/%v", *testProxyAddress, *testProxyPort, *testProxyDB2))
+	if err != nil {
+	    panic(err)
+	}
+
+	db3, err = sql.Open("mysql", fmt.Sprintf("root@tcp(%v:%v)/%v", *testProxyAddress, *testProxyPort, *testProxyDB3))
 	if err != nil {
 	    panic(err)
 	}

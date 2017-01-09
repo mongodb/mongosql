@@ -1,0 +1,680 @@
+data:
+- archive_file: testdata/input/tpch.bson.gz
+
+addr: 127.0.0.1:3307
+user: root
+log_level: vv
+
+schema:
+- db: tpch
+  tables:
+  - table: customer
+    collection: customer
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: c_custkey
+      SqlType: int64
+    - Name: c_acctbal
+      MongoType: float64
+      SqlName: c_acctbal
+      SqlType: float64
+    - Name: c_address
+      MongoType: string
+      SqlName: c_address
+      SqlType: varchar
+    - Name: c_comment
+      MongoType: string
+      SqlName: c_comment
+      SqlType: varchar
+    - Name: c_mktsegment
+      MongoType: string
+      SqlName: c_mktsegment
+      SqlType: varchar
+    - Name: c_name
+      MongoType: string
+      SqlName: c_name
+      SqlType: varchar
+    - Name: c_nationkey
+      MongoType: int64
+      SqlName: c_nationkey
+      SqlType: int64
+    - Name: c_phone
+      MongoType: string
+      SqlName: c_phone
+      SqlType: varchar
+    - Name: field8
+      MongoType: string
+      SqlName: field8
+      SqlType: varchar
+  - table: lineitem
+    collection: lineitem
+    pipeline: []
+    columns:
+    - Name: _id.l_orderkey
+      MongoType: int64
+      SqlName: l_orderkey
+      SqlType: int64
+    - Name: _id.l_linenumber
+      MongoType: int64
+      SqlName: l_linenumber
+      SqlType: int64
+    - Name: field16
+      MongoType: string
+      SqlName: field16
+      SqlType: varchar
+    - Name: l_comment
+      MongoType: string
+      SqlName: l_comment
+      SqlType: varchar
+    - Name: l_commitdate
+      MongoType: date
+      SqlName: l_commitdate
+      SqlType: timestamp
+    - Name: l_discount
+      MongoType: float64
+      SqlName: l_discount
+      SqlType: float64
+    - Name: l_extendedprice
+      MongoType: float64
+      SqlName: l_extendedprice
+      SqlType: float64
+    - Name: l_linestatus
+      MongoType: string
+      SqlName: l_linestatus
+      SqlType: varchar
+    - Name: l_partkey
+      MongoType: int64
+      SqlName: l_partkey
+      SqlType: int64
+    - Name: l_quantity
+      MongoType: int64
+      SqlName: l_quantity
+      SqlType: int64
+    - Name: l_receiptdate
+      MongoType: date
+      SqlName: l_receiptdate
+      SqlType: timestamp
+    - Name: l_returnflag
+      MongoType: string
+      SqlName: l_returnflag
+      SqlType: varchar
+    - Name: l_shipdate
+      MongoType: date
+      SqlName: l_shipdate
+      SqlType: timestamp
+    - Name: l_shipinstruct
+      MongoType: string
+      SqlName: l_shipinstruct
+      SqlType: varchar
+    - Name: l_shipmode
+      MongoType: string
+      SqlName: l_shipmode
+      SqlType: varchar
+    - Name: l_suppkey
+      MongoType: int64
+      SqlName: l_suppkey
+      SqlType: int64
+    - Name: l_tax
+      MongoType: float64
+      SqlName: l_tax
+      SqlType: float64
+  - table: mongo_customer
+    collection: mongo_customer
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: c_custkey
+      SqlType: int64
+    - Name: c_acctbal
+      MongoType: float64
+      SqlName: c_acctbal
+      SqlType: float64
+    - Name: c_address
+      MongoType: string
+      SqlName: c_address
+      SqlType: varchar
+    - Name: c_comment
+      MongoType: string
+      SqlName: c_comment
+      SqlType: varchar
+    - Name: c_mktsegment
+      MongoType: string
+      SqlName: c_mktsegment
+      SqlType: varchar
+    - Name: c_n_name
+      MongoType: string
+      SqlName: c_n_name
+      SqlType: varchar
+    - Name: c_name
+      MongoType: string
+      SqlName: c_name
+      SqlType: varchar
+    - Name: c_nationkey
+      MongoType: int64
+      SqlName: c_nationkey
+      SqlType: int64
+    - Name: c_phone
+      MongoType: string
+      SqlName: c_phone
+      SqlType: varchar
+    - Name: c_r_name
+      MongoType: string
+      SqlName: c_r_name
+      SqlType: varchar
+    - Name: c_regionkey
+      MongoType: int64
+      SqlName: c_regionkey
+      SqlType: int64
+  - table: mongo_orders
+    collection: mongo_orders
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: o_orderkey
+      SqlType: int64
+    - Name: o_c_mktsegment
+      MongoType: string
+      SqlName: o_c_mktsegment
+      SqlType: varchar
+    - Name: o_c_n_name
+      MongoType: string
+      SqlName: o_c_n_name
+      SqlType: varchar
+    - Name: o_c_name
+      MongoType: string
+      SqlName: o_c_name
+      SqlType: varchar
+    - Name: o_c_nationkey
+      MongoType: int64
+      SqlName: o_c_nationkey
+      SqlType: int64
+    - Name: o_c_r_name
+      MongoType: string
+      SqlName: o_c_r_name
+      SqlType: varchar
+    - Name: o_c_regionkey
+      MongoType: int64
+      SqlName: o_c_regionkey
+      SqlType: int64
+    - Name: o_clerk
+      MongoType: string
+      SqlName: o_clerk
+      SqlType: varchar
+    - Name: o_comment
+      MongoType: string
+      SqlName: o_comment
+      SqlType: varchar
+    - Name: o_custkey
+      MongoType: int64
+      SqlName: o_custkey
+      SqlType: int64
+    - Name: o_orderdate
+      MongoType: date
+      SqlName: o_orderdate
+      SqlType: timestamp
+    - Name: o_orderpriority
+      MongoType: string
+      SqlName: o_orderpriority
+      SqlType: varchar
+    - Name: o_orderstatus
+      MongoType: string
+      SqlName: o_orderstatus
+      SqlType: varchar
+    - Name: o_shippriority
+      MongoType: string
+      SqlName: o_shippriority
+      SqlType: varchar
+    - Name: o_totalprice
+      MongoType: float64
+      SqlName: o_totalprice
+      SqlType: float64
+  - table: mongo_lineitem
+    collection: mongo_orders
+    pipeline:
+    - $unwind:
+        includeArrayIndex: o_lineitems_idx
+        path: $o_lineitems
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: l_orderkey
+      SqlType: int64
+    - Name: o_lineitems.l_comment
+      MongoType: string
+      SqlName: l_comment
+      SqlType: varchar
+    - Name: o_lineitems.l_commitdate
+      MongoType: date
+      SqlName: l_commitdate
+      SqlType: timestamp
+    - Name: o_lineitems.l_discount
+      MongoType: float64
+      SqlName: l_discount
+      SqlType: float64
+    - Name: o_lineitems.l_extendedprice
+      MongoType: float64
+      SqlName: l_extendedprice
+      SqlType: float64
+    - Name: o_lineitems.l_linenumber
+      MongoType: int64
+      SqlName: l_linenumber
+      SqlType: int64
+    - Name: o_lineitems.l_linestatus
+      MongoType: string
+      SqlName: l_linestatus
+      SqlType: varchar
+    - Name: o_lineitems.l_p_brand
+      MongoType: string
+      SqlName: l_p_brand
+      SqlType: varchar
+    - Name: o_lineitems.l_p_container
+      MongoType: string
+      SqlName: l_p_container
+      SqlType: varchar
+    - Name: o_lineitems.l_p_name
+      MongoType: string
+      SqlName: l_p_name
+      SqlType: varchar
+    - Name: o_lineitems.l_p_size
+      MongoType: int64
+      SqlName: l_p_size
+      SqlType: int64
+    - Name: o_lineitems.l_p_type
+      MongoType: string
+      SqlName: l_p_type
+      SqlType: varchar
+    - Name: o_lineitems.l_partkey
+      MongoType: int64
+      SqlName: l_partkey
+      SqlType: int64
+    - Name: o_lineitems.l_quantity
+      MongoType: int64
+      SqlName: l_quantity
+      SqlType: int64
+    - Name: o_lineitems.l_receiptdate
+      MongoType: date
+      SqlName: l_receiptdate
+      SqlType: timestamp
+    - Name: o_lineitems.l_returnflag
+      MongoType: string
+      SqlName: l_returnflag
+      SqlType: varchar
+    - Name: o_lineitems.l_s_n_name
+      MongoType: string
+      SqlName: l_s_n_name
+      SqlType: varchar
+    - Name: o_lineitems.l_s_name
+      MongoType: string
+      SqlName: l_s_name
+      SqlType: varchar
+    - Name: o_lineitems.l_s_nationkey
+      MongoType: int64
+      SqlName: l_s_nationkey
+      SqlType: int64
+    - Name: o_lineitems.l_s_r_name
+      MongoType: string
+      SqlName: l_s_r_name
+      SqlType: varchar
+    - Name: o_lineitems.l_s_regionkey
+      MongoType: int64
+      SqlName: l_s_regionkey
+      SqlType: int64
+    - Name: o_lineitems.l_shipdate
+      MongoType: date
+      SqlName: l_shipdate
+      SqlType: timestamp
+    - Name: o_lineitems.l_shipinstruct
+      MongoType: string
+      SqlName: l_shipinstruct
+      SqlType: varchar
+    - Name: o_lineitems.l_shipmode
+      MongoType: string
+      SqlName: l_shipmode
+      SqlType: varchar
+    - Name: o_lineitems.l_suppkey
+      MongoType: int64
+      SqlName: l_suppkey
+      SqlType: int64
+    - Name: o_lineitems.l_tax
+      MongoType: float64
+      SqlName: l_tax
+      SqlType: float64
+    - Name: o_lineitems_idx
+      MongoType: int
+      SqlName: l_idx
+      SqlType: int
+  - table: mongo_part
+    collection: mongo_part
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: p_partkey
+      SqlType: int64
+    - Name: p_brand
+      MongoType: string
+      SqlName: p_brand
+      SqlType: varchar
+    - Name: p_comment
+      MongoType: string
+      SqlName: p_comment
+      SqlType: varchar
+    - Name: p_container
+      MongoType: string
+      SqlName: p_container
+      SqlType: varchar
+    - Name: p_mfgr
+      MongoType: string
+      SqlName: p_mfgr
+      SqlType: varchar
+    - Name: p_name
+      MongoType: string
+      SqlName: p_name
+      SqlType: varchar
+    - Name: p_retailprice
+      MongoType: float64
+      SqlName: p_retailprice
+      SqlType: float64
+    - Name: p_size
+      MongoType: int64
+      SqlName: p_size
+      SqlType: int64
+    - Name: p_type
+      MongoType: string
+      SqlName: p_type
+      SqlType: varchar
+  - table: mongo_partsupp
+    collection: mongo_part
+    pipeline:
+    - $unwind:
+        includeArrayIndex: p_suppliers_idx
+        path: $p_suppliers
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: ps_partkey
+      SqlType: int64
+    - Name: p_suppliers.ps_s_n_name
+      MongoType: string
+      SqlName: ps_s_n_name
+      SqlType: varchar
+    - Name: p_suppliers.ps_s_name
+      MongoType: string
+      SqlName: ps_s_name
+      SqlType: varchar
+    - Name: p_suppliers.ps_s_nationkey
+      MongoType: int64
+      SqlName: ps_s_nationkey
+      SqlType: int64
+    - Name: p_suppliers.ps_availqty
+      MongoType: int64
+      SqlName: ps_availqty
+      SqlType: int64
+    - Name: p_suppliers.ps_comment
+      MongoType: string
+      SqlName: ps_comment
+      SqlType: varchar
+    - Name: p_suppliers.ps_supplycost
+      MongoType: float64
+      SqlName: ps_supplycost
+      SqlType: float64
+    - Name: p_suppliers.ps_s_r_name
+      MongoType: string
+      SqlName: ps_s_r_name
+      SqlType: varchar
+    - Name: p_suppliers.ps_s_regionkey
+      MongoType: int64
+      SqlName: ps_s_regionkey
+      SqlType: int64
+    - Name: p_suppliers.ps_suppkey
+      MongoType: int64
+      SqlName: ps_suppkey
+      SqlType: int64
+    - Name: p_suppliers_idx
+      MongoType: int
+      SqlName: ps_idx
+      SqlType: int
+  - table: mongo_supplier
+    collection: mongo_supplier
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: s_suppkey
+      SqlType: int64
+    - Name: s_acctbal
+      MongoType: float64
+      SqlName: s_acctbal
+      SqlType: float64
+    - Name: s_address
+      MongoType: string
+      SqlName: s_address
+      SqlType: varchar
+    - Name: s_comment
+      MongoType: string
+      SqlName: s_comment
+      SqlType: varchar
+    - Name: s_n_name
+      MongoType: string
+      SqlName: s_n_name
+      SqlType: varchar
+    - Name: s_name
+      MongoType: string
+      SqlName: s_name
+      SqlType: varchar
+    - Name: s_nationkey
+      MongoType: int64
+      SqlName: s_nationkey
+      SqlType: int64
+    - Name: s_phone
+      MongoType: string
+      SqlName: s_phone
+      SqlType: varchar
+    - Name: s_r_name
+      MongoType: string
+      SqlName: s_r_name
+      SqlType: varchar
+    - Name: s_regionkey
+      MongoType: int64
+      SqlName: s_regionkey
+      SqlType: int64
+  - table: nation
+    collection: nation
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: n_nationkey
+      SqlType: int64
+    - Name: field4
+      MongoType: string
+      SqlName: field4
+      SqlType: varchar
+    - Name: n_comment
+      MongoType: string
+      SqlName: n_comment
+      SqlType: varchar
+    - Name: n_name
+      MongoType: string
+      SqlName: n_name
+      SqlType: varchar
+    - Name: n_regionkey
+      MongoType: int64
+      SqlName: n_regionkey
+      SqlType: int64
+  - table: orders
+    collection: orders
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: o_orderkey
+      SqlType: int64
+    - Name: field9
+      MongoType: string
+      SqlName: field9
+      SqlType: varchar
+    - Name: o_clerk
+      MongoType: string
+      SqlName: o_clerk
+      SqlType: varchar
+    - Name: o_comment
+      MongoType: string
+      SqlName: o_comment
+      SqlType: varchar
+    - Name: o_custkey
+      MongoType: int64
+      SqlName: o_custkey
+      SqlType: int64
+    - Name: o_orderdate
+      MongoType: date
+      SqlName: o_orderdate
+      SqlType: timestamp
+    - Name: o_orderpriority
+      MongoType: string
+      SqlName: o_orderpriority
+      SqlType: varchar
+    - Name: o_orderstatus
+      MongoType: string
+      SqlName: o_orderstatus
+      SqlType: varchar
+    - Name: o_shippriority
+      MongoType: string
+      SqlName: o_shippriority
+      SqlType: varchar
+    - Name: o_totalprice
+      MongoType: float64
+      SqlName: o_totalprice
+      SqlType: float64
+  - table: part
+    collection: part
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: p_partkey
+      SqlType: int64
+    - Name: field9
+      MongoType: string
+      SqlName: field9
+      SqlType: varchar
+    - Name: p_brand
+      MongoType: string
+      SqlName: p_brand
+      SqlType: varchar
+    - Name: p_comment
+      MongoType: string
+      SqlName: p_comment
+      SqlType: varchar
+    - Name: p_container
+      MongoType: string
+      SqlName: p_container
+      SqlType: varchar
+    - Name: p_mfgr
+      MongoType: string
+      SqlName: p_mfgr
+      SqlType: varchar
+    - Name: p_name
+      MongoType: string
+      SqlName: p_name
+      SqlType: varchar
+    - Name: p_retailprice
+      MongoType: float64
+      SqlName: p_retailprice
+      SqlType: float64
+    - Name: p_size
+      MongoType: int64
+      SqlName: p_size
+      SqlType: int64
+    - Name: p_type
+      MongoType: string
+      SqlName: p_type
+      SqlType: varchar
+  - table: partsupp
+    collection: partsupp
+    pipeline: []
+    columns:
+    - Name: _id.ps_partkey
+      MongoType: int64
+      SqlName: ps_partkey
+      SqlType: int64
+    - Name: _id.ps_suppkey
+      MongoType: int64
+      SqlName: ps_suppkey
+      SqlType: int64
+    - Name: field5
+      MongoType: string
+      SqlName: field5
+      SqlType: varchar
+    - Name: ps_availqty
+      MongoType: int64
+      SqlName: ps_availqty
+      SqlType: int64
+    - Name: ps_comment
+      MongoType: string
+      SqlName: ps_comment
+      SqlType: varchar
+    - Name: ps_supplycost
+      MongoType: float64
+      SqlName: ps_supplycost
+      SqlType: float64
+  - table: region
+    collection: region
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: r_regionkey
+      SqlType: int64
+    - Name: field3
+      MongoType: string
+      SqlName: field3
+      SqlType: varchar
+    - Name: r_comment
+      MongoType: string
+      SqlName: r_comment
+      SqlType: varchar
+    - Name: r_name
+      MongoType: string
+      SqlName: r_name
+      SqlType: varchar
+  - table: supplier
+    collection: supplier
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int64
+      SqlName: s_suppkey
+      SqlType: int64
+    - Name: field7
+      MongoType: string
+      SqlName: field7
+      SqlType: varchar
+    - Name: s_acctbal
+      MongoType: float64
+      SqlName: s_acctbal
+      SqlType: float64
+    - Name: s_address
+      MongoType: string
+      SqlName: s_address
+      SqlType: varchar
+    - Name: s_comment
+      MongoType: string
+      SqlName: s_comment
+      SqlType: varchar
+    - Name: s_name
+      MongoType: string
+      SqlName: s_name
+      SqlType: varchar
+    - Name: s_nationkey
+      MongoType: int64
+      SqlName: s_nationkey
+      SqlType: int64
+    - Name: s_phone
+      MongoType: string
+      SqlName: s_phone
+      SqlType: varchar

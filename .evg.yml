@@ -58,6 +58,7 @@ buildvariants:
   batchtime: 1440 # 1 day
   tasks:
   - "benchmark"
+  - "tpch"
 - name: osx
   display_name: OSX 10.10
   run_on:
@@ -335,22 +336,7 @@ functions:
           ${python|python} buildscripts/make_archive.py -o release.${archive_format|tgz} --format ${archive_format|tgz} --transform build/sqlproxy=mongodb-bi-${push_name}-${push_arch}-${version}/bin/mongosqld${extension} --transform build/drdl=mongodb-bi-${push_name}-${push_arch}-${version}/bin/mongodrdl${extension} --transform distsrc/README=mongodb-bi-${push_name}-${push_arch}-${version}/README --transform distsrc/THIRD-PARTY-NOTICES=mongodb-bi-${push_name}-${push_arch}-${version}/THIRD-PARTY-NOTICES --transform LICENSE=mongodb-bi-${push_name}-${push_arch}-${version}/LICENSE LICENSE distsrc${separator|/}README distsrc${separator|/}THIRD-PARTY-NOTICES build${separator|/}sqlproxy build${separator|/}drdl
         fi;
 
-  "download mongod":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        set -o verbose
-        set -o errexit
-        rm -rf bin || true
-        mkdir bin
-        cd bin
-        curl -s ${mongo_url} --output mongodb.tgz
-        ${decompress} mongodb.tgz
-        chmod +x ./mongodb-*/bin/*
-        mv ./mongodb-*/bin/* .
-
-  "download test data":
+  "download blackbox test data":
     command: shell.exec
     params:
       working_dir: src/github.com/10gen/sqlproxy
@@ -376,6 +362,36 @@ functions:
         curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigcoll.bson.gz --output testdata/input/bigcoll.bson.gz
         curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bignestedarray.bson.gz --output testdata/input/bignestedarray.bson.gz
         curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigobjarray.bson.gz --output testdata/input/bigobjarray.bson.gz
+
+  "download mongod":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        set -o verbose
+        set -o errexit
+        rm -rf bin || true
+        mkdir bin
+        cd bin
+        curl -s ${mongo_url} --output mongodb.tgz
+        ${decompress} mongodb.tgz
+        chmod +x ./mongodb-*/bin/*
+        mv ./mongodb-*/bin/* .
+
+  "download tableau test data":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.gz --output testdata/input/attendees.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
+
+  "download tpch test data":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_small.bson.gz --output testdata/input/tpch.bson.gz
 
   "fetch source" :
     - command: git.get_project
@@ -538,12 +554,24 @@ functions:
       content_type: application/octet-stream
       display_name: mongodb-bi-${push_name}-${push_arch}-${version}.${archive_format|tgz}
 
+  "upload tpch report":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: src/github.com/10gen/sqlproxy/tpch.txt
+      remote_file: sqlproxy/benchmarks/${build_variant}/tpch_${task_id}.txt
+      bucket: mciuploads
+      permissions: public-read
+      content_type: text/plain
+      display_name: TPCH Report (TXT)
+
 tasks:
 - name: benchmark
   tags: ["benchmark"]
   commands:
     - func: "fetch source"
-    - func: "download test data"
+    - func: "download blackbox test data"
     - func: "download mongod"
     - func: "start mongod"
     - command: shell.exec
@@ -582,7 +610,7 @@ tasks:
 - name: blackbox
   commands:
     - func: "fetch source"
-    - func: "download test data"
+    - func: "download blackbox test data"
     - func: "download mongod"
     - func: "start mongod"
     - command: shell.exec
@@ -626,7 +654,7 @@ tasks:
 - name: blackbox-nopushdown
   commands:
     - func: "fetch source"
-    - func: "download test data"
+    - func: "download blackbox test data"
     - func: "download mongod"
     - func: "start mongod"
     - command: shell.exec
@@ -972,7 +1000,6 @@ tasks:
 - name: sqlproxy
   commands:
     - func: "fetch source"
-    - func: "download test data"
     - func: "download mongod"
     - func: "start mongod"
     - command: shell.exec
@@ -1013,7 +1040,6 @@ tasks:
 - name: sqlproxy-nopushdown
   commands:
     - func: "fetch source"
-    - func: "download test data"
     - func: "download mongod"
     - func: "start mongod"
     - command: shell.exec
@@ -1054,7 +1080,7 @@ tasks:
 - name: tableau
   commands:
     - func: "fetch source"
-    - func: "download test data"
+    - func: "download tableau test data"
     - func: "download mongod"
     - func: "start mongod"
     - command: shell.exec
@@ -1091,6 +1117,48 @@ tasks:
     - func: "generate coverage txt"
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
+
+- name: tpch
+  tags: ["benchmark"]
+  exec_timeout_secs: 259200 # 3 days
+  commands:
+    - func: "fetch source"
+    - func: "download tpch test data"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      timeout_secs: 259200 # 3 days
+      params:
+        working_dir: src/github.com/10gen/sqlproxy
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/github.com/10gen
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
+          fi;
+          mkfifo test_pipe
+          tee -a tpch.txt < test_pipe&
+          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in testdata/tpch.json -out tpch_test.go
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 72h > test_pipe
+    - func: "upload tpch report"
 
 - name: variable
   commands:
