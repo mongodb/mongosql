@@ -72,6 +72,10 @@ schema:
         MongoType: int
         SqlType: int
      -
+        Name: d
+        MongoType: int
+        SqlType: int
+     -
         Name: _id
         MongoType: bson.ObjectId
         SqlType: varchar

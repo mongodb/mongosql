@@ -209,10 +209,9 @@ func (b *queryPlanBuilder) buildFrom(source PlanStage) PlanStage {
 		if typedL, ok := typedS.left.(*JoinStage); ok {
 			typedS.left = b.buildFrom(typedL)
 		}
+
 		if b.from != nil {
-
 			reqCols := b.exprCollector.referencedColumns.copyExprs()
-
 			if b.join != nil {
 				for _, c := range b.join {
 					if strings.Contains(typedS.matcher.String(), c.String()) {
@@ -220,10 +219,14 @@ func (b *queryPlanBuilder) buildFrom(source PlanStage) PlanStage {
 					}
 				}
 			}
-
 			return NewJoinStage(typedS.kind, typedS.left, typedS.right, typedS.matcher, reqCols)
 		}
 	}
+
+	if b.join != nil {
+		b.exprCollector.RemoveAll(b.join)
+	}
+
 	return source
 }
 
@@ -450,7 +453,7 @@ type joinOnVals struct {
 func (v *joinOnVals) visit(n node) (node, error) {
 	switch typedN := n.(type) {
 	case *JoinStage:
-		v.exprCollector.Add(typedN.matcher)
+		v.exprCollector.visit(typedN.matcher)
 		return typedN, nil
 	default:
 		return walk(v, n)

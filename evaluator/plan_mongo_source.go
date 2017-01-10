@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/10gen/sqlproxy/catalog"
@@ -244,4 +245,16 @@ func (mr *mappingRegistry) registerMapping(tbl, column, field string) {
 	}
 
 	mr.fields[tbl][column] = field
+}
+
+func (mr *mappingRegistry) String() string {
+	var b bytes.Buffer
+
+	for table, entry := range mr.fields {
+		for column, name := range entry {
+			b.WriteString(fmt.Sprintf("%v.%v => %v\n", table, column, name))
+		}
+	}
+
+	return b.String()
 }

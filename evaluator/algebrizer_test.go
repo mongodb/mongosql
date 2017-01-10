@@ -1275,9 +1275,94 @@ func TestAlgebrizeQuery(t *testing.T) {
 								),
 							)
 						})
+
+						test("select * from (select b2.d, b2.b from bar b1 inner join bar b2 on (b1.a=b2.b) group by 1, 2) t0 HAVING (sum(1) > 0 )", func() PlanStage {
+							b1Source := createMongoSource(2, "bar", "b1")
+							b2Source := createMongoSource(2, "bar", "b2")
+
+							matcher := &SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(b1Source, "b1", "a"),
+								right: createSQLColumnExprFromSource(b2Source, "b2", "b"),
+							}
+
+							reqJoinCols := createReqCols(
+								[]PlanStage{b1Source, b2Source},
+								[]string{"b1.a", "b2.b", "b2.d"},
+								map[string]int{"b1.a": 1, "b2.b": 1, "b2.d": 1},
+							)
+
+							join := NewJoinStage(InnerJoin, b1Source, b2Source, matcher, reqJoinCols)
+
+							requiredInnerGroupCols := createReqCols(
+								[]PlanStage{b2Source},
+								[]string{"b2.d", "b2.b"},
+								map[string]int{"b2.b": 1, "b2.d": 1},
+							)
+
+							innerGroup := NewGroupByStage(
+								join,
+								[]SQLExpr{
+									createSQLColumnExprFromSource(join, "b2", "d"),
+									createSQLColumnExprFromSource(join, "b2", "b"),
+								},
+								ProjectedColumns{
+									createProjectedColumn(2, join, "b2", "b", "b2", "b"),
+									createProjectedColumn(2, join, "b2", "d", "b2", "d"),
+								},
+								requiredInnerGroupCols,
+							)
+
+							subquery := NewSubquerySourceStage(
+								NewProjectStage(
+									innerGroup,
+									createProjectedColumn(2, join, "b2", "d", "", "d"),
+									createProjectedColumn(2, join, "b2", "b", "", "b"),
+								),
+								2,
+								"t0",
+							)
+
+							requiredOuterGroupCols := createReqCols(
+								[]PlanStage{subquery},
+								[]string{"t0.d", "t0.b"},
+								map[string]int{"t0.d": 1, "t0.b": 1},
+							)
+
+							outerGroup := NewGroupByStage(
+								subquery,
+								nil,
+								ProjectedColumns{
+									createProjectedColumn(1, subquery, subquery.aliasName, "d", subquery.aliasName, "d"),
+									createProjectedColumn(1, subquery, subquery.aliasName, "b", subquery.aliasName, "b"),
+									createProjectedColumnFromSQLExpr(1, "", "sum(1)", &SQLAggFunctionExpr{
+										Name:  "sum",
+										Exprs: []SQLExpr{SQLInt(1)},
+									})},
+								requiredOuterGroupCols,
+							)
+
+							filter := NewFilterStage(
+								outerGroup,
+								&SQLGreaterThanExpr{
+									left:  NewSQLColumnExpr(1, "", "sum(1)", schema.SQLFloat, schema.MongoNone),
+									right: SQLInt(0),
+								},
+								[]SQLExpr{
+									NewSQLColumnExpr(2, subquery.aliasName, "d", schema.SQLInt, schema.MongoInt),
+									NewSQLColumnExpr(2, subquery.aliasName, "b", schema.SQLInt, schema.MongoInt),
+								},
+							)
+
+							project := NewProjectStage(
+								filter,
+								createProjectedColumn(1, subquery, subquery.aliasName, "d", "", "d"),
+								createProjectedColumn(1, subquery, subquery.aliasName, "b", "", "b"),
+							)
+
+							return project
+						})
 					})
 				})
-
 			})
 
 			Convey("where", func() {
