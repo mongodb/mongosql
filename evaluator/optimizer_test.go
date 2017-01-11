@@ -2431,7 +2431,7 @@ func TestOptimizePlan(t *testing.T) {
 		Convey("limit", func() {
 			test("select a from foo limit 10",
 				[]bson.D{
-					{{"$limit", uint64(10)}},
+					{{"$limit", int64(10)}},
 					{{"$project", bson.M{
 						"foo_DOT_a": "$a",
 					}}},
@@ -2440,8 +2440,8 @@ func TestOptimizePlan(t *testing.T) {
 
 			test("select a from foo limit 10, 20",
 				[]bson.D{
-					{{"$skip", uint64(10)}},
-					{{"$limit", uint64(20)}},
+					{{"$skip", int64(10)}},
+					{{"$limit", int64(20)}},
 					{{"$project", bson.M{
 						"foo_DOT_a": "$a",
 					}}},

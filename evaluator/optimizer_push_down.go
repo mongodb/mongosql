@@ -1280,14 +1280,14 @@ func (v *pushDownOptimizer) visitLimit(limit *LimitStage) (PlanStage, error) {
 		if limit.offset > math.MaxInt64 {
 			return nil, fmt.Errorf("limit with offset '%d' cannot be pushed down", limit.offset)
 		}
-		pipeline = append(pipeline, bson.D{{"$skip", limit.offset}})
+		pipeline = append(pipeline, bson.D{{"$skip", int64(limit.offset)}})
 	}
 
 	if limit.limit > 0 {
 		if limit.limit > math.MaxInt64 {
 			return nil, fmt.Errorf("limit with rowcount '%d' cannot be pushed down", limit.limit)
 		}
-		pipeline = append(pipeline, bson.D{{"$limit", limit.limit}})
+		pipeline = append(pipeline, bson.D{{"$limit", int64(limit.limit)}})
 	}
 
 	ms = ms.clone()
