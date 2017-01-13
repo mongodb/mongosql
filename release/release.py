@@ -316,6 +316,12 @@ class BIReleaser(object):
     def update_json_file(self, name, data):
         """Updates the named S3 JSON file with data.
         """
+        def extract_version(json):
+            try:
+                return json['version']
+            except KeyError:
+                return 0
+        data["versions"].sort(key=extract_version, reverse=True)
 
         tmp = os.path.join(self.__temp_dir, "tmp")
         with open(tmp, "w") as file_handle:

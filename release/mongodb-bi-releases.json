@@ -14,7 +14,7 @@
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/LINUX-64-AMAZON-AMI"
          },
          "edition": "enterprise",
-         "target": "amzn"
+         "target": "amzn64"
       },
       {
          "arch": "x86_64",
@@ -30,7 +30,7 @@
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/WINDOWS-64"
          },
          "edition": "enterprise",
-         "target": "windows_x86_64"
+         "target": "windows"
       },
       {
          "arch": "x86_64",
