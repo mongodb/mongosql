@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -52,16 +53,17 @@ func TestOptimizePlan(t *testing.T) {
 			actualPlan, err := OptimizePlan(createTestConnectionCtx(), plan)
 			So(err, ShouldBeNil)
 
-			// fmt.Printf("\n PLAN: %# v", pretty.Formatter(plan))
-			// fmt.Printf("\n OPTIMIZED: %# v", pretty.Formatter(actualPlan))
-
 			pg := &pipelineGatherer{}
 			pg.visit(actualPlan)
 
 			actual := pg.pipelines
 
-			So(actual, ShouldResembleDiffed, expected)
-
+			v := ShouldResembleDiffed(actual, expected)
+			if v != "" {
+				fmt.Printf("\n PLAN: %# v", pretty.Formatter(plan))
+				fmt.Printf("\n OPTIMIZED: %# v", pretty.Formatter(actualPlan))
+				So(actual, ShouldResembleDiffed, expected)
+			}
 		})
 	}
 
@@ -1808,37 +1810,178 @@ func TestOptimizePlan(t *testing.T) {
 						"a": int64(10),
 					}}},
 					{{"$project", bson.M{
+						"d.e": 1,
+						"_id": 1,
+						"__predicate": bson.M{
+							"$cond": []interface{}{
+								bson.M{
+									"$or": []interface{}{
+										bson.M{
+											"$eq": []interface{}{
+												bson.M{
+													"$ifNull": []interface{}{
+														"$b",
+														nil,
+													},
+												},
+												nil,
+											},
+										},
+										bson.M{
+											"$eq": []interface{}{
+												bson.M{
+													"$ifNull": []interface{}{
+														"$c",
+														nil,
+													},
+												},
+												nil,
+											},
+										},
+									},
+								},
+								nil,
+								bson.M{
+									"$lt": []interface{}{
+										"$b",
+										"$c",
+									},
+								},
+							},
+						},
+						"a":      1,
+						"b":      1,
+						"c":      1,
+						"d.f":    1,
+						"g":      1,
+						"filter": 1,
+					}}},
+					{{"$match", bson.M{
+						"__predicate": true,
+					}}},
+					{{"$project", bson.M{
 						"foo_DOT_a": "$a",
-						"foo_DOT_b": "$b",
-						"foo_DOT_c": "$c",
 					}}},
 				},
 			)
-
 			test("select a from foo where b < c AND a = 10",
 				[]bson.D{
 					{{"$match", bson.M{
 						"a": int64(10),
 					}}},
 					{{"$project", bson.M{
+						"d.e": 1,
+						"_id": 1,
+						"__predicate": bson.M{
+							"$cond": []interface{}{
+								bson.M{
+									"$or": []interface{}{
+										bson.M{
+											"$eq": []interface{}{
+												bson.M{
+													"$ifNull": []interface{}{
+														"$b",
+														nil,
+													},
+												},
+												nil,
+											},
+										},
+										bson.M{
+											"$eq": []interface{}{
+												bson.M{
+													"$ifNull": []interface{}{
+														"$c",
+														nil,
+													},
+												},
+												nil,
+											},
+										},
+									},
+								},
+								nil,
+								bson.M{
+									"$lt": []interface{}{
+										"$b",
+										"$c",
+									},
+								},
+							},
+						},
+						"a":      1,
+						"b":      1,
+						"c":      1,
+						"d.f":    1,
+						"g":      1,
+						"filter": 1,
+					}}},
+					{{"$match", bson.M{
+						"__predicate": true,
+					}}},
+					{{"$project", bson.M{
 						"foo_DOT_a": "$a",
-						"foo_DOT_b": "$b",
-						"foo_DOT_c": "$c",
 					}}},
 				},
 			)
 
-			Convey("no push down, project columns", func() {
-				test("select a from foo where b < c",
-					[]bson.D{
-						{{"$project", bson.M{
-							"foo_DOT_a": "$a",
-							"foo_DOT_b": "$b",
-							"foo_DOT_c": "$c",
-						}}},
-					},
-				)
-			})
+			test("select a from foo where b < c",
+				[]bson.D{
+					{{"$project", bson.M{
+						"d.e": 1,
+						"_id": 1,
+						"__predicate": bson.M{
+							"$cond": []interface{}{
+								bson.M{
+									"$or": []interface{}{
+										bson.M{
+											"$eq": []interface{}{
+												bson.M{
+													"$ifNull": []interface{}{
+														"$b",
+														nil,
+													},
+												},
+												nil,
+											},
+										},
+										bson.M{
+											"$eq": []interface{}{
+												bson.M{
+													"$ifNull": []interface{}{
+														"$c",
+														nil,
+													},
+												},
+												nil,
+											},
+										},
+									},
+								},
+								nil,
+								bson.M{
+									"$lt": []interface{}{
+										"$b",
+										"$c",
+									},
+								},
+							},
+						},
+						"a":      1,
+						"b":      1,
+						"c":      1,
+						"d.f":    1,
+						"g":      1,
+						"filter": 1,
+					}}},
+					{{"$match", bson.M{
+						"__predicate": true,
+					}}},
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+					}}},
+				},
+			)
 		})
 
 		Convey("group by", func() {

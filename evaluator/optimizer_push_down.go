@@ -180,6 +180,10 @@ func (v *pushDownOptimizer) canPushDown(ps PlanStage) (*MongoSourceStage, bool) 
 	return ms, true
 }
 
+const (
+	projectPredicateFieldName = "__predicate"
+)
+
 func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) {
 
 	ms, ok := v.canPushDown(filter.source)
@@ -213,14 +217,42 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 			lookupFieldName: ms.mappingRegistry.lookupFieldName,
 		}
 		matchBody, localMatcher = t.TranslatePredicate(filter.matcher)
-		if matchBody == nil {
-			// no pieces of the matcher are able to be pushed down,
-			// so there is no change in the operator tree.
-			v.logger.Warnf(log.DebugHigh, "cannot push down filter expression: %v", filter.matcher.String())
-			return filter, nil
+		if matchBody != nil {
+			pipeline = append(pipeline, bson.D{{"$match", matchBody}})
 		}
 
-		pipeline = append(ms.pipeline, bson.D{{"$match", matchBody}})
+		if localMatcher != nil {
+			// we have a predicate that completely or partially couldn't be handled by $match.
+			// Attempt to push it down as part of a $project/$match combination.
+			if predicate, ok := t.TranslateExpr(localMatcher); ok {
+				projectBody := v.projectAllColumns(ms.mappingRegistry)
+				fieldName := projectPredicateFieldName
+
+				i := 0
+				for {
+					if _, ok := projectBody[fieldName]; !ok {
+						break
+					}
+					i++
+					fieldName = fmt.Sprintf("%s%d", projectPredicateFieldName, i)
+				}
+
+				projectBody[fieldName] = predicate
+
+				pipeline = append(pipeline,
+					bson.D{{"$project", projectBody}},
+					bson.D{{"$match", bson.M{fieldName: true}}})
+
+				localMatcher = nil
+			}
+
+			if matchBody == nil && localMatcher != nil {
+				// no pieces of the matcher are able to be pushed down,
+				// so there is no change in the operator tree.
+				v.logger.Warnf(log.DebugHigh, "cannot push down filter expression: %v", filter.matcher.String())
+				return filter, nil
+			}
+		}
 	}
 
 	// if we end up here, it's because we have messed with the pipeline
@@ -1556,6 +1588,18 @@ func (v *pushDownOptimizer) getRequiredColumnsForJoinSide(tableNames []string, r
 	}
 
 	return result
+}
+
+func (v *pushDownOptimizer) projectAllColumns(mr *mappingRegistry) bson.M {
+	projectBody := bson.M{}
+	for _, c := range mr.columns {
+		field, ok := mr.lookupFieldName(c.Table, c.Name)
+		if !ok {
+			panic("Unable to find field mapping for column. This should never happen.")
+		}
+		projectBody[field] = 1
+	}
+	return projectBody
 }
 
 // sourceFinder is used within projection pushdown
