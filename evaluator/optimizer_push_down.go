@@ -642,8 +642,115 @@ func (v *pushDownOptimizer) translateGroupByProject(exprs []*namedExpr, lookupFi
 }
 
 const (
-	joinedFieldNamePrefix = "__joined_"
+	joinedFieldNamePrefix    = "__joined_"
+	leftJoinExcludeFieldName = "__leftjoin_exclude"
 )
+
+// buildRemainingPredicateForLeftJoin will return 2 items; first a $project to put before the unwind, and a $match to put after the unwind.
+func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegistry, combinedMappingRegistry *mappingRegistry, remainingPredicate SQLExpr, asField string) (bson.D, bson.D, bool) {
+
+	fixedLookupFieldName := func(tbl, col string) (string, bool) {
+		fieldName, ok := combinedMappingRegistry.lookupFieldName(tbl, col)
+		if !ok {
+			return "", false
+		}
+
+		// inside a $filter and $map (which use the result of this function), columns with the asField
+		// prefix will have their prefix renamed. As such, we need to intercept this call and handle
+		// that translation early. For instance, if the asField as $b.child and the field ends up as
+		// $b.child.myField, then the result will be $$this.myField.
+		if strings.HasPrefix(fieldName, asField) {
+			fieldName = strings.Replace(fieldName, asField, "$this", 1)
+		}
+
+		return fieldName, true
+	}
+
+	t := &pushDownTranslator{
+		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
+		lookupFieldName: fixedLookupFieldName,
+	}
+	ifPart, ok := t.TranslateExpr(remainingPredicate)
+	if !ok {
+		v.logger.Warnf(log.DebugHigh, "cannot translate remaining left join predicate %#v", remainingPredicate)
+		return nil, nil, false
+	}
+
+	// This is interesting. First, we are going to create variable that marks every item in the array that should
+	// be excluded. Using that variable, we'll then create a condition. If we filter all the items out that
+	// should be excluded and end up with 0 items, we set the field to an empty array. Otherwise, we keep the array
+	// around and use a match after the unwind to get rid of the rows that don't belong.
+	// The reason we have to do this is because, even when no items from the "right" side match, we still need to
+	// include the left side one time. However, we can't just eliminate the non-matching ones now (using $filter)
+	// because we need to maintain the array index of the matching right side.
+	projectBody := bson.M{
+		asField: bson.M{
+			"$let": bson.M{
+				"vars": bson.M{
+					"mapped": bson.M{
+						"$map": bson.M{
+							"input": bson.M{
+								"$cond": bson.M{
+									"if":   bson.M{"$isArray": "$" + asField},
+									"then": "$" + asField,
+									"else": []interface{}{"$" + asField},
+								},
+							},
+							"as": "this",
+							"in": bson.M{
+								"$cond": bson.M{
+									"if":   ifPart,
+									"then": "$$this",
+									"else": bson.M{
+										leftJoinExcludeFieldName: true,
+									},
+								},
+							},
+						},
+					},
+				},
+				"in": bson.M{
+					"$cond": bson.M{
+						"if": bson.M{
+							"$gt": []interface{}{
+								bson.M{
+									"$size": bson.M{
+										"$filter": bson.M{
+											"input": "$$mapped",
+											"as":    "this",
+											"cond": bson.M{
+												"$ne": []interface{}{
+													"$$this." + leftJoinExcludeFieldName,
+													true,
+												},
+											},
+										},
+									},
+								},
+								0,
+							},
+						},
+						"then": "$$mapped",
+						"else": []interface{}{},
+					},
+				},
+			},
+		},
+	}
+
+	// we now need to make sure we project all the existing columns from the local mongo source
+	for _, c := range leftMappingRegistry.columns {
+		field, ok := leftMappingRegistry.lookupFieldName(c.Table, c.Name)
+		if !ok {
+			v.logger.Warnf(log.DebugHigh, "cannot find referenced join column %#v in local lookup", c)
+			return nil, nil, false
+		}
+		projectBody[field] = 1
+	}
+
+	predicateExclusionField := asField + "." + leftJoinExcludeFieldName
+	return bson.D{{"$project", projectBody}}, bson.D{{"$match", bson.M{predicateExclusionField: bson.M{"$ne": true}}}}, true
+}
 
 func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, join *JoinStage) (PlanStage, error) {
 	filterJoinCriteria := func(e SQLExpr, keepJoinCriteria bool) []SQLExpr {
@@ -696,25 +803,6 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 		return nil, nil
 	}
 
-	pipeline := newPipeline.stages
-
-	if join.kind == InnerJoin || join.kind == StraightJoin {
-		// Since MongoDB does not compare nulls in the same way as MySQL,
-		// we need an extra $match to ensure account for this.
-		// Effectively, we eliminate the left hand document
-		// when the left hand primary keys are null.
-		match, primaryKeys := []interface{}{}, filterJoinCriteria(join.matcher, true)
-		for _, primaryKey := range primaryKeys {
-			column, _ := primaryKey.(SQLColumnExpr)
-			fieldName, ok := msLocal.mappingRegistry.lookupFieldName(column.tableName, column.columnName)
-			if !ok {
-				panic("Unable to find field mapping for column. This should never happen.")
-			}
-			match = append(match, bson.M{fieldName: bson.M{"$ne": nil}})
-		}
-		pipeline = append(pipeline, bson.D{{"$match", bson.M{"$and": match}}})
-	}
-
 	ms := msLocal.clone()
 	ms.selectIDs = append(ms.selectIDs, msForeign.selectIDs...)
 	ms.aliasNames = append(ms.aliasNames, msForeign.aliasNames...)
@@ -722,62 +810,44 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 	ms.collectionNames = append(ms.collectionNames, msForeign.collectionNames...)
 
 	newMappingRegistry := ms.mappingRegistry.copy()
-
 	newMappingRegistry.columns = append(newMappingRegistry.columns, msForeign.mappingRegistry.columns...)
-
-	project := bson.M{}
-
-	// project all local columns into top-level
-	for _, c := range msLocal.mappingRegistry.columns {
-		fieldName, ok := msLocal.mappingRegistry.lookupFieldName(c.Table, c.Name)
-		if !ok {
-			panic("Unable to find field mapping for column. This should never happen.")
-		}
-		dottified := sanitizeFieldName(fieldName)
-		project[dottified] = getProjectedFieldName(fieldName, schema.SQLNull)
-		newMappingRegistry.registerMapping(c.Table, c.Name, dottified)
-	}
-
-	// project all the unwound paths and all index paths
-	// to exclude foreign arrays with no records (for left
-	// joins
-	idxChecks := []interface{}{}
-	for i, arrayPathIdx := range newPipeline.arrayPathIndexes {
-		idxChecks = append(idxChecks, wrapInNullCheck("$"+arrayPathIdx))
-		arrayPath := newPipeline.arrayPaths[i]
-		project[sanitizeFieldName(arrayPath)] = getProjectedFieldName(arrayPath, schema.SQLNull)
-		project[sanitizeFieldName(arrayPathIdx)] = getProjectedFieldName(arrayPathIdx, schema.SQLNull)
-	}
-
 	if msForeign.mappingRegistry.fields != nil {
 		for tableName, columns := range msForeign.mappingRegistry.fields {
 			for columnName, fieldName := range columns {
-				joinFieldName := fieldName
-				dottifiedName := getProjectedFieldName(fieldName, schema.SQLNull)
-				if join.kind == LeftJoin {
-					joinFieldName = sanitizeFieldName(fmt.Sprintf("%v.%v", tableName, fieldName))
-					project[joinFieldName] = wrapInCond(nil, dottifiedName, idxChecks...)
-				} else {
-					joinFieldName = sanitizeFieldName(joinFieldName)
-					project[joinFieldName] = dottifiedName
-				}
-				newMappingRegistry.registerMapping(tableName, columnName, joinFieldName)
+				newMappingRegistry.registerMapping(tableName, columnName, fieldName)
 			}
 		}
 	}
 
-	pipeline = append(pipeline, bson.D{{"$project", project}})
-
-	ms.mappingRegistry, ms.pipeline = newMappingRegistry, pipeline
+	ms.mappingRegistry, ms.pipeline = newMappingRegistry, newPipeline.stages
 
 	remainingPredicate := combineExpressions(filterJoinCriteria(join.matcher, false))
 	if remainingPredicate != nil {
-		v.logger.Logf(log.DebugHigh, "join merge: creating filter stage for remaining predicate: %v", remainingPredicate.String())
-		f, err := v.visit(NewFilterStage(ms, remainingPredicate, join.requiredColumns))
-		if err != nil {
-			return nil, err
+		if join.kind == InnerJoin || join.kind == StraightJoin {
+			v.logger.Logf(log.DebugHigh, "join merge: creating filter stage for remaining predicate: %v", remainingPredicate.String())
+			f, err := v.visit(NewFilterStage(ms, remainingPredicate, join.requiredColumns))
+			if err != nil {
+				return nil, err
+			}
+			return f.(PlanStage), nil
 		}
-		return f.(PlanStage), nil
+
+		// this "predicate" must get inserted before the unwinds from the right side...
+		insertionPoint := len(msLocal.pipeline)
+		project, match, ok := v.buildRemainingPredicateForLeftJoin(
+			msLocal.mappingRegistry,
+			newMappingRegistry,
+			remainingPredicate,
+			newPipeline.arrayPaths[insertionPoint],
+		)
+		if !ok {
+			return join, nil
+		}
+
+		// put match last, and insert project after the first
+		ms.pipeline = append(ms.pipeline, match, nil)
+		copy(ms.pipeline[insertionPoint+1:], ms.pipeline[insertionPoint:])
+		ms.pipeline[insertionPoint] = project
 	}
 
 	return ms, nil
@@ -1080,48 +1150,28 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		pipeline = append(pipeline, bson.D{{"$project", project}})
 	}
 
-	unwind := bson.M{
-		"path": "$" + asField,
-		"preserveNullAndEmptyArrays": joinKind == LeftJoin,
-	}
-
-	pipeline = append(pipeline, bson.D{{"$unwind", unwind}})
+	unwind := bson.D{{
+		"$unwind", bson.M{
+			"path": "$" + asField,
+			"preserveNullAndEmptyArrays": joinKind == LeftJoin,
+		},
+	}}
 
 	if lookupInfo.remainingPredicate != nil && joinKind == LeftJoin {
 
-		t := &pushDownTranslator{
-			versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
-			lookupFieldName: newMappingRegistry.lookupFieldName,
-		}
-
-		ifPart, ok := t.TranslateExpr(lookupInfo.remainingPredicate)
+		project, match, ok := v.buildRemainingPredicateForLeftJoin(
+			msLocal.mappingRegistry,
+			newMappingRegistry,
+			lookupInfo.remainingPredicate,
+			asField,
+		)
 		if !ok {
-			v.logger.Warnf(log.DebugHigh, "cannot translate remaining left join expression %#v", lookupInfo.remainingPredicate)
 			return join, nil
 		}
 
-		// if the predicate doesn't pass, then we set the 'as' field to nil
-		project := bson.M{
-			asField: bson.M{
-				"$cond": bson.M{
-					"if":   ifPart,
-					"then": "$" + asField,
-					"else": nil,
-				},
-			},
-		}
-
-		// we now need to make sure we project all the existing columns from the local mongo source
-		for _, c := range msLocal.mappingRegistry.columns {
-			field, ok := msLocal.mappingRegistry.lookupFieldName(c.Table, c.Name)
-			if !ok {
-				v.logger.Warnf(log.DebugHigh, "cannot find referenced join column %#v in lookup", c)
-				return join, nil
-			}
-			project[field] = 1
-		}
-
-		pipeline = append(pipeline, bson.D{{"$project", project}})
+		pipeline = append(pipeline, project, unwind, match)
+	} else {
+		pipeline = append(pipeline, unwind)
 	}
 
 	// 7. build the new operators
@@ -1273,7 +1323,10 @@ func (v *pushDownOptimizer) mergePipeline(local, foreign *MongoSourceStage, join
 			}
 
 			// strip dollar sign prefix
-			path := fmt.Sprintf("%v", fieldPath)[1:]
+			path := fmt.Sprintf("%v", fieldPath)
+			if path != "" {
+				path = path[1:]
+			}
 			arrayIdx := fmt.Sprintf("%v", fieldIdx)
 			if !util.StringSliceContains(pipeline.arrayPathIndexes, arrayIdx) {
 				pipeline.arrayPaths = append(pipeline.arrayPaths, path)

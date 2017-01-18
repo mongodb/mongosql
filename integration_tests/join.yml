@@ -53,6 +53,13 @@ data:
     - { _id: 1, c2: "DD"}
     - { _id: 2, c2: "EE"}
     - { _id: 3, c2: "FF"}
+- inline:
+    db: "test"
+    collection: "join_8"
+    docs:
+    - { _id: 0, a: 1, b: [{c: 1}, {c: 2, d: [5, 6]}]}
+    - { _id: 1, a: 1, b: [{c: 1}, {c: 3}]}
+    - { _id: 2, a: 2, b: [{c: 2, d: [7]}, {c: 3}]}
 
 #
 # Schema
@@ -183,6 +190,59 @@ schema:
       MongoType: string
       SqlName: c2
       SqlType: varchar
+  - table: parent
+    collection: "join_8"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+  - table: child
+    collection: "join_8"
+    pipeline: [
+      $unwind: { path: "$b", includeArrayIndex: "b_idx" }
+    ]
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b_idx
+      MongoType: int
+      SqlName: b_idx
+      SqlType: int
+    - Name: b.c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+  - table: grandchild
+    collection: "join_8"
+    pipeline: [
+      $unwind: { path: "$b", includeArrayIndex: "b_idx" },
+      $unwind: { path: "$b.d", includeArrayIndex: "b.d_idx" }
+    ]
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b_idx
+      MongoType: int
+      SqlName: b_idx
+      SqlType: int
+    - Name: b.d_idx
+      MongoType: int
+      SqlName: d_idx
+      SqlType: int
+    - Name: b.d
+      MongoType: int
+      SqlName: d
+      SqlType: int
 
 #
 # Tests
@@ -668,3 +728,100 @@ testcases:
   - [1, ~, ~] 
   - [2, 11, 1]
   - [3, ~, ~]
+
+# Parent-Child Relationships
+- sql: "select a, c from test.parent inner join test.child on parent.id = child.id"
+  description: "unwound parent child inner join"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [1, 1]
+  - [1, 2]
+  - [1, 1]
+  - [1, 3]
+  - [2, 2]
+  - [2, 3]
+- sql: "select c, d from test.child inner join test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx"
+  description: "unwound child grandchild inner join"
+  expected_names: ["c", "d"]
+  expected_types: [int, int]
+  expected:
+  - [2, 5]
+  - [2, 6]
+  - [2, 7]
+- sql: "select a, c from test.parent left join test.child on parent.id = child.id"
+  description: "unwound parent child left join"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [1, 1]
+  - [1, 2]
+  - [1, 1]
+  - [1, 3]
+  - [2, 2]
+  - [2, 3]
+- sql: "select c, d from test.child left join test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx"
+  description: "unwound child grandchild left join"
+  expected_names: ["c", "d"]
+  expected_types: [int, int]
+  expected:
+  - [1, ~]
+  - [2, 5]
+  - [2, 6]
+  - [1, ~]
+  - [3, ~]
+  - [2, 7]
+  - [3, ~]
+- sql: "select a, c from test.parent inner join test.child on parent.id = child.id AND parent.a > 1"
+  description: "unwound parent child inner join with additional criteria"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [2, 2]
+  - [2, 3]
+- sql: "select a, c from test.parent left join test.child on parent.id = child.id AND parent.a > 1"
+  description: "unwound parent child left join with additional criteria"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [1, ~]
+  - [1, ~]
+  - [2, 2]
+  - [2, 3]
+- sql: "select c, d from test.child inner join test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx AND grandchild.d > 5"
+  description: "unwound child grandchild inner join with additional criteria"
+  expected_names: ["c", "d"]
+  expected_types: [int, int]
+  expected:
+  - [2, 6]
+  - [2, 7]
+- sql: "select c, d from test.child left join test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx AND child.c > 2"
+  description: "unwound child grandchild left join with additional criteria on the left side"
+  expected_names: ["c", "d"]
+  expected_types: [int, int]
+  expected:
+  - [1, ~]
+  - [2, ~]
+  - [1, ~]
+  - [3, ~]
+  - [2, ~]
+  - [3, ~]
+- sql: "select c, d from test.child left join test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx AND grandchild.d > 5"
+  description: "unwound child grandchild left join with additional criteria on the right side"
+  expected_names: ["c", "d"]
+  expected_types: [int, int]
+  expected:
+  - [1, ~]
+  - [2, 6]
+  - [1, ~]
+  - [3, ~]
+  - [2, 7]
+  - [3, ~]
+- sql: "select a, d from test.parent inner join test.grandchild on parent.id = grandchild.id"
+  description: "unwound parent grandchild inner join"
+  expected_names: ["a", "d"]
+  expected_types: [int, int]
+  expected:
+  - [1, 5]
+  - [1, 6]
+  - [2, 7]

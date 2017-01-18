@@ -62,8 +62,8 @@ func TestOptimizePlan(t *testing.T) {
 			if v != "" {
 				fmt.Printf("\n PLAN: %# v", pretty.Formatter(plan))
 				fmt.Printf("\n OPTIMIZED: %# v", pretty.Formatter(actualPlan))
-				So(actual, ShouldResembleDiffed, expected)
 			}
+			So(actual, ShouldResembleDiffed, expected)
 		})
 	}
 
@@ -334,36 +334,120 @@ func TestOptimizePlan(t *testing.T) {
 									},
 								},
 							}}},
+							{{"$project", bson.M{
+								"__joined_bar": bson.M{
+									"$let": bson.M{
+										"vars": bson.M{
+											"mapped": bson.M{
+												"$map": bson.M{
+													"as": "this",
+													"in": bson.M{
+														"$cond": bson.M{
+															"else": bson.M{
+																"__leftjoin_exclude": true,
+															},
+															"if": bson.M{
+																"$cond": []interface{}{
+																	bson.M{
+																		"$or": []interface{}{
+																			bson.M{
+																				"$eq": []interface{}{
+																					bson.M{
+																						"$ifNull": []interface{}{
+																							"$b",
+																							nil,
+																						},
+																					},
+																					nil,
+																				},
+																			},
+																			bson.M{
+																				"$eq": []interface{}{
+																					bson.M{
+																						"$ifNull": []interface{}{
+																							bson.M{
+																								"$literal": int64(10),
+																							},
+																							nil,
+																						},
+																					},
+																					nil,
+																				},
+																			},
+																		},
+																	},
+																	nil,
+																	bson.M{
+																		"$gt": []interface{}{
+																			"$b",
+																			bson.M{
+																				"$literal": int64(10),
+																			},
+																		},
+																	},
+																},
+															},
+															"then": "$$this",
+														},
+													},
+													"input": bson.M{
+														"$cond": bson.M{
+															"if": bson.M{
+																"$isArray": "$__joined_bar",
+															},
+															"then": "$__joined_bar",
+															"else": []interface{}{
+																"$__joined_bar",
+															},
+														},
+													},
+												},
+											},
+										},
+										"in": bson.M{
+											"$cond": bson.M{
+												"if": bson.M{
+													"$gt": []interface{}{
+														bson.M{
+															"$size": bson.M{
+																"$filter": bson.M{
+																	"input": "$$mapped",
+																	"as":    "this",
+																	"cond": bson.M{
+																		"$ne": []interface{}{
+																			"$$this.__leftjoin_exclude",
+																			true,
+																		},
+																	},
+																},
+															},
+														},
+														0,
+													},
+												},
+												"then": "$$mapped",
+												"else": []interface{}{},
+											},
+										},
+									},
+								},
+								"a":      int(1),
+								"b":      int(1),
+								"c":      int(1),
+								"d.e":    int(1),
+								"d.f":    int(1),
+								"_id":    int(1),
+								"filter": int(1),
+								"g":      int(1),
+							}}},
 							{{"$unwind", bson.M{
 								"path": "$__joined_bar",
 								"preserveNullAndEmptyArrays": true,
 							}}},
-							{{"$project", bson.M{
-								"_id":    1,
-								"a":      1,
-								"b":      1,
-								"c":      1,
-								"d.e":    1,
-								"d.f":    1,
-								"filter": 1,
-								"g":      1,
-								"__joined_bar": bson.M{"$cond": bson.M{
-									"if": bson.M{"$cond": []interface{}{
-										bson.M{"$or": []interface{}{
-											bson.M{"$eq": []interface{}{
-												bson.M{"$ifNull": []interface{}{"$b", nil}},
-												nil,
-											}},
-											bson.M{"$eq": []interface{}{
-												bson.M{"$ifNull": []interface{}{bson.M{"$literal": int64(10)}, nil}},
-												nil,
-											}}}},
-										nil,
-										bson.M{"$gt": []interface{}{"$b", bson.M{"$literal": int64(10)}}},
-									}},
-									"then": "$__joined_bar",
-									"else": nil,
-								}},
+							{{"$match", bson.M{
+								"__joined_bar.__leftjoin_exclude": bson.M{
+									"$ne": bool(true),
+								},
 							}}},
 							{{"$project", bson.M{
 								"foo_DOT_a": "$a",
@@ -400,36 +484,120 @@ func TestOptimizePlan(t *testing.T) {
 									},
 								},
 							}}},
+							{{"$project", bson.M{
+								"__joined_bar": bson.M{
+									"$let": bson.M{
+										"in": bson.M{
+											"$cond": bson.M{
+												"if": bson.M{
+													"$gt": []interface{}{
+														bson.M{
+															"$size": bson.M{
+																"$filter": bson.M{
+																	"input": "$$mapped",
+																	"as":    "this",
+																	"cond": bson.M{
+																		"$ne": []interface{}{
+																			"$$this.__leftjoin_exclude",
+																			true,
+																		},
+																	},
+																},
+															},
+														},
+														0,
+													},
+												},
+												"then": "$$mapped",
+												"else": []interface{}{},
+											},
+										},
+										"vars": bson.M{
+											"mapped": bson.M{
+												"$map": bson.M{
+													"input": bson.M{
+														"$cond": bson.M{
+															"if": bson.M{
+																"$isArray": "$__joined_bar",
+															},
+															"then": "$__joined_bar",
+															"else": []interface{}{
+																"$__joined_bar",
+															},
+														},
+													},
+													"as": "this",
+													"in": bson.M{
+														"$cond": bson.M{
+															"if": bson.M{
+																"$cond": []interface{}{
+																	bson.M{
+																		"$or": []interface{}{
+																			bson.M{
+																				"$eq": []interface{}{
+																					bson.M{
+																						"$ifNull": []interface{}{
+																							"$$this.b",
+																							nil,
+																						},
+																					},
+																					nil,
+																				},
+																			},
+																			bson.M{
+																				"$eq": []interface{}{
+																					bson.M{
+																						"$ifNull": []interface{}{
+																							bson.M{
+																								"$literal": int64(10),
+																							},
+																							nil,
+																						},
+																					},
+																					nil,
+																				},
+																			},
+																		},
+																	},
+																	nil,
+																	bson.M{
+																		"$gt": []interface{}{
+																			"$$this.b",
+																			bson.M{
+																				"$literal": int64(10),
+																			},
+																		},
+																	},
+																},
+															},
+															"then": "$$this",
+															"else": bson.M{
+																"__leftjoin_exclude": true,
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+								"b":      int(1),
+								"d.e":    int(1),
+								"d.f":    int(1),
+								"filter": int(1),
+								"a":      int(1),
+								"c":      int(1),
+								"g":      int(1),
+								"_id":    int(1),
+							}}},
 							{{"$unwind", bson.M{
 								"path": "$__joined_bar",
 								"preserveNullAndEmptyArrays": true,
 							}}},
-							{{"$project", bson.M{
-								"_id":    1,
-								"a":      1,
-								"b":      1,
-								"c":      1,
-								"d.e":    1,
-								"d.f":    1,
-								"filter": 1,
-								"g":      1,
-								"__joined_bar": bson.M{"$cond": bson.M{
-									"if": bson.M{"$cond": []interface{}{
-										bson.M{"$or": []interface{}{
-											bson.M{"$eq": []interface{}{
-												bson.M{"$ifNull": []interface{}{"$__joined_bar.b", nil}},
-												nil,
-											}},
-											bson.M{"$eq": []interface{}{
-												bson.M{"$ifNull": []interface{}{bson.M{"$literal": int64(10)}, nil}},
-												nil,
-											}}}},
-										nil,
-										bson.M{"$gt": []interface{}{"$__joined_bar.b", bson.M{"$literal": int64(10)}}},
-									}},
-									"then": "$__joined_bar",
-									"else": nil,
-								}},
+							{{"$match", bson.M{
+								"__joined_bar.__leftjoin_exclude": bson.M{
+									"$ne": bool(true),
+								},
 							}}},
 							{{"$project", bson.M{
 								"foo_DOT_a": "$a",
@@ -525,174 +693,12 @@ func TestOptimizePlan(t *testing.T) {
 								{"path", "$d.a"},
 								{"preserveNullAndEmptyArrays", true},
 							}}},
-							{{"$project", bson.M{
-								"d_DOT_a":     "$d.a",
-								"d_DOT_a_idx": "$d.a_idx",
-								"a_DOT__id": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d.a_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$_id",
-									},
-								},
-								"a_DOT_d_DOT_a": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d.a_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$d.a",
-									},
-								},
-								"a_DOT_d_DOT_a_idx": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d.a_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$d.a_idx",
-									},
-								},
-								"a_DOT_d_idx": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d.a_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$d_idx",
-									},
-								},
-								"_id":   "$_id",
-								"d":     "$d",
-								"d_idx": "$d_idx",
-								"a":     "$a",
-							}}},
 						},
 					)
 					test("select b._id, c._id from merge r inner join merge_b b on r._id=b._id inner join merge_c c on b._id=c._id",
 						[]bson.D{
 							{{"$unwind", bson.D{{"includeArrayIndex", "b_idx"}, {"path", "$b"}}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"_id":   "$_id",
-								"a":     "$a",
-								"b":     "$b",
-								"b_idx": "$b_idx",
-								"c":     1,
-								"c_idx": 1,
-							}}},
 							{{"$unwind", bson.D{{"includeArrayIndex", "c_idx"}, {"path", "$c"}}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"_id":   "$_id",
-								"a":     "$a",
-								"b":     "$b",
-								"b_idx": "$b_idx",
-								"c":     "$c",
-								"c_idx": "$c_idx",
-							}}},
 						},
 					)
 					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id left join merge_c c on b._id=c._id",
@@ -702,75 +708,10 @@ func TestOptimizePlan(t *testing.T) {
 								{"path", "$b"},
 								{"preserveNullAndEmptyArrays", true},
 							}}},
-							{{"$project", bson.M{
-								"b_idx": "$b_idx",
-								"b_DOT__id": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$_id",
-									},
-								},
-								"b_DOT_b": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$b",
-									},
-								},
-								"b_DOT_b_idx": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$b_idx",
-									},
-								},
-								"_id": "$_id",
-								"a":   "$a",
-								"b":   "$b",
-							},
-							}},
-							{{"$project", bson.M{
-								"b_DOT__id": "$b_DOT__id",
-							}}},
-						},
-						[]bson.D{
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"},
-							}}},
-							{{"$project", bson.M{
-								"c_DOT__id": "$_id",
+								{"preserveNullAndEmptyArrays", true},
 							}}},
 						},
 					)
@@ -781,303 +722,20 @@ func TestOptimizePlan(t *testing.T) {
 								{"path", "$b"},
 								{"preserveNullAndEmptyArrays", true},
 							}}},
-							{{"$project", bson.M{
-								"b_DOT_b_idx": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$b_idx",
-									},
-								},
-								"b_DOT__id": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$_id",
-									},
-								},
-								"c_idx": 1,
-								"b_idx": "$b_idx",
-								"a":     "$a",
-								"b":     "$b",
-								"b_DOT_b": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$b",
-									},
-								},
-								"c":   1,
-								"_id": "$_id",
-							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"},
 								{"preserveNullAndEmptyArrays", true},
-							}}},
-							{{"$project", bson.M{
-								"_id":         "$_id",
-								"a":           "$a",
-								"b_DOT__id":   "$b_DOT__id",
-								"b_DOT_b_idx": "$b_DOT_b_idx",
-								"b":           "$b",
-								"b_idx":       "$b_idx",
-								"c_idx":       "$c_idx",
-								"c_DOT_c_idx": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$c_idx",
-									},
-								},
-								"c_DOT__id": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$_id",
-									},
-								},
-								"b_DOT_b": "$b_DOT_b",
-								"c":       "$c",
-								"c_DOT_c": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$c",
-									},
-								},
 							}}},
 						},
 					)
 					test("select b._id, c._id from merge r inner join merge_b b on r._id=b._id left join merge_c c on r._id=c._id",
 						[]bson.D{
 							{{"$unwind", bson.D{{"includeArrayIndex", "b_idx"}, {"path", "$b"}}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"_id":   "$_id",
-								"a":     "$a",
-								"b":     "$b",
-								"b_idx": "$b_idx",
-								"c":     1,
-								"c_idx": 1,
-							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"},
 								{"preserveNullAndEmptyArrays", true},
-							}}},
-							{{"$project", bson.M{
-								"_id":   "$_id",
-								"a":     "$a",
-								"b":     "$b",
-								"b_idx": "$b_idx",
-								"c_DOT__id": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$_id",
-									},
-								},
-								"c":     "$c",
-								"c_idx": "$c_idx",
-								"c_DOT_c": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$c",
-									},
-								},
-								"c_DOT_c_idx": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$c_idx",
-									},
-								},
 							}}},
 						},
 					)
@@ -1088,84 +746,9 @@ func TestOptimizePlan(t *testing.T) {
 								{"path", "$b"},
 								{"preserveNullAndEmptyArrays", true},
 							}}},
-							{{"$project", bson.M{
-								"b_DOT_b_idx": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$b_idx",
-									},
-								},
-								"b_DOT__id": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$_id",
-									},
-								},
-								"c_idx": 1,
-								"b_idx": "$b_idx",
-								"a":     "$a",
-								"b":     "$b",
-								"b_DOT_b": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$b",
-									},
-								},
-								"c":   1,
-								"_id": "$_id",
-							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"},
-							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"a":           "$a",
-								"b_DOT_b_idx": "$b_DOT_b_idx",
-								"c":           "$c",
-								"c_idx":       "$c_idx",
-								"b_idx":       "$b_idx",
-								"_id":         "$_id",
-								"b_DOT__id":   "$b_DOT__id",
-								"b_DOT_b":     "$b_DOT_b",
-								"b":           "$b",
 							}}},
 						},
 					)
@@ -1176,90 +759,9 @@ func TestOptimizePlan(t *testing.T) {
 								{"path", "$b"},
 								{"preserveNullAndEmptyArrays", true},
 							}}},
-							{{"$project", bson.M{
-								"d.a":     int(1),
-								"d_idx":   int(1),
-								"c":       int(1),
-								"d.a_idx": int(1),
-								"b_idx":   "$b_idx",
-								"b_DOT_b_idx": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$b_idx",
-									},
-								},
-								"c_idx": int(1),
-								"_id":   "$_id",
-								"b_DOT_b": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$b",
-									},
-								},
-								"a": "$a",
-								"b": "$b",
-								"b_DOT__id": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$eq": []interface{}{
-												bson.M{
-													"$ifNull": []interface{}{
-														"$b_idx",
-														nil,
-													},
-												},
-												nil,
-											},
-										},
-										nil,
-										"$_id",
-									},
-								},
-							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"},
-							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"b_DOT_b":     "$b_DOT_b",
-								"c":           "$c",
-								"_id":         "$_id",
-								"b_DOT_b_idx": "$b_DOT_b_idx",
-								"d_idx":       1,
-								"b_DOT__id":   "$b_DOT__id",
-								"c_idx":       "$c_idx",
-								"d.a":         1,
-								"d.a_idx":     1,
-								"a":           "$a",
-								"b":           "$b",
-								"b_idx":       "$b_idx",
 							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d_idx"},
@@ -1270,237 +772,6 @@ func TestOptimizePlan(t *testing.T) {
 								{"includeArrayIndex", "d.a_idx"},
 								{"path", "$d.a"},
 								{"preserveNullAndEmptyArrays", true},
-							}}},
-							{{"$project", bson.M{
-								"b_DOT__id":   "$b_DOT__id",
-								"b":           "$b",
-								"_id":         "$_id",
-								"c":           "$c",
-								"d_DOT_a":     "$d.a",
-								"d_DOT_a_idx": "$d.a_idx",
-								"a_DOT_d_DOT_a": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d.a_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$d.a",
-									},
-								},
-								"a_DOT_d_DOT_a_idx": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d.a_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$d.a_idx",
-									},
-								},
-								"a":       "$a",
-								"b_DOT_b": "$b_DOT_b",
-								"c_idx":   "$c_idx",
-								"d":       "$d",
-								"d_idx":   "$d_idx",
-								"a_DOT__id": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d.a_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$_id",
-									},
-								},
-								"b_DOT_b_idx": "$b_DOT_b_idx",
-								"b_idx":       "$b_idx",
-								"a_DOT_d_idx": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$d.a_idx",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
-										},
-										nil,
-										"$d_idx",
-									},
-								},
 							}}},
 						},
 					)
@@ -1510,41 +781,9 @@ func TestOptimizePlan(t *testing.T) {
 								{"includeArrayIndex", "b_idx"},
 								{"path", "$b"},
 							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"c":       1,
-								"c_idx":   1,
-								"d.a_idx": 1,
-								"d_idx":   1,
-								"_id":     "$_id",
-								"a":       "$a",
-								"b":       "$b",
-								"b_idx":   "$b_idx",
-								"d.a":     1,
-							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"},
-							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"_id":     "$_id",
-								"a":       "$a",
-								"b_idx":   "$b_idx",
-								"d.a_idx": 1,
-								"b":       "$b",
-								"c":       "$c",
-								"c_idx":   "$c_idx",
-								"d.a":     1,
-								"d_idx":   1,
 							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d_idx"},
@@ -1553,23 +792,6 @@ func TestOptimizePlan(t *testing.T) {
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d.a_idx"},
 								{"path", "$d.a"},
-							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"c_idx":       "$c_idx",
-								"d_idx":       "$d_idx",
-								"d_DOT_a_idx": "$d.a_idx",
-								"b":           "$b",
-								"b_idx":       "$b_idx",
-								"c":           "$c",
-								"d_DOT_a":     "$d.a",
-								"_id":         "$_id",
-								"a":           "$a",
-								"d":           "$d",
 							}}},
 						},
 					)
@@ -1579,56 +801,13 @@ func TestOptimizePlan(t *testing.T) {
 								{"includeArrayIndex", "d_idx"},
 								{"path", "$d"},
 							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"b_idx": 1,
-								"_id":   "$_id",
-								"a":     "$a",
-								"d":     "$d",
-								"d_idx": "$d_idx",
-								"b":     1,
-							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d.a_idx"},
 								{"path", "$d.a"},
 							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"b":           1,
-								"b_idx":       1,
-								"_id":         "$_id",
-								"a":           "$a",
-								"d_idx":       "$d_idx",
-								"d":           "$d",
-								"d_DOT_a":     "$d.a",
-								"d_DOT_a_idx": "$d.a_idx",
-							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "b_idx"},
 								{"path", "$b"},
-							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"d_DOT_a_idx": "$d.a_idx",
-								"d":           "$d",
-								"b":           "$b",
-								"b_idx":       "$b_idx",
-								"_id":         "$_id",
-								"a":           "$a",
-								"d_idx":       "$d_idx",
-								"d_DOT_a":     "$d.a",
 							}}},
 						},
 					)
@@ -1638,55 +817,13 @@ func TestOptimizePlan(t *testing.T) {
 								{"includeArrayIndex", "b_idx"},
 								{"path", "$b"},
 							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"a":       "$a",
-								"b":       "$b",
-								"b_idx":   "$b_idx",
-								"d_idx":   1,
-								"d.a":     1,
-								"d.a_idx": 1,
-								"_id":     "$_id",
-							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d_idx"},
 								{"path", "$d"},
 							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"_id":   "$_id",
-								"a":     "$a",
-								"b":     "$b",
-								"b_idx": "$b_idx",
-								"d":     "$d",
-								"d_idx": "$d_idx",
-							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d.a_idx"},
 								{"path", "$d.a"},
-							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{"_id": bson.M{"$ne": nil}},
-								},
-							}}},
-							{{"$project", bson.M{
-								"d_DOT_a":     "$d.a",
-								"d_DOT_a_idx": "$d.a_idx",
-								"_id":         "$_id",
-								"a":           "$a",
-								"b":           "$b",
-								"b_idx":       "$b_idx",
-								"d_idx":       "$d_idx",
-								"d":           "$d",
 							}}},
 						},
 					)
