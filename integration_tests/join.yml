@@ -163,9 +163,9 @@ schema:
     pipeline: []
     columns:
     - Name: _id
-      MongoType: bson.ObjectId
+      MongoType: int
       SqlName: _id
-      SqlType: varchar
+      SqlType: int
     - Name: c1
       MongoType: float64
       SqlName: c1
@@ -183,9 +183,9 @@ schema:
     pipeline: []
     columns:
     - Name: _id
-      MongoType: bson.ObjectId
+      MongoType: int
       SqlName: _id
-      SqlType: varchar
+      SqlType: int
     - Name: c2
       MongoType: string
       SqlName: c2
@@ -825,3 +825,201 @@ testcases:
   - [1, 5]
   - [1, 6]
   - [2, 7]
+
+# $unwind optimizations
+- sql: "select id, c2 from test.child inner join tjoin1 on child.id=tjoin1._id order by 1,2"
+  description: "$unwind: inner join with child on left side"
+  expected_names: ["id", "c2"]
+  expected_types: [int, int]
+  expected:
+  - [1, 15]
+  - [1, 15]
+  - [2, 25]
+  - [2, 25]
+- sql: "select id, c2 from tjoin1 inner join test.child on child.id=tjoin1._id order by 1,2"
+  description: "$unwind: inner join with child on right side"
+  expected_names: ["id", "c2"]
+  expected_types: [int, int]
+  expected:
+  - [1, 15]
+  - [1, 15]
+  - [2, 25]
+  - [2, 25]
+- sql: "select id from tjoin1 b inner join test.child f on f.id=b._id and f.id < b.c2-20"
+  description: "$unwind: inner join with child and additional criteria"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [2]
+- sql: "select id, c2 from tjoin1 inner join test.child on child.c=tjoin1._id order by 1,2"
+  description: "$unwind: inner join with child on nested field"
+  expected_names: ["id", "c2"]
+  expected_types: [int, int]
+  expected:
+  - [0, 15]
+  - [0, 25]
+  - [1, 15]
+  - [1, 50]
+  - [2, 25]
+  - [2, 50]
+- sql: "select id, c2 from tjoin1 inner join test.child on child.c=tjoin1._id and tjoin1.rnum > child.id order by 1,2"
+  description: "$unwind: inner join with child on nested field and additional criteria"
+  expected_names: ["id", "c2"]
+  expected_types: [int, int]
+  expected:
+  - [0, 25]
+  - [1, 50]
+- sql: "select id from test.parent f inner join tjoin1 b on f.id=b._id order by 1"
+  description: "$unwind: inner join with parent on left side"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+- sql: "select id from tjoin1 b inner join test.parent f on f.id=b._id order by 1"
+  description: "$unwind: inner join with parent on right side"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+- sql: "select id from tjoin1 b inner join test.parent f on f.id=b._id and b._id = f.id order by 1"
+  description: "$unwind: inner join with parent and additional criteria"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+- sql: "select id from test.grandchild f inner join tjoin1 b on f.id=b._id order by 1"
+  description: "$unwind: inner join with grandchild on left side"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [2]
+- sql: "select id from tjoin1 b inner join test.grandchild f on f.id=b._id order by 1"
+  description: "$unwind: inner join with grandchild on right side"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [2]
+- sql: "select id from tjoin1 b inner join test.grandchild f on f.id=b.rnum and b._id=f.b_idx order by 1"
+  description: "$unwind: inner join with grandchild and additional criteria"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [0]
+- sql: "select b_idx, _id from test.child b left join tjoin1 f on f._id=b.id order by 1"
+  description: "$unwind: left join with child on left side"
+  expected_names: ["b_idx", "_id"]
+  expected_types: [int, int]
+  expected:
+  - [0, ~]
+  - [0, 1]
+  - [0, 2]
+  - [1, ~]
+  - [1, 1]
+  - [1, 2]
+- sql: "select id, c2 from tjoin1 b left join test.child f on f.id=b._id order by 1"
+  description: "$unwind: left join with child on right side"
+  expected_names: ["id", "c2"]
+  expected_types: [int, int]
+  expected:
+  - [~, 50]
+  - [1, 15]
+  - [1, 15]
+  - [2, 25]
+  - [2, 25]
+- sql: "select id, c2 from tjoin1 b left join test.child f on f.c=b._id order by 1"
+  description: "$unwind: left join with child on nested field"
+  expected_names: ["id", "c2"]
+  expected_types: [int, int]
+  expected:
+  - [0, 15]
+  - [0, 25]
+  - [1, 15]
+  - [1, 50]
+  - [2, 25]
+  - [2, 50]
+- sql: "select id from tjoin1 b left join test.child f on f.id=b._id and f.id < b.c2-20 order by 1"
+  description: "$unwind: left join with child with additional criteria"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [2]
+  - [2]
+- sql: "select id, c2 from tjoin1 b left join test.child f on f.c=b._id and b.rnum+f.id > f.c order by 1"
+  description: "$unwind: left join with child on nested field and additional criteria"
+  expected_names: ["id", "c2"]
+  expected_types: [int, int]
+  expected:
+  - [~, 15]
+  - [2, 25]
+  - [2, 50]
+- sql: "select c2, _id from test.parent b left join tjoin1 f on f._id=b.id order by 1"
+  description: "$unwind: left join with parent on left"
+  expected_names: ["c2", "_id"]
+  expected_types: [int, int]
+  expected:
+  - [~, ~]
+  - [15, 1]
+  - [25, 2]
+- sql: "select c2, _id from tjoin1 f left join test.parent b on f._id=b.id order by 1"
+  description: "$unwind: left join with parent on right side"
+  expected_names: ["c2", "_id"]
+  expected_types: [int, int]
+  expected:
+  - [15, 1]
+  - [25, 2]
+  - [50, 3]
+- sql: "select id from tjoin1 b left join test.parent f on f.id=b._id and b._id = f.id order by 1"
+  description: "$unwind: left join with parent and additional criteria"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [1]
+  - [2]
+- sql: "select c2, _id from test.grandchild b left join tjoin1 f on f._id=b.id order by 1"
+  description: "$unwind: left join with grandchild on left"
+  expected_names: ["c2", "_id"]
+  expected_types: [int, int]
+  expected:
+  - [~, ~]
+  - [~, ~]
+  - [25, 2]
+- sql: "select c2, _id from tjoin1 f left join test.grandchild b on f._id=b.id order by 1"
+  description: "$unwind: left join with grandchild on right side"
+  expected_names: ["c2", "_id"]
+  expected_types: [int, int]
+  expected:
+  - [15, 1]
+  - [25, 2]
+  - [50, 3]
+- sql: "select id from tjoin1 b left join test.grandchild f on f.d=b._id order by 1"
+  description: "$unwind: left join with grandchild on nested field"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+- sql: "select id from tjoin1 b left join test.grandchild f on f.id=b._id and f.id < b.c2-20 order by 1"
+  description: "$unwind: left join with grandchild and additional criteria"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [2]
+- sql: "select id from tjoin1 b left join test.grandchild f on f.d=b._id and f.id < b.c2 order by 1"
+  description: "$unwind: left join with grandchild on nested field and additional criteria"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]

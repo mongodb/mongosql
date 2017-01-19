@@ -13,12 +13,13 @@ import (
 )
 
 const (
-	mgoOperatorEQ  = "$eq"
-	mgoOperatorNEQ = "$ne"
-	mgoOperatorGT  = "$gt"
-	mgoOperatorGTE = "$gte"
-	mgoOperatorLT  = "$lt"
-	mgoOperatorLTE = "$lte"
+	mgoOperatorEQ     = "$eq"
+	mgoOperatorNEQ    = "$ne"
+	mgoOperatorGT     = "$gt"
+	mgoOperatorGTE    = "$gte"
+	mgoOperatorLT     = "$lt"
+	mgoOperatorLTE    = "$lte"
+	mgoOperatorExists = "$exists"
 
 	mgoOperatorIfNull = "$ifNull"
 	mgoOperatorOR     = "$or"

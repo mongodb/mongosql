@@ -180,6 +180,20 @@ func (v *pushDownOptimizer) canPushDown(ps PlanStage) (*MongoSourceStage, bool) 
 	return ms, true
 }
 
+func (v *pushDownOptimizer) distinctProjectFieldName(project bson.M) string {
+	fieldName := projectPredicateFieldName
+	i := 0
+	for {
+		if _, ok := project[fieldName]; !ok {
+			break
+		}
+		i++
+		fieldName = fmt.Sprintf("%s%d", projectPredicateFieldName, i)
+	}
+
+	return fieldName
+}
+
 const (
 	projectPredicateFieldName = "__predicate"
 )
@@ -226,19 +240,8 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 			// Attempt to push it down as part of a $project/$match combination.
 			if predicate, ok := t.TranslateExpr(localMatcher); ok {
 				projectBody := v.projectAllColumns(ms.mappingRegistry)
-				fieldName := projectPredicateFieldName
-
-				i := 0
-				for {
-					if _, ok := projectBody[fieldName]; !ok {
-						break
-					}
-					i++
-					fieldName = fmt.Sprintf("%s%d", projectPredicateFieldName, i)
-				}
-
+				fieldName := v.distinctProjectFieldName(projectBody)
 				projectBody[fieldName] = predicate
-
 				pipeline = append(pipeline,
 					bson.D{{"$project", projectBody}},
 					bson.D{{"$match", bson.M{fieldName: true}}})
@@ -327,7 +330,11 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 		// in the tree that either haven't yet been pushed down, or cannot be. Either way, we output of a push-down must be
 		// exactly the same as the output of a non-pushed-down group.
 		mappingRegistry.addColumn(projectedColumn.Column)
-		mappingRegistry.registerMapping(projectedColumn.Table, projectedColumn.Name, sanitizeFieldName(projectedColumn.Expr.String()))
+		mappingRegistry.registerMapping(
+			projectedColumn.Table,
+			projectedColumn.Name,
+			sanitizeFieldName(projectedColumn.Expr.String()),
+		)
 	}
 
 	ms = ms.clone()
@@ -493,8 +500,16 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 			}
 			fieldName := groupDistinctPrefix + sanitizeFieldName(typedN.Exprs[0].String())
 			newExpr = &SQLAggFunctionExpr{
-				Name:  typedN.Name,
-				Exprs: []SQLExpr{NewSQLColumnExpr(0, groupTempTable, fieldName, typedN.Type(), schema.MongoNone)},
+				Name: typedN.Name,
+				Exprs: []SQLExpr{
+					NewSQLColumnExpr(
+						0,
+						groupTempTable,
+						fieldName,
+						typedN.Type(),
+						schema.MongoNone,
+					),
+				},
 			}
 			v.group[fieldName] = bson.M{"$addToSet": trans}
 			v.mappingRegistry.registerMapping(groupTempTable, fieldName, fieldName)
@@ -772,30 +787,38 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, join *JoinStage) (PlanStage, error) {
 	filterJoinCriteria := func(e SQLExpr, keepJoinCriteria bool) []SQLExpr {
 		exprs, newExprs := splitExpression(e), []SQLExpr{}
-		registries := []*mappingRegistry{msLocal.mappingRegistry, msForeign.mappingRegistry}
+		registries := []*mappingRegistry{msLocal.mappingRegistry,
+			msForeign.mappingRegistry}
 		for _, expr := range exprs {
 			if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
 				c1, _ := equalExpr.left.(SQLColumnExpr)
 				c2, _ := equalExpr.right.(SQLColumnExpr)
 				if c1.selectID == c2.selectID {
 
-					c1Name, c1RegistryIdx, ok := lookupSQLColumn(c1.tableName, c1.columnName, registries)
+					c1Name, c1RegistryIdx, ok := lookupSQLColumn(
+						c1.tableName, c1.columnName, registries)
 					if !ok {
-						panic("Unable to find field mapping for merge c1. This should never happen.")
+						panic("Unable to find field mapping for merge " +
+							"c1. This should never happen.")
 					}
 
-					c2Name, c2RegistryIdx, ok := lookupSQLColumn(c2.tableName, c2.columnName, registries)
+					c2Name, c2RegistryIdx, ok := lookupSQLColumn(
+						c2.tableName, c2.columnName, registries)
 					if !ok {
-						panic("Unable to find field mapping for merge c2. This should never happen.")
+						panic("Unable to find field mapping for merge " +
+							"c2. This should never happen.")
 					}
 
-					c1IsPK := registries[c1RegistryIdx].isPrimaryKey(c1.columnName)
-					c2IsPK := registries[c2RegistryIdx].isPrimaryKey(c2.columnName)
+					c1IsPK := registries[c1RegistryIdx].
+						isPrimaryKey(c1.columnName)
+					c2IsPK := registries[c2RegistryIdx].
+						isPrimaryKey(c2.columnName)
 
 					if c1IsPK && c2IsPK && c1Name == c2Name {
 						// use columns from local table
 						if keepJoinCriteria {
-							if containsString(msLocal.aliasNames, c1.tableName) {
+							if containsString(msLocal.aliasNames,
+								c1.tableName) {
 								newExprs = append(newExprs, c1)
 							} else {
 								newExprs = append(newExprs, c2)
@@ -824,32 +847,40 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 	ms.selectIDs = append(ms.selectIDs, msForeign.selectIDs...)
 	ms.aliasNames = append(ms.aliasNames, msForeign.aliasNames...)
 	ms.tableNames = append(ms.tableNames, msForeign.tableNames...)
-	ms.collectionNames = append(ms.collectionNames, msForeign.collectionNames...)
+	ms.collectionNames = append(ms.collectionNames,
+		msForeign.collectionNames...)
 
 	newMappingRegistry := ms.mappingRegistry.copy()
-	newMappingRegistry.columns = append(newMappingRegistry.columns, msForeign.mappingRegistry.columns...)
+	newMappingRegistry.columns = append(newMappingRegistry.columns,
+		msForeign.mappingRegistry.columns...)
 	if msForeign.mappingRegistry.fields != nil {
 		for tableName, columns := range msForeign.mappingRegistry.fields {
 			for columnName, fieldName := range columns {
-				newMappingRegistry.registerMapping(tableName, columnName, fieldName)
+				newMappingRegistry.registerMapping(tableName, columnName,
+					fieldName)
 			}
 		}
 	}
 
 	ms.mappingRegistry, ms.pipeline = newMappingRegistry, newPipeline.stages
 
-	remainingPredicate := combineExpressions(filterJoinCriteria(join.matcher, false))
+	remainingPredicate := combineExpressions(filterJoinCriteria(join.matcher,
+		false))
 	if remainingPredicate != nil {
 		if join.kind == InnerJoin || join.kind == StraightJoin {
-			v.logger.Logf(log.DebugHigh, "join merge: creating filter stage for remaining predicate: %v", remainingPredicate.String())
-			f, err := v.visit(NewFilterStage(ms, remainingPredicate, join.requiredColumns))
+			v.logger.Logf(log.DebugHigh, "join merge: creating filter "+
+				"stage for remaining predicate: %v",
+				remainingPredicate.String())
+			f, err := v.visit(NewFilterStage(ms, remainingPredicate,
+				join.requiredColumns))
 			if err != nil {
 				return nil, err
 			}
 			return f.(PlanStage), nil
 		}
 
-		// this "predicate" must get inserted before the unwinds from the right side...
+		// this "predicate" must get inserted before the unwinds from
+		// the right side.
 		insertionPoint := len(msLocal.pipeline)
 		project, match, ok := v.buildRemainingPredicateForLeftJoin(
 			msLocal.mappingRegistry,
@@ -879,12 +910,14 @@ func (v *pushDownOptimizer) meetsMergePKCriteria(local, foreign *MongoSourceStag
 	// don't perform optimization on MongoDB views as
 	// renames might have occured on fields.
 	if local.isView() {
-		v.logger.Logf(log.DebugHigh, "cannot merge join stage, local table is MongoDB view")
+		v.logger.Logf(log.DebugHigh, "cannot merge join stage, local "+
+			"table is MongoDB view")
 		return false
 	}
 
 	if foreign.isView() {
-		v.logger.Logf(log.DebugHigh, "cannot merge join stage, foreign table is MongoDB view")
+		v.logger.Logf(log.DebugHigh, "cannot merge join stage, foreign "+
+			"table is MongoDB view")
 		return false
 	}
 
@@ -893,7 +926,8 @@ func (v *pushDownOptimizer) meetsMergePKCriteria(local, foreign *MongoSourceStag
 	numPK := func(columns []*Column, table string) int {
 		n, keys := 0, make(map[string]struct{})
 		for _, c := range columns {
-			if _, counted := keys[c.Name]; !counted && c.PrimaryKey && c.Table == table {
+			if _, counted := keys[c.Name]; !counted && c.PrimaryKey &&
+				c.Table == table {
 				n, keys[c.Name] = n+1, struct{}{}
 			}
 		}
@@ -920,7 +954,8 @@ func (v *pushDownOptimizer) meetsMergePKCriteria(local, foreign *MongoSourceStag
 	}
 
 	if numRequiredPKConjunctions == 0 {
-		v.logger.Logf(log.DebugHigh, "cannot merge join stage, table has no primary key")
+		v.logger.Logf(log.DebugHigh, "cannot merge join stage, table "+
+			"has no primary key")
 		return false
 	}
 
@@ -928,7 +963,10 @@ func (v *pushDownOptimizer) meetsMergePKCriteria(local, foreign *MongoSourceStag
 
 	v.logger.Logf(log.DebugHigh, "join merge: examining match criteria...")
 
-	registries := []*mappingRegistry{local.mappingRegistry, foreign.mappingRegistry}
+	registries := []*mappingRegistry{
+		local.mappingRegistry,
+		foreign.mappingRegistry,
+	}
 
 	seenPrimaryKeys := make(map[string]struct{})
 
@@ -937,46 +975,61 @@ func (v *pushDownOptimizer) meetsMergePKCriteria(local, foreign *MongoSourceStag
 			column1, _ := equalExpr.left.(SQLColumnExpr)
 			column2, _ := equalExpr.right.(SQLColumnExpr)
 
-			invalidLeftColumn := !containsString(local.aliasNames, column1.tableName) &&
+			invalidLeftColumn := !containsString(local.aliasNames,
+				column1.tableName) &&
 				!containsString(foreign.aliasNames, column1.tableName)
-			invalidRightColumn := !containsString(local.aliasNames, column2.tableName) &&
+			invalidRightColumn := !containsString(local.aliasNames,
+				column2.tableName) &&
 				!containsString(foreign.aliasNames, column2.tableName)
 
 			if invalidLeftColumn || invalidRightColumn {
-				v.logger.Logf(log.DebugHigh, "join merge: found unexpected table references, moving on...")
+				v.logger.Logf(log.DebugHigh, "join merge: found unexpected "+
+					"table references, moving on...")
 				continue
 			}
 
 			if column1.selectID != column2.selectID {
-				v.logger.Logf(log.DebugHigh, "join merge: found unmatched select identifiers (%v and %v), moving on...", column1.selectID, column2.selectID)
+				v.logger.Logf(log.DebugHigh, "join merge: found unmatched "+
+					"select identifiers (%v and %v), moving on...",
+					column1.selectID, column2.selectID)
 				continue
 			}
 
-			columnOneName, c1RegistryIdx, ok := lookupSQLColumn(column1.tableName, column1.columnName, registries)
+			columnOneName, c1RegistryIdx, ok := lookupSQLColumn(
+				column1.tableName, column1.columnName, registries)
 			if !ok {
-				panic("Unable to find field mapping for merge column1. This should never happen.")
+				panic("Unable to find field mapping for merge column1. " +
+					"This should never happen.")
 			}
 
-			columnTwoName, c2RegistryIdx, ok := lookupSQLColumn(column2.tableName, column2.columnName, registries)
+			columnTwoName, c2RegistryIdx, ok := lookupSQLColumn(
+				column2.tableName, column2.columnName, registries)
 			if !ok {
-				panic("Unable to find field mapping for merge column2. This should never happen.")
+				panic("Unable to find field mapping for merge column2. " +
+					"This should never happen.")
 			}
 
 			c1IsPK := registries[c1RegistryIdx].isPrimaryKey(column1.columnName)
 			c2IsPK := registries[c2RegistryIdx].isPrimaryKey(column2.columnName)
 
 			if !c1IsPK || !c2IsPK {
-				v.logger.Logf(log.DebugHigh, "join merge: criteria contains non-primary key (%v and %v), moving on...", column1.String(), column2.String())
+				v.logger.Logf(log.DebugHigh, "join merge: criteria contains "+
+					"non-primary key (%v and %v), moving on...",
+					column1.String(), column2.String())
 				continue
 			}
 
 			if columnOneName != columnTwoName {
-				v.logger.Logf(log.DebugHigh, "join merge: criteria contains unmatched primary keys (%v and %v), moving on...", columnOneName, columnTwoName)
+				v.logger.Logf(log.DebugHigh, "join merge: criteria contains "+
+					"unmatched primary keys (%v and %v), moving on...",
+					columnOneName, columnTwoName)
 				continue
 			}
 
 			if _, ok := seenPrimaryKeys[columnOneName]; ok {
-				v.logger.Logf(log.DebugHigh, "join merge: ignoring duplicate primary key criteria '%v' and moving on...", column1.String())
+				v.logger.Logf(log.DebugHigh, "join merge: ignoring duplicate "+
+					"primary key criteria '%v' and moving on...",
+					column1.String())
 				continue
 			}
 
@@ -987,8 +1040,10 @@ func (v *pushDownOptimizer) meetsMergePKCriteria(local, foreign *MongoSourceStag
 	}
 
 	if numPKConjunctions < numRequiredPKConjunctions {
-		v.logger.Logf(log.DebugHigh, "join merge: criteria conjunction contains %v unique primary key equality %v (need %v)",
-			numPKConjunctions, util.Pluralize(numPKConjunctions, "pair", "pairs"), numRequiredPKConjunctions)
+		v.logger.Logf(log.DebugHigh, "join merge: criteria conjunction "+
+			"contains %v unique primary key equality %v (need %v)",
+			numPKConjunctions, util.Pluralize(numPKConjunctions, "pair",
+				"pairs"), numRequiredPKConjunctions)
 		return false
 	}
 
@@ -998,9 +1053,15 @@ func (v *pushDownOptimizer) meetsMergePKCriteria(local, foreign *MongoSourceStag
 func (v *pushDownOptimizer) sharesRootTable(local, foreign *MongoSourceStage) bool {
 	baseCollectionName := local.collectionNames[0]
 
-	for _, collectionName := range append(local.collectionNames[1:], foreign.collectionNames...) {
+	v.logger.Logf(log.DebugHigh, "attempting to merge tables %v and %v",
+		local.aliasNames, foreign.aliasNames)
+
+	for _, collectionName := range append(local.collectionNames[1:],
+		foreign.collectionNames...) {
 		if collectionName != baseCollectionName {
-			v.logger.Logf(log.DebugHigh, "cannot merge join stage, foreign table has pipeline with different root tables: %v and %v", collectionName, baseCollectionName)
+			v.logger.Logf(log.DebugHigh, "cannot merge join stage, foreign "+
+				"table has pipeline with different root tables: %v and %v",
+				collectionName, baseCollectionName)
 			return false
 		}
 	}
@@ -1056,32 +1117,45 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	// Before attempting to merge, check that the underlying collection
 	// is the same for both tables and that the join criteria holds the
 	// primary key for both
-	if v.sharesRootTable(msLocal, msForeign) && v.meetsMergePKCriteria(msLocal, msForeign, join.matcher) {
-		v.logger.Logf(log.DebugHigh, "attempting to merge tables %v and %v", msLocal.aliasNames, msForeign.aliasNames)
+	if v.sharesRootTable(msLocal, msForeign) &&
+		v.meetsMergePKCriteria(msLocal, msForeign, join.matcher) {
 		ms, err := v.mergeTables(msLocal, msForeign, join)
 		if err != nil {
 			return nil, err
 		}
 
 		if ms != nil {
-			v.logger.Logf(log.DebugHigh, "successfully merged tables %v and %v", msLocal.aliasNames, msForeign.aliasNames)
+			v.logger.Logf(log.DebugHigh, "successfully merged tables %v "+
+				"and %v", msLocal.aliasNames, msForeign.aliasNames)
 			return ms, nil
 		}
 
-		v.logger.Logf(log.DebugHigh, "unable to merge tables %v and %v", msLocal.aliasNames, msForeign.aliasNames)
+		v.logger.Logf(log.DebugHigh, "unable to merge tables %v and %v",
+			msLocal.aliasNames, msForeign.aliasNames)
 	}
 
-	if len(msForeign.pipeline) > 0 {
-		v.logger.Warnf(log.DebugHigh, "cannot push down join stage, foreign table has pipeline: %#v", msForeign.pipeline)
-		return join, nil
-	}
+	v.logger.Warnf(log.DebugHigh, "attempting to translate join stage "+
+		"to lookup")
 
-	v.logger.Warnf(log.DebugHigh, "attempting to translate join stage to lookup")
+	lenForeignPipeline := len(msForeign.pipeline)
+	foreignHasUnwind := false
+
+	if lenForeignPipeline > 0 {
+		_, foreignHasUnwind = msForeign.pipeline[0].Map()["$unwind"]
+		if !foreignHasUnwind || lenForeignPipeline > 1 {
+			v.logger.Warnf(log.DebugHigh, "unable to translate join "+
+				"stage to lookup: foreign table has pipeline: %#v",
+				msForeign.pipeline)
+			return join, nil
+		}
+	}
 
 	// 3. find the local column and the foreign column
-	lookupInfo, err := getLocalAndForeignColumns(msLocal, msForeign, join.matcher)
+	lookupInfo, err := getLocalAndForeignColumns(msLocal, msForeign,
+		join.matcher)
 	if err != nil {
-		v.logger.Warnf(log.DebugHigh, "cannot push down join stage: %v", err)
+		v.logger.Warnf(log.DebugHigh, "unable to translate join "+
+			"stage to lookup: %v", err)
 		return join, nil
 	}
 
@@ -1091,35 +1165,43 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	if isUUID(localMongoType) && isUUID(foreignMongoType) {
 		if localMongoType != foreignMongoType {
-			v.logger.Warnf(log.DebugHigh, "cannot push down join stage, found different criteria UUID - %v and %v", localMongoType, foreignMongoType)
+			v.logger.Warnf(log.DebugHigh, "unable to translate join "+
+				"stage to lookup: found different criteria UUID - %v "+
+				"and %v", localMongoType, foreignMongoType)
 			return join, nil
 		}
 	}
 
 	// 4. get lookup fields
-	localFieldName, ok := msLocal.mappingRegistry.lookupFieldName(lookupInfo.localColumn.tableName, lookupInfo.localColumn.columnName)
+	localFieldName, ok := msLocal.mappingRegistry.lookupFieldName(
+		lookupInfo.localColumn.tableName, lookupInfo.localColumn.columnName)
 	if !ok {
-		v.logger.Warnf(log.DebugHigh, "cannot find referenced local join column %#v in lookup", lookupInfo.localColumn)
+		v.logger.Errf(log.DebugHigh, "cannot find referenced local join "+
+			"column %#v in lookup", lookupInfo.localColumn)
 		return join, nil
 	}
 
-	foreignFieldName, ok := msForeign.mappingRegistry.lookupFieldName(lookupInfo.foreignColumn.tableName, lookupInfo.foreignColumn.columnName)
+	foreignFieldName, ok := msForeign.mappingRegistry.lookupFieldName(
+		lookupInfo.foreignColumn.tableName, lookupInfo.foreignColumn.columnName)
 	if !ok {
-		v.logger.Warnf(log.DebugHigh, "cannot find referenced foreign join column %#v in lookup", lookupInfo.foreignColumn)
+		v.logger.Errf(log.DebugHigh, "cannot find referenced foreign join "+
+			"column %#v in lookup", lookupInfo.foreignColumn)
 		return join, nil
 	}
 
 	asField := sanitizeFieldName(joinedFieldNamePrefix + msForeign.aliasNames[0])
 
-	// 5. compute all the mappings from the msForeign mapping registry to be nested under
-	// the 'asField' we used above.
+	// 5. compute all the mappings from the msForeign mapping registry
+	// to be nested under the 'asField' we used above.
 	newMappingRegistry := msLocal.mappingRegistry.copy()
 
-	newMappingRegistry.columns = append(newMappingRegistry.columns, msForeign.mappingRegistry.columns...)
+	newMappingRegistry.columns = append(newMappingRegistry.columns,
+		msForeign.mappingRegistry.columns...)
 	if msForeign.mappingRegistry.fields != nil {
 		for tableName, columns := range msForeign.mappingRegistry.fields {
 			for columnName, fieldName := range columns {
-				newMappingRegistry.registerMapping(tableName, columnName, asField+"."+fieldName)
+				newMappingRegistry.registerMapping(tableName, columnName,
+					asField+"."+fieldName)
 			}
 		}
 	}
@@ -1131,7 +1213,6 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
 		// $match to ensure account for this incompatibility. Effectively, we eliminate the
 		// left hand document when the left hand field is null.
-
 		match := bson.M{localFieldName: bson.M{"$ne": nil}}
 		pipeline = append(pipeline, bson.D{{"$match", match}})
 	}
@@ -1153,9 +1234,11 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 		// enumerate all local fields
 		for _, c := range msLocal.mappingRegistry.columns {
-			fieldName, ok := msLocal.mappingRegistry.lookupFieldName(c.Table, c.Name)
+			fieldName, ok := msLocal.mappingRegistry.lookupFieldName(
+				c.Table, c.Name)
 			if !ok {
-				panic("Unable to find field mapping for column. This should never happen.")
+				panic("Unable to find field mapping for column. This " +
+					"should never happen.")
 			}
 			project[fieldName] = 1
 		}
@@ -1179,7 +1262,20 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		},
 	}}
 
+	lookupOnArrayField := false
+
+	if foreignHasUnwind {
+		foreignMapped := msForeign.pipeline[0].Map()["$unwind"].(bson.D).Map()
+		oldForeignPath := fmt.Sprintf("%v", foreignMapped["path"])
+		lookupOnArrayField = strings.Split(foreignFieldName, ".")[0] == oldForeignPath[1:]
+	}
+
 	if lookupInfo.remainingPredicate != nil && joinKind == LeftJoin {
+		if lookupOnArrayField && len(strings.Split(foreignFieldName, ".")) > 1 {
+			v.logger.Warnf(log.DebugHigh, "unable to translate left join "+
+				"stage to lookup: lookup on nested array field")
+			return join, nil
+		}
 
 		project, match, ok := v.buildRemainingPredicateForLeftJoin(
 			msLocal.mappingRegistry,
@@ -1188,6 +1284,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 			asField,
 			false,
 		)
+
 		if !ok {
 			return join, nil
 		}
@@ -1199,6 +1296,72 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		}
 	} else {
 		pipeline = append(pipeline, unwind)
+	}
+
+	// This handles merging foreign tables referenced in joins
+	// that contain a single $unwind pipeline stage.
+	if foreignHasUnwind {
+		foreignMapped := msForeign.pipeline[0].Map()["$unwind"].(bson.D).Map()
+		path := fmt.Sprintf("%v", foreignMapped["path"])
+
+		// strip dollar sign prefix
+		if path != "" {
+			path = fmt.Sprintf("$%v.%v", asField, path[1:])
+		} else {
+			v.logger.Errf(log.DebugHigh, "empty $unwind path specification")
+			return join, nil
+		}
+
+		// For left joins, preserve null and empty arrays to ensure
+		// that every local pipeline record gets returned
+		idx := fmt.Sprintf("%v.%v", asField, foreignMapped["includeArrayIndex"])
+		unwind := bson.D{
+			{"path", path},
+			{"includeArrayIndex", idx},
+		}
+
+		unwind = append(unwind, bson.DocElem{"preserveNullAndEmptyArrays",
+			join.kind == LeftJoin})
+
+		v.logger.Warnf(log.DebugHigh, "consolidating foreign unwind "+
+			"into local pipeline")
+
+		pipeline = append(pipeline, bson.D{{"$unwind", unwind}})
+
+		// Handle edge case where the lookup field is the same as the
+		// $unwind's array path. In this case, we must apply an
+		// additional filter to remove records in the now unwound array
+		// that don't meet the lookup criteria.
+		if lookupOnArrayField {
+			foreignField := fmt.Sprintf("$%v.%v", asField, foreignFieldName)
+			filter := bson.M{mgoOperatorEQ: []interface{}{
+				foreignField, "$" + localFieldName,
+			}}
+
+			projectBody := bson.M{}
+
+			for _, columns := range newMappingRegistry.fields {
+				for _, fieldName := range columns {
+					projectBody[fieldName] = 1
+				}
+			}
+
+			fieldName := v.distinctProjectFieldName(projectBody)
+			projectBody[fieldName] = filter
+
+			match := bson.M{fieldName: true}
+			if join.kind == LeftJoin {
+				// for left joins, we need to ensure we retain records
+				// from the left child - in case the unwound array was
+				// empty or null
+				match = bson.M{mgoOperatorOR: []interface{}{match,
+					bson.M{path[1:]: bson.M{mgoOperatorExists: false}}}}
+			}
+			pipeline = append(pipeline,
+				bson.D{{"$project", projectBody}},
+				bson.D{{"$match", match}},
+			)
+		}
 	}
 
 	// 7. build the new operators
@@ -1218,6 +1381,8 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 		return f.(PlanStage), nil
 	}
+
+	v.logger.Warnf(log.DebugHigh, "successfully translated join stage to lookup")
 
 	return ms, nil
 }
@@ -1333,28 +1498,27 @@ func (v *pushDownOptimizer) mergePipeline(local, foreign *MongoSourceStage, join
 				}
 			}
 
-			unwind, ok := bsonStage.(bson.D)
-			if !ok {
-				return fmt.Errorf("found unordered unwind stage in foreign table (%v) pipeline: %T", foreign.aliasNames, stage)
-			}
-
+			unwind := bsonStage.(bson.D)
 			fields := unwind.Map()
-			fieldPath, ok := fields["path"]
+
+			iPath, ok := fields["path"]
 			if !ok {
 				return fmt.Errorf("could not find unwind path in foreign table %v: %#v", foreign.aliasNames, stage)
 			}
 
-			fieldIdx, ok := fields["includeArrayIndex"]
+			iIndex, ok := fields["includeArrayIndex"]
 			if !ok {
 				return fmt.Errorf("could not find unwind array index in foreign table %v: %#v", foreign.aliasNames, stage)
 			}
 
 			// strip dollar sign prefix
-			path := fmt.Sprintf("%v", fieldPath)
+			path := fmt.Sprintf("%v", iPath)
 			if path != "" {
 				path = path[1:]
 			}
-			arrayIdx := fmt.Sprintf("%v", fieldIdx)
+
+			arrayIdx := fmt.Sprintf("%v", iIndex)
+
 			if !util.StringSliceContains(pipeline.arrayPathIndexes, arrayIdx) {
 				pipeline.arrayPaths = append(pipeline.arrayPaths, path)
 				pipeline.arrayPathIndexes = append(pipeline.arrayPathIndexes, arrayIdx)
