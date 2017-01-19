@@ -647,7 +647,7 @@ const (
 )
 
 // buildRemainingPredicateForLeftJoin will return 2 items; first a $project to put before the unwind, and a $match to put after the unwind.
-func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegistry, combinedMappingRegistry *mappingRegistry, remainingPredicate SQLExpr, asField string) (bson.D, bson.D, bool) {
+func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegistry, combinedMappingRegistry *mappingRegistry, remainingPredicate SQLExpr, asField string, preserveIndex bool) (bson.D, bson.D, bool) {
 
 	fixedLookupFieldName := func(tbl, col string) (string, bool) {
 		fieldName, ok := combinedMappingRegistry.lookupFieldName(tbl, col)
@@ -676,66 +676,84 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 		return nil, nil, false
 	}
 
-	// This is interesting. First, we are going to create variable that marks every item in the array that should
-	// be excluded. Using that variable, we'll then create a condition. If we filter all the items out that
-	// should be excluded and end up with 0 items, we set the field to an empty array. Otherwise, we keep the array
-	// around and use a match after the unwind to get rid of the rows that don't belong.
-	// The reason we have to do this is because, even when no items from the "right" side match, we still need to
-	// include the left side one time. However, we can't just eliminate the non-matching ones now (using $filter)
-	// because we need to maintain the array index of the matching right side.
-	projectBody := bson.M{
-		asField: bson.M{
-			"$let": bson.M{
-				"vars": bson.M{
-					"mapped": bson.M{
-						"$map": bson.M{
-							"input": bson.M{
-								"$cond": bson.M{
-									"if":   bson.M{"$isArray": "$" + asField},
-									"then": "$" + asField,
-									"else": []interface{}{"$" + asField},
+	var projectBody bson.M
+	var match bson.D
+	if preserveIndex {
+		// This is interesting. First, we are going to create variable that marks every item in the array that should
+		// be excluded. Using that variable, we'll then create a condition. If we filter all the items out that
+		// should be excluded and end up with 0 items, we set the field to an empty array. Otherwise, we keep the array
+		// with the marked items and use a match after the unwind to get rid of the rows that don't belong.
+		// The reason we have to do this is because, even when no items from the "right" side of a join match, we still need to
+		// include the left side one time. However, we can't just eliminate the non-matching array items now (using $filter)
+		// because we need to maintain the array index of the items that do match.
+		projectBody = bson.M{
+			asField: bson.M{
+				"$let": bson.M{
+					"vars": bson.M{
+						"mapped": bson.M{
+							"$map": bson.M{
+								"input": bson.M{
+									"$cond": bson.M{
+										"if":   bson.M{"$isArray": "$" + asField},
+										"then": "$" + asField,
+										"else": []interface{}{"$" + asField},
+									},
 								},
-							},
-							"as": "this",
-							"in": bson.M{
-								"$cond": bson.M{
-									"if":   ifPart,
-									"then": "$$this",
-									"else": bson.M{
-										leftJoinExcludeFieldName: true,
+								"as": "this",
+								"in": bson.M{
+									"$cond": bson.M{
+										"if":   ifPart,
+										"then": "$$this",
+										"else": bson.M{
+											leftJoinExcludeFieldName: true,
+										},
 									},
 								},
 							},
 						},
 					},
-				},
-				"in": bson.M{
-					"$cond": bson.M{
-						"if": bson.M{
-							"$gt": []interface{}{
-								bson.M{
-									"$size": bson.M{
-										"$filter": bson.M{
-											"input": "$$mapped",
-											"as":    "this",
-											"cond": bson.M{
-												"$ne": []interface{}{
-													"$$this." + leftJoinExcludeFieldName,
-													true,
+					"in": bson.M{
+						"$cond": bson.M{
+							"if": bson.M{
+								"$gt": []interface{}{
+									bson.M{
+										"$size": bson.M{
+											"$filter": bson.M{
+												"input": "$$mapped",
+												"as":    "this",
+												"cond": bson.M{
+													"$ne": []interface{}{
+														"$$this." + leftJoinExcludeFieldName,
+														true,
+													},
 												},
 											},
 										},
 									},
+									0,
 								},
-								0,
 							},
+							"then": "$$mapped",
+							"else": []interface{}{},
 						},
-						"then": "$$mapped",
-						"else": []interface{}{},
 					},
 				},
 			},
-		},
+		}
+		predicateExclusionField := asField + "." + leftJoinExcludeFieldName
+		match = bson.D{{"$match", bson.M{predicateExclusionField: bson.M{"$ne": true}}}}
+	} else {
+		// In this case, we can simply filter the array because we don't care about preserving the index.
+		// If the predicate doesn't pass, then we set the 'as' field to nil
+		projectBody = bson.M{
+			asField: bson.M{
+				"$filter": bson.M{
+					"input": "$" + asField,
+					"as":    "this",
+					"cond":  ifPart,
+				},
+			},
+		}
 	}
 
 	// we now need to make sure we project all the existing columns from the local mongo source
@@ -748,8 +766,7 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 		projectBody[field] = 1
 	}
 
-	predicateExclusionField := asField + "." + leftJoinExcludeFieldName
-	return bson.D{{"$project", projectBody}}, bson.D{{"$match", bson.M{predicateExclusionField: bson.M{"$ne": true}}}}, true
+	return bson.D{{"$project", projectBody}}, match, true
 }
 
 func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, join *JoinStage) (PlanStage, error) {
@@ -839,13 +856,18 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 			newMappingRegistry,
 			remainingPredicate,
 			newPipeline.arrayPaths[insertionPoint],
+			true,
 		)
 		if !ok {
 			return join, nil
 		}
 
-		// put match last, and insert project after the first
-		ms.pipeline = append(ms.pipeline, match, nil)
+		if match != nil {
+			ms.pipeline = append(ms.pipeline, match)
+		}
+
+		// insert project after the first
+		ms.pipeline = append(ms.pipeline, nil)
 		copy(ms.pipeline[insertionPoint+1:], ms.pipeline[insertionPoint:])
 		ms.pipeline[insertionPoint] = project
 	}
@@ -1164,12 +1186,17 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 			newMappingRegistry,
 			lookupInfo.remainingPredicate,
 			asField,
+			false,
 		)
 		if !ok {
 			return join, nil
 		}
 
-		pipeline = append(pipeline, project, unwind, match)
+		pipeline = append(pipeline, project, unwind)
+
+		if match != nil {
+			pipeline = append(pipeline, match)
+		}
 	} else {
 		pipeline = append(pipeline, unwind)
 	}

@@ -336,118 +336,52 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 							{{"$project", bson.M{
 								"__joined_bar": bson.M{
-									"$let": bson.M{
-										"vars": bson.M{
-											"mapped": bson.M{
-												"$map": bson.M{
-													"as": "this",
-													"in": bson.M{
-														"$cond": bson.M{
-															"else": bson.M{
-																"__leftjoin_exclude": true,
-															},
-															"if": bson.M{
-																"$cond": []interface{}{
-																	bson.M{
-																		"$or": []interface{}{
-																			bson.M{
-																				"$eq": []interface{}{
-																					bson.M{
-																						"$ifNull": []interface{}{
-																							"$b",
-																							nil,
-																						},
-																					},
-																					nil,
-																				},
-																			},
-																			bson.M{
-																				"$eq": []interface{}{
-																					bson.M{
-																						"$ifNull": []interface{}{
-																							bson.M{
-																								"$literal": int64(10),
-																							},
-																							nil,
-																						},
-																					},
-																					nil,
-																				},
-																			},
-																		},
-																	},
-																	nil,
-																	bson.M{
-																		"$gt": []interface{}{
-																			"$b",
-																			bson.M{
-																				"$literal": int64(10),
-																			},
-																		},
-																	},
-																},
-															},
-															"then": "$$this",
-														},
-													},
-													"input": bson.M{
-														"$cond": bson.M{
-															"if": bson.M{
-																"$isArray": "$__joined_bar",
-															},
-															"then": "$__joined_bar",
-															"else": []interface{}{
-																"$__joined_bar",
-															},
-														},
-													},
-												},
-											},
-										},
-										"in": bson.M{
-											"$cond": bson.M{
-												"if": bson.M{
-													"$gt": []interface{}{
+									"$filter": bson.M{
+										"input": "$__joined_bar",
+										"as":    "this",
+										"cond": bson.M{
+											"$cond": []interface{}{
+												bson.M{
+													"$or": []interface{}{
 														bson.M{
-															"$size": bson.M{
-																"$filter": bson.M{
-																	"input": "$$mapped",
-																	"as":    "this",
-																	"cond": bson.M{
-																		"$ne": []interface{}{
-																			"$$this.__leftjoin_exclude",
-																			true,
-																		},
-																	},
-																},
+															"$eq": []interface{}{
+																bson.M{"$ifNull": []interface{}{"$b", nil}},
+																nil,
 															},
 														},
-														0,
+														bson.M{
+															"$eq": []interface{}{
+																bson.M{"$ifNull": []interface{}{bson.M{"$literal": int64(10)}, nil}},
+																nil,
+															},
+														},
 													},
 												},
-												"then": "$$mapped",
-												"else": []interface{}{},
+												nil,
+												bson.M{
+													"$gt": []interface{}{
+														"$b",
+														bson.M{
+															"$literal": int64(10),
+														},
+													},
+												},
 											},
 										},
 									},
 								},
-								"a":      int(1),
-								"b":      int(1),
-								"c":      int(1),
-								"d.e":    int(1),
-								"d.f":    int(1),
-								"_id":    int(1),
-								"filter": int(1),
-								"g":      int(1),
+								"a":      1,
+								"b":      1,
+								"c":      1,
+								"d.e":    1,
+								"d.f":    1,
+								"_id":    1,
+								"filter": 1,
+								"g":      1,
 							}}},
 							{{"$unwind", bson.M{
 								"path": "$__joined_bar",
 								"preserveNullAndEmptyArrays": true,
-							}}},
-							{{"$match", bson.M{
-								"__joined_bar.__leftjoin_exclude": bson.M{
-									"$ne": bool(true),
-								},
 							}}},
 							{{"$project", bson.M{
 								"foo_DOT_a": "$a",
@@ -486,99 +420,38 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 							{{"$project", bson.M{
 								"__joined_bar": bson.M{
-									"$let": bson.M{
-										"in": bson.M{
-											"$cond": bson.M{
-												"if": bson.M{
-													"$gt": []interface{}{
+									"$filter": bson.M{
+										"as": "this",
+										"cond": bson.M{
+											"$cond": []interface{}{
+												bson.M{
+													"$or": []interface{}{
 														bson.M{
-															"$size": bson.M{
-																"$filter": bson.M{
-																	"input": "$$mapped",
-																	"as":    "this",
-																	"cond": bson.M{
-																		"$ne": []interface{}{
-																			"$$this.__leftjoin_exclude",
-																			true,
-																		},
-																	},
-																},
+															"$eq": []interface{}{
+																bson.M{"$ifNull": []interface{}{"$$this.b", nil}},
+																nil,
 															},
 														},
-														0,
+														bson.M{
+															"$eq": []interface{}{
+																bson.M{"$ifNull": []interface{}{bson.M{"$literal": int64(10)}, nil}},
+																nil,
+															},
+														},
 													},
 												},
-												"then": "$$mapped",
-												"else": []interface{}{},
-											},
-										},
-										"vars": bson.M{
-											"mapped": bson.M{
-												"$map": bson.M{
-													"input": bson.M{
-														"$cond": bson.M{
-															"if": bson.M{
-																"$isArray": "$__joined_bar",
-															},
-															"then": "$__joined_bar",
-															"else": []interface{}{
-																"$__joined_bar",
-															},
-														},
-													},
-													"as": "this",
-													"in": bson.M{
-														"$cond": bson.M{
-															"if": bson.M{
-																"$cond": []interface{}{
-																	bson.M{
-																		"$or": []interface{}{
-																			bson.M{
-																				"$eq": []interface{}{
-																					bson.M{
-																						"$ifNull": []interface{}{
-																							"$$this.b",
-																							nil,
-																						},
-																					},
-																					nil,
-																				},
-																			},
-																			bson.M{
-																				"$eq": []interface{}{
-																					bson.M{
-																						"$ifNull": []interface{}{
-																							bson.M{
-																								"$literal": int64(10),
-																							},
-																							nil,
-																						},
-																					},
-																					nil,
-																				},
-																			},
-																		},
-																	},
-																	nil,
-																	bson.M{
-																		"$gt": []interface{}{
-																			"$$this.b",
-																			bson.M{
-																				"$literal": int64(10),
-																			},
-																		},
-																	},
-																},
-															},
-															"then": "$$this",
-															"else": bson.M{
-																"__leftjoin_exclude": true,
-															},
+												nil,
+												bson.M{
+													"$gt": []interface{}{
+														"$$this.b",
+														bson.M{
+															"$literal": int64(10),
 														},
 													},
 												},
 											},
 										},
+										"input": "$__joined_bar",
 									},
 								},
 								"b":      int(1),
@@ -593,11 +466,6 @@ func TestOptimizePlan(t *testing.T) {
 							{{"$unwind", bson.M{
 								"path": "$__joined_bar",
 								"preserveNullAndEmptyArrays": true,
-							}}},
-							{{"$match", bson.M{
-								"__joined_bar.__leftjoin_exclude": bson.M{
-									"$ne": bool(true),
-								},
 							}}},
 							{{"$project", bson.M{
 								"foo_DOT_a": "$a",
