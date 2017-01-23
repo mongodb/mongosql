@@ -32,16 +32,13 @@ var (
 )
 
 var (
-	wrapInOp = func(op string, left, right interface{}) interface{} {
-		return bson.M{op: []interface{}{left, right}}
-	}
-
-	wrapInIfNull = func(v, ifNull interface{}) interface{} {
-		return bson.M{mgoOperatorIfNull: []interface{}{v, ifNull}}
-	}
-
-	wrapInNullCheck = func(v interface{}) interface{} {
-		return wrapInOp(mgoOperatorEQ, wrapInIfNull(v, nil), nil)
+	getLiteral = func(v interface{}) (interface{}, bool) {
+		if bsonMap, ok := v.(bson.M); ok {
+			if bsonVal, ok := bsonMap["$literal"]; ok {
+				return bsonVal, true
+			}
+		}
+		return nil, false
 	}
 
 	wrapInCond = func(truePart, falsePart interface{}, conds ...interface{}) interface{} {
@@ -56,8 +53,51 @@ var (
 		return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
 	}
 
+	wrapInOp = func(op string, left, right interface{}) interface{} {
+		return bson.M{op: []interface{}{left, right}}
+	}
+
+	wrapInIfNull = func(v, ifNull interface{}) interface{} {
+		if value, ok := getLiteral(v); ok {
+			if value == nil {
+				return ifNull
+			}
+			return v
+		}
+		return bson.M{mgoOperatorIfNull: []interface{}{v, ifNull}}
+	}
+
+	wrapInNullCheck = func(v interface{}) interface{} {
+		if _, ok := getLiteral(v); ok {
+			return v
+		}
+		return wrapInOp(mgoOperatorEQ, wrapInIfNull(v, nil), nil)
+	}
+
+	wrapInNullCheckedCond = func(truePart, falsePart interface{}, conds ...interface{}) interface{} {
+		var condition interface{}
+		newConds := []interface{}{}
+		for _, cond := range conds {
+			if value, ok := getLiteral(cond); !ok {
+				newConds = append(newConds, wrapInNullCheck(cond))
+			} else if value == nil {
+				newConds = append(newConds, true)
+			}
+		}
+		switch len(newConds) {
+		case 0:
+			return falsePart
+		case 1:
+			condition = newConds[0]
+		default:
+			condition = bson.M{mgoOperatorOR: newConds}
+		}
+
+		return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
+	}
+
 	wrapSingleArgFuncWithNullCheck = func(name string, arg interface{}) interface{} {
-		return wrapInCond(nil, bson.M{name: arg}, wrapInNullCheck(arg))
+		return wrapInNullCheckedCond(nil, bson.M{name: arg}, arg)
 	}
 )
 
@@ -201,11 +241,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		return wrapInCond(
+		return wrapInNullCheckedCond(
 			nil,
 			bson.M{mgoOperatorEQ: []interface{}{left, right}},
-			wrapInNullCheck(left),
-			wrapInNullCheck(right),
+			left, right,
 		), true
 
 	case SQLColumnExpr:
@@ -226,11 +265,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		return wrapInCond(
+		return wrapInNullCheckedCond(
 			nil,
 			bson.M{mgoOperatorGT: []interface{}{left, right}},
-			wrapInNullCheck(left),
-			wrapInNullCheck(right),
+			left, right,
 		), true
 
 	case *SQLGreaterThanOrEqualExpr:
@@ -244,11 +282,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		return wrapInCond(
+		return wrapInNullCheckedCond(
 			nil,
 			bson.M{mgoOperatorGTE: []interface{}{left, right}},
-			wrapInNullCheck(left),
-			wrapInNullCheck(right),
+			left, right,
 		), true
 
 	case *SQLIDivideExpr:
@@ -279,11 +316,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		return wrapInCond(
+		return wrapInNullCheckedCond(
 			nil,
 			bson.M{mgoOperatorLT: []interface{}{left, right}},
-			wrapInNullCheck(left),
-			wrapInNullCheck(right),
+			left, right,
 		), true
 
 	case *SQLLessThanOrEqualExpr:
@@ -297,11 +333,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		return wrapInCond(
+		return wrapInNullCheckedCond(
 			nil,
 			bson.M{mgoOperatorLTE: []interface{}{left, right}},
-			wrapInNullCheck(left),
-			wrapInNullCheck(right),
+			left, right,
 		), true
 
 	case *SQLModExpr:
@@ -336,11 +371,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		return wrapInCond(
-			nil,
-			bson.M{"$not": op},
-			wrapInNullCheck(op),
-		), true
+		return wrapInNullCheckedCond(nil, bson.M{"$not": op}, op), true
 
 	case *SQLNotEqualsExpr:
 		left, ok := t.TranslateExpr(typedE.left)
@@ -353,11 +384,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		return wrapInCond(
+		return wrapInNullCheckedCond(
 			nil,
 			bson.M{mgoOperatorNEQ: []interface{}{left, right}},
-			wrapInNullCheck(left),
-			wrapInNullCheck(right),
+			left, right,
 		), true
 
 	case *SQLNullSafeEqualsExpr:
@@ -445,11 +475,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				mgoNullLiteral,
 				wrapInCond(
 					true,
-					wrapInCond(
+					wrapInNullCheckedCond(
 						mgoNullLiteral,
 						bson.M{mgoOperatorOR: []interface{}{left, right}},
-						wrapInNullCheck(left),
-						wrapInNullCheck(right),
+						left, right,
 					),
 					nullOrTrue,
 				),
@@ -561,7 +590,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			return wrapInCond(
+			return wrapInNullCheckedCond(
 				nil,
 				bson.M{"$arrayElemAt": []interface{}{
 					[]interface{}{
@@ -576,7 +605,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 					bson.M{"$subtract": []interface{}{
 						bson.M{"$dayOfWeek": args[0]},
 						1}}}},
-				wrapInNullCheck(args[0]),
+				args[0],
 			), true
 		case "day", "dayofmonth":
 			if len(args) != 1 {
@@ -636,18 +665,16 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return bson.M{"$floor": args[0]}, true
 		case "greatest":
 			// we can only push down if the types are similar
-			nullChecks := []interface{}{wrapInNullCheck(args[0])}
 			for i := 1; i < len(typedE.Exprs); i++ {
 				if !isSimilar(typedE.Exprs[0].Type(), typedE.Exprs[i].Type()) {
 					return nil, false
 				}
-				nullChecks = append(nullChecks, wrapInNullCheck(args[i]))
 			}
 
-			return wrapInCond(
+			return wrapInNullCheckedCond(
 				nil,
 				bson.M{"$max": args},
-				nullChecks...,
+				args...,
 			), true
 		case "hour":
 			if len(args) != 1 {
@@ -678,36 +705,29 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			return wrapInCond(
-				1,
-				0,
-				wrapInNullCheck(args[0]),
-			), true
+			return wrapInNullCheckedCond(1, 0, args[0]), true
 		case "least":
 			// we can only push down if the types are similar
-			nullChecks := []interface{}{wrapInNullCheck(args[0])}
 			for i := 1; i < len(typedE.Exprs); i++ {
 				if !isSimilar(typedE.Exprs[0].Type(), typedE.Exprs[i].Type()) {
 					return nil, false
 				}
-				nullChecks = append(nullChecks, wrapInNullCheck(args[i]))
 			}
 
-			return wrapInCond(
+			return wrapInNullCheckedCond(
 				nil,
 				bson.M{"$min": args},
-				nullChecks...,
+				args...,
 			), true
 		case "left":
 			if len(args) != 2 {
 				return nil, false
 			}
 
-			return wrapInCond(
+			return wrapInNullCheckedCond(
 				nil,
 				bson.M{"$substr": []interface{}{args[0], 0, args[1]}},
-				wrapInNullCheck(args[0]),
-				wrapInNullCheck(args[1]),
+				args[0], args[1],
 			), true
 		case "length":
 			if len(args) != 1 {
@@ -741,11 +761,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				indexOfCPArgs = []interface{}{args[1], args[0], wrapInOp("$subtract", args[2], 1)}
 			}
 
-			return wrapInCond(
+			return wrapInNullCheckedCond(
 				nil,
 				wrapInOp("$add", bson.M{"$indexOfCP": indexOfCPArgs}, 1),
-				wrapInNullCheck(args[1]),
-				wrapInNullCheck(args[0]),
+				args[1], args[0],
 			), true
 		case "log", "ln":
 			if len(args) != 1 {
@@ -793,10 +812,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			arg1 := int(arg1Val.Float64()) - 1
 			arg2 := args[2]
 
-			return wrapInCond(
+			return wrapInNullCheckedCond(
 				nil,
 				bson.M{"$substr": []interface{}{args[0], arg1, arg2}},
-				wrapInNullCheck(args[0]),
+				args[0],
 			), true
 		case "mod":
 			if len(args) != 2 {
@@ -821,7 +840,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			return wrapInCond(
+			return wrapInNullCheckedCond(
 				nil,
 				bson.M{"$arrayElemAt": []interface{}{
 					[]interface{}{
@@ -841,35 +860,35 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 					bson.M{"$subtract": []interface{}{
 						bson.M{"$month": args[0]},
 						1}}}},
-				wrapInNullCheck(args[0]),
+				args[0],
 			), true
 		case "nullif":
 			if len(args) != 2 {
 				return nil, false
 			}
 
-			return wrapInCond(
+			return wrapInNullCheckedCond(
 				nil,
 				wrapInCond(
 					nil,
 					args[0],
 					wrapInOp(mgoOperatorEQ, args[0], args[1]),
 				),
-				wrapInNullCheck(args[0]),
+				args[0],
 			), true
 		case "quarter":
 			if len(args) != 1 {
 				return nil, false
 			}
 
-			return wrapInCond(
+			return wrapInNullCheckedCond(
 				nil,
 				bson.M{"$arrayElemAt": []interface{}{
 					[]interface{}{1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4},
 					bson.M{"$subtract": []interface{}{
 						bson.M{"$month": args[0]},
 						1}}}},
-				wrapInNullCheck(args[0]),
+				args[0],
 			), true
 		case "round":
 			if !(len(args) == 2 || len(args) == 1) {
@@ -946,10 +965,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				arg2 = args[2]
 			}
 
-			return wrapInCond(
+			return wrapInNullCheckedCond(
 				nil,
 				bson.M{"$substr": []interface{}{args[0], arg1, arg2}},
-				wrapInNullCheck(args[0]),
+				args[0],
 			), true
 		case "truncate":
 			if len(args) != 2 {
@@ -1019,7 +1038,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			return wrapInCond(
+			return wrapInNullCheckedCond(
 				nil,
 				bson.M{"$mod": []interface{}{
 					bson.M{"$add": []interface{}{
@@ -1030,7 +1049,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 						}}, 7,
 					}}, 7,
 				}},
-				wrapInNullCheck(args[0]),
+				args[0],
 			), true
 		case "ucase", "upper":
 			if len(args) != 1 {
@@ -1124,10 +1143,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		return wrapInCond(
+		return wrapInNullCheckedCond(
 			nil,
 			bson.M{"$multiply": []interface{}{-1, operand}},
-			wrapInNullCheck(operand),
+			operand,
 		), true
 
 	case *SQLInExpr:
@@ -1155,7 +1174,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			right = append(right, val)
 		}
 
-		return wrapInCond(
+		return wrapInNullCheckedCond(
 			nil,
 			wrapInCond(
 				true,
@@ -1171,7 +1190,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 					}}},
 					bson.M{"$literal": 0},
 				}}),
-			wrapInNullCheck(left),
+			left,
 		), true
 
 	// SQL Values

@@ -359,19 +359,9 @@ func TestOptimizePlan(t *testing.T) {
 										"cond": bson.M{
 											"$cond": []interface{}{
 												bson.M{
-													"$or": []interface{}{
-														bson.M{
-															"$eq": []interface{}{
-																bson.M{"$ifNull": []interface{}{"$b", nil}},
-																nil,
-															},
-														},
-														bson.M{
-															"$eq": []interface{}{
-																bson.M{"$ifNull": []interface{}{bson.M{"$literal": int64(10)}, nil}},
-																nil,
-															},
-														},
+													"$eq": []interface{}{
+														bson.M{"$ifNull": []interface{}{"$b", nil}},
+														nil,
 													},
 												},
 												nil,
@@ -442,19 +432,9 @@ func TestOptimizePlan(t *testing.T) {
 										"cond": bson.M{
 											"$cond": []interface{}{
 												bson.M{
-													"$or": []interface{}{
-														bson.M{
-															"$eq": []interface{}{
-																bson.M{"$ifNull": []interface{}{"$$this.b", nil}},
-																nil,
-															},
-														},
-														bson.M{
-															"$eq": []interface{}{
-																bson.M{"$ifNull": []interface{}{bson.M{"$literal": int64(10)}, nil}},
-																nil,
-															},
-														},
+													"$eq": []interface{}{
+														bson.M{"$ifNull": []interface{}{"$$this.b", nil}},
+														nil,
 													},
 												},
 												nil,
