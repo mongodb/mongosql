@@ -31,15 +31,33 @@ var (
 )
 
 var (
+	isLiteral = func(v interface{}) (interface{}, bool) {
+		if bsonMap, ok := v.(bson.M); ok {
+			if bsonVal, ok := bsonMap["$literal"]; ok {
+				return bsonVal, true
+			}
+		}
+		return nil, false
+	}
+
 	wrapInOp = func(op string, left, right interface{}) interface{} {
 		return bson.M{op: []interface{}{left, right}}
 	}
 
 	wrapInIfNull = func(v, ifNull interface{}) interface{} {
+		if value, ok := isLiteral(v); ok {
+			if value == nil {
+				return ifNull
+			}
+			return v
+		}
 		return bson.M{mgoOperatorIfNull: []interface{}{v, ifNull}}
 	}
 
 	wrapInNullCheck = func(v interface{}) interface{} {
+		if _, ok := isLiteral(v); ok {
+			return v
+		}
 		return wrapInOp(mgoOperatorEQ, wrapInIfNull(v, nil), nil)
 	}
 

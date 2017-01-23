@@ -3215,7 +3215,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"ifnull(a, 1)", `{"$ifNull":["$a",{"$literal":1}]}`},
 			test{"isnull(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},1,0]}`},
 			test{"length(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$strLenBytes":"$s"}]}`},
-			test{"left(s, 2)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":[{"$literal":2},null]},null]}]},null,{"$substr":["$s",0,{"$literal":2}]}]}`},
+			test{"left(s, 2)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":2}]},null,{"$substr":["$s",0,{"$literal":2}]}]}`},
 			test{"left('abcde', 0)", `{"$literal":""}`},
 			test{"lcase(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toLower":"$s"}]}`},
 			test{"lower(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toLower":"$s"}]}`},
@@ -3251,13 +3251,12 @@ func TestTranslateExpr(t *testing.T) {
 			test{"min(a + 4)", `{"$min":{"$add":["$a",{"$literal":4}]}}`},
 			test{"sum(a * b)", `{"$sum":{"$multiply":["$a","$b"]}}`},
 			test{"sum(a)", `{"$sum":"$a"}`},
-			test{"sum(a < 1)", `{"$sum":{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":[{"$ifNull":[{"$literal":1},null]},null]}]},null,{"$lt":["$a",{"$literal":1}]}]}}`},
+			test{"sum(a < 1)", `{"$sum":{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":1}]},null,{"$lt":["$a",{"$literal":1}]}]}}`},
 			test{"std(a)", `{"$stdDevPop":"$a"}`},
 			test{"stddev(a)", `{"$stdDevPop":"$a"}`},
 			test{"stddev_samp(a)", `{"$stdDevSamp":"$a"}`},
 			test{"a in (2,3,5)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$cond":[{"$gt":[{"$size":{"$filter":{"as":"item","cond":{"$eq":["$$item","$a"]},"input":[{"$literal":2},{"$literal":3},{"$literal":5}]}}},{"$literal":0}]},true,{"$cond":[{"$eq":[false,true]},null,false]}]}]}`},
-			test{"case when a > 1 then 'gt' else 'lt' end", `{"$cond":[{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":[{"$ifNull":[{"$literal":1},null]},null]}]},null,{"$gt":["$a",{"$literal":1}]}]},{"$literal":"gt"},{"$literal":"lt"}]}`},
-
+			test{"case when a > 1 then 'gt' else 'lt' end", `{"$cond":[{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":1}]},null,{"$gt":["$a",{"$literal":1}]}]},{"$literal":"gt"},{"$literal":"lt"}]}`},
 			test{"a <=> 5", `{"$eq":["$a",{"$literal":5}]}`},
 		}
 
