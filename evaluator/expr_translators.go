@@ -511,7 +511,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			if !t.versionAtLeast(3, 3, 12) {
+			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
 			}
 
@@ -683,7 +683,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
-			if !t.versionAtLeast(3, 3, 12) {
+			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
 			}
 
@@ -1525,7 +1525,7 @@ func (t *pushDownTranslator) getValue(e SQLExpr) (interface{}, bool) {
 }
 
 func (t *pushDownTranslator) translateDecimal(cons SQLValue) (interface{}, bool) {
-	if !t.versionAtLeast(3, 3, 15) {
+	if !t.versionAtLeast(3, 4, 0) {
 		return nil, false
 	}
 
