@@ -2631,7 +2631,7 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	str := []rune(values[0].String())
 	pos := int(values[1].Float64())
 
-	if pos > len(str) {
+	if pos > len(str) || pos == 0 {
 		return SQLVarchar(""), nil
 	} else if pos < 0 {
 		pos = len(str) + pos

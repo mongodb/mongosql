@@ -1885,6 +1885,12 @@ func TestEvaluates(t *testing.T) {
 					test{"SUBSTR('five', 4, 3)", SQLVarchar("e")},
 					test{"SUBSTR('five', -1, 1)", SQLVarchar("e")},
 					test{"SUBSTR('five', 4, 0)", SQLVarchar("")},
+					test{"SUBSTR('ZBA', 0)", SQLVarchar("")},
+					test{"SUBSTR('ZBA', 0, 1)", SQLVarchar("")},
+					test{"SUBSTR('ZBA', 0, -1)", SQLVarchar("")},
+					test{"SUBSTR('ZBA', -1, 0)", SQLVarchar("")},
+					test{"SUBSTR('ZBA', 1, 0)", SQLVarchar("")},
+					test{"SUBSTR('ZBA', 0, 0)", SQLVarchar("")},
 				}
 				runTests(evalCtx, tests)
 			})
