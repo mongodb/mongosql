@@ -3218,6 +3218,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"left(s, 2)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":[{"$literal":2},null]},null]}]},null,{"$substr":["$s",0,{"$literal":2}]}]}`},
 			test{"left('abcde', 0)", `{"$literal":""}`},
 			test{"lcase(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toLower":"$s"}]}`},
+			test{"locate(s, 'funny')", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":[{"$literal":"funny"},null]},null]},{"$eq":[{"$ifNull":["$s",null]},null]}]},null,{"$add":[{"$indexOfCP":[{"$literal":"funny"},"$s"]},1]}]}`},
+			test{"locate(s, 'funny', 3)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":[{"$literal":"funny"},null]},null]},{"$eq":[{"$ifNull":["$s",null]},null]}]},null,{"$add":[{"$indexOfCP":[{"$literal":"funny"},"$s",{"$subtract":[{"$literal":3},1]}]},1]}]}`},
 			test{"lower(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toLower":"$s"}]}`},
 			test{"log10(a)", `{"$cond":[{"$gt":["$a",0]},{"$log10":"$a"},{"$literal":null}]}`},
 			test{"mid(s, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substr":["$s",1,{"$literal":4}]}]}`},

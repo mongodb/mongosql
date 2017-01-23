@@ -694,6 +694,28 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			}
 
 			return wrapSingleArgFuncWithNullCheck("$toLower", args[0]), true
+		case "locate":
+			if !t.versionAtLeast(3, 4, 0) {
+				return nil, false
+			}
+
+			if !(len(args) == 2 || len(args) == 3) {
+				return nil, false
+			}
+
+			var indexOfCPArgs []interface{}
+			if len(args) == 2 {
+				indexOfCPArgs = []interface{}{args[1], args[0]}
+			} else {
+				indexOfCPArgs = []interface{}{args[1], args[0], wrapInOp("$subtract", args[2], 1)}
+			}
+
+			return wrapInCond(
+				nil,
+				wrapInOp("$add", bson.M{"$indexOfCP": indexOfCPArgs}, 1),
+				wrapInNullCheck(args[1]),
+				wrapInNullCheck(args[0]),
+			), true
 		case "log", "ln":
 			if len(args) != 1 {
 				return nil, false

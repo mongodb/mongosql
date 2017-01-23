@@ -6,8 +6,8 @@ data:
     db: "test"
     collection: "scalar"
     docs:
-    - { _id: 0, a: 1, b: "hey", c: 1.456, d: {$date: {$numberLong: "969716700000"}}}
-    - { _id: 1, a: ~, b: "yo", c: -121.232, d: {$date: {$numberLong: "969803100000"}}}
+    - { _id: 0, a: 1, b: "hey", c: 1.456, d: {$date: {$numberLong: "969716700000"}}, s: "foobarbar"}
+    - { _id: 1, a: ~, b: "yo", c: -121.232, d: {$date: {$numberLong: "969803100000"}}, s: ~}
     - { _id: 2, a: -3, b: ~, c: 56.7342, d: {$date: {$numberLong: "972395100000"}}}
     - { _id: 3, a: 4, b: "this", c: ~, d: ~}
     - { _id: 4}
@@ -41,6 +41,10 @@ schema:
       MongoType: date
       SqlName: d
       SQLType: timestamp
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SQLType: varchar
 
 #
 # Tests
@@ -1077,6 +1081,66 @@ testcases:
 - sql: "select ln(null) from bar"
   expected_names: ["ln(null)"]
   expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select locate('bar', s) from bar"
+  expected_names: ["locate('bar', s)"]
+  expected_types: [string]
+  expected:
+  - [4]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select locate('xbar', s) from bar"
+  expected_names: ["locate('xbar', s)"]
+  expected_types: [string]
+  expected:
+  - [0]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select locate('bar', s, 1) from bar"
+  expected_names: ["locate('bar', s, 1)"]
+  expected_types: [string]
+  expected:
+  - [4]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select locate('bar', s, 5) from bar"
+  expected_names: ["locate('bar', s, 5)"]
+  expected_types: [string]
+  expected:
+  - [7]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select locate('bar', s, 10) from bar"
+  expected_names: ["locate('bar', s, 10)"]
+  expected_types: [string]
+  expected:
+  - [0]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select locate(null, s, 5) from bar"
+  expected_names: ["locate(null, s, 5)"]
+  expected_types: [string]
   expected:
   - [~]
   - [~]
