@@ -60,8 +60,8 @@ func TestOptimizePlan(t *testing.T) {
 
 			v := ShouldResembleDiffed(actual, expected)
 			if v != "" {
-				fmt.Printf("\n PLAN: %# v", pretty.Formatter(plan))
-				fmt.Printf("\n OPTIMIZED: %# v", pretty.Formatter(actualPlan))
+				fmt.Printf("\n ACTUAL: %#v", pretty.Formatter(actual))
+				fmt.Printf("\n EXPECTED: %#v", pretty.Formatter(expected))
 			}
 			So(actual, ShouldResembleDiffed, expected)
 		})
@@ -88,6 +88,7 @@ func TestOptimizePlan(t *testing.T) {
 
 	Convey("Subject: OptimizePlan", t, func() {
 		Convey("from", func() {
+
 			Convey("subqueries", func() {
 				test("select a, b from (select a, b from bar) b",
 					[]bson.D{
@@ -266,6 +267,22 @@ func TestOptimizePlan(t *testing.T) {
 					)
 				})
 
+				Convey("flip join", func() {
+					test("select * from foo r inner join merge_d_a a on r._id=a._id",
+						[]bson.D{
+							{{"$unwind", bson.D{{"includeArrayIndex", "d_idx"}, {"path", "$d"}}}},
+							{{"$unwind", bson.D{{"includeArrayIndex", "d.a_idx"}, {"path", "$d.a"}}}},
+							{{"$match", bson.M{"_id": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "_id",
+								"foreignField": "_id",
+								"as":           "__joined_r",
+							}}},
+							{{"$unwind", bson.M{"path": "$__joined_r", "preserveNullAndEmptyArrays": false}}},
+						},
+					)
+				})
 				Convey("left join", func() {
 					test("select foo.a, bar.b from foo left outer join bar on foo.a = bar.a",
 						[]bson.D{
@@ -548,6 +565,55 @@ func TestOptimizePlan(t *testing.T) {
 					)
 				})
 
+				Convey("right join", func() {
+					test("select foo.a from foo right join bar on foo.a < bar.a",
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"bar_DOT_a": "$a",
+							}}},
+						},
+					)
+
+					test("select foo.a, bar.b from foo right outer join bar on foo.a = bar.a",
+						[]bson.D{
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_foo",
+							}}},
+							{{"$project", bson.M{
+								"_id": 1,
+								"a":   1,
+								"b":   1,
+								"__joined_foo": bson.M{
+									"$cond": []interface{}{
+										bson.M{"$eq": []interface{}{
+											bson.M{"$ifNull": []interface{}{"$a", nil}},
+											nil,
+										}},
+										bson.M{"$literal": []interface{}{}},
+										"$__joined_foo",
+									},
+								},
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_foo",
+								"preserveNullAndEmptyArrays": true,
+							}}},
+							{{"$project", bson.M{
+								"bar_DOT_b": "$b",
+								"foo_DOT_a": "$__joined_foo.a",
+							}}},
+						},
+					)
+				})
+
 				Convey("merge join", func() {
 					test("select * from merge r left join merge_d_a a on r._id=a._id",
 						[]bson.D{
@@ -731,18 +797,6 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					)
 					test("select foo.a from foo left join bar on foo.a < bar.a",
-						[]bson.D{
-							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-							}}},
-						},
-						[]bson.D{
-							{{"$project", bson.M{
-								"bar_DOT_a": "$a",
-							}}},
-						},
-					)
-					test("select foo.a from foo right join bar on foo.a < bar.a",
 						[]bson.D{
 							{{"$project", bson.M{
 								"foo_DOT_a": "$a",

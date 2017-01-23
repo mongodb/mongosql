@@ -103,25 +103,52 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 			left := typedN.left
 			right := typedN.right
 
-			if ms, ok := left.(*MongoSourceStage); ok {
-				requiredColumns := v.getRequiredColumnsForJoinSide(ms.aliasNames, typedN.requiredColumns)
-				left, err = v.pushdownProject(requiredColumns, ms.clone())
-				if err != nil {
-					return nil, fmt.Errorf("unable to optimize JoinStage left project: %v", err)
+			// for inner joins, attempt to optimize by flipping children
+			if typedN.kind == InnerJoin {
+				v.logger.Warnf(log.DebugHigh, "attempting to optimize inner join via flip")
+				j := NewJoinStage(typedN.kind, typedN.right, typedN.left, typedN.matcher,
+					typedN.requiredColumns)
+				newJ, err := v.visitJoin(j)
+				if err == nil {
+					n = newJ
+				}
+			} else if typedN.kind == RightJoin {
+				// for right joins, attempt to optimize using a left join
+				v.logger.Warnf(log.DebugHigh, "attempting to optimize right join via flip")
+				j := NewJoinStage(LeftJoin, typedN.right, typedN.left, typedN.matcher,
+					typedN.requiredColumns)
+				newJ, err := v.visitJoin(j)
+				if err == nil {
+					n = newJ
 				}
 			}
 
-			if ms, ok := right.(*MongoSourceStage); ok {
-				requiredColumns := v.getRequiredColumnsForJoinSide(ms.aliasNames, typedN.requiredColumns)
-				right, err = v.pushdownProject(requiredColumns, ms.clone())
-				if err != nil {
-					return nil, fmt.Errorf("unable to optimize JoinStage right project: %v", err)
+			if _, ok := n.(*JoinStage); ok {
+
+				if ms, ok := left.(*MongoSourceStage); ok {
+					requiredColumns := v.getRequiredColumnsForJoinSide(
+						ms.aliasNames, typedN.requiredColumns)
+					left, err = v.pushdownProject(requiredColumns, ms.clone())
+					if err != nil {
+						return nil, fmt.Errorf("unable to optimize JoinStage left project: %v", err)
+					}
 				}
+
+				if ms, ok := right.(*MongoSourceStage); ok {
+					requiredColumns := v.getRequiredColumnsForJoinSide(
+						ms.aliasNames, typedN.requiredColumns)
+					right, err = v.pushdownProject(requiredColumns, ms.clone())
+					if err != nil {
+						return nil, fmt.Errorf("unable to optimize JoinStage right project: %v", err)
+					}
+				}
+
+				if left != typedN.left || right != typedN.right {
+					n = NewJoinStage(typedN.kind, left, right, typedN.matcher, typedN.requiredColumns)
+				}
+
 			}
 
-			if left != typedN.left || right != typedN.right {
-				n = NewJoinStage(typedN.kind, left, right, typedN.matcher, typedN.requiredColumns)
-			}
 		}
 
 	case *LimitStage:
