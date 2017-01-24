@@ -830,6 +830,33 @@ testcases:
   - ["0988-05-20"]
   - [~]
   - [~]
+- sql: "select greatest(a, 2) from bar"
+  expected_names: ["greatest(a, 2)"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [~]
+  - [2]
+  - [4]
+  - [~]
+- sql: "select greatest(2, a) from bar"
+  expected_names: ["greatest(2, a)"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [~]
+  - [2]
+  - [4]
+  - [~]
+- sql: "select greatest(a, 2, id) from bar"
+  expected_names: ["greatest(a, 2, id)"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [~]
+  - [2]
+  - [4]
+  - [~]
 
 # - sql: "select hour(d) from bar"
 #   expected_names: ["hour(d)"]
