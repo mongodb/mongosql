@@ -13,7 +13,7 @@ buildvariants:
     push_name: linux
     push_path: linux
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 - name: debian81
   display_name: Debian 8.1 (nightly)
   run_on:
@@ -26,7 +26,7 @@ buildvariants:
     push_name: linux
     push_path: linux
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 - name: linux-64-amazon-ami
   display_name: Amazon Linux (Enterprise)
   expansions:
@@ -41,7 +41,7 @@ buildvariants:
   run_on:
     - linux-64-amzn-build
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 - name: linux-64-amazon-ami-benchmarks
   display_name: Amazon Linux (Enterprise Benchmarks)
   expansions:
@@ -58,6 +58,22 @@ buildvariants:
   batchtime: 1440 # 1 day
   tasks:
   - "benchmark"
+  - "tpch_micro"
+- name: linux-64-amazon-ami-tpch
+  display_name: Amazon Linux (TPC-H Benchmarks)
+  expansions:
+    build_tags: -tags ssl
+    gotest_env: "SQLPROXY_SSLTEST=1"
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.3.15.tgz --output mongodb.tgz
+    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
+    mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
+    push_arch: x86_64-enterprise-amzn64
+    push_name: linux
+    push_path: linux
+  run_on:
+    - linux-64-amzn-build
+  batchtime: 1438560 # 999 days
+  tasks:
   - "tpch"
 - name: osx
   display_name: OSX 10.10
@@ -70,7 +86,7 @@ buildvariants:
     push_name: osx
     push_path: osx
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 - name: rhel62
   display_name: RHEL 6.2
   expansions:
@@ -83,7 +99,7 @@ buildvariants:
   run_on:
   - rhel62-test
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 - name: rhel70
   display_name: RHEL 7.0
   expansions:
@@ -95,7 +111,7 @@ buildvariants:
   run_on:
   - rhel70
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 - name: rhel-71-ppc64le
   display_name: RHEL 7.1 PPC64LE
   expansions:
@@ -111,7 +127,7 @@ buildvariants:
   run_on:
   - rhel71-power8-test
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 - name: rhel-72-s390x
   display_name: RHEL 7.2 s390x (nightly)
   expansions:
@@ -127,7 +143,7 @@ buildvariants:
   - rhel72-zseries-build
   - rhel72-zseries-test
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 - name: suse11-64
   display_name: SLES 11
   expansions:
@@ -139,7 +155,7 @@ buildvariants:
   run_on:
   - suse11-test
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 - name: suse12-64
   display_name: SLES 12
   expansions:
@@ -151,7 +167,7 @@ buildvariants:
   run_on:
   - suse12-test
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 - name: ubuntu1404-64
   display_name: Ubuntu 14.04
   expansions:
@@ -162,7 +178,7 @@ buildvariants:
   run_on:
   - ubuntu1404-build
   tasks:
-  - "!benchmark"
+  - "!.oneoff-task"
 - name: ubuntu1404-64-race
   display_name: Ubuntu 14.04 (Race Detector)
   expansions:
@@ -174,7 +190,7 @@ buildvariants:
   run_on:
   - ubuntu1404-build
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 - name: windows-64
   display_name: Windows 64
   run_on:
@@ -190,7 +206,7 @@ buildvariants:
     push_path: win32
     separator: \\
   tasks:
-  - "!benchmark !check"
+  - "!.oneoff-task"
 pre:
   - command: shell.track
   - command: shell.exec
@@ -363,6 +379,13 @@ functions:
         curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bignestedarray.bson.gz --output testdata/input/bignestedarray.bson.gz
         curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigobjarray.bson.gz --output testdata/input/bigobjarray.bson.gz
 
+  "download micro tpch test data":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_small.bson.gz --output testdata/input/tpch.bson.gz
+
   "download mongod":
     command: shell.exec
     params:
@@ -391,7 +414,7 @@ functions:
     params:
       working_dir: src/github.com/10gen/sqlproxy
       script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_small.bson.gz --output testdata/input/tpch.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/mongo_tpch.bson.gz --output testdata/input/tpch.bson.gz
 
   "fetch source" :
     - command: git.get_project
@@ -568,7 +591,7 @@ functions:
 
 tasks:
 - name: benchmark
-  tags: ["benchmark"]
+  tags: ["oneoff-task"]
   commands:
     - func: "fetch source"
     - func: "download blackbox test data"
@@ -730,7 +753,7 @@ tasks:
           ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > catalog.suite 2>&1; if [ $? -ne 0 ]; then cat catalog.suite; exit 1; else cat catalog.suite; exit 0; fi
 
 - name: check
-  tags: ["check"]
+  tags: ["oneoff-task"]
   commands:
     - func: "fetch source"
     - func: "check formatting"
@@ -1118,8 +1141,9 @@ tasks:
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
 
+
 - name: tpch
-  tags: ["benchmark"]
+  tags: ["oneoff-task"]
   exec_timeout_secs: 259200 # 3 days
   commands:
     - func: "fetch source"
@@ -1155,9 +1179,55 @@ tasks:
             fi;
           fi;
           mkfifo test_pipe
-          tee -a tpch.txt < test_pipe&
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in testdata/tpch.json -out tpch_test.go
+          tee -a out.txt < test_pipe&
+          cat testdata/tpch_handwritten_denormalized.json testdata/tpch_workbook_denormalized.json > tpch.json
+          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in tpch.json -out tpch_test.go
           ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 72h > test_pipe
+          awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' out.txt | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
+    - func: "upload tpch report"
+
+- name: tpch_micro
+  tags: ["oneoff-task"]
+  exec_timeout_secs: 86400 # 1 day
+  commands:
+    - func: "fetch source"
+    - func: "download micro tpch test data"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      timeout_secs: 86400 # 1 day
+      params:
+        working_dir: src/github.com/10gen/sqlproxy
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/github.com/10gen
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
+          fi;
+          mkfifo test_pipe
+          tee -a out.txt < test_pipe&
+          cat testdata/tpch_handwritten_denormalized.json testdata/tpch_workbook_denormalized.json testdata/tpch_workbook_normalized.json > tpch.json
+          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in tpch.json -out tpch_test.go
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 72h > test_pipe
+           awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' out.txt | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
     - func: "upload tpch report"
 
 - name: variable
