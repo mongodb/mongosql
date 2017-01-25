@@ -649,7 +649,6 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{"$max": args},
 				nullChecks...,
 			), true
-
 		case "hour":
 			if len(args) != 1 {
 				return nil, false
@@ -683,6 +682,21 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				1,
 				0,
 				wrapInNullCheck(args[0]),
+			), true
+		case "least":
+			// we can only push down if the types are similar
+			nullChecks := []interface{}{wrapInNullCheck(args[0])}
+			for i := 1; i < len(typedE.Exprs); i++ {
+				if !isSimilar(typedE.Exprs[0].Type(), typedE.Exprs[i].Type()) {
+					return nil, false
+				}
+				nullChecks = append(nullChecks, wrapInNullCheck(args[i]))
+			}
+
+			return wrapInCond(
+				nil,
+				bson.M{"$min": args},
+				nullChecks...,
 			), true
 		case "left":
 			if len(args) != 2 {
