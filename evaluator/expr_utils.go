@@ -42,6 +42,15 @@ func compareFloats(left, right float64) (int, error) {
 	return 0, nil
 }
 
+func compareInts(left, right int) (int, error) {
+	if left < right {
+		return -1, nil
+	} else if left > right {
+		return 1, nil
+	}
+	return 0, nil
+}
+
 func convertSQLValueToPattern(value SQLValue, escapeChar rune) string {
 	pattern := value.String()
 	regex := "^"

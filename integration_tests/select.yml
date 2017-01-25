@@ -1119,3 +1119,78 @@ testcases:
   expected:
   - ["Bronx"]
 
+# inner join optimization tests
+- sql: "select c.y from foo f left join (select a.y, a.z from Stest.tuples a join (select * from Stest.tuples) b on a.x=b.x) c  on c.z=f.a order by 1"
+  description: "left join nested subquery with a table"
+  expected_names: ["y"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [6]
+  - [6]
+- sql: "select c.y from foo f right join (select a.y, a.z from Stest.tuples a join (select * from Stest.tuples) b on a.x=b.x) c  on c.z=f.a order by 1"
+  description: "right join nested subquery with a table"
+  expected_names: ["y"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [1]
+  - [6]
+  - [6]
+- sql: "select * from (select foo.id from Stest.foo join (select tuples.id from tuples) tuples on tuples.id=foo.id) x join (select g.id from foo join (select * from tuples) g on g.id=foo.id) y on x.id=y.id order by 1"
+  description: "inner join with a subquery on either side"
+  expected_names: ["id", "id"]
+  expected_types: [int, int]
+  expected:
+  - [1, 1]
+  - [2, 2]
+- sql: "select * from Stest.foo s inner join (select foo.id from Stest.foo left join Stest.tuples on foo.id=tuples.id) r on s.a=r.id"
+  description: "inner join of a 'left-joined' subquery and table"
+  expected_names: ["id", "a", "b", "id"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [0, 1, ~, 1]
+  - [1, 2, ~, 2]
+- sql: "select * from Stest.foo s inner join (select foo.id from Stest.foo right join Stest.tuples on foo.id=tuples.id) r on s.a=r.id"
+  description: "inner join of a 'right-joined' subquery and table"
+  expected_names: ["id", "a", "b", "id"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [0, 1, ~, 1]
+  - [1, 2, ~, 2]
+- sql: "select a.a, a.b from test.restaurants f join test.test a on f._id=a._id join test.test_c b on a.a=b.a inner join test.test_c_y c on c.a=b.a inner join test.bar d on c.a=b.a inner join test.test_array e on e.a=a.a limit 1"
+  description: "inner join chain with mergable tables"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected:
+  - [1, 2]
+- sql: "select * from Stest.foo f join (select a.a from Stest.foo a join (select * from Stest.tuples) b on a.a=b.y) c on f.a=c.a"
+  description: "inner join with optimizable subquery components"
+  expected_names: ["id", "a", "b", "a"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [0, 1, ~, 1]
+  - [0, 1, ~, 1]
+  - [0, 1, ~, 1]
+  - [0, 1, ~, 1]
+- sql: "select f.b, e.a from Stest.foo f join (select a.a from Stest.foo a join (select * from Stest.tuples) b on a.a=b.y) c on f.a=c.a left join (select a.b from Stest.foo a join (select * from Stest.tuples) b on a.a=b.y) d on c.a=d.b right join (select a.b, a.a from Stest.foo a join (select * from Stest.tuples) b on a.a=b.y) e on e.a=f.id"
+  description: "disjoint optimizable inner join subtrees"
+  expected_names: ["b", "a"]
+  expected_types: [int, int]
+  expected:
+  - [~, 1]
+  - [~, 1]
+  - [~, 1]
+  - [~, 1]
+- sql: "select a.id, a.a, a.b from Stest.foo a join Stest.tuples b on a.a=b.y and a.id=b.z inner join Stest.foo c on c.id=a.id or b.x=c.b"
+  description: "inner join with multiple mergable criteria"
+  expected_names: ["id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [0, 1, ~]

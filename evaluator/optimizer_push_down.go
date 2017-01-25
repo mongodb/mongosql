@@ -39,6 +39,14 @@ type pushDownOptimizer struct {
 	columnTracker     *columnTracker
 }
 
+func newPushDownOptimizer(ctx ConnectionCtx, logger *log.Logger) *pushDownOptimizer {
+	return &pushDownOptimizer{
+		logger:        logger,
+		ctx:           ctx,
+		columnTracker: newColumnTracker(),
+	}
+}
+
 func (v *pushDownOptimizer) addSelectIDsInScope(selectIDs ...int) {
 	for _, selectID := range selectIDs {
 		if !containsInt(v.selectIDsInScope, selectID) {
@@ -1126,169 +1134,6 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 	return ms, nil
 }
 
-func (v *pushDownOptimizer) meetsMergePKCriteria(local, foreign *MongoSourceStage, matcher SQLExpr) bool {
-	// don't perform optimization on MongoDB views as
-	// renames might have occured on fields.
-	if local.isView() {
-		v.logger.Logf(log.DebugHigh, "cannot merge join stage, local "+
-			"table is MongoDB view")
-		return false
-	}
-
-	if foreign.isView() {
-		v.logger.Logf(log.DebugHigh, "cannot merge join stage, foreign "+
-			"table is MongoDB view")
-		return false
-	}
-
-	exprs := splitExpression(matcher)
-
-	numPK := func(columns []*Column, table string) int {
-		n, keys := 0, make(map[string]struct{})
-		for _, c := range columns {
-			if _, counted := keys[c.Name]; !counted && c.PrimaryKey &&
-				c.Table == table {
-				n, keys[c.Name] = n+1, struct{}{}
-			}
-		}
-		return n
-	}
-
-	// When we attempt to merge two different arrays (tables) of
-	// the same underlying MongoDB collection, we only require
-	// one primary key equality match.
-	//
-	// For example, the join criteria "test_array1 JOIN test_array1"
-	// requires as many primary keys as are specified in the DRDL
-	// file for "test_array1". However, if we attempted to merge
-	// "test_array1 JOIN test_array2", instead we'd only need an
-	// equality on the base table's primary key field.
-	//
-	isSameArrayJoin := local.tableNames[0] == foreign.tableNames[0]
-	numRequiredPKConjunctions := 1
-
-	if isSameArrayJoin && len(local.tableNames) == 1 {
-		numLocalPK := numPK(local.mappingRegistry.columns, local.aliasNames[0])
-		numForeignPK := numPK(foreign.mappingRegistry.columns, foreign.aliasNames[0])
-		numRequiredPKConjunctions = util.MinInt(numLocalPK, numForeignPK)
-	}
-
-	if numRequiredPKConjunctions == 0 {
-		v.logger.Logf(log.DebugHigh, "cannot merge join stage, table "+
-			"has no primary key")
-		return false
-	}
-
-	numPKConjunctions := 0
-
-	v.logger.Logf(log.DebugHigh, "join merge: examining match criteria...")
-
-	registries := []*mappingRegistry{
-		local.mappingRegistry,
-		foreign.mappingRegistry,
-	}
-
-	seenPrimaryKeys := make(map[string]struct{})
-
-	for _, expr := range exprs {
-		if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
-			column1, _ := equalExpr.left.(SQLColumnExpr)
-			column2, _ := equalExpr.right.(SQLColumnExpr)
-
-			invalidLeftColumn := !containsString(local.aliasNames,
-				column1.tableName) &&
-				!containsString(foreign.aliasNames, column1.tableName)
-			invalidRightColumn := !containsString(local.aliasNames,
-				column2.tableName) &&
-				!containsString(foreign.aliasNames, column2.tableName)
-
-			if invalidLeftColumn || invalidRightColumn {
-				v.logger.Logf(log.DebugHigh, "join merge: found unexpected "+
-					"table references, moving on...")
-				continue
-			}
-
-			if column1.selectID != column2.selectID {
-				v.logger.Logf(log.DebugHigh, "join merge: found unmatched "+
-					"select identifiers (%v and %v), moving on...",
-					column1.selectID, column2.selectID)
-				continue
-			}
-
-			columnOneName, c1RegistryIdx, ok := lookupSQLColumn(
-				column1.tableName, column1.columnName, registries)
-			if !ok {
-				panic("Unable to find field mapping for merge column1. " +
-					"This should never happen.")
-			}
-
-			columnTwoName, c2RegistryIdx, ok := lookupSQLColumn(
-				column2.tableName, column2.columnName, registries)
-			if !ok {
-				panic("Unable to find field mapping for merge column2. " +
-					"This should never happen.")
-			}
-
-			c1IsPK := registries[c1RegistryIdx].isPrimaryKey(column1.columnName)
-			c2IsPK := registries[c2RegistryIdx].isPrimaryKey(column2.columnName)
-
-			if !c1IsPK || !c2IsPK {
-				v.logger.Logf(log.DebugHigh, "join merge: criteria contains "+
-					"non-primary key (%v and %v), moving on...",
-					column1.String(), column2.String())
-				continue
-			}
-
-			if columnOneName != columnTwoName {
-				v.logger.Logf(log.DebugHigh, "join merge: criteria contains "+
-					"unmatched primary keys (%v and %v), moving on...",
-					columnOneName, columnTwoName)
-				continue
-			}
-
-			if _, ok := seenPrimaryKeys[columnOneName]; ok {
-				v.logger.Logf(log.DebugHigh, "join merge: ignoring duplicate "+
-					"primary key criteria '%v' and moving on...",
-					column1.String())
-				continue
-			}
-
-			seenPrimaryKeys[columnOneName] = struct{}{}
-
-			numPKConjunctions++
-		}
-	}
-
-	if numPKConjunctions < numRequiredPKConjunctions {
-		v.logger.Logf(log.DebugHigh, "join merge: criteria conjunction "+
-			"contains %v unique primary key equality %v (need %v)",
-			numPKConjunctions, util.Pluralize(numPKConjunctions, "pair",
-				"pairs"), numRequiredPKConjunctions)
-		return false
-	}
-
-	return true
-}
-
-func (v *pushDownOptimizer) sharesRootTable(local, foreign *MongoSourceStage) bool {
-	baseCollectionName := local.collectionNames[0]
-
-	v.logger.Logf(log.DebugHigh, "attempting to merge tables %v and %v",
-		local.aliasNames, foreign.aliasNames)
-
-	for _, collectionName := range append(local.collectionNames[1:],
-		foreign.collectionNames...) {
-		if collectionName != baseCollectionName {
-			v.logger.Logf(log.DebugHigh, "cannot merge join stage, foreign "+
-				"table has pipeline with different root tables: %v and %v",
-				collectionName, baseCollectionName)
-			return false
-		}
-	}
-
-	return true
-}
-
 func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	if join.matcher == nil {
@@ -1337,8 +1182,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	// Before attempting to merge, check that the underlying collection
 	// is the same for both tables and that the join criteria holds the
 	// primary key for both
-	if v.sharesRootTable(msLocal, msForeign) &&
-		v.meetsMergePKCriteria(msLocal, msForeign, join.matcher) {
+	if canMergeTables(v.logger, msLocal, msForeign, join.matcher) {
 		ms, err := v.mergeTables(msLocal, msForeign, join)
 		if err != nil {
 			return nil, err

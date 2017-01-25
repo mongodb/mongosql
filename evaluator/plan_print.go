@@ -166,6 +166,8 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 			b.WriteString(e.String())
 			b.WriteString("\n")
 		}
+	case *SQLSubqueryExpr:
+		b.WriteString("(subquery)")
 	case *SubquerySourceStage:
 		b.WriteString("↳ Subquery(" + typedN.aliasName + "):\n")
 		prettyPrint(b, typedN.source, d+1)
@@ -181,8 +183,6 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 
 		b.WriteString("\n")
 		prettyPrint(b, typedN.right, d+1)
-	case *SQLSubqueryExpr:
-		b.WriteString("(subquery)")
 	default:
 		panic(fmt.Sprintf("unsupported print operator: %T", typedN))
 	}

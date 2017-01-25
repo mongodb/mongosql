@@ -310,6 +310,7 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 						},
 					)
+
 					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a AND foo.b > 10 AND (bar.b < 12 OR bar.b > 10)",
 						[]bson.D{
 							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
@@ -359,23 +360,332 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					)
 
-					test("select foo.c, bar.a, baz.b from foo inner join bar on foo.a = bar.a inner join baz on bar.a = baz.a",
+					test("select foo.a, b.b from foo join (select a, b from bar) b on foo.a=b.a",
 						[]bson.D{
-							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$project", bson.M{
+								"bar_DOT_a": "$a",
+								"bar_DOT_b": "$b",
+							}}},
+							{{"$match", bson.M{"bar_DOT_a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "bar_DOT_a",
+								"foreignField": "a",
+								"as":           "__joined_foo",
+							}}},
+							{{"$unwind", bson.M{
+								"preserveNullAndEmptyArrays": false,
+								"path": "$__joined_foo",
+							}}},
+							{{"$project", bson.M{
+								"b_DOT_b":   "$bar_DOT_b",
+								"foo_DOT_a": "$__joined_foo.a",
+							}}},
+						},
+					)
+
+					test("select * from (select foo.a from bar join (select foo.a from foo) foo on foo.a=bar.b) x join (select g.a from bar join (select foo.a from foo) g on g.a=bar.a) y on x.a=y.a",
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+							}}},
+							{{"$match", bson.M{"foo_DOT_a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "bar",
-								"localField":   "a",
+								"localField":   "foo_DOT_a",
+								"foreignField": "b",
+								"as":           "__joined_bar",
+							}}},
+							{{"$unwind", bson.M{
+								"preserveNullAndEmptyArrays": false,
+								"path": "$__joined_bar",
+							}}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$foo_DOT_a",
+							}}},
+							{{"$project", bson.M{
+								"x_DOT_a": "$foo_DOT_a",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+							}}},
+							{{"$match", bson.M{"foo_DOT_a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "bar",
+								"localField":   "foo_DOT_a",
 								"foreignField": "a",
 								"as":           "__joined_bar",
 							}}},
 							{{"$unwind", bson.M{
+								"preserveNullAndEmptyArrays": false,
 								"path": "$__joined_bar",
+							}}},
+							{{"$project", bson.M{
+								"g_DOT_a": "$foo_DOT_a",
+							}}},
+							{{"$project", bson.M{
+								"y_DOT_a": "$g_DOT_a",
+							}}},
+						},
+					)
+
+					test("select * from foo f left join (select b.b from foo f join (select * from bar) b on f.a=b.a)  b on f.a=b.b",
+						[]bson.D{
+							{{"$project", bson.M{
+								"f_DOT__id": "$_id",
+								"f_DOT_a":   "$a",
+								"f_DOT_b":   "$b",
+								"f_DOT_c":   "$c",
+								"f_DOT_e":   "$d.e",
+								"f_DOT_f":   "$d.f",
+								"f_DOT_g":   "$g",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"bar_DOT__id": "$_id",
+								"bar_DOT_a":   "$a",
+								"bar_DOT_b":   "$b",
+							}}},
+							{{"$match", bson.M{"bar_DOT_a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "bar_DOT_a",
+								"foreignField": "a",
+								"as":           "__joined_f",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_f",
 								"preserveNullAndEmptyArrays": false,
 							}}},
-							{{"$match", bson.M{"__joined_bar.a": bson.M{"$ne": nil}}}},
+							{{"$project", bson.M{
+								"b_DOT_b": "$bar_DOT_b",
+							}}},
+							{{"$project", bson.M{
+								"b_DOT_b": "$b_DOT_b",
+							}}},
+						},
+					)
+
+					test("select * from foo f right join (select b.b from foo f join (select * from bar) b on f.a=b.a)  b on f.a=b.b",
+						[]bson.D{
+							{{"$project", bson.M{
+								"bar_DOT__id": "$_id",
+								"bar_DOT_a":   "$a",
+								"bar_DOT_b":   "$b",
+							}}},
+							{{"$match", bson.M{"bar_DOT_a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "bar_DOT_a",
+								"foreignField": "a",
+								"as":           "__joined_f",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_f",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$project", bson.M{
+								"b_DOT_b": "$bar_DOT_b",
+							}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "b_DOT_b",
+								"foreignField": "a",
+								"as":           "__joined_f",
+							}}},
+							{{"$project", bson.M{
+								"b_DOT_b": 1,
+								"__joined_f": bson.M{
+									"$cond": []interface{}{
+										bson.M{"$eq": []interface{}{
+											bson.M{"$ifNull": []interface{}{"$b_DOT_b", nil}},
+											nil,
+										}},
+										bson.M{"$literal": []interface{}{}},
+										"$__joined_f",
+									},
+								},
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_f",
+								"preserveNullAndEmptyArrays": true,
+							}}},
+						},
+					)
+
+					test("select * from foo f join merge m1 on f._id=m1._id join (select * from foo) g on g.a=f.a join merge_d_a m2 on m2._id=m1._id and m2._id=g.a",
+						[]bson.D{
+							{{"$unwind", bson.D{
+								{"includeArrayIndex", "d_idx"},
+								{"path", "$d"},
+							}}},
+							{{"$unwind", bson.D{
+								{"includeArrayIndex", "d.a_idx"},
+								{"path", "$d.a"},
+							}}},
+							{{"$match", bson.M{"_id": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "_id",
+								"foreignField": "_id",
+								"as":           "__joined_f",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_f",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$project", bson.M{
+								"f_DOT__id":          "$__joined_f._id",
+								"f_DOT_a":            "$__joined_f.a",
+								"f_DOT_b":            "$__joined_f.b",
+								"f_DOT_c":            "$__joined_f.c",
+								"f_DOT_e":            "$__joined_f.d.e",
+								"f_DOT_f":            "$__joined_f.d.f",
+								"f_DOT_g":            "$__joined_f.g",
+								"m1_DOT__id":         "$_id",
+								"m1_DOT_a":           "$a",
+								"m2_DOT__id":         "$_id",
+								"m2_DOT_d_DOT_a":     "$d.a",
+								"m2_DOT_d_DOT_a_idx": "$d.a_idx",
+								"m2_DOT_d_idx":       "$d_idx",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT__id": "$_id",
+								"foo_DOT_a":   "$a",
+								"foo_DOT_b":   "$b",
+								"foo_DOT_c":   "$c",
+								"foo_DOT_e":   "$d.e",
+								"foo_DOT_f":   "$d.f",
+								"foo_DOT_g":   "$g",
+							}}},
+							{{"$project", bson.M{
+								"g_DOT__id": "$foo_DOT__id",
+								"g_DOT_a":   "$foo_DOT_a",
+								"g_DOT_b":   "$foo_DOT_b",
+								"g_DOT_c":   "$foo_DOT_c",
+								"g_DOT_e":   "$foo_DOT_e",
+								"g_DOT_f":   "$foo_DOT_f",
+								"g_DOT_g":   "$foo_DOT_g",
+							}}},
+						},
+					)
+					test("select f.a from foo f join (select bar.a from bar) b on f.a=b.a join (select foo.a from foo where foo.a > 4 limit 1) c on b.a=c.a and f.a=c.a and f.b=b.a",
+						[]bson.D{
+							{{"$match", bson.M{"a": bson.M{"$gt": int64(4)}}}},
+							{{"$limit", int64(1)}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+							}}},
+							{{"$project", bson.M{
+								"c_DOT_a": "$foo_DOT_a",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"bar_DOT_a": "$a",
+							}}},
+							{{"$project", bson.M{
+								"b_DOT_a": "$bar_DOT_a",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"f_DOT_a": "$a",
+								"f_DOT_b": "$b",
+							}}},
+						},
+					)
+
+					test("select * from foo f join merge m1 on f._id=m1._id join merge_d_a m2 on m1._id=m2._id and f._id=m2._id",
+						[]bson.D{
+							{{"$unwind", bson.D{
+								{"includeArrayIndex", "d_idx"},
+								{"path", "$d"},
+							}}},
+							{{"$unwind", bson.D{
+								{"includeArrayIndex", "d.a_idx"},
+								{"path", "$d.a"},
+							}}},
+							{{"$match", bson.M{"_id": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "_id",
+								"foreignField": "_id",
+								"as":           "__joined_f",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_f",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$project", bson.M{
+								"__joined_f._id":    1,
+								"__joined_f.a":      1,
+								"__joined_f.b":      1,
+								"__joined_f.c":      1,
+								"__joined_f.d.e":    1,
+								"__joined_f.d.f":    1,
+								"__joined_f.filter": 1,
+								"__joined_f.g":      1,
+								"_id":               1,
+								"a":                 1,
+								"d.a":               1,
+								"d.a_idx":           1,
+								"d_idx":             1,
+								"__predicate": bson.M{
+									"$cond": []interface{}{
+										bson.M{
+											"$or": []interface{}{
+												bson.M{
+													"$eq": []interface{}{
+														bson.M{
+															"$ifNull": []interface{}{
+																"$__joined_f._id",
+																nil,
+															},
+														},
+														nil,
+													},
+												},
+												bson.M{
+													"$eq": []interface{}{
+														bson.M{
+															"$ifNull": []interface{}{
+																"$_id",
+																nil,
+															},
+														},
+														nil,
+													},
+												},
+											},
+										},
+										nil,
+										bson.M{
+											"$eq": []interface{}{
+												"$__joined_f._id",
+												"$_id",
+											},
+										},
+									},
+								},
+							}}},
+							{{"$match", bson.M{
+								"__predicate": true,
+							}}},
+						},
+					)
+
+					test("select foo.c, bar.a, baz.b from foo inner join bar on foo.a = bar.a inner join baz on bar.a = baz.a",
+						[]bson.D{
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "baz",
-								"localField":   "__joined_bar.a",
+								"localField":   "a",
 								"foreignField": "a",
 								"as":           "__joined_baz",
 							}}},
@@ -383,9 +693,20 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_baz",
 								"preserveNullAndEmptyArrays": false,
 							}}},
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_foo",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_foo",
+								"preserveNullAndEmptyArrays": false,
+							}}},
 							{{"$project", bson.M{
-								"foo_DOT_c": "$c",
-								"bar_DOT_a": "$__joined_bar.a",
+								"foo_DOT_c": "$__joined_foo.c",
+								"bar_DOT_a": "$a",
 								"baz_DOT_b": "$__joined_baz.b",
 							}}},
 						},
@@ -395,6 +716,97 @@ func TestOptimizePlan(t *testing.T) {
 						[]bson.D{
 							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
+								"from":         "baz",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_baz",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_baz",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_foo",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_foo",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+						},
+					)
+
+					test("select foo.a, bar.a, baz.a from bar inner join baz on baz.a = bar.a inner join foo on baz.a = foo.a and baz.a > foo.c",
+						[]bson.D{
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_foo",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_foo",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$project", bson.M{
+								"_id":                 1,
+								"a":                   1,
+								"b":                   1,
+								"__joined_foo._id":    1,
+								"__joined_foo.a":      1,
+								"__joined_foo.b":      1,
+								"__joined_foo.c":      1,
+								"__joined_foo.d.e":    1,
+								"__joined_foo.d.f":    1,
+								"__joined_foo.g":      1,
+								"__joined_foo.filter": 1,
+								"__predicate": bson.M{
+									"$cond": []interface{}{
+										bson.M{
+											"$or": []interface{}{
+												bson.M{
+													"$eq": []interface{}{
+														bson.M{
+															"$ifNull": []interface{}{
+																"$a",
+																nil,
+															},
+														},
+														nil,
+													},
+												},
+												bson.M{
+													"$eq": []interface{}{
+														bson.M{
+															"$ifNull": []interface{}{
+																"$__joined_foo.c",
+																nil,
+															},
+														},
+														nil,
+													},
+												},
+											},
+										},
+										nil,
+										bson.M{
+											"$gt": []interface{}{
+												"$a",
+												"$__joined_foo.c",
+											},
+										},
+									},
+								},
+							}}},
+							{{"$match", bson.M{
+								"__predicate": true,
+							}}},
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
 								"from":         "bar",
 								"localField":   "a",
 								"foreignField": "a",
@@ -404,16 +816,127 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_bar",
 								"preserveNullAndEmptyArrays": false,
 							}}},
-							{{"$match", bson.M{"__joined_bar.a": bson.M{"$ne": nil}}}},
+						},
+					)
+
+					test("select * from foo f join merge m1 on f._id=m1._id join merge_d_a m2 on m2._id=f._id and m2._id=m1._id",
+						[]bson.D{
+							{{"$unwind", bson.D{
+								{"includeArrayIndex", "d_idx"},
+								{"path", "$d"},
+							}}},
+							{{"$unwind", bson.D{
+								{"includeArrayIndex", "d.a_idx"},
+								{"path", "$d.a"},
+							}}},
+							{{"$match", bson.M{"_id": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
-								"from":         "baz",
-								"localField":   "__joined_bar.a",
-								"foreignField": "a",
-								"as":           "__joined_baz",
+								"from":         "foo",
+								"localField":   "_id",
+								"foreignField": "_id",
+								"as":           "__joined_f",
 							}}},
 							{{"$unwind", bson.M{
-								"path": "$__joined_baz",
+								"path": "$__joined_f",
 								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$project", bson.M{
+								"__joined_f.filter": int(1),
+								"d.a":               int(1),
+								"__joined_f.g":      int(1),
+								"__joined_f._id":    int(1),
+								"__joined_f.d.e":    int(1),
+								"d.a_idx":           int(1),
+								"d_idx":             int(1),
+								"a":                 int(1),
+								"__joined_f.c":      int(1),
+								"_id":               int(1),
+								"__joined_f.a":      int(1),
+								"__joined_f.b":      int(1),
+								"__joined_f.d.f":    int(1),
+								"__predicate": bson.M{
+									"$cond": []interface{}{
+										bson.M{
+											"$or": []interface{}{
+												bson.M{
+													"$eq": []interface{}{
+														bson.M{
+															"$ifNull": []interface{}{
+																"$__joined_f._id",
+																nil,
+															},
+														},
+														nil,
+													},
+												},
+												bson.M{
+													"$eq": []interface{}{
+														bson.M{
+															"$ifNull": []interface{}{
+																"$_id",
+																nil,
+															},
+														},
+														nil,
+													},
+												},
+											},
+										},
+										nil,
+										bson.M{
+											"$eq": []interface{}{
+												"$__joined_f._id",
+												"$_id",
+											},
+										},
+									},
+								},
+							}}},
+							{{"$match", bson.M{"__predicate": true}}},
+						},
+					)
+
+					test("select f1.a, b1.b from foo f1 inner join (select b2.b, b2.a, b2._id from bar b2 join (select * from foo) f2 on f2._id = b2._id) b1 on b1._id = f1._id",
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT__id": "$_id",
+								"foo_DOT_a":   "$a",
+								"foo_DOT_b":   "$b",
+								"foo_DOT_c":   "$c",
+								"foo_DOT_e":   "$d.e",
+								"foo_DOT_f":   "$d.f",
+								"foo_DOT_g":   "$g",
+							}}},
+							{{"$match", bson.M{"foo_DOT__id": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "bar",
+								"localField":   "foo_DOT__id",
+								"foreignField": "_id",
+								"as":           "__joined_b2",
+							}}},
+							{{"$unwind", bson.M{
+								"preserveNullAndEmptyArrays": false,
+								"path": "$__joined_b2",
+							}}},
+							{{"$project", bson.M{
+								"b2_DOT__id": "$__joined_b2._id",
+								"b2_DOT_a":   "$__joined_b2.a",
+								"b2_DOT_b":   "$__joined_b2.b",
+							}}},
+							{{"$match", bson.M{"b2_DOT__id": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "b2_DOT__id",
+								"foreignField": "_id",
+								"as":           "__joined_f1",
+							}}},
+							{{"$unwind", bson.M{
+								"preserveNullAndEmptyArrays": false,
+								"path": "$__joined_f1",
+							}}},
+							{{"$project", bson.M{
+								"b1_DOT_b": "$b2_DOT_b",
+								"f1_DOT_a": "$__joined_f1.a",
 							}}},
 						},
 					)
@@ -504,6 +1027,7 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					)
 				})
+
 				Convey("left join", func() {
 					test("select foo.a, bar.b from foo left outer join bar on foo.a = bar.a",
 						[]bson.D{
@@ -961,20 +1485,20 @@ func TestOptimizePlan(t *testing.T) {
 					test("select b._id, c._id from merge r inner join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id inner join merge_d_a a on r._id=a._id",
 						[]bson.D{
 							{{"$unwind", bson.D{
-								{"includeArrayIndex", "b_idx"},
-								{"path", "$b"},
-							}}},
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "c_idx"},
-								{"path", "$c"},
-							}}},
-							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d_idx"},
 								{"path", "$d"},
 							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d.a_idx"},
 								{"path", "$d.a"},
+							}}},
+							{{"$unwind", bson.D{
+								{"includeArrayIndex", "c_idx"},
+								{"path", "$c"},
+							}}},
+							{{"$unwind", bson.D{
+								{"includeArrayIndex", "b_idx"},
+								{"path", "$b"},
 							}}},
 						},
 					)
@@ -997,16 +1521,16 @@ func TestOptimizePlan(t *testing.T) {
 					test("select b._id, d._id from merge r inner join merge_b b on r._id=b._id inner join merge_d d on r._id=d._id inner join merge_d_a a on r._id=a._id",
 						[]bson.D{
 							{{"$unwind", bson.D{
-								{"includeArrayIndex", "b_idx"},
-								{"path", "$b"},
-							}}},
-							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d_idx"},
 								{"path", "$d"},
 							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d.a_idx"},
 								{"path", "$d.a"},
+							}}},
+							{{"$unwind", bson.D{
+								{"includeArrayIndex", "b_idx"},
+								{"path", "$b"},
 							}}},
 						},
 					)
