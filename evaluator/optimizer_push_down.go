@@ -747,7 +747,9 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 										"if":   ifPart,
 										"then": "$$this",
 										"else": bson.M{
-											leftJoinExcludeFieldName: true,
+											leftJoinExcludeFieldName: bson.M{
+												"$literal": true,
+											},
 										},
 									},
 								},
