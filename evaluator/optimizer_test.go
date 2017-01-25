@@ -60,8 +60,8 @@ func TestOptimizePlan(t *testing.T) {
 
 			v := ShouldResembleDiffed(actual, expected)
 			if v != "" {
-				fmt.Printf("\n ACTUAL: %#v", pretty.Formatter(actual))
-				fmt.Printf("\n EXPECTED: %#v", pretty.Formatter(expected))
+				fmt.Printf("\n ACTUAL: %# v", pretty.Formatter(actual))
+				fmt.Printf("\n EXPECTED: %# v", pretty.Formatter(expected))
 			}
 			So(actual, ShouldResembleDiffed, expected)
 		})
@@ -88,7 +88,6 @@ func TestOptimizePlan(t *testing.T) {
 
 	Convey("Subject: OptimizePlan", t, func() {
 		Convey("from", func() {
-
 			Convey("subqueries", func() {
 				test("select a, b from (select a, b from bar) b",
 					[]bson.D{
@@ -164,7 +163,7 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 						},
 					)
-					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a AND bar.b > 10",
+					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a AND foo.b > 10 AND (bar.b < 12 OR bar.b > 10)",
 						[]bson.D{
 							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
@@ -178,7 +177,13 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$match", bson.M{
-								"__joined_bar.b": bson.M{"$gt": int64(10)},
+								"$and": []interface{}{
+									bson.M{"b": bson.M{"$gt": int64(10)}},
+									bson.M{"$or": []interface{}{
+										bson.M{"__joined_bar.b": bson.M{"$lt": int64(12)}},
+										bson.M{"__joined_bar.b": bson.M{"$gt": int64(10)}},
+									}},
+								},
 							}}},
 							{{"$project", bson.M{
 								"foo_DOT_a": "$a",
@@ -788,6 +793,18 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 						},
 					)
+					test("select foo.a from foo right join bar on foo.a < bar.a",
+						[]bson.D{
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"bar_DOT_a": "$a",
+							}}},
+						},
+					)
 					test("select foo.a, b.b from foo, (select a, b from bar) b where foo.a = b.a",
 						[]bson.D{
 							{{"$project", bson.M{
@@ -1018,6 +1035,98 @@ func TestOptimizePlan(t *testing.T) {
 					}}},
 					{{"$project", bson.M{
 						"foo_DOT_a": "$a",
+					}}},
+				},
+			)
+
+			test("select `d.a` from merge_d_a where `d.a` = 10",
+				[]bson.D{
+					{{"$unwind", bson.D{
+						{"includeArrayIndex", "d_idx"},
+						{"path", "$d"},
+					}}},
+					{{"$match", bson.M{
+						"d.a": int64(10),
+					}}},
+					{{"$unwind", bson.D{
+						{"includeArrayIndex", "d.a_idx"},
+						{"path", "$d.a"},
+					}}},
+					{{"$match", bson.M{
+						"d.a": int64(10),
+					}}},
+					{{"$project", bson.M{
+						"merge_d_a_DOT_d_DOT_a": "$d.a",
+					}}},
+				},
+			)
+
+			test("select `d.a` from merge_d_a where `d.a` = 10 OR `d.a` = 12",
+				[]bson.D{
+					{{"$unwind", bson.D{
+						{"includeArrayIndex", "d_idx"},
+						{"path", "$d"},
+					}}},
+					{{"$match", bson.M{
+						"$or": []interface{}{
+							bson.M{"d.a": int64(10)},
+							bson.M{"d.a": int64(12)},
+						},
+					}}},
+					{{"$unwind", bson.D{
+						{"includeArrayIndex", "d.a_idx"},
+						{"path", "$d.a"},
+					}}},
+					{{"$match", bson.M{
+						"$or": []interface{}{
+							bson.M{"d.a": int64(10)},
+							bson.M{"d.a": int64(12)},
+						},
+					}}},
+					{{"$project", bson.M{
+						"merge_d_a_DOT_d_DOT_a": "$d.a",
+					}}},
+				},
+			)
+
+			test("select c from merge_c where c = 10",
+				[]bson.D{
+					{{"$match", bson.M{
+						"c": int64(10),
+					}}},
+					{{"$unwind", bson.D{
+						{"includeArrayIndex", "c_idx"},
+						{"path", "$c"},
+					}}},
+					{{"$match", bson.M{
+						"c": int64(10),
+					}}},
+					{{"$project", bson.M{
+						"merge_c_DOT_c": "$c",
+					}}},
+				},
+			)
+
+			test("select c from merge_c where c > 5 AND c < 10",
+				[]bson.D{
+					{{"$match", bson.M{
+						"$and": []interface{}{
+							bson.M{"c": bson.M{"$gt": int64(5)}},
+							bson.M{"c": bson.M{"$lt": int64(10)}},
+						},
+					}}},
+					{{"$unwind", bson.D{
+						{"includeArrayIndex", "c_idx"},
+						{"path", "$c"},
+					}}},
+					{{"$match", bson.M{
+						"$and": []interface{}{
+							bson.M{"c": bson.M{"$gt": int64(5)}},
+							bson.M{"c": bson.M{"$lt": int64(10)}},
+						},
+					}}},
+					{{"$project", bson.M{
+						"merge_c_DOT_c": "$c",
 					}}},
 				},
 			)

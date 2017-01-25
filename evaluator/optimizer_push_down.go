@@ -225,6 +225,78 @@ const (
 	projectPredicateFieldName = "__predicate"
 )
 
+func (v *pushDownOptimizer) extractPreUnwindMatch(mr *mappingRegistry, expr SQLExpr, unwoundPath, unwoundIndexPath string) (bson.D, bool) {
+	parts := splitExpression(expr)
+
+	var partsToMove []SQLExpr
+	useElemMatch := true
+	// find any part that is composed solely of fields prefixed by the unwoundPath
+	for _, part := range parts {
+		columns, err := referencedColumns(v.selectIDsInScope, part)
+		if err != nil {
+			return nil, false
+		}
+		valid := true
+		for _, column := range columns {
+			fieldName, ok := mr.lookupFieldName(column.Table, column.Name)
+			if !ok {
+				return nil, false
+			}
+
+			if fieldName == unwoundPath {
+				// this means that we are unwinding on an array of scalars. If this is the
+				// case, we are not going to use $elemMatch because the $elemMatch language
+				// for scalars is different and doesn't support everything that is possible
+				// in SQL.
+				useElemMatch = false
+			} else if fieldName == unwoundIndexPath || !strings.HasPrefix(fieldName, unwoundPath+".") {
+				valid = false
+				break
+			}
+		}
+
+		if valid {
+			partsToMove = append(partsToMove, part)
+		}
+	}
+
+	lookupFieldName := mr.lookupFieldName
+	if useElemMatch {
+		lookupFieldName = func(tableName, columnName string) (string, bool) {
+			// we are going to strip the prefix off of the fieldNames because $elemMatch syntax
+			// is interesting. We know this won't fail because we've already done it for all
+			// combinations.
+			fieldName, _ := mr.lookupFieldName(tableName, columnName)
+			return strings.TrimPrefix(fieldName, unwoundPath+"."), true
+		}
+	}
+
+	t := &pushDownTranslator{
+		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
+		lookupFieldName: lookupFieldName,
+	}
+
+	combined := combineExpressions(partsToMove)
+
+	// we don't care about the remaining. We will still be placing a match after the unwind,
+	// so anything we can't do here gets handled there anyways.
+	matchBody, _ := t.TranslatePredicate(combined)
+	if matchBody == nil {
+		// nothing to do
+		return nil, false
+	}
+
+	if useElemMatch {
+		matchBody = bson.M{
+			unwoundPath: bson.M{
+				"$elemMatch": matchBody,
+			},
+		}
+	}
+
+	return bson.D{{"$match", matchBody}}, true
+}
+
 func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) {
 
 	ms, ok := v.canPushDown(filter.source)
@@ -232,7 +304,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		return filter, nil
 	}
 
-	pipeline := ms.pipeline
+	pipeline := append([]bson.D{}, ms.pipeline...)
 	var localMatcher SQLExpr
 
 	if value, ok := filter.matcher.(SQLValue); ok {
@@ -252,6 +324,44 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		// otherwise, the filter simply gets removed from the tree
 
 	} else {
+		if len(pipeline) > 0 {
+			lastStageIdx := len(pipeline) - 1
+			lastStage := pipeline[lastStageIdx]
+			if lastStage[0].Name == "$unwind" {
+				if len(pipeline) == 1 || pipeline[lastStageIdx-1][0].Name != "$lookup" {
+					// Before pushing down the match, if the current pipeline contains
+					// an $unwind and is not preceeded by a lookup, try to place any criteria
+					// for the unwound array before the $unwind using an $elemMatch. These will
+					// need to still stay after the $unwind as well, but this should cut down on
+					// the number of documents passing through the $unwind clause while also allowing
+					// the use of an index.
+					// NOTE: putting a match between a lookup and an unwind causes a server optimization
+					// to get skipped.
+					v.logger.Log(log.DebugHigh, "attempting to add a redundant match before unwind")
+
+					var path string
+					var indexPath string
+					if path, ok = lastStage[0].Value.(string); !ok {
+						var unwindBody bson.M
+						if unwindBody, ok = lastStage[0].Value.(bson.M); !ok {
+							unwindBody = lastStage[0].Value.(bson.D).Map()
+						}
+
+						path = unwindBody["path"].(string)
+						if ip, ok := unwindBody["includeArrayIndex"]; ok {
+							indexPath = ip.(string)
+						}
+					}
+
+					if preUnwindMatch, ok := v.extractPreUnwindMatch(ms.mappingRegistry, filter.matcher, path[1:], indexPath); ok {
+						pipeline = append(pipeline, nil)
+						copy(pipeline[lastStageIdx+1:], pipeline[lastStageIdx:])
+						pipeline[lastStageIdx] = preUnwindMatch
+					}
+				}
+			}
+		}
+
 		var matchBody bson.M
 		t := &pushDownTranslator{
 			versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,

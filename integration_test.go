@@ -32,9 +32,10 @@ import (
 
 // test flags
 var (
-	tableau     = flag.Bool("tableau", false, "Run tableau tests")
-	ymlfile     = flag.String("ymlfile", "", "The yml test file to run")
-	ymltestname = flag.String("ymltestname", "", "The test name in the yml file to run")
+	tableau         = flag.Bool("tableau", false, "Run tableau tests")
+	ymlfile         = flag.String("ymlfile", "", "The yml test file to run")
+	ymltestname     = flag.String("ymltestname", "", "The test name in the yml file to run")
+	skipDataCleanup = flag.Bool("skipDataCleanup", false, "Skips cleaning up data after an integration test run")
 )
 
 const (
@@ -118,25 +119,27 @@ func TestIntegration(t *testing.T) {
 		s.Close()
 	}
 
-	connection := &toolsoptions.Connection{Host: testMongoHost, Port: testMongoPort}
-	sessionProvider, _ := toolsdb.NewSessionProvider(
-		toolsoptions.ToolOptions{
-			Auth:       &toolsoptions.Auth{},
-			Connection: connection,
-			SSL:        getSslOpts(),
-		},
-	)
+	if !*skipDataCleanup {
+		connection := &toolsoptions.Connection{Host: testMongoHost, Port: testMongoPort}
+		sessionProvider, _ := toolsdb.NewSessionProvider(
+			toolsoptions.ToolOptions{
+				Auth:       &toolsoptions.Auth{},
+				Connection: connection,
+				SSL:        getSslOpts(),
+			},
+		)
 
-	session, _ := sessionProvider.GetSession()
+		session, _ := sessionProvider.GetSession()
 
-	for _, f := range files {
-		conf := mustLoadTestSchema(path.Join("integration_tests", f.Name()))
-		for _, database := range conf.Databases {
-			session.DB(database.Name).DropDatabase()
+		for _, f := range files {
+			conf := mustLoadTestSchema(path.Join("integration_tests", f.Name()))
+			for _, database := range conf.Databases {
+				session.DB(database.Name).DropDatabase()
+			}
 		}
-	}
 
-	session.Close()
+		session.Close()
+	}
 }
 
 func prepareForTestCase(filePath string) (conf testSchema, s *server.Server, db *sql.DB) {
