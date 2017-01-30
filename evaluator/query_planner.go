@@ -60,7 +60,6 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 	if b.distinct {
 		var keys []SQLExpr
 		var projectedKeys ProjectedColumns
-		reqCols := b.exprCollector.referencedColumns.copyExprs()
 
 		for _, c := range b.project {
 			projectedKeys = append(projectedKeys, *b.projectedColumnFromExpr(c.Expr))
@@ -78,7 +77,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 			projectedColumns = append(projectedColumns, *pc)
 		}
 
-		plan = NewGroupByStage(plan, keys, projectedColumns.Unique(), reqCols)
+		plan = NewGroupByStage(plan, keys, projectedColumns.Unique())
 
 		// now we must replace all the project values with columns as
 		// any that weren't already a column have now been computed.
@@ -109,8 +108,6 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 	plan := source
 	if len(b.groupBy) > 0 || len(b.aggregates) > 0 {
-		reqCols := b.exprCollector.referencedColumns.copyExprs()
-
 		b.exprCollector.RemoveAll(b.groupBy)
 		for _, a := range b.aggregates {
 			b.exprCollector.Remove(a)
@@ -135,7 +132,7 @@ func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 			projectedAggregates = append(projectedAggregates, *pc)
 		}
 
-		plan = NewGroupByStage(plan, b.groupBy, projectedAggregates.Unique(), reqCols)
+		plan = NewGroupByStage(plan, b.groupBy, projectedAggregates.Unique())
 	}
 
 	return plan
@@ -143,10 +140,8 @@ func (b *queryPlanBuilder) buildGroupBy(source PlanStage) PlanStage {
 
 func (b *queryPlanBuilder) buildHaving(source PlanStage) PlanStage {
 	if b.having != nil {
-		reqCols := b.exprCollector.referencedColumns.copyExprs()
-
 		b.exprCollector.Remove(b.having)
-		return NewFilterStage(source, b.having, reqCols)
+		return NewFilterStage(source, b.having)
 	}
 
 	return source
@@ -162,13 +157,11 @@ func (b *queryPlanBuilder) buildLimit(source PlanStage) PlanStage {
 
 func (b *queryPlanBuilder) buildOrderBy(source PlanStage) PlanStage {
 	if len(b.orderBy) > 0 {
-		reqCols := b.exprCollector.referencedColumns.copyExprs()
-
 		for _, obt := range b.orderBy {
 			b.exprCollector.Remove(obt.expr)
 		}
 
-		return NewOrderByStage(source, reqCols, b.orderBy...)
+		return NewOrderByStage(source, b.orderBy...)
 	}
 
 	return source
@@ -187,18 +180,8 @@ func (b *queryPlanBuilder) buildProject(source PlanStage) PlanStage {
 
 func (b *queryPlanBuilder) buildWhere(source PlanStage) PlanStage {
 	if b.where != nil {
-		var reqCols []SQLExpr
-		for _, e := range b.exprCollector.referencedColumns.copyExprs() {
-			if col, ok := e.(SQLColumnExpr); ok {
-				if !col.isAggregateReplacementColumn() {
-					reqCols = append(reqCols, col)
-				}
-			}
-		}
-
 		b.exprCollector.Remove(b.where)
-
-		return NewFilterStage(source, b.where, reqCols)
+		return NewFilterStage(source, b.where)
 	}
 	return source
 }
@@ -211,7 +194,6 @@ func (b *queryPlanBuilder) buildFrom(source PlanStage) PlanStage {
 		}
 
 		if b.from != nil {
-			reqCols := b.exprCollector.referencedColumns.copyExprs()
 			if b.join != nil {
 				for _, c := range b.join {
 					if strings.Contains(typedS.matcher.String(), c.String()) {
@@ -219,7 +201,7 @@ func (b *queryPlanBuilder) buildFrom(source PlanStage) PlanStage {
 					}
 				}
 			}
-			return NewJoinStage(typedS.kind, typedS.left, typedS.right, typedS.matcher, reqCols)
+			return NewJoinStage(typedS.kind, typedS.left, typedS.right, typedS.matcher)
 		}
 	}
 
@@ -371,6 +353,7 @@ func (m *exprCountMap) remove(e SQLExpr) {
 		if strings.EqualFold(s, expr.String()) {
 			m.counts[s]--
 			if m.counts[s] == 0 {
+				delete(m.counts, s)
 				m.exprs = append(m.exprs[:i], m.exprs[i+1:]...)
 			}
 			return

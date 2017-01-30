@@ -5,16 +5,14 @@ import "github.com/10gen/sqlproxy/collation"
 // Filter ensures that only rows matching a given criteria are
 // returned.
 type FilterStage struct {
-	matcher         SQLExpr
-	source          PlanStage
-	requiredColumns []SQLExpr
+	matcher SQLExpr
+	source  PlanStage
 }
 
-func NewFilterStage(source PlanStage, predicate SQLExpr, reqCols []SQLExpr) *FilterStage {
+func NewFilterStage(source PlanStage, predicate SQLExpr) *FilterStage {
 	return &FilterStage{
-		source:          source,
-		matcher:         predicate,
-		requiredColumns: reqCols,
+		source:  source,
+		matcher: predicate,
 	}
 }
 
@@ -97,8 +95,7 @@ func (fi *FilterIter) Err() error {
 
 func (fs *FilterStage) clone() *FilterStage {
 	return &FilterStage{
-		source:          fs.source,
-		matcher:         fs.matcher,
-		requiredColumns: fs.requiredColumns,
+		source:  fs.source,
+		matcher: fs.matcher,
 	}
 }

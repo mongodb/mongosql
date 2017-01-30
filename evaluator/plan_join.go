@@ -72,20 +72,18 @@ type Joiner interface {
 // Join implements the operator interface for
 // join expressions.
 type JoinStage struct {
-	left, right     PlanStage
-	matcher         SQLExpr
-	kind            JoinKind
-	strategy        JoinStrategy
-	requiredColumns []SQLExpr
+	left, right PlanStage
+	matcher     SQLExpr
+	kind        JoinKind
+	strategy    JoinStrategy
 }
 
-func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr, reqCols []SQLExpr) *JoinStage {
+func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr) *JoinStage {
 	return &JoinStage{
-		kind:            kind,
-		left:            left,
-		right:           right,
-		matcher:         predicate,
-		requiredColumns: reqCols,
+		kind:    kind,
+		left:    left,
+		right:   right,
+		matcher: predicate,
 	}
 }
 
@@ -222,12 +220,11 @@ func (join *JoinIter) Err() error {
 
 func (join *JoinStage) clone() *JoinStage {
 	return &JoinStage{
-		left:            join.left,
-		right:           join.right,
-		matcher:         join.matcher,
-		kind:            join.kind,
-		strategy:        join.strategy,
-		requiredColumns: join.requiredColumns,
+		left:     join.left,
+		right:    join.right,
+		matcher:  join.matcher,
+		kind:     join.kind,
+		strategy: join.strategy,
 	}
 }
 

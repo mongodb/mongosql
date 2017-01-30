@@ -540,7 +540,6 @@ func (a *algebrizer) translateUnion(union *parser.Union) (PlanStage, error) {
 	case parser.AST_UNION:
 		var projectedColumns ProjectedColumns
 		var keys []SQLExpr
-		var reqCols []SQLExpr
 		unionStage := NewUnionStage(UnionDistinct, left, right)
 
 		for _, col := range unionStage.Columns() {
@@ -548,9 +547,8 @@ func (a *algebrizer) translateUnion(union *parser.Union) (PlanStage, error) {
 			keys = append(keys, expr)
 			projectedColumns = append(projectedColumns, ProjectedColumn{Column: col, Expr: expr})
 		}
-		reqCols = keys
 
-		return NewGroupByStage(unionStage, keys, projectedColumns, reqCols), nil
+		return NewGroupByStage(unionStage, keys, projectedColumns), nil
 	case parser.AST_UNION_ALL:
 		return NewUnionStage(UnionAll, left, right), nil
 	default:
@@ -680,7 +678,7 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs) (PlanStag
 		if i == 0 {
 			plan = temp
 		} else {
-			plan = NewJoinStage(CrossJoin, plan, temp, SQLTrue, []SQLExpr{})
+			plan = NewJoinStage(CrossJoin, plan, temp, SQLTrue)
 		}
 	}
 
@@ -719,7 +717,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 			predicate = SQLTrue
 		}
 
-		return NewJoinStage(JoinKind(typedT.Join), left, right, predicate, []SQLExpr{}), nil
+		return NewJoinStage(JoinKind(typedT.Join), left, right, predicate), nil
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, parser.String(tableExpr))
 	}

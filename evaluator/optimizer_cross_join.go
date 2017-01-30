@@ -37,7 +37,7 @@ func (v *crossJoinOptimizer) visit(n node) (node, error) {
 				// if the parts haven't been fully utilized,
 				// add a Filter back into the tree with the remaining
 				// parts.
-				n = NewFilterStage(source.(PlanStage), v.predicateParts.combine(), typedN.requiredColumns)
+				n = NewFilterStage(source.(PlanStage), v.predicateParts.combine())
 			} else {
 				n = source
 			}
@@ -94,7 +94,7 @@ func (v *crossJoinOptimizer) visit(n node) (node, error) {
 					predicate = partsToUse.combine()
 				}
 
-				n = NewJoinStage(kind, left.(PlanStage), right.(PlanStage), predicate, typedN.requiredColumns)
+				n = NewJoinStage(kind, left.(PlanStage), right.(PlanStage), predicate)
 			}
 			return n, nil
 		}

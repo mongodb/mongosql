@@ -12,7 +12,12 @@ import (
 )
 
 func optimizePushDown(ctx ConnectionCtx, logger *log.Logger, n node) (node, error) {
-	v := &pushDownOptimizer{logger: logger, ctx: ctx}
+	v := &pushDownOptimizer{
+		logger:        logger,
+		ctx:           ctx,
+		columnTracker: newColumnTracker(),
+	}
+
 	n, err := v.visit(n)
 	if err != nil {
 		return nil, err
@@ -26,9 +31,51 @@ type pushDownOptimizer struct {
 	ctx               ConnectionCtx
 	selectIDsInScope  []int
 	tableNamesInScope []string
+	columnTracker     *columnTracker
+}
+
+func (v *pushDownOptimizer) addSelectIDsInScope(selectIDs ...int) {
+	for _, selectID := range selectIDs {
+		if !containsInt(v.selectIDsInScope, selectID) {
+			v.selectIDsInScope = append(v.selectIDsInScope, selectID)
+		}
+	}
+}
+
+func (v *pushDownOptimizer) addTableNamesInScope(tableNames ...string) {
+	for _, tableName := range tableNames {
+		if !containsString(v.tableNamesInScope, tableName) {
+			v.tableNamesInScope = append(v.tableNamesInScope, tableName)
+		}
+	}
 }
 
 func (v *pushDownOptimizer) visit(n node) (node, error) {
+
+	switch typedN := n.(type) {
+	case *FilterStage:
+		v.columnTracker.add(typedN.matcher)
+	case *GroupByStage:
+		for _, pc := range typedN.projectedColumns {
+			v.columnTracker.add(pc.Expr)
+		}
+		for _, key := range typedN.keys {
+			v.columnTracker.add(key)
+		}
+	case *JoinStage:
+		if typedN.matcher != nil {
+			v.columnTracker.add(typedN.matcher)
+		}
+	case *OrderByStage:
+		for _, term := range typedN.terms {
+			v.columnTracker.add(term.expr)
+		}
+	case *ProjectStage:
+		for _, pc := range typedN.projectedColumns {
+			v.columnTracker.add(pc.Expr)
+		}
+	}
+
 	n, err := walk(v, n)
 	if err != nil {
 		return nil, err
@@ -39,12 +86,12 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 	// the selectIDs that are currently in scope. In the case of Joins,
 	// this could be a combination of the below select ID sources.
 	case *MongoSourceStage:
-		v.selectIDsInScope = append(v.selectIDsInScope, typedN.selectIDs...)
-		v.tableNamesInScope = append(v.tableNamesInScope, typedN.aliasNames...)
+		v.addSelectIDsInScope(typedN.selectIDs...)
+		v.addTableNamesInScope(typedN.aliasNames...)
 	case *BSONSourceStage:
-		v.selectIDsInScope = append(v.selectIDsInScope, typedN.selectID)
+		v.addSelectIDsInScope(typedN.selectID)
 	case *DynamicSourceStage:
-		v.selectIDsInScope = append(v.selectIDsInScope, typedN.selectID)
+		v.addSelectIDsInScope(typedN.selectID)
 	case *SQLSubqueryExpr:
 		// SQLSubqueryExpr only applies to non-from clauses. This means that
 		// any new selectIDs found inside a SQLSubqueryExpr are invalid outside
@@ -70,15 +117,22 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 			return nil, fmt.Errorf("unable to optimize filter: %v", err)
 		}
 
+		v.columnTracker.remove(typedN.matcher)
+
 		if fs, ok := n.(*FilterStage); ok {
+			v.columnTracker.add(fs.matcher)
 			if _, ok := fs.source.(*MongoSourceStage); ok {
-				projSource, err := v.pushdownProject(fs.requiredColumns, fs.source)
+				projSource, err := v.pushdownProject(
+					v.columnTracker.getColumnsForSelectIDs(v.selectIDsInScope),
+					fs.source)
 				if err != nil {
 					return nil, fmt.Errorf("unable to optimize filter project: %v", err)
 				}
-				n = NewFilterStage(projSource, fs.matcher, fs.requiredColumns)
+				n = NewFilterStage(projSource, fs.matcher)
 			}
+			v.columnTracker.remove(fs.matcher)
 		}
+
 	case *GroupByStage:
 		n, err = v.visitGroupBy(typedN)
 		if err != nil {
@@ -86,11 +140,20 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 		}
 
 		if _, ok := typedN.source.(*MongoSourceStage); ok && n == typedN {
-			projSource, err := v.pushdownProject(typedN.requiredColumns, typedN.source)
+			projSource, err := v.pushdownProject(
+				v.columnTracker.getColumnsForSelectIDs(v.selectIDsInScope),
+				typedN.source)
 			if err != nil {
 				return nil, fmt.Errorf("unable to optimize group by project: %v", err)
 			}
-			n = NewGroupByStage(projSource, typedN.keys, typedN.projectedColumns, typedN.requiredColumns)
+			n = NewGroupByStage(projSource, typedN.keys, typedN.projectedColumns)
+		}
+
+		for _, pc := range typedN.projectedColumns {
+			v.columnTracker.remove(pc.Expr)
+		}
+		for _, key := range typedN.keys {
+			v.columnTracker.remove(key)
 		}
 
 	case *JoinStage:
@@ -106,8 +169,7 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 			// for inner joins, attempt to optimize by flipping children
 			if typedN.kind == InnerJoin {
 				v.logger.Warnf(log.DebugHigh, "attempting to optimize inner join via flip")
-				j := NewJoinStage(typedN.kind, typedN.right, typedN.left, typedN.matcher,
-					typedN.requiredColumns)
+				j := NewJoinStage(typedN.kind, typedN.right, typedN.left, typedN.matcher)
 				newJ, err := v.visitJoin(j)
 				if err == nil {
 					n = newJ
@@ -115,8 +177,7 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 			} else if typedN.kind == RightJoin {
 				// for right joins, attempt to optimize using a left join
 				v.logger.Warnf(log.DebugHigh, "attempting to optimize right join via flip")
-				j := NewJoinStage(LeftJoin, typedN.right, typedN.left, typedN.matcher,
-					typedN.requiredColumns)
+				j := NewJoinStage(LeftJoin, typedN.right, typedN.left, typedN.matcher)
 				newJ, err := v.visitJoin(j)
 				if err == nil {
 					n = newJ
@@ -127,7 +188,8 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 
 				if ms, ok := left.(*MongoSourceStage); ok {
 					requiredColumns := v.getRequiredColumnsForJoinSide(
-						ms.aliasNames, typedN.requiredColumns)
+						ms.aliasNames,
+						v.columnTracker.getColumnsForSelectIDs(v.selectIDsInScope))
 					left, err = v.pushdownProject(requiredColumns, ms.clone())
 					if err != nil {
 						return nil, fmt.Errorf("unable to optimize JoinStage left project: %v", err)
@@ -136,7 +198,8 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 
 				if ms, ok := right.(*MongoSourceStage); ok {
 					requiredColumns := v.getRequiredColumnsForJoinSide(
-						ms.aliasNames, typedN.requiredColumns)
+						ms.aliasNames,
+						v.columnTracker.getColumnsForSelectIDs(v.selectIDsInScope))
 					right, err = v.pushdownProject(requiredColumns, ms.clone())
 					if err != nil {
 						return nil, fmt.Errorf("unable to optimize JoinStage right project: %v", err)
@@ -144,11 +207,13 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 				}
 
 				if left != typedN.left || right != typedN.right {
-					n = NewJoinStage(typedN.kind, left, right, typedN.matcher, typedN.requiredColumns)
+					n = NewJoinStage(typedN.kind, left, right, typedN.matcher)
 				}
-
 			}
+		}
 
+		if typedN.matcher != nil {
+			v.columnTracker.remove(typedN.matcher)
 		}
 
 	case *LimitStage:
@@ -163,16 +228,26 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 		}
 
 		if _, ok := typedN.source.(*MongoSourceStage); ok && n == typedN {
-			projSource, err := v.pushdownProject(typedN.requiredColumns, typedN.source)
+			projSource, err := v.pushdownProject(
+				v.columnTracker.getColumnsForSelectIDs(v.selectIDsInScope),
+				typedN.source)
 			if err != nil {
 				return nil, fmt.Errorf("unable to optimize order by project: %v", err)
 			}
-			n = NewOrderByStage(projSource, typedN.requiredColumns, typedN.terms...)
+			n = NewOrderByStage(projSource, typedN.terms...)
+		}
+
+		for _, term := range typedN.terms {
+			v.columnTracker.remove(term.expr)
 		}
 	case *ProjectStage:
 		n, err = v.visitProject(typedN)
 		if err != nil {
 			return nil, fmt.Errorf("unable to optimize project: %v", err)
+		}
+
+		for _, pc := range typedN.projectedColumns {
+			v.columnTracker.remove(pc.Expr)
 		}
 	case *SubquerySourceStage:
 		oldSelectIDsInScope := v.selectIDsInScope
@@ -190,8 +265,10 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 			return nil, fmt.Errorf("unable to optimize subquery source: %v", err)
 		}
 
-		v.selectIDsInScope = append(oldSelectIDsInScope, typedN.selectID)
-		v.tableNamesInScope = append(oldTableNamesInScope, typedN.aliasName)
+		v.selectIDsInScope = oldSelectIDsInScope
+		v.tableNamesInScope = oldTableNamesInScope
+		v.addSelectIDsInScope(typedN.selectID)
+		v.addTableNamesInScope(typedN.aliasName)
 	}
 
 	return n, nil
@@ -406,7 +483,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		// that can be partially pushed down, so we construct
 		// a new filter with only the part remaining that
 		// cannot be pushed down.
-		return NewFilterStage(ms, localMatcher, filter.requiredColumns), nil
+		return NewFilterStage(ms, localMatcher), nil
 	}
 
 	// everything was able to be pushed down, so the filter
@@ -1010,8 +1087,7 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 			v.logger.Logf(log.DebugHigh, "join merge: creating filter "+
 				"stage for remaining predicate: %v",
 				remainingPredicate.String())
-			f, err := v.visit(NewFilterStage(ms, remainingPredicate,
-				join.requiredColumns))
+			f, err := v.visit(NewFilterStage(ms, remainingPredicate))
 			if err != nil {
 				return nil, err
 			}
@@ -1513,7 +1589,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	ms.mappingRegistry = newMappingRegistry
 
 	if lookupInfo.remainingPredicate != nil && (joinKind == InnerJoin || joinKind == StraightJoin) {
-		f, err := v.visit(NewFilterStage(ms, lookupInfo.remainingPredicate, join.requiredColumns))
+		f, err := v.visit(NewFilterStage(ms, lookupInfo.remainingPredicate))
 		if err != nil {
 			return nil, err
 		}
@@ -1940,7 +2016,6 @@ func (v *pushDownOptimizer) pushdownProject(requiredColumns []SQLExpr, source Pl
 
 	var projectedCols []ProjectedColumn
 	for _, expr := range requiredColumns {
-
 		if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
 			column := &Column{
 				SelectID:   sqlColExpr.selectID,
@@ -1983,6 +2058,64 @@ func (v *pushDownOptimizer) projectAllColumns(mr *mappingRegistry) bson.M {
 		projectBody[field] = 1
 	}
 	return projectBody
+}
+
+func newColumnTracker() *columnTracker {
+	return &columnTracker{
+		selectIDs: make(map[int]*exprCountMap),
+	}
+}
+
+type columnTracker struct {
+	selectIDs  map[int]*exprCountMap
+	removeMode bool
+}
+
+func (t *columnTracker) getColumnsForSelectIDs(selectIDs []int) []SQLExpr {
+	var columns []SQLExpr
+	for _, selectID := range selectIDs {
+		if selectIDMap, ok := t.selectIDs[selectID]; ok {
+			columns = append(columns, selectIDMap.exprs...)
+		}
+	}
+
+	return columns
+}
+
+func (t *columnTracker) add(e SQLExpr) {
+	t.removeMode = false
+	t.visit(e)
+}
+
+func (t *columnTracker) remove(e SQLExpr) {
+	t.removeMode = true
+	t.visit(e)
+}
+
+func (t *columnTracker) visit(n node) (node, error) {
+	switch typedN := n.(type) {
+	case SQLColumnExpr:
+		selectIDMap, ok := t.selectIDs[typedN.selectID]
+		if !ok && !t.removeMode {
+			selectIDMap = newExprCountMap()
+			t.selectIDs[typedN.selectID] = selectIDMap
+		}
+
+		if t.removeMode {
+			if selectIDMap != nil {
+				selectIDMap.remove(typedN)
+				if len(selectIDMap.exprs) == 0 {
+					delete(t.selectIDs, typedN.selectID)
+				}
+			}
+		} else {
+			selectIDMap.add(typedN)
+		}
+
+		return n, nil
+	}
+
+	return walk(t, n)
 }
 
 // sourceFinder is used within projection pushdown

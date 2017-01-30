@@ -60,6 +60,11 @@ data:
     - { _id: 0, a: 1, b: [{c: 1}, {c: 2, d: [5, 6]}]}
     - { _id: 1, a: 1, b: [{c: 1}, {c: 3}]}
     - { _id: 2, a: 2, b: [{c: 2, d: [7]}, {c: 3}]}
+- inline:
+    db: "test"
+    collection: "join_9"
+    docs:
+    - { _id: 0, a: 3, b: 5, c: 10}
 
 #
 # Schema
@@ -240,6 +245,29 @@ schema:
       SqlName: d_idx
       SqlType: int
     - Name: b.d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+  - table: qux
+    collection: "join_9"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: d
       MongoType: int
       SqlName: d
       SqlType: int
@@ -435,6 +463,12 @@ testcases:
   expected_types: [int, int, int]
   expected: 
   - [2, 11, 1] 
+- sql: "select foobar.a, barbaz.c from test.foobar join test.barbaz on foobar.b = barbaz.b and foobar.c = barbaz.c join test.qux on foobar.a = qux.a"
+  description: "multi-way inner join with a filter expression that does not push down and different columns referenced in different stages"
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [3, 10]
 
 # Straight Joins
 - sql: "select a, c from test.foo straight_join test.bar on foo.id = bar.id"

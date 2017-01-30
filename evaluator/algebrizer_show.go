@@ -333,7 +333,7 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 		if err != nil {
 			return nil, err
 		}
-		plan = NewFilterStage(plan, translated, []SQLExpr{})
+		plan = NewFilterStage(plan, translated)
 	}
 
 	if len(info.orderBy) > 0 {
@@ -341,7 +341,7 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 		if err != nil {
 			panic(err.Error())
 		}
-		plan = NewOrderByStage(plan, []SQLExpr{}, &orderByTerm{
+		plan = NewOrderByStage(plan, &orderByTerm{
 			expr:      c,
 			ascending: true,
 		})

@@ -9,17 +9,15 @@ import (
 
 // OrderBy sorts records according to one or more keys.
 type OrderByStage struct {
-	source          PlanStage
-	terms           []*orderByTerm
-	requiredColumns []SQLExpr
+	source PlanStage
+	terms  []*orderByTerm
 }
 
 // NewOrderByStage returns a new order by stage.
-func NewOrderByStage(source PlanStage, reqCols []SQLExpr, terms ...*orderByTerm) *OrderByStage {
+func NewOrderByStage(source PlanStage, terms ...*orderByTerm) *OrderByStage {
 	return &OrderByStage{
-		source:          source,
-		terms:           terms,
-		requiredColumns: reqCols,
+		source: source,
+		terms:  terms,
 	}
 }
 
@@ -179,9 +177,8 @@ func (ob *OrderByStage) Collation() *collation.Collation {
 
 func (ob *OrderByStage) clone() *OrderByStage {
 	return &OrderByStage{
-		source:          ob.source,
-		terms:           ob.terms,
-		requiredColumns: ob.requiredColumns,
+		source: ob.source,
+		terms:  ob.terms,
 	}
 }
 
