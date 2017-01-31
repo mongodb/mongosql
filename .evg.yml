@@ -126,6 +126,7 @@ buildvariants:
     using_go14: true
   run_on:
   - rhel71-power8-test
+  batchtime: 1440 # 1 day
   tasks:
   - "!.oneoff-task"
 - name: rhel-72-s390x
@@ -142,6 +143,7 @@ buildvariants:
   run_on:
   - rhel72-zseries-build
   - rhel72-zseries-test
+  batchtime: 1440 # 1 day
   tasks:
   - "!.oneoff-task"
 - name: suse11-64
