@@ -74,7 +74,9 @@ buildvariants:
     - linux-64-amzn-benchmark
   batchtime: 1438560 # 999 days
   tasks:
-  - "tpch"
+  - "tpch_handwritten_denormalized"
+  - "tpch_workbook_denormalized"
+  - "tpch_workbook_normalized"
 - name: osx
   display_name: OSX 10.10
   run_on:
@@ -411,12 +413,19 @@ functions:
         curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.gz --output testdata/input/attendees.bson.gz
         curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
 
-  "download tpch test data":
+  "download normalized tpch test data":
     command: shell.exec
     params:
       working_dir: src/github.com/10gen/sqlproxy
       script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/mongo_tpch.bson.gz --output testdata/input/tpch.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_full_normalized.bson.gz --output testdata/input/tpch.bson.gz
+
+  "download denormalized tpch test data":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_full_denormalized.bson.gz --output testdata/input/tpch.bson.gz
 
   "fetch source" :
     - command: git.get_project
@@ -1143,18 +1152,17 @@ tasks:
     - func: "upload coverage html report"
     - func: "upload coverage txt report"
 
-
-- name: tpch
+- name: tpch_handwritten_denormalized
   tags: ["oneoff-task"]
-  exec_timeout_secs: 259200 # 3 days
+  exec_timeout_secs: 86400 # 1 day
   commands:
     - func: "fetch source"
-    - func: "download tpch test data"
+    - func: "download denormalized tpch test data"
     - func: "download mongod"
     - func: "start mongod"
     - command: shell.exec
       type: test
-      timeout_secs: 259200 # 3 days
+      timeout_secs: 86400 # 1 day
       params:
         working_dir: src/github.com/10gen/sqlproxy
         script: |
@@ -1182,9 +1190,97 @@ tasks:
           fi;
           mkfifo test_pipe
           tee -a out.txt < test_pipe&
-          cat testdata/tpch_handwritten_denormalized.json testdata/tpch_workbook_denormalized.json > tpch.json
+          cat testdata/tpch_handwritten_denormalized.json > tpch.json
           ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in tpch.json -out tpch_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 72h > test_pipe
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 24h > test_pipe
+          awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' out.txt | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
+    - func: "upload tpch report"
+
+- name: tpch_workbook_denormalized
+  tags: ["oneoff-task"]
+  exec_timeout_secs: 86400 # 1 day
+  commands:
+    - func: "fetch source"
+    - func: "download denormalized tpch test data"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      timeout_secs: 86400 # 1 day
+      params:
+        working_dir: src/github.com/10gen/sqlproxy
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/github.com/10gen
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
+          fi;
+          mkfifo test_pipe
+          tee -a out.txt < test_pipe&
+          cat testdata/tpch_workbook_denormalized.json > tpch.json
+          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in tpch.json -out tpch_test.go
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 24h > test_pipe
+          awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' out.txt | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
+    - func: "upload tpch report"
+
+- name: tpch_workbook_normalized
+  tags: ["oneoff-task"]
+  exec_timeout_secs: 86400 # 1 day
+  commands:
+    - func: "fetch source"
+    - func: "download normalized tpch test data"
+    - func: "download mongod"
+    - func: "start mongod"
+    - command: shell.exec
+      type: test
+      timeout_secs: 86400 # 1 day
+      params:
+        working_dir: src/github.com/10gen/sqlproxy
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/github.com/10gen
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
+          fi;
+          mkfifo test_pipe
+          tee -a out.txt < test_pipe&
+          cat testdata/tpch_workbook_normalized.json > tpch.json
+          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in tpch.json -out tpch_test.go
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 24h > test_pipe
           awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' out.txt | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
     - func: "upload tpch report"
 
@@ -1228,7 +1324,7 @@ tasks:
           tee -a out.txt < test_pipe&
           cat testdata/tpch_handwritten_denormalized.json testdata/tpch_workbook_denormalized.json testdata/tpch_workbook_normalized.json > tpch.json
           ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in tpch.json -out tpch_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 72h > test_pipe
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 24h > test_pipe
            awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' out.txt | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
     - func: "upload tpch report"
 

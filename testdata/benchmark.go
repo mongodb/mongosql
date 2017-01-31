@@ -95,6 +95,8 @@ import (
 	"github.com/10gen/sqlproxy/options"
 	_ "github.com/go-sql-driver/mysql"
 	"sync"
+	"strconv"
+	"time"
 	"testing"
 )
 
@@ -102,6 +104,7 @@ var (
 	db1              *sql.DB
 	db2              *sql.DB
 	db3              *sql.DB
+	maxTime          time.Duration
 	once sync.Once
 	testMongoDBHost  = flag.String("testMongoDBHost", "127.0.0.1", "test mongod host")
 	testMongoDBPort  = flag.String("testMongoDBPort", "27017", "test mongod port")
@@ -111,6 +114,7 @@ var (
 	testProxyDB2     = flag.String("testProxyDB2", "tableau", "test proxy database 2")
 	testProxyDB3     = flag.String("testProxyDB3", "tpch", "test proxy database 3")
 	testConfig       = flag.String("conf", "testdata/benchmark.yml", "test proxy DRDL file")
+	maxTimeSecs      = flag.String("maxTimeSecs", "600", "maximum test runtime limit seconds")
 )
 
 
@@ -156,19 +160,36 @@ func setup() {
 	if err != nil {
 	    panic(err)
 	}
+
+	t, err := strconv.ParseInt(*maxTimeSecs, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	maxTime = time.Duration(t) * time.Second
 }
 
 func runQuery(db *sql.DB, query string) error {
+	timer, stopped := time.NewTimer(maxTime), false
+
+	go func(stopped *bool) {
+		<-timer.C
+		if !*stopped {
+			db.Query("kill query 1")
+		}
+	}(&stopped)
+
 	rows, err := db.Query(query)
+	stopped = true
 	if err != nil {
-	    return err
+		return nil
 	}
 
-	for rows.Next() {	}
+	for rows.Next() {
+	}
 
 	rows.Close()
 
-	return rows.Err()
+	return nil
 }
 
 {{range .Q}}
