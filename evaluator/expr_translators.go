@@ -724,9 +724,13 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
+			if !t.versionAtLeast(3, 4, 0) {
+				return nil, false
+			}
+
 			return wrapInNullCheckedCond(
 				nil,
-				bson.M{"$substr": []interface{}{args[0], 0, args[1]}},
+				bson.M{"$substrCP": []interface{}{args[0], 0, args[1]}},
 				args[0], args[1],
 			), true
 		case "length":
@@ -792,31 +796,6 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{mgoOperatorGT: []interface{}{args[0], 0}},
 				bson.M{"$log10": args[0]},
 				mgoNullLiteral}}, true
-		case "mid":
-			if len(args) != 3 {
-				return nil, false
-			}
-
-			bsonMap, ok := args[1].(bson.M)
-			if !ok {
-				return nil, false
-			}
-
-			bsonVal, ok := bsonMap["$literal"]
-			if !ok {
-				return nil, false
-			}
-
-			arg1Val, _ := NewSQLValue(bsonVal, schema.SQLInt, schema.SQLNone)
-
-			arg1 := int(arg1Val.Float64()) - 1
-			arg2 := args[2]
-
-			return wrapInNullCheckedCond(
-				nil,
-				bson.M{"$substr": []interface{}{args[0], arg1, arg2}},
-				args[0],
-			), true
 		case "mod":
 			if len(args) != 2 {
 				return nil, false
@@ -890,6 +869,29 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 						1}}}},
 				args[0],
 			), true
+		case "right":
+			if len(args) != 2 {
+				return nil, false
+			}
+
+			if !t.versionAtLeast(3, 4, 0) {
+				return nil, false
+			}
+
+			return wrapInNullCheckedCond(
+				nil,
+				bson.M{"$substrCP": []interface{}{
+					args[0],
+					bson.M{"$max": []interface{}{
+						bson.M{"$subtract": []interface{}{
+							bson.M{"$strLenCP": args[0]},
+							args[1],
+						}},
+						0,
+					}},
+					args[1]}},
+				args[0], args[1],
+			), true
 		case "round":
 			if !(len(args) == 2 || len(args) == 1) {
 				return nil, false
@@ -941,8 +943,8 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				nil,
 				bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
 			), true
-		case "substring", "substr":
-			if len(args) != 2 && len(args) != 3 {
+		case "substring", "substr", "mid":
+			if (len(args) != 2 || typedE.Name == "mid") && len(args) != 3 {
 				return nil, false
 			}
 
@@ -998,17 +1000,17 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 						bson.M{"$ceil": bson.M{"$multiply": []interface{}{
 							args[0], pow}}}}},
 					pow}}, true
-			} else {
-				pow := math.Pow(10, math.Abs(d))
-				return bson.M{"$multiply": []interface{}{
-					bson.M{mgoOperatorCond: []interface{}{
-						bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
-						bson.M{"$floor": bson.M{"$divide": []interface{}{
-							args[0], pow}}},
-						bson.M{"$ceil": bson.M{"$divide": []interface{}{
-							args[0], pow}}}}},
-					pow}}, true
 			}
+
+			pow := math.Pow(10, math.Abs(d))
+			return bson.M{"$multiply": []interface{}{
+				bson.M{mgoOperatorCond: []interface{}{
+					bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
+					bson.M{"$floor": bson.M{"$divide": []interface{}{
+						args[0], pow}}},
+					bson.M{"$ceil": bson.M{"$divide": []interface{}{
+						args[0], pow}}}}},
+				pow}}, true
 		case "week":
 			if len(args) < 1 || len(args) > 2 {
 				return nil, false

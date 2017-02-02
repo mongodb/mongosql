@@ -1454,6 +1454,44 @@ testcases:
   - ["this"]
   - [~]
 
+- sql: "select right(b, 2) from bar"
+  expected_names: ["right(b, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["ey"]
+  - ["yo"]
+  - [~]
+  - ["is"]
+  - [~]
+
+- sql: "select right(b, 2) from bar where length(right(b,2)) > 1"
+  expected_names: ["right(b, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["ey"]
+  - ["yo"]
+  - ["is"]
+
+- sql: "select right(b, 10) from bar"
+  expected_names: ["right(b, 10)"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [~]
+  - ["this"]
+  - [~]
+
+- sql: "select right(null, null) from bar"
+  expected_names: ["right(null, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
 - sql: "select round(c, 2) from bar"
   expected_names: ["round(c, 2)"]
   expected_types: [numeric]

@@ -3222,7 +3222,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"least(a, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$min":["$a",{"$literal":2}]}]}`},
 			test{"least(a, 2, b)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":[{"$ifNull":["$b",null]},null]}]},null,{"$min":["$a",{"$literal":2},"$b"]}]}`},
 			test{"length(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$strLenBytes":"$s"}]}`},
-			test{"left(s, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substr":["$s",0,{"$literal":2}]}]}`},
+			test{"left(s, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",0,{"$literal":2}]}]}`},
 			test{"left('abcde', 0)", `{"$literal":""}`},
 			test{"lcase(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toLower":"$s"}]}`},
 			test{"locate(s, 'funny')", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$add":[{"$indexOfCP":[{"$literal":"funny"},"$s"]},1]}]}`},
@@ -3236,6 +3236,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"monthname(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$arrayElemAt":[["January","February","March","April","May","June","July","August","September","October","November","December"],{"$subtract":[{"$month":"$g"},1]}]}]}`},
 			test{"nullif(a, 1)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$cond":[{"$eq":["$a",{"$literal":1}]},null,"$a"]}]}`},
 			test{"quarter(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$arrayElemAt":[[1,1,1,2,2,2,3,3,3,4,4,4],{"$subtract":[{"$month":"$g"},1]}]}]}`},
+			test{"right(s, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",{"$max":[{"$subtract":[{"$strLenCP":"$s"},{"$literal":2}]},0]},{"$literal":2}]}]}`},
+			test{"right(s, a)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":["$a",null]},null]}]},null,{"$substrCP":["$s",{"$max":[{"$subtract":[{"$strLenCP":"$s"},"$a"]},0]},"$a"]}]}`},
 			test{"round(a, 5)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$add":[{"$multiply":["$a",100000]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$a",100000]},0.5]}}]},100000]}`},
 			test{"round(a, -5)", `{"$literal":0}`},
 
