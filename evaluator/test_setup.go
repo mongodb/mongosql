@@ -290,6 +290,11 @@ schema:
         SqlName: s
         SqlType: varchar
      -
+        Name: t
+        MongoType: bool
+        SqlName: t
+        SqlType: boolean
+     -
         Name: _id
         MongoType: bson.ObjectId
         SqlType: varchar

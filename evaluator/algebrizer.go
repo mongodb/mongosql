@@ -914,9 +914,9 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		}
 
 		if typedE.Operator == parser.AST_IS {
-			return &SQLIsExpr{left, right}, nil
+			return NewSQLIsExpr(left, right), nil
 		} else if typedE.Operator == parser.AST_IS_NOT {
-			return &SQLNotExpr{&SQLIsExpr{left, right}}, nil
+			return &SQLNotExpr{NewSQLIsExpr(left, right)}, nil
 		}
 
 		if typedE.SubqueryOperator != "" {

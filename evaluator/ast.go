@@ -593,7 +593,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 		}
 
 		if typedN.left != left {
-			n = &SQLIsExpr{left, typedN.right}
+			n = NewSQLIsExpr(left, typedN.right)
 		}
 
 	case *SQLLessThanExpr:

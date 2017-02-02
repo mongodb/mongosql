@@ -738,6 +738,19 @@ func (_ *SQLInExpr) Type() schema.SQLType {
 //
 type SQLIsExpr sqlBinaryNode
 
+func NewSQLIsExpr(left, right SQLExpr) *SQLIsExpr {
+	if right.Type() == schema.SQLBoolean {
+		switch left.Type() {
+		case schema.SQLBoolean, schema.SQLInt, schema.SQLInt64, schema.SQLUint64, schema.SQLNumeric, schema.SQLDecimal128, schema.SQLFloat:
+			// don't reconcile the types
+		default:
+			reconciled := convertAllExprs([]SQLExpr{left, right}, schema.SQLBoolean, SQLNone)
+			return &SQLIsExpr{reconciled[0], reconciled[1]}
+		}
+	}
+	return &SQLIsExpr{left, right}
+}
+
 func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	leftVal, err := is.left.Evaluate(ctx)
 	if err != nil {

@@ -1199,6 +1199,51 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			left,
 		), true
 
+	case *SQLIsExpr:
+		left, ok := t.TranslateExpr(typedE.left)
+		if !ok {
+			return nil, false
+		}
+
+		right, ok := t.TranslateExpr(typedE.right)
+		if !ok {
+			return nil, false
+		}
+
+		// if right side is {null,unknown}, it's a simple case
+		if typedE.right == SQLNull {
+			return wrapInOp(mgoOperatorEQ,
+				wrapInIfNull(left, mgoNullLiteral),
+				right,
+			), true
+		}
+		// otherwise, the right side is a boolean
+
+		// if left side is a boolean, this is still simple
+		if typedE.left.Type() == schema.SQLBoolean {
+			return wrapInOp(mgoOperatorEQ,
+				left,
+				right,
+			), true
+		}
+
+		// otherwise, left side is a number type
+		if typedE.right == SQLTrue {
+			return wrapInCond(
+				false,
+				wrapInOp(mgoOperatorNEQ,
+					left,
+					0,
+				),
+				wrapInNullCheck(left),
+			), true
+		} else if typedE.right == SQLFalse {
+			return wrapInOp(mgoOperatorEQ,
+				left,
+				0,
+			), true
+		}
+
 	// SQL Values
 	case SQLDecimal128:
 		d, ok := t.translateDecimal(typedE)
@@ -1354,6 +1399,31 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 		}
 
 		return bson.M{name: bson.M{"$in": values}}, nil
+	case *SQLIsExpr:
+		name, ok := t.getFieldName(typedE.left)
+		if !ok {
+			return nil, e
+		}
+		switch typedE.right {
+		case SQLNull:
+			return bson.M{name: nil}, nil
+		case SQLFalse:
+			if typedE.left.Type() == schema.SQLBoolean {
+				return bson.M{name: false}, nil
+			}
+			return bson.M{name: 0}, nil
+		case SQLTrue:
+			if typedE.left.Type() == schema.SQLBoolean {
+				return bson.M{name: true}, nil
+			}
+			return bson.M{
+				mgoOperatorAND: []interface{}{
+					bson.M{name: bson.M{mgoOperatorNEQ: 0}},
+					bson.M{name: bson.M{mgoOperatorNEQ: nil}},
+				},
+			}, nil
+		}
+		return nil, e
 	case *SQLLessThanExpr:
 		match, ok := t.translateOperator(mgoOperatorLT, typedE.left, typedE.right)
 		if !ok {

@@ -3092,6 +3092,16 @@ func TestTranslatePredicate(t *testing.T) {
 			test{"a NOT REGEXP 'a' OR 'b'", `{"a":{"$nin":[{"Pattern":"a","Options":""}]}}`},
 			test{"a NOT REGEXP 'abc'", `{"a":{"$nin":[{"Pattern":"abc","Options":""}]}}`},
 			test{"a NOT REGEXP '(.* )?'", `{"a":{"$nin":[{"Pattern":"(.* )?","Options":""}]}}`},
+			test{"a IS NULL", `{"a":null}`},
+			test{"a IS NOT NULL", `{"a":{"$ne":null}}`},
+			test{"a IS UNKNOWN", `{"a":null}`},
+			test{"a IS NOT UNKNOWN", `{"a":{"$ne":null}}`},
+			test{"a IS TRUE", `{"$and":[{"a":{"$ne":0}},{"a":{"$ne":null}}]}`},
+			test{"a IS FALSE", `{"a":0}`},
+			test{"t IS TRUE", `{"t":true}`},
+			test{"t IS NOT TRUE", `{"t":{"$ne":true}}`},
+			test{"t IS FALSE", `{"t":false}`},
+			test{"t IS NOT FALSE", `{"t":{"$ne":false}}`},
 		}
 
 		runTests(tests)
@@ -3153,6 +3163,8 @@ func TestExprNoPushdown(t *testing.T) {
 			test{"s / s"},
 			test{"s div s"},
 			test{`s % s`},
+			test{"s is true"},
+			test{"g is false"},
 		}
 
 		runTests(tests)
@@ -3269,6 +3281,12 @@ func TestTranslateExpr(t *testing.T) {
 			test{"a in (2,3,5)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$cond":[{"$gt":[{"$size":{"$filter":{"as":"item","cond":{"$eq":["$$item","$a"]},"input":[{"$literal":2},{"$literal":3},{"$literal":5}]}}},{"$literal":0}]},true,{"$cond":[{"$eq":[false,true]},null,false]}]}]}`},
 			test{"case when a > 1 then 'gt' else 'lt' end", `{"$cond":[{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$gt":["$a",{"$literal":1}]}]},{"$literal":"gt"},{"$literal":"lt"}]}`},
 			test{"a <=> 5", `{"$eq":["$a",{"$literal":5}]}`},
+			test{"a IS NULL", `{"$eq":[{"$ifNull":["$a",{"$literal":null}]},{"$literal":null}]}`},
+			test{"a IS UNKNOWN", `{"$eq":[{"$ifNull":["$a",{"$literal":null}]},{"$literal":null}]}`},
+			test{"a IS TRUE", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},false,{"$ne":["$a",0]}]}`},
+			test{"a IS FALSE", `{"$eq":["$a",0]}`},
+			test{"t IS TRUE", `{"$eq":["$t",{"$literal":true}]}`},
+			test{"t IS FALSE", `{"$eq":["$t",{"$literal":false}]}`},
 		}
 
 		runTests(tests)
