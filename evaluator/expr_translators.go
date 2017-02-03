@@ -944,7 +944,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
 			), true
 		case "substring", "substr", "mid":
-			if (len(args) != 2 || typedE.Name == "mid") && len(args) != 3 {
+			if (len(args) != 2 && len(args) != 3) || (len(args) == 2 && typedE.Name == "mid") {
+				return nil, false
+			}
+
+			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
 			}
 
@@ -962,14 +966,14 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 			arg1 := int(arg1Val.Float64()) - 1
 
-			var arg2 interface{} = -1
+			var arg2 interface{} = bson.M{"$strLenCP": args[0]}
 			if len(args) == 3 {
 				arg2 = args[2]
 			}
 
 			return wrapInNullCheckedCond(
 				nil,
-				bson.M{"$substr": []interface{}{args[0], arg1, arg2}},
+				bson.M{"$substrCP": []interface{}{args[0], arg1, arg2}},
 				args[0],
 			), true
 		case "truncate":
