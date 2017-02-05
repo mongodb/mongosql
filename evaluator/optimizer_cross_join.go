@@ -1,6 +1,8 @@
 package evaluator
 
-func optimizeCrossJoins(n node) (node, error) {
+import "github.com/10gen/sqlproxy/log"
+
+func optimizeCrossJoins(n node, _ *EvalCtx, _ *log.Logger) (node, error) {
 	v := &crossJoinOptimizer{}
 	n, err := v.visit(n)
 	if err != nil {

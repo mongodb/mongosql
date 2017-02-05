@@ -3012,7 +3012,8 @@ func TestTranslatePredicate(t *testing.T) {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				n, err := optimizeEvaluations(createTestEvalCtx(), e)
+				ctx := createTestEvalCtx()
+				n, err := optimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldBeNil)
 				e = n.(SQLExpr)
 				match, local := translator.TranslatePredicate(e)
@@ -3136,7 +3137,8 @@ func TestExprNoPushdown(t *testing.T) {
 			Convey(fmt.Sprintf("%q should not be pushed down", t.sql), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				n, err := optimizeEvaluations(createTestEvalCtx(), e)
+				ctx := createTestEvalCtx()
+				n, err := optimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldBeNil)
 				e = n.(SQLExpr)
 				_, ok := translator.TranslateExpr(e)
@@ -3192,7 +3194,8 @@ func TestTranslateExpr(t *testing.T) {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				n, err := optimizeEvaluations(createTestEvalCtx(), e)
+				ctx := createTestEvalCtx()
+				n, err := optimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldBeNil)
 				e = n.(SQLExpr)
 				translated, ok := translator.TranslateExpr(e)

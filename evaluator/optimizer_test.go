@@ -50,8 +50,7 @@ func TestOptimizePlan(t *testing.T) {
 
 			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
-			actualPlan, err := OptimizePlan(createTestConnectionCtx(), plan)
-			So(err, ShouldBeNil)
+			actualPlan := OptimizePlan(createTestConnectionCtx(), plan)
 
 			pg := &pipelineGatherer{}
 			pg.visit(actualPlan)
@@ -74,8 +73,7 @@ func TestOptimizePlan(t *testing.T) {
 
 			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
-			actualPlan, err := OptimizePlan(createTestConnectionCtx(), plan)
-			So(err, ShouldBeNil)
+			actualPlan := OptimizePlan(createTestConnectionCtx(), plan)
 
 			pg := &pipelineGatherer{}
 			pg.visit(actualPlan)
@@ -121,6 +119,155 @@ func TestOptimizePlan(t *testing.T) {
 							{{"$project", bson.M{
 								"foo_DOT_a": "$a",
 								"bar_DOT_b": "$__joined_bar.b",
+							}}},
+						},
+					)
+
+					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a where foo.b = 10",
+						[]bson.D{
+							{{"$match", bson.M{"b": int64(10)}}},
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "bar",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_bar",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_bar",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+								"bar_DOT_b": "$__joined_bar.b",
+							}}},
+						},
+					)
+
+					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a where foo.b = 10 AND bar.b = 12",
+						[]bson.D{
+							{{"$match", bson.M{"b": int64(10)}}},
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "bar",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_bar",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_bar",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{"__joined_bar.b": int64(12)}}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+								"bar_DOT_b": "$__joined_bar.b",
+							}}},
+						},
+					)
+
+					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a where foo.b = 10 OR bar.b = 12",
+						[]bson.D{
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "bar",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_bar",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_bar",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{
+								"$or": []interface{}{
+									bson.M{"b": int64(10)},
+									bson.M{"__joined_bar.b": int64(12)},
+								},
+							}}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+								"bar_DOT_b": "$__joined_bar.b",
+							}}},
+						},
+					)
+
+					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a where foo.b = 11 AND (foo.b = 10 OR bar.b = 12)",
+						[]bson.D{
+							{{"$match", bson.M{"b": int64(11)}}},
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "bar",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_bar",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_bar",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{
+								"$or": []interface{}{
+									bson.M{"b": int64(10)},
+									bson.M{"__joined_bar.b": int64(12)},
+								},
+							}}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+								"bar_DOT_b": "$__joined_bar.b",
+							}}},
+						},
+					)
+
+					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a where (foo.b = 11 OR foo.b = 10) AND bar.b = 12",
+						[]bson.D{
+							{{"$match", bson.M{
+								"$or": []interface{}{
+									bson.M{"b": int64(11)},
+									bson.M{"b": int64(10)},
+								},
+							}}},
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "bar",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_bar",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_bar",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{"__joined_bar.b": int64(12)}}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+								"bar_DOT_b": "$__joined_bar.b",
+							}}},
+						},
+					)
+
+					test("select foo.a, bar.b from foo inner join (select bar.a, bar.b from bar where bar.b = 12) bar on foo.a = bar.a where bar.a = 10",
+						[]bson.D{
+							{{"$match", bson.M{"b": int64(12)}}},
+							{{"$project", bson.M{
+								"bar_DOT_a": "$a",
+								"bar_DOT_b": "$b",
+							}}},
+							{{"$match", bson.M{"bar_DOT_a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "bar_DOT_a",
+								"foreignField": "a",
+								"as":           "__joined_foo",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_foo",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{"bar_DOT_a": int64(10)}}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$__joined_foo.a",
+								"bar_DOT_b": "$bar_DOT_b",
 							}}},
 						},
 					)
@@ -270,6 +417,75 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 						},
 					)
+
+					test("select foo.a, bar.a, baz.a from foo inner join bar on foo.a = bar.a inner join baz on bar.a = baz.a where foo.a = 10 AND bar.a = 12 AND baz.a = 13",
+						[]bson.D{
+							{{"$match", bson.M{"a": int64(10)}}},
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "bar",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_bar",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_bar",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{"__joined_bar.a": int64(12)}}},
+							{{"$match", bson.M{"__joined_bar.a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "baz",
+								"localField":   "__joined_bar.a",
+								"foreignField": "a",
+								"as":           "__joined_baz",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_baz",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{"__joined_baz.a": int64(13)}}},
+						},
+					)
+
+					test("select foo.a, bar.a, baz.a from foo inner join bar on foo.a = bar.a inner join baz on bar.a = baz.a where (foo.a = 10 OR bar.a = 11) AND bar.a = 12 AND baz.a = 13",
+						[]bson.D{
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "bar",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_bar",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_bar",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{
+								"$and": []interface{}{
+									bson.M{
+										"$or": []interface{}{
+											bson.M{"a": int64(10)},
+											bson.M{"__joined_bar.a": int64(11)},
+										},
+									},
+									bson.M{"__joined_bar.a": int64(12)},
+								},
+							}}},
+							{{"$match", bson.M{"__joined_bar.a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "baz",
+								"localField":   "__joined_bar.a",
+								"foreignField": "a",
+								"as":           "__joined_baz",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_baz",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{"__joined_baz.a": int64(13)}}},
+						},
+					)
 				})
 
 				Convey("flip join", func() {
@@ -321,6 +537,54 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_bar",
 								"preserveNullAndEmptyArrays": true,
 							}}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+								"bar_DOT_b": "$__joined_bar.b",
+							}}},
+						},
+					)
+
+					test("select foo.a, bar.b from foo left outer join bar on foo.a = bar.a where foo.a = 10 AND bar.b = 12",
+						[]bson.D{
+							{{"$match", bson.M{"a": int64(10)}}},
+							{{"$lookup", bson.M{
+								"from":         "bar",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_bar",
+							}}},
+							{{"$project", bson.M{
+								"_id":    1,
+								"a":      1,
+								"b":      1,
+								"c":      1,
+								"d.e":    1,
+								"d.f":    1,
+								"filter": 1,
+								"g":      1,
+								"__joined_bar": bson.M{
+									"$cond": []interface{}{
+										bson.M{"$eq": []interface{}{
+											bson.M{"$ifNull": []interface{}{"$a", nil}},
+											nil,
+										}},
+										bson.M{"$literal": []interface{}{}},
+										"$__joined_bar",
+									},
+								},
+							}}},
+							{{"$match", bson.M{
+								"__joined_bar": bson.M{
+									"$elemMatch": bson.M{
+										"b": int64(12),
+									},
+								},
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_bar",
+								"preserveNullAndEmptyArrays": true,
+							}}},
+							{{"$match", bson.M{"__joined_bar.b": int64(12)}}},
 							{{"$project", bson.M{
 								"foo_DOT_a": "$a",
 								"bar_DOT_b": "$__joined_bar.b",
@@ -1985,7 +2249,8 @@ func TestOptimizeEvaluations(t *testing.T) {
 			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				result, err := optimizeEvaluations(createTestEvalCtx(), e)
+				ctx := createTestEvalCtx()
+				result, err := optimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldBeNil)
 				So(result, ShouldResemble, t.result)
 			})
@@ -2125,7 +2390,8 @@ func TestOptimizeEvaluationFailures(t *testing.T) {
 			Convey(fmt.Sprintf("%q should fail with error %q", t.sql, t.err), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				_, err = optimizeEvaluations(createTestEvalCtx(), e)
+				ctx := createTestEvalCtx()
+				_, err = optimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldResemble, t.err)
 			})
 		}

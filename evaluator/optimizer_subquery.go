@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"errors"
+
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -34,10 +35,7 @@ func (v *subqueryOptimizer) visit(n node) (node, error) {
 		if !typedN.correlated {
 
 			v.logger.Logf(log.DebugLow, "optimizing non-correlated subquery: \n%v", PrettyPrintPlan(typedN.plan))
-			n, err = optimize(v.ctx, n, true)
-			if err != nil {
-				return nil, err
-			}
+			n = optimize(v.ctx, n, true)
 			typedN, ok = n.(*SQLSubqueryExpr)
 			if !ok {
 				return nil, errors.New("Optimized subquery plan not rooted in a SQLSubqueryExpr")

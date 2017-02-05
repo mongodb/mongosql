@@ -21,7 +21,7 @@ func TestSubquerySourceStage(t *testing.T) {
 		s.source = ts
 		plan = s
 		if optimize {
-			plan, err = OptimizePlan(createTestConnectionCtx(), plan)
+			plan = OptimizePlan(createTestConnectionCtx(), plan)
 			So(err, ShouldBeNil)
 		}
 

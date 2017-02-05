@@ -63,15 +63,12 @@ func (e *Evaluator) EvaluateQuery(ast parser.Statement, conn evaluator.Connectio
 		return nil, nil, err
 	}
 
-	conn.Logger(log.OptimizerComponent).Logf(log.DebugHigh, "optimizing query plan: \n%v", evaluator.PrettyPrintPlan(plan))
-	plan, err = evaluator.OptimizePlan(conn, plan)
-	if err != nil {
-		return nil, nil, err
-	}
+	conn.Logger(log.OptimizerComponent).Logf(log.DebugLow, "optimizing query plan: \n%v", evaluator.PrettyPrintPlan(plan))
 
+	plan = evaluator.OptimizePlan(conn, plan)
 	executionCtx := evaluator.NewExecutionCtx(conn)
 
-	conn.Logger(log.EvaluatorComponent).Logf(log.DebugHigh, "executing query plan: \n%v", evaluator.PrettyPrintPlan(plan))
+	conn.Logger(log.EvaluatorComponent).Logf(log.DebugLow, "executing query plan: \n%v", evaluator.PrettyPrintPlan(plan))
 
 	iter, err := plan.Open(executionCtx)
 	if err != nil {
@@ -93,16 +90,12 @@ func (e *Evaluator) EvaluateCommand(ast parser.Statement, conn evaluator.Connect
 		return nil, err
 	}
 
-	conn.Logger(log.OptimizerComponent).Logf(log.DebugHigh, "optimizing query plan: \n%v", evaluator.PrettyPrintCommand(stmt))
+	conn.Logger(log.OptimizerComponent).Logf(log.DebugLow, "optimizing query plan: \n%v", evaluator.PrettyPrintCommand(stmt))
 
-	command, err := evaluator.OptimizeCommand(conn, stmt)
-	if err != nil {
-		return nil, err
-	}
-
-	conn.Logger(log.EvaluatorComponent).Logf(log.DebugHigh, "executing query plan: \n%v", evaluator.PrettyPrintCommand(stmt))
-
+	command := evaluator.OptimizeCommand(conn, stmt)
 	executionCtx := evaluator.NewExecutionCtx(conn)
+
+	conn.Logger(log.EvaluatorComponent).Logf(log.DebugLow, "executing query plan: \n%v", evaluator.PrettyPrintCommand(stmt))
 
 	return command.Execute(executionCtx), nil
 }

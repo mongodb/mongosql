@@ -23,8 +23,7 @@ func TestProjectOperator(t *testing.T) {
 		project.source = ts
 		plan = project
 		if optimize {
-			plan, err = OptimizePlan(createTestConnectionCtx(), plan)
-			So(err, ShouldBeNil)
+			plan = OptimizePlan(createTestConnectionCtx(), plan)
 		}
 
 		iter, err := plan.Open(ctx)

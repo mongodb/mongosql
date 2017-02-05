@@ -1496,10 +1496,7 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 		if !ok {
 			panic("replaceColumnWithConstant returns something that is not a PlanStage")
 		}
-		plan, err = OptimizePlan(execCtx, plan)
-		if err != nil {
-			return nil, err
-		}
+		plan = OptimizePlan(execCtx, plan)
 	}
 	it, err = plan.Open(execCtx)
 	if err != nil {

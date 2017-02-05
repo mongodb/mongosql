@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"math"
+	"os"
 	"strings"
 
 	"github.com/10gen/sqlproxy/log"
@@ -11,13 +12,17 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func optimizePushDown(ctx ConnectionCtx, logger *log.Logger, n node) (node, error) {
+func optimizePushDown(n node, ctx *EvalCtx, logger *log.Logger) (node, error) {
+	if os.Getenv(NoPushDown) != "" {
+		logger.Warnf(log.Info, "pushdown turned off")
+		return n, nil
+	}
+
 	v := &pushDownOptimizer{
 		logger:        logger,
 		ctx:           ctx,
 		columnTracker: newColumnTracker(),
 	}
-
 	n, err := v.visit(n)
 	if err != nil {
 		return nil, err

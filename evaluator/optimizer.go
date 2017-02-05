@@ -1,77 +1,63 @@
 package evaluator
 
-import (
-	"os"
-
-	"github.com/10gen/sqlproxy/log"
-)
+import "github.com/10gen/sqlproxy/log"
 
 // OptimizeCommand applies optimizations to the command
 // plan tree to aid in performance.
-func OptimizeCommand(ctx ConnectionCtx, c command) (command, error) {
-	n, err := optimize(ctx, c, false)
-	if err != nil {
-		return nil, err
-	}
-	return n.(command), nil
+func OptimizeCommand(ctx ConnectionCtx, c command) command {
+	n := optimize(ctx, c, false)
+	return n.(command)
 }
 
 // OptimizePlan applies optimizations to the plan tree to
 // aid in performance.
-func OptimizePlan(ctx ConnectionCtx, p PlanStage) (PlanStage, error) {
-	n, err := optimize(ctx, p, false)
-	if err != nil {
-		return nil, err
-	}
-
-	return n.(PlanStage), nil
+func OptimizePlan(ctx ConnectionCtx, p PlanStage) PlanStage {
+	n := optimize(ctx, p, false)
+	return n.(PlanStage)
 }
 
-func optimize(ctx ConnectionCtx, n node, isSubquery bool) (node, error) {
-	var newN node
-	var err error
+type optimizerStage struct {
+	name string
+	f    func(node, *EvalCtx, *log.Logger) (node, error)
+}
 
+var optimizerStages = []optimizerStage{
+	{"evaluations", optimizeEvaluations},
+	{"cross joins", optimizeCrossJoins},
+	{"filtering", optimizeFiltering},
+	{"pushdown", optimizePushDown},
+}
+
+func optimize(ctx ConnectionCtx, n node, isSubquery bool) node {
 	logger := ctx.Logger(log.OptimizerComponent)
 
 	if !isSubquery {
-		newN, err = optimizeSubqueries(ctx, logger, n, true)
+		logger.Log(log.DebugLow, "running optimization stage 'subqueries'")
+		newN, err := optimizeSubqueries(ctx, logger, n, true)
 		if err != nil {
-			logger.Warnf(log.DebugHigh, err.Error())
-			return n, nil
+			logger.Warnf(log.Info, "error running optimization stage 'subqueries': %v", err)
+		} else if newN != n {
+			n = newN
+			logger.Logf(log.DebugHigh, "optimized plan after 'subqueries': \n%v", prettyPrintNode(n))
 		}
-		n = newN
 	}
 
-	// we use the collation connection during optimization because the nodes
-	// that get evaluated during this phase are literal values.
 	evalCtx := NewEvalCtx(NewExecutionCtx(ctx), ctx.Variables().CollationConnection)
-	newN, err = optimizeEvaluations(evalCtx, n)
-	if err != nil {
-		logger.Warnf(log.DebugHigh, err.Error())
-		return n, nil
-	}
-	n = newN
 
-	if os.Getenv(NoPushDown) != "" {
-		logger.Warnf(log.DebugHigh, "pushdown turned off")
-		return n, nil
+	for _, stage := range optimizerStages {
+		logger.Logf(log.DebugLow, "running optimization stage '%s'", stage.name)
+		newN, err := stage.f(n, evalCtx, logger)
+		if err != nil {
+			logger.Warnf(log.Info, "error running optimization stage '%s': %v", stage.name, err)
+			// don't exit here. Just because we couldn't apply one optimization doesn't mean
+			// others aren't valid
+		} else if newN != n {
+			n = newN
+			logger.Logf(log.DebugHigh, "optimized plan after '%s': \n%v", stage.name, prettyPrintNode(n))
+		}
 	}
 
-	newN, err = optimizeCrossJoins(n)
-	if err != nil {
-		logger.Warnf(log.DebugHigh, err.Error())
-		return n, nil
-	}
-	n = newN
-
-	newN, err = optimizePushDown(ctx, logger, n)
-	if err != nil {
-		logger.Warnf(log.DebugHigh, err.Error())
-		return n, nil
-	}
-	n = newN
-
-	return n, nil
+	return n
 }
 
 func combineExpressions(exprs []SQLExpr) SQLExpr {
