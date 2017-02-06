@@ -1,0 +1,9 @@
+
+testcases:
+- sql: "SELECT `App_Employ_Status` AS `none_App_Employ_Status_nk` FROM Loan GROUP BY `App_Employ_Status` ORDER BY 1 ASC"
+  expected_names: ["none_App_Employ_Status_nk"]
+  expected_types: [varchar]
+  expected:
+  - ["EMPLOYED"]
+  - ["UNEMPLOYED"]
+

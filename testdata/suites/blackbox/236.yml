@@ -1,0 +1,17 @@
+
+testcases:
+- sql: "SELECT `Call Center Region` AS `none_Call_Center_Region_nk`,   `Order Status` AS `none_Order_Status_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Call Center Region`,   `Order Status` ORDER BY 1, 2, 3"
+  min_server_version: "3.4"
+  expected_names: ["none_Call_Center_Region_nk", "none_Order_Status_nk", "sum_Gross_Profit_ok"]
+  expected_types: [varchar, varchar, float64]
+  expected:
+  - ["CENTRAL", "F", 3105521.38]
+  - ["CENTRAL", "O", 2088843.54]
+  - ["CENTRAL", "P", 112756.17]
+  - ["EAST", "F", 7115120.6]
+  - ["EAST", "O", 5098324.8]
+  - ["EAST", "P", 362230.88]
+  - ["WEST", "F", 3696776.86]
+  - ["WEST", "O", 2789754.5]
+  - ["WEST", "P", 237711.75]
+

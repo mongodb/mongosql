@@ -1,0 +1,27 @@
+
+testcases:
+- sql: "select * from foo order by a"
+  min_server_version: "3.4"
+  description: "order by"
+  expected_names: ["id", "a"]
+  expected_types: [int, string]
+  expected: 
+  - [0, "a"]
+  - [2, "A"]
+  - [1, "B"]
+- sql: "select a, sum(id) from foo group by a order by a"
+  min_server_version: "3.4"
+  description: "group by"
+  expected_names: ["a", "sum(id)"]
+  expected_types: [string, int]
+  expected: 
+  - ["a", 2]
+  - ["B", 1]
+- sql: "select id from foo where a = 'A'"
+  min_server_version: "3.4"
+  description: "where"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: 
+  - [0]
+  - [2]

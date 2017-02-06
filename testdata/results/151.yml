@@ -1,4 +1,0 @@
-expected_names: ["sum_Discount_ok"]
-expected_types: [float64]
-expected:
-- [3087.05]

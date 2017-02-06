@@ -1,0 +1,14 @@
+
+testcases:
+- sql: "SELECT YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY YEAR(`Order Date`) ORDER BY 1 ASC"
+  min_server_version: "3.4"
+  expected_names: ["yr_Order_Date_ok"]
+  expected_types: [int64]
+  expected:
+  - [1997]
+  - [1998]
+  - [1999]
+  - [2000]
+  - [2001]
+  - [2002]
+

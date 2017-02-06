@@ -1,0 +1,12 @@
+
+testcases:
+- sql: "SELECT AVG(`Price`) AS `avg_Price_ok`,   `Customer Segment` AS `none_Customer_Segment_nk` FROM Staples GROUP BY `Customer Segment` ORDER BY 1, 2"
+  min_server_version: "3.4"
+  expected_names: ["avg_Price_ok", "none_Customer_Segment_nk"]
+  expected_types: [float64, varchar]
+  expected:
+  - [84.24295534275149331563477766189438, "SMALL BUSINESS"]
+  - [84.92737797498991528842275110931827, "CORPORATE"]
+  - [85.97275632587392131051630832236361, "HOME OFFICE"]
+  - [88.37421486073841028962709355047654, "CONSUMER"]
+

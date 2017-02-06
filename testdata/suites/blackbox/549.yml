@@ -1,0 +1,24 @@
+
+testcases:
+- sql: "SELECT `key` AS `none_key_nk`,   `str2` AS `none_strC_nk`,   `str3` AS `none_strD_nk`,   (CASE WHEN (CASE WHEN (1 IS NULL) OR (LENGTH(`str3`) IS NULL) THEN NULL       WHEN LENGTH(`str3`) < 1 THEN ''       WHEN 1 < 1 THEN SUBSTRING(`str2`,1,LENGTH(`str3`))       ELSE SUBSTRING(`str2`,1,LENGTH(`str3`)) END) = `str3` THEN 1 WHEN NOT (CASE WHEN (1 IS NULL) OR (LENGTH(`str3`) IS NULL) THEN NULL       WHEN LENGTH(`str3`) < 1 THEN ''       WHEN 1 < 1 THEN SUBSTRING(`str2`,1,LENGTH(`str3`))       ELSE SUBSTRING(`str2`,1,LENGTH(`str3`)) END) = `str3` THEN 0 ELSE NULL END) AS `none_z_startswith_str_str__copy__nk` FROM Calcs ORDER BY 1, 2, 3, 4"
+  expected_names: ["none_key_nk", "none_strC_nk", "none_strD_nk", "none_z_startswith_str_str__copy__nk"]
+  expected_types: [varchar, varchar, varchar, int64]
+  expected:
+  - ["key00", "one", "e", 0]
+  - ["key01", "two", "e", 0]
+  - ["key02", "three", "e", 0]
+  - ["key03", ~, "e", ~]
+  - ["key04", "five", ~, ~]
+  - ["key05", "six", ~, ~]
+  - ["key06", ~, "e", ~]
+  - ["key07", "eight", "e", 1]
+  - ["key08", "nine", ~, ~]
+  - ["key09", "ten", "e", 0]
+  - ["key10", "eleven", "e", 1]
+  - ["key11", "twelve", ~, ~]
+  - ["key12", ~, ~, ~]
+  - ["key13", "fourteen", ~, ~]
+  - ["key14", "fifteen", "e", 0]
+  - ["key15", "sixteen", "e", 0]
+  - ["key16", ~, ~, ~]
+

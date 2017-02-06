@@ -1,0 +1,9 @@
+
+testcases:
+- sql: "SELECT `App_CoSign` AS `none_App_CoSign_nk` FROM Loan GROUP BY `App_CoSign` ORDER BY 1 ASC"
+  expected_names: ["none_App_CoSign_nk"]
+  expected_types: [varchar]
+  expected:
+  - ["COSIGN"]
+  - ["NO COSIGN"]
+

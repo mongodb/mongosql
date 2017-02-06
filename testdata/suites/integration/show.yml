@@ -1,0 +1,322 @@
+#
+# 3. Tests
+#
+testcases:
+- sql: "SHOW COLUMNS FROM foo"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS IN foo IN show_test LIKE 'b%'"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS FROM foo FROM show_test LIKE 'b%'"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS FROM foo WHERE type = 'varchar(65535)'"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS FROM show_test.foo"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS IN show_test.foo"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS IN .foo"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS FROM foo FROM show_test"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW COLUMNS IN foo IN show_test"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW FULL COLUMNS FROM foo"
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"a\" }"]
+    - ["b1", "varchar(65535)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"b\" }"]
+    - ["c1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"c\" }"]
+- sql: "SHOW TABLES"
+  expected_types: [varchar]
+  expected: 
+    - ["bar"]
+    - ["foo"]
+- sql: "SHOW TABLES LIKE 'f%'"
+  expected_types: [varchar]
+  expected: 
+    - ["foo"]
+- sql: "SHOW TABLES WHERE Tables_in_show_test = 'foo'"
+  expected_types: [varchar]
+  expected: 
+    - ["foo"]
+- sql: "SHOW TABLES FROM show_test"
+  expected_types: [varchar]
+  expected: 
+    - ["bar"]
+    - ["foo"]
+- sql: "SHOW FULL TABLES"
+  expected_types: [varchar, varchar]
+  expected: 
+   - ["bar", "BASE TABLE"]
+   - ["foo", "BASE TABLE"]
+- sql: "SHOW DATABASES"
+  expected_types: [varchar]
+  expected: 
+    - ["Blah"]
+    - ["information_schema"]
+    - ["show_test"]
+- sql: "SHOW DATABASES LIKE 'b%'"
+  expected_types: [varchar]
+  expected: 
+    - ["Blah"]
+- sql: "SHOW DATABASES WHERE `Database` = 'show_test'"
+  expected_types: [varchar]
+  expected: 
+    - ["show_test"]
+- sql: "SHOW SCHEMAS"
+  expected_types: [varchar]
+  expected: 
+    - ["Blah"]
+    - ["information_schema"]
+    - ["show_test"]
+- sql: "SHOW SCHEMAS LIKE 'b%'"
+  expected_types: [varchar]
+  expected: 
+    - ["Blah"]
+- sql: "SHOW SCHEMAS WHERE `Database` = 'show_test'"
+  expected_types: [varchar]
+  expected: 
+    - ["show_test"]
+
+- sql: "SHOW VARIABLES LIKE '%auto_incr%'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["auto_increment_increment", "1"]
+    - ["auto_increment_offset", "1"]
+- sql: "SHOW SESSION VARIABLES LIKE '%auto_incr%'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["auto_increment_increment", "1"]
+    - ["auto_increment_offset", "1"]
+- sql: "SHOW GLOBAL VARIABLES LIKE '%auto_incr%'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["auto_increment_increment", "1"]
+    - ["auto_increment_offset", "1"]
+- sql: "SHOW VARIABLES LIKE '%info%'"
+  expected_types: [varchar, varchar]
+  expected:
+    - ["master_info_repository", "FILE"]
+    - ["ndbinfo_database", "ndbinfo"]
+    - ["ndbinfo_max_bytes", "0"]
+    - ["ndbinfo_max_rows", "10"]
+    - ["ndbinfo_offline", "0"]
+    - ["ndbinfo_show_hidden", "0"]
+    - ["ndbinfo_table_prefix", "ndb$"]
+    - ["ndbinfo_version", ""]
+    - ["relay_log_info_file", "relay-log.info"]
+    - ["relay_log_info_repository", "FILE"]
+    - ["sync_master_info", "10000"]
+    - ["sync_relay_log_info", "10000"]
+- sql: "SHOW GLOBAL VARIABLES WHERE Variable_name = 'autocommit'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["autocommit", "1"]
+- sql: "SHOW STATUS LIKE '%stmt_create_collection%'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["Mysqlx_stmt_create_collection", "0"]
+    - ["Mysqlx_stmt_create_collection_index", "0"]
+- sql: "SHOW GLOBAL STATUS LIKE '%stmt_create_collection%'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["Mysqlx_stmt_create_collection", "0"]
+    - ["Mysqlx_stmt_create_collection_index", "0"]
+- sql: "SHOW SESSION STATUS LIKE '%stmt_create_collection%'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["Mysqlx_stmt_create_collection", "0"]
+    - ["Mysqlx_stmt_create_collection_index", "0"]
+- sql: "SHOW SESSION STATUS WHERE Variable_name = 'Uptime'"
+  expected_types: [varchar, varchar]
+  expected: 
+    - ["Uptime", "0"]
+- sql: "SHOW COLLATION LIKE '%sinhala%'"
+  expected_types: [varchar, varchar, int, varchar, varchar, int]
+  expected:
+    - ["ucs2_sinhala_ci", "ucs2", 147, "No", "Yes", 8]
+    - ["utf16_sinhala_ci", "utf16", 120, "No", "Yes", 8]
+    - ["utf32_sinhala_ci", "utf32", 179, "No", "Yes", 8]
+    - ["utf8_sinhala_ci", "utf8", 211, "No", "Yes", 8]
+    - ["utf8mb4_sinhala_ci", "utf8mb4", 243, "No", "Yes", 8]
+- sql: "SHOW CHARSET LIKE '%cp1%'"
+  expected_types: [varchar, varchar, varchar, int]
+  expected:
+    - ["cp1250", "Windows Central European", "cp1250_general_ci", 1]
+    - ["cp1251", "Windows Cyrillic", "cp1251_general_ci", 1]
+    - ["cp1256", "Windows Arabic", "cp1256_general_ci", 1]
+    - ["cp1257", "Windows Baltic", "cp1257_general_ci", 1]
+- sql: "SHOW CHARSET LIKE 'macce'"
+  expected_types: [varchar, varchar, varchar, int]
+  expected:
+    - ["macce", "Mac Central European", "macce_general_ci", 1]
+
+
+
+# unimplemented
+- sql: "SHOW BINARY LOGS"
+  expected: []
+- sql: "SHOW MASTER LOGS"
+  expected: []
+- sql: "SHOW BINLOG EVENTS"
+  expected: []
+- sql: "SHOW BINLOG EVENTS IN `temp`"
+  expected: []
+- sql: "SHOW BINLOG EVENTS FROM 10"
+  expected: []
+- sql: "SHOW BINLOG EVENTS LIMIT 10, 12"
+  expected: []
+- sql: "SHOW RELAYLOG EVENTS"
+  expected: []
+- sql: "SHOW CREATE DATABASE db_name"
+  expected: []
+- sql: "SHOW CREATE DATABASE IF NOT EXISTS db_name"
+  expected: []
+- sql: "SHOW CREATE SCHEMA schema_name"
+  expected: []
+- sql: "SHOW CREATE SCHEMA IF NOT EXISTS schema_name"
+  expected: []
+- sql: "SHOW CREATE EVENT event_name"
+  expected: []
+- sql: "SHOW CREATE FUNCTION func_name"
+  expected: []
+- sql: "SHOW CREATE PROCEDURE proc_name"
+  expected: []
+- sql: "SHOW CREATE TRIGGER trigger_name"
+  expected: []
+- sql: "SHOW CREATE USER user_name"
+  expected: []
+- sql: "SHOW CREATE VIEW view_name"
+  expected: []
+- sql: "SHOW ENGINE engine_name STATUS"
+  expected: []
+- sql: "SHOW ENGINE engine_name MUTEX"
+  expected: []
+- sql: "SHOW ENGINES"
+  expected: []
+- sql: "SHOW STORAGE ENGINES"
+  expected: []
+- sql: "SHOW ERRORS"
+  expected: []
+- sql: "SHOW ERRORS LIMIT 10, 12"
+  expected: []
+- sql: "SHOW COUNT(*) ERRORS"
+  expected: []
+- sql: "SHOW EVENTS"
+  expected: []
+- sql: "SHOW EVENTS FROM schema_name"
+  expected: []
+- sql: "SHOW EVENTS IN schema_name"
+  expected: []
+- sql: "SHOW EVENTS LIKE '%_'"
+  expected: []
+- sql: "SHOW EVENTS WHERE XXX = 12"
+  expected: []
+- sql: "SHOW FUNCTION STATUS"
+  expected: []
+- sql: "SHOW FUNCTION STATUS LIKE '%_'"
+  expected: []
+- sql: "SHOW FUNCTION STATUS WHERE XXX = 12"
+  expected: []
+- sql: "SHOW GRANTS"
+  expected: []
+- sql: "SHOW GRANTS FOR user_name"
+  expected: []
+- sql: "SHOW INDEX FROM table_name"
+  expected: []
+- sql: "SHOW INDEXES FROM table_name"
+  expected: []
+- sql: "SHOW KEYS FROM table_name WHERE x = 10"
+  expected: []
+- sql: "SHOW MASTER STATUS"
+  expected: []
+- sql: "SHOW OPEN TABLES"
+  expected: []
+- sql: "SHOW OPEN TABLES FROM db_name"
+  expected: []
+- sql: "SHOW OPEN TABLES FROM db_name LIKE '%_'"
+  expected: []
+- sql: "SHOW OPEN TABLES WHERE XXX = 10"
+  expected: []
+- sql: "SHOW PLUGINS"
+  expected: []
+- sql: "SHOW PRIVILEGES"
+  expected: []
+- sql: "SHOW PROCEDURE STATUS"
+  expected: []
+- sql: "SHOW PROCEDURE STATUS LIKE '%_'"
+  expected: []
+- sql: "SHOW PROCEDURE STATUS WHERE XXX = 12"
+  expected: []
+- sql: "SHOW PROCESSLIST"
+  expected: []
+- sql: "SHOW FULL PROCESSLIST"
+  expected: []
+- sql: "SHOW PROFILES"
+  expected: []
+- sql: "SHOW SLAVE HOSTS"
+  expected: []
+- sql: "SHOW SLAVE STATUS"
+  expected: []
+- sql: "SHOW SLAVE STATUS FOR CHANNEL channel_name"
+  expected: []
+- sql: "SHOW TABLE STATUS"
+  expected: []
+- sql: "SHOW TABLE STATUS FROM db_name"
+  expected: []
+- sql: "SHOW TABLE STATUS IN db_name"
+  expected: []
+- sql: "SHOW TABLE STATUS LIKE '%_'"
+  expected: []
+- sql: "SHOW TABLE STATUS WHERE XXX = 10"
+  expected: []
+- sql: "SHOW TABLE STATUS FROM db_name WHERE XXX = 10"
+  expected: []
+- sql: "SHOW TRIGGERS"
+  expected: []
+- sql: "SHOW TRIGGERS FROM db_name"
+  expected: []
+- sql: "SHOW TRIGGERS IN db_name"
+  expected: []
+- sql: "SHOW TRIGGERS LIKE '%_'"
+  expected: []
+- sql: "SHOW TRIGGERS WHERE XXX = 10"
+  expected: []
+- sql: "SHOW TRIGGERS FROM db_name WHERE XXX = 10"
+  expected: []
+- sql: "SHOW WARNINGS"
+  expected: []
+- sql: "SHOW WARNINGS LIMIT 10, 12"
+  expected: []
+- sql: "SHOW COUNT(*) WARNINGS"
+  expected: []

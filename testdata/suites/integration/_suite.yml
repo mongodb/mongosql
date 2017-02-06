@@ -1,0 +1,1442 @@
+name: Integration
+
+data:
+- archive_file: testdata/resources/data/test1.bson.gz
+- archive_file: testdata/input/test2.bson.gz
+- archive_file: testdata/input/test3.bson.gz
+- archive_file: testdata/input/test4.bson.gz
+- inline:
+    db: "test"
+    collection: "collation_1"
+    collation: { locale: "en_US", strength: 1 }
+    docs:
+    - { _id: 0, a: "a" }
+    - { _id: 1, a: "B" }
+    - { _id: 2, a: "A" }
+- inline: 
+    db: "test"
+    collection: "set_1"
+    docs:
+    - { _id: 0, a: 1, ab: 1}
+    - { _id: 1, a: 2, ab: 2}
+    - { _id: 2, a: 3, ab: 3}
+- inline:
+    db: "test"
+    collection: "scalar"
+    docs:
+    - { _id: 0, a: 1, b: "hey", c: 1.456, d: {$date: {$numberLong: "969716700000"}}, s: "foobarbar", t: false}
+    - { _id: 1, a: ~, b: "yo", c: -121.232, d: {$date: {$numberLong: "969803100000"}}, s: ~, t: true}
+    - { _id: 2, a: -3, b: ~, c: 56.7342, d: {$date: {$numberLong: "972395100000"}}, t: ~}
+    - { _id: 3, a: 4, b: "this", c: ~, d: ~, z: 0}
+    - { _id: 4, z: ~}
+- inline:
+    db: "test"
+    collection: "groupby"
+    docs:
+    - { _id: 0, a: 1, b: 1, c: 1 }
+    - { _id: 1, a: 2, b: 2, c: ~ }
+    - { _id: 2, a: 2, b: 3 }
+    - { _id: 3, a: 3, b: 3 }
+- inline:
+    db: "test"
+    collection: "join_1"
+    docs:
+    - { _id: 0, a: 1, b: ~ }
+    - { _id: 1, a: 2, b: 1 }
+    - { _id: 2, a: 3 }
+- inline:
+    db: "test"
+    collection: "join_2"
+    docs:
+    - { _id: 0, c: 10, d: ~ }
+    - { _id: 1, c: 11, d: 1 }
+    - { _id: 20, c: 30 }
+- inline:
+    db: "test"
+    collection: "join_3"
+    docs:
+    - { _id: 0, a: 4, c: 10, d: ~ }
+    - { _id: 1, a: 3, c: 11, d: 1 }
+    - { _id: 2, a: 14, c: 30 }
+    - { _id: 3, c: 30 }
+- inline:
+    db: "test"
+    collection: "join_4"
+    docs:
+    - { _id: 0, a: 3, b: 5, c: 10, d: ~ }
+    - { _id: 1, a: 2, b: 6, c: 11, d: 1 }
+    - { _id: 20, c: 30 }
+- inline:
+    db: "test"
+    collection: "join_5"
+    docs:
+    - { _id: 0, b: 5, c: 10, e: 3}
+    - { _id: 1, b: 8, c: 11, e: 5}
+    - { _id: 20, c: 30 }
+- inline:
+    db: "test"
+    collection: "join_6"
+    docs:
+    - { _id: 1, rnum: 0, c1: 10, c2: 15 }
+    - { _id: 2, rnum: 1, c1: 20, c2: 25 }
+    - { _id: 3, rnum: 2, c2: 50}
+- inline:
+    db: "test"
+    collection: "join_7"
+    docs:
+    - { _id: 0, c2: "BB"}
+    - { _id: 1, c2: "DD"}
+    - { _id: 2, c2: "EE"}
+    - { _id: 3, c2: "FF"}
+- inline:
+    db: "test"
+    collection: "join_8"
+    docs:
+    - { _id: 0, a: 1, b: [{c: 1}, {c: 2, d: [5, 6]}]}
+    - { _id: 1, a: 1, b: [{c: 1}, {c: 3}]}
+    - { _id: 2, a: 2, b: [{c: 2, d: [7]}, {c: 3}]}
+- inline:
+    db: "test"
+    collection: "join_9"
+    docs:
+    - { _id: 0, a: 3, b: 5, c: 10}
+- inline: 
+    db: "test"
+    collection: "limit"
+    docs:
+    - { _id: 0, a: 1 }
+    - { _id: 1, a: 2 }
+    - { _id: 2, a: 3 }
+- inline: 
+    db: "test"
+    collection: "odbc_1"
+    docs:
+    - { _id: 0, a: 1, b: ~ }
+    - { _id: 1, a: 2, b: 1 }
+    - { _id: 2, a: 3 }
+- inline: 
+    db: "test"
+    collection: "odbc_2"
+    docs:
+    - { _id: 0, c: 10, d: ~ }
+    - { _id: 1, c: 11, d: 1 }
+    - { _id: 20, c: 30 }
+- inline: 
+    db: "test"
+    collection: "orderby"
+    docs:
+    - { _id: 0, a: 2 }
+    - { _id: 1, a: 0 }
+    - { _id: 2, a: 1 }
+    - { _id: 3, a: 2 }
+- inline:
+    db: "sTest"
+    collection: "select_1"
+    docs:
+    - { _id: 0, a: 1, b: ~ }
+    - { _id: 1, a: 2 }
+    - { _id: 2, a: 3 }
+- inline:
+    db: "sTest"
+    collection: "select_2"
+    docs:
+    - { _id: 1, x: 4, y: 1, z: 0 }
+    - { _id: 2, x: 7, y: 1, z: 5 }
+    - { _id: 3, x: 5, y: 1, z: 5 }
+    - { _id: 4, x: 7, y: 6, z: 1 }
+    - { _id: 5, x: 4, y: 1, z: 5 }
+- inline:
+    db: "test"
+    collection: "select_1"
+    docs:
+    - { a: 2 , b: 3}
+- inline:
+    db: "test"
+    collection: "select_2"
+    docs:
+    - {uuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "04"}, csharp:  {"$binary": "BAMCAQYFCAcJCgsMDQ4PEA==", "$type": "03"}, java: {"$binary": "CAcGBQQDAgEQDw4NDAsKCQ==", "$type": "03"}, olduuid: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "03"} }
+- inline:
+    db: "test"
+    collection: "select_3"
+    docs:
+    - { _id: "57f422f941a74e324fb5c44a", a: 1, b: 2, c: [ { x: 4, y: [4, 5, 6], z: 9 }, { x: 1, y: [1, 4, 5], z: 11 } ] }
+- inline:
+    db: "test"
+    collection: "select_4"
+    docs:
+    - { _id: "57f422f941a74e324fb5c44a", a: 1, c: [ { y: [] }, { y: [1, 4, 5] } ] }
+- inline:
+    db: "test"
+    collection: "select_5"
+    docs:
+    - { _id: "57f422f941a74e324fb5c44a", a: 1, c: [ [3, 2] ] }
+- inline:
+    db: "test"
+    collection: "select_6"
+    docs:
+    - { _id: "57f422f941a74e324fb5c44a", "address": {"building": "1007", "coord": [-73.856077, 40.848447], "street": "Morris Park Ave", "zipcode": "10462"}, "borough": "Bronx", "cuisine": "Bakery", "grades": [{"date": {"$date": 1393804800000}, "grade": "A", "score": 2}, {"date": {"$date": 1378857600000}, "grade": "A", "score": 6}, {"date": {"$date": 1358985600000}, "grade": "A", "score": 10}, {"date": {"$date": 1322006400000}, "grade": "A", "score": 9}, {"date": {"$date": 1299715200000}, "grade": "B", "score": 14}], "name": "Morris Park Bake Shop", "restaurant_id": "30075445"}
+- inline: 
+    db: "test"
+    collection: "set_1"
+    docs:
+    - { _id: 0, a: 1 }
+    - { _id: 1, a: 2 }
+    - { _id: 2, a: 3 }
+- inline: 
+    db: "test"
+    collection: "subqueries_from"
+    docs:
+    - { _id: 0, a: 1, b: ~ }
+    - { _id: 1, a: 2 }
+    - { _id: 2, a: 3 }
+- inline:
+    db: "test"
+    collection: "union_1"
+    docs:
+    - { _id: 0, a: 2, b: 4, c: 6}
+    - { _id: 1, a: 8, b: 10, c: 12}
+    - { _id: 2, a: 14, b: 16, c: 18}
+- inline:
+    db: "test"
+    collection: "union_2"
+    docs:
+    - { _id: 0, d: 1, e: 3, f: 5}
+    - { _id: 1, d: 7, e: 9, f: 11}
+    - { _id: 2, d: 13, e: 15, f: 17}
+- inline:
+    db: "test"
+    collection: "union_3"
+    docs:
+    - { _id: 0, g: 1, h: 2, i: 3}
+    - { _id: 1, g: 4, h: 5, i: 6}
+    - { _id: 2, g: 7, h: 8, i: 9}
+- inline:
+    db: "test"
+    collection: "union_4"
+    docs:
+    - { _id: 0, a: 1, b: 2, c: 4}
+    - { _id: 1, a: 4, b: 5, c: 6}
+    - { _id: 2, a: 1, b: 2, c: 18}
+- inline:
+    db: "test"
+    collection: "union_5"
+    docs:
+    - { _id: 0, d: 1, e: 3, f: 5}
+    - { _id: 1, d: 19, e: 7, f: 8}
+    - { _id: 2, d: 1, e: 3, f: 20}
+- inline:
+    db: "test"
+    collection: "where_1"
+    docs:
+    - { _id: 0, a: 1}
+    - { _id: 1, a: 2}
+    - { _id: 2, a: 3}
+- inline:
+    db: "test"
+    collection: "where_2"
+    docs:
+    - { _id: 0, a: 2 }
+    - { _id: 1, a: 2 }
+    - { _id: 2, a: 3 }
+- inline:
+    db: "test"
+    collection: "where_3"
+    docs:
+    - { _id: {"$oid" : "53c2ab5e4291b17b666d742a"}, item: 5 }
+- inline:
+    db: "test"
+    collection: "where_4"
+    docs:
+    - { _id: 0, a: 1, b: ~ }
+    - { _id: 1, a: 2, b: 4 }
+    - { _id: 2, a: 3, b: 2 }
+    - { _id: 3, a: 1, b: 5 }
+- inline:
+    db: "test"
+    collection: "where_5"
+    docs:
+    - { _id: 0, a: "abcde"}
+    - { _id: 1, a: "fofo"}
+    - { _id: 2, a: "ABC123"}
+
+# TODO(wisdom): holding off testing here until the
+# tools support importing NumberDecimal (TOOLS-1328)
+#
+# - inline:
+#     db: "test"
+#     collection: "select_2"
+#     docs:
+#     - { _id: 0, a: {$numberDecimal: "4.23923983489893498238923982389"} }
+#     - { _id: 1, a: {$numberDecimal: "5.82389287238739829873982389233"} }
+#     - { _id: 2, a: {$numberDecimal: "8.21193948757647389238923892389"} }
+
+schema:
+- db: collation_test
+  tables:
+  - table: foo
+    collection: "collation_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: string
+      SqlName: a
+      SqlType: varchar
+- db: explain_test
+  tables:
+  - table: foo
+    collection: "set_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: ab
+      MongoType: int
+      SqlName: ab
+      SqlType: int
+#
+# functions
+# Schema
+#
+schema:
+- db: functions_test
+  tables:
+  - table: bar
+    collection: "scalar"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+    - Name: c
+      MongoType: float64
+      SqlName: c
+      SqlType: numeric
+    - Name: d
+      MongoType: date
+      SqlName: d
+      SQLType: timestamp
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SQLType: varchar
+    - Name: t
+      MongoType: bool
+      SqlName: t
+      SQLType: boolean
+    - Name: z
+      MongoType: int
+      SqlName: z
+      SQLType: int
+- db: groupby_test
+  tables:
+  - table: foo
+    collection: "groupby"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+- db: information_schema_test
+  tables:
+  - table: foo
+    collection: "information_schema_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+  - table: bar
+    collection: "information_schema_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+- db: information_schema_test2
+  tables:
+  - table: foo
+    collection: "information_schema_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+- db: join_test
+  tables:
+  - table: foo
+    collection: "join_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+  - table: bar
+    collection: "join_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+  - table: baz
+    collection: "join_3"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+  - table: foobar
+    collection: "join_4"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+  - table: barbaz
+    collection: "join_5"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: e
+      MongoType: int
+      SqlName: e
+      SqlType: int
+  - table: tjoin1
+    collection: "join_6"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: c1
+      MongoType: float64
+      SqlName: c1
+      SqlType: float64
+    - Name: c2
+      MongoType: float64
+      SqlName: c2
+      SqlType: float64
+    - Name: rnum
+      MongoType: float64
+      SqlName: rnum
+      SqlType: float64
+  - table: tjoin2
+    collection: "join_7"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: c2
+      MongoType: string
+      SqlName: c2
+      SqlType: varchar
+  - table: parent
+    collection: "join_8"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+  - table: child
+    collection: "join_8"
+    pipeline: [
+      $unwind: { path: "$b", includeArrayIndex: "b_idx" }
+    ]
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b_idx
+      MongoType: int
+      SqlName: b_idx
+      SqlType: int
+    - Name: b.c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+  - table: grandchild
+    collection: "join_8"
+    pipeline: [
+      $unwind: { path: "$b", includeArrayIndex: "b_idx" },
+      $unwind: { path: "$b.d", includeArrayIndex: "b.d_idx" }
+    ]
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b_idx
+      MongoType: int
+      SqlName: b_idx
+      SqlType: int
+    - Name: b.d_idx
+      MongoType: int
+      SqlName: d_idx
+      SqlType: int
+    - Name: b.d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+  - table: qux
+    collection: "join_9"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+- db: limit_test
+  tables:
+  - table: foo
+    collection: "limit"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+- db: odbc_test
+  tables:
+  - table: foo
+    collection: "odbc_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+  - table: bar
+    collection: "odbc_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+- db: orderby_test
+  tables:
+  - table: foo
+    collection: "orderby"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+- db: select_sTest
+  tables:
+  - table: fOo
+    collection: "select_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+  - table: tuples
+    collection: "select_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: x
+      MongoType: int
+      SqlName: x
+      SqlType: int
+    - Name: y
+      MongoType: int
+      SqlName: y
+      SqlType: int
+    - Name: z
+      MongoType: int
+      SqlName: z
+      SqlType: int
+    - Name: mfil
+      MongoType: mongo.Filter
+      SqlName: mfil
+      SqlType: varchar
+- db: select_test
+  tables:
+  - table: bar
+    collection: "select_1"
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat
+      SqlType: int
+  - table: uuid
+    collection: "select_2"
+    columns:
+    - Name: csharp
+      MongoType: bson.UUID_CSharp_Legacy
+      SqlName: csharp
+      SqlType: varchar
+    - Name: java
+      MongoType: bson.UUID_Java_Legacy
+      SqlName: java
+      SqlType: varchar
+    - Name: olduuid
+      MongoType: bson.UUID_Old
+      SqlName: olduuid
+      SqlType: varchar
+    - Name: uuid
+      MongoType: bson.UUID
+      SqlName: uuid
+      SqlType: varchar
+  - table: test
+    collection: "select_3"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: numeric
+  - table: test_c
+    collection: "select_3"
+    pipeline:
+    - $unwind:
+        includeArrayIndex: c_idx
+        path: $c
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: numeric
+    - Name: c.x
+      MongoType: float64
+      SqlName: c.x
+      SqlType: numeric
+    - Name: c.z
+      MongoType: float64
+      SqlName: c.z
+      SqlType: numeric
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: numeric
+  - table: test_c_y
+    collection: "select_3"
+    pipeline:
+    - $unwind:
+        includeArrayIndex: c_idx
+        path: $c
+    - $unwind:
+        includeArrayIndex: c.y_idx
+        path: $c.y
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: numeric
+    - Name: c.x
+      MongoType: float64
+      SqlName: c.x
+      SqlType: numeric
+    - Name: c.y
+      MongoType: float64
+      SqlName: c.y
+      SqlType: numeric
+    - Name: c.y_idx
+      MongoType: int
+      SqlName: c.y_idx
+      SqlType: numeric
+    - Name: c.z
+      MongoType: float64
+      SqlName: c.z
+      SqlType: numeric
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: numeric
+  - table: test_empty
+    collection: "select_4"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+      PrimaryKey: true
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+  - table: test_c_empty
+    collection: "select_4"
+    pipeline:
+    - $unwind:
+        includeArrayIndex: c_idx
+        path: $c
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+      PrimaryKey: true
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: numeric
+      PrimaryKey: true
+  - table: test_c_y_empty
+    collection: "select_4"
+    pipeline:
+    - $unwind:
+        includeArrayIndex: c_idx
+        path: $c
+    - $unwind:
+        includeArrayIndex: c.y_idx
+        path: $c.y
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+      PrimaryKey: true
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: c.y
+      MongoType: float64
+      SqlName: c.y
+      SqlType: numeric
+    - Name: c.y_idx
+      MongoType: int
+      SqlName: c.y_idx
+      SqlType: numeric
+      PrimaryKey: true
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: numeric
+      PrimaryKey: true
+  - table: test_array
+    collection: "select_5"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+  - table: test_array_array
+    collection: "select_5"
+    pipeline:
+    - $unwind:
+        includeArrayIndex: c_idx
+        path: $c
+    - $unwind:
+        includeArrayIndex: c_idx_1
+        path: $c
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: c
+      MongoType: float64
+      SqlName: c
+      SqlType: numeric
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: numeric
+    - Name: c_idx_1
+      MongoType: int
+      SqlName: c_idx_1
+      SqlType: numeric
+  - table: restaurants
+    collection: "select_6"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: address.building
+      MongoType: string
+      SqlName: address.building
+      SqlType: varchar
+    - Name: address.street
+      MongoType: string
+      SqlName: address.street
+      SqlType: varchar
+    - Name: address.zipcode
+      MongoType: string
+      SqlName: address.zipcode
+      SqlType: varchar
+    - Name: borough
+      MongoType: string
+      SqlName: borough
+      SqlType: varchar
+    - Name: cuisine
+      MongoType: string
+      SqlName: cuisine
+      SqlType: varchar
+    - Name: name
+      MongoType: string
+      SqlName: name
+      SqlType: varchar
+    - Name: restaurant_id
+      MongoType: string
+      SqlName: restaurant_id
+      SqlType: varchar
+  - table: restaurants_address_coord
+    collection: "select_6"
+    pipeline:
+    - $unwind:
+        includeArrayIndex: address.coord_idx
+        path: $address.coord
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: address.building
+      MongoType: string
+      SqlName: address.building
+      SqlType: varchar
+    - Name: address.coord
+      MongoType: float64
+      SqlName: address.coord
+      SqlType: numeric
+    - Name: address.coord_idx
+      MongoType: int
+      SqlName: address.coord_idx
+      SqlType: numeric
+    - Name: address.street
+      MongoType: string
+      SqlName: address.street
+      SqlType: varchar
+    - Name: address.zipcode
+      MongoType: string
+      SqlName: address.zipcode
+      SqlType: varchar
+    - Name: borough
+      MongoType: string
+      SqlName: borough
+      SqlType: varchar
+    - Name: cuisine
+      MongoType: string
+      SqlName: cuisine
+      SqlType: varchar
+    - Name: name
+      MongoType: string
+      SqlName: name
+      SqlType: varchar
+    - Name: restaurant_id
+      MongoType: string
+      SqlName: restaurant_id
+      SqlType: varchar
+  - table: restaurants_grades
+    collection: "select_6"
+    pipeline:
+    - $unwind:
+        includeArrayIndex: grades_idx
+        path: $grades
+    columns:
+    - Name: _id
+      MongoType: string
+      SqlName: _id
+      SqlType: varchar
+    - Name: address.building
+      MongoType: string
+      SqlName: address.building
+      SqlType: varchar
+    - Name: address.street
+      MongoType: string
+      SqlName: address.street
+      SqlType: varchar
+    - Name: address.zipcode
+      MongoType: string
+      SqlName: address.zipcode
+      SqlType: varchar
+    - Name: borough
+      MongoType: string
+      SqlName: borough
+      SqlType: varchar
+    - Name: cuisine
+      MongoType: string
+      SqlName: cuisine
+      SqlType: varchar
+    - Name: grades.date
+      MongoType: date
+      SqlName: grades.date
+      SqlType: timestamp
+    - Name: grades.grade
+      MongoType: string
+      SqlName: grades.grade
+      SqlType: varchar
+    - Name: grades.score
+      MongoType: int
+      SqlName: grades.score
+      SqlType: numeric
+    - Name: grades_idx
+      MongoType: int
+      SqlName: grades_idx
+      SqlType: numeric
+    - Name: name
+      MongoType: string
+      SqlName: name
+      SqlType: varchar
+    - Name: restaurant_id
+      MongoType: string
+      SqlName: restaurant_id
+      SqlType: varchar
+- db: set_test
+  tables:
+  - table: foo
+    collection: "set_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+- db: show_test
+  tables:
+  - table: foo
+    collection: test1
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: a1
+      SqlType: int64
+    - Name: b
+      MongoType: string
+      SqlName: b1
+      SqlType: varchar
+    - Name: c
+      MongoType: int64
+      SqlName: c1
+      SqlType: int64
+  - table: bar
+    collection: test2
+    columns:
+      - Name: a
+        MongoType: int
+        SqlName: a
+        SqlType: int64
+      - Name: b
+        MongoType: string
+        SqlName: b
+        SqlType: varchar
+      - Name: c
+        MongoType: int64
+        SqlName: c
+        SqlType: int64
+- db: show_Blah
+  tables:
+  - table: foo
+    collection: foo
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int64
+- db: simple_test
+  tables:
+  - table: test1
+    collection: test1
+    pipeline: 
+    - $project: { a: 1, b: 1, loc: 1, c: { $add: ["$a", { $numberLong: "10" }] } }
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int64
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+    - Name: c
+      MongoType: int64
+      SqlName: c
+      SqlType: int64
+    - Name: loc.0
+      MongoType: int
+      SqlName: latitude
+      SqlType: int64
+    - Name: loc.1
+      MongoType: int
+      SqlName: longitude
+      SqlType: int64
+  - table: test2
+    collection: test2
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+    - Name: loc.lat
+      MongoType: float64
+      SqlName: loc.lat
+      SqlType: numeric
+    - Name: loc.lng
+      MongoType: float64
+      SqlName: loc.lng
+      SqlType: numeric
+  - table: test3
+    collection: test3
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+    - Name: loc
+      MongoType: geo.2darray
+      SqlName: loc
+      SqlType: numeric[]
+  - table: test4
+    collection: test4
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+  - table: test4_loc_b_c
+    collection: test4
+    pipeline:
+    - $unwind:
+        includeArrayIndex: loc.b.c_idx
+        path: $loc.b.c
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: numeric
+    - Name: b
+      MongoType: string
+      SqlName: b
+      SqlType: varchar
+    - Name: loc.b.c
+      MongoType: float64
+      SqlName: loc.b.c
+      SqlType: numeric
+    - Name: loc.b.c_idx
+      MongoType: int
+      SqlName: loc.b.c_idx
+      SqlType: numeric
+- db: subqueries_from_test
+  tables:
+  - table: foo
+    collection: "subqueries_from"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+- db: union_test
+  tables:
+  - table: foo
+    collection: "union_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+  - table: bar
+    collection: "union_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+    - Name: e
+      MongoType: int
+      SqlNamR: e
+      SqlType: int
+    - Name: f
+      MongoType: int
+      SqlName: f
+      SqlType: int
+  - table: baz
+    collection: "union_3"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: g
+      MongoType: int
+      SqlName: g
+      SqlType: int
+    - Name: h
+      MongoType: int
+      SqlName: h
+      SqlType: int
+    - Name: i
+      MongoType: int
+      SqlName: i
+      SqlType: int
+  - table: foobar
+    collection: "union_4"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int
+  - table: barbaz
+    collection: "union_5"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+    - Name: e
+      MongoType: int
+      SqlName: e
+      SqlType: int
+    - Name: f
+      MongoType: int
+      SqlName: f
+      SqlType: int
+#  - table: foofoo
+#    collection: "union_6"
+#    columns:
+#  - table: barbar
+#    collection: "union_7"
+#    columns:
+- db: use_test
+  tables:
+  - table: foo
+    collection: "foo"
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+- db: use_test2
+  tables:
+  - table: bar
+    collection: "bar"
+    columns:
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+- db: where_test
+  tables:
+  - table: foo
+    collection: "where_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+  - table: bar
+    collection: "where_2"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+  - table: test2
+    collection: "where_3"
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: item
+      MongoType: int
+      SqlName: item
+      SqlType: int
+  - table: baz
+    collection: "where_4"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+  - table: reg
+    collection: "where_5"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: _id
+      SqlType: int
+    - Name: a
+      MongoType: string
+      SqlName: a
+      SqlType: varchar
+

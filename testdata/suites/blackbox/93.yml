@@ -1,0 +1,11 @@
+
+testcases:
+- sql: "SELECT `Market` AS `none_Market_nk`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market` ORDER BY 1, 2"
+  expected_names: ["none_Market_nk", "sum_Sales_ok"]
+  expected_types: [varchar, float64]
+  expected:
+  - ["Central", 265047.8206044649]
+  - ["East", 178578.19868507134]
+  - ["South", 103928.36031031127]
+  - ["West", 272272.72062794224]
+

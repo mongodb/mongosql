@@ -1,0 +1,8 @@
+
+testcases:
+- sql: "SELECT SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok`, SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE ((`Profit` <= 0) AND (YEAR(`Date`) = 1999)) HAVING (COUNT(1) > 0) ORDER BY 1, 2"
+  expected_names: ["sum_Budget_Profit_ok", "sum_Profit_ok"]
+  expected_types: [int64, float64]
+  expected:
+  - [-8020, -19543.271959733145]
+

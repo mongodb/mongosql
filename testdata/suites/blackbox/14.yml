@@ -1,0 +1,19 @@
+
+testcases:
+- sql: "SELECT `Market` AS `none_Market_nk`, `Product Type` AS `none_Product_Type_nk`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE ((NOT (`Market` IN ('East', 'South'))) AND (NOT (`Product Type` = 'Herbal Tea'))) GROUP BY `Market`, `Product Type`, YEAR(`Date`) ORDER BY 1, 2, 3, 4"
+  expected_names: ["none_Market_nk", "none_Product_Type_nk", "sum_Sales_ok", "yr_Date_ok"]
+  expected_types: [varchar, varchar, int64, int64]
+  expected:
+  - ["Central", "Coffee", 33808, 1998]
+  - ["Central", "Coffee", 35271.665921559084, 1999]
+  - ["Central", "Espresso", 29206, 1998]
+  - ["Central", "Espresso", 30496.681316437578, 1999]
+  - ["Central", "Tea", 33451, 1998]
+  - ["Central", "Tea", 34929.41345358395, 1999]
+  - ["West", "Coffee", 28306, 1998]
+  - ["West", "Coffee", 29550.39309876455, 1999]
+  - ["West", "Espresso", 34200, 1998]
+  - ["West", "Espresso", 35711.3318223951, 1999]
+  - ["West", "Tea", 35338, 1998]
+  - ["West", "Tea", 36881.63576834391, 1999]
+

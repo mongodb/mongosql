@@ -1,0 +1,178 @@
+#
+# Test Cases
+#
+testcases:
+
+- sql: "set @t1 = 12"
+  verify: "select @t1"
+  description: "user variable"
+  expected_names: ["@t1"]
+  expected_types: [int]
+  expected: 
+  - [12]
+- sql: "set @lowercase = 12"
+  verify: "select @LOWERCASE"
+  description: "user variable case sensitivity"
+  expected_names: ["@LOWERCASE"]
+  expected_types: [int]
+  expected: 
+  - [12]
+- sql: "set @t1 = (select sum(a) from foo)"
+  verify: "select @t1"
+  description: "user variable with query"
+  expected_names: ["@t1"]
+  expected_types: [int]
+  expected: 
+  - [6]
+- sql: "set @t1 = (select sum(a) from foo), @t2 = 12"
+  verify: "select @t1, @t2"
+  description: "mulitple user variable with query"
+  expected_names: ["@t1", "@t2"]
+  expected_types: [int, int]
+  expected: 
+  - [6, 12]
+- sql: "set @@global.max_allowed_packet=1024"
+  sql_cleanup: "set @@global.max_allowed_packet=DEFAULT"
+  verify: "select @@global.max_allowed_packet"
+  description: "global variable"
+  expected_names: ["@@global.max_allowed_packet"]
+  expected_types: [int]
+  expected:
+  - [1024]
+- sql: "set @@autocommit=1"
+  verify: "select @@autocommit"
+  description: "session variable"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected: 
+  - [1]
+- sql: "set @@AutoCommit=1"
+  verify: "select @@AUTOCOMMIT"
+  description: "system variable case sensitivity"
+  expected_names: ["@@AUTOCOMMIT"]
+  expected_types: [int]
+  expected: 
+  - [1]
+- sql: "set autocommit=0"
+  sql_cleanup: "set @@autocommit=1"
+  verify: "select @@autocommit"
+  description: "session variable"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected: 
+  - [0]
+- sql: "set @@mongodb_version_compatibility = '3.2'"
+  sql_cleanup: "set @@mongodb_version_compatibility = DEFAULT"
+  verify: "select @@mongodb_version_compatibility"
+  expected_names: ["@@mongodb_version_compatibility"]
+  expected_types: [string]
+  expected:
+  - ["3.2"]
+- sql: "SET CHARACTER SET latin1"
+  sql_cleanup: "SET CHARACTER SET utf8"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
+  description: "pseudo session variable"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
+  expected:
+  - ["latin1", "utf8", "utf8", "latin1", "utf8_bin", "utf8_bin", "utf8_bin"]
+- sql: "SET NAMES utf8"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
+  description: "pseudo session variable"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
+  expected:
+  - ["utf8", "utf8", "utf8", "utf8", "utf8_general_ci", "utf8_bin", "utf8_bin"]
+- sql: "SET NAMES latin1"
+  sql_cleanup: "SET NAMES utf8"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
+  description: "set names"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
+  expected:
+  - ["latin1", "latin1", "utf8", "latin1", "latin1_swedish_ci", "utf8_bin", "utf8_bin"]
+- sql: "SET NAMES latin1 COLLATE latin1_danish_ci"
+  sql_cleanup: "SET NAMES utf8"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
+  description: "set names with collation"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
+  expected:
+  - ["latin1", "latin1", "utf8", "latin1", "latin1_danish_ci", "utf8_bin", "utf8_bin"]
+- sql: "SET @@character_set_connection = 'latin1'"
+  sql_cleanup: "SET @@character_set_connection = DEFAULT"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
+  description: "character_set_connection"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
+  expected:
+  - ["utf8", "latin1", "utf8", "utf8", "latin1_swedish_ci", "utf8_bin", "utf8_bin"]
+- sql: "SET @@character_set_results = null"
+  sql_cleanup: "SET @@character_set_results = DEFAULT"
+  verify: "select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server"
+  description: "character_set_results"
+  expected_names: ["@@character_set_client", "@@character_set_connection", "@@character_set_database", "@@character_set_results", "@@collation_connection", "@@collation_database", "@@collation_server"]
+  expected_types: [string, string, string, string, string, string, string]
+  expected:
+  - ["utf8", "utf8", "utf8", ~, "utf8_general_ci", "utf8_bin", "utf8_bin"]
+- sql: "set session transaction isolation level read committed"
+  sql_cleanup: "set session transaction isolation level repeatable read"
+  verify: "select @@autocommit"
+  description: "set session transaction with isolation level"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "set session transaction read write"
+  sql_cleanup: "set session transaction read only"
+  verify: "select @@autocommit"
+  description: "set session transaction without isolation level"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "set global transaction read write"
+  sql_cleanup: "set global transaction read only"
+  verify: "select @@autocommit"
+  description: "set global transaction without isolation level"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "set transaction isolation level serializable"
+  sql_cleanup: "set session transaction isolation level repeatable read"
+  verify: "select @@autocommit"
+  description: "set global transaction with isolation level"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "set transaction read write, read only, isolation level repeatable read"
+  sql_cleanup: "set transaction read only, isolation level repeatable read"
+  verify: "select @@autocommit"
+  description: "set multiple transaction characteristics"
+  expected_names: ["@@autocommit"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "set @@sql_select_limit = 10"
+  sql_cleanup: "set @@sql_select_limit = DEFAULT"
+  verify: "select @@sql_select_limit"
+  description: "set session select limit to valid value"
+  expected_names: ["@@sql_select_limit"]
+  expected_types: [uint]
+  expected:
+  - [10]
+- sql: "set @@sql_select_limit = -5"
+  sql_cleanup: "set @@sql_select_limit = DEFAULT"
+  verify: "select @@sql_select_limit"
+  description: "set session select limit to invalid value"
+  expected_names: []
+  expected_types: [uint]
+- sql: "set @@sql_select_limit = default"
+  verify: "select @@sql_select_limit"
+  description: "set session select limit to default"
+  expected_names: ["@@sql_select_limit"]
+  expected_types: [uint]
+  expected:
+  - [18446744073709551615]

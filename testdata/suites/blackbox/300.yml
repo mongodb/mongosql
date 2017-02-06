@@ -1,0 +1,11 @@
+
+testcases:
+- sql: "SELECT MAX(`Product`) AS `max_Product_nk`,   `Product Type` AS `none_Product_Type_nk` FROM Starbucks GROUP BY `Product Type` ORDER BY 1, 2"
+  expected_names: ["max_Product_nk", "none_Product_Type_nk"]
+  expected_types: [varchar, varchar]
+  expected:
+  - ["Decaf Irish Cream", "Coffee"]
+  - ["Green Tea", "Tea"]
+  - ["Mint", "Herbal Tea"]
+  - ["Regular Espresso", "Espresso"]
+

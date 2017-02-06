@@ -1,0 +1,19 @@
+
+testcases:
+- sql: "SELECT `Product Type` AS `none_Product_Type_nk`,   `State` AS `none_State_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (`State` IN ('California', 'Oregon', 'Washington')) GROUP BY `Product Type`,   `State` ORDER BY 1, 2, 3"
+  expected_names: ["none_Product_Type_nk", "none_State_nk", "sum_Profit_ok"]
+  expected_types: [varchar, varchar, float64]
+  expected:
+  - ["Coffee", "California", 2457.063955911074]
+  - ["Coffee", "Oregon", 1090.6667353659084]
+  - ["Coffee", "Washington", 2224.496991265288]
+  - ["Espresso", "California", 11963.226335451254]
+  - ["Espresso", "Oregon", 3845.6613120800216]
+  - ["Espresso", "Washington", 2673.3382749046436]
+  - ["Herbal Tea", "California", 10259.018887611352]
+  - ["Herbal Tea", "Oregon", 1977.7794019773696]
+  - ["Herbal Tea", "Washington", 4138.547411393093]
+  - ["Tea", "California", 7107.293422669332]
+  - ["Tea", "Oregon", 5523.975560304491]
+  - ["Tea", "Washington", 2364.8642424494283]
+

@@ -1,6 +1,0 @@
-expected_names: ["none_Call_Center_Region_nk", "sum_Gross_Profit_ok"]
-expected_types: [varchar, float64]
-expected:
-- ["CENTRAL", 5307121.09]
-- ["EAST", 12575676.28]
-- ["WEST", 6724243.11]

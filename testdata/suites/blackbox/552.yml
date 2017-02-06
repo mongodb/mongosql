@@ -1,0 +1,24 @@
+
+testcases:
+- sql: "SELECT `key` AS `none_key_nk`,   `str1` AS `none_strB_nk`,   (CASE WHEN (CASE WHEN ((CASE WHEN (LENGTH(`str1`) - LENGTH('ES')) < 0 THEN 1       ELSE LENGTH(`str1`) - LENGTH('ES') + 1 END)  IS NULL) OR (LENGTH('ES') IS NULL) THEN NULL       WHEN LENGTH('ES') < 1 THEN ''       WHEN (CASE WHEN (LENGTH(`str1`) - LENGTH('ES')) < 0 THEN 1       ELSE LENGTH(`str1`) - LENGTH('ES') + 1 END)  < 1 THEN SUBSTRING(RTRIM(`str1`),1,LENGTH('ES'))       ELSE SUBSTRING(RTRIM(`str1`),(CASE WHEN (LENGTH(`str1`) - LENGTH('ES')) < 0 THEN 1       ELSE LENGTH(`str1`) - LENGTH('ES') + 1 END) ,LENGTH('ES')) END) = 'ES' THEN 1 WHEN NOT (CASE WHEN ((CASE WHEN (LENGTH(`str1`) - LENGTH('ES')) < 0 THEN 1       ELSE LENGTH(`str1`) - LENGTH('ES') + 1 END)  IS NULL) OR (LENGTH('ES') IS NULL) THEN NULL       WHEN LENGTH('ES') < 1 THEN ''       WHEN (CASE WHEN (LENGTH(`str1`) - LENGTH('ES')) < 0 THEN 1       ELSE LENGTH(`str1`) - LENGTH('ES') + 1 END)  < 1 THEN SUBSTRING(RTRIM(`str1`),1,LENGTH('ES'))       ELSE SUBSTRING(RTRIM(`str1`),(CASE WHEN (LENGTH(`str1`) - LENGTH('ES')) < 0 THEN 1       ELSE LENGTH(`str1`) - LENGTH('ES') + 1 END) ,LENGTH('ES')) END) = 'ES' THEN 0 ELSE NULL END) AS `none_z_startswith_str_str_nk` FROM Calcs ORDER BY 1, 2, 3"
+  expected_names: ["none_key_nk", "none_strB_nk", "none_z_startswith_str_str_nk"]
+  expected_types: [varchar, varchar, int64]
+  expected:
+  - ["key00", "CLAMP ON LAMPS", 0]
+  - ["key01", "CLOCKS", 0]
+  - ["key02", "AIR PURIFIERS", 0]
+  - ["key03", "BINDER ACCESSORIES", 1]
+  - ["key04", "BINDER CLIPS", 0]
+  - ["key05", "BINDING MACHINES", 1]
+  - ["key06", "BINDING SUPPLIES", 1]
+  - ["key07", "BUSINESS ENVELOPES", 1]
+  - ["key08", "ANSWERING MACHINES", 1]
+  - ["key09", "BUSINESS COPIERS", 0]
+  - ["key10", "CD-R MEDIA", 0]
+  - ["key11", "CONFERENCE PHONES", 1]
+  - ["key12", "CORDED KEYBOARDS", 0]
+  - ["key13", "CORDLESS KEYBOARDS", 0]
+  - ["key14", "DOT MATRIX PRINTERS", 0]
+  - ["key15", "DVD", 0]
+  - ["key16", "ERICSSON", 0]
+

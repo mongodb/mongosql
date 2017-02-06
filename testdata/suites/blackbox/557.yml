@@ -1,0 +1,19 @@
+
+testcases:
+- sql: "SELECT FLOOR(`Pop_SQ_Mile` / 50) AS `Pop_Bins` FROM Election GROUP BY FLOOR(`Pop_SQ_Mile` / 50) ORDER BY 1 ASC"
+  expected_names: ["Pop_Bins"]
+  expected_types: [int64]
+  expected:
+  - [0]
+  - [1]
+  - [2]
+  - [3]
+  - [4]
+  - [5]
+  - [7]
+  - [10]
+  - [13]
+  - [15]
+  - [19]
+  - [21]
+

@@ -1,0 +1,12 @@
+
+testcases:
+- sql: "SELECT `Customer Segment` AS `none_Customer_Segment_nk` FROM Staples GROUP BY `Customer Segment` ORDER BY 1 ASC"
+  min_server_version: "3.4"
+  expected_names: ["none_Customer_Segment_nk"]
+  expected_types: [varchar]
+  expected:
+  - ["CONSUMER"]
+  - ["CORPORATE"]
+  - ["HOME OFFICE"]
+  - ["SMALL BUSINESS"]
+

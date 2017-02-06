@@ -1,0 +1,11 @@
+#
+# Tests
+#
+testcases:
+
+- sql: "use use_test2"
+  verify: "select b from bar"
+  description: "use"
+  expected_names: ["b"]
+  expected_types: [string]
+  expected: []

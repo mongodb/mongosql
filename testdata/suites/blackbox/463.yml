@@ -1,0 +1,11 @@
+
+testcases:
+- sql: "SELECT `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok`, SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (`Profit` <= 0) GROUP BY `Product Type` ORDER BY 1, 2, 3"
+  expected_names: ["none_Product_Type_nk", "sum_COGS_ok", "sum_Profit_ok"]
+  expected_types: [varchar, int64, float64]
+  expected:
+  - ["Coffee", 12514, -7174.137661443642]
+  - ["Espresso", 8628, -7523.111409271853]
+  - ["Herbal Tea", 12834, -6599.784738842616]
+  - ["Tea", 10556, -11708.238150175035]
+

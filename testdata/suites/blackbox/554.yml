@@ -1,0 +1,20 @@
+
+testcases:
+- sql: "SELECT `Product` AS `none_Product_nk` FROM Starbucks GROUP BY `Product` ORDER BY 1 LIMIT 26"
+  expected_names: ["none_Product_nk"]
+  expected_types: [varchar]
+  expected:
+  - ["Amaretto"]
+  - ["Caffe Latte"]
+  - ["Caffe Mocha"]
+  - ["Chamomile"]
+  - ["Columbian"]
+  - ["Darjeeling"]
+  - ["Decaf Espresso"]
+  - ["Decaf Irish Cream"]
+  - ["Earl Grey"]
+  - ["Green Tea"]
+  - ["Lemon"]
+  - ["Mint"]
+  - ["Regular Espresso"]
+

@@ -1,5 +1,0 @@
-expected_names: ["Customer_Segment__group_"]
-expected_types: [varchar]
-expected:
-- ["CONSUMER"]
-- ["CORPORATE"]

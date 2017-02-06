@@ -1,0 +1,23 @@
+
+testcases:
+- sql: "SELECT `Market` AS `none_Market_nk`, QUARTER(`Date`) AS `qr_Date_ok` FROM Starbucks GROUP BY `Market`, QUARTER(`Date`) ORDER BY 1, 2"
+  expected_names: ["none_Market_nk", "qr_Date_ok"]
+  expected_types: [varchar, int64]
+  expected:
+  - ["Central", 1]
+  - ["Central", 2]
+  - ["Central", 3]
+  - ["Central", 4]
+  - ["East", 1]
+  - ["East", 2]
+  - ["East", 3]
+  - ["East", 4]
+  - ["South", 1]
+  - ["South", 2]
+  - ["South", 3]
+  - ["South", 4]
+  - ["West", 1]
+  - ["West", 2]
+  - ["West", 3]
+  - ["West", 4]
+

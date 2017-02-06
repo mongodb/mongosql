@@ -1,0 +1,13 @@
+
+testcases:
+- sql: "SELECT `str2` AS `none_strC_nk` FROM Calcs WHERE ((NOT ((`str2` >= 'eight') AND (`str2` <= 'six'))) OR (`str2` IS NULL)) GROUP BY `str2` ORDER BY 1"
+  expected_names: ["none_strC_nk"]
+  expected_types: [varchar]
+  expected:
+  - [~]
+  - ["sixteen"]
+  - ["ten"]
+  - ["three"]
+  - ["twelve"]
+  - ["two"]
+

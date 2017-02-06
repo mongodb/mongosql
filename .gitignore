@@ -30,4 +30,4 @@ codereview.rc
 .vscode
 vendor/pkg
 
-testdata/input
+testdata/resources/data

@@ -1,0 +1,8 @@
+
+testcases:
+- sql: "SELECT `Date` AS `none_Date_ok`, 365 AS `none_One_Year_ok` FROM Starbucks WHERE ((MONTH(`Date`) = 1) AND (YEAR(`Date`) = 1998)) GROUP BY `Date` ORDER BY 1, 2"
+  expected_names: ["none_Date_ok", "none_One_Year_ok"]
+  expected_types: [varchar, int64]
+  expected:
+  - ["1998-01-01 00:00:00", 365]
+

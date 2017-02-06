@@ -1,0 +1,9 @@
+
+testcases:
+- sql: "SELECT `App_College` AS `none_App_College_nk` FROM Loan GROUP BY `App_College` ORDER BY 1 ASC"
+  expected_names: ["none_App_College_nk"]
+  expected_types: [varchar]
+  expected:
+  - ["COLLEGE GRAD"]
+  - ["HIGH SCHOOL GRAD"]
+

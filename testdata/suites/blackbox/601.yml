@@ -1,0 +1,9 @@
+
+testcases:
+- sql: "SELECT SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(CONVERT(`Order Quantity`, SQL_BIGINT)) AS `sum_Order_Quantity_ok` FROM Staples HAVING (COUNT(1) > 0) ORDER BY 1, 2"
+  min_server_version: "3.4"
+  expected_names: ["sum_Customer_Balance_ok", "sum_Order_Quantity_ok"]
+  expected_types: [int64, int64]
+  expected:
+  - [235300311, 1390980]
+

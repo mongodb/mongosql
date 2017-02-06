@@ -1,0 +1,24 @@
+
+testcases:
+- sql: "SELECT `date0` AS `none_dateA_ok`, `key` AS `none_key_nk`, `num4` AS `none_numE_nk`, CONCAT(`date0`, `num4`) AS `none_z_date_plus_num_ok` FROM Calcs ORDER BY 1, 2, 3, 4"
+  expected_names: ["none_dateA_ok", "none_key_nk", "none_numE_nk", "none_z_date_plus_num_ok"]
+  expected_types: [varchar, varchar, float64, varchar]
+  expected:
+  - [~, "key05", 10.71, ~]
+  - [~, "key06", ~, ~]
+  - [~, "key07", -10.24, ~]
+  - [~, "key08", 4.77, ~]
+  - [~, "key09", ~, ~]
+  - [~, "key10", 19.39, ~]
+  - [~, "key11", 3.82, ~]
+  - [~, "key12", 3.38, ~]
+  - [~, "key13", ~, ~]
+  - [~, "key14", -14.21, ~]
+  - [~, "key15", 6.75, ~]
+  - [~, "key16", ~, ~]
+  - ["1972-07-04", "key01", 10.85, "1972-07-0410.85"]
+  - ["1975-11-12", "key02", -13.47, "1975-11-12-13.47"]
+  - ["2004-04-15", "key00", ~, ~]
+  - ["2004-06-04", "key03", -6.05, "2004-06-04-6.05"]
+  - ["2004-06-19", "key04", 8.32, "2004-06-198.32"]
+

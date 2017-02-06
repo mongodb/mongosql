@@ -1,4 +1,0 @@
-expected_names: ["cnt_Key_ok"]
-expected_types: [int64]
-expected:
-- [16]

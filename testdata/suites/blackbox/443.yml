@@ -1,0 +1,9 @@
+
+testcases:
+- sql: "SELECT `Market` AS `none_Market_nk`,   `Type` AS `none_Type_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (`Market` = 'Central') GROUP BY `Market`,   `Type` ORDER BY 1, 2, 3"
+  expected_names: ["none_Market_nk", "none_Type_nk", "sum_Profit_ok"]
+  expected_types: [varchar, varchar, float64]
+  expected:
+  - ["Central", "Decaf", 43246.21664486122]
+  - ["Central", "Regular", 50602.83736455427]
+

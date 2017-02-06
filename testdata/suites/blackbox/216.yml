@@ -1,0 +1,13 @@
+
+testcases:
+- sql: "SELECT `Customer Name` AS `none_Customer_Name_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(CONVERT(`Item Count`, SQL_BIGINT)) AS `sum_Item_Count_ok` FROM Staples WHERE ((`Call Center Region` NOT IN ('CENTRAL')) AND (`Customer Name` IN ('Dave Hallsten', 'David Wiener', 'Elizabeth Moffitt', 'Grace Kelly', 'Herbert Flentye')) AND ((`Discount` >= 0.105905) AND (`Discount` <= 0.39100000000000001))) GROUP BY `Customer Name` HAVING ((SUM(`Discount`) >= 0.059999999999999401) AND (SUM(`Discount`) <= 48.330000000000481)) ORDER BY 1, 2, 3"
+  min_server_version: "3.4"
+  expected_names: ["none_Customer_Name_nk", "sum_Customer_Balance_ok", "sum_Item_Count_ok"]
+  expected_types: [varchar, int64, int64]
+  expected:
+  - ["Dave Hallsten", 124548, 23]
+  - ["David Wiener", 268332, 50]
+  - ["Elizabeth Moffitt", 131545, 34]
+  - ["Grace Kelly", 179709, 43]
+  - ["Herbert Flentye", 116610, 23]
+

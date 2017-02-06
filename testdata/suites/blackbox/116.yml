@@ -1,0 +1,15 @@
+
+testcases:
+- sql: "SELECT `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY `Product Type`, YEAR(`Date`) ORDER BY 1, 2, 3"
+  expected_names: ["none_Product_Type_nk", "sum_Inventory_ok", "yr_Date_ok"]
+  expected_types: [varchar, int64, int64]
+  expected:
+  - ["Coffee", 401977, 1998]
+  - ["Coffee", 401977, 1999]
+  - ["Espresso", 394874, 1998]
+  - ["Espresso", 394874, 1999]
+  - ["Herbal Tea", 414484, 1998]
+  - ["Herbal Tea", 414484, 1999]
+  - ["Tea", 380351, 1998]
+  - ["Tea", 380351, 1999]
+

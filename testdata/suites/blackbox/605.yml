@@ -1,0 +1,8 @@
+
+testcases:
+- sql: "SELECT MONTH(`Order Date`) AS `mn_Order_Date_ok`, `Call Center Region` AS `none_Call_Center_Region_nk`, `Order ID` AS `none_Order_ID_ok`, `Product Container` AS `none_Product_Container_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(`Discount`) AS `sum_Discount_ok`, SUM(`Price`) AS `sum_Price_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE (0 <> 0) GROUP BY MONTH(`Order Date`), `Call Center Region`, `Order ID`, `Product Container`, YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5, 6, 7, 8"
+  min_server_version: "3.4"
+  expected_names: ["mn_Order_Date_ok", "none_Call_Center_Region_nk", "none_Order_ID_ok", "none_Product_Container_nk", "sum_Customer_Balance_ok", "sum_Discount_ok", "sum_Price_ok", "yr_Order_Date_ok"]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
+  expected: []
+

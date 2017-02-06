@@ -1,0 +1,8 @@
+
+testcases:
+- sql: "SELECT `PID` AS `none_PID_ok`,   `Employee Yrs Exp` AS `sum_Employee_Yrs_Exp_ok`,   `Gross Profit` AS `sum_Gross_Profit_ok`,   `Sales Total` AS `sum_Sales_Total_ok` FROM Staples WHERE (0 <> 0) ORDER BY 1, 2, 3, 4"
+  min_server_version: "3.4"
+  expected_names: ["none_PID_ok", "sum_Employee_Yrs_Exp_ok", "sum_Gross_Profit_ok", "sum_Sales_Total_ok"]
+  expected_types: [varchar, varchar, varchar, varchar]
+  expected: []
+

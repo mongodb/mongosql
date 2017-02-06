@@ -1,9 +1,0 @@
-expected_names: ["yr_Order_Date_ok"]
-expected_types: [int64]
-expected:
-- [1997]
-- [1998]
-- [1999]
-- [2000]
-- [2001]
-- [2002]

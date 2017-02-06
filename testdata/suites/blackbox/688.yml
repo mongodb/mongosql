@@ -1,0 +1,8 @@
+
+testcases:
+- sql: "SELECT MAX(`date3`) AS `TEMP_z_max_dateD___EAFIDBBGB__A_`, MAX(CONVERT(`date3`, SQL_DOUBLE)) AS `max_float_dateD__ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2"
+  expected_names: ["TEMP_z_max_dateD___EAFIDBBGB__A_", "max_float_dateD__ok"]
+  expected_types: [varchar, int64]
+  expected:
+  - ["1999-08-20", 19990820]
+

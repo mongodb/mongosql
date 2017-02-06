@@ -1,0 +1,10 @@
+
+testcases:
+- sql: "SELECT (CASE WHEN (`State` IN ('Colorado', 'Connecticut')) THEN 'Colorado' WHEN (`State` IN ('Oregon', 'Washington')) THEN 'Oregon' ELSE `State` END) AS `State__group_`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (`State` IN ('California', 'Colorado', 'Connecticut', 'Florida')) GROUP BY (CASE WHEN (`State` IN ('Colorado', 'Connecticut')) THEN 'Colorado' WHEN (`State` IN ('Oregon', 'Washington')) THEN 'Oregon' ELSE `State` END) ORDER BY 1, 2"
+  expected_names: ["State__group_", "sum_Profit_ok"]
+  expected_types: [varchar, float64]
+  expected:
+  - ["California", 31786.60260164301]
+  - ["Colorado", 25361.778311688624]
+  - ["Florida", 12308.931431896483]
+

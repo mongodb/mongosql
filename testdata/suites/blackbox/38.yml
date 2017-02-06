@@ -1,0 +1,10 @@
+
+testcases:
+- sql: "SELECT (CASE WHEN (`Customer Segment` IN ('CONSUMER', 'HOME OFFICE', 'SMALL BUSINESS')) THEN 'CONSUMER' ELSE `Customer Segment` END) AS `Customer_Segment__group_` FROM Staples GROUP BY (CASE WHEN (`Customer Segment` IN ('CONSUMER', 'HOME OFFICE', 'SMALL BUSINESS')) THEN 'CONSUMER' ELSE `Customer Segment` END) ORDER BY 1"
+  min_server_version: "3.4"
+  expected_names: ["Customer_Segment__group_"]
+  expected_types: [varchar]
+  expected:
+  - ["CONSUMER"]
+  - ["CORPORATE"]
+

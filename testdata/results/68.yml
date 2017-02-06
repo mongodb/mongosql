@@ -1,5 +1,0 @@
-expected_names: ["yr_Date_ok"]
-expected_types: [int64]
-expected:
-- [1998]
-- [1999]

@@ -1,0 +1,9 @@
+
+testcases:
+- sql: "SELECT `Market Size` AS `Market_Size`, `Product Type` AS `Product_Type`, `Type` AS `Type`, SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok` FROM Starbucks WHERE (((`Market Size` IN ('Major Market', 'Small Market')) AND (`Product Type` NOT IN ('Coffee', 'Herbal Tea'))) AND (((`Market Size` = 'Major Market') AND (((`Type` = 'Decaf') AND (`Product Type` IN ('Espresso', 'Smoothie'))) OR ((`Type` = 'Regular') AND (`Product Type` IN ('Espresso', 'Tea'))))) AND ((`Market Size` = 'Major Market') AND ((`Product Type` = 'Espresso') AND (`Type` IN ('Decaf', 'Regular')))))) GROUP BY `Market Size`, `Product Type`, `Type` ORDER BY 1, 2, 3, 4"
+  expected_names: ["Market_Size", "Product_Type", "Type", "sum_Budget_Profit_ok"]
+  expected_types: [varchar, varchar, varchar, int64]
+  expected:
+  - ["Major Market", "Espresso", "Decaf", 16780]
+  - ["Major Market", "Espresso", "Regular", 27160]
+

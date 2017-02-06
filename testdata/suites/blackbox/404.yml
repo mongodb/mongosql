@@ -1,0 +1,7 @@
+
+testcases:
+- sql: "SELECT QUARTER(`Date`) AS `qr_Date_ok` FROM Starbucks WHERE (QUARTER(`Date`) IS NULL) LIMIT 1"
+  expected_names: ["qr_Date_ok"]
+  expected_types: [varchar]
+  expected: []
+

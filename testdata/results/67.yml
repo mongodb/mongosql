@@ -1,6 +1,0 @@
-expected_names: ["Product__group_", "avg_Margin_ok", "cnt_Margin_ok", "sum_Margin_ok"]
-expected_types: [varchar, float64, int64, int64]
-expected:
-- ["Caffe Latte", 93.25862068965517, 696, 64908]
-- ["Mint", 104.89310344827587, 3480, 365028]
-- ["Regular Espresso", 181.97222222222223, 72, 13102]

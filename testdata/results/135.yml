@@ -1,3 +1,0 @@
-expected_names: ["none_Product_Name_nk", "sum_Gross_Profit_ok", "sum_Sales_Total_ok"]
-expected_types: [varchar, varchar, varchar]
-expected: []

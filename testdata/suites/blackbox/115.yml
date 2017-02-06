@@ -1,0 +1,20 @@
+
+testcases:
+- sql: "SELECT `Product` AS `none_Product_nk`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok` FROM Starbucks GROUP BY `Product` ORDER BY 1, 2"
+  expected_names: ["none_Product_nk", "sum_Inventory_ok"]
+  expected_types: [varchar, int64]
+  expected:
+  - ["Amaretto", 142276]
+  - ["Caffe Latte", 55294]
+  - ["Caffe Mocha", 362996]
+  - ["Chamomile", 273656]
+  - ["Columbian", 339624]
+  - ["Darjeeling", 283328]
+  - ["Decaf Espresso", 308124]
+  - ["Decaf Irish Cream", 322054]
+  - ["Earl Grey", 218066]
+  - ["Green Tea", 259308]
+  - ["Lemon", 344898]
+  - ["Mint", 210414]
+  - ["Regular Espresso", 63334]
+

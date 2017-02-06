@@ -1,0 +1,8 @@
+
+testcases:
+- sql: "SELECT MAX(`num0`) AS `max_numA_nk`,   MAX(`num0`) AS `usr_z_max_numA__nk` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2"
+  expected_names: ["max_numA_nk", "usr_z_max_numA__nk"]
+  expected_types: [float64, float64]
+  expected:
+  - [15.7, 15.7]
+

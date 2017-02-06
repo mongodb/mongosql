@@ -1,0 +1,7 @@
+
+testcases:
+- sql: "SELECT `Type` AS `none_Type_nk` FROM Starbucks WHERE (`Type` IS NULL) ORDER BY 1 LIMIT 1"
+  expected_names: ["none_Type_nk"]
+  expected_types: [varchar]
+  expected: []
+

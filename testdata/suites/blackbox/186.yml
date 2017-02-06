@@ -1,0 +1,7 @@
+
+testcases:
+- sql: "SELECT `MONTH` AS `none_MONTH_nk` FROM SeattleCrime WHERE (`MONTH` IS NULL) ORDER BY 1 LIMIT 1"
+  expected_names: ["none_MONTH_nk"]
+  expected_types: [varchar]
+  expected: []
+

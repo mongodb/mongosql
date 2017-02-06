@@ -1,0 +1,8 @@
+
+testcases:
+- sql: "SELECT AVG(`Gross Profit`) AS `avg_Gross_Profit_ok`, `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer Segment` AS `none_Customer_Segment_nk`, QUARTER(`Order Date`) AS `qr_Order_Date_ok`, SUM(`Sales Total`) AS `sum_Sales_Total_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE (0 <> 0) GROUP BY `Call Center Region`, `Customer Segment`, QUARTER(`Order Date`), YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5, 6"
+  min_server_version: "3.4"
+  expected_names: ["avg_Gross_Profit_ok", "none_Call_Center_Region_nk", "none_Customer_Segment_nk", "qr_Order_Date_ok", "sum_Sales_Total_ok", "yr_Order_Date_ok"]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected: []
+

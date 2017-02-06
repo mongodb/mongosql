@@ -1,4 +1,0 @@
-expected_names: ["avg_Employee_Salary_ok", "none_Employee_Name_nk"]
-expected_types: [int64, varchar]
-expected:
-- [103442, "Suzanne Lafrenière"]

@@ -1,0 +1,27 @@
+
+testcases:
+- sql: "SELECT `State` AS `none_State_nk` FROM Starbucks GROUP BY `State` ORDER BY 1"
+  expected_names: ["none_State_nk"]
+  expected_types: [varchar]
+  expected:
+  - ["California"]
+  - ["Colorado"]
+  - ["Connecticut"]
+  - ["Florida"]
+  - ["Illinois"]
+  - ["Iowa"]
+  - ["Louisiana"]
+  - ["Massachusetts"]
+  - ["Missouri"]
+  - ["Nevada"]
+  - ["New Hampshire"]
+  - ["New Mexico"]
+  - ["New York"]
+  - ["Ohio"]
+  - ["Oklahoma"]
+  - ["Oregon"]
+  - ["Texas"]
+  - ["Utah"]
+  - ["Washington"]
+  - ["Wisconsin"]
+

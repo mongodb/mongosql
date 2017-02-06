@@ -1,0 +1,11 @@
+
+testcases:
+- sql: "SELECT SUM(`Close_Price`) AS `sum_Close_Price_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Securities WHERE (YEAR(`Date`) IN (2000, 2001, 2002, 2003)) GROUP BY YEAR(`Date`) ORDER BY 1, 2"
+  expected_names: ["sum_Close_Price_ok", "yr_Date_ok"]
+  expected_types: [float64, int64]
+  expected:
+  - [15689.46, 2003]
+  - [36290.8, 2002]
+  - [40376.64, 2001]
+  - [74178.63, 2000]
+

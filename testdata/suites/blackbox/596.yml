@@ -1,0 +1,13 @@
+
+testcases:
+- sql: "SELECT `Order Priority` AS `none_Order_Priority_nk` FROM Staples GROUP BY `Order Priority` ORDER BY 1 ASC"
+  min_server_version: "3.4"
+  expected_names: ["none_Order_Priority_nk"]
+  expected_types: [varchar]
+  expected:
+  - ["1-URGENT"]
+  - ["2-HIGH"]
+  - ["3-MEDIUM"]
+  - ["4-NOT SPECIFIED"]
+  - ["5-LOW"]
+

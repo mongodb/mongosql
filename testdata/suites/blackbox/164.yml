@@ -1,0 +1,7 @@
+
+testcases:
+- sql: "SELECT `Market` AS `none_Market_nk`,   `State` AS `none_State_nk`,   COUNT(1) AS `usr_CalculationB_ok` FROM Starbucks WHERE ((`Market` = 'East') AND (`State` = 'Colorado')) GROUP BY `Market`,   `State` ORDER BY 1, 2, 3"
+  expected_names: ["none_Market_nk", "none_State_nk", "usr_CalculationB_ok"]
+  expected_types: [varchar, varchar, varchar]
+  expected: []
+

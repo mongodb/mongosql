@@ -1,0 +1,15 @@
+
+testcases:
+- sql: "SELECT `PRECINCT` AS `none_PRECINCT_nk` FROM SeattleCrime GROUP BY `PRECINCT` ORDER BY 1 ASC"
+  expected_names: ["none_PRECINCT_nk"]
+  expected_types: [varchar]
+  expected:
+  - ["EAST DISTRICT"]
+  - ["EAST PRECINCT"]
+  - ["N/A"]
+  - ["NORTH PRECINCT"]
+  - ["SOUTH PRECINCT"]
+  - ["SOUTHWEST PRECINCT"]
+  - ["WEST DISTRICT"]
+  - ["WEST PRECINCT"]
+

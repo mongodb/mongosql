@@ -1,0 +1,15 @@
+
+testcases:
+- sql: "SELECT `PRECINCT` AS `none_PRECINCT_nk`, (CASE WHEN COUNT(`TRACT`) = 0 THEN NULL ELSE CONVERT(SUM(CONVERT(`RAPE`, SQL_BIGINT)), SQL_DOUBLE) / COUNT(`TRACT`) END) AS `usr_Avg_Rape_Per_Tract_ok` FROM SeattleCrime GROUP BY `PRECINCT` ORDER BY 1, 2"
+  expected_names: ["none_PRECINCT_nk", "usr_Avg_Rape_Per_Tract_ok"]
+  expected_types: [varchar, int64]
+  expected:
+  - ["EAST DISTRICT", 0]
+  - ["EAST PRECINCT", 0.1096]
+  - ["N/A", 0]
+  - ["NORTH PRECINCT", 0.0833]
+  - ["SOUTH PRECINCT", 0.1731]
+  - ["SOUTHWEST PRECINCT", 0.0648]
+  - ["WEST DISTRICT", 0]
+  - ["WEST PRECINCT", 0.1754]
+

@@ -1,4 +1,0 @@
-expected_names: ["count(*)"]
-expected_types: [float64]
-expected:
-- [3990]

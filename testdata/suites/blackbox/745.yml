@@ -1,0 +1,9 @@
+
+testcases:
+- sql: "SELECT `str2` AS `none_strC_nk`,   SUM(`num3`) AS `sum_numD_ok` FROM Calcs WHERE ((`str2` IN ('sixteen')) OR (`str2` IS NULL)) GROUP BY `str2` ORDER BY 1, 2"
+  expected_names: ["none_strC_nk", "sum_numD_ok"]
+  expected_types: [varchar, float64]
+  expected:
+  - [~, -5.540000000000001]
+  - ["sixteen", -10.98]
+

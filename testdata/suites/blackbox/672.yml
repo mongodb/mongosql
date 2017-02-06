@@ -1,0 +1,31 @@
+
+testcases:
+- sql: "SELECT MONTH(`Date`) AS `mn_Date_ok`, `Type` AS `none_Type_nk`, SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY MONTH(`Date`), `Type` ORDER BY 1, 2, 3"
+  expected_names: ["mn_Date_ok", "none_Type_nk", "sum_Sales_ok"]
+  expected_types: [int64, varchar, float64]
+  expected:
+  - [1, "Decaf", 28326.25302492851]
+  - [1, "Regular", 38537.51973102743]
+  - [2, "Decaf", 28175.81910319061]
+  - [2, "Regular", 38115.8514730259]
+  - [3, "Decaf", 28405.109126684325]
+  - [3, "Regular", 38202.60986029379]
+  - [4, "Decaf", 29206.591370968632]
+  - [4, "Regular", 38842.969385366305]
+  - [5, "Decaf", 28663.567168831738]
+  - [5, "Regular", 38419.85218739769]
+  - [6, "Decaf", 29633.22243496268]
+  - [6, "Regular", 40303.41251955349]
+  - [7, "Decaf", 31078.74548057062]
+  - [7, "Regular", 40920.646877870924]
+  - [8, "Decaf", 30365.939350642733]
+  - [8, "Regular", 41370.63063587009]
+  - [9, "Decaf", 28365.86128482504]
+  - [9, "Regular", 39991.48517872217]
+  - [10, "Decaf", 28413.371830233646]
+  - [10, "Regular", 39442.0153926922]
+  - [11, "Decaf", 27789.53771225978]
+  - [11, "Regular", 38318.2877099843]
+  - [12, "Decaf", 29202.46001919397]
+  - [12, "Regular", 39735.34136869317]
+

@@ -1,0 +1,96 @@
+# Tests
+testcases:
+- sql: "SELECT a, b, c, latitude, longitude from .test1"
+  expected_types: [int, varchar, int, float64, float64]
+  expected:
+    - [1, "hello world!", 11, 124.0, 35.0]
+- sql: "SELECT a, b, c, latitude, longitude from test1"
+  expected_types: [int, varchar, int, float64, float64]
+  expected:
+    - [1, "hello world!", 11, 124.0, 35.0]
+- sql: "SELECT count(*) from test1"
+  expected_types: [int]
+  expected:
+    - [1]
+- sql: "SELECT sum(a) from test1"
+  expected_types: [int]
+  expected:
+    - [1]
+- sql: "SELECT sum(c) from test1"
+  expected_types: [int]
+  expected:
+    - [11]
+- sql: "SELECT latitude, longitude from test1"
+  expected_types: [float64, float64]
+  expected:
+    - [124.0, 35.0]
+- sql: "SELECT `loc.lat`, `loc.lng` from test2"
+  expected_types: [float64, float64]
+  expected:
+    - [33.0, 11.0]
+- sql: "SELECT * from test2"
+  expected_types: [varchar, int, varchar, float64, float64]
+  expected:
+    - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
+- sql: "SELECT sum(`loc.lng`) from test2"
+  expected_types: [float64]
+  expected:
+    - [11.0]
+- sql: "SELECT * from test2 where _id = '570e919f65d33734a8605cb9'"
+  expected_types: [varchar, int, varchar, float64, float64]
+  expected:
+    - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
+- sql: "SELECT * from test2 where _id > '570e919f65d33734a8605cb9'"
+  expected_types: [varchar, int, varchar, float64, float64]
+  expected: []
+- sql: "SELECT * from test2 where _id >= '570e919f65d33734a8605cb9'"
+  expected_types: [varchar, int, varchar, float64, float64]
+  expected:
+    - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
+- sql: "SELECT loc_latitude, loc_longitude from test3"
+  expected_types: [float64, float64]
+  expected:
+    - [4.0, 2.0]
+- sql: "SELECT * from test3"
+  expected_types: [varchar, int, varchar, float64, float64]
+  expected:
+    - [570e927965d33734a8605cbb, 1, hello, 2.0, 4.0]
+- sql: "SELECT sum(loc_latitude) from test3"
+  expected_types: [float64]
+  expected:
+    - [4.0]
+- sql: "SELECT * from test4"
+  expected_types: [varchar, int, varchar]
+  expected:
+    - [570e927965d33734a8605c2b, 1, hello]
+- sql: "SELECT * from test4_loc_b_c"
+  expected_types: [varchar, int, varchar, float64, int]
+  expected:
+    - [570e927965d33734a8605c2b, 1, hello, 44.0, 0]
+    - [570e927965d33734a8605c2b, 1, hello, 23.0, 1]
+- sql: "SELECT * from test4_loc_b_c where `loc.b.c_idx`=1"
+  expected_types: [varchar, int, varchar, float64, int]
+  expected:
+    - [570e927965d33734a8605c2b, 1, hello, 23.0, 1]
+- sql: "SELECT (true + true)"
+  expected_types: [float]
+  expected:
+    - [2]
+- sql: "select @@version limit 1"
+  expected_types: [varchar]
+  expected:
+    - ["5.7.12"]
+- sql: "select @@version limit 0, 1"
+  expected_types: [varchar]
+  expected:
+    - ["5.7.12"]
+- sql: "select @@version limit 0, 0"
+  expected_types: [varchar]
+  expected: ~
+- sql: "select @@version limit 0 OFFSET 2"
+  expected_types: [varchar]
+  expected: ~
+- sql: "select @@version limit 1 OFFSET 0"
+  expected_types: [varchar]
+  expected:
+    - ["5.7.12"]

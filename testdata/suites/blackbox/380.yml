@@ -1,0 +1,24 @@
+
+testcases:
+- sql: "SELECT `key` AS `none_key_nk`, `str2` AS `none_strC_nk`, CASE WHEN 3 >= 0 THEN SUBSTRING(`str2`,1,3) ELSE NULL END AS `none_z_left_str_num_nk` FROM Calcs ORDER BY 1, 2, 3"
+  expected_names: ["none_key_nk", "none_strC_nk", "none_z_left_str_num_nk"]
+  expected_types: [varchar, varchar, varchar]
+  expected:
+  - ["key00", "one", "one"]
+  - ["key01", "two", "two"]
+  - ["key02", "three", "thr"]
+  - ["key03", ~, ~]
+  - ["key04", "five", "fiv"]
+  - ["key05", "six", "six"]
+  - ["key06", ~, ~]
+  - ["key07", "eight", "eig"]
+  - ["key08", "nine", "nin"]
+  - ["key09", "ten", "ten"]
+  - ["key10", "eleven", "ele"]
+  - ["key11", "twelve", "twe"]
+  - ["key12", ~, ~]
+  - ["key13", "fourteen", "fou"]
+  - ["key14", "fifteen", "fif"]
+  - ["key15", "sixteen", "six"]
+  - ["key16", ~, ~]
+

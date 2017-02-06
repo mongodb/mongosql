@@ -1,0 +1,25 @@
+
+testcases:
+- sql: "SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk` FROM Staples GROUP BY `Prod Type1`,   `Prod Type2` ORDER BY 1, 2"
+  min_server_version: "3.4"
+  expected_names: ["none_Prod_TypeB_nk", "none_Prod_TypeC_nk"]
+  expected_types: [varchar, varchar]
+  expected:
+  - ["FURNITURE", "BOOKCASES"]
+  - ["FURNITURE", "CHAIRS & CHAIRMATS"]
+  - ["FURNITURE", "OFFICE FURNISHINGS"]
+  - ["FURNITURE", "TABLES"]
+  - ["OFFICE SUPPLIES", "APPLIANCES"]
+  - ["OFFICE SUPPLIES", "BINDERS AND BINDER ACCESSORIES"]
+  - ["OFFICE SUPPLIES", "ENVELOPES"]
+  - ["OFFICE SUPPLIES", "LABELS"]
+  - ["OFFICE SUPPLIES", "PAPER"]
+  - ["OFFICE SUPPLIES", "PENS & ART SUPPLIES"]
+  - ["OFFICE SUPPLIES", "RUBBER BANDS"]
+  - ["OFFICE SUPPLIES", "SCISSORS, RULERS AND TRIMMERS"]
+  - ["OFFICE SUPPLIES", "STORAGE & ORGANIZATION"]
+  - ["TECHNOLOGY", "COMPUTER PERIPHERALS"]
+  - ["TECHNOLOGY", "COPIERS AND FAX"]
+  - ["TECHNOLOGY", "OFFICE MACHINES"]
+  - ["TECHNOLOGY", "TELEPHONES AND COMMUNICATION"]
+
