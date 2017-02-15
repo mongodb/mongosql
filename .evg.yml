@@ -89,6 +89,19 @@ buildvariants:
     push_path: osx
   tasks:
   - "!.oneoff-task"
+- name: osx-mongo32
+  display_name: OSX 10.10 (MongoDB 3.2.12)
+  run_on:
+  - osx-1010
+  expansions:
+    cover: "-"
+    mongo_url: https://downloads.mongodb.org/osx/mongodb-osx-x86_64-3.2.12.tgz
+    mongodb_version_flag: "-serverVersion 3.2"
+    push_arch: x86_64
+    push_name: osx
+    push_path: osx
+  tasks:
+  - "!.oneoff-task !dist"
 - name: rhel62
   display_name: RHEL 6.2
   expansions:
@@ -183,6 +196,18 @@ buildvariants:
   - ubuntu1404-build
   tasks:
   - "!.oneoff-task"
+- name: ubuntu1404-64-mongo32
+  display_name: Ubuntu 14.04 (MongoDB 3.2.12)
+  expansions:
+    mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.2.12.tgz
+    mongodb_version_flag: "-serverVersion 3.2"
+    push_arch: x86_64-ubuntu1404
+    push_name: linux
+    push_path: linux
+  run_on:
+  - ubuntu1404-build
+  tasks:
+  - "!.oneoff-task !dist"
 - name: ubuntu1404-64-race
   display_name: Ubuntu 14.04 (Race Detector)
   expansions:
@@ -194,7 +219,7 @@ buildvariants:
   run_on:
   - ubuntu1404-build
   tasks:
-  - "!.oneoff-task"
+  - "!.oneoff-task !dist"
 - name: windows-64
   display_name: Windows 64
   run_on:
@@ -211,6 +236,23 @@ buildvariants:
     separator: \\
   tasks:
   - "!.oneoff-task"
+- name: windows-64-mongo32
+  display_name: Windows 64 (MongoDB 3.2.12)
+  run_on:
+  - windows-64-vs2013-test
+  expansions:
+    archive_format: zip
+    cover: "-"
+    extension: .exe
+    library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
+    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.12.zip
+    mongodb_version_flag: "-serverVersion 3.2"
+    push_arch: x86_64
+    push_name: win32
+    push_path: win32
+    separator: \\
+  tasks:
+  - "!.oneoff-task !dist"
 pre:
   - command: shell.track
   - command: shell.exec
@@ -678,7 +720,7 @@ tasks:
           tee -a blackbox.suite < test_pipe&
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go run testdata/blackbox.go -out blackbox_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -run TestBlackBox -parallel 10 -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe;
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -run TestBlackBox -parallel 10 -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > test_pipe;
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -722,7 +764,7 @@ tasks:
           tee -a blackbox-nopushdown.suite < test_pipe&
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go run testdata/blackbox.go -out blackbox_test.go
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -run TestBlackBox -parallel 10 -timeout 4h -v ${cover|-coverprofile=coverage.out} > test_pipe
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -run TestBlackBox -parallel 10 -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -1064,7 +1106,7 @@ tasks:
             fi;
           fi;
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} ${mongodb_version_flag} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -1104,7 +1146,7 @@ tasks:
             fi;
           fi;
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy-nopushdown.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-nopushdown.suite; exit 1; else cat sqlproxy-nopushdown.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > sqlproxy-nopushdown.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-nopushdown.suite; exit 1; else cat sqlproxy-nopushdown.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
