@@ -6,14 +6,13 @@ data:
 - archive_file: testdata/input/Fischeriris.bson.gz
 - archive_file: testdata/input/Loan.bson.gz
 - archive_file: testdata/input/NumericBins.bson.gz
-- archive_file: testdata/input/Rei.bson.gz
 - archive_file: testdata/input/SeattleCrime.bson.gz
 - archive_file: testdata/input/Securities.bson.gz
 - archive_file: testdata/input/SpecialData.bson.gz
-- archive_file: testdata/input/Staples.bson.gz
 - archive_file: testdata/input/Starbucks.bson.gz
-- archive_file: testdata/input/UTStarcom.bson.gz
 - archive_file: testdata/input/xy.bson.gz
+- archive_file: testdata/input/Staples.bson.gz
+  min_server_version: "3.4"
 
 addr: 127.0.0.1:3307
 user: root

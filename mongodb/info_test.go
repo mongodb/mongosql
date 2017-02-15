@@ -113,11 +113,9 @@ schema:
 		So(ok, ShouldBeTrue)
 		So(two.Privileges, ShouldEqual, mongodb.AllPrivileges)
 
+		So(two.Collation, ShouldNotBeNil)
 		if info.VersionAtLeast(3, 3) {
-			So(two.Collation, ShouldNotBeNil)
 			So(two.Collation.Locale, ShouldEqual, "fr")
-		} else {
-			So(two.Collation, ShouldBeNil)
 		}
 	})
 }

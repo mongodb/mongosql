@@ -185,3 +185,15 @@ func ValidateCollectionGrammar(collection string) error {
 	// collection name is valid
 	return nil
 }
+
+func VersionAtLeast(versionArray []int, userVersion []int) bool {
+	for idx, vi := range userVersion {
+		if idx == len(versionArray) {
+			return false
+		}
+		if ivi := versionArray[idx]; ivi != vi {
+			return ivi >= vi
+		}
+	}
+	return true
+}

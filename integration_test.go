@@ -22,6 +22,7 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
 	"github.com/10gen/sqlproxy/testutils"
+	"github.com/10gen/sqlproxy/util"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
@@ -36,6 +37,7 @@ var (
 	ymlfile         = flag.String("ymlfile", "", "The yml test file to run")
 	ymltestname     = flag.String("ymltestname", "", "The test name in the yml file to run")
 	skipDataCleanup = flag.Bool("skipDataCleanup", false, "Skips cleaning up data after an integration test run")
+	serverVersion   = flag.String("serverVersion", "3.4", "The version of mongodb against which these tests are being run")
 )
 
 const (
@@ -54,6 +56,9 @@ type testDataSet struct {
 	// It will generally be used when a small amount of data is needed
 	// for tests.
 	Inline *inlineDataSet `yaml:"inline"`
+	// MinServerVersion represents the lowest version of mongodb with
+	// which the provided data will be compatible.
+	MinServerVersion string `yaml:"min_server_version"`
 }
 
 type inlineDataSet struct {
@@ -64,14 +69,15 @@ type inlineDataSet struct {
 }
 
 type testCase struct {
-	SQL             string          `yaml:"sql"`
-	CleanupSQL      string          `yaml:"sql_cleanup"`
-	VerificationSQL string          `yaml:"verify"`
-	Description     string          `yaml:"description"`
-	ExpectedTypes   []string        `yaml:"expected_types"`
-	ExpectedNames   []string        `yaml:"expected_names"`
-	ExpectedData    [][]interface{} `yaml:"expected"`
-	PushDownOnly    bool            `yaml:"pushdown_only"`
+	SQL              string          `yaml:"sql"`
+	CleanupSQL       string          `yaml:"sql_cleanup"`
+	VerificationSQL  string          `yaml:"verify"`
+	Description      string          `yaml:"description"`
+	MinServerVersion string          `yaml:"min_server_version"`
+	ExpectedTypes    []string        `yaml:"expected_types"`
+	ExpectedNames    []string        `yaml:"expected_names"`
+	ExpectedData     [][]interface{} `yaml:"expected"`
+	PushDownOnly     bool            `yaml:"pushdown_only"`
 }
 
 type testSchema struct {
@@ -232,6 +238,10 @@ func executeTestCase(conf testSchema, db *sql.DB) error {
 			continue
 		}
 
+		if !mongodbVersionAtLeast(testCase.MinServerVersion) {
+			continue
+		}
+
 		description := testCase.SQL
 		if testCase.Description != "" {
 			description = testCase.Description
@@ -263,6 +273,9 @@ func executeTestCase(conf testSchema, db *sql.DB) error {
 
 func mustLoadTestData(dbhost, dbport string, conf testSchema) {
 	for _, dataSet := range conf.Data {
+		if !mongodbVersionAtLeast(dataSet.MinServerVersion) {
+			continue
+		}
 		if dataSet.ArchiveFile != "" {
 			if err := restoreBSON(dbhost, dbport, dataSet.ArchiveFile); err != nil {
 				panic(err)
@@ -291,6 +304,34 @@ func mustLoadTestSchema(path string) testSchema {
 	}
 
 	return conf
+}
+
+func mongodbVersionAtLeast(versionString string) bool {
+	if versionString == "" {
+		return true
+	}
+
+	strServerVersion := strings.Split(*serverVersion, ".")
+	serverVersion := make([]int, len(strServerVersion))
+	for i, str := range strServerVersion {
+		num, err := strconv.ParseInt(str, 0, 0)
+		if err != nil {
+			panic(err)
+		}
+		serverVersion[i] = int(num)
+	}
+
+	strVersion := strings.Split(versionString, ".")
+	version := make([]int, len(strVersion))
+	for i, str := range strVersion {
+		num, err := strconv.ParseInt(str, 0, 0)
+		if err != nil {
+			panic(err)
+		}
+		version[i] = int(num)
+	}
+
+	return util.VersionAtLeast(serverVersion, version)
 }
 
 func restoreInline(host, port string, inline *inlineDataSet) error {

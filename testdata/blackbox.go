@@ -16,10 +16,11 @@ var (
 )
 
 type Query struct {
-	Query    string `json:"query"`
-	ID       string `json:"id"`
-	Database string `json:"db"`
-	Columns  int    `json:"columns"`
+	Query            string `json:"query"`
+	ID               string `json:"id"`
+	Database         string `json:"db"`
+	Columns          int    `json:"columns"`
+	MinServerVersion string `json:"minServerVersion"`
 }
 
 type Queries struct {
@@ -54,6 +55,7 @@ func main() {
 	var q Query
 
 	for {
+		q = Query{}
 		err = d.Decode(&q)
 		if err != nil {
 			if err == io.EOF {
@@ -137,6 +139,11 @@ func TestBlackBox{{.ID}}(t *testing.T) {
 	query := "{{.Query}}"
 	once.Do(setup)
 	id := {{.ID}}
+	minServerVersion := "{{.MinServerVersion}}"
+
+	if !mongodbVersionAtLeast(minServerVersion) {
+		t.Skip(fmt.Sprintf("This test requires mongodb >= %s, but serverVersion is %s", minServerVersion, *serverVersion))
+	}
 
 	Convey(fmt.Sprintf("Testing blackbox query %v", id), t, func() {
 		runBlackboxQuery(db, query, id)

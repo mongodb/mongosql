@@ -143,6 +143,8 @@ func TestRoundtrips(t *testing.T) {
 
 			session, err := gen.Connect()
 			So(err, ShouldBeNil)
+			bi, err := session.BuildInfo()
+			So(err, ShouldBeNil)
 			db := session.DB(gen.ToolOptions.DrdlNamespace.DB)
 			defer func() {
 				db.DropDatabase()
@@ -155,22 +157,24 @@ func TestRoundtrips(t *testing.T) {
 				bson.M{"a": 3, "b": "s"},
 			), ShouldBeNil)
 
-			So(db.Run(bson.D{
-				{"create", "view"},
-				{"viewOn", "base"},
-				{"pipeline", []bson.M{{"$match": bson.M{"a": 3}}}},
-			}, &struct{}{}), ShouldBeNil)
+			if bi.VersionAtLeast(3, 3, 0) {
+				So(db.Run(bson.D{
+					{"create", "view"},
+					{"viewOn", "base"},
+					{"pipeline", []bson.M{{"$match": bson.M{"a": 3}}}},
+				}, &struct{}{}), ShouldBeNil)
 
-			// for views, get indexes should return an error
-			_, err = db.C("view").Indexes()
-			So(err, ShouldNotBeNil)
+				// for views, get indexes should return an error
+				_, err = db.C("view").Indexes()
+				So(err, ShouldNotBeNil)
 
-			gen.Generate()
+				gen.Generate()
 
-			output, err := readYaml(gen.OutputOptions.Out)
-			expected, err := readYaml("testdata/view-expected.yml")
-			So(err, ShouldBeNil)
-			So(toString(output), ShouldEqual, toString(expected))
+				output, err := readYaml(gen.OutputOptions.Out)
+				expected, err := readYaml("testdata/view-expected.yml")
+				So(err, ShouldBeNil)
+				So(toString(output), ShouldEqual, toString(expected))
+			}
 		})
 
 		Convey("Should work with mongodb views containing geo index", func() {
@@ -192,6 +196,8 @@ func TestRoundtrips(t *testing.T) {
 
 			session, err := gen.Connect()
 			So(err, ShouldBeNil)
+			bi, err := session.BuildInfo()
+			So(err, ShouldBeNil)
 			defer session.Close()
 
 			db := session.DB(gen.ToolOptions.DrdlNamespace.DB)
@@ -212,22 +218,24 @@ func TestRoundtrips(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(indexes, ShouldNotBeNil)
 
-			So(db.Run(bson.D{
-				{"create", "view"},
-				{"viewOn", "base"},
-				{"pipeline", []bson.M{}},
-			}, &struct{}{}), ShouldBeNil)
+			if bi.VersionAtLeast(3, 3, 0) {
+				So(db.Run(bson.D{
+					{"create", "view"},
+					{"viewOn", "base"},
+					{"pipeline", []bson.M{}},
+				}, &struct{}{}), ShouldBeNil)
 
-			// for views, get indexes should return an error
-			_, err = db.C("view").Indexes()
-			So(err, ShouldNotBeNil)
+				// for views, get indexes should return an error
+				_, err = db.C("view").Indexes()
+				So(err, ShouldNotBeNil)
 
-			gen.Generate()
+				gen.Generate()
 
-			output, err := readYaml(gen.OutputOptions.Out)
-			expected, err := readYaml("testdata/view-geo-expected.yml")
-			So(err, ShouldBeNil)
-			So(toString(output), ShouldEqual, toString(expected))
+				output, err := readYaml(gen.OutputOptions.Out)
+				expected, err := readYaml("testdata/view-geo-expected.yml")
+				So(err, ShouldBeNil)
+				So(toString(output), ShouldEqual, toString(expected))
+			}
 		})
 
 		Convey("Should ignore system.* collections in admin", func() {

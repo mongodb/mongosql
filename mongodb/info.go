@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/util"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -39,9 +40,9 @@ type Info struct {
 // VersionAtLeast indicates whether the MongoDB version is at least the required version.
 func (i *Info) VersionAtLeast(version ...int) bool {
 	if len(i.CompatibleVersionArray) > 0 {
-		return versionAtLeast(i.CompatibleVersionArray, version)
+		return util.VersionAtLeast(i.CompatibleVersionArray, version)
 	}
-	return versionAtLeast(i.VersionArray, version)
+	return util.VersionAtLeast(i.VersionArray, version)
 }
 
 // SetCompatibleVersion sets the compatible version and compatible version array.
@@ -61,18 +62,6 @@ func (i *Info) SetCompatibleVersion(compatibleVersion string) error {
 	i.CompatibleVersion = compatibleVersion
 	i.CompatibleVersionArray = array
 	return nil
-}
-
-func versionAtLeast(versionArray []int, userVersion []int) bool {
-	for idx, vi := range userVersion {
-		if idx == len(versionArray) {
-			return false
-		}
-		if ivi := versionArray[idx]; ivi != vi {
-			return ivi >= vi
-		}
-	}
-	return true
 }
 
 // DatabaseInfo is the configuration of a database in MongoDB.
