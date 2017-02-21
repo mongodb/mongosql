@@ -203,6 +203,10 @@ func (c *conn) DB() string {
 }
 
 func (c *conn) dispatch(data []byte) error {
+	if len(data) < 1 {
+		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COM_ERROR)
+	}
+
 	cmd := data[0]
 	data = data[1:]
 
