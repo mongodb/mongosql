@@ -195,6 +195,8 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 		}
 		close(rowChan)
 	}()
+	count := 0
+	totalBytes := 0
 
 streamer:
 	for {
@@ -230,6 +232,8 @@ streamer:
 			if err := c.writePacket(data); err != nil {
 				return err
 			}
+			count++
+			totalBytes += len(data)
 
 		case <-c.tomb.Dying():
 			iter.Close()
@@ -252,6 +256,8 @@ streamer:
 			return err
 		}
 	}
+
+	c.logger.Logf(log.Info, "returned %d %s (%s)", count, util.Pluralize(count, "row", "rows"), util.ByteString(totalBytes))
 
 	return c.writeEOF(status)
 }
