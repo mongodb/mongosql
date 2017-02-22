@@ -1,9 +1,12 @@
 package evaluator
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -101,7 +104,14 @@ func containsRow(results []result, row *Row) ([]result, bool) {
 
 func TestUnionPlanStage(t *testing.T) {
 
-	ctx := createTestExecutionCtx()
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+
+	ctx := createTestExecutionCtx(testInfo)
 
 	test := func(testName string, expectedColumns []string, expectedResults []result, planStageFactory func() PlanStage) {
 		Convey(testName, func() {

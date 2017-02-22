@@ -1,15 +1,27 @@
 package evaluator
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/schema"
+
 	. "github.com/smartystreets/goconvey/convey"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
 func TestSubquerySourceStage(t *testing.T) {
 	ctx := &ExecutionCtx{}
+
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	runTest := func(s *SubquerySourceStage, optimize bool, rows []bson.D, expectedRows []Values) {
 		ts := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
@@ -21,8 +33,7 @@ func TestSubquerySourceStage(t *testing.T) {
 		s.source = ts
 		plan = s
 		if optimize {
-			plan = OptimizePlan(createTestConnectionCtx(), plan)
-			So(err, ShouldBeNil)
+			plan = OptimizePlan(createTestConnectionCtx(testInfo), plan)
 		}
 
 		iter, err := plan.Open(ctx)

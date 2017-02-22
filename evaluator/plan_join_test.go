@@ -1,11 +1,15 @@
 package evaluator
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+
 	. "github.com/smartystreets/goconvey/convey"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -77,6 +81,14 @@ func setupJoinOperator(on SQLExpr, kind JoinKind) PlanStage {
 }
 
 func TestJoinPlanStage(t *testing.T) {
+
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+
 	Convey("With a simple test configuration...", t, func() {
 
 		criteria := &SQLEqualsExpr{
@@ -100,7 +112,7 @@ func TestJoinPlanStage(t *testing.T) {
 			},
 		}
 
-		ctx := createTestExecutionCtx()
+		ctx := createTestExecutionCtx(testInfo)
 
 		row := &Row{}
 

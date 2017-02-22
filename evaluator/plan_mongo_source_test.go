@@ -10,7 +10,9 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/variable"
+
 	. "github.com/smartystreets/goconvey/convey"
+
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"gopkg.in/tomb.v2"
@@ -85,7 +87,7 @@ func getOptions(t *testing.T) options.SqldOptions {
 func TestMongoSourcePlanStage(t *testing.T) {
 	env := setupEnv(t)
 	cfgOne := env.cfgOne
-	infoOne := getMongoDBInfo(cfgOne, mongodb.AllPrivileges)
+	infoOne := getMongoDBInfo(nil, cfgOne, mongodb.AllPrivileges)
 	variablesOne := createTestVariables(infoOne)
 	catalogOne := getCatalogFromSchema(cfgOne, variablesOne)
 	sessionProvider, err := client.NewSqldSessionProvider(getOptions(t))

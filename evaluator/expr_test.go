@@ -8,10 +8,13 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
+
 	. "github.com/smartystreets/goconvey/convey"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -2997,6 +3000,13 @@ func TestTranslatePredicate(t *testing.T) {
 		expected string
 	}
 
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
@@ -3012,7 +3022,8 @@ func TestTranslatePredicate(t *testing.T) {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				ctx := createTestEvalCtx()
+
+				ctx := createTestEvalCtx(testInfo)
 				n, err := optimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldBeNil)
 				e = n.(SQLExpr)
@@ -3124,6 +3135,13 @@ func TestExprNoPushdown(t *testing.T) {
 		sql string
 	}
 
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
@@ -3137,7 +3155,8 @@ func TestExprNoPushdown(t *testing.T) {
 			Convey(fmt.Sprintf("%q should not be pushed down", t.sql), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				ctx := createTestEvalCtx()
+
+				ctx := createTestEvalCtx(testInfo)
 				n, err := optimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldBeNil)
 				e = n.(SQLExpr)
@@ -3181,6 +3200,13 @@ func TestTranslateExpr(t *testing.T) {
 		expected string
 	}
 
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
@@ -3194,7 +3220,8 @@ func TestTranslateExpr(t *testing.T) {
 			Convey(fmt.Sprintf("%q should be translated to \"%s\"", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				ctx := createTestEvalCtx()
+
+				ctx := createTestEvalCtx(testInfo)
 				n, err := optimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldBeNil)
 				e = n.(SQLExpr)

@@ -466,11 +466,18 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 			// we have a predicate that completely or partially couldn't be handled by $match.
 			// Attempt to push it down as part of a $project/$match combination.
 			if predicate, ok := t.TranslateExpr(localMatcher); ok {
-				projectBody := v.projectAllColumns(ms.mappingRegistry)
-				fieldName := v.distinctProjectFieldName(projectBody)
-				projectBody[fieldName] = predicate
-				pipeline = append(pipeline,
-					bson.D{{"$project", projectBody}},
+				stageName, stageBody := "$addFields", bson.M{}
+
+				if !t.versionAtLeast(3, 4, 0) {
+					stageBody = v.projectAllColumns(ms.mappingRegistry)
+					stageName = "$project"
+				}
+
+				fieldName := v.distinctProjectFieldName(stageBody)
+				stageBody[fieldName] = predicate
+				predicateEvaluationStage := bson.D{{stageName, stageBody}}
+
+				pipeline = append(pipeline, predicateEvaluationStage,
 					bson.D{{"$match", bson.M{fieldName: true}}})
 
 				localMatcher = nil
@@ -1402,16 +1409,21 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 				foreignField, "$" + localFieldName,
 			}}
 
-			projectBody := bson.M{}
+			stageName, stageBody := "$addFields", bson.M{}
 
-			for _, columns := range newMappingRegistry.fields {
-				for _, fieldName := range columns {
-					projectBody[fieldName] = 1
-				}
+			t := &pushDownTranslator{
+				versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
+				lookupFieldName: newMappingRegistry.lookupFieldName,
 			}
 
-			fieldName := v.distinctProjectFieldName(projectBody)
-			projectBody[fieldName] = filter
+			if !t.versionAtLeast(3, 4, 0) {
+				stageBody = v.projectAllColumns(newMappingRegistry)
+				stageName = "$project"
+			}
+
+			fieldName := v.distinctProjectFieldName(stageBody)
+			stageBody[fieldName] = filter
+			predicateEvaluationStage := bson.D{{stageName, stageBody}}
 
 			match := bson.M{fieldName: true}
 			if join.kind == LeftJoin {
@@ -1421,8 +1433,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 				match = bson.M{mgoOperatorOR: []interface{}{match,
 					bson.M{path[1:]: bson.M{mgoOperatorExists: false}}}}
 			}
-			pipeline = append(pipeline,
-				bson.D{{"$project", projectBody}},
+			pipeline = append(pipeline, predicateEvaluationStage,
 				bson.D{{"$match", match}},
 			)
 		}

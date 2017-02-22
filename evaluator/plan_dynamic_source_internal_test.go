@@ -1,10 +1,13 @@
 package evaluator
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/catalog"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -18,6 +21,13 @@ func TestDynamicSourceStage(t *testing.T) {
 			catalog.NewDataRow(3, 4),
 		}
 	})
+
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
 	table.AddColumn("one", schema.SQLInt)
 	table.AddColumn("two", schema.SQLInt)
@@ -41,7 +51,7 @@ func TestDynamicSourceStage(t *testing.T) {
 
 		source := NewDynamicSourceStage(table, 1, tableName)
 
-		connectionCtx := createTestConnectionCtx()
+		connectionCtx := createTestConnectionCtx(testInfo)
 		execCtx := &ExecutionCtx{
 			ConnectionCtx: connectionCtx,
 		}

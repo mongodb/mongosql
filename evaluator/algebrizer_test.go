@@ -26,7 +26,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
-	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVars := createTestVariables(testInfo)
 	testCatalog := getCatalogFromSchema(testSchema, testVars)
 	defaultDbName := "test"
@@ -2072,7 +2072,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
-	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVars := createTestVariables(testInfo)
 	testCatalog := getCatalogFromSchema(testSchema, testVars)
 	defaultDbName := "test"
@@ -2222,7 +2222,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 
 func TestAlgebrizeExpr(t *testing.T) {
 	testSchema, _ := schema.New(testSchema1)
-	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVars := createTestVariables(testInfo)
 	testCatalog := getCatalogFromSchema(testSchema, testVars)
 	testDB, _ := testCatalog.Database("test")

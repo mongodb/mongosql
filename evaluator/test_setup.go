@@ -161,8 +161,6 @@ schema:
 `)
 
 	testSchema2 = []byte(`
-url: localhost
-log_level: vv
 schema:
 -
   db: test
@@ -251,8 +249,6 @@ schema:
 
 	testSchema3 = []byte(
 		`
-url: localhost
-log_level: vv
 schema:
 -
   db: test
@@ -332,8 +328,6 @@ schema:
 
 	testSchema4 = []byte(
 		`
-url: localhost
-log_level: vv
 schema:
 -
   db: test

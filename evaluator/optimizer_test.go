@@ -33,12 +33,12 @@ func (v *pipelineGatherer) visit(n node) (node, error) {
 	return n, nil
 }
 
-func TestOptimizePlan(t *testing.T) {
+func TestOptimizePlan32(t *testing.T) {
 	testSchema, err := schema.New(testSchema4)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
-	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
+	testInfo := getMongoDBInfo([]int{3, 2}, testSchema, mongodb.AllPrivileges)
 	testVariables := createTestVariables(testInfo)
 	testCatalog := getCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
@@ -50,7 +50,292 @@ func TestOptimizePlan(t *testing.T) {
 
 			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
-			actualPlan := OptimizePlan(createTestConnectionCtx(), plan)
+			actualPlan := OptimizePlan(createTestConnectionCtx(testInfo), plan)
+
+			pg := &pipelineGatherer{}
+			pg.visit(actualPlan)
+
+			actual := pg.pipelines
+
+			v := ShouldResembleDiffed(actual, expected)
+			if v != "" {
+				fmt.Printf("\n ACTUAL: %# v", pretty.Formatter(actual))
+				fmt.Printf("\n EXPECTED: %# v", pretty.Formatter(expected))
+			}
+			So(actual, ShouldResembleDiffed, expected)
+		})
+	}
+
+	Convey("Subject: OptimizePlan32", t, func() {
+		test("select a from foo where a = 10 AND b < c",
+			[]bson.D{
+				{{"$match", bson.M{
+					"a": int64(10),
+				}}},
+				{{"$project", bson.M{
+					"d.e": 1,
+					"_id": 1,
+					"__predicate": bson.M{
+						"$cond": []interface{}{
+							bson.M{
+								"$or": []interface{}{
+									bson.M{
+										"$eq": []interface{}{
+											bson.M{
+												"$ifNull": []interface{}{
+													"$b",
+													nil,
+												},
+											},
+											nil,
+										},
+									},
+									bson.M{
+										"$eq": []interface{}{
+											bson.M{
+												"$ifNull": []interface{}{
+													"$c",
+													nil,
+												},
+											},
+											nil,
+										},
+									},
+								},
+							},
+							nil,
+							bson.M{
+								"$lt": []interface{}{
+									"$b",
+									"$c",
+								},
+							},
+						},
+					},
+					"a":      1,
+					"b":      1,
+					"c":      1,
+					"d.f":    1,
+					"g":      1,
+					"filter": 1,
+				}}},
+				{{"$match", bson.M{
+					"__predicate": true,
+				}}},
+				{{"$project", bson.M{
+					"foo_DOT_a": "$a",
+				}}},
+			},
+		)
+		test("select a from foo where b < c AND a = 10",
+			[]bson.D{
+				{{"$match", bson.M{
+					"a": int64(10),
+				}}},
+				{{"$project", bson.M{
+					"d.e": 1,
+					"_id": 1,
+					"__predicate": bson.M{
+						"$cond": []interface{}{
+							bson.M{
+								"$or": []interface{}{
+									bson.M{
+										"$eq": []interface{}{
+											bson.M{
+												"$ifNull": []interface{}{
+													"$b",
+													nil,
+												},
+											},
+											nil,
+										},
+									},
+									bson.M{
+										"$eq": []interface{}{
+											bson.M{
+												"$ifNull": []interface{}{
+													"$c",
+													nil,
+												},
+											},
+											nil,
+										},
+									},
+								},
+							},
+							nil,
+							bson.M{
+								"$lt": []interface{}{
+									"$b",
+									"$c",
+								},
+							},
+						},
+					},
+					"a":      1,
+					"b":      1,
+					"c":      1,
+					"d.f":    1,
+					"g":      1,
+					"filter": 1,
+				}}},
+				{{"$match", bson.M{
+					"__predicate": true,
+				}}},
+				{{"$project", bson.M{
+					"foo_DOT_a": "$a",
+				}}},
+			},
+		)
+		test("select a from foo where b < c",
+			[]bson.D{
+				{{"$project", bson.M{
+					"d.e": 1,
+					"_id": 1,
+					"__predicate": bson.M{
+						"$cond": []interface{}{
+							bson.M{
+								"$or": []interface{}{
+									bson.M{
+										"$eq": []interface{}{
+											bson.M{
+												"$ifNull": []interface{}{
+													"$b",
+													nil,
+												},
+											},
+											nil,
+										},
+									},
+									bson.M{
+										"$eq": []interface{}{
+											bson.M{
+												"$ifNull": []interface{}{
+													"$c",
+													nil,
+												},
+											},
+											nil,
+										},
+									},
+								},
+							},
+							nil,
+							bson.M{
+								"$lt": []interface{}{
+									"$b",
+									"$c",
+								},
+							},
+						},
+					},
+					"a":      1,
+					"b":      1,
+					"c":      1,
+					"d.f":    1,
+					"g":      1,
+					"filter": 1,
+				}}},
+				{{"$match", bson.M{
+					"__predicate": true,
+				}}},
+				{{"$project", bson.M{
+					"foo_DOT_a": "$a",
+				}}},
+			},
+		)
+		test("select * from bar a join foo b on a.a=b.a and a.a=b.f",
+			[]bson.D{
+				{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+				{{"$lookup", bson.M{
+					"from":         "foo",
+					"localField":   "a",
+					"foreignField": "a",
+					"as":           "__joined_b",
+				}}},
+				{{"$unwind", bson.M{
+					"path": "$__joined_b",
+					"preserveNullAndEmptyArrays": false,
+				}}},
+				{{"$project", bson.M{
+					"__joined_b._id":    1,
+					"__joined_b.a":      1,
+					"__joined_b.b":      1,
+					"__joined_b.c":      1,
+					"__joined_b.d.e":    1,
+					"__joined_b.d.f":    1,
+					"__joined_b.filter": 1,
+					"__joined_b.g":      1,
+					"_id":               1,
+					"a":                 1,
+					"b":                 1,
+					"__predicate": bson.M{
+						"$cond": []interface{}{
+							bson.M{
+								"$or": []interface{}{
+									bson.M{
+										"$eq": []interface{}{
+											bson.M{
+												"$ifNull": []interface{}{
+													"$a",
+													nil,
+												},
+											},
+											nil,
+										},
+									},
+									bson.M{
+										"$eq": []interface{}{
+											bson.M{
+												"$ifNull": []interface{}{
+													"$__joined_b.d.f",
+													nil,
+												},
+											},
+											nil,
+										},
+									},
+								},
+							},
+							nil,
+							bson.M{
+								"$eq": []interface{}{
+									"$a",
+									"$__joined_b.d.f",
+								},
+							},
+						},
+					},
+				}}},
+				{{"$match", bson.M{
+					"__predicate": true,
+				}}},
+			},
+		)
+
+	})
+}
+
+func TestOptimizePlan(t *testing.T) {
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testVariables := createTestVariables(testInfo)
+	testCatalog := getCatalogFromSchema(testSchema, testVariables)
+	defaultDbName := "test"
+
+	test := func(sql string, expected ...[]bson.D) {
+		Convey(sql, func() {
+			statement, err := parser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			So(err, ShouldBeNil)
+
+			actualPlan := OptimizePlan(createTestConnectionCtx(testInfo), plan)
 
 			pg := &pipelineGatherer{}
 			pg.visit(actualPlan)
@@ -73,7 +358,8 @@ func TestOptimizePlan(t *testing.T) {
 
 			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
-			actualPlan := OptimizePlan(createTestConnectionCtx(), plan)
+
+			actualPlan := OptimizePlan(createTestConnectionCtx(testInfo), plan)
 
 			pg := &pipelineGatherer{}
 			pg.visit(actualPlan)
@@ -103,6 +389,63 @@ func TestOptimizePlan(t *testing.T) {
 
 			Convey("joins", func() {
 				Convey("inner join", func() {
+					test("select * from bar a join foo b on a.a=b.a and a.a=b.f",
+						[]bson.D{
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_b",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_b",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$addFields", bson.M{
+								"__predicate": bson.M{
+									"$cond": []interface{}{
+										bson.M{
+											"$or": []interface{}{
+												bson.M{
+													"$eq": []interface{}{
+														bson.M{
+															"$ifNull": []interface{}{
+																"$a",
+																nil,
+															},
+														},
+														nil,
+													},
+												},
+												bson.M{
+													"$eq": []interface{}{
+														bson.M{
+															"$ifNull": []interface{}{
+																"$__joined_b.d.f",
+																nil,
+															},
+														},
+														nil,
+													},
+												},
+											},
+										},
+										nil,
+										bson.M{
+											"$eq": []interface{}{
+												"$a",
+												"$__joined_b.d.f",
+											},
+										},
+									},
+								},
+							}}},
+							{{"$match", bson.M{
+								"__predicate": true,
+							}}},
+						},
+					)
 					test("select foo.a, bar.b from foo inner join bar on foo.a = bar.a",
 						[]bson.D{
 							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
@@ -622,20 +965,7 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_f",
 								"preserveNullAndEmptyArrays": false,
 							}}},
-							{{"$project", bson.M{
-								"__joined_f._id":    1,
-								"__joined_f.a":      1,
-								"__joined_f.b":      1,
-								"__joined_f.c":      1,
-								"__joined_f.d.e":    1,
-								"__joined_f.d.f":    1,
-								"__joined_f.filter": 1,
-								"__joined_f.g":      1,
-								"_id":               1,
-								"a":                 1,
-								"d.a":               1,
-								"d.a_idx":           1,
-								"d_idx":             1,
+							{{"$addFields", bson.M{
 								"__predicate": bson.M{
 									"$cond": []interface{}{
 										bson.M{
@@ -752,18 +1082,7 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_foo",
 								"preserveNullAndEmptyArrays": false,
 							}}},
-							{{"$project", bson.M{
-								"_id":                 1,
-								"a":                   1,
-								"b":                   1,
-								"__joined_foo._id":    1,
-								"__joined_foo.a":      1,
-								"__joined_foo.b":      1,
-								"__joined_foo.c":      1,
-								"__joined_foo.d.e":    1,
-								"__joined_foo.d.f":    1,
-								"__joined_foo.g":      1,
-								"__joined_foo.filter": 1,
+							{{"$addFields", bson.M{
 								"__predicate": bson.M{
 									"$cond": []interface{}{
 										bson.M{
@@ -840,20 +1159,7 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_f",
 								"preserveNullAndEmptyArrays": false,
 							}}},
-							{{"$project", bson.M{
-								"__joined_f.filter": int(1),
-								"d.a":               int(1),
-								"__joined_f.g":      int(1),
-								"__joined_f._id":    int(1),
-								"__joined_f.d.e":    int(1),
-								"d.a_idx":           int(1),
-								"d_idx":             int(1),
-								"a":                 int(1),
-								"__joined_f.c":      int(1),
-								"_id":               int(1),
-								"__joined_f.a":      int(1),
-								"__joined_f.b":      int(1),
-								"__joined_f.d.f":    int(1),
+							{{"$addFields", bson.M{
 								"__predicate": bson.M{
 									"$cond": []interface{}{
 										bson.M{
@@ -1649,9 +1955,7 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$match", bson.M{
 						"a": int64(10),
 					}}},
-					{{"$project", bson.M{
-						"d.e": 1,
-						"_id": 1,
+					{{"$addFields", bson.M{
 						"__predicate": bson.M{
 							"$cond": []interface{}{
 								bson.M{
@@ -1689,12 +1993,6 @@ func TestOptimizePlan(t *testing.T) {
 								},
 							},
 						},
-						"a":      1,
-						"b":      1,
-						"c":      1,
-						"d.f":    1,
-						"g":      1,
-						"filter": 1,
 					}}},
 					{{"$match", bson.M{
 						"__predicate": true,
@@ -1709,9 +2007,7 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$match", bson.M{
 						"a": int64(10),
 					}}},
-					{{"$project", bson.M{
-						"d.e": 1,
-						"_id": 1,
+					{{"$addFields", bson.M{
 						"__predicate": bson.M{
 							"$cond": []interface{}{
 								bson.M{
@@ -1749,12 +2045,6 @@ func TestOptimizePlan(t *testing.T) {
 								},
 							},
 						},
-						"a":      1,
-						"b":      1,
-						"c":      1,
-						"d.f":    1,
-						"g":      1,
-						"filter": 1,
 					}}},
 					{{"$match", bson.M{
 						"__predicate": true,
@@ -1767,9 +2057,7 @@ func TestOptimizePlan(t *testing.T) {
 
 			test("select a from foo where b < c",
 				[]bson.D{
-					{{"$project", bson.M{
-						"d.e": 1,
-						"_id": 1,
+					{{"$addFields", bson.M{
 						"__predicate": bson.M{
 							"$cond": []interface{}{
 								bson.M{
@@ -1807,12 +2095,6 @@ func TestOptimizePlan(t *testing.T) {
 								},
 							},
 						},
-						"a":      1,
-						"b":      1,
-						"c":      1,
-						"d.f":    1,
-						"g":      1,
-						"filter": 1,
 					}}},
 					{{"$match", bson.M{
 						"__predicate": true,
@@ -2619,7 +2901,7 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
-	testInfo := getMongoDBInfo(testSchema, mongodb.AllPrivileges)
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVariables := createTestVariables(testInfo)
 	testCatalog := getCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"
@@ -2631,7 +2913,7 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 
 			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
 			So(err, ShouldBeNil)
-			ctx := createTestConnectionCtx()
+			ctx := createTestConnectionCtx(testInfo)
 			optimized, err := optimizeSubqueries(ctx, ctx.Logger(""), plan, false)
 			So(err, ShouldBeNil)
 
@@ -2666,7 +2948,7 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 
 			//fmt.Printf("\n%+v\n", PrettyPrintPlan(replaced.(PlanStage)))
 
-			ctx := createTestConnectionCtx()
+			ctx := createTestConnectionCtx(testInfo)
 			optimized, err := optimizeSubqueries(ctx, ctx.Logger(""), replaced, true)
 			So(err, ShouldBeNil)
 
@@ -2762,6 +3044,13 @@ func TestOptimizeEvaluations(t *testing.T) {
 		result   SQLExpr
 	}
 
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
@@ -2769,7 +3058,8 @@ func TestOptimizeEvaluations(t *testing.T) {
 			Convey(fmt.Sprintf("%q should be optimized to %q", t.sql, t.expected), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				ctx := createTestEvalCtx()
+
+				ctx := createTestEvalCtx(testInfo)
 				result, err := optimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldBeNil)
 				So(result, ShouldResemble, t.result)
@@ -2903,6 +3193,13 @@ func TestOptimizeEvaluationFailures(t *testing.T) {
 		err error
 	}
 
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+
 	runTests := func(tests []test) {
 		schema, err := schema.New(testSchema3)
 		So(err, ShouldBeNil)
@@ -2910,7 +3207,8 @@ func TestOptimizeEvaluationFailures(t *testing.T) {
 			Convey(fmt.Sprintf("%q should fail with error %q", t.sql, t.err), func() {
 				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
 				So(err, ShouldBeNil)
-				ctx := createTestEvalCtx()
+
+				ctx := createTestEvalCtx(testInfo)
 				_, err = optimizeEvaluations(e, ctx, ctx.Logger(""))
 				So(err, ShouldResemble, t.err)
 			})

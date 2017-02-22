@@ -62,6 +62,7 @@ func constructOrderByTerms(exprs map[string]SQLExpr, values ...string) (terms []
 
 type fakeConnectionCtx struct {
 	variables *variable.Container
+	info      *mongodb.Info
 }
 
 func (_ fakeConnectionCtx) LastInsertId() int64 {
@@ -99,22 +100,23 @@ func (f fakeConnectionCtx) Variables() *variable.Container {
 	if f.variables == nil {
 		f.variables = variable.NewSessionContainer(variable.NewGlobalContainer())
 	}
+	f.variables.MongoDBInfo = f.info
 	return f.variables
 }
 
-func createTestConnectionCtx() ConnectionCtx {
-	return &fakeConnectionCtx{}
+func createTestConnectionCtx(info *mongodb.Info) ConnectionCtx {
+	return &fakeConnectionCtx{info: info}
 }
 
-func createTestExecutionCtx() *ExecutionCtx {
+func createTestExecutionCtx(info *mongodb.Info) *ExecutionCtx {
 	return &ExecutionCtx{
-		ConnectionCtx: createTestConnectionCtx(),
+		ConnectionCtx: createTestConnectionCtx(info),
 	}
 }
 
-func createTestEvalCtx() *EvalCtx {
+func createTestEvalCtx(info *mongodb.Info) *EvalCtx {
 	return &EvalCtx{
-		ExecutionCtx: createTestExecutionCtx(),
+		ExecutionCtx: createTestExecutionCtx(info),
 	}
 }
 
@@ -233,7 +235,7 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 	}
 
 	selectStatement := statement.(parser.SelectStatement)
-	info := getMongoDBInfo(schema, mongodb.AllPrivileges)
+	info := getMongoDBInfo(nil, schema, mongodb.AllPrivileges)
 	vars := createTestVariables(info)
 	catalog := getCatalogFromSchema(schema, vars)
 	actualPlan, err := AlgebrizeQuery(selectStatement, dbName, vars, catalog)
@@ -262,13 +264,24 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 
 // getMongoDBInfo returns Info without looking up the information in MongoDB by setting
 // all privileges to the specified privileges.
-func getMongoDBInfo(sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
+func getMongoDBInfo(versionArray []int, sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
+	if len(versionArray) == 0 {
+		versionArray = []int{3, 4, 0}
+	}
+
+	versionString := ""
+
+	for _, entry := range versionArray {
+		versionString = fmt.Sprintf("%v.", entry)
+	}
+
 	i := &mongodb.Info{
 		Privileges:   privileges,
 		Databases:    make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo),
-		Version:      "3.4.0",
-		VersionArray: []int{3, 4, 0},
+		Version:      versionString[1:],
+		VersionArray: versionArray,
 	}
+
 	for _, db := range sch.Databases {
 		dbInfo := &mongodb.DatabaseInfo{
 			Privileges:  privileges,
