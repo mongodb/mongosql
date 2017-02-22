@@ -132,7 +132,7 @@ func (s *Server) addConnection(c *conn) {
 	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()
 	pluralized := util.Pluralize(activeConnections, "connection", "connections")
-	c.logger.Logf(log.Info, "connection #%v accepted from %v (%v %v now open)", c.ConnectionId(), c.conn.RemoteAddr(), activeConnections, pluralized)
+	c.logger.Logf(log.Always, "connection accepted from %v #%v (%v %v now open)", c.conn.RemoteAddr(), c.ConnectionId(), activeConnections, pluralized)
 }
 
 func (s *Server) killConnection(connID uint32) error {
