@@ -27,8 +27,8 @@ type optimizerStage struct {
 var optimizerStages = []optimizerStage{
 	{"evaluations", optimizeEvaluations},
 	{"cross joins", optimizeCrossJoins},
-	{"filtering", optimizeFiltering},
 	{"inner join", optimizeInnerJoins},
+	{"filtering", optimizeFiltering},
 	{"pushdown", optimizePushDown},
 }
 

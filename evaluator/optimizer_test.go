@@ -253,6 +253,7 @@ func TestOptimizePlan(t *testing.T) {
 								"bar_DOT_a": "$a",
 								"bar_DOT_b": "$b",
 							}}},
+							{{"$match", bson.M{"bar_DOT_a": int64(10)}}},
 							{{"$match", bson.M{"bar_DOT_a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "foo",
@@ -264,7 +265,6 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_foo",
 								"preserveNullAndEmptyArrays": false,
 							}}},
-							{{"$match", bson.M{"bar_DOT_a": int64(10)}}},
 							{{"$project", bson.M{
 								"foo_DOT_a": "$__joined_foo.a",
 								"bar_DOT_b": "$bar_DOT_b",
@@ -943,23 +943,11 @@ func TestOptimizePlan(t *testing.T) {
 
 					test("select foo.a, bar.a, baz.a from foo inner join bar on foo.a = bar.a inner join baz on bar.a = baz.a where foo.a = 10 AND bar.a = 12 AND baz.a = 13",
 						[]bson.D{
-							{{"$match", bson.M{"a": int64(10)}}},
+							{{"$match", bson.M{"a": int64(12)}}},
 							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
-								"from":         "bar",
-								"localField":   "a",
-								"foreignField": "a",
-								"as":           "__joined_bar",
-							}}},
-							{{"$unwind", bson.M{
-								"path": "$__joined_bar",
-								"preserveNullAndEmptyArrays": false,
-							}}},
-							{{"$match", bson.M{"__joined_bar.a": int64(12)}}},
-							{{"$match", bson.M{"__joined_bar.a": bson.M{"$ne": nil}}}},
-							{{"$lookup", bson.M{
 								"from":         "baz",
-								"localField":   "__joined_bar.a",
+								"localField":   "a",
 								"foreignField": "a",
 								"as":           "__joined_baz",
 							}}},
@@ -968,37 +956,28 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$match", bson.M{"__joined_baz.a": int64(13)}}},
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_foo",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_foo",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{"__joined_foo.a": int64(10)}}},
 						},
 					)
 
 					test("select foo.a, bar.a, baz.a from foo inner join bar on foo.a = bar.a inner join baz on bar.a = baz.a where (foo.a = 10 OR bar.a = 11) AND bar.a = 12 AND baz.a = 13",
 						[]bson.D{
+							{{"$match", bson.M{"a": int64(12)}}},
 							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
-								"from":         "bar",
-								"localField":   "a",
-								"foreignField": "a",
-								"as":           "__joined_bar",
-							}}},
-							{{"$unwind", bson.M{
-								"path": "$__joined_bar",
-								"preserveNullAndEmptyArrays": false,
-							}}},
-							{{"$match", bson.M{
-								"$and": []interface{}{
-									bson.M{
-										"$or": []interface{}{
-											bson.M{"a": int64(10)},
-											bson.M{"__joined_bar.a": int64(11)},
-										},
-									},
-									bson.M{"__joined_bar.a": int64(12)},
-								},
-							}}},
-							{{"$match", bson.M{"__joined_bar.a": bson.M{"$ne": nil}}}},
-							{{"$lookup", bson.M{
 								"from":         "baz",
-								"localField":   "__joined_bar.a",
+								"localField":   "a",
 								"foreignField": "a",
 								"as":           "__joined_baz",
 							}}},
@@ -1007,6 +986,23 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$match", bson.M{"__joined_baz.a": int64(13)}}},
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "foo",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_foo",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_foo",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{
+								"$or": []interface{}{
+									bson.M{"__joined_foo.a": int64(10)},
+									bson.M{"a": int64(11)},
+								},
+							}}},
 						},
 					)
 				})
