@@ -2213,11 +2213,6 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 					{{"$project", bson.M{
-						"_id":       0,
-						"foo_DOT_a": "$foo_DOT_a",
-						"foo_DOT_b": "$foo_DOT_b",
-					}}},
-					{{"$project", bson.M{
 						"foo_DOT_a": "$foo_DOT_a",
 						"foo_DOT_b": "$foo_DOT_b",
 					}}},
@@ -2238,15 +2233,9 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 					{{"$project", bson.M{
-						"_id":       0,
+						"foo_DOT_a": "$foo_DOT_a",
+						"foo_DOT_b": "$foo_DOT_b",
 						"foo_DOT_c": "$_id.foo_DOT_c",
-						"foo_DOT_a": "$foo_DOT_a",
-						"foo_DOT_b": "$foo_DOT_b",
-					}}},
-					{{"$project", bson.M{
-						"foo_DOT_a": "$foo_DOT_a",
-						"foo_DOT_b": "$foo_DOT_b",
-						"foo_DOT_c": "$foo_DOT_c",
 					}}},
 				},
 			)
@@ -2265,15 +2254,9 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 					{{"$project", bson.M{
-						"_id":       0,
-						"foo_DOT_a": "$foo_DOT_a",
-						"foo_DOT_b": "$foo_DOT_b",
-						"foo_DOT_c": "$_id.foo_DOT_c",
-					}}},
-					{{"$project", bson.M{
 						"foo_DOT_a":           "$foo_DOT_a",
 						"foo_DOT_b":           "$foo_DOT_b",
-						"foo_DOT_c+foo_DOT_a": bson.M{"$add": []interface{}{"$foo_DOT_c", "$foo_DOT_a"}},
+						"foo_DOT_c+foo_DOT_a": bson.M{"$add": []interface{}{"$_id.foo_DOT_c", "$foo_DOT_a"}},
 					}}},
 				},
 			)
@@ -2290,11 +2273,6 @@ func TestOptimizePlan(t *testing.T) {
 						"max(foo_DOT_b)": bson.M{
 							"$max": "$b",
 						},
-					}}},
-					{{"$project", bson.M{
-						"_id":            0,
-						"max(foo_DOT_a)": "$max(foo_DOT_a)",
-						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 					{{"$project", bson.M{
 						"max(foo_DOT_a)": "$max(foo_DOT_a)",
@@ -2317,13 +2295,7 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 					{{"$project", bson.M{
-						"_id":            0,
 						"foo_DOT_c":      "$_id.foo_DOT_c",
-						"max(foo_DOT_a)": "$max(foo_DOT_a)",
-						"max(foo_DOT_b)": "$max(foo_DOT_b)",
-					}}},
-					{{"$project", bson.M{
-						"foo_DOT_c":      "$foo_DOT_c",
 						"max(foo_DOT_a)": "$max(foo_DOT_a)",
 						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
@@ -2342,11 +2314,6 @@ func TestOptimizePlan(t *testing.T) {
 						"max(foo_DOT_b)": bson.M{
 							"$max": "$b",
 						},
-					}}},
-					{{"$project", bson.M{
-						"_id":            0,
-						"foo_DOT_a":      "$foo_DOT_a",
-						"max(foo_DOT_b)": "$max(foo_DOT_b)",
 					}}},
 					{{"$project", bson.M{
 						"foo_DOT_a":      "$foo_DOT_a",
@@ -2421,11 +2388,6 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 					{{"$project", bson.M{
-						"_id":            0,
-						"foo_DOT_a":      "$foo_DOT_a",
-						"max(foo_DOT_b)": "$max(foo_DOT_b)",
-					}}},
-					{{"$project", bson.M{
 						"foo_DOT_a+max(foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$max(foo_DOT_b)"}},
 					}}},
 				},
@@ -2470,13 +2432,7 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 					{{"$project", bson.M{
-						"_id":            0,
-						"foo_DOT_a":      "$foo_DOT_a",
-						"foo_DOT_c":      "$_id.foo_DOT_c",
-						"max(foo_DOT_b)": "$max(foo_DOT_b)",
-					}}},
-					{{"$project", bson.M{
-						"foo_DOT_a+foo_DOT_c+max(foo_DOT_b)": bson.M{"$add": []interface{}{bson.M{"$add": []interface{}{"$foo_DOT_a", "$foo_DOT_c"}}, "$max(foo_DOT_b)"}},
+						"foo_DOT_a+foo_DOT_c+max(foo_DOT_b)": bson.M{"$add": []interface{}{bson.M{"$add": []interface{}{"$foo_DOT_a", "$_id.foo_DOT_c"}}, "$max(foo_DOT_b)"}},
 					}}},
 				},
 			)
@@ -2622,10 +2578,6 @@ func TestOptimizePlan(t *testing.T) {
 						"count(*)": bson.M{"$sum": 1},
 					}}},
 					{{"$project", bson.M{
-						"_id":      0,
-						"count(*)": "$count(*)",
-					}}},
-					{{"$project", bson.M{
 						"count(*)": "$count(*)",
 					}}},
 				},
@@ -2654,10 +2606,6 @@ func TestOptimizePlan(t *testing.T) {
 								},
 							},
 						},
-					}}},
-					{{"$project", bson.M{
-						"_id":              0,
-						"count(foo_DOT_a)": "$count(foo_DOT_a)",
 					}}},
 					{{"$project", bson.M{
 						"count(foo_DOT_a)": "$count(foo_DOT_a)",
@@ -2710,11 +2658,6 @@ func TestOptimizePlan(t *testing.T) {
 							"$max": "$b",
 						},
 					}}},
-					{{"$project", bson.M{
-						"_id":            0,
-						"max(foo_DOT_a)": "$max(foo_DOT_a)",
-						"max(foo_DOT_b)": "$max(foo_DOT_b)",
-					}}},
 					{{"$match", bson.M{
 						"max(foo_DOT_b)": int64(10),
 					}}},
@@ -2759,16 +2702,11 @@ func TestOptimizePlan(t *testing.T) {
 							"$max": "$b",
 						},
 					}}},
-					{{"$project", bson.M{
-						"_id":            0,
-						"foo_DOT_a":      "$_id.foo_DOT_a",
-						"max(foo_DOT_b)": "$max(foo_DOT_b)",
-					}}},
 					{{"$sort", bson.D{
 						{"max(foo_DOT_b)", 1},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$foo_DOT_a",
+						"foo_DOT_a": "$_id.foo_DOT_a",
 					}}},
 				},
 			)

@@ -543,37 +543,61 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	}
 
 	result.group[groupID] = keys
-
-	// 3. Translate the final project
-	project, err := v.translateGroupByProject(result.exprs, result.mappingRegistry.lookupFieldName)
-	if err != nil {
-		v.logger.Warnf(log.DebugHigh, "cannot translate group by project: %v", err)
-		return gb, nil
-	}
-
-	// 4. append to the pipeline
 	pipeline = append(pipeline, bson.D{{"$group", result.group}})
-	pipeline = append(pipeline, bson.D{{"$project", project}})
 
-	// 5. Fix up the TableScan operator - None of the current registrations in mappingRegistry are valid any longer.
-	// We need to clear them out and re-register the new columns.
-	mappingRegistry := &mappingRegistry{}
-	for _, projectedColumn := range gb.projectedColumns {
-		// at this point, our project has all the stringified names of the select expressions, so we need to re-map them
-		// each column to its new MongoDB name. This process is what makes the push-down transparent to subsequent operators
-		// in the tree that either haven't yet been pushed down, or cannot be. Either way, we output of a push-down must be
-		// exactly the same as the output of a non-pushed-down group.
-		mappingRegistry.addColumn(projectedColumn.Column)
-		mappingRegistry.registerMapping(
-			projectedColumn.Table,
-			projectedColumn.Name,
-			sanitizeFieldName(projectedColumn.Expr.String()),
-		)
+	var mr *mappingRegistry
+	// 3. Translate the final project if necessary
+	if result.requiresTwoSteps {
+		project, err := v.translateGroupByProject(result.mappedProjectedColumns, result.mappingRegistry.lookupFieldName)
+		if err != nil {
+			v.logger.Warnf(log.DebugHigh, "cannot translate group by project: %v", err)
+			return gb, nil
+		}
+		pipeline = append(pipeline, bson.D{{"$project", project}})
+
+		// 4. Fix up the MongoSourceStage - None of the current registrations in mappingRegistry are valid any longer.
+		// We need to clear them out and re-register the new columns.
+		mr = &mappingRegistry{}
+		for _, mappedProjectedColumn := range result.mappedProjectedColumns {
+			// at this point, our project has all the stringified names of the select expressions, so we need to re-map them
+			// each column to its new MongoDB name. This process is what makes the push-down transparent to subsequent operators
+			// in the tree that either haven't yet been pushed down, or cannot be. Either way, the output of a push-down must be
+			// exactly the same as the output of a non-pushed-down group.
+			mr.addColumn(mappedProjectedColumn.projectedColumn.Column)
+			mr.registerMapping(
+				mappedProjectedColumn.projectedColumn.Table,
+				mappedProjectedColumn.projectedColumn.Name,
+				sanitizeFieldName(mappedProjectedColumn.projectedColumn.Expr.String()),
+			)
+		}
+	} else {
+		mr = &mappingRegistry{}
+		for _, mpc := range result.mappedProjectedColumns {
+			// at this point, we pushed down a group, but we still need to map the projected column name
+			// to the expressions that were pushed down. We know that all the pushed down exprs are now
+			// columns, so we simply look up the original field name and use that.
+			columnExpr, ok := mpc.expr.(SQLColumnExpr)
+			if !ok {
+				v.logger.Warnf(log.DebugHigh, "expr was not a column")
+				return gb, nil
+			}
+			mr.addColumn(mpc.projectedColumn.Column)
+			fieldName, ok := result.mappingRegistry.lookupFieldName(columnExpr.tableName, columnExpr.columnName)
+			if !ok {
+				v.logger.Warnf(log.DebugHigh, "could not find translated aggregate's field name")
+				return gb, nil
+			}
+			mr.registerMapping(
+				mpc.projectedColumn.Table,
+				mpc.projectedColumn.Name,
+				fieldName,
+			)
+		}
 	}
 
 	ms = ms.clone()
 	ms.pipeline = pipeline
-	ms.mappingRegistry = mappingRegistry
+	ms.mappingRegistry = mr
 
 	return ms, nil
 }
@@ -617,14 +641,15 @@ func (v *pushDownOptimizer) translateGroupByKeys(keys []SQLExpr, lookupFieldName
 
 // translateGroupByAggregatesResult is just a holder for the results from translateGroupByAggregates.
 type translateGroupByAggregatesResult struct {
-	group           bson.M
-	exprs           []*namedExpr
-	mappingRegistry *mappingRegistry
+	group                  bson.M
+	mappedProjectedColumns []*mappedProjectedColumn
+	mappingRegistry        *mappingRegistry
+	requiresTwoSteps       bool
 }
 
-type namedExpr struct {
-	name string
-	expr SQLExpr
+type mappedProjectedColumn struct {
+	projectedColumn ProjectedColumn
+	expr            SQLExpr
 }
 
 // translateGroupByAggregates takes the key expressions and the select expressions and generates a
@@ -659,11 +684,11 @@ func (v *pushDownOptimizer) translateGroupByAggregates(keys []SQLExpr, projected
 
 	// represents all the expressions that should be passed on to $project such that translateGroupByProject
 	// is able to do its work without redoing a bunch of the conditionals and special casing here.
-	namedExprs := []*namedExpr{}
+	mappedProjectedColumns := []*mappedProjectedColumn{}
 
 	// translator will "accumulate" all the group fields. Below, we iterate over each select expressions, which
 	// account for all the fields that need to be present in the $group.
-	translator := &groupByAggregateTranslator{bson.M{}, v.ctx, isGroupKey, lookupFieldName, &mappingRegistry{}}
+	translator := &groupByAggregateTranslator{bson.M{}, v.ctx, isGroupKey, lookupFieldName, &mappingRegistry{}, false}
 
 	for _, projectedColumn := range projectedColumns {
 
@@ -672,23 +697,24 @@ func (v *pushDownOptimizer) translateGroupByAggregates(keys []SQLExpr, projected
 			return nil, err
 		}
 
-		namedExpr := &namedExpr{
-			name: sanitizeFieldName(projectedColumn.Expr.String()),
-			expr: newExpr.(SQLExpr),
+		mappedProjectedColumn := &mappedProjectedColumn{
+			expr:            newExpr.(SQLExpr),
+			projectedColumn: projectedColumn,
 		}
 
-		namedExprs = append(namedExprs, namedExpr)
+		mappedProjectedColumns = append(mappedProjectedColumns, mappedProjectedColumn)
 	}
 
-	return &translateGroupByAggregatesResult{translator.group, namedExprs, translator.mappingRegistry}, nil
+	return &translateGroupByAggregatesResult{translator.group, mappedProjectedColumns, translator.mappingRegistry, translator.requiresTwoSteps}, nil
 }
 
 type groupByAggregateTranslator struct {
-	group           bson.M
-	ctx             ConnectionCtx
-	isGroupKey      func(SQLExpr) bool
-	lookupFieldName fieldNameLookup
-	mappingRegistry *mappingRegistry
+	group            bson.M
+	ctx              ConnectionCtx
+	isGroupKey       func(SQLExpr) bool
+	lookupFieldName  fieldNameLookup
+	mappingRegistry  *mappingRegistry
+	requiresTwoSteps bool
 }
 
 const (
@@ -728,6 +754,7 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 			// more complex like a mathematical computation. We don't care either way, and TranslateExpr handles
 			// generating the correct thing. Once this is done, we create a new SQLAggFunctionExpr whose argument
 			// maps to the newly named field containing the set of values to perform the aggregation on.
+			v.requiresTwoSteps = true
 			trans, ok := t.TranslateExpr(typedN.Exprs[0])
 			if !ok {
 				return nil, fmt.Errorf("could not translate '%v'", typedN.String())
@@ -784,6 +811,7 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 				// returns 0. So, we'll add in an arbitrary count operator to count the number
 				// of non-nulls and, in the following $project, we'll check this to know whether
 				// or not to use the sum or to use null.
+				v.requiresTwoSteps = true
 				countTrans, ok := t.TranslateExpr(typedN.Exprs[0])
 				if !ok {
 					return nil, fmt.Errorf("could not translate '%v'", typedN.Exprs[0].String())
@@ -821,6 +849,7 @@ func (v *groupByAggregateTranslator) visit(n node) (node, error) {
 		// 'select a + b from foo group by a' or 'select b + sum(c) from foo group by a'. In this case,
 		// we'll descend into the tree recursively which will build up the $group for the necessary pieces.
 		// Finally, return the now changed expression such that $project can act on them appropriately.
+		v.requiresTwoSteps = true
 		return walk(v, n)
 	default:
 		// PlanStages will end up here and we don't need to do anything in them.
@@ -857,7 +886,7 @@ func getCountAggregation(expr interface{}) bson.M {
 // translateGroupByAggregates, so this is simply a process of either adding a field to the $project, or
 // completing two-step aggregations. Two-step aggregations that needs completing are expressions like
 // 'sum(distinct a)' or 'a + b' where b was part of the group key.
-func (v *pushDownOptimizer) translateGroupByProject(exprs []*namedExpr, lookupFieldName fieldNameLookup) (bson.M, error) {
+func (v *pushDownOptimizer) translateGroupByProject(mappedProjectedColumns []*mappedProjectedColumn, lookupFieldName fieldNameLookup) (bson.M, error) {
 	project := bson.M{groupID: 0}
 
 	t := &pushDownTranslator{
@@ -865,9 +894,10 @@ func (v *pushDownOptimizer) translateGroupByProject(exprs []*namedExpr, lookupFi
 		lookupFieldName: lookupFieldName,
 	}
 
-	for _, expr := range exprs {
+	for _, mappedProjectedColumn := range mappedProjectedColumns {
 
-		switch typedE := expr.expr.(type) {
+		mappedName := sanitizeFieldName(mappedProjectedColumn.projectedColumn.Expr.String())
+		switch typedE := mappedProjectedColumn.expr.(type) {
 		case SQLColumnExpr:
 			// Any one-step aggregations will end up here as they were fully performed in the $group. So, simple
 			// column references ('select a') and simple aggregations ('select sum(a)').
@@ -876,14 +906,14 @@ func (v *pushDownOptimizer) translateGroupByProject(exprs []*namedExpr, lookupFi
 				return nil, fmt.Errorf("unable to get a field name for %v.%v", typedE.tableName, typedE.columnName)
 			}
 
-			project[expr.name] = "$" + fieldName
+			project[mappedName] = "$" + fieldName
 		default:
 			// Any two-step aggregations will end up here to complete the second step.
-			trans, ok := t.TranslateExpr(expr.expr)
+			trans, ok := t.TranslateExpr(mappedProjectedColumn.expr)
 			if !ok {
-				return nil, fmt.Errorf("unable to translate '%v'", expr.expr.String())
+				return nil, fmt.Errorf("unable to translate '%v'", mappedProjectedColumn.expr.String())
 			}
-			project[expr.name] = trans
+			project[mappedName] = trans
 		}
 	}
 
