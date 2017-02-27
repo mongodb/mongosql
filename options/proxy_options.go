@@ -82,7 +82,7 @@ func (_ SqldSocket) Name() string {
 }
 
 type SqldGeneral struct {
-	Fork    *bool `long:"fork" description:"fork mongosqld process"`
+	Fork    *bool `long:"fork" description:"fork mongosqld process" hidden:"true"`
 	Help    *bool `short:"h" long:"help" description:"print usage"`
 	Version *bool `long:"version" description:"display version information"`
 }
@@ -245,8 +245,8 @@ func (o SqldOptions) Validate() error {
 			return fmt.Errorf("cannot use Unix-specific option --filePermissions on Windows")
 		}
 	}
-	if !isFalseOrUnset(o.Fork) && isEmptyOrUnset(o.LogPath) {
-		return fmt.Errorf("must specify --logPath when using --fork")
+	if !isFalseOrUnset(o.Fork) {
+		return fmt.Errorf("--fork is no longer supported")
 	}
 
 	return nil

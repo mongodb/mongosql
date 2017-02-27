@@ -4,7 +4,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"runtime"
 	"strings"
@@ -63,28 +62,6 @@ func getOptions() options.SqldOptions {
 	}
 
 	return opts
-}
-
-func daemonize() {
-	var args []string
-
-	for _, arg := range os.Args {
-		if arg == "--fork" {
-			continue
-		}
-		args = append(args, arg)
-	}
-
-	cmd := exec.Command(os.Args[0], args...)
-	err := cmd.Start()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to start child process: %v\n", err)
-		os.Exit(util.ExitError)
-	}
-
-	fmt.Fprintf(os.Stdout, "forked process: %d\n", cmd.Process.Pid)
-	fmt.Fprintf(os.Stdout, "child process started successfully, parent exiting\n")
-	os.Exit(util.ExitClean)
 }
 
 func setupLog(opts options.SqldOptions) (*os.File, *log.Logger) {
@@ -153,10 +130,6 @@ func main() {
 
 	if opts.PrintHelp(os.Stdout) {
 		os.Exit(util.ExitClean)
-	}
-
-	if opts.Fork != nil && *opts.Fork {
-		daemonize()
 	}
 
 	logStartupInfo(opts)
