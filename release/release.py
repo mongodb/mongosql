@@ -178,7 +178,7 @@ class BIReleaser(object):
             sys.exit(1)
 
         while True:
-            resp = raw_input('Release Version [%s]) : ' % (tag)) or tag
+            resp = raw_input('Release Version [%s]): ' % (tag)) or tag
 
             if resp.count(".") != 2:
                 print("Invalid Release Version")
@@ -188,7 +188,7 @@ class BIReleaser(object):
                 if "-" in resp:
                     tmp = resp[0:resp.index("-")]
 
-                if len([y for y in resp.split(".") if not y.isdigit()]) != 0:
+                if len([y for y in tmp.split(".") if not y.isdigit()]) != 0:
                     print("Invalid Release Version")
                     continue
 
@@ -288,8 +288,12 @@ class BIReleaser(object):
         key = self.__bucket.get_key(os.path.join(
             os.path.dirname(S3_PATH), FULL_JSON))
         full = json.loads(key.get_contents_as_string())
-        new_component = [ast.literal_eval(i) \
-            for i in self.__release_version.split(".")]
+        new_component = []
+        for i in self.__release_version.split("."):
+            if i.isdigit():
+                new_component.append(ast.literal_eval(i))
+            else:
+                new_component.append(i)
 
         # find and remove older version from full release page
         duplicates = []
