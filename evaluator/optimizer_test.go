@@ -26,7 +26,9 @@ func (v *pipelineGatherer) visit(n node) (node, error) {
 	switch typedN := n.(type) {
 	case *MongoSourceStage:
 		if len(typedN.pipeline) > 0 {
-			v.pipelines = append(v.pipelines, typedN.pipeline)
+			pipeline := make([]bson.D, len(typedN.pipeline))
+			copy(pipeline, typedN.pipeline)
+			v.pipelines = append(v.pipelines, pipeline)
 		}
 	}
 

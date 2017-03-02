@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"gopkg.in/mgo.v2/bson"
+
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -2550,5 +2552,60 @@ func TestAlgebrizeExpr(t *testing.T) {
 			test("@hmmm", &SQLVariableExpr{Name: "hmmm", Kind: variable.UserKind, Scope: variable.SessionScope})
 
 		})
+	})
+}
+
+func TestNoSharedPipelines(t *testing.T) {
+	sql := "select _id from merge_b limit 2"
+
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+	testInfo := getMongoDBInfo([]int{3, 2}, testSchema, mongodb.AllPrivileges)
+	testVariables := createTestVariables(testInfo)
+	testCatalog := getCatalogFromSchema(testSchema, testVariables)
+	defaultDbName := "test"
+
+	Convey("Subject: NoSharedPipelines", t, func() {
+		statement, err := parser.Parse(sql)
+		So(err, ShouldBeNil)
+
+		plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+		So(err, ShouldBeNil)
+
+		expectedPipelines := [][]bson.D{
+			{{
+				bson.DocElem{
+					Name: "$unwind",
+					Value: bson.D{
+						bson.DocElem{
+							Name:  "includeArrayIndex",
+							Value: "b_idx",
+						},
+						bson.DocElem{
+							Name:  "path",
+							Value: "$b",
+						},
+					},
+				},
+			}},
+		}
+
+		pg := &pipelineGatherer{}
+		pg.visit(plan)
+		So(pg.pipelines, ShouldResemble, expectedPipelines)
+
+		db, err := testCatalog.Database("test")
+		So(err, ShouldBeNil)
+		table, err := db.Table("merge_b")
+		So(err, ShouldBeNil)
+		mTab, ok := table.(*catalog.MongoTable)
+		So(ok, ShouldBeTrue)
+		mTab.Pipeline[0] = bson.D{}
+
+		pg = &pipelineGatherer{}
+		pg.visit(plan)
+		So(pg.pipelines, ShouldResemble, expectedPipelines)
 	})
 }

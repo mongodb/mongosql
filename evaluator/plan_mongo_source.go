@@ -61,7 +61,8 @@ func NewMongoSourceStage(db *catalog.Database, table *catalog.MongoTable, select
 		ms.mappingRegistry.registerMapping(ms.aliasNames[0], string(mc.Name()), string(mc.MongoName))
 	}
 
-	ms.pipeline = table.Pipeline
+	ms.pipeline = make([]bson.D, len(table.Pipeline))
+	copy(ms.pipeline, table.Pipeline)
 
 	return ms
 }
