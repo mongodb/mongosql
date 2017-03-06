@@ -1,6 +1,8 @@
 
 testcases:
 - sql: "select * from foo order by a"
+  id: '0'
+  db: collation_test
   min_server_version: "3.4"
   description: "order by"
   expected_names: ["id", "a"]
@@ -10,6 +12,8 @@ testcases:
   - [2, "A"]
   - [1, "B"]
 - sql: "select a, sum(id) from foo group by a order by a"
+  id: '1'
+  db: collation_test
   min_server_version: "3.4"
   description: "group by"
   expected_names: ["a", "sum(id)"]
@@ -18,6 +22,8 @@ testcases:
   - ["a", 2]
   - ["B", 1]
 - sql: "select id from foo where a = 'A'"
+  id: '2'
+  db: collation_test
   min_server_version: "3.4"
   description: "where"
   expected_names: ["id"]

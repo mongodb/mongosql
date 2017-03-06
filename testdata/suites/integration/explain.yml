@@ -1,43 +1,52 @@
-
 #
 # Test Cases
 #
 testcases:
 
 - sql: "explain foo"
+  id: '0'
+  db: explain_test
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
-  expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
+  expected_types: ["varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
   - ["id", "bigint(20)", "YES", "", "NULL", ""]
   - ["a", "bigint(20)", "YES", "", "NULL", ""]
   - ["ab", "bigint(20)", "YES", "", "NULL", ""]
 
 - sql: "explain foo a"
+  id: '1'
+  db: explain_test
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
-  expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
+  expected_types: ["varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
   - ["a", "bigint(20)", "YES", "", "NULL", ""]
 
 - sql: "explain foo 'a%'"
+  id: '2'
+  db: explain_test
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
-  expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
+  expected_types: ["varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
   - ["a", "bigint(20)", "YES", "", "NULL", ""]
   - ["ab", "bigint(20)", "YES", "", "NULL", ""]
 
 - sql: "describe foo a"
+  id: '3'
+  db: explain_test
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
-  expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
+  expected_types: ["varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
   - ["a", "bigint(20)", "YES", "", "NULL", ""]
 
 - sql: "desc foo a"
+  id: '4'
+  db: explain_test
   description: "explain entire table"
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
-  expected_types: ["Varchar", "Varchar", "Varchar", "Varchar", "Varchar", "Varchar"]
+  expected_types: ["varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
   - ["a", "bigint(20)", "YES", "", "NULL", ""]

@@ -5,6 +5,8 @@ testcases:
 
 # Cross Joins
 - sql: "select * from join_test.foo, join_test.bar"
+  id: '0'
+  db: join_test
   description: "global star"
   expected_names: ["id", "a", "b", "id", "c", "d"]
   expected_types: [int, int, int, int, int, int]
@@ -19,6 +21,8 @@ testcases:
   - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
 - sql: "select foo.*, bar.* from join_test.foo, join_test.bar"
+  id: '1'
+  db: join_test
   description: "qualified star"
   expected_names: ["id", "a", "b", "id", "c", "d"]
   expected_types: [int, int, int, int, int, int]
@@ -33,6 +37,8 @@ testcases:
   - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
 - sql: "select f.*, b.* from join_test.foo f, join_test.bar b"
+  id: '2'
+  db: join_test
   description: "aliased qualified star"
   expected_names: ["id", "a", "b", "id", "c", "d"]
   expected_types: [int, int, int, int, int, int]
@@ -47,6 +53,8 @@ testcases:
   - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
 - sql: "select f.*, b.* from join_test.foo f, (select * from join_test.bar) b"
+  id: '3'
+  db: join_test
   description: "aliased qualified star with subquery"
   expected_names: ["id", "a", "b", "id", "c", "d"]
   expected_types: [int, int, int, int, int, int]
@@ -61,6 +69,8 @@ testcases:
   - [2, 3, ~, 1, 11, 1]
   - [2, 3, ~, 20, 30, ~]
 - sql: "select tx.rnum,tx.c1, tx.c2, ty.c2 from tjoin1 tx, tjoin2 ty order by 1, 2, 3, 4"
+  id: '4'
+  db: join_test
   description: "BI-857"
   expected_names: ["rnum", "c1", "c2", "c2"]
   expected_types: [int, int, int, varchar]
@@ -80,6 +90,8 @@ testcases:
 
 # Implicit Inner Joins
 - sql: "select a, c from join_test.foo, join_test.bar where foo.id = bar.id"
+  id: '5'
+  db: join_test
   description: "implicit inner join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -87,17 +99,23 @@ testcases:
   - [1, 10]
   - [2, 11]
 - sql: "select a, c from join_test.foo, join_test.bar where foo.id = bar.id AND foo.a > 1"
+  id: '6'
+  db: join_test
   description: "implicit inner join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11]
 - sql: "select a, c from join_test.foo, join_test.bar where foo.id = bar.id AND foo.a = 1214"
+  id: '7'
+  db: join_test
   description: "implicit inner join with no results"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: []
 - sql: "select a, c from join_test.foo, (select * from join_test.bar) bar where foo.id = bar.id"
+  id: '8'
+  db: join_test
   description: "implicit inner join with subquery"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -107,6 +125,8 @@ testcases:
 
 # Inner Joins
 - sql: "select a, c from join_test.foo inner join join_test.bar on foo.id = bar.id"
+  id: '9'
+  db: join_test
   description: "inner join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -114,23 +134,31 @@ testcases:
   - [1, 10]
   - [2, 11]
 - sql: "select a, c from join_test.foo inner join join_test.bar on foo.id = bar.id AND foo.a > 1"
+  id: '10'
+  db: join_test
   description: "inner join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11]
 - sql: "select a, c from join_test.foo inner join join_test.bar on foo.a > 1 AND foo.id = bar.id"
+  id: '11'
+  db: join_test
   description: "inner join with additional criteria (reversed)"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11]
 - sql: "select a, c from join_test.foo inner join join_test.bar on foo.id = bar.id AND foo.a = 1214"
+  id: '12'
+  db: join_test
   description: "inner join with no results"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: []
 - sql: "select a, c from join_test.foo inner join (select * from join_test.bar) bar on foo.id = bar.id"
+  id: '13'
+  db: join_test
   description: "inner join with subquery"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -138,12 +166,16 @@ testcases:
   - [1, 10]
   - [2, 11]
 - sql: "select a, c from join_test.foo inner join join_test.bar on foo.b = bar.d"
+  id: '14'
+  db: join_test
   description: "inner join with null on the left"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11] 
 - sql: "select foo.a, bar.c, baz.d from join_test.foo inner join join_test.bar on foo.id = bar.id inner join join_test.baz on bar.id = baz.id"
+  id: '15'
+  db: join_test
   description: "inner join with three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -151,6 +183,8 @@ testcases:
   - [1, 10, ~]
   - [2, 11, 1]
 - sql: "select foo.a, bar.c, baz.d, foobar.b from join_test.foo inner join join_test.bar on foo.id = bar.id inner join join_test.baz on bar.id = baz.id inner join join_test.foobar on baz.id = foobar.id"
+  id: '16'
+  db: join_test
   description: "inner join with four tables"
   expected_names: ["a", "c", "d", "b"]
   expected_types: [int, int, int, int]
@@ -158,6 +192,8 @@ testcases:
   - [1, 10, ~, 5]
   - [2, 11, 1, 6]
 - sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from join_test.foo inner join join_test.bar on foo.id = bar.id inner join join_test.baz on bar.id = baz.id inner join join_test.foobar on baz.id = foobar.id inner join join_test.barbaz on foobar.id = barbaz.id"
+  id: '17'
+  db: join_test
   description: "inner join with five tables"
   expected_names: ["a", "c", "d", "b", "e"]
   expected_types: [int, int, int, int, int]
@@ -165,18 +201,24 @@ testcases:
   - [1, 10, ~, 5, 3]
   - [2, 11, 1, 6, 5]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo inner join join_test.bar on foo.id = bar.id inner join join_test.baz on bar.id = baz.id AND foo.a > 1"
+  id: '18'
+  db: join_test
   description: "inner join with three tables with additional criteria"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [2, 11, 1]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo inner join join_test.bar on foo.a > 1 AND foo.id = bar.id inner join join_test.baz on bar.id = baz.id"
+  id: '19'
+  db: join_test
   description: "inner join with three tables with additional criteria (reversed)"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [2, 11, 1]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo inner join (select * from join_test.bar) bar on foo.id = bar.id inner join join_test.baz on bar.id = baz.id"
+  id: '20'
+  db: join_test
   description: "inner join with subquery and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -184,12 +226,16 @@ testcases:
   - [1, 10, ~]
   - [2, 11, 1]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo inner join join_test.bar on foo.b = bar.d inner join join_test.baz on bar.d = baz.d"
+  id: '21'
+  db: join_test
   description: "inner join with null on the left and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [2, 11, 1] 
 - sql: "select foobar.a, barbaz.c from join_test.foobar join join_test.barbaz on foobar.b = barbaz.b and foobar.c = barbaz.c join join_test.qux on foobar.a = qux.a"
+  id: '22'
+  db: join_test
   description: "multi-way inner join with a filter expression that does not push down and different columns referenced in different stages"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -198,6 +244,8 @@ testcases:
 
 # Straight Joins
 - sql: "select a, c from join_test.foo straight_join join_test.bar on foo.id = bar.id"
+  id: '23'
+  db: join_test
   description: "straight join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -205,23 +253,31 @@ testcases:
   - [1, 10]
   - [2, 11]
 - sql: "select a, c from join_test.foo straight_join join_test.bar on foo.id = bar.id AND foo.a > 1"
+  id: '24'
+  db: join_test
   description: "straight join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11]
 - sql: "select a, c from join_test.foo straight_join join_test.bar on foo.a > 1 AND foo.id = bar.id"
+  id: '25'
+  db: join_test
   description: "straight join with additional criteria (reversed)"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11]
 - sql: "select a, c from join_test.foo straight_join join_test.bar on foo.id = bar.id AND foo.a = 1214"
+  id: '26'
+  db: join_test
   description: "straight join with no results"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: []
 - sql: "select a, c from join_test.foo straight_join (select * from join_test.bar) bar on foo.id = bar.id"
+  id: '27'
+  db: join_test
   description: "straight join with subquery"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -229,12 +285,16 @@ testcases:
   - [1, 10]
   - [2, 11]
 - sql: "select a, c from join_test.foo straight_join join_test.bar on foo.b = bar.d"
+  id: '28'
+  db: join_test
   description: "straight join with null on the left"
   expected_names: ["a", "c"]
   expected_types: [int, int]
   expected: 
   - [2, 11] 
 - sql: "select foo.a, bar.c, baz.d from join_test.foo straight_join join_test.bar on foo.id = bar.id straight_join join_test.baz on bar.id = baz.id"
+  id: '29'
+  db: join_test
   description: "straight join with three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -242,6 +302,8 @@ testcases:
   - [1, 10, ~]
   - [2, 11, 1]
 - sql: "select foo.a, bar.c, baz.d, foobar.b from join_test.foo straight_join join_test.bar on foo.id = bar.id straight_join join_test.baz on bar.id = baz.id straight_join join_test.foobar on baz.id = foobar.id"
+  id: '30'
+  db: join_test
   description: "straight join with four tables"
   expected_names: ["a", "c", "d", "b"]
   expected_types: [int, int, int, int]
@@ -249,6 +311,8 @@ testcases:
   - [1, 10, ~, 5]
   - [2, 11, 1, 6]
 - sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from join_test.foo straight_join join_test.bar on foo.id = bar.id straight_join join_test.baz on bar.id = baz.id straight_join join_test.foobar on baz.id = foobar.id straight_join join_test.barbaz on foobar.id = barbaz.id"
+  id: '31'
+  db: join_test
   description: "straight join with five tables"
   expected_names: ["a", "c", "d", "b", "e"]
   expected_types: [int, int, int, int, int]
@@ -256,18 +320,24 @@ testcases:
   - [1, 10, ~, 5, 3]
   - [2, 11, 1, 6, 5]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo straight_join join_test.bar on foo.id = bar.id straight_join join_test.baz on bar.id = baz.id AND foo.a > 1"
+  id: '32'
+  db: join_test
   description: "straight join with three tables with additional criteria"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [2, 11, 1]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo straight_join join_test.bar on foo.a > 1 AND foo.id = bar.id straight_join join_test.baz on bar.id = baz.id"
+  id: '33'
+  db: join_test
   description: "straight join with three tables with additional criteria (reversed)"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
   expected: 
   - [2, 11, 1]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo straight_join (select * from join_test.bar) bar on foo.id = bar.id straight_join join_test.baz on bar.id = baz.id"
+  id: '34'
+  db: join_test
   description: "straight join with subquery and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -275,6 +345,8 @@ testcases:
   - [1, 10, ~]
   - [2, 11, 1]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo straight_join join_test.bar on foo.b = bar.d straight_join join_test.baz on bar.d = baz.d"
+  id: '35'
+  db: join_test
   description: "straight join with null on the left and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -283,6 +355,8 @@ testcases:
 
 # Left Outer Joins
 - sql: "select a, c from join_test.foo left outer join join_test.bar on foo.id = bar.id"
+  id: '36'
+  db: join_test
   description: "left outer join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -291,6 +365,8 @@ testcases:
   - [2, 11]
   - [3, ~]
 - sql: "select a, c from join_test.foo left outer join join_test.bar on foo.id = bar.id AND foo.a > 1"
+  id: '37'
+  db: join_test
   description: "left outer join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -299,6 +375,8 @@ testcases:
   - [2, 11]
   - [3, ~]
 - sql: "select a, c from join_test.foo left outer join join_test.bar on foo.a > 1 AND foo.id = bar.id"
+  id: '38'
+  db: join_test
   description: "left outer join with additional criteria (reversed)"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -307,6 +385,8 @@ testcases:
   - [2, 11]
   - [3, ~]
 - sql: "select a, c from join_test.foo left outer join join_test.bar on foo.id = bar.id AND foo.a = 1214"
+  id: '39'
+  db: join_test
   description: "left outer join with no results"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -315,6 +395,8 @@ testcases:
   - [2, ~]
   - [3, ~]
 - sql: "select a, c from join_test.foo left outer join (select * from join_test.bar) bar on foo.id = bar.id"
+  id: '40'
+  db: join_test
   description: "left outer join with subquery"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -323,6 +405,8 @@ testcases:
   - [2, 11]
   - [3, ~]
 - sql: "select a, c from join_test.foo left outer join join_test.bar on foo.b = bar.d"
+  id: '41'
+  db: join_test
   description: "left outer join with null on the left"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -331,6 +415,8 @@ testcases:
   - [2, 11]
   - [3, ~] 
 - sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join join_test.bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id"
+  id: '42'
+  db: join_test
   description: "left outer join with three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -339,6 +425,8 @@ testcases:
   - [2, 11, 1]
   - [3, ~, ~]
 - sql: "select foo.a, bar.c, baz.d, foobar.b from join_test.foo left outer join join_test.bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id left outer join join_test.foobar on baz.id = foobar.id"
+  id: '43'
+  db: join_test
   description: "left outer join with four tables"
   expected_names: ["a", "c", "d", "b"]
   expected_types: [int, int, int, int]
@@ -347,6 +435,8 @@ testcases:
   - [2, 11, 1, 6]
   - [3, ~, ~, ~]
 - sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from join_test.foo left outer join join_test.bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id left outer join join_test.foobar on baz.id = foobar.id left outer join join_test.barbaz on foobar.id = barbaz.id"
+  id: '44'
+  db: join_test
   description: "left outer join with five tables"
   expected_names: ["a", "c", "d", "b", "e"]
   expected_types: [int, int, int, int, int]
@@ -355,6 +445,8 @@ testcases:
   - [2, 11, 1, 6, 5]
   - [3, ~, ~, ~, ~]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join join_test.bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id AND foo.a > 1"
+  id: '45'
+  db: join_test
   description: "left outer join with three tables with additional criteria"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -363,6 +455,8 @@ testcases:
   - [2, 11, 1]
   - [3, ~, ~]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join join_test.bar on foo.a > 1 AND foo.id = bar.id left outer join join_test.baz on bar.id = baz.id"
+  id: '46'
+  db: join_test
   description: "left outer join with three tables with additional criteria (reversed)"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -371,6 +465,8 @@ testcases:
   - [2, 11, 1]
   - [3, ~, ~]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join (select * from join_test.bar) bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id"
+  id: '47'
+  db: join_test
   description: "left outer join with subquery and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -379,6 +475,8 @@ testcases:
   - [2, 11, 1]
   - [3, ~, ~]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join join_test.bar on foo.b = bar.d left outer join join_test.baz on bar.d = baz.d"
+  id: '48'
+  db: join_test
   description: "left outer join with null on the left and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -389,6 +487,8 @@ testcases:
 
 # Right Outer Joins
 - sql: "select a, c from join_test.foo right outer join join_test.bar on foo.id = bar.id"
+  id: '49'
+  db: join_test
   description: "right outer join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -397,6 +497,8 @@ testcases:
   - [2, 11]
   - [~, 30]
 - sql: "select a, c from join_test.foo right outer join join_test.bar on foo.id = bar.id AND foo.a > 1"
+  id: '50'
+  db: join_test
   description: "right outer join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -405,6 +507,8 @@ testcases:
   - [2, 11]
   - [~, 30]
 - sql: "select a, c from join_test.foo right outer join join_test.bar on foo.a > 1 AND foo.id = bar.id"
+  id: '51'
+  db: join_test
   description: "right outer join with additional criteria (reversed)"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -413,6 +517,8 @@ testcases:
   - [2, 11]
   - [~, 30]
 - sql: "select a, c from join_test.foo right outer join join_test.bar on foo.id = bar.id AND foo.a = 1214"
+  id: '52'
+  db: join_test
   description: "right outer join with no results"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -421,6 +527,8 @@ testcases:
   - [~, 11]
   - [~, 30]
 - sql: "select a, c from join_test.foo right outer join (select * from join_test.bar) bar on foo.id = bar.id"
+  id: '53'
+  db: join_test
   description: "right outer join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -429,6 +537,8 @@ testcases:
   - [2, 11]
   - [~, 30]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo right outer join join_test.bar on foo.id = bar.id right outer join join_test.baz on bar.id = baz.id"
+  id: '54'
+  db: join_test
   description: "right outer join with three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -438,6 +548,8 @@ testcases:
   - [~, ~, ~]
   - [~, ~, ~]
 - sql: "select foo.a, bar.c, baz.d, foobar.b from join_test.foo right outer join join_test.bar on foo.id = bar.id right outer join join_test.baz on bar.id = baz.id right outer join join_test.foobar on baz.id = foobar.id"
+  id: '55'
+  db: join_test
   description: "right outer join with four tables"
   expected_names: ["a", "c", "d", "b"]
   expected_types: [int, int, int, int]
@@ -446,6 +558,8 @@ testcases:
   - [2, 11, 1, 6]
   - [~, ~, ~, ~]
 - sql: "select foo.a, bar.c, baz.d, foobar.b, barbaz.e from join_test.foo left outer join join_test.bar on foo.id = bar.id left outer join join_test.baz on bar.id = baz.id left outer join join_test.foobar on baz.id = foobar.id left outer join join_test.barbaz on foobar.id = barbaz.id"
+  id: '56'
+  db: join_test
   description: "right outer join with five tables"
   expected_names: ["a", "c", "d", "b", "e"]
   expected_types: [int, int, int, int, int]
@@ -454,6 +568,8 @@ testcases:
   - [2, 11, 1, 6, 5]
   - [3, ~, ~, ~, ~]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo right outer join join_test.bar on foo.id = bar.id right outer join join_test.baz on bar.id = baz.id AND foo.a > 1"
+  id: '57'
+  db: join_test
   description: "right outer join with three tables with additional criteria"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -463,6 +579,8 @@ testcases:
   - [~, ~, ~]
   - [~, ~, ~]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo right outer join join_test.bar on foo.a > 1 AND foo.id = bar.id right outer join join_test.baz on bar.id = baz.id"
+  id: '58'
+  db: join_test
   description: "left outer join with three tables with additional criteria (reversed)"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -472,6 +590,8 @@ testcases:
   - [~, ~, ~]
   - [~, ~, ~]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo right outer join (select * from join_test.bar) bar on foo.id = bar.id right outer join join_test.baz on bar.id = baz.id"
+  id: '59'
+  db: join_test
   description: "right outer join with subquery and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -481,6 +601,8 @@ testcases:
   - [~, ~, ~]
   - [~, ~, ~]
 - sql: "select foo.a, bar.c, baz.d from join_test.foo left outer join join_test.bar on foo.b = bar.d left outer join join_test.baz on bar.d = baz.d"
+  id: '60'
+  db: join_test
   description: "right outer join with null on the right and three tables"
   expected_names: ["a", "c", "d"]
   expected_types: [int, int, int]
@@ -491,6 +613,8 @@ testcases:
 
 # Parent-Child Relationships
 - sql: "select a, c from join_test.parent inner join join_test.child on parent.id = child.id"
+  id: '61'
+  db: join_test
   description: "unwound parent child inner join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -502,6 +626,8 @@ testcases:
   - [2, 2]
   - [2, 3]
 - sql: "select c, d from join_test.child inner join join_test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx"
+  id: '62'
+  db: join_test
   description: "unwound child grandchild inner join"
   expected_names: ["c", "d"]
   expected_types: [int, int]
@@ -510,6 +636,8 @@ testcases:
   - [2, 6]
   - [2, 7]
 - sql: "select a, c from join_test.parent left join join_test.child on parent.id = child.id"
+  id: '63'
+  db: join_test
   description: "unwound parent child left join"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -521,6 +649,8 @@ testcases:
   - [2, 2]
   - [2, 3]
 - sql: "select c, d from join_test.child left join join_test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx"
+  id: '64'
+  db: join_test
   description: "unwound child grandchild left join"
   expected_names: ["c", "d"]
   expected_types: [int, int]
@@ -533,6 +663,8 @@ testcases:
   - [2, 7]
   - [3, ~]
 - sql: "select a, c from join_test.parent inner join join_test.child on parent.id = child.id AND parent.a > 1"
+  id: '65'
+  db: join_test
   description: "unwound parent child inner join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -540,6 +672,8 @@ testcases:
   - [2, 2]
   - [2, 3]
 - sql: "select a, c from join_test.parent left join join_test.child on parent.id = child.id AND parent.a > 1"
+  id: '66'
+  db: join_test
   description: "unwound parent child left join with additional criteria"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -549,6 +683,8 @@ testcases:
   - [2, 2]
   - [2, 3]
 - sql: "select c, d from join_test.child inner join join_test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx AND grandchild.d > 5"
+  id: '67'
+  db: join_test
   description: "unwound child grandchild inner join with additional criteria"
   expected_names: ["c", "d"]
   expected_types: [int, int]
@@ -556,6 +692,8 @@ testcases:
   - [2, 6]
   - [2, 7]
 - sql: "select c, d from join_test.child left join join_test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx AND child.c > 2"
+  id: '68'
+  db: join_test
   description: "unwound child grandchild left join with additional criteria on the left side"
   expected_names: ["c", "d"]
   expected_types: [int, int]
@@ -567,6 +705,8 @@ testcases:
   - [2, ~]
   - [3, ~]
 - sql: "select c, d from join_test.child left join join_test.grandchild on child.id = grandchild.id AND child.b_idx = grandchild.b_idx AND grandchild.d > 5"
+  id: '69'
+  db: join_test
   description: "unwound child grandchild left join with additional criteria on the right side"
   expected_names: ["c", "d"]
   expected_types: [int, int]
@@ -578,6 +718,8 @@ testcases:
   - [2, 7]
   - [3, ~]
 - sql: "select a, d from join_test.parent inner join join_test.grandchild on parent.id = grandchild.id"
+  id: '70'
+  db: join_test
   description: "unwound parent grandchild inner join"
   expected_names: ["a", "d"]
   expected_types: [int, int]
@@ -588,6 +730,8 @@ testcases:
 
 # $unwind optimizations
 - sql: "select id, c2 from join_test.child inner join tjoin1 on child.id=tjoin1._id order by 1,2"
+  id: '71'
+  db: join_test
   description: "$unwind: inner join with child on left side"
   expected_names: ["id", "c2"]
   expected_types: [int, int]
@@ -597,6 +741,8 @@ testcases:
   - [2, 25]
   - [2, 25]
 - sql: "select id, c2 from tjoin1 inner join join_test.child on child.id=tjoin1._id order by 1,2"
+  id: '72'
+  db: join_test
   description: "$unwind: inner join with child on right side"
   expected_names: ["id", "c2"]
   expected_types: [int, int]
@@ -606,6 +752,8 @@ testcases:
   - [2, 25]
   - [2, 25]
 - sql: "select id from tjoin1 b inner join join_test.child f on f.id=b._id and f.id < b.c2-20"
+  id: '73'
+  db: join_test
   description: "$unwind: inner join with child and additional criteria"
   expected_names: ["id"]
   expected_types: [int]
@@ -613,6 +761,8 @@ testcases:
   - [2]
   - [2]
 - sql: "select id, c2 from tjoin1 inner join join_test.child on child.c=tjoin1._id order by 1,2"
+  id: '74'
+  db: join_test
   description: "$unwind: inner join with child on nested field"
   expected_names: ["id", "c2"]
   expected_types: [int, int]
@@ -624,6 +774,8 @@ testcases:
   - [2, 25]
   - [2, 50]
 - sql: "select id, c2 from tjoin1 inner join join_test.child on child.c=tjoin1._id and tjoin1.rnum > child.id order by 1,2"
+  id: '75'
+  db: join_test
   description: "$unwind: inner join with child on nested field and additional criteria"
   expected_names: ["id", "c2"]
   expected_types: [int, int]
@@ -631,6 +783,8 @@ testcases:
   - [0, 25]
   - [1, 50]
 - sql: "select id from join_test.parent f inner join tjoin1 b on f.id=b._id order by 1"
+  id: '76'
+  db: join_test
   description: "$unwind: inner join with parent on left side"
   expected_names: ["id"]
   expected_types: [int]
@@ -638,6 +792,8 @@ testcases:
   - [1]
   - [2]
 - sql: "select id from tjoin1 b inner join join_test.parent f on f.id=b._id order by 1"
+  id: '77'
+  db: join_test
   description: "$unwind: inner join with parent on right side"
   expected_names: ["id"]
   expected_types: [int]
@@ -645,6 +801,8 @@ testcases:
   - [1]
   - [2]
 - sql: "select id from tjoin1 b inner join join_test.parent f on f.id=b._id and b._id = f.id order by 1"
+  id: '78'
+  db: join_test
   description: "$unwind: inner join with parent and additional criteria"
   expected_names: ["id"]
   expected_types: [int]
@@ -652,18 +810,24 @@ testcases:
   - [1]
   - [2]
 - sql: "select id from join_test.grandchild f inner join tjoin1 b on f.id=b._id order by 1"
+  id: '79'
+  db: join_test
   description: "$unwind: inner join with grandchild on left side"
   expected_names: ["id"]
   expected_types: [int]
   expected:
   - [2]
 - sql: "select id from tjoin1 b inner join join_test.grandchild f on f.id=b._id order by 1"
+  id: '80'
+  db: join_test
   description: "$unwind: inner join with grandchild on right side"
   expected_names: ["id"]
   expected_types: [int]
   expected:
   - [2]
 - sql: "select id from tjoin1 b inner join join_test.grandchild f on f.id=b.rnum and b._id=f.b_idx order by 1"
+  id: '81'
+  db: join_test
   description: "$unwind: inner join with grandchild and additional criteria"
   expected_names: ["id"]
   expected_types: [int]
@@ -671,6 +835,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select b_idx, _id from join_test.child b left join tjoin1 f on f._id=b.id order by 1"
+  id: '82'
+  db: join_test
   description: "$unwind: left join with child on left side"
   expected_names: ["b_idx", "_id"]
   expected_types: [int, int]
@@ -682,6 +848,8 @@ testcases:
   - [1, 1]
   - [1, 2]
 - sql: "select id, c2 from tjoin1 b left join join_test.child f on f.id=b._id order by 1"
+  id: '83'
+  db: join_test
   description: "$unwind: left join with child on right side"
   expected_names: ["id", "c2"]
   expected_types: [int, int]
@@ -692,6 +860,8 @@ testcases:
   - [2, 25]
   - [2, 25]
 - sql: "select id, c2 from tjoin1 b left join join_test.child f on f.c=b._id order by 1"
+  id: '84'
+  db: join_test
   description: "$unwind: left join with child on nested field"
   expected_names: ["id", "c2"]
   expected_types: [int, int]
@@ -703,6 +873,8 @@ testcases:
   - [2, 25]
   - [2, 50]
 - sql: "select id from tjoin1 b left join join_test.child f on f.id=b._id and f.id < b.c2-20 order by 1"
+  id: '85'
+  db: join_test
   description: "$unwind: left join with child with additional criteria"
   expected_names: ["id"]
   expected_types: [int]
@@ -712,6 +884,8 @@ testcases:
   - [2]
   - [2]
 - sql: "select id, c2 from tjoin1 b left join join_test.child f on f.c=b._id and b.rnum+f.id > f.c order by 1"
+  id: '86'
+  db: join_test
   description: "$unwind: left join with child on nested field and additional criteria"
   expected_names: ["id", "c2"]
   expected_types: [int, int]
@@ -720,6 +894,8 @@ testcases:
   - [2, 25]
   - [2, 50]
 - sql: "select c2, _id from join_test.parent b left join tjoin1 f on f._id=b.id order by 1"
+  id: '87'
+  db: join_test
   description: "$unwind: left join with parent on left"
   expected_names: ["c2", "_id"]
   expected_types: [int, int]
@@ -728,6 +904,8 @@ testcases:
   - [15, 1]
   - [25, 2]
 - sql: "select c2, _id from tjoin1 f left join join_test.parent b on f._id=b.id order by 1"
+  id: '88'
+  db: join_test
   description: "$unwind: left join with parent on right side"
   expected_names: ["c2", "_id"]
   expected_types: [int, int]
@@ -736,6 +914,8 @@ testcases:
   - [25, 2]
   - [50, 3]
 - sql: "select id from tjoin1 b left join join_test.parent f on f.id=b._id and b._id = f.id order by 1"
+  id: '89'
+  db: join_test
   description: "$unwind: left join with parent and additional criteria"
   expected_names: ["id"]
   expected_types: [int]
@@ -744,6 +924,8 @@ testcases:
   - [1]
   - [2]
 - sql: "select c2, _id from join_test.grandchild b left join tjoin1 f on f._id=b.id order by 1"
+  id: '90'
+  db: join_test
   description: "$unwind: left join with grandchild on left"
   expected_names: ["c2", "_id"]
   expected_types: [int, int]
@@ -752,6 +934,8 @@ testcases:
   - [~, ~]
   - [25, 2]
 - sql: "select c2, _id from tjoin1 f left join join_test.grandchild b on f._id=b.id order by 1"
+  id: '91'
+  db: join_test
   description: "$unwind: left join with grandchild on right side"
   expected_names: ["c2", "_id"]
   expected_types: [int, int]
@@ -760,6 +944,8 @@ testcases:
   - [25, 2]
   - [50, 3]
 - sql: "select id from tjoin1 b left join join_test.grandchild f on f.d=b._id order by 1"
+  id: '92'
+  db: join_test
   description: "$unwind: left join with grandchild on nested field"
   expected_names: ["id"]
   expected_types: [int]
@@ -768,6 +954,8 @@ testcases:
   - [~]
   - [~]
 - sql: "select id from tjoin1 b left join join_test.grandchild f on f.id=b._id and f.id < b.c2-20 order by 1"
+  id: '93'
+  db: join_test
   description: "$unwind: left join with grandchild and additional criteria"
   expected_names: ["id"]
   expected_types: [int]
@@ -776,6 +964,8 @@ testcases:
   - [~]
   - [2]
 - sql: "select id from tjoin1 b left join join_test.grandchild f on f.d=b._id and f.id < b.c2 order by 1"
+  id: '94'
+  db: join_test
   description: "$unwind: left join with grandchild on nested field and additional criteria"
   expected_names: ["id"]
   expected_types: [int]

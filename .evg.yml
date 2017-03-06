@@ -33,8 +33,8 @@ buildvariants:
     build_tags: -tags ssl
     gotest_env: "SQLPROXY_SSLTEST=1"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.4.1.tgz --output mongodb.tgz
-    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
-    mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
+    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/resources/server.pem
+    sqlproxy_args: --mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile testdata/resources/client.pem
     push_arch: x86_64-enterprise-amzn64
     push_name: linux
     push_path: linux
@@ -48,8 +48,8 @@ buildvariants:
     build_tags: -tags ssl
     gotest_env: "SQLPROXY_SSLTEST=1"
     mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.4.1.tgz --output mongodb.tgz
-    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
-    mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
+    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/resources/server.pem
+    sqlproxy_args: --mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile testdata/resources/client.pem
     push_arch: x86_64-enterprise-amzn64
     push_name: linux
     push_path: linux
@@ -58,25 +58,25 @@ buildvariants:
   batchtime: 1440 # 1 day
   tasks:
   - "benchmark"
-  - "tpch_micro"
-- name: linux-64-amazon-ami-tpch
-  display_name: Amazon Linux (TPC-H Benchmarks)
-  expansions:
-    build_tags: -tags ssl
-    gotest_env: "SQLPROXY_SSLTEST=1"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.4.1.tgz --output mongodb.tgz
-    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/server.pem
-    mongo_args: --ssl --sslAllowInvalidCertificates --sslPEMKeyFile testdata/client.pem
-    push_arch: x86_64-enterprise-amzn64
-    push_name: linux
-    push_path: linux
-  run_on:
-    - linux-64-amzn-benchmark
-  batchtime: 1438560 # 999 days
-  tasks:
-  - "tpch_handwritten_denormalized"
-  - "tpch_workbook_denormalized"
-  - "tpch_workbook_normalized"
+#  - "tpch_micro"
+#- name: linux-64-amazon-ami-tpch
+#  display_name: Amazon Linux (TPC-H Benchmarks)
+#  expansions:
+#    build_tags: -tags ssl
+#    gotest_env: "SQLPROXY_SSLTEST=1"
+#    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.4.1.tgz --output mongodb.tgz
+#    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/resources/server.pem
+#    sqlproxy_args: --mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile testdata/resources/client.pem
+#    push_arch: x86_64-enterprise-amzn64
+#    push_name: linux
+#    push_path: linux
+#  run_on:
+#    - linux-64-amzn-benchmark
+#  batchtime: 1438560 # 999 days
+#  tasks:
+#  - "tpch_handwritten_denormalized"
+#  - "tpch_workbook_denormalized"
+#  - "tpch_workbook_normalized"
 - name: osx
   display_name: OSX 10.10
   run_on:
@@ -264,8 +264,9 @@ pre:
     params:
       silent: true
       script: |
-        ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongooplog; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos; pkill -f buildlogger.py; pkill -f smoke.py} >/dev/null 2>&1
+        ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongooplog; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos; pkill -f buildlogger.py; pkill -f smoke.py; pkill -9 sqlproxy} >/dev/null 2>&1
         rm -rf src /data/db/*
+        rm /tmp/mysql.sock
         exit 0
 post:
   - command: gotest.parse_files
@@ -378,6 +379,162 @@ functions:
         ${gorootvars} ${library_path} go build ${build_tags} -o sqlproxy main/sqlproxy.go
         echo "Done!"
 
+  "generate default tests":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        set -o verbose
+        set -o errexit
+        echo "Generating integration tests"
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        if [ '${library_path}' != '' ]; then
+          export ${library_path}
+        fi;
+        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
+        # use a wrapper if it's present on the system
+        #
+        if [ -d /opt/ldwrapper/bin ]
+        then
+          export PATH=/opt/ldwrapper/bin:$PATH
+        fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/github.com/10gen
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+        else
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
+        fi;
+        go generate
+        echo "Done!"
+
+  "generate blackbox tests":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        set -o verbose
+        set -o errexit
+        echo "Generating integration tests"
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        if [ '${library_path}' != '' ]; then
+          export ${library_path}
+        fi;
+        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
+        # use a wrapper if it's present on the system
+        #
+        if [ -d /opt/ldwrapper/bin ]
+        then
+          export PATH=/opt/ldwrapper/bin:$PATH
+        fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/github.com/10gen
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+        else
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
+        fi;
+        go run testdata/generate.go -suites blackbox
+        echo "Done!"
+
+  "generate integration tests":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        set -o verbose
+        set -o errexit
+        echo "Generating integration tests"
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        if [ '${library_path}' != '' ]; then
+          export ${library_path}
+        fi;
+        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
+        # use a wrapper if it's present on the system
+        #
+        if [ -d /opt/ldwrapper/bin ]
+        then
+          export PATH=/opt/ldwrapper/bin:$PATH
+        fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/github.com/10gen
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+        else
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
+        fi;
+        go run testdata/generate.go -suites integration
+        echo "Done!"
+
+  "generate tableau tests":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        set -o verbose
+        set -o errexit
+        echo "Generating integration tests"
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        if [ '${library_path}' != '' ]; then
+          export ${library_path}
+        fi;
+        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
+        # use a wrapper if it's present on the system
+        #
+        if [ -d /opt/ldwrapper/bin ]
+        then
+          export PATH=/opt/ldwrapper/bin:$PATH
+        fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/github.com/10gen
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+        else
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
+        fi;
+        go run testdata/generate.go -suites tableau
+        echo "Done!"
+
   "create release":
     command: shell.exec
     type: test
@@ -403,34 +560,34 @@ functions:
     params:
       working_dir: src/github.com/10gen/sqlproxy
       script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.gz --output testdata/input/attendees.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Batters.bson.gz --output testdata/input/Batters.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Calcs.bson.gz --output testdata/input/Calcs.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DateTime.bson.gz --output testdata/input/DateTime.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Election.bson.gz --output testdata/input/Election.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Fischeriris.bson.gz --output testdata/input/Fischeriris.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Loan.bson.gz --output testdata/input/Loan.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/NumericBins.bson.gz --output testdata/input/NumericBins.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalRei.bson.gz --output testdata/input/Rei.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/SeattleCrime.bson.gz --output testdata/input/SeattleCrime.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Securities.bson.gz --output testdata/input/Securities.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/SpecialData.bson.gz --output testdata/input/SpecialData.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalStaples.bson.gz --output testdata/input/Staples.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Starbucks.bson.gz --output testdata/input/Starbucks.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalUTStarcom.bson.gz --output testdata/input/UTStarcom.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/xy.bson.gz --output testdata/input/xy.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigarray.bson.gz --output testdata/input/bigarray.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigcoll.bson.gz --output testdata/input/bigcoll.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bignestedarray.bson.gz --output testdata/input/bignestedarray.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigobjarray.bson.gz --output testdata/input/bigobjarray.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.gz --output testdata/resources/data/attendees.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.gz --output testdata/resources/data/flights201406.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Batters.bson.gz --output testdata/resources/data/Batters.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Calcs.bson.gz --output testdata/resources/data/Calcs.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DateTime.bson.gz --output testdata/resources/data/DateTime.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Election.bson.gz --output testdata/resources/data/Election.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Fischeriris.bson.gz --output testdata/resources/data/Fischeriris.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Loan.bson.gz --output testdata/resources/data/Loan.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/NumericBins.bson.gz --output testdata/resources/data/NumericBins.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalRei.bson.gz --output testdata/resources/data/Rei.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/SeattleCrime.bson.gz --output testdata/resources/data/SeattleCrime.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Securities.bson.gz --output testdata/resources/data/Securities.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/SpecialData.bson.gz --output testdata/resources/data/SpecialData.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalStaples.bson.gz --output testdata/resources/data/Staples.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Starbucks.bson.gz --output testdata/resources/data/Starbucks.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalUTStarcom.bson.gz --output testdata/resources/data/UTStarcom.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/xy.bson.gz --output testdata/resources/data/xy.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigarray.bson.gz --output testdata/resources/data/bigarray.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigcoll.bson.gz --output testdata/resources/data/bigcoll.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bignestedarray.bson.gz --output testdata/resources/data/bignestedarray.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigobjarray.bson.gz --output testdata/resources/data/bigobjarray.bson.gz
 
   "download micro tpch test data":
     command: shell.exec
     params:
       working_dir: src/github.com/10gen/sqlproxy
       script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_small.bson.gz --output testdata/input/tpch.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_small.bson.gz --output testdata/resources/data/tpch.bson.gz
 
   "download mongod":
     command: shell.exec
@@ -452,22 +609,22 @@ functions:
     params:
       working_dir: src/github.com/10gen/sqlproxy
       script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.gz --output testdata/input/attendees.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.gz --output testdata/input/flights201406.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.gz --output testdata/resources/data/attendees.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.gz --output testdata/resources/data/flights201406.bson.gz
 
   "download normalized tpch test data":
     command: shell.exec
     params:
       working_dir: src/github.com/10gen/sqlproxy
       script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_full_normalized.bson.gz --output testdata/input/tpch.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_full_normalized.bson.gz --output testdata/resources/data/tpch.bson.gz
 
   "download denormalized tpch test data":
     command: shell.exec
     params:
       working_dir: src/github.com/10gen/sqlproxy
       script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_full_denormalized.bson.gz --output testdata/input/tpch.bson.gz
+        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_full_denormalized.bson.gz --output testdata/resources/data/tpch.bson.gz
 
   "fetch source" :
     - command: git.get_project
@@ -576,9 +733,18 @@ functions:
         rm -rf ../dbFiles && mkdir -p ../dbFiles;
         echo "Starting mongod...";
         ./bin/mongod${extension} ${mongod_args} --dbpath ../dbFiles
-        echo "Waiting for mongod to start up..."
-        ./bin/mongo${extension} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")' ${mongo_args}
         echo "Done!"
+
+  "start SQLProxy":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      background: true
+      script: |
+        set -o verbose
+        echo "Starting sqlproxy...";
+        ./sqlproxy --schemaDirectory ./testdata/resources/schema/ ${sqlproxy_args}
+        echo "sqlproxy exited"
 
   "upload benchmark report":
     command: s3.put
@@ -650,6 +816,9 @@ tasks:
     - func: "download blackbox test data"
     - func: "download mongod"
     - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy"
+    - func: "generate default tests"
     - command: shell.exec
       type: test
       params:
@@ -679,8 +848,7 @@ tasks:
           fi;
           mkfifo test_pipe
           tee -a benchmark.txt < test_pipe&
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -out benchmark_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run benchmark_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 4h > test_pipe
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run ^$ ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 4h > test_pipe
     - func: "upload benchmark report"
 
 - name: blackbox
@@ -689,6 +857,9 @@ tasks:
     - func: "download blackbox test data"
     - func: "download mongod"
     - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy"
+    - func: "generate blackbox tests"
     - command: shell.exec
       type: test
       params:
@@ -719,8 +890,7 @@ tasks:
           mkfifo test_pipe
           tee -a blackbox.suite < test_pipe&
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/blackbox.go -out blackbox_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -run TestBlackBox -parallel 10 -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > test_pipe;
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -run TestBlackbox -restoreData blackbox -parallel 10 -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > test_pipe;
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -733,6 +903,9 @@ tasks:
     - func: "download blackbox test data"
     - func: "download mongod"
     - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy"
+    - func: "generate blackbox tests"
     - command: shell.exec
       type: test
       params:
@@ -763,8 +936,7 @@ tasks:
           mkfifo test_pipe
           tee -a blackbox-nopushdown.suite < test_pipe&
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/blackbox.go -out blackbox_test.go
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -run TestBlackBox -parallel 10 -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > test_pipe
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -run TestBlackbox -restoreData blackbox -parallel 10 -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -1078,6 +1250,9 @@ tasks:
     - func: "fetch source"
     - func: "download mongod"
     - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy"
+    - func: "generate integration tests"
     - command: shell.exec
       type: test
       params:
@@ -1106,7 +1281,7 @@ tasks:
             fi;
           fi;
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} ${mongodb_version_flag} -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} ${mongodb_version_flag} -run TestIntegration -restoreData integration -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -1118,6 +1293,9 @@ tasks:
     - func: "fetch source"
     - func: "download mongod"
     - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy"
+    - func: "generate integration tests"
     - command: shell.exec
       type: test
       params:
@@ -1146,7 +1324,7 @@ tasks:
             fi;
           fi;
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > sqlproxy-nopushdown.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-nopushdown.suite; exit 1; else cat sqlproxy-nopushdown.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -run TestIntegration -restoreData integration -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > sqlproxy-nopushdown.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-nopushdown.suite; exit 1; else cat sqlproxy-nopushdown.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
@@ -1159,6 +1337,9 @@ tasks:
     - func: "download tableau test data"
     - func: "download mongod"
     - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy"
+    - func: "generate tableau tests"
     - command: shell.exec
       type: test
       params:
@@ -1187,7 +1368,7 @@ tasks:
             fi;
           fi;
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -tableau -run TestTableauDemo -timeout 4h -v ${cover|-coverprofile=coverage.out} > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -run TestTableau -restoreData tableau -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"

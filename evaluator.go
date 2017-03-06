@@ -1,5 +1,7 @@
 package sqlproxy
 
+//go:generate go run testdata/generate.go
+
 import (
 	"fmt"
 

@@ -5,6 +5,8 @@ testcases:
 
 # Single Terms
 - sql: "select id, a from orderby_test.foo order by a"
+  id: '0'
+  db: orderby_test
   description: "single term"
   expected_names: ["id", "a"]
   expected_types: [int, int]
@@ -14,6 +16,8 @@ testcases:
   - [0, 2]
   - [3, 2]
 - sql: "select id, a from orderby_test.foo order by a asc"
+  id: '1'
+  db: orderby_test
   description: "single term with asc"
   expected_names: ["id", "a"]
   expected_types: [int, int]
@@ -23,6 +27,8 @@ testcases:
   - [0, 2]
   - [3, 2]
 - sql: "select id, a from orderby_test.foo order by a desc"
+  id: '2'
+  db: orderby_test
   description: "single term with desc"
   expected_names: ["id", "a"]
   expected_types: [int, int]
@@ -32,6 +38,8 @@ testcases:
   - [2, 1]
   - [1, 0]
 - sql: "select id, a from orderby_test.foo order by 2"
+  id: '3'
+  db: orderby_test
   description: "single ordinal term"
   expected_names: ["id", "a"]
   expected_types: [int, int]
@@ -41,6 +49,8 @@ testcases:
   - [0, 2]
   - [3, 2]
 - sql: "select id, a from orderby_test.foo order by 2 asc"
+  id: '4'
+  db: orderby_test
   description: "single ordinal term with asc"
   expected_names: ["id", "a"]
   expected_types: [int, int]
@@ -50,6 +60,8 @@ testcases:
   - [0, 2]
   - [3, 2]
 - sql: "select id, a from orderby_test.foo order by 2 desc"
+  id: '5'
+  db: orderby_test
   description: "single ordinal term with desc"
   expected_names: ["id", "a"]
   expected_types: [int, int]
@@ -59,6 +71,8 @@ testcases:
   - [2, 1]
   - [1, 0]
 - sql: "select id, a as b from orderby_test.foo order by b"
+  id: '6'
+  db: orderby_test
   description: "single aliased term"
   expected_names: ["id", "b"]
   expected_types: [int, int]
@@ -68,6 +82,8 @@ testcases:
   - [0, 2]
   - [3, 2]
 - sql: "select id, a as b from orderby_test.foo order by b asc"
+  id: '7'
+  db: orderby_test
   description: "single aliased term with asc"
   expected_names: ["id", "b"]
   expected_types: [int, int]
@@ -77,6 +93,8 @@ testcases:
   - [0, 2]
   - [3, 2]
 - sql: "select id, a as b from orderby_test.foo order by b desc"
+  id: '8'
+  db: orderby_test
   description: "single aliased term with desc"
   expected_names: ["id", "b"]
   expected_types: [int, int]
@@ -88,6 +106,8 @@ testcases:
 
 # Multiple Terms
 - sql: "select id, a from orderby_test.foo order by a, id"
+  id: '9'
+  db: orderby_test
   description: "multiple terms"
   expected_names: ["id", "a"]
   expected_types: [int, int]
@@ -97,6 +117,8 @@ testcases:
   - [0, 2]
   - [3, 2]
 - sql: "select id, a from orderby_test.foo order by a, id desc"
+  id: '10'
+  db: orderby_test
   description: "multiple terms with the second desc"
   expected_names: ["id", "a"]
   expected_types: [int, int]
@@ -106,6 +128,8 @@ testcases:
   - [3, 2]
   - [0, 2]
 - sql: "select id, a from orderby_test.foo order by a desc, id"
+  id: '11'
+  db: orderby_test
   description: "multiple terms with the first desc"
   expected_names: ["id", "a"]
   expected_types: [int, int]
@@ -115,6 +139,8 @@ testcases:
   - [2, 1]
   - [1, 0]
 - sql: "select id, a from orderby_test.foo order by a desc, id desc"
+  id: '12'
+  db: orderby_test
   description: "multiple terms with both desc"
   expected_names: ["id", "a"]
   expected_types: [int, int]
@@ -126,6 +152,8 @@ testcases:
 
   # Subqueries
 - sql: "select a from foo order by (select a from foo limit 1)"
+  id: '13'
+  db: orderby_test
   description: "non-correlated subquery"
   expected_names: ["a"]
   expected_types: [int]
@@ -135,6 +163,8 @@ testcases:
   - [1]
   - [2]
 - sql: "select a from foo f order by (select -a from foo where f.id = id)"
+  id: '14'
+  db: orderby_test
   description: "correlated subquery"
   expected_names: ["a"]
   expected_types: [int]
@@ -144,6 +174,8 @@ testcases:
   - [1]
   - [0]
 - sql: "select a from foo f order by a * id"
+  id: '15'
+  db: orderby_test
   description: "order by expression"
   expected_names: ["a"]
   expected_types: [int]
@@ -153,6 +185,8 @@ testcases:
   - [1]
   - [2]
 - sql: "select a from foo f order by a > id"
+  id: '16'
+  db: orderby_test
   description: "order by expression"
   expected_names: ["a"]
   expected_types: [int]

@@ -3,127 +3,175 @@
 #
 testcases:
 - sql: "SHOW COLUMNS FROM foo"
+  id: '0'
+  db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["a1", "bigint(20)", "YES", "", ~, ""]
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN foo IN show_test LIKE 'b%'"
+  id: '1'
+  db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM foo FROM show_test LIKE 'b%'"
+  id: '2'
+  db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM foo WHERE type = 'varchar(65535)'"
+  id: '3'
+  db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM show_test.foo"
+  id: '4'
+  db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["a1", "bigint(20)", "YES", "", ~, ""]
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN show_test.foo"
+  id: '5'
+  db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["a1", "bigint(20)", "YES", "", ~, ""]
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN .foo"
+  id: '6'
+  db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["a1", "bigint(20)", "YES", "", ~, ""]
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS FROM foo FROM show_test"
+  id: '7'
+  db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["a1", "bigint(20)", "YES", "", ~, ""]
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW COLUMNS IN foo IN show_test"
+  id: '8'
+  db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["a1", "bigint(20)", "YES", "", ~, ""]
     - ["b1", "varchar(65535)", "YES", "", ~, ""]
     - ["c1", "bigint(20)", "YES", "", ~, ""]
 - sql: "SHOW FULL COLUMNS FROM foo"
+  id: '9'
+  db: show_test
   expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
   expected:
     - ["a1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"a\" }"]
     - ["b1", "varchar(65535)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"b\" }"]
     - ["c1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"c\" }"]
 - sql: "SHOW TABLES"
+  id: '10'
+  db: show_test
   expected_types: [varchar]
   expected: 
     - ["bar"]
     - ["foo"]
 - sql: "SHOW TABLES LIKE 'f%'"
+  id: '11'
+  db: show_test
   expected_types: [varchar]
   expected: 
     - ["foo"]
 - sql: "SHOW TABLES WHERE Tables_in_show_test = 'foo'"
+  id: '12'
+  db: show_test
   expected_types: [varchar]
   expected: 
     - ["foo"]
 - sql: "SHOW TABLES FROM show_test"
+  id: '13'
+  db: show_test
   expected_types: [varchar]
   expected: 
     - ["bar"]
     - ["foo"]
 - sql: "SHOW FULL TABLES"
+  id: '14'
+  db: show_test
   expected_types: [varchar, varchar]
   expected: 
    - ["bar", "BASE TABLE"]
    - ["foo", "BASE TABLE"]
-- sql: "SHOW DATABASES"
+- sql: "SHOW DATABASES like 'show%'"
+  id: '15'
+  db: show_test
   expected_types: [varchar]
   expected: 
-    - ["Blah"]
-    - ["information_schema"]
+    - ["show_Blah"]
     - ["show_test"]
-- sql: "SHOW DATABASES LIKE 'b%'"
+- sql: "SHOW DATABASES LIKE 'show_b%'"
+  id: '16'
+  db: show_test
   expected_types: [varchar]
   expected: 
-    - ["Blah"]
+    - ["show_Blah"]
 - sql: "SHOW DATABASES WHERE `Database` = 'show_test'"
+  id: '17'
+  db: show_test
   expected_types: [varchar]
   expected: 
     - ["show_test"]
-- sql: "SHOW SCHEMAS"
+- sql: "SHOW SCHEMAS like 'show%'"
+  id: '18'
+  db: show_test
   expected_types: [varchar]
   expected: 
-    - ["Blah"]
-    - ["information_schema"]
+    - ["show_Blah"]
     - ["show_test"]
-- sql: "SHOW SCHEMAS LIKE 'b%'"
+- sql: "SHOW SCHEMAS LIKE 'show_b%'"
+  id: '19'
+  db: show_test
   expected_types: [varchar]
   expected: 
-    - ["Blah"]
+    - ["show_Blah"]
 - sql: "SHOW SCHEMAS WHERE `Database` = 'show_test'"
+  id: '20'
+  db: show_test
   expected_types: [varchar]
   expected: 
     - ["show_test"]
 
 - sql: "SHOW VARIABLES LIKE '%auto_incr%'"
+  id: '21'
+  db: show_test
   expected_types: [varchar, varchar]
   expected: 
     - ["auto_increment_increment", "1"]
     - ["auto_increment_offset", "1"]
 - sql: "SHOW SESSION VARIABLES LIKE '%auto_incr%'"
+  id: '22'
+  db: show_test
   expected_types: [varchar, varchar]
   expected: 
     - ["auto_increment_increment", "1"]
     - ["auto_increment_offset", "1"]
 - sql: "SHOW GLOBAL VARIABLES LIKE '%auto_incr%'"
+  id: '23'
+  db: show_test
   expected_types: [varchar, varchar]
   expected: 
     - ["auto_increment_increment", "1"]
     - ["auto_increment_offset", "1"]
 - sql: "SHOW VARIABLES LIKE '%info%'"
+  id: '24'
+  db: show_test
   expected_types: [varchar, varchar]
   expected:
     - ["master_info_repository", "FILE"]
@@ -139,29 +187,41 @@ testcases:
     - ["sync_master_info", "10000"]
     - ["sync_relay_log_info", "10000"]
 - sql: "SHOW GLOBAL VARIABLES WHERE Variable_name = 'autocommit'"
+  id: '25'
+  db: show_test
   expected_types: [varchar, varchar]
   expected: 
     - ["autocommit", "1"]
 - sql: "SHOW STATUS LIKE '%stmt_create_collection%'"
+  id: '26'
+  db: show_test
   expected_types: [varchar, varchar]
   expected: 
     - ["Mysqlx_stmt_create_collection", "0"]
     - ["Mysqlx_stmt_create_collection_index", "0"]
 - sql: "SHOW GLOBAL STATUS LIKE '%stmt_create_collection%'"
+  id: '27'
+  db: show_test
   expected_types: [varchar, varchar]
   expected: 
     - ["Mysqlx_stmt_create_collection", "0"]
     - ["Mysqlx_stmt_create_collection_index", "0"]
 - sql: "SHOW SESSION STATUS LIKE '%stmt_create_collection%'"
+  id: '28'
+  db: show_test
   expected_types: [varchar, varchar]
   expected: 
     - ["Mysqlx_stmt_create_collection", "0"]
     - ["Mysqlx_stmt_create_collection_index", "0"]
 - sql: "SHOW SESSION STATUS WHERE Variable_name = 'Uptime'"
+  id: '29'
+  db: show_test
   expected_types: [varchar, varchar]
   expected: 
     - ["Uptime", "0"]
 - sql: "SHOW COLLATION LIKE '%sinhala%'"
+  id: '30'
+  db: show_test
   expected_types: [varchar, varchar, int, varchar, varchar, int]
   expected:
     - ["ucs2_sinhala_ci", "ucs2", 147, "No", "Yes", 8]
@@ -170,6 +230,8 @@ testcases:
     - ["utf8_sinhala_ci", "utf8", 211, "No", "Yes", 8]
     - ["utf8mb4_sinhala_ci", "utf8mb4", 243, "No", "Yes", 8]
 - sql: "SHOW CHARSET LIKE '%cp1%'"
+  id: '31'
+  db: show_test
   expected_types: [varchar, varchar, varchar, int]
   expected:
     - ["cp1250", "Windows Central European", "cp1250_general_ci", 1]
@@ -177,6 +239,8 @@ testcases:
     - ["cp1256", "Windows Arabic", "cp1256_general_ci", 1]
     - ["cp1257", "Windows Baltic", "cp1257_general_ci", 1]
 - sql: "SHOW CHARSET LIKE 'macce'"
+  id: '32'
+  db: show_test
   expected_types: [varchar, varchar, varchar, int]
   expected:
     - ["macce", "Mac Central European", "macce_general_ci", 1]
@@ -185,138 +249,274 @@ testcases:
 
 # unimplemented
 - sql: "SHOW BINARY LOGS"
+  id: '33'
+  db: show_test
   expected: []
 - sql: "SHOW MASTER LOGS"
+  id: '34'
+  db: show_test
   expected: []
 - sql: "SHOW BINLOG EVENTS"
+  id: '35'
+  db: show_test
   expected: []
 - sql: "SHOW BINLOG EVENTS IN `temp`"
+  id: '36'
+  db: show_test
   expected: []
 - sql: "SHOW BINLOG EVENTS FROM 10"
+  id: '37'
+  db: show_test
   expected: []
 - sql: "SHOW BINLOG EVENTS LIMIT 10, 12"
+  id: '38'
+  db: show_test
   expected: []
 - sql: "SHOW RELAYLOG EVENTS"
+  id: '39'
+  db: show_test
   expected: []
 - sql: "SHOW CREATE DATABASE db_name"
+  id: '40'
+  db: show_test
   expected: []
 - sql: "SHOW CREATE DATABASE IF NOT EXISTS db_name"
+  id: '41'
+  db: show_test
   expected: []
 - sql: "SHOW CREATE SCHEMA schema_name"
+  id: '42'
+  db: show_test
   expected: []
 - sql: "SHOW CREATE SCHEMA IF NOT EXISTS schema_name"
+  id: '43'
+  db: show_test
   expected: []
 - sql: "SHOW CREATE EVENT event_name"
+  id: '44'
+  db: show_test
   expected: []
 - sql: "SHOW CREATE FUNCTION func_name"
+  id: '45'
+  db: show_test
   expected: []
 - sql: "SHOW CREATE PROCEDURE proc_name"
+  id: '46'
+  db: show_test
   expected: []
 - sql: "SHOW CREATE TRIGGER trigger_name"
+  id: '47'
+  db: show_test
   expected: []
 - sql: "SHOW CREATE USER user_name"
+  id: '48'
+  db: show_test
   expected: []
 - sql: "SHOW CREATE VIEW view_name"
+  id: '49'
+  db: show_test
   expected: []
 - sql: "SHOW ENGINE engine_name STATUS"
+  id: '50'
+  db: show_test
   expected: []
 - sql: "SHOW ENGINE engine_name MUTEX"
+  id: '51'
+  db: show_test
   expected: []
 - sql: "SHOW ENGINES"
+  id: '52'
+  db: show_test
   expected: []
 - sql: "SHOW STORAGE ENGINES"
+  id: '53'
+  db: show_test
   expected: []
 - sql: "SHOW ERRORS"
+  id: '54'
+  db: show_test
   expected: []
 - sql: "SHOW ERRORS LIMIT 10, 12"
+  id: '55'
+  db: show_test
   expected: []
 - sql: "SHOW COUNT(*) ERRORS"
+  id: '56'
+  db: show_test
   expected: []
 - sql: "SHOW EVENTS"
+  id: '57'
+  db: show_test
   expected: []
 - sql: "SHOW EVENTS FROM schema_name"
+  id: '58'
+  db: show_test
   expected: []
 - sql: "SHOW EVENTS IN schema_name"
+  id: '59'
+  db: show_test
   expected: []
 - sql: "SHOW EVENTS LIKE '%_'"
+  id: '60'
+  db: show_test
   expected: []
 - sql: "SHOW EVENTS WHERE XXX = 12"
+  id: '61'
+  db: show_test
   expected: []
 - sql: "SHOW FUNCTION STATUS"
+  id: '62'
+  db: show_test
   expected: []
 - sql: "SHOW FUNCTION STATUS LIKE '%_'"
+  id: '63'
+  db: show_test
   expected: []
 - sql: "SHOW FUNCTION STATUS WHERE XXX = 12"
+  id: '64'
+  db: show_test
   expected: []
 - sql: "SHOW GRANTS"
+  id: '65'
+  db: show_test
   expected: []
 - sql: "SHOW GRANTS FOR user_name"
+  id: '66'
+  db: show_test
   expected: []
 - sql: "SHOW INDEX FROM table_name"
+  id: '67'
+  db: show_test
   expected: []
 - sql: "SHOW INDEXES FROM table_name"
+  id: '68'
+  db: show_test
   expected: []
 - sql: "SHOW KEYS FROM table_name WHERE x = 10"
+  id: '69'
+  db: show_test
   expected: []
 - sql: "SHOW MASTER STATUS"
+  id: '70'
+  db: show_test
   expected: []
 - sql: "SHOW OPEN TABLES"
+  id: '71'
+  db: show_test
   expected: []
 - sql: "SHOW OPEN TABLES FROM db_name"
+  id: '72'
+  db: show_test
   expected: []
 - sql: "SHOW OPEN TABLES FROM db_name LIKE '%_'"
+  id: '73'
+  db: show_test
   expected: []
 - sql: "SHOW OPEN TABLES WHERE XXX = 10"
+  id: '74'
+  db: show_test
   expected: []
 - sql: "SHOW PLUGINS"
+  id: '75'
+  db: show_test
   expected: []
 - sql: "SHOW PRIVILEGES"
+  id: '76'
+  db: show_test
   expected: []
 - sql: "SHOW PROCEDURE STATUS"
+  id: '77'
+  db: show_test
   expected: []
 - sql: "SHOW PROCEDURE STATUS LIKE '%_'"
+  id: '78'
+  db: show_test
   expected: []
 - sql: "SHOW PROCEDURE STATUS WHERE XXX = 12"
+  id: '79'
+  db: show_test
   expected: []
 - sql: "SHOW PROCESSLIST"
+  id: '80'
+  db: show_test
   expected: []
 - sql: "SHOW FULL PROCESSLIST"
+  id: '81'
+  db: show_test
   expected: []
 - sql: "SHOW PROFILES"
+  id: '82'
+  db: show_test
   expected: []
 - sql: "SHOW SLAVE HOSTS"
+  id: '83'
+  db: show_test
   expected: []
 - sql: "SHOW SLAVE STATUS"
+  id: '84'
+  db: show_test
   expected: []
 - sql: "SHOW SLAVE STATUS FOR CHANNEL channel_name"
+  id: '85'
+  db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS"
+  id: '86'
+  db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS FROM db_name"
+  id: '87'
+  db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS IN db_name"
+  id: '88'
+  db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS LIKE '%_'"
+  id: '89'
+  db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS WHERE XXX = 10"
+  id: '90'
+  db: show_test
   expected: []
 - sql: "SHOW TABLE STATUS FROM db_name WHERE XXX = 10"
+  id: '91'
+  db: show_test
   expected: []
 - sql: "SHOW TRIGGERS"
+  id: '92'
+  db: show_test
   expected: []
 - sql: "SHOW TRIGGERS FROM db_name"
+  id: '93'
+  db: show_test
   expected: []
 - sql: "SHOW TRIGGERS IN db_name"
+  id: '94'
+  db: show_test
   expected: []
 - sql: "SHOW TRIGGERS LIKE '%_'"
+  id: '95'
+  db: show_test
   expected: []
 - sql: "SHOW TRIGGERS WHERE XXX = 10"
+  id: '96'
+  db: show_test
   expected: []
 - sql: "SHOW TRIGGERS FROM db_name WHERE XXX = 10"
+  id: '97'
+  db: show_test
   expected: []
 - sql: "SHOW WARNINGS"
+  id: '98'
+  db: show_test
   expected: []
 - sql: "SHOW WARNINGS LIMIT 10, 12"
+  id: '99'
+  db: show_test
   expected: []
 - sql: "SHOW COUNT(*) WARNINGS"
+  id: '100'
+  db: show_test
   expected: []

@@ -5,6 +5,8 @@ testcases:
 
 # Between
 - sql: "select a from where_test.foo where id between 1 and 4"
+  id: '0'
+  db: where_test
   description: "between distinct values"
   expected_names: ["a"]
   expected_types: [int]
@@ -12,23 +14,31 @@ testcases:
   - [2]
   - [3]
 - sql: "select a from baz where b = 5 and a between 1 and 4"
+  id: '1'
+  db: where_test
   description: "between distinct values"
   expected_names: ["a"]
   expected_types: [int]
   expected:
   - [1]
 - sql: "select a from where_test.foo where id between 1 and 1"
+  id: '2'
+  db: where_test
   description: "between the same value"
   expected_names: ["a"]
   expected_types: [int]
   expected:
   - [2]
 - sql: "select a from where_test.foo where id between 4 and 1"
+  id: '3'
+  db: where_test
   description: "between reversed values"
   expected_names: ["a"]
   expected_types: [int]
   expected: []
 - sql: "select a from where_test.foo where id between 1 and 2 or id between 2 and 4"
+  id: '4'
+  db: where_test
   description: "multiple betweens"
   expected_names: ["a"]
   expected_types: [int]
@@ -36,6 +46,8 @@ testcases:
   - [2]
   - [3]
 - sql: "select a from where_test.foo where id not between 1 and 4"
+  id: '5'
+  db: where_test
   description: "not between distinct values"
   expected_names: ["a"]
   expected_types: [int]
@@ -44,6 +56,8 @@ testcases:
 
 # Case
 - sql: "select a from foo where (case when a > 1 then true else false end)"
+  id: '6'
+  db: where_test
   description: "case"
   expected_names: ["a"]
   expected_types: [int]
@@ -51,6 +65,8 @@ testcases:
   - [2]
   - [3]
 - sql: "select a from foo where (case when a > 1 then true end)"
+  id: '7'
+  db: where_test
   description: "case without else"
   expected_names: ["a"]
   expected_types: [int]
@@ -58,6 +74,8 @@ testcases:
   - [2]
   - [3]
 - sql: "select a from foo where (case a when 1 then false else true end)"
+  id: '8'
+  db: where_test
   description: "simple case"
   expected_names: ["a"]
   expected_types: [int]
@@ -67,6 +85,8 @@ testcases:
 
 # Exists
 - sql: "select a from foo f1 where exists(select 1 from foo f2 where f1.a > f2.a)"
+  id: '9'
+  db: where_test
   description: "exists"
   expected_names: ["a"]
   expected_types: [int]
@@ -74,6 +94,8 @@ testcases:
   - [2]
   - [3]
 - sql: "select f1.id from foo f1 inner join bar b1 on f1.id = b1.id where exists(select 1 from foo f2 where exists(select 1 from bar b2 where f1.a = b2.a))"
+  id: '10'
+  db: where_test
   description: "exists with joined table and nested exists"
   expected_names: ["id"]
   expected_types: [int]
@@ -83,6 +105,8 @@ testcases:
 
 # Greater Than
 - sql: "select a from where_test.foo where id > 0"
+  id: '11'
+  db: where_test
   description: "greater than"
   expected_names: ["a"]
   expected_types: [int]
@@ -90,6 +114,8 @@ testcases:
   - [2]
   - [3]
 - sql: "select a from where_test.foo where 2 > id"
+  id: '12'
+  db: where_test
   description: "greater than (reversed)"
   expected_names: ["a"]
   expected_types: [int]
@@ -99,6 +125,8 @@ testcases:
 
 # Greater Than Or Equal
 - sql: "select a from where_test.foo where id >= 0"
+  id: '13'
+  db: where_test
   description: "greater than or equal"
   expected_names: ["a"]
   expected_types: [int]
@@ -107,6 +135,8 @@ testcases:
   - [2]
   - [3]
 - sql: "select a from where_test.foo where 2 >= id"
+  id: '14'
+  db: where_test
   description: "greater than or equal (reversed)"
   expected_names: ["a"]
   expected_types: [int]
@@ -117,6 +147,8 @@ testcases:
 
 # In
 - sql: "select id from where_test.foo where id in (0, 2)"
+  id: '15'
+  db: where_test
   description: "in tuple"
   expected_names: ["id"]
   expected_types: [int]
@@ -124,6 +156,8 @@ testcases:
   - [0]
   - [2]
 - sql: "select id from where_test.foo where id in (select a from foo)"
+  id: '16'
+  db: where_test
   description: "in non-correlated subquery"
   expected_names: ["id"]
   expected_types: [int]
@@ -133,6 +167,8 @@ testcases:
 
 # Not
 - sql: "select id from where_test.foo where not (2 < 1) or (3 < 4)"
+  id: '17'
+  db: where_test
   description: "not precedence"
   expected_names: ["id"]
   expected_types: [int]
@@ -143,6 +179,8 @@ testcases:
 
 # Not
 - sql: "select id from where_test.foo where not 2 < 1 or 3 < 4"
+  id: '18'
+  db: where_test
   description: "not precedence 2"
   expected_names: ["id"]
   expected_types: [int]
@@ -153,6 +191,8 @@ testcases:
 
 # Regex
 - sql: "select * from where_test.reg where a REGEXP '^f.*$'"
+  id: '19'
+  db: where_test
   description: "regex filter"
   expected_names: ["_id", "a"]
   expected_types: [int, varchar]
@@ -160,6 +200,8 @@ testcases:
   - [1, "fofo"]
 
 - sql: "select * from where_test.reg where a NOT REGEXP '^f.*$'"
+  id: '20'
+  db: where_test
   description: "not regex filter"
   expected_names: ["_id", "a"]
   expected_types: [int, varchar]
@@ -169,6 +211,8 @@ testcases:
 
 # Less Than
 - sql: "select a from where_test.foo where id < 2"
+  id: '21'
+  db: where_test
   description: "less than"
   expected_names: ["a"]
   expected_types: [int]
@@ -176,6 +220,8 @@ testcases:
   - [1]
   - [2]
 - sql: "select a from where_test.foo where 1 < id"
+  id: '22'
+  db: where_test
   description: "less than (reversed)"
   expected_names: ["a"]
   expected_types: [int]
@@ -184,6 +230,8 @@ testcases:
 
 # Less Than Or Equal
 - sql: "select a from where_test.foo where id <= 2"
+  id: '23'
+  db: where_test
   description: "less than or equal"
   expected_names: ["a"]
   expected_types: [int]
@@ -192,6 +240,8 @@ testcases:
   - [2]
   - [3]
 - sql: "select a from where_test.foo where 0 <= id"
+  id: '24'
+  db: where_test
   description: "less than or equal (reversed)"
   expected_names: ["a"]
   expected_types: [int]
@@ -202,18 +252,24 @@ testcases:
 
 # Subquery
 - sql: "select id from where_test.foo where a = (select a from where_test.bar where id = (select id from where_test.foo limit 1))"
+  id: '25'
+  db: where_test
   description: "non-correlated nested subqueries"
   expected_names: ["id"]
   expected_types: [int]
   expected:
   - [1]
 - sql: "select id from where_test.foo where a = (select min(a) from where_test.bar)"
+  id: '26'
+  db: where_test
   description: "non-correlated subquery"
   expected_names: ["id"]
   expected_types: [int]
   expected:
   - [1]
 - sql: "select a from where_test.foo where (id, a) = (select id, a from where_test.bar where foo.id = bar.id AND foo.a = bar.a)"
+  id: '27'
+  db: where_test
   description: "correlated subquery"
   expected_names: ["a"]
   expected_types: [int]
@@ -221,6 +277,8 @@ testcases:
   - [2]
   - [3]
 - sql: "select id from where_test.foo where 4 not in (select a from where_test.bar)"
+  id: '28'
+  db: where_test
   description: "not in subquery"
   expected_names: ["id"]
   expected_types: [string]
@@ -229,6 +287,8 @@ testcases:
   - [1]
   - [2]
 - sql: "SELECT * FROM baz WHERE b <> ANY (SELECT _id FROM baz)"
+  id: '29'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
@@ -236,6 +296,8 @@ testcases:
   - [2, 3, 2]
   - [3, 1, 5]
 - sql: "SELECT * FROM baz WHERE a <> SOME (SELECT a FROM baz)"
+  id: '30'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
@@ -244,54 +306,74 @@ testcases:
   - [2, 3, 2]
   - [3, 1, 5]
 - sql: "SELECT * FROM baz WHERE b <> ALL (SELECT a FROM baz)"
+  id: '31'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
   - [1, 2, 4]
   - [3, 1, 5]
 - sql: "SELECT * FROM baz WHERE b < ALL (SELECT a FROM baz)"
+  id: '32'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected: []
 - sql: "SELECT * FROM baz WHERE b + _id = ANY (SELECT a + b FROM baz)"
+  id: '33'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
   - [1, 2, 4]
 - sql: "SELECT * FROM baz WHERE b - _id < SOME (SELECT a - _id FROM baz)"
+  id: '34'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
   - [2, 3, 2]
 - sql: "SELECT * FROM baz WHERE b IN (SELECT a FROM baz)"
+  id: '35'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
   - [2, 3, 2]
 - sql: "SELECT * FROM baz WHERE b IN (SELECT 4 - _id FROM baz)"
+  id: '36'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
   - [1, 2, 4]
   - [2, 3, 2]
 - sql: "SELECT * FROM baz WHERE b NOT IN (SELECT 4 - _id FROM baz)"
+  id: '37'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
   - [3, 1, 5]
 - sql: "SELECT * FROM baz WHERE b - _id > SOME (SELECT _id FROM baz)"
+  id: '38'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
   - [1, 2, 4]
   - [3, 1, 5]
 - sql: "SELECT * FROM baz WHERE _id > ANY (SELECT a FROM baz)"
+  id: '39'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
   - [2, 3, 2]
   - [3, 1, 5]
 - sql: "SELECT * FROM baz WHERE b IN (SELECT b FROM baz)"
+  id: '40'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
@@ -299,26 +381,36 @@ testcases:
   - [2, 3, 2]
   - [3, 1, 5]
 - sql: "SELECT * FROM baz WHERE a NOT IN (SELECT a FROM baz)"
+  id: '41'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected: []
 - sql: "SELECT * FROM baz WHERE _id > ANY (SELECT b FROM baz WHERE _id <> ANY (SELECT b FROM baz))"
+  id: '42'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
   - [3, 1, 5]
 - sql: "SELECT * FROM baz WHERE _id = ANY (SELECT b FROM baz WHERE _id < ANY (SELECT b FROM baz WHERE a IN (SELECT a from baz)))"
+  id: '43'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
   - [2, 3, 2]
 - sql: "SELECT * FROM baz WHERE b < ANY (SELECT b + a - _id FROM baz)"
+  id: '44'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
   - [1, 2, 4]
   - [2, 3, 2]
 - sql: "SELECT * FROM baz WHERE b > ANY (SELECT b + a - _id FROM baz)"
+  id: '45'
+  db: where_test
   expected_names: ["_id", "a", "b"]
   expected_types: [int, int, int]
   expected:
@@ -327,12 +419,16 @@ testcases:
 
 # Tuples
 - sql: "select id from where_test.foo where (id, a) = (0, 1)"
+  id: '46'
+  db: where_test
   description: "tuple equal"
   expected_names: ["id"]
   expected_types: [int]
   expected:
   - [0]
 - sql: "select id from where_test.foo where (a) < 2"
+  id: '47'
+  db: where_test
   description: "tuple greater than"
   expected_names: ["id"]
   expected_types: [int]
@@ -341,24 +437,32 @@ testcases:
 
 # Unary Operators
 - sql: "select a from where_test.foo where id = ~-1"
+  id: '48'
+  db: where_test
   description: "unary tilde"
   expected_names: ["a"]
   expected_types: [int]
   expected:
   - [1]
 - sql: "select a from where_test.foo where id = ~-1 + 1"
+  id: '49'
+  db: where_test
   description: "unary tilde in an expression"
   expected_names: ["a"]
   expected_types: [int]
   expected:
   - [2]
 - sql: "select a from where_test.foo where id = +1"
+  id: '50'
+  db: where_test
   description: "unary plus"
   expected_names: ["a"]
   expected_types: [int]
   expected:
   - [2]
 - sql: "select a from where_test.foo where id = -(1)"
+  id: '51'
+  db: where_test
   description: "unary minus"
   expected_names: ["a"]
   expected_types: [int]
@@ -366,18 +470,24 @@ testcases:
 
 # Like Operator Tests
 - sql: "SELECT _id from test2 where _id LIKE '53c2ab5e4291b17b666d742a'"
+  id: '52'
+  db: where_test
   description: "matching test on ObjectId with full match"
   expected_names: ["_id"]
   expected_types: [string]
   expected:
   - [53c2ab5e4291b17b666d742a]
 - sql: "SELECT _id from test2 where _id LIKE '53c2ab5%'"
+  id: '53'
+  db: where_test
   description: "matching test on ObjectId with partial match"
   expected_names: ["_id"]
   expected_types: [string]
   expected:
   - [53c2ab5e4291b17b666d742a]
 - sql: "SELECT _id from test2 where _id LIKE '667570e9%'"
+  id: '54'
+  db: where_test
   description: "matching test on ObjectId with no match"
   expected_names: ["_id"]
   expected_types: [string]

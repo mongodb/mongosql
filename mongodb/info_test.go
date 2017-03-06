@@ -26,7 +26,7 @@ func getSslOpts() *toolsoptions.SSL {
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
 		return &toolsoptions.SSL{
 			UseSSL:              true,
-			SSLPEMKeyFile:       "../testdata/client.pem",
+			SSLPEMKeyFile:       "../testdata/resources/client.pem",
 			SSLAllowInvalidCert: true,
 		}
 	}

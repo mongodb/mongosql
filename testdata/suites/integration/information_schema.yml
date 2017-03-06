@@ -4,7 +4,9 @@
 testcases:
 
 # SCHEMATA
-- sql: "select * from information_schema.schemata order by schema_name"
+- sql: "select * from information_schema.schemata where SCHEMA_NAME like 'information%' order by schema_name"
+  id: '0'
+  db: information_schema_test
   description: "schemata full"
   expected_names: ["CATALOG_NAME", "SCHEMA_NAME", "DEFAULT_CHARACTER_SET_NAME", "DEFAULT_COLLATION_NAME", "SQL_PATH"]
   expected_types: [string, string, string, string, string]
@@ -14,7 +16,9 @@ testcases:
   - ["def", "information_schema_test2", "utf8", "utf8_bin", ""]
 
 # TABLES
-- sql: "select TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, TABLE_COLLATION, TABLE_COMMENT from information_schema.tables order by TABLE_SCHEMA, TABLE_NAME"
+- sql: "select TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, TABLE_COLLATION, TABLE_COMMENT from information_schema.tables where TABLE_SCHEMA like 'information%' order by TABLE_SCHEMA, TABLE_NAME"
+  id: '1'
+  db: information_schema_test
   description: "tables full"
   expected_names: ["TABLE_CATALOG", "TABLE_SCHEMA", "TABLE_NAME", "TABLE_TYPE", "TABLE_COLLATION", "TABLE_COMMENT"]
   expected_types: [string, string, string, string, string, string]
@@ -56,6 +60,8 @@ testcases:
 
 # COLUMNS
 - sql: "select * from information_schema.columns where table_schema like 'information_schema_test%' order by table_schema, table_name, ordinal_position"
+  id: '2'
+  db: information_schema_test
   description: "columns full"
   expected_names: ["TABLE_CATALOG", "TABLE_SCHEMA", "TABLE_NAME", "COLUMN_NAME", "ORDINAL_POSITION", "COLUMN_DEFAULT", "IS_NULLABLE", "DATA_TYPE",
     "CHARACTER_MAXIMUM_LENGTH", "CHARACTER_OCTET_LENGTH", "NUMERIC_PRECISION", "NUMERIC_SCALE", "DATETIME_PRECISION", "CHARACTER_SET_NAME",
@@ -72,6 +78,8 @@ testcases:
 
 # GLOBAL_VARIABLES
 - sql: "select * from information_schema.global_variables order by variable_name limit 1"
+  id: '3'
+  db: information_schema_test
   description: "global variables"
   expected_names: ["VARIABLE_NAME", "VARIABLE_VALUE"]
   expected_types: [string, string]
@@ -80,6 +88,8 @@ testcases:
 
 # SESSION VARIABLES
 - sql: "select * from information_schema.session_variables order by variable_name limit 1"
+  id: '4'
+  db: information_schema_test
   description: "session variables"
   expected_names: ["VARIABLE_NAME", "VARIABLE_VALUE"]
   expected_types: [string, string]

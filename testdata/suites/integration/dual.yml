@@ -1,48 +1,56 @@
 testcases:
 
 - sql: "select 1"
+  id: '0'
   description: "value"
   expected_names: ["1"]
   expected_types: [int]
   expected: 
   - [1]
 - sql: "select 1 from dual"
+  id: '1'
   description: "value from dual"
   expected_names: ["1"]
   expected_types: [int]
   expected: 
   - [1]
 - sql: "select 1, 3"
+  id: '2'
   description: "multiple values"
   expected_names: ["1", "3"]
   expected_types: [int, int]
   expected: 
   - [1, 3]
 - sql: "select 1, 3 from dual"
+  id: '3'
   description: "multiple values from dual"
   expected_names: ["1", "3"]
   expected_types: [int, int]
   expected: 
   - [1, 3]
 - sql: "select 2*1, 3+5"
+  id: '4'
   description: "computed values"
   expected_names: ["2*1", "3+5"]
   expected_types: [int, int]
   expected: 
   - [2, 8]
 - sql: "select 2*1, 3+5 from dual"
+  id: '5'
   description: "computed values from dual"
   expected_names: ["2*1", "3+5"]
   expected_types: [int, int]
   expected: 
   - [2, 8]
 - sql: "select 2*1 as a, 3+5 as b"
+  id: '6'
   description: "aliased computed values"
   expected_names: ["a", "b"]
   expected_types: [int, int]
   expected: 
   - [2, 8]
 - sql: "select 2*1 as a, 3+5 as b from dual"
+  id: '7'
   description: "computed values from dual"
   expected_names: ["a", "b"]
   expected_types: [int, int]
@@ -51,6 +59,7 @@ testcases:
 
 # Variables
 - sql: "select @lkjasdflkjasdf"
+  id: '8'
   description: "unset user variable"
   expected_names: ["@lkjasdflkjasdf"]
   expected_types: [~]
@@ -58,6 +67,7 @@ testcases:
   - [~]
 
 - sql: "select @@version = version();"
+  id: '9'
   description: "version"
   expected_names: ["@@version = version()"]
   expected_types: [string]

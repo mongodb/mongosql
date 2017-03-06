@@ -8,9 +8,9 @@ import (
 	"time"
 
 	yaml "github.com/10gen/candiedyaml"
+	"github.com/10gen/sqlproxy/internal/testutils"
 	"github.com/10gen/sqlproxy/mongodrdl"
 	"github.com/10gen/sqlproxy/options"
-	"github.com/10gen/sqlproxy/testutils"
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/mongoimport"
@@ -365,7 +365,7 @@ func importJson(schema *mongodrdl.SchemaGenerator, dbName string, collName strin
 	if sslOpts.UseSSL {
 		opts.SSL = &toolsoptions.SSL{
 			UseSSL:              true,
-			SSLPEMKeyFile:       "../testdata/client.pem",
+			SSLPEMKeyFile:       "../testdata/resources/client.pem",
 			SSLAllowInvalidCert: true,
 		}
 	}

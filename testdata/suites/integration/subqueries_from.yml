@@ -3,6 +3,8 @@
 #
 testcases:
 - sql: "select * from (select * from subqueries_from_test.foo) foo"
+  id: '0'
+  db: subqueries_from_test
   description: "global *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -11,6 +13,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select foo.* from (select * from subqueries_from_test.foo) foo"
+  id: '1'
+  db: subqueries_from_test
   description: "qualified *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -19,6 +23,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select foo.*, foo.* from (select * from subqueries_from_test.foo) foo"
+  id: '2'
+  db: subqueries_from_test
   description: "duplicate qualified *"
   expected_names: ["id", "a", "b", "id", "a", "b"]
   expected_types: [int, int, int, int, int, int]
@@ -27,6 +33,8 @@ testcases:
   - [1, 2, ~, 1, 2, ~]
   - [2, 3, ~, 2, 3, ~]
 - sql: "select f.* from (select * from subqueries_from_test.foo) f"
+  id: '3'
+  db: subqueries_from_test
   description: "alias qualified *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -35,6 +43,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select id, a, b from (select * from subqueries_from_test.foo) foo"
+  id: '4'
+  db: subqueries_from_test
   description: "columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -43,6 +53,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select ID, A, B from (select * from subqueries_from_test.foo) foo"
+  id: '5'
+  db: subqueries_from_test
   description: "columns with wrong casing"
   expected_names: ["ID", "A", "B"]
   expected_types: [int, int, int]
@@ -51,6 +63,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select foo.id, foo.a, foo.b from (select * from subqueries_from_test.foo) foo"
+  id: '6'
+  db: subqueries_from_test
   description: "qualified columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -59,6 +73,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select f.id, f.a, f.b from (select * from subqueries_from_test.foo) f"
+  id: '7'
+  db: subqueries_from_test
   description: "alias qualified columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -67,6 +83,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select id, a, b, id, a, b from (select * from subqueries_from_test.foo) foo"
+  id: '8'
+  db: subqueries_from_test
   description: "duplicate columns"
   expected_names: ["id", "a", "b", "id", "a", "b"]
   expected_types: [int, int, int, int, int, int]
@@ -75,6 +93,8 @@ testcases:
   - [1, 2, ~, 1, 2, ~]
   - [2, 3, ~, 2, 3, ~]
 - sql: "select id as d, a as e, b as f from (select * from subqueries_from_test.foo) foo"
+  id: '9'
+  db: subqueries_from_test
   description: "aliases"
   expected_names: ["d", "e", "f"]
   expected_types: [int, int, int]
@@ -83,6 +103,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select id as a, a as b, b as id from (select * from subqueries_from_test.foo) foo"
+  id: '10'
+  db: subqueries_from_test
   description: "aliased as another column"
   expected_names: ["a", "b", "id"]
   expected_types: [int, int, int]
@@ -91,6 +113,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select id, a as id, b as id from (select * from subqueries_from_test.foo) foo"
+  id: '11'
+  db: subqueries_from_test
   description: "duplicate aliases"
   expected_names: ["id", "id", "id"]
   expected_types: [int, int, int]
@@ -99,6 +123,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select id, a as ID from (select * from subqueries_from_test.foo) foo"
+  id: '12'
+  db: subqueries_from_test
   description: "aliases differing by case"
   expected_names: ["id", "ID"]
   expected_types: [int, int]
@@ -107,6 +133,8 @@ testcases:
   - [1, 2]
   - [2, 3]
 - sql: "select id, b from (select * from subqueries_from_test.foo) foo"
+  id: '13'
+  db: subqueries_from_test
   description: "subset of columns"
   expected_names: ["id", "b"]
   expected_types: [int, int]
@@ -115,6 +143,8 @@ testcases:
   - [1, ~]
   - [2, ~]
 - sql: "select b, id from (select * from subqueries_from_test.foo) foo"
+  id: '14'
+  db: subqueries_from_test
   description: "subset of columns out of order"
   expected_names: ["b", "id"]
   expected_types: [int, int]
@@ -123,6 +153,8 @@ testcases:
   - [~, 1]
   - [~, 2]
 - sql: "select * from (select id, a from subqueries_from_test.foo) foo"
+  id: '15'
+  db: subqueries_from_test
   description: "global * from column subset"
   expected_names: ["id", "a"]
   expected_types: [int, int]
@@ -131,6 +163,8 @@ testcases:
   - [1, 2]
   - [2, 3]
 - sql: "select * from (select id as a, a as b from subqueries_from_test.foo) foo"
+  id: '16'
+  db: subqueries_from_test
   description: "global * from aliased column subset"
   expected_names: ["a", "b"]
   expected_types: [int, int]
@@ -139,6 +173,8 @@ testcases:
   - [1, 2]
   - [2, 3]
 - sql: "select a, b from (select id as a, a as b from subqueries_from_test.foo) foo"
+  id: '17'
+  db: subqueries_from_test
   description: "named columns from aliased column subset"
   expected_names: ["a", "b"]
   expected_types: [int, int]
@@ -147,6 +183,8 @@ testcases:
   - [1, 2]
   - [2, 3]
 - sql: "select a, b from (select * from (select id as a, a as b from subqueries_from_test.foo) foo) f"
+  id: '18'
+  db: subqueries_from_test
   description: "named columns from aliased column subset from a nested subquery"
   expected_names: ["a", "b"]
   expected_types: [int, int]

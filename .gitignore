@@ -31,3 +31,5 @@ codereview.rc
 vendor/pkg
 
 testdata/resources/data
+
+integration_test.go

@@ -1,0 +1,167 @@
+schema:
+-
+  db: tableau
+  tables:
+    - table: flights201406
+      collection: flights201406
+      columns:
+        - Name: _id
+          MongoType: bson.ObjectId
+          SqlName: _id
+          SqlType: varchar
+        - Name: carrier_code
+          MongoType: string
+          SqlName: carrier_code
+          SqlType: varchar
+        - Name: tail_num
+          MongoType: string
+          SqlName: tail_num
+          SqlType: varchar
+        - Name: flight_number
+          MongoType: int
+          SqlName: flight_number
+          SqlType: int
+        - Name: origin_airport_id
+          MongoType: int
+          SqlName: origin_airport_id
+          SqlType: int
+        - Name: origin_city_market_id
+          MongoType: int
+          SqlName: origin_city_market_id
+          SqlType: int
+        - Name: origin_airport_code
+          MongoType: string
+          SqlName: origin_airport_code
+          SqlType: varchar
+        - Name: origin_city_name
+          MongoType: string
+          SqlName: origin_city_name
+          SqlType: varchar
+        - Name: origin_state
+          MongoType: string
+          SqlName: origin_state
+          SqlType: varchar
+        - Name: dest_airport_id
+          MongoType: int
+          SqlName: dest_airport_id
+          SqlType: int
+        - Name: dest_city_market_id
+          MongoType: int
+          SqlName: dest_city_market_id
+          SqlType: int
+        - Name: dest_airport_code
+          MongoType: int
+          SqlName: dest_airport_code
+          SqlType: varchar
+        - Name: flight_date
+          MongoType: date
+          SqlName: flight_date
+          SqlType: date
+        - Name: dest_city_name
+          MongoType: string
+          SqlName: dest_city_name
+          SqlType: varchar
+        - Name: dest_state
+          MongoType: string
+          SqlName: dest_state
+          SqlType: varchar
+        - Name: dep_time
+          MongoType: int
+          SqlName: dep_time
+          SqlType: int
+        - Name: diff_from_dep_time
+          MongoType: int
+          SqlName: diff_from_dep_time
+          SqlType: int
+        - Name: dep_delay
+          MongoType: int
+          SqlName: dep_delay
+          SqlType: int
+        - Name: arr_time
+          MongoType: int
+          SqlName: arr_time
+          SqlType: int
+        - Name: diff_from_arr_time
+          MongoType: int
+          SqlName: diff_from_arr_time
+          SqlType: int
+        - Name: flight_time
+          MongoType: date
+          SqlName: flight_time
+          SqlType: timestamp
+        - Name: airline
+          MongoType: string
+          SqlName: airline
+          SqlType: varchar
+        - Name: cancelled
+          MongoType: int
+          SqlName: cancelled
+          SqlType: int
+        - Name: arr_delay
+          MongoType: int
+          SqlName: arr_delay
+          SqlType: int
+        - Name: carrier_delay
+          MongoType: int
+          SqlName: carrier_delay
+          SqlType: int
+        - Name: late_aircraft_delay
+          MongoType: int
+          SqlName: late_aircraft_delay
+          SqlType: int
+        - Name: nas_delay
+          MongoType: int
+          SqlName: nas_delay
+          SqlType: int
+
+    - table: attendees
+      collection: attendees
+      columns:
+        - Name: _id
+          MongoType: bson.ObjectId
+          SqlName: _id
+          SqlType: varchar
+        - Name: loc.coordinates
+          MongoType: geo.2darray
+          SqlName: loc
+          SqlType: numeric[]
+        - Name: loc.type
+          MongoType: string
+          SqlName: loc.type
+          SqlType: varchar
+        - Name: airport_city
+          MongoType: string
+          SqlName: airport_city
+          SqlType: varchar
+        - Name: airport_code
+          MongoType: string
+          SqlName: airport_code
+          SqlType: varchar
+        - Name: airport_id
+          MongoType: int
+          SqlName: airport_id
+          SqlType: int
+        - Name: city
+          MongoType: string
+          SqlName: city
+          SqlType: varchar
+        - Name: city_market_description
+          MongoType: string
+          SqlName: city_market_description
+          SqlType: varchar
+        - Name: city_market_id
+          MongoType: int
+          SqlName: city_market_id
+          SqlType: int
+        - Name: country
+          MongoType: string
+          SqlName: country
+          SqlType: varchar
+        - Name: state
+          MongoType: string
+          SqlName: state
+          SqlType: varchar
+        - Name: zip
+          MongoType: string
+          SqlName: zip
+          SqlType: varchar

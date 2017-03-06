@@ -3,6 +3,8 @@
 #
 testcases:
 - sql: "select 3.141592653589793 FROM select_sTest.foo"
+  id: '0'
+  db: select_sTest
   description: "numeric literal"
   expected_names: ["3.141592653589793"]
   expected_types: [float]
@@ -11,6 +13,8 @@ testcases:
   - [3.141592653589793]
   - [3.141592653589793]
 - sql: "select * FROM select_sTest.foo"
+  id: '1'
+  db: select_sTest
   description: "global *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -19,6 +23,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select foo.* FROM select_STest.Foo"
+  id: '2'
+  db: select_sTest
   description: "qualified *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -27,6 +33,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select foo.*, foo.* FROM select_STest.FOO"
+  id: '3'
+  db: select_sTest
   description: "duplicate qualified *"
   expected_names: ["id", "a", "b", "id", "a", "b"]
   expected_types: [int, int, int, int, int, int]
@@ -35,6 +43,8 @@ testcases:
   - [1, 2, ~, 1, 2, ~]
   - [2, 3, ~, 2, 3, ~]
 - sql: "select f.* FROM select_Stest.fOo f"
+  id: '4'
+  db: select_sTest
   description: "alias qualified *"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -43,6 +53,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select id, a, b FROM select_StEst.foo"
+  id: '5'
+  db: select_sTest
   description: "columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -51,6 +63,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select ID, A, B FROM select_Stest.FOO"
+  id: '6'
+  db: select_sTest
   description: "columns with wrong casing"
   expected_names: ["ID", "A", "B"]
   expected_types: [int, int, int]
@@ -59,6 +73,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select foo.id, foo.a, foo.b FROM select_Stest.foo"
+  id: '7'
+  db: select_sTest
   description: "qualified columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -67,6 +83,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select f.id, f.a, f.b FROM select_Stest.foo f"
+  id: '8'
+  db: select_sTest
   description: "alias qualified columns"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]
@@ -75,6 +93,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select id, a, b, id, a, b FROM select_STESt.foo"
+  id: '9'
+  db: select_sTest
   description: "duplicate columns"
   expected_names: ["id", "a", "b", "id", "a", "b"]
   expected_types: [int, int, int, int, int, int]
@@ -83,6 +103,8 @@ testcases:
   - [1, 2, ~, 1, 2, ~]
   - [2, 3, ~, 2, 3, ~]
 - sql: "select id as d, a as e, b as f FROM select_Stest.foo"
+  id: '10'
+  db: select_sTest
   description: "aliases"
   expected_names: ["d", "e", "f"]
   expected_types: [int, int, int]
@@ -91,6 +113,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select id as a, a as b, b as id FROM select_Stest.Foo"
+  id: '11'
+  db: select_sTest
   description: "aliased as another column"
   expected_names: ["a", "b", "id"]
   expected_types: [int, int, int]
@@ -99,6 +123,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select id, a as id, b as id FROM select_Stest.foO"
+  id: '12'
+  db: select_sTest
   description: "duplicate aliases"
   expected_names: ["id", "id", "id"]
   expected_types: [int, int, int]
@@ -107,6 +133,8 @@ testcases:
   - [1, 2, ~]
   - [2, 3, ~]
 - sql: "select id, a as ID FROM select_Stest.foo"
+  id: '13'
+  db: select_sTest
   description: "aliases differing by case"
   expected_names: ["id", "ID"]
   expected_types: [int, int]
@@ -115,6 +143,8 @@ testcases:
   - [1, 2]
   - [2, 3]
 - sql: "select id, b FROM select_Stest.foo"
+  id: '14'
+  db: select_sTest
   description: "subset of columns"
   expected_names: ["id", "b"]
   expected_types: [int, int]
@@ -123,6 +153,8 @@ testcases:
   - [1, ~]
   - [2, ~]
 - sql: "select b, id FROM select_Stest.foo"
+  id: '15'
+  db: select_sTest
   description: "subset of columns out of order"
   expected_names: ["b", "id"]
   expected_types: [int, int]
@@ -134,6 +166,8 @@ testcases:
 ### Expressions
 
 - sql: "select a / id FROM foo"
+  id: '16'
+  db: select_sTest
   description: "divide"
   expected_names: ["a/id"]
   expected_types: [float64]
@@ -143,6 +177,8 @@ testcases:
   - [1.5]
 
 - sql: "select a DIV id FROM foo"
+  id: '17'
+  db: select_sTest
   description: "divide"
   expected_names: ["adid"]
   expected_types: [int]
@@ -153,6 +189,8 @@ testcases:
 
 # Case
 - sql: "select (case when a > 1 then 'gt' else 'lt' end) as p FROM foo"
+  id: '18'
+  db: select_sTest
   description: "case"
   expected_names: ["p"]
   expected_types: [string]
@@ -161,6 +199,8 @@ testcases:
   - ["gt"]
   - ["gt"]
 - sql: "select (case when a > 1 then 'gt' end) as p FROM foo"
+  id: '19'
+  db: select_sTest
   description: "case without else"
   expected_names: ["p"]
   expected_types: [string]
@@ -169,6 +209,8 @@ testcases:
   - ["gt"]
   - ["gt"]
 - sql: "select (case when b is null then 'n' else 'not null' end) as p FROM foo"
+  id: '20'
+  db: select_sTest
   description: "case without else"
   expected_names: ["p"]
   expected_types: [string]
@@ -177,6 +219,8 @@ testcases:
   - ["n"]
   - ["n"]
 - sql: "select (case a when 1 then 'one' else 'not one' end) as p FROM foo"
+  id: '21'
+  db: select_sTest
   description: "simple case"
   expected_names: ["p"]
   expected_types: [string]
@@ -185,6 +229,8 @@ testcases:
   - ["not one"]
   - ["not one"]
 - sql: "select (case a when 1 then 'one' end) as p FROM foo"
+  id: '22'
+  db: select_sTest
   description: "simple case"
   expected_names: ["p"]
   expected_types: [string]
@@ -193,6 +239,8 @@ testcases:
   - [~]
   - [~]
 - sql: "select (case when a > (case when b is null then 1 else 2 end) then 'gt' else 'lt' end) as p FROM foo"
+  id: '23'
+  db: select_sTest
   description: "case"
   expected_names: ["p"]
   expected_types: [string]
@@ -201,6 +249,8 @@ testcases:
   - ["gt"]
   - ["gt"]
 - sql: "select (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) as p FROM foo"
+  id: '24'
+  db: select_sTest
   description: "case"
   expected_names: ["p"]
   expected_types: [string]
@@ -209,6 +259,8 @@ testcases:
   - ["1"]
   - ["1"]
 - sql: "select (case when (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) = '1' then 1 end) as p FROM foo"
+  id: '25'
+  db: select_sTest
   description: "case"
   expected_names: ["p"]
   expected_types: [int]
@@ -219,6 +271,8 @@ testcases:
 
 # Exists
 - sql: "select a, exists(select 1 FROM select_STEST.foo) as p FROM foo"
+  id: '26'
+  db: select_sTest
   description: "non-correlated exists"
   expected_names: ["a", "p"]
   expected_types: [int, int]
@@ -227,6 +281,8 @@ testcases:
   - [2, 1]
   - [3, 1]
 - sql: "select exists(select 1 FROM select_Stest.foo) as p FROM foo"
+  id: '27'
+  db: select_sTest
   description: "non-correlated exists"
   expected_names: ["p"]
   expected_types: [int]
@@ -237,6 +293,8 @@ testcases:
 
 # Subqueries
 - sql: "select a, (select a FROM foo limit 1) as b FROM foo"
+  id: '28'
+  db: select_sTest
   description: "non-correlated subquery"
   expected_names: ["a", "b"]
   expected_types: [int, int]
@@ -246,6 +304,8 @@ testcases:
   - [3, 1]
 
 - sql: "select a, (select a + (select a FROM foo limit 1) as b FROM foo limit 1) as b FROM foo"
+  id: '29'
+  db: select_sTest
   description: "non-correlated nested subqueries"
   expected_names: ["a", "b"]
   expected_types: [int, int]
@@ -255,6 +315,8 @@ testcases:
   - [3, 2]
 
 - sql: "select a, (select a FROM foo where f.id = id - 1) as b FROM foo f"
+  id: '30'
+  db: select_sTest
   description: "correlated subquery"
   expected_names: ["a", "b"]
   expected_types: [int, int]
@@ -265,30 +327,40 @@ testcases:
 
 # LIKE
 - sql: "select 'HI' like 'HI'"
+  id: '31'
+  db: select_sTest
   description: "query with one matching string"
   expected_names: ["'HI' like 'HI'"]
   expected_types: [int]
   expected:
   - [1]
 - sql: "select 'HI' like 'PO'"
+  id: '32'
+  db: select_sTest
   description: "query with no matching string"
   expected_names: ["'HI' like 'PO'"]
   expected_types: [int]
   expected:
   - [0]
 - sql: "select (select 2>1) like 1"
+  id: '33'
+  db: select_sTest
   description: "boolean test nested select with matching results"
   expected_names: ["(select 2 > 1) like 1"]
   expected_types: [int]
   expected:
   - [1]
 - sql: "select (select 2<1) LIKE (select 4<1)"
+  id: '34'
+  db: select_sTest
   description: "matching test on node with two select statements"
   expected_names: ["(select 2 < 1) like (select 4 < 1)"]
   expected_types: [int]
   expected:
   - [1]
 - sql: "select (2>1) like 1"
+  id: '35'
+  db: select_sTest
   description: "query with no matching string lll"
   expected_names: ["(2 > 1) like 1"]
   expected_types: [int]
@@ -297,18 +369,24 @@ testcases:
 
 # Long Identifer Names
 - sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat FROM select_test.bar"
+  id: '36'
+  db: select_sTest
   description: "long identifier names"
   expected_names: ["ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat"]
   expected_types: [int]
   expected:
   - [2]
 - sql: "select `ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat` FROM select_test.bar"
+  id: '37'
+  db: select_sTest
   description: "long identifier name with dot"
   expected_names: ["ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculously.LONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat"]
   expected_types: [int]
   expected:
   - [3]
 - sql: "select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat r FROM select_test.bar"
+  id: '38'
+  db: select_sTest
   description: "long identifier name with alias"
   expected_names: ["r"]
   expected_types: [int]
@@ -317,6 +395,8 @@ testcases:
 
 # Row comparisons
 - sql: "select (x, y, z) < (4, null, 9) FROM tuples"
+  id: '39'
+  db: select_sTest
   description: "lt row comparison with null"
   expected_names: ["(x, y, z) < (4, null, 9)"]
   expected_types: [int]
@@ -327,6 +407,8 @@ testcases:
   - [0]
   - [~]
 - sql: "select (x, y, z) <= (4, 5, null) FROM tuples"
+  id: '40'
+  db: select_sTest
   description: "triple lte row comparison with null"
   expected_names: ["(x, y, z) <= (4, 5, null)"]
   expected_types: [int]
@@ -337,6 +419,8 @@ testcases:
   - [0]
   - [1]
 - sql: "select (z, x) >= (2, 6) FROM tuples"
+  id: '41'
+  db: select_sTest
   description: "gte row comparison without null"
   expected_names: ["(z, x) >= (2, 6)"]
   expected_types: [int]
@@ -347,6 +431,8 @@ testcases:
   - [0]
   - [1]
 - sql: "select (x, y) >= (4, null) FROM tuples"
+  id: '42'
+  db: select_sTest
   description: "gte row comparison with null"
   expected_names: ["(x, y) >= (4, null)"]
   expected_types: [int]
@@ -357,6 +443,8 @@ testcases:
   - [1]
   - [~]
 - sql: "select (z, y, x) > (1, 5, 2) FROM tuples"
+  id: '43'
+  db: select_sTest
   description: "triple gt row comparison without null"
   expected_names: ["(z, y, x) > (1, 5, 2)"]
   expected_types: [int]
@@ -367,6 +455,8 @@ testcases:
   - [1]
   - [1]
 - sql: "select (z, null, x) > (1, x, 2) FROM tuples"
+  id: '44'
+  db: select_sTest
   description: "triple gt row comparison with null"
   expected_names: ["(z, null, x) > (1, x, 2)"]
   expected_types: [int]
@@ -377,6 +467,8 @@ testcases:
   - [~]
   - [1]
 - sql: "select (x, y, z) = (null, null, 9) FROM tuples"
+  id: '45'
+  db: select_sTest
   description: "triple eq row comparison with null"
   expected_names: ["(x, y, z) = (null, null, 9)"]
   expected_types: [int]
@@ -387,6 +479,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select (y, x) = (1, 4) FROM tuples"
+  id: '46'
+  db: select_sTest
   description: "eq row comparison without null"
   expected_names: ["(y, x) = (1, 4)"]
   expected_types: [int]
@@ -397,6 +491,8 @@ testcases:
   - [0]
   - [1]
 - sql: "select (y, x) = (1, null) FROM tuples"
+  id: '47'
+  db: select_sTest
   description: "eq row comparison with null"
   expected_names: ["(y, x) = (1, null)"]
   expected_types: [int]
@@ -407,6 +503,8 @@ testcases:
   - [0]
   - [~]
 - sql: "select (y, x-z) != (1, 2) FROM tuples"
+  id: '48'
+  db: select_sTest
   description: "neq row comparison without null"
   expected_names: ["(y, x-z) != (1, 2)"]
   expected_types: [int]
@@ -417,6 +515,8 @@ testcases:
   - [1]
   - [1]
 - sql: "select (y+z, x-z) != (null, 4) FROM tuples"
+  id: '49'
+  db: select_sTest
   description: "neq row comparison with null"
   expected_names: ["(y+z, x-z) != (null, 4)"]
   expected_types: [int]
@@ -427,6 +527,8 @@ testcases:
   - [1]
   - [1]
 - sql: "select (a, b) <=> (1, 4) FROM foo"
+  id: '50'
+  db: select_sTest
   description: "nse row comparison without null"
   expected_names: ["(a, b) <=> (1, 4)"]
   expected_types: [int]
@@ -435,6 +537,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select (a, b) <=> (2, NULL) FROM foo"
+  id: '51'
+  db: select_sTest
   description: "nse row comparison with null"
   expected_names: ["(a, b) <=> (2, null)"]
   expected_types: [int]
@@ -443,6 +547,8 @@ testcases:
   - [1]
   - [0]
 - sql: "select 1 <=> 1, NULL <=> NULL, 1 <=> NULL FROM dual"
+  id: '52'
+  db: select_sTest
   description: "nse row comparison with null"
   expected_names: ["1 <=> 1", "null <=> null", "1 <=> null"]
   expected_types: [int, int, int]
@@ -451,6 +557,8 @@ testcases:
 
 # Mongo filter
 - sql: "select y, z FROM tuples where mfil='{\"x\": {\"$lte\": 4}}'"
+  id: '53'
+  db: select_sTest
   pushdown_only: true
   description: "lone custom filter predicate expression"
   expected_names: ["y", "z"]
@@ -459,6 +567,8 @@ testcases:
   - [1, 0]
   - [1, 5]
 - sql: "select y, z FROM tuples where y = 6 or mfil='{\"x\": {\"$lte\": 4}}'"
+  id: '54'
+  db: select_sTest
   pushdown_only: true
   description: "custom filter with other expressions"
   expected_names: ["y", "z"]
@@ -468,6 +578,8 @@ testcases:
   - [6, 1]
   - [1, 5]
 - sql: "select y, z FROM tuples where (z < 5 AND mfil='{\"_id\": {\"$gte\": 5}}') or id = 3"
+  id: '55'
+  db: select_sTest
   pushdown_only: true
   description: "custom filter with conjunction"
   expected_names: ["y", "z"]
@@ -475,6 +587,8 @@ testcases:
   expected:
   - [1, 5]
 - sql: "select y, z FROM tuples where (x > 4 or mfil='{\"_id\": {\"$gt\": 2}}') or id = 3"
+  id: '56'
+  db: select_sTest
   pushdown_only: true
   description: "custom filter with disjunction"
   expected_names: ["y", "z"]
@@ -487,30 +601,40 @@ testcases:
 
 # Overflow
 - sql: "select 9223372036854775807+9223372036854775807 as result"
+  id: '57'
+  db: select_sTest
   description: "adding max int64"
   expected_names: ["result"]
   expected_types: [varchar]
   expected:
   - [18446744073709551614]
 - sql: "select 92233720368523893498439823.34232323234775807+9872389723987625167312876431927865238746234.23483287346723476 as result"
+  id: '58'
+  db: select_sTest
   description: "adding large floats"
   expected_names: ["result"]
   expected_types: [varchar]
   expected:
   - [9872389723987625259546596800451758737186057.57715610581499283]
 - sql: "select -34985845873478238954892398348547834.344807-438349834894832892323238723897239876251673128483287346723476 as result"
+  id: '59'
+  db: select_sTest
   description: "subtracting large floats"
   expected_names: ["result"]
   expected_types: [varchar]
   expected:
   - [-438349834894832892323238758883085749729912083375685695271310.344807]
 - sql: "select 547834763423238523893498439823.775807/0.12320640660032000000023 as result"
+  id: '60'
+  db: select_sTest
   description: "dividing large numbers"
   expected_names: ["result"]
   expected_types: [varchar]
   expected:
   - [4446479517906949900823952165864.0236962298842292431383320330464241]
 - sql: "select 9223372036854775807*9223372036854775807 as result"
+  id: '61'
+  db: select_sTest
   description: "multiplying large numbers"
   expected_names: ["result"]
   expected_types: [varchar]
@@ -519,30 +643,40 @@ testcases:
 
 # UUID
 - sql: "select * FROM select_test.uuid"
+  id: '62'
+  db: select_sTest
   description: "uuid bit fiddling"
   expected_names: ["csharp", "java", "olduuid", "uuid"]
   expected_types: [varchar, varchar, varchar, varchar]
   expected:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10"]
 - sql: "select csharp FROM select_test.uuid where csharp=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
+  id: '63'
+  db: select_sTest
   description: "uuid where clause"
   expected_names: ["csharp"]
   expected_types: [varchar]
   expected:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10"]
 - sql: "select t2.java FROM select_test.uuid t1 INNER JOIN select_test.uuid t2 ON t1.java=t2.java where t1.olduuid=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
+  id: '64'
+  db: select_sTest
   description: "join using same uuid subtype 3 encoding"
   expected_names: ["java"]
   expected_types: ["varchar"]
   expected:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10"]
 - sql: "select s.uuid, t.java, q.csharp, r.olduuid FROM select_test.uuid q INNER JOIN select_test.uuid r ON q.java = r.java INNER JOIN select_test.uuid s ON r.csharp = s.csharp INNER JOIN select_test.uuid t ON r.olduuid = t.csharp where t.uuid = \"01020304-0506-0708-090a-0b0c0d0e0f10\""
+  id: '65'
+  db: select_sTest
   description: "nested JOIN using mixed uuid subtype 3 encodings"
   expected_names: ["uuid", "java", "csharp", "olduuid", ]
   expected_types: [varchar, varchar, varchar, varchar]
   expected:
   - ["01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10", "01020304-0506-0708-090a-0b0c0d0e0f10"]
 - sql: "select t2.olduuid FROM select_test.uuid t1 INNER JOIN select_test.uuid t2 ON t1.csharp=t2.java where t1.olduuid=\"01020304-0506-0708-090a-0b0c0d0e0f10\""
+  id: '66'
+  db: select_sTest
   description: "join using different uuid subtype 3 encodings"
   expected_names: ["olduuid"]
   expected_types: ["varchar"]
@@ -551,38 +685,54 @@ testcases:
 
 # Variables
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.session_variables"
+  id: '67'
+  db: select_sTest
   expected_types: [int]
   expected:
     - [652]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables"
+  id: '68'
+  db: select_sTest
   expected_types: [int]
   expected:
     - [652]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_variables WHERE Variable_name LIKE '%validate%'"
+  id: '69'
+  db: select_sTest
   expected_types: [int]
   expected:
     - [9]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.session_status"
+  id: '70'
+  db: select_sTest
   expected_types: [int]
   expected:
     - [515]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_status"
+  id: '71'
+  db: select_sTest
   expected_types: [int]
   expected:
     - [515]
 - sql: "SELECT COUNT(Variable_name) FROM information_schema.global_status WHERE Variable_name LIKE 'Qcache%'"
+  id: '72'
+  db: select_sTest
   expected_types: [int]
   expected:
     - [8]
 
 # Self Joins
 - sql: "SELECT * FROM select_test.test_c a left JOIN select_test.test_c b ON a._id=b._id AND b.c_idx=a.c_idx ORDER BY 11"
+  id: '73'
+  db: select_sTest
   expected_types: [varchar, int, int, int, int, int, varchar, int, int, int, int, int]
   expected_names: ["_id", "a", "b", "c.x", "c.z", "c_idx", "_id", "a", "b", "c.x", "c.z", "c_idx"]
   expected:
   - ["57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0, "57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0]
   - ["57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1, "57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1]
 - sql: "SELECT * FROM select_test.test_c a JOIN select_test.test_c b ORDER BY 4, 12, 11"
+  id: '74'
+  db: select_sTest
   expected_names: ["_id", "a", "b", "c.x", "c.z", "c_idx", "_id", "a", "b", "c.x", "c.z", "c_idx"]
   expected_types: [varchar, int, int, int, int, int, varchar, int, int, int, int, int]
   expected:
@@ -591,6 +741,8 @@ testcases:
   - ["57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0, "57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0]
   - ["57f422f941a74e324fb5c44a", 1, 2, 4, 9, 0, "57f422f941a74e324fb5c44a", 1, 2, 1, 11, 1]
 - sql: "SELECT b.`c.x`, b.`c.z`, b.`c_idx`, c.`c.x`, c.`c.y` FROM select_test.test a JOIN select_test.test_c b ON a._id=b._id JOIN select_test.test_c_y c ON a._id=c._id AND b.c_idx=c.c_idx ORDER BY 1, 2, 3, 4, 5"
+  id: '75'
+  db: select_sTest
   expected_names: ["c.x", "c.z", "c_idx", "c.x", "c.y"]
   expected_types: [int, int, int, int, int]
   expected:
@@ -601,6 +753,8 @@ testcases:
   - [4, 9, 0, 4, 5]
   - [4, 9, 0, 4, 6]
 - sql: "SELECT `c.y_idx` FROM select_test.test_c_y ORDER BY 1 DESC"
+  id: '76'
+  db: select_sTest
   expected_names: ["c.y_idx"]
   expected_types: [int]
   expected:
@@ -611,6 +765,8 @@ testcases:
   - [0]
   - [0]
 - sql: "SELECT a.`c.y_idx` FROM select_test.test_empty b LEFT JOIN select_test.test_c_y_empty a ON a._id=b._id ORDER BY 1"
+  id: '77'
+  db: select_sTest
   pushdown_only: true
   expected_names: ["c.y_idx"]
   expected_types: [int]
@@ -620,6 +776,8 @@ testcases:
   - [1]
   - [2]
 - sql: "SELECT `c.y` FROM select_test.test_empty a JOIN select_test.test_c_empty b ON a._id=b._id LEFT JOIN select_test.test_c_y_empty c ON c._id=b._id and c.c_idx=b.c_idx ORDER BY 1 DESC"
+  id: '78'
+  db: select_sTest
   expected_names: ["c.y"]
   expected_types: [int]
   expected:
@@ -628,24 +786,32 @@ testcases:
   - [1]
   - [~]
 - sql: "select * from select_test.test_array a join select_test.test_array_array b on a._id=b._id;"
+  id: '79'
+  db: select_sTest
   expected_names: ["_id", "a", "_id", "a", "c", "c_idx", "c_idx_1"]
   expected_types: [varchar, int, varchar, int, int, int, int]
   expected:
   - ["57f422f941a74e324fb5c44a", 1, "57f422f941a74e324fb5c44a", 1, 3, 0, 0]
   - ["57f422f941a74e324fb5c44a", 1, "57f422f941a74e324fb5c44a", 1, 2, 0, 1]
 - sql: "SELECT restaurants.borough AS borough FROM select_test.restaurants INNER JOIN select_test.restaurants_grades ON restaurants._id = restaurants_grades._id INNER JOIN select_test.restaurants_address_coord ON restaurants._id = restaurants_address_coord._id group by borough"
+  id: '80'
+  db: select_sTest
   expected_names: ["borough"]
   expected_types: [varchar]
   expected:
   - ["Bronx"]
 - sql: "SELECT restaurants.borough AS borough FROM select_test.restaurants_address_coord INNER JOIN select_test.restaurants_grades ON restaurants_address_coord._id = restaurants_grades._id INNER JOIN select_test.restaurants ON restaurants_grades._id = restaurants._id group by borough"
+  id: '81'
+  db: select_sTest
   expected_names: ["borough"]
   expected_types: [varchar]
   expected:
   - ["Bronx"]
 
 # inner join optimization tests
-- sql: "select c.y from foo f left join (select a.y, a.z from Stest.tuples a join (select * from Stest.tuples) b on a.x=b.x) c  on c.z=f.a order by 1"
+- sql: "select c.y from foo f left join (select a.y, a.z from select_Stest.tuples a join (select * from select_Stest.tuples) b on a.x=b.x) c  on c.z=f.a order by 1"
+  id: '82'
+  db: select_sTest
   description: "left join nested subquery with a table"
   expected_names: ["y"]
   expected_types: [int]
@@ -654,7 +820,9 @@ testcases:
   - [~]
   - [6]
   - [6]
-- sql: "select c.y from foo f right join (select a.y, a.z from Stest.tuples a join (select * from Stest.tuples) b on a.x=b.x) c  on c.z=f.a order by 1"
+- sql: "select c.y from foo f right join (select a.y, a.z from select_Stest.tuples a join (select * from select_Stest.tuples) b on a.x=b.x) c  on c.z=f.a order by 1"
+  id: '83'
+  db: select_sTest
   description: "right join nested subquery with a table"
   expected_names: ["y"]
   expected_types: [int]
@@ -668,34 +836,44 @@ testcases:
   - [1]
   - [6]
   - [6]
-- sql: "select * from (select foo.id from Stest.foo join (select tuples.id from tuples) tuples on tuples.id=foo.id) x join (select g.id from foo join (select * from tuples) g on g.id=foo.id) y on x.id=y.id order by 1"
+- sql: "select * from (select foo.id from select_Stest.foo join (select tuples.id from tuples) tuples on tuples.id=foo.id) x join (select g.id from foo join (select * from tuples) g on g.id=foo.id) y on x.id=y.id order by 1"
+  id: '84'
+  db: select_sTest
   description: "inner join with a subquery on either side"
   expected_names: ["id", "id"]
   expected_types: [int, int]
   expected:
   - [1, 1]
   - [2, 2]
-- sql: "select * from Stest.foo s inner join (select foo.id from Stest.foo left join Stest.tuples on foo.id=tuples.id) r on s.a=r.id"
+- sql: "select * from select_Stest.foo s inner join (select foo.id from select_Stest.foo left join select_Stest.tuples on foo.id=tuples.id) r on s.a=r.id"
+  id: '85'
+  db: select_sTest
   description: "inner join of a 'left-joined' subquery and table"
   expected_names: ["id", "a", "b", "id"]
   expected_types: [int, int, int, int]
   expected:
   - [0, 1, ~, 1]
   - [1, 2, ~, 2]
-- sql: "select * from Stest.foo s inner join (select foo.id from Stest.foo right join Stest.tuples on foo.id=tuples.id) r on s.a=r.id"
+- sql: "select * from select_Stest.foo s inner join (select foo.id from select_Stest.foo right join select_Stest.tuples on foo.id=tuples.id) r on s.a=r.id"
+  id: '86'
+  db: select_sTest
   description: "inner join of a 'right-joined' subquery and table"
   expected_names: ["id", "a", "b", "id"]
   expected_types: [int, int, int, int]
   expected:
   - [0, 1, ~, 1]
   - [1, 2, ~, 2]
-- sql: "select a.a, a.b from test.restaurants f join test.test a on f._id=a._id join test.test_c b on a.a=b.a inner join test.test_c_y c on c.a=b.a inner join test.bar d on c.a=b.a inner join test.test_array e on e.a=a.a limit 1"
+- sql: "select a.a, a.b from select_test.restaurants f join select_test.test a on f._id=a._id join select_test.test_c b on a.a=b.a inner join select_test.test_c_y c on c.a=b.a inner join select_test.bar d on c.a=b.a inner join select_test.test_array e on e.a=a.a limit 1"
+  id: '87'
+  db: select_sTest
   description: "inner join chain with mergable tables"
   expected_names: ["a", "b"]
   expected_types: [int, int]
   expected:
   - [1, 2]
-- sql: "select * from Stest.foo f join (select a.a from Stest.foo a join (select * from Stest.tuples) b on a.a=b.y) c on f.a=c.a"
+- sql: "select * from select_Stest.foo f join (select a.a from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) c on f.a=c.a"
+  id: '88'
+  db: select_sTest
   description: "inner join with optimizable subquery components"
   expected_names: ["id", "a", "b", "a"]
   expected_types: [int, int, int, int]
@@ -704,7 +882,9 @@ testcases:
   - [0, 1, ~, 1]
   - [0, 1, ~, 1]
   - [0, 1, ~, 1]
-- sql: "select f.b, e.a from Stest.foo f join (select a.a from Stest.foo a join (select * from Stest.tuples) b on a.a=b.y) c on f.a=c.a left join (select a.b from Stest.foo a join (select * from Stest.tuples) b on a.a=b.y) d on c.a=d.b right join (select a.b, a.a from Stest.foo a join (select * from Stest.tuples) b on a.a=b.y) e on e.a=f.id"
+- sql: "select f.b, e.a from select_Stest.foo f join (select a.a from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) c on f.a=c.a left join (select a.b from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) d on c.a=d.b right join (select a.b, a.a from select_Stest.foo a join (select * from select_Stest.tuples) b on a.a=b.y) e on e.a=f.id"
+  id: '89'
+  db: select_sTest
   description: "disjoint optimizable inner join subtrees"
   expected_names: ["b", "a"]
   expected_types: [int, int]
@@ -713,7 +893,9 @@ testcases:
   - [~, 1]
   - [~, 1]
   - [~, 1]
-- sql: "select a.id, a.a, a.b from Stest.foo a join Stest.tuples b on a.a=b.y and a.id=b.z inner join Stest.foo c on c.id=a.id or b.x=c.b"
+- sql: "select a.id, a.a, a.b from select_Stest.foo a join select_Stest.tuples b on a.a=b.y and a.id=b.z inner join select_Stest.foo c on c.id=a.id or b.x=c.b"
+  id: '90'
+  db: select_sTest
   description: "inner join with multiple mergable criteria"
   expected_names: ["id", "a", "b"]
   expected_types: [int, int, int]

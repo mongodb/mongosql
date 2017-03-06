@@ -4,6 +4,8 @@
 # Aggregate
 testcases:
 - sql: "select adddate(d, interval 7 minute) from bar"
+  id: '0'
+  db: functions_test
   expected_names: ["adddate(d, 7, minute)"]
   expected_types: [varchar]
   expected:
@@ -14,6 +16,8 @@ testcases:
   - [~]
 
 - sql: "select d + INTERVAL 8 MINUTE from bar"
+  id: '1'
+  db: functions_test
   expected_names: ["date_add(d, 8, minute)"]
   expected_types: [varchar]
   expected:
@@ -24,6 +28,8 @@ testcases:
   - [~]
 
 - sql: "select INTERVAL 8 MINUTE + d from bar"
+  id: '2'
+  db: functions_test
   expected_names: ["date_add(d, 8, minute)"]
   expected_types: [varchar]
   expected:
@@ -34,120 +40,160 @@ testcases:
   - [~]
 
 - sql: "SELECT (cast('1996-01-01 00:00:00' as datetime) + INTERVAL FLOOR(5) YEAR) as res"
+  id: '3'
+  db: functions_test
   expected_names: ["res"]
   expected_types: [varchar]
   expected:
   - ["2001-01-01 00:00:00"]
 
 - sql: "SELECT '2008-12-31 23:59:59' + INTERVAL 1 SECOND as res"
+  id: '4'
+  db: functions_test
   expected_names: ["res"]
   expected_types: [varchar]
   expected:
   - ["2009-01-01 00:00:00"]
 
 - sql: "select avg(a) from bar"
+  id: '5'
+  db: functions_test
   expected_names: ["avg(a)"]
   expected_types: [float]
   expected:
   - [0.6666666666666666]
 
 - sql: "select avg(null) from bar"
+  id: '6'
+  db: functions_test
   expected_names: ["avg(null)"]
   expected_types: [float]
   expected:
   - [~]
 
 - sql: "select count(a) from bar"
+  id: '7'
+  db: functions_test
   expected_names: ["count(a)"]
   expected_types: [int]
   expected:
   - [3]
 
 - sql: "select count(null) from bar"
+  id: '8'
+  db: functions_test
   expected_names: ["count(null)"]
   expected_types: [int]
   expected:
   - [0]
 
 - sql: "select max(a) from bar"
+  id: '9'
+  db: functions_test
   expected_names: ["max(a)"]
   expected_types: [int]
   expected:
   - [4]
 
 - sql: "select max(null) from bar"
+  id: '10'
+  db: functions_test
   expected_names: ["max(null)"]
   expected_types: [int]
   expected:
   - [~]
 
 - sql: "select min(a) from bar"
+  id: '11'
+  db: functions_test
   expected_names: ["min(a)"]
   expected_types: [int]
   expected:
   - [-3]
 
 - sql: "select min(null) from bar"
+  id: '12'
+  db: functions_test
   expected_names: ["min(null)"]
   expected_types: [int]
   expected:
   - [~]
 
 - sql: "select std(a) from bar"
+  id: '13'
+  db: functions_test
   expected_names: ["std(a)"]
   expected_types: [float]
   expected:
   - [2.8674417556808756]
 
 - sql: "select stddev(a) from bar"
+  id: '14'
+  db: functions_test
   expected_names: ["stddev(a)"]
   expected_types: [float]
   expected:
   - [2.8674417556808756]
 
 - sql: "select stddev_pop(a) from bar"
+  id: '15'
+  db: functions_test
   expected_names: ["stddev_pop(a)"]
   expected_types: [float]
   expected:
   - [2.8674417556808756]
 
 - sql: "select std(null) from bar"
+  id: '16'
+  db: functions_test
   expected_names: ["std(null)"]
   expected_types: [float]
   expected:
   - [~]
 
 - sql: "select stddev(null) from bar"
+  id: '17'
+  db: functions_test
   expected_names: ["stddev(null)"]
   expected_types: [float]
   expected:
   - [~]
 
 - sql: "select stddev_pop(null) from bar"
+  id: '18'
+  db: functions_test
   expected_names: ["stddev_pop(null)"]
   expected_types: [float]
   expected:
   - [~]
 
 - sql: "select stddev_samp(a) from bar"
+  id: '19'
+  db: functions_test
   expected_names: ["stddev_samp(a)"]
   expected_types: [float]
   expected:
   - [3.511884584284246]
 
 - sql: "select stddev_samp(null) from bar"
+  id: '20'
+  db: functions_test
   expected_names: ["stddev_samp(null)"]
   expected_types: [float]
   expected:
   - [~]
 
 - sql: "select sum(a) from bar"
+  id: '21'
+  db: functions_test
   expected_names: ["sum(a)"]
   expected_types: [int]
   expected:
   - [2]
 
 - sql: "select sum(null) from bar"
+  id: '22'
+  db: functions_test
   expected_names: ["sum(null)"]
   expected_types: [int]
   expected:
@@ -155,6 +201,8 @@ testcases:
 
 # Arithmetic
 - sql: "select d+100 from bar"
+  id: '23'
+  db: functions_test
   expected_names: ["d+100"]
   expected_types: [int]
   expected:
@@ -165,6 +213,8 @@ testcases:
   - [~]
 
 - sql: "select 2+d from bar"
+  id: '24'
+  db: functions_test
   expected_names: ["2+d"]
   expected_types: [int]
   expected:
@@ -175,6 +225,8 @@ testcases:
   - [~]
 
 - sql: "select d-2 from bar"
+  id: '25'
+  db: functions_test
   expected_names: ["d-2"]
   expected_types: [int]
   expected:
@@ -185,6 +237,8 @@ testcases:
   - [~]
 
 - sql: "select 2-d from bar"
+  id: '26'
+  db: functions_test
   expected_names: ["2-d"]
   expected_types: [int]
   expected:
@@ -195,6 +249,8 @@ testcases:
   - [~]
 
 - sql: "select d*2 from bar"
+  id: '27'
+  db: functions_test
   expected_names: ["d*2"]
   expected_types: [int]
   expected:
@@ -205,6 +261,8 @@ testcases:
   - [~]
 
 - sql: "select d/2 from bar"
+  id: '28'
+  db: functions_test
   expected_names: ["d/2"]
   expected_types: [int]
   expected:
@@ -215,6 +273,8 @@ testcases:
   - [~]
 
 - sql: "select d < 2 from bar"
+  id: '29'
+  db: functions_test
   expected_names: ["d < 2"]
   expected_types: [int]
   expected:
@@ -225,6 +285,8 @@ testcases:
   - [~]
 
 - sql: "select d > 2 from bar"
+  id: '30'
+  db: functions_test
   expected_names: ["d > 2"]
   expected_types: [int]
   expected:
@@ -235,6 +297,8 @@ testcases:
   - [~]
 
 - sql: "select d = 20000923134500 from bar"
+  id: '31'
+  db: functions_test
   expected_names: ["d = 20000923134500"]
   expected_types: [int]
   expected:
@@ -246,6 +310,8 @@ testcases:
 
 # Scalar
 - sql: "select abs(a) from bar"
+  id: '32'
+  db: functions_test
   expected_names: ["abs(a)"]
   expected_types: [float64]
   expected:
@@ -256,6 +322,8 @@ testcases:
   - [~]
 
 - sql: "select a from bar where abs(a) > 1"
+  id: '33'
+  db: functions_test
   expected_names: ["a"]
   expected_types: [float64]
   expected:
@@ -263,6 +331,8 @@ testcases:
   - [4]
 
 - sql: "select abs(null) from bar"
+  id: '34'
+  db: functions_test
   expected_names: ["abs(null)"]
   expected_types: [float64]
   expected:
@@ -273,6 +343,8 @@ testcases:
   - [~]
 
 - sql: "select acos(a) from bar"
+  id: '35'
+  db: functions_test
   expected_names: ["acos(a)"]
   expected_types: [float64]
   expected:
@@ -283,6 +355,8 @@ testcases:
   - [~]
 
 - sql: "select asin(a) from bar"
+  id: '36'
+  db: functions_test
   expected_names: ["asin(a)"]
   expected_types: [float64]
   expected:
@@ -293,6 +367,8 @@ testcases:
   - [~]
 
 - sql: "select atan(a) from bar"
+  id: '37'
+  db: functions_test
   expected_names: ["atan(a)"]
   expected_types: [float64]
   expected:
@@ -303,6 +379,8 @@ testcases:
   - [~]
 
 - sql: "select atan(a, 2) from bar"
+  id: '38'
+  db: functions_test
   expected_names: ["atan(a, 2)"]
   expected_types: [float64]
   expected:
@@ -313,6 +391,8 @@ testcases:
   - [~]
 
 - sql: "select ascii(b) from bar"
+  id: '39'
+  db: functions_test
   expected_names: ["ascii(b)"]
   expected_types: [int]
   expected:
@@ -323,6 +403,8 @@ testcases:
   - [~]
 
 - sql: "select b from bar where ascii(b) > 105"
+  id: '40'
+  db: functions_test
   expected_names: ["b"]
   expected_types: [varchar]
   expected:
@@ -330,6 +412,8 @@ testcases:
   - ["this"]
 
 - sql: "select ascii(null) from bar"
+  id: '41'
+  db: functions_test
   expected_names: ["ascii(null)"]
   expected_types: [int]
   expected:
@@ -340,6 +424,8 @@ testcases:
   - [~]
 
 - sql: "select ceil(c) from bar"
+  id: '42'
+  db: functions_test
   expected_names: ["ceil(c)"]
   expected_types: [float64]
   expected:
@@ -350,6 +436,8 @@ testcases:
   - [~]
 
 - sql: "select ceiling(c) from bar"
+  id: '43'
+  db: functions_test
   expected_names: ["ceiling(c)"]
   expected_types: [float64]
   expected:
@@ -360,6 +448,8 @@ testcases:
   - [~]
 
 - sql: "select char(a + 50, 65) from bar"
+  id: '44'
+  db: functions_test
   expected_names: ["char(a+50, 65)"]
   expected_types: [varchar]
   expected:
@@ -370,6 +460,8 @@ testcases:
   - ["A"]
 
 - sql: "select char_length(b) from bar"
+  id: '45'
+  db: functions_test
   expected_names: ["char_length(b)"]
   expected_types: [int]
   expected:
@@ -380,12 +472,16 @@ testcases:
   - [~]
 
 - sql: "select char_length(b) from bar where char_length(b) > 3"
+  id: '46'
+  db: functions_test
   expected_names: ["char_length(b)"]
   expected_types: [int]
   expected:
   - [4]
 
 - sql: "select char_length(null) from bar"
+  id: '47'
+  db: functions_test
   expected_names: ["char_length(null)"]
   expected_types: [int]
   expected:
@@ -396,6 +492,8 @@ testcases:
   - [~]
 
 - sql: "select character_length(b) from bar"
+  id: '48'
+  db: functions_test
   expected_names: ["character_length(b)"]
   expected_types: [int]
   expected:
@@ -406,12 +504,16 @@ testcases:
   - [~]
 
 - sql: "select character_length(b) from bar where character_length(b) > 3"
+  id: '49'
+  db: functions_test
   expected_names: ["character_length(b)"]
   expected_types: [int]
   expected:
   - [4]
 
 - sql: "select character_length(null) from bar"
+  id: '50'
+  db: functions_test
   expected_names: ["character_length(null)"]
   expected_types: [int]
   expected:
@@ -422,6 +524,8 @@ testcases:
   - [~]
 
 - sql: "select coalesce(null, b) from bar"
+  id: '51'
+  db: functions_test
   expected_names: ["coalesce(null, b)"]
   expected_types: [varchar]
   expected:
@@ -432,12 +536,16 @@ testcases:
   - [~]
 
 - sql: "select coalesce(null, b) from bar where char_length(coalesce(null, b)) > 3"
+  id: '52'
+  db: functions_test
   expected_names: ["coalesce(null, b)"]
   expected_types: [varchar]
   expected:
   - ["this"]
 
 - sql: "select coalesce(null) from bar"
+  id: '53'
+  db: functions_test
   expected_names: ["coalesce(null)"]
   expected_types: [int]
   expected:
@@ -448,6 +556,8 @@ testcases:
   - [~]
 
 - sql: "select concat(b, 'a') from bar"
+  id: '54'
+  db: functions_test
   expected_names: ["concat(b, 'a')"]
   expected_types: [varchar]
   expected:
@@ -458,6 +568,8 @@ testcases:
   - [~]
 
 - sql: "select concat(b, 'a') from bar where char_length(concat(b, 'a')) > 3"
+  id: '55'
+  db: functions_test
   expected_names: ["concat(b, 'a')"]
   expected_types: [varchar]
   expected:
@@ -465,6 +577,8 @@ testcases:
   - ["thisa"]
 
 - sql: "select concat(null) from bar"
+  id: '56'
+  db: functions_test
   expected_names: ["concat(null)"]
   expected_types: [int]
   expected:
@@ -475,6 +589,8 @@ testcases:
   - [~]
 
 - sql: "select concat_ws(',', b, 's') from bar"
+  id: '57'
+  db: functions_test
   expected_names: ["concat_ws(',', b, 's')"]
   expected_types: [varchar]
   expected:
@@ -485,6 +601,8 @@ testcases:
   - ["s"]
 
 - sql: "select concat_ws(',', b, 's') from bar where char_length(concat_ws(',', b, 's')) > 3"
+  id: '58'
+  db: functions_test
   expected_names: ["concat_ws(',', b, 's')"]
   expected_types: [varchar]
   expected:
@@ -493,6 +611,8 @@ testcases:
   - ["this,s"]
 
 - sql: "select concat_ws(null, a) from bar"
+  id: '59'
+  db: functions_test
   expected_names: ["concat_ws(null, a)"]
   expected_types: [int]
   expected:
@@ -503,6 +623,8 @@ testcases:
   - [~]
 
 - sql: "select cos(a) from bar"
+  id: '60'
+  db: functions_test
   expected_names: ["cos(a)"]
   expected_types: [float64]
   expected:
@@ -513,6 +635,8 @@ testcases:
   - [~]
 
 - sql: "select cot(a) from bar"
+  id: '61'
+  db: functions_test
   expected_names: ["cot(a)"]
   expected_types: [float64]
   expected:
@@ -523,6 +647,8 @@ testcases:
   - [~]
 
 - sql: "select date_format(d, '%W %M %Y') from bar"
+  id: '62'
+  db: functions_test
   expected_names: ["date_format(d, '%W %M %Y')"]
   expected_types: [varchar]
   expected:
@@ -534,6 +660,8 @@ testcases:
 
 # Synonym for dayofmonth
 - sql: "select day(d) from bar"
+  id: '63'
+  db: functions_test
   expected_names: ["day(d)"]
   expected_types: [int]
   expected:
@@ -544,6 +672,8 @@ testcases:
   - [~]
 
 - sql: "select dayofmonth(d) from bar"
+  id: '64'
+  db: functions_test
   expected_names: ["dayofmonth(d)"]
   expected_types: [int]
   expected:
@@ -554,6 +684,8 @@ testcases:
   - [~]
 
 - sql: "select day(d) from bar where day(d) > 3"
+  id: '65'
+  db: functions_test
   expected_names: ["day(d)"]
   expected_types: [varchar]
   expected:
@@ -562,6 +694,8 @@ testcases:
   - [24]
 
 - sql: "select day(null) from bar"
+  id: '66'
+  db: functions_test
   expected_names: ["day(null)"]
   expected_types: [int]
   expected:
@@ -572,6 +706,8 @@ testcases:
   - [~]
 
 - sql: "select dayname(d) from bar"
+  id: '67'
+  db: functions_test
   expected_names: ["dayname(d)"]
   expected_types: [varchar]
   expected:
@@ -582,6 +718,8 @@ testcases:
   - [~]
 
 - sql: "select dayname(d) from bar where char_length(dayname(d)) > 3"
+  id: '68'
+  db: functions_test
   expected_names: ["dayname(d)"]
   expected_types: [varchar]
   expected:
@@ -590,6 +728,8 @@ testcases:
   - ["Tuesday"]
 
 - sql: "select dayname(null) from bar"
+  id: '69'
+  db: functions_test
   expected_names: ["dayname(null)"]
   expected_types: [int]
   expected:
@@ -600,6 +740,8 @@ testcases:
   - [~]
 
 - sql: "select dayofweek(d) from bar"
+  id: '70'
+  db: functions_test
   expected_names: ["dayofweek(d)"]
   expected_types: [int]
   expected:
@@ -610,12 +752,16 @@ testcases:
   - [~]
 
 - sql: "select dayofweek(d) from bar where dayofweek(d) > 3"
+  id: '71'
+  db: functions_test
   expected_names: ["dayofweek(d)"]
   expected_types: [int]
   expected:
   - [7]
 
 - sql: "select dayofweek(null) from bar"
+  id: '72'
+  db: functions_test
   expected_names: ["dayofweek(null)"]
   expected_types: [int]
   expected:
@@ -626,6 +772,8 @@ testcases:
   - [~]
 
 - sql: "select dayofyear(d) from bar"
+  id: '73'
+  db: functions_test
   expected_names: ["dayofyear(d)"]
   expected_types: [int]
   expected:
@@ -636,6 +784,8 @@ testcases:
   - [~]
 
 - sql: "select dayofyear(d) from bar where dayofyear(d) > 3"
+  id: '74'
+  db: functions_test
   expected_names: ["dayofyear(d)"]
   expected_types: [int]
   expected:
@@ -644,6 +794,8 @@ testcases:
   - [298]
 
 - sql: "select dayofyear(null) from bar"
+  id: '75'
+  db: functions_test
   expected_names: ["dayofyear(null)"]
   expected_types: [int]
   expected:
@@ -654,6 +806,8 @@ testcases:
   - [~]
 
 - sql: "select degrees(a) from bar"
+  id: '76'
+  db: functions_test
   expected_names: ["degrees(a)"]
   expected_types: [float64]
   expected:
@@ -664,6 +818,8 @@ testcases:
   - [~]
 
 - sql: "select elt(a, 'a', 'b', 'c') from bar"
+  id: '77'
+  db: functions_test
   expected_names: ["elt(a, 'a', 'b', 'c')"]
   expected_types: [string]
   expected:
@@ -674,6 +830,8 @@ testcases:
   - [~]
 
 - sql: "select exp(a) from bar"
+  id: '78'
+  db: functions_test
   expected_names: ["exp(a)"]
   expected_types: [numeric]
   expected:
@@ -684,6 +842,8 @@ testcases:
   - [~]
 
 - sql: "select exp(a) from bar where exp(a) > 1"
+  id: '79'
+  db: functions_test
   expected_names: ["exp(a)"]
   expected_types: [numeric]
   expected:
@@ -691,6 +851,8 @@ testcases:
   - [54.598150033144236]
 
 - sql: "select exp(null) from bar"
+  id: '80'
+  db: functions_test
   expected_names: ["exp(null)"]
   expected_types: [int]
   expected:
@@ -701,6 +863,8 @@ testcases:
   - [~]
 
 - sql: "select extract(year from d) from bar"
+  id: '81'
+  db: functions_test
   expected_names: ["extract(year, d)"]
   expected_types: [int]
   expected:
@@ -711,6 +875,8 @@ testcases:
   - [~]
 
 - sql: "select extract(hour from d) from bar"
+  id: '82'
+  db: functions_test
   expected_names: ["extract(hour, d)"]
   expected_types: [int]
   expected:
@@ -721,6 +887,8 @@ testcases:
   - [~]
 
 - sql: "select extract(day from d) from bar"
+  id: '83'
+  db: functions_test
   expected_names: ["extract(day, d)"]
   expected_types: [int]
   expected:
@@ -731,6 +899,8 @@ testcases:
   - [~]
 
 - sql: "select extract(year_month from d) from bar"
+  id: '84'
+  db: functions_test
   expected_names: ["extract(year_month, d)"]
   expected_types: [int]
   expected:
@@ -741,6 +911,8 @@ testcases:
   - [~]
 
 - sql: "select extract(day from d) from bar where a > 0"
+  id: '85'
+  db: functions_test
   expected_names: ["extract(day, d)"]
   expected_types: [int]
   expected:
@@ -748,6 +920,8 @@ testcases:
   - [~]
 
 - sql: "select floor(c) from bar"
+  id: '86'
+  db: functions_test
   expected_names: ["floor(c)"]
   expected_types: [numeric]
   expected:
@@ -758,12 +932,16 @@ testcases:
   - [~]
 
 - sql: "select floor(c) from bar where floor(c) > 1"
+  id: '87'
+  db: functions_test
   expected_names: ["floor(c)"]
   expected_types: [numeric]
   expected:
   - [56]
 
 - sql: "select floor(null) from bar"
+  id: '88'
+  db: functions_test
   expected_names: ["floor(null)"]
   expected_types: [int]
   expected:
@@ -774,6 +952,8 @@ testcases:
   - [~]
 
 - sql: "select from_days(c*6363) from bar"
+  id: '89'
+  db: functions_test
   expected_names: ["from_days(c*6363)"]
   expected_types: [varchar]
   expected:
@@ -783,6 +963,8 @@ testcases:
   - [~]
   - [~]
 - sql: "select greatest(a, 2) from bar"
+  id: '90'
+  db: functions_test
   expected_names: ["greatest(a, 2)"]
   expected_types: [int]
   expected:
@@ -792,6 +974,8 @@ testcases:
   - [4]
   - [~]
 - sql: "select greatest(2, a) from bar"
+  id: '91'
+  db: functions_test
   expected_names: ["greatest(2, a)"]
   expected_types: [int]
   expected:
@@ -801,6 +985,8 @@ testcases:
   - [4]
   - [~]
 - sql: "select greatest(a, 2, id) from bar"
+  id: '92'
+  db: functions_test
   expected_names: ["greatest(a, 2, id)"]
   expected_types: [int]
   expected:
@@ -811,6 +997,8 @@ testcases:
   - [~]
 
 # - sql: "select hour(d) from bar"
+# id: '93'
+# db: functions_test
 #   expected_names: ["hour(d)"]
 #   expected_types: [int]
 #   expected:
@@ -821,6 +1009,8 @@ testcases:
 #   - [~]
 
 # - sql: "select hour(d) from bar where hour(d) > 3"
+# id: '94'
+# db: functions_test
 #   expected_names: ["hour(d)"]
 #   expected_types: [int]
 #   expected:
@@ -829,6 +1019,8 @@ testcases:
 #   - [9]
 
 # - sql: "select hour(null) from bar"
+# id: '95'
+# db: functions_test
 #   expected_names: ["hour(null)"]
 #   expected_types: [int]
 #   expected:
@@ -840,6 +1032,8 @@ testcases:
 
 
 - sql: "select if(a > 0, 2, 3) from bar"
+  id: '96'
+  db: functions_test
   expected_names: ["if(a > 0, 2, 3)"]
   expected_types: [int]
   expected:
@@ -850,6 +1044,8 @@ testcases:
   - [3]
 
 - sql: "select if(a > 1, 2, 3) from bar where a > 0"
+  id: '97'
+  db: functions_test
   expected_names: ["if(a > 1, 2, 3)"]
   expected_types: [int]
   expected:
@@ -857,6 +1053,8 @@ testcases:
   - [2]
 
 - sql: "select if(null, 2, 3) from bar"
+  id: '98'
+  db: functions_test
   expected_names: ["if(null, 2, 3)"]
   expected_types: [int]
   expected:
@@ -867,6 +1065,8 @@ testcases:
   - [3]
 
 - sql: "select if(null > 0, 2, 3) from bar"
+  id: '99'
+  db: functions_test
   expected_names: ["if(null > 0, 2, 3)"]
   expected_types: [int]
   expected:
@@ -877,6 +1077,8 @@ testcases:
   - [3]
 
 - sql: "select ifnull(a, 2) from bar"
+  id: '100'
+  db: functions_test
   expected_names: ["ifnull(a, 2)"]
   expected_types: [int]
   expected:
@@ -887,6 +1089,8 @@ testcases:
   - [2]
 
 - sql: "select ifnull(a, 2) from bar where a > 0"
+  id: '101'
+  db: functions_test
   expected_names: ["ifnull(a, 2)"]
   expected_types: [int]
   expected:
@@ -894,6 +1098,8 @@ testcases:
   - [4]
 
 - sql: "select ifnull(null, 2) from bar"
+  id: '102'
+  db: functions_test
   expected_names: ["ifnull(null, 2)"]
   expected_types: [int]
   expected:
@@ -904,6 +1110,8 @@ testcases:
   - [2]
 
 - sql: "select insert(b, 2, 4, 'What') from bar"
+  id: '103'
+  db: functions_test
   expected_names: ["insert(b, 2, 4, 'What')"]
   expected_types: [string]
   expected:
@@ -914,6 +1122,8 @@ testcases:
   - [~]
 
 - sql: "select isnull(a) from bar"
+  id: '104'
+  db: functions_test
   expected_names: ["isnull(a)"]
   expected_types: [int]
   expected:
@@ -924,6 +1134,8 @@ testcases:
   - [1]
 
 - sql: "select isnull(a) from bar where isnull(a) = 1"
+  id: '105'
+  db: functions_test
   expected_names: ["isnull(a)"]
   expected_types: [int]
   expected:
@@ -938,6 +1150,8 @@ testcases:
   - [1]
 
 - sql: "select isnull(null) from bar"
+  id: '106'
+  db: functions_test
   expected_names: ["isnull(null)"]
   expected_types: [int]
   expected:
@@ -948,6 +1162,8 @@ testcases:
   - [1]
 
 - sql: "select last_day(d) from bar"
+  id: '107'
+  db: functions_test
   expected_names: ["last_day(d)"]
   expected_types: [varchar]
   expected:
@@ -959,6 +1175,8 @@ testcases:
 
 # Synonym for lower
 - sql: "select lcase(b) from bar"
+  id: '108'
+  db: functions_test
   expected_names: ["lcase(b)"]
   expected_types: [varchar]
   expected:
@@ -969,6 +1187,8 @@ testcases:
   - [~]
 
 - sql: "select lower(b) from bar"
+  id: '109'
+  db: functions_test
   expected_names: ["lower(b)"]
   expected_types: [varchar]
   expected:
@@ -979,12 +1199,16 @@ testcases:
   - [~]
 
 - sql: "select lcase(b) from bar where char_length(lcase(b)) > 3"
+  id: '110'
+  db: functions_test
   expected_names: ["lcase(b)"]
   expected_types: [varchar]
   expected:
   - ["this"]
 
 - sql: "select lcase(null) from bar"
+  id: '111'
+  db: functions_test
   expected_names: ["lcase(null)"]
   expected_types: [int]
   expected:
@@ -995,6 +1219,8 @@ testcases:
   - [~]
 
 - sql: "select least(a, 2) from bar"
+  id: '112'
+  db: functions_test
   expected_names: ["least(a, 2)"]
   expected_types: [int]
   expected:
@@ -1004,6 +1230,8 @@ testcases:
   - [2]
   - [~]
 - sql: "select least(2, a) from bar"
+  id: '113'
+  db: functions_test
   expected_names: ["least(2, a)"]
   expected_types: [int]
   expected:
@@ -1013,6 +1241,8 @@ testcases:
   - [2]
   - [~]
 - sql: "select least(a, 2, id) from bar"
+  id: '114'
+  db: functions_test
   expected_names: ["least(a, 2, id)"]
   expected_types: [int]
   expected:
@@ -1023,6 +1253,8 @@ testcases:
   - [~]
 
 - sql: "select left(b, 2) from bar"
+  id: '115'
+  db: functions_test
   expected_names: ["left(b, 2)"]
   expected_types: [varchar]
   expected:
@@ -1033,6 +1265,8 @@ testcases:
   - [~]
 
 - sql: "select left(b, 2) from bar where length(left(b,2)) > 1"
+  id: '116'
+  db: functions_test
   expected_names: ["left(b, 2)"]
   expected_types: [varchar]
   expected:
@@ -1041,6 +1275,8 @@ testcases:
   - ["th"]
 
 - sql: "select left(null, null) from bar"
+  id: '117'
+  db: functions_test
   expected_names: ["left(null, null)"]
   expected_types: [int]
   expected:
@@ -1051,6 +1287,8 @@ testcases:
   - [~]
 
 - sql: "select length(b) from bar"
+  id: '118'
+  db: functions_test
   expected_names: ["length(b)"]
   expected_types: [int]
   expected:
@@ -1061,12 +1299,16 @@ testcases:
   - [~]
 
 - sql: "select length(b) from bar where char_length(b) > 3"
+  id: '119'
+  db: functions_test
   expected_names: ["length(b)"]
   expected_types: [int]
   expected:
   - [4]
 
 - sql: "select length(null) from bar"
+  id: '120'
+  db: functions_test
   expected_names: ["length(null)"]
   expected_types: [int]
   expected:
@@ -1077,6 +1319,8 @@ testcases:
   - [~]
 
 - sql: "select ln(a) from bar"
+  id: '121'
+  db: functions_test
   expected_names: ["ln(a)"]
   expected_types: [numeric]
   expected:
@@ -1087,12 +1331,16 @@ testcases:
   - [~]
 
 - sql: "select ln(a) from bar where ln(a) > 1"
+  id: '122'
+  db: functions_test
   expected_names: ["ln(a)"]
   expected_types: [numeric]
   expected:
   - [1.3862943611198906]
 
 - sql: "select ln(null) from bar"
+  id: '123'
+  db: functions_test
   expected_names: ["ln(null)"]
   expected_types: [int]
   expected:
@@ -1103,6 +1351,8 @@ testcases:
   - [~]
 
 - sql: "select locate('bar', s) from bar"
+  id: '124'
+  db: functions_test
   expected_names: ["locate('bar', s)"]
   expected_types: [string]
   expected:
@@ -1113,6 +1363,8 @@ testcases:
   - [~]
 
 - sql: "select locate('xbar', s) from bar"
+  id: '125'
+  db: functions_test
   expected_names: ["locate('xbar', s)"]
   expected_types: [string]
   expected:
@@ -1123,6 +1375,8 @@ testcases:
   - [~]
 
 - sql: "select locate('bar', s, 1) from bar"
+  id: '126'
+  db: functions_test
   expected_names: ["locate('bar', s, 1)"]
   expected_types: [string]
   expected:
@@ -1133,6 +1387,8 @@ testcases:
   - [~]
 
 - sql: "select locate('bar', s, 5) from bar"
+  id: '127'
+  db: functions_test
   expected_names: ["locate('bar', s, 5)"]
   expected_types: [string]
   expected:
@@ -1143,6 +1399,8 @@ testcases:
   - [~]
 
 - sql: "select locate('bar', s, 10) from bar"
+  id: '128'
+  db: functions_test
   expected_names: ["locate('bar', s, 10)"]
   expected_types: [string]
   expected:
@@ -1153,6 +1411,8 @@ testcases:
   - [~]
 
 - sql: "select locate(null, s, 5) from bar"
+  id: '129'
+  db: functions_test
   expected_names: ["locate(null, s, 5)"]
   expected_types: [string]
   expected:
@@ -1163,6 +1423,8 @@ testcases:
   - [~]
 
 - sql: "select log2(a) from bar"
+  id: '130'
+  db: functions_test
   expected_names: ["log2(a)"]
   expected_types: [numeric]
   expected:
@@ -1173,12 +1435,16 @@ testcases:
   - [~]
 
 - sql: "select log2(a) from bar where log2(a) > 1"
+  id: '131'
+  db: functions_test
   expected_names: ["log2(a)"]
   expected_types: [numeric]
   expected:
   - [2]
 
 - sql: "select log2(null) from bar"
+  id: '132'
+  db: functions_test
   expected_names: ["log2(null)"]
   expected_types: [int]
   expected:
@@ -1189,6 +1455,8 @@ testcases:
   - [~]
 
 - sql: "select log10(a) from bar"
+  id: '133'
+  db: functions_test
   expected_names: ["log10(a)"]
   expected_types: [numeric]
   expected:
@@ -1199,12 +1467,16 @@ testcases:
   - [~]
 
 - sql: "select log10(a) from bar where log10(a) > 0"
+  id: '134'
+  db: functions_test
   expected_names: ["log10(a)"]
   expected_types: [numeric]
   expected:
   - [0.6020599913279624]
 
 - sql: "select log10(null) from bar"
+  id: '135'
+  db: functions_test
   expected_names: ["log10(null)"]
   expected_types: [int]
   expected:
@@ -1215,6 +1487,8 @@ testcases:
   - [~]
 
 - sql: "select mid(b, 1, 3) from bar"
+  id: '136'
+  db: functions_test
   expected_names: ["mid(b, 1, 3)"]
   expected_types: [varchar]
   expected:
@@ -1225,6 +1499,8 @@ testcases:
   - [~]
 
 - sql: "select mid(b, 1, 3) from bar where length(mid(b, 1, 3)) > 2"
+  id: '137'
+  db: functions_test
   expected_names: ["mid(b, 1, 3)"]
   expected_types: [varchar]
   expected:
@@ -1232,6 +1508,8 @@ testcases:
   - ["thi"]
 
 - sql: "select minute(d) from bar"
+  id: '138'
+  db: functions_test
   expected_names: ["minute(d)"]
   expected_types: [int]
   expected:
@@ -1242,6 +1520,8 @@ testcases:
   - [~]
 
 - sql: "select minute(d) from bar where minute(d) > 3"
+  id: '139'
+  db: functions_test
   expected_names: ["minute(d)"]
   expected_types: [int]
   expected:
@@ -1250,6 +1530,8 @@ testcases:
   - [45]
 
 - sql: "select minute(null) from bar"
+  id: '140'
+  db: functions_test
   expected_names: ["minute(null)"]
   expected_types: [int]
   expected:
@@ -1260,6 +1542,8 @@ testcases:
   - [~]
 
 - sql: "select mod(a, 3) from bar"
+  id: '141'
+  db: functions_test
   expected_names: ["mod(a, 3)"]
   expected_types: [numeric]
   expected:
@@ -1270,6 +1554,8 @@ testcases:
   - [~]
 
 - sql: "select mod(a, 3) from bar where mod(a, 3) = 1"
+  id: '142'
+  db: functions_test
   expected_names: ["mod(a, 3)"]
   expected_types: [numeric]
   expected:
@@ -1277,6 +1563,8 @@ testcases:
   - [1]
 
 - sql: "select mod(3, a) from bar"
+  id: '143'
+  db: functions_test
   expected_names: ["mod(3, a)"]
   expected_types: [numeric]
   expected:
@@ -1287,12 +1575,16 @@ testcases:
   - [~]
 
 - sql: "select mod(3, a) from bar where mod(3, a) = 3"
+  id: '144'
+  db: functions_test
   expected_names: ["mod(3, a)"]
   expected_types: [numeric]
   expected:
   - [3]
 
 - sql: "select mod(null, null) from bar"
+  id: '145'
+  db: functions_test
   expected_names: ["mod(null, null)"]
   expected_types: [int]
   expected:
@@ -1303,6 +1595,8 @@ testcases:
   - [~]
 
 - sql: "select nullif(a, a) from bar"
+  id: '146'
+  db: functions_test
   expected_names: ["nullif(a, a)"]
   expected_types: [int]
   expected:
@@ -1313,6 +1607,8 @@ testcases:
   - [~]
 
 - sql: "select nullif(a, 1) from bar"
+  id: '147'
+  db: functions_test
   expected_names: ["nullif(a, 1)"]
   expected_types: [int]
   expected:
@@ -1323,6 +1619,8 @@ testcases:
   - [~]
 
 - sql: "select nullif(a, 1) from bar where a > 0"
+  id: '148'
+  db: functions_test
   expected_names: ["nullif(a, 1)"]
   expected_types: [int]
   expected:
@@ -1331,6 +1629,8 @@ testcases:
 
 
 - sql: "select nullif(null, null) from bar"
+  id: '149'
+  db: functions_test
   expected_names: ["nullif(null, null)"]
   expected_types: [int]
   expected:
@@ -1341,6 +1641,8 @@ testcases:
   - [~]
 
 - sql: "select nullif(null, 1) from bar"
+  id: '150'
+  db: functions_test
   expected_names: ["nullif(null, 1)"]
   expected_types: [int]
   expected:
@@ -1351,12 +1653,16 @@ testcases:
   - [~]
 
 - sql: "select pi()"
+  id: '151'
+  db: functions_test
   expected_names: ["pi()"]
   expected_types: [numeric]
   expected:
   - [3.141592653589793116]
 
 - sql: "select pow(a, 3) from bar"
+  id: '152'
+  db: functions_test
   expected_names: ["pow(a, 3)"]
   expected_types: [numeric]
   expected:
@@ -1367,6 +1673,8 @@ testcases:
   - [~]
 
 - sql: "select power(a, 3) from bar"
+  id: '153'
+  db: functions_test
   expected_names: ["power(a, 3)"]
   expected_types: [numeric]
   expected:
@@ -1377,6 +1685,8 @@ testcases:
   - [~]
 
 - sql: "select pow(a, 3) from bar where pow(a, 3) > 0"
+  id: '154'
+  db: functions_test
   expected_names: ["pow(a, 3)"]
   expected_types: [numeric]
   expected:
@@ -1384,6 +1694,8 @@ testcases:
   - [64]
 
 - sql: "select pow(null, null) from bar"
+  id: '155'
+  db: functions_test
   expected_names: ["pow(null, null)"]
   expected_types: [float64]
   expected:
@@ -1394,6 +1706,8 @@ testcases:
   - [~]
 
 - sql: "select radians(a) from bar"
+  id: '156'
+  db: functions_test
   expected_names: ["radians(a)"]
   expected_types: [float64]
   expected:
@@ -1404,6 +1718,8 @@ testcases:
   - [~]
 
 - sql: "select replace(b, 'y', 'free') from bar"
+  id: '157'
+  db: functions_test
   expected_names: ["replace(b, 'y', 'free')"]
   expected_types: [string]
   expected:
@@ -1414,6 +1730,8 @@ testcases:
   - [~]
 
 - sql: "select right(b, 2) from bar"
+  id: '158'
+  db: functions_test
   expected_names: ["right(b, 2)"]
   expected_types: [varchar]
   expected:
@@ -1424,6 +1742,8 @@ testcases:
   - [~]
 
 - sql: "select right(b, 2) from bar where length(right(b,2)) > 1"
+  id: '159'
+  db: functions_test
   expected_names: ["right(b, 2)"]
   expected_types: [varchar]
   expected:
@@ -1432,6 +1752,8 @@ testcases:
   - ["is"]
 
 - sql: "select right(b, 10) from bar"
+  id: '160'
+  db: functions_test
   expected_names: ["right(b, 10)"]
   expected_types: [varchar]
   expected:
@@ -1442,6 +1764,8 @@ testcases:
   - [~]
 
 - sql: "select right(null, null) from bar"
+  id: '161'
+  db: functions_test
   expected_names: ["right(null, null)"]
   expected_types: [int]
   expected:
@@ -1452,6 +1776,8 @@ testcases:
   - [~]
 
 - sql: "select round(c, 2) from bar"
+  id: '162'
+  db: functions_test
   expected_names: ["round(c, 2)"]
   expected_types: [numeric]
   expected:
@@ -1462,6 +1788,8 @@ testcases:
   - [~]
 
 - sql: "select round(c) from bar"
+  id: '163'
+  db: functions_test
   expected_names: ["round(c)"]
   expected_types: [numeric]
   expected:
@@ -1472,12 +1800,16 @@ testcases:
   - [~]
 
 - sql: "select round(c, 2) from bar where round(c, 2) > 2"
+  id: '164'
+  db: functions_test
   expected_names: ["round(c, 2)"]
   expected_types: [numeric]
   expected:
   - [56.73]
 
 - sql: "select round(null) from bar"
+  id: '165'
+  db: functions_test
   expected_names: ["round(null)"]
   expected_types: [int]
   expected:
@@ -1488,6 +1820,8 @@ testcases:
   - [~]
 
 - sql: "select sin(a) from bar"
+  id: '166'
+  db: functions_test
   expected_names: ["sin(a)"]
   expected_types: [float64]
   expected:
@@ -1498,6 +1832,8 @@ testcases:
   - [~]
 
 - sql: "select sign(a) from bar"
+  id: '167'
+  db: functions_test
   expected_names: ["sign(a)"]
   expected_types: [int]
   expected:
@@ -1508,6 +1844,8 @@ testcases:
   - [~]
 
 - sql: "select space(a) from bar"
+  id: '168'
+  db: functions_test
   expected_names: ["space(a)"]
   expected_types: [string]
   expected:
@@ -1518,6 +1856,8 @@ testcases:
   - [~]
 
 - sql: "select sqrt(a) from bar"
+  id: '169'
+  db: functions_test
   expected_names: ["sqrt(a)"]
   expected_types: [numeric]
   expected:
@@ -1528,12 +1868,16 @@ testcases:
   - [~]
 
 - sql: "select sqrt(a) from bar where sqrt(a) > 1"
+  id: '170'
+  db: functions_test
   expected_names: ["sqrt(a)"]
   expected_types: [numeric]
   expected:
   - [2]
 
 - sql: "select sqrt(null) from bar"
+  id: '171'
+  db: functions_test
   expected_names: ["sqrt(null)"]
   expected_types: [int]
   expected:
@@ -1544,6 +1888,8 @@ testcases:
   - [~]
 
 - sql: "select subdate(d, interval 433 minute) from bar"
+  id: '172'
+  db: functions_test
   expected_names: ["subdate(d, 433, minute)"]
   expected_types: [varchar]
   expected:
@@ -1554,6 +1900,8 @@ testcases:
   - [~]
 
 - sql: "select d - INTERVAL 434 MINUTE from bar"
+  id: '173'
+  db: functions_test
   expected_names: ["subdate(d, 434, minute)"]
   expected_types: [varchar]
   expected:
@@ -1564,12 +1912,16 @@ testcases:
   - [~]
 
 - sql: "SELECT '2005-01-01' - INTERVAL 1 SECOND as res"
+  id: '174'
+  db: functions_test
   expected_names: ["res"]
   expected_types: [varchar]
   expected:
   - ["2004-12-31 23:59:59"]
 
 - sql: "select substring(b, 2) from bar"
+  id: '175'
+  db: functions_test
   expected_names: ["substring(b, 2)"]
   expected_types: [varchar]
   expected:
@@ -1580,6 +1932,8 @@ testcases:
   - [~]
 
 - sql: "select substr(b, 2) from bar"
+  id: '176'
+  db: functions_test
   expected_names: ["substr(b, 2)"]
   expected_types: [varchar]
   expected:
@@ -1590,12 +1944,16 @@ testcases:
   - [~]
 
 - sql: "select substring(b, 2) from bar where length(substring(b, 2)) > 2"
+  id: '177'
+  db: functions_test
   expected_names: ["substring(b, 2)"]
   expected_types: [varchar]
   expected:
   - ["his"]
 
 - sql: "select substring(b, 1, 3) from bar"
+  id: '178'
+  db: functions_test
   expected_names: ["substring(b, 1, 3)"]
   expected_types: [varchar]
   expected:
@@ -1606,6 +1964,8 @@ testcases:
   - [~]
 
 - sql: "select substring(b, 1, 3) from bar where length(substring(b, 1, 3)) > 2"
+  id: '179'
+  db: functions_test
   expected_names: ["substring(b, 1, 3)"]
   expected_types: [varchar]
   expected:
@@ -1613,6 +1973,8 @@ testcases:
   - ["thi"]
 
 - sql: "select substring(null, null) from bar"
+  id: '180'
+  db: functions_test
   expected_names: ["substring(null, null)"]
   expected_types: [int]
   expected:
@@ -1623,6 +1985,8 @@ testcases:
   - [~]
 
 - sql: "select substring_index(b, 'y', 1) from bar"
+  id: '181'
+  db: functions_test
   expected_names: ["substring_index(b, 'y', 1)"]
   expected_types: [string]
   expected:
@@ -1633,6 +1997,8 @@ testcases:
   - [~]
 
 - sql: "select tan(a) from bar"
+  id: '182'
+  db: functions_test
   expected_names: ["tan(a)"]
   expected_types: [float64]
   expected:
@@ -1643,6 +2009,8 @@ testcases:
   - [~]
 
 - sql: "select time_to_sec(c+84754) from bar"
+  id: '183'
+  db: functions_test
   expected_names: ["time_to_sec(c+84754)"]
   expected_types: [float64]
   expected:
@@ -1653,6 +2021,8 @@ testcases:
   - [~]
 
 - sql: "select timediff(d, '2000-09-22 00:00:00') from bar"
+  id: '184'
+  db: functions_test
   expected_names: ["timediff(d, '2000-09-22 00:00:00')"]
   expected_types: [varchar]
   expected:
@@ -1663,6 +2033,8 @@ testcases:
   - [~]
 
 - sql: "select timestamp(d, '12:15:18') as a, timestamp(d, '140928') as b from bar"
+  id: '185'
+  db: functions_test
   expected_names: ["a", "b"]
   expected_types: [varchar, varchar]
   expected:
@@ -1673,6 +2045,8 @@ testcases:
   - [~, ~]
 
 - sql: "select to_days(d) from bar"
+  id: '186'
+  db: functions_test
   expected_names: ["to_days(d)"]
   expected_types: [float64]
   expected:
@@ -1683,6 +2057,8 @@ testcases:
   - [~]
 
 - sql: "select trim(b) from bar"
+  id: '187'
+  db: functions_test
   expected_names: ["trim(b)"]
   expected_types: [string]
   expected:
@@ -1693,6 +2069,8 @@ testcases:
   - [~]
 
 - sql: "select trim(BOTH 'y' FROM b) from bar"
+  id: '188'
+  db: functions_test
   expected_names: ["trim(b, 'both', 'y')"]
   expected_types: [string]
   expected:
@@ -1703,6 +2081,8 @@ testcases:
   - [~]
 
 - sql: "select truncate(null, 2) from bar"
+  id: '189'
+  db: functions_test
   expected_names: ["truncate(null, 2)"]
   expected_types: [int]
   expected:
@@ -1713,6 +2093,8 @@ testcases:
   - [~]
 
 - sql: "select truncate(c, null) from bar"
+  id: '190'
+  db: functions_test
   expected_names: ["truncate(c, null)"]
   expected_types: [int]
   expected:
@@ -1723,6 +2105,8 @@ testcases:
   - [~]
 
 - sql: "select truncate(c, 2) from bar"
+  id: '191'
+  db: functions_test
   expected_names: ["truncate(c, 2)"]
   expected_types: [numeric]
   expected:
@@ -1733,6 +2117,8 @@ testcases:
   - [~]
 
 - sql: "select truncate(c, -2) from bar"
+  id: '192'
+  db: functions_test
   expected_names: ["truncate(c, -2)"]
   expected_types: [numeric]
   expected:
@@ -1743,6 +2129,8 @@ testcases:
   - [~]
 
 - sql: "select truncate(c, 2) from bar where c > 10"
+  id: '193'
+  db: functions_test
   expected_names: ["truncate(c, 2)"]
   expected_types: [numeric]
   expected:
@@ -1750,6 +2138,8 @@ testcases:
 
 # Synonym for upper
 - sql: "select ucase(b) from bar"
+  id: '194'
+  db: functions_test
   expected_names: ["ucase(b)"]
   expected_types: [varchar]
   expected:
@@ -1760,6 +2150,8 @@ testcases:
   - [~]
 
 - sql: "select upper(b) from bar"
+  id: '195'
+  db: functions_test
   expected_names: ["upper(b)"]
   expected_types: [varchar]
   expected:
@@ -1770,6 +2162,8 @@ testcases:
   - [~]
 
 - sql: "select ucase(b) from bar where length(ucase(b)) > 2"
+  id: '196'
+  db: functions_test
   expected_names: ["ucase(b)"]
   expected_types: [varchar]
   expected:
@@ -1777,6 +2171,8 @@ testcases:
   - ["THIS"]
 
 - sql: "select ucase(null) from bar"
+  id: '197'
+  db: functions_test
   expected_names: ["ucase(null)"]
   expected_types: [int]
   expected:
@@ -1787,6 +2183,8 @@ testcases:
   - [~]
 
 - sql: "select week(d) from bar"
+  id: '198'
+  db: functions_test
   expected_names: ["week(d)"]
   expected_types: [int]
   expected:
@@ -1797,6 +2195,8 @@ testcases:
   - [~]
 
 - sql: "select week(d) from bar where week(d) > 3"
+  id: '199'
+  db: functions_test
   expected_names: ["week(d)"]
   expected_types: [int]
   expected:
@@ -1805,6 +2205,8 @@ testcases:
   - [43]
 
 - sql: "select week(null) from bar"
+  id: '200'
+  db: functions_test
   expected_names: ["week(null)"]
   expected_types: [int]
   expected:
@@ -1815,6 +2217,8 @@ testcases:
   - [~]
 
 - sql: "select weekday(d) from bar"
+  id: '201'
+  db: functions_test
   expected_names: ["weekday(d)"]
   expected_types: [int]
   expected:
@@ -1825,6 +2229,8 @@ testcases:
   - [~]
 
 - sql: "select weekday(d) from bar where weekday(d) > 3"
+  id: '202'
+  db: functions_test
   expected_names: ["weekday(d)"]
   expected_types: [int]
   expected:
@@ -1832,6 +2238,8 @@ testcases:
   - [6]
 
 - sql: "select weekday(null) from bar"
+  id: '203'
+  db: functions_test
   expected_names: ["weekday(null)"]
   expected_types: [int]
   expected:
@@ -1842,6 +2250,8 @@ testcases:
   - [~]
 
 - sql: "select week(d, 0) from bar"
+  id: '204'
+  db: functions_test
   expected_names: ["week(d, 0)"]
   expected_types: [int]
   expected:
@@ -1852,6 +2262,8 @@ testcases:
   - [~]
 
 - sql: "select week(d, 1) from bar"
+  id: '205'
+  db: functions_test
   expected_names: ["week(d, 1)"]
   expected_types: [int]
   expected:
@@ -1862,6 +2274,8 @@ testcases:
   - [~]
 
 - sql: "select week(d, 2) from bar"
+  id: '206'
+  db: functions_test
   expected_names: ["week(d, 2)"]
   expected_types: [int]
   expected:
@@ -1872,6 +2286,8 @@ testcases:
   - [~]
 
 - sql: "select week(d, 3) from bar"
+  id: '207'
+  db: functions_test
   expected_names: ["week(d, 3)"]
   expected_types: [int]
   expected:
@@ -1882,6 +2298,8 @@ testcases:
   - [~]
 
 - sql: "select week(d, 4) from bar"
+  id: '208'
+  db: functions_test
   expected_names: ["week(d, 4)"]
   expected_types: [int]
   expected:
@@ -1892,6 +2310,8 @@ testcases:
   - [~]
 
 - sql: "select week(d, 5) from bar"
+  id: '209'
+  db: functions_test
   expected_names: ["week(d, 5)"]
   expected_types: [int]
   expected:
@@ -1902,6 +2322,8 @@ testcases:
   - [~]
 
 - sql: "select week(d, 6) from bar"
+  id: '210'
+  db: functions_test
   expected_names: ["week(d, 6)"]
   expected_types: [int]
   expected:
@@ -1912,6 +2334,8 @@ testcases:
   - [~]
 
 - sql: "select week(d, 7) from bar"
+  id: '211'
+  db: functions_test
   expected_names: ["week(d, 7)"]
   expected_types: [int]
   expected:
@@ -1922,6 +2346,8 @@ testcases:
   - [~]
 
 - sql: "select year(d) from bar"
+  id: '212'
+  db: functions_test
   expected_names: ["year(d)"]
   expected_types: [int]
   expected:
@@ -1932,6 +2358,8 @@ testcases:
   - [~]
 
 - sql: "select year(d) from bar where year(d) > 3"
+  id: '213'
+  db: functions_test
   expected_names: ["year(d)"]
   expected_types: [int]
   expected:
@@ -1940,6 +2368,8 @@ testcases:
   - [2000]
 
 - sql: "select year(null) from bar"
+  id: '214'
+  db: functions_test
   expected_names: ["year(null)"]
   expected_types: [int]
   expected:
@@ -1951,6 +2381,8 @@ testcases:
 
 # Logical Operations
 - sql: "select a || c from bar"
+  id: '215'
+  db: functions_test
   expected_names: ["a or c"]
   expected_types: [int]
   expected:
@@ -1961,6 +2393,8 @@ testcases:
   - [~]
 
 - sql: "select a || null from bar"
+  id: '216'
+  db: functions_test
   expected_names: ["a or null"]
   expected_types: [varchar]
   expected:
@@ -1971,6 +2405,8 @@ testcases:
   - [~]
 
 - sql: "select a && c from bar"
+  id: '217'
+  db: functions_test
   expected_names: ["a and c"]
   expected_types: [varchar]
   expected:
@@ -1981,6 +2417,8 @@ testcases:
   - [~]
 
 - sql: "select a && null from bar"
+  id: '218'
+  db: functions_test
   expected_names: ["a and null"]
   expected_types: [varchar]
   expected:
@@ -1991,6 +2429,8 @@ testcases:
   - [~]
 
 - sql: "select !a from bar"
+  id: '219'
+  db: functions_test
   expected_names: ["not a"]
   expected_types: [int]
   expected:
@@ -2001,6 +2441,8 @@ testcases:
   - [~]
 
 - sql: "select !null from bar"
+  id: '220'
+  db: functions_test
   expected_names: ["not null"]
   expected_types: [varchar]
   expected:
@@ -2011,6 +2453,8 @@ testcases:
   - [~]
 
 - sql: "select a xor c from bar"
+  id: '221'
+  db: functions_test
   expected_names: ["a xor c"]
   expected_types: [int]
   expected:
@@ -2021,6 +2465,8 @@ testcases:
   - [~]
 
 - sql: "select 23 xor 'ssd' from bar"
+  id: '222'
+  db: functions_test
   expected_names: ["23 xor 'ssd'"]
   expected_types: [int]
   expected:
@@ -2031,6 +2477,8 @@ testcases:
   - [1]
 
 - sql: "select 23 xor 0 from bar"
+  id: '223'
+  db: functions_test
   expected_names: ["23 xor 0"]
   expected_types: [int]
   expected:
@@ -2041,6 +2489,8 @@ testcases:
   - [1]
 
 - sql: "select a xor null from bar"
+  id: '224'
+  db: functions_test
   expected_names: ["a xor null"]
   expected_types: [int]
   expected:
@@ -2052,6 +2502,8 @@ testcases:
 
 # Comparison Operations
 - sql: "select a = 1 from bar"
+  id: '225'
+  db: functions_test
   expected_names: ["a = 1"]
   expected_types: [int]
   expected:
@@ -2061,6 +2513,8 @@ testcases:
   - [0]
   - [~]
 - sql: "select a > 1 from bar"
+  id: '226'
+  db: functions_test
   expected_names: ["a > 1"]
   expected_types: [int]
   expected:
@@ -2070,6 +2524,8 @@ testcases:
   - [1]
   - [~]
 - sql: "select a >= 1 from bar"
+  id: '227'
+  db: functions_test
   expected_names: ["a >= 1"]
   expected_types: [int]
   expected:
@@ -2079,6 +2535,8 @@ testcases:
   - [1]
   - [~]
 - sql: "select a < 1 from bar"
+  id: '228'
+  db: functions_test
   expected_names: ["a < 1"]
   expected_types: [int]
   expected:
@@ -2088,6 +2546,8 @@ testcases:
   - [0]
   - [~]
 - sql: "select a <= 1 from bar"
+  id: '229'
+  db: functions_test
   expected_names: ["a <= 1"]
   expected_types: [int]
   expected:
@@ -2097,6 +2557,8 @@ testcases:
   - [0]
   - [~]
 - sql: "select a != 1 from bar"
+  id: '230'
+  db: functions_test
   expected_names: ["a != 1"]
   expected_types: [int]
   expected:
@@ -2106,6 +2568,8 @@ testcases:
   - [1]
   - [~]
 - sql: "select a in (4,7,2,1) from bar"
+  id: '231'
+  db: functions_test
   expected_names: ["a in (4, 7, 2, 1)"]
   expected_types: [int]
   expected:
@@ -2115,6 +2579,8 @@ testcases:
   - [1]
   - [~]
 - sql: "select b in ('hey','this','hi') from bar"
+  id: '232'
+  db: functions_test
   expected_names: ["b in ('hey', 'this', 'hi')"]
   expected_types: [int]
   expected:
@@ -2124,6 +2590,8 @@ testcases:
   - [1]
   - [~]
 - sql: "select null in (4, 7, 2, 1) from bar"
+  id: '233'
+  db: functions_test
   expected_names: ["null in (4, 7, 2, 1)"]
   expected_types: [int]
   expected:
@@ -2133,6 +2601,8 @@ testcases:
   - [~]
   - [~]
 - sql: "select a in (null) from bar"
+  id: '234'
+  db: functions_test
   expected_names: ["a in (null)"]
   expected_types: [int]
   expected:
@@ -2142,6 +2612,8 @@ testcases:
   - [~]
   - [~]
 - sql: "select 1 in (2,5,3) from bar"
+  id: '235'
+  db: functions_test
   expected_names: ["1 in (2, 5, 3)"]
   expected_types: [int]
   expected:
@@ -2151,6 +2623,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select a in (null, -3) from bar"
+  id: '236'
+  db: functions_test
   expected_names: ["a in (null, -3)"]
   expected_types: [int]
   expected:
@@ -2160,6 +2634,8 @@ testcases:
   - [~]
   - [~]
 - sql: "select 1 in (a) from bar"
+  id: '237'
+  db: functions_test
   expected_names: ["1 in (a)"]
   expected_types: [int]
   expected:
@@ -2169,6 +2645,8 @@ testcases:
   - [0]
   - [~]
 - sql: "select a in (b) from bar"
+  id: '238'
+  db: functions_test
   expected_names: ["a in (b)"]
   expected_types: [int]
   expected:
@@ -2178,6 +2656,8 @@ testcases:
   - [0]
   - [~]
 - sql: "select a is null from bar"
+  id: '239'
+  db: functions_test
   expected_names: ["a is null"]
   expected_types: [int]
   expected:
@@ -2187,6 +2667,8 @@ testcases:
   - [0]
   - [1]
 - sql: "select a is unknown from bar"
+  id: '240'
+  db: functions_test
   expected_names: ["a is unknown"]
   expected_types: [int]
   expected:
@@ -2196,6 +2678,8 @@ testcases:
   - [0]
   - [1]
 - sql: "select a is false from bar"
+  id: '241'
+  db: functions_test
   expected_names: ["a is false"]
   expected_types: [int]
   expected:
@@ -2205,6 +2689,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select a is true from bar"
+  id: '242'
+  db: functions_test
   expected_names: ["a is true"]
   expected_types: [int]
   expected:
@@ -2214,6 +2700,8 @@ testcases:
   - [1]
   - [0]
 - sql: "select null is unknown from bar"
+  id: '243'
+  db: functions_test
   expected_names: ["null is unknown"]
   expected_types: [int]
   expected:
@@ -2223,6 +2711,8 @@ testcases:
   - [1]
   - [1]
 - sql: "select null is null from bar"
+  id: '244'
+  db: functions_test
   expected_names: ["null is null"]
   expected_types: [int]
   expected:
@@ -2232,6 +2722,8 @@ testcases:
   - [1]
   - [1]
 - sql: "select null is true from bar"
+  id: '245'
+  db: functions_test
   expected_names: ["null is true"]
   expected_types: [int]
   expected:
@@ -2241,6 +2733,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select null is false from bar"
+  id: '246'
+  db: functions_test
   expected_names: ["null is false"]
   expected_types: [int]
   expected:
@@ -2250,6 +2744,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select true is unknown from bar"
+  id: '247'
+  db: functions_test
   expected_names: ["true is unknown"]
   expected_types: [int]
   expected:
@@ -2259,6 +2755,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select false is unknown from bar"
+  id: '248'
+  db: functions_test
   expected_names: ["false is unknown"]
   expected_types: [int]
   expected:
@@ -2268,6 +2766,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select true is true from bar"
+  id: '249'
+  db: functions_test
   expected_names: ["true is true"]
   expected_types: [int]
   expected:
@@ -2277,6 +2777,8 @@ testcases:
   - [1]
   - [1]
 - sql: "select false is false from bar"
+  id: '250'
+  db: functions_test
   expected_names: ["false is false"]
   expected_types: [int]
   expected:
@@ -2286,6 +2788,8 @@ testcases:
   - [1]
   - [1]
 - sql: "select '25' is false from bar"
+  id: '251'
+  db: functions_test
   expected_names: ["'25' is false"]
   expected_types: [int]
   expected:
@@ -2295,6 +2799,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select '0' is false from bar"
+  id: '252'
+  db: functions_test
   expected_names: ["'0' is false"]
   expected_types: [int]
   expected:
@@ -2304,6 +2810,8 @@ testcases:
   - [1]
   - [1]
 - sql: "select b is false from bar"
+  id: '253'
+  db: functions_test
   expected_names: ["b is false"]
   expected_types: [int]
   expected:
@@ -2313,6 +2821,8 @@ testcases:
   - [1]
   - [0]
 - sql: "select c is true from bar"
+  id: '254'
+  db: functions_test
   expected_names: ["c is true"]
   expected_types: [int]
   expected:
@@ -2322,6 +2832,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select d is true from bar"
+  id: '255'
+  db: functions_test
   expected_names: ["d is true"]
   expected_types: [int]
   expected:
@@ -2331,6 +2843,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select t is true from bar"
+  id: '256'
+  db: functions_test
   expected_names: ["t is true"]
   expected_types: [int]
   expected:
@@ -2340,6 +2854,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select t is false from bar"
+  id: '257'
+  db: functions_test
   expected_names: ["t is false"]
   expected_types: [int]
   expected:
@@ -2349,6 +2865,8 @@ testcases:
   - [0]
   - [0]
 - sql: "select t is unknown from bar"
+  id: '258'
+  db: functions_test
   expected_names: ["t is unknown"]
   expected_types: [int]
   expected:
@@ -2358,6 +2876,8 @@ testcases:
   - [1]
   - [1]
 - sql: "select t is null from bar"
+  id: '259'
+  db: functions_test
   expected_names: ["t is null"]
   expected_types: [int]
   expected:
@@ -2367,6 +2887,8 @@ testcases:
   - [1]
   - [1]
 - sql: "select z is false from bar"
+  id: '260'
+  db: functions_test
   expected_names: ["z is false"]
   expected_types: [int]
   expected:
@@ -2376,6 +2898,8 @@ testcases:
   - [1]
   - [0]
 - sql: "select 0 is false from bar"
+  id: '261'
+  db: functions_test
   expected_names: ["0 is false"]
   expected_types: [int]
   expected:
@@ -2385,22 +2909,30 @@ testcases:
   - [1]
   - [1]
 - sql: "select id from bar where a is null"
+  id: '262'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
   - [1]
   - [4]
 - sql: "select id from bar where a is unknown"
+  id: '263'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
   - [1]
   - [4]
 - sql: "select id from bar where a is false"
+  id: '264'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where a is true"
+  id: '265'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2408,6 +2940,8 @@ testcases:
   - [2]
   - [3]
 - sql: "select id from bar where null is unknown"
+  id: '266'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2417,6 +2951,8 @@ testcases:
   - [3]
   - [4]
 - sql: "select id from bar where null is null"
+  id: '267'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2426,22 +2962,32 @@ testcases:
   - [3]
   - [4]
 - sql: "select id from bar where null is true"
+  id: '268'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where null is false"
+  id: '269'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where true is unknown"
+  id: '270'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where false is unknown"
+  id: '271'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where true is true"
+  id: '272'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2451,6 +2997,8 @@ testcases:
   - [3]
   - [4]
 - sql: "select id from bar where false is false"
+  id: '273'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2460,10 +3008,14 @@ testcases:
   - [3]
   - [4]
 - sql: "select id from bar where '25' is false"
+  id: '274'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected: []
 - sql: "select id from bar where '0' is false"
+  id: '275'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2473,6 +3025,8 @@ testcases:
   - [3]
   - [4]
 - sql: "select id from bar where b is false"
+  id: '276'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2480,6 +3034,8 @@ testcases:
   - [1]
   - [3]
 - sql: "select id from bar where c is true"
+  id: '277'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2487,6 +3043,8 @@ testcases:
   - [1]
   - [2]
 - sql: "select id from bar where d is true"
+  id: '278'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2494,16 +3052,22 @@ testcases:
   - [1]
   - [2]
 - sql: "select id from bar where t is true"
+  id: '279'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
   - [1]
 - sql: "select id from bar where t is false"
+  id: '280'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
   - [0]
 - sql: "select id from bar where t is unknown"
+  id: '281'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2511,6 +3075,8 @@ testcases:
   - [3]
   - [4]
 - sql: "select id from bar where t is null"
+  id: '282'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2518,11 +3084,15 @@ testcases:
   - [3]
   - [4]
 - sql: "select id from bar where z is false"
+  id: '283'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
   - [3]
 - sql: "select id from bar where 0 is false"
+  id: '284'
+  db: functions_test
   expected_names: ["id"]
   expected_types: [int]
   expected:
@@ -2532,6 +3102,8 @@ testcases:
   - [3]
   - [4]
 - sql: "select - a from bar"
+  id: '285'
+  db: functions_test
   expected_names: ["-a"]
   expected_types: [int]
   expected:
@@ -2541,6 +3113,8 @@ testcases:
   - [-4]
   - [~]
 - sql: "select - b from bar"
+  id: '286'
+  db: functions_test
   expected_names: ["-b"]
   expected_types: [int]
   expected:
@@ -2550,6 +3124,8 @@ testcases:
   - [-0]
   - [~]
 - sql: "select - c from bar"
+  id: '287'
+  db: functions_test
   expected_names: ["-c"]
   expected_types: [numeric]
   expected:
@@ -2559,6 +3135,8 @@ testcases:
   - [~]
   - [~]
 - sql: "select - d from bar"
+  id: '288'
+  db: functions_test
   expected_names: ["-d"]
   expected_types: [int]
   expected:

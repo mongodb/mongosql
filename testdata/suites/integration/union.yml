@@ -4,6 +4,8 @@
 testcases:
 
 - sql: "select * from (select a,b from foo union select d,e from bar) as tmp order by a"
+  id: '0'
+  db: union_test
   description: "distinct values with implicit distinct operator"
   expected_names: ["a", "b"]
   expected_types: [int, int]
@@ -15,6 +17,8 @@ testcases:
   - [13, 15]
   - [14, 16]
 - sql: "select * from (select d from bar union select g from baz) as tmp order by d"
+  id: '1'
+  db: union_test
   description: "non-distinct values with implicit distinct operator"
   expected_names: ["d"]
   expected_types: [int]
@@ -24,6 +28,8 @@ testcases:
   - [7]
   - [13]
 - sql: "select * from (select d from bar union all select g from baz) as tmp order by d"
+  id: '2'
+  db: union_test
   description: "non-distinct values with all operator"
   expected_names: ["d"]
   expected_types: [int]
@@ -35,6 +41,8 @@ testcases:
   - [7]
   - [13]
 - sql: "select * from (select * from baz union select * from foobar) as tmp order by i"
+  id: '3'
+  db: union_test
   description: "larger distinct values with implicit distinct operator"
   expected_names: ["id", "g", "h", "i"]
   expected_types: [int, int, int, int]
@@ -45,6 +53,8 @@ testcases:
   - [2, 7, 8, 9]
   - [2, 1, 2, 18]
 - sql: "select * from (select * from baz union all select * from foobar) as tmp order by i"
+  id: '4'
+  db: union_test
   description: "larger distinct values with all operator"
   expected_names: ["id", "g", "h", "i"]
   expected_types: [int, int, int, int]
@@ -56,6 +66,8 @@ testcases:
   - [2, 7, 8, 9]
   - [2, 1, 2, 18]
 - sql: "select * from (select a from foo union select d from bar union select g from baz) as tmp order by a"
+  id: '5'
+  db: union_test
   description: "three unions, implicit distinct operator"
   expected_names: ["a"]
   expected_types: [int]
@@ -68,6 +80,8 @@ testcases:
   - [13]
   - [14]
 - sql: "select * from (select a from foo union select d from bar union select g from baz union select a from foobar) as tmp order by a"
+  id: '6'
+  db: union_test
   description: "four unions, implicit distinct operator"
   expected_names: ["a"]
   expected_types: [int]
@@ -80,6 +94,8 @@ testcases:
   - [13]
   - [14]
 - sql: "select * from (select a from foo union select d from bar union select g from baz union select a from foobar union select d from barbaz) as tmp order by a"
+  id: '7'
+  db: union_test
   description: "five unions, implicit distinct operator"
   expected_names: ["a"]
   expected_types: [int]
@@ -93,6 +109,8 @@ testcases:
   - [14]
   - [19]
 - sql: "select * from (select a from foo union all select d from bar union all select g from baz union all select a from foobar union all select d from barbaz) as tmp order by a"
+  id: '8'
+  db: union_test
   description: "five unions, all operator at positions 1-4"
   expected_names: ["a"]
   expected_types: [int]
@@ -113,6 +131,8 @@ testcases:
   - [14]
   - [19]
 - sql: "select * from (select a from foo union all select d from bar union select g from baz union select a from foobar union select d from barbaz) as tmp order by a"
+  id: '9'
+  db: union_test
   description: "five unions, all operator at position 1"
   expected_names: ["a"]
   expected_types: [int]
@@ -126,6 +146,8 @@ testcases:
   - [14]
   - [19]
 - sql: "select * from (select a from foo union select d from bar union select g from baz union all select a from foobar union all select d from barbaz) as tmp order by a"
+  id: '10'
+  db: union_test
   description: "five unions, all operator at positions 3 and 4"
   expected_names: ["a"]
   expected_types: [int]
@@ -144,6 +166,8 @@ testcases:
   - [14]
   - [19]
 - sql: "select * from (select a, c from foo order by a limit 2 union select d, f from bar order by d limit 1) as tmp order by a"
+  id: '11'
+  db: union_test
   description: "order by and limit paradigm"
   expected_names: ["a", "c"]
   expected_types: [int, int]
@@ -152,6 +176,8 @@ testcases:
   - [2, 6]
   - [8, 12]
 - sql: "select * from (select d from foo inner join bar on foo.id=bar.id union select g from baz) as tmp order by d"
+  id: '12'
+  db: union_test
   description: "join paired with single union"
   expected_names: ["d"]
   expected_types: [int]
@@ -161,6 +187,8 @@ testcases:
   - [7]
   - [13]
 - sql: "select * from (select a from foo union select d from foo inner join bar on foo.id=bar.id union select g from baz) as tmp order by a"
+  id: '13'
+  db: union_test
   description: "join paired with two unions"
   expected_names: ["a"]
   expected_types: [int]
@@ -173,6 +201,8 @@ testcases:
   - [13]
   - [14]
 - sql: "select * from (select d from foo inner join bar on foo.id=bar.id union all select a from baz inner join foobar on baz.id=foobar.id) as tmp order by d"
+  id: '14'
+  db: union_test
   description: "two joins single union"
   expected_names: ["d"]
   expected_types: [int]

@@ -1,96 +1,144 @@
 # Tests
 testcases:
 - sql: "SELECT a, b, c, latitude, longitude from .test1"
+  id: '0'
+  db: test
   expected_types: [int, varchar, int, float64, float64]
   expected:
     - [1, "hello world!", 11, 124.0, 35.0]
 - sql: "SELECT a, b, c, latitude, longitude from test1"
+  id: '1'
+  db: test
   expected_types: [int, varchar, int, float64, float64]
   expected:
     - [1, "hello world!", 11, 124.0, 35.0]
 - sql: "SELECT count(*) from test1"
+  id: '2'
+  db: test
   expected_types: [int]
   expected:
     - [1]
 - sql: "SELECT sum(a) from test1"
+  id: '3'
+  db: test
   expected_types: [int]
   expected:
     - [1]
 - sql: "SELECT sum(c) from test1"
+  id: '4'
+  db: test
   expected_types: [int]
   expected:
     - [11]
 - sql: "SELECT latitude, longitude from test1"
+  id: '5'
+  db: test
   expected_types: [float64, float64]
   expected:
     - [124.0, 35.0]
 - sql: "SELECT `loc.lat`, `loc.lng` from test2"
+  id: '6'
+  db: test
   expected_types: [float64, float64]
   expected:
     - [33.0, 11.0]
 - sql: "SELECT * from test2"
+  id: '7'
+  db: test
   expected_types: [varchar, int, varchar, float64, float64]
   expected:
     - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
 - sql: "SELECT sum(`loc.lng`) from test2"
+  id: '8'
+  db: test
   expected_types: [float64]
   expected:
     - [11.0]
 - sql: "SELECT * from test2 where _id = '570e919f65d33734a8605cb9'"
+  id: '9'
+  db: test
   expected_types: [varchar, int, varchar, float64, float64]
   expected:
     - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
 - sql: "SELECT * from test2 where _id > '570e919f65d33734a8605cb9'"
+  id: '10'
+  db: test
   expected_types: [varchar, int, varchar, float64, float64]
   expected: []
 - sql: "SELECT * from test2 where _id >= '570e919f65d33734a8605cb9'"
+  id: '11'
+  db: test
   expected_types: [varchar, int, varchar, float64, float64]
   expected:
     - [570e919f65d33734a8605cb9, 1, hello, 33.0, 11.0]
 - sql: "SELECT loc_latitude, loc_longitude from test3"
+  id: '12'
+  db: test
   expected_types: [float64, float64]
   expected:
     - [4.0, 2.0]
 - sql: "SELECT * from test3"
+  id: '13'
+  db: test
   expected_types: [varchar, int, varchar, float64, float64]
   expected:
     - [570e927965d33734a8605cbb, 1, hello, 2.0, 4.0]
 - sql: "SELECT sum(loc_latitude) from test3"
+  id: '14'
+  db: test
   expected_types: [float64]
   expected:
     - [4.0]
 - sql: "SELECT * from test4"
+  id: '15'
+  db: test
   expected_types: [varchar, int, varchar]
   expected:
     - [570e927965d33734a8605c2b, 1, hello]
 - sql: "SELECT * from test4_loc_b_c"
+  id: '16'
+  db: test
   expected_types: [varchar, int, varchar, float64, int]
   expected:
     - [570e927965d33734a8605c2b, 1, hello, 44.0, 0]
     - [570e927965d33734a8605c2b, 1, hello, 23.0, 1]
 - sql: "SELECT * from test4_loc_b_c where `loc.b.c_idx`=1"
+  id: '17'
+  db: test
   expected_types: [varchar, int, varchar, float64, int]
   expected:
     - [570e927965d33734a8605c2b, 1, hello, 23.0, 1]
 - sql: "SELECT (true + true)"
+  id: '18'
+  db: test
   expected_types: [float]
   expected:
     - [2]
 - sql: "select @@version limit 1"
+  id: '19'
+  db: test
   expected_types: [varchar]
   expected:
     - ["5.7.12"]
 - sql: "select @@version limit 0, 1"
+  id: '20'
+  db: test
   expected_types: [varchar]
   expected:
     - ["5.7.12"]
 - sql: "select @@version limit 0, 0"
+  id: '21'
+  db: test
   expected_types: [varchar]
   expected: ~
 - sql: "select @@version limit 0 OFFSET 2"
+  id: '22'
+  db: test
   expected_types: [varchar]
   expected: ~
 - sql: "select @@version limit 1 OFFSET 0"
+  id: '23'
+  db: test
   expected_types: [varchar]
   expected:
     - ["5.7.12"]

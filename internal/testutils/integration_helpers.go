@@ -1,0 +1,156 @@
+package testutils
+
+import (
+	"database/sql"
+	"database/sql/driver"
+	"fmt"
+	"math"
+	"strconv"
+	"strings"
+
+	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/util"
+)
+
+func RunSQL(db *sql.DB, query string, types []string, names []string) ([][]interface{}, error) {
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(types) > 0 && len(cols) != len(types) {
+		return nil, fmt.Errorf("Number of columns in result set (%v) does not match columns in expected types (%v)", len(cols), len(types))
+	}
+
+	for i, n := range names {
+		// This is a hack to get around candiedyaml converting "Null" to ""
+		if n == "" {
+			n = "Null"
+		}
+
+		if cols[i] != n {
+			return nil, fmt.Errorf("Expected name %q at index %d, but found %q", n, i, cols[i])
+		}
+	}
+
+	result := [][]interface{}{}
+
+	resultContainer := make([]interface{}, 0, len(types))
+
+	for _, t := range types {
+		switch schema.SQLType(t) {
+		case schema.SQLVarchar:
+			resultContainer = append(resultContainer, &sql.NullString{})
+		case schema.SQLInt:
+			resultContainer = append(resultContainer, &sql.NullInt64{})
+		case schema.SQLFloat:
+			resultContainer = append(resultContainer, &sql.NullFloat64{})
+		default:
+			resultContainer = append(resultContainer, &sql.NullString{})
+		}
+	}
+
+	for rows.Next() {
+		resultRow := make([]interface{}, 0, len(types))
+		if err := rows.Scan(resultContainer...); err != nil {
+			return nil, err
+		}
+		for _, x := range resultContainer {
+			v, err := x.(driver.Valuer).Value()
+			if err != nil {
+				return nil, err
+			}
+			resultRow = append(resultRow, v)
+		}
+
+		result = append(result, resultRow)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func CompareResults(expected [][]interface{}, actual [][]interface{}) error {
+	if len(actual) != len(expected) {
+		return fmt.Errorf("Expected %d rows, got %d rows", len(expected), len(actual))
+	}
+
+	for rownum, row := range actual {
+		for colnum, actualCol := range row {
+
+			expectedCol := expected[rownum][colnum]
+			// our YAML parser converts numbers in the
+			// int range to int but we need them to be
+			// int64
+			if v, ok := expectedCol.(int); ok {
+				expectedCol = int64(v)
+			}
+
+			// Because of the int conversion behavior,
+			// if our actual result is a float64, we
+			// need to convert it to an int64
+			if _, ok := expectedCol.(int64); ok {
+				if v, ok := actualCol.(float64); ok {
+					actualCol = int64(v)
+				}
+			}
+
+			if actualCol != expectedCol {
+				expectedFloat, err1 := strconv.ParseFloat(fmt.Sprintf("%v", expectedCol), 64)
+				actualFloat, err2 := strconv.ParseFloat(fmt.Sprintf("%v", actualCol), 64)
+
+				// account for minute floating point imprecision
+				if err1 == nil && err2 == nil {
+					// default tolerance is 0.0000000001
+					if math.Abs(actualFloat-expectedFloat) > 0.000000001 {
+						return fmt.Errorf("Expected %d, got %d at row %d, column %d", expectedFloat, actualFloat, rownum, colnum)
+					}
+				} else {
+					if fmt.Sprintf("(%d,%d): %v", rownum, colnum, actualCol) !=
+						fmt.Sprintf("(%d,%d): %v", rownum, colnum, expectedCol) {
+						return fmt.Errorf("Expected %v, got %v at row %d, column %d", expectedCol, actualCol, rownum, colnum)
+					}
+				}
+			}
+
+		}
+	}
+
+	return nil
+}
+
+func MongodbVersionAtLeast(versionString string) bool {
+	if versionString == "" {
+		return true
+	}
+
+	strServerVersion := strings.Split(*ServerVersion, ".")
+	serverVersion := make([]int, len(strServerVersion))
+	for i, str := range strServerVersion {
+		num, err := strconv.ParseInt(str, 0, 0)
+		if err != nil {
+			panic(err)
+		}
+		serverVersion[i] = int(num)
+	}
+
+	strVersion := strings.Split(versionString, ".")
+	version := make([]int, len(strVersion))
+	for i, str := range strVersion {
+		num, err := strconv.ParseInt(str, 0, 0)
+		if err != nil {
+			panic(err)
+		}
+		version[i] = int(num)
+	}
+
+	return util.VersionAtLeast(serverVersion, version)
+}
