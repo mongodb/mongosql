@@ -1483,6 +1483,7 @@ func TestEvaluates(t *testing.T) {
 					test{"ISNULL(a)", SQLInt(0)},
 					test{"ISNULL(c)", SQLInt(1)},
 					test{`ISNULL("")`, SQLInt(0)},
+					test{`ISNULL(NULL)`, SQLInt(1)},
 				}
 				runTests(evalCtx, tests)
 			})

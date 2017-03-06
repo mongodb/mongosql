@@ -466,6 +466,30 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 			// we have a predicate that completely or partially couldn't be handled by $match.
 			// Attempt to push it down as part of a $project/$match combination.
 			if predicate, ok := t.TranslateExpr(localMatcher); ok {
+
+				// MySQL's version of truthiness is different than MongoDB's. We need to modify
+				// the predicate to account for this difference. It looks, effectively, like this:
+				predicate = bson.D{
+					{"$let", bson.D{
+						{"vars", bson.M{"predicate": predicate}},
+						{"in", bson.D{
+							{"$cond", []interface{}{
+								bson.D{{"$or", []interface{}{
+									bson.D{{"$eq", []interface{}{"$$predicate", false}}},
+									bson.D{{"$eq", []interface{}{"$$predicate", 0}}},
+									bson.D{{"$eq", []interface{}{"$$predicate", "0"}}},
+									bson.D{{"$eq", []interface{}{"$$predicate", "-0"}}},
+									bson.D{{"$eq", []interface{}{"$$predicate", "0.0"}}},
+									bson.D{{"$eq", []interface{}{"$$predicate", "-0.0"}}},
+									bson.D{{"$eq", []interface{}{"$$predicate", nil}}},
+								}}},
+								false,
+								true,
+							}},
+						}},
+					}},
+				}
+
 				stageName, stageBody := "$addFields", bson.M{}
 
 				if !t.versionAtLeast(3, 4, 0) {

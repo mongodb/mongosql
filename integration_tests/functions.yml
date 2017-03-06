@@ -986,6 +986,13 @@ testcases:
   - [1]
   - [1]
 
+- sql: "select isnull(a) from bar where isnull(a)"
+  expected_names: ["isnull(a)"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [1]
+
 - sql: "select isnull(null) from bar"
   expected_names: ["isnull(null)"]
   expected_types: [int]
