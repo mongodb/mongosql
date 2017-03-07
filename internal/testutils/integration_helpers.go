@@ -7,10 +7,14 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"testing"
+	"time"
 
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/util"
 )
+
+var maxTime = time.Duration(*MaxTimeSecs) * time.Second
 
 func RunSQL(db *sql.DB, query string, types []string, names []string) ([][]interface{}, error) {
 	rows, err := db.Query(query)
@@ -153,4 +157,82 @@ func MongodbVersionAtLeast(versionString string) bool {
 	}
 
 	return util.VersionAtLeast(serverVersion, version)
+}
+
+func RunTest(t *testing.T, test *TestCase, db *sql.DB) error {
+	query := test.SQL
+
+	if test.VerificationSQL != "" {
+		_, err := db.Exec(query)
+		if err != nil {
+			return err
+		}
+
+		query = test.VerificationSQL
+	}
+
+	results, err := RunSQL(db, query, test.ExpectedTypes, test.ExpectedNames)
+	if err != nil {
+		return err
+	}
+
+	if test.CleanupSQL != "" {
+		_, err := db.Exec(test.CleanupSQL)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = CompareResults(test.ExpectedData, results)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func RunBenchmark(t *testing.B, test *TestCase, db *sql.DB) error {
+	query := test.SQL
+
+	db.SetMaxOpenConns(1)
+	var connId int
+	r := db.QueryRow("select connection_id()")
+	err := r.Scan(&connId)
+	if err != nil {
+		return err
+	}
+
+	t.ResetTimer()
+
+	for n := 0; n < t.N; n++ {
+		timer := time.NewTimer(maxTime)
+		done := false
+		killed := false
+
+		go func(done, killed *bool) {
+			<-timer.C
+			if !*done {
+				db.SetMaxOpenConns(2)
+				t.Logf("killing query (ran longer than %s)", maxTime)
+				kill := fmt.Sprintf("kill query %d", connId)
+				db.Query(kill)
+				*killed = true
+			}
+		}(&done, &killed)
+
+		rows, err := db.Query(query)
+		done = true
+		if err != nil {
+			if !killed {
+				return err
+			}
+			continue
+		}
+
+		for rows.Next() {
+		}
+		rows.Close()
+	}
+
+	return nil
 }

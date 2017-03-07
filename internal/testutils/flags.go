@@ -12,4 +12,5 @@ var (
 	DbAddr        = flag.String("dbAddr", "127.0.0.1:3307", "")
 	ClientPemFile = flag.String("clientPemFile", "testdata/resources/client.pem", "")
 	RestoreData   = flag.String("restoreData", "", "Suites whose data to restore before running tests")
+	MaxTimeSecs   = flag.Int64("maxTimeSecs", 600, "maximum test runtime limit (seconds)")
 )

@@ -58,25 +58,25 @@ buildvariants:
   batchtime: 1440 # 1 day
   tasks:
   - "benchmark"
-#  - "tpch_micro"
-#- name: linux-64-amazon-ami-tpch
-#  display_name: Amazon Linux (TPC-H Benchmarks)
-#  expansions:
-#    build_tags: -tags ssl
-#    gotest_env: "SQLPROXY_SSLTEST=1"
-#    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.4.1.tgz --output mongodb.tgz
-#    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/resources/server.pem
-#    sqlproxy_args: --mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile testdata/resources/client.pem
-#    push_arch: x86_64-enterprise-amzn64
-#    push_name: linux
-#    push_path: linux
-#  run_on:
-#    - linux-64-amzn-benchmark
-#  batchtime: 1438560 # 999 days
-#  tasks:
-#  - "tpch_handwritten_denormalized"
-#  - "tpch_workbook_denormalized"
-#  - "tpch_workbook_normalized"
+  - "tpch_micro"
+- name: linux-64-amazon-ami-tpch
+  display_name: Amazon Linux (TPC-H Benchmarks)
+  expansions:
+    build_tags: -tags ssl
+    gotest_env: "SQLPROXY_SSLTEST=1"
+    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.4.1.tgz --output mongodb.tgz
+    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/resources/server.pem
+    sqlproxy_args: --mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile testdata/resources/client.pem
+    push_arch: x86_64-enterprise-amzn64
+    push_name: linux
+    push_path: linux
+  run_on:
+    - linux-64-amzn-benchmark
+  batchtime: 1438560 # 999 days
+  tasks:
+  - "tpch_handwritten_denormalized"
+  - "tpch_workbook_denormalized"
+  - "tpch_workbook_normalized"
 - name: osx
   display_name: OSX 10.10
   run_on:
@@ -387,7 +387,7 @@ functions:
       script: |
         set -o verbose
         set -o errexit
-        echo "Generating integration tests"
+        echo "Generating default tests"
         if [ "Windows_NT" = "$OS" ]; then
           set -o igncr
         fi;
@@ -426,7 +426,7 @@ functions:
       script: |
         set -o verbose
         set -o errexit
-        echo "Generating integration tests"
+        echo "Generating blackbox tests"
         if [ "Windows_NT" = "$OS" ]; then
           set -o igncr
         fi;
@@ -504,7 +504,7 @@ functions:
       script: |
         set -o verbose
         set -o errexit
-        echo "Generating integration tests"
+        echo "Generating tableau tests"
         if [ "Windows_NT" = "$OS" ]; then
           set -o igncr
         fi;
@@ -533,6 +533,45 @@ functions:
           fi;
         fi;
         go run testdata/generate.go -suites tableau
+        echo "Done!"
+
+  "generate tpch tests":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        set -o verbose
+        set -o errexit
+        echo "Generating integration tests"
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        if [ '${library_path}' != '' ]; then
+          export ${library_path}
+        fi;
+        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
+        # use a wrapper if it's present on the system
+        #
+        if [ -d /opt/ldwrapper/bin ]
+        then
+          export PATH=/opt/ldwrapper/bin:$PATH
+        fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/github.com/10gen
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+        else
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
+        fi;
+        go run testdata/generate.go -suites tpch
         echo "Done!"
 
   "create release":
@@ -1383,6 +1422,9 @@ tasks:
     - func: "download denormalized tpch test data"
     - func: "download mongod"
     - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy"
+    - func: "generate tpch tests"
     - command: shell.exec
       type: test
       timeout_secs: 86400 # 1 day
@@ -1413,10 +1455,8 @@ tasks:
           fi;
           mkfifo test_pipe
           tee -a out.txt < test_pipe&
-          cat testdata/tpch_handwritten_denormalized.json > tpch.json
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in tpch.json -out tpch_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 24h > test_pipe
-          awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' out.txt | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run ^$ ${build_tags} ${mongodb_version_flag} -restoreData tpch -bench=BenchmarkTPCH_handwritten_denormalized -benchmem -benchtime=5s -v -timeout 24h > test_pipe
+          cat out.txt | grep '^Benchmark' | awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
     - func: "upload tpch report"
 
 - name: tpch_workbook_denormalized
@@ -1427,6 +1467,9 @@ tasks:
     - func: "download denormalized tpch test data"
     - func: "download mongod"
     - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy"
+    - func: "generate tpch tests"
     - command: shell.exec
       type: test
       timeout_secs: 86400 # 1 day
@@ -1457,10 +1500,8 @@ tasks:
           fi;
           mkfifo test_pipe
           tee -a out.txt < test_pipe&
-          cat testdata/tpch_workbook_denormalized.json > tpch.json
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in tpch.json -out tpch_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 24h > test_pipe
-          awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' out.txt | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run ^$ ${build_tags} ${mongodb_version_flag} -restoreData tpch -bench=BenchmarkTPCH_workbook_denormalized -benchmem -benchtime=5s -v -timeout 24h > test_pipe
+          cat out.txt | grep '^Benchmark' | awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
     - func: "upload tpch report"
 
 - name: tpch_workbook_normalized
@@ -1471,6 +1512,9 @@ tasks:
     - func: "download normalized tpch test data"
     - func: "download mongod"
     - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy"
+    - func: "generate tpch tests"
     - command: shell.exec
       type: test
       timeout_secs: 86400 # 1 day
@@ -1501,10 +1545,8 @@ tasks:
           fi;
           mkfifo test_pipe
           tee -a out.txt < test_pipe&
-          cat testdata/tpch_workbook_normalized.json > tpch.json
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in tpch.json -out tpch_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 24h > test_pipe
-          awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' out.txt | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run ^$ ${build_tags} ${mongodb_version_flag} -restoreData tpch -bench=BenchmarkTPCH_workbook_normalized -benchmem -benchtime=5s -v -timeout 24h > test_pipe
+          cat out.txt | grep '^Benchmark' | awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
     - func: "upload tpch report"
 
 - name: tpch_micro
@@ -1515,6 +1557,9 @@ tasks:
     - func: "download micro tpch test data"
     - func: "download mongod"
     - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy"
+    - func: "generate tpch tests"
     - command: shell.exec
       type: test
       timeout_secs: 86400 # 1 day
@@ -1545,10 +1590,8 @@ tasks:
           fi;
           mkfifo test_pipe
           tee -a out.txt < test_pipe&
-          cat testdata/tpch_handwritten_denormalized.json testdata/tpch_workbook_denormalized.json testdata/tpch_workbook_normalized.json > tpch.json
-          ${gorootvars} ${library_path} ${gotest_env} go run testdata/benchmark.go -in tpch.json -out tpch_test.go
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -conf testdata/tpch.yml -run tpch_test.go ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 24h > test_pipe
-           awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' out.txt | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run ^$ ${build_tags} ${mongodb_version_flag} -restoreData tpch -bench=BenchmarkTPCH -benchmem -benchtime=5s -v -timeout 24h > test_pipe
+          cat out.txt | grep '^Benchmark' | awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
     - func: "upload tpch report"
 
 - name: variable

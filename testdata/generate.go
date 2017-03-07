@@ -56,6 +56,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/testutils"
@@ -63,6 +64,8 @@ import (
 )
 
 var testCasesByName map[string]*testutils.TestCase
+var maxTime = time.Duration(*testutils.MaxTimeSecs) * time.Second
+
 
 func setup() {
 	fmt.Println("Starting global setup...")
@@ -131,49 +134,19 @@ func {{ .Name }}(t *testing.{{ if .IsBenchmark }}B{{ else }}T{{ end }}) {
 		t.Fatal(err.Error())
 	}
 
-	query := test.SQL
-
 	{{ if not .IsBenchmark }}
-	if test.VerificationSQL != "" {
-		_, err := db.Exec(query)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
 
-		query = test.VerificationSQL
-	}
-
-	results, err := testutils.RunSQL(db, query, test.ExpectedTypes, test.ExpectedNames)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	if test.CleanupSQL != "" {
-		_, err := db.Exec(test.CleanupSQL)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-	}
-
-	err = testutils.CompareResults(test.ExpectedData, results)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	err = testutils.RunTest(t, test, db)
 
 	{{ else }}
 
-	t.ResetTimer()
-
-	for n := 0; n < t.N; n++ {
-		rows, err := db.Query(query)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		for rows.Next() {}
-		rows.Close()
-	}
+	err = testutils.RunBenchmark(t, test, db)
 
 	{{ end }}
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 }
 {{ end }}
