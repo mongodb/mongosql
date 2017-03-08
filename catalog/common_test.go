@@ -57,6 +57,10 @@ schema:
       MongoType: bson.UUID
       SqlType: varchar
       SqlName: e
+    - Name: f
+      MongoType: number
+      SqlType: numeric
+      SqlName: f
 `)
 
 var testSchemaCreateTableFoo = "CREATE TABLE `foo` (\n" +
@@ -73,6 +77,7 @@ var testSchemaCreateTableBar = "CREATE TABLE `bar` (\n" +
 	"  `b` varchar(65535) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"b\" }',\n" +
 	"  `d` decimal DEFAULT NULL COMMENT '{ \"name\": \"d\" }',\n" +
 	"  `e` varchar(65535) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"e\" }',\n" +
+	"  `f` double DEFAULT NULL COMMENT '{ \"name\": \"f\" }',\n" +
 	"  `c_longitude` double DEFAULT NULL COMMENT '{ \"name\": \"c.0\" }',\n" +
 	"  `c_latitude` double DEFAULT NULL COMMENT '{ \"name\": \"c.1\" }',\n" +
 	"  PRIMARY KEY (`id`)\n" +
