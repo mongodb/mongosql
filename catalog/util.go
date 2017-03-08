@@ -10,7 +10,7 @@ func translateColumnType(sqlType schema.SQLType) string {
 		return "date"
 	case schema.SQLDecimal128:
 		return "decimal"
-	case schema.SQLFloat, schema.SQLArrNumeric:
+	case schema.SQLFloat, schema.SQLNumeric, schema.SQLArrNumeric:
 		return "double"
 	case schema.SQLInt, schema.SQLInt64:
 		return "bigint(20)"
