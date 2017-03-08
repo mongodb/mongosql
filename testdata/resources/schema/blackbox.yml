@@ -99,22 +99,22 @@ schema:
       MongoType: bson.ObjectId
       SqlName: _id
       SqlType: varchar
-    - Name: bool0
-      MongoType: bool
-      SqlName: bool0
-      SqlType: boolean
-    - Name: bool1
-      MongoType: bool
-      SqlName: bool1
-      SqlType: boolean
-    - Name: bool2
-      MongoType: bool
-      SqlName: bool2
-      SqlType: boolean
-    - Name: bool3
-      MongoType: bool
-      SqlName: bool3
-      SqlType: boolean
+    - Name: bool0_
+      MongoType: int
+      SqlName: bool0_
+      SqlType: numeric
+    - Name: bool1_
+      MongoType: int
+      SqlName: bool1_
+      SqlType: numeric
+    - Name: bool2_
+      MongoType: int
+      SqlName: bool2_
+      SqlType: numeric
+    - Name: bool3_
+      MongoType: int
+      SqlName: bool3_
+      SqlType: numeric
     - Name: date0
       MongoType: date
       SqlName: date0
@@ -135,6 +135,10 @@ schema:
       MongoType: date
       SqlName: datetime0
       SqlType: timestamp
+    - Name: datetime1
+      MongoType: string
+      SqlName: datetime1
+      SqlType: varchar
     - Name: int0
       MongoType: int
       SqlName: int0
@@ -248,6 +252,10 @@ schema:
     - Name: Elected
       MongoType: string
       SqlName: elected
+      SqlType: varchar
+    - Name: MarginOfVictory
+      MongoType: string
+      SqlName: MarginOfVictory
       SqlType: varchar
     - Name: PointOrder
       MongoType: int
@@ -502,6 +510,58 @@ schema:
       MongoType: float64
       SqlName: Measure E-2
       SqlType: float64
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+  - table: Rei
+    collection: Rei
+    pipeline: []
+    columns:
+    - Name: Category1
+      MongoType: string
+      SqlName: Category1
+      SqlType: varchar
+    - Name: Category2
+      MongoType: string
+      SqlName: Category2
+      SqlType: varchar
+    - Name: Category3
+      MongoType: string
+      SqlName: Category3
+      SqlType: varchar
+    - Name: Category4
+      MongoType: string
+      SqlName: Category4
+      SqlType: varchar
+    - Name: Category5
+      MongoType: string
+      SqlName: Category5
+      SqlType: varchar
+    - Name: Date
+      MongoType: date
+      SqlName: Date
+      SqlType: timestamp
+    - Name: Total Sale Cost
+      MongoType: bson.Decimal128
+      SqlName: Total Sale Cost
+      SqlType: numeric
+    - Name: Total Sale Margin
+      MongoType: bson.Decimal128
+      SqlName: Total Sale Margin
+      SqlType: numeric
+    - Name: Total Sale Revenue
+      MongoType: bson.Decimal128
+      SqlName: Total Sale Revenue
+      SqlType: numeric
+    - Name: Total Units
+      MongoType: float64
+      SqlName: Total Units
+      SqlType: numeric
+    - Name: Trans Description
+      MongoType: string
+      SqlName: Trans Description
+      SqlType: varchar
     - Name: _id
       MongoType: bson.ObjectId
       SqlName: _id

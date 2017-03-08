@@ -535,6 +535,45 @@ functions:
         go run testdata/generate.go -suites tableau
         echo "Done!"
 
+  "generate tdvt tests":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        set -o verbose
+        set -o errexit
+        echo "Generating tableau tests"
+        if [ "Windows_NT" = "$OS" ]; then
+          set -o igncr
+        fi;
+        if [ '${library_path}' != '' ]; then
+          export ${library_path}
+        fi;
+        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
+        # use a wrapper if it's present on the system
+        #
+        if [ -d /opt/ldwrapper/bin ]
+        then
+          export PATH=/opt/ldwrapper/bin:$PATH
+        fi;
+        if [ '${using_go14}' != '' ]; then
+          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+          rm -rf .gopath/
+          mkdir -p .gopath/src/github.com/10gen
+          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+          export GOPATH=`pwd`/vendor:`pwd`/.gopath
+        else
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+          fi;
+        fi;
+        go run testdata/generate.go -suites tdvt
+        echo "Done!"
+
   "generate tpch tests":
     command: shell.exec
     type: test
@@ -785,6 +824,17 @@ functions:
         ./sqlproxy --schemaDirectory ./testdata/resources/schema/ ${sqlproxy_args}
         echo "sqlproxy exited"
 
+  "start SQLProxy (no pushdown)":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/10gen/sqlproxy
+      background: true
+      script: |
+        set -o verbose
+        echo "Starting sqlproxy...";
+        SQLPROXY_PUSHDOWN_OFF=1 ./sqlproxy --schemaDirectory ./testdata/resources/schema/ ${sqlproxy_args}
+        echo "sqlproxy exited"
+
   "upload benchmark report":
     command: s3.put
     params:
@@ -943,7 +993,7 @@ tasks:
     - func: "download mongod"
     - func: "start mongod"
     - func: "build SQLProxy"
-    - func: "start SQLProxy"
+    - func: "start SQLProxy (no pushdown)"
     - func: "generate blackbox tests"
     - command: shell.exec
       type: test
@@ -1333,7 +1383,7 @@ tasks:
     - func: "download mongod"
     - func: "start mongod"
     - func: "build SQLProxy"
-    - func: "start SQLProxy"
+    - func: "start SQLProxy (no pushdown)"
     - func: "generate integration tests"
     - command: shell.exec
       type: test
@@ -1408,6 +1458,94 @@ tasks:
           fi;
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -run TestTableau -restoreData tableau -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
+
+- name: tdvt
+  commands:
+    - func: "fetch source"
+    - func: "download blackbox test data"
+    - func: "download mongod"
+    - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy"
+    - func: "generate tdvt tests"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/10gen/sqlproxy
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/github.com/10gen
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
+          fi;
+          touch coverage.out
+          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -run TestTDVT -restoreData tdvt -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > tdvt.suite 2>&1; if [ $? -ne 0 ]; then cat tdvt.suite; exit 1; else cat tdvt.suite; exit 0; fi
+    - func: "rewrite coverage report"
+    - func: "generate coverage html"
+    - func: "generate coverage txt"
+    - func: "upload coverage html report"
+    - func: "upload coverage txt report"
+
+- name: tdvt-nopushdown
+  commands:
+    - func: "fetch source"
+    - func: "download blackbox test data"
+    - func: "download mongod"
+    - func: "start mongod"
+    - func: "build SQLProxy"
+    - func: "start SQLProxy (no pushdown)"
+    - func: "generate tdvt tests"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/10gen/sqlproxy
+        script: |
+          set -o verbose
+          set -o errexit
+          if [ "Windows_NT" = "$OS" ]; then
+            set -o igncr
+          fi;
+          if [ '${library_path}' != '' ]; then
+            export ${library_path}
+          fi;
+          if [ '${using_go14}' != '' ]; then
+            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
+            rm -rf .gopath/
+            mkdir -p .gopath/src/github.com/10gen
+            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
+            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
+            export GOPATH=`pwd`/vendor:`pwd`/.gopath
+          else
+            if [ "Windows_NT" = "$OS" ]; then
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            else
+              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            fi;
+          fi;
+          touch coverage.out
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=1 go test ${test_args} ${build_tags} -run TestTDVT -restoreData tdvt -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > tdvt.suite 2>&1; if [ $? -ne 0 ]; then cat tdvt.suite; exit 1; else cat tdvt.suite; exit 0; fi
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"

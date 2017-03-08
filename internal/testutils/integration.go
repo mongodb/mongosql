@@ -43,6 +43,7 @@ type TestCase struct {
 	IsBenchmark      bool
 	Id               string          `yaml:"id"`
 	Database         string          `yaml:"db"`
+	Skip             bool            `yaml:"skip"`
 	SQL              string          `yaml:"sql"`
 	CleanupSQL       string          `yaml:"sql_cleanup"`
 	VerificationSQL  string          `yaml:"verify"`
@@ -102,7 +103,7 @@ func LoadTestSuite(name string) *TestSuite {
 		tests := new(TestFile)
 		err = yaml.Unmarshal(fileBytes, tests)
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("Error unmarshalling %s: %s", f.Name(), err.Error()))
 		}
 		if tests.Name == "" {
 			tests.Name = f.Name()[0 : len(f.Name())-4]

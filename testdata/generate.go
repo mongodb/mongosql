@@ -115,6 +115,14 @@ func {{ .Name }}(t *testing.{{ if .IsBenchmark }}B{{ else }}T{{ end }}) {
 
 	test := testCasesByName["{{ .Name }}"]
 
+	if test.Skip {
+		if *testutils.RunSkipped {
+			t.Log("Running test with skip=true")
+		} else {
+			t.Skip("Skipping test with skip=true")
+		}
+	}
+
 	noPushDownMode := os.Getenv(evaluator.NoPushDown) != ""
 	if test.PushDownOnly && noPushDownMode {
 		t.Skip("Skipping pushdown-only test in pushdown mode")

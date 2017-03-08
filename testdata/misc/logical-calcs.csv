@@ -1,0 +1,742 @@
+TDSName,TestName,Passed,Closest Expected,Diff count,Test Case,Error Msg,Error Type,Query Time (ms),Generated SQL,Actual (100)tuples,Expected (100)tuples,,,
+cast_calcs.mydb,Query.Filter.IsNULL,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Query.Filter.IsNULL.simple.xml,None,,139,"
+      
+
+--
+
+SELECT `Calcs`.`str2` AS `str2`,
+  SUM(`Calcs`.`num3`) AS `sum_num3_ok`
+FROM `Calcs`
+WHERE ISNULL(`Calcs`.`str2`)
+GROUP BY 1
+    ","%null%
+-5.54","%null%
+-5.54",0,21,1
+cast_calcs.mydb,Query.Filter.NullAndOne,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Query.Filter.NullAndOne.simple.xml,None,,46,"
+      
+
+--
+
+SELECT `Calcs`.`str2` AS `str2`,
+  SUM(`Calcs`.`num3`) AS `sum_num3_ok`
+FROM `Calcs`
+WHERE ((`Calcs`.`str2` IN ('sixteen')) OR ISNULL(`Calcs`.`str2`))
+GROUP BY 1
+    ","%null%
+-5.54
+""sixteen""
+-10.98","%null%
+-5.54
+""sixteen""
+-10.98",,,
+cast_calcs.mydb,BUGS.B27875-desc-nulls-last,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.BUGS.B27875-desc-nulls-last.simple.xml,None,,560,"
+      
+
+--
+
+SELECT `Calcs`.`key` AS `key`,
+  SUM(`Calcs`.`num2`) AS `sum_num2_ok`,
+  SUM(`Calcs`.`num2`) AS `$__alias__0`
+FROM `Calcs`
+GROUP BY 1
+ORDER BY `$__alias__0` DESC
+LIMIT 10
+    ","""key00""
+17.86
+""key01""
+16.73
+""key03""
+8.51
+""key05""
+8.98
+""key06""
+11.69
+""key07""
+17.25
+""key09""
+11.5
+""key13""
+13.04
+""key15""
+10.98
+""key16""
+7.87","""key00""
+17.86
+""key01""
+16.73
+""key03""
+8.51
+""key05""
+8.98
+""key06""
+11.69
+""key07""
+17.25
+""key09""
+11.5
+""key13""
+13.04
+""key15""
+10.98
+""key16""
+7.87",,,
+cast_calcs.mydb,BUGS.B59740,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.BUGS.B59740.simple.xml,None,,209,"
+      
+
+--
+
+SELECT (CASE WHEN (`Calcs`.`str2` IN ('eleven', 'fifteen', 'five', 'fourteen', 'nine', 'one', 'six', 'sixteen', 'ten', 'three', 'twelve')) THEN 'eleven' ELSE `Calcs`.`str2` END) AS `Str2 (group)`
+FROM `Calcs`
+GROUP BY 1
+    ","%null%
+""eight""
+""eleven""
+""two""","%null%
+""eight""
+""eleven""
+""two""",,,
+cast_calcs.mydb,Filter.Exclude-range-not-null,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.Exclude-range-not-null.simple.xml,None,,266,"
+      
+
+--
+
+SELECT `Calcs`.`str2` AS `str2`
+FROM `Calcs`
+WHERE ((NOT ((`Calcs`.`str2` >= 'eight') AND (`Calcs`.`str2` <= 'six'))) OR ISNULL(`Calcs`.`str2`))
+GROUP BY 1
+    ","%null%
+""sixteen""
+""ten""
+""three""
+""twelve""
+""two""","%null%
+""sixteen""
+""ten""
+""three""
+""twelve""
+""two""",,,
+cast_calcs.mydb,Filter.QFilter-max-NotNull,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.QFilter-max-NotNull.simple.xml,None,,78,"
+      
+
+--
+
+SELECT `Calcs`.`key` AS `key`,
+  SUM(`Calcs`.`int1`) AS `sum_int1_ok`
+FROM `Calcs`
+GROUP BY 1
+HAVING (SUM(`Calcs`.`int1`) <= 2)
+    ","""key00""
+-3
+""key01""
+-6
+""key03""
+-4
+""key07""
+2
+""key11""
+-8
+""key16""
+-9","""key00""
+-3
+""key01""
+-6
+""key03""
+-4
+""key07""
+2
+""key11""
+-8
+""key16""
+-9",,,
+cast_calcs.mydb,Filter.QFilter-NotNull,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.QFilter-NotNull.simple.xml,None,,380,"
+      
+
+--
+
+SELECT `Calcs`.`key` AS `key`,
+  SUM(`Calcs`.`int1`) AS `sum_int1_ok`
+FROM `Calcs`
+GROUP BY 1
+HAVING (NOT ISNULL(SUM(`Calcs`.`int1`)))
+    ","""key00""
+-3
+""key01""
+-6
+""key03""
+-4
+""key07""
+2
+""key08""
+3
+""key09""
+3
+""key11""
+-8
+""key16""
+-9","""key00""
+-3
+""key01""
+-6
+""key03""
+-4
+""key07""
+2
+""key08""
+3
+""key09""
+3
+""key11""
+-8
+""key16""
+-9",,,
+cast_calcs.mydb,Filter.QFilter-minmax-Null,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.QFilter-minmax-Null.simple.xml,None,,134,"
+      
+
+--
+
+SELECT `Calcs`.`key` AS `key`,
+  SUM(`Calcs`.`int1`) AS `sum_int1_ok`
+FROM `Calcs`
+GROUP BY 1
+HAVING (((SUM(`Calcs`.`int1`) >= 0) AND (SUM(`Calcs`.`int1`) <= 2)) OR ISNULL(SUM(`Calcs`.`int1`)))
+    ","""key02""
+%null%
+""key04""
+%null%
+""key05""
+%null%
+""key06""
+%null%
+""key07""
+2
+""key10""
+%null%
+""key12""
+%null%
+""key13""
+%null%
+""key14""
+%null%
+""key15""
+%null%","""key02""
+%null%
+""key04""
+%null%
+""key05""
+%null%
+""key06""
+%null%
+""key07""
+2
+""key10""
+%null%
+""key12""
+%null%
+""key13""
+%null%
+""key14""
+%null%
+""key15""
+%null%",,,
+cast_calcs.mydb,Filter.Exclude-list-not-null,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.Exclude-list-not-null.simple.xml,None,,571,"
+      
+
+--
+
+SELECT `Calcs`.`str2` AS `str2`
+FROM `Calcs`
+WHERE ((NOT (`Calcs`.`str2` IN ('eight', 'eleven', 'fifteen', 'five'))) OR ISNULL(`Calcs`.`str2`))
+GROUP BY 1
+    ","%null%
+""fourteen""
+""nine""
+""one""
+""six""
+""sixteen""
+""ten""
+""three""
+""twelve""
+""two""","%null%
+""fourteen""
+""nine""
+""one""
+""six""
+""sixteen""
+""ten""
+""three""
+""twelve""
+""two""",,,
+cast_calcs.mydb,Filter.QFilter-min-NotNull,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.QFilter-min-NotNull.simple.xml,None,,65,"
+      
+
+--
+
+SELECT `Calcs`.`key` AS `key`,
+  SUM(`Calcs`.`int1`) AS `sum_int1_ok`
+FROM `Calcs`
+GROUP BY 1
+HAVING (SUM(`Calcs`.`int1`) >= 0)
+    ","""key07""
+2
+""key08""
+3
+""key09""
+3","""key07""
+2
+""key08""
+3
+""key09""
+3",,,
+cast_calcs.mydb,BUGS.B1713,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.BUGS.B1713.simple.xml,None,,699,"
+      
+
+--
+
+SELECT `Calcs`.`str0` AS `str0`
+FROM `Calcs`
+  INNER JOIN (
+  SELECT `Calcs`.`str0` AS `str0`,
+    SUM(`Calcs`.`int2`) AS `$__alias__0`
+  FROM `Calcs`
+  WHERE ((`Calcs`.`str0` >= 'FURNITURE') AND (`Calcs`.`str0` <= 'TECHNOLOGY'))
+  GROUP BY 1
+  ORDER BY `$__alias__0` DESC
+  LIMIT 2
+) `t0` ON (`Calcs`.`str0` = `t0`.`str0`)
+  INNER JOIN (
+  SELECT `Calcs`.`str1` AS `str1`,
+    SUM(`Calcs`.`int1`) AS `$__alias__1`
+  FROM `Calcs`
+  WHERE (((`Calcs`.`str1` >= 'AIR PURIFIERS') AND (`Calcs`.`str1` <= 'CD-R MEDIA')) OR ((`Calcs`.`str1` >= 'CONFERENCE PHONES') AND (`Calcs`.`str1` <= 'ERICSSON')))
+  GROUP BY 1
+  ORDER BY `$__alias__1` DESC
+  LIMIT 5
+) `t1` ON (`Calcs`.`str1` = `t1`.`str1`)
+GROUP BY 1
+    ",OFFICE SUPPLIES,OFFICE SUPPLIES,,,
+cast_calcs.mydb,Filter.QFilter-minmax-NotNull,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.QFilter-minmax-NotNull.simple.xml,None,,257,"
+      
+
+--
+
+SELECT `Calcs`.`key` AS `key`,
+  SUM(`Calcs`.`int1`) AS `sum_int1_ok`
+FROM `Calcs`
+GROUP BY 1
+HAVING ((SUM(`Calcs`.`int1`) >= 0) AND (SUM(`Calcs`.`int1`) <= 2))
+    ","""key07""
+2","""key07""
+2",,,
+cast_calcs.mydb,BUGS.B26728,1,1,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.BUGS.B26728.simple.xml,None,,2358,"
+      
+
+--
+
+SELECT FLOOR((TO_DAYS(`Calcs`.`date0`) - TO_DAYS(`Calcs`.`datetime0`)) / 2) AS `DayDiffs1 (bin)`,
+  FLOOR((TO_DAYS(`Calcs`.`datetime0`) - TO_DAYS(`Calcs`.`date0`)) / 3) AS `DayDiffs2 (bin)`,
+  FLOOR((TO_DAYS(`Calcs`.`date0`) - TO_DAYS(`Calcs`.`date1`)) / 4) AS `DayDiffs3 (bin)`,
+  FLOOR((YEAR(`Calcs`.`date0`) - YEAR(`Calcs`.`datetime0`)) / 2) AS `YearDiffs1 (bin)`,
+  FLOOR((YEAR(`Calcs`.`datetime0`) - YEAR(`Calcs`.`date0`)) / 3) AS `YearDiffs2 (bin)`,
+  FLOOR((YEAR(`Calcs`.`date0`) - YEAR(`Calcs`.`date1`)) / 4) AS `YearDiffs3 (bin)`
+FROM `Calcs`
+GROUP BY 1,
+  2,
+  3,
+  4,
+  5,
+  6
+    ","%null%
+%null%
+%null%
+%null%
+%null%
+%null%
+-5855
+3903
+-2899
+-16
+10
+-8
+-5246
+3497
+-2593
+-15
+9
+-8
+-43
+28
+3
+0
+0
+0
+-20
+13
+18
+0
+0
+0
+-16
+10
+15
+0
+0
+0","%null%
+%null%
+%null%
+%null%
+%null%
+%null%
+-5855
+3903
+-2899
+-16
+10
+-8
+-5246
+3497
+-2593
+-15
+9
+-8
+-43
+28
+3
+0
+0
+0
+-20
+13
+18
+0
+0
+0
+-16
+10
+15
+0
+0
+0",,,
+cast_calcs.mydb,Filter.FilterBy-to-no-results,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.FilterBy-to-no-results.simple.xml,None,,647,"
+      
+
+--
+
+SELECT `Calcs`.`str2` AS `str2`
+FROM `Calcs`
+GROUP BY 1
+HAVING (SUM(`Calcs`.`int2`) > 1000)
+    ",,,,,
+cast_calcs.mydb,Filter.datetime_fractional,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.datetime_fractional.simple.xml,None,,187,"
+      
+
+--
+
+SELECT IFNULL(TIMESTAMP('2016-07-15 10:11:12.123'),STR_TO_DATE('2016-07-15 10:11:12.123','%b %e %Y %l:%i%p')) AS `Calculation_958703807427547136`
+FROM `Calcs`
+WHERE (IFNULL(TIMESTAMP('2016-07-15 10:11:12.123'),STR_TO_DATE('2016-07-15 10:11:12.123','%b %e %Y %l:%i%p')) = TIMESTAMP('2016-07-15 10:11:12.123'))
+HAVING (COUNT(1) > 0)
+    ",#2016-07-15 10:11:12.123#,#2016-07-15 10:11:12.123#,,,
+cast_calcs.mydb,Query.Filter.IsNOTNULL,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Query.Filter.IsNOTNULL.simple.xml,None,,171,"
+      
+
+--
+
+SELECT `Calcs`.`str2` AS `str2`,
+  SUM(`Calcs`.`num3`) AS `sum_num3_ok`
+FROM `Calcs`
+WHERE ((`Calcs`.`str2` >= 'eight') AND (`Calcs`.`str2` <= 'two'))
+GROUP BY 1
+    ","""eight""
+3.64
+""eleven""
+-4.79
+""fifteen""
+6.84
+""five""
+12.93
+""fourteen""
+-18.43
+""nine""
+-13.38
+""one""
+-11.52
+""six""
+-19.96
+""sixteen""
+-10.98
+""ten""
+-10.56
+""three""
+-12.17
+""twelve""
+-10.81
+""two""
+-9.31","""eight""
+3.64
+""eleven""
+-4.79
+""fifteen""
+6.84
+""five""
+12.93
+""fourteen""
+-18.43
+""nine""
+-13.38
+""one""
+-11.52
+""six""
+-19.96
+""sixteen""
+-10.98
+""ten""
+-10.56
+""three""
+-12.17
+""twelve""
+-10.81
+""two""
+-9.31",,,
+cast_calcs.mydb,Filter.TopN-context,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.TopN-context.simple.xml,None,,166,"
+      
+
+--
+
+SELECT `Calcs`.`str0` AS `str0`,
+  SUM(`Calcs`.`int2`) AS `sum_int2_ok`
+FROM `Calcs`
+  INNER JOIN (
+  SELECT `Calcs`.`str0` AS `str0`,
+    SUM(`Calcs`.`int2`) AS `$__alias__0`
+  FROM `Calcs`
+  GROUP BY 1
+  ORDER BY `$__alias__0` DESC
+  LIMIT 2
+) `t0` ON (`Calcs`.`str0` = `t0`.`str0`)
+WHERE (((`Calcs`.`str1` >= 'AIR PURIFIERS') AND (`Calcs`.`str1` <= 'CD-R MEDIA')) OR ((`Calcs`.`str1` >= 'CONFERENCE PHONES') AND (`Calcs`.`str1` <= 'ERICSSON')))
+GROUP BY 1
+    ","""OFFICE SUPPLIES""
+14","""OFFICE SUPPLIES""
+14",,,
+cast_calcs.mydb,Filter.QFilter-max-Null,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.QFilter-max-Null.simple.xml,None,,266,"
+      
+
+--
+
+SELECT `Calcs`.`key` AS `key`,
+  SUM(`Calcs`.`int1`) AS `sum_int1_ok`
+FROM `Calcs`
+GROUP BY 1
+HAVING ((SUM(`Calcs`.`int1`) <= 2) OR ISNULL(SUM(`Calcs`.`int1`)))
+    ","""key00""
+-3
+""key01""
+-6
+""key02""
+%null%
+""key03""
+-4
+""key04""
+%null%
+""key05""
+%null%
+""key06""
+%null%
+""key07""
+2
+""key10""
+%null%
+""key11""
+-8
+""key12""
+%null%
+""key13""
+%null%
+""key14""
+%null%
+""key15""
+%null%
+""key16""
+-9","""key00""
+-3
+""key01""
+-6
+""key02""
+%null%
+""key03""
+-4
+""key04""
+%null%
+""key05""
+%null%
+""key06""
+%null%
+""key07""
+2
+""key10""
+%null%
+""key11""
+-8
+""key12""
+%null%
+""key13""
+%null%
+""key14""
+%null%
+""key15""
+%null%
+""key16""
+-9",,,
+cast_calcs.mydb,BUGS.B27875-asc-nulls-first,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.BUGS.B27875-asc-nulls-first.simple.xml,None,,676,"
+      
+
+--
+
+SELECT `Calcs`.`key` AS `key`,
+  SUM(`Calcs`.`num2`) AS `sum_num2_ok`,
+  SUM(`Calcs`.`num2`) AS `$__alias__0`
+FROM `Calcs`
+GROUP BY 1
+ORDER BY `$__alias__0` ASC
+LIMIT 10
+    ","""key02""
+%null%
+""key03""
+8.51
+""key04""
+6.46
+""key05""
+8.98
+""key08""
+%null%
+""key10""
+6.8
+""key11""
+3.79
+""key12""
+%null%
+""key14""
+%null%
+""key16""
+7.87","""key02""
+%null%
+""key03""
+8.51
+""key04""
+6.46
+""key05""
+8.98
+""key08""
+%null%
+""key10""
+6.8
+""key11""
+3.79
+""key12""
+%null%
+""key14""
+%null%
+""key16""
+7.87",,,
+cast_calcs.mydb,Filter.QFilter-min-Null,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.QFilter-min-Null.simple.xml,None,,154,"
+      
+
+--
+
+SELECT `Calcs`.`key` AS `key`,
+  SUM(`Calcs`.`int1`) AS `sum_int1_ok`
+FROM `Calcs`
+GROUP BY 1
+HAVING ((SUM(`Calcs`.`int1`) >= 0) OR ISNULL(SUM(`Calcs`.`int1`)))
+    ","""key02""
+%null%
+""key04""
+%null%
+""key05""
+%null%
+""key06""
+%null%
+""key07""
+2
+""key08""
+3
+""key09""
+3
+""key10""
+%null%
+""key12""
+%null%
+""key13""
+%null%
+""key14""
+%null%
+""key15""
+%null%","""key02""
+%null%
+""key04""
+%null%
+""key05""
+%null%
+""key06""
+%null%
+""key07""
+2
+""key08""
+3
+""key09""
+3
+""key10""
+%null%
+""key12""
+%null%
+""key13""
+%null%
+""key14""
+%null%
+""key15""
+%null%",,,
+cast_calcs.mydb,Filter.QFilter-Null,1,0,0,C:\Users\jen\Desktop\TableauDesktop_TDVT_10\tdvt\logicaltests\setup\calcs\setup.Filter.QFilter-Null.simple.xml,None,,142,"
+      
+
+--
+
+SELECT `Calcs`.`key` AS `key`,
+  SUM(`Calcs`.`int1`) AS `sum_int1_ok`
+FROM `Calcs`
+GROUP BY 1
+HAVING ISNULL(SUM(`Calcs`.`int1`))
+    ","""key02""
+%null%
+""key04""
+%null%
+""key05""
+%null%
+""key06""
+%null%
+""key10""
+%null%
+""key12""
+%null%
+""key13""
+%null%
+""key14""
+%null%
+""key15""
+%null%","""key02""
+%null%
+""key04""
+%null%
+""key05""
+%null%
+""key06""
+%null%
+""key10""
+%null%
+""key12""
+%null%
+""key13""
+%null%
+""key14""
+%null%
+""key15""
+%null%",,,
