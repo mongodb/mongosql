@@ -414,41 +414,33 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 		// otherwise, the filter simply gets removed from the tree
 
 	} else {
-		if len(pipeline) > 0 {
-			lastStageIdx := len(pipeline) - 1
-			lastStage := pipeline[lastStageIdx]
-			if lastStage[0].Name == "$unwind" {
-				if len(pipeline) == 1 || pipeline[lastStageIdx-1][0].Name != "$lookup" {
-					// Before pushing down the match, if the current pipeline contains
-					// an $unwind and is not preceeded by a lookup, try to place any criteria
-					// for the unwound array before the $unwind using an $elemMatch. These will
-					// need to still stay after the $unwind as well, but this should cut down on
-					// the number of documents passing through the $unwind clause while also allowing
-					// the use of an index.
-					// NOTE: putting a match between a lookup and an unwind causes a server optimization
-					// to get skipped.
-					v.logger.Log(log.DebugHigh, "attempting to add a redundant match before unwind")
+		if len(pipeline) == 1 && pipeline[0][0].Name == "$unwind" {
+			// Before pushing down the match, if the current pipeline contains
+			// an $unwind as the first stage in the pipeline, try to place any criteria
+			// for the unwound array before the $unwind using an $elemMatch. These will
+			// need to still stay after the $unwind as well, but this should cut down on
+			// the number of documents passing through the $unwind clause while also allowing
+			// the use of an index.
+			// NOTE: putting a match between a lookup and an unwind causes a server optimization
+			// to get skipped.
+			v.logger.Log(log.DebugHigh, "attempting to add a redundant match before unwind")
 
-					var path string
-					var indexPath string
-					if path, ok = lastStage[0].Value.(string); !ok {
-						var unwindBody bson.M
-						if unwindBody, ok = lastStage[0].Value.(bson.M); !ok {
-							unwindBody = lastStage[0].Value.(bson.D).Map()
-						}
-
-						path = unwindBody["path"].(string)
-						if ip, ok := unwindBody["includeArrayIndex"]; ok {
-							indexPath = ip.(string)
-						}
-					}
-
-					if preUnwindMatch, ok := v.extractPreUnwindMatch(ms.mappingRegistry, filter.matcher, path[1:], indexPath); ok {
-						pipeline = append(pipeline, nil)
-						copy(pipeline[lastStageIdx+1:], pipeline[lastStageIdx:])
-						pipeline[lastStageIdx] = preUnwindMatch
-					}
+			var path string
+			var indexPath string
+			if path, ok = pipeline[0][0].Value.(string); !ok {
+				var unwindBody bson.M
+				if unwindBody, ok = pipeline[0][0].Value.(bson.M); !ok {
+					unwindBody = pipeline[0][0].Value.(bson.D).Map()
 				}
+
+				path = unwindBody["path"].(string)
+				if ip, ok := unwindBody["includeArrayIndex"]; ok {
+					indexPath = ip.(string)
+				}
+			}
+
+			if preUnwindMatch, ok := v.extractPreUnwindMatch(ms.mappingRegistry, filter.matcher, path[1:], indexPath); ok {
+				pipeline = append([]bson.D{preUnwindMatch}, pipeline...)
 			}
 		}
 

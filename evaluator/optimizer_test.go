@@ -1569,13 +1569,6 @@ func TestOptimizePlan(t *testing.T) {
 									},
 								},
 							}}},
-							{{"$match", bson.M{
-								"__joined_bar": bson.M{
-									"$elemMatch": bson.M{
-										"b": int64(12),
-									},
-								},
-							}}},
 							{{"$unwind", bson.M{
 								"path": "$__joined_bar",
 								"preserveNullAndEmptyArrays": true,
@@ -2344,9 +2337,6 @@ func TestOptimizePlan(t *testing.T) {
 						{"includeArrayIndex", "d_idx"},
 						{"path", "$d"},
 					}}},
-					{{"$match", bson.M{
-						"d.a": int64(10),
-					}}},
 					{{"$unwind", bson.D{
 						{"includeArrayIndex", "d.a_idx"},
 						{"path", "$d.a"},
@@ -2365,12 +2355,6 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$unwind", bson.D{
 						{"includeArrayIndex", "d_idx"},
 						{"path", "$d"},
-					}}},
-					{{"$match", bson.M{
-						"$or": []interface{}{
-							bson.M{"d.a": int64(10)},
-							bson.M{"d.a": int64(12)},
-						},
 					}}},
 					{{"$unwind", bson.D{
 						{"includeArrayIndex", "d.a_idx"},
