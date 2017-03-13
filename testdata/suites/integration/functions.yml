@@ -1143,6 +1143,8 @@ testcases:
   - [1]
 
 - sql: "select isnull(a) from bar where isnull(a)"
+  id: 'where_isnull'
+  db: functions_test
   expected_names: ["isnull(a)"]
   expected_types: [int]
   expected:
