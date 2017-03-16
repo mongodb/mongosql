@@ -3,10 +3,10 @@ package evaluator
 import (
 	"testing"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func TestGroupByPlanStage(t *testing.T) {

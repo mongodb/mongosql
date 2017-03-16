@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	yaml "github.com/10gen/candiedyaml"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/util/bsonutil"
 )
 
 // Schema represents a configuration for a schema.
@@ -20,6 +20,7 @@ type Schema struct {
 // New creates a new schema.
 func New(data []byte) (*Schema, error) {
 	s := &Schema{}
+
 	if err := s.Load(data); err != nil {
 		return nil, err
 	}

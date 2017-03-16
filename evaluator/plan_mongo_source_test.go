@@ -1,11 +1,13 @@
 package evaluator
 
 import (
+	"context"
 	"os"
 	"testing"
 
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/client"
+	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/options"
@@ -13,14 +15,17 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
-	"gopkg.in/tomb.v2"
+	"github.com/10gen/mongo-go-driver/bson"
+)
+
+const (
+	testMongoHost = "127.0.0.1"
+	testMongoPort = "27017"
 )
 
 type connCtx struct {
 	catalog   *catalog.Catalog
-	session   *mgo.Session
+	session   *mongodb.Session
 	variables *variable.Container
 }
 
@@ -36,6 +41,10 @@ func (_ *connCtx) ConnectionId() uint32 {
 	return uint32(0)
 }
 
+func (c *connCtx) Context() context.Context {
+	return context.Background()
+}
+
 func (_ *connCtx) DB() string {
 	return ""
 }
@@ -49,7 +58,7 @@ func (_ *connCtx) Logger(_ string) *log.Logger {
 	return &lg
 }
 
-func (c *connCtx) Session() *mgo.Session {
+func (c *connCtx) Session() *mongodb.Session {
 	return c.session
 }
 
@@ -63,10 +72,6 @@ func (c *connCtx) Catalog() *catalog.Catalog {
 
 func (c *connCtx) Variables() *variable.Container {
 	return c.variables
-}
-
-func (_ *connCtx) Tomb() *tomb.Tomb {
-	return &tomb.Tomb{}
 }
 
 func getOptions(t *testing.T) options.SqldOptions {
@@ -96,12 +101,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		return
 	}
 
-	session, err := sessionProvider.GetSession()
-	if err != nil {
-		t.Fatalf("failed to get session: %v", err)
-		return
-	}
-	collectionTwo := session.DB(dbOne).C(tableTwoName)
+	s := dbutils.GetServer(testMongoHost, testMongoPort)
 
 	Convey("With a simple test configuration...", t, func() {
 
@@ -129,10 +129,13 @@ func TestMongoSourcePlanStage(t *testing.T) {
 				expected = append(expected, values)
 			}
 
-			collectionTwo.DropCollection()
-
-			for _, row := range rows {
-				So(collectionTwo.Insert(row), ShouldBeNil)
+			dbutils.DropCollection(s, dbOne, tableTwoName)
+			dbutils.InsertDocuments(s, dbOne, tableTwoName, rows)
+			sessionCtx := context.Background()
+			session, err := sessionProvider.GetSession(sessionCtx)
+			if err != nil {
+				t.Fatalf("failed to get session: %v", err)
+				return
 			}
 
 			cCtx := &connCtx{

@@ -15,7 +15,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 func createFieldNameLookup(db *schema.Database) fieldNameLookup {
@@ -3015,7 +3015,7 @@ func TestTranslatePredicate(t *testing.T) {
 		db, ok := schema.Database(dbOne)
 		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
-			versionAtLeast:  func(_ ...int) bool { return true },
+			versionAtLeast:  func(_ ...uint8) bool { return true },
 			lookupFieldName: createFieldNameLookup(db),
 		}
 
@@ -3050,7 +3050,7 @@ func TestTranslatePredicate(t *testing.T) {
 		db, ok := schema.Database(dbOne)
 		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
-			versionAtLeast:  func(_ ...int) bool { return true },
+			versionAtLeast:  func(_ ...uint8) bool { return true },
 			lookupFieldName: createFieldNameLookup(db),
 		}
 
@@ -3149,7 +3149,7 @@ func TestExprNoPushdown(t *testing.T) {
 		db, ok := schema.Database(dbOne)
 		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
-			versionAtLeast:  func(_ ...int) bool { return true },
+			versionAtLeast:  func(_ ...uint8) bool { return true },
 			lookupFieldName: createFieldNameLookup(db),
 		}
 		for _, t := range tests {
@@ -3214,7 +3214,7 @@ func TestTranslateExpr(t *testing.T) {
 		db, ok := schema.Database(dbOne)
 		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
-			versionAtLeast:  func(_ ...int) bool { return true },
+			versionAtLeast:  func(_ ...uint8) bool { return true },
 			lookupFieldName: createFieldNameLookup(db),
 		}
 		for _, t := range tests {
@@ -3335,7 +3335,7 @@ func TestTranslateExpr(t *testing.T) {
 		db, ok := schema.Database(dbOne)
 		So(ok, ShouldBeTrue)
 		translator := &pushDownTranslator{
-			versionAtLeast:  func(_ ...int) bool { return true },
+			versionAtLeast:  func(_ ...uint8) bool { return true },
 			lookupFieldName: createFieldNameLookup(db),
 		}
 

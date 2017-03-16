@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
@@ -2432,7 +2432,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 			test("100000000000000000000000000000000000", SQLDecimal128(d))
 
 			oldVersionArray := testInfo.VersionArray
-			testInfo.VersionArray = []int{3, 2, 0}
+			testInfo.VersionArray = []uint8{3, 2, 0}
 			test("30.2", SQLFloat(30.2))
 			test("-30.2", SQLFloat(-30.2))
 			f, _ := strconv.ParseFloat("1000000000000000000000000000000000000", 64)
@@ -2562,7 +2562,7 @@ func TestNoSharedPipelines(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
-	testInfo := getMongoDBInfo([]int{3, 2}, testSchema, mongodb.AllPrivileges)
+	testInfo := getMongoDBInfo([]uint8{3, 2}, testSchema, mongodb.AllPrivileges)
 	testVariables := createTestVariables(testInfo)
 	testCatalog := getCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"

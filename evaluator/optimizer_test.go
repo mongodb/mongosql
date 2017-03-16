@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/kr/pretty"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 )
 
 type pipelineGatherer struct {
@@ -40,7 +40,7 @@ func TestOptimizePlan32(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
-	testInfo := getMongoDBInfo([]int{3, 2}, testSchema, mongodb.AllPrivileges)
+	testInfo := getMongoDBInfo([]uint8{3, 2}, testSchema, mongodb.AllPrivileges)
 	testVariables := createTestVariables(testInfo)
 	testCatalog := getCatalogFromSchema(testSchema, testVariables)
 	defaultDbName := "test"

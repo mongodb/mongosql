@@ -2,9 +2,9 @@ package mongo_test
 
 import (
 	_ "fmt"
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
 

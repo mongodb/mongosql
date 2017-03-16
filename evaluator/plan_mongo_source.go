@@ -2,12 +2,15 @@ package evaluator
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+
+	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/log"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/sqlproxy/mongodb"
 )
 
 // MongoSourceStage is the primary interface for SQLProxy to a MongoDB
@@ -92,7 +95,8 @@ func (ms *MongoSourceStage) isView() bool {
 func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	errChan := make(chan error, 1)
 
-	var iter FindResults
+	var iter mongodb.Cursor
+	var err error
 
 	go func() {
 		// As we're using the same session per client connection, it
@@ -105,35 +109,35 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 				ctx.Logger(log.NetworkComponent).Warnf(log.DebugHigh, "data access MongoDB session closed: %v", r)
 			}
 		}()
-		iter = MgoFindResults{ctx.Session().DB(ms.dbName).C(ms.collectionNames[0]).Pipe(ms.pipeline).AllowDiskUse().Iter()}
-		errChan <- nil
+		iter, err = ctx.Session().Aggregate(ms.dbName, ms.collectionNames[0], ms.pipeline)
+		errChan <- err
 	}()
 
 	select {
-	case <-ctx.ConnectionCtx.Tomb().Dying():
-		return nil, ctx.ConnectionCtx.Tomb().Err()
-	case <-errChan:
+	case <-ctx.Context().Done():
+		return nil, ctx.Context().Err()
+	case err = <-errChan:
 	}
 
 	return &MongoSourceIter{
 		mappingRegistry: ms.mappingRegistry,
-		ctx:             ctx,
+		ctx:             ctx.Context(),
 		iter:            iter,
 		err:             nil,
-	}, nil
+	}, err
 }
 
 type MongoSourceIter struct {
 	mappingRegistry *mappingRegistry
-	ctx             *ExecutionCtx
-	iter            FindResults
+	ctx             context.Context
+	iter            mongodb.Cursor
 	err             error
 }
 
 func (ms *MongoSourceIter) Next(row *Row) bool {
 
 	document := &bson.D{}
-	if !ms.iter.Next(document) {
+	if !ms.iter.Next(ms.ctx, document) {
 		return false
 	}
 
@@ -176,7 +180,7 @@ func (ms *MongoSourceStage) Collation() *collation.Collation {
 }
 
 func (ms *MongoSourceIter) Close() error {
-	return ms.iter.Close()
+	return ms.iter.Close(ms.ctx)
 }
 
 func (ms *MongoSourceIter) Err() error {

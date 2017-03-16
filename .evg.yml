@@ -129,6 +129,7 @@ buildvariants:
   - "!.oneoff-task"
 - name: rhel-71-ppc64le
   display_name: RHEL 7.1 PPC64LE
+  disabled: true
   expansions:
     # RHEL 7.1 PPC64LE machines kerberos setup does not work
     build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
@@ -146,6 +147,7 @@ buildvariants:
   - "!.oneoff-task"
 - name: rhel-72-s390x
   display_name: RHEL 7.2 s390x (nightly)
+  disabled: true
   expansions:
     build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
     cover: "-"

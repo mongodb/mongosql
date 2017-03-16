@@ -40,8 +40,8 @@ func (s *SetExecutor) Run() error {
 	}()
 
 	select {
-	case <-s.ctx.ConnectionCtx.Tomb().Dying():
-		err = s.ctx.ConnectionCtx.Tomb().Err()
+	case <-s.ctx.ConnectionCtx.Context().Done():
+		err = s.ctx.ConnectionCtx.Context().Err()
 	case err = <-executorChan:
 	}
 

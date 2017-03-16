@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/schema"
-	"gopkg.in/mgo.v2/bson"
 )
 
 const (
@@ -102,7 +102,7 @@ var (
 )
 
 type pushDownTranslator struct {
-	versionAtLeast  func(...int) bool
+	versionAtLeast  func(...uint8) bool
 	lookupFieldName fieldNameLookup
 }
 

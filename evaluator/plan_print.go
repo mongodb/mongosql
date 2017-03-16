@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/util/bsonutil"
 )
 
 // PrettyPrintCommand takes a command and prints it out.

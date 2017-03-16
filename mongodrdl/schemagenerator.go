@@ -24,26 +24,6 @@ type Schema struct {
 	Databases []*relational.Database `yaml:"schema"`
 }
 
-func NewSchemaGenerator(db, collection, outputFile string, sslOptions *options.DrdlSSL) *SchemaGenerator {
-	gen := &SchemaGenerator{
-		ToolOptions: &options.DrdlOptions{
-			DrdlNamespace: &options.DrdlNamespace{
-				DB:         db,
-				Collection: collection,
-			},
-			DrdlSSL: sslOptions,
-		},
-		OutputOptions: &options.DrdlOutput{
-			Out: outputFile,
-		},
-		SampleOptions: &options.DrdlSample{SampleSize: 1000},
-	}
-
-	gen.Init()
-
-	return gen
-}
-
 func (schemaGen *SchemaGenerator) Init() error {
 	if schemaGen.OutputOptions.Out == "" {
 		schemaGen.OutputOptions.Out = "-"

@@ -5,8 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/tomb.v2"
-
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
@@ -27,8 +25,10 @@ func (c *conn) handleCommand(stmt parser.Statement) error {
 }
 
 func (c *conn) handleQuery(sql string) (err error) {
-	if !c.tomb.Alive() {
-		c.tomb = &tomb.Tomb{}
+	select {
+	case <-c.ctx.Done():
+		c.refreshContext()
+	default:
 	}
 
 	defer func() {

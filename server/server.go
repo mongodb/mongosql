@@ -154,7 +154,8 @@ func (s *Server) killQuery(connID uint32) error {
 		s.activeConnectionsMx.RUnlock()
 		return mysqlerrors.Defaultf(mysqlerrors.ER_NO_SUCH_THREAD, connID)
 	}
-	c.tomb.Kill(mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED))
+
+	c.cancel()
 	s.activeConnectionsMx.RUnlock()
 	return nil
 }
@@ -173,7 +174,13 @@ func (s *Server) removeConnection(c *conn) {
 }
 
 func (s *Server) serveConnection(c net.Conn) {
-	conn := newConn(s, c)
+	conn, err := newConn(s, c)
+	if err != nil {
+		logger := log.GlobalLogger()
+		logger.Logf(log.Info, "[initandlisten] problem connecting to MongoDB: %v", err)
+		c.Close()
+		return
+	}
 
 	defer func() {
 		if err := recover(); err != nil {

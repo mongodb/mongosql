@@ -235,9 +235,9 @@ streamer:
 			count++
 			totalBytes += len(data)
 
-		case <-c.tomb.Dying():
+		case <-c.ctx.Done():
 			iter.Close()
-			return c.tomb.Err()
+			return c.ctx.Err()
 		}
 	}
 

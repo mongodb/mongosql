@@ -3,7 +3,7 @@ package mongodb
 import (
 	"testing"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

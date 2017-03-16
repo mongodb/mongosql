@@ -1,18 +1,17 @@
 package evaluator
 
 import (
+	"context"
 	"fmt"
 	"math"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
-	"gopkg.in/tomb.v2"
 )
 
 // bsonDToValues takes a bson.D document and returns
@@ -81,20 +80,20 @@ func (_ fakeConnectionCtx) Catalog() *catalog.Catalog {
 func (_ fakeConnectionCtx) ConnectionId() uint32 {
 	return 42
 }
+func (_ fakeConnectionCtx) Context() context.Context {
+	return context.Background()
+}
 func (_ fakeConnectionCtx) DB() string {
 	return "test"
 }
 func (_ fakeConnectionCtx) Kill(id uint32, scope KillScope) error {
 	return nil
 }
-func (_ fakeConnectionCtx) Session() *mgo.Session {
+func (_ fakeConnectionCtx) Session() *mongodb.Session {
 	return nil
 }
 func (_ fakeConnectionCtx) User() string {
 	return "test user"
-}
-func (_ fakeConnectionCtx) Tomb() *tomb.Tomb {
-	return &tomb.Tomb{}
 }
 func (f fakeConnectionCtx) Variables() *variable.Container {
 	if f.variables == nil {
@@ -264,9 +263,9 @@ func getSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 
 // getMongoDBInfo returns Info without looking up the information in MongoDB by setting
 // all privileges to the specified privileges.
-func getMongoDBInfo(versionArray []int, sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
+func getMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
 	if len(versionArray) == 0 {
-		versionArray = []int{3, 4, 0}
+		versionArray = []uint8{3, 4, 0}
 	}
 
 	versionString := ""

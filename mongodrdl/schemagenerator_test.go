@@ -1,6 +1,7 @@
 package mongodrdl_test
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -8,20 +9,26 @@ import (
 	"time"
 
 	yaml "github.com/10gen/candiedyaml"
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/testutils"
+	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl"
+	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	"github.com/10gen/sqlproxy/options"
+
+	"github.com/10gen/sqlproxy/util"
+
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/mongoimport"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 const (
 	DatabaseName = "test"
 	SSLTestKey   = "SQLPROXY_SSLTEST"
+	host         = "mongodb://localhost:27017"
 )
 
 func getSslOpts() *options.DrdlSSL {
@@ -45,6 +52,9 @@ func TestConfiguration(t *testing.T) {
 					DB:         "testdb",
 					Collection: "mongoddl",
 				},
+				DrdlConnection: &options.DrdlConnection{
+					Host: host,
+				},
 				DrdlSSL: sslOptions,
 			},
 			OutputOptions: &options.DrdlOutput{
@@ -54,7 +64,7 @@ func TestConfiguration(t *testing.T) {
 			SampleOptions: &options.DrdlSample{SampleSize: 1000},
 		}
 
-		gen.Init()
+		So(gen.Init(), ShouldBeNil)
 
 		Convey("output should be testdb.yaml", func() {
 			So(gen.OutputOptions.Out, ShouldEqual, "out/testdb.yml")
@@ -83,6 +93,9 @@ func TestRoundtrips(t *testing.T) {
 					DrdlNamespace: &options.DrdlNamespace{
 						DB: "indexed",
 					},
+					DrdlConnection: &options.DrdlConnection{
+						Host: host,
+					},
 					DrdlSSL: sslOptions,
 				},
 				OutputOptions: &options.DrdlOutput{
@@ -92,30 +105,41 @@ func TestRoundtrips(t *testing.T) {
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
 			}
 
-			gen.Init()
+			So(gen.Init(), ShouldBeNil)
 
 			session, err := gen.Connect()
 			So(err, ShouldBeNil)
 			defer session.Close()
-
-			db := session.DB(gen.ToolOptions.DrdlNamespace.DB)
-			err = db.Run(bson.D{{"profile", 10}, {"slowms", 0}}, bson.M{})
+			db := gen.ToolOptions.DrdlNamespace.DB
+			err = session.Run(
+				db,
+				bson.D{{"profile", 10}, {"slowms", 0}},
+				bson.M{},
+			)
 			So(err, ShouldBeNil)
-			defer db.DropDatabase()
+			server := session.SelectedServer()
+			defer dbutils.DropDatabase(server, db)
+			dbutils.DropDatabase(server, db)
+			documents := []bson.M{
+				bson.M{
+					"first":  "Who",
+					"second": "What",
+				},
+			}
 
-			collection := db.C("test")
-			err = collection.Insert(bson.M{
-				"first":  "Who",
-				"second": "What",
-			})
+			dbutils.InsertDocuments(server, db, "test", documents)
+			dbutils.CreateIndex(server, db, "test", []string{"first", "second"})
+
+			iter, err := session.ListIndexes(db, "test")
 			So(err, ShouldBeNil)
 
-			collection.Find(bson.M{})
-
-			collection.EnsureIndexKey("first", "second")
-			indexes, err := collection.Indexes()
-			So(err, ShouldBeNil)
-			So(indexes, ShouldNotBeNil)
+			indexes, index := []mongodb.Index{}, mongodb.Index{}
+			ctx := context.Background()
+			for iter.Next(ctx, &index) {
+				indexes = append(indexes, index)
+			}
+			So(iter.Close(ctx), ShouldBeNil)
+			So(len(indexes), ShouldEqual, 2)
 
 			gen.Generate()
 			output, err := readYaml(gen.OutputOptions.Out)
@@ -130,6 +154,9 @@ func TestRoundtrips(t *testing.T) {
 					DrdlNamespace: &options.DrdlNamespace{
 						DB: "viewDB",
 					},
+					DrdlConnection: &options.DrdlConnection{
+						Host: host,
+					},
 					DrdlSSL: sslOptions,
 				},
 				OutputOptions: &options.DrdlOutput{
@@ -139,33 +166,34 @@ func TestRoundtrips(t *testing.T) {
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
 			}
 
-			gen.Init()
+			So(gen.Init(), ShouldBeNil)
 
 			session, err := gen.Connect()
 			So(err, ShouldBeNil)
-			bi, err := session.BuildInfo()
-			So(err, ShouldBeNil)
-			db := session.DB(gen.ToolOptions.DrdlNamespace.DB)
+			db := gen.ToolOptions.DrdlNamespace.DB
+			server := session.SelectedServer()
 			defer func() {
-				db.DropDatabase()
+				dbutils.DropDatabase(server, db)
 				session.Close()
 			}()
-
-			So(db.C("base").Insert(
+			documents := []bson.M{
 				bson.M{"a": 1, "b": 123},
 				bson.M{"a": 2, "b": 134},
 				bson.M{"a": 3, "b": "s"},
-			), ShouldBeNil)
+			}
+			dbutils.InsertDocuments(server, db, "base", documents)
 
-			if bi.VersionAtLeast(3, 3, 0) {
-				So(db.Run(bson.D{
+			version := session.Description().Version
+			versionArray := version.Parts
+			if util.VersionAtLeast(versionArray, []uint8{3, 3, 0}) {
+				So(session.Run(db, bson.D{
 					{"create", "view"},
 					{"viewOn", "base"},
 					{"pipeline", []bson.M{{"$match": bson.M{"a": 3}}}},
 				}, &struct{}{}), ShouldBeNil)
 
 				// for views, get indexes should return an error
-				_, err = db.C("view").Indexes()
+				_, err := session.ListIndexes(db, "view")
 				So(err, ShouldNotBeNil)
 
 				gen.Generate()
@@ -183,6 +211,9 @@ func TestRoundtrips(t *testing.T) {
 					DrdlNamespace: &options.DrdlNamespace{
 						DB: "viewDB",
 					},
+					DrdlConnection: &options.DrdlConnection{
+						Host: host,
+					},
 					DrdlSSL: sslOptions,
 				},
 				OutputOptions: &options.DrdlOutput{
@@ -192,41 +223,41 @@ func TestRoundtrips(t *testing.T) {
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
 			}
 
-			gen.Init()
+			So(gen.Init(), ShouldBeNil)
 
+			db := gen.ToolOptions.DrdlNamespace.DB
 			session, err := gen.Connect()
 			So(err, ShouldBeNil)
-			bi, err := session.BuildInfo()
-			So(err, ShouldBeNil)
 			defer session.Close()
-
-			db := session.DB(gen.ToolOptions.DrdlNamespace.DB)
-			defer db.DropDatabase()
-
-			base := db.C("base")
-			So(base.Insert(bson.M{"loc": []bson.M{
-				bson.M{"type": "Point"},
-				bson.M{"coordinates": []interface{}{-73.88, 40.78}}}},
-			), ShouldBeNil)
-
-			idx := mgo.Index{
-				Key:  []string{"$2d:loc.coordinates"},
-				Bits: 26,
+			server := session.SelectedServer()
+			defer dbutils.DropDatabase(server, db)
+			documents := []bson.M{
+				bson.M{
+					"loc": []bson.M{
+						bson.M{"type": "Point"},
+						bson.M{"coordinates": []interface{}{-73.88, 40.78}},
+					},
+				},
 			}
-			So(base.EnsureIndex(idx), ShouldBeNil)
-			indexes, err := base.Indexes()
-			So(err, ShouldBeNil)
-			So(indexes, ShouldNotBeNil)
+			dbutils.InsertDocuments(server, db, "base", documents)
+			dbutils.CreateIndex(server, db, "base", []string{"$2d:loc.coordinates"})
 
-			if bi.VersionAtLeast(3, 3, 0) {
-				So(db.Run(bson.D{
+			iter, err := session.ListIndexes(db, "base")
+			So(err, ShouldBeNil)
+			ctx := context.Background()
+			So(iter.Next(ctx, nil), ShouldNotBeNil)
+
+			version := session.Description().Version
+			versionArray := version.Parts
+			if util.VersionAtLeast(versionArray, []uint8{3, 3, 0}) {
+				So(session.Run(db, bson.D{
 					{"create", "view"},
 					{"viewOn", "base"},
 					{"pipeline", []bson.M{}},
 				}, &struct{}{}), ShouldBeNil)
 
 				// for views, get indexes should return an error
-				_, err = db.C("view").Indexes()
+				_, err = session.ListIndexes(db, "view")
 				So(err, ShouldNotBeNil)
 
 				gen.Generate()
@@ -244,6 +275,9 @@ func TestRoundtrips(t *testing.T) {
 					DrdlNamespace: &options.DrdlNamespace{
 						DB: "admin",
 					},
+					DrdlConnection: &options.DrdlConnection{
+						Host: host,
+					},
 					DrdlSSL: sslOptions,
 				},
 				OutputOptions: &options.DrdlOutput{
@@ -252,7 +286,8 @@ func TestRoundtrips(t *testing.T) {
 				},
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
 			}
-			gen.Init()
+
+			So(gen.Init(), ShouldBeNil)
 
 			session, err := gen.Connect()
 			So(err, ShouldBeNil)
@@ -294,6 +329,9 @@ func TestRoundtrips(t *testing.T) {
 						DB:         DatabaseName,
 						Collection: "complete_schema",
 					},
+					DrdlConnection: &options.DrdlConnection{
+						Host: host,
+					},
 					DrdlSSL: sslOptions,
 				},
 				OutputOptions: &options.DrdlOutput{
@@ -310,7 +348,7 @@ func TestRoundtrips(t *testing.T) {
 }
 
 func testJson(collection string, prejoined bool) {
-	gen := mongodrdl.NewSchemaGenerator(DatabaseName, collection, fmt.Sprintf("out/%s.yml", collection), getSslOpts())
+	gen := newSchemaGenerator(DatabaseName, collection, fmt.Sprintf("out/%s.yml", collection), getSslOpts())
 	gen.OutputOptions.PreJoined = prejoined
 	name := collection + "-expected"
 	if prejoined {
@@ -320,17 +358,15 @@ func testJson(collection string, prejoined bool) {
 }
 
 func compareYaml(gen *mongodrdl.SchemaGenerator, collection string, expectedName string) {
-	gen.Init()
+
+	So(gen.Init(), ShouldBeNil)
 
 	session, err := gen.Connect()
 	So(err, ShouldBeNil)
 
 	defer session.Close()
-	db := session.DB(DatabaseName)
-	So(db, ShouldNotBeNil)
-	coll := db.C(collection)
-	So(coll, ShouldNotBeNil)
-	err = coll.DropCollection()
+	server := session.SelectedServer()
+	dbutils.DropCollection(server, DatabaseName, collection)
 
 	importJson(gen, DatabaseName, collection, fmt.Sprintf("testdata/%s.json", collection))
 
@@ -347,10 +383,12 @@ func compareYaml(gen *mongodrdl.SchemaGenerator, collection string, expectedName
 	So(toString(output), ShouldEqual, toString(expected))
 }
 
-func importJson(schema *mongodrdl.SchemaGenerator, dbName string, collName string, fileName string, indexes ...mgo.Index) {
+func importJson(schema *mongodrdl.SchemaGenerator, dbName, collName,
+	fileName string, indexes ...mongodb.Index) {
 	session, err := schema.Connect()
 	So(err, ShouldBeNil)
 	defer session.Close()
+	server := session.SelectedServer()
 
 	opts := toolsoptions.New("mongoimport", mongoimport.Usage,
 		toolsoptions.EnabledOptions{Auth: true, Connection: true, Namespace: true})
@@ -392,11 +430,35 @@ func importJson(schema *mongodrdl.SchemaGenerator, dbName string, collName strin
 	So(err, ShouldBeNil)
 	time.Sleep(1 * time.Second)
 
-	coll := session.DB(dbName).C(collName)
 	for _, index := range indexes {
-		err = coll.EnsureIndex(index)
-		So(err, ShouldBeNil)
+		dbutils.CreateIndex(server, dbName, collName, relational.SimpleIndexKey(index.Key))
+
 	}
+}
+
+func newSchemaGenerator(db, collection, outputFile string, sslOptions *options.DrdlSSL) *mongodrdl.SchemaGenerator {
+	gen := &mongodrdl.SchemaGenerator{
+		ToolOptions: &options.DrdlOptions{
+			DrdlNamespace: &options.DrdlNamespace{
+				DB:         db,
+				Collection: collection,
+			},
+			DrdlConnection: &options.DrdlConnection{
+				Host: host,
+			},
+			DrdlSSL: sslOptions,
+		},
+		OutputOptions: &options.DrdlOutput{
+			Out: outputFile,
+		},
+		SampleOptions: &options.DrdlSample{SampleSize: 1000},
+	}
+
+	if err := gen.Init(); err != nil {
+		panic(err)
+	}
+
+	return gen
 }
 
 func readYaml(file string) (*mongodrdl.Schema, error) {

@@ -1,33 +1,26 @@
 package mongodrdl
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 var (
 	logger = log.NewComponentLogger(relational.MongodrdlComponent, log.GlobalLogger())
 )
 
-func (schemaGen *SchemaGenerator) Connect() (*mgo.Session, error) {
-	session, err := schemaGen.provider.GetSession()
+func (schemaGen *SchemaGenerator) Connect() (*mongodb.Session, error) {
+	session, err := schemaGen.provider.GetSession(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("can't create session: %v", err)
-	}
-
-	bi, err := session.BuildInfo()
-	if err != nil {
-		return nil, fmt.Errorf("can't fetch build information: %v", err)
-	}
-
-	if !bi.VersionAtLeast(3, 2, 0) {
-		return nil, fmt.Errorf("server version is %v but version >= 3.2.0 required", bi.Version)
 	}
 
 	return session, nil
@@ -40,19 +33,29 @@ func (schemaGen *SchemaGenerator) ExportSchemaForDatabase() (*relational.Databas
 	}
 
 	logger.Logf(log.Info, "Exporting schema for database %q.", schemaGen.ToolOptions.DB)
-	db := session.DB(schemaGen.ToolOptions.DB)
-	names, err := db.CollectionNames()
+
+	iter, err := session.ListCollections(schemaGen.ToolOptions.DB)
 	if err != nil {
-		return nil, fmt.Errorf("Can't get the collection names for %s,  session: %v", schemaGen.ToolOptions.DB, err)
+		return nil, fmt.Errorf("Can't get the collection names for %s: %v", schemaGen.ToolOptions.DB, err)
+	}
+
+	var colResult struct {
+		Name string `bson:"name"`
 	}
 
 	database := relational.NewDatabase(schemaGen.ToolOptions.DB)
 
-	for _, name := range names {
-		err := schemaGen.mapCollection(database, db.C(name))
+	ctx := session.Context()
+
+	for iter.Next(ctx, &colResult) {
+		err := schemaGen.mapCollection(database, colResult.Name, session)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if err := iter.Close(ctx); err != nil {
+		return nil, err
 	}
 
 	return database, nil
@@ -64,9 +67,8 @@ func (schemaGen *SchemaGenerator) ExportSchemaForCollection() (*relational.Datab
 		return nil, err
 	}
 
-	db := session.DB(schemaGen.ToolOptions.DB)
 	database := relational.NewDatabase(schemaGen.ToolOptions.DB)
-	err = schemaGen.mapCollection(database, db.C(schemaGen.ToolOptions.Collection))
+	err = schemaGen.mapCollection(database, schemaGen.ToolOptions.Collection, session)
 	if err != nil {
 		return nil, err
 	}
@@ -74,84 +76,85 @@ func (schemaGen *SchemaGenerator) ExportSchemaForCollection() (*relational.Datab
 	return database, nil
 }
 
-func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, collection *mgo.Collection) error {
-	if strings.HasPrefix(collection.Name, "system.") {
-		logger.Logf(log.Info, "Skipping system collection %q.", collection.Name)
+func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, collectionName string, session *mongodb.Session) error {
+	dbName := schemaGen.ToolOptions.DB
+	if strings.HasPrefix(collectionName, "system.") {
+		logger.Logf(log.Info, "Skipping system collection %s", collectionName)
 		return nil
 	}
 
-	logger.Logf(log.Info, "Exporting tables for %q.", collection.FullName)
-	pipeline := collection.Pipe([]bson.M{{"$sample": bson.M{"size": schemaGen.SampleOptions.SampleSize}}}).AllowDiskUse()
-	iter := pipeline.Iter()
-	if iter.Err() != nil {
-		return iter.Err()
+	logger.Logf(log.Info, "Exporting tables for %s.%s", dbName, collectionName)
+	pipeline := []bson.M{{"$sample": bson.M{"size": schemaGen.SampleOptions.SampleSize}}}
+
+	iter, err := session.Aggregate(dbName, collectionName, pipeline)
+	if err != nil {
+		return err
 	}
 
-	col := mongo.NewCollection(collection.Name)
-
-	var doc bson.D
-	for iter.Next(&doc) {
-		// NOTE: Perhaps marshal to json???
+	col := mongo.NewCollection(collectionName)
+	ctx := session.Context()
+	doc := &bson.D{}
+	for iter.Next(ctx, doc) {
 		logger.Logf(log.DebugHigh, "Including sample: %v", doc)
-		err := col.IncludeSample(doc)
+		err := col.IncludeSample(*doc)
 		if err != nil {
 			logger.Logf(log.Always, "Error including sample: %+v", doc)
 			return err
 		}
+
+		doc = &bson.D{}
 	}
 
-	if err := iter.Close(); err != nil {
-		return err
-	}
-
-	if err := iter.Err(); err != nil {
+	if err := iter.Close(ctx); err != nil {
 		return err
 	}
 
 	if database.Views == nil {
-		var result struct {
-			Cursor struct {
-				ID         int64
-				FirstBatch []bson.Raw "firstBatch"
-			}
-		}
-
-		err := collection.Database.Run(bson.D{{"listCollections", 1}}, &result)
-		if err != nil {
-			return err
-		}
-
-		iter := collection.NewIter(nil, result.Cursor.FirstBatch, result.Cursor.ID, nil)
-		var colResult struct {
+		type colResult struct {
 			Name string `bson:"name"`
 			Type string `bson:"type"`
 		}
 
+		results := colResult{}
+
+		iter, err := session.ListCollections(dbName)
+		if err != nil {
+			return fmt.Errorf("failed to run listCollections on database '%v': %v", dbName, err)
+		}
+
 		database.Views = map[string]struct{}{}
 
-		for iter.Next(&colResult) {
-			if colResult.Type == "view" {
-				database.Views[colResult.Name] = struct{}{}
+		for iter.Next(ctx, &results) {
+			if results.Type == "view" {
+				database.Views[results.Name] = struct{}{}
 			}
+			results = colResult{}
 		}
 
-		if err = iter.Close(); err != nil {
+		if err = iter.Close(ctx); err != nil {
 			return err
 		}
 
-		if err = iter.Err(); err != nil {
-			return err
-		}
 	}
 
-	if _, ok := database.Views[collection.Name]; ok {
-		return database.Map(col, []mgo.Index{}, schemaGen.OutputOptions.PreJoined)
+	if _, ok := database.Views[collectionName]; ok {
+		return database.Map(col, []mongodb.Index{}, schemaGen.OutputOptions.PreJoined)
 	}
 
 	// Indexes are needed in order to determine certain
 	// types like geo fields.
-	indexes, err := collection.Indexes()
+	iter, err = session.ListIndexes(dbName, collectionName)
 	if err != nil {
+		return fmt.Errorf("failed to run listIndexes on database '%v': %v", dbName, err)
+	}
+
+	indexes, index := []mongodb.Index{}, mongodb.Index{}
+
+	for iter.Next(ctx, &index) {
+		indexes = append(indexes, index)
+	}
+
+	if err = iter.Close(ctx); err != nil {
 		return err
 	}
 

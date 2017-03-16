@@ -2,24 +2,28 @@
 package openssl
 
 import (
+	"context"
 	"fmt"
 	"net"
 
+	"github.com/10gen/mongo-go-driver/cluster"
+	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/readpref"
+
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/options"
-	"github.com/10gen/sqlproxy/util"
+
 	"github.com/spacemonkeygo/openssl"
-	"gopkg.in/mgo.v2"
 )
 
 type (
 	// SSLDBConnector is a connector for dialing the database, with SSL.
 	SSLDBConnector struct {
-		dialInfo  *mgo.DialInfo
-		dialError error
-		ctx       *openssl.Ctx
+		ctx      *openssl.Ctx
+		dialInfo *mongodb.DialInfo
 	}
 
-	dialerFunc func(addr *mgo.ServerAddr) (net.Conn, error)
+	dialerFunc func(ctx context.Context, endPoint conn.Endpoint) (net.Conn, error)
 
 	sslInitializationFunction func(options.Options) error
 )
@@ -28,15 +32,13 @@ var (
 	sslInitializationFunctions []sslInitializationFunction
 )
 
-func (s *SSLDBConnector) ConfigureDrdl(opts options.DrdlOptions) error {
-	connectionAddrs := util.CreateConnectionAddrs(opts.Host, opts.Port)
-
-	var err error
-
-	s.ctx, err = setupDrdlCtx(opts)
+func (s *SSLDBConnector) ConfigureDrdl(opts options.DrdlOptions, dialInfo *mongodb.DialInfo) error {
+	ctx, err := setupDrdlCtx(opts)
 	if err != nil {
 		return fmt.Errorf("openssl configuration: %v", err)
 	}
+
+	s.ctx = ctx
 
 	var flags openssl.DialFlags
 	flags = 0
@@ -45,54 +47,12 @@ func (s *SSLDBConnector) ConfigureDrdl(opts options.DrdlOptions) error {
 		flags = openssl.InsecureSkipHostVerification
 	}
 
-	dialer := func(addr *mgo.ServerAddr) (net.Conn, error) {
-		conn, err := openssl.Dial("tcp", addr.String(), s.ctx, flags)
-		s.dialError = err
-		return conn, err
-	}
-
-	s.dialInfo = &mgo.DialInfo{
-		Addrs:          connectionAddrs,
-		FailFast:       true,
-		Direct:         opts.Direct,
-		ReplicaSetName: opts.ReplicaSetName,
-		DialServer:     dialer,
-		Username:       opts.DrdlAuth.Username,
-		Password:       opts.DrdlAuth.Password,
-		Source:         opts.GetAuthenticationDatabase(),
-		Mechanism:      opts.DrdlAuth.Mechanism,
-	}
-
-	return nil
+	s.dialInfo = dialInfo
+	s.setEndpointDialer(flags)
+	return err
 }
 
-func (s *SSLDBConnector) ConfigureSqld(opts options.SqldOptions) error {
-
-	dialInfo, err := mgo.ParseURL(*opts.MongoURI)
-	if err != nil {
-		return fmt.Errorf("parse URL: %v", err)
-	}
-
-	if dialInfo.Username != "" || dialInfo.Password != "" || dialInfo.Source != "" {
-		return fmt.Errorf("--mongo-uri may not contain any authentication information")
-	}
-	if dialInfo.Database != "" {
-		return fmt.Errorf("--mongo-uri may not contain database name")
-	}
-	if dialInfo.Mechanism != "" {
-		return fmt.Errorf("--mongo-uri may not contain any authentication mechanism")
-	}
-	if dialInfo.Service != "" {
-		return fmt.Errorf("unsupported: --mongo-uri may not contain GSSAPI service name")
-	}
-	if dialInfo.ServiceHost != "" {
-		return fmt.Errorf("unsupported: --mongo-uri may not contain GSSAPI hostname")
-	}
-
-	dialInfo.FailFast = true
-
-	s.dialInfo = dialInfo
-
+func (s *SSLDBConnector) ConfigureSqld(opts options.SqldOptions, dialInfo *mongodb.DialInfo) error {
 	ctx, err := SetupSqldCtx(opts, false)
 	if err != nil {
 		return fmt.Errorf("openssl configuration: %v", err)
@@ -107,23 +67,39 @@ func (s *SSLDBConnector) ConfigureSqld(opts options.SqldOptions) error {
 		flags = openssl.InsecureSkipHostVerification
 	}
 
-	dialer := func(addr *mgo.ServerAddr) (net.Conn, error) {
-		conn, err := openssl.Dial("tcp", addr.String(), s.ctx, flags)
-		s.dialError = err
-		return conn, err
-	}
-
-	s.dialInfo.DialServer = dialer
-
+	s.dialInfo = dialInfo
+	s.setEndpointDialer(flags)
 	return nil
 }
 
-func (s *SSLDBConnector) GetNewSession() (*mgo.Session, error) {
-	session, err := mgo.DialWithInfo(s.dialInfo)
-	if err != nil && s.dialError != nil {
-		return nil, fmt.Errorf("%v, openssl error: %v", err, s.dialError)
+func (s *SSLDBConnector) GetNewSession(ctx context.Context, monitor *cluster.Monitor,
+	readPreference *readpref.ReadPref) (*mongodb.Session, error) {
+
+	session, err := s.dialInfo.Dial(ctx, monitor, readPreference)
+	if err != nil {
+		return nil, err
 	}
 	return session, err
+}
+
+func (s *SSLDBConnector) setEndpointDialer(flags openssl.DialFlags) {
+	s.dialInfo.EndpointDialer = func(ctx context.Context, endPoint conn.Endpoint) (net.Conn, error) {
+		var conn net.Conn
+		var err error
+		connChan := make(chan struct{})
+
+		go func() {
+			conn, err = openssl.Dial("tcp", string(endPoint), s.ctx, flags)
+			connChan <- struct{}{}
+		}()
+
+		select {
+		case <-connChan:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		return conn, err
+	}
 }
 
 func setupDrdlCtx(opts options.DrdlOptions) (*openssl.Ctx, error) {

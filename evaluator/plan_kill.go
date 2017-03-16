@@ -64,8 +64,8 @@ func (k *KillExecutor) Run() error {
 	}()
 
 	select {
-	case <-k.ctx.ConnectionCtx.Tomb().Dying():
-		err = k.ctx.ConnectionCtx.Tomb().Err()
+	case <-k.ctx.ConnectionCtx.Context().Done():
+		err = k.ctx.ConnectionCtx.Context().Err()
 	case err = <-executorChan:
 	}
 

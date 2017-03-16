@@ -1,9 +1,9 @@
 package evaluator
 
 import (
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // BSONSource is the simple interface for SQLProxy to simulate

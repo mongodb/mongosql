@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/mongodb"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
 )
 
 func TestCompareString(t *testing.T) {
@@ -41,7 +41,7 @@ func TestCompareString(t *testing.T) {
 
 		Convey("From MongoDB", func() {
 			Convey("only locale", func() {
-				subject, err := collation.FromMongoDB(&mgo.Collation{
+				subject, err := collation.FromMongoDB(&mongodb.Collation{
 					Locale: "en_US",
 				})
 				So(err, ShouldBeNil)
@@ -53,7 +53,7 @@ func TestCompareString(t *testing.T) {
 			})
 
 			Convey("locale and strength", func() {
-				subject, err := collation.FromMongoDB(&mgo.Collation{
+				subject, err := collation.FromMongoDB(&mongodb.Collation{
 					Locale:   "en_US",
 					Strength: 1,
 				})
@@ -72,7 +72,7 @@ func TestFromToMongoDB(t *testing.T) {
 	Convey("Subject: From and To MongoDB", t, func() {
 
 		Convey("only locale", func() {
-			result, err := collation.FromMongoDB(&mgo.Collation{
+			result, err := collation.FromMongoDB(&mongodb.Collation{
 				Locale: "es",
 			})
 
@@ -96,7 +96,7 @@ func TestFromToMongoDB(t *testing.T) {
 		})
 
 		Convey("all options", func() {
-			result, err := collation.FromMongoDB(&mgo.Collation{
+			result, err := collation.FromMongoDB(&mongodb.Collation{
 				Locale:          "de-AU",
 				CaseLevel:       true,
 				CaseFirst:       "lower",

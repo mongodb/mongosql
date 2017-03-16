@@ -5,9 +5,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/10gen/mongo-go-driver/bson"
+
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
-	"gopkg.in/mgo.v2"
 )
 
 const (
@@ -31,11 +33,11 @@ func (slice fieldSlice) Sort()              { sort.Sort(slice) }
 type mappingContext struct {
 	db           *Database
 	table        *Table
-	indexes      []mgo.Index
+	indexes      []mongodb.Index
 	inPrimaryKey bool
 }
 
-func (d *Database) Map(c *mongo.Collection, idxs []mgo.Index, preJoined bool) error {
+func (d *Database) Map(c *mongo.Collection, idxs []mongodb.Index, preJoined bool) error {
 	logger.Logf(log.Info, "Adding table %q.", c.Name)
 	t, err := d.AddTable(c.Name, c.Name)
 	if err != nil {
@@ -351,9 +353,35 @@ func tryGetTypeFromIndex(ctx *mappingContext, path string, types sortByDescendin
 	return nil, false
 }
 
-func tryGetIndex(indexes []mgo.Index, path string) (string, bool) {
+func SimpleIndexKey(realKey bson.D) (key []string) {
+	for i := range realKey {
+		field := realKey[i].Name
+		vi, ok := realKey[i].Value.(int)
+		if !ok {
+			vf, _ := realKey[i].Value.(float64)
+			vi = int(vf)
+		}
+		if vi == 1 {
+			key = append(key, field)
+			continue
+		}
+		if vi == -1 {
+			key = append(key, "-"+field)
+			continue
+		}
+		if vs, ok := realKey[i].Value.(string); ok {
+			key = append(key, "$"+vs+":"+field)
+			continue
+		}
+		panic("Got unknown index key type for field " + field)
+	}
+	return
+}
+
+func tryGetIndex(indexes []mongodb.Index, path string) (string, bool) {
 	for _, index := range indexes {
-		for _, key := range index.Key {
+		keys := SimpleIndexKey(index.Key)
+		for _, key := range keys {
 			if strings.HasSuffix(key, path) {
 				if strings.HasPrefix(key, "$2d:") {
 					return "2d", true

@@ -186,7 +186,7 @@ func ValidateCollectionGrammar(collection string) error {
 	return nil
 }
 
-func VersionAtLeast(versionArray []int, userVersion []int) bool {
+func VersionAtLeast(versionArray []uint8, userVersion []uint8) bool {
 	for idx, vi := range userVersion {
 		if idx == len(versionArray) {
 			return false

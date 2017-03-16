@@ -137,23 +137,23 @@ func MongodbVersionAtLeast(versionString string) bool {
 	}
 
 	strServerVersion := strings.Split(*ServerVersion, ".")
-	serverVersion := make([]int, len(strServerVersion))
+	serverVersion := make([]uint8, len(strServerVersion))
 	for i, str := range strServerVersion {
 		num, err := strconv.ParseInt(str, 0, 0)
 		if err != nil {
 			panic(err)
 		}
-		serverVersion[i] = int(num)
+		serverVersion[i] = uint8(num)
 	}
 
 	strVersion := strings.Split(versionString, ".")
-	version := make([]int, len(strVersion))
+	version := make([]uint8, len(strVersion))
 	for i, str := range strVersion {
 		num, err := strconv.ParseInt(str, 0, 0)
 		if err != nil {
 			panic(err)
 		}
-		version[i] = int(num)
+		version[i] = uint8(num)
 	}
 
 	return util.VersionAtLeast(serverVersion, version)

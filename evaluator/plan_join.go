@@ -164,8 +164,8 @@ func (iter *JoinIter) fetchRows(it Iter, ch chan<- *Row, errChan chan error) {
 			}
 
 			ch <- row
-		case <-iter.ctx.Tomb().Dying():
-			errChan <- iter.ctx.Tomb().Err()
+		case <-iter.ctx.Context().Done():
+			errChan <- iter.ctx.Context().Err()
 			return
 		}
 	}

@@ -1,4 +1,6 @@
 github.com/10gen/candiedyaml   97add471e803228548f07606c5c73e3d80752ce5
+# NEED TO MAKE THIS PUBLIC SO vendor.sh doesn't prompt for password
+# github.com/10gen/mongo-go-driver   2931bb8e574ceb17c8a6204306a1c32526484a26
 github.com/go-sql-driver/mysql			v1.2
 github.com/howeyc/gopass	44476384cd4721b68705e72f19e95d1a3a504370
 github.com/jessevdk/go-flags	aa34304f81c710f34c76e964a3d996ec1330711d
@@ -14,4 +16,3 @@ github.com/spacemonkeygo/spacelog ae95ccc1eb0c8ce2496c43177430efd61930f7e4
 golang.org/x/crypto	a7ead6ddf06233883deca151dffaef2effbf498f	github.com/golang/crypto
 golang.org/x/text   ceefd2213ed29504fff30155163c8f59827734f3	github.com/golang/text
 gopkg.in/mgo.v2   7ddd511871dec26ace0517365e4e496b545159b5	github.com/10gen/mgo
-gopkg.in/tomb.v2			                    14b3d72120e8d10ea6e6b7f87f7175734b1faab8

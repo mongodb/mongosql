@@ -2,14 +2,14 @@ package evaluator
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"gopkg.in/mgo.v2/bson"
 )
 
 const (
@@ -107,6 +107,17 @@ func containsStringInsensitive(strs []string, str string) bool {
 	})
 }
 
+// findValueByKey returns the value of keyName in document. If keyName is not found
+// in the top-level of the document, ErrNoSuchField is returned as the error.
+func findValueByKey(keyName string, document *bson.D) (interface{}, error) {
+	for _, key := range *document {
+		if key.Name == keyName {
+			return key.Value, nil
+		}
+	}
+	return nil, fmt.Errorf("no such field: %v", keyName)
+}
+
 // sanitizeFieldName translates any disallowed characters in a field name into an appropriate replacement.
 func sanitizeFieldName(fieldName string) string {
 	r := strings.Replace(fieldName, ".", Dot, -1)
@@ -144,7 +155,7 @@ func extractFieldByName(fieldName string, document interface{}) (interface{}, bo
 				// dive into a D as a document
 				asD := subdoc.(bson.D)
 				var err error
-				subdoc, err = bsonutil.FindValueByKey(path, &asD)
+				subdoc, err = findValueByKey(path, &asD)
 				if err != nil {
 					return nil, false
 				}

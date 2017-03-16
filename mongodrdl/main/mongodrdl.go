@@ -56,7 +56,6 @@ func main() {
 
 	// connect directly, unless a replica set name is explicitly specified
 	_, setName := util.ParseConnectionString(opts.Host)
-	opts.Direct = (setName == "")
 	opts.ReplicaSetName = setName
 
 	schemaGen := mongodrdl.SchemaGenerator{

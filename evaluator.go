@@ -3,21 +3,21 @@ package sqlproxy
 //go:generate go run testdata/generate.go
 
 import (
-	"fmt"
+	"context"
 
 	"github.com/10gen/sqlproxy/client"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
-	"gopkg.in/mgo.v2"
 )
 
 type Evaluator struct {
-	config  *schema.Schema
-	session *mgo.Session
-	options options.SqldOptions
+	config          *schema.Schema
+	sessionProvider *client.SessionProvider
+	options         options.SqldOptions
 }
 
 func NewEvaluator(cfg *schema.Schema, opts options.SqldOptions) (*Evaluator, error) {
@@ -26,26 +26,21 @@ func NewEvaluator(cfg *schema.Schema, opts options.SqldOptions) (*Evaluator, err
 		return nil, err
 	}
 
-	session, err := sp.GetSession()
+	// on proxy startup attempt to get a session - to validate
+	// the server version
+	session, err := sp.GetSession(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	bi, err := session.BuildInfo()
-	if err != nil {
-		return nil, fmt.Errorf("can't fetch build information: %v", err)
-	}
+	session.Close()
 
-	if !bi.VersionAtLeast(3, 2, 0) {
-		return nil, fmt.Errorf("server version is %v but version >= 3.2.0 required", bi.Version)
-	}
-
-	return &Evaluator{cfg, session, opts}, nil
+	return &Evaluator{cfg, sp, opts}, nil
 }
 
-// Session returns a copy of the evaluator's session.
-func (e *Evaluator) Session() *mgo.Session {
-	return e.session.New()
+// Session returns a new MongoDB session.
+func (e *Evaluator) Session(ctx context.Context) (*mongodb.Session, error) {
+	return e.sessionProvider.GetSession(ctx)
 }
 
 // Schema returns a copy of the evaluator's schema.

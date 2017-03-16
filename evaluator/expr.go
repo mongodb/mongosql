@@ -6,11 +6,11 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
-	"gopkg.in/mgo.v2/bson"
 )
 
 //

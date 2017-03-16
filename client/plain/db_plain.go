@@ -1,67 +1,59 @@
 package plain
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/10gen/mongo-go-driver/cluster"
+	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/readpref"
+
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/options"
-	"github.com/10gen/sqlproxy/util"
-	"gopkg.in/mgo.v2"
 )
 
 // PlainDBConnector is a connector for dialing the database, without SSL.
 type PlainDBConnector struct {
-	dialInfo *mgo.DialInfo
+	dialInfo *mongodb.DialInfo
 }
 
-func (v *PlainDBConnector) ConfigureDrdl(opts options.DrdlOptions) error {
-	connectionAddrs := util.CreateConnectionAddrs(opts.Host, opts.Port)
-
-	v.dialInfo = &mgo.DialInfo{
-		Addrs:          connectionAddrs,
-		FailFast:       true,
-		Direct:         opts.Direct,
-		ReplicaSetName: opts.ReplicaSetName,
-		Username:       opts.DrdlAuth.Username,
-		Password:       opts.DrdlAuth.Password,
-		Source:         opts.GetAuthenticationDatabase(),
-		Mechanism:      opts.DrdlAuth.Mechanism,
-	}
-
+func (v *PlainDBConnector) ConfigureDrdl(_ options.DrdlOptions, dialInfo *mongodb.DialInfo) error {
+	v.dialInfo = dialInfo
+	v.setEndpointDialer()
 	return nil
 }
 
-func (v *PlainDBConnector) ConfigureSqld(opts options.SqldOptions) error {
-	var err error
+func (v *PlainDBConnector) ConfigureSqld(_ options.SqldOptions, dialInfo *mongodb.DialInfo) error {
+	v.dialInfo = dialInfo
+	v.setEndpointDialer()
+	return v.validate()
+}
 
-	v.dialInfo, err = mgo.ParseURL(*opts.MongoURI)
+func (v *PlainDBConnector) GetNewSession(ctx context.Context, monitor *cluster.Monitor,
+	readPreference *readpref.ReadPref) (*mongodb.Session, error) {
+	session, err := v.dialInfo.Dial(ctx, monitor, readPreference)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	return session, nil
+}
 
-	if v.dialInfo.Username != "" || v.dialInfo.Password != "" {
-		return fmt.Errorf("--mongo-uri may not contain any authentication information")
-	}
-	if v.dialInfo.Username != "" || v.dialInfo.Password != "" || v.dialInfo.Source != "" {
+func (v *PlainDBConnector) setEndpointDialer() {
+	v.dialInfo.EndpointDialer = conn.DialEndpoint
+}
+
+func (v *PlainDBConnector) validate() error {
+	if v.dialInfo.Username != "" || v.dialInfo.Password != "" || v.dialInfo.AuthSource != "" {
 		return fmt.Errorf("--mongo-uri may not contain any authentication information")
 	}
 	if v.dialInfo.Database != "" {
 		return fmt.Errorf("--mongo-uri may not contain database name")
 	}
-	if v.dialInfo.Mechanism != "" {
+	if v.dialInfo.AuthMechanism != "" {
 		return fmt.Errorf("--mongo-uri may not contain any authentication mechanism")
 	}
-	if v.dialInfo.Service != "" {
-		return fmt.Errorf("unsupported: --mongo-uri may not contain GSSAPI service name")
+	if len(v.dialInfo.AuthMechanismProperties) != 0 {
+		return fmt.Errorf("--mongo-uri may not contain any authentication mechanism properties")
 	}
-	if v.dialInfo.ServiceHost != "" {
-		return fmt.Errorf("unsupported: --mongo-uri may not contain GSSAPI hostname")
-	}
-
-	v.dialInfo.FailFast = true
-
 	return nil
-}
-
-func (v *PlainDBConnector) GetNewSession() (*mgo.Session, error) {
-	return mgo.DialWithInfo(v.dialInfo)
 }

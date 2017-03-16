@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
-	"gopkg.in/mgo.v2/bson"
 )
 
 //

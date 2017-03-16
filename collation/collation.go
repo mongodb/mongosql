@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
-	"gopkg.in/mgo.v2"
 )
 
 const defaultCollationName = Name("utf8_bin")
@@ -125,8 +125,8 @@ func (c *Collation) KeyFromString(b *KeyBuffer, s string) string {
 	return string(keyBytes)
 }
 
-// FromMongoDB creates a Collation from an mgo.Collation.
-func FromMongoDB(mc *mgo.Collation) (*Collation, error) {
+// FromMongoDB creates a Collation from an mongodb.Collation.
+func FromMongoDB(mc *mongodb.Collation) (*Collation, error) {
 	t, err := language.Parse(mc.Locale)
 	if err != nil {
 		return nil, fmt.Errorf("unable to translate locale (%s): %v", mc.Locale, err)
@@ -202,9 +202,9 @@ func FromMongoDB(mc *mgo.Collation) (*Collation, error) {
 	}, nil
 }
 
-// ToMongoDB creates a mgo.Collation from a Collation.
-func ToMongoDB(c *Collation) *mgo.Collation {
-	mc := &mgo.Collation{
+// ToMongoDB creates a mongodb.Collation from a Collation.
+func ToMongoDB(c *Collation) *mongodb.Collation {
+	mc := &mongodb.Collation{
 		Locale: c.language.Parent().String(),
 	}
 

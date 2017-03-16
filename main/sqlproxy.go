@@ -137,18 +137,23 @@ func main() {
 	options.EnsureOptsNotNil(&opts)
 
 	cfg := getSchema(opts)
-	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "connecting to mongodb failed: %v\n", err)
-		os.Exit(util.ExitError)
-	}
 
 	logfile, logger := setupLog(opts)
 	if logfile != nil {
 		defer logfile.Close()
 	}
 
-	logger.Logf(log.Always, "[initandlisten] connecting to mongodb at %v", *opts.SqldMongoConnection.MongoURI)
+	logger.Logf(log.Always, "[initandlisten] connecting to MongoDB at %v",
+		*opts.SqldMongoConnection.MongoURI)
+
+	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "connecting to MongoDB failed: %v\n", err)
+		os.Exit(util.ExitError)
+	}
+
+	logger.Logf(log.Always, "[initandlisten] connection established to MongoDB at %v",
+		*opts.SqldMongoConnection.MongoURI)
 
 	svr, err := server.New(cfg, evaluator, opts)
 	if err != nil {

@@ -1,12 +1,13 @@
 package evaluator
 
 import (
+	"context"
+
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/variable"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/tomb.v2"
 )
 
 // ConnectionCtx holds connection context information.
@@ -16,12 +17,12 @@ type ConnectionCtx interface {
 	Kill(uint32, KillScope) error
 	LastInsertId() int64
 	RowCount() int64
-	Session() *mgo.Session
+	Session() *mongodb.Session
 	Logger(string) *log.Logger
-	Tomb() *tomb.Tomb
 	User() string
 	Catalog() *catalog.Catalog
 	Variables() *variable.Container
+	Context() context.Context
 }
 
 // ExecutionCtx holds execution context information

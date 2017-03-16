@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func TestMapping(t *testing.T) {
@@ -20,7 +20,7 @@ func TestMapping(t *testing.T) {
 	Convey("Given a mongo collection and relational database", t, func() {
 		collection := mongo.NewCollection("test")
 		database := relational.NewDatabase("test'")
-		noIndexes := []mgo.Index{}
+		noIndexes := []mongodb.Index{}
 
 		Convey("Without any documents", func() {
 			Convey("Mapping the collection", func() {
@@ -827,7 +827,7 @@ func TestTypeMapping(t *testing.T) {
 
 	Convey("Given an empty collection.", t, func() {
 		collection := mongo.NewCollection("test")
-		noIndexes := []mgo.Index{}
+		noIndexes := []mongodb.Index{}
 		decimal128, err := bson.ParseDecimal128("4.124")
 		So(err, ShouldBeNil)
 
@@ -1207,9 +1207,15 @@ func TestTypeMapping(t *testing.T) {
 		Convey("When indexes are present", func() {
 			Convey("Subject: 2d index", func() {
 
-				geoIndexes := []mgo.Index{
-					mgo.Index{Key: []string{"$2d:a"}},
-					mgo.Index{Key: []string{"$2d:b.c"}},
+				geoIndexes := []mongodb.Index{
+					mongodb.Index{
+						Bits: 26,
+						Key:  bson.D{{"a", "2d"}},
+					},
+					mongodb.Index{
+						Bits: 26,
+						Key:  bson.D{{"b.c", "2d"}},
+					},
 				}
 
 				Convey("Should not map without any type samples", func() {
@@ -1302,9 +1308,16 @@ func TestTypeMapping(t *testing.T) {
 
 			Convey("Subject: 2d sphere", func() {
 
-				geoIndexes := []mgo.Index{
-					mgo.Index{Key: []string{"$2dsphere:a"}},
-					mgo.Index{Key: []string{"$2dsphere:b.c"}},
+				geoIndexes := []mongodb.Index{
+
+					mongodb.Index{
+						Bits: 26,
+						Key:  bson.D{{"a", "2dsphere"}},
+					},
+					mongodb.Index{
+						Bits: 26,
+						Key:  bson.D{{"b.c", "2dsphere"}},
+					},
 				}
 
 				Convey("Should not map without any type samples", func() {

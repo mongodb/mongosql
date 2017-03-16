@@ -3,71 +3,36 @@
 package client
 
 import (
+	"context"
 	"fmt"
-	"sync"
+	"strings"
 
 	"github.com/10gen/sqlproxy/client/openssl"
 	"github.com/10gen/sqlproxy/client/plain"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/password"
-	"gopkg.in/mgo.v2"
+
+	"github.com/10gen/mongo-go-driver/cluster"
+	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/connstring"
+	"github.com/10gen/mongo-go-driver/readpref"
+	"github.com/10gen/mongo-go-driver/server"
 )
 
 type SessionProvider struct {
-	masterSessionLock sync.Mutex
-	masterSession     *mgo.Session
-	connector         DBConnector
-	flags             sessionFlag
+	connector      DBConnector
+	readPreference *readpref.ReadPref
+	monitor        *cluster.Monitor
 }
 
-type (
-	sessionFlag uint32
-)
-
-const (
-	DisableSocketTimeout sessionFlag = iota + 1
-)
-
-func (self *SessionProvider) GetSession() (*mgo.Session, error) {
-	self.masterSessionLock.Lock()
-	defer self.masterSessionLock.Unlock()
-
-	if self.masterSession != nil {
-		return self.masterSession.Copy(), nil
-	}
-
-	var err error
-
-	self.masterSession, err = self.connector.GetNewSession()
+func (sp *SessionProvider) GetSession(ctx context.Context) (*mongodb.Session, error) {
+	session, err := sp.connector.GetNewSession(ctx, sp.monitor, sp.readPreference)
 	if err != nil {
-		return nil, fmt.Errorf("error connecting to db server: %v", err)
+		return nil, err
 	}
-	self.refresh()
 
-	return self.masterSession.Copy(), nil
-}
-
-func (self *SessionProvider) Close() {
-	self.masterSessionLock.Lock()
-	defer self.masterSessionLock.Unlock()
-	self.masterSession.Close()
-}
-
-func (self *SessionProvider) refresh() {
-	if (self.flags & DisableSocketTimeout) > 0 {
-		self.masterSession.SetSocketTimeout(0)
-	}
-}
-
-func (self *SessionProvider) SetFlags(flagBits sessionFlag) {
-	self.masterSessionLock.Lock()
-	defer self.masterSessionLock.Unlock()
-
-	self.flags = flagBits
-
-	if self.masterSession != nil {
-		self.refresh()
-	}
+	return session, nil
 }
 
 func NewDrdlSessionProvider(opts options.DrdlOptions) (*SessionProvider, error) {
@@ -79,12 +44,32 @@ func NewDrdlSessionProvider(opts options.DrdlOptions) (*SessionProvider, error) 
 
 	provider.connector = getConnector(opts)
 
-	err := provider.connector.ConfigureDrdl(opts)
+	dialInfo, err := mongodb.ParseDrdlOptions(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	provider.SetFlags(DisableSocketTimeout)
+	err = provider.connector.ConfigureDrdl(opts, dialInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	provider.readPreference, err = getReadPreference(dialInfo.ConnString)
+	if err != nil {
+		return nil, err
+	}
+
+	provider.monitor, err = cluster.StartMonitor(
+		cluster.WithConnString(dialInfo.ConnString),
+		cluster.WithMoreServerOptions(
+			server.WithMoreConnectionOptions(
+				conn.WithEndpointDialer(dialInfo.EndpointDialer),
+			),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	return provider, nil
 }
@@ -94,19 +79,77 @@ func NewSqldSessionProvider(opts options.SqldOptions) (*SessionProvider, error) 
 
 	provider.connector = getConnector(opts)
 
-	err := provider.connector.ConfigureSqld(opts)
+	dialInfo, err := mongodb.ParseSqldOptions(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	provider.SetFlags(DisableSocketTimeout)
+	err = provider.connector.ConfigureSqld(opts, dialInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	provider.readPreference, err = getReadPreference(dialInfo.ConnString)
+	if err != nil {
+		return nil, err
+	}
+
+	provider.monitor, err = cluster.StartMonitor(
+		cluster.WithConnString(dialInfo.ConnString),
+		cluster.WithMoreServerOptions(
+			server.WithMoreConnectionOptions(
+				conn.WithEndpointDialer(dialInfo.EndpointDialer),
+			),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	return provider, nil
 }
 
+// getConnector returns a DBConnection appropriate for
+// the given options.
 func getConnector(opts options.Options) DBConnector {
 	if opts.UseSSL() {
 		return &openssl.SSLDBConnector{}
 	}
 	return &plain.PlainDBConnector{}
+}
+
+// getReadPreference returns a read preference from the given connection string.
+func getReadPreference(mongoURI connstring.ConnString) (*readpref.ReadPref, error) {
+	readPreference := readpref.Primary()
+	mode := readpref.PrimaryMode
+
+	// check if a read preference is specified (default to
+	// using the primary)
+	rp, ok := mongoURI.UnknownOptions["readpreference"]
+	if ok {
+		parseErr := fmt.Errorf("invalid read preference specified: %v", rp)
+		if len(rp) != 1 {
+			return nil, parseErr
+		}
+		var err error
+		mode, err = readpref.ModeFromString(rp[0])
+		if err != nil {
+			return nil, parseErr
+		}
+	}
+
+	tagsets, ok := mongoURI.UnknownOptions["readpreferencetags"]
+	if ok {
+		var allTags []string
+
+		for _, tagset := range tagsets {
+			for _, tag := range strings.Split(tagset, ",") {
+				allTags = append(allTags, strings.Split(tag, ":")...)
+			}
+		}
+
+		return readpref.New(mode, readpref.WithTags(allTags...))
+	}
+
+	return readPreference, nil
 }

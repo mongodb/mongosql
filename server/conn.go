@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -22,9 +23,6 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/variable"
-
-	"gopkg.in/mgo.v2"
-	"gopkg.in/tomb.v2"
 )
 
 var (
@@ -34,8 +32,7 @@ var (
 
 type conn struct {
 	server  *Server
-	session *mgo.Session
-	tomb    *tomb.Tomb
+	session *mongodb.Session
 	logger  *log.Logger
 	startDb string
 
@@ -44,6 +41,11 @@ type conn struct {
 	closer       *sync.Cond
 	closed       int32
 	queryRunning int32
+
+	// synchronization variables for
+	// terminating a query
+	ctx    context.Context
+	cancel context.CancelFunc
 
 	conn     net.Conn
 	reader   *bufio.Reader
@@ -69,14 +71,20 @@ type conn struct {
 	variables *variable.Container
 }
 
-func newConn(s *Server, c net.Conn) *conn {
+func newConn(s *Server, c net.Conn) (*conn, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	session, err := s.eval.Session(ctx)
+	if err != nil {
+		return nil, err
+	}
 	newConn := &conn{
 		server:       s,
-		session:      s.eval.Session(),
+		session:      session,
+		ctx:          ctx,
+		cancel:       cancel,
 		conn:         c,
 		reader:       bufio.NewReaderSize(c, 1024),
 		writer:       c,
-		tomb:         &tomb.Tomb{},
 		closer:       sync.NewCond(&sync.Mutex{}),
 		closed:       0,
 		queryRunning: 0,
@@ -100,12 +108,12 @@ func newConn(s *Server, c net.Conn) *conn {
 	}
 	newConn.authPluginData, _ = randomBuf(20)
 
-	return newConn
+	return newConn, nil
 }
 
 func (c *conn) authenticate() error {
 
-	credential := &mgo.Credential{
+	credential := &mongodb.Credential{
 		Username: c.user,
 		Password: string(c.clientAuthResponse),
 	}
@@ -159,7 +167,7 @@ func (c *conn) close() {
 		return
 	}
 
-	c.tomb.Kill(mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED))
+	c.cancel()
 
 	// wait for any running queries to be interrupted
 	c.closer.L.Lock()
@@ -192,6 +200,11 @@ func (c *conn) Catalog() *catalog.Catalog {
 // ConnectionId returns the connection's identifier.
 func (c *conn) ConnectionId() uint32 {
 	return c.connectionID
+}
+
+// Context returns the connection's context.
+func (c *conn) Context() context.Context {
+	return c.ctx
 }
 
 // DB returns the current database name.
@@ -543,6 +556,12 @@ func (c *conn) RowCount() int64 {
 	return c.affectedRows
 }
 
+// refreshContext creates a new context for this connection.
+func (c *conn) refreshContext() {
+	c.ctx, c.cancel = context.WithCancel(context.Background())
+	c.session.SetContext(c.ctx)
+}
+
 func (c *conn) run() {
 	defer func() {
 		if err := recover(); err != nil {
@@ -590,6 +609,12 @@ func (c *conn) run() {
 		}
 
 		if err := c.dispatch(pkt.data); err != nil {
+			// we only cancel a context when a query interruption
+			// is requested
+			if err == context.Canceled {
+				err = mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED)
+			}
+
 			c.logger.Errf(log.Always, "dispatch error: %v", err)
 			if err != errBadConn {
 				c.writeError(err)
@@ -602,8 +627,8 @@ func (c *conn) run() {
 	}
 }
 
-// Session returns a new mgo.Session connected to MongoDB.
-func (c *conn) Session() (session *mgo.Session) {
+// Session returns a new mongodb.Session connected to MongoDB.
+func (c *conn) Session() (session *mongodb.Session) {
 	return c.session
 }
 
@@ -613,10 +638,6 @@ func (c *conn) status() uint16 {
 	}
 
 	return 0
-}
-
-func (c *conn) Tomb() *tomb.Tomb {
-	return c.tomb
 }
 
 func (c *conn) useDB(db string) error {

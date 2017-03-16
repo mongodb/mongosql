@@ -23,10 +23,6 @@ type DrdlOptions struct {
 	*DrdlOutput
 	*DrdlSample
 
-	// Force direct connection to the server and disable the
-	// drivers automatic repl set discovery logic.
-	Direct bool
-
 	// ReplicaSetName, if specified, will prevent the obtained session from
 	// communicating with any server which is not part of a replica set
 	// with the given name. The default is to communicate with any server

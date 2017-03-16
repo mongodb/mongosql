@@ -6,8 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/log"
 
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // Privilege is a bitwise enumeration of privileges.
@@ -85,18 +84,16 @@ func (i *Info) IsAllowedCollection(dbName DatabaseName, colName CollectionName, 
 
 // loadAuthInfo gathers the authorization information from MongoDB and propogates
 // it to the Info tree.
-func (i *Info) loadAuthInfo(logger *log.Logger, s *mgo.Session) error {
+func (i *Info) loadAuthInfo(logger *log.Logger, s *Session) error {
 	cmd := bson.D{
 		{"connectionStatus", 1},
 		{"showPrivileges", 1},
 	}
 	var result connectionStatusResult
 	logger.Log(log.DebugHigh, "loading privilege information for current user")
-	err := s.Run(cmd, &result)
-	if err != nil {
+	if err := s.Run("admin", cmd, &result); err != nil {
 		return fmt.Errorf("failed to load privilege information for the current user: %v", err)
 	}
-
 	i.loadAuthInfoFromConnectionStatus(&result)
 	return nil
 }

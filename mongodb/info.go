@@ -8,9 +8,6 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/util"
-
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // DatabaseName is the name of a database.
@@ -30,15 +27,15 @@ type Info struct {
 	// Version is the version of the mongodb server.
 	Version string
 	// VersionArray are the components of the version.
-	VersionArray []int
+	VersionArray []uint8
 	// CompatibleVersion is the version of the mongodb server we will pretend we are talking to.
 	CompatibleVersion string
 	// CompatibleVersionArray are the components of the compatible version.
-	CompatibleVersionArray []int
+	CompatibleVersionArray []uint8
 }
 
 // VersionAtLeast indicates whether the MongoDB version is at least the required version.
-func (i *Info) VersionAtLeast(version ...int) bool {
+func (i *Info) VersionAtLeast(version ...uint8) bool {
 	if len(i.CompatibleVersionArray) > 0 {
 		return util.VersionAtLeast(i.CompatibleVersionArray, version)
 	}
@@ -47,7 +44,7 @@ func (i *Info) VersionAtLeast(version ...int) bool {
 
 // SetCompatibleVersion sets the compatible version and compatible version array.
 func (i *Info) SetCompatibleVersion(compatibleVersion string) error {
-	var array []int
+	var array []uint8
 	if compatibleVersion != "" {
 		parts := strings.Split(compatibleVersion, ".")
 		for _, p := range parts {
@@ -55,7 +52,7 @@ func (i *Info) SetCompatibleVersion(compatibleVersion string) error {
 			if err != nil {
 				return fmt.Errorf("expected an integer: %v", err)
 			}
-			array = append(array, i)
+			array = append(array, uint8(i))
 		}
 	}
 
@@ -83,35 +80,33 @@ type CollectionInfo struct {
 	// Privileges indicates what is allowed on the collection.
 	Privileges Privilege
 	// Collation is the default collation of the collection.
-	Collation *mgo.Collation
+	Collation *Collation
 	// IsView is true if the collection is a MongoDB view
 	// and false otherwise.
 	IsView bool
 }
 
 // LoadInfo looks up information from MongoDB.
-func LoadInfo(logger *log.Logger, session *mgo.Session, config *schema.Schema, requireAuth bool) (*Info, error) {
+func LoadInfo(logger *log.Logger, session *Session, config *schema.Schema, requireAuth bool) (*Info, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Warnf(log.DebugHigh, "information access MongoDB session possibly closed: %v", r)
 		}
 	}()
-	buildInfo, err := session.BuildInfo()
-	if err != nil {
-		return nil, err
-	}
+
+	version := session.Description().Version
 
 	dbs := createDatabasesFromSchema(config)
 
 	i := &Info{
 		Databases:    dbs,
-		GitVersion:   buildInfo.GitVersion,
-		Version:      buildInfo.Version,
-		VersionArray: buildInfo.VersionArray,
+		GitVersion:   session.Description().GitVersion,
+		Version:      version.Desc,
+		VersionArray: version.Parts,
 	}
 
 	if requireAuth {
-		err = i.loadAuthInfo(logger, session)
+		err := i.loadAuthInfo(logger, session)
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +145,7 @@ func createDatabasesFromSchema(config *schema.Schema) map[DatabaseName]*Database
 	return dbInfos
 }
 
-func (i *Info) loadMetadata(logger *log.Logger, s *mgo.Session) error {
+func (i *Info) loadMetadata(logger *log.Logger, s *Session) error {
 	for _, dbInfo := range i.Databases {
 		err := dbInfo.loadMetadata(logger, s)
 		if err != nil {
@@ -160,7 +155,7 @@ func (i *Info) loadMetadata(logger *log.Logger, s *mgo.Session) error {
 	return nil
 }
 
-func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *mgo.Session) error {
+func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
 
 	if (dbInfo.Privileges & ListCollectionsPrivilege) == 0 {
 
@@ -178,33 +173,21 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *mgo.Session) err
 		return nil
 	}
 
-	var result struct {
-		Collections []bson.Raw
-		Cursor      struct {
-			FirstBatch []bson.Raw "firstBatch"
-			NextBatch  []bson.Raw "nextBatch"
-			NS         string
-			ID         int64
-		}
-	}
-
 	logger.Logf(log.DebugHigh, "running listCollections on database '%v'", dbInfo.caseSensitiveName)
-	err := s.DB(dbInfo.caseSensitiveName).Run(bson.D{{"listCollections", 1}, {"cursor", struct{}{}}}, &result)
+	iter, err := s.ListCollections(dbInfo.caseSensitiveName)
 	if err != nil {
 		return fmt.Errorf("failed to run listCollections on database '%v': %v", dbInfo.caseSensitiveName, err)
 	}
 
-	ns := strings.SplitN(result.Cursor.NS, ".", 2)
-	iter := s.DB(ns[0]).C(ns[1]).NewIter(nil, result.Cursor.FirstBatch, result.Cursor.ID, nil)
 	var colResult struct {
 		Name    string
 		Type    string
 		Options struct {
-			Collation *mgo.Collation
+			Collation *Collation
 		}
 	}
 
-	for iter.Next(&colResult) {
+	for iter.Next(s.ctx, &colResult) {
 		colInfo, ok := dbInfo.Collections[CollectionName(colResult.Name)]
 		if !ok {
 			continue
@@ -214,7 +197,7 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *mgo.Session) err
 		colInfo.IsView = colResult.Type == "view"
 	}
 
-	if err := iter.Close(); err != nil {
+	if err := iter.Close(s.ctx); err != nil {
 		return err
 	}
 
