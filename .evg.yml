@@ -1025,7 +1025,7 @@ tasks:
           mkfifo test_pipe
           tee -a blackbox-nopushdown.suite < test_pipe&
           touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -run TestBlackbox -restoreData blackbox -parallel 10 -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > test_pipe
+          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -run TestBlackbox -restoreData blackbox -parallel 4 -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > test_pipe
     - func: "rewrite coverage report"
     - func: "generate coverage html"
     - func: "generate coverage txt"
