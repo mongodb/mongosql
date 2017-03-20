@@ -298,12 +298,16 @@ class BIReleaser(object):
         # find and remove older version from full release page
         duplicates = []
         for version in full["versions"]:
-            components = [ast.literal_eval(i) \
-                for i in version["version"].split(".")]
+            components = []
+            for i in version["version"].split("."):
+                if i.isdigit():
+                    components.append(ast.literal_eval(i))
+                else:
+                    components.append(i)
             if int(components[0]) == int(new_component[0]) and \
                 int(components[1]) == int(new_component[1]):
                 version["current"] = False
-                if int(components[2]) == int(new_component[2]):
+                if components[2] == new_component[2]:
                     duplicates.append(version)
 
         for entry in duplicates:
