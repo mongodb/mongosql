@@ -1,6 +1,6 @@
 package sqlproxy
 
-//go:generate go run testdata/generate.go
+//go:generate go run testdata/bin/generate.go
 
 import (
 	"context"

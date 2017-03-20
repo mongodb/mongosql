@@ -6,12 +6,10 @@ buildvariants:
   run_on:
   - debian71-test
   expansions:
-    cover: "-"
-    gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian71-3.4.1.tgz
+    goroot: /opt/go
+    gobindir: /opt/go/bin
     push_arch: x86_64-debian71
     push_name: linux
-    push_path: linux
   tasks:
   - "!.oneoff-task"
 - name: debian81
@@ -19,25 +17,18 @@ buildvariants:
   run_on:
   - debian81-test
   expansions:
-    cover: "-"
-    gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-debian81-latest.tgz
+    goroot: /opt/go
+    gobindir: /opt/go/bin
     push_arch: x86_64-debian81
     push_name: linux
-    push_path: linux
   tasks:
   - "!.oneoff-task"
 - name: linux-64-amazon-ami
   display_name: Amazon Linux (Enterprise)
   expansions:
-    build_tags: -tags ssl
-    gotest_env: "SQLPROXY_SSLTEST=1"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.4.1.tgz --output mongodb.tgz
-    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/resources/server.pem
-    sqlproxy_args: --mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile testdata/resources/client.pem
+    mongo_ssl: true
     push_arch: x86_64-enterprise-amzn64
     push_name: linux
-    push_path: linux
   run_on:
     - linux-64-amzn-build
   tasks:
@@ -45,14 +36,9 @@ buildvariants:
 - name: linux-64-amazon-ami-benchmarks
   display_name: Amazon Linux (Enterprise Benchmarks)
   expansions:
-    build_tags: -tags ssl
-    gotest_env: "SQLPROXY_SSLTEST=1"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.4.1.tgz --output mongodb.tgz
-    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/resources/server.pem
-    sqlproxy_args: --mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile testdata/resources/client.pem
+    mongo_ssl: true
     push_arch: x86_64-enterprise-amzn64
     push_name: linux
-    push_path: linux
   run_on:
     - linux-64-amzn-build
   batchtime: 1440 # 1 day
@@ -62,14 +48,9 @@ buildvariants:
 - name: linux-64-amazon-ami-tpch
   display_name: Amazon Linux (TPC-H Benchmarks)
   expansions:
-    build_tags: -tags ssl
-    gotest_env: "SQLPROXY_SSLTEST=1"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-amzn64-3.4.1.tgz --output mongodb.tgz
-    mongod_args: --sslMode requireSSL --sslPEMKeyFile ./testdata/resources/server.pem
-    sqlproxy_args: --mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile testdata/resources/client.pem
+    mongo_ssl: true
     push_arch: x86_64-enterprise-amzn64
     push_name: linux
-    push_path: linux
   run_on:
     - linux-64-amzn-benchmark
   batchtime: 1438560 # 999 days
@@ -82,11 +63,8 @@ buildvariants:
   run_on:
   - osx-1010
   expansions:
-    cover: "-"
-    mongo_url: https://downloads.mongodb.org/osx/mongodb-osx-x86_64-3.4.1.tgz
     push_arch: x86_64
     push_name: osx
-    push_path: osx
   tasks:
   - "!.oneoff-task"
 - name: osx-mongo32
@@ -94,23 +72,18 @@ buildvariants:
   run_on:
   - osx-1010
   expansions:
-    cover: "-"
-    mongo_url: https://downloads.mongodb.org/osx/mongodb-osx-x86_64-3.2.12.tgz
-    mongodb_version_flag: "-serverVersion 3.2"
+    mongodb_version: 3.2
     push_arch: x86_64
     push_name: osx
-    push_path: osx
   tasks:
   - "!.oneoff-task !dist"
 - name: rhel62
   display_name: RHEL 6.2
   expansions:
-    cover: "-"
-    gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-rhel62-3.4.1.tgz
+    goroot: /opt/go
+    gobindir: /opt/go/bin
     push_arch: x86_64-rhel62
     push_name: linux
-    push_path: linux
   run_on:
   - rhel62-test
   tasks:
@@ -118,28 +91,23 @@ buildvariants:
 - name: rhel70
   display_name: RHEL 7.0
   expansions:
-    gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    mongo_url: http://downloads.mongodb.org/linux/mongodb-linux-x86_64-rhel70-3.4.1.tgz
+    goroot: /opt/go
+    gobindir: /opt/go/bin
     push_arch: x86_64-rhel70
     push_name: linux
-    push_path: linux
   run_on:
   - rhel70
   tasks:
   - "!.oneoff-task"
 - name: rhel-71-ppc64le
   display_name: RHEL 7.1 PPC64LE
-  disabled: true
   expansions:
-    # RHEL 7.1 PPC64LE machines kerberos setup does not work
-    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
-    cover: "-"
-    library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.4.1.tgz
+    mongo_ssl: true
+    library_path: /opt/mongodbtoolchain/v2/bin/
     push_arch: ppc64le-rhel71
     push_name: linux
-    push_path: linux
-    using_go14: true
+    goroot: /opt/go1.8/go
+    gobindir: /opt/go1.8/go/bin
   run_on:
   - rhel71-power8-test
   batchtime: 1440 # 1 day
@@ -149,14 +117,13 @@ buildvariants:
   display_name: RHEL 7.2 s390x (nightly)
   disabled: true
   expansions:
-    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
-    cover: "-"
-    library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-s390x-enterprise-rhel72-latest.tgz
+    mongo_ssl: true
+    library_path: /opt/mongodbtoolchain/v2/bin/
     push_arch: s390x-enterprise-rhel72
     push_name: linux
-    push_path: linux
-    using_go14: true
+    goroot: /opt/go1.7/go
+    gobindir: /opt/go1.7/go/bin
+    gccgo_flags: $(pkg-config --libs --cflags libssl)
   run_on:
   - rhel72-zseries-build
   - rhel72-zseries-test
@@ -166,11 +133,8 @@ buildvariants:
 - name: suse11-64
   display_name: SLES 11
   expansions:
-    cover: "-"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse11-3.4.1.tgz
     push_arch: x86_64-suse11
     push_name: linux
-    push_path: linux
   run_on:
   - suse11-test
   tasks:
@@ -178,11 +142,8 @@ buildvariants:
 - name: suse12-64
   display_name: SLES 12
   expansions:
-    cover: "-"
-    mongo_url: http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-suse12-3.4.1.tgz
     push_arch: x86_64-suse12
     push_name: linux
-    push_path: linux
   run_on:
   - suse12-test
   tasks:
@@ -190,10 +151,8 @@ buildvariants:
 - name: ubuntu1404-64
   display_name: Ubuntu 14.04
   expansions:
-    mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.4.1.tgz
     push_arch: x86_64-ubuntu1404
     push_name: linux
-    push_path: linux
   run_on:
   - ubuntu1404-build
   tasks:
@@ -201,23 +160,20 @@ buildvariants:
 - name: ubuntu1404-64-mongo32
   display_name: Ubuntu 14.04 (MongoDB 3.2.12)
   expansions:
-    mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.2.12.tgz
-    mongodb_version_flag: "-serverVersion 3.2"
+    mongodb_version: 3.2
     push_arch: x86_64-ubuntu1404
     push_name: linux
-    push_path: linux
   run_on:
   - ubuntu1404-build
   tasks:
   - "!.oneoff-task !dist"
 - name: ubuntu1404-64-race
+  disabled: true
   display_name: Ubuntu 14.04 (Race Detector)
   expansions:
-    mongo_url: https://downloads.mongodb.org/linux/mongodb-linux-x86_64-3.4.1.tgz
     push_arch: x86_64-ubuntu1404
     push_name: linux
-    push_path: linux
-    test_args: -race
+    race_detector: true
   run_on:
   - ubuntu1404-build
   tasks:
@@ -228,33 +184,25 @@ buildvariants:
   - windows-64-vs2013-test
   expansions:
     archive_format: zip
-    cover: "-"
-    extension: .exe
-    library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
-    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.4.1.zip
+    library_path: /cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/
     push_arch: x86_64
     push_name: win32
-    push_path: win32
     separator: \\
   tasks:
-  - "!.oneoff-task"
+  - "!.oneoff-task !check"
 - name: windows-64-mongo32
   display_name: Windows 64 (MongoDB 3.2.12)
   run_on:
   - windows-64-vs2013-test
   expansions:
     archive_format: zip
-    cover: "-"
-    extension: .exe
-    library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
-    mongo_url: https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.12.zip
-    mongodb_version_flag: "-serverVersion 3.2"
+    library_path: /cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/
+    mongodb_version: 3.2
     push_arch: x86_64
     push_name: win32
-    push_path: win32
     separator: \\
   tasks:
-  - "!.oneoff-task !dist"
+  - "!.oneoff-task !dist !check"
 - name: linux-64-amazon-ami-release
   batchtime: 9223372036854775807 # max signed int64 ( (2 ^ 64) / 2 ) - 1
   display_name: ~ Release Manager
@@ -262,25 +210,16 @@ buildvariants:
   - linux-64-amzn-benchmark
   tasks:
   - "release"
+
 pre:
   - command: shell.track
-  - command: shell.exec
-    params:
-      script: |
-        rm -rf src
-        mkdir src
-  - command: shell.exec
-    params:
-      silent: true
-      script: |
-        ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongooplog; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos; pkill -f buildlogger.py; pkill -f smoke.py; pkill -9 sqlproxy} >/dev/null 2>&1
-        rm -rf src /data/db/*
-        rm /tmp/mysql.sock
-        exit 0
+  - func: "fetch source"
+  - func: "export variables"
+  - func: "reset testing state"
+
 post:
-  - command: gotest.parse_files
-    params:
-      files: ["src/github.com/10gen/sqlproxy/*.suite", "src/github.com/10gen/sqlproxy/**/*.suite", "src/github.com/10gen/sqlproxy/**/**/*.suite"]
+  - func: "generate reports"
+  - func: "upload artifacts"
   - command: shell.cleanup
 
 functions:
@@ -289,431 +228,70 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src/github.com/10gen/sqlproxy
       script: |
-        set -o verbose
-        set -o errexit
-        echo "Checking formatting"
-        unformatted=$(${gorootvars} ${library_path} gofmt -e -l `find . -path ./vendor -prune -o -name '*.go' -print` 2>&1)
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/check-formatting.sh
 
-        for fn in $unformatted; do
-          echo >&2 "  Unformatted: $fn"
-        done
-        [ -z "$unformatted" ] || exit 1
-
-        echo "Done!"
-
-  "build MongoDRDL":
+  "build mongodrdl":
     command: shell.exec
     type: test
     params:
-      working_dir: src/github.com/10gen/sqlproxy
       script: |
-        set -o verbose
-        set -o errexit
-        echo "Building MongoDRDL"
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/github.com/10gen
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-        else
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-          else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-          fi;
-        fi;
-        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
-        # use a wrapper if it's present on the system
-        #
-        if [ -d /opt/ldwrapper/bin ]
-        then
-          export PATH=/opt/ldwrapper/bin:$PATH
-        fi;
-        sed -i.bak -e "s/built-without-version-string/$(git describe)/" \
-           -e "s/built-without-git-spec/$(git rev-parse HEAD)/" \
-           common/version.go
-        ${gorootvars} ${library_path} go build ${build_tags} -o drdl mongodrdl/main/mongodrdl.go
-        echo "Done!"
-        echo version: $(git --git-dir .git describe) > version.yml
+          ${PREPARE_SHELL}
+          ${SCRIPT_DIR}/build-mongodrdl.sh
 
-  "build SQLProxy":
+  "build mongosqld":
     command: shell.exec
     type: test
     params:
-      working_dir: src/github.com/10gen/sqlproxy
       script: |
-        set -o verbose
-        set -o errexit
-        echo "Building SQLProxy"
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
-        # use a wrapper if it's present on the system
-        #
-        if [ -d /opt/ldwrapper/bin ]
-        then
-          export PATH=/opt/ldwrapper/bin:$PATH
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/github.com/10gen
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-        else
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-          else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-          fi;
-        fi;
-        sed -i.bak -e "s/built-without-version-string/$(git describe)/" \
-           -e "s/built-without-git-spec/$(git rev-parse HEAD)/" \
-           common/version.go
-        ${gorootvars} ${library_path} go build ${build_tags} -o sqlproxy main/sqlproxy.go
-        echo "Done!"
-
-  "generate default tests":
-    command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        set -o verbose
-        set -o errexit
-        echo "Generating default tests"
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
-        # use a wrapper if it's present on the system
-        #
-        if [ -d /opt/ldwrapper/bin ]
-        then
-          export PATH=/opt/ldwrapper/bin:$PATH
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/github.com/10gen
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-        else
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-          else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-          fi;
-        fi;
-        go generate
-        echo "Done!"
-
-  "generate blackbox tests":
-    command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        set -o verbose
-        set -o errexit
-        echo "Generating blackbox tests"
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
-        # use a wrapper if it's present on the system
-        #
-        if [ -d /opt/ldwrapper/bin ]
-        then
-          export PATH=/opt/ldwrapper/bin:$PATH
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/github.com/10gen
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-        else
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-          else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-          fi;
-        fi;
-        go run testdata/generate.go -suites blackbox
-        echo "Done!"
-
-  "generate integration tests":
-    command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        set -o verbose
-        set -o errexit
-        echo "Generating integration tests"
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
-        # use a wrapper if it's present on the system
-        #
-        if [ -d /opt/ldwrapper/bin ]
-        then
-          export PATH=/opt/ldwrapper/bin:$PATH
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/github.com/10gen
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-        else
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-          else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-          fi;
-        fi;
-        go run testdata/generate.go -suites integration
-        echo "Done!"
-
-  "generate tableau tests":
-    command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        set -o verbose
-        set -o errexit
-        echo "Generating tableau tests"
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
-        # use a wrapper if it's present on the system
-        #
-        if [ -d /opt/ldwrapper/bin ]
-        then
-          export PATH=/opt/ldwrapper/bin:$PATH
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/github.com/10gen
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-        else
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-          else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-          fi;
-        fi;
-        go run testdata/generate.go -suites tableau
-        echo "Done!"
-
-  "generate tdvt tests":
-    command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        set -o verbose
-        set -o errexit
-        echo "Generating tableau tests"
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
-        # use a wrapper if it's present on the system
-        #
-        if [ -d /opt/ldwrapper/bin ]
-        then
-          export PATH=/opt/ldwrapper/bin:$PATH
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/github.com/10gen
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-        else
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-          else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-          fi;
-        fi;
-        go run testdata/generate.go -suites tdvt
-        echo "Done!"
-
-  "generate tpch tests":
-    command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        set -o verbose
-        set -o errexit
-        echo "Generating integration tests"
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
-        # use a wrapper if it's present on the system
-        #
-        if [ -d /opt/ldwrapper/bin ]
-        then
-          export PATH=/opt/ldwrapper/bin:$PATH
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/github.com/10gen
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-        else
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-          else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-          fi;
-        fi;
-        go run testdata/generate.go -suites tpch
-        echo "Done!"
+          ${PREPARE_SHELL}
+          ${SCRIPT_DIR}/build-mongosqld.sh
 
   "create release":
     command: shell.exec
     type: test
     params:
-      working_dir: src/github.com/10gen/sqlproxy
       script: |
-        set -o verbose
-        set -o errexit
-        rm -rf build
-        mkdir build
-        cp drdl sqlproxy build
-        if [ "Windows_NT" = "$OS" ]; then
-          curl -O http://boxes.10gen.com/build/openssl-1.0.1t-vs2015-installed.tgz
-          tar zxvf openssl-1.0.1t-vs2015-installed.tgz
-          cp openssl/bin/ssleay32.dll openssl/bin/libeay32.dll build
-          ${python|python} buildscripts/make_archive.py -o release.${archive_format|tgz} --format ${archive_format|tgz} --transform build/sqlproxy=mongodb-bi-${push_name}-${push_arch}-${version}/bin/mongosqld${extension} --transform build/drdl=mongodb-bi-${push_name}-${push_arch}-${version}/bin/mongodrdl${extension} --transform build/ssleay32.dll=mongodb-bi-${push_name}-${push_arch}-${version}/bin/ssleay32.dll --transform build/libeay32.dll=mongodb-bi-${push_name}-${push_arch}-${version}/bin/libeay32.dll --transform distsrc/README=mongodb-bi-${push_name}-${push_arch}-${version}/README --transform distsrc/THIRD-PARTY-NOTICES=mongodb-bi-${push_name}-${push_arch}-${version}/THIRD-PARTY-NOTICES --transform LICENSE=mongodb-bi-${push_name}-${push_arch}-${version}/LICENSE LICENSE distsrc${separator|/}README distsrc${separator|/}THIRD-PARTY-NOTICES build${separator|/}sqlproxy build${separator|/}drdl build${separator|/}libeay32.dll build${separator|/}ssleay32.dll
-        else
-          ${python|python} buildscripts/make_archive.py -o release.${archive_format|tgz} --format ${archive_format|tgz} --transform build/sqlproxy=mongodb-bi-${push_name}-${push_arch}-${version}/bin/mongosqld${extension} --transform build/drdl=mongodb-bi-${push_name}-${push_arch}-${version}/bin/mongodrdl${extension} --transform distsrc/README=mongodb-bi-${push_name}-${push_arch}-${version}/README --transform distsrc/THIRD-PARTY-NOTICES=mongodb-bi-${push_name}-${push_arch}-${version}/THIRD-PARTY-NOTICES --transform LICENSE=mongodb-bi-${push_name}-${push_arch}-${version}/LICENSE LICENSE distsrc${separator|/}README distsrc${separator|/}THIRD-PARTY-NOTICES build${separator|/}sqlproxy build${separator|/}drdl
-        fi;
+          ${PREPARE_SHELL}
+          ${SCRIPT_DIR}/create-release.sh
 
   "download blackbox test data":
     command: shell.exec
     params:
-      working_dir: src/github.com/10gen/sqlproxy
       script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.gz --output testdata/resources/data/attendees.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.gz --output testdata/resources/data/flights201406.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Batters.bson.gz --output testdata/resources/data/Batters.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Calcs.bson.gz --output testdata/resources/data/Calcs.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DateTime.bson.gz --output testdata/resources/data/DateTime.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Election.bson.gz --output testdata/resources/data/Election.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Fischeriris.bson.gz --output testdata/resources/data/Fischeriris.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Loan.bson.gz --output testdata/resources/data/Loan.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/NumericBins.bson.gz --output testdata/resources/data/NumericBins.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalRei.bson.gz --output testdata/resources/data/Rei.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/SeattleCrime.bson.gz --output testdata/resources/data/SeattleCrime.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Securities.bson.gz --output testdata/resources/data/Securities.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/SpecialData.bson.gz --output testdata/resources/data/SpecialData.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalStaples.bson.gz --output testdata/resources/data/Staples.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/Starbucks.bson.gz --output testdata/resources/data/Starbucks.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalUTStarcom.bson.gz --output testdata/resources/data/UTStarcom.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/xy.bson.gz --output testdata/resources/data/xy.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigarray.bson.gz --output testdata/resources/data/bigarray.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigcoll.bson.gz --output testdata/resources/data/bigcoll.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bignestedarray.bson.gz --output testdata/resources/data/bignestedarray.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/bigobjarray.bson.gz --output testdata/resources/data/bigobjarray.bson.gz
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/download-blackbox-data.sh
 
-  "download micro tpch test data":
+  "download tpch test data":
     command: shell.exec
     params:
-      working_dir: src/github.com/10gen/sqlproxy
       script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_small.bson.gz --output testdata/resources/data/tpch.bson.gz
+        ${PREPARE_SHELL}
+        export TPCH_DATASET="${tpch_dataset}"
+        ${SCRIPT_DIR}/download-tpch-data.sh
 
-  "download mongod":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        set -o verbose
-        set -o errexit
-        rm -rf bin || true
-        mkdir bin
-        cd bin
-        curl -s ${mongo_url} --output mongodb.tgz
-        ${decompress} mongodb.tgz
-        chmod +x ./mongodb-*/bin/*
-        mv ./mongodb-*/bin/* .
+  "bootstrap mongo-orchestration":
+    - command: shell.exec
+      params:
+        script: |
+            ${PREPARE_SHELL}
+            ${SCRIPT_DIR}/start-orchestration.sh
 
   "download tableau test data":
     command: shell.exec
     params:
-      working_dir: src/github.com/10gen/sqlproxy
       script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/attendees.bson.gz --output testdata/resources/data/attendees.bson.gz
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/flights201406.bson.gz --output testdata/resources/data/flights201406.bson.gz
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/download-tableau-data.sh
 
-  "download normalized tpch test data":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_full_normalized.bson.gz --output testdata/resources/data/tpch.bson.gz
-
-  "download denormalized tpch test data":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        curl -s http://noexpire.s3.amazonaws.com/sqlproxy/data/tpch_full_denormalized.bson.gz --output testdata/resources/data/tpch.bson.gz
-
-  "fetch source" :
+  "fetch source":
+    - command: shell.exec
+      params:
+        silent: true
+        script: |
+          rm -rf src
+          mkdir src
     - command: git.get_project
       params:
         directory: src/github.com/10gen/sqlproxy
@@ -722,85 +300,141 @@ functions:
       params:
         directory: src/github.com/10gen/sqlproxy
 
-  "generate coverage html":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        set -o verbose
-        set -o errexit
-        echo "Building SQLProxy"
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
-        # use a wrapper if it's present on the system
-        #
-        if [ -d /opt/ldwrapper/bin ]
-        then
-          export PATH=/opt/ldwrapper/bin:$PATH
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/github.com/10gen
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          echo "gopath is $GOPATH"
-        else
+  "export variables":
+    - command: shell.exec
+      params:
+        silent: true
+        working_dir: src/github.com/10gen/sqlproxy
+        script: |
           if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-          else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-          fi;
-        fi;
-        if [ '${cover}' != '-' ]; then
-          ${gorootvars} ${library_path} go tool cover -html=coverage_rewrite.out -o coverage.html
-        fi;
+              set -o igncr
+          fi
 
-  "generate coverage txt":
+          export PROJECT_DIR="$(pwd)"
+          export SCRIPT_DIR="$PROJECT_DIR/testdata/bin"
+
+          export CURRENT_VERSION="$(git describe)"
+          if [ "${is_patch}" = "true" ]; then
+             export CURRENT_VERSION="$CURRENT_VERSION-patch-${version_id}"
+          fi
+          export GIT_SPEC="$(git rev-parse HEAD)"
+
+          export PUSH_ARCH="${push_arch}"
+          export PUSH_NAME="${push_name}"
+
+          if [ "${library_path}" != "" ]; then
+              export PATH="${library_path}:$PATH"
+          fi
+
+          export GOPATH="$(dirname $(dirname $(dirname $(dirname $(pwd)))))"
+          if [ "Windows_NT" = "$OS" ]; then
+             export GOPATH="$(cygpath -m $GOPATH)"
+          fi
+          export GOROOT="${goroot|$GOROOT}"
+
+          if [ "${gobindir}" != "" ]; then
+              export PATH="${gobindir}:$PATH"
+          fi
+
+          export ON_EVERGREEN=true
+
+          export PROJECT_DIR="$(pwd)"
+          if [ "Windows_NT" = "$OS" ]; then
+             export PROJECT_DIR="$(cygpath -m $PROJECT_DIR)"
+          fi
+
+          if [ "${race_detector}" = "true" ]; then
+              export RACE_DETECTOR="-race"
+          fi
+
+          if [ '${gccgo_flags}' != "" ]; then
+              flags="${gccgo_flags}"
+              export BUILD_FLAGS="-gccgoflags '$flags'"
+          fi
+
+          if [ "${mongodb_version}" != "" ]; then
+              export VERSION_FLAG="-serverVersion ${mongodb_version}"
+          fi
+
+          if [ "${mongo_ssl}" = "true" ]; then
+              export SSL="ssl"
+          fi
+
+          export AUTH="${AUTH}"
+          export TOPOLOGY="${TOPOLOGY}"
+          export STORAGE_ENGINE="${STORAGE_ENGINE}"
+          export MONGODB_VERSION="${mongodb_version}"
+
+
+          # create expansions from values calculated above
+          cat <<EOT > $PROJECT_DIR/expansions.yml
+          CURRENT_VERSION: "$CURRENT_VERSION"
+          PROJECT_DIR: "$PROJECT_DIR"
+          SCRIPT_DIR: "$SCRIPT_DIR"
+          PREPARE_SHELL: |
+             if [ "Windows_NT" = "$OS" ]; then
+                 set -o igncr
+                 export SHELLOPTS
+             fi
+
+             export PROJECT_DIR="$PROJECT_DIR"
+
+             # system env variables
+             export GOROOT="$GOROOT"
+             export GOPATH="$GOPATH"
+             export PATH="$PATH"
+
+             export PUSH_ARCH="$PUSH_NAME"
+             export PUSH_NAME="$PUSH_ARCH"
+
+             # env variables to be used by scripts
+             export ON_EVERGREEN="$ON_EVERGREEN"
+             export CURRENT_VERSION="$CURRENT_VERSION"
+             export GIT_SPEC="$GIT_SPEC"
+
+             export BUILD_FLAGS="$BUILD_FLAGS"
+
+             export VERSION_FLAG="$VERSION_FLAG"
+
+             export RACE_DETECTOR="$RACE_DETECTOR"
+
+             export AUTH="$AUTH"
+             export SSL="$SSL"
+             export TOPOLOGY="$TOPOLOGY"
+             export STORAGE_ENGINE="$STORAGE_ENGINE"
+             export MONGODB_VERSION="$VERSION"
+          EOT
+
+    # Load the expansion file
+    - command: expansions.update
+      params:
+        file: src/github.com/10gen/sqlproxy/expansions.yml
+
+  "reset testing state":
+    - command: shell.exec
+      params:
+        silent: true
+        script: |
+          ${killall_mci}
+    - command: shell.exec
+      params:
+        script: |
+          ${killall_mci}
+          ${PREPARE_SHELL}
+          ${SCRIPT_DIR}/reset-testing-state.sh
+    - command: shell.exec
+      params:
+        silent: true
+        script: |
+          ${PREPARE_SHELL}
+          mv ${PROJECT_DIR}/expansions.yml ${PROJECT_DIR}/testdata/artifacts
+
+  "generate reports":
     command: shell.exec
     params:
-      working_dir: src/github.com/10gen/sqlproxy
       script: |
-        set -o verbose
-        set -o errexit
-        echo "Building SQLProxy"
-        if [ "Windows_NT" = "$OS" ]; then
-          set -o igncr
-        fi;
-        if [ '${library_path}' != '' ]; then
-          export ${library_path}
-        fi;
-        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
-        # use a wrapper if it's present on the system
-        #
-        if [ -d /opt/ldwrapper/bin ]
-        then
-          export PATH=/opt/ldwrapper/bin:$PATH
-        fi;
-        if [ '${using_go14}' != '' ]; then
-          SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-          rm -rf .gopath/
-          mkdir -p .gopath/src/github.com/10gen
-          ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-          mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-          export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          echo "gopath is $GOPATH"
-        else
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-          else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-          fi;
-        fi;
-        if [ '${cover}' != '-' ]; then
-          ${gorootvars} ${library_path} go tool cover -func=coverage_rewrite.out -o coverage.txt
-        fi;
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/generate-reports.sh
 
   "release BI Connector":
     command: shell.exec
@@ -826,992 +460,286 @@ functions:
         python release.py --version ${version_id}
     type: test
 
-  "rewrite coverage report":
+  "start mongosqld":
     command: shell.exec
     params:
-      working_dir: src/github.com/10gen/sqlproxy
-      script: |
-        perl -pe 's/.*src/github.com\/10gen\/sqlproxy/' coverage.out > coverage_rewrite.out
-        exit 0
-
-  "start mongod":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
       background: true
       script: |
-        set -o verbose
-        rm -rf ../dbFiles && mkdir -p ../dbFiles;
-        echo "Starting mongod...";
-        ./bin/mongod${extension} ${mongod_args} --dbpath ../dbFiles
-        echo "Done!"
+        ${PREPARE_SHELL}
+        export SQLPROXY_PUSHDOWN_OFF="${nopushdown}"
+        ${SCRIPT_DIR}/start-mongosqld.sh
 
-  "start SQLProxy":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      background: true
-      script: |
-        set -o verbose
-        echo "Starting sqlproxy...";
-        ./sqlproxy --schemaDirectory ./testdata/resources/schema/ ${sqlproxy_args}
-        echo "sqlproxy exited"
-
-  "start SQLProxy (no pushdown)":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/10gen/sqlproxy
-      background: true
-      script: |
-        set -o verbose
-        echo "Starting sqlproxy...";
-        SQLPROXY_PUSHDOWN_OFF=1 ./sqlproxy --schemaDirectory ./testdata/resources/schema/ ${sqlproxy_args}
-        echo "sqlproxy exited"
-
-  "upload benchmark report":
-    command: s3.put
-    params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/github.com/10gen/sqlproxy/benchmark.txt
-      remote_file: sqlproxy/benchmarks/${build_variant}/${task_id}.txt
-      bucket: mciuploads
-      permissions: public-read
-      content_type: text/plain
-      display_name: Benchmark Report (TXT)
-
-  "upload coverage html report":
-    command: s3.put
-    params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/github.com/10gen/sqlproxy/coverage.html
-      remote_file: sqlproxy/coverage/${task_id}.html
-      bucket: mciuploads
-      permissions: public-read
-      content_type: text/html
-      display_name: Coverage Report (HTML)
-      optional: true
-
-  "upload coverage txt report":
-    command: s3.put
-    params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/github.com/10gen/sqlproxy/coverage.txt
-      remote_file: sqlproxy/coverage/${task_id}.txt
-      bucket: mciuploads
-      permissions: public-read
-      content_type: text/plain
-      display_name: Coverage Report (TXT)
-      optional: true
+  "upload artifacts":
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+            - src/github.com/10gen/sqlproxy/testdata/artifacts/reports/*-coverage.txt
+            - src/github.com/10gen/sqlproxy/testdata/artifacts/reports/*-coverage.html
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/
+        content_type: text/html
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "Coverage Report - "
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+            - src/github.com/10gen/sqlproxy/testdata/artifacts/reports/*-benchmarks.txt
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/
+        content_type: text/plain
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "Benchmark Report - "
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+            - src/github.com/10gen/sqlproxy/testdata/artifacts/reports/*-suite.txt
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/
+        content_type: text/plain
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "Test Suite Results - "
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+            - src/github.com/10gen/sqlproxy/testdata/artifacts/log/*.log
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/
+        content_type: text/plain
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "Log File - "
+    - command: gotest.parse_files
+      params:
+        files:
+          - src/github.com/10gen/sqlproxy/testdata/artifacts/reports/*-suite.txt
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/artifacts.tar.gz
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/artifacts.tar.gz
+        content_type: application/x-gzip
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "All Artifacts (.tar.gz)"
 
   "upload release":
     command: s3.put
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/github.com/10gen/sqlproxy/release.${archive_format|tgz}
-      remote_file: sqlproxy/binaries/${push_path}/mongodb-bi-${push_name}-${push_arch}-${version}.${archive_format|tgz}
+      local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release.${archive_format|tgz}
+      remote_file: sqlproxy/binaries/${push_name}/mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.${archive_format|tgz}
       bucket: mciuploads
       permissions: public-read
       content_type: application/x-gzip
-      display_name: mongodb-bi-${push_name}-${push_arch}-${version}.${archive_format|tgz}
+      display_name: mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.${archive_format|tgz}
 
-  "upload tpch report":
-    command: s3.put
+  "run integration tests":
+    command: shell.exec
+    type: test
     params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/github.com/10gen/sqlproxy/tpch.txt
-      remote_file: sqlproxy/benchmarks/${build_variant}/tpch_${task_id}.txt
-      bucket: mciuploads
-      permissions: public-read
-      content_type: text/plain
-      display_name: TPC-H Report (TXT)
+      script: |
+        ${PREPARE_SHELL}
+        set -o errexit
+        export SQLPROXY_PUSHDOWN_OFF='${nopushdown}'
+        export SUITE='${suite}'
+        ${SCRIPT_DIR}/generate-tests.sh
+        ${SCRIPT_DIR}/run-integration-tests.sh
+
+  "run benchmarks":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        set -o errexit
+        export SUITE='${suite}'
+        export BENCHMARKS='${benchmarks}'
+        ${SCRIPT_DIR}/generate-tests.sh
+        ${SCRIPT_DIR}/run-benchmarks.sh
+
+  "run unit tests":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/run-unit-tests.sh
 
 tasks:
+
+- name: unit_tests
+  commands:
+    - func: "bootstrap mongo-orchestration"
+    - func: "run unit tests"
+
 - name: benchmark
   tags: ["oneoff-task"]
   commands:
-    - func: "fetch source"
     - func: "download blackbox test data"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy"
-    - func: "generate default tests"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          mkfifo test_pipe
-          tee -a benchmark.txt < test_pipe&
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run ^$ ${build_tags} -bench=. -benchmem -benchtime=5s -v -timeout 4h > test_pipe
-    - func: "upload benchmark report"
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run benchmarks"
+      vars:
+        suite: blackbox,integration,tableau
 
 - name: blackbox
   commands:
-    - func: "fetch source"
     - func: "download blackbox test data"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy"
-    - func: "generate blackbox tests"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          mkfifo test_pipe
-          tee -a blackbox.suite < test_pipe&
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -run TestBlackbox -restoreData blackbox -parallel 10 -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > test_pipe;
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run integration tests"
+      vars:
+        suite: blackbox
 
 - name: blackbox-nopushdown
   commands:
-    - func: "fetch source"
     - func: "download blackbox test data"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy (no pushdown)"
-    - func: "generate blackbox tests"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          mkfifo test_pipe
-          tee -a blackbox-nopushdown.suite < test_pipe&
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -run TestBlackbox -restoreData blackbox -parallel 4 -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > test_pipe
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
-
-- name: catalog
-  commands:
-    - func: "fetch source"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          cd catalog
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > catalog.suite 2>&1; if [ $? -ne 0 ]; then cat catalog.suite; exit 1; else cat catalog.suite; exit 0; fi
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        nopushdown: true
+    - func: "run integration tests"
+      vars:
+        suite: blackbox
+        nopushdown: true
 
 - name: check
-  tags: ["oneoff-task"]
   commands:
-    - func: "fetch source"
     - func: "check formatting"
-
-- name: collation
-  commands:
-    - func: "fetch source"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          cd collation
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v ${cover|-coverprofile=coverage.out} > collation.suite 2>&1; if [ $? -ne 0 ]; then cat collation.suite; exit 1; else cat collation.suite; exit 0; fi
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          mv collation/coverage.out .
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
 
 - name: dist
   commands:
-    - func: "fetch source"
-    - func: "build SQLProxy"
-    - func: "build MongoDRDL"
-    - command: expansions.update
-      params:
-        file: src/github.com/10gen/sqlproxy/version.yml
+    - func: "build mongosqld"
+    - func: "build mongodrdl"
     - func: "create release"
     - func: "upload release"
-
-- name: evaluator
-  commands:
-    - func: "fetch source"
-    - func: "download mongod"
-    - func: "start mongod"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          cd evaluator
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v ${cover|-coverprofile=coverage.out} > evaluator.suite 2>&1; if [ $? -ne 0 ]; then cat evaluator.suite; exit 1; else cat evaluator.suite; exit 0; fi
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          mv evaluator/coverage.out .
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
-
-- name: mongodb
-  commands:
-    - func: "fetch source"
-    - func: "download mongod"
-    - func: "start mongod"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          cd mongodb
-          touch coverage.out
-          mkfifo test_pipe
-          tee -a mongodb.suite < test_pipe&
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v ${cover|-coverprofile=coverage.out} > test_pipe 2>&1
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          mv mongodb/coverage.out .
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
-
-- name: mongodrdl
-  commands:
-    - func: "fetch source"
-    - func: "download mongod"
-    - func: "start mongod"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          cd mongodrdl
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > mongodrdl.suite 2>&1; if [ $? -ne 0 ]; then cat mongodrdl.suite; exit 1; else cat mongodrdl.suite; fi
-          cd mongo
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > mongo.suite 2>&1; if [ $? -ne 0 ]; then cat mongo.suite; exit 1; else cat mongo.suite; fi
-          cd ../relational
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > relational.suite 2>&1; if [ $? -ne 0 ]; then cat relational.suite; exit 1; else cat relational.suite; fi
-          exit 0
-
-- name: options
-  commands:
-    - func: "fetch source"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          cd options
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > options.suite 2>&1; if [ $? -ne 0 ]; then cat options.suite; exit 1; else cat options.suite; exit 0; fi
-
-- name: parser
-  commands:
-    - func: "fetch source"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          cd parser
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > parser.suite 2>&1; if [ $? -ne 0 ]; then cat parser.suite; exit 1; else cat parser.suite; exit 0; fi
 
 - name: release
   tags: ["oneoff-task"]
   commands:
-    - func: "fetch source"
     - func: "release BI Connector"
 
 - name: sqlproxy
   commands:
-    - func: "fetch source"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy"
-    - func: "generate integration tests"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} ${mongodb_version_flag} -run TestIntegration -restoreData integration -timeout 4h -v ${cover|-coverprofile=coverage.out} > sqlproxy.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy.suite; exit 1; else cat sqlproxy.suite; exit 0; fi
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run integration tests"
+      vars:
+        suite: integration
 
 - name: sqlproxy-nopushdown
   commands:
-    - func: "fetch source"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy (no pushdown)"
-    - func: "generate integration tests"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=0 go test ${test_args} ${build_tags} -run TestIntegration -restoreData integration -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > sqlproxy-nopushdown.suite 2>&1; if [ $? -ne 0 ]; then cat sqlproxy-nopushdown.suite; exit 1; else cat sqlproxy-nopushdown.suite; exit 0; fi
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        nopushdown: true
+    - func: "run integration tests"
+      vars:
+        suite: integration
+        nopushdown: true
 
 - name: tableau
   commands:
-    - func: "fetch source"
     - func: "download tableau test data"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy"
-    - func: "generate tableau tests"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -run TestTableau -restoreData tableau -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > tableau.suite 2>&1; if [ $? -ne 0 ]; then cat tableau.suite; exit 1; else cat tableau.suite; exit 0; fi
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run integration tests"
+      vars:
+        suite: tableau
 
 - name: tdvt
   commands:
-    - func: "fetch source"
     - func: "download blackbox test data"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy"
-    - func: "generate tdvt tests"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -run TestTDVT -restoreData tdvt -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > tdvt.suite 2>&1; if [ $? -ne 0 ]; then cat tdvt.suite; exit 1; else cat tdvt.suite; exit 0; fi
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run integration tests"
+      vars:
+        suite: tdvt
 
 - name: tdvt-nopushdown
   commands:
-    - func: "fetch source"
     - func: "download blackbox test data"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy (no pushdown)"
-    - func: "generate tdvt tests"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} SQLPROXY_PUSHDOWN_OFF=1 go test ${test_args} ${build_tags} -run TestTDVT -restoreData tdvt -timeout 4h ${mongodb_version_flag} -v ${cover|-coverprofile=coverage.out} > tdvt.suite 2>&1; if [ $? -ne 0 ]; then cat tdvt.suite; exit 1; else cat tdvt.suite; exit 0; fi
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        nopushdown: true
+    - func: "run integration tests"
+      vars:
+        suite: tdvt
+        nopushdown: true
 
 - name: tpch_handwritten_denormalized
   tags: ["oneoff-task"]
   exec_timeout_secs: 86400 # 1 day
   commands:
-    - func: "fetch source"
-    - func: "download denormalized tpch test data"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy"
-    - func: "generate tpch tests"
-    - command: shell.exec
-      type: test
-      timeout_secs: 86400 # 1 day
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          mkfifo test_pipe
-          tee -a out.txt < test_pipe&
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run ^$ ${build_tags} ${mongodb_version_flag} -restoreData tpch -bench=BenchmarkTPCH_handwritten_denormalized -benchmem -benchtime=5s -v -timeout 24h > test_pipe
-          cat out.txt | grep '^Benchmark' | awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
-    - func: "upload tpch report"
+    - func: "download tpch test data"
+      vars:
+        tpch_dataset: denormalized
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run benchmarks"
+      vars:
+        suite: tpch
+        benchmarks: handwritten_denormalized
 
 - name: tpch_workbook_denormalized
   tags: ["oneoff-task"]
   exec_timeout_secs: 86400 # 1 day
   commands:
-    - func: "fetch source"
-    - func: "download denormalized tpch test data"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy"
-    - func: "generate tpch tests"
-    - command: shell.exec
-      type: test
-      timeout_secs: 86400 # 1 day
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          mkfifo test_pipe
-          tee -a out.txt < test_pipe&
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run ^$ ${build_tags} ${mongodb_version_flag} -restoreData tpch -bench=BenchmarkTPCH_workbook_denormalized -benchmem -benchtime=5s -v -timeout 24h > test_pipe
-          cat out.txt | grep '^Benchmark' | awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
-    - func: "upload tpch report"
+    - func: "download tpch test data"
+      vars:
+        tpch_dataset: denormalized
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run benchmarks"
+      vars:
+        suite: tpch
+        benchmarks: workbook_denormalized
 
 - name: tpch_workbook_normalized
   tags: ["oneoff-task"]
   exec_timeout_secs: 86400 # 1 day
   commands:
-    - func: "fetch source"
-    - func: "download normalized tpch test data"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy"
-    - func: "generate tpch tests"
-    - command: shell.exec
-      type: test
-      timeout_secs: 86400 # 1 day
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          mkfifo test_pipe
-          tee -a out.txt < test_pipe&
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run ^$ ${build_tags} ${mongodb_version_flag} -restoreData tpch -bench=BenchmarkTPCH_workbook_normalized -benchmem -benchtime=5s -v -timeout 24h > test_pipe
-          cat out.txt | grep '^Benchmark' | awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
-    - func: "upload tpch report"
+    - func: "download tpch test data"
+      vars:
+        tpch_dataset: normalized
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run benchmarks"
+      vars:
+        suite: tpch
+        benchmarks: workbook_normalized
 
 - name: tpch_micro
   tags: ["oneoff-task"]
   exec_timeout_secs: 86400 # 1 day
   commands:
-    - func: "fetch source"
-    - func: "download micro tpch test data"
-    - func: "download mongod"
-    - func: "start mongod"
-    - func: "build SQLProxy"
-    - func: "start SQLProxy"
-    - func: "generate tpch tests"
-    - command: shell.exec
-      type: test
-      timeout_secs: 86400 # 1 day
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          mkfifo test_pipe
-          tee -a out.txt < test_pipe&
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} -run ^$ ${build_tags} ${mongodb_version_flag} -restoreData tpch -bench=BenchmarkTPCH -benchmem -benchtime=5s -v -timeout 24h > test_pipe
-          cat out.txt | grep '^Benchmark' | awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}' | sed -e :a -e '$d;N;2,2ba' -e 'P;D' > tpch.txt
-    - func: "upload tpch report"
-
-- name: variable
-  commands:
-    - func: "fetch source"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          set -o errexit
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          if [ '${library_path}' != '' ]; then
-            export ${library_path}
-          fi;
-          if [ '${using_go14}' != '' ]; then
-            SQL_PROXY_PKG='github.com/10gen/sqlproxy'
-            rm -rf .gopath/
-            mkdir -p .gopath/src/github.com/10gen
-            ln -sf `pwd` .gopath/src/$SQL_PROXY_PKG
-            mkdir tmp && mv vendor/* tmp && mkdir vendor/src && mv tmp/* vendor/src
-            export GOPATH=`pwd`/vendor:`pwd`/.gopath
-          else
-            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            fi;
-          fi;
-          cd variable
-          touch coverage.out
-          ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v ${cover|-coverprofile=coverage.out} > variable.suite 2>&1; if [ $? -ne 0 ]; then cat variable.suite; exit 1; else cat variable.suite; exit 0; fi
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/10gen/sqlproxy
-        script: |
-          set -o verbose
-          mv variable/coverage.out .
-    - func: "rewrite coverage report"
-    - func: "generate coverage html"
-    - func: "generate coverage txt"
-    - func: "upload coverage html report"
-    - func: "upload coverage txt report"
+    - func: "download tpch test data"
+      vars:
+        tpch_dataset: micro
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run benchmarks"
+      vars:
+        suite: tpch

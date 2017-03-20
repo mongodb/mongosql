@@ -403,7 +403,7 @@ func importJson(schema *mongodrdl.SchemaGenerator, dbName, collName,
 	if sslOpts.UseSSL {
 		opts.SSL = &toolsoptions.SSL{
 			UseSSL:              true,
-			SSLPEMKeyFile:       "../testdata/resources/client.pem",
+			SSLPEMKeyFile:       "../testdata/resources/x509gen/client.pem",
 			SSLAllowInvalidCert: true,
 		}
 	}

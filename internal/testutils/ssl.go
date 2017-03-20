@@ -11,7 +11,7 @@ import (
 func GetSSLOpts() *toolsoptions.SSL {
 	return &toolsoptions.SSL{
 		UseSSL:              true,
-		SSLPEMKeyFile:       "testdata/resources/client.pem",
+		SSLPEMKeyFile:       "testdata/resources/x509gen/client.pem",
 		SSLAllowInvalidCert: true,
 	}
 }
@@ -19,7 +19,7 @@ func GetSSLOpts() *toolsoptions.SSL {
 func GetDrdlSSLOpts() *options.DrdlSSL {
 	return &options.DrdlSSL{
 		UseSSL:              true,
-		SSLPEMKeyFile:       "../testdata/resources/client.pem",
+		SSLPEMKeyFile:       "../testdata/resources/x509gen/client.pem",
 		SSLAllowInvalidCert: true,
 	}
 }

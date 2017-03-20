@@ -89,15 +89,6 @@ func TestParsedQuery(t *testing.T) {
 			nil,
 			"select * from a where id in ((1, 'aa'), (null, 'bb'))",
 		}, {
-			"illega list var name",
-			"select * from a where id = :0a",
-			nil,
-			[]sqltypes.Value{
-				sqltypes.MakeNumeric([]byte("1")),
-				sqltypes.MakeString([]byte("aa")),
-			},
-			`unexpected: strconv.ParseInt: parsing "0a": invalid syntax for 0a`,
-		}, {
 			"out of range list var index",
 			"select * from a where id = :10",
 			nil,

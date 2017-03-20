@@ -1,0 +1,52 @@
+{
+  "id": "shard_cluster_1",
+  "login": "bob",
+  "password": "pwd123",
+  "auth_key": "secret",
+  "shards": [
+    {
+      "id": "sh01",
+      "shardParams": {
+        "procParams": {
+          "ipv6": true,
+          "bind_ip": "localhost,::1",
+          "shardsvr": true,
+          "setParameter" : { "enableTestCommands": 1 },
+          "port": 27217
+        }
+      }
+    },
+    {
+      "id": "sh02",
+      "shardParams": {
+        "procParams": {
+          "ipv6": true,
+          "bind_ip": "localhost,::1",
+          "shardsvr": true,
+          "setParameter" : { "enableTestCommands": 1 },
+          "port": 27218
+        }
+      }
+    }
+  ],
+  "routers": [
+    {
+      "ipv6": true,
+      "bind_ip": "localhost,::1",
+      "setParameter" : { "enableTestCommands": 1 },
+      "port": 27017
+    },
+    {
+      "ipv6": true,
+      "bind_ip": "localhost,::1",
+      "setParameter" : { "enableTestCommands": 1 },
+      "port": 27018
+    }
+  ],
+  "sslParams": {
+      "sslOnNormalPorts": true,
+      "sslPEMKeyFile": "PROJECT_DIR_REPLACEMENT_TOKEN/testdata/resources/x509gen/server.pem",
+      "sslCAFile": "PROJECT_DIR_REPLACEMENT_TOKEN/testdata/resources/x509gen/ca.pem",
+      "sslWeakCertificateValidation" : true
+  }
+}

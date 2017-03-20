@@ -10,7 +10,7 @@ var (
 	MongoHost     = flag.String("mongoHost", "127.0.0.1", "")
 	MongoPort     = flag.String("mongoPort", "27017", "")
 	DbAddr        = flag.String("dbAddr", "127.0.0.1:3307", "")
-	ClientPemFile = flag.String("clientPemFile", "testdata/resources/client.pem", "")
+	ClientPemFile = flag.String("clientPemFile", "testdata/resources/x509gen/client.pem", "")
 	RestoreData   = flag.String("restoreData", "", "Suites whose data to restore before running tests")
 	MaxTimeSecs   = flag.Int64("maxTimeSecs", 600, "maximum test runtime limit (seconds)")
 	RunSkipped    = flag.Bool("all", false, "also run tests with skip=true")

@@ -13,14 +13,19 @@ import (
 )
 
 func restoreInline(host, port string, inline *InlineDataSet) error {
-	connection := &toolsoptions.Connection{Host: host, Port: port}
-	sessionProvider, err := toolsdb.NewSessionProvider(
-		toolsoptions.ToolOptions{
-			Auth:       &toolsoptions.Auth{},
-			Connection: connection,
-			SSL:        getSslOpts(),
+
+	opts := &toolsoptions.ToolOptions{
+		Namespace: &toolsoptions.Namespace{},
+		Connection: &toolsoptions.Connection{
+			Host: host,
+			Port: port,
 		},
-	)
+		Direct: true,
+		SSL:    getSslOpts(),
+		Auth:   &toolsoptions.Auth{},
+	}
+
+	sessionProvider, err := toolsdb.NewSessionProvider(*opts)
 	if err != nil {
 		return err
 	}
@@ -59,14 +64,19 @@ func restoreInline(host, port string, inline *InlineDataSet) error {
 }
 
 func restoreBSON(host, port, file string) error {
-	connection := &toolsoptions.Connection{Host: host, Port: port}
-	sessionProvider, err := toolsdb.NewSessionProvider(
-		toolsoptions.ToolOptions{
-			Auth:       &toolsoptions.Auth{},
-			Connection: connection,
-			SSL:        getSslOpts(),
+
+	opts := &toolsoptions.ToolOptions{
+		Namespace: &toolsoptions.Namespace{},
+		Connection: &toolsoptions.Connection{
+			Host: host,
+			Port: port,
 		},
-	)
+		Direct: true,
+		SSL:    getSslOpts(),
+		Auth:   &toolsoptions.Auth{},
+	}
+
+	sessionProvider, err := toolsdb.NewSessionProvider(*opts)
 	if err != nil {
 		return err
 	}
@@ -75,10 +85,7 @@ func restoreBSON(host, port, file string) error {
 	log.SetVerbosity(&toolsoptions.Verbosity{Quiet: true})
 
 	restorer := mongorestore.MongoRestore{
-		ToolOptions: &toolsoptions.ToolOptions{
-			Connection: connection,
-			Namespace:  &toolsoptions.Namespace{},
-		},
+		ToolOptions:  opts,
 		InputOptions: &mongorestore.InputOptions{Gzip: true, Archive: file},
 		OutputOptions: &mongorestore.OutputOptions{
 			Drop:                   true,

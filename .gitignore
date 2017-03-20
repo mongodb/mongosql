@@ -31,5 +31,6 @@ codereview.rc
 vendor/pkg
 
 testdata/resources/data
+testdata/artifacts
 
 integration_test.go
