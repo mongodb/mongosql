@@ -101,7 +101,13 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		return
 	}
 
-	s := dbutils.GetServer(testMongoHost, testMongoPort)
+	session, err := sessionProvider.GetSession(context.Background())
+	if err != nil {
+		t.Fatalf("failed to set up session to test server: %v", err)
+		return
+	}
+	defer session.Close()
+	s := session.SelectedServer()
 
 	Convey("With a simple test configuration...", t, func() {
 

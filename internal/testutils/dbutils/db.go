@@ -2,7 +2,6 @@ package dbutils
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/msg"
 	. "github.com/10gen/mongo-go-driver/ops"
-	"github.com/10gen/mongo-go-driver/server"
 )
 
 var testServerOnce sync.Once
@@ -138,24 +136,6 @@ func Find(s Server, databaseName, collectionName string, batchSize int32) Cursor
 	}
 
 	return &result.Cursor
-}
-
-func GetServer(host, port string) *SelectedServer {
-	addr := fmt.Sprintf("%v:%v", host, port)
-	testServerOnce.Do(func() {
-		var err error
-		testServer, err = server.New(
-			conn.Endpoint(addr),
-			server.WithConnectionOptions(
-				conn.WithAppName("mongosqld:evaluator"),
-			),
-		)
-		if err != nil {
-			panic(fmt.Errorf("failed dialing mongodb server - ensure that one is running at %s: %v", addr, err))
-		}
-	})
-
-	return &SelectedServer{testServer, nil}
 }
 
 func InsertDocuments(s Server, databaseName, collectionName string, documents interface{}) {
