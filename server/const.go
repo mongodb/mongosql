@@ -1,12 +1,12 @@
 package server
 
 const (
-	DefaultServerPort                  string = "3307"
-	minProtocolVersion                 byte   = 10
-	maxPayloadLen                      int    = 1<<24 - 1
-	timeFormat                                = "2006-01-02 15:04:05"
-	nativePasswordClientAuthPluginName        = "mysql_native_password"
-	clearPasswordClientAuthPluginName         = "mysql_clear_password"
+	DefaultServerPort                 string = "3307"
+	minProtocolVersion                byte   = 10
+	maxPayloadLen                     int    = 1<<24 - 1
+	timeFormat                               = "2006-01-02 15:04:05"
+	clearPasswordClientAuthPluginName        = "mysql_clear_password"
+	mongosqlAuthClientAuthPluginName         = "mongosql_auth"
 )
 
 const (

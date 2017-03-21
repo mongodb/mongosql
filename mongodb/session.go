@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/msg"
 	"github.com/10gen/mongo-go-driver/ops"
@@ -36,7 +35,7 @@ func (s *Session) Alive() bool {
 	return cn.Alive()
 }
 
-// Context closes the direct server connection
+// Close closes the direct server connection
 // associated with this sesssion.
 func (s *Session) Close() error {
 	directServerConnection, ok := s.connection.(*DirectServerConnection)
@@ -44,6 +43,11 @@ func (s *Session) Close() error {
 		return fmt.Errorf("unexpected session connection type: %T", s.connection)
 	}
 	return directServerConnection.directConnection.Close()
+}
+
+// ConnLen is the number of connections that are part of a session.
+func (s *Session) ConnLen() int {
+	return 1
 }
 
 // Description returns the description of the server
@@ -129,39 +133,9 @@ func (s *Session) ListIndexes(db, c string) (ops.Cursor, error) {
 	}
 }
 
-// Login authenticates with MongoDB using the provided credential.
-func (s *Session) Login(cred *Credential) error {
-	authCred := &auth.Cred{
-		Source:      cred.Source,
-		Username:    cred.Username,
-		Password:    cred.Password,
-		PasswordSet: cred.Password != "",
-	}
-
-	authenticator, err := auth.CreateAuthenticator(cred.Mechanism, authCred)
-	if err != nil {
-		return err
-	}
-
-	dialer := func(ctx context.Context, endPoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
-		opts = append(opts,
-			conn.WithAppName(s.appName),
-			conn.WithEndpointDialer(s.dialer),
-		)
-		directConnection, err := conn.Dial(ctx, endPoint, opts...)
-		if err != nil {
-			return nil, err
-		}
-		return &DirectServerConnection{directConnection: directConnection}, nil
-	}
-
-	connection, err := auth.Dial(s.ctx, authenticator, dialer, s.server.Desc().Endpoint)
-	if err != nil {
-		return err
-	}
-
-	s.updateDirectConnection(connection)
-	return nil
+// Login authenticates the session using the specified authenticator.
+func (s *Session) Login(a SessionAuthenticator) error {
+	return a.Auth(s.ctx, []conn.Connection{s.connection})
 }
 
 // Run executes an arbitrary command against the given database.

@@ -8,9 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/url"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -98,7 +96,8 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 			CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA,
 		stmts:          make(map[uint32]*stmt),
 		variables:      variable.NewSessionContainer(s.variables),
-		authPluginName: nativePasswordClientAuthPluginName,
+		authPluginName: mongosqlAuthClientAuthPluginName,
+		authPluginData: []byte{1, 0}, // version 1.0 of the mongosql_auth plugin
 	}
 
 	newConn.logger = newConn.Logger(log.NetworkComponent)
@@ -106,60 +105,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 	if s.tlsConfig != nil {
 		newConn.capability |= CLIENT_SSL
 	}
-	newConn.authPluginData, _ = randomBuf(20)
-
 	return newConn, nil
-}
-
-func (c *conn) authenticate() error {
-
-	credential := &mongodb.Credential{
-		Username: c.user,
-		Password: string(c.clientAuthResponse),
-	}
-
-	if c.currentDB != nil {
-		credential.Source = string(c.currentDB.Name)
-	}
-
-	// parse user for extra information other than just the username
-	// format is username?mechanism=PLAIN&source=db. This is the same
-	// as a query string, so everything should be url encoded.
-	idx := strings.Index(credential.Username, "?")
-	var err error
-	if idx > 0 {
-		credential.Username, err = url.QueryUnescape(c.user[:idx])
-		if err != nil {
-			return err
-		}
-		values, err := url.ParseQuery(c.user[idx+1:])
-		if err != nil {
-			return err
-		}
-		for key, value := range values {
-			switch strings.ToLower(key) {
-			case "mechanism":
-				credential.Mechanism = value[0]
-			case "source":
-				credential.Source = value[0]
-			default:
-				return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "unknown authentication option %q", key)
-			}
-		}
-	}
-
-	if credential.Mechanism == "" {
-		credential.Mechanism = "SCRAM-SHA-1"
-	}
-
-	c.logger.Logf(log.DebugHigh, "attempting to authenticate principal '%v' on '%v' using '%v'", credential.Username, credential.Source, credential.Mechanism)
-
-	if err = c.session.Login(credential); err != nil {
-		return err
-	}
-
-	c.logger.Logf(log.DebugHigh, "successfully authenticated as principal '%v' on '%v'", credential.Username, credential.Source)
-	return nil
 }
 
 func (c *conn) close() {
@@ -261,37 +207,35 @@ func (c *conn) handshake() error {
 	c.logger.Logf(log.DebugHigh, "writing initial handshake")
 
 	if err := c.writeInitialHandshake(); err != nil {
+		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "send initial handshake error: %v", err)
 		c.writeError(err)
-		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "send initial handshake error: %v", err)
+		return err
 	}
 
 	c.logger.Logf(log.DebugHigh, "reading handshake response")
 	if err := c.readHandshakeResponse(); err != nil {
+		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "recv handshake response error: %v", err)
 		c.writeError(err)
-		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "recv handshake response error: %v", err)
+		return err
 	}
 
+	var err error
 	if *c.server.opts.Auth {
 		c.logger.Logf(log.DebugHigh, "configuring client authentication")
-		if c.clientRequestedAuthPluginName != clearPasswordClientAuthPluginName {
-			c.logger.Logf(log.DebugHigh, "sending authentication switch request")
-			if err := c.writeAuthRequestSwitchPacket(clearPasswordClientAuthPluginName); err != nil {
-				c.writeError(err)
-				return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "send auth request switch error: %v", err)
-			}
-
-			c.logger.Logf(log.DebugHigh, "reading authentication switch response")
-			if err := c.readAuthSwitchResponsePacket(); err != nil {
-				c.writeError(err)
-				return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "recv auth response error: %v", err)
-			}
+		switch c.clientRequestedAuthPluginName {
+		case mongosqlAuthClientAuthPluginName:
+			err = c.authMongoSQLAuthPlugin()
+		default:
+			err = c.authClearTextPasswordPlugin()
 		}
 
-		c.logger.Logf(log.DebugHigh, "authenticating client response")
-		if err := c.authenticate(); err != nil {
+		if err != nil {
+			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error performing authentication: %v", err)
 			c.writeError(err)
-			return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "failed authentication with MongoDB: %v", err)
+			return err
 		}
+
+		c.logger.Logf(log.DebugHigh, "successfully authenticated as principal %s", c.user)
 	} else if c.user != "" {
 		if c.user != "ODBC" && c.capability&CLIENT_ODBC == 0 {
 			c.logger.Warnf(log.Info, "ignoring provided credentials for '%v'; authentication is not enabled", c.user)
@@ -300,17 +244,18 @@ func (c *conn) handshake() error {
 	}
 
 	schema := c.server.eval.Schema()
-	var err error
 	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session, &schema, *c.server.opts.Auth)
 	if err != nil {
+		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error retrieving information from MongoDB: %v", err)
 		c.writeError(err)
-		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error retrieving information from MongoDB: %v", err)
+		return err
 	}
 
 	err = c.variables.MongoDBInfo.SetCompatibleVersion(c.server.variables.MongoDBVersionCompatibility)
 	if err != nil {
+		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error setting compatibility version: %v", err)
 		c.writeError(err)
-		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error setting compatibility version: %v", err)
+		return err
 	}
 	c.logger.Logf(log.Info, "connected to MongoDB %v, git version: %v", c.variables.MongoDBInfo.Version, c.variables.MongoDBInfo.GitVersion)
 
@@ -319,21 +264,23 @@ func (c *conn) handshake() error {
 	}
 
 	if !c.variables.MongoDBInfo.VersionAtLeast(3, 2) {
-		err = fmt.Errorf("MongoDB version is %v but version >= 3.2 required", c.variables.MongoDBInfo.Version)
+		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "MongoDB version is %v but version >= 3.2 required", c.variables.MongoDBInfo.Version)
 		c.writeError(err)
-		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, err.Error())
+		return err
 	}
 
 	c.catalog, err = catalog.Build(&schema, c.variables)
 	if err != nil {
+		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error building catalog: %v", err)
 		c.writeError(err)
-		return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error building catalog: %v", err)
+		return err
 	}
 
 	if c.startDb != "" {
 		if err := c.useDB(c.startDb); err != nil {
+			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error using database %v: %v", c.startDb, err)
 			c.writeError(err)
-			return mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error using database %v: %v", c.startDb, err)
+			return err
 		}
 	}
 
@@ -373,17 +320,6 @@ func (c *conn) Logger(componentStr string) *log.Logger {
 		component = fmt.Sprintf("%-10v [conn%v]", globalLogger.GetComponent(), c.connectionID)
 	}
 	return log.NewComponentLogger(component, globalLogger)
-}
-
-func (c *conn) readAuthSwitchResponsePacket() error {
-	data, err := c.readPacket()
-	if err != nil {
-		return err
-	}
-
-	c.clientAuthResponse = data[:len(data)-1]
-
-	return nil
 }
 
 func (c *conn) readHandshakeResponse() error {
@@ -453,13 +389,6 @@ func (c *conn) readHandshakeResponse() error {
 		// We need to read the handshake response header again because, now that we have TLS, the
 		// client resends its handshake response packet.
 		readHeader()
-	} else if *c.server.opts.Auth {
-		// We are here because we asked the client to use SSL and they refused. Therefore, we'll
-		// terminate the connection.
-		err := mysqlerrors.Newf(mysqlerrors.ER_INSECURE_PLAIN_TEXT, "ssl is required when using authentication")
-		c.logger.Errf(log.Always, err.Error())
-		c.writeError(err)
-		return err
 	}
 
 	//user name string[NUL]
@@ -497,6 +426,10 @@ func (c *conn) readHandshakeResponse() error {
 
 		db := String(c.variables.CharacterSetClient.Decode(dbBytes))
 		c.startDb = db
+	} else {
+		// this is kinda weird... the docs don't indicate this is necessary, but the java
+		// driver adds in a single null byte, so... we'll just have to test this a lot.
+		pos++
 	}
 
 	if pos == len(data) {
@@ -675,24 +608,6 @@ func (c *conn) useTLS() error {
 
 func (c *conn) Variables() *variable.Container {
 	return c.variables
-}
-
-func (c *conn) writeAuthRequestSwitchPacket(pluginName string) error {
-
-	data := make([]byte, 4, 128)
-
-	// status [1]
-	data = append(data, 0xFE)
-
-	// plugin name string[NUL]
-	// this is a utf8 string
-	data = append(data, []byte(pluginName)...)
-	data = append(data, 0)
-
-	// auth plugin data string[EOF]
-	// nothing to add
-
-	return c.writePacket(data)
 }
 
 func (c *conn) writeEOF(status uint16) error {

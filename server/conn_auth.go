@@ -1,0 +1,225 @@
+package server
+
+import (
+	"encoding/binary"
+	"fmt"
+	"net/url"
+	"strings"
+
+	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mysqlerrors"
+)
+
+func (c *conn) authClearTextPasswordPlugin() error {
+	if (c.capability & CLIENT_SSL) == 0 {
+		// require SSL for using cleartext plugin
+		err := mysqlerrors.Newf(mysqlerrors.ER_INSECURE_PLAIN_TEXT, "ssl is required when using cleartext authentication")
+		c.writeError(err)
+		return err
+	}
+
+	if c.clientRequestedAuthPluginName != clearPasswordClientAuthPluginName {
+		if err := c.writeAuthSwitchRequest(clearPasswordClientAuthPluginName, []byte{0}); err != nil {
+			return err
+		}
+
+		if err := c.readAuthSwitchResponse(); err != nil {
+			return err
+		}
+	}
+
+	c.logger.Logf(log.DebugLow, "authenticating client response with %s", mongosqlAuthClientAuthPluginName)
+	username, mechanism, source, err := c.parseUsername()
+	if err != nil {
+		return fmt.Errorf("failed parsing username: %v", err)
+	}
+
+	authenticator := mongodb.CleartextSessionAuthenticator{
+		Source:    source,
+		Username:  username,
+		Password:  string(c.clientAuthResponse[:len(c.clientAuthResponse)-1]), //\0-terminated
+		Mechanism: mechanism,
+	}
+
+	return c.session.Login(&authenticator)
+}
+
+func (c *conn) authMongoSQLAuthPlugin() error {
+	c.logger.Logf(log.DebugLow, "authenticating client response with %s", mongosqlAuthClientAuthPluginName)
+	username, mechanism, source, err := c.parseUsername()
+	if err != nil {
+		return fmt.Errorf("failed parsing username: %v", err)
+	}
+
+	return c.authMongoSQLAuthSASL(username, mechanism, source)
+}
+
+func (c *conn) authMongoSQLAuthSASL(username, mechanism, source string) error {
+
+	cb := func(conversations []*mongodb.SaslConversation) error {
+
+		var err error
+		var data []byte
+		for i := 0; i < len(conversations); i++ {
+			data = append(data, uint32ToBytes(uint32(len(conversations[i].Payload)))...)
+			data = append(data, conversations[i].Payload...)
+		}
+
+		if err = c.writeAuthMoreData(data); err != nil {
+			return fmt.Errorf("failed writing auth more data: %v", err)
+		}
+
+		if data, err = c.readPacket(); err != nil {
+			return fmt.Errorf("failed reading auth more data response: %v", err)
+		}
+
+		pos := 0
+		for i := 0; i < len(conversations); i++ {
+			conversations[i].ClientDone = data[pos] == 1
+			pos++
+			payloadLen := int(binary.LittleEndian.Uint32(data[pos : pos+4]))
+			pos += 4
+			conversations[i].Payload = data[pos : pos+payloadLen]
+			pos += payloadLen
+		}
+
+		return nil
+	}
+
+	var err error
+
+	// first send the mechanism to use, followed by any mechanism specific information
+	data := append([]byte(mechanism), 0)
+
+	// all mechanisms utilize this
+	data = append(data, uint32ToBytes(uint32(c.session.ConnLen()))...)
+
+	if err = c.writeAuthMoreData(data); err != nil {
+		return fmt.Errorf("failed writing auth more data: %v", err)
+	}
+
+	if data, err = c.readPacket(); err != nil {
+		return fmt.Errorf("failed reading auth more data response: %v", err)
+	}
+
+	authenticator := mongodb.SaslSessionAuthenticator{
+		Source:    source,
+		Username:  username,
+		Mechanism: mechanism,
+		Callback:  cb,
+	}
+
+	pos := 0
+	for i := 0; i < c.session.ConnLen(); i++ {
+		done := data[pos] == 1
+		pos++
+		payloadLen := int(binary.LittleEndian.Uint32(data[pos : pos+4]))
+		pos += 4
+		payload := data[pos : pos+payloadLen]
+		pos += payloadLen
+
+		authenticator.AddConversation(payload, done)
+	}
+
+	return c.session.Login(&authenticator)
+}
+
+func (c *conn) parseUsername() (username string, mechanism string, source string, err error) {
+	username = c.user
+	mechanism = "SCRAM-SHA-1"
+	if c.currentDB != nil {
+		source = string(c.currentDB.Name)
+	} else {
+		source = "admin"
+	}
+	// parse user for extra information other than just the username
+	// format is username?mechanism=PLAIN&source=db. This is the same
+	// as a query string, so everything should be url encoded.
+	idx := strings.Index(username, "?")
+	if idx > 0 {
+		username, err = url.QueryUnescape(c.user[:idx])
+		if err != nil {
+			return
+		}
+		var values url.Values
+		values, err = url.ParseQuery(c.user[idx+1:])
+		if err != nil {
+			return
+		}
+		for key, value := range values {
+			switch strings.ToLower(key) {
+			case "mechanism":
+				mechanism = value[0]
+			case "source":
+				source = value[0]
+			default:
+				err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "unknown authentication option %q", key)
+				return
+			}
+		}
+	}
+
+	switch mechanism {
+	case "PLAIN":
+		source = "$external"
+	}
+
+	return
+}
+
+func (c *conn) readAuthSwitchResponse() error {
+	c.logger.Logf(log.DebugHigh, "reading auth switch response")
+	data, err := c.readPacket()
+	if err != nil {
+		return fmt.Errorf("auth switch response error: %v", err)
+	}
+
+	if len(data) == 0 {
+		c.clientAuthResponse = make([]byte, 0)
+	} else {
+		c.clientAuthResponse = data
+	}
+
+	return nil
+}
+
+func (c *conn) writeAuthMoreData(pluginData []byte) error {
+	c.logger.Logf(log.DebugHigh, "sending auth more data")
+
+	data := make([]byte, 4, len(pluginData)+5)
+
+	// status [1]
+	data = append(data, 0x01)
+
+	// plugin data
+	data = append(data, pluginData...)
+
+	if err := c.writePacket(data); err != nil {
+		return fmt.Errorf("auth more data error: %v", err)
+	}
+
+	return nil
+}
+
+func (c *conn) writeAuthSwitchRequest(plugin string, pluginData []byte) error {
+	c.logger.Logf(log.DebugHigh, "sending auth switch request for %s", plugin)
+	data := make([]byte, 4, 128)
+
+	// status [1]
+	data = append(data, 0xFE)
+
+	// plugin name string[NUL]
+	// this is a utf8 string
+	data = append(data, []byte(plugin)...)
+	data = append(data, 0)
+
+	// auth plugin data string[EOF]
+	data = append(data, pluginData...)
+
+	if err := c.writePacket(data); err != nil {
+		return fmt.Errorf("auth switch request error: %v", err)
+	}
+
+	return nil
+}

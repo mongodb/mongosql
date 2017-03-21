@@ -223,9 +223,6 @@ func (o SqldOptions) Validate() error {
 	if isFalseOrUnset(o.MongoSSL) && o.hasSSLOptionsSet() {
 		return fmt.Errorf("must specify --mongo-ssl to use SSL options")
 	}
-	if !isFalseOrUnset(o.Auth) && isEmptyOrUnset(o.SSLPEMKeyFile) {
-		return fmt.Errorf("must specify --sslPEMKeyFile when using --auth")
-	}
 	if !isFalseOrUnset(o.MongoSSLFipsMode) && runtime.GOOS == "darwin" {
 		return fmt.Errorf("this version of mongosqld was not compiled with FIPS support")
 	}
