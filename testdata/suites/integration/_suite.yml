@@ -190,6 +190,15 @@ data:
     - { _id: 1, a: 2 }
     - { _id: 2, a: 3 }
 - inline:
+    db: "subqueries_from_test"
+    collection: "subqueries_BI-982"
+    docs:
+    - { _id : 1, name : "rec1", value : 3.0 }
+    - { _id : 2, name : "rec2", value : 15.6 }
+    - { _id : 3, name : "rec3", value : 89.0 }
+    - { _id : 4, name : "rec4", value : 110.34 }
+    - { _id : 5, name : "rec5", value : 23.2 }
+- inline:
     db: "union_test"
     collection: "union_1"
     docs:

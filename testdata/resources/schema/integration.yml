@@ -980,6 +980,23 @@ schema:
       MongoType: int
       SqlName: b
       SqlType: int
+- db: subqueries_from_test
+  tables:
+  - table: subqueries_BI-982
+    collection: "subqueries_BI-982"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: name
+      MongoType: string
+      SqlName: name
+      SqlType: varchar
+    - Name: value
+      MongoType: float64
+      SqlName: value
+      SqlType: float64
 - db: union_test
   tables:
   - table: foo

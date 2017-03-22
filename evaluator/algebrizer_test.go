@@ -1263,8 +1263,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 								subquery,
 								nil,
 								ProjectedColumns{
-									createProjectedColumn(1, subquery, subquery.aliasName, "d", subquery.aliasName, "d"),
-									createProjectedColumn(1, subquery, subquery.aliasName, "b", subquery.aliasName, "b"),
+									createProjectedColumn(2, subquery, subquery.aliasName, "d", subquery.aliasName, "d"),
+									createProjectedColumn(2, subquery, subquery.aliasName, "b", subquery.aliasName, "b"),
 									createProjectedColumnFromSQLExpr(1, "", "sum(1)", &SQLAggFunctionExpr{
 										Name:  "sum",
 										Exprs: []SQLExpr{SQLInt(1)},

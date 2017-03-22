@@ -313,6 +313,7 @@ func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColum
 	}
 
 	if sqlCol, ok := expr.(SQLColumnExpr); ok {
+		pc.SelectID = sqlCol.selectID
 		pc.Name = sqlCol.columnName
 		pc.Table = sqlCol.tableName
 		pc.SQLType = sqlCol.columnType.SQLType

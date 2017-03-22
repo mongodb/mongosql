@@ -192,4 +192,12 @@ testcases:
   - [0, 1]
   - [1, 2]
   - [2, 3]
+- sql: "SELECT name, sum ( value )  FROM ( SELECT CASE WHEN INSTR(name, '2') THEN '2' ELSE name END name, value from `subqueries_from_test`.`subqueries_BI-982` ) as derived_table"
+  id: '19'
+  db: subqueries_from_test
+  description: "BI-982"
+  expected_names: ["name", "sum(value)"]
+  expected_types: [string, float]
+  expected:
+  - ["rec1", 241.14000000000001]
 
