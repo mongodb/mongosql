@@ -255,6 +255,13 @@ buildvariants:
     separator: \\
   tasks:
   - "!.oneoff-task !dist"
+- name: linux-64-amazon-ami-release
+  batchtime: 9223372036854775807 # max signed int64 ( (2 ^ 64) / 2 ) - 1
+  display_name: ~ Release Manager
+  run_on:
+  - linux-64-amzn-benchmark
+  tasks:
+  - "release"
 pre:
   - command: shell.track
   - command: shell.exec
@@ -794,6 +801,30 @@ functions:
         if [ '${cover}' != '-' ]; then
           ${gorootvars} ${library_path} go tool cover -func=coverage_rewrite.out -o coverage.txt
         fi;
+
+  "release BI Connector":
+    command: shell.exec
+    params:
+      evg_key: ${evg_key}
+      evg_user: ${evg_user}
+      release_aws_access_key_id: ${release_aws_access_key_id}
+      release_aws_secret_access_key: ${release_aws_secret_access_key}
+      working_dir: src/github.com/10gen/sqlproxy
+      script: |
+        set -o errexit
+        export AWS_ACCESS_KEY_ID=${release_aws_access_key_id}
+        export AWS_SECRET_ACCESS_KEY=${release_aws_secret_access_key}
+        export EVG_USER=${evg_user}
+        export EVG_KEY=${evg_key}
+        set -o verbose
+        cd release
+        if [ "${is_patch}" = "true" ]; then
+          echo "Can not release patch version: ${version_id}";
+          exit 1;
+        fi;
+        echo "Commencing release on version '${version_id}'...";
+        python release.py --version ${version_id}
+    type: test
 
   "rewrite coverage report":
     command: shell.exec
@@ -1335,6 +1366,12 @@ tasks:
           cd parser
           touch coverage.out
           ${gorootvars} ${library_path} ${gotest_env} go test ${test_args} ${build_tags} -v > parser.suite 2>&1; if [ $? -ne 0 ]; then cat parser.suite; exit 1; else cat parser.suite; exit 0; fi
+
+- name: release
+  tags: ["oneoff-task"]
+  commands:
+    - func: "fetch source"
+    - func: "release BI Connector"
 
 - name: sqlproxy
   commands:

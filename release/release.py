@@ -12,9 +12,9 @@ import subprocess
 import sys
 import urllib2
 import requests
-import docopt
 import boto
 import httplib2
+import getopt
 
 EVG_BASE = "https://evergreen.mongodb.com/rest/v1"
 S3_BUCKET = "info-mongodb-com"
@@ -38,30 +38,26 @@ def ensure_env():
     """Ensures the required environment variables are set.
     """
     if os.environ.get('EVG_USER', None) is None:
-        print("Can't find Evergreen credentials in 'EVG_USER' environment \
-        variable. Fetch from https://evergreen.mongodb.com/settings")
+        print("Can't find 'EVG_USER' in environment variables")
         sys.exit(1)
     if os.environ.get('EVG_KEY', None) is None:
-        print("Can't find Evergreen credentials in 'EVG_KEY' environment \
-        variable. Fetch from https://evergreen.mongodb.com/settings")
+        print("Can't find 'EVG_KEY' in environment variables")
         sys.exit(1)
     if os.environ.get('AWS_ACCESS_KEY_ID', None) is None:
-        print("Can't find Evergreen credentials in 'AWS_ACCESS_KEY_ID' \
-        environment variable")
+        print("Can't find 'AWS_ACCESS_KEY_ID' in environment variables")
         sys.exit(1)
     if os.environ.get('AWS_SECRET_ACCESS_KEY', None) is None:
-        print("Can't find Evergreen credentials in 'AWS_SECRET_ACCESS_KEY' \
-            environment variable")
+        print("Can't find 'AWS_SECRET_ACCESS_KEY' in environment variables")
         sys.exit(1)
 
 class BIReleaser(object):
     """Represents a release instance.
     """
-    def __init__(self, opts):
+    def __init__(self, version):
         """Initialize a new BIReleaser object.
         """
         self.__urls = {}
-        self.__version = opts["--version"]
+        self.__version = version
         self.__dev_release = False
         self.__release_candidate = False
         self.__release_version = ""
@@ -115,6 +111,7 @@ class BIReleaser(object):
             print("Can't contact Evergreen at %s: %s" % (url, response.text))
             sys.exit(1)
         versions = json.loads(response.text)
+        self.validate_release_commit(versions["message"])
         builds = versions["builds"]
 
         if len(builds) == 0:
@@ -164,47 +161,9 @@ class BIReleaser(object):
             variant = entry["build_variant"]
             self.__urls[variant] = url
 
-    def prompt(self):
-        """Prompts the user for the release version.
-        """
-
-        try:
-            tag = subprocess.Popen("git describe",
-                shell=True,stdout=subprocess.PIPE).stdout.read().strip("\n")
-            if tag.startswith("v"):
-                tag = tag[1:]
-        except subprocess.CalledProcessError as err:
-            print err
-            sys.exit(1)
-
-        while True:
-            resp = raw_input('Release Version [%s]): ' % (tag)) or tag
-
-            if resp.count(".") != 2:
-                print("Invalid Release Version")
-            else:
-                tmp = resp
-
-                if "-" in resp:
-                    tmp = resp[0:resp.index("-")]
-
-                if len([y for y in tmp.split(".") if not y.isdigit()]) != 0:
-                    print("Invalid Release Version")
-                    continue
-
-                break
-
-        self.__release_version = resp
-
-        if "-beta" in tmp:
-            self.__dev_release = True
-        if "-rc" in tmp:
-            self.__release_candidate = True
-
     def run(self):
         """Runs an instance of the BI Releaser.
         """
-        self.prompt()
         self.fetch_urls()
         self.download_binaries()
         self.upload_binaries()
@@ -350,6 +309,44 @@ class BIReleaser(object):
             self.upload_current_artifacts()
         shutil.rmtree(self.__temp_dir)
 
+    def validate_release_commit(self, message):
+        """Ensures the commit message meets the release format.
+        """
+        if not message.startswith("BUMP"):
+            print("Refusing to release commit - does not start with 'BUMP': %s" % message)
+            sys.exit(1)
+
+        parts = message.split(" ")
+        if len(parts) != 2:
+            print("Refusing to release commit - does not contain release version: %s" % message)
+            sys.exit(1)
+
+        version = parts[1]
+
+        # strip v in commit message
+        if version.startswith("v"):
+            version = version[1:]
+
+        if version.count(".") != 2:
+            print("Refusing to release commit - invalid version (dot count) '%s'" % (version))
+            sys.exit(1)
+
+        tmp = version
+
+        if "-" in version:
+            tmp = version[0:version.index("-")]
+
+        if len([y for y in tmp.split(".") if not y.isdigit()]) != 0:
+            print("Refusing to release commit - invalid version '%s'" % (version))
+            sys.exit(1)
+
+        self.__release_version = version
+
+        if "-beta" in tmp:
+            self.__dev_release = True
+        if "-rc" in tmp:
+            self.__release_candidate = True
+
     def verify_website_links(self):
         """Verifies that the download URLs exist and are valid.
         """
@@ -427,8 +424,19 @@ class BIReleaser(object):
         print("Release file passed validation check")
 
 if __name__ == '__main__':
-    options = docopt.docopt(USAGE)
+    version = ''
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hv:", ["version="])
+    except getopt.GetoptError:
+        print USAGE
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print USAGE
+            sys.exit(0)
+        elif opt in ("-v", "--version"):
+            version = arg
     ensure_env()
-    releaser = BIReleaser(options)
+    releaser = BIReleaser(version)
     releaser.run()
 
