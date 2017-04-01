@@ -5,11 +5,9 @@ import (
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
 	"github.com/10gen/mongo-go-driver/ops"
-	"github.com/10gen/mongo-go-driver/server"
-
-	"github.com/10gen/sqlproxy/util"
 )
 
 // Cursor wraps the ops.Cursor interface for mongosqld
@@ -24,7 +22,7 @@ type Session struct {
 	appName    string
 	connection conn.Connection
 	ctx        context.Context
-	dialer     conn.EndpointDialer
+	dialer     conn.NetDialer
 	server     *ops.SelectedServer
 }
 
@@ -50,15 +48,15 @@ func (s *Session) ConnLen() int {
 	return 1
 }
 
-// Description returns the description of the server
-// asssociated with this session.
-func (s *Session) Description() server.Desc {
-	return *s.server.Desc()
-}
-
 // Context returns the context associated with this session.
 func (s *Session) Context() context.Context {
 	return s.ctx
+}
+
+// Model returns the description of the server
+// asssociated with this session.
+func (s *Session) Model() *model.Server {
+	return s.server.Model()
 }
 
 // SelectedServer returns the selected server
@@ -75,17 +73,22 @@ func (s *Session) SetContext(ctx context.Context) {
 // updateDirectConnection update the direct server connection
 // for this session with the connection passed in c.
 func (s *Session) updateDirectConnection(c conn.Connection) {
-	directServerConnection := &DirectServerConnection{c, s.server.Desc()}
-	s.server = &ops.SelectedServer{serverImpl{directServerConnection}, s.server.ReadPref}
+	directServerConnection := &DirectServerConnection{
+		directConnection: c,
+		serverModel:      s.server.Model(),
+	}
+	s.server = &ops.SelectedServer{
+		Server:   serverImpl{directServerConnection},
+		ReadPref: s.server.ReadPref,
+	}
 	s.connection = directServerConnection
 }
 
 // validate checks that the established session meets the server
 // version requirements for the BI Connector.
 func (s *Session) validate() error {
-	version := s.Description().Version
-	versionArray := version.Parts
-	if !util.VersionAtLeast(versionArray, []uint8{3, 2, 0}) {
+	version := s.Model().Version
+	if !version.AtLeast(3, 2, 0) {
 		return fmt.Errorf("server version is %v but version >= 3.2.0 required", version.Desc)
 	}
 	return nil
@@ -153,32 +156,33 @@ type serverImpl struct {
 	directConnection *DirectServerConnection
 }
 
-func (s serverImpl) Desc() *server.Desc {
-	return s.directConnection.serverDescription
-}
-
 func (s serverImpl) Connection(ctx context.Context) (conn.Connection, error) {
 	return s.directConnection, nil
+}
+
+func (s serverImpl) Model() *model.Server {
+	return s.directConnection.serverModel
 }
 
 // DirectServerConnection maintains a direct connection
 // to a MongoDB server by implementing the conn.Connection
 // interface over a single socket connection.
 type DirectServerConnection struct {
-	directConnection  conn.Connection
-	serverDescription *server.Desc
+	directConnection conn.Connection
+	serverModel      *model.Server
 }
 
 // NewDirectServerConnection establishes a direct connection to a MongoDB
 // server using the supplied server description.
-func NewDirectServerConnection(ctx context.Context, serverDescription *server.Desc,
-	opts ...conn.Option) (*DirectServerConnection, error) {
-	endPoint := serverDescription.Endpoint
-	directConnection, err := conn.Dial(ctx, endPoint, opts...)
+func NewDirectServerConnection(ctx context.Context, serverModel *model.Server, opts ...conn.Option) (*DirectServerConnection, error) {
+	directConnection, err := conn.Dial(ctx, serverModel.Addr, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("could not dial server at %v: %v", endPoint.Canonicalize(), err)
+		return nil, fmt.Errorf("could not dial server at %v: %v", serverModel.Addr, err)
 	}
-	return &DirectServerConnection{directConnection, serverDescription}, nil
+	return &DirectServerConnection{
+		directConnection: directConnection,
+		serverModel:      serverModel,
+	}, nil
 }
 
 func (d *DirectServerConnection) Alive() bool {
@@ -189,8 +193,8 @@ func (d *DirectServerConnection) Close() error {
 	return nil
 }
 
-func (d *DirectServerConnection) Desc() *conn.Desc {
-	return d.directConnection.Desc()
+func (d *DirectServerConnection) Model() *model.Conn {
+	return d.directConnection.Model()
 }
 
 func (d *DirectServerConnection) Expired() bool {

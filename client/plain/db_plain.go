@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/cluster"
-	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/readpref"
 
 	"github.com/10gen/sqlproxy/mongodb"
@@ -19,27 +18,20 @@ type PlainDBConnector struct {
 
 func (v *PlainDBConnector) ConfigureDrdl(_ options.DrdlOptions, dialInfo *mongodb.DialInfo) error {
 	v.dialInfo = dialInfo
-	v.setEndpointDialer()
 	return nil
 }
 
 func (v *PlainDBConnector) ConfigureSqld(_ options.SqldOptions, dialInfo *mongodb.DialInfo) error {
 	v.dialInfo = dialInfo
-	v.setEndpointDialer()
 	return v.validate()
 }
 
-func (v *PlainDBConnector) GetNewSession(ctx context.Context, monitor *cluster.Monitor,
-	readPreference *readpref.ReadPref) (*mongodb.Session, error) {
+func (v *PlainDBConnector) GetNewSession(ctx context.Context, monitor *cluster.Monitor, readPreference *readpref.ReadPref) (*mongodb.Session, error) {
 	session, err := v.dialInfo.Dial(ctx, monitor, readPreference)
 	if err != nil {
 		return nil, err
 	}
 	return session, nil
-}
-
-func (v *PlainDBConnector) setEndpointDialer() {
-	v.dialInfo.EndpointDialer = conn.DialEndpoint
 }
 
 func (v *PlainDBConnector) validate() error {

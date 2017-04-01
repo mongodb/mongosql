@@ -1,8 +1,6 @@
 package cluster
 
 import (
-	"time"
-
 	"github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/connstring"
@@ -11,8 +9,7 @@ import (
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		seedList:               []conn.Endpoint{conn.Endpoint("localhost:27017")},
-		serverSelectionTimeout: 30 * time.Second,
+		seedList: []string{"localhost:27017"},
 	}
 
 	cfg.apply(opts...)
@@ -24,20 +21,18 @@ func newConfig(opts ...Option) *config {
 type Option func(*config)
 
 type config struct {
-	mode                   MonitorMode
-	replicaSetName         string
-	seedList               []conn.Endpoint
-	serverOpts             []server.Option
-	serverSelectionTimeout time.Duration
+	mode           MonitorMode
+	replicaSetName string
+	seedList       []string
+	serverOpts     []server.Option
 }
 
 func (c *config) reconfig(opts ...Option) *config {
 	cfg := &config{
-		mode:                   c.mode,
-		replicaSetName:         c.replicaSetName,
-		seedList:               c.seedList,
-		serverOpts:             c.serverOpts,
-		serverSelectionTimeout: c.serverSelectionTimeout,
+		mode:           c.mode,
+		replicaSetName: c.replicaSetName,
+		seedList:       c.seedList,
+		serverOpts:     c.serverOpts,
 	}
 
 	cfg.apply(opts...)
@@ -66,10 +61,7 @@ func WithConnString(cs connstring.ConnString) Option {
 			c.mode = SingleMode
 		}
 
-		c.seedList = []conn.Endpoint{}
-		for _, host := range cs.Hosts {
-			c.seedList = append(c.seedList, conn.Endpoint(host))
-		}
+		c.seedList = cs.Hosts
 
 		if cs.HeartbeatInterval > 0 {
 			c.serverOpts = append(c.serverOpts, server.WithHeartbeatInterval(cs.HeartbeatInterval))
@@ -95,10 +87,6 @@ func WithConnString(cs connstring.ConnString) Option {
 			c.replicaSetName = cs.ReplicaSet
 		}
 
-		if cs.ServerSelectionTimeout > 0 {
-			c.serverSelectionTimeout = cs.ServerSelectionTimeout
-		}
-
 		if cs.Username != "" || cs.AuthMechanism == auth.GSSAPI {
 			cred := &auth.Cred{
 				Source:      "admin",
@@ -122,8 +110,8 @@ func WithConnString(cs connstring.ConnString) Option {
 			if authenticator, err := auth.CreateAuthenticator(cs.AuthMechanism, cred); err == nil {
 				c.serverOpts = append(
 					c.serverOpts,
-					server.WithWrappedConnectionDialer(func(current conn.Dialer) conn.Dialer {
-						return auth.Dialer(current, authenticator)
+					server.WithWrappedConnectionOpener(func(current conn.Opener) conn.Opener {
+						return auth.Opener(current, authenticator)
 					}),
 				)
 			}
@@ -156,16 +144,9 @@ func WithReplicaSetName(name string) Option {
 // WithSeedList configures a cluster's seed list.
 // This option will be ignored when the cluster is created with a
 // pre-existing monitor.
-func WithSeedList(endpoints ...conn.Endpoint) Option {
+func WithSeedList(seedList ...string) Option {
 	return func(c *config) {
-		c.seedList = endpoints
-	}
-}
-
-// WithServerSelectionTimeout configures a cluster's server selection timeout.
-func WithServerSelectionTimeout(timeout time.Duration) Option {
-	return func(c *config) {
-		c.serverSelectionTimeout = timeout
+		c.seedList = seedList
 	}
 }
 

@@ -17,8 +17,6 @@ import (
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	"github.com/10gen/sqlproxy/options"
 
-	"github.com/10gen/sqlproxy/util"
-
 	toolsdb "github.com/mongodb/mongo-tools/common/db"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/mongoimport"
@@ -183,9 +181,8 @@ func TestRoundtrips(t *testing.T) {
 			}
 			dbutils.InsertDocuments(server, db, "base", documents)
 
-			version := session.Description().Version
-			versionArray := version.Parts
-			if util.VersionAtLeast(versionArray, []uint8{3, 3, 0}) {
+			version := session.Model().Version
+			if version.AtLeast(3, 3, 0) {
 				So(session.Run(db, bson.D{
 					{"create", "view"},
 					{"viewOn", "base"},
@@ -247,9 +244,8 @@ func TestRoundtrips(t *testing.T) {
 			ctx := context.Background()
 			So(iter.Next(ctx, nil), ShouldNotBeNil)
 
-			version := session.Description().Version
-			versionArray := version.Parts
-			if util.VersionAtLeast(versionArray, []uint8{3, 3, 0}) {
+			version := session.Model().Version
+			if version.AtLeast(3, 3, 0) {
 				So(session.Run(db, bson.D{
 					{"create", "view"},
 					{"viewOn", "base"},

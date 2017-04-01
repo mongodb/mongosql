@@ -59,14 +59,18 @@ func NewDrdlSessionProvider(opts options.DrdlOptions) (*SessionProvider, error) 
 		return nil, err
 	}
 
-	provider.monitor, err = cluster.StartMonitor(
+	clusterOpts := []cluster.Option{
 		cluster.WithConnString(dialInfo.ConnString),
-		cluster.WithMoreServerOptions(
+	}
+	if dialInfo.NetDialer != nil {
+		clusterOpts = append(clusterOpts, cluster.WithMoreServerOptions(
 			server.WithMoreConnectionOptions(
-				conn.WithEndpointDialer(dialInfo.EndpointDialer),
+				conn.WithDialer(dialInfo.NetDialer),
 			),
-		),
-	)
+		))
+	}
+
+	provider.monitor, err = cluster.StartMonitor(clusterOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -94,14 +98,18 @@ func NewSqldSessionProvider(opts options.SqldOptions) (*SessionProvider, error) 
 		return nil, err
 	}
 
-	provider.monitor, err = cluster.StartMonitor(
+	clusterOpts := []cluster.Option{
 		cluster.WithConnString(dialInfo.ConnString),
-		cluster.WithMoreServerOptions(
+	}
+	if dialInfo.NetDialer != nil {
+		clusterOpts = append(clusterOpts, cluster.WithMoreServerOptions(
 			server.WithMoreConnectionOptions(
-				conn.WithEndpointDialer(dialInfo.EndpointDialer),
+				conn.WithDialer(dialInfo.NetDialer),
 			),
-		),
-	)
+		))
+	}
+
+	provider.monitor, err = cluster.StartMonitor(clusterOpts...)
 	if err != nil {
 		return nil, err
 	}

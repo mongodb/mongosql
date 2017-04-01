@@ -22,21 +22,23 @@ const (
 
 // DialInfo holds options for establishing a session with a MongoDB cluster.
 type DialInfo struct {
-	conn.EndpointDialer
+	conn.NetDialer
 	connstring.ConnString
 }
 
 // Dial establishes a new session to the cluster
 // using the provided monitor choose a server
 // that meets the read preference.
-func (info *DialInfo) Dial(ctx context.Context, monitor *cluster.Monitor,
-	readPreference *readpref.ReadPref) (*Session, error) {
+func (info *DialInfo) Dial(ctx context.Context, monitor *cluster.Monitor, readPreference *readpref.ReadPref) (*Session, error) {
 	opts := []conn.Option{
 		conn.WithAppName(info.AppName),
-		conn.WithEndpointDialer(info.EndpointDialer),
 	}
 
-	selector := cluster.ReadPrefSelector(readPreference)
+	if info.NetDialer != nil {
+		opts = append(opts, conn.WithDialer(info.NetDialer))
+	}
+
+	selector := readpref.Selector(readPreference)
 
 	optionName := "connectTimeoutMS"
 	option, ok := info.getUnknownOption(optionName)
@@ -77,7 +79,7 @@ func (info *DialInfo) Dial(ctx context.Context, monitor *cluster.Monitor,
 		appName:    info.AppName,
 		connection: connection,
 		ctx:        ctx,
-		dialer:     info.EndpointDialer,
+		dialer:     info.NetDialer,
 		server:     selectedServer,
 	}
 

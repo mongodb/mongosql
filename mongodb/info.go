@@ -94,13 +94,13 @@ func LoadInfo(logger *log.Logger, session *Session, config *schema.Schema, requi
 		}
 	}()
 
-	version := session.Description().Version
+	version := session.Model().Version
 
 	dbs := createDatabasesFromSchema(config)
 
 	i := &Info{
 		Databases:    dbs,
-		GitVersion:   session.Description().GitVersion,
+		GitVersion:   session.Model().GitVersion,
 		Version:      version.Desc,
 		VersionArray: version.Parts,
 	}

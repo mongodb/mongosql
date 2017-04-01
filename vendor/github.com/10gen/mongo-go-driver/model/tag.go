@@ -1,4 +1,4 @@
-package server
+package model
 
 // Tag is a name/value pair.
 type Tag struct {
@@ -17,6 +17,25 @@ func NewTagSet(tags ...string) TagSet {
 		set = append(set, Tag{Name: tags[i], Value: tags[i+1]})
 	}
 	return set
+}
+
+// NewTagSetFromMap creates a new tag set from a map.
+func NewTagSetFromMap(m map[string]string) TagSet {
+	var set TagSet
+	for k, v := range m {
+		set = append(set, Tag{Name: k, Value: v})
+	}
+
+	return set
+}
+
+// NewTagSetsFromMaps creates new tag sets from maps.
+func NewTagSetsFromMaps(maps []map[string]string) []TagSet {
+	sets := make([]TagSet, 0, len(maps))
+	for _, m := range maps {
+		sets = append(sets, NewTagSetFromMap(m))
+	}
+	return sets
 }
 
 // TagSet is an ordered list of Tags.

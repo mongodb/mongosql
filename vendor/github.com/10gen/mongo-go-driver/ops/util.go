@@ -1,9 +1,9 @@
 package ops
 
 import (
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/readpref"
-	"github.com/10gen/mongo-go-driver/server"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func slaveOk(rp *readpref.ReadPref) bool {
@@ -15,8 +15,8 @@ func slaveOk(rp *readpref.ReadPref) bool {
 	return rp.Mode() != readpref.PrimaryMode
 }
 
-func readPrefMeta(rp *readpref.ReadPref, serverType server.Type) interface{} {
-	if serverType != server.Mongos || rp == nil {
+func readPrefMeta(rp *readpref.ReadPref, kind model.ServerKind) interface{} {
+	if kind != model.Mongos || rp == nil {
 		return nil
 	}
 

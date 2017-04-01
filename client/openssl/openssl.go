@@ -7,7 +7,7 @@ import (
 	"net"
 
 	"github.com/10gen/mongo-go-driver/cluster"
-	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/readpref"
 
 	"github.com/10gen/sqlproxy/mongodb"
@@ -23,7 +23,7 @@ type (
 		dialInfo *mongodb.DialInfo
 	}
 
-	dialerFunc func(ctx context.Context, endPoint conn.Endpoint) (net.Conn, error)
+	dialerFunc func(ctx context.Context, addr model.Addr) (net.Conn, error)
 
 	sslInitializationFunction func(options.Options) error
 )
@@ -48,7 +48,7 @@ func (s *SSLDBConnector) ConfigureDrdl(opts options.DrdlOptions, dialInfo *mongo
 	}
 
 	s.dialInfo = dialInfo
-	s.setEndpointDialer(flags)
+	s.setNetDialer(flags)
 	return err
 }
 
@@ -68,12 +68,11 @@ func (s *SSLDBConnector) ConfigureSqld(opts options.SqldOptions, dialInfo *mongo
 	}
 
 	s.dialInfo = dialInfo
-	s.setEndpointDialer(flags)
+	s.setNetDialer(flags)
 	return nil
 }
 
-func (s *SSLDBConnector) GetNewSession(ctx context.Context, monitor *cluster.Monitor,
-	readPreference *readpref.ReadPref) (*mongodb.Session, error) {
+func (s *SSLDBConnector) GetNewSession(ctx context.Context, monitor *cluster.Monitor, readPreference *readpref.ReadPref) (*mongodb.Session, error) {
 
 	session, err := s.dialInfo.Dial(ctx, monitor, readPreference)
 	if err != nil {
@@ -82,14 +81,14 @@ func (s *SSLDBConnector) GetNewSession(ctx context.Context, monitor *cluster.Mon
 	return session, err
 }
 
-func (s *SSLDBConnector) setEndpointDialer(flags openssl.DialFlags) {
-	s.dialInfo.EndpointDialer = func(ctx context.Context, endPoint conn.Endpoint) (net.Conn, error) {
+func (s *SSLDBConnector) setNetDialer(flags openssl.DialFlags) {
+	s.dialInfo.NetDialer = func(ctx context.Context, network, address string) (net.Conn, error) {
 		var conn net.Conn
 		var err error
 		connChan := make(chan struct{})
 
 		go func() {
-			conn, err = openssl.Dial("tcp", string(endPoint), s.ctx, flags)
+			conn, err = openssl.Dial(network, address, s.ctx, flags)
 			connChan <- struct{}{}
 		}()
 

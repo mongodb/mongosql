@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
 	. "github.com/10gen/sqlproxy/mongodb"
 )
@@ -305,12 +306,12 @@ func (c *mockConnection) Close() error {
 	return nil
 }
 
-func (c *mockConnection) Desc() *conn.Desc {
-	return &conn.Desc{}
-}
-
 func (c *mockConnection) Expired() bool {
 	return c.Dead
+}
+
+func (c *mockConnection) Model() *model.Conn {
+	return &model.Conn{}
 }
 
 func (c *mockConnection) Read(ctx context.Context, responseTo int32) (msg.Response, error) {

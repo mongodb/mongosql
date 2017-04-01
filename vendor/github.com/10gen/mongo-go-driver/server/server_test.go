@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal/conntest"
 	"github.com/10gen/mongo-go-driver/internal/servertest"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
 	. "github.com/10gen/mongo-go-driver/server"
 	"github.com/stretchr/testify/require"
@@ -18,15 +19,15 @@ func TestServer_Close_should_not_return_new_connections(t *testing.T) {
 	t.Parallel()
 
 	var created []*conntest.MockConnection
-	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
+	dialer := func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})
 		return created[len(created)-1], nil
 	}
 
-	fake := servertest.NewFakeMonitor(Standalone, conn.Endpoint("localhost:27017"))
+	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 
@@ -41,15 +42,15 @@ func TestServer_Connection_should_provide_up_to_maxConn_connections(t *testing.T
 	t.Parallel()
 
 	var created []*conntest.MockConnection
-	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
+	dialer := func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})
 		return created[len(created)-1], nil
 	}
 
-	fake := servertest.NewFakeMonitor(Standalone, conn.Endpoint("localhost:27017"))
+	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 
@@ -75,15 +76,15 @@ func TestServer_Connection_should_pool_connections(t *testing.T) {
 	t.Parallel()
 
 	var created []*conntest.MockConnection
-	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
+	dialer := func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})
 		return created[len(created)-1], nil
 	}
 
-	fake := servertest.NewFakeMonitor(Standalone, conn.Endpoint("localhost:27017"))
+	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 
@@ -111,15 +112,15 @@ func TestServer_Connection_should_clear_pool_when_monitor_fails(t *testing.T) {
 	t.Parallel()
 
 	var created []*conntest.MockConnection
-	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
+	dialer := func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})
 		return created[len(created)-1], nil
 	}
 
-	fake := servertest.NewFakeMonitor(Standalone, conn.Endpoint("localhost:27017"), WithHeartbeatInterval(1*time.Second))
+	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"), WithHeartbeatInterval(1*time.Second))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 
@@ -134,7 +135,7 @@ func TestServer_Connection_should_clear_pool_when_monitor_fails(t *testing.T) {
 	c1.Close()
 	c2.Close()
 
-	fake.SetServerType(Unknown)
+	fake.SetKind(model.Unknown)
 	time.Sleep(1 * time.Second)
 
 	_, err = s.Connection(context.Background())
@@ -150,15 +151,15 @@ func TestServer_Connection_Read_failure_should_cause_immediate_monitor_check(t *
 	t.Parallel()
 
 	var created []*conntest.MockConnection
-	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
+	dialer := func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})
 		return created[len(created)-1], nil
 	}
 
-	fake := servertest.NewFakeMonitor(Standalone, conn.Endpoint("localhost:27017"), WithHeartbeatInterval(100*time.Second))
+	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"), WithHeartbeatInterval(100*time.Second))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 
@@ -170,7 +171,7 @@ func TestServer_Connection_Read_failure_should_cause_immediate_monitor_check(t *
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 
-	fake.SetServerType(Unknown)
+	fake.SetKind(model.Unknown)
 	c1.Write(context.Background(), &msg.Query{})
 	c1.Read(context.Background(), 0)
 
@@ -192,15 +193,15 @@ func TestServer_Connection_Write_failure_should_cause_immediate_monitor_check(t 
 	t.Parallel()
 
 	var created []*conntest.MockConnection
-	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
+	dialer := func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})
 		return created[len(created)-1], nil
 	}
 
-	fake := servertest.NewFakeMonitor(Standalone, conn.Endpoint("localhost:27017"), WithHeartbeatInterval(100*time.Second))
+	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"), WithHeartbeatInterval(100*time.Second))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 
@@ -212,7 +213,7 @@ func TestServer_Connection_Write_failure_should_cause_immediate_monitor_check(t 
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 
-	fake.SetServerType(Unknown)
+	fake.SetKind(model.Unknown)
 	created[0].WriteErr = fmt.Errorf("forced write error")
 	c1.Write(context.Background(), &msg.Query{})
 
