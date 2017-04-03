@@ -136,7 +136,7 @@ func {{ .Name }}(t *testing.{{ if .IsBenchmark }}B{{ else }}T{{ end }}) {
 	if dbName == "" {
 		dbName = "{{ $parent.DefaultDb }}"
 	}
-	connString := fmt.Sprintf("root@tcp(%v)/%v", *testutils.DbAddr, dbName)
+	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1", *testutils.DbAddr, dbName)
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
 		t.Fatal(err.Error())

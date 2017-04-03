@@ -94,10 +94,20 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 			CLIENT_SECURE_CONNECTION |
 			CLIENT_PLUGIN_AUTH |
 			CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA,
-		stmts:          make(map[uint32]*stmt),
-		variables:      variable.NewSessionContainer(s.variables),
-		authPluginName: mongosqlAuthClientAuthPluginName,
-		authPluginData: []byte{1, 0}, // version 1.0 of the mongosql_auth plugin
+		stmts:     make(map[uint32]*stmt),
+		variables: variable.NewSessionContainer(s.variables),
+	}
+
+	if *s.opts.Auth {
+		newConn.authPluginName = mongosqlAuthClientAuthPluginName
+		newConn.authPluginData = []byte{1, 0} // version 1.0 of the mongosql_auth plugin
+	} else {
+		buf, err := randomBuf(20)
+		if err != nil {
+			return nil, fmt.Errorf("unable to generate salt: %v", err)
+		}
+		newConn.authPluginName = nativePasswordPluginName
+		newConn.authPluginData = buf
 	}
 
 	newConn.logger = newConn.Logger(log.NetworkComponent)
@@ -426,10 +436,6 @@ func (c *conn) readHandshakeResponse() error {
 
 		db := String(c.variables.CharacterSetClient.Decode(dbBytes))
 		c.startDb = db
-	} else {
-		// this is kinda weird... the docs don't indicate this is necessary, but the java
-		// driver adds in a single null byte, so... we'll just have to test this a lot.
-		pos++
 	}
 
 	if pos == len(data) {
@@ -437,6 +443,17 @@ func (c *conn) readHandshakeResponse() error {
 	}
 
 	if (c.capability & CLIENT_PLUGIN_AUTH) != 0 {
+		// The Java Driver has a bug where it sends an extra nul byte when
+		// there is no initial db. So, if we don't have CLIENT_CONNECT_WITH_DB
+		// and the current byte is nul, we'll skip it.
+		// REF: https://bugs.mysql.com/bug.php?id=79612
+		if c.capability&CLIENT_CONNECT_WITH_DB == 0 && data[pos] == 0 {
+			pos++
+			if pos == len(data) {
+				return nil
+			}
+		}
+
 		clientPluginNameBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
 		pos += len(clientPluginNameBytes) + 1
 
