@@ -80,7 +80,10 @@ func (t *Table) copyParent(primaryKeyOnly bool) error {
 		return nil
 	}
 
-	t.PrimaryKey = append(t.Parent.PrimaryKey, t.PrimaryKey...)
+	parentPrimaryKey := make([]*Column, len(t.Parent.PrimaryKey))
+	copy(parentPrimaryKey, t.Parent.PrimaryKey)
+	t.PrimaryKey = append(parentPrimaryKey, t.PrimaryKey...)
+	parentPrimaryKey = nil
 
 	source := t.Parent.Columns
 	if primaryKeyOnly {
@@ -96,7 +99,10 @@ func (t *Table) copyParent(primaryKeyOnly bool) error {
 	}
 
 	t.Columns.Sort()
-	t.Pipeline = append(t.Parent.Pipeline, t.Pipeline...)
+	parentPipeline := make([]map[string]interface{}, len(t.Parent.Pipeline), len(t.Parent.Pipeline)+len(t.Pipeline))
+	copy(parentPipeline, t.Parent.Pipeline)
+	t.Pipeline = append(parentPipeline, t.Pipeline...)
+	parentPipeline = nil
 	return nil
 }
 

@@ -84,7 +84,8 @@ func (v *filteringOptimizer) visit(n node) (node, error) {
 		if err != nil {
 			return nil, err
 		}
-		v.tableNames = append(tableNames, v.tableNames...)
+		tableNames = append(tableNames, v.tableNames...)
+		v.tableNames = tableNames
 		v.allowPredicate = oldAllowPredicate
 
 		if left != typedN.left || right != typedN.right {

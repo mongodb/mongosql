@@ -66,9 +66,12 @@ func (ctx *EvalCtx) WithRows(rows ...*Row) *EvalCtx {
 
 // CreateChildExecutionCtx creates a child ExecutionCtx.
 func (ctx *EvalCtx) CreateChildExecutionCtx() *ExecutionCtx {
+	srcRows := make([]*Row, len(ctx.Rows), len(ctx.Rows)+len(ctx.ExecutionCtx.SrcRows))
+	copy(srcRows, ctx.Rows)
+	srcRows = append(srcRows, ctx.ExecutionCtx.SrcRows...)
 	return &ExecutionCtx{
 		ConnectionCtx: ctx.ExecutionCtx.ConnectionCtx,
-		SrcRows:       append(ctx.Rows, ctx.ExecutionCtx.SrcRows...),
+		SrcRows:       srcRows,
 	}
 }
 

@@ -1823,9 +1823,8 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 		return project, nil
 	}
 
-	pipeline := append(ms.pipeline, bson.D{{"$project", fieldsToProject}})
 	ms = ms.clone()
-	ms.pipeline = pipeline
+	ms.pipeline = append(ms.pipeline, bson.D{{"$project", fieldsToProject}})
 	ms.mappingRegistry = &fixedMappingRegistry
 
 	if canReplaceProject {

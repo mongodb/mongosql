@@ -71,7 +71,8 @@ func (v *crossJoinOptimizer) visit(n node) (node, error) {
 			}
 
 			// this is now the table names from the left and the right side
-			v.tableNames = append(tableNames, v.tableNames...)
+			tableNames = append(tableNames, v.tableNames...)
+			v.tableNames = tableNames
 
 			// go through each part of the predicate and figure out which
 			// ones are associated to the tables in the current join.

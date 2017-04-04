@@ -198,7 +198,10 @@ func (join *JoinIter) Close() error {
 func (join *JoinStage) Columns() []*Column {
 	left := join.left.Columns()
 	right := join.right.Columns()
-	return append(left, right...)
+	columns := make([]*Column, len(left), len(left)+len(right))
+	copy(columns, left)
+	columns = append(columns, right...)
+	return columns
 }
 
 func (join *JoinStage) Collation() *collation.Collation {

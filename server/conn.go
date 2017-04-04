@@ -498,7 +498,8 @@ func (c *conn) readPacket() ([]byte, error) {
 		return nil, errBadConn
 	}
 
-	return append(data, buf...), nil
+	data = append(data, buf...)
+	return data, nil
 }
 
 // RowCount returns the number of rows affected by the last statement.
