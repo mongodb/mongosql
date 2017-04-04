@@ -30,6 +30,10 @@ run_unit_tests() {
     run_unit_tests variable
     run_unit_tests evaluator
     run_unit_tests parser
+    run_unit_tests mongodb
+    run_unit_tests server
+    run_unit_tests schema
+    run_unit_tests util
 
     rm -rf "$PROJECT_DIR/mongodrdl/out/"
 
