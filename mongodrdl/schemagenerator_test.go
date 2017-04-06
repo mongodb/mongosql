@@ -109,12 +109,6 @@ func TestRoundtrips(t *testing.T) {
 			So(err, ShouldBeNil)
 			defer session.Close()
 			db := gen.ToolOptions.DrdlNamespace.DB
-			err = session.Run(
-				db,
-				bson.D{{"profile", 10}, {"slowms", 0}},
-				bson.M{},
-			)
-			So(err, ShouldBeNil)
 			defer dbutils.DropDatabase(session, db)
 			dbutils.DropDatabase(session, db)
 			documents := []bson.M{

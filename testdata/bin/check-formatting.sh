@@ -3,7 +3,6 @@
 . "$(dirname $0)/prepare-shell.sh"
 
 (
-    set -o errexit
     echo "checking formatting..."
 
     cd $PROJECT_DIR

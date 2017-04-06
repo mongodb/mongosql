@@ -3,6 +3,8 @@
 . "$(dirname $0)/prepare-shell.sh"
 
 run_unit_tests() {
+    set -o pipefail
+
     cd "$PROJECT_DIR/$1"
     SUITE=${PWD##*/}
     COVER_FLAG="-coverprofile=$ARTIFACTS_DIR/out/$SUITE-coverage.out"

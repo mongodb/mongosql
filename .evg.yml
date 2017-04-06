@@ -1,38 +1,32 @@
 stepback: true
 command_type: system
 buildvariants:
-- name: debian71
-  display_name: Debian 7.1
-  run_on:
-  - debian71-test
-  expansions:
-    goroot: /opt/go
-    gobindir: /opt/go/bin
-    push_arch: x86_64-debian71
-    push_name: linux
-  tasks:
-  - "!.oneoff-task"
-- name: debian81
-  display_name: Debian 8.1 (nightly)
-  run_on:
-  - debian81-test
-  expansions:
-    goroot: /opt/go
-    gobindir: /opt/go/bin
-    push_arch: x86_64-debian81
-    push_name: linux
-  tasks:
-  - "!.oneoff-task"
-- name: linux-64-amazon-ami
-  display_name: Amazon Linux (Enterprise)
-  expansions:
-    mongo_ssl: true
-    push_arch: x86_64-enterprise-amzn64
-    push_name: linux
-  run_on:
-    - linux-64-amzn-build
-  tasks:
-  - "!.oneoff-task"
+
+- matrix_name: full_matrix
+  display_name: "${os_full_matrix} (${mongodb_version}) (${mongodb_topology})"
+  tasks: ["!.oneoff-task !check"]
+  matrix_spec:
+    os_full_matrix: "*"
+    mongodb_version: "*"
+    mongodb_topology: "*"
+  rules:
+  - if:
+      mongodb_version: "latest"
+      mongodb_topology: "standalone"
+    then:
+      add_tasks: ["check"]
+  - if:
+      mongodb_version: "latest"
+      mongodb_topology: "standalone"
+    then:
+      remove_tasks: ["dist"]
+
+- matrix_name: single_variant
+  display_name: "${os_single_variant}"
+  tasks: ["!.oneoff-task"]
+  matrix_spec:
+    os_single_variant: "*"
+
 - name: linux-64-amazon-ami-benchmarks
   display_name: Amazon Linux (Enterprise Benchmarks)
   expansions:
@@ -43,8 +37,10 @@ buildvariants:
     - linux-64-amzn-build
   batchtime: 1440 # 1 day
   tasks:
+  - "check"
   - "benchmark"
   - "tpch_micro"
+
 - name: linux-64-amazon-ami-tpch
   display_name: Amazon Linux (TPC-H Benchmarks)
   expansions:
@@ -58,115 +54,7 @@ buildvariants:
   - "tpch_handwritten_denormalized"
   - "tpch_workbook_denormalized"
   - "tpch_workbook_normalized"
-- name: osx
-  display_name: OSX 10.10
-  run_on:
-  - osx-1010
-  expansions:
-    push_arch: x86_64
-    push_name: osx
-  tasks:
-  - "!.oneoff-task"
-- name: osx-mongo32
-  display_name: OSX 10.10 (MongoDB 3.2.12)
-  run_on:
-  - osx-1010
-  expansions:
-    mongodb_version: 3.2
-    push_arch: x86_64
-    push_name: osx
-  tasks:
-  - "!.oneoff-task !dist"
-- name: rhel62
-  display_name: RHEL 6.2
-  expansions:
-    goroot: /opt/go
-    gobindir: /opt/go/bin
-    push_arch: x86_64-rhel62
-    push_name: linux
-  run_on:
-  - rhel62-test
-  tasks:
-  - "!.oneoff-task"
-- name: rhel70
-  display_name: RHEL 7.0
-  expansions:
-    goroot: /opt/go
-    gobindir: /opt/go/bin
-    push_arch: x86_64-rhel70
-    push_name: linux
-  run_on:
-  - rhel70
-  tasks:
-  - "!.oneoff-task"
-- name: rhel-71-ppc64le
-  display_name: RHEL 7.1 PPC64LE
-  expansions:
-    mongo_ssl: true
-    library_path: /opt/mongodbtoolchain/v2/bin/
-    push_arch: ppc64le-rhel71
-    push_name: linux
-    goroot: /opt/go1.8/go
-    gobindir: /opt/go1.8/go/bin
-  run_on:
-  - rhel71-power8-test
-  batchtime: 1440 # 1 day
-  tasks:
-  - "!.oneoff-task"
-- name: rhel-72-s390x
-  display_name: RHEL 7.2 s390x (nightly)
-  disabled: true
-  expansions:
-    mongo_ssl: true
-    library_path: /opt/mongodbtoolchain/v2/bin/
-    push_arch: s390x-enterprise-rhel72
-    push_name: linux
-    goroot: /opt/go1.7/go
-    gobindir: /opt/go1.7/go/bin
-    gccgo_flags: $(pkg-config --libs --cflags libssl)
-  run_on:
-  - rhel72-zseries-build
-  - rhel72-zseries-test
-  batchtime: 1440 # 1 day
-  tasks:
-  - "!.oneoff-task"
-- name: suse11-64
-  display_name: SLES 11
-  expansions:
-    push_arch: x86_64-suse11
-    push_name: linux
-  run_on:
-  - suse11-test
-  tasks:
-  - "!.oneoff-task"
-- name: suse12-64
-  display_name: SLES 12
-  expansions:
-    push_arch: x86_64-suse12
-    push_name: linux
-  run_on:
-  - suse12-test
-  tasks:
-  - "!.oneoff-task"
-- name: ubuntu1404-64
-  display_name: Ubuntu 14.04
-  expansions:
-    push_arch: x86_64-ubuntu1404
-    push_name: linux
-  run_on:
-  - ubuntu1404-build
-  tasks:
-  - "!.oneoff-task"
-- name: ubuntu1404-64-mongo32
-  display_name: Ubuntu 14.04 (MongoDB 3.2.12)
-  expansions:
-    mongodb_version: 3.2
-    push_arch: x86_64-ubuntu1404
-    push_name: linux
-  run_on:
-  - ubuntu1404-build
-  tasks:
-  - "!.oneoff-task !dist"
+
 - name: ubuntu1404-64-race
   disabled: true
   display_name: Ubuntu 14.04 (Race Detector)
@@ -178,31 +66,7 @@ buildvariants:
   - ubuntu1404-build
   tasks:
   - "!.oneoff-task !dist"
-- name: windows-64
-  display_name: Windows 64
-  run_on:
-  - windows-64-vs2013-test
-  expansions:
-    archive_format: zip
-    library_path: /cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/
-    push_arch: x86_64
-    push_name: win32
-    separator: \\
-  tasks:
-  - "!.oneoff-task !check"
-- name: windows-64-mongo32
-  display_name: Windows 64 (MongoDB 3.2.12)
-  run_on:
-  - windows-64-vs2013-test
-  expansions:
-    archive_format: zip
-    library_path: /cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/
-    mongodb_version: 3.2
-    push_arch: x86_64
-    push_name: win32
-    separator: \\
-  tasks:
-  - "!.oneoff-task !dist !check"
+
 - name: linux-64-amazon-ami-release
   batchtime: 2147483647 # max signed int32 (2^31 - 1)
   display_name: ~ Release Manager
@@ -210,6 +74,7 @@ buildvariants:
   - linux-64-amzn-benchmark
   tasks:
   - "release"
+
 - name: jdbc-rhel62
   display_name: JDBC Auth RHEL 6.2
   expansions:
@@ -287,6 +152,9 @@ functions:
         script: |
             ${PREPARE_SHELL}
             ${SCRIPT_DIR}/start-orchestration.sh
+    - command: expansions.update
+      params:
+        file: src/github.com/10gen/sqlproxy/testdata/artifacts/orchestration/mo-expansion.yml
 
   "download tableau test data":
     command: shell.exec
@@ -374,7 +242,7 @@ functions:
               export AUTH="auth"
           fi
 
-          export TOPOLOGY="${TOPOLOGY}"
+          export TOPOLOGY="${mongodb_topology}"
           export STORAGE_ENGINE="${STORAGE_ENGINE}"
           export MONGODB_VERSION="${mongodb_version}"
 
@@ -414,7 +282,7 @@ functions:
              export SSL="$SSL"
              export TOPOLOGY="$TOPOLOGY"
              export STORAGE_ENGINE="$STORAGE_ENGINE"
-             export MONGODB_VERSION="$VERSION"
+             export MONGODB_VERSION="$MONGODB_VERSION"
 
              export JAVA_HOME="/opt/java/jdk8"
           EOT
@@ -614,6 +482,7 @@ tasks:
         suite: blackbox,integration,tableau
 
 - name: blackbox
+  exec_timeout_secs: 14400 # 4h
   commands:
     - func: "download blackbox test data"
     - func: "bootstrap mongo-orchestration"
@@ -624,6 +493,7 @@ tasks:
         suite: blackbox
 
 - name: blackbox-nopushdown
+  exec_timeout_secs: 14400 # 4h
   commands:
     - func: "download blackbox test data"
     - func: "bootstrap mongo-orchestration"
@@ -773,3 +643,143 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run jdbc auth plugin tests"
+
+axes:
+
+- id: os_full_matrix
+  display_name: OS
+  values:
+  - id: ubuntu1404-64
+    display_name: Ubuntu 14.04
+    run_on: ubuntu1404-build
+    variables:
+      push_arch: x86_64-ubuntu1404
+      push_name: linux
+  - id: osx
+    display_name: OSX 10.10
+    run_on: osx-1010
+    variables:
+      push_arch: x86_64
+      push_name: osx
+  - id: windows
+    display_name: Windows 64
+    run_on: windows-64-vs2013-test
+    variables:
+      archive_format: zip
+      library_path: /cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/
+      push_arch: x86_64
+      push_name: win32
+      separator: \\
+
+- id: os_single_variant
+  display_name: OS
+  values:
+  - id: debian71
+    display_name: Debian 7.1
+    run_on: debian71-test
+    variables:
+      goroot: /opt/go
+      gobindir: /opt/go/bin
+      push_arch: x86_64-debian71
+      push_name: linux
+  - id: debian81
+    display_name: Debian 8.1 (nightly)
+    run_on: debian81-test
+    variables:
+      goroot: /opt/go
+      gobindir: /opt/go/bin
+      push_arch: x86_64-debian81
+      push_name: linux
+  - id: linux-64-amazon-ami
+    display_name: Amazon Linux (Enterprise)
+    variables:
+      mongo_ssl: true
+      push_arch: x86_64-enterprise-amzn64
+      push_name: linux
+    run_on: linux-64-amzn-build
+  - id: rhel62
+    display_name: RHEL 6.2
+    variables:
+      goroot: /opt/go
+      gobindir: /opt/go/bin
+      push_arch: x86_64-rhel62
+      push_name: linux
+    run_on: rhel62-test
+  - id: rhel70
+    display_name: RHEL 7.0
+    variables:
+      goroot: /opt/go
+      gobindir: /opt/go/bin
+      push_arch: x86_64-rhel70
+      push_name: linux
+    run_on: rhel70
+  - id: rhel-71-ppc64le
+    display_name: RHEL 7.1 PPC64LE
+    variables:
+      mongo_ssl: true
+      library_path: /opt/mongodbtoolchain/v2/bin/
+      push_arch: ppc64le-rhel71
+      push_name: linux
+      goroot: /opt/go1.8/go
+      gobindir: /opt/go1.8/go/bin
+    run_on: rhel71-power8-test
+    batchtime: 1440 # 1 day
+  - id: rhel-72-s390x
+    display_name: RHEL 7.2 s390x (nightly)
+    disabled: true
+    variables:
+      mongo_ssl: true
+      library_path: /opt/mongodbtoolchain/v2/bin/
+      push_arch: s390x-enterprise-rhel72
+      push_name: linux
+      goroot: /opt/go1.7/go
+      gobindir: /opt/go1.7/go/bin
+      gccgo_flags: $(pkg-config --libs --cflags libssl)
+    run_on:
+    - rhel72-zseries-build
+    - rhel72-zseries-test
+    batchtime: 1440 # 1 day
+  - id: suse11-64
+    display_name: SLES 11
+    variables:
+      push_arch: x86_64-suse11
+      push_name: linux
+    run_on: suse11-test
+  - id: suse12-64
+    display_name: SLES 12
+    variables:
+      push_arch: x86_64-suse12
+      push_name: linux
+    run_on: suse12-test
+
+- id: mongodb_version
+  display_name: MongoDB Version
+  values:
+  - id: latest
+    display_name: MongoDB Latest
+    variables:
+      mongodb_version: ""
+  - id: 3.4
+    display_name: MongoDB 3.4
+    variables:
+      mongodb_version: 3.4
+  - id: 3.2
+    display_name: MongoDB 3.2
+    variables:
+      mongodb_version: 3.2
+
+- id: mongodb_topology
+  display_name: Topology
+  values:
+  - id: standalone
+    display_name: Standalone
+    variables:
+      mongodb_topology: server
+  - id: replica_set
+    display_name: Replica Set
+    variables:
+      mongodb_topology: replica_set
+  - id: sharded_cluster
+    display_name: Sharded Cluster
+    variables:
+      mongodb_topology: sharded_cluster

@@ -20,7 +20,7 @@ func restoreInline(host, port string, inline *InlineDataSet) error {
 			Host: host,
 			Port: port,
 		},
-		Direct: true,
+		Direct: false,
 		SSL:    getSslOpts(),
 		Auth:   &toolsoptions.Auth{},
 	}
@@ -71,7 +71,7 @@ func restoreBSON(host, port, file string) error {
 			Host: host,
 			Port: port,
 		},
-		Direct: true,
+		Direct: false,
 		SSL:    getSslOpts(),
 		Auth:   &toolsoptions.Auth{},
 	}
