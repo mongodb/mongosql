@@ -9,9 +9,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/10gen/sqlproxy"
 	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
@@ -136,26 +136,21 @@ func main() {
 
 	options.EnsureOptsNotNil(&opts)
 
-	cfg := getSchema(opts)
+	schema := getSchema(opts)
 
 	logfile, logger := setupLog(opts)
 	if logfile != nil {
 		defer logfile.Close()
 	}
 
-	logger.Logf(log.Always, "[initandlisten] connecting to MongoDB at %v",
-		*opts.SqldMongoConnection.MongoURI)
-
-	evaluator, err := sqlproxy.NewEvaluator(cfg, opts)
+	sessionProvider, err := mongodb.NewSqldSessionProvider(opts)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "connecting to MongoDB failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error starting server: %v\n", err)
 		os.Exit(util.ExitError)
 	}
+	defer sessionProvider.Close()
 
-	logger.Logf(log.Always, "[initandlisten] connection established to MongoDB at %v",
-		*opts.SqldMongoConnection.MongoURI)
-
-	svr, err := server.New(cfg, evaluator, opts)
+	svr, err := server.New(schema, sessionProvider, opts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error starting server: %v\n", err)
 		os.Exit(util.ExitError)

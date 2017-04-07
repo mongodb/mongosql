@@ -18,7 +18,7 @@ var (
 )
 
 func (schemaGen *SchemaGenerator) Connect() (*mongodb.Session, error) {
-	session, err := schemaGen.provider.GetSession(context.Background())
+	session, err := schemaGen.provider.Session(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("can't create session: %v", err)
 	}

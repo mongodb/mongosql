@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	yaml "github.com/10gen/candiedyaml"
-	"github.com/10gen/sqlproxy/client"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	"github.com/10gen/sqlproxy/options"
@@ -17,7 +17,7 @@ type SchemaGenerator struct {
 	ToolOptions   *options.DrdlOptions
 	OutputOptions *options.DrdlOutput
 	SampleOptions *options.DrdlSample
-	provider      *client.SessionProvider
+	provider      *mongodb.SessionProvider
 }
 
 type Schema struct {
@@ -41,8 +41,7 @@ func (schemaGen *SchemaGenerator) Init() error {
 	mongo.UUIDSubtype3Encoding = schemaGen.OutputOptions.UUIDSubtype3Encoding
 
 	var err error
-
-	schemaGen.provider, err = client.NewDrdlSessionProvider(*schemaGen.ToolOptions)
+	schemaGen.provider, err = mongodb.NewDrdlSessionProvider(*schemaGen.ToolOptions)
 	if err != nil {
 		return err
 	}

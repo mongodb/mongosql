@@ -14,12 +14,12 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/catalog"
-	"github.com/10gen/sqlproxy/client/openssl"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/ssl"
 	"github.com/10gen/sqlproxy/variable"
 )
 
@@ -71,10 +71,12 @@ type conn struct {
 
 func newConn(s *Server, c net.Conn) (*conn, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	session, err := s.eval.Session(ctx)
+
+	session, err := s.sessionProvider.Session(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	newConn := &conn{
 		server:       s,
 		session:      session,
@@ -112,7 +114,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 
 	newConn.logger = newConn.Logger(log.NetworkComponent)
 
-	if s.tlsConfig != nil {
+	if len(*s.opts.SSLPEMKeyFile) > 0 {
 		newConn.capability |= CLIENT_SSL
 	}
 	return newConn, nil
@@ -253,8 +255,7 @@ func (c *conn) handshake() error {
 		c.user = ""
 	}
 
-	schema := c.server.eval.Schema()
-	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session, &schema, *c.server.opts.Auth)
+	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session, c.server.schema, *c.server.opts.Auth)
 	if err != nil {
 		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error retrieving information from MongoDB: %v", err)
 		c.writeError(err)
@@ -279,7 +280,7 @@ func (c *conn) handshake() error {
 		return err
 	}
 
-	c.catalog, err = catalog.Build(&schema, c.variables)
+	c.catalog, err = catalog.Build(c.server.schema, c.variables)
 	if err != nil {
 		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error building catalog: %v", err)
 		c.writeError(err)
@@ -608,12 +609,8 @@ func (c *conn) User() string {
 }
 
 func (c *conn) useTLS() error {
-	tlsc, err := openssl.Server(c.conn, c.server.tlsConfig)
+	tlsc, err := ssl.Handshake(c.conn, c.server.opts)
 	if err != nil {
-		return err
-	}
-
-	if err := tlsc.Handshake(); err != nil {
 		return err
 	}
 

@@ -5,13 +5,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 )
 
 func (c *conn) handleCommand(stmt parser.Statement) error {
-	executor, err := c.server.eval.EvaluateCommand(stmt, c)
+	if err := c.session.Validate(); err != nil {
+		return err
+	}
+	executor, err := evaluator.EvaluateCommand(stmt, c)
 	if err != nil {
 		return err
 	}
@@ -25,6 +29,10 @@ func (c *conn) handleCommand(stmt parser.Statement) error {
 }
 
 func (c *conn) handleQuery(sql string) (err error) {
+	if err := c.session.Validate(); err != nil {
+		return err
+	}
+
 	select {
 	case <-c.ctx.Done():
 		c.refreshContext()

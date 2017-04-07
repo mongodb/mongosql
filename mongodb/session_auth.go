@@ -15,6 +15,8 @@ import (
 type SessionAuthenticator interface {
 	// Auth handles authenticating the session.
 	Auth(context.Context, []conn.Connection) error
+
+	source() string
 }
 
 // CleartextSessionAuthenticator authentices a session
@@ -24,6 +26,10 @@ type CleartextSessionAuthenticator struct {
 	Username  string
 	Password  string
 	Mechanism string
+}
+
+func (a *CleartextSessionAuthenticator) source() string {
+	return a.Source
 }
 
 // Auth handles authenticating the session.
@@ -86,6 +92,10 @@ func (sc saslConversations) AllDone() bool {
 	}
 
 	return true
+}
+
+func (a *SaslSessionAuthenticator) source() string {
+	return a.Source
 }
 
 // AddConversation adds a new conversation to the SaslSessionAuthenticator.

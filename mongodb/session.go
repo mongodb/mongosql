@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/10gen/mongo-go-driver/cluster"
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/model"
-	"github.com/10gen/mongo-go-driver/msg"
 	"github.com/10gen/mongo-go-driver/ops"
+	"github.com/10gen/mongo-go-driver/readpref"
 )
 
 // Cursor wraps the ops.Cursor interface for mongosqld
@@ -19,33 +20,32 @@ type Cursor interface {
 // Session holds information used to create a connection
 // to MongoDB.
 type Session struct {
-	appName    string
-	connection conn.Connection
-	ctx        context.Context
-	dialer     conn.NetDialer
-	server     *ops.SelectedServer
-}
+	ctx      context.Context
+	cluster  *cluster.Cluster
+	server   cluster.Server
+	provider conn.Provider
+	pool     conn.Pool
+	count    int
 
-// Alive returns true if the session connection is
-// open and false otherwise.
-func (s *Session) Alive() bool {
-	cn, _ := s.server.Server.Connection(s.ctx)
-	return cn.Alive()
+	authSource     string
+	selectedServer *ops.SelectedServer
 }
 
 // Close closes the direct server connection
 // associated with this sesssion.
 func (s *Session) Close() error {
-	directServerConnection, ok := s.connection.(*DirectServerConnection)
-	if !ok {
-		return fmt.Errorf("unexpected session connection type: %T", s.connection)
-	}
-	return directServerConnection.directConnection.Close()
+	s.pool.Close()
+	return nil
+}
+
+// Connection gets a connection to use.
+func (s *Session) Connection(ctx context.Context) (conn.Connection, error) {
+	return s.provider(ctx)
 }
 
 // ConnLen is the number of connections that are part of a session.
 func (s *Session) ConnLen() int {
-	return 1
+	return s.count
 }
 
 // Context returns the context associated with this session.
@@ -59,38 +59,25 @@ func (s *Session) Model() *model.Server {
 	return s.server.Model()
 }
 
-// SelectedServer returns the selected server
-// associated with this session.
-func (s *Session) SelectedServer() *ops.SelectedServer {
-	return s.server
-}
-
 // SetContext updates the context associated with this session.
 func (s *Session) SetContext(ctx context.Context) {
 	s.ctx = ctx
 }
 
-// updateDirectConnection update the direct server connection
-// for this session with the connection passed in c.
-func (s *Session) updateDirectConnection(c conn.Connection) {
-	directServerConnection := &DirectServerConnection{
-		directConnection: c,
-		serverModel:      s.server.Model(),
-	}
-	s.server = &ops.SelectedServer{
-		Server:   serverImpl{directServerConnection},
-		ReadPref: s.server.ReadPref,
-	}
-	s.connection = directServerConnection
-}
-
-// validate checks that the established session meets the server
+// Validate checks that the established session meets the server
 // version requirements for the BI Connector.
-func (s *Session) validate() error {
+func (s *Session) Validate() error {
 	version := s.Model().Version
 	if !version.AtLeast(3, 2, 0) {
 		return fmt.Errorf("server version is %v but version >= 3.2.0 required", version.Desc)
 	}
+
+	selector := readpref.Selector(s.selectedServer.ReadPref)
+	result, err := selector(s.cluster.Model(), []*model.Server{s.server.Model()})
+	if err != nil || len(result) == 0 {
+		return fmt.Errorf("current session does not satisfy read preference")
+	}
+
 	return nil
 }
 
@@ -107,7 +94,7 @@ func (s *Session) Aggregate(database, collection string, pipeline interface{}) (
 	default:
 		ns := ops.NewNamespace(database, collection)
 		opts := ops.AggregationOptions{AllowDiskUse: true}
-		return ops.Aggregate(s.ctx, s.server, ns, pipeline, opts)
+		return ops.Aggregate(s.ctx, s.selectedServer, ns, pipeline, opts)
 	}
 }
 
@@ -119,7 +106,7 @@ func (s *Session) ListCollections(db string) (ops.Cursor, error) {
 		return nil, s.ctx.Err()
 	default:
 		opts := ops.ListCollectionsOptions{}
-		return ops.ListCollections(s.ctx, s.server, db, opts)
+		return ops.ListCollections(s.ctx, s.selectedServer, db, opts)
 	}
 }
 
@@ -132,13 +119,28 @@ func (s *Session) ListIndexes(db, c string) (ops.Cursor, error) {
 	default:
 		opts := ops.ListIndexesOptions{}
 		ns := ops.NewNamespace(db, c)
-		return ops.ListIndexes(s.ctx, s.server, ns, opts)
+		return ops.ListIndexes(s.ctx, s.selectedServer, ns, opts)
 	}
 }
 
 // Login authenticates the session using the specified authenticator.
 func (s *Session) Login(a SessionAuthenticator) error {
-	return a.Auth(s.ctx, []conn.Connection{s.connection})
+	var conns []conn.Connection
+
+	s.authSource = a.source()
+
+	// checkout all the connections
+	for i := 0; i < s.count; i++ {
+		c, err := s.Connection(s.ctx)
+		if err != nil {
+			return err
+		}
+		defer c.Close()
+
+		conns = append(conns, c)
+	}
+
+	return a.Auth(s.ctx, conns)
 }
 
 // Run executes an arbitrary command against the given database.
@@ -147,64 +149,6 @@ func (s *Session) Run(db string, cmd interface{}, result interface{}) error {
 	case <-s.ctx.Done():
 		return s.ctx.Err()
 	default:
-		return ops.Run(s.ctx, s.server, db, cmd, result)
+		return ops.Run(s.ctx, s.selectedServer, db, cmd, result)
 	}
-}
-
-// serverImpl implements the ops.Server interface.
-type serverImpl struct {
-	directConnection *DirectServerConnection
-}
-
-func (s serverImpl) Connection(ctx context.Context) (conn.Connection, error) {
-	return s.directConnection, nil
-}
-
-func (s serverImpl) Model() *model.Server {
-	return s.directConnection.serverModel
-}
-
-// DirectServerConnection maintains a direct connection
-// to a MongoDB server by implementing the conn.Connection
-// interface over a single socket connection.
-type DirectServerConnection struct {
-	directConnection conn.Connection
-	serverModel      *model.Server
-}
-
-// NewDirectServerConnection establishes a direct connection to a MongoDB
-// server using the supplied server description.
-func NewDirectServerConnection(ctx context.Context, serverModel *model.Server, opts ...conn.Option) (*DirectServerConnection, error) {
-	directConnection, err := conn.Dial(ctx, serverModel.Addr, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("could not dial server at %v: %v", serverModel.Addr, err)
-	}
-	return &DirectServerConnection{
-		directConnection: directConnection,
-		serverModel:      serverModel,
-	}, nil
-}
-
-func (d *DirectServerConnection) Alive() bool {
-	return d.directConnection.Alive()
-}
-
-func (d *DirectServerConnection) Close() error {
-	return nil
-}
-
-func (d *DirectServerConnection) Model() *model.Conn {
-	return d.directConnection.Model()
-}
-
-func (d *DirectServerConnection) Expired() bool {
-	return d.directConnection.Expired()
-}
-
-func (d *DirectServerConnection) Read(ctx context.Context, responseTo int32) (msg.Response, error) {
-	return d.directConnection.Read(ctx, responseTo)
-}
-
-func (d *DirectServerConnection) Write(ctx context.Context, reqs ...msg.Request) error {
-	return d.directConnection.Write(ctx, reqs...)
 }

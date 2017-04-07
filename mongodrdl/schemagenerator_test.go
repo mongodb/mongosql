@@ -115,9 +115,8 @@ func TestRoundtrips(t *testing.T) {
 				bson.M{},
 			)
 			So(err, ShouldBeNil)
-			server := session.SelectedServer()
-			defer dbutils.DropDatabase(server, db)
-			dbutils.DropDatabase(server, db)
+			defer dbutils.DropDatabase(session, db)
+			dbutils.DropDatabase(session, db)
 			documents := []bson.M{
 				bson.M{
 					"first":  "Who",
@@ -125,8 +124,8 @@ func TestRoundtrips(t *testing.T) {
 				},
 			}
 
-			dbutils.InsertDocuments(server, db, "test", documents)
-			dbutils.CreateIndex(server, db, "test", []string{"first", "second"})
+			dbutils.InsertDocuments(session, db, "test", documents)
+			dbutils.CreateIndex(session, db, "test", []string{"first", "second"})
 
 			iter, err := session.ListIndexes(db, "test")
 			So(err, ShouldBeNil)
@@ -168,10 +167,10 @@ func TestRoundtrips(t *testing.T) {
 
 			session, err := gen.Connect()
 			So(err, ShouldBeNil)
+			defer session.Close()
 			db := gen.ToolOptions.DrdlNamespace.DB
-			server := session.SelectedServer()
 			defer func() {
-				dbutils.DropDatabase(server, db)
+				dbutils.DropDatabase(session, db)
 				session.Close()
 			}()
 			documents := []bson.M{
@@ -179,7 +178,7 @@ func TestRoundtrips(t *testing.T) {
 				bson.M{"a": 2, "b": 134},
 				bson.M{"a": 3, "b": "s"},
 			}
-			dbutils.InsertDocuments(server, db, "base", documents)
+			dbutils.InsertDocuments(session, db, "base", documents)
 
 			version := session.Model().Version
 			if version.AtLeast(3, 3, 0) {
@@ -226,8 +225,7 @@ func TestRoundtrips(t *testing.T) {
 			session, err := gen.Connect()
 			So(err, ShouldBeNil)
 			defer session.Close()
-			server := session.SelectedServer()
-			defer dbutils.DropDatabase(server, db)
+			defer dbutils.DropDatabase(session, db)
 			documents := []bson.M{
 				bson.M{
 					"loc": []bson.M{
@@ -236,8 +234,8 @@ func TestRoundtrips(t *testing.T) {
 					},
 				},
 			}
-			dbutils.InsertDocuments(server, db, "base", documents)
-			dbutils.CreateIndex(server, db, "base", []string{"$2d:loc.coordinates"})
+			dbutils.InsertDocuments(session, db, "base", documents)
+			dbutils.CreateIndex(session, db, "base", []string{"$2d:loc.coordinates"})
 
 			iter, err := session.ListIndexes(db, "base")
 			So(err, ShouldBeNil)
@@ -359,10 +357,9 @@ func compareYaml(gen *mongodrdl.SchemaGenerator, collection string, expectedName
 
 	session, err := gen.Connect()
 	So(err, ShouldBeNil)
-
 	defer session.Close()
-	server := session.SelectedServer()
-	dbutils.DropCollection(server, DatabaseName, collection)
+
+	dbutils.DropCollection(session, DatabaseName, collection)
 
 	importJson(gen, DatabaseName, collection, fmt.Sprintf("testdata/%s.json", collection))
 
@@ -384,7 +381,6 @@ func importJson(schema *mongodrdl.SchemaGenerator, dbName, collName,
 	session, err := schema.Connect()
 	So(err, ShouldBeNil)
 	defer session.Close()
-	server := session.SelectedServer()
 
 	opts := toolsoptions.New("mongoimport", mongoimport.Usage,
 		toolsoptions.EnabledOptions{Auth: true, Connection: true, Namespace: true})
@@ -427,8 +423,7 @@ func importJson(schema *mongodrdl.SchemaGenerator, dbName, collName,
 	time.Sleep(1 * time.Second)
 
 	for _, index := range indexes {
-		dbutils.CreateIndex(server, dbName, collName, relational.SimpleIndexKey(index.Key))
-
+		dbutils.CreateIndex(session, dbName, collName, relational.SimpleIndexKey(index.Key))
 	}
 }
 

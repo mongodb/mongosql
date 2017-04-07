@@ -310,6 +310,10 @@ func (c *mockConnection) Expired() bool {
 	return c.Dead
 }
 
+func (c *mockConnection) MarkDead() {
+	c.Dead = true
+}
+
 func (c *mockConnection) Model() *model.Conn {
 	return &model.Conn{}
 }

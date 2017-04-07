@@ -6,21 +6,41 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/10gen/sqlproxy"
-	"github.com/10gen/sqlproxy/client/openssl"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
-	cfg "github.com/spacemonkeygo/openssl"
 )
+
+// New creates a NewServer.
+func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, opts options.SqldOptions) (*Server, error) {
+
+	decimal.DivisionPrecision = 34
+
+	s := &Server{
+		opts:              opts,
+		terminateChan:     make(chan struct{}),
+		activeConnections: make(map[uint32]*conn),
+		schema:            schema,
+		sessionProvider:   sessionProvider,
+		variables:         variable.NewGlobalContainer(),
+	}
+
+	s.variables.MongoDBVersionCompatibility = *opts.MongoVersionCompatibility
+
+	if err := s.populateListeners(); err != nil {
+		return nil, err
+	}
+
+	return s, nil
+}
 
 // Server manages connections with clients.
 type Server struct {
-	eval                *sqlproxy.Evaluator
 	opts                options.SqldOptions
 	connCount           uint32
 	activeConnections   map[uint32]*conn
@@ -32,44 +52,11 @@ type Server struct {
 	closed        int32
 	terminated    bool
 
-	variables *variable.Container
-	tlsConfig *cfg.Ctx
+	schema          *schema.Schema
+	sessionProvider *mongodb.SessionProvider
+	variables       *variable.Container
 
 	listeners []net.Listener
-}
-
-// New creates a NewServer.
-func New(schema *schema.Schema, eval *sqlproxy.Evaluator, opts options.SqldOptions) (*Server, error) {
-
-	decimal.DivisionPrecision = 34
-
-	s := &Server{
-		eval:              eval,
-		opts:              opts,
-		closed:            0,
-		terminated:        false,
-		terminateChan:     make(chan struct{}),
-		activeConnections: make(map[uint32]*conn),
-		variables:         variable.NewGlobalContainer(),
-	}
-
-	s.variables.MongoDBVersionCompatibility = *opts.MongoVersionCompatibility
-
-	var err error
-
-	if len(*opts.SSLPEMKeyFile) > 0 {
-		s.tlsConfig, err = openssl.SetupSqldCtx(opts, true)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err = s.populateListeners()
-	if err != nil {
-		return nil, err
-	}
-
-	return s, nil
 }
 
 // Run starts the server and begins accepting connections.
@@ -177,7 +164,7 @@ func (s *Server) serveConnection(c net.Conn) {
 	conn, err := newConn(s, c)
 	if err != nil {
 		logger := log.GlobalLogger()
-		logger.Logf(log.Info, "[initandlisten] problem connecting to MongoDB: %v", err)
+		logger.Logf(log.Info, "[initandlisten] connection accepted from %v, but unable to connect to MongoDB: %v", c.RemoteAddr(), err)
 		c.Close()
 		return
 	}

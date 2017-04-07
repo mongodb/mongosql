@@ -7,7 +7,6 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 
-	"github.com/10gen/sqlproxy/client"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/log"
@@ -49,15 +48,15 @@ func TestLoadInfo(t *testing.T) {
 		*opts.MongoPEMKeyFile = sslOpts.SSLPEMKeyFile
 		*opts.MongoAllowInvalidCerts = sslOpts.SSLAllowInvalidCert
 
-		sp, err := client.NewSqldSessionProvider(opts)
+		sp, err := mongodb.NewSqldSessionProvider(opts)
 		So(err, ShouldBeNil)
 
-		s, err := sp.GetSession(context.Background())
+		s, err := sp.Session(context.Background())
 		So(err, ShouldBeNil)
 		defer s.Close()
 
-		dbutils.DropDatabase(s.SelectedServer(), "mongodb_info_test")
-		defer dbutils.DropDatabase(s.SelectedServer(), "mongodb_info_test")
+		dbutils.DropDatabase(s, "mongodb_info_test")
+		defer dbutils.DropDatabase(s, "mongodb_info_test")
 
 		schemaString := `
 schema:

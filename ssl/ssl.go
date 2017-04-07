@@ -1,107 +1,91 @@
-// Package openssl implements connection to MongoDB over SSL.
-package openssl
+package ssl
 
 import (
 	"context"
 	"fmt"
 	"net"
 
-	"github.com/10gen/mongo-go-driver/cluster"
-	"github.com/10gen/mongo-go-driver/model"
-	"github.com/10gen/mongo-go-driver/readpref"
-
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/options"
-
 	"github.com/spacemonkeygo/openssl"
 )
 
-type (
-	// SSLDBConnector is a connector for dialing the database, with SSL.
-	SSLDBConnector struct {
-		ctx      *openssl.Ctx
-		dialInfo *mongodb.DialInfo
-	}
-
-	dialerFunc func(ctx context.Context, addr model.Addr) (net.Conn, error)
-
-	sslInitializationFunction func(options.Options) error
-)
+type sslInitializationFunction func(options.Options) error
 
 var (
 	sslInitializationFunctions []sslInitializationFunction
 )
 
-func (s *SSLDBConnector) ConfigureDrdl(opts options.DrdlOptions, dialInfo *mongodb.DialInfo) error {
-	ctx, err := setupDrdlCtx(opts)
+// SqldDialer creates a mongosqld dialer.
+func SqldDialer(opts options.SqldOptions) (func(ctx context.Context, network, address string) (net.Conn, error), error) {
+	sslCtx, err := createSqldSSLContext(opts, true)
 	if err != nil {
-		return fmt.Errorf("openssl configuration: %v", err)
+		return nil, err
 	}
-
-	s.ctx = ctx
-
 	var flags openssl.DialFlags
-	flags = 0
-
-	if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.SSLCAFile == "" {
-		flags = openssl.InsecureSkipHostVerification
-	}
-
-	s.dialInfo = dialInfo
-	s.setNetDialer(flags)
-	return err
-}
-
-func (s *SSLDBConnector) ConfigureSqld(opts options.SqldOptions, dialInfo *mongodb.DialInfo) error {
-	ctx, err := SetupSqldCtx(opts, false)
-	if err != nil {
-		return fmt.Errorf("openssl configuration: %v", err)
-	}
-
-	s.ctx = ctx
-
-	var flags openssl.DialFlags
-	flags = 0
 
 	if *opts.MongoAllowInvalidCerts || *opts.MongoSSLAllowInvalidHost || *opts.MongoCAFile == "" {
 		flags = openssl.InsecureSkipHostVerification
 	}
 
-	s.dialInfo = dialInfo
-	s.setNetDialer(flags)
-	return nil
+	return dialer(sslCtx, flags), nil
 }
 
-func (s *SSLDBConnector) GetNewSession(ctx context.Context, monitor *cluster.Monitor, readPreference *readpref.ReadPref) (*mongodb.Session, error) {
-
-	session, err := s.dialInfo.Dial(ctx, monitor, readPreference)
+// Handshake performs a TLS handshake over the connection.
+func Handshake(conn net.Conn, opts options.SqldOptions) (net.Conn, error) {
+	sslCtx, err := createSqldSSLContext(opts, false)
 	if err != nil {
 		return nil, err
 	}
-	return session, err
+
+	tlsConn, err := openssl.Server(conn, sslCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tlsConn.Handshake()
+	if err != nil {
+		return nil, err
+	}
+
+	return tlsConn, nil
 }
 
-func (s *SSLDBConnector) setNetDialer(flags openssl.DialFlags) {
-	s.dialInfo.NetDialer = func(ctx context.Context, network, address string) (net.Conn, error) {
-		var conn net.Conn
+// DrdlDialer creates a mongodrdl dialer.
+func DrdlDialer(opts options.DrdlOptions) (func(ctx context.Context, network, address string) (net.Conn, error), error) {
+	sslCtx, err := createDrdlSSLContext(opts)
+	if err != nil {
+		return nil, err
+	}
+	var flags openssl.DialFlags
+
+	if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.SSLCAFile == "" {
+		flags = openssl.InsecureSkipHostVerification
+	}
+
+	return dialer(sslCtx, flags), nil
+}
+
+func dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) func(ctx context.Context, network, address string) (net.Conn, error) {
+	return func(ctx context.Context, network, address string) (net.Conn, error) {
+		var c net.Conn
 		var err error
-		connChan := make(chan struct{})
+		ch := make(chan struct{})
 
 		go func() {
-			conn, err = openssl.Dial(network, address, s.ctx, flags)
-			connChan <- struct{}{}
+			c, err = openssl.Dial(network, address, sslCtx, flags)
+			ch <- struct{}{}
 		}()
 
 		select {
-		case <-connChan:
+		case <-ch:
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		}
-		return conn, err
+		return c, err
 	}
 }
 
-func setupDrdlCtx(opts options.DrdlOptions) (*openssl.Ctx, error) {
+func createDrdlSSLContext(opts options.DrdlOptions) (*openssl.Ctx, error) {
 	var ctx *openssl.Ctx
 	var err error
 
@@ -185,7 +169,7 @@ func setupDrdlCtx(opts options.DrdlOptions) (*openssl.Ctx, error) {
 	return ctx, nil
 }
 
-func SetupSqldCtx(opts options.SqldOptions, isClient bool) (*openssl.Ctx, error) {
+func createSqldSSLContext(opts options.SqldOptions, isClient bool) (*openssl.Ctx, error) {
 	var ctx *openssl.Ctx
 	var err error
 
@@ -283,10 +267,4 @@ func SetupSqldCtx(opts options.SqldOptions, isClient bool) (*openssl.Ctx, error)
 	}
 
 	return ctx, nil
-}
-
-// Server wraps an existing stream connection and puts it in the accept state
-// for any subsequent handshakes.
-func Server(conn net.Conn, ctx *openssl.Ctx) (*openssl.Conn, error) {
-	return openssl.Server(conn, ctx)
 }

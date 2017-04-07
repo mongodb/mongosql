@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/catalog"
-	"github.com/10gen/sqlproxy/client"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -95,19 +94,19 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	infoOne := getMongoDBInfo(nil, cfgOne, mongodb.AllPrivileges)
 	variablesOne := createTestVariables(infoOne)
 	catalogOne := getCatalogFromSchema(cfgOne, variablesOne)
-	sessionProvider, err := client.NewSqldSessionProvider(getOptions(t))
+	opts := getOptions(t)
+	sessionProvider, err := mongodb.NewSqldSessionProvider(opts)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 		return
 	}
 
-	session, err := sessionProvider.GetSession(context.Background())
+	session, err := sessionProvider.Session(context.Background())
 	if err != nil {
 		t.Fatalf("failed to set up session to test server: %v", err)
 		return
 	}
 	defer session.Close()
-	s := session.SelectedServer()
 
 	Convey("With a simple test configuration...", t, func() {
 
@@ -135,14 +134,8 @@ func TestMongoSourcePlanStage(t *testing.T) {
 				expected = append(expected, values)
 			}
 
-			dbutils.DropCollection(s, dbOne, tableTwoName)
-			dbutils.InsertDocuments(s, dbOne, tableTwoName, rows)
-			sessionCtx := context.Background()
-			session, err := sessionProvider.GetSession(sessionCtx)
-			if err != nil {
-				t.Fatalf("failed to get session: %v", err)
-				return
-			}
+			dbutils.DropCollection(session, dbOne, tableTwoName)
+			dbutils.InsertDocuments(session, dbOne, tableTwoName, rows)
 
 			cCtx := &connCtx{
 				catalog:   catalogOne,
