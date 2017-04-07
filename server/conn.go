@@ -384,6 +384,7 @@ func (c *conn) readHandshakeResponse() error {
 	readHeader()
 
 	if (c.capability & CLIENT_SSL) != 0 {
+		c.logger.Logf(log.DebugLow, "negotiating ssl")
 		if err := c.useTLS(); err != nil {
 			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "ssl configuration error: %v", err)
 			c.writeError(err)

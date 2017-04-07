@@ -195,7 +195,7 @@ func createSqldSSLContext(opts options.SqldOptions, isClient bool) (*openssl.Ctx
 	var pemKeyFile, pemFilePassword, caFile, crlFile string
 	var allowInvalidCerts bool
 
-	if isClient {
+	if !isClient {
 		pemKeyFile = *opts.SSLPEMKeyFile
 		pemFilePassword = *opts.SSLPEMKeyFilePassword
 		caFile = *opts.SSLCAFile
