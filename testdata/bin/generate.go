@@ -141,6 +141,7 @@ func {{ .Name }}(t *testing.{{ if .IsBenchmark }}B{{ else }}T{{ end }}) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer db.Close()
 
 	{{ if not .IsBenchmark }}
 
