@@ -530,6 +530,40 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			}
 
 			return bson.M{"$abs": args[0]}, true
+		case "adddate", "date_add", "subdate", "date_sub":
+			if len(args) != 3 {
+				return nil, false
+			}
+
+			intervalValue, ok := typedE.Exprs[1].(SQLValue)
+			if !ok {
+				return nil, false
+			}
+			unitValue, ok := typedE.Exprs[2].(SQLValue)
+			if !ok {
+				return nil, false
+			}
+
+			unitInterval, neg := dateArithmeticArgs(unitValue.String(), intervalValue)
+			unit, interval, err := calculateInterval(unitValue.String(), unitInterval, neg)
+			if err != nil {
+				return nil, false
+			}
+
+			ms, err := unitIntervalToMilliseconds(unit, int64(interval))
+			if err != nil {
+				return nil, false
+			}
+
+			if typedE.Name == "subdate" || typedE.Name == "date_sub" {
+				ms *= -1
+			}
+
+			return wrapInNullCheckedCond(
+				nil,
+				wrapInOp("$add", args[0], ms),
+				args[0],
+			), true
 		case "ceil":
 			if len(args) != 1 {
 				return nil, false

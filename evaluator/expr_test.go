@@ -3242,6 +3242,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"a div b", `{"$cond":[{"$eq":["$b",0]},null,{"$trunc":[{"$divide":["$a","$b"]}]}]}`},
 
 			test{"abs(a)", `{"$abs":"$a"}`},
+			test{"adddate(g, INTERVAL 10 day)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$add":["$g",864000000]}]}`},
+			test{"adddate(g, null)", `{"$literal":null}`},
 			test{"ceil(a)", `{"$ceil":"$a"}`},
 			test{"char_length(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$strLenCP":"$s"}]}`},
 			test{"character_length(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$strLenCP":"$s"}]}`},
@@ -3250,6 +3252,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"concat(s, '')", `{"$concat":["$s",{"$literal":""}]}`},
 			test{"concat_ws(',', s)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},"$s"]}]}`},
 			test{"concat_ws(',', s, null)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},"$s"]},{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},{"$literal":","}]},{"$cond":[{"$eq":[{"$ifNull":[{"$literal":null},null]},null]},{"$literal":""},{"$literal":null}]}]}`},
+			test{"date_add(g, INTERVAL 10 day)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$add":["$g",864000000]}]}`},
+			test{"date_sub(g, INTERVAL 10 day)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$add":["$g",-864000000]}]}`},
 			test{"dayname(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$arrayElemAt":[["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],{"$subtract":[{"$dayOfWeek":"$g"},1]}]}]}`},
 			test{"dayofmonth(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$dayOfMonth":"$g"}]}`},
 			test{"dayofweek(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$dayOfWeek":"$g"}]}`},
@@ -3286,6 +3290,8 @@ func TestTranslateExpr(t *testing.T) {
 
 			test{"second(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$second":"$g"}]}`},
 			test{"sqrt(a)", `{"$cond":[{"$gte":["$a",0]},{"$sqrt":"$a"},null]}`},
+			test{"subdate(g, INTERVAL 10 day)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$add":["$g",-864000000]}]}`},
+			test{"subdate(g, null)", `{"$literal":null}`},
 			test{"substring(s, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",1,{"$strLenCP":"$s"}]}]}`},
 			test{"substring(s, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",1,{"$literal":4}]}]}`},
 			test{"substr(s, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",1,{"$strLenCP":"$s"}]}]}`},

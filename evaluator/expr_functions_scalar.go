@@ -3861,6 +3861,23 @@ func evaluateArgs(exprs []SQLExpr, ctx *EvalCtx) ([]SQLValue, error) {
 	return values, nil
 }
 
+func unitIntervalToMilliseconds(unit string, interval int64) (int64, error) {
+	switch unit {
+	case DAY:
+		return interval * 24 * 60 * 60 * 1000, nil
+	case HOUR:
+		return interval * 60 * 60 * 1000, nil
+	case MINUTE:
+		return interval * 60 * 1000, nil
+	case SECOND:
+		return interval * 1000, nil
+	case MICROSECOND:
+		return interval / 1000, nil
+	default:
+		return 0, fmt.Errorf("cannot compute milliseconds for the unit %v", unit)
+	}
+}
+
 func numMonths(startDate time.Time, endDate time.Time) int {
 	y1, m1, d1 := startDate.Date()
 	y2, m2, d2 := endDate.Date()
