@@ -18,9 +18,15 @@ fi
 
 if [ "$SSL" = "ssl" ]; then
     export SQLPROXY_SSLTEST=1
-    export SQLPROXY_ARGS="--mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile $PROJECT_DIR/testdata/resources/x509gen/client.pem"
+    SQLPROXY_SSL_ARGS="--mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile $PROJECT_DIR/testdata/resources/x509gen/client.pem"
     BUILD_TAGS="-tags ssl"
 fi
+
+if [ "$AUTH" = "auth" ]; then
+    SQLPROXY_AUTH_ARGS="--auth"
+fi
+
+export SQLPROXY_ARGS="$SQLPROXY_AUTH_ARGS $SQLPROXY_SSL_ARGS"
 
 BUILD_FLAGS="$BUILD_TAGS $BUILD_FLAGS"
 

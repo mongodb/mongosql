@@ -210,6 +210,16 @@ buildvariants:
   - linux-64-amzn-benchmark
   tasks:
   - "release"
+- name: jdbc-rhel62
+  display_name: JDBC Auth RHEL 6.2
+  expansions:
+    mongo_auth: true
+    goroot: /opt/go
+    gobindir: /opt/go/bin
+  run_on:
+  - rhel62-test
+  tasks:
+  - "jdbc-auth-test"
 
 pre:
   - command: shell.track
@@ -360,11 +370,13 @@ functions:
               export SSL="ssl"
           fi
 
-          export AUTH="${AUTH}"
+          if [ "${mongo_auth}" = "true" ]; then
+              export AUTH="auth"
+          fi
+
           export TOPOLOGY="${TOPOLOGY}"
           export STORAGE_ENGINE="${STORAGE_ENGINE}"
           export MONGODB_VERSION="${mongodb_version}"
-
 
           # create expansions from values calculated above
           cat <<EOT > $PROJECT_DIR/expansions.yml
@@ -403,6 +415,8 @@ functions:
              export TOPOLOGY="$TOPOLOGY"
              export STORAGE_ENGINE="$STORAGE_ENGINE"
              export MONGODB_VERSION="$VERSION"
+
+             export JAVA_HOME="/opt/java/jdk8"
           EOT
 
     # Load the expansion file
@@ -574,6 +588,13 @@ functions:
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/run-unit-tests.sh
 
+  "run jdbc auth plugin tests":
+    command: shell.exec
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/run-jdbc-tests.sh
+
 tasks:
 
 - name: unit_tests
@@ -743,3 +764,12 @@ tasks:
     - func: "run benchmarks"
       vars:
         suite: tpch
+
+- name: jdbc-auth-test
+  tags: ["oneoff-task"]
+  exec_timeout_secs: 600 # 10 minutes
+  commands:
+    - func: "bootstrap mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run jdbc auth plugin tests"
