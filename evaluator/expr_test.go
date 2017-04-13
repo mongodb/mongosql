@@ -2458,8 +2458,8 @@ func TestNewSQLValue(t *testing.T) {
 
 	runTests := func(tests []test) {
 		for _, t := range tests {
-			Convey(fmt.Sprintf("%v (%T) as '%v' should convert into %v (%T)", t.input, t.input, t.sqlType, t.sqlValue, t.sqlValue), func() {
-				val, _ := NewSQLValue(t.input, t.sqlType, "")
+			Convey(fmt.Sprintf("converting %v (%T) to '%v' should yield %v (%T)", t.input, t.input, t.sqlType, t.sqlValue, t.sqlValue), func() {
+				val, _ := NewSQLValue(t.input, t.sqlType, schema.SQLNone)
 				So(val.String(), ShouldEqual, t.sqlValue.String())
 			})
 		}
@@ -2506,15 +2506,16 @@ func TestNewSQLValue(t *testing.T) {
 
 		Convey("Subject: SQLValue", func() {
 			tests := []test{
-				test{sqlVal, schema.SQLBoolean, sqlVal},
-				test{sqlVal, schema.SQLDate, sqlVal},
-				test{sqlVal, schema.SQLDecimal128, sqlVal},
-				test{sqlVal, schema.SQLFloat, sqlVal},
-				test{sqlVal, schema.SQLInt, sqlVal},
-				test{sqlVal, schema.SQLInt64, sqlVal},
-				test{sqlVal, schema.SQLNumeric, sqlVal},
-				test{sqlVal, schema.SQLObjectID, sqlVal},
-				test{sqlVal, schema.SQLVarchar, sqlVal},
+				test{sqlVal, schema.SQLBoolean, SQLFalse},
+				test{sqlVal, schema.SQLDate, defaultSQLDate},
+				test{sqlVal, schema.SQLDecimal128, SQLDecimal128(decimal.NewFromFloat(0))},
+				test{sqlVal, schema.SQLFloat, SQLFloat(0)},
+				test{sqlVal, schema.SQLInt, SQLInt(0)},
+				test{sqlVal, schema.SQLInt64, SQLUint64(0)},
+				test{sqlVal, schema.SQLNumeric, SQLFloat(0)},
+				test{sqlVal, schema.SQLObjectID, SQLObjectID(strconv.FormatInt(int64(sqlVal), 10))},
+				test{sqlVal, schema.SQLVarchar, SQLVarchar("0")},
+				test{sqlVal, schema.SQLNone, sqlVal},
 			}
 
 			runTests(tests)

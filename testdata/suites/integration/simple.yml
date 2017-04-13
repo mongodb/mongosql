@@ -142,3 +142,13 @@ testcases:
   expected_types: [varchar]
   expected:
     - ["5.7.12"]
+- sql: "select a + true from bar"
+  id: '24'
+  db: functions_test
+  expected_types: [int]
+  expected:
+    - [2]
+    - [~]
+    - [-2]
+    - [5]
+    - [~]

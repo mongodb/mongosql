@@ -77,7 +77,7 @@ func (iter *UnionIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 			// Need to match row info with parent
 			for i, col := range iter.columns {
 				r.Data[i].Name = col.Name
-				r.Data[i].Data, _ = NewSQLValue(r.Data[i].Data, col.SQLType, "")
+				r.Data[i].Data, _ = NewSQLValue(r.Data[i].Data, col.SQLType, schema.SQLNone)
 			}
 
 			syncChan <- r

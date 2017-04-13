@@ -260,7 +260,7 @@ func (c *conn) buildEmptyResultset(names []string, types []schema.SQLType) (*Res
 		}
 
 		zeroValue := types[i].ZeroValue()
-		value, _ := evaluator.NewSQLValue(zeroValue, types[i], "")
+		value, _ := evaluator.NewSQLValue(zeroValue, types[i], schema.SQLNone)
 		err = formatField(uint16(col.ID), field, value)
 		if err != nil {
 			return nil, err

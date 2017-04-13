@@ -176,7 +176,7 @@ func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, 
 		return SQLDecimal128(value.(decimal.Decimal)), nil
 	}
 
-	val, _ := NewSQLValue(value, preferenceType, "")
+	val, _ := NewSQLValue(value, preferenceType, schema.SQLNone)
 	return val, nil
 }
 

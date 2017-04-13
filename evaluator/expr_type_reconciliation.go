@@ -51,8 +51,10 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 		return SQLNull, true
 	}
 
-	if v, ok := value.(SQLValue); ok {
-		return v, true
+	if sqlType != schema.SQLNone {
+		if v, ok := value.(SQLValue); ok {
+			value = v.Value()
+		}
 	}
 
 	switch sqlType {
@@ -265,9 +267,15 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 		default:
 			return SQLVarchar(reflect.ValueOf(v).String()), true
 		}
+
+	case schema.SQLNone:
+		if v, ok := value.(SQLValue); ok {
+			return v, true
+		}
+
 	}
 
-	panic(fmt.Errorf("can't convert this type to a SQLValue(%v): %T", sqlType, value))
+	panic(fmt.Errorf("can't convert value of go type '%T' to a SQLValue of SQLType '%v'", value, sqlType))
 }
 
 func NewSQLValueWithDefault(value interface{}, sqlType, fromType schema.SQLType, defaultValue SQLValue) SQLValue {

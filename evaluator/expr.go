@@ -358,7 +358,12 @@ type SQLConvertExpr struct {
 	defaultValue SQLValue
 }
 
-func (ce SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (ce *SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+	// collapse nested sqlconvertexprs
+	if sce, ok := ce.expr.(*SQLConvertExpr); ok {
+		ce.expr = sce.expr
+	}
+
 	v, err := ce.expr.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -372,11 +377,11 @@ func (ce SQLConvertExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	return val, nil
 }
 
-func (ce SQLConvertExpr) String() string {
+func (ce *SQLConvertExpr) String() string {
 	return ce.expr.String()
 }
 
-func (ce SQLConvertExpr) Type() schema.SQLType {
+func (ce *SQLConvertExpr) Type() schema.SQLType {
 	return ce.convType
 }
 
@@ -1665,7 +1670,7 @@ func (um *SQLUnaryMinusExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		if val == SQLNull {
 			return SQLNull, nil
 		}
-		difference, _ := NewSQLValue(-val.Float64(), um.Type(), "")
+		difference, _ := NewSQLValue(-val.Float64(), um.Type(), schema.SQLNone)
 		return difference, nil
 	}
 	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.operand)
