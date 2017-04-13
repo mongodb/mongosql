@@ -3172,6 +3172,9 @@ func TestExprNoPushdown(t *testing.T) {
 		tests := []test{
 			test{"concat(s, a)"},
 			test{"abs(s)"},
+			test{"adddate(s, '%Y')"},
+			test{"date_format(g, '%Y%')"},
+			test{"date_format(g, '%V')"},
 			test{"round(s)"},
 			test{"length(a)"},
 			test{"dayname(a)"},
@@ -3253,6 +3256,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"concat_ws(',', s)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},"$s"]}]}`},
 			test{"concat_ws(',', s, null)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},"$s"]},{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},{"$literal":","}]},{"$cond":[{"$eq":[{"$ifNull":[{"$literal":null},null]},null]},{"$literal":""},{"$literal":null}]}]}`},
 			test{"date_add(g, INTERVAL 10 day)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$add":["$g",864000000]}]}`},
+			test{"date_format(g, '%% %d %f %H %k %i %j %m %s %S %T %U %Y')", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$dateToString":{"date":"$g","format":"%% %d %L000 %H %H %M %j %m %S %S %H:%M:%S %U %Y"}}]}`},
+			test{"date_format(g, null)", `{"$literal":null}`},
 			test{"date_sub(g, INTERVAL 10 day)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$add":["$g",-864000000]}]}`},
 			test{"dayname(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$arrayElemAt":[["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],{"$subtract":[{"$dayOfWeek":"$g"},1]}]}]}`},
 			test{"dayofmonth(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$dayOfMonth":"$g"}]}`},

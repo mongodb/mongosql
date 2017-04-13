@@ -658,6 +658,30 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select date_format(d, '%% %d %f %H %k %i %j %m %s %S %T %U %Y') from bar"
+  id: '289'
+  db: functions_test
+  expected_names: ["date_format(d, '%% %d %f %H %k %i %j %m %s %S %T %U %Y')"]
+  expected_types: [varchar]
+  expected:
+  - ["% 23 000000 13 13 45 267 09 00 00 13:45:00 38 2000"]
+  - ["% 24 000000 13 13 45 268 09 00 00 13:45:00 39 2000"]
+  - ["% 24 000000 13 13 45 298 10 00 00 13:45:00 43 2000"]
+  - [~]
+  - [~]
+
+- sql: "select date_format(d, '%% %d %f %H %k %i %j %m %s %S %T %U %Y %') from bar"
+  id: '290'
+  db: functions_test
+  expected_names: ["date_format(d, '%% %d %f %H %k %i %j %m %s %S %T %U %Y %')"]
+  expected_types: [varchar]
+  expected:
+  - ["% 23 000000 13 13 45 267 09 00 00 13:45:00 38 2000 %"]
+  - ["% 24 000000 13 13 45 268 09 00 00 13:45:00 39 2000 %"]
+  - ["% 24 000000 13 13 45 298 10 00 00 13:45:00 43 2000 %"]
+  - [~]
+  - [~]
+
 # Synonym for dayofmonth
 - sql: "select day(d) from bar"
   id: '63'

@@ -535,6 +535,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 
+			switch typedE.Exprs[0].Type() {
+			case schema.SQLDate, schema.SQLTimestamp:
+			default:
+				return nil, false
+			}
+
 			intervalValue, ok := typedE.Exprs[1].(SQLValue)
 			if !ok {
 				return nil, false
@@ -619,6 +625,65 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			}
 
 			return bson.M{"$concat": pushArgs[:len(pushArgs)-1]}, true
+		case "date_format":
+			if len(args) != 2 {
+				return nil, false
+			}
+
+			formatValue, ok := typedE.Exprs[1].(SQLValue)
+			if !ok {
+				return nil, false
+			}
+
+			mysqlFormat := formatValue.String()
+			var format string
+			for i := 0; i < len(mysqlFormat); i++ {
+				if mysqlFormat[i] == '%' {
+					if i != len(mysqlFormat)-1 {
+						switch mysqlFormat[i+1] {
+						case '%':
+							format += "%%"
+						case 'd':
+							format += "%d"
+						case 'f':
+							format += "%L000"
+						case 'H', 'k':
+							format += "%H"
+						case 'i':
+							format += "%M"
+						case 'j':
+							format += "%j"
+						case 'm':
+							format += "%m"
+						case 's', 'S':
+							format += "%S"
+						case 'T':
+							format += "%H:%M:%S"
+						case 'U':
+							format += "%U"
+						case 'Y':
+							format += "%Y"
+						default:
+							return nil, false
+						}
+						i++
+					} else {
+						// MongoDB fails when the last character is a % sign in the format string.
+						return nil, false
+					}
+				} else {
+					format += string(mysqlFormat[i])
+				}
+			}
+
+			return wrapInNullCheckedCond(
+				nil,
+				bson.M{"$dateToString": bson.M{
+					"format": format,
+					"date":   args[0],
+				}},
+				args[0],
+			), true
 		case "dayname":
 			if len(args) != 1 {
 				return nil, false
