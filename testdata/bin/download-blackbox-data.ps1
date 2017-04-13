@@ -11,6 +11,7 @@ wget http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalRei.bson.gz -OutFile 
 wget http://noexpire.s3.amazonaws.com/sqlproxy/data/SeattleCrime.bson.gz -OutFile ../resources/data/SeattleCrime.bson.gz
 wget http://noexpire.s3.amazonaws.com/sqlproxy/data/Securities.bson.gz -OutFile ../resources/data/Securities.bson.gz
 wget http://noexpire.s3.amazonaws.com/sqlproxy/data/SpecialData.bson.gz -OutFile ../resources/data/SpecialData.bson.gz
+wget http://noexpire.s3.amazonaws.com/sqlproxy/data/Staples.bson.gz -OutFile ../resources/data/Staples.bson.gz
 wget http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalStaples.bson.gz -OutFile ../resources/data/DecimalStaples.bson.gz
 wget http://noexpire.s3.amazonaws.com/sqlproxy/data/Starbucks.bson.gz -OutFile ../resources/data/Starbucks.bson.gz
 wget http://noexpire.s3.amazonaws.com/sqlproxy/data/DecimalUTStarcom.bson.gz -OutFile ../resources/data/DecimalUTStarcom.bson.gz
