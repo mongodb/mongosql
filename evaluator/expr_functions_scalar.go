@@ -819,6 +819,24 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 
 		return SQLTimestamp{Time: t}, nil
 
+	case string(parser.DECIMAL_BYTES):
+		t, err := decimal.NewFromString(values[0].String())
+		if err != nil {
+			return SQLNull, nil
+		}
+
+		return SQLDecimal128(t), nil
+
+	case string(parser.TIME_BYTES):
+		d, ok := strToTime(values[0].String())
+		if !ok {
+			return SQLNull, nil
+		}
+
+		t := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC).Add(d)
+
+		return SQLTimestamp{t}, nil
+
 	default:
 		return SQLNull, nil
 	}
@@ -837,6 +855,8 @@ func (_ *convertFunc) Type(exprs []SQLExpr) schema.SQLType {
 			return schema.SQLDate
 		case string(parser.DATETIME_BYTES):
 			return schema.SQLTimestamp
+		case string(parser.DECIMAL_BYTES):
+			return schema.SQLDecimal128
 		}
 	}
 	return schema.SQLNone

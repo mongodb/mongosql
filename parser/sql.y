@@ -47,11 +47,14 @@ var (
   DAY_MINUTE_BYTES         = []byte("day_minute")
   DAY_HOUR_BYTES           = []byte("day_hour")
   YEAR_MONTH_BYTES         = []byte("year_month")
+  BINARY_BYTES             = []byte("binary")
   CHAR_BYTES               = []byte("char")
   DATE_BYTES               = []byte("date")
   DATETIME_BYTES           = []byte("datetime")
+  DECIMAL_BYTES            = []byte("decimal")
   FLOAT_BYTES              = []byte("float")
   INTEGER_BYTES            = []byte("integer")
+  TIME_BYTES               = []byte("time")
   COUNT_BYTES              = []byte("count")
   DATABASE_BYTES           = []byte("database")
   SCHEMA_BYTES             = []byte("schema")
@@ -100,7 +103,7 @@ var (
 %token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LPAREN RPAREN LBRACE RBRACE TILDE
-%token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP
+%token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP DECIMAL NCHAR
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
 %token <empty> DATE_SUB SUBDATE ROW
 %token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
@@ -1788,13 +1791,45 @@ sql_time_unit:
   }
 
 sql_types:
-  CHAR
+  BINARY
+    {
+      $$ = BINARY_BYTES
+    }
+  | BINARY LPAREN NUMBER RPAREN
+    {
+      $$ = BINARY_BYTES
+    }
+  | CHAR
+    {
+      $$ = CHAR_BYTES
+    }
+  | CHAR LPAREN NUMBER RPAREN
     {
       $$ = CHAR_BYTES
     }
   | DATE
     {
       $$ = DATE_BYTES
+    }
+  | DECIMAL
+    {
+      $$ = DECIMAL_BYTES
+    }
+  | DECIMAL LPAREN NUMBER RPAREN
+    {
+      $$ = DECIMAL_BYTES
+    }
+  | DECIMAL LPAREN NUMBER COMMA NUMBER RPAREN
+    {
+      $$ = DECIMAL_BYTES
+    }
+  | NCHAR
+    {
+      $$ = CHAR_BYTES
+    }
+  | NCHAR LPAREN NUMBER RPAREN
+    {
+      $$ = CHAR_BYTES
     }
   | SIGNED
     {
@@ -1803,6 +1838,10 @@ sql_types:
   | SIGNED INTEGER
     {
       $$ = INTEGER_BYTES
+    }
+  | TIME
+    {
+      $$ = TIME_BYTES
     }
   | UNSIGNED
     {

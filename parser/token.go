@@ -226,6 +226,8 @@ var keywords = map[string]int{
 	"convert":       CONVERT,
 	"cast":          CAST,
 	"char":          CHAR,
+	"decimal":       DECIMAL,
+	"nchar":         NCHAR,
 	"signed":        SIGNED,
 	"unsigned":      UNSIGNED,
 	"integer":       INTEGER,
