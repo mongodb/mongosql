@@ -1,17 +1,17 @@
 {
    "current": true,
    "date": "DATE",
-   "development_release": DEV-RELEASE,
+   "development_release": IS_DEV_RELEASE,
    "githash": "GITHASH",
    "notes": "https://docs.mongodb.com/bi-connector/master/release-notes/#bi-NOTES_ANCHOR",
-   "production_release": PROD-RELEASE,
-   "release_candidate": RC-CANDIDATE,
-   "version": "VERSION",
+   "production_release": IS_PROD_RELEASE,
+   "release_candidate": IS_RC_CANDIDATE,
+   "version": "RELEASE_VERSION",
    "downloads": [
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/LINUX-64-AMAZON-AMI"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~LINUX-64-AMAZON-AMI"
          },
          "edition": "enterprise",
          "target": "amzn64"
@@ -19,7 +19,7 @@
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/OSX"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~OSX_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
          },
          "edition": "enterprise",
          "target": "osx"
@@ -27,7 +27,7 @@
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/WINDOWS-64"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~WINDOWS_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
          },
          "edition": "enterprise",
          "target": "windows"
@@ -35,7 +35,7 @@
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/UBUNTU1404-64"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~UBUNTU1404-64_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
          },
          "edition": "enterprise",
          "packages": [],
@@ -44,7 +44,7 @@
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL62"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL62"
          },
          "edition": "enterprise",
          "packages": [],
@@ -53,7 +53,7 @@
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL70"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL70"
          },
          "edition": "enterprise",
          "packages": [],
@@ -62,7 +62,7 @@
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/DEBIAN71"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~DEBIAN71"
          },
          "edition": "enterprise",
          "packages": [],
@@ -71,7 +71,7 @@
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/DEBIAN81"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~DEBIAN81"
          },
          "edition": "enterprise",
          "packages": [],
@@ -80,7 +80,7 @@
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SUSE11-64"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~SUSE11-64"
          },
          "edition": "enterprise",
          "packages": [],
@@ -89,7 +89,7 @@
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SUSE12-64"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~SUSE12-64"
          },
          "edition": "enterprise",
          "packages": [],
@@ -98,7 +98,7 @@
       {
          "arch": "ppc64le",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL-71-PPC64LE"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-71-PPC64LE"
          },
          "edition": "enterprise",
          "packages": [],
@@ -107,7 +107,7 @@
       {
          "arch": "s390x",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RHEL-72-S390X"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-72-S390X"
          },
          "edition": "enterprise",
          "packages": [],

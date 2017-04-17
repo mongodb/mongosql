@@ -4,17 +4,20 @@ This script supports the release process for the BI Connector.
 
 import ast
 import datetime
+import getopt
 import json
 import os
-import tempfile
-import shutil
+import re
 import subprocess
 import sys
+import tempfile
 import urllib2
-import requests
+
 import boto
+
 import httplib2
-import getopt
+
+import requests
 
 EVG_BASE = "https://evergreen.mongodb.com/rest/v1"
 S3_BUCKET = "info-mongodb-com"
@@ -34,6 +37,7 @@ Options:
   -v            Evergreen version identifier
 """
 
+
 def ensure_env():
     """Ensures the required environment variables are set.
     """
@@ -49,6 +53,7 @@ def ensure_env():
     if os.environ.get('AWS_SECRET_ACCESS_KEY', None) is None:
         print("Can't find 'AWS_SECRET_ACCESS_KEY' in environment variables")
         sys.exit(1)
+
 
 class BIReleaser(object):
     """Represents a release instance.
@@ -157,9 +162,14 @@ class BIReleaser(object):
                 sys.exit(1)
 
             entry = json.loads(response.text)
-            url = entry["files"][0]["url"]
             variant = entry["build_variant"]
-            self.__urls[variant] = url
+            extension = ".msi" if "windows" in variant else ".tgz"
+            for file in entry["files"]:
+                url = file["url"]
+                _, ext = os.path.splitext(url)
+                if ext == extension:
+                    self.__urls[variant] = url
+                    break
 
     def run(self):
         """Runs an instance of the BI Releaser.
@@ -187,22 +197,21 @@ class BIReleaser(object):
         and the current.json file at at:
         https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/current.json
         """
+
         # read in main downloads template file
         with open(MAIN_FILE, "r") as file_handle:
-            template = file_handle.readlines()
+            contents = file_handle.read()
+
+        contents = re.sub("S3_PATH", S3_PATH, contents)
+        contents = re.sub("S3_BUCKET", S3_BUCKET, contents)
+        contents = re.sub("RELEASE_VERSION", self.__release_version, contents)
+
+        for url, entry in self.__urls.items():
+            contents = re.sub(url.upper(), os.path.basename(entry), contents)
 
         new_file = os.path.join(self.__temp_dir, MAIN_FILE)
-
         with open(new_file, "w") as file_handle:
-            for line in template:
-                line = line.replace(
-                    "S3_PATH", S3_PATH, -1).replace(
-                        "S3_BUCKET", S3_BUCKET, -1).replace(
-                            "VERSION", self.__release_version, -1)
-                for url, entry in self.__urls.items():
-                    basename = os.path.basename(entry)
-                    line = line.replace(url.upper(), basename, -1)
-                file_handle.write(line)
+            file_handle.write(contents)
 
         print("Updating main downloads page for BI Connector")
 
@@ -321,7 +330,7 @@ class BIReleaser(object):
             print("Refusing to release commit - does not contain release version: %s" % message)
             sys.exit(1)
 
-        version = parts[1]
+        version = parts[1].strip()
 
         # strip v in commit message
         if version.startswith("v"):
@@ -362,12 +371,6 @@ class BIReleaser(object):
     def write_releases_entry(self):
         """Writes new release information to file.
         """
-        # read in current release template
-        with open(RELEASES_FILE, "r") as file_handle:
-            template = file_handle.readlines()
-
-        new_releases_file = os.path.join(self.__temp_dir, RELEASES_FILE)
-
         try:
             revision = subprocess.Popen(
                 "git rev-list -n 1 v%s" % (self.__release_version),
@@ -376,51 +379,54 @@ class BIReleaser(object):
             print err
             sys.exit(1)
 
-        dev_release = "false"
-        prod_release = "true"
-        rc_candidate = "false"
+        is_dev_release = "false"
+        is_prod_release = "true"
+        is_rc_candidate = "false"
 
         if self.__dev_release:
-            dev_release = "true"
-            prod_release = "false"
+            is_dev_release = "true"
+            is_prod_release = "false"
 
         if "-" in self.__release_version:
-            rc_candidate = "true"
+            is_rc_candidate = "true"
 
         notes_anchor = self.__release_version.replace(".", "-", -1)
 
+        # read in current release template
+        with open(RELEASES_FILE, "r") as file_handle:
+            contents = file_handle.read()
+
         # update new release information in template file
+        contents = re.sub("S3_PATH", S3_PATH, contents)
+        contents = re.sub("S3_BUCKET", S3_BUCKET, contents)
+        contents = re.sub("GITHASH", revision, contents)
+        contents = re.sub("IS_DEV_RELEASE", is_dev_release, contents)
+        contents = re.sub("IS_RC_CANDIDATE", is_rc_candidate, contents)
+        contents = re.sub("IS_PROD_RELEASE", is_prod_release, contents)
+        contents = re.sub("NOTES_ANCHOR", notes_anchor, contents)
+        contents = re.sub("RELEASE_VERSION", self.__release_version, contents)
+        contents = re.sub("DATE", str(datetime.date.today()), contents)
+
+        for url, entry in self.__urls.items():
+            contents = re.sub(url.upper(), os.path.basename(entry), contents)
+
+        new_releases_file = os.path.join(self.__temp_dir, RELEASES_FILE)
+
         with open(new_releases_file, "w") as file_handle:
-            for line in template:
-                line = line.replace(
-                    "S3_PATH", S3_PATH, -1).replace(
-                        "GITHASH", revision, -1).replace(
-                            "S3_BUCKET", S3_BUCKET, -1).replace(
-                                "DEV-RELEASE", dev_release, -1)
-                line = line.replace(
-                    "RC-CANDIDATE", rc_candidate, -1).replace(
-                        "PROD-RELEASE", prod_release, -1).replace(
-                            "NOTES_ANCHOR", notes_anchor, -1).replace(
-                                "VERSION", self.__release_version, -1).replace(
-                                    "DATE", str(datetime.date.today()), -1)
+            file_handle.write(contents)
 
-                for url, entry in self.__urls.items():
-                    basename = os.path.basename(entry)
-                    line = line.replace(url.upper(), basename, -1)
-
-                file_handle.write(line)
-
-        with open(new_releases_file, "r") as file_handle:
-            data = json.loads("".join(file_handle.readlines()))
+        data = json.loads(contents)
 
         # final validity check
         valid = True
+
         for url in self.__urls:
             if url.upper() in data:
                 valid = False
                 print("Could not find binary for %v release" % (url))
         if not valid:
             sys.exit(1)
+
         print("Release file passed validation check")
 
 if __name__ == '__main__':
