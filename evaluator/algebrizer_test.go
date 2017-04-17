@@ -2312,6 +2312,30 @@ func TestAlgebrizeExpr(t *testing.T) {
 				left:  createSQLColumnExpr("a"),
 				right: SQLInt(1),
 			})
+			test("g = 0", &SQLEqualsExpr{
+				left:  createSQLColumnExpr("g"),
+				right: &SQLConvertExpr{SQLInt(0), schema.SQLBoolean, SQLNone},
+			})
+			test("g = 1", &SQLEqualsExpr{
+				left:  createSQLColumnExpr("g"),
+				right: &SQLConvertExpr{SQLInt(1), schema.SQLBoolean, SQLNone},
+			})
+			test("g = 2", &SQLEqualsExpr{
+				left:  &SQLConvertExpr{createSQLColumnExpr("g"), schema.SQLInt, SQLNone},
+				right: SQLInt(2),
+			})
+			test("0 = g", &SQLEqualsExpr{
+				left:  createSQLColumnExpr("g"),
+				right: &SQLConvertExpr{SQLInt(0), schema.SQLBoolean, SQLNone},
+			})
+			test("1 = g", &SQLEqualsExpr{
+				left:  createSQLColumnExpr("g"),
+				right: &SQLConvertExpr{SQLInt(1), schema.SQLBoolean, SQLNone},
+			})
+			test("2 = g", &SQLEqualsExpr{
+				left:  SQLInt(2),
+				right: &SQLConvertExpr{createSQLColumnExpr("g"), schema.SQLInt, SQLNone},
+			})
 		})
 
 		SkipConvey("Exists", func() {

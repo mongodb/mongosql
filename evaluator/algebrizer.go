@@ -908,6 +908,10 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		reconcile := typedE.Operator != parser.AST_IS && typedE.Operator != parser.AST_IS_NOT
 
+		if typedE.Operator == parser.AST_EQ && typedE.SubqueryOperator == "" {
+			reconcile = false
+		}
+
 		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, reconcile)
 		if err != nil {
 			return nil, err
@@ -955,7 +959,16 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return translateTupleExpr(left, right, typedE.Operator)
 		}
 
-		return comparisonExpr(left, right, typedE.Operator)
+		comp, err := comparisonExpr(left, right, typedE.Operator)
+		if err != nil {
+			return nil, err
+		}
+
+		if rec, ok := comp.(reconcilingSQLExpr); ok {
+			comp, err = rec.reconcile()
+		}
+		return comp, err
+
 	case parser.DateVal:
 
 		arg := string(typedE.Val)

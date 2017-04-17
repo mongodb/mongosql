@@ -3244,6 +3244,7 @@ func TestTranslateExpr(t *testing.T) {
 		tests := []test{
 			test{"a / b", `{"$cond":[{"$eq":["$b",0]},null,{"$divide":["$a","$b"]}]}`},
 			test{"a div b", `{"$cond":[{"$eq":["$b",0]},null,{"$trunc":[{"$divide":["$a","$b"]}]}]}`},
+			test{"t = 0", `{"$cond":[{"$eq":[{"$ifNull":["$t",null]},null]},null,{"$eq":["$t",{"$literal":false}]}]}`},
 
 			test{"abs(a)", `{"$abs":"$a"}`},
 			test{"adddate(g, INTERVAL 10 day)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$add":["$g",864000000]}]}`},

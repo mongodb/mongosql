@@ -33,6 +33,11 @@ type SQLArithmetic interface {
 	Uint64() uint64
 }
 
+type reconcilingSQLExpr interface {
+	SQLExpr
+	reconcile() (SQLExpr, error)
+}
+
 // Arithmetic consts
 type ArithmeticOperator byte
 
@@ -466,6 +471,60 @@ func (eq *SQLEqualsExpr) normalize() node {
 	}
 
 	return eq
+}
+
+func isBooleanColumnAndAritmetic(left, right SQLExpr) bool {
+	if _, ok := left.(SQLColumnExpr); !ok {
+		return false
+	}
+
+	if left.Type() != schema.SQLBoolean {
+		return false
+	}
+
+	if _, ok := right.(SQLArithmetic); !ok {
+		return false
+	}
+
+	if _, ok := right.(SQLBool); ok {
+		return false
+	}
+
+	return true
+}
+
+func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
+	var reconciled bool
+	var err error
+
+	left := eq.left
+	right := eq.right
+
+	if isBooleanColumnAndAritmetic(left, right) || isBooleanColumnAndAritmetic(right, left) {
+		var lit SQLArithmetic
+		var col SQLColumnExpr
+
+		switch left.Type() {
+		case schema.SQLBoolean:
+			col = left.(SQLColumnExpr)
+			lit = right.(SQLArithmetic)
+		default:
+			col = right.(SQLColumnExpr)
+			lit = left.(SQLArithmetic)
+		}
+
+		if lit.Int64() == 1 || lit.Int64() == 0 {
+			left = col
+			right = &SQLConvertExpr{lit.(SQLExpr), schema.SQLBoolean, SQLNone}
+			reconciled = true
+		}
+	}
+
+	if !reconciled {
+		left, right, err = reconcileSQLExprs(eq.left, eq.right)
+	}
+
+	return &SQLEqualsExpr{left, right}, err
 }
 
 func (eq *SQLEqualsExpr) String() string {
