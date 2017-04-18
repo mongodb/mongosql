@@ -979,8 +979,9 @@ func TestEvaluates(t *testing.T) {
 					test{"CONVERT(3.5, SIGNED INTEGER)", SQLInt(4)},
 					test{"CONVERT(-3.4, SIGNED INTEGER)", SQLInt(-3)},
 					test{"CONVERT(33245368230, SQL_BIGINT)", SQLInt(33245368230)},
-					test{"CONVERT('janna', UNSIGNED INTEGER)", SQLInt(0)},
-					test{"CONVERT('423', UNSIGNED)", SQLInt(423)},
+					test{"CONVERT('janna', UNSIGNED INTEGER)", SQLUint64(0)},
+					test{"CONVERT('423', UNSIGNED)", SQLUint64(423)},
+					test{"CONVERT('-423', UNSIGNED)", SQLUint64(0xfffffffffffffe59)},
 					test{"CONVERT('16a', SIGNED)", SQLInt(0)},
 					test{"CONVERT(true, SIGNED)", SQLInt(1)},
 					test{"CONVERT(false, SIGNED)", SQLInt(0)},
@@ -992,7 +993,7 @@ func TestEvaluates(t *testing.T) {
 					test{"CONVERT('str', DECIMAL)", SQLNull},
 					test{"CONVERT('str', DECIMAL(12))", SQLNull},
 					test{"CONVERT('str', DECIMAL(12,25))", SQLNull},
-					test{"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DECIMAL)", SQLNull},
+					test{"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DECIMAL)", SQLDecimal128(decimal.New(20060511123212, 0))},
 					test{"CONVERT('423', DECIMAL)", SQLDecimal128(decimal.New(423, 0))},
 					test{"CONVERT('423', DECIMAL(12))", SQLDecimal128(decimal.New(423, 0))},
 					test{"CONVERT('423', DECIMAL(12,25))", SQLDecimal128(decimal.New(423, 0))},
@@ -1045,7 +1046,7 @@ func TestEvaluates(t *testing.T) {
 					test{"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DATETIME)", SQLTimestamp{Time: t}},
 					test{"CONVERT(DATE '2006-05-11', SQL_TIMESTAMP)", SQLTimestamp{Time: dt}},
 					test{"CONVERT('12:32:12', TIME)", SQLTimestamp{Time: time.Date(0, 1, 1, 12, 32, 12, 0, time.UTC)}},
-					test{"CONVERT('2006-04-11 12:32:12', TIME)", SQLNull},
+					test{"CONVERT('2006-04-11 12:32:12', TIME)", SQLTimestamp{Time: time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)}},
 				}
 				runTests(evalCtx, tests)
 

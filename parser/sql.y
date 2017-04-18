@@ -54,6 +54,8 @@ var (
   DECIMAL_BYTES            = []byte("decimal")
   FLOAT_BYTES              = []byte("float")
   INTEGER_BYTES            = []byte("integer")
+  SIGNED_BYTES             = []byte("signed")
+  UNSIGNED_BYTES           = []byte("unsigned")
   TIME_BYTES               = []byte("time")
   COUNT_BYTES              = []byte("count")
   DATABASE_BYTES           = []byte("database")
@@ -1833,11 +1835,11 @@ sql_types:
     }
   | SIGNED
     {
-      $$ = INTEGER_BYTES
+      $$ = SIGNED_BYTES
     }
   | SIGNED INTEGER
     {
-      $$ = INTEGER_BYTES
+      $$ = SIGNED_BYTES
     }
   | TIME
     {
@@ -1845,15 +1847,15 @@ sql_types:
     }
   | UNSIGNED
     {
-      $$ = INTEGER_BYTES
+      $$ = UNSIGNED_BYTES
     }
   | UNSIGNED INTEGER
     {
-      $$ = INTEGER_BYTES
+      $$ = UNSIGNED_BYTES
     }
   | SQL_BIGINT
     {
-      $$ = INTEGER_BYTES
+      $$ = SIGNED_BYTES
     }
   | SQL_VARCHAR
     {

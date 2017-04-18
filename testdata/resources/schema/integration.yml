@@ -66,6 +66,33 @@ schema:
       MongoType: int
       SqlName: z
       SQLType: int
+  - table: foo
+    collection: "convert"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: bool
+      SqlName: a
+      SqlType: boolean
+    - Name: b
+      MongoType: date
+      SqlName: b
+      SqlType: timestamp
+    - Name: c
+      MongoType: float64
+      SqlName: c
+      SqlType: float64
+    - Name: d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+    - Name: e
+      MongoType: string
+      SqlName: e
+      SqlType: varchar
 - db: groupby_test
   tables:
   - table: foo

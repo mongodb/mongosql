@@ -62,7 +62,7 @@ testcases:
   id: '8'
   description: "unset user variable"
   expected_names: ["@lkjasdflkjasdf"]
-  expected_types: [~]
+  expected_types: [string]
   expected: 
   - [~]
 

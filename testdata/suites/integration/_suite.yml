@@ -30,6 +30,15 @@ data:
     - { _id: 3, a: 4, b: "this", c: ~, d: ~, z: 0}
     - { _id: 4, z: ~}
 - inline:
+    db: "functions_test"
+    collection: "convert"
+    docs:
+    - { _id: 0, a: true, b: {$date: {$numberLong: "969716700000"}}, c: 1.0, d: 2, e: "one"}
+    - { _id: 1, a: false, c: -1.0, d: -2, e: "2017-10-08"}
+    - { _id: 2, c: 0.0, d: 0, e: "20171008" }
+    - { _id: 3, c: 20171008.0, d: 20171008 }
+    - { _id: 4 }
+- inline:
     db: "groupby_test"
     collection: "groupby"
     docs:

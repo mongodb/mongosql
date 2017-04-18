@@ -714,7 +714,7 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 	}
 
 	switch values[1].String() {
-	case string(parser.INTEGER_BYTES):
+	case string(parser.SIGNED_BYTES):
 		var i int64
 		switch typedV := values[0].(type) {
 		case SQLDate:
@@ -742,6 +742,37 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		}
 
 		return SQLInt(i), nil
+
+	case string(parser.UNSIGNED_BYTES):
+		var u uint64
+		switch typedV := values[0].(type) {
+		case SQLDate:
+			i, _ := strconv.ParseInt(strings.Replace(typedV.String(), "-", "", -1), 10, 64)
+			u = uint64(i)
+		case SQLTimestamp:
+			stripped := strings.Replace(strings.Replace(strings.Replace(typedV.String(), "-", "", -1), ":", "", -1), " ", "", -1)
+			i, _ := strconv.ParseInt(stripped, 10, 64)
+			u = uint64(i)
+		case SQLFloat:
+			u = uint64(roundToDecimalPlaces(0, typedV.Float64()))
+		case SQLInt:
+			u = uint64(typedV)
+		case SQLVarchar:
+			f, _ := strconv.ParseFloat(typedV.String(), 64)
+			u = uint64(f)
+		case SQLBool:
+			if typedV.Bool() {
+				u = 1
+			} else {
+				u = 0
+			}
+		case SQLDecimal128:
+			u = uint64(decimal.Decimal(typedV).Round(0).IntPart())
+		default:
+			return SQLNull, nil
+		}
+
+		return SQLUint64(u), nil
 
 	case string(parser.FLOAT_BYTES):
 		var f float64
@@ -797,43 +828,97 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 		return SQLVarchar(s), nil
 
 	case string(parser.DATE_BYTES):
-		_, ok := values[0].(SQLTimestamp)
-		var s string
-		if ok {
-			s = (values[0].String())[:10]
-		} else {
-			s = values[0].String()
-		}
-		t, ok := parseDateTime(s)
-		if !ok {
-			return SQLNull, nil
+		var t time.Time
+		switch typedV := values[0].(type) {
+		case SQLDate:
+			t = typedV.Time
+		case SQLTimestamp:
+			t = typedV.Time
+			t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+		default:
+			var ok bool
+			t, ok = parseDateTime(typedV.String())
+			if !ok {
+				switch tv := values[0].(type) {
+				case SQLBool, SQLUint32, SQLUint64, SQLInt, SQLFloat, SQLDecimal128:
+					if tv.Int64() != 0 {
+						return SQLNull, nil
+					}
+					t = time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
+				default:
+					return SQLNull, nil
+				}
+
+				t = time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
+			} else {
+				t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+			}
 		}
 
 		return SQLDate{Time: t}, nil
 
 	case string(parser.DATETIME_BYTES):
-		t, ok := parseDateTime(values[0].String())
-		if !ok {
-			return SQLNull, nil
+		var t time.Time
+		switch typedV := values[0].(type) {
+		case SQLDate:
+			t = typedV.Time
+		case SQLTimestamp:
+			t = typedV.Time
+		default:
+			var ok bool
+			t, ok = parseDateTime(typedV.String())
+			if !ok {
+				switch tv := values[0].(type) {
+				case SQLBool, SQLUint32, SQLUint64, SQLInt, SQLFloat, SQLDecimal128:
+					if tv.Int64() != 0 {
+						return SQLNull, nil
+					}
+					t = time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
+				default:
+					return SQLNull, nil
+				}
+			}
 		}
 
 		return SQLTimestamp{Time: t}, nil
 
 	case string(parser.DECIMAL_BYTES):
-		t, err := decimal.NewFromString(values[0].String())
-		if err != nil {
-			return SQLNull, nil
+		var d decimal.Decimal
+		switch typedV := values[0].(type) {
+		case SQLDate, SQLTimestamp:
+			i := typedV.Int64()
+			d = decimal.New(i, 0)
+		default:
+			var err error
+			d, err = decimal.NewFromString(typedV.String())
+			if err != nil {
+				return SQLNull, nil
+			}
 		}
 
-		return SQLDecimal128(t), nil
+		return SQLDecimal128(d), nil
 
 	case string(parser.TIME_BYTES):
-		d, ok := strToTime(values[0].String())
-		if !ok {
-			return SQLNull, nil
-		}
+		var t time.Time
+		switch typedV := values[0].(type) {
+		case SQLDate:
+			t = typedV.Time
+			t = time.Date(0, 1, 1, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), time.UTC)
+		case SQLTimestamp:
+			t = typedV.Time
+			t = time.Date(0, 1, 1, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), time.UTC)
+		default:
+			d, ok := strToTime(typedV.String())
+			if !ok {
+				if _, ok := typedV.(SQLArithmetic); !ok || typedV.Int64() != 0 {
+					return SQLNull, nil
+				}
 
-		t := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC).Add(d)
+				t = time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
+			} else {
+				t = time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC).Add(d)
+			}
+		}
 
 		return SQLTimestamp{t}, nil
 
@@ -845,8 +930,10 @@ func (_ *convertFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error
 func (_ *convertFunc) Type(exprs []SQLExpr) schema.SQLType {
 	if v, ok := exprs[1].(SQLValue); ok {
 		switch v.String() {
-		case string(parser.INTEGER_BYTES):
+		case string(parser.SIGNED_BYTES):
 			return schema.SQLInt
+		case string(parser.UNSIGNED_BYTES):
+			return schema.SQLUint64
 		case string(parser.FLOAT_BYTES):
 			return schema.SQLFloat
 		case string(parser.CHAR_BYTES):
