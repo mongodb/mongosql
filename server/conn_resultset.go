@@ -59,7 +59,7 @@ func formatField(collationID uint16, field *Field, value evaluator.SQLValue) err
 
 	case evaluator.SQLFloat:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_FLOAT
+		field.Type = MYSQL_TYPE_DOUBLE
 		field.Decimal = 0x1f
 		field.Flag = BINARY_FLAG
 	case evaluator.SQLDecimal128:
@@ -69,7 +69,7 @@ func formatField(collationID uint16, field *Field, value evaluator.SQLValue) err
 		field.Flag = BINARY_FLAG
 	case evaluator.SQLBool:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_TINY
+		field.Type = MYSQL_TYPE_BIT
 	case evaluator.SQLUint32:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_LONGLONG
@@ -102,7 +102,7 @@ func formatField(collationID uint16, field *Field, value evaluator.SQLValue) err
 		field.Type = MYSQL_TYPE_DATE
 	case evaluator.SQLTimestamp:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_TIMESTAMP
+		field.Type = MYSQL_TYPE_DATETIME
 	case *evaluator.SQLValues:
 		if len(typedV.Values) != 1 {
 			return mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, 1)
