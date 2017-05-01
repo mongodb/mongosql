@@ -225,9 +225,8 @@ functions:
               export RACE_DETECTOR="-race"
           fi
 
-          if [ '${gccgo_flags}' != "" ]; then
-              flags="${gccgo_flags}"
-              export BUILD_FLAGS="-gccgoflags '$flags'"
+          if [ '${cc}' != "" ]; then
+              export CC="${cc}"
           fi
 
           if [ "${mongodb_version}" != "" ]; then
@@ -272,6 +271,7 @@ functions:
              export CURRENT_VERSION="$CURRENT_VERSION"
              export GIT_SPEC="$GIT_SPEC"
 
+             export CC="$CC"
              export BUILD_FLAGS="$BUILD_FLAGS"
 
              export VERSION_FLAG="$VERSION_FLAG"
@@ -732,9 +732,9 @@ axes:
       library_path: /opt/mongodbtoolchain/v2/bin/
       push_arch: s390x-enterprise-rhel72
       push_name: linux
-      goroot: /opt/go1.7/go
-      gobindir: /opt/go1.7/go/bin
-      gccgo_flags: $(pkg-config --libs --cflags libssl)
+      goroot: /opt/go1.8/go
+      gobindir: /opt/go1.8/go/bin
+      cc: s390x-redhat-linux-gcc
     run_on:
     - rhel72-zseries-build
     - rhel72-zseries-test
