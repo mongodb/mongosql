@@ -15,6 +15,157 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select adddate(date_format(d, '%Y-01-01'), interval 0 second) as a from bar"
+  id: '336'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-01-01 00:00:00"]
+  - ["2000-01-01 00:00:00"]
+  - ["2000-01-01 00:00:00"]
+  - [~]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-01-01 00:00:00'), interval 0 second) as a from bar"
+  id: '337'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-01-01 00:00:00"]
+  - ["2000-01-01 00:00:00"]
+  - ["2000-01-01 00:00:00"]
+  - [~]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-%m-01'), interval 0 second) as a from bar"
+  id: '338'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-01 00:00:00"]
+  - ["2000-09-01 00:00:00"]
+  - ["2000-10-01 00:00:00"]
+  - [~]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-%m-01 00:00:00'), interval 0 second) as a from bar"
+  id: '339'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-01 00:00:00"]
+  - ["2000-09-01 00:00:00"]
+  - ["2000-10-01 00:00:00"]
+  - [~]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-%m-%d'), interval 0 second) as a from bar"
+  id: '340'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-23 00:00:00"]
+  - ["2000-09-24 00:00:00"]
+  - ["2000-10-24 00:00:00"]
+  - [~]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-%m-%d 00:00:00'), interval 0 second) as a from bar"
+  id: '341'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-23 00:00:00"]
+  - ["2000-09-24 00:00:00"]
+  - ["2000-10-24 00:00:00"]
+  - [~]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-%m-%d %H:00:00'), interval 0 second) as a from bar"
+  id: '342'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-23 13:00:00"]
+  - ["2000-09-24 13:00:00"]
+  - ["2000-10-24 13:00:00"]
+  - [~]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-%m-%d %H:%i:00'), interval 0 second) as a from bar"
+  id: '343'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-23 13:45:00"]
+  - ["2000-09-24 13:45:00"]
+  - ["2000-10-24 13:45:00"]
+  - [~]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval 0 second) as a from bar"
+  id: '344'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-23 13:45:00"]
+  - ["2000-09-24 13:45:00"]
+  - ["2000-10-24 13:45:00"]
+  - [~]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-01-01'), interval 0 second) as a from bar group by 1 order by id"
+  id: '345'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-01-01 00:00:00"]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-%m-01 00:00:00'), interval 0 second) as a from bar group by 1 order by id"
+  id: '346'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-01 00:00:00"]
+  - ["2000-10-01 00:00:00"]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval -1 second) as a from bar"
+  id: '347'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-23 13:44:59"]
+  - ["2000-09-24 13:44:59"]
+  - ["2000-10-24 13:44:59"]
+  - [~]
+  - [~]
+
+- sql: "select adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval 1 second) as a from bar"
+  id: '348'
+  db: functions_test
+  expected_names: ["a"]
+  expected_types: [varchar]
+  expected:
+  - ["2000-09-23 13:45:01"]
+  - ["2000-09-24 13:45:01"]
+  - ["2000-10-24 13:45:01"]
+  - [~]
+  - [~]
+
 - sql: "select d + INTERVAL 8 MINUTE from bar"
   id: '1'
   db: functions_test

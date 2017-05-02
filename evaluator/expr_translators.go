@@ -514,37 +514,66 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{"$not": bson.M{mgoOperatorAND: []interface{}{left, right}}}}}}}, true
 
 	case *SQLScalarFunctionExpr:
-		args := []interface{}{}
-		for _, e := range typedE.Exprs {
-			r, ok := t.TranslateExpr(e)
-			if !ok {
-				return nil, false
+		translateArgs := func() ([]interface{}, bool) {
+			args := []interface{}{}
+			for _, e := range typedE.Exprs {
+				r, ok := t.TranslateExpr(e)
+				if !ok {
+					return nil, false
+				}
+				args = append(args, r)
 			}
-			args = append(args, r)
+			return args, true
 		}
 
 		switch typedE.Name {
 		case "abs":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return bson.M{"$abs": args[0]}, true
 		case "adddate", "date_add", "subdate", "date_sub":
-			if len(args) != 3 {
+			if len(typedE.Exprs) != 3 {
 				return nil, false
 			}
 
-			switch typedE.Exprs[0].Type() {
-			case schema.SQLDate, schema.SQLTimestamp:
-			default:
-				return nil, false
+			var date interface{}
+			var ok bool
+			if typedE.Name == "adddate" {
+				// implementation for ADDDATE(DATE_FORMAT("..."), INTERVAL 0 SECOND)
+				if f, ok := typedE.Exprs[0].(*SQLScalarFunctionExpr); ok && f.Name == "date_format" {
+					if date, ok = t.translateDateFormatAsDate(f); !ok {
+						date = nil
+					}
+				}
+			}
+
+			if date == nil {
+				switch typedE.Exprs[0].Type() {
+				case schema.SQLDate, schema.SQLTimestamp:
+				default:
+					return nil, false
+				}
+
+				if date, ok = t.TranslateExpr(typedE.Exprs[0]); !ok {
+					return nil, false
+				}
 			}
 
 			intervalValue, ok := typedE.Exprs[1].(SQLValue)
 			if !ok {
 				return nil, false
 			}
+
+			if intervalValue.Float64() == 0 {
+				return date, true
+			}
+
 			unitValue, ok := typedE.Exprs[2].(SQLValue)
 			if !ok {
 				return nil, false
@@ -567,21 +596,28 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 			return wrapInNullCheckedCond(
 				nil,
-				wrapInOp("$add", args[0], ms),
-				args[0],
+				wrapInOp("$add", date, ms),
+				date,
 			), true
 		case "ceil":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return bson.M{"$ceil": args[0]}, true
 		case "char_length", "character_length":
-			if len(args) != 1 {
+			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
 			}
-
-			if !t.versionAtLeast(3, 4, 0) {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -596,15 +632,29 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return bson.M{mgoOperatorIfNull: []interface{}{args[0], replacement}}
 			}
 
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
+
 			return coalesce(args), true
 		case "concat":
-			if len(args) < 1 {
+			if len(typedE.Exprs) < 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return bson.M{"$concat": args}, true
 		case "concat_ws":
-			if len(args) < 2 {
+			if len(typedE.Exprs) < 2 {
+				return nil, false
+			}
+
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -626,7 +676,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 			return bson.M{"$concat": pushArgs[:len(pushArgs)-1]}, true
 		case "date_format":
-			if len(args) != 2 {
+			if len(typedE.Exprs) != 2 {
+				return nil, false
+			}
+
+			date, ok := t.TranslateExpr(typedE.Exprs[0])
+			if !ok {
 				return nil, false
 			}
 
@@ -680,12 +735,16 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				nil,
 				bson.M{"$dateToString": bson.M{
 					"format": format,
-					"date":   args[0],
+					"date":   date,
 				}},
-				args[0],
+				date,
 			), true
 		case "dayname":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -707,31 +766,51 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args[0],
 			), true
 		case "day", "dayofmonth":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return wrapSingleArgFuncWithNullCheck("$dayOfMonth", args[0]), true
 		case "dayofweek":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return wrapSingleArgFuncWithNullCheck("$dayOfWeek", args[0]), true
 		case "dayofyear":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return wrapSingleArgFuncWithNullCheck("$dayOfYear", args[0]), true
 		case "exp":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return bson.M{"$exp": args[0]}, true
 		case "extract":
-			if len(args) != 2 {
+			if len(typedE.Exprs) != 2 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -757,7 +836,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			}
 
 		case "floor":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -769,6 +852,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 					return nil, false
 				}
 			}
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
 
 			return wrapInNullCheckedCond(
 				nil,
@@ -776,13 +863,21 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args...,
 			), true
 		case "hour":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return wrapSingleArgFuncWithNullCheck("$hour", args[0]), true
 		case "if":
-			if len(args) != 3 {
+			if len(typedE.Exprs) != 3 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -794,13 +889,21 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				wrapInOp(mgoOperatorEQ, args[0], false),
 			), true
 		case "ifnull":
-			if len(args) != 2 {
+			if len(typedE.Exprs) != 2 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return wrapInIfNull(args[0], args[1]), true
 		case "isnull":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -812,6 +915,10 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 					return nil, false
 				}
 			}
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
 
 			return wrapInNullCheckedCond(
 				nil,
@@ -819,11 +926,14 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args...,
 			), true
 		case "left":
-			if len(args) != 2 {
+			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
 			}
-
-			if !t.versionAtLeast(3, 4, 0) {
+			if len(typedE.Exprs) != 2 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -833,17 +943,24 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args[0], args[1],
 			), true
 		case "length":
-			if len(args) != 1 {
+			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
 			}
-
-			if !t.versionAtLeast(3, 4, 0) {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return wrapSingleArgFuncWithNullCheck("$strLenBytes", args[0]), true
 		case "lcase", "lower":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -852,8 +969,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
 			}
-
-			if !(len(args) == 2 || len(args) == 3) {
+			if !(len(typedE.Exprs) == 2 || len(typedE.Exprs) == 3) {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -870,7 +990,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args[1], args[0],
 			), true
 		case "log", "ln":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 			return bson.M{mgoOperatorCond: []interface{}{
@@ -878,7 +1002,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{"$ln": args[0]},
 				mgoNullLiteral}}, true
 		case "log2":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -887,7 +1015,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{"$log": []interface{}{args[0], 2}},
 				mgoNullLiteral}}, true
 		case "log10":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -896,25 +1028,41 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{"$log10": args[0]},
 				mgoNullLiteral}}, true
 		case "mod":
-			if len(args) != 2 {
+			if len(typedE.Exprs) != 2 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return bson.M{"$mod": []interface{}{args[0], args[1]}}, true
 		case "minute":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return wrapSingleArgFuncWithNullCheck("$minute", args[0]), true
 		case "month":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return wrapSingleArgFuncWithNullCheck("$month", args[0]), true
 		case "monthname":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -941,7 +1089,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args[0],
 			), true
 		case "nullif":
-			if len(args) != 2 {
+			if len(typedE.Exprs) != 2 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -955,7 +1107,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args[0],
 			), true
 		case "quarter":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -969,11 +1125,14 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args[0],
 			), true
 		case "right":
-			if len(args) != 2 {
+			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
 			}
-
-			if !t.versionAtLeast(3, 4, 0) {
+			if len(typedE.Exprs) != 2 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -992,7 +1151,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args[0], args[1],
 			), true
 		case "round":
-			if !(len(args) == 2 || len(args) == 1) {
+			if !(len(typedE.Exprs) == 2 || len(typedE.Exprs) == 1) {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 			var decimal float64
@@ -1027,13 +1190,21 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 					bson.M{"$ceil": bson.M{"$subtract": []interface{}{
 						bson.M{"$multiply": []interface{}{args[0], decimal}}, 0.5}}}}}, decimal}}, true
 		case "second":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return wrapSingleArgFuncWithNullCheck("$second", args[0]), true
 		case "sqrt":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -1043,11 +1214,14 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
 			), true
 		case "substring", "substr", "mid":
-			if (len(args) != 2 && len(args) != 3) || (len(args) == 2 && typedE.Name == "mid") {
+			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
 			}
-
-			if !t.versionAtLeast(3, 4, 0) {
+			if (len(typedE.Exprs) != 2 && len(typedE.Exprs) != 3) || (len(typedE.Exprs) == 2 && typedE.Name == "mid") {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -1076,7 +1250,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args[0],
 			), true
 		case "truncate":
-			if len(args) != 2 {
+			if len(typedE.Exprs) != 2 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -1115,7 +1293,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 						args[0], pow}}}}},
 				pow}}, true
 		case "week":
-			if len(args) < 1 || len(args) > 2 {
+			if len(typedE.Exprs) < 1 || len(typedE.Exprs) > 2 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -1139,7 +1321,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return wrapSingleArgFuncWithNullCheck("$week", args[0]), true
 			}
 		case "weekday":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -1157,13 +1343,21 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args[0],
 			), true
 		case "ucase", "upper":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
 			return wrapSingleArgFuncWithNullCheck("$toUpper", args[0]), true
 		case "year":
-			if len(args) != 1 {
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
 				return nil, false
 			}
 
@@ -1408,6 +1602,114 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return transExprs, true
 	}
 	return nil, false
+}
+
+func (t *pushDownTranslator) translateDateFormatAsDate(f *SQLScalarFunctionExpr) (interface{}, bool) {
+	formatValue, ok := f.Exprs[1].(SQLValue)
+	if !ok {
+		return nil, false
+	}
+	date, ok := t.TranslateExpr(f.Exprs[0])
+	if !ok {
+		return nil, false
+	}
+
+	hasYear := false
+	hasMonth := false
+	hasDay := false
+	hasHour := false
+	hasMinute := false
+	hasSecond := false
+
+	// NOTE: this is a very specific optimization for Tableau's discreet dimension
+	// functionality, which only generates the below formats. MongoDB 3.6 will support
+	// converting a string back into a date and the below optimizations won't be needed.
+	switch formatValue.String() {
+	case "%Y-01-01", "%Y-01-01 00:00:00":
+		hasYear = true
+	case "%Y-%m-01", "%Y-%m-01 00:00:00":
+		hasYear = true
+		hasMonth = true
+	case "%Y-%m-%d", "%Y-%m-%d 00:00:00":
+		hasYear = true
+		hasMonth = true
+		hasDay = true
+	case "%Y-%m-%d %H:00:00":
+		hasYear = true
+		hasMonth = true
+		hasDay = true
+		hasHour = true
+	case "%Y-%m-%d %H:%i:00":
+		hasYear = true
+		hasMonth = true
+		hasDay = true
+		hasHour = true
+		hasMinute = true
+	case "%Y-%m-%d %H:%i:%s":
+		hasYear = true
+		hasMonth = true
+		hasDay = true
+		hasHour = true
+		hasMinute = true
+		hasSecond = true
+	}
+
+	if !hasYear {
+		return nil, false
+	}
+
+	var parts []interface{}
+	if !hasMonth {
+		parts = append(parts, bson.M{"$multiply": []interface{}{
+			bson.M{"$subtract": []interface{}{bson.M{"$dayOfYear": date}, 1}},
+			uint64(24 * time.Hour / time.Millisecond),
+		}})
+
+	} else if !hasDay {
+		parts = append(parts, bson.M{"$multiply": []interface{}{
+			bson.M{"$subtract": []interface{}{bson.M{"$dayOfMonth": date}, 1}},
+			uint64(24 * time.Hour / time.Millisecond),
+		}})
+	}
+
+	if !hasHour {
+		parts = append(parts, bson.M{"$multiply": []interface{}{
+			bson.M{"$hour": date},
+			uint64(time.Hour / time.Millisecond),
+		}})
+	}
+	if !hasMinute {
+		parts = append(parts, bson.M{"$multiply": []interface{}{
+			bson.M{"$minute": date},
+			uint64(time.Minute / time.Millisecond),
+		}})
+	}
+	if !hasSecond {
+		parts = append(parts, bson.M{"$multiply": []interface{}{
+			bson.M{"$second": date},
+			uint64(time.Second / time.Millisecond),
+		}})
+	}
+
+	parts = append(parts, bson.M{"$millisecond": date})
+
+	var totalMS interface{}
+	if len(parts) == 1 {
+		totalMS = parts[0]
+	} else {
+		totalMS = bson.M{"$add": parts}
+	}
+
+	sub := bson.M{"$subtract": []interface{}{
+		date,
+		totalMS,
+	}}
+
+	return wrapInNullCheckedCond(
+		nil,
+		sub,
+		date,
+	), true
 }
 
 // TranslatePredicate attempts to turn the SQLExpr into mongodb query language.
