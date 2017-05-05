@@ -6,11 +6,11 @@
     set -o errexit
     set -o verbose
 
-    [ ! -d ${ARTIFACTS_DIR}/mongosql-java-auth ] && git clone git://github.com/jyemin/mongosql-java-auth.git ${ARTIFACTS_DIR}/mongosql-java-auth
+    [ ! -d ${ARTIFACTS_DIR}/mongosql-auth-java ] && git clone git://github.com/mongodb/mongosql-auth-java.git ${ARTIFACTS_DIR}/mongosql-auth-java
 
-    cd $ARTIFACTS_DIR/mongosql-java-auth
+    cd $ARTIFACTS_DIR/mongosql-auth-java
     ./gradlew -version
-    ./gradlew --stacktrace --info -Dorg.mongodb.test.user=bob -Dorg.mongodb.test.password=pwd123 test
+    ./gradlew --stacktrace --info -Porg.mongodb.test.user=bob -Porg.mongodb.test.password=pwd123 test
 
 ) > $LOG_FILE 2>&1
 
