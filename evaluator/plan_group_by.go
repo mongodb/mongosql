@@ -1,6 +1,10 @@
 package evaluator
 
-import "github.com/10gen/sqlproxy/collation"
+import (
+	"fmt"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/util"
+)
 
 // orderedGroup holds all the rows belonging to a given key in the groups
 // and an slice of the keys for each group.
@@ -204,10 +208,9 @@ func (gb *GroupByIter) evaluateProjectedColumns(r []*Row) (*Row, error) {
 func (gb *GroupByIter) iterChan() chan aggRowCtx {
 	ch := make(chan aggRowCtx)
 
-	go func() {
+	util.PanicSafeGo(func() {
 		for _, key := range gb.finalGrouping.keys {
 			v := gb.finalGrouping.groups[key]
-
 			r, err := gb.evaluateProjectedColumns(v)
 			if err != nil {
 				gb.err = err
@@ -221,7 +224,10 @@ func (gb *GroupByIter) iterChan() chan aggRowCtx {
 			}
 		}
 		close(ch)
-	}()
+	}, func(err interface{}) {
+		gb.err = fmt.Errorf("%v", err)
+	})
+
 	return ch
 }
 

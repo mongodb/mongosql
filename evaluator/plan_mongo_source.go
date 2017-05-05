@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/util"
 )
 
 // MongoSourceStage is the primary interface for SQLProxy to a MongoDB
@@ -98,20 +99,14 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	var iter mongodb.Cursor
 	var err error
 
-	go func() {
-		// As we're using the same session per client connection, it
-		// is possible that the connection is closed asynchronously
-		// while a query is in flight - e.g. if the server is terminated
-		// - in such cases, the session call below will cause a panic.
-		// We recover here to avoid a panic message in the logs.
-		defer func() {
-			if r := recover(); r != nil {
-				ctx.Logger(log.NetworkComponent).Warnf(log.DebugHigh, "data access MongoDB session closed: %v", r)
-			}
-		}()
-		iter, err = ctx.Session().Aggregate(ms.dbName, ms.collectionNames[0], ms.pipeline)
+	util.PanicSafeGo(func() {
+		iter, err = ctx.Session().Aggregate(ms.dbName,
+			ms.collectionNames[0], ms.pipeline)
 		errChan <- err
-	}()
+	}, func(err interface{}) {
+		ctx.Logger(log.NetworkComponent).Errf(log.Always,
+			"data access MongoDB session closed: %v", err)
+	})
 
 	select {
 	case <-ctx.Context().Done():

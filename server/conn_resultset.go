@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -186,15 +187,19 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 	var b []byte
 
 	rowChan := make(chan []evaluator.SQLValue, 1)
+	errChan := make(chan error, 1)
 
-	go func() {
+	util.PanicSafeGo(func() {
 		evaluatorRow := &evaluator.Row{}
 		for iter.Next(evaluatorRow) {
 			rowChan <- evaluatorRow.GetValues()
 			evaluatorRow.Data = evaluator.Values{}
 		}
 		close(rowChan)
-	}()
+	}, func(err interface{}) {
+		errChan <- fmt.Errorf("iterating error: %v", err)
+	})
+
 	count := 0
 	totalBytes := 0
 
@@ -238,6 +243,9 @@ streamer:
 		case <-c.ctx.Done():
 			iter.Close()
 			return c.ctx.Err()
+
+		case err := <-errChan:
+			return err
 		}
 	}
 

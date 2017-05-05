@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/util"
@@ -47,7 +48,7 @@ func (k *KillExecutor) Run() error {
 
 	var err error
 
-	go func() {
+	util.PanicSafeGo(func() {
 		evalCtx := NewEvalCtx(k.ctx, collation.Default)
 
 		eval, pErr := k.ID.Evaluate(evalCtx)
@@ -57,11 +58,14 @@ func (k *KillExecutor) Run() error {
 
 		id, pErr := util.ToInt(eval)
 		if pErr != nil {
-			executorChan <- mysqlerrors.Defaultf(mysqlerrors.ER_NO_SUCH_THREAD, eval)
+			executorChan <- mysqlerrors.Defaultf(
+				mysqlerrors.ER_NO_SUCH_THREAD, eval)
 		}
 
 		executorChan <- evalCtx.Kill(uint32(id), k.Scope)
-	}()
+	}, func(err interface{}) {
+		executorChan <- fmt.Errorf("%v", err)
+	})
 
 	select {
 	case <-k.ctx.ConnectionCtx.Context().Done():

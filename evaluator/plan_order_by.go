@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/util"
 )
 
 // OrderBy sorts records according to one or more keys.
@@ -38,6 +39,8 @@ type OrderByIter struct {
 
 	// err holds any error encountered during processing
 	err error
+
+	errChan chan error
 }
 
 type orderByTerm struct {
@@ -80,6 +83,7 @@ func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		terms:     ob.terms,
 		ctx:       ctx,
 		collation: ob.Collation(),
+		errChan:   make(chan error),
 	}
 
 	return iter, nil
@@ -92,13 +96,21 @@ func (ob *OrderByIter) Next(row *Row) bool {
 			ob.err = err
 			return false
 		}
-		ob.outChan = iterChan(rows)
+		ob.startIterChan(rows)
 	}
 
-	data, done := <-ob.outChan
-	row.Data = data
+	select {
+	case data, done := <-ob.outChan:
+		row.Data = data
+		return done
+	case <-ob.ctx.Context().Done():
+		ob.err = ob.ctx.Context().Err()
+		return false
+	case err := <-ob.errChan:
+		ob.err = err
+		return false
+	}
 
-	return done
 }
 
 func (ob *OrderByIter) sortRows() ([]orderByRow, error) {
@@ -142,19 +154,6 @@ func (ob *OrderByIter) sortRows() ([]orderByRow, error) {
 	return rows.rows, err
 }
 
-func iterChan(rows []orderByRow) chan Values {
-	ch := make(chan Values)
-
-	go func() {
-		for _, row := range rows {
-			ch <- row.data
-		}
-		close(ch)
-	}()
-
-	return ch
-}
-
 func (ob *OrderByIter) Close() error {
 	return ob.source.Close()
 }
@@ -165,6 +164,19 @@ func (ob *OrderByIter) Err() error {
 	}
 
 	return ob.err
+}
+
+func (ob *OrderByIter) startIterChan(rows []orderByRow) {
+	ob.outChan = make(chan Values)
+
+	util.PanicSafeGo(func() {
+		for _, row := range rows {
+			ob.outChan <- row.data
+		}
+		close(ob.outChan)
+	}, func(err interface{}) {
+		ob.errChan <- fmt.Errorf("%v", err)
+	})
 }
 
 func (ob *OrderByStage) Columns() (columns []*Column) {

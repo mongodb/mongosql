@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/10gen/sqlproxy/options"
+	"github.com/10gen/sqlproxy/util"
 	"github.com/spacemonkeygo/openssl"
 )
 
@@ -70,16 +71,21 @@ func dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) func(ctx context.Conte
 		var c net.Conn
 		var err error
 		ch := make(chan struct{})
+		errChan := make(chan error, 1)
 
-		go func() {
+		util.PanicSafeGo(func() {
 			c, err = openssl.Dial(network, address, sslCtx, flags)
 			ch <- struct{}{}
-		}()
+		}, func(err interface{}) {
+			errChan <- fmt.Errorf("openssl dial error: %v", err)
+		})
 
 		select {
 		case <-ch:
 		case <-ctx.Done():
 			return nil, ctx.Err()
+		case err := <-errChan:
+			return nil, err
 		}
 		return c, err
 	}

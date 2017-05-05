@@ -12,7 +12,7 @@ import (
 func TestOrderByStage(t *testing.T) {
 	runTest := func(orderby *OrderByStage, collation *collation.Collation, rows []bson.D, expectedIds []int) {
 
-		ctx := &ExecutionCtx{}
+		ctx := &ExecutionCtx{ConnectionCtx: &connCtx{}}
 
 		ts := NewBSONSourceStage(1, tableOneName, collation, rows)
 

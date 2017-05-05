@@ -168,11 +168,13 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
-	go func() {
+	util.PanicSafeGo(func() {
 		sig := <-sc
 		logger.Logf(log.Info, "[signalProcessingThread] got %s signal, now exiting...", sig.String())
 		svr.Close()
-	}()
+	}, func(err interface{}) {
+		logger.Errf(log.Info, "[signalProcessingThread] got error %s now exiting...", err)
+	})
 
 	svr.Run()
 	logger.Logf(log.Info, "[signalProcessingThread] shutting down with code 0")

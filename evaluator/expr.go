@@ -1558,7 +1558,8 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 		}
 		plan, ok := newPlan.(PlanStage)
 		if !ok {
-			panic("replaceColumnWithConstant returns something that is not a PlanStage")
+			return nil, fmt.Errorf("replaceColumnWithConstant returned "+
+				" something that is not a PlanStage: %T", newPlan)
 		}
 		plan = OptimizePlan(execCtx, plan)
 	}

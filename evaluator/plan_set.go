@@ -1,6 +1,10 @@
 package evaluator
 
-import "github.com/10gen/sqlproxy/collation"
+import (
+	"fmt"
+	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/util"
+)
 
 // SetCommand handles setting variables.
 type SetCommand struct {
@@ -23,11 +27,11 @@ func (s *SetCommand) Execute(ctx *ExecutionCtx) Executor {
 
 func (s *SetExecutor) Run() error {
 
-	executorChan := make(chan error)
+	executorChan := make(chan error, 1)
 
 	var err error
 
-	go func() {
+	util.PanicSafeGo(func() {
 		evalCtx := NewEvalCtx(s.ctx, collation.Default)
 		for _, a := range s.assignments {
 			_, pErr := a.Evaluate(evalCtx)
@@ -37,7 +41,9 @@ func (s *SetExecutor) Run() error {
 		}
 
 		executorChan <- nil
-	}()
+	}, func(err interface{}) {
+		executorChan <- fmt.Errorf("%v", err)
+	})
 
 	select {
 	case <-s.ctx.ConnectionCtx.Context().Done():

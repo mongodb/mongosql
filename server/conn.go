@@ -20,6 +20,7 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/ssl"
+	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
 )
 
@@ -140,20 +141,26 @@ func (c *conn) close() {
 		// terminate the client connection to ensure we can
 		// cleanly terminate the server when we're blocked on a
 		// client read/write.
-		go func() {
+		util.PanicSafeGo(func() {
 			timer := time.NewTimer(5 * time.Second)
 			<-timer.C
 			timer.Stop()
 			atomic.StoreInt32(&c.queryRunning, 0)
 			c.closer.Signal()
-		}()
+		}, func(err interface{}) {
+			c.logger.Errf(log.Always, "connection close error: %v", err)
+		})
+
 		c.closer.Wait()
 	}
 
 	c.closer.L.Unlock()
 	c.session.Close()
 	c.conn.Close()
-	go c.server.removeConnection(c)
+
+	util.PanicSafeGo(func() {
+		c.server.removeConnection(c)
+	}, func(interface{}) {})
 }
 
 // Catalog returns the catalog.
@@ -543,11 +550,13 @@ func (c *conn) run() {
 	var pkt packetRead
 
 	for {
-		go func() {
+		util.PanicSafeGo(func() {
 			data, err := c.readPacket()
 			packetReadChan <- packetRead{data, err}
 			atomic.StoreInt32(&c.queryRunning, 1)
-		}()
+		}, func(err interface{}) {
+			c.logger.Errf(log.Always, "packet read error: %v", err)
+		})
 
 		waitTimeout := time.Duration(c.variables.WaitTimeoutSecs) * time.Second
 		timer := time.NewTimer(waitTimeout)

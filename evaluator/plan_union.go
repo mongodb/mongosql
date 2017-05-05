@@ -1,10 +1,12 @@
 package evaluator
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/util"
 )
 
 type UnionKind int
@@ -59,10 +61,19 @@ func (union *UnionStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	leftRows := make(chan *Row)
 	rightRows := make(chan *Row)
 
-	go iter.fetchRows(left, leftRows, iter.errChan)
-	go iter.fetchRows(right, rightRows, iter.errChan)
+	util.PanicSafeGo(func() {
+		iter.fetchRows(left, leftRows, iter.errChan)
+	}, func(err interface{}) {
+		iter.errChan <- fmt.Errorf("%v", err)
+	})
 
-	iter.onChan = unify(leftRows, rightRows)
+	util.PanicSafeGo(func() {
+		iter.fetchRows(right, rightRows, iter.errChan)
+	}, func(err interface{}) {
+		iter.errChan <- fmt.Errorf("%v", err)
+	})
+
+	iter.onChan = iter.unify(leftRows, rightRows)
 
 	return iter, nil
 }
@@ -71,8 +82,9 @@ func (iter *UnionIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 	r := &Row{}
 
 	syncChan := make(chan *Row)
+	fetchErrChan := make(chan error, 1)
 
-	go func() {
+	util.PanicSafeGo(func() {
 		for it.Next(r) {
 			// Need to match row info with parent
 			for i, col := range iter.columns {
@@ -90,7 +102,9 @@ func (iter *UnionIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 
 		it.Close()
 		close(syncChan)
-	}()
+	}, func(err interface{}) {
+		fetchErrChan <- fmt.Errorf("union fetch error: %v", err)
+	})
 
 	for {
 		select {
@@ -103,6 +117,9 @@ func (iter *UnionIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 			ch <- row
 		case <-iter.ctx.Context().Done():
 			errChan <- iter.ctx.Context().Err()
+			return
+		case err := <-fetchErrChan:
+			errChan <- err
 			return
 		}
 	}
@@ -173,32 +190,38 @@ func (iter *UnionIter) Err() error {
 	return iter.err
 }
 
-func unify(lChan, rChan chan *Row) chan Row {
+func (iter *UnionIter) unify(lChan, rChan chan *Row) chan Row {
 
 	ch := make(chan Row)
 	closeChan := make(chan struct{})
 
 	// cleanup
-	go func() {
+	util.PanicSafeGo(func() {
 		_, _ = <-closeChan, <-closeChan
 		close(closeChan)
 		close(ch)
-	}()
+	}, func(err interface{}) {
+		iter.errChan <- fmt.Errorf("%v", err)
+	})
 
 	// retrieve rows from left and right stages in parallel
-	go func() {
+	util.PanicSafeGo(func() {
 		for l := range lChan {
 			ch <- *l
 		}
 		closeChan <- struct{}{}
-	}()
+	}, func(err interface{}) {
+		iter.errChan <- fmt.Errorf("left unify error: %v", err)
+	})
 
-	go func() {
+	util.PanicSafeGo(func() {
 		for r := range rChan {
 			ch <- *r
 		}
 		closeChan <- struct{}{}
-	}()
+	}, func(err interface{}) {
+		iter.errChan <- fmt.Errorf("right unify error: %v", err)
+	})
 
 	return ch
 }

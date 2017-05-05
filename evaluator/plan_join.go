@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/util"
 )
 
 // JoinStrategy specifies the method a Join
@@ -117,8 +118,17 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	leftRows := make(chan *Row)
 	rightRows := make(chan *Row)
 
-	go iter.fetchRows(left, leftRows, iter.errChan)
-	go iter.fetchRows(right, rightRows, iter.errChan)
+	util.PanicSafeGo(func() {
+		iter.fetchRows(left, leftRows, iter.errChan)
+	}, func(err interface{}) {
+		iter.errChan <- fmt.Errorf("%v", err)
+	})
+
+	util.PanicSafeGo(func() {
+		iter.fetchRows(right, rightRows, iter.errChan)
+	}, func(err interface{}) {
+		iter.errChan <- fmt.Errorf("%v", err)
+	})
 
 	joiner := NewJoiner(
 		join.strategy,
@@ -137,12 +147,13 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 // fetchRows reads Row objects from a given Iter, and publishes them on channel ch, closing it when
 // the iterator is exhausted. Errors encountered during iteration are published on errChan.
-func (iter *JoinIter) fetchRows(it Iter, ch chan<- *Row, errChan chan error) {
+func (iter *JoinIter) fetchRows(it Iter, ch chan<- *Row, errChan chan<- error) {
 	r := &Row{}
 
 	syncChan := make(chan *Row)
+	fetchErrChan := make(chan error, 1)
 
-	go func() {
+	util.PanicSafeGo(func() {
 		for it.Next(r) {
 			syncChan <- r
 			r = &Row{}
@@ -150,7 +161,9 @@ func (iter *JoinIter) fetchRows(it Iter, ch chan<- *Row, errChan chan error) {
 
 		it.Close()
 		close(syncChan)
-	}()
+	}, func(err interface{}) {
+		fetchErrChan <- fmt.Errorf("join fetch error: %v", err)
+	})
 
 	for {
 		select {
@@ -166,6 +179,9 @@ func (iter *JoinIter) fetchRows(it Iter, ch chan<- *Row, errChan chan error) {
 			ch <- row
 		case <-iter.ctx.Context().Done():
 			errChan <- iter.ctx.Context().Err()
+			return
+		case err := <-fetchErrChan:
+			errChan <- err
 			return
 		}
 	}
@@ -280,13 +296,29 @@ func (nlp *NestedLoopJoiner) Join(lChan, rChan <-chan *Row, ctx *ExecutionCtx) <
 
 	switch nlp.kind {
 	case CrossJoin:
-		go nlp.crossJoin(lChan, rChan, ch, ctx)
+		util.PanicSafeGo(func() {
+			nlp.crossJoin(lChan, rChan, ch, ctx)
+		}, func(err interface{}) {
+			nlp.errChan <- fmt.Errorf("%v", err)
+		})
 	case InnerJoin, StraightJoin:
-		go nlp.innerJoin(lChan, rChan, ch, ctx)
+		util.PanicSafeGo(func() {
+			nlp.innerJoin(lChan, rChan, ch, ctx)
+		}, func(err interface{}) {
+			nlp.errChan <- fmt.Errorf("%v", err)
+		})
 	case LeftJoin:
-		go nlp.leftJoin(lChan, rChan, ch, ctx, getNilValues(nlp.rightColumns))
+		util.PanicSafeGo(func() {
+			nlp.leftJoin(lChan, rChan, ch, ctx, getNilValues(nlp.rightColumns))
+		}, func(err interface{}) {
+			nlp.errChan <- fmt.Errorf("%v", err)
+		})
 	case RightJoin:
-		go nlp.rightJoin(lChan, rChan, ch, ctx, getNilValues(nlp.leftColumns))
+		util.PanicSafeGo(func() {
+			nlp.rightJoin(lChan, rChan, ch, ctx, getNilValues(nlp.leftColumns))
+		}, func(err interface{}) {
+			nlp.errChan <- fmt.Errorf("%v", err)
+		})
 	case NaturalJoin:
 	}
 

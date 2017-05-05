@@ -82,23 +82,32 @@ func (s *Server) Run() {
 	logger := log.NewComponentLogger(log.NetworkComponent, log.GlobalLogger())
 
 	listenAndServe := func(listener net.Listener) {
-
 		for atomic.LoadInt32(&s.closed) == 0 {
 			conn, err := listener.Accept()
 			if err != nil {
 				if atomic.LoadInt32(&s.closed) == 0 {
-					logger.Logf(log.Always, "[initandlisten] %v", err)
+					logger.Errf(log.Always, "[initandlisten] uanble to accept connection: %v", err)
 				}
 				continue
 			}
-			go s.serveConnection(conn)
+
+			util.PanicSafeGo(func() {
+				s.serveConnection(conn)
+			}, func(err interface{}) {
+				logger.Errf(log.Always, "[initandlisten] unable to serve new connection: %v", err)
+			})
 		}
 	}
 
 	// start new goroutine for each listener
 	for _, listener := range s.listeners {
-		logger.Logf(log.Always, "[initandlisten] waiting for connections at %v", listener.Addr())
-		go listenAndServe(listener)
+		newListener := listener
+		logger.Logf(log.Always, "[initandlisten] waiting for connections at %v", newListener.Addr())
+		util.PanicSafeGo(func() {
+			listenAndServe(newListener)
+		}, func(err interface{}) {
+			logger.Errf(log.Always, "[initandlisten] listen and serve error: %v", err)
+		})
 	}
 
 	// wait for all active client connections
