@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -28,6 +29,14 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, opts o
 		schema:            schema,
 		sessionProvider:   sessionProvider,
 		variables:         variable.NewGlobalContainer(),
+
+		// status variable backing storage
+		bytesReceived:    uint64(0),
+		bytesSent:        uint64(0),
+		connCount:        uint32(0),
+		queryCount:       uint64(0),
+		threadsConnected: uint32(0),
+		startTime:        time.Now(),
 	}
 
 	s.variables.MongoDBVersionCompatibility = *opts.MongoVersionCompatibility
@@ -41,8 +50,8 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, opts o
 
 // Server manages connections with clients.
 type Server struct {
-	opts                options.SqldOptions
-	connCount           uint32
+	opts options.SqldOptions
+
 	activeConnections   map[uint32]*conn
 	activeConnectionsMx sync.RWMutex
 
@@ -55,6 +64,14 @@ type Server struct {
 	schema          *schema.Schema
 	sessionProvider *mongodb.SessionProvider
 	variables       *variable.Container
+
+	// backing server storage for status variables
+	bytesReceived    uint64
+	bytesSent        uint64
+	connCount        uint32
+	queryCount       uint64
+	startTime        time.Time
+	threadsConnected uint32
 
 	listeners []net.Listener
 }
@@ -118,6 +135,7 @@ func (s *Server) addConnection(c *conn) {
 	s.activeConnections[c.ConnectionId()] = c
 	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()
+	atomic.StoreUint32(&s.threadsConnected, uint32(activeConnections))
 	pluralized := util.Pluralize(activeConnections, "connection", "connections")
 	c.logger.Logf(log.Always, "connection accepted from %v #%v (%v %v now open)", c.conn.RemoteAddr(), c.ConnectionId(), activeConnections, pluralized)
 }
@@ -156,6 +174,7 @@ func (s *Server) removeConnection(c *conn) {
 	}
 	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()
+	atomic.StoreUint32(&s.threadsConnected, uint32(activeConnections))
 	pluralized := util.Pluralize(activeConnections, "connection", "connections")
 	c.logger.Logf(log.Always, "end connection %v (%v %v now open)", c.conn.RemoteAddr(), activeConnections, pluralized)
 }

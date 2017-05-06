@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	// System Variable Names
 	Autocommit                  Name = "autocommit"
 	CharacterSetClient               = "character_set_client"
 	CharacterSetConnection           = "character_set_connection"
@@ -29,28 +30,8 @@ const (
 	WaitTimeoutSecs                  = "wait_timeout"
 )
 
-type definition struct {
-	Dummy            bool
-	Name             Name
-	Kind             Kind
-	AllowedSetScopes Scope
-
-	SQLType schema.SQLType
-
-	GetValue func(container *Container) interface{}
-	SetValue func(container *Container, value interface{}) error
-}
-
-var definitions = make(map[Name]*definition)
-
 func init() {
-	// Unimplemented variables
-	for _, udef := range unimplementedDefinitions {
-		udef.Dummy = true
-		definitions[udef.Name] = udef
-	}
-
-	//  variables
+	//  System Variable Definitions
 	definitions[Autocommit] = &definition{
 		Name:             Autocommit,
 		Kind:             SystemKind,

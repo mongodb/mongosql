@@ -65,6 +65,10 @@ type conn struct {
 	stmtID uint32
 	stmts  map[uint32]*stmt
 
+	// status variables
+	bytesReceived uint64
+	bytesSent     uint64
+
 	catalog   *catalog.Catalog
 	variables *variable.Container
 }
@@ -78,17 +82,19 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 	}
 
 	newConn := &conn{
-		server:       s,
-		session:      session,
-		ctx:          ctx,
-		cancel:       cancel,
-		conn:         c,
-		reader:       bufio.NewReaderSize(c, 1024),
-		writer:       c,
-		closer:       sync.NewCond(&sync.Mutex{}),
-		closed:       0,
-		queryRunning: 0,
-		connectionID: atomic.AddUint32(&s.connCount, 1),
+		server:        s,
+		session:       session,
+		ctx:           ctx,
+		cancel:        cancel,
+		conn:          c,
+		reader:        bufio.NewReaderSize(c, 1024),
+		writer:        c,
+		closer:        sync.NewCond(&sync.Mutex{}),
+		closed:        0,
+		bytesReceived: uint64(0),
+		bytesSent:     uint64(0),
+		queryRunning:  0,
+		connectionID:  atomic.AddUint32(&s.connCount, 1),
 		capability: CLIENT_PROTOCOL_41 |
 			CLIENT_CONNECT_WITH_DB |
 			CLIENT_LONG_FLAG |
@@ -181,6 +187,10 @@ func (c *conn) dispatch(data []byte) error {
 	cmd := data[0]
 	data = data[1:]
 
+	if cmd != COM_PING && cmd != COM_STATISTICS {
+		atomic.AddUint64(&c.server.queryCount, 1)
+	}
+
 	switch cmd {
 	case COM_QUIT:
 		atomic.StoreInt32(&c.queryRunning, 0)
@@ -255,30 +265,11 @@ func (c *conn) handshake() error {
 		c.user = ""
 	}
 
-	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session, c.server.schema, *c.server.opts.Auth)
-	if err != nil {
-		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error retrieving information from MongoDB: %v", err)
-		c.writeError(err)
+	if err = c.setSystemVariables(); err != nil {
 		return err
 	}
 
-	err = c.variables.MongoDBInfo.SetCompatibleVersion(c.server.variables.MongoDBVersionCompatibility)
-	if err != nil {
-		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error setting compatibility version: %v", err)
-		c.writeError(err)
-		return err
-	}
-	c.logger.Logf(log.Info, "connected to MongoDB %v, git version: %v", c.variables.MongoDBInfo.Version, c.variables.MongoDBInfo.GitVersion)
-
-	if c.variables.MongoDBInfo.CompatibleVersion != "" {
-		c.logger.Logf(log.Info, "MongoDB version compatibility is %v", c.variables.MongoDBInfo.CompatibleVersion)
-	}
-
-	if !c.variables.MongoDBInfo.VersionAtLeast(3, 2) {
-		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "MongoDB version is %v but version >= 3.2 required", c.variables.MongoDBInfo.Version)
-		c.writeError(err)
-		return err
-	}
+	c.setStatusVariables()
 
 	c.catalog, err = catalog.Build(c.server.schema, c.variables)
 	if err != nil {
@@ -471,6 +462,24 @@ func (c *conn) readHandshakeResponse() error {
 }
 
 func (c *conn) readPacket() ([]byte, error) {
+	data, err := c.readPacketHelper()
+	if err != nil {
+		return nil, err
+	}
+
+	headerLength, payloadLength := uint64(4), len(data)
+	for payloadLength > maxPayloadLength {
+		payloadLength -= maxPayloadLength
+		headerLength += 4
+	}
+
+	nBytesReceived := uint64(len(data)) + headerLength
+	atomic.AddUint64(&c.bytesReceived, nBytesReceived)
+	atomic.AddUint64(&c.server.bytesReceived, nBytesReceived)
+	return data, nil
+}
+
+func (c *conn) readPacketHelper() ([]byte, error) {
 	header := []byte{0, 0, 0, 0}
 
 	if _, err := io.ReadFull(c.reader, header); err != nil {
@@ -491,11 +500,11 @@ func (c *conn) readPacket() ([]byte, error) {
 		return nil, errBadConn
 	}
 
-	if length < maxPayloadLen {
+	if length < maxPayloadLength {
 		return data, nil
 	}
 
-	buf, err := c.readPacket()
+	buf, err := c.readPacketHelper()
 	if err != nil {
 		return nil, errBadConn
 	}
@@ -583,6 +592,68 @@ func (c *conn) run() {
 // Session returns a new mongodb.Session connected to MongoDB.
 func (c *conn) Session() (session *mongodb.Session) {
 	return c.session
+}
+
+// setStatusVariables sets status variables for this client connection.
+func (c *conn) setStatusVariables() {
+	sessionVariables, globalVariables := c.variables, c.server.variables
+
+	sessionVariables.BytesReceived = &c.bytesReceived
+	globalVariables.BytesReceived = &c.server.bytesReceived
+
+	sessionVariables.BytesSent = &c.bytesSent
+	globalVariables.BytesSent = &c.server.bytesSent
+
+	sessionVariables.Connections = &c.server.connCount
+	globalVariables.Connections = &c.server.connCount
+
+	sessionVariables.Queries = &c.server.queryCount
+	globalVariables.Queries = &c.server.queryCount
+
+	sessionVariables.ThreadsConnected = &c.server.threadsConnected
+	globalVariables.ThreadsConnected = &c.server.threadsConnected
+
+	sessionVariables.StartTime = &c.server.startTime
+	globalVariables.StartTime = &c.server.startTime
+}
+
+// setSystemVariables sets system variables for this client connection.
+func (c *conn) setSystemVariables() (err error) {
+	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session,
+		c.server.schema, *c.server.opts.Auth)
+	if err != nil {
+		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR,
+			"error retrieving information from MongoDB: %v", err)
+		c.writeError(err)
+		return err
+	}
+
+	err = c.variables.MongoDBInfo.SetCompatibleVersion(
+		c.server.variables.MongoDBVersionCompatibility)
+	if err != nil {
+		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR,
+			"error setting compatibility version: %v", err)
+		c.writeError(err)
+		return err
+	}
+
+	c.logger.Logf(log.Info, "connected to MongoDB %v, git version: %v",
+		c.variables.MongoDBInfo.Version, c.variables.MongoDBInfo.GitVersion)
+
+	if c.variables.MongoDBInfo.CompatibleVersion != "" {
+		c.logger.Logf(log.Info, "MongoDB version compatibility is %v",
+			c.variables.MongoDBInfo.CompatibleVersion)
+	}
+
+	if !c.variables.MongoDBInfo.VersionAtLeast(3, 2) {
+		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR,
+			"MongoDB version is %v but version >= 3.2 required",
+			c.variables.MongoDBInfo.Version)
+		c.writeError(err)
+		return err
+	}
+
+	return nil
 }
 
 func (c *conn) status() uint16 {
@@ -743,7 +814,7 @@ func (c *conn) writeInitialHandshake() error {
 func (c *conn) writePacket(data []byte) error {
 	length := len(data) - 4
 
-	for length >= maxPayloadLen {
+	for length >= maxPayloadLength {
 
 		data[0] = 0xff
 		data[1] = 0xff
@@ -751,14 +822,14 @@ func (c *conn) writePacket(data []byte) error {
 
 		data[3] = c.sequence
 
-		if n, err := c.writer.Write(data[:4+maxPayloadLen]); err != nil {
+		if n, err := c.writer.Write(data[:4+maxPayloadLength]); err != nil {
 			return errBadConn
-		} else if n != (4 + maxPayloadLen) {
+		} else if n != (4 + maxPayloadLength) {
 			return errBadConn
 		} else {
 			c.sequence++
-			length -= maxPayloadLen
-			data = data[maxPayloadLen:]
+			length -= maxPayloadLength
+			data = data[maxPayloadLength:]
 		}
 	}
 
@@ -771,10 +842,13 @@ func (c *conn) writePacket(data []byte) error {
 		return errBadConn
 	} else if n != len(data) {
 		return errBadConn
-	} else {
-		c.sequence++
-		return nil
 	}
+
+	c.sequence++
+	nBytesSent := uint64(len(data))
+	atomic.AddUint64(&c.bytesSent, nBytesSent)
+	atomic.AddUint64(&c.server.bytesSent, nBytesSent)
+	return nil
 }
 
 func (c *conn) writeOK(r *Result) error {

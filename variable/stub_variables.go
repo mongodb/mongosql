@@ -15,7 +15,7 @@ import (
  	- "SET @@<SESSION|GLOBAL>.<sys_var>=<val>" will have no effect, unless "sys_var"
 		is not a dynamic variable, in which case an error is raised
 */
-var unimplementedDefinitions = []*definition{
+var stubVariableDefinitions = []*definition{
 	&definition{
 		Name:             "audit_log_buffer_size",
 		Kind:             SystemKind,
@@ -5179,20 +5179,6 @@ var unimplementedDefinitions = []*definition{
 		GetValue:         getDummyValue(int64(0), "Binlog_stmt_cache_use"),
 	},
 	&definition{
-		Name:             "Bytes_received",
-		Kind:             StatusKind,
-		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt64,
-		GetValue:         getDummyValue(int64(0), "Bytes_received"),
-	},
-	&definition{
-		Name:             "Bytes_sent",
-		Kind:             StatusKind,
-		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt64,
-		GetValue:         getDummyValue(int64(0), "Bytes_sent"),
-	},
-	&definition{
 		Name:             "Com_admin_commands",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -6290,13 +6276,6 @@ var unimplementedDefinitions = []*definition{
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Connection_errors_tcpwrap"),
-	},
-	&definition{
-		Name:             "Connections",
-		Kind:             StatusKind,
-		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt64,
-		GetValue:         getDummyValue(int64(0), "Connections"),
 	},
 	&definition{
 		Name:             "Created_tmp_disk_tables",
@@ -8133,13 +8112,6 @@ var unimplementedDefinitions = []*definition{
 		GetValue:         getDummyValue(int64(0), "Qcache_total_blocks"),
 	},
 	&definition{
-		Name:             "Queries",
-		Kind:             StatusKind,
-		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt64,
-		GetValue:         getDummyValue(int64(0), "Queries"),
-	},
-	&definition{
 		Name:             "Questions",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
@@ -8644,32 +8616,11 @@ var unimplementedDefinitions = []*definition{
 		GetValue:         getDummyValue(int64(0), "Threads_cached"),
 	},
 	&definition{
-		Name:             "Threads_connected",
-		Kind:             StatusKind,
-		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt64,
-		GetValue:         getDummyValue(int64(0), "Threads_connected"),
-	},
-	&definition{
-		Name:             "Threads_created",
-		Kind:             StatusKind,
-		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt64,
-		GetValue:         getDummyValue(int64(0), "Threads_created"),
-	},
-	&definition{
 		Name:             "Threads_running",
 		Kind:             StatusKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLInt64,
 		GetValue:         getDummyValue(int64(0), "Threads_running"),
-	},
-	&definition{
-		Name:             "Uptime",
-		Kind:             StatusKind,
-		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt64,
-		GetValue:         getDummyValue(int64(0), "Uptime"),
 	},
 	&definition{
 		Name:             "Uptime_since_flush_status",
