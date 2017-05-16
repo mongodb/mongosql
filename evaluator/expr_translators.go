@@ -1874,7 +1874,7 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 
 		pattern := convertSQLValueToPattern(value, escapeChar)
 
-		return bson.M{name: bson.D{{"$regex", pattern}, {"$options", "i"}}}, nil
+		return bson.M{name: bson.M{"$regex": bson.RegEx{pattern, "i"}}}, nil
 	case *SQLNotEqualsExpr:
 		match, ok := t.translateOperator(mgoOperatorNEQ, typedE.left, typedE.right)
 		if !ok {

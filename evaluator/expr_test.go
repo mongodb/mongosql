@@ -3131,7 +3131,8 @@ func TestTranslatePredicate(t *testing.T) {
 			test{"NOT (a > 3 OR a < 10)", `{"$nor":[{"a":{"$gt":3}},{"a":{"$lt":10}}]}`},
 			// This looks weird. It's because json.Marshal doesn't know how to deal with bson.DocElem which we used
 			// because order matters for $regex and $options. However, the go driver does know and will handle this correctly.
-			test{"a LIKE '%un%'", `{"a":[{"Name":"$regex","Value":"^.*un.*$"},{"Name":"$options","Value":"i"}]}`},
+			test{"a LIKE '%un%'", `{"a":{"$regex":{"Pattern":"^.*un.*$","Options":"i"}}}`},
+			test{"a NOT LIKE '%un%'", `{"a":{"$nin":[{"Pattern":"^.*un.*$","Options":"i"}]}}`},
 			test{"a REGEXP 'abc'", `{"a":{"$regex":{"Pattern":"abc","Options":""}}}`},
 			test{"a REGEXP '(.* )?'", `{"a":{"$regex":{"Pattern":"(.* )?","Options":""}}}`},
 			test{"a REGEXP 'a' OR 'b'", `{"a":{"$regex":{"Pattern":"a","Options":""}}}`},

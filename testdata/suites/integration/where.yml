@@ -492,3 +492,54 @@ testcases:
   expected_names: ["_id"]
   expected_types: [string]
   expected: []
+- sql: "SELECT _id from reg where a LIKE 'abcde'"
+  id: '55'
+  db: where_test
+  description: "matching test on string with full match"
+  expected_names: ["_id"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "SELECT _id from reg where a LIKE 'abc%'"
+  id: '56'
+  db: where_test
+  description: "matching test on string with partial match"
+  expected_names: ["_id"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [2]
+- sql: "SELECT _id from reg where a LIKE 'abcdef%'"
+  id: '57'
+  db: where_test
+  description: "matching test on string with no match"
+  expected_names: ["_id"]
+  expected_types: [int]
+  expected: []
+- sql: "SELECT _id from reg where a NOT LIKE 'abcde'"
+  id: '58'
+  db: where_test
+  description: "matching not test on string with full match"
+  expected_names: ["_id"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+- sql: "SELECT _id from reg where a NOT LIKE 'abc%'"
+  id: '59'
+  db: where_test
+  description: "matching not test on string with partial match"
+  expected_names: ["_id"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "SELECT _id from reg where a NOT LIKE 'abcdef%'"
+  id: '60'
+  db: where_test
+  description: "matching not test on string with no match"
+  expected_names: ["_id"]
+  expected_types: [int]
+  expected: 
+  - [0]
+  - [1]
+  - [2]
