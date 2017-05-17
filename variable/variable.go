@@ -1,8 +1,6 @@
 package variable
 
-import (
-	"github.com/10gen/sqlproxy/schema"
-)
+import "github.com/10gen/sqlproxy/schema"
 
 // Name is the name of a variable.
 type Name string
@@ -39,28 +37,4 @@ type Value struct {
 	SQLType schema.SQLType
 	// Value is the value of the variable.
 	Value interface{}
-}
-
-// definition holds information used to manipulate variables.
-type definition struct {
-	Dummy            bool
-	Name             Name
-	Kind             Kind
-	AllowedSetScopes Scope
-
-	SQLType schema.SQLType
-
-	GetValue func(container *Container) interface{}
-	SetValue func(container *Container, value interface{}) error
-}
-
-var definitions = make(map[Name]*definition)
-
-func init() {
-	// Stub Variables
-	for _, d := range stubVariableDefinitions {
-		d.Dummy = true
-		definitions[d.Name] = d
-	}
-
 }

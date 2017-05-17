@@ -653,11 +653,7 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 func (a *algebrizer) translateSet(set *parser.Set) (*SetCommand, error) {
 	assignments := []*SQLAssignmentExpr{}
 	for _, e := range set.Exprs {
-		variable, err := a.translateVariableExpr(e.Name)
-		if err != nil {
-			return nil, err
-		}
-
+		variable := a.translateVariableExpr(e.Name)
 		expr, err := a.translateExpr(e.Expr)
 		if err != nil {
 			return nil, err
@@ -904,7 +900,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		columnName := string(typedE.Name)
 
 		if strings.HasPrefix(tableName, "@") || (tableName == "" && strings.HasPrefix(columnName, "@")) {
-			return a.translateVariableExpr(typedE)
+			return a.translateVariableExpr(typedE), nil
 		}
 
 		return a.resolveColumnExpr(tableName, columnName)
@@ -1428,7 +1424,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(name, exprs), nil
 }
 
-func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr, error) {
+func (a *algebrizer) translateVariableExpr(c *parser.ColName) *SQLVariableExpr {
 
 	v := &SQLVariableExpr{
 		Kind:    variable.SystemKind,
@@ -1467,13 +1463,11 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr,
 	}
 
 	value, err := a.variables.Get(variable.Name(v.Name), v.Scope, v.Kind)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		v.sqlType = value.SQLType
 	}
 
-	v.sqlType = value.SQLType
-
-	return v, nil
+	return v
 }
 
 type selectIDGatherer struct {

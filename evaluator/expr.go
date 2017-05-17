@@ -1838,6 +1838,7 @@ type SQLVariableExpr struct {
 }
 
 func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+
 	value, err := ctx.Variables().Get(variable.Name(v.Name), v.Scope, v.Kind)
 	if err != nil {
 		return nil, err

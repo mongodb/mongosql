@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"strings"
-	"time"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/common"
@@ -21,7 +20,10 @@ type Container struct {
 	// userValues is storage for user variables
 	userValues map[Name]interface{}
 
-	// backing storage for non-user system variables below
+	//
+	// backing storage for non-user variables below
+	//
+
 	AutoCommit                  bool
 	CharacterSetClient          *collation.Charset
 	CharacterSetConnection      *collation.Charset
@@ -40,24 +42,14 @@ type Container struct {
 	VersionComment              string
 	InteractiveTimeoutSecs      int64
 	WaitTimeoutSecs             int64
-
-	// backing storage for non-user status variables below
-	BytesReceived    *uint64
-	BytesSent        *uint64
-	Connections      *uint32
-	Queries          *uint64
-	StartTime        *time.Time
-	ThreadsConnected *uint32
 }
 
 // NewGlobalContainer creates a container with a GlobalScope.
 func NewGlobalContainer() *Container {
-	holderUint32, holderUint64 := uint32(0), uint64(0)
-
 	return &Container{
 		scope: GlobalScope,
 
-		// Default system variable values
+		// default values
 		AutoCommit:                  true,
 		CharacterSetClient:          collation.DefaultCharset,
 		CharacterSetConnection:      collation.DefaultCharset,
@@ -76,11 +68,6 @@ func NewGlobalContainer() *Container {
 		VersionComment:         "mongosqld " + common.VersionStr,
 		InteractiveTimeoutSecs: 28800,
 		WaitTimeoutSecs:        28800,
-
-		// Default status variable values
-		Connections:      &holderUint32,
-		Queries:          &holderUint64,
-		ThreadsConnected: &holderUint32,
 	}
 }
 
@@ -154,6 +141,7 @@ func (c *Container) List(scope Scope, kind Kind) []Value {
 
 // Get gets the value of the variable with the specified name, scope, and kind.
 func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
+
 	lowerName := Name(strings.ToLower(string(name)))
 
 	if kind == UserKind {
