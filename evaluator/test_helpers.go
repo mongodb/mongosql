@@ -3,7 +3,6 @@ package evaluator
 import (
 	"context"
 	"fmt"
-	"math"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/catalog"
@@ -120,10 +119,11 @@ func createTestEvalCtx(info *mongodb.Info) *EvalCtx {
 }
 
 func createTestVariables(info *mongodb.Info) *variable.Container {
-	return &variable.Container{
-		SQLSelectLimit: math.MaxUint64,
-		MongoDBInfo:    info,
-	}
+	gbl := variable.NewGlobalContainer()
+	gbl.MongoDBInfo = info
+	ctn := variable.NewSessionContainer(gbl)
+	ctn.MongoDBInfo = info
+	return ctn
 }
 
 func createSQLColumnExprFromSource(source PlanStage, tableName, columnName string) SQLColumnExpr {

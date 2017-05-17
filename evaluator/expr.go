@@ -1838,13 +1838,22 @@ type SQLVariableExpr struct {
 }
 
 func (v *SQLVariableExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-
 	value, err := ctx.Variables().Get(variable.Name(v.Name), v.Scope, v.Kind)
 	if err != nil {
 		return nil, err
 	}
 
 	return NewSQLValueFromSQLColumnExpr(value.Value, value.SQLType, schema.MongoNone)
+}
+
+func NewSQLVariableExpr(name string, kind variable.Kind,
+	scope variable.Scope, sqlType schema.SQLType) *SQLVariableExpr {
+	return &SQLVariableExpr{
+		Name:    name,
+		Kind:    kind,
+		Scope:   scope,
+		sqlType: sqlType,
+	}
 }
 
 func (v *SQLVariableExpr) String() string {

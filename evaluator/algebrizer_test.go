@@ -2131,7 +2131,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 	})
 
 	Convey("Subject: Algebrize Set Statements", t, func() {
-		test("set @t1 = 12", func() command {
+		test("set @t1 = 132", func() command {
 			return NewSetCommand(
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
@@ -2140,52 +2140,55 @@ func TestAlgebrizeCommand(t *testing.T) {
 							Kind:  variable.UserKind,
 							Scope: variable.SessionScope,
 						},
-						expr: SQLInt(12),
+						expr: SQLInt(132),
 					},
 				},
 			)
 		})
 
-		test("set @@t1 = 12", func() command {
+		test("set @@max_allowed_packet = 12", func() command {
 			return NewSetCommand(
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
-						variable: &SQLVariableExpr{
-							Name:  "t1",
-							Kind:  variable.SystemKind,
-							Scope: variable.SessionScope,
-						},
+						variable: NewSQLVariableExpr(
+							"max_allowed_packet",
+							variable.SystemKind,
+							variable.SessionScope,
+							schema.SQLInt,
+						),
 						expr: SQLInt(12),
 					},
 				},
 			)
 		})
 
-		test("set @@global.t1 = 12", func() command {
+		test("set @@global.max_allowed_packet = 12", func() command {
 			return NewSetCommand(
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
-						variable: &SQLVariableExpr{
-							Name:  "t1",
-							Kind:  variable.SystemKind,
-							Scope: variable.GlobalScope,
-						},
+						variable: NewSQLVariableExpr(
+							"max_allowed_packet",
+							variable.SystemKind,
+							variable.GlobalScope,
+							schema.SQLInt,
+						),
 						expr: SQLInt(12),
 					},
 				},
 			)
 		})
 
-		test("set @@global.t1 = (select a from foo)", func() command {
+		test("set @@global.max_allowed_packet = (select a from foo)", func() command {
 			fooSource := createMongoSource(1, "foo", "foo")
 			return NewSetCommand(
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
-						variable: &SQLVariableExpr{
-							Name:  "t1",
-							Kind:  variable.SystemKind,
-							Scope: variable.GlobalScope,
-						},
+						variable: NewSQLVariableExpr(
+							"max_allowed_packet",
+							variable.SystemKind,
+							variable.GlobalScope,
+							schema.SQLInt,
+						),
 						expr: &SQLSubqueryExpr{
 							correlated: false,
 							plan: NewProjectStage(
@@ -2197,24 +2200,25 @@ func TestAlgebrizeCommand(t *testing.T) {
 			)
 		})
 
-		test("set @@t1=12, @t2=11", func() command {
+		test("set @@max_allowed_packet=12, @interactive_timeout=1111", func() command {
 			return NewSetCommand(
 				[]*SQLAssignmentExpr{
 					&SQLAssignmentExpr{
-						variable: &SQLVariableExpr{
-							Name:  "t1",
-							Kind:  variable.SystemKind,
-							Scope: variable.SessionScope,
-						},
+						variable: NewSQLVariableExpr(
+							"max_allowed_packet",
+							variable.SystemKind,
+							variable.SessionScope,
+							schema.SQLInt,
+						),
 						expr: SQLInt(12),
 					},
 					&SQLAssignmentExpr{
 						variable: &SQLVariableExpr{
-							Name:  "t2",
+							Name:  "interactive_timeout",
 							Kind:  variable.UserKind,
 							Scope: variable.SessionScope,
 						},
-						expr: SQLInt(11),
+						expr: SQLInt(1111),
 					},
 				},
 			)
@@ -2569,12 +2573,14 @@ func TestAlgebrizeExpr(t *testing.T) {
 		})
 
 		Convey("Variable", func() {
-			test("@@global.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: variable.SystemKind, Scope: variable.GlobalScope})
-			test("@@session.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: variable.SystemKind, Scope: variable.SessionScope})
-			test("@@local.test_variable", &SQLVariableExpr{Name: "test_variable", Kind: variable.SystemKind, Scope: variable.SessionScope})
-			test("@@test_variable", &SQLVariableExpr{Name: "test_variable", Kind: variable.SystemKind, Scope: variable.SessionScope})
-			test("@hmmm", &SQLVariableExpr{Name: "hmmm", Kind: variable.UserKind, Scope: variable.SessionScope})
+			varGlobal := NewSQLVariableExpr("sql_auto_is_null", variable.SystemKind, variable.GlobalScope, schema.SQLBoolean)
+			varSession := NewSQLVariableExpr("sql_auto_is_null", variable.SystemKind, variable.SessionScope, schema.SQLBoolean)
 
+			test("@@global.sql_auto_is_null", varGlobal)
+			test("@@session.sql_auto_is_null", varSession)
+			test("@@local.sql_auto_is_null", varSession)
+			test("@@sql_auto_is_null", varSession)
+			test("@hmmm", &SQLVariableExpr{Name: "hmmm", Kind: variable.UserKind, Scope: variable.SessionScope})
 		})
 	})
 }

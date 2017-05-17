@@ -213,12 +213,12 @@ testcases:
   expected: 
     - ["Mysqlx_stmt_create_collection", "0"]
     - ["Mysqlx_stmt_create_collection_index", "0"]
-- sql: "SHOW SESSION STATUS WHERE Variable_name = 'Uptime'"
+- sql: "SHOW SESSION STATUS WHERE Variable_name = 'Firewall_access_denied'"
   id: '29'
   db: show_test
-  expected_types: [varchar, varchar]
+  expected_types: [varchar, int]
   expected: 
-    - ["Uptime", "0"]
+    - ["Firewall_access_denied", 0]
 - sql: "SHOW COLLATION LIKE '%sinhala%'"
   id: '30'
   db: show_test
