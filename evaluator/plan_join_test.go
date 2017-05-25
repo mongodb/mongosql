@@ -89,7 +89,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
-	Convey("With a simple test configuration...", t, func() {
+	Convey("Subject: JoinStage", t, func() {
 
 		criteria := &SQLEqualsExpr{
 			left: &SQLColumnExpr{
@@ -275,6 +275,101 @@ func TestJoinPlanStage(t *testing.T) {
 			So(iter.Close(), ShouldBeNil)
 			So(iter.Err(), ShouldBeNil)
 
+		})
+	})
+}
+
+func TestJoinPlanStage_MemoryLimits(t *testing.T) {
+
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+
+	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+
+	Convey("Subject: JoinStage Memory Limits", t, func() {
+
+		criteria := &SQLEqualsExpr{
+			left: &SQLColumnExpr{
+				selectID:   1,
+				tableName:  tableOneName,
+				columnName: "orderid",
+				columnType: schema.ColumnType{
+					SQLType:   schema.SQLInt,
+					MongoType: schema.MongoInt,
+				},
+			},
+			right: &SQLColumnExpr{
+				selectID:   1,
+				tableName:  tableTwoName,
+				columnName: "orderid",
+				columnType: schema.ColumnType{
+					SQLType:   schema.SQLInt,
+					MongoType: schema.MongoInt,
+				},
+			},
+		}
+
+		ctx := createTestExecutionCtx(testInfo)
+		ctx.Variables().MongoDBMaxStageSize = 500
+
+		row := &Row{}
+
+		Convey("inner join", func() {
+
+			operator := setupJoinOperator(criteria, InnerJoin)
+
+			iter, err := operator.Open(ctx)
+			So(err, ShouldBeNil)
+
+			ok := iter.Next(row)
+			So(ok, ShouldBeFalse)
+
+			So(iter.Close(), ShouldBeNil)
+			So(iter.Err(), ShouldNotBeNil)
+		})
+
+		Convey("left join", func() {
+
+			operator := setupJoinOperator(criteria, LeftJoin)
+
+			iter, err := operator.Open(ctx)
+			So(err, ShouldBeNil)
+
+			ok := iter.Next(row)
+			So(ok, ShouldBeFalse)
+
+			So(iter.Close(), ShouldBeNil)
+			So(iter.Err(), ShouldNotBeNil)
+		})
+
+		Convey("right join", func() {
+
+			operator := setupJoinOperator(criteria, RightJoin)
+
+			iter, err := operator.Open(ctx)
+			So(err, ShouldBeNil)
+
+			ok := iter.Next(row)
+			So(ok, ShouldBeFalse)
+
+			So(iter.Close(), ShouldBeNil)
+			So(iter.Err(), ShouldNotBeNil)
+		})
+
+		Convey("cross join", func() {
+
+			operator := setupJoinOperator(nil, RightJoin)
+
+			iter, err := operator.Open(ctx)
+			So(err, ShouldBeNil)
+
+			ok := iter.Next(row)
+			So(ok, ShouldBeFalse)
+
+			So(iter.Close(), ShouldBeNil)
+			So(iter.Err(), ShouldNotBeNil)
 		})
 	})
 }

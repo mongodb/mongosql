@@ -122,6 +122,7 @@ type Config struct {
 
 	SystemLog SystemLog
 	Schema    Schema
+	Runtime   Runtime
 	Net       Net
 	Security  Security
 	MongoDB   MongoDB `config:"mongodb"`
@@ -135,8 +136,14 @@ type SystemLog struct {
 	Verbosity int
 }
 
-func (c *SystemLog) validate() error {
-	return nil
+// Runtime holds runtime configuration.
+type Runtime struct {
+	Memory RuntimeMemory
+}
+
+// RuntimeMemory holds configuration for memory.
+type RuntimeMemory struct {
+	MaxPerStage uint64
 }
 
 // Schema holds schema configuration.

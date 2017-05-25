@@ -19,6 +19,7 @@ const (
 	CollationServer                  = "collation_server"
 	InteractiveTimeoutSecs           = "interactive_timeout"
 	MaxAllowedPacket                 = "max_allowed_packet"
+	MongoDBMaxStageSize              = "mongodb_max_stage_size"
 	MongoDBVersionCompatibility      = "mongodb_version_compatibility"
 	MongoDBGitVersion                = "mongodb_git_version"
 	MongoDBVersion                   = "mongodb_version"
@@ -125,6 +126,15 @@ func init() {
 		SQLType:          schema.SQLInt,
 		GetValue:         func(c *Container) interface{} { return c.MaxAllowedPacket },
 		SetValue:         setMaxAllowedPacket,
+	}
+
+	definitions[MongoDBMaxStageSize] = &definition{
+		Name:             MongoDBMaxStageSize,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		SQLType:          schema.SQLUint64,
+		GetValue:         func(c *Container) interface{} { return c.MongoDBMaxStageSize },
+		SetValue:         setMongoDBMaxStageSize,
 	}
 
 	definitions[MongoDBVersionCompatibility] = &definition{
@@ -407,6 +417,24 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 	}
 
 	c.MaxAllowedPacket = i
+	return nil
+}
+
+func setMongoDBMaxStageSize(c *Container, v interface{}) error {
+	i, ok := convertUint64(v)
+	if !ok {
+		if j, ok := convertInt64(v); ok {
+			if j < 0 {
+				i = 0
+			} else {
+				i = uint64(j)
+			}
+		} else {
+			return wrongTypeError(MongoDBMaxStageSize, v)
+		}
+	}
+
+	c.MongoDBMaxStageSize = i
 	return nil
 }
 

@@ -48,11 +48,17 @@ func fromMap(key string, v reflect.Value, values map[interface{}]interface{}) er
 
 			e.Field(i).SetBool(tval)
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			tval, ok := val.(int64)
-			if !ok {
-				return fmt.Errorf("invalid value for %s, expected an int: %v(%T)", newKey, val, val)
+			tval, err := convertToInt64(val)
+			if err != nil {
+				return fmt.Errorf("invalid value for %s: %v", newKey, err)
 			}
 			e.Field(i).SetInt(tval)
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			tval, err := convertToUint64(val)
+			if err != nil {
+				return fmt.Errorf("invalid value for %s: %v", newKey, err)
+			}
+			e.Field(i).SetUint(uint64(tval))
 		case reflect.String:
 			tval, ok := val.(string)
 			if !ok {
@@ -73,6 +79,64 @@ func fromMap(key string, v reflect.Value, values map[interface{}]interface{}) er
 	}
 
 	return nil
+}
+
+func convertToInt64(v interface{}) (int64, error) {
+	switch tv := v.(type) {
+	case int:
+		return int64(tv), nil
+	case int8:
+		return int64(tv), nil
+	case int16:
+		return int64(tv), nil
+	case int32:
+		return int64(tv), nil
+	case int64:
+		return tv, nil
+	case uint:
+		return int64(tv), nil
+	case uint8:
+		return int64(tv), nil
+	case uint16:
+		return int64(tv), nil
+	case uint32:
+		return int64(tv), nil
+	case uint64:
+		return int64(tv), nil
+	case string:
+		return strconv.ParseInt(tv, 10, 64)
+	default:
+		return 0, fmt.Errorf("cannot convert %T to int64", v)
+	}
+}
+
+func convertToUint64(v interface{}) (uint64, error) {
+	switch tv := v.(type) {
+	case int:
+		return uint64(tv), nil
+	case int8:
+		return uint64(tv), nil
+	case int16:
+		return uint64(tv), nil
+	case int32:
+		return uint64(tv), nil
+	case int64:
+		return uint64(tv), nil
+	case uint:
+		return uint64(tv), nil
+	case uint8:
+		return uint64(tv), nil
+	case uint16:
+		return uint64(tv), nil
+	case uint32:
+		return uint64(tv), nil
+	case uint64:
+		return tv, nil
+	case string:
+		return strconv.ParseUint(tv, 10, 64)
+	default:
+		return 0, fmt.Errorf("cannot convert %T to uint64", v)
+	}
 }
 
 func joinKeys(k1, k2 string) string {

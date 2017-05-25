@@ -10,9 +10,9 @@ import (
 )
 
 func TestOrderByStage(t *testing.T) {
-	runTest := func(orderby *OrderByStage, collation *collation.Collation, rows []bson.D, expectedIds []int) {
+	ctx := createTestExecutionCtx(nil)
 
-		ctx := &ExecutionCtx{ConnectionCtx: &connCtx{}}
+	runTest := func(orderby *OrderByStage, collation *collation.Collation, rows []bson.D, expectedIds []int) {
 
 		ts := NewBSONSourceStage(1, tableOneName, collation, rows)
 
@@ -263,5 +263,46 @@ func TestOrderByStage(t *testing.T) {
 
 		})
 	})
+}
 
+func TestOrderByStage_MemoryLimits(t *testing.T) {
+
+	ctx := createTestExecutionCtx(nil)
+	ctx.Variables().MongoDBMaxStageSize = 100
+
+	runTest := func(orderby *OrderByStage, rows []bson.D) {
+
+		ts := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
+
+		orderby.source = ts
+		iter, err := orderby.Open(ctx)
+		So(err, ShouldBeNil)
+
+		row := &Row{}
+
+		ok := iter.Next(row)
+		So(ok, ShouldBeFalse)
+
+		So(iter.Close(), ShouldBeNil)
+		So(iter.Err(), ShouldNotBeNil)
+	}
+
+	Convey("Subject: OrderByStage Memory Limits", t, func() {
+		data := []bson.D{
+			bson.D{{"_id", 1}, {"a", "a"}, {"b", 7}},
+			bson.D{{"_id", 2}, {"a", "A"}, {"b", 8}},
+			bson.D{{"_id", 3}, {"a", "b"}, {"b", 8}},
+			bson.D{{"_id", 4}, {"a", "B"}, {"b", 7}},
+		}
+
+		terms := []*orderByTerm{
+			{expr: NewSQLColumnExpr(1, tableOneName, "a", schema.SQLVarchar, schema.MongoString), ascending: true},
+		}
+
+		operator := &OrderByStage{
+			terms: terms,
+		}
+
+		runTest(operator, data)
+	})
 }

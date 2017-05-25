@@ -31,6 +31,7 @@ type Container struct {
 	CollationDatabase           *collation.Collation
 	CollationServer             *collation.Collation
 	MaxAllowedPacket            int64
+	MongoDBMaxStageSize         uint64
 	MongoDBInfo                 *mongodb.Info
 	MongoDBVersionCompatibility string
 	Socket                      string
@@ -67,6 +68,7 @@ func NewGlobalContainer() *Container {
 		CollationDatabase:           collation.Default,
 		CollationServer:             collation.Default,
 		MaxAllowedPacket:            1073741824,
+		MongoDBMaxStageSize:         0,
 		MongoDBInfo:                 nil,
 		MongoDBVersionCompatibility: "",
 		Socket:                 "",

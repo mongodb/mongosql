@@ -63,38 +63,38 @@ type fakeConnectionCtx struct {
 	info      *mongodb.Info
 }
 
-func (_ fakeConnectionCtx) LastInsertId() int64 {
+func (_ *fakeConnectionCtx) LastInsertId() int64 {
 	return 11
 }
-func (_ fakeConnectionCtx) Logger(_ string) *log.Logger {
+func (_ *fakeConnectionCtx) Logger(_ string) *log.Logger {
 	lg := log.GlobalLogger()
 	return &lg
 }
-func (_ fakeConnectionCtx) RowCount() int64 {
+func (_ *fakeConnectionCtx) RowCount() int64 {
 	return 21
 }
-func (_ fakeConnectionCtx) Catalog() *catalog.Catalog {
+func (_ *fakeConnectionCtx) Catalog() *catalog.Catalog {
 	return nil
 }
-func (_ fakeConnectionCtx) ConnectionId() uint32 {
+func (_ *fakeConnectionCtx) ConnectionId() uint32 {
 	return 42
 }
-func (_ fakeConnectionCtx) Context() context.Context {
+func (_ *fakeConnectionCtx) Context() context.Context {
 	return context.Background()
 }
-func (_ fakeConnectionCtx) DB() string {
+func (_ *fakeConnectionCtx) DB() string {
 	return "test"
 }
-func (_ fakeConnectionCtx) Kill(id uint32, scope KillScope) error {
+func (_ *fakeConnectionCtx) Kill(id uint32, scope KillScope) error {
 	return nil
 }
-func (_ fakeConnectionCtx) Session() *mongodb.Session {
+func (_ *fakeConnectionCtx) Session() *mongodb.Session {
 	return nil
 }
-func (_ fakeConnectionCtx) User() string {
+func (_ *fakeConnectionCtx) User() string {
 	return "test user"
 }
-func (f fakeConnectionCtx) Variables() *variable.Container {
+func (f *fakeConnectionCtx) Variables() *variable.Container {
 	if f.variables == nil {
 		f.variables = variable.NewSessionContainer(variable.NewGlobalContainer())
 	}

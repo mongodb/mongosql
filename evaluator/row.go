@@ -22,7 +22,25 @@ type Value struct {
 	Data     SQLValue
 }
 
+func (v *Value) Size() uint64 {
+	s := uint64(8) // SelectID
+	s += uint64(len(v.Table)) + uint64(len(v.Name))
+	if v.Data != nil {
+		s += v.Data.Size()
+	}
+
+	return s
+}
+
 type Values []Value
+
+func (v Values) Size() uint64 {
+	s := uint64(0)
+	for _, sv := range v {
+		s += sv.Size()
+	}
+	return s
+}
 
 var bsonDType = reflect.TypeOf(bson.D{})
 

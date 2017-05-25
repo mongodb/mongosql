@@ -17,6 +17,8 @@ func TestDefault(t *testing.T) {
 
 	testString(t, cfg.Schema.Path, "", "cfg.Schema.Path")
 
+	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 0, "cfg.Runtime.Memory.MaxPerStage")
+
 	testString(t, cfg.Net.BindIP, "127.0.0.1", "cfg.Net.BindIP")
 	testInt(t, cfg.Net.Port, 3307, "cfg.Net.Port")
 	if runtime.GOOS != "windows" {
@@ -173,6 +175,12 @@ func testInt(t *testing.T, actual, expected int, key string) {
 }
 
 func testString(t *testing.T, actual, expected string, key string) {
+	if actual != expected {
+		t.Errorf("%s should be %v but was %v", key, expected, actual)
+	}
+}
+
+func testUint64(t *testing.T, actual, expected uint64, key string) {
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}

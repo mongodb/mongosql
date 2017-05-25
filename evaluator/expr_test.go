@@ -74,9 +74,7 @@ func TestEvaluates(t *testing.T) {
 		}
 	}
 
-	execCtx := &ExecutionCtx{
-		ConnectionCtx: fakeConnectionCtx{},
-	}
+	execCtx := createTestExecutionCtx(nil)
 
 	Convey("Subject: Evaluates", t, func() {
 		evalCtx := NewEvalCtx(execCtx, collation.Default, &Row{Values{

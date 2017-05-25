@@ -21,6 +21,10 @@ systemLog:
 schema:
   path: "/var/test"
 
+runtime:
+  memory:
+    maxPerStage: 102400
+
 net:
   bindIp: 192.168.20.1
   port: 3306
@@ -63,6 +67,8 @@ mongodb:
 	testInt(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
 
 	testString(t, cfg.Schema.Path, "/var/test", "cfg.Schema.Path")
+
+	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 102400, "cfg.Runtime.Memory.MaxPerStage")
 
 	testString(t, cfg.Net.BindIP, "192.168.20.1", "cfg.Net.BindIP")
 	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")
@@ -118,7 +124,7 @@ systemLog:
 systemLog:
     path: 4
 `},
-		{err: "invalid value for systemLog.verbosity, expected an int: funny(string)", yaml: `
+		{err: "invalid value for systemLog.verbosity: strconv.ParseInt: parsing \"funny\": invalid syntax", yaml: `
 systemLog:
     verbosity: funny
 `},

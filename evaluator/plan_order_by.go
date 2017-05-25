@@ -118,9 +118,16 @@ func (ob *OrderByIter) sortRows() ([]orderByRow, error) {
 		collation: ob.collation,
 	}
 
-	row := &Row{}
+	maxSize := ob.ctx.Variables().MongoDBMaxStageSize
+	size := uint64(0)
 
+	row := &Row{}
 	for ob.source.Next(row) {
+		size += row.Data.Size()
+		if maxSize != 0 && size > maxSize {
+			return nil, fmt.Errorf("aborted order by: maximum size per stage exceeded: limit is %d bytes", maxSize)
+		}
+
 		ctx := NewEvalCtx(ob.ctx, ob.collation, row)
 		var values []SQLValue
 		for _, t := range ob.terms {

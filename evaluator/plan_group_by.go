@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/util"
 )
@@ -156,10 +157,17 @@ func (gb *GroupByIter) createGroups() error {
 		groups: make(map[string][]*Row, 0),
 	}
 
-	r := &Row{}
+	maxSize := gb.ctx.Variables().MongoDBMaxStageSize
+	size := uint64(0)
 
 	// iterator source to create groupings
+	r := &Row{}
 	for gb.source.Next(r) {
+
+		size += r.Data.Size()
+		if maxSize != 0 && size > maxSize {
+			return fmt.Errorf("aborted group by: maximum size per stage exceeded: limit is %d bytes", maxSize)
+		}
 
 		key, err := gb.evaluateGroupByKey(r)
 		if err != nil {

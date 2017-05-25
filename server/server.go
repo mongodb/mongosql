@@ -39,6 +39,7 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 		startTime:        time.Now(),
 	}
 
+	s.variables.MongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
 	s.variables.MongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
 
 	if err := s.populateListeners(); err != nil {

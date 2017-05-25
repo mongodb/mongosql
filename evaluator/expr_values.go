@@ -47,6 +47,10 @@ func (sb SQLBool) Int64() int64 {
 	return int64(sb)
 }
 
+func (sb SQLBool) Size() uint64 {
+	return 1
+}
+
 func (sb SQLBool) String() string {
 	return strconv.FormatFloat(sb.Float64(), 'f', -1, 64)
 }
@@ -116,6 +120,10 @@ func (sd SQLDate) Int64() int64 {
 	return val
 }
 
+func (sd SQLDate) Size() uint64 {
+	return 8
+}
+
 func (sd SQLDate) String() string {
 	return sd.Time.Format("2006-01-02")
 }
@@ -166,6 +174,10 @@ func (st SQLTimestamp) Int64() int64 {
 	return val
 }
 
+func (st SQLTimestamp) Size() uint64 {
+	return 8
+}
+
 func (st SQLTimestamp) String() string {
 	ms := st.Time.Round(time.Microsecond)
 	if ms.Equal(st.Time) {
@@ -212,6 +224,10 @@ func (sf SQLFloat) Int64() int64 {
 	return int64(sf)
 }
 
+func (sf SQLFloat) Size() uint64 {
+	return 8
+}
+
 func (sf SQLFloat) String() string {
 	return strconv.FormatFloat(float64(sf), 'f', -1, 64)
 }
@@ -248,6 +264,10 @@ func (si SQLInt) Float64() float64 {
 
 func (si SQLInt) Int64() int64 {
 	return int64(si)
+}
+
+func (si SQLInt) Size() uint64 {
+	return 8
 }
 
 func (si SQLInt) String() string {
@@ -290,6 +310,10 @@ func (_ SQLNullValue) Int64() int64 {
 	return int64(0)
 }
 
+func (nv SQLNullValue) Size() uint64 {
+	return 0
+}
+
 func (nv SQLNullValue) String() string {
 	return schema.SQLNull
 }
@@ -328,6 +352,10 @@ func (_ SQLNoValue) Float64() float64 {
 
 func (_ SQLNoValue) Int64() int64 {
 	return int64(0)
+}
+
+func (no SQLNoValue) Size() uint64 {
+	return 0
 }
 
 func (sn SQLNoValue) String() string {
@@ -369,6 +397,10 @@ func (sd SQLDecimal128) Int64() int64 {
 	return decimal.Decimal(sd).Round(0).IntPart()
 }
 
+func (sd SQLDecimal128) Size() uint64 {
+	return 16
+}
+
 func (sd SQLDecimal128) String() string {
 	return decimal.Decimal(sd).String()
 }
@@ -407,6 +439,10 @@ func (_ SQLUUID) Float64() float64 {
 
 func (_ SQLUUID) Int64() int64 {
 	return int64(0)
+}
+
+func (uuid SQLUUID) Size() uint64 {
+	return 16
 }
 
 func (uuid SQLUUID) String() string {
@@ -451,6 +487,10 @@ func (_ SQLObjectID) Int64() int64 {
 	return int64(0)
 }
 
+func (id SQLObjectID) Size() uint64 {
+	return 12
+}
+
 func (id SQLObjectID) String() string {
 	return string(id)
 }
@@ -492,6 +532,10 @@ func (sv SQLVarchar) Float64() float64 {
 func (sv SQLVarchar) Int64() int64 {
 	val, _ := strconv.ParseInt(string(sv), 10, 64)
 	return val
+}
+
+func (sv SQLVarchar) Size() uint64 {
+	return uint64(len(sv))
 }
 
 func (sv SQLVarchar) String() string {
@@ -541,6 +585,15 @@ func (sv *SQLValues) normalize() node {
 	}
 
 	return sv
+}
+
+func (sv *SQLValues) Size() uint64 {
+	s := uint64(0)
+	for _, v := range sv.Values {
+		s += v.Size()
+	}
+
+	return s
 }
 
 func (sv *SQLValues) String() string {
@@ -595,6 +648,10 @@ func (su SQLUint32) Int64() int64 {
 	return int64(su)
 }
 
+func (su SQLUint32) Size() uint64 {
+	return 4
+}
+
 func (su SQLUint32) String() string {
 	return strconv.FormatInt(su.Int64(), 10)
 }
@@ -631,6 +688,10 @@ func (su SQLUint64) Float64() float64 {
 
 func (su SQLUint64) Int64() int64 {
 	return int64(su)
+}
+
+func (su SQLUint64) Size() uint64 {
+	return 8
 }
 
 func (su SQLUint64) String() string {

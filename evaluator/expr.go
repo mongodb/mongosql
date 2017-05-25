@@ -55,6 +55,7 @@ type SQLValue interface {
 	SQLExpr
 	SQLArithmetic
 	Value() interface{}
+	Size() uint64
 }
 
 // A base type for a binary node.
