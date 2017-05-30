@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/catalog"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/variable"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -73,19 +73,17 @@ func (c *connCtx) Variables() *variable.Container {
 	return c.variables
 }
 
-func getOptions(t *testing.T) options.SqldOptions {
-	opts, _ := options.NewSqldOptions()
-	options.EnsureOptsNotNil(&opts)
-	*opts.MongoURI = "localhost"
+func getConfig(t *testing.T) *config.Config {
+	cfg := config.Default()
 
 	// ssl is turned on
 	if len(os.Getenv(SSLTestKey)) > 0 {
 		t.Logf("Testing with SSL turned on.")
-		*opts.MongoSSL = true
-		*opts.MongoAllowInvalidCerts = true
-		*opts.MongoPEMKeyFile = "../testdata/resources/x509gen/client.pem"
+		cfg.MongoDB.Net.SSL.Enabled = true
+		cfg.MongoDB.Net.SSL.AllowInvalidCertificates = true
+		cfg.MongoDB.Net.SSL.PEMKeyFile = "../testdata/resources/x509gen/client.pem"
 	}
-	return opts
+	return cfg
 }
 
 func TestMongoSourcePlanStage(t *testing.T) {
@@ -94,8 +92,8 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	infoOne := getMongoDBInfo(nil, cfgOne, mongodb.AllPrivileges)
 	variablesOne := createTestVariables(infoOne)
 	catalogOne := getCatalogFromSchema(cfgOne, variablesOne)
-	opts := getOptions(t)
-	sessionProvider, err := mongodb.NewSqldSessionProvider(opts)
+	cfg := getConfig(t)
+	sessionProvider, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 		return

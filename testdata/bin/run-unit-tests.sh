@@ -25,6 +25,7 @@ run_unit_tests() {
 
     run_unit_tests catalog
     run_unit_tests collation
+    run_unit_tests internal/config
     run_unit_tests mongodrdl
     run_unit_tests mongodrdl/mongo
     run_unit_tests mongodrdl/relational

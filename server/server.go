@@ -7,10 +7,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
@@ -18,12 +18,12 @@ import (
 )
 
 // New creates a NewServer.
-func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, opts options.SqldOptions) (*Server, error) {
+func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *config.Config) (*Server, error) {
 
 	decimal.DivisionPrecision = 34
 
 	s := &Server{
-		opts:              opts,
+		cfg:               cfg,
 		terminateChan:     make(chan struct{}),
 		activeConnections: make(map[uint32]*conn),
 		schema:            schema,
@@ -39,7 +39,7 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, opts o
 		startTime:        time.Now(),
 	}
 
-	s.variables.MongoDBVersionCompatibility = *opts.MongoVersionCompatibility
+	s.variables.MongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
 
 	if err := s.populateListeners(); err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, opts o
 
 // Server manages connections with clients.
 type Server struct {
-	opts options.SqldOptions
+	cfg *config.Config
 
 	activeConnections   map[uint32]*conn
 	activeConnectionsMx sync.RWMutex

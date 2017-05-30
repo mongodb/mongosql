@@ -107,7 +107,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 		variables: variable.NewSessionContainer(s.variables),
 	}
 
-	if *s.opts.Auth {
+	if s.cfg.Security.Enabled {
 		newConn.authPluginName = mongosqlAuthClientAuthPluginName
 		newConn.authPluginData = []byte{1, 0} // version 1.0 of the mongosql_auth plugin
 	} else {
@@ -121,7 +121,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 
 	newConn.logger = newConn.Logger(log.NetworkComponent)
 
-	if len(*s.opts.SSLPEMKeyFile) > 0 {
+	if len(s.cfg.Net.SSL.PEMKeyFile) > 0 {
 		newConn.capability |= CLIENT_SSL
 	}
 	return newConn, nil
@@ -249,7 +249,7 @@ func (c *conn) handshake() error {
 	}
 
 	var err error
-	if *c.server.opts.Auth {
+	if c.server.cfg.Security.Enabled {
 		c.logger.Logf(log.DebugHigh, "configuring client authentication")
 		switch c.clientRequestedAuthPluginName {
 		case mongosqlAuthClientAuthPluginName:
@@ -629,7 +629,7 @@ func (c *conn) setStatusVariables() {
 // setSystemVariables sets system variables for this client connection.
 func (c *conn) setSystemVariables() (err error) {
 	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session,
-		c.server.schema, *c.server.opts.Auth)
+		c.server.schema, c.server.cfg.Security.Enabled)
 	if err != nil {
 		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR,
 			"error retrieving information from MongoDB: %v", err)
@@ -690,7 +690,7 @@ func (c *conn) User() string {
 }
 
 func (c *conn) useTLS() error {
-	tlsc, err := ssl.Handshake(c.conn, c.server.opts)
+	tlsc, err := ssl.Handshake(c.conn, c.server.cfg)
 	if err != nil {
 		return err
 	}

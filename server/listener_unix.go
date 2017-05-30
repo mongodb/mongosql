@@ -15,17 +15,17 @@ const (
 )
 
 func (s *Server) populateListeners() error {
-	listener, err := net.Listen("tcp", *s.opts.Addr)
+	listener, err := net.Listen("tcp", net.JoinHostPort(s.cfg.Net.BindIP, strconv.Itoa(s.cfg.Net.Port)))
 	if err != nil {
 		return err
 	}
 	s.listeners = append(s.listeners, listener)
 
-	if s.opts.NoUnixSocket == nil || (s.opts.NoUnixSocket != nil && !*s.opts.NoUnixSocket) {
-		socket := fmt.Sprintf("%s/%s", *s.opts.UnixSocketPrefix, "mysql.sock")
+	if s.cfg.Net.UnixDomainSocket.Enabled {
+		socket := fmt.Sprintf("%s/%s", s.cfg.Net.UnixDomainSocket.PathPrefix, "mysql.sock")
 		s.variables.Socket = socket
 
-		permissions, err := strconv.ParseInt(*s.opts.FilePermissions, 8, 64)
+		permissions, err := strconv.ParseInt(s.cfg.Net.UnixDomainSocket.FilePermissions, 8, 64)
 		if err != nil {
 			return err
 		}

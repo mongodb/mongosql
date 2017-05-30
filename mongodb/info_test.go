@@ -8,10 +8,10 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	. "github.com/smartystreets/goconvey/convey"
@@ -38,17 +38,15 @@ func getSslOpts() *toolsoptions.SSL {
 
 func TestLoadInfo(t *testing.T) {
 	Convey("Subject: LoadInfo", t, func() {
-		opts, err := options.NewSqldOptions()
-		So(err, ShouldBeNil)
-		options.EnsureOptsNotNil(&opts)
+		cfg := config.Default()
 
 		sslOpts := getSslOpts()
 
-		*opts.MongoSSL = sslOpts.UseSSL
-		*opts.MongoPEMKeyFile = sslOpts.SSLPEMKeyFile
-		*opts.MongoAllowInvalidCerts = sslOpts.SSLAllowInvalidCert
+		cfg.MongoDB.Net.SSL.Enabled = sslOpts.UseSSL
+		cfg.MongoDB.Net.SSL.AllowInvalidCertificates = sslOpts.SSLAllowInvalidCert
+		cfg.MongoDB.Net.SSL.PEMKeyFile = sslOpts.SSLPEMKeyFile
 
-		sp, err := mongodb.NewSqldSessionProvider(opts)
+		sp, err := mongodb.NewSqldSessionProvider(cfg)
 		So(err, ShouldBeNil)
 
 		s, err := sp.Session(context.Background())

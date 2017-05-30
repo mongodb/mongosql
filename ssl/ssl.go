@@ -5,26 +5,25 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/util"
 	"github.com/spacemonkeygo/openssl"
 )
 
-type sslInitializationFunction func(options.Options) error
-
 var (
-	sslInitializationFunctions []sslInitializationFunction
+	fipsModeSetter func(bool) error
 )
 
 // SqldDialer creates a mongosqld dialer.
-func SqldDialer(opts options.SqldOptions) (func(ctx context.Context, network, address string) (net.Conn, error), error) {
-	sslCtx, err := createSqldSSLContext(opts, true)
+func SqldDialer(cfg *config.Config) (func(ctx context.Context, network, address string) (net.Conn, error), error) {
+	sslCtx, err := createSqldSSLContext(cfg, true)
 	if err != nil {
 		return nil, err
 	}
 	var flags openssl.DialFlags
 
-	if *opts.MongoAllowInvalidCerts || *opts.MongoSSLAllowInvalidHost || *opts.MongoCAFile == "" {
+	if cfg.MongoDB.Net.SSL.AllowInvalidCertificates || cfg.MongoDB.Net.SSL.AllowInvalidHostnames || cfg.MongoDB.Net.SSL.CAFile == "" {
 		flags = openssl.InsecureSkipHostVerification
 	}
 
@@ -32,8 +31,8 @@ func SqldDialer(opts options.SqldOptions) (func(ctx context.Context, network, ad
 }
 
 // Handshake performs a TLS handshake over the connection.
-func Handshake(conn net.Conn, opts options.SqldOptions) (net.Conn, error) {
-	sslCtx, err := createSqldSSLContext(opts, false)
+func Handshake(conn net.Conn, cfg *config.Config) (net.Conn, error) {
+	sslCtx, err := createSqldSSLContext(cfg, false)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +94,8 @@ func createDrdlSSLContext(opts options.DrdlOptions) (*openssl.Ctx, error) {
 	var ctx *openssl.Ctx
 	var err error
 
-	for _, sslInitFunc := range sslInitializationFunctions {
-		sslInitFunc(opts)
+	if fipsModeSetter != nil {
+		fipsModeSetter(opts.UseFIPSMode())
 	}
 
 	if ctx, err = openssl.NewCtxWithVersion(openssl.AnyVersion); err != nil {
@@ -175,12 +174,12 @@ func createDrdlSSLContext(opts options.DrdlOptions) (*openssl.Ctx, error) {
 	return ctx, nil
 }
 
-func createSqldSSLContext(opts options.SqldOptions, isClient bool) (*openssl.Ctx, error) {
+func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, error) {
 	var ctx *openssl.Ctx
 	var err error
 
-	for _, sslInitFunc := range sslInitializationFunctions {
-		sslInitFunc(opts)
+	if fipsModeSetter != nil {
+		fipsModeSetter(cfg.MongoDB.Net.SSL.FIPSMode)
 	}
 
 	if ctx, err = openssl.NewCtxWithVersion(openssl.AnyVersion); err != nil {
@@ -202,16 +201,16 @@ func createSqldSSLContext(opts options.SqldOptions, isClient bool) (*openssl.Ctx
 	var allowInvalidCerts bool
 
 	if !isClient {
-		pemKeyFile = *opts.SSLPEMKeyFile
-		pemFilePassword = *opts.SSLPEMKeyFilePassword
-		caFile = *opts.SSLCAFile
-		allowInvalidCerts = *opts.SSLAllowInvalidCerts
+		pemKeyFile = cfg.Net.SSL.PEMKeyFile
+		pemFilePassword = cfg.Net.SSL.PEMKeyPassword
+		caFile = cfg.Net.SSL.CAFile
+		allowInvalidCerts = cfg.Net.SSL.AllowInvalidCertificates
 	} else {
-		pemKeyFile = *opts.MongoPEMKeyFile
-		pemFilePassword = *opts.MongoPEMKeyFilePassword
-		caFile = *opts.MongoCAFile
-		allowInvalidCerts = *opts.MongoAllowInvalidCerts
-		crlFile = *opts.MongoSSLCRLFile
+		pemKeyFile = cfg.MongoDB.Net.SSL.PEMKeyFile
+		pemFilePassword = cfg.MongoDB.Net.SSL.PEMKeyPassword
+		caFile = cfg.MongoDB.Net.SSL.CAFile
+		allowInvalidCerts = cfg.MongoDB.Net.SSL.AllowInvalidCertificates
+		crlFile = cfg.MongoDB.Net.SSL.CRLFile
 	}
 
 	// add the PEM key file with the cert and private key, if specified

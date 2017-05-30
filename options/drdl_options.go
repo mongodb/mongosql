@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/jessevdk/go-flags"
 )
@@ -235,4 +236,17 @@ func (o DrdlOptions) Validate() error {
 		return fmt.Errorf("this version of mongodrdl was not compiled with FIPS support")
 	}
 	return nil
+}
+
+func parseVal(val string) int {
+	idx := strings.Index(val, "=")
+	ret, err := strconv.Atoi(val[idx+1:])
+	if err != nil {
+		panic(fmt.Errorf("value was not a valid integer: %v", err))
+	}
+	return ret
+}
+
+type OptionGroup interface {
+	Name() string
 }

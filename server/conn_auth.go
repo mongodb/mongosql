@@ -127,12 +127,9 @@ func (c *conn) authMongoSQLAuthSASL(username, mechanism, source string) error {
 
 func (c *conn) parseUsername() (username string, mechanism string, source string, err error) {
 	username = c.user
-	mechanism = "SCRAM-SHA-1"
-	if c.currentDB != nil {
-		source = string(c.currentDB.Name)
-	} else {
-		source = "admin"
-	}
+	mechanism = c.server.cfg.Security.DefaultMechanism
+	source = c.server.cfg.Security.DefaultSource
+
 	// parse user for extra information other than just the username
 	// format is username?mechanism=PLAIN&source=db. This is the same
 	// as a query string, so everything should be url encoded.

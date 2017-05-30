@@ -17,6 +17,7 @@ import (
 	"github.com/10gen/mongo-go-driver/ops"
 	"github.com/10gen/mongo-go-driver/readpref"
 	"github.com/10gen/mongo-go-driver/server"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/password"
 	"github.com/10gen/sqlproxy/ssl"
@@ -77,9 +78,9 @@ func NewDrdlSessionProvider(opts options.DrdlOptions) (*SessionProvider, error) 
 }
 
 // NewSqldSessionProvider creates a new session provider for mongosql.
-func NewSqldSessionProvider(opts options.SqldOptions) (*SessionProvider, error) {
+func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 
-	uri := *opts.MongoURI
+	uri := cfg.MongoDB.Net.URI
 	if !strings.HasPrefix(uri, mongoDBScheme) {
 		uri = fmt.Sprintf("%v%v", mongoDBScheme, uri)
 	}
@@ -107,8 +108,8 @@ func NewSqldSessionProvider(opts options.SqldOptions) (*SessionProvider, error) 
 		cluster.WithConnString(cs),
 	}
 
-	if opts.UseSSL() {
-		dialer, err := ssl.SqldDialer(opts)
+	if cfg.MongoDB.Net.SSL.Enabled {
+		dialer, err := ssl.SqldDialer(cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +133,7 @@ func NewSqldSessionProvider(opts options.SqldOptions) (*SessionProvider, error) 
 	}
 
 	return &SessionProvider{
-		auth:           *opts.Auth,
+		auth:           cfg.Security.Enabled,
 		rp:             rp,
 		c:              c,
 		connectTimeout: getConnectTimeout(cs),
