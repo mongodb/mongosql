@@ -21,6 +21,10 @@ systemLog:
 schema:
   path: "/var/test"
   maxVarcharLength: 1000
+  sample:
+    databases: ["a", "b"]
+    sampleSize: 969
+    uuidSubtype3Encoding: java
 
 runtime:
   memory:
@@ -48,6 +52,11 @@ mongodb:
   versionCompatibility: "3.2"
   net:
     uri: "mongodb://hostname:27018"
+    auth:
+      username: user
+      password: pass
+      source: admin
+      mechanism: scram
     ssl:
       enabled: true
       allowInvalidCertificates: true
@@ -75,6 +84,10 @@ processManagement:
 
 	testString(t, cfg.Schema.Path, "/var/test", "cfg.Schema.Path")
 	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
+	testInt64(t, cfg.Schema.Sample.SampleSize, 969, "cfg.Schema.Sample.SampleSize")
+	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "java", "cfg.Schema.UUIDSubtype3Encoding")
+
+	testStringSlice(t, cfg.Schema.Sample.Databases, []string{"a", "b"}, "cfg.Schema.Sample.Databases")
 
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 102400, "cfg.Runtime.Memory.MaxPerStage")
 
@@ -97,6 +110,11 @@ processManagement:
 
 	testString(t, cfg.MongoDB.VersionCompatibility, "3.2", "cfg.MongoDB.VersionCompatibility")
 	testString(t, cfg.MongoDB.Net.URI, "mongodb://hostname:27018", "cfg.MongoDB.Net.URI")
+
+	testString(t, cfg.MongoDB.Net.Auth.Username, "user", "cfg.MongoDB.Net.Auth.Username")
+	testString(t, cfg.MongoDB.Net.Auth.Password, "pass", "cfg.MongoDB.Net.Auth.Password")
+	testString(t, cfg.MongoDB.Net.Auth.Source, "admin", "cfg.MongoDB.Net.Auth.Source")
+	testString(t, cfg.MongoDB.Net.Auth.Mechanism, "scram", "cfg.MongoDB.Net.Auth.Mechanism")
 
 	testBool(t, cfg.MongoDB.Net.SSL.Enabled, true, "cfg.MongoDB.Net.SSL.Enabled")
 	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidCertificates, true, "cfg.MongoDB.Net.SSL.AllowInvalidCertificates")

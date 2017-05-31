@@ -98,16 +98,68 @@ func TestValidate_Valid(t *testing.T) {
 	}
 }
 
-func TestValidate_No_Schema_Path(t *testing.T) {
+func TestValidate_Invalid_SampleAuth_Mechanism(t *testing.T) {
 	cfg := Default()
-	cfg.Schema.Path = ""
+	cfg.MongoDB.Net.Auth.Mechanism = "GSSAPI"
 
 	err := Validate(cfg)
 	if err == nil {
 		t.Fatalf("expected an error, but got none", err)
 	}
 
-	expected := "a schema is required, either specified by --schema, --schemaDirectory, or in a config file at 'schema.path'"
+	expected := "unsupported sample authentication mechanism 'GSSAPI'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+
+	cfg.MongoDB.Net.Auth.Mechanism = "foo"
+
+	err = Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none", err)
+	}
+
+	expected = "unsupported sample authentication mechanism 'foo'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_No_Schema_Path(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Path = ""
+
+	err := Validate(cfg)
+	if err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
+}
+
+func TestValidate_SampleAuth_options_specified_but_auth_disabled(t *testing.T) {
+	cfg := Default()
+	cfg.MongoDB.Net.Auth.Username = "foo"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none", err)
+	}
+
+	expected := "when specifying sample authentication options, auth must " +
+		"be enabled with --auth or in a config file at 'security.enabled'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+
+	cfg.MongoDB.Net.Auth.Username = ""
+	cfg.MongoDB.Net.Auth.Password = "foo"
+
+	err = Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none", err)
+	}
+
+	expected = "when specifying sample authentication options, auth must " +
+		"be enabled with --auth or in a config file at 'security.enabled'"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}
@@ -174,6 +226,12 @@ func testBool(t *testing.T, actual, expected bool, key string) {
 }
 
 func testInt(t *testing.T, actual, expected int, key string) {
+	if actual != expected {
+		t.Errorf("%s should be %v but was %v", key, expected, actual)
+	}
+}
+
+func testInt64(t *testing.T, actual, expected int64, key string) {
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}

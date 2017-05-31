@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"fmt"
 	"net"
 	"runtime"
 	"sync"
@@ -11,7 +13,9 @@ import (
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodrdl"
 	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
@@ -39,6 +43,10 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 		startTime:        time.Now(),
 	}
 
+	if schema != nil {
+		atomic.StoreUint32(&s.schemaLoaded, uint32(1))
+	}
+
 	s.variables.MongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
 	s.variables.MongoDBMaxVarcharLength = cfg.Schema.MaxVarcharLength
 	s.variables.MongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
@@ -64,6 +72,7 @@ type Server struct {
 	terminated    bool
 
 	schema          *schema.Schema
+	schemaLoaded    uint32
 	sessionProvider *mongodb.SessionProvider
 	variables       *variable.Container
 
@@ -76,6 +85,141 @@ type Server struct {
 	threadsConnected uint32
 
 	listeners []net.Listener
+}
+
+func (s *Server) SampleSchema(cfg *config.Config) {
+	schemaGenerator := createSchemaGenerator(cfg)
+
+	err := schemaGenerator.Init()
+	if err != nil {
+		schemaGenerator.Logger.Warnf(log.Always, "[initandlisten] error initializing schema: %v", err)
+		panic(fmt.Sprintf("unable to initialize schema generator: %v", err))
+	}
+
+	defer schemaGenerator.Provider.Close()
+
+	databases := cfg.Schema.Sample.Databases
+
+	if len(databases) == 0 {
+		var session *mongodb.Session
+
+	getDatabasesLoop:
+		for {
+		dbConnectLoop:
+			for {
+				session, err = schemaGenerator.Connect()
+				if err != nil {
+					schemaGenerator.Logger.Warnf(log.Always, "error connecting to MongoDB: %v", err)
+					continue
+				}
+				defer session.Close()
+				break dbConnectLoop
+			}
+
+			ctx := session.Context()
+
+			iter, err := session.ListDatabases()
+			if err != nil {
+				schemaGenerator.Logger.Warnf(log.Always, "error listing databases: %v", err)
+				continue
+			}
+
+			defer iter.Close(ctx)
+
+			var colResult struct {
+				Name string `bson:"name"`
+			}
+
+			for iter.Next(ctx, &colResult) {
+				databases = append(databases, colResult.Name)
+			}
+
+			if err := iter.Err(); err != nil {
+				schemaGenerator.Logger.Errf(log.Always, "iteration error: %v", err)
+				continue
+			}
+			break getDatabasesLoop
+		}
+	}
+
+	sampledSchema := &schema.Schema{}
+
+	dbSampleBlacklist := []string{
+		"admin",
+		"local",
+	}
+
+	buf := &bytes.Buffer{}
+
+	for _, db := range databases {
+		if util.SliceContains(dbSampleBlacklist, db) {
+			continue
+		}
+
+		schemaGenerator.ToolOptions.DrdlNamespace.DB = db
+
+		_, err := schemaGenerator.GenerateWithWriter(buf)
+		if err != nil {
+			schemaGenerator.Logger.Errf(log.Always, "error generating schema: %v", err)
+			panic(fmt.Sprintf("error generating schema: %v", err))
+		}
+
+		// load this database into the schema
+		err = sampledSchema.Load(buf.Bytes())
+		if err != nil {
+			schemaGenerator.Logger.Errf(log.Always, "error loading schema file: %v", err)
+			panic(fmt.Sprintf("error loading schema: %v", err))
+		}
+
+		buf.Reset()
+	}
+
+	schemaGenerator.Logger.Logf(log.Always, "Schema sampled from MongoDB")
+	s.schema = sampledSchema
+	atomic.StoreUint32(&s.schemaLoaded, uint32(1))
+}
+
+func createSchemaGenerator(cfg *config.Config) *mongodrdl.SchemaGenerator {
+	component := "MONGODRDL"
+	schemaGenerator := &mongodrdl.SchemaGenerator{
+		ToolOptions: &options.DrdlOptions{
+			DrdlAuth: &options.DrdlAuth{
+				Username:  cfg.MongoDB.Net.Auth.Username,
+				Password:  cfg.MongoDB.Net.Auth.Password,
+				Source:    cfg.MongoDB.Net.Auth.Source,
+				Mechanism: cfg.MongoDB.Net.Auth.Mechanism,
+			},
+			DrdlConnection: &options.DrdlConnection{
+				Host: cfg.MongoDB.Net.URI,
+			},
+			DrdlLog: &options.DrdlLog{
+				VLevel: cfg.SystemLog.Verbosity,
+			},
+			DrdlSSL: &options.DrdlSSL{
+				UseSSL:              cfg.MongoDB.Net.SSL.Enabled,
+				SSLAllowInvalidCert: cfg.MongoDB.Net.SSL.AllowInvalidCertificates,
+				SSLAllowInvalidHost: cfg.MongoDB.Net.SSL.AllowInvalidHostnames,
+				SSLPEMKeyFile:       cfg.MongoDB.Net.SSL.PEMKeyFile,
+				SSLPEMKeyPassword:   cfg.MongoDB.Net.SSL.PEMKeyPassword,
+				SSLCAFile:           cfg.MongoDB.Net.SSL.CAFile,
+				SSLCRLFile:          cfg.MongoDB.Net.SSL.CRLFile,
+				SSLFipsMode:         cfg.MongoDB.Net.SSL.FIPSMode,
+			},
+			DrdlNamespace: &options.DrdlNamespace{},
+		},
+		OutputOptions: &options.DrdlOutput{
+			UUIDSubtype3Encoding: cfg.Schema.Sample.UUIDSubtype3Encoding,
+		},
+		SampleOptions: &options.DrdlSample{
+			SampleSize: cfg.Schema.Sample.SampleSize,
+		},
+		Logger: log.NewComponentLogger(
+			fmt.Sprintf("%-10v [schemaDiscovery]", component),
+			log.GlobalLogger(),
+		),
+	}
+
+	return schemaGenerator
 }
 
 // Run starts the server and begins accepting connections.

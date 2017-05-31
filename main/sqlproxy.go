@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/kardianos/service"
-
-	"time"
 
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/util"
@@ -55,15 +54,6 @@ func (p *program) Start(s service.Service) error {
 		p.serviceLogger.Infof("%s starting with options: %s", s, config.ToJSON(p.cfg))
 	}
 
-	err = p.loadSchema()
-	if err != nil {
-		if !service.Interactive() {
-			p.serviceLogger.Errorf("%s failed to start. Could not load schema: %v", s, err)
-		}
-		p.cleanup()
-		return err
-	}
-
 	err = p.initLog()
 	if err != nil {
 		if !service.Interactive() {
@@ -84,6 +74,15 @@ func (p *program) Start(s service.Service) error {
 		return err
 	}
 
+	err = p.loadSchema()
+	if err != nil {
+		if !service.Interactive() {
+			p.serviceLogger.Errorf("%s failed to start. Could not load schema: %v", s, err)
+		}
+		p.cleanup()
+		return err
+	}
+
 	p.svr, err = server.New(p.schema, p.sessionProvider, p.cfg)
 	if err != nil {
 		if !service.Interactive() {
@@ -93,18 +92,28 @@ func (p *program) Start(s service.Service) error {
 		return err
 	}
 
+	// asynchronously load the schema from MongoDB by sampling if needed
+	if p.schema == nil {
+		p.controlLogger.Logf(log.Always, "[initandlisten] Sampling MongoDB for schema...")
+		util.PanicSafeGo(func() {
+			p.svr.SampleSchema(p.cfg)
+		}, func(err interface{}) {
+			p.controlLogger.Logf(log.Always, "[signalProcessingThread] %v", err)
+			p.cleanup()
+			p.done <- struct{}{}
+		})
+	}
+
 	util.PanicSafeGo(func() {
 		p.svr.Run()
 		p.controlLogger.Logf(log.Always, "[signalProcessingThread] shutting down")
 		p.cleanup()
 		p.done <- struct{}{}
-	},
-		func(err interface{}) {
-			p.controlLogger.Logf(log.Always, "%v", err)
-			p.cleanup()
-			panic(err)
-		},
-	)
+	}, func(err interface{}) {
+		p.controlLogger.Logf(log.Always, "%v", err)
+		p.cleanup()
+		panic(err)
+	})
 
 	return nil
 }
@@ -180,25 +189,19 @@ func (p *program) loadConfig(args []string) error {
 }
 
 func (p *program) loadSchema() error {
-	var err error
-
-	fi, err := os.Stat(p.cfg.Schema.Path)
-	if err != nil {
-		return err
-	}
-
-	p.schema = &schema.Schema{}
-
-	if fi.IsDir() {
-		err = p.schema.LoadDir(p.cfg.Schema.Path)
+	if p.cfg.Schema.Path != "" {
+		fi, err := os.Stat(p.cfg.Schema.Path)
 		if err != nil {
 			return err
 		}
-	} else {
-		err = p.schema.LoadFile(p.cfg.Schema.Path)
-		if err != nil {
-			return err
+
+		p.schema = &schema.Schema{}
+
+		if fi.IsDir() {
+			return p.schema.LoadDir(p.cfg.Schema.Path)
 		}
+
+		return p.schema.LoadFile(p.cfg.Schema.Path)
 	}
 
 	return nil

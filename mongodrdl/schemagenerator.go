@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	yaml "github.com/10gen/candiedyaml"
+
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -52,18 +53,23 @@ func (schemaGen *SchemaGenerator) Init() error {
 }
 
 func (schemaGen *SchemaGenerator) Generate() (*Schema, error) {
-	var err error
-	var database *relational.Database
-
 	writer, err := schemaGen.getOutputWriter()
 	if err != nil {
 		return nil, err
 	}
+
 	if writer == nil {
 		writer = os.Stdout
 	} else {
 		defer writer.Close()
 	}
+
+	return schemaGen.generate(writer)
+}
+
+func (schemaGen *SchemaGenerator) generate(writer io.Writer) (*Schema, error) {
+	var err error
+	var database *relational.Database
 
 	switch {
 	case schemaGen.ToolOptions.Collection == "":
@@ -94,7 +100,12 @@ func (schemaGen *SchemaGenerator) Generate() (*Schema, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return schema, nil
+}
+
+func (schemaGen *SchemaGenerator) GenerateWithWriter(writer io.Writer) (*Schema, error) {
+	return schemaGen.generate(writer)
 }
 
 func (schemaGen *SchemaGenerator) getOutputWriter() (io.WriteCloser, error) {

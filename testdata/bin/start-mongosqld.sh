@@ -15,7 +15,6 @@
 
         $ARTIFACTS_DIR/bin/mongosqld install -vvvv \
             --logPath $ARTIFACTS_DIR/log/mongosqld.log \
-            --schemaDirectory "$PROJECT_DIR/testdata/resources/schema" \
             $SQLPROXY_ARGS \
             $RACE_DETECTOR
 
@@ -23,7 +22,6 @@
     else
         nohup $ARTIFACTS_DIR/bin/mongosqld -vvvv \
             --logPath $ARTIFACTS_DIR/log/mongosqld.log \
-            --schemaDirectory "$PROJECT_DIR/testdata/resources/schema" \
             $SQLPROXY_ARGS \
             $RACE_DETECTOR &
     fi

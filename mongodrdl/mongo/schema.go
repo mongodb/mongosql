@@ -168,9 +168,10 @@ func (c *TypeContainer) includeSample(value interface{}) error {
 			switch b.Kind {
 			case 0x03:
 				if UUIDSubtype3Encoding == "" {
-					return fmt.Errorf("Found binary subtype 3 (UUID). Please specify desired encoding using the `-b` flag")
+					return nil
+				} else {
+					s = c.getOrAddScalar(UUIDSubtype3Map[UUIDSubtype3Encoding])
 				}
-				s = c.getOrAddScalar(UUIDSubtype3Map[UUIDSubtype3Encoding])
 			case 0x04:
 				s = c.getOrAddScalar(uuidMongoType)
 			default:

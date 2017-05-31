@@ -15,11 +15,11 @@
 
     go test -v \
         -timeout 4h \
-        -restoreData "$SUITE" \
         $RACE_DETECTOR \
         $BUILD_FLAGS \
         $COVER_FLAG \
         $VERSION_FLAG \
+        $INTEGRATION_TEST_FLAGS \
         > $test_pipe
 
     rm $test_pipe

@@ -1,8 +1,8 @@
 
 # This file should be sourced by any script in testdata/bin that uses an
 # externally-defined environment variable. On evergreen, most of these
-# variables are defined in the "fetch source" task; these defaults will make
-# the scripts behave as expected when run locally.
+# variables are defined in the "fetch source" task; these defaults will
+# make the scripts behave as expected when run locally.
 
 scripts_dir="$(cd "$(dirname $0)" && pwd -P)"
 PROJECT_DIR="${PROJECT_DIR:-$(dirname "$(dirname $scripts_dir)")}"
@@ -26,7 +26,11 @@ if [ "$AUTH" = "auth" ]; then
     SQLPROXY_AUTH_ARGS="--auth"
 fi
 
-export SQLPROXY_ARGS="$SQLPROXY_AUTH_ARGS $SQLPROXY_SSL_ARGS"
+if [ "$USE_DYNAMIC_SCHEMA" != "true" ]; then
+  export SQLPROXY_SCHEMA_ARGS="--schemaDirectory $PROJECT_DIR/testdata/resources/schema"
+fi
+
+export SQLPROXY_ARGS="$SQLPROXY_AUTH_ARGS $SQLPROXY_SSL_ARGS $SQLPROXY_SCHEMA_ARGS"
 
 BUILD_FLAGS="$BUILD_TAGS $BUILD_FLAGS"
 

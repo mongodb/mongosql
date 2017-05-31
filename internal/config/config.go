@@ -7,10 +7,18 @@ import (
 	"reflect"
 	"runtime"
 	"strconv"
+
+	"github.com/10gen/sqlproxy/internal/util"
 )
 
-var isDarwin = runtime.GOOS == "darwin"
-var isWindows = runtime.GOOS == "windows"
+var (
+	isDarwin                = runtime.GOOS == "darwin"
+	isWindows               = runtime.GOOS == "windows"
+	supportedAuthMechanisms = []string{
+		"SCRAM-SHA-1",
+		"PLAIN",
+	}
+)
 
 // Load creates a new configuration from the specified arguments
 // and potentially loads from a separate config source as specified
@@ -44,6 +52,14 @@ func Load(args []string) (*Config, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		if cfg.MongoDB.Net.Auth.Mechanism == "" {
+			cfg.MongoDB.Net.Auth.Mechanism = cfg.Security.DefaultMechanism
+		}
+
+		if cfg.MongoDB.Net.Auth.Source == "" {
+			cfg.MongoDB.Net.Auth.Source = cfg.Security.DefaultSource
+		}
 	}
 
 	return cfg, err
@@ -71,6 +87,8 @@ func Default() *Config {
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
 	cfg.ProcessManagement.Service.Description = "MongoSQL accesses MongoDB data with SQL"
 
+	cfg.Schema.Sample.SampleSize = 1000
+
 	return cfg
 }
 
@@ -87,10 +105,6 @@ func ToJSON(cfg *Config) string {
 
 // Validate ensure that a config is valid.
 func Validate(cfg *Config) error {
-	if cfg.Schema.Path == "" {
-		return fmt.Errorf("a schema is required, either specified by --schema, --schemaDirectory, or in a config file at 'schema.path'")
-	}
-
 	if !cfg.MongoDB.Net.SSL.Enabled && (cfg.MongoDB.Net.SSL.CAFile != "" ||
 		cfg.MongoDB.Net.SSL.CRLFile != "" ||
 		cfg.MongoDB.Net.SSL.PEMKeyFile != "" ||
@@ -114,6 +128,20 @@ func Validate(cfg *Config) error {
 		if _, err := strconv.ParseInt(cfg.Net.UnixDomainSocket.FilePermissions, 8, 64); err != nil {
 			return fmt.Errorf("filePermissions must be valid octal")
 		}
+	}
+
+	if !cfg.Security.Enabled && (cfg.MongoDB.Net.Auth.Username != "" ||
+		cfg.MongoDB.Net.Auth.Password != "") {
+		return fmt.Errorf("when specifying sample authentication " +
+			"options, auth must be enabled with --auth or in a config " +
+			"file at 'security.enabled'")
+	}
+
+	if cfg.MongoDB.Net.Auth.Mechanism != "" &&
+		!util.SliceContains(supportedAuthMechanisms,
+			cfg.MongoDB.Net.Auth.Mechanism) {
+		return fmt.Errorf("unsupported sample authentication "+
+			"mechanism '%v'", cfg.MongoDB.Net.Auth.Mechanism)
 	}
 
 	return nil
@@ -159,6 +187,13 @@ type RuntimeMemory struct {
 type Schema struct {
 	Path             string
 	MaxVarcharLength uint16
+	Sample           SchemaSampleOptions `config:"sample"`
+}
+
+type SchemaSampleOptions struct {
+	Databases            []string
+	SampleSize           int64
+	UUIDSubtype3Encoding string `config:"uuidSubtype3Encoding"`
 }
 
 // Net holds network related configuration.
@@ -199,8 +234,9 @@ type MongoDB struct {
 
 // MongoDBNet holds confifuration for network communication with MongoDB.
 type MongoDBNet struct {
-	URI string        `config:"uri"`
-	SSL MongoDBNetSSL `config:"ssl"`
+	URI  string         `config:"uri"`
+	SSL  MongoDBNetSSL  `config:"ssl"`
+	Auth MongoDBNetAuth `config:"auth"`
 }
 
 // MongoDBNetSSL holds configuration for SSL with MongoDB.
@@ -225,4 +261,12 @@ type ProcessManagementService struct {
 	Name        string
 	DisplayName string
 	Description string
+}
+
+// MongoDBNetAuth holds configuration for authenticating with MongoDB.
+type MongoDBNetAuth struct {
+	Username  string
+	Password  string `config:"password,protected"`
+	Source    string
+	Mechanism string
 }

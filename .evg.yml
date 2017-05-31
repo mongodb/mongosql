@@ -4,7 +4,7 @@ buildvariants:
 
 - matrix_name: full_matrix
   display_name: "${os_full_matrix} (${mongodb_version}) (${mongodb_topology})"
-  tasks: ["!.oneoff-task !dist"]
+  tasks: ["!.oneoff-task !dist !dynamic-schema"]
   matrix_spec:
     os_full_matrix: "*"
     mongodb_version: "*"
@@ -17,10 +17,11 @@ buildvariants:
     then:
       add_tasks:
         - name: "dist"
+        - name: "dynamic-schema"
 
 - matrix_name: single_variant
   display_name: "${os_single_variant}"
-  tasks: ["!.oneoff-task"]
+  tasks: ["!.oneoff-task !dynamic-schema"]
   matrix_spec:
     os_single_variant: "*"
 
@@ -340,6 +341,16 @@ functions:
         python release.py --version ${version_id}
     type: test
 
+  "restore test data":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        export SUITE='${suite}'
+        ${SCRIPT_DIR}/generate-tests.sh
+        ${SCRIPT_DIR}/restore-test-data.sh
+
   "start mongosqld":
     command: shell.exec
     params:
@@ -347,6 +358,7 @@ functions:
       script: |
         ${PREPARE_SHELL}
         export SQLPROXY_PUSHDOWN_OFF="${nopushdown}"
+        export USE_DYNAMIC_SCHEMA="${use_dynamic_schema}"
         ${SCRIPT_DIR}/start-mongosqld.sh
 
   "upload artifacts":
@@ -449,10 +461,11 @@ functions:
     type: test
     params:
       script: |
-        ${PREPARE_SHELL}
         set -o errexit
+        ${PREPARE_SHELL}
         export SQLPROXY_PUSHDOWN_OFF='${nopushdown}'
         export SUITE='${suite}'
+        export INTEGRATION_TEST_FLAGS="${integration_test_flags}"
         ${SCRIPT_DIR}/generate-tests.sh
         ${SCRIPT_DIR}/run-integration-tests.sh
 
@@ -508,6 +521,9 @@ tasks:
     - func: "bootstrap mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
+    - func: "restore test data"
+      vars:
+        suite: blackbox
     - func: "run integration tests"
       vars:
         suite: blackbox
@@ -521,6 +537,9 @@ tasks:
     - func: "start mongosqld"
       vars:
         nopushdown: true
+    - func: "restore test data"
+      vars:
+        suite: blackbox
     - func: "run integration tests"
       vars:
         suite: blackbox
@@ -543,11 +562,31 @@ tasks:
   commands:
     - func: "release BI Connector"
 
+- name: dynamic-schema
+  exec_timeout_secs: 14400 # 4h
+  commands:
+    - func: "bootstrap mongo-orchestration"
+    - func: "download blackbox test data"
+    - func: "restore test data"
+      vars:
+        suite: blackbox
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        use_dynamic_schema: "true"
+        integration_test_flags: "-run TestBlackbox_2"
+    - func: "run integration tests"
+      vars:
+        suite: blackbox
+
 - name: sqlproxy
   commands:
     - func: "bootstrap mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
+    - func: "restore test data"
+      vars:
+        suite: integration
     - func: "run integration tests"
       vars:
         suite: integration
@@ -559,6 +598,9 @@ tasks:
     - func: "start mongosqld"
       vars:
         nopushdown: true
+    - func: "restore test data"
+      vars:
+        suite: integration
     - func: "run integration tests"
       vars:
         suite: integration
@@ -570,6 +612,9 @@ tasks:
     - func: "bootstrap mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
+    - func: "restore test data"
+      vars:
+        suite: tableau
     - func: "run integration tests"
       vars:
         suite: tableau
@@ -580,6 +625,9 @@ tasks:
     - func: "bootstrap mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
+    - func: "restore test data"
+      vars:
+        suite: tdvt
     - func: "run integration tests"
       vars:
         suite: tdvt
@@ -592,6 +640,9 @@ tasks:
     - func: "start mongosqld"
       vars:
         nopushdown: true
+    - func: "restore test data"
+      vars:
+        suite: tdvt
     - func: "run integration tests"
       vars:
         suite: tdvt

@@ -248,6 +248,12 @@ func (c *conn) handshake() error {
 		return err
 	}
 
+	if atomic.LoadUint32(&c.server.schemaLoaded) == 0 {
+		err := mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "MongoDB schema not yet available")
+		c.writeError(err)
+		return err
+	}
+
 	var err error
 	if c.server.cfg.Security.Enabled {
 		c.logger.Logf(log.DebugHigh, "configuring client authentication")

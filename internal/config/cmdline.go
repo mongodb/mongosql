@@ -237,6 +237,10 @@ func (o *logOptions) mapToConfig(cfg *Config) error {
 type mongoConnectionOptions struct {
 	MongoSSL                  *bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
 	MongoURI                  *string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to"`
+	MongoUsername             *string `short:"u" value-name:"<username>" long:"mongo-username" description:"authentication username to use for schema discovery (only required if --auth is also enabled)"`
+	MongoPassword             *string `short:"p" value-name:"<password>" long:"mongo-password" description:"authentication password to use for schema discovery (only required if --auth is also enabled)"`
+	MongoSource               *string `long:"mongo-authenticationSource" value-name:"<authentication source>" description:"database that holds the credentials for the schema discovery user (only required if --auth is also enabled)"`
+	MongoMechanism            *string `long:"mongo-authenticationMechanism" description:"authentication mechanism to use for schema discovery (only required if --auth is also enabled)" choice:"SCRAM-SHA-1" choice:"PLAIN"`
 	MongoAllowInvalidCerts    *bool   `long:"mongo-sslAllowInvalidCertificates" description:"don't require the certificate presented by the MongoDB server to be valid, when using --mongo-ssl"`
 	MongoSSLAllowInvalidHost  *bool   `long:"mongo-sslAllowInvalidHostnames" description:"bypass the validation for server name"`
 	MongoCAFile               *string `long:"mongo-sslCAFile" value-name:"<filename>" description:"path to a CA certificate file to use for authenticating certificates from MongoDB, when using --mongo-ssl"`
@@ -283,13 +287,34 @@ func (o *mongoConnectionOptions) mapToConfig(cfg *Config) error {
 		cfg.MongoDB.VersionCompatibility = *o.MongoVersionCompatibility
 	}
 
+	if !isEmptyOrUnset(o.MongoUsername) {
+		cfg.MongoDB.Net.Auth.Username = *o.MongoUsername
+	}
+
+	if !isEmptyOrUnset(o.MongoPassword) {
+		cfg.MongoDB.Net.Auth.Password = *o.MongoPassword
+	}
+
+	if !isEmptyOrUnset(o.MongoSource) {
+		cfg.MongoDB.Net.Auth.Source = *o.MongoSource
+	}
+
+	if !isEmptyOrUnset(o.MongoMechanism) {
+		cfg.MongoDB.Net.Auth.Mechanism = *o.MongoMechanism
+	}
+
 	return nil
 }
 
 type schemaOptions struct {
-	Schema           *string `long:"schema" description:"the path to a schema file or directory"`
-	SchemaDir        *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load" hidden:"true"`
+	Schema           *string `long:"schema" description:"the path to a schema file"`
+	SchemaDir        *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
 	MaxVarcharLength *uint16 `long:"maxVarcharLength" description:"the maximum length of a varchar"`
+	// Databases will append the database name each time the option is encountered
+	// (can be set multiple times, like --sampleDatabase foo --sampleDatabase bar)
+	Databases            []string `long:"sampleDatabase" value-name:"<sample database>" description:"database(s) to sample in generating schema (defaults to all databases - except admin and local)"`
+	SampleSize           *int64   `long:"sampleSize" short:"s" description:"the number of documents to sample, per database, when generating the schema (default: 1000)"`
+	UUIDSubtype3Encoding *string  `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
 }
 
 func (o *schemaOptions) name() string {
@@ -298,18 +323,33 @@ func (o *schemaOptions) name() string {
 
 func (o *schemaOptions) mapToConfig(cfg *Config) error {
 	schemaSet := false
+
 	if !isEmptyOrUnset(o.Schema) {
 		cfg.Schema.Path = *o.Schema
 		schemaSet = true
 	}
+
 	if !isEmptyOrUnset(o.SchemaDir) {
 		if schemaSet {
 			return fmt.Errorf("must specify only one of --schema or --schemaDirectory")
 		}
 		cfg.Schema.Path = *o.SchemaDir
 	}
+
 	if o.MaxVarcharLength != nil {
 		cfg.Schema.MaxVarcharLength = *o.MaxVarcharLength
+	}
+
+	if o.Databases != nil {
+		cfg.Schema.Sample.Databases = o.Databases
+	}
+
+	if o.SampleSize != nil {
+		cfg.Schema.Sample.SampleSize = *o.SampleSize
+	}
+
+	if !isEmptyOrUnset(o.UUIDSubtype3Encoding) {
+		cfg.Schema.Sample.UUIDSubtype3Encoding = *o.UUIDSubtype3Encoding
 	}
 
 	return nil

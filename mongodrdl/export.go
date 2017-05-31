@@ -2,9 +2,11 @@ package mongodrdl
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
@@ -27,6 +29,7 @@ func (schemaGen *SchemaGenerator) ExportSchemaForDatabase() (*relational.Databas
 	if err != nil {
 		return nil, err
 	}
+	defer session.Close()
 
 	schemaGen.Logger.Logf(log.Info, "Creating schema for database %q", schemaGen.ToolOptions.DB)
 
@@ -64,6 +67,7 @@ func (schemaGen *SchemaGenerator) ExportSchemaForCollection() (*relational.Datab
 	if err != nil {
 		return nil, err
 	}
+	defer session.Close()
 
 	database := relational.NewDatabase(schemaGen.ToolOptions.DB, schemaGen.Logger)
 	err = schemaGen.mapCollection(database, schemaGen.ToolOptions.Collection, session)
@@ -92,11 +96,27 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 	col := mongo.NewCollection(collectionName)
 	ctx := session.Context()
 	doc := &bson.D{}
+	var samplePrint string
+
 	for iter.Next(ctx, doc) {
-		schemaGen.Logger.Logf(log.DebugHigh, "Including sample: %v", doc)
-		err := col.IncludeSample(*doc)
+		samplePrint = fmt.Sprintf("%s", doc)
+		c, err := bsonutil.GetBSONValueAsJSON(*doc)
+		if err == nil {
+			m, err := json.Marshal(c)
+			if err == nil {
+				samplePrint = fmt.Sprintf("%s", m)
+			}
+		}
+
+		// truncate long sample documents
+		if len(samplePrint) > 100 {
+			samplePrint = fmt.Sprintf("%s...", samplePrint[:100])
+		}
+
+		schemaGen.Logger.Logf(log.DebugHigh, "Including sample: %#v", samplePrint)
+		err = col.IncludeSample(*doc)
 		if err != nil {
-			schemaGen.Logger.Logf(log.Always, "Error including sample: %+v", doc)
+			schemaGen.Logger.Logf(log.Always, "Error including sample: %#v", samplePrint)
 			return err
 		}
 

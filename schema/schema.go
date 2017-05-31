@@ -17,6 +17,26 @@ type Schema struct {
 	Databases []*Database `yaml:"schema"`
 }
 
+// Database represents a configuration for a database.
+type Database struct {
+	// Name is the name of the database.
+	Name string `yaml:"db"`
+	// Tables are the tables in the database.
+	Tables []*Table `yaml:"tables"`
+}
+
+// Table represents a configuration for a table.
+type Table struct {
+	// Name is the name of a table.
+	Name string `yaml:"table"`
+	// CollectionName is the collection name the table maps to in MongoDB.
+	CollectionName string `yaml:"collection"`
+	// Pipeline are pre-processing directives for how to derive the table from the MongoDB collection.
+	Pipeline []bson.D `yaml:"pipeline"`
+	// Columns are the columns in the table.
+	Columns []*Column `yaml:"columns"`
+}
+
 // New creates a new schema.
 func New(data []byte) (*Schema, error) {
 	s := &Schema{}
@@ -104,14 +124,6 @@ func (s *Schema) Validate() error {
 	return nil
 }
 
-// Database represents a configuration for a database.
-type Database struct {
-	// Name is the name of the database.
-	Name string `yaml:"db"`
-	// Tables are the tables in the database.
-	Tables []*Table `yaml:"tables"`
-}
-
 // Table gets the table with the given name.
 func (d *Database) Table(name string) (*Table, bool) {
 	name = strings.ToLower(name)
@@ -142,18 +154,6 @@ func (d *Database) validate() error {
 	}
 
 	return nil
-}
-
-// Table represents a configuration for a table.
-type Table struct {
-	// Name is the name of a table.
-	Name string `yaml:"table"`
-	// CollectionName is the collection name the table maps to in MongoDB.
-	CollectionName string `yaml:"collection"`
-	// Pipeline are pre-processing directives for how to derive the table from the MongoDB collection.
-	Pipeline []bson.D `yaml:"pipeline"`
-	// Columns are the columns in the table.
-	Columns []*Column `yaml:"columns"`
 }
 
 // Column gets the column given the SqlName.

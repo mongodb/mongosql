@@ -78,7 +78,7 @@
       ORCHESTRATION_ARGUMENTS="$ORCHESTRATION_ARGUMENTS -s wsgiref"
     fi
 
-    # Forcibly kill the process listening on port 8889, most likey a wild
+    # Forcibly kill the process listening on port 8889, most likely a wild
     # mongo-orchestration left running from a previous task.
     if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
       OLD_MO_PID=$(netstat -ano | grep ':8889 .* LISTENING' | awk '{print $5}' | tr -d '[:space:]')
