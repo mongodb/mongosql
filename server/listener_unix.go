@@ -5,6 +5,7 @@ package server
 import (
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"syscall"
 )
@@ -31,13 +32,42 @@ func (s *Server) populateListeners() error {
 
 		oldMask := syscall.Umask(int(BASEMASK - permissions))
 		listener, err = net.Listen("unix", socket)
-		syscall.Umask(oldMask)
 		if err != nil {
-			return err
+			if !isErrAddrInUse(err) {
+				return err
+			}
+
+			c, dialErr := net.Dial("unix", socket)
+			if dialErr == nil {
+				// probably a server already listening
+				// for connections, don't attempt to
+				// unlink the socket file
+				c.Close()
+				return err
+			}
+
+			// remove socket file
+			os.Remove(socket)
+			listener, err = net.Listen("unix", socket)
+			if err != nil {
+				return err
+			}
 		}
 
+		syscall.Umask(oldMask)
 		s.listeners = append(s.listeners, listener)
 	}
 
 	return nil
+}
+
+// isErrAddrInUse returns true if err is of type syscall.EADDRINUSE
+// and false otherwise.
+func isErrAddrInUse(err error) bool {
+	if opErr, ok := err.(*net.OpError); ok {
+		if sysErr, ok := opErr.Err.(*os.SyscallError); ok {
+			return sysErr.Err == syscall.EADDRINUSE
+		}
+	}
+	return false
 }

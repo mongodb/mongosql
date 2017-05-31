@@ -145,7 +145,7 @@ func main() {
 
 	sessionProvider, err := mongodb.NewSqldSessionProvider(opts)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error starting server: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error establishing session provider: %v\n", err)
 		os.Exit(util.ExitError)
 	}
 	defer sessionProvider.Close()
