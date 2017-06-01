@@ -51,6 +51,10 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, false, "cfg.MongoDB.Net.SSL.FIPSMode")
+
+	testString(t, cfg.ProcessManagement.Service.Name, "mongosqlsvc", "cfg.ProcessManagement.Service.Name")
+	testString(t, cfg.ProcessManagement.Service.DisplayName, "MongoSQL Service", "cfg.ProcessManagement.Service.DisplayName")
+	testString(t, cfg.ProcessManagement.Service.Description, "MongoSQL accesses MongoDB data with SQL", "cfg.ProcessManagement.Service.Description")
 }
 
 func TestLoad(t *testing.T) {

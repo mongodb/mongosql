@@ -1,13 +1,11 @@
-// Main package for the mongosqld tool.
 package main
 
 import (
 	"fmt"
 	"os"
-	"os/signal"
-	"runtime"
 	"strings"
-	"syscall"
+
+	"github.com/kardianos/service"
 
 	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/internal/config"
@@ -15,52 +13,199 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
-	"github.com/10gen/sqlproxy/util"
 )
 
-func loadConfig() *config.Config {
+type program struct {
+	cfg *config.Config
 
-	cfg, err := config.Load(os.Args)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(util.ExitError)
-	}
+	sessionProvider *mongodb.SessionProvider
 
-	err = config.Validate(cfg)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(util.ExitError)
-	}
-
-	return cfg
+	serviceLogger service.Logger
+	logfile       *os.File
+	controlLogger *log.Logger
+	schema        *schema.Schema
+	svr           *server.Server
 }
 
-func loadSchema(cfg *config.Schema) *schema.Schema {
+func (p *program) Start(s service.Service) error {
+	var err error
+	if !service.Interactive() {
+		p.serviceLogger, err = s.Logger(nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = config.Validate(p.cfg)
+	if err != nil {
+		if !service.Interactive() {
+			p.serviceLogger.Errorf("%s failed to start. Configuration was invalid: %v", s, err)
+		}
+		p.cleanup()
+		return err
+	}
+
+	if !service.Interactive() {
+		p.serviceLogger.Infof("%s starting with options: %s", s, config.ToJSON(p.cfg))
+	}
+
+	err = p.loadSchema()
+	if err != nil {
+		if !service.Interactive() {
+			p.serviceLogger.Errorf("%s failed to start. Could not load schema: %v", s, err)
+		}
+		p.cleanup()
+		return err
+	}
+
+	err = p.initLog()
+	if err != nil {
+		if !service.Interactive() {
+			p.serviceLogger.Errorf("%s failed to start. Could not initialize logger: %v", s, err)
+		}
+		p.cleanup()
+		return err
+	}
+
+	p.logStartupInfo()
+
+	p.sessionProvider, err = mongodb.NewSqldSessionProvider(p.cfg)
+	if err != nil {
+		if !service.Interactive() {
+			p.serviceLogger.Errorf("%s failed to start. Could not create session provider: %v", s, err)
+		}
+		p.cleanup()
+		return err
+	}
+
+	p.svr, err = server.New(p.schema, p.sessionProvider, p.cfg)
+	if err != nil {
+		if !service.Interactive() {
+			p.serviceLogger.Errorf("%s failed to start. Could not start server: %v", s, err)
+		}
+		p.cleanup()
+		return err
+	}
+
+	go func() {
+		defer p.cleanup()
+		p.svr.Run()
+	}()
+
+	return nil
+}
+
+func (p *program) Stop(s service.Service) error {
+	// Any work in Stop should be quick, usually a few seconds at most.
+	if !service.Interactive() {
+		p.serviceLogger.Infof("%s stopping", s)
+	}
+
+	p.controlLogger.Logf(log.Info, "[signalProcessingThread] shutting down")
+	p.svr.Close()
+	return nil
+}
+
+func (p *program) cleanup() {
+	if p.sessionProvider != nil {
+		p.sessionProvider.Close()
+	}
+	if p.logfile != nil {
+		p.logfile.Close()
+	}
+	if p.cfg.Net.UnixDomainSocket.Enabled {
+		os.Remove(fmt.Sprintf("%s/mysql.sock", p.cfg.Net.UnixDomainSocket.PathPrefix))
+	}
+}
+
+func (p *program) initLog() error {
+
+	// set global log level
+	log.SetVerbosity(&verbosityLevel{
+		level: p.cfg.SystemLog.Verbosity,
+		quiet: p.cfg.SystemLog.Quiet,
+	})
+
+	if len(p.cfg.SystemLog.Path) > 0 {
+		mode := os.O_CREATE | os.O_WRONLY
+
+		if p.cfg.SystemLog.LogAppend {
+			mode = mode | os.O_APPEND
+		} else {
+			mode = mode | os.O_TRUNC
+		}
+
+		var err error
+		p.logfile, err = os.OpenFile(p.cfg.SystemLog.Path, mode, 0666)
+		if err != nil {
+			return err
+		}
+
+		if service.Interactive() {
+			fmt.Fprintf(os.Stdout, "log output directed to %s\n", p.cfg.SystemLog.Path)
+		}
+
+		log.SetWriter(p.logfile)
+	}
+
+	p.controlLogger = log.NewComponentLogger(log.ControlComponent, log.GlobalLogger())
+	return nil
+}
+
+func (p *program) loadConfig(args []string) error {
+	cfg, err := config.Load(args)
+	if err != nil {
+		return err
+	}
+
+	p.cfg = cfg
+	return nil
+}
+
+func (p *program) loadSchema() error {
 	var err error
 
-	fi, err := os.Stat(cfg.Path)
+	fi, err := os.Stat(p.cfg.Schema.Path)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error loading schema: %v\n", err)
-		os.Exit(util.ExitError)
+		return err
 	}
 
-	s := &schema.Schema{}
+	p.schema = &schema.Schema{}
 
 	if fi.IsDir() {
-		err = s.LoadDir(cfg.Path)
+		err = p.schema.LoadDir(p.cfg.Schema.Path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error loading schema: %v\n", err)
-			os.Exit(util.ExitError)
+			return err
 		}
 	} else {
-		err = s.LoadFile(cfg.Path)
+		err = p.schema.LoadFile(p.cfg.Schema.Path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error loading schema: %v\n", err)
-			os.Exit(util.ExitError)
+			return err
 		}
 	}
 
-	return s
+	return nil
+}
+
+func (p *program) logStartupInfo() {
+	p.controlLogger.Logf(log.Always, "[initandlisten] mongosqld version: %v", common.VersionStr)
+	p.controlLogger.Logf(log.Always, "[initandlisten] git version: %v", common.Gitspec)
+	p.controlLogger.Logf(log.Always, "[initandlisten] options: %v", config.ToJSON(p.cfg))
+
+	// Production release version strings should not contain a "-", whereas all development releases should, e.g.
+	// Production release: v2.0.1
+	// Development release: v2.0.0-beta5 or v2.0.0-beta5-8-gfad1111
+	if strings.Contains(common.VersionStr, "-") {
+		p.controlLogger.Logf(log.Always, "[initandlisten]")
+		p.controlLogger.Logf(log.Always, "[initandlisten] ** NOTE: This is a development version (%v) of mongosqld.", common.VersionStr)
+		p.controlLogger.Logf(log.Always, "[initandlisten] **       Not recommended for production.")
+		p.controlLogger.Logf(log.Always, "[initandlisten]")
+	}
+
+	if !p.cfg.Security.Enabled {
+		p.controlLogger.Logf(log.Always, "[initandlisten] ** WARNING: Access control is not enabled for mongosqld.")
+		p.controlLogger.Logf(log.Always, "[initandlisten]")
+	}
 }
 
 type verbosityLevel struct {
@@ -76,111 +221,64 @@ func (v *verbosityLevel) IsQuiet() bool {
 	return v.quiet
 }
 
-func setupLog(cfg *config.SystemLog) (*os.File, *log.Logger) {
-	var logfile *os.File
-	var err error
-
-	// set global log level
-	log.SetVerbosity(&verbosityLevel{
-		level: cfg.Verbosity,
-		quiet: cfg.Quiet,
-	})
-
-	if len(cfg.Path) > 0 {
-		mode := os.O_WRONLY
-		if _, err = os.Stat(cfg.Path); err != nil {
-			mode = mode | os.O_CREATE
-		}
-
-		if cfg.LogAppend {
-			mode = mode | os.O_APPEND
-		} else {
-			mode = mode | os.O_TRUNC
-		}
-
-		logfile, err = os.OpenFile(cfg.Path, mode, 0600)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error opening log file: %v\n", err)
-			os.Exit(util.ExitError)
-		}
-
-		log.SetWriter(logfile)
-	}
-
-	return logfile, log.NewComponentLogger(log.NetworkComponent, log.GlobalLogger())
-}
-
-func logStartupInfo(cfg *config.Config) {
-	controlLogger := log.NewComponentLogger(log.ControlComponent, log.GlobalLogger())
-
-	controlLogger.Logf(log.Always, "[initandlisten] mongosqld version: %v", common.VersionStr)
-	controlLogger.Logf(log.Always, "[initandlisten] git version: %v", common.Gitspec)
-	controlLogger.Logf(log.Always, "[initandlisten] options: %v", config.ToJSON(cfg))
-
-	// Production release version strings should not contain a "-", whereas all development releases should, e.g.
-	// Production release: v2.0.1
-	// Development release: v2.0.0-beta5 or v2.0.0-beta5-8-gfad1111
-	if strings.Contains(common.VersionStr, "-") {
-		controlLogger.Logf(log.Always, "[initandlisten]")
-		controlLogger.Logf(log.Always, "[initandlisten] ** NOTE: This is a development version (%v) of mongosqld.", common.VersionStr)
-		controlLogger.Logf(log.Always, "[initandlisten] **       Not recommended for production.")
-		controlLogger.Logf(log.Always, "[initandlisten]")
-	}
-
-	if !cfg.Security.Enabled {
-		controlLogger.Logf(log.Always, "[initandlisten] ** WARNING: Access control is not enabled for mongosqld.")
-		controlLogger.Logf(log.Always, "[initandlisten]")
-	}
-}
-
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	cfg := loadConfig()
-
-	logStartupInfo(cfg)
-
-	schema := loadSchema(&cfg.Schema)
-
-	logfile, logger := setupLog(&cfg.SystemLog)
-	if logfile != nil {
-		defer logfile.Close()
+	args := os.Args[1:]
+	action := ""
+	if len(args) > 0 && (args[0] == "install" || args[0] == "uninstall") {
+		action = args[0]
+		args = args[1:]
 	}
 
-	sessionProvider, err := mongodb.NewSqldSessionProvider(cfg)
+	p := &program{}
+	err := p.loadConfig(args)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error establishing session provider: %v\n", err)
-		os.Exit(util.ExitError)
+		fmt.Fprintf(os.Stderr, "failed to start due to configuration error: %v", err)
+		os.Exit(1)
 	}
-	defer sessionProvider.Close()
 
-	svr, err := server.New(schema, sessionProvider, cfg)
+	svcConfig := &service.Config{
+		Name:        p.cfg.ProcessManagement.Service.Name,
+		DisplayName: p.cfg.ProcessManagement.Service.DisplayName,
+		Description: p.cfg.ProcessManagement.Service.Description,
+		Arguments:   args,
+	}
+
+	s, err := service.New(p, svcConfig)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error starting server: %v\n", err)
-		os.Exit(util.ExitError)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
-	defer func() {
-		if cfg.Net.UnixDomainSocket.Enabled {
-			os.Remove(fmt.Sprintf("%s/mysql.sock", cfg.Net.UnixDomainSocket.PathPrefix))
+	switch action {
+	case "install":
+		err = config.Validate(p.cfg)
+		if err != nil {
+			fmt.Fprintf(os.Stdout, "could not install because configuration is invalid: %s", err)
+			os.Exit(1)
 		}
-	}()
 
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
+		err = s.Install()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 
-	util.PanicSafeGo(func() {
-		sig := <-sc
-		logger.Logf(log.Info, "[signalProcessingThread] got %s signal, now exiting...", sig.String())
-		svr.Close()
-	}, func(err interface{}) {
-		logger.Errf(log.Info, "[signalProcessingThread] got error %s now exiting...", err)
-	})
+		fmt.Fprintf(os.Stdout, "%s service installed", p.cfg.ProcessManagement.Service.Name)
+		os.Exit(0)
+	case "uninstall":
+		err = s.Uninstall()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 
-	svr.Run()
-	logger.Logf(log.Info, "[signalProcessingThread] shutting down with code 0")
-	os.Exit(util.ExitClean)
+		fmt.Fprintf(os.Stdout, "%s service uninstalled", p.cfg.ProcessManagement.Service.Name)
+		os.Exit(0)
+	default:
+		err = s.Run()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
 }

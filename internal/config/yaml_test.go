@@ -56,6 +56,12 @@ mongodb:
       CAFile: "mongocafile"
       CRLFile: "mongocrlfile"
       FIPSMode: true
+
+processManagement:
+  service:
+    name: oompa
+    displayName: loompa
+    description: doompa tee do
 `))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -98,6 +104,10 @@ mongodb:
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "mongocafile", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "mongocrlfile", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, true, "cfg.MongoDB.Net.SSL.FIPSMode")
+
+	testString(t, cfg.ProcessManagement.Service.Name, "oompa", "cfg.ProcessManagement.Service.Name")
+	testString(t, cfg.ProcessManagement.Service.DisplayName, "loompa", "cfg.ProcessManagement.Service.DisplayName")
+	testString(t, cfg.ProcessManagement.Service.Description, "doompa tee do", "cfg.ProcessManagement.Service.Description")
 }
 
 func TestParseYaml_Invalid(t *testing.T) {

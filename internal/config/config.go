@@ -67,6 +67,10 @@ func Default() *Config {
 
 	cfg.MongoDB.Net.URI = "mongodb://localhost:27017"
 
+	cfg.ProcessManagement.Service.Name = "mongosqlsvc"
+	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
+	cfg.ProcessManagement.Service.Description = "MongoSQL accesses MongoDB data with SQL"
+
 	return cfg
 }
 
@@ -126,6 +130,7 @@ type Config struct {
 	Net       Net
 	Security  Security
 	MongoDB   MongoDB `config:"mongodb"`
+	ProcessManagement ProcessManagement
 }
 
 // SystemLog holds logging configuration.
@@ -134,6 +139,10 @@ type SystemLog struct {
 	Path      string
 	Quiet     bool
 	Verbosity int
+}
+
+func (c *SystemLog) validate() error {
+	return nil
 }
 
 // Runtime holds runtime configuration.
@@ -203,4 +212,16 @@ type MongoDBNetSSL struct {
 	CAFile                   string `config:"CAFile"`
 	CRLFile                  string `config:"CRLFile"`
 	FIPSMode                 bool   `config:"FIPSMode"`
+}
+
+// ProcessManagement holds configuration for managing the MongoSQL process.
+type ProcessManagement struct {
+	Service ProcessManagementService
+}
+
+// ProcessManagementService holds configuration for the service.
+type ProcessManagementService struct {
+	Name        string
+	DisplayName string
+	Description string
 }
