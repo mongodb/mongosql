@@ -19,52 +19,6 @@ func ForceEOF(yylex interface{}) {
   yylex.(*Tokenizer).ForceEOF = true
 }
 
-var (
-  SHARE                    = []byte("share")
-  MODE                     = []byte("mode")
-  IF_BYTES                 = []byte("if")
-  VALUES_BYTES             = []byte("values")
-  RIGHT_BYTES              = []byte("right")
-  LEFT_BYTES               = []byte("left")
-  MOD_BYTES                = []byte("mod")
-  YEAR_BYTES               = []byte("year")
-  QUARTER_BYTES            = []byte("quarter")
-  MONTH_BYTES              = []byte("month")
-  WEEK_BYTES               = []byte("week")
-  DAY_BYTES                = []byte("day")
-  HOUR_BYTES               = []byte("hour")
-  MINUTE_BYTES             = []byte("minute")
-  SECOND_BYTES             = []byte("second")
-  MICROSECOND_BYTES        = []byte("microsecond")
-  SECOND_MICROSECOND_BYTES = []byte("second_microsecond")
-  MINUTE_MICROSECOND_BYTES = []byte("minute_microsecond")
-  MINUTE_SECOND_BYTES      = []byte("minute_second")
-  HOUR_MICROSECOND_BYTES   = []byte("hour_microsecond")
-  HOUR_SECOND_BYTES        = []byte("hour_second")
-  HOUR_MINUTE_BYTES        = []byte("hour_minute")
-  DAY_MICROSECOND_BYTES    = []byte("day_microsecond")
-  DAY_SECOND_BYTES         = []byte("day_second")
-  DAY_MINUTE_BYTES         = []byte("day_minute")
-  DAY_HOUR_BYTES           = []byte("day_hour")
-  YEAR_MONTH_BYTES         = []byte("year_month")
-  BINARY_BYTES             = []byte("binary")
-  CHAR_BYTES               = []byte("char")
-  DATE_BYTES               = []byte("date")
-  DATETIME_BYTES           = []byte("datetime")
-  DECIMAL_BYTES            = []byte("decimal")
-  FLOAT_BYTES              = []byte("float")
-  INTEGER_BYTES            = []byte("integer")
-  SIGNED_BYTES             = []byte("signed")
-  UNSIGNED_BYTES           = []byte("unsigned")
-  TIME_BYTES               = []byte("time")
-  COUNT_BYTES              = []byte("count")
-  DATABASE_BYTES           = []byte("database")
-  SCHEMA_BYTES             = []byte("schema")
-  USER_BYTES               = []byte("user")
-  REPLACE_BYTES            = []byte("replace")
-  INSERT_BYTES             = []byte("insert")
-)
-
 %}
 
 %union {
@@ -95,16 +49,16 @@ var (
   orderBy     OrderBy
   order       *Order
   limit       *Limit
-  insRows     InsertRows
   updateExprs UpdateExprs
   updateExpr  *UpdateExpr
 }
 
 %token LEX_ERROR
-%token <empty> SELECT INSERT UPDATE DELETE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN
-%token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LPAREN RPAREN LBRACE RBRACE TILDE
+
+%token <empty> SELECT CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN
+%token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES DEFAULT LOCK
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP DECIMAL NCHAR
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
 %token <empty> DATE_SUB SUBDATE ROW
@@ -114,6 +68,17 @@ var (
 %token <empty> ENGINE MUTEX ENGINES STORAGE ERRORS COUNT CODE GRANTS OPEN PLUGINS PRIVILEGES
 %token <empty> PROFILE PROFILES RELAYLOG SLAVE HOSTS TRIGGERS WARNINGS CHANNEL INDEXES KEYS SCHEMAS
 %token <empty> FN OJ ESCAPE
+%token <empty> TABLE INDEX VIEW IGNORE IF
+%token <bytes> TRANSACTION ISOLATION LEVEL
+%token <bytes> READ WRITE ONLY
+%token <bytes> REPEATABLE COMMITTED UNCOMMITTED SERIALIZABLE
+%token <empty> NAMES CHARACTER COLLATE
+%token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS COLLATION PROCESSLIST STATUS CHARSET
+%token <empty> EXPLAIN DESCRIBE
+%token <empty> EXTENDED PARTITIONS FORMAT TRADITIONAL JSON
+%token <empty> KILL
+%token <empty> CONNECTION QUERY
+%token <empty> SESSION GLOBAL 
 
 %nonassoc <empty> YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
 %nonassoc <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND DAY_MINUTE DAY_HOUR YEAR_MONTH
@@ -137,71 +102,32 @@ var (
 %left <empty> END
 %left <empty> INTERVAL
 
-// Transaction Tokens
-%token <bytes> BEGIN COMMIT ROLLBACK
-%token <bytes> TRANSACTION ISOLATION LEVEL
-%token <bytes> READ WRITE ONLY
-%token <bytes> REPEATABLE COMMITTED UNCOMMITTED SERIALIZABLE
-
-// Charset Tokens
-%token <empty> NAMES
-%token <empty> CHARACTER
-%token <empty> COLLATE
-
-// Replace
-%token <empty> REPLACE
-
-// Mixer admin
-%token <empty> ADMIN
-
-// Show
-%token <empty> SHOW
-%token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS COLLATION PROCESSLIST STATUS CHARSET
-
-// Explain
-%token <empty> EXPLAIN DESCRIBE
-%token <empty> EXTENDED PARTITIONS FORMAT TRADITIONAL JSON
-
-// Kill
-%token <empty> KILL
-%token <empty> CONNECTION QUERY
-
-// Scope
-%token <empty> SESSION GLOBAL 
-
-// DDL Tokens
-%token <empty> CREATE ALTER DROP RENAME
-%token <empty> TABLE INDEX VIEW TO IGNORE IF UNIQUE USING
-
 %start any_command
 
 %type <statement> command
 %type <selStmt> select_statement
-%type <statement> insert_statement update_statement delete_statement set_statement use_statement
-%type <statement> create_statement alter_statement rename_statement drop_statement
+%type <statement> set_statement use_statement show_statement explain_statement explainable_stmt
+%type <statement> kill_statement
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
 %type <str> all_any_some
 %type <str> distinct_opt
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
-%type <bytes> as_lower_opt as_opt
-%type <expr> expression bool_pri predicate bit_expr simple_expr func_expr
+%type <bytes> as_opt
+%type <expr> expression bool_pri predicate bit_expr simple_expr func_expr func_expr_keyword func_expr_nonkeyword func_expr_generic func_expr_conflict
 %type <tableExprs> table_expression_list
 %type <tableExpr> table_expression join_expression
 %type <str> join_type
 %type <smTableExpr> simple_table_expression
-%type <tableName> dml_table_expression table_name
+%type <tableName> table_name
 %type <indexHints> index_hint_list
 %type <bytes2> index_list
 %type <expr> where_expression_opt like_escape_opt
-%type <insRows> row_list
 %type <expr> value
 %type <tuple> tuple
 %type <expr> boolean_value
 %type <exprs> expression_list
-%type <values> tuple_list
-%type <bytes> keyword_as_func
 %type <bytes> interval_unit
 %type <bytes> time_interval
 %type <bytes> sql_time_interval
@@ -209,7 +135,7 @@ var (
 %type <bytes> sql_types
 %type <subquery> subquery
 %type <byt> unary_operator
-%type <colName> column_name column_name_opt
+%type <colName> column_name explain_column_name
 %type <caseExpr> case_expression
 %type <whens> when_expression_list
 %type <when> when_expression
@@ -221,26 +147,13 @@ var (
 %type <str> asc_desc_opt
 %type <limit> limit_opt
 %type <str> lock_opt
-%type <columns> column_list_opt column_list
-%type <updateExprs> on_dup_opt
 %type <updateExprs> update_list
 %type <updateExpr> update_expression
 %type <bytes> transaction_characteristics
 %type <bytes> transaction_characteristic
 %type <bytes> transaction_level
-%type <empty> exists_opt not_exists_opt ignore_opt non_rename_operation to_opt constraint_opt using_opt
-%type <bytes> sql_id
-%type <empty> force_eof
 %type <empty> explain_alias
-%type <empty> in_or_from
-
-%type <statement> begin_statement commit_statement rollback_statement
-%type <statement> replace_statement
-%type <statement> show_statement
-%type <statement> kill_statement
-%type <statement> admin_statement
-%type <statement> explain_statement
-%type <statement> explainable_stmt
+%type <empty> in_or_from optional_parens
 
 %type <empty> if_not_exists_opt storage_opt
 %type <expr> in_opt from_opt
@@ -252,6 +165,7 @@ var (
 %type <str> format_name
 %type <str> kill_modifier
 %type <bytes> for_user_opt for_channel_opt both_leading_trailing_opt
+%type <bytes> sql_id keyword_as_id
 %%
 
 any_command:
@@ -265,41 +179,17 @@ command:
   {
     $$ = $1
   }
-| insert_statement
-| update_statement
-| delete_statement
 | set_statement
-| create_statement
-| alter_statement
-| rename_statement
-| drop_statement
-| begin_statement
-| commit_statement
 | kill_statement
-| rollback_statement
-| replace_statement
 | show_statement
-| admin_statement
 | explain_statement
 | use_statement
 
 
 select_statement:
-  SELECT comment_opt distinct_opt select_expression_list
+  SELECT comment_opt distinct_opt select_expression_list limit_opt
   {
-    $$ = &SimpleSelect{Comments: Comments($2), Distinct: $3, SelectExprs: $4}
-  }
-| SELECT comment_opt distinct_opt select_expression LIMIT NUMBER
-  {
-    $$ = &SimpleSelect{Comments: Comments($2), Distinct: $3, SelectExprs: []SelectExpr{$4}, Limit: &Limit{Rowcount: NumVal($6)}}
-  }
-| SELECT comment_opt distinct_opt select_expression LIMIT NUMBER COMMA NUMBER
-  {
-    $$ = &SimpleSelect{Comments: Comments($2), Distinct: $3, SelectExprs: []SelectExpr{$4}, Limit: &Limit{Offset: NumVal($6), Rowcount: NumVal($8)}}
-  }
-| SELECT comment_opt distinct_opt select_expression LIMIT NUMBER OFFSET NUMBER
-  {
-    $$ = &SimpleSelect{Comments: Comments($2), Distinct: $3, SelectExprs: []SelectExpr{$4}, Limit: &Limit{Offset: NumVal($8), Rowcount: NumVal($6)}}
+    $$ = &SimpleSelect{Comments: Comments($2), Distinct: $3, SelectExprs: $4, Limit: $5}
   }
 | SELECT comment_opt distinct_opt select_expression_list FROM table_expression_list where_expression_opt group_by_opt having_opt order_by_opt limit_opt lock_opt
   {
@@ -310,56 +200,10 @@ select_statement:
     $$ = &Union{Type: $2, Left: $1, Right: $3}
   }
 
-
 use_statement:
   USE ID
   {
     $$ = &Use{DBName: $2}
-  }
-
-insert_statement:
-  INSERT comment_opt INTO dml_table_expression column_list_opt row_list on_dup_opt
-  {
-    $$ = &Insert{Comments: Comments($2), Table: $4, Columns: $5, Rows: $6, OnDup: OnDup($7)}
-  }
-| INSERT comment_opt INTO dml_table_expression SET update_list on_dup_opt
-  {
-    cols := make(Columns, 0, len($6))
-    vals := make(ValTuple, 0, len($6))
-    for _, col := range $6 {
-      cols = append(cols, &NonStarExpr{Expr: col.Name})
-      vals = append(vals, col.Expr)
-    }
-    $$ = &Insert{Comments: Comments($2), Table: $4, Columns: cols, Rows: Values{vals}, OnDup: OnDup($7)}
-  }
-
-replace_statement:
-  REPLACE comment_opt INTO dml_table_expression column_list_opt row_list
-  {
-    $$ = &Replace{Comments: Comments($2), Table: $4, Columns: $5, Rows: $6}
-  }
-| REPLACE comment_opt INTO dml_table_expression SET update_list
-  {
-    cols := make(Columns, 0, len($6))
-    vals := make(ValTuple, 0, len($6))
-    for _, col := range $6 {
-      cols = append(cols, &NonStarExpr{Expr: col.Name})
-      vals = append(vals, col.Expr)
-    }
-    $$ = &Replace{Comments: Comments($2), Table: $4, Columns: cols, Rows: Values{vals}}
-  }
-
-
-update_statement:
-  UPDATE comment_opt dml_table_expression SET update_list where_expression_opt order_by_opt limit_opt
-  {
-    $$ = &Update{Comments: Comments($2), Table: $3, Exprs: $5, Where: NewWhere(AST_WHERE, $6), OrderBy: $7, Limit: $8}
-  }
-
-delete_statement:
-  DELETE comment_opt FROM dml_table_expression where_expression_opt order_by_opt limit_opt
-  {
-    $$ = &Delete{Comments: Comments($2), Table: $4, Where: NewWhere(AST_WHERE, $5), OrderBy: $6, Limit: $7}
   }
 
 set_statement:
@@ -394,7 +238,7 @@ set_statement:
   }
 | SET scope_modifier_opt TRANSACTION transaction_characteristics
   {
-    $$ = &Set{Comments: append([][]byte{}, []byte($2), []byte("transaction"), $4)}
+    $$ = &Set{Comments: append([][]byte{}, []byte($2), TRANSACTION_BYTES, $4)}
   }
 
 transaction_characteristics:
@@ -436,31 +280,7 @@ transaction_level:
   }
 | SERIALIZABLE
   {
-    $$ = []byte("serializable")
-  }
-
-begin_statement:
-  BEGIN
-  {
-    $$ = &Begin{}
-  }
-
-commit_statement:
-  COMMIT
-  {
-    $$ = &Commit{}
-  }
-
-rollback_statement:
-  ROLLBACK
-  {
-    $$ = &Rollback{}
-  }
-
-admin_statement:
-  ADMIN sql_id LPAREN expression_list RPAREN
-  {
-    $$ = &Admin{Name : $2, Values : $4}
+    $$ = SERIALIZABLE_BYTES
   }
 
 in_or_from:
@@ -583,11 +403,11 @@ show_statement:
   {
     $$ = &Show{Section: "create view", Modifier: string($4)}
   }
-| SHOW ENGINE sql_id STATUS
+| SHOW ENGINE ID STATUS
   {
     $$ = &Show{Section: "engine", Modifier: string($3)}
   }
-| SHOW ENGINE sql_id MUTEX
+| SHOW ENGINE ID MUTEX
   {
     $$ = &Show{Section: "engine", Modifier: string($3)}
   }
@@ -707,7 +527,7 @@ show_statement:
   {
     $$ = &Show{Section: "tables", Modifier: $2, From: $4, LikeOrWhere: $5}
   }
-| SHOW PROXY sql_id from_opt like_or_where_opt
+| SHOW PROXY ID from_opt like_or_where_opt
   {
     $$ = &Show{Section: "proxy", Key: string($3), From: $4, LikeOrWhere: $5}
   }
@@ -789,9 +609,17 @@ table_name:
   {
     $$ = &TableName{Name: $1}
   }
+| DOT sql_id
+  {
+    $$ = &TableName{Name: $2}
+  }
+| sql_id DOT sql_id
+  {
+    $$ = &TableName{Qualifier: $1, Name: $3}
+  }
   
 explain_statement:
-  explain_alias table_name column_name_opt
+  explain_alias table_name explain_column_name
   {
     $$ = &Explain{Section: "table", Table: $2, Column: $3}
   }
@@ -804,6 +632,19 @@ explain_statement:
     $$ = &Explain{Section: "plan", ExplainType: $2, Connection: $5}
   }
 
+explain_column_name:
+  {
+    $$ = nil
+  }
+| sql_id
+  {
+    $$ = &ColName{Name: $1}
+  }
+| STRING
+  {
+    $$ = &ColName{Name: $1}
+  }
+
 kill_statement:
   KILL expression
   {
@@ -812,57 +653,6 @@ kill_statement:
 | KILL kill_modifier expression
   {
     $$ = &Kill{Scope: $2, ID: $3}
-  }
-
-create_statement:
-  CREATE TABLE not_exists_opt ID force_eof
-  {
-    $$ = &DDL{Action: AST_CREATE, NewName: $4}
-  }
-| CREATE constraint_opt INDEX sql_id using_opt ON ID force_eof
-  {
-    // Change this to an alter statement
-    $$ = &DDL{Action: AST_ALTER, Table: $7, NewName: $7}
-  }
-| CREATE VIEW sql_id force_eof
-  {
-    $$ = &DDL{Action: AST_CREATE, NewName: $3}
-  }
-
-alter_statement:
-  ALTER ignore_opt TABLE ID non_rename_operation force_eof
-  {
-    $$ = &DDL{Action: AST_ALTER, Table: $4, NewName: $4}
-  }
-| ALTER ignore_opt TABLE ID RENAME to_opt ID
-  {
-    // Change this to a rename statement
-    $$ = &DDL{Action: AST_RENAME, Table: $4, NewName: $7}
-  }
-| ALTER VIEW sql_id force_eof
-  {
-    $$ = &DDL{Action: AST_ALTER, Table: $3, NewName: $3}
-  }
-
-rename_statement:
-  RENAME TABLE ID TO ID
-  {
-    $$ = &DDL{Action: AST_RENAME, Table: $3, NewName: $5}
-  }
-
-drop_statement:
-  DROP TABLE exists_opt ID
-  {
-    $$ = &DDL{Action: AST_DROP, Table: $4}
-  }
-| DROP INDEX sql_id ON ID
-  {
-    // Change this to an alter statement
-    $$ = &DDL{Action: AST_ALTER, Table: $5, NewName: $5}
-  }
-| DROP VIEW exists_opt sql_id force_eof
-  {
-    $$ = &DDL{Action: AST_DROP, Table: $4}
   }
 
 comment_opt:
@@ -930,30 +720,17 @@ select_expression:
   {
     $$ = &StarExpr{}
   }
-| expression as_lower_opt
+| expression as_opt
   {
     $$ = &NonStarExpr{Expr: $1, As: $2}
   }
-| expression as_lower_opt PRECISION
+| expression as_opt PRECISION
   {
     $$ = &NonStarExpr{Expr: $1, As: $2}
   }
-| ID DOT TIMES
+| sql_id DOT TIMES
   {
     $$ = &StarExpr{TableName: $1}
-  }
-
-as_lower_opt: %prec INTERVAL
-  {
-    $$ = nil
-  }
-| sql_id
-  {
-    $$ = $1
-  }
-| AS sql_id
-  {
-    $$ = $2
   }
 
 table_expression_list:
@@ -994,15 +771,15 @@ join_expression:
     $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3, On: $5}
   }
 
-as_opt:
+as_opt: %prec INTERVAL
   {
     $$ = nil
   }
-| ID
+| sql_id
   {
     $$ = $1
   }
-| AS ID
+| AS sql_id
   {
     $$ = $2
   }
@@ -1046,47 +823,13 @@ join_type:
   }
 
 simple_table_expression:
-ID
+  table_name
   {
-    $$ = &TableName{Name: $1}
-  }
-| DOT ID
-  {
-    $$ = &TableName{Name: $2}
-  }
-| ID DOT ID
-  {
-    $$ = &TableName{Qualifier: $1, Name: $3}
+    $$ = $1
   }
 | subquery
   {
     $$ = $1
-  }
-| COLUMNS // hack for tokenizer, maybe cleaner way
-  {
-    $$ = &TableName{Name: []byte("columns")}
-  }
-| TABLES // hack for tokenizer, maybe cleaner way
-  {
-    $$ = &TableName{Name: []byte("tables")}
-  }
-| ID DOT COLUMNS // hack for tokenizer, maybe cleaner way
-  {
-    $$ = &TableName{Qualifier: $1, Name: []byte("columns")}
-  }
-| ID DOT TABLES // hack for tokenizer, maybe cleaner way
-  {
-    $$ = &TableName{Qualifier: $1, Name: []byte("tables")}
-  }
-
-dml_table_expression:
-ID
-  {
-    $$ = &TableName{Name: $1}
-  }
-| ID DOT ID
-  {
-    $$ = &TableName{Qualifier: $1, Name: $3}
   }
 
 index_hint_list:
@@ -1107,11 +850,11 @@ index_hint_list:
   }
 
 index_list:
-  sql_id
+  ID
   {
     $$ = [][]byte{$1}
   }
-| index_list COMMA sql_id
+| index_list COMMA ID
   {
     $$ = append($1, $3)
   }
@@ -1204,26 +947,6 @@ ALL
 | ANY
   {
     $$ = AST_ANY
-  }
-
-row_list:
-  VALUES tuple_list
-  {
-    $$ = $2
-  }
-| select_statement
-  {
-    $$ = $1
-  }
-
-tuple_list:
-  tuple
-  {
-    $$ = Values{$1}
-  }
-| tuple_list COMMA tuple
-  {
-    $$ = append($1, $3)
   }
 
 tuple:
@@ -1405,7 +1128,7 @@ bit_expr:
 | bit_expr PLUS INTERVAL expression interval_unit %prec PLUS
   {
     $$ = &FuncExpr{
-      Name: []byte("date_add"),
+      Name: DATE_ADD_BYTES,
       Exprs: append(SelectExprs{
         &NonStarExpr{Expr: $1},
         &NonStarExpr{Expr: $4},
@@ -1416,7 +1139,7 @@ bit_expr:
 | INTERVAL expression interval_unit PLUS bit_expr %prec INTERVAL
   {
     $$ = &FuncExpr{
-      Name: []byte("date_add"),
+      Name: DATE_ADD_BYTES,
       Exprs: append(SelectExprs{
         &NonStarExpr{Expr: $5},
         &NonStarExpr{Expr: $2},
@@ -1431,7 +1154,7 @@ bit_expr:
 | bit_expr SUB INTERVAL expression interval_unit %prec SUB
   {
     $$ = &FuncExpr{
-      Name: []byte("subdate"),
+      Name: SUBDATE_BYTES,
       Exprs: append(SelectExprs{
         &NonStarExpr{Expr: $1},
         &NonStarExpr{Expr: $4},
@@ -1502,136 +1225,232 @@ simple_expr:
   {
     $$ = $1
   }
+| VALUES LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: VALUES_BYTES, Exprs: $3}
+  }
 | LBRACE FN func_expr RBRACE
   {
     $$ = $3
   }
 
 func_expr:
-  sql_id LPAREN RPAREN
+  func_expr_keyword
   {
-    $$ = &FuncExpr{Name: bytes.ToLower($1)}
+    $$ = $1
   }
-| sql_id LPAREN select_expression_list RPAREN
+| func_expr_nonkeyword
   {
-    $$ = &FuncExpr{Name: bytes.ToLower($1), Exprs: $3}
+    $$ = $1
   }
-| sql_id LPAREN DISTINCT select_expression_list RPAREN
+| func_expr_generic
   {
-    $$ = &FuncExpr{Name: bytes.ToLower($1), Distinct: true, Exprs: $4}
+    $$ = $1
   }
-| keyword_as_func LPAREN RPAREN
+| func_expr_conflict
   {
-    $$ = &FuncExpr{Name: $1}
+    $$ = $1
   }
-| keyword_as_func LPAREN select_expression_list RPAREN
+
+/*
+  function calls using keywords.
+*/
+func_expr_keyword:
+  CHAR LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: $1, Exprs: $3}
-  }
-| keyword_as_func LPAREN DISTINCT select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: $1, Distinct: true, Exprs: $4}
-  }
-| CURRENT_DATE
-  {
-    $$ = &FuncExpr{Name: []byte("current_date")}
-  }
-| CURRENT_DATE LPAREN RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("current_date")}
-  }
-| CURRENT_TIMESTAMP
-  {
-    $$ = &FuncExpr{Name: []byte("current_timestamp")}
-  }
-| CURRENT_TIMESTAMP LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("current_timestamp")}
-  }
-| CURRENT_TIMESTAMP LPAREN RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("current_timestamp")}
-  }
-| UTC_TIMESTAMP
-  {
-    $$ = &FuncExpr{Name: []byte("utc_timestamp")}
-  }
-| UTC_TIMESTAMP LPAREN RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("utc_timestamp")}
-  }
-| TIMESTAMP LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("timestamp"), Exprs: $3}
-  }
-| TIMESTAMPADD LPAREN time_interval COMMA select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("timestampadd"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
-  }
-| TIMESTAMPADD LPAREN sql_time_interval COMMA select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("timestampadd"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
-  }
-| TIMESTAMPDIFF LPAREN time_interval COMMA select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
-  }
-| TIMESTAMPDIFF LPAREN sql_time_interval COMMA select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("timestampdiff"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
-  }
-| CONVERT LPAREN expression COMMA sql_types RPAREN
-  {
-    $$ = &FuncExpr{Name: []byte("convert"), Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
+    $$ = &FuncExpr{Name: CHAR_BYTES, Exprs: $3}
   }
 | CAST LPAREN expression AS sql_types RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("convert"), Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
+    $$ = &FuncExpr{Name: CONVERT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
   }
 | CAST LPAREN expression AS sql_types PRECISION RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("convert"), Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
+    $$ = &FuncExpr{Name: CONVERT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
   }
-| DATE LPAREN select_expression RPAREN
+| CONVERT LPAREN expression COMMA sql_types RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("date"), Exprs: SelectExprs{$3}}
+    $$ = &FuncExpr{Name: CONVERT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
   }
-| EXTRACT LPAREN interval_unit FROM select_expression RPAREN
+| DATE LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("extract"), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5)}
+    $$ = &FuncExpr{Name: DATE_BYTES, Exprs: $3}
   }
-| ADDDATE LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
+| DAY LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("adddate"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+    $$ = &FuncExpr{Name: DAY_BYTES, Exprs: $3}
   }
-| ADDDATE LPAREN select_expression COMMA select_expression RPAREN
+| HOUR LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("adddate"), Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
+    $$ = &FuncExpr{Name: HOUR_BYTES, Exprs: $3}
   }
-| DATE_ADD LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
+| LEFT LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("date_add"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+    $$ = &FuncExpr{Name: LEFT_BYTES, Exprs: $3}
   }
-| SUBDATE LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
+| MINUTE LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("subdate"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+    $$ = &FuncExpr{Name: MINUTE_BYTES, Exprs: $3}
   }
-| SUBDATE LPAREN select_expression COMMA select_expression RPAREN
+| MONTH LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("subdate"), Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
+    $$ = &FuncExpr{Name: MONTH_BYTES, Exprs: $3}
   }
-| DATE_SUB LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
+| RIGHT LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("date_sub"), Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+    $$ = &FuncExpr{Name: RIGHT_BYTES, Exprs: $3}
   }
-| TRIM LPAREN select_expression RPAREN 
+| SECOND LPAREN select_expression_list RPAREN
   {
-    $$ = &FuncExpr{Name: []byte("trim"), Exprs: []SelectExpr{$3}}
+    $$ = &FuncExpr{Name: SECOND_BYTES, Exprs: $3}
+  }
+| TIMESTAMP LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: TIMESTAMP_BYTES, Exprs: $3}
+  }
+| TRIM LPAREN select_expression_list RPAREN 
+  {
+    $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: $3}
   }
 | TRIM LPAREN both_leading_trailing_opt select_expression FROM select_expression RPAREN 
   {
-    $$ = &FuncExpr{Name: []byte("trim"), Exprs: []SelectExpr{$6, &NonStarExpr{Expr: StrVal($3)}, $4}}
+    $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: []SelectExpr{$6, &NonStarExpr{Expr: StrVal($3)}, $4}}
   }
+| YEAR LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: YEAR_BYTES, Exprs: $3}
+  }
+
+/*
+  function calls using unconventional syntax.
+*/ 
+func_expr_nonkeyword:
+  ADDDATE LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
+  {
+    $$ = &FuncExpr{Name: ADDDATE_BYTES, Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+  }
+| ADDDATE LPAREN select_expression COMMA select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: ADDDATE_BYTES, Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
+  }
+| CURRENT_DATE optional_parens
+  {
+    $$ = &FuncExpr{Name: CURRENT_DATE_BYTES}
+  }
+| CURRENT_TIMESTAMP optional_parens
+  {
+    $$ = &FuncExpr{Name: CURRENT_TIMESTAMP_BYTES}
+  }
+| CURRENT_TIMESTAMP LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: CURRENT_TIMESTAMP_BYTES}
+  }
+| DATE_ADD LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
+  {
+    $$ = &FuncExpr{Name: DATE_ADD_BYTES, Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+  }
+| DATE_SUB LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
+  {
+    $$ = &FuncExpr{Name: DATE_SUB_BYTES, Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+  }
+| EXTRACT LPAREN interval_unit FROM select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: EXTRACT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5)}
+  }
+| SUBDATE LPAREN select_expression COMMA select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: SUBDATE_BYTES, Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
+  }
+| SUBDATE LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
+  {
+    $$ = &FuncExpr{Name: SUBDATE_BYTES, Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+  }
+| TIMESTAMPADD LPAREN time_interval COMMA select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: TIMESTAMPADD_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
+  }
+| TIMESTAMPADD LPAREN sql_time_interval COMMA select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: TIMESTAMPADD_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
+  }
+| TIMESTAMPDIFF LPAREN time_interval COMMA select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: TIMESTAMPDIFF_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
+  }
+| TIMESTAMPDIFF LPAREN sql_time_interval COMMA select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: TIMESTAMPDIFF_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
+  }
+| UTC_TIMESTAMP optional_parens
+  {
+    $$ = &FuncExpr{Name: UTC_TIMESTAMP_BYTES}
+  }
+
+/*
+  function calls using non-reserved keywords with regular syntax that conflict.
+*/
+func_expr_conflict:
+  COUNT LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: COUNT_BYTES, Exprs: $3}
+  }
+| COUNT LPAREN DISTINCT select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: COUNT_BYTES, Distinct: true, Exprs: $4}
+  }
+| DATABASE LPAREN RPAREN
+  {
+    $$ = &FuncExpr{Name: DATABASE_BYTES}
+  }
+| IF LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: IF_BYTES, Exprs: $3}
+  }
+| MICROSECOND LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: MICROSECOND_BYTES, Exprs: $3}
+  }
+| MOD LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: MOD_BYTES, Exprs: $3}
+  }
+| QUARTER LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: QUARTER_BYTES, Exprs: $3}
+  }
+| SCHEMA LPAREN RPAREN
+  {
+    $$ = &FuncExpr{Name: SCHEMA_BYTES}
+  }
+| WEEK LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: WEEK_BYTES, Exprs: $3}
+  }
+| USER LPAREN RPAREN
+  {
+    $$ = &FuncExpr{Name: USER_BYTES}
+  }
+
+/*
+  regular function call where the function name is NOT a token.
+*/
+func_expr_generic:
+  ID LPAREN RPAREN
+  {
+    $$ = &FuncExpr{Name: bytes.ToLower($1)}
+  }
+| ID LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: bytes.ToLower($1), Exprs: $3}
+  }
+| ID LPAREN DISTINCT select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: bytes.ToLower($1), Distinct: true, Exprs: $4}
+  }
+
+optional_parens:
+  {}
+| LPAREN RPAREN {}
 
 like_escape_opt:
   {
@@ -1649,15 +1468,15 @@ like_escape_opt:
 both_leading_trailing_opt:
   BOTH 
   {
-    $$ = []byte("both")
+    $$ = BOTH_BYTES
   }
 | LEADING
   {
-    $$ = []byte("leading")
+    $$ = LEADING_BYTES
   }
 | TRAILING
   {
-    $$ = []byte("trailing")
+    $$ = TRAILING_BYTES
   }
 
 interval_unit:
@@ -1813,6 +1632,10 @@ sql_types:
     {
       $$ = DATE_BYTES
     }
+  | DATETIME
+    {
+      $$ = DATETIME_BYTES
+    }
   | DECIMAL
     {
       $$ = DECIMAL_BYTES
@@ -1873,72 +1696,6 @@ sql_types:
     {
       $$ = FLOAT_BYTES
     }
-  // We do not want to parse datetime as a token since MySQL allows
-  // it to be a table name. As a result we parse it as a standard
-  // ID and check it to see if it matches datetime.
-  | ID
-    {
-      if bytes.Equal(bytes.ToLower($1), []byte("datetime")) {
-        $$ = DATETIME_BYTES
-      } else {
-        yylex.Error("expecting datetime")
-        return 1
-      }
-    }
-
-keyword_as_func:
-  IF
-  {
-    $$ = IF_BYTES
-  }
-| VALUES
-  {
-    $$ = VALUES_BYTES
-  }
-| RIGHT
-  {
-    $$ = RIGHT_BYTES
-  }
-| LEFT
-  {
-    $$ = LEFT_BYTES
-  }
-| MOD
-  {
-    $$ = MOD_BYTES
-  }
-| time_interval
-  {
-    $$ = $1
-  }
-| COUNT
-  {
-    $$ = COUNT_BYTES
-  }
-| DATABASE
-  {
-    $$ = DATABASE_BYTES
-  }
-| SCHEMA 
-  {
-    $$ = SCHEMA_BYTES
-  }
-| USER
-  {
-    $$ = USER_BYTES
-  }
-| REPLACE
-  {
-    $$ = REPLACE_BYTES
-  }
-| INSERT
-  {
-    $$ = INSERT_BYTES
-  }
-| CHAR
-  {
-    $$ = CHAR_BYTES
-  }
 
 unary_operator:
   PLUS
@@ -1999,22 +1756,9 @@ column_name:
   {
     $$ = &ColName{Name: $1}
   }
-| ID DOT sql_id
+| sql_id DOT sql_id
   {
     $$ = &ColName{Qualifier: $1, Name: $3}
-  }
-
-column_name_opt:
-  {
-    $$ = nil
-  }
-| sql_id
-  {
-    $$ = &ColName{Name: $1}
-  }
-| STRING
-  {
-    $$ = &ColName{Name: $1}
   }
 
 value:
@@ -2044,11 +1788,11 @@ STRING
   }
 | LBRACE ID STRING RBRACE
   {
-    if bytes.Equal(bytes.ToLower($2), []byte("d")) {
+    if bytes.Equal(bytes.ToLower($2), D_BYTES) {
       $$ = DateVal{Name: AST_DATE, Val: $3}
-    } else if bytes.Equal(bytes.ToLower($2), []byte("t")) {
+    } else if bytes.Equal(bytes.ToLower($2), T_BYTES) {
       $$ = DateVal{Name: AST_TIME, Val: $3}
-    } else if bytes.Equal(bytes.ToLower($2), []byte("ts")) {
+    } else if bytes.Equal(bytes.ToLower($2), TS_BYTES) {
       $$ = DateVal{Name: AST_TIMESTAMP, Val: $3}
     } else {
       yylex.Error("expecting d, t, or ts")
@@ -2159,45 +1903,17 @@ lock_opt:
   {
     $$ = AST_FOR_UPDATE
   }
-| LOCK IN sql_id sql_id
+| LOCK IN ID ID
   {
-    if !bytes.Equal($3, SHARE) {
+    if !bytes.Equal($3, SHARE_BYTES) {
       yylex.Error("expecting share")
       return 1
     }
-    if !bytes.Equal($4, MODE) {
+    if !bytes.Equal($4, MODE_BYTES) {
       yylex.Error("expecting mode")
       return 1
     }
     $$ = AST_SHARE_MODE
-  }
-
-column_list_opt:
-  {
-    $$ = nil
-  }
-| LPAREN column_list RPAREN
-  {
-    $$ = $2
-  }
-
-column_list:
-  column_name
-  {
-    $$ = Columns{&NonStarExpr{Expr: $1}}
-  }
-| column_list COMMA column_name
-  {
-    $$ = append($$, &NonStarExpr{Expr: $3})
-  }
-
-on_dup_opt:
-  {
-    $$ = nil
-  }
-| ON DUPLICATE KEY UPDATE update_list
-  {
-    $$ = $5
   }
 
 update_list:
@@ -2220,55 +1936,347 @@ update_expression:
     $$ = &UpdateExpr{Name: $1, Expr: StrVal("default")}
   }
 
-exists_opt:
-  { $$ = struct{}{} }
-| IF EXISTS
-  { $$ = struct{}{} }
-
-not_exists_opt:
-  { $$ = struct{}{} }
-| IF NOT EXISTS
-  { $$ = struct{}{} }
-
-ignore_opt:
-  { $$ = struct{}{} }
-| IGNORE
-  { $$ = struct{}{} }
-
-non_rename_operation:
-  ALTER
-  { $$ = struct{}{} }
-| DEFAULT
-  { $$ = struct{}{} }
-| DROP
-  { $$ = struct{}{} }
-| ORDER
-  { $$ = struct{}{} }
-| ID
-  { $$ = struct{}{} }
-
-to_opt:
-  { $$ = struct{}{} }
-| TO
-  { $$ = struct{}{} }
-
-constraint_opt:
-  { $$ = struct{}{} }
-| UNIQUE
-  { $$ = struct{}{} }
-
-using_opt:
-  { $$ = struct{}{} }
-| USING sql_id
-  { $$ = struct{}{} }
-
 sql_id:
   ID
   {
     $$ = $1
   }
+| keyword_as_id
+  {
+    $$ = $1
+  }
 
-force_eof:
-{
-  ForceEOF(yylex)
-}
+// These are non-reserved keywords...
+keyword_as_id:
+  ANY
+  {
+    $$ = ANY_BYTES
+  }
+| BINLOG
+  {
+    $$ = BINLOG_BYTES
+  }
+| CHANNEL
+  {
+    $$ = CHANNEL_BYTES
+  }
+| CHARSET
+  {
+    $$ = CHARSET_BYTES
+  }
+| CODE
+  {
+    $$ = CODE_BYTES
+  }
+| COLLATION
+  {
+    $$ = COLLATION_BYTES
+  }
+| COLUMNS
+  {
+    $$ = COLUMNS_BYTES
+  }
+| COMMITTED
+  {
+    $$ = COMMITTED_BYTES
+  }
+| CONNECTION
+  {
+    $$ = CONNECTION_BYTES
+  }
+| COUNT
+  {
+    $$ = COUNT_BYTES
+  }
+| DATE
+  {
+    $$ = DATE_BYTES
+  }
+| DATETIME
+  {
+    $$ = DATETIME_BYTES
+  }
+| DAY
+  {
+    $$ = DAY_BYTES
+  }
+| ENGINE
+  {
+    $$ = ENGINE_BYTES
+  }
+| ENGINES
+  {
+    $$ = ENGINES_BYTES
+  }
+| ERRORS
+  {
+    $$ = ERRORS_BYTES
+  }
+| EVENT
+  {
+    $$ = EVENT_BYTES
+  }
+| EVENTS
+  {
+    $$ = EVENTS_BYTES
+  }
+| EXTENDED
+  {
+    $$ = EXTENDED_BYTES
+  }
+| FORMAT
+  {
+    $$ = FORMAT_BYTES
+  }
+| FULL
+  {
+    $$ = FULL_BYTES
+  }
+| FUNCTION
+  {
+    $$ = FUNCTION_BYTES
+  }
+| GRANTS
+  {
+    $$ = GRANTS_BYTES
+  }
+| HOSTS
+  {
+    $$ = HOSTS_BYTES
+  }
+| HOUR
+  {
+    $$ = HOUR_BYTES
+  }
+| INDEXES
+  {
+    $$ = INDEXES_BYTES
+  }
+| ISOLATION
+  {
+    $$ = ISOLATION_BYTES
+  }
+| JSON
+  {
+    $$ = JSON_BYTES
+  }
+| LEVEL
+  {
+    $$ = LEVEL_BYTES
+  }
+| LOGS
+  {
+    $$ = LOGS_BYTES
+  }
+| MASTER
+  {
+    $$ = MASTER_BYTES
+  }
+| MICROSECOND
+  {
+    $$ = MICROSECOND_BYTES
+  }
+| MINUTE
+  {
+    $$ = MINUTE_BYTES
+  }
+| MONTH
+  {
+    $$ = MONTH_BYTES
+  }
+| MUTEX
+  {
+    $$ = MUTEX_BYTES
+  }
+| NAMES
+  {
+    $$ = NAMES_BYTES
+  }
+| NCHAR
+  {
+    $$ = NCHAR_BYTES
+  }
+| NUMBER
+  {
+    $$ = NUMBER_BYTES
+  }
+| OFFSET
+  {
+    $$ = OFFSET_BYTES
+  }
+| ONLY
+  {
+    $$ = ONLY_BYTES
+  }
+| OPEN
+  {
+    $$ = OPEN_BYTES
+  }
+| PARTITIONS
+  {
+    $$ = PARTITIONS_BYTES
+  }
+| PLUGINS
+  {
+    $$ = PLUGINS_BYTES
+  }
+| PRIVILEGES
+  {
+    $$ = PRIVILEGES_BYTES
+  }
+| PROCESSLIST
+  {
+    $$ = PROCESSLIST_BYTES
+  }
+| PROFILE
+  {
+    $$ = PROFILE_BYTES
+  }
+| PROFILES
+  {
+    $$ = PROFILES_BYTES
+  }
+| PROXY
+  {
+    $$ = PROXY_BYTES
+  }
+| QUARTER
+  {
+    $$ = QUARTER_BYTES
+  }
+| QUERY
+  {
+    $$ = QUERY_BYTES
+  }
+| RELAYLOG
+  {
+    $$ = RELAYLOG_BYTES
+  }
+| REPEATABLE
+  {
+    $$ = REPEATABLE_BYTES
+  }
+| ROW
+  {
+    $$ = ROW_BYTES
+  }
+| SECOND
+  {
+    $$ = SECOND_BYTES
+  }
+| SERIALIZABLE
+  {
+    $$ = SERIALIZABLE_BYTES
+  }
+| SIGNED
+  {
+    $$ = SIGNED_BYTES
+  }
+| SLAVE
+  {
+    $$ = SLAVE_BYTES
+  }
+| SOME
+  {
+    $$ = SOME_BYTES
+  }
+| SQL_TSI_DAY
+  {
+    $$ = SQL_TSI_DAY_BYTES
+  }
+| SQL_TSI_HOUR
+  {
+    $$ = SQL_TSI_HOUR_BYTES
+  }
+| SQL_TSI_MINUTE
+  {
+    $$ = SQL_TSI_MINUTE_BYTES
+  }
+| SQL_TSI_MONTH
+  {
+    $$ = SQL_TSI_MONTH_BYTES
+  }
+| SQL_TSI_QUARTER
+  {
+    $$ = SQL_TSI_QUARTER_BYTES
+  }
+| SQL_TSI_SECOND
+  {
+    $$ = SQL_TSI_SECOND_BYTES
+  }
+| SQL_TSI_WEEK
+  {
+    $$ = SQL_TSI_WEEK_BYTES
+  }
+| SQL_TSI_YEAR
+  {
+    $$ = SQL_TSI_YEAR_BYTES
+  }
+| STATUS
+  {
+    $$ = STATUS_BYTES
+  }
+| STORAGE
+  {
+    $$ = STORAGE_BYTES
+  }
+| TABLES
+  {
+    $$ = TABLES_BYTES
+  }
+| TIME
+  {
+    $$ = TIME_BYTES
+  }
+| TIMESTAMP
+  {
+    $$ = TIMESTAMP_BYTES
+  }
+| TIMESTAMPADD
+  {
+    $$ = TIMESTAMPADD_BYTES
+  }
+| TIMESTAMPDIFF
+  {
+    $$ = TIMESTAMPDIFF_BYTES
+  }
+| TRANSACTION
+  {
+    $$ = TRANSACTION_BYTES
+  }
+| TRIGGERS
+  {
+    $$ = TRIGGERS_BYTES
+  }
+| UNCOMMITTED
+  {
+    $$ = UNCOMMITTED_BYTES
+  }
+| UNKNOWN
+  {
+    $$ = UNKNOWN_BYTES
+  }
+| USER
+  {
+    $$ = USER_BYTES
+  }
+| VARIABLES
+  {
+    $$ = VARIABLES_BYTES
+  }
+| VIEW
+  {
+    $$ = VIEW_BYTES
+  }
+| WARNINGS
+  {
+    $$ = WARNINGS_BYTES
+  }
+| WEEK
+  {
+    $$ = WEEK_BYTES
+  }
+| YEAR
+  {
+    $$ = YEAR_BYTES
+  }

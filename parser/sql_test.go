@@ -15,7 +15,7 @@ func testParse(t *testing.T, sql string) Statement {
 func testParseError(t *testing.T, sql string) Statement {
 	stmt, err := Parse(sql)
 	if err == nil {
-		t.Fatalf("sql: %s should cause error")
+		t.Fatalf("sql: %s should cause error", sql)
 	}
 	return stmt
 }
@@ -180,11 +180,8 @@ func TestFunnyNames(t *testing.T) {
 	testParse(t, sql)
 }
 
-func TestMixer(t *testing.T) {
-	sql := `admin upnode("node1", "master", "127.0.0.1")`
-	testParse(t, sql)
-
-	sql = "show databases"
+func TestShow(t *testing.T) {
+	sql := "show databases"
 	testParse(t, sql)
 
 	sql = "show tables from abc"
@@ -284,9 +281,6 @@ func TestExplain(t *testing.T) {
 	sql = "explain bogus select * from foo"
 	testParseError(t, sql)
 
-	sql = "explain extended bogus"
-	testParseError(t, sql)
-
 	sql = "explain extended for connection bogus"
 	testParseError(t, sql)
 
@@ -297,5 +291,19 @@ func TestExplain(t *testing.T) {
 	testParse(t, sql)
 
 	sql = "desc extended select * from foo"
+	testParse(t, sql)
+}
+
+func TestKeywordsAsIds(t *testing.T) {
+	sql := "select a columns, b any from foo tables"
+	testParse(t, sql)
+
+	sql = "select a as columns, b as any from foo as tables"
+	testParse(t, sql)
+
+	sql = "select columns from (select sum(sum) from tables) tables"
+	testParse(t, sql)
+
+	sql = "select count, count(sum) from columns"
 	testParse(t, sql)
 }

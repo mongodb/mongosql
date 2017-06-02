@@ -54,9 +54,6 @@ type Statement interface {
 
 func (*Union) IStatement()  {}
 func (*Select) IStatement() {}
-func (*Insert) IStatement() {}
-func (*Update) IStatement() {}
-func (*Delete) IStatement() {}
 func (*Set) IStatement()    {}
 func (*DDL) IStatement()    {}
 func (*Use) IStatement()    {}
@@ -73,7 +70,6 @@ func (u *Use) Format(buf *TrackedBuffer) {
 type SelectStatement interface {
 	ISelectStatement()
 	IStatement()
-	IInsertRows()
 	SQLNode
 }
 
@@ -130,62 +126,6 @@ const (
 
 func (node *Union) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v %s %v", node.Left, node.Type, node.Right)
-}
-
-// Insert represents an INSERT statement.
-type Insert struct {
-	Comments Comments
-	Table    *TableName
-	Columns  Columns
-	Rows     InsertRows
-	OnDup    OnDup
-}
-
-func (node *Insert) Format(buf *TrackedBuffer) {
-	buf.Fprintf("insert %vinto %v%v %v%v",
-		node.Comments,
-		node.Table, node.Columns, node.Rows, node.OnDup)
-}
-
-// InsertRows represents the rows for an INSERT statement.
-type InsertRows interface {
-	IInsertRows()
-	SQLNode
-}
-
-func (*Select) IInsertRows() {}
-func (*Union) IInsertRows()  {}
-func (Values) IInsertRows()  {}
-
-// Update represents an UPDATE statement.
-type Update struct {
-	Comments Comments
-	Table    *TableName
-	Exprs    UpdateExprs
-	Where    *Where
-	OrderBy  OrderBy
-	Limit    *Limit
-}
-
-func (node *Update) Format(buf *TrackedBuffer) {
-	buf.Fprintf("update %v%v set %v%v%v%v",
-		node.Comments, node.Table,
-		node.Exprs, node.Where, node.OrderBy, node.Limit)
-}
-
-// Delete represents a DELETE statement.
-type Delete struct {
-	Comments Comments
-	Table    *TableName
-	Where    *Where
-	OrderBy  OrderBy
-	Limit    *Limit
-}
-
-func (node *Delete) Format(buf *TrackedBuffer) {
-	buf.Fprintf("delete %vfrom %v%v%v%v",
-		node.Comments,
-		node.Table, node.Where, node.OrderBy, node.Limit)
 }
 
 // Set represents a SET statement.
@@ -908,57 +848,6 @@ func (node *UpdateExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v = %v", node.Name, node.Expr)
 }
 
-// OnDup represents an ON DUPLICATE KEY clause.
-type OnDup UpdateExprs
-
-func (node OnDup) Format(buf *TrackedBuffer) {
-	if node == nil {
-		return
-	}
-	buf.Fprintf(" on duplicate key update %v", UpdateExprs(node))
-}
-
-func (*Begin) IStatement()    {}
-func (*Commit) IStatement()   {}
-func (*Rollback) IStatement() {}
-
-type Begin struct {
-}
-
-func (node *Begin) Format(buf *TrackedBuffer) {
-	buf.Fprintf("begin")
-}
-
-type Commit struct {
-}
-
-func (node *Commit) Format(buf *TrackedBuffer) {
-	buf.Fprintf("commit")
-}
-
-type Rollback struct {
-}
-
-func (node *Rollback) Format(buf *TrackedBuffer) {
-	buf.Fprintf("rollback")
-}
-
-// Replace represents an REPLACE statement.
-type Replace struct {
-	Comments Comments
-	Table    *TableName
-	Columns  Columns
-	Rows     InsertRows
-}
-
-func (node *Replace) Format(buf *TrackedBuffer) {
-	buf.Fprintf("replace %vinto %v%v %v%v",
-		node.Comments,
-		node.Table, node.Columns, node.Rows)
-}
-
-func (*Replace) IStatement() {}
-
 type SimpleSelect struct {
 	Comments    Comments
 	Distinct    string
@@ -972,18 +861,6 @@ func (node *SimpleSelect) Format(buf *TrackedBuffer) {
 
 func (*SimpleSelect) IStatement()       {}
 func (*SimpleSelect) ISelectStatement() {}
-func (*SimpleSelect) IInsertRows()      {}
-
-type Admin struct {
-	Name   []byte
-	Values Exprs
-}
-
-func (*Admin) IStatement() {}
-
-func (node *Admin) Format(buf *TrackedBuffer) {
-	buf.Fprintf("admin %s(%v)", node.Name, node.Values)
-}
 
 const (
 	AST_SHOW_NO_MOD   = ""
