@@ -29,7 +29,7 @@ func (c *conn) authClearTextPasswordPlugin() error {
 		}
 	}
 
-	c.logger.Logf(log.DebugLow, "authenticating client response with %s", mongosqlAuthClientAuthPluginName)
+	c.logger.Logf(log.DebugLow, "authenticating client response with %s", clearPasswordClientAuthPluginName)
 	username, mechanism, source, err := c.parseUsername()
 	if err != nil {
 		return fmt.Errorf("failed parsing username: %v", err)
