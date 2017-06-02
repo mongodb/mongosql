@@ -12,10 +12,12 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
+const usage = `mongosqld [install|uninstall] <options>`
+
 // ParseArgs parses the arguments and overrides values in the cfg.
 func ParseArgs(cfg *Config, args []string) error {
 
-	parser := flags.NewNamedParser("mongosqld <options>", flags.None)
+	parser := flags.NewNamedParser(usage, flags.None)
 
 	opts := options{
 		clientConnectionOptions: &clientConnectionOptions{},
