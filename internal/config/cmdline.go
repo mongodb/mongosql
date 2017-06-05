@@ -26,6 +26,7 @@ func ParseArgs(cfg *Config, args []string) error {
 		mongoConnectionOptions:  &mongoConnectionOptions{},
 		schemaOptions:           &schemaOptions{},
 		socketOptions:           &socketOptions{},
+		serviceOptions:          &serviceOptions{},
 	}
 
 	groups := []optionGroup{
@@ -34,6 +35,7 @@ func ParseArgs(cfg *Config, args []string) error {
 		opts.logOptions,
 		opts.mongoConnectionOptions,
 		opts.schemaOptions,
+		opts.serviceOptions,
 	}
 
 	if !isWindows {
@@ -97,6 +99,7 @@ type options struct {
 	*mongoConnectionOptions
 	*schemaOptions
 	*socketOptions
+	*serviceOptions
 }
 
 type clientConnectionOptions struct {
@@ -304,6 +307,30 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 			return fmt.Errorf("must specify only one of --schema or --schemaDirectory")
 		}
 		cfg.Schema.Path = *o.SchemaDir
+	}
+
+	return nil
+}
+
+type serviceOptions struct {
+	ServiceName        *string `long:"serviceName" description:"the service name"`
+	ServiceDisplayName *string `long:"serviceDisplayName" description:"the service display name"`
+	ServiceDescription *string `long:"serviceDescription" description:"the service description"`
+}
+
+func (o *serviceOptions) name() string {
+	return "Service"
+}
+
+func (o *serviceOptions) mapToConfig(cfg *Config) error {
+	if !isEmptyOrUnset(o.ServiceName) {
+		cfg.ProcessManagement.Service.Name = *o.ServiceName
+	}
+	if !isEmptyOrUnset(o.ServiceDisplayName) {
+		cfg.ProcessManagement.Service.DisplayName = *o.ServiceDisplayName
+	}
+	if !isEmptyOrUnset(o.ServiceDescription) {
+		cfg.ProcessManagement.Service.Description = *o.ServiceDescription
 	}
 
 	return nil

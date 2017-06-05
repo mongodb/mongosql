@@ -67,7 +67,7 @@ func Default() *Config {
 
 	cfg.MongoDB.Net.URI = "mongodb://localhost:27017"
 
-	cfg.ProcessManagement.Service.Name = "mongosqlsvc"
+	cfg.ProcessManagement.Service.Name = "mongosql"
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
 	cfg.ProcessManagement.Service.Description = "MongoSQL accesses MongoDB data with SQL"
 

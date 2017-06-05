@@ -41,6 +41,11 @@ func TestParseArgs_Valid(t *testing.T) {
 
 		// Schema
 		"--schema", "path-to-file",
+
+		// Service
+		"--serviceName", "oompa",
+		"--serviceDisplayName", "loompa",
+		"--serviceDescription", "doompa tee do",
 	}
 	if runtime.GOOS != "windows" {
 		args = append(args, []string{
@@ -91,6 +96,10 @@ func TestParseArgs_Valid(t *testing.T) {
 	testString(t, cfg.MongoDB.Net.SSL.CAFile, "mongocafile", "cfg.MongoDB.Net.SSL.CAFile")
 	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "mongocrlfile", "cfg.MongoDB.Net.SSL.CRLFile")
 	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, true, "cfg.MongoDB.Net.SSL.FIPSMode")
+
+	testString(t, cfg.ProcessManagement.Service.Name, "oompa", "cfg.ProcessManagement.Service.Name")
+	testString(t, cfg.ProcessManagement.Service.DisplayName, "loompa", "cfg.ProcessManagement.Service.DisplayName")
+	testString(t, cfg.ProcessManagement.Service.Description, "doompa tee do", "cfg.ProcessManagement.Service.Description")
 }
 
 func TestParseArgs_Valid2(t *testing.T) {

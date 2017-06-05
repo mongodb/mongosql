@@ -7,12 +7,15 @@ import (
 
 	"github.com/kardianos/service"
 
+	"time"
+
 	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
+	"github.com/10gen/sqlproxy/util"
 )
 
 type program struct {
@@ -25,9 +28,13 @@ type program struct {
 	controlLogger *log.Logger
 	schema        *schema.Schema
 	svr           *server.Server
+
+	done chan struct{}
 }
 
 func (p *program) Start(s service.Service) error {
+	p.done = make(chan struct{})
+
 	var err error
 	if !service.Interactive() {
 		p.serviceLogger, err = s.Logger(nil)
@@ -87,22 +94,32 @@ func (p *program) Start(s service.Service) error {
 		return err
 	}
 
-	go func() {
-		defer p.cleanup()
+	util.PanicSafeGo(func() {
 		p.svr.Run()
-	}()
+		p.controlLogger.Logf(log.Always, "[signalProcessingThread] shutting down")
+		p.cleanup()
+		p.done <- struct{}{}
+	},
+		func(err interface{}) {
+			p.controlLogger.Logf(log.Always, "%v", err)
+			p.cleanup()
+			panic(err)
+		},
+	)
 
 	return nil
 }
 
 func (p *program) Stop(s service.Service) error {
-	// Any work in Stop should be quick, usually a few seconds at most.
 	if !service.Interactive() {
 		p.serviceLogger.Infof("%s stopping", s)
 	}
 
-	p.controlLogger.Logf(log.Info, "[signalProcessingThread] shutting down")
 	p.svr.Close()
+	select {
+	case <-p.done:
+	case <-time.After(5 * time.Second):
+	}
 	return nil
 }
 
@@ -120,7 +137,6 @@ func (p *program) cleanup() {
 
 func (p *program) initLog() error {
 
-	// set global log level
 	log.SetVerbosity(&verbosityLevel{
 		level: p.cfg.SystemLog.Verbosity,
 		quiet: p.cfg.SystemLog.Quiet,
@@ -146,6 +162,8 @@ func (p *program) initLog() error {
 		}
 
 		log.SetWriter(p.logfile)
+	} else if !service.Interactive() {
+		return fmt.Errorf("when running as a service, a log path must be supplied")
 	}
 
 	p.controlLogger = log.NewComponentLogger(log.ControlComponent, log.GlobalLogger())
@@ -232,7 +250,7 @@ func main() {
 	p := &program{}
 	err := p.loadConfig(args)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to start due to configuration error: %v", err)
+		fmt.Fprintf(os.Stderr, "failed to start due to configuration error: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -253,7 +271,7 @@ func main() {
 	case "install":
 		err = config.Validate(p.cfg)
 		if err != nil {
-			fmt.Fprintf(os.Stdout, "could not install because configuration is invalid: %s", err)
+			fmt.Fprintf(os.Stdout, "could not install because configuration is invalid: %s\n", err)
 			os.Exit(1)
 		}
 
@@ -263,7 +281,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		fmt.Fprintf(os.Stdout, "%s service installed", p.cfg.ProcessManagement.Service.Name)
+		fmt.Fprintf(os.Stdout, "%s service installed\n", p.cfg.ProcessManagement.Service.Name)
 		os.Exit(0)
 	case "uninstall":
 		err = s.Uninstall()
@@ -272,7 +290,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		fmt.Fprintf(os.Stdout, "%s service uninstalled", p.cfg.ProcessManagement.Service.Name)
+		fmt.Fprintf(os.Stdout, "%s service uninstalled\n", p.cfg.ProcessManagement.Service.Name)
 		os.Exit(0)
 	default:
 		err = s.Run()
