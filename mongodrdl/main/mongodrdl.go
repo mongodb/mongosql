@@ -6,11 +6,11 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/10gen/sqlproxy/common"
+	"github.com/10gen/sqlproxy/internal"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodrdl"
 	"github.com/10gen/sqlproxy/options"
-	"github.com/10gen/sqlproxy/util"
 )
 
 func main() {

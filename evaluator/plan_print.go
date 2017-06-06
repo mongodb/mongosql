@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/util/bsonutil"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 )
 
 // PrettyPrintCommand takes a command and prints it out.

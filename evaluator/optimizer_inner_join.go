@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/util"
 )
 
 func optimizeInnerJoins(n node, ctx *EvalCtx, logger *log.Logger) (node, error) {

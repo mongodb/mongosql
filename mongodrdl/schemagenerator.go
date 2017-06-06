@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 
 	yaml "github.com/10gen/candiedyaml"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
 	"github.com/10gen/sqlproxy/options"
-	"github.com/10gen/sqlproxy/util"
 )
 
 type SchemaGenerator struct {

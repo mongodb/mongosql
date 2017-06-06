@@ -6,8 +6,8 @@ import (
 	"net"
 
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/options"
-	"github.com/10gen/sqlproxy/util"
 	"github.com/spacemonkeygo/openssl"
 )
 

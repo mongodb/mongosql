@@ -3,8 +3,8 @@ package evaluator
 import (
 	"fmt"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/10gen/sqlproxy/util"
 )
 
 type KillScope byte

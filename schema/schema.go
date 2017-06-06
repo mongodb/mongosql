@@ -8,7 +8,7 @@ import (
 
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/util/bsonutil"
+	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 )
 
 // Schema represents a configuration for a schema.

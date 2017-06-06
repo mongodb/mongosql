@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/util"
 )
 
 // DatabaseName is the name of a database.

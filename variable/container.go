@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/common"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
@@ -75,7 +75,7 @@ func NewGlobalContainer() *Container {
 		SQLAutoIsNull:          false,
 		SQLSelectLimit:         math.MaxUint64,
 		Version:                "5.7.12",
-		VersionComment:         "mongosqld " + common.VersionStr,
+		VersionComment:         "mongosqld " + config.VersionStr,
 		InteractiveTimeoutSecs: 28800,
 		WaitTimeoutSecs:        28800,
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/util"
+	"github.com/10gen/sqlproxy/internal/util"
 )
 
 // orderedGroup holds all the rows belonging to a given key in the groups

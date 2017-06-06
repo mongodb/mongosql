@@ -9,9 +9,9 @@ import (
 
 	"github.com/10gen/sqlproxy/catalog"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/util"
 )
 
 // MongoSourceStage is the primary interface for SQLProxy to a MongoDB

@@ -1,8 +1,8 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/util"
 )
 
 // OptimizeCommand applies optimizations to the command

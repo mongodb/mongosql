@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/util"
+	"github.com/10gen/sqlproxy/internal/util"
 )
 
 // OrderBy sorts records according to one or more keys.

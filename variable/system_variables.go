@@ -2,9 +2,9 @@ package variable
 
 import (
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/util"
 )
 
 const (

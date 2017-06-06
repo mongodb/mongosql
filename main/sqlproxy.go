@@ -9,13 +9,12 @@ import (
 
 	"time"
 
-	"github.com/10gen/sqlproxy/common"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
-	"github.com/10gen/sqlproxy/util"
 )
 
 type program struct {
@@ -206,16 +205,16 @@ func (p *program) loadSchema() error {
 }
 
 func (p *program) logStartupInfo() {
-	p.controlLogger.Logf(log.Always, "[initandlisten] mongosqld version: %v", common.VersionStr)
-	p.controlLogger.Logf(log.Always, "[initandlisten] git version: %v", common.Gitspec)
+	p.controlLogger.Logf(log.Always, "[initandlisten] mongosqld version: %v", config.VersionStr)
+	p.controlLogger.Logf(log.Always, "[initandlisten] git version: %v", config.Gitspec)
 	p.controlLogger.Logf(log.Always, "[initandlisten] options: %v", config.ToJSON(p.cfg))
 
 	// Production release version strings should not contain a "-", whereas all development releases should, e.g.
 	// Production release: v2.0.1
 	// Development release: v2.0.0-beta5 or v2.0.0-beta5-8-gfad1111
-	if strings.Contains(common.VersionStr, "-") {
+	if strings.Contains(config.VersionStr, "-") {
 		p.controlLogger.Logf(log.Always, "[initandlisten]")
-		p.controlLogger.Logf(log.Always, "[initandlisten] ** NOTE: This is a development version (%v) of mongosqld.", common.VersionStr)
+		p.controlLogger.Logf(log.Always, "[initandlisten] ** NOTE: This is a development version (%v) of mongosqld.", config.VersionStr)
 		p.controlLogger.Logf(log.Always, "[initandlisten] **       Not recommended for production.")
 		p.controlLogger.Logf(log.Always, "[initandlisten]")
 	}

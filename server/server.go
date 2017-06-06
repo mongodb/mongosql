@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/util"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 )

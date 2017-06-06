@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/10gen/sqlproxy/common"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -80,7 +79,7 @@ func ParseArgs(cfg *Config, args []string) error {
 	}
 
 	if opts.Version != nil && *opts.Version {
-		common.PrintVersionAndGitspec("mongosqld", os.Stdout)
+		PrintVersionAndGitspec("mongosqld", os.Stdout)
 		os.Exit(0)
 	}
 

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/util"
 )
 
 var maxTime = time.Duration(*MaxTimeSecs) * time.Second

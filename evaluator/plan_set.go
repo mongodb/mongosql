@@ -3,7 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/util"
+	"github.com/10gen/sqlproxy/internal/util"
 )
 
 // SetCommand handles setting variables.
