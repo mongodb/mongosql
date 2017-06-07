@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/10gen/sqlproxy/internal"
+	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodrdl"
@@ -39,7 +39,7 @@ func main() {
 	log.SetVerbosity(opts.DrdlLog)
 
 	if opts.Version {
-		common.PrintVersionAndGitspec("mongodrdl", os.Stdout)
+		config.PrintVersionAndGitspec("mongodrdl", os.Stdout)
 		os.Exit(util.ExitClean)
 	}
 

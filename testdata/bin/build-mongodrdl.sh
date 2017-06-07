@@ -1,7 +1,7 @@
 #!/bin/bash
 
 . "$(dirname $0)/prepare-shell.sh"
-trap "mv -f $PROJECT_DIR/common/version.go.bak $PROJECT_DIR/common/version.go" HUP EXIT
+trap "mv -f $PROJECT_DIR/internal/config/version.go.bak $PROJECT_DIR/internal/config/version.go" HUP EXIT
 
 (
     set -o errexit
@@ -9,7 +9,7 @@ trap "mv -f $PROJECT_DIR/common/version.go.bak $PROJECT_DIR/common/version.go" H
 
     sed -i.bak -e "s/built-without-version-string/$CURRENT_VERSION/" \
         -e "s/built-without-git-spec/$GIT_SPEC/" \
-        "$PROJECT_DIR/common/version.go"
+        "$PROJECT_DIR/internal/config/version.go"
 
     out="$ARTIFACTS_DIR/bin/mongodrdl"
     main="$PROJECT_DIR/mongodrdl/main/mongodrdl.go"
