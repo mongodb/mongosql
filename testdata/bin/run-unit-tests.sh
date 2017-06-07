@@ -26,6 +26,7 @@ run_unit_tests() {
     run_unit_tests catalog
     run_unit_tests collation
     run_unit_tests internal/config
+    run_unit_tests internal/json
     run_unit_tests mongodrdl
     run_unit_tests mongodrdl/mongo
     run_unit_tests mongodrdl/relational
@@ -36,7 +37,6 @@ run_unit_tests() {
     run_unit_tests mongodb
     run_unit_tests server
     run_unit_tests schema
-    run_unit_tests util
 
     rm -rf "$PROJECT_DIR/mongodrdl/out/"
 
