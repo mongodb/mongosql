@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/10gen/sqlproxy/log"
+
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
@@ -15,11 +17,13 @@ type Database struct {
 	Name   string              `yaml:"db"`
 	Tables TableSlice          `yaml:"tables"`
 	Views  map[string]struct{} `yaml:"-"`
+	logger *log.Logger         `yaml:"-"`
 }
 
-func NewDatabase(name string) *Database {
+func NewDatabase(name string, logger *log.Logger) *Database {
 	return &Database{
-		Name: name,
+		Name:   name,
+		logger: logger,
 	}
 }
 

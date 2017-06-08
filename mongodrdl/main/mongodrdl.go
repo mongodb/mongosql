@@ -36,8 +36,6 @@ func main() {
 		os.Exit(util.ExitBadOptions)
 	}
 
-	log.SetVerbosity(opts.DrdlLog)
-
 	if opts.Version {
 		config.PrintVersionAndGitspec("mongodrdl", os.Stdout)
 		os.Exit(util.ExitClean)
@@ -58,10 +56,16 @@ func main() {
 	_, setName := util.ParseConnectionString(opts.Host)
 	opts.ReplicaSetName = setName
 
+	log.SetVerbosity(opts.DrdlLog)
+
 	schemaGen := mongodrdl.SchemaGenerator{
 		ToolOptions:   opts,
 		OutputOptions: opts.DrdlOutput,
 		SampleOptions: opts.DrdlSample,
+		Logger: log.NewComponentLogger(
+			"MONGODRDL",
+			log.GlobalLogger(),
+		),
 	}
 
 	if err = schemaGen.Init(); err != nil {

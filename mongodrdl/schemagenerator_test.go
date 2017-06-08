@@ -12,6 +12,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/testutils"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
@@ -27,6 +28,12 @@ const (
 	DatabaseName = "test"
 	SSLTestKey   = "SQLPROXY_SSLTEST"
 	host         = "mongodb://localhost:27017"
+)
+
+var (
+	logger = log.NewComponentLogger(
+		"MONGODRDL", log.GlobalLogger(),
+	)
 )
 
 func getSslOpts() *options.DrdlSSL {
@@ -60,6 +67,7 @@ func TestConfiguration(t *testing.T) {
 				PreJoined: true,
 			},
 			SampleOptions: &options.DrdlSample{SampleSize: 1000},
+			Logger:        logger,
 		}
 
 		So(gen.Init(), ShouldBeNil)
@@ -101,6 +109,7 @@ func TestRoundtrips(t *testing.T) {
 					PreJoined: true,
 				},
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+				Logger:        logger,
 			}
 
 			So(gen.Init(), ShouldBeNil)
@@ -155,6 +164,7 @@ func TestRoundtrips(t *testing.T) {
 					PreJoined: true,
 				},
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+				Logger:        logger,
 			}
 
 			So(gen.Init(), ShouldBeNil)
@@ -211,6 +221,7 @@ func TestRoundtrips(t *testing.T) {
 					PreJoined: true,
 				},
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+				Logger:        logger,
 			}
 
 			So(gen.Init(), ShouldBeNil)
@@ -273,6 +284,7 @@ func TestRoundtrips(t *testing.T) {
 					PreJoined: true,
 				},
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+				Logger:        logger,
 			}
 
 			So(gen.Init(), ShouldBeNil)
@@ -328,6 +340,7 @@ func TestRoundtrips(t *testing.T) {
 					PreJoined:         true,
 				},
 				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+				Logger:        logger,
 			}
 
 			compareYaml(gen, "complete_schema", "complete_schema_synthetic-expected")
@@ -437,6 +450,7 @@ func newSchemaGenerator(db, collection, outputFile string, sslOptions *options.D
 			Out: outputFile,
 		},
 		SampleOptions: &options.DrdlSample{SampleSize: 1000},
+		Logger:        logger,
 	}
 
 	if err := gen.Init(); err != nil {

@@ -110,6 +110,18 @@ func (s *Session) ListCollections(db string) (ops.Cursor, error) {
 	}
 }
 
+// ListDatabases returns a cursor to iterate through
+// the database names present on a server.
+func (s *Session) ListDatabases() (ops.Cursor, error) {
+	select {
+	case <-s.ctx.Done():
+		return nil, s.ctx.Err()
+	default:
+		opts := ops.ListDatabasesOptions{}
+		return ops.ListDatabases(s.ctx, s.selectedServer, opts)
+	}
+}
+
 // ListIndexes returns a cursor to iterate through
 // the indexes on the c collection within the db database.
 func (s *Session) ListIndexes(db, c string) (ops.Cursor, error) {

@@ -9,17 +9,25 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 	"github.com/10gen/sqlproxy/mongodrdl/relational"
+
 	. "github.com/smartystreets/goconvey/convey"
+)
+
+var (
+	logger = log.NewComponentLogger(
+		"MONGODRDL", log.GlobalLogger(),
+	)
 )
 
 func TestMapping(t *testing.T) {
 
 	Convey("Given a mongo collection and relational database", t, func() {
 		collection := mongo.NewCollection("test")
-		database := relational.NewDatabase("test'")
+		database := relational.NewDatabase("test", logger)
 		noIndexes := []mongodb.Index{}
 
 		Convey("Without any documents", func() {
@@ -863,7 +871,7 @@ func TestTypeMapping(t *testing.T) {
 			Convey(fmt.Sprintf("Should map %T to %s/%s", typeTest[2], typeTest[0], typeTest[1].(string)), func() {
 				collection.IncludeSample(bson.D{{"field", typeTest[2]}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -877,7 +885,7 @@ func TestTypeMapping(t *testing.T) {
 		Convey("Should ignore bson.MongoTimestamp", func() {
 			collection.IncludeSample(bson.D{{"field", bson.MongoTimestamp(1234)}})
 
-			database := relational.NewDatabase("test")
+			database := relational.NewDatabase("test", logger)
 			database.Map(collection, noIndexes, true)
 
 			So(len(database.Tables), ShouldEqual, 0)
@@ -886,7 +894,7 @@ func TestTypeMapping(t *testing.T) {
 		Convey("Should ignore []uint8", func() {
 			collection.IncludeSample(bson.D{{"field", []uint8{0, 1}}})
 
-			database := relational.NewDatabase("test")
+			database := relational.NewDatabase("test", logger)
 			database.Map(collection, noIndexes, true)
 
 			So(len(database.Tables), ShouldEqual, 0)
@@ -901,7 +909,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", 4}})
 				collection.IncludeSample(bson.D{{"a", 2.562}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -919,7 +927,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", 4}})
 				collection.IncludeSample(bson.D{{"a", 2.562}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -935,7 +943,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{1, 2, 3}}})
 				collection.IncludeSample(bson.D{{"a", "funny"}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -954,7 +962,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", 3}})
 				collection.IncludeSample(bson.D{{"a", []interface{}{"string1", "string2", "string3"}}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -970,7 +978,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", 3}})
 				collection.IncludeSample(bson.D{{"a", []interface{}{1, 2, 3}}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -989,7 +997,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{1, 2, 3, "string1"}}})
 				collection.IncludeSample(bson.D{{"a", []interface{}{"string2", "string3", 4}}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -1006,7 +1014,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{1, 2, 3, 515.2323}}})
 				collection.IncludeSample(bson.D{{"a", []interface{}{4232.32, 32.23, 4}}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -1023,7 +1031,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{[]interface{}{1, 1}, []interface{}{2, 2}, "string1"}}})
 				collection.IncludeSample(bson.D{{"a", []interface{}{"string2", []interface{}{3, 3}}}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -1043,7 +1051,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{[]interface{}{1, 1}, []interface{}{2, 2}, "string1"}}})
 				collection.IncludeSample(bson.D{{"a", []interface{}{"string2", []interface{}{3, 3}, "string3", "string4"}}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -1060,7 +1068,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{[]interface{}{1, 1}, []interface{}{2, 2}, 1}}})
 				collection.IncludeSample(bson.D{{"a", []interface{}{2, []interface{}{3, 3}, 3, 4}}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -1084,7 +1092,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", 5}})
 				collection.IncludeSample(bson.D{{"a", 6}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -1103,7 +1111,7 @@ func TestTypeMapping(t *testing.T) {
 				collection.IncludeSample(bson.D{{"a", []interface{}{[]interface{}{1, 1}, []interface{}{2, 2}, 1}}})
 				collection.IncludeSample(bson.D{{"a", []interface{}{2, []interface{}{3, 3}, 3, 4}}})
 
-				database := relational.NewDatabase("test")
+				database := relational.NewDatabase("test", logger)
 				database.Map(collection, noIndexes, true)
 
 				table := database.Tables[0]
@@ -1128,7 +1136,7 @@ func TestTypeMapping(t *testing.T) {
 			collection.IncludeSample(bson.D{{"a", "string3"}})
 			collection.IncludeSample(bson.D{{"a", 3}})
 
-			database := relational.NewDatabase("test")
+			database := relational.NewDatabase("test", logger)
 			err := database.Map(collection, noIndexes, true)
 			So(err, ShouldBeNil)
 
@@ -1147,7 +1155,7 @@ func TestTypeMapping(t *testing.T) {
 			collection.IncludeSample(bson.D{{"a", 235.52}})
 			collection.IncludeSample(bson.D{{"a", 3}})
 
-			database := relational.NewDatabase("test")
+			database := relational.NewDatabase("test", logger)
 			err := database.Map(collection, noIndexes, true)
 			So(err, ShouldBeNil)
 
@@ -1162,7 +1170,7 @@ func TestTypeMapping(t *testing.T) {
 			collection.IncludeSample(bson.D{{"a", []interface{}{1, 2, 3, "string1", "string2"}}})
 			collection.IncludeSample(bson.D{{"a", []interface{}{"string3"}}})
 
-			database := relational.NewDatabase("test")
+			database := relational.NewDatabase("test", logger)
 			err := database.Map(collection, noIndexes, true)
 			So(err, ShouldBeNil)
 
@@ -1179,7 +1187,7 @@ func TestTypeMapping(t *testing.T) {
 		Convey("Should not include a field when it has no types", func() {
 			collection.IncludeSample(bson.D{{"a", 1}, {"b", nil}})
 
-			database := relational.NewDatabase("test")
+			database := relational.NewDatabase("test", logger)
 			err := database.Map(collection, noIndexes, true)
 			So(err, ShouldBeNil)
 
@@ -1193,7 +1201,7 @@ func TestTypeMapping(t *testing.T) {
 		Convey("Should not include an array when it has no types", func() {
 			collection.IncludeSample(bson.D{{"a", 1}, {"b", []interface{}{nil, nil}}})
 
-			database := relational.NewDatabase("test")
+			database := relational.NewDatabase("test", logger)
 			err := database.Map(collection, noIndexes, true)
 			So(err, ShouldBeNil)
 
@@ -1221,7 +1229,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should not map without any type samples", func() {
 					collection.IncludeSample(bson.D{{"a", nil}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1232,7 +1240,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should map with an array sample", func() {
 					collection.IncludeSample(bson.D{{"a", []interface{}{1, 2}}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1246,7 +1254,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should map in a nested document", func() {
 					collection.IncludeSample(bson.D{{"b", bson.D{{"c", []interface{}{1, 2}}}}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1260,7 +1268,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should map in a document in an array", func() {
 					collection.IncludeSample(bson.D{{"b", []interface{}{bson.D{{"c", []interface{}{1, 2}}}}}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1277,7 +1285,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should map with a document sample", func() {
 					collection.IncludeSample(bson.D{{"a", bson.D{{"x", 1}, {"y", 2}}}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1294,7 +1302,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should fallback to majority type with a non-document/non-array sample", func() {
 					collection.IncludeSample(bson.D{{"a", 10}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1323,7 +1331,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should not map without any type samples", func() {
 					collection.IncludeSample(bson.D{{"a", nil}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1336,7 +1344,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"a", []interface{}{1, 2}}})
 					collection.IncludeSample(bson.D{{"a", bson.D{{"coordinates", []interface{}{1, 2}}}}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1352,7 +1360,7 @@ func TestTypeMapping(t *testing.T) {
 					collection.IncludeSample(bson.D{{"a", bson.D{{"coordinates", []interface{}{1, 2}}}}})
 					collection.IncludeSample(bson.D{{"a", []interface{}{1, 2}}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1369,7 +1377,7 @@ func TestTypeMapping(t *testing.T) {
 					// going to assume Point uniformly.
 					collection.IncludeSample(bson.D{{"a", bson.D{{"type", "LineString"}, {"coordinates", []interface{}{[]interface{}{1, 2}, []interface{}{3, 4}}}}}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1383,7 +1391,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should fallback to majority type when there isn't an array or geoJson form majority", func() {
 					collection.IncludeSample(bson.D{{"a", 10}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1397,7 +1405,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should map the array form in a nested document", func() {
 					collection.IncludeSample(bson.D{{"b", bson.D{{"c", []interface{}{1, 2}}}}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1411,7 +1419,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should map the geoJson form in a nested document", func() {
 					collection.IncludeSample(bson.D{{"b", bson.D{{"c", bson.D{{"coordinates", []interface{}{1, 2}}}}}}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1425,7 +1433,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should map the array form in an array", func() {
 					collection.IncludeSample(bson.D{{"b", []interface{}{bson.D{{"c", []interface{}{1, 2}}}}}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 
@@ -1442,7 +1450,7 @@ func TestTypeMapping(t *testing.T) {
 				Convey("Should map the geoJson form in an array", func() {
 					collection.IncludeSample(bson.D{{"b", []interface{}{bson.D{{"c", bson.D{{"coordinates", []interface{}{1, 2}}}}}}}})
 
-					database := relational.NewDatabase("test")
+					database := relational.NewDatabase("test", logger)
 					err := database.Map(collection, geoIndexes, true)
 					So(err, ShouldBeNil)
 

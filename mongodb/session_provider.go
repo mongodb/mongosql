@@ -259,7 +259,7 @@ func parseDrdlOptions(opts options.DrdlOptions) connstring.ConnString {
 		cs.Connect = connstring.SingleConnect
 	}
 
-	if opts.DrdlAuth.Username == "" {
+	if opts.DrdlAuth.Username != "" {
 		cs.Username = opts.DrdlAuth.Username
 	}
 

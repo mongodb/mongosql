@@ -12,14 +12,6 @@ import (
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
 )
 
-const (
-	MongodrdlComponent = "MONGODRDL"
-)
-
-var (
-	logger = log.NewComponentLogger(MongodrdlComponent, log.GlobalLogger())
-)
-
 // +++++++++++++++++++++
 type fieldSlice []*mongo.Field
 
@@ -38,15 +30,15 @@ type mappingContext struct {
 }
 
 func (d *Database) Map(c *mongo.Collection, idxs []mongodb.Index, preJoined bool) error {
-	logger.Logf(log.Info, "Adding table %q.", c.Name)
 	t, err := d.AddTable(c.Name, c.Name)
 	if err != nil {
 		return err
 	}
+	d.logger.Logf(log.Info, "Created table %q for namespace %q.%q", c.Name, d.Name, c.Name)
 
 	ctx := &mappingContext{d, t, idxs, false}
 
-	err = mapDocument(ctx, "", &c.Document)
+	err = ctx.mapDocument("", &c.Document)
 	if err != nil {
 		return err
 	}
@@ -57,7 +49,7 @@ func (d *Database) Map(c *mongo.Collection, idxs []mongodb.Index, preJoined bool
 		if len(t.Columns) > 0 {
 			tables = append(tables, t)
 		} else {
-			logger.Logf(log.Info, "Removed table %q: had no columns.", t.Name)
+			d.logger.Logf(log.Info, "Removed table %q: had no columns.", t.Name)
 		}
 	}
 
@@ -65,7 +57,7 @@ func (d *Database) Map(c *mongo.Collection, idxs []mongodb.Index, preJoined bool
 	return nil
 }
 
-func mapDocument(ctx *mappingContext, path string, doc *mongo.Document) error {
+func (ctx *mappingContext) mapDocument(path string, doc *mongo.Document) error {
 	var fields fieldSlice
 	for _, f := range doc.Fields {
 		fields = append(fields, f)
@@ -76,18 +68,19 @@ func mapDocument(ctx *mappingContext, path string, doc *mongo.Document) error {
 		fieldName := appendFieldName(path, f.Name)
 		fieldType, ok := tryGetType(ctx, fieldName, &f.TypeContainer)
 		if !ok {
-			logger.Logf(log.Always, "Table %q, column %q has no types: ignoring column.", ctx.table.Name, fieldName)
+			ctx.db.logger.Logf(log.DebugLow, "Table %q, column %q has no types: ignoring column.", ctx.table.Name, fieldName)
 			continue // skip a field without a type
 		}
 
 		switch v := fieldType.(type) {
 		case *mongo.Array:
 			tableName := appendTableName(ctx.table.rootName(), fieldName)
-			logger.Logf(log.Info, "Adding table %q.", tableName)
 			arrayTable, err := ctx.db.AddTable(tableName, ctx.table.CollectionName)
 			if err != nil {
 				return err
 			}
+			ctx.db.logger.Logf(log.Info, "Created table %q for namespace %q.%q", tableName, ctx.db.Name, ctx.table.rootName())
+
 			arrayTable.Parent = ctx.table
 
 			newCtx := &mappingContext{ctx.db, arrayTable, ctx.indexes, false}
@@ -100,7 +93,7 @@ func mapDocument(ctx *mappingContext, path string, doc *mongo.Document) error {
 			if fieldName == "_id" {
 				ctx.inPrimaryKey = true
 			}
-			err := mapDocument(ctx, fieldName, v)
+			err := ctx.mapDocument(fieldName, v)
 			if err != nil {
 				return err
 			}
@@ -108,10 +101,10 @@ func mapDocument(ctx *mappingContext, path string, doc *mongo.Document) error {
 		case *mongo.Scalar:
 			switch v.Name() {
 			case mongo.TimestampSchemaTypeName:
-				logger.Logf(log.Info, "ignoring timestamp column '%s' in table '%s'", fieldName, ctx.table.Name)
+				ctx.db.logger.Logf(log.DebugLow, "ignoring timestamp column '%s' in table '%s'", fieldName, ctx.table.Name)
 				continue
 			case mongo.BinaryType0SchemaTypeName:
-				logger.Logf(log.Info, "ignoring binary type 0 column '%s' in table '%s'", fieldName, ctx.table.Name)
+				ctx.db.logger.Logf(log.DebugLow, "ignoring binary type 0 column '%s' in table '%s'", fieldName, ctx.table.Name)
 				continue
 			default:
 				c, err := ctx.table.AddColumn(fieldName, v.Name())
@@ -137,7 +130,7 @@ func mapDocument(ctx *mappingContext, path string, doc *mongo.Document) error {
 func mapArray(ctx *mappingContext, path string, array *mongo.Array, depth int) error {
 	fieldType, ok := tryGetType(ctx, path, &array.TypeContainer)
 	if !ok {
-		logger.Logf(log.Always, "Table %q, column %q is an array that has no types: ignoring column.", ctx.table.Name, path)
+		ctx.db.logger.Logf(log.DebugLow, "Table %q, column %q is an array that has no types: ignoring column.", ctx.table.Name, path)
 		return nil
 	}
 
@@ -161,7 +154,7 @@ func mapArray(ctx *mappingContext, path string, array *mongo.Array, depth int) e
 			return err
 		}
 	case *mongo.Document:
-		err = mapDocument(ctx, path, v)
+		err = ctx.mapDocument(path, v)
 		if err != nil {
 			return err
 		}
@@ -238,7 +231,7 @@ func tryGetType(ctx *mappingContext, path string, tc *mongo.TypeContainer) (mTyp
 
 	defer func() {
 		if mongo.UUIDSubtype3Encoding != "" {
-			logger.Logf(log.Info, `Using type %s for table "%s", column "%s"`, mongo.UUIDSubtype3Map[mongo.UUIDSubtype3Encoding], ctx.table.Name, path)
+			ctx.db.logger.Logf(log.DebugLow, `Using type %s for table "%s", column "%s"`, mongo.UUIDSubtype3Map[mongo.UUIDSubtype3Encoding], ctx.table.Name, path)
 		}
 	}()
 
@@ -301,7 +294,7 @@ func tryGetType(ctx *mappingContext, path string, tc *mongo.TypeContainer) (mTyp
 	} else {
 		// Either neither were an array, or the array's item type and the other top type
 		// are incompatible so we'll just return the first one.
-		logger.Logf(log.Info, `Type conflict for table "%s", column "%s": using type %q`, ctx.table.Name, path, types[0].Name())
+		ctx.db.logger.Logf(log.DebugLow, `Type conflict for table "%s", column "%s": using type %q`, ctx.table.Name, path, types[0].Name())
 		mType = types[0]
 	}
 	return mType, true
@@ -344,7 +337,7 @@ func tryGetTypeFromIndex(ctx *mappingContext, path string, types sortByDescendin
 		}
 
 		if types.Len() > 1 {
-			logger.Logf(log.Info, "Type conflict for table %q, column %q: using type %q.", ctx.table.Name, path, t.Name())
+			ctx.db.logger.Logf(log.DebugLow, "Type conflict for table %q, column %q: using type %q.", ctx.table.Name, path, t.Name())
 		}
 
 		return t, true

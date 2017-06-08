@@ -13,12 +13,8 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
-var (
-	logger = log.NewComponentLogger(relational.MongodrdlComponent, log.GlobalLogger())
-)
-
 func (schemaGen *SchemaGenerator) Connect() (*mongodb.Session, error) {
-	session, err := schemaGen.provider.Session(context.Background())
+	session, err := schemaGen.Provider.Session(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("can't create session: %v", err)
 	}
@@ -32,7 +28,7 @@ func (schemaGen *SchemaGenerator) ExportSchemaForDatabase() (*relational.Databas
 		return nil, err
 	}
 
-	logger.Logf(log.Info, "Exporting schema for database %q.", schemaGen.ToolOptions.DB)
+	schemaGen.Logger.Logf(log.Info, "Creating schema for database %q", schemaGen.ToolOptions.DB)
 
 	iter, err := session.ListCollections(schemaGen.ToolOptions.DB)
 	if err != nil {
@@ -43,7 +39,7 @@ func (schemaGen *SchemaGenerator) ExportSchemaForDatabase() (*relational.Databas
 		Name string `bson:"name"`
 	}
 
-	database := relational.NewDatabase(schemaGen.ToolOptions.DB)
+	database := relational.NewDatabase(schemaGen.ToolOptions.DB, schemaGen.Logger)
 
 	ctx := session.Context()
 
@@ -58,6 +54,8 @@ func (schemaGen *SchemaGenerator) ExportSchemaForDatabase() (*relational.Databas
 		return nil, err
 	}
 
+	schemaGen.Logger.Logf(log.Info, "Created schema for database %q", schemaGen.ToolOptions.DB)
+
 	return database, nil
 }
 
@@ -67,7 +65,7 @@ func (schemaGen *SchemaGenerator) ExportSchemaForCollection() (*relational.Datab
 		return nil, err
 	}
 
-	database := relational.NewDatabase(schemaGen.ToolOptions.DB)
+	database := relational.NewDatabase(schemaGen.ToolOptions.DB, schemaGen.Logger)
 	err = schemaGen.mapCollection(database, schemaGen.ToolOptions.Collection, session)
 	if err != nil {
 		return nil, err
@@ -79,11 +77,11 @@ func (schemaGen *SchemaGenerator) ExportSchemaForCollection() (*relational.Datab
 func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, collectionName string, session *mongodb.Session) error {
 	dbName := schemaGen.ToolOptions.DB
 	if strings.HasPrefix(collectionName, "system.") {
-		logger.Logf(log.Info, "Skipping system collection %s", collectionName)
+		schemaGen.Logger.Logf(log.Info, "Skipping system collection %q", collectionName)
 		return nil
 	}
 
-	logger.Logf(log.Info, "Exporting tables for %s.%s", dbName, collectionName)
+	schemaGen.Logger.Logf(log.Info, "Creating schema for namespace %q.%q", dbName, collectionName)
 	pipeline := []bson.M{{"$sample": bson.M{"size": schemaGen.SampleOptions.SampleSize}}}
 
 	iter, err := session.Aggregate(dbName, collectionName, pipeline)
@@ -95,10 +93,10 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 	ctx := session.Context()
 	doc := &bson.D{}
 	for iter.Next(ctx, doc) {
-		logger.Logf(log.DebugHigh, "Including sample: %v", doc)
+		schemaGen.Logger.Logf(log.DebugHigh, "Including sample: %v", doc)
 		err := col.IncludeSample(*doc)
 		if err != nil {
-			logger.Logf(log.Always, "Error including sample: %+v", doc)
+			schemaGen.Logger.Logf(log.Always, "Error including sample: %+v", doc)
 			return err
 		}
 
@@ -145,7 +143,7 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 	// types like geo fields.
 	iter, err = session.ListIndexes(dbName, collectionName)
 	if err != nil {
-		return fmt.Errorf("failed to run listIndexes on database '%v': %v", dbName, err)
+		return fmt.Errorf("failed to run listIndexes on database %q: %v", dbName, err)
 	}
 
 	indexes, index := []mongodb.Index{}, mongodb.Index{}
@@ -158,5 +156,11 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 		return err
 	}
 
-	return database.Map(col, indexes, schemaGen.OutputOptions.PreJoined)
+	err = database.Map(col, indexes, schemaGen.OutputOptions.PreJoined)
+	if err != nil {
+		return err
+	}
+
+	schemaGen.Logger.Logf(log.Info, "Created schema for namespace %q.%q", dbName, collectionName)
+	return nil
 }

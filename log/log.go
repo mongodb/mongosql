@@ -174,12 +174,6 @@ func GlobalLogger() Logger {
 	return *globalLogger
 }
 
-// IsInVerbosity returns true if the current verbosity level setting is
-// greater than or equal to the given level.
-func IsInVerbosity(minVerbosity int) bool {
-	return minVerbosity <= globalLogger.verbosity
-}
-
 func Logf(minVerbosity int, format string, a ...interface{}) {
 	globalLogger.Logf(minVerbosity, format, a...)
 }
