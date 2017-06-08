@@ -14,6 +14,7 @@ github.com/smartystreets/goconvey				1.6.2
 github.com/spacemonkeygo/openssl 6b1c8e0d11cbec09b111e263e28a5a089a06fba1 github.com/10gen/openssl
 github.com/spacemonkeygo/spacelog ae95ccc1eb0c8ce2496c43177430efd61930f7e4
 golang.org/x/crypto	a7ead6ddf06233883deca151dffaef2effbf498f	github.com/golang/crypto
+golang.org/x/sys    9ccfe848b9db8435a24c424abbc07a921adf1df5    github.com/golang/sys
 golang.org/x/text   ceefd2213ed29504fff30155163c8f59827734f3	github.com/golang/text
 gopkg.in/mgo.v2   7ddd511871dec26ace0517365e4e496b545159b5	github.com/10gen/mgo
 github.com/kardianos/service e173e96a4ea4c8241abf22e6f2644daa3c07f24e
