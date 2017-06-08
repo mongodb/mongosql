@@ -95,6 +95,7 @@ pre:
 post:
   - func: "generate reports"
   - func: "upload artifacts"
+  - func: "reset testing state"
   - command: shell.cleanup
 
 functions:

@@ -15,7 +15,13 @@
     pkill -9 mongotop
     pkill -9 mongod
     pkill -9 mongos
-    pkill -9 mongosqld
+    if [ "Windows_NT" = "$OS" ]; then
+        net stop mongosql || true
+        sc.exe delete mongosql || true
+        reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\mongosql" /f || true
+    else
+        pkill -9 mongosqld
+    fi
     pkill -9 -f mongo-orchestration
     echo "done cleaning up processes"
 
