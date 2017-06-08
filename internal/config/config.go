@@ -124,12 +124,12 @@ type Config struct {
 	// Config is the file to load extra configuration from.
 	Config string
 
-	SystemLog SystemLog
-	Schema    Schema
-	Runtime   Runtime
-	Net       Net
-	Security  Security
-	MongoDB   MongoDB `config:"mongodb"`
+	SystemLog         SystemLog
+	Schema            Schema
+	Runtime           Runtime
+	Net               Net
+	Security          Security
+	MongoDB           MongoDB `config:"mongodb"`
 	ProcessManagement ProcessManagement
 }
 
