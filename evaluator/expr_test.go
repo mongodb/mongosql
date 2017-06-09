@@ -3147,11 +3147,13 @@ func TestTranslatePredicate(t *testing.T) {
 			test{"t IS NOT TRUE", `{"t":{"$ne":true}}`},
 			test{"t IS FALSE", `{"t":false}`},
 			test{"t IS NOT FALSE", `{"t":{"$ne":false}}`},
+			test{"t", `{"$and":[{"t":{"$ne":false}},{"t":{"$ne":null}},{"t":{"$ne":0}}]}`},
 		}
 
 		runTests(tests)
 
 		partialTests := []partialTest{
+			partialTest{"a", `null`, `a`, NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt)}, // non-boolean types don't get pushed down
 			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
 			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
 			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},

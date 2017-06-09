@@ -248,10 +248,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		), true
 
 	case SQLColumnExpr:
+
 		name, ok := t.lookupFieldName(typedE.tableName, typedE.columnName)
 		if !ok {
 			return nil, false
 		}
+
 		return getProjectedFieldName(name, typedE.columnType.SQLType), true
 
 	case *SQLGreaterThanExpr:
@@ -1759,7 +1761,35 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 		} else {
 			return match, &SQLAndExpr{exLeft, exRight}
 		}
+	case SQLColumnExpr:
+		name, ok := t.lookupFieldName(typedE.tableName, typedE.columnName)
+		if !ok {
+			return nil, e
+		}
 
+		if typedE.Type() != schema.SQLBoolean {
+			return nil, e
+		}
+
+		return bson.M{
+			"$and": []interface{}{
+				bson.M{
+					name: bson.M{
+						"$ne": false,
+					},
+				},
+				bson.M{
+					name: bson.M{
+						"$ne": nil,
+					},
+				},
+				bson.M{
+					name: bson.M{
+						"$ne": 0,
+					},
+				},
+			},
+		}, nil
 	case *SQLEqualsExpr:
 		match, ok := t.translateOperator(mgoOperatorEQ, typedE.left, typedE.right)
 		if !ok {
