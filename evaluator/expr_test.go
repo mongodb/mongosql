@@ -1210,6 +1210,23 @@ func TestEvaluates(t *testing.T) {
 				runTypeTests(evalCtx, typeTests)
 			})
 
+			Convey("Subject: DATEDIFF", func() {
+				tests := []test{
+					test{"DATEDIFF('2017-01-01', '2016-01-01 23:08:56')", SQLInt(366)},
+					test{"DATEDIFF('2017-01-01', '2017-01-01')", SQLInt(0)},
+					test{"DATEDIFF('2017-08-23 10:40:43', '2017-09-30 12:19:50')", SQLInt(-38)},
+					test{"DATEDIFF(NULL, '2017-09-30 12:19:50')", SQLNull},
+					test{"DATEDIFF('2002-09-07', '1700-08-02')", SQLInt(106751)},
+					test{"DATEDIFF('1657-08-02', '2002-09-07')", SQLInt(-106751)},
+					test{"DATEDIFF(20170823104043, '2017-09-30 12:19:50')", SQLInt(-38)},
+					test{"DATEDIFF(20170823.09809, '2017-09-30 12:19:50')", SQLInt(-38)},
+					test{"DATEDIFF('biconnectorisfun', '2017-09-30 12:19:50')", SQLNull},
+					test{"DATEDIFF('2000-9-1', '2012-6-7')", SQLInt(-4297)},
+					test{"DATEDIFF('00-09-1', '12-06-07')", SQLInt(-4297)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: DATE_FORMAT", func() {
 				tests := []test{
 					test{"DATE_FORMAT('2009-10-04', NULL)", SQLNull},
@@ -3235,6 +3252,9 @@ func TestExprNoPushdown(t *testing.T) {
 			test{"abs(s)"},
 			test{"adddate(s, '%Y')"},
 			test{"adddate(date_format(g, '%Y-02-01'), interval 0 second)"},
+			test{"datediff(a, '2000-09-01 13:29:18')"},
+			test{"datediff(s, '2000-09-01 13:29:18')"},
+			test{"datediff(t, '2000-09-01 13:29:18')"},
 			test{"date_format(g, '%Y%')"},
 			test{"date_format(g, '%V')"},
 			test{"round(s)"},
@@ -3328,6 +3348,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"concat(s, '')", `{"$concat":["$s",{"$literal":""}]}`},
 			test{"concat_ws(',', s)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},"$s"]}]}`},
 			test{"concat_ws(',', s, null)", `{"$concat":[{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},"$s"]},{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$literal":""},{"$literal":","}]},{"$cond":[{"$eq":[{"$ifNull":[{"$literal":null},null]},null]},{"$literal":""},{"$literal":null}]}]}`},
+			test{"datediff(g, '2000-09-01 13:29:18')", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$g",null]},null]},{"$eq":[{"$ifNull":["2000-09-01T00:00:00Z",null]},null]}]},null,{"$cond":[{"$or":[{"$gt":[{"$divide":[{"$subtract":["$g","2000-09-01T00:00:00Z"]},86400000]},106751]},{"$lt":[{"$divide":[{"$subtract":["$g","2000-09-01T00:00:00Z"]},86400000]},-106751]}]},{"$cond":[{"$gt":[{"$divide":[{"$subtract":["$g","2000-09-01T00:00:00Z"]},86400000]},106751]},106751,-106751]},{"$divide":[{"$subtract":["$g","2000-09-01T00:00:00Z"]},86400000]}]}]}`},
+			test{"datediff(g, h)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$g",null]},null]},{"$eq":[{"$ifNull":["$h",null]},null]}]},null,{"$cond":[{"$or":[{"$gt":[{"$divide":[{"$subtract":["$g","$h"]},86400000]},106751]},{"$lt":[{"$divide":[{"$subtract":["$g","$h"]},86400000]},-106751]}]},{"$cond":[{"$gt":[{"$divide":[{"$subtract":["$g","$h"]},86400000]},106751]},106751,-106751]},{"$divide":[{"$subtract":["$g","$h"]},86400000]}]}]}`},
 			test{"date_add(g, INTERVAL 10 day)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$add":["$g",864000000]}]}`},
 			test{"date_format(g, '%% %d %f %H %k %i %j %m %s %S %T %U %Y')", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$dateToString":{"date":"$g","format":"%% %d %L000 %H %H %M %j %m %S %S %H:%M:%S %U %Y"}}]}`},
 			test{"date_format(g, null)", `{"$literal":null}`},

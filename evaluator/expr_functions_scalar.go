@@ -104,6 +104,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"database":          &dbFunc{},
 	"date":              &dateFunc{},
 	"date_add":          &dateAddFunc{},
+	"datediff":          &dateDiffFunc{},
 	"date_sub":          &dateSubFunc{},
 	"date_format":       &dateFormatFunc{},
 	"day":               &dayOfMonthFunc{},
@@ -1106,6 +1107,56 @@ func (_ *dateAddFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (_ *dateAddFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 3)
+}
+
+type dateDiffFunc struct{}
+
+func (_ *dateDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+
+	var left, right time.Time
+	var ok bool
+
+	parseArgs := func(val SQLValue) (time.Time, bool) {
+		var date time.Time
+
+		date, ok = strToDateTime(val.String(), false)
+		if !ok {
+			return date, false
+		}
+
+		date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+		return date, true
+	}
+
+	if left, ok = parseArgs(values[0]); !ok {
+		return SQLNull, nil
+	}
+
+	if right, ok = parseArgs(values[1]); !ok {
+		return SQLNull, nil
+	}
+
+	durationDiff := left.Sub(right)
+	hoursDiff := durationDiff.Hours()
+	daysDiff := hoursDiff / 24
+
+	diff := SQLInt(int(daysDiff))
+	return diff, nil
+}
+
+func (_ *dateDiffFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+	return f
+}
+
+func (_ *dateDiffFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *dateDiffFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
 }
 
 type dateSubFunc struct{}

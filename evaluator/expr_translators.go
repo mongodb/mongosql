@@ -601,6 +601,60 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				wrapInOp("$add", date, ms),
 				date,
 			), true
+		case "datediff":
+			if len(typedE.Exprs) != 2 {
+				return nil, false
+			}
+
+			var date1, date2 interface{}
+			var ok bool
+
+			parseArgs := func(expr SQLExpr) (interface{}, bool) {
+				if value, ok := expr.(SQLValue); ok {
+
+					date, ok := strToDateTime(value.String(), false)
+					if !ok {
+						return nil, false
+					}
+
+					date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
+					return date, true
+				} else {
+					exprType := expr.Type()
+					if exprType == schema.SQLTimestamp || exprType == schema.SQLDate {
+						date, ok := t.TranslateExpr(expr)
+						if !ok {
+							return nil, false
+						}
+						return date, true
+					} else {
+						return nil, false
+					}
+				}
+			}
+
+			if date1, ok = parseArgs(typedE.Exprs[0]); !ok {
+				return nil, false
+			}
+			if date2, ok = parseArgs(typedE.Exprs[1]); !ok {
+				return nil, false
+			}
+
+			days := wrapInOp("$divide", wrapInOp("$subtract", date1, date2), 86400000)
+			bound := wrapInCond(106751, -106751, wrapInOp("$gt", days, 106751))
+
+			return wrapInNullCheckedCond(
+				nil,
+				wrapInCond(
+					bound,
+					days,
+					wrapInOp("$gt", days, 106751),
+					wrapInOp("$lt", days, -106751),
+				),
+				date1,
+				date2,
+			), true
+
 		case "ceil":
 			if len(typedE.Exprs) != 1 {
 				return nil, false

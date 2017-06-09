@@ -3982,7 +3982,262 @@ testcases:
   - [~]
   - ["thi"]
   - [~]
-
-
-
-
+- sql: "select datediff('2017-01-01', '2016-01-01')"
+  id: 'datediff_Pos2Date'
+  db: functions_test
+  expected_names: ["datediff('2017-01-01', '2016-01-01')"]
+  expected_types: [int]
+  expected:
+  - [366]
+- sql: "select datediff('2017-01-01', '2017-01-01')"
+  id: 'datediff_Same2Date'
+  db: functions_test
+  expected_names: ["datediff('2017-01-01', '2017-01-01')"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "select datediff('2017-08-23', '2017-09-30')"
+  id: 'datediff_Neg2Date'
+  db: functions_test
+  expected_names: ["datediff('2017-08-23', '2017-09-30')"]
+  expected_types: [int]
+  expected:
+  - [-38]
+- sql: "select datediff(b, '2000-09-01 13:29:18') from foo"
+  id: 'datediff_Pos2Datetime1Column'
+  db: functions_test
+  expected_names: ["datediff(b, '2000-09-01 13:29:18')"]
+  expected_types: [int]
+  expected:
+  - [22]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff('2000-09-23 03:22:43', b) from foo"
+  id: 'datediff_Same2Datetime1Column'
+  db: functions_test
+  expected_names: ["datediff('2000-09-23 03:22:43', b)"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff('2000-09-01 13:29:18', b) from foo"
+  id: 'datediff_Neg2Datetime1Column'
+  db: functions_test
+  expected_names: ["datediff('2000-09-01 13:29:18', b)"]
+  expected_types: [int]
+  expected:
+  - [-22]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff(b, '2000-09-01') from foo"
+  id: 'datediff_PosBothDateDatetime1Column'
+  db: functions_test
+  expected_names: ["datediff(b, '2000-09-01')"]
+  expected_types: [int]
+  expected:
+  - [22]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff('2000-09-23', b) from foo"
+  id: 'datediff_SameBothDateDatetime1Column'
+  db: functions_test
+  expected_names: ["datediff('2000-09-23', b)"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff('2000-09-01 14:45:00', b) from foo"
+  id: 'datediff_NegBothDateDatetime1Column'
+  db: functions_test
+  expected_names: ["datediff('2000-09-01 14:45:00', b)"]
+  expected_types: [int]
+  expected:
+  - [-22]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff(bar.d, foo.b) from bar, foo"
+  id: 'datediff_twoColumns'
+  db: functions_test
+  expected_names: ["datediff(bar.d, foo.b)"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [1]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [31]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff(d, '1700-08-02') from bar"
+  id: 'datediff_limitPos'
+  db: functions_test
+  expected_names: ["datediff(d, '1700-08-02')"]
+  expected_types: [int]
+  expected:
+  - [106751]
+  - [106751]
+  - [106751]
+  - [~]
+  - [~]
+- sql: "select datediff('1492-09-06', b) from foo"
+  id: 'datediff_limitNeg'
+  db: functions_test
+  expected_names: ["datediff('1492-09-06', b)"]
+  expected_types: [int]
+  expected:
+  - [-106751]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff(null, b) from foo"
+  id: 'datediff_nullLiteral'
+  db: functions_test
+  expected_names: ["datediff(null, b)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff(20000901, b) from foo"
+  id: 'datediff_intLiteral'
+  db: functions_test
+  expected_names: ["datediff(20000901, b)"]
+  expected_types: [int]
+  expected:
+  - [-22]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff(false, b) from foo"
+  id: 'datediff_boolLiteral'
+  db: functions_test
+  expected_names: ["datediff(false, b)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff('welovebic', b) from foo"
+  id: 'datediff_nonsenseStrLiteral'
+  db: functions_test
+  expected_names: ["datediff('welovebic', b)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff(d, z) from bar"
+  id: 'datediff_nullColumn'
+  db: functions_test
+  expected_names: ["datediff(d, z)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff(bar.d, foo.e) from foo, bar"
+  id: 'datediff_intColumn'
+  db: functions_test
+  expected_names: ["datediff(bar.d, foo.e)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [-6224]
+  - [-6223]
+  - [-6193]
+  - [~]
+  - [~]
+  - [-6224]
+  - [-6223]
+  - [-6193]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]  
+- sql: "select datediff(d, t) from bar"
+  id: 'datediff_boolColumn'
+  db: functions_test
+  expected_names: ["datediff(d, t)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff(d, c) from bar"
+  id: 'datediff_floatColumn'
+  db: functions_test
+  expected_names: ["datediff(d, c)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+- sql: "select datediff(d, b) from bar"
+  id: 'datediff_nonsenseStrColumn'
+  db: functions_test
+  expected_names: ["datediff(d, b)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
