@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <DirectoryRef Id="BIN">
+      <Component Id="c_mongosqld" Guid="35a4f4ee-1bd1-4410-b18f-756243aa600c">
+        <File Id="f_mongosqld"
+              Name="mongosqld.exe"
+              Source="$(var.BinaryDir)\mongosqld"
+              DiskId ="1"
+              KeyPath="yes"/>
+      </Component>
+      <Component Id="c_mongodrdl" Guid="1d473cef-de50-4f76-8736-dc57bb042998">
+        <File Id="f_mongodrdl"
+              Name="mongodrdl.exe"
+              Source="$(var.BinaryDir)\mongodrdl"
+              DiskId ="1"
+              KeyPath="yes"/>
+      </Component>
+      <Component Id="c_ssleay" Guid="4f03da0f-fe94-471b-853e-0abb4b16d8e0">
+        <File Id="f_ssleay"
+              Name="ssleay32.dll"
+              Source="$(var.SslDir)\ssleay32.dll"
+              DiskId="1"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="c_libeay" Guid="3e30fc05-493f-4647-ac2d-f1a34524201f">
+        <File Id="f_libeay"
+              Name="libeay32.dll"
+              Source="$(var.SslDir)\libeay32.dll"
+              DiskId="1"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <ComponentGroup Id="cg_SSLBase">
+      <ComponentRef Id="c_ssleay" />
+      <ComponentRef Id="c_libeay" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>

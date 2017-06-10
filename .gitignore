@@ -4,6 +4,7 @@
 *.o
 *.a
 *.so
+*.wixobj
 
 # Folders
 _obj

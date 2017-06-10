@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <FeatureGroup Id="fg_All">
+      <Feature Id="ProductAll"
+               Title="!(wix.ProductName)"
+               Description="!(wix.ProductName)"
+               Level="1"
+               ConfigurableDirectory="INSTALLLOCATION">
+        <Feature Id="Server"
+                Title="$(var.ProjectName)"
+                Description="$(var.ProjectName) server (mongosqld)"
+                Level="1">
+          <ComponentRef Id="c_mongosqld" />
+          <ComponentGroupRef Id="cg_SSLBase" />
+        </Feature>
+        <Feature Id="DRDL"
+                Title="Schema Generator"
+                Description="Generates a schema file (mongodrdl)"
+                Level="1">
+          <ComponentRef Id="c_mongodrdl" />
+          <ComponentGroupRef Id="cg_SSLBase" />
+        </Feature>
+        <ComponentGroupRef Id="cg_License" />
+      </Feature>
+    </FeatureGroup>    
+  </Fragment>
+</Wix>

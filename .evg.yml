@@ -414,16 +414,36 @@ functions:
         display_name: "All Artifacts (.tar.gz)"
 
   "upload release":
-    command: s3.put
-    params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release.${archive_format|tgz}
-      remote_file: sqlproxy/binaries/${push_name}/mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.${archive_format|tgz}
-      bucket: mciuploads
-      permissions: public-read
-      content_type: application/x-gzip
-      display_name: mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.${archive_format|tgz}
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release.${archive_format|tgz}
+        remote_file: sqlproxy/binaries/${push_name}/mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.${archive_format|tgz}
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/x-gzip
+        display_name: mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.${archive_format|tgz}
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release.msi
+        remote_file: sqlproxy/binaries/${push_name}/mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.msi
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/x-msi
+        display_name: mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.msi
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release.wixpdb
+        remote_file: sqlproxy/binaries/${push_name}/mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.wixpdb
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.wixpdb
 
   "run integration tests":
     command: shell.exec
