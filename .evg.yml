@@ -657,8 +657,8 @@ axes:
       push_arch: x86_64-ubuntu1404
       push_name: linux
   - id: osx
-    display_name: OSX 10.10
-    run_on: osx-1010
+    display_name: OSX 10.12
+    run_on: macos-1012
     variables:
       push_arch: x86_64
       push_name: osx
