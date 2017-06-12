@@ -115,7 +115,7 @@ func ForceEOF(yylex interface{}) {
 %type <selectExprs> select_expression_list
 %type <selectExpr> select_expression
 %type <bytes> as_opt
-%type <expr> expression bool_pri predicate bit_expr simple_expr func_expr func_expr_keyword func_expr_nonkeyword func_expr_generic func_expr_conflict
+%type <expr> expression bool_pri predicate bit_expr simple_expr func_expr func_expr_reserved_keyword func_expr_unconventional func_expr_generic func_expr_conflict
 %type <tableExprs> table_expression_list
 %type <tableExpr> table_expression join_expression
 %type <str> join_type
@@ -1235,11 +1235,11 @@ simple_expr:
   }
 
 func_expr:
-  func_expr_keyword
+  func_expr_reserved_keyword
   {
     $$ = $1
   }
-| func_expr_nonkeyword
+| func_expr_unconventional
   {
     $$ = $1
   }
@@ -1253,12 +1253,39 @@ func_expr:
   }
 
 /*
-  function calls using keywords.
+  function calls using reserved keywords with either conventional
+  or unconventional syntax.
 */
-func_expr_keyword:
+func_expr_reserved_keyword:
   CHAR LPAREN select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: CHAR_BYTES, Exprs: $3}
+  }
+| CONVERT LPAREN expression COMMA sql_types RPAREN
+  {
+    $$ = &FuncExpr{Name: CONVERT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
+  }
+| LEFT LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: LEFT_BYTES, Exprs: $3}
+  }
+| RIGHT LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: RIGHT_BYTES, Exprs: $3}
+  }
+
+/*
+  function calls using unconventional call syntax. Most functions are called as (arg,arg,arg). The ones
+  in this production are called with a different syntax.
+*/ 
+func_expr_unconventional:
+  ADDDATE LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
+  {
+    $$ = &FuncExpr{Name: ADDDATE_BYTES, Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
+  }
+| ADDDATE LPAREN select_expression COMMA select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: ADDDATE_BYTES, Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
   }
 | CAST LPAREN expression AS sql_types RPAREN
   {
@@ -1267,71 +1294,6 @@ func_expr_keyword:
 | CAST LPAREN expression AS sql_types PRECISION RPAREN
   {
     $$ = &FuncExpr{Name: CONVERT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
-  }
-| CONVERT LPAREN expression COMMA sql_types RPAREN
-  {
-    $$ = &FuncExpr{Name: CONVERT_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
-  }
-| DATE LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: DATE_BYTES, Exprs: $3}
-  }
-| DAY LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: DAY_BYTES, Exprs: $3}
-  }
-| HOUR LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: HOUR_BYTES, Exprs: $3}
-  }
-| LEFT LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: LEFT_BYTES, Exprs: $3}
-  }
-| MINUTE LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: MINUTE_BYTES, Exprs: $3}
-  }
-| MONTH LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: MONTH_BYTES, Exprs: $3}
-  }
-| RIGHT LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: RIGHT_BYTES, Exprs: $3}
-  }
-| SECOND LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: SECOND_BYTES, Exprs: $3}
-  }
-| TIMESTAMP LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: TIMESTAMP_BYTES, Exprs: $3}
-  }
-| TRIM LPAREN select_expression_list RPAREN 
-  {
-    $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: $3}
-  }
-| TRIM LPAREN both_leading_trailing_opt select_expression FROM select_expression RPAREN 
-  {
-    $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: []SelectExpr{$6, &NonStarExpr{Expr: StrVal($3)}, $4}}
-  }
-| YEAR LPAREN select_expression_list RPAREN
-  {
-    $$ = &FuncExpr{Name: YEAR_BYTES, Exprs: $3}
-  }
-
-/*
-  function calls using unconventional syntax.
-*/ 
-func_expr_nonkeyword:
-  ADDDATE LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
-  {
-    $$ = &FuncExpr{Name: ADDDATE_BYTES, Exprs: append(SelectExprs{$3, $6, &NonStarExpr{Expr: KeywordVal($7)}})}
-  }
-| ADDDATE LPAREN select_expression COMMA select_expression RPAREN
-  {
-    $$ = &FuncExpr{Name: ADDDATE_BYTES, Exprs: append(SelectExprs{$3, $5, &NonStarExpr{Expr: KeywordVal(DAY_BYTES)}})}
   }
 | CURRENT_DATE optional_parens
   {
@@ -1381,13 +1343,23 @@ func_expr_nonkeyword:
   {
     $$ = &FuncExpr{Name: TIMESTAMPDIFF_BYTES, Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
   }
+| TRIM LPAREN select_expression_list RPAREN 
+  {
+    $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: $3}
+  }
+| TRIM LPAREN both_leading_trailing_opt select_expression FROM select_expression RPAREN 
+  {
+    $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: []SelectExpr{$6, &NonStarExpr{Expr: StrVal($3)}, $4}}
+  }
 | UTC_TIMESTAMP optional_parens
   {
     $$ = &FuncExpr{Name: UTC_TIMESTAMP_BYTES}
   }
 
 /*
-  function calls using non-reserved keywords with regular syntax that conflict.
+  function calls using a non reserved keyword, and using a regular syntax.
+  Because the non reserved keyword is used in another part of the grammar,
+  a dedicated rule is needed here.
 */
 func_expr_conflict:
   COUNT LPAREN select_expression_list RPAREN
@@ -1402,6 +1374,18 @@ func_expr_conflict:
   {
     $$ = &FuncExpr{Name: DATABASE_BYTES}
   }
+| DATE LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: DATE_BYTES, Exprs: $3}
+  }
+| DAY LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: DAY_BYTES, Exprs: $3}
+  }
+| HOUR LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: HOUR_BYTES, Exprs: $3}
+  }
 | IF LPAREN select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: IF_BYTES, Exprs: $3}
@@ -1410,9 +1394,17 @@ func_expr_conflict:
   {
     $$ = &FuncExpr{Name: MICROSECOND_BYTES, Exprs: $3}
   }
+| MINUTE LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: MINUTE_BYTES, Exprs: $3}
+  }
 | MOD LPAREN select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: MOD_BYTES, Exprs: $3}
+  }
+| MONTH LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: MONTH_BYTES, Exprs: $3}
   }
 | QUARTER LPAREN select_expression_list RPAREN
   {
@@ -1422,6 +1414,14 @@ func_expr_conflict:
   {
     $$ = &FuncExpr{Name: SCHEMA_BYTES}
   }
+| SECOND LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: SECOND_BYTES, Exprs: $3}
+  }
+| TIMESTAMP LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: TIMESTAMP_BYTES, Exprs: $3}
+  }
 | WEEK LPAREN select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: WEEK_BYTES, Exprs: $3}
@@ -1429,6 +1429,10 @@ func_expr_conflict:
 | USER LPAREN RPAREN
   {
     $$ = &FuncExpr{Name: USER_BYTES}
+  }
+| YEAR LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: YEAR_BYTES, Exprs: $3}
   }
 
 /*
@@ -1946,7 +1950,9 @@ sql_id:
     $$ = $1
   }
 
-// These are non-reserved keywords...
+/*
+  keywords that require special treatment for use as identifiers such as table and column names.
+*/
 keyword_as_id:
   ANY
   {
