@@ -185,6 +185,8 @@ var (
 	STORAGE_BYTES            = []byte("storage")
 	STRAIGHT_JOIN_BYTES      = []byte("straight_join")
 	SUBDATE_BYTES            = []byte("subdate")
+	SUBSTR_BYTES             = []byte("substr")
+	SUBSTRING_BYTES          = []byte("substring")
 	T_BYTES                  = []byte("t")
 	TABLE_BYTES              = []byte("table")
 	TABLES_BYTES             = []byte("tables")
@@ -392,6 +394,8 @@ var keywords = map[string]int{
 	"storage":            STORAGE,
 	"straight_join":      STRAIGHT_JOIN,
 	"subdate":            SUBDATE,
+	"substr":             SUBSTR,
+	"substring":          SUBSTRING,
 	"table":              TABLE,
 	"tables":             TABLES,
 	"then":               THEN,

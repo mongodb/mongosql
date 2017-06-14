@@ -63,7 +63,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
 %token <empty> DATE_SUB SUBDATE ROW
 %token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER
-%token <empty> BOTH LEADING TRAILING TRIM
+%token <empty> BOTH LEADING TRAILING TRIM SUBSTRING SUBSTR
 %token <empty> BINARY MASTER LOGS DATABASE SCHEMA EVENT FUNCTION PROCEDURE BINLOG EVENTS TRIGGER USER
 %token <empty> ENGINE MUTEX ENGINES STORAGE ERRORS COUNT CODE GRANTS OPEN PLUGINS PRIVILEGES
 %token <empty> PROFILE PROFILES RELAYLOG SLAVE HOSTS TRIGGERS WARNINGS CHANNEL INDEXES KEYS SCHEMAS
@@ -133,6 +133,7 @@ func ForceEOF(yylex interface{}) {
 %type <bytes> sql_time_interval
 %type <bytes> sql_time_unit
 %type <bytes> sql_types
+%type <bytes> substr 
 %type <subquery> subquery
 %type <byt> unary_operator
 %type <colName> column_name explain_column_name
@@ -281,6 +282,16 @@ transaction_level:
 | SERIALIZABLE
   {
     $$ = SERIALIZABLE_BYTES
+  }
+
+substr:
+  SUBSTR
+  {
+    $$ = SUBSTR_BYTES
+  }
+| SUBSTRING
+  {
+    $$ = SUBSTRING_BYTES
   }
 
 in_or_from:
@@ -1351,6 +1362,22 @@ func_expr_unconventional:
   {
     $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: []SelectExpr{$6, &NonStarExpr{Expr: StrVal($3)}, $4}}
   }
+
+| substr LPAREN select_expression FROM select_expression FOR select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: $1, Exprs: []SelectExpr{$3,$5,$7}}
+  }
+
+| substr LPAREN select_expression FROM select_expression RPAREN
+  {
+    $$ = &FuncExpr{Name: $1, Exprs: []SelectExpr{$3,$5}}
+  }
+
+| substr LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: $1, Exprs: $3} 
+  }
+
 | UTC_TIMESTAMP optional_parens
   {
     $$ = &FuncExpr{Name: UTC_TIMESTAMP_BYTES}

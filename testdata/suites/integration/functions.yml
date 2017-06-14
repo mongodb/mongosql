@@ -3870,3 +3870,119 @@ testcases:
   - [-20001024134500]
   - [~]
   - [~]
+- sql: "select substring(b from 2) from bar"
+  id: 'substr_from_for1'
+  db: functions_test
+  expected_names: ["substring(b, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["ey"]
+  - ["o"]
+  - [~]
+  - ["his"]
+  - [~]
+
+- sql: "select substr(b froM 2) from bar"
+  id: 'substr_from_for2'
+  db: functions_test
+  expected_names: ["substr(b, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["ey"]
+  - ["o"]
+  - [~]
+  - ["his"]
+  - [~]
+
+- sql: "select substring(b from 2) from bar where length(substring(b, 2)) > 2"
+  id: 'substr_from_for3'
+  db: functions_test
+  expected_names: ["substring(b, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["his"]
+
+- sql: "select substring(b from 1 for 3) from bar"
+  id: 'substr_from_for4'
+  db: functions_test
+  expected_names: ["substring(b, 1, 3)"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [~]
+  - ["thi"]
+  - [~]
+
+- sql: "select substring(b from 1 for 3) from bar where length(substring(b, 1, 3)) > 2"
+  id: 'substr_from_for5'
+  db: functions_test
+  expected_names: ["substring(b, 1, 3)"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["thi"]
+
+- sql: "select substring(null from null) from bar"
+  id: 'substr_from_for6'
+  db: functions_test
+  expected_names: ["substring(null, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select substring(b from id) from bar"
+  id: 'substr_from_for7'
+  db: functions_test
+  expected_names: ["substring(b, id)"]
+  expected_types: [varchar]
+  expected:
+  - [""]
+  - ["yo"]
+  - [~]
+  - ["is"]
+  - [~]
+
+- sql: " select substring(b from id for id) from bar"
+  id: 'substr_from_for8'
+  db: functions_test
+  expected_names: ["substring(b, id, id)"]
+  expected_types: [varchar]
+  expected:
+  - [""]
+  - ["y"]
+  - [~]
+  - ["is"]
+  - [~]
+
+- sql: "select substr(b from id for 1) from bar"
+  id: 'substr_from_for9'
+  db: functions_test
+  expected_names: ["substr(b, id, 1)"]
+  expected_types: [varchar]
+  expected:
+  - [""]
+  - ["y"]
+  - [~]
+  - ["i"]
+  - [~]
+
+- sql: "select substring(b from 1 for id) from bar"
+  id: 'substr_from_for10'
+  db: functions_test
+  expected_names: ["substring(b, 1, id)"]
+  expected_types: [varchar]
+  expected:
+  - [""]
+  - ["y"]
+  - [~]
+  - ["thi"]
+  - [~]
+
+
+
+
