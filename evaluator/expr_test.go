@@ -2737,7 +2737,6 @@ func TestNewSQLValue(t *testing.T) {
 			runTests(tests)
 
 		})
-
 	})
 
 }

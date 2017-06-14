@@ -32,13 +32,15 @@ type SQLScalarFunctionExpr struct {
 	Exprs []SQLExpr
 }
 
-func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) *SQLScalarFunctionExpr {
-	sf := &SQLScalarFunctionExpr{
-		name,
-		exprs,
+func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (*SQLScalarFunctionExpr, error) {
+	_, ok := scalarFuncMap[name]
+	if !ok {
+		return nil, fmt.Errorf("scalar function '%v' is not supported", name)
 	}
-	reconciled := sf.reconcile()
-	return reconciled
+
+	sf := &SQLScalarFunctionExpr{name, exprs}
+
+	return sf.reconcile(), nil
 }
 
 type scalarFunc interface {

@@ -1,6 +1,8 @@
 package evaluator
 
-import "github.com/10gen/sqlproxy/collation"
+import (
+	"github.com/10gen/sqlproxy/collation"
+)
 
 // ProjectStage handles taking sourced rows and projecting them into a different shape.
 type ProjectStage struct {
@@ -51,9 +53,7 @@ func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 func (pj *ProjectIter) Next(r *Row) bool {
 
-	hasNext := pj.source.Next(r)
-
-	if !hasNext {
+	if !pj.source.Next(r) {
 		return false
 	}
 
@@ -64,8 +64,9 @@ func (pj *ProjectIter) Next(r *Row) bool {
 		v, err := projectedColumn.Expr.Evaluate(evalCtx)
 		if err != nil {
 			pj.err = err
-			hasNext = false
+			return false
 		}
+
 		value := Value{
 			SelectID: projectedColumn.SelectID,
 			Table:    projectedColumn.Table,

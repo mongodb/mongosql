@@ -2019,8 +2019,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			})
 
 			Convey("errors", func() {
+				testError("select ABASDD()", "scalar function 'abasdd' is not supported")
 				testError("select a", `ERROR 1054 (42S22): Unknown column 'a' in 'field list'`)
-
 				testError("select a from idk", `ERROR 1146 (42S02): Table 'test.idk' doesn't exist`)
 				testError("select idk from foo", `ERROR 1054 (42S22): Unknown column 'idk' in 'field list'`)
 				testError("select f.a from foo", `ERROR 1054 (42S22): Unknown column 'f.a' in 'field list'`)

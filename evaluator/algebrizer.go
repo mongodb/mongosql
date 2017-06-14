@@ -1425,7 +1425,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 
 	}
 
-	return NewSQLScalarFunctionExpr(name, exprs), nil
+	return NewSQLScalarFunctionExpr(name, exprs)
 }
 
 func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr, error) {
