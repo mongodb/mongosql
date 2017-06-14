@@ -433,6 +433,7 @@ functions:
         bucket: mciuploads
         permissions: public-read
         content_type: application/x-msi
+        optional: true
         display_name: mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.msi
     - command: s3.put
       params:
@@ -443,6 +444,7 @@ functions:
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
+        optional: true
         display_name: mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.wixpdb
 
   "run integration tests":
