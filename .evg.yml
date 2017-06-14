@@ -4,22 +4,19 @@ buildvariants:
 
 - matrix_name: full_matrix
   display_name: "${os_full_matrix} (${mongodb_version}) (${mongodb_topology})"
-  tasks: ["!.oneoff-task !check"]
+  tasks: ["!.oneoff-task !dist"]
   matrix_spec:
     os_full_matrix: "*"
     mongodb_version: "*"
     mongodb_topology: "*"
   rules:
   - if:
+      os_full_matrix: "*"
       mongodb_version: "latest"
       mongodb_topology: "standalone"
     then:
-      add_tasks: ["check"]
-  - if:
-      mongodb_version: "latest"
-      mongodb_topology: "standalone"
-    then:
-      remove_tasks: ["dist"]
+      add_tasks:
+        - name: "dist"
 
 - matrix_name: single_variant
   display_name: "${os_single_variant}"
@@ -530,6 +527,7 @@ tasks:
         nopushdown: true
 
 - name: check
+  tags: ["oneoff-task"]
   commands:
     - func: "check formatting"
 
