@@ -163,7 +163,7 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 		return nil, err
 	}
 
-	createTableSQL := catalog.GenerateCreateTable(table)
+	createTableSQL := catalog.GenerateCreateTable(table, a.variables.MongoDBMaxVarcharLength)
 
 	return NewProjectStage(
 		NewDualStage(),

@@ -30,6 +30,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 	}
 	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVars := createTestVariables(testInfo)
+	testVars.MongoDBMaxVarcharLength = 10
 	testCatalog := getCatalogFromSchema(testSchema, testVars)
 	defaultDbName := "test"
 
@@ -469,7 +470,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			Convey("create table", func() {
 				testDB, _ := testCatalog.Database("test")
 				tbl, _ := testDB.Table("foo")
-				createTableSQL := catalog.GenerateCreateTable(tbl)
+				createTableSQL := catalog.GenerateCreateTable(tbl, 10)
 				test("show create table foo", func() PlanStage {
 					return NewProjectStage(
 						NewDualStage(),

@@ -1,6 +1,8 @@
 package variable
 
 import (
+	"math"
+
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mysqlerrors"
@@ -20,6 +22,7 @@ const (
 	InteractiveTimeoutSecs           = "interactive_timeout"
 	MaxAllowedPacket                 = "max_allowed_packet"
 	MongoDBMaxStageSize              = "mongodb_max_stage_size"
+	MongoDBMaxVarcharLength          = "mongodb_max_varchar_length"
 	MongoDBVersionCompatibility      = "mongodb_version_compatibility"
 	MongoDBGitVersion                = "mongodb_git_version"
 	MongoDBVersion                   = "mongodb_version"
@@ -135,6 +138,15 @@ func init() {
 		SQLType:          schema.SQLUint64,
 		GetValue:         func(c *Container) interface{} { return c.MongoDBMaxStageSize },
 		SetValue:         setMongoDBMaxStageSize,
+	}
+
+	definitions[MongoDBMaxVarcharLength] = &definition{
+		Name:             MongoDBMaxVarcharLength,
+		Kind:             SystemKind,
+		AllowedSetScopes: SessionScope,
+		SQLType:          schema.SQLUint64,
+		GetValue:         func(c *Container) interface{} { return c.MongoDBMaxVarcharLength },
+		SetValue:         setMongoDBMaxVarcharLength,
 	}
 
 	definitions[MongoDBVersionCompatibility] = &definition{
@@ -435,6 +447,28 @@ func setMongoDBMaxStageSize(c *Container, v interface{}) error {
 	}
 
 	c.MongoDBMaxStageSize = i
+	return nil
+}
+
+func setMongoDBMaxVarcharLength(c *Container, v interface{}) error {
+	i, ok := convertUint64(v)
+	if !ok {
+		if j, ok := convertInt64(v); ok {
+			if j < 0 {
+				i = 0
+			} else {
+				i = uint64(j)
+			}
+		} else {
+			return wrongTypeError(MongoDBMaxVarcharLength, v)
+		}
+	}
+
+	if i > math.MaxUint16 {
+		i = math.MaxUint16
+	}
+
+	c.MongoDBMaxVarcharLength = uint16(i)
 	return nil
 }
 

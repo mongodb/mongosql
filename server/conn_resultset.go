@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -11,13 +12,29 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
 )
 
 func (c *conn) formatValue(value evaluator.SQLValue) ([]byte, error) {
 	switch v := value.(type) {
 	case evaluator.SQLVarchar:
-		return c.variables.CharacterSetResults.Encode(Slice(string(v))), nil
+		bytes := c.variables.CharacterSetResults.Encode(Slice(string(v)))
+
+		// Varchars are counted by characters, not bytes. Use runes to
+		// account for multi-byte characters. Since we know the number
+		// of characters can't be more than the number of bytes, we can
+		// skip the character length check if the byte length is satisfactory.
+		if c.variables.MongoDBMaxVarcharLength != 0 && len(bytes) > int(c.variables.MongoDBMaxVarcharLength) {
+			runes := []rune(string(bytes))
+			if len(runes) > int(c.variables.MongoDBMaxVarcharLength) {
+				// TODO: add in a warning when that system is in place.
+				runes = runes[:c.variables.MongoDBMaxVarcharLength]
+				bytes = []byte(string(runes))
+			}
+		}
+
+		return bytes, nil
 	case evaluator.SQLObjectID:
 		return []byte(string(v)), nil
 	case evaluator.SQLUUID:
@@ -55,7 +72,7 @@ func (c *conn) formatValue(value evaluator.SQLValue) ([]byte, error) {
 	}
 }
 
-func formatField(collationID uint16, field *Field, value evaluator.SQLValue) error {
+func formatField(variables *variable.Container, collationID uint16, field *Field, value evaluator.SQLValue) error {
 	switch typedV := value.(type) {
 
 	case evaluator.SQLFloat:
@@ -86,7 +103,13 @@ func formatField(collationID uint16, field *Field, value evaluator.SQLValue) err
 	case evaluator.SQLVarchar:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
-		field.ColumnLength = 0xffff
+
+		length := uint32(variables.MongoDBMaxVarcharLength)
+		if length == 0 {
+			length = math.MaxUint16
+		}
+
+		field.ColumnLength = length
 	case evaluator.SQLUUID:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
@@ -108,7 +131,7 @@ func formatField(collationID uint16, field *Field, value evaluator.SQLValue) err
 		if len(typedV.Values) != 1 {
 			return mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, 1)
 		}
-		return formatField(collationID, field, typedV.Values[0])
+		return formatField(variables, collationID, field, typedV.Values[0])
 	default:
 		return mysqlerrors.Unknownf("unsupported type %T for result set", value)
 	}
@@ -165,7 +188,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 			name := Slice(columns[j].Name)
 			field := &Field{Name: name}
 
-			if err = formatField(uint16(col.ID), field, value); err != nil {
+			if err = formatField(c.variables, uint16(col.ID), field, value); err != nil {
 				return err
 			}
 

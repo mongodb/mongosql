@@ -15,12 +15,12 @@ func TestGenerateCreateTable(t *testing.T) {
 
 		tblConfig := config.Databases[0].Tables[0]
 		t := catalog.NewMongoTable(tblConfig, catalog.BaseTable, collation.Default)
-		createTable := catalog.GenerateCreateTable(t)
+		createTable := catalog.GenerateCreateTable(t, 0)
 		So(createTable, ShouldEqual, testSchemaCreateTableFoo)
 
 		tblConfig = config.Databases[0].Tables[1]
 		t = catalog.NewMongoTable(tblConfig, catalog.BaseTable, collation.Default)
-		createTable = catalog.GenerateCreateTable(t)
+		createTable = catalog.GenerateCreateTable(t, 10)
 		So(createTable, ShouldEqual, testSchemaCreateTableBar)
 	})
 }

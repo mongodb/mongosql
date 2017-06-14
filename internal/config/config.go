@@ -157,7 +157,8 @@ type RuntimeMemory struct {
 
 // Schema holds schema configuration.
 type Schema struct {
-	Path string
+	Path             string
+	MaxVarcharLength uint16
 }
 
 // Net holds network related configuration.

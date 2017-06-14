@@ -7,7 +7,7 @@ import (
 )
 
 // GenerateCreateTable generates a create table statement for the table.
-func GenerateCreateTable(table Table) string {
+func GenerateCreateTable(table Table, maxVarcharLength uint16) string {
 
 	col := table.Collation()
 
@@ -26,7 +26,7 @@ func GenerateCreateTable(table Table) string {
 		}
 
 		buf.WriteString("  `" + string(column.Name()) + "`")
-		colType := translateColumnType(column.Type())
+		colType := translateColumnType(column.Type(), maxVarcharLength)
 		buf.WriteString(" " + colType)
 		if strings.HasPrefix(colType, "varchar") {
 			buf.WriteString(" COLLATE " + string(col.Name))

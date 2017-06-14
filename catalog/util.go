@@ -1,8 +1,13 @@
 package catalog
 
-import "github.com/10gen/sqlproxy/schema"
+import (
+	"fmt"
+	"math"
 
-func translateColumnType(sqlType schema.SQLType) string {
+	"github.com/10gen/sqlproxy/schema"
+)
+
+func translateColumnType(sqlType schema.SQLType, maxVarcharLength uint16) string {
 	switch sqlType {
 	case schema.SQLBoolean:
 		return "tinyint(1)"
@@ -23,7 +28,11 @@ func translateColumnType(sqlType schema.SQLType) string {
 	case schema.SQLUUID:
 		return "varchar(36)"
 	case schema.SQLVarchar:
-		return "varchar(65535)"
+		length := maxVarcharLength
+		if length == 0 {
+			length = math.MaxUint16
+		}
+		return fmt.Sprintf("varchar(%d)", length)
 	default:
 		return "<unknown>"
 	}

@@ -40,6 +40,7 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 	}
 
 	s.variables.MongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
+	s.variables.MongoDBMaxVarcharLength = cfg.Schema.MaxVarcharLength
 	s.variables.MongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
 
 	if err := s.populateListeners(); err != nil {

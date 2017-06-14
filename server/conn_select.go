@@ -79,7 +79,7 @@ func (c *conn) handleFieldList(data []byte) error {
 		if err != nil {
 			return err
 		}
-		if err = formatField(uint16(col.ID), f, value); err != nil {
+		if err = formatField(c.variables, uint16(col.ID), f, value); err != nil {
 			return err
 		}
 		fields = append(fields, f)

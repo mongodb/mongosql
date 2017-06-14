@@ -41,6 +41,7 @@ func TestParseArgs_Valid(t *testing.T) {
 
 		// Schema
 		"--schema", "path-to-file",
+		"--maxVarcharLength", "1000",
 
 		// Service
 		"--serviceName", "oompa",
@@ -67,6 +68,7 @@ func TestParseArgs_Valid(t *testing.T) {
 	testInt(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
 
 	testString(t, cfg.Schema.Path, "path-to-file", "cfg.Schema.Path")
+	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 
 	testString(t, cfg.Net.BindIP, "host", "cfg.Net.BindIP")
 	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")

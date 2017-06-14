@@ -20,6 +20,7 @@ systemLog:
 
 schema:
   path: "/var/test"
+  maxVarcharLength: 1000
 
 runtime:
   memory:
@@ -73,6 +74,7 @@ processManagement:
 	testInt(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
 
 	testString(t, cfg.Schema.Path, "/var/test", "cfg.Schema.Path")
+	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 102400, "cfg.Runtime.Memory.MaxPerStage")
 

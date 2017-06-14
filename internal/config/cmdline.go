@@ -287,8 +287,9 @@ func (o *mongoConnectionOptions) mapToConfig(cfg *Config) error {
 }
 
 type schemaOptions struct {
-	Schema    *string `long:"schema" description:"the path to a schema file"`
-	SchemaDir *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
+	Schema           *string `long:"schema" description:"the path to a schema file"`
+	SchemaDir        *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
+	MaxVarcharLength *uint16 `long:"maxVarcharLength" description:"the maximum length of a varchar"`
 }
 
 func (o *schemaOptions) name() string {
@@ -306,6 +307,9 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 			return fmt.Errorf("must specify only one of --schema or --schemaDirectory")
 		}
 		cfg.Schema.Path = *o.SchemaDir
+	}
+	if o.MaxVarcharLength != nil {
+		cfg.Schema.MaxVarcharLength = *o.MaxVarcharLength
 	}
 
 	return nil

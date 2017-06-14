@@ -16,6 +16,7 @@ func TestDefault(t *testing.T) {
 	testInt(t, cfg.SystemLog.Verbosity, 0, "cfg.SystemLog.Verbosity")
 
 	testString(t, cfg.Schema.Path, "", "cfg.Schema.Path")
+	testUint16(t, cfg.Schema.MaxVarcharLength, 0, "cfg.Schema.MaxVarcharLength")
 
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 0, "cfg.Runtime.Memory.MaxPerStage")
 
@@ -179,6 +180,12 @@ func testInt(t *testing.T, actual, expected int, key string) {
 }
 
 func testString(t *testing.T, actual, expected string, key string) {
+	if actual != expected {
+		t.Errorf("%s should be %v but was %v", key, expected, actual)
+	}
+}
+
+func testUint16(t *testing.T, actual, expected uint16, key string) {
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}
