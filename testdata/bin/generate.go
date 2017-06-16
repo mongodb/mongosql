@@ -136,7 +136,14 @@ func {{ .Name }}(t *testing.{{ if .IsBenchmark }}B{{ else }}T{{ end }}) {
 	if dbName == "" {
 		dbName = "{{ $parent.DefaultDb }}"
 	}
-	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1", *testutils.DbAddr, dbName)
+
+
+	compressionVal := ""
+	if *testutils.DriverCompression {
+		compressionVal = "&compress=1"
+	}
+
+	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1%v", *testutils.DbAddr, dbName, compressionVal)
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
 		t.Fatal(err.Error())

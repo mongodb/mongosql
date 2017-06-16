@@ -45,10 +45,12 @@ type conn struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	conn     net.Conn
-	reader   io.Reader
-	writer   io.Writer
-	sequence uint8
+	conn                net.Conn
+	reader              io.Reader
+	writer              io.Writer
+	sequence            uint8
+	compressionSequence uint8
+	compressionOn       bool
 
 	capability   uint32
 	connectionID uint32
@@ -99,7 +101,9 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 			CLIENT_CONNECT_WITH_DB |
 			CLIENT_LONG_FLAG |
 			CLIENT_LONG_PASSWORD |
-			CLIENT_SECURE_CONNECTION,
+			CLIENT_SECURE_CONNECTION |
+			CLIENT_COMPRESS,
+
 		stmts:     make(map[uint32]*stmt),
 		variables: variable.NewSessionContainer(s.variables),
 	}
@@ -304,6 +308,15 @@ func (c *conn) handshake() error {
 	}
 
 	c.sequence = 0
+	c.compressionSequence = 0
+
+	// set up compression reader and PacketWriter
+	if c.capability&CLIENT_COMPRESS != 0 {
+		c.reader = NewCompressedReader(c.reader, c)
+
+		c.writer = NewCompressedWriter(c.writer, c)
+		c.compressionOn = true
+	}
 	return nil
 }
 
@@ -495,31 +508,24 @@ func (c *conn) readHandshakeResponse() error {
 }
 
 func (c *conn) readPacket() ([]byte, error) {
-	data, err := c.readPacketHelper()
-	if err != nil {
-		return nil, err
-	}
-
-	headerLength, payloadLength := uint64(4), len(data)
-	for payloadLength > maxPayloadLength {
-		payloadLength -= maxPayloadLength
-		headerLength += 4
-	}
-
-	nBytesReceived := uint64(len(data)) + headerLength
-	atomic.AddUint64(&c.bytesReceived, nBytesReceived)
-	atomic.AddUint64(&c.server.bytesReceived, nBytesReceived)
-	return data, nil
-}
-
-func (c *conn) readPacketHelper() ([]byte, error) {
 	header := []byte{0, 0, 0, 0}
 
 	if _, err := io.ReadFull(c.reader, header); err != nil {
-		return nil, errBadConn
+		return nil, err
 	}
 
 	length := int(uint32(header[0]) | uint32(header[1])<<8 | uint32(header[2])<<16)
+
+	// packets from the client should not be larger than the maxPayload length
+	// when going over the wire
+	if length > maxPayloadLength {
+		// this check occurs in uncompressPacket for compressed packets, so
+		// check only needed for vanilla packets
+		if !c.compressionOn {
+			c.writeError(mysqlerrors.Defaultf(mysqlerrors.ER_NET_PACKET_TOO_LARGE))
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NET_PACKET_TOO_LARGE)
+		}
+	}
 
 	sequence := uint8(header[3])
 	if sequence != c.sequence {
@@ -533,16 +539,13 @@ func (c *conn) readPacketHelper() ([]byte, error) {
 		return nil, errBadConn
 	}
 
-	if length < maxPayloadLength {
-		return data, nil
-	}
+	// in uncompressed world, record bytes received
+	if !c.compressionOn {
+		bytesReceived := uint64(length) + 4 // for the header
 
-	buf, err := c.readPacketHelper()
-	if err != nil {
-		return nil, errBadConn
+		atomic.AddUint64(&c.bytesReceived, bytesReceived)
+		atomic.AddUint64(&c.server.bytesReceived, bytesReceived)
 	}
-
-	data = append(data, buf...)
 	return data, nil
 }
 
@@ -620,7 +623,9 @@ func (c *conn) run() {
 
 		atomic.StoreInt32(&c.queryRunning, 0)
 		c.closer.Signal()
+		// reset both packet sequences
 		c.sequence = 0
+		c.compressionSequence = 0
 	}
 }
 
@@ -851,38 +856,51 @@ func (c *conn) writePacket(data []byte) error {
 
 	for length >= maxPayloadLength {
 
-		data[0] = 0xff
-		data[1] = 0xff
-		data[2] = 0xff
+		data[0] = byte(0xff & maxPayloadLength)
+		data[1] = byte(0xff & (maxPayloadLength >> 8))
+		data[2] = byte(0xff & (maxPayloadLength >> 16))
 
 		data[3] = c.sequence
 
-		if n, err := c.writer.Write(data[:4+maxPayloadLength]); err != nil {
-			return errBadConn
-		} else if n != (4 + maxPayloadLength) {
+		if _, err := c.writer.Write(data[:4+maxPayloadLength]); err != nil {
+			c.logger.Errf(log.Always, "write Packet error: %v", err)
 			return errBadConn
 		} else {
 			c.sequence++
+
+			// in uncompressed world, record bytes sent
+			if !c.compressionOn {
+				nBytesSent := uint64(maxPayloadLength + 4)
+				atomic.AddUint64(&c.bytesSent, nBytesSent)
+				atomic.AddUint64(&c.server.bytesSent, nBytesSent)
+			}
+
 			length -= maxPayloadLength
 			data = data[maxPayloadLength:]
 		}
 	}
 
-	data[0] = byte(length)
-	data[1] = byte(length >> 8)
-	data[2] = byte(length >> 16)
+	// header
+	data[0] = byte(0xff & length)
+	data[1] = byte(0xff & (length >> 8))
+	data[2] = byte(0xff & (length >> 16))
+
 	data[3] = c.sequence
 
-	if n, err := c.writer.Write(data); err != nil {
-		return errBadConn
-	} else if n != len(data) {
+	if _, err := c.writer.Write(data); err != nil {
+		c.logger.Errf(log.Always, "write Packet error: %v", err)
 		return errBadConn
 	}
 
 	c.sequence++
-	nBytesSent := uint64(len(data))
-	atomic.AddUint64(&c.bytesSent, nBytesSent)
-	atomic.AddUint64(&c.server.bytesSent, nBytesSent)
+
+	// in uncompressed world, record bytes sent
+	if !c.compressionOn {
+		nBytesSent := uint64(len(data))
+		atomic.AddUint64(&c.bytesSent, nBytesSent)
+		atomic.AddUint64(&c.server.bytesSent, nBytesSent)
+	}
+
 	return nil
 }
 

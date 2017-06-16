@@ -3,7 +3,7 @@ package server
 const (
 	DefaultServerPort                 string = "3307"
 	minProtocolVersion                byte   = 10
-	maxPayloadLength                  int    = 1<<24 - 1
+	maxPayloadLength                  int    = (1 << 24) - 1
 	timeFormat                               = "2006-01-02 15:04:05"
 	clearPasswordClientAuthPluginName        = "mysql_clear_password"
 	nativePasswordPluginName                 = "mysql_native_password"
