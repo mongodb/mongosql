@@ -37,7 +37,12 @@ func (b *catalogBuilder) build() error {
 		return err
 	}
 
-	return b.buildInformationSchemaDatabase()
+	err = b.buildInformationSchemaDatabase()
+	if err != nil {
+		return err
+	}
+
+	return b.buildMySQLDatabase()
 }
 
 func (b *catalogBuilder) buildFromSchema() error {
@@ -934,6 +939,45 @@ func (b *catalogBuilder) addVariableTable(d *Database, name string, scope variab
 
 	t.AddColumn("VARIABLE_NAME", schema.SQLVarchar)
 	t.AddColumn("VARIABLE_VALUE", schema.SQLVarchar)
+
+	return d.AddTable(t)
+}
+
+func (b *catalogBuilder) buildMySQLDatabase() error {
+	d, _ := b.catalog.AddDatabase("mysql")
+	err := b.addMySQLProcTable(d)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *catalogBuilder) addMySQLProcTable(d *Database) error {
+	t := NewDynamicTable("proc", SystemView, func() []*DataRow {
+		return []*DataRow{}
+	})
+
+	t.AddColumn("db", schema.SQLVarchar)
+	t.AddColumn("name", schema.SQLVarchar)
+	t.AddColumn("type", schema.SQLVarchar)
+	t.AddColumn("specific_name", schema.SQLVarchar)
+	t.AddColumn("language", schema.SQLVarchar)
+	t.AddColumn("sql_data_access", schema.SQLVarchar)
+	t.AddColumn("is_deterministic", schema.SQLVarchar)
+	t.AddColumn("security_type", schema.SQLVarchar)
+	t.AddColumn("param_list", schema.SQLVarchar)
+	t.AddColumn("returns", schema.SQLVarchar)
+	t.AddColumn("body", schema.SQLVarchar)
+	t.AddColumn("definer", schema.SQLVarchar)
+	t.AddColumn("created", schema.SQLTimestamp)
+	t.AddColumn("modified", schema.SQLTimestamp)
+	t.AddColumn("sql_mode", schema.SQLVarchar)
+	t.AddColumn("comment", schema.SQLVarchar)
+	t.AddColumn("character_set_client", schema.SQLVarchar)
+	t.AddColumn("collation_connection", schema.SQLVarchar)
+	t.AddColumn("db_collation", schema.SQLVarchar)
+	t.AddColumn("body_utf8", schema.SQLVarchar)
 
 	return d.AddTable(t)
 }
