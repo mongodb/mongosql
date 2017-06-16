@@ -78,7 +78,7 @@ processManagement:
 
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 102400, "cfg.Runtime.Memory.MaxPerStage")
 
-	testString(t, cfg.Net.BindIP, "192.168.20.1", "cfg.Net.BindIP")
+	testStringSlice(t, cfg.Net.BindIP, []string{"192.168.20.1"}, "cfg.Net.BindIP")
 	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")
 	if runtime.GOOS != "windows" {
 		testBool(t, cfg.Net.UnixDomainSocket.Enabled, false, "cfg.Net.UnixDomainSocket.Enabled")
@@ -110,6 +110,38 @@ processManagement:
 	testString(t, cfg.ProcessManagement.Service.Name, "oompa", "cfg.ProcessManagement.Service.Name")
 	testString(t, cfg.ProcessManagement.Service.DisplayName, "loompa", "cfg.ProcessManagement.Service.DisplayName")
 	testString(t, cfg.ProcessManagement.Service.Description, "doompa tee do", "cfg.ProcessManagement.Service.Description")
+}
+
+func TestParseYaml_Valid2(t *testing.T) {
+	cfg := Default()
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+net:
+  bindIp: 192.168.20.1,host2
+  port: 3306
+`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	testStringSlice(t, cfg.Net.BindIP, []string{"192.168.20.1", "host2"}, "cfg.Net.BindIP")
+	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")
+}
+
+func TestParseYaml_Valid3(t *testing.T) {
+	cfg := Default()
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+net:
+  bindIp: 
+    - 192.168.20.1
+    - host2
+  port: 3306
+`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	testStringSlice(t, cfg.Net.BindIP, []string{"192.168.20.1", "host2"}, "cfg.Net.BindIP")
+	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")
 }
 
 func TestParseYaml_Invalid(t *testing.T) {

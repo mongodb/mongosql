@@ -53,7 +53,7 @@ func Load(args []string) (*Config, error) {
 func Default() *Config {
 	cfg := &Config{}
 
-	cfg.Net.BindIP = "127.0.0.1"
+	cfg.Net.BindIP = []string{"127.0.0.1"}
 	cfg.Net.Port = 3307
 
 	if !isWindows {
@@ -163,7 +163,7 @@ type Schema struct {
 
 // Net holds network related configuration.
 type Net struct {
-	BindIP           string `config:"bindIp"`
+	BindIP           []string `config:"bindIp"`
 	Port             int
 	UnixDomainSocket NetUnixDomainSocket
 	SSL              NetSSL `config:"ssl"`

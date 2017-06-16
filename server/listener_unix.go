@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -15,11 +16,16 @@ const (
 )
 
 func (s *Server) populateListeners() error {
-	listener, err := net.Listen("tcp", net.JoinHostPort(s.cfg.Net.BindIP, strconv.Itoa(s.cfg.Net.Port)))
-	if err != nil {
-		return err
+	var err error
+	var listener net.Listener
+	port := strconv.Itoa(s.cfg.Net.Port)
+	for _, host := range s.cfg.Net.BindIP {
+		listener, err = net.Listen("tcp", net.JoinHostPort(strings.TrimSpace(host), port))
+		if err != nil {
+			return err
+		}
+		s.listeners = append(s.listeners, listener)
 	}
-	s.listeners = append(s.listeners, listener)
 
 	if s.cfg.Net.UnixDomainSocket.Enabled {
 		socket := fmt.Sprintf("%s/%s", s.cfg.Net.UnixDomainSocket.PathPrefix, "mysql.sock")

@@ -70,7 +70,7 @@ func TestParseArgs_Valid(t *testing.T) {
 	testString(t, cfg.Schema.Path, "path-to-file", "cfg.Schema.Path")
 	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 
-	testString(t, cfg.Net.BindIP, "host", "cfg.Net.BindIP")
+	testStringSlice(t, cfg.Net.BindIP, []string{"host"}, "cfg.Net.BindIP")
 	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")
 	if runtime.GOOS != "windows" {
 		testBool(t, cfg.Net.UnixDomainSocket.Enabled, false, "cfg.Net.UnixDomainSocket.Enabled")
@@ -120,7 +120,7 @@ func TestParseArgs_Valid2(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	testString(t, cfg.Net.BindIP, "host", "cfg.Net.BindIP")
+	testStringSlice(t, cfg.Net.BindIP, []string{"host"}, "cfg.Net.BindIP")
 	testInt(t, cfg.Net.Port, 3307, "cfg.Net.Port")
 	testString(t, cfg.Schema.Path, "path-to-directory", "cfg.Schema.Path")
 

@@ -40,6 +40,31 @@ func fromMap(key string, v reflect.Value, values map[interface{}]interface{}) er
 			if err != nil {
 				return err
 			}
+		case reflect.Slice:
+			switch e.Field(i).Type().Elem().Kind() {
+			case reflect.String:
+				var tval []string
+				ival, ok := val.([]interface{})
+				if ok {
+					for i := 0; i < len(ival); i++ {
+						sval, ok := ival[i].(string)
+						if !ok {
+							return fmt.Errorf("invalid value for %s, expected a string: %v(%T)", newKey, val, val)
+						}
+						tval = append(tval, sval)
+					}
+				} else {
+					// see if they are comma-separated
+					sval, ok := val.(string)
+					if !ok {
+						return fmt.Errorf("invalid value for %s, expected a string: %v(%T)", newKey, val, val)
+					}
+
+					tval = strings.Split(sval, ",")
+				}
+
+				e.Field(i).Set(reflect.ValueOf(tval))
+			}
 		case reflect.Bool:
 			tval, ok := val.(bool)
 			if !ok {

@@ -142,7 +142,7 @@ func (o *clientConnectionOptions) mapToConfig(cfg *Config) error {
 			return err
 		}
 
-		cfg.Net.BindIP = host
+		cfg.Net.BindIP = []string{host}
 		cfg.Net.Port = port
 	}
 	if o.SSLAllowInvalidCerts != nil {

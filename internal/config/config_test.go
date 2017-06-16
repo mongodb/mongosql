@@ -20,7 +20,7 @@ func TestDefault(t *testing.T) {
 
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 0, "cfg.Runtime.Memory.MaxPerStage")
 
-	testString(t, cfg.Net.BindIP, "127.0.0.1", "cfg.Net.BindIP")
+	testStringSlice(t, cfg.Net.BindIP, []string{"127.0.0.1"}, "cfg.Net.BindIP")
 	testInt(t, cfg.Net.Port, 3307, "cfg.Net.Port")
 	if runtime.GOOS != "windows" {
 		testBool(t, cfg.Net.UnixDomainSocket.Enabled, true, "cfg.Net.UnixDomainSocket.Enabled")
@@ -182,6 +182,18 @@ func testInt(t *testing.T, actual, expected int, key string) {
 func testString(t *testing.T, actual, expected string, key string) {
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
+	}
+}
+
+func testStringSlice(t *testing.T, actual, expected []string, key string) {
+	if len(actual) != len(expected) {
+		t.Errorf("%s should be %v but was %v", key, expected, actual)
+	}
+
+	for i := 0; i < len(actual); i++ {
+		if actual[i] != expected[i] {
+			t.Errorf("%s should be %v but was %v", key, expected, actual)
+		}
 	}
 }
 
