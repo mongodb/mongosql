@@ -388,6 +388,7 @@ func (c *conn) readHandshakeResponse() error {
 			c.writeError(err)
 			return err
 		}
+		c.logger.Logf(log.DebugHigh, "ssl connection established")
 
 		data, err = c.readPacket()
 		if err != nil {

@@ -88,7 +88,7 @@ func (s *Server) Run() {
 			conn, err := listener.Accept()
 			if err != nil {
 				if atomic.LoadInt32(&s.closed) == 0 {
-					logger.Errf(log.Always, "[initandlisten] uanble to accept connection: %v", err)
+					logger.Errf(log.Always, "[initandlisten] unable to accept connection: %v", err)
 				}
 				continue
 			}
@@ -148,7 +148,11 @@ func (s *Server) addConnection(c *conn) {
 	s.activeConnectionsMx.Unlock()
 	atomic.StoreUint32(&s.threadsConnected, uint32(activeConnections))
 	pluralized := util.Pluralize(activeConnections, "connection", "connections")
-	c.logger.Logf(log.Always, "connection accepted from %v #%v (%v %v now open)", c.conn.RemoteAddr(), c.ConnectionId(), activeConnections, pluralized)
+	address := c.conn.RemoteAddr().String()
+	if address == "" {
+		address = c.conn.LocalAddr().String()
+	}
+	c.logger.Logf(log.Always, "connection accepted from %v #%v (%v %v now open)", address, c.ConnectionId(), activeConnections, pluralized)
 }
 
 func (s *Server) killConnection(connID uint32) error {
@@ -187,14 +191,22 @@ func (s *Server) removeConnection(c *conn) {
 	s.activeConnectionsMx.Unlock()
 	atomic.StoreUint32(&s.threadsConnected, uint32(activeConnections))
 	pluralized := util.Pluralize(activeConnections, "connection", "connections")
-	c.logger.Logf(log.Always, "end connection %v (%v %v now open)", c.conn.RemoteAddr(), activeConnections, pluralized)
+	address := c.conn.RemoteAddr().String()
+	if address == "" {
+		address = c.conn.LocalAddr().String()
+	}
+	c.logger.Logf(log.Always, "end connection %v (%v %v now open)", address, activeConnections, pluralized)
 }
 
 func (s *Server) serveConnection(c net.Conn) {
 	conn, err := newConn(s, c)
 	if err != nil {
 		logger := log.GlobalLogger()
-		logger.Logf(log.Info, "[initandlisten] connection accepted from %v, but unable to connect to MongoDB: %v", c.RemoteAddr(), err)
+		address := c.RemoteAddr().String()
+		if address == "" {
+			address = c.LocalAddr().String()
+		}
+		logger.Logf(log.Info, "[initandlisten] connection accepted from %v, but unable to connect to MongoDB: %v", address, err)
 		c.Close()
 		return
 	}
