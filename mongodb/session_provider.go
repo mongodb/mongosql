@@ -103,6 +103,7 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 			server.WithConnectionOptions(
 				conn.WithAppName("mongosqld"),
 				conn.WithLifeTimeout(0),
+				conn.WithIdleTimeout(0),
 			),
 		),
 		cluster.WithConnString(cs),
@@ -197,7 +198,8 @@ func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
 			return c, nil
 		}
 
-		return nil, fmt.Errorf("not enough mongodb connections available for session")
+		session.err = fmt.Errorf("not enough mongodb connections available for session")
+		return nil, session.err
 	}
 
 	// The pool keeps the connections checked out of the underlying pool until

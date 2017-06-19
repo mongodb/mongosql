@@ -27,6 +27,7 @@ type Session struct {
 	pool     conn.Pool
 	count    int
 
+	err            error
 	authSource     string
 	selectedServer *ops.SelectedServer
 }
@@ -53,6 +54,11 @@ func (s *Session) Context() context.Context {
 	return s.ctx
 }
 
+// Err returns a session level error that may have occurred.
+func (s *Session) Err() error {
+	return s.err
+}
+
 // Model returns the description of the server
 // asssociated with this session.
 func (s *Session) Model() *model.Server {
@@ -67,6 +73,11 @@ func (s *Session) SetContext(ctx context.Context) {
 // Validate checks that the established session meets the server
 // version requirements for the BI Connector.
 func (s *Session) Validate() error {
+
+	if s.err != nil {
+		return s.err
+	}
+
 	version := s.Model().Version
 	if !version.AtLeast(3, 2, 0) {
 		return fmt.Errorf("server version is %v but version >= 3.2.0 required", version.Desc)

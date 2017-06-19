@@ -12,9 +12,6 @@ import (
 )
 
 func (c *conn) handleCommand(stmt parser.Statement) error {
-	if err := c.session.Validate(); err != nil {
-		return err
-	}
 	executor, err := evaluator.EvaluateCommand(stmt, c)
 	if err != nil {
 		return err
@@ -30,6 +27,7 @@ func (c *conn) handleCommand(stmt parser.Statement) error {
 
 func (c *conn) handleQuery(sql string) (err error) {
 	if err := c.session.Validate(); err != nil {
+		c.close()
 		return err
 	}
 
@@ -87,6 +85,10 @@ func (c *conn) handleQuery(sql string) (err error) {
 		err = c.handleExplain(sql, v)
 	default:
 		err = mysqlerrors.Unknownf("statement %T not supported", stmt)
+	}
+
+	if c.session.Err() != nil {
+		c.close()
 	}
 
 	return err
