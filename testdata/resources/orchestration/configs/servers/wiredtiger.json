@@ -2,7 +2,6 @@
     "name": "mongod",
     "procParams": {
         "ipv6": true,
-        "bind_ip": "localhost,::1",
         "logappend": true,
         "journal": true,
         "storageEngine": "wiredTiger",

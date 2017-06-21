@@ -6,7 +6,6 @@
       "shardParams": {
         "procParams": {
           "ipv6": true,
-          "bind_ip": "localhost,::1",
           "shardsvr": true,
           "port": 27217
         }
@@ -17,7 +16,6 @@
       "shardParams": {
         "procParams": {
           "ipv6": true,
-          "bind_ip": "localhost,::1",
           "shardsvr": true,
           "port": 27218
         }
@@ -27,12 +25,10 @@
   "routers": [
     {
       "ipv6": true,
-      "bind_ip": "localhost,::1",
       "port": 27017
     },
     {
       "ipv6": true,
-      "bind_ip": "localhost,::1",
       "port": 27018
     }
   ],
