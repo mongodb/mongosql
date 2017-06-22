@@ -1772,20 +1772,20 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 		}
 
 		return bson.M{
-			"$and": []interface{}{
+			mgoOperatorAND: []interface{}{
 				bson.M{
 					name: bson.M{
-						"$ne": false,
+						mgoOperatorNEQ: false,
 					},
 				},
 				bson.M{
 					name: bson.M{
-						"$ne": nil,
+						mgoOperatorNEQ: nil,
 					},
 				},
 				bson.M{
 					name: bson.M{
-						"$ne": 0,
+						mgoOperatorNEQ: 0,
 					},
 				},
 			},
@@ -2037,7 +2037,20 @@ func negate(op bson.M) bson.M {
 				}
 			}
 		} else {
-			return bson.M{name: bson.M{mgoOperatorNEQ: value}}
+			// Logical NOT evaluates to 1 if the operand is 0, to 0
+			// if the operand is nonzero, and NOT NULL returns NULL.
+			// See https://dev.mysql.com/doc/refman/5.7/en/logical-operators.html#operator_not
+			// for more.
+			translation := bson.M{name: bson.M{mgoOperatorNEQ: value}}
+			if value != nil {
+				translation = bson.M{
+					mgoOperatorAND: []interface{}{
+						translation,
+						bson.M{name: bson.M{mgoOperatorNEQ: nil}},
+					},
+				}
+			}
+			return translation
 		}
 	}
 

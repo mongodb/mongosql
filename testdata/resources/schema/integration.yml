@@ -1206,4 +1206,15 @@ schema:
       MongoType: string
       SqlName: a
       SqlType: varchar
+  - table: tint
+    collection: "where_6"
+    columns:
+    - Name: cint
+      MongoType: int
+      SqlName: cint
+      SqlType: numeric
+    - Name: rnum
+      MongoType: float64
+      SqlName: rnum
+      SqlType: numeric
 

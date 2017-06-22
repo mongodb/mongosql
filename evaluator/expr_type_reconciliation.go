@@ -21,6 +21,9 @@ func isSimilar(leftType, rightType schema.SQLType) bool {
 	if leftType == rightType {
 		return true
 	}
+	if leftType == schema.SQLNull || rightType == schema.SQLNull {
+		return true
+	}
 	if leftType == schema.SQLNone || rightType == schema.SQLNone {
 		return true
 	}
@@ -723,6 +726,7 @@ func reconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 	sorter := &schema.SQLTypesSorter{
 		Types: []schema.SQLType{leftType, rightType},
 	}
+
 	sort.Sort(sorter)
 
 	if sorter.Types[0] == schema.SQLObjectID {

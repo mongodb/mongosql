@@ -543,3 +543,15 @@ testcases:
   - [0]
   - [1]
   - [2]
+
+# BI-1068
+- sql: "SELECT rnum, tint.cint FROM where_test.tint WHERE not (tint.cint = 1 or (tint.cint is null and 1 is null))"
+  id: '61'
+  db: where_test
+  description: "BI-1068"
+  expected_names: ["rnum", "cint"]
+  expected_types: [float64, int]
+  expected:
+  - [1, -1]
+  - [2, 0]
+  - [4, 10]

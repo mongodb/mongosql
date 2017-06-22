@@ -3118,7 +3118,7 @@ func TestTranslatePredicate(t *testing.T) {
 			test{"h IN('2016-02-03 12:23:11.392')", `{"h":{"$in":["2016-02-03T00:00:00Z"]}}`},
 			test{"NOT (a > 3)", `{"a":{"$not":{"$gt":3}}}`},
 			test{"NOT (NOT (a > 3))", `{"a":{"$gt":3}}`},
-			test{"NOT (a = 3)", `{"a":{"$ne":3}}`},
+			test{"NOT (a = 3)", `{"$and":[{"a":{"$ne":3}},{"a":{"$ne":null}}]}`},
 			test{"NOT (a <> 3)", `{"a":3}`},
 			test{"NOT (a NOT IN (1,3,5))", `{"a":{"$in":[1,3,5]}}`},
 			test{"a NOT IN (1,3,5)", `{"a":{"$nin":[1,3,5]}}`},
@@ -3143,9 +3143,9 @@ func TestTranslatePredicate(t *testing.T) {
 			test{"a IS TRUE", `{"$and":[{"a":{"$ne":0}},{"a":{"$ne":null}}]}`},
 			test{"a IS FALSE", `{"a":0}`},
 			test{"t IS TRUE", `{"t":true}`},
-			test{"t IS NOT TRUE", `{"t":{"$ne":true}}`},
+			test{"t IS NOT TRUE", `{"$and":[{"t":{"$ne":true}},{"t":{"$ne":null}}]}`},
 			test{"t IS FALSE", `{"t":false}`},
-			test{"t IS NOT FALSE", `{"t":{"$ne":false}}`},
+			test{"t IS NOT FALSE", `{"$and":[{"t":{"$ne":false}},{"t":{"$ne":null}}]}`},
 			test{"t", `{"$and":[{"t":{"$ne":false}},{"t":{"$ne":null}},{"t":{"$ne":0}}]}`},
 		}
 
@@ -3156,7 +3156,7 @@ func TestTranslatePredicate(t *testing.T) {
 			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
 			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
 			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
-			partialTest{"NOT (a = 3 AND a < b)", `{"a":{"$ne":3}}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}}},
+			partialTest{"NOT (a = 3 AND a < b)", `{"$and":[{"a":{"$ne":3}},{"a":{"$ne":null}}]}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}}},
 		}
 
 		runPartialTests(partialTests)

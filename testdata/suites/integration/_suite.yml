@@ -276,6 +276,15 @@ data:
     - { _id: 0, a: "abcde"}
     - { _id: 1, a: "fofo"}
     - { _id: 2, a: "ABC123"}
+- inline:
+    db: "where_test"
+    collection: "where_6"
+    docs:
+    - { rnum: 0}
+    - { rnum: 1, cint: -1}
+    - { rnum: 2, cint: 0}
+    - { rnum: 3, cint: 1}
+    - { rnum: 4, cint: 10}
 
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)

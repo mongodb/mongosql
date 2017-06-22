@@ -474,7 +474,7 @@ func (eq *SQLEqualsExpr) normalize() node {
 	return eq
 }
 
-func isBooleanColumnAndAritmetic(left, right SQLExpr) bool {
+func isBooleanColumnAndArithmetic(left, right SQLExpr) bool {
 	if _, ok := left.(SQLColumnExpr); !ok {
 		return false
 	}
@@ -501,7 +501,7 @@ func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
 	left := eq.left
 	right := eq.right
 
-	if isBooleanColumnAndAritmetic(left, right) || isBooleanColumnAndAritmetic(right, left) {
+	if isBooleanColumnAndArithmetic(left, right) || isBooleanColumnAndArithmetic(right, left) {
 		var lit SQLArithmetic
 		var col SQLColumnExpr
 
