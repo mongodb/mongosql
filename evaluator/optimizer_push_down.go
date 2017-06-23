@@ -297,20 +297,6 @@ func (v *pushDownOptimizer) canPushDown(ps PlanStage) (*MongoSourceStage, bool) 
 	return ms, true
 }
 
-func (v *pushDownOptimizer) distinctProjectFieldName(project bson.M) string {
-	fieldName := projectPredicateFieldName
-	i := 0
-	for {
-		if _, ok := project[fieldName]; !ok {
-			break
-		}
-		i++
-		fieldName = fmt.Sprintf("%s%d", projectPredicateFieldName, i)
-	}
-
-	return fieldName
-}
-
 const (
 	projectPredicateFieldName = "__predicate"
 )
@@ -483,13 +469,12 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 				}
 
 				stageName, stageBody := "$addFields", bson.M{}
-
 				if !t.versionAtLeast(3, 4, 0) {
 					stageBody = v.projectAllColumns(ms.mappingRegistry)
 					stageName = "$project"
 				}
 
-				fieldName := v.distinctProjectFieldName(stageBody)
+				fieldName := v.uniqueFieldName(ms.mappingRegistry, projectPredicateFieldName)
 				stageBody[fieldName] = predicate
 				predicateEvaluationStage := bson.D{{stageName, stageBody}}
 
@@ -1455,19 +1440,18 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 				foreignField, "$" + localFieldName,
 			}}
 
-			stageName, stageBody := "$addFields", bson.M{}
-
 			t := &pushDownTranslator{
 				versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 				lookupFieldName: newMappingRegistry.lookupFieldName,
 			}
 
+			stageName, stageBody := "$addFields", bson.M{}
 			if !t.versionAtLeast(3, 4, 0) {
 				stageBody = v.projectAllColumns(newMappingRegistry)
 				stageName = "$project"
 			}
 
-			fieldName := v.distinctProjectFieldName(stageBody)
+			fieldName := v.uniqueFieldName(newMappingRegistry, projectPredicateFieldName)
 			stageBody[fieldName] = filter
 			predicateEvaluationStage := bson.D{{stageName, stageBody}}
 
@@ -1700,6 +1684,8 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 	}
 
 	sort := bson.D{}
+	var newFields bson.M
+	var t *pushDownTranslator
 
 	for _, term := range orderBy.terms {
 
@@ -1713,14 +1699,34 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 			// non-field requires it to be pre-calculated by a previous
 			// push down. If it has been pre-calculated, then it will
 			// exist in the mapping registry. Otherwise, it won't, and
-			// the order by cannot be pushed down.
+			// we'll need to push this down with a $project or $addFields
 			columnName = typedE.String()
 		}
 
 		fieldName, ok := ms.mappingRegistry.lookupFieldName(tableName, columnName)
 		if !ok {
-			v.logger.Warnf(log.DebugHigh, "cannot find referenced order by column %v.%v in lookup", tableName, columnName)
-			return orderBy, nil
+			// Since we can't push this down, we'll attempt to build up a $project/$addFields
+			// that will allow us to push this down using aggregation language, then sort by the
+			// added columns.
+			if t == nil {
+				t = &pushDownTranslator{
+					versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
+					lookupFieldName: ms.mappingRegistry.lookupFieldName,
+				}
+			}
+
+			var translated interface{}
+			if translated, ok = t.TranslateExpr(term.expr); !ok {
+				v.logger.Warnf(log.DebugHigh, "unable to push down order by due to term '%v'", columnName)
+				return orderBy, nil
+			}
+
+			if newFields == nil {
+				newFields = bson.M{}
+			}
+
+			fieldName = v.uniqueFieldName(ms.mappingRegistry, sanitizeFieldName(columnName))
+			newFields[fieldName] = translated
 		}
 		direction := 1
 		if !term.ascending {
@@ -1730,6 +1736,24 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 	}
 
 	pipeline := ms.pipeline
+
+	if len(newFields) > 0 {
+		// NOTE: there is no reason to mess with the mapping registry
+		// because the added fields are only used in the immediate
+		// $sort stage and will never be referenced again.
+		stageName, stageBody := "$addFields", bson.M{}
+		if !t.versionAtLeast(3, 4, 0) {
+			stageBody = v.projectAllColumns(ms.mappingRegistry)
+			stageName = "$project"
+		}
+
+		for k, v := range newFields {
+			stageBody[k] = v
+		}
+
+		pipeline = append(pipeline, bson.D{{stageName, stageBody}})
+	}
+
 	pipeline = append(pipeline, bson.D{{"$sort", sort}})
 
 	ms = ms.clone()
@@ -1963,6 +1987,19 @@ func (v *pushDownOptimizer) projectAllColumns(mr *mappingRegistry) bson.M {
 		projectBody[field] = 1
 	}
 	return projectBody
+}
+
+func (v *pushDownOptimizer) uniqueFieldName(mr *mappingRegistry, fieldName string) string {
+	retFieldName := fieldName
+	i := 0
+	for {
+		if _, ok := mr.fields[retFieldName]; !ok {
+			return retFieldName
+		}
+
+		i++
+		retFieldName = fmt.Sprintf("%v_%v", fieldName, i)
+	}
 }
 
 func newColumnTracker() *columnTracker {

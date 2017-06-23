@@ -2931,9 +2931,52 @@ func TestOptimizePlan(t *testing.T) {
 			Convey("no push down, project columns", func() {
 				test("select a from foo order by a > b",
 					[]bson.D{
+						{{"$addFields", bson.M{
+							"foo_DOT_a>foo_DOT_b": bson.M{
+								"$cond": []interface{}{
+									bson.M{
+										"$or": []interface{}{
+											bson.M{
+												"$eq": []interface{}{
+													bson.M{
+														"$ifNull": []interface{}{
+															"$a",
+															nil,
+														},
+													},
+													nil,
+												},
+											},
+											bson.M{
+												"$eq": []interface{}{bson.M{
+													"$ifNull": []interface{}{
+														"$b",
+														nil,
+													},
+												},
+													nil,
+												},
+											},
+										},
+									},
+									nil,
+									bson.M{
+										"$gt": []interface{}{
+											"$a",
+											"$b",
+										},
+									},
+								},
+							},
+						}}},
+						{{"$sort", bson.D{
+							{
+								Name:  "foo_DOT_a>foo_DOT_b",
+								Value: int(1),
+							},
+						}}},
 						{{"$project", bson.M{
 							"foo_DOT_a": "$a",
-							"foo_DOT_b": "$b",
 						}}},
 					},
 				)

@@ -113,9 +113,15 @@ func CompareResults(expected [][]interface{}, actual [][]interface{}) error {
 
 				// account for minute floating point imprecision
 				if err1 == nil && err2 == nil {
+
+					prec := getPrecision(expectedFloat)
+					fmtS := fmt.Sprintf("%%.%df", prec)
+					floatS := fmt.Sprintf(fmtS, actualFloat)
+					actualFloat, _ = strconv.ParseFloat(floatS, 64)
+
 					// default tolerance is 0.0000000001
-					if math.Abs(actualFloat-expectedFloat) > 0.000000001 {
-						return fmt.Errorf("Expected %d, got %d at row %d, column %d", expectedFloat, actualFloat, rownum, colnum)
+					if math.Abs(actualFloat-expectedFloat) > 0.00000001 {
+						return fmt.Errorf("Expected %v, got %v at row %d, column %d", expectedFloat, actualFloat, rownum, colnum)
 					}
 				} else {
 					if fmt.Sprintf("(%d,%d): %v", rownum, colnum, actualCol) !=
@@ -129,6 +135,16 @@ func CompareResults(expected [][]interface{}, actual [][]interface{}) error {
 	}
 
 	return nil
+}
+
+func getPrecision(num float64) int {
+	s := fmt.Sprintf("%v", num)
+	i := strings.Index(s, ".")
+	if i == -1 {
+		return 0
+	}
+
+	return len(s[i+1:])
 }
 
 func MongodbVersionAtLeast(versionString string) bool {
