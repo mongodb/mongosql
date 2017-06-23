@@ -287,8 +287,8 @@ func (o *mongoConnectionOptions) mapToConfig(cfg *Config) error {
 }
 
 type schemaOptions struct {
-	Schema           *string `long:"schema" description:"the path to a schema file"`
-	SchemaDir        *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
+	Schema           *string `long:"schema" description:"the path to a schema file or directory"`
+	SchemaDir        *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load" hidden:"true"`
 	MaxVarcharLength *uint16 `long:"maxVarcharLength" description:"the maximum length of a varchar"`
 }
 
