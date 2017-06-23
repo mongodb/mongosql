@@ -33,6 +33,7 @@ func ForceEOF(yylex interface{}) {
   selectExprs SelectExprs
   selectExpr  SelectExpr
   columns     Columns
+  columnExprs ColumnExprs
   colName     *ColName
   tableExprs  TableExprs
   tableExpr   TableExpr
@@ -81,6 +82,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> CONNECTION QUERY
 %token <empty> SESSION GLOBAL 
 %token <empty> TEMPORARY RESTRICT CASCADE
+%token <empty> USING
 
 %nonassoc <empty> YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
 %nonassoc <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND DAY_MINUTE DAY_HOUR YEAR_MONTH
@@ -119,6 +121,7 @@ func ForceEOF(yylex interface{}) {
 %type <bytes> as_opt
 %type <expr> expression bool_pri predicate bit_expr simple_expr func_expr func_expr_reserved_keyword func_expr_unconventional func_expr_generic func_expr_conflict
 %type <tableExprs> table_expression_list
+%type <columnExprs> column_expression_list
 %type <tableExpr> table_expression join_expression
 %type <str> join_type
 %type <smTableExpr> simple_table_expression
@@ -772,6 +775,15 @@ select_expression:
     $$ = &StarExpr{TableName: $1}
   }
 
+column_expression_list:
+  ID
+  {
+    $$ = ColumnExprs{ &ColName{Name: $1} }
+  }
+| column_expression_list COMMA ID
+  {
+    $$ = append($$, &ColName{Name: $3} )
+  }
 table_expression_list:
   table_expression
   {
@@ -808,6 +820,10 @@ join_expression:
 | table_expression join_type table_expression ON expression %prec JOIN
   {
     $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3, On: $5}
+  }
+| table_expression join_type table_expression USING LPAREN column_expression_list RPAREN %prec JOIN
+  {
+    $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3, Using: $6}
   }
 
 as_opt: %prec INTERVAL

@@ -424,6 +424,7 @@ var keywords = map[string]int{
 	"update":             UPDATE,
 	"use":                USE,
 	"user":               USER,
+	"using":              USING,
 	"utc_timestamp":      UTC_TIMESTAMP,
 	"values":             VALUES,
 	"variables":          VARIABLES,

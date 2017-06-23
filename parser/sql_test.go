@@ -368,3 +368,20 @@ func TestKeywordsAsIds(t *testing.T) {
 	sql = "select count, count(sum) from columns"
 	testParse(t, sql)
 }
+
+func TestUsing(t *testing.T) {
+	sql := "select bar.d, baz.a from bar join baz using (234)"
+	testParseError(t, sql)
+
+	sql = "select bar.d, baz.a from bar join baz using (77.9)"
+	testParseError(t, sql)
+
+	sql = "select bar.d, baz.a from bar join baz using ('c')"
+	testParseError(t, sql)
+
+	sql = "select bar.d, baz.a from bar join baz using (false)"
+	testParseError(t, sql)
+
+	sql = "select bar.d, baz.a from bar join baz using ()"
+	testParseError(t, sql)
+}

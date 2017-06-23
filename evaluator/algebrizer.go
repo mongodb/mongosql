@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -89,8 +90,8 @@ type algebrizer struct {
 	selectIDGenerator *selectIDGenerator
 	logger            *log.Logger
 
-	selectID                     int                   // the selectID to use for projected columns
-	currentSelectIDs             []int                 // the selectIDs that are currently used
+	selectID                     int                   // the selectID to use for projected columns.
+	currentSelectIDs             []int                 // the selectIDs that are currently used.
 	dbName                       string                // the default database name.
 	columns                      []*Column             // all the columns in scope.
 	tableNames                   []string              // all the table names in scope.
@@ -98,7 +99,7 @@ type algebrizer struct {
 	aggregates                   []*SQLAggFunctionExpr // aggregates found in the current scope.
 	projectedColumns             ProjectedColumns      // columns to be projected from this scope.
 	projectedColumnAggregateMap  map[int]SQLExpr       // indicates whether the projected column contains an aggregate.
-	resolveProjectedColumnsFirst bool                  // indicates whether to resolve a column using the projected columns first or second
+	resolveProjectedColumnsFirst bool                  // indicates whether to resolve a column using the projected columns first or second.
 	currentClause                string                // tracks the current clause being processed for the purposes of error messages.
 }
 
@@ -428,7 +429,15 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 	// This establishes all the columns which are in scope.
 	if sel.From != nil {
 		a.currentClause = fromClause
-		plan, err := a.translateTableExprs(sel.From)
+		var isUnqualifiedSelectStar bool
+		if len(sel.SelectExprs) == 1 {
+			if expr, ok := sel.SelectExprs[0].(*parser.StarExpr); ok {
+				if expr.TableName == nil {
+					isUnqualifiedSelectStar = true
+				}
+			}
+		}
+		plan, err := a.translateTableExprs(sel.From, isUnqualifiedSelectStar)
 		if err != nil {
 			return nil, err
 		}
@@ -672,13 +681,15 @@ func (a *algebrizer) translateSet(set *parser.Set) (*SetCommand, error) {
 	return NewSetCommand(assignments), nil
 }
 
-func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs) (PlanStage, error) {
+func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs, isUnqualifiedSelectStar bool) (PlanStage, error) {
 	var plan PlanStage
+	var colsForProjection []*Column
 	for i, tableExpr := range tableExprs {
-		temp, err := a.translateTableExpr(tableExpr)
+		temp, cols, err := a.translateTableExpr(tableExpr)
 		if err != nil {
 			return nil, err
 		}
+		colsForProjection = append(colsForProjection, cols...)
 		if i == 0 {
 			plan = temp
 		} else {
@@ -686,11 +697,163 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs) (PlanStag
 		}
 	}
 
+	if isUnqualifiedSelectStar {
+		a.columns = colsForProjection
+	}
+
 	return plan, nil
 }
 
-func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, error) {
+// getTableName gets the name of the table that contains colName. The table name is only specific to the column
+// when tableExpr.(type) = JoinTableExpr.
+func (a *algebrizer) getTableName(tableExpr parser.TableExpr, colName string, columns []*Column) ([]byte, error) {
+	switch typedE := tableExpr.(type) {
+	case *parser.AliasedTableExpr:
+		if typedE.As != nil {
+			return typedE.As, nil
+		} else {
+			// only legal type is TableName, as other AliasedTableExpr's must have AS clause specified
+			name, ok := typedE.Expr.(*parser.TableName)
+			if !ok {
+				return nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "A %s must have an alias", typedE.Expr)
+			}
+			return name.Name, nil
+		}
+	case *parser.ParenTableExpr:
+		return a.getTableName(typedE.Expr, colName, columns)
+	case *parser.JoinTableExpr:
+		var tableName []byte
+		// find the name of the table the column was in before the join
+		for _, column := range columns {
+			if column.Name == colName {
+				if tableName == nil {
+					tableName = []byte(column.Table)
+				} else {
+					return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NON_UNIQ_ERROR, colName, a.currentClause)
+				}
+			}
+		}
+		// if column named colName was not found in any table in the JoinTableExpr
+		if tableName == nil {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, colName, a.currentClause)
+		}
+		return tableName, nil
+	default:
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, typedE)
+	}
+}
 
+// convertToAnd is a function takes in a list of columns returns an expression which ANDs together a series of expressions
+// comparing these columns, eg. (a, b, d) -> foo.a=bar.a && foo.b=bar.b && foo.d=bar.d.
+func (a *algebrizer) convertToAnd(columns parser.ColumnExprs, leftCols []*Column, rightCols []*Column, tableExpr *parser.JoinTableExpr) (parser.Expr, error) {
+	var expression parser.Expr
+	seenColumns := make(map[string]struct{})
+	for _, column := range columns {
+		colName := string(column.Name)
+		// if column is not already in the comparison
+		if _, ok := seenColumns[colName]; !ok {
+			var emptyStruct struct{}
+			seenColumns[colName] = emptyStruct
+			// extract the left and right table names
+			leftTableName, err := a.getTableName((*tableExpr).LeftExpr, colName, leftCols)
+			if err != nil {
+				return nil, err
+			}
+			rightTableName, err := a.getTableName((*tableExpr).RightExpr, colName, rightCols)
+			if err != nil {
+				return nil, err
+			}
+
+			leftExpr := &parser.ColName{[]byte(colName), leftTableName}
+			rightExpr := &parser.ColName{[]byte(colName), rightTableName}
+			comparison := &parser.ComparisonExpr{parser.AST_EQ, leftExpr, rightExpr, ""}
+			// add to final expression
+			if expression == nil {
+				expression = comparison
+			} else {
+				expression = &parser.AndExpr{expression, comparison}
+			}
+		}
+	}
+	return expression, nil
+}
+
+// columnsSortAndFilter represents a column sorter and filter, which arranges and deletes
+// columns from a *Column slice for projection in the case of a join with USING.
+type columnsSortAndFilter interface {
+	Sort()
+	Filter() []*Column
+}
+
+type columnsUsing struct {
+	columns     []*Column
+	usingCols   parser.ColumnExprs
+	joinKind    JoinKind
+	rightTables map[string]struct{}
+}
+
+func (c columnsUsing) Len() int {
+	return len(c.columns)
+}
+
+// Less reorders the columns in a JoinTableExpr when the table expr has a USING clause.
+// It places columns in the USING clause before those not in USING, and when the join type is a right join,
+// it puts columns from the right expression before the columns from the left expression.
+func (c columnsUsing) Less(i, j int) bool {
+	var iInUsing, jInUsing bool
+	for _, column := range c.usingCols {
+		if string(column.Name) == c.columns[i].Name {
+			iInUsing = true
+		}
+		if string(column.Name) == c.columns[j].Name {
+			jInUsing = true
+		}
+	}
+	if iInUsing && !jInUsing {
+		return true
+	} else if !iInUsing && jInUsing {
+		return false
+	} else {
+		_, iInRight := c.rightTables[c.columns[i].Table]
+		_, jInRight := c.rightTables[c.columns[j].Table]
+		if iInRight && !jInRight {
+			return c.joinKind == RightJoin
+		} else if jInRight && !iInRight {
+			return !(c.joinKind == RightJoin)
+		}
+	}
+	return false
+}
+
+func (c columnsUsing) Swap(i, j int) {
+	c.columns[i], c.columns[j] = c.columns[j], c.columns[i]
+}
+
+func (c columnsUsing) Sort() {
+	sort.Stable(c)
+}
+
+func (c columnsUsing) Filter() []*Column {
+	// keep track of the USING columns to ensure we only project one for each column in the clause
+	seenColumns := make(map[string]bool)
+	for _, usingColumn := range c.usingCols {
+		seenColumns[string(usingColumn.Name)] = false
+	}
+	var columnsForProjection []*Column
+	for _, column := range c.columns {
+		// if column is a USING column, add it only if it's the first instance
+		if seenBefore, ok := seenColumns[column.Name]; ok {
+			if seenBefore {
+				continue
+			}
+			seenColumns[column.Name] = true
+		}
+		columnsForProjection = append(columnsForProjection, column)
+	}
+	return columnsForProjection
+}
+
+func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, []*Column, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
 		return a.translateSimpleTableExpr(typedT.Expr, string(typedT.As))
@@ -699,35 +862,59 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 	case parser.SimpleTableExpr:
 		return a.translateSimpleTableExpr(typedT, "")
 	case *parser.JoinTableExpr:
-		left, err := a.translateTableExpr(typedT.LeftExpr)
+		left, leftCols, err := a.translateTableExpr(typedT.LeftExpr)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-
-		right, err := a.translateTableExpr(typedT.RightExpr)
+		right, rightCols, err := a.translateTableExpr(typedT.RightExpr)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		cols := append(leftCols, rightCols...)
 
 		var predicate SQLExpr
 		if typedT.On != nil {
 			predicate, err = a.translateExpr(typedT.On)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
+		} else if typedT.Using != nil {
+			comparison, err := a.convertToAnd(typedT.Using, leftCols, rightCols, typedT)
+			if err != nil {
+				return nil, nil, err
+			}
+			predicate, err = a.translateExpr(comparison)
+			if err != nil {
+				return nil, nil, err
+			}
+			rightTables := make(map[string]struct{})
+			var emptyStruct struct{}
+			for _, column := range rightCols {
+				rightTables[column.Table] = emptyStruct
+			}
+			sortableFilterableColumns := &columnsUsing{cols, typedT.Using, JoinKind(typedT.Join), rightTables}
+			sortableFilterableColumns.Sort()
+			cols = sortableFilterableColumns.Filter()
 		} else if typedT.Join == parser.AST_LEFT_JOIN || typedT.Join == parser.AST_RIGHT_JOIN {
-			return nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "A %s requires criteria", typedT.Join)
+			return nil, nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "A %s requires criteria", typedT.Join)
 		} else {
 			predicate = SQLTrue
 		}
 
-		return NewJoinStage(JoinKind(typedT.Join), left, right, predicate), nil
+		joinKind := JoinKind(typedT.Join)
+		if joinKind == CrossJoin && (typedT.Using != nil || typedT.On != nil) {
+			joinKind = InnerJoin
+		} else if joinKind == InnerJoin && (typedT.Using == nil && typedT.On == nil) {
+			joinKind = CrossJoin
+		}
+
+		return NewJoinStage(joinKind, left, right, predicate), cols, nil
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, parser.String(tableExpr))
+		return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, parser.String(tableExpr))
 	}
 }
 
-func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, aliasName string) (PlanStage, error) {
+func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, aliasName string) (PlanStage, []*Column, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.TableName:
 
@@ -752,11 +939,11 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 		} else {
 			db, err := a.catalog.Database(dbName)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			table, err := db.Table(tableName)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			switch t := table.(type) {
@@ -765,49 +952,49 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 			case *catalog.DynamicTable:
 				plan = NewDynamicSourceStage(t, a.selectID, aliasName)
 			default:
-				return nil, fmt.Errorf("unknown table type: %T", t)
+				return nil, nil, fmt.Errorf("unknown table type: %T", t)
 			}
 		}
 
 		err = a.registerTable(aliasName)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		err = a.registerColumns(plan.Columns())
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		return plan, nil
+		return plan, plan.Columns(), nil
 	case *parser.Subquery:
 
 		if aliasName == "" {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DERIVED_MUST_HAVE_ALIAS)
+			return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ER_DERIVED_MUST_HAVE_ALIAS)
 		}
 
 		subqueryAlgebrizer := a.newSubqueryAlgebrizer()
 
 		plan, err := subqueryAlgebrizer.translateSelectStatement(typedT.Select)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, aliasName)
 
 		err = a.registerTable(aliasName)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		err = a.registerColumns(plan.Columns())
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		return plan, nil
+		return plan, plan.Columns(), nil
 	default:
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, parser.String(tableExpr))
+		return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, parser.String(tableExpr))
 	}
 }
 

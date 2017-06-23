@@ -236,6 +236,17 @@ func (node Columns) Format(buf *TrackedBuffer) {
 	buf.Fprintf("(%v)", SelectExprs(node))
 }
 
+// ColumnExprs represents a list of column names.
+type ColumnExprs []*ColName
+
+func (node ColumnExprs) Format(buf *TrackedBuffer) {
+	var prefix string
+	for _, n := range node {
+		buf.Fprintf("%s%v", prefix, n)
+		prefix = ", "
+	}
+}
+
 // TableExprs represents a list of table expressions.
 type TableExprs []TableExpr
 
@@ -313,6 +324,7 @@ type JoinTableExpr struct {
 	Join      string
 	RightExpr TableExpr
 	On        Expr
+	Using     ColumnExprs
 }
 
 // JoinTableExpr.Join
@@ -329,6 +341,9 @@ func (node *JoinTableExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v %s %v", node.LeftExpr, node.Join, node.RightExpr)
 	if node.On != nil {
 		buf.Fprintf(" on %v", node.On)
+	}
+	if node.Using != nil {
+		buf.Fprintf(" using (%v)", node.Using)
 	}
 }
 
