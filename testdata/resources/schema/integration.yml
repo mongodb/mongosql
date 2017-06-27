@@ -454,6 +454,21 @@ schema:
       MongoType: mongo.Filter
       SqlName: mfil
       SqlType: varchar
+  - table: conflict
+    collection: "select_1"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: date
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
 - db: select_test
   tables:
   - table: bar

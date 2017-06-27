@@ -20,6 +20,38 @@ func testParseError(t *testing.T, sql string) Statement {
 	return stmt
 }
 
+func TestAliases(t *testing.T) {
+	sql := "select col1 a1 from foo"
+	testParse(t, sql)
+
+	sql = "select col1 `a1` from foo"
+	testParse(t, sql)
+
+	sql = "select col1 'a1' from foo"
+	testParse(t, sql)
+
+	sql = "select col1 \"a1\" from foo"
+	testParse(t, sql)
+
+	sql = "select col1 as `a1` from foo"
+	testParse(t, sql)
+
+	sql = "select col1 as 'a1' from foo"
+	testParse(t, sql)
+
+	sql = "select col1 as \"a1\" from foo"
+	testParse(t, sql)
+
+	sql = "select date '2007-01-01' from foo"
+	testParse(t, sql)
+
+	sql = "select date '2007-01-01' 'funny' from foo"
+	testParse(t, sql)
+
+	sql = "select date funny from foo"
+	testParse(t, sql)
+}
+
 func TestSet(t *testing.T) {
 	sql := "set @@temp = 'gbk'"
 	testParse(t, sql)

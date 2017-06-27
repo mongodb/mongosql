@@ -901,3 +901,43 @@ testcases:
   expected_types: [int, int, int]
   expected:
   - [0, 1, ~]
+- sql: "select date from conflict"
+  id: '91'
+  db: select_sTest
+  description: "conflicted column name"
+  expected_names: ["date"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+- sql: "select date as funny from conflict"
+  id: '92'
+  db: select_sTest
+  description: "conflicted column name with alias"
+  expected_names: ["funny"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+- sql: "select date '2017-01-01' from conflict"
+  id: '93'
+  db: select_sTest
+  description: "date literal conflicted with column name"
+  expected_names: ["date(2017-01-01)"]
+  expected_types: [datetime]
+  expected:
+  - ["2017-01-01"]
+  - ["2017-01-01"]
+  - ["2017-01-01"]
+- sql: "select date '2017-01-01' 'funny' from conflict"
+  id: '94'
+  db: select_sTest
+  description: "date literal with alias conflicted with column name"
+  expected_names: ["funny"]
+  expected_types: [datetime]
+  expected:
+  - ["2017-01-01"]
+  - ["2017-01-01"]
+  - ["2017-01-01"]

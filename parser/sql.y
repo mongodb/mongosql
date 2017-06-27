@@ -794,6 +794,14 @@ as_opt: %prec INTERVAL
   {
     $$ = $2
   }
+| STRING
+  {
+    $$ = $1
+  }
+| AS STRING 
+  {
+    $$ = $2
+  }
 
 join_type:
   JOIN
