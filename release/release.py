@@ -8,6 +8,7 @@ import getopt
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -95,12 +96,7 @@ class BIReleaser(object):
                 buf = data.read(block_sz)
                 if not buf:
                     break
-                file_size_dl += len(buf)
                 file_path.write(buf)
-                status = r"%10d  [%3.2f%%]" % \
-                (file_size_dl, file_size_dl * 100. / file_size)
-                status = status + chr(8)*(len(status)+1)
-                print status,
             file_path.close()
 
     def fetch_urls(self):
@@ -225,19 +221,26 @@ class BIReleaser(object):
             os.path.join(os.path.dirname(S3_PATH), CURRENT_JSON))
         current = json.loads(key.get_contents_as_string())
         new_component = self.__release_version.split(".")
-        delete_index = -1
+        is_ga = len(new_component) == 3 and new_component[2] == "0"
 
-        # find and remove older version from current release page
-        for i, version in enumerate(current["versions"]):
-            components = version["version"].split(".")
-            if int(components[0]) == int(new_component[0]) and \
-                int(components[1]) == int(new_component[1]):
-                delete_index = i
-                break
+        # the main downloads page should have, at most, 2 versions
+        # available for download - 1 only, if it's GA
+        if is_ga:
+            # for GA, only the stable version should be available for
+            # download on the main page
+            current["versions"] = []
+        else:
+            delete_index = -1
+            # find and remove older version from current release page
+            for i, version in enumerate(current["versions"]):
+                components = version["version"].split(".")
+                if int(components[1]) == int(new_component[1]):
+                    delete_index = i
+                    break
 
-        # delete any older version found
-        if delete_index != -1:
-            del current["versions"][delete_index]
+            # delete any older version found
+            if delete_index != -1:
+                del current["versions"][delete_index]
 
         # read in templated release information
         with open(os.path.join(self.__temp_dir, RELEASES_FILE), "r") as handle:
