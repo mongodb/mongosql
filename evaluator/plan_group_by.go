@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/10gen/sqlproxy/collation"
@@ -86,6 +87,8 @@ type GroupByIter struct {
 	outChan chan aggRowCtx
 
 	ctx *ExecutionCtx
+
+	cancelIter context.CancelFunc
 }
 
 func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
@@ -101,6 +104,7 @@ func (gb *GroupByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		keys:             gb.keys,
 		collation:        gb.Collation(),
 		keyBuffer:        &collation.KeyBuffer{},
+		cancelIter:       func() {},
 	}
 
 	return iter, nil
@@ -112,7 +116,9 @@ func (gb *GroupByIter) Next(row *Row) bool {
 			gb.err = err
 			return false
 		}
-		gb.outChan = gb.iterChan()
+		ctx, cancel := context.WithCancel(gb.ctx.Context())
+		gb.cancelIter = cancel
+		gb.outChan = gb.iterChan(ctx)
 	}
 
 	rCtx, done := <-gb.outChan
@@ -123,6 +129,7 @@ func (gb *GroupByIter) Next(row *Row) bool {
 
 func (gb *GroupByIter) Close() error {
 	gb.keyBuffer.Reset()
+	gb.cancelIter()
 	return gb.source.Close()
 }
 
@@ -213,10 +220,11 @@ func (gb *GroupByIter) evaluateProjectedColumns(r []*Row) (*Row, error) {
 	return row, nil
 }
 
-func (gb *GroupByIter) iterChan() chan aggRowCtx {
+func (gb *GroupByIter) iterChan(ctx context.Context) chan aggRowCtx {
 	ch := make(chan aggRowCtx)
 
 	util.PanicSafeGo(func() {
+	keyLoop:
 		for _, key := range gb.finalGrouping.keys {
 			v := gb.finalGrouping.groups[key]
 			r, err := gb.evaluateProjectedColumns(v)
@@ -228,7 +236,11 @@ func (gb *GroupByIter) iterChan() chan aggRowCtx {
 
 			// check we have some matching data
 			if len(r.Data) != 0 {
-				ch <- aggRowCtx{*r, v}
+				select {
+				case ch <- aggRowCtx{*r, v}:
+				case <-ctx.Done():
+					break keyLoop
+				}
 			}
 		}
 		close(ch)

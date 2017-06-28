@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -36,6 +37,7 @@ type UnionIter struct {
 	onChan      chan Row
 	errChan     chan error
 	err         error
+	cancelIter  context.CancelFunc
 }
 
 func (union *UnionStage) Open(ctx *ExecutionCtx) (Iter, error) {
@@ -49,36 +51,38 @@ func (union *UnionStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, err
 	}
 
-	iter := &UnionIter{
-		left:    left,
-		right:   right,
-		ctx:     ctx,
-		columns: union.Columns(),
+	cancelCtx, cancel := context.WithCancel(ctx.Context())
 
-		errChan: make(chan error, 1),
+	iter := &UnionIter{
+		left:       left,
+		right:      right,
+		ctx:        ctx,
+		columns:    union.Columns(),
+		errChan:    make(chan error, 1),
+		cancelIter: cancel,
 	}
 
 	leftRows := make(chan *Row)
 	rightRows := make(chan *Row)
 
 	util.PanicSafeGo(func() {
-		iter.fetchRows(left, leftRows, iter.errChan)
+		iter.fetchRows(cancelCtx, left, leftRows, iter.errChan)
 	}, func(err interface{}) {
 		iter.errChan <- fmt.Errorf("%v", err)
 	})
 
 	util.PanicSafeGo(func() {
-		iter.fetchRows(right, rightRows, iter.errChan)
+		iter.fetchRows(cancelCtx, right, rightRows, iter.errChan)
 	}, func(err interface{}) {
 		iter.errChan <- fmt.Errorf("%v", err)
 	})
 
-	iter.onChan = iter.unify(leftRows, rightRows)
+	iter.onChan = iter.unify(cancelCtx, leftRows, rightRows)
 
 	return iter, nil
 }
 
-func (iter *UnionIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
+func (iter *UnionIter) fetchRows(ctx context.Context, it Iter, ch chan *Row, errChan chan error) {
 	r := &Row{}
 
 	syncChan := make(chan *Row)
@@ -92,8 +96,11 @@ func (iter *UnionIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 				r.Data[i].Data, _ = NewSQLValue(r.Data[i].Data, col.SQLType, schema.SQLNone)
 			}
 
-			syncChan <- r
-			r = &Row{}
+			select {
+			case syncChan <- r:
+				r = &Row{}
+			case <-ctx.Done():
+			}
 		}
 
 		if err := it.Err(); err != nil {
@@ -115,8 +122,8 @@ func (iter *UnionIter) fetchRows(it Iter, ch chan *Row, errChan chan error) {
 			}
 
 			ch <- row
-		case <-iter.ctx.Context().Done():
-			errChan <- iter.ctx.Context().Err()
+		case <-ctx.Done():
+			errChan <- ctx.Err()
 			return
 		case err := <-fetchErrChan:
 			errChan <- err
@@ -165,6 +172,7 @@ func (iter *UnionIter) Next(row *Row) bool {
 }
 
 func (iter *UnionIter) Close() error {
+	iter.cancelIter()
 
 	if err := iter.left.Close(); err != nil {
 		return err
@@ -190,7 +198,7 @@ func (iter *UnionIter) Err() error {
 	return iter.err
 }
 
-func (iter *UnionIter) unify(lChan, rChan chan *Row) chan Row {
+func (iter *UnionIter) unify(ctx context.Context, lChan, rChan chan *Row) chan Row {
 
 	ch := make(chan Row)
 	closeChan := make(chan struct{})
@@ -206,8 +214,13 @@ func (iter *UnionIter) unify(lChan, rChan chan *Row) chan Row {
 
 	// retrieve rows from left and right stages in parallel
 	util.PanicSafeGo(func() {
+	chanLoop:
 		for l := range lChan {
-			ch <- *l
+			select {
+			case ch <- *l:
+			case <-ctx.Done():
+				break chanLoop
+			}
 		}
 		closeChan <- struct{}{}
 	}, func(err interface{}) {
@@ -215,8 +228,13 @@ func (iter *UnionIter) unify(lChan, rChan chan *Row) chan Row {
 	})
 
 	util.PanicSafeGo(func() {
+	chanLoop:
 		for r := range rChan {
-			ch <- *r
+			select {
+			case ch <- *r:
+			case <-ctx.Done():
+				break chanLoop
+			}
 		}
 		closeChan <- struct{}{}
 	}, func(err interface{}) {

@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -41,6 +42,8 @@ type OrderByIter struct {
 	err error
 
 	errChan chan error
+
+	cancelIter context.CancelFunc
 }
 
 type orderByTerm struct {
@@ -79,11 +82,12 @@ func (ob *OrderByStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	iter := &OrderByIter{
-		source:    sourceIter,
-		terms:     ob.terms,
-		ctx:       ctx,
-		collation: ob.Collation(),
-		errChan:   make(chan error),
+		source:     sourceIter,
+		terms:      ob.terms,
+		ctx:        ctx,
+		collation:  ob.Collation(),
+		errChan:    make(chan error),
+		cancelIter: func() {},
 	}
 
 	return iter, nil
@@ -96,7 +100,9 @@ func (ob *OrderByIter) Next(row *Row) bool {
 			ob.err = err
 			return false
 		}
-		ob.startIterChan(rows)
+		ctx, cancel := context.WithCancel(ob.ctx.Context())
+		ob.cancelIter = cancel
+		ob.startIterChan(ctx, rows)
 	}
 
 	select {
@@ -162,6 +168,7 @@ func (ob *OrderByIter) sortRows() ([]orderByRow, error) {
 }
 
 func (ob *OrderByIter) Close() error {
+	ob.cancelIter()
 	return ob.source.Close()
 }
 
@@ -173,12 +180,16 @@ func (ob *OrderByIter) Err() error {
 	return ob.err
 }
 
-func (ob *OrderByIter) startIterChan(rows []orderByRow) {
+func (ob *OrderByIter) startIterChan(ctx context.Context, rows []orderByRow) {
 	ob.outChan = make(chan Values)
-
 	util.PanicSafeGo(func() {
+	rowLoop:
 		for _, row := range rows {
-			ob.outChan <- row.data
+			select {
+			case ob.outChan <- row.data:
+			case <-ctx.Done():
+				break rowLoop
+			}
 		}
 		close(ob.outChan)
 	}, func(err interface{}) {

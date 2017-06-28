@@ -54,7 +54,7 @@ type NestedLoopJoiner struct {
 // Joiner wraps the basic Join function that is
 // used to combine data from two different sources.
 type Joiner interface {
-	Join(left, right <-chan *Row, ctx *ExecutionCtx) <-chan Values
+	Join(ctx context.Context, left, right <-chan *Row, execCtx *ExecutionCtx) <-chan Values
 }
 
 // Join implements the operator interface for
@@ -81,6 +81,7 @@ type JoinIter struct {
 	onChan      <-chan Values
 	errChan     chan error
 	err         error
+	cancelIter  context.CancelFunc
 }
 
 func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
@@ -95,24 +96,27 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		return nil, err
 	}
 
+	cancelCtx, cancel := context.WithCancel(ctx.Context())
+
 	iter := &JoinIter{
-		left:    left,
-		right:   right,
-		ctx:     ctx,
-		errChan: make(chan error, 1),
+		left:       left,
+		right:      right,
+		ctx:        ctx,
+		cancelIter: cancel,
+		errChan:    make(chan error, 1),
 	}
 
 	leftRows := make(chan *Row)
 	rightRows := make(chan *Row)
 
 	util.PanicSafeGo(func() {
-		iter.fetchRows(left, leftRows, iter.errChan)
+		iter.fetchRows(cancelCtx, left, leftRows, iter.errChan)
 	}, func(err interface{}) {
 		iter.errChan <- fmt.Errorf("%v", err)
 	})
 
 	util.PanicSafeGo(func() {
-		iter.fetchRows(right, rightRows, iter.errChan)
+		iter.fetchRows(cancelCtx, right, rightRows, iter.errChan)
 	}, func(err interface{}) {
 		iter.errChan <- fmt.Errorf("%v", err)
 	})
@@ -128,23 +132,28 @@ func (join *JoinStage) Open(ctx *ExecutionCtx) (Iter, error) {
 		iter.errChan,
 	)
 
-	iter.onChan = joiner.Join(leftRows, rightRows, ctx)
+	iter.onChan = joiner.Join(cancelCtx, leftRows, rightRows, ctx)
 
 	return iter, nil
 }
 
 // fetchRows reads Row objects from a given Iter, and publishes them on channel ch, closing it when
 // the iterator is exhausted. Errors encountered during iteration are published on errChan.
-func (iter *JoinIter) fetchRows(it Iter, ch chan<- *Row, errChan chan<- error) {
+func (iter *JoinIter) fetchRows(ctx context.Context, it Iter, ch chan<- *Row, errChan chan<- error) {
 	r := &Row{}
 
 	syncChan := make(chan *Row)
 	fetchErrChan := make(chan error, 1)
 
 	util.PanicSafeGo(func() {
+	iterLoop:
 		for it.Next(r) {
-			syncChan <- r
-			r = &Row{}
+			select {
+			case syncChan <- r:
+				r = &Row{}
+			case <-ctx.Done():
+				break iterLoop
+			}
 		}
 
 		it.Close()
@@ -165,8 +174,8 @@ func (iter *JoinIter) fetchRows(it Iter, ch chan<- *Row, errChan chan<- error) {
 			}
 
 			ch <- row
-		case <-iter.ctx.Context().Done():
-			errChan <- iter.ctx.Context().Err()
+		case <-ctx.Done():
+			errChan <- ctx.Err()
 			return
 		case err := <-fetchErrChan:
 			errChan <- err
@@ -191,6 +200,7 @@ func (iter *JoinIter) Next(row *Row) bool {
 }
 
 func (join *JoinIter) Close() error {
+	join.cancelIter()
 
 	if err := join.left.Close(); err != nil {
 		return err
@@ -249,7 +259,7 @@ func NewJoiner(ctx *ExecutionCtx, s JoinStrategy, kind JoinKind, collation *coll
 	}
 }
 
-func (nlp *NestedLoopJoiner) readData(lChan, rChan <-chan *Row) ([]*Row, []*Row, error) {
+func (nlp *NestedLoopJoiner) readData(ctx context.Context, lChan, rChan <-chan *Row) ([]*Row, []*Row, error) {
 
 	maxSize := nlp.ctx.Variables().MongoDBMaxStageSize
 	size := uint64(0)
@@ -258,7 +268,7 @@ func (nlp *NestedLoopJoiner) readData(lChan, rChan <-chan *Row) ([]*Row, []*Row,
 	var right []*Row
 	errs := make(chan error, 2)
 
-	ctx, cancel := context.WithCancel(nlp.ctx.Context())
+	cancelCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	readChan := func(ch <-chan *Row, out *[]*Row) {
@@ -277,8 +287,8 @@ func (nlp *NestedLoopJoiner) readData(lChan, rChan <-chan *Row) ([]*Row, []*Row,
 					cancel()
 					return
 				}
-			case <-ctx.Done():
-				errs <- ctx.Err()
+			case <-cancelCtx.Done():
+				errs <- cancelCtx.Err()
 				return
 			}
 		}
@@ -311,7 +321,7 @@ func (nlp *NestedLoopJoiner) readData(lChan, rChan <-chan *Row) ([]*Row, []*Row,
 }
 
 // NestedLoopJoiner implementation.
-func (nlp *NestedLoopJoiner) Join(lChan, rChan <-chan *Row, ctx *ExecutionCtx) <-chan Values {
+func (nlp *NestedLoopJoiner) Join(ctx context.Context, lChan, rChan <-chan *Row, execCtx *ExecutionCtx) <-chan Values {
 
 	getNilValues := func(columns []*Column) Values {
 		var nilValues Values
@@ -325,7 +335,7 @@ func (nlp *NestedLoopJoiner) Join(lChan, rChan <-chan *Row, ctx *ExecutionCtx) <
 		return nilValues
 	}
 
-	left, right, err := nlp.readData(lChan, rChan)
+	left, right, err := nlp.readData(ctx, lChan, rChan)
 	if err != nil {
 		nlp.errChan <- err
 		return nil
@@ -336,25 +346,25 @@ func (nlp *NestedLoopJoiner) Join(lChan, rChan <-chan *Row, ctx *ExecutionCtx) <
 	switch nlp.kind {
 	case CrossJoin:
 		util.PanicSafeGo(func() {
-			nlp.crossJoin(left, right, ch, ctx)
+			nlp.crossJoin(ctx, left, right, ch, execCtx)
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
 	case InnerJoin, StraightJoin:
 		util.PanicSafeGo(func() {
-			nlp.innerJoin(left, right, ch, ctx)
+			nlp.innerJoin(ctx, left, right, ch, execCtx)
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
 	case LeftJoin:
 		util.PanicSafeGo(func() {
-			nlp.leftJoin(left, right, ch, ctx, getNilValues(nlp.rightColumns))
+			nlp.leftJoin(ctx, left, right, ch, execCtx, getNilValues(nlp.rightColumns))
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
 	case RightJoin:
 		util.PanicSafeGo(func() {
-			nlp.rightJoin(left, right, ch, ctx, getNilValues(nlp.leftColumns))
+			nlp.rightJoin(ctx, left, right, ch, execCtx, getNilValues(nlp.leftColumns))
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
@@ -364,11 +374,12 @@ func (nlp *NestedLoopJoiner) Join(lChan, rChan <-chan *Row, ctx *ExecutionCtx) <
 	return ch
 }
 
-func (nlp *NestedLoopJoiner) innerJoin(left, right []*Row, ch chan<- Values, ctx *ExecutionCtx) {
+func (nlp *NestedLoopJoiner) innerJoin(ctx context.Context, left, right []*Row, ch chan<- Values, execCtx *ExecutionCtx) {
 
+outerLoop:
 	for _, l := range left {
 		for _, r := range right {
-			evalCtx := NewEvalCtx(ctx, nlp.collation, l, r)
+			evalCtx := NewEvalCtx(execCtx, nlp.collation, l, r)
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
@@ -377,7 +388,11 @@ func (nlp *NestedLoopJoiner) innerJoin(left, right []*Row, ch chan<- Values, ctx
 			} else if m {
 				values := make(Values, len(l.Data)+len(r.Data))
 				copy(values, append(l.Data, r.Data...))
-				ch <- append(l.Data, r.Data...)
+				select {
+				case ch <- append(l.Data, r.Data...):
+				case <-ctx.Done():
+					break outerLoop
+				}
 			}
 		}
 	}
@@ -385,13 +400,14 @@ func (nlp *NestedLoopJoiner) innerJoin(left, right []*Row, ch chan<- Values, ctx
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) leftJoin(left, right []*Row, ch chan<- Values, ctx *ExecutionCtx, nilRightValues Values) {
+func (nlp *NestedLoopJoiner) leftJoin(ctx context.Context, left, right []*Row, ch chan<- Values, execCtx *ExecutionCtx, nilRightValues Values) {
 
 	var hasMatch bool
 
+outerLoop:
 	for _, l := range left {
 		for _, r := range right {
-			evalCtx := NewEvalCtx(ctx, nlp.collation, l, r)
+			evalCtx := NewEvalCtx(execCtx, nlp.collation, l, r)
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
@@ -401,14 +417,22 @@ func (nlp *NestedLoopJoiner) leftJoin(left, right []*Row, ch chan<- Values, ctx 
 				hasMatch = true
 				values := make(Values, len(l.Data)+len(r.Data))
 				copy(values, append(l.Data, r.Data...))
-				ch <- values
+				select {
+				case ch <- values:
+				case <-ctx.Done():
+					break outerLoop
+				}
 			}
 		}
 
 		if !hasMatch {
 			values := make(Values, len(nilRightValues)+len(l.Data))
 			copy(values, append(l.Data, nilRightValues...))
-			ch <- values
+			select {
+			case ch <- values:
+			case <-ctx.Done():
+				break outerLoop
+			}
 		}
 
 		hasMatch = false
@@ -417,13 +441,14 @@ func (nlp *NestedLoopJoiner) leftJoin(left, right []*Row, ch chan<- Values, ctx 
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) rightJoin(left, right []*Row, ch chan<- Values, ctx *ExecutionCtx, nilLeftValues Values) {
+func (nlp *NestedLoopJoiner) rightJoin(ctx context.Context, left, right []*Row, ch chan<- Values, execCtx *ExecutionCtx, nilLeftValues Values) {
 
 	var hasMatch bool
 
+outerLoop:
 	for _, r := range right {
 		for _, l := range left {
-			evalCtx := NewEvalCtx(ctx, nlp.collation, l, r)
+			evalCtx := NewEvalCtx(execCtx, nlp.collation, l, r)
 			m, err := Matches(nlp.matcher, evalCtx)
 			if err != nil {
 				nlp.errChan <- err
@@ -433,14 +458,22 @@ func (nlp *NestedLoopJoiner) rightJoin(left, right []*Row, ch chan<- Values, ctx
 				hasMatch = true
 				values := make(Values, len(l.Data)+len(r.Data))
 				copy(values, append(l.Data, r.Data...))
-				ch <- values
+				select {
+				case ch <- values:
+				case <-ctx.Done():
+					break outerLoop
+				}
 			}
 		}
 
 		if !hasMatch {
 			values := make(Values, len(nilLeftValues)+len(r.Data))
 			copy(values, append(nilLeftValues, r.Data...))
-			ch <- values
+			select {
+			case ch <- values:
+			case <-ctx.Done():
+				break outerLoop
+			}
 		}
 
 		hasMatch = false
@@ -449,13 +482,18 @@ func (nlp *NestedLoopJoiner) rightJoin(left, right []*Row, ch chan<- Values, ctx
 	close(ch)
 }
 
-func (nlp *NestedLoopJoiner) crossJoin(left, right []*Row, ch chan<- Values, _ *ExecutionCtx) {
+func (nlp *NestedLoopJoiner) crossJoin(ctx context.Context, left, right []*Row, ch chan<- Values, _ *ExecutionCtx) {
 
+outerLoop:
 	for _, l := range left {
 		for _, r := range right {
 			values := make(Values, len(l.Data)+len(r.Data))
 			copy(values, append(l.Data, r.Data...))
-			ch <- values
+			select {
+			case ch <- values:
+			case <-ctx.Done():
+				break outerLoop
+			}
 		}
 	}
 
