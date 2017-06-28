@@ -3466,8 +3466,8 @@ func TestTranslateExpr(t *testing.T) {
 			sqlValueTest{SQLUint32(32), `{"$literal":32}`},
 			sqlValueTest{SQLVarchar("vc"), `{"$literal":"vc"}`},
 			sqlValueTest{SQLNull, `{"$literal":null}`},
-			sqlValueTest{SQLDate{t}, `"2012-12-07T12:15:30.918273645Z"`},
-			sqlValueTest{SQLTimestamp{t}, `"2012-12-07T12:15:30.918273645Z"`},
+			sqlValueTest{SQLDate{t}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
+			sqlValueTest{SQLTimestamp{t}, `{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
 		}
 
 		runSQLValueTests(sqlValueTests)

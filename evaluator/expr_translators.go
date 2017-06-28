@@ -1602,7 +1602,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return bson.M{"$literal": d}, true
 
 	case SQLDate:
-		return typedE.Time, true
+		return bson.M{"$literal": typedE.Time}, true
 
 	case SQLUint64:
 		val, ok := t.getValue(typedE)
@@ -1642,7 +1642,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		return mgoNullLiteral, true
 
 	case SQLTimestamp:
-		return typedE.Time, true
+		return bson.M{"$literal": typedE.Time}, true
 
 	case *SQLValues:
 		var transExprs []interface{}
