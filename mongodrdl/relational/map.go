@@ -354,19 +354,27 @@ func SimpleIndexKey(realKey bson.D) (key []string) {
 			vf, _ := realKey[i].Value.(float64)
 			vi = int(vf)
 		}
-		if vi == 1 {
+
+		if vi > 0 {
 			key = append(key, field)
 			continue
 		}
-		if vi == -1 {
+
+		if vi < 0 {
 			key = append(key, "-"+field)
 			continue
 		}
+
 		if vs, ok := realKey[i].Value.(string); ok {
 			key = append(key, "$"+vs+":"+field)
 			continue
 		}
-		panic("Got unknown index key type for field " + field)
+
+		// In 3.4 only numbers > 0, numbers < 0, and strings are allowed
+		// for index keys but 3.2. allows for all sorts of index hackery
+		// - including zero, dates, etc - so we'll just stringify things
+		// here. This is fine since we only specially treat 2d indexes.
+		key = append(key, fmt.Sprintf("%v", realKey[i].Value))
 	}
 	return
 }

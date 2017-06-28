@@ -1317,7 +1317,6 @@ func TestTypeMapping(t *testing.T) {
 			Convey("Subject: 2d sphere", func() {
 
 				geoIndexes := []mongodb.Index{
-
 					mongodb.Index{
 						Bits: 26,
 						Key:  bson.D{{"a", "2dsphere"}},
@@ -1463,6 +1462,74 @@ func TestTypeMapping(t *testing.T) {
 					So(table.Columns[1].MongoType, ShouldEqual, "int")
 					So(table.Columns[1].SqlType, ShouldEqual, "int")
 				})
+			})
+
+			Convey("Subject: Creative keys", func() {
+				creativeIndexes := []mongodb.Index{
+					mongodb.Index{
+						Key: bson.D{{"a", 3}},
+					},
+					mongodb.Index{
+						Key: bson.D{{"b", 0}},
+					},
+					mongodb.Index{
+						Key: bson.D{{"c", time.Now()}},
+					},
+				}
+
+				Convey("Should not map without any type samples", func() {
+					collection.IncludeSample(bson.D{{"a", nil}})
+
+					database := relational.NewDatabase("test", logger)
+					err := database.Map(collection, creativeIndexes, true)
+					So(err, ShouldBeNil)
+
+					// no columns will remove the entire table
+					So(len(database.Tables), ShouldEqual, 0)
+				})
+
+				Convey("Should map for non-standard index key values", func() {
+					collection.IncludeSample(bson.D{{"a", 10}})
+
+					database := relational.NewDatabase("test", logger)
+					err := database.Map(collection, creativeIndexes, true)
+					So(err, ShouldBeNil)
+
+					table := database.Tables[0]
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "a")
+					So(table.Columns[0].MongoType, ShouldEqual, "int")
+					So(table.Columns[0].SqlType, ShouldEqual, "int")
+				})
+
+				Convey("Should map for non-standard 0-valued key index values", func() {
+					collection.IncludeSample(bson.D{{"b", 10}})
+
+					database := relational.NewDatabase("test", logger)
+					err := database.Map(collection, creativeIndexes, true)
+					So(err, ShouldBeNil)
+
+					table := database.Tables[0]
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "b")
+					So(table.Columns[0].MongoType, ShouldEqual, "int")
+					So(table.Columns[0].SqlType, ShouldEqual, "int")
+				})
+
+				Convey("Should map for creatively typed index key values", func() {
+					collection.IncludeSample(bson.D{{"c", 10}})
+
+					database := relational.NewDatabase("test", logger)
+					err := database.Map(collection, creativeIndexes, true)
+					So(err, ShouldBeNil)
+
+					table := database.Tables[0]
+					So(len(table.Columns), ShouldEqual, 1)
+					So(table.Columns[0].Name, ShouldEqual, "c")
+					So(table.Columns[0].MongoType, ShouldEqual, "int")
+					So(table.Columns[0].SqlType, ShouldEqual, "int")
+				})
+
 			})
 		})
 	})
