@@ -100,14 +100,15 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 			CLIENT_CONNECT_WITH_DB |
 			CLIENT_LONG_FLAG |
 			CLIENT_LONG_PASSWORD |
-			CLIENT_SECURE_CONNECTION |
-			CLIENT_PLUGIN_AUTH |
-			CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA,
+			CLIENT_SECURE_CONNECTION,
 		stmts:     make(map[uint32]*stmt),
 		variables: variable.NewSessionContainer(s.variables),
 	}
 
 	if s.cfg.Security.Enabled {
+		newConn.capability = newConn.capability |
+			CLIENT_PLUGIN_AUTH |
+			CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
 		newConn.authPluginName = mongosqlAuthClientAuthPluginName
 		newConn.authPluginData = []byte{1, 0} // version 1.0 of the mongosql_auth plugin
 	} else {
