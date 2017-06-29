@@ -82,9 +82,9 @@ func formatField(variables *variable.Container, collationID uint16, field *Field
 		field.Flag = BINARY_FLAG
 	case evaluator.SQLDecimal128:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_DECIMAL
-		field.Decimal = 0x51
-		field.Flag = BINARY_FLAG
+		field.Type = MYSQL_TYPE_NEWDECIMAL
+		field.Decimal = 20      // scale
+		field.ColumnLength = 67 // precision plus 2 (decimal point and length)
 	case evaluator.SQLBool:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_BIT

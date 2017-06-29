@@ -75,7 +75,7 @@ var testSchemaCreateTableBar = "CREATE TABLE `bar` (\n" +
 	"  `id` varchar(10) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"_id\" }',\n" +
 	"  `a` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\" }',\n" +
 	"  `b` varchar(10) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"b\" }',\n" +
-	"  `d` decimal DEFAULT NULL COMMENT '{ \"name\": \"d\" }',\n" +
+	"  `d` decimal(65,20) DEFAULT NULL COMMENT '{ \"name\": \"d\" }',\n" +
 	"  `e` varchar(10) COLLATE utf8_bin DEFAULT NULL COMMENT '{ \"name\": \"e\" }',\n" +
 	"  `f` double DEFAULT NULL COMMENT '{ \"name\": \"f\" }',\n" +
 	"  `c_longitude` double DEFAULT NULL COMMENT '{ \"name\": \"c.0\" }',\n" +
