@@ -1822,7 +1822,11 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 		}
 
 		if typedE.Type() != schema.SQLBoolean {
-			return nil, e
+			return bson.M{
+				name: bson.M{
+					mgoOperatorNEQ: nil,
+				},
+			}, e
 		}
 
 		return bson.M{
@@ -1964,6 +1968,24 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 		if !ok {
 			return nil, e
 		}
+
+		value, ok := t.getValue(typedE.right)
+		if !ok {
+			return nil, e
+		}
+
+		if value != nil {
+			name, ok := t.getFieldName(typedE.left)
+			if !ok {
+				return nil, e
+			}
+			match = bson.M{
+				mgoOperatorAND: []interface{}{match,
+					bson.M{name: bson.M{mgoOperatorNEQ: nil}},
+				},
+			}
+		}
+
 		return match, nil
 	case *SQLNotExpr:
 		match, ex := t.TranslatePredicate(typedE.operand)
