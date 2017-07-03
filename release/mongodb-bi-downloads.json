@@ -52,31 +52,6 @@
           "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~WINDOWS_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
         }
       ]
-    },
-    {
-      "version": "1.1.3",
-      "platform": [
-        {
-          "name": "Centos/RHEL 6",
-          "download_link": "https://S3_BUCKET.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-centos6-rpms.tar.bz2"
-        },
-        {
-          "name": "Centos/RHEL 7",
-          "download_link": "https://S3_BUCKET.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-centos7-rpms.tar.bz2"
-        },
-        {
-          "name": "Debian 8 (jessie)",
-          "download_link": "https://S3_BUCKET.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-jessie-debs.tar.bz2"
-        },
-        {
-          "name": "Ubuntu 12 (precise)",
-          "download_link": "https://S3_BUCKET.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-precise-debs.tar.bz2"
-        },
-        {
-          "name": "Ubuntu 14 (trusty)",
-          "download_link": "https://S3_BUCKET.s3.amazonaws.com/mongodb-bi/mongodb-bi-1.1.3-1-trusty-debs.tar.bz2"
-        }
-      ]
     }
   ],
   "release_notes_link": "https://docs.mongodb.com/bi-connector/master/release-notes/",
