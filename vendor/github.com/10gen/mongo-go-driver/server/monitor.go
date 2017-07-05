@@ -15,11 +15,14 @@ import (
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
-const minHeartbeatFreqMS = 500 * time.Millisecond
+const minHeartbeatInterval = 500 * time.Millisecond
 
 // StartMonitor returns a new Monitor.
 func StartMonitor(addr model.Addr, opts ...Option) (*Monitor, error) {
-	cfg := newConfig(opts...)
+	cfg, err := newConfig(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	done := make(chan struct{}, 1)
 	checkNow := make(chan struct{}, 1)
@@ -60,7 +63,7 @@ func StartMonitor(addr model.Addr, opts ...Option) (*Monitor, error) {
 
 		// restart the timers
 		rateLimitTimer.Stop()
-		rateLimitTimer.Reset(minHeartbeatFreqMS)
+		rateLimitTimer.Reset(minHeartbeatInterval)
 		heartbeatTimer.Stop()
 		heartbeatTimer.Reset(cfg.heartbeatInterval)
 	}
@@ -196,7 +199,7 @@ func (m *Monitor) heartbeat() *model.Server {
 
 	const maxRetryCount = 2
 	var savedErr error
-	var d *model.Server
+	var s *model.Server
 	ctx := context.Background()
 	for i := 1; i <= maxRetryCount; i++ {
 		if m.conn != nil && m.conn.Expired() {
@@ -205,7 +208,12 @@ func (m *Monitor) heartbeat() *model.Server {
 		}
 
 		if m.conn == nil {
-			conn, err := m.cfg.opener(ctx, m.addr, m.cfg.connOpts...)
+			connOpts := []conn.Option{
+				conn.WithConnectTimeout(m.cfg.heartbeatTimeout),
+				conn.WithReadTimeout(m.cfg.heartbeatTimeout),
+			}
+			connOpts = append(connOpts, m.cfg.connOpts...)
+			conn, err := m.cfg.opener(ctx, m.addr, connOpts...)
 			if err != nil {
 				savedErr = err
 				if conn != nil {
@@ -227,19 +235,19 @@ func (m *Monitor) heartbeat() *model.Server {
 		}
 		delay := time.Since(now)
 
-		d = model.BuildServer(m.addr, isMasterResult, buildInfoResult)
-		d.SetAverageRTT(m.updateAverageRTT(delay))
-		d.HeartbeatInterval = m.cfg.heartbeatInterval
+		s = model.BuildServer(m.addr, isMasterResult, buildInfoResult)
+		s.SetAverageRTT(m.updateAverageRTT(delay))
+		s.HeartbeatInterval = m.cfg.heartbeatInterval
 	}
 
-	if d == nil {
-		d = &model.Server{
+	if s == nil {
+		s = &model.Server{
 			Addr:      m.addr,
 			LastError: savedErr,
 		}
 	}
 
-	return d
+	return s
 }
 
 // updateAverageRTT calcuates the averageRTT of the server

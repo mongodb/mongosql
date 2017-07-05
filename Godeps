@@ -11,7 +11,7 @@ github.com/mongodb/mongo-tools			3cc9a07766fb55de63e81a13e72f3c5a7c07f477
 github.com/shopspring/decimal	d6f52241f332c63811249bd79a522406bea1a7c9
 github.com/smartystreets/assertions				edb6e295a22c57a2aa353b2f0729b6eff9f9f4b7
 github.com/smartystreets/goconvey				1.6.2
-github.com/spacemonkeygo/openssl 6b1c8e0d11cbec09b111e263e28a5a089a06fba1 github.com/10gen/openssl
+github.com/spacemonkeygo/openssl 329203126cd93f5ee58cefd4f51d8031550b08a4 github.com/rychipman/openssl
 github.com/spacemonkeygo/spacelog ae95ccc1eb0c8ce2496c43177430efd61930f7e4
 golang.org/x/crypto	a7ead6ddf06233883deca151dffaef2effbf498f	github.com/golang/crypto
 golang.org/x/sys    9ccfe848b9db8435a24c424abbc07a921adf1df5    github.com/golang/sys

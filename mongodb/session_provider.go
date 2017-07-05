@@ -209,8 +209,9 @@ func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
 	session.provider = conn.CappedProvider(nConns, session.pool.Get)
 
 	selectedServer := &ops.SelectedServer{
-		Server:   session,
-		ReadPref: sp.rp,
+		Server:      session,
+		ClusterKind: sp.c.Model().Kind,
+		ReadPref:    sp.rp,
 	}
 
 	session.selectedServer = selectedServer

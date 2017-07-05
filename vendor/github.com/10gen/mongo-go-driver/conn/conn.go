@@ -27,9 +27,17 @@ type Opener func(context.Context, model.Addr, ...Option) (Connection, error)
 // New opens a connection to a server.
 func New(ctx context.Context, addr model.Addr, opts ...Option) (Connection, error) {
 
-	cfg := newConfig(opts...)
+	cfg, err := newConfig(opts...)
+	if err != nil {
+		return nil, err
+	}
 
-	netConn, err := cfg.dialer(ctx, addr.Network(), addr.String())
+	dialer := net.Dialer{
+		Timeout:   cfg.connectTimeout,
+		KeepAlive: cfg.keepAlive,
+	}
+
+	netConn, err := cfg.dialer(ctx, &dialer, addr.Network(), addr.String())
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +62,8 @@ func New(ctx context.Context, addr model.Addr, opts ...Option) (Connection, erro
 		rw:               netConn,
 		lifetimeDeadline: lifetimeDeadline,
 		idleTimeout:      cfg.idleTimeout,
+		readTimeout:      cfg.readTimeout,
+		writeTimeout:     cfg.writeTimeout,
 	}
 
 	c.bumpIdleDeadline()
@@ -119,6 +129,8 @@ type connImpl struct {
 	idleTimeout      time.Duration
 	idleDeadline     time.Time
 	lifetimeDeadline time.Time
+	readTimeout      time.Duration
+	writeTimeout     time.Duration
 }
 
 func (c *connImpl) Alive() bool {
@@ -174,10 +186,17 @@ func (c *connImpl) Read(ctx context.Context, responseTo int32) (msg.Response, er
 	default:
 	}
 
-	deadline, ok := ctx.Deadline()
-	if !ok {
-		deadline = time.Time{}
+	// first set deadline based on the read timeout.
+	deadline := time.Time{}
+	if c.readTimeout != 0 {
+		deadline = time.Now().Add(c.readTimeout)
 	}
+
+	// second, if the ctxDeadline is before the read timeout's deadline, then use it instead.
+	if ctxDeadline, ok := ctx.Deadline(); ok && (deadline.IsZero() || ctxDeadline.Before(deadline)) {
+		deadline = ctxDeadline
+	}
+
 	if err := c.rw.SetReadDeadline(deadline); err != nil {
 		return nil, c.wrapError(err, "failed to set read deadline")
 	}
@@ -223,10 +242,17 @@ func (c *connImpl) Write(ctx context.Context, requests ...msg.Request) error {
 	default:
 	}
 
-	deadline, ok := ctx.Deadline()
-	if !ok {
-		deadline = time.Time{}
+	// first set deadline based on the write timeout.
+	deadline := time.Time{}
+	if c.writeTimeout != 0 {
+		deadline = time.Now().Add(c.writeTimeout)
 	}
+
+	// second, if the ctxDeadline is before the read timeout's deadline, then use it instead.
+	if ctxDeadline, ok := ctx.Deadline(); ok && (deadline.IsZero() || ctxDeadline.Before(deadline)) {
+		deadline = ctxDeadline
+	}
+
 	if err := c.rw.SetWriteDeadline(deadline); err != nil {
 		return c.wrapError(err, "failed to set write deadline")
 	}
@@ -332,12 +358,10 @@ func createClientDoc(appName string) bson.M {
 			"version": internal.Version,
 		},
 		"os": bson.M{
-			"type":         "unknown",
-			"name":         runtime.GOOS,
+			"type":         runtime.GOOS,
 			"architecture": runtime.GOARCH,
-			"version":      "unknown",
 		},
-		"platform": nil,
+		"platform": runtime.Version(),
 	}
 	if appName != "" {
 		clientDoc["application"] = bson.M{"name": appName}

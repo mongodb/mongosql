@@ -16,7 +16,7 @@ var (
 )
 
 // SqldDialer creates a mongosqld dialer.
-func SqldDialer(cfg *config.Config) (func(ctx context.Context, network, address string) (net.Conn, error), error) {
+func SqldDialer(cfg *config.Config) (func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error), error) {
 	sslCtx, err := createSqldSSLContext(cfg, true)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func Handshake(conn net.Conn, cfg *config.Config) (net.Conn, error) {
 }
 
 // DrdlDialer creates a mongodrdl dialer.
-func DrdlDialer(opts options.DrdlOptions) (func(ctx context.Context, network, address string) (net.Conn, error), error) {
+func DrdlDialer(opts options.DrdlOptions) (func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error), error) {
 	sslCtx, err := createDrdlSSLContext(opts)
 	if err != nil {
 		return nil, err
@@ -65,15 +65,15 @@ func DrdlDialer(opts options.DrdlOptions) (func(ctx context.Context, network, ad
 	return dialer(sslCtx, flags), nil
 }
 
-func dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) func(ctx context.Context, network, address string) (net.Conn, error) {
-	return func(ctx context.Context, network, address string) (net.Conn, error) {
+func dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error) {
+	return func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error) {
 		var c net.Conn
 		var err error
 		ch := make(chan struct{})
 		errChan := make(chan error, 1)
 
 		util.PanicSafeGo(func() {
-			c, err = openssl.Dial(network, address, sslCtx, flags)
+			c, err = openssl.DialWithDialer(dialer, network, address, sslCtx, flags)
 			ch <- struct{}{}
 		}, func(err interface{}) {
 			errChan <- fmt.Errorf("openssl dial error: %v", err)

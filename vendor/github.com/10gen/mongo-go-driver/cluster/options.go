@@ -7,18 +7,17 @@ import (
 	"github.com/10gen/mongo-go-driver/server"
 )
 
-func newConfig(opts ...Option) *config {
+func newConfig(opts ...Option) (*config, error) {
 	cfg := &config{
 		seedList: []string{"localhost:27017"},
 	}
 
-	cfg.apply(opts...)
-
-	return cfg
+	err := cfg.apply(opts...)
+	return cfg, err
 }
 
 // Option configures a cluster.
-type Option func(*config)
+type Option func(*config) error
 
 type config struct {
 	mode           MonitorMode
@@ -27,7 +26,7 @@ type config struct {
 	serverOpts     []server.Option
 }
 
-func (c *config) reconfig(opts ...Option) *config {
+func (c *config) reconfig(opts ...Option) (*config, error) {
 	cfg := &config{
 		mode:           c.mode,
 		replicaSetName: c.replicaSetName,
@@ -35,21 +34,25 @@ func (c *config) reconfig(opts ...Option) *config {
 		serverOpts:     c.serverOpts,
 	}
 
-	cfg.apply(opts...)
-	return cfg
+	err := cfg.apply(opts...)
+	return cfg, err
 }
 
-func (c *config) apply(opts ...Option) {
+func (c *config) apply(opts ...Option) error {
 	for _, opt := range opts {
-		opt(c)
+		err := opt(c)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // WithConnString configures the cluster using the connection
 // string.
 func WithConnString(cs connstring.ConnString) Option {
-	return func(c *config) {
-
+	return func(c *config) error {
 		var connOpts []conn.Option
 
 		if cs.AppName != "" {
@@ -62,6 +65,10 @@ func WithConnString(cs connstring.ConnString) Option {
 		}
 
 		c.seedList = cs.Hosts
+
+		if cs.ConnectTimeout > 0 {
+			connOpts = append(connOpts, conn.WithConnectTimeout(cs.ConnectTimeout))
+		}
 
 		if cs.HeartbeatInterval > 0 {
 			c.serverOpts = append(c.serverOpts, server.WithHeartbeatInterval(cs.HeartbeatInterval))
@@ -98,7 +105,7 @@ func WithConnString(cs connstring.ConnString) Option {
 
 			if cs.AuthSource != "" {
 				cred.Source = cs.AuthSource
-			} else if cs.Database != "" {
+			} else {
 				switch cs.AuthMechanism {
 				case auth.GSSAPI, auth.PLAIN:
 					cred.Source = "$external"
@@ -107,19 +114,24 @@ func WithConnString(cs connstring.ConnString) Option {
 				}
 			}
 
-			if authenticator, err := auth.CreateAuthenticator(cs.AuthMechanism, cred); err == nil {
-				c.serverOpts = append(
-					c.serverOpts,
-					server.WithWrappedConnectionOpener(func(current conn.Opener) conn.Opener {
-						return auth.Opener(current, authenticator)
-					}),
-				)
+			authenticator, err := auth.CreateAuthenticator(cs.AuthMechanism, cred)
+			if err != nil {
+				return err
 			}
+
+			c.serverOpts = append(
+				c.serverOpts,
+				server.WithWrappedConnectionOpener(func(current conn.Opener) conn.Opener {
+					return auth.Opener(current, authenticator)
+				}),
+			)
 		}
 
 		if len(connOpts) > 0 {
 			c.serverOpts = append(c.serverOpts, server.WithMoreConnectionOptions(connOpts...))
 		}
+
+		return nil
 	}
 }
 
@@ -127,8 +139,9 @@ func WithConnString(cs connstring.ConnString) Option {
 // This option will be ignored when the cluster is created with a
 // pre-existing monitor.
 func WithMode(mode MonitorMode) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.mode = mode
+		return nil
 	}
 }
 
@@ -136,8 +149,9 @@ func WithMode(mode MonitorMode) Option {
 // This option will be ignored when the cluster is created with a
 // pre-existing monitor.
 func WithReplicaSetName(name string) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.replicaSetName = name
+		return nil
 	}
 }
 
@@ -145,8 +159,9 @@ func WithReplicaSetName(name string) Option {
 // This option will be ignored when the cluster is created with a
 // pre-existing monitor.
 func WithSeedList(seedList ...string) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.seedList = seedList
+		return nil
 	}
 }
 
@@ -154,8 +169,9 @@ func WithSeedList(seedList ...string) Option {
 // when a new server needs to get created. The options provided
 // overwrite all previously configured options.
 func WithServerOptions(opts ...server.Option) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.serverOpts = opts
+		return nil
 	}
 }
 
@@ -164,7 +180,8 @@ func WithServerOptions(opts ...server.Option) Option {
 // appended to any current options and may override previously
 // configured options.
 func WithMoreServerOptions(opts ...server.Option) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.serverOpts = append(c.serverOpts, opts...)
+		return nil
 	}
 }
