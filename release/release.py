@@ -23,10 +23,10 @@ import requests
 EVG_BASE = "https://evergreen.mongodb.com/rest/v1"
 S3_BUCKET = "info-mongodb-com"
 S3_PATH = "mongodb-bi/v2"
-CURRENT_JSON = "current.json"
-FULL_JSON = "full.json"
-MAIN_FILE = "mongodb-bi-downloads.json"
-RELEASES_FILE = "mongodb-bi-releases.json"
+CURRENT_RELEASES_JSON = "current.jsonX"
+ARCHIVED_RELEASES_JSON = "full.jsonX"
+MAIN_DOWNLOADS_JSON = "mongodb-bi-downloads.jsonX"
+RELEASES_JSON = "mongodb-bi-releases.jsonX"
 UNITS = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']
 USAGE = """
 BI Connector Release tool 0.1
@@ -195,102 +195,116 @@ class BIReleaser(object):
         """
 
         # read in main downloads template file
-        with open(MAIN_FILE, "r") as file_handle:
-            contents = file_handle.read()
+        with open(MAIN_DOWNLOADS_JSON, "r") as file_handle:
+            new_release_version = file_handle.read()
 
-        contents = re.sub("S3_PATH", S3_PATH, contents)
-        contents = re.sub("S3_BUCKET", S3_BUCKET, contents)
-        contents = re.sub("RELEASE_VERSION", self.__release_version, contents)
+        new_release_version = re.sub("S3_PATH", S3_PATH, new_release_version)
+        new_release_version = re.sub("S3_BUCKET", S3_BUCKET, new_release_version)
+        new_release_version = re.sub("RELEASE_VERSION", self.__release_version, new_release_version)
 
         for url, entry in self.__urls.items():
-            contents = re.sub(url.upper(), os.path.basename(entry), contents)
+            new_release_version = re.sub(url.upper(), os.path.basename(entry), new_release_version)
 
-        new_file = os.path.join(self.__temp_dir, MAIN_FILE)
-        with open(new_file, "w") as file_handle:
-            file_handle.write(contents)
+        # download MAIN_DOWNLOADS_JSON file
+        key_name = os.path.join(os.path.dirname(S3_PATH), MAIN_DOWNLOADS_JSON)
+        key = self.__bucket.get_key(key_name)
+        main_downloads_page = json.loads(key.get_contents_as_string())
 
-        print("Updating main downloads page for BI Connector")
-
-        # make a backup first
-        key_name = os.path.join(os.path.dirname(S3_PATH), MAIN_FILE)
-        self.__bucket.copy_key(key_name+".bk", S3_BUCKET, key_name)
-        self.__bucket.new_key(key_name).set_contents_from_filename(new_file)
-
-        # download current release page JSON file
-        key = self.__bucket.get_key(
-            os.path.join(os.path.dirname(S3_PATH), CURRENT_JSON))
-        current = json.loads(key.get_contents_as_string())
-        new_component = self.__release_version.split(".")
-        is_ga = len(new_component) == 3 and new_component[2] == "0"
+        release_version_components = self.__release_version.split(".")
+        is_ga = len(release_version_components) == 3 and release_version_components[2] == "0"
 
         # the main downloads page should have, at most, 2 versions
         # available for download - 1 only, if it's GA
         if is_ga:
             # for GA, only the stable version should be available for
             # download on the main page
-            current["versions"] = []
+            main_downloads_page["versions"] = []
         else:
             delete_index = -1
-            # find and remove older version from current release page
-            for i, version in enumerate(current["versions"]):
-                components = version["version"].split(".")
-                if int(components[1]) == int(new_component[1]):
+            # find and remove older version from main release page
+            for i, version in enumerate(main_downloads_page["versions"]):
+                current_version_components = version["version"].split(".")
+                if int(current_version_components[1]) == int(release_version_components[1]):
                     delete_index = i
                     break
 
             # delete any older version found
             if delete_index != -1:
-                del current["versions"][delete_index]
+                del main_downloads_page["versions"][delete_index]
+
+        # add new version to MAIN_DOWNLOADS_JSON
+        main_downloads_page["versions"].append(json.loads(new_release_version))
+        self.update_json_file(MAIN_DOWNLOADS_JSON, main_downloads_page)
+
+        # download CURRENT_RELEASES_JSON file
+        key_name = os.path.join(os.path.dirname(S3_PATH), CURRENT_RELEASES_JSON)
+        key = self.__bucket.get_key(key_name)
+        current_releases_page = json.loads(key.get_contents_as_string())
+
+        delete_index = -1
+
+        # find and remove older version from current release page
+        for i, version in enumerate(current_releases_page["versions"]):
+            current_version_components = version["version"].split(".")
+            if int(current_version_components[0]) == int(release_version_components[0]) and \
+                int(current_version_components[1]) == int(release_version_components[1]):
+                delete_index = i
+                break
+
+        # delete any older version found
+        if delete_index != -1:
+            del current_releases_page["versions"][delete_index]
 
         # read in templated release information
-        with open(os.path.join(self.__temp_dir, RELEASES_FILE), "r") as handle:
-            new_release = json.loads("".join(handle.readlines()))
+        with open(os.path.join(self.__temp_dir, RELEASES_JSON), "r") as handle:
+            new_release_version = json.loads("".join(handle.readlines()))
 
         # add new current release information
-        current["versions"].append(new_release)
-        self.update_json_file(CURRENT_JSON, current)
+        current_releases_page["versions"].append(new_release_version)
+        self.update_json_file(CURRENT_RELEASES_JSON, current_releases_page)
 
     def upload_full_artifacts(self):
-        """Updates the full.json file at at:
+        """Updates the ARCHIVED_RELEASES_JSON file at:
         https://info-mongodb-com.s3.amazonaws.com/mongodb-bi/full.json
         """
 
         # download full release page JSON file
-        key = self.__bucket.get_key(os.path.join(
-            os.path.dirname(S3_PATH), FULL_JSON))
-        full = json.loads(key.get_contents_as_string())
-        new_component = []
+        key_name = os.path.join(os.path.dirname(S3_PATH), ARCHIVED_RELEASES_JSON)
+        key = self.__bucket.get_key(key_name)
+        archived_downloads_page = json.loads(key.get_contents_as_string())
+
+        release_version_components = []
         for i in self.__release_version.split("."):
             if i.isdigit():
-                new_component.append(ast.literal_eval(i))
+                release_version_components.append(ast.literal_eval(i))
             else:
-                new_component.append(i)
+                release_version_components.append(i)
 
         # find and remove older version from full release page
         duplicates = []
-        for version in full["versions"]:
+        for version in archived_downloads_page["versions"]:
             components = []
             for i in version["version"].split("."):
                 if i.isdigit():
                     components.append(ast.literal_eval(i))
                 else:
                     components.append(i)
-            if int(components[0]) == int(new_component[0]) and \
-                int(components[1]) == int(new_component[1]):
+            if int(components[0]) == int(release_version_components[0]) and \
+                int(components[1]) == int(release_version_components[1]):
                 version["current"] = False
-                if components[2] == new_component[2]:
+                if components[2] == release_version_components[2]:
                     duplicates.append(version)
 
         for entry in duplicates:
-            full["versions"].remove(entry)
+            archived_downloads_page["versions"].remove(entry)
 
         # read in templated release information
-        with open(os.path.join(self.__temp_dir, RELEASES_FILE), "r") as handle:
+        with open(os.path.join(self.__temp_dir, RELEASES_JSON), "r") as handle:
             new_release = json.loads("".join(handle.readlines()))
 
-        # add new full release information
-        full["versions"].append(new_release)
-        self.update_json_file(FULL_JSON, full)
+        # add new archive release information
+        archived_downloads_page["versions"].append(new_release)
+        self.update_json_file(ARCHIVED_RELEASES_JSON, archived_downloads_page)
 
     def update_json_file(self, name, data):
         """Updates the named S3 JSON file with data.
@@ -354,9 +368,7 @@ class BIReleaser(object):
 
         self.__release_version = version
 
-        if "-beta" in tmp:
-            self.__dev_release = True
-        if "-rc" in tmp:
+        if "-rc" in version:
             self.__release_candidate = True
 
     def verify_website_links(self):
@@ -396,7 +408,7 @@ class BIReleaser(object):
         notes_anchor = self.__release_version.replace(".", "-", -1)
 
         # read in current release template
-        with open(RELEASES_FILE, "r") as file_handle:
+        with open(RELEASES_JSON, "r") as file_handle:
             contents = file_handle.read()
 
         # update new release information in template file
@@ -413,9 +425,9 @@ class BIReleaser(object):
         for url, entry in self.__urls.items():
             contents = re.sub(url.upper(), os.path.basename(entry), contents)
 
-        new_releases_file = os.path.join(self.__temp_dir, RELEASES_FILE)
+        new_releases_json = os.path.join(self.__temp_dir, RELEASES_JSON)
 
-        with open(new_releases_file, "w") as file_handle:
+        with open(new_releases_json, "w") as file_handle:
             file_handle.write(contents)
 
         data = json.loads(contents)
