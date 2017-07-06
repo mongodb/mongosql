@@ -65,7 +65,7 @@ buildvariants:
   - "!.oneoff-task !dist"
 
 - name: linux-64-amazon-ami-release
-  batchtime: 2147483647 # max signed int32 (2^31 - 1)
+  batchtime: 1438560 # 999 days
   display_name: ~ Release Manager
   run_on:
   - linux-64-amzn-benchmark
