@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/binary"
@@ -47,7 +46,7 @@ type conn struct {
 	cancel context.CancelFunc
 
 	conn     net.Conn
-	reader   *bufio.Reader
+	reader   io.Reader
 	writer   io.Writer
 	sequence uint8
 
@@ -88,7 +87,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 		ctx:           ctx,
 		cancel:        cancel,
 		conn:          c,
-		reader:        bufio.NewReaderSize(c, 1024),
+		reader:        c,
 		writer:        c,
 		closer:        sync.NewCond(&sync.Mutex{}),
 		closed:        0,
@@ -698,7 +697,7 @@ func (c *conn) useTLS() error {
 	}
 
 	c.conn = tlsc
-	c.reader = bufio.NewReaderSize(c.conn, 1024)
+	c.reader = c.conn
 	c.writer = c.conn
 
 	return nil
