@@ -87,7 +87,7 @@ func formatField(variables *variable.Container, collationID uint16, field *Field
 		field.ColumnLength = 67 // precision plus 2 (decimal point and length)
 	case evaluator.SQLBool:
 		field.Charset = collationID
-		field.Type = MYSQL_TYPE_BIT
+		field.Type = MYSQL_TYPE_TINY
 	case evaluator.SQLUint32:
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_LONGLONG
