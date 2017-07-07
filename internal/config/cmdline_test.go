@@ -16,6 +16,7 @@ func TestParseArgs_Valid(t *testing.T) {
 		"--addr", "host:3306",
 		"--defaultAuthMechanism", "GSSAPI",
 		"--defaultAuthSource", "$external",
+		"--sslMode", "requireSSL",
 		"--sslAllowInvalidCertificates",
 		"--sslCAFile", "cafile",
 		"--sslPEMKeyFile", "pemkeyfile",
@@ -78,6 +79,7 @@ func TestParseArgs_Valid(t *testing.T) {
 		testString(t, cfg.Net.UnixDomainSocket.FilePermissions, "0600", "cfg.Net.UnixDomainSocket.FilePermissions")
 	}
 
+	testString(t, cfg.Net.SSL.Mode, "requireSSL", "cfg.Net.SSL.Mode")
 	testBool(t, cfg.Net.SSL.AllowInvalidCertificates, true, "cfg.Net.SSL.AllowInvalidCertificates")
 	testString(t, cfg.Net.SSL.PEMKeyFile, "pemkeyfile", "cfg.Net.SSL.PEMKeyFile")
 	testString(t, cfg.Net.SSL.PEMKeyPassword, "pemkeypassword", "cfg.Net.SSL.PEMKeyPassword")

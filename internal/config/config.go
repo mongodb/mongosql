@@ -46,7 +46,7 @@ func Load(args []string) (*Config, error) {
 		cfg = Default()
 		err = ParseYaml(cfg, bytes.NewReader(yaml))
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse config file: %s", err)
+			return nil, fmt.Errorf("unable to parse configuration file: %s", err)
 		}
 		err = ParseArgs(cfg, args)
 		if err != nil {
@@ -71,6 +71,8 @@ func Default() *Config {
 
 	cfg.Net.BindIP = []string{"127.0.0.1"}
 	cfg.Net.Port = 3307
+
+	cfg.Net.SSL.Mode = "disabled"
 
 	if !isWindows {
 		cfg.Net.UnixDomainSocket.Enabled = true
@@ -105,11 +107,28 @@ func ToJSON(cfg *Config) string {
 
 // Validate ensure that a config is valid.
 func Validate(cfg *Config) error {
+
+	switch cfg.Net.SSL.Mode {
+	case "disabled":
+		if cfg.Net.SSL.AllowInvalidCertificates ||
+			cfg.Net.SSL.PEMKeyFile != "" ||
+			cfg.Net.SSL.PEMKeyPassword != "" ||
+			cfg.Net.SSL.CAFile != "" {
+			return fmt.Errorf("when specifying SSL options, SSL must be enabled with --sslMode or in a configuration file at 'net.ssl.mode'")
+		}
+	case "allowSSL", "requireSSL":
+		if cfg.Net.SSL.PEMKeyFile == "" {
+			return fmt.Errorf("need sslPEMKeyFile when SSL is enabled")
+		}
+	default:
+		return fmt.Errorf("invalid sslMode %s", cfg.Net.SSL.Mode)
+	}
+
 	if !cfg.MongoDB.Net.SSL.Enabled && (cfg.MongoDB.Net.SSL.CAFile != "" ||
 		cfg.MongoDB.Net.SSL.CRLFile != "" ||
 		cfg.MongoDB.Net.SSL.PEMKeyFile != "" ||
 		cfg.MongoDB.Net.SSL.PEMKeyPassword != "") {
-		return fmt.Errorf("when specifying SSL options, SSL must be enabled with --mongo-ssl or in a config file at 'mongodb.net.ssl.enabled'")
+		return fmt.Errorf("when specifying MongoDB SSL options, SSL must be enabled with --mongo-ssl or in a configuration file at 'mongodb.net.ssl.enabled'")
 	}
 
 	if cfg.MongoDB.Net.SSL.FIPSMode && isDarwin {
@@ -213,6 +232,7 @@ type NetUnixDomainSocket struct {
 
 // NetSSL holds configuration for SSL with a client.
 type NetSSL struct {
+	Mode                     string
 	AllowInvalidCertificates bool
 	PEMKeyFile               string `config:"PEMKeyFile"`
 	PEMKeyPassword           string `config:"PEMKeyPassword,protected"`

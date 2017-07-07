@@ -106,6 +106,7 @@ type clientConnectionOptions struct {
 	DefaultAuthMechanism *string `long:"defaultAuthMechanism" description:"the default authentication mechanism (default is SCRAM-SHA-1)"`
 	DefaultAuthSource    *string `long:"defaultAuthSource" description:"the default authentication source (default is admin)"`
 	Addr                 *string `long:"addr" description:"host address to listen on"`
+	SSLMode              *string `long:"sslMode" description:"set the SSL operation mode" choice:"disabled" choice:"allowSSL" choice:"requireSSL"`
 	SSLAllowInvalidCerts *bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
 	SSLCAFile            *string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
 	SSLPEMKeyFile        *string `long:"sslPEMKeyFile" description:"path to a file containing the certificate and private key establishing a connection with a client"`
@@ -144,6 +145,9 @@ func (o *clientConnectionOptions) mapToConfig(cfg *Config) error {
 
 		cfg.Net.BindIP = []string{host}
 		cfg.Net.Port = port
+	}
+	if !isEmptyOrUnset(o.SSLMode) {
+		cfg.Net.SSL.Mode = *o.SSLMode
 	}
 	if o.SSLAllowInvalidCerts != nil {
 		cfg.Net.SSL.AllowInvalidCertificates = *o.SSLAllowInvalidCerts

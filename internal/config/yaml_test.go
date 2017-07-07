@@ -38,6 +38,7 @@ net:
     pathPrefix: "/var"
     filePermissions: "0600"
   ssl:
+    mode: requireSSL
     allowInvalidCertificates: true
     PEMKeyFile: "pemkeyfile"
     PEMKeyPassword: "pemkeypassword"
@@ -99,6 +100,7 @@ processManagement:
 		testString(t, cfg.Net.UnixDomainSocket.FilePermissions, "0600", "cfg.Net.UnixDomainSocket.FilePermissions")
 	}
 
+	testString(t, cfg.Net.SSL.Mode, "requireSSL", "cfg.Net.SSL.Mode")
 	testBool(t, cfg.Net.SSL.AllowInvalidCertificates, true, "cfg.Net.SSL.AllowInvalidCertificates")
 	testString(t, cfg.Net.SSL.PEMKeyFile, "pemkeyfile", "cfg.Net.SSL.PEMKeyFile")
 	testString(t, cfg.Net.SSL.PEMKeyPassword, "pemkeypassword", "cfg.Net.SSL.PEMKeyPassword")

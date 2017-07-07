@@ -32,6 +32,7 @@ func TestDefault(t *testing.T) {
 		testString(t, cfg.Net.UnixDomainSocket.FilePermissions, "", "cfg.Net.UnixDomainSocket.FilePermissions")
 	}
 
+	testString(t, cfg.Net.SSL.Mode, "disabled", "cfg.Net.SSL.Mode")
 	testBool(t, cfg.Net.SSL.AllowInvalidCertificates, false, "cfg.Net.SSL.AllowInvalidCertificates")
 	testString(t, cfg.Net.SSL.PEMKeyFile, "", "cfg.Net.SSL.PEMKeyFile")
 	testString(t, cfg.Net.SSL.PEMKeyPassword, "", "cfg.Net.SSL.PEMKeyPassword")
@@ -175,7 +176,55 @@ func TestValidate_SSL_options_specified_but_disabled(t *testing.T) {
 		t.Fatalf("expected an error, but got none", err)
 	}
 
-	expected := "when specifying SSL options, SSL must be enabled with --mongo-ssl or in a config file at 'mongodb.net.ssl.enabled'"
+	expected := "when specifying MongoDB SSL options, SSL must be enabled with --mongo-ssl or in a configuration file at 'mongodb.net.ssl.enabled'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_sqlproxy_SSL_options_specified_but_disabled(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Path = "something"
+	cfg.Net.SSL.CAFile = "lkasdf"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none", err)
+	}
+
+	expected := "when specifying SSL options, SSL must be enabled with --sslMode or in a configuration file at 'net.ssl.mode'"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_sqlproxy_SSL_options_PEMKeyFile(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Path = "something"
+	cfg.Net.SSL.Mode = "allowSSL"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none", err)
+	}
+
+	expected := "need sslPEMKeyFile when SSL is enabled"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_sqlproxy_SSL_options_bad_sslMode(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Path = "something"
+	cfg.Net.SSL.Mode = "abcde"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none", err)
+	}
+
+	expected := "invalid sslMode abcde"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}

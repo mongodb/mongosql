@@ -121,7 +121,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 
 	newConn.logger = newConn.Logger(log.NetworkComponent)
 
-	if len(s.cfg.Net.SSL.PEMKeyFile) > 0 {
+	if s.cfg.Net.SSL.Mode != "disabled" {
 		newConn.capability |= CLIENT_SSL
 	}
 	return newConn, nil
@@ -387,7 +387,26 @@ func (c *conn) readHandshakeResponse() error {
 
 	readHeader()
 
-	if (c.capability & CLIENT_SSL) != 0 {
+	clientSSL := c.capability&CLIENT_SSL != 0
+	switch c.server.cfg.Net.SSL.Mode {
+	case "disabled":
+		// return an error if client is using SSL
+		if clientSSL {
+			// we shouldn't ever actually reach this, because the
+			// connection should fail during capability negotiation
+			return fmt.Errorf("SSL handshake received but server is started without SSL")
+		}
+	case "allowSSL":
+		// negotiate SSL if the client is using it
+		// otherwise, proceed without ssl
+	case "requireSSL":
+		// return an error if client not using SSL
+		if !clientSSL {
+			return fmt.Errorf("This server is configured to only allow SSL connections")
+		}
+	}
+
+	if clientSSL {
 		c.logger.Logf(log.DebugLow, "negotiating ssl")
 		if err := c.useTLS(); err != nil {
 			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "ssl configuration error: %v", err)
