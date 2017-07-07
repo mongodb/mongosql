@@ -20,12 +20,11 @@ type Cursor interface {
 // Session holds information used to create a connection
 // to MongoDB.
 type Session struct {
-	ctx      context.Context
-	cluster  *cluster.Cluster
-	server   cluster.Server
-	provider conn.Provider
-	pool     conn.Pool
-	count    int
+	ctx     context.Context
+	cluster *cluster.Cluster
+	server  cluster.Server
+	pool    *sessionConnPool
+	count   int
 
 	err            error
 	authSource     string
@@ -41,7 +40,11 @@ func (s *Session) Close() error {
 
 // Connection gets a connection to use.
 func (s *Session) Connection(ctx context.Context) (conn.Connection, error) {
-	return s.provider(ctx)
+	c, err := s.pool.Get(ctx)
+	if err == conn.ErrPoolClosed {
+		s.err = err
+	}
+	return c, err
 }
 
 // ConnLen is the number of connections that are part of a session.
@@ -56,7 +59,11 @@ func (s *Session) Context() context.Context {
 
 // Err returns a session level error that may have occurred.
 func (s *Session) Err() error {
-	return s.err
+	if s.err != nil {
+		return s.err
+	}
+
+	return s.pool.Err()
 }
 
 // Model returns the description of the server
@@ -74,22 +81,31 @@ func (s *Session) SetContext(ctx context.Context) {
 // version requirements for the BI Connector.
 func (s *Session) Validate() error {
 
-	if s.err != nil {
+	err := s.Err()
+	if err != nil {
+		return err
+	}
+
+	mdl := s.Model()
+
+	if mdl.LastError != nil {
+		s.err = mdl.LastError
+		return mdl.LastError
+	}
+
+	if !mdl.Version.AtLeast(3, 2, 0) {
+		s.err = fmt.Errorf("server version is %v but version >= 3.2.0 required", mdl.Version.Desc)
 		return s.err
 	}
 
-	version := s.Model().Version
-	if !version.AtLeast(3, 2, 0) {
-		return fmt.Errorf("server version is %v but version >= 3.2.0 required", version.Desc)
-	}
-
 	selector := readpref.Selector(s.selectedServer.ReadPref)
-	result, err := selector(s.cluster.Model(), []*model.Server{s.server.Model()})
+	result, err := selector(s.cluster.Model(), []*model.Server{mdl})
 	if err != nil || len(result) == 0 {
-		return fmt.Errorf("current session does not satisfy read preference")
+		s.err = fmt.Errorf("current session does not satisfy read preference")
+		return s.err
 	}
 
-	return nil
+	return s.Err()
 }
 
 //
@@ -156,14 +172,16 @@ func (s *Session) Login(a SessionAuthenticator) error {
 	for i := 0; i < s.count; i++ {
 		c, err := s.Connection(s.ctx)
 		if err != nil {
-			return err
+			s.err = err
+			return s.err
 		}
 		defer c.Close()
 
 		conns = append(conns, c)
 	}
 
-	return a.Auth(s.ctx, conns)
+	s.err = a.Auth(s.ctx, conns)
+	return s.err
 }
 
 // Run executes an arbitrary command against the given database.

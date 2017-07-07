@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync/atomic"
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
-
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/cluster"
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/connstring"
@@ -173,40 +171,32 @@ func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
 		count:   nConns,
 	}
 
-	var numCreated int32
+	// Create a provider around server.Connection in order to support
+	// unauthenticating the connections.
 	provider := func(ctx context.Context) (conn.Connection, error) {
-		// we can only create up to nConns due to authentication reasons.
-		// Therefore, we are going to cap this and refuse to create any more.
-		// This should cause us to error the mysql connection.
-		new := atomic.AddInt32(&numCreated, 1)
-		if new <= nConns {
-			c, err := server.Connection(ctx)
-			if err != nil {
-				return nil, err
-			}
-
-			if sp.auth {
-				// we need to ensure we logout any connections that were
-				// authenticated before returning them to the underlying pool,
-				// otherwise we'll get privilege escalation.
-				c = &autoLogoutConnection{
-					s:          session,
-					Connection: c,
-				}
-			}
-
-			return c, nil
+		c, err := server.Connection(ctx)
+		if err != nil {
+			return nil, err
 		}
 
-		session.err = fmt.Errorf("not enough mongodb connections available for session")
-		return nil, session.err
+		if sp.auth {
+			// we need to ensure we logout any connections that were
+			// authenticated before returning them to the underlying pool,
+			// otherwise we'll get privilege escalation.
+			c = &autoLogoutConnection{
+				s:          session,
+				Connection: c,
+			}
+		}
+
+		return c, nil
 	}
 
 	// The pool keeps the connections checked out of the underlying pool until
 	// the session is closed.
-	session.pool = conn.NewPool(nConns, provider)
-	// This ensures that only nConns connections are allowed per session.
-	session.provider = conn.CappedProvider(nConns, session.pool.Get)
+	if session.pool, err = newSessionConnPool(ctx, provider, nConns); err != nil {
+		return nil, err
+	}
 
 	selectedServer := &ops.SelectedServer{
 		Server:      session,
