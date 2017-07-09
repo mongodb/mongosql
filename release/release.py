@@ -23,10 +23,10 @@ import requests
 EVG_BASE = "https://evergreen.mongodb.com/rest/v1"
 S3_BUCKET = "info-mongodb-com"
 S3_PATH = "mongodb-bi/v2"
-CURRENT_RELEASES_JSON = "current.jsonX"
-ARCHIVED_RELEASES_JSON = "full.jsonX"
-MAIN_DOWNLOADS_JSON = "mongodb-bi-downloads.jsonX"
-RELEASES_JSON = "mongodb-bi-releases.jsonX"
+CURRENT_RELEASES_JSON = "current.json"
+ARCHIVED_RELEASES_JSON = "full.json"
+MAIN_DOWNLOADS_JSON = "mongodb-bi-downloads.json"
+RELEASES_JSON = "mongodb-bi-releases.json"
 UNITS = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']
 USAGE = """
 BI Connector Release tool 0.1
