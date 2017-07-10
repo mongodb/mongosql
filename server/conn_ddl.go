@@ -7,15 +7,10 @@ import (
 	"github.com/10gen/sqlproxy/parser"
 )
 
-func (c *conn) handleDDL(ddl *parser.DDL) error {
-	switch ddl.Action {
-	case "drop":
-		tableName := string(ddl.Table)
-		if strings.Index(tableName, "#Tableau") == 0 {
-			return c.writeOK(nil)
-		}
-		return mysqlerrors.Unknownf("cannot drop table (%s)", tableName)
-	default:
-		return mysqlerrors.Unknownf("unsupported ddl operator (%s)", ddl.Action)
+func (c *conn) handleDropTable(ddl *parser.DropTable) error {
+	tableName := string(ddl.Name.Name)
+	if strings.HasPrefix(tableName, "#Tableau") {
+		return c.writeOK(nil)
 	}
+	return mysqlerrors.Unknownf("cannot drop table (%s)", tableName)
 }

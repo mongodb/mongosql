@@ -25,6 +25,7 @@ func ForceEOF(yylex interface{}) {
   empty       struct{}
   statement   Statement
   selStmt     SelectStatement
+  bool        bool
   byt         byte
   bytes       []byte
   bytes2      [][]byte
@@ -57,7 +58,7 @@ func ForceEOF(yylex interface{}) {
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
 %token <empty> LPAREN RPAREN LBRACE RBRACE TILDE
 
-%token <empty> SELECT CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN
+%token <empty> SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN
 %token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES DEFAULT LOCK
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP DECIMAL NCHAR
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
@@ -79,6 +80,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> KILL
 %token <empty> CONNECTION QUERY
 %token <empty> SESSION GLOBAL 
+%token <empty> TEMPORARY RESTRICT CASCADE
 
 %nonassoc <empty> YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
 %nonassoc <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND DAY_MINUTE DAY_HOUR YEAR_MONTH
@@ -107,7 +109,7 @@ func ForceEOF(yylex interface{}) {
 %type <statement> command
 %type <selStmt> select_statement
 %type <statement> set_statement use_statement show_statement explain_statement explainable_stmt
-%type <statement> kill_statement
+%type <statement> kill_statement drop_statement
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
 %type <str> all_any_some
@@ -155,6 +157,8 @@ func ForceEOF(yylex interface{}) {
 %type <bytes> transaction_level
 %type <empty> explain_alias
 %type <empty> in_or_from optional_parens
+%type <bool> exists_opt temporary_opt
+%type <bytes> cascade_or_restrict_opt
 
 %type <empty> if_not_exists_opt storage_opt
 %type <expr> in_opt from_opt
@@ -185,6 +189,7 @@ command:
 | show_statement
 | explain_statement
 | use_statement
+| drop_statement
 
 
 select_statement:
@@ -241,6 +246,29 @@ set_statement:
   {
     $$ = &Set{Comments: append([][]byte{}, []byte($2), TRANSACTION_BYTES, $4)}
   }
+
+drop_statement:
+  DROP temporary_opt TABLE exists_opt table_name cascade_or_restrict_opt
+  {
+    $$ = &DropTable{Name: $5, Temporary: $2, Exists: $4, Opt: $6 }
+  }
+
+temporary_opt:
+  { $$ = false }
+| TEMPORARY
+  { $$ = true }
+
+exists_opt:
+  { $$ = false }
+| IF EXISTS
+  { $$ = true }
+
+cascade_or_restrict_opt:
+  { $$ = nil }
+| CASCADE
+  { $$ = CASCADE_BYTES }
+| RESTRICT
+  { $$ = RESTRICT_BYTES }
 
 transaction_characteristics:
   transaction_characteristic
@@ -2264,6 +2292,10 @@ keyword_as_id:
 | TABLES
   {
     $$ = TABLES_BYTES
+  }
+| TEMPORARY
+  {
+    $$ = TEMPORARY_BYTES
   }
 | TIME
   {

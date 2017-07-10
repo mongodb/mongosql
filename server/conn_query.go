@@ -76,8 +76,8 @@ func (c *conn) handleQuery(sql string) (err error) {
 		logTimeTaken()
 	case *parser.Show:
 		err = c.handleShow(sql, v)
-	case *parser.DDL:
-		err = c.handleDDL(v)
+	case *parser.DropTable:
+		err = c.handleDropTable(v)
 	case *parser.Kill, *parser.Set:
 		err = c.handleCommand(stmt)
 		logTimeTaken()

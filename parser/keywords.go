@@ -15,6 +15,7 @@ var (
 	BINLOG_BYTES             = []byte("binlog")
 	BOTH_BYTES               = []byte("both")
 	BY_BYTES                 = []byte("by")
+	CASCADE_BYTES            = []byte("cascade")
 	CASE_BYTES               = []byte("case")
 	CAST_BYTES               = []byte("cast")
 	CHANNEL_BYTES            = []byte("channel")
@@ -152,6 +153,7 @@ var (
 	RENAME_BYTES             = []byte("rename")
 	REPEATABLE_BYTES         = []byte("repeatable")
 	REPLACE_BYTES            = []byte("replace")
+	RESTRICT_BYTES           = []byte("restrict")
 	RIGHT_BYTES              = []byte("right")
 	ROLLBACK_BYTES           = []byte("rollback")
 	ROW_BYTES                = []byte("row")
@@ -190,6 +192,7 @@ var (
 	T_BYTES                  = []byte("t")
 	TABLE_BYTES              = []byte("table")
 	TABLES_BYTES             = []byte("tables")
+	TEMPORARY_BYTES          = []byte("temporary")
 	THEN_BYTES               = []byte("then")
 	TIME_BYTES               = []byte("time")
 	TIMESTAMP_BYTES          = []byte("timestamp")
@@ -239,6 +242,7 @@ var keywords = map[string]int{
 	"binlog":             BINLOG,
 	"both":               BOTH,
 	"by":                 BY,
+	"cascade":            CASCADE,
 	"case":               CASE,
 	"cast":               CAST,
 	"channel":            CHANNEL,
@@ -274,6 +278,7 @@ var keywords = map[string]int{
 	"describe":           DESCRIBE,
 	"distinct":           DISTINCT,
 	"div":                IDIV,
+	"drop":               DROP,
 	"else":               ELSE,
 	"end":                END,
 	"engine":             ENGINE,
@@ -363,6 +368,7 @@ var keywords = map[string]int{
 	"regexp":             REGEXP,
 	"relaylog":           RELAYLOG,
 	"repeatable":         REPEATABLE,
+	"restrict":           RESTRICT,
 	"right":              RIGHT,
 	"row":                ROW,
 	"schema":             SCHEMA,
@@ -398,6 +404,7 @@ var keywords = map[string]int{
 	"substring":          SUBSTRING,
 	"table":              TABLE,
 	"tables":             TABLES,
+	"temporary":          TEMPORARY,
 	"then":               THEN,
 	"time":               TIME,
 	"timestamp":          TIMESTAMP,

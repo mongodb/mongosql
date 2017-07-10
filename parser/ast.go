@@ -52,11 +52,11 @@ type Statement interface {
 	SQLNode
 }
 
-func (*Union) IStatement()  {}
-func (*Select) IStatement() {}
-func (*Set) IStatement()    {}
-func (*DDL) IStatement()    {}
-func (*Use) IStatement()    {}
+func (*Union) IStatement()     {}
+func (*Select) IStatement()    {}
+func (*Set) IStatement()       {}
+func (*Use) IStatement()       {}
+func (*DropTable) IStatement() {}
 
 type Use struct {
 	DBName []byte
@@ -138,30 +138,31 @@ func (node *Set) Format(buf *TrackedBuffer) {
 	buf.Fprintf("set %v%v", node.Comments, node.Exprs)
 }
 
-// DDL represents a CREATE, ALTER, DROP or RENAME statement.
-// Table is set for AST_ALTER, AST_DROP, AST_RENAME.
-// NewName is set for AST_ALTER, AST_CREATE, AST_RENAME.
-type DDL struct {
-	Action  string
-	Table   []byte
-	NewName []byte
-}
-
 const (
-	AST_CREATE = "create"
-	AST_ALTER  = "alter"
-	AST_DROP   = "drop"
-	AST_RENAME = "rename"
+	AST_DROP_TABLE_RESTRICT = "restrict"
+	AST_DROP_TABLE_CASCADE  = "cascade"
 )
 
-func (node *DDL) Format(buf *TrackedBuffer) {
-	switch node.Action {
-	case AST_CREATE:
-		buf.Fprintf("%s table %s", node.Action, node.NewName)
-	case AST_RENAME:
-		buf.Fprintf("%s table %s %s", node.Action, node.Table, node.NewName)
-	default:
-		buf.Fprintf("%s table %s", node.Action, node.Table)
+// DropTable represents a drop table statement.
+type DropTable struct {
+	Name      *TableName
+	Exists    bool
+	Temporary bool
+	Opt       []byte
+}
+
+func (node *DropTable) Format(buf *TrackedBuffer) {
+	buf.Fprintf("drop ")
+	if node.Temporary {
+		buf.Fprintf("temporary ")
+	}
+	buf.Fprintf("table ")
+	if node.Exists {
+		buf.Fprintf("if exists ")
+	}
+	node.Name.Format(buf)
+	if node.Opt != nil {
+		buf.Fprintf(" %s", string(node.Opt))
 	}
 }
 

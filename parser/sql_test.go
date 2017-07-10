@@ -52,6 +52,35 @@ func TestAliases(t *testing.T) {
 	testParse(t, sql)
 }
 
+func TestDropTable(t *testing.T) {
+	sql := "drop table foo"
+	testParse(t, sql)
+
+	sql = "drop table `foo`"
+	testParse(t, sql)
+
+	sql = "drop table `foo`.`bar`"
+	testParse(t, sql)
+
+	sql = "drop table if exists foo.bar"
+	testParse(t, sql)
+
+	sql = "drop temporary table foo"
+	testParse(t, sql)
+
+	sql = "drop table `foo` restrict"
+	testParse(t, sql)
+
+	sql = "drop table `foo` cascade"
+	testParse(t, sql)
+
+	sql = "drop table `#funny`"
+	testParse(t, sql)
+
+	sql = "drop temporary table if exists `#funny` cascade"
+	testParse(t, sql)
+}
+
 func TestSet(t *testing.T) {
 	sql := "set @@temp = 'gbk'"
 	testParse(t, sql)
