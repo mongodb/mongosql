@@ -472,7 +472,9 @@ post:
 tasks:
 
 - name: benchmark
-  tags: ["oneoff-task"]
+  tags:
+    - oneoff-task
+    - benchmark
   commands:
     - func: "download blackbox test data"
     - func: "start mongo-orchestration"
@@ -483,6 +485,9 @@ tasks:
         suite: blackbox,integration,tableau
 
 - name: blackbox
+  tags:
+    - integration
+    - test
   exec_timeout_secs: 14400 # 4h
   commands:
     - func: "download blackbox test data"
@@ -497,6 +502,9 @@ tasks:
         suite: blackbox
 
 - name: blackbox-nopushdown
+  tags:
+    - integration
+    - test
   exec_timeout_secs: 14400 # 4h
   commands:
     - func: "download blackbox test data"
@@ -514,11 +522,27 @@ tasks:
         nopushdown: true
 
 - name: check
-  tags: ["oneoff-task"]
+  tags:
+    - oneoff-task
+    - code-quality
   commands:
     - func: "check formatting"
 
+- name: compile
+  depends_on:
+    - name: unit-tests
+    - name: ".test .integration !.oneoff-task"
+  commands:
+    - func: "build mongosqld"
+    - func: "build mongodrdl"
+    - func: "upload binaries"
+    - func: "create packages"
+    - func: "upload packages"
+
 - name: dynamic-schema
+  tags:
+    - integration
+    - test
   exec_timeout_secs: 14400 # 4h
   commands:
     - func: "start mongo-orchestration"
@@ -536,7 +560,10 @@ tasks:
         suite: blackbox
 
 - name: jdbc-auth-test
-  tags: ["oneoff-task"]
+  tags:
+    - oneoff-task
+    - integration
+    - test
   exec_timeout_secs: 600 # 10 minutes
   commands:
     - func: "start mongo-orchestration"
@@ -544,16 +571,10 @@ tasks:
     - func: "start mongosqld"
     - func: "run jdbc auth plugin tests"
 
-- name: compile
-  commands:
-    - func: "build mongosqld"
-    - func: "build mongodrdl"
-    - func: "upload binaries"
-    - func: "create packages"
-    - func: "upload packages"
-
 - name: release
-  tags: ["oneoff-task"]
+  depends_on:
+  - name: sign
+    variant: '.packager'
   commands:
     - func: "release BI Connector"
 
@@ -566,6 +587,9 @@ tasks:
     - func: "upload release packages"
 
 - name: sqlproxy
+  tags:
+    - integration
+    - test
   commands:
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
@@ -578,6 +602,9 @@ tasks:
         suite: integration
 
 - name: sqlproxy-nopushdown
+  tags:
+    - integration
+    - test
   commands:
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
@@ -593,6 +620,9 @@ tasks:
         nopushdown: true
 
 - name: tableau
+  tags:
+    - integration
+    - test
   commands:
     - func: "download tableau test data"
     - func: "start mongo-orchestration"
@@ -606,6 +636,9 @@ tasks:
         suite: tableau
 
 - name: tdvt
+  tags:
+    - integration
+    - test
   commands:
     - func: "download blackbox test data"
     - func: "start mongo-orchestration"
@@ -619,6 +652,9 @@ tasks:
         suite: tdvt
 
 - name: tdvt-nopushdown
+  tags:
+    - integration
+    - test
   commands:
     - func: "download blackbox test data"
     - func: "start mongo-orchestration"
@@ -635,7 +671,10 @@ tasks:
         nopushdown: true
 
 - name: tpch-handwritten-denormalized
-  tags: ["oneoff-task"]
+  tags:
+    - oneoff-task
+    - benchmark
+    - tpch
   exec_timeout_secs: 86400 # 1 day
   commands:
     - func: "download tpch test data"
@@ -650,7 +689,9 @@ tasks:
         benchmarks: handwritten_denormalized
 
 - name: tpch-micro
-  tags: ["oneoff-task"]
+  tags:
+    - oneoff-task
+    - benchmark
   exec_timeout_secs: 86400 # 1 day
   commands:
     - func: "download tpch test data"
@@ -664,7 +705,10 @@ tasks:
         suite: tpch
 
 - name: tpch-workbook-denormalized
-  tags: ["oneoff-task"]
+  tags:
+    - oneoff-task
+    - benchmark
+    - tpch
   exec_timeout_secs: 86400 # 1 day
   commands:
     - func: "download tpch test data"
@@ -679,7 +723,10 @@ tasks:
         benchmarks: workbook_denormalized
 
 - name: tpch-workbook-normalized
-  tags: ["oneoff-task"]
+  tags:
+    - oneoff-task
+    - benchmark
+    - tpch
   exec_timeout_secs: 86400 # 1 day
   commands:
     - func: "download tpch test data"
@@ -694,6 +741,7 @@ tasks:
         benchmarks: workbook_normalized
 
 - name: unit-tests
+  tags: ["test"]
   commands:
     - func: "start mongo-orchestration"
     - func: "run unit tests"
@@ -841,7 +889,7 @@ buildvariants:
 
 - matrix_name: full_matrix
   display_name: "${os_full_matrix} (${mongodb_version}) (${mongodb_topology})"
-  tasks: ["!.oneoff-task !compile !sign !dynamic-schema"]
+  tasks: [".test !.oneoff-task !dynamic-schema"]
   matrix_spec:
     os_full_matrix: "*"
     mongodb_version: "*"
@@ -858,13 +906,20 @@ buildvariants:
     then:
       add_tasks:
         - name: compile
+        - name: dynamic-schema
         - name: sign
           run_on: linux-64-amzn-benchmark
-        - name: dynamic-schema
+      set:
+        tags: ["packager"]
 
 - matrix_name: single_variant
   display_name: "${os_single_variant}"
-  tasks: ["!.oneoff-task !dynamic-schema"]
+  tags: ["packager"]
+  tasks:
+    - ".test !.oneoff-task"
+    - name: compile
+    - name: sign
+      run_on: ["linux-64-amzn-benchmark"]
   matrix_spec:
     os_single_variant: "*"
 
@@ -889,17 +944,16 @@ buildvariants:
     - linux-64-amzn-build
   batchtime: 1440 # 1 day
   tasks:
-  - "check"
-  - "benchmark"
-  - "tpch-micro"
+    - name: check
+    - ".benchmark !.tpch"
 
 - name: linux-64-amazon-ami-release
   batchtime: 1438560 # 999 days
   display_name: ~ Release Manager
   run_on:
-  - linux-64-amzn-benchmark
+    - linux-64-amzn-benchmark
   tasks:
-  - "release"
+      - name: release
 
 - name: linux-64-amazon-ami-tpch
   display_name: Amazon Linux (TPC-H Benchmarks)
@@ -911,6 +965,4 @@ buildvariants:
     - linux-64-amzn-benchmark
   batchtime: 1438560 # 999 days
   tasks:
-  - "tpch-handwritten-denormalized"
-  - "tpch-workbook-denormalized"
-  - "tpch-workbook-normalized"
+    - ".tpch"
