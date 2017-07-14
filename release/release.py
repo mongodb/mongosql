@@ -132,24 +132,24 @@ class BIReleaser(object):
                 response.raise_for_status()
             build = json.loads(response.text)
             task = build["tasks"]
-            dist = task.get("dist", None)
+            sign = task.get("sign", None)
 
-            if dist is None:
-                print("No dist task found for '%s'" % (build["name"]))
+            if sign is None:
+                print("No sign task found for '%s'" % (build["name"]))
                 continue
 
-            status = dist.get("status", None)
+            status = sign.get("status", None)
 
             if status is None:
                 print("No status found for '%s'" % (build["name"]))
                 sys.exit(1)
 
             if status != "success":
-                print("%s dist has status '%s', exiting..." % (build["name"], \
+                print("%s sign has status '%s', exiting..." % (build["name"], \
                     status))
                 sys.exit(1)
 
-            url = "%s/tasks/%s" % (EVG_BASE, dist["task_id"])
+            url = "%s/tasks/%s" % (EVG_BASE, sign["task_id"])
             print("Fetching task %s..." % (url))
             response = requests.get(url, headers=headers)
 

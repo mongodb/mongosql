@@ -1,110 +1,7 @@
 stepback: true
 command_type: system
-buildvariants:
-
-- matrix_name: full_matrix
-  display_name: "${os_full_matrix} (${mongodb_version}) (${mongodb_topology})"
-  tasks: ["!.oneoff-task !dist !dynamic-schema"]
-  matrix_spec:
-    os_full_matrix: "*"
-    mongodb_version: "*"
-    mongodb_topology: "*"
-  rules:
-  - if:
-      os_full_matrix: "*"
-      mongodb_version: "latest"
-      mongodb_topology: "standalone"
-    then:
-      add_tasks:
-        - name: "dist"
-        - name: "dynamic-schema"
-
-- matrix_name: single_variant
-  display_name: "${os_single_variant}"
-  tasks: ["!.oneoff-task !dynamic-schema"]
-  matrix_spec:
-    os_single_variant: "*"
-
-- name: linux-64-amazon-ami-benchmarks
-  display_name: Amazon Linux (Enterprise Benchmarks)
-  expansions:
-    mongo_ssl: true
-    push_arch: x86_64-enterprise-amzn64
-    push_name: linux
-  run_on:
-    - linux-64-amzn-build
-  batchtime: 1440 # 1 day
-  tasks:
-  - "check"
-  - "benchmark"
-  - "tpch_micro"
-
-- name: linux-64-amazon-ami-tpch
-  display_name: Amazon Linux (TPC-H Benchmarks)
-  expansions:
-    mongo_ssl: true
-    push_arch: x86_64-enterprise-amzn64
-    push_name: linux
-  run_on:
-    - linux-64-amzn-benchmark
-  batchtime: 1438560 # 999 days
-  tasks:
-  - "tpch_handwritten_denormalized"
-  - "tpch_workbook_denormalized"
-  - "tpch_workbook_normalized"
-
-- name: ubuntu1404-64-race
-  disabled: true
-  display_name: Ubuntu 14.04 (Race Detector)
-  expansions:
-    push_arch: x86_64-ubuntu1404
-    push_name: linux
-    race_detector: true
-  run_on:
-  - ubuntu1404-build
-  tasks:
-  - "!.oneoff-task !dist"
-
-- name: linux-64-amazon-ami-release
-  batchtime: 1438560 # 999 days
-  display_name: ~ Release Manager
-  run_on:
-  - linux-64-amzn-benchmark
-  tasks:
-  - "release"
-
-- name: jdbc-rhel62
-  display_name: JDBC Auth RHEL 6.2
-  expansions:
-    mongo_auth: true
-    goroot: /opt/go
-    gobindir: /opt/go/bin
-  run_on:
-  - rhel62-test
-  tasks:
-  - "jdbc-auth-test"
-
-pre:
-  - command: shell.track
-  - func: "fetch source"
-  - func: "export variables"
-  - func: "reset testing state"
-
-post:
-  - func: "generate reports"
-  - func: "upload artifacts"
-  - func: "reset testing state"
-  - command: shell.cleanup
 
 functions:
-
-  "check formatting":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/check-formatting.sh
 
   "build mongodrdl":
     command: shell.exec
@@ -122,13 +19,21 @@ functions:
           ${PREPARE_SHELL}
           ${SCRIPT_DIR}/build-mongosqld.sh
 
-  "create release":
+  "check formatting":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/check-formatting.sh
+
+  "create packages":
     command: shell.exec
     type: test
     params:
       script: |
           ${PREPARE_SHELL}
-          ${SCRIPT_DIR}/create-release.sh
+          ${SCRIPT_DIR}/create-packages.sh
 
   "download blackbox test data":
     command: shell.exec
@@ -137,24 +42,6 @@ functions:
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/download-blackbox-data.sh
 
-  "download tpch test data":
-    command: shell.exec
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        export TPCH_DATASET="${tpch_dataset}"
-        ${SCRIPT_DIR}/download-tpch-data.sh
-
-  "bootstrap mongo-orchestration":
-    - command: shell.exec
-      params:
-        script: |
-            ${PREPARE_SHELL}
-            ${SCRIPT_DIR}/start-orchestration.sh
-    - command: expansions.update
-      params:
-        file: src/github.com/10gen/sqlproxy/testdata/artifacts/orchestration/mo-expansion.yml
-
   "download tableau test data":
     command: shell.exec
     params:
@@ -162,20 +49,13 @@ functions:
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/download-tableau-data.sh
 
-  "fetch source":
-    - command: shell.exec
-      params:
-        silent: true
-        script: |
-          rm -rf src
-          mkdir src
-    - command: git.get_project
-      params:
-        directory: src/github.com/10gen/sqlproxy
-    - command: git.apply_patch
-      type: test
-      params:
-        directory: src/github.com/10gen/sqlproxy
+  "download tpch test data":
+    command: shell.exec
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        export TPCH_DATASET="${tpch_dataset}"
+        ${SCRIPT_DIR}/download-tpch-data.sh
 
   "export variables":
     - command: shell.exec
@@ -291,24 +171,29 @@ functions:
       params:
         file: src/github.com/10gen/sqlproxy/expansions.yml
 
-  "reset testing state":
+  "fetch packages":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: sqlproxy/artifacts/${version_id}/${build_variant}/pkg/release-bundles.tgz
+        extract_to: src/github.com/10gen/sqlproxy/testdata/artifacts/
+        bucket: mciuploads
+
+  "fetch source":
     - command: shell.exec
       params:
         silent: true
         script: |
-          ${killall_mci}
-    - command: shell.exec
+          rm -rf src
+          mkdir src
+    - command: git.get_project
       params:
-        script: |
-          ${killall_mci}
-          ${PREPARE_SHELL}
-          ${SCRIPT_DIR}/reset-testing-state.sh
-    - command: shell.exec
+        directory: src/github.com/10gen/sqlproxy
+    - command: git.apply_patch
+      type: test
       params:
-        silent: true
-        script: |
-          ${PREPARE_SHELL}
-          mv ${PROJECT_DIR}/expansions.yml ${PROJECT_DIR}/testdata/artifacts
+        directory: src/github.com/10gen/sqlproxy
 
   "generate reports":
     command: shell.exec
@@ -341,6 +226,25 @@ functions:
         python release.py --version ${version_id}
     type: test
 
+  "reset testing state":
+    - command: shell.exec
+      params:
+        silent: true
+        script: |
+          ${killall_mci}
+    - command: shell.exec
+      params:
+        script: |
+          ${killall_mci}
+          ${PREPARE_SHELL}
+          ${SCRIPT_DIR}/reset-testing-state.sh
+    - command: shell.exec
+      params:
+        silent: true
+        script: |
+          ${PREPARE_SHELL}
+          mv ${PROJECT_DIR}/expansions.yml ${PROJECT_DIR}/testdata/artifacts
+
   "restore test data":
     command: shell.exec
     type: test
@@ -351,6 +255,64 @@ functions:
         ${SCRIPT_DIR}/generate-tests.sh
         ${SCRIPT_DIR}/restore-test-data.sh
 
+  "run benchmarks":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        set -o errexit
+        export SUITE='${suite}'
+        export BENCHMARKS='${benchmarks}'
+        ${SCRIPT_DIR}/generate-tests.sh
+        ${SCRIPT_DIR}/run-benchmarks.sh
+
+  "run integration tests":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        set -o errexit
+        ${PREPARE_SHELL}
+        export SQLPROXY_PUSHDOWN_OFF='${nopushdown}'
+        export SUITE='${suite}'
+        export INTEGRATION_TEST_FLAGS="${integration_test_flags}"
+        ${SCRIPT_DIR}/generate-tests.sh
+        ${SCRIPT_DIR}/run-integration-tests.sh
+
+  "run jdbc auth plugin tests":
+    command: shell.exec
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/run-jdbc-tests.sh
+
+  "run unit tests":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/run-unit-tests.sh
+
+  "sign msi installer":
+    - command: shell.exec
+      params:
+        silent: true
+        script: |
+          echo "${signing_token_bi_connector}" > ${PROJECT_DIR}/signing_auth_token
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/10gen/sqlproxy/testdata/artifacts
+        script: |
+          /usr/local/bin/notary-client.py \
+              --key-name "bi-connector" \
+              --auth-token-file ${PROJECT_DIR}/signing_auth_token \
+              --comment "Evergreen Automatic Signing (sqlproxy) - ${version_id} - ${build_variant}" \
+              --notary-url http://notary-service.build.10gen.cc:5000 \
+              --skip-missing \
+              release.msi
+
   "start mongosqld":
     command: shell.exec
     params:
@@ -360,6 +322,16 @@ functions:
         export SQLPROXY_PUSHDOWN_OFF="${nopushdown}"
         export USE_DYNAMIC_SCHEMA="${use_dynamic_schema}"
         ${SCRIPT_DIR}/start-mongosqld.sh
+
+  "start mongo-orchestration":
+    - command: shell.exec
+      params:
+        script: |
+            ${PREPARE_SHELL}
+            ${SCRIPT_DIR}/start-orchestration.sh
+    - command: expansions.update
+      params:
+        file: src/github.com/10gen/sqlproxy/testdata/artifacts/orchestration/mo-expansion.yml
 
   "upload artifacts":
     - command: s3.put
@@ -422,7 +394,47 @@ functions:
         permissions: public-read
         display_name: "All Artifacts (.tar.gz)"
 
-  "upload release":
+  "upload binaries":
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/bin/mongosqld
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/mongosqld
+        content_type: application/octet-stream
+        bucket: mciuploads
+        permissions: public-read
+        display_name: mongosqld
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/bin/mongodrdl
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/mongodrdl
+        content_type: application/octet-stream
+        bucket: mciuploads
+        permissions: public-read
+        display_name: mongodrdl
+
+  "upload packages":
+    - command: archive.targz_pack
+      params:
+        target: src/github.com/10gen/sqlproxy/testdata/artifacts/upload.tgz
+        source_dir: src/github.com/10gen/sqlproxy/testdata/artifacts/
+        include:
+          - "./release.*"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/upload.tgz
+        remote_file: sqlproxy/artifacts/${version_id}/${build_variant}/pkg/release-bundles.tgz
+        content_type: application/x-gzip
+        bucket: mciuploads
+        permissions: public-read
+        display_name: All Release Bundles (.tgz)
+
+  "upload release packages":
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -437,77 +449,33 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release.msi
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release-signed.msi
         remote_file: sqlproxy/binaries/${push_name}/mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.msi
         bucket: mciuploads
         permissions: public-read
         content_type: application/x-msi
         optional: true
         display_name: mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.msi
-    - command: s3.put
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release.wixpdb
-        remote_file: sqlproxy/binaries/${push_name}/mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.wixpdb
-        bucket: mciuploads
-        permissions: public-read
-        content_type: application/octet-stream
-        optional: true
-        display_name: mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.wixpdb
 
-  "run integration tests":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-        set -o errexit
-        ${PREPARE_SHELL}
-        export SQLPROXY_PUSHDOWN_OFF='${nopushdown}'
-        export SUITE='${suite}'
-        export INTEGRATION_TEST_FLAGS="${integration_test_flags}"
-        ${SCRIPT_DIR}/generate-tests.sh
-        ${SCRIPT_DIR}/run-integration-tests.sh
+pre:
+  - command: shell.track
+  - func: "fetch source"
+  - func: "export variables"
+  - func: "reset testing state"
 
-  "run benchmarks":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        set -o errexit
-        export SUITE='${suite}'
-        export BENCHMARKS='${benchmarks}'
-        ${SCRIPT_DIR}/generate-tests.sh
-        ${SCRIPT_DIR}/run-benchmarks.sh
-
-  "run unit tests":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/run-unit-tests.sh
-
-  "run jdbc auth plugin tests":
-    command: shell.exec
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/run-jdbc-tests.sh
+post:
+  - func: "generate reports"
+  - func: "upload artifacts"
+  - func: "reset testing state"
+  - command: shell.cleanup
 
 tasks:
-
-- name: unit_tests
-  commands:
-    - func: "bootstrap mongo-orchestration"
-    - func: "run unit tests"
 
 - name: benchmark
   tags: ["oneoff-task"]
   commands:
     - func: "download blackbox test data"
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run benchmarks"
@@ -518,7 +486,7 @@ tasks:
   exec_timeout_secs: 14400 # 4h
   commands:
     - func: "download blackbox test data"
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "restore test data"
@@ -532,7 +500,7 @@ tasks:
   exec_timeout_secs: 14400 # 4h
   commands:
     - func: "download blackbox test data"
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
@@ -550,22 +518,10 @@ tasks:
   commands:
     - func: "check formatting"
 
-- name: dist
-  commands:
-    - func: "build mongosqld"
-    - func: "build mongodrdl"
-    - func: "create release"
-    - func: "upload release"
-
-- name: release
-  tags: ["oneoff-task"]
-  commands:
-    - func: "release BI Connector"
-
 - name: dynamic-schema
   exec_timeout_secs: 14400 # 4h
   commands:
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "download blackbox test data"
     - func: "restore test data"
       vars:
@@ -579,9 +535,39 @@ tasks:
       vars:
         suite: blackbox
 
+- name: jdbc-auth-test
+  tags: ["oneoff-task"]
+  exec_timeout_secs: 600 # 10 minutes
+  commands:
+    - func: "start mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run jdbc auth plugin tests"
+
+- name: compile
+  commands:
+    - func: "build mongosqld"
+    - func: "build mongodrdl"
+    - func: "upload binaries"
+    - func: "create packages"
+    - func: "upload packages"
+
+- name: release
+  tags: ["oneoff-task"]
+  commands:
+    - func: "release BI Connector"
+
+- name: sign
+  depends_on:
+    - name: compile
+  commands:
+    - func: "fetch packages"
+    - func: "sign msi installer"
+    - func: "upload release packages"
+
 - name: sqlproxy
   commands:
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "restore test data"
@@ -593,7 +579,7 @@ tasks:
 
 - name: sqlproxy-nopushdown
   commands:
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
@@ -609,7 +595,7 @@ tasks:
 - name: tableau
   commands:
     - func: "download tableau test data"
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "restore test data"
@@ -622,7 +608,7 @@ tasks:
 - name: tdvt
   commands:
     - func: "download blackbox test data"
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "restore test data"
@@ -635,7 +621,7 @@ tasks:
 - name: tdvt-nopushdown
   commands:
     - func: "download blackbox test data"
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
@@ -648,14 +634,14 @@ tasks:
         suite: tdvt
         nopushdown: true
 
-- name: tpch_handwritten_denormalized
+- name: tpch-handwritten-denormalized
   tags: ["oneoff-task"]
   exec_timeout_secs: 86400 # 1 day
   commands:
     - func: "download tpch test data"
       vars:
         tpch_dataset: denormalized
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run benchmarks"
@@ -663,14 +649,28 @@ tasks:
         suite: tpch
         benchmarks: handwritten_denormalized
 
-- name: tpch_workbook_denormalized
+- name: tpch-micro
+  tags: ["oneoff-task"]
+  exec_timeout_secs: 86400 # 1 day
+  commands:
+    - func: "download tpch test data"
+      vars:
+        tpch_dataset: micro
+    - func: "start mongo-orchestration"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+    - func: "run benchmarks"
+      vars:
+        suite: tpch
+
+- name: tpch-workbook-denormalized
   tags: ["oneoff-task"]
   exec_timeout_secs: 86400 # 1 day
   commands:
     - func: "download tpch test data"
       vars:
         tpch_dataset: denormalized
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run benchmarks"
@@ -678,14 +678,14 @@ tasks:
         suite: tpch
         benchmarks: workbook_denormalized
 
-- name: tpch_workbook_normalized
+- name: tpch-workbook-normalized
   tags: ["oneoff-task"]
   exec_timeout_secs: 86400 # 1 day
   commands:
     - func: "download tpch test data"
       vars:
         tpch_dataset: normalized
-    - func: "bootstrap mongo-orchestration"
+    - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run benchmarks"
@@ -693,28 +693,10 @@ tasks:
         suite: tpch
         benchmarks: workbook_normalized
 
-- name: tpch_micro
-  tags: ["oneoff-task"]
-  exec_timeout_secs: 86400 # 1 day
+- name: unit-tests
   commands:
-    - func: "download tpch test data"
-      vars:
-        tpch_dataset: micro
-    - func: "bootstrap mongo-orchestration"
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-    - func: "run benchmarks"
-      vars:
-        suite: tpch
-
-- name: jdbc-auth-test
-  tags: ["oneoff-task"]
-  exec_timeout_secs: 600 # 10 minutes
-  commands:
-    - func: "bootstrap mongo-orchestration"
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-    - func: "run jdbc auth plugin tests"
+    - func: "start mongo-orchestration"
+    - func: "run unit tests"
 
 axes:
 
@@ -798,7 +780,6 @@ axes:
     batchtime: 1440 # 1 day
   - id: rhel-72-s390x
     display_name: RHEL 7.2 s390x (nightly)
-    disabled: true
     variables:
       mongo_ssl: true
       library_path: /opt/mongodbtoolchain/v2/bin/
@@ -855,3 +836,77 @@ axes:
     display_name: Sharded Cluster
     variables:
       mongodb_topology: sharded_cluster
+
+buildvariants:
+
+- matrix_name: full_matrix
+  display_name: "${os_full_matrix} (${mongodb_version}) (${mongodb_topology})"
+  tasks: ["!.oneoff-task !compile !sign !dynamic-schema"]
+  matrix_spec:
+    os_full_matrix: "*"
+    mongodb_version: "*"
+    mongodb_topology: "*"
+  rules:
+  - if:
+      os_full_matrix: "*"
+      mongodb_version: "latest"
+      mongodb_topology: "standalone"
+    then:
+      add_tasks:
+        - name: compile
+        - name: sign
+          run_on: linux-64-amzn-benchmark
+        - name: dynamic-schema
+
+- matrix_name: single_variant
+  display_name: "${os_single_variant}"
+  tasks: ["!.oneoff-task !dynamic-schema"]
+  matrix_spec:
+    os_single_variant: "*"
+
+- name: jdbc-rhel62
+  display_name: JDBC Auth RHEL 6.2
+  expansions:
+    mongo_auth: true
+    goroot: /opt/go
+    gobindir: /opt/go/bin
+  run_on:
+  - rhel62-test
+  tasks:
+  - "jdbc-auth-test"
+
+- name: linux-64-amazon-ami-benchmarks
+  display_name: Amazon Linux (Enterprise Benchmarks)
+  expansions:
+    mongo_ssl: true
+    push_arch: x86_64-enterprise-amzn64
+    push_name: linux
+  run_on:
+    - linux-64-amzn-build
+  batchtime: 1440 # 1 day
+  tasks:
+  - "check"
+  - "benchmark"
+  - "tpch-micro"
+
+- name: linux-64-amazon-ami-release
+  batchtime: 1438560 # 999 days
+  display_name: ~ Release Manager
+  run_on:
+  - linux-64-amzn-benchmark
+  tasks:
+  - "release"
+
+- name: linux-64-amazon-ami-tpch
+  display_name: Amazon Linux (TPC-H Benchmarks)
+  expansions:
+    mongo_ssl: true
+    push_arch: x86_64-enterprise-amzn64
+    push_name: linux
+  run_on:
+    - linux-64-amzn-benchmark
+  batchtime: 1438560 # 999 days
+  tasks:
+  - "tpch-handwritten-denormalized"
+  - "tpch-workbook-denormalized"
+  - "tpch-workbook-normalized"
