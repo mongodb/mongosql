@@ -54,104 +54,60 @@ functions:
     params:
       script: |
         ${PREPARE_SHELL}
-        export TPCH_DATASET="${tpch_dataset}"
+        export TPCH_DATASET="${var_tpch_dataset}"
         ${SCRIPT_DIR}/download-tpch-data.sh
 
   "export variables":
     - command: shell.exec
       params:
         silent: true
-        working_dir: src/github.com/10gen/sqlproxy
+        working_dir: src/github.com/10gen/sqlproxy/testdata/bin
         script: |
           if [ "Windows_NT" = "$OS" ]; then
               set -o igncr
           fi
 
-          export PROJECT_DIR="$(pwd)"
-          export SCRIPT_DIR="$PROJECT_DIR/testdata/bin"
+          export VARIANT='${_variant|other}'
 
           export CURRENT_VERSION="$(git describe)"
           if [ "${is_patch}" = "true" ]; then
              export CURRENT_VERSION="$CURRENT_VERSION-patch-${version_id}"
           fi
-          export GIT_SPEC="$(git rev-parse HEAD)"
 
-          export PUSH_ARCH="${push_arch}"
-          export PUSH_NAME="${push_name}"
-
-          if [ "${library_path}" != "" ]; then
-              export PATH="${library_path}:$PATH"
+          if [ "${_mongodb_version}" != "" ]; then
+              export VERSION_FLAG="-serverVersion ${_mongodb_version}"
           fi
 
-          export GOPATH="$(dirname $(dirname $(dirname $(dirname $(pwd)))))"
-          if [ "Windows_NT" = "$OS" ]; then
-             export GOPATH="$(cygpath -m $GOPATH)"
-          fi
-          export GOROOT="${goroot|$GOROOT}"
-
-          if [ "${gobindir}" != "" ]; then
-              export PATH="${gobindir}:$PATH"
-          fi
-
-          export ON_EVERGREEN=true
-
-          export PROJECT_DIR="$(pwd)"
-          if [ "Windows_NT" = "$OS" ]; then
-             export PROJECT_DIR="$(cygpath -m $PROJECT_DIR)"
-          fi
-
-          if [ "${race_detector}" = "true" ]; then
-              export RACE_DETECTOR="-race"
-          fi
-
-          if [ '${cc}' != "" ]; then
-              export CC="${cc}"
-          fi
-
-          if [ "${mongodb_version}" != "" ]; then
-              export VERSION_FLAG="-serverVersion ${mongodb_version}"
-          fi
-
-          if [ "${mongo_ssl}" = "true" ]; then
+          if [ "${_mongo_ssl}" = "true" ]; then
               export SSL="ssl"
           fi
 
-          if [ "${mongo_auth}" = "true" ]; then
+          if [ "${_mongo_auth}" = "true" ]; then
               export AUTH="auth"
           fi
 
-          export TOPOLOGY="${mongodb_topology}"
-          export STORAGE_ENGINE="${STORAGE_ENGINE}"
-          export MONGODB_VERSION="${mongodb_version}"
+          export TOPOLOGY="${_mongodb_topology}"
+          export MONGODB_VERSION="${_mongodb_version}"
+
+          SCRIPT_DIR="$(pwd)"
+          . "./platforms.sh"
+          . "./prepare-shell.sh"
 
           # create expansions from values calculated above
           cat <<EOT > $PROJECT_DIR/expansions.yml
           CURRENT_VERSION: "$CURRENT_VERSION"
           PROJECT_DIR: "$PROJECT_DIR"
           SCRIPT_DIR: "$SCRIPT_DIR"
+          PUSH_NAME: "$PUSH_NAME"
+          PUSH_ARCH: "$PUSH_ARCH"
+          ARCHIVE_FORMAT: "$ARCHIVE_FORMAT"
           PREPARE_SHELL: |
              if [ "Windows_NT" = "$OS" ]; then
                  set -o igncr
                  export SHELLOPTS
              fi
 
-             export PROJECT_DIR="$PROJECT_DIR"
-
-             # system env variables
-             export GOROOT="$GOROOT"
-             export GOPATH="$GOPATH"
-             export PATH="$PATH"
-
-             export PUSH_ARCH="$PUSH_NAME"
-             export PUSH_NAME="$PUSH_ARCH"
-
-             # env variables to be used by scripts
-             export ON_EVERGREEN="$ON_EVERGREEN"
-             export CURRENT_VERSION="$CURRENT_VERSION"
-             export GIT_SPEC="$GIT_SPEC"
-
-             export CC="$CC"
-             export BUILD_FLAGS="$BUILD_FLAGS"
+             export VARIANT="$VARIANT"
 
              export VERSION_FLAG="$VERSION_FLAG"
 
@@ -160,10 +116,9 @@ functions:
              export AUTH="$AUTH"
              export SSL="$SSL"
              export TOPOLOGY="$TOPOLOGY"
-             export STORAGE_ENGINE="$STORAGE_ENGINE"
              export MONGODB_VERSION="$MONGODB_VERSION"
 
-             export JAVA_HOME="/opt/java/jdk8"
+             cd $PROJECT_DIR
           EOT
 
     # Load the expansion file
@@ -251,7 +206,7 @@ functions:
     params:
       script: |
         ${PREPARE_SHELL}
-        export SUITE='${suite}'
+        export SUITE='${var_suite}'
         ${SCRIPT_DIR}/generate-tests.sh
         ${SCRIPT_DIR}/restore-test-data.sh
 
@@ -262,8 +217,8 @@ functions:
       script: |
         ${PREPARE_SHELL}
         set -o errexit
-        export SUITE='${suite}'
-        export BENCHMARKS='${benchmarks}'
+        export SUITE='${var_suite}'
+        export BENCHMARKS='${var_benchmarks}'
         ${SCRIPT_DIR}/generate-tests.sh
         ${SCRIPT_DIR}/run-benchmarks.sh
 
@@ -274,9 +229,9 @@ functions:
       script: |
         set -o errexit
         ${PREPARE_SHELL}
-        export SQLPROXY_PUSHDOWN_OFF='${nopushdown}'
-        export SUITE='${suite}'
-        export INTEGRATION_TEST_FLAGS="${integration_test_flags}"
+        export SQLPROXY_PUSHDOWN_OFF='${var_nopushdown}'
+        export SUITE='${var_suite}'
+        export INTEGRATION_TEST_FLAGS="${var_integration_test_flags}"
         ${SCRIPT_DIR}/generate-tests.sh
         ${SCRIPT_DIR}/run-integration-tests.sh
 
@@ -319,8 +274,8 @@ functions:
       background: true
       script: |
         ${PREPARE_SHELL}
-        export SQLPROXY_PUSHDOWN_OFF="${nopushdown}"
-        export USE_DYNAMIC_SCHEMA="${use_dynamic_schema}"
+        export SQLPROXY_PUSHDOWN_OFF="${var_nopushdown}"
+        export USE_DYNAMIC_SCHEMA="${var_use_dynamic_schema}"
         ${SCRIPT_DIR}/start-mongosqld.sh
 
   "start mongo-orchestration":
@@ -439,23 +394,23 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release.${archive_format|tgz}
-        remote_file: sqlproxy/binaries/${push_name}/mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.${archive_format|tgz}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release.${ARCHIVE_FORMAT}
+        remote_file: sqlproxy/binaries/${PUSH_NAME}/mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.${ARCHIVE_FORMAT}
         bucket: mciuploads
         permissions: public-read
         content_type: application/x-gzip
-        display_name: mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.${archive_format|tgz}
+        display_name: mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.${ARCHIVE_FORMAT}
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release-signed.msi
-        remote_file: sqlproxy/binaries/${push_name}/mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.msi
+        remote_file: sqlproxy/binaries/${PUSH_NAME}/mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.msi
         bucket: mciuploads
         permissions: public-read
         content_type: application/x-msi
         optional: true
-        display_name: mongodb-bi-${push_name}-${push_arch}-${CURRENT_VERSION}.msi
+        display_name: mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.msi
 
 pre:
   - command: shell.track
@@ -482,7 +437,7 @@ tasks:
     - func: "start mongosqld"
     - func: "run benchmarks"
       vars:
-        suite: blackbox,integration,tableau
+        var_suite: blackbox,integration,tableau
 
 - name: blackbox
   tags:
@@ -496,10 +451,10 @@ tasks:
     - func: "start mongosqld"
     - func: "restore test data"
       vars:
-        suite: blackbox
+        var_suite: blackbox
     - func: "run integration tests"
       vars:
-        suite: blackbox
+        var_suite: blackbox
 
 - name: blackbox-nopushdown
   tags:
@@ -512,14 +467,14 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        nopushdown: true
+        var_nopushdown: true
     - func: "restore test data"
       vars:
-        suite: blackbox
+        var_suite: blackbox
     - func: "run integration tests"
       vars:
-        suite: blackbox
-        nopushdown: true
+        var_suite: blackbox
+        var_nopushdown: true
 
 - name: check
   tags:
@@ -549,15 +504,15 @@ tasks:
     - func: "download blackbox test data"
     - func: "restore test data"
       vars:
-        suite: blackbox
+        var_suite: blackbox
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        use_dynamic_schema: "true"
-        integration_test_flags: "-run TestBlackbox_2"
+        var_use_dynamic_schema: "true"
     - func: "run integration tests"
       vars:
-        suite: blackbox
+        var_suite: blackbox
+        var_integration_test_flags: "-run TestBlackbox_2"
 
 - name: jdbc-auth-test
   tags:
@@ -596,10 +551,10 @@ tasks:
     - func: "start mongosqld"
     - func: "restore test data"
       vars:
-        suite: integration
+        var_suite: integration
     - func: "run integration tests"
       vars:
-        suite: integration
+        var_suite: integration
 
 - name: sqlproxy-nopushdown
   tags:
@@ -610,14 +565,14 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        nopushdown: true
+        var_nopushdown: true
     - func: "restore test data"
       vars:
-        suite: integration
+        var_suite: integration
     - func: "run integration tests"
       vars:
-        suite: integration
-        nopushdown: true
+        var_suite: integration
+        var_nopushdown: true
 
 - name: tableau
   tags:
@@ -630,10 +585,10 @@ tasks:
     - func: "start mongosqld"
     - func: "restore test data"
       vars:
-        suite: tableau
+        var_suite: tableau
     - func: "run integration tests"
       vars:
-        suite: tableau
+        var_suite: tableau
 
 - name: tdvt
   tags:
@@ -646,10 +601,10 @@ tasks:
     - func: "start mongosqld"
     - func: "restore test data"
       vars:
-        suite: tdvt
+        var_suite: tdvt
     - func: "run integration tests"
       vars:
-        suite: tdvt
+        var_suite: tdvt
 
 - name: tdvt-nopushdown
   tags:
@@ -661,14 +616,14 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
-        nopushdown: true
+        var_nopushdown: true
     - func: "restore test data"
       vars:
-        suite: tdvt
+        var_suite: tdvt
     - func: "run integration tests"
       vars:
-        suite: tdvt
-        nopushdown: true
+        var_suite: tdvt
+        var_nopushdown: true
 
 - name: tpch-handwritten-denormalized
   tags:
@@ -679,14 +634,14 @@ tasks:
   commands:
     - func: "download tpch test data"
       vars:
-        tpch_dataset: denormalized
+        var_tpch_dataset: denormalized
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run benchmarks"
       vars:
-        suite: tpch
-        benchmarks: handwritten_denormalized
+        var_suite: tpch
+        var_benchmarks: handwritten_denormalized
 
 - name: tpch-micro
   tags:
@@ -696,13 +651,13 @@ tasks:
   commands:
     - func: "download tpch test data"
       vars:
-        tpch_dataset: micro
+        var_tpch_dataset: micro
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run benchmarks"
       vars:
-        suite: tpch
+        var_suite: tpch
 
 - name: tpch-workbook-denormalized
   tags:
@@ -713,14 +668,14 @@ tasks:
   commands:
     - func: "download tpch test data"
       vars:
-        tpch_dataset: denormalized
+        var_tpch_dataset: denormalized
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run benchmarks"
       vars:
-        suite: tpch
-        benchmarks: workbook_denormalized
+        var_suite: tpch
+        var_benchmarks: workbook_denormalized
 
 - name: tpch-workbook-normalized
   tags:
@@ -731,14 +686,14 @@ tasks:
   commands:
     - func: "download tpch test data"
       vars:
-        tpch_dataset: normalized
+        var_tpch_dataset: normalized
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run benchmarks"
       vars:
-        suite: tpch
-        benchmarks: workbook_normalized
+        var_suite: tpch
+        var_benchmarks: workbook_normalized
 
 - name: unit-tests
   tags: ["test"]
@@ -755,23 +710,17 @@ axes:
     display_name: Ubuntu 14.04
     run_on: ubuntu1404-build
     variables:
-      push_arch: x86_64-ubuntu1404
-      push_name: linux
+      _variant: ubuntu1404
   - id: osx
     display_name: OSX 10.12
     run_on: macos-1012
     variables:
-      push_arch: x86_64
-      push_name: osx
+      _variant: macos
   - id: windows
     display_name: Windows 64
     run_on: windows-64-vs2013-test
     variables:
-      archive_format: zip
-      library_path: /cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/
-      push_arch: x86_64
-      push_name: win32
-      separator: \\
+      _variant: windows
 
 - id: os_single_variant
   display_name: OS
@@ -780,62 +729,40 @@ axes:
     display_name: Debian 7.1
     run_on: debian71-test
     variables:
-      goroot: /opt/go
-      gobindir: /opt/go/bin
-      push_arch: x86_64-debian71
-      push_name: linux
+      _variant: debian71
   - id: debian81
     display_name: Debian 8.1 (nightly)
     run_on: debian81-test
     variables:
-      goroot: /opt/go
-      gobindir: /opt/go/bin
-      push_arch: x86_64-debian81
-      push_name: linux
+      _variant: debian81
   - id: linux-64-amazon-ami
     display_name: Amazon Linux (Enterprise)
     variables:
-      mongo_ssl: true
-      push_arch: x86_64-enterprise-amzn64
-      push_name: linux
+      _variant: amazon
+      _mongo_ssl: true
     run_on: linux-64-amzn-build
   - id: rhel62
     display_name: RHEL 6.2
     variables:
-      goroot: /opt/go
-      gobindir: /opt/go/bin
-      push_arch: x86_64-rhel62
-      push_name: linux
+      _variant: rhel62
     run_on: rhel62-test
   - id: rhel70
     display_name: RHEL 7.0
     variables:
-      goroot: /opt/go
-      gobindir: /opt/go/bin
-      push_arch: x86_64-rhel70
-      push_name: linux
+      _variant: rhel70
     run_on: rhel70
   - id: rhel-71-ppc64le
     display_name: RHEL 7.1 PPC64LE
     variables:
-      mongo_ssl: true
-      library_path: /opt/mongodbtoolchain/v2/bin/
-      push_arch: ppc64le-rhel71
-      push_name: linux
-      goroot: /opt/go1.8/go
-      gobindir: /opt/go1.8/go/bin
+      _variant: ppc
+      _mongo_ssl: true
     run_on: rhel71-power8-test
     batchtime: 1440 # 1 day
   - id: rhel-72-s390x
     display_name: RHEL 7.2 s390x (nightly)
     variables:
-      mongo_ssl: true
-      library_path: /opt/mongodbtoolchain/v2/bin/
-      push_arch: s390x-enterprise-rhel72
-      push_name: linux
-      goroot: /opt/go1.8/go
-      gobindir: /opt/go1.8/go/bin
-      cc: s390x-redhat-linux-gcc
+      _variant: s390x
+      _mongo_ssl: true
     run_on:
     - rhel72-zseries-build
     - rhel72-zseries-test
@@ -843,14 +770,12 @@ axes:
   - id: suse11-64
     display_name: SLES 11
     variables:
-      push_arch: x86_64-suse11
-      push_name: linux
+      _variant: suse11
     run_on: suse11-test
   - id: suse12-64
     display_name: SLES 12
     variables:
-      push_arch: x86_64-suse12
-      push_name: linux
+      _variant: suse12
     run_on: suse12-test
 
 - id: mongodb_version
@@ -859,15 +784,15 @@ axes:
   - id: latest
     display_name: MongoDB Latest
     variables:
-      mongodb_version: ""
+      _mongodb_version: ""
   - id: 3.4
     display_name: MongoDB 3.4
     variables:
-      mongodb_version: 3.4
+      _mongodb_version: 3.4
   - id: 3.2
     display_name: MongoDB 3.2
     variables:
-      mongodb_version: 3.2
+      _mongodb_version: 3.2
 
 - id: mongodb_topology
   display_name: Topology
@@ -875,15 +800,15 @@ axes:
   - id: standalone
     display_name: Standalone
     variables:
-      mongodb_topology: server
+      _mongodb_topology: server
   - id: replica_set
     display_name: Replica Set
     variables:
-      mongodb_topology: replica_set
+      _mongodb_topology: replica_set
   - id: sharded_cluster
     display_name: Sharded Cluster
     variables:
-      mongodb_topology: sharded_cluster
+      _mongodb_topology: sharded_cluster
 
 buildvariants:
 
@@ -926,9 +851,8 @@ buildvariants:
 - name: jdbc-rhel62
   display_name: JDBC Auth RHEL 6.2
   expansions:
-    mongo_auth: true
-    goroot: /opt/go
-    gobindir: /opt/go/bin
+    _variant: rhel62
+    _mongo_auth: true
   run_on:
   - rhel62-test
   tasks:
@@ -937,9 +861,8 @@ buildvariants:
 - name: linux-64-amazon-ami-benchmarks
   display_name: Amazon Linux (Enterprise Benchmarks)
   expansions:
-    mongo_ssl: true
-    push_arch: x86_64-enterprise-amzn64
-    push_name: linux
+    _variant: amazon
+    _mongo_ssl: true
   run_on:
     - linux-64-amzn-build
   batchtime: 1440 # 1 day
@@ -950,6 +873,8 @@ buildvariants:
 - name: linux-64-amazon-ami-release
   batchtime: 1438560 # 999 days
   display_name: ~ Release Manager
+  expansions:
+    _variant: amazon
   run_on:
     - linux-64-amzn-benchmark
   tasks:
@@ -958,9 +883,8 @@ buildvariants:
 - name: linux-64-amazon-ami-tpch
   display_name: Amazon Linux (TPC-H Benchmarks)
   expansions:
-    mongo_ssl: true
-    push_arch: x86_64-enterprise-amzn64
-    push_name: linux
+    _variant: amazon
+    _mongo_ssl: true
   run_on:
     - linux-64-amzn-benchmark
   batchtime: 1438560 # 999 days

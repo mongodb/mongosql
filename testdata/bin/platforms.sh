@@ -1,0 +1,76 @@
+
+# set defaults for platform variables
+ARCHIVE_FORMAT=tgz
+JAVA_HOME=/opt/java/jdk8
+
+# set platform-specific variables
+case $VARIANT in
+ubuntu1404-64)
+    PUSH_ARCH='x86_64-ubuntu-1404'
+    PUSH_NAME='linux'
+    ;;
+macos)
+    PUSH_ARCH='x86_64'
+    PUSH_NAME='osx'
+    ;;
+windows)
+    PUSH_ARCH='x86_64'
+    PUSH_NAME='win32'
+    LIBRARY_PATH='/cygdrive/c/sasl/'
+    MINGW_PATH='/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin'
+    ARCHIVE_FORMAT='zip'
+    ;;
+debian71)
+    GOROOT=/opt/go
+    GOBINDIR=/opt/go/bin
+    PUSH_ARCH=x86_64-debian71
+    PUSH_NAME=linux
+    ;;
+debian81)
+    GOROOT=/opt/go
+    GOBINDIR=/opt/go/bin
+    PUSH_ARCH=x86_64-debian81
+    PUSH_NAME=linux
+    ;;
+amazon)
+    PUSH_ARCH=x86_64-enterprise-amzn64
+    PUSH_NAME=linux
+    ;;
+rhel62)
+    GOROOT=/opt/go
+    GOBINDIR=/opt/go/bin
+    PUSH_ARCH=x86_64-rhel62
+    PUSH_NAME=linux
+    ;;
+rhel70)
+    GOROOT=/opt/go
+    GOBINDIR=/opt/go/bin
+    PUSH_ARCH=x86_64-rhel70
+    PUSH_NAME=linux
+    ;;
+ppc)
+    LIBRARY_PATH=/opt/mongodbtoolchain/v2/bin/
+    PUSH_ARCH=ppc64le-rhel71
+    PUSH_NAME=linux
+    GOROOT=/opt/go1.8/go
+    GOBINDIR=/opt/go1.8/go/bin
+    ;;
+s390x)
+    LIBRARY_PATH=/opt/mongodbtoolchain/v2/bin/
+    PUSH_ARCH=s390x-enterprise-rhel72
+    PUSH_NAME=linux
+    GOROOT=/opt/go1.8/go
+    GOBINDIR=/opt/go1.8/go/bin
+    CC=s390x-redhat-linux-gcc
+    ;;
+suse11)
+    PUSH_ARCH=x86_64-suse11
+    PUSH_NAME=linux
+    ;;
+suse12)
+    PUSH_ARCH=x86_64-suse12
+    PUSH_NAME=linux
+    ;;
+other) # on evergreen, but "variant" expansion not set
+    ;;
+esac

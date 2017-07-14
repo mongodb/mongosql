@@ -1,5 +1,6 @@
 #!/bin/bash
 
+. "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
 (

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+. "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 trap "mv -f $PROJECT_DIR/internal/config/version.go.bak $PROJECT_DIR/internal/config/version.go" HUP EXIT
 

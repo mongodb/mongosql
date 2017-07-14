@@ -1,24 +1,49 @@
 
 # This file should be sourced by any script in testdata/bin that uses an
-# externally-defined environment variable. On evergreen, most of these
-# variables are defined in the "fetch source" task; these defaults will
-# make the scripts behave as expected when run locally.
+# externally-defined environment variable.
+# This file should be sourced after testdata/bin/platforms.sh
 
-scripts_dir="$(cd "$(dirname $0)" && pwd -P)"
-PROJECT_DIR="${PROJECT_DIR:-$(dirname "$(dirname $scripts_dir)")}"
+# use the provided script dir, if specified
+SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname $0)" && pwd -P)}"
+
+# store commonly-used filepaths in variables
+basename=${0##*/}
+PROJECT_DIR="$(dirname "$(dirname $SCRIPT_DIR)")"
 ARTIFACTS_DIR="$PROJECT_DIR/testdata/artifacts"
-COVER_FLAG="-coverprofile=$ARTIFACTS_DIR/out/$SUITE-coverage.out"
+MONGO_ORCHESTRATION_HOME="$ARTIFACTS_DIR/orchestration"
+MONGODB_BINARIES="$ARTIFACTS_DIR/mongodb/bin"
+LOG_FILE="$ARTIFACTS_DIR/log/${basename%.sh}.log"
 
-if [ "$ON_EVERGREEN" != "true" ]; then
-    CURRENT_VERSION="$(git describe)"
-    GIT_SPEC="$(git rev-parse HEAD)"
-    PUSH_ARCH="x86_64-ubuntu1404"
-    PUSH_NAME="linux"
+# set GOPATH
+GOPATH="$(dirname $(dirname $(dirname $(dirname $PROJECT_DIR))))"
+
+# set PATH
+PATH="$MONGODB_BINARIES:$PATH:$MINGW_PATH:$GOBINDIR:$LIBRARY_PATH"
+
+# set variables used for versioning
+CURRENT_VERSION="${CURRENT_VERSION:-$(git describe)}"
+GIT_SPEC="$(git rev-parse HEAD)"
+
+# if on cygwin, convert paths as needed
+if [ "Windows_NT" = "$OS" ]; then
+    SCRIPT_DIR="$(cygpath -m $SCRIPT_DIR)"
+    PROJECT_DIR="$(cygpath -m $PROJECT_DIR)"
+    ARTIFACTS_DIR="$(cygpath -m $ARTIFACTS_DIR)"
+    MONGO_ORCHESTRATION_HOME="$(cygpath -m $MONGO_ORCHESTRATION_HOME)"
+    MONGODB_BINARIES="$(cygpath -m $MONGODB_BINARIES)"
+    LOG_FILE="$(cygpath -m $LOG_FILE)"
+    GOPATH="$(cygpath -m $GOPATH)"
+fi
+
+# set sqlproxy schema args according to whether we are
+# using a drdl file or a dynamically-sampled schema
+if [ "$USE_DYNAMIC_SCHEMA" != "true" ]; then
+    SQLPROXY_SCHEMA_ARGS="--schemaDirectory $PROJECT_DIR/testdata/resources/schema"
 fi
 
 if [ "$SSL" = "ssl" ]; then
     export SQLPROXY_SSLTEST=1
-    SQLPROXY_SSL_ARGS="--mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile $PROJECT_DIR/testdata/resources/x509gen/client.pem"
+    SQLPROXY_MONGO_SSL_ARGS="--mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile $PROJECT_DIR/testdata/resources/x509gen/client.pem"
     BUILD_TAGS="-tags ssl"
 fi
 
@@ -26,22 +51,22 @@ if [ "$AUTH" = "auth" ]; then
     SQLPROXY_AUTH_ARGS="--auth"
 fi
 
-if [ "$USE_DYNAMIC_SCHEMA" != "true" ]; then
-  export SQLPROXY_SCHEMA_ARGS="--schemaDirectory $PROJECT_DIR/testdata/resources/schema"
-fi
+# assemble various sqlproxy argument sets into one variable
+SQLPROXY_ARGS="$SQLPROXY_AUTH_ARGS $SQLPROXY_SSL_ARGS $SQLPROXY_MONGO_SSL_ARGS $SQLPROXY_SCHEMA_ARGS"
 
-export SQLPROXY_ARGS="$SQLPROXY_AUTH_ARGS $SQLPROXY_SSL_ARGS $SQLPROXY_SCHEMA_ARGS"
-
+# assemble various golang build arguments into one variable
 BUILD_FLAGS="$BUILD_TAGS $BUILD_FLAGS"
 
-export MONGO_ORCHESTRATION_HOME="$ARTIFACTS_DIR/orchestration"
+# export any environment variables that will be needed by subprocesses
+export SQLPROXY_SSLTEST
+export MONGO_ORCHESTRATION_HOME
+export GOROOT
+export GOPATH
+export CC
+export JAVA_HOME
+export PATH
 
-MONGODB_BINARIES="$ARTIFACTS_DIR/mongodb/bin"
-PATH="$MONGODB_BINARIES:$PATH"
-
-basename=${0##*/}
-LOG_FILE="$ARTIFACTS_DIR/log/${basename%.sh}.log"
-
+# define the function that prints the exit message at the end of each script
 print_exit_msg() {
     exit_code=$?
     if [ "$exit_code" != "0" ]; then
