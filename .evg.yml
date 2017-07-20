@@ -243,7 +243,7 @@ functions:
         silent: true
         script: |
           ${PREPARE_SHELL}
-          mv ${PROJECT_DIR}/expansions.yml ${PROJECT_DIR}/testdata/artifacts
+          mv ${PROJECT_DIR}/expansions.yml ${PROJECT_DIR}/testdata/artifacts > /dev/null 2>&1 || true
 
   "restore test data":
     command: shell.exec
