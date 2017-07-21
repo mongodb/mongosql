@@ -1,0 +1,3 @@
+
+DRDL_CREDS="-u bob -p pwd123"
+DRDL_AUTH_SOURCE="--authenticationDatabase admin"

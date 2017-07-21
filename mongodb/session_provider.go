@@ -281,8 +281,9 @@ func parseDrdlHost(host string) ([]string, string) {
 			return []string{""}, setName
 		}
 		host = host[slashIndex+1:]
+		return strings.Split(host, ","), setName
 	}
-	return strings.Split(host, ","), setName
+	return []string{"localhost"}, setName
 }
 
 func getConnectTimeout(cs connstring.ConnString) time.Duration {

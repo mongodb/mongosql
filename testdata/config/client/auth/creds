@@ -1,0 +1,3 @@
+
+CLIENT_CREDS="-ubob"
+MYSQL_PWD="pwd123"

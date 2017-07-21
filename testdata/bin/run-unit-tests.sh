@@ -13,8 +13,7 @@ run_unit_tests() {
     echo "running $SUITE tests..."
 
     go test -v \
-        $RACE_DETECTOR \
-        $BUILD_FLAGS \
+        $TEST_BUILD_FLAGS \
         $COVER_FLAG \
         | tee -a "$ARTIFACTS_DIR/out/${SUITE}-suite.out"
 

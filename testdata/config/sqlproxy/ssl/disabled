@@ -1,0 +1,2 @@
+
+export SQLPROXY_SSLMODE="--sslMode disabled"

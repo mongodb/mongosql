@@ -1,0 +1,2 @@
+
+SQLPROXY_MONGO_SSLCAFILE="--mongo-sslCAFile $PROJECT_DIR/testdata/resources/x509gen/ca.pem"

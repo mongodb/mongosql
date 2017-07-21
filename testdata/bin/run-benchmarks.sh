@@ -21,7 +21,7 @@
         -bench=${BENCHMARKS:-.} \
         -benchmem \
         -benchtime=5s \
-        $BUILD_FLAGS \
+        $TEST_BUILD_FLAGS \
         $VERSION_FLAG \
         > $test_pipe
 

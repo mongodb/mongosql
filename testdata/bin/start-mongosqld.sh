@@ -16,15 +16,21 @@
 
         $ARTIFACTS_DIR/bin/mongosqld install -vvvv \
             --logPath $ARTIFACTS_DIR/log/mongosqld.log \
-            $SQLPROXY_ARGS \
-            $RACE_DETECTOR
+            $SQLPROXY_ARGS
 
         net start mongosql
     else
         nohup $ARTIFACTS_DIR/bin/mongosqld -vvvv \
             --logPath $ARTIFACTS_DIR/log/mongosqld.log \
-            $SQLPROXY_ARGS \
-            $RACE_DETECTOR &
+            $SQLPROXY_ARGS &
+        pid=$!
+
+        sleep 5
+
+        if ! kill -0 $pid; then
+            echo "could not find mongosqld job after 5 seconds"
+            exit 1
+        fi
     fi
 
     echo "started mongosqld"

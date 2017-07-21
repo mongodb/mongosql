@@ -1,0 +1,2 @@
+
+SQLPROXY_MONGO_SSLFIPSMODE="--mongo-sslFIPSMode"

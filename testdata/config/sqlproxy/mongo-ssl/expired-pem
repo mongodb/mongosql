@@ -1,0 +1,2 @@
+
+SQLPROXY_MONGO_SSLPEMKEYFILE="--mongo-sslPEMKeyFile $PROJECT_DIR/testdata/resources/x509gen/expired.pem"

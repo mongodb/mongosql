@@ -74,20 +74,31 @@ functions:
              export CURRENT_VERSION="$CURRENT_VERSION-patch-${version_id}"
           fi
 
+          export INFRASTRUCTURE_CONFIG=default
+
           if [ "${_mongodb_version}" != "" ]; then
-              export VERSION_FLAG="-serverVersion ${_mongodb_version}"
+              export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/version/${_mongodb_version}"
+          fi
+
+          if [ "${_mongodb_topology}" != "" ]; then
+              export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/topology/${_mongodb_topology}"
           fi
 
           if [ "${_mongo_ssl}" = "true" ]; then
-              export SSL="ssl"
+              export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/ssl/basic,sqlproxy/mongo-ssl/pem,sqlproxy/mongo-ssl/enabled"
           fi
 
           if [ "${_mongo_auth}" = "true" ]; then
-              export AUTH="auth"
+              export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/auth"
           fi
 
-          export TOPOLOGY="${_mongodb_topology}"
-          export MONGODB_VERSION="${_mongodb_version}"
+          if [ "${_client_ssl}" = "true" ]; then
+              export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/ssl/require,sqlproxy/ssl/pem"
+          fi
+
+          if [ "${_client_auth}" = "true" ]; then
+              export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/auth"
+          fi
 
           SCRIPT_DIR="$(pwd)"
           . "./platforms.sh"
@@ -108,15 +119,7 @@ functions:
              fi
 
              export VARIANT="$VARIANT"
-
-             export VERSION_FLAG="$VERSION_FLAG"
-
-             export RACE_DETECTOR="$RACE_DETECTOR"
-
-             export AUTH="$AUTH"
-             export SSL="$SSL"
-             export TOPOLOGY="$TOPOLOGY"
-             export MONGODB_VERSION="$MONGODB_VERSION"
+             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG"
 
              cd $PROJECT_DIR
           EOT
@@ -156,6 +159,13 @@ functions:
       script: |
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/generate-reports.sh
+
+  "install dependencies":
+    command: shell.exec
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/install-dependencies.sh
 
   "release BI Connector":
     command: shell.exec
@@ -229,7 +239,9 @@ functions:
       script: |
         set -o errexit
         ${PREPARE_SHELL}
-        export SQLPROXY_PUSHDOWN_OFF='${var_nopushdown}'
+        if [ "${var_nopushdown}" = "true" ]; then
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/nopushdown"
+        fi
         export SUITE='${var_suite}'
         export INTEGRATION_TEST_FLAGS="${var_integration_test_flags}"
         ${SCRIPT_DIR}/generate-tests.sh
@@ -241,6 +253,14 @@ functions:
       script: |
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/run-jdbc-tests.sh
+
+  "run make":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        make ${var_target}
 
   "run unit tests":
     command: shell.exec
@@ -274,8 +294,12 @@ functions:
       background: true
       script: |
         ${PREPARE_SHELL}
-        export SQLPROXY_PUSHDOWN_OFF="${var_nopushdown}"
-        export USE_DYNAMIC_SCHEMA="${var_use_dynamic_schema}"
+        if [ "${var_nopushdown}" = "true" ]; then
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/nopushdown"
+        fi
+        if [ "${var_use_dynamic_schema}" = "true" ]; then
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/dynamic-schema/enable"
+        fi
         ${SCRIPT_DIR}/start-mongosqld.sh
 
   "start mongo-orchestration":
@@ -411,6 +435,17 @@ functions:
         content_type: application/x-msi
         optional: true
         display_name: mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.msi
+
+variables:
+  - &run-config-test
+    # runs test-simple-connect.sh against a particular config.
+    # the task name in evg should correspond to a make target.
+    name: test
+    commands:
+      - func: "install dependencies"
+      - func: "run make"
+        vars:
+          var_target: ${task_name}
 
 pre:
   - command: shell.track
@@ -625,6 +660,90 @@ tasks:
         var_suite: tdvt
         var_nopushdown: true
 
+- <<: *run-config-test
+  name: test-require-ssl-failure
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-require-ssl-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-disable-ssl-failure
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-disable-ssl-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-allow-ssl-ssl
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-allow-ssl-nossl
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-cleartext-auth-nossl
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-cleartext-auth-allowssl-nossl
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-cleartext-auth-ssl
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-cleartext-auth-wrong-creds
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-ssl-not-enabled-failure
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-ssl-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-ssl-ca-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-ssl-pem-success
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-ssl-pem-failure
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-mongo-ssl-fips
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-drdl-simple
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-drdl-auth
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-drdl-auth-no-creds
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-drdl-auth-wrong-creds
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-drdl-ssl
+  tags: ["test", "config"]
+
 - name: tpch-handwritten-denormalized
   tags:
     - oneoff-task
@@ -784,7 +903,7 @@ axes:
   - id: latest
     display_name: MongoDB Latest
     variables:
-      _mongodb_version: ""
+      _mongodb_version: latest
   - id: 3.4
     display_name: MongoDB 3.4
     variables:
@@ -801,20 +920,20 @@ axes:
     display_name: Standalone
     variables:
       _mongodb_topology: server
-  - id: replica_set
+  - id: replica-set
     display_name: Replica Set
     variables:
-      _mongodb_topology: replica_set
-  - id: sharded_cluster
+      _mongodb_topology: replica-set
+  - id: sharded-cluster
     display_name: Sharded Cluster
     variables:
-      _mongodb_topology: sharded_cluster
+      _mongodb_topology: sharded-cluster
 
 buildvariants:
 
 - matrix_name: full_matrix
   display_name: "${os_full_matrix} (${mongodb_version}) (${mongodb_topology})"
-  tasks: [".test !.oneoff-task !dynamic-schema"]
+  tasks: [".test !.config !.oneoff-task !dynamic-schema"]
   matrix_spec:
     os_full_matrix: "*"
     mongodb_version: "*"
@@ -822,7 +941,7 @@ buildvariants:
   exclude_spec:
     os_full_matrix: "*"
     mongodb_version: "latest"
-    mongodb_topology: "sharded_cluster"
+    mongodb_topology: "sharded-cluster"
   rules:
   - if:
       os_full_matrix: "*"
@@ -841,18 +960,28 @@ buildvariants:
   display_name: "${os_single_variant}"
   tags: ["packager"]
   tasks:
-    - ".test !.oneoff-task"
+    - ".test !.config !.oneoff-task"
     - name: compile
     - name: sign
       run_on: ["linux-64-amzn-benchmark"]
   matrix_spec:
     os_single_variant: "*"
 
+- name: config-rhel62
+  display_name: Config Tests (RHEL 6.2)
+  expansions:
+    _variant: rhel62
+  run_on:
+    - rhel62-test
+  tasks:
+    - ".test .config"
+
 - name: jdbc-rhel62
   display_name: JDBC Auth RHEL 6.2
   expansions:
     _variant: rhel62
     _mongo_auth: true
+    _client_auth: true
   run_on:
   - rhel62-test
   tasks:

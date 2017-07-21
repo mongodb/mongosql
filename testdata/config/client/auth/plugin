@@ -1,0 +1,2 @@
+
+CLIENT_PLUGIN="--default-auth=mongosql_auth"

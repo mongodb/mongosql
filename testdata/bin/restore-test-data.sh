@@ -5,30 +5,21 @@
 
 (
     set -o errexit
-    echo "restoring $SUITE data..."
+    suites=${SUITE:-integration}
 
-    cd "$PROJECT_DIR"
-
-    test_pipe="$ARTIFACTS_DIR/test_pipe"
-    [ -e $test_pipe ] && rm $test_pipe
-    mkfifo $test_pipe
-    tee -a "$ARTIFACTS_DIR/out/${SUITE}-suite.out" < $test_pipe&
+    echo "restoring $suites data..."
 
     cd "$PROJECT_DIR"
 
     go test -v \
         -run $^ \
         -timeout 4h \
-        $RACE_DETECTOR \
-        $BUILD_FLAGS \
+        $TEST_BUILD_FLAGS \
         $COVER_FLAG \
         $VERSION_FLAG \
-        -restoreData "$SUITE"
-        > $test_pipe
+        -restoreData "$suites"
 
-    rm $test_pipe
-
-    echo "done restoring $SUITE data"
+    echo "done restoring $suites data"
 
 ) > $LOG_FILE 2>&1
 

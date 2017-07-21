@@ -1,0 +1,2 @@
+
+CLIENT_SSLCA="--ssl-ca $PROJECT_DIR/testdata/resources/x509gen/ca.pem"

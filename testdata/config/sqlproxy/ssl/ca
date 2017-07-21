@@ -1,0 +1,2 @@
+
+SQLPROXY_SSLCAFILE="--sslCAFile $PROJECT_DIR/testdata/resources/x509gen/ca.pem"

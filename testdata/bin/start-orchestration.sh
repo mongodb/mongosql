@@ -7,8 +7,8 @@
     set -o errexit
     echo "bootstrapping mongo-orchestration..."
 
-    AUTH=${AUTH:-noauth}
-    SSL=${SSL:-nossl}
+    AUTH=${MONGO_AUTH:-noauth}
+    SSL=${MONGO_SSL:-nossl}
     TOPOLOGY=${TOPOLOGY:-server}
     STORAGE_ENGINE=${STORAGE_ENGINE}
     MONGODB_VERSION=${MONGODB_VERSION:-latest}
@@ -36,7 +36,7 @@
     fi
 
     if [ "$SSL" != "nossl" ]; then
-       ORCHESTRATION_FILE="${ORCHESTRATION_FILE}-ssl"
+       ORCHESTRATION_FILE="${ORCHESTRATION_FILE}-${SSL}"
     fi
 
     # Storage engine config files do not exist for different topology, auth, or ssl modes.

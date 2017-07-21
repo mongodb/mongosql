@@ -14,10 +14,7 @@ trap "mv -f $PROJECT_DIR/internal/config/version.go.bak $PROJECT_DIR/internal/co
 
     out="$ARTIFACTS_DIR/bin/mongodrdl"
     main="$PROJECT_DIR/mongodrdl/main/mongodrdl.go"
-    go build \
-        $BUILD_FLAGS \
-        $RACE_DETECTOR \
-        -o $out $main
+    go build -o $out $main
 
     echo "done building mongodrdl"
 

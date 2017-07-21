@@ -1,0 +1,2 @@
+
+SQLPROXY_SSLPEMKEYFILE="--sslPEMKeyFile $PROJECT_DIR/testdata/resources/x509gen/server.pem"

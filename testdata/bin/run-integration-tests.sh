@@ -16,9 +16,7 @@
 
     go test -v \
         -timeout 4h \
-        $RACE_DETECTOR \
-        $BUILD_FLAGS \
-        $COVER_FLAG \
+        $TEST_BUILD_FLAGS \
         $VERSION_FLAG \
         $INTEGRATION_TEST_FLAGS \
         > $test_pipe

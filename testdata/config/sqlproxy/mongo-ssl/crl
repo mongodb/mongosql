@@ -1,0 +1,2 @@
+
+SQLPROXY_MONGO_SSLCRLFILE="--mongo-sslCRLFile $PROJECT_DIR/testdata/resources/x509gen/crl.pem"

@@ -17,12 +17,14 @@ LOG_FILE="$ARTIFACTS_DIR/log/${basename%.sh}.log"
 # set GOPATH
 GOPATH="$(dirname $(dirname $(dirname $(dirname $PROJECT_DIR))))"
 
-# set PATH
-PATH="$MONGODB_BINARIES:$PATH:$MINGW_PATH:$GOBINDIR:$LIBRARY_PATH"
+# set defaults for infrastructure config variables
+if [ "$INFRASTRUCTURE_CONFIG" = "" ]; then
+    INFRASTRUCTURE_CONFIG="default"
+fi
 
-# set variables used for versioning
-CURRENT_VERSION="${CURRENT_VERSION:-$(git describe)}"
-GIT_SPEC="$(git rev-parse HEAD)"
+# set PATH
+MYSQL_PATH="$ARTIFACTS_DIR/mysql/bin"
+PATH="$MYSQL_PATH:$MONGODB_BINARIES:$PATH:$MINGW_PATH:$GOBINDIR:$LIBRARY_PATH"
 
 # if on cygwin, convert paths as needed
 if [ "Windows_NT" = "$OS" ]; then
@@ -35,36 +37,41 @@ if [ "Windows_NT" = "$OS" ]; then
     GOPATH="$(cygpath -m $GOPATH)"
 fi
 
-# set sqlproxy schema args according to whether we are
-# using a drdl file or a dynamically-sampled schema
-if [ "$USE_DYNAMIC_SCHEMA" != "true" ]; then
-    SQLPROXY_SCHEMA_ARGS="--schemaDirectory $PROJECT_DIR/testdata/resources/schema"
-fi
+# source infrastructure config files
+for infra_config in $( echo $INFRASTRUCTURE_CONFIG | sed "s/,/ /g" ); do
+    . "$PROJECT_DIR/testdata/config/$infra_config"
+    [ "$?" = "0" ] || exit 1
+done
 
-if [ "$SSL" = "ssl" ]; then
-    export SQLPROXY_SSLTEST=1
-    SQLPROXY_MONGO_SSL_ARGS="--mongo-ssl --mongo-sslAllowInvalidCertificates --mongo-sslPEMKeyFile $PROJECT_DIR/testdata/resources/x509gen/client.pem"
-    BUILD_TAGS="-tags ssl"
-fi
-
-if [ "$AUTH" = "auth" ]; then
-    SQLPROXY_AUTH_ARGS="--auth"
-fi
+# set variables used for versioning
+CURRENT_VERSION="${CURRENT_VERSION:-$(git describe)}"
+GIT_SPEC="$(git rev-parse HEAD)"
 
 # assemble various sqlproxy argument sets into one variable
+SQLPROXY_SSL_ARGS="$SQLPROXY_SSLMODE $SQLPROXY_SSLCAFILE $SQLPROXY_SSLPEMKEYFILE $SQLPROXY_SSLPEMKEYPASSWORD $SQLPROXY_SSLALLOWINVALIDCERTIFICATES"
+SQLPROXY_MONGO_SSL_ARGS="$SQLPROXY_MONGO_SSL $SQLPROXY_MONGO_SSLCAFILE $SQLPROXY_MONGO_SSLPEMKEYFILE $SQLPROXY_MONGO_SSLPEMKEYPASSWORD $SQLPROXY_MONGO_SSLALLOWINVALIDCERTIFICATES $SQLPROXY_MONGO_SSLALLOWINVALIDHOSTNAMES $SQLPROXY_MONGO_SSLFIPSMODE $SQLPROXY_MONGO_SSLCRLFILE"
 SQLPROXY_ARGS="$SQLPROXY_AUTH_ARGS $SQLPROXY_SSL_ARGS $SQLPROXY_MONGO_SSL_ARGS $SQLPROXY_SCHEMA_ARGS"
 
-# assemble various golang build arguments into one variable
-BUILD_FLAGS="$BUILD_TAGS $BUILD_FLAGS"
+# assemble various mysql cli argument sets into one variable
+CLIENT_SSL_ARGS="$CLIENT_SSLMODE $CLIENT_SSLCA $CLIENT_SSLCERT"
+CLIENT_AUTH_ARGS="$CLIENT_CREDS $CLIENT_CLEARTEXT $CLIENT_PLUGIN"
+CLIENT_ARGS="$CLIENT_SSL_ARGS $CLIENT_AUTH_ARGS"
+
+# assemble various mongodrdl cli argument sets into one variable
+DRDL_AUTH_ARGS="$DRDL_CREDS $DRDL_AUTH_SOURCE"
+DRDL_SSL_ARGS="$DRDL_SSL"
+DRDL_ARGS="$DRDL_AUTH_ARGS $DRDL_SSL_ARGS"
 
 # export any environment variables that will be needed by subprocesses
 export SQLPROXY_SSLTEST
+export SQLPROXY_PUSHDOWN_OFF
 export MONGO_ORCHESTRATION_HOME
 export GOROOT
 export GOPATH
 export CC
 export JAVA_HOME
 export PATH
+export MYSQL_PWD
 
 # define the function that prints the exit message at the end of each script
 print_exit_msg() {

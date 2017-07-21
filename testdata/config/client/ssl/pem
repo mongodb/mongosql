@@ -1,0 +1,2 @@
+
+CLIENT_SSLCERT="--ssl-cert $PROJECT_DIR/testdata/resources/x509gen/client.pem"
