@@ -24,7 +24,7 @@ fi
 
 # set PATH
 MYSQL_PATH="$ARTIFACTS_DIR/mysql/bin"
-PATH="$MYSQL_PATH:$MONGODB_BINARIES:$PATH:$MINGW_PATH:$GOBINDIR:$LIBRARY_PATH"
+PATH="$MYSQL_PATH:$MONGODB_BINARIES:$GOBINDIR:$PATH:$MINGW_PATH:$LIBRARY_PATH"
 
 # if on cygwin, convert paths as needed
 if [ "Windows_NT" = "$OS" ]; then
