@@ -938,10 +938,6 @@ buildvariants:
     os_full_matrix: "*"
     mongodb_version: "*"
     mongodb_topology: "*"
-  exclude_spec:
-    os_full_matrix: "*"
-    mongodb_version: "latest"
-    mongodb_topology: "sharded-cluster"
   rules:
   - if:
       os_full_matrix: "*"
