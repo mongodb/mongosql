@@ -1,8 +1,9 @@
 package evaluator
 
 import (
+	"container/heap"
 	"fmt"
-	"sort"
+	"strings"
 
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
@@ -34,8 +35,10 @@ type innerJoinOptimizer struct {
 	// sources is a map of alias name to a PlanStage appearing in an
 	// inner join subtree
 	sources map[string]innerJoinSource
-	logger  *log.Logger
-	ctx     ConnectionCtx
+
+	sortablePaths *sortablePaths
+	logger        *log.Logger
+	ctx           ConnectionCtx
 	// nPlanStages holds the number of PlanStages contained within the
 	// subtree visited by this optimizer
 	nPlanStages int
@@ -149,6 +152,13 @@ func (p *path) orderCandidateEdge(edge tableEdge) tableEdge {
 	}
 
 	return edge
+}
+
+func (p *path) String() (s string) {
+	for _, e := range *p {
+		s += strings.Join(e.tables, "-")
+	}
+	return s
 }
 
 func (v *innerJoinOptimizer) visit(n node) (node, error) {
@@ -341,10 +351,9 @@ func (v *innerJoinOptimizer) atReorderingLeaf(n node) bool {
 	return false
 }
 
-// buildTreeCandidates builds all possible inner join
-// subtree candidates subject to the constraints in exprs.
-func (v *innerJoinOptimizer) buildTreeCandidates(
-	existingPath path, edges []tableEdge, candidates *[]path) {
+// evaluateTreeCandidates builds all possible inner join and
+// retains the most optimal subtree it finds .
+func (v *innerJoinOptimizer) evaluateTreeCandidates(existingPath path, edges []tableEdge) {
 
 	switch len(existingPath) {
 	case 0:
@@ -358,7 +367,10 @@ func (v *innerJoinOptimizer) buildTreeCandidates(
 			existingPath[0] = tableEdge{[]string{t1, t0}}
 		}
 		if len(existingPath) == len(v.sources)-1 {
-			*candidates = append(*candidates, existingPath)
+			if len(v.sortablePaths.paths) > 1 {
+				heap.Pop(v.sortablePaths)
+			}
+			heap.Push(v.sortablePaths, existingPath)
 			return
 		}
 	default:
@@ -374,7 +386,10 @@ func (v *innerJoinOptimizer) buildTreeCandidates(
 		existingPath[edgeIdx] = newPath.orderCandidateEdge(edge)
 
 		if len(existingPath) == len(v.sources)-1 {
-			*candidates = append(*candidates, existingPath)
+			if len(v.sortablePaths.paths) > 1 {
+				heap.Pop(v.sortablePaths)
+			}
+			heap.Push(v.sortablePaths, existingPath)
 			return
 		}
 
@@ -390,8 +405,7 @@ func (v *innerJoinOptimizer) buildTreeCandidates(
 		remainingEdges := make(path, len(edges)-1)
 		copy(remainingEdges[:i], edges[:i])
 		copy(remainingEdges[i:], edges[i+1:])
-		v.buildTreeCandidates(append(existingPath, edge),
-			remainingEdges, candidates)
+		v.evaluateTreeCandidates(append(existingPath, edge), remainingEdges)
 	}
 }
 
@@ -403,19 +417,6 @@ func (v *innerJoinOptimizer) canOptimizeInnerJoinSubtree(n node) bool {
 		return true
 	}
 	return false
-}
-
-// generateSubtreeCandidates returns all potential ON clause
-// orderings subject to the constraints imposed by the tables
-// in paths.
-func (v *innerJoinOptimizer) generateSubtreeCandidates(
-	edges []tableEdge) []path {
-	// In order to rank the candidates, we must first
-	// compute all possible valid versions of this query
-	// subtree - subject to the join criteria constraint(s)
-	paths := &[]path{}
-	v.buildTreeCandidates(path{}, edges, paths)
-	return *paths
 }
 
 // getInnerJoinEqualities returns all table edges used in the
@@ -468,29 +469,6 @@ func (v *innerJoinOptimizer) getInnerJoinExprs(e SQLExpr) []innerJoinExpr {
 	}
 
 	return exprs
-}
-
-// rankInnerJoinTreeCandidates returns a slice of the various
-// subtree configurations with the least optimal configuration
-// first in the slice.
-func (v *innerJoinOptimizer) rankInnerJoinTreeCandidates(paths []path) []path {
-
-	allCriteria := []SQLExpr{}
-
-	for _, e := range v.exprs {
-		allCriteria = append(allCriteria, e.expr)
-	}
-
-	s := sortablePaths{
-		optimizer: v,
-		paths:     paths,
-		logger:    log.NewLogger(nil),
-		matcher:   combineExpressions(allCriteria),
-	}
-
-	sort.Stable(s)
-
-	return s.paths
 }
 
 // reconstructSubtree takes a subtree configuration and returns a
@@ -597,12 +575,30 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (node, error) {
 
 func (v *innerJoinOptimizer) reorderInnerJoins() (node, error) {
 	equalities := v.getInnerJoinEqualities()
-	candidates := v.generateSubtreeCandidates(equalities)
-	rankings := v.rankInnerJoinTreeCandidates(candidates)
-	if len(rankings) == 0 {
+
+	allCriteria := []SQLExpr{}
+
+	for _, e := range v.exprs {
+		allCriteria = append(allCriteria, e.expr)
+	}
+
+	v.sortablePaths = &sortablePaths{
+		optimizer:       v,
+		logger:          log.NewLogger(nil),
+		matcher:         combineExpressions(allCriteria),
+		mergePotentials: make(map[string]int),
+	}
+
+	heap.Init(v.sortablePaths)
+
+	v.evaluateTreeCandidates(path{}, equalities)
+
+	optimalPath := v.sortablePaths.Pop()
+	if optimalPath == nil {
 		return nil, nil
 	}
-	return v.reconstructSubtree(rankings[len(rankings)-1])
+
+	return v.reconstructSubtree(optimalPath.(path))
 }
 
 // sortablePaths sort helpers.
@@ -611,6 +607,9 @@ type sortablePaths struct {
 	paths     []path
 	matcher   SQLExpr
 	logger    *log.Logger
+
+	// mergePotentials holds the merge potential for candidate paths
+	mergePotentials map[string]int
 }
 
 func (s sortablePaths) Len() int {
@@ -624,9 +623,20 @@ func (s sortablePaths) Less(i, j int) bool {
 	// preference to candidates with higher merge potentials since
 	// we'll eventually be blocked on a lookup with the subquery
 	if !s.optimizer.hasSubquery {
+		// TODO: use faster keying method?
+		leftName, rightName := leftEdges.String(), rightEdges.String()
 
-		leftMergePotential := s.mergeTablesPotential(leftEdges)
-		rightMergePotential := s.mergeTablesPotential(rightEdges)
+		leftMergePotential, ok := s.mergePotentials[leftName]
+		if !ok {
+			leftMergePotential = s.mergeTablesPotential(leftEdges)
+			s.mergePotentials[leftName] = leftMergePotential
+		}
+
+		rightMergePotential, ok := s.mergePotentials[rightName]
+		if !ok {
+			rightMergePotential = s.mergeTablesPotential(rightEdges)
+			s.mergePotentials[rightName] = rightMergePotential
+		}
 
 		if leftMergePotential != rightMergePotential {
 			return leftMergePotential < rightMergePotential
@@ -666,6 +676,19 @@ func (s sortablePaths) Less(i, j int) bool {
 	}
 
 	return true
+}
+
+func (s *sortablePaths) Pop() interface{} {
+	if len(s.paths) == 0 {
+		return nil
+	}
+	p := s.paths[len(s.paths)-1]
+	s.paths = s.paths[:len(s.paths)-1]
+	return p
+}
+
+func (s *sortablePaths) Push(p interface{}) {
+	s.paths = append(s.paths, p.(path))
 }
 
 func (s sortablePaths) Swap(i, j int) {
