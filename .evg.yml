@@ -744,6 +744,18 @@ tasks:
   name: test-drdl-ssl
   tags: ["test", "config"]
 
+- <<: *run-config-test
+  name: test-log-rotation-none
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-log-rotation-once
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-log-rotation-twice
+  tags: ["test", "config"]
+
 - name: tpch-handwritten-denormalized
   tags:
     - oneoff-task

@@ -78,7 +78,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS COLLATION PROCESSLIST STATUS CHARSET
 %token <empty> EXPLAIN DESCRIBE
 %token <empty> EXTENDED PARTITIONS FORMAT TRADITIONAL JSON
-%token <empty> KILL
+%token <empty> KILL FLUSH
 %token <empty> CONNECTION QUERY
 %token <empty> SESSION GLOBAL 
 %token <empty> TEMPORARY RESTRICT CASCADE
@@ -112,6 +112,7 @@ func ForceEOF(yylex interface{}) {
 %type <selStmt> select_statement
 %type <statement> set_statement use_statement show_statement explain_statement explainable_stmt
 %type <statement> kill_statement drop_statement
+%type <statement> flush_statement
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
 %type <str> all_any_some
@@ -193,6 +194,7 @@ command:
 | explain_statement
 | use_statement
 | drop_statement
+| flush_statement
 
 
 select_statement:
@@ -254,6 +256,12 @@ drop_statement:
   DROP temporary_opt TABLE exists_opt table_name cascade_or_restrict_opt
   {
     $$ = &DropTable{Name: $5, Temporary: $2, Exists: $4, Opt: $6 }
+  }
+
+flush_statement:
+  FLUSH LOGS
+  {
+    $$ = &Flush{}
   }
 
 temporary_opt:

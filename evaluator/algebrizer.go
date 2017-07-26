@@ -36,6 +36,8 @@ func AlgebrizeCommand(stmt parser.Statement, dbName string, vars *variable.Conta
 		return algebrizer.translateKill(typedStmt)
 	case *parser.Set:
 		return algebrizer.translateSet(typedStmt)
+	case *parser.Flush:
+		return algebrizer.translateFlush(typedStmt)
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, fmt.Sprintf("statement %T", typedStmt))
 	}
@@ -261,6 +263,10 @@ func (a *algebrizer) isAggFunction(name string) bool {
 	default:
 		return false
 	}
+}
+
+func (a *algebrizer) translateFlush(flush *parser.Flush) (*FlushCommand, error) {
+	return NewFlushCommand(), nil
 }
 
 func (a *algebrizer) translateGroupBy(groupby parser.GroupBy) ([]SQLExpr, error) {

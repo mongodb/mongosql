@@ -2461,6 +2461,12 @@ func TestAlgebrizeCommand(t *testing.T) {
 		})
 	})
 
+	Convey("Subject: Algebrize Flush Statements", t, func() {
+		test("flush logs", func() command {
+			return NewFlushCommand()
+		})
+	})
+
 	Convey("Subject: Algebrize Set Statements", t, func() {
 		test("set @t1 = 132", func() command {
 			return NewSetCommand(

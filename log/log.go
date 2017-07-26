@@ -45,11 +45,12 @@ var (
 )
 
 type Logger struct {
-	mutex     *sync.Mutex
-	writer    io.Writer
-	format    string
-	verbosity int
-	component string
+	mutex      *sync.Mutex
+	writer     io.Writer
+	format     string
+	verbosity  int
+	component  string
+	rotateFunc rotateFunc
 }
 
 type VerbosityLevel interface {
@@ -65,10 +66,6 @@ func (lg *Logger) Errf(minVerbosity int, format string, a ...interface{}) {
 
 func (lg *Logger) GetComponent() string {
 	return lg.component
-}
-
-func (lg *Logger) log(msg string) {
-	fmt.Fprintf(lg.writer, "%v %v\n", time.Now().Format(lg.format), msg)
 }
 
 func (lg *Logger) Log(minVerbosity int, format string) {
@@ -105,8 +102,24 @@ func (lg *Logger) SetVerbosity(level VerbosityLevel) {
 	}
 }
 
-func (lg *Logger) SetWriter(writer io.Writer) {
+func (lg *Logger) SetOutputWriter(writer io.Writer) {
 	lg.writer = writer
+	lg.rotateFunc = func() (string, error) {
+		return "", fmt.Errorf("Cannot rotate arbitrary io.Writer")
+	}
+}
+
+func (lg *Logger) SetOutputFile(filename string, append bool, rotationStrategy string) error {
+	w, rotate, err := newRotatingFile(filename, append, rotationStrategy)
+	if err == nil {
+		lg.writer = w
+		lg.rotateFunc = rotate
+	}
+	return err
+}
+
+func (lg *Logger) Rotate() (string, error) {
+	return lg.rotateFunc()
 }
 
 func (lg *Logger) writelog(minVerbosity int, msg string) {
@@ -133,12 +146,16 @@ func NewLogger(verbosity VerbosityLevel) *Logger {
 }
 
 func NewComponentLogger(component string, logger Logger) *Logger {
+	noRotate := func() (string, error) {
+		return "", fmt.Errorf("Cannot rotate logs from component logger")
+	}
 	lg := &Logger{
-		mutex:     logger.mutex,
-		writer:    logger.writer,
-		format:    logger.format,
-		verbosity: logger.verbosity,
-		component: component,
+		mutex:      logger.mutex,
+		writer:     logger.writer,
+		format:     logger.format,
+		verbosity:  logger.verbosity,
+		component:  component,
+		rotateFunc: noRotate,
 	}
 	return lg
 }
@@ -194,14 +211,18 @@ func SetVerbosity(verbosity VerbosityLevel) {
 	globalLogger.SetVerbosity(verbosity)
 }
 
-func SetWriter(writer io.Writer) {
-	globalLogger.SetWriter(writer)
+func SetOutputWriter(writer io.Writer) {
+	globalLogger.SetOutputWriter(writer)
+}
+
+func SetOutputFile(filename string, append bool, rotationStrategy string) error {
+	return globalLogger.SetOutputFile(filename, append, rotationStrategy)
 }
 
 func SetDateFormat(dateFormat string) {
 	globalLogger.SetDateFormat(dateFormat)
 }
 
-func Writer(minVerbosity int) io.Writer {
-	return globalLogger.Writer(minVerbosity)
+func Rotate() (string, error) {
+	return globalLogger.Rotate()
 }

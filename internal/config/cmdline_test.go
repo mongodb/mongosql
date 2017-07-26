@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/log"
 )
 
 func TestParseArgs_Valid(t *testing.T) {
@@ -24,6 +25,7 @@ func TestParseArgs_Valid(t *testing.T) {
 
 		// Log
 		"--logAppend",
+		"--logRotate", "reopen",
 		"--logPath", "temp",
 		"--quiet",
 		"-vv",
@@ -63,7 +65,8 @@ func TestParseArgs_Valid(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	testBool(t, cfg.SystemLog.LogAppend, true, "cfg.SystemLog.Append")
+	testBool(t, cfg.SystemLog.LogAppend, true, "cfg.SystemLog.LogAppend")
+	testString(t, cfg.SystemLog.LogRotate, log.Reopen, "cfg.SystemLog.LogRotate")
 	testString(t, cfg.SystemLog.Path, "temp", "cfg.SystemLog.Quiet")
 	testBool(t, cfg.SystemLog.Quiet, true, "cfg.SystemLog.Quiet")
 	testInt(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	. "github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/log"
 )
 
 func TestParseYaml_Valid(t *testing.T) {
@@ -14,6 +15,7 @@ func TestParseYaml_Valid(t *testing.T) {
 	err := ParseYaml(cfg, bytes.NewBufferString(`
 systemLog:
   logAppend: true
+  logRotate: "reopen"
   path: temp
   quiet: true
   verbosity: 2
@@ -78,7 +80,8 @@ processManagement:
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	testBool(t, cfg.SystemLog.LogAppend, true, "cfg.SystemLog.Append")
+	testBool(t, cfg.SystemLog.LogAppend, true, "cfg.SystemLog.LogAppend")
+	testString(t, cfg.SystemLog.LogRotate, log.Reopen, "cfg.SystemLog.LogRotate")
 	testString(t, cfg.SystemLog.Path, "temp", "cfg.SystemLog.Quiet")
 	testBool(t, cfg.SystemLog.Quiet, true, "cfg.SystemLog.Quiet")
 	testInt(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")

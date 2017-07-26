@@ -383,5 +383,15 @@ func TestUsing(t *testing.T) {
 	testParseError(t, sql)
 
 	sql = "select bar.d, baz.a from bar join baz using ()"
+}
+
+func TestFlush(t *testing.T) {
+	sql := "flush logs"
+	testParse(t, sql)
+
+	sql = "flush tables"
+	testParseError(t, sql)
+
+	sql = "flush"
 	testParseError(t, sql)
 }

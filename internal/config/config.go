@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/log"
 )
 
 var (
@@ -91,6 +92,8 @@ func Default() *Config {
 
 	cfg.Schema.Sample.SampleSize = 1000
 
+	cfg.SystemLog.LogRotate = log.Rename
+
 	return cfg
 }
 
@@ -163,6 +166,19 @@ func Validate(cfg *Config) error {
 			"mechanism '%v'", cfg.MongoDB.Net.Auth.Mechanism)
 	}
 
+	switch cfg.SystemLog.LogRotate {
+	case log.Rename:
+		// this is valid
+	case log.Reopen:
+		if !cfg.SystemLog.LogAppend {
+			return fmt.Errorf("When using 'reopen' log rotation strategy, " +
+				"logAppend must be turned on with --logAppend or in a " +
+				"configuration file at systemLog.logAppend")
+		}
+	default:
+		return fmt.Errorf("Unsupported log rotation strategy '%s'", cfg.SystemLog.LogRotate)
+	}
+
 	return nil
 }
 
@@ -182,14 +198,11 @@ type Config struct {
 
 // SystemLog holds logging configuration.
 type SystemLog struct {
+	LogRotate string
 	LogAppend bool
 	Path      string
 	Quiet     bool
 	Verbosity int
-}
-
-func (c *SystemLog) validate() error {
-	return nil
 }
 
 // Runtime holds runtime configuration.

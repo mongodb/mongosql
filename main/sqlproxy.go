@@ -151,16 +151,8 @@ func (p *program) initLog() error {
 	})
 
 	if len(p.cfg.SystemLog.Path) > 0 {
-		mode := os.O_CREATE | os.O_WRONLY
 
-		if p.cfg.SystemLog.LogAppend {
-			mode = mode | os.O_APPEND
-		} else {
-			mode = mode | os.O_TRUNC
-		}
-
-		var err error
-		p.logfile, err = os.OpenFile(p.cfg.SystemLog.Path, mode, 0666)
+		err := log.SetOutputFile(p.cfg.SystemLog.Path, p.cfg.SystemLog.LogAppend, p.cfg.SystemLog.LogRotate)
 		if err != nil {
 			return err
 		}
@@ -169,7 +161,6 @@ func (p *program) initLog() error {
 			fmt.Fprintf(os.Stdout, "log output directed to %s\n", p.cfg.SystemLog.Path)
 		}
 
-		log.SetWriter(p.logfile)
 	} else if !service.Interactive() {
 		return fmt.Errorf("when running as a service, a log path must be supplied")
 	}

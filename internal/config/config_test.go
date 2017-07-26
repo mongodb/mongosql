@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	. "github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/log"
 )
 
 func TestDefault(t *testing.T) {
 	cfg := Default()
 
-	testBool(t, cfg.SystemLog.LogAppend, false, "cfg.SystemLog.Append")
+	testBool(t, cfg.SystemLog.LogAppend, false, "cfg.SystemLog.LogAppend")
+	testString(t, cfg.SystemLog.LogRotate, log.Rename, "cfg.SystemLog.LogRotate")
 	testString(t, cfg.SystemLog.Path, "", "cfg.SystemLog.Quiet")
 	testBool(t, cfg.SystemLog.Quiet, false, "cfg.SystemLog.Quiet")
 	testInt(t, cfg.SystemLog.Verbosity, 0, "cfg.SystemLog.Verbosity")
@@ -263,6 +265,21 @@ func TestValidate_UnixDomainSocket(t *testing.T) {
 	}
 
 	expected := "filePermissions must be valid octal"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_LogRotate_unsupported(t *testing.T) {
+	cfg := Default()
+	cfg.SystemLog.LogRotate = "asdfasdf"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none", err)
+	}
+
+	expected := "Unsupported log rotation strategy 'asdfasdf'"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}

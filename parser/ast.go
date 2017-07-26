@@ -936,3 +936,11 @@ type Kill struct {
 func (node *Kill) Format(buf *TrackedBuffer) {
 	buf.Fprintf("kill %s %v", node.Scope, node.ID)
 }
+
+func (*Flush) IStatement() {}
+
+type Flush struct{}
+
+func (_ *Flush) Format(buf *TrackedBuffer) {
+	buf.Fprintf("flush logs")
+}
