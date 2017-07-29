@@ -1287,6 +1287,33 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					)
 
+					test("select * from foo join (bar join baz on bar.a = baz.a) on foo.a = bar.a",
+						[]bson.D{
+							{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "bar",
+								"localField":   "a",
+								"foreignField": "a",
+								"as":           "__joined_bar",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_bar",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$match", bson.M{"__joined_bar.a": bson.M{"$ne": nil}}}},
+							{{"$lookup", bson.M{
+								"from":         "baz",
+								"localField":   "__joined_bar.a",
+								"foreignField": "a",
+								"as":           "__joined_baz",
+							}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_baz",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+						},
+					)
+
 					test("select * from foo f join merge m1 on f._id=m1._id join merge_d_a m2 on m2._id=f._id and m2._id=m1._id",
 						[]bson.D{
 							{{"$unwind", bson.D{

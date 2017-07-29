@@ -20,9 +20,10 @@ func optimizeInnerJoins(n node, ctx *EvalCtx, logger *log.Logger) (node, error) 
 
 func newInnerJoinOptimizer(ctx ConnectionCtx, logger *log.Logger) *innerJoinOptimizer {
 	return &innerJoinOptimizer{
-		logger:  logger,
-		ctx:     ctx,
-		sources: make(map[string]innerJoinSource),
+		logger:           logger,
+		ctx:              ctx,
+		ancestorsAreLeft: true,
+		sources:          make(map[string]innerJoinSource),
 	}
 }
 
@@ -39,16 +40,23 @@ type innerJoinOptimizer struct {
 	sortablePaths *sortablePaths
 	logger        *log.Logger
 	ctx           ConnectionCtx
+
 	// nPlanStages holds the number of PlanStages contained within the
 	// subtree visited by this optimizer
 	nPlanStages int
+
 	// hasSubquery is true if a subquery is within the set of data
 	// sources referenced in this inner join subtree. We use this to
 	// decide whether to compute merge preference for candidates
 	hasSubquery bool
+
 	// optimizedSubtree holds the optimized version for this inner join
 	// subtree
 	optimizedSubtree node
+
+	// ancestorsAreLeft is used to track a traversal path that exclusively
+	// branches left
+	ancestorsAreLeft bool
 }
 
 // innerJoinTerms holds every SQLExpr used in an ON clause and
@@ -191,10 +199,15 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 
 				independentlyOptimizeChildren = false
 
+				oldAncestorsAreLeft := v.ancestorsAreLeft
+				v.ancestorsAreLeft = false
+
 				newRight, err := v.visit(typedN.right)
 				if err != nil {
 					return nil, err
 				}
+
+				v.ancestorsAreLeft = oldAncestorsAreLeft
 
 				newLeft, err := v.visit(typedN.left)
 				if err != nil {
@@ -248,7 +261,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 			return n, nil
 		}
 
-		if v.atReorderingLeaf(typedN.left) {
+		if v.ancestorsAreLeft && v.atReorderingLeaf(typedN.left) {
 			v.optimizedSubtree, err = v.reorderInnerJoins()
 		}
 
