@@ -1207,3 +1207,319 @@ testcases:
   expected:
   - [4, 0, 10, ~, 10, ~, ~, ~]
   - [3, 1, 11, 1, 11, 1, 2, ~]
+- sql: "select * from foo natural join bar"
+  id: 'natural_simple'
+  db: join_test
+  description: ""
+  expected_names: ["id", "a", "b", "c", "d"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 1, ~, 10, ~]
+  - [1, 2, 1, 11, 1]
+- sql: "select * from (select foo.a from foo) as fooa natural join bar"
+  id: 'natural_noCommonCols'
+  db: join_test
+  description: ""
+  expected_names: ["a", "id", "c", "d"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [1, 0, 10, ~]
+  - [1, 1, 11, 1]
+  - [1, 20, 30, ~]
+  - [2, 0, 10, ~]
+  - [2, 1, 11, 1]
+  - [2, 20, 30, ~]
+  - [3, 0, 10, ~]
+  - [3, 1, 11, 1]
+  - [3, 20, 30, ~]
+- sql: "select * from bar natural join barbaz"
+  id: 'natural_multipleCommonColumns'
+  db: join_test
+  description: ""
+  expected_names: ["id", "c", "d", "b", "e"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 10, ~, 5, 3]
+  - [1, 11, 1, 8, 5]
+  - [20, 30, ~, ~, ~]
+- sql: "select * from foo natural join bar where foo.id=bar.d"
+  id: 'natural_whereClause'
+  db: join_test
+  description: ""
+  expected_names: ["id", "a", "b", "c", "d"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [1, 2, 1, 11, 1]
+- sql: "select foo.id, bar.id from foo join bar natural join barbaz"
+  id: 'natural_twoJoinsOneNatural'
+  db: join_test
+  description: ""
+  expected_names: ["id", "id"]
+  expected_types: [int, int]
+  expected:
+  - [0, 0]
+  - [0, 1]
+  - [0, 20]
+  - [1, 0]
+  - [1, 1]
+  - [1, 20]
+  - [2, 0]
+  - [2, 1]
+  - [2, 20]
+- sql: "select foo.id, bar.id from bar join foo natural join barbaz"
+  id: 'natural_sameQueryLeftTablesSwitched'
+  db: join_test
+  description: ""
+  expected_names: ["id", "id"]
+  expected_types: [int, int]
+  expected: []
+- sql: "select foo.id, barbaz.id from foo natural join bar join barbaz"
+  id: 'natural_naturalThenJoin'
+  db: join_test
+  description: ""
+  expected_names: ["id", "id"]
+  expected_types: [int, int]
+  expected:
+  - [0, 0]
+  - [0, 1]
+  - [0, 20]
+  - [1, 0]
+  - [1, 1]
+  - [1, 20]
+- sql: "select bar.id from bar natural join barbaz natural join foo"
+  id: 'natural_twoJoinsBothNatural'
+  db: join_test
+  description: ""
+  expected_names: ["id"]
+  expected_types: [int]
+  expected: []
+- sql: "select * from bar join foo using (id) natural join parent"
+  id: 'natural_naturalJoinWithUsing'
+  db: join_test
+  description: ""
+  expected_names: ["id", "a", "c", "d", "b"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 1, 10, ~, ~]
+- sql: "select * from (select bar.*, foo.a, foo.b from bar join foo) as foobar natural join parent"
+  id: 'natural_naturalJoinWithSubquery'
+  db: join_test
+  description: ""
+  expected_names: ["id", "a", "c", "d", "b"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 1, 10, ~, ~]
+  - [1, 1, 11, 1, ~]
+- sql: "select foo.id, bar.id from foo natural join bar"
+  id: 'natural_duplicateColumnsWhenSpecified'
+  db: join_test
+  description: ""
+  expected_names: ["id", "id"]
+  expected_types: [int, int]
+  expected:
+  - [0, 0]
+  - [1, 1]
+- sql: "select foo.*, bar.* from foo natural join bar"
+  id: 'natural_qualifiedStar'
+  db: join_test
+  description: ""
+  expected_names: ["id", "a", "b", "id", "c", "d"]
+  expected_types: [int, int, int, int, int, int]
+  expected:
+  - [0, 1, ~, 0, 10, ~]
+  - [1, 2, 1, 1, 11, 1]
+- sql: "select * from foo straight_join bar natural join baz"
+  id: 'natural_straight'
+  db: join_test
+  description: ""
+  expected_names: ["id", "a", "b", "id", "c", "d", "a"]
+  expected_types: [int, int, int, int, int, int, int]
+  expected:
+  - [0, 1, ~, 1, 11, 1, 3]
+  - [1, 2, 1, 1, 11, 1, 3]
+  - [2, 3, ~, 1, 11, 1, 3]
+- sql: "select * from bar left join baz using (id, c, d) natural join barbaz"
+  id: 'natural_withLeft'
+  db: join_test
+  description: ""
+  expected_names: ["id", "c", "d", "a", "b", "e"]
+  expected_types: [int, int, int, int, int, int]
+  expected:
+  - [0, 10, ~, ~, 5, 3]
+  - [1, 11, 1, 3, 8, 5]
+  - [20, 30, ~, ~, ~, ~] 
+- sql: "select * from bar right join baz using (id, c, d) natural join barbaz"
+  id: 'natural_withRight'
+  db: join_test
+  description: ""
+  expected_names: ["id", "c", "d", "a", "b", "e"]
+  expected_types: [int, int, int, int, int, int]
+  expected:
+  - [0, 10, ~, 4, 5, 3]
+  - [1, 11, 1, 3, 8, 5]
+- sql: "select * from bar join baz natural join barbaz using (id, c, d)"
+  id: 'natural_twoJoinsPredicateAtEnd'
+  db: join_test
+  description: ""
+  expected_names: ["id", "c", "d", "a", "b", "e"]
+  expected_types: [int, int, int, int, int, int]
+  expected:
+  - [1, 11, 1, 3, 8, 5]
+- sql: "select * from foo natural right join bar"
+  id: 'natural_simpleRight'
+  db: join_test
+  description: ""
+  expected_names: ["id", "c", "d", "a", "b"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 10, ~, 1, ~]
+  - [1, 11, 1, 2, 1]
+  - [20, 30, ~, ~, ~]
+- sql: "select * from foo natural left join bar"
+  id: 'natural_simpleLeft'
+  db: join_test
+  description: ""
+  expected_names: ["id", "a", "b", "c", "d"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 1, ~, 10, ~]
+  - [1, 2, 1, 11, 1]
+  - [2, 3, ~, ~, ~]
+- sql: "select * from foo natural right outer join bar"
+  id: 'natural_simpleRightOuter'
+  db: join_test
+  description: ""
+  expected_names: ["id", "c", "d", "a", "b"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 10, ~, 1, ~]
+  - [1, 11, 1, 2, 1]
+  - [20, 30, ~, ~, ~]
+- sql: "select * from foo natural left outer join bar"
+  id: 'natural_simpleLeftOuter'
+  db: join_test
+  description: ""
+  expected_names: ["id", "a", "b", "c", "d"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 1, ~, 10, ~]
+  - [1, 2, 1, 11, 1]
+  - [2, 3, ~, ~, ~]
+- sql: "select baz.id, bar.id, foo.id from baz join foo natural right join bar"
+  id: 'natural_rightWithExprOnLeft'
+  db: join_test
+  description: ""
+  expected_names: ["id", "id", "id"]
+  expected_types: [int, int, int]
+  expected:
+  - [0, 0, 0]
+  - [0, 1, 1]
+  - [0, 20, ~]
+  - [1, 0, 0]
+  - [1, 1, 1]
+  - [1, 20, ~]
+  - [2, 0, 0]
+  - [2, 1, 1]
+  - [2, 20, ~]
+  - [3, 0, 0]
+  - [3, 1, 1]
+  - [3, 20, ~]
+- sql: "select foo.id, bar.id, baz.id from foo natural right join bar join baz"
+  id: 'natural_rightWithExprOnRight'
+  db: join_test
+  description: ""
+  expected_names: ["id", "id", "id"]
+  expected_types: [int, int, int]
+  expected:
+  - [0, 0, 0]
+  - [0, 0, 1]
+  - [0, 0, 2]
+  - [0, 0, 3]
+  - [1, 1, 0]
+  - [1, 1, 1]
+  - [1, 1, 2]
+  - [1, 1, 3]
+  - [~, 20, 0]
+  - [~, 20, 1]
+  - [~, 20, 2]
+  - [~, 20, 3]
+- sql: "select bar.id, foo.id, baz.id from foo natural left join bar join baz"
+  id: 'natural_leftWithExprOnRight'
+  db: join_test
+  description: ""
+  expected_names: ["id", "id", "id"]
+  expected_types: [int, int, int]
+  expected:
+  - [0, 0, 0]
+  - [0, 0, 1]
+  - [0, 0, 2]
+  - [0, 0, 3]
+  - [1, 1, 0]
+  - [1, 1, 1]
+  - [1, 1, 2]
+  - [1, 1, 3]
+  - [~, 2, 0]
+  - [~, 2, 1]
+  - [~, 2, 2]
+  - [~, 2, 3]
+- sql: "select bar.id, foo.id, baz.id from baz join foo natural left join bar"
+  id: 'natural_leftWithExprOnLeft'
+  db: join_test
+  description: ""
+  expected_names: ["id", "id", "id"]
+  expected_types: [int, int, int]
+  expected:
+  - [0, 0, 0]
+  - [1, 1, 0]
+  - [~, 2, 0]
+  - [0, 0, 1]
+  - [1, 1, 1]
+  - [~, 2, 1]
+  - [0, 0, 2]
+  - [1, 1, 2]
+  - [~, 2, 2]
+  - [0, 0, 3]
+  - [1, 1, 3]
+  - [~, 2, 3]
+- sql: "select * from foo right join bar using (id) natural left join baz"
+  id: 'natural_leftWithRightJoin'
+  db: join_test
+  description: ""
+  expected_names: ["id", "c", "d", "a", "b"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 10, ~, 1, ~]
+  - [1, 11, 1, 2, 1]
+  - [20, 30, ~, ~, ~]
+- sql: "select * from foo left join bar using (id) natural left join baz"
+  id: 'natural_leftWithLeftJoin'
+  db: join_test
+  description: ""
+  expected_names: ["id", "a", "c", "d", "b"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 1, 10, ~, ~]
+  - [1, 2, 11, 1, 1]
+  - [2, 3, ~, ~, ~]
+- sql: "select * from foo right join bar using (id) natural right join baz"
+  id: 'natural_rightWithRightJoin'
+  db: join_test
+  description: ""
+  expected_names: ["id", "a", "c", "d", "b"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 4, 10, ~, ~]
+  - [1, 3, 11, 1, ~]
+  - [2, 14, 30, ~, ~]
+  - [3, ~, 30, ~, ~]
+- sql: "select * from foo left join bar using (id) natural right join baz"
+  id: 'natural_rightWithLeftJoin'
+  db: join_test
+  description: ""
+  expected_names: ["id", "a", "c", "d", "b"]
+  expected_types: [int, int, int, int, int]
+  expected:
+  - [0, 4, 10, ~, ~]
+  - [1, 3, 11, 1, ~]
+  - [2, 14, 30, ~, ~]
+  - [3, ~, 30, ~, ~]

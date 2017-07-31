@@ -180,17 +180,17 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 			right := typedN.right
 
 			// for inner joins, attempt to optimize by flipping children
-			if typedN.kind == InnerJoin {
+			if typedN.kind == innerJoin {
 				v.logger.Warnf(log.DebugHigh, "attempting to optimize inner join via flip")
 				j := NewJoinStage(typedN.kind, typedN.right, typedN.left, typedN.matcher)
 				newJ, err := v.visitJoin(j)
 				if err == nil {
 					n = newJ
 				}
-			} else if typedN.kind == RightJoin {
+			} else if typedN.kind == rightJoin {
 				// for right joins, attempt to optimize using a left join
 				v.logger.Warnf(log.DebugHigh, "attempting to optimize right join via flip")
-				j := NewJoinStage(LeftJoin, typedN.right, typedN.left, typedN.matcher)
+				j := NewJoinStage(leftJoin, typedN.right, typedN.left, typedN.matcher)
 				newJ, err := v.visitJoin(j)
 				if err == nil {
 					n = newJ
@@ -1134,7 +1134,7 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 	remainingPredicate := combineExpressions(filterJoinCriteria(join.matcher,
 		false))
 	if remainingPredicate != nil {
-		if join.kind == InnerJoin || join.kind == StraightJoin {
+		if join.kind == innerJoin || join.kind == straightJoin {
 			v.logger.Logf(log.DebugHigh, "join merge: creating filter "+
 				"stage for remaining predicate: %v",
 				remainingPredicate.String())
@@ -1185,21 +1185,21 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	// sharded. Flipping these around would make this difficult for a user to fix. Instead, we'll
 	// just tell them to make their right outer joins -> left outer joins.
 	var localSource, foreignSource PlanStage
-	var joinKind JoinKind
+	var kind joinKind
 
 	switch join.kind {
-	case InnerJoin:
+	case innerJoin:
 		localSource = join.left
 		foreignSource = join.right
-		joinKind = InnerJoin
-	case LeftJoin:
+		kind = innerJoin
+	case leftJoin:
 		localSource = join.left
 		foreignSource = join.right
-		joinKind = LeftJoin
-	case StraightJoin:
+		kind = leftJoin
+	case straightJoin:
 		localSource = join.left
 		foreignSource = join.right
-		joinKind = StraightJoin
+		kind = straightJoin
 	default:
 		v.logger.Warnf(log.DebugHigh, "cannot push down %v", join.kind)
 		return join, nil
@@ -1311,7 +1311,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	// 6. build the pipeline
 	pipeline := msLocal.pipeline
 
-	if joinKind == InnerJoin || joinKind == StraightJoin {
+	if kind == innerJoin || kind == straightJoin {
 		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
 		// $match to ensure account for this incompatibility. Effectively, we eliminate the
 		// left hand document when the left hand field is null.
@@ -1328,7 +1328,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	pipeline = append(pipeline, bson.D{{"$lookup", lookup}})
 
-	if joinKind == LeftJoin {
+	if kind == leftJoin {
 		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
 		// $project to ensure account for this incompatibility. Effectively, when our left
 		// hand field is null, we'll empty the joined results prior to unwinding.
@@ -1360,7 +1360,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	unwind := bson.D{{
 		"$unwind", bson.M{
 			"path": "$" + asField,
-			"preserveNullAndEmptyArrays": joinKind == LeftJoin,
+			"preserveNullAndEmptyArrays": kind == leftJoin,
 		},
 	}}
 
@@ -1372,7 +1372,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		lookupOnArrayField = strings.Split(foreignFieldName, ".")[0] == oldForeignPath[1:]
 	}
 
-	if lookupInfo.remainingPredicate != nil && joinKind == LeftJoin {
+	if lookupInfo.remainingPredicate != nil && kind == leftJoin {
 		if lookupOnArrayField && len(strings.Split(foreignFieldName, ".")) > 1 {
 			v.logger.Warnf(log.DebugHigh, "unable to translate left join "+
 				"stage to lookup: lookup on nested array field")
@@ -1423,7 +1423,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		}
 
 		unwind = append(unwind, bson.DocElem{"preserveNullAndEmptyArrays",
-			join.kind == LeftJoin})
+			join.kind == leftJoin})
 
 		v.logger.Warnf(log.DebugHigh, "consolidating foreign unwind "+
 			"into local pipeline")
@@ -1456,7 +1456,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 			predicateEvaluationStage := bson.D{{stageName, stageBody}}
 
 			match := bson.M{fieldName: true}
-			if join.kind == LeftJoin {
+			if join.kind == leftJoin {
 				// for left joins, we need to ensure we retain records
 				// from the left child - in case the unwound array was
 				// empty or null
@@ -1478,7 +1478,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	ms.pipeline = pipeline
 	ms.mappingRegistry = newMappingRegistry
 
-	if lookupInfo.remainingPredicate != nil && (joinKind == InnerJoin || joinKind == StraightJoin) {
+	if lookupInfo.remainingPredicate != nil && (kind == innerJoin || kind == straightJoin) {
 		f, err := v.visit(NewFilterStage(ms, lookupInfo.remainingPredicate))
 		if err != nil {
 			return nil, err
@@ -1547,7 +1547,7 @@ type consolidatedPipeline struct {
 	arrayPathIndexes []string
 }
 
-func (v *pushDownOptimizer) mergePipeline(local, foreign *MongoSourceStage, joinKind JoinKind) (*consolidatedPipeline, error) {
+func (v *pushDownOptimizer) mergePipeline(local, foreign *MongoSourceStage, kind joinKind) (*consolidatedPipeline, error) {
 	pipeline := &consolidatedPipeline{}
 
 	augmentProjection := func(stage interface{}) (bson.D, error) {
@@ -1628,7 +1628,7 @@ func (v *pushDownOptimizer) mergePipeline(local, foreign *MongoSourceStage, join
 				pipeline.arrayPaths = append(pipeline.arrayPaths, path)
 				pipeline.arrayPathIndexes = append(pipeline.arrayPathIndexes, arrayIdx)
 				_, ok = fields["preserveNullAndEmptyArrays"]
-				if !ok && joinKind == LeftJoin && !isLocal {
+				if !ok && kind == leftJoin && !isLocal {
 					unwind = append(unwind, bson.DocElem{"preserveNullAndEmptyArrays", true})
 				}
 				pipeline.stages = append(pipeline.stages, bson.D{{"$unwind", unwind}})

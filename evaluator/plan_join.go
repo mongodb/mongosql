@@ -7,7 +7,6 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/util"
-	"github.com/10gen/sqlproxy/parser"
 )
 
 // JoinStrategy specifies the method a Join
@@ -18,19 +17,6 @@ const (
 	NestedLoop JoinStrategy = iota
 	SortMerge
 	Hash
-)
-
-// JoinKind specifies the the type of join for
-// a given joiner.
-type JoinKind string
-
-const (
-	InnerJoin    JoinKind = parser.AST_JOIN
-	StraightJoin JoinKind = parser.AST_STRAIGHT_JOIN
-	LeftJoin     JoinKind = parser.AST_LEFT_JOIN
-	RightJoin    JoinKind = parser.AST_RIGHT_JOIN
-	CrossJoin    JoinKind = parser.AST_CROSS_JOIN
-	NaturalJoin  JoinKind = parser.AST_NATURAL_JOIN
 )
 
 type JoinChild byte
@@ -46,7 +32,7 @@ type NestedLoopJoiner struct {
 	matcher      SQLExpr
 	leftColumns  []*Column
 	rightColumns []*Column
-	kind         JoinKind
+	kind         joinKind
 	collation    *collation.Collation
 	errChan      chan error
 }
@@ -62,11 +48,11 @@ type Joiner interface {
 type JoinStage struct {
 	left, right PlanStage
 	matcher     SQLExpr
-	kind        JoinKind
+	kind        joinKind
 	strategy    JoinStrategy
 }
 
-func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr) *JoinStage {
+func NewJoinStage(kind joinKind, left, right PlanStage, predicate SQLExpr) *JoinStage {
 	return &JoinStage{
 		kind:    kind,
 		left:    left,
@@ -249,7 +235,7 @@ func (join *JoinStage) clone() *JoinStage {
 // strategy. The implementation uses the supplied matcher in
 // evaluating the join criteria and performs joins according
 // to the joinType
-func NewJoiner(ctx *ExecutionCtx, s JoinStrategy, kind JoinKind, collation *collation.Collation, matcher SQLExpr, leftColumns, rightColumns []*Column, errChan chan error) Joiner {
+func NewJoiner(ctx *ExecutionCtx, s JoinStrategy, kind joinKind, collation *collation.Collation, matcher SQLExpr, leftColumns, rightColumns []*Column, errChan chan error) Joiner {
 
 	switch s {
 	case NestedLoop:
@@ -344,31 +330,30 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context, lChan, rChan <-chan *Row,
 	ch := make(chan Values)
 
 	switch nlp.kind {
-	case CrossJoin:
+	case crossJoin:
 		util.PanicSafeGo(func() {
 			nlp.crossJoin(ctx, left, right, ch, execCtx)
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
-	case InnerJoin, StraightJoin:
+	case innerJoin, straightJoin:
 		util.PanicSafeGo(func() {
 			nlp.innerJoin(ctx, left, right, ch, execCtx)
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
-	case LeftJoin:
+	case leftJoin:
 		util.PanicSafeGo(func() {
 			nlp.leftJoin(ctx, left, right, ch, execCtx, getNilValues(nlp.rightColumns))
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
-	case RightJoin:
+	case rightJoin:
 		util.PanicSafeGo(func() {
 			nlp.rightJoin(ctx, left, right, ch, execCtx, getNilValues(nlp.leftColumns))
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
-	case NaturalJoin:
 	}
 
 	return ch

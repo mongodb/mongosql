@@ -66,7 +66,7 @@ var (
 	}
 )
 
-func setupJoinOperator(on SQLExpr, kind JoinKind) PlanStage {
+func setupJoinOperator(on SQLExpr, kind joinKind) PlanStage {
 
 	ms1 := NewBSONSourceStage(1, tableOneName, collation.Default, customers)
 	ms2 := NewBSONSourceStage(1, tableTwoName, collation.Default, orders)
@@ -120,7 +120,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		Convey("an inner join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, InnerJoin)
+			operator := setupJoinOperator(criteria, innerJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -153,7 +153,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		Convey("a left join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, LeftJoin)
+			operator := setupJoinOperator(criteria, leftJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -187,7 +187,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		Convey("a right join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, RightJoin)
+			operator := setupJoinOperator(criteria, rightJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -220,7 +220,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		Convey("a cross join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, CrossJoin)
+			operator := setupJoinOperator(criteria, crossJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -246,7 +246,7 @@ func TestJoinPlanStage(t *testing.T) {
 
 		Convey("a straight join should return correct results", func() {
 
-			operator := setupJoinOperator(criteria, StraightJoin)
+			operator := setupJoinOperator(criteria, straightJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -318,7 +318,7 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 
 		Convey("inner join", func() {
 
-			operator := setupJoinOperator(criteria, InnerJoin)
+			operator := setupJoinOperator(criteria, innerJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -332,7 +332,7 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 
 		Convey("left join", func() {
 
-			operator := setupJoinOperator(criteria, LeftJoin)
+			operator := setupJoinOperator(criteria, leftJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -346,7 +346,7 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 
 		Convey("right join", func() {
 
-			operator := setupJoinOperator(criteria, RightJoin)
+			operator := setupJoinOperator(criteria, rightJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)
@@ -360,7 +360,7 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 
 		Convey("cross join", func() {
 
-			operator := setupJoinOperator(nil, RightJoin)
+			operator := setupJoinOperator(nil, rightJoin)
 
 			iter, err := operator.Open(ctx)
 			So(err, ShouldBeNil)

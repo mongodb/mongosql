@@ -905,7 +905,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select foo.a, bar.a from foo, bar", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue)
+						join := NewJoinStage(crossJoin, fooSource, barSource, SQLTrue)
 						return NewProjectStage(join,
 							createProjectedColumn(1, join, "foo", "a", "", "a"),
 							createProjectedColumn(1, join, "bar", "a", "", "a"),
@@ -915,7 +915,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select f.a, bar.a from foo f, bar", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "f")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue)
+						join := NewJoinStage(crossJoin, fooSource, barSource, SQLTrue)
 						return NewProjectStage(join,
 							createProjectedColumn(1, join, "f", "a", "", "a"),
 							createProjectedColumn(1, join, "bar", "a", "", "a"),
@@ -925,7 +925,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select f.a, b.a from foo f, bar b", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "f")
 						barSource := createMongoSource(1, "bar", "b")
-						join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue)
+						join := NewJoinStage(crossJoin, fooSource, barSource, SQLTrue)
 						return NewProjectStage(join,
 							createProjectedColumn(1, join, "f", "a", "", "a"),
 							createProjectedColumn(1, join, "b", "a", "", "a"),
@@ -935,7 +935,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select foo.a, bar.a from foo inner join bar on foo.b = bar.b", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(InnerJoin, fooSource, barSource,
+						join := NewJoinStage(innerJoin, fooSource, barSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
 								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
@@ -950,7 +950,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select foo.a, bar.a from foo join bar on foo.b = bar.b", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(InnerJoin, fooSource, barSource,
+						join := NewJoinStage(innerJoin, fooSource, barSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
 								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
@@ -965,7 +965,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select foo.a, bar.a from foo left outer join bar on foo.b = bar.b", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(LeftJoin, fooSource, barSource,
+						join := NewJoinStage(leftJoin, fooSource, barSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
 								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
@@ -980,7 +980,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select foo.a, bar.a from foo right outer join bar on foo.b = bar.b", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(RightJoin, fooSource, barSource,
+						join := NewJoinStage(rightJoin, fooSource, barSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
 								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
@@ -994,7 +994,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select foo.a, bar.a from foo straight_join bar on foo.b = bar.b", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(StraightJoin, fooSource, barSource,
+						join := NewJoinStage(straightJoin, fooSource, barSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(fooSource, "foo", "b"),
 								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
@@ -1009,7 +1009,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						firstJoin := NewJoinStage(InnerJoin, fooSource, barSource,
+						firstJoin := NewJoinStage(innerJoin, fooSource, barSource,
 							&SQLAndExpr{
 								left: &SQLEqualsExpr{
 									left:  createSQLColumnExprFromSource(fooSource, "foo", "a"),
@@ -1021,7 +1021,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 								},
 							},
 						)
-						secondJoin := NewJoinStage(InnerJoin, firstJoin, bazSource,
+						secondJoin := NewJoinStage(innerJoin, firstJoin, bazSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(bazSource, "baz", "b"),
 								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
@@ -1035,7 +1035,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select bar.a, baz.b from bar join baz using (b)", func() PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(InnerJoin, barSource, bazSource,
+						join := NewJoinStage(innerJoin, barSource, bazSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
 								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
@@ -1049,7 +1049,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select bar.a, baz.b from bar join baz using (a, b)", func() PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(InnerJoin, barSource, bazSource,
+						join := NewJoinStage(innerJoin, barSource, bazSource,
 							&SQLAndExpr{
 								left: &SQLEqualsExpr{
 									left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
@@ -1070,8 +1070,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 						barSource := createMongoSource(1, "bar", "bar")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
 						fooSource := createMongoSource(1, "foo", "foo")
-						firstJoin := NewJoinStage(CrossJoin, barSource, buzzSource, SQLBool(1))
-						secondJoin := NewJoinStage(InnerJoin, firstJoin, fooSource,
+						firstJoin := NewJoinStage(crossJoin, barSource, buzzSource, SQLBool(1))
+						secondJoin := NewJoinStage(innerJoin, firstJoin, fooSource,
 							&SQLAndExpr{
 								left: &SQLEqualsExpr{
 									left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
@@ -1093,13 +1093,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 						barSource := createMongoSource(1, "bar", "bar")
 						fooSource := createMongoSource(1, "foo", "foo")
 						buzzSource := createMongoSource(1, "buzz", "buzz")
-						firstJoin := NewJoinStage(InnerJoin, barSource, fooSource,
+						firstJoin := NewJoinStage(innerJoin, barSource, fooSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
 								right: createSQLColumnExprFromSource(fooSource, "foo", "a"),
 							},
 						)
-						secondJoin := NewJoinStage(InnerJoin, firstJoin, buzzSource,
+						secondJoin := NewJoinStage(innerJoin, firstJoin, buzzSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(fooSource, "foo", "c"),
 								right: createSQLColumnExprFromSource(buzzSource, "buzz", "c"),
@@ -1114,7 +1114,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select bar.a, baz.b from bar join baz using (a, a, a, a, b)", func() PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(InnerJoin, barSource, bazSource,
+						join := NewJoinStage(innerJoin, barSource, bazSource,
 							&SQLAndExpr{
 								left: &SQLEqualsExpr{
 									left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
@@ -1134,7 +1134,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select bar.a, baz.b from bar join baz using (a, b, b, b, b)", func() PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(InnerJoin, barSource, bazSource,
+						join := NewJoinStage(innerJoin, barSource, bazSource,
 							&SQLAndExpr{
 								left: &SQLEqualsExpr{
 									left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
@@ -1154,7 +1154,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select bar.a, baz.b from bar cross join baz using (b)", func() PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(InnerJoin, barSource, bazSource,
+						join := NewJoinStage(innerJoin, barSource, bazSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
 								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
@@ -1168,7 +1168,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select bar.a, baz.b from bar inner join baz", func() PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(CrossJoin, barSource, bazSource, SQLBool(1))
+						join := NewJoinStage(crossJoin, barSource, bazSource, SQLBool(1))
 						return NewProjectStage(join,
 							createProjectedColumn(1, join, "bar", "a", "", "a"),
 							createProjectedColumn(1, join, "baz", "b", "", "b"),
@@ -1178,7 +1178,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(2, "baz", "baz")
 						fooSource := createMongoSource(2, "foo", "foo")
-						subJoin := NewJoinStage(InnerJoin, bazSource, fooSource,
+						subJoin := NewJoinStage(innerJoin, bazSource, fooSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(bazSource, "baz", "a"),
 								right: createSQLColumnExprFromSource(fooSource, "foo", "a"),
@@ -1189,7 +1189,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 								createProjectedColumn(2, subJoin, "baz", "b", "", "b"),
 								createProjectedColumn(2, subJoin, "foo", "c", "", "c"),
 							), 2, "biz")
-						join := NewJoinStage(InnerJoin, barSource, bizSource,
+						join := NewJoinStage(innerJoin, barSource, bizSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
 								right: createSQLColumnExprFromSource(bizSource, "biz", "b"),
@@ -1204,7 +1204,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(2, "baz", "baz")
 						fooSource := createMongoSource(2, "foo", "foo")
-						subJoin := NewJoinStage(InnerJoin, bazSource, fooSource,
+						subJoin := NewJoinStage(innerJoin, bazSource, fooSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(bazSource, "baz", "a"),
 								right: createSQLColumnExprFromSource(fooSource, "foo", "a"),
@@ -1215,7 +1215,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 								createProjectedColumn(2, subJoin, "baz", "b", "", "b"),
 								createProjectedColumn(2, subJoin, "foo", "c", "", "c"),
 							), 2, "biz")
-						join := NewJoinStage(InnerJoin, bizSource, barSource,
+						join := NewJoinStage(innerJoin, bizSource, barSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(bizSource, "biz", "b"),
 								right: createSQLColumnExprFromSource(barSource, "bar", "b"),
@@ -1231,7 +1231,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						fooSource := createMongoSource(3, "foo", "foo")
 						bizSource := NewSubquerySourceStage(NewProjectStage(barSource, createProjectedColumn(2, barSource, "bar", "b", "", "b")), 2, "biz")
 						fizSource := NewSubquerySourceStage(NewProjectStage(fooSource, createProjectedColumn(3, fooSource, "foo", "b", "", "b")), 3, "fiz")
-						join := NewJoinStage(InnerJoin, bizSource, fizSource,
+						join := NewJoinStage(innerJoin, bizSource, fizSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(bizSource, "biz", "b"),
 								right: createSQLColumnExprFromSource(fizSource, "fiz", "b"),
@@ -1243,7 +1243,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select * from bar join baz using (b)", func() PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(InnerJoin, barSource, bazSource,
+						join := NewJoinStage(innerJoin, barSource, bazSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
 								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
@@ -1260,7 +1260,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select * from bar join baz using (_id, b)", func() PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(InnerJoin, barSource, bazSource,
+						join := NewJoinStage(innerJoin, barSource, bazSource,
 							&SQLAndExpr{
 								left: &SQLEqualsExpr{
 									left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
@@ -1282,7 +1282,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select * from bar right join baz using (b)", func() PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(RightJoin, barSource, bazSource,
+						join := NewJoinStage(rightJoin, barSource, bazSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
 								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
@@ -1299,7 +1299,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select bar.*, baz.* from bar join baz using (b)", func() PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(InnerJoin, barSource, bazSource,
+						join := NewJoinStage(innerJoin, barSource, bazSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
 								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
@@ -1317,7 +1317,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select bar.b, baz.b from bar join baz using (b)", func() PlanStage {
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join := NewJoinStage(InnerJoin, barSource, bazSource,
+						join := NewJoinStage(innerJoin, barSource, bazSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
 								right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
@@ -1331,13 +1331,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 						buzzSource := createMongoSource(1, "buzz", "buzz")
 						barSource := createMongoSource(1, "bar", "bar")
 						bazSource := createMongoSource(1, "baz", "baz")
-						join1 := NewJoinStage(InnerJoin, bazSource, barSource,
+						join1 := NewJoinStage(innerJoin, bazSource, barSource,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
 								right: createSQLColumnExprFromSource(barSource, "bar", "_id"),
 							},
 						)
-						join2 := NewJoinStage(InnerJoin, buzzSource, join1,
+						join2 := NewJoinStage(innerJoin, buzzSource, join1,
 							&SQLEqualsExpr{
 								left:  createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
 								right: createSQLColumnExprFromSource(barSource, "bar", "d"),
@@ -1353,6 +1353,274 @@ func TestAlgebrizeQuery(t *testing.T) {
 							createProjectedColumn(1, barSource, "bar", "a", "", "a"),
 							createProjectedColumn(1, barSource, "bar", "b", "", "b"),
 						)
+					})
+					test("select bar.a from bar natural join baz", func() PlanStage {
+						barSource := createMongoSource(1, "bar", "bar")
+						bazSource := createMongoSource(1, "baz", "baz")
+						join := NewJoinStage(innerJoin, barSource, bazSource,
+							&SQLAndExpr{
+								left: &SQLAndExpr{
+									left: &SQLEqualsExpr{
+										left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
+										right: createSQLColumnExprFromSource(bazSource, "baz", "a"),
+									},
+									right: &SQLEqualsExpr{
+										left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
+										right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
+									},
+								},
+								right: &SQLEqualsExpr{
+									left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
+									right: createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								},
+							},
+						)
+						return NewProjectStage(join,
+							createProjectedColumn(1, barSource, "bar", "a", "", "a"))
+					})
+					test("select buzz.c from buzz join bar natural join baz", func() PlanStage {
+						barSource := createMongoSource(1, "bar", "bar")
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						naturalJoin := NewJoinStage(innerJoin, barSource, bazSource,
+							&SQLAndExpr{
+								left: &SQLAndExpr{
+									left: &SQLEqualsExpr{
+										left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
+										right: createSQLColumnExprFromSource(bazSource, "baz", "a"),
+									},
+									right: &SQLEqualsExpr{
+										left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
+										right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
+									},
+								},
+								right: &SQLEqualsExpr{
+									left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
+									right: createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								},
+							},
+						)
+						join := NewJoinStage(crossJoin, buzzSource, naturalJoin, SQLTrue)
+						return NewProjectStage(join,
+							createProjectedColumn(1, buzzSource, "buzz", "c", "", "c"))
+					})
+					test("select buzz.c from bar join buzz natural join baz", func() PlanStage {
+						barSource := createMongoSource(1, "bar", "bar")
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						naturalJoin := NewJoinStage(innerJoin, buzzSource, bazSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+								right: createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+							},
+						)
+						join := NewJoinStage(crossJoin, barSource, naturalJoin, SQLTrue)
+						return NewProjectStage(join,
+							createProjectedColumn(1, buzzSource, "buzz", "c", "", "c"))
+					})
+					test("select bar.a from bar natural join buzz natural join baz", func() PlanStage {
+						barSource := createMongoSource(1, "bar", "bar")
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						njoin1 := NewJoinStage(innerJoin, buzzSource, bazSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+								right: createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+							},
+						)
+						njoin2 := NewJoinStage(innerJoin, barSource, njoin1,
+							&SQLAndExpr{
+								left: &SQLAndExpr{
+									left: &SQLAndExpr{
+										left: &SQLEqualsExpr{
+											left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
+											right: createSQLColumnExprFromSource(bazSource, "baz", "a"),
+										},
+										right: &SQLEqualsExpr{
+											left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
+											right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
+										},
+									},
+									right: &SQLEqualsExpr{
+										left:  createSQLColumnExprFromSource(barSource, "bar", "d"),
+										right: createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
+									},
+								},
+								right: &SQLEqualsExpr{
+									left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
+									right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+								},
+							},
+						)
+						return NewProjectStage(njoin2,
+							createProjectedColumn(1, barSource, "bar", "a", "", "a"))
+					})
+					test("select baz.a from (select c from buzz) as buzzc natural join baz", func() PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(2, "buzz", "buzz")
+						buzzcSource := NewSubquerySourceStage(
+							NewProjectStage(buzzSource, createProjectedColumn(2, buzzSource, "buzz", "c", "", "c")), 2, "buzzc")
+						join := NewJoinStage(crossJoin, buzzcSource, bazSource, SQLTrue)
+						return NewProjectStage(join, createProjectedColumn(1, bazSource, "baz", "a", "", "a"))
+					})
+					test("select buzz.c from bar join buzz using (_id, d) natural join baz", func() PlanStage {
+						barSource := createMongoSource(1, "bar", "bar")
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						usingJoin := NewJoinStage(innerJoin, barSource, buzzSource,
+							&SQLAndExpr{
+								left: &SQLEqualsExpr{
+									left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
+									right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+								},
+								right: &SQLEqualsExpr{
+									left:  createSQLColumnExprFromSource(barSource, "bar", "d"),
+									right: createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
+								},
+							},
+						)
+						naturalJoin := NewJoinStage(innerJoin, usingJoin, bazSource,
+							&SQLAndExpr{
+								left: &SQLAndExpr{
+									left: &SQLEqualsExpr{
+										left:  createSQLColumnExprFromSource(barSource, "bar", "_id"),
+										right: createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+									},
+									right: &SQLEqualsExpr{
+										left:  createSQLColumnExprFromSource(barSource, "bar", "a"),
+										right: createSQLColumnExprFromSource(bazSource, "baz", "a"),
+									},
+								},
+								right: &SQLEqualsExpr{
+									left:  createSQLColumnExprFromSource(barSource, "bar", "b"),
+									right: createSQLColumnExprFromSource(bazSource, "baz", "b"),
+								},
+							},
+						)
+						return NewProjectStage(naturalJoin,
+							createProjectedColumn(1, buzzSource, "buzz", "c", "", "c"))
+					})
+					test("select baz.b from baz natural left join buzz", func() PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						join := NewJoinStage(leftJoin, bazSource, buzzSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							},
+						)
+						return NewProjectStage(join,
+							createProjectedColumn(1, bazSource, "baz", "b", "", "b"))
+					})
+					test("select baz.b from baz natural right join buzz", func() PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						join := NewJoinStage(rightJoin, bazSource, buzzSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							},
+						)
+						return NewProjectStage(join,
+							createProjectedColumn(1, bazSource, "baz", "b", "", "b"))
+					})
+					test("select baz.b from baz natural left outer join buzz", func() PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						join := NewJoinStage(leftJoin, bazSource, buzzSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							},
+						)
+						return NewProjectStage(join,
+							createProjectedColumn(1, bazSource, "baz", "b", "", "b"))
+					})
+					test("select baz.b from baz natural right outer join buzz", func() PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						join := NewJoinStage(rightJoin, bazSource, buzzSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							},
+						)
+						return NewProjectStage(join,
+							createProjectedColumn(1, bazSource, "baz", "b", "", "b"))
+					})
+					test("select baz.b from foo join baz natural right join buzz", func() PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						fooSource := createMongoSource(1, "foo", "foo")
+						njoin := NewJoinStage(rightJoin, bazSource, buzzSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							},
+						)
+						join := NewJoinStage(crossJoin, fooSource, njoin, SQLTrue)
+						return NewProjectStage(join,
+							createProjectedColumn(1, bazSource, "baz", "b", "", "b"))
+					})
+					test("select baz.b from baz natural right join buzz join foo", func() PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						fooSource := createMongoSource(1, "foo", "foo")
+						njoin := NewJoinStage(rightJoin, bazSource, buzzSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							},
+						)
+						join := NewJoinStage(crossJoin, njoin, fooSource, SQLTrue)
+						return NewProjectStage(join,
+							createProjectedColumn(1, bazSource, "baz", "b", "", "b"))
+					})
+					test("select baz.b from foo join baz natural left join buzz", func() PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						fooSource := createMongoSource(1, "foo", "foo")
+						njoin := NewJoinStage(leftJoin, bazSource, buzzSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							},
+						)
+						join := NewJoinStage(crossJoin, fooSource, njoin, SQLTrue)
+						return NewProjectStage(join,
+							createProjectedColumn(1, bazSource, "baz", "b", "", "b"))
+					})
+					test("select baz.b from baz natural left join buzz join foo", func() PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(1, "buzz", "buzz")
+						fooSource := createMongoSource(1, "foo", "foo")
+						njoin := NewJoinStage(leftJoin, bazSource, buzzSource,
+							&SQLEqualsExpr{
+								left:  createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+								right: createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+							},
+						)
+						join := NewJoinStage(crossJoin, njoin, fooSource, SQLTrue)
+						return NewProjectStage(join,
+							createProjectedColumn(1, bazSource, "baz", "b", "", "b"))
+					})
+					test("select baz.b from (select c from buzz) as buzzc natural left join baz", func() PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(2, "buzz", "buzz")
+						buzzcSource := NewSubquerySourceStage(
+							NewProjectStage(buzzSource, createProjectedColumn(2, buzzSource, "buzz", "c", "", "c")), 2, "buzzc")
+						join := NewJoinStage(crossJoin, buzzcSource, bazSource, SQLTrue)
+						return NewProjectStage(join,
+							createProjectedColumn(1, bazSource, "baz", "b", "", "b"))
+					})
+					test("select baz.b from (select c from buzz) as buzzc natural right join baz", func() PlanStage {
+						bazSource := createMongoSource(1, "baz", "baz")
+						buzzSource := createMongoSource(2, "buzz", "buzz")
+						buzzcSource := NewSubquerySourceStage(
+							NewProjectStage(buzzSource, createProjectedColumn(2, buzzSource, "buzz", "c", "", "c")), 2, "buzzc")
+						join := NewJoinStage(crossJoin, buzzcSource, bazSource, SQLTrue)
+						return NewProjectStage(join,
+							createProjectedColumn(1, bazSource, "baz", "b", "", "b"))
 					})
 				})
 			})
@@ -1401,14 +1669,14 @@ func TestAlgebrizeQuery(t *testing.T) {
 					test("select * from foo, bar", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue)
+						join := NewJoinStage(crossJoin, fooSource, barSource, SQLTrue)
 						return NewProjectStage(join, createAllProjectedColumnsFromSource(1, join, "")...)
 					})
 
 					test("select foo.*, bar.* from foo, bar", func() PlanStage {
 						fooSource := createMongoSource(1, "foo", "foo")
 						barSource := createMongoSource(1, "bar", "bar")
-						join := NewJoinStage(CrossJoin, fooSource, barSource, SQLTrue)
+						join := NewJoinStage(crossJoin, fooSource, barSource, SQLTrue)
 						return NewProjectStage(join, createAllProjectedColumnsFromSource(1, join, "")...)
 					})
 				})
@@ -1504,7 +1772,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 							foo1Source := createMongoSource(1, "foo", "foo")
 							foo2Source := createMongoSource(2, "foo", "foo")
 							barSource := createMongoSource(2, "bar", "bar")
-							join := NewJoinStage(CrossJoin, foo2Source, barSource, SQLTrue)
+							join := NewJoinStage(crossJoin, foo2Source, barSource, SQLTrue)
 							return NewProjectStage(foo1Source,
 								createProjectedColumn(1, foo1Source, "foo", "a", "", "a"),
 								createProjectedColumnFromSQLExpr(1, "", "(select foo.a from foo, bar)",
@@ -1558,7 +1826,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 								right: createSQLColumnExprFromSource(b2Source, "b2", "b"),
 							}
 
-							join := NewJoinStage(InnerJoin, b1Source, b2Source, matcher)
+							join := NewJoinStage(innerJoin, b1Source, b2Source, matcher)
 
 							innerGroup := NewGroupByStage(
 								join,
@@ -2394,6 +2662,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 				testError("select * from bar join foo join baz using (c)", "ERROR 1054 (42S22): Unknown column 'baz.c' in 'from clause'")
 				testError("select * from bar join foo join baz using (_id)", "ERROR 1052 (23000): Column '_id' in from clause is ambiguous")
 				testError("select * from baz join bar join foo using (c)", "ERROR 1054 (42S22): Unknown column 'c' in 'from clause'")
+
+				testError("select * from (foo join bar) natural join baz", "ERROR 1052 (23000): Column 'a' in from clause is ambiguous")
+				testError("select * from foo join bar using (b) natural join baz", "ERROR 1052 (23000): Column 'a' in from clause is ambiguous")
+				testError("select bar.d, biz.a from bar natural join (select * from baz join foo) as biz", `ERROR 1060 (42S21): Duplicate column name 'biz.a'`)
 			})
 		})
 	})

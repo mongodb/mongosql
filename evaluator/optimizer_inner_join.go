@@ -191,7 +191,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 
 		independentlyOptimizeChildren := true
 
-		if typedN.kind == InnerJoin || typedN.kind == StraightJoin {
+		if typedN.kind == innerJoin || typedN.kind == straightJoin {
 			exprs := v.getInnerJoinExprs(typedN.matcher)
 			if len(exprs) != 0 {
 
@@ -244,7 +244,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 
 			if typedN.left != newLeft.(PlanStage) || typedN.right != newRight.(PlanStage) {
 
-				if typedN.kind == InnerJoin || typedN.kind == StraightJoin {
+				if typedN.kind == innerJoin || typedN.kind == straightJoin {
 					if newR.nPlanStages > newL.nPlanStages {
 						newLeft, newRight = newRight, newLeft
 					}
@@ -571,7 +571,7 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (node, error) {
 			right := v.sources[expr.tables[1]].dataSource.(PlanStage)
 			newN, unmergedSource = unmergedSource, right
 		}
-		newN = NewJoinStage(InnerJoin, newN, unmergedSource, boundCriterion)
+		newN = NewJoinStage(innerJoin, newN, unmergedSource, boundCriterion)
 	}
 
 	if lenFreeCriteria := len(freeCriteria); lenFreeCriteria != 0 {

@@ -85,6 +85,21 @@ const (
 	limitClause  = "limit clause"
 )
 
+// joinKind specifies the the type of join for
+// a given joiner.
+type joinKind string
+
+const (
+	innerJoin        joinKind = parser.AST_JOIN
+	straightJoin     joinKind = parser.AST_STRAIGHT_JOIN
+	leftJoin         joinKind = parser.AST_LEFT_JOIN
+	rightJoin        joinKind = parser.AST_RIGHT_JOIN
+	crossJoin        joinKind = parser.AST_CROSS_JOIN
+	naturalJoin      joinKind = parser.AST_NATURAL_JOIN
+	naturalRightJoin joinKind = parser.AST_NATURAL_RIGHT_JOIN
+	naturalLeftJoin  joinKind = parser.AST_NATURAL_LEFT_JOIN
+)
+
 type algebrizer struct {
 	parent            *algebrizer
 	catalog           *catalog.Catalog
@@ -699,7 +714,7 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs, isUnquali
 		if i == 0 {
 			plan = temp
 		} else {
-			plan = NewJoinStage(CrossJoin, plan, temp, SQLTrue)
+			plan = NewJoinStage(crossJoin, plan, temp, SQLTrue)
 		}
 	}
 
@@ -794,7 +809,7 @@ type columnsSortAndFilter interface {
 type columnsUsing struct {
 	columns     []*Column
 	usingCols   parser.ColumnExprs
-	joinKind    JoinKind
+	kind        joinKind
 	rightTables map[string]struct{}
 }
 
@@ -823,9 +838,9 @@ func (c columnsUsing) Less(i, j int) bool {
 		_, iInRight := c.rightTables[c.columns[i].Table]
 		_, jInRight := c.rightTables[c.columns[j].Table]
 		if iInRight && !jInRight {
-			return c.joinKind == RightJoin
+			return (c.kind == rightJoin || c.kind == naturalRightJoin)
 		} else if jInRight && !iInRight {
-			return !(c.joinKind == RightJoin)
+			return !(c.kind == rightJoin || c.kind == naturalRightJoin)
 		}
 	}
 	return false
@@ -859,6 +874,27 @@ func (c columnsUsing) Filter() []*Column {
 	return columnsForProjection
 }
 
+func resolveJoinKind(kind joinKind) joinKind {
+	if kind == naturalJoin {
+		return innerJoin
+	} else if kind == naturalLeftJoin {
+		return leftJoin
+	} else if kind == naturalRightJoin {
+		return rightJoin
+	}
+	return kind
+}
+
+func optimizeJoinKind(kind joinKind, onClause parser.Expr, filterCols parser.ColumnExprs) joinKind {
+	hasCriteria := (filterCols != nil || onClause != nil)
+	if kind == crossJoin && hasCriteria {
+		return innerJoin
+	} else if (kind == innerJoin || kind == rightJoin || kind == leftJoin) && !hasCriteria {
+		return crossJoin
+	}
+	return kind
+}
+
 func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, []*Column, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
@@ -868,6 +904,8 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 	case parser.SimpleTableExpr:
 		return a.translateSimpleTableExpr(typedT, "")
 	case *parser.JoinTableExpr:
+		kind := joinKind(typedT.Join)
+
 		left, leftCols, err := a.translateTableExpr(typedT.LeftExpr)
 		if err != nil {
 			return nil, nil, err
@@ -879,42 +917,62 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 		cols := append(leftCols, rightCols...)
 
 		var predicate SQLExpr
+		var filterCols parser.ColumnExprs
 		if typedT.On != nil {
 			predicate, err = a.translateExpr(typedT.On)
 			if err != nil {
 				return nil, nil, err
 			}
-		} else if typedT.Using != nil {
-			comparison, err := a.convertToAnd(typedT.Using, leftCols, rightCols, typedT)
+		} else if typedT.Using != nil || kind == naturalJoin ||
+			kind == naturalLeftJoin || kind == naturalRightJoin {
+			if typedT.Using != nil {
+				filterCols = typedT.Using
+			} else {
+				// construct a list of all the common columns in the natural join case
+				rightColMap := make(map[string]struct{})
+				var emptyStruct struct{}
+				for _, rightCol := range rightCols {
+					rightColMap[rightCol.Name] = emptyStruct
+				}
+				for _, leftCol := range leftCols {
+					if _, ok := rightColMap[leftCol.Name]; ok {
+						filterCols = append(filterCols, &parser.ColName{[]byte(leftCol.Name), make([]byte, 0)})
+					}
+				}
+			}
+
+			comparison, err := a.convertToAnd(filterCols, leftCols, rightCols, typedT)
 			if err != nil {
 				return nil, nil, err
 			}
-			predicate, err = a.translateExpr(comparison)
-			if err != nil {
-				return nil, nil, err
+			if comparison == nil {
+				predicate = SQLTrue
+			} else {
+				predicate, err = a.translateExpr(comparison)
+				if err != nil {
+					return nil, nil, err
+				}
 			}
-			rightTables := make(map[string]struct{})
-			var emptyStruct struct{}
-			for _, column := range rightCols {
-				rightTables[column.Table] = emptyStruct
+
+			if filterCols != nil {
+				rightTables := make(map[string]struct{})
+				var emptyStruct struct{}
+				for _, column := range rightCols {
+					rightTables[column.Table] = emptyStruct
+				}
+				sortableFilterableColumns := &columnsUsing{cols, filterCols, kind, rightTables}
+				sortableFilterableColumns.Sort()
+				cols = sortableFilterableColumns.Filter()
 			}
-			sortableFilterableColumns := &columnsUsing{cols, typedT.Using, JoinKind(typedT.Join), rightTables}
-			sortableFilterableColumns.Sort()
-			cols = sortableFilterableColumns.Filter()
-		} else if typedT.Join == parser.AST_LEFT_JOIN || typedT.Join == parser.AST_RIGHT_JOIN {
+		} else if kind == leftJoin || kind == rightJoin {
 			return nil, nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "A %s requires criteria", typedT.Join)
 		} else {
 			predicate = SQLTrue
 		}
 
-		joinKind := JoinKind(typedT.Join)
-		if joinKind == CrossJoin && (typedT.Using != nil || typedT.On != nil) {
-			joinKind = InnerJoin
-		} else if joinKind == InnerJoin && (typedT.Using == nil && typedT.On == nil) {
-			joinKind = CrossJoin
-		}
-
-		return NewJoinStage(joinKind, left, right, predicate), cols, nil
+		kind = resolveJoinKind(kind)
+		kind = optimizeJoinKind(kind, typedT.On, filterCols)
+		return NewJoinStage(kind, left, right, predicate), cols, nil
 	default:
 		return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, parser.String(tableExpr))
 	}

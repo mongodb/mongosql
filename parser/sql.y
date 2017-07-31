@@ -90,7 +90,8 @@ func ForceEOF(yylex interface{}) {
 %nonassoc <empty> FROM
 %left <empty> UNION MINUS EXCEPT INTERSECT
 %left <empty> COMMA
-%left <empty> JOIN STRAIGHT_JOIN LEFT RIGHT INNER OUTER CROSS NATURAL USE FORCE
+%left <empty> JOIN STRAIGHT_JOIN LEFT RIGHT INNER OUTER CROSS USE FORCE
+%left <empty> NATURAL
 %left <empty> ON
 %left <empty> OR 
 %left <empty> XOR
@@ -124,7 +125,7 @@ func ForceEOF(yylex interface{}) {
 %type <tableExprs> table_expression_list
 %type <columnExprs> column_expression_list
 %type <tableExpr> table_expression join_expression
-%type <str> join_type
+%type <str> join_type natural_join_type
 %type <smTableExpr> simple_table_expression
 %type <tableName> table_name
 %type <indexHints> index_hint_list
@@ -792,6 +793,7 @@ column_expression_list:
   {
     $$ = append($$, &ColName{Name: $3} )
   }
+
 table_expression_list:
   table_expression
   {
@@ -801,6 +803,7 @@ table_expression_list:
   {
     $$ = append($$, $3)
   }
+
 
 table_expression:
   simple_table_expression as_opt index_hint_list
@@ -832,6 +835,10 @@ join_expression:
 | table_expression join_type table_expression USING LPAREN column_expression_list RPAREN %prec JOIN
   {
     $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3, Using: $6}
+  }
+| table_expression natural_join_type table_expression %prec JOIN
+  {
+    $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3}
   }
 
 as_opt: %prec INTERVAL
@@ -888,9 +895,27 @@ join_type:
   {
     $$ = AST_CROSS_JOIN
   }
-| NATURAL JOIN
+
+natural_join_type:
+  NATURAL JOIN
   {
     $$ = AST_NATURAL_JOIN
+  }
+| NATURAL RIGHT JOIN
+  {
+    $$ = AST_NATURAL_RIGHT_JOIN
+  }
+| NATURAL RIGHT OUTER JOIN
+  {
+    $$ = AST_NATURAL_RIGHT_JOIN
+  }
+| NATURAL LEFT JOIN
+  {
+    $$ = AST_NATURAL_LEFT_JOIN
+  }
+| NATURAL LEFT OUTER JOIN
+  {
+    $$ = AST_NATURAL_LEFT_JOIN
   }
 
 simple_table_expression:

@@ -329,12 +329,14 @@ type JoinTableExpr struct {
 
 // JoinTableExpr.Join
 const (
-	AST_JOIN          = "join"
-	AST_STRAIGHT_JOIN = "straight_join"
-	AST_LEFT_JOIN     = "left join"
-	AST_RIGHT_JOIN    = "right join"
-	AST_CROSS_JOIN    = "cross join"
-	AST_NATURAL_JOIN  = "natural join"
+	AST_JOIN               = "join"
+	AST_STRAIGHT_JOIN      = "straight_join"
+	AST_LEFT_JOIN          = "left join"
+	AST_RIGHT_JOIN         = "right join"
+	AST_CROSS_JOIN         = "cross join"
+	AST_NATURAL_JOIN       = "natural join"
+	AST_NATURAL_LEFT_JOIN  = "natural left join"
+	AST_NATURAL_RIGHT_JOIN = "natural right join"
 )
 
 func (node *JoinTableExpr) Format(buf *TrackedBuffer) {

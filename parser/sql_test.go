@@ -395,3 +395,26 @@ func TestFlush(t *testing.T) {
 	sql = "flush"
 	testParseError(t, sql)
 }
+
+func TestNatural(t *testing.T) {
+	sql := "select * from bar natural join baz using (id)"
+	testParseError(t, sql)
+
+	sql = "select * from bar natural join baz on bar.id=baz.id"
+	testParseError(t, sql)
+
+	sql = "select * from foo natural inner join bar"
+	testParseError(t, sql)
+
+	sql = "select * from foo natural outer join bar"
+	testParseError(t, sql)
+
+	sql = "select * from foo natural cross join bar"
+	testParseError(t, sql)
+
+	sql = "select * from foo natural left join bar using (id)"
+	testParseError(t, sql)
+
+	sql = "select * from foo natural right join bar using (id)"
+	testParseError(t, sql)
+}
