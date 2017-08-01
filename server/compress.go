@@ -15,15 +15,21 @@ const (
 	minCompressLength = 50
 )
 
+var (
+	header = []byte{0, 0, 0, 0, 0, 0, 0}
+)
+
 type compressedReader struct {
 	buf        []byte
 	connReader io.Reader
 	c          *conn
+	zr         io.ReadCloser
 }
 
 type compressedWriter struct {
 	connWriter io.Writer
 	c          *conn
+	zw         *zlib.Writer
 }
 
 func NewCompressedReader(connReader io.Reader, c *conn) *compressedReader {
@@ -38,6 +44,7 @@ func NewCompressedWriter(connWriter io.Writer, c *conn) *compressedWriter {
 	return &compressedWriter{
 		connWriter: connWriter,
 		c:          c,
+		zw:         zlib.NewWriter(new(bytes.Buffer)),
 	}
 }
 
@@ -57,8 +64,6 @@ func (cr *compressedReader) Read(data []byte) (int, error) {
 }
 
 func (cr *compressedReader) uncompressPacket() error {
-	header := []byte{0, 0, 0, 0, 0, 0, 0}
-
 	if _, err := io.ReadFull(cr.connReader, header); err != nil {
 		return err
 	}
@@ -80,9 +85,8 @@ func (cr *compressedReader) uncompressPacket() error {
 
 	cr.c.compressionSequence++
 
-	b := &bytes.Buffer{}
-	_, err := io.CopyN(b, cr.connReader, int64(comprLength))
-
+	bytesBuf := &bytes.Buffer{}
+	_, err := io.CopyN(bytesBuf, cr.connReader, int64(comprLength))
 	if err != nil {
 		return err
 	}
@@ -91,49 +95,40 @@ func (cr *compressedReader) uncompressPacket() error {
 	// true length is contained in comprLength
 	if uncompressedLength != 0 {
 		// write comprData to a bytes.buffer, then read it using zlib into data
-
-		r, err := zlib.NewReader(b)
-
-		if r != nil {
-			defer r.Close()
+		if cr.zr == nil {
+			cr.zr, err = zlib.NewReader(bytesBuf)
+		} else {
+			err = cr.zr.(zlib.Resetter).Reset(bytesBuf, nil)
 		}
-
 		if err != nil {
 			return err
 		}
+		defer cr.zr.Close()
 
 		data := make([]byte, uncompressedLength)
 		lenRead := 0
 
 		// http://grokbase.com/t/gg/golang-nuts/146y9ppn6b/go-nuts-stream-compression-with-compress-flate
 		for lenRead < uncompressedLength {
-
-			tmp := data[lenRead:]
-
-			n, err := r.Read(tmp)
+			n, err := cr.zr.Read(data[lenRead:])
 			lenRead += n
-
 			if err == io.EOF {
 				if lenRead < uncompressedLength {
 					return io.ErrUnexpectedEOF
 				}
 				break
 			}
-
 			if err != nil {
 				return err
 			}
 		}
-
 		cr.buf = append(cr.buf, data...)
-
 	} else {
-		cr.buf = append(cr.buf, b.Bytes()...)
+		cr.buf = append(cr.buf, bytesBuf.Bytes()...)
 	}
 
 	// record bytes received
 	bytesReceived := uint64(comprLength) + 7 // +7 for the compression header
-
 	atomic.AddUint64(&cr.c.bytesReceived, bytesReceived)
 	atomic.AddUint64(&cr.c.server.bytesReceived, bytesReceived)
 
@@ -141,33 +136,36 @@ func (cr *compressedReader) uncompressPacket() error {
 }
 
 func (cw *compressedWriter) Write(data []byte) (int, error) {
-
 	// when asked to write an empty packet, do nothing
 	if len(data) == 0 {
 		return 0, nil
 	}
-	totalBytes := len(data)
 
+	totalBytes := len(data)
 	length := len(data) - 4
 
 	for length >= maxPayloadLength {
 		// cut off a slice of size max payload length
-		dataSmall := data[:maxPayloadLength]
-		lenSmall := len(dataSmall)
+		payload := data[:maxPayloadLength]
+		payloadLen := len(payload)
 
-		// create a zlib writer
-		// and write uncompressed packet to it
-		var b bytes.Buffer
-		writer := zlib.NewWriter(&b)
-
-		_, err := writer.Write(dataSmall)
-		writer.Close()
-
+		bytesBuf := &bytes.Buffer{}
+		bytesBuf.Write(header)
+		cw.zw.Reset(bytesBuf)
+		_, err := cw.zw.Write(payload)
 		if err != nil {
 			return 0, err
 		}
+		cw.zw.Close()
 
-		err = cw.writeComprPacketToNetwork(b.Bytes(), lenSmall)
+		// if compression expands the payload, do not compress
+		compressedPayload := bytesBuf.Bytes()
+		if len(compressedPayload) > maxPayloadLength {
+			compressedPayload = append(header, payload...)
+			payloadLen = 0
+		}
+
+		err = cw.writeToNetwork(compressedPayload, payloadLen)
 		if err != nil {
 			return 0, err
 		}
@@ -176,32 +174,35 @@ func (cw *compressedWriter) Write(data []byte) (int, error) {
 		data = data[maxPayloadLength:]
 	}
 
-	lenSmall := len(data)
+	payloadLen := len(data)
 
-	// do not compress if packet is too small
-	if lenSmall < minCompressLength {
-		err := cw.writeComprPacketToNetwork(data, 0)
+	// do not attempt compression if packet is too small
+	if payloadLen < minCompressLength {
+		err := cw.writeToNetwork(append(header, data...), 0)
 		if err != nil {
 			return 0, err
 		}
-
 		return totalBytes, nil
 	}
 
-	var b bytes.Buffer
-	// create a zlib writer
-	// and write uncompressed packet to it
-	writer := zlib.NewWriter(&b)
-
-	_, err := writer.Write(data)
-	writer.Close()
-
+	bytesBuf := &bytes.Buffer{}
+	bytesBuf.Write(header)
+	cw.zw.Reset(bytesBuf)
+	_, err := cw.zw.Write(data)
 	if err != nil {
 		return 0, err
 	}
+	cw.zw.Close()
+
+	compressedPayload := bytesBuf.Bytes()
+
+	if len(compressedPayload) > len(data) {
+		compressedPayload = append(header, data...)
+		payloadLen = 0
+	}
 
 	// add header and send over the wire
-	err = cw.writeComprPacketToNetwork(b.Bytes(), lenSmall)
+	err = cw.writeToNetwork(compressedPayload, payloadLen)
 	if err != nil {
 		return 0, err
 	}
@@ -209,9 +210,8 @@ func (cw *compressedWriter) Write(data []byte) (int, error) {
 	return totalBytes, nil
 }
 
-func (cw *compressedWriter) writeComprPacketToNetwork(data []byte, uncomprLength int) error {
-	data = append([]byte{0, 0, 0, 0, 0, 0, 0}, data...)
-
+func (cw *compressedWriter) writeToNetwork(data []byte, uncomprLength int) error {
+	totalBytesSent := uint64(0)
 	comprLength := len(data) - 7 // sans compressed header
 
 	for comprLength >= maxPayloadLength {
@@ -230,11 +230,7 @@ func (cw *compressedWriter) writeComprPacketToNetwork(data []byte, uncomprLength
 			return err
 		} else {
 			cw.c.compressionSequence++
-
-			nBytesSent := uint64(maxPayloadLength + 7) //max packet size
-			atomic.AddUint64(&cw.c.bytesSent, nBytesSent)
-			atomic.AddUint64(&cw.c.server.bytesSent, nBytesSent)
-
+			totalBytesSent += uint64(maxPayloadLength + 7)
 			comprLength -= maxPayloadLength
 			data = data[maxPayloadLength:]
 		}
@@ -256,10 +252,9 @@ func (cw *compressedWriter) writeComprPacketToNetwork(data []byte, uncomprLength
 	}
 
 	cw.c.compressionSequence++
-
-	nBytesSent := uint64(len(data))
-	atomic.AddUint64(&cw.c.bytesSent, nBytesSent)
-	atomic.AddUint64(&cw.c.server.bytesSent, nBytesSent)
+	totalBytesSent += uint64(len(data))
+	atomic.AddUint64(&cw.c.bytesSent, totalBytesSent)
+	atomic.AddUint64(&cw.c.server.bytesSent, totalBytesSent)
 
 	return nil
 }

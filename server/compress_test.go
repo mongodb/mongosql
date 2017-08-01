@@ -53,11 +53,11 @@ func compressHelper(t *testing.T, c *conn, uncompressedPacket []byte) []byte {
 	expBytesSent := uint64(len(b.Bytes())) + bs
 
 	if c.bytesSent != expBytesSent {
-		t.Fatal(fmt.Sprintf("c.bytesReceived updated incorrectly, expected %d and saw %d", expBytesSent, c.bytesSent))
+		t.Fatal(fmt.Sprintf("c.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.bytesSent))
 	}
 
 	if c.server.bytesSent != expBytesSent {
-		t.Fatal(fmt.Sprintf("c.server.bytesReceived updated incorrectly, expected %d and saw %d", expBytesSent, c.server.bytesSent))
+		t.Fatal(fmt.Sprintf("c.server.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.server.bytesSent))
 	}
 
 	if len(uncompressedPacket) > 0 {

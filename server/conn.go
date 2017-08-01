@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/binary"
@@ -27,6 +28,11 @@ var (
 	errBadConn       = mysqlerrors.Unknownf("connection was bad")
 	errMalformPacket = mysqlerrors.Defaultf(mysqlerrors.ER_MALFORMED_PACKET)
 )
+
+type flushWriter interface {
+	Flush() error
+	Write(p []byte) (int, error)
+}
 
 type conn struct {
 	server  *Server
@@ -318,13 +324,18 @@ func (c *conn) handshake() error {
 	c.sequence = 0
 	c.compressionSequence = 0
 
-	// set up compression reader and PacketWriter
+	// set up compression reader and writer
 	if c.capability&CLIENT_COMPRESS != 0 {
 		c.reader = NewCompressedReader(c.reader, c)
-
 		c.writer = NewCompressedWriter(c.writer, c)
 		c.compressionOn = true
 	}
+
+	// using same buffer size as mysql
+	// definition: https://github.com/mysql/mysql-server/blob/4826e159b432c961290cdbe651da0cfe3d7b2539/include/mysql_com.h#L56
+	// usage: https://github.com/mysql/mysql-server/blob/5.7/sql/net_serv.cc#L434
+	c.writer = bufio.NewWriterSize(c.writer, maxPayloadLength+4)
+
 	return nil
 }
 
@@ -370,16 +381,16 @@ func (c *conn) readHandshakeResponse() error {
 	readHeader := func() {
 		pos = 0
 
-		//capability
+		// capability
 		c.capability = binary.LittleEndian.Uint32(data[:4])
 		pos += 4
 
 		// in the case of SSL, some clients won't send anything else until SSL is negotiated.
 		if len(data) > 4 {
-			//skip max packet size
+			// skip max packet size
 			pos += 4
 
-			//charset
+			// charset
 			col, err := collation.GetByID(collation.ID(data[pos]))
 			pos++
 
@@ -401,7 +412,7 @@ func (c *conn) readHandshakeResponse() error {
 				c.logger.Warnf(log.Info, "failed to set collation: %v", err)
 			}
 
-			//skip reserved 23[00]
+			// skip reserved 23[00]
 			pos += 23
 		}
 	}
@@ -448,12 +459,12 @@ func (c *conn) readHandshakeResponse() error {
 		readHeader()
 	}
 
-	//user name string[NUL]
+	// user name string[NUL]
 	userBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
 	pos += len(userBytes) + 1
 	c.user = String(c.variables.CharacterSetClient.Decode(userBytes))
 
-	//auth response string[NUL]
+	// auth response string[NUL]
 	if (c.capability & CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0 {
 		authLen, _, count := lengthEncodedInt(data[pos:])
 		pos += count
@@ -753,8 +764,7 @@ func (c *conn) writeEOF(status uint16) error {
 		data = append(data, 0, 0)
 		data = append(data, byte(status), byte(status>>8))
 	}
-
-	return c.writePacket(data)
+	return c.writePacketandFlush(data)
 }
 
 func (c *conn) writeError(e error) error {
@@ -775,27 +785,26 @@ func (c *conn) writeError(e error) error {
 	}
 
 	data = append(data, m.Message...)
-
-	return c.writePacket(data)
+	return c.writePacketandFlush(data)
 }
 
 func (c *conn) writeInitialHandshake() error {
 	data := make([]byte, 4, 128)
 
-	//min version 10
+	// min version 10
 	data = append(data, minProtocolVersion)
 
-	//server version[00]
+	// server version[00]
 	version := c.server.variables.Version
 	versionComment := c.server.variables.VersionComment
 
 	data = append(data, fmt.Sprintf("%s %s", version, versionComment)...)
 	data = append(data, 0)
 
-	//connection id
+	// connection id
 	data = append(data, byte(c.connectionID), byte(c.connectionID>>8), byte(c.connectionID>>16), byte(c.connectionID>>24))
 
-	//auth-plugin-data-part-1
+	// auth-plugin-data-part-1
 	count := 0
 	for count < 8 && count < len(c.authPluginData) {
 		data = append(data, c.authPluginData[count])
@@ -807,21 +816,21 @@ func (c *conn) writeInitialHandshake() error {
 		count++
 	}
 
-	//filler [00]
+	// filler [00]
 	data = append(data, 0)
 
-	//capability flag lower 2 bytes
+	// capability flag lower 2 bytes
 	data = append(data, byte(c.capability), byte(c.capability>>8))
 
-	//charset
+	// charset
 	data = append(data, byte(collation.Default.ID))
 
-	//status
+	// status
 	status := c.status()
 	data = append(data, byte(status), byte(status>>8))
 
-	//below 13 byte may not be used
-	//capability flag upper 2 bytes
+	// below 13 byte may not be used
+	// capability flag upper 2 bytes
 	data = append(data, byte(c.capability>>16), byte(c.capability>>24))
 
 	if (c.capability & CLIENT_PLUGIN_AUTH) != 0 {
@@ -834,7 +843,7 @@ func (c *conn) writeInitialHandshake() error {
 		data = append(data, 0)
 	}
 
-	//reserved 10 [00]
+	// reserved 10 [00]
 	data = append(data, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
 	if (c.capability & CLIENT_SECURE_CONNECTION) != 0 {
@@ -856,11 +865,13 @@ func (c *conn) writeInitialHandshake() error {
 		data = append(data, 0)
 	}
 
-	return c.writePacket(data)
+	return c.writePacketandFlush(data)
 }
 
 func (c *conn) writePacket(data []byte) error {
+	// data slice is passed in with four empty bytes for the header
 	length := len(data) - 4
+	totalBytesSent := uint64(0)
 
 	for length >= maxPayloadLength {
 
@@ -870,18 +881,14 @@ func (c *conn) writePacket(data []byte) error {
 
 		data[3] = c.sequence
 
-		if _, err := c.writer.Write(data[:4+maxPayloadLength]); err != nil {
+		_, err := c.writer.Write(data[:4+maxPayloadLength])
+
+		if err != nil {
 			c.logger.Errf(log.Always, "write maxPayloadLength error: %v", err)
 			return errBadConn
 		} else {
 			c.sequence++
-
-			// in uncompressed world, record bytes sent
-			if !c.compressionOn {
-				nBytesSent := uint64(maxPayloadLength + 4)
-				atomic.AddUint64(&c.bytesSent, nBytesSent)
-				atomic.AddUint64(&c.server.bytesSent, nBytesSent)
-			}
+			totalBytesSent += uint64(maxPayloadLength + 4)
 
 			length -= maxPayloadLength
 			data = data[maxPayloadLength:]
@@ -904,12 +911,35 @@ func (c *conn) writePacket(data []byte) error {
 
 	// in uncompressed world, record bytes sent
 	if !c.compressionOn {
-		nBytesSent := uint64(len(data))
-		atomic.AddUint64(&c.bytesSent, nBytesSent)
-		atomic.AddUint64(&c.server.bytesSent, nBytesSent)
+		totalBytesSent += uint64(len(data))
+
+		atomic.AddUint64(&c.bytesSent, totalBytesSent)
+		atomic.AddUint64(&c.server.bytesSent, totalBytesSent)
 	}
 
 	return nil
+}
+
+// flush writes all bytes in the buffer to the underlying writer.
+// Before buffering is set up, it does nothing.
+func (c *conn) flush() error {
+	// if buffering exists, flush; else, do nothing
+	bufWriter, ok := c.writer.(flushWriter)
+	if ok {
+		return bufWriter.Flush()
+	}
+	return nil // flush does nothing when no buffering is used
+}
+
+// writePacketandFlush adds data to the buffer and then calls flush.
+// Before buffering is set up, this will simply write 'data'.
+func (c *conn) writePacketandFlush(data []byte) error {
+	err := c.writePacket(data)
+	if err != nil {
+		return err
+	}
+
+	return c.flush()
 }
 
 func (c *conn) writeOK(r *Result) error {
@@ -928,5 +958,5 @@ func (c *conn) writeOK(r *Result) error {
 		data = append(data, 0, 0)
 	}
 
-	return c.writePacket(data)
+	return c.writePacketandFlush(data)
 }

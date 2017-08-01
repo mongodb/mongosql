@@ -192,7 +192,7 @@ func (c *conn) writeAuthMoreData(pluginData []byte) error {
 	// plugin data
 	data = append(data, pluginData...)
 
-	if err := c.writePacket(data); err != nil {
+	if err := c.writePacketandFlush(data); err != nil {
 		return fmt.Errorf("auth more data error: %v", err)
 	}
 
@@ -214,7 +214,7 @@ func (c *conn) writeAuthSwitchRequest(plugin string, pluginData []byte) error {
 	// auth plugin data string[EOF]
 	data = append(data, pluginData...)
 
-	if err := c.writePacket(data); err != nil {
+	if err := c.writePacketandFlush(data); err != nil {
 		return fmt.Errorf("auth switch request error: %v", err)
 	}
 
