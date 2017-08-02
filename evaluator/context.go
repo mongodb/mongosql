@@ -21,6 +21,7 @@ type ConnectionCtx interface {
 	Logger(string) *log.Logger
 	User() string
 	Catalog() *catalog.Catalog
+	GetStartupInfo() []string
 	Variables() *variable.Container
 	Context() context.Context
 }

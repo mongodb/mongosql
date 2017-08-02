@@ -85,6 +85,9 @@ func (_ *fakeConnectionCtx) Context() context.Context {
 func (_ *fakeConnectionCtx) DB() string {
 	return "test"
 }
+func (_ *fakeConnectionCtx) GetStartupInfo() []string {
+	return []string{}
+}
 func (_ *fakeConnectionCtx) Kill(id uint32, scope KillScope) error {
 	return nil
 }

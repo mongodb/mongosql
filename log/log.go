@@ -45,7 +45,6 @@ var (
 )
 
 type Logger struct {
-	mutex      *sync.Mutex
 	writer     io.Writer
 	format     string
 	verbosity  int
@@ -109,8 +108,8 @@ func (lg *Logger) SetOutputWriter(writer io.Writer) {
 	}
 }
 
-func (lg *Logger) SetOutputFile(filename string, append bool, rotationStrategy string) error {
-	w, rotate, err := newRotatingFile(filename, append, rotationStrategy)
+func (lg *Logger) SetOutputFile(filename string, logAppend bool, rotationStrategy string) error {
+	w, rotate, err := newRotatingFile(filename, logAppend, rotationStrategy)
 	if err == nil {
 		lg.writer = w
 		lg.rotateFunc = rotate
@@ -128,36 +127,50 @@ func (lg *Logger) writelog(minVerbosity int, msg string) {
 	}
 
 	if minVerbosity <= lg.verbosity {
-		lg.mutex.Lock()
-		fmt.Fprintf(lg.writer, "%v %v\n", time.Now().Format(lg.format), msg)
-		lg.mutex.Unlock()
+		message := fmt.Sprintf("%v %v\n", time.Now().Format(lg.format), msg)
+		lg.writer.Write([]byte(message))
 	}
 }
 
 func NewLogger(verbosity VerbosityLevel) *Logger {
-	lg := &Logger{
-		mutex:     &sync.Mutex{},
-		writer:    os.Stderr,
-		format:    defaultTimeFormat,
-		component: defaultComponent,
+	noRotateFunc := func() (string, error) {
+		return "", fmt.Errorf("cannot rotate logs without log path: use --logPath or in a config " +
+			"file at 'systemLog.path'")
 	}
+
+	lg := &Logger{
+		component:  defaultComponent,
+		format:     defaultTimeFormat,
+		rotateFunc: noRotateFunc,
+		writer:     &stdErrWriter{},
+	}
+
 	lg.SetVerbosity(verbosity)
+
 	return lg
 }
 
 func NewComponentLogger(component string, logger Logger) *Logger {
-	noRotate := func() (string, error) {
-		return "", fmt.Errorf("Cannot rotate logs from component logger")
-	}
 	lg := &Logger{
-		mutex:      logger.mutex,
-		writer:     logger.writer,
-		format:     logger.format,
-		verbosity:  logger.verbosity,
 		component:  component,
-		rotateFunc: noRotate,
+		format:     logger.format,
+		rotateFunc: logger.rotateFunc,
+		verbosity:  logger.verbosity,
+		writer:     logger.writer,
 	}
+
 	return lg
+}
+
+// stdErrWriter synchronizes writes to os.Stderr
+type stdErrWriter struct{ sync.Mutex }
+
+func (s *stdErrWriter) Write(b []byte) (int, error) {
+	s.Lock()
+	// TODO: maybe buffer writes here
+	n, err := os.Stderr.Write(b)
+	s.Unlock()
+	return n, err
 }
 
 //// Log Writer Interface
@@ -215,8 +228,8 @@ func SetOutputWriter(writer io.Writer) {
 	globalLogger.SetOutputWriter(writer)
 }
 
-func SetOutputFile(filename string, append bool, rotationStrategy string) error {
-	return globalLogger.SetOutputFile(filename, append, rotationStrategy)
+func SetOutputFile(filename string, logAppend bool, rotationStrategy string) error {
+	return globalLogger.SetOutputFile(filename, logAppend, rotationStrategy)
 }
 
 func SetDateFormat(dateFormat string) {

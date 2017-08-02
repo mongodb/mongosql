@@ -41,9 +41,9 @@ func (ps *SubquerySourceStage) astnode() {}
 func (ps *UnionStage) astnode()          {}
 
 // CommandStages
+func (f *FlushCommand) astnode() {}
 func (k *KillCommand) astnode()  {}
 func (s *SetCommand) astnode()   {}
-func (f *FlushCommand) astnode() {}
 
 // Expressions
 func (m *MongoFilterExpr) astnode()           {}

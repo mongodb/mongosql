@@ -81,7 +81,7 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 
 		prettyPrint(b, typedN.source, d+1)
 	case *FlushCommand:
-		b.WriteString(fmt.Sprintf("↳ Flush Logs\n"))
+		b.WriteString(fmt.Sprintf("↳ Flush Logs"))
 	case *GroupByStage:
 		b.WriteString("↳ GroupBy(")
 		for i, key := range typedN.keys {

@@ -212,8 +212,8 @@ func (o *generalOptions) mapToConfig(cfg *Config) error {
 
 type logOptions struct {
 	LogAppend    *bool              `long:"logAppend" description:"append new logging output to existing log file"`
-	LogRotate    *string            `long:"logRotate" description:"set the log rotation behavior" choice:"rename" choice:"reopen"`
 	LogPath      *string            `long:"logPath" description:"path to a log file for storing logging output"`
+	LogRotate    *string            `long:"logRotate" description:"set the log rotation behavior" choice:"rename" choice:"reopen"`
 	SetVerbosity func(string) error `short:"v" long:"verbose" value-name:"<level>" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv, or specify a numeric value, e.g. --verbose=N)" optional:"true" optional-value:""`
 	Quiet        *bool              `long:"quiet" description:"hide all log output"`
 	VLevel       *int               `no-flag:"true"`
@@ -227,11 +227,11 @@ func (o *logOptions) mapToConfig(cfg *Config) error {
 	if o.LogAppend != nil {
 		cfg.SystemLog.LogAppend = *o.LogAppend
 	}
-	if !isEmptyOrUnset(o.LogRotate) {
-		cfg.SystemLog.LogRotate = *o.LogRotate
-	}
 	if !isEmptyOrUnset(o.LogPath) {
 		cfg.SystemLog.Path = *o.LogPath
+	}
+	if !isEmptyOrUnset(o.LogRotate) {
+		cfg.SystemLog.LogRotate = *o.LogRotate
 	}
 	if o.Quiet != nil {
 		cfg.SystemLog.Quiet = *o.Quiet

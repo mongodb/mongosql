@@ -27,16 +27,15 @@ type rotatingfile struct {
 
 	reader *io.PipeReader
 	writer *io.PipeWriter
+
+	memBuf []byte
 }
 
 func newRotatingFile(filename string, append bool, strategy string) (io.Writer, rotateFunc, error) {
 
 	switch strategy {
-	case Rename:
-		// this is supported
-	case Reopen:
-		// this is not yet supported
-		fallthrough
+	case Rename, Reopen:
+		// these are supported
 	default:
 		return nil, nil, fmt.Errorf("Unsupported log rotation strategy '%s'", strategy)
 	}
@@ -60,6 +59,7 @@ func newRotatingFile(filename string, append bool, strategy string) (io.Writer, 
 		errChan:    make(chan error),
 		reader:     pr,
 		writer:     pw,
+		memBuf:     make([]byte, 4096),
 	}
 
 	w, err := rf.open()
@@ -69,22 +69,21 @@ func newRotatingFile(filename string, append bool, strategy string) (io.Writer, 
 	return w, rf.rotate, err
 }
 
-func (f *rotatingfile) open() (io.Writer, error) {
-
+func (rf *rotatingfile) open() (io.Writer, error) {
 	// open log file
-	file, err := os.OpenFile(f.filename, f.mode, 0666)
+	file, err := os.OpenFile(rf.filename, rf.mode, 0666)
 	if err != nil {
 		return nil, err
 	}
-	f.file = file
+	rf.file = file
 
-	return f.writer, nil
+	return rf.writer, nil
 }
 
 func (f *rotatingfile) start() {
 	data := make(chan []byte)
-
 	var chunkSize int64 = 32
+
 	go func() {
 		for {
 			buf := make([]byte, chunkSize)
@@ -96,10 +95,16 @@ func (f *rotatingfile) start() {
 	}()
 
 	go func() {
+		tickChan := time.NewTicker(time.Millisecond * 400).C
 		for {
 			select {
 			case <-f.rotateChan:
 				var err error
+
+				if len(f.memBuf) != 0 {
+					f.file.Write(f.memBuf)
+					f.memBuf = f.memBuf[:0]
+				}
 
 				if f.strategy == Rename {
 					// rename current log file to the archived log file
@@ -127,9 +132,11 @@ func (f *rotatingfile) start() {
 				}
 
 				f.errChan <- nil
-
 			case buf := <-data:
-				f.file.Write(buf)
+				f.memBuf = append(f.memBuf, buf...)
+			case <-tickChan:
+				f.file.Write(f.memBuf)
+				f.memBuf = f.memBuf[:0]
 			}
 		}
 	}()

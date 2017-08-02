@@ -67,6 +67,9 @@ type conn struct {
 	stmtID uint32
 	stmts  map[uint32]*stmt
 
+	// server startup information
+	startupInfo []string
+
 	// status variables
 	bytesReceived uint64
 	bytesSent     uint64
@@ -103,9 +106,9 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 			CLIENT_LONG_PASSWORD |
 			CLIENT_SECURE_CONNECTION |
 			CLIENT_COMPRESS,
-
-		stmts:     make(map[uint32]*stmt),
-		variables: variable.NewSessionContainer(s.variables),
+		startupInfo: s.GetStartupInfo(),
+		stmts:       make(map[uint32]*stmt),
+		variables:   variable.NewSessionContainer(s.variables),
 	}
 
 	if s.cfg.Security.Enabled {
@@ -234,6 +237,11 @@ func (c *conn) dispatch(data []byte) error {
 	default:
 		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COM_ERROR)
 	}
+}
+
+// GetStartupInfo returns startup information of mongosqld.
+func (c *conn) GetStartupInfo() []string {
+	return c.startupInfo
 }
 
 func (c *conn) handshake() error {

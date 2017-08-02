@@ -69,6 +69,10 @@ func (c *connCtx) Catalog() *catalog.Catalog {
 	return c.catalog
 }
 
+func (c *connCtx) GetStartupInfo() []string {
+	return []string{}
+}
+
 func (c *connCtx) Variables() *variable.Container {
 	return c.variables
 }

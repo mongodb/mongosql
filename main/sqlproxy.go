@@ -63,7 +63,7 @@ func (p *program) Start(s service.Service) error {
 		return err
 	}
 
-	p.logStartupInfo()
+	startupInfo := p.logStartupInfo()
 
 	p.sessionProvider, err = mongodb.NewSqldSessionProvider(p.cfg)
 	if err != nil {
@@ -91,6 +91,8 @@ func (p *program) Start(s service.Service) error {
 		p.cleanup()
 		return err
 	}
+
+	p.svr.StoreStartupInfo(startupInfo)
 
 	// asynchronously load the schema from MongoDB by sampling if needed
 	if p.schema == nil {
@@ -198,25 +200,36 @@ func (p *program) loadSchema() error {
 	return nil
 }
 
-func (p *program) logStartupInfo() {
-	p.controlLogger.Logf(log.Always, "[initandlisten] mongosqld version: %v", config.VersionStr)
-	p.controlLogger.Logf(log.Always, "[initandlisten] git version: %v", config.Gitspec)
-	p.controlLogger.Logf(log.Always, "[initandlisten] options: %v", config.ToJSON(p.cfg))
+func (p *program) logStartupInfo() []string {
+	startupInfo := []string{
+		fmt.Sprintf("[initandlisten] mongosqld version: %v", config.VersionStr),
+		fmt.Sprintf("[initandlisten] git version: %v", config.Gitspec),
+		fmt.Sprintf("[initandlisten] options: %v", config.ToJSON(p.cfg)),
+	}
 
 	// Production release version strings should not contain a "-", whereas all development releases should, e.g.
 	// Production release: v2.0.1
 	// Development release: v2.0.0-beta5 or v2.0.0-beta5-8-gfad1111
 	if strings.Contains(config.VersionStr, "-") {
-		p.controlLogger.Logf(log.Always, "[initandlisten]")
-		p.controlLogger.Logf(log.Always, "[initandlisten] ** NOTE: This is a development version (%v) of mongosqld.", config.VersionStr)
-		p.controlLogger.Logf(log.Always, "[initandlisten] **       Not recommended for production.")
-		p.controlLogger.Logf(log.Always, "[initandlisten]")
+		startupInfo = append(startupInfo, fmt.Sprintf("[initandlisten]"),
+			fmt.Sprintf("[initandlisten] ** NOTE: This is a development version (%v) of mongosqld.", config.VersionStr),
+			fmt.Sprintf("[initandlisten] **       Not recommended for production."),
+			fmt.Sprintf("[initandlisten]"),
+		)
 	}
 
 	if !p.cfg.Security.Enabled {
-		p.controlLogger.Logf(log.Always, "[initandlisten] ** WARNING: Access control is not enabled for mongosqld.")
-		p.controlLogger.Logf(log.Always, "[initandlisten]")
+		startupInfo = append(startupInfo,
+			fmt.Sprintf("[initandlisten] ** WARNING: Access control is not enabled for mongosqld."),
+			fmt.Sprintf("[initandlisten]"),
+		)
 	}
+
+	for _, info := range startupInfo {
+		p.controlLogger.Logf(log.Always, info)
+	}
+
+	return startupInfo
 }
 
 type verbosityLevel struct {

@@ -198,8 +198,8 @@ type Config struct {
 
 // SystemLog holds logging configuration.
 type SystemLog struct {
-	LogRotate string
 	LogAppend bool
+	LogRotate string
 	Path      string
 	Quiet     bool
 	Verbosity int

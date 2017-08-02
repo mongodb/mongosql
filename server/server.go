@@ -84,6 +84,10 @@ type Server struct {
 	startTime        time.Time
 	threadsConnected uint32
 
+	// startupInfo holds configuration information
+	// for the server
+	startupInfo []string
+
 	listeners []net.Listener
 }
 
@@ -283,6 +287,17 @@ func (s *Server) Close() {
 		c.close()
 	}
 	s.activeConnectionsMx.RUnlock()
+}
+
+// GetStartupInfo returns startup information for the server.
+func (s *Server) GetStartupInfo() []string {
+	return s.startupInfo
+}
+
+// StoreStartupInfo stores startup information in order
+// to log after a log rotation.
+func (s *Server) StoreStartupInfo(startupInfo []string) {
+	s.startupInfo = startupInfo
 }
 
 func (s *Server) addConnection(c *conn) {

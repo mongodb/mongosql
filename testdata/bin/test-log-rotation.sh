@@ -25,6 +25,8 @@
         exit 1
     fi
 
+    sleep 1
+
     for file in $ARTIFACTS_DIR/log/mongosqld.log*; do
         lines="$(cat $file | wc -l)"
         if [ "$lines" = "0" ]; then
