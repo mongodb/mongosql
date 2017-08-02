@@ -536,13 +536,13 @@ func (c *conn) readPacket() ([]byte, error) {
 
 	data := make([]byte, length)
 	if _, err := io.ReadFull(c.reader, data); err != nil {
+		c.logger.Errf(log.Always, "read full error: %v", err)
 		return nil, errBadConn
 	}
 
 	// in uncompressed world, record bytes received
 	if !c.compressionOn {
 		bytesReceived := uint64(length) + 4 // for the header
-
 		atomic.AddUint64(&c.bytesReceived, bytesReceived)
 		atomic.AddUint64(&c.server.bytesReceived, bytesReceived)
 	}
@@ -863,7 +863,7 @@ func (c *conn) writePacket(data []byte) error {
 		data[3] = c.sequence
 
 		if _, err := c.writer.Write(data[:4+maxPayloadLength]); err != nil {
-			c.logger.Errf(log.Always, "write Packet error: %v", err)
+			c.logger.Errf(log.Always, "write maxPayloadLength error: %v", err)
 			return errBadConn
 		} else {
 			c.sequence++
@@ -888,7 +888,7 @@ func (c *conn) writePacket(data []byte) error {
 	data[3] = c.sequence
 
 	if _, err := c.writer.Write(data); err != nil {
-		c.logger.Errf(log.Always, "write Packet error: %v", err)
+		c.logger.Errf(log.Always, "write packet error: %v", err)
 		return errBadConn
 	}
 
