@@ -1,9 +1,11 @@
 
 # set defaults for platform variables
-ARCHIVE_FORMAT=tgz
-JAVA_HOME=/opt/java/jdk8
-GOROOT=/opt/go1.8/go
-GOBINDIR=/opt/go1.8/go/bin
+if [ "$VARIANT" != "" ]; then
+    ARCHIVE_FORMAT=tgz
+    JAVA_HOME=/opt/java/jdk8
+    GOROOT=/opt/go1.8/go
+    GOBINDIR=/opt/go1.8/go/bin
+fi
 
 # set platform-specific variables
 case $VARIANT in
