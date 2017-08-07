@@ -12,7 +12,7 @@ func TestDefault(t *testing.T) {
 	cfg := Default()
 
 	testBool(t, cfg.SystemLog.LogAppend, false, "cfg.SystemLog.LogAppend")
-	testString(t, cfg.SystemLog.LogRotate, log.Rename, "cfg.SystemLog.LogRotate")
+	testString(t, string(cfg.SystemLog.LogRotate), string(log.Rename), "cfg.SystemLog.LogRotate")
 	testString(t, cfg.SystemLog.Path, "", "cfg.SystemLog.Quiet")
 	testBool(t, cfg.SystemLog.Quiet, false, "cfg.SystemLog.Quiet")
 	testInt(t, cfg.SystemLog.Verbosity, 0, "cfg.SystemLog.Verbosity")

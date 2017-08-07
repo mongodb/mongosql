@@ -134,6 +134,8 @@ func (p *program) Stop(s service.Service) error {
 }
 
 func (p *program) cleanup() {
+	log.Flush()
+
 	if p.sessionProvider != nil {
 		p.sessionProvider.Close()
 	}
@@ -154,7 +156,34 @@ func (p *program) initLog() error {
 
 	if len(p.cfg.SystemLog.Path) > 0 {
 
-		err := log.SetOutputFile(p.cfg.SystemLog.Path, p.cfg.SystemLog.LogAppend, p.cfg.SystemLog.LogRotate)
+		info, err := os.Stat(p.cfg.SystemLog.Path)
+		if err == nil {
+			//return an error if logPath is a directory
+			if info.IsDir() {
+				return fmt.Errorf("logPath \"%s\" should name a file, not a directory", p.cfg.SystemLog.Path)
+			}
+
+			// rename existing file at logPath, if necessary
+			if !p.cfg.SystemLog.LogAppend {
+				current := p.cfg.SystemLog.Path
+				now := time.Now().Format(log.RotationTimeFormat)
+				archive := fmt.Sprintf("%s.%s", current, now)
+
+				msg := fmt.Sprintf("log file \"%s\" exists; moving to \"%s\"", current, archive)
+				if service.Interactive() {
+					fmt.Fprintln(os.Stderr, msg)
+				} else {
+					p.serviceLogger.Infof(msg)
+				}
+
+				err = os.Rename(current, archive)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		err = log.SetOutputFile(p.cfg.SystemLog.Path, p.cfg.SystemLog.LogAppend, p.cfg.SystemLog.LogRotate)
 		if err != nil {
 			return err
 		}

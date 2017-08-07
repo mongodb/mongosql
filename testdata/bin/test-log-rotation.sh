@@ -5,7 +5,6 @@
 
 (
     set -o errexit
-    set -o xtrace
     echo "running logging test..."
 
     cmd="$(echo "$MYSQL_CMD" | sed 's/,/;/g')"
@@ -25,7 +24,7 @@
         exit 1
     fi
 
-    sleep 1
+    sleep 1 # wait for logs to flush
 
     for file in $ARTIFACTS_DIR/log/mongosqld.log*; do
         lines="$(cat $file | wc -l)"

@@ -759,6 +759,18 @@ tasks:
   name: test-log-rotation-twice
   tags: ["test", "config"]
 
+- <<: *run-config-test
+  name: test-log-rotation-startup-rotate
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-log-rotation-startup-append
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-log-rotation-startup-dir
+  tags: ["test", "config"]
+
 - name: tpch-handwritten-denormalized
   tags:
     - oneoff-task

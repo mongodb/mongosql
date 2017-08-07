@@ -36,6 +36,10 @@ start-all: build-mongosqld run-mongosqld run-mongodb
 
 test: test-unit test-integration
 
+test-start-mongosqld: build-mongosqld _test-start-mongosqld
+_test-start-mongosqld:
+	$(ENV) $(EXPECTED) testdata/bin/test-start-mongosqld.sh
+
 test-connect-failure: EXPECTED_STATUS = 1
 test-connect-failure: start-all
 	$(ENV) $(EXPECTED) testdata/bin/test-simple-connect.sh

@@ -14,14 +14,11 @@
         sc.exe delete mongosql || true
         reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\mongosql" /f || true
 
-        $ARTIFACTS_DIR/bin/mongosqld install -vvvv \
-            --logPath $ARTIFACTS_DIR/log/mongosqld.log \
-            $SQLPROXY_ARGS
+        $ARTIFACTS_DIR/bin/mongosqld install -vvvv $SQLPROXY_ARGS
 
         net start mongosql
     else
         nohup $ARTIFACTS_DIR/bin/mongosqld -vvvv \
-            --logPath $ARTIFACTS_DIR/log/mongosqld.log \
             $SQLPROXY_ARGS &
         pid=$!
 

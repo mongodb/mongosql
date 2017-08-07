@@ -85,7 +85,7 @@ processManagement:
 	}
 
 	testBool(t, cfg.SystemLog.LogAppend, true, "cfg.SystemLog.LogAppend")
-	testString(t, cfg.SystemLog.LogRotate, log.Reopen, "cfg.SystemLog.LogRotate")
+	testString(t, string(cfg.SystemLog.LogRotate), string(log.Reopen), "cfg.SystemLog.LogRotate")
 	testString(t, cfg.SystemLog.Path, "temp", "cfg.SystemLog.Quiet")
 	testBool(t, cfg.SystemLog.Quiet, true, "cfg.SystemLog.Quiet")
 	testInt(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")

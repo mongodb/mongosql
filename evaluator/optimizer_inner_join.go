@@ -597,7 +597,7 @@ func (v *innerJoinOptimizer) reorderInnerJoins() (node, error) {
 
 	v.sortablePaths = &sortablePaths{
 		optimizer:       v,
-		logger:          log.NewLogger(nil),
+		logger:          v.logger,
 		matcher:         combineExpressions(allCriteria),
 		mergePotentials: make(map[string]int),
 	}

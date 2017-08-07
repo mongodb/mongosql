@@ -383,6 +383,7 @@ func TestUsing(t *testing.T) {
 	testParseError(t, sql)
 
 	sql = "select bar.d, baz.a from bar join baz using ()"
+	testParseError(t, sql)
 }
 
 func TestFlush(t *testing.T) {

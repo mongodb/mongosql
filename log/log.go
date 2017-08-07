@@ -17,7 +17,10 @@ const (
 )
 
 const (
-	defaultTimeFormat = "2006-01-02T15:04:05.000-0700"
+	defaultTimeFormat        = "2006-01-02T15:04:05.000-0700"
+	flushInterval            = 400 * time.Millisecond
+	bufferSizeFlushThreshold = 4096
+	bufferSizeLimit          = 8192
 )
 
 const (
@@ -45,7 +48,7 @@ var (
 )
 
 type Logger struct {
-	writer     io.Writer
+	buffer     *writeBuffer
 	format     string
 	verbosity  int
 	component  string
@@ -102,19 +105,21 @@ func (lg *Logger) SetVerbosity(level VerbosityLevel) {
 }
 
 func (lg *Logger) SetOutputWriter(writer io.Writer) {
-	lg.writer = writer
-	lg.rotateFunc = func() (string, error) {
-		return "", fmt.Errorf("Cannot rotate arbitrary io.Writer")
-	}
+	lg.buffer.setWriter(writer)
+	lg.rotateFunc = noRotateFunc
 }
 
-func (lg *Logger) SetOutputFile(filename string, logAppend bool, rotationStrategy string) error {
-	w, rotate, err := newRotatingFile(filename, logAppend, rotationStrategy)
+func (lg *Logger) SetOutputFile(filename string, logAppend bool, strategy RotationStrategy) error {
+	w, err := newRotatingFile(filename, logAppend, strategy)
 	if err == nil {
-		lg.writer = w
-		lg.rotateFunc = rotate
+		lg.buffer.setWriter(w)
+		lg.rotateFunc = w.rotate
 	}
 	return err
+}
+
+func (lg *Logger) Flush() {
+	lg.buffer.requestFlush(true)
 }
 
 func (lg *Logger) Rotate() (string, error) {
@@ -128,21 +133,21 @@ func (lg *Logger) writelog(minVerbosity int, msg string) {
 
 	if minVerbosity <= lg.verbosity {
 		message := fmt.Sprintf("%v %v\n", time.Now().Format(lg.format), msg)
-		lg.writer.Write([]byte(message))
+		lg.buffer.writeMessage(message)
 	}
 }
 
-func NewLogger(verbosity VerbosityLevel) *Logger {
-	noRotateFunc := func() (string, error) {
-		return "", fmt.Errorf("cannot rotate logs without log path: use --logPath or in a config " +
-			"file at 'systemLog.path'")
-	}
+func noRotateFunc() (string, error) {
+	return "", fmt.Errorf("cannot rotate logs without log path: use --logPath or in a config " +
+		"file at 'systemLog.path'")
+}
 
+func NewLogger(verbosity VerbosityLevel) *Logger {
 	lg := &Logger{
+		buffer:     newWriteBuffer(os.Stderr, bufferSizeFlushThreshold, bufferSizeLimit),
 		component:  defaultComponent,
 		format:     defaultTimeFormat,
 		rotateFunc: noRotateFunc,
-		writer:     &stdErrWriter{},
 	}
 
 	lg.SetVerbosity(verbosity)
@@ -152,25 +157,128 @@ func NewLogger(verbosity VerbosityLevel) *Logger {
 
 func NewComponentLogger(component string, logger Logger) *Logger {
 	lg := &Logger{
+		buffer:     logger.buffer,
 		component:  component,
 		format:     logger.format,
 		rotateFunc: logger.rotateFunc,
 		verbosity:  logger.verbosity,
-		writer:     logger.writer,
 	}
 
 	return lg
 }
 
-// stdErrWriter synchronizes writes to os.Stderr
-type stdErrWriter struct{ sync.Mutex }
+type writeBuffer struct {
+	tmp     []byte
+	buf     []byte
+	bufLock sync.Mutex
 
-func (s *stdErrWriter) Write(b []byte) (int, error) {
-	s.Lock()
-	// TODO: maybe buffer writes here
-	n, err := os.Stderr.Write(b)
-	s.Unlock()
-	return n, err
+	threshold int
+	limit     int
+
+	writer     io.Writer
+	writerLock sync.Mutex
+
+	flushChan chan chan struct{}
+}
+
+func newWriteBuffer(writer io.Writer, threshold, limit int) *writeBuffer {
+	flushChan := make(chan chan struct{}, 1)
+	w := &writeBuffer{
+		threshold: threshold,
+		limit:     limit,
+		writer:    writer,
+		flushChan: flushChan,
+	}
+
+	go func() {
+		for {
+			select {
+			case <-time.After(flushInterval):
+				w.flush()
+			case done := <-flushChan:
+				w.flush()
+				done <- struct{}{}
+			}
+		}
+	}()
+
+	return w
+}
+
+func (w *writeBuffer) requestFlush(wait bool) {
+	// create a channel for callback after completed flush
+	done := make(chan struct{}, 1)
+
+	if wait {
+		// we need to make sure this exact flush request gets serviced
+		w.flushChan <- done
+		<-done
+	} else {
+		// we just care that a flush request gets submitted
+		select {
+		case w.flushChan <- done:
+		default:
+		}
+	}
+}
+
+func (w *writeBuffer) writeMessage(str string) {
+	w.bufLock.Lock()
+	bufLen := len(w.buf) + len(str)
+	w.bufLock.Unlock()
+
+	if bufLen > w.limit {
+		w.requestFlush(true)
+	} else if bufLen > w.threshold {
+		w.requestFlush(false)
+	}
+
+	msgBytes := []byte(str)
+	w.bufLock.Lock()
+	w.buf = append(w.buf, msgBytes...)
+	w.bufLock.Unlock()
+}
+
+// flush is _not_ thread safe.
+// concurrent use will result in data races on w.tmp
+func (w *writeBuffer) flush() {
+
+	w.bufLock.Lock()
+
+	// resize tmp slice
+	bufLen := len(w.buf)
+	if cap(w.tmp) < bufLen {
+		// allocate if we need more capacity
+		w.tmp = make([]byte, bufLen)
+	} else {
+		// otherwise just reslice
+		w.tmp = w.tmp[:bufLen]
+	}
+
+	// copy currently buffered data into tmp slice
+	copy(w.tmp, w.buf)
+
+	// truncate the buffer
+	w.buf = w.buf[:0]
+
+	w.bufLock.Unlock()
+
+	// get the current writer
+	w.writerLock.Lock()
+	writer := w.writer
+	w.writerLock.Unlock()
+
+	// write the flushed data to the writer
+	_, err := writer.Write(w.tmp)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (w *writeBuffer) setWriter(writer io.Writer) {
+	w.writerLock.Lock()
+	w.writer = writer
+	w.writerLock.Unlock()
 }
 
 //// Log Writer Interface
@@ -228,12 +336,16 @@ func SetOutputWriter(writer io.Writer) {
 	globalLogger.SetOutputWriter(writer)
 }
 
-func SetOutputFile(filename string, logAppend bool, rotationStrategy string) error {
-	return globalLogger.SetOutputFile(filename, logAppend, rotationStrategy)
+func SetOutputFile(filename string, logAppend bool, strategy RotationStrategy) error {
+	return globalLogger.SetOutputFile(filename, logAppend, strategy)
 }
 
 func SetDateFormat(dateFormat string) {
 	globalLogger.SetDateFormat(dateFormat)
+}
+
+func Flush() {
+	globalLogger.Flush()
 }
 
 func Rotate() (string, error) {

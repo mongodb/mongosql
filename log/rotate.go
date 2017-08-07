@@ -2,42 +2,41 @@ package log
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"time"
 )
 
+type RotationStrategy string
+
 const (
-	Rename = "rename"
-	Reopen = "reopen"
+	Rename RotationStrategy = "rename"
+	Reopen                  = "reopen"
+
+	RotationTimeFormat = time.RFC3339Nano
 )
 
 type rotateFunc func() (string, error)
 
-type rotatingfile struct {
+type rotatingFile struct {
 	filename string
 	mode     int
-	strategy string
+	strategy RotationStrategy
 
 	file    *os.File
 	lastLog string
 
 	rotateChan chan struct{}
 	errChan    chan error
-
-	reader *io.PipeReader
-	writer *io.PipeWriter
-
-	memBuf []byte
+	dataChan   chan []byte
 }
 
-func newRotatingFile(filename string, append bool, strategy string) (io.Writer, rotateFunc, error) {
+func newRotatingFile(filename string, append bool, strategy RotationStrategy) (*rotatingFile, error) {
 
 	switch strategy {
 	case Rename, Reopen:
 		// these are supported
 	default:
-		return nil, nil, fmt.Errorf("Unsupported log rotation strategy '%s'", strategy)
+		return nil, fmt.Errorf("Unsupported log rotation strategy '%s'", strategy)
 	}
 
 	// calculate mode for opening file
@@ -48,109 +47,90 @@ func newRotatingFile(filename string, append bool, strategy string) (io.Writer, 
 		mode = mode | os.O_TRUNC
 	}
 
-	// create io pipeline
-	pr, pw := io.Pipe()
-
-	rf := &rotatingfile{
+	rf := &rotatingFile{
 		filename:   filename,
 		mode:       mode,
 		strategy:   strategy,
 		rotateChan: make(chan struct{}, 1),
 		errChan:    make(chan error),
-		reader:     pr,
-		writer:     pw,
-		memBuf:     make([]byte, 4096),
+		dataChan:   make(chan []byte),
 	}
 
-	w, err := rf.open()
+	err := rf.open()
 	if err == nil {
 		rf.start()
 	}
-	return w, rf.rotate, err
+	return rf, err
 }
 
-func (rf *rotatingfile) open() (io.Writer, error) {
+func (rf *rotatingFile) Write(b []byte) (int, error) {
+	rf.dataChan <- b
+	return len(b), nil
+}
+
+func (rf *rotatingFile) open() error {
 	// open log file
 	file, err := os.OpenFile(rf.filename, rf.mode, 0666)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	rf.file = file
 
-	return rf.writer, nil
+	return nil
 }
 
-func (f *rotatingfile) start() {
-	data := make(chan []byte)
-	var chunkSize int64 = 32
-
+func (rf *rotatingFile) start() {
 	go func() {
-		for {
-			buf := make([]byte, chunkSize)
-			n, err := f.reader.Read(buf)
-			if err == nil {
-				data <- buf[:n]
-			}
-		}
-	}()
-
-	go func() {
-		tickChan := time.NewTicker(time.Millisecond * 400).C
 		for {
 			select {
-			case <-f.rotateChan:
+			case <-rf.rotateChan:
 				var err error
 
-				if len(f.memBuf) != 0 {
-					f.file.Write(f.memBuf)
-					f.memBuf = f.memBuf[:0]
-				}
-
-				if f.strategy == Rename {
+				if rf.strategy == Rename {
 					// rename current log file to the archived log file
-					now := time.Now().Format(time.RFC3339Nano)
-					archive := fmt.Sprintf("%s.%s", f.filename, now)
-					err = os.Rename(f.filename, archive)
+					now := time.Now().Format(RotationTimeFormat)
+					archive := fmt.Sprintf("%s.%s", rf.filename, now)
+					err = os.Rename(rf.filename, archive)
 					if err != nil {
 						// if rename fails, we will just keep logging to the same file
-						f.errChan <- fmt.Errorf("Log rotation failed: %v", err)
+						rf.errChan <- fmt.Errorf("Log rotation failed: %v", err)
 						break
 					}
-					f.lastLog = archive
+					rf.lastLog = archive
 				}
 
 				// close the log file
-				err = f.file.Close()
+				err = rf.file.Close()
 				if err != nil {
 					panic(fmt.Errorf("Log rotation failed: %v", err))
 				}
 
 				// open the new log file
-				_, err = f.open()
+				err = rf.open()
 				if err != nil {
 					panic(fmt.Errorf("Log rotation failed: %v", err))
 				}
 
-				f.errChan <- nil
-			case buf := <-data:
-				f.memBuf = append(f.memBuf, buf...)
-			case <-tickChan:
-				f.file.Write(f.memBuf)
-				f.memBuf = f.memBuf[:0]
+				rf.errChan <- nil
+			case b := <-rf.dataChan:
+				_, err := rf.file.Write(b)
+				if err != nil {
+					panic(fmt.Errorf("Failed writing log: %v", err))
+				}
 			}
 		}
 	}()
 }
 
-func (f *rotatingfile) rotate() (string, error) {
+func (rf *rotatingFile) rotate() (string, error) {
 	select {
-	case f.rotateChan <- struct{}{}:
+	case rf.rotateChan <- struct{}{}:
 		// signal a rotation
 	default:
 		return "", fmt.Errorf("Log rotation already in progress")
 	}
 
 	// wait for rotation to complete
-	err := <-f.errChan
-	return f.lastLog, err
+	err := <-rf.errChan
+	return rf.lastLog, err
 }

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/10gen/sqlproxy/log"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -231,7 +232,7 @@ func (o *logOptions) mapToConfig(cfg *Config) error {
 		cfg.SystemLog.Path = *o.LogPath
 	}
 	if !isEmptyOrUnset(o.LogRotate) {
-		cfg.SystemLog.LogRotate = *o.LogRotate
+		cfg.SystemLog.LogRotate = log.RotationStrategy(*o.LogRotate)
 	}
 	if o.Quiet != nil {
 		cfg.SystemLog.Quiet = *o.Quiet
