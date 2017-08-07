@@ -135,7 +135,7 @@ func (*DrdlOutput) Name() string {
 }
 
 type DrdlSample struct {
-	SampleSize int64 `long:"sampleSize" short:"s" description:"the number of documents to sample when generating schema" default:"1000"`
+	Size int64 `long:"sampleSize" short:"s" description:"the number of documents to sample when generating schema" default:"1000"`
 }
 
 func (*DrdlSample) Name() string {

@@ -66,7 +66,7 @@ func TestConfiguration(t *testing.T) {
 				Out:       "out/testdb.yml",
 				PreJoined: true,
 			},
-			SampleOptions: &options.DrdlSample{SampleSize: 1000},
+			SampleOptions: &options.DrdlSample{Size: 1000},
 			Logger:        logger,
 		}
 
@@ -108,7 +108,7 @@ func TestRoundtrips(t *testing.T) {
 					Out:       "out/indexed.yml",
 					PreJoined: true,
 				},
-				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+				SampleOptions: &options.DrdlSample{Size: 1000},
 				Logger:        logger,
 			}
 
@@ -163,7 +163,7 @@ func TestRoundtrips(t *testing.T) {
 					Out:       "out/views-expected.yml",
 					PreJoined: true,
 				},
-				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+				SampleOptions: &options.DrdlSample{Size: 1000},
 				Logger:        logger,
 			}
 
@@ -220,7 +220,7 @@ func TestRoundtrips(t *testing.T) {
 					Out:       "out/views-geo-expected.yml",
 					PreJoined: true,
 				},
-				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+				SampleOptions: &options.DrdlSample{Size: 1000},
 				Logger:        logger,
 			}
 
@@ -283,7 +283,7 @@ func TestRoundtrips(t *testing.T) {
 					Out:       "out/admin.yml",
 					PreJoined: true,
 				},
-				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+				SampleOptions: &options.DrdlSample{Size: 1000},
 				Logger:        logger,
 			}
 
@@ -339,7 +339,7 @@ func TestRoundtrips(t *testing.T) {
 					CustomFilterField: "__MONGOQUERY",
 					PreJoined:         true,
 				},
-				SampleOptions: &options.DrdlSample{SampleSize: 1000},
+				SampleOptions: &options.DrdlSample{Size: 1000},
 				Logger:        logger,
 			}
 
@@ -449,7 +449,7 @@ func newSchemaGenerator(db, collection, outputFile string, sslOptions *options.D
 		OutputOptions: &options.DrdlOutput{
 			Out: outputFile,
 		},
-		SampleOptions: &options.DrdlSample{SampleSize: 1000},
+		SampleOptions: &options.DrdlSample{Size: 1000},
 		Logger:        logger,
 	}
 

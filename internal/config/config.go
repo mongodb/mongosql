@@ -90,7 +90,10 @@ func Default() *Config {
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
 	cfg.ProcessManagement.Service.Description = "MongoSQL accesses MongoDB data with SQL"
 
-	cfg.Schema.Sample.SampleSize = 1000
+	cfg.Schema.Sample.Size = 1000
+	cfg.Schema.Sample.Mode = "write"
+	cfg.Schema.Sample.ReadIntervalSecs = 600
+	cfg.Schema.Sample.WriteIntervalSecs = 86400
 
 	cfg.SystemLog.LogRotate = log.Rename
 
@@ -224,8 +227,12 @@ type Schema struct {
 
 type SchemaSampleOptions struct {
 	Databases            []string
-	SampleSize           int64
-	UUIDSubtype3Encoding string `config:"uuidSubtype3Encoding"`
+	Mode                 string   `config:"mode"`
+	Size                 int64    `config:"size"`
+	Namespaces           []string `config:"namespaces"`
+	ReadIntervalSecs     int64    `config:"readIntervalSecs"`
+	WriteIntervalSecs    int64    `config:"writeIntervalSecs"`
+	UUIDSubtype3Encoding string   `config:"uuidSubtype3Encoding"`
 }
 
 // Net holds network related configuration.

@@ -215,7 +215,7 @@ func createSchemaGenerator(cfg *config.Config) *mongodrdl.SchemaGenerator {
 			UUIDSubtype3Encoding: cfg.Schema.Sample.UUIDSubtype3Encoding,
 		},
 		SampleOptions: &options.DrdlSample{
-			SampleSize: cfg.Schema.Sample.SampleSize,
+			Size: cfg.Schema.Sample.Size,
 		},
 		Logger: log.NewComponentLogger(
 			fmt.Sprintf("%-10v [schemaDiscovery]", component),

@@ -45,6 +45,13 @@ func TestParseArgs_Valid(t *testing.T) {
 		// Schema
 		"--schema", "path-to-file",
 		"--maxVarcharLength", "1000",
+		"--sampleNamespaces", "foo.*",
+		"--sampleNamespaces", "*.bar",
+		"--sampleSize", "500",
+		"--sampleMode", "read",
+		"--sampleReadIntervalSecs", "1005",
+		"--sampleWriteIntervalSecs", "983",
+		"--uuidSubtype3Encoding", "java",
 
 		// Service
 		"--serviceName", "oompa",
@@ -73,6 +80,13 @@ func TestParseArgs_Valid(t *testing.T) {
 
 	testString(t, cfg.Schema.Path, "path-to-file", "cfg.Schema.Path")
 	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
+
+	testStringSlice(t, cfg.Schema.Sample.Namespaces, []string{"foo.*", "*.bar"}, "cfg.Schema.Sample.Namespaces")
+	testInt64(t, cfg.Schema.Sample.Size, 500, "cfg.Schema.Sample.Size")
+	testString(t, cfg.Schema.Sample.Mode, "read", "cfg.Schema.Sample.Mode")
+	testInt64(t, cfg.Schema.Sample.ReadIntervalSecs, 1005, "cfg.Schema.Sample.ReadIntervalSecs")
+	testInt64(t, cfg.Schema.Sample.WriteIntervalSecs, 983, "cfg.Schema.Sample.WriteIFntervalSecs")
+	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "java", "cfg.Schema.Sample.UUIDSubtype3Encoding")
 
 	testStringSlice(t, cfg.Net.BindIP, []string{"host"}, "cfg.Net.BindIP")
 	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")

@@ -318,11 +318,22 @@ type schemaOptions struct {
 	Schema           *string `long:"schema" description:"the path to a schema file"`
 	SchemaDir        *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
 	MaxVarcharLength *uint16 `long:"maxVarcharLength" description:"the maximum length of a varchar"`
+
+	// TODO: delete as part of BI-1121
 	// Databases will append the database name each time the option is encountered
 	// (can be set multiple times, like --sampleDatabase foo --sampleDatabase bar)
-	Databases            []string `long:"sampleDatabase" value-name:"<sample database>" description:"database(s) to sample in generating schema (defaults to all databases - except admin and local)"`
-	SampleSize           *int64   `long:"sampleSize" short:"s" description:"the number of documents to sample, per database, when generating the schema (default: 1000)"`
-	UUIDSubtype3Encoding *string  `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
+	Databases []string `long:"sampleDatabase" value-name:"<sample database>" description:"database(s) to sample in generating schema (defaults to all databases - except admin and local)"`
+
+	Mode *string `long:"sampleMode" description:"set the mongosqld sampling operation mode (default: write)" choice:"read" choice:"write"`
+	Size *int64  `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema (default: 1000)"`
+
+	// Namespaces will append the namespace every time the option is encountered
+	// (can be set multiple times, like --sampleNamespace foo.* --sampleNamespace bar.*_dev)
+	Namespaces []string `long:"sampleNamespaces" value-name:"<sample namespaces>" description:"namespace(s) to sample in generating schema (defaults to all namespaces - except admin and local databases)"`
+
+	ReadIntervalSecs     *int64  `long:"sampleReadIntervalSecs" description:"the interval (in seconds) mongosqld waits before reading the database schema (default: 600)"`
+	WriteIntervalSecs    *int64  `long:"sampleWriteIntervalSecs" description:"the interval (in seconds) mongosqld waits before re-sampling the database schema (default: 86400)"`
+	UUIDSubtype3Encoding *string `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
 }
 
 func (o *schemaOptions) name() string {
@@ -352,8 +363,24 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 		cfg.Schema.Sample.Databases = o.Databases
 	}
 
-	if o.SampleSize != nil {
-		cfg.Schema.Sample.SampleSize = *o.SampleSize
+	if !isEmptyOrUnset(o.Mode) {
+		cfg.Schema.Sample.Mode = *o.Mode
+	}
+
+	if o.Size != nil {
+		cfg.Schema.Sample.Size = *o.Size
+	}
+
+	if o.Namespaces != nil {
+		cfg.Schema.Sample.Namespaces = o.Namespaces
+	}
+
+	if o.ReadIntervalSecs != nil {
+		cfg.Schema.Sample.ReadIntervalSecs = *o.ReadIntervalSecs
+	}
+
+	if o.WriteIntervalSecs != nil {
+		cfg.Schema.Sample.WriteIntervalSecs = *o.WriteIntervalSecs
 	}
 
 	if !isEmptyOrUnset(o.UUIDSubtype3Encoding) {

@@ -25,7 +25,11 @@ schema:
   maxVarcharLength: 1000
   sample:
     databases: ["a", "b"]
-    sampleSize: 969
+    mode: read
+    size: 969
+    namespaces: ["foo.*", "*.bar"]
+    readIntervalSecs: 1005
+    writeIntervalSecs: 983
     uuidSubtype3Encoding: java
 
 runtime:
@@ -88,9 +92,12 @@ processManagement:
 
 	testString(t, cfg.Schema.Path, "/var/test", "cfg.Schema.Path")
 	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
-	testInt64(t, cfg.Schema.Sample.SampleSize, 969, "cfg.Schema.Sample.SampleSize")
+	testInt64(t, cfg.Schema.Sample.Size, 969, "cfg.Schema.Sample.Size")
+	testString(t, cfg.Schema.Sample.Mode, "read", "cfg.Schema.Sample.Mode")
+	testStringSlice(t, cfg.Schema.Sample.Namespaces, []string{"foo.*", "*.bar"}, "cfg.Schema.Sample.Namespaces")
+	testInt64(t, cfg.Schema.Sample.ReadIntervalSecs, 1005, "cfg.Schema.Sample.ReadIntervalSecs")
+	testInt64(t, cfg.Schema.Sample.WriteIntervalSecs, 983, "cfg.Schema.Sample.WriteIntervalSecs")
 	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "java", "cfg.Schema.UUIDSubtype3Encoding")
-
 	testStringSlice(t, cfg.Schema.Sample.Databases, []string{"a", "b"}, "cfg.Schema.Sample.Databases")
 
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 102400, "cfg.Runtime.Memory.MaxPerStage")

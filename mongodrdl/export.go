@@ -86,7 +86,7 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 	}
 
 	schemaGen.Logger.Logf(log.Info, "Creating schema for namespace %q.%q", dbName, collectionName)
-	pipeline := []bson.M{{"$sample": bson.M{"size": schemaGen.SampleOptions.SampleSize}}}
+	pipeline := []bson.M{{"$sample": bson.M{"size": schemaGen.SampleOptions.Size}}}
 
 	iter, err := session.Aggregate(dbName, collectionName, pipeline)
 	if err != nil {
@@ -99,6 +99,7 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 	var samplePrint string
 
 	for iter.Next(ctx, doc) {
+		// TODO: we might want to NOT log this
 		samplePrint = fmt.Sprintf("%s", doc)
 		c, err := bsonutil.GetBSONValueAsJSON(*doc)
 		if err == nil {
