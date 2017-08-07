@@ -41,6 +41,39 @@ var (
 		return nil, false
 	}
 
+	wrapInRound = func(args []interface{}) (bson.M, bool) {
+		decimal := 1.0
+		if len(args) == 2 {
+			bsonMap, ok := args[1].(bson.M)
+			if !ok {
+				return nil, false
+			}
+
+			bsonVal, ok := bsonMap["$literal"]
+			if !ok {
+				return nil, false
+			}
+
+			placeVal, _ := NewSQLValue(bsonVal, schema.SQLFloat, schema.SQLNone)
+
+			places := placeVal.Float64()
+
+			decimal = math.Pow(float64(10), places)
+		}
+
+		if decimal < 1 {
+			return bson.M{"$literal": 0}, true
+		}
+
+		return bson.M{"$divide": []interface{}{
+			bson.M{mgoOperatorCond: []interface{}{
+				bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
+				bson.M{"$floor": bson.M{"$add": []interface{}{
+					bson.M{"$multiply": []interface{}{args[0], decimal}}, 0.5}}},
+				bson.M{"$ceil": bson.M{"$subtract": []interface{}{
+					bson.M{"$multiply": []interface{}{args[0], decimal}}, 0.5}}}}}, decimal}}, true
+	}
+
 	wrapInCond = func(truePart, falsePart interface{}, conds ...interface{}) interface{} {
 		var condition interface{}
 
@@ -112,7 +145,6 @@ type fieldNameLookup func(tableName, columnName string) (string, bool)
 
 // TranslateExpr attempts to turn the SQLExpr into MongoDB query language.
 func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
-
 	switch typedE := e.(type) {
 
 	case *SQLAddExpr:
@@ -1180,6 +1212,44 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 						1}}}},
 				args[0],
 			), true
+		case "repeat":
+			if !t.versionAtLeast(3, 4, 0) {
+				return nil, false
+			}
+
+			if len(typedE.Exprs) != 2 {
+				return nil, false
+			}
+
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
+
+			str := args[0]
+
+			// num must be rounded to match mysql
+			num, ok := wrapInRound(args[1:])
+			if !ok {
+				return nil, false
+			}
+
+			// create array w/ args[1] values e.g. [0,1,2]
+			rangeArr := bson.M{"$range": []interface{}{0, num, 1}}
+
+			// create array of len arg[1], with each item being arg[0]
+			mapArgs := bson.M{"input": rangeArr, "in": str}
+			mapWithArgs := bson.M{"$map": mapArgs}
+
+			// append all values of this array together
+			inArg := bson.M{"$concat": []interface{}{"$$this",
+				"$$value"}}
+			reduceArgs := bson.M{"input": mapWithArgs, "initialValue": "", "in": inArg}
+
+			repeat := bson.M{"$reduce": reduceArgs}
+
+			return wrapInNullCheckedCond(nil, repeat, str, num), true
+
 		case "right":
 			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
@@ -1214,37 +1284,9 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			if !ok {
 				return nil, false
 			}
-			var decimal float64
-			if len(args) == 2 {
-				bsonMap, ok := args[1].(bson.M)
-				if !ok {
-					return nil, false
-				}
 
-				bsonVal, ok := bsonMap["$literal"]
-				if !ok {
-					return nil, false
-				}
+			return wrapInRound(args)
 
-				placeVal, _ := NewSQLValue(bsonVal, schema.SQLFloat, schema.SQLNone)
-
-				places := placeVal.Float64()
-				decimal = math.Pow(float64(10), places)
-			} else {
-				decimal = 1
-			}
-
-			if decimal < 1 {
-				return bson.M{"$literal": 0}, true
-			}
-
-			return bson.M{"$divide": []interface{}{
-				bson.M{mgoOperatorCond: []interface{}{
-					bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
-					bson.M{"$floor": bson.M{"$add": []interface{}{
-						bson.M{"$multiply": []interface{}{args[0], decimal}}, 0.5}}},
-					bson.M{"$ceil": bson.M{"$subtract": []interface{}{
-						bson.M{"$multiply": []interface{}{args[0], decimal}}, 0.5}}}}}, decimal}}, true
 		case "second":
 			if len(typedE.Exprs) != 1 {
 				return nil, false

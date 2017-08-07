@@ -3396,6 +3396,8 @@ func TestOptimizeEvaluations(t *testing.T) {
 			test{"round(NULL, 2)", "null", SQLNull},
 			test{"round(2, NULL)", "null", SQLNull},
 			test{"round(2, 2)", "2", SQLFloat(2)},
+			test{"repeat('a', NULL)", "null", SQLNull},
+			test{"repeat(NULL, 3)", "null", SQLNull},
 			test{"substring(NULL, 2)", "null", SQLNull},
 			test{"substring(NULL, 2, 3)", "null", SQLNull},
 			test{"substring('foobar', NULL)", "null", SQLNull},

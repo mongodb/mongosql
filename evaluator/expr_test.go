@@ -1824,6 +1824,29 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: REPEAT", func() {
+				tests := []test{
+					test{"REPEAT(NULL, NULL)", SQLNull},
+					test{"REPEAT(NULL, 3)", SQLNull},
+					test{"REPEAT('apples', NULL)", SQLNull},
+					test{"REPEAT('apples', -1)", SQLVarchar("")},
+					test{"REPEAT('apples', 0)", SQLVarchar("")},
+					test{"REPEAT('apples', 1)", SQLVarchar("apples")},
+					test{"REPEAT('a', 5)", SQLVarchar("aaaaa")},
+					test{"REPEAT(3, 5)", SQLVarchar("33333")},
+					test{"REPEAT(FALSE, 5)", SQLVarchar("00000")},
+					test{"REPEAT(FALSE, TRUE)", SQLVarchar("0")},
+					test{"REPEAT('', 10)", SQLVarchar("")},
+					test{"REPEAT(0, '4')", SQLVarchar("0000")},
+					test{"REPEAT(NULL, 4)", SQLNull},
+					test{"REPEAT(1.4, 3)", SQLVarchar("1.41.41.4")},
+					test{"REPEAT('a', .3)", SQLVarchar("")},
+					test{"REPEAT('a', 3.2)", SQLVarchar("aaa")},
+					test{"REPEAT('a', 3.6)", SQLVarchar("aaaa")},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: REPLACE", func() {
 				tests := []test{
 					test{"REPLACE(NULL, NULL, NULL)", SQLNull},
@@ -3384,6 +3407,10 @@ func TestTranslateExpr(t *testing.T) {
 			test{"monthname(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$arrayElemAt":[["January","February","March","April","May","June","July","August","September","October","November","December"],{"$subtract":[{"$month":"$g"},1]}]}]}`},
 			test{"nullif(a, 1)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$cond":[{"$eq":["$a",{"$literal":1}]},null,"$a"]}]}`},
 			test{"quarter(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$arrayElemAt":[[1,1,1,2,2,2,3,3,3,4,4,4],{"$subtract":[{"$month":"$g"},1]}]}]}`},
+			test{"repeat(s, NULL)", `{"$literal":null}`},
+			test{"repeat(NULL, b)", `{"$literal":null}`},
+			test{"repeat(s, 0)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":[{"$divide":[{"$cond":[{"$gte":[{"$literal":0},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":0},1]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":0},1]},0.5]}}]},1]},null]},null]}]},null,{"$reduce":{"in":{"$concat":["$$this","$$value"]},"initialValue":"","input":{"$map":{"in":"$s","input":{"$range":[0,{"$divide":[{"$cond":[{"$gte":[{"$literal":0},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":0},1]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":0},1]},0.5]}}]},1]},1]}}}}}]}`},
+			test{"repeat(s, b)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":[{"$divide":[{"$cond":[{"$gte":["$b",0]},{"$floor":{"$add":[{"$multiply":["$b",1]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$b",1]},0.5]}}]},1]},null]},null]}]},null,{"$reduce":{"in":{"$concat":["$$this","$$value"]},"initialValue":"","input":{"$map":{"in":"$s","input":{"$range":[0,{"$divide":[{"$cond":[{"$gte":["$b",0]},{"$floor":{"$add":[{"$multiply":["$b",1]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$b",1]},0.5]}}]},1]},1]}}}}}]}`},
 			test{"right(s, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",{"$max":[{"$subtract":[{"$strLenCP":"$s"},{"$literal":2}]},0]},{"$literal":2}]}]}`},
 			test{"right(s, a)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":["$a",null]},null]}]},null,{"$substrCP":["$s",{"$max":[{"$subtract":[{"$strLenCP":"$s"},"$a"]},0]},"$a"]}]}`},
 			test{"round(a, 5)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$add":[{"$multiply":["$a",100000]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$a",100000]},0.5]}}]},100000]}`},

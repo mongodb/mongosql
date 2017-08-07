@@ -151,6 +151,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"power":             &powFunc{},
 	"quarter":           &quarterFunc{},
 	"radians":           singleArgFloatMathFunc(func(f float64) float64 { return f * math.Pi / 180 }),
+	"repeat":            &repeatFunc{},
 	"replace":           &replaceFunc{},
 	"right":             &rightFunc{},
 	"round":             &roundFunc{},
@@ -519,7 +520,7 @@ type charFunc struct{}
 
 func (_ *charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 
-	var bytes []byte
+	var b []byte
 	for _, i := range values {
 		if i == SQLNull {
 			continue
@@ -533,13 +534,13 @@ func (_ *charFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
 				temp = append(temp, 0)
 				num /= 255
 			}
-			bytes = append(bytes, uint8(num))
-			bytes = append(bytes, temp...)
+			b = append(b, uint8(num))
+			b = append(b, temp...)
 		}
-		bytes = append(bytes, uint8(v))
+		b = append(b, uint8(v))
 	}
 
-	return SQLVarchar(string(bytes)), nil
+	return SQLVarchar(string(b)), nil
 }
 
 func (_ *charFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -621,12 +622,12 @@ func (_ *concatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err 
 		}
 	}()
 
-	var bytes bytes.Buffer
+	var b bytes.Buffer
 	for _, value := range values {
-		bytes.WriteString(value.String())
+		b.WriteString(value.String())
 	}
 
-	v = SQLVarchar(bytes.String())
+	v = SQLVarchar(b.String())
 	err = nil
 	return
 }
@@ -667,20 +668,20 @@ func (_ *concatWsFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, er
 		}
 	}()
 
-	var bytes bytes.Buffer
+	var b bytes.Buffer
 	var separator string = values[0].String()
 	var trimValues []SQLValue = values[1:]
 	for i, value := range trimValues {
 		if _, ok := value.(SQLNullValue); ok {
 			continue
 		}
-		bytes.WriteString(value.String())
+		b.WriteString(value.String())
 		if i != len(trimValues)-1 {
-			bytes.WriteString(separator)
+			b.WriteString(separator)
 		}
 	}
 
-	v = SQLVarchar(bytes.String())
+	v = SQLVarchar(b.String())
 	return
 }
 
@@ -2498,6 +2499,66 @@ func (_ *powFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (_ *powFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
+}
+
+type repeatFunc struct{}
+
+// http://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_repeat
+func (_ *repeatFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (v SQLValue, err error) {
+	if hasNullValue(values...) {
+		v = SQLNull
+		err = nil
+		return
+	}
+
+	str := values[0].String()
+	if len(str) < 1 {
+		v = SQLVarchar("")
+		err = nil
+		return
+	}
+
+	rep := int(roundToDecimalPlaces(0, values[1].Float64()))
+	if rep < 1 {
+		v = SQLVarchar("")
+		err = nil
+		return
+	}
+
+	var b bytes.Buffer
+	for i := 0; i < rep; i++ {
+		b.WriteString(str)
+	}
+
+	v = SQLVarchar(b.String())
+	err = nil
+	return
+}
+
+func (_ *repeatFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *repeatFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *repeatFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 2)
+}
+
+func (_ *repeatFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLNumeric}
+	defaults := []SQLValue{SQLNone, SQLNone}
+	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		newExprs,
+	}
 }
 
 type replaceFunc struct{}
