@@ -320,11 +320,6 @@ type schemaOptions struct {
 	SchemaDir        *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
 	MaxVarcharLength *uint16 `long:"maxVarcharLength" description:"the maximum length of a varchar"`
 
-	// TODO: delete as part of BI-1121
-	// Databases will append the database name each time the option is encountered
-	// (can be set multiple times, like --sampleDatabase foo --sampleDatabase bar)
-	Databases []string `long:"sampleDatabase" value-name:"<sample database>" description:"database(s) to sample in generating schema (defaults to all databases - except admin and local)"`
-
 	Mode *string `long:"sampleMode" description:"set the mongosqld sampling operation mode (default: write)" choice:"read" choice:"write"`
 	Size *int64  `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema (default: 1000)"`
 
@@ -358,10 +353,6 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 
 	if o.MaxVarcharLength != nil {
 		cfg.Schema.MaxVarcharLength = *o.MaxVarcharLength
-	}
-
-	if o.Databases != nil {
-		cfg.Schema.Sample.Databases = o.Databases
 	}
 
 	if !isEmptyOrUnset(o.Mode) {

@@ -102,82 +102,129 @@ func (s *Server) SampleSchema(cfg *config.Config) {
 
 	defer schemaGenerator.Provider.Close()
 
-	databases := cfg.Schema.Sample.Databases
+	databases := make(map[string][]string, 0)
 
-	if len(databases) == 0 {
-		var session *mongodb.Session
+	var session *mongodb.Session
 
-	getDatabasesLoop:
+getDatabasesLoop:
+	for {
+	dbConnectLoop:
 		for {
-		dbConnectLoop:
-			for {
-				session, err = schemaGenerator.Connect()
-				if err != nil {
-					schemaGenerator.Logger.Warnf(log.Always, "error connecting to MongoDB: %v", err)
-					continue
-				}
-				defer session.Close()
-				break dbConnectLoop
+			session, err = schemaGenerator.Connect()
+			if err != nil {
+				schemaGenerator.Logger.Warnf(log.Always, "error connecting to MongoDB: %v", err)
+				continue
+			}
+			defer session.Close()
+			break dbConnectLoop
+		}
+
+		ctx := session.Context()
+
+		dbIter, err := session.ListDatabases()
+		if err != nil {
+			schemaGenerator.Logger.Warnf(log.Always, "error listing databases: %v", err)
+			panic(fmt.Sprintf("error listing databases: %v", err))
+		}
+
+		var dbResult struct {
+			Name string `bson:"name"`
+		}
+
+		for dbIter.Next(ctx, &dbResult) {
+			collectionIter, err := session.ListCollections(dbResult.Name)
+			if err != nil {
+				schemaGenerator.Logger.Errf(log.Always, "can't get the collection names for '%v': %v", dbResult.Name, err)
+				panic(fmt.Sprintf("can't get the collection names for '%v': %v", dbResult.Name, err))
+			}
+
+			var collectionResult struct {
+				Name string `bson:"name"`
 			}
 
 			ctx := session.Context()
 
-			iter, err := session.ListDatabases()
-			if err != nil {
-				schemaGenerator.Logger.Warnf(log.Always, "error listing databases: %v", err)
+			collections := []string{}
+
+			for collectionIter.Next(ctx, &collectionResult) {
+				collections = append(collections, collectionResult.Name)
+			}
+
+			if err := collectionIter.Close(ctx); err != nil {
+				schemaGenerator.Logger.Errf(log.Always, "collection iteration close: %v", err)
 				continue
 			}
 
-			defer iter.Close(ctx)
-
-			var colResult struct {
-				Name string `bson:"name"`
-			}
-
-			for iter.Next(ctx, &colResult) {
-				databases = append(databases, colResult.Name)
-			}
-
-			if err := iter.Err(); err != nil {
-				schemaGenerator.Logger.Errf(log.Always, "iteration error: %v", err)
+			if err := collectionIter.Err(); err != nil {
+				schemaGenerator.Logger.Errf(log.Always, "collection iteration error: %v", err)
 				continue
 			}
-			break getDatabasesLoop
+
+			databases[dbResult.Name] = collections
 		}
+
+		if err := dbIter.Close(ctx); err != nil {
+			schemaGenerator.Logger.Errf(log.Always, "db iteration close: %v", err)
+			continue
+		}
+
+		if err := dbIter.Err(); err != nil {
+			schemaGenerator.Logger.Errf(log.Always, "db iteration error: %v", err)
+			continue
+		}
+
+		break getDatabasesLoop
 	}
 
 	sampledSchema := &schema.Schema{}
 
-	dbSampleBlacklist := []string{
-		"admin",
-		"local",
-	}
+	dbSampleBlacklist := []string{"admin", "local"}
 
 	buf := &bytes.Buffer{}
 
-	for _, db := range databases {
+	namespaces := cfg.Schema.Sample.Namespaces
+	if len(namespaces) == 0 {
+		namespaces = []string{"*"}
+	}
+
+	nsMatcher, err := util.NewMatcher(namespaces)
+	if err != nil {
+		schemaGenerator.Logger.Errf(log.Always, "invalid specification: %v", err)
+		panic(fmt.Sprintf("invalid specification: %v", err))
+	}
+
+	for db, collections := range databases {
 		if util.SliceContains(dbSampleBlacklist, db) {
 			continue
 		}
 
-		schemaGenerator.ToolOptions.DrdlNamespace.DB = db
+		for _, collection := range collections {
+			schemaGenerator.ToolOptions.DrdlNamespace.DB = db
+			schemaGenerator.ToolOptions.DrdlNamespace.Collection = collection
 
-		_, err := schemaGenerator.GenerateWithWriter(buf)
-		if err != nil {
-			schemaGenerator.Logger.Errf(log.Always, "error generating schema: %v", err)
-			panic(fmt.Sprintf("error generating schema: %v", err))
+			ns := db + "." + collection
+
+			if !nsMatcher.Has(ns) {
+				schemaGenerator.Logger.Logf(log.Always, "Skipping namespace %v", ns)
+				continue
+			}
+
+			_, err := schemaGenerator.GenerateWithWriter(buf)
+			if err != nil {
+				schemaGenerator.Logger.Errf(log.Always, "error generating schema: %v", err)
+				panic(fmt.Sprintf("error generating schema: %v", err))
+			}
+
+			// load this namespace into the schema
+			err = sampledSchema.Load(buf.Bytes())
+			if err != nil {
+				schemaGenerator.Logger.Errf(log.Always, "error loading schema file: %v", err)
+				panic(fmt.Sprintf("error loading schema: %v", err))
+			}
+
+			buf.Reset()
 		}
-
-		// load this database into the schema
-		err = sampledSchema.Load(buf.Bytes())
-		if err != nil {
-			schemaGenerator.Logger.Errf(log.Always, "error loading schema file: %v", err)
-			panic(fmt.Sprintf("error loading schema: %v", err))
-		}
-
-		buf.Reset()
 	}
-
 	schemaGenerator.Logger.Logf(log.Always, "Schema sampled from MongoDB")
 	s.schema = sampledSchema
 	atomic.StoreUint32(&s.schemaLoaded, uint32(1))

@@ -1,14 +1,11 @@
 package util
 
 import (
-	"github.com/10gen/sqlproxy/internal/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
 func TestParseConnectionString(t *testing.T) {
-
-	testutil.VerifyTestType(t, "unit")
 
 	Convey("When extracting the replica set and hosts from a connection"+
 		" url", t, func() {
@@ -39,8 +36,6 @@ func TestParseConnectionString(t *testing.T) {
 }
 
 func TestCreateConnectionAddrs(t *testing.T) {
-
-	testutil.VerifyTestType(t, "unit")
 
 	Convey("When creating the slice of connection addresses", t, func() {
 

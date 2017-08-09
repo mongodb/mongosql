@@ -107,7 +107,7 @@ func TestValidate_Invalid_SampleAuth_Mechanism(t *testing.T) {
 
 	err := Validate(cfg)
 	if err == nil {
-		t.Fatalf("expected an error, but got none", err)
+		t.Fatalf("expected an error, but got none")
 	}
 
 	expected := "unsupported sample authentication mechanism 'GSSAPI'"
@@ -119,7 +119,7 @@ func TestValidate_Invalid_SampleAuth_Mechanism(t *testing.T) {
 
 	err = Validate(cfg)
 	if err == nil {
-		t.Fatalf("expected an error, but got none", err)
+		t.Fatalf("expected an error, but got none")
 	}
 
 	expected = "unsupported sample authentication mechanism 'foo'"
@@ -144,7 +144,7 @@ func TestValidate_SampleAuth_options_specified_but_auth_disabled(t *testing.T) {
 
 	err := Validate(cfg)
 	if err == nil {
-		t.Fatalf("expected an error, but got none", err)
+		t.Fatalf("expected an error, but got none")
 	}
 
 	expected := "when specifying sample authentication options, auth must " +
@@ -158,7 +158,7 @@ func TestValidate_SampleAuth_options_specified_but_auth_disabled(t *testing.T) {
 
 	err = Validate(cfg)
 	if err == nil {
-		t.Fatalf("expected an error, but got none", err)
+		t.Fatalf("expected an error, but got none")
 	}
 
 	expected = "when specifying sample authentication options, auth must " +
@@ -175,7 +175,7 @@ func TestValidate_SSL_options_specified_but_disabled(t *testing.T) {
 
 	err := Validate(cfg)
 	if err == nil {
-		t.Fatalf("expected an error, but got none", err)
+		t.Fatalf("expected an error, but got none")
 	}
 
 	expected := "when specifying MongoDB SSL options, SSL must be enabled with --mongo-ssl or in a configuration file at 'mongodb.net.ssl.enabled'"
@@ -191,7 +191,7 @@ func TestValidate_sqlproxy_SSL_options_specified_but_disabled(t *testing.T) {
 
 	err := Validate(cfg)
 	if err == nil {
-		t.Fatalf("expected an error, but got none", err)
+		t.Fatalf("expected an error, but got none")
 	}
 
 	expected := "when specifying SSL options, SSL must be enabled with --sslMode or in a configuration file at 'net.ssl.mode'"
@@ -207,10 +207,25 @@ func TestValidate_sqlproxy_SSL_options_PEMKeyFile(t *testing.T) {
 
 	err := Validate(cfg)
 	if err == nil {
-		t.Fatalf("expected an error, but got none", err)
+		t.Fatalf("expected an error, but got none")
 	}
 
 	expected := "need sslPEMKeyFile when SSL is enabled"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_sqlproxy_Sample_options_Namespaces(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Sample.Namespaces = []string{"som$ething"}
+
+	expected := "invalid specification: '$' is not allowed in sample " +
+		"namespace include pattern: 'som$ething'"
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}
@@ -223,7 +238,7 @@ func TestValidate_sqlproxy_SSL_options_bad_sslMode(t *testing.T) {
 
 	err := Validate(cfg)
 	if err == nil {
-		t.Fatalf("expected an error, but got none", err)
+		t.Fatalf("expected an error, but got none")
 	}
 
 	expected := "invalid sslMode abcde"
@@ -242,7 +257,7 @@ func TestValidate_UnixDomainSocket_on_windows(t *testing.T) {
 
 	err := Validate(cfg)
 	if err == nil {
-		t.Fatalf("expected an error, but got none", err)
+		t.Fatalf("expected an error, but got none")
 	}
 
 	expected := "unix domain sockets are not supported on windows"
@@ -261,7 +276,7 @@ func TestValidate_UnixDomainSocket(t *testing.T) {
 
 	err := Validate(cfg)
 	if err == nil {
-		t.Fatalf("expected an error, but got none", err)
+		t.Fatalf("expected an error, but got none")
 	}
 
 	expected := "filePermissions must be valid octal"
@@ -276,7 +291,7 @@ func TestValidate_LogRotate_unsupported(t *testing.T) {
 
 	err := Validate(cfg)
 	if err == nil {
-		t.Fatalf("expected an error, but got none", err)
+		t.Fatalf("expected an error, but got none")
 	}
 
 	expected := "Unsupported log rotation strategy 'asdfasdf'"

@@ -2,11 +2,9 @@ package mongodrdl
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
-	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodrdl/mongo"
@@ -99,22 +97,6 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 	var samplePrint string
 
 	for iter.Next(ctx, doc) {
-		// TODO: we might want to NOT log this
-		samplePrint = fmt.Sprintf("%s", doc)
-		c, err := bsonutil.GetBSONValueAsJSON(*doc)
-		if err == nil {
-			m, err := json.Marshal(c)
-			if err == nil {
-				samplePrint = fmt.Sprintf("%s", m)
-			}
-		}
-
-		// truncate long sample documents
-		if len(samplePrint) > 100 {
-			samplePrint = fmt.Sprintf("%s...", samplePrint[:100])
-		}
-
-		schemaGen.Logger.Logf(log.DebugHigh, "Including sample: %#v", samplePrint)
 		err = col.IncludeSample(*doc)
 		if err != nil {
 			schemaGen.Logger.Logf(log.Always, "Error including sample: %#v", samplePrint)

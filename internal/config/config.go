@@ -169,6 +169,10 @@ func Validate(cfg *Config) error {
 			"mechanism '%v'", cfg.MongoDB.Net.Auth.Mechanism)
 	}
 
+	if _, err := util.NewMatcher(cfg.Schema.Sample.Namespaces); err != nil {
+		return fmt.Errorf("invalid specification: %v", err)
+	}
+
 	switch cfg.SystemLog.LogRotate {
 	case log.Rename:
 		// this is valid
@@ -226,7 +230,6 @@ type Schema struct {
 }
 
 type SchemaSampleOptions struct {
-	Databases            []string
 	Mode                 string   `config:"mode"`
 	Size                 int64    `config:"size"`
 	Namespaces           []string `config:"namespaces"`

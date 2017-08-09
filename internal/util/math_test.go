@@ -3,7 +3,7 @@ package util_test
 import (
 	"testing"
 
-	"github.com/10gen/sqlproxy/util"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/shopspring/decimal"
 )
 

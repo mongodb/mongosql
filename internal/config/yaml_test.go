@@ -24,7 +24,6 @@ schema:
   path: "/var/test"
   maxVarcharLength: 1000
   sample:
-    databases: ["a", "b"]
     mode: read
     size: 969
     namespaces: ["foo.*", "*.bar"]
@@ -98,7 +97,6 @@ processManagement:
 	testInt64(t, cfg.Schema.Sample.ReadIntervalSecs, 1005, "cfg.Schema.Sample.ReadIntervalSecs")
 	testInt64(t, cfg.Schema.Sample.WriteIntervalSecs, 983, "cfg.Schema.Sample.WriteIntervalSecs")
 	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "java", "cfg.Schema.UUIDSubtype3Encoding")
-	testStringSlice(t, cfg.Schema.Sample.Databases, []string{"a", "b"}, "cfg.Schema.Sample.Databases")
 
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 102400, "cfg.Runtime.Memory.MaxPerStage")
 
