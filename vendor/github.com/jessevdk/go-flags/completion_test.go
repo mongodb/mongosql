@@ -38,8 +38,10 @@ func (t *TestComplete) Complete(match string) []Completion {
 var completionTestOptions struct {
 	Verbose  bool `short:"v" long:"verbose" description:"Verbose messages"`
 	Debug    bool `short:"d" long:"debug" description:"Enable debug"`
+	Info     bool `short:"i" description:"Display info"`
 	Version  bool `long:"version" description:"Show version"`
 	Required bool `long:"required" required:"true" description:"This is required"`
+	Hidden   bool `long:"hidden" hidden:"true" description:"This is hidden"`
 
 	AddCommand struct {
 		Positional struct {
@@ -51,7 +53,12 @@ var completionTestOptions struct {
 		Positional struct {
 			Filename []Filename
 		} `positional-args:"yes"`
+		Extra []Filename `short:"f"`
 	} `command:"add-multi" description:"add multiple items"`
+
+	AddMultiCommandFlag struct {
+		Files []Filename `short:"f"`
+	} `command:"add-multi-flag" description:"add multiple items via flags"`
 
 	RemoveCommand struct {
 		Other bool     `short:"o"`
@@ -81,7 +88,14 @@ func init() {
 		{
 			// Short names
 			[]string{"-"},
-			[]string{"-d", "-v"},
+			[]string{"--debug", "--required", "--verbose", "--version", "-i"},
+			false,
+		},
+
+		{
+			// Short names full
+			[]string{"-i"},
+			[]string{"-i"},
 			false,
 		},
 
@@ -121,7 +135,7 @@ func init() {
 		{
 			// Commands
 			[]string{""},
-			[]string{"add", "add-multi", "rename", "rm"},
+			[]string{"add", "add-multi", "add-multi-flag", "rename", "rm"},
 			false,
 		},
 
@@ -129,10 +143,11 @@ func init() {
 			// Commands with descriptions
 			[]string{""},
 			[]string{
-				"add        # add an item",
-				"add-multi  # add multiple items",
-				"rename     # rename an item",
-				"rm         # remove an item",
+				"add             # add an item",
+				"add-multi       # add multiple items",
+				"add-multi-flag  # add multiple items via flags",
+				"rename          # rename an item",
+				"rm              # remove an item",
 			},
 			true,
 		},
@@ -216,6 +231,12 @@ func init() {
 			// Custom completed
 			[]string{"rename", "-c", "hello un"},
 			[]string{"hello universe"},
+			false,
+		},
+		{
+			// Multiple flag filename
+			[]string{"add-multi-flag", "-f", filepath.Join(completionTestSourcedir, "completion")},
+			completionTestFilename,
 			false,
 		},
 	}

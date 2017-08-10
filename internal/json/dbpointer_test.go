@@ -2,9 +2,10 @@ package json
 
 import (
 	"fmt"
-	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 	"testing"
+
+	"github.com/10gen/mongo-go-driver/bson"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestDBPointerValue(t *testing.T) {

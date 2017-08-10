@@ -1,10 +1,11 @@
 package util
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 	"math"
 	"testing"
+
+	"github.com/10gen/mongo-go-driver/bson"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestJSTruthyValues(t *testing.T) {

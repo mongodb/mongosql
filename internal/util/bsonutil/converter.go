@@ -4,11 +4,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/json"
 	"github.com/10gen/sqlproxy/internal/util"
-	oldBson "gopkg.in/mgo.v2/bson"
-	"time"
 )
 
 // ConvertJSONValueToBSON walks through a document or an array and
@@ -189,7 +189,7 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 		return json.ObjectId(v.Hex()), nil
 
 	case bson.Decimal128:
-		y, _ := oldBson.ParseDecimal128(v.String())
+		y, _ := bson.ParseDecimal128(v.String())
 		return json.Decimal128{y}, nil
 
 	case time.Time: // Date
@@ -310,7 +310,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 		return json.ObjectId(v.Hex()), nil
 
 	case bson.Decimal128:
-		y, _ := oldBson.ParseDecimal128(v.String())
+		y, _ := bson.ParseDecimal128(v.String())
 		return json.Decimal128{y}, nil
 
 	case time.Time: // Date

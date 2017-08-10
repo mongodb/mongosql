@@ -13,7 +13,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 	"math"
 	"reflect"
 	"runtime"
@@ -21,6 +20,8 @@ import (
 	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
+
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // Unmarshal parses the JSON-encoded data and stores the result

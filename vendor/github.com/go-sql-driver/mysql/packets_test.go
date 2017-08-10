@@ -94,6 +94,8 @@ func TestReadPacketSingleByte(t *testing.T) {
 		buf: newBuffer(conn),
 	}
 
+	mc.reader = &mc.buf
+
 	conn.data = []byte{0x01, 0x00, 0x00, 0x00, 0xff}
 	conn.maxReads = 1
 	packet, err := mc.readPacket()
@@ -101,7 +103,7 @@ func TestReadPacketSingleByte(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(packet) != 1 {
-		t.Fatalf("unexpected packet lenght: expected %d, got %d", 1, len(packet))
+		t.Fatalf("unexpected packet length: expected %d, got %d", 1, len(packet))
 	}
 	if packet[0] != 0xff {
 		t.Fatalf("unexpected packet content: expected %x, got %x", 0xff, packet[0])
@@ -113,6 +115,7 @@ func TestReadPacketWrongSequenceID(t *testing.T) {
 	mc := &mysqlConn{
 		buf: newBuffer(conn),
 	}
+	mc.reader = &mc.buf
 
 	// too low sequence id
 	conn.data = []byte{0x01, 0x00, 0x00, 0x00, 0xff}
@@ -141,6 +144,8 @@ func TestReadPacketSplit(t *testing.T) {
 	mc := &mysqlConn{
 		buf: newBuffer(conn),
 	}
+
+	mc.reader = &mc.buf
 
 	data := make([]byte, maxPacketSize*2+4*3)
 	const pkt2ofs = maxPacketSize + 4
@@ -171,7 +176,7 @@ func TestReadPacketSplit(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(packet) != maxPacketSize {
-		t.Fatalf("unexpected packet lenght: expected %d, got %d", maxPacketSize, len(packet))
+		t.Fatalf("unexpected packet length: expected %d, got %d", maxPacketSize, len(packet))
 	}
 	if packet[0] != 0x11 {
 		t.Fatalf("unexpected payload start: expected %x, got %x", 0x11, packet[0])
@@ -205,7 +210,7 @@ func TestReadPacketSplit(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(packet) != 2*maxPacketSize {
-		t.Fatalf("unexpected packet lenght: expected %d, got %d", 2*maxPacketSize, len(packet))
+		t.Fatalf("unexpected packet length: expected %d, got %d", 2*maxPacketSize, len(packet))
 	}
 	if packet[0] != 0x11 {
 		t.Fatalf("unexpected payload start: expected %x, got %x", 0x11, packet[0])
@@ -231,7 +236,7 @@ func TestReadPacketSplit(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(packet) != maxPacketSize+42 {
-		t.Fatalf("unexpected packet lenght: expected %d, got %d", maxPacketSize+42, len(packet))
+		t.Fatalf("unexpected packet length: expected %d, got %d", maxPacketSize+42, len(packet))
 	}
 	if packet[0] != 0x11 {
 		t.Fatalf("unexpected payload start: expected %x, got %x", 0x11, packet[0])
@@ -244,8 +249,10 @@ func TestReadPacketSplit(t *testing.T) {
 func TestReadPacketFail(t *testing.T) {
 	conn := new(mockConn)
 	mc := &mysqlConn{
-		buf: newBuffer(conn),
+		buf:     newBuffer(conn),
+		closech: make(chan struct{}),
 	}
+	mc.reader = &mc.buf
 
 	// illegal empty (stand-alone) packet
 	conn.data = []byte{0x00, 0x00, 0x00, 0x00}

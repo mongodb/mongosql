@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 
-// Package mysql provides a MySQL driver for Go's database/sql package
+// Package mysql provides a MySQL driver for Go's database/sql package.
 //
 // The driver should be used via the database/sql package:
 //
@@ -21,6 +21,11 @@ import (
 	"database/sql/driver"
 	"net"
 )
+
+// watcher interface is used for context support (From Go 1.8)
+type watcher interface {
+	startWatcher()
+}
 
 // MySQLDriver is exported to make the driver directly accessible.
 // In general the driver is used via the database/sql package.
@@ -52,6 +57,7 @@ func (d MySQLDriver) Open(dsn string) (driver.Conn, error) {
 	mc := &mysqlConn{
 		maxAllowedPacket: maxPacketSize,
 		maxWriteSize:     maxPacketSize - 1,
+		closech:          make(chan struct{}),
 	}
 	mc.cfg, err = ParseDSN(dsn)
 	if err != nil {
@@ -81,7 +87,16 @@ func (d MySQLDriver) Open(dsn string) (driver.Conn, error) {
 		}
 	}
 
+	// Call startWatcher for context support (From Go 1.8)
+	if s, ok := interface{}(mc).(watcher); ok {
+		s.startWatcher()
+	}
+
 	mc.buf = newBuffer(mc.netConn)
+
+	// packet reader and writer in handshake are never compressed
+	mc.reader = &mc.buf
+	mc.writer = mc.netConn
 
 	// Set I/O timeouts
 	mc.buf.timeout = mc.cfg.ReadTimeout
@@ -107,6 +122,11 @@ func (d MySQLDriver) Open(dsn string) (driver.Conn, error) {
 		// Do not send COM_QUIT, just cleanup and return the error.
 		mc.cleanup()
 		return nil, err
+	}
+
+	if mc.cfg.Compression {
+		mc.reader = NewCompressedReader(&mc.buf, mc)
+		mc.writer = NewCompressedWriter(mc.writer, mc)
 	}
 
 	if mc.cfg.MaxAllowedPacket > 0 {

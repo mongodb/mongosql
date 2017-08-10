@@ -2,8 +2,9 @@ package json
 
 import (
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 	"reflect"
+
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // Transition functions for recognizing DBPointer.

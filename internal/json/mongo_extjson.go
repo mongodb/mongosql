@@ -2,8 +2,9 @@ package json
 
 import (
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 	"reflect"
+
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // Represents base-64 encoded binary data

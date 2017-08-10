@@ -28,8 +28,11 @@ func (mc *mysqlConn) readPacket() ([]byte, error) {
 	var prevData []byte
 	for {
 		// read packet header
-		data, err := mc.buf.readNext(4)
+		data, err := mc.reader.readNext(4)
 		if err != nil {
+			if cerr := mc.canceled.Value(); cerr != nil {
+				return nil, cerr
+			}
 			errLog.Print(err)
 			mc.Close()
 			return nil, driver.ErrBadConn
@@ -61,8 +64,11 @@ func (mc *mysqlConn) readPacket() ([]byte, error) {
 		}
 
 		// read packet body [pktLen bytes]
-		data, err = mc.buf.readNext(pktLen)
+		data, err = mc.reader.readNext(pktLen)
 		if err != nil {
+			if cerr := mc.canceled.Value(); cerr != nil {
+				return nil, cerr
+			}
 			errLog.Print(err)
 			mc.Close()
 			return nil, driver.ErrBadConn
@@ -112,7 +118,7 @@ func (mc *mysqlConn) writePacket(data []byte) error {
 			}
 		}
 
-		n, err := mc.netConn.Write(data[:4+size])
+		n, err := mc.writer.Write(data[:4+size])
 		if err == nil && n == 4+size {
 			mc.sequence++
 			if size != maxPacketSize {
@@ -125,8 +131,13 @@ func (mc *mysqlConn) writePacket(data []byte) error {
 
 		// Handle error
 		if err == nil { // n != len(data)
+			mc.cleanup()
 			errLog.Print(ErrMalformPkt)
 		} else {
+			if cerr := mc.canceled.Value(); cerr != nil {
+				return cerr
+			}
+			mc.cleanup()
 			errLog.Print(err)
 		}
 		return driver.ErrBadConn
@@ -238,6 +249,10 @@ func (mc *mysqlConn) writeAuthPacket(cipher []byte) error {
 		clientFlags |= clientFoundRows
 	}
 
+	if mc.cfg.Compression {
+		clientFlags |= clientCompress
+	}
+
 	// To enable TLS / SSL
 	if mc.cfg.tls != nil {
 		clientFlags |= clientSSL
@@ -303,6 +318,8 @@ func (mc *mysqlConn) writeAuthPacket(cipher []byte) error {
 		}
 		mc.netConn = tlsConn
 		mc.buf.nc = tlsConn
+
+		mc.writer = mc.netConn
 	}
 
 	// Filler [23 bytes] (all 0x00)
@@ -405,6 +422,7 @@ func (mc *mysqlConn) writeNativeAuthPacket(cipher []byte) error {
 func (mc *mysqlConn) writeCommandPacket(command byte) error {
 	// Reset Packet Sequence
 	mc.sequence = 0
+	mc.compressionSequence = 0
 
 	data := mc.buf.takeSmallBuffer(4 + 1)
 	if data == nil {
@@ -423,6 +441,7 @@ func (mc *mysqlConn) writeCommandPacket(command byte) error {
 func (mc *mysqlConn) writeCommandPacketStr(command byte, arg string) error {
 	// Reset Packet Sequence
 	mc.sequence = 0
+	mc.compressionSequence = 0
 
 	pktLen := 1 + len(arg)
 	data := mc.buf.takeBuffer(pktLen + 4)
@@ -445,6 +464,7 @@ func (mc *mysqlConn) writeCommandPacketStr(command byte, arg string) error {
 func (mc *mysqlConn) writeCommandPacketUint32(command byte, arg uint32) error {
 	// Reset Packet Sequence
 	mc.sequence = 0
+	mc.compressionSequence = 0
 
 	data := mc.buf.takeSmallBuffer(4 + 1 + 4)
 	if data == nil {
@@ -486,22 +506,23 @@ func (mc *mysqlConn) readResultOK() ([]byte, error) {
 				plugin := string(data[1:pluginEndIndex])
 				cipher := data[pluginEndIndex+1 : len(data)-1]
 
-				if plugin == "mysql_old_password" {
+				switch plugin {
+				case "mysql_old_password":
 					// using old_passwords
 					return cipher, ErrOldPassword
-				} else if plugin == "mysql_clear_password" {
+				case "mysql_clear_password":
 					// using clear text password
 					return cipher, ErrCleartextPassword
-				} else if plugin == "mysql_native_password" {
+				case "mysql_native_password":
 					// using mysql default authentication method
 					return cipher, ErrNativePassword
-				} else {
+				default:
 					return cipher, ErrUnknownPlugin
 				}
-			} else {
-				// https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::OldAuthSwitchRequest
-				return nil, ErrOldPassword
 			}
+
+			// https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::OldAuthSwitchRequest
+			return nil, ErrOldPassword
 
 		default: // Error otherwise
 			return nil, mc.handleErrorPacket(data)
@@ -549,6 +570,21 @@ func (mc *mysqlConn) handleErrorPacket(data []byte) error {
 
 	// Error Number [16 bit uint]
 	errno := binary.LittleEndian.Uint16(data[1:3])
+
+	// 1792: ER_CANT_EXECUTE_IN_READ_ONLY_TRANSACTION
+	if errno == 1792 && mc.cfg.RejectReadOnly {
+		// Oops; we are connected to a read-only connection, and won't be able
+		// to issue any write statements. Since RejectReadOnly is configured,
+		// we throw away this connection hoping this one would have write
+		// permission. This is specifically for a possible race condition
+		// during failover (e.g. on AWS Aurora). See README.md for more.
+		//
+		// We explicitly close the connection before returning
+		// driver.ErrBadConn to ensure that `database/sql` purges this
+		// connection and initiates a new one for next statement next time.
+		mc.Close()
+		return driver.ErrBadConn
+	}
 
 	pos := 3
 
@@ -1051,17 +1087,19 @@ func (stmt *mysqlStmt) writeExecutePacket(args []driver.Value) error {
 				paramTypes[i+i] = fieldTypeString
 				paramTypes[i+i+1] = 0x00
 
-				var val []byte
+				var a [64]byte
+				var b = a[:0]
+
 				if v.IsZero() {
-					val = []byte("0000-00-00")
+					b = append(b, "0000-00-00"...)
 				} else {
-					val = []byte(v.In(mc.cfg.Loc).Format(timeFormat))
+					b = v.In(mc.cfg.Loc).AppendFormat(b, timeFormat)
 				}
 
 				paramValues = appendLengthEncodedInteger(paramValues,
-					uint64(len(val)),
+					uint64(len(b)),
 				)
-				paramValues = append(paramValues, val...)
+				paramValues = append(paramValues, b...)
 
 			default:
 				return fmt.Errorf("can not convert type: %T", arg)
@@ -1187,7 +1225,7 @@ func (rows *binaryRows) readRow(dest []driver.Value) error {
 			continue
 
 		case fieldTypeFloat:
-			dest[i] = float32(math.Float32frombits(binary.LittleEndian.Uint32(data[pos : pos+4])))
+			dest[i] = math.Float32frombits(binary.LittleEndian.Uint32(data[pos : pos+4]))
 			pos += 4
 			continue
 

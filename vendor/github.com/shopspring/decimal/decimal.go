@@ -19,6 +19,7 @@ package decimal
 
 import (
 	"database/sql/driver"
+	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
@@ -43,8 +44,8 @@ import (
 //
 var DivisionPrecision = 16
 
-// Set this to true if you want the decimal to be JSON marshaled as a number,
-// instead of as a string.
+// MarshalJSONWithoutQuotes should be set to true if you want the decimal to
+// be JSON marshaled as a number, instead of as a string.
 // WARNING: this is dangerous for decimals with many digits, since many JSON
 // unmarshallers (ex: Javascript's) will unmarshal JSON numbers to IEEE 754
 // double-precision floating point numbers, which means you can potentially
@@ -80,6 +81,14 @@ func New(value int64, exp int32) Decimal {
 	}
 }
 
+// NewFromBigInt returns a new Decimal from a big.Int, value * 10 ^ exp
+func NewFromBigInt(value *big.Int, exp int32) Decimal {
+	return Decimal{
+		value: big.NewInt(0).Set(value),
+		exp: exp,
+	}
+}
+
 // NewFromString returns a new Decimal from a string representation.
 //
 // Example:
@@ -112,8 +121,10 @@ func NewFromString(value string) (Decimal, error) {
 		// an int
 		intString = value
 	} else if len(parts) == 2 {
-		intString = parts[0] + parts[1]
-		expInt := -len(parts[1])
+		// strip the insignificant digits for more accurate comparisons.
+		decimalPart := strings.TrimRight(parts[1], "0")
+		intString = parts[0] + decimalPart
+		expInt := -len(decimalPart)
 		exp += int64(expInt)
 	} else {
 		return Decimal{}, fmt.Errorf("can't convert %s to decimal: too many .s", value)
@@ -259,6 +270,15 @@ func (d Decimal) Sub(d2 Decimal) Decimal {
 	}
 }
 
+// Neg returns -d.
+func (d Decimal) Neg() Decimal {
+	val := new(big.Int).Neg(d.value)
+	return Decimal{
+		value: val,
+		exp:   d.exp,
+	}
+}
+
 // Mul returns d * d2.
 func (d Decimal) Mul(d2 Decimal) Decimal {
 	d.ensureInitialized()
@@ -281,24 +301,103 @@ func (d Decimal) Mul(d2 Decimal) Decimal {
 // Div returns d / d2. If it doesn't divide exactly, the result will have
 // DivisionPrecision digits after the decimal point.
 func (d Decimal) Div(d2 Decimal) Decimal {
-	// NOTE(vadim): division is hard, use Rat to do it
-	ratNum := d.Rat()
-	ratDenom := d2.Rat()
+	return d.DivRound(d2, int32(DivisionPrecision))
+}
 
-	quoRat := big.NewRat(0, 1).Quo(ratNum, ratDenom)
-
-	// HACK(vadim): converting from Rat to Decimal inefficiently for now
-	ret, err := NewFromString(quoRat.FloatString(DivisionPrecision))
-	if err != nil {
-		panic(err) // this should never happen
+// QuoRem does divsion with remainder
+// d.QuoRem(d2,precision) returns quotient q and remainder r such that
+//   d = d2 * q + r, q an integer multiple of 10^(-precision)
+//   0 <= r < abs(d2) * 10 ^(-precision) if d>=0
+//   0 >= r > -abs(d2) * 10 ^(-precision) if d<0
+// Note that precision<0 is allowed as input.
+func (d Decimal) QuoRem(d2 Decimal, precision int32) (Decimal, Decimal) {
+	d.ensureInitialized()
+	d2.ensureInitialized()
+	if d2.value.Sign() == 0 {
+		panic("decimal division by 0")
 	}
-	return ret
+	scale := -precision
+	e := int64(d.exp - d2.exp - scale)
+	if e > math.MaxInt32 || e < math.MinInt32 {
+		panic("overflow in decimal QuoRem")
+	}
+	var aa, bb, expo big.Int
+	var scalerest int32
+	// d = a 10^ea
+	// d2 = b 10^eb
+	if e < 0 {
+		aa = *d.value
+		expo.SetInt64(-e)
+		bb.Exp(tenInt, &expo, nil)
+		bb.Mul(d2.value, &bb)
+		scalerest = d.exp
+		// now aa = a
+		//     bb = b 10^(scale + eb - ea)
+	} else {
+		expo.SetInt64(e)
+		aa.Exp(tenInt, &expo, nil)
+		aa.Mul(d.value, &aa)
+		bb = *d2.value
+		scalerest = scale + d2.exp
+		// now aa = a ^ (ea - eb - scale)
+		//     bb = b
+	}
+	var q, r big.Int
+	q.QuoRem(&aa, &bb, &r)
+	dq := Decimal{value: &q, exp: scale}
+	dr := Decimal{value: &r, exp: scalerest}
+	return dq, dr
+}
+
+// DivRound divides and rounds to a given precision
+// i.e. to an integer multiple of 10^(-precision)
+//   for a positive quotient digit 5 is rounded up, away from 0
+//   if the quotient is negative then digit 5 is rounded down, away from 0
+// Note that precision<0 is allowed as input.
+func (d Decimal) DivRound(d2 Decimal, precision int32) Decimal {
+	// QuoRem already checks initialization
+	q, r := d.QuoRem(d2, precision)
+	// the actual rounding decision is based on comparing r*10^precision and d2/2
+	// instead compare 2 r 10 ^precision and d2
+	var rv2 big.Int
+	rv2.Abs(r.value)
+	rv2.Lsh(&rv2, 1)
+	// now rv2 = abs(r.value) * 2
+	r2 := Decimal{value: &rv2, exp: r.exp + precision}
+	// r2 is now 2 * r * 10 ^ precision
+	var c = r2.Cmp(d2.Abs())
+
+	if c < 0 {
+		return q
+	}
+
+	if d.value.Sign()*d2.value.Sign() < 0 {
+		return q.Sub(New(1, -precision))
+	}
+
+	return q.Add(New(1, -precision))
 }
 
 // Mod returns d % d2.
 func (d Decimal) Mod(d2 Decimal) Decimal {
 	quo := d.Div(d2).Truncate(0)
 	return d.Sub(d2.Mul(quo))
+}
+
+// Pow returns d to the power d2
+func (d Decimal) Pow(d2 Decimal) Decimal {
+	var temp Decimal
+	if d2.IntPart() == 0 {
+		return NewFromFloat(1)
+	}
+	temp = d.Pow(d2.Div(NewFromFloat(2)))
+	if d2.IntPart()%2 == 0 {
+		return temp.Mul(temp)
+	}
+	if d2.IntPart() > 0 {
+		return temp.Mul(temp).Mul(d)
+	}
+	return temp.Mul(temp).Div(d)
 }
 
 // Cmp compares the numbers represented by d and d2 and returns:
@@ -322,14 +421,61 @@ func (d Decimal) Cmp(d2 Decimal) int {
 	return rd.value.Cmp(rd2.value)
 }
 
-// Equals returns whether the numbers represented by d and d2 are equal.
-func (d Decimal) Equals(d2 Decimal) bool {
+// Equal returns whether the numbers represented by d and d2 are equal.
+func (d Decimal) Equal(d2 Decimal) bool {
 	return d.Cmp(d2) == 0
+}
+
+// Equals is deprecated, please use Equal method instead
+func (d Decimal) Equals(d2 Decimal) bool {
+	return d.Equal(d2)
+}
+
+// Greater Than (GT) returns true when d is greater than d2.
+func (d Decimal) GreaterThan(d2 Decimal) bool {
+	return d.Cmp(d2) == 1
+}
+
+// Greater Than or Equal (GTE) returns true when d is greater than or equal to d2.
+func (d Decimal) GreaterThanOrEqual(d2 Decimal) bool {
+	cmp := d.Cmp(d2)
+	return cmp == 1 || cmp == 0
+}
+
+// Less Than (LT) returns true when d is less than d2.
+func (d Decimal) LessThan(d2 Decimal) bool {
+	return d.Cmp(d2) == -1
+}
+
+// Less Than or Equal (LTE) returns true when d is less than or equal to d2.
+func (d Decimal) LessThanOrEqual(d2 Decimal) bool {
+	cmp := d.Cmp(d2)
+	return cmp == -1 || cmp == 0
+}
+
+// Sign returns:
+//
+//	-1 if d <  0
+//	 0 if d == 0
+//	+1 if d >  0
+//
+func (d Decimal) Sign() int {
+	if d.value == nil {
+		return 0
+	}
+	return d.value.Sign()
 }
 
 // Exponent returns the exponent, or scale component of the decimal.
 func (d Decimal) Exponent() int32 {
 	return d.exp
+}
+
+// Coefficient returns the coefficient of the decimal.  It is scaled by 10^Exponent()
+func (d Decimal) Coefficient() *big.Int {
+	// we copy the coefficient so that mutating the result does not mutate the
+	// Decimal.
+	return big.NewInt(0).Set(d.value)
 }
 
 // IntPart returns the integer component of the decimal.
@@ -345,11 +491,11 @@ func (d Decimal) Rat() *big.Rat {
 		// NOTE(vadim): must negate after casting to prevent int32 overflow
 		denom := new(big.Int).Exp(tenInt, big.NewInt(-int64(d.exp)), nil)
 		return new(big.Rat).SetFrac(d.value, denom)
-	} else {
-		mul := new(big.Int).Exp(tenInt, big.NewInt(int64(d.exp)), nil)
-		num := new(big.Int).Mul(d.value, mul)
-		return new(big.Rat).SetFrac(num, oneInt)
 	}
+
+	mul := new(big.Int).Exp(tenInt, big.NewInt(int64(d.exp)), nil)
+	num := new(big.Int).Mul(d.value, mul)
+	return new(big.Rat).SetFrac(num, oneInt)
 }
 
 // Float64 returns the nearest float64 value for d and a bool indicating
@@ -414,7 +560,7 @@ func (d Decimal) Round(places int32) Decimal {
 
 	// floor for positive numbers, ceil for negative numbers
 	_, m := ret.value.DivMod(ret.value, tenInt, new(big.Int))
-	ret.exp += 1
+	ret.exp++
 	if ret.value.Sign() < 0 && m.Cmp(zeroInt) != 0 {
 		ret.value.Add(ret.value, oneInt)
 	}
@@ -493,10 +639,42 @@ func (d Decimal) MarshalJSON() ([]byte, error) {
 	return []byte(str), nil
 }
 
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface. As a string representation
+// is already used when encoding to text, this method stores that string as []byte
+func (d *Decimal) UnmarshalBinary(data []byte) error {
+	// Extract the exponent
+	d.exp = int32(binary.BigEndian.Uint32(data[:4]))
+
+	// Extract the value
+	d.value = new(big.Int)
+	return d.value.GobDecode(data[4:])
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (d Decimal) MarshalBinary() (data []byte, err error) {
+	// Write the exponent first since it's a fixed size
+	v1 := make([]byte, 4)
+	binary.BigEndian.PutUint32(v1, uint32(d.exp))
+
+	// Add the value
+	var v2 []byte
+	if v2, err = d.value.GobEncode(); err != nil {
+		return
+	}
+
+	// Return the byte array
+	data = append(v1, v2...)
+	return
+}
+
 // Scan implements the sql.Scanner interface for database deserialization.
 func (d *Decimal) Scan(value interface{}) error {
 	// first try to see if the data is stored in database as a Numeric datatype
 	switch v := value.(type) {
+
+	case float32:
+		*d = NewFromFloat(float64(v))
+		return nil
 
 	case float64:
 		// numeric in sqlite3 sends us float64
@@ -521,10 +699,7 @@ func (d *Decimal) Scan(value interface{}) error {
 }
 
 // Value implements the driver.Valuer interface for database serialization.
-func (d *Decimal) Value() (driver.Value, error) {
-	if d == nil {
-		return nil, nil
-	}
+func (d Decimal) Value() (driver.Value, error) {
 	return d.String(), nil
 }
 
@@ -548,8 +723,18 @@ func (d Decimal) MarshalText() (text []byte, err error) {
 	return []byte(d.String()), nil
 }
 
-// NOTE: buggy, unintuitive, and DEPRECATED! Use StringFixed instead.
+// GobEncode implements the gob.GobEncoder interface for gob serialization.
+func (d Decimal) GobEncode() ([]byte, error) {
+	return d.MarshalBinary()
+}
+
+// GobDecode implements the gob.GobDecoder interface for gob serialization.
+func (d *Decimal) GobDecode(data []byte) error {
+	return d.UnmarshalBinary(data)
+}
+
 // StringScaled first scales the decimal then calls .String() on it.
+// NOTE: buggy, unintuitive, and DEPRECATED! Use StringFixed instead.
 func (d Decimal) StringScaled(exp int32) string {
 	return d.rescale(exp).String()
 }
@@ -605,7 +790,7 @@ func (d *Decimal) ensureInitialized() {
 	}
 }
 
-// Returns the smallest Decimal that was passed in the arguments.
+// Min returns the smallest Decimal that was passed in the arguments.
 //
 // To call this function with an array, you must do:
 //
@@ -622,7 +807,7 @@ func Min(first Decimal, rest ...Decimal) Decimal {
 	return ans
 }
 
-// Returns the largest Decimal that was passed in the arguments.
+// Max returns the largest Decimal that was passed in the arguments.
 //
 // To call this function with an array, you must do:
 //
@@ -662,8 +847,8 @@ func unquoteIfQuoted(value interface{}) (string, error) {
 	case []byte:
 		bytes = v
 	default:
-		return "", fmt.Errorf("Could not convert value '%+v' to byte array",
-			value)
+		return "", fmt.Errorf("Could not convert value '%+v' to byte array of type '%T'",
+			value, value)
 	}
 
 	// If the amount is quoted, strip the quotes
@@ -671,4 +856,29 @@ func unquoteIfQuoted(value interface{}) (string, error) {
 		bytes = bytes[1 : len(bytes)-1]
 	}
 	return string(bytes), nil
+}
+
+// NullDecimal represents a fixed-point decimal. It is immutable.
+// number = value * 10 ^ exp
+type NullDecimal struct {
+	Decimal Decimal
+	Valid   bool
+}
+
+// Scan implements the sql.Scanner interface for database deserialization.
+func (d *NullDecimal) Scan(value interface{}) error {
+	if value == nil {
+		d.Valid = false
+		return nil
+	}
+	d.Valid = true
+	return d.Decimal.Scan(value)
+}
+
+// Value implements the driver.Valuer interface for database serialization.
+func (d NullDecimal) Value() (driver.Value, error) {
+	if !d.Valid {
+		return nil, nil
+	}
+	return d.Decimal.Value()
 }

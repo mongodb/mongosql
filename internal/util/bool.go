@@ -1,8 +1,9 @@
 package util
 
 import (
-	"gopkg.in/mgo.v2/bson"
 	"reflect"
+
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // IsTruthy returns true for values the server will interpret as "true".

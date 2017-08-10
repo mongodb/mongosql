@@ -1,0 +1,62 @@
+#
+# dependencies from github.com/10gen
+#
+
+[[constraint]]
+  name = "github.com/10gen/candiedyaml"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/10gen/mongo-go-driver"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/go-sql-driver/mysql"
+  source = "github.com/10gen/mysql"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/spacemonkeygo/openssl"
+  source = "github.com/10gen/openssl"
+  branch = "master"
+
+#
+# dependencies from github.com/mongodb
+#
+
+[[constraint]]
+  name = "github.com/mongodb/mongo-tools"
+  revision = "3cc9a07766fb55de63e81a13e72f3c5a7c07f477"
+
+#
+# third-party dependencies
+#
+
+[[constraint]]
+  name = "github.com/jessevdk/go-flags"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/kardianos/service"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/kr/pretty"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/shopspring/decimal"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/smartystreets/goconvey"
+  branch = "master"
+
+[[constraint]]
+  name = "golang.org/x/crypto"
+  branch = "master"
+
+[[constraint]]
+  name = "golang.org/x/text"
+  branch = "master"
+

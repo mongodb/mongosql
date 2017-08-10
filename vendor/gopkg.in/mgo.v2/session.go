@@ -279,81 +279,44 @@ func ParseURL(url string) (*DialInfo, error) {
 	source := ""
 	setName := ""
 	poolLimit := 0
-	readPreferenceMode := Primary
-	var readPreferenceTagSets []bson.D
-	for _, opt := range uinfo.options {
-		switch opt.key {
+	for k, v := range uinfo.options {
+		switch k {
 		case "authSource":
-			source = opt.value
+			source = v
 		case "authMechanism":
-			mechanism = opt.value
+			mechanism = v
 		case "gssapiServiceName":
-			service = opt.value
+			service = v
 		case "replicaSet":
-			setName = opt.value
+			setName = v
 		case "maxPoolSize":
-			poolLimit, err = strconv.Atoi(opt.value)
+			poolLimit, err = strconv.Atoi(v)
 			if err != nil {
-				return nil, errors.New("bad value for maxPoolSize: " + opt.value)
+				return nil, errors.New("bad value for maxPoolSize: " + v)
 			}
-		case "readPreference":
-			switch opt.value {
-			case "nearest":
-				readPreferenceMode = Nearest
-			case "primary":
-				readPreferenceMode = Primary
-			case "primaryPreferred":
-				readPreferenceMode = PrimaryPreferred
-			case "secondary":
-				readPreferenceMode = Secondary
-			case "secondaryPreferred":
-				readPreferenceMode = SecondaryPreferred
-			default:
-				return nil, errors.New("bad value for readPreference: " + opt.value)
-			}
-		case "readPreferenceTags":
-			tags := strings.Split(opt.value, ",")
-			var doc bson.D
-			for _, tag := range tags {
-				kvp := strings.Split(tag, ":")
-				if len(kvp) != 2 {
-					return nil, errors.New("bad value for readPreferenceTags: " + opt.value)
-				}
-				doc = append(doc, bson.DocElem{Name: strings.TrimSpace(kvp[0]), Value: strings.TrimSpace(kvp[1])})
-			}
-			readPreferenceTagSets = append(readPreferenceTagSets, doc)
 		case "connect":
-			if opt.value == "direct" {
+			if v == "direct" {
 				direct = true
 				break
 			}
-			if opt.value == "replicaSet" {
+			if v == "replicaSet" {
 				break
 			}
 			fallthrough
 		default:
-			return nil, errors.New("unsupported connection URL option: " + opt.key + "=" + opt.value)
+			return nil, errors.New("unsupported connection URL option: " + k + "=" + v)
 		}
 	}
-
-	if readPreferenceMode == Primary && len(readPreferenceTagSets) > 0 {
-		return nil, errors.New("readPreferenceTagSet may not be specified when readPreference is primary")
-	}
-
 	info := DialInfo{
-		Addrs:     uinfo.addrs,
-		Direct:    direct,
-		Database:  uinfo.db,
-		Username:  uinfo.user,
-		Password:  uinfo.pass,
-		Mechanism: mechanism,
-		Service:   service,
-		Source:    source,
-		PoolLimit: poolLimit,
-		ReadPreference: &ReadPreference{
-			Mode:    readPreferenceMode,
-			TagSets: readPreferenceTagSets,
-		},
+		Addrs:          uinfo.addrs,
+		Direct:         direct,
+		Database:       uinfo.db,
+		Username:       uinfo.user,
+		Password:       uinfo.pass,
+		Mechanism:      mechanism,
+		Service:        service,
+		Source:         source,
+		PoolLimit:      poolLimit,
 		ReplicaSetName: setName,
 	}
 	return &info, nil
@@ -421,25 +384,12 @@ type DialInfo struct {
 	// See Session.SetPoolLimit for details.
 	PoolLimit int
 
-	// ReadPreference defines the manner in which servers are chosen. See
-	// Session.SetMode and Session.SelectServers.
-	ReadPreference *ReadPreference
-
 	// DialServer optionally specifies the dial function for establishing
 	// connections with the MongoDB servers.
 	DialServer func(addr *ServerAddr) (net.Conn, error)
 
 	// WARNING: This field is obsolete. See DialServer above.
 	Dial func(addr net.Addr) (net.Conn, error)
-}
-
-// ReadPreference defines the manner in which servers are chosen.
-type ReadPreference struct {
-	// Mode determines the consistency of results. See Session.SetMode.
-	Mode Mode
-
-	// TagSets indicates which servers are allowed to be used. See Session.SelectServers.
-	TagSets []bson.D
 }
 
 // mgo.v3: Drop DialInfo.Dial.
@@ -514,14 +464,7 @@ func DialWithInfo(info *DialInfo) (*Session, error) {
 		session.Close()
 		return nil, err
 	}
-
-	if info.ReadPreference != nil {
-		session.SelectServers(info.ReadPreference.TagSets...)
-		session.SetMode(info.ReadPreference.Mode, true)
-	} else {
-		session.SetMode(Strong, true)
-	}
-
+	session.SetMode(Strong, true)
 	return session, nil
 }
 
@@ -534,26 +477,21 @@ type urlInfo struct {
 	user    string
 	pass    string
 	db      string
-	options []urlInfoOption
-}
-
-type urlInfoOption struct {
-	key   string
-	value string
+	options map[string]string
 }
 
 func extractURL(s string) (*urlInfo, error) {
 	if strings.HasPrefix(s, "mongodb://") {
 		s = s[10:]
 	}
-	info := &urlInfo{}
+	info := &urlInfo{options: make(map[string]string)}
 	if c := strings.Index(s, "?"); c != -1 {
 		for _, pair := range strings.FieldsFunc(s[c+1:], isOptSep) {
 			l := strings.SplitN(pair, "=", 2)
 			if len(l) != 2 || l[0] == "" || l[1] == "" {
 				return nil, errors.New("connection option must be key=value: " + pair)
 			}
-			info.options = append(info.options, urlInfoOption{key: l[0], value: l[1]})
+			info.options[l[0]] = l[1]
 		}
 		s = s[:c]
 	}
@@ -1157,14 +1095,6 @@ type Collation struct {
 	// or "shifted" (spaces and punctuation not considered base characters, and only
 	// distinguished at strength > 3). Defaults to "non-ignorable".
 	Alternate string `bson:"alternate,omitempty"`
-
-	// MaxVariable defines which characters are affected when the value for Alternate is
-	// "shifted". It may be set to "punct" to affect punctuation or spaces, or "space" to
-	// affect only spaces.
-	MaxVariable string `bson:"maxVariable,omitempty"`
-
-	// Normalization defines whether text is normalized into Unicode NFD.
-	Normalization bool `bson:"normalization,omitempty"`
 
 	// Backwards defines whether to have secondary differences considered in reverse order,
 	// as done in the French language.
@@ -2369,11 +2299,6 @@ func (c *Collection) NewIter(session *Session, firstBatch []bson.Raw, cursorId i
 		timeout: -1,
 		err:     err,
 	}
-
-	if socket.ServerInfo().MaxWireVersion >= 4 && c.FullName != "admin.$cmd" {
-		iter.findCmd = true
-	}
-
 	iter.gotReply.L = &iter.m
 	for _, doc := range firstBatch {
 		iter.docData.Push(doc.Data)
@@ -2933,14 +2858,6 @@ func (q *Query) Sort(fields ...string) *Query {
 	return q
 }
 
-func (q *Query) Collation(collation *Collation) *Query {
-	q.m.Lock()
-	q.op.options.Collation = collation
-	q.op.hasOptions = true
-	q.m.Unlock()
-	return q
-}
-
 // Explain returns a number of details about how the MongoDB server would
 // execute the requested query, such as the number of objects examined,
 // the number of times the read lock was yielded to allow writes to go in,
@@ -3244,7 +3161,6 @@ func prepareFindOp(socket *mongoSocket, op *queryOp, limit int32) bool {
 		Comment:     op.options.Comment,
 		Snapshot:    op.options.Snapshot,
 		OplogReplay: op.flags&flagLogReplay != 0,
-		Collation:   op.options.Collation,
 	}
 	if op.limit < 0 {
 		find.BatchSize = -op.limit
@@ -3306,7 +3222,6 @@ type findCmd struct {
 	OplogReplay         bool        `bson:"oplogReplay,omitempty"`
 	NoCursorTimeout     bool        `bson:"noCursorTimeout,omitempty"`
 	AllowPartialResults bool        `bson:"allowPartialResults,omitempty"`
-	Collation           *Collation  `bson:"collation,omitempty"`
 }
 
 // getMoreCmd holds the command used for requesting more query results on MongoDB 3.2+.
@@ -4390,11 +4305,10 @@ func (q *Query) Apply(change Change, result interface{}) (info *ChangeInfo, err 
 	var doc valueResult
 	for i := 0; i < maxUpsertRetries; i++ {
 		err = session.DB(dbname).Run(&cmd, &doc)
-
 		if err == nil {
 			break
 		}
-		if change.Upsert && IsDup(err) {
+		if change.Upsert && IsDup(err) && i+1 < maxUpsertRetries {
 			// Retry duplicate key errors on upserts.
 			// https://docs.mongodb.com/v3.2/reference/method/db.collection.update/#use-unique-indexes
 			continue
