@@ -49,7 +49,6 @@ var (
 
 type Logger struct {
 	buffer     *writeBuffer
-	format     string
 	verbosity  int
 	component  string
 	rotateFunc rotateFunc
@@ -88,7 +87,7 @@ func (lg *Logger) Warnf(minVerbosity int, format string, a ...interface{}) {
 }
 
 func (lg *Logger) SetDateFormat(dateFormat string) {
-	lg.format = dateFormat
+	lg.buffer.setDateFormat(dateFormat)
 }
 
 func (lg *Logger) SetVerbosity(level VerbosityLevel) {
@@ -132,8 +131,7 @@ func (lg *Logger) writelog(minVerbosity int, msg string) {
 	}
 
 	if minVerbosity <= lg.verbosity {
-		message := fmt.Sprintf("%v %v\n", time.Now().Format(lg.format), msg)
-		lg.buffer.writeMessage(message)
+		lg.buffer.writeMessage(msg)
 	}
 }
 
@@ -146,7 +144,6 @@ func NewLogger(verbosity VerbosityLevel) *Logger {
 	lg := &Logger{
 		buffer:     newWriteBuffer(os.Stderr, bufferSizeFlushThreshold, bufferSizeLimit),
 		component:  defaultComponent,
-		format:     defaultTimeFormat,
 		rotateFunc: noRotateFunc,
 	}
 
@@ -159,7 +156,6 @@ func NewComponentLogger(component string, logger Logger) *Logger {
 	lg := &Logger{
 		buffer:     logger.buffer,
 		component:  component,
-		format:     logger.format,
 		rotateFunc: logger.rotateFunc,
 		verbosity:  logger.verbosity,
 	}
@@ -179,6 +175,8 @@ type writeBuffer struct {
 	writerLock sync.Mutex
 
 	flushChan chan chan struct{}
+
+	format string
 }
 
 func newWriteBuffer(writer io.Writer, threshold, limit int) *writeBuffer {
@@ -188,6 +186,7 @@ func newWriteBuffer(writer io.Writer, threshold, limit int) *writeBuffer {
 		limit:     limit,
 		writer:    writer,
 		flushChan: flushChan,
+		format:    defaultTimeFormat,
 	}
 
 	go func() {
@@ -233,8 +232,8 @@ func (w *writeBuffer) writeMessage(str string) {
 		w.requestFlush(false)
 	}
 
-	msgBytes := []byte(str)
 	w.bufLock.Lock()
+	msgBytes := []byte(fmt.Sprintf("%v %v\n", time.Now().Format(w.format), str))
 	w.buf = append(w.buf, msgBytes...)
 	w.bufLock.Unlock()
 }
@@ -279,6 +278,12 @@ func (w *writeBuffer) setWriter(writer io.Writer) {
 	w.writerLock.Lock()
 	w.writer = writer
 	w.writerLock.Unlock()
+}
+
+func (w *writeBuffer) setDateFormat(dateFormat string) {
+	w.bufLock.Lock()
+	w.format = dateFormat
+	w.bufLock.Unlock()
 }
 
 //// Log Writer Interface
