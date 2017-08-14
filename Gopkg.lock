@@ -74,10 +74,9 @@
   revision = "3cc9a07766fb55de63e81a13e72f3c5a7c07f477"
 
 [[projects]]
-  branch = "master"
   name = "github.com/shopspring/decimal"
   packages = ["."]
-  revision = "3c692774ac4c47c7a296ec96e553719dba1a68fc"
+  revision = "d6f52241f332c63811249bd79a522406bea1a7c9"
 
 [[projects]]
   name = "github.com/smartystreets/assertions"
@@ -86,10 +85,10 @@
   version = "1.6.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/smartystreets/goconvey"
   packages = ["convey","convey/gotest","convey/reporting"]
-  revision = "9e8dc3f972df6c8fcc0375ef492c24d0bb204857"
+  revision = "d4c757aa9afd1e2fc1832aaab209b5794eb336e1"
+  version = "1.6.2"
 
 [[projects]]
   branch = "master"
@@ -149,6 +148,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6670644b688449948e43d9d5e142208af81ac3bbac659cdb644ac4494ed6f23a"
+  inputs-digest = "7826372e96f761d1468bb110796ec452a8757f4d9e395000d2ef61c7bef64a2e"
   solver-name = "gps-cdcl"
   solver-version = 1

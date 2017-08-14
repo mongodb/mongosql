@@ -46,11 +46,11 @@
 
 [[constraint]]
   name = "github.com/shopspring/decimal"
-  branch = "master"
+  revision = "d6f52241f332c63811249bd79a522406bea1a7c9"
 
 [[constraint]]
   name = "github.com/smartystreets/goconvey"
-  branch = "master"
+  version = "1.6.2"
 
 [[constraint]]
   name = "golang.org/x/crypto"
