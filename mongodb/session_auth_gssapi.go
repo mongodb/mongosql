@@ -1,11 +1,12 @@
-// +build gssapi
-// +build linux darwin
+//+build gssapi
+//+build linux darwin windows
 
 package mongodb
 
 import (
 	"context"
 	"net"
+	"runtime"
 
 	"github.com/10gen/mongo-go-driver/mongo/private/auth"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
@@ -14,6 +15,9 @@ import (
 
 // Auth handles authenticating the session.
 func (a *GssapiSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connection) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	server := gssapi.NewServer(a.HostServiceName, getHostname(a.HostAddr))
 	defer server.Close()
 
@@ -49,7 +53,6 @@ func (a *GssapiSessionAuthenticator) Auth(ctx context.Context, conns []conn.Conn
 		}
 	}
 
-	errs := make(chan error, len(conns))
 	for i := 0; i < len(conns); i++ {
 		c := conns[i]
 		client := gssapi.NewClient(
@@ -59,15 +62,9 @@ func (a *GssapiSessionAuthenticator) Auth(ctx context.Context, conns []conn.Conn
 			false,
 			"",
 		)
+		err := auth.ConductSaslConversation(ctx, c, "$external", client)
+		client.Close()
 
-		go func(client *gssapi.SaslClient, c conn.Connection, errs chan<- error) {
-			errs <- auth.ConductSaslConversation(ctx, c, "$external", client)
-			client.Close()
-		}(client, c, errs)
-	}
-
-	for i := 0; i < len(conns); i++ {
-		err = <-errs
 		if err != nil {
 			return err
 		}

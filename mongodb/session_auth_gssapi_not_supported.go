@@ -1,4 +1,4 @@
-// +build gssapi,!linux,!darwin
+//+build gssapi,!linux,!darwin,!windows
 
 package mongodb
 

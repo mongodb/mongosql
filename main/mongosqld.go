@@ -264,12 +264,12 @@ func (p *program) loadSchema() error {
 			p.controlLogger,
 		)
 
-		schema, err := schema.NewFromDRDL(lgr, drdlSchema)
+		relationalSchema, err := schema.NewFromDRDL(lgr, drdlSchema)
 		if err != nil {
 			return err
 		}
 
-		p.schema = schema
+		p.schema = relationalSchema
 		return nil
 	}
 

@@ -477,12 +477,12 @@ func TestTranslatePartialPredicate(t *testing.T) {
 	}
 
 	runPartialTests := func(tests []test) {
-		schema := evaluator.MustLoadSchema(translatorTestSchema)
+		testSchema := evaluator.MustLoadSchema(translatorTestSchema)
 
-		db := schema.Database("translate_test_db")
+		db := testSchema.Database("translate_test_db")
 		req.NotNil(db, "could not find db in schema")
 
-		testInfo := evaluator.GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)
+		testInfo := evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 		ctx := createTestEvalCtx(testInfo, 3, 4, 0)
 
 		translator := evaluator.NewPushDownTranslator(
@@ -494,7 +494,12 @@ func TestTranslatePartialPredicate(t *testing.T) {
 			t.Run(test.name, func(t *testing.T) {
 				req := require.New(t)
 
-				e, err := evaluator.GetSQLExpr(schema, "translate_test_db", tableTwoName, test.sql)
+				e, err := evaluator.GetSQLExpr(
+					testSchema,
+					"translate_test_db",
+					tableTwoName,
+					test.sql,
+				)
 				req.Nil(err, "could not get sql expr")
 
 				match, local := translator.TranslatePredicate(e)
