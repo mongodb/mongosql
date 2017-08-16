@@ -71,6 +71,7 @@ func restoreBSON(host, port, file string) error {
 			Host: host,
 			Port: port,
 		},
+		URI:    &toolsoptions.URI{},
 		Direct: false,
 		SSL:    getSslOpts(),
 		Auth:   &toolsoptions.Auth{},

@@ -26,7 +26,7 @@
 
 [[constraint]]
   name = "github.com/mongodb/mongo-tools"
-  revision = "3cc9a07766fb55de63e81a13e72f3c5a7c07f477"
+  branch = "master"
 
 #
 # third-party dependencies

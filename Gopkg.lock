@@ -69,9 +69,10 @@
   revision = "7cafcd837844e784b526369c9bce262804aebc60"
 
 [[projects]]
+  branch = "master"
   name = "github.com/mongodb/mongo-tools"
-  packages = ["common","common/archive","common/auth","common/bsonutil","common/db","common/db/kerberos","common/db/openssl","common/failpoint","common/intents","common/json","common/log","common/options","common/password","common/progress","common/text","common/util","mongoimport","mongoimport/csv","mongoimport/dateconv","mongorestore","mongorestore/ns"]
-  revision = "3cc9a07766fb55de63e81a13e72f3c5a7c07f477"
+  packages = ["common","common/archive","common/auth","common/bsonutil","common/connstring","common/db","common/db/kerberos","common/db/openssl","common/failpoint","common/intents","common/json","common/log","common/options","common/password","common/progress","common/text","common/util","mongoimport","mongoimport/csv","mongoimport/dateconv","mongorestore","mongorestore/ns"]
+  revision = "4da3a69c46185fb20be26e40064c5d0a5647fde6"
 
 [[projects]]
   name = "github.com/shopspring/decimal"
@@ -148,6 +149,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7826372e96f761d1468bb110796ec452a8757f4d9e395000d2ef61c7bef64a2e"
+  inputs-digest = "faf86747ca74a306ffe6faa5c69b9b2c8ee74fa251f2eacd7865637d3e331641"
   solver-name = "gps-cdcl"
   solver-version = 1

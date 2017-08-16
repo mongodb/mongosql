@@ -211,7 +211,6 @@ functions:
 
   "restore test data":
     command: shell.exec
-    type: test
     params:
       script: |
         ${PREPARE_SHELL}
