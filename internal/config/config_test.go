@@ -221,7 +221,7 @@ func TestValidate_sqlproxy_Sample_options_Namespaces(t *testing.T) {
 	cfg.Schema.Sample.Namespaces = []string{"som$ething"}
 
 	expected := "invalid specification: '$' is not allowed in sample " +
-		"namespace include pattern: 'som$ething'"
+		"namespace pattern: 'som$ething'"
 	err := Validate(cfg)
 	if err == nil {
 		t.Fatalf("expected an error, but got none")
