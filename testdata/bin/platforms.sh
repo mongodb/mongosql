@@ -9,7 +9,7 @@ fi
 
 # set platform-specific variables
 case $VARIANT in
-ubuntu1404-64)
+ubuntu1404)
     PUSH_ARCH='x86_64-ubuntu-1404'
     PUSH_NAME='linux'
     ;;

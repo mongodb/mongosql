@@ -100,6 +100,10 @@ functions:
               export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/auth"
           fi
 
+          if [ "${_race_detector}" = "true" ]; then
+              export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,race-detector"
+          fi
+
           SCRIPT_DIR="$(pwd)"
           . "./platforms.sh"
           . "./prepare-shell.sh"
@@ -244,6 +248,8 @@ functions:
         export INTEGRATION_TEST_FLAGS="${var_integration_test_flags}"
         ${SCRIPT_DIR}/generate-tests.sh
         ${SCRIPT_DIR}/run-integration-tests.sh
+        # if we are on the race detector variant, check if races were detected
+        [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
 
   "run jdbc auth plugin tests":
     command: shell.exec
@@ -508,6 +514,8 @@ tasks:
       vars:
         var_suite: blackbox
         var_nopushdown: true
+        # turn down parallelism to avoid oom when running with race detection enabled
+        var_integration_test_flags: "-parallel 2"
 
 - name: check
   tags:
@@ -957,7 +965,7 @@ buildvariants:
 
 - matrix_name: full_matrix
   display_name: "${os_full_matrix} (${mongodb_version}) (${mongodb_topology})"
-  tasks: [".test !.config !.oneoff-task !dynamic-schema"]
+  tasks: [".test !.nopushdown !.config !.oneoff-task !dynamic-schema !unit-tests"]
   matrix_spec:
     os_full_matrix: "*"
     mongodb_version: "*"
@@ -969,20 +977,14 @@ buildvariants:
       mongodb_topology: "standalone"
     then:
       add_tasks:
+        - .nopushdown
+        - name: unit-tests
         - name: compile
         - name: dynamic-schema
         - name: sign
           run_on: linux-64-amzn-benchmark
       set:
         tags: ["packager"]
-  - if:
-      os_full_matrix: "*"
-      mongodb_version: "!latest"
-      mongodb_topology: "!standalone"
-    then:
-      remove_tasks:
-        - unit-tests
-        - .nopushdown
 
 - matrix_name: single_variant
   display_name: "${os_single_variant}"
@@ -1003,6 +1005,16 @@ buildvariants:
     - rhel62-test
   tasks:
     - ".test .config"
+
+- name: race-detector
+  display_name: Race Detector (Ubuntu 14.04)
+  expansions:
+    _variant: ubuntu1404
+    _race_detector: true
+  run_on:
+    - ubuntu1404-build
+  tasks:
+    - ".test !.oneoff-task !unit-tests"
 
 - name: jdbc-rhel62
   display_name: JDBC Auth RHEL 6.2

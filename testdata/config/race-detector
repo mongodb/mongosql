@@ -1,0 +1,3 @@
+
+BUILD_RACE_FLAG="-race"
+GORACE="log_path=$ARTIFACTS_DIR/log/races.log"

@@ -25,9 +25,10 @@ type rotatingFile struct {
 	file    *os.File
 	lastLog string
 
-	rotateChan chan struct{}
-	errChan    chan error
-	dataChan   chan []byte
+	rotateChan    chan struct{}
+	errChan       chan error
+	dataChan      chan []byte
+	writeDoneChan chan struct{}
 }
 
 func newRotatingFile(filename string, append bool, strategy RotationStrategy) (*rotatingFile, error) {
@@ -48,12 +49,13 @@ func newRotatingFile(filename string, append bool, strategy RotationStrategy) (*
 	}
 
 	rf := &rotatingFile{
-		filename:   filename,
-		mode:       mode,
-		strategy:   strategy,
-		rotateChan: make(chan struct{}, 1),
-		errChan:    make(chan error),
-		dataChan:   make(chan []byte),
+		filename:      filename,
+		mode:          mode,
+		strategy:      strategy,
+		rotateChan:    make(chan struct{}, 1),
+		errChan:       make(chan error),
+		dataChan:      make(chan []byte),
+		writeDoneChan: make(chan struct{}),
 	}
 
 	err := rf.open()
@@ -65,6 +67,7 @@ func newRotatingFile(filename string, append bool, strategy RotationStrategy) (*
 
 func (rf *rotatingFile) Write(b []byte) (int, error) {
 	rf.dataChan <- b
+	<-rf.writeDoneChan
 	return len(b), nil
 }
 
@@ -117,6 +120,7 @@ func (rf *rotatingFile) start() {
 				if err != nil {
 					panic(fmt.Errorf("Failed writing log: %v", err))
 				}
+				rf.writeDoneChan <- struct{}{}
 			}
 		}
 	}()

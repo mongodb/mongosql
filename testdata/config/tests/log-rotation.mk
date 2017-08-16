@@ -17,7 +17,7 @@ test-log-rotation-twice: CMD = use test, flush logs, flush logs,
 test-log-rotation-twice: NUM_FILES = 3
 test-log-rotation-twice: test-log-rotation
 
-test-log-rotation-reopen: INFRASTRUCTURE_CONFIG = default,sqlproxy/log/reopen
+test-log-rotation-reopen: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/log/reopen
 test-log-rotation-reopen: CMD = use test, flush logs, flush logs,
 test-log-rotation-reopen: NUM_FILES = 1
 test-log-rotation-reopen: test-log-rotation
@@ -38,7 +38,7 @@ test-log-rotation-startup-rotate: CMD = use test, flush logs
 test-log-rotation-startup-rotate: NUM_FILES = 3
 test-log-rotation-startup-rotate: create-log-file test-log-rotation
 
-test-log-rotation-startup-append: INFRASTRUCTURE_CONFIG = default,sqlproxy/log/reopen
+test-log-rotation-startup-append: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/log/reopen
 test-log-rotation-startup-append: CMD = use test, flush logs
 test-log-rotation-startup-append: NUM_FILES = 1
 test-log-rotation-startup-append: create-log-file test-log-rotation

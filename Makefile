@@ -1,5 +1,10 @@
 VARIANT := $(VARIANT)
+
 INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG)
+ifeq ($(INFRASTRUCTURE_CONFIG),)
+INFRASTRUCTURE_CONFIG := default
+endif
+
 ENV = VARIANT=$(VARIANT) INFRASTRUCTURE_CONFIG=$(INFRASTRUCTURE_CONFIG)
 EXPECTED = EXPECTED_STATUS=$(EXPECTED_STATUS) EXPECTED_ERROR="$(EXPECTED_ERROR)"
 
@@ -7,11 +12,14 @@ default: test
 
 build: build-mongodrdl build-mongosqld
 
+build-mongodrdl:
+	$(ENV) testdata/bin/build-mongodrdl.sh
+
 build-mongosqld:
 	$(ENV) testdata/bin/build-mongosqld.sh
 
-build-mongodrdl:
-	$(ENV) testdata/bin/build-mongodrdl.sh
+check-races:
+	testdata/bin/check-races.sh
 
 clean:
 	rm -f integration_test.go
@@ -23,11 +31,11 @@ generate:
 restore-data: generate
 	$(ENV) testdata/bin/restore-test-data.sh
 
-run-mongosqld:
-	$(ENV) testdata/bin/start-mongosqld.sh
-
 run-mongodb:
 	$(ENV) testdata/bin/start-orchestration.sh
+
+run-mongosqld:
+	$(ENV) testdata/bin/start-mongosqld.sh
 
 shell:
 	mysql -P3307
@@ -35,10 +43,6 @@ shell:
 start-all: build-mongosqld run-mongosqld run-mongodb
 
 test: test-unit test-integration
-
-test-start-mongosqld: build-mongosqld _test-start-mongosqld
-_test-start-mongosqld:
-	$(ENV) $(EXPECTED) testdata/bin/test-start-mongosqld.sh
 
 test-connect-failure: EXPECTED_STATUS = 1
 test-connect-failure: start-all
@@ -50,6 +54,10 @@ test-connect-success: start-all
 
 test-integration: test-connect-success restore-data
 	$(ENV) testdata/bin/run-integration-tests.sh
+
+test-start-mongosqld: build-mongosqld _test-start-mongosqld
+_test-start-mongosqld:
+	$(ENV) $(EXPECTED) testdata/bin/test-start-mongosqld.sh
 
 test-unit: clean
 	$(ENV) testdata/bin/run-unit-tests.sh

@@ -1,4 +1,8 @@
 
+# race-detector
+BUILD_RACE_FLAG=""
+GORACE=""
+
 # sqlproxy/auth
 SQLPROXY_AUTH_ARGS=""
 
