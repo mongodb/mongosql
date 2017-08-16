@@ -92,6 +92,7 @@ func Default() *Config {
 
 	cfg.Schema.Sample.Size = 1000
 	cfg.Schema.Sample.Mode = "write"
+	cfg.Schema.Sample.Namespaces = []string{"*.*"}
 	cfg.Schema.Sample.ReadIntervalSecs = 600
 	cfg.Schema.Sample.WriteIntervalSecs = 86400
 
