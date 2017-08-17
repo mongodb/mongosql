@@ -244,8 +244,13 @@ func (w *writeBuffer) flush() {
 
 	w.bufLock.Lock()
 
-	// resize tmp slice
 	bufLen := len(w.buf)
+	if bufLen == 0 {
+		w.bufLock.Unlock()
+		return
+	}
+
+	// resize tmp slice
 	if cap(w.tmp) < bufLen {
 		// allocate if we need more capacity
 		w.tmp = make([]byte, bufLen)

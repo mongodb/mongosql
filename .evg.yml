@@ -196,11 +196,10 @@ functions:
       params:
         silent: true
         script: |
-          ${killall_mci}
+          ( ${killall_mci|true} ) > /dev/null 2>&1
     - command: shell.exec
       params:
         script: |
-          ${killall_mci}
           ${PREPARE_SHELL}
           ${SCRIPT_DIR}/reset-testing-state.sh
     - command: shell.exec
@@ -291,7 +290,6 @@ functions:
   "start mongosqld":
     command: shell.exec
     params:
-      background: true
       script: |
         ${PREPARE_SHELL}
         if [ "${var_nopushdown}" = "true" ]; then

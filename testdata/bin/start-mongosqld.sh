@@ -10,9 +10,9 @@
     if [ "Windows_NT" = "$OS" ]; then
         # just to make sure these guys are stopped and not installed,
         # attempt to get rid of them,
-        net stop mongosql || true
-        sc.exe delete mongosql || true
-        reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\mongosql" /f || true
+        net stop mongosql > /dev/null 2>&1 || true
+        sc.exe delete mongosql > /dev/null 2>&1 || true
+        reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\mongosql" /f > /dev/null 2>&1 || true
 
         $ARTIFACTS_DIR/bin/mongosqld install -vvvv $SQLPROXY_ARGS
 
