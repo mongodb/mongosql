@@ -12,7 +12,7 @@ const (
 	Rename RotationStrategy = "rename"
 	Reopen                  = "reopen"
 
-	RotationTimeFormat = time.RFC3339Nano
+	RotationTimeFormat = "2006-01-02T15_04_05.999999999Z07_00"
 )
 
 type rotateFunc func() (string, error)
@@ -89,23 +89,21 @@ func (rf *rotatingFile) start() {
 			case <-rf.rotateChan:
 				var err error
 
+				// close the log file
+				err = rf.file.Close()
+				if err != nil {
+					panic(fmt.Errorf("Log rotation failed: %v", err))
+				}
+
 				if rf.strategy == Rename {
 					// rename current log file to the archived log file
 					now := time.Now().Format(RotationTimeFormat)
 					archive := fmt.Sprintf("%s.%s", rf.filename, now)
 					err = os.Rename(rf.filename, archive)
 					if err != nil {
-						// if rename fails, we will just keep logging to the same file
-						rf.errChan <- fmt.Errorf("Log rotation failed: %v", err)
-						break
+						panic(fmt.Errorf("Log rotation failed: %v", err))
 					}
 					rf.lastLog = archive
-				}
-
-				// close the log file
-				err = rf.file.Close()
-				if err != nil {
-					panic(fmt.Errorf("Log rotation failed: %v", err))
 				}
 
 				// open the new log file
