@@ -1,6 +1,6 @@
 
 # reject non-ssl connections when sslMode=requireSSL
-test-require-ssl-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/ssl/require,sqlproxy/ssl/pem
+test-require-ssl-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/ssl/require,sqlproxy/ssl/pem,client/ssl/disable
 test-require-ssl-failure: EXPECTED_ERROR = ERROR 1043 (08S01): recv handshake response error: This server is configured to only allow SSL connections
 test-require-ssl-failure: test-connect-failure
 

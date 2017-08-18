@@ -710,27 +710,27 @@ tasks:
 
 - <<: *run-config-test
   name: test-mongo-ssl-not-enabled-failure
-  tags: ["test", "config"]
+  tags: ["test", "config", "mongo-ssl"]
 
 - <<: *run-config-test
   name: test-mongo-ssl-success
-  tags: ["test", "config"]
+  tags: ["test", "config", "mongo-ssl"]
 
 - <<: *run-config-test
   name: test-mongo-ssl-ca-success
-  tags: ["test", "config"]
+  tags: ["test", "config", "mongo-ssl"]
 
 - <<: *run-config-test
   name: test-mongo-ssl-pem-success
-  tags: ["test", "config"]
+  tags: ["test", "config", "mongo-ssl"]
 
 - <<: *run-config-test
   name: test-mongo-ssl-pem-failure
-  tags: ["test", "config"]
+  tags: ["test", "config", "mongo-ssl"]
 
 - <<: *run-config-test
   name: test-mongo-ssl-fips
-  tags: ["test", "config"]
+  tags: ["test", "config", "mongo-ssl"]
 
 - <<: *run-config-test
   name: test-drdl-simple
@@ -750,7 +750,7 @@ tasks:
 
 - <<: *run-config-test
   name: test-drdl-ssl
-  tags: ["test", "config"]
+  tags: ["test", "config", "mongo-ssl"]
 
 - <<: *run-config-test
   name: test-log-rotation-none
@@ -890,7 +890,6 @@ axes:
     display_name: Amazon Linux (Enterprise)
     variables:
       _variant: amazon
-      _mongo_ssl: true
     run_on: linux-64-amzn-build
   - id: rhel62
     display_name: RHEL 6.2
@@ -906,14 +905,12 @@ axes:
     display_name: RHEL 7.1 PPC64LE
     variables:
       _variant: ppc
-      _mongo_ssl: true
     run_on: rhel71-power8-test
     batchtime: 1440 # 1 day
   - id: rhel-72-s390x
     display_name: RHEL 7.2 s390x (nightly)
     variables:
       _variant: s390x
-      _mongo_ssl: true
     run_on:
     - rhel72-zseries-build
     - rhel72-zseries-test
@@ -997,14 +994,17 @@ buildvariants:
   matrix_spec:
     os_single_variant: "*"
 
-- name: config-rhel62
-  display_name: Config Tests (RHEL 6.2)
-  expansions:
-    _variant: rhel62
-  run_on:
-    - rhel62-test
+- matrix_name: config-tests
+  display_name: "Configuration Parameter Tests (${os_full_matrix})"
   tasks:
     - ".test .config"
+  matrix_spec:
+    os_full_matrix: "*"
+  rules:
+  - if:
+      os_full_matrix: "windows"
+    then:
+      remove_tasks: [".mongo-ssl"]
 
 - name: race-detector
   display_name: Race Detector (Ubuntu 14.04)
@@ -1031,7 +1031,6 @@ buildvariants:
   display_name: Amazon Linux (Enterprise Benchmarks)
   expansions:
     _variant: amazon
-    _mongo_ssl: true
   run_on:
     - linux-64-amzn-build
   batchtime: 1440 # 1 day
@@ -1053,7 +1052,6 @@ buildvariants:
   display_name: Amazon Linux (TPC-H Benchmarks)
   expansions:
     _variant: amazon
-    _mongo_ssl: true
   run_on:
     - linux-64-amzn-benchmark
   batchtime: 1438560 # 999 days

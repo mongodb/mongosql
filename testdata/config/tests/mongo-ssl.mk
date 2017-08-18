@@ -30,4 +30,9 @@ test-mongo-ssl-pem-failure: test-mongo-ssl-failure
 
 # test fips-mode connection to ssl mongod
 test-mongo-ssl-fips: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/ssl/basic,sqlproxy/mongo-ssl/enabled,sqlproxy/mongo-ssl/pem,sqlproxy/mongo-ssl/ca,sqlproxy/mongo-ssl/fips-mode
+ifeq ($(VARIANT),macos)
+test-mongo-ssl-fips: EXPECTED_STATUS = 1
+test-mongo-ssl-fips: test-start-mongosqld
+else
 test-mongo-ssl-fips: test-connect-success
+endif

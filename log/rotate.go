@@ -12,6 +12,8 @@ const (
 	Rename RotationStrategy = "rename"
 	Reopen                  = "reopen"
 
+	// this is time.RFC3339Nano with "_" instead of ":"
+	// because you cannot have colons in Windows filenames
 	RotationTimeFormat = "2006-01-02T15_04_05.999999999Z07_00"
 )
 

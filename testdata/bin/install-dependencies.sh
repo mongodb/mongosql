@@ -7,16 +7,35 @@
     set -o errexit
     echo "installing mysql shell..."
 
-    if [ "$PUSH_NAME" != "linux" ]; then
-        echo "Installing mysql shell for non-linux platforms currently unsupported"
+    case $PUSH_NAME in
+    linux)
+        url="https://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.19-linux-glibc2.12-x86_64.tar.gz"
+        ;;
+    osx)
+        url="https://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.19-macos10.12-x86_64.tar.gz"
+        ;;
+    win32)
+        url="https://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.19-winx64.zip"
+        ;;
+    *)
+        echo "Installing mysql shell for $PUSH_NAME currently unsupported"
         exit 1
-    fi
+        ;;
+    esac
 
     cd $ARTIFACTS_DIR
-    curl -O https://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.19-linux-glibc2.12-x86_64.tar.gz
-    tar xzvf mysql*.tar.gz
-    rm mysql*.tar.gz
-    mv mysql* mysql
+    curl -O $url
+
+    if [ "$PUSH_NAME" = "win32" ]; then
+        unzip mysql*.zip
+        rm mysql*.zip
+        mv mysql* mysql
+        mv mysql/bin/mysql.exe mysql/bin/mysql
+    else
+        tar xzvf mysql*.tar.gz
+        rm mysql*.tar.gz
+        mv mysql* mysql
+    fi
 
     echo "done installing mysql shell"
 

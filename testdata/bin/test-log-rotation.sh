@@ -11,7 +11,7 @@
     output=$(mysql $CLIENT_ARGS -e "$cmd" 2>&1)
     code=$?
 
-    num_files="$(ls $ARTIFACTS_DIR/log/mongosqld.log* | wc -l)"
+    num_files="$(ls $ARTIFACTS_DIR/log/mongosqld.log* | wc -l | tr -d '[:space:]')"
 
     if [ "$code" != "0" ]; then
         echo "provided mysql command exited with code $code"
