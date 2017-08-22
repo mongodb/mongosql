@@ -15,10 +15,6 @@ const (
 	minCompressLength = 50
 )
 
-var (
-	header = []byte{0, 0, 0, 0, 0, 0, 0}
-)
-
 type compressedReader struct {
 	buf        []byte
 	connReader io.Reader
@@ -64,14 +60,15 @@ func (cr *compressedReader) Read(data []byte) (int, error) {
 }
 
 func (cr *compressedReader) uncompressPacket() error {
-	if _, err := io.ReadFull(cr.connReader, header); err != nil {
+	readHeader := make([]byte, 7)
+	if _, err := io.ReadFull(cr.connReader, readHeader); err != nil {
 		return err
 	}
 
 	// compressed header structure
-	comprLength := int(uint32(header[0]) | uint32(header[1])<<8 | uint32(header[2])<<16)
-	uncompressedLength := int(uint32(header[4]) | uint32(header[5])<<8 | uint32(header[6])<<16)
-	compressionSequence := uint8(header[3])
+	comprLength := int(uint32(readHeader[0]) | uint32(readHeader[1])<<8 | uint32(readHeader[2])<<16)
+	uncompressedLength := int(uint32(readHeader[4]) | uint32(readHeader[5])<<8 | uint32(readHeader[6])<<16)
+	compressionSequence := uint8(readHeader[3])
 
 	if compressionSequence != cr.c.compressionSequence {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_NET_PACKETS_OUT_OF_ORDER)
@@ -143,14 +140,14 @@ func (cw *compressedWriter) Write(data []byte) (int, error) {
 
 	totalBytes := len(data)
 	length := len(data) - 4
+	writeHeader := make([]byte, 7)
 
 	for length >= maxPayloadLength {
 		// cut off a slice of size max payload length
 		payload := data[:maxPayloadLength]
 		payloadLen := len(payload)
-
 		bytesBuf := &bytes.Buffer{}
-		bytesBuf.Write(header)
+		bytesBuf.Write(writeHeader)
 		cw.zw.Reset(bytesBuf)
 		_, err := cw.zw.Write(payload)
 		if err != nil {
@@ -161,7 +158,7 @@ func (cw *compressedWriter) Write(data []byte) (int, error) {
 		// if compression expands the payload, do not compress
 		compressedPayload := bytesBuf.Bytes()
 		if len(compressedPayload) > maxPayloadLength {
-			compressedPayload = append(header, payload...)
+			compressedPayload = append(writeHeader, payload...)
 			payloadLen = 0
 		}
 
@@ -178,7 +175,7 @@ func (cw *compressedWriter) Write(data []byte) (int, error) {
 
 	// do not attempt compression if packet is too small
 	if payloadLen < minCompressLength {
-		err := cw.writeToNetwork(append(header, data...), 0)
+		err := cw.writeToNetwork(append(writeHeader, data...), 0)
 		if err != nil {
 			return 0, err
 		}
@@ -186,7 +183,7 @@ func (cw *compressedWriter) Write(data []byte) (int, error) {
 	}
 
 	bytesBuf := &bytes.Buffer{}
-	bytesBuf.Write(header)
+	bytesBuf.Write(writeHeader)
 	cw.zw.Reset(bytesBuf)
 	_, err := cw.zw.Write(data)
 	if err != nil {
@@ -197,7 +194,7 @@ func (cw *compressedWriter) Write(data []byte) (int, error) {
 	compressedPayload := bytesBuf.Bytes()
 
 	if len(compressedPayload) > len(data) {
-		compressedPayload = append(header, data...)
+		compressedPayload = append(writeHeader, data...)
 		payloadLen = 0
 	}
 
