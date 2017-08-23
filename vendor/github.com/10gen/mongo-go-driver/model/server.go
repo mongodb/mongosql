@@ -53,7 +53,7 @@ func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoRe
 	i := &Server{
 		Addr: addr,
 
-		CanonicalAddr:   Addr(isMasterResult.Me),
+		CanonicalAddr:   Addr(isMasterResult.Me).Canonicalize(),
 		ElectionID:      isMasterResult.ElectionID,
 		GitVersion:      buildInfoResult.GitVersion,
 		LastUpdateTime:  time.Now().UTC(),
@@ -63,7 +63,7 @@ func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoRe
 		MaxMessageSize:  isMasterResult.MaxMessageSizeBytes,
 		SetName:         isMasterResult.SetName,
 		SetVersion:      isMasterResult.SetVersion,
-		Tags:            nil, // TODO: get tags
+		Tags:            NewTagSetFromMap(isMasterResult.Tags),
 		Version: Version{
 			Desc:  buildInfoResult.Version,
 			Parts: buildInfoResult.VersionArray,
