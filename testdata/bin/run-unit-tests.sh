@@ -39,6 +39,7 @@ run_unit_tests() {
     run_unit_tests mongodb
     run_unit_tests server
     run_unit_tests schema
+    run_unit_tests schema/mongo
 
     rm -rf "$PROJECT_DIR/mongodrdl/out/"
 

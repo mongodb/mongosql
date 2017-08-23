@@ -1,0 +1,951 @@
+package mongo_test
+
+import (
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/schema/mongo"
+	. "github.com/smartystreets/goconvey/convey"
+)
+
+func TestMergeSchema(t *testing.T) {
+	Convey("Given an empty object schema", t, func() {
+		schema := mongo.NewCollectionSchema()
+
+		Convey("Merging it with a schema of any other type should fail", func() {
+			otherTypes := []mongo.BsonType{
+				mongo.Int, mongo.Long, mongo.Double, mongo.Decimal, mongo.BinData,
+				mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectId, mongo.Array,
+			}
+			for _, typ := range otherTypes {
+				other := &mongo.Schema{
+					BsonType: typ,
+				}
+				err := schema.Merge(other)
+				So(err, ShouldNotBeNil)
+			}
+		})
+
+		Convey("Merging it with a non-empty object schema", func() {
+			other, err := mongo.NewSchemaFromValue(bson.D{
+				{"a", int32(1)},
+				{"b", int32(2)},
+			})
+			So(err, ShouldBeNil)
+
+			err = schema.Merge(other)
+			So(err, ShouldBeNil)
+
+			Convey("Should give a schema resembling the non-empty one", func() {
+				jsonActual, err := schema.JsonSchema()
+				So(err, ShouldBeNil)
+				jsonExpected, err := other.JsonSchema()
+				So(err, ShouldBeNil)
+				So(jsonActual, ShouldEqual, jsonExpected)
+			})
+
+			Convey("Merging it with another non-empty object schema", func() {
+				other, err := mongo.NewSchemaFromValue(bson.D{
+					{"b", int32(1)},
+					{"c", int32(5)},
+					{"d", int64(2)},
+				})
+				So(err, ShouldBeNil)
+
+				err = schema.Merge(other)
+				So(err, ShouldBeNil)
+
+				Convey("Should give a schema resembling the union of all three objects", func() {
+					expected := &mongo.Schema{
+						BsonType: mongo.Object,
+						Properties: map[string]*mongo.Schemata{
+							"a": mongo.NewSchemata(&mongo.Schema{BsonType: mongo.Int}),
+							"b": mongo.NewSchemata(&mongo.Schema{BsonType: mongo.Int}),
+							"c": mongo.NewSchemata(&mongo.Schema{BsonType: mongo.Int}),
+							"d": mongo.NewSchemata(&mongo.Schema{BsonType: mongo.Long}),
+						},
+					}
+
+					jsonActual, err := schema.JsonSchema()
+					So(err, ShouldBeNil)
+					jsonExpected, err := expected.JsonSchema()
+					So(err, ShouldBeNil)
+					So(jsonActual, ShouldEqual, jsonExpected)
+				})
+			})
+		})
+	})
+
+	Convey("Given an empty array schema", t, func() {
+		schema, err := mongo.NewArraySchema([]interface{}{})
+		So(err, ShouldBeNil)
+
+		Convey("Merging it with a schema of any other type should fail", func() {
+			otherTypes := []mongo.BsonType{
+				mongo.Int, mongo.Long, mongo.Double, mongo.Decimal, mongo.BinData,
+				mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectId, mongo.Object,
+			}
+			for _, typ := range otherTypes {
+				other := &mongo.Schema{
+					BsonType: typ,
+				}
+				err := schema.Merge(other)
+				So(err, ShouldNotBeNil)
+			}
+		})
+
+		Convey("Merging it with a non-empty array schema", func() {
+			other, err := mongo.NewArraySchema([]interface{}{true, true, false})
+			So(err, ShouldBeNil)
+
+			err = schema.Merge(other)
+			So(err, ShouldBeNil)
+
+			jsonActual, err := schema.JsonSchema()
+			So(err, ShouldBeNil)
+			jsonExpected, err := other.JsonSchema()
+			So(err, ShouldBeNil)
+
+			Convey("Should give a schema resembling the non-empty one", func() {
+				So(jsonActual, ShouldEqual, jsonExpected)
+			})
+
+			Convey("And merging it with an array schema of a different type (but with fewer elements)", func() {
+				other, err := mongo.NewArraySchema([]interface{}{"abc"})
+				So(err, ShouldBeNil)
+
+				err = schema.Merge(other)
+				So(err, ShouldBeNil)
+
+				Convey("Should not change the dominant schema", func() {
+					newJsonActual, err := schema.JsonSchema()
+					So(err, ShouldBeNil)
+					So(newJsonActual, ShouldEqual, jsonActual)
+				})
+			})
+
+			Convey("And merging it with an array schema of a different type (with more elements)", func() {
+				other, err := mongo.NewArraySchema([]interface{}{"abc", "def", "ghi", "jkl"})
+				So(err, ShouldBeNil)
+
+				err = schema.Merge(other)
+				So(err, ShouldBeNil)
+
+				Convey("Should change the dominant schema to that of the other array", func() {
+					newJsonActual, err := schema.JsonSchema()
+					So(err, ShouldBeNil)
+					newJsonExpected, err := other.JsonSchema()
+					So(err, ShouldBeNil)
+					So(newJsonActual, ShouldNotEqual, jsonActual)
+					So(newJsonActual, ShouldEqual, newJsonExpected)
+				})
+			})
+		})
+	})
+}
+
+func TestRenderJsonSchema(t *testing.T) {
+	schema := mongo.NewCollectionSchema()
+
+	err := schema.IncludeSample(bson.D{
+		{"scalar", int32(1)},
+		{"array", []interface{}{"a", "b", "c"}},
+		{"object", bson.D{
+			{"bool", true},
+		}},
+		{"nil", nil},
+		{"unique_id", bson.Binary{Kind: 0x03}},
+		{"nestedarray", []interface{}{
+			[]interface{}{true, false, false},
+			[]interface{}{true, true, true},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Failed including sample: %v", err)
+	}
+
+	json, err := schema.JsonSchema()
+	if err != nil {
+		t.Fatalf("Failed rendering JSON Schema: %v", err)
+	}
+
+	actual := fmt.Sprintf("\n%s", json)
+	expected := `
+{
+    "bsonType": "object",
+    "properties": {
+        "array": {
+            "bsonType": "array",
+            "items": {
+                "bsonType": "string"
+            }
+        },
+        "nestedarray": {
+            "bsonType": "array",
+            "items": {
+                "bsonType": "array",
+                "items": {
+                    "bsonType": "bool"
+                }
+            }
+        },
+        "nil": {},
+        "object": {
+            "bsonType": "object",
+            "properties": {
+                "bool": {
+                    "bsonType": "bool"
+                }
+            }
+        },
+        "scalar": {
+            "bsonType": "int"
+        },
+        "unique_id": {
+            "bsonType": "binData",
+            "specialType": "uuid3"
+        }
+    }
+}`
+
+	if actual != expected {
+		t.Fatalf("Expected:\n%s\n\nActual:\n%s\n", expected, actual)
+	}
+}
+
+func TestSampling(t *testing.T) {
+
+	Convey("Given an empty collection", t, func() {
+		collection := mongo.NewCollectionSchema()
+		So(collection, shouldHaveType, mongo.Object)
+
+		Convey("Including a flat document", func() {
+			err := collection.IncludeSample(bson.D{
+				{"a", int32(1)},
+				{"b", int32(1)},
+			})
+			So(err, ShouldBeNil)
+
+			Convey("Should result in 2 properties", func() {
+				So(collection.Properties, ShouldHaveLength, 2)
+
+				So(collection.Properties["a"], shouldHaveSampleCount, 1)
+				So(collection.Properties["a"], shouldHaveCandidateTypes, mongo.Int)
+
+				So(collection.Properties["b"], shouldHaveSampleCount, 1)
+				So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Int)
+			})
+
+			Convey("And including an additional flat document with the same fields", func() {
+				err := collection.IncludeSample(bson.D{
+					{"a", int32(1)},
+					{"b", int32(1)},
+				})
+				So(err, ShouldBeNil)
+
+				Convey("Should increase the 2 properties' sample counts", func() {
+					So(collection.Properties, ShouldHaveLength, 2)
+
+					So(collection.Properties["a"], shouldHaveSampleCount, 2)
+					So(collection.Properties["a"], shouldHaveCandidateTypes, mongo.Int)
+
+					So(collection.Properties["b"], shouldHaveSampleCount, 2)
+					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Int)
+				})
+			})
+
+			Convey("And including an additional flat document with different fields", func() {
+				err = collection.IncludeSample(bson.D{
+					{"c", int32(2)},
+					{"d", int32(2)},
+				})
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 4 properties", func() {
+					So(collection.Properties, ShouldHaveLength, 4)
+
+					So(collection.Properties["a"], shouldHaveSampleCount, 1)
+					So(collection.Properties["a"], shouldHaveCandidateTypes, mongo.Int)
+
+					So(collection.Properties["b"], shouldHaveSampleCount, 1)
+					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Int)
+
+					So(collection.Properties["c"], shouldHaveSampleCount, 1)
+					So(collection.Properties["c"], shouldHaveCandidateTypes, mongo.Int)
+
+					So(collection.Properties["d"], shouldHaveSampleCount, 1)
+					So(collection.Properties["d"], shouldHaveCandidateTypes, mongo.Int)
+				})
+			})
+
+			Convey("And including an additional flat document with the same fields but different types", func() {
+				err = collection.IncludeSample(bson.D{
+					{"a", "string"},
+					{"b", 3.2},
+				})
+				So(err, ShouldBeNil)
+				err = collection.IncludeSample(bson.D{
+					{"a", []interface{}{"string", int32(1)}},
+					{"b", bson.D{{"c", int64(1)}}},
+				})
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 properties", func() {
+					So(collection.Properties, ShouldHaveLength, 2)
+				})
+
+				Convey("Should result in each field having multiple candidate types", func() {
+					So(collection.Properties["a"], shouldHaveCandidateTypes, mongo.Array, mongo.Int, mongo.String)
+					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Object, mongo.Int, mongo.Double)
+				})
+
+				Convey("Should result in the dominant type should be determined by alphabetical order", func() {
+					So(collection.Properties["a"], shouldHaveDominantType, mongo.Array)
+					So(collection.Properties["b"], shouldHaveDominantType, mongo.Double)
+				})
+			})
+		})
+
+		Convey("Including a document with a nested document", func() {
+			err := collection.IncludeSample(bson.D{
+				{"a", int32(1)},
+				{"b", bson.D{
+					{"c", int32(1)},
+					{"d", int32(1)},
+				}},
+			})
+			So(err, ShouldBeNil)
+
+			Convey("Should result in 2 properties", func() {
+				So(collection.Properties, ShouldHaveLength, 2)
+
+				So(collection.Properties["a"], shouldHaveSampleCount, 1)
+				So(collection.Properties["a"], shouldHaveCandidateTypes, mongo.Int)
+
+				So(collection.Properties["b"], shouldHaveSampleCount, 1)
+				So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Object)
+
+				Convey("And the nested document should have 2 properties", func() {
+					doc := collection.Properties["b"].DominantSchema()
+					So(doc, shouldHaveType, mongo.Object)
+
+					So(doc.Properties, ShouldHaveLength, 2)
+
+					So(doc.Properties["c"], shouldHaveSampleCount, 1)
+					So(doc.Properties["c"], shouldHaveCandidateTypes, mongo.Int)
+
+					So(doc.Properties["d"], shouldHaveSampleCount, 1)
+					So(doc.Properties["d"], shouldHaveCandidateTypes, mongo.Int)
+				})
+			})
+
+			Convey("And including an additional document with the same fields but a different type in the subdocument", func() {
+				err = collection.IncludeSample(bson.D{
+					{"a", int32(1)},
+					{"b", bson.D{
+						{"c", "string"},
+						{"d", int64(1)},
+					}},
+				})
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 properties", func() {
+					So(collection.Properties, ShouldHaveLength, 2)
+
+					So(collection.Properties["a"], shouldHaveSampleCount, 2)
+					So(collection.Properties["a"], shouldHaveCandidateTypes, mongo.Int)
+
+					So(collection.Properties["b"], shouldHaveSampleCount, 2)
+					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Object)
+
+					Convey("And the nested document should have 2 properties", func() {
+						doc := collection.Properties["b"].DominantSchema()
+						So(doc, shouldHaveType, mongo.Object)
+
+						So(doc.Properties, ShouldHaveLength, 2)
+
+						So(doc.Properties["c"], shouldHaveSampleCount, 2)
+						So(doc.Properties["c"], shouldHaveCandidateTypes, mongo.Int, mongo.String)
+
+						So(doc.Properties["d"], shouldHaveSampleCount, 2)
+						So(doc.Properties["d"], shouldHaveCandidateTypes, mongo.Int, mongo.Long)
+					})
+				})
+			})
+
+			Convey("And including an additional document with a different structure", func() {
+				err = collection.IncludeSample(bson.D{
+					{"c", int32(1)},
+					{"b", bson.D{
+						{"c", "string"},
+						{"e", int32(1)},
+					}},
+				})
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 3 properties", func() {
+					So(collection.Properties, ShouldHaveLength, 3)
+
+					So(collection.Properties["a"], shouldHaveSampleCount, 1)
+					So(collection.Properties["a"], shouldHaveCandidateTypes, mongo.Int)
+
+					So(collection.Properties["b"], shouldHaveSampleCount, 2)
+					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Object)
+
+					So(collection.Properties["c"], shouldHaveSampleCount, 1)
+					So(collection.Properties["c"], shouldHaveCandidateTypes, mongo.Int)
+
+					Convey("And the nested document should have 3 properties", func() {
+						doc := collection.Properties["b"].DominantSchema()
+						So(doc.BsonType, ShouldEqual, mongo.Object)
+
+						So(doc.Properties, ShouldHaveLength, 3)
+
+						So(doc.Properties["c"], shouldHaveSampleCount, 2)
+						So(doc.Properties["c"], shouldHaveCandidateTypes, mongo.String, mongo.Int)
+
+						So(doc.Properties["d"], shouldHaveSampleCount, 1)
+						So(doc.Properties["d"], shouldHaveCandidateTypes, mongo.Int)
+
+						So(doc.Properties["e"], shouldHaveSampleCount, 1)
+						So(doc.Properties["e"], shouldHaveCandidateTypes, mongo.Int)
+					})
+				})
+			})
+		})
+
+		Convey("Including a document with a homogenous array", func() {
+			err := collection.IncludeSample(bson.D{
+				{"a", int32(1)},
+				{"b", []interface{}{"a", "b", "c"}},
+			})
+			So(err, ShouldBeNil)
+
+			Convey("Should result in 2 properties", func() {
+				So(collection.Properties, ShouldHaveLength, 2)
+
+				So(collection.Properties["a"], shouldHaveSampleCount, 1)
+				So(collection.Properties["a"], shouldHaveCandidateTypes, mongo.Int)
+
+				So(collection.Properties["b"], shouldHaveSampleCount, 1)
+				So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Array)
+
+				Convey("And the array should have 1 candidate type with the correct sample count", func() {
+					array := collection.Properties["b"].DominantSchema()
+					So(array, shouldHaveType, mongo.Array)
+
+					So(array.Items, shouldHaveSampleCount, 3)
+					So(array.Items, shouldHaveCandidateTypes, mongo.String)
+				})
+			})
+
+			Convey("And including an additional document with the same structure", func() {
+				err = collection.IncludeSample(bson.D{
+					{"a", int32(1)},
+					{"b", []interface{}{"b", "c", "d"}},
+				})
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 2 properties", func() {
+
+					So(collection.Properties, ShouldHaveLength, 2)
+
+					So(collection.Properties["a"], shouldHaveSampleCount, 2)
+					So(collection.Properties["a"], shouldHaveCandidateTypes, mongo.Int)
+
+					So(collection.Properties["b"], shouldHaveSampleCount, 2)
+					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Array)
+
+					Convey("And the array should have 1 candidate type with the correct sample count", func() {
+						array := collection.Properties["b"].DominantSchema()
+						So(array, shouldHaveType, mongo.Array)
+
+						So(array.Items, shouldHaveSampleCount, 6)
+						So(array.Items, shouldHaveCandidateTypes, mongo.String)
+					})
+				})
+			})
+
+			Convey("And including an additional document with a different structure", func() {
+				err = collection.IncludeSample(bson.D{
+					{"c", int32(1)},
+					{"b", []interface{}{time.Now()}},
+				})
+				So(err, ShouldBeNil)
+
+				Convey("Should result in 3 properties", func() {
+					So(collection.Properties, ShouldHaveLength, 3)
+
+					So(collection.Properties["a"], shouldHaveSampleCount, 1)
+					So(collection.Properties["a"], shouldHaveCandidateTypes, mongo.Int)
+
+					So(collection.Properties["b"], shouldHaveSampleCount, 2)
+					So(collection.Properties["b"], shouldHaveCandidateTypes, mongo.Array)
+
+					So(collection.Properties["c"], shouldHaveSampleCount, 1)
+					So(collection.Properties["c"], shouldHaveCandidateTypes, mongo.Int)
+
+					Convey("And the array should have two candidate types", func() {
+						array := collection.Properties["b"].DominantSchema()
+						So(array, shouldHaveType, mongo.Array)
+
+						So(array.Items, shouldHaveSampleCount, 4)
+						So(array.Items, shouldHaveCandidateTypes, mongo.Date, mongo.String)
+
+						Convey("And the dominant type for the array should be determined by sample frequency", func() {
+							So(array.Items, shouldHaveDominantType, mongo.String)
+						})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestValidateSchema(t *testing.T) {
+	Convey("Given an empty schema", t, func() {
+		schema := &mongo.Schema{}
+		Convey("It should pass validation", func() {
+			So(schema, shouldBeValidSchema)
+		})
+
+		scalars := []mongo.BsonType{
+			mongo.Int, mongo.Long, mongo.Double, mongo.Decimal,
+			mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectId,
+		}
+		for _, scalar := range scalars {
+
+			desc := fmt.Sprintf("Changing the BsonType to %s", scalar)
+			Convey(desc, func() {
+				schema.BsonType = scalar
+
+				Convey("Should yield a valid schema", func() {
+					So(schema, shouldBeValidSchema)
+				})
+
+				Convey("And making Items a non-nil Schemata", func() {
+					schema.Items = &mongo.Schemata{}
+
+					Convey("Should yield an invalid schema", func() {
+						So(schema, shouldBeInvalidSchema)
+					})
+				})
+
+				Convey("And making Properties a non-nil map", func() {
+					schema.Properties = make(map[string]*mongo.Schemata)
+
+					Convey("Should yield an invalid schema", func() {
+						So(schema, shouldBeInvalidSchema)
+					})
+				})
+			})
+		}
+
+		Convey("Changing the BsonType to BinData", func() {
+			schema.BsonType = mongo.BinData
+
+			Convey("Should yield a valid schema", func() {
+				So(schema, shouldBeValidSchema)
+			})
+
+			validSpecialTypes := []mongo.SpecialType{
+				mongo.UUID3, mongo.UUID4,
+			}
+
+			invalidSpecialTypes := []mongo.SpecialType{
+				mongo.GeoPoint, "randomstring",
+			}
+
+			for _, st := range validSpecialTypes {
+				desc := fmt.Sprintf("And setting the SpecialType to %s", st)
+				Convey(desc, func() {
+					schema.SpecialType = st
+
+					Convey("Should yield a valid schema", func() {
+						So(schema, shouldBeValidSchema)
+					})
+				})
+			}
+
+			for _, st := range invalidSpecialTypes {
+				desc := fmt.Sprintf("And setting the SpecialType to %s", st)
+				Convey(desc, func() {
+					schema.SpecialType = st
+
+					Convey("Should yield an invalid schema", func() {
+						So(schema, shouldBeInvalidSchema)
+					})
+				})
+			}
+		})
+
+		Convey("Changing the BsonType to 'abcdefg'", func() {
+			schema.BsonType = "abcdefg"
+			Convey("Should yield an invalid schema", func() {
+				So(schema, shouldBeInvalidSchema)
+			})
+		})
+
+		specialTypes := []mongo.SpecialType{
+			mongo.GeoPoint, mongo.UUID3, mongo.UUID4, "aldkjfalksdfj",
+		}
+		for _, st := range specialTypes {
+			desc := fmt.Sprintf("Changing the specialType to %s", st)
+
+			Convey(desc, func() {
+				schema.SpecialType = st
+				Convey("Should yield an invalid schema", func() {
+					So(schema, shouldBeInvalidSchema)
+				})
+			})
+		}
+	})
+
+	Convey("Given a fresh object schema", t, func() {
+		schema := mongo.NewCollectionSchema()
+		Convey("It should pass validation", func() {
+			So(schema, shouldBeValidSchema)
+		})
+
+		invalidSpecialTypes := []mongo.SpecialType{
+			mongo.UUID3, mongo.UUID4, "randomstring",
+		}
+		for _, st := range invalidSpecialTypes {
+			desc := fmt.Sprintf("Setting the SpecialType to %s", st)
+			Convey(desc, func() {
+				schema.SpecialType = st
+
+				Convey("Should yield an invalid schema", func() {
+					So(schema, shouldBeInvalidSchema)
+				})
+			})
+		}
+
+		validSpecialTypes := []mongo.SpecialType{
+			mongo.GeoPoint,
+		}
+		for _, st := range validSpecialTypes {
+			desc := fmt.Sprintf("Setting the SpecialType to %s", st)
+			Convey(desc, func() {
+				schema.SpecialType = st
+
+				Convey("Should yield a valid schema", func() {
+					So(schema, shouldBeValidSchema)
+				})
+			})
+		}
+
+		Convey("Setting a valid schemata as a property", func() {
+			s := mongo.NewCollectionSchema()
+			So(s, shouldBeValidSchema)
+
+			prop := mongo.NewSchemata(s)
+			So(prop, shouldBeValidSchemata)
+
+			schema.Properties["validProp"] = prop
+
+			Convey("Should yield a valid schema", func() {
+				So(schema, shouldBeValidSchema)
+			})
+
+			Convey("And setting a valid schemata as another property", func() {
+				s := mongo.NewCollectionSchema()
+				So(s, shouldBeValidSchema)
+
+				prop := mongo.NewSchemata(s)
+				So(prop, shouldBeValidSchemata)
+
+				schema.Properties["anotherValidProp"] = prop
+
+				Convey("Should yield a valid schema", func() {
+					So(schema, shouldBeValidSchema)
+				})
+			})
+		})
+
+		Convey("Setting an invalid schemata as a property", func() {
+			s := mongo.NewCollectionSchema()
+			s.SpecialType = mongo.UUID3
+			So(s, shouldBeInvalidSchema)
+
+			prop := mongo.NewSchemata(s)
+			So(prop, shouldBeInvalidSchemata)
+
+			schema.Properties["invalidProp"] = prop
+
+			Convey("Should yield an invalid schema", func() {
+				So(schema, shouldBeInvalidSchema)
+			})
+
+			Convey("And setting a valid schemata as another property", func() {
+				s := mongo.NewCollectionSchema()
+				So(s, shouldBeValidSchema)
+
+				prop := mongo.NewSchemata(s)
+				So(prop, shouldBeValidSchemata)
+
+				schema.Properties["validProp"] = prop
+
+				Convey("Should yield an invalid schema", func() {
+					So(schema, shouldBeInvalidSchema)
+				})
+			})
+		})
+	})
+
+	Convey("Given a fresh array schema", t, func() {
+		schema, err := mongo.NewArraySchema([]interface{}{})
+		So(err, ShouldBeNil)
+
+		Convey("It should pass validation", func() {
+			So(schema, shouldBeValidSchema)
+		})
+
+		invalidSpecialTypes := []mongo.SpecialType{
+			mongo.UUID3, mongo.UUID4, "randomstring",
+		}
+		for _, st := range invalidSpecialTypes {
+			desc := fmt.Sprintf("Setting the SpecialType to %s", st)
+			Convey(desc, func() {
+				schema.SpecialType = st
+
+				Convey("Should yield an invalid schema", func() {
+					So(schema, shouldBeInvalidSchema)
+				})
+			})
+		}
+
+		validSpecialTypes := []mongo.SpecialType{
+			mongo.GeoPoint,
+		}
+		for _, st := range validSpecialTypes {
+			desc := fmt.Sprintf("Setting the SpecialType to %s", st)
+			Convey(desc, func() {
+				schema.SpecialType = st
+
+				Convey("Should yield a valid schema", func() {
+					So(schema, shouldBeValidSchema)
+				})
+			})
+		}
+
+		Convey("Setting a valid schemata as Items", func() {
+			s := mongo.NewCollectionSchema()
+			So(s, shouldBeValidSchema)
+
+			prop := mongo.NewSchemata(s)
+			So(prop, shouldBeValidSchemata)
+
+			schema.Items = prop
+
+			Convey("Should yield a valid schema", func() {
+				So(schema, shouldBeValidSchema)
+			})
+		})
+
+		Convey("Setting an invalid schemata as Items", func() {
+			s := mongo.NewCollectionSchema()
+			s.SpecialType = mongo.UUID3
+			So(s, shouldBeInvalidSchema)
+
+			prop := mongo.NewSchemata(s)
+			So(prop, shouldBeInvalidSchemata)
+
+			schema.Items = prop
+
+			Convey("Should yield an invalid schema", func() {
+				So(schema, shouldBeInvalidSchema)
+			})
+		})
+	})
+
+	Convey("Given a fresh schemata", t, func() {
+		schemata := mongo.NewSchemata(nil)
+
+		Convey("It should pass validation", func() {
+			So(schemata, shouldBeValidSchemata)
+		})
+
+		Convey("Including an invalid schema", func() {
+			s, err := mongo.NewArraySchema([]interface{}{})
+			So(err, ShouldBeNil)
+
+			s.SpecialType = mongo.UUID3
+			So(s, shouldBeInvalidSchema)
+
+			err = schemata.IncludeSchema(s, 1)
+			So(err, ShouldBeNil)
+
+			Convey("Should yield an invalid schema", func() {
+				So(schemata, shouldBeInvalidSchemata)
+			})
+		})
+
+		Convey("Including a valid schema", func() {
+			s := mongo.NewCollectionSchema()
+			So(s, shouldBeValidSchema)
+
+			err := schemata.IncludeSchema(s, 1)
+			So(err, ShouldBeNil)
+
+			Convey("Should yield a valid schema", func() {
+				So(schemata, shouldBeValidSchemata)
+			})
+		})
+	})
+}
+
+var shouldHaveType = func(actual interface{}, expected ...interface{}) string {
+	schema, ok := actual.(*mongo.Schema)
+	if !ok {
+		return fmt.Sprintf("Expected arg of type *mongo.Schema, got a %T", actual)
+	}
+	actualType := schema.BsonType
+
+	expectedType, ok := expected[0].(mongo.BsonType)
+	if !ok {
+		return fmt.Sprintf("Expected arg of type mongo.BsonType, got a %T", expected[0])
+	}
+
+	if actualType != expectedType {
+		return fmt.Sprintf("Expected schema's bsonType to be %s, but it was %s", expectedType, actualType)
+	}
+
+	return ""
+}
+
+var shouldHaveSampleCount = func(actual interface{}, expected ...interface{}) string {
+	schemata, ok := actual.(*mongo.Schemata)
+	if !ok {
+		return fmt.Sprintf("Expected arg of type *mongo.Schemata, got a %T", actual)
+	}
+
+	var actualSampleCount int
+	for _, count := range schemata.Counts {
+		actualSampleCount += count
+	}
+
+	expectedSampleCount, ok := expected[0].(int)
+	if !ok {
+		return fmt.Sprintf("Expected arg of type int got a %T", expected[0])
+	}
+
+	if actualSampleCount != expectedSampleCount {
+		return fmt.Sprintf("Expected schemata's sample count to be %d, but it was %d", expectedSampleCount, actualSampleCount)
+	}
+
+	return ""
+}
+
+var shouldHaveDominantType = func(actual interface{}, expected ...interface{}) string {
+	schemata, ok := actual.(*mongo.Schemata)
+	if !ok {
+		return fmt.Sprintf("Expected arg of type *mongo.Schemata, got a %T", actual)
+	}
+	actualDominantType := schemata.DominantSchema().BsonType
+
+	expectedDominantType, ok := expected[0].(mongo.BsonType)
+	if !ok {
+		return fmt.Sprintf("Expected arg of type mongo.BsonType, got a %T", expected[0])
+	}
+
+	if actualDominantType != expectedDominantType {
+		return fmt.Sprintf("Expected schemata's dominant type to be %s, but it was %s", expectedDominantType, actualDominantType)
+	}
+
+	return ""
+}
+
+var shouldHaveCandidateTypes = func(actual interface{}, expected ...interface{}) string {
+	schemata, ok := actual.(*mongo.Schemata)
+	if !ok {
+		return fmt.Sprintf("Expected arg of type *mongo.Schemata, got a %T", actual)
+	}
+	actualCandidateTypes := make([]mongo.BsonType, 0, len(schemata.Schemas))
+	for _, schema := range schemata.Schemas {
+		actualCandidateTypes = append(actualCandidateTypes, schema.BsonType)
+	}
+
+	expectedCandidateTypes := make([]mongo.BsonType, 0, len(expected))
+	for _, exp := range expected {
+		typ, ok := exp.(mongo.BsonType)
+		if !ok {
+			return fmt.Sprintf("Expected arg of type mongo.BsonType, got a %T", exp)
+		}
+		expectedCandidateTypes = append(expectedCandidateTypes, typ)
+	}
+
+	success := true
+
+	if len(expectedCandidateTypes) != len(actualCandidateTypes) {
+		success = false
+	}
+
+	for _, exp := range expectedCandidateTypes {
+		err := ShouldContain(actualCandidateTypes, exp)
+		if err != "" {
+			success = false
+			break
+		}
+	}
+
+	if !success {
+		return fmt.Sprintf("Expected schemata to have candidate types %v, but got %v", expectedCandidateTypes, actualCandidateTypes)
+	}
+	return ""
+}
+
+var shouldBeValidSchema = func(actual interface{}, expected ...interface{}) string {
+	schema, ok := actual.(*mongo.Schema)
+	if !ok {
+		return fmt.Sprintf("Expected arg of type *mongo.Schema, got a %T", actual)
+	}
+
+	err := schema.Validate()
+	if err != nil {
+		return fmt.Sprintf("Got error while validating schema: %s", err.Error())
+	}
+	return ""
+}
+
+var shouldBeInvalidSchema = func(actual interface{}, expected ...interface{}) string {
+	schema, ok := actual.(*mongo.Schema)
+	if !ok {
+		return fmt.Sprintf("Expected arg of type *mongo.Schema, got a %T", actual)
+	}
+
+	err := schema.Validate()
+	if err == nil {
+		return fmt.Sprintf("Expected schema to fail validation, but it passed")
+	}
+	return ""
+}
+
+var shouldBeValidSchemata = func(actual interface{}, expected ...interface{}) string {
+	schemata, ok := actual.(*mongo.Schemata)
+	if !ok {
+		return fmt.Sprintf("Expected arg of type *mongo.Schemata, got a %T", actual)
+	}
+
+	err := schemata.Validate()
+	if err != nil {
+		return fmt.Sprintf("Got error while validating schemata: %s", err.Error())
+	}
+	return ""
+}
+
+var shouldBeInvalidSchemata = func(actual interface{}, expected ...interface{}) string {
+
+	schemata, ok := actual.(*mongo.Schemata)
+	if !ok {
+		return fmt.Sprintf("Expected arg of type *mongo.Schemata, got a %T", actual)
+	}
+
+	err := schemata.Validate()
+	if err == nil {
+		return fmt.Sprintf("Expected schemata to fail validation, but it passed")
+	}
+	return ""
+}
