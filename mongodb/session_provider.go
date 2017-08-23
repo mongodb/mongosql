@@ -31,7 +31,10 @@ func NewDrdlSessionProvider(opts options.DrdlOptions) (*SessionProvider, error) 
 		opts.DrdlAuth.Password = password.Prompt()
 	}
 
-	cs := parseDrdlOptions(opts)
+	cs, err := parseDrdlOptions(opts)
+	if err != nil {
+		return nil, err
+	}
 
 	clusterOpts := []cluster.Option{
 		// before WithConnString makes these
@@ -159,7 +162,7 @@ func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
 	defer cancel()
 	server, err := sp.c.SelectServer(connectCtx, selector)
 	if err != nil {
-		return nil, fmt.Errorf("no servers available")
+		return nil, fmt.Errorf("no servers available: %v", err)
 	}
 
 	const nConns = 2
@@ -230,60 +233,36 @@ func (c *autoLogoutConnection) Close() error {
 	return c.Connection.Close()
 }
 
-func parseDrdlOptions(opts options.DrdlOptions) connstring.ConnString {
-	cs := connstring.ConnString{}
+func parseDrdlOptions(opts options.DrdlOptions) (connstring.ConnString, error) {
 
-	if strings.HasPrefix(opts.Host, mongoDBScheme) {
-		opts.Host = opts.Host[len(mongoDBScheme):]
+	uri := opts.Host
+	if !strings.HasPrefix(uri, mongoDBScheme) {
+		uri = fmt.Sprintf("%v%v", mongoDBScheme, uri)
 	}
 
-	hosts, replicaSetName := parseDrdlHost(opts.Host)
-	if opts.Port != "" {
-		for i, host := range hosts {
-			if strings.Index(host, ":") == -1 {
-				host = fmt.Sprintf("%v:%v", host, opts.Port)
-			}
-			hosts[i] = host
-		}
+	cs, err := connstring.Parse(uri)
+	if err != nil {
+		return cs, err
 	}
-	cs.Hosts = hosts
-	cs.ReplicaSet = replicaSetName
+
 	if cs.ReplicaSet == "" {
 		cs.Connect = connstring.SingleConnect
 	}
 
-	if opts.DrdlAuth.Username != "" {
-		cs.Username = opts.DrdlAuth.Username
-	}
+	cs.Username = opts.DrdlAuth.Username
 
 	if opts.DrdlAuth.Password != "" {
 		cs.Password = opts.DrdlAuth.Password
 		cs.PasswordSet = true
 	}
 
-	if opts.DrdlAuth.Mechanism != "" {
-		cs.AuthMechanism = opts.DrdlAuth.Mechanism
+	cs.AuthMechanism = opts.DrdlAuth.Mechanism
+
+	if s := opts.GetAuthenticationDatabase(); s != "" {
+		cs.AuthSource = s
 	}
 
-	if authSource := opts.GetAuthenticationDatabase(); authSource != "" {
-		cs.AuthSource = authSource
-	}
-
-	return cs
-}
-
-func parseDrdlHost(host string) ([]string, string) {
-	slashIndex := strings.Index(host, "/")
-	setName := ""
-	if slashIndex != -1 {
-		setName = host[:slashIndex]
-		if slashIndex == len(host)-1 {
-			return []string{""}, setName
-		}
-		host = host[slashIndex+1:]
-		return strings.Split(host, ","), setName
-	}
-	return []string{"localhost"}, setName
+	return cs, nil
 }
 
 func getConnectTimeout(cs connstring.ConnString) time.Duration {

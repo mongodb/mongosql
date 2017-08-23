@@ -11,7 +11,7 @@
   branch = "master"
   name = "github.com/10gen/mongo-go-driver"
   packages = ["auth","bson","cluster","conn","connstring","internal","internal/auth/gssapi","internal/feature","internal/json","model","msg","ops","readpref","server"]
-  revision = "0f97f2ba059b7f2d170fcddd06fd42a6e012d72d"
+  revision = "0373c3133c454844322613bea5a230f34465c830"
 
 [[projects]]
   branch = "master"

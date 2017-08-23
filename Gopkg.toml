@@ -1,3 +1,5 @@
+required = ["github.com/go-sql-driver/mysql"]
+
 #
 # dependencies from github.com/10gen
 #
@@ -59,4 +61,3 @@
 [[constraint]]
   name = "golang.org/x/text"
   branch = "master"
-
