@@ -236,6 +236,11 @@ func (c *autoLogoutConnection) Close() error {
 func parseDrdlOptions(opts options.DrdlOptions) (connstring.ConnString, error) {
 
 	uri := opts.Host
+
+	if uri == "" {
+		uri = "mongodb://localhost:27017"
+	}
+
 	if !strings.HasPrefix(uri, mongoDBScheme) {
 		uri = fmt.Sprintf("%v%v", mongoDBScheme, uri)
 	}
