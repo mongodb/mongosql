@@ -1,0 +1,70 @@
+
+schema:
+- db: test
+  tables:
+  - table: primary-key-object
+    collection: primary-key-object
+    pipeline: []
+    columns:
+    - name: _id.b
+      mongotype: bool
+      sqlname: _id.b
+      sqltype: boolean
+    - name: _id.c
+      mongotype: string
+      sqlname: _id.c
+      sqltype: varchar
+    - name: i
+      mongotype: int
+      sqlname: i
+      sqltype: int
+    - name: s
+      mongotype: string
+      sqlname: s
+      sqltype: varchar
+  - table: primary-key-object__id_a
+    collection: primary-key-object
+    pipeline:
+    - $unwind:
+        path: $_id.a
+        includeArrayIndex: _id.a_idx
+    columns:
+    - name: _id.a
+      mongotype: bool
+      sqlname: _id.a
+      sqltype: boolean
+    - name: _id.a_idx
+      mongotype: int
+      sqlname: _id.a_idx
+      sqltype: int
+    - name: _id.b
+      mongotype: bool
+      sqlname: _id.b
+      sqltype: boolean
+    - name: _id.c
+      mongotype: string
+      sqlname: _id.c
+      sqltype: varchar
+  - table: primary-key-object_a
+    collection: primary-key-object
+    pipeline:
+    - $unwind:
+        path: $a
+        includeArrayIndex: a_idx
+    columns:
+    - name: _id.b
+      mongotype: bool
+      sqlname: _id.b
+      sqltype: boolean
+    - name: _id.c
+      mongotype: string
+      sqlname: _id.c
+      sqltype: varchar
+    - name: a
+      mongotype: bool
+      sqlname: a
+      sqltype: boolean
+    - name: a_idx
+      mongotype: int
+      sqlname: a_idx
+      sqltype: int

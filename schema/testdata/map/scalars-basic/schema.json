@@ -1,0 +1,14 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "int": { "bsonType": "int" },
+        "long": { "bsonType": "long" },
+        "double": { "bsonType": "double" },
+        "decimal": { "bsonType": "decimal" },
+        "bool": { "bsonType": "bool" },
+        "string": { "bsonType": "string" },
+        "date": { "bsonType": "date" },
+        "objectId": { "bsonType": "objectId" },
+        "binData": { "bsonType": "binData" }
+    }
+}

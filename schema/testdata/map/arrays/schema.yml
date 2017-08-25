@@ -1,0 +1,45 @@
+schema:
+- db: test
+  tables:
+  - table: arrays
+    collection: arrays
+    pipeline: []
+    columns:
+    - name: a
+      mongotype: float64
+      sqlname: a
+      sqltype: float64
+  - table: arrays_booleans
+    collection: arrays
+    pipeline:
+    - $unwind:
+        path: $booleans
+        includeArrayIndex: booleans_idx
+    columns:
+    - name: booleans
+      mongotype: bool
+      sqlname: booleans
+      sqltype: boolean
+    - name: booleans_idx
+      mongotype: int
+      sqlname: booleans_idx
+      sqltype: int
+  - table: arrays_objects
+    collection: arrays
+    pipeline:
+    - $unwind:
+        path: $objects
+        includeArrayIndex: objects_idx
+    columns:
+    - name: objects.b
+      mongotype: string
+      sqlname: objects.b
+      sqltype: varchar
+    - name: objects.c
+      mongotype: bool
+      sqlname: objects.c
+      sqltype: boolean
+    - name: objects_idx
+      mongotype: int
+      sqlname: objects_idx
+      sqltype: int

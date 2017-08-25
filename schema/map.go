@@ -1,0 +1,347 @@
+package schema
+
+import (
+	"fmt"
+	"sort"
+	"strings"
+
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/schema/mongo"
+)
+
+// mappingContext maintains state that describes the context into which a mongo
+// schema should be mapped.
+type mappingContext struct {
+
+	// db is the database into which we are mapping the current schema.
+	// this will never be changed by any mapping functions.
+	db *Database
+
+	// table is the table into which we are mapping the current schema.
+	// this will change whenever we need to map an array field.
+	table *Table
+
+	// path is the path of the field being mapped, relative to the collection
+	// to which it belongs. A field's path is comprised of all the object
+	// property names followed when accessing the field in a document.
+	path string
+
+	// inPrimaryKey tracks whether the current path is "in" the primary key.
+	// this should be true whenever the path begins with "_id" (false otherwise)
+	inPrimaryKey bool
+
+	// nestedArrayDepth tracks how many levels deep in a nested array this
+	// context is. For non-array contexts and top-level array contexts, its
+	// value should be zero. It should be incremented once for each level of
+	// array nesting inside the top-level array context.
+	nestedArrayDepth int
+}
+
+/*
+ * The following functions all take a mongo schema of a particular type and map
+ * it into a relational table (or tables).
+ */
+
+// mapObjectSchema maps the provided object schema into a mappingContext.
+func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
+
+	// order the props alphabetically
+	props := make([]string, 0, len(js.Properties))
+	for prop, _ := range js.Properties {
+		props = append(props, prop)
+	}
+	sort.Slice(props, func(i, j int) bool { return props[i] < props[j] })
+
+	// map each prop
+	for _, prop := range props {
+
+		// get the dominant schema for this prop
+		schema := js.Properties[prop].DominantSchema()
+
+		switch schema.BsonType {
+		case mongo.NoBsonType:
+			// ignore column (no types)
+
+		case mongo.Object:
+			err := ctx.objectContext(prop).mapObjectSchema(schema)
+			if err != nil {
+				return err
+			}
+
+		case mongo.Array:
+			if schema.SpecialType != mongo.GeoPoint {
+				subctx, err := ctx.arrayContext(prop)
+				if err != nil {
+					return err
+				}
+				err = subctx.mapArraySchema(schema)
+				if err != nil {
+					return err
+				}
+				break
+			}
+
+			// if this is a geo.2darray, treat it as a scalar, by falling
+			// through to scalar case
+			fallthrough
+
+		default: // scalar
+			err := ctx.scalarContext(prop).mapScalarSchema(schema)
+			if err != nil {
+				return err
+			}
+
+		}
+	}
+
+	return nil
+}
+
+// mapArraySchema maps the provided array schema into a mappingContext.
+func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
+
+	// calculate the name of the array index column
+	indexName := ctx.path + "_idx"
+	if ctx.nestedArrayDepth > 0 {
+		indexName += fmt.Sprintf("_%v", ctx.nestedArrayDepth)
+	}
+
+	// create the array index column and add it to the current table
+	col := &Column{
+		Name:      indexName,
+		MongoType: MongoInt,
+		SqlName:   indexName,
+		SqlType:   SQLInt,
+	}
+	err := ctx.table.AddColumn(col)
+	if err != nil {
+		return err
+	}
+
+	// add the index column to the current table's primary key
+	ctx.table.primaryKey = append(ctx.table.primaryKey, col)
+
+	// add an unwind to the current table's pipeline
+	unwind := bson.D{
+		{"$unwind", bson.D{
+			{"path", "$" + ctx.path},
+			{"includeArrayIndex", indexName},
+		}},
+	}
+	ctx.table.Pipeline = append(ctx.table.Pipeline, unwind)
+
+	// get the dominant schema for the array's elements
+	items := js.Items.DominantSchema()
+
+	// map the array's elements.
+	// we need a subcontext if this an a nested array (to track depth)
+	// for objects and scalars, we continue to use the array's context
+	switch items.BsonType {
+	case mongo.Array:
+		err = ctx.nestedArrayContext().mapArraySchema(items)
+	case mongo.Object:
+		err = ctx.mapObjectSchema(items)
+	default:
+		err = ctx.mapScalarSchema(items)
+	}
+
+	return err
+}
+
+// mapScalarSchema maps the provided scalar schema into a mappingContext.
+func (ctx *mappingContext) mapScalarSchema(js *mongo.Schema) error {
+
+	// create a new column
+	col, err := newColumn(ctx.path, js)
+	if err != nil {
+		return err
+	}
+
+	// if err and col are both nil, we don't map a column for this schema
+	if col == nil {
+		return nil
+	}
+
+	// add the column to the current table
+	err = ctx.table.AddColumn(col)
+
+	// if we are in the primary key, add this column to the table's primary key
+	if ctx.inPrimaryKey {
+		ctx.table.primaryKey = append(ctx.table.primaryKey, col)
+	}
+
+	return err
+}
+
+/*
+ * The functions in this group all create subcontexts from an existing mapping
+ * context. They are responsible for doing the bookkeeping that is required when
+ * transitioning between contexts.
+ * These functions are intended for use as helpers in the ctx.map*Schema
+ * functions, and should probably not be used outside of that context.
+ */
+
+// scalarContext returns a new mappingContext whose path is equal to the
+// current context's path joined to the provided subpath with a '.'
+func (ctx *mappingContext) scalarContext(subpath string) *mappingContext {
+	return ctx.withSubpath(subpath)
+}
+
+// objectContext returns a new mappingContext whose path is equal to the
+// current context's path joined to the provided subpath with a '.'
+func (ctx *mappingContext) objectContext(subpath string) *mappingContext {
+	return ctx.withSubpath(subpath)
+}
+
+// arrayContext returns a new mappingContext whose table is a new table
+// representing the array at the specified subpath. The new table's parent
+// table is the current context's table.
+func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error) {
+	newCtx := ctx.withSubpath(subpath)
+
+	// find the root of the current table heritage
+	root := newCtx.table
+	for root.parent != nil {
+		root = root.parent
+	}
+
+	// calculate the name for this array's table
+	arrayTableName := root.Name + "_" + strings.Replace(newCtx.path, ".", "_", -1)
+
+	// create the array table; add it to newCtx.db and newCtx
+	arrayTable := newTable(arrayTableName, newCtx.table.CollectionName)
+	err := newCtx.db.AddTable(arrayTable)
+	if err != nil {
+		return nil, err
+	}
+	newCtx.table = arrayTable
+
+	// set the array table's parent table to the current context's table
+	arrayTable.parent = ctx.table
+
+	return newCtx, nil
+}
+
+// nestedArrayContext returns a new mappingContext whose nestedArrayDepth
+// value is one larger than the current context's.
+func (ctx *mappingContext) nestedArrayContext() *mappingContext {
+	newCtx := ctx.copy()
+	newCtx.nestedArrayDepth = newCtx.nestedArrayDepth + 1
+	return newCtx
+}
+
+/*
+ * The remaining functions in this file are miscellaneous helper functions.
+ */
+
+// withSubpath returns a new mappingContext whose path is the specified subpath
+// of the current context's path. If the new context's absolute path is "_id",
+// the context will also have inPrimaryKey = true.
+func (ctx *mappingContext) withSubpath(subPath string) *mappingContext {
+
+	// construct a new absolute path from the context's current path and the
+	// provided subpath
+	absPath := subPath
+	if ctx.path != "" {
+		absPath = ctx.path + "." + subPath
+	}
+
+	// create a new mappingContext with the new path
+	newCtx := ctx.copy()
+	newCtx.path = absPath
+
+	// if the path is "_id", we have entered the primary key
+	if newCtx.path == "_id" {
+		newCtx.inPrimaryKey = true
+	}
+
+	return newCtx
+}
+
+// copy returns a new mappingContext whose fields are all equal to the current
+// context's fields.
+func (ctx *mappingContext) copy() *mappingContext {
+	return &mappingContext{
+		db:               ctx.db,
+		table:            ctx.table,
+		path:             ctx.path,
+		nestedArrayDepth: ctx.nestedArrayDepth,
+		inPrimaryKey:     ctx.inPrimaryKey,
+	}
+}
+
+// newTable creates a new table with the provided table and collection names.
+func newTable(tableName, collectionName string) *Table {
+	return &Table{
+		Name:           tableName,
+		CollectionName: collectionName,
+	}
+}
+
+// newColumn creates a new column with the given name from the provided scalar
+// schema, mapping the schema's BsonType and SpecialType to the appropriate
+// SQLType and MongoType. If this function returns a nil column and a nil error,
+// then the type represented by the provided schema was intentionally ignored.
+func newColumn(name string, js *mongo.Schema) (*Column, error) {
+	var sqlType SQLType
+	var mongoType MongoType
+
+	switch js.BsonType {
+	case mongo.Int:
+		sqlType = SQLInt
+		mongoType = MongoInt
+	case mongo.Long:
+		sqlType = SQLInt64
+		mongoType = MongoInt64
+	case mongo.Double:
+		sqlType = SQLFloat
+		mongoType = MongoFloat
+	case mongo.Decimal:
+		sqlType = SQLDecimal128
+		mongoType = MongoDecimal128
+	case mongo.Boolean:
+		sqlType = SQLBoolean
+		mongoType = MongoBool
+	case mongo.Date:
+		sqlType = SQLTimestamp
+		mongoType = MongoDate
+	case mongo.ObjectId:
+		sqlType = SQLVarchar
+		mongoType = MongoObjectId
+	case mongo.String:
+		sqlType = SQLVarchar
+		mongoType = MongoString
+	case mongo.BinData:
+		switch js.SpecialType {
+		case mongo.UUID3:
+			sqlType = SQLVarchar
+			mongoType = MongoUUIDOld // default for now
+		case mongo.UUID4:
+			sqlType = SQLVarchar
+			mongoType = MongoUUID
+		default:
+			// ignore any non-uuid binData
+			return nil, nil
+		}
+	case mongo.Array:
+		if js.SpecialType == mongo.GeoPoint {
+			sqlType = SQLArrNumeric
+			mongoType = MongoGeo2D
+		} else {
+			return nil, fmt.Errorf("Cannot create new column from array schema with SpeciaType '%s'", js.SpecialType)
+		}
+	case mongo.Object:
+		return nil, fmt.Errorf("Cannot create new column from object schema")
+	case mongo.NoBsonType:
+		return nil, fmt.Errorf("Cannot create new column from schema with no bson type")
+	default:
+		return nil, fmt.Errorf("Cannot create new column: unsupported bson type %s", js.BsonType)
+	}
+
+	return &Column{
+		Name:      name,
+		MongoType: mongoType,
+		SqlName:   name,
+		SqlType:   sqlType,
+	}, nil
+}

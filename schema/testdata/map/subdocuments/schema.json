@@ -1,0 +1,19 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "_id": { "bsonType": "objectId" },
+        "doc": {
+            "bsonType": "object",
+            "properties": {
+                "subInt": { "bsonType": "int" },
+                "subDoc": {
+                    "bsonType": "object",
+                    "properties": {
+                        "a": { "bsonType": "string" },
+                        "b": { "bsonType": "long" }
+                    }
+                }
+            }
+        }
+    }
+}

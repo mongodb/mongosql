@@ -1,0 +1,41 @@
+schema:
+- db: test
+  tables:
+  - table: array-paths
+    collection: array-paths
+    pipeline: []
+    columns:
+    - name: id
+      mongotype: string
+      sqlname: id
+      sqltype: varchar
+  - table: array-paths_b_c_e
+    collection: array-paths
+    pipeline:
+    - $unwind:
+        path: $b.c.e
+        includeArrayIndex: b.c.e_idx
+    columns:
+    - name: b.c.e
+      mongotype: string
+      sqlname: b.c.e
+      sqltype: varchar
+    - name: b.c.e_idx
+      mongotype: int
+      sqlname: b.c.e_idx
+      sqltype: int
+  - table: array-paths_b_d_e
+    collection: array-paths
+    pipeline:
+    - $unwind:
+        path: $b.d.e
+        includeArrayIndex: b.d.e_idx
+    columns:
+    - name: b.d.e
+      mongotype: string
+      sqlname: b.d.e
+      sqltype: varchar
+    - name: b.d.e_idx
+      mongotype: int
+      sqlname: b.d.e_idx
+      sqltype: int

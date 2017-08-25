@@ -1,0 +1,8 @@
+{
+    "a": 22.4,
+    "booleans": [ true, false ],
+    "objects": [
+        { "b": "abc", "c": true },
+        { "b": "def", "c": false }
+    ]
+}

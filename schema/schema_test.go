@@ -363,12 +363,12 @@ schema:
 
 func TestReadFile(t *testing.T) {
 	cfg := &schema.Schema{}
-	err := cfg.LoadFile("test_data/foo.conf")
+	err := cfg.LoadFile("testdata/foo.conf")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = cfg.LoadDir("test_data/sub")
+	err = cfg.LoadDir("testdata/sub")
 	if err != nil {
 		t.Fatal(err)
 	}

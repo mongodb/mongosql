@@ -3,52 +3,11 @@ package mongo
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
-)
-
-// BsonType is an enum representing all the bson types suported by Schema.
-type BsonType string
-
-// Possible values of BsonType
-// for reference: https://docs.mongodb.com/manual/reference/operator/query/type/#available-types
-const (
-	Int        BsonType = "int"
-	Long       BsonType = "long"
-	Double     BsonType = "double"
-	Decimal    BsonType = "decimal"
-	Boolean    BsonType = "bool"
-	String     BsonType = "string"
-	Object     BsonType = "object"
-	Array      BsonType = "array"
-	Date       BsonType = "date"
-	BinData    BsonType = "binData"
-	ObjectId   BsonType = "objectId"
-	NoBsonType BsonType = ""
-)
-
-// Less returns true if b should come before other when ordering BsonTypes.
-// Less is equivalent to a lexicographical comparison of two BsonTypes' string
-// representations.
-func (b BsonType) Less(other BsonType) bool {
-	return b < other
-}
-
-// SpecialType is an enum representing the possible values of the "specialType"
-// field as descibed in the schema management design document. "specialType" is
-// a sqlproxy-specific extension to JSON Schema that allows us to indicate that
-// we want json-to-relation translation behavior different from the default for
-// this schema's bsonType. For more information, see the design doc here:
-// https://docs.google.com/document/d/12LWz00vJo_H-tHFv7IHa5L6X5a6Y-eNE4dyb8TXdk7U/edit
-type SpecialType string
-
-// Possible values of SpecialType
-const (
-	GeoPoint      SpecialType = "geoPoint"
-	UUID3         SpecialType = "uuid3"
-	UUID4         SpecialType = "uuid4"
-	NoSpecialType SpecialType = ""
 )
 
 // Schema is a representation of a full or partial MongoDB schema. The Schema
@@ -132,6 +91,34 @@ func NewScalarSchema(t BsonType) (*Schema, error) {
 	}
 }
 
+// NewSchemaFromFile returns a Schema that is loaded from the json file at the
+// specified path.
+func NewSchemaFromFile(filename string) (*Schema, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	fileBytes, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	schema := &Schema{}
+	err = json.Unmarshal(fileBytes, schema)
+	if err != nil {
+		return nil, err
+	}
+
+	err = schema.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("Unmarshalled schema failed validation: %v", err)
+	}
+
+	return schema, nil
+}
+
 // NewSchemaFromValue returns a new Schema whose type depends on the type of
 // the provided value. If the provided value is unsupported, this function will
 // return an error.
@@ -195,6 +182,22 @@ func (s *Schema) IncludeSample(doc bson.D) error {
 		return err
 	}
 	return s.Merge(other)
+}
+
+// InferSpecialTypes calls InferSpecialType() for each Schemata in a Schema.
+// InferSpecialTypes has no effect for scalar Schemas, since they do not contain
+// any schematas.
+func (s *Schema) InferSpecialTypes() {
+	switch s.BsonType {
+	case Object:
+		for _, schemata := range s.Properties {
+			schemata.InferSpecialTypes()
+		}
+	case Array:
+		s.Items.InferSpecialTypes()
+	default:
+		// do nothing
+	}
 }
 
 // JsonSchema returns a JSON-Schema representation of a Schema in string form.
@@ -362,6 +365,7 @@ type Schemata struct {
 	Schemas   map[BsonType]*Schema
 	Counts    map[BsonType]int
 	Heuristic SchemataHeuristic
+	Indexes   []IndexType
 }
 
 // SchemataHeuristic is a function that chooses a dominant schema from a
@@ -454,6 +458,29 @@ func (s *Schemata) IncludeSchema(other *Schema, count int) error {
 	return nil
 }
 
+// InferSpecialTypes sets the SpecialType field (if appropriate) for each Schema
+// it contains, based on its Indexes.
+// Currently, the only modifications made by InferSpecialTypes are to array
+// Schemas with a 2d index.
+func (s *Schemata) InferSpecialTypes() {
+	var has2DIndex bool
+
+	// check if there is a 2d index on this field
+	for _, index := range s.Indexes {
+		if index == Index2D {
+			has2DIndex = true
+			break
+		}
+	}
+
+	for typ, schema := range s.Schemas {
+		if typ == Array && has2DIndex {
+			schema.SpecialType = GeoPoint
+		}
+		schema.InferSpecialTypes()
+	}
+}
+
 // MarshalJSON returns the JSON-Schema representation (in bytes) of this
 // Schemata's dominant schema, as determined by Schemata.Heuristic.
 func (s *Schemata) MarshalJSON() ([]byte, error) {
@@ -477,6 +504,25 @@ func (s *Schemata) Merge(other *Schemata) error {
 // dominant Schema from a Schemata.
 func (s *Schemata) SetHeuristic(h SchemataHeuristic) {
 	s.Heuristic = h
+}
+
+// UnmarshalJSON creates a Schemata from the provided json representation. This
+// function expects the provided bytes to represent a single Schema. After
+// unmarshalling, the Schemata will have this single candidate schema, with a
+// count of one and no indexes.
+func (s *Schemata) UnmarshalJSON(b []byte) error {
+	schema := &Schema{}
+	err := json.Unmarshal(b, schema)
+	if err != nil {
+		return err
+	}
+
+	s.Schemas = map[BsonType]*Schema{schema.BsonType: schema}
+	s.Counts = map[BsonType]int{schema.BsonType: 1}
+	s.Heuristic = CountHeuristic
+	s.Indexes = []IndexType{}
+
+	return nil
 }
 
 // Validate checks whether each Schema contained in this Schemata is valid.

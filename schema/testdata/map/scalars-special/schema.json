@@ -1,0 +1,18 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "geoArrayPoint": {
+            "bsonType": "array",
+            "specialType": "geoPoint",
+            "items": { "bsonType": "double" }
+        },
+        "uuid3": {
+            "bsonType": "binData",
+            "specialType": "uuid3"
+        },
+        "uuid4": {
+            "bsonType": "binData",
+            "specialType": "uuid4"
+        }
+    }
+}

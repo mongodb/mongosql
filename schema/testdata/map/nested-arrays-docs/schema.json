@@ -1,0 +1,26 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "id": { "bsonType": "objectId" },
+        "docs": {
+            "bsonType": "array",
+            "items": {
+                "bsonType": "object",
+                "properties": {
+                    "a": { "bsonType": "bool" },
+                    "b": {
+                        "bsonType": "array",
+                        "items": { "bsonType": "int" }
+                    },
+                    "c": {
+                        "bsonType": "array",
+                        "items": {
+                            "bsonType": "array",
+                            "items": { "bsonType": "string" }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

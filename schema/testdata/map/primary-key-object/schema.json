@@ -1,0 +1,22 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "_id": {
+            "bsonType": "object",
+            "properties": {
+                "a": {
+                    "bsonType": "array",
+                    "items": { "bsonType": "bool" }
+                },
+                "b": { "bsonType": "bool" },
+                "c": { "bsonType": "string" }
+            }
+        },
+        "i": { "bsonType": "int" },
+        "s": { "bsonType": "string" },
+        "a": {
+            "bsonType": "array",
+            "items": { "bsonType": "bool" }
+        }
+    }
+}

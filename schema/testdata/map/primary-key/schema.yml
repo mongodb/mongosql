@@ -1,0 +1,39 @@
+
+schema:
+- db: test
+  tables:
+  - table: primary-key
+    collection: primary-key
+    pipeline: []
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: i
+      mongotype: int
+      sqlname: i
+      sqltype: int
+    - name: s
+      mongotype: string
+      sqlname: s
+      sqltype: varchar
+  - table: primary-key_a
+    collection: primary-key
+    pipeline:
+    - $unwind:
+        path: $a
+        includeArrayIndex: a_idx
+    columns:
+    - name: _id
+      mongotype: bson.ObjectId
+      sqlname: _id
+      sqltype: varchar
+    - name: a
+      mongotype: bool
+      sqlname: a
+      sqltype: boolean
+    - name: a_idx
+      mongotype: int
+      sqlname: a_idx
+      sqltype: int

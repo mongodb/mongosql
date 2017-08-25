@@ -1,0 +1,77 @@
+schema:
+- db: test
+  tables:
+  - table: nested-arrays-docs
+    collection: nested-arrays-docs
+    pipeline: []
+    columns:
+    - name: id
+      mongotype: bson.ObjectId
+      sqlname: id
+      sqltype: varchar
+  - table: nested-arrays-docs_docs
+    collection: nested-arrays-docs
+    pipeline:
+    - $unwind:
+        path: $docs
+        includeArrayIndex: docs_idx
+    columns:
+    - name: docs.a
+      mongotype: bool
+      sqlname: docs.a
+      sqltype: boolean
+    - name: docs_idx
+      mongotype: int
+      sqlname: docs_idx
+      sqltype: int
+  - table: nested-arrays-docs_docs_b
+    collection: nested-arrays-docs
+    pipeline:
+    - $unwind:
+        path: $docs
+        includeArrayIndex: docs_idx
+    - $unwind:
+        path: $docs.b
+        includeArrayIndex: docs.b_idx
+    columns:
+    - name: docs.b
+      mongotype: int
+      sqlname: docs.b
+      sqltype: int
+    - name: docs.b_idx
+      mongotype: int
+      sqlname: docs.b_idx
+      sqltype: int
+    - name: docs_idx
+      mongotype: int
+      sqlname: docs_idx
+      sqltype: int
+  - table: nested-arrays-docs_docs_c
+    collection: nested-arrays-docs
+    pipeline:
+    - $unwind:
+        path: $docs
+        includeArrayIndex: docs_idx
+    - $unwind:
+        path: $docs.c
+        includeArrayIndex: docs.c_idx
+    - $unwind:
+        path: $docs.c
+        includeArrayIndex: docs.c_idx_1
+    columns:
+    - name: docs.c
+      mongotype: string
+      sqlname: docs.c
+      sqltype: varchar
+    - name: docs.c_idx
+      mongotype: int
+      sqlname: docs.c_idx
+      sqltype: int
+    - name: docs.c_idx_1
+      mongotype: int
+      sqlname: docs.c_idx_1
+      sqltype: int
+    - name: docs_idx
+      mongotype: int
+      sqlname: docs_idx
+      sqltype: int
