@@ -95,18 +95,6 @@ func (p *program) Start(s service.Service) error {
 
 	p.svr.StoreStartupInfo(startupInfo)
 
-	// asynchronously load the schema from MongoDB by sampling if needed
-	if p.schema == nil {
-		p.controlLogger.Logf(log.Always, "[initandlisten] Sampling MongoDB for schema...")
-		util.PanicSafeGo(func() {
-			p.svr.SampleSchema(p.cfg)
-		}, func(err interface{}) {
-			p.controlLogger.Logf(log.Always, "[signalProcessingThread] %v", err)
-			p.cleanup()
-			p.done <- struct{}{}
-		})
-	}
-
 	util.PanicSafeGo(func() {
 		p.svr.Run()
 		p.controlLogger.Logf(log.Always, "[signalProcessingThread] shutting down")

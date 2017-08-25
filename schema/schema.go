@@ -188,7 +188,6 @@ func (d *Database) Map(js *mongo.Schema, name string, preJoined bool, lg log.Log
 	if err != nil {
 		return err
 	}
-	lg.Logf(log.Info, "Mapped new table %q", name)
 
 	// initialize the top-level mapping context with the logger, db, and table
 	ctx := &mappingContext{
@@ -226,6 +225,7 @@ func (d *Database) Map(js *mongo.Schema, name string, preJoined bool, lg log.Log
 		return err
 	}
 
+	lg.Logf(log.DebugLow, "Mapped new table %q", name)
 	return nil
 }
 

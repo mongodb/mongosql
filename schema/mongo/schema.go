@@ -380,6 +380,11 @@ var CountHeuristic = func(s *Schemata) *Schema {
 
 	for typ, schema := range s.Schemas {
 		count := s.Counts[typ]
+		// a schema without a type should
+		// never become dominant
+		if typ == NoBsonType {
+			continue
+		}
 
 		var preferred bool
 		if dominant == nil {
@@ -420,7 +425,13 @@ func NewSchemata(s *Schema) *Schemata {
 // DominantSchema evaluates a Schemata according to its Heuristic, returning the
 // schema that is returned by the Heuristic function.
 func (s *Schemata) DominantSchema() *Schema {
-	return s.Heuristic(s)
+	c := s.Heuristic(s)
+	// if no dominant schema is found using a
+	// heuristic, return the empty schema
+	if c == nil {
+		return NewEmptySchema()
+	}
+	return c
 }
 
 // GetBSON returns an object to be marshalled in place of the schemata when

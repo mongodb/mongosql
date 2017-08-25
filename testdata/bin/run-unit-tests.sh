@@ -27,6 +27,7 @@ run_unit_tests() {
     run_unit_tests collation
     run_unit_tests internal/config
     run_unit_tests internal/json
+    run_unit_tests internal/sample
     run_unit_tests internal/util
     run_unit_tests internal/util/bsonutil
     run_unit_tests mongodrdl

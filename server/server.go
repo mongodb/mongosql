@@ -1,7 +1,7 @@
 package server
 
 import (
-	"bytes"
+	"context"
 	"fmt"
 	"net"
 	"runtime"
@@ -10,12 +10,11 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/mongodrdl"
 	"github.com/10gen/sqlproxy/mysqlerrors"
-	"github.com/10gen/sqlproxy/options"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 	"github.com/shopspring/decimal"
@@ -25,6 +24,8 @@ import (
 func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *config.Config) (*Server, error) {
 
 	decimal.DivisionPrecision = 34
+	component := fmt.Sprintf("%-10v [initandlisten]", log.NetworkComponent)
+	logger := log.NewComponentLogger(component, log.GlobalLogger())
 
 	s := &Server{
 		cfg:               cfg,
@@ -33,6 +34,7 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 		schema:            schema,
 		sessionProvider:   sessionProvider,
 		variables:         variable.NewGlobalContainer(),
+		logger:            logger,
 
 		// status variable backing storage
 		bytesReceived:    uint64(0),
@@ -44,7 +46,7 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 	}
 
 	if schema != nil {
-		atomic.StoreUint32(&s.schemaLoaded, uint32(1))
+		atomic.StoreUint32(&s.isSchemaLoaded, uint32(1))
 	}
 
 	s.variables.MongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
@@ -71,8 +73,13 @@ type Server struct {
 	closed        int32
 	terminated    bool
 
-	schema          *schema.Schema
-	schemaLoaded    uint32
+	logger *log.Logger
+	schema *schema.Schema
+
+	// this is an atomic variable that is used
+	// to indicate when an asynchronous load of
+	// the schema has been completed
+	isSchemaLoaded  uint32
 	sessionProvider *mongodb.SessionProvider
 	variables       *variable.Container
 
@@ -91,199 +98,79 @@ type Server struct {
 	listeners []net.Listener
 }
 
-func (s *Server) SampleSchema(cfg *config.Config) {
-	schemaGenerator := createSchemaGenerator(cfg)
+func (s *Server) SampleSchema(ctx context.Context,
+	opts *config.SchemaSampleOptions) {
 
-	err := schemaGenerator.Init()
-	if err != nil {
-		schemaGenerator.Logger.Warnf(log.Always, "[initandlisten] error initializing schema: %v", err)
-		panic(fmt.Sprintf("unable to initialize schema generator: %v", err))
-	}
+	lgr := log.NewComponentLogger(
+		fmt.Sprintf("%-10v [schemaDiscovery]", "SAMPLE"),
+		log.GlobalLogger(),
+	)
 
-	defer schemaGenerator.Provider.Close()
+	waitToReconnect := func() { time.Sleep(5 * time.Second) }
 
-	databases := make(map[string][]string, 0)
-
-	var session *mongodb.Session
-
-getDatabasesLoop:
 	for {
-	dbConnectLoop:
-		for {
-			session, err = schemaGenerator.Connect()
-			if err != nil {
-				schemaGenerator.Logger.Warnf(log.Always, "error connecting to MongoDB: %v", err)
-				continue
-			}
-			defer session.Close()
-			break dbConnectLoop
-		}
-
-		ctx := session.Context()
-
-		dbIter, err := session.ListDatabases()
+		session, err := s.sessionProvider.Session(ctx)
 		if err != nil {
-			schemaGenerator.Logger.Warnf(log.Always, "error listing databases: %v", err)
-			panic(fmt.Sprintf("error listing databases: %v", err))
-		}
-
-		var dbResult struct {
-			Name string `bson:"name"`
-		}
-
-		for dbIter.Next(ctx, &dbResult) {
-			collectionIter, err := session.ListCollections(dbResult.Name)
-			if err != nil {
-				schemaGenerator.Logger.Errf(log.Always, "can't get the collection names for '%v': %v", dbResult.Name, err)
-				panic(fmt.Sprintf("can't get the collection names for '%v': %v", dbResult.Name, err))
-			}
-
-			var collectionResult struct {
-				Name string `bson:"name"`
-			}
-
-			ctx := session.Context()
-
-			collections := []string{}
-
-			for collectionIter.Next(ctx, &collectionResult) {
-				collections = append(collections, collectionResult.Name)
-			}
-
-			if err := collectionIter.Close(ctx); err != nil {
-				schemaGenerator.Logger.Errf(log.Always, "collection iteration close: %v", err)
-				continue
-			}
-
-			if err := collectionIter.Err(); err != nil {
-				schemaGenerator.Logger.Errf(log.Always, "collection iteration error: %v", err)
-				continue
-			}
-
-			databases[dbResult.Name] = collections
-		}
-
-		if err := dbIter.Close(ctx); err != nil {
-			schemaGenerator.Logger.Errf(log.Always, "db iteration close: %v", err)
+			s.logger.Errf(log.Always, "error connecting to MongoDB: %v", err)
+			waitToReconnect()
 			continue
 		}
+		defer session.Close()
 
-		if err := dbIter.Err(); err != nil {
-			schemaGenerator.Logger.Errf(log.Always, "db iteration error: %v", err)
-			continue
+		var sampleRecord *sample.Record
+
+		if opts.Mode == "read" {
+			//
+			// TODO (BI-1122): For read-only mongosqld, look up versions/schemas
+			// collection. If unable, sample without inserting.
+			//
+			s.schema, err = sample.ReadSchema(opts, session, lgr)
+			if err == nil {
+				break
+			} else if err == sample.ErrNotFound {
+				s.schema, _, err = sample.SampleSchema(opts, session, lgr)
+				if err == nil {
+					break
+				}
+			}
+		} else {
+			//
+			//	TODO (BI-1122): For read/write mongosqld sample and
+			//	then attempt to insert if lock can be
+			//	acquired. Otherwise, move on.
+			//
+			s.schema, sampleRecord, err = sample.SampleSchema(opts, session, lgr)
+			if err == nil {
+				// TODO (BI-1171): attempt to acquire database lock
+				// if ErrLockAcquireFailed is returned, move on
+				err = sample.AcquireLock(session, sampleRecord.Database)
+				if err != nil && err == sample.ErrLockAcquireFailed {
+					break
+				}
+
+				// TODO (BI-1171): also need to refresh lock 'ticket' regularly
+				err = sample.InsertSampleRecord(sampleRecord, session, lgr)
+				if err == nil {
+					break
+				}
+			}
 		}
 
-		break getDatabasesLoop
+		lgr.Errf(log.Always, err.Error())
+		waitToReconnect()
 	}
 
-	sampledSchema := &schema.Schema{}
-
-	dbSampleBlacklist := []string{"admin", "local"}
-
-	buf := &bytes.Buffer{}
-
-	namespaces := cfg.Schema.Sample.Namespaces
-	if len(namespaces) == 0 {
-		namespaces = []string{"*"}
-	}
-
-	nsMatcher, err := util.NewMatcher(namespaces)
-	if err != nil {
-		schemaGenerator.Logger.Errf(log.Always, "invalid specification: %v", err)
-		panic(fmt.Sprintf("invalid specification: %v", err))
-	}
-
-	for db, collections := range databases {
-		if util.SliceContains(dbSampleBlacklist, db) {
-			continue
-		}
-
-		for _, collection := range collections {
-			schemaGenerator.ToolOptions.DrdlNamespace.DB = db
-			schemaGenerator.ToolOptions.DrdlNamespace.Collection = collection
-
-			ns := db + "." + collection
-
-			if !nsMatcher.Has(ns) {
-				schemaGenerator.Logger.Logf(log.Always, "Skipping namespace %v", ns)
-				continue
-			}
-
-			_, err := schemaGenerator.GenerateWithWriter(buf)
-			if err != nil {
-				schemaGenerator.Logger.Errf(log.Always, "error generating schema: %v", err)
-				panic(fmt.Sprintf("error generating schema: %v", err))
-			}
-
-			// load this namespace into the schema
-			err = sampledSchema.Load(buf.Bytes())
-			if err != nil {
-				schemaGenerator.Logger.Errf(log.Always, "error loading schema file: %v", err)
-				panic(fmt.Sprintf("error loading schema: %v", err))
-			}
-
-			buf.Reset()
-		}
-	}
-	schemaGenerator.Logger.Logf(log.Always, "Schema sampled from MongoDB")
-	s.schema = sampledSchema
-	atomic.StoreUint32(&s.schemaLoaded, uint32(1))
-}
-
-func createSchemaGenerator(cfg *config.Config) *mongodrdl.SchemaGenerator {
-	component := "MONGODRDL"
-	schemaGenerator := &mongodrdl.SchemaGenerator{
-		ToolOptions: &options.DrdlOptions{
-			DrdlAuth: &options.DrdlAuth{
-				Username:  cfg.MongoDB.Net.Auth.Username,
-				Password:  cfg.MongoDB.Net.Auth.Password,
-				Source:    cfg.MongoDB.Net.Auth.Source,
-				Mechanism: cfg.MongoDB.Net.Auth.Mechanism,
-			},
-			DrdlConnection: &options.DrdlConnection{
-				Host: cfg.MongoDB.Net.URI,
-			},
-			DrdlLog: &options.DrdlLog{
-				VLevel: cfg.SystemLog.Verbosity,
-			},
-			DrdlSSL: &options.DrdlSSL{
-				UseSSL:              cfg.MongoDB.Net.SSL.Enabled,
-				SSLAllowInvalidCert: cfg.MongoDB.Net.SSL.AllowInvalidCertificates,
-				SSLAllowInvalidHost: cfg.MongoDB.Net.SSL.AllowInvalidHostnames,
-				SSLPEMKeyFile:       cfg.MongoDB.Net.SSL.PEMKeyFile,
-				SSLPEMKeyPassword:   cfg.MongoDB.Net.SSL.PEMKeyPassword,
-				SSLCAFile:           cfg.MongoDB.Net.SSL.CAFile,
-				SSLCRLFile:          cfg.MongoDB.Net.SSL.CRLFile,
-				SSLFipsMode:         cfg.MongoDB.Net.SSL.FIPSMode,
-			},
-			DrdlNamespace: &options.DrdlNamespace{},
-		},
-		OutputOptions: &options.DrdlOutput{
-			UUIDSubtype3Encoding: cfg.Schema.Sample.UUIDSubtype3Encoding,
-		},
-		SampleOptions: &options.DrdlSample{
-			Size: cfg.Schema.Sample.Size,
-		},
-		Logger: log.NewComponentLogger(
-			fmt.Sprintf("%-10v [schemaDiscovery]", component),
-			log.GlobalLogger(),
-		),
-	}
-
-	return schemaGenerator
+	atomic.StoreUint32(&s.isSchemaLoaded, uint32(1))
 }
 
 // Run starts the server and begins accepting connections.
 func (s *Server) Run() {
-
-	logger := log.NewComponentLogger(log.NetworkComponent, log.GlobalLogger())
-
 	listenAndServe := func(listener net.Listener) {
 		for atomic.LoadInt32(&s.closed) == 0 {
 			conn, err := listener.Accept()
 			if err != nil {
 				if atomic.LoadInt32(&s.closed) == 0 {
-					logger.Errf(log.Always, "[initandlisten] unable to accept connection: %v", err)
+					s.logger.Errf(log.Always, "unable to accept connection: %v", err)
 				}
 				continue
 			}
@@ -291,19 +178,31 @@ func (s *Server) Run() {
 			util.PanicSafeGo(func() {
 				s.serveConnection(conn)
 			}, func(err interface{}) {
-				logger.Errf(log.Always, "[initandlisten] unable to serve new connection: %v", err)
+				s.logger.Errf(log.Always, "unable to serve new connection: %v", err)
 			})
 		}
+	}
+
+	// asynchronously load the schema from MongoDB by sampling if needed
+	if s.schema == nil {
+		ctx, cancel := context.WithCancel(context.Background())
+		util.PanicSafeGo(func() {
+			s.SampleSchema(ctx, &s.cfg.Schema.Sample)
+		}, func(err interface{}) {
+			cancel()
+			s.logger.Errf(log.Always, "error sampling schema: %v", err)
+			s.Close()
+		})
 	}
 
 	// start new goroutine for each listener
 	for _, listener := range s.listeners {
 		newListener := listener
-		logger.Logf(log.Always, "[initandlisten] waiting for connections at %v", newListener.Addr())
+		s.logger.Logf(log.Always, "waiting for connections at %v", newListener.Addr())
 		util.PanicSafeGo(func() {
 			listenAndServe(newListener)
 		}, func(err interface{}) {
-			logger.Errf(log.Always, "[initandlisten] listen and serve error: %v", err)
+			s.logger.Errf(log.Always, "listen and serve error: %v", err)
 		})
 	}
 
@@ -333,6 +232,7 @@ func (s *Server) Close() {
 	for _, c := range s.activeConnections {
 		c.close()
 	}
+
 	s.activeConnectionsMx.RUnlock()
 }
 
@@ -407,12 +307,13 @@ func (s *Server) removeConnection(c *conn) {
 func (s *Server) serveConnection(c net.Conn) {
 	conn, err := newConn(s, c)
 	if err != nil {
-		logger := log.GlobalLogger()
 		address := c.RemoteAddr().String()
 		if address == "" {
 			address = c.LocalAddr().String()
 		}
-		logger.Logf(log.Info, "[initandlisten] connection accepted from %v, but could not initialize: %v", address, err)
+
+		s.logger.Logf(log.Info, "connection accepted "+
+			"from %v, but could not initialize: %v", address, err)
 		c.Close()
 		return
 	}

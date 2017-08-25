@@ -25,6 +25,7 @@ schema:
   maxVarcharLength: 1000
   sample:
     mode: read
+    source: sampleDb
     size: 969
     namespaces: ["foo.*", "*.bar"]
     readIntervalSecs: 1005
@@ -93,6 +94,7 @@ processManagement:
 	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 	testInt64(t, cfg.Schema.Sample.Size, 969, "cfg.Schema.Sample.Size")
 	testString(t, cfg.Schema.Sample.Mode, "read", "cfg.Schema.Sample.Mode")
+	testString(t, cfg.Schema.Sample.Source, "sampleDb", "cfg.Schema.Sample.Source")
 	testStringSlice(t, cfg.Schema.Sample.Namespaces, []string{"foo.*", "*.bar"}, "cfg.Schema.Sample.Namespaces")
 	testInt64(t, cfg.Schema.Sample.ReadIntervalSecs, 1005, "cfg.Schema.Sample.ReadIntervalSecs")
 	testInt64(t, cfg.Schema.Sample.WriteIntervalSecs, 983, "cfg.Schema.Sample.WriteIntervalSecs")

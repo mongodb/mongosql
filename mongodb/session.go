@@ -38,6 +38,12 @@ func (s *Session) Close() error {
 	return nil
 }
 
+// ClusterKind returns the kind of cluster
+// this session is attached to.
+func (s *Session) ClusterKind() model.ClusterKind {
+	return s.selectedServer.ClusterKind
+}
+
 // Connection gets a connection to use.
 func (s *Session) Connection(ctx context.Context) (conn.Connection, error) {
 	c, err := s.pool.Get(ctx)

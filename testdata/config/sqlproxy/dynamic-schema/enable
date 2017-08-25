@@ -1,2 +1,2 @@
 
-SQLPROXY_SCHEMA_ARGS=""
+SQLPROXY_SCHEMA_ARGS="--sampleSource mongosqld_sample_test"

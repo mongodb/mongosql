@@ -104,6 +104,7 @@ func TestValidate_Valid(t *testing.T) {
 func TestValidate_Invalid_SampleAuth_Mechanism(t *testing.T) {
 	cfg := Default()
 	cfg.MongoDB.Net.Auth.Mechanism = "GSSAPI"
+	cfg.Schema.Sample.Source = "test"
 
 	err := Validate(cfg)
 	if err == nil {
@@ -133,14 +134,23 @@ func TestValidate_No_Schema_Path(t *testing.T) {
 	cfg.Schema.Path = ""
 
 	err := Validate(cfg)
-	if err != nil {
-		t.Fatalf("expected no error, but got: %v", err)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
 	}
+
+	expected := "must specify a schema, either:\n" +
+		"using --schema (also in a config file at 'schema.path') OR\n" +
+		"using --sampleSource (also in a config file at 'schema.sample.source')"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+
 }
 
 func TestValidate_SampleAuth_options_specified_but_auth_disabled(t *testing.T) {
 	cfg := Default()
 	cfg.MongoDB.Net.Auth.Username = "foo"
+	cfg.Schema.Sample.Source = "test"
 
 	err := Validate(cfg)
 	if err == nil {
@@ -218,6 +228,7 @@ func TestValidate_sqlproxy_SSL_options_PEMKeyFile(t *testing.T) {
 
 func TestValidate_sqlproxy_Sample_options_Namespaces(t *testing.T) {
 	cfg := Default()
+	cfg.Schema.Sample.Source = "test"
 	cfg.Schema.Sample.Namespaces = []string{"som$ething"}
 
 	expected := "invalid specification: '$' is not allowed in sample " +
@@ -288,6 +299,7 @@ func TestValidate_UnixDomainSocket(t *testing.T) {
 func TestValidate_LogRotate_unsupported(t *testing.T) {
 	cfg := Default()
 	cfg.SystemLog.LogRotate = "asdfasdf"
+	cfg.Schema.Path = "something"
 
 	err := Validate(cfg)
 	if err == nil {

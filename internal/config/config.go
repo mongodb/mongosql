@@ -93,8 +93,8 @@ func Default() *Config {
 	cfg.Schema.Sample.Size = 1000
 	cfg.Schema.Sample.Mode = "write"
 	cfg.Schema.Sample.Namespaces = []string{"*.*"}
-	cfg.Schema.Sample.ReadIntervalSecs = 600
-	cfg.Schema.Sample.WriteIntervalSecs = 86400
+	cfg.Schema.Sample.ReadIntervalSecs = 0
+	cfg.Schema.Sample.WriteIntervalSecs = 0
 
 	cfg.SystemLog.LogRotate = log.Rename
 
@@ -114,6 +114,12 @@ func ToJSON(cfg *Config) string {
 
 // Validate ensure that a config is valid.
 func Validate(cfg *Config) error {
+	if cfg.Schema.Path == "" && cfg.Schema.Sample.Source == "" {
+		return fmt.Errorf("must specify a schema, either:\nusing --schema " +
+			"(also in a config file at 'schema.path') OR\n" +
+			"using --sampleSource (also in a config file at 'schema.sample.source')")
+
+	}
 
 	switch cfg.Net.SSL.Mode {
 	case "disabled":
@@ -231,6 +237,7 @@ type Schema struct {
 }
 
 type SchemaSampleOptions struct {
+	Source               string   `config:"source"`
 	Mode                 string   `config:"mode"`
 	Size                 int64    `config:"size"`
 	Namespaces           []string `config:"namespaces"`

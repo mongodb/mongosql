@@ -110,6 +110,14 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 // mapArraySchema maps the provided array schema into a mappingContext.
 func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 
+	// get the dominant schema for the array's elements
+	items := ctx.getDominantSchema(js.Items)
+
+	// don't map null arrays
+	if items.BsonType == mongo.NoBsonType {
+		return nil
+	}
+
 	// calculate the name of the array index column
 	indexName := ctx.path + "_idx"
 	if ctx.nestedArrayDepth > 0 {
@@ -139,9 +147,6 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 		}},
 	}
 	ctx.table.Pipeline = append(ctx.table.Pipeline, unwind)
-
-	// get the dominant schema for the array's elements
-	items := ctx.getDominantSchema(js.Items)
 
 	// map the array's elements.
 	// we need a subcontext if this an a nested array (to track depth)
@@ -228,7 +233,7 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 
 	ctx.logger.Logf(
 		log.DebugLow,
-		"Mapped new table %q for array at path %q",
+		"Mapped new table %q for array at field path %q",
 		arrayTableName, newCtx.path,
 	)
 
@@ -297,17 +302,23 @@ func (ctx *mappingContext) getDominantSchema(s *mongo.Schemata) *mongo.Schema {
 	if len(s.Schemas) > 1 {
 		bsonTypes := []string{}
 		for bt, _ := range s.Schemas {
-			bsonTypes = append(bsonTypes, string(bt))
+			if bt == mongo.NoBsonType {
+				// use "empty" instead of "" so that log
+				// messages make sense
+				bt = mongo.BsonType("empty")
+			}
+			bsonTypes = append(bsonTypes, fmt.Sprintf("%q", string(bt)))
 		}
 		ctx.logger.Logf(
-			log.DebugLow,
-			"Table %q: multiple types observed at document path %q: %v",
+			log.DebugHigh,
+			"Table %q: multiple types at field path %q: [%v] - using %q",
 			ctx.table.Name,
 			ctx.path,
 			strings.Join(bsonTypes, ", "),
+			dominant.BsonType,
 		)
-		ctx.logger.Logf(log.DebugLow, "Using schema of type %s", dominant.BsonType)
 	}
+
 	return dominant
 }
 

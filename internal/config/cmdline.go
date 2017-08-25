@@ -320,16 +320,16 @@ type schemaOptions struct {
 	SchemaDir        *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
 	MaxVarcharLength *uint16 `long:"maxVarcharLength" description:"the maximum length of a varchar"`
 
-	Mode *string `long:"sampleMode" description:"set the mongosqld sampling operation mode (default: write)" choice:"read" choice:"write"`
-	Size *int64  `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema (default: 1000)"`
+	SampleSource *string `long:"sampleSource" description:"database to use for reading/writing sampled schema"`
+	SampleMode   *string `long:"sampleMode" description:"set the mongosqld sampling operation mode (default: write)" choice:"read" choice:"write"`
+	SampleSize   *int64  `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema (default: 1000)"`
 
 	// Namespaces will append the namespace every time the option is encountered
 	// (can be set multiple times, like --sampleNamespace foo.* --sampleNamespace bar.*_dev)
-	Namespaces []string `long:"sampleNamespaces" value-name:"<sample namespaces>" description:"namespace(s) to sample in generating schema (defaults to all namespaces - except admin and local databases)"`
-
-	ReadIntervalSecs     *int64  `long:"sampleReadIntervalSecs" description:"the interval (in seconds) mongosqld waits before reading the database schema (default: 600)"`
-	WriteIntervalSecs    *int64  `long:"sampleWriteIntervalSecs" description:"the interval (in seconds) mongosqld waits before re-sampling the database schema (default: 86400)"`
-	UUIDSubtype3Encoding *string `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
+	SampleNamespaces           []string `long:"sampleNamespaces" value-name:"<sample namespaces>" description:"namespace(s) to sample in generating schema (defaults to all namespaces - except admin and local databases)"`
+	SampleReadIntervalSecs     *int64   `long:"sampleReadIntervalSecs" description:"the interval (in seconds) mongosqld waits before reading the database schema (default: 600)"`
+	SampleWriteIntervalSecs    *int64   `long:"sampleWriteIntervalSecs" description:"the interval (in seconds) mongosqld waits before re-sampling the database schema (default: 86400)"`
+	SampleUUIDSubtype3Encoding *string  `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
 }
 
 func (o *schemaOptions) name() string {
@@ -355,28 +355,32 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 		cfg.Schema.MaxVarcharLength = *o.MaxVarcharLength
 	}
 
-	if !isEmptyOrUnset(o.Mode) {
-		cfg.Schema.Sample.Mode = *o.Mode
+	if !isEmptyOrUnset(o.SampleMode) {
+		cfg.Schema.Sample.Mode = *o.SampleMode
 	}
 
-	if o.Size != nil {
-		cfg.Schema.Sample.Size = *o.Size
+	if !isEmptyOrUnset(o.SampleSource) {
+		cfg.Schema.Sample.Source = *o.SampleSource
 	}
 
-	if o.Namespaces != nil {
-		cfg.Schema.Sample.Namespaces = o.Namespaces
+	if o.SampleSize != nil {
+		cfg.Schema.Sample.Size = *o.SampleSize
 	}
 
-	if o.ReadIntervalSecs != nil {
-		cfg.Schema.Sample.ReadIntervalSecs = *o.ReadIntervalSecs
+	if o.SampleNamespaces != nil {
+		cfg.Schema.Sample.Namespaces = o.SampleNamespaces
 	}
 
-	if o.WriteIntervalSecs != nil {
-		cfg.Schema.Sample.WriteIntervalSecs = *o.WriteIntervalSecs
+	if o.SampleReadIntervalSecs != nil {
+		cfg.Schema.Sample.ReadIntervalSecs = *o.SampleReadIntervalSecs
 	}
 
-	if !isEmptyOrUnset(o.UUIDSubtype3Encoding) {
-		cfg.Schema.Sample.UUIDSubtype3Encoding = *o.UUIDSubtype3Encoding
+	if o.SampleWriteIntervalSecs != nil {
+		cfg.Schema.Sample.WriteIntervalSecs = *o.SampleWriteIntervalSecs
+	}
+
+	if !isEmptyOrUnset(o.SampleUUIDSubtype3Encoding) {
+		cfg.Schema.Sample.UUIDSubtype3Encoding = *o.SampleUUIDSubtype3Encoding
 	}
 
 	return nil

@@ -30,6 +30,7 @@ codereview.rc
 .gopath
 .vscode
 vendor/pkg
+sftp-config.json
 
 testdata/resources/data
 testdata/artifacts

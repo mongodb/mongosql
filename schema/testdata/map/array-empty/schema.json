@@ -1,0 +1,12 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "a": {
+            "bsonType": "double"
+        },
+        "arrays": {
+            "bsonType": "array",
+            "items": {}
+        }
+    }
+}
