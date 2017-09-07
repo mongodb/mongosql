@@ -65,6 +65,7 @@ test-unit: clean
 # include config test targets
 include testdata/config/tests/cleartext-auth.mk
 include testdata/config/tests/log-rotation.mk
+include testdata/config/tests/log-newlines.mk
 include testdata/config/tests/mongo-ssl.mk
 include testdata/config/tests/mongodrdl.mk
 include testdata/config/tests/sqlproxy-ssl.mk

@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 	"time"
+        "runtime"
 )
 
 const (
@@ -38,6 +39,14 @@ const (
 	Error   = "F" // Fatal
 )
 
+//OS will not change mid-run, so we set our logging line endings once, on package init
+func getNewLine() string {
+       if runtime.GOOS == "windows" {
+              return "\r\n"
+       }
+       return "\n"
+}
+
 var (
 	level = map[int]string{
 		Always:    "I", // Informational
@@ -45,6 +54,7 @@ var (
 		DebugLow:  "D", // Debug
 		DebugHigh: "D",
 	}
+        logNewLine = getNewLine()
 )
 
 type Logger struct {
@@ -233,7 +243,7 @@ func (w *writeBuffer) writeMessage(str string) {
 	}
 
 	w.bufLock.Lock()
-	msgBytes := []byte(fmt.Sprintf("%v %v\n", time.Now().Format(w.format), str))
+	msgBytes := []byte(fmt.Sprintf("%v %v%s", time.Now().Format(w.format), str, logNewLine))
 	w.buf = append(w.buf, msgBytes...)
 	w.bufLock.Unlock()
 }
