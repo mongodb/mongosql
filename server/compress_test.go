@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"fmt"
+	"github.com/10gen/sqlproxy/variable"
 	"io"
 	"math/rand"
 	"testing"
@@ -15,8 +16,7 @@ func makeRandByteSlice(size int) []byte {
 }
 
 func newMockServer() *Server {
-	s := &Server{}
-
+	s := &Server{variables: variable.NewGlobalContainer()}
 	return s
 }
 
@@ -56,8 +56,8 @@ func compressHelper(t *testing.T, c *conn, uncompressedPacket []byte) []byte {
 		t.Fatal(fmt.Sprintf("c.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.bytesSent))
 	}
 
-	if c.server.bytesSent != expBytesSent {
-		t.Fatal(fmt.Sprintf("c.server.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.server.bytesSent))
+	if *c.server.variables.BytesSent != expBytesSent {
+		t.Fatal(fmt.Sprintf("c.server.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.server.variables.BytesSent))
 	}
 
 	if len(uncompressedPacket) > 0 {
@@ -110,8 +110,8 @@ func uncompressHelper(t *testing.T, c *conn, compressedPacket []byte, expSize in
 		t.Fatal(fmt.Sprintf("c.bytesReceived updated incorrectly, expected %d and saw %d", expBytesReceived, c.bytesReceived))
 	}
 
-	if c.server.bytesReceived != expBytesReceived {
-		t.Fatal(fmt.Sprintf("c.server.bytesReceived updated incorrectly, expected %d and saw %d", expBytesReceived, c.server.bytesReceived))
+	if *c.server.variables.BytesReceived != expBytesReceived {
+		t.Fatal(fmt.Sprintf("c.server.bytesReceived updated incorrectly, expected %d and saw %d", expBytesReceived, c.server.variables.BytesReceived))
 	}
 
 	if expSize > 0 {

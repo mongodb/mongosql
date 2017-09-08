@@ -48,13 +48,20 @@ type Container struct {
 	BytesSent        *uint64
 	Connections      *uint32
 	Queries          *uint64
-	StartTime        *time.Time
+	StartTime        time.Time
 	ThreadsConnected *uint32
 }
 
 // NewGlobalContainer creates a container with a GlobalScope.
 func NewGlobalContainer() *Container {
-	placeHolderUint32, placeHolderUint64 := uint32(0), uint64(0)
+
+	// Initialize server status variables here
+	bytesReceived := uint64(0)
+	bytesSent := uint64(0)
+	connections := uint32(0)
+	queries := uint64(0)
+	startTime := time.Now()
+	threadsConnected := uint32(0)
 
 	return &Container{
 		scope: GlobalScope,
@@ -82,9 +89,12 @@ func NewGlobalContainer() *Container {
 		WaitTimeoutSecs:        28800,
 
 		// Default status variable values
-		Connections:      &placeHolderUint32,
-		Queries:          &placeHolderUint64,
-		ThreadsConnected: &placeHolderUint32,
+		BytesReceived:    &bytesReceived,
+		BytesSent:        &bytesSent,
+		Connections:      &connections,
+		Queries:          &queries,
+		StartTime:        startTime,
+		ThreadsConnected: &threadsConnected,
 	}
 }
 

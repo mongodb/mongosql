@@ -86,7 +86,7 @@ func init() {
 		AllowedSetScopes: Scope(0), // not allowed to be set
 		SQLType:          schema.SQLUint64,
 		GetValue: func(c *Container) interface{} {
-			return uint64(time.Now().Sub(*c.StartTime).Nanoseconds() / 1e9)
+			return uint64(time.Now().Sub(c.StartTime).Nanoseconds() / 1e9)
 		},
 	}
 }

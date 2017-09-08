@@ -102,7 +102,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 		bytesReceived: uint64(0),
 		bytesSent:     uint64(0),
 		queryRunning:  0,
-		connectionID:  atomic.AddUint32(&s.connCount, 1),
+		connectionID:  atomic.AddUint32(s.variables.Connections, 1),
 		capability: CLIENT_PROTOCOL_41 |
 			CLIENT_CONNECT_WITH_DB |
 			CLIENT_LONG_FLAG |
@@ -212,7 +212,7 @@ func (c *conn) dispatch(data []byte) error {
 	data = data[1:]
 
 	if cmd != COM_PING && cmd != COM_STATISTICS {
-		atomic.AddUint64(&c.server.queryCount, 1)
+		atomic.AddUint64(c.server.variables.Queries, 1)
 	}
 
 	switch cmd {
@@ -567,7 +567,7 @@ func (c *conn) readPacket() ([]byte, error) {
 	if !c.compressionOn {
 		bytesReceived := uint64(length) + 4 // for the header
 		atomic.AddUint64(&c.bytesReceived, bytesReceived)
-		atomic.AddUint64(&c.server.bytesReceived, bytesReceived)
+		atomic.AddUint64(c.server.variables.BytesReceived, bytesReceived)
 	}
 	return data, nil
 }
@@ -662,22 +662,11 @@ func (c *conn) setStatusVariables() {
 	sessionVariables, globalVariables := c.variables, c.server.variables
 
 	sessionVariables.BytesReceived = &c.bytesReceived
-	globalVariables.BytesReceived = &c.server.bytesReceived
-
 	sessionVariables.BytesSent = &c.bytesSent
-	globalVariables.BytesSent = &c.server.bytesSent
-
-	sessionVariables.Connections = &c.server.connCount
-	globalVariables.Connections = &c.server.connCount
-
-	sessionVariables.Queries = &c.server.queryCount
-	globalVariables.Queries = &c.server.queryCount
-
-	sessionVariables.ThreadsConnected = &c.server.threadsConnected
-	globalVariables.ThreadsConnected = &c.server.threadsConnected
-
-	sessionVariables.StartTime = &c.server.startTime
-	globalVariables.StartTime = &c.server.startTime
+	sessionVariables.Connections = globalVariables.Connections
+	sessionVariables.Queries = globalVariables.Queries
+	sessionVariables.ThreadsConnected = globalVariables.ThreadsConnected
+	sessionVariables.StartTime = globalVariables.StartTime
 }
 
 // setSystemVariables sets system variables for this client connection.
@@ -918,7 +907,7 @@ func (c *conn) writePacket(data []byte) error {
 		totalBytesSent += uint64(len(data))
 
 		atomic.AddUint64(&c.bytesSent, totalBytesSent)
-		atomic.AddUint64(&c.server.bytesSent, totalBytesSent)
+		atomic.AddUint64(c.server.variables.BytesSent, totalBytesSent)
 	}
 
 	return nil

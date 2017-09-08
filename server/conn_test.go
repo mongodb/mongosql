@@ -42,8 +42,8 @@ func readHelper(t *testing.T, packets []byte, expLen int) []byte {
 		t.Fatal(fmt.Sprintf("c.bytesReceived updated incorrectly, expected %d and saw %d", expBytesRecieved, c.bytesReceived))
 	}
 
-	if c.server.bytesReceived != expBytesRecieved {
-		t.Fatal(fmt.Sprintf("c.server.bytesReceived updated incorrectly, expected %d and saw %d", expBytesRecieved, c.server.bytesReceived))
+	if *c.server.variables.BytesReceived != expBytesRecieved {
+		t.Fatal(fmt.Sprintf("c.server.bytesReceived updated incorrectly, expected %d and saw %d", expBytesRecieved, c.server.variables.BytesReceived))
 	}
 
 	if int(c.sequence) != (headers / 4) {
@@ -75,8 +75,8 @@ func writeHelper(t *testing.T, data []byte) []byte {
 		t.Fatal(fmt.Sprintf("c.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.bytesSent))
 	}
 
-	if c.server.bytesSent != expBytesSent {
-		t.Fatal(fmt.Sprintf("c.server.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.server.bytesSent))
+	if *c.server.variables.BytesSent != expBytesSent {
+		t.Fatal(fmt.Sprintf("c.server.bytesSent updated incorrectly, expected %d and saw %d", expBytesSent, c.server.variables.BytesSent))
 	}
 
 	return b.Bytes()

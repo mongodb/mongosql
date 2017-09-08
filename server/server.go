@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/sample"
@@ -35,14 +34,6 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 		sessionProvider:   sessionProvider,
 		variables:         variable.NewGlobalContainer(),
 		logger:            logger,
-
-		// status variable backing storage
-		bytesReceived:    uint64(0),
-		bytesSent:        uint64(0),
-		connCount:        uint32(0),
-		queryCount:       uint64(0),
-		threadsConnected: uint32(0),
-		startTime:        time.Now(),
 	}
 
 	if schema != nil {
@@ -82,14 +73,6 @@ type Server struct {
 	isSchemaLoaded  uint32
 	sessionProvider *mongodb.SessionProvider
 	variables       *variable.Container
-
-	// backing server storage for status variables
-	bytesReceived    uint64
-	bytesSent        uint64
-	connCount        uint32
-	queryCount       uint64
-	startTime        time.Time
-	threadsConnected uint32
 
 	// startupInfo holds configuration information
 	// for the server
@@ -252,7 +235,7 @@ func (s *Server) addConnection(c *conn) {
 	s.activeConnections[c.ConnectionId()] = c
 	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()
-	atomic.StoreUint32(&s.threadsConnected, uint32(activeConnections))
+	atomic.StoreUint32(s.variables.ThreadsConnected, uint32(activeConnections))
 	pluralized := util.Pluralize(activeConnections, "connection", "connections")
 	address := c.conn.RemoteAddr().String()
 	if address == "" {
@@ -295,7 +278,7 @@ func (s *Server) removeConnection(c *conn) {
 	}
 	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()
-	atomic.StoreUint32(&s.threadsConnected, uint32(activeConnections))
+	atomic.StoreUint32(s.variables.ThreadsConnected, uint32(activeConnections))
 	pluralized := util.Pluralize(activeConnections, "connection", "connections")
 	address := c.conn.RemoteAddr().String()
 	if address == "" {

@@ -127,7 +127,7 @@ func (cr *compressedReader) uncompressPacket() error {
 	// record bytes received
 	bytesReceived := uint64(comprLength) + 7 // +7 for the compression header
 	atomic.AddUint64(&cr.c.bytesReceived, bytesReceived)
-	atomic.AddUint64(&cr.c.server.bytesReceived, bytesReceived)
+	atomic.AddUint64(cr.c.server.variables.BytesReceived, bytesReceived)
 
 	return nil
 }
@@ -251,7 +251,7 @@ func (cw *compressedWriter) writeToNetwork(data []byte, uncomprLength int) error
 	cw.c.compressionSequence++
 	totalBytesSent += uint64(len(data))
 	atomic.AddUint64(&cw.c.bytesSent, totalBytesSent)
-	atomic.AddUint64(&cw.c.server.bytesSent, totalBytesSent)
+	atomic.AddUint64(cw.c.server.variables.BytesSent, totalBytesSent)
 
 	return nil
 }
