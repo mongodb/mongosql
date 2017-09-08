@@ -146,6 +146,13 @@ func TestParseArgs_Valid2(t *testing.T) {
 }
 
 func TestParseArgs_Invalid(t *testing.T) {
+	var shortOptDelim, longOptDelim string
+	if runtime.GOOS == "windows" {
+		shortOptDelim, longOptDelim = "/", "/"
+	} else {
+		shortOptDelim = "-"
+		longOptDelim = "--"
+	}
 
 	var tests = []struct {
 		err  string
@@ -153,6 +160,10 @@ func TestParseArgs_Invalid(t *testing.T) {
 	}{
 		{err: "", args: []string{"--addr", "sdffewg:2134:12344"}},
 		{err: "must specify only one of --schema or --schemaDirectory", args: []string{"--schema", "file", "--schemaDirectory", "dir"}},
+		{err: "error parsing command line options: Unexpected argument(s): [unexpected args]", args: []string{"unexpected", "args"}},
+		{err: "error parsing command line options: invalid argument for flag `" + shortOptDelim + "v, " + longOptDelim + "verbose' " +
+			"(expected int): invalid verbosity value given",
+			args: []string{"--verbose=silly"}},
 	}
 
 	for i, test := range tests {
@@ -167,5 +178,34 @@ func TestParseArgs_Invalid(t *testing.T) {
 				t.Fatalf("expected err '%s' but got '%v'", test.err, err)
 			}
 		})
+	}
+}
+
+func TestVerbosity_Valid(t *testing.T) {
+	var tests = []struct {
+		level int
+		args  []string
+	}{
+		{level: 0, args: []string{}},
+		{level: 1, args: []string{"-v"}},
+		{level: 1, args: []string{"--verbose"}},
+		{level: 2, args: []string{"-vv"}},
+		{level: 3, args: []string{"--verbose=3"}},
+		{level: 3, args: []string{"-v=3"}},
+		{level: 4, args: []string{"-v", "4"}},
+		{level: 4, args: []string{"--verbose", "4"}},
+
+		{level: 1, args: []string{"--verbose", "4", "-v"}},
+		{level: 3, args: []string{"-v=2", "-vvv"}},
+		{level: 4, args: []string{"--verbose=3", "-v", "4"}},
+		{level: 4, args: []string{"-vvv", "--verbose", "4"}},
+		{level: 5, args: []string{"--verbose", "4", "-v=5"}},
+		{level: 5, args: []string{"-v", "4", "--verbose", "5"}},
+	}
+
+	for _, test := range tests {
+		cfg := Default()
+		ParseArgs(cfg, test.args)
+		testInt(t, cfg.SystemLog.Verbosity, test.level, "cfg.SystemLog.Verbosity")
 	}
 }

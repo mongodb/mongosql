@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -13,6 +14,9 @@ import (
 )
 
 const usage = `mongosqld [install|uninstall] <options>`
+
+// Used to check if mongosqld should exit early with a normal exit code (for --help, --version, etc)
+var ErrExitEarly = errors.New("exit early")
 
 // ParseArgs parses the arguments and overrides values in the cfg.
 func ParseArgs(cfg *Config, args []string) error {
@@ -66,10 +70,25 @@ func ParseArgs(cfg *Config, args []string) error {
 		return nil
 	}
 
-	if _, err := parser.ParseArgs(args); err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing command line options: %v\n", err)
-		fmt.Fprintln(os.Stderr, "try 'mongosqld --help' for more information")
-		os.Exit(2)
+	// capture positional args for -v and --verbose
+	for i, arg := range args {
+		if (arg == "-v" || arg == "--verbose") && i+1 < len(args) {
+			_, err := strconv.Atoi(args[i+1])
+			if err == nil {
+				args[i] = arg + "=" + args[i+1]
+				args = append(args[:i+1], args[i+2:]...)
+			}
+		}
+	}
+
+	if retargs, err := parser.ParseArgs(args); err != nil {
+		// fix error message when go-flags infers verbosity type incorrectly
+		if strings.Contains(err.Error(), "(expected func(string) error)") {
+			err = errors.New(strings.Replace(err.Error(), "(expected func(string) error)", "(expected int)", 1))
+		}
+		return fmt.Errorf("error parsing command line options: %v", err)
+	} else if len(retargs) > 0 {
+		return fmt.Errorf("error parsing command line options: Unexpected argument(s): %v", retargs)
 	}
 
 	for _, group := range groups {
@@ -81,12 +100,12 @@ func ParseArgs(cfg *Config, args []string) error {
 
 	if opts.Version != nil && *opts.Version {
 		PrintVersionAndGitspec("mongosqld", os.Stdout)
-		os.Exit(0)
+		return ErrExitEarly
 	}
 
 	if opts.generalOptions != nil && opts.generalOptions.Help != nil && *opts.generalOptions.Help {
 		parser.WriteHelp(os.Stdout)
-		os.Exit(0)
+		return ErrExitEarly
 	}
 
 	return nil
