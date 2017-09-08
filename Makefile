@@ -109,6 +109,7 @@ test-unit: test-connect-success
 # include config test targets
 include testdata/config/tests/alter.mk
 include testdata/config/tests/cleartext-auth.mk
+include testdata/config/tests/gssapi.mk
 include testdata/config/tests/kill-query.mk
 include testdata/config/tests/log-newlines.mk
 include testdata/config/tests/log-rotation.mk

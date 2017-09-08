@@ -218,6 +218,8 @@ type clientConnectionOptions struct {
 	DefaultAuthMechanism *string `long:"defaultAuthMechanism" description:"the default authentication mechanism (default is SCRAM-SHA-1)"`
 	DefaultAuthSource    *string `long:"defaultAuthSource" description:"the default authentication source (default is admin)"`
 	Addr                 *string `long:"addr" description:"comma separated list of ip addresses to listen on - localhost by default"`
+	GSSAPIServiceName    *string `long:"gssapiServiceName" description:"the service name to use when hosting gssapi authentication"`
+	GSSAPIHostname       *string `long:"gssapiHostname" description:"the hostname to use when hosting gssapi authentication"`
 	SSLMode              *string `long:"sslMode" description:"set the SSL operation mode" choice:"disabled" choice:"allowSSL" choice:"requireSSL"`
 	SSLAllowInvalidCerts *bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
 	SSLCAFile            *string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
@@ -238,6 +240,12 @@ func (o *clientConnectionOptions) mapToConfig(cfg *Config) error {
 	}
 	if !isEmptyOrUnset(o.DefaultAuthSource) {
 		cfg.Security.DefaultSource = *o.DefaultAuthSource
+	}
+	if !isEmptyOrUnset(o.GSSAPIHostname) {
+		cfg.Security.GSSAPI.Hostname = *o.GSSAPIHostname
+	}
+	if !isEmptyOrUnset(o.GSSAPIServiceName) {
+		cfg.Security.GSSAPI.ServiceName = *o.GSSAPIServiceName
 	}
 	if !isEmptyOrUnset(o.Addr) {
 		addr := *o.Addr
@@ -379,6 +387,7 @@ type mongoConnectionOptions struct {
 	MongoPassword             *string `short:"p" value-name:"<password>" long:"mongo-password" description:"authentication password to use for schema discovery (only required if --auth is also enabled and --sampleSource is specified)"`
 	MongoSource               *string `long:"mongo-authenticationSource" value-name:"<authentication source>" description:"database that holds the credentials for the schema discovery user (only used if --auth is also enabled and --sampleSource is specified)"`
 	MongoMechanism            *string `long:"mongo-authenticationMechanism" description:"authentication mechanism to use for schema discovery (only used if --auth is also enabled and --sampleSource is specified)" choice:"SCRAM-SHA-1" choice:"PLAIN"`
+	MongoGSSAPIServiceName    *string `long:"mongo-gssapiServiceName" description:"the service name MongoDB is using"`
 	MongoAllowInvalidCerts    *bool   `long:"mongo-sslAllowInvalidCertificates" description:"don't require the certificate presented by the MongoDB server to be valid, when using --mongo-ssl"`
 	MongoSSLAllowInvalidHost  *bool   `long:"mongo-sslAllowInvalidHostnames" description:"bypass the validation for server name"`
 	MongoCAFile               *string `long:"mongo-sslCAFile" value-name:"<filename>" description:"path to a CA certificate file to use for authenticating certificates from MongoDB, when using --mongo-ssl"`
@@ -428,17 +437,17 @@ func (o *mongoConnectionOptions) mapToConfig(cfg *Config) error {
 	if !isEmptyOrUnset(o.MongoUsername) {
 		cfg.MongoDB.Net.Auth.Username = *o.MongoUsername
 	}
-
 	if !isEmptyOrUnset(o.MongoPassword) {
 		cfg.MongoDB.Net.Auth.Password = *o.MongoPassword
 	}
-
 	if !isEmptyOrUnset(o.MongoSource) {
 		cfg.MongoDB.Net.Auth.Source = *o.MongoSource
 	}
-
 	if !isEmptyOrUnset(o.MongoMechanism) {
 		cfg.MongoDB.Net.Auth.Mechanism = *o.MongoMechanism
+	}
+	if !isEmptyOrUnset(o.MongoGSSAPIServiceName) {
+		cfg.MongoDB.Net.Auth.GSSAPIServiceName = *o.MongoGSSAPIServiceName
 	}
 
 	return nil

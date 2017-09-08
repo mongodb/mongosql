@@ -24,6 +24,10 @@ endif
 test-cleartext-auth-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
 test-cleartext-auth-ssl: test-connect-success
 
+#  accept GSSAPI credentials
+test-cleartext-auth-gssapi: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/ssl/allow,sqlproxy/ssl/pem,sqlproxy/gssapi/test,client/auth/gssapi_creds,client/auth/cleartext,client/ssl/require,client/ssl/pem,client/ssl/ca
+test-cleartext-auth-gssapi: test-connect-success
+
 # reject cleartext auth attempt with incorrect credentials
 test-cleartext-auth-wrong-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require
 test-cleartext-auth-wrong-creds: EXPECTED_ERROR = ERROR 1043 (08S01): error performing authentication: unable to authenticate conversation 0: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed.

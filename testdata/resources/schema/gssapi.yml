@@ -1,0 +1,10 @@
+schema:
+- db: kerberos
+  tables:
+  - table: test
+    collection: "test"
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: id
+      SqlType: varchar

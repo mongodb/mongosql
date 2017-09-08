@@ -14,7 +14,7 @@ trap "mv -f $PROJECT_DIR/internal/config/version.go.bak $PROJECT_DIR/internal/co
 
     out="$ARTIFACTS_DIR/bin/mongosqld"
     main="$PROJECT_DIR/main/sqlproxy.go"
-    go build $BUILD_FLAGS -o $out $main
+    go build -v $BUILD_FLAGS -tags="$BUILD_TAGS" -o $out $main
 
     echo "done building mongosqld"
 

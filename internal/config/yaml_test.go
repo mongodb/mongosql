@@ -53,6 +53,9 @@ security:
   enabled: true
   defaultMechanism: "GSSAPI"
   defaultSource: "$external"
+  gssapi:
+    hostname: "something"
+    serviceName: "awesome"
 
 mongodb:
   versionCompatibility: "3.2"
@@ -64,6 +67,7 @@ mongodb:
       password: pass
       source: admin
       mechanism: scram
+      gssapiServiceName: "hola"
     ssl:
       enabled: true
       allowInvalidCertificates: true
@@ -121,6 +125,8 @@ setParameter:
 	testBool(t, cfg.Security.Enabled, true, "cfg.Security.Enabled")
 	testString(t, cfg.Security.DefaultMechanism, "GSSAPI", "cfg.Security.DefaultMechanism")
 	testString(t, cfg.Security.DefaultSource, "$external", "cfg.Security.DefaultSource")
+	testString(t, cfg.Security.GSSAPI.Hostname, "something", "cfg.Security.GSSAPI.Hostname")
+	testString(t, cfg.Security.GSSAPI.ServiceName, "awesome", "cfg.Security.GSSAPI.ServiceName")
 
 	testString(t, cfg.MongoDB.VersionCompatibility, "3.2", "cfg.MongoDB.VersionCompatibility")
 	testString(t, cfg.MongoDB.Net.URI, "mongodb://hostname:27018", "cfg.MongoDB.Net.URI")
@@ -130,6 +136,8 @@ setParameter:
 	testString(t, cfg.MongoDB.Net.Auth.Password, "pass", "cfg.MongoDB.Net.Auth.Password")
 	testString(t, cfg.MongoDB.Net.Auth.Source, "admin", "cfg.MongoDB.Net.Auth.Source")
 	testString(t, cfg.MongoDB.Net.Auth.Mechanism, "scram", "cfg.MongoDB.Net.Auth.Mechanism")
+
+	testString(t, cfg.MongoDB.Net.Auth.GSSAPIServiceName, "hola", "cfg.MongoDB.Net.Auth.GSSAPIServiceName")
 
 	testBool(t, cfg.MongoDB.Net.SSL.Enabled, true, "cfg.MongoDB.Net.SSL.Enabled")
 	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidCertificates, true, "cfg.MongoDB.Net.SSL.AllowInvalidCertificates")

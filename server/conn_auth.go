@@ -56,7 +56,12 @@ func (c *conn) authMongoSQLAuthPlugin() error {
 		return fmt.Errorf("failed parsing username: %v", err)
 	}
 
-	return c.authMongoSQLAuthSASL(username, mechanism, source)
+	switch mechanism {
+	case "GSSAPI":
+		return c.authMongoSQLAuthGSSAPI(username)
+	default:
+		return c.authMongoSQLAuthSASL(username, mechanism, source)
+	}
 }
 
 func (c *conn) authMongoSQLAuthSASL(username, mechanism, source string) error {
@@ -84,6 +89,9 @@ func (c *conn) authMongoSQLAuthSASL(username, mechanism, source string) error {
 			pos++
 			payloadLen := int(binary.LittleEndian.Uint32(data[pos : pos+4]))
 			pos += 4
+			if payloadLen < 0 || payloadLen+pos > len(data) {
+				return fmt.Errorf("payload length out of range: %v", payloadLen)
+			}
 			conversations[i].Payload = data[pos : pos+payloadLen]
 			pos += payloadLen
 		}
@@ -129,6 +137,76 @@ func (c *conn) authMongoSQLAuthSASL(username, mechanism, source string) error {
 	return c.session.Login(&authenticator)
 }
 
+func (c *conn) authMongoSQLAuthGSSAPI(username string) error {
+	cb := func(payload []byte) ([]byte, error) {
+		var err error
+		var data []byte
+		data = append(data, uint32ToBytes(uint32(len(payload)))...)
+		data = append(data, payload...)
+
+		if err = c.writeAuthMoreData(data); err != nil {
+			return nil, fmt.Errorf("failed writing auth more data: %v", err)
+		}
+
+		if data, err = c.readPacket(); err != nil {
+			return nil, fmt.Errorf("failed reading auth more data response: %v", err)
+		}
+
+		if len(data) < 5 {
+			return nil, fmt.Errorf("payload too short")
+		}
+
+		// ignoring the first byte as it's the status. In GSSAPI, the GSSAPI
+		// protocol carries completion information.
+		payloadLen := int(binary.LittleEndian.Uint32(data[1:5]))
+		if len(data) < payloadLen+5 {
+			return nil, fmt.Errorf("payload too short")
+		}
+		payload = data[5 : 5+payloadLen]
+
+		return payload, nil
+	}
+
+	// first send the mechanism to use, followed by any mechanism specific information
+	data := append([]byte("GSSAPI"), 0)
+	data = append(data, 1, 0, 0, 0) // number of conversations
+
+	var err error
+	if err = c.writeAuthMoreData(data); err != nil {
+		return fmt.Errorf("failed writing auth more data: %v", err)
+	}
+
+	if data, err = c.readPacket(); err != nil {
+		return fmt.Errorf("failed reading auth more data response: %v", err)
+	}
+
+	if len(data) < 5 {
+		return fmt.Errorf("payload too short")
+	}
+	payloadLen := int(binary.LittleEndian.Uint32(data[1:5]))
+	if len(data) < payloadLen+5 {
+		return fmt.Errorf("payload too short")
+	}
+	payload := data[5 : 5+payloadLen]
+
+	hostname := c.server.cfg.Security.GSSAPI.Hostname
+	if hostname == "" {
+		hostname = c.server.cfg.Net.BindIP[0]
+	}
+
+	authenticator := mongodb.GssapiSessionAuthenticator{
+		InitialPayload: payload,
+		Callback:       cb,
+
+		HostServiceName: c.server.cfg.Security.GSSAPI.ServiceName,
+		HostAddr:        hostname,
+
+		RemoteServiceName: c.server.cfg.MongoDB.Net.Auth.GSSAPIServiceName,
+	}
+
+	return c.session.Login(&authenticator)
+}
+
 func (c *conn) parseUsername() (username string, mechanism string, source string, err error) {
 	username = c.user
 	mechanism = c.server.cfg.Security.DefaultMechanism
@@ -154,6 +232,8 @@ func (c *conn) parseUsername() (username string, mechanism string, source string
 				mechanism = value[0]
 			case "source":
 				source = value[0]
+			case "servicename":
+			case "servicerealm":
 			default:
 				err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "unknown authentication option %q", key)
 				return
@@ -162,7 +242,7 @@ func (c *conn) parseUsername() (username string, mechanism string, source string
 	}
 
 	switch mechanism {
-	case "PLAIN":
+	case "PLAIN", "GSSAPI":
 		source = "$external"
 	}
 

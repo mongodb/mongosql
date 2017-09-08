@@ -95,9 +95,12 @@ func Default() *Config {
 
 	cfg.Security.DefaultMechanism = "SCRAM-SHA-1"
 	cfg.Security.DefaultSource = "admin"
+	cfg.Security.GSSAPI.ServiceName = "mongosql"
 
 	cfg.MongoDB.Net.URI = "mongodb://localhost:27017"
 	cfg.MongoDB.Net.NumConnectionsPerSession = 2
+
+	cfg.MongoDB.Net.Auth.GSSAPIServiceName = "mongodb"
 
 	cfg.ProcessManagement.Service.Name = "mongosql"
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
@@ -341,6 +344,13 @@ type Security struct {
 	Enabled          bool
 	DefaultMechanism string
 	DefaultSource    string
+	GSSAPI           SecurityGSSAPI `config:"gssapi"`
+}
+
+// SecurityGSSAPI holds configuration for hosting GSSAPI authentication.
+type SecurityGSSAPI struct {
+	Hostname    string
+	ServiceName string `config:"serviceName"`
 }
 
 // MongoDB holds configuration for connecting to MongoDB.
@@ -383,10 +393,11 @@ type ProcessManagementService struct {
 
 // MongoDBNetAuth holds configuration for authenticating with MongoDB.
 type MongoDBNetAuth struct {
-	Username  string
-	Password  string `config:"password,protected"`
-	Source    string
-	Mechanism string
+	Username          string
+	Password          string `config:"password,protected"`
+	Source            string
+	Mechanism         string
+	GSSAPIServiceName string `config:"gssapiServiceName"`
 }
 
 // SetParameter holds miscellaneous configuration options.

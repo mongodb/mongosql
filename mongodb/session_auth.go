@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"context"
-
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -181,4 +180,20 @@ func (a *SaslSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connec
 			a.conversations[i].Payload = saslResp.Payload
 		}
 	}
+}
+
+// GssapiSessionAuthenticator authenticates a session
+// using the GSSAPI protocol.
+type GssapiSessionAuthenticator struct {
+	InitialPayload []byte
+	Callback       func([]byte) ([]byte, error)
+
+	HostServiceName string
+	HostAddr        string
+
+	RemoteServiceName string
+}
+
+func (a *GssapiSessionAuthenticator) source() string {
+	return "$external"
 }

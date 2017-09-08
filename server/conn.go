@@ -334,8 +334,7 @@ func (c *conn) handshake() error {
 		}
 
 		if err != nil {
-			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error performing authentication: %v", err)
-			c.writeError(err)
+			c.writeError(mysqlerrors.Newf(mysqlerrors.ER_ACCESS_DENIED_ERROR, "Access denied for user '%s'", c.user))
 			return err
 		}
 

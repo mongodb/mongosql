@@ -14,43 +14,52 @@ case $VARIANT in
 amazon)
     PUSH_ARCH='x86_64-enterprise-amzn64'
     PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
     ;;
 centos6-perf)
     PUSH_ARCH='x86_64-centos6'
     PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
     ;;
 debian71)
     PUSH_ARCH='x86_64-debian71'
     PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
     ;;
 debian81)
     PUSH_ARCH='x86_64-debian81'
     PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
     ;;
 macos)
     PUSH_ARCH='x86_64'
     PUSH_NAME='osx'
     GOROOT='/usr/local/go1.8/go'
     GOBINDIR='/usr/local/go1.8/go/bin'
+    BUILD_GSSAPI='true'
     ;;
 ppc)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
     PUSH_ARCH='ppc64le-rhel71'
     PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
     ;;
 rhel62)
     PUSH_ARCH='x86_64-rhel62'
     PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
     ;;
 rhel70)
     PUSH_ARCH='x86_64-rhel70'
     PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
     ;;
 s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
     PUSH_ARCH='s390x-enterprise-rhel72'
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
+    BUILD_GSSAPI='true'
     ;;
 suse11)
     PUSH_ARCH='x86_64-suse11'
@@ -60,10 +69,12 @@ suse11)
 suse12)
     PUSH_ARCH='x86_64-suse12'
     PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
     ;;
 ubuntu1404)
     PUSH_ARCH='x86_64-ubuntu-1404'
     PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
     ;;
 windows)
     PUSH_ARCH='x86_64'
@@ -74,5 +85,8 @@ windows)
     ARCHIVE_CONTENT_TYPE='zip'
     GOROOT='c:\go1.8\go'
     GOBINDIR='/cygdrive/c/go1.8/go/bin'
+    BUILD_GSSAPI='true'
     ;;
+*) # local
+    BUILD_GSSAPI='true'
 esac

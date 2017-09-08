@@ -301,6 +301,14 @@ functions:
         export TYPE='${var_type}'
         ${SCRIPT_DIR}/run-benchmarks.sh
 
+  "run gssapi auth tests":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/run-gssapi-auth-tests.sh
+
   "run integration tests":
     command: shell.exec
     type: test
@@ -382,6 +390,9 @@ functions:
         if [ "${var_use_dynamic_schema}" = "true" ]; then
             # use clustered-write mode so that the benchmark harness can grab the schema directly from mongodb
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter"
+        fi
+        if [ "${var_test_gssapi}" = "true" ]; then
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/gssapi/test"
         fi
         ${SCRIPT_DIR}/start-mongosqld.sh
 
@@ -848,6 +859,19 @@ tasks:
   commands:
     - func: "check vet"
 
+- name: gssapi-auth-test
+  tags:
+    - oneoff-task
+    - integration
+    - test
+  exec_timeout_secs: 600 # 10 minutes
+  commands:
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        var_test_gssapi: "true"
+    - func: "run gssapi auth tests"
+
 - name: jdbc-auth-test
   tags:
     - oneoff-task
@@ -992,6 +1016,10 @@ tasks:
 
 - <<: *run-config-test
   name: test-cleartext-auth-ssl
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-cleartext-auth-gssapi
   tags: ["test", "config"]
 
 - <<: *run-config-test
@@ -1467,6 +1495,31 @@ buildvariants:
   - rhel62-large
   tasks:
   - "jdbc-auth-test"
+
+- name: gssapi-rhel62
+  display_name: GSSAPI Auth RHEL 6.2
+  expansions:
+    _variant: rhel62
+    _mongo_auth: true
+    _client_auth: true
+  run_on:
+  - rhel62-test
+  - rhel62-build
+  - rhel62-large
+  tasks:
+  - "gssapi-auth-test"
+
+- name: gssapi-ubuntu1404
+  display_name: GSSAPI Auth Ubuntu 14.04
+  expansions:
+    _variant: ubuntu1404
+    _mongo_auth: true
+    _client_auth: true
+  run_on:
+  - ubuntu1404-build
+  - ubuntu1404-test
+  tasks:
+  - "gssapi-auth-test"
 
 - name: code-quality
   display_name: Code Quality (Amazon Linux)

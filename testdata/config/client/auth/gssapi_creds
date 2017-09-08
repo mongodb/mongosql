@@ -1,0 +1,4 @@
+
+CLIENT_CREDS="-udrivers@LDAPTEST.10GEN.CC?mechanism=GSSAPI"
+MYSQL_PWD="powerbook17"
+

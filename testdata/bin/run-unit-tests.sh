@@ -14,6 +14,7 @@ run_unit_tests() {
 
     go test -v \
         $BUILD_FLAGS \
+        -tags="$BUILD_TAGS" \
         $TEST_BUILD_FLAGS \
         $COVER_FLAG \
         | tee -a "$ARTIFACTS_DIR/out/${SUITE}-suite.out"

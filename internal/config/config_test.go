@@ -53,8 +53,13 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.Security.DefaultMechanism, "SCRAM-SHA-1", "cfg.Security.DefaultMechanism")
 	testString(t, cfg.Security.DefaultSource, "admin", "cfg.Security.DefaultSource")
 
+	testString(t, cfg.Security.GSSAPI.Hostname, "", "cfg.Security.GSSAPI.Hostname")
+	testString(t, cfg.Security.GSSAPI.ServiceName, "mongosql", "cfg.Security.GSSAPI.ServiceName")
+
 	testString(t, cfg.MongoDB.VersionCompatibility, "", "cfg.MongoDB.VersionCompatibility")
 	testString(t, cfg.MongoDB.Net.URI, "mongodb://localhost:27017", "cfg.MongoDB.Net.URI")
+
+	testString(t, cfg.MongoDB.Net.Auth.GSSAPIServiceName, "mongodb", "cfg.MongoDB.Net.Auth.GSSAPIServiceName")
 
 	testBool(t, cfg.MongoDB.Net.SSL.Enabled, false, "cfg.MongoDB.Net.SSL.Enabled")
 	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidCertificates, false, "cfg.MongoDB.Net.SSL.AllowInvalidCertificates")
