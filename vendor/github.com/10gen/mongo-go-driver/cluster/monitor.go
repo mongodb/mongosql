@@ -104,6 +104,7 @@ type Monitor struct {
 	serversLock   sync.Mutex
 	serversClosed bool
 	servers       map[model.Addr]*server.Monitor
+	closingWG     sync.WaitGroup
 }
 
 // ServerMonitor gets the server monitor for the specified endpoint. It
@@ -124,6 +125,7 @@ func (m *Monitor) Stop() {
 	}
 	m.serversLock.Unlock()
 
+	m.closingWG.Wait()
 	close(m.changes)
 }
 
@@ -141,6 +143,7 @@ func (m *Monitor) Subscribe() (<-chan *model.Cluster, func(), error) {
 
 	// add channel to subscribers
 	m.subscriberLock.Lock()
+	defer m.subscriberLock.Unlock()
 	if m.subscriptionsClosed {
 		close(ch)
 		return nil, nil, errors.New("cannot subscribe to monitor after stopping it")
@@ -148,15 +151,14 @@ func (m *Monitor) Subscribe() (<-chan *model.Cluster, func(), error) {
 	m.lastSubscriberID++
 	id := m.lastSubscriberID
 	m.subscribers[id] = ch
-	m.subscriberLock.Unlock()
 
 	unsubscribe := func() {
 		m.subscriberLock.Lock()
+		defer m.subscriberLock.Unlock()
 		if !m.subscriptionsClosed {
 			close(ch)
 			delete(m.subscribers, id)
 		}
-		m.subscriberLock.Unlock()
 	}
 
 	return ch, unsubscribe, nil
@@ -183,10 +185,12 @@ func (m *Monitor) startMonitoringServer(addr model.Addr) {
 
 	ch, _, _ := monitor.Subscribe()
 
+	m.closingWG.Add(1)
 	go func() {
 		for c := range ch {
 			m.changes <- c
 		}
+		m.closingWG.Done()
 	}()
 }
 
