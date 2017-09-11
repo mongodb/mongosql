@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/mongo"
 )
@@ -140,7 +141,7 @@ func testMapSchema(collection string, prejoined bool, jsonSchema *mongo.Schema, 
 
 	// map the json schema into a relational database
 	db := &schema.Database{Name: "test"}
-	err := db.Map(jsonSchema, collection, prejoined)
+	err := db.Map(jsonSchema, collection, prejoined, log.GlobalLogger())
 	if err != nil {
 		return err
 	}

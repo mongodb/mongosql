@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"sync"
 	"time"
-        "runtime"
 )
 
 const (
@@ -41,10 +41,10 @@ const (
 
 //OS will not change mid-run, so we set our logging line endings once, on package init
 func getNewLine() string {
-       if runtime.GOOS == "windows" {
-              return "\r\n"
-       }
-       return "\n"
+	if runtime.GOOS == "windows" {
+		return "\r\n"
+	}
+	return "\n"
 }
 
 var (
@@ -54,7 +54,7 @@ var (
 		DebugLow:  "D", // Debug
 		DebugHigh: "D",
 	}
-        logNewLine = getNewLine()
+	logNewLine = getNewLine()
 )
 
 type Logger struct {

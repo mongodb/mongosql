@@ -11,6 +11,7 @@ import (
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
@@ -177,7 +178,7 @@ func (d *Database) Equals(other *Database) error {
 // equivalent of that schema. If preJoined is true, the tables generated for
 // array fields will include parent fields, effectively resulting in pre-joined
 // tables.
-func (d *Database) Map(js *mongo.Schema, name string, preJoined bool) error {
+func (d *Database) Map(js *mongo.Schema, name string, preJoined bool, lg log.Logger) error {
 
 	// create the table into which we will map this collection's fields.
 	// this table has the same name as the collection it is mapped from.
@@ -187,11 +188,13 @@ func (d *Database) Map(js *mongo.Schema, name string, preJoined bool) error {
 	if err != nil {
 		return err
 	}
+	lg.Logf(log.Info, "Mapped new table %q", name)
 
-	// initialize the top-level mapping context with the database and table
+	// initialize the top-level mapping context with the logger, db, and table
 	ctx := &mappingContext{
-		db:    d,
-		table: t,
+		logger: lg,
+		db:     d,
+		table:  t,
 	}
 
 	// map the collection schema to a relational schema
@@ -207,6 +210,12 @@ func (d *Database) Map(js *mongo.Schema, name string, preJoined bool) error {
 		t.Sort()
 		if len(t.Columns) > 0 {
 			tables = append(tables, t)
+		} else {
+			lg.Logf(
+				log.Info,
+				"Omitting table %q: has no columns",
+				t.Name,
+			)
 		}
 	}
 	d.Tables = tables

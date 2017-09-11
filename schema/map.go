@@ -6,12 +6,17 @@ import (
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/mongo"
 )
 
 // mappingContext maintains state that describes the context into which a mongo
 // schema should be mapped.
 type mappingContext struct {
+
+	// logger is the logger used to output warnings and other information during
+	// the mapping process
+	logger log.Logger
 
 	// db is the database into which we are mapping the current schema.
 	// this will never be changed by any mapping functions.
@@ -56,11 +61,16 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 	for _, prop := range props {
 
 		// get the dominant schema for this prop
-		schema := js.Properties[prop].DominantSchema()
+		schema := ctx.withSubpath(prop).getDominantSchema(js.Properties[prop])
 
 		switch schema.BsonType {
 		case mongo.NoBsonType:
 			// ignore column (no types)
+			ctx.logger.Logf(
+				log.DebugLow,
+				"Table %q, column %q has no types: ignoring column",
+				ctx.table.Name, prop,
+			)
 
 		case mongo.Object:
 			err := ctx.objectContext(prop).mapObjectSchema(schema)
@@ -131,7 +141,7 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 	ctx.table.Pipeline = append(ctx.table.Pipeline, unwind)
 
 	// get the dominant schema for the array's elements
-	items := js.Items.DominantSchema()
+	items := ctx.getDominantSchema(js.Items)
 
 	// map the array's elements.
 	// we need a subcontext if this an a nested array (to track depth)
@@ -216,6 +226,12 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 	}
 	newCtx.table = arrayTable
 
+	ctx.logger.Logf(
+		log.DebugLow,
+		"Mapped new table %q for array at path %q",
+		arrayTableName, newCtx.path,
+	)
+
 	// set the array table's parent table to the current context's table
 	arrayTable.parent = ctx.table
 
@@ -262,12 +278,37 @@ func (ctx *mappingContext) withSubpath(subPath string) *mappingContext {
 // context's fields.
 func (ctx *mappingContext) copy() *mappingContext {
 	return &mappingContext{
+		logger:           ctx.logger,
 		db:               ctx.db,
 		table:            ctx.table,
 		path:             ctx.path,
 		nestedArrayDepth: ctx.nestedArrayDepth,
 		inPrimaryKey:     ctx.inPrimaryKey,
 	}
+}
+
+// getDominantSchema returns the dominant schema for the provided Schemata.
+// If there were multiple candidate schemas, a warning will be logged.
+func (ctx *mappingContext) getDominantSchema(s *mongo.Schemata) *mongo.Schema {
+	// get the dominant schema
+	dominant := s.DominantSchema()
+
+	// if we had multiple schemas for this path, log a warning
+	if len(s.Schemas) > 1 {
+		bsonTypes := []string{}
+		for bt, _ := range s.Schemas {
+			bsonTypes = append(bsonTypes, string(bt))
+		}
+		ctx.logger.Logf(
+			log.DebugLow,
+			"Table %q: multiple types observed at document path %q: %v",
+			ctx.table.Name,
+			ctx.path,
+			strings.Join(bsonTypes, ", "),
+		)
+		ctx.logger.Logf(log.DebugLow, "Using schema of type %s", dominant.BsonType)
+	}
+	return dominant
 }
 
 // newTable creates a new table with the provided table and collection names.
