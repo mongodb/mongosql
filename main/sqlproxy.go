@@ -14,6 +14,7 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/server"
+	"github.com/spacemonkeygo/openssl"
 )
 
 type program struct {
@@ -233,6 +234,7 @@ func (p *program) logStartupInfo() []string {
 	startupInfo := []string{
 		fmt.Sprintf("[initandlisten] mongosqld version: %v", config.VersionStr),
 		fmt.Sprintf("[initandlisten] git version: %v", config.Gitspec),
+		fmt.Sprintf("[initandlisten] OpenSSL version: %v", openssl.Version),
 		fmt.Sprintf("[initandlisten] options: %v", config.ToJSON(p.cfg)),
 	}
 
