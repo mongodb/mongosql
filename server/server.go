@@ -412,7 +412,7 @@ func (s *Server) serveConnection(c net.Conn) {
 		if address == "" {
 			address = c.LocalAddr().String()
 		}
-		logger.Logf(log.Info, "[initandlisten] connection accepted from %v, but unable to connect to MongoDB: %v", address, err)
+		logger.Logf(log.Info, "[initandlisten] connection accepted from %v, but could not initialize: %v", address, err)
 		c.Close()
 		return
 	}

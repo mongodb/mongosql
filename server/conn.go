@@ -88,9 +88,6 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	session, err := s.sessionProvider.Session(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	newConn := &conn{
 		server:        s,
@@ -117,6 +114,12 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 		variables:   variable.NewSessionContainer(s.variables),
 	}
 
+	if err != nil {
+
+		newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ER_CONNECT_TO_FOREIGN_DATA_SOURCE, "MongoDB"))
+		return nil, fmt.Errorf("unable to connect to MongoDB: %v", err)
+	}
+
 	if s.cfg.Security.Enabled {
 		newConn.capability = newConn.capability |
 			CLIENT_PLUGIN_AUTH |
@@ -126,6 +129,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 	} else {
 		buf, err := randomBuf(20)
 		if err != nil {
+			newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_ERROR))
 			return nil, fmt.Errorf("unable to generate salt: %v", err)
 		}
 		newConn.authPluginName = nativePasswordPluginName
