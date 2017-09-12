@@ -39,8 +39,11 @@ const (
 	Error   = "F" // Fatal
 )
 
-//OS will not change mid-run, so we set our logging line endings once, on package init
-func getNewLine() string {
+// newLine gets the proper line ending for the current OS.
+// OS will not change mid-run, so we set our logging line endings once, on package init.
+// We need a function to do this in go because there is no conditional expression
+// for setting a global variable
+func newLine() string {
 	if runtime.GOOS == "windows" {
 		return "\r\n"
 	}
@@ -54,7 +57,7 @@ var (
 		DebugLow:  "D", // Debug
 		DebugHigh: "D",
 	}
-	logNewLine = getNewLine()
+	NewLine = newLine() // NewLine is the actual newline string for logging, exported for use elsewhere
 )
 
 type Logger struct {
@@ -243,7 +246,7 @@ func (w *writeBuffer) writeMessage(str string) {
 	}
 
 	w.bufLock.Lock()
-	msgBytes := []byte(fmt.Sprintf("%v %v%s", time.Now().Format(w.format), str, logNewLine))
+	msgBytes := []byte(fmt.Sprintf("%v %v%s", time.Now().Format(w.format), str, NewLine))
 	w.buf = append(w.buf, msgBytes...)
 	w.bufLock.Unlock()
 }

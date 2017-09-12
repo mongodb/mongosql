@@ -275,7 +275,21 @@ func main() {
 	p := &program{}
 	err := p.loadConfig(args)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to start due to configuration error: %v\n", err)
+		if service.Interactive() {
+			fmt.Fprintln(os.Stderr, "failed to start due to configuration error: %v", err)
+			os.Exit(1)
+		}
+		cfg := config.Default()
+		errorServiceConfig := &service.Config{
+			Name:        cfg.ProcessManagement.Service.Name,
+			DisplayName: cfg.ProcessManagement.Service.DisplayName,
+			Description: cfg.ProcessManagement.Service.Description,
+			Arguments:   args,
+		}
+		// We have no way to display any errors that occur here
+		errorService, _ := service.New(p, errorServiceConfig)
+		errLogger, _ := errorService.Logger(nil)
+		errLogger.Errorf("failed to start due to configuration error: %v%s", err, log.NewLine)
 		os.Exit(1)
 	}
 
@@ -296,7 +310,7 @@ func main() {
 	case "install":
 		err = config.Validate(p.cfg)
 		if err != nil {
-			fmt.Fprintf(os.Stdout, "could not install because configuration is invalid: %s\n", err)
+			fmt.Fprintf(os.Stderr, "could not install because configuration is invalid: %s\n", err)
 			os.Exit(1)
 		}
 
