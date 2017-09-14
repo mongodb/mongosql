@@ -176,6 +176,10 @@ func Validate(cfg *Config) error {
 			"mechanism '%v'", cfg.MongoDB.Net.Auth.Mechanism)
 	}
 
+	if cfg.Schema.Sample.Size < 0 {
+		return fmt.Errorf("invalid sample size: %d", cfg.Schema.Sample.Size)
+	}
+
 	if _, err := util.NewMatcher(cfg.Schema.Sample.Namespaces); err != nil {
 		return fmt.Errorf("invalid specification: %v", err)
 	}

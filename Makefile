@@ -69,3 +69,4 @@ include testdata/config/tests/log-newlines.mk
 include testdata/config/tests/mongo-ssl.mk
 include testdata/config/tests/mongodrdl.mk
 include testdata/config/tests/sqlproxy-ssl.mk
+include testdata/config/tests/schema.mk

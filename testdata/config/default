@@ -6,6 +6,10 @@ GORACE=""
 # sqlproxy/auth
 SQLPROXY_AUTH_ARGS=""
 
+# sqlproxy/schema/*
+SQLPROXY_SCHEMA_SOURCE="--schema $PROJECT_DIR/testdata/resources/schema"
+SQLPROXY_SAMPLE_SIZE=""
+
 # sqlproxy/ssl/*
 SQLPROXY_SSLMODE=""
 SQLPROXY_SSLCAFILE=""
@@ -41,9 +45,6 @@ TOPOLOGY=server
 # mongo/version/*
 MONGODB_VERSION=latest
 VERSION_FLAG=""
-
-# sqlproxy/dynamic-schema
-SQLPROXY_SCHEMA_ARGS="--schemaDirectory $PROJECT_DIR/testdata/resources/schema"
 
 # sqlproxy/nopushdown
 SQLPROXY_PUSHDOWN_OFF=""

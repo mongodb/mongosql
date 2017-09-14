@@ -301,7 +301,7 @@ functions:
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/nopushdown"
         fi
         if [ "${var_use_dynamic_schema}" = "true" ]; then
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/dynamic-schema/enable"
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/dynamic"
         fi
         ${SCRIPT_DIR}/start-mongosqld.sh
 
@@ -778,6 +778,18 @@ tasks:
 
 - <<: *run-config-test
   name: test-log-newlines
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-default
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-all
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-ten
   tags: ["test", "config"]
 
 - name: tpch-handwritten-denormalized

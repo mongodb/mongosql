@@ -246,7 +246,10 @@ func SampleSchema(opts *config.SchemaSampleOptions, session *mongodb.Session,
 
 			// 1. run sample command
 			lgr.Logf(log.DebugLow, "Mapping schema for namespace %s", ns)
-			pipeline := []bson.M{{"$sample": bson.M{"size": opts.Size}}}
+			pipeline := []bson.M{}
+			if opts.Size != 0 {
+				pipeline = append(pipeline, bson.M{"$sample": bson.M{"size": opts.Size}})
+			}
 			namespace.StartSampleTime = time.Now()
 
 			// 2. get sample documents

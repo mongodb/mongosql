@@ -312,6 +312,22 @@ func TestValidate_LogRotate_unsupported(t *testing.T) {
 	}
 }
 
+func TestValidate_Invalid_SampleSize(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Sample.Size = -1
+	cfg.Schema.Sample.Source = "test"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := "invalid sample size: -1"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
 func testBool(t *testing.T, actual, expected bool, key string) {
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
