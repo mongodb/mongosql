@@ -47,6 +47,7 @@ func (d *Database) Map(c *mongo.Collection, idxs []mongodb.Index, preJoined bool
 	for _, t := range d.Tables {
 		t.copyParent(!preJoined)
 		if len(t.Columns) > 0 {
+			t.Columns.Sort()
 			tables = append(tables, t)
 		} else {
 			d.logger.Logf(log.Info, "Removed table %q: had no columns.", t.Name)

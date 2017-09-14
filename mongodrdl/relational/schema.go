@@ -46,6 +46,7 @@ type Table struct {
 	CollectionName string                   `yaml:"collection"`
 	Pipeline       []map[string]interface{} `yaml:"pipeline"`
 	Columns        ColumnSlice              `yaml:"columns"`
+	ColumnNameMap  map[string]struct{}      `yaml:"-"`
 	Parent         *Table                   `yaml:"-"`
 	PrimaryKey     ColumnSlice              `yaml:"-"`
 }
@@ -54,18 +55,26 @@ func newTable(name string, collectionName string) *Table {
 	return &Table{
 		Name:           name,
 		CollectionName: collectionName,
+		ColumnNameMap:  make(map[string]struct{}),
 	}
 }
 
 func (t *Table) AddColumn(name string, mongoType string) (*Column, error) {
-	if t.Columns.containsName(name) {
+	if t.containsColumn(name) {
 		return nil, fmt.Errorf("A column with the name %s already exists.", name)
 	}
 
 	c := newColumn(name, mongoType)
 	t.Columns = append(t.Columns, c)
-	t.Columns.Sort()
+	t.ColumnNameMap[name] = struct{}{}
 	return c, nil
+}
+
+func (t *Table) containsColumn(name string) bool {
+	if _, ok := t.ColumnNameMap[name]; ok {
+		return true
+	}
+	return false
 }
 
 func (t *Table) addUnwind(path string, indexFieldName string) {
@@ -95,14 +104,14 @@ func (t *Table) copyParent(primaryKeyOnly bool) error {
 	}
 
 	for _, copy := range source {
-		if t.Columns.containsName(copy.Name) {
+		if t.containsColumn(copy.Name) {
 			return fmt.Errorf("A column with the name %s already exists.", copy.Name)
 		}
 
+		t.ColumnNameMap[copy.Name] = struct{}{}
 		t.Columns = append(t.Columns, copy)
 	}
 
-	t.Columns.Sort()
 	parentPipeline := make([]map[string]interface{}, len(t.Parent.Pipeline), len(t.Parent.Pipeline)+len(t.Pipeline))
 	copy(parentPipeline, t.Parent.Pipeline)
 	t.Pipeline = append(parentPipeline, t.Pipeline...)
@@ -184,11 +193,3 @@ func (slice ColumnSlice) Less(i, j int) bool {
 }
 func (slice ColumnSlice) Swap(i, j int) { slice[i], slice[j] = slice[j], slice[i] }
 func (slice ColumnSlice) Sort()         { sort.Sort(slice) }
-func (slice ColumnSlice) containsName(name string) bool {
-	for _, c := range slice {
-		if c.Name == name {
-			return true
-		}
-	}
-	return false
-}
