@@ -1761,7 +1761,12 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 	return ms, nil
 }
 
+const (
+	emptyFieldNamePrefix = "__empty"
+)
+
 func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, error) {
+
 	// Check if we can optimize further, if the child operator has a MongoSource.
 	ms, ok := v.canPushDown(project.source)
 	if !ok {
@@ -1826,6 +1831,13 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			fixedProjectedColumns = append(fixedProjectedColumns, projectedColumn)
 		} else {
 			safeFieldName := sanitizeFieldName(projectedColumn.Expr.String())
+
+			// If the name turns out to be empty, we need to assign our own
+			if safeFieldName == "" {
+				safeFieldName = emptyFieldNamePrefix
+			}
+			safeFieldName = v.uniqueFieldName(&fixedMappingRegistry, safeFieldName)
+
 			fieldsToProject[safeFieldName] = projectedField
 			fixedMappingRegistry.addColumn(projectedColumn.Column)
 			fixedMappingRegistry.registerMapping(projectedColumn.Table, projectedColumn.Name, safeFieldName)
@@ -1991,14 +2003,18 @@ func (v *pushDownOptimizer) projectAllColumns(mr *mappingRegistry) bson.M {
 
 func (v *pushDownOptimizer) uniqueFieldName(mr *mappingRegistry, fieldName string) string {
 	retFieldName := fieldName
+
 	i := 0
+
 	for {
-		if _, ok := mr.fields[retFieldName]; !ok {
+
+		if !mr.containsFieldName(retFieldName) {
 			return retFieldName
 		}
 
-		i++
 		retFieldName = fmt.Sprintf("%v_%v", fieldName, i)
+		i++
+
 	}
 }
 

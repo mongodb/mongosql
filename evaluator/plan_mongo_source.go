@@ -247,6 +247,21 @@ func (mr *mappingRegistry) registerMapping(tbl, column, field string) {
 	mr.fields[tbl][column] = field
 }
 
+// containsFieldName checks whether a field name exists across the entire registry
+func (mr *mappingRegistry) containsFieldName(fieldName string) bool {
+
+	for _, columns := range mr.fields {
+
+		for _, field := range columns {
+			if field == fieldName {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func (mr *mappingRegistry) String() string {
 	var b bytes.Buffer
 

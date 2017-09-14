@@ -3069,6 +3069,235 @@ func TestOptimizePlan(t *testing.T) {
 				},
 			)
 		})
+
+		Convey("Subject: UniqueFieldNameGeneration", func() {
+			test("select trim('') from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+			test("select trim(''), trim(a) from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+						"a": "$a",
+					}}},
+				})
+			test("select trim(''), trim(a), trim(' ') from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+						"a": "$a",
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+			test("select trim(''), trim(' '), trim('  '), trim('   ') from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
+							"$literal": "",
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1): bson.M{
+							"$literal": "",
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 2): bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+			test("select a, b, trim('   ') from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+						"foo_DOT_b": "$b",
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+			test("select trim(a), trim(''), a, trim(' ') from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						"a": "$a",
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+						"foo_DOT_a": "$a",
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+			test("select trim('') from (select trim('') from foo) as subq",
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+					}}},
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+			test("select trim('') from (select trim('') from (select trim('') from foo) as subq1) as subq2",
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+					}}},
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+					}}},
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+			test("select trim('') from (select trim('') from (select trim('') from (select trim('') from foo) as subq1) as subq2) as subq3",
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+					}}},
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+					}}},
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+					}}},
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+			test("select trim(''), trim(' ') from foo inner join (select trim(''), trim(' ') from bar) as t2",
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+			test("select trim(''), trim(' '), trim('  ') from foo inner join (select trim(''), trim(' '), trim('  ') from bar) as t2",
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
+							"$literal": "",
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1): bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+
+			test(fmt.Sprintf("select '%v', trim('') from foo", emptyFieldNamePrefix),
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": emptyFieldNamePrefix,
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+
+			test(fmt.Sprintf("select '%v', '%v', trim('') from foo", emptyFieldNamePrefix, fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0)),
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": emptyFieldNamePrefix,
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
+							"$literal": fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0),
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1): bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+
+			test(fmt.Sprintf("select '%v', '%v', trim('') from foo", emptyFieldNamePrefix, fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1)),
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": emptyFieldNamePrefix,
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1): bson.M{
+							"$literal": fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1),
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+
+			test(fmt.Sprintf("select '%v', '%v', trim(''), trim(' ') from foo", emptyFieldNamePrefix, fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1)),
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": emptyFieldNamePrefix,
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
+							"$literal": "",
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1): bson.M{
+							"$literal": fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1),
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 2): bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+			test(fmt.Sprintf("select '%v', '%v', trim(''), trim(' ') from foo", fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0), fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1)),
+				[]bson.D{
+					{{"$project", bson.M{
+						emptyFieldNamePrefix: bson.M{
+							"$literal": "",
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
+							"$literal": fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0),
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1): bson.M{
+							"$literal": fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 1),
+						},
+						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 2): bson.M{
+							"$literal": "",
+						},
+					}}},
+				})
+		})
+
 	})
 }
 
