@@ -297,6 +297,32 @@ func TestShow(t *testing.T) {
 	if String(testParse(t, sql).(*Show).From) != "bar.foo" {
 		t.Fatalf("table wrong: %s", String(testParse(t, sql).(*Show).From))
 	}
+
+	sql = "show fields from `foo`"
+	testParse(t, sql)
+
+	sql = "show fields in `foo`"
+	testParse(t, sql)
+	if testParse(t, sql).(*Show).Modifier != "" {
+		t.Fatal("modifier wrong")
+	}
+
+	sql = "show full fields from `foo`"
+	if testParse(t, sql).(*Show).Modifier != "full" {
+		t.Fatal("modifier wrong")
+	}
+
+	sql = "show fields from `foo` from `bar`"
+	testParse(t, sql)
+	if String(testParse(t, sql).(*Show).From) != "bar.foo" {
+		t.Fatalf("table wrong: %s", String(testParse(t, sql).(*Show).From))
+	}
+
+	sql = "show fields in `foo` in `bar`"
+	testParse(t, sql)
+	if String(testParse(t, sql).(*Show).From) != "bar.foo" {
+		t.Fatalf("table wrong: %s", String(testParse(t, sql).(*Show).From))
+	}
 }
 
 func TestExplain(t *testing.T) {

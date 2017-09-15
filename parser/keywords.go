@@ -293,6 +293,7 @@ var keywords = map[string]int{
 	"extended":           EXTENDED,
 	"extract":            EXTRACT,
 	"false":              FALSE,
+	"fields":             COLUMNS,    /* treat as SHOW COLUMNS */
 	"flush":              FLUSH,
 	"fn":                 FN,
 	"for":                FOR,

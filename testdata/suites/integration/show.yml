@@ -520,3 +520,77 @@ testcases:
   id: '100'
   db: show_test
   expected: []
+- sql: "SHOW FIELDS FROM foo"
+  id: '101'
+  db: show_test
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW FIELDS IN foo IN show_test LIKE 'b%'"
+  id: '102'
+  db: show_test
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+- sql: "SHOW FIELDS FROM foo FROM show_test LIKE 'b%'"
+  id: '103'
+  db: show_test
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+- sql: "SHOW FIELDS FROM foo WHERE type = 'varchar(65535)'"
+  id: '104'
+  db: show_test
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+- sql: "SHOW FIELDS FROM show_test.foo"
+  id: '105'
+  db: show_test
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW FIELDS IN show_test.foo"
+  id: '106'
+  db: show_test
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW FIELDS IN .foo"
+  id: '107'
+  db: show_test
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW FIELDS FROM foo FROM show_test"
+  id: '108'
+  db: show_test
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW FIELDS IN foo IN show_test"
+  id: '109'
+  db: show_test
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "YES", "", ~, ""]
+    - ["b1", "varchar(65535)", "YES", "", ~, ""]
+    - ["c1", "bigint(20)", "YES", "", ~, ""]
+- sql: "SHOW FULL FIELDS FROM foo"
+  id: '110'
+  db: show_test
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+    - ["a1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"a\" }"]
+    - ["b1", "varchar(65535)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"b\" }"]
+    - ["c1", "bigint(20)", "utf8_bin", "YES", "", ~, "", "select", "{ \"name\": \"c\" }"]
