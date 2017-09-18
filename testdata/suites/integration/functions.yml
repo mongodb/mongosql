@@ -4348,3 +4348,36 @@ testcases:
   - [~]
   - [~]
   - [~]
+- sql: "select trim(LEADING'y' FROM b) from bar"
+  id: 'trim_leading'
+  db: functions_test
+  expected_names: ["trim(b, 'leading', 'y')"]
+  expected_types: [string]
+  expected:
+  - ["hey"]
+  - ["o"]
+  - [~]
+  - ["this"]
+  - [~]
+- sql: "select trim(TRAILING'y' FROM b) from bar"
+  id: 'trim_traling'
+  db: functions_test
+  expected_names: ["trim(b, 'trailing', 'y')"]
+  expected_types: [string]
+  expected:
+  - ["he"]
+  - ["yo"]
+  - [~]
+  - ["this"]
+  - [~]
+- sql: "select trim('y' FROM b) from bar"
+  id: 'trim_noModifiers'
+  db: functions_test
+  expected_names: ["trim(b, 'both', 'y')"]
+  expected_types: [string]
+  expected:
+  - ["he"]
+  - ["o"]
+  - [~]
+  - ["this"]
+  - [~]

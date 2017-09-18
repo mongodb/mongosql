@@ -2248,6 +2248,7 @@ func TestEvaluates(t *testing.T) {
 					test{"TRIM(BOTH 'xyz' FROM 'xyzbarxyzxyz')", SQLVarchar("bar")},
 					test{"TRIM(LEADING 'xyz' FROM 'xyzbarxyzxyz')", SQLVarchar("barxyzxyz")},
 					test{"TRIM(TRAILING 'xyz' FROM 'xyzbarxyzxyz')", SQLVarchar("xyzbar")},
+					test{"TRIM('xyz' FROM 'xyzbarxyzxyz')", SQLVarchar("bar")},
 				}
 
 				runTests(evalCtx, tests)

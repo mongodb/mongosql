@@ -1447,6 +1447,10 @@ func_expr_unconventional:
   {
     $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: []SelectExpr{$6, &NonStarExpr{Expr: StrVal($3)}, $4}}
   }
+| TRIM LPAREN select_expression FROM select_expression RPAREN 
+  {
+    $$ = &FuncExpr{Name: TRIM_BYTES, Exprs: []SelectExpr{$5, &NonStarExpr{Expr: StrVal(BOTH_BYTES)}, $3}}
+  }
 
 | substr LPAREN select_expression FROM select_expression FOR select_expression RPAREN
   {
