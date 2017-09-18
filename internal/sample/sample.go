@@ -1,7 +1,6 @@
 package sample
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -15,12 +14,6 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/model"
-)
-
-var (
-	ErrNotFound          = errors.New("sampled schema not found")
-	ErrLockAcquireFailed = errors.New("lock acquisition failed")
-	ErrLockReleaseFailed = errors.New("lock release failed")
 )
 
 // Collections used to perform sampling operations.
@@ -43,20 +36,6 @@ type nsMapping map[string]nsCollections
 
 // nsCollections is a list of collection names.
 type nsCollections []string
-
-// TODO (BI-1171): AcquireLock returns nil if the database lock was
-// successfully acquired. If the lock is already acquired
-// by another process, it returns ErrLockAcquireFailed.
-func AcquireLock(session *mongodb.Session, db string) error {
-	return nil
-}
-
-// TODO (BI-1171): ReleaseLock returns nil if the database
-// lock was successfully released. If the lock was acquired
-// by another process, it returns ErrLockReleaseFailed.
-func ReleaseLock(session *mongodb.Session, db string) error {
-	return ErrLockReleaseFailed
-}
 
 // FetchNamespaces returns a map of databases - that
 // exist in the cluster 'session' is connected to - to
@@ -177,7 +156,7 @@ func InsertSampleRecord(record *Record,
 
 // TODO (BI-1120): ReadSchema reads a schema stored in the configuration sampling source
 // database and returns a relational representation of the schema. If no
-// such schema exists, it returns ErrNotFound.
+// such schema exists, it returns nil.
 func ReadSchema(cfg *config.SchemaSampleOptions, session *mongodb.Session,
 	lgr *log.Logger) (*schema.Schema, error) {
 	return nil, nil

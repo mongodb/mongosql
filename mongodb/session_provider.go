@@ -134,12 +134,23 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		return nil, err
 	}
 
-	return &SessionProvider{
+	sp := &SessionProvider{
 		auth:           cfg.Security.Enabled,
 		rp:             rp,
 		c:              c,
 		connectTimeout: getConnectTimeout(cs),
-	}, nil
+	}
+
+	if cfg.MongoDB.Net.Auth.Username != "" {
+		sp.adminAuthenticator = &CleartextSessionAuthenticator{
+			Source:    cfg.MongoDB.Net.Auth.Source,
+			Mechanism: cfg.MongoDB.Net.Auth.Mechanism,
+			Username:  cfg.MongoDB.Net.Auth.Username,
+			Password:  cfg.MongoDB.Net.Auth.Password,
+		}
+	}
+
+	return sp, nil
 }
 
 // SessionProvider handles creating sessions.
@@ -148,6 +159,8 @@ type SessionProvider struct {
 	rp             *readpref.ReadPref
 	c              *cluster.Cluster
 	connectTimeout time.Duration
+
+	adminAuthenticator SessionAuthenticator
 }
 
 // Close closes the session provider.
@@ -155,9 +168,32 @@ func (sp *SessionProvider) Close() {
 	sp.c.Close()
 }
 
+// AdminSession gets a new session used for handling administration tasks that
+// require a primary and need to be authenticated separately from a client.
+func (sp *SessionProvider) AdminSession(ctx context.Context) (*Session, error) {
+	session, err := sp.session(ctx, readpref.Primary())
+	if err != nil {
+		return nil, err
+	}
+
+	if sp.adminAuthenticator != nil {
+		err = session.Login(sp.adminAuthenticator)
+		if err != nil {
+			session.Close()
+			return nil, err
+		}
+	}
+
+	return session, nil
+}
+
 // Session gets a new session.
 func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
-	selector := readpref.Selector(sp.rp)
+	return sp.session(ctx, sp.rp)
+}
+
+func (sp *SessionProvider) session(ctx context.Context, rp *readpref.ReadPref) (*Session, error) {
+	selector := readpref.Selector(rp)
 	connectCtx, cancel := context.WithTimeout(ctx, sp.connectTimeout)
 	defer cancel()
 	server, err := sp.c.SelectServer(connectCtx, selector)

@@ -265,10 +265,10 @@ func (o *logOptions) mapToConfig(cfg *Config) error {
 type mongoConnectionOptions struct {
 	MongoSSL                  *bool   `long:"mongo-ssl" description:"use SSL when connecting to mongo instance"`
 	MongoURI                  *string `long:"mongo-uri" description:"a mongo URI (https://docs.mongodb.org/manual/reference/connection-string/) to connect to"`
-	MongoUsername             *string `short:"u" value-name:"<username>" long:"mongo-username" description:"authentication username to use for schema discovery (only required if --auth is also enabled)"`
-	MongoPassword             *string `short:"p" value-name:"<password>" long:"mongo-password" description:"authentication password to use for schema discovery (only required if --auth is also enabled)"`
-	MongoSource               *string `long:"mongo-authenticationSource" value-name:"<authentication source>" description:"database that holds the credentials for the schema discovery user (only required if --auth is also enabled)"`
-	MongoMechanism            *string `long:"mongo-authenticationMechanism" description:"authentication mechanism to use for schema discovery (only required if --auth is also enabled)" choice:"SCRAM-SHA-1" choice:"PLAIN"`
+	MongoUsername             *string `short:"u" value-name:"<username>" long:"mongo-username" description:"authentication username to use for schema discovery (only required if --auth is also enabled and --sampleSource is specified)"`
+	MongoPassword             *string `short:"p" value-name:"<password>" long:"mongo-password" description:"authentication password to use for schema discovery (only required if --auth is also enabled and --sampleSource is specified)"`
+	MongoSource               *string `long:"mongo-authenticationSource" value-name:"<authentication source>" description:"database that holds the credentials for the schema discovery user (only used if --auth is also enabled and --sampleSource is specified)"`
+	MongoMechanism            *string `long:"mongo-authenticationMechanism" description:"authentication mechanism to use for schema discovery (only used if --auth is also enabled and --sampleSource is specified)" choice:"SCRAM-SHA-1" choice:"PLAIN"`
 	MongoAllowInvalidCerts    *bool   `long:"mongo-sslAllowInvalidCertificates" description:"don't require the certificate presented by the MongoDB server to be valid, when using --mongo-ssl"`
 	MongoSSLAllowInvalidHost  *bool   `long:"mongo-sslAllowInvalidHostnames" description:"bypass the validation for server name"`
 	MongoCAFile               *string `long:"mongo-sslCAFile" value-name:"<filename>" description:"path to a CA certificate file to use for authenticating certificates from MongoDB, when using --mongo-ssl"`

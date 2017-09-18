@@ -7,10 +7,8 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -27,18 +25,16 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 	component := fmt.Sprintf("%-10v [initandlisten]", log.NetworkComponent)
 	logger := log.NewComponentLogger(component, log.GlobalLogger())
 
+	lifetimeCtx, lifetimeCancel := context.WithCancel(context.Background())
 	s := &Server{
 		cfg:               cfg,
-		terminateChan:     make(chan struct{}),
+		lifetimeCtx:       lifetimeCtx,
+		lifetimeCancel:    lifetimeCancel,
 		activeConnections: make(map[uint32]*conn),
 		schema:            schema,
 		sessionProvider:   sessionProvider,
 		variables:         variable.NewGlobalContainer(),
 		logger:            logger,
-	}
-
-	if schema != nil {
-		atomic.StoreUint32(&s.isSchemaLoaded, uint32(1))
 	}
 
 	s.variables.MongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
@@ -61,17 +57,15 @@ type Server struct {
 
 	// synchronization variables for
 	// terminating server
-	terminateChan chan struct{}
-	closed        int32
-	terminated    bool
+	lifetimeCtx    context.Context
+	lifetimeCancel func()
+	closed         int32
 
 	logger *log.Logger
-	schema *schema.Schema
 
-	// this is an atomic variable that is used
-	// to indicate when an asynchronous load of
-	// the schema has been completed
-	isSchemaLoaded  uint32
+	schemaLock sync.RWMutex
+	schema     *schema.Schema
+
 	sessionProvider *mongodb.SessionProvider
 	variables       *variable.Container
 
@@ -80,71 +74,6 @@ type Server struct {
 	startupInfo []string
 
 	listeners []net.Listener
-}
-
-func (s *Server) SampleSchema(ctx context.Context,
-	opts *config.SchemaSampleOptions) {
-
-	lgr := log.NewComponentLogger(
-		fmt.Sprintf("%-10v [schemaDiscovery]", "SAMPLE"),
-		log.GlobalLogger(),
-	)
-
-	waitToReconnect := func() { time.Sleep(5 * time.Second) }
-
-	for {
-		session, err := s.sessionProvider.Session(ctx)
-		if err != nil {
-			s.logger.Errf(log.Always, "error connecting to MongoDB: %v", err)
-			waitToReconnect()
-			continue
-		}
-		defer session.Close()
-
-		var sampleRecord *sample.Record
-
-		if opts.Mode == "read" {
-			//
-			// TODO (BI-1122): For read-only mongosqld, look up versions/schemas
-			// collection. If unable, sample without inserting.
-			//
-			s.schema, err = sample.ReadSchema(opts, session, lgr)
-			if err == nil {
-				break
-			} else if err == sample.ErrNotFound {
-				s.schema, _, err = sample.SampleSchema(opts, session, lgr)
-				if err == nil {
-					break
-				}
-			}
-		} else {
-			//
-			//	TODO (BI-1122): For read/write mongosqld sample and
-			//	then attempt to insert if lock can be
-			//	acquired. Otherwise, move on.
-			//
-			s.schema, sampleRecord, err = sample.SampleSchema(opts, session, lgr)
-			if err == nil {
-				// TODO (BI-1171): attempt to acquire database lock
-				// if ErrLockAcquireFailed is returned, move on
-				err = sample.AcquireLock(session, sampleRecord.Database)
-				if err != nil && err == sample.ErrLockAcquireFailed {
-					break
-				}
-
-				// TODO (BI-1171): also need to refresh lock 'ticket' regularly
-				err = sample.InsertSampleRecord(sampleRecord, session, lgr)
-				if err == nil {
-					break
-				}
-			}
-		}
-
-		lgr.Errf(log.Always, err.Error())
-		waitToReconnect()
-	}
-
-	atomic.StoreUint32(&s.isSchemaLoaded, uint32(1))
 }
 
 // Run starts the server and begins accepting connections.
@@ -169,11 +98,9 @@ func (s *Server) Run() {
 
 	// asynchronously load the schema from MongoDB by sampling if needed
 	if s.schema == nil {
-		ctx, cancel := context.WithCancel(context.Background())
 		util.PanicSafeGo(func() {
-			s.SampleSchema(ctx, &s.cfg.Schema.Sample)
+			s.runSampler(&s.cfg.Schema.Sample)
 		}, func(err interface{}) {
-			cancel()
 			s.logger.Errf(log.Always, "error sampling schema: %v", err)
 			s.Close()
 		})
@@ -192,7 +119,7 @@ func (s *Server) Run() {
 
 	// wait for all active client connections
 	// to return cleanly before terminating
-	<-s.terminateChan
+	<-s.lifetimeCtx.Done()
 }
 
 // Close stops the server and stops accepting connections.
@@ -207,10 +134,10 @@ func (s *Server) Close() {
 		}
 	}
 
-	// interrrupt any in-progress queries
+	// interrupt any in-progress queries
 	s.activeConnectionsMx.RLock()
-	if len(s.activeConnections) == 0 && !s.terminated {
-		close(s.terminateChan)
+	if len(s.activeConnections) == 0 {
+		s.lifetimeCancel()
 	}
 
 	for _, c := range s.activeConnections {
@@ -274,8 +201,7 @@ func (s *Server) removeConnection(c *conn) {
 	s.activeConnectionsMx.Lock()
 	delete(s.activeConnections, c.ConnectionId())
 	if atomic.LoadInt32(&s.closed) == 1 && len(s.activeConnections) == 0 {
-		s.terminated = true
-		close(s.terminateChan)
+		s.lifetimeCancel()
 	}
 	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()

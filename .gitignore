@@ -29,6 +29,7 @@ codereview.rc
 *.prof
 .gopath
 .vscode
+.idea
 vendor/pkg
 sftp-config.json
 

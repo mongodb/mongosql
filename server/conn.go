@@ -85,7 +85,7 @@ type conn struct {
 }
 
 func newConn(s *Server, c net.Conn) (*conn, error) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(s.lifetimeCtx)
 
 	session, err := s.sessionProvider.Session(ctx)
 
@@ -115,7 +115,6 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 	}
 
 	if err != nil {
-
 		newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ER_CONNECT_TO_FOREIGN_DATA_SOURCE, "MongoDB"))
 		return nil, fmt.Errorf("unable to connect to MongoDB: %v", err)
 	}
@@ -270,7 +269,8 @@ func (c *conn) handshake() error {
 		return err
 	}
 
-	if atomic.LoadUint32(&c.server.isSchemaLoaded) == 0 {
+	currentSchema := c.server.getSchema()
+	if currentSchema == nil {
 		err := mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "MongoDB schema not yet available")
 		c.writeError(err)
 		return err
@@ -306,7 +306,7 @@ func (c *conn) handshake() error {
 
 	c.setStatusVariables()
 
-	c.catalog, err = catalog.Build(c.server.schema, c.variables)
+	c.catalog, err = catalog.Build(currentSchema, c.variables)
 	if err != nil {
 		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error building catalog: %v", err)
 		c.writeError(err)
