@@ -276,7 +276,7 @@ func main() {
 	err := p.loadConfig(args)
 	if err != nil {
 		if service.Interactive() {
-			fmt.Fprintln(os.Stderr, "failed to start due to configuration error: %v", err)
+			fmt.Fprintf(os.Stderr, "failed to start due to configuration error: %v%s", err, log.NewLine)
 			os.Exit(1)
 		}
 		cfg := config.Default()
