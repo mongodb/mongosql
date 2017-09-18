@@ -124,6 +124,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"ifnull":            &ifnullFunc{},
 	"insert":            &insertFunc{},
 	"instr":             &instrFunc{},
+	"interval":          &intervalFunc{},
 	"isnull":            &isnullFunc{},
 	"last_day":          &lastDayFunc{},
 	"lcase":             &lcaseFunc{},
@@ -1930,6 +1931,52 @@ func (_ *instrFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (_ *instrFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
+}
+
+type intervalFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_interval
+func (_ *intervalFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if values[0].Type() == schema.SQLNull {
+		return SQLInt(-1), nil
+	}
+
+	start, end := 1, len(values)-1
+	for start != end {
+		mid := (start + end + 1) / 2
+		if values[mid].Type() == schema.SQLNull || values[mid].Float64() <= values[0].Float64() {
+			start = mid
+		} else {
+			end = mid - 1
+		}
+	}
+
+	if values[start].Type() == schema.SQLNull || values[start].Float64() <= values[0].Float64() {
+		return SQLInt(start), nil
+	}
+	return SQLInt(start - 1), nil
+}
+
+func (_ *intervalFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if f.Exprs[0].Type() == schema.SQLNull {
+		return SQLInt(-1)
+	}
+	return f
+}
+
+func (_ *intervalFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLFloat, SQLNone)
+}
+
+func (_ *intervalFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLInt64
+}
+
+func (_ *intervalFunc) Validate(exprCount int) error {
+	if exprCount < 2 {
+		return ErrIncorrectVarCount
+	}
+	return nil
 }
 
 type isnullFunc struct{}

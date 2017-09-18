@@ -1525,6 +1525,26 @@ func TestEvaluates(t *testing.T) {
 				runTypeTests(evalCtx, typeTests)
 			})
 
+			Convey("Subject: INTERVAL", func() {
+				tests := []test{
+					test{"INTERVAL(1,0)", SQLInt(1)},
+					test{"INTERVAL(NULL, 3)", SQLInt(-1)},
+					test{"INTERVAL(NULL, NULL)", SQLInt(-1)},
+					test{"INTERVAL(2, 1, 2, 3, 4)", SQLInt(2)},
+					test{"INTERVAL('1.1', 0, 1.1, 2)", SQLInt(2)},
+					test{"INTERVAL(-1, NULL, 4)", SQLInt(1)},
+					test{"INTERVAL(4, 1, 2, 4)", SQLInt(3)},
+				}
+				runTests(evalCtx, tests)
+
+				typeTests := []typeTest{
+					typeTest{"INTERVAL(4, 5)", schema.SQLInt64},
+					typeTest{"INTERVAL(4, 5.3)", schema.SQLInt64},
+					typeTest{"INTERVAL(NULL, 4)", schema.SQLInt64},
+				}
+				runTypeTests(evalCtx, typeTests)
+			})
+
 			Convey("Subject: ISNULL", func() {
 				tests := []test{
 					test{"ISNULL(a)", SQLInt(0)},
@@ -3390,6 +3410,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"hour(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$hour":"$g"}]}`},
 			test{"if(a, 2, 3)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":["$a",0]},{"$eq":["$a",false]}]},{"$literal":3},{"$literal":2}]}`},
 			test{"ifnull(a, 1)", `{"$ifNull":["$a",{"$literal":1}]}`},
+			test{"interval(a, 0, b)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$literal":-1},{"$reduce":{"in":{"$cond":[{"$gte":["$a","$$this"]},{"$add":["$$value",{"$literal":1}]},"$$value"]},"initialValue":{"$literal":0},"input":[{"$literal":0},"$b"]}}]}`},
 			test{"isnull(a)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},1,0]}`},
 			test{"least(a, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$min":["$a",{"$literal":2}]}]}`},
 			test{"least(a, 2, b)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":[{"$ifNull":["$b",null]},null]}]},null,{"$min":["$a",{"$literal":2},"$b"]}]}`},

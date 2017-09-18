@@ -4381,3 +4381,102 @@ testcases:
   - [~]
   - ["this"]
   - [~]
+- sql: "select interval(null, 2, 3, 4, 5)"
+  id: 'intervalFunc_normalization_case'
+  db: functions_test
+  expected_names: ["interval(null, 2, 3, 4, 5)"]
+  expected_types: [int]
+  expected:
+  - [-1]
+- sql: "select interval(1, 2, 3, 4, 5)"
+  id: 'intervalFunc_least_postion'
+  db: functions_test
+  expected_names: ["interval(1, 2, 3, 4, 5)"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "select interval(1, 1, 2, 3, 4)"
+  id: 'intervalFunc_least_pair'
+  db: functions_test
+  expected_names: ["interval(1, 1, 2, 3, 4)"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "select interval(3, 1, 2, 4, 5)"
+  id: 'intervalFunc_mid_postion'
+  db: functions_test
+  expected_names: ["interval(3, 1, 2, 4, 5)"]
+  expected_types: [int]
+  expected:
+  - [2]
+- sql: "select interval(2, 1, 2, 3, 4)"
+  id: 'intervalFunc_mid_pair'
+  db: functions_test
+  expected_names: ["interval(2, 1, 2, 3, 4)"]
+  expected_types: [int]
+  expected:
+  - [2]
+- sql: "select interval(5, 1, 2, 3, 4)"
+  id: 'intervalFunc_last_postion'
+  db: functions_test
+  expected_names: ["interval(5, 1, 2, 3, 4)"]
+  expected_types: [int]
+  expected:
+  - [4]
+- sql: "select interval(4, 1, 2, 3, 4)"
+  id: 'intervalFunc_last_pair'
+  db: functions_test
+  expected_names: ["interval(4, 1, 2, 3, 4)"]
+  expected_types: [int]
+  expected:
+  - [4]
+- sql: "select interval(2, 2, 2, 2, 4)"
+  id: 'intervalFunc_multipair'
+  db: functions_test
+  expected_names: ["interval(2, 2, 2, 2, 4)"]
+  expected_types: [int]
+  expected:
+  - [3]
+- sql: "select interval(-1, null, null, -2, -1, 5)"
+  id: 'intervalFunc_nulls_and_negatives'
+  db: functions_test
+  expected_names: ["interval(-1, null, null, -2, -1, 5)"]
+  expected_types: [int]
+  expected:
+  - [4]
+- sql: "select interval(1.1, -2, 0, 0.5, 1.1, 4)"
+  id: 'intervalFunc_floats'
+  db: functions_test
+  expected_names: ["interval(1.1, -2, 0, 0.5, 1.1, 4)"]
+  expected_types: [int]
+  expected:
+  - [4]
+- sql: "select interval(-3.2, null, -4, -3.5, -0.2, 0, 1)"
+  id: 'intervalFunc_floats_neg_and_null'
+  db: functions_test
+  expected_names: ["interval(-3.2, null, -4, -3.5, -0.2, 0, 1)"]
+  expected_types: [int]
+  expected:
+  - [3]
+- sql: "select interval(a, null, -4, -3.5, -0.2, 0, 1) from foo"
+  id: 'intervalFunc_with_table_arg'
+  db: functions_test
+  expected_names: ["interval(a, null, -4, -3.5, -0.2, 0, 1)"]
+  expected_types: [int]
+  expected:
+  - [6]
+  - [5]
+  - [-1]
+  - [-1]
+  - [-1]
+- sql: "select interval(a, t, 1, 3, 5) from bar"
+  id: 'intervalFunc_with_table_args'
+  db: functions_test
+  expected_names: ["interval(a, t, 1, 3, 5)"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [-1]
+  - [1]
+  - [3]
+  - [-1]

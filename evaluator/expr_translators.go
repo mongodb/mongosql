@@ -986,6 +986,26 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			}
 
 			return wrapInIfNull(args[0], args[1]), true
+		case "interval":
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
+			return wrapInCond(
+				bson.M{"$literal": -1},
+				bson.M{
+					"$reduce": bson.M{
+						"input":        args[1:],
+						"initialValue": bson.M{"$literal": 0},
+						"in": wrapInCond(
+							bson.M{"$add": []interface{}{"$$value", bson.M{"$literal": 1}}},
+							"$$value",
+							bson.M{mgoOperatorGTE: []interface{}{args[0], "$$this"}},
+						),
+					},
+				},
+				wrapInNullCheck(args[0]),
+			), true
 		case "isnull":
 			if len(typedE.Exprs) != 1 {
 				return nil, false

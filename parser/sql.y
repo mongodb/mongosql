@@ -1506,6 +1506,10 @@ func_expr_conflict:
   {
     $$ = &FuncExpr{Name: IF_BYTES, Exprs: $3}
   }
+| INTERVAL LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: INTERVAL_BYTES, Exprs: $3}
+  }
 | MICROSECOND LPAREN select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: MICROSECOND_BYTES, Exprs: $3}
