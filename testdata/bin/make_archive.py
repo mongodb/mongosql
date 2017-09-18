@@ -36,6 +36,15 @@ import tarfile
 import tempfile
 from subprocess import (Popen, PIPE, STDOUT)
 
+# Because the Evergreen Windows distros use Windows native python instead of
+# Cygwin python, os.path.sep = '\'.  Because the files we pass are elaborated
+# to absolute paths by bash, they have '/' as their separators.  The simplest
+# solution is to only use '/' in this script rather than the original method of
+# using os.path.sep.  This will probably not work through Windows CMD (Windows
+# does have limited support for '/' used as a path separators), but all of our
+# builds go through cygwin.  If we ever want to support running through Windows
+# CMD, we may want to revisit (we could change all '\' to '/' in both match
+# patterns and passed files, for instance
 def main(argv):
     args = []
     for arg in argv[1:]:
@@ -92,16 +101,16 @@ def parse_options(args):
                          opts.output_filename)
 
     try:
-        opts.transformations = [
-            xform.replace(os.path.altsep or os.path.sep, os.path.sep).split('=', 1)
-            for xform in opts.transformations]
+        if any(map(lambda xform: '\\' in xform, opts.transformations)):
+            raise Exception("All transformations should use Unix style paths with '/' separators")
+        opts.transformations = map(lambda xform: xform.split('=',1), opts.transformations)
     except Exception, e:
         parser.error(e)
 
     return opts
 
 def get_preferred_filename(input_filename, transformations):
-    '''Does a prefix subsitution on 'input_filename' for the
+    '''Does a prefix substitution on 'input_filename' for the
     first matching transformation in 'transformations' and
     returns the substituted string
     '''

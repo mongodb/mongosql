@@ -32,7 +32,7 @@
             --transform distsrc/README=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/README \
             --transform distsrc/THIRD-PARTY-NOTICES=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/THIRD-PARTY-NOTICES \
             --transform LICENSE=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/LICENSE LICENSE \
-            distsrc\\README distsrc\\THIRD-PARTY-NOTICES $build_dir\\mongosqld $build_dir\\mongodrdl $build_dir\\libeay32.dll $build_dir\\ssleay32.dll
+            distsrc/README distsrc/THIRD-PARTY-NOTICES $build_dir/mongosqld $build_dir/mongodrdl $build_dir/libeay32.dll $build_dir/ssleay32.dll
 
         # build the msi. Since this is windows only, we know powershell is installed.
         SEMVER=$(git describe --abbrev=0)
