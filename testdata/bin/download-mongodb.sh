@@ -187,20 +187,43 @@ get_mongodb_download_url_for ()
    echo $MONGODB_DOWNLOAD_URL
 }
 
-download_and_extract ()
+set_mongodb_binaries ()
 {
    MONGODB_DOWNLOAD_URL=$1
    EXTRACT=$2
+   # Use lowercase variable names to make sure we do not conflict with any
+   # globals, it is safer
+   mongodb_version=$3
+
+   orig_dir=$(pwd)
+   cache=${SQLPROXY_ORCHESTRATION_CACHE:-$HOME/.sqlproxy_orchestration_cache}
+   local_versioned_path=$cache/cached-mongodb-$mongodb_version
+   
+   # Make sure orchestration_cache exists
+   mkdir -p $cache
+
+   # Only download if we do not have a local copy of this
+   # specific mongo version
+   if [ ! -e $local_versioned_path ]; then
+       cd $cache
+       curl $MONGODB_DOWNLOAD_URL --silent --max-time 120 --fail --output mongodb-binaries.tgz
+       $EXTRACT mongodb-binaries.tgz
+       rm mongodb-binaries.tgz
+       mv mongodb* $local_versioned_path
+       chmod -R +x $local_versioned_path
+       find . -name vcredist_x64.exe -exec {} /install /quiet \;
+   fi
 
    cd $ARTIFACTS_DIR
-   curl $MONGODB_DOWNLOAD_URL --silent --max-time 120 --fail --output mongodb-binaries.tgz
-
-   $EXTRACT mongodb-binaries.tgz
-
-   rm mongodb-binaries.tgz
-   mv mongodb* mongodb
-   chmod -R +x mongodb
-   find . -name vcredist_x64.exe -exec {} /install /quiet \;
-   ./mongodb/bin/mongod --version
-   cd -
+   if [ "Windows_NT" = "$OS" ]; then
+       # Windows orchestration cannot handle symlinks, so we must cp.
+       # -T ensures that mongodb will be overwritten instead of ending up with
+       # mongodb under mongodb
+       cp -RT $local_versioned_path mongodb
+   else
+       # On *nix, a symlink to the directory will work
+       ln -s $local_versioned_path mongodb
+   fi
+   mongodb/bin/mongod --version
+   cd $orig_dir
 }

@@ -16,7 +16,6 @@
     mkdir -p $MONGO_ORCHESTRATION_HOME
     cp -r $PROJECT_DIR/testdata/resources/orchestration/* $MONGO_ORCHESTRATION_HOME
 
-    DL_START=$(date +%s)
     DIR=$(dirname $0)
     # Functions to fetch MongoDB binaries
     . $DIR/download-mongodb.sh
@@ -24,11 +23,9 @@
     get_distro
     get_mongodb_download_url_for "$DISTRO" "$MONGODB_VERSION"
     echo "downloading mongodb $MONGODB_VERSION for $DISTRO..."
-    download_and_extract "$MONGODB_DOWNLOAD_URL" "$EXTRACT"
+    set_mongodb_binaries "$MONGODB_DOWNLOAD_URL" "$EXTRACT" "$MONGODB_VERSION"
     echo "done downloading mongodb"
 
-    DL_END=$(date +%s)
-    MO_START=$(date +%s)
 
     ORCHESTRATION_FILE="basic"
     if [ "$AUTH" = "auth" ]; then
@@ -108,28 +105,6 @@
     URI=$(python -c 'import sys, json; j=json.load(open("tmp.json")); print(j["mongodb_auth_uri" if "mongodb_auth_uri" in j else "mongodb_uri"])' | tr -d '\r')
     echo 'MONGODB_URI: "'$URI'"' > $MONGO_ORCHESTRATION_HOME/mo-expansion.yml
     echo "Cluster URI: $URI"
-
-    MO_END=$(date +%s)
-    MO_ELAPSED=$(expr $MO_END - $MO_START)
-    DL_ELAPSED=$(expr $DL_END - $DL_START)
-    cat <<EOT >> $MONGO_ORCHESTRATION_HOME/results.json
-    {"results": [
-      {
-        "status": "PASS",
-        "test_file": "Orchestration",
-        "start": $MO_START,
-        "end": $MO_END,
-        "elapsed": $MO_ELAPSED
-      },
-      {
-        "status": "PASS",
-        "test_file": "Download MongoDB",
-        "start": $DL_START,
-        "end": $DL_END,
-        "elapsed": $DL_ELAPSED
-      }
-    ]}
-EOT
 
     echo "done bootstrapping mongo-orchestration"
 
