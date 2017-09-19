@@ -16,8 +16,10 @@ import (
 
 // Collections used to perform sampling operations.
 const (
-	SchemasCollection  = "schemas"
-	VersionsCollection = "versions"
+	SchemasCollection      = "mongosqld.schemas"
+	VersionsCollection     = "mongosqld.versions"
+	VersionIdField         = "versionId"
+	VersionGenerationField = "generation"
 )
 
 // Record holds data generated as a result
@@ -97,7 +99,7 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger) (nsMapping, erro
 func InsertSampleRecord(record *Record,
 	session *mongodb.Session, lgr *log.Logger) error {
 	if len(record.Namespaces) == 0 {
-		lgr.Logf(log.Always, "No namespaces persisted to MongoDB")
+		lgr.Logf(log.Always, "No namespaces in sample: not persisting to MongoDB")
 		return nil
 	}
 
@@ -132,9 +134,7 @@ func InsertSampleRecord(record *Record,
 		return err
 	}
 
-	// 2. get the maximum generation and set it (+1) on the version
-
-	// 3. insert the version document
+	// 2. insert the version document
 	versionDocument := []interface{}{record.Version}
 	err = insertDocuments(VersionsCollection, versionDocument)
 	if err != nil {
@@ -375,4 +375,44 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 	}
 
 	return sampledSchema, sampleData, nil
+}
+
+func LatestGeneration(opts *config.SchemaSampleOptions, session *mongodb.Session, lgr *log.Logger) (int64, error) {
+
+	// 1. Find the latest version.
+	oid, _, err := getLatestVersion(opts, session)
+	if oid == nil || err != nil {
+		return -1, err
+	}
+
+	// 2. Get the generation for the latest version
+	return getGenerationForVersion(opts, session, *oid, lgr)
+}
+
+func getGenerationForVersion(cfg *config.SchemaSampleOptions, session *mongodb.Session, version bson.ObjectId, lgr *log.Logger) (int64, error) {
+
+	var pipeline interface{} = []bson.D{
+		{{"$match", bson.D{{VersionIdField, version}}}},
+		{{"$project", bson.D{{VersionGenerationField, 1}}}},
+	}
+
+	cursor, err := session.Aggregate(cfg.Source, SchemasCollection, pipeline)
+	if err != nil {
+		return -1, err
+	}
+	defer cursor.Close(context.Background())
+
+	result := struct {
+		generation int64 `bson:"generation"`
+	}{}
+
+	if cursor.Next(session.Context(), &result) {
+		return result.generation, nil
+	}
+
+	if cursor.Err() != nil {
+		return -1, cursor.Err()
+	}
+
+	return -1, nil
 }

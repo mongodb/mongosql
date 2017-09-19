@@ -1,0 +1,2 @@
+
+SQLPROXY_SAMPLE_INTERVAL="--sampleWriteIntervalSecs 0"

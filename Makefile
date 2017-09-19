@@ -44,12 +44,14 @@ start-all: build-mongosqld run-mongosqld run-mongodb
 
 test: test-unit test-integration
 
-test-connect-failure: EXPECTED_STATUS = 1
-test-connect-failure: start-all
+test-connect-failure: start-all _test-connect-failure
+_test-connect-failure: EXPECTED_STATUS = 1
+_test-connect-failure:
 	$(ENV) $(EXPECTED) testdata/bin/test-simple-connect.sh
 
-test-connect-success: EXPECTED_STATUS = 0
-test-connect-success: start-all
+test-connect-success: start-all _test-connect-success
+_test-connect-success: EXPECTED_STATUS = 0
+_test-connect-success:
 	$(ENV) $(EXPECTED) testdata/bin/test-simple-connect.sh
 
 test-integration: test-connect-success restore-data

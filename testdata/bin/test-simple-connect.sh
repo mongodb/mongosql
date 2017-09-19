@@ -7,7 +7,7 @@
 
     echo "running simple connection test..."
 
-    output=$(mysql $CLIENT_ARGS -e "use test; select * from test1;" 2>&1)
+    output=$(mysql $CLIENT_ARGS -e "use information_schema;" 2>&1)
     code=$?
 
     set -o errexit

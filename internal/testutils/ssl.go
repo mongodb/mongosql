@@ -8,7 +8,7 @@ import (
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 )
 
-func GetSSLOpts() *toolsoptions.SSL {
+func SqldTestSSLOpts() *toolsoptions.SSL {
 	return &toolsoptions.SSL{
 		UseSSL:              true,
 		SSLPEMKeyFile:       "testdata/resources/x509gen/client.pem",
@@ -16,7 +16,7 @@ func GetSSLOpts() *toolsoptions.SSL {
 	}
 }
 
-func GetDrdlSSLOpts() *options.DrdlSSL {
+func DrdlTestSSLOpts() *options.DrdlSSL {
 	return &options.DrdlSSL{
 		UseSSL:              true,
 		SSLPEMKeyFile:       "../testdata/resources/x509gen/client.pem",
@@ -28,7 +28,7 @@ func getSslOpts() *toolsoptions.SSL {
 	sslOpts := &toolsoptions.SSL{}
 
 	if len(os.Getenv(evaluator.SSLTestKey)) > 0 {
-		return GetSSLOpts()
+		return SqldTestSSLOpts()
 	}
 
 	return sslOpts

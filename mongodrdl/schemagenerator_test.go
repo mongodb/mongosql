@@ -40,7 +40,7 @@ func getSslOpts() *options.DrdlSSL {
 	sslOpts := &options.DrdlSSL{}
 
 	if len(os.Getenv(SSLTestKey)) > 0 {
-		return testutils.GetDrdlSSLOpts()
+		return testutils.DrdlTestSSLOpts()
 	}
 
 	return sslOpts

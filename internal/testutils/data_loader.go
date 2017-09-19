@@ -22,7 +22,7 @@ func restoreInline(host, port string, inline *InlineDataSet) error {
 		},
 		Direct: false,
 		SSL:    getSslOpts(),
-		Auth:   &toolsoptions.Auth{},
+		Auth:   getAuthOpts(),
 	}
 
 	sessionProvider, err := toolsdb.NewSessionProvider(*opts)
@@ -74,7 +74,7 @@ func restoreBSON(host, port, file string) error {
 		URI:    &toolsoptions.URI{},
 		Direct: false,
 		SSL:    getSslOpts(),
-		Auth:   &toolsoptions.Auth{},
+		Auth:   getAuthOpts(),
 	}
 
 	sessionProvider, err := toolsdb.NewSessionProvider(*opts)

@@ -2,3 +2,4 @@
 MONGO_SSL=ssl
 SQLPROXY_SSLTEST=1
 TEST_BUILD_FLAGS="-tags ssl"
+MONGO_CLIENT_SSL_ARGS="--ssl --sslAllowInvalidCertificates"

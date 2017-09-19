@@ -14,10 +14,36 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+func sampleLogger() *log.Logger {
+	return log.NewComponentLogger(
+		fmt.Sprintf("%-10v [schemaDiscovery]", "SAMPLE"),
+		log.GlobalLogger(),
+	)
+}
+
+// getSchema attempts to update the server's schema from the sampleSource.
+// Regardless of whether that succeeds, getSchema returns the server's schema.
 func (s *Server) getSchema() *schema.Schema {
-	s.schemaLock.RLock()
+	lgr := sampleLogger()
+	var newSchema *schema.Schema
+
+	session, err := s.sessionProvider.AdminSession(s.lifetimeCtx)
+	if err == nil {
+		defer session.Close()
+		newSchema, err = sample.ReadSchema(&s.cfg.Schema.Sample, session, lgr)
+	}
+
+	if err != nil {
+		lgr.Logf(log.DebugHigh, "Could not fetch most recent schema: %v", err)
+	}
+
+	s.schemaLock.Lock()
+	if newSchema != nil {
+		s.schema = newSchema
+	}
 	localSchema := s.schema
-	s.schemaLock.RUnlock()
+	s.schemaLock.Unlock()
+
 	return localSchema
 }
 
@@ -31,10 +57,7 @@ func (s *Server) getSchema() *schema.Schema {
 // 5. If we are a write once server, then we are done.
 // 6. Sample every (configured amount of time) and update the stored schema.
 func (s *Server) runSampler(opts *config.SchemaSampleOptions) {
-	lgr := log.NewComponentLogger(
-		fmt.Sprintf("%-10v [schemaDiscovery]", "SAMPLE"),
-		log.GlobalLogger(),
-	)
+	lgr := sampleLogger()
 
 	var sampleRecord *sample.Record
 	var err error
@@ -63,7 +86,7 @@ func (s *Server) runSampler(opts *config.SchemaSampleOptions) {
 	mtx := dsync.NewDMutex(dsync.DMutexConfig{
 		Name:            "mongosqld-schema",
 		DatabaseName:    s.cfg.Schema.Sample.Source,
-		CollectionName:  "lock",
+		CollectionName:  "mongosqld.lock",
 		Logger:          lgr,
 		ProcessName:     s.processName,
 		SessionProvider: s.sessionProvider,
@@ -80,7 +103,9 @@ func (s *Server) runSampler(opts *config.SchemaSampleOptions) {
 	// 4. If we have a sample, it means that we didn't read a schema from the server. Therefore, we need to
 	// persist this back to the server or, if we fail to do that, read a schema that may show up in the future.
 	if sampleRecord != nil {
-		lgr.Logf(log.Info, "writing sampled schema")
+		if len(sampleRecord.Namespaces) != 0 {
+			lgr.Logf(log.Info, "writing sampled schema")
+		}
 		err := mtx.Lock(s.lifetimeCtx)
 		if err == nil {
 			// try to do this once initially... if it doesn't work, we'll start looping
@@ -123,7 +148,7 @@ func (s *Server) runSampler(opts *config.SchemaSampleOptions) {
 }
 
 func (s *Server) initializeSchema(opts *config.SchemaSampleOptions, lgr *log.Logger) (*sample.Record, error) {
-	session, err := s.sessionProvider.Session(s.lifetimeCtx)
+	session, err := s.sessionProvider.AdminSession(s.lifetimeCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -167,11 +192,12 @@ func (s *Server) resampleSchema(mtx *dsync.DMutex, lgr *log.Logger, initialSampl
 		return err
 	}
 
-	// refresh the lock here because sampling could take a long time
-	err = mtx.Lock(s.lifetimeCtx)
+	lastGen, err := sample.LatestGeneration(&s.cfg.Schema.Sample, session, lgr)
 	if err != nil {
 		return err
 	}
+
+	newSampleRecord.Version.Generation = lastGen + 1
 
 	err = sample.InsertSampleRecord(newSampleRecord, session, lgr)
 	if err != nil {

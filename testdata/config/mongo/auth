@@ -1,2 +1,4 @@
 
 MONGO_AUTH=auth
+SQLPROXY_AUTHTEST=1
+MONGO_CLIENT_AUTH_ARGS="-ubob -ppwd123 --authenticationDatabase admin"

@@ -781,15 +781,19 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-sample-default
+  name: test-read-simple
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-sample-all
+  name: test-read-ssl
+  tags: ["test", "config", "mongo-ssl"]
+
+- <<: *run-config-test
+  name: test-read-auth
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-sample-ten
+  name: test-read-updated
   tags: ["test", "config"]
 
 - <<: *run-config-test
@@ -798,6 +802,50 @@ tasks:
 
 - <<: *run-config-test
   name: test-option-version
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-simple
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-empty
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-ssl
+  tags: ["test", "config", "mongo-ssl"]
+
+- <<: *run-config-test
+  name: test-sample-ssl-failure
+  tags: ["test", "config", "mongo-ssl"]
+
+- <<: *run-config-test
+  name: test-sample-auth
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-auth-failure
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-read-most-recent
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-read-after-sampling
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-size-default
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-size-all
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-sample-size-ten
   tags: ["test", "config"]
 
 - name: tpch-handwritten-denormalized
