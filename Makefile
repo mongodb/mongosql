@@ -55,6 +55,12 @@ test-connect-success: start-all
 test-integration: test-connect-success restore-data
 	$(ENV) testdata/bin/run-integration-tests.sh
 
+test-option-help: build-mongosqld
+	$(ARTIFACTS_DIR)/bin/mongosqld --help
+
+test-option-version: build-mongosqld
+	$(ARTIFACTS_DIR)/bin/mongosqld --version
+
 test-start-mongosqld: build-mongosqld _test-start-mongosqld
 _test-start-mongosqld:
 	$(ENV) $(EXPECTED) testdata/bin/test-start-mongosqld.sh

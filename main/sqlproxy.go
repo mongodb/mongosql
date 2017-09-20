@@ -275,8 +275,12 @@ func main() {
 	p := &program{}
 	err := p.loadConfig(args)
 	if err != nil {
+		if err == config.ErrExitEarly {
+			os.Exit(0)
+		}
 		if service.Interactive() {
 			fmt.Fprintf(os.Stderr, "failed to start due to configuration error: %v%s", err, log.NewLine)
+			fmt.Fprintln(os.Stderr, "try 'mongosqld --help' for more information")
 			os.Exit(1)
 		}
 		cfg := config.Default()
@@ -290,12 +294,6 @@ func main() {
 		errorService, _ := service.New(p, errorServiceConfig)
 		errLogger, _ := errorService.Logger(nil)
 		errLogger.Errorf("failed to start due to configuration error: %v%s", err, log.NewLine)
-
-		if err == config.ErrExitEarly {
-			os.Exit(0)
-		}
-		fmt.Fprintf(os.Stderr, "failed to start due to configuration error: %v\n", err)
-		fmt.Fprintln(os.Stderr, "try 'mongosqld --help' for more information")
 		os.Exit(1)
 	}
 

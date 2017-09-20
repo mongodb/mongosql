@@ -792,6 +792,14 @@ tasks:
   name: test-sample-ten
   tags: ["test", "config"]
 
+- <<: *run-config-test
+  name: test-option-help
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-option-version
+  tags: ["test", "config"]
+
 - name: tpch-handwritten-denormalized
   tags:
     - oneoff-task
