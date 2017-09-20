@@ -1,5 +1,5 @@
 
-test-mongo-ssl-failure: EXPECTED_ERROR = ERROR 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet'
+test-mongo-ssl-failure: EXPECTED_ERROR = ERROR 1429 (HY000): Unable to connect to foreign data source: MongoDB
 test-mongo-ssl-failure: test-connect-failure
 
 # connection should fail when trying to connect to non-ssl mongod with ssl

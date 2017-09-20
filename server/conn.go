@@ -772,7 +772,7 @@ func (c *conn) writeError(e error) error {
 	data = append(data, ERR_HEADER)
 	data = append(data, byte(m.Code), byte(m.Code>>8))
 
-	if c.capability&CLIENT_PROTOCOL_41 > 0 {
+	if c.capability&CLIENT_PROTOCOL_41 > 0 && c.bytesSent != 0 {
 		data = append(data, '#')
 		data = append(data, m.State...)
 	}
