@@ -441,6 +441,22 @@ func (s *Schemata) GetBSON() (interface{}, error) {
 	return s.DominantSchema(), nil
 }
 
+// SetBSON does the opposite of GetBSON.
+func (s *Schemata) SetBSON(raw bson.Raw) error {
+	var sch Schema
+	err := raw.Unmarshal(&sch)
+	if err != nil {
+		return err
+	}
+
+	sourceSchemata := NewSchemata(&sch)
+	s.Heuristic = sourceSchemata.Heuristic
+	s.Counts = sourceSchemata.Counts
+	s.Indexes = sourceSchemata.Indexes
+	s.Schemas = sourceSchemata.Schemas
+	return nil
+}
+
 // IncludeSchema will add the provided Schema in a Schemata. If the Schemata
 // already contains a Schema of the same BsonType, the provided Schema will be
 // merged with the existing Schema and the BsonType's count will be increased

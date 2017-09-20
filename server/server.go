@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -37,6 +39,13 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 		logger:            logger,
 	}
 
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = strings.Join(s.cfg.Net.BindIP, ",")
+	}
+
+	s.processName = fmt.Sprintf("mongosqld-%s-%d-%s", hostname, os.Getpid(), randomString(6))
+
 	s.variables.MongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
 	s.variables.MongoDBMaxVarcharLength = cfg.Schema.MaxVarcharLength
 	s.variables.MongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
@@ -62,6 +71,8 @@ type Server struct {
 	closed         int32
 
 	logger *log.Logger
+
+	processName string
 
 	schemaLock sync.RWMutex
 	schema     *schema.Schema

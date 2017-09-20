@@ -3,17 +3,16 @@ package sample_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/config"
 	. "github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/schema/mongo"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -29,6 +28,11 @@ var (
 	cfg = config.Default()
 )
 
+func init() {
+	cfg.Schema.Sample.Source = "sampleStore"
+	cfg.Schema.Sample.Namespaces = []string{"sampleTest*.*"}
+}
+
 func TestFetchNamespaces(t *testing.T) {
 	provider, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
@@ -42,8 +46,7 @@ func TestFetchNamespaces(t *testing.T) {
 	defer session.Close()
 
 	Convey("With namespaces in the database", t, func() {
-		dbutils.DropDatabase(session, db1)
-		dbutils.DropDatabase(session, db2)
+		cleanupData(session)
 		dbutils.InsertDocuments(session, db1, c1, doc)
 		dbutils.InsertDocuments(session, db2, c2, doc)
 		dbutils.InsertDocuments(session, db2, c1, doc)
@@ -87,7 +90,7 @@ func TestInsertSampleRecord(t *testing.T) {
 	defer session.Close()
 
 	Convey("With a given database", t, func() {
-		dbutils.DropDatabase(session, db2)
+		cleanupData(session)
 
 		Convey("inserting a sample record ", func() {
 			version := NewVersion("pname")
@@ -99,13 +102,13 @@ func TestInsertSampleRecord(t *testing.T) {
 			version.Databases = []VersionDatabase{
 				VersionDatabase{Name: db1, Collections: []string{c1}},
 			}
-			record := &Record{db2, version, []*Namespace{namespace}}
+			record := &Record{cfg.Schema.Sample.Source, version, []*Namespace{namespace}}
 
 			err := InsertSampleRecord(record, session, &lgr)
 			So(err, ShouldBeNil)
 
 			Convey("should match the version supplied", func() {
-				cursor := dbutils.Find(session, db2, VersionsCollection, 1000)
+				cursor := dbutils.Find(session, cfg.Schema.Sample.Source, VersionsCollection, 1000)
 				initialBatch := cursor.InitialBatch()
 				if l := len(initialBatch); l != 1 {
 					t.Fatalf("unexpected version collection document count: %v", l)
@@ -127,7 +130,7 @@ func TestInsertSampleRecord(t *testing.T) {
 
 			Convey("should match the namespace(s) supplied", func() {
 				Convey("should match the version supplied", func() {
-					cursor := dbutils.Find(session, db2, SchemasCollection, 1000)
+					cursor := dbutils.Find(session, cfg.Schema.Sample.Source, SchemasCollection, 1000)
 					initialBatch := cursor.InitialBatch()
 					if l := len(initialBatch); l != 1 {
 						t.Fatalf("unexpected schemas collection document count: %v", l)
@@ -145,6 +148,147 @@ func TestInsertSampleRecord(t *testing.T) {
 					So(dbNamespace.SampleSize, ShouldResemble, namespace.SampleSize)
 					So(dbNamespace.VersionId, ShouldResemble, namespace.VersionId)
 				})
+			})
+		})
+	})
+}
+
+func TestReadSchema(t *testing.T) {
+	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	if err != nil {
+		t.Fatalf("failed to set up session provider to test server: %v", err)
+	}
+
+	session, err := provider.Session(context.Background())
+	if err != nil {
+		t.Fatalf("failed to set up session to test server: %v", err)
+	}
+
+	defer session.Close()
+
+	Convey("With a given database", t, func() {
+		cleanupData(session)
+
+		Convey("after inserting a valid sample record ", func() {
+			version := NewVersion("pname")
+			startTime := time.Now()
+			version.StartSampleTime = startTime
+			endTime := startTime.Add(time.Duration(3 * time.Minute))
+			version.EndSampleTime = endTime
+			mongoSchema, err := mongo.NewObjectSchema(bson.D{
+				{"_id", 10},
+				{"name", bson.D{
+					{"first", "Jack"},
+					{"last", "McJack"},
+				}},
+				{"addresses", []interface{}{"1", "2", "3"}},
+			})
+			So(err, ShouldBeNil)
+
+			ns1 := NewNamespace(db1, c1, version.Id)
+			ns1.Schema = mongoSchema
+			ns2 := NewNamespace(db1, c2, version.Id)
+			ns2.Schema = mongoSchema
+			ns3 := NewNamespace(db2, c1, version.Id)
+			ns3.Schema = mongoSchema
+
+			namespaces := []*Namespace{ns1, ns2, ns3}
+			version.Databases = []VersionDatabase{
+				VersionDatabase{Name: db1, Collections: []string{c1, c2}},
+				VersionDatabase{Name: db2, Collections: []string{c1}},
+			}
+			record := &Record{cfg.Schema.Sample.Source, version, namespaces}
+
+			err = InsertSampleRecord(record, session, &lgr)
+			So(err, ShouldBeNil)
+
+			Convey("reading the schema should match the inserted schema", func() {
+
+				schema, err := ReadSchema(&cfg.Schema.Sample, session, &lgr)
+				So(err, ShouldBeNil)
+
+				So(len(schema.Databases), ShouldEqual, 2)
+
+				schemaDB := schema.Databases[0]
+				So(schemaDB.Name, ShouldEqual, db1)
+				So(len(schemaDB.Tables), ShouldEqual, 4)
+
+				schemaTable := schemaDB.Tables[0]
+				So(schemaTable.Name, ShouldEqual, c1)
+				So(schemaTable.CollectionName, ShouldEqual, c1)
+				So(len(schemaTable.Pipeline), ShouldEqual, 0)
+				So(len(schemaTable.Columns), ShouldEqual, 3)
+
+				schemaTable = schemaDB.Tables[1]
+				So(schemaTable.Name, ShouldEqual, c1+"_addresses")
+				So(schemaTable.CollectionName, ShouldEqual, c1)
+				So(len(schemaTable.Pipeline), ShouldEqual, 1)
+				So(len(schemaTable.Columns), ShouldEqual, 3)
+
+				schemaTable = schemaDB.Tables[2]
+				So(schemaTable.Name, ShouldEqual, c2)
+				So(schemaTable.CollectionName, ShouldEqual, c2)
+				So(len(schemaTable.Columns), ShouldEqual, 3)
+
+				schemaTable = schemaDB.Tables[3]
+				So(schemaTable.Name, ShouldEqual, c2+"_addresses")
+				So(schemaTable.CollectionName, ShouldEqual, c2)
+				So(len(schemaTable.Columns), ShouldEqual, 3)
+
+				schemaDB = schema.Databases[1]
+				So(schemaDB.Name, ShouldEqual, db2)
+				So(len(schemaDB.Tables), ShouldEqual, 2)
+
+				schemaTable = schemaDB.Tables[0]
+				So(schemaTable.Name, ShouldEqual, c1)
+				So(schemaTable.CollectionName, ShouldEqual, c1)
+				So(len(schemaTable.Pipeline), ShouldEqual, 0)
+				So(len(schemaTable.Columns), ShouldEqual, 3)
+
+				schemaTable = schemaDB.Tables[1]
+				So(schemaTable.Name, ShouldEqual, c1+"_addresses")
+				So(schemaTable.CollectionName, ShouldEqual, c1)
+				So(len(schemaTable.Pipeline), ShouldEqual, 1)
+				So(len(schemaTable.Columns), ShouldEqual, 3)
+			})
+		})
+
+		Convey("after inserting an invalid sample record ", func() {
+			version := NewVersion("pname")
+			startTime := time.Now()
+			version.StartSampleTime = startTime
+			endTime := startTime.Add(time.Duration(3 * time.Minute))
+			version.EndSampleTime = endTime
+			mongoSchema, err := mongo.NewObjectSchema(bson.D{
+				{"_id", 10},
+				{"name", bson.D{
+					{"first", "Jack"},
+					{"last", "McJack"},
+				}},
+				{"addresses", []interface{}{"1", "2", "3"}},
+			})
+			So(err, ShouldBeNil)
+
+			ns1 := NewNamespace(db1, c1, version.Id)
+			ns1.Schema = mongoSchema
+			ns2 := NewNamespace(db1, c2, version.Id)
+			ns2.Schema = mongoSchema
+			ns3 := NewNamespace(db2, c1, version.Id)
+			ns3.Schema = mongoSchema
+
+			namespaces := []*Namespace{ns1, ns2, ns3}
+			version.Databases = []VersionDatabase{
+				VersionDatabase{Name: db1, Collections: []string{c1, c2}},
+				VersionDatabase{Name: db2, Collections: []string{c1, c2}}, // c2 shouldn't be here
+			}
+			record := &Record{cfg.Schema.Sample.Source, version, namespaces}
+
+			err = InsertSampleRecord(record, session, &lgr)
+			So(err, ShouldBeNil)
+
+			Convey("reading the schema should match the inserted schema", func() {
+				_, err := ReadSchema(&cfg.Schema.Sample, session, &lgr)
+				So(err, ShouldNotBeNil)
 			})
 		})
 	})
@@ -211,21 +355,18 @@ func TestSample(t *testing.T) {
 	}
 
 	Convey("When sampling MongoDB", t, func() {
-		dbutils.DropDatabase(session, db1)
-		dbutils.DropDatabase(session, db2)
+		cleanupData(session)
 		dbutils.InsertDocuments(session, db1, c1, doc)
 		dbutils.InsertDocuments(session, db2, c2, doc)
 		dbutils.InsertDocuments(session, db2, c1, doc)
 
-		// restrict sampled namespaces to those we're controlling
-		// in the test.
-		cfg.Schema.Sample.Namespaces = []string{"sampleTest*.*"}
 		opts := &cfg.Schema.Sample
-		schema, sampleRecord, err := SampleSchema(opts, session, &lgr)
+		schema, sampleRecord, err := SampleSchema(opts, "temp", session, &lgr)
 		So(err, ShouldBeNil)
 		So(schema, ShouldNotBeNil)
 
 		So(sampleRecord, ShouldNotBeNil)
+		So(sampleRecord.Database, ShouldEqual, cfg.Schema.Sample.Source)
 		So(sampleRecord.Version, ShouldNotBeNil)
 		So(len(sampleRecord.Namespaces), ShouldNotEqual, 0)
 
@@ -238,10 +379,7 @@ func TestSample(t *testing.T) {
 		})
 
 		Convey("version sampling process name should be set", func() {
-			hostname, err := os.Hostname()
-			So(err, ShouldBeNil)
-			processName := fmt.Sprintf("mongosqld-%v-%v", hostname, os.Getpid())
-			So(sampleRecord.Version.ProcessName, ShouldEqual, processName)
+			So(sampleRecord.Version.ProcessName, ShouldEqual, "temp")
 		})
 
 		Convey("whitelisted namespaces should be present", func() {
@@ -283,4 +421,11 @@ func TestSample(t *testing.T) {
 		})
 
 	})
+}
+
+func cleanupData(session *mongodb.Session) {
+	dbutils.DropDatabase(session, cfg.Schema.Sample.Source)
+	dbutils.DropDatabase(session, db1)
+	dbutils.DropDatabase(session, db2)
+	dbutils.DropDatabase(session, db3)
 }

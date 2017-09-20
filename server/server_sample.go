@@ -3,8 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/config"
@@ -62,18 +60,12 @@ func (s *Server) runSampler(opts *config.SchemaSampleOptions) {
 
 	// 3. Since we are a writer, we need to create and use a mutex
 	// for any write operations.
-
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = strings.Join(s.cfg.Net.BindIP, ",")
-	}
-
 	mtx := dsync.NewDMutex(dsync.DMutexConfig{
 		Name:            "mongosqld-schema",
 		DatabaseName:    s.cfg.Schema.Sample.Source,
 		CollectionName:  "lock",
 		Logger:          lgr,
-		ProcessName:     fmt.Sprintf("mongosqld-%s-%d-%s", hostname, os.Getpid(), randomString(6)),
+		ProcessName:     s.processName,
 		SessionProvider: s.sessionProvider,
 		// Expiration time will be 5 minutes after the last refresh.
 		// Every 30 seconds, we'll refresh the lock.
@@ -145,7 +137,7 @@ func (s *Server) initializeSchema(opts *config.SchemaSampleOptions, lgr *log.Log
 	var sampleRecord *sample.Record
 	if newSchema == nil {
 		lgr.Logf(log.Info, "stored schema not found, sampling instead")
-		newSchema, sampleRecord, err = sample.SampleSchema(opts, session, lgr)
+		newSchema, sampleRecord, err = sample.SampleSchema(opts, s.processName, session, lgr)
 		if err != nil {
 			return nil, err
 		}
@@ -170,7 +162,7 @@ func (s *Server) resampleSchema(mtx *dsync.DMutex, lgr *log.Logger, initialSampl
 	}
 	defer session.Close()
 
-	newSchema, newSampleRecord, err := sample.SampleSchema(&s.cfg.Schema.Sample, session, lgr)
+	newSchema, newSampleRecord, err := sample.SampleSchema(&s.cfg.Schema.Sample, s.processName, session, lgr)
 	if err != nil {
 		return err
 	}
@@ -206,7 +198,7 @@ func (s *Server) writeInitialSample(mtx *dsync.DMutex, lgr *log.Logger, initialS
 	}
 
 	if newSchema != nil {
-		// some other guy has now written a schema, so we can abort
+		// some other mongosqld has now written a schema, so we can abort
 		lgr.Logf(log.DebugLow, "aborting initial schema write; a newer schema was discovered")
 
 		s.schemaLock.Lock()
