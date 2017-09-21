@@ -139,6 +139,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"lower":             &lcaseFunc{},
 	"ltrim":             &ltrimFunc{},
 	"makedate":          &makeDateFunc{},
+	"microsecond":       &microsecondFunc{},
 	"mid":               &midFunc{},
 	"minute":            &minuteFunc{},
 	"mod":               dualArgFloatMathFunc(math.Mod),
@@ -2303,6 +2304,46 @@ func (_ *makeDateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2)
 }
 
+type microsecondFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_microsecond
+func (_ *microsecondFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+
+	arg := values[0]
+
+	if arg == SQLNull {
+		return SQLNull, nil
+	}
+
+	str := arg.String()
+	if str == "" {
+		return SQLNull, nil
+	}
+
+	t, ok := parseTime(str)
+	if !ok {
+		return SQLInt(0), nil
+	}
+
+	return SQLInt(int(t.Nanosecond() / 1000)), nil
+}
+
+func (_ *microsecondFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
+}
+
+func (_ *microsecondFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *microsecondFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
 type midFunc struct {
 	wrapped substringFunc
 }
@@ -3075,22 +3116,32 @@ func (_ *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		return w
 	}
 
-	fmtFrac := func(buf []byte, v uint64, prec int) (nw int, nv uint64) {
+	// Precision is exactly 6 digits (microsecond range)
+	fmtFrac := func(buf []byte, v uint64) (nw int, nv uint64) {
+
 		w, print := len(buf), false
-		for i := 0; i < prec; i++ {
+		end := len(buf) - 1
+
+		for i := 0; i < 6; i++ {
+
 			digit := v % 10
+
 			print = print || digit != 0
+
 			if print {
+				buf[end-i] = byte(digit) + '0'
 				w--
-				buf[w] = byte(digit) + '0'
 			}
 			v /= 10
 		}
 
 		if w != len(buf) {
+
+			// If we have printed anything, pad the rest of the range with zeroes
 			for len(buf)-w < 6 {
+				buf[end] = '0'
+				end--
 				w--
-				buf[w] = '0'
 			}
 			w--
 			buf[w] = '.'
@@ -3118,40 +3169,33 @@ func (_ *timeDiffFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, erro
 		return w
 	}
 
+	u := uint64(d)
+
+	if u == 0 {
+		return SQLVarchar("00:00:00.000000"), nil
+	}
+
 	buf := [30]byte{}
 	w := len(buf)
 
-	u := uint64(d)
 	neg := d < 0
 	if neg {
 		u = -u
 	}
 
-	if u < uint64(time.Second) {
-		var prec int
-		switch {
-		case u == 0:
-			return SQLVarchar("00:00:00.000000"), nil
-		default:
-			prec = 6
-		}
-		w, u = fmtFrac(buf[:w], u, prec)
+	// Shave off nanosecond precision (we need up to microseconds)
+	u /= 1000
+
+	// Handle fractional portion (< 1 second)
+	w, u = fmtFrac(buf[:w], u)
+
+	if u < uint64(time.Microsecond) {
+
 		w = fmtInt(buf[:w], u)
 		w = fmtDef(buf[:w], 0)
+
 	} else {
-		p := len(buf[:w])
-		w, u = fmtFrac(buf[:w], u, 9)
-		// add fractional zeroes if
-		// seconds is non-zero
-		if u%60 != 0 && p == w {
-			i := 0
-			for i < 6 {
-				w--
-				buf[w], i = '0', i+1
-			}
-			w--
-			buf[w] = '.'
-		}
+
 		// u is now integer seconds
 		w = fmtInt(buf[:w], u%60)
 		u /= 60

@@ -1743,6 +1743,29 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: MICROSECOND", func() {
+				tests := []test{
+					test{"MICROSECOND(NULL)", SQLNull},
+					test{"MICROSECOND('')", SQLNull},
+					test{"MICROSECOND('NULL')", SQLInt(0)},
+					test{"MICROSECOND('hello')", SQLInt(0)},
+					test{"MICROSECOND(TRUE)", SQLInt(0)},
+					test{"MICROSECOND('true')", SQLInt(0)},
+					test{"MICROSECOND('FALSE')", SQLInt(0)},
+					test{"MICROSECOND('11:38:24')", SQLInt(0)},
+					test{"MICROSECOND('11:38')", SQLInt(0)},
+					test{"MICROSECOND('11 38 24')", SQLInt(0)},
+					test{"MICROSECOND('11:38:24.000000')", SQLInt(0)},
+					test{"MICROSECOND('11:38:24.000001')", SQLInt(1)},
+					test{"MICROSECOND('11:38:24.123456')", SQLInt(123456)},
+					test{"MICROSECOND('1978-9-22 1:58:59')", SQLInt(0)},
+					test{"MICROSECOND('1978-9-22 1:58:59.00001')", SQLInt(10)},
+					test{"MICROSECOND('1978-9-22 1:58:59.0000104')", SQLInt(10)},
+					test{"MICROSECOND('12:STUFF.002234')", SQLInt(0)},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: MID", func() {
 				tests := []test{
 					test{"MID('foobarbar', 4, NULL)", SQLNull},
@@ -2101,7 +2124,7 @@ func TestEvaluates(t *testing.T) {
 					test{"TIMEDIFF('2000:11:11 00:00:00', NULL)", SQLNull},
 					test{"TIMEDIFF(NULL, '2000:11:11 00:00:00')", SQLNull},
 					test{"TIMEDIFF('2000:09:11 00:00:00', '2000:09:31 00:00:01:323211')", SQLNull},
-					test{"TIMEDIFF('2008-12-31 23:59:59.000001','2008-12-31 23:59:58.000001')", SQLVarchar("00:00:01.000000")},
+					test{"TIMEDIFF('2008-12-31 23:59:59.000001','2008-12-31 23:59:58.000001')", SQLVarchar("00:00:01")},
 					test{"TIMEDIFF('2000:11:11 00:00:00', '2000:11:11 10:00:00.000231')", SQLVarchar("-10:00:00.000231")},
 					test{"TIMEDIFF('2000:01:01 00:00:00','2000:01:01 00:00:00.000001')", SQLVarchar("-00:00:00.000001")},
 					test{"TIMEDIFF('2008-12-31 23:59:59.000001','2008-12-30 01:01:01.000002')", SQLVarchar("46:58:57.999999")},

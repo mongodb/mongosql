@@ -179,7 +179,7 @@ func (st SQLTimestamp) Size() uint64 {
 }
 
 func (st SQLTimestamp) String() string {
-	ms := st.Time.Round(time.Microsecond)
+	ms := st.Time.Round(time.Second)
 	if ms.Equal(st.Time) {
 		return st.Time.Format("2006-01-02 15:04:05")
 	}

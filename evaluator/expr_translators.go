@@ -1145,6 +1145,23 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			}
 
 			return bson.M{"$mod": []interface{}{args[0], args[1]}}, true
+		case "microsecond":
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
+
+			return wrapInNullCheckedCond(
+				nil,
+				bson.M{"$multiply": []interface{}{
+					bson.M{"$millisecond": args[0]}, 1000,
+				}},
+				args[0],
+			), true
+
 		case "minute":
 			if len(typedE.Exprs) != 1 {
 				return nil, false

@@ -24,9 +24,9 @@ data:
     db: "functions_test"
     collection: "scalar"
     docs:
-    - { _id: 0, a: 1, b: "hey", c: 1.456, d: {$date: {$numberLong: "969716700000"}}, s: "foobarbar", t: false}
+    - { _id: 0, a: 1, b: "hey", c: 1.456, d: {$date: {$numberLong: "969716700400"}}, s: "foobarbar", t: false}
     - { _id: 1, a: ~, b: "yo", c: -121.232, d: {$date: {$numberLong: "969803100000"}}, s: ~, t: true}
-    - { _id: 2, a: -3, b: ~, c: 56.7342, d: {$date: {$numberLong: "972395100000"}}, t: ~}
+    - { _id: 2, a: -3, b: ~, c: 56.7342, d: {$date: {$numberLong: "972395100007"}}, t: ~}
     - { _id: 3, a: 4, b: "this", c: ~, d: ~, z: 0}
     - { _id: 4, z: ~}
 - inline:
