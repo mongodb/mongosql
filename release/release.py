@@ -16,8 +16,6 @@ import urllib2
 
 import boto
 
-import httplib2
-
 import requests
 
 EVG_BASE = "https://evergreen.mongodb.com/rest/v1"
@@ -374,13 +372,12 @@ class BIReleaser(object):
     def verify_website_links(self):
         """Verifies that the download URLs exist and are valid.
         """
-        http_handle = httplib2.Http()
         for url, entry in self.__urls.items():
-            request = http_handle.request(entry, 'HEAD')
-            if request[0]['status'] == "200":
+            r = requests.head(entry)
+            if r.status_code == 200:
                 print('%s URL is fine...' % (url))
             else:
-                print('%s URL returned %s' % (url, request[0]['status']))
+                print('%s URL returned %s' % (url, r.status_code))
                 sys.exit(1)
 
     def write_releases_entry(self):
@@ -457,6 +454,9 @@ if __name__ == '__main__':
             sys.exit(0)
         elif opt in ("-v", "--version"):
             version = arg
+    if version == '':
+        print USAGE
+        sys.exit(1)
     ensure_env()
     releaser = BIReleaser(version)
     releaser.run()
