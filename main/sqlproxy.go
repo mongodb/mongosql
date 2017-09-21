@@ -189,14 +189,14 @@ func (p *program) initLog() error {
 	return nil
 }
 
-func (p *program) loadConfig(args []string) error {
-	cfg, err := config.Load(args)
+func (p *program) loadConfig(args []string) ([]string, error) {
+	cfg, args, err := config.Load(args)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	p.cfg = cfg
-	return nil
+	return args, nil
 }
 
 func (p *program) loadSchema() error {
@@ -273,7 +273,7 @@ func main() {
 	}
 
 	p := &program{}
-	err := p.loadConfig(args)
+	args, err := p.loadConfig(args)
 	if err != nil {
 		if err == config.ErrExitEarly {
 			os.Exit(0)

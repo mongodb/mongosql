@@ -3,7 +3,10 @@ package config_test
 import (
 	"fmt"
 	"runtime"
+	"strings"
 	"testing"
+
+	"path/filepath"
 
 	. "github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/log"
@@ -67,7 +70,7 @@ func TestParseArgs_Valid(t *testing.T) {
 		}...)
 	}
 
-	err := ParseArgs(cfg, args)
+	_, err := ParseArgs(cfg, args)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -134,7 +137,7 @@ func TestParseArgs_Valid2(t *testing.T) {
 		"--schemaDirectory", "path-to-directory",
 	}
 
-	err := ParseArgs(cfg, args)
+	_, err := ParseArgs(cfg, args)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -169,7 +172,7 @@ func TestParseArgs_Invalid(t *testing.T) {
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%v-%v", i, test.err), func(t *testing.T) {
 			cfg := Default()
-			err := ParseArgs(cfg, test.args)
+			_, err := ParseArgs(cfg, test.args)
 			if err == nil {
 				t.Fatalf("expected error, but got none")
 			}
@@ -178,6 +181,59 @@ func TestParseArgs_Invalid(t *testing.T) {
 				t.Fatalf("expected err '%s' but got '%v'", test.err, err)
 			}
 		})
+	}
+}
+
+func TestCapturePositionalArgs_Valid(t *testing.T) {
+	var tests = []struct {
+		expected []string
+		args     []string
+	}{
+		{expected: []string{}, args: []string{}},
+		{expected: []string{"-v"}, args: []string{"-v"}},
+		{expected: []string{"--verbose"}, args: []string{"--verbose"}},
+		{expected: []string{"-vv"}, args: []string{"-vv"}},
+		{expected: []string{"--verbose=3"}, args: []string{"--verbose=3"}},
+		{expected: []string{"-v=3"}, args: []string{"-v=3"}},
+		{expected: []string{"-v=4"}, args: []string{"-v", "4"}},
+		{expected: []string{"--verbose=4"}, args: []string{"--verbose", "4"}},
+		{expected: []string{"--config=foo"}, args: []string{"--config", "foo"}},
+
+		{expected: []string{"--verbose=4", "-v"}, args: []string{"--verbose", "4", "-v"}},
+		{expected: []string{"-v=2", "-vvv"}, args: []string{"-v=2", "-vvv"}},
+		{expected: []string{"--verbose=3", "-v=4"}, args: []string{"--verbose=3", "-v", "4"}},
+		{expected: []string{"-vvv", "--verbose=4"}, args: []string{"-vvv", "--verbose", "4"}},
+		{expected: []string{"--verbose=4", "-v=5"}, args: []string{"--verbose", "4", "-v=5"}},
+		{expected: []string{"-v=4", "--verbose=5"}, args: []string{"-v", "4", "--verbose", "5"}},
+
+		{expected: []string{"-v=4", "--config=foo", "--verbose=5"}, args: []string{"-v", "4", "--config", "foo", "--verbose", "5"}},
+	}
+
+	for _, test := range tests {
+		convertedArgs, err := CapturePositionalArgs(test.args)
+		if err != nil {
+			t.Fatalf("got err: \n\t%v\n\tduring call to CapturePositionalArgs", err)
+		}
+		testStringSlice(t, convertedArgs, test.expected, "cfg.SystemLog.Verbosity")
+	}
+}
+
+func TestLoadConfigAbsPath_Valid(t *testing.T) {
+	var tests = []struct {
+		args []string
+	}{
+		{args: []string{"--config=../../testdata/resources/configs/sample.yml"}},
+		{args: []string{"--config", "../../testdata/resources/configs/sample.yml"}},
+	}
+	for _, test := range tests {
+		_, convertedArgs, err := Load(test.args)
+		if err != nil {
+			t.Fatalf("got err: \n\t%v\n\tduring call to config.Load", err)
+		}
+		path := strings.Replace(convertedArgs[0], "--config=", "", 1)
+		if !filepath.IsAbs(path) {
+			t.Errorf("err, config path %v should be absolute, but is not\n", path)
+		}
 	}
 }
 
@@ -205,7 +261,10 @@ func TestVerbosity_Valid(t *testing.T) {
 
 	for _, test := range tests {
 		cfg := Default()
-		ParseArgs(cfg, test.args)
+		_, err := ParseArgs(cfg, test.args)
+		if err != nil {
+			t.Fatalf("got err: \n\t%v\n\tduring call to ParseArgs", err)
+		}
 		testInt(t, cfg.SystemLog.Verbosity, test.level, "cfg.SystemLog.Verbosity")
 	}
 }

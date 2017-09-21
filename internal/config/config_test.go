@@ -67,7 +67,7 @@ func TestLoad(t *testing.T) {
 		"-vv",
 	}
 
-	cfg, err := Load(args)
+	cfg, _, err := Load(args)
 	if err != nil {
 		t.Fatalf("expected no error, but got '%v'", err)
 	}

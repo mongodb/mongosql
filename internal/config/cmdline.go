@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"path/filepath"
+
 	"github.com/10gen/sqlproxy/log"
 	"github.com/jessevdk/go-flags"
 )
@@ -18,9 +20,68 @@ const usage = `mongosqld [install|uninstall] <options>`
 // Used to check if mongosqld should exit early with a normal exit code (for --help, --version, etc)
 var ErrExitEarly = errors.New("exit early")
 
-// ParseArgs parses the arguments and overrides values in the cfg.
-func ParseArgs(cfg *Config, args []string) error {
+// MakeAbsPaths takes args and a map representing a set of command line flags that
+// expect a path that should be translated to absolute.
+//
+// pre-condition: can only convert paths if the arg is of the form --flag=arg, positional
+// arguments must be converted elsewhere or they will be missed!
+func MakeAbsPaths(args []string, flags map[string]struct{}) ([]string, error) {
+	ret := make([]string, len(args), cap(args))
+	copy(ret, args)
+	var err error
+	for i, arg := range args {
+		argSplit := strings.Split(arg, "=")
+		if len(argSplit) != 2 {
+			continue
+		}
+		if _, contains := flags[argSplit[0]]; contains {
+			argSplit[1], err = filepath.Abs(argSplit[1])
+			if err != nil {
+				return nil, err
+			}
+			ret[i] = strings.Join(argSplit, "=")
+		}
+	}
+	return ret, nil
+}
 
+// CapturePositionalArgs converts positional arguments like --flag arg to
+// --flag=arg.  This must be done individually for each flag we wish to
+// capture, as some, like --verbose, have special requirements of their
+// positional arguments
+func CapturePositionalArgs(args []string) ([]string, error) {
+	ret := make([]string, len(args), cap(args))
+	copy(ret, args)
+	// capture positional args for -v, --verbose, and --config
+	// as well as for --config
+	for i, arg := range ret {
+		switch arg {
+		case "-v":
+			fallthrough
+		case "--verbose":
+			if i+1 < len(ret) {
+				_, err := strconv.Atoi(ret[i+1])
+				if err == nil {
+					ret[i] = arg + "=" + ret[i+1]
+					ret = append(ret[:i+1], ret[i+2:]...)
+				}
+			}
+		case "--config":
+			if i+1 >= len(ret) {
+				return nil, errors.New("--config flag requires a path argument")
+			}
+			ret[i] = arg + "=" + ret[i+1]
+			ret = append(ret[:i+1], ret[i+2:]...)
+		}
+
+	}
+	return ret, nil
+}
+
+// ParseArgs parses the arguments and overrides values in the cfg.
+// it returns the modified args for use elsewhere (such as passing to a Service)
+func ParseArgs(cfg *Config, args []string) ([]string, error) {
+	// Note: ParseArgs is called multiple times, so it is not safe to modify the passed args slice in place
 	parser := flags.NewNamedParser(usage, flags.None)
 
 	opts := options{
@@ -49,7 +110,7 @@ func ParseArgs(cfg *Config, args []string) error {
 	for _, group := range groups {
 		header := fmt.Sprintf("%s options", group.name())
 		if _, err := parser.AddGroup(header, "", group); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -70,15 +131,14 @@ func ParseArgs(cfg *Config, args []string) error {
 		return nil
 	}
 
-	// capture positional args for -v and --verbose
-	for i, arg := range args {
-		if (arg == "-v" || arg == "--verbose") && i+1 < len(args) {
-			_, err := strconv.Atoi(args[i+1])
-			if err == nil {
-				args[i] = arg + "=" + args[i+1]
-				args = append(args[:i+1], args[i+2:]...)
-			}
-		}
+	args, err := CapturePositionalArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	args, err = MakeAbsPaths(args, map[string]struct{}{"--config": struct{}{}})
+	if err != nil {
+		return nil, err
 	}
 
 	if retargs, err := parser.ParseArgs(args); err != nil {
@@ -86,29 +146,29 @@ func ParseArgs(cfg *Config, args []string) error {
 		if strings.Contains(err.Error(), "(expected func(string) error)") {
 			err = errors.New(strings.Replace(err.Error(), "(expected func(string) error)", "(expected int)", 1))
 		}
-		return fmt.Errorf("error parsing command line options: %v", err)
+		return nil, fmt.Errorf("error parsing command line options: %v", err)
 	} else if len(retargs) > 0 {
-		return fmt.Errorf("error parsing command line options: Unexpected argument(s): %v", retargs)
+		return nil, fmt.Errorf("error parsing command line options: Unexpected argument(s): %v", retargs)
 	}
 
 	for _, group := range groups {
 		err := group.mapToConfig(cfg)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if opts.Version != nil && *opts.Version {
 		PrintVersionAndGitspec("mongosqld", os.Stdout)
-		return ErrExitEarly
+		return nil, ErrExitEarly
 	}
 
 	if opts.generalOptions != nil && opts.generalOptions.Help != nil && *opts.generalOptions.Help {
 		parser.WriteHelp(os.Stdout)
-		return ErrExitEarly
+		return nil, ErrExitEarly
 	}
 
-	return nil
+	return args, nil
 }
 
 type options struct {

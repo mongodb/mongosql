@@ -24,21 +24,21 @@ var (
 // Load creates a new configuration from the specified arguments
 // and potentially loads from a separate config source as specified
 // on the command line.
-func Load(args []string) (*Config, error) {
+func Load(args []string) (*Config, []string, error) {
 	cfg := Default()
-	err := ParseArgs(cfg, args)
+	args, err := ParseArgs(cfg, args)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if cfg.Config != "" {
 		yaml, err := ioutil.ReadFile(cfg.Config)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if len(yaml) == 0 {
 			// we're done. An empty file shouldn't cause an error.
-			return cfg, nil
+			return cfg, args, nil
 		}
 
 		// we'll start over with a new default set and then re-parse
@@ -47,11 +47,11 @@ func Load(args []string) (*Config, error) {
 		cfg = Default()
 		err = ParseYaml(cfg, bytes.NewReader(yaml))
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse configuration file: %s", err)
+			return nil, nil, fmt.Errorf("unable to parse configuration file: %s", err)
 		}
-		err = ParseArgs(cfg, args)
+		args, err = ParseArgs(cfg, args)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if cfg.MongoDB.Net.Auth.Mechanism == "" {
@@ -63,7 +63,7 @@ func Load(args []string) (*Config, error) {
 		}
 	}
 
-	return cfg, err
+	return cfg, args, err
 }
 
 // Default returns the default configuration.

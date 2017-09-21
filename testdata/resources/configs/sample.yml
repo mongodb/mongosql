@@ -1,0 +1,36 @@
+systemLog:
+  logAppend: true
+  logRotate: "reopen"
+  path: temp
+  quiet: true
+  verbosity: 2
+schema:
+  path: "/var/test"
+  maxVarcharLength: 1000
+  sample:
+    mode: read
+    source: sampleDb
+    size: 969
+    namespaces: ["foo.*", "*.bar"]
+    readIntervalSecs: 1005
+    writeIntervalSecs: 983
+    uuidSubtype3Encoding: java
+runtime:
+  memory:
+    maxPerStage: 102400
+net:
+  bindIp: 192.168.20.1
+  port: 3306
+  unixDomainSocket:
+    enabled: false
+    pathPrefix: "/var"
+    filePermissions: "0600"
+mongodb:
+  versionCompatibility: "3.4"
+  net:
+    uri: "mongodb://hostname:27018"
+processManagement:
+  service:
+    name: sqlproxy
+    displayName: sqlproxy
+    description: mysql compatibility layer for mongo
