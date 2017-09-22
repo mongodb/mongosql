@@ -213,3 +213,20 @@ testcases:
   - [4]
   - [7]
   - [13]
+- sql: "select * from ((select d from bar) union (select g from baz)) ut order by d limit 2"
+  id: '15'
+  db: union_test
+  description: "parenthesis with order by and limit"
+  expected_names: ["d"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [4]
+- sql: "(select * from ((select d from bar) union (select g from baz)) ut) order by d limit 1"
+  id: '16'
+  db: union_test
+  description: "parenthesis with order by and limit"
+  expected_names: ["d"]
+  expected_types: [int]
+  expected:
+  - [1]

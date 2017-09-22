@@ -1033,7 +1033,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 		return plan, plan.Columns(), nil
 	case *parser.Subquery:
 
-		if aliasName == "" {
+		if aliasName == "" && typedT.IsDerived {
 			return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ER_DERIVED_MUST_HAVE_ALIAS)
 		}
 

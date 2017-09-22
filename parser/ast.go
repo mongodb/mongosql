@@ -687,7 +687,8 @@ func (node Exprs) Format(buf *TrackedBuffer) {
 
 // Subquery represents a subquery.
 type Subquery struct {
-	Select SelectStatement
+	Select    SelectStatement
+	IsDerived bool
 }
 
 func (node *Subquery) Format(buf *TrackedBuffer) {

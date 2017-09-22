@@ -2924,6 +2924,74 @@ func TestOptimizePlan(t *testing.T) {
 				},
 			)
 
+			test("(select a from foo order by b)",
+				[]bson.D{
+					{{"$sort", bson.D{
+						{"b", 1},
+					}}},
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+					}}},
+					{{"$project", bson.M{
+						"a": "$foo_DOT_a",
+					}}},
+				},
+			)
+
+			test("(select a from foo) order by a limit 1",
+				[]bson.D{
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+					}}},
+					{{"$sort", bson.D{
+						{"foo_DOT_a", 1},
+					}}},
+					{{"$limit", int64(1)}},
+					{{"$project", bson.M{
+						"a": "$foo_DOT_a",
+					}}},
+				},
+			)
+
+			test("select * from (select a from foo order by a limit 3) ut order by a limit 1",
+				[]bson.D{
+					{{"$sort", bson.D{
+						{"a", 1},
+					}}},
+					{{"$limit", int64(3)}},
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+					}}},
+					{{"$sort", bson.D{
+						{"foo_DOT_a", 1},
+					}}},
+					{{"$limit", int64(1)}},
+					{{"$project", bson.M{
+						"ut_DOT_a": "$foo_DOT_a",
+					}}},
+				},
+			)
+
+			test("select * from (select a from foo order by a limit 3) ut order by a limit 1, 1",
+				[]bson.D{
+					{{"$sort", bson.D{
+						{"a", 1},
+					}}},
+					{{"$limit", int64(3)}},
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+					}}},
+					{{"$sort", bson.D{
+						{"foo_DOT_a", 1},
+					}}},
+					{{"$skip", int64(1)}},
+					{{"$limit", int64(1)}},
+					{{"$project", bson.M{
+						"ut_DOT_a": "$foo_DOT_a",
+					}}},
+				},
+			)
+
 			test("select a from foo order by a, b desc",
 				[]bson.D{
 					{{"$sort", bson.D{
@@ -3026,6 +3094,30 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$limit", int64(20)}},
 					{{"$project", bson.M{
 						"foo_DOT_a": "$a",
+					}}},
+				},
+			)
+
+			test("(select a from foo limit 1)",
+				[]bson.D{
+					{{"$limit", int64(1)}},
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+					}}},
+					{{"$project", bson.M{
+						"a": "$foo_DOT_a",
+					}}},
+				},
+			)
+
+			test("(select a from foo) limit 1",
+				[]bson.D{
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+					}}},
+					{{"$limit", int64(1)}},
+					{{"$project", bson.M{
+						"a": "$foo_DOT_a",
 					}}},
 				},
 			)

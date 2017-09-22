@@ -445,3 +445,70 @@ func TestNatural(t *testing.T) {
 	sql = "select * from foo natural right join bar using (id)"
 	testParseError(t, sql)
 }
+
+func TestUnion(t *testing.T) {
+	sql := "select d from bar union select g from baz"
+	testParse(t, sql)
+
+	sql = "select a from foo union select d from bar union select g from baz order by d"
+	testParse(t, sql)
+
+	sql = "select a from foo union select d from foo inner join bar on foo.id=bar.id union select g from baz order by a"
+	testParse(t, sql)
+
+	sql = "select * from (select a from foo union select d from foo inner join bar on foo.id=bar.id union select g from baz) as tmp order by a"
+	testParse(t, sql)
+
+	sql = "(select db from servers union select user from user)" // This one is supported in MySql 8.0.0
+	testParse(t, sql)
+
+	sql = "((select db from servers) union (select user from user))" // This one is supported in MySql 8.0.0
+	testParse(t, sql)
+
+	sql = "(select db from servers) union (select user from user)"
+	testParse(t, sql)
+
+	sql = "select * from (select a from foo union select d from foo) as tmp"
+	testParse(t, sql)
+}
+
+func TestParenthesis(t *testing.T) {
+	sql := "(select * from bar)"
+	testParse(t, sql)
+
+	sql = "(select * from bar) limit 2"
+	testParse(t, sql)
+
+	sql = "((select * from bar)) limit 2"
+	testParse(t, sql)
+
+	sql = "((select * from bar)) order by id limit 2"
+	testParse(t, sql)
+
+	sql = "(select * from bar limit 2)"
+	testParse(t, sql)
+
+	sql = "(select * from (select * from bar) limit 2)"
+	testParse(t, sql)
+
+	sql = "(select * from (((select * from bar))) limit 2) limit 3"
+	testParse(t, sql)
+
+	sql = "(((select * from (((select * from db))) s limit 3))) limit 1"
+	testParse(t, sql)
+
+	sql = "SELECT C_Name, cr.P_FirstName+\" \"+cr.P_SurName AS ClassRepresentativ, cr2.P_FirstName+\" \"+cr2.P_SurName AS ClassRepresentativ2nd FROM ((class INNER JOIN person AS cr ON class.C_P_ClassRep=cr.P_Nr) INNER JOIN person AS cr2 ON class.C_P_ClassRep2nd=cr2.P_Nr)"
+	testParse(t, sql)
+
+	sql = "(SELECT `Calcs`.`_id` AS `_id`, `Calcs`.`bool0_` AS `bool0_`, `Calcs`.`bool1_` AS `bool1_`, `Calcs`.`bool2_` AS `bool2_`, `Calcs`.`bool3_` AS `bool3_`, `Calcs`.`date0` AS `date0`, `Calcs`.`date1` AS `date1`, `Calcs`.`date2` AS `date2`, `Calcs`.`date3` AS `date3`, `Calcs`.`datetime0` AS `datetime0`, `Calcs`.`datetime1` AS `datetime1`, `Calcs`.`int0` AS `int0`, `Calcs`.`int1` AS `int1`, `Calcs`.`int2` AS `int2`, `Calcs`.`int3` AS `int3`, `Calcs`.`key` AS `key`, `Calcs`.`num0` AS `num0`, `Calcs`.`num1` AS `num1`, `Calcs`.`num2` AS `num2`, `Calcs`.`num3` AS `num3`, `Calcs`.`num4` AS `num4`, `Calcs`.`str0` AS `str0`, `Calcs`.`str1` AS `str1`, `Calcs`.`str2` AS `str2`, `Calcs`.`str3` AS `str3`, `Calcs`.`time0` AS `time0`, `Calcs`.`time1` AS `time1`, `Calcs`.`zzz` AS `zzz` FROM `Calcs`) LIMIT 0"
+	testParse(t, sql)
+
+	sql = "((select * from bar) order by id limit 2)"
+	testParseError(t, sql)
+
+	sql = "select * from (((select * from tuples)) s limit 2) limit 1"
+	testParseError(t, sql)
+
+	sql = "((select * from (((select * from bar))) d limit 2) limit 3)"
+	testParseError(t, sql)
+}

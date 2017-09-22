@@ -110,7 +110,7 @@ func ForceEOF(yylex interface{}) {
 %start any_command
 
 %type <statement> command
-%type <selStmt> select_statement
+%type <selStmt> select_statement select_statement_with_paren_order_limit
 %type <statement> set_statement use_statement show_statement explain_statement explainable_stmt
 %type <statement> kill_statement drop_statement
 %type <statement> flush_statement
@@ -141,7 +141,7 @@ func ForceEOF(yylex interface{}) {
 %type <bytes> sql_time_unit
 %type <bytes> sql_types
 %type <bytes> substr 
-%type <subquery> subquery
+%type <subquery> subquery non_derived_subquery 
 %type <byt> unary_operator
 %type <colName> column_name explain_column_name
 %type <caseExpr> case_expression
@@ -189,6 +189,10 @@ command:
   {
     $$ = $1
   }
+| select_statement_with_paren_order_limit
+  {
+    $$ = $1
+  }
 | set_statement
 | kill_statement
 | show_statement
@@ -197,9 +201,18 @@ command:
 | drop_statement
 | flush_statement
 
+select_statement_with_paren_order_limit:
+  non_derived_subquery order_by_opt limit_opt
+  {
+    $$ = &Select{SelectExprs: []SelectExpr{&StarExpr{}}, From: []TableExpr{&AliasedTableExpr{Expr:$1}}, OrderBy: $2, Limit: $3}
+  }
 
 select_statement:
-  SELECT comment_opt distinct_opt select_expression_list limit_opt
+  non_derived_subquery
+  {
+    $$ = &Select{SelectExprs: []SelectExpr{&StarExpr{}}, From: []TableExpr{&AliasedTableExpr{Expr:$1}}}
+  }
+| SELECT comment_opt distinct_opt select_expression_list limit_opt
   {
     $$ = &SimpleSelect{Comments: Comments($2), Distinct: $3, SelectExprs: $4, Limit: $5}
   }
@@ -211,6 +224,12 @@ select_statement:
   {
     $$ = &Union{Type: $2, Left: $1, Right: $3}
   }
+
+non_derived_subquery:
+ LPAREN select_statement RPAREN
+ {
+    $$ = &Subquery{Select: $2, IsDerived: false}
+ }
 
 use_statement:
   USE ID
@@ -1062,7 +1081,7 @@ tuple:
 subquery:
   LPAREN select_statement RPAREN
   {
-    $$ = &Subquery{$2}
+    $$ = &Subquery{Select: $2, IsDerived: true}
   }
 
 expression_list:

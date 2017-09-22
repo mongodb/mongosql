@@ -941,3 +941,63 @@ testcases:
   - ["2017-01-01"]
   - ["2017-01-01"]
   - ["2017-01-01"]
+- sql: "(select stest.a FROM (select * from select_sTest.foo) stest) order by a desc limit 2"
+  id: '95'
+  db: select_sTest
+  description: "checking parenthesis with subquery and limit"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [3]
+  - [2]
+- sql: "(((select id, a from select_sTest.foo)))"
+  id: '96'
+  db: select_sTest
+  description: "checking parenthesis main query "
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected:
+  - [0, 1]
+  - [1, 2]
+  - [2, 3]
+- sql: "(select id, a from foo) limit 1"
+  id: '97'
+  db: select_sTest
+  description: "checking parenthesis main query and limit"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected:
+  - [0, 1]
+- sql: "(select id, a from foo) order by a desc limit 1"
+  id: '98'
+  db: select_sTest
+  description: "checking parenthesis main query and order by , limit"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected:
+  - [2, 3]
+- sql: "(select a.id, a.a, a.b from (select_Stest.foo a join select_Stest.tuples b on a.a=b.y and a.id=b.z inner join select_Stest.foo c on c.id=a.id or b.x=c.b))"
+  id: '99'
+  db: select_sTest
+  description: "inner join with multiple mergable criteria and parenthesis"
+  expected_names: ["id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [0, 1, ~]
+- sql: "(select stest.a FROM (select * from select_sTest.foo) stest) order by a desc limit 1, 1"
+  id: '100'
+  db: select_sTest
+  description: "checking parenthesis with subquery and limit with offset"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected: 
+  - [2]
+- sql: "(((select id, a from select_sTest.foo))) limit 1, 2"
+  id: '101'
+  db: select_sTest
+  description: "checking parenthesis main query "
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected:
+  - [1, 2]
+  - [2, 3]
