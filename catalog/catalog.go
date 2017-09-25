@@ -8,6 +8,10 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+const (
+	InformationSchemaDatabase = "information_schema"
+)
+
 // CatalogName is the name of a catalog.
 type CatalogName string
 

@@ -7,14 +7,16 @@ import (
 
 // EvaluateQuery creates an iterator in order to stream results.
 func EvaluateQuery(sql string, ast parser.Statement, conn ConnectionCtx) ([]*Column, Iter, error) {
+	lgr := conn.Logger(log.AlgebrizerComponent)
+
 	switch ast.(type) {
 	case parser.SelectStatement:
-		conn.Logger(log.AlgebrizerComponent).Infof(log.Admin, `generating query plan for sql: "%v"`, sql)
+		lgr.Infof(log.Admin, `generating query plan for sql: "%v"`, sql)
 	case *parser.Show:
-		conn.Logger(log.AlgebrizerComponent).Infof(log.Admin, `generating query plan for show statement: "%v"`, sql)
+		lgr.Infof(log.Admin, `generating query plan for show statement: "%v"`, sql)
 	default:
 		// Should never happen
-		conn.Logger(log.AlgebrizerComponent).Warnf(log.Admin, `generating query plan for unknown statement: "%v"`, sql)
+		lgr.Warnf(log.Admin, `generating query plan for unknown statement: "%v"`, sql)
 	}
 
 	plan, err := AlgebrizeQuery(ast, conn.DB(), conn.Variables(), conn.Catalog())

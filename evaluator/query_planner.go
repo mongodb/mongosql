@@ -313,11 +313,15 @@ func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColum
 	}
 
 	if sqlCol, ok := expr.(SQLColumnExpr); ok {
-		pc.SelectID = sqlCol.selectID
-		pc.Name = sqlCol.columnName
-		pc.Table = sqlCol.tableName
-		pc.SQLType = sqlCol.columnType.SQLType
-		pc.MongoType = sqlCol.columnType.MongoType
+		if c := b.algebrizer.findSQLColumn(sqlCol); c != nil {
+			pc = c.projectWithExpr(expr)
+		} else {
+			pc.SelectID = sqlCol.selectID
+			pc.Name = sqlCol.columnName
+			pc.Table = sqlCol.tableName
+			pc.SQLType = sqlCol.columnType.SQLType
+			pc.MongoType = sqlCol.columnType.MongoType
+		}
 	} else {
 		pc.Name = expr.String()
 		pc.SQLType = expr.Type()

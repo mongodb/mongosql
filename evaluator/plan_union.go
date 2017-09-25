@@ -167,6 +167,11 @@ func (iter *UnionIter) Next(row *Row) bool {
 		if !ok {
 			return false
 		}
+		// past this stage, all columns must
+		// present the same table name.
+		for i := 0; i < len(row.Data); i++ {
+			row.Data[i].Table = iter.columns[i].Table
+		}
 	}
 	return true
 }

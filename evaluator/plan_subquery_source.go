@@ -1,6 +1,8 @@
 package evaluator
 
-import "github.com/10gen/sqlproxy/collation"
+import (
+	"github.com/10gen/sqlproxy/collation"
+)
 
 // SubquerySourceStage handles taking sourced rows and projecting them into an alias.
 type SubquerySourceStage struct {
@@ -29,18 +31,12 @@ func (s *SubquerySourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	}
 
 	var projectedColumns ProjectedColumns
+
 	for _, column := range s.source.Columns() {
-		projectedColumns = append(projectedColumns, ProjectedColumn{
-			Column: &Column{
-				SelectID:   s.selectID,
-				Name:       column.Name,
-				Table:      s.aliasName,
-				MongoType:  column.MongoType,
-				SQLType:    column.SQLType,
-				PrimaryKey: column.PrimaryKey,
-			},
-			Expr: NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType),
-		})
+		projectedColumn := column.projectAs(column.Name)
+		projectedColumn.SelectID = s.selectID
+		projectedColumn.Table = s.aliasName
+		projectedColumns = append(projectedColumns, projectedColumn)
 	}
 
 	return &ProjectIter{
@@ -52,13 +48,9 @@ func (s *SubquerySourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 func (s *SubquerySourceStage) Columns() []*Column {
 	var columns []*Column
 	for _, column := range s.source.Columns() {
-		columns = append(columns, &Column{
-			SelectID:  s.selectID,
-			Name:      column.Name,
-			Table:     s.aliasName,
-			MongoType: column.MongoType,
-			SQLType:   column.SQLType,
-		})
+		column.SelectID = s.selectID
+		column.Table = s.aliasName
+		columns = append(columns, column.clone())
 	}
 
 	return columns

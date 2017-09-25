@@ -53,12 +53,15 @@ func NewMongoSourceStage(db *catalog.Database, table *catalog.MongoTable, select
 	for _, c := range table.Columns() {
 		mc := c.(*catalog.MongoColumn)
 		column := &Column{
-			SelectID:   selectID,
-			Table:      ms.aliasNames[0],
-			Name:       string(mc.Name()),
-			SQLType:    mc.Type(),
-			MongoType:  mc.MongoType,
-			PrimaryKey: primaryKeys.Contains(mc.Name()),
+			SelectID:      selectID,
+			Table:         ms.aliasNames[0],
+			OriginalTable: ms.tableNames[0],
+			Database:      ms.dbName,
+			Name:          string(mc.Name()),
+			OriginalName:  string(mc.Name()),
+			SQLType:       mc.Type(),
+			MongoType:     mc.MongoType,
+			PrimaryKey:    primaryKeys.Contains(mc.Name()),
 		}
 
 		ms.mappingRegistry.addColumn(column)

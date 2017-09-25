@@ -1,6 +1,8 @@
 package evaluator
 
-import "github.com/10gen/sqlproxy/collation"
+import (
+	"github.com/10gen/sqlproxy/collation"
+)
 
 // Limit restricts the number of rows returned by a query.
 type LimitStage struct {

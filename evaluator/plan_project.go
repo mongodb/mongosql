@@ -52,7 +52,6 @@ func (pj *ProjectStage) Open(ctx *ExecutionCtx) (Iter, error) {
 }
 
 func (pj *ProjectIter) Next(r *Row) bool {
-
 	if !pj.source.Next(r) {
 		return false
 	}
@@ -84,14 +83,7 @@ func (pj *ProjectIter) Next(r *Row) bool {
 
 func (pj *ProjectStage) Columns() (columns []*Column) {
 	for _, projectedColumn := range pj.projectedColumns {
-		column := &Column{
-			SelectID:  projectedColumn.SelectID,
-			Name:      projectedColumn.Name,
-			Table:     projectedColumn.Table,
-			SQLType:   projectedColumn.SQLType,
-			MongoType: projectedColumn.MongoType,
-		}
-		columns = append(columns, column)
+		columns = append(columns, projectedColumn.Column.clone())
 	}
 
 	if len(columns) == 0 {

@@ -70,22 +70,28 @@ type Executor interface {
 // Column contains information used to select data
 // from a PlanStage.
 type Column struct {
-	SelectID   int
-	Table      string
-	Name       string
-	SQLType    schema.SQLType
-	MongoType  schema.MongoType
-	PrimaryKey bool
+	SelectID      int
+	Table         string
+	OriginalTable string
+	Database      string
+	Name          string
+	OriginalName  string
+	SQLType       schema.SQLType
+	MongoType     schema.MongoType
+	PrimaryKey    bool
 }
 
 func (c *Column) clone() *Column {
 	return &Column{
-		SelectID:   c.SelectID,
-		Table:      c.Table,
-		Name:       c.Name,
-		SQLType:    c.SQLType,
-		MongoType:  c.MongoType,
-		PrimaryKey: c.PrimaryKey,
+		SelectID:      c.SelectID,
+		Table:         c.Table,
+		OriginalTable: c.OriginalTable,
+		Name:          c.Name,
+		OriginalName:  c.OriginalName,
+		Database:      c.Database,
+		SQLType:       c.SQLType,
+		MongoType:     c.MongoType,
+		PrimaryKey:    c.PrimaryKey,
 	}
 }
 
@@ -96,10 +102,18 @@ func (c *Column) expr() SQLColumnExpr {
 func (c *Column) projectAs(name string) ProjectedColumn {
 	clone := c.clone()
 	clone.Name = name
-	clone.Table = ""
 	return ProjectedColumn{
 		Column: clone,
 		Expr:   c.expr(),
+	}
+}
+
+func (c *Column) projectWithExpr(expr SQLExpr) *ProjectedColumn {
+	clone := c.clone()
+	clone.SQLType = expr.Type()
+	return &ProjectedColumn{
+		Column: clone,
+		Expr:   expr,
 	}
 }
 
@@ -107,7 +121,7 @@ type Columns []*Column
 
 func (cs Columns) FindByName(name string) (*Column, bool) {
 	for _, c := range cs {
-		if strings.ToLower(name) == strings.ToLower(c.Name) {
+		if strings.EqualFold(name, c.Name) {
 			return c, true
 		}
 	}

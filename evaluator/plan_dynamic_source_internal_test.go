@@ -48,8 +48,9 @@ func TestDynamicSourceStage(t *testing.T) {
 	}
 
 	Convey("Subject: DynamicSourceStage", t, func() {
+		db := &catalog.Database{}
 
-		source := NewDynamicSourceStage(table, 1, tableName)
+		source := NewDynamicSourceStage(db, table, 1, tableName)
 
 		connectionCtx := createTestConnectionCtx(testInfo)
 		execCtx := &ExecutionCtx{

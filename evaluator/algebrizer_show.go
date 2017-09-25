@@ -297,8 +297,8 @@ type showInfo struct {
 }
 
 func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
-	subA := a.newSubqueryAlgebrizer()
-	db, err := subA.catalog.Database(info.dbName)
+	subqueryAlgebrizer := a.newSubqueryAlgebrizer()
+	db, err := subqueryAlgebrizer.catalog.Database(info.dbName)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -307,25 +307,40 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 	if err != nil {
 		panic(err.Error())
 	}
-	var plan PlanStage = NewDynamicSourceStage(tbl.(*catalog.DynamicTable), subA.selectID, string(tbl.Name()))
+
+	var plan PlanStage = NewDynamicSourceStage(
+		db,
+		tbl.(*catalog.DynamicTable),
+		subqueryAlgebrizer.selectID,
+		string(tbl.Name()),
+	)
+
 	columns := Columns(plan.Columns())
+
 	var projectedColumns ProjectedColumns
+
 	for i, columnName := range info.columnNames {
 		c, ok := columns.FindByName(columnName)
 		if !ok {
 			panic(fmt.Sprintf("cannot find column %s", columnName))
 		}
+
 		var columnAlias string
 		if i < len(info.columnAliases) {
 			columnAlias = info.columnAliases[i]
 		} else {
 			columnAlias = c.Name
 		}
+
+		c.OriginalTable = info.tableName
+		c.OriginalName = c.Name
 		projectedColumns = append(projectedColumns, c.projectAs(columnAlias))
 	}
+
+	subqueryTableName := info.tableName
 	plan = NewProjectStage(plan, projectedColumns...)
-	plan = NewSubquerySourceStage(plan, subA.selectID, "t")
-	a.registerTable("t")
+	plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, subqueryTableName)
+	a.registerTable(subqueryTableName)
 	a.registerColumns(plan.Columns())
 
 	if info.predicate != nil {
@@ -337,23 +352,28 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 	}
 
 	if len(info.orderBy) > 0 {
-		c, err := a.resolveColumnExpr("t", info.orderBy)
+		expr, err := a.resolveColumnExpr(subqueryTableName, info.orderBy)
 		if err != nil {
 			panic(err.Error())
 		}
 		plan = NewOrderByStage(plan, &orderByTerm{
-			expr:      c,
+			expr:      expr,
 			ascending: true,
 		})
 	}
 
-	// in case we needed more columns from the base table than should be returned...
+	// we might need more columns for the translation than actually
+	// need to get returned to the client; for instance, to perform
+	// filtering or ordering.
 	if len(info.columnNames) > len(info.columnAliases) {
 		columns := Columns(plan.Columns())
 		var projectedColumns ProjectedColumns
 		for _, columnName := range info.columnAliases {
-			c, _ := columns.FindByName(columnName)
-			projectedColumn := c.projectAs(columnName)
+			c, ok := columns.FindByName(columnName)
+			if !ok {
+				panic(fmt.Sprintf("cannot find column %s", columnName))
+			}
+			projectedColumn := c.projectAs(c.Name)
 			projectedColumn.SelectID = a.selectID
 			projectedColumns = append(projectedColumns, projectedColumn)
 		}

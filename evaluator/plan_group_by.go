@@ -46,15 +46,8 @@ func NewGroupByStage(source PlanStage, keys []SQLExpr, projectedColumns Projecte
 }
 
 func (gb *GroupByStage) Columns() (columns []*Column) {
-	for _, expr := range gb.projectedColumns {
-		column := &Column{
-			SelectID:  expr.SelectID,
-			Name:      expr.Name,
-			Table:     expr.Table,
-			SQLType:   expr.SQLType,
-			MongoType: expr.MongoType,
-		}
-		columns = append(columns, column)
+	for _, projectedColumn := range gb.projectedColumns {
+		columns = append(columns, projectedColumn.Column.clone())
 	}
 	return columns
 }

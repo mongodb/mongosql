@@ -11,10 +11,12 @@ type DynamicSourceStage struct {
 	selectID  int
 	table     *catalog.DynamicTable
 	aliasName string
+	dbName    string
 }
 
 // NewDynamicSourceStage creates a new DynamicSourceStage.
-func NewDynamicSourceStage(table *catalog.DynamicTable, selectID int, aliasName string) *DynamicSourceStage {
+func NewDynamicSourceStage(db *catalog.Database, table *catalog.DynamicTable,
+	selectID int, aliasName string) *DynamicSourceStage {
 	if aliasName == "" {
 		aliasName = string(table.Name())
 	}
@@ -22,6 +24,7 @@ func NewDynamicSourceStage(table *catalog.DynamicTable, selectID int, aliasName 
 	return &DynamicSourceStage{
 		selectID:  selectID,
 		table:     table,
+		dbName:    string(db.Name),
 		aliasName: aliasName,
 	}
 }
@@ -31,11 +34,14 @@ func (s *DynamicSourceStage) Columns() []*Column {
 	var columns []*Column
 	for _, c := range s.table.Columns() {
 		column := &Column{
-			SelectID:  s.selectID,
-			Table:     s.aliasName,
-			Name:      string(c.Name()),
-			SQLType:   c.Type(),
-			MongoType: schema.MongoNone,
+			SelectID:      s.selectID,
+			Table:         s.aliasName,
+			OriginalTable: string(s.table.Name()),
+			Database:      s.dbName,
+			Name:          string(c.Name()),
+			OriginalName:  string(c.Name()),
+			SQLType:       c.Type(),
+			MongoType:     schema.MongoNone,
 		}
 		columns = append(columns, column)
 	}

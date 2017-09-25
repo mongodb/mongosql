@@ -66,13 +66,13 @@ func (c *conn) handleQuery(sql string) (err error) {
 	case *parser.Use:
 		err = c.handleUse(v)
 	case *parser.Select:
-		err = c.handleSelect(v, sql, nil)
+		err = c.handleSelect(sql, v)
 		logTimeTaken()
 	case *parser.SimpleSelect:
-		err = c.handleSimpleSelect(sql, v)
+		err = c.handleSelect(sql, v)
 		logTimeTaken()
 	case *parser.Union:
-		err = c.handleSelect(v, sql, nil)
+		err = c.handleSelect(sql, v)
 		logTimeTaken()
 	case *parser.Show:
 		err = c.handleShow(sql, v)

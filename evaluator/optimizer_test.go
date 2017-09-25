@@ -396,6 +396,18 @@ func TestOptimizePlan32(t *testing.T) {
 				{{"$match", bson.M{
 					"__predicate": true,
 				}}},
+				{{"$project", bson.M{
+					"a_DOT_b":   "$b",
+					"a_DOT__id": "$_id",
+					"b_DOT_e":   "$__joined_b.d.e",
+					"b_DOT_g":   "$__joined_b.g",
+					"b_DOT_f":   "$__joined_b.d.f",
+					"b_DOT__id": "$__joined_b._id",
+					"a_DOT_a":   "$a",
+					"b_DOT_a":   "$__joined_b.a",
+					"b_DOT_b":   "$__joined_b.b",
+					"b_DOT_c":   "$__joined_b.c",
+				}}},
 			},
 		)
 
@@ -550,6 +562,18 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 							{{"$match", bson.M{
 								"__predicate": true,
+							}}},
+							{{"$project", bson.M{
+								"a_DOT_a":   "$a",
+								"a_DOT_b":   "$b",
+								"b_DOT_b":   "$__joined_b.b",
+								"b_DOT_f":   "$__joined_b.d.f",
+								"b_DOT__id": "$__joined_b._id",
+								"a_DOT__id": "$_id",
+								"b_DOT_a":   "$__joined_b.a",
+								"b_DOT_c":   "$__joined_b.c",
+								"b_DOT_e":   "$__joined_b.d.e",
+								"b_DOT_g":   "$__joined_b.g",
 							}}},
 						},
 					)
@@ -734,6 +758,10 @@ func TestOptimizePlan(t *testing.T) {
 							{{"$unwind", bson.M{
 								"path": "$__joined_bar",
 								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$a",
+								"bar_DOT_a": "$__joined_bar.a",
 							}}},
 						},
 					)
@@ -963,6 +991,16 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_f",
 								"preserveNullAndEmptyArrays": true,
 							}}},
+							{{"$project", bson.M{
+								"f_DOT__id": "$__joined_f._id",
+								"b_DOT_b":   "$b_DOT_b",
+								"f_DOT_a":   "$__joined_f.a",
+								"f_DOT_b":   "$__joined_f.b",
+								"f_DOT_c":   "$__joined_f.c",
+								"f_DOT_e":   "$__joined_f.d.e",
+								"f_DOT_f":   "$__joined_f.d.f",
+								"f_DOT_g":   "$__joined_f.g",
+							}}},
 						},
 					)
 
@@ -1135,6 +1173,21 @@ func TestOptimizePlan(t *testing.T) {
 							{{"$match", bson.M{
 								"__predicate": true,
 							}}},
+							{{"$project", bson.M{
+								"f_DOT_f":            "$__joined_f.d.f",
+								"f_DOT_g":            "$__joined_f.g",
+								"m1_DOT_a":           "$a",
+								"m2_DOT_d_DOT_a":     "$d.a",
+								"m2_DOT_d_DOT_a_idx": "$d.a_idx",
+								"m2_DOT_d_idx":       "$d_idx",
+								"f_DOT_b":            "$__joined_f.b",
+								"f_DOT_e":            "$__joined_f.d.e",
+								"f_DOT__id":          "$__joined_f._id",
+								"m1_DOT__id":         "$_id",
+								"m2_DOT__id":         "$_id",
+								"f_DOT_a":            "$__joined_f.a",
+								"f_DOT_c":            "$__joined_f.c",
+							}}},
 						},
 					)
 
@@ -1193,6 +1246,11 @@ func TestOptimizePlan(t *testing.T) {
 							{{"$unwind", bson.M{
 								"path": "$__joined_foo",
 								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$__joined_foo.a",
+								"bar_DOT_a": "$a",
+								"baz_DOT_a": "$__joined_baz.a",
 							}}},
 						},
 					)
@@ -1284,6 +1342,11 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_bar",
 								"preserveNullAndEmptyArrays": false,
 							}}},
+							{{"$project", bson.M{
+								"bar_DOT_a": "$__joined_bar.a",
+								"baz_DOT_a": "$a",
+								"foo_DOT_a": "$__joined_foo.a",
+							}}},
 						},
 					)
 
@@ -1310,6 +1373,21 @@ func TestOptimizePlan(t *testing.T) {
 							{{"$unwind", bson.M{
 								"path": "$__joined_baz",
 								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$project", bson.M{
+								"baz_DOT__id": "$__joined_baz._id",
+								"foo_DOT_b":   "$b",
+								"foo_DOT_e":   "$d.e",
+								"foo_DOT__id": "$_id",
+								"foo_DOT_g":   "$g",
+								"bar_DOT_a":   "$__joined_bar.a",
+								"bar_DOT_b":   "$__joined_bar.b",
+								"bar_DOT__id": "$__joined_bar._id",
+								"baz_DOT_a":   "$__joined_baz.a",
+								"foo_DOT_a":   "$a",
+								"foo_DOT_c":   "$c",
+								"foo_DOT_f":   "$d.f",
+								"baz_DOT_b":   "$__joined_baz.b",
 							}}},
 						},
 					)
@@ -1396,6 +1474,21 @@ func TestOptimizePlan(t *testing.T) {
 								},
 							}}},
 							{{"$match", bson.M{"__predicate": true}}},
+							{{"$project", bson.M{
+								"f_DOT_a":            "$__joined_f.a",
+								"f_DOT_c":            "$__joined_f.c",
+								"f_DOT_f":            "$__joined_f.d.f",
+								"f_DOT_g":            "$__joined_f.g",
+								"m1_DOT__id":         "$_id",
+								"m1_DOT_a":           "$a",
+								"f_DOT_b":            "$__joined_f.b",
+								"f_DOT_e":            "$__joined_f.d.e",
+								"f_DOT__id":          "$__joined_f._id",
+								"m2_DOT__id":         "$_id",
+								"m2_DOT_d_DOT_a":     "$d.a",
+								"m2_DOT_d_DOT_a_idx": "$d.a_idx",
+								"m2_DOT_d_idx":       "$d_idx",
+							}}},
 						},
 					)
 
@@ -1471,6 +1564,11 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$match", bson.M{"__joined_foo.a": int64(10)}}},
+							{{"$project", bson.M{
+								"baz_DOT_a": "$__joined_baz.a",
+								"foo_DOT_a": "$__joined_foo.a",
+								"bar_DOT_a": "$a",
+							}}},
 						},
 					)
 
@@ -1506,6 +1604,11 @@ func TestOptimizePlan(t *testing.T) {
 									bson.M{"a": int64(11)},
 								},
 							}}},
+							{{"$project", bson.M{
+								"foo_DOT_a": "$__joined_foo.a",
+								"bar_DOT_a": "$a",
+								"baz_DOT_a": "$__joined_baz.a",
+							}}},
 						},
 					)
 				})
@@ -1522,7 +1625,23 @@ func TestOptimizePlan(t *testing.T) {
 								"foreignField": "_id",
 								"as":           "__joined_r",
 							}}},
-							{{"$unwind", bson.M{"path": "$__joined_r", "preserveNullAndEmptyArrays": false}}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_r",
+								"preserveNullAndEmptyArrays": false,
+							}}},
+							{{"$project", bson.M{
+								"r_DOT_c":           "$__joined_r.c",
+								"r_DOT_e":           "$__joined_r.d.e",
+								"r_DOT_g":           "$__joined_r.g",
+								"a_DOT_d_DOT_a":     "$d.a",
+								"a_DOT_d_idx":       "$d_idx",
+								"a_DOT_d_DOT_a_idx": "$d.a_idx",
+								"r_DOT_a":           "$__joined_r.a",
+								"r_DOT_b":           "$__joined_r.b",
+								"r_DOT_f":           "$__joined_r.d.f",
+								"r_DOT__id":         "$__joined_r._id",
+								"a_DOT__id":         "$_id",
+							}}},
 						},
 					)
 				})
@@ -1892,12 +2011,30 @@ func TestOptimizePlan(t *testing.T) {
 								{"path", "$d.a"},
 								{"preserveNullAndEmptyArrays", true},
 							}}},
+							{{"$project", bson.M{
+								"a_DOT_d_idx":       "$d_idx",
+								"r_DOT__id":         "$_id",
+								"r_DOT_a":           "$a",
+								"a_DOT__id":         "$_id",
+								"a_DOT_d_DOT_a":     "$d.a",
+								"a_DOT_d_DOT_a_idx": "$d.a_idx",
+							}}},
 						},
 					)
 					test("select b._id, c._id from merge r inner join merge_b b on r._id=b._id inner join merge_c c on b._id=c._id",
 						[]bson.D{
-							{{"$unwind", bson.D{{"includeArrayIndex", "b_idx"}, {"path", "$b"}}}},
-							{{"$unwind", bson.D{{"includeArrayIndex", "c_idx"}, {"path", "$c"}}}},
+							{{"$unwind", bson.D{
+								{"includeArrayIndex", "b_idx"},
+								{"path", "$b"},
+							}}},
+							{{"$unwind", bson.D{
+								{"includeArrayIndex", "c_idx"},
+								{"path", "$c"},
+							}}},
+							{{"$project", bson.M{
+								"c_DOT__id": "$_id",
+								"b_DOT__id": "$_id",
+							}}},
 						},
 					)
 					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id left join merge_c c on b._id=c._id",
@@ -1911,6 +2048,10 @@ func TestOptimizePlan(t *testing.T) {
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"},
 								{"preserveNullAndEmptyArrays", true},
+							}}},
+							{{"$project", bson.M{
+								"b_DOT__id": "$_id",
+								"c_DOT__id": "$_id",
 							}}},
 						},
 					)
@@ -1926,6 +2067,10 @@ func TestOptimizePlan(t *testing.T) {
 								{"path", "$c"},
 								{"preserveNullAndEmptyArrays", true},
 							}}},
+							{{"$project", bson.M{
+								"b_DOT__id": "$_id",
+								"c_DOT__id": "$_id",
+							}}},
 						},
 					)
 					test("select b._id, c._id from merge r inner join merge_b b on r._id=b._id left join merge_c c on r._id=c._id",
@@ -1935,6 +2080,10 @@ func TestOptimizePlan(t *testing.T) {
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"},
 								{"preserveNullAndEmptyArrays", true},
+							}}},
+							{{"$project", bson.M{
+								"b_DOT__id": "$_id",
+								"c_DOT__id": "$_id",
 							}}},
 						},
 					)
@@ -1948,6 +2097,10 @@ func TestOptimizePlan(t *testing.T) {
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"},
+							}}},
+							{{"$project", bson.M{
+								"b_DOT__id": "$_id",
+								"c_DOT__id": "$_id",
 							}}},
 						},
 					)
@@ -1972,6 +2125,10 @@ func TestOptimizePlan(t *testing.T) {
 								{"path", "$d.a"},
 								{"preserveNullAndEmptyArrays", true},
 							}}},
+							{{"$project", bson.M{
+								"b_DOT__id": "$_id",
+								"c_DOT__id": "$_id",
+							}}},
 						},
 					)
 					test("select b._id, c._id from merge r inner join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id inner join merge_d_a a on r._id=a._id",
@@ -1992,6 +2149,10 @@ func TestOptimizePlan(t *testing.T) {
 								{"includeArrayIndex", "b_idx"},
 								{"path", "$b"},
 							}}},
+							{{"$project", bson.M{
+								"b_DOT__id": "$_id",
+								"c_DOT__id": "$_id",
+							}}},
 						},
 					)
 					test("select b._id, r._id from merge r inner join merge_d d on r._id=d._id inner join merge_d_a a on r._id=a._id inner join merge_b b on r._id=b._id",
@@ -2008,6 +2169,10 @@ func TestOptimizePlan(t *testing.T) {
 								{"includeArrayIndex", "b_idx"},
 								{"path", "$b"},
 							}}},
+							{{"$project", bson.M{
+								"b_DOT__id": "$_id",
+								"r_DOT__id": "$_id",
+							}}},
 						},
 					)
 					test("select b._id, d._id from merge r inner join merge_b b on r._id=b._id inner join merge_d d on r._id=d._id inner join merge_d_a a on r._id=a._id",
@@ -2023,6 +2188,10 @@ func TestOptimizePlan(t *testing.T) {
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "b_idx"},
 								{"path", "$b"},
+							}}},
+							{{"$project", bson.M{
+								"b_DOT__id": "$_id",
+								"d_DOT__id": "$_id",
 							}}},
 						},
 					)

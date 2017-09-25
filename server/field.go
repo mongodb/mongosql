@@ -5,17 +5,17 @@ import "github.com/10gen/sqlproxy/collation"
 type FieldData []byte
 
 type Field struct {
-	Data         FieldData
-	Schema       []byte
-	Table        []byte
-	OrgTable     []byte
-	Name         []byte
-	OrgName      []byte
-	Charset      uint16
-	ColumnLength uint32
-	Type         uint8
-	Flag         uint16
-	Decimal      uint8
+	Data          FieldData
+	Schema        []byte
+	Table         []byte
+	OriginalTable []byte
+	Name          []byte
+	OriginalName  []byte
+	Charset       uint16
+	ColumnLength  uint32
+	Type          uint8
+	Flag          uint16
+	Decimal       uint8
 
 	DefaultValueLength uint64
 	DefaultValue       []byte
@@ -26,19 +26,21 @@ func (f *Field) Dump(cs *collation.Charset) []byte {
 		return []byte(f.Data)
 	}
 
-	l := len(f.Schema) + len(f.Table) + len(f.OrgTable) + len(f.Name) + len(f.OrgName) + len(f.DefaultValue) + 48
+	l := len(f.Schema) +
+		len(f.Table) +
+		len(f.OriginalTable) +
+		len(f.Name) +
+		len(f.OriginalName) +
+		len(f.DefaultValue) +
+		48
 
 	data := make([]byte, 0, l)
-
 	data = append(data, putLengthEncodedString(cs.Encode([]byte("def")))...)
-
 	data = append(data, putLengthEncodedString(cs.Encode(f.Schema))...)
-
 	data = append(data, putLengthEncodedString(cs.Encode(f.Table))...)
-	data = append(data, putLengthEncodedString(cs.Encode(f.OrgTable))...)
-
+	data = append(data, putLengthEncodedString(cs.Encode(f.OriginalTable))...)
 	data = append(data, putLengthEncodedString(cs.Encode(f.Name))...)
-	data = append(data, putLengthEncodedString(cs.Encode(f.OrgName))...)
+	data = append(data, putLengthEncodedString(cs.Encode(f.OriginalName))...)
 
 	data = append(data, 0x0c)
 
