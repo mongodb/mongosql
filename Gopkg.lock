@@ -10,8 +10,8 @@
 [[projects]]
   branch = "master"
   name = "github.com/10gen/mongo-go-driver"
-  packages = ["auth","bson","cluster","conn","connstring","internal","internal/auth/gssapi","internal/feature","internal/json","model","msg","ops","readpref","server"]
-  revision = "ac3a0444414afa88d5ef8c7c4ca917bbc4576e56"
+  packages = ["bson","bson/internal/json","yamgo/connstring","yamgo/internal","yamgo/internal/auth/gssapi","yamgo/internal/feature","yamgo/model","yamgo/options","yamgo/private/auth","yamgo/private/cluster","yamgo/private/conn","yamgo/private/msg","yamgo/private/ops","yamgo/private/server","yamgo/readpref"]
+  revision = "fce80056119e7bc0c2a99fe262647d7930ada40b"
 
 [[projects]]
   branch = "master"
@@ -149,6 +149,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "faf86747ca74a306ffe6faa5c69b9b2c8ee74fa251f2eacd7865637d3e331641"
+  inputs-digest = "e7ed48812ae77bf671d6ed9c6dc00f57fccce020db3ab60776cc756c2a75b86f"
   solver-name = "gps-cdcl"
   solver-version = 1

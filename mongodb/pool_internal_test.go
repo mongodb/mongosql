@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/model"
-	"github.com/10gen/mongo-go-driver/msg"
+	"github.com/10gen/mongo-go-driver/yamgo/model"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
+	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
 )
 
 func TestNewSessionConnPool_Get_max_connections(t *testing.T) {

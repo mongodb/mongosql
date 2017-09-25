@@ -8,11 +8,11 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/model"
-	"github.com/10gen/mongo-go-driver/msg"
+	"github.com/10gen/mongo-go-driver/yamgo/model"
+	"github.com/10gen/mongo-go-driver/yamgo/private/auth"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
+	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
 	. "github.com/10gen/sqlproxy/mongodb"
 )
 
