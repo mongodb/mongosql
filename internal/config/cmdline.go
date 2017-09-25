@@ -400,14 +400,13 @@ type schemaOptions struct {
 	MaxVarcharLength *uint16 `long:"maxVarcharLength" description:"the maximum length of a varchar"`
 
 	SampleSource *string `long:"sampleSource" description:"database to use for reading/writing sampled schema"`
-	SampleMode   *string `long:"sampleMode" description:"set the mongosqld sampling operation mode (default: write)" choice:"read" choice:"write"`
-	SampleSize   *int64  `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema (default: 1000)"`
+	SampleMode   *string `long:"sampleMode" description:"set the mongosqld sampling operation mode (default: read)" choice:"read" choice:"write"`
+	SampleSize   *int64  `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema(s) (default: 1000)"`
 
 	// Namespaces will append the namespace every time the option is encountered
-	// (can be set multiple times, like --sampleNamespace foo.* --sampleNamespace bar.*_dev)
+	// (can be set multiple times, like --sampleNamespaces foo.* --sampleNamespaces bar.*_dev)
 	SampleNamespaces           []string `long:"sampleNamespaces" value-name:"<sample namespaces>" description:"namespace(s) to sample in generating schema (defaults to all namespaces - except admin and local databases)"`
-	SampleReadIntervalSecs     *int64   `long:"sampleReadIntervalSecs" description:"the interval (in seconds) mongosqld waits before reading the database schema (default: 600)"`
-	SampleWriteIntervalSecs    *int64   `long:"sampleWriteIntervalSecs" description:"the interval (in seconds) mongosqld waits before re-sampling the database schema (default: 86400)"`
+	SampleRefreshIntervalSecs  *int64   `long:"sampleRefreshIntervalSecs" description:"the interval (in seconds) mongosqld waits before re-sampling the schema(s)"`
 	SampleUUIDSubtype3Encoding *string  `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
 }
 
@@ -435,7 +434,7 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 	}
 
 	if !isEmptyOrUnset(o.SampleMode) {
-		cfg.Schema.Sample.Mode = *o.SampleMode
+		cfg.Schema.Sample.Mode = SampleMode(*o.SampleMode)
 	}
 
 	if !isEmptyOrUnset(o.SampleSource) {
@@ -450,12 +449,8 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 		cfg.Schema.Sample.Namespaces = o.SampleNamespaces
 	}
 
-	if o.SampleReadIntervalSecs != nil {
-		cfg.Schema.Sample.ReadIntervalSecs = *o.SampleReadIntervalSecs
-	}
-
-	if o.SampleWriteIntervalSecs != nil {
-		cfg.Schema.Sample.WriteIntervalSecs = *o.SampleWriteIntervalSecs
+	if o.SampleRefreshIntervalSecs != nil {
+		cfg.Schema.Sample.RefreshIntervalSecs = *o.SampleRefreshIntervalSecs
 	}
 
 	if !isEmptyOrUnset(o.SampleUUIDSubtype3Encoding) {

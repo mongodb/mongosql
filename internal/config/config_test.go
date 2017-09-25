@@ -4,6 +4,8 @@ import (
 	"runtime"
 	"testing"
 
+	"strings"
+
 	. "github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/log"
 )
@@ -19,6 +21,12 @@ func TestDefault(t *testing.T) {
 
 	testString(t, cfg.Schema.Path, "", "cfg.Schema.Path")
 	testUint16(t, cfg.Schema.MaxVarcharLength, 0, "cfg.Schema.MaxVarcharLength")
+	testSampleMode(t, cfg.Schema.Sample.Mode, "read", "cfg.Schema.Sample.Mode")
+	testString(t, cfg.Schema.Sample.Source, "", "cfg.Schema.Sample.Source")
+	testInt64(t, cfg.Schema.Sample.Size, 1000, "cfg.Schema.Sample.Size")
+	testStringSlice(t, cfg.Schema.Sample.Namespaces, []string{"*.*"}, "cfg.Schema.Sample.Namespaces")
+	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecs, 0, "cfg.Schema.Sample.RefreshIntervalSecs")
+	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "", "cfg.Schema.Sample.UUIDSubtype3Encoding")
 
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 0, "cfg.Runtime.Memory.MaxPerStage")
 
@@ -129,22 +137,125 @@ func TestValidate_Invalid_SampleAuth_Mechanism(t *testing.T) {
 	}
 }
 
-func TestValidate_No_Schema_Path(t *testing.T) {
+func TestValidate_Sample_Invalid_Mode(t *testing.T) {
+	tests := []struct {
+		mode  SampleMode
+		valid bool
+	}{
+		{ReadSampleMode, true},
+		{WriteSampleMode, true},
+		{SampleMode("nope"), false},
+	}
+
+	for _, test := range tests {
+		t.Run(string(test.mode), func(t *testing.T) {
+			cfg := Default()
+			cfg.Schema.Sample.Source = "temp"
+			cfg.Schema.Sample.Mode = test.mode
+
+			err := Validate(cfg)
+			if err != nil && test.valid {
+				t.Fatalf("expected no error, but got %v", err)
+			}
+
+			if err == nil && !test.valid {
+				t.Fatalf("expected an error, but got none")
+			}
+		})
+	}
+}
+
+func TestValidate_Sample_Invalid_Namespaces(t *testing.T) {
+	tests := []struct {
+		ns    []string
+		valid bool
+	}{
+		{ns: []string{"one"}, valid: true},
+		{ns: []string{"one.*"}, valid: true},
+		{ns: []string{"*.two"}, valid: true},
+		{ns: []string{"one.two"}, valid: true},
+		{ns: []string{"one.two", "three"}, valid: true},
+		{ns: []string{".two"}, valid: false},
+		{ns: []string{"one."}, valid: false},
+		{ns: []string{"three", "one."}, valid: false},
+		{ns: []string{".three", "one"}, valid: false},
+		{ns: []string{"som$ething"}, valid: false},
+	}
+
+	for _, test := range tests {
+		t.Run(strings.Join(test.ns, ","), func(t *testing.T) {
+			cfg := Default()
+			cfg.Schema.Sample.Namespaces = test.ns
+
+			err := Validate(cfg)
+			if err != nil && test.valid {
+				t.Fatalf("expected no error, but got %v", err)
+			}
+
+			if err == nil && !test.valid {
+				t.Fatalf("expected an error, but got none")
+			}
+		})
+	}
+}
+
+func TestValidate_Sample_Invalid_Source(t *testing.T) {
+	tests := []struct {
+		source string
+		valid  bool
+	}{
+		{"test", true},
+		{"some$where", false},
+		{".somewhere", false},
+		{"somewhere.", false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.source, func(t *testing.T) {
+			cfg := Default()
+			cfg.Schema.Sample.Source = test.source
+
+			err := Validate(cfg)
+			if err != nil && test.valid {
+				t.Fatalf("expected no error, but got %v", err)
+			}
+
+			if err == nil && !test.valid {
+				t.Fatalf("expected an error, but got none")
+			}
+		})
+	}
+}
+
+func TestValidate_Sample_StandaloneWriter(t *testing.T) {
 	cfg := Default()
-	cfg.Schema.Path = ""
+	cfg.Schema.Sample.Mode = WriteSampleMode
 
 	err := Validate(cfg)
 	if err == nil {
 		t.Fatalf("expected an error, but got none")
 	}
 
-	expected := "must specify a schema, either:\n" +
-		"using --schema (also in a config file at 'schema.path') OR\n" +
-		"using --sampleSource (also in a config file at 'schema.sample.source')"
+	expected := "sample mode 'write' requires a non-empty sample source"
 	if err.Error() != expected {
-		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+		t.Fatalf("expected error to be '%s', but go '%s'", expected, err)
+	}
+}
+
+func TestValidate_Sample_ClusteredSamplingReader(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Sample.Source = "somewhere"
+	cfg.Schema.Sample.RefreshIntervalSecs = 1
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
 	}
 
+	expected := "sample mode 'read' with a non-empty sample source cannot specify a sample refresh interval"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but go '%s'", expected, err)
+	}
 }
 
 func TestValidate_SampleAuth_options_specified_but_auth_disabled(t *testing.T) {
@@ -221,22 +332,6 @@ func TestValidate_sqlproxy_SSL_options_PEMKeyFile(t *testing.T) {
 	}
 
 	expected := "need sslPEMKeyFile when SSL is enabled"
-	if err.Error() != expected {
-		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
-	}
-}
-
-func TestValidate_sqlproxy_Sample_options_Namespaces(t *testing.T) {
-	cfg := Default()
-	cfg.Schema.Sample.Source = "test"
-	cfg.Schema.Sample.Namespaces = []string{"som$ething"}
-
-	expected := "invalid specification: '$' is not allowed in sample " +
-		"namespace pattern: 'som$ething'"
-	err := Validate(cfg)
-	if err == nil {
-		t.Fatalf("expected an error, but got none")
-	}
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}
@@ -341,6 +436,12 @@ func testInt(t *testing.T, actual, expected int, key string) {
 }
 
 func testInt64(t *testing.T, actual, expected int64, key string) {
+	if actual != expected {
+		t.Errorf("%s should be %v but was %v", key, expected, actual)
+	}
+}
+
+func testSampleMode(t *testing.T, actual, expected SampleMode, key SampleMode) {
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}

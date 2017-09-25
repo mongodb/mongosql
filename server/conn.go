@@ -20,6 +20,7 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mysqlerrors"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/ssl"
 	"github.com/10gen/sqlproxy/variable"
 )
@@ -300,7 +301,7 @@ func (c *conn) handshake() error {
 		c.user = ""
 	}
 
-	if err = c.setSystemVariables(); err != nil {
+	if err = c.setSystemVariables(currentSchema); err != nil {
 		return err
 	}
 
@@ -670,9 +671,9 @@ func (c *conn) setStatusVariables() {
 }
 
 // setSystemVariables sets system variables for this client connection.
-func (c *conn) setSystemVariables() (err error) {
+func (c *conn) setSystemVariables(currentSchema *schema.Schema) (err error) {
 	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session,
-		c.server.schema, c.server.cfg.Security.Enabled)
+		currentSchema, c.server.cfg.Security.Enabled)
 	if err != nil {
 		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR,
 			"error retrieving information from MongoDB: %v", err)

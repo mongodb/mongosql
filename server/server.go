@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -33,7 +34,7 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 		lifetimeCtx:       lifetimeCtx,
 		lifetimeCancel:    lifetimeCancel,
 		activeConnections: make(map[uint32]*conn),
-		schema:            schema,
+		fileBasedSchema:   schema,
 		sessionProvider:   sessionProvider,
 		variables:         variable.NewGlobalContainer(),
 		logger:            logger,
@@ -74,8 +75,8 @@ type Server struct {
 
 	processName string
 
-	schemaLock sync.RWMutex
-	schema     *schema.Schema
+	fileBasedSchema *schema.Schema
+	sampler         *sample.Sampler
 
 	sessionProvider *mongodb.SessionProvider
 	variables       *variable.Container
@@ -85,6 +86,15 @@ type Server struct {
 	startupInfo []string
 
 	listeners []net.Listener
+}
+
+func (s *Server) getSchema() *schema.Schema {
+	if s.fileBasedSchema != nil {
+		// schema was loaded from a DRDL file
+		return s.fileBasedSchema
+	}
+
+	return s.sampler.Schema(s.lifetimeCtx)
 }
 
 // Run starts the server and begins accepting connections.
@@ -108,9 +118,10 @@ func (s *Server) Run() {
 	}
 
 	// asynchronously load the schema from MongoDB by sampling if needed
-	if s.schema == nil {
+	if s.fileBasedSchema == nil {
+		s.sampler = sample.NewSampler(&s.cfg.Schema.Sample, s.processName, s.sessionProvider)
 		util.PanicSafeGo(func() {
-			s.runSampler(&s.cfg.Schema.Sample)
+			s.sampler.Run(s.lifetimeCtx)
 		}, func(err interface{}) {
 			s.logger.Errf(log.Always, "error sampling schema: %v", err)
 			s.Close()

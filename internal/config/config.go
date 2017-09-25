@@ -91,10 +91,9 @@ func Default() *Config {
 	cfg.ProcessManagement.Service.Description = "MongoSQL accesses MongoDB data with SQL"
 
 	cfg.Schema.Sample.Size = 1000
-	cfg.Schema.Sample.Mode = "write"
+	cfg.Schema.Sample.Mode = "read"
 	cfg.Schema.Sample.Namespaces = []string{"*.*"}
-	cfg.Schema.Sample.ReadIntervalSecs = 0
-	cfg.Schema.Sample.WriteIntervalSecs = 0
+	cfg.Schema.Sample.RefreshIntervalSecs = 0
 
 	cfg.SystemLog.LogRotate = log.Rename
 
@@ -114,13 +113,6 @@ func ToJSON(cfg *Config) string {
 
 // Validate ensure that a config is valid.
 func Validate(cfg *Config) error {
-	if cfg.Schema.Path == "" && cfg.Schema.Sample.Source == "" {
-		return fmt.Errorf("must specify a schema, either:\nusing --schema " +
-			"(also in a config file at 'schema.path') OR\n" +
-			"using --sampleSource (also in a config file at 'schema.sample.source')")
-
-	}
-
 	switch cfg.Net.SSL.Mode {
 	case "disabled":
 		if cfg.Net.SSL.AllowInvalidCertificates ||
@@ -184,6 +176,24 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("invalid specification: %v", err)
 	}
 
+	if cfg.Schema.Sample.Mode != ReadSampleMode && cfg.Schema.Sample.Mode != WriteSampleMode {
+		return fmt.Errorf("invalid schema sample mode: %v", cfg.Schema.Sample.Mode)
+	}
+
+	if cfg.Schema.Sample.Source != "" {
+		if err := util.ValidateDBName(cfg.Schema.Sample.Source); err != nil {
+			return fmt.Errorf("invalid sample source: %v", err)
+		}
+	}
+
+	if cfg.Schema.Sample.Source == "" && cfg.Schema.Sample.Mode == WriteSampleMode {
+		return fmt.Errorf("sample mode 'write' requires a non-empty sample source")
+	}
+
+	if cfg.Schema.Sample.Source != "" && cfg.Schema.Sample.Mode == ReadSampleMode && cfg.Schema.Sample.RefreshIntervalSecs > 0 {
+		return fmt.Errorf("sample mode 'read' with a non-empty sample source cannot specify a sample refresh interval")
+	}
+
 	switch cfg.SystemLog.LogRotate {
 	case log.Rename:
 		// this is valid
@@ -240,14 +250,20 @@ type Schema struct {
 	Sample           SchemaSampleOptions `config:"sample"`
 }
 
+type SampleMode string
+
+const (
+	ReadSampleMode  = "read"
+	WriteSampleMode = "write"
+)
+
 type SchemaSampleOptions struct {
-	Source               string   `config:"source"`
-	Mode                 string   `config:"mode"`
-	Size                 int64    `config:"size"`
-	Namespaces           []string `config:"namespaces"`
-	ReadIntervalSecs     int64    `config:"readIntervalSecs"`
-	WriteIntervalSecs    int64    `config:"writeIntervalSecs"`
-	UUIDSubtype3Encoding string   `config:"uuidSubtype3Encoding"`
+	Source               string     `config:"source"`
+	Mode                 SampleMode `config:"mode"`
+	Size                 int64      `config:"size"`
+	Namespaces           []string   `config:"namespaces"`
+	RefreshIntervalSecs  int64      `config:"refreshIntervalSecs"`
+	UUIDSubtype3Encoding string     `config:"uuidSubtype3Encoding"`
 }
 
 // Net holds network related configuration.

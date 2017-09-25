@@ -25,54 +25,54 @@ _test-read-updated-schema: NUM_COLUMNS := 2
 _test-read-updated-schema: _test-count-columns
 
 # test that basic schema reading works fine
-test-read-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only
+test-read-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
 test-read-simple: test-read-schema
 
 # test that reading works fine with ssl
-test-read-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only,mongo/ssl/basic,sqlproxy/mongo-ssl/enabled
+test-read-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/ssl/basic,sqlproxy/mongo-ssl/enabled
 test-read-ssl: test-read-schema
 
 # test that reading works fine with auth
-test-read-auth: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only,mongo/auth,sqlproxy/auth,sqlproxy/schema/creds,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
+test-read-auth: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth,sqlproxy/auth,sqlproxy/schema/creds,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
 test-read-auth: test-read-schema
 
 # test that read-only mongosqlds get an updated schema for each new connection
-test-read-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only
+test-read-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
 test-read-updated: build-mongosqld run-mongodb restore-data _write-initial-schema run-mongosqld _test-connect-success _write-updated-schema _test-read-updated-schema
 
 # test that basic sampling works fine
-test-sample-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only
+test-sample-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
 test-sample-simple: test-basic-sample
 
 # we should be able to connect when all namespaces are empty, but nothing should be created
-test-sample-empty: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only
+test-sample-empty: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
 test-sample-empty: build-mongosqld run-mongodb run-mongosqld _test-connect-success _test-sample-empty
 _test-sample-empty: NUM_DBS :=
 _test-sample-empty: _test-count-dbs
 
 # test that sampling works fine with ssl
-test-sample-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only,mongo/ssl/basic,sqlproxy/mongo-ssl/enabled
+test-sample-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/ssl/basic,sqlproxy/mongo-ssl/enabled
 test-sample-ssl: test-basic-sample
 
 # when there's an ssl problem, we expect connections to fail before even looking for a schema
 test-sample-ssl-failure: EXPECTED_ERROR := ERROR 1429 (HY000): Unable to connect to foreign data source: MongoDB
-test-sample-ssl-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only,mongo/ssl/basic
+test-sample-ssl-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/ssl/basic
 test-sample-ssl-failure: test-sample-connect-failure
 
 # test that sampling works fine with auth
-test-sample-auth: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only,mongo/auth,sqlproxy/auth,sqlproxy/schema/creds,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
+test-sample-auth: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth,sqlproxy/auth,sqlproxy/schema/creds,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
 test-sample-auth: test-basic-sample
 
 # when there's an auth problem, sqlproxy should give a schema-unavailable error
-test-sample-auth-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only,mongo/auth
+test-sample-auth-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,mongo/auth
 test-sample-auth-failure: test-schema-unavailable
 
 # when there are multiple schema versions available, make sure we use the one with the highest generation
-test-read-most-recent: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only
+test-read-most-recent: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
 test-read-most-recent: build-mongosqld run-mongodb restore-data _write-initial-schema _write-updated-schema run-mongosqld _test-connect-success _test-read-updated-schema
 
 # even if we sampled the first schema, we should use a stored schema when one becomes available
-test-read-after-sampling: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only
+test-read-after-sampling: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
 test-read-after-sampling: test-basic-sample _write-initial-schema _test-read-schema
 
 _test-mysql-query:
@@ -97,17 +97,17 @@ _insert-sample-docs:
 # our collection has 1001 documents, each with two fields (_id and some number between 0 and 1000).
 # when we sample n documents, we expect n+1 columns in the resulting schema (_id plus the unique column from each sampled doc)
 
-test-sample-size-default: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only
+test-sample-size-default: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
 test-sample-size-default: TABLE := sample_test
 test-sample-size-default: NUM_COLUMNS := 1001
 test-sample-size-default: test-count-columns
 
-test-sample-size-all: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only,sqlproxy/schema/sample-all
+test-sample-size-all: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/sample-all
 test-sample-size-all: TABLE := sample_test
 test-sample-size-all: NUM_COLUMNS := 1002
 test-sample-size-all: test-count-columns
 
-test-sample-size-ten: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/read-only,sqlproxy/schema/sample-10
+test-sample-size-ten: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/sample-10
 test-sample-size-ten: TABLE := sample_test
 test-sample-size-ten: NUM_COLUMNS := 11
 test-sample-size-ten: test-count-columns

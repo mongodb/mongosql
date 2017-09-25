@@ -50,6 +50,12 @@ func NewMatcher(patterns []string) (*Matcher, error) {
 				"sample namespace pattern: '%v'", pattern)
 		}
 
+		pattern = strings.TrimSpace(pattern)
+
+		if strings.HasPrefix(pattern, ".") || strings.HasSuffix(pattern, ".") {
+			return nil, fmt.Errorf("sample namespace pattern ('%v') may not begin or end with a '.'", pattern)
+		}
+
 		pattern = escapeReplacer.Replace(pattern)
 		pattern = regexpReplacer.Replace(pattern)
 		pattern = quoteSpecialRegexpChars(pattern)

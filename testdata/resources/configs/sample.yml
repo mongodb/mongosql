@@ -8,12 +8,11 @@ schema:
   path: "/var/test"
   maxVarcharLength: 1000
   sample:
-    mode: read
+    mode: write
     source: sampleDb
     size: 969
     namespaces: ["foo.*", "*.bar"]
-    readIntervalSecs: 1005
-    writeIntervalSecs: 983
+    refreshIntervalSecs: 983
     uuidSubtype3Encoding: java
 runtime:
   memory:

@@ -51,9 +51,8 @@ func TestParseArgs_Valid(t *testing.T) {
 		"--sampleNamespaces", "foo.*",
 		"--sampleNamespaces", "*.bar",
 		"--sampleSize", "500",
-		"--sampleMode", "read",
-		"--sampleReadIntervalSecs", "1005",
-		"--sampleWriteIntervalSecs", "983",
+		"--sampleMode", "write",
+		"--sampleRefreshIntervalSecs", "983",
 		"--uuidSubtype3Encoding", "java",
 
 		// Service
@@ -86,9 +85,8 @@ func TestParseArgs_Valid(t *testing.T) {
 
 	testStringSlice(t, cfg.Schema.Sample.Namespaces, []string{"foo.*", "*.bar"}, "cfg.Schema.Sample.Namespaces")
 	testInt64(t, cfg.Schema.Sample.Size, 500, "cfg.Schema.Sample.Size")
-	testString(t, cfg.Schema.Sample.Mode, "read", "cfg.Schema.Sample.Mode")
-	testInt64(t, cfg.Schema.Sample.ReadIntervalSecs, 1005, "cfg.Schema.Sample.ReadIntervalSecs")
-	testInt64(t, cfg.Schema.Sample.WriteIntervalSecs, 983, "cfg.Schema.Sample.WriteIFntervalSecs")
+	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
+	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecs, 983, "cfg.Schema.Sample.RefreshIntervalSecs")
 	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "java", "cfg.Schema.Sample.UUIDSubtype3Encoding")
 
 	testStringSlice(t, cfg.Net.BindIP, []string{"host"}, "cfg.Net.BindIP")

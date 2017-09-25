@@ -16,6 +16,7 @@ import (
 
 // Collections used to perform sampling operations.
 const (
+	LockCollection         = "mongosqld.lock"
 	SchemasCollection      = "mongosqld.schemas"
 	VersionsCollection     = "mongosqld.versions"
 	VersionIdField         = "versionId"
