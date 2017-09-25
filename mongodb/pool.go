@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 )
 
 func newSessionConnPool(ctx context.Context, provider conn.Provider, max int32) (*sessionConnPool, error) {

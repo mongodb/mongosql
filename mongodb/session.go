@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/cluster"
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/model"
-	"github.com/10gen/mongo-go-driver/ops"
-	"github.com/10gen/mongo-go-driver/readpref"
+	"github.com/10gen/mongo-go-driver/yamgo/model"
+	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
+	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
+	"github.com/10gen/mongo-go-driver/yamgo/readpref"
 )
 
 // Cursor wraps the ops.Cursor interface for mongosqld

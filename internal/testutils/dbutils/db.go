@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/msg"
-	. "github.com/10gen/mongo-go-driver/ops"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
+	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
+	. "github.com/10gen/mongo-go-driver/yamgo/private/ops"
 )
 
 var testServerOnce sync.Once

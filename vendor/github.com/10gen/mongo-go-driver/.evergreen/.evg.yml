@@ -191,7 +191,7 @@ functions:
       params:
         script: |
           ${PREPARE_SHELL}
-          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY}/.evergreen -name \*.sh); do
+          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
             cat $i | tr -d '\r' > $i.new
             mv $i.new $i
           done
@@ -202,7 +202,7 @@ functions:
       params:
         script: |
           ${PREPARE_SHELL}
-          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY}/.evergreen -name \*.sh); do
+          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
             chmod +x $i
           done
 
@@ -287,13 +287,20 @@ post:
   - func: cleanup
 
 tasks:
+    - name: sa-fmt
+      tags: ["static-analysis"]
+      commands:
+        - func: run-make
+          vars:
+            targets: check-fmt
+
     - name: sa-lint
       tags: ["static-analysis"]
       commands:
         - func: run-make
           vars:
             targets: lint
-    
+
     - name: sa-vet
       tags: ["static-analysis"]
       commands:
@@ -405,8 +412,8 @@ axes:
         display_name: "Ubuntu 14.04"
         run_on: ubuntu1404-build
       - id: osx
-        display_name: "OSX 10.10"
-        run_on: osx-1010
+        display_name: "MacOS 10.12"
+        run_on: macos-1012
 
 
 buildvariants:
@@ -414,7 +421,7 @@ buildvariants:
   display_name: "Static Analysis"
   run_on:
     # we don't care where this one runs
-    - osx-1010
+    - macos-1012
     - ubuntu1404-build
   tasks:
     - name: ".static-analysis"

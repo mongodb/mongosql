@@ -5,10 +5,10 @@ import (
 
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/msg"
+	"github.com/10gen/mongo-go-driver/yamgo/private/auth"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
+	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
 )
 
 // SessionAuthenticator authenticates a session.
