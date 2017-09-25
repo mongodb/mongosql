@@ -25,7 +25,7 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 }
 
 func (c *conn) handleSelect(stmt parser.SelectStatement, sql string, args []interface{}) error {
-	fields, iter, err := evaluator.EvaluateQuery(stmt, c)
+	fields, iter, err := evaluator.EvaluateQuery(sql, stmt, c)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (c *conn) handleSelect(stmt parser.SelectStatement, sql string, args []inte
 }
 
 func (c *conn) handleSimpleSelect(sql string, stmt *parser.SimpleSelect) error {
-	fields, iter, err := evaluator.EvaluateQuery(stmt, c)
+	fields, iter, err := evaluator.EvaluateQuery(sql, stmt, c)
 	if err != nil {
 		return err
 	}
