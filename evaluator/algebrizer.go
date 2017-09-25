@@ -186,6 +186,20 @@ func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn,
 	return &result, found, nil
 }
 
+func (a *algebrizer) findSQLColumn(sqlCol SQLColumnExpr) *Column {
+	for _, c := range a.columns {
+		if strings.EqualFold(c.Table, sqlCol.tableName) &&
+			strings.EqualFold(c.Name, sqlCol.columnName) {
+			return c
+		}
+	}
+
+	if a.correlated {
+		return a.parent.findSQLColumn(sqlCol)
+	}
+	return nil
+}
+
 func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, error) {
 
 	if a.resolveProjectedColumnsFirst && tableName == "" {
@@ -484,7 +498,6 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 		if err != nil {
 			return nil, err
 		}
-
 	}
 
 	// 2. Translate all the other clauses from this scope. We aren't going to create the plan stages
@@ -615,16 +628,9 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 				}
 
 				if tableName == "" || strings.EqualFold(tableName, column.Table) {
-					projectedColumns = append(projectedColumns, ProjectedColumn{
-						Column: &Column{
-							SelectID:   a.selectID,
-							Name:       column.Name,
-							SQLType:    column.SQLType,
-							MongoType:  column.MongoType,
-							PrimaryKey: column.PrimaryKey,
-						},
-						Expr: NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType),
-					})
+					projectedColumn := column.projectAs(column.Name)
+					projectedColumn.SelectID = a.selectID
+					projectedColumns = append(projectedColumns, projectedColumn)
 				}
 			}
 
@@ -644,24 +650,25 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, 1)
 			}
 
-			projectedColumn := ProjectedColumn{
-				Expr: translatedExpr,
-				Column: &Column{
-					SelectID:  a.selectID,
-					MongoType: schema.MongoNone,
-					SQLType:   translatedExpr.Type(),
-				},
-			}
+			var projectedColumn *ProjectedColumn
 
 			if sqlCol, ok := translatedExpr.(SQLColumnExpr); ok {
-				projectedColumn.SQLType = sqlCol.columnType.SQLType
-				projectedColumn.MongoType = sqlCol.columnType.MongoType
-				/*
-					TODO: BI-568 (requires test updates)
-					if projectedColumn.Column.Table == "" {
-						projectedColumn.Column.Table = sqlCol.tableName
-					}
-				*/
+				if c := a.findSQLColumn(sqlCol); c != nil {
+					projectedColumn = c.projectWithExpr(translatedExpr)
+				}
+			}
+
+			// This happens when there is an aggregate
+			// function in the select expression
+			if projectedColumn == nil {
+				projectedColumn = &ProjectedColumn{
+					Expr: translatedExpr,
+					Column: &Column{
+						SelectID:  a.selectID,
+						MongoType: schema.MongoNone,
+						SQLType:   translatedExpr.Type(),
+					},
+				}
 			}
 
 			if _, ok := translatedExpr.(*SQLVariableExpr); !ok {
@@ -676,7 +683,7 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 				projectedColumn.Name = parser.String(typedE)
 			}
 
-			projectedColumns = append(projectedColumns, projectedColumn)
+			projectedColumns = append(projectedColumns, *projectedColumn)
 		}
 	}
 
@@ -1012,6 +1019,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 			if err != nil {
 				return nil, nil, err
 			}
+
 			table, err := db.Table(tableName)
 			if err != nil {
 				return nil, nil, err
@@ -1021,7 +1029,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 			case *catalog.MongoTable:
 				plan = NewMongoSourceStage(db, t, a.selectID, aliasName)
 			case *catalog.DynamicTable:
-				plan = NewDynamicSourceStage(t, a.selectID, aliasName)
+				plan = NewDynamicSourceStage(db, t, a.selectID, aliasName)
 			default:
 				return nil, nil, fmt.Errorf("unknown table type: %T", t)
 			}
@@ -1032,12 +1040,14 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 			return nil, nil, err
 		}
 
-		err = a.registerColumns(plan.Columns())
+		columns := plan.Columns()
+
+		err = a.registerColumns(columns)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		return plan, plan.Columns(), nil
+		return plan, columns, nil
 	case *parser.Subquery:
 
 		if aliasName == "" && typedT.IsDerived {
@@ -1058,12 +1068,14 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 			return nil, nil, err
 		}
 
-		err = a.registerColumns(plan.Columns())
+		columns := plan.Columns()
+
+		err = a.registerColumns(columns)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		return plan, plan.Columns(), nil
+		return plan, columns, nil
 	default:
 		return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, parser.String(tableExpr))
 	}

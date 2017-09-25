@@ -184,11 +184,22 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 
 		for j < numFields {
 			zeroValue := columns[j].SQLType.ZeroValue()
-			value, _ := evaluator.NewSQLValue(zeroValue, columns[j].SQLType, schema.SQLNone)
-			name := Slice(columns[j].Name)
-			field := &Field{Name: name}
+			value, _ := evaluator.NewSQLValue(
+				zeroValue,
+				columns[j].SQLType,
+				schema.SQLNone,
+			)
 
-			if err = formatField(c.variables, uint16(col.ID), field, value); err != nil {
+			field := &Field{
+				Name:          []byte(columns[j].Name),
+				OriginalName:  []byte(columns[j].OriginalName),
+				Schema:        []byte(columns[j].Database),
+				Table:         []byte(columns[j].Table),
+				OriginalTable: []byte(columns[j].OriginalTable),
+			}
+
+			err = formatField(c.variables, uint16(col.ID), field, value)
+			if err != nil {
 				return err
 			}
 

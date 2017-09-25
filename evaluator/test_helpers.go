@@ -152,12 +152,15 @@ func createSQLColumnExprFromSource(source PlanStage, tableName, columnName strin
 func createProjectedColumnFromColumn(newSelectID int, column *Column, projectedTableName, projectedColumnName string) ProjectedColumn {
 	return ProjectedColumn{
 		Column: &Column{
-			SelectID:   newSelectID,
-			Table:      projectedTableName,
-			Name:       projectedColumnName,
-			SQLType:    column.SQLType,
-			MongoType:  column.MongoType,
-			PrimaryKey: column.PrimaryKey,
+			SelectID:      newSelectID,
+			Name:          projectedColumnName,
+			OriginalName:  column.OriginalName,
+			Database:      column.Database,
+			Table:         projectedTableName,
+			OriginalTable: column.OriginalTable,
+			SQLType:       column.SQLType,
+			MongoType:     column.MongoType,
+			PrimaryKey:    column.PrimaryKey,
 		},
 		Expr: NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType),
 	}
@@ -182,16 +185,16 @@ func createAllProjectedColumnsFromSource(selectID int, source PlanStage, project
 		if c.MongoType == schema.MongoFilter {
 			continue
 		}
-		results = append(results, createProjectedColumnFromColumn(selectID, c, projectedTableName, c.Name))
+		results = append(results, createProjectedColumnFromColumn(
+			selectID, c, projectedTableName, c.Name))
 	}
 
 	return results
 }
 
-func createProjectedColumnFromSQLExpr(selectID int, tableName, columnName string, expr SQLExpr) ProjectedColumn {
+func createProjectedColumnFromSQLExpr(selectID int, columnName string, expr SQLExpr) ProjectedColumn {
 	column := &Column{
 		SelectID: selectID,
-		Table:    tableName,
 		Name:     columnName,
 		SQLType:  expr.Type(),
 	}

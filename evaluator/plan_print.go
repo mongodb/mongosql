@@ -174,9 +174,9 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 		b.WriteString("↳ Subquery(" + typedN.aliasName + "):\n")
 		prettyPrint(b, typedN.source, d+1)
 	case *UnionStage:
-		kind := " distinct"
+		kind := "distinct"
 		if typedN.kind == UnionAll {
-			kind = " all"
+			kind = "all"
 		}
 		b.WriteString(fmt.Sprintf("↳ Union (%s):\n", kind))
 

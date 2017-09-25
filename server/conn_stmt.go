@@ -217,7 +217,7 @@ func (c *conn) handleStmtExecute(data []byte) error {
 
 	switch stmt := s.s.(type) {
 	case *parser.Select:
-		err = c.handleSelect(stmt, s.sql, s.args)
+		err = c.handleSelect(s.sql, stmt)
 	default:
 		err = mysqlerrors.Defaultf(mysqlerrors.ER_UNSUPPORTED_PS)
 	}

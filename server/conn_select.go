@@ -24,16 +24,7 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 	return bindVars
 }
 
-func (c *conn) handleSelect(stmt parser.SelectStatement, sql string, args []interface{}) error {
-	fields, iter, err := evaluator.EvaluateQuery(sql, stmt, c)
-	if err != nil {
-		return err
-	}
-
-	return c.streamResultset(fields, iter)
-}
-
-func (c *conn) handleSimpleSelect(sql string, stmt *parser.SimpleSelect) error {
+func (c *conn) handleSelect(sql string, stmt parser.SelectStatement) error {
 	fields, iter, err := evaluator.EvaluateQuery(sql, stmt, c)
 	if err != nil {
 		return err
@@ -48,9 +39,7 @@ func (c *conn) handleFieldList(data []byte) error {
 	tableName := String(c.variables.CharacterSetClient.Decode(data[0:index]))
 	wildcard := String(c.variables.CharacterSetClient.Decode(data[index+1:]))
 
-	dbName := c.currentDB.Name
-
-	db, err := c.catalog.Database(string(dbName))
+	db, err := c.catalog.Database(c.DB())
 	if err != nil {
 		return err
 	}
@@ -68,21 +57,34 @@ func (c *conn) handleFieldList(data []byte) error {
 	fields := []*Field{}
 
 	for _, column := range tableSchema.Columns() {
-		if mongoColumn, ok := column.(*catalog.MongoColumn); ok && mongoColumn.MongoType == schema.MongoFilter {
+		mongoColumn, ok := column.(*catalog.MongoColumn)
+		if ok && mongoColumn.MongoType == schema.MongoFilter {
 			continue
 		}
 
-		f := &Field{}
-		f.Name = []byte(column.Name())
+		name, table, database := []byte(column.Name()),
+			[]byte(tableName), []byte(catalog.InformationSchemaDatabase)
+
+		field := &Field{
+			Name:          name,
+			OriginalName:  name,
+			Schema:        database,
+			Table:         table,
+			OriginalTable: table,
+		}
+
 		zeroValue := column.Type().ZeroValue()
-		value, err := evaluator.NewSQLValueFromSQLColumnExpr(zeroValue, schema.SQLNone, schema.MongoNone)
+		value, err := evaluator.NewSQLValueFromSQLColumnExpr(
+			zeroValue, schema.SQLNone, schema.MongoNone)
 		if err != nil {
 			return err
 		}
-		if err = formatField(c.variables, uint16(col.ID), f, value); err != nil {
+
+		err = formatField(c.variables, uint16(col.ID), field, value)
+		if err != nil {
 			return err
 		}
-		fields = append(fields, f)
+		fields = append(fields, field)
 	}
 
 	c.Logger(log.NetworkComponent).Debugf(log.Dev, "handleFieldList table: %v, wildcard: %v", tableName, wildcard)

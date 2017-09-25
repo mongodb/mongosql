@@ -95,7 +95,7 @@ func (b *catalogBuilder) buildFromSchema() error {
 }
 
 func (b *catalogBuilder) buildInformationSchemaDatabase() error {
-	d, _ := b.catalog.AddDatabase("information_schema")
+	d, _ := b.catalog.AddDatabase(InformationSchemaDatabase)
 	err := b.addCharsetTable(d)
 	if err != nil {
 		return err

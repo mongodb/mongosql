@@ -6,6 +6,10 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+const (
+	BSONSourceDB = "bson_source_database"
+)
+
 // BSONSource is the simple interface for SQLProxy to simulate
 // data coming from a MongoDB installation.
 type BSONSourceStage struct {
@@ -72,11 +76,14 @@ func (bs *BSONSourceStage) Columns() []*Column {
 	var columns []*Column
 	for _, v := range bs.data[0] {
 		columns = append(columns, &Column{
-			SelectID:  bs.selectID,
-			Table:     bs.tableName,
-			Name:      v.Name,
-			SQLType:   schema.SQLNone,
-			MongoType: schema.MongoNone,
+			SelectID:      bs.selectID,
+			Table:         bs.tableName,
+			OriginalTable: bs.tableName,
+			Database:      BSONSourceDB,
+			Name:          v.Name,
+			OriginalName:  v.Name,
+			SQLType:       schema.SQLNone,
+			MongoType:     schema.MongoNone,
 		})
 	}
 	return columns
