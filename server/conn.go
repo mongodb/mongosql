@@ -165,7 +165,7 @@ func (c *conn) close() {
 			atomic.StoreInt32(&c.queryRunning, 0)
 			c.closer.Signal()
 		}, func(err interface{}) {
-			c.logger.Errf(log.Always, "connection close error: %v", err)
+			c.logger.Errf(log.Dev, "connection close error: %v", err)
 		})
 
 		c.closer.Wait()
@@ -255,7 +255,7 @@ func (c *conn) GetStartupInfo() []string {
 }
 
 func (c *conn) handshake() error {
-	c.logger.Logf(log.DebugHigh, "writing initial handshake")
+	c.logger.Infof(log.Dev, "writing initial handshake")
 
 	if err := c.writeInitialHandshake(); err != nil {
 		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "send initial handshake error: %v", err)
@@ -263,7 +263,7 @@ func (c *conn) handshake() error {
 		return err
 	}
 
-	c.logger.Logf(log.DebugHigh, "reading handshake response")
+	c.logger.Infof(log.Dev, "reading handshake response")
 	if err := c.readHandshakeResponse(); err != nil {
 		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "recv handshake response error: %v", err)
 		c.writeError(err)
@@ -279,7 +279,7 @@ func (c *conn) handshake() error {
 
 	var err error
 	if c.server.cfg.Security.Enabled {
-		c.logger.Logf(log.DebugHigh, "configuring client authentication")
+		c.logger.Infof(log.Dev, "configuring client authentication")
 		switch c.clientRequestedAuthPluginName {
 		case mongosqlAuthClientAuthPluginName:
 			err = c.authMongoSQLAuthPlugin()
@@ -293,10 +293,10 @@ func (c *conn) handshake() error {
 			return err
 		}
 
-		c.logger.Logf(log.DebugHigh, "successfully authenticated as principal %s", c.user)
+		c.logger.Infof(log.Dev, "successfully authenticated as principal %s", c.user)
 	} else if c.user != "" {
 		if c.user != "ODBC" && c.capability&CLIENT_ODBC == 0 {
-			c.logger.Warnf(log.Info, "ignoring provided credentials for '%v'; authentication is not enabled", c.user)
+			c.logger.Warnf(log.Dev, "ignoring provided credentials for '%v'; authentication is not enabled", c.user)
 		}
 		c.user = ""
 	}
@@ -349,7 +349,7 @@ func (c *conn) Kill(id uint32, scope evaluator.KillScope) error {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED)
 	}
 
-	c.logger.Logf(log.DebugHigh, "kill %v requested for [conn%v]", scope, id)
+	c.logger.Debugf(log.Admin, "kill %v requested for [conn%v]", scope, id)
 
 	if scope == evaluator.KillQuery {
 		return c.server.killQuery(id)
@@ -414,7 +414,7 @@ func (c *conn) readHandshakeResponse() error {
 				}
 			}
 			if err != nil {
-				c.logger.Warnf(log.Info, "failed to set collation: %v", err)
+				c.logger.Warnf(log.Dev, "failed to set collation: %v", err)
 			}
 
 			// skip reserved 23[00]
@@ -444,13 +444,13 @@ func (c *conn) readHandshakeResponse() error {
 	}
 
 	if clientSSL {
-		c.logger.Logf(log.DebugLow, "negotiating ssl")
+		c.logger.Infof(log.Dev, "negotiating ssl")
 		if err := c.useTLS(); err != nil {
 			err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "ssl configuration error: %v", err)
 			c.writeError(err)
 			return err
 		}
-		c.logger.Logf(log.DebugHigh, "ssl connection established")
+		c.logger.Infof(log.Dev, "ssl connection established")
 
 		data, err = c.readPacket()
 		if err != nil {
@@ -560,7 +560,7 @@ func (c *conn) readPacket() ([]byte, error) {
 
 	data := make([]byte, length)
 	if _, err := io.ReadFull(c.reader, data); err != nil {
-		c.logger.Errf(log.Always, "read full error: %v", err)
+		c.logger.Errf(log.Dev, "read full error: %v", err)
 		return nil, errBadConn
 	}
 
@@ -589,7 +589,7 @@ func (c *conn) run() {
 		if err := recover(); err != nil {
 			buf := make([]byte, 4096)
 			buf = buf[:runtime.Stack(buf, false)]
-			c.logger.Errf(log.Info, "%v, %s", err, buf)
+			c.logger.Errf(log.Dev, "error serving connection: %v\n%s\n", err, buf)
 		}
 		c.close()
 	}()
@@ -608,7 +608,7 @@ func (c *conn) run() {
 			packetReadChan <- packetRead{data, err}
 			atomic.StoreInt32(&c.queryRunning, 1)
 		}, func(err interface{}) {
-			c.logger.Errf(log.Always, "packet read error: %v", err)
+			c.logger.Errf(log.Dev, "packet read error: %v", err)
 		})
 
 		waitTimeout := time.Duration(c.variables.WaitTimeoutSecs) * time.Second
@@ -617,10 +617,10 @@ func (c *conn) run() {
 
 		select {
 		case timeoutTime = <-timer.C:
-			c.logger.Logf(log.Always, "client wait time out after %v", waitTimeout.String())
+			c.logger.Warnf(log.Admin, "client wait time out after %v", waitTimeout.String())
 		case pkt = <-packetReadChan:
 			if pkt.err != nil && atomic.LoadInt32(&c.closed) != 1 {
-				c.logger.Logf(log.Always, "client read error: %v", pkt.err)
+				c.logger.Errf(log.Always, "client read error: %v", pkt.err)
 			}
 		}
 
@@ -639,7 +639,7 @@ func (c *conn) run() {
 				err = mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED)
 			}
 
-			c.logger.Errf(log.Always, "dispatch error: %v", err)
+			c.logger.Errf(log.Admin, "dispatch error: %v", err)
 			if err != errBadConn {
 				c.writeError(err)
 			}
@@ -690,11 +690,11 @@ func (c *conn) setSystemVariables(currentSchema *schema.Schema) (err error) {
 		return err
 	}
 
-	c.logger.Logf(log.Info, "connected to MongoDB %v, git version: %v",
+	c.logger.Infof(log.Admin, "connected to MongoDB %v, git version: %v",
 		c.variables.MongoDBInfo.Version, c.variables.MongoDBInfo.GitVersion)
 
 	if c.variables.MongoDBInfo.CompatibleVersion != "" {
-		c.logger.Logf(log.Info, "MongoDB version compatibility is %v",
+		c.logger.Infof(log.Admin, "MongoDB version compatibility is %v",
 			c.variables.MongoDBInfo.CompatibleVersion)
 	}
 
@@ -878,7 +878,7 @@ func (c *conn) writePacket(data []byte) error {
 		_, err := c.writer.Write(data[:4+maxPayloadLength])
 
 		if err != nil {
-			c.logger.Errf(log.Always, "write maxPayloadLength error: %v", err)
+			c.logger.Errf(log.Dev, "write maxPayloadLength error: %v", err)
 			return errBadConn
 		} else {
 			c.sequence++
@@ -897,7 +897,7 @@ func (c *conn) writePacket(data []byte) error {
 	data[3] = c.sequence
 
 	if _, err := c.writer.Write(data); err != nil {
-		c.logger.Errf(log.Always, "write packet error: %v", err)
+		c.logger.Errf(log.Dev, "write packet error: %v", err)
 		return errBadConn
 	}
 

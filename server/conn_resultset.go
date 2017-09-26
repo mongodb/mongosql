@@ -273,12 +273,12 @@ streamer:
 	}
 
 	if err = iter.Close(); err != nil {
-		c.logger.Errf(log.DebugHigh, "iterator close err: %v", err)
+		c.logger.Errf(log.Dev, "iterator close err: %v", err)
 		return err
 	}
 
 	if err = iter.Err(); err != nil {
-		c.logger.Errf(log.DebugHigh, "iterator err: %v", err)
+		c.logger.Errf(log.Dev, "iterator err: %v", err)
 		return err
 	}
 
@@ -288,7 +288,7 @@ streamer:
 		}
 	}
 
-	c.logger.Logf(log.Info, "returned %d %s (%s)", count, util.Pluralize(count, "row", "rows"), util.ByteString(totalBytes))
+	c.logger.Infof(log.Admin, "returned %d %s (%s)", count, util.Pluralize(count, "row", "rows"), util.ByteString(totalBytes))
 
 	return c.writeEOF(status)
 }

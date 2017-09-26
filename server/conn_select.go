@@ -85,7 +85,7 @@ func (c *conn) handleFieldList(data []byte) error {
 		fields = append(fields, f)
 	}
 
-	c.Logger(log.NetworkComponent).Logf(log.DebugHigh, "handleFieldList table: %v, wildcard: %v", tableName, wildcard)
+	c.Logger(log.NetworkComponent).Debugf(log.Dev, "handleFieldList table: %v, wildcard: %v", tableName, wildcard)
 
 	return c.writeFieldList(c.status(), fields)
 }

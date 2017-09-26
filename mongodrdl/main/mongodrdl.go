@@ -56,16 +56,17 @@ func main() {
 	_, setName := util.ParseConnectionString(opts.Host)
 	opts.ReplicaSetName = setName
 
-	log.SetVerbosity(opts.DrdlLog)
+	verbosity := log.Verbosity(opts.DrdlLog.Level())
+	if opts.DrdlLog.Quiet {
+		verbosity = log.Quiet
+	}
+	log.SetVerbosity(verbosity)
 
 	schemaGen := mongodrdl.SchemaGenerator{
 		ToolOptions:   opts,
 		OutputOptions: opts.DrdlOutput,
 		SampleOptions: opts.DrdlSample,
-		Logger: log.NewComponentLogger(
-			"MONGODRDL",
-			log.GlobalLogger(),
-		),
+		Logger:        log.NewComponentLogger(log.MongodrdlComponent, log.GlobalLogger()),
 	}
 
 	if err = schemaGen.Init(); err != nil {

@@ -210,9 +210,9 @@ func (d *Database) Map(js *mongo.Schema, name string, preJoined bool, lg log.Log
 		if len(t.Columns) > 0 {
 			tables = append(tables, t)
 		} else {
-			lg.Logf(
-				log.Info,
-				"Omitting table %q: has no columns",
+			lg.Debugf(
+				log.Dev,
+				"omitting table %q: has no columns",
 				t.Name,
 			)
 		}
@@ -225,7 +225,7 @@ func (d *Database) Map(js *mongo.Schema, name string, preJoined bool, lg log.Log
 		return err
 	}
 
-	lg.Logf(log.DebugLow, "Mapped new table %q", name)
+	lg.Debugf(log.Dev, "mapped new table %q", name)
 	return nil
 }
 

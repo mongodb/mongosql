@@ -61,11 +61,11 @@ type DMutexConfig struct {
 func (d *DMutex) Lock(ctx context.Context) error {
 	err := d.tryLock(ctx)
 	if err != nil {
-		d.cfg.Logger.Logf(log.DebugHigh, "failed to acquire lock %q: %v", d.cfg.Name, err)
+		d.cfg.Logger.Warnf(log.Dev, "failed to acquire lock %q: %v", d.cfg.Name, err)
 		return err
 	}
 
-	d.cfg.Logger.Logf(log.DebugHigh, "acquired lock %q", d.cfg.Name)
+	d.cfg.Logger.Debugf(log.Dev, "acquired lock %q", d.cfg.Name)
 
 	localUnlock := func() {
 		d.runningLock.Lock()
@@ -83,13 +83,13 @@ func (d *DMutex) Lock(ctx context.Context) error {
 			util.RetryWithDelay(d.done, d.cfg.HeartbeatInterval, false, func() bool {
 				err := d.tryLock(context.Background())
 				if err != nil {
-					d.cfg.Logger.Errf(log.DebugHigh, "failed to refresh lock %q: %v", d.cfg.Name, err)
+					d.cfg.Logger.Warnf(log.Dev, "failed to refresh lock %q: %v", d.cfg.Name, err)
 					// we failed to refresh the runningLock, so we
 					// are aborting our refresh loop
 					return true
 				}
 
-				d.cfg.Logger.Logf(log.DebugHigh, "refreshed lock %q", d.cfg.Name)
+				d.cfg.Logger.Debugf(log.Dev, "refreshed lock %q", d.cfg.Name)
 				return false
 			})
 		}, func(err interface{}) {
@@ -123,11 +123,11 @@ func (d *DMutex) Unlock(ctx context.Context) error {
 	result := struct{}{}
 	err = session.Run(d.cfg.DatabaseName, cmd, &result)
 	if err != nil {
-		d.cfg.Logger.Errf(log.DebugHigh, "failed to release lock %q: %v", d.cfg.Name, err)
+		d.cfg.Logger.Warnf(log.Dev, "failed to release lock %q: %v", d.cfg.Name, err)
 		return err
 	}
 
-	d.cfg.Logger.Logf(log.DebugHigh, "released lock %q", d.cfg.Name)
+	d.cfg.Logger.Debugf(log.Dev, "released lock %q", d.cfg.Name)
 	return nil
 }
 

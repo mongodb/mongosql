@@ -90,7 +90,7 @@ type CollectionInfo struct {
 func LoadInfo(logger *log.Logger, session *Session, config *schema.Schema, requireAuth bool) (*Info, error) {
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Warnf(log.DebugHigh, "information access MongoDB session possibly closed: %v", r)
+			logger.Warnf(log.Admin, "MongoDB information access session possibly closed: %v", r)
 		}
 	}()
 
@@ -159,7 +159,7 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
 
 	if (dbInfo.Privileges & ListCollectionsPrivilege) == 0 {
 
-		logger.Warnf(log.Always, "user does not have the 'listCollections' privileges on database '%v'", dbInfo.caseSensitiveName)
+		logger.Warnf(log.Admin, "user does not have the 'listCollections' privileges on database '%v'", dbInfo.caseSensitiveName)
 
 		// User can't list collections on this database. This means
 		// we can't determine if the collection is a view or what
@@ -173,7 +173,7 @@ func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
 		return nil
 	}
 
-	logger.Logf(log.DebugHigh, "running listCollections on database '%v'", dbInfo.caseSensitiveName)
+	logger.Debugf(log.Dev, "running listCollections on database '%v'", dbInfo.caseSensitiveName)
 	iter, err := s.ListCollections(dbInfo.caseSensitiveName)
 	if err != nil {
 		return fmt.Errorf("failed to run listCollections on database '%v': %v", dbInfo.caseSensitiveName, err)

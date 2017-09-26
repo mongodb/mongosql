@@ -74,22 +74,22 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger) (nsMapping, erro
 		}
 
 		if err := collectionIter.Close(ctx); err != nil {
-			lgr.Errf(log.Always, "collection iteration close: %v", err)
+			lgr.Warnf(log.Dev, "error closing collection iterator: %v", err)
 		}
 
 		if err := collectionIter.Err(); err != nil {
-			lgr.Errf(log.Always, "collection iteration error: %v", err)
+			lgr.Warnf(log.Dev, "collection iteration error: %v", err)
 		}
 
 		mappings[dbResult.Name] = nsCollections(collections)
 	}
 
 	if err := dbIter.Close(ctx); err != nil {
-		lgr.Errf(log.Always, "db iteration close: %v", err)
+		lgr.Warnf(log.Dev, "error closing db iterator: %v", err)
 	}
 
 	if err := dbIter.Err(); err != nil {
-		lgr.Errf(log.Always, "db iteration error: %v", err)
+		lgr.Warnf(log.Dev, "db iteration error: %v", err)
 	}
 
 	return mappings, nil
@@ -100,7 +100,7 @@ func FetchNamespaces(session *mongodb.Session, lgr *log.Logger) (nsMapping, erro
 func InsertSampleRecord(record *Record,
 	session *mongodb.Session, lgr *log.Logger) error {
 	if len(record.Namespaces) == 0 {
-		lgr.Logf(log.Always, "No namespaces in sample: not persisting to MongoDB")
+		lgr.Debugf(log.Admin, "no namespaces in sample: not persisting to MongoDB")
 		return nil
 	}
 
@@ -142,7 +142,7 @@ func InsertSampleRecord(record *Record,
 		return err
 	}
 
-	lgr.Logf(log.Always, "Mapped schema persisted to MongoDB")
+	lgr.Infof(log.Admin, "schema persisted to MongoDB")
 
 	return nil
 }
@@ -161,7 +161,7 @@ func ReadSchema(cfg *config.SchemaSampleOptions, session *mongodb.Session,
 	}
 
 	// 2. Get the schema for the latest version
-	lgr.Logf(log.Info, "retrieving latest schema version %s", *version)
+	lgr.Infof(log.Admin, "retrieving latest schema version %s", *version)
 	versionedSchema, namespaceCount, err := getSchemaByVersion(*version, cfg, session, lgr)
 	if err != nil {
 		return nil, err
@@ -266,7 +266,7 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 		return nil, nil, fmt.Errorf("invalid specification: %v", err)
 	}
 
-	lgr.Logf(log.Always, "Sampling MongoDB for schema...")
+	lgr.Infof(log.Always, "sampling MongoDB for schema...")
 
 	mappings, err := FetchNamespaces(session, lgr)
 	if err != nil {
@@ -291,7 +291,7 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 
 	for db, collections := range mappings {
 		if util.SliceContains(dbSampleBlacklist, db) {
-			lgr.Logf(log.Info, "Skipping %q database", db)
+			lgr.Debugf(log.Dev, "skipping %q database", db)
 			continue
 		}
 
@@ -303,18 +303,18 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 
 			if !nsMatcher.Has(db+"."+collection) ||
 				util.SliceContains(nsSampleBlacklist, ns) {
-				lgr.Logf(log.Info, "Skipping namespace %s", ns)
+				lgr.Debugf(log.Dev, "skipping namespace %s", ns)
 				continue
 			}
 
 			if _, ok := sampleVersion.FindDatabase(db); !ok {
-				lgr.Logf(log.Info, "Mapping schema for database %q", db)
+				lgr.Debugf(log.Dev, "mapping schema for database %q", db)
 			}
 
 			namespace := NewNamespace(db, collection, sampleVersion.Id)
 
 			// 1. run sample command
-			lgr.Logf(log.DebugLow, "Mapping schema for namespace %s", ns)
+			lgr.Debugf(log.Dev, "mapping schema for namespace %s", ns)
 			pipeline := []bson.M{}
 			if opts.Size != 0 {
 				pipeline = append(pipeline, bson.M{"$sample": bson.M{"size": opts.Size}})
@@ -344,7 +344,7 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 			}
 
 			if err := iter.Close(ctx); err != nil {
-				lgr.Errf(log.Always, "error closing iterator: %v", err)
+				lgr.Warnf(log.Dev, "error closing iterator: %v", err)
 			}
 
 			namespace.SampleSize = count
@@ -358,7 +358,7 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 
 			sampleNamespaces = append(sampleNamespaces, namespace)
 			sampleVersion.AddNamespace(db, collection)
-			lgr.Logf(log.DebugLow, "Finished mapping schema for namespace %s", ns)
+			lgr.Debugf(log.Dev, "finished mapping schema for namespace %s", ns)
 		}
 
 		if len(sampledDB.Tables) != 0 {
@@ -375,10 +375,10 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 	}
 
 	if len(sampleNamespaces) != 0 {
-		lgr.Logf(log.Always, "Mapped schema for %v namespaces: %v",
+		lgr.Infof(log.Always, "mapped schema for %v namespaces: %v",
 			len(sampleNamespaces), sampleVersion.Databases)
 	} else {
-		lgr.Logf(log.Always, "No namespaces were sampled")
+		lgr.Infof(log.Always, "no namespaces were sampled")
 	}
 
 	return sampledSchema, sampleData, nil

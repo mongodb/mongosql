@@ -8,13 +8,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
-)
 
-const (
-	Always = iota
-	Info
-	DebugLow
-	DebugHigh
+	"github.com/10gen/sqlproxy/internal/util"
 )
 
 const (
@@ -31,13 +26,54 @@ const (
 	EvaluatorComponent  = "EXECUTOR"
 	NetworkComponent    = "NETWORK"
 	AlgebrizerComponent = "ALGEBRIZER"
+	LoggerComponent     = "LOGGER"
+	SamplerComponent    = "SAMPLER"
+	MongodrdlComponent  = "MONGODRDL"
 )
 
-// Logging Levels
+type Verbosity int
+
 const (
-	Warning = "W" // Warning
-	Error   = "F" // Fatal
+	// never log any output
+	Quiet Verbosity = -1
+
+	// for messages that notify the user of basic mongosqld events and state changes
+	Always Verbosity = 0
+
+	// for messages that would be useful/understandable for mongosqld admins
+	Admin Verbosity = 1
+
+	// for messages targeted primarily at MongoDB developers, TSEs, etc.
+	Dev Verbosity = 2
 )
+
+type Severity string
+
+const (
+	// for messages that are understandable/useful for the target audience of the
+	// message's verbosity level without any additional context (beyond an
+	// understanding of mongosqld)
+	Info Severity = "I"
+
+	// for informational messages that require additional context to be useful
+	// or understandable
+	Debug Severity = "D"
+
+	// for unusual or unexpected mongosqld behavior/errors from which mongosqld
+	// will automatically recover
+	Warn Severity = "W"
+
+	// for errors fatal to an individual operation, but not to mongosqld itself.
+	Error Severity = "E"
+
+	// for errors from which mongosqld cannot recover. should be used sparingly,
+	// and only in cases where something is seriously broken
+	Fatal Severity = "F"
+)
+
+func loggingComponentLogger() *Logger {
+	return NewComponentLogger(LoggerComponent, GlobalLogger())
+}
 
 // newLine gets the proper line ending for the current OS.
 // OS will not change mid-run, so we set our logging line endings once, on package init.
@@ -51,68 +87,61 @@ func newLine() string {
 }
 
 var (
-	level = map[int]string{
-		Always:    "I", // Informational
-		Info:      "I",
-		DebugLow:  "D", // Debug
-		DebugHigh: "D",
-	}
 	NewLine = newLine() // NewLine is the actual newline string for logging, exported for use elsewhere
 )
 
 type Logger struct {
 	buffer     *writeBuffer
-	verbosity  int
+	verbosity  Verbosity
 	component  string
 	rotateFunc rotateFunc
-}
-
-type VerbosityLevel interface {
-	Level() int
-	IsQuiet() bool
-}
-
-func (lg *Logger) Errf(minVerbosity int, format string, a ...interface{}) {
-	format = fmt.Sprintf(format, a...)
-	format = fmt.Sprintf("%v %v %v", Error, lg.component, format)
-	lg.writelog(minVerbosity, format)
 }
 
 func (lg *Logger) GetComponent() string {
 	return lg.component
 }
 
-func (lg *Logger) Log(minVerbosity int, format string) {
-	format = fmt.Sprintf("%v %-10v %v", level[minVerbosity], lg.component, format)
-	lg.writelog(minVerbosity, format)
+func (lg *Logger) Infof(minVerbosity Verbosity, format string, a ...interface{}) {
+	format = fmt.Sprintf(format, a...)
+	lg.writelog(minVerbosity, Info, format)
 }
 
-func (lg *Logger) Logf(minVerbosity int, format string, a ...interface{}) {
+func (lg *Logger) Debugf(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
-	format = fmt.Sprintf("%v %-10v %v", level[minVerbosity], lg.component, format)
-	lg.writelog(minVerbosity, format)
+	lg.writelog(minVerbosity, Debug, format)
 }
 
-func (lg *Logger) Warnf(minVerbosity int, format string, a ...interface{}) {
+func (lg *Logger) Warnf(minVerbosity Verbosity, format string, a ...interface{}) {
 	format = fmt.Sprintf(format, a...)
-	format = fmt.Sprintf("%v %-10v %v", Warning, lg.component, format)
-	lg.writelog(minVerbosity, format)
+	lg.writelog(minVerbosity, Warn, format)
+}
+
+func (lg *Logger) Errf(minVerbosity Verbosity, format string, a ...interface{}) {
+	format = fmt.Sprintf(format, a...)
+	lg.writelog(minVerbosity, Error, format)
+}
+
+func (lg *Logger) Fatalf(minVerbosity Verbosity, format string, a ...interface{}) {
+	format = fmt.Sprintf(format, a...)
+	lg.writelog(minVerbosity, Fatal, format)
 }
 
 func (lg *Logger) SetDateFormat(dateFormat string) {
 	lg.buffer.setDateFormat(dateFormat)
 }
 
-func (lg *Logger) SetVerbosity(level VerbosityLevel) {
-	if level == nil {
-		lg.verbosity = 0
-		return
-	}
-
-	if level.IsQuiet() {
-		lg.verbosity = -1
-	} else {
-		lg.verbosity = level.Level()
+func (lg *Logger) SetVerbosity(level Verbosity) {
+	switch level {
+	case Quiet, Always, Admin, Dev:
+		lg.verbosity = level
+	default:
+		if level > Dev {
+			Warnf(Always, "logging verbosity level %d does not exist; setting verbosity to Dev", level)
+			lg.verbosity = Dev
+		} else {
+			Warnf(Always, "logging verbosity level %d does not exist; setting verbosity to Always", level)
+			lg.verbosity = Always
+		}
 	}
 }
 
@@ -138,10 +167,12 @@ func (lg *Logger) Rotate() (string, error) {
 	return lg.rotateFunc()
 }
 
-func (lg *Logger) writelog(minVerbosity int, msg string) {
+func (lg *Logger) writelog(minVerbosity Verbosity, severity Severity, msg string) {
 	if minVerbosity < 0 {
 		panic("cannot set a minimum log verbosity that is less than 0")
 	}
+
+	msg = fmt.Sprintf("%v %-10v %v", severity, lg.component, msg)
 
 	if minVerbosity <= lg.verbosity {
 		lg.buffer.writeMessage(msg)
@@ -153,7 +184,7 @@ func noRotateFunc() (string, error) {
 		"file at 'systemLog.path'")
 }
 
-func NewLogger(verbosity VerbosityLevel) *Logger {
+func NewLogger(verbosity Verbosity) *Logger {
 	lg := &Logger{
 		buffer:     newWriteBuffer(os.Stderr, bufferSizeFlushThreshold, bufferSizeLimit),
 		component:  defaultComponent,
@@ -202,7 +233,7 @@ func newWriteBuffer(writer io.Writer, threshold, limit int) *writeBuffer {
 		format:    defaultTimeFormat,
 	}
 
-	go func() {
+	util.PanicSafeGo(func() {
 		for {
 			select {
 			case <-time.After(flushInterval):
@@ -212,7 +243,10 @@ func newWriteBuffer(writer io.Writer, threshold, limit int) *writeBuffer {
 				done <- struct{}{}
 			}
 		}
-	}()
+	}, func(err interface{}) {
+		loggingComponentLogger().Fatalf(Always, "error flushing logs: %v", err)
+		panic(err)
+	})
 
 	return w
 }
@@ -304,30 +338,13 @@ func (w *writeBuffer) setDateFormat(dateFormat string) {
 	w.bufLock.Unlock()
 }
 
-//// Log Writer Interface
-type logWriter struct {
-	logger       *Logger
-	minVerbosity int
-}
-
-func (lgw *logWriter) Write(message []byte) (int, error) {
-	lgw.logger.Log(lgw.minVerbosity, string(message))
-	return len(message), nil
-}
-
-// Writer returns an io.Writer that writes to the logger with
-// the given verbosity
-func (lg *Logger) Writer(minVerbosity int) io.Writer {
-	return &logWriter{lg, minVerbosity}
-}
-
 //// Global Logging
 
 var globalLogger *Logger
 
 func init() {
 	if globalLogger == nil {
-		globalLogger = NewLogger(nil)
+		globalLogger = NewLogger(Always)
 	}
 }
 
@@ -335,23 +352,27 @@ func GlobalLogger() Logger {
 	return *globalLogger
 }
 
-func Logf(minVerbosity int, format string, a ...interface{}) {
-	globalLogger.Logf(minVerbosity, format, a...)
+func Infof(minVerbosity Verbosity, format string, a ...interface{}) {
+	globalLogger.Infof(minVerbosity, format, a...)
 }
 
-func Errf(minVerbosity int, format string, a ...interface{}) {
-	globalLogger.Errf(minVerbosity, format, a...)
+func Debugf(minVerbosity Verbosity, format string, a ...interface{}) {
+	globalLogger.Debugf(minVerbosity, format, a...)
 }
 
-func Warnf(minVerbosity int, format string, a ...interface{}) {
+func Warnf(minVerbosity Verbosity, format string, a ...interface{}) {
 	globalLogger.Warnf(minVerbosity, format, a...)
 }
 
-func Log(minVerbosity int, msg string) {
-	globalLogger.Log(minVerbosity, msg)
+func Errf(minVerbosity Verbosity, format string, a ...interface{}) {
+	globalLogger.Errf(minVerbosity, format, a...)
 }
 
-func SetVerbosity(verbosity VerbosityLevel) {
+func Fatalf(minVerbosity Verbosity, format string, a ...interface{}) {
+	globalLogger.Fatalf(minVerbosity, format, a...)
+}
+
+func SetVerbosity(verbosity Verbosity) {
 	globalLogger.SetVerbosity(verbosity)
 }
 

@@ -31,9 +31,7 @@ const (
 )
 
 var (
-	logger = log.NewComponentLogger(
-		"MONGODRDL", log.GlobalLogger(),
-	)
+	logger = log.NewComponentLogger(log.MongodrdlComponent, log.GlobalLogger())
 )
 
 func getSslOpts() *options.DrdlSSL {

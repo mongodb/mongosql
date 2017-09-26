@@ -39,7 +39,7 @@ func (c *conn) handleQuery(sql string) (err error) {
 
 	defer func() {
 		if e := recover(); e != nil {
-			c.logger.Logf(log.Info, "%s\n", debug.Stack())
+			c.logger.Errf(log.Dev, "query execution error\n%s\n", debug.Stack())
 			err = mysqlerrors.Unknownf("execute %s error %v", sql, e)
 			return
 		}
@@ -50,10 +50,10 @@ func (c *conn) handleQuery(sql string) (err error) {
 	startTime := time.Now()
 
 	logTimeTaken := func() {
-		c.logger.Logf(log.Info, "done executing query in %vms", time.Now().Sub(startTime).Nanoseconds()/1000000)
+		c.logger.Infof(log.Admin, "done executing query in %vms", time.Now().Sub(startTime).Nanoseconds()/1000000)
 	}
 
-	c.logger.Logf(log.DebugLow, `parsing "%s"`, sql)
+	c.logger.Infof(log.Dev, `parsing "%s"`, sql)
 
 	var stmt parser.Statement
 

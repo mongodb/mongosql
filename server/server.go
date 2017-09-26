@@ -123,7 +123,7 @@ func (s *Server) Run() {
 		util.PanicSafeGo(func() {
 			s.sampler.Run(s.lifetimeCtx)
 		}, func(err interface{}) {
-			s.logger.Errf(log.Always, "error sampling schema: %v", err)
+			s.logger.Fatalf(log.Always, "error sampling schema: %v", err)
 			s.Close()
 		})
 	}
@@ -131,7 +131,7 @@ func (s *Server) Run() {
 	// start new goroutine for each listener
 	for _, listener := range s.listeners {
 		newListener := listener
-		s.logger.Logf(log.Always, "waiting for connections at %v", newListener.Addr())
+		s.logger.Infof(log.Always, "waiting for connections at %v", newListener.Addr())
 		util.PanicSafeGo(func() {
 			listenAndServe(newListener)
 		}, func(err interface{}) {
@@ -191,7 +191,7 @@ func (s *Server) addConnection(c *conn) {
 	if address == "" {
 		address = c.conn.LocalAddr().String()
 	}
-	c.logger.Logf(log.Always, "connection accepted from %v #%v (%v %v now open)", address, c.ConnectionId(), activeConnections, pluralized)
+	c.logger.Infof(log.Always, "connection accepted from %v #%v (%v %v now open)", address, c.ConnectionId(), activeConnections, pluralized)
 }
 
 func (s *Server) killConnection(connID uint32) error {
@@ -233,7 +233,7 @@ func (s *Server) removeConnection(c *conn) {
 	if address == "" {
 		address = c.conn.LocalAddr().String()
 	}
-	c.logger.Logf(log.Always, "end connection %v (%v %v now open)", address, activeConnections, pluralized)
+	c.logger.Infof(log.Always, "end connection %v (%v %v now open)", address, activeConnections, pluralized)
 }
 
 func (s *Server) serveConnection(c net.Conn) {
@@ -244,7 +244,7 @@ func (s *Server) serveConnection(c net.Conn) {
 			address = c.LocalAddr().String()
 		}
 
-		s.logger.Logf(log.Info, "connection accepted "+
+		s.logger.Errf(log.Always, "connection accepted "+
 			"from %v, but could not initialize: %v", address, err)
 		c.Close()
 		return
@@ -254,7 +254,7 @@ func (s *Server) serveConnection(c net.Conn) {
 		if err := recover(); err != nil {
 			buf := make([]byte, 4096)
 			buf = buf[:runtime.Stack(buf, false)]
-			conn.logger.Errf(log.Info, "%v, %s", err, buf)
+			conn.logger.Errf(log.Dev, "error serving connection: %v, %s", err, buf)
 		}
 		conn.close()
 	}()

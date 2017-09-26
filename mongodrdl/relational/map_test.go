@@ -18,9 +18,7 @@ import (
 )
 
 var (
-	logger = log.NewComponentLogger(
-		"MONGODRDL", log.GlobalLogger(),
-	)
+	logger = log.NewComponentLogger(log.MongodrdlComponent, log.GlobalLogger())
 )
 
 func TestMapping(t *testing.T) {

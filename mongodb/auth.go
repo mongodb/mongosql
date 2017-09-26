@@ -90,7 +90,7 @@ func (i *Info) loadAuthInfo(logger *log.Logger, s *Session) error {
 		{"showPrivileges", 1},
 	}
 	var result connectionStatusResult
-	logger.Log(log.DebugHigh, "loading privilege information for current user")
+	logger.Infof(log.Dev, "loading privilege information for current user")
 	if err := s.Run("admin", cmd, &result); err != nil {
 		return fmt.Errorf("failed to load privilege information for the current user: %v", err)
 	}

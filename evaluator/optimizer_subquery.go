@@ -34,7 +34,7 @@ func (v *subqueryOptimizer) visit(n node) (node, error) {
 	if typedN, ok := n.(*SQLSubqueryExpr); ok {
 		if !typedN.correlated {
 
-			v.logger.Logf(log.DebugLow, "optimizing non-correlated subquery: \n%v", PrettyPrintPlan(typedN.plan))
+			v.logger.Infof(log.Dev, "optimizing non-correlated subquery: \n%v", PrettyPrintPlan(typedN.plan))
 			n = optimize(v.ctx, n, true)
 			typedN, ok = n.(*SQLSubqueryExpr)
 			if !ok {
@@ -42,7 +42,7 @@ func (v *subqueryOptimizer) visit(n node) (node, error) {
 			}
 
 			if v.execute {
-				v.logger.Logf(log.DebugLow, "executing non-correlated subquery: \n%v", PrettyPrintPlan(typedN.plan))
+				v.logger.Infof(log.Dev, "executing non-correlated subquery: \n%v", PrettyPrintPlan(typedN.plan))
 				evalCtx := NewEvalCtx(NewExecutionCtx(v.ctx), v.ctx.Variables().CollationConnection)
 				n, err = typedN.Evaluate(evalCtx)
 				if err != nil {

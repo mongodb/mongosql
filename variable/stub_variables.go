@@ -8653,7 +8653,7 @@ func getDummyValue(v interface{}, name string) func(*Container) interface{} {
 
 func setDummyValue(name string) func(*Container, interface{}) error {
 	return func(c *Container, v interface{}) error {
-		log.Warnf(log.DebugHigh, `the variable "%s" is unsupported. setting it will have no effect.`, name)
+		log.Warnf(log.Dev, `the variable "%s" is unsupported. setting it will have no effect.`, name)
 		return nil
 	}
 }

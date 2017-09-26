@@ -4,8 +4,9 @@ package password
 
 import (
 	"fmt"
-	"github.com/10gen/sqlproxy/log"
 	"os"
+
+	"github.com/10gen/sqlproxy/log"
 )
 
 // key constants
@@ -23,11 +24,11 @@ const (
 func Prompt() string {
 	var pass string
 	if IsTerminal() {
-		log.Logf(log.DebugLow, "standard input is a terminal; reading password from terminal")
+		log.Debugf(log.Dev, "standard input is a terminal; reading password from terminal")
 		fmt.Fprintf(os.Stderr, "Enter password:")
 		pass = GetPass()
 	} else {
-		log.Logf(log.Always, "reading password from standard input")
+		log.Infof(log.Always, "reading password from standard input")
 		fmt.Fprintf(os.Stderr, "Enter password:")
 		pass = readPassFromStdin()
 	}

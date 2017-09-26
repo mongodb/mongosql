@@ -36,28 +36,28 @@ func optimize(ctx ConnectionCtx, n node, isSubquery bool) node {
 	logger := ctx.Logger(log.OptimizerComponent)
 
 	if !isSubquery {
-		logger.Log(log.DebugLow, "running optimization stage 'subqueries'")
+		logger.Infof(log.Dev, "running optimization stage 'subqueries'")
 		newN, err := optimizeSubqueries(ctx, logger, n, true)
 		if err != nil {
-			logger.Warnf(log.Info, "error running optimization stage 'subqueries': %v", err)
+			logger.Warnf(log.Admin, "error running optimization stage 'subqueries': %v", err)
 		} else if newN != n {
 			n = newN
-			logger.Logf(log.DebugHigh, "optimized plan after 'subqueries': \n%v", prettyPrintNode(n))
+			logger.Debugf(log.Dev, "optimized plan after 'subqueries': \n%v", prettyPrintNode(n))
 		}
 	}
 
 	evalCtx := NewEvalCtx(NewExecutionCtx(ctx), ctx.Variables().CollationConnection)
 
 	for _, stage := range optimizerStages {
-		logger.Logf(log.DebugLow, "running optimization stage '%s'", stage.name)
+		logger.Infof(log.Dev, "running optimization stage '%s'", stage.name)
 		newN, err := stage.f(n, evalCtx, logger)
 		if err != nil {
-			logger.Warnf(log.Info, "error running optimization stage '%s': %v", stage.name, err)
+			logger.Warnf(log.Admin, "error running optimization stage '%s': %v", stage.name, err)
 			// don't exit here. Just because we couldn't apply one optimization doesn't mean
 			// others aren't valid
 		} else if newN != n {
 			n = newN
-			logger.Logf(log.DebugHigh, "optimized plan after '%s': \n%v", stage.name, prettyPrintNode(n))
+			logger.Debugf(log.Dev, "optimized plan after '%s': \n%v", stage.name, prettyPrintNode(n))
 		}
 	}
 
@@ -84,13 +84,13 @@ func meetsMergePKCriteria(logger *log.Logger, local, foreign *MongoSourceStage, 
 	// don't perform optimization on MongoDB views as
 	// renames might have occured on fields.
 	if local.isView() {
-		logger.Logf(log.DebugHigh, "cannot merge join stage, local "+
+		logger.Debugf(log.Dev, "cannot merge join stage, local "+
 			"table is MongoDB view")
 		return false
 	}
 
 	if foreign.isView() {
-		logger.Logf(log.DebugHigh, "cannot merge join stage, foreign "+
+		logger.Debugf(log.Dev, "cannot merge join stage, foreign "+
 			"table is MongoDB view")
 		return false
 	}
@@ -128,14 +128,14 @@ func meetsMergePKCriteria(logger *log.Logger, local, foreign *MongoSourceStage, 
 	}
 
 	if numRequiredPKConjunctions == 0 {
-		logger.Logf(log.DebugHigh, "cannot merge join stage, table "+
+		logger.Debugf(log.Dev, "cannot merge join stage, table "+
 			"has no primary key")
 		return false
 	}
 
 	numPKConjunctions := 0
 
-	logger.Logf(log.DebugHigh, "join merge: examining match criteria...")
+	logger.Debugf(log.Dev, "join merge: examining match criteria...")
 
 	registries := []*mappingRegistry{
 		local.mappingRegistry,
@@ -157,13 +157,13 @@ func meetsMergePKCriteria(logger *log.Logger, local, foreign *MongoSourceStage, 
 				!containsString(foreign.aliasNames, column2.tableName)
 
 			if invalidLeftColumn || invalidRightColumn {
-				logger.Logf(log.DebugHigh, "join merge: found unexpected "+
+				logger.Debugf(log.Dev, "join merge: found unexpected "+
 					"table references, moving on...")
 				continue
 			}
 
 			if column1.selectID != column2.selectID {
-				logger.Logf(log.DebugHigh, "join merge: found unmatched "+
+				logger.Debugf(log.Dev, "join merge: found unmatched "+
 					"select identifiers (%v and %v), moving on...",
 					column1.selectID, column2.selectID)
 				continue
@@ -187,21 +187,21 @@ func meetsMergePKCriteria(logger *log.Logger, local, foreign *MongoSourceStage, 
 			c2IsPK := registries[c2RegistryIdx].isPrimaryKey(column2.columnName)
 
 			if !c1IsPK || !c2IsPK {
-				logger.Logf(log.DebugHigh, "join merge: criteria contains "+
+				logger.Debugf(log.Dev, "join merge: criteria contains "+
 					"non-primary key (%v and %v), moving on...",
 					column1.String(), column2.String())
 				continue
 			}
 
 			if columnOneName != columnTwoName {
-				logger.Logf(log.DebugHigh, "join merge: criteria contains "+
+				logger.Debugf(log.Dev, "join merge: criteria contains "+
 					"unmatched primary keys (%v and %v), moving on...",
 					columnOneName, columnTwoName)
 				continue
 			}
 
 			if _, ok := seenPrimaryKeys[columnOneName]; ok {
-				logger.Logf(log.DebugHigh, "join merge: ignoring duplicate "+
+				logger.Debugf(log.Dev, "join merge: ignoring duplicate "+
 					"primary key criteria '%v' and moving on...",
 					column1.String())
 				continue
@@ -214,7 +214,7 @@ func meetsMergePKCriteria(logger *log.Logger, local, foreign *MongoSourceStage, 
 	}
 
 	if numPKConjunctions < numRequiredPKConjunctions {
-		logger.Logf(log.DebugHigh, "join merge: criteria conjunction "+
+		logger.Debugf(log.Dev, "join merge: criteria conjunction "+
 			"contains %v unique primary key equality %v (need %v)",
 			numPKConjunctions, util.Pluralize(numPKConjunctions, "pair",
 				"pairs"), numRequiredPKConjunctions)
@@ -227,13 +227,13 @@ func meetsMergePKCriteria(logger *log.Logger, local, foreign *MongoSourceStage, 
 func sharesRootTable(logger *log.Logger, local, foreign *MongoSourceStage) bool {
 	baseCollectionName := local.collectionNames[0]
 
-	logger.Logf(log.DebugHigh, "attempting to merge tables %v and %v",
+	logger.Debugf(log.Dev, "attempting to merge tables %v and %v",
 		local.aliasNames, foreign.aliasNames)
 
 	for _, collectionName := range append(local.collectionNames[1:],
 		foreign.collectionNames...) {
 		if collectionName != baseCollectionName {
-			logger.Logf(log.DebugHigh, "cannot merge join stage, "+
+			logger.Debugf(log.Dev, "cannot merge join stage, "+
 				"pipeline has different root tables: %v and %v",
 				baseCollectionName, collectionName)
 			return false

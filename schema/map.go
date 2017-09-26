@@ -66,9 +66,9 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 		switch schema.BsonType {
 		case mongo.NoBsonType:
 			// ignore column (no types)
-			ctx.logger.Logf(
-				log.DebugLow,
-				"Table %q, column %q has no types: ignoring column",
+			ctx.logger.Warnf(
+				log.Dev,
+				"table %q, column %q has no types: ignoring column",
 				ctx.table.Name, prop,
 			)
 
@@ -231,9 +231,9 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 	}
 	newCtx.table = arrayTable
 
-	ctx.logger.Logf(
-		log.DebugLow,
-		"Mapped new table %q for array at field path %q",
+	ctx.logger.Debugf(
+		log.Dev,
+		"mapped new table %q for array at field path %q",
 		arrayTableName, newCtx.path,
 	)
 
@@ -309,9 +309,9 @@ func (ctx *mappingContext) getDominantSchema(s *mongo.Schemata) *mongo.Schema {
 			}
 			bsonTypes = append(bsonTypes, fmt.Sprintf("%q", string(bt)))
 		}
-		ctx.logger.Logf(
-			log.DebugHigh,
-			"Table %q: multiple types at field path %q: [%v] - using %q",
+		ctx.logger.Warnf(
+			log.Dev,
+			"table %q: multiple types at field path %q: [%v] - using %q",
 			ctx.table.Name,
 			ctx.path,
 			strings.Join(bsonTypes, ", "),

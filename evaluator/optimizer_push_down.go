@@ -14,7 +14,7 @@ import (
 
 func optimizePushDown(n node, ctx *EvalCtx, logger *log.Logger) (node, error) {
 	if os.Getenv(NoPushDown) != "" {
-		logger.Warnf(log.Info, "pushdown turned off")
+		logger.Warnf(log.Admin, "pushdown is disabled: skipping pushdown optimizer")
 		return n, nil
 	}
 
@@ -181,7 +181,7 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 
 			// for inner joins, attempt to optimize by flipping children
 			if typedN.kind == innerJoin {
-				v.logger.Warnf(log.DebugHigh, "attempting to optimize inner join via flip")
+				v.logger.Debugf(log.Dev, "attempting to optimize inner join via flip")
 				j := NewJoinStage(typedN.kind, typedN.right, typedN.left, typedN.matcher)
 				newJ, err := v.visitJoin(j)
 				if err == nil {
@@ -189,7 +189,7 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 				}
 			} else if typedN.kind == rightJoin {
 				// for right joins, attempt to optimize using a left join
-				v.logger.Warnf(log.DebugHigh, "attempting to optimize right join via flip")
+				v.logger.Debugf(log.Dev, "attempting to optimize right join via flip")
 				j := NewJoinStage(leftJoin, typedN.right, typedN.left, typedN.matcher)
 				newJ, err := v.visitJoin(j)
 				if err == nil {
@@ -409,7 +409,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 			// the use of an index.
 			// NOTE: putting a match between a lookup and an unwind causes a server optimization
 			// to get skipped.
-			v.logger.Log(log.DebugHigh, "attempting to add a redundant match before unwind")
+			v.logger.Debugf(log.Dev, "attempting to add a redundant match before unwind")
 
 			var path string
 			var indexPath string
@@ -487,7 +487,7 @@ func (v *pushDownOptimizer) visitFilter(filter *FilterStage) (PlanStage, error) 
 			if matchBody == nil && localMatcher != nil {
 				// no pieces of the matcher are able to be pushed down,
 				// so there is no change in the operator tree.
-				v.logger.Warnf(log.DebugHigh, "cannot push down filter expression: %v", filter.matcher.String())
+				v.logger.Debugf(log.Dev, "cannot push down filter expression: %v", filter.matcher.String())
 				return filter, nil
 			}
 		}
@@ -532,14 +532,14 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	// 1. Translate keys
 	keys, err := v.translateGroupByKeys(gb.keys, ms.mappingRegistry.lookupFieldName)
 	if err != nil {
-		v.logger.Warnf(log.DebugHigh, "cannot translate group by keys: %v", err)
+		v.logger.Warnf(log.Dev, "cannot translate group by keys: %v", err)
 		return gb, nil
 	}
 
 	// 2. Translate aggregations
 	result, err := v.translateGroupByAggregates(gb.keys, gb.projectedColumns, ms.mappingRegistry.lookupFieldName)
 	if err != nil {
-		v.logger.Warnf(log.DebugHigh, "cannot translate group by aggregates: %v", err)
+		v.logger.Warnf(log.Dev, "cannot translate group by aggregates: %v", err)
 		return gb, nil
 	}
 
@@ -551,7 +551,7 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	if result.requiresTwoSteps {
 		project, err := v.translateGroupByProject(result.mappedProjectedColumns, result.mappingRegistry.lookupFieldName)
 		if err != nil {
-			v.logger.Warnf(log.DebugHigh, "cannot translate group by project: %v", err)
+			v.logger.Warnf(log.Dev, "cannot translate group by project: %v", err)
 			return gb, nil
 		}
 		pipeline = append(pipeline, bson.D{{"$project", project}})
@@ -579,13 +579,13 @@ func (v *pushDownOptimizer) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 			// columns, so we simply look up the original field name and use that.
 			columnExpr, ok := mpc.expr.(SQLColumnExpr)
 			if !ok {
-				v.logger.Warnf(log.DebugHigh, "expr was not a column")
+				v.logger.Warnf(log.Dev, "expr was not a column")
 				return gb, nil
 			}
 			mr.addColumn(mpc.projectedColumn.Column)
 			fieldName, ok := result.mappingRegistry.lookupFieldName(columnExpr.tableName, columnExpr.columnName)
 			if !ok {
-				v.logger.Warnf(log.DebugHigh, "could not find translated aggregate's field name")
+				v.logger.Warnf(log.Dev, "could not find translated aggregate's field name")
 				return gb, nil
 			}
 			mr.registerMapping(
@@ -952,7 +952,7 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 	}
 	ifPart, ok := t.TranslateExpr(remainingPredicate)
 	if !ok {
-		v.logger.Warnf(log.DebugHigh, "cannot translate remaining left join predicate %#v", remainingPredicate)
+		v.logger.Warnf(log.Dev, "cannot translate remaining left join predicate %#v", remainingPredicate)
 		return nil, nil, false
 	}
 
@@ -1042,7 +1042,7 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 	for _, c := range leftMappingRegistry.columns {
 		field, ok := leftMappingRegistry.lookupFieldName(c.Table, c.Name)
 		if !ok {
-			v.logger.Warnf(log.DebugHigh, "cannot find referenced join column %#v in local lookup", c)
+			v.logger.Warnf(log.Dev, "cannot find referenced join column %#v in local lookup", c)
 			return nil, nil, false
 		}
 		projectBody[field] = 1
@@ -1106,7 +1106,7 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 
 	newPipeline, err := v.mergePipeline(msLocal, msForeign, join.kind)
 	if err != nil {
-		v.logger.Logf(log.DebugHigh, "cannot merge pipelines: %v", err)
+		v.logger.Warnf(log.Dev, "cannot merge pipelines: %v", err)
 		return nil, nil
 	}
 
@@ -1135,7 +1135,7 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 		false))
 	if remainingPredicate != nil {
 		if join.kind == innerJoin || join.kind == straightJoin {
-			v.logger.Logf(log.DebugHigh, "join merge: creating filter "+
+			v.logger.Debugf(log.Dev, "join merge: creating filter "+
 				"stage for remaining predicate: %v",
 				remainingPredicate.String())
 			f, err := v.visit(NewFilterStage(ms, remainingPredicate))
@@ -1175,7 +1175,7 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	if join.matcher == nil {
-		v.logger.Warnf(log.DebugHigh, "cannot push down join stage, matcher is nil")
+		v.logger.Warnf(log.Dev, "cannot push down join stage, matcher is nil")
 		return join, nil
 	}
 
@@ -1201,7 +1201,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		foreignSource = join.right
 		kind = straightJoin
 	default:
-		v.logger.Warnf(log.DebugHigh, "cannot push down %v", join.kind)
+		v.logger.Warnf(log.Dev, "cannot push down %v", join.kind)
 		return join, nil
 	}
 
@@ -1227,16 +1227,16 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		}
 
 		if ms != nil {
-			v.logger.Logf(log.DebugHigh, "successfully merged tables %v "+
+			v.logger.Debugf(log.Dev, "successfully merged tables %v "+
 				"and %v", msLocal.aliasNames, msForeign.aliasNames)
 			return ms, nil
 		}
 
-		v.logger.Logf(log.DebugHigh, "unable to merge tables %v and %v",
+		v.logger.Debugf(log.Dev, "unable to merge tables %v and %v",
 			msLocal.aliasNames, msForeign.aliasNames)
 	}
 
-	v.logger.Warnf(log.DebugHigh, "attempting to translate join stage "+
+	v.logger.Debugf(log.Dev, "attempting to translate join stage "+
 		"to lookup")
 
 	lenForeignPipeline := len(msForeign.pipeline)
@@ -1245,7 +1245,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	if lenForeignPipeline > 0 {
 		_, foreignHasUnwind = msForeign.pipeline[0].Map()["$unwind"]
 		if !foreignHasUnwind || lenForeignPipeline > 1 {
-			v.logger.Warnf(log.DebugHigh, "unable to translate join "+
+			v.logger.Warnf(log.Dev, "unable to translate join "+
 				"stage to lookup: foreign table has pipeline: %#v",
 				msForeign.pipeline)
 			return join, nil
@@ -1256,7 +1256,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	lookupInfo, err := getLocalAndForeignColumns(msLocal, msForeign,
 		join.matcher)
 	if err != nil {
-		v.logger.Warnf(log.DebugHigh, "unable to translate join "+
+		v.logger.Warnf(log.Dev, "unable to translate join "+
 			"stage to lookup: %v", err)
 		return join, nil
 	}
@@ -1267,7 +1267,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	if isUUID(localMongoType) && isUUID(foreignMongoType) {
 		if localMongoType != foreignMongoType {
-			v.logger.Warnf(log.DebugHigh, "unable to translate join "+
+			v.logger.Warnf(log.Dev, "unable to translate join "+
 				"stage to lookup: found different criteria UUID - %v "+
 				"and %v", localMongoType, foreignMongoType)
 			return join, nil
@@ -1278,7 +1278,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	localFieldName, ok := msLocal.mappingRegistry.lookupFieldName(
 		lookupInfo.localColumn.tableName, lookupInfo.localColumn.columnName)
 	if !ok {
-		v.logger.Errf(log.DebugHigh, "cannot find referenced local join "+
+		v.logger.Warnf(log.Dev, "cannot find referenced local join "+
 			"column %#v in lookup", lookupInfo.localColumn)
 		return join, nil
 	}
@@ -1286,7 +1286,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	foreignFieldName, ok := msForeign.mappingRegistry.lookupFieldName(
 		lookupInfo.foreignColumn.tableName, lookupInfo.foreignColumn.columnName)
 	if !ok {
-		v.logger.Errf(log.DebugHigh, "cannot find referenced foreign join "+
+		v.logger.Warnf(log.Dev, "cannot find referenced foreign join "+
 			"column %#v in lookup", lookupInfo.foreignColumn)
 		return join, nil
 	}
@@ -1374,7 +1374,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	if lookupInfo.remainingPredicate != nil && kind == leftJoin {
 		if lookupOnArrayField && len(strings.Split(foreignFieldName, ".")) > 1 {
-			v.logger.Warnf(log.DebugHigh, "unable to translate left join "+
+			v.logger.Warnf(log.Dev, "unable to translate left join "+
 				"stage to lookup: lookup on nested array field")
 			return join, nil
 		}
@@ -1410,7 +1410,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		if path != "" {
 			path = fmt.Sprintf("$%v.%v", asField, path[1:])
 		} else {
-			v.logger.Errf(log.DebugHigh, "empty $unwind path specification")
+			v.logger.Warnf(log.Dev, "empty $unwind path specification")
 			return join, nil
 		}
 
@@ -1425,7 +1425,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		unwind = append(unwind, bson.DocElem{"preserveNullAndEmptyArrays",
 			join.kind == leftJoin})
 
-		v.logger.Warnf(log.DebugHigh, "consolidating foreign unwind "+
+		v.logger.Debugf(log.Dev, "consolidating foreign unwind "+
 			"into local pipeline")
 
 		pipeline = append(pipeline, bson.D{{"$unwind", unwind}})
@@ -1487,7 +1487,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		return f.(PlanStage), nil
 	}
 
-	v.logger.Warnf(log.DebugHigh, "successfully translated join stage to lookup")
+	v.logger.Debugf(log.Dev, "successfully translated join stage to lookup")
 
 	return ms, nil
 }
@@ -1573,7 +1573,7 @@ func (v *pushDownOptimizer) mergePipeline(local, foreign *MongoSourceStage, kind
 			}
 
 			if _, ok := project[fieldName]; !ok && !prefixPathPresent(project, fieldName) {
-				v.logger.Logf(log.DebugHigh, "augmenting local table with column '%v'.'%v'", c.Table, c.Name)
+				v.logger.Debugf(log.Dev, "augmenting local table with column '%v'.'%v'", c.Table, c.Name)
 				project[fieldName] = 1
 				foreign.mappingRegistry.registerMapping(c.Table, c.Name, fieldName)
 			}
@@ -1717,7 +1717,7 @@ func (v *pushDownOptimizer) visitOrderBy(orderBy *OrderByStage) (PlanStage, erro
 
 			var translated interface{}
 			if translated, ok = t.TranslateExpr(term.expr); !ok {
-				v.logger.Warnf(log.DebugHigh, "unable to push down order by due to term '%v'", columnName)
+				v.logger.Warnf(log.Dev, "unable to push down order by due to term '%v'", columnName)
 				return orderBy, nil
 			}
 
@@ -1810,7 +1810,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 			// that we still need to project, so collect them and add them to the projection.
 			refdCols, err := referencedColumns(v.selectIDsInScope, projectedColumn.Expr)
 			if err != nil {
-				v.logger.Warnf(log.DebugHigh, "cannot find referenced project expression: %v", err)
+				v.logger.Warnf(log.Dev, "cannot find referenced project expression: %v", err)
 				return nil, err
 			}
 
@@ -1818,7 +1818,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 				refdCol.PrimaryKey = projectedColumn.PrimaryKey
 				fieldName, ok := ms.mappingRegistry.lookupFieldName(refdCol.Table, refdCol.Name)
 				if !ok {
-					v.logger.Warnf(log.DebugHigh, "cannot find referenced column %#v in lookup", refdCol)
+					v.logger.Warnf(log.Dev, "cannot find referenced column %#v in lookup", refdCol)
 					return project, nil
 				}
 
@@ -1855,7 +1855,7 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	}
 
 	if len(fieldsToProject) == 0 {
-		v.logger.Warnf(log.DebugHigh, "no fields for project push down")
+		v.logger.Warnf(log.Dev, "no fields for project push down")
 		return project, nil
 	}
 
@@ -1885,7 +1885,7 @@ func (v *pushDownOptimizer) visitSubquerySource(subquery *SubquerySourceStage) (
 	for _, column := range ms.mappingRegistry.columns {
 		fieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.Name)
 		if !ok {
-			v.logger.Warnf(log.DebugHigh, "cannot find referenced subquery column %#v in lookup", column)
+			v.logger.Warnf(log.Dev, "cannot find referenced subquery column %#v in lookup", column)
 			return subquery, nil
 		}
 

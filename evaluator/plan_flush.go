@@ -21,18 +21,18 @@ func (f *FlushCommand) Execute(ctx *ExecutionCtx) Executor {
 }
 
 func (f *FlushExecutor) Run() error {
-	f.ctx.Logger(log.ControlComponent).Logf(log.Always, "Log rotation initiated")
+	f.ctx.Logger(log.ControlComponent).Infof(log.Always, "log rotation initiated")
 	log.Flush()
 	archive, err := log.Rotate()
 	if err != nil {
 		return err
 	}
 	if archive == "" {
-		f.ctx.Logger(log.ControlComponent).Logf(log.Always, "Rotated logs using 'reopen' strategy")
+		f.ctx.Logger(log.ControlComponent).Infof(log.Always, "rotated logs using 'reopen' strategy")
 	} else {
-		f.ctx.Logger(log.ControlComponent).Logf(log.Always, "Rotated logs. Old log file at %s", archive)
+		f.ctx.Logger(log.ControlComponent).Infof(log.Always, "rotated logs; old log file at %s", archive)
 		for _, info := range f.ctx.GetStartupInfo() {
-			f.ctx.Logger(log.ControlComponent).Logf(log.Always, info)
+			f.ctx.Logger(log.ControlComponent).Infof(log.Always, info)
 		}
 	}
 	return nil

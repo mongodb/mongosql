@@ -29,7 +29,7 @@ func (c *conn) authClearTextPasswordPlugin() error {
 		}
 	}
 
-	c.logger.Logf(log.DebugLow, "authenticating client response with %s", clearPasswordClientAuthPluginName)
+	c.logger.Infof(log.Dev, "authenticating client response with %s", clearPasswordClientAuthPluginName)
 	username, mechanism, source, err := c.parseUsername()
 	if err != nil {
 		return fmt.Errorf("failed parsing username: %v", err)
@@ -46,7 +46,7 @@ func (c *conn) authClearTextPasswordPlugin() error {
 }
 
 func (c *conn) authMongoSQLAuthPlugin() error {
-	c.logger.Logf(log.DebugLow, "authenticating client response with %s", mongosqlAuthClientAuthPluginName)
+	c.logger.Infof(log.Dev, "authenticating client response with %s", mongosqlAuthClientAuthPluginName)
 	username, mechanism, source, err := c.parseUsername()
 	if err != nil {
 		return fmt.Errorf("failed parsing username: %v", err)
@@ -166,7 +166,7 @@ func (c *conn) parseUsername() (username string, mechanism string, source string
 }
 
 func (c *conn) readAuthSwitchResponse() error {
-	c.logger.Logf(log.DebugHigh, "reading auth switch response")
+	c.logger.Infof(log.Dev, "reading auth switch response")
 	data, err := c.readPacket()
 	if err != nil {
 		return fmt.Errorf("auth switch response error: %v", err)
@@ -182,7 +182,7 @@ func (c *conn) readAuthSwitchResponse() error {
 }
 
 func (c *conn) writeAuthMoreData(pluginData []byte) error {
-	c.logger.Logf(log.DebugHigh, "sending auth more data")
+	c.logger.Infof(log.Dev, "sending auth more data")
 
 	data := make([]byte, 4, len(pluginData)+5)
 
@@ -200,7 +200,7 @@ func (c *conn) writeAuthMoreData(pluginData []byte) error {
 }
 
 func (c *conn) writeAuthSwitchRequest(plugin string, pluginData []byte) error {
-	c.logger.Logf(log.DebugHigh, "sending auth switch request for %s", plugin)
+	c.logger.Infof(log.Dev, "sending auth switch request for %s", plugin)
 	data := make([]byte, 4, 128)
 
 	// status [1]

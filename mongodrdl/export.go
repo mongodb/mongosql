@@ -29,7 +29,7 @@ func (schemaGen *SchemaGenerator) ExportSchemaForDatabase() (*relational.Databas
 	}
 	defer session.Close()
 
-	schemaGen.Logger.Logf(log.Info, "Creating schema for database %q", schemaGen.ToolOptions.DB)
+	schemaGen.Logger.Infof(log.Admin, "Creating schema for database %q", schemaGen.ToolOptions.DB)
 
 	iter, err := session.ListCollections(schemaGen.ToolOptions.DB)
 	if err != nil {
@@ -55,7 +55,7 @@ func (schemaGen *SchemaGenerator) ExportSchemaForDatabase() (*relational.Databas
 		return nil, err
 	}
 
-	schemaGen.Logger.Logf(log.Info, "Created schema for database %q", schemaGen.ToolOptions.DB)
+	schemaGen.Logger.Infof(log.Admin, "Created schema for database %q", schemaGen.ToolOptions.DB)
 
 	return database, nil
 }
@@ -79,11 +79,11 @@ func (schemaGen *SchemaGenerator) ExportSchemaForCollection() (*relational.Datab
 func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, collectionName string, session *mongodb.Session) error {
 	dbName := schemaGen.ToolOptions.DB
 	if strings.HasPrefix(collectionName, "system.") {
-		schemaGen.Logger.Logf(log.Info, "Skipping system collection %q", collectionName)
+		schemaGen.Logger.Infof(log.Admin, "Skipping system collection %q", collectionName)
 		return nil
 	}
 
-	schemaGen.Logger.Logf(log.Info, "Creating schema for namespace %q.%q", dbName, collectionName)
+	schemaGen.Logger.Infof(log.Admin, "Creating schema for namespace %q.%q", dbName, collectionName)
 	pipeline := []bson.M{{"$sample": bson.M{"size": schemaGen.SampleOptions.Size}}}
 
 	iter, err := session.Aggregate(dbName, collectionName, pipeline)
@@ -99,7 +99,7 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 	for iter.Next(ctx, doc) {
 		err = col.IncludeSample(*doc)
 		if err != nil {
-			schemaGen.Logger.Logf(log.Always, "Error including sample: %#v", samplePrint)
+			schemaGen.Logger.Infof(log.Always, "Error including sample: %#v", samplePrint)
 			return err
 		}
 
@@ -164,6 +164,6 @@ func (schemaGen *SchemaGenerator) mapCollection(database *relational.Database, c
 		return err
 	}
 
-	schemaGen.Logger.Logf(log.Info, "Created schema for namespace %q.%q", dbName, collectionName)
+	schemaGen.Logger.Infof(log.Admin, "Created schema for namespace %q.%q", dbName, collectionName)
 	return nil
 }

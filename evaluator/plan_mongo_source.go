@@ -104,8 +104,8 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 			ms.collectionNames[0], ms.pipeline)
 		errChan <- err
 	}, func(err interface{}) {
-		ctx.Logger(log.NetworkComponent).Errf(log.Always,
-			"data access MongoDB session closed: %v", err)
+		ctx.Logger(log.NetworkComponent).Errf(log.Admin,
+			"MongoDB data access session closed: %v", err)
 	})
 
 	select {

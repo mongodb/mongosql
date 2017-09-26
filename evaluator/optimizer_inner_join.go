@@ -227,7 +227,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 		}
 
 		if independentlyOptimizeChildren {
-			v.logger.Logf(log.DebugHigh, "attempting inner join "+
+			v.logger.Debugf(log.Dev, "attempting inner join "+
 				"optimization on %v subtree", typedN.kind)
 
 			newR := newInnerJoinOptimizer(v.ctx, v.logger)
@@ -278,7 +278,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 		v.sources[typedN.aliasNames[0]] = ijs
 		return n, nil
 	case *SQLSubqueryExpr:
-		v.logger.Logf(log.DebugHigh, "attempting to optimize inner "+
+		v.logger.Debugf(log.Dev, "attempting to optimize inner "+
 			"join in subquery expression: '%v'", typedN.String())
 
 		subqueryOptimizer := newInnerJoinOptimizer(v.ctx, v.logger)
@@ -297,7 +297,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 
 		return n, nil
 	case *SubquerySourceStage:
-		v.logger.Logf(log.DebugHigh, "attempting to optimize inner "+
+		v.logger.Debugf(log.Dev, "attempting to optimize inner "+
 			"join in subquery '%v'", typedN.aliasName)
 
 		subqueryOptimizer := newInnerJoinOptimizer(v.ctx, v.logger)

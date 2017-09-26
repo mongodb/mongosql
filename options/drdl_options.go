@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/10gen/sqlproxy/log"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -96,8 +97,8 @@ func (*DrdlLog) Name() string {
 	return "Log"
 }
 
-func (v *DrdlLog) Level() int {
-	return v.VLevel
+func (v *DrdlLog) Level() log.Verbosity {
+	return log.Verbosity(v.VLevel)
 }
 
 func (v *DrdlLog) IsQuiet() bool {

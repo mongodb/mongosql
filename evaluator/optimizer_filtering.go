@@ -17,7 +17,7 @@ func optimizeFiltering(n node, _ *EvalCtx, logger *log.Logger) (node, error) {
 	}
 
 	if len(v.predicateParts) != 0 {
-		v.logger.Errf(log.Always, "filtering optimizer failed to re-add all predicate parts. skipping optimization.")
+		v.logger.Warnf(log.Admin, "filtering optimizer failed to re-add all predicate parts. skipping optimization.")
 		return n, nil
 	}
 

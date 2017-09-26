@@ -2,9 +2,8 @@ package sample
 
 import (
 	"context"
-	"sync"
-
 	"fmt"
+	"sync"
 
 	"time"
 
@@ -18,7 +17,7 @@ import (
 
 func NewSampler(opts *config.SchemaSampleOptions, processName string, sessionProvider *mongodb.SessionProvider) *Sampler {
 	lgr := log.NewComponentLogger(
-		fmt.Sprintf("%-10v [schemaDiscovery]", "SAMPLE"),
+		fmt.Sprintf("%-10v [schemaDiscovery]", log.SamplerComponent),
 		log.GlobalLogger(),
 	)
 
@@ -53,7 +52,7 @@ func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
 	}
 
 	if err != nil {
-		s.lgr.Logf(log.DebugHigh, "Could not fetch most recent schema: %v", err)
+		s.lgr.Warnf(log.Dev, "could not fetch most recent schema: %v", err)
 	}
 
 	if newSchema != nil {
@@ -71,11 +70,11 @@ func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
 
 func (s *Sampler) Run(ctx context.Context) {
 	if s.opts.Mode == config.ReadSampleMode && s.opts.Source == "" {
-		s.lgr.Log(log.Info, "sampler running in standalone mode")
+		s.lgr.Infof(log.Admin, "sampler running in standalone mode")
 	} else if s.opts.Mode == config.ReadSampleMode && s.opts.Source != "" {
-		s.lgr.Log(log.Info, "sampler running in clustered read mode")
+		s.lgr.Infof(log.Admin, "sampler running in clustered read mode")
 	} else {
-		s.lgr.Log(log.Info, "sampler running in clustered write mode")
+		s.lgr.Infof(log.Admin, "sampler running in clustered write mode")
 	}
 
 	var sampleRecord *Record
@@ -85,7 +84,7 @@ func (s *Sampler) Run(ctx context.Context) {
 	// does not exist. When sampling occurred and was successful, the sample record will be returned.
 	// Until this completes successfully, we cannot move on.
 	util.RetryWithDelay(ctx.Done(), 5*time.Second, true, func() bool {
-		s.lgr.Logf(log.Info, "initializing schema")
+		s.lgr.Infof(log.Always, "initializing schema")
 		sampleRecord, err = s.initializeSchema(ctx)
 		if err == nil {
 			return true
@@ -99,10 +98,10 @@ func (s *Sampler) Run(ctx context.Context) {
 	if s.opts.Mode == config.ReadSampleMode {
 		if s.opts.RefreshIntervalSecs > 0 {
 			util.RepeatWithDelay(ctx.Done(), time.Duration(s.opts.RefreshIntervalSecs)*time.Second, false, func() {
-				s.lgr.Logf(log.Info, "re-sampling schema")
+				s.lgr.Infof(log.Admin, "re-sampling schema")
 				err := s.resampleSchema(ctx)
 				if err != nil {
-					s.lgr.Errf(log.Always, "failed re-sampling schema: %v", err)
+					s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
 				}
 			})
 		}
@@ -131,7 +130,7 @@ func (s *Sampler) Run(ctx context.Context) {
 	// 4. If we have a sample, it means that we didn't read a schema from the server. Therefore, we need to
 	// persist this back to the server or, if we fail to do that, read a schema that may show up in the future.
 	if sampleRecord != nil && len(sampleRecord.Namespaces) > 0 {
-		s.lgr.Logf(log.Info, "writing sampled schema")
+		s.lgr.Infof(log.Admin, "writing sampled schema")
 		err := s.dmtx.Lock(ctx)
 		if err == nil {
 			// try to do this once initially... if it doesn't work, we'll start looping
@@ -144,12 +143,12 @@ func (s *Sampler) Run(ctx context.Context) {
 		}
 
 		if err != nil {
-			s.lgr.Errf(log.DebugLow, "unable to persist initial schema: %v", err)
+			s.lgr.Errf(log.Admin, "unable to persist initial schema: %v", err)
 
 			util.RetryWithDelay(ctx.Done(), 1*time.Minute, false, func() bool {
 				err := s.writeInitialSample(ctx, sampleRecord)
 				if err != nil {
-					s.lgr.Errf(log.DebugLow, "unable to persist initial schema: %v", err)
+					s.lgr.Errf(log.Admin, "unable to persist initial schema: %v", err)
 					return false
 				}
 
@@ -165,10 +164,10 @@ func (s *Sampler) Run(ctx context.Context) {
 
 	// 6. Re-sample every writeIntervalSecs and persist the schema
 	util.RepeatWithDelay(ctx.Done(), time.Duration(s.opts.RefreshIntervalSecs)*time.Second, false, func() {
-		s.lgr.Logf(log.Info, "re-sampling schema")
+		s.lgr.Infof(log.Admin, "re-sampling schema")
 		err := s.resampleAndPersistSchema(ctx)
 		if err != nil {
-			s.lgr.Errf(log.Always, "failed re-sampling schema: %v", err)
+			s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
 		}
 	})
 }
@@ -191,7 +190,7 @@ func (s *Sampler) initializeSchema(ctx context.Context) (*Record, error) {
 	}
 
 	if newSchema == nil {
-		s.lgr.Logf(log.Info, "stored schema not found, sampling instead")
+		s.lgr.Infof(log.Admin, "stored schema not found, sampling instead")
 		newSchema, sampleRecord, err = SampleSchema(s.opts, s.processName, session, s.lgr)
 		if err != nil {
 			return nil, err
@@ -274,7 +273,7 @@ func (s *Sampler) writeInitialSample(ctx context.Context, initialSampleRecord *R
 
 	if newSchema != nil {
 		// some other mongosqld has now written a schema, so we can abort
-		s.lgr.Logf(log.DebugLow, "aborting initial schema write; a newer schema was discovered")
+		s.lgr.Infof(log.Dev, "aborting initial schema write; a newer schema was discovered")
 
 		s.schemaLock.Lock()
 		s.schema = newSchema

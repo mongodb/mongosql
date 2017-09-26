@@ -34,7 +34,7 @@ func (d *Database) Map(c *mongo.Collection, idxs []mongodb.Index, preJoined bool
 	if err != nil {
 		return err
 	}
-	d.logger.Logf(log.Info, "Created table %q for namespace %q.%q", c.Name, d.Name, c.Name)
+	d.logger.Infof(log.Admin, "Created table %q for namespace %q.%q", c.Name, d.Name, c.Name)
 
 	ctx := &mappingContext{d, t, idxs, false}
 
@@ -50,7 +50,7 @@ func (d *Database) Map(c *mongo.Collection, idxs []mongodb.Index, preJoined bool
 			t.Columns.Sort()
 			tables = append(tables, t)
 		} else {
-			d.logger.Logf(log.Info, "Removed table %q: had no columns.", t.Name)
+			d.logger.Infof(log.Admin, "Removed table %q: had no columns.", t.Name)
 		}
 	}
 
@@ -69,7 +69,7 @@ func (ctx *mappingContext) mapDocument(path string, doc *mongo.Document) error {
 		fieldName := appendFieldName(path, f.Name)
 		fieldType, ok := tryGetType(ctx, fieldName, &f.TypeContainer)
 		if !ok {
-			ctx.db.logger.Logf(log.DebugLow, "Table %q, column %q has no types: ignoring column.", ctx.table.Name, fieldName)
+			ctx.db.logger.Infof(log.Dev, "Table %q, column %q has no types: ignoring column.", ctx.table.Name, fieldName)
 			continue // skip a field without a type
 		}
 
@@ -80,7 +80,7 @@ func (ctx *mappingContext) mapDocument(path string, doc *mongo.Document) error {
 			if err != nil {
 				return err
 			}
-			ctx.db.logger.Logf(log.Info, "Created table %q for namespace %q.%q", tableName, ctx.db.Name, ctx.table.rootName())
+			ctx.db.logger.Infof(log.Admin, "Created table %q for namespace %q.%q", tableName, ctx.db.Name, ctx.table.rootName())
 
 			arrayTable.Parent = ctx.table
 
@@ -102,10 +102,10 @@ func (ctx *mappingContext) mapDocument(path string, doc *mongo.Document) error {
 		case *mongo.Scalar:
 			switch v.Name() {
 			case mongo.TimestampSchemaTypeName:
-				ctx.db.logger.Logf(log.DebugLow, "ignoring timestamp column '%s' in table '%s'", fieldName, ctx.table.Name)
+				ctx.db.logger.Infof(log.Dev, "ignoring timestamp column '%s' in table '%s'", fieldName, ctx.table.Name)
 				continue
 			case mongo.BinaryType0SchemaTypeName:
-				ctx.db.logger.Logf(log.DebugLow, "ignoring binary type 0 column '%s' in table '%s'", fieldName, ctx.table.Name)
+				ctx.db.logger.Infof(log.Dev, "ignoring binary type 0 column '%s' in table '%s'", fieldName, ctx.table.Name)
 				continue
 			default:
 				c, err := ctx.table.AddColumn(fieldName, v.Name())
@@ -131,7 +131,7 @@ func (ctx *mappingContext) mapDocument(path string, doc *mongo.Document) error {
 func mapArray(ctx *mappingContext, path string, array *mongo.Array, depth int) error {
 	fieldType, ok := tryGetType(ctx, path, &array.TypeContainer)
 	if !ok {
-		ctx.db.logger.Logf(log.DebugLow, "Table %q, column %q is an array that has no types: ignoring column.", ctx.table.Name, path)
+		ctx.db.logger.Infof(log.Dev, "Table %q, column %q is an array that has no types: ignoring column.", ctx.table.Name, path)
 		return nil
 	}
 
@@ -232,7 +232,7 @@ func tryGetType(ctx *mappingContext, path string, tc *mongo.TypeContainer) (mTyp
 
 	defer func() {
 		if mongo.UUIDSubtype3Encoding != "" {
-			ctx.db.logger.Logf(log.DebugLow, `Using type %s for table "%s", column "%s"`, mongo.UUIDSubtype3Map[mongo.UUIDSubtype3Encoding], ctx.table.Name, path)
+			ctx.db.logger.Infof(log.Dev, `Using type %s for table "%s", column "%s"`, mongo.UUIDSubtype3Map[mongo.UUIDSubtype3Encoding], ctx.table.Name, path)
 		}
 	}()
 
@@ -295,7 +295,7 @@ func tryGetType(ctx *mappingContext, path string, tc *mongo.TypeContainer) (mTyp
 	} else {
 		// Either neither were an array, or the array's item type and the other top type
 		// are incompatible so we'll just return the first one.
-		ctx.db.logger.Logf(log.DebugLow, `Type conflict for table "%s", column "%s": using type %q`, ctx.table.Name, path, types[0].Name())
+		ctx.db.logger.Infof(log.Dev, `Type conflict for table "%s", column "%s": using type %q`, ctx.table.Name, path, types[0].Name())
 		mType = types[0]
 	}
 	return mType, true
@@ -338,7 +338,7 @@ func tryGetTypeFromIndex(ctx *mappingContext, path string, types sortByDescendin
 		}
 
 		if types.Len() > 1 {
-			ctx.db.logger.Logf(log.DebugLow, "Type conflict for table %q, column %q: using type %q.", ctx.table.Name, path, t.Name())
+			ctx.db.logger.Infof(log.Dev, "Type conflict for table %q, column %q: using type %q.", ctx.table.Name, path, t.Name())
 		}
 
 		return t, true

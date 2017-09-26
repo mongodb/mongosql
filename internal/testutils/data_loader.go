@@ -83,7 +83,7 @@ func restoreBSON(host, port, file string) error {
 	}
 
 	sessionProvider.SetFlags(toolsdb.DisableSocketTimeout)
-	log.SetVerbosity(&toolsoptions.Verbosity{Quiet: true})
+	log.SetVerbosity(log.Quiet)
 
 	restorer := mongorestore.MongoRestore{
 		ToolOptions:  opts,

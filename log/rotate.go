@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/10gen/sqlproxy/internal/util"
 )
 
 type RotationStrategy string
@@ -85,7 +87,7 @@ func (rf *rotatingFile) open() error {
 }
 
 func (rf *rotatingFile) start() {
-	go func() {
+	util.PanicSafeGo(func() {
 		for {
 			select {
 			case <-rf.rotateChan:
@@ -123,7 +125,10 @@ func (rf *rotatingFile) start() {
 				rf.writeDoneChan <- struct{}{}
 			}
 		}
-	}()
+	}, func(err interface{}) {
+		loggingComponentLogger().Fatalf(Always, "%v", err)
+		panic(err)
+	})
 }
 
 func (rf *rotatingFile) rotate() (string, error) {

@@ -97,11 +97,11 @@ func (p *program) Start(s service.Service) error {
 
 	util.PanicSafeGo(func() {
 		p.svr.Run()
-		p.controlLogger.Logf(log.Always, "[signalProcessingThread] shutting down")
+		p.controlLogger.Infof(log.Always, "[signalProcessingThread] shutting down")
 		p.cleanup()
 		p.done <- struct{}{}
 	}, func(err interface{}) {
-		p.controlLogger.Logf(log.Always, "%v", err)
+		p.controlLogger.Fatalf(log.Always, "%v", err)
 		p.cleanup()
 		panic(err)
 	})
@@ -138,10 +138,11 @@ func (p *program) cleanup() {
 
 func (p *program) initLog() error {
 
-	log.SetVerbosity(&verbosityLevel{
-		level: p.cfg.SystemLog.Verbosity,
-		quiet: p.cfg.SystemLog.Quiet,
-	})
+	verbosity := log.Verbosity(p.cfg.SystemLog.Verbosity)
+	if p.cfg.SystemLog.Quiet {
+		verbosity = log.Quiet
+	}
+	log.SetVerbosity(verbosity)
 
 	if len(p.cfg.SystemLog.Path) > 0 {
 
@@ -245,23 +246,10 @@ func (p *program) logStartupInfo() []string {
 	}
 
 	for _, info := range startupInfo {
-		p.controlLogger.Logf(log.Always, info)
+		p.controlLogger.Infof(log.Always, info)
 	}
 
 	return startupInfo
-}
-
-type verbosityLevel struct {
-	level int
-	quiet bool
-}
-
-func (v *verbosityLevel) Level() int {
-	return v.level
-}
-
-func (v *verbosityLevel) IsQuiet() bool {
-	return v.quiet
 }
 
 func main() {
