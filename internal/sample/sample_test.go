@@ -30,7 +30,9 @@ var (
 
 func init() {
 	cfg.Schema.Sample.Source = "sampleStore"
-	cfg.Schema.Sample.Namespaces = []string{"sampleTest*.*"}
+	cfg.Schema.Sample.Namespaces = []string{
+		"sampleTest*.*", "sampleStore.*",
+	}
 }
 
 func TestFetchNamespaces(t *testing.T) {
@@ -359,6 +361,7 @@ func TestSample(t *testing.T) {
 		dbutils.InsertDocuments(session, db1, c1, doc)
 		dbutils.InsertDocuments(session, db2, c2, doc)
 		dbutils.InsertDocuments(session, db2, c1, doc)
+		dbutils.InsertDocuments(session, cfg.Schema.Sample.Source, c1, doc)
 
 		opts := &cfg.Schema.Sample
 		schema, sampleRecord, err := SampleSchema(opts, "temp", session, &lgr)
@@ -386,17 +389,22 @@ func TestSample(t *testing.T) {
 			db1c1 := NewNamespace(db1, c1, versionId)
 			db2c2 := NewNamespace(db2, c2, versionId)
 			db2c1 := NewNamespace(db2, c1, versionId)
+			sampleNS := NewNamespace(cfg.Schema.Sample.Source, c1, versionId)
 
 			_, found := sampleRecord.Version.FindDatabase(db1)
 			So(found, ShouldBeTrue)
 			_, found = sampleRecord.Version.FindDatabase(db2)
 			So(found, ShouldBeTrue)
+			_, found = sampleRecord.Version.FindDatabase(cfg.Schema.Sample.Source)
+			So(found, ShouldBeTrue)
+
 			So(sampleRecord.Namespaces, shouldContainNS, db1c1)
 			So(sampleRecord.Namespaces, shouldContainNS, db2c2)
 			So(sampleRecord.Namespaces, shouldContainNS, db2c1)
+			So(sampleRecord.Namespaces, shouldContainNS, sampleNS)
 		})
 
-		Convey("blacklisted namespaces should not be present", func() {
+		Convey("blacklisted databases should not be present", func() {
 			_, found := sampleRecord.Version.FindDatabase("admin")
 			So(found, ShouldBeFalse)
 			_, found = sampleRecord.Version.FindDatabase("local")
@@ -412,6 +420,15 @@ func TestSample(t *testing.T) {
 			So(sampleRecord.Namespaces, shouldNotContainNS, db3c2)
 			db3c1 := NewNamespace(db3, c1, versionId)
 			So(sampleRecord.Namespaces, shouldNotContainNS, db3c1)
+		})
+
+		Convey("blacklisted namespaces should not be present", func() {
+			ns1 := NewNamespace(cfg.Schema.Sample.Source, SchemasCollection, versionId)
+			So(sampleRecord.Namespaces, shouldNotContainNS, ns1)
+			ns1 = NewNamespace(cfg.Schema.Sample.Source, LockCollection, versionId)
+			So(sampleRecord.Namespaces, shouldNotContainNS, ns1)
+			ns1 = NewNamespace(cfg.Schema.Sample.Source, VersionsCollection, versionId)
+			So(sampleRecord.Namespaces, shouldNotContainNS, ns1)
 		})
 
 		Convey("sample size should be stored with each namespace", func() {

@@ -278,7 +278,12 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 	sampledSchema := &schema.Schema{}
 
 	// databases that we're excluding from sampling
-	dbSampleBlacklist := []string{"admin", "local", "system", opts.Source}
+	dbSampleBlacklist := []string{"admin", "local", "system"}
+	nsSampleBlacklist := []string{
+		fmt.Sprintf("%q.%q", opts.Source, SchemasCollection),
+		fmt.Sprintf("%q.%q", opts.Source, VersionsCollection),
+		fmt.Sprintf("%q.%q", opts.Source, LockCollection),
+	}
 
 	sampleVersion.StartSampleTime = time.Now()
 
@@ -296,7 +301,8 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 
 			ns := fmt.Sprintf("%q.%q", db, collection)
 
-			if !nsMatcher.Has(db + "." + collection) {
+			if !nsMatcher.Has(db+"."+collection) ||
+				util.SliceContains(nsSampleBlacklist, ns) {
 				lgr.Logf(log.Info, "Skipping namespace %s", ns)
 				continue
 			}
