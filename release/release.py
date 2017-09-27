@@ -26,6 +26,7 @@ ARCHIVED_RELEASES_JSON = "full.json"
 MAIN_DOWNLOADS_JSON = "mongodb-bi-downloads.json"
 RELEASES_JSON = "mongodb-bi-releases.json"
 UNITS = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']
+NUM_RELEASE_PLATFORMS = 12
 USAGE = """
 BI Connector Release tool 0.1
 Usage:
@@ -120,10 +121,10 @@ class BIReleaser(object):
         for build_name in builds:
             # don't upload binaries for race buildvariant
             if "race" in build_name:
-                print("Skipping build %s..." % (build_name))
+                print("Skipping build %s" % (build_name))
                 continue
             url = "%s/builds/%s" % (EVG_BASE, build_name)
-            print("Fetching build %s..." % (url))
+            print("Fetching build %s" % (url))
             response = requests.get(url, headers=headers)
             if response.status_code != 200:
                 print("Can't contact Evergreen")
@@ -164,6 +165,12 @@ class BIReleaser(object):
                 if ext == extension:
                     self.__urls[variant] = url
                     break
+
+        if len(self.__urls) != NUM_RELEASE_PLATFORMS:
+            print("Expected %s URLs, got %s" % (NUM_RELEASE_PLATFORMS, \
+                len(self.__urls)))
+            sys.exit(1)
+
 
     def run(self):
         """Runs an instance of the BI Releaser.

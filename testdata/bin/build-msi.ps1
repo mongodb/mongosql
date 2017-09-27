@@ -33,14 +33,14 @@ $version = $matches[1]
 # rev the minor version (2.2 -> 2.3). That way, we
 # will allow multiple minor versions to be installed 
 # side-by-side.
-if ([double]$version -gt 2.2) {
+if ([double]$version -gt 2.3) {
     throw "You must change the upgrade code for a minor revision. 
 Once that is done, change the version number above to
 account for the next revision that will require being
 upgradeable."
 }
 
-$upgradeCode = "6a5dffca-671a-4553-a18b-b1cb8d6f9e16"
+$upgradeCode = "59f426b4-a3bd-11e7-abc4-cec278b6b50a"
 
 # compile wxs into .wixobjs
 & $WixPath\candle.exe -wx `
@@ -81,3 +81,8 @@ if(-not $?) {
     $objDir\BinaryFragment.wixobj `
     $objDir\LicensingFragment.wixobj `
     $objDir\UIFragment.wixobj
+
+trap {
+  write-output $_
+  exit 1
+}
