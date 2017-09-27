@@ -112,6 +112,7 @@ func (v *filteringOptimizer) visit(n node) (node, error) {
 			n = &SQLSubqueryExpr{
 				correlated: typedN.correlated,
 				plan:       plan.(PlanStage),
+				allowRows:  typedN.allowRows,
 			}
 		}
 

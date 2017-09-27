@@ -292,6 +292,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 			n = &SQLSubqueryExpr{
 				correlated: typedN.correlated,
 				plan:       plan.(PlanStage),
+				allowRows:  typedN.allowRows,
 			}
 		}
 

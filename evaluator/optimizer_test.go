@@ -3582,6 +3582,23 @@ func (v *subqueryFinder) visit(n node) (node, error) {
 	return n, nil
 }
 
+type cacheStageCounter struct {
+	count int
+}
+
+func (v *cacheStageCounter) visit(n node) (node, error) {
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
+	}
+
+	switch n.(type) {
+	case *CacheStage:
+		v.count += 1
+	}
+	return n, nil
+}
+
 type sourceStageReplacer struct {
 	data            []bson.D
 	existing        int
@@ -3674,6 +3691,31 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 		})
 	}
 
+	testCache := func(sql string, data []bson.D) {
+		Convey(sql, func() {
+			statement, err := parser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			So(err, ShouldBeNil)
+
+			sourceReplacer := &sourceStageReplacer{data: data}
+			replaced, err := sourceReplacer.visit(plan)
+			So(err, ShouldBeNil)
+			So(sourceReplacer.existing, ShouldEqual, 0)
+
+			ctx := createTestConnectionCtx(testInfo)
+
+			optimized, err := optimizeSubqueries(ctx, ctx.Logger(""), replaced, true)
+			So(err, ShouldBeNil)
+
+			cacheCounter := &cacheStageCounter{}
+			cacheCounter.visit(optimized)
+			So(cacheCounter.count, ShouldEqual, 1)
+
+		})
+	}
+
 	Convey("Subject: OptimizeSubqueryPlan", t, func() {
 		Convey("subquery optimization", func() {
 			testOptimize("select a, (select b from bar) from foo",
@@ -3746,6 +3788,44 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 				[]bson.D{
 					{{"b", 1}, {"c", 1}},
 					{{"a", 1}},
+				})
+		})
+		Convey("subquery execution and caching", func() {
+			testCache("select a from foo where a in (select b from bar)",
+				[]bson.D{
+					{{"a", 1}},
+					{{"b", 1}},
+				})
+			testCache("select a from foo where a not in (select b from bar)",
+				[]bson.D{
+					{{"a", 1}},
+					{{"b", 1}},
+				})
+			testCache("select a from foo where a < all (select b from bar)",
+				[]bson.D{
+					{{"a", 1}},
+					{{"b", 1}},
+				})
+			testCache("select a from foo where a >= some (select b from bar)",
+				[]bson.D{
+					{{"a", 1}},
+					{{"b", 1}},
+				})
+			testCache("select a from foo where a < any (select b from bar)",
+				[]bson.D{
+					{{"a", 1}},
+					{{"b", 1}},
+				})
+
+			testCache("select a from foo where (`a`, `c`) in (select `a`, `b` from bar)",
+				[]bson.D{
+					{{"a", 1}, {"c", 2}},
+					{{"a", 1}, {"b", 2}},
+				})
+			testCache("select a from foo where (`a`, `c`) not in (select `a`, `b` from bar)",
+				[]bson.D{
+					{{"a", 1}, {"c", 2}},
+					{{"a", 1}, {"b", 3}},
 				})
 		})
 	})

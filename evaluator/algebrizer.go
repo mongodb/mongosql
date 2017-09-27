@@ -1179,10 +1179,12 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		return a.resolveColumnExpr(tableName, columnName)
 	case *parser.ComparisonExpr:
+		reconcile := true
+		if (typedE.Operator == parser.AST_EQ && typedE.SubqueryOperator == "") ||
+			typedE.Operator == parser.AST_IS ||
+			typedE.Operator == parser.AST_IS_NOT ||
+			typedE.SubqueryOperator != "" {
 
-		reconcile := typedE.Operator != parser.AST_IS && typedE.Operator != parser.AST_IS_NOT
-
-		if typedE.Operator == parser.AST_EQ && typedE.SubqueryOperator == "" {
 			reconcile = false
 		}
 
@@ -1199,6 +1201,9 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 
 		if typedE.SubqueryOperator != "" {
 			if eval, ok := right.(*SQLSubqueryExpr); ok {
+				// Subqueries in predicate can return more than one row during
+				// ALL, ANY, IN, NOT_IN, and SOME comparisons
+				eval.allowRows = true
 				switch typedE.SubqueryOperator {
 				case parser.AST_ALL:
 					return &SQLSubqueryCmpExpr{subqueryAll, left, eval, typedE.Operator}, nil

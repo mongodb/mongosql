@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -270,6 +271,11 @@ func isMongoFilterExpr(expr SQLExpr) bool {
 		}
 	}
 	return false
+}
+
+func newPlanStageMemoryError(maxBytes uint64) error {
+	maxByteString := util.ByteString(maxBytes)
+	return fmt.Errorf("aborted stage: maximum size per stage exceeded: limit is %s", maxByteString)
 }
 
 func parseMongoFilter(left, right SQLExpr) (bson.M, error) {

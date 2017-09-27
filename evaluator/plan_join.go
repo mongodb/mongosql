@@ -269,7 +269,7 @@ func (nlp *NestedLoopJoiner) readData(ctx context.Context, lChan, rChan <-chan *
 				*out = append(*out, r)
 				newSize := atomic.AddUint64(&size, r.Data.Size())
 				if maxSize != 0 && newSize > maxSize {
-					errs <- fmt.Errorf("aborted join: maximum size per stage exceeded: limit is %d bytes", maxSize)
+					errs <- newPlanStageMemoryError(maxSize)
 					cancel()
 					return
 				}

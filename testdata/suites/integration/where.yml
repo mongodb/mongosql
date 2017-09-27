@@ -623,3 +623,66 @@ testcases:
   - [1, 1]
   - [3, 1]
   - [4, 1]
+
+- sql: "SELECT a FROM foo WHERE a IN (SELECT b FROM baz)"
+  id: '70'
+  db: where_test
+  description: "in_comparison_with_non-correlated_multi-row_subquery"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [2]
+- sql: "SELECT a FROM foo WHERE a NOT IN (SELECT a FROM bar)"
+  id: '71'
+  db: where_test
+  description: "not_in_comparison_with_non-correlated_multi-row subquery"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "SELECT a FROM foo WHERE a <= ALL (SELECT a FROM bar)"
+  id: '72'
+  db: where_test
+  description: "all_comparison_with_non_correlated_multi-row_subquery"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+- sql: "SELECT a FROM foo WHERE a <= ANY (SELECT a FROM bar)"
+  id: '73'
+  db: where_test
+  description: "any_comparison_with_non_correlated_multi-row_subquery"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+- sql: "SELECT a FROM foo WHERE a <= SOME (SELECT b FROM baz)"
+  id: '74'
+  db: where_test
+  description: "some_comparison_with_non-correlated_multi-row_subquery"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+- sql: "SELECT a FROM foo WHERE (id, a) IN (SELECT id, a FROM bar)"
+  id: '75'
+  db: where_test
+  description: "in_comparison_with_non-correlated_multi-row-column_subquery"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [3]
+- sql: "SELECT a FROM foo WHERE (id, a) NOT IN (SELECT id, a FROM bar)"
+  id: '76'
+  db: where_test
+  description: "not_in_comparison_with_non-correlated_multi-row-column_subquery"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]

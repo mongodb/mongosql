@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/internal/util/bsonutil"
 )
 
@@ -70,6 +71,8 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 	switch typedN := n.(type) {
 	case *BSONSourceStage:
 		b.WriteString("↳ BSONSource:\n")
+	case *CacheStage:
+		b.WriteString(fmt.Sprintf("↳ Cache (%s)", util.ByteString(typedN.cacheSize)))
 	case *DynamicSourceStage:
 		b.WriteString(fmt.Sprintf("↳ DynamicSource (%s):\n", typedN.aliasName))
 	case *DualStage:
