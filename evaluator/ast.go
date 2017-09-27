@@ -27,6 +27,7 @@ type normalizingNode interface {
 
 // PlanStages
 func (ps *BSONSourceStage) astnode()     {}
+func (ps *CacheStage) astnode()          {}
 func (ps *DynamicSourceStage) astnode()  {}
 func (ps *DualStage) astnode()           {}
 func (ps *EmptyStage) astnode()          {}
@@ -260,7 +261,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 
 	// PlanStages
 
-	case *DualStage, *DynamicSourceStage, *EmptyStage, *MongoSourceStage, *BSONSourceStage:
+	case *CacheStage, *DualStage, *DynamicSourceStage, *EmptyStage, *MongoSourceStage, *BSONSourceStage:
 		// nothing to do
 	case *FilterStage:
 		source, err := visitPlanStage(typedN.source)
@@ -781,6 +782,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 			n = &SQLSubqueryExpr{
 				correlated: typedN.correlated,
 				plan:       plan,
+				allowRows:  typedN.allowRows,
 			}
 		}
 	case *SQLSubtractExpr:

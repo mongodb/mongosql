@@ -235,7 +235,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 	})
 
 	count := 0
-	totalBytes := 0
+	totalBytes := uint64(0)
 
 streamer:
 	for {
@@ -272,7 +272,7 @@ streamer:
 				return err
 			}
 			count++
-			totalBytes += len(data)
+			totalBytes += uint64(len(data))
 
 		case <-c.ctx.Done():
 			iter.Close()

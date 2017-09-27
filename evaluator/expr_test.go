@@ -2453,6 +2453,33 @@ func TestEvaluates(t *testing.T) {
 			runTests(evalCtx, tests)
 		})
 
+		Convey("Subject: SQLSubqueryCmpExpr", func() {
+			Convey("Should not evaluate if the subquery returns a different number of columns than the left expression", func() {
+				cs := &CacheStage{}
+				ctx := &EvalCtx{}
+				rows := []Row{
+					{Values{{1, "test", "a", SQLInt(1)}, {1, "test", "b", SQLInt(2)}}},
+					{Values{{1, "test", "a", SQLInt(2)}, {1, "test", "b", SQLInt(4)}}},
+				}
+				cs.rows = rows
+
+				subqExpr := &SQLSubqueryExpr{}
+				subqExpr.plan = cs
+				subCmpExpr := &SQLSubqueryCmpExpr{}
+				subCmpExpr.subqueryExpr = subqExpr
+
+				// Single SQLValue in left, two in subquery
+				subCmpExpr.left = SQLInt(1)
+				_, err := subCmpExpr.Evaluate(ctx)
+				So(err, ShouldNotBeNil)
+
+				// Three SQLValues in left, two in subquery
+				subCmpExpr.left = &SQLValues{[]SQLValue{SQLInt(1), SQLInt(2), SQLInt(3)}}
+				_, err = subCmpExpr.Evaluate(ctx)
+				So(err, ShouldNotBeNil)
+			})
+		})
+
 		Convey("Subject: SQLTupleExpr", func() {
 			Convey("Should evaluate all the expressions and return SQLValues", func() {
 				subject := &SQLTupleExpr{[]SQLExpr{SQLInt(10), &SQLAddExpr{SQLInt(30), SQLInt(12)}}}

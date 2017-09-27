@@ -543,9 +543,8 @@ type SQLExistsExpr struct {
 	expr *SQLSubqueryExpr
 }
 
-func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (em *SQLExistsExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 	var it Iter
-	var err error
 	var matches bool
 
 	defer func() {
@@ -1384,24 +1383,24 @@ type SQLSubqueryCmpExpr struct {
 	operator     string
 }
 
-func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
+func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (value SQLValue, err error) {
 
 	left, err := sc.left.Evaluate(ctx)
 	if err != nil {
 		return SQLFalse, err
 	}
 
-	var it Iter
+	var iter Iter
 	defer func() {
-		if it != nil {
+		if iter != nil {
 			if err == nil {
-				err = it.Close()
+				err = iter.Close()
 			} else {
-				it.Close()
+				iter.Close()
 			}
 
 			if err == nil {
-				err = it.Err()
+				err = iter.Err()
 			}
 		}
 	}()
@@ -1412,7 +1411,7 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		execCtx = ctx.CreateChildExecutionCtx()
 	}
 
-	if it, err = sc.subqueryExpr.plan.Open(execCtx); err != nil {
+	if iter, err = sc.subqueryExpr.plan.Open(execCtx); err != nil {
 		return SQLFalse, err
 	}
 
@@ -1425,14 +1424,27 @@ func (sc *SQLSubqueryCmpExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 		mismatch = false
 	}
 
+	var leftLen int
+	leftValues, lvsOk := left.(*SQLValues)
+	if lvsOk {
+		leftLen = len(leftValues.Values)
+	} else {
+		leftLen = 1
+	}
+
 	right := &SQLValues{}
 
-	for it.Next(row) {
+	for iter.Next(row) {
 
 		values := row.GetValues()
 
 		for _, value := range values {
 			right.Values = append(right.Values, value)
+		}
+
+		// Make sure the subquery returns the same number of columns as what it's being compared to
+		if leftLen != len(values) {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_OPERAND_COLUMNS, leftLen)
 		}
 
 		switch sc.subqueryOp {
@@ -1511,6 +1523,7 @@ func (_ *SQLSubqueryCmpExpr) Type() schema.SQLType {
 //
 type SQLSubqueryExpr struct {
 	correlated bool
+	allowRows  bool
 	plan       PlanStage
 }
 
@@ -1533,17 +1546,17 @@ func (se *SQLSubqueryExpr) Exprs() []SQLExpr {
 
 func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error) {
 
-	var it Iter
+	var iter Iter
 	defer func() {
-		if it != nil {
+		if iter != nil {
 			if err == nil {
-				err = it.Close()
+				err = iter.Close()
 			} else {
-				it.Close()
+				iter.Close()
 			}
 
 			if err == nil {
-				err = it.Err()
+				err = iter.Err()
 			}
 		}
 	}()
@@ -1564,17 +1577,17 @@ func (se *SQLSubqueryExpr) Evaluate(evalCtx *EvalCtx) (value SQLValue, err error
 		}
 		plan = OptimizePlan(execCtx, plan)
 	}
-	it, err = plan.Open(execCtx)
+	iter, err = plan.Open(execCtx)
 	if err != nil {
 		return nil, err
 	}
 
 	row := &Row{}
 
-	hasNext := it.Next(row)
+	hasNext := iter.Next(row)
 
 	// Filter has to check the entire source to return an accurate 'hasNext'
-	if hasNext && it.Next(&Row{}) {
+	if hasNext && iter.Next(&Row{}) {
 		return nil, fmt.Errorf("Subquery returns more than 1 row")
 	}
 

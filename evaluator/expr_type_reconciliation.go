@@ -772,6 +772,7 @@ func reconcileSQLTuple(left, right SQLExpr) (SQLExpr, SQLExpr, error) {
 			return &SQLSubqueryExpr{
 				correlated: typedE.correlated,
 				plan:       NewProjectStage(plan, projectedColumns...),
+				allowRows:  typedE.allowRows,
 			}, nil
 		}
 		return nil, fmt.Errorf("cannot wrap reconciled non-tuple type '%T'", expr)

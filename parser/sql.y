@@ -1077,10 +1077,6 @@ tuple:
   {
     $$ = ValTuple($2)
   }
-| subquery
-  {
-    $$ = $1
-  }
 
 subquery:
   LPAREN select_statement RPAREN
@@ -1196,9 +1192,17 @@ bool_pri:
 
 
 predicate:
-  bit_expr IN tuple
+  bit_expr IN subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_IN, SubqueryOperator: AST_IN, Right: $3}
+  }
+| bit_expr IN tuple
   {
     $$ = &ComparisonExpr{Left: $1, Operator: AST_IN, Right: $3}
+  }
+| bit_expr NOT IN subquery
+  {
+    $$ = &ComparisonExpr{Left: $1, Operator: AST_NOT_IN, SubqueryOperator: AST_NOT_IN, Right: $4}
   }
 | bit_expr NOT IN tuple
   {
@@ -1314,6 +1318,10 @@ simple_expr:
     $$ = $1
   }
 | tuple
+  {
+    $$ = $1
+  }
+| subquery
   {
     $$ = $1
   }

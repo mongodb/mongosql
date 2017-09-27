@@ -7,7 +7,7 @@ import (
 
 // ByteString takes a count of bytes and creates
 // a human readable version.
-func ByteString(count int) string {
+func ByteString(count uint64) string {
 	const (
 		kilo = 1024.0
 		mega = 1024 * kilo
@@ -20,18 +20,18 @@ func ByteString(count int) string {
 
 	switch {
 	case count >= giga:
-		unit = "G"
+		unit = "GiB"
 		value = value / giga
 	case count >= mega:
-		unit = "M"
+		unit = "MiB"
 		value = value / mega
 	case count >= kilo:
-		unit = "K"
+		unit = "KiB"
 		value = value / kilo
 	case count >= 1.0:
 		unit = "B"
 	case count == 0:
-		return "0"
+		return "0B"
 	}
 
 	s := fmt.Sprintf("%.1f", value)
