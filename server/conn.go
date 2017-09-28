@@ -74,9 +74,6 @@ type conn struct {
 	stmtID uint32
 	stmts  map[uint32]*stmt
 
-	// server startup information
-	startupInfo []string
-
 	// status variables
 	bytesReceived uint64
 	bytesSent     uint64
@@ -110,9 +107,8 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 			CLIENT_LONG_PASSWORD |
 			CLIENT_SECURE_CONNECTION |
 			CLIENT_COMPRESS,
-		startupInfo: s.GetStartupInfo(),
-		stmts:       make(map[uint32]*stmt),
-		variables:   variable.NewSessionContainer(s.variables),
+		stmts:     make(map[uint32]*stmt),
+		variables: variable.NewSessionContainer(s.variables),
 	}
 
 	if err != nil {
@@ -185,6 +181,17 @@ func (c *conn) Catalog() *catalog.Catalog {
 	return c.catalog
 }
 
+// UpdateCatalog updates the catalog to utilize the new schema.
+func (c *conn) UpdateCatalog(s *schema.Schema) error {
+	cat, err := catalog.Build(s, c.variables)
+	if err != nil {
+		return err
+	}
+
+	c.catalog = cat
+	return nil
+}
+
 // ConnectionId returns the connection's identifier.
 func (c *conn) ConnectionId() uint32 {
 	return c.connectionID
@@ -201,6 +208,11 @@ func (c *conn) DB() string {
 		return ""
 	}
 	return string(c.currentDB.Name)
+}
+
+// Server returns access to the server
+func (c *conn) Server() evaluator.ServerCtx {
+	return c.server
 }
 
 func (c *conn) dispatch(data []byte) error {
@@ -247,11 +259,6 @@ func (c *conn) dispatch(data []byte) error {
 	default:
 		return mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_COM_ERROR)
 	}
-}
-
-// GetStartupInfo returns startup information of mongosqld.
-func (c *conn) GetStartupInfo() []string {
-	return c.startupInfo
 }
 
 func (c *conn) handshake() error {
@@ -307,7 +314,7 @@ func (c *conn) handshake() error {
 
 	c.setStatusVariables()
 
-	c.catalog, err = catalog.Build(currentSchema, c.variables)
+	err = c.UpdateCatalog(currentSchema)
 	if err != nil {
 		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error building catalog: %v", err)
 		c.writeError(err)

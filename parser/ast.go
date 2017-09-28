@@ -942,8 +942,17 @@ func (node *Kill) Format(buf *TrackedBuffer) {
 
 func (*Flush) IStatement() {}
 
-type Flush struct{}
+type FlushKind string
 
-func (_ *Flush) Format(buf *TrackedBuffer) {
-	buf.Fprintf("flush logs")
+const (
+	FlushLogs   = "logs"
+	FlushSample = "sample"
+)
+
+type Flush struct {
+	Kind FlushKind
+}
+
+func (f *Flush) Format(buf *TrackedBuffer) {
+	buf.Fprintf("flush %s", string(f.Kind))
 }

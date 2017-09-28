@@ -281,7 +281,14 @@ func (a *algebrizer) isAggFunction(name string) bool {
 }
 
 func (a *algebrizer) translateFlush(flush *parser.Flush) (*FlushCommand, error) {
-	return NewFlushCommand(), nil
+	switch flush.Kind {
+	case parser.FlushLogs:
+		return NewFlushCommand(FlushLogs), nil
+	case parser.FlushSample:
+		return NewFlushCommand(FlushSample), nil
+	}
+
+	return nil, fmt.Errorf("unsupported flush kind: %v", flush.Kind)
 }
 
 func (a *algebrizer) translateGroupBy(groupby parser.GroupBy) ([]SQLExpr, error) {

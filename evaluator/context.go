@@ -7,8 +7,15 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/variable"
 )
+
+// ServerCtx holds server context information
+type ServerCtx interface {
+	Resample(context.Context) (*schema.Schema, error)
+	StartupInfo() []string
+}
 
 // ConnectionCtx holds connection context information.
 type ConnectionCtx interface {
@@ -20,10 +27,12 @@ type ConnectionCtx interface {
 	Session() *mongodb.Session
 	Logger(string) *log.Logger
 	User() string
-	Catalog() *catalog.Catalog
-	GetStartupInfo() []string
 	Variables() *variable.Container
 	Context() context.Context
+	Server() ServerCtx
+
+	Catalog() *catalog.Catalog
+	UpdateCatalog(*schema.Schema) error
 }
 
 // ExecutionCtx holds execution context information

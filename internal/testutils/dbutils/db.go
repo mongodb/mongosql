@@ -108,6 +108,35 @@ func DropDatabase(s Server, databaseName string) {
 	}
 }
 
+func Exists(s Server, databaseName, collectionName string, filter bson.D) bool {
+	findCommand := bson.D{
+		{"find", collectionName},
+		{"filter", filter},
+		{"limit", 1},
+	}
+	request := msg.NewCommand(
+		msg.NextRequestID(),
+		databaseName,
+		false,
+		findCommand,
+	)
+
+	c, err := s.Connection(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	defer c.Close()
+
+	var result cursorReturningResult
+
+	err = conn.ExecuteCommand(context.Background(), c, request, &result)
+	if err != nil {
+		panic(err)
+	}
+
+	return len(result.Cursor.FirstBatch) > 0
+}
+
 func Find(s Server, databaseName, collectionName string, batchSize int32) CursorResult {
 	findCommand := bson.D{
 		{"find", collectionName},

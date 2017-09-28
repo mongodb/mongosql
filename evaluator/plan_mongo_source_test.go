@@ -15,6 +15,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 const (
@@ -24,6 +25,7 @@ const (
 
 type connCtx struct {
 	catalog   *catalog.Catalog
+	server    ServerCtx
 	session   *mongodb.Session
 	variables *variable.Container
 }
@@ -57,6 +59,10 @@ func (_ *connCtx) Logger(_ string) *log.Logger {
 	return &lg
 }
 
+func (c *connCtx) Server() ServerCtx {
+	return c.server
+}
+
 func (c *connCtx) Session() *mongodb.Session {
 	return c.session
 }
@@ -67,6 +73,10 @@ func (_ *connCtx) User() string {
 
 func (c *connCtx) Catalog() *catalog.Catalog {
 	return c.catalog
+}
+
+func (c *connCtx) UpdateCatalog(*schema.Schema) error {
+	return nil
 }
 
 func (c *connCtx) GetStartupInfo() []string {

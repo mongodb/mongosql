@@ -157,6 +157,7 @@ var (
 	RIGHT_BYTES              = []byte("right")
 	ROLLBACK_BYTES           = []byte("rollback")
 	ROW_BYTES                = []byte("row")
+	SAMPLE_BYTES             = []byte("sample")
 	SCHEMA_BYTES             = []byte("schema")
 	SCHEMAS_BYTES            = []byte("schemas")
 	SECOND_MICROSECOND_BYTES = []byte("second_microsecond")
@@ -373,6 +374,7 @@ var keywords = map[string]int{
 	"restrict":           RESTRICT,
 	"right":              RIGHT,
 	"row":                ROW,
+	"sample":             SAMPLE,
 	"schema":             SCHEMA,
 	"schemas":            SCHEMAS,
 	"second_microsecond": SECOND_MICROSECOND,

@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"fmt"
+
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
@@ -76,7 +78,7 @@ func (d *DMutex) Lock(ctx context.Context) error {
 	d.runningLock.Lock()
 	defer d.runningLock.Unlock()
 
-	if !d.running {
+	if d.cfg.HeartbeatInterval > 0 && !d.running {
 		d.running = true
 		util.PanicSafeGo(func() {
 			defer localUnlock()
@@ -102,7 +104,11 @@ func (d *DMutex) Lock(ctx context.Context) error {
 
 // Unlock releases the lock.
 func (d *DMutex) Unlock(ctx context.Context) error {
-	d.done <- struct{}{}
+	d.runningLock.Lock()
+	defer d.runningLock.Unlock()
+	if d.running {
+		d.done <- struct{}{}
+	}
 
 	session, err := d.cfg.SessionProvider.AdminSession(ctx)
 	if err != nil {
@@ -162,24 +168,47 @@ func (d *DMutex) tryLock(ctx context.Context) error {
 	}
 
 	result := struct {
-		Value *struct {
-			ExpirationTime time.Time `bson:"expirationTime"`
-			ProcessName    string    `bson:"processName"`
-		}
+		Value *struct{}
 	}{}
 
 	err = session.Run(d.cfg.DatabaseName, cmd, &result)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key error") {
 			// this is to be expected when someone else holds the lock...
-			return errLockHeldByAnotherProcess
+			return d.createLockHeldByAnotherProcessError(session)
 		}
 		return err
 	}
 
 	if result.Value == nil {
-		return errLockHeldByAnotherProcess
+		return d.createLockHeldByAnotherProcessError(session)
 	}
 
 	return nil
+}
+
+// createLockHelpByAnotherProcessError is called when we know the lock is held by another process. It will
+// attempt to discover extra information about the lock itself and include that in the error. If it fails
+// to discover extra information, it will return a generic error.
+func (d *DMutex) createLockHeldByAnotherProcessError(session *mongodb.Session) error {
+	pipeline := []bson.D{
+		{{"$match", bson.D{{"_id", d.cfg.Name}}}},
+		{{"$limit", 1}},
+	}
+
+	cursor, err := session.Aggregate(d.cfg.DatabaseName, d.cfg.CollectionName, pipeline)
+	if err != nil {
+		return errLockHeldByAnotherProcess
+	}
+	defer cursor.Close(session.Context())
+
+	result := struct {
+		ProcessName string `bson:"processName"`
+	}{}
+
+	if cursor.Next(session.Context(), &result) {
+		return fmt.Errorf("lock held by process '%s'", result.ProcessName)
+	}
+
+	return errLockHeldByAnotherProcess
 }

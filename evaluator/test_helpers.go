@@ -61,6 +61,7 @@ func constructOrderByTerms(exprs map[string]SQLExpr, values ...string) (terms []
 type fakeConnectionCtx struct {
 	variables *variable.Container
 	info      *mongodb.Info
+	server    ServerCtx
 }
 
 func (_ *fakeConnectionCtx) LastInsertId() int64 {
@@ -74,6 +75,9 @@ func (_ *fakeConnectionCtx) RowCount() int64 {
 	return 21
 }
 func (_ *fakeConnectionCtx) Catalog() *catalog.Catalog {
+	return nil
+}
+func (_ *fakeConnectionCtx) UpdateCatalog(*schema.Schema) error {
 	return nil
 }
 func (_ *fakeConnectionCtx) ConnectionId() uint32 {
@@ -90,6 +94,9 @@ func (_ *fakeConnectionCtx) GetStartupInfo() []string {
 }
 func (_ *fakeConnectionCtx) Kill(id uint32, scope KillScope) error {
 	return nil
+}
+func (f *fakeConnectionCtx) Server() ServerCtx {
+	return f.server
 }
 func (_ *fakeConnectionCtx) Session() *mongodb.Session {
 	return nil

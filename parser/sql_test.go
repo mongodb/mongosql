@@ -416,6 +416,9 @@ func TestFlush(t *testing.T) {
 	sql := "flush logs"
 	testParse(t, sql)
 
+	sql = "flush sample"
+	testParse(t, sql)
+
 	sql = "flush tables"
 	testParseError(t, sql)
 

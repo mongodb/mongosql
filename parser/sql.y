@@ -78,7 +78,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS COLLATION PROCESSLIST STATUS CHARSET
 %token <empty> EXPLAIN DESCRIBE
 %token <empty> EXTENDED PARTITIONS FORMAT TRADITIONAL JSON
-%token <empty> KILL FLUSH
+%token <empty> KILL FLUSH SAMPLE
 %token <empty> CONNECTION QUERY
 %token <empty> SESSION GLOBAL 
 %token <empty> TEMPORARY RESTRICT CASCADE
@@ -281,7 +281,11 @@ drop_statement:
 flush_statement:
   FLUSH LOGS
   {
-    $$ = &Flush{}
+    $$ = &Flush{Kind: FlushLogs}
+  }
+| FLUSH SAMPLE
+  {
+    $$ = &Flush{Kind: FlushSample}
   }
 
 temporary_opt:

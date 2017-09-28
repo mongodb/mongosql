@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/config"
@@ -42,17 +41,39 @@ type Sampler struct {
 	processName     string
 }
 
+func (s *Sampler) Refresh(ctx context.Context) error {
+	if s.opts.Mode == config.ReadSampleMode && s.opts.Source != "" {
+		return fmt.Errorf("cannot refresh sample in clustered read mode")
+	}
+
+	if s.opts.Mode == config.ReadSampleMode {
+		err := s.resampleSchema(ctx)
+		if err != nil {
+			return fmt.Errorf("failed refreshing schema: %v", err)
+		}
+	} else {
+		err := s.resampleAndPersistSchema(ctx)
+		if err != nil {
+			return fmt.Errorf("failed refreshing schema: %v", err)
+		}
+	}
+
+	return nil
+}
+
 func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
 	var newSchema *schema.Schema
 
-	session, err := s.sessionProvider.AdminSession(ctx)
-	if err == nil {
-		defer session.Close()
-		newSchema, err = ReadSchema(s.opts, session, s.lgr)
-	}
+	if s.opts.Source != "" {
+		session, err := s.sessionProvider.AdminSession(ctx)
+		if err == nil {
+			defer session.Close()
+			newSchema, err = ReadSchema(s.opts, session, s.lgr)
+		}
 
-	if err != nil {
-		s.lgr.Warnf(log.Dev, "could not fetch most recent schema: %v", err)
+		if err != nil {
+			s.lgr.Warnf(log.Dev, "could not fetch most recent schema: %v", err)
+		}
 	}
 
 	if newSchema != nil {

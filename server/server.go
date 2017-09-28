@@ -97,6 +97,20 @@ func (s *Server) getSchema() *schema.Schema {
 	return s.sampler.Schema(s.lifetimeCtx)
 }
 
+// Resample forces a sample refresh.
+func (s *Server) Resample(ctx context.Context) (*schema.Schema, error) {
+	if s.fileBasedSchema != nil {
+		return nil, fmt.Errorf("sampling is disabled; schema was loaded from a file")
+	}
+
+	err := s.sampler.Refresh(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.getSchema(), nil
+}
+
 // Run starts the server and begins accepting connections.
 func (s *Server) Run() {
 	listenAndServe := func(listener net.Listener) {
@@ -169,8 +183,8 @@ func (s *Server) Close() {
 	s.activeConnectionsMx.RUnlock()
 }
 
-// GetStartupInfo returns startup information for the server.
-func (s *Server) GetStartupInfo() []string {
+// StartupInfo gets the startup information for logging.
+func (s *Server) StartupInfo() []string {
 	return s.startupInfo
 }
 
