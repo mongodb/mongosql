@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"fmt"
 	"runtime"
 	"testing"
 
@@ -447,6 +448,36 @@ func TestValidate_Invalid_SampleSize(t *testing.T) {
 	}
 
 	expected := "invalid sample size: -1"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_Invalid_NumConnsPerSession_toofew(t *testing.T) {
+	cfg := Default()
+	cfg.MongoDB.Net.NumConnsPerSession = 0
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := fmt.Sprintf("invalid number of MongoDB connections: 0 (must be between %d and %d)", MinConnections, MaxConnections)
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_Invalid_NumConnsPerSession_toomany(t *testing.T) {
+	cfg := Default()
+	cfg.MongoDB.Net.NumConnsPerSession = 1000
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := fmt.Sprintf("invalid number of MongoDB connections: 1000 (must be between %d and %d)", MinConnections, MaxConnections)
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
 	}

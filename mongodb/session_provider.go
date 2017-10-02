@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	mongoDBScheme = "mongodb://"
+	mongoDBScheme          = "mongodb://"
+	drdlNumConnsPerSession = 2
 )
 
 // NewDrdlSessionProvider creates a new session provider for mongodrdl.
@@ -75,6 +76,7 @@ func NewDrdlSessionProvider(opts options.DrdlOptions) (*SessionProvider, error) 
 		rp:             rp,
 		c:              c,
 		connectTimeout: getConnectTimeout(cs),
+		numConns:       drdlNumConnsPerSession,
 	}, nil
 }
 
@@ -139,6 +141,7 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		rp:             rp,
 		c:              c,
 		connectTimeout: getConnectTimeout(cs),
+		numConns:       cfg.MongoDB.Net.NumConnsPerSession,
 	}
 
 	if cfg.MongoDB.Net.Auth.Username != "" {
@@ -159,6 +162,7 @@ type SessionProvider struct {
 	rp             *readpref.ReadPref
 	c              *cluster.Cluster
 	connectTimeout time.Duration
+	numConns       int
 
 	adminAuthenticator SessionAuthenticator
 }
@@ -201,13 +205,11 @@ func (sp *SessionProvider) session(ctx context.Context, rp *readpref.ReadPref) (
 		return nil, fmt.Errorf("no servers available: %v", err)
 	}
 
-	const nConns = 2
-
 	session := &Session{
 		ctx:     ctx,
 		cluster: sp.c,
 		server:  server,
-		count:   nConns,
+		count:   sp.numConns,
 	}
 
 	// Create a provider around server.Connection in order to support
@@ -233,7 +235,7 @@ func (sp *SessionProvider) session(ctx context.Context, rp *readpref.ReadPref) (
 
 	// The pool keeps the connections checked out of the underlying pool until
 	// the session is closed.
-	if session.pool, err = newSessionConnPool(ctx, provider, nConns); err != nil {
+	if session.pool, err = newSessionConnPool(ctx, provider, sp.numConns); err != nil {
 		return nil, err
 	}
 
