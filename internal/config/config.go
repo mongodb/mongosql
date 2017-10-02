@@ -21,6 +21,11 @@ var (
 	}
 )
 
+const (
+	MinConnections = 2
+	MaxConnections = 10
+)
+
 // Load creates a new configuration from the specified arguments
 // and potentially loads from a separate config source as specified
 // on the command line.
@@ -61,6 +66,7 @@ func Load(args []string) (*Config, []string, error) {
 		if cfg.MongoDB.Net.Auth.Source == "" {
 			cfg.MongoDB.Net.Auth.Source = cfg.Security.DefaultSource
 		}
+
 	}
 
 	return cfg, args, err
@@ -85,6 +91,7 @@ func Default() *Config {
 	cfg.Security.DefaultSource = "admin"
 
 	cfg.MongoDB.Net.URI = "mongodb://localhost:27017"
+	cfg.MongoDB.Net.NumConnsPerSession = 2
 
 	cfg.ProcessManagement.Service.Name = "mongosql"
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
@@ -166,6 +173,10 @@ func Validate(cfg *Config) error {
 			cfg.MongoDB.Net.Auth.Mechanism) {
 		return fmt.Errorf("unsupported sample authentication "+
 			"mechanism '%v'", cfg.MongoDB.Net.Auth.Mechanism)
+	}
+
+	if cfg.MongoDB.Net.NumConnsPerSession < MinConnections || cfg.MongoDB.Net.NumConnsPerSession > MaxConnections {
+		return fmt.Errorf("invalid number of MongoDB connections: %d (must be between %d and %d)", cfg.MongoDB.Net.NumConnsPerSession, MinConnections, MaxConnections)
 	}
 
 	if cfg.Schema.Path != "" && cfg.Schema.Sample.Source != "" {
@@ -309,9 +320,10 @@ type MongoDB struct {
 
 // MongoDBNet holds confifuration for network communication with MongoDB.
 type MongoDBNet struct {
-	URI  string         `config:"uri"`
-	SSL  MongoDBNetSSL  `config:"ssl"`
-	Auth MongoDBNetAuth `config:"auth"`
+	URI                string         `config:"uri"`
+	SSL                MongoDBNetSSL  `config:"ssl"`
+	Auth               MongoDBNetAuth `config:"auth"`
+	NumConnsPerSession int            `config:"NumConnsPerSession"`
 }
 
 // MongoDBNetSSL holds configuration for SSL with MongoDB.

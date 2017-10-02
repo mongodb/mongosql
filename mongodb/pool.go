@@ -7,13 +7,13 @@ import (
 	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 )
 
-func newSessionConnPool(ctx context.Context, provider conn.Provider, max int32) (*sessionConnPool, error) {
+func newSessionConnPool(ctx context.Context, provider conn.Provider, max int) (*sessionConnPool, error) {
 
 	pool := &sessionConnPool{
 		conns: make(chan *sessionConn, max),
 	}
 
-	for i := 0; i < int(max); i++ {
+	for i := 0; i < max; i++ {
 		conn, err := provider(ctx)
 		if err != nil {
 			pool.Close()
