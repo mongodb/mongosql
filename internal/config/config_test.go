@@ -227,6 +227,35 @@ func TestValidate_Sample_Invalid_Source(t *testing.T) {
 	}
 }
 
+func TestValidate_Sample_Source_And_Schema(t *testing.T) {
+	tests := []struct {
+		source string
+		schema string
+		valid  bool
+	}{
+		{"test", "path", false},
+		{"test", "", true},
+		{"", "path", true},
+		{"", "", true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.source, func(t *testing.T) {
+			cfg := Default()
+			cfg.Schema.Sample.Source = test.source
+			cfg.Schema.Path = test.schema
+			err := Validate(cfg)
+			if err != nil && test.valid {
+				t.Fatalf("expected no error, but got %v", err)
+			}
+
+			if err == nil && !test.valid {
+				t.Fatalf("expected an error, but got none")
+			}
+		})
+	}
+}
+
 func TestValidate_Sample_StandaloneWriter(t *testing.T) {
 	cfg := Default()
 	cfg.Schema.Sample.Mode = WriteSampleMode

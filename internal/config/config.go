@@ -168,6 +168,10 @@ func Validate(cfg *Config) error {
 			"mechanism '%v'", cfg.MongoDB.Net.Auth.Mechanism)
 	}
 
+	if cfg.Schema.Path != "" && cfg.Schema.Sample.Source != "" {
+		return fmt.Errorf("must specify only one of sample source or schema")
+	}
+
 	if cfg.Schema.Sample.Size < 0 {
 		return fmt.Errorf("invalid sample size: %d", cfg.Schema.Sample.Size)
 	}
