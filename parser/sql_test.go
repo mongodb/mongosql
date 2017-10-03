@@ -519,3 +519,64 @@ func TestParenthesis(t *testing.T) {
 	sql = "((select * from (((select * from bar))) d limit 2) limit 3)"
 	testParseError(t, sql)
 }
+
+func TestAlter(t *testing.T) {
+	correct := []string{
+		"alter table mytable change oldcol newcol",
+		"alter table mytable change column oldcol newcol",
+		"alter table mytable drop mycolumn",
+		"alter table mytable drop column mycolumn",
+		"alter table mytable rename newtbl",
+		"alter table mytable rename to newtbl",
+		"alter table mytable rename as newtbl",
+	}
+
+	for _, sql := range correct {
+		testParse(t, sql)
+	}
+
+	incorrect := []string{
+		"alter table mytable add onecolumn, add twocolumn",
+		"alter table mytable add onecolumn,add twocolumn",
+		"alter table mytable add mycolumn",
+		"alter table mytable add column mycolumn",
+		"alter table mytable",
+		"alter table mytable add mycolumn,",
+		"alter table mytable , add mycolumn",
+		"alter table mytable add mycolumn, add",
+		"alter mytable add mycolumn",
+		"alter table mytable add column",
+		"alter table mytable add onecolumn twocolumn",
+		"alter table mytable change column",
+		"alter table mytable drop",
+		"alter table mytable drop column",
+		"alter table mytable drop onecolumn twocolumn",
+		"alter table mytable rename to",
+		"alter table mytable rename as",
+	}
+
+	for _, sql := range incorrect {
+		testParseError(t, sql)
+	}
+}
+
+func TestRename(t *testing.T) {
+	correct := []string{
+		"rename table oldtable to newtable",
+		"rename table oldtable to newtable, thistable to thattable",
+	}
+
+	for _, sql := range correct {
+		testParse(t, sql)
+	}
+
+	incorrect := []string{
+		"rename table oldtable newtable",
+		"rename table oldtable as newtable",
+		"rename table oldtable to newtable,",
+	}
+
+	for _, sql := range incorrect {
+		testParseError(t, sql)
+	}
+}

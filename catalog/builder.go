@@ -12,13 +12,19 @@ import (
 
 // Build builds a catalog up from a schema and variables.
 func Build(schema *schema.Schema, variables *variable.Container) (*Catalog, error) {
+
+	alteredSchema, err := schema.Altered()
+	if err != nil {
+		return nil, err
+	}
+
 	builder := &catalogBuilder{
 		catalog:   New("def"),
-		schema:    schema,
+		schema:    alteredSchema,
 		variables: variables,
 	}
 
-	err := builder.build()
+	err = builder.build()
 	if err != nil {
 		return nil, err
 	}

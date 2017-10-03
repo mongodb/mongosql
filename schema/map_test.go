@@ -147,7 +147,10 @@ func testMapSchema(collection string, prejoined bool, jsonSchema *mongo.Schema, 
 	}
 
 	// create a relational schema from the database
-	actual := &schema.Schema{[]*schema.Database{db}}
+	actual := &schema.Schema{
+		nil,
+		[]*schema.Database{db},
+	}
 
 	// compare the generated schema to the expected one
 	err = actual.Equals(relationalSchema)

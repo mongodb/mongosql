@@ -67,14 +67,15 @@ test-start-mongosqld: build-mongosqld _test-start-mongosqld
 _test-start-mongosqld:
 	$(ENV) $(EXPECTED) testdata/bin/test-start-mongosqld.sh
 
-test-unit: clean
+test-unit: test-connect-success
 	$(ENV) testdata/bin/run-unit-tests.sh
 
 # include config test targets
+include testdata/config/tests/alter.mk
 include testdata/config/tests/cleartext-auth.mk
-include testdata/config/tests/log-rotation.mk
 include testdata/config/tests/log-newlines.mk
+include testdata/config/tests/log-rotation.mk
 include testdata/config/tests/mongo-ssl.mk
 include testdata/config/tests/mongodrdl.mk
-include testdata/config/tests/sqlproxy-ssl.mk
 include testdata/config/tests/schema.mk
+include testdata/config/tests/sqlproxy-ssl.mk

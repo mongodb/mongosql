@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 type schemaProtocol string
@@ -29,6 +30,10 @@ type Version struct {
 	// documents in the schemas collection that are expected to
 	// reference this version.
 	Databases VersionDatabases `bson:"databases,omitempty"`
+
+	// an array of alterations to be applied to the relational schema
+	// after it is mapped from the mongodb schema
+	Alterations []*schema.Alteration `bson:"alterations"`
 
 	// a unique int64 representing the number of times the
 	// associated namespaces have been sampled.

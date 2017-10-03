@@ -1,6 +1,7 @@
 package parser
 
 var (
+	ADD_BYTES                = []byte("add")
 	ADDDATE_BYTES            = []byte("adddate")
 	ADMIN_BYTES              = []byte("admin")
 	ALL_BYTES                = []byte("all")
@@ -18,6 +19,7 @@ var (
 	CASCADE_BYTES            = []byte("cascade")
 	CASE_BYTES               = []byte("case")
 	CAST_BYTES               = []byte("cast")
+	CHANGE_BYTES             = []byte("change")
 	CHANNEL_BYTES            = []byte("channel")
 	CHAR_BYTES               = []byte("char")
 	CHARACTER_BYTES          = []byte("character")
@@ -25,6 +27,7 @@ var (
 	CODE_BYTES               = []byte("code")
 	COLLATE_BYTES            = []byte("collate")
 	COLLATION_BYTES          = []byte("collation")
+	COLUMN_BYTES             = []byte("column")
 	COLUMNS_BYTES            = []byte("columns")
 	COMMIT_BYTES             = []byte("commit")
 	COMMITTED_BYTES          = []byte("committed")
@@ -232,8 +235,10 @@ var (
 )
 
 var keywords = map[string]int{
+	"add":                ADD,
 	"adddate":            ADDDATE,
 	"all":                ALL,
+	"alter":              ALTER,
 	"and":                AND,
 	"any":                ANY,
 	"as":                 AS,
@@ -246,6 +251,7 @@ var keywords = map[string]int{
 	"cascade":            CASCADE,
 	"case":               CASE,
 	"cast":               CAST,
+	"change":             CHANGE,
 	"channel":            CHANNEL,
 	"char":               CHAR,
 	"character":          CHARACTER,
@@ -253,6 +259,7 @@ var keywords = map[string]int{
 	"code":               CODE,
 	"collate":            COLLATE,
 	"collation":          COLLATION,
+	"column":             COLUMN,
 	"columns":            COLUMNS,
 	"committed":          COMMITTED,
 	"connection":         CONNECTION,
@@ -370,6 +377,7 @@ var keywords = map[string]int{
 	"read":               READ,
 	"regexp":             REGEXP,
 	"relaylog":           RELAYLOG,
+	"rename":             RENAME,
 	"repeatable":         REPEATABLE,
 	"restrict":           RESTRICT,
 	"right":              RIGHT,
@@ -414,6 +422,7 @@ var keywords = map[string]int{
 	"timestamp":          TIMESTAMP,
 	"timestampadd":       TIMESTAMPADD,
 	"timestampdiff":      TIMESTAMPDIFF,
+	"to":                 TO,
 	"traditional":        TRADITIONAL,
 	"trailing":           TRAILING,
 	"transaction":        TRANSACTION,

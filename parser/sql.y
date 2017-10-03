@@ -53,6 +53,10 @@ func ForceEOF(yylex interface{}) {
   limit       *Limit
   updateExprs UpdateExprs
   updateExpr  *UpdateExpr
+  alterSpec   *AlterSpec
+  alterSpecs  []*AlterSpec
+  renameSpec  *RenameSpec
+  renameSpecs []*RenameSpec
 }
 
 %token LEX_ERROR
@@ -60,6 +64,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> LPAREN RPAREN LBRACE RBRACE TILDE
 
 %token <empty> SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN
+%token <empty> ALTER ADD CHANGE RENAME COLUMN TO
 %token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES DEFAULT LOCK
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP DECIMAL NCHAR
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
@@ -112,8 +117,13 @@ func ForceEOF(yylex interface{}) {
 %type <statement> command
 %type <selStmt> select_statement select_statement_with_paren_order_limit
 %type <statement> set_statement use_statement show_statement explain_statement explainable_stmt
-%type <statement> kill_statement drop_statement
+%type <statement> kill_statement drop_statement alter_statement rename_statement
 %type <statement> flush_statement
+%type <alterSpecs> alter_spec_list
+%type <alterSpec> alter_spec
+%type <renameSpec> table_rename
+%type <renameSpecs> table_rename_list
+%type <bytes> column_opt to_as_opt
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
 %type <str> all_any_some
@@ -200,6 +210,8 @@ command:
 | use_statement
 | drop_statement
 | flush_statement
+| alter_statement
+| rename_statement
 
 select_statement_with_paren_order_limit:
   non_derived_subquery order_by_opt limit_opt
@@ -287,6 +299,80 @@ flush_statement:
   {
     $$ = &Flush{Kind: FlushSample}
   }
+
+rename_statement:
+  RENAME TABLE table_rename_list
+  {
+    $$ = &RenameTable{ Renames: $3 }
+  }
+
+table_rename_list:
+  table_rename
+  {
+    $$ = []*RenameSpec{$1}
+  }
+| table_rename_list COMMA table_rename
+  {
+    $$ = append($$, $3)
+  }
+
+table_rename:
+  table_name TO table_name
+  {
+    $$ = &RenameSpec{ Table: $1, NewTable: $3 }
+  }
+
+alter_statement:
+  ALTER TABLE table_name alter_spec_list
+  {
+    $$ = &AlterTable{ Table: $3, Specs: $4 }
+  }
+
+alter_spec_list:
+  alter_spec
+  {
+    $$ = []*AlterSpec{$1}
+  }
+| alter_spec_list COMMA alter_spec
+  {
+    $$ = append($$, $3)
+  }
+
+alter_spec:
+  CHANGE column_opt column_name column_name
+  {
+    $$ = &AlterSpec{
+        Type: "rename_column",
+        Column: $3,
+        NewColumn: $4,
+    }
+  }
+| DROP column_opt column_name
+  {
+    $$ = &AlterSpec{
+        Type: "drop_column",
+        Column: $3,
+    }
+  }
+| RENAME to_as_opt table_name
+  {
+    $$ = &AlterSpec{
+        Type: "rename_table",
+        NewTable: $3,
+    }
+  }
+
+column_opt:
+  { $$ = nil }
+| COLUMN
+  { $$ = COLUMN_BYTES }
+
+to_as_opt:
+  { $$ = nil }
+| TO
+  { $$ = TO_BYTES }
+| AS
+  { $$ = AS_BYTES }
 
 temporary_opt:
   { $$ = false }

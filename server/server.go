@@ -97,6 +97,18 @@ func (s *Server) getSchema() *schema.Schema {
 	return s.sampler.Schema(s.lifetimeCtx)
 }
 
+func (s *Server) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.Schema, error) {
+	if s.fileBasedSchema != nil {
+		return nil, fmt.Errorf("cannot alter schema: schema was loaded from a file")
+	}
+
+	err := s.sampler.Alter(ctx, alts)
+	if err != nil {
+		return nil, err
+	}
+	return s.getSchema(), nil
+}
+
 // Resample forces a sample refresh.
 func (s *Server) Resample(ctx context.Context) (*schema.Schema, error) {
 	if s.fileBasedSchema != nil {
