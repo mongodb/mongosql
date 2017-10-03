@@ -17,6 +17,9 @@ import (
 
 // Schema represents a configuration for a schema.
 type Schema struct {
+	// Alterations is a slice of alterations to be applied to
+	// this relational schema
+	Alterations []*Alteration
 	// Databases are the databases in the schema.
 	Databases []*Database `yaml:"schema"`
 }
@@ -55,6 +58,46 @@ func New(data []byte) (*Schema, error) {
 		return nil, err
 	}
 	return s, nil
+}
+
+// Altered returns a new Schema that is equivalent to the current schema with
+// its alterations applied. The returned schema will have an empty Alterations
+// slice.
+func (s *Schema) Altered() (*Schema, error) {
+	if len(s.Alterations) == 0 {
+		return s, nil
+	}
+
+	newSchema := s.DeepCopy()
+	for _, a := range s.Alterations {
+		err := a.alter(newSchema)
+		if err != nil {
+			return nil, fmt.Errorf("could not alter schema: %v", err)
+		}
+	}
+	newSchema.Alterations = nil
+	return newSchema, nil
+}
+
+func (s *Schema) DeepCopy() *Schema {
+	if s == nil {
+		return nil
+	}
+
+	dbs := []*Database{}
+	for _, db := range s.Databases {
+		dbs = append(dbs, db.deepCopy())
+	}
+
+	alts := []*Alteration{}
+	for _, alt := range s.Alterations {
+		alts = append(alts, alt)
+	}
+
+	return &Schema{
+		alts,
+		dbs,
+	}
 }
 
 // Equals checks whether a Schema is equal to the provided Schema.
@@ -154,6 +197,17 @@ func (d *Database) AddTable(t *Table) error {
 	}
 	d.Tables = append(d.Tables, t)
 	return nil
+}
+
+func (d *Database) deepCopy() *Database {
+	tables := []*Table{}
+	for _, t := range d.Tables {
+		tables = append(tables, t.deepCopy())
+	}
+	return &Database{
+		d.Name,
+		tables,
+	}
 }
 
 // Equals checks whether a Database is equal to the provided Database.
@@ -271,6 +325,35 @@ func (t *Table) AddColumn(c *Column) error {
 	}
 	t.Columns = append(t.Columns, c)
 	return nil
+}
+
+func (t *Table) deepCopy() *Table {
+	cols := []*Column{}
+	for _, c := range t.Columns {
+		cols = append(cols, c.deepCopy())
+	}
+
+	pkCols := []*Column{}
+	for _, c := range t.primaryKey {
+		pkCols = append(pkCols, c.deepCopy())
+	}
+
+	var parent *Table
+	if t.parent != nil {
+		parent = t.parent.deepCopy()
+	}
+
+	pipeline := make([]bson.D, len(t.Pipeline))
+	copy(pipeline, t.Pipeline)
+
+	return &Table{
+		t.Name,
+		t.CollectionName,
+		pipeline,
+		cols,
+		parent,
+		pkCols,
+	}
 }
 
 // Column gets the column given the SqlName.
@@ -441,6 +524,15 @@ type Column struct {
 	SqlName string `yaml:"SqlName"`
 	// SqlType is the type to be shown to users.
 	SqlType SQLType `yaml:"SqlType"`
+}
+
+func (c *Column) deepCopy() *Column {
+	return &Column{
+		c.Name,
+		c.MongoType,
+		c.SqlName,
+		c.SqlType,
+	}
 }
 
 // Equals checks whether a Column is equal to the provided Column.

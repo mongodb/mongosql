@@ -41,6 +41,25 @@ type Sampler struct {
 	processName     string
 }
 
+func (s *Sampler) Alter(ctx context.Context, alts []*schema.Alteration) error {
+	if s.opts.Mode == config.ReadSampleMode && s.opts.Source != "" {
+		return fmt.Errorf("cannot alter schema in clustered read mode")
+	}
+
+	if s.opts.Mode == config.WriteSampleMode {
+		err := s.alterAndPersistSchema(ctx, alts)
+		if err != nil {
+			return err
+		}
+	}
+
+	s.schemaLock.Lock()
+	s.schema.Alterations = append(s.schema.Alterations, alts...)
+	s.schemaLock.Unlock()
+
+	return nil
+}
+
 func (s *Sampler) Refresh(ctx context.Context) error {
 	if s.opts.Mode == config.ReadSampleMode && s.opts.Source != "" {
 		return fmt.Errorf("cannot refresh sample in clustered read mode")
@@ -86,7 +105,7 @@ func (s *Sampler) Schema(ctx context.Context) *schema.Schema {
 		s.schemaLock.RUnlock()
 	}
 
-	return newSchema
+	return newSchema.DeepCopy()
 }
 
 func (s *Sampler) Run(ctx context.Context) {
@@ -119,10 +138,17 @@ func (s *Sampler) Run(ctx context.Context) {
 	if s.opts.Mode == config.ReadSampleMode {
 		if s.opts.RefreshIntervalSecs > 0 {
 			util.RepeatWithDelay(ctx.Done(), time.Duration(s.opts.RefreshIntervalSecs)*time.Second, false, func() {
-				s.lgr.Infof(log.Admin, "re-sampling schema")
-				err := s.resampleSchema(ctx)
-				if err != nil {
-					s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
+				s.schemaLock.RLock()
+				altered := len(s.schema.Alterations) > 0
+				s.schemaLock.RUnlock()
+				if altered {
+					s.lgr.Infof(log.Admin, "re-sampling schema")
+					err := s.resampleSchema(ctx)
+					if err != nil {
+						s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
+					}
+				} else {
+					s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
 				}
 			})
 		}
@@ -185,10 +211,17 @@ func (s *Sampler) Run(ctx context.Context) {
 
 	// 6. Re-sample every writeIntervalSecs and persist the schema
 	util.RepeatWithDelay(ctx.Done(), time.Duration(s.opts.RefreshIntervalSecs)*time.Second, false, func() {
-		s.lgr.Infof(log.Admin, "re-sampling schema")
-		err := s.resampleAndPersistSchema(ctx)
-		if err != nil {
-			s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
+		s.schemaLock.RLock()
+		altered := len(s.schema.Alterations) > 0
+		s.schemaLock.RUnlock()
+		if altered {
+			s.lgr.Infof(log.Admin, "re-sampling schema")
+			err := s.resampleAndPersistSchema(ctx)
+			if err != nil {
+				s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
+			}
+		} else {
+			s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
 		}
 	})
 }
@@ -225,6 +258,28 @@ func (s *Sampler) initializeSchema(ctx context.Context) (*Record, error) {
 	return sampleRecord, nil
 }
 
+func (s *Sampler) alterAndPersistSchema(ctx context.Context, alts []*schema.Alteration) error {
+	err := s.dmtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+
+	session, err := s.sessionProvider.AdminSession(ctx)
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	record, err := LatestRecord(s.opts, session, s.lgr)
+	if err != nil {
+		return err
+	}
+
+	record.Alter(alts)
+
+	return InsertSampleRecord(record, session, s.lgr)
+}
+
 func (s *Sampler) resampleSchema(ctx context.Context) error {
 	session, err := s.sessionProvider.AdminSession(ctx)
 	if err != nil {
@@ -235,6 +290,14 @@ func (s *Sampler) resampleSchema(ctx context.Context) error {
 	newSchema, _, err := SampleSchema(s.opts, s.processName, session, s.lgr)
 	if err != nil {
 		return err
+	}
+
+	s.schemaLock.RLock()
+	alterations := len(s.schema.Alterations)
+	s.schemaLock.RUnlock()
+	if alterations > 0 {
+		alterationStr := util.Pluralize(alterations, "alteration", "alterations")
+		s.lgr.Warnf(log.Admin, "resampling overwrote %d existing %s", alterations, alterationStr)
 	}
 
 	s.schemaLock.Lock()
@@ -271,6 +334,14 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 	err = InsertSampleRecord(newSampleRecord, session, s.lgr)
 	if err != nil {
 		return err
+	}
+
+	s.schemaLock.RLock()
+	alterations := len(s.schema.Alterations)
+	s.schemaLock.RUnlock()
+	if alterations > 0 {
+		alterationStr := util.Pluralize(alterations, "alteration", "alterations")
+		s.lgr.Warnf(log.Admin, "resampling overwrote %d existing %s", alterations, alterationStr)
 	}
 
 	s.schemaLock.Lock()

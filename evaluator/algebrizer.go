@@ -38,6 +38,10 @@ func AlgebrizeCommand(stmt parser.Statement, dbName string, vars *variable.Conta
 		return algebrizer.translateSet(typedStmt)
 	case *parser.Flush:
 		return algebrizer.translateFlush(typedStmt)
+	case *parser.AlterTable:
+		return algebrizer.translateAlterTable(typedStmt)
+	case *parser.RenameTable:
+		return algebrizer.translateRenameTable(typedStmt)
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NOT_SUPPORTED_YET, fmt.Sprintf("statement %T", typedStmt))
 	}
@@ -303,6 +307,131 @@ func (a *algebrizer) translateFlush(flush *parser.Flush) (*FlushCommand, error) 
 	}
 
 	return nil, fmt.Errorf("unsupported flush kind: %v", flush.Kind)
+}
+
+func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterCommand, error) {
+
+	db, err := a.catalog.Database(a.dbName)
+	if err != nil {
+		return nil, err
+	}
+
+	tableName := strings.ToLower(string(alter.Table.Name))
+	table, err := db.Table(tableName)
+	if err != nil {
+		return nil, err
+	}
+
+	_, ok := table.(*catalog.MongoTable)
+	if !ok {
+		return nil, fmt.Errorf("cannot alter non-mongodb table %q", alter.Table)
+	}
+
+	alterations := []*schema.Alteration{}
+
+	for _, spec := range alter.Specs {
+		switch spec.Type {
+		case schema.RenameColumn:
+			colName := strings.ToLower(string(spec.Column.Name))
+			_, err := table.Column(colName)
+			if err != nil {
+				return nil, err
+			}
+			newColName := strings.ToLower(string(spec.NewColumn.Name))
+			_, err = table.Column(newColName)
+			if err == nil {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_DUP_FIELDNAME, newColName)
+			}
+			alteration := &schema.Alteration{
+				Timestamp: time.Now(),
+				Type:      schema.RenameColumn,
+				Db:        a.dbName,
+				Table:     tableName,
+				Column:    colName,
+				NewColumn: newColName,
+			}
+			alterations = append(alterations, alteration)
+
+		case schema.DropColumn:
+			colName := strings.ToLower(string(spec.Column.Name))
+			_, err := table.Column(colName)
+			if err != nil {
+				return nil, err
+			}
+			if len(table.Columns()) == 1 {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_CANT_REMOVE_ALL_FIELDS)
+			}
+			alteration := &schema.Alteration{
+				Timestamp: time.Now(),
+				Type:      schema.DropColumn,
+				Db:        a.dbName,
+				Table:     tableName,
+				Column:    colName,
+			}
+			alterations = append(alterations, alteration)
+
+		case schema.RenameTable:
+			newTableName := strings.ToLower(string(spec.NewTable.Name))
+			_, err := db.Table(newTableName)
+			if err == nil {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_TABLE_EXISTS_ERROR, newTableName)
+			}
+			alteration := &schema.Alteration{
+				Timestamp: time.Now(),
+				Type:      schema.RenameTable,
+				Db:        a.dbName,
+				Table:     tableName,
+				NewTable:  newTableName,
+			}
+			alterations = append(alterations, alteration)
+
+		default:
+			return nil, fmt.Errorf("invalid Alter Table type %q", spec.Type)
+		}
+	}
+
+	return &AlterCommand{alterations}, nil
+}
+
+func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCommand, error) {
+
+	db, err := a.catalog.Database(a.dbName)
+	if err != nil {
+		return nil, err
+	}
+
+	alterations := []*schema.Alteration{}
+
+	for _, spec := range rename.Renames {
+
+		tableName := strings.ToLower(string(spec.Table.Name))
+		table, err := db.Table(tableName)
+		if err != nil {
+			return nil, err
+		}
+
+		_, ok := table.(*catalog.MongoTable)
+		if !ok {
+			return nil, fmt.Errorf("cannot alter non-mongodb table %q", spec.Table)
+		}
+
+		newTableName := strings.ToLower(string(spec.NewTable.Name))
+		_, err = db.Table(newTableName)
+		if err == nil {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_TABLE_EXISTS_ERROR, newTableName)
+		}
+		alteration := &schema.Alteration{
+			Timestamp: time.Now(),
+			Type:      schema.RenameTable,
+			Db:        a.dbName,
+			Table:     tableName,
+			NewTable:  newTableName,
+		}
+		alterations = append(alterations, alteration)
+
+	}
+
+	return &AlterCommand{alterations}, nil
 }
 
 func (a *algebrizer) translateGroupBy(groupby parser.GroupBy) ([]SQLExpr, error) {

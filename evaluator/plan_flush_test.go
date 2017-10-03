@@ -19,6 +19,10 @@ type fakeFlushServerCtx struct {
 	resampleCalled bool
 }
 
+func (*fakeFlushServerCtx) Alter(context.Context, []*schema.Alteration) (*schema.Schema, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 func (f *fakeFlushServerCtx) StartupInfo() []string {
 	return []string{}
 }

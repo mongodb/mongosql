@@ -13,6 +13,7 @@ import (
 
 // ServerCtx holds server context information
 type ServerCtx interface {
+	Alter(context.Context, []*schema.Alteration) (*schema.Schema, error)
 	Resample(context.Context) (*schema.Schema, error)
 	StartupInfo() []string
 }

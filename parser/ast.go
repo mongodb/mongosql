@@ -6,9 +6,11 @@ package parser
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/10gen/sqlproxy/parser/sqltypes"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 // Instructions for creating new types: If a type
@@ -955,4 +957,58 @@ type Flush struct {
 
 func (f *Flush) Format(buf *TrackedBuffer) {
 	buf.Fprintf("flush %s", string(f.Kind))
+}
+
+type AlterTable struct {
+	Table *TableName
+	Specs []*AlterSpec
+}
+
+func (*AlterTable) IStatement() {}
+
+func (a *AlterTable) Format(buf *TrackedBuffer) {
+	buf.Fprintf("alter table ")
+	a.Table.Format(buf)
+	buf.Fprintf(" %s", a.Specs[0].String())
+	for _, spec := range a.Specs[1:] {
+		buf.Fprintf(", %s", spec.String())
+	}
+}
+
+type AlterSpec struct {
+	Type      schema.AlterationType
+	Column    *ColName
+	NewColumn *ColName
+	NewTable  *TableName
+}
+
+func (a *AlterSpec) String() string {
+	switch a.Type {
+	case schema.RenameColumn:
+		return fmt.Sprintf("change column %s %s", a.Column.Name, a.NewColumn.Name)
+	case schema.DropColumn:
+		return fmt.Sprintf("drop column %s", a.Column.Name)
+	case schema.RenameTable:
+		return fmt.Sprintf("rename to %s", a.NewTable.Name)
+	}
+	return "<unknown alteration type>"
+}
+
+type RenameTable struct {
+	Renames []*RenameSpec
+}
+
+func (*RenameTable) IStatement() {}
+
+func (r *RenameTable) Format(buf *TrackedBuffer) {
+	buf.Fprintf("rename table")
+	buf.Fprintf(" %s to %s", r.Renames[0].Table.Name, r.Renames[0].NewTable.Name)
+	for _, rn := range r.Renames[1:] {
+		buf.Fprintf(", %s to %s", rn.Table.Name, rn.NewTable.Name)
+	}
+}
+
+type RenameSpec struct {
+	Table    *TableName
+	NewTable *TableName
 }

@@ -38,6 +38,63 @@ type nsMapping map[string]nsCollections
 // nsCollections is a list of collection names.
 type nsCollections []string
 
+// Alter changes a Record to represent a new Version of the current record with
+// the provided alterations applied.
+func (r *Record) Alter(alts []*schema.Alteration) {
+	id := bson.NewObjectId()
+	r.Version.Id = id
+	r.Version.Generation += 1
+	r.Version.Alterations = append(r.Version.Alterations, alts...)
+	r.Version.Protocol = CurrentProtocol
+	for _, ns := range r.Namespaces {
+		ns.id = bson.NewObjectId()
+		ns.VersionId = id
+	}
+}
+
+func (r *Record) getSchema(cfg *config.SchemaSampleOptions, lgr *log.Logger) (*schema.Schema, error) {
+	sampledSchema := &schema.Schema{
+		Alterations: r.Version.Alterations,
+	}
+
+	var lastDB string
+	var sampledDB *schema.Database
+
+	for _, ns := range r.Namespaces {
+		if lastDB != ns.Database {
+			lastDB = ns.Database
+
+			sampledDB = &schema.Database{
+				Name: ns.Database,
+			}
+			sampledSchema.Databases = append(sampledSchema.Databases, sampledDB)
+		}
+
+		err := sampledDB.Map(ns.Schema, ns.Collection, false, cfg.UUIDSubtype3Encoding, *lgr)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"error mapping schema version %s, namespace %q.%q: %v",
+				r.Version, ns.Database, ns.Collection, err,
+			)
+		}
+	}
+
+	return sampledSchema, nil
+}
+
+func (r *Record) validateNamespaceCount() error {
+	expected := 0
+	for _, db := range r.Version.Databases {
+		expected += len(db.Collections)
+	}
+
+	if len(r.Namespaces) != expected {
+		return fmt.Errorf("expected %d namespaces, got %d", expected, len(r.Namespaces))
+	}
+
+	return nil
+}
+
 // FetchNamespaces returns a map of databases - that
 // exist in the cluster 'session' is connected to - to
 // the collection(s) within the database.
@@ -154,22 +211,17 @@ func InsertSampleRecord(record *Record,
 func ReadSchema(cfg *config.SchemaSampleOptions, session *mongodb.Session,
 	lgr *log.Logger) (*schema.Schema, error) {
 
-	// 1. Find the latest version. Version can be null even if err is also null if
-	// there is no version stored.
-	version, expectedNamespaceCount, err := getLatestVersion(cfg, session)
-	if version == nil || err != nil {
+	// get the latest stored schema record
+	lgr.Infof(log.Admin, "retrieving latest schema")
+	rec, err := LatestRecord(cfg, session, lgr)
+	if rec == nil || err != nil {
 		return nil, err
 	}
 
-	// 2. Get the schema for the latest version
-	lgr.Infof(log.Admin, "retrieving latest schema version %s", *version)
-	versionedSchema, namespaceCount, err := getSchemaByVersion(*version, cfg, session, lgr)
+	// get the schema from the record
+	versionedSchema, err := rec.getSchema(cfg, lgr)
 	if err != nil {
 		return nil, err
-	}
-
-	if namespaceCount != expectedNamespaceCount {
-		return nil, fmt.Errorf("schema version %s should contain %d namespaces, but found %d", version, expectedNamespaceCount, namespaceCount)
 	}
 
 	return versionedSchema, nil
@@ -177,12 +229,13 @@ func ReadSchema(cfg *config.SchemaSampleOptions, session *mongodb.Session,
 
 // getLatestVersion returns a schema (ObjectID) if a version exists; otherwise it returns nil. In addition, it returns
 // the number of namespaces that are present in this version. If error is not nil, an error occurred.
-func getLatestVersion(cfg *config.SchemaSampleOptions, session *mongodb.Session) (*bson.ObjectId, int, error) {
+func getLatestVersion(cfg *config.SchemaSampleOptions, session *mongodb.Session) (*bson.ObjectId, []*schema.Alteration, int, error) {
 	var pipeline interface{} = []bson.D{
 		{{"$sort", bson.D{{"generation", -1}}}},
 		{{"$limit", 1}},
 		{{"$project", bson.D{
 			{"_id", 1},
+			{"alterations", 1},
 			{"namespaceCount", bson.D{
 				{"$sum", bson.D{
 					{"$map", bson.D{
@@ -199,61 +252,21 @@ func getLatestVersion(cfg *config.SchemaSampleOptions, session *mongodb.Session)
 
 	cursor, err := session.Aggregate(cfg.Source, VersionsCollection, pipeline)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
 	defer cursor.Close(session.Context())
 
 	result := struct {
-		ID             *bson.ObjectId `bson:"_id"`
-		NamespaceCount int            `bson:"namespaceCount"`
+		ID             *bson.ObjectId       `bson:"_id"`
+		Alterations    []*schema.Alteration `bson:"alterations"`
+		NamespaceCount int                  `bson:"namespaceCount"`
 	}{}
 
 	if cursor.Next(session.Context(), &result) {
-		return result.ID, result.NamespaceCount, nil
+		return result.ID, result.Alterations, result.NamespaceCount, nil
 	}
 
-	return nil, 0, cursor.Err()
-}
-
-// getSchemaByVersion returns a schema (ObjectID) if a version exists; otherwise it returns nil. In addition, it returns
-// the number of namespaces that were retrieved. If error is not nil, an error occurred.
-func getSchemaByVersion(version bson.ObjectId, cfg *config.SchemaSampleOptions, session *mongodb.Session, lgr *log.Logger) (*schema.Schema, int, error) {
-	var pipeline interface{} = []bson.D{
-		{{"$match", bson.D{{"versionId", version}}}},
-		{{"$sort", bson.D{{"database", 1}, {"collection", 1}}}},
-	}
-
-	cursor, err := session.Aggregate(cfg.Source, SchemasCollection, pipeline)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer cursor.Close(context.Background())
-
-	sampledSchema := &schema.Schema{}
-	uuidSubtype3Encoding := cfg.UUIDSubtype3Encoding
-	namespaceCount := 0
-	var ns Namespace
-	var lastDB string
-	var sampledDB *schema.Database
-	for cursor.Next(session.Context(), &ns) {
-		namespaceCount++
-		if lastDB != ns.Database {
-			lastDB = ns.Database
-
-			sampledDB = &schema.Database{
-				Name: ns.Database,
-			}
-			sampledSchema.Databases = append(sampledSchema.Databases, sampledDB)
-		}
-
-		err = sampledDB.Map(ns.Schema, ns.Collection, false, uuidSubtype3Encoding, *lgr)
-		if err != nil {
-			return nil, 0, fmt.Errorf("error mapping schema version %s, namespace %q.%q: %v",
-				version, ns.Database, ns.Collection, err)
-		}
-	}
-
-	return sampledSchema, namespaceCount, cursor.Err()
+	return nil, nil, 0, cursor.Err()
 }
 
 // SampleSchema uses the provided mongosqld configuration and session
@@ -396,42 +409,54 @@ func SampleSchema(cfg *config.SchemaSampleOptions, processName string,
 	return sampledSchema, sampleData, nil
 }
 
+// LatestGeneration returns the most recent generation of the schema stored in MongoDB
 func LatestGeneration(opts *config.SchemaSampleOptions, session *mongodb.Session, lgr *log.Logger) (int64, error) {
-
-	// 1. Find the latest version.
-	oid, _, err := getLatestVersion(opts, session)
-	if oid == nil || err != nil {
-		return -1, err
-	}
-
-	// 2. Get the generation for the latest version
-	return getGenerationForVersion(opts, session, *oid, lgr)
-}
-
-func getGenerationForVersion(cfg *config.SchemaSampleOptions, session *mongodb.Session, version bson.ObjectId, lgr *log.Logger) (int64, error) {
-
-	var pipeline interface{} = []bson.D{
-		{{"$match", bson.D{{VersionIdField, version}}}},
-		{{"$project", bson.D{{VersionGenerationField, 1}}}},
-	}
-
-	cursor, err := session.Aggregate(cfg.Source, SchemasCollection, pipeline)
+	rec, err := LatestRecord(opts, session, lgr)
 	if err != nil {
 		return -1, err
 	}
+
+	if rec.Version == nil {
+		return -1, nil
+	}
+
+	return rec.Version.Generation, nil
+}
+
+// LatestRecord returns a Record representing the most recent generation of the
+// schema stored in MongoDB. If there is no schema currently stored in MongoDB,
+// LatestRecord returns a nil Record.
+func LatestRecord(opts *config.SchemaSampleOptions, session *mongodb.Session, lgr *log.Logger) (*Record, error) {
+	var pipeline interface{} = []bson.D{
+		{{"$sort", bson.D{{"generation", -1}}}},
+		{{"$limit", 1}},
+		{{"$project", bson.D{
+			{"_id", 0},
+			{"version", "$$CURRENT"},
+		}}},
+		{{"$lookup", bson.D{
+			{"from", SchemasCollection},
+			{"localField", "version._id"},
+			{"foreignField", VersionIdField},
+			{"as", "namespaces"},
+		}}},
+	}
+
+	cursor, err := session.Aggregate(opts.Source, VersionsCollection, pipeline)
+	if err != nil {
+		return nil, err
+	}
 	defer cursor.Close(context.Background())
 
-	result := struct {
-		generation int64 `bson:"generation"`
-	}{}
-
-	if cursor.Next(session.Context(), &result) {
-		return result.generation, nil
+	rec := &Record{}
+	if cursor.Next(session.Context(), rec) {
+		rec.Database = opts.Source
+		err := rec.validateNamespaceCount()
+		if err != nil {
+			return nil, err
+		}
+		return rec, cursor.Err()
 	}
 
-	if cursor.Err() != nil {
-		return -1, cursor.Err()
-	}
-
-	return -1, nil
+	return nil, cursor.Err()
 }

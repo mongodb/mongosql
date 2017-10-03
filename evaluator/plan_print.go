@@ -69,6 +69,13 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 	printTabs(b, d)
 
 	switch typedN := n.(type) {
+	case *AlterCommand:
+		b.WriteString("↳ Alter(")
+		for _, alt := range typedN.Alterations {
+			b.WriteString(alt.String())
+			b.WriteString("; ")
+		}
+		b.WriteString(")\n")
 	case *BSONSourceStage:
 		b.WriteString("↳ BSONSource:\n")
 	case *CacheStage:
@@ -84,7 +91,14 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 
 		prettyPrint(b, typedN.source, d+1)
 	case *FlushCommand:
-		b.WriteString(fmt.Sprintf("↳ Flush Logs"))
+		switch typedN.kind {
+		case FlushLogs:
+			b.WriteString(fmt.Sprintf("↳ Flush Logs"))
+		case FlushSample:
+			b.WriteString(fmt.Sprintf("↳ Flush Sample"))
+		default:
+			b.WriteString(fmt.Sprintf("↳ Flush <unknown>"))
+		}
 	case *GroupByStage:
 		b.WriteString("↳ GroupBy(")
 		for i, key := range typedN.keys {

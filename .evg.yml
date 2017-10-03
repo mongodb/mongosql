@@ -849,6 +849,26 @@ tasks:
   name: test-sample-size-ten
   tags: ["test", "config"]
 
+- <<: *run-config-test
+  name: test-alter-drdl
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-alter-standalone
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-alter-clustered-read
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-alter-clustered-write
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-alter-flush
+  tags: ["test", "config"]
+
 - name: tpch-handwritten-denormalized
   tags:
     - oneoff-task

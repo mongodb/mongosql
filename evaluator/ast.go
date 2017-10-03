@@ -42,6 +42,7 @@ func (ps *SubquerySourceStage) astnode() {}
 func (ps *UnionStage) astnode()          {}
 
 // CommandStages
+func (a *AlterCommand) astnode() {}
 func (f *FlushCommand) astnode() {}
 func (k *KillCommand) astnode()  {}
 func (s *SetCommand) astnode()   {}
@@ -395,7 +396,7 @@ func walk(v nodeVisitor, n node) (node, error) {
 		if &typedN.assignments != exprs {
 			return NewSetCommand(*exprs), nil
 		}
-	case *FlushCommand:
+	case *AlterCommand, *FlushCommand:
 		// nothing to do
 
 	// Expressions

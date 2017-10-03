@@ -78,7 +78,7 @@ func (c *conn) handleQuery(sql string) (err error) {
 		err = c.handleShow(sql, v)
 	case *parser.DropTable:
 		err = c.handleDropTable(v)
-	case *parser.Flush, *parser.Kill, *parser.Set:
+	case *parser.AlterTable, *parser.Flush, *parser.Kill, *parser.RenameTable, *parser.Set:
 		err = c.handleCommand(stmt)
 		logTimeTaken()
 	case *parser.Explain:
