@@ -148,10 +148,6 @@ func (b *catalogBuilder) buildInformationSchemaDatabase() error {
 	if err != nil {
 		return err
 	}
-	err = b.addProcessListTable(d)
-	if err != nil {
-		return err
-	}
 	err = b.addProfilingTable(d)
 	if err != nil {
 		return err
@@ -567,23 +563,6 @@ func (b *catalogBuilder) addPluginsTable(d *Database) error {
 	t.AddColumn("PLUGIN_DESCRIPTION", schema.SQLVarchar)
 	t.AddColumn("PLUGIN_LICENSE", schema.SQLVarchar)
 	t.AddColumn("LOAD_OPTION", schema.SQLVarchar)
-
-	return d.AddTable(t)
-}
-
-func (b *catalogBuilder) addProcessListTable(d *Database) error {
-	t := NewDynamicTable("PROCESSLIST", SystemView, func() []*DataRow {
-		return []*DataRow{}
-	})
-
-	t.AddColumn("ID", schema.SQLVarchar)
-	t.AddColumn("USER", schema.SQLVarchar)
-	t.AddColumn("HOST", schema.SQLVarchar)
-	t.AddColumn("DB", schema.SQLVarchar)
-	t.AddColumn("COMMAND", schema.SQLVarchar)
-	t.AddColumn("TIME", schema.SQLVarchar)
-	t.AddColumn("STATE", schema.SQLVarchar)
-	t.AddColumn("INFO", schema.SQLVarchar)
 
 	return d.AddTable(t)
 }

@@ -149,13 +149,6 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 				schema.SQLTimestamp, schema.SQLTimestamp, schema.SQLVarchar, schema.SQLVarchar,
 				schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar},
 		)
-	case "processlist":
-		r, err = c.buildEmptyResultset(
-			[]string{"Id", "User", "Host", "db",
-				"Command", "Time", "State", "Info"},
-			[]schema.SQLType{schema.SQLInt64, schema.SQLVarchar, schema.SQLVarchar, schema.SQLVarchar,
-				schema.SQLVarchar, schema.SQLTimestamp, schema.SQLVarchar, schema.SQLVarchar},
-		)
 	case "profile":
 		r, err = c.buildEmptyResultset(
 			[]string{"Status", "Duration"},

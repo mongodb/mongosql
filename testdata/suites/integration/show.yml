@@ -245,8 +245,6 @@ testcases:
   expected:
     - ["macce", "Mac Central European", "macce_general_ci", 1]
 
-
-
 # unimplemented
 - sql: "SHOW BINARY LOGS"
   id: '33'
@@ -434,14 +432,6 @@ testcases:
   expected: []
 - sql: "SHOW PROCEDURE STATUS WHERE XXX = 12"
   id: '79'
-  db: show_test
-  expected: []
-- sql: "SHOW PROCESSLIST"
-  id: '80'
-  db: show_test
-  expected: []
-- sql: "SHOW FULL PROCESSLIST"
-  id: '81'
   db: show_test
   expected: []
 - sql: "SHOW PROFILES"

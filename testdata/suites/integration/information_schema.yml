@@ -109,3 +109,13 @@ testcases:
   expected_types: [string, string]
   expected:
   - ["Ndb_slave_max_replicated_epoch", "unsupported"]
+
+# PROCESSLIST
+- sql: "SELECT COMMAND, STATE, INFO FROM information_schema.processlist WHERE info LIKE '%process%'"
+  id: '5'
+  db: information_schema_test
+  description: "processlist"
+  expected_names: ["COMMAND", "STATE", "INFO"]
+  expected_types: [string, string, string]
+  expected:
+  - ["Query", "starting", "SELECT COMMAND, STATE, INFO FROM information_schema.processlist WHERE info LIKE '%process%'"]

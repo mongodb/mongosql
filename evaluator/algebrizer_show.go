@@ -23,6 +23,8 @@ func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {
 		return a.translateShowCreateTable(show)
 	case "databases", "schemas":
 		return a.translateShowDatabases(show)
+	case "processlist":
+		return a.translateShowProcessList(show)
 	case "status":
 		return a.translateShowVariables(show, "STATUS")
 	case "tables":
@@ -37,7 +39,7 @@ func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {
 func (a *algebrizer) translateShowCharset(show *parser.Show) (PlanStage, error) {
 
 	info := showInfo{
-		dbName:        "INFORMATION_SCHEMA",
+		dbName:        catalog.InformationSchemaDatabase,
 		tableName:     "CHARACTER_SETS",
 		columnNames:   []string{"CHARACTER_SET_NAME", "DESCRIPTION", "DEFAULT_COLLATE_NAME", "MAXLEN"},
 		columnAliases: []string{"Charset", "Description", "Default collation", "Maxlen"},
@@ -51,7 +53,7 @@ func (a *algebrizer) translateShowCharset(show *parser.Show) (PlanStage, error) 
 func (a *algebrizer) translateShowCollation(show *parser.Show) (PlanStage, error) {
 
 	info := showInfo{
-		dbName:        "INFORMATION_SCHEMA",
+		dbName:        catalog.InformationSchemaDatabase,
 		tableName:     "COLLATIONS",
 		columnNames:   []string{"COLLATION_NAME", "CHARACTER_SET_NAME", "ID", "IS_DEFAULT", "IS_COMPILED", "SORTLEN"},
 		columnAliases: []string{"Collation", "Charset", "Id", "Default", "Compiled", "Sortlen"},
@@ -64,7 +66,7 @@ func (a *algebrizer) translateShowCollation(show *parser.Show) (PlanStage, error
 
 func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) {
 	info := showInfo{
-		dbName:    "INFORMATION_SCHEMA",
+		dbName:    catalog.InformationSchemaDatabase,
 		tableName: "COLUMNS",
 		columnNames: []string{
 			"COLUMN_NAME", "COLUMN_TYPE", "IS_NULLABLE", "COLUMN_KEY",
@@ -189,7 +191,7 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 func (a *algebrizer) translateShowDatabases(show *parser.Show) (PlanStage, error) {
 
 	info := showInfo{
-		dbName:        "INFORMATION_SCHEMA",
+		dbName:        catalog.InformationSchemaDatabase,
 		tableName:     "SCHEMATA",
 		columnNames:   []string{"SCHEMA_NAME"},
 		columnAliases: []string{"Database"},
@@ -223,7 +225,7 @@ func (a *algebrizer) translateShowTables(show *parser.Show) (PlanStage, error) {
 	}
 
 	info := showInfo{
-		dbName:        "INFORMATION_SCHEMA",
+		dbName:        catalog.InformationSchemaDatabase,
 		tableName:     "TABLES",
 		columnNames:   []string{"TABLE_NAME", "TABLE_SCHEMA"},
 		columnAliases: []string{columnName},
@@ -259,12 +261,38 @@ func (a *algebrizer) translateShowVariables(show *parser.Show, kind string) (Pla
 	kind = strings.ToUpper(kind)
 
 	info := showInfo{
-		dbName:        "INFORMATION_SCHEMA",
+		dbName:        catalog.InformationSchemaDatabase,
 		tableName:     fmt.Sprintf("%s_%s", tableName, kind),
 		columnNames:   []string{"VARIABLE_NAME", "VARIABLE_VALUE"},
 		columnAliases: []string{"Variable_name", "Value"},
 		orderBy:       "Variable_name",
 		predicate:     a.translateShowLikeOrWhere("Variable_name", show.LikeOrWhere),
+	}
+
+	return a.translateShowInfo(&info)
+}
+
+func (a *algebrizer) translateShowProcessList(show *parser.Show) (PlanStage, error) {
+
+	var transform map[string]exprTransformer = nil
+
+	// need to truncate to first 100 characters
+	if show.Modifier == "" {
+		transform = map[string]exprTransformer{
+			"Info": func(expr SQLExpr) (SQLExpr, error) {
+				return NewSQLScalarFunctionExpr("substring",
+					append([]SQLExpr{}, expr, SQLInt(1), SQLInt(100)))
+			},
+		}
+	}
+
+	info := showInfo{
+		dbName:                 catalog.InformationSchemaDatabase,
+		tableName:              "PROCESSLIST",
+		columnNames:            []string{"ID", "USER", "HOST", "DB", "COMMAND", "TIME", "STATE", "INFO"},
+		columnAliases:          []string{"Id", "User", "Host", "db", "Command", "Time", "State", "Info"},
+		orderBy:                "Id",
+		colExprTransformations: transform,
 	}
 
 	return a.translateShowInfo(&info)
@@ -287,13 +315,16 @@ func (a *algebrizer) translateShowLikeOrWhere(likeColumnName string, expr parser
 	return expr
 }
 
+type exprTransformer func(SQLExpr) (SQLExpr, error)
+
 type showInfo struct {
-	dbName        string
-	tableName     string
-	columnNames   []string
-	columnAliases []string
-	orderBy       string
-	predicate     parser.Expr
+	dbName                 string
+	tableName              string
+	columnNames            []string
+	columnAliases          []string
+	orderBy                string
+	predicate              parser.Expr
+	colExprTransformations map[string]exprTransformer
 }
 
 func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
@@ -334,7 +365,23 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 
 		c.OriginalTable = info.tableName
 		c.OriginalName = c.Name
-		projectedColumns = append(projectedColumns, c.projectAs(columnAlias))
+
+		var projColumn ProjectedColumn = ProjectedColumn{c, c.expr()}
+
+		// apply expression colExprTransformations if given
+		if info.colExprTransformations != nil {
+			transformExpr, ok := info.colExprTransformations[columnAlias]
+			if ok {
+				transformation, err := transformExpr(projColumn.Expr)
+				if err != nil {
+					panic(fmt.Sprintf("cannot transform column %s: %v", columnAlias, err))
+				}
+				projColumn = *c.projectWithExpr(transformation)
+			}
+		}
+
+		projColumn.Column.Name = columnAlias
+		projectedColumns = append(projectedColumns, projColumn)
 	}
 
 	subqueryTableName := info.tableName
