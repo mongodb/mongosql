@@ -205,6 +205,7 @@ func (s *Server) addConnection(c *conn) {
 	if address == "" {
 		address = c.conn.LocalAddr().String()
 	}
+	c.process.SetHost(c.getFormattedAddress())
 	c.logger.Infof(log.Always, "connection accepted from %v #%v (%v %v now open)", address, c.ConnectionId(), activeConnections, pluralized)
 }
 

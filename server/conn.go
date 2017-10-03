@@ -47,6 +47,9 @@ type conn struct {
 	closed       int32
 	queryRunning int32
 
+	// storage for thread information
+	process *Process
+
 	// synchronization variables for
 	// terminating a query
 	ctx    context.Context
@@ -87,6 +90,8 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 
 	session, err := s.sessionProvider.Session(ctx)
 
+	connID := atomic.AddUint32(s.variables.Connections, 1)
+
 	newConn := &conn{
 		server:        s,
 		session:       session,
@@ -100,7 +105,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 		bytesReceived: uint64(0),
 		bytesSent:     uint64(0),
 		queryRunning:  0,
-		connectionID:  atomic.AddUint32(s.variables.Connections, 1),
+		connectionID:  connID,
 		capability: CLIENT_PROTOCOL_41 |
 			CLIENT_CONNECT_WITH_DB |
 			CLIENT_LONG_FLAG |
@@ -109,6 +114,7 @@ func newConn(s *Server, c net.Conn) (*conn, error) {
 			CLIENT_COMPRESS,
 		stmts:     make(map[uint32]*stmt),
 		variables: variable.NewSessionContainer(s.variables),
+		process:   NewProcess(connID),
 	}
 
 	if err != nil {
@@ -188,6 +194,14 @@ func (c *conn) UpdateCatalog(s *schema.Schema) error {
 		return err
 	}
 
+	infoSchema, err := cat.Database(catalog.InformationSchemaDatabase)
+	if err != nil {
+		return err
+	}
+
+	// also add the PROCESSLIST table to the catalog
+	c.UpdateWithProcessListTable(infoSchema)
+
 	c.catalog = cat
 	return nil
 }
@@ -227,6 +241,8 @@ func (c *conn) dispatch(data []byte) error {
 		atomic.AddUint64(c.server.variables.Queries, 1)
 	}
 
+	var err error
+
 	switch cmd {
 	case COM_QUIT:
 		atomic.StoreInt32(&c.queryRunning, 0)
@@ -234,7 +250,10 @@ func (c *conn) dispatch(data []byte) error {
 		return nil
 	case COM_QUERY:
 		s := String(c.variables.CharacterSetClient.Decode(data))
-		return c.handleQuery(s)
+		c.process.UpdateProcess(CommandQuery, s)
+		err = c.handleQuery(s)
+		c.process.UpdateProcess(CommandSleep, "")
+		return err
 	case COM_PING:
 		return c.writeOK(nil)
 	case COM_INIT_DB:
@@ -307,6 +326,7 @@ func (c *conn) handshake() error {
 		}
 		c.user = ""
 	}
+	c.process.SetUser(c.user)
 
 	if err = c.setSystemVariables(currentSchema); err != nil {
 		return err
@@ -732,6 +752,7 @@ func (c *conn) useDB(db string) error {
 
 	c.currentDB = d
 	c.variables.CollationDatabase = c.variables.CollationServer
+	c.process.SetDB(string(d.Name))
 	return nil
 }
 
@@ -746,6 +767,25 @@ func (c *conn) User() string {
 		}
 	}
 	return fmt.Sprintf("%s@%s", c.user, host)
+}
+
+func (c *conn) getFormattedAddress() string {
+	hasPort := true
+	addr := c.conn.RemoteAddr().String()
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		host = addr
+		hasPort = false
+	}
+	if host == "127.0.0.1" || host == "" {
+		host = "localhost"
+	}
+	// has port
+	if hasPort {
+		return host + ":" + port
+	}
+
+	return host
 }
 
 func (c *conn) useTLS() error {
