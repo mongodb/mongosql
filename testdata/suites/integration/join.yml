@@ -973,6 +973,22 @@ testcases:
   - [~]
   - [~]
   - [~]
+- sql: "select a.id, d, a.b_idx, d_idx, b.id, c from grandchild a join child b on a.b_idx = b.b_idx"
+  id: 'no_merge_no_lookup'
+  db: join_test
+  description: "both merge join and $lookup should be disabled because of the join conditions"
+  expected_names: ["id", "d", "b_idx", "d_idx", "id", "c"]
+  expected_types: [int, int, int, int, int, int]
+  expected:
+  - [ 0, 5, 1, 0, 0, 2]
+  - [ 0, 5, 1, 0, 1, 3]
+  - [ 0, 5, 1, 0, 2, 3]
+  - [ 0, 6, 1, 1, 0, 2]
+  - [ 0, 6, 1, 1, 1, 3]
+  - [ 0, 6, 1, 1, 2, 3]
+  - [ 2, 7, 0, 0, 0, 1]
+  - [ 2, 7, 0, 0, 1, 1]
+  - [ 2, 7, 0, 0, 2, 2]
 - sql: "select bar.d, baz.a from bar straight_join baz on bar.c = baz.c"
   id: 'straight_join_on_c'
   db: join_test

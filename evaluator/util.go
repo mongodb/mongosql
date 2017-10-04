@@ -27,6 +27,38 @@ const (
 	sqlOpNotIn = "not in"
 )
 
+func keysStringMap(set map[string]interface{}) []string {
+	keys := make([]string, len(set))
+
+	i := 0
+	for k, _ := range set {
+		keys[i] = k
+		i++
+	}
+	return keys
+}
+
+func keysStringSet(set map[string]struct{}) []string {
+	keys := make([]string, len(set))
+
+	i := 0
+	for k, _ := range set {
+		keys[i] = k
+		i++
+	}
+	return keys
+}
+
+func intersectionStringSet(left, right map[string]struct{}) map[string]struct{} {
+	ret := make(map[string]struct{})
+	for k, _ := range left {
+		if _, ok := right[k]; ok {
+			ret[k] = struct{}{}
+		}
+	}
+	return ret
+}
+
 // comparisonExpr returns a SQLExpr formed using op comparison operator.
 func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 	switch op {

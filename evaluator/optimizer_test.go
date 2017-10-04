@@ -442,6 +442,7 @@ func TestOptimizePlan(t *testing.T) {
 
 			v := ShouldResembleDiffed(actual, expected)
 			if v != "" {
+				fmt.Printf("\n SQL: %v", sql)
 				fmt.Printf("\n ACTUAL: %# v", pretty.Formatter(actual))
 				fmt.Printf("\n EXPECTED: %# v", pretty.Formatter(expected))
 			}
@@ -2169,10 +2170,33 @@ func TestOptimizePlan(t *testing.T) {
 								{"includeArrayIndex", "b_idx"},
 								{"path", "$b"},
 							}}},
+							{{"$match", bson.M{
+								"_id": bson.M{"$ne": nil},
+							},
+							}},
+							{{"$lookup", bson.M{
+								"from":         "merge",
+								"localField":   "_id",
+								"foreignField": "_id",
+								"as":           "__joined_d",
+							},
+							}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_d",
+								"preserveNullAndEmptyArrays": bool(false),
+							},
+							}},
+							{{"$unwind", bson.D{
+								{"path", "$__joined_d.d"},
+								{"includeArrayIndex", "__joined_d.d_idx"},
+								{"preserveNullAndEmptyArrays", bool(false)},
+							},
+							}},
 							{{"$project", bson.M{
 								"b_DOT__id": "$_id",
 								"r_DOT__id": "$_id",
-							}}},
+							},
+							}},
 						},
 					)
 					test("select b._id, d._id from merge r inner join merge_b b on r._id=b._id inner join merge_d d on r._id=d._id inner join merge_d_a a on r._id=a._id",
@@ -2185,14 +2209,55 @@ func TestOptimizePlan(t *testing.T) {
 								{"includeArrayIndex", "d.a_idx"},
 								{"path", "$d.a"},
 							}}},
+							{{"$match", bson.M{
+								"_id": bson.M{"$ne": nil},
+							},
+							}},
+							{{"$lookup", bson.M{
+								"localField":   "_id",
+								"foreignField": "_id",
+								"as":           "__joined_d",
+								"from":         "merge",
+							},
+							}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_d",
+								"preserveNullAndEmptyArrays": bool(false),
+							},
+							}},
 							{{"$unwind", bson.D{
-								{"includeArrayIndex", "b_idx"},
-								{"path", "$b"},
-							}}},
+								{"path", "$__joined_d.d"},
+								{"includeArrayIndex", "__joined_d.d_idx"},
+								{"preserveNullAndEmptyArrays", bool(false)},
+							},
+							}},
+							{{"$match", bson.M{
+								"_id": bson.M{"$ne": nil},
+							},
+							}},
+							{{"$lookup", bson.M{
+								"foreignField": "_id",
+								"as":           "__joined_b",
+								"from":         "merge",
+								"localField":   "_id",
+							},
+							}},
+							{{"$unwind", bson.M{
+								"path": "$__joined_b",
+								"preserveNullAndEmptyArrays": bool(false),
+							},
+							}},
+							{{"$unwind", bson.D{
+								{"path", "$__joined_b.b"},
+								{"includeArrayIndex", "__joined_b.b_idx"},
+								{"preserveNullAndEmptyArrays", bool(false)},
+							},
+							}},
 							{{"$project", bson.M{
-								"b_DOT__id": "$_id",
-								"d_DOT__id": "$_id",
-							}}},
+								"d_DOT__id": "$__joined_d._id",
+								"b_DOT__id": "$__joined_b._id",
+							},
+							}},
 						},
 					)
 				})

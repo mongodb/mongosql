@@ -1173,7 +1173,6 @@ func (v *pushDownOptimizer) mergeTables(msLocal, msForeign *MongoSourceStage, jo
 }
 
 func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
-
 	if join.matcher == nil {
 		v.logger.Warnf(log.Dev, "cannot push down join stage, matcher is nil")
 		return join, nil
@@ -1243,12 +1242,53 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	foreignHasUnwind := false
 
 	if lenForeignPipeline > 0 {
-		_, foreignHasUnwind = msForeign.pipeline[0].Map()["$unwind"]
+		var unwindInterface interface{}
+		unwindInterface, foreignHasUnwind = msForeign.pipeline[0].Map()["$unwind"]
 		if !foreignHasUnwind || lenForeignPipeline > 1 {
 			v.logger.Warnf(log.Dev, "unable to translate join "+
 				"stage to lookup: foreign table has pipeline: %#v",
 				msForeign.pipeline)
 			return join, nil
+		}
+		unwind := unwindInterface.(bson.D)
+		// These registries will be needed in the loop over
+		// join exprs below
+		registries := []*mappingRegistry{
+			msLocal.mappingRegistry,
+			msForeign.mappingRegistry,
+		}
+		// Check to make sure the single unwind in the foreign pipeline
+		// doesn't have an array index created by the unwind in its
+		// join condition, otherwise we generate an impossible $lookup
+		// and an empty return set
+		if unwindIndexName, foreignUnwindHasIndex := unwind.Map()["includeArrayIndex"]; foreignUnwindHasIndex {
+			exprs := splitExpression(join.matcher)
+			for _, expr := range exprs {
+				// ignore non-equalExpr join conditions, since
+				// they will be handled after any foreign
+				// $unwinds as a $match and thus not cause any
+				// issues
+				if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
+					column1, _ := equalExpr.left.(SQLColumnExpr)
+					column2, _ := equalExpr.right.(SQLColumnExpr)
+					// It's possible that someone could use
+					// the foreign table on either or both
+					// sides of the join equivalence, so we
+					// can't use else here
+					if containsString(msForeign.aliasNames, column1.tableName) {
+						columnName, _, _ := lookupSQLColumn(column1.tableName, column1.columnName, registries)
+						if columnName == unwindIndexName {
+							return join, nil
+						}
+					}
+					if containsString(msForeign.aliasNames, column2.tableName) {
+						columnName, _, _ := lookupSQLColumn(column2.tableName, column2.columnName, registries)
+						if columnName == unwindIndexName {
+							return join, nil
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -1603,8 +1643,19 @@ func (v *pushDownOptimizer) mergePipeline(local, foreign *MongoSourceStage, kind
 				}
 			}
 
-			unwind := bsonStage.(bson.D)
-			fields := unwind.Map()
+			unwind, ok := bsonStage.(bson.D)
+			// It is possible for a bson.D to contain a bson.M
+			// because of our $unwind on the $lookup created field
+			// following a $lookup.  We never hit this case
+			// before because we were merge optimizing joins
+			// too often, and this requires a multi-way join where
+			// one source for one of the joins results in a $lookup
+			var fields bson.M
+			if ok {
+				fields = unwind.Map()
+			} else {
+				fields = bsonStage.(bson.M)
+			}
 
 			iPath, ok := fields["path"]
 			if !ok {

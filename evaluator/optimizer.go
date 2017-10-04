@@ -3,6 +3,7 @@ package evaluator
 import (
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
+	"strings"
 )
 
 // OptimizeCommand applies optimizations to the command
@@ -97,35 +98,26 @@ func meetsMergePKCriteria(logger *log.Logger, local, foreign *MongoSourceStage, 
 
 	exprs := splitExpression(matcher)
 
-	numPK := func(columns []*Column, table string) int {
-		n, keys := 0, make(map[string]struct{})
+	getPKs := func(columns []*Column, table string) map[string]struct{} {
+		keys := make(map[string]struct{})
 		for _, c := range columns {
 			if _, counted := keys[c.Name]; !counted && c.PrimaryKey &&
 				c.Table == table {
-				n, keys[c.Name] = n+1, struct{}{}
+				keys[c.Name] = struct{}{}
 			}
 		}
-		return n
+		return keys
 	}
 
-	// When we attempt to merge two different arrays (tables) of
-	// the same underlying MongoDB collection, we only require
-	// one primary key equality match.
-	//
-	// For example, the join clause "test_array1 JOIN test_array1"
-	// requires as many primary keys as are specified in the DRDL
-	// file for "test_array1". However, if we attempted to merge
-	// "test_array1 JOIN test_array2" instead, we'd only need an
-	// equality on the base table's primary key field.
-	//
-	isSameArrayJoin := local.tableNames[0] == foreign.tableNames[0]
-	numRequiredPKConjunctions := 1
-
-	if isSameArrayJoin && len(local.tableNames) == 1 {
-		numLocalPK := numPK(local.mappingRegistry.columns, local.aliasNames[0])
-		numForeignPK := numPK(foreign.mappingRegistry.columns, foreign.aliasNames[0])
-		numRequiredPKConjunctions = util.MinInt(numLocalPK, numForeignPK)
-	}
+	// Whether or not we are joining the same tables or different tables
+	// derived from a single collection, we need to join on the entire PK
+	// intersection in order for merge join to be semantically correct.  We
+	// set the number of PK matches needed based on the cardinality of the
+	// intersection and then assure below that that number is met
+	localPKs := getPKs(local.mappingRegistry.columns, local.aliasNames[0])
+	foreignPKs := getPKs(foreign.mappingRegistry.columns, foreign.aliasNames[0])
+	intersectionPKs := intersectionStringSet(localPKs, foreignPKs)
+	numRequiredPKConjunctions := len(intersectionPKs)
 
 	if numRequiredPKConjunctions == 0 {
 		logger.Debugf(log.Dev, "cannot merge join stage, table "+
@@ -214,10 +206,11 @@ func meetsMergePKCriteria(logger *log.Logger, local, foreign *MongoSourceStage, 
 	}
 
 	if numPKConjunctions < numRequiredPKConjunctions {
+		loggingPKSetStr := strings.Join(keysStringSet(intersectionPKs), ", ")
 		logger.Debugf(log.Dev, "join merge: criteria conjunction "+
-			"contains %v unique primary key equality %v (need %v)",
+			"contains %v unique primary key equality %v but need %v - %q",
 			numPKConjunctions, util.Pluralize(numPKConjunctions, "pair",
-				"pairs"), numRequiredPKConjunctions)
+				"pairs"), numRequiredPKConjunctions, loggingPKSetStr)
 		return false
 	}
 
