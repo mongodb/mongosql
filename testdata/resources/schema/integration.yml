@@ -93,6 +93,21 @@ schema:
       MongoType: string
       SqlName: e
       SqlType: varchar
+  - table: baz
+    collection: "strings"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: string
+      SqlName: a
+      SqlType: varchar
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: float64
 - db: groupby_test
   tables:
   - table: foo

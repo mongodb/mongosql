@@ -2036,6 +2036,19 @@ func TestEvaluates(t *testing.T) {
 					test{"SUBSTR('ZBA' from -1 for  0)", SQLVarchar("")},
 					test{"SUBSTR('ZBA' from 1 FOR 0)", SQLVarchar("")},
 					test{"SUBSTR('ZBA' from 0 for 0)", SQLVarchar("")},
+					test{"SUBSTR('this', -5.2)", SQLVarchar("")},
+					test{"SUBSTR('this' from -5.2)", SQLVarchar("")},
+					test{"SUBSTR('this', 2.632)", SQLVarchar("is")},
+					test{"SUBSTR('this' from -2.632)", SQLVarchar("his")},
+					test{"SUBSTR('this', 2.4, 1.4)", SQLVarchar("h")},
+					test{"SUBSTR('this' from 2.4 for -1.4 )", SQLVarchar("")},
+					test{"SUBSTR('this', 1.6, 2.6)", SQLVarchar("his")},
+					test{"SUBSTR('this', -11.6)", SQLVarchar("")},
+					test{"SUBSTR(NULL, -4)", SQLNull},
+					test{"SUBSTR(NULL, -4, 2)", SQLNull},
+					test{"SUBSTR('this' FROM NULL FOR 2)", SQLNull},
+					test{"SUBSTR('this', 2, NULL )", SQLNull},
+					test{"SUBSTR('this' FROM 3 FOR NULL)", SQLNull},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -2652,6 +2665,7 @@ func TestNewSQLValue(t *testing.T) {
 		sqlVal              = SQLInt(0)
 		zeroTime            = time.Time{}
 		defaultSQLDate      = SQLDate{zeroTime}
+		bsonDecimal128, _   = bson.ParseDecimal128("1.5")
 	)
 
 	Convey("Subject: NewSQLValue", t, func() {
@@ -2764,6 +2778,7 @@ func TestNewSQLValue(t *testing.T) {
 				test{strFloatVal, schema.SQLFloat, SQLFloat(3.23)},
 				test{"0.000", schema.SQLFloat, SQLFloat(0.0)},
 				test{"1.0", schema.SQLFloat, SQLFloat(1.0)},
+				test{bsonDecimal128, schema.SQLFloat, SQLFloat(1.5)},
 
 				//
 				// SQLNumeric
@@ -3367,6 +3382,8 @@ func TestExprNoPushdown(t *testing.T) {
 			test{`s % s`},
 			test{"s is true"},
 			test{"g is false"},
+			test{"substring(s, s)"},
+			test{"substring(s FROM 1 FOR s)"},
 		}
 
 		runTests(tests)
@@ -3472,7 +3489,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"locate(s, 'funny', 3)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$add":[{"$indexOfCP":[{"$literal":"funny"},"$s",{"$subtract":[{"$literal":3},1]}]},1]}]}`},
 			test{"lower(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toLower":"$s"}]}`},
 			test{"log10(a)", `{"$cond":[{"$gt":["$a",0]},{"$log10":"$a"},{"$literal":null}]}`},
-			test{"mid(s, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",1,{"$literal":4}]}]}`},
+			test{"mid(s, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",{"$let":{"in":{"$cond":[{"$eq":["$$roundOffIndex",0]},{"$strLenCP":"$s"},{"$cond":[{"$gt":["$$roundOffIndex",0]},{"$subtract":[{"$trunc":{"$add":[{"$literal":2},0.5]}},1]},{"$let":{"in":{"$cond":[{"$gte":[{"$strLenCP":"$s"},"$$indexValNeg"]},{"$subtract":[{"$strLenCP":"$s"},"$$indexValNeg"]},"$$indexValNeg"]},"vars":{"indexValNeg":{"$trunc":{"$add":[{"$multiply":[{"$literal":2},-1]},0.5]}}}}}]}]},"vars":{"roundOffIndex":{"$cond":[{"$gte":[{"$literal":2},0]},{"$trunc":{"$add":[{"$literal":2},0.5]}},{"$trunc":{"$add":[{"$literal":2},-0.5]}}]}}}},{"$cond":[{"$lte":[{"$literal":4},0]},0,{"$trunc":{"$add":[{"$literal":4},0.5]}}]}]}]}`},
 			test{"minute(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$minute":"$g"}]}`},
 			test{"mod(a, 10)", `{"$mod":["$a",{"$literal":10}]}`},
 			test{"month(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$month":"$g"}]}`},
@@ -3487,15 +3504,15 @@ func TestTranslateExpr(t *testing.T) {
 			test{"right(s, a)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":["$a",null]},null]}]},null,{"$substrCP":["$s",{"$max":[{"$subtract":[{"$strLenCP":"$s"},"$a"]},0]},"$a"]}]}`},
 			test{"round(a, 5)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$add":[{"$multiply":["$a",100000]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$a",100000]},0.5]}}]},100000]}`},
 			test{"round(a, -5)", `{"$literal":0}`},
-
 			test{"second(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$second":"$g"}]}`},
 			test{"sqrt(a)", `{"$cond":[{"$gte":["$a",0]},{"$sqrt":"$a"},null]}`},
 			test{"subdate(g, INTERVAL 10 day)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$add":["$g",-864000000]}]}`},
 			test{"subdate(g, null)", `{"$literal":null}`},
-			test{"substring(s, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",1,{"$strLenCP":"$s"}]}]}`},
-			test{"substring(s, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",1,{"$literal":4}]}]}`},
-			test{"substr(s, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",1,{"$strLenCP":"$s"}]}]}`},
-			test{"substr(s, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",1,{"$literal":4}]}]}`},
+			test{"substring(s, 2)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":[{"$strLenCP":"$s"},null]},null]}]},null,{"$substrCP":["$s",{"$let":{"in":{"$cond":[{"$eq":["$$roundOffIndex",0]},{"$strLenCP":"$s"},{"$cond":[{"$gt":["$$roundOffIndex",0]},{"$subtract":[{"$trunc":{"$add":[{"$literal":2},0.5]}},1]},{"$let":{"in":{"$cond":[{"$gte":[{"$strLenCP":"$s"},"$$indexValNeg"]},{"$subtract":[{"$strLenCP":"$s"},"$$indexValNeg"]},"$$indexValNeg"]},"vars":{"indexValNeg":{"$trunc":{"$add":[{"$multiply":[{"$literal":2},-1]},0.5]}}}}}]}]},"vars":{"roundOffIndex":{"$cond":[{"$gte":[{"$literal":2},0]},{"$trunc":{"$add":[{"$literal":2},0.5]}},{"$trunc":{"$add":[{"$literal":2},-0.5]}}]}}}},{"$cond":[{"$lte":[{"$strLenCP":"$s"},0]},0,{"$trunc":{"$add":[{"$strLenCP":"$s"},0.5]}}]}]}]}`},
+			test{"substring(s from 2 for 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",{"$let":{"in":{"$cond":[{"$eq":["$$roundOffIndex",0]},{"$strLenCP":"$s"},{"$cond":[{"$gt":["$$roundOffIndex",0]},{"$subtract":[{"$trunc":{"$add":[{"$literal":2},0.5]}},1]},{"$let":{"in":{"$cond":[{"$gte":[{"$strLenCP":"$s"},"$$indexValNeg"]},{"$subtract":[{"$strLenCP":"$s"},"$$indexValNeg"]},"$$indexValNeg"]},"vars":{"indexValNeg":{"$trunc":{"$add":[{"$multiply":[{"$literal":2},-1]},0.5]}}}}}]}]},"vars":{"roundOffIndex":{"$cond":[{"$gte":[{"$literal":2},0]},{"$trunc":{"$add":[{"$literal":2},0.5]}},{"$trunc":{"$add":[{"$literal":2},-0.5]}}]}}}},{"$cond":[{"$lte":[{"$literal":4},0]},0,{"$trunc":{"$add":[{"$literal":4},0.5]}}]}]}]}`},
+			test{"substring(s, -2)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":[{"$strLenCP":"$s"},null]},null]}]},null,{"$substrCP":["$s",{"$let":{"in":{"$cond":[{"$eq":["$$roundOffIndex",0]},{"$strLenCP":"$s"},{"$cond":[{"$gt":["$$roundOffIndex",0]},{"$subtract":[{"$trunc":{"$add":[{"$literal":-2},0.5]}},1]},{"$let":{"in":{"$cond":[{"$gte":[{"$strLenCP":"$s"},"$$indexValNeg"]},{"$subtract":[{"$strLenCP":"$s"},"$$indexValNeg"]},"$$indexValNeg"]},"vars":{"indexValNeg":{"$trunc":{"$add":[{"$multiply":[{"$literal":-2},-1]},0.5]}}}}}]}]},"vars":{"roundOffIndex":{"$cond":[{"$gte":[{"$literal":-2},0]},{"$trunc":{"$add":[{"$literal":-2},0.5]}},{"$trunc":{"$add":[{"$literal":-2},-0.5]}}]}}}},{"$cond":[{"$lte":[{"$strLenCP":"$s"},0]},0,{"$trunc":{"$add":[{"$strLenCP":"$s"},0.5]}}]}]}]}`},
+			test{"substr(s, 2)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":[{"$strLenCP":"$s"},null]},null]}]},null,{"$substrCP":["$s",{"$let":{"in":{"$cond":[{"$eq":["$$roundOffIndex",0]},{"$strLenCP":"$s"},{"$cond":[{"$gt":["$$roundOffIndex",0]},{"$subtract":[{"$trunc":{"$add":[{"$literal":2},0.5]}},1]},{"$let":{"in":{"$cond":[{"$gte":[{"$strLenCP":"$s"},"$$indexValNeg"]},{"$subtract":[{"$strLenCP":"$s"},"$$indexValNeg"]},"$$indexValNeg"]},"vars":{"indexValNeg":{"$trunc":{"$add":[{"$multiply":[{"$literal":2},-1]},0.5]}}}}}]}]},"vars":{"roundOffIndex":{"$cond":[{"$gte":[{"$literal":2},0]},{"$trunc":{"$add":[{"$literal":2},0.5]}},{"$trunc":{"$add":[{"$literal":2},-0.5]}}]}}}},{"$cond":[{"$lte":[{"$strLenCP":"$s"},0]},0,{"$trunc":{"$add":[{"$strLenCP":"$s"},0.5]}}]}]}]}`},
+			test{"substr(s, 2, 4)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$substrCP":["$s",{"$let":{"in":{"$cond":[{"$eq":["$$roundOffIndex",0]},{"$strLenCP":"$s"},{"$cond":[{"$gt":["$$roundOffIndex",0]},{"$subtract":[{"$trunc":{"$add":[{"$literal":2},0.5]}},1]},{"$let":{"in":{"$cond":[{"$gte":[{"$strLenCP":"$s"},"$$indexValNeg"]},{"$subtract":[{"$strLenCP":"$s"},"$$indexValNeg"]},"$$indexValNeg"]},"vars":{"indexValNeg":{"$trunc":{"$add":[{"$multiply":[{"$literal":2},-1]},0.5]}}}}}]}]},"vars":{"roundOffIndex":{"$cond":[{"$gte":[{"$literal":2},0]},{"$trunc":{"$add":[{"$literal":2},0.5]}},{"$trunc":{"$add":[{"$literal":2},-0.5]}}]}}}},{"$cond":[{"$lte":[{"$literal":4},0]},0,{"$trunc":{"$add":[{"$literal":4},0.5]}}]}]}]}`},
 			test{"truncate(a, 3)", `{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$multiply":["$a",1000]}},{"$ceil":{"$multiply":["$a",1000]}}]},1000]}`},
 			test{"truncate(a, -3)", `{"$multiply":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$divide":["$a",1000]}},{"$ceil":{"$divide":["$a",1000]}}]},1000]}`},
 			test{"week(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$week":"$g"}]}`},

@@ -2809,6 +2809,198 @@ testcases:
   - [~]
   - [~]
   - [~]
+- sql: "select substring(b, 1.212) as subst from bar"
+  id: 'substring_float'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [~]
+  - ["this"]
+  - [~]
+- sql: "select substring(b, 1.632) as subst from bar"
+  id: 'substring_float_roundoff'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - ["ey"]
+  - ["o"]
+  - [~]
+  - ["his"]
+  - [~]
+- sql: "select substring(b, -1.23) as subst from bar"
+  id: 'substring_negative_float'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - ["y"]
+  - ["o"]
+  - [~]
+  - ["s"]
+  - [~]
+- sql: "select substring(b, -1.6) as subst from bar"
+  id: 'substring_negative_float_roundoff'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - ["ey"]
+  - ["yo"]
+  - [~]
+  - ["is"]
+  - [~]
+- sql: "select substring(b, 1.2, 1.2) as subst from bar"
+  id: 'substring_float_third_arg'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - ["h"]
+  - ["y"]
+  - [~]
+  - ["t"]
+  - [~]
+- sql: "select substring(b, 1.6, 1.6) as subst from bar"
+  id: 'substring_float_third_arg_roundoff'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - ["ey"]
+  - ["o"]
+  - [~]
+  - ["hi"]
+  - [~]
+- sql: "select substring(b, -1.2, -1.4) as subst from bar"
+  id: 'substring_float_negative'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+- sql: "select substring(b, -1.6, 1.6) as subst from bar"
+  id: 'substring_float_negative_roundoff'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - ["ey"]
+  - ["yo"]
+  - [~]
+  - ["is"]
+  - [~]
+- sql: "select substring(b, -11.2) as subst from bar"
+  id: 'substring_large_negative'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+- sql: "select substring(b, 11.2) as subst from bar"
+  id: 'substring_large_positive'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+- sql: "select substring(b, b) as subst from bar"
+  id: 'substring_column_second_arg'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+- sql: "select substring(b FROM 2 FOR b) as subst from bar"
+  id: 'substring_column_third_arg'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+- sql: "select substring(b FROM a FOR 1) as subst from bar"
+  id: 'substring_column_second_numeric'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - ["h"]
+  - [~]
+  - [~]
+  - ["s"]
+  - [~]
+- sql: "select substring(b FROM 1 FOR a) as subst from bar"
+  id: 'substring_column_third_numeric'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - ["h"]
+  - [~]
+  - [~]
+  - ["this"]
+  - [~]
+- sql: "select substring(a FROM b FOR 4) as subst from baz"
+  id: 'substring_column_second_numeric_pushdown'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - ["hey"]
+  - ["y"]
+  - [""]
+  - ["hey"]
+  - [""]
+  - ["y"]
+  - ["y"]
+  - ["ey"]
+  - ["hey"]
+  - ["ey"]
+  - [""]
+  - [""]
+  - [""]
+- sql: "select substring(a FROM b FOR b) as subst from baz"
+  id: 'substring_column_third_numeric_pushdown'
+  db: functions_test
+  expected_names: ["subst"]
+  expected_types: [varchar]
+  expected:
+  - ["h"]
+  - [""]
+  - [""]
+  - ["h"]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - ["h"]
+  - ["ey"]
+  - [""]
+  - [""]
+  - [""]
 
 - sql: "select substring_index(b, 'y', 1) from bar"
   id: '181'
