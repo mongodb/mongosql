@@ -158,6 +158,9 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 			return SQLFloat(0), false
 		case bson.ObjectId:
 			return NewSQLValue(v.Time(), schema.SQLFloat, fromType)
+		case bson.Decimal128:
+			flt, _ := strconv.ParseFloat(v.String(), 64)
+			return SQLFloat(flt), false
 		case decimal.Decimal:
 			flt, _ := v.Float64()
 			return SQLFloat(flt), false

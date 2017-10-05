@@ -1476,7 +1476,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		// that don't meet the lookup criteria.
 		if lookupOnArrayField {
 			foreignField := fmt.Sprintf("$%v.%v", asField, foreignFieldName)
-			filter := bson.M{mgoOperatorEQ: []interface{}{
+			filter := bson.M{mgoOperatorEq: []interface{}{
 				foreignField, "$" + localFieldName,
 			}}
 
@@ -1500,7 +1500,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 				// for left joins, we need to ensure we retain records
 				// from the left child - in case the unwound array was
 				// empty or null
-				match = bson.M{mgoOperatorOR: []interface{}{match,
+				match = bson.M{mgoOperatorOr: []interface{}{match,
 					bson.M{path[1:]: bson.M{mgoOperatorExists: false}}}}
 			}
 			pipeline = append(pipeline, predicateEvaluationStage,

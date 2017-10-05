@@ -39,6 +39,23 @@ data:
     - { _id: 3, c: 20171008.0, d: 20171008 }
     - { _id: 4 }
 - inline:
+    db: "functions_test"
+    collection: "strings"
+    docs:
+    - { _id: 0, a: "hey", b: 1.0 }
+    - { _id: 1, a: "hey", b: -1.0 }
+    - { _id: 2, a: "hey", b: 0.2 }
+    - { _id: 3, a: "hey", b: 0.5 }
+    - { _id: 4, a: "hey", b: -0.2 }
+    - { _id: 5, a: "hey", b: -0.5 }
+    - { _id: 6, a: "hey", b: -1.2 }
+    - { _id: 7, a: "hey", b: -1.5 }
+    - { _id: 8, a: "hey", b: 1.2 }
+    - { _id: 9, a: "hey", b: 1.5 }
+    - { _id: 10, a: "hey", b: 4.0 }
+    - { _id: 11, a: "hey", b: -4.0 }
+    - { _id: 12, a: "hey", b: 0 }
+- inline:
     db: "groupby_test"
     collection: "groupby"
     docs:

@@ -13,18 +13,22 @@ import (
 )
 
 const (
-	mgoOperatorEQ     = "$eq"
-	mgoOperatorNEQ    = "$ne"
-	mgoOperatorGT     = "$gt"
-	mgoOperatorGTE    = "$gte"
-	mgoOperatorLT     = "$lt"
-	mgoOperatorLTE    = "$lte"
-	mgoOperatorExists = "$exists"
-
-	mgoOperatorIfNull = "$ifNull"
-	mgoOperatorOR     = "$or"
-	mgoOperatorCond   = "$cond"
-	mgoOperatorAND    = "$and"
+	mgoOperatorAdd       = "$add"
+	mgoOperatorAnd       = "$and"
+	mgoOperatorCond      = "$cond"
+	mgoOperatorEq        = "$eq"
+	mgoOperatorExists    = "$exists"
+	mgoOperatorGt        = "$gt"
+	mgoOperatorGte       = "$gte"
+	mgoOperatorIfNull    = "$ifNull"
+	mgoOperatorLt        = "$lt"
+	mgoOperatorLte       = "$lte"
+	mgoOperatorLet       = "$let"
+	mgoOperatorNeq       = "$ne"
+	mgoOperatorOr        = "$or"
+	mgoOperatorSubstract = "$subtract"
+	mgoOperatorStrlenCP  = "$strLenCP"
+	mgoOperatorTrunc     = "$trunc"
 )
 
 var (
@@ -39,6 +43,10 @@ var (
 			}
 		}
 		return nil, false
+	}
+
+	wrapInLet = func(vars, in interface{}) interface{} {
+		return bson.M{mgoOperatorLet: bson.M{"vars": vars, "in": in}}
 	}
 
 	wrapInRound = func(args []interface{}) (bson.M, bool) {
@@ -67,7 +75,7 @@ var (
 
 		return bson.M{"$divide": []interface{}{
 			bson.M{mgoOperatorCond: []interface{}{
-				bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
+				bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
 				bson.M{"$floor": bson.M{"$add": []interface{}{
 					bson.M{"$multiply": []interface{}{args[0], decimal}}, 0.5}}},
 				bson.M{"$ceil": bson.M{"$subtract": []interface{}{
@@ -78,7 +86,7 @@ var (
 		var condition interface{}
 
 		if len(conds) > 1 {
-			condition = bson.M{mgoOperatorOR: conds}
+			condition = bson.M{mgoOperatorOr: conds}
 		} else {
 			condition = conds[0]
 		}
@@ -104,7 +112,7 @@ var (
 		if _, ok := getLiteral(v); ok {
 			return v
 		}
-		return wrapInOp(mgoOperatorEQ, wrapInIfNull(v, nil), nil)
+		return wrapInOp(mgoOperatorEq, wrapInIfNull(v, nil), nil)
 	}
 
 	wrapInNullCheckedCond = func(truePart, falsePart interface{}, conds ...interface{}) interface{} {
@@ -123,7 +131,7 @@ var (
 		case 1:
 			condition = newConds[0]
 		default:
-			condition = bson.M{mgoOperatorOR: newConds}
+			condition = bson.M{mgoOperatorOr: newConds}
 		}
 
 		return bson.M{mgoOperatorCond: []interface{}{condition, truePart, falsePart}}
@@ -146,7 +154,6 @@ type fieldNameLookup func(tableName, columnName string) (string, bool)
 // TranslateExpr attempts to turn the SQLExpr into MongoDB query language.
 func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 	switch typedE := e.(type) {
-
 	case *SQLAddExpr:
 		left, ok := t.TranslateExpr(typedE.left)
 		if !ok {
@@ -187,7 +194,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 						"as":    "i",
 						"in": bson.M{
 							mgoOperatorCond: []interface{}{
-								bson.M{mgoOperatorEQ: []interface{}{
+								bson.M{mgoOperatorEq: []interface{}{
 									bson.M{mgoOperatorIfNull: []interface{}{
 										"$$i",
 										nil}},
@@ -220,30 +227,30 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		}
 
 		return bson.M{mgoOperatorCond: []interface{}{
-			bson.M{mgoOperatorOR: []interface{}{
-				bson.M{mgoOperatorEQ: []interface{}{
+			bson.M{mgoOperatorOr: []interface{}{
+				bson.M{mgoOperatorEq: []interface{}{
 					bson.M{
 						mgoOperatorIfNull: []interface{}{left, nil}},
 					nil,
 				}},
-				bson.M{mgoOperatorEQ: []interface{}{
+				bson.M{mgoOperatorEq: []interface{}{
 					bson.M{
 						mgoOperatorIfNull: []interface{}{right, nil}},
 					nil,
 				}}}},
 			bson.M{mgoOperatorCond: []interface{}{
-				bson.M{mgoOperatorOR: []interface{}{
-					bson.M{mgoOperatorEQ: []interface{}{
+				bson.M{mgoOperatorOr: []interface{}{
+					bson.M{mgoOperatorEq: []interface{}{
 						left, false}},
-					bson.M{mgoOperatorEQ: []interface{}{
+					bson.M{mgoOperatorEq: []interface{}{
 						right, false}},
-					bson.M{mgoOperatorEQ: []interface{}{
+					bson.M{mgoOperatorEq: []interface{}{
 						left, 0}},
-					bson.M{mgoOperatorEQ: []interface{}{
+					bson.M{mgoOperatorEq: []interface{}{
 						right, 0}}}},
-				bson.M{mgoOperatorAND: []interface{}{left, right}},
+				bson.M{mgoOperatorAnd: []interface{}{left, right}},
 				mgoNullLiteral}},
-			bson.M{mgoOperatorAND: []interface{}{left, right}}}}, true
+			bson.M{mgoOperatorAnd: []interface{}{left, right}}}}, true
 
 	case *SQLDivideExpr:
 		left, ok := t.TranslateExpr(typedE.left)
@@ -275,7 +282,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 		return wrapInNullCheckedCond(
 			nil,
-			bson.M{mgoOperatorEQ: []interface{}{left, right}},
+			bson.M{mgoOperatorEq: []interface{}{left, right}},
 			left, right,
 		), true
 
@@ -301,7 +308,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 		return wrapInNullCheckedCond(
 			nil,
-			bson.M{mgoOperatorGT: []interface{}{left, right}},
+			bson.M{mgoOperatorGt: []interface{}{left, right}},
 			left, right,
 		), true
 
@@ -318,7 +325,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 		return wrapInNullCheckedCond(
 			nil,
-			bson.M{mgoOperatorGTE: []interface{}{left, right}},
+			bson.M{mgoOperatorGte: []interface{}{left, right}},
 			left, right,
 		), true
 
@@ -352,7 +359,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 		return wrapInNullCheckedCond(
 			nil,
-			bson.M{mgoOperatorLT: []interface{}{left, right}},
+			bson.M{mgoOperatorLt: []interface{}{left, right}},
 			left, right,
 		), true
 
@@ -369,7 +376,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 		return wrapInNullCheckedCond(
 			nil,
-			bson.M{mgoOperatorLTE: []interface{}{left, right}},
+			bson.M{mgoOperatorLte: []interface{}{left, right}},
 			left, right,
 		), true
 
@@ -420,7 +427,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 		return wrapInNullCheckedCond(
 			nil,
-			bson.M{mgoOperatorNEQ: []interface{}{left, right}},
+			bson.M{mgoOperatorNeq: []interface{}{left, right}},
 			left, right,
 		), true
 
@@ -435,7 +442,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		return bson.M{mgoOperatorEQ: []interface{}{left, right}}, true
+		return bson.M{mgoOperatorEq: []interface{}{left, right}}, true
 
 	case *SQLOrExpr:
 		left, ok := t.TranslateExpr(typedE.left)
@@ -448,57 +455,57 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		leftIsFalse := bson.M{mgoOperatorOR: []interface{}{
-			bson.M{mgoOperatorEQ: []interface{}{left, false}},
-			bson.M{mgoOperatorEQ: []interface{}{left, 0}},
+		leftIsFalse := bson.M{mgoOperatorOr: []interface{}{
+			bson.M{mgoOperatorEq: []interface{}{left, false}},
+			bson.M{mgoOperatorEq: []interface{}{left, 0}},
 		}}
 
-		leftIsTrue := bson.M{mgoOperatorOR: []interface{}{
-			bson.M{mgoOperatorNEQ: []interface{}{left, false}},
-			bson.M{mgoOperatorNEQ: []interface{}{left, 0}},
+		leftIsTrue := bson.M{mgoOperatorOr: []interface{}{
+			bson.M{mgoOperatorNeq: []interface{}{left, false}},
+			bson.M{mgoOperatorNeq: []interface{}{left, 0}},
 		}}
 
-		rightIsFalse := bson.M{mgoOperatorOR: []interface{}{
-			bson.M{mgoOperatorEQ: []interface{}{right, false}},
-			bson.M{mgoOperatorEQ: []interface{}{right, 0}},
+		rightIsFalse := bson.M{mgoOperatorOr: []interface{}{
+			bson.M{mgoOperatorEq: []interface{}{right, false}},
+			bson.M{mgoOperatorEq: []interface{}{right, 0}},
 		}}
 
-		rightIsTrue := bson.M{mgoOperatorOR: []interface{}{
-			bson.M{mgoOperatorNEQ: []interface{}{right, false}},
-			bson.M{mgoOperatorNEQ: []interface{}{right, 0}},
+		rightIsTrue := bson.M{mgoOperatorOr: []interface{}{
+			bson.M{mgoOperatorNeq: []interface{}{right, false}},
+			bson.M{mgoOperatorNeq: []interface{}{right, 0}},
 		}}
 
-		leftIsNull := bson.M{mgoOperatorEQ: []interface{}{
+		leftIsNull := bson.M{mgoOperatorEq: []interface{}{
 			bson.M{
 				mgoOperatorIfNull: []interface{}{left, nil}},
 			nil,
 		}}
 
-		rightIsNull := bson.M{mgoOperatorEQ: []interface{}{
+		rightIsNull := bson.M{mgoOperatorEq: []interface{}{
 			bson.M{
 				mgoOperatorIfNull: []interface{}{right, nil}},
 			nil,
 		}}
 
-		nullOrFalse := bson.M{mgoOperatorOR: []interface{}{
-			bson.M{mgoOperatorAND: []interface{}{
+		nullOrFalse := bson.M{mgoOperatorOr: []interface{}{
+			bson.M{mgoOperatorAnd: []interface{}{
 				rightIsNull, leftIsFalse,
 			}},
-			bson.M{mgoOperatorAND: []interface{}{
+			bson.M{mgoOperatorAnd: []interface{}{
 				leftIsNull, rightIsFalse,
 			}},
 		}}
 
-		nullOrTrue := bson.M{mgoOperatorOR: []interface{}{
-			bson.M{mgoOperatorAND: []interface{}{
+		nullOrTrue := bson.M{mgoOperatorOr: []interface{}{
+			bson.M{mgoOperatorAnd: []interface{}{
 				rightIsNull, leftIsTrue,
 			}},
-			bson.M{mgoOperatorAND: []interface{}{
+			bson.M{mgoOperatorAnd: []interface{}{
 				leftIsNull, rightIsTrue,
 			}},
 		}}
 
-		nullOrNull := bson.M{mgoOperatorAND: []interface{}{
+		nullOrNull := bson.M{mgoOperatorAnd: []interface{}{
 			leftIsNull, rightIsNull,
 		}}
 
@@ -511,7 +518,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 					true,
 					wrapInNullCheckedCond(
 						mgoNullLiteral,
-						bson.M{mgoOperatorOR: []interface{}{left, right}},
+						bson.M{mgoOperatorOr: []interface{}{left, right}},
 						left, right,
 					),
 					nullOrTrue,
@@ -531,21 +538,21 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		}
 
 		return bson.M{mgoOperatorCond: []interface{}{
-			bson.M{mgoOperatorOR: []interface{}{
-				bson.M{mgoOperatorEQ: []interface{}{
+			bson.M{mgoOperatorOr: []interface{}{
+				bson.M{mgoOperatorEq: []interface{}{
 					bson.M{
 						mgoOperatorIfNull: []interface{}{left, nil}},
 					nil,
 				}},
-				bson.M{mgoOperatorEQ: []interface{}{
+				bson.M{mgoOperatorEq: []interface{}{
 					bson.M{
 						mgoOperatorIfNull: []interface{}{right, nil}},
 					nil,
 				}}}},
 			mgoNullLiteral,
-			bson.M{mgoOperatorAND: []interface{}{
-				bson.M{mgoOperatorOR: []interface{}{left, right}},
-				bson.M{"$not": bson.M{mgoOperatorAND: []interface{}{left, right}}}}}}}, true
+			bson.M{mgoOperatorAnd: []interface{}{
+				bson.M{mgoOperatorOr: []interface{}{left, right}},
+				bson.M{"$not": bson.M{mgoOperatorAnd: []interface{}{left, right}}}}}}}, true
 
 	case *SQLScalarFunctionExpr:
 		translateArgs := func() ([]interface{}, bool) {
@@ -751,12 +758,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			for _, value := range args[1:] {
 				pushArgs = append(pushArgs,
 					bson.M{mgoOperatorCond: []interface{}{
-						bson.M{mgoOperatorEQ: []interface{}{
+						bson.M{mgoOperatorEq: []interface{}{
 							bson.M{mgoOperatorIfNull: []interface{}{value, nil}},
 							nil}},
 						bson.M{"$literal": ""}, value}},
 					bson.M{mgoOperatorCond: []interface{}{
-						bson.M{mgoOperatorEQ: []interface{}{
+						bson.M{mgoOperatorEq: []interface{}{
 							bson.M{mgoOperatorIfNull: []interface{}{value, nil}},
 							nil}},
 						bson.M{"$literal": ""}, args[0]}})
@@ -973,8 +980,8 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				args[2],
 				args[1],
 				wrapInNullCheck(args[0]),
-				wrapInOp(mgoOperatorEQ, args[0], 0),
-				wrapInOp(mgoOperatorEQ, args[0], false),
+				wrapInOp(mgoOperatorEq, args[0], 0),
+				wrapInOp(mgoOperatorEq, args[0], false),
 			), true
 		case "ifnull":
 			if len(typedE.Exprs) != 2 {
@@ -1000,7 +1007,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 						"in": wrapInCond(
 							bson.M{"$add": []interface{}{"$$value", bson.M{"$literal": 1}}},
 							"$$value",
-							bson.M{mgoOperatorGTE: []interface{}{args[0], "$$this"}},
+							bson.M{mgoOperatorGte: []interface{}{args[0], "$$this"}},
 						),
 					},
 				},
@@ -1106,7 +1113,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				return nil, false
 			}
 			return bson.M{mgoOperatorCond: []interface{}{
-				bson.M{mgoOperatorGT: []interface{}{args[0], 0}},
+				bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
 				bson.M{"$ln": args[0]},
 				mgoNullLiteral}}, true
 		case "log2":
@@ -1119,7 +1126,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			}
 
 			return bson.M{mgoOperatorCond: []interface{}{
-				bson.M{mgoOperatorGT: []interface{}{args[0], 0}},
+				bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
 				bson.M{"$log": []interface{}{args[0], 2}},
 				mgoNullLiteral}}, true
 		case "log10":
@@ -1132,7 +1139,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			}
 
 			return bson.M{mgoOperatorCond: []interface{}{
-				bson.M{mgoOperatorGT: []interface{}{args[0], 0}},
+				bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
 				bson.M{"$log10": args[0]},
 				mgoNullLiteral}}, true
 		case "mod":
@@ -1227,7 +1234,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				wrapInCond(
 					nil,
 					args[0],
-					wrapInOp(mgoOperatorEQ, args[0], args[1]),
+					wrapInOp(mgoOperatorEq, args[0], args[1]),
 				),
 				args[0],
 			), true
@@ -1346,7 +1353,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return wrapInCond(
 				bson.M{"$sqrt": args[0]},
 				nil,
-				bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
+				bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
 			), true
 		case "substring", "substr", "mid":
 			if !t.versionAtLeast(3, 4, 0) {
@@ -1359,31 +1366,60 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			if !ok {
 				return nil, false
 			}
+			strVal := args[0]
+			indexVal := args[1]
 
-			bsonMap, ok := args[1].(bson.M)
-			if !ok {
-				return nil, false
-			}
-
-			bsonVal, ok := bsonMap["$literal"]
-			if !ok {
-				return nil, false
-			}
-
-			arg1Val, _ := NewSQLValue(bsonVal, schema.SQLInt, schema.SQLNone)
-
-			arg1 := int(arg1Val.Float64()) - 1
-
-			var arg2 interface{} = bson.M{"$strLenCP": args[0]}
+			var lenVal interface{}
 			if len(args) == 3 {
-				arg2 = args[2]
+				lenVal = args[2]
+			} else {
+				lenVal = bson.M{"$strLenCP": args[0]}
 			}
+
+			indexNegVal := wrapInLet(
+				bson.M{
+					"indexValNeg": bson.M{
+						mgoOperatorTrunc: bson.M{
+							mgoOperatorAdd: []interface{}{
+								bson.M{"$multiply": []interface{}{indexVal, -1}}, 0.5}}}},
+				wrapInCond(
+					bson.M{mgoOperatorSubstract: []interface{}{bson.M{mgoOperatorStrlenCP: strVal}, "$$indexValNeg"}},
+					"$$indexValNeg",
+					bson.M{mgoOperatorGte: []interface{}{bson.M{mgoOperatorStrlenCP: strVal}, "$$indexValNeg"}}))
+
+			indexPosVal := bson.M{
+				mgoOperatorSubstract: []interface{}{
+					bson.M{
+						mgoOperatorTrunc: bson.M{
+							mgoOperatorAdd: []interface{}{indexVal, 0.5}},
+					}, 1}}
+
+			roundOffIndex := wrapInCond(
+				bson.M{mgoOperatorTrunc: bson.M{mgoOperatorAdd: []interface{}{indexVal, 0.5}}},
+				bson.M{mgoOperatorTrunc: bson.M{mgoOperatorAdd: []interface{}{indexVal, -0.5}}},
+				bson.M{mgoOperatorGte: []interface{}{indexVal, 0}})
+
+			indexValBsonM := wrapInLet(
+				bson.M{"roundOffIndex": roundOffIndex},
+				wrapInCond(
+					bson.M{mgoOperatorStrlenCP: strVal},
+					wrapInCond(
+						indexPosVal,
+						indexNegVal,
+						bson.M{mgoOperatorGt: []interface{}{"$$roundOffIndex", 0}}),
+					bson.M{mgoOperatorEq: []interface{}{"$$roundOffIndex", 0}},
+				))
+
+			lenValBsonM := wrapInCond(
+				0,
+				bson.M{mgoOperatorTrunc: bson.M{mgoOperatorAdd: []interface{}{lenVal, 0.5}}},
+				bson.M{mgoOperatorLte: []interface{}{lenVal, 0}},
+			)
 
 			return wrapInNullCheckedCond(
 				nil,
-				bson.M{"$substrCP": []interface{}{args[0], arg1, arg2}},
-				args[0],
-			), true
+				bson.M{"$substrCP": []interface{}{strVal, indexValBsonM, lenValBsonM}},
+				strVal, indexVal, lenVal), true
 		case "truncate":
 			if len(typedE.Exprs) != 2 {
 				return nil, false
@@ -1410,7 +1446,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				pow := math.Pow(10, d)
 				return bson.M{"$divide": []interface{}{
 					bson.M{mgoOperatorCond: []interface{}{
-						bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
+						bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
 						bson.M{"$floor": bson.M{"$multiply": []interface{}{
 							args[0], pow}}},
 						bson.M{"$ceil": bson.M{"$multiply": []interface{}{
@@ -1421,7 +1457,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			pow := math.Pow(10, math.Abs(d))
 			return bson.M{"$multiply": []interface{}{
 				bson.M{mgoOperatorCond: []interface{}{
-					bson.M{mgoOperatorGTE: []interface{}{args[0], 0}},
+					bson.M{mgoOperatorGte: []interface{}{args[0], 0}},
 					bson.M{"$floor": bson.M{"$divide": []interface{}{
 						args[0], pow}}},
 					bson.M{"$ceil": bson.M{"$divide": []interface{}{
@@ -1615,12 +1651,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				wrapInCond(
 					nil,
 					false,
-					bson.M{mgoOperatorEQ: []interface{}{nullInValues, true}},
+					bson.M{mgoOperatorEq: []interface{}{nullInValues, true}},
 				),
-				bson.M{mgoOperatorGT: []interface{}{
+				bson.M{mgoOperatorGt: []interface{}{
 					bson.M{"$size": bson.M{"$filter": bson.M{"input": right,
 						"as":   "item",
-						"cond": bson.M{mgoOperatorEQ: []interface{}{"$$item", left}},
+						"cond": bson.M{mgoOperatorEq: []interface{}{"$$item", left}},
 					}}},
 					bson.M{"$literal": 0},
 				}}),
@@ -1640,7 +1676,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 		// if right side is {null,unknown}, it's a simple case
 		if typedE.right == SQLNull {
-			return wrapInOp(mgoOperatorEQ,
+			return wrapInOp(mgoOperatorEq,
 				wrapInIfNull(left, mgoNullLiteral),
 				right,
 			), true
@@ -1649,7 +1685,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 		// if left side is a boolean, this is still simple
 		if typedE.left.Type() == schema.SQLBoolean {
-			return wrapInOp(mgoOperatorEQ,
+			return wrapInOp(mgoOperatorEq,
 				left,
 				right,
 			), true
@@ -1659,14 +1695,14 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 		if typedE.right == SQLTrue {
 			return wrapInCond(
 				false,
-				wrapInOp(mgoOperatorNEQ,
+				wrapInOp(mgoOperatorNeq,
 					left,
 					0,
 				),
 				wrapInNullCheck(left),
 			), true
 		} else if typedE.right == SQLFalse {
-			return wrapInOp(mgoOperatorEQ,
+			return wrapInOp(mgoOperatorEq,
 				left,
 				0,
 			), true
@@ -1868,21 +1904,21 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 			match = right
 		} else {
 			cond := []interface{}{}
-			if v, ok := left[mgoOperatorAND]; ok {
+			if v, ok := left[mgoOperatorAnd]; ok {
 				array := v.([]interface{})
 				cond = append(cond, array...)
 			} else {
 				cond = append(cond, left)
 			}
 
-			if v, ok := right[mgoOperatorAND]; ok {
+			if v, ok := right[mgoOperatorAnd]; ok {
 				array := v.([]interface{})
 				cond = append(cond, array...)
 			} else {
 				cond = append(cond, right)
 			}
 
-			match = bson.M{mgoOperatorAND: cond}
+			match = bson.M{mgoOperatorAnd: cond}
 		}
 
 		if exLeft == nil && exRight == nil {
@@ -1903,44 +1939,44 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 		if typedE.Type() != schema.SQLBoolean {
 			return bson.M{
 				name: bson.M{
-					mgoOperatorNEQ: nil,
+					mgoOperatorNeq: nil,
 				},
 			}, e
 		}
 
 		return bson.M{
-			mgoOperatorAND: []interface{}{
+			mgoOperatorAnd: []interface{}{
 				bson.M{
 					name: bson.M{
-						mgoOperatorNEQ: false,
+						mgoOperatorNeq: false,
 					},
 				},
 				bson.M{
 					name: bson.M{
-						mgoOperatorNEQ: nil,
+						mgoOperatorNeq: nil,
 					},
 				},
 				bson.M{
 					name: bson.M{
-						mgoOperatorNEQ: 0,
+						mgoOperatorNeq: 0,
 					},
 				},
 			},
 		}, nil
 	case *SQLEqualsExpr:
-		match, ok := t.translateOperator(mgoOperatorEQ, typedE.left, typedE.right)
+		match, ok := t.translateOperator(mgoOperatorEq, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
 		return match, nil
 	case *SQLGreaterThanExpr:
-		match, ok := t.translateOperator(mgoOperatorGT, typedE.left, typedE.right)
+		match, ok := t.translateOperator(mgoOperatorGt, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
 		return match, nil
 	case *SQLGreaterThanOrEqualExpr:
-		match, ok := t.translateOperator(mgoOperatorGTE, typedE.left, typedE.right)
+		match, ok := t.translateOperator(mgoOperatorGte, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
@@ -1985,21 +2021,21 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 				return bson.M{name: true}, nil
 			}
 			return bson.M{
-				mgoOperatorAND: []interface{}{
-					bson.M{name: bson.M{mgoOperatorNEQ: 0}},
-					bson.M{name: bson.M{mgoOperatorNEQ: nil}},
+				mgoOperatorAnd: []interface{}{
+					bson.M{name: bson.M{mgoOperatorNeq: 0}},
+					bson.M{name: bson.M{mgoOperatorNeq: nil}},
 				},
 			}, nil
 		}
 		return nil, e
 	case *SQLLessThanExpr:
-		match, ok := t.translateOperator(mgoOperatorLT, typedE.left, typedE.right)
+		match, ok := t.translateOperator(mgoOperatorLt, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
 		return match, nil
 	case *SQLLessThanOrEqualExpr:
-		match, ok := t.translateOperator(mgoOperatorLTE, typedE.left, typedE.right)
+		match, ok := t.translateOperator(mgoOperatorLte, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
@@ -2043,7 +2079,7 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 
 		return bson.M{name: bson.M{"$regex": bson.RegEx{pattern, "i"}}}, nil
 	case *SQLNotEqualsExpr:
-		match, ok := t.translateOperator(mgoOperatorNEQ, typedE.left, typedE.right)
+		match, ok := t.translateOperator(mgoOperatorNeq, typedE.left, typedE.right)
 		if !ok {
 			return nil, e
 		}
@@ -2059,8 +2095,8 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 				return nil, e
 			}
 			match = bson.M{
-				mgoOperatorAND: []interface{}{match,
-					bson.M{name: bson.M{mgoOperatorNEQ: nil}},
+				mgoOperatorAnd: []interface{}{match,
+					bson.M{name: bson.M{mgoOperatorNeq: nil}},
 				},
 			}
 		}
@@ -2091,21 +2127,21 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 
 		cond := []interface{}{}
 
-		if v, ok := left[mgoOperatorOR]; ok {
+		if v, ok := left[mgoOperatorOr]; ok {
 			array := v.([]interface{})
 			cond = append(cond, array...)
 		} else {
 			cond = append(cond, left)
 		}
 
-		if v, ok := right[mgoOperatorOR]; ok {
+		if v, ok := right[mgoOperatorOr]; ok {
 			array := v.([]interface{})
 			cond = append(cond, array...)
 		} else {
 			cond = append(cond, right)
 		}
 
-		return bson.M{mgoOperatorOR: cond}, nil
+		return bson.M{mgoOperatorOr: cond}, nil
 	case *SQLRegexExpr:
 		name, ok := t.getFieldName(typedE.operand)
 		if !ok {
@@ -2152,7 +2188,7 @@ func (t *pushDownTranslator) translateOperator(op string, nameExpr, valExpr SQLE
 
 	translation := bson.M{name: bson.M{op: fieldValue}}
 
-	if op == mgoOperatorEQ {
+	if op == mgoOperatorEq {
 		translation = bson.M{name: fieldValue}
 	}
 
@@ -2164,21 +2200,21 @@ func negate(op bson.M) bson.M {
 		name, value := getSingleMapEntry(op)
 		if strings.HasPrefix(name, "$") {
 			switch name {
-			case mgoOperatorOR:
+			case mgoOperatorOr:
 				return bson.M{"$nor": value}
 			case "$nor":
-				return bson.M{mgoOperatorOR: value}
+				return bson.M{mgoOperatorOr: value}
 			}
 		} else if innerOp, ok := value.(bson.M); ok {
 			if len(innerOp) == 1 {
 				innerName, innerValue := getSingleMapEntry(innerOp)
 				if strings.HasPrefix(innerName, "$") {
 					switch innerName {
-					case mgoOperatorEQ:
-						return bson.M{name: bson.M{mgoOperatorNEQ: innerValue}}
+					case mgoOperatorEq:
+						return bson.M{name: bson.M{mgoOperatorNeq: innerValue}}
 					case "$in":
 						return bson.M{name: bson.M{"$nin": innerValue}}
-					case mgoOperatorNEQ:
+					case mgoOperatorNeq:
 						return bson.M{name: innerValue}
 					case "$nin":
 						return bson.M{name: bson.M{"$in": innerValue}}
@@ -2196,12 +2232,12 @@ func negate(op bson.M) bson.M {
 			// if the operand is nonzero, and NOT NULL returns NULL.
 			// See https://dev.mysql.com/doc/refman/5.7/en/logical-operators.html#operator_not
 			// for more.
-			translation := bson.M{name: bson.M{mgoOperatorNEQ: value}}
+			translation := bson.M{name: bson.M{mgoOperatorNeq: value}}
 			if value != nil {
 				translation = bson.M{
-					mgoOperatorAND: []interface{}{
+					mgoOperatorAnd: []interface{}{
 						translation,
-						bson.M{name: bson.M{mgoOperatorNEQ: nil}},
+						bson.M{name: bson.M{mgoOperatorNeq: nil}},
 					},
 				}
 			}

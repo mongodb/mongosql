@@ -2676,9 +2676,16 @@ type rightFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_right
 func (_ *rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+	if int(values[1].Int64()) > len(values[0].String()) {
+		return SQLVarchar(values[0].String()), nil
+	}
+
 	substring := &substringFunc{}
-	len := -1 * values[1].Int64()
-	return substring.Evaluate([]SQLValue{values[0], SQLInt(len)}, ctx)
+	num := -1 * values[1].Int64()
+	return substring.Evaluate([]SQLValue{values[0], SQLInt(num)}, ctx)
 }
 
 func (_ *rightFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -2938,7 +2945,17 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 	}
 
 	str := []rune(values[0].String())
-	pos := int(values[1].Float64())
+	if values[0].String() == "" {
+		return SQLVarchar(""), nil
+	}
+
+	posFloat := values[1].Float64()
+	pos := 0
+	if posFloat >= 0 {
+		pos = int(posFloat + 0.5)
+	} else {
+		pos = int(posFloat - 0.5)
+	}
 
 	if pos > len(str) || pos == 0 {
 		return SQLVarchar(""), nil
@@ -2946,14 +2963,14 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 		pos = len(str) + pos
 
 		if pos < 0 {
-			pos = 0
+			return SQLVarchar(""), nil
 		}
 	} else {
 		pos-- // MySQL uses 1 as a basis
 	}
 
 	if len(values) == 3 {
-		length := int(values[2].Float64())
+		length := int(values[2].Float64() + 0.5)
 		if length < 1 {
 			return SQLVarchar(""), nil
 		}
@@ -2968,7 +2985,6 @@ func (_ *substringFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, err
 			str = str[pos:]
 		}
 	}
-
 	return SQLVarchar(string(str)), nil
 }
 
