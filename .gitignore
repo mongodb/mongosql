@@ -35,5 +35,3 @@ sftp-config.json
 
 testdata/resources/data
 testdata/artifacts
-
-integration_test.go

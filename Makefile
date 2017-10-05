@@ -22,13 +22,9 @@ check-races:
 	testdata/bin/check-races.sh
 
 clean:
-	rm -f integration_test.go
 	$(ENV) testdata/bin/reset-testing-state.sh
 
-generate:
-	$(ENV) testdata/bin/generate-tests.sh
-
-restore-data: generate
+restore-data:
 	$(ENV) testdata/bin/restore-test-data.sh
 
 run-mongodb:

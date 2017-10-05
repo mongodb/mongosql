@@ -5,7 +5,7 @@
 
 (
     set -o errexit
-    echo "running $SUITE benchmarks..."
+    echo "running ${SUITE:-all integration} benchmarks..."
 
     cd "$PROJECT_DIR"
 
@@ -16,9 +16,9 @@
 
     go test -v \
         -run $^ \
+        -bench="BenchmarkIntegration/${SUITE}/$NAMES" \
+        -automate data \
         -timeout 4h \
-        -restoreData "$SUITE" \
-        -bench=${BENCHMARKS:-.} \
         -benchmem \
         -benchtime=5s \
         $TEST_BUILD_FLAGS \
@@ -27,7 +27,7 @@
 
     rm $test_pipe
 
-    echo "done running $SUITE benchmarks"
+    echo "done running ${SUITE:-all integration} benchmarks"
 
 ) > $LOG_FILE 2>&1
 

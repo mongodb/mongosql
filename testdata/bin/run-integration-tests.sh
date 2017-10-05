@@ -5,7 +5,7 @@
 
 (
     set -o errexit
-    echo "running $SUITE tests..."
+    echo "running ${SUITE:-all integration} tests..."
 
     cd "$PROJECT_DIR"
 
@@ -15,15 +15,17 @@
     tee -a "$ARTIFACTS_DIR/out/${SUITE}-suite.out" < $test_pipe&
 
     go test -v \
+        -run "TestIntegration/$SUITE/$NAMES" \
+        -automate data \
         -timeout 4h \
         $TEST_BUILD_FLAGS \
+        $TEST_PARALLEL_FLAG \
         $VERSION_FLAG \
-        $INTEGRATION_TEST_FLAGS \
         > $test_pipe
 
     rm $test_pipe
 
-    echo "done running $SUITE tests"
+    echo "done running ${SUITE:-all integration} tests"
 
 ) > $LOG_FILE 2>&1
 

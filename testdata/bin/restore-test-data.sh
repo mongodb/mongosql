@@ -5,21 +5,19 @@
 
 (
     set -o errexit
-    suites=${SUITE:-integration}
 
-    echo "restoring $suites data..."
+    echo "restoring test data..."
 
     cd "$PROJECT_DIR"
 
     go test -v \
-        -run $^ \
+        -run 'TestIntegration//$^' \
         -timeout 4h \
         $TEST_BUILD_FLAGS \
-        $COVER_FLAG \
         $VERSION_FLAG \
-        -restoreData "$suites"
+        -automate data
 
-    echo "done restoring $suites data"
+    echo "done restoring test data"
 
 ) > $LOG_FILE 2>&1
 
