@@ -12,11 +12,12 @@ import (
 )
 
 type TestSuite struct {
-	Dirname   string
-	Name      string         `yaml:"name"`
-	Data      []*TestDataSet `yaml:"data"`
-	DefaultDb string         `yaml:"default_db"`
-	TestCases []*TestCase
+	Dirname    string
+	Name       string         `yaml:"name"`
+	Data       []*TestDataSet `yaml:"data"`
+	DefaultDb  string         `yaml:"default_db"`
+	Tests      []*TestCase
+	Benchmarks []*TestCase
 }
 
 type TestDataSet struct {
@@ -56,32 +57,10 @@ type TestCase struct {
 	PushDownOnly     bool            `yaml:"pushdown_only"`
 }
 
-func LoadTestSuiteConfig(name string) *TestSuite {
-	suiteDir := path.Join("testdata", "suites", name)
-
-	suiteFile := path.Join(suiteDir, "_suite.yml")
-	fileBytes, err := ioutil.ReadFile(suiteFile)
-	if err != nil {
-		panic(err)
-	}
-
-	suite := new(TestSuite)
-	err = yaml.Unmarshal(fileBytes, suite)
-	if err != nil {
-		panic(err)
-	}
-	suite.Dirname = name
-	if suite.Name == "" {
-		suite.Name = suite.Dirname
-	}
-
-	return suite
-}
-
 // LoadTestSuite returns a testSuite struct populated with the
 // data from the test suite located at testdata/suites/<name>/
-func LoadTestSuite(name string) *TestSuite {
-	suite := LoadTestSuiteConfig(name)
+func LoadTestSuite(name string) (*TestSuite, error) {
+	suite := loadTestSuiteConfig(name)
 
 	suiteDir := path.Join("testdata", "suites", name)
 	files, err := ioutil.ReadDir(suiteDir)
@@ -103,7 +82,7 @@ func LoadTestSuite(name string) *TestSuite {
 		tests := new(TestFile)
 		err = yaml.Unmarshal(fileBytes, tests)
 		if err != nil {
-			panic(fmt.Sprintf("Error unmarshalling %s: %s", f.Name(), err.Error()))
+			return nil, fmt.Errorf("Error unmarshalling %s: %s", f.Name(), err.Error())
 		}
 		if tests.Name == "" {
 			tests.Name = f.Name()[0 : len(f.Name())-4]
@@ -111,35 +90,93 @@ func LoadTestSuite(name string) *TestSuite {
 
 		err = tests.validate(f.Name())
 		if err != nil {
-			fmt.Printf("Warning (validating %s): %s\n", filePath, err.Error())
+			fmt.Printf("Validation warning (%s): %s\n", filePath, err.Error())
 		}
 
 		addTestsToSuite(suite, tests)
 	}
 
-	return suite
+	return suite, nil
 }
 
-func LoadSuiteData(name string) {
-	suite := LoadTestSuiteConfig(name)
-	for _, dataSet := range suite.Data {
+func RestoreSuiteData(name string) error {
+	suite := loadTestSuiteConfig(name)
+	for i, dataSet := range suite.Data {
 		if !MongodbVersionAtLeast(dataSet.MinServerVersion) {
 			continue
 		}
 		if dataSet.ArchiveFile != "" {
 			err := restoreBSON(*MongoHost, *MongoPort, dataSet.ArchiveFile)
 			if err != nil {
-				panic(err)
+				return err
 			}
 		} else if dataSet.Inline != nil {
 			err := restoreInline(*MongoHost, *MongoPort, dataSet.Inline)
 			if err != nil {
-				panic(err)
+				return err
 			}
 		} else {
-			panic("expected 'archive_file' or 'inline'")
+			return fmt.Errorf("could not find 'archive_file' or 'inline' key for data set %d", i)
 		}
 	}
+	return nil
+}
+
+func addTestsToSuite(suite *TestSuite, tests *TestFile) {
+	for _, t := range tests.TestCases {
+
+		// set test name
+		testName := tests.Name
+		if t.Id != "" {
+			testName = fmt.Sprintf("%s_%s", testName, t.Id)
+		}
+		t.Name = testName
+
+		// set database
+		if t.Database == "" {
+			t.Database = suite.DefaultDb
+		}
+	}
+
+	for _, b := range tests.Benchmarks {
+		benchName := tests.Name
+		if b.Id != "" {
+			benchName = fmt.Sprintf("%s_%s", benchName, b.Id)
+		}
+		b.Name = benchName
+
+		// set database
+		if b.Database == "" {
+			b.Database = suite.DefaultDb
+		}
+
+		b.IsBenchmark = true
+	}
+
+	suite.Tests = append(suite.Tests, tests.TestCases...)
+	suite.Benchmarks = append(suite.Benchmarks, tests.Benchmarks...)
+}
+
+func loadTestSuiteConfig(name string) *TestSuite {
+	suiteDir := path.Join("testdata", "suites", name)
+
+	suiteFile := path.Join(suiteDir, "_suite.yml")
+	fileBytes, err := ioutil.ReadFile(suiteFile)
+	if err != nil {
+		panic(err)
+	}
+
+	suite := new(TestSuite)
+	err = yaml.Unmarshal(fileBytes, suite)
+	if err != nil {
+		panic(err)
+	}
+	suite.Dirname = name
+	if suite.Name == "" {
+		suite.Name = suite.Dirname
+	}
+
+	return suite
 }
 
 func (f *TestFile) validate(filename string) error {
@@ -167,26 +204,4 @@ func (f *TestFile) validate(filename string) error {
 	}
 
 	return nil
-}
-
-func addTestsToSuite(suite *TestSuite, tests *TestFile) {
-	for _, t := range tests.TestCases {
-		testName := fmt.Sprintf("Test%s_%s", suite.Name, tests.Name)
-		if t.Id != "" {
-			testName = fmt.Sprintf("%s_%s", testName, t.Id)
-		}
-		t.Name = testName
-	}
-
-	for _, b := range tests.Benchmarks {
-		benchName := fmt.Sprintf("Benchmark%s_%s", suite.Name, tests.Name)
-		if b.Id != "" {
-			benchName = fmt.Sprintf("%s_%s", benchName, b.Id)
-		}
-		b.Name = benchName
-		b.IsBenchmark = true
-	}
-
-	suite.TestCases = append(suite.TestCases, tests.TestCases...)
-	suite.TestCases = append(suite.TestCases, tests.Benchmarks...)
 }

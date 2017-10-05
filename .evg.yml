@@ -35,26 +35,14 @@ functions:
           ${PREPARE_SHELL}
           ${SCRIPT_DIR}/create-packages.sh
 
-  "download blackbox test data":
-    command: shell.exec
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/download-blackbox-data.sh
-
-  "download tableau test data":
-    command: shell.exec
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/download-tableau-data.sh
-
-  "download tpch test data":
+  "download test data":
     command: shell.exec
     params:
       script: |
         ${PREPARE_SHELL}
         export TPCH_DATASET="${var_tpch_dataset}"
+        ${SCRIPT_DIR}/download-blackbox-data.sh
+        ${SCRIPT_DIR}/download-tableau-data.sh
         ${SCRIPT_DIR}/download-tpch-data.sh
 
   "export variables":
@@ -219,8 +207,6 @@ functions:
     params:
       script: |
         ${PREPARE_SHELL}
-        export SUITE='${var_suite}'
-        ${SCRIPT_DIR}/generate-tests.sh
         ${SCRIPT_DIR}/restore-test-data.sh
 
   "run benchmarks":
@@ -228,11 +214,13 @@ functions:
     type: test
     params:
       script: |
-        ${PREPARE_SHELL}
         set -o errexit
+        ${PREPARE_SHELL}
+        if [ "${var_nopushdown}" = "true" ]; then
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/nopushdown"
+        fi
         export SUITE='${var_suite}'
-        export BENCHMARKS='${var_benchmarks}'
-        ${SCRIPT_DIR}/generate-tests.sh
+        export NAMES='${var_names}'
         ${SCRIPT_DIR}/run-benchmarks.sh
 
   "run integration tests":
@@ -246,8 +234,10 @@ functions:
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/nopushdown"
         fi
         export SUITE='${var_suite}'
-        export INTEGRATION_TEST_FLAGS="${var_integration_test_flags}"
-        ${SCRIPT_DIR}/generate-tests.sh
+        export NAMES='${var_names}'
+        if [ "${var_parallel}" != "" ]; then
+            export TEST_PARALLEL_FLAG='-parallel ${var_parallel}'
+        fi
         ${SCRIPT_DIR}/run-integration-tests.sh
         # if we are on the race detector variant, check if races were detected
         [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
@@ -446,6 +436,7 @@ variables:
     # the task name in evg should correspond to a make target.
     name: test
     commands:
+      - func: "download test data"
       - func: "install dependencies"
       - func: "run make"
         vars:
@@ -470,7 +461,7 @@ tasks:
     - oneoff-task
     - benchmark
   commands:
-    - func: "download blackbox test data"
+    - func: "download test data"
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -484,13 +475,10 @@ tasks:
     - test
   exec_timeout_secs: 14400 # 4h
   commands:
-    - func: "download blackbox test data"
+    - func: "download test data"
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
-    - func: "restore test data"
-      vars:
-        var_suite: blackbox
     - func: "run integration tests"
       vars:
         var_suite: blackbox
@@ -502,21 +490,18 @@ tasks:
     - nopushdown
   exec_timeout_secs: 14400 # 4h
   commands:
-    - func: "download blackbox test data"
+    - func: "download test data"
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
         var_nopushdown: true
-    - func: "restore test data"
-      vars:
-        var_suite: blackbox
     - func: "run integration tests"
       vars:
         var_suite: blackbox
         var_nopushdown: true
         # turn down parallelism to avoid oom when running with race detection enabled
-        var_integration_test_flags: "-parallel 2"
+        var_parallel: "2"
 
 - name: check
   tags:
@@ -543,10 +528,8 @@ tasks:
   exec_timeout_secs: 14400 # 4h
   commands:
     - func: "start mongo-orchestration"
-    - func: "download blackbox test data"
+    - func: "download test data"
     - func: "restore test data"
-      vars:
-        var_suite: blackbox
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
@@ -554,7 +537,7 @@ tasks:
     - func: "run integration tests"
       vars:
         var_suite: blackbox
-        var_integration_test_flags: "-run TestBlackbox_2"
+        var_names: "^2$"
 
 - name: jdbc-auth-test
   tags:
@@ -591,9 +574,6 @@ tasks:
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
-    - func: "restore test data"
-      vars:
-        var_suite: integration
     - func: "run integration tests"
       vars:
         var_suite: integration
@@ -609,9 +589,6 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_nopushdown: true
-    - func: "restore test data"
-      vars:
-        var_suite: integration
     - func: "run integration tests"
       vars:
         var_suite: integration
@@ -622,13 +599,10 @@ tasks:
     - integration
     - test
   commands:
-    - func: "download tableau test data"
+    - func: "download test data"
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
-    - func: "restore test data"
-      vars:
-        var_suite: tableau
     - func: "run integration tests"
       vars:
         var_suite: tableau
@@ -638,13 +612,10 @@ tasks:
     - integration
     - test
   commands:
-    - func: "download blackbox test data"
+    - func: "download test data"
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
-    - func: "restore test data"
-      vars:
-        var_suite: tdvt
     - func: "run integration tests"
       vars:
         var_suite: tdvt
@@ -655,15 +626,12 @@ tasks:
     - test
     - nopushdown
   commands:
-    - func: "download blackbox test data"
+    - func: "download test data"
     - func: "start mongo-orchestration"
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
         var_nopushdown: true
-    - func: "restore test data"
-      vars:
-        var_suite: tdvt
     - func: "run integration tests"
       vars:
         var_suite: tdvt
@@ -876,7 +844,7 @@ tasks:
     - tpch
   exec_timeout_secs: 86400 # 1 day
   commands:
-    - func: "download tpch test data"
+    - func: "download test data"
       vars:
         var_tpch_dataset: denormalized
     - func: "start mongo-orchestration"
@@ -885,7 +853,7 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_suite: tpch
-        var_benchmarks: handwritten_denormalized
+        var_names: handwritten_denormalized
 
 - name: tpch-micro
   tags:
@@ -893,7 +861,7 @@ tasks:
     - benchmark
   exec_timeout_secs: 86400 # 1 day
   commands:
-    - func: "download tpch test data"
+    - func: "download test data"
       vars:
         var_tpch_dataset: micro
     - func: "start mongo-orchestration"
@@ -910,7 +878,7 @@ tasks:
     - tpch
   exec_timeout_secs: 86400 # 1 day
   commands:
-    - func: "download tpch test data"
+    - func: "download test data"
       vars:
         var_tpch_dataset: denormalized
     - func: "start mongo-orchestration"
@@ -919,7 +887,7 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_suite: tpch
-        var_benchmarks: workbook_denormalized
+        var_names: workbook_denormalized
 
 - name: tpch-workbook-normalized
   tags:
@@ -928,7 +896,7 @@ tasks:
     - tpch
   exec_timeout_secs: 86400 # 1 day
   commands:
-    - func: "download tpch test data"
+    - func: "download test data"
       vars:
         var_tpch_dataset: normalized
     - func: "start mongo-orchestration"
@@ -937,7 +905,7 @@ tasks:
     - func: "run benchmarks"
       vars:
         var_suite: tpch
-        var_benchmarks: workbook_normalized
+        var_names: workbook_normalized
 
 - name: unit-tests
   tags: ["test"]

@@ -1,8 +1,11 @@
 
-test-basic-sample: build-mongosqld run-mongodb restore-data run-mongosqld _test-connect-success _test-basic-sample
+test-basic-sample: build-mongosqld run-mongodb restore-data run-mongosqld _test-schema-available _test-connect-success _test-basic-sample
 _test-basic-sample: TABLE := test1
 _test-basic-sample: NUM_COLUMNS := 5
 _test-basic-sample: _test-count-columns
+
+_test-schema-available:
+	$(ENV) TIMEOUT=60 testdata/bin/test-schema-available.sh
 
 test-sample-connect-failure: build-mongosqld run-mongodb restore-data run-mongosqld _test-connect-failure
 
@@ -15,7 +18,7 @@ _write-initial-schema:
 _write-updated-schema:
 	$(ENV) GENERATION=1 testdata/bin/write-schema.sh
 
-test-read-schema: build-mongosqld run-mongodb restore-data _write-initial-schema run-mongosqld _test-connect-success _test-read-schema
+test-read-schema: build-mongosqld run-mongodb restore-data _write-initial-schema run-mongosqld _test-schema-available _test-connect-success _test-read-schema
 _test-read-schema: TABLE := test1
 _test-read-schema: NUM_COLUMNS := 1
 _test-read-schema: _test-count-columns
@@ -78,7 +81,7 @@ test-read-after-sampling: test-basic-sample _write-initial-schema _test-read-sch
 _test-mysql-query:
 	$(ENV) QUERY="$(QUERY)" EXPECTED="$(EXPECTED)" testdata/bin/test-mysql-query.sh
 
-test-count-columns: build-mongosqld run-mongodb _insert-sample-docs run-mongosqld _test-count-columns
+test-count-columns: build-mongosqld run-mongodb _insert-sample-docs run-mongosqld _test-schema-available _test-count-columns
 _test-count-columns: QUERY = select count(*) from information_schema.columns where table_name = '$(TABLE)';
 _test-count-columns: EXPECTED = $(NUM_COLUMNS)
 _test-count-columns: _test-mysql-query

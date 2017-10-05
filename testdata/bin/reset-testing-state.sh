@@ -22,6 +22,8 @@
         reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\mongosql" /f || true
     else
         pkill -9 mongosqld
+        pkill -9 sqlproxy
+        pkill -9 sqld
     fi
     pkill -9 -f mongo-orchestration
     echo "done cleaning up processes"

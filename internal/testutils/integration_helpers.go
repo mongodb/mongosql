@@ -5,13 +5,17 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/schema"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var maxTime = time.Duration(*MaxTimeSecs) * time.Second
@@ -207,8 +211,8 @@ func RunTest(t *testing.T, test *TestCase, db *sql.DB) error {
 	return nil
 }
 
-func RunBenchmark(t *testing.B, test *TestCase, db *sql.DB) error {
-	query := test.SQL
+func RunBenchmark(b *testing.B, bench *TestCase, db *sql.DB) error {
+	query := bench.SQL
 
 	db.SetMaxOpenConns(1)
 	var connId int
@@ -218,9 +222,9 @@ func RunBenchmark(t *testing.B, test *TestCase, db *sql.DB) error {
 		return err
 	}
 
-	t.ResetTimer()
+	b.ResetTimer()
 
-	for n := 0; n < t.N; n++ {
+	for n := 0; n < b.N; n++ {
 		timer := time.NewTimer(maxTime)
 		done := false
 		killed := false
@@ -229,7 +233,7 @@ func RunBenchmark(t *testing.B, test *TestCase, db *sql.DB) error {
 			<-timer.C
 			if !*done {
 				db.SetMaxOpenConns(2)
-				t.Logf("killing query (ran longer than %s)", maxTime)
+				b.Logf("killing query (ran longer than %s)", maxTime)
 				kill := fmt.Sprintf("kill query %d", connId)
 				db.Query(kill)
 				*killed = true
@@ -251,4 +255,122 @@ func RunBenchmark(t *testing.B, test *TestCase, db *sql.DB) error {
 	}
 
 	return nil
+}
+
+func RunIntegrationSuite(t *testing.T, name string) {
+	// we do not run suites in parallel to avoid races
+	// when restoring suite data
+	suite, err := setupIntegrationSuite(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, test := range suite.Tests {
+		t.Run(test.Name, func(t *testing.T) {
+			runIntegrationTest(t, test)
+		})
+	}
+}
+
+func BenchmarkIntegrationSuite(b *testing.B, name string) {
+	suite, err := setupIntegrationSuite(name)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for _, bench := range suite.Benchmarks {
+		b.Run(bench.Name, func(b *testing.B) {
+			runIntegrationBenchmark(b, bench)
+		})
+	}
+}
+
+func runIntegrationTest(t *testing.T, test *TestCase) {
+	t.Parallel()
+
+	if test.Skip {
+		if *RunSkipped {
+			t.Log("Running test with skip=true")
+		} else {
+			t.Skip("Skipping test with skip=true")
+		}
+	}
+
+	noPushDownMode := os.Getenv(evaluator.NoPushDown) != ""
+	if test.PushDownOnly && noPushDownMode {
+		t.Skip("Skipping pushdown-only test in pushdown mode")
+	}
+
+	if !MongodbVersionAtLeast(test.MinServerVersion) {
+		t.Skipf("Skipping test with min_server_version=%v against MongoDB %v", test.MinServerVersion, *ServerVersion)
+	}
+
+	dbName := test.Database
+
+	compressionVal := ""
+	if *DriverCompression {
+		compressionVal = "&compress=1"
+	}
+
+	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1%v", *DbAddr, dbName, compressionVal)
+	db, err := sql.Open("mysql", connString)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer db.Close()
+
+	err = RunTest(t, test, db)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func runIntegrationBenchmark(b *testing.B, bench *TestCase) {
+	if bench.Skip {
+		if *RunSkipped {
+			b.Log("Running benchmark with skip=true")
+		} else {
+			b.Skip("Skipping benchmark with skip=true")
+		}
+	}
+
+	dbName := bench.Database
+
+	compressionVal := ""
+	if *DriverCompression {
+		compressionVal = "&compress=1"
+	}
+
+	connString := fmt.Sprintf("root@tcp(%v)/%v?allowNativePasswords=1%v", *DbAddr, dbName, compressionVal)
+	db, err := sql.Open("mysql", connString)
+	if err != nil {
+		b.Fatal(err.Error())
+	}
+	defer db.Close()
+
+	err = RunBenchmark(b, bench, db)
+	if err != nil {
+		b.Fatal(err.Error())
+	}
+}
+
+func setupIntegrationSuite(suite string) (*TestSuite, error) {
+	automate := *Automate
+	if automate == "data" {
+		fmt.Printf(">> Restoring %s data...\n", suite)
+		err := RestoreSuiteData(suite)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Printf(">> Done restoring %s data\n", suite)
+	}
+
+	fmt.Printf(">> Loading %s test suite...\n", suite)
+	tests, err := LoadTestSuite(suite)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf(">> Done loading %s test suite\n", suite)
+
+	return tests, nil
 }

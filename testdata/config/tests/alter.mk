@@ -11,10 +11,10 @@ _test-not-altered: EXPECTED := 5
 _test-not-altered: _test-mysql-query
 
 test-alter-success: EXPECTED_STATUS := 0
-test-alter-success: build-mongosqld run-mongodb restore-data run-mongosqld _test-connect-success _try-alter _test-altered
+test-alter-success: build-mongosqld run-mongodb restore-data run-mongosqld _test-schema-available _test-connect-success _try-alter _test-altered
 
 test-alter-failure: EXPECTED_STATUS := 1
-test-alter-failure: build-mongosqld run-mongodb restore-data run-mongosqld _test-connect-success _try-alter _test-not-altered
+test-alter-failure: build-mongosqld run-mongodb restore-data run-mongosqld _test-schema-available _test-connect-success _try-alter _test-not-altered
 
 test-alter-drdl: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: cannot alter schema: schema was loaded from a file
 test-alter-drdl: test-alter-failure
@@ -31,6 +31,6 @@ test-alter-clustered-write: test-alter-success
 
 test-alter-flush: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
 test-alter-flush: EXPECTED_STATUS := 0
-test-alter-flush: build-mongosqld run-mongodb restore-data run-mongosqld _test-connect-success _try-alter _test-flush _test-not-altered
+test-alter-flush: build-mongosqld run-mongodb restore-data run-mongosqld _test-schema-available _test-connect-success _try-alter _test-flush _test-not-altered
 _test-flush:
 	$(ENV) EXPECTED_STATUS='0' EXPECTED_ERROR='' testdata/bin/test-flush.sh
