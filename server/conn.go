@@ -737,7 +737,15 @@ func (c *conn) useDB(db string) error {
 
 // User returns the current user.
 func (c *conn) User() string {
-	return fmt.Sprintf("%s@%s", c.user, c.conn.RemoteAddr().String())
+	host, _, err := net.SplitHostPort(c.conn.RemoteAddr().String())
+	if err != nil {
+		host = c.conn.RemoteAddr().String()
+		// For socket connections which have neither host nor port
+		if host == "" {
+			host = "localhost"
+		}
+	}
+	return fmt.Sprintf("%s@%s", c.user, host)
 }
 
 func (c *conn) useTLS() error {
