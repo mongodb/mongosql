@@ -3,7 +3,9 @@ package server
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"testing"
+	"time"
 )
 
 func readHelper(t *testing.T, packets []byte, expLen int) []byte {
@@ -135,3 +137,47 @@ func TestReaderAndWriter(t *testing.T) {
 		})
 	}
 }
+
+type mockAddr struct {
+	addrString string
+}
+
+func (d *mockAddr) String() string {
+	return d.addrString
+}
+
+type mockNetConn struct {
+	dAddr *mockAddr
+}
+
+func (d *mockNetConn) RemoteAddr() net.Addr {
+	return d.dAddr
+}
+
+func TestUserStringFunction(t *testing.T) {
+	c := &conn{}
+	c.user = "user"
+
+	nconn := &mockNetConn{&mockAddr{"host:port"}}
+	c.conn = nconn
+	if c.User() != "user@host" {
+		t.Fatal("User func should return exactly the user and host if they exist")
+	}
+
+	nconn = &mockNetConn{&mockAddr{""}}
+	c.conn = nconn
+	if c.User() != "user@localhost" {
+		t.Fatal("User func should return user@localhost if no host is provided")
+	}
+
+}
+
+// These functions don't do anything and are here just to satisfy net.Conn and net.Addr interfaces
+func (*mockAddr) Network() string                       { return "" }
+func (*mockNetConn) Read(b []byte) (n int, err error)   { return -1, nil }
+func (*mockNetConn) Write(b []byte) (n int, err error)  { return -1, nil }
+func (*mockNetConn) Close() error                       { return nil }
+func (*mockNetConn) LocalAddr() net.Addr                { return nil }
+func (*mockNetConn) SetDeadline(t time.Time) error      { return nil }
+func (*mockNetConn) SetReadDeadline(t time.Time) error  { return nil }
+func (*mockNetConn) SetWriteDeadline(t time.Time) error { return nil }
