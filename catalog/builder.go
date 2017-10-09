@@ -315,6 +315,7 @@ func (b *catalogBuilder) addColumnsTable(d *Database) error {
 						"",
 						"select",
 						col.Comments(),
+						"",
 					))
 				}
 			}
@@ -342,6 +343,7 @@ func (b *catalogBuilder) addColumnsTable(d *Database) error {
 	t.AddColumn("EXTRA", schema.SQLVarchar)
 	t.AddColumn("PRIVILEGES", schema.SQLVarchar)
 	t.AddColumn("COLUMN_COMMENT", schema.SQLVarchar)
+	t.AddColumn("GENERATION_EXPRESSION", schema.SQLVarchar)
 
 	return d.AddTable(t)
 }
@@ -756,6 +758,7 @@ func (b *catalogBuilder) addTablesTable(d *Database) error {
 					nil,
 					nil,
 					nil,
+					nil,
 					"NO",
 					nil,
 					nil,
@@ -779,6 +782,7 @@ func (b *catalogBuilder) addTablesTable(d *Database) error {
 	t.AddColumn("ROW_FORMAT", schema.SQLVarchar)
 	t.AddColumn("TABLE_ROWS", schema.SQLInt64)
 	t.AddColumn("AVG_ROW_LENGTH", schema.SQLInt64)
+	t.AddColumn("DATA_LENGTH", schema.SQLInt64)
 	t.AddColumn("MAX_DATA_LENGTH", schema.SQLInt64)
 	t.AddColumn("INDEX_LENGTH", schema.SQLInt64)
 	t.AddColumn("DATA_FREE", schema.SQLInt64)

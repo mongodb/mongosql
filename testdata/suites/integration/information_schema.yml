@@ -58,6 +58,20 @@ testcases:
   - ["def", "information_schema_test", "foo", "BASE TABLE", "utf8_bin", "{ \"collectionName\": \"information_schema_1\" }"]
   - ["def", "information_schema_test2", "foo", "BASE TABLE", "utf8_bin", "{ \"collectionName\": \"information_schema_1\" }"]
 
+- sql: "select * from information_schema.tables  where TABLE_SCHEMA like 'where_test%' order by TABLE_SCHEMA, TABLE_NAME"
+  id: '1b'
+  db: information_schema_test
+  description: "all information_schema.tables columns"
+  expected_names: ["TABLE_CATALOG", "TABLE_SCHEMA", "TABLE_NAME", "TABLE_TYPE", "ENGINE", "VERSION", "ROW_FORMAT", "TABLE_ROWS", "AVG_ROW_LENGTH", "DATA_LENGTH", "MAX_DATA_LENGTH", "INDEX_LENGTH", "DATA_FREE", "AUTO_INCREMENT", "CREATE_TIME", "UPDATE_TIME", "CHECK_TIME", "TABLE_COLLATION", "CHECKSUM", "CREATE_OPTIONS", "TABLE_COMMENT"]
+  expected_types: [string, string, string, string, string, string, string, int64, int64, int64, int64, int64, int64, string, string, string, string, string, string, string, string]
+  expected:
+  - ["def", "where_test", "bar", "BASE TABLE", "", "", "", ~, ~, ~, ~, ~, ~, "NO", ~, ~, ~, "utf8_bin", ~, ~, "{ \"collectionName\": \"where_2\" }" ]
+  - ["def", "where_test", "baz", "BASE TABLE", "", "", "", ~, ~, ~, ~, ~, ~, "NO", ~, ~, ~, "utf8_bin", ~, ~, "{ \"collectionName\": \"where_4\" }" ]
+  - ["def", "where_test", "foo", "BASE TABLE", "", "", "", ~, ~, ~, ~, ~, ~, "NO", ~, ~, ~, "utf8_bin", ~, ~, "{ \"collectionName\": \"where_1\" }" ]
+  - ["def", "where_test", "reg", "BASE TABLE", "", "", "", ~, ~, ~, ~, ~, ~, "NO", ~, ~, ~, "utf8_bin", ~, ~, "{ \"collectionName\": \"where_5\" }" ]
+  - ["def", "where_test", "test2", "BASE TABLE", "", "", "", ~, ~, ~, ~, ~, ~, "NO", ~, ~, ~, "utf8_bin", ~, ~, "{ \"collectionName\": \"where_3\" }" ]
+  - ["def", "where_test", "tint", "BASE TABLE", "", "", "", ~, ~, ~, ~, ~, ~, "NO", ~, ~, ~, "utf8_bin", ~, ~, "{ \"collectionName\": \"where_6\" }" ]
+
 # COLUMNS
 - sql: "select * from information_schema.columns where table_schema like 'information_schema_test%' order by table_schema, table_name, ordinal_position"
   id: '2'
@@ -65,16 +79,16 @@ testcases:
   description: "columns full"
   expected_names: ["TABLE_CATALOG", "TABLE_SCHEMA", "TABLE_NAME", "COLUMN_NAME", "ORDINAL_POSITION", "COLUMN_DEFAULT", "IS_NULLABLE", "DATA_TYPE",
     "CHARACTER_MAXIMUM_LENGTH", "CHARACTER_OCTET_LENGTH", "NUMERIC_PRECISION", "NUMERIC_SCALE", "DATETIME_PRECISION", "CHARACTER_SET_NAME",
-    "COLLATION_NAME", "COLUMN_TYPE", "COLUMN_KEY", "EXTRA", "PRIVILEGES", "COLUMN_COMMENT"]
+    "COLLATION_NAME", "COLUMN_TYPE", "COLUMN_KEY", "EXTRA", "PRIVILEGES", "COLUMN_COMMENT", "GENERATION_EXPRESSION"]
   expected_types: [string, string, string, string, int64, string, string, string, int64, int64, int64, int64, int64,
-    string, string, string, string, string, string, string]
+    string, string, string, string, string, string, string, string]
   expected:
-  - ["def", "information_schema_test", "bar", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }"]
-  - ["def", "information_schema_test", "bar", "b", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"b\" }"]
-  - ["def", "information_schema_test", "foo", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }"]
-  - ["def", "information_schema_test", "foo", "a", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"a\" }"]
-  - ["def", "information_schema_test2", "foo", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }"]
-  - ["def", "information_schema_test2", "foo", "a", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"a\" }"]
+  - ["def", "information_schema_test", "bar", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }", ""]
+  - ["def", "information_schema_test", "bar", "b", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"b\" }", ""]
+  - ["def", "information_schema_test", "foo", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }", ""]
+  - ["def", "information_schema_test", "foo", "a", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"a\" }", ""]
+  - ["def", "information_schema_test2", "foo", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }", ""]
+  - ["def", "information_schema_test2", "foo", "a", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"a\" }", ""]
 
 # GLOBAL_VARIABLES
 - sql: "select * from information_schema.global_variables order by variable_name limit 1"
