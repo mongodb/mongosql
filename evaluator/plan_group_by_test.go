@@ -48,11 +48,11 @@ func TestGroupByPlanStage(t *testing.T) {
 
 			projectedColumns := ProjectedColumns{
 				ProjectedColumn{
-					Column: &Column{1, tableOneName, tableOneName, BSONSourceDB, "a", "a", schema.SQLVarchar, schema.MongoInt, false},
+					Column: &Column{1, tableOneName, tableOneName, BSONSourceDB, "a", "a", "", schema.SQLVarchar, schema.MongoInt, false},
 					Expr:   NewSQLColumnExpr(1, tableOneName, "a", schema.SQLVarchar, schema.MongoString),
 				},
 				ProjectedColumn{
-					Column: &Column{1, "", "", BSONSourceDB, "sum(b)", "sum(b)", schema.SQLFloat, schema.MongoNone, false},
+					Column: &Column{1, "", "", BSONSourceDB, "sum(b)", "sum(b)", "", schema.SQLFloat, schema.MongoNone, false},
 					Expr: &SQLAggFunctionExpr{
 						Name: "sum",
 						Exprs: []SQLExpr{
@@ -111,11 +111,11 @@ func TestGroupByPlanStage_MemoryLimits(t *testing.T) {
 
 		projectedColumns := ProjectedColumns{
 			ProjectedColumn{
-				Column: &Column{1, tableOneName, tableOneName, BSONSourceDB, "a", "a", schema.SQLVarchar, schema.MongoInt, false},
+				Column: &Column{1, tableOneName, tableOneName, BSONSourceDB, "a", "a", "", schema.SQLVarchar, schema.MongoInt, false},
 				Expr:   NewSQLColumnExpr(1, tableOneName, "a", schema.SQLVarchar, schema.MongoString),
 			},
 			ProjectedColumn{
-				Column: &Column{1, "", "", BSONSourceDB, "sum(b)", "sum(b)", schema.SQLFloat, schema.MongoNone, false},
+				Column: &Column{1, "", "", BSONSourceDB, "sum(b)", "sum(b)", "", schema.SQLFloat, schema.MongoNone, false},
 				Expr: &SQLAggFunctionExpr{
 					Name: "sum",
 					Exprs: []SQLExpr{

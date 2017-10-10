@@ -3623,6 +3623,39 @@ func TestOptimizePlan(t *testing.T) {
 					}}},
 				})
 		})
+		Convey("Subject: Push down duplicate columns", func() {
+			test("select a, b as a from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+						"foo_DOT_b": "$b",
+					}}},
+				})
+			test("select a, b as a, c as a from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+						"foo_DOT_b": "$b",
+						"foo_DOT_c": "$c",
+					}}},
+				})
+			test("select a, b as a, _id as a from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						"foo_DOT_a":   "$a",
+						"foo_DOT_b":   "$b",
+						"foo_DOT__id": "$_id",
+					}}},
+				})
+			test("select a, b as a, e as a from foo",
+				[]bson.D{
+					{{"$project", bson.M{
+						"foo_DOT_a": "$a",
+						"foo_DOT_b": "$b",
+						"foo_DOT_e": "$d.e",
+					}}},
+				})
+		})
 
 	})
 }

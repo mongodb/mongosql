@@ -117,6 +117,12 @@ func (ms *MongoSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	case err = <-errChan:
 	}
 
+	for _, column := range ms.mappingRegistry.columns {
+		if column.MappingRegistryName == "" {
+			column.MappingRegistryName = column.Name
+		}
+	}
+
 	return &MongoSourceIter{
 		mappingRegistry: ms.mappingRegistry,
 		ctx:             ctx.Context(),
@@ -143,9 +149,10 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 
 	for _, column := range ms.mappingRegistry.columns {
 
-		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.Name)
+		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.MappingRegistryName)
+
 		if !ok {
-			ms.err = fmt.Errorf("unable to find mapping from %v.%v to a field name", column.Table, column.Name)
+			ms.err = fmt.Errorf("unable to find mapping from %v.%v to a field name", column.Table, column.MappingRegistryName)
 			return false
 		}
 
