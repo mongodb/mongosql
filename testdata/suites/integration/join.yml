@@ -973,6 +973,17 @@ testcases:
   - [~]
   - [~]
   - [~]
+- sql: "select bar.d, baz.a from bar straight_join baz on bar.c = baz.c"
+  id: 'straight_join_on_c'
+  db: join_test
+  description: ""
+  expected_names: ["d", "a"]
+  expected_types: [int, int]
+  expected:
+  - [~, 4]
+  - [1, 3]
+  - [~, 14]
+  - [~, ~]
 - sql: "select bar.d, baz.a from bar join baz using (c)"
   id: 'using_simple'
   db: join_test
@@ -993,17 +1004,6 @@ testcases:
   expected:
   - [~, 4]
   - [1, 3]
-- sql: "select bar.d, baz.a from bar straight_join baz using (c)"
-  id: 'using_straight'
-  db: join_test
-  description: ""
-  expected_names: ["d", "a"]
-  expected_types: [int, int]
-  expected:
-  - [~, 4]
-  - [1, 3]
-  - [~, 14]
-  - [~, ~]
 - sql: "select bar.d, baz.a from bar left join baz using (id)"
   id: 'using_left'
   db: join_test

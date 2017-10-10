@@ -410,6 +410,10 @@ func TestUsing(t *testing.T) {
 
 	sql = "select bar.d, baz.a from bar join baz using ()"
 	testParseError(t, sql)
+
+	// using not valid in straight_join
+	sql = "select bar.d, baz.a from bar straight_join baz using (id)"
+	testParseError(t, sql)
 }
 
 func TestFlush(t *testing.T) {
