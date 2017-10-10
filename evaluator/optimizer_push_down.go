@@ -1835,13 +1835,6 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 	// If so, this Project node can be removed from the query plan tree.
 	canReplaceProject := true
 
-	// if we have a projection that results in multiple columns with the same qualifier and name,
-	// we cannot push this down.
-	uniqueProjectedColumns := project.projectedColumns.Unique()
-	if len(uniqueProjectedColumns) != len(project.projectedColumns) {
-		return project, nil
-	}
-
 	t := &pushDownTranslator{
 		versionAtLeast:  v.ctx.Variables().MongoDBInfo.VersionAtLeast,
 		lookupFieldName: ms.mappingRegistry.lookupFieldName,
@@ -1891,7 +1884,13 @@ func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, erro
 
 			fieldsToProject[safeFieldName] = projectedField
 			fixedMappingRegistry.addColumn(projectedColumn.Column)
-			fixedMappingRegistry.registerMapping(projectedColumn.Table, projectedColumn.Name, safeFieldName)
+
+			registryName := v.uniqueRegistryName(&fixedMappingRegistry, projectedColumn.Table, projectedColumn.Name)
+			if projectedColumn.Name != registryName {
+				projectedColumn.MappingRegistryName = registryName
+			}
+
+			fixedMappingRegistry.registerMapping(projectedColumn.Table, registryName, safeFieldName)
 
 			columnExpr := NewSQLColumnExpr(projectedColumn.SelectID, projectedColumn.Column.Table, projectedColumn.Column.Name, projectedColumn.SQLType, projectedColumn.MongoType)
 
@@ -2066,6 +2065,23 @@ func (v *pushDownOptimizer) uniqueFieldName(mr *mappingRegistry, fieldName strin
 		retFieldName = fmt.Sprintf("%v_%v", fieldName, i)
 		i++
 
+	}
+}
+
+func (v *pushDownOptimizer) uniqueRegistryName(mr *mappingRegistry, tableName, columnName string) string {
+	if _, hasLookup := mr.lookupFieldName(tableName, columnName); !hasLookup {
+		return columnName
+	}
+
+	retColumnName := columnName
+
+	i := 1
+	for {
+		retColumnName = fmt.Sprintf("%v_%v", columnName, i)
+		if _, hasLookup := mr.lookupFieldName(tableName, retColumnName); !hasLookup {
+			return retColumnName
+		}
+		i++
 	}
 }
 

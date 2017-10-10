@@ -70,15 +70,16 @@ type Executor interface {
 // Column contains information used to select data
 // from a PlanStage.
 type Column struct {
-	SelectID      int
-	Table         string
-	OriginalTable string
-	Database      string
-	Name          string
-	OriginalName  string
-	SQLType       schema.SQLType
-	MongoType     schema.MongoType
-	PrimaryKey    bool
+	SelectID            int
+	Table               string
+	OriginalTable       string
+	Database            string
+	Name                string
+	OriginalName        string
+	MappingRegistryName string
+	SQLType             schema.SQLType
+	MongoType           schema.MongoType
+	PrimaryKey          bool
 }
 
 func (c *Column) clone() *Column {

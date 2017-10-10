@@ -1001,3 +1001,21 @@ testcases:
   expected:
   - [1, 2]
   - [2, 3]
+- sql: "select id as a, a from foo"
+  id: '102'
+  db: select_sTest
+  description: "two duplicate columns in final project"
+  expected_names: ["a", "a"]
+  expected_types: [int, int]
+  expected:
+  - [0, 1]
+  - [1, 2]
+- sql: "select id as a, a, b as a  from foo"
+  id: '103'
+  db: select_sTest
+  description: "three duplicate columns in final project"
+  expected_names: ["a", "a", "a"]
+  expected_types: [int, int, int]
+  expected:
+  - [0, 1, ~]
+  - [1, 2, ~]
