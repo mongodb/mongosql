@@ -851,9 +851,18 @@ join_expression:
   {
     $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3}
   }
+|
+  table_expression STRAIGHT_JOIN table_expression %prec JOIN
+  {
+    $$ = &JoinTableExpr{LeftExpr: $1, Join: AST_STRAIGHT_JOIN, RightExpr: $3}
+  }
 | table_expression join_type table_expression ON expression %prec JOIN
   {
     $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3, On: $5}
+  }
+| table_expression STRAIGHT_JOIN table_expression ON expression %prec JOIN
+  {
+    $$ = &JoinTableExpr{LeftExpr: $1, Join: AST_STRAIGHT_JOIN, RightExpr: $3, On: $5}
   }
 | table_expression join_type table_expression USING LPAREN column_expression_list RPAREN %prec JOIN
   {
@@ -889,10 +898,6 @@ join_type:
   JOIN
   {
     $$ = AST_JOIN
-  }
-| STRAIGHT_JOIN
-  {
-    $$ = AST_STRAIGHT_JOIN
   }
 | LEFT JOIN
   {
