@@ -31,6 +31,10 @@ type mappingContext struct {
 	// property names followed when accessing the field in a document.
 	path string
 
+	// uuidSubtype3Encoding is the encoding used to store UUID subtype 3 values.
+	// It is used to drive how such values are decoded from MongoDB.
+	uuidSubtype3Encoding string
+
 	// inPrimaryKey tracks whether the current path is "in" the primary key.
 	// this should be true whenever the path begins with "_id" (false otherwise)
 	inPrimaryKey bool
@@ -167,7 +171,7 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 func (ctx *mappingContext) mapScalarSchema(js *mongo.Schema) error {
 
 	// create a new column
-	col, err := newColumn(ctx.path, js)
+	col, err := newColumn(ctx.path, js, ctx.uuidSubtype3Encoding)
 	if err != nil {
 		return err
 	}
@@ -283,12 +287,13 @@ func (ctx *mappingContext) withSubpath(subPath string) *mappingContext {
 // context's fields.
 func (ctx *mappingContext) copy() *mappingContext {
 	return &mappingContext{
-		logger:           ctx.logger,
-		db:               ctx.db,
-		table:            ctx.table,
-		path:             ctx.path,
-		nestedArrayDepth: ctx.nestedArrayDepth,
-		inPrimaryKey:     ctx.inPrimaryKey,
+		logger:               ctx.logger,
+		db:                   ctx.db,
+		table:                ctx.table,
+		path:                 ctx.path,
+		uuidSubtype3Encoding: ctx.uuidSubtype3Encoding,
+		nestedArrayDepth:     ctx.nestedArrayDepth,
+		inPrimaryKey:         ctx.inPrimaryKey,
 	}
 }
 
@@ -334,7 +339,7 @@ func newTable(tableName, collectionName string) *Table {
 // schema, mapping the schema's BsonType and SpecialType to the appropriate
 // SQLType and MongoType. If this function returns a nil column and a nil error,
 // then the type represented by the provided schema was intentionally ignored.
-func newColumn(name string, js *mongo.Schema) (*Column, error) {
+func newColumn(name string, js *mongo.Schema, uuidSubtype3Encoding string) (*Column, error) {
 	var sqlType SQLType
 	var mongoType MongoType
 
@@ -366,8 +371,12 @@ func newColumn(name string, js *mongo.Schema) (*Column, error) {
 	case mongo.BinData:
 		switch js.SpecialType {
 		case mongo.UUID3:
+			subtype, err := newMongoUUIDSubtype3(uuidSubtype3Encoding)
+			if err != nil {
+				return nil, err
+			}
 			sqlType = SQLVarchar
-			mongoType = MongoUUIDOld // default for now
+			mongoType = subtype
 		case mongo.UUID4:
 			sqlType = SQLVarchar
 			mongoType = MongoUUID
@@ -380,14 +389,14 @@ func newColumn(name string, js *mongo.Schema) (*Column, error) {
 			sqlType = SQLArrNumeric
 			mongoType = MongoGeo2D
 		} else {
-			return nil, fmt.Errorf("Cannot create new column from array schema with SpeciaType '%s'", js.SpecialType)
+			return nil, fmt.Errorf("cannot create new column from array schema with SpeciaType '%s'", js.SpecialType)
 		}
 	case mongo.Object:
-		return nil, fmt.Errorf("Cannot create new column from object schema")
+		return nil, fmt.Errorf("cannot create new column from object schema")
 	case mongo.NoBsonType:
-		return nil, fmt.Errorf("Cannot create new column from schema with no bson type")
+		return nil, fmt.Errorf("cannot create new column from schema with no bson type")
 	default:
-		return nil, fmt.Errorf("Cannot create new column: unsupported bson type %s", js.BsonType)
+		return nil, fmt.Errorf("cannot create new column: unsupported bson type %s", js.BsonType)
 	}
 
 	return &Column{
@@ -396,4 +405,16 @@ func newColumn(name string, js *mongo.Schema) (*Column, error) {
 		SqlName:   name,
 		SqlType:   sqlType,
 	}, nil
+}
+
+func newMongoUUIDSubtype3(uuidSubtype3Encoding string) (MongoType, error) {
+	switch uuidSubtype3Encoding {
+	case "old":
+		return MongoUUIDOld, nil
+	case "csharp":
+		return MongoUUIDCSharp, nil
+	case "java":
+		return MongoUUIDJava, nil
+	}
+	return MongoNone, fmt.Errorf("cannot create new column from UUID with encoding '%s'", uuidSubtype3Encoding)
 }

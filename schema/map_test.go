@@ -141,7 +141,7 @@ func testMapSchema(collection string, prejoined bool, jsonSchema *mongo.Schema, 
 
 	// map the json schema into a relational database
 	db := &schema.Database{Name: "test"}
-	err := db.Map(jsonSchema, collection, prejoined, log.GlobalLogger())
+	err := db.Map(jsonSchema, collection, prejoined, "old", log.GlobalLogger())
 	if err != nil {
 		return err
 	}

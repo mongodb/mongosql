@@ -19,6 +19,11 @@ var (
 		"SCRAM-SHA-1",
 		"PLAIN",
 	}
+	uuidSubtype3Encodings = []string{
+		"old",
+		"csharp",
+		"java",
+	}
 )
 
 const (
@@ -101,6 +106,7 @@ func Default() *Config {
 	cfg.Schema.Sample.Mode = "read"
 	cfg.Schema.Sample.Namespaces = []string{"*.*"}
 	cfg.Schema.Sample.RefreshIntervalSecs = 0
+	cfg.Schema.Sample.UUIDSubtype3Encoding = "old"
 
 	cfg.SystemLog.LogRotate = log.Rename
 

@@ -178,7 +178,8 @@ func (d *Database) Equals(other *Database) error {
 // equivalent of that schema. If preJoined is true, the tables generated for
 // array fields will include parent fields, effectively resulting in pre-joined
 // tables.
-func (d *Database) Map(js *mongo.Schema, name string, preJoined bool, lg log.Logger) error {
+func (d *Database) Map(js *mongo.Schema, name string, preJoined bool,
+	uuidSubtype3Encoding string, lg log.Logger) error {
 
 	// create the table into which we will map this collection's fields.
 	// this table has the same name as the collection it is mapped from.
@@ -189,11 +190,12 @@ func (d *Database) Map(js *mongo.Schema, name string, preJoined bool, lg log.Log
 		return err
 	}
 
-	// initialize the top-level mapping context with the logger, db, and table
+	// initialize the top-level mapping context
 	ctx := &mappingContext{
-		logger: lg,
-		db:     d,
-		table:  t,
+		logger:               lg,
+		db:                   d,
+		table:                t,
+		uuidSubtype3Encoding: uuidSubtype3Encoding,
 	}
 
 	// map the collection schema to a relational schema
