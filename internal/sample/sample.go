@@ -3,6 +3,7 @@ package sample
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -302,7 +303,8 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 			ns := fmt.Sprintf("%q.%q", db, collection)
 
 			if !nsMatcher.Has(db+"."+collection) ||
-				util.SliceContains(nsSampleBlacklist, ns) {
+				util.SliceContains(nsSampleBlacklist, ns) ||
+				strings.HasPrefix(collection, "system.") {
 				lgr.Debugf(log.Dev, "skipping namespace %s", ns)
 				continue
 			}

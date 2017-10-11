@@ -192,6 +192,26 @@ func InsertDocuments(s Server, databaseName, collectionName string, documents in
 	}
 }
 
+func RunCmd(s Server, databaseName string, cmd interface{}, result interface{}) {
+	request := msg.NewCommand(
+		msg.NextRequestID(),
+		databaseName,
+		false,
+		cmd,
+	)
+
+	c, err := s.Connection(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	defer c.Close()
+
+	err = conn.ExecuteCommand(context.Background(), c, request, result)
+	if err != nil {
+		panic(err)
+	}
+}
+
 type cursorReturningResult struct {
 	Cursor firstBatchCursorResult `bson:"cursor"`
 }

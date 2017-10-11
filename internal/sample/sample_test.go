@@ -6,13 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/config"
 	. "github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/testutils/dbutils"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema/mongo"
+
+	"github.com/10gen/mongo-go-driver/bson"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -362,11 +363,15 @@ func TestSample(t *testing.T) {
 		dbutils.InsertDocuments(session, db2, c2, doc)
 		dbutils.InsertDocuments(session, db2, c1, doc)
 		dbutils.InsertDocuments(session, cfg.Schema.Sample.Source, c1, doc)
+		// enabling profiling should introduce an additional system.profile
+		// collection which should not be sampled
+		dbutils.RunCmd(session, db2, bson.D{{"profile", 1}}, &struct{}{})
 
 		opts := &cfg.Schema.Sample
 		schema, sampleRecord, err := SampleSchema(opts, "temp", session, &lgr)
 		So(err, ShouldBeNil)
 		So(schema, ShouldNotBeNil)
+		dbutils.RunCmd(session, db2, bson.D{{"profile", 0}}, &struct{}{})
 
 		So(sampleRecord, ShouldNotBeNil)
 		So(sampleRecord.Database, ShouldEqual, cfg.Schema.Sample.Source)
@@ -420,6 +425,8 @@ func TestSample(t *testing.T) {
 			So(sampleRecord.Namespaces, shouldNotContainNS, db3c2)
 			db3c1 := NewNamespace(db3, c1, versionId)
 			So(sampleRecord.Namespaces, shouldNotContainNS, db3c1)
+			profile := NewNamespace(db2, "system.profile", versionId)
+			So(sampleRecord.Namespaces, shouldNotContainNS, profile)
 		})
 
 		Convey("blacklisted namespaces should not be present", func() {
