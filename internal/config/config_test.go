@@ -27,7 +27,7 @@ func TestDefault(t *testing.T) {
 	testInt64(t, cfg.Schema.Sample.Size, 1000, "cfg.Schema.Sample.Size")
 	testStringSlice(t, cfg.Schema.Sample.Namespaces, []string{"*.*"}, "cfg.Schema.Sample.Namespaces")
 	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecs, 0, "cfg.Schema.Sample.RefreshIntervalSecs")
-	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "", "cfg.Schema.Sample.UUIDSubtype3Encoding")
+	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "old", "cfg.Schema.Sample.UUIDSubtype3Encoding")
 
 	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 0, "cfg.Runtime.Memory.MaxPerStage")
 

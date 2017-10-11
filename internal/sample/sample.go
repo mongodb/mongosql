@@ -230,6 +230,7 @@ func getSchemaByVersion(version bson.ObjectId, cfg *config.SchemaSampleOptions, 
 	defer cursor.Close(context.Background())
 
 	sampledSchema := &schema.Schema{}
+	uuidSubtype3Encoding := cfg.UUIDSubtype3Encoding
 	namespaceCount := 0
 	var ns Namespace
 	var lastDB string
@@ -245,9 +246,10 @@ func getSchemaByVersion(version bson.ObjectId, cfg *config.SchemaSampleOptions, 
 			sampledSchema.Databases = append(sampledSchema.Databases, sampledDB)
 		}
 
-		err = sampledDB.Map(ns.Schema, ns.Collection, false, *lgr)
+		err = sampledDB.Map(ns.Schema, ns.Collection, false, uuidSubtype3Encoding, *lgr)
 		if err != nil {
-			return nil, 0, fmt.Errorf("error mapping schema version %s, namespace %q.%q: %v", version, ns.Database, ns.Collection, err)
+			return nil, 0, fmt.Errorf("error mapping schema version %s, namespace %q.%q: %v",
+				version, ns.Database, ns.Collection, err)
 		}
 	}
 
@@ -257,10 +259,10 @@ func getSchemaByVersion(version bson.ObjectId, cfg *config.SchemaSampleOptions, 
 // SampleSchema uses the provided mongosqld configuration and session
 // to sample namespaces. It returns the relational schema generated
 // and the version/schemas documents resulting from sampling.
-func SampleSchema(opts *config.SchemaSampleOptions, processName string,
+func SampleSchema(cfg *config.SchemaSampleOptions, processName string,
 	session *mongodb.Session, lgr *log.Logger) (*schema.Schema, *Record, error) {
 
-	namespaces := opts.Namespaces
+	namespaces := cfg.Namespaces
 
 	nsMatcher, err := util.NewMatcher(namespaces)
 	if err != nil {
@@ -277,13 +279,14 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 	sampleVersion := NewVersion(processName)
 	sampleNamespaces := []*Namespace{}
 	sampledSchema := &schema.Schema{}
+	uuidSubtype3Encoding := cfg.UUIDSubtype3Encoding
 
 	// databases that we're excluding from sampling
 	dbSampleBlacklist := []string{"admin", "local", "system"}
 	nsSampleBlacklist := []string{
-		fmt.Sprintf("%q.%q", opts.Source, SchemasCollection),
-		fmt.Sprintf("%q.%q", opts.Source, VersionsCollection),
-		fmt.Sprintf("%q.%q", opts.Source, LockCollection),
+		fmt.Sprintf("%q.%q", cfg.Source, SchemasCollection),
+		fmt.Sprintf("%q.%q", cfg.Source, VersionsCollection),
+		fmt.Sprintf("%q.%q", cfg.Source, LockCollection),
 	}
 
 	sampleVersion.StartSampleTime = time.Now()
@@ -318,8 +321,8 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 			// 1. run sample command
 			lgr.Debugf(log.Dev, "mapping schema for namespace %s", ns)
 			pipeline := []bson.M{}
-			if opts.Size != 0 {
-				pipeline = append(pipeline, bson.M{"$sample": bson.M{"size": opts.Size}})
+			if cfg.Size != 0 {
+				pipeline = append(pipeline, bson.M{"$sample": bson.M{"size": cfg.Size}})
 			}
 			namespace.StartSampleTime = time.Now()
 
@@ -353,7 +356,14 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 			namespace.Schema = jsonSchema
 
 			// 4. convert the JSON schema to a relational schema
-			err = sampledDB.Map(jsonSchema, collection, false, *lgr)
+			err = sampledDB.Map(
+				jsonSchema,
+				collection,
+				false,
+				uuidSubtype3Encoding,
+				*lgr,
+			)
+
 			if err != nil {
 				return nil, nil, fmt.Errorf("error mapping schema: %v", err)
 			}
@@ -371,7 +381,7 @@ func SampleSchema(opts *config.SchemaSampleOptions, processName string,
 	sampleVersion.EndSampleTime = time.Now()
 
 	sampleData := &Record{
-		Database:   opts.Source,
+		Database:   cfg.Source,
 		Namespaces: sampleNamespaces,
 		Version:    sampleVersion,
 	}
