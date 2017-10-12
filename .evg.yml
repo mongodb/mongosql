@@ -116,6 +116,7 @@ functions:
           PUSH_NAME: "$PUSH_NAME"
           PUSH_ARCH: "$PUSH_ARCH"
           ARCHIVE_FORMAT: "$ARCHIVE_FORMAT"
+          ARCHIVE_CONTENT_TYPE: "$ARCHIVE_CONTENT_TYPE"
           PREPARE_SHELL: |
              if [ "Windows_NT" = "$OS" ]; then
                  set -o igncr
@@ -425,7 +426,7 @@ functions:
         remote_file: sqlproxy/binaries/${PUSH_NAME}/mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.${ARCHIVE_FORMAT}
         bucket: mciuploads
         permissions: public-read
-        content_type: application/x-gzip
+        content_type: application/${ARCHIVE_CONTENT_TYPE}
         display_name: mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.${ARCHIVE_FORMAT}
     - command: s3.put
       params:
