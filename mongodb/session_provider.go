@@ -141,7 +141,7 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		rp:             rp,
 		c:              c,
 		connectTimeout: getConnectTimeout(cs),
-		numConns:       cfg.MongoDB.Net.NumConnsPerSession,
+		numConns:       cfg.MongoDB.Net.NumConnectionsPerSession,
 	}
 
 	if cfg.MongoDB.Net.Auth.Username != "" {
