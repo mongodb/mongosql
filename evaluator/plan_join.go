@@ -189,6 +189,7 @@ func (join *JoinIter) Close() error {
 	join.cancelIter()
 
 	if err := join.left.Close(); err != nil {
+		join.right.Close()
 		return err
 	}
 
@@ -286,6 +287,7 @@ func (nlp *NestedLoopJoiner) readData(ctx context.Context, lChan, rChan <-chan *
 		cancel()
 		errs <- fmt.Errorf("%v", err)
 	})
+
 	util.PanicSafeGo(func() {
 		readChan(rChan, &right)
 	}, func(err interface{}) {
@@ -303,7 +305,9 @@ func (nlp *NestedLoopJoiner) readData(ctx context.Context, lChan, rChan <-chan *
 		return nil, nil, err
 	}
 
-	return left, right, <-errs
+	err = <-errs
+
+	return left, right, err
 }
 
 // NestedLoopJoiner implementation.
