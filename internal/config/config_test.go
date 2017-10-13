@@ -453,9 +453,9 @@ func TestValidate_Invalid_SampleSize(t *testing.T) {
 	}
 }
 
-func TestValidate_Invalid_NumConnsPerSession_toofew(t *testing.T) {
+func TestValidate_Too_Few_NumConnectionsPerSession(t *testing.T) {
 	cfg := Default()
-	cfg.MongoDB.Net.NumConnsPerSession = 0
+	cfg.MongoDB.Net.NumConnectionsPerSession = 0
 
 	err := Validate(cfg)
 	if err == nil {
@@ -468,9 +468,9 @@ func TestValidate_Invalid_NumConnsPerSession_toofew(t *testing.T) {
 	}
 }
 
-func TestValidate_Invalid_NumConnsPerSession_toomany(t *testing.T) {
+func TestValidate_Too_Many_NumConnectionsPerSession(t *testing.T) {
 	cfg := Default()
-	cfg.MongoDB.Net.NumConnsPerSession = 1000
+	cfg.MongoDB.Net.NumConnectionsPerSession = 1000
 
 	err := Validate(cfg)
 	if err == nil {
