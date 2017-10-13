@@ -58,7 +58,7 @@ mongodb:
   versionCompatibility: "3.2"
   net:
     uri: "mongodb://hostname:27018"
-    NumConnsPerSession: 3
+    numConnectionsPerSession: 3
     auth:
       username: user
       password: pass
@@ -121,7 +121,7 @@ processManagement:
 
 	testString(t, cfg.MongoDB.VersionCompatibility, "3.2", "cfg.MongoDB.VersionCompatibility")
 	testString(t, cfg.MongoDB.Net.URI, "mongodb://hostname:27018", "cfg.MongoDB.Net.URI")
-	testInt(t, cfg.MongoDB.Net.NumConnsPerSession, 3, "cfg.MongoDB.Net.NumConnsPerSession")
+	testInt(t, cfg.MongoDB.Net.NumConnectionsPerSession, 3, "cfg.MongoDB.Net.NumConnectionsPerSession")
 
 	testString(t, cfg.MongoDB.Net.Auth.Username, "user", "cfg.MongoDB.Net.Auth.Username")
 	testString(t, cfg.MongoDB.Net.Auth.Password, "pass", "cfg.MongoDB.Net.Auth.Password")

@@ -91,7 +91,7 @@ func Default() *Config {
 	cfg.Security.DefaultSource = "admin"
 
 	cfg.MongoDB.Net.URI = "mongodb://localhost:27017"
-	cfg.MongoDB.Net.NumConnsPerSession = 2
+	cfg.MongoDB.Net.NumConnectionsPerSession = 2
 
 	cfg.ProcessManagement.Service.Name = "mongosql"
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
@@ -175,8 +175,11 @@ func Validate(cfg *Config) error {
 			"mechanism '%v'", cfg.MongoDB.Net.Auth.Mechanism)
 	}
 
-	if cfg.MongoDB.Net.NumConnsPerSession < MinConnections || cfg.MongoDB.Net.NumConnsPerSession > MaxConnections {
-		return fmt.Errorf("invalid number of MongoDB connections: %d (must be between %d and %d)", cfg.MongoDB.Net.NumConnsPerSession, MinConnections, MaxConnections)
+	if cfg.MongoDB.Net.NumConnectionsPerSession < MinConnections ||
+		cfg.MongoDB.Net.NumConnectionsPerSession > MaxConnections {
+		return fmt.Errorf("invalid number of MongoDB connections: %d "+
+			"(must be between %d and %d)", cfg.MongoDB.Net.NumConnectionsPerSession,
+			MinConnections, MaxConnections)
 	}
 
 	if cfg.Schema.Path != "" && cfg.Schema.Sample.Source != "" {
@@ -320,10 +323,10 @@ type MongoDB struct {
 
 // MongoDBNet holds confifuration for network communication with MongoDB.
 type MongoDBNet struct {
-	URI                string         `config:"uri"`
-	SSL                MongoDBNetSSL  `config:"ssl"`
-	Auth               MongoDBNetAuth `config:"auth"`
-	NumConnsPerSession int            `config:"NumConnsPerSession"`
+	URI                      string         `config:"uri"`
+	SSL                      MongoDBNetSSL  `config:"ssl"`
+	Auth                     MongoDBNetAuth `config:"auth"`
+	NumConnectionsPerSession int            `config:"numConnectionsPerSession"`
 }
 
 // MongoDBNetSSL holds configuration for SSL with MongoDB.
