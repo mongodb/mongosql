@@ -14,6 +14,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const (
+	dateTimeFormat = "2006-01-02 15:04:05.000000"
+)
+
 // IsSimilar returns true if the logical or comparison
 // operations can be carried on leftType against rightType
 // with no need for type conversion.
@@ -266,7 +270,8 @@ func NewSQLValue(value interface{}, sqlType, fromType schema.SQLType) (SQLValue,
 			if fromType == schema.SQLDate {
 				return SQLVarchar(v.Format("2006-01-02")), false
 			}
-			return SQLVarchar(v.String()), false
+			asString := v.Format(dateTimeFormat)
+			return SQLVarchar(asString), false
 		default:
 			return SQLVarchar(reflect.ValueOf(v).String()), true
 		}
