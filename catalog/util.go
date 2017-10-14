@@ -22,7 +22,7 @@ func translateColumnType(sqlType schema.SQLType, maxVarcharLength uint16) string
 	case schema.SQLObjectID:
 		return "varchar(24)"
 	case schema.SQLTimestamp:
-		return "datetime"
+		return "datetime(6)"
 	case schema.SQLUint64:
 		return "bigint(20) unsigned"
 	case schema.SQLUUID:

@@ -2870,7 +2870,7 @@ func TestNewSQLValue(t *testing.T) {
 				test{"0.000", schema.SQLVarchar, SQLVarchar("0.000")},
 				test{"1.0", schema.SQLVarchar, SQLVarchar("1.0")},
 				test{strTimeVal, schema.SQLVarchar, SQLVarchar(strTimeVal)},
-				test{timeVal, schema.SQLVarchar, SQLVarchar(timeVal.String())},
+				test{timeVal, schema.SQLVarchar, SQLVarchar(timeVal.Format(dateTimeFormat))},
 			}
 
 			runTests(tests)

@@ -2501,35 +2501,29 @@ testcases:
   - [57]
   - [~]
   - [~]
-
-#TODO BI-1164
-#- sql: "select repeat(d, id) from bar;"
-#  id: 'repeat_6'
-#  db: functions_test
-#  expected_names: ["repeat(d, id)"]
-#  expected_types: [string]
-#  expected:
-#  - [""]
-#  - ["2000-09-24 13:45:00"]
-#  - ["2000-10-24 13:45:002000-10-24 13:45:00"]
-#  - [~]
-#  - [~]
-
+- sql: "select repeat(d, id) from bar;"
+  id: 'repeat_6'
+  db: functions_test
+  expected_names: ["repeat(d, id)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - ["2000-09-24 13:45:00.000000"]
+  - ["2000-10-24 13:45:00.0070002000-10-24 13:45:00.007000"]
+  - [~]
+  - [~]
 - sql: "select repeat(date('2000-01-01'),2)"
   id: 'repeat_7'
   expected_names: ["repeat(date('2000-01-01'), 2)"]
   expected_types: [string]
   expected:
   - ["2000-01-012000-01-01"]
- 
-#TODO BI-1164
-#- sql: "select repeat(timestamp('2000-01-01 00:00:00'), 2)"
-#  id: 'repeat_8'
-#  expected_names: ["repeat(timestamp('2000-01-01 00:00:00'), 2)"]
-#  expected_types: [string]
-#  expected:
-#  - ["2000-01-01 00:00:002000-01-01 00:00:00"]
-
+- sql: "select repeat(timestamp('2000-01-01 00:00:00'), 2)"
+  id: 'repeat_8'
+  expected_names: ["repeat(timestamp('2000-01-01 00:00:00'), 2)"]
+  expected_types: [string]
+  expected:
+  - ["2000-01-01 00:00:00.0000002000-01-01 00:00:00.000000"]
 - sql: "select repeat('a', time '00:00:10')"
   id: 'repeat_9'
   expected_names: ["repeat('a', time(00:00:10))"]
