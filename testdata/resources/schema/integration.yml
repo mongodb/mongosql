@@ -306,6 +306,54 @@ schema:
       MongoType: string
       SqlName: c2
       SqlType: varchar
+  - table: par
+    collection: "parallel_nested_join"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: string
+      SqlName: a
+      SqlType: varchar
+  - table: par_b
+    collection: "parallel_nested_join"
+    pipeline: [
+      $unwind: { path: "$b", includeArrayIndex: "b_idx" }
+    ]
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b_idx
+      MongoType: int
+      SqlName: b_idx
+      SqlType: int
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int
+  - table: par_c
+    collection: "parallel_nested_join"
+    pipeline: [
+      $unwind: { path: "$c", includeArrayIndex: "c_idx" }
+    ]
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: int
+    - Name: c.d
+      MongoType: int
+      SqlName: c.d
+      SqlType: int
   - table: parent
     collection: "join_8"
     pipeline: []

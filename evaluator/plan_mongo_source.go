@@ -216,7 +216,6 @@ func (mr *mappingRegistry) copy() *mappingRegistry {
 			}
 		}
 	}
-
 	return newMappingRegistry
 }
 
@@ -259,7 +258,6 @@ func (mr *mappingRegistry) registerMapping(tbl, column, field string) {
 
 // containsFieldName checks whether a field name exists across the entire registry
 func (mr *mappingRegistry) containsFieldName(fieldName string) bool {
-
 	for _, columns := range mr.fields {
 
 		for _, field := range columns {
@@ -280,6 +278,5 @@ func (mr *mappingRegistry) String() string {
 			b.WriteString(fmt.Sprintf("%v.%v => %v\n", table, column, name))
 		}
 	}
-
 	return b.String()
 }

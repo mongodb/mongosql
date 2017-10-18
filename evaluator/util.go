@@ -27,36 +27,26 @@ const (
 	sqlOpNotIn = "not in"
 )
 
-func keysStringMap(set map[string]interface{}) []string {
-	keys := make([]string, len(set))
-
-	i := 0
-	for k, _ := range set {
-		keys[i] = k
-		i++
-	}
-	return keys
+// numberedDoc gives an enumeration for bson.D's.  This allows us to retain the
+// original pipeline stage number for a bson.D that we have projected out (such
+// as if we want all $unwinds, or all $addFields)
+type numberedDoc struct {
+	number int
+	doc    bson.D
 }
 
-func keysStringSet(set map[string]struct{}) []string {
-	keys := make([]string, len(set))
-
-	i := 0
-	for k, _ := range set {
-		keys[i] = k
-		i++
-	}
-	return keys
+type unwindInfo struct {
+	stageNumber int
+	path        string
+	index       string
 }
 
-func intersectionStringSet(left, right map[string]struct{}) map[string]struct{} {
-	ret := make(map[string]struct{})
-	for k, _ := range left {
-		if _, ok := right[k]; ok {
-			ret[k] = struct{}{}
-		}
-	}
-	return ret
+func (in *unwindInfo) getPath() string {
+	return in.path
+}
+
+func (in *unwindInfo) getIndex() string {
+	return in.index
 }
 
 // comparisonExpr returns a SQLExpr formed using op comparison operator.
@@ -138,29 +128,6 @@ func containsStringInsensitive(strs []string, str string) bool {
 	return containsStringFunc(strs, str, func(s1, s2 string) bool {
 		return strings.ToLower(s1) == strings.ToLower(s2)
 	})
-}
-
-// findValueByKey returns the value of keyName in document. If keyName is not found
-// in the top-level of the document, ErrNoSuchField is returned as the error.
-func findValueByKey(keyName string, document *bson.D) (interface{}, error) {
-	for _, key := range *document {
-		if key.Name == keyName {
-			return key.Value, nil
-		}
-	}
-	return nil, fmt.Errorf("no such field: %v", keyName)
-}
-
-// sanitizeFieldName translates any disallowed characters in a field name into an appropriate replacement.
-func sanitizeFieldName(fieldName string) string {
-	r := strings.Replace(fieldName, ".", Dot, -1)
-	return strings.Replace(r, "$", Dollar, -1)
-}
-
-// unsanitizeFieldName translates any replacement characters in a field name into their original value.
-func unsanitizeFieldName(fieldName string) string {
-	r := strings.Replace(fieldName, Dot, ".", -1)
-	return strings.Replace(r, Dollar, "$", -1)
 }
 
 // extractFieldByName takes a field name and document, and returns a value representing
@@ -273,6 +240,28 @@ func findStringInDoc(key string, doc interface{}) (string, bool) {
 	return result, ok
 }
 
+// findValueByKey returns the value of keyName in document. If keyName is not found
+// in the top-level of the document, ErrNoSuchField is returned as the error.
+func findValueByKey(keyName string, document *bson.D) (interface{}, error) {
+	for _, key := range *document {
+		if key.Name == keyName {
+			return key.Value, nil
+		}
+	}
+	return nil, fmt.Errorf("no such field: %v", keyName)
+}
+
+// findUnwindForPaths finds an unwind in an []unwindInfo that has the proper
+// unwind path
+func findUnwindForPath(unwinds []unwindInfo, path string) (unwindInfo, bool) {
+	for _, unwind := range unwinds {
+		if unwind.path == path {
+			return unwind, true
+		}
+	}
+	return unwindInfo{stageNumber: -1, path: "", index: ""}, false
+}
+
 func getKey(key string, doc bson.D) (interface{}, bool) {
 	index := strings.Index(key, ".")
 	if index == -1 {
@@ -296,6 +285,104 @@ func getKey(key string, doc bson.D) (interface{}, bool) {
 	return getKey(key[index+1:], subDoc)
 }
 
+func getPipelineXStages(x string, pipeline []bson.D) []*numberedDoc {
+	ret := make([]*numberedDoc, 0)
+	for i, doc := range pipeline {
+		if _, ok := doc.Map()[x]; ok {
+			ret = append(ret, &numberedDoc{number: i, doc: doc})
+		}
+	}
+	return ret
+}
+
+func getPipelineUnwinds(pipeline []bson.D) []*numberedDoc {
+	return getPipelineXStages("$unwind", pipeline)
+}
+
+func getPaths(in []unwindInfo) []string {
+	return getFields(in, (*unwindInfo).getPath)
+}
+
+func getIndexes(in []unwindInfo) []string {
+	return getFields(in, (*unwindInfo).getIndex)
+}
+
+func getFields(in []unwindInfo, m func(v *unwindInfo) string) []string {
+	ret := make([]string, len(in))
+	for i, v := range in {
+		ret[i] = m(&v)
+	}
+	return ret
+}
+
+// getPipelineUnwindFields get all the unwind fields for a pipeline, in order
+func getPipelineUnwindFields(pipeline []bson.D) []unwindInfo {
+	unwinds := getPipelineUnwinds(pipeline)
+	ret := make([]unwindInfo, len(unwinds))
+	var path string
+	var index string
+	for i, numberedDoc := range unwinds {
+		doc := numberedDoc.doc
+		unwind := doc.Map()["$unwind"]
+		unwindDoc, ok := unwind.(bson.D)
+		var fields bson.M
+		if ok {
+			fields = unwindDoc.Map()
+		} else {
+			fields = unwind.(bson.M)
+		}
+		path = fields["path"].(string)
+		if index, ok = fields["includeArrayIndex"].(string); !ok {
+			index = ""
+		}
+		ret[i] = unwindInfo{stageNumber: numberedDoc.number, path: path, index: index}
+	}
+	return ret
+}
+
+// getUnwindSuffix will give the remaining unwinds for two slices of unwinds
+// after matching on unwind path.
+func getUnwindSuffix(unwinds1, unwinds2 []unwindInfo) ([]unwindInfo, bool) {
+	ret := make([]unwindInfo, 0)
+	end := util.MinInt(len(unwinds1), len(unwinds2))
+	i := 0
+	for ; i < end; i++ {
+		// Prefixes are incompatible, so there is no suffix
+		// don't check index, assume that is correct
+		if unwinds1[i].path != unwinds2[i].path {
+			return nil, false
+		}
+	}
+	var tail []unwindInfo
+	if len(unwinds1) <= len(unwinds2) {
+		tail = unwinds2
+	} else {
+		tail = unwinds1
+
+	}
+	for ; i < len(tail); i++ {
+		ret = append(ret, tail[i])
+	}
+	return ret, true
+}
+
+// insertPipelineStageAt will insert a pipeline stage (bson.D) at a given place
+// in a []bson.D, copying the tail out so that no stages are lost
+func insertPipelineStageAt(pipeline []bson.D, val bson.D, i int) []bson.D {
+	return append(pipeline[:i], append([]bson.D{val}, pipeline[i:]...)...)
+}
+
+// insersectionStringSet gives the set intersection of two string sets
+func intersectionStringSet(left, right map[string]struct{}) map[string]struct{} {
+	ret := make(map[string]struct{})
+	for k, _ := range left {
+		if _, ok := right[k]; ok {
+			ret[k] = struct{}{}
+		}
+	}
+	return ret
+}
+
 func isMongoFilterExpr(expr SQLExpr) bool {
 	if colExpr, ok := expr.(SQLColumnExpr); ok {
 		if colExpr.columnType.MongoType == schema.MongoFilter {
@@ -303,6 +390,31 @@ func isMongoFilterExpr(expr SQLExpr) bool {
 		}
 	}
 	return false
+}
+
+// keysStringMap returns a slice of the keys of a string-key'd map
+func keysStringMap(set map[string]interface{}) []string {
+	keys := make([]string, len(set))
+
+	i := 0
+	for k, _ := range set {
+		keys[i] = k
+		i++
+	}
+	return keys
+}
+
+// keysStringSet returns a slice of the keys of a string-set (struct{} does not
+// implement interface{})
+func keysStringSet(set map[string]struct{}) []string {
+	keys := make([]string, len(set))
+
+	i := 0
+	for k, _ := range set {
+		keys[i] = k
+		i++
+	}
+	return keys
 }
 
 func newPlanStageMemoryError(maxBytes uint64) error {
@@ -322,4 +434,41 @@ func parseMongoFilter(left, right SQLExpr) (bson.M, error) {
 	}
 
 	return filter, nil
+}
+
+// pathStartsWithAny returns true if any of the strings in prefixes is a
+// prefix of path
+func pathStartsWithAny(prefixes []string, path string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// sharesPrefix returns true if one []string is a prefix of the other
+func sharesPrefix(strArr1, strArr2 []string) bool {
+	// check that all the strings in strArr1 are equal to the same
+	// position string in strArr2 for the length of of the shorter
+
+	end := util.MinInt(len(strArr1), len(strArr2))
+	for i := 0; i < end; i++ {
+		if strArr1[i] != strArr2[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// sanitizeFieldName translates any disallowed characters in a field name into an appropriate replacement.
+func sanitizeFieldName(fieldName string) string {
+	r := strings.Replace(fieldName, ".", Dot, -1)
+	return strings.Replace(r, "$", Dollar, -1)
+}
+
+// unsanitizeFieldName translates any replacement characters in a field name into their original value.
+func unsanitizeFieldName(fieldName string) string {
+	r := strings.Replace(fieldName, Dot, ".", -1)
+	return strings.Replace(r, Dollar, "$", -1)
 }
