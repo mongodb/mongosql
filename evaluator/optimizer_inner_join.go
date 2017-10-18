@@ -47,7 +47,7 @@ type innerJoinOptimizer struct {
 
 	// hasSubquery is true if a subquery is within the set of data
 	// sources referenced in this inner join subtree. We use this to
-	// decide whether to compute merge preference for candidates
+	// decide whether to compute self-join preference for candidates
 	hasSubquery bool
 
 	// optimizedSubtree holds the optimized version for this inner join
@@ -140,7 +140,7 @@ func (p *path) satisfiesDependency(e tableEdge) bool {
 }
 
 // orderCandidateEdge returns a modified version of the edge
-// such that the first table in the edge is the unmerged table.
+// such that the first table in the edge is the unself-joined table.
 // If this is already the case, it returns expr unmodified.
 func (p *path) orderCandidateEdge(edge tableEdge) tableEdge {
 	// if the tables are the same, no reordering needed
@@ -539,21 +539,21 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (node, error) {
 			subtreeTables[table] = struct{}{}
 		}
 
-		var mergeableCriteria []SQLExpr
+		var selfJoinableCriteria []SQLExpr
 
 		// find any criteria that could be moved to the current join
 		// stage level
 		newFreeCriteria := []freeCriterion{}
 		for _, criterion := range freeCriteria {
-			canMerge := true
+			canSelfJoin := true
 			for _, table := range criterion.tables {
 				if _, ok := subtreeTables[table]; !ok {
-					canMerge = false
+					canSelfJoin = false
 					break
 				}
 			}
-			if canMerge {
-				mergeableCriteria = append(mergeableCriteria, criterion.expr)
+			if canSelfJoin {
+				selfJoinableCriteria = append(selfJoinableCriteria, criterion.expr)
 			} else {
 				newFreeCriteria = append(newFreeCriteria, criterion)
 			}
@@ -563,16 +563,16 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (node, error) {
 
 		// move mergable criteria further down the subtree to prune
 		// result set sooner
-		for _, criterion := range mergeableCriteria {
+		for _, criterion := range selfJoinableCriteria {
 			boundCriterion = &SQLAndExpr{boundCriterion, criterion}
 		}
 
-		unmergedSource := v.sources[expr.tables[0]].dataSource.(PlanStage)
+		unselfJoinedSource := v.sources[expr.tables[0]].dataSource.(PlanStage)
 		if newN == nil {
 			right := v.sources[expr.tables[1]].dataSource.(PlanStage)
-			newN, unmergedSource = unmergedSource, right
+			newN, unselfJoinedSource = unselfJoinedSource, right
 		}
-		newN = NewJoinStage(innerJoin, newN, unmergedSource, boundCriterion)
+		newN = NewJoinStage(innerJoin, newN, unselfJoinedSource, boundCriterion)
 	}
 
 	if lenFreeCriteria := len(freeCriteria); lenFreeCriteria != 0 {
@@ -597,10 +597,10 @@ func (v *innerJoinOptimizer) reorderInnerJoins() (node, error) {
 	}
 
 	v.sortablePaths = &sortablePaths{
-		optimizer:       v,
-		logger:          v.logger,
-		matcher:         combineExpressions(allCriteria),
-		mergePotentials: make(map[string]int),
+		optimizer:          v,
+		logger:             v.logger,
+		matcher:            combineExpressions(allCriteria),
+		selfJoinPotentials: make(map[string]int),
 	}
 
 	heap.Init(v.sortablePaths)
@@ -622,8 +622,8 @@ type sortablePaths struct {
 	matcher   SQLExpr
 	logger    *log.Logger
 
-	// mergePotentials holds the merge potential for candidate paths
-	mergePotentials map[string]int
+	// selfjoinPotentials holds the self-join potential for candidate paths
+	selfJoinPotentials map[string]int
 }
 
 func (s sortablePaths) Len() int {
@@ -634,22 +634,22 @@ func (s sortablePaths) Less(i, j int) bool {
 	leftEdges, rightEdges := s.paths[i], s.paths[j]
 
 	// if any of the sources is a subquery, we do not need to give
-	// preference to candidates with higher merge potentials since
+	// preference to candidates with higher self-join potentials since
 	// we'll eventually be blocked on a lookup with the subquery
 	if !s.optimizer.hasSubquery {
 		// TODO: use faster keying method?
 		leftName, rightName := leftEdges.String(), rightEdges.String()
 
-		leftMergePotential, ok := s.mergePotentials[leftName]
+		leftMergePotential, ok := s.selfJoinPotentials[leftName]
 		if !ok {
-			leftMergePotential = s.mergeTablesPotential(leftEdges)
-			s.mergePotentials[leftName] = leftMergePotential
+			leftMergePotential = s.selfJoinTablesPotential(leftEdges)
+			s.selfJoinPotentials[leftName] = leftMergePotential
 		}
 
-		rightMergePotential, ok := s.mergePotentials[rightName]
+		rightMergePotential, ok := s.selfJoinPotentials[rightName]
 		if !ok {
-			rightMergePotential = s.mergeTablesPotential(rightEdges)
-			s.mergePotentials[rightName] = rightMergePotential
+			rightMergePotential = s.selfJoinTablesPotential(rightEdges)
+			s.selfJoinPotentials[rightName] = rightMergePotential
 		}
 
 		if leftMergePotential != rightMergePotential {
@@ -709,10 +709,10 @@ func (s sortablePaths) Swap(i, j int) {
 	s.paths[i], s.paths[j] = s.paths[j], s.paths[i]
 }
 
-// mergeTablesPotential returns an int indicative how proportional
-// to how many edges in the path can be merged. The higher the
-// the number, the higher the merge potential.
-func (s sortablePaths) mergeTablesPotential(path path) int {
+// selfJoinTablesPotential returns an int indicative how proportional
+// to how many edges in the path can be self-joined. The higher the
+// the number, the higher the self-join potential.
+func (s sortablePaths) selfJoinTablesPotential(path path) int {
 
 	i := 0
 
@@ -731,7 +731,9 @@ func (s sortablePaths) mergeTablesPotential(path path) int {
 			break
 		}
 
-		if canMergeTables(s.logger, leftSource, rightSource, s.matcher) {
+		var v *pushDownOptimizer = nil
+
+		if v.canSelfJoinTables(s.logger, leftSource, rightSource, s.matcher, innerJoin) {
 			i++
 		} else {
 			break

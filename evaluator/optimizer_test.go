@@ -61,8 +61,8 @@ func TestOptimizePlan32(t *testing.T) {
 
 			v := ShouldResembleDiffed(actual, expected)
 			if v != "" {
-				fmt.Printf("\n ACTUAL: %# v", pretty.Formatter(actual))
-				fmt.Printf("\n EXPECTED: %# v", pretty.Formatter(expected))
+				fmt.Printf("\n ACTUAL: %#v", pretty.Formatter(actual))
+				fmt.Printf("\n EXPECTED: %#v", pretty.Formatter(expected))
 			}
 			So(actual, ShouldResembleDiffed, expected)
 		})
@@ -475,8 +475,8 @@ func TestOptimizePlan(t *testing.T) {
 			v := ShouldResembleDiffed(actual, expected)
 			if v != "" {
 				fmt.Printf("\n SQL: %v", sql)
-				fmt.Printf("\n ACTUAL: %# v", pretty.Formatter(actual))
-				fmt.Printf("\n EXPECTED: %# v", pretty.Formatter(expected))
+				fmt.Printf("\n ACTUAL: %#v", pretty.Formatter(actual))
+				fmt.Printf("\n EXPECTED: %#v", pretty.Formatter(expected))
 			}
 			So(actual, ShouldResembleDiffed, expected)
 		})
@@ -1795,32 +1795,25 @@ func TestOptimizePlan(t *testing.T) {
 					test("select foo.a, bar.b from foo left join bar on foo.a = bar.a AND foo.b > 10",
 						[]bson.D{
 							{{"$lookup", bson.M{
+								"as":           "__joined_bar",
 								"from":         "bar",
 								"localField":   "a",
-								"foreignField": "a",
-								"as":           "__joined_bar",
-							}}},
+								"foreignField": "a"}}},
 							{{"$project", bson.M{
-								"_id":    1,
-								"a":      1,
 								"b":      1,
-								"c":      1,
-								"d.e":    1,
 								"d.f":    1,
 								"filter": 1,
-								"g":      1,
 								"__joined_bar": bson.M{
-									"$cond": []interface{}{
-										bson.M{"$eq": []interface{}{
-											bson.M{"$ifNull": []interface{}{"$a", nil}},
-											nil,
-										}},
-										bson.M{"$literal": []interface{}{}},
-										"$__joined_bar",
-									},
-								},
-							}}},
-							{{"$project", bson.M{
+									"$cond": []interface{}{bson.M{
+										"$eq": []interface{}{bson.M{
+											"$ifNull": []interface{}{"$a", interface{}(nil)}}, interface{}(nil)}}, bson.M{
+										"$literal": []interface{}{}}, "$__joined_bar"}},
+								"_id": 1,
+								"a":   1,
+								"c":   1,
+								"d.e": 1,
+								"g":   1}}},
+							{{"$addFields", bson.M{
 								"__joined_bar": bson.M{
 									"$filter": bson.M{
 										"input": "$__joined_bar",
@@ -1830,58 +1823,17 @@ func TestOptimizePlan(t *testing.T) {
 												"vars": bson.M{
 													"left": "$b",
 													"right": bson.M{
-														"$literal": int64(10),
-													},
-												},
+														"$literal": int64(10)}},
 												"in": bson.M{
-													"$cond": []interface{}{
-														bson.M{
-															"$or": []interface{}{
-																bson.M{
-																	"$eq": []interface{}{
-																		bson.M{"$ifNull": []interface{}{"$$left", nil}},
-																		nil,
-																	},
-																},
-																bson.M{
-																	"$eq": []interface{}{
-																		bson.M{"$ifNull": []interface{}{"$$right", nil}},
-																		nil,
-																	},
-																},
-															},
-														},
-														nil,
-														bson.M{
-															"$gt": []interface{}{
-																"$$left",
-																"$$right",
-															},
-														},
-													},
-												},
-											},
-										},
-									},
-								},
-								"a":      1,
-								"b":      1,
-								"c":      1,
-								"d.e":    1,
-								"d.f":    1,
-								"_id":    1,
-								"filter": 1,
-								"g":      1,
-							}}},
-							{{"$unwind", bson.M{
-								"path": "$__joined_bar",
-								"preserveNullAndEmptyArrays": true,
-							}}},
-							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
-							}}},
-						},
+													"$cond": []interface{}{bson.M{
+														"$or": []interface{}{bson.M{
+															"$eq": []interface{}{bson.M{
+																"$ifNull": []interface{}{"$$left", interface{}(nil)}}, interface{}(nil)}}, bson.M{
+															"$eq": []interface{}{bson.M{
+																"$ifNull": []interface{}{"$$right", interface{}(nil)}}, interface{}(nil)}}}}, interface{}(nil), bson.M{
+														"$gt": []interface{}{"$$left", "$$right"}}}}}}}}}}},
+							{{"$unwind", bson.M{"path": "$__joined_bar", "preserveNullAndEmptyArrays": true}}},
+							{{"$project", bson.M{"foo_DOT_a": "$a", "bar_DOT_b": "$__joined_bar.b"}}}},
 					)
 
 					test("select foo.a, bar.b from foo left join bar on foo.a = bar.a AND bar.b > 10",
@@ -1889,91 +1841,43 @@ func TestOptimizePlan(t *testing.T) {
 							{{"$lookup", bson.M{
 								"from":         "bar",
 								"localField":   "a",
-								"foreignField": "a",
-								"as":           "__joined_bar",
-							}}},
+								"foreignField": "a", "as": "__joined_bar"}}},
 							{{"$project", bson.M{
-								"_id":    1,
 								"a":      1,
-								"b":      1,
 								"c":      1,
+								"g":      1,
+								"b":      1,
 								"d.e":    1,
 								"d.f":    1,
+								"_id":    1,
 								"filter": 1,
-								"g":      1,
 								"__joined_bar": bson.M{
-									"$cond": []interface{}{
-										bson.M{"$eq": []interface{}{
-											bson.M{"$ifNull": []interface{}{"$a", nil}},
-											nil,
-										}},
-										bson.M{"$literal": []interface{}{}},
-										"$__joined_bar",
-									},
-								},
-							}}},
-							{{"$project", bson.M{
-								"__joined_bar": bson.M{
-									"$filter": bson.M{
-										"as": "this",
-										"cond": bson.M{
-											"$let": bson.M{
-												"vars": bson.M{
-													"left": "$$this.b",
-													"right": bson.M{
-														"$literal": int64(10),
-													},
-												},
-												"in": bson.M{
-													"$cond": []interface{}{
-														bson.M{
-															"$or": []interface{}{
-																bson.M{
-																	"$eq": []interface{}{
-																		bson.M{"$ifNull": []interface{}{"$$left", nil}},
-																		nil,
-																	},
-																},
-																bson.M{
-																	"$eq": []interface{}{
-																		bson.M{"$ifNull": []interface{}{"$$right", nil}},
-																		nil,
-																	},
-																},
-															},
-														},
-														nil,
-														bson.M{
-															"$gt": []interface{}{
-																"$$left",
-																"$$right",
-															},
-														},
-													},
-												},
-											},
-										},
-										"input": "$__joined_bar",
-									},
-								},
-								"b":      int(1),
-								"d.e":    int(1),
-								"d.f":    int(1),
-								"filter": int(1),
-								"a":      int(1),
-								"c":      int(1),
-								"g":      int(1),
-								"_id":    int(1),
-							}}},
+									"$cond": []interface{}{bson.M{
+										"$eq": []interface{}{bson.M{
+											"$ifNull": []interface{}{"$a", interface{}(nil)}}, interface{}(nil)}}, bson.M{"$literal": []interface{}{}}, "$__joined_bar"}}}}},
+							{{"$addFields", bson.M{"__joined_bar": bson.M{
+								"$filter": bson.M{
+									"input": "$__joined_bar",
+									"as":    "this",
+									"cond": bson.M{
+										"$let": bson.M{
+											"vars": bson.M{
+												"left":  "$$this.b",
+												"right": bson.M{"$literal": int64(10)}},
+											"in": bson.M{
+												"$cond": []interface{}{bson.M{
+													"$or": []interface{}{bson.M{
+														"$eq": []interface{}{bson.M{
+															"$ifNull": []interface{}{"$$left", interface{}(nil)}}, interface{}(nil)}}, bson.M{
+														"$eq": []interface{}{bson.M{
+															"$ifNull": []interface{}{"$$right", interface{}(nil)}}, interface{}(nil)}}}}, interface{}(nil), bson.M{
+													"$gt": []interface{}{"$$left", "$$right"}}}}}}}}}}},
 							{{"$unwind", bson.M{
 								"path": "$__joined_bar",
-								"preserveNullAndEmptyArrays": true,
-							}}},
+								"preserveNullAndEmptyArrays": true}}},
 							{{"$project", bson.M{
 								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
-							}}},
-						},
+								"bar_DOT_b": "$__joined_bar.b"}}}},
 					)
 
 					test("select foo.c, bar.a, baz.b from foo left join bar on foo.a = bar.a left join baz on bar.a = baz.a",
@@ -2099,26 +2003,27 @@ func TestOptimizePlan(t *testing.T) {
 					)
 				})
 
-				Convey("merge join", func() {
+				Convey("self-join optimization", func() {
 					test("select * from merge r left join merge_d_a a on r._id=a._id",
+						[]bson.D{
+							{{"$project", bson.M{
+								"r_DOT__id": "$_id",
+								"r_DOT_a":   "$a",
+							}}}},
 						[]bson.D{
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d_idx"},
 								{"path", "$d"},
-								{"preserveNullAndEmptyArrays", true},
 							}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d.a_idx"},
 								{"path", "$d.a"},
-								{"preserveNullAndEmptyArrays", true},
 							}}},
 							{{"$project", bson.M{
-								"a_DOT_d_idx":       "$d_idx",
-								"r_DOT__id":         "$_id",
-								"r_DOT_a":           "$a",
-								"a_DOT__id":         "$_id",
 								"a_DOT_d_DOT_a":     "$d.a",
 								"a_DOT_d_DOT_a_idx": "$d.a_idx",
+								"a_DOT_d_idx":       "$d_idx",
+								"a_DOT__id":         "$_id",
 							}}},
 						},
 					)
@@ -2126,111 +2031,106 @@ func TestOptimizePlan(t *testing.T) {
 						[]bson.D{
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "b_idx"},
-								{"path", "$b"},
-							}}},
+								{"path", "$b"}}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "c_idx"},
-								{"path", "$c"},
-							}}},
+								{"path", "$c"}}}},
 							{{"$project", bson.M{
-								"c_DOT__id": "$_id",
 								"b_DOT__id": "$_id",
-							}}},
+								"c_DOT__id": "$_id"}}},
 						},
 					)
 					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id left join merge_c c on b._id=c._id",
 						[]bson.D{
+							{{"$addFields", bson.M{
+								"_id_0": bson.D{{"$switch", bson.D{
+									{"default", "$_id"},
+									{"branches", []interface{}{bson.M{
+										"case": bson.M{"$lte": []interface{}{"$b", interface{}(nil)}},
+										"then": interface{}(nil)}, bson.M{
+										"case": bson.M{"$eq": []interface{}{"$b", []interface{}{}}},
+										"then": interface{}(nil)}}}}}}}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "b_idx"},
 								{"path", "$b"},
-								{"preserveNullAndEmptyArrays", true},
-							}}},
+								{"preserveNullAndEmptyArrays", true}}}},
+							{{"$addFields", bson.M{
+								"_id_1": bson.D{{"$switch", bson.D{
+									{"default", "$_id"},
+									{"branches", []interface{}{bson.M{
+										"case": bson.M{"$lte": []interface{}{"$c", interface{}(nil)}},
+										"then": interface{}(nil)}, bson.M{
+										"then": interface{}(nil),
+										"case": bson.M{"$eq": []interface{}{"$c", []interface{}{}}}}}}}}}}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"},
-								{"preserveNullAndEmptyArrays", true},
-							}}},
+								{"preserveNullAndEmptyArrays", true}}}},
 							{{"$project", bson.M{
-								"b_DOT__id": "$_id",
-								"c_DOT__id": "$_id",
-							}}},
-						},
+								"b_DOT__id": "$_id_0",
+								"c_DOT__id": "$_id_1"}}}},
 					)
 					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id left join merge_c c on r._id=c._id",
 						[]bson.D{
+							{{"$addFields", bson.M{
+								"_id_0": bson.D{
+									{"$switch", bson.D{
+										{"default", "$_id"},
+										{"branches", []interface{}{bson.M{
+											"case": bson.M{"$lte": []interface{}{"$b", interface{}(nil)}},
+											"then": interface{}(nil)}, bson.M{
+											"case": bson.M{"$eq": []interface{}{"$b", []interface{}{}}},
+											"then": interface{}(nil)}}}}}}}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "b_idx"},
-								{"path", "$b"},
-								{"preserveNullAndEmptyArrays", true},
-							}}},
+								{"path", "$b"}, {"preserveNullAndEmptyArrays", true}}}},
+							{{"$addFields", bson.M{
+								"_id_1": bson.D{
+									{"$switch", bson.D{
+										{"default", "$_id"},
+										{"branches", []interface{}{bson.M{
+											"case": bson.M{"$lte": []interface{}{"$c", interface{}(nil)}},
+											"then": interface{}(nil)}, bson.M{
+											"then": interface{}(nil),
+											"case": bson.M{"$eq": []interface{}{"$c", []interface{}{}}}}}}}}}}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"},
-								{"preserveNullAndEmptyArrays", true},
-							}}},
+								{"preserveNullAndEmptyArrays", true}}}},
 							{{"$project", bson.M{
-								"b_DOT__id": "$_id",
-								"c_DOT__id": "$_id",
-							}}},
-						},
-					)
-					test("select b._id, c._id from merge r inner join merge_b b on r._id=b._id left join merge_c c on r._id=c._id",
-						[]bson.D{
-							{{"$unwind", bson.D{{"includeArrayIndex", "b_idx"}, {"path", "$b"}}}},
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "c_idx"},
-								{"path", "$c"},
-								{"preserveNullAndEmptyArrays", true},
-							}}},
-							{{"$project", bson.M{
-								"b_DOT__id": "$_id",
-								"c_DOT__id": "$_id",
-							}}},
-						},
-					)
-					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id",
-						[]bson.D{
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "b_idx"},
-								{"path", "$b"},
-								{"preserveNullAndEmptyArrays", true},
-							}}},
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "c_idx"},
-								{"path", "$c"},
-							}}},
-							{{"$project", bson.M{
-								"b_DOT__id": "$_id",
-								"c_DOT__id": "$_id",
-							}}},
-						},
-					)
+								"b_DOT__id": "$_id_0",
+								"c_DOT__id": "$_id_1"}}}})
 					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id left join merge_d_a a on r._id=a._id",
 						[]bson.D{
+							{{"$addFields", bson.M{
+								"_id_0": bson.D{
+									{"$switch", bson.D{
+										{"default", "$_id"},
+										{"branches", []interface{}{bson.M{
+											"case": bson.M{"$lte": []interface{}{"$b", interface{}(nil)}},
+											"then": interface{}(nil)}, bson.M{
+											"case": bson.M{"$eq": []interface{}{"$b", []interface{}{}}},
+											"then": interface{}(nil)}}}}}}}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "b_idx"},
 								{"path", "$b"},
-								{"preserveNullAndEmptyArrays", true},
-							}}},
+								{"preserveNullAndEmptyArrays", true}}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "c_idx"},
-								{"path", "$c"},
-							}}},
+								{"path", "$c"}}}},
+							{{"$project", bson.M{
+								"b_DOT__id": "$_id_0",
+								"c_DOT__id": "$_id",
+								"r_DOT__id": "$_id"}}}},
+						[]bson.D{
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d_idx"},
-								{"path", "$d"},
-								{"preserveNullAndEmptyArrays", true},
-							}}},
+								{"path", "$d"}}}},
 							{{"$unwind", bson.D{
 								{"includeArrayIndex", "d.a_idx"},
-								{"path", "$d.a"},
-								{"preserveNullAndEmptyArrays", true},
-							}}},
+								{"path", "$d.a"}}}},
 							{{"$project", bson.M{
-								"b_DOT__id": "$_id",
-								"c_DOT__id": "$_id",
-							}}},
-						},
+								"a_DOT__id": "$_id"}}}},
 					)
 					test("select b._id, c._id from merge r inner join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id inner join merge_d_a a on r._id=a._id",
 						[]bson.D{
@@ -3469,8 +3369,8 @@ func TestOptimizePlan(t *testing.T) {
 						}}},
 						{{"$sort", bson.D{
 							{
-								Name:  "foo_DOT_a>foo_DOT_b",
-								Value: int(1),
+								"foo_DOT_a>foo_DOT_b",
+								int(1),
 							},
 						}}},
 						{{"$project", bson.M{

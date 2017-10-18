@@ -771,7 +771,6 @@ testcases:
   expected_names: ["c.y_idx"]
   expected_types: [int]
   expected:
-  - [~]
   - [0]
   - [1]
   - [2]
@@ -1021,7 +1020,6 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
-
 #RLike
 - sql: "select a RLIKE '^f.*$' from where_test.reg"
   id: '104'
@@ -1064,3 +1062,14 @@ testcases:
   - [0]
   - [1]
   - [0]
+- sql: "select * from test_c_empty a left join test_c_y_empty b on a._id = b._id and a.c_idx = b.c_idx"
+  id: '108'
+  db : select_test
+  description: "proper NULLs in left join"
+  expected_names: ["_id","a", "c_idx", "_id", "a", "c.y", "c.y_idx", "c_idx"]
+  expected_types: [varchar, int, int, varchar, int, int, int, int]
+  expected:
+  - [ "57f422f941a74e324fb5c44a", 1, 0, ~                         , ~, ~, ~, ~ ] 
+  - [ "57f422f941a74e324fb5c44a", 1, 1, "57f422f941a74e324fb5c44a", 1, 1, 0, 1 ]
+  - [ "57f422f941a74e324fb5c44a", 1, 1, "57f422f941a74e324fb5c44a", 1, 4, 1, 1 ]
+  - [ "57f422f941a74e324fb5c44a", 1, 1, "57f422f941a74e324fb5c44a", 1, 5, 2, 1 ]
