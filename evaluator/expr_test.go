@@ -3331,8 +3331,8 @@ func TestExprNoPushdown(t *testing.T) {
 
 	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 
-	runTests := func(tests []test) {
-		schema, err := schema.New(testSchema3)
+	runTests := func(tests []test, schemaName []byte, tableName string) {
+		schema, err := schema.New(schemaName)
 		So(err, ShouldBeNil)
 		db, ok := schema.Database(dbOne)
 		So(ok, ShouldBeTrue)
@@ -3342,7 +3342,7 @@ func TestExprNoPushdown(t *testing.T) {
 		}
 		for _, t := range tests {
 			Convey(fmt.Sprintf("%q should not be pushed down", t.sql), func() {
-				e, err := getSQLExpr(schema, dbOne, tableTwoName, t.sql)
+				e, err := getSQLExpr(schema, dbOne, tableName, t.sql)
 				So(err, ShouldBeNil)
 
 				ctx := createTestEvalCtx(testInfo)
@@ -3385,9 +3385,17 @@ func TestExprNoPushdown(t *testing.T) {
 			test{"substring(s, s)"},
 			test{"substring(s FROM 1 FOR s)"},
 		}
+		runTests(tests, testSchema3, tableTwoName)
 
-		runTests(tests)
-
+		dateTests := []test{
+			test{"avg(datetest.dt)"},
+			test{"std(datetest.dt)"},
+			test{"stddev(datetest.dt)"},
+			test{"stddev_pop(datetest.dt)"},
+			test{"stddev_samp(datetest.dt)"},
+			test{"sum(datetest.dt)"},
+		}
+		runTests(dateTests, testSchema4, dateTableName)
 	})
 }
 

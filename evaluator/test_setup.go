@@ -14,6 +14,7 @@ var (
 	dbTwo          = "test2"
 	tableOneName   = "foo"
 	tableTwoName   = "bar"
+	dateTableName  = "datetest"
 	tableThreeName = "baz"
 	SSLTestKey     = "SQLPROXY_SSLTEST"
 	NoPushDown     = "SQLPROXY_PUSHDOWN_OFF"
@@ -349,6 +350,16 @@ schema:
   db: test
   tables:
   -
+     table: datetest
+     collection: datetest
+     columns:
+     -
+        Name: dt
+        MongoType: date
+        SqlName: dt
+        SqlType: date
+
+  -
      table: foo
      collection: foo
      columns:
@@ -388,7 +399,6 @@ schema:
         MongoType: mongo.Filter
         SqlName: filter
         SqlType: varchar
-
   -
      table: bar
      collection: bar
