@@ -2759,6 +2759,36 @@ func TestOptimizePlan(t *testing.T) {
 				},
 			)
 
+			test("select max(dt) from datetest",
+				[]bson.D{
+					{{"$group", bson.M{
+						"max(datetest_DOT_dt)": bson.M{
+							"$max": "$dt",
+						},
+						"_id": bson.D{}}},
+					},
+					{{"$project", bson.M{
+						"max(datetest_DOT_dt)": "$max(datetest_DOT_dt)",
+					},
+					}},
+				},
+			)
+
+			test("select min(dt) from datetest",
+				[]bson.D{
+					{{"$group", bson.M{
+						"min(datetest_DOT_dt)": bson.M{
+							"$min": "$dt",
+						},
+						"_id": bson.D{}}},
+					},
+					{{"$project", bson.M{
+						"min(datetest_DOT_dt)": "$min(datetest_DOT_dt)",
+					},
+					}},
+				},
+			)
+
 			test("select c, max(a), max(b) from foo group by c",
 				[]bson.D{
 					{{"$group", bson.M{

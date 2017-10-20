@@ -237,7 +237,20 @@ testcases:
   expected_types: [int]
   expected:
   - [0]
-
+- sql: "select min(d) from bar"
+  id: 'min_date'
+  db: functions_test
+  expected_names: ["min(d)"]
+  expected_types: ["datetime(6)"]
+  expected:
+  - ['2000-09-23 13:45:00.400000']
+- sql: "select max(d) from bar"
+  id: 'max_date'
+  db: functions_test
+  expected_names: ["max(d)"]
+  expected_types: ["datetime(6)"]
+  expected:
+  - ['2000-10-24 13:45:00.007000']
 - sql: "select max(a) from bar"
   id: '9'
   db: functions_test

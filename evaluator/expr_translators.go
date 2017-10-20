@@ -173,14 +173,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			return nil, false
 		}
 
-		dataType := typedE.Exprs[0].Type()
-		if dataType == schema.SQLTimestamp || dataType == schema.SQLDate {
-			return nil, false
-		}
-
 		name := typedE.Name
 
+		// Allow Min and Max and Count over DateTimes/Timestamps
 		switch name {
+		case minAggregateName, maxAggregateName:
+			return bson.M{"$" + name: transExpr}, true
 		case countAggregateName:
 			if typedE.Exprs[0] == SQLVarchar("*") {
 				return bson.M{"$size": transExpr}, true
@@ -206,6 +204,15 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 					},
 				},
 			}, true
+		}
+
+		// All other aggregates are not allowed over DateTimes/Timestamps
+		dataType := typedE.Exprs[0].Type()
+		if dataType == schema.SQLTimestamp || dataType == schema.SQLDate {
+			return nil, false
+		}
+
+		switch name {
 		case stdAggregateName, stddevAggregateName, stddevPopAggregateName:
 			return bson.M{"$stdDevPop": transExpr}, true
 		case stddevSampleAggregateName:
