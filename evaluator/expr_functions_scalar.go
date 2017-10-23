@@ -163,6 +163,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"session_user":      &userFunc{},
 	"sign":              &signFunc{},
 	"sin":               singleArgFloatMathFunc(math.Sin),
+	"sleep":             &sleepFunc{},
 	"sqrt":              singleArgFloatMathFunc(math.Sqrt),
 	"space":             &spaceFunc{},
 	"str_to_date":       &strToDateFunc{},
@@ -2828,6 +2829,47 @@ func (_ *signFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (_ *signFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+type sleepFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/miscellaneous-functions.html#function_sleep
+func (_ *sleepFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+
+	err := mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_ARGUMENTS, "sleep")
+
+	if hasNullValue(values...) {
+		return nil, err
+	}
+
+	n := values[0].Float64()
+
+	if n < 0 {
+		return nil, err
+	}
+
+	timer := time.NewTimer(time.Second * time.Duration(n))
+
+	select {
+	case <-timer.C:
+	case <-ctx.Context().Done():
+		timer.Stop()
+	}
+
+	return SQLInt(0), nil
+
+}
+
+func (_ *sleepFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLInt
+}
+
+func (_ *sleepFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 1)
+}
+
+func (_ *sleepFunc) RequiresEvalCtx() bool {
+	return true
 }
 
 type spaceFunc struct{}
