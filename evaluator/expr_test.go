@@ -179,6 +179,33 @@ func TestEvaluates(t *testing.T) {
 				runTests(aggCtx, tests)
 			})
 
+			Convey("Subject: SLEEP", func() {
+				tests := []test{
+					test{"SLEEP(1)", SQLInt(0)},
+					test{"SLEEP(1.5)", SQLInt(0)},
+					test{"SLEEP(0)", SQLInt(0)},
+				}
+				runTests(aggCtx, tests)
+
+				Convey("Should error with negative input", func() {
+					subject := &SQLScalarFunctionExpr{
+						Name:  "sleep",
+						Exprs: []SQLExpr{SQLInt(-1)},
+					}
+					_, err := subject.Evaluate(evalCtx)
+					So(err, ShouldNotBeNil)
+				})
+
+				Convey("Should error with null input", func() {
+					subject := &SQLScalarFunctionExpr{
+						Name:  "sleep",
+						Exprs: []SQLExpr{SQLNull},
+					}
+					_, err := subject.Evaluate(evalCtx)
+					So(err, ShouldNotBeNil)
+				})
+			})
+
 			Convey("Subject: SUM", func() {
 				tests := []test{
 					test{"SUM(NULL)", SQLNull},
@@ -3405,6 +3432,7 @@ func TestExprNoPushdown(t *testing.T) {
 			test{"ltrim(a)"},
 			test{"rtrim(t)"},
 			test{"trim(g)"},
+			test{"sleep(s)"},
 		}
 		runTests(tests, testSchema3, tableTwoName)
 
