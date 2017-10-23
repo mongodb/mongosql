@@ -394,7 +394,7 @@ func (sd SQLDecimal128) Float64() float64 {
 }
 
 func (sd SQLDecimal128) Int64() int64 {
-	return decimal.Decimal(sd).Round(0).IntPart()
+	return decimal.Decimal(sd).Truncate(0).IntPart()
 }
 
 func (sd SQLDecimal128) Size() uint64 {
@@ -410,7 +410,7 @@ func (_ SQLDecimal128) Type() schema.SQLType {
 }
 
 func (sd SQLDecimal128) Uint64() uint64 {
-	return uint64(decimal.Decimal(sd).Round(0).IntPart())
+	return uint64(decimal.Decimal(sd).Truncate(0).IntPart())
 }
 
 func (sd SQLDecimal128) Value() interface{} {

@@ -4690,6 +4690,7 @@ testcases:
   - [7000]
   - [~]
   - [~]
+
 - sql: "select rtrim(a) rtm from trims"
   id: 'rtrim'
   db: functions_test
@@ -4767,3 +4768,518 @@ testcases:
   expected_types: [int]
   expected:
   - [1]
+
+- sql: "select lpad(s, 5, 'x') from lpad"
+  id: "lpad_1"
+  db: functions_test
+  description: "test padding strings w/ single character string"
+  expected_names: ["lpad(s, 5, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["xxxhi"]
+  - ["xxhey"]
+  - ["xyoyo"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["xxxxx"]
+  - ["xxxx "]
+  - [". . ."]
+
+- sql: "select lpad(s, 5, 'xy') from lpad"
+  id: "lpad_2"
+  db: functions_test
+  description: "test padding strings w/ two character string"
+  expected_names: ["lpad(s, 5, 'xy')"]
+  expected_types: [string]
+  expected:
+  - ["xyxhi"]
+  - ["xyhey"]
+  - ["xyoyo"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["xyxyx"]
+  - ["xyxy "]
+  - [". . ."]
+
+- sql: "select lpad(s, 5, '') from lpad"
+  id: "lpad_3"
+  db: functions_test
+  description: "test padding strings w/ empty string"
+  expected_names: ["lpad(s, 5, '')"]
+  expected_types: [string]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["~"]
+  - ["~"]
+  - [". . ."]
+
+- sql: "select lpad(s, -2, 'x') from lpad"
+  id: "lpad_4"
+  db: functions_test
+  description: "test padding strings to negative length"
+  expected_names: ["lpad(s, -2, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select lpad(s, -2.1, 'x') from lpad"
+  id: "lpad_5"
+  db: functions_test
+  description: "test padding strings to negative float length"
+  expected_names: ["lpad(s, -2.1, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select lpad(s, 0, 'x') from lpad"
+  id: "lpad_6"
+  db: functions_test
+  description: "test padding strings to length 0"
+  expected_names: ["lpad(s, 0, 'x')"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+
+- sql: "select lpad(s, '5', 'x') from lpad"
+  id: "lpad_7"
+  db: functions_test
+  description: "test padding strings to string length with string parseable as int"
+  expected_names: ["lpad(s, '5', 'x')"]
+  expected_types: [string]
+  expected:
+  - ["xxxhi"]
+  - ["xxhey"]
+  - ["xyoyo"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["xxxxx"]
+  - ["xxxx "]
+  - [". . ."]
+
+- sql: "select lpad(s, 4.5, 'x') from lpad"
+  id: "lpad_8"
+  db: functions_test
+  description: "test padding strings to float length - should round up"
+  expected_names: ["lpad(s, 4.5, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["xxxhi"]
+  - ["xxhey"]
+  - ["xyoyo"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["xxxxx"]
+  - ["xxxx "]
+  - [". . ."]
+
+- sql: "select lpad(s, 4.4, 'x') from lpad"
+  id: "lpad_9"
+  db: functions_test
+  description: "test padding strings to float length - should round down"
+  expected_names: ["lpad(s, 4.4, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["xxhi"]
+  - ["xhey"]
+  - ["yoyo"]
+  - ["hell"]
+  - ["bana"]
+  - ["mong"]
+  - ["xxxx"]
+  - ["xxx "]
+  - [". . "]
+
+- sql: "select lpad(s, '4.4', 'x') from lpad"
+  id: "lpad_10"
+  db: functions_test
+  description: "test padding strings to string length (string parseable as float) - should round down"
+  expected_names: ["lpad(s, '4.4', 'x')"]
+  expected_types: [string]
+  expected:
+  - ["xxhi"]
+  - ["xhey"]
+  - ["yoyo"]
+  - ["hell"]
+  - ["bana"]
+  - ["mong"]
+  - ["xxxx"]
+  - ["xxx "]
+  - [". . "]
+
+- sql: "select lpad(s, '4.6', 'x') from lpad"
+  id: "lpad_11"
+  db: functions_test
+  description: "should always round length down if it's a string - round 4.6 to 4"
+  expected_names: ["lpad(s, '4.6', 'x')"]
+  expected_types: [string]
+  expected:
+  - ["xxhi"]
+  - ["xhey"]
+  - ["yoyo"]
+  - ["hell"]
+  - ["bana"]
+  - ["mong"]
+  - ["xxxx"]
+  - ["xxx "]
+  - [". . "]
+
+- sql: "select lpad(s, i, 'x') from lpad"
+  id: "lpad_12"
+  db: functions_test
+  description: "pad strings using int length from a column"
+  expected_names: ["lpad(s, i, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["xxxhi"]
+  - ["xhey"]
+  - ["yoy"]
+  - ["he"]
+  - ["b"]
+  - [""]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select lpad(i, 3, 'x') from lpad"
+  id: "lpad_13"
+  db: functions_test
+  description: "pad ints"
+  expected_names: ["lpad(i, 3, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["xx5"]
+  - ["xx4"]
+  - ["xx3"]
+  - ["xx2"]
+  - ["xx1"]
+  - ["xx0"]
+  - ["x-2"]
+  - ["x-3"]
+  - ["x-4"]
+
+- sql: "select lpad(f, 5, 'x') from lpad"
+  id: "lpad_14"
+  db: functions_test
+  description: "pad floats"
+  expected_names: ["lpad(f, 5, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["xx2.2"]
+  - ["xxxx4"]
+  - ["xxxx1"]
+  - ["x10.9"]
+  - ["8.666"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select lpad(s, 5, true) from lpad"
+  id: "lpad_15"
+  db: functions_test
+  description: "pad strings with a bool - true"
+  expected_names: ["lpad(s, 5, true)"]
+  expected_types: ["string"]
+  expected:
+  - ["111hi"]
+  - ["11hey"]
+  - ["1yoyo"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["11111"]
+  - ["1111 "]
+  - [". . ."]
+
+- sql: "select lpad(false, i, 'x') from lpad"
+  id: "lpad_16"
+  db: functions_test
+  description: "pad a bool"
+  expected_names: ["lpad(false, i, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["xxxx0"]
+  - ["xxx0"]
+  - ["xx0"]
+  - ["x0"]
+  - ["0"]
+  - [""]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select lpad(s, true, 'x') from lpad"
+  id: "lpad_17"
+  db: functions_test
+  description: "pad strings to boolean length true"
+  expected_names: ["lpad(s, true, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["h"]
+  - ["h"]
+  - ["y"]
+  - ["h"]
+  - ["b"]
+  - ["m"]
+  - ["x"]
+  - [" "]
+  - ["."]
+
+- sql: "select lpad(s, 5, 1.1) from lpad"
+  id: "lpad_18"
+  db: functions_test
+  description: "pad strings with a float"
+  expected_names: ["lpad(s, 5, 1.1)"]
+  expected_types: ["string"]
+  expected:
+  - ["1.1hi"]
+  - ["1.hey"]
+  - ["1yoyo"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["1.11."]
+  - ["1.11 "]
+  - [". . ."]
+
+- sql: "select lpad(d, 30, 'abc') from bar"
+  id: "lpad_19"
+  db: functions_test
+  description: "pad timestamps with string"
+  expected_names: ["lpad(d, 30, 'abc')"]
+  expected_types: [string]
+  expected:
+    - ["abca2000-09-23 13:45:00.400000"]
+    - ["abca2000-09-24 13:45:00.000000"]
+    - ["abca2000-10-24 13:45:00.007000"]
+    - ["~"]
+    - ["~"]
+
+- sql: "select lpad(s, -0.5, 'x') from lpad"
+  id: "lpad_20"
+  db: functions_test
+  description: "test rounding negative float length - round to -1"
+  expected_names: ["lpad(s, -0.5, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select lpad(s, -0.49, 'x') from lpad"
+  id: "lpad_21"
+  db: functions_test
+  description: "test rounding negative float length - round to 0"
+  expected_names: ["lpad(s, -0.49, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+
+- sql: "select lpad(s, '-0.5', 'x') from lpad"
+  id: "lpad_22"
+  db: functions_test
+  description: "test rounding negative string length - always round closer to zero"
+  expected_names: ["lpad(s, '-0.5', 'x')"]
+  expected_types: ["string"]
+  expected:
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+
+- sql: "select lpad(s, '-0.49', 'x') from lpad"
+  id: "lpad_23"
+  db: functions_test
+  description: "test rounding negative float length - always round closer to 0"
+  expected_names: ["lpad(s, '-0.49', 'x')"]
+  expected_types: ["string"]
+  expected:
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+
+- sql: "select lpad('hi', 3, s) from lpad"
+  id: "lpad_24"
+  db: functions_test
+  description: "use column as padding"
+  expected_names: ["lpad('hi', 3, s)"]
+  expected_types: ["string"]
+  expected:
+  - ["hhi"]
+  - ["hhi"]
+  - ["yhi"]
+  - ["hhi"]
+  - ["bhi"]
+  - ["mhi"]
+  - ["~"]
+  - [" hi"]
+  - [".hi"]
+
+- sql: "select lpad(s, t, z) from bar"
+  id: "lpad_25"
+  db: functions_test
+  description: "1+ null arguments always evaluates to null"
+  expected_names: ["lpad(s, t, z)"]
+  expected_types: ["string"]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select lpad(s, t, z) from bar"
+  id: "lpad_26"
+  db: functions_test
+  description: "1+ null arguments always evaluates to null"
+  expected_names: ["lpad(s, t, z)"]
+  expected_types: ["string"]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select lpad(s, false, 'x') from lpad"
+  id: "lpad_27"
+  db: functions_test
+  description: "pad strings to boolean length false"
+  expected_names: ["lpad(s, false, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+
+- sql: "select lpad(s, 5, false) from lpad"
+  id: "lpad_28"
+  db: functions_test
+  description: "pad strings with a bool - false"
+  expected_names: ["lpad(s, 5, false)"]
+  expected_types: ["string"]
+  expected:
+  - ["000hi"]
+  - ["00hey"]
+  - ["0yoyo"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["00000"]
+  - ["0000 "]
+  - [". . ."]
+
+- sql: "select lpad(x, 8, 'x') from lpad"
+  id: "lpad_29"
+  db: functions_test
+  description: "pad strings containing spaces and symbols"
+  expected_names: ["lpad(x, 8, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["xxxxx hi"]
+  - ["xxxxxx  "]
+  - ["xxxx@!#_"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]  
+
+- sql: "select lpad(s, 5, ' ') from lpad"
+  id: "lpad_30"
+  db: functions_test
+  description: "pad with a space"
+  expected_names: ["lpad(s, 5, ' ')"]
+  expected_types: ["string"]
+  expected:
+  - ["   hi"]
+  - ["  hey"]
+  - [" yoyo"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["     "]
+  - ["     "]
+  - [". . ."]
+
+- sql: "select lpad(s, 5, '.') from lpad"
+  id: "lpad_31"
+  db: functions_test
+  description: "pad with a symbol"
+  expected_names: ["lpad(s, 5, '.')"]
+  expected_types: ["string"]
+  expected:
+  - ["...hi"]
+  - ["..hey"]
+  - [".yoyo"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["....."]
+  - [".... "]
+  - [". . ."]

@@ -16,7 +16,10 @@ const (
 	mgoOperatorAdd       = "$add"
 	mgoOperatorAnd       = "$and"
 	mgoOperatorArrElemAt = "$arrayElemAt"
+	mgoOperatorCeil      = "$ceil"
+	mgoOperatorConcat    = "$concat"
 	mgoOperatorCond      = "$cond"
+	mgoOperatorDivide    = "$divide"
 	mgoOperatorEq        = "$eq"
 	mgoOperatorExists    = "$exists"
 	mgoOperatorGt        = "$gt"
@@ -31,6 +34,8 @@ const (
 	mgoOperatorNeq       = "$ne"
 	mgoOperatorNot       = "$not"
 	mgoOperatorOr        = "$or"
+	mgoOperatorRange     = "$range"
+	mgoOperatorReduce    = "$reduce"
 	mgoOperatorStrlenCP  = "$strLenCP"
 	mgoOperatorSubstr    = "$substrCP"
 	mgoOperatorSubtract  = "$subtract"
@@ -1395,6 +1400,117 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{mgoOperatorGt: []interface{}{args[0], 0}},
 				bson.M{"$log10": args[0]},
 				mgoNullLiteral}}, true
+
+		case "lpad":
+			if !t.versionAtLeast(3, 4, 0) {
+				return nil, false
+			}
+
+			if len(typedE.Exprs) != 3 {
+				return nil, false
+			}
+
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
+
+			// arguments to lpad
+			str := args[0]
+			padStr := args[2]
+
+			lengthVal, ok := getLiteral(args[1])
+
+			if !ok {
+				return nil, false
+			}
+
+			// convert length to a SQLValue
+			sqlVal, notConverted := NewSQLValue(lengthVal, schema.SQLFloat, schema.SQLNone)
+			if notConverted {
+				return nil, false
+			}
+
+			// round to nearest int.
+			length, ok := wrapInRound([]interface{}{sqlVal})
+			if !ok {
+				return nil, false
+			}
+
+			// variables for $let expression - length of padding needed
+			// and length of input padding strings
+			vars := bson.M{
+				"padLen": bson.M{
+					mgoOperatorSubtract: []interface{}{
+						length,
+						bson.M{mgoOperatorStrlenCP: str}}},
+				"padStrLen": bson.M{mgoOperatorStrlenCP: padStr},
+				"length":    length,
+			}
+
+			// logic for generating padding string:
+
+			// do we even need to add padding? only if the desired output
+			// length is > length of input string.
+			paddingCond := bson.M{
+				mgoOperatorLt: []interface{}{
+					bson.M{mgoOperatorStrlenCP: str},
+					"$$length"}}
+
+			// number of times we need to repeat the padding string to fill space
+			padStrRepeats := bson.M{
+				mgoOperatorCeil: bson.M{
+					mgoOperatorDivide: []interface{}{"$$padLen", "$$padStrLen"}}}
+
+			// generate an array with padStrRepeats occurrences of padStr
+			padParts := bson.M{
+				mgoOperatorMap: bson.M{
+					"input": bson.M{
+						mgoOperatorRange: []interface{}{
+							0,
+							padStrRepeats}},
+					"in": padStr}}
+
+			// join occurrences together and trim to the exact length needed
+			fullPad := bson.M{
+				"$substr": []interface{}{
+					bson.M{
+						mgoOperatorReduce: bson.M{
+							"input":        padParts,
+							"initialValue": "",
+							"in": bson.M{
+								mgoOperatorConcat: []interface{}{"$$value", "$$this"}}}},
+					0,
+					"$$padLen"}}
+
+			// based on length of input string, we either add the padding
+			// or just take appropriate substring of input string
+			handleConcat := wrapInCond(
+				nil,
+				bson.M{mgoOperatorConcat: []interface{}{fullPad, str}},
+				bson.M{mgoOperatorEq: []interface{}{"$$padStrLen", 0}})
+
+			// handle everything in the case that input length >=0
+			handleNonNegativeLength := wrapInCond(
+				handleConcat,
+				bson.M{"$substr": []interface{}{str, 0, "$$length"}},
+				paddingCond)
+
+			// whether the input length is < 0
+			lengthIsNegative := bson.M{mgoOperatorLt: []interface{}{length, 0}}
+
+			// if it's < 0, then we just want to return null
+			negativeCheck := wrapInCond(nil, handleNonNegativeLength, lengthIsNegative)
+
+			return wrapInNullCheckedCond(
+					nil,
+					bson.M{
+						mgoOperatorLet: bson.M{
+							"vars": vars,
+							"in":   negativeCheck}},
+					str),
+				true
+
 		case "mod":
 			if len(typedE.Exprs) != 2 {
 				return nil, false

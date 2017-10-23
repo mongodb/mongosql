@@ -1973,6 +1973,93 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			Convey("Subject: LPAD", func() {
+				tests := []test{
+
+					// LPAD(str, len, padStr)
+
+					// basic case
+					test{"LPAD('hello', 7, 'x')", SQLVarchar("xxhello")},
+
+					// nulls in various positions
+					test{"LPAD(NULL, 5, 'a')", SQLNull},
+					test{"LPAD('hi', NULL, 'a')", SQLNull},
+					test{"LPAD('hi', 5, NULL)", SQLNull},
+					test{"LPAD(NULL, NULL, NULL)", SQLNull},
+
+					// str: empty
+					test{"LPAD('', 0, 'a')", SQLVarchar("")},
+					test{"LPAD('', 1, 'a')", SQLVarchar("a")},
+					test{"LPAD('', 7, 'ab')", SQLVarchar("abababa")},
+
+					// str: spaces and symbols
+					test{"LPAD(' hi', 4, 'x')", SQLVarchar("x hi")},
+					test{"LPAD('  ', 5, ' ')", SQLVarchar("     ")},
+					test{"LPAD('@!#_', 10, '.')", SQLVarchar("......@!#_")},
+
+					// str type: numbers
+					test{"LPAD(5, 4, 'a')", SQLVarchar("aaa5")},
+					test{"LPAD(10, 4, 'a')", SQLVarchar("aa10")},
+					test{"LPAD(10.2, 4, 'a')", SQLVarchar("10.2")},
+
+					// str type: boolean
+					test{"LPAD(true, 4, 'a')", SQLVarchar("aaa1")},
+					test{"LPAD(false, 4, 'a')", SQLVarchar("aaa0")},
+
+					// len < 0
+					test{"LPAD('hi', -1, 'a')", SQLNull},
+
+					// len = 0
+					test{"LPAD('hi', 0, 'a')", SQLVarchar("")},
+
+					// len <= len(str)
+					test{"LPAD('hello', 2, 'x')", SQLVarchar("he")},
+					test{"LPAD('hello', 5, 'x')", SQLVarchar("hello")},
+
+					// len type: str
+					test{"LPAD('hello', '5', 'x')", SQLVarchar("hello")},
+					test{"LPAD('hello', '5.6', 'x')", SQLVarchar("hello")},
+					test{"LPAD('hello', '6', 'x')", SQLVarchar("xhello")},
+					test{"LPAD('hello', '6.2', 'x')", SQLVarchar("xhello")},
+					// if can't be cast to #, then use length 0
+					test{"LPAD('hello', 'a', 'x')", SQLVarchar("")},
+
+					// len: floating point
+					test{"LPAD('hello', 5.4, 'x')", SQLVarchar("hello")},
+					test{"LPAD('hello', 5.5, 'x')", SQLVarchar("xhello")},
+
+					// len float values close to 0 - round to closest int
+					test{"LPAD('hello', 0.4, 'x')", SQLVarchar("")},
+					test{"LPAD('hello', 0.5, 'x')", SQLVarchar("h")},
+					test{"LPAD('hello', -0.4, 'x')", SQLVarchar("")},
+					test{"LPAD('hello', -0.5, 'x')", SQLNull},
+
+					// len string values close to 0 - always round toward 0
+					test{"LPAD('hello', '0.4', 'x')", SQLVarchar("")},
+					test{"LPAD('hello', '0.5', 'x')", SQLVarchar("")},
+					test{"LPAD('hello', '-0.4', 'x')", SQLVarchar("")},
+					test{"LPAD('hello', '-0.5', 'x')", SQLVarchar("")},
+
+					// len: bool
+					test{"LPAD('hello', true, 'x')", SQLVarchar("h")},
+					test{"LPAD('hello', false, 'x')", SQLVarchar("")},
+
+					// len(padStr) > 1
+					test{"LPAD('hello', 7, 'xy')", SQLVarchar("xyhello")},
+					test{"LPAD('hello', 8, 'xy')", SQLVarchar("xyxhello")},
+
+					// padStr type: number
+					test{"LPAD('hello', 7, 1)", SQLVarchar("11hello")},
+					test{"LPAD('hello', 10, 1.1)", SQLVarchar("1.11.hello")},
+					test{"LPAD('hello', 10, -1)", SQLVarchar("-1-1-hello")},
+
+					// padStr type: boolean
+					test{"LPAD('hello', 7, true)", SQLVarchar("11hello")},
+					test{"LPAD('hello', 10, false)", SQLVarchar("00000hello")},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: SECOND", func() {
 				tests := []test{
 					test{"SECOND(NULL)", SQLNull},
@@ -3438,6 +3525,7 @@ func TestExprNoPushdown(t *testing.T) {
 			test{"rtrim(t)"},
 			test{"trim(g)"},
 			test{"sleep(s)"},
+			test{"lpad(s, a+b, 'hi')"},
 		}
 		runTests(tests, testSchema3, tableTwoName)
 
@@ -3606,6 +3694,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"rtrim(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$cond":[{"$eq":["$s",""]},"",{"$substrCP":["$s",0,{"$subtract":[{"$strLenCP":"$s"},{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$s"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$reverseArray":{"$split":["$s"," "]}}}}}}}}]}]}]}]}`},
 			test{"ltrim(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$cond":[{"$eq":["$s",""]},"",{"$substrCP":["$s",{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$s"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$split":["$s"," "]}}}}}}},{"$strLenCP":"$s"}]}]}]}`},
 			test{"trim(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$cond":[{"$eq":["$s",""]},"",{"$let":{"in":{"$cond":[{"$eq":["$$rtrim",""]},"",{"$substrCP":["$$rtrim",{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$$rtrim"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$split":["$$rtrim"," "]}}}}}}},{"$strLenCP":"$$rtrim"}]}]},"vars":{"rtrim":{"$cond":[{"$eq":["$s",""]},"",{"$substrCP":["$s",0,{"$subtract":[{"$strLenCP":"$s"},{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$s"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$reverseArray":{"$split":["$s"," "]}}}}}}}}]}]}]}}}}]}]}`},
+			test{"lpad(s, 5, 'xy')", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$let":{"in":{"$cond":[{"$lt":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[5,0]},{"$floor":{"$add":[{"$multiply":[5,"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[5,"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},0]},null,{"$cond":[{"$lt":[{"$strLenCP":"$s"},"$$length"]},{"$cond":[{"$eq":["$$padStrLen",0]},null,{"$concat":[{"$substr":[{"$reduce":{"in":{"$concat":["$$value","$$this"]},"initialValue":"","input":{"$map":{"in":{"$literal":"xy"},"input":{"$range":[0,{"$ceil":{"$divide":["$$padLen","$$padStrLen"]}}]}}}}},0,"$$padLen"]},"$s"]}]},{"$substr":["$s",0,"$$length"]}]}]},"vars":{"length":{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[5,0]},{"$floor":{"$add":[{"$multiply":[5,"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[5,"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},"padLen":{"$subtract":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[5,0]},{"$floor":{"$add":[{"$multiply":[5,"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[5,"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},{"$strLenCP":"$s"}]},"padStrLen":{"$strLenCP":{"$literal":"xy"}}}}}]}`},
 		}
 
 		runTests(tests)

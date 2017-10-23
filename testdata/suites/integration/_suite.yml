@@ -70,6 +70,19 @@ data:
     - { _id: 8, a: "\fab c\t"}
     - { _id: 9, a: "\nab c\r"}
 - inline:
+    db: "functions_test"
+    collection: "lpadTest"
+    docs:
+    - {s: "hi", i : 5, f : 2.2, x: " hi"}
+    - {s: "hey", i : 4, f: 4.0, x: "  "}
+    - {s: "yoyo", i : 3, f: 1.0, x: "@!#_"}
+    - {s: "hello", i : 2, f : 10.9}
+    - {s: "banana", i : 1, f: 8.666} 
+    - {s: "mongodb", i : 0}
+    - {s: "", i : -2}
+    - {s: " ", i : -3}
+    - {s: ". . .", i : -4}
+- inline:
     db: "groupby_test"
     collection: "groupby"
     docs:

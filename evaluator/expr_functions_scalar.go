@@ -139,6 +139,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"log2":              singleArgFloatMathFunc(math.Log2),
 	"log10":             singleArgFloatMathFunc(math.Log10),
 	"lower":             &lcaseFunc{},
+	"lpad":              &lpadFunc{},
 	"ltrim":             &ltrimFunc{},
 	"makedate":          &makeDateFunc{},
 	"microsecond":       &microsecondFunc{},
@@ -2240,6 +2241,73 @@ func (_ *locateFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (_ *locateFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 2, 3)
+}
+
+type lpadFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lpad
+func (_ *lpadFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	str := values[0].String()
+
+	var length int
+	if floatLength := values[1].Float64(); floatLength < float64(0) {
+		length = int(floatLength - 0.5)
+	} else {
+		length = int(floatLength + 0.5)
+	}
+
+	padStr := values[2].String()
+	padLen := length - len(str)
+
+	// either:
+	// 1) padding string is empty and the input string is not long enough to not need padding
+	// 2) output length is negative and therefore impossible
+	if (len(padStr) == 0 && len(str) < length) || length < 0 {
+		return SQLNull, nil
+	}
+
+	// the string is already long enough
+	if len(str) >= length {
+		return SQLVarchar(str[:length]), nil
+	}
+
+	// repeat padding as many times as needed to fill room
+	numRepeats := math.Ceil(float64(padLen) / float64(len(padStr)))
+	padding := strings.Repeat(padStr, int(numRepeats))
+	// in case room % len(padstr) != 0, chop off end
+	padding = padding[:padLen]
+
+	return SQLVarchar(padding + str), nil
+}
+
+func (_ *lpadFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *lpadFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
+func (_ *lpadFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLVarchar}
+	defaults := []SQLValue{SQLNull, SQLNull, SQLNull}
+	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		newExprs,
+	}
+}
+
+func (_ *lpadFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+
+	return f
 }
 
 type ltrimFunc struct{}
