@@ -9,8 +9,8 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+// System Variable Names
 const (
-	// System Variable Names
 	Autocommit                  Name = "autocommit"
 	CharacterSetClient               = "character_set_client"
 	CharacterSetConnection           = "character_set_connection"
@@ -41,7 +41,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.AutoCommit },
+		GetValue:         func(c *Container) interface{} { return c.autoCommit },
 		SetValue:         setAutoCommit,
 	}
 
@@ -50,7 +50,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.CharacterSetClient.Name) },
+		GetValue:         func(c *Container) interface{} { return string(c.characterSetClient.Name) },
+		GetRawValue:      func(c *Container) interface{} { return c.characterSetClient },
 		SetValue:         setCharacterSetClient,
 	}
 
@@ -59,7 +60,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.CharacterSetConnection.Name) },
+		GetValue:         func(c *Container) interface{} { return string(c.characterSetConnection.Name) },
+		GetRawValue:      func(c *Container) interface{} { return c.characterSetConnection },
 		SetValue:         setCharacterSetConnection,
 	}
 
@@ -68,7 +70,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.CharacterSetDatabase.Name) },
+		GetValue:         func(c *Container) interface{} { return string(c.characterSetDatabase.Name) },
+		GetRawValue:      func(c *Container) interface{} { return c.characterSetDatabase },
 		SetValue:         setCharacterSetDatabase,
 	}
 
@@ -78,12 +81,13 @@ func init() {
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue: func(c *Container) interface{} {
-			if c.CharacterSetResults.Name == "" {
+			if c.characterSetResults.Name == "" {
 				return nil
 			}
-			return string(c.CharacterSetResults.Name)
+			return string(c.characterSetResults.Name)
 		},
-		SetValue: setCharacterSetResults,
+		GetRawValue: func(c *Container) interface{} { return c.characterSetResults },
+		SetValue:    setCharacterSetResults,
 	}
 
 	definitions[CollationConnection] = &definition{
@@ -91,7 +95,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.CollationConnection.Name) },
+		GetValue:         func(c *Container) interface{} { return string(c.collationConnection.Name) },
+		GetRawValue:      func(c *Container) interface{} { return c.collationConnection },
 		SetValue:         setCollationConnection,
 	}
 
@@ -100,7 +105,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.CollationDatabase.Name) },
+		GetValue:         func(c *Container) interface{} { return string(c.collationDatabase.Name) },
+		GetRawValue:      func(c *Container) interface{} { return c.collationDatabase },
 		SetValue:         setCollationDatabase,
 	}
 
@@ -109,7 +115,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return string(c.CollationServer.Name) },
+		GetValue:         func(c *Container) interface{} { return string(c.collationServer.Name) },
+		GetRawValue:      func(c *Container) interface{} { return c.collationServer },
 		SetValue:         setCollationServer,
 	}
 
@@ -118,7 +125,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
-		GetValue:         func(c *Container) interface{} { return c.InteractiveTimeoutSecs },
+		GetValue:         func(c *Container) interface{} { return c.interactiveTimeoutSecs },
 		SetValue:         setInteractiveTimeoutSecs,
 	}
 
@@ -127,7 +134,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.MaxAllowedPacket },
+		GetValue:         func(c *Container) interface{} { return c.maxAllowedPacket },
 		SetValue:         setMaxAllowedPacket,
 	}
 
@@ -136,7 +143,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLUint64,
-		GetValue:         func(c *Container) interface{} { return c.MongoDBMaxStageSize },
+		GetValue:         func(c *Container) interface{} { return c.mongoDBMaxStageSize },
 		SetValue:         setMongoDBMaxStageSize,
 	}
 
@@ -145,7 +152,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
 		SQLType:          schema.SQLUint64,
-		GetValue:         func(c *Container) interface{} { return c.MongoDBMaxVarcharLength },
+		GetValue:         func(c *Container) interface{} { return c.mongoDBMaxVarcharLength },
 		SetValue:         setMongoDBMaxVarcharLength,
 	}
 
@@ -154,7 +161,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.MongoDBVersionCompatibility },
+		GetValue:         func(c *Container) interface{} { return c.mongoDBVersionCompatibility },
 		SetValue:         setMongoDBVersionCompatibility,
 	}
 
@@ -189,7 +196,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.Socket },
+		GetValue:         func(c *Container) interface{} { return c.socket },
+		SetValue:         setSocket,
 	}
 
 	definitions[SQLAutoIsNull] = &definition{
@@ -197,7 +205,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.SQLAutoIsNull },
+		GetValue:         func(c *Container) interface{} { return c.sqlAutoIsNull },
 		SetValue:         setSQLAutoIsNull,
 	}
 
@@ -206,7 +214,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLUint64,
-		GetValue:         func(c *Container) interface{} { return c.SQLSelectLimit },
+		GetValue:         func(c *Container) interface{} { return c.sqlSelectLimit },
 		SetValue:         setSQLSelectLimit,
 	}
 
@@ -215,8 +223,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.Version },
-		SetValue:         func(c *Container, v interface{}) error { c.Version = v.(string); return nil },
+		GetValue:         func(c *Container) interface{} { return c.version },
+		SetValue:         func(c *Container, v interface{}) error { c.version = v.(string); return nil },
 	}
 
 	definitions[VersionComment] = &definition{
@@ -224,8 +232,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
 		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.VersionComment },
-		SetValue:         func(c *Container, v interface{}) error { c.VersionComment = v.(string); return nil },
+		GetValue:         func(c *Container) interface{} { return c.versionComment },
+		SetValue:         func(c *Container, v interface{}) error { c.versionComment = v.(string); return nil },
 	}
 
 	definitions[WaitTimeoutSecs] = &definition{
@@ -233,7 +241,7 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLInt64,
-		GetValue:         func(c *Container) interface{} { return c.WaitTimeoutSecs },
+		GetValue:         func(c *Container) interface{} { return c.waitTimeoutSecs },
 		SetValue:         setWaitTimeoutSecs,
 	}
 }
@@ -244,7 +252,7 @@ func setAutoCommit(c *Container, v interface{}) error {
 		return wrongTypeError(Autocommit, v)
 	}
 
-	c.AutoCommit = b
+	c.autoCommit = b
 	return nil
 }
 
@@ -262,7 +270,7 @@ func setCharacterSetClient(c *Container, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	c.CharacterSetClient = cs
+	c.characterSetClient = cs
 	return nil
 }
 
@@ -286,8 +294,8 @@ func setCharacterSetConnection(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.CharacterSetConnection = cs
-	c.CollationConnection = col
+	c.characterSetConnection = cs
+	c.collationConnection = col
 	return nil
 }
 
@@ -311,14 +319,14 @@ func setCharacterSetDatabase(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.CharacterSetDatabase = cs
-	c.CollationDatabase = col
+	c.characterSetDatabase = cs
+	c.collationDatabase = col
 	return nil
 }
 
 func setCharacterSetResults(c *Container, v interface{}) error {
 	if v == nil {
-		c.CharacterSetResults = collation.NullCharset
+		c.characterSetResults = collation.NullCharset
 		return nil
 	}
 
@@ -331,7 +339,7 @@ func setCharacterSetResults(c *Container, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	c.CharacterSetResults = cs
+	c.characterSetResults = cs
 	return nil
 }
 
@@ -355,8 +363,8 @@ func setCollationConnection(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.CharacterSetConnection = cs
-	c.CollationConnection = col
+	c.characterSetConnection = cs
+	c.collationConnection = col
 	return nil
 }
 
@@ -380,8 +388,8 @@ func setCollationDatabase(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.CharacterSetDatabase = cs
-	c.CollationDatabase = col
+	c.characterSetDatabase = cs
+	c.collationDatabase = col
 	return nil
 }
 
@@ -400,7 +408,7 @@ func setCollationServer(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.CollationServer = col
+	c.collationServer = col
 	return nil
 }
 
@@ -414,7 +422,7 @@ func setInteractiveTimeoutSecs(c *Container, v interface{}) error {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, InteractiveTimeoutSecs, i)
 	}
 
-	c.InteractiveTimeoutSecs = i
+	c.interactiveTimeoutSecs = i
 	return nil
 }
 
@@ -428,7 +436,7 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, MaxAllowedPacket, i)
 	}
 
-	c.MaxAllowedPacket = i
+	c.maxAllowedPacket = i
 	return nil
 }
 
@@ -446,7 +454,7 @@ func setMongoDBMaxStageSize(c *Container, v interface{}) error {
 		}
 	}
 
-	c.MongoDBMaxStageSize = i
+	c.mongoDBMaxStageSize = i
 	return nil
 }
 
@@ -468,7 +476,7 @@ func setMongoDBMaxVarcharLength(c *Container, v interface{}) error {
 		i = math.MaxUint16
 	}
 
-	c.MongoDBMaxVarcharLength = uint16(i)
+	c.mongoDBMaxVarcharLength = uint16(i)
 	return nil
 }
 
@@ -484,7 +492,17 @@ func setMongoDBVersionCompatibility(c *Container, v interface{}) error {
 			return err
 		}
 	}
-	c.MongoDBVersionCompatibility = s
+	c.mongoDBVersionCompatibility = s
+	return nil
+}
+
+func setSocket(c *Container, v interface{}) error {
+	s, ok := convertString(v)
+	if !ok {
+		return wrongTypeError(Socket, v)
+	}
+
+	c.socket = s
 	return nil
 }
 
@@ -494,7 +512,7 @@ func setSQLAutoIsNull(c *Container, v interface{}) error {
 		return wrongTypeError(SQLAutoIsNull, v)
 	}
 
-	c.SQLAutoIsNull = b
+	c.sqlAutoIsNull = b
 	return nil
 }
 
@@ -512,7 +530,7 @@ func setSQLSelectLimit(c *Container, v interface{}) error {
 		}
 	}
 
-	c.SQLSelectLimit = i
+	c.sqlSelectLimit = i
 	return nil
 }
 
@@ -532,6 +550,6 @@ func setWaitTimeoutSecs(c *Container, v interface{}) error {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_WRONG_VALUE_FOR_VAR, WaitTimeoutSecs, i)
 	}
 
-	c.WaitTimeoutSecs = i
+	c.waitTimeoutSecs = i
 	return nil
 }

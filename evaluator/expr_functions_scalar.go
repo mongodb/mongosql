@@ -9,6 +9,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/10gen/sqlproxy/variable"
+
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
@@ -456,7 +458,7 @@ func (_ *userFunc) Validate(exprCount int) error {
 type versionFunc struct{}
 
 func (_ *versionFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLVarchar(ctx.Variables().Version), nil
+	return SQLVarchar(ctx.Variables().GetString(variable.Version)), nil
 }
 
 func (_ *versionFunc) RequiresEvalCtx() bool {

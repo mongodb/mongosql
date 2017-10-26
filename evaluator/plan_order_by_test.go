@@ -6,6 +6,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -268,7 +269,7 @@ func TestOrderByStage(t *testing.T) {
 func TestOrderByStage_MemoryLimits(t *testing.T) {
 
 	ctx := createTestExecutionCtx(nil)
-	ctx.Variables().MongoDBMaxStageSize = 100
+	ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 100)
 
 	runTest := func(orderby *OrderByStage, rows []bson.D) {
 

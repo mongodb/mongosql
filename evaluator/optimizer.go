@@ -1,9 +1,11 @@
 package evaluator
 
 import (
+	"strings"
+
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
-	"strings"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 // OptimizeCommand applies optimizations to the command
@@ -47,7 +49,7 @@ func optimize(ctx ConnectionCtx, n node, isSubquery bool) node {
 		}
 	}
 
-	evalCtx := NewEvalCtx(NewExecutionCtx(ctx), ctx.Variables().CollationConnection)
+	evalCtx := NewEvalCtx(NewExecutionCtx(ctx), ctx.Variables().GetCollation(variable.CollationConnection))
 
 	for _, stage := range optimizerStages {
 		logger.Infof(log.Dev, "running optimization stage '%s'", stage.name)

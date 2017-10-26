@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -312,7 +313,7 @@ func TestJoinPlanStage_MemoryLimits(t *testing.T) {
 		}
 
 		ctx := createTestExecutionCtx(testInfo)
-		ctx.Variables().MongoDBMaxStageSize = 500
+		ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 500)
 
 		row := &Row{}
 

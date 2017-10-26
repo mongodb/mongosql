@@ -19,17 +19,18 @@ import (
 func (c *conn) formatValue(value evaluator.SQLValue) ([]byte, error) {
 	switch v := value.(type) {
 	case evaluator.SQLVarchar:
-		bytes := c.variables.CharacterSetResults.Encode(Slice(string(v)))
+		bytes := c.variables.GetCharset(variable.CharacterSetResults).Encode(Slice(string(v)))
 
 		// Varchars are counted by characters, not bytes. Use runes to
 		// account for multi-byte characters. Since we know the number
 		// of characters can't be more than the number of bytes, we can
 		// skip the character length check if the byte length is satisfactory.
-		if c.variables.MongoDBMaxVarcharLength != 0 && len(bytes) > int(c.variables.MongoDBMaxVarcharLength) {
+		mongoDBVarcharLength := c.variables.GetUInt16(variable.MongoDBMaxVarcharLength)
+		if mongoDBVarcharLength != 0 && len(bytes) > int(mongoDBVarcharLength) {
 			runes := []rune(string(bytes))
-			if len(runes) > int(c.variables.MongoDBMaxVarcharLength) {
+			if len(runes) > int(mongoDBVarcharLength) {
 				// TODO: add in a warning when that system is in place.
-				runes = runes[:c.variables.MongoDBMaxVarcharLength]
+				runes = runes[:mongoDBVarcharLength]
 				bytes = []byte(string(runes))
 			}
 		}
@@ -104,7 +105,7 @@ func formatField(variables *variable.Container, collationID uint16, field *Field
 		field.Charset = collationID
 		field.Type = MYSQL_TYPE_VAR_STRING
 
-		length := uint32(variables.MongoDBMaxVarcharLength)
+		length := uint32(variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 		if length == 0 {
 			length = math.MaxUint16
 		}
@@ -165,7 +166,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 		return err
 	}
 
-	col, err := collation.Get(c.variables.CharacterSetResults.DefaultCollationName)
+	col, err := collation.Get(c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
 	if err != nil {
 		return err
 	}
@@ -204,7 +205,7 @@ func (c *conn) streamResultset(columns []*evaluator.Column, iter evaluator.Iter)
 			}
 
 			data = data[0:4]
-			data = append(data, field.Dump(c.variables.CharacterSetResults)...)
+			data = append(data, field.Dump(c.variables.GetCharset(variable.CharacterSetResults))...)
 
 			// write a column definition packet for each
 			// column in the result set

@@ -7,8 +7,8 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+// Status Variable Names
 const (
-	// Status Variable Names
 	BytesReceived    Name = "Bytes_received"
 	BytesSent             = "Bytes_sent"
 	Connections           = "Connections"

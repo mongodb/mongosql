@@ -6,6 +6,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -82,7 +83,7 @@ func TestGroupByPlanStage(t *testing.T) {
 
 func TestGroupByPlanStage_MemoryLimits(t *testing.T) {
 	ctx := createTestExecutionCtx(nil)
-	ctx.Variables().MongoDBMaxStageSize = 100
+	ctx.Variables().SetSystemVariable(variable.MongoDBMaxStageSize, 100)
 
 	runTest := func(groupBy *GroupByStage, rows []bson.D) {
 		bss := NewBSONSourceStage(1, tableOneName, collation.Default, rows)

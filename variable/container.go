@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/10gen/sqlproxy/collation"
@@ -15,6 +16,7 @@ import (
 
 // Container holds variables based on a scope.
 type Container struct {
+	lock   sync.RWMutex
 	scope  Scope
 	parent *Container
 
@@ -22,26 +24,26 @@ type Container struct {
 	userValues map[Name]interface{}
 
 	// backing storage for non-user system variables below
-	AutoCommit                  bool
-	CharacterSetClient          *collation.Charset
-	CharacterSetConnection      *collation.Charset
-	CharacterSetDatabase        *collation.Charset
-	CharacterSetResults         *collation.Charset
-	CollationConnection         *collation.Collation
-	CollationDatabase           *collation.Collation
-	CollationServer             *collation.Collation
-	MaxAllowedPacket            int64
-	MongoDBMaxStageSize         uint64
-	MongoDBMaxVarcharLength     uint16
+	autoCommit                  bool
+	characterSetClient          *collation.Charset
+	characterSetConnection      *collation.Charset
+	characterSetDatabase        *collation.Charset
+	characterSetResults         *collation.Charset
+	collationConnection         *collation.Collation
+	collationDatabase           *collation.Collation
+	collationServer             *collation.Collation
+	maxAllowedPacket            int64
+	mongoDBMaxStageSize         uint64
+	mongoDBMaxVarcharLength     uint16
 	MongoDBInfo                 *mongodb.Info
-	MongoDBVersionCompatibility string
-	Socket                      string
-	SQLAutoIsNull               bool
-	SQLSelectLimit              uint64
-	Version                     string
-	VersionComment              string
-	InteractiveTimeoutSecs      int64
-	WaitTimeoutSecs             int64
+	mongoDBVersionCompatibility string
+	socket                      string
+	sqlAutoIsNull               bool
+	sqlSelectLimit              uint64
+	version                     string
+	versionComment              string
+	interactiveTimeoutSecs      int64
+	waitTimeoutSecs             int64
 
 	// backing storage for non-user status variables below
 	BytesReceived    *uint64
@@ -53,7 +55,7 @@ type Container struct {
 }
 
 // NewGlobalContainer creates a container with a GlobalScope.
-func NewGlobalContainer() *Container {
+func NewGlobalContainer(cfg *config.Config) *Container {
 
 	// Initialize server status variables here
 	bytesReceived := uint64(0)
@@ -63,30 +65,30 @@ func NewGlobalContainer() *Container {
 	startTime := time.Now()
 	threadsConnected := uint32(0)
 
-	return &Container{
+	container := &Container{
 		scope: GlobalScope,
 
 		// Default system variable values
-		AutoCommit:                  true,
-		CharacterSetClient:          collation.DefaultCharset,
-		CharacterSetConnection:      collation.DefaultCharset,
-		CharacterSetDatabase:        collation.DefaultCharset,
-		CharacterSetResults:         collation.DefaultCharset,
-		CollationConnection:         collation.Default,
-		CollationDatabase:           collation.Default,
-		CollationServer:             collation.Default,
-		MaxAllowedPacket:            1073741824,
-		MongoDBMaxStageSize:         0,
-		MongoDBMaxVarcharLength:     math.MaxUint16,
+		autoCommit:                  true,
+		characterSetClient:          collation.DefaultCharset,
+		characterSetConnection:      collation.DefaultCharset,
+		characterSetDatabase:        collation.DefaultCharset,
+		characterSetResults:         collation.DefaultCharset,
+		collationConnection:         collation.Default,
+		collationDatabase:           collation.Default,
+		collationServer:             collation.Default,
+		maxAllowedPacket:            1073741824,
+		mongoDBMaxStageSize:         0,
+		mongoDBMaxVarcharLength:     math.MaxUint16,
 		MongoDBInfo:                 nil,
-		MongoDBVersionCompatibility: "",
-		Socket:                 "",
-		SQLAutoIsNull:          false,
-		SQLSelectLimit:         math.MaxUint64,
-		Version:                "5.7.12",
-		VersionComment:         "mongosqld " + config.VersionStr,
-		InteractiveTimeoutSecs: 28800,
-		WaitTimeoutSecs:        28800,
+		mongoDBVersionCompatibility: "",
+		socket:                 "",
+		sqlAutoIsNull:          false,
+		sqlSelectLimit:         math.MaxUint64,
+		version:                "5.7.12",
+		versionComment:         "mongosqld " + config.VersionStr,
+		interactiveTimeoutSecs: 28800,
+		waitTimeoutSecs:        28800,
 
 		// Default status variable values
 		BytesReceived:    &bytesReceived,
@@ -96,12 +98,21 @@ func NewGlobalContainer() *Container {
 		StartTime:        startTime,
 		ThreadsConnected: &threadsConnected,
 	}
+
+	// Initializing Global Container
+	if cfg != nil {
+		container.mongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
+		container.mongoDBMaxVarcharLength = cfg.Schema.MaxVarcharLength
+		container.mongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
+	}
+
+	return container
 }
 
 // NewSessionContainer creates a container with a SessionScope.
 func NewSessionContainer(global *Container) *Container {
 	if global == nil {
-		panic("internal error: global cannot be nil")
+		panic("global cannot be nil")
 	}
 
 	c := &Container{
@@ -110,21 +121,28 @@ func NewSessionContainer(global *Container) *Container {
 		userValues: make(map[Name]interface{}),
 	}
 
+	global.lock.RLock()
+	defer global.lock.RUnlock()
+
 	for _, def := range definitions {
 		if !def.Dummy && def.GetValue != nil && def.SetValue != nil {
 			value := def.GetValue(global)
 			def.SetValue(c, value)
 		}
 	}
-
 	return c
 }
 
 // List lists the values for the given scope and kind.
 func (c *Container) List(scope Scope, kind Kind) []Value {
+	if c.scope == GlobalScope && kind == SystemKind {
+		c.lock.RLock()
+		defer c.lock.RUnlock()
+	}
+
 	if kind == UserKind {
 		if scope != SessionScope {
-			panic("internal error: cannot get user variables from a global scope")
+			panic("cannot get user variables from a global scope")
 		}
 
 		var values []Value
@@ -163,16 +181,20 @@ func (c *Container) List(scope Scope, kind Kind) []Value {
 		return c.parent.List(scope, kind)
 	}
 
-	panic(fmt.Sprintf("internal error: illegal scope %v", scope))
+	panic(fmt.Sprintf("illegal scope %v", scope))
 }
 
 // Get gets the value of the variable with the specified name, scope, and kind.
 func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
+	if c.scope == GlobalScope && kind == SystemKind {
+		c.lock.RLock()
+		defer c.lock.RUnlock()
+	}
 	lowerName := Name(strings.ToLower(string(name)))
 
 	if kind == UserKind {
 		if scope != SessionScope {
-			panic("internal error: cannot get user variable from a global scope")
+			panic(fmt.Sprintf("cannot get user variable: %v from a global scope: %v", name, scope))
 		}
 
 		v, _ := c.userValues[lowerName]
@@ -187,6 +209,15 @@ func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 
 	if c.scope == scope {
 		if def, ok := definitions[lowerName]; ok && def.Kind == kind {
+			if def.GetRawValue != nil {
+				return Value{
+					Name:     name,
+					Kind:     def.Kind,
+					SQLType:  def.SQLType,
+					Value:    def.GetValue(c),
+					RawValue: def.GetRawValue(c),
+				}, nil
+			}
 			return Value{
 				Name:    name,
 				Kind:    def.Kind,
@@ -201,14 +232,87 @@ func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 	return Value{}, mysqlerrors.Defaultf(mysqlerrors.ER_UNKNOWN_SYSTEM_VARIABLE, name)
 }
 
+// GetBool gets the value of the variable with the specified name for system variable of boolean type.
+func (c *Container) GetBool(name Name) bool {
+	value, err := c.Get(name, c.scope, SystemKind)
+	if err != nil {
+		panic(fmt.Sprintf("cannot get boolean system variable %v: %v", name, err))
+	}
+
+	return value.Value.(bool)
+}
+
+// GetCharset gets the value of the variable with the specified name for system variable of collation.Charset type.
+func (c *Container) GetCharset(name Name) *collation.Charset {
+	value, err := c.Get(name, c.scope, SystemKind)
+	if err != nil {
+		panic(fmt.Sprintf("cannot get collation.Charset system variable %v: %v", name, err))
+	}
+
+	return value.RawValue.(*collation.Charset)
+}
+
+// GetCollation gets the value of the variable with the specified name for system variable of collation.Collation type.
+func (c *Container) GetCollation(name Name) *collation.Collation {
+	value, err := c.Get(name, c.scope, SystemKind)
+	if err != nil {
+		panic(fmt.Sprintf("cannot get collation.Collation system variable %v: %v", name, err))
+	}
+
+	return value.RawValue.(*collation.Collation)
+}
+
+// GetInt64 gets the value of the variable with the specified name for system variable of int64 type.
+func (c *Container) GetInt64(name Name) int64 {
+	value, err := c.Get(name, c.scope, SystemKind)
+	if err != nil {
+		panic(fmt.Sprintf("cannot get int64 system variable %v: %v", name, err))
+	}
+
+	return value.Value.(int64)
+}
+
+// GetString gets the value of the variable with the specified name for system variable of string type.
+func (c *Container) GetString(name Name) string {
+	value, err := c.Get(name, c.scope, SystemKind)
+	if err != nil {
+		panic(fmt.Sprintf("cannot get string system variable %v: %v", name, err))
+	}
+
+	return value.Value.(string)
+}
+
+// GetUInt16 gets the value of the variable with the specified name for system variable of uint16 type.
+func (c *Container) GetUInt16(name Name) uint16 {
+	value, err := c.Get(name, c.scope, SystemKind)
+	if err != nil {
+		panic(fmt.Sprintf("cannot get uint16 system variable %v: %v", name, err))
+	}
+
+	return value.Value.(uint16)
+}
+
+// GetUInt64 gets the value of the variable with the specified name for system variable of uint64 type.
+func (c *Container) GetUInt64(name Name) uint64 {
+	value, err := c.Get(name, c.scope, SystemKind)
+	if err != nil {
+		panic(fmt.Sprintf("cannot get uint64 system variable %v: %v", name, err))
+	}
+
+	return value.Value.(uint64)
+}
+
 // Set sets the value of a variable with the specified name, scope, and kind.
 func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) error {
+	if c.scope == GlobalScope && kind == SystemKind {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+	}
 
 	lowerName := Name(strings.ToLower(string(name)))
-
 	if kind == UserKind {
 		if scope != SessionScope {
-			panic("internal error: cannot set user variable on a global scope")
+			panic(fmt.Sprintf("cannot set user variable: %v on a global scope: %v", name, scope))
 		}
 
 		c.userValues[lowerName] = value
@@ -228,7 +332,6 @@ func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) er
 		if scope == SessionScope {
 			return mysqlerrors.Defaultf(mysqlerrors.ER_GLOBAL_VARIABLE, name)
 		}
-
 		return mysqlerrors.Defaultf(mysqlerrors.ER_LOCAL_VARIABLE, name)
 	}
 
@@ -237,7 +340,7 @@ func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) er
 	}
 
 	if fmt.Sprintf("%v", value) == "default" {
-		value, err := NewGlobalContainer().Get(name, GlobalScope, kind)
+		value, err := NewGlobalContainer(nil).Get(name, GlobalScope, kind)
 		if err != nil {
 			return err
 		}
@@ -250,5 +353,13 @@ func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) er
 		return c.parent.Set(name, scope, kind, value)
 	}
 
-	panic(fmt.Sprintf("internal error: illegal scope %v", scope))
+	panic(fmt.Sprintf("illegal scope %v", scope))
+}
+
+// SetSystemVariable sets the value of the variable with the specified name for system variable.
+func (c *Container) SetSystemVariable(name Name, value interface{}) {
+	err := c.Set(name, c.scope, SystemKind, value)
+	if err != nil {
+		panic(fmt.Sprintf("cannot set system variable %v: %v", name, err))
+	}
 }

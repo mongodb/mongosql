@@ -106,7 +106,7 @@ func (_ *fakeConnectionCtx) User() string {
 }
 func (f *fakeConnectionCtx) Variables() *variable.Container {
 	if f.variables == nil {
-		f.variables = variable.NewSessionContainer(variable.NewGlobalContainer())
+		f.variables = variable.NewSessionContainer(variable.NewGlobalContainer(nil))
 	}
 	f.variables.MongoDBInfo = f.info
 	return f.variables
@@ -129,7 +129,7 @@ func createTestEvalCtx(info *mongodb.Info) *EvalCtx {
 }
 
 func createTestVariables(info *mongodb.Info) *variable.Container {
-	gbl := variable.NewGlobalContainer()
+	gbl := variable.NewGlobalContainer(nil)
 	gbl.MongoDBInfo = info
 	ctn := variable.NewSessionContainer(gbl)
 	ctn.MongoDBInfo = info

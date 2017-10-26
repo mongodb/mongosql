@@ -552,8 +552,9 @@ func (a *algebrizer) translateRootSelectStatement(selectStatement parser.SelectS
 
 	// only add the system-wide limit if it has been changed from the default
 	// otherwise, we can't push down queries by default
-	if a.variables.SQLSelectLimit != math.MaxUint64 {
-		plan = NewLimitStage(plan, 0, a.variables.SQLSelectLimit)
+	sqlSelectLimit := a.variables.GetUInt64(variable.SQLSelectLimit)
+	if sqlSelectLimit != math.MaxUint64 {
+		plan = NewLimitStage(plan, 0, sqlSelectLimit)
 	}
 
 	return plan, nil

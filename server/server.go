@@ -36,7 +36,7 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 		activeConnections: make(map[uint32]*conn),
 		fileBasedSchema:   schema,
 		sessionProvider:   sessionProvider,
-		variables:         variable.NewGlobalContainer(),
+		variables:         variable.NewGlobalContainer(cfg),
 		logger:            logger,
 	}
 
@@ -46,10 +46,6 @@ func New(schema *schema.Schema, sessionProvider *mongodb.SessionProvider, cfg *c
 	}
 
 	s.processName = fmt.Sprintf("mongosqld-%s-%d-%s", hostname, os.Getpid(), randomString(6))
-
-	s.variables.MongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
-	s.variables.MongoDBMaxVarcharLength = cfg.Schema.MaxVarcharLength
-	s.variables.MongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
 
 	if err := s.populateListeners(); err != nil {
 		return nil, err

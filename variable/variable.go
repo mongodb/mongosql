@@ -39,6 +39,8 @@ type Value struct {
 	SQLType schema.SQLType
 	// Value is the value of the variable.
 	Value interface{}
+	// RawValue is the actual value of the variable.
+	RawValue interface{}
 }
 
 // definition holds information used to manipulate variables.
@@ -50,8 +52,9 @@ type definition struct {
 
 	SQLType schema.SQLType
 
-	GetValue func(container *Container) interface{}
-	SetValue func(container *Container, value interface{}) error
+	GetValue    func(container *Container) interface{}
+	SetValue    func(container *Container, value interface{}) error
+	GetRawValue func(container *Container) interface{}
 }
 
 var definitions = make(map[Name]*definition)

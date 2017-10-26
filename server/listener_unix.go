@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/10gen/sqlproxy/variable"
 )
 
 const (
@@ -29,7 +31,7 @@ func (s *Server) populateListeners() error {
 
 	if s.cfg.Net.UnixDomainSocket.Enabled {
 		socket := fmt.Sprintf("%s/%s", s.cfg.Net.UnixDomainSocket.PathPrefix, "mysql.sock")
-		s.variables.Socket = socket
+		s.variables.SetSystemVariable(variable.Socket, socket)
 
 		permissions, err := strconv.ParseInt(s.cfg.Net.UnixDomainSocket.FilePermissions, 8, 64)
 		if err != nil {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 // JoinStrategy specifies the method a Join
@@ -248,7 +249,7 @@ func NewJoiner(ctx *ExecutionCtx, s JoinStrategy, kind joinKind, collation *coll
 
 func (nlp *NestedLoopJoiner) readData(ctx context.Context, lChan, rChan <-chan *Row) ([]*Row, []*Row, error) {
 
-	maxSize := nlp.ctx.Variables().MongoDBMaxStageSize
+	maxSize := nlp.ctx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
 	size := uint64(0)
 
 	var left []*Row

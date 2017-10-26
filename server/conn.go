@@ -249,7 +249,7 @@ func (c *conn) dispatch(data []byte) error {
 		c.close()
 		return nil
 	case COM_QUERY:
-		s := String(c.variables.CharacterSetClient.Decode(data))
+		s := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		c.process.UpdateProcess(CommandQuery, s)
 		err = c.handleQuery(s)
 		c.process.UpdateProcess(CommandSleep, "")
@@ -257,7 +257,7 @@ func (c *conn) dispatch(data []byte) error {
 	case COM_PING:
 		return c.writeOK(nil)
 	case COM_INIT_DB:
-		s := String(c.variables.CharacterSetClient.Decode(data))
+		s := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		if err := c.useDB(s); err != nil {
 			return err
 		}
@@ -265,7 +265,7 @@ func (c *conn) dispatch(data []byte) error {
 	case COM_FIELD_LIST:
 		return c.handleFieldList(data)
 	case COM_STMT_PREPARE:
-		s := String(c.variables.CharacterSetClient.Decode(data))
+		s := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		return c.handleStmtPrepare(s)
 	case COM_STMT_EXECUTE:
 		return c.handleStmtExecute(data)
@@ -494,7 +494,7 @@ func (c *conn) readHandshakeResponse() error {
 	// user name string[NUL]
 	userBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
 	pos += len(userBytes) + 1
-	c.user = String(c.variables.CharacterSetClient.Decode(userBytes))
+	c.user = String(c.variables.GetCharset(variable.CharacterSetClient).Decode(userBytes))
 
 	// auth response string[NUL]
 	if (c.capability & CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0 {
@@ -513,7 +513,7 @@ func (c *conn) readHandshakeResponse() error {
 	}
 
 	if (c.capability & CLIENT_INTERACTIVE) != 0 {
-		c.variables.WaitTimeoutSecs = c.variables.InteractiveTimeoutSecs
+		c.variables.SetSystemVariable(variable.WaitTimeoutSecs, c.variables.GetInt64(variable.InteractiveTimeoutSecs))
 	}
 
 	if pos == len(data) {
@@ -524,7 +524,7 @@ func (c *conn) readHandshakeResponse() error {
 		dbBytes := data[pos : pos+bytes.IndexByte(data[pos:], 0)]
 		pos += len(dbBytes) + 1
 
-		db := String(c.variables.CharacterSetClient.Decode(dbBytes))
+		db := String(c.variables.GetCharset(variable.CharacterSetClient).Decode(dbBytes))
 		c.startDb = db
 	}
 
@@ -638,7 +638,7 @@ func (c *conn) run() {
 			c.logger.Errf(log.Dev, "packet read error: %v", err)
 		})
 
-		waitTimeout := time.Duration(c.variables.WaitTimeoutSecs) * time.Second
+		waitTimeout := time.Duration(c.variables.GetInt64(variable.WaitTimeoutSecs)) * time.Second
 		timer := time.NewTimer(waitTimeout)
 		var timeoutTime time.Time
 
@@ -709,7 +709,7 @@ func (c *conn) setSystemVariables(currentSchema *schema.Schema) (err error) {
 	}
 
 	err = c.variables.MongoDBInfo.SetCompatibleVersion(
-		c.server.variables.MongoDBVersionCompatibility)
+		c.server.variables.GetString(variable.MongoDBVersionCompatibility))
 	if err != nil {
 		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR,
 			"error setting compatibility version: %v", err)
@@ -737,7 +737,7 @@ func (c *conn) setSystemVariables(currentSchema *schema.Schema) (err error) {
 }
 
 func (c *conn) status() uint16 {
-	if c.variables.AutoCommit {
+	if c.variables.GetBool(variable.Autocommit) {
 		return SERVER_STATUS_AUTOCOMMIT
 	}
 
@@ -751,7 +751,7 @@ func (c *conn) useDB(db string) error {
 	}
 
 	c.currentDB = d
-	c.variables.CollationDatabase = c.variables.CollationServer
+	c.variables.SetSystemVariable(variable.CollationDatabase, string(c.variables.GetCollation(variable.CollationServer).Name))
 	c.process.SetDB(string(d.Name))
 	return nil
 }
@@ -844,8 +844,8 @@ func (c *conn) writeInitialHandshake() error {
 	data = append(data, minProtocolVersion)
 
 	// server version[00]
-	version := c.server.variables.Version
-	versionComment := c.server.variables.VersionComment
+	version := c.server.variables.GetString(variable.Version)
+	versionComment := c.server.variables.GetString(variable.VersionComment)
 
 	data = append(data, fmt.Sprintf("%s %s", version, versionComment)...)
 	data = append(data, 0)

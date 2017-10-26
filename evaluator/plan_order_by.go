@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 // OrderBy sorts records according to one or more keys.
@@ -124,7 +125,7 @@ func (ob *OrderByIter) sortRows() ([]orderByRow, error) {
 		collation: ob.collation,
 	}
 
-	maxSize := ob.ctx.Variables().MongoDBMaxStageSize
+	maxSize := ob.ctx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
 	size := uint64(0)
 
 	row := &Row{}
