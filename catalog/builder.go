@@ -291,7 +291,7 @@ func (b *catalogBuilder) addColumnsTable(d *Database) error {
 		for _, db := range c.Databases() {
 			for _, tbl := range db.Tables() {
 				for i, col := range tbl.Columns() {
-					columnType := translateColumnType(col.Type(), b.variables.MongoDBMaxVarcharLength)
+					columnType := translateColumnType(col.Type(), b.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 					dataType := columnType
 					if idx := strings.Index(dataType, "("); idx >= 0 {
 						dataType = dataType[:idx]

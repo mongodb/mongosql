@@ -10,7 +10,7 @@ import (
 func TestGlobalVariableContainer(t *testing.T) {
 	Convey("Subject: Global Container", t, func() {
 
-		subject := variable.NewGlobalContainer()
+		subject := variable.NewGlobalContainer(nil)
 
 		Convey("Get should fail with invalid system variable name", func() {
 			_, err := subject.Get(variable.Name("test"), variable.GlobalScope, variable.SystemKind)
@@ -67,7 +67,7 @@ func TestGlobalVariableContainer(t *testing.T) {
 func TestSessionVariableContainer(t *testing.T) {
 	Convey("Subject: Session Container", t, func() {
 
-		subject := variable.NewSessionContainer(variable.NewGlobalContainer())
+		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))
 
 		Convey("Get should fail with invalid system variable name", func() {
 			_, err := subject.Get(variable.Name("test"), variable.SessionScope, variable.SystemKind)

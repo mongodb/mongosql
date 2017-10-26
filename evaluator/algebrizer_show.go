@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {
@@ -165,7 +166,7 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 		return nil, err
 	}
 
-	createTableSQL := catalog.GenerateCreateTable(table, a.variables.MongoDBMaxVarcharLength)
+	createTableSQL := catalog.GenerateCreateTable(table, a.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
 
 	return NewProjectStage(
 		NewDualStage(),

@@ -8,6 +8,7 @@ import (
 
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 type stmt struct {
@@ -121,7 +122,7 @@ func (c *conn) writePrepare(s *stmt) error {
 
 	if s.params > 0 {
 		paramField := &Field{Name: []byte("?")}
-		paramFieldData := paramField.Dump(c.variables.CharacterSetResults)
+		paramFieldData := paramField.Dump(c.variables.GetCharset(variable.CharacterSetResults))
 		for i := 0; i < s.params; i++ {
 			data = data[0:4]
 			data = append(data, paramFieldData...)
@@ -138,7 +139,7 @@ func (c *conn) writePrepare(s *stmt) error {
 
 	if s.columns > 0 {
 		columnField := &Field{}
-		columnFieldData := columnField.Dump(c.variables.CharacterSetResults)
+		columnFieldData := columnField.Dump(c.variables.GetCharset(variable.CharacterSetResults))
 		for i := 0; i < s.columns; i++ {
 			data = data[0:4]
 			data = append(data, columnFieldData...)

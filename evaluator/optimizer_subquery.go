@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 func optimizeSubqueries(ctx ConnectionCtx, logger *log.Logger, n node, execute bool) (node, error) {
@@ -43,7 +44,7 @@ func (v *subqueryOptimizer) visit(n node) (node, error) {
 
 			if v.execute {
 				v.logger.Infof(log.Dev, "executing non-correlated subquery: \n%v", PrettyPrintPlan(typedN.plan))
-				evalCtx := NewEvalCtx(NewExecutionCtx(v.ctx), v.ctx.Variables().CollationConnection)
+				evalCtx := NewEvalCtx(NewExecutionCtx(v.ctx), v.ctx.Variables().GetCollation(variable.CollationConnection))
 				// Subqueries in SQLSubqueryCmpExpr can return multiple rows. Attempt to evaluate and cache rows
 				if typedN.allowRows {
 					v.logger.Infof(log.Dev, "attempting to cache non-correlated subquery")
@@ -75,7 +76,7 @@ func cacheComparisonSubquery(se *SQLSubqueryExpr, evalCtx *EvalCtx) error {
 	}
 	// maxCacheSizeBytes is the maximimum size a single cached query can be in bytes
 	// It is set to be equal to the max plan stage size
-	maxCacheSizeBytes := execCtx.ConnectionCtx.Variables().MongoDBMaxStageSize
+	maxCacheSizeBytes := execCtx.ConnectionCtx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
 
 	size := uint64(0)
 	row, allRows := &Row{}, Rows{}

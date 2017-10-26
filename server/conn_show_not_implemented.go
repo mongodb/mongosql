@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
@@ -240,7 +241,7 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 
 func (c *conn) buildEmptyResultset(names []string, types []schema.SQLType) (*Resultset, error) {
 
-	col, err := collation.Get(c.variables.CharacterSetResults.DefaultCollationName)
+	col, err := collation.Get(c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +280,7 @@ func (c *conn) writeResultset(r *Resultset) error {
 
 	for _, v := range r.Fields {
 		data = data[0:4]
-		data = append(data, v.Dump(c.variables.CharacterSetResults)...)
+		data = append(data, v.Dump(c.variables.GetCharset(variable.CharacterSetResults))...)
 		if err := c.writePacket(data); err != nil {
 			return err
 		}

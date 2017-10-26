@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 func makeBindVars(args []interface{}) map[string]interface{} {
@@ -36,8 +37,9 @@ func (c *conn) handleSelect(sql string, stmt parser.SelectStatement) error {
 func (c *conn) handleFieldList(data []byte) error {
 
 	index := bytes.IndexByte(data, 0x00)
-	tableName := String(c.variables.CharacterSetClient.Decode(data[0:index]))
-	wildcard := String(c.variables.CharacterSetClient.Decode(data[index+1:]))
+	charSetClient := c.variables.GetCharset(variable.CharacterSetClient)
+	tableName := String(charSetClient.Decode(data[0:index]))
+	wildcard := String(charSetClient.Decode(data[index+1:]))
 
 	db, err := c.catalog.Database(c.DB())
 	if err != nil {
@@ -49,7 +51,7 @@ func (c *conn) handleFieldList(data []byte) error {
 		return err
 	}
 
-	col, err := collation.Get(c.variables.CharacterSetResults.DefaultCollationName)
+	col, err := collation.Get(c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
 	if err != nil {
 		return err
 	}
@@ -99,7 +101,7 @@ func (c *conn) writeFieldList(status uint16, fs []*Field) error {
 
 	for _, v := range fs {
 		data = data[0:4]
-		data = append(data, v.Dump(c.variables.CharacterSetResults)...)
+		data = append(data, v.Dump(c.variables.GetCharset(variable.CharacterSetResults))...)
 		if err := c.writePacket(data); err != nil {
 			return err
 		}

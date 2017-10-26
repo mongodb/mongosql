@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/variable"
 )
 
 // orderedGroup holds all the rows belonging to a given key in the groups
@@ -157,7 +158,7 @@ func (gb *GroupByIter) createGroups() error {
 		groups: make(map[string][]*Row, 0),
 	}
 
-	maxSize := gb.ctx.Variables().MongoDBMaxStageSize
+	maxSize := gb.ctx.Variables().GetUInt64(variable.MongoDBMaxStageSize)
 	size := uint64(0)
 
 	// iterator source to create groupings

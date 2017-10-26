@@ -3,10 +3,11 @@ package server
 import (
 	"bytes"
 	"fmt"
-	"github.com/10gen/sqlproxy/variable"
 	"io"
 	"math/rand"
 	"testing"
+
+	"github.com/10gen/sqlproxy/variable"
 )
 
 func makeRandByteSlice(size int) []byte {
@@ -16,7 +17,7 @@ func makeRandByteSlice(size int) []byte {
 }
 
 func newMockServer() *Server {
-	s := &Server{variables: variable.NewGlobalContainer()}
+	s := &Server{variables: variable.NewGlobalContainer(nil)}
 	return s
 }
 

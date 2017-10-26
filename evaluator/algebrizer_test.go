@@ -30,7 +30,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 	}
 	testInfo := getMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
 	testVars := createTestVariables(testInfo)
-	testVars.MongoDBMaxVarcharLength = 10
+	testVars.SetSystemVariable(variable.MongoDBMaxVarcharLength, 10)
 	testCatalog := getCatalogFromSchema(testSchema, testVars)
 	defaultDbName := "test"
 
@@ -53,11 +53,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 		})
 	}
 
-	testVariables := func(sql string, vars *variable.Container, expectedPlanFactory func() PlanStage) {
+	testVariables := func(sql string, container func() *variable.Container, expectedPlanFactory func() PlanStage) {
 		Convey(sql, func() {
 			statement, err := parser.Parse(sql)
 			So(err, ShouldBeNil)
-
+			vars := container()
 			actual, err := AlgebrizeQuery(statement, defaultDbName, vars, testCatalog)
 			So(err, ShouldBeNil)
 
@@ -904,9 +904,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 					})
 
 					testVariables("select g.a from (select a from foo) g",
-						&variable.Container{
-							SQLSelectLimit: 5,
-							MongoDBInfo:    testInfo,
+						func() *variable.Container {
+							vars := &variable.Container{
+								MongoDBInfo: testInfo,
+							}
+							vars.SetSystemVariable(variable.SQLSelectLimit, 5)
+							return vars
 						},
 						func() PlanStage {
 							source := createMongoSource(2, "foo", "foo")
@@ -2592,9 +2595,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 				})
 
 				testVariables("select a from foo",
-					&variable.Container{
-						SQLSelectLimit: 10,
-						MongoDBInfo:    testInfo,
+					func() *variable.Container {
+						vars := &variable.Container{
+							MongoDBInfo: testInfo,
+						}
+						vars.SetSystemVariable(variable.SQLSelectLimit, 10)
+						return vars
 					},
 					func() PlanStage {
 						source := createMongoSource(1, "foo", "foo")
@@ -2609,9 +2615,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 					})
 
 				testVariables("select b from foo",
-					&variable.Container{
-						SQLSelectLimit: 18446744073709551615,
-						MongoDBInfo:    testInfo,
+					func() *variable.Container {
+						vars := &variable.Container{
+							MongoDBInfo: testInfo,
+						}
+						vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
+						return vars
 					},
 					func() PlanStage {
 						source := createMongoSource(1, "foo", "foo")
@@ -2622,9 +2631,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 					})
 
 				testVariables("select b from foo limit 10, 20",
-					&variable.Container{
-						SQLSelectLimit: 5,
-						MongoDBInfo:    testInfo,
+					func() *variable.Container {
+						vars := &variable.Container{
+							MongoDBInfo: testInfo,
+						}
+						vars.SetSystemVariable(variable.SQLSelectLimit, 5)
+						return vars
 					},
 					func() PlanStage {
 						source := createMongoSource(1, "foo", "foo")
