@@ -11,7 +11,7 @@
     cd "$PROJECT_DIR"
 
     go test -v \
-        -run 'TestIntegration//$^' \
+        -run "TestIntegration/$SUITE/$^" \
         -timeout 4h \
         $TEST_BUILD_FLAGS \
         $VERSION_FLAG \
