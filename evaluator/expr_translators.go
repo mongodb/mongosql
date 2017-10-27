@@ -15,6 +15,7 @@ import (
 const (
 	mgoOperatorAdd       = "$add"
 	mgoOperatorAnd       = "$and"
+	mgoOperatorArrElemAt = "$arrayElemAt"
 	mgoOperatorCond      = "$cond"
 	mgoOperatorEq        = "$eq"
 	mgoOperatorExists    = "$exists"
@@ -24,10 +25,14 @@ const (
 	mgoOperatorLt        = "$lt"
 	mgoOperatorLte       = "$lte"
 	mgoOperatorLet       = "$let"
+	mgoOperatorMap       = "$map"
+	mgoOperatorMax       = "$max"
+	mgoOperatorMin       = "$min"
 	mgoOperatorNeq       = "$ne"
 	mgoOperatorOr        = "$or"
-	mgoOperatorSubstract = "$subtract"
 	mgoOperatorStrlenCP  = "$strLenCP"
+	mgoOperatorSubstr    = "$substrCP"
+	mgoOperatorSubtract  = "$subtract"
 	mgoOperatorTrunc     = "$trunc"
 )
 
@@ -45,8 +50,55 @@ var (
 		return nil, false
 	}
 
-	wrapInLet = func(vars, in interface{}) interface{} {
+	wrapInLet = func(vars, in interface{}) bson.M {
 		return bson.M{mgoOperatorLet: bson.M{"vars": vars, "in": in}}
+	}
+
+	wrapInMap = func(input, as, in interface{}) bson.M {
+		return bson.M{"$map": bson.M{"input": input, "as": as, "in": in}}
+	}
+
+	wrapLRTrim = func(isLTrimType bool, args interface{}) interface{} {
+		var (
+			splitArray   = bson.M{"$split": []interface{}{args, " "}}
+			substrIndex  interface{}
+			substrLength interface{}
+		)
+
+		if !isLTrimType {
+			splitArray = bson.M{"$reverseArray": splitArray}
+		}
+
+		mapInput := wrapInLet(bson.M{"splitArray": splitArray},
+			bson.M{"$zip": bson.M{
+				"inputs": []interface{}{
+					"$$splitArray",
+					bson.M{"$range": []interface{}{
+						0,
+						bson.M{"$size": "$$splitArray"}}}}}})
+
+		mapIn := wrapInCond(bson.M{mgoOperatorStrlenCP: args},
+			bson.M{mgoOperatorArrElemAt: []interface{}{"$$zipArray", 1}},
+			bson.M{mgoOperatorEq: []interface{}{
+				bson.M{mgoOperatorArrElemAt: []interface{}{"$$zipArray", 0}}, ""}})
+
+		min := bson.M{mgoOperatorMin: wrapInMap(mapInput, "zipArray", mapIn)}
+
+		if isLTrimType {
+			substrIndex = min
+			substrLength = bson.M{mgoOperatorStrlenCP: args}
+		} else {
+			substrIndex = 0
+			substrLength = bson.M{mgoOperatorSubtract: []interface{}{
+				bson.M{mgoOperatorStrlenCP: args},
+				min}}
+		}
+
+		return bson.M{
+			mgoOperatorSubstr: []interface{}{
+				args,
+				substrIndex,
+				substrLength}}
 	}
 
 	wrapInRound = func(args []interface{}) (bson.M, bool) {
@@ -1390,12 +1442,12 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 							mgoOperatorAdd: []interface{}{
 								bson.M{"$multiply": []interface{}{indexVal, -1}}, 0.5}}}},
 				wrapInCond(
-					bson.M{mgoOperatorSubstract: []interface{}{bson.M{mgoOperatorStrlenCP: strVal}, "$$indexValNeg"}},
+					bson.M{mgoOperatorSubtract: []interface{}{bson.M{mgoOperatorStrlenCP: strVal}, "$$indexValNeg"}},
 					"$$indexValNeg",
 					bson.M{mgoOperatorGte: []interface{}{bson.M{mgoOperatorStrlenCP: strVal}, "$$indexValNeg"}}))
 
 			indexPosVal := bson.M{
-				mgoOperatorSubstract: []interface{}{
+				mgoOperatorSubtract: []interface{}{
 					bson.M{
 						mgoOperatorTrunc: bson.M{
 							mgoOperatorAdd: []interface{}{indexVal, 0.5}},
@@ -1427,6 +1479,82 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				nil,
 				bson.M{"$substrCP": []interface{}{strVal, indexValBsonM, lenValBsonM}},
 				strVal, indexVal, lenVal), true
+		case "rtrim":
+			if !t.versionAtLeast(3, 4, 0) {
+				return nil, false
+			}
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
+			rtrimCond := wrapInCond(
+				"",
+				wrapLRTrim(false, args[0]),
+				bson.M{"$eq": []interface{}{args[0], ""}})
+
+			return wrapInNullCheckedCond(
+				nil,
+				rtrimCond,
+				args[0],
+			), true
+		case "ltrim":
+			if !t.versionAtLeast(3, 4, 0) {
+				return nil, false
+			}
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
+			ltrimCond := wrapInCond(
+				"",
+				wrapLRTrim(true, args[0]),
+				bson.M{"$eq": []interface{}{args[0], ""}})
+
+			return wrapInNullCheckedCond(
+				nil,
+				ltrimCond,
+				args[0],
+			), true
+		case "trim":
+			if !t.versionAtLeast(3, 4, 0) {
+				return nil, false
+			}
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
+
+			rtrimCond := wrapInCond(
+				"",
+				wrapLRTrim(false, args[0]),
+				bson.M{"$eq": []interface{}{args[0], ""}})
+
+			ltrimCond := wrapInCond(
+				"",
+				wrapLRTrim(true, "$$rtrim"),
+				bson.M{"$eq": []interface{}{"$$rtrim", ""}})
+
+			trimCond := wrapInLet(bson.M{"rtrim": rtrimCond}, ltrimCond)
+
+			trim := wrapInCond(
+				"",
+				trimCond,
+				bson.M{"$eq": []interface{}{args[0], ""}})
+
+			return wrapInNullCheckedCond(
+				nil,
+				trim,
+				args[0],
+			), true
 		case "truncate":
 			if len(typedE.Exprs) != 2 {
 				return nil, false

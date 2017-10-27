@@ -108,6 +108,21 @@ schema:
       MongoType: float64
       SqlName: b
       SqlType: float64
+  - table: trims
+    collection: "trimTest"
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: string
+      SqlName: a
+      SqlType: varchar
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: float64
 - db: groupby_test
   tables:
   - table: foo
@@ -910,7 +925,7 @@ schema:
   tables:
   - table: test1
     collection: test1
-    pipeline: 
+    pipeline:
     - $project: { a: 1, b: 1, loc: 1, c: { $add: ["$a", { $numberLong: "10" }] } }
     columns:
     - Name: a
