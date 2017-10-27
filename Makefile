@@ -24,8 +24,13 @@ check-races:
 clean:
 	$(ENV) testdata/bin/reset-testing-state.sh
 
+download-data:
+	testdata/bin/download-blackbox-data.sh
+	testdata/bin/download-tableau-data.sh
+	testdata/bin/download-tpch-data.sh
+
 restore-data:
-	$(ENV) testdata/bin/restore-test-data.sh
+	$(ENV) SUITE="$(SUITE)" testdata/bin/restore-test-data.sh
 
 run-mongodb:
 	$(ENV) testdata/bin/start-orchestration.sh
@@ -50,8 +55,11 @@ _test-connect-success: EXPECTED_STATUS = 0
 _test-connect-success:
 	$(ENV) $(EXPECTED) testdata/bin/test-simple-connect.sh
 
-test-integration: test-connect-success restore-data
-	$(ENV) testdata/bin/run-integration-tests.sh
+
+test-integration: SUITE := integration
+test-integration: test-connect-success restore-data _test-integration
+_test-integration:
+	$(ENV) SUITE="$(SUITE)" testdata/bin/run-integration-tests.sh
 
 test-option-help: build-mongosqld
 	$(ARTIFACTS_DIR)/bin/mongosqld --help
