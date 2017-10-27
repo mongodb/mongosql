@@ -106,7 +106,7 @@ func Unmarshal(data []byte, v interface{}) error {
 func NewDecoder(r io.Reader) *Decoder {
 	d := &Decoder{
 		anchors:          make(map[string][]yaml_event_t),
-		tracking_anchors: make([][]yaml_event_t, 1),
+		tracking_anchors: make([][]yaml_event_t, 0),
 	}
 	yaml_parser_initialize(&d.parser)
 	yaml_parser_set_input_reader(&d.parser, r)
