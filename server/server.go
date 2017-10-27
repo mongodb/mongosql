@@ -102,6 +102,10 @@ func (s *Server) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.
 		return nil, fmt.Errorf("cannot alter schema: schema was loaded from a file")
 	}
 
+	if !s.cfg.SetParameter.EnableTableAlterations {
+		return nil, fmt.Errorf("cannot alter schema: alterations not enabled")
+	}
+
 	err := s.sampler.Alter(ctx, alts)
 	if err != nil {
 		return nil, err

@@ -68,6 +68,8 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.ProcessManagement.Service.Name, "mongosql", "cfg.ProcessManagement.Service.Name")
 	testString(t, cfg.ProcessManagement.Service.DisplayName, "MongoSQL Service", "cfg.ProcessManagement.Service.DisplayName")
 	testString(t, cfg.ProcessManagement.Service.Description, "MongoSQL accesses MongoDB data with SQL", "cfg.ProcessManagement.Service.Description")
+
+	testBool(t, cfg.SetParameter.EnableTableAlterations, false, "cfg.SetParameter.EnableTableAlterations")
 }
 
 func TestLoad(t *testing.T) {
@@ -95,6 +97,22 @@ func TestToJSON(t *testing.T) {
 	actual := ToJSON(cfg)
 
 	expected := `{config: "funny", systemLog: {logAppend: true}, net: {ssl: {PEMKeyPassword: "<protected>"}}}`
+	if actual != expected {
+		t.Fatalf("expected '%s', but got '%s'", expected, actual)
+	}
+}
+
+func TestToJSON_SetParameter(t *testing.T) {
+	cfg := Default()
+
+	cfg.Config = "funny"
+	cfg.SystemLog.LogAppend = true
+	cfg.Net.SSL.PEMKeyPassword = "harumph"
+	cfg.SetParameter.EnableTableAlterations = true
+
+	actual := ToJSON(cfg)
+
+	expected := `{config: "funny", systemLog: {logAppend: true}, net: {ssl: {PEMKeyPassword: "<protected>"}}, setParameter: {enableTableAlterations: true}}`
 	if actual != expected {
 		t.Fatalf("expected '%s', but got '%s'", expected, actual)
 	}

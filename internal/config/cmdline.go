@@ -131,6 +131,19 @@ func ParseArgs(cfg *Config, args []string) ([]string, error) {
 		return nil
 	}
 
+	// called when --setParameter is parsed
+	opts.SetParameter = func(val string) error {
+		if opts.Params == nil {
+			opts.Params = make(map[string]string)
+		}
+		split := strings.Split(val, "=")
+		if len(split) != 2 {
+			return fmt.Errorf("invalid setParameter expression: %s", val)
+		}
+		opts.Params[split[0]] = split[1]
+		return nil
+	}
+
 	args, err := CapturePositionalArgs(args)
 	if err != nil {
 		return nil, err
@@ -143,9 +156,24 @@ func ParseArgs(cfg *Config, args []string) ([]string, error) {
 
 	if retargs, err := parser.ParseArgs(args); err != nil {
 		// fix error message when go-flags infers verbosity type incorrectly
-		if strings.Contains(err.Error(), "(expected func(string) error)") {
-			err = errors.New(strings.Replace(err.Error(), "(expected func(string) error)", "(expected int)", 1))
+		containsFuncType := strings.Contains(err.Error(), "(expected func(string) error)")
+		verbosityFlag := strings.Contains(err.Error(), "verbose")
+		setParameterFlag := strings.Contains(err.Error(), "setParameter")
+
+		var expectedType string
+		if verbosityFlag {
+			expectedType = "int"
+		} else if setParameterFlag {
+			expectedType = "<param>=<value>"
 		}
+
+		if containsFuncType {
+			oldStr := "(expected func(string) error)"
+			newStr := fmt.Sprintf("(expected %s)", expectedType)
+			newErrStr := strings.Replace(err.Error(), oldStr, newStr, 1)
+			err = errors.New(newErrStr)
+		}
+
 		return nil, fmt.Errorf("error parsing command line options: %v", err)
 	} else if len(retargs) > 0 {
 		return nil, fmt.Errorf("error parsing command line options: Unexpected argument(s): %v", retargs)
@@ -269,10 +297,12 @@ func (o *socketOptions) mapToConfig(cfg *Config) error {
 }
 
 type generalOptions struct {
-	Fork    *bool   `long:"fork" description:"fork mongosqld process" hidden:"true"`
-	Help    *bool   `short:"h" long:"help" description:"print usage"`
-	Version *bool   `long:"version" description:"display version information"`
-	Config  *string `long:"config" description:"path to a configuration file"`
+	Fork         *bool              `long:"fork" description:"fork mongosqld process" hidden:"true"`
+	Help         *bool              `short:"h" long:"help" description:"print usage"`
+	Version      *bool              `long:"version" description:"display version information"`
+	Config       *string            `long:"config" description:"path to a configuration file"`
+	SetParameter func(string) error `long:"setParameter" hidden:"true"`
+	Params       map[string]string  `no-flag:"true"`
 }
 
 func (o *generalOptions) name() string {
@@ -285,6 +315,22 @@ func (o *generalOptions) mapToConfig(cfg *Config) error {
 	}
 	if !isEmptyOrUnset(o.Config) {
 		cfg.Config = *o.Config
+	}
+
+	for key, val := range o.Params {
+		switch key {
+		case "enableTableAlterations":
+			switch val {
+			case "true":
+				cfg.SetParameter.EnableTableAlterations = true
+			case "false":
+				cfg.SetParameter.EnableTableAlterations = false
+			default:
+				return fmt.Errorf("invalid value for setParameter %s: %s", key, val)
+			}
+		default:
+			return fmt.Errorf("invalid setParameter key: %s", key)
+		}
 	}
 
 	return nil

@@ -19,17 +19,21 @@ test-alter-failure: build-mongosqld run-mongodb restore-data run-mongosqld _test
 test-alter-drdl: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: cannot alter schema: schema was loaded from a file
 test-alter-drdl: test-alter-failure
 
-test-alter-clustered-read: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/clustered
+test-alter-disabled: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/clustered
+test-alter-disabled: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: cannot alter schema: alterations not enabled
+test-alter-disabled: test-alter-failure
+
+test-alter-clustered-read: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/enable-alter
 test-alter-clustered-read: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: cannot alter schema in clustered read mode
 test-alter-clustered-read: test-alter-failure
 
-test-alter-standalone: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
+test-alter-standalone: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/enable-alter
 test-alter-standalone: test-alter-success
 
-test-alter-clustered-write: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write
+test-alter-clustered-write: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/clustered,sqlproxy/schema/write,sqlproxy/schema/enable-alter
 test-alter-clustered-write: test-alter-success
 
-test-alter-flush: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
+test-alter-flush: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/enable-alter
 test-alter-flush: EXPECTED_STATUS := 0
 test-alter-flush: build-mongosqld run-mongodb restore-data run-mongosqld _test-schema-available _test-connect-success _try-alter _test-flush _test-not-altered
 _test-flush:
