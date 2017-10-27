@@ -924,7 +924,9 @@ axes:
   values:
   - id: ubuntu1404-64
     display_name: Ubuntu 14.04
-    run_on: ubuntu1404-build
+    run_on:
+    - ubuntu1404-build
+    - ubuntu1404-test
     variables:
       _variant: ubuntu1404
   - id: osx
@@ -934,7 +936,9 @@ axes:
       _variant: macos
   - id: windows
     display_name: Windows 64
-    run_on: windows-64-vs2013-test
+    run_on:
+    - windows-64-vs2013-test
+    - windows-64-vs2013-compile
     variables:
       _variant: windows
 
@@ -943,34 +947,47 @@ axes:
   values:
   - id: debian71
     display_name: Debian 7.1
-    run_on: debian71-test
+    run_on:
+    - debian71-test
+    - debian71-build
     variables:
       _variant: debian71
   - id: debian81
     display_name: Debian 8.1 (nightly)
-    run_on: debian81-test
+    run_on:
+    - debian81-test
+    - debian81-build
     variables:
       _variant: debian81
   - id: linux-64-amazon-ami
     display_name: Amazon Linux (Enterprise)
     variables:
       _variant: amazon
-    run_on: linux-64-amzn-build
+    run_on:
+    - linux-64-amzn-build
+    - linux-64-amzn-test
   - id: rhel62
     display_name: RHEL 6.2
     variables:
       _variant: rhel62
-    run_on: rhel62-test
+    run_on:
+    - rhel62-small
+    - rhel62-test
+    - rhel62-large
   - id: rhel70
     display_name: RHEL 7.0
     variables:
       _variant: rhel70
-    run_on: rhel70
+    run_on:
+    - rhel70
+    - rhel70-small
   - id: rhel-71-ppc64le
     display_name: RHEL 7.1 PPC64LE
     variables:
       _variant: ppc
-    run_on: rhel71-power8-test
+    run_on:
+    - rhel71-power8-build
+    - rhel71-power8-test
     batchtime: 1440 # 1 day
   - id: rhel-72-s390x
     display_name: RHEL 7.2 s390x (nightly)
@@ -984,12 +1001,16 @@ axes:
     display_name: SLES 11
     variables:
       _variant: suse11
-    run_on: suse11-test
+    run_on:
+    - suse11-test
+    - suse11-build
   - id: suse12-64
     display_name: SLES 12
     variables:
       _variant: suse12
-    run_on: suse12-test
+    run_on:
+    - suse12-build
+    - suse12-test
 
 - id: mongodb_version
   display_name: MongoDB Version
@@ -1077,7 +1098,8 @@ buildvariants:
     _variant: ubuntu1404
     _race_detector: true
   run_on:
-    - ubuntu1404-build
+  - ubuntu1404-build
+  - ubuntu1404-test
   tasks:
     - ".test !.oneoff-task !unit-tests"
 
@@ -1089,6 +1111,8 @@ buildvariants:
     _client_auth: true
   run_on:
   - rhel62-test
+  - rhel62-build
+  - rhel62-large
   tasks:
   - "jdbc-auth-test"
 
@@ -1097,7 +1121,7 @@ buildvariants:
   expansions:
     _variant: amazon
   run_on:
-    - linux-64-amzn-build
+  - linux-64-amzn-build
   batchtime: 1440 # 1 day
   tasks:
     - name: check
@@ -1109,7 +1133,7 @@ buildvariants:
   expansions:
     _variant: amazon
   run_on:
-    - linux-64-amzn-benchmark
+  - linux-64-amzn-benchmark
   tasks:
       - name: release
 
@@ -1118,7 +1142,7 @@ buildvariants:
   expansions:
     _variant: amazon
   run_on:
-    - linux-64-amzn-benchmark
+  - linux-64-amzn-benchmark
   batchtime: 1438560 # 999 days
   tasks:
     - ".tpch"
