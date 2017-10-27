@@ -79,6 +79,9 @@ processManagement:
     name: oompa
     displayName: loompa
     description: doompa tee do
+
+setParameter:
+  enableTableAlterations: true
 `))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -140,6 +143,8 @@ processManagement:
 	testString(t, cfg.ProcessManagement.Service.Name, "oompa", "cfg.ProcessManagement.Service.Name")
 	testString(t, cfg.ProcessManagement.Service.DisplayName, "loompa", "cfg.ProcessManagement.Service.DisplayName")
 	testString(t, cfg.ProcessManagement.Service.Description, "doompa tee do", "cfg.ProcessManagement.Service.Description")
+
+	testBool(t, cfg.SetParameter.EnableTableAlterations, true, "cfg.SetParameter.EnableTableAlterations")
 }
 
 func TestParseYaml_Valid2(t *testing.T) {
@@ -201,6 +206,14 @@ systemLog:
 		{err: "invalid value for systemLog.verbosity: strconv.ParseInt: parsing \"funny\": invalid syntax", yaml: `
 systemLog:
     verbosity: funny
+`},
+		{err: "unrecognized key 'setParameter.funny'", yaml: `
+setParameter:
+    funny: 10
+`},
+		{err: "invalid value for setParameter.enableTableAlterations, expected a bool: abcde(string)", yaml: `
+setParameter:
+    enableTableAlterations: abcde
 `},
 	}
 

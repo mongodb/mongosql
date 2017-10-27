@@ -822,6 +822,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-alter-disabled
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-alter-standalone
   tags: ["test", "config"]
 

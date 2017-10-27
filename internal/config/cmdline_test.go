@@ -59,6 +59,9 @@ func TestParseArgs_Valid(t *testing.T) {
 		"--serviceName", "oompa",
 		"--serviceDisplayName", "loompa",
 		"--serviceDescription", "doompa tee do",
+
+		// SetParameter
+		"--setParameter", "enableTableAlterations=true",
 	}
 	if runtime.GOOS != "windows" {
 		args = append(args, []string{
@@ -122,6 +125,8 @@ func TestParseArgs_Valid(t *testing.T) {
 	testString(t, cfg.ProcessManagement.Service.Name, "oompa", "cfg.ProcessManagement.Service.Name")
 	testString(t, cfg.ProcessManagement.Service.DisplayName, "loompa", "cfg.ProcessManagement.Service.DisplayName")
 	testString(t, cfg.ProcessManagement.Service.Description, "doompa tee do", "cfg.ProcessManagement.Service.Description")
+
+	testBool(t, cfg.SetParameter.EnableTableAlterations, true, "cfg.SetParameter.EnableTableAlterations")
 }
 
 func TestParseArgs_Valid2(t *testing.T) {
@@ -165,6 +170,9 @@ func TestParseArgs_Invalid(t *testing.T) {
 		{err: "error parsing command line options: invalid argument for flag `" + shortOptDelim + "v, " + longOptDelim + "verbose' " +
 			"(expected int): invalid verbosity value given",
 			args: []string{"--verbose=silly"}},
+		{err: "invalid setParameter key: foo", args: []string{"--setParameter", "foo=bar"}},
+		{err: "invalid value for setParameter enableTableAlterations: bar", args: []string{"--setParameter", "enableTableAlterations=bar"}},
+		{err: "error parsing command line options: invalid argument for flag `" + longOptDelim + "setParameter' (expected <param>=<value>): invalid setParameter expression: enableTableAlterations", args: []string{"--setParameter", "enableTableAlterations"}},
 	}
 
 	for i, test := range tests {
@@ -264,5 +272,28 @@ func TestVerbosity_Valid(t *testing.T) {
 			t.Fatalf("got err: \n\t%v\n\tduring call to ParseArgs", err)
 		}
 		testInt(t, cfg.SystemLog.Verbosity, test.level, "cfg.SystemLog.Verbosity")
+	}
+}
+
+func TestSetParameter_Valid(t *testing.T) {
+	var tests = []struct {
+		alterationsEnabled bool
+		args               []string
+	}{
+		{true, []string{"--setParameter", "enableTableAlterations=true"}},
+		{false, []string{"--setParameter", "enableTableAlterations=false"}},
+		{true, []string{"--setParameter=enableTableAlterations=true"}},
+		{false, []string{"--setParameter=enableTableAlterations=false"}},
+		{true, []string{"--setParameter", "enableTableAlterations=false", "--setParameter", "enableTableAlterations=true"}},
+		{false, []string{"--setParameter", "enableTableAlterations=true", "--setParameter", "enableTableAlterations=false"}},
+	}
+
+	for _, test := range tests {
+		cfg := Default()
+		_, err := ParseArgs(cfg, test.args)
+		if err != nil {
+			t.Fatalf("got err: \n\t%v\n\tduring call to ParseArgs", err)
+		}
+		testBool(t, cfg.SetParameter.EnableTableAlterations, test.alterationsEnabled, "cfg.SetParameter.EnableTableAlterations")
 	}
 }

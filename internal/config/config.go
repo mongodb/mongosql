@@ -246,6 +246,7 @@ type Config struct {
 	Security          Security
 	MongoDB           MongoDB `config:"mongodb"`
 	ProcessManagement ProcessManagement
+	SetParameter      SetParameter
 }
 
 // SystemLog holds logging configuration.
@@ -365,4 +366,9 @@ type MongoDBNetAuth struct {
 	Password  string `config:"password,protected"`
 	Source    string
 	Mechanism string
+}
+
+// SetParameter holds miscellaneous configuration options.
+type SetParameter struct {
+	EnableTableAlterations bool
 }
