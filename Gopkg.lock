@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/10gen/candiedyaml"
   packages = ["."]
-  revision = "97add471e803228548f07606c5c73e3d80752ce5"
+  revision = "0ba4d03af3ce9549577fe1c7ec7714f448f63f4f"
 
 [[projects]]
   branch = "master"
