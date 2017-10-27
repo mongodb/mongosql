@@ -13,7 +13,7 @@ data:
     - { _id: 0, a: "a" }
     - { _id: 1, a: "B" }
     - { _id: 2, a: "A" }
-- inline: 
+- inline:
     db: "explain_test"
     collection: "set_1"
     docs:
@@ -55,6 +55,20 @@ data:
     - { _id: 10, a: "hey", b: 4.0 }
     - { _id: 11, a: "hey", b: -4.0 }
     - { _id: 12, a: "hey", b: 0 }
+- inline:
+    db: "functions_test"
+    collection: "trimTest"
+    docs:
+    - { _id: 0}
+    - { _id: 1, a: ""}
+    - { _id: 2, a: " "}
+    - { _id: 3, a: "abc"}
+    - { _id: 4, a: "abc  "}
+    - { _id: 5, a: " abc"}
+    - { _id: 6, a: "  ab c  "}
+    - { _id: 7, a: "\rab c\v"}
+    - { _id: 8, a: "\fab c\t"}
+    - { _id: 9, a: "\nab c\r"}
 - inline:
     db: "groupby_test"
     collection: "groupby"
@@ -126,28 +140,28 @@ data:
     collection: "join_9"
     docs:
     - { _id: 0, a: 3, b: 5, c: 10}
-- inline: 
+- inline:
     db: "limit_test"
     collection: "limit"
     docs:
     - { _id: 0, a: 1 }
     - { _id: 1, a: 2 }
     - { _id: 2, a: 3 }
-- inline: 
+- inline:
     db: "odbc_test"
     collection: "odbc_1"
     docs:
     - { _id: 0, a: 1, b: ~ }
     - { _id: 1, a: 2, b: 1 }
     - { _id: 2, a: 3 }
-- inline: 
+- inline:
     db: "odbc_test"
     collection: "odbc_2"
     docs:
     - { _id: 0, c: 10, d: ~ }
     - { _id: 1, c: 11, d: 1 }
     - { _id: 20, c: 30 }
-- inline: 
+- inline:
     db: "orderby_test"
     collection: "orderby"
     docs:
@@ -201,14 +215,14 @@ data:
     collection: "select_6"
     docs:
     - { _id: "57f422f941a74e324fb5c44a", "address": {"building": "1007", "coord": [-73.856077, 40.848447], "street": "Morris Park Ave", "zipcode": "10462"}, "borough": "Bronx", "cuisine": "Bakery", "grades": [{"date": {"$date": 1393804800000}, "grade": "A", "score": 2}, {"date": {"$date": 1378857600000}, "grade": "A", "score": 6}, {"date": {"$date": 1358985600000}, "grade": "A", "score": 10}, {"date": {"$date": 1322006400000}, "grade": "A", "score": 9}, {"date": {"$date": 1299715200000}, "grade": "B", "score": 14}], "name": "Morris Park Bake Shop", "restaurant_id": "30075445"}
-- inline: 
+- inline:
     db: "set_test"
     collection: "set_1"
     docs:
     - { _id: 0, a: 1 }
     - { _id: 1, a: 2 }
     - { _id: 2, a: 3 }
-- inline: 
+- inline:
     db: "subqueries_from_test"
     collection: "subqueries_from"
     docs:
@@ -302,7 +316,6 @@ data:
     - { rnum: 2, cint: 0}
     - { rnum: 3, cint: 1}
     - { rnum: 4, cint: 10}
-
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
 #

@@ -3384,6 +3384,9 @@ func TestExprNoPushdown(t *testing.T) {
 			test{"g is false"},
 			test{"substring(s, s)"},
 			test{"substring(s FROM 1 FOR s)"},
+			test{"ltrim(a)"},
+			test{"rtrim(t)"},
+			test{"trim(g)"},
 		}
 		runTests(tests, testSchema3, tableTwoName)
 
@@ -3549,6 +3552,9 @@ func TestTranslateExpr(t *testing.T) {
 			test{"a IS FALSE", `{"$eq":["$a",0]}`},
 			test{"t IS TRUE", `{"$eq":["$t",{"$literal":true}]}`},
 			test{"t IS FALSE", `{"$eq":["$t",{"$literal":false}]}`},
+			test{"rtrim(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$cond":[{"$eq":["$s",""]},"",{"$substrCP":["$s",0,{"$subtract":[{"$strLenCP":"$s"},{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$s"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$reverseArray":{"$split":["$s"," "]}}}}}}}}]}]}]}]}`},
+			test{"ltrim(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$cond":[{"$eq":["$s",""]},"",{"$substrCP":["$s",{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$s"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$split":["$s"," "]}}}}}}},{"$strLenCP":"$s"}]}]}]}`},
+			test{"trim(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$cond":[{"$eq":["$s",""]},"",{"$let":{"in":{"$cond":[{"$eq":["$$rtrim",""]},"",{"$substrCP":["$$rtrim",{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$$rtrim"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$split":["$$rtrim"," "]}}}}}}},{"$strLenCP":"$$rtrim"}]}]},"vars":{"rtrim":{"$cond":[{"$eq":["$s",""]},"",{"$substrCP":["$s",0,{"$subtract":[{"$strLenCP":"$s"},{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$s"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$reverseArray":{"$split":["$s"," "]}}}}}}}}]}]}]}}}}]}]}`},
 		}
 
 		runTests(tests)

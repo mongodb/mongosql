@@ -4513,7 +4513,7 @@ testcases:
   - [~]
   - [~]
   - [~]
-  - [~]  
+  - [~]
 - sql: "select datediff(d, t) from bar"
   id: 'datediff_boolColumn'
   db: functions_test
@@ -4690,3 +4690,73 @@ testcases:
   - [7000]
   - [~]
   - [~]
+- sql: "select rtrim(a) rtm from trims"
+  id: 'rtrim'
+  db: functions_test
+  expected_names: ["rtm"]
+  expected_types: [varchar]
+  expected:
+  - [~]
+  - [""]
+  - [""]
+  - ["abc"]
+  - ["abc"]
+  - [" abc"]
+  - ["  ab c"]
+  - ["\rab c\v"]
+  - ["\fab c\t"]
+  - ["\nab c\r"]
+- sql: "select ltrim(a) ltm from trims"
+  id: 'ltrim'
+  db: functions_test
+  expected_names: ["ltm"]
+  expected_types: [varchar]
+  expected:
+  - [~]
+  - [""]
+  - [""]
+  - ["abc"]
+  - ["abc  "]
+  - ["abc"]
+  - ["ab c  "]
+  - ["\rab c\v"]
+  - ["\fab c\t"]
+  - ["\nab c\r"]
+- sql: "select trim(a) trm from trims"
+  id: 'trim'
+  db: functions_test
+  expected_names: ["trm"]
+  expected_types: [varchar]
+  expected:
+  - [~]
+  - [""]
+  - [""]
+  - ["abc"]
+  - ["abc"]
+  - ["abc"]
+  - ["ab c"]
+  - ["\rab c\v"]
+  - ["\fab c\t"]
+  - ["\nab c\r"]
+- sql: "select trim(a) trm, ltrim(b) ltm, rtrim(c) rtm from foo"
+  id: 'negative_trim_functions'
+  db: functions_test
+  expected_names: ["trm", "ltm", "rtm"]
+  expected_types: [varchar, varchar, varchar]
+  expected:
+  - [1, "2000-09-23 13:45:00.000000", 1]
+  - [0, ~, "-1"]
+  - [~, ~, 0]
+  - [~, ~, 20171008]
+  - [~, ~, ~]
+- sql: "select trim(id) trm, ltrim(d) ltm, rtrim(e) rtm from foo"
+  id: 'negative_trim_functions_1'
+  db: functions_test
+  expected_names: ["trm", "ltm", "rtm"]
+  expected_types: [varchar, varchar, varchar]
+  expected:
+  - [0, 2, "one"]
+  - [1, -2, "2017-10-08"]
+  - [2, 0, "20171008"]
+  - [3, 20171008, ~]
+  - [4, ~, ~]

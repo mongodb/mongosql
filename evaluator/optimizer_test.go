@@ -3435,25 +3435,29 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 				})
-			test("select trim(''), trim(a) from foo",
+			test("select trim(''), ifnull(a, '') from foo",
 				[]bson.D{
 					{{"$project", bson.M{
 						emptyFieldNamePrefix: bson.M{
 							"$literal": "",
 						},
-						"a": "$a",
+						"ifnull(foo_DOT_a,)": bson.M{
+							"$ifNull": []interface{}{
+								"$a", bson.M{"$literal": ""}}},
 					}}},
 				})
-			test("select trim(''), trim(a), trim(' ') from foo",
+			test("select trim(''), ifnull(a, ''), trim(' ') from foo",
 				[]bson.D{
 					{{"$project", bson.M{
 						emptyFieldNamePrefix: bson.M{
 							"$literal": "",
 						},
-						"a": "$a",
 						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
 							"$literal": "",
 						},
+						"ifnull(foo_DOT_a,)": bson.M{
+							"$ifNull": []interface{}{
+								"$a", bson.M{"$literal": ""}}},
 					}}},
 				})
 			test("select trim(''), trim(' '), trim('  '), trim('   ') from foo",
@@ -3483,10 +3487,12 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 				})
-			test("select trim(a), trim(''), a, trim(' ') from foo",
+			test("select ifnull(a, ''), trim(''), a, trim(' ') from foo",
 				[]bson.D{
 					{{"$project", bson.M{
-						"a": "$a",
+						"ifnull(foo_DOT_a,)": bson.M{
+							"$ifNull": []interface{}{
+								"$a", bson.M{"$literal": ""}}},
 						emptyFieldNamePrefix: bson.M{
 							"$literal": "",
 						},

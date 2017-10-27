@@ -2259,6 +2259,10 @@ func (_ *ltrimFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+func (_ *ltrimFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLVarchar, SQLNull)
+}
+
 type makeDateFunc struct{}
 
 // http://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html#function_makedate
@@ -2715,6 +2719,10 @@ func (_ *rtrimFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (_ *rtrimFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
+}
+
+func (_ *rtrimFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLVarchar, SQLNull)
 }
 
 type roundFunc struct{}
@@ -3604,6 +3612,10 @@ func (_ *trimFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (_ *trimFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 3)
+}
+
+func (_ *trimFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	return convertAllArgs(f, schema.SQLVarchar, SQLNull)
 }
 
 type toDaysFunc struct{}
