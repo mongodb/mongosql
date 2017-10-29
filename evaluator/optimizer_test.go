@@ -81,38 +81,46 @@ func TestOptimizePlan32(t *testing.T) {
 						{"$let", bson.D{
 							{"vars", bson.M{
 								"predicate": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
+									"$let": bson.M{
+										"vars": bson.M{
+											"left":  "$b",
+											"right": "$c",
 										},
-										nil,
-										bson.M{
-											"$lt": []interface{}{
-												"$b",
-												"$c",
+										"in": bson.M{
+											"$cond": []interface{}{
+												bson.M{
+													"$or": []interface{}{
+														bson.M{
+															"$eq": []interface{}{
+																bson.M{
+																	"$ifNull": []interface{}{
+																		"$$left",
+																		nil,
+																	},
+																},
+																nil,
+															},
+														},
+														bson.M{
+															"$eq": []interface{}{
+																bson.M{
+																	"$ifNull": []interface{}{
+																		"$$right",
+																		nil,
+																	},
+																},
+																nil,
+															},
+														},
+													},
+												},
+												nil,
+												bson.M{
+													"$lt": []interface{}{
+														"$$left",
+														"$$right",
+													},
+												},
 											},
 										},
 									},
@@ -162,38 +170,46 @@ func TestOptimizePlan32(t *testing.T) {
 						{"$let", bson.D{
 							{"vars", bson.M{
 								"predicate": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
+									"$let": bson.M{
+										"vars": bson.M{
+											"left":  "$b",
+											"right": "$c",
 										},
-										nil,
-										bson.M{
-											"$lt": []interface{}{
-												"$b",
-												"$c",
+										"in": bson.M{
+											"$cond": []interface{}{
+												bson.M{
+													"$or": []interface{}{
+														bson.M{
+															"$eq": []interface{}{
+																bson.M{
+																	"$ifNull": []interface{}{
+																		"$$left",
+																		nil,
+																	},
+																},
+																nil,
+															},
+														},
+														bson.M{
+															"$eq": []interface{}{
+																bson.M{
+																	"$ifNull": []interface{}{
+																		"$$right",
+																		nil,
+																	},
+																},
+																nil,
+															},
+														},
+													},
+												},
+												nil,
+												bson.M{
+													"$lt": []interface{}{
+														"$$left",
+														"$$right",
+													},
+												},
 											},
 										},
 									},
@@ -240,38 +256,46 @@ func TestOptimizePlan32(t *testing.T) {
 						{"$let", bson.D{
 							{"vars", bson.M{
 								"predicate": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$b",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$c",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
+									"$let": bson.M{
+										"vars": bson.M{
+											"left":  "$b",
+											"right": "$c",
 										},
-										nil,
-										bson.M{
-											"$lt": []interface{}{
-												"$b",
-												"$c",
+										"in": bson.M{
+											"$cond": []interface{}{
+												bson.M{
+													"$or": []interface{}{
+														bson.M{
+															"$eq": []interface{}{
+																bson.M{
+																	"$ifNull": []interface{}{
+																		"$$left",
+																		nil,
+																	},
+																},
+																nil,
+															},
+														},
+														bson.M{
+															"$eq": []interface{}{
+																bson.M{
+																	"$ifNull": []interface{}{
+																		"$$right",
+																		nil,
+																	},
+																},
+																nil,
+															},
+														},
+													},
+												},
+												nil,
+												bson.M{
+													"$lt": []interface{}{
+														"$$left",
+														"$$right",
+													},
+												},
 											},
 										},
 									},
@@ -338,38 +362,46 @@ func TestOptimizePlan32(t *testing.T) {
 						{"$let", bson.D{
 							{"vars", bson.M{
 								"predicate": bson.M{
-									"$cond": []interface{}{
-										bson.M{
-											"$or": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$a",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{
-															"$ifNull": []interface{}{
-																"$__joined_b.d.f",
-																nil,
-															},
-														},
-														nil,
-													},
-												},
-											},
+									"$let": bson.M{
+										"vars": bson.M{
+											"left":  "$a",
+											"right": "$__joined_b.d.f",
 										},
-										nil,
-										bson.M{
-											"$eq": []interface{}{
-												"$a",
-												"$__joined_b.d.f",
+										"in": bson.M{
+											"$cond": []interface{}{
+												bson.M{
+													"$or": []interface{}{
+														bson.M{
+															"$eq": []interface{}{
+																bson.M{
+																	"$ifNull": []interface{}{
+																		"$$left",
+																		nil,
+																	},
+																},
+																nil,
+															},
+														},
+														bson.M{
+															"$eq": []interface{}{
+																bson.M{
+																	"$ifNull": []interface{}{
+																		"$$right",
+																		nil,
+																	},
+																},
+																nil,
+															},
+														},
+													},
+												},
+												nil,
+												bson.M{
+													"$eq": []interface{}{
+														"$$left",
+														"$$right",
+													},
+												},
 											},
 										},
 									},
@@ -506,38 +538,46 @@ func TestOptimizePlan(t *testing.T) {
 									{"$let", bson.D{
 										{"vars", bson.M{
 											"predicate": bson.M{
-												"$cond": []interface{}{
-													bson.M{
-														"$or": []interface{}{
-															bson.M{
-																"$eq": []interface{}{
-																	bson.M{
-																		"$ifNull": []interface{}{
-																			"$a",
-																			nil,
-																		},
-																	},
-																	nil,
-																},
-															},
-															bson.M{
-																"$eq": []interface{}{
-																	bson.M{
-																		"$ifNull": []interface{}{
-																			"$__joined_b.d.f",
-																			nil,
-																		},
-																	},
-																	nil,
-																},
-															},
-														},
+												"$let": bson.M{
+													"vars": bson.M{
+														"left":  "$a",
+														"right": "$__joined_b.d.f",
 													},
-													nil,
-													bson.M{
-														"$eq": []interface{}{
-															"$a",
-															"$__joined_b.d.f",
+													"in": bson.M{
+														"$cond": []interface{}{
+															bson.M{
+																"$or": []interface{}{
+																	bson.M{
+																		"$eq": []interface{}{
+																			bson.M{
+																				"$ifNull": []interface{}{
+																					"$$left",
+																					nil,
+																				},
+																			},
+																			nil,
+																		},
+																	},
+																	bson.M{
+																		"$eq": []interface{}{
+																			bson.M{
+																				"$ifNull": []interface{}{
+																					"$$right",
+																					nil,
+																				},
+																			},
+																			nil,
+																		},
+																	},
+																},
+															},
+															nil,
+															bson.M{
+																"$eq": []interface{}{
+																	"$$left",
+																	"$$right",
+																},
+															},
 														},
 													},
 												},
@@ -1116,38 +1156,46 @@ func TestOptimizePlan(t *testing.T) {
 									{"$let", bson.D{
 										{"vars", bson.M{
 											"predicate": bson.M{
-												"$cond": []interface{}{
-													bson.M{
-														"$or": []interface{}{
-															bson.M{
-																"$eq": []interface{}{
-																	bson.M{
-																		"$ifNull": []interface{}{
-																			"$__joined_f._id",
-																			nil,
-																		},
-																	},
-																	nil,
-																},
-															},
-															bson.M{
-																"$eq": []interface{}{
-																	bson.M{
-																		"$ifNull": []interface{}{
-																			"$_id",
-																			nil,
-																		},
-																	},
-																	nil,
-																},
-															},
-														},
+												"$let": bson.M{
+													"vars": bson.M{
+														"left":  "$__joined_f._id",
+														"right": "$_id",
 													},
-													nil,
-													bson.M{
-														"$eq": []interface{}{
-															"$__joined_f._id",
-															"$_id",
+													"in": bson.M{
+														"$cond": []interface{}{
+															bson.M{
+																"$or": []interface{}{
+																	bson.M{
+																		"$eq": []interface{}{
+																			bson.M{
+																				"$ifNull": []interface{}{
+																					"$$left",
+																					nil,
+																				},
+																			},
+																			nil,
+																		},
+																	},
+																	bson.M{
+																		"$eq": []interface{}{
+																			bson.M{
+																				"$ifNull": []interface{}{
+																					"$$right",
+																					nil,
+																				},
+																			},
+																			nil,
+																		},
+																	},
+																},
+															},
+															nil,
+															bson.M{
+																"$eq": []interface{}{
+																	"$$left",
+																	"$$right",
+																},
+															},
 														},
 													},
 												},
@@ -1274,38 +1322,46 @@ func TestOptimizePlan(t *testing.T) {
 									{"$let", bson.D{
 										{"vars", bson.M{
 											"predicate": bson.M{
-												"$cond": []interface{}{
-													bson.M{
-														"$or": []interface{}{
-															bson.M{
-																"$eq": []interface{}{
-																	bson.M{
-																		"$ifNull": []interface{}{
-																			"$a",
-																			nil,
-																		},
-																	},
-																	nil,
-																},
-															},
-															bson.M{
-																"$eq": []interface{}{
-																	bson.M{
-																		"$ifNull": []interface{}{
-																			"$__joined_foo.c",
-																			nil,
-																		},
-																	},
-																	nil,
-																},
-															},
-														},
+												"$let": bson.M{
+													"vars": bson.M{
+														"left":  "$a",
+														"right": "$__joined_foo.c",
 													},
-													nil,
-													bson.M{
-														"$gt": []interface{}{
-															"$a",
-															"$__joined_foo.c",
+													"in": bson.M{
+														"$cond": []interface{}{
+															bson.M{
+																"$or": []interface{}{
+																	bson.M{
+																		"$eq": []interface{}{
+																			bson.M{
+																				"$ifNull": []interface{}{
+																					"$$left",
+																					nil,
+																				},
+																			},
+																			nil,
+																		},
+																	},
+																	bson.M{
+																		"$eq": []interface{}{
+																			bson.M{
+																				"$ifNull": []interface{}{
+																					"$$right",
+																					nil,
+																				},
+																			},
+																			nil,
+																		},
+																	},
+																},
+															},
+															nil,
+															bson.M{
+																"$gt": []interface{}{
+																	"$$left",
+																	"$$right",
+																},
+															},
 														},
 													},
 												},
@@ -1419,38 +1475,46 @@ func TestOptimizePlan(t *testing.T) {
 									{"$let", bson.D{
 										{"vars", bson.M{
 											"predicate": bson.M{
-												"$cond": []interface{}{
-													bson.M{
-														"$or": []interface{}{
-															bson.M{
-																"$eq": []interface{}{
-																	bson.M{
-																		"$ifNull": []interface{}{
-																			"$__joined_f._id",
-																			nil,
-																		},
-																	},
-																	nil,
-																},
-															},
-															bson.M{
-																"$eq": []interface{}{
-																	bson.M{
-																		"$ifNull": []interface{}{
-																			"$_id",
-																			nil,
-																		},
-																	},
-																	nil,
-																},
-															},
-														},
+												"$let": bson.M{
+													"vars": bson.M{
+														"left":  "$__joined_f._id",
+														"right": "$_id",
 													},
-													nil,
-													bson.M{
-														"$eq": []interface{}{
-															"$__joined_f._id",
-															"$_id",
+													"in": bson.M{
+														"$cond": []interface{}{
+															bson.M{
+																"$or": []interface{}{
+																	bson.M{
+																		"$eq": []interface{}{
+																			bson.M{
+																				"$ifNull": []interface{}{
+																					"$$left",
+																					nil,
+																				},
+																			},
+																			nil,
+																		},
+																	},
+																	bson.M{
+																		"$eq": []interface{}{
+																			bson.M{
+																				"$ifNull": []interface{}{
+																					"$$right",
+																					nil,
+																				},
+																			},
+																			nil,
+																		},
+																	},
+																},
+															},
+															nil,
+															bson.M{
+																"$eq": []interface{}{
+																	"$$left",
+																	"$$right",
+																},
+															},
 														},
 													},
 												},
@@ -1762,19 +1826,37 @@ func TestOptimizePlan(t *testing.T) {
 										"input": "$__joined_bar",
 										"as":    "this",
 										"cond": bson.M{
-											"$cond": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{"$ifNull": []interface{}{"$b", nil}},
-														nil,
+											"$let": bson.M{
+												"vars": bson.M{
+													"left": "$b",
+													"right": bson.M{
+														"$literal": int64(10),
 													},
 												},
-												nil,
-												bson.M{
-													"$gt": []interface{}{
-														"$b",
+												"in": bson.M{
+													"$cond": []interface{}{
 														bson.M{
-															"$literal": int64(10),
+															"$or": []interface{}{
+																bson.M{
+																	"$eq": []interface{}{
+																		bson.M{"$ifNull": []interface{}{"$$left", nil}},
+																		nil,
+																	},
+																},
+																bson.M{
+																	"$eq": []interface{}{
+																		bson.M{"$ifNull": []interface{}{"$$right", nil}},
+																		nil,
+																	},
+																},
+															},
+														},
+														nil,
+														bson.M{
+															"$gt": []interface{}{
+																"$$left",
+																"$$right",
+															},
 														},
 													},
 												},
@@ -1835,19 +1917,37 @@ func TestOptimizePlan(t *testing.T) {
 									"$filter": bson.M{
 										"as": "this",
 										"cond": bson.M{
-											"$cond": []interface{}{
-												bson.M{
-													"$eq": []interface{}{
-														bson.M{"$ifNull": []interface{}{"$$this.b", nil}},
-														nil,
+											"$let": bson.M{
+												"vars": bson.M{
+													"left": "$$this.b",
+													"right": bson.M{
+														"$literal": int64(10),
 													},
 												},
-												nil,
-												bson.M{
-													"$gt": []interface{}{
-														"$$this.b",
+												"in": bson.M{
+													"$cond": []interface{}{
 														bson.M{
-															"$literal": int64(10),
+															"$or": []interface{}{
+																bson.M{
+																	"$eq": []interface{}{
+																		bson.M{"$ifNull": []interface{}{"$$left", nil}},
+																		nil,
+																	},
+																},
+																bson.M{
+																	"$eq": []interface{}{
+																		bson.M{"$ifNull": []interface{}{"$$right", nil}},
+																		nil,
+																	},
+																},
+															},
+														},
+														nil,
+														bson.M{
+															"$gt": []interface{}{
+																"$$left",
+																"$$right",
+															},
 														},
 													},
 												},
@@ -2384,38 +2484,46 @@ func TestOptimizePlan(t *testing.T) {
 							{"$let", bson.D{
 								{"vars", bson.M{
 									"predicate": bson.M{
-										"$cond": []interface{}{
-											bson.M{
-												"$or": []interface{}{
-													bson.M{
-														"$eq": []interface{}{
-															bson.M{
-																"$ifNull": []interface{}{
-																	"$b",
-																	nil,
-																},
-															},
-															nil,
-														},
-													},
-													bson.M{
-														"$eq": []interface{}{
-															bson.M{
-																"$ifNull": []interface{}{
-																	"$c",
-																	nil,
-																},
-															},
-															nil,
-														},
-													},
-												},
+										"$let": bson.M{
+											"vars": bson.M{
+												"left":  "$b",
+												"right": "$c",
 											},
-											nil,
-											bson.M{
-												"$lt": []interface{}{
-													"$b",
-													"$c",
+											"in": bson.M{
+												"$cond": []interface{}{
+													bson.M{
+														"$or": []interface{}{
+															bson.M{
+																"$eq": []interface{}{
+																	bson.M{
+																		"$ifNull": []interface{}{
+																			"$$left",
+																			nil,
+																		},
+																	},
+																	nil,
+																},
+															},
+															bson.M{
+																"$eq": []interface{}{
+																	bson.M{
+																		"$ifNull": []interface{}{
+																			"$$right",
+																			nil,
+																		},
+																	},
+																	nil,
+																},
+															},
+														},
+													},
+													nil,
+													bson.M{
+														"$lt": []interface{}{
+															"$$left",
+															"$$right",
+														},
+													},
 												},
 											},
 										},
@@ -2457,38 +2565,46 @@ func TestOptimizePlan(t *testing.T) {
 							{"$let", bson.D{
 								{"vars", bson.M{
 									"predicate": bson.M{
-										"$cond": []interface{}{
-											bson.M{
-												"$or": []interface{}{
-													bson.M{
-														"$eq": []interface{}{
-															bson.M{
-																"$ifNull": []interface{}{
-																	"$b",
-																	nil,
-																},
-															},
-															nil,
-														},
-													},
-													bson.M{
-														"$eq": []interface{}{
-															bson.M{
-																"$ifNull": []interface{}{
-																	"$c",
-																	nil,
-																},
-															},
-															nil,
-														},
-													},
-												},
+										"$let": bson.M{
+											"vars": bson.M{
+												"left":  "$b",
+												"right": "$c",
 											},
-											nil,
-											bson.M{
-												"$lt": []interface{}{
-													"$b",
-													"$c",
+											"in": bson.M{
+												"$cond": []interface{}{
+													bson.M{
+														"$or": []interface{}{
+															bson.M{
+																"$eq": []interface{}{
+																	bson.M{
+																		"$ifNull": []interface{}{
+																			"$$left",
+																			nil,
+																		},
+																	},
+																	nil,
+																},
+															},
+															bson.M{
+																"$eq": []interface{}{
+																	bson.M{
+																		"$ifNull": []interface{}{
+																			"$$right",
+																			nil,
+																		},
+																	},
+																	nil,
+																},
+															},
+														},
+													},
+													nil,
+													bson.M{
+														"$lt": []interface{}{
+															"$$left",
+															"$$right",
+														},
+													},
 												},
 											},
 										},
@@ -2528,38 +2644,46 @@ func TestOptimizePlan(t *testing.T) {
 							{"$let", bson.D{
 								{"vars", bson.M{
 									"predicate": bson.M{
-										"$cond": []interface{}{
-											bson.M{
-												"$or": []interface{}{
-													bson.M{
-														"$eq": []interface{}{
-															bson.M{
-																"$ifNull": []interface{}{
-																	"$b",
-																	nil,
-																},
-															},
-															nil,
-														},
-													},
-													bson.M{
-														"$eq": []interface{}{
-															bson.M{
-																"$ifNull": []interface{}{
-																	"$c",
-																	nil,
-																},
-															},
-															nil,
-														},
-													},
-												},
+										"$let": bson.M{
+											"vars": bson.M{
+												"left":  "$b",
+												"right": "$c",
 											},
-											nil,
-											bson.M{
-												"$lt": []interface{}{
-													"$b",
-													"$c",
+											"in": bson.M{
+												"$cond": []interface{}{
+													bson.M{
+														"$or": []interface{}{
+															bson.M{
+																"$eq": []interface{}{
+																	bson.M{
+																		"$ifNull": []interface{}{
+																			"$$left",
+																			nil,
+																		},
+																	},
+																	nil,
+																},
+															},
+															bson.M{
+																"$eq": []interface{}{
+																	bson.M{
+																		"$ifNull": []interface{}{
+																			"$$right",
+																			nil,
+																		},
+																	},
+																	nil,
+																},
+															},
+														},
+													},
+													nil,
+													bson.M{
+														"$lt": []interface{}{
+															"$$left",
+															"$$right",
+														},
+													},
 												},
 											},
 										},
@@ -3062,14 +3186,21 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$project", bson.M{
 						"_id": 0,
 						"sum(foo_DOT_a)": bson.M{
-							"$cond": []interface{}{
-								bson.M{"$or": []interface{}{
-									bson.M{"$eq": []interface{}{bson.M{"$ifNull": []interface{}{"$sum(foo_DOT_a)_count", nil}}, nil}},
-									bson.M{"$eq": []interface{}{"$sum(foo_DOT_a)_count", 0}},
-									bson.M{"$eq": []interface{}{"$sum(foo_DOT_a)_count", false}},
-								}},
-								bson.M{"$literal": nil},
-								"$sum(foo_DOT_a)",
+							"$let": bson.M{
+								"vars": bson.M{
+									"expr": "$sum(foo_DOT_a)_count",
+								},
+								"in": bson.M{
+									"$cond": []interface{}{
+										bson.M{"$or": []interface{}{
+											bson.M{"$eq": []interface{}{bson.M{"$ifNull": []interface{}{"$$expr", nil}}, nil}},
+											bson.M{"$eq": []interface{}{"$$expr", 0}},
+											bson.M{"$eq": []interface{}{"$$expr", false}},
+										}},
+										bson.M{"$literal": nil},
+										"$sum(foo_DOT_a)",
+									},
+								},
 							},
 						},
 					}}},
@@ -3292,37 +3423,45 @@ func TestOptimizePlan(t *testing.T) {
 					[]bson.D{
 						{{"$addFields", bson.M{
 							"foo_DOT_a>foo_DOT_b": bson.M{
-								"$cond": []interface{}{
-									bson.M{
-										"$or": []interface{}{
+								"$let": bson.M{
+									"vars": bson.M{
+										"left":  "$a",
+										"right": "$b",
+									},
+									"in": bson.M{
+										"$cond": []interface{}{
 											bson.M{
-												"$eq": []interface{}{
+												"$or": []interface{}{
 													bson.M{
-														"$ifNull": []interface{}{
-															"$a",
+														"$eq": []interface{}{
+															bson.M{
+																"$ifNull": []interface{}{
+																	"$$left",
+																	nil,
+																},
+															},
 															nil,
 														},
 													},
-													nil,
-												},
-											},
-											bson.M{
-												"$eq": []interface{}{bson.M{
-													"$ifNull": []interface{}{
-														"$b",
-														nil,
+													bson.M{
+														"$eq": []interface{}{bson.M{
+															"$ifNull": []interface{}{
+																"$$right",
+																nil,
+															},
+														},
+															nil,
+														},
 													},
 												},
-													nil,
+											},
+											nil,
+											bson.M{
+												"$gt": []interface{}{
+													"$$left",
+													"$$right",
 												},
 											},
-										},
-									},
-									nil,
-									bson.M{
-										"$gt": []interface{}{
-											"$a",
-											"$b",
 										},
 									},
 								},
