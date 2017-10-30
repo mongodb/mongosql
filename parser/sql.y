@@ -103,7 +103,7 @@ func ForceEOF(yylex interface{}) {
 %left <empty> AND
 %right <empty> NOT
 %left <empty> BETWEEN CASE WHEN THEN ELSE
-%left <empty> EQ NULL_SAFE_EQUAL GE GT LE LT NE IS LIKE REGEXP IN
+%left <empty> EQ NULL_SAFE_EQUAL GE GT LE LT NE IS LIKE REGEXP RLIKE IN
 %left <empty> BIT_AND BIT_OR CARET
 %left <empty> PLUS SUB
 %left <empty> TIMES MOD DIV IDIV
@@ -1322,6 +1322,14 @@ predicate:
 | bit_expr NOT REGEXP bit_expr
   {
     $$ = &NotExpr{&RegexExpr{Operand: $1, Pattern: $4}}
+  }
+| bit_expr RLIKE bit_expr
+  {
+    $$ = &RLikeExpr{Operand: $1, Pattern: $3}
+  }
+| bit_expr NOT RLIKE bit_expr
+  {
+    $$ = &NotExpr{&RLikeExpr{Operand: $1, Pattern: $4}}
   }
 | bit_expr
 

@@ -1021,3 +1021,46 @@ testcases:
   - [0, 1, ~]
   - [1, 2, ~]
   - [2, 3, ~]
+
+#RLike
+- sql: "select a RLIKE '^f.*$' from where_test.reg"
+  id: '104'
+  db: where_test
+  description: "not rlike filter on select clauses"
+  expected_names: ["a rlike '^f.*$'"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [1]
+  - [0]
+- sql: "select a NOT RLIKE '^f.*$' from where_test.reg"
+  id: '105'
+  db: where_test
+  description: "not rlike filter"
+  expected_names: ["not a rlike '^f.*$'"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [0]
+  - [1]
+#Regexp
+- sql: "select a NOT REGEXP '^f.*$' from where_test.reg"
+  id: '106'
+  db: where_test
+  description: "not regex filter on select clauses"
+  expected_names: ["not a regexp '^f.*$'"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [0]
+  - [1]
+- sql: "select a REGEXP '^f.*$' from where_test.reg"
+  id: '107'
+  db: where_test
+  description: "regex filter on select clauses"
+  expected_names: ["a regexp '^f.*$'"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [1]
+  - [0]

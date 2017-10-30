@@ -686,3 +686,22 @@ testcases:
   expected_types: [int]
   expected:
   - [1]
+
+# Rlike
+- sql: "select * from where_test.reg where a RLIKE '^f.*$'"
+  id: '77'
+  db: where_test
+  description: "rlike filter"
+  expected_names: ["_id", "a"]
+  expected_types: [int, varchar]
+  expected:
+  - [1, "fofo"]
+- sql: "select * from where_test.reg where a NOT RLIKE '^f.*$'"
+  id: '78'
+  db: where_test
+  description: "not rlike filter"
+  expected_names: ["_id", "a"]
+  expected_types: [int, varchar]
+  expected:
+  - [0, "abcde"]
+  - [2, "ABC123"]

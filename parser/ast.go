@@ -414,6 +414,7 @@ func (*NotExpr) IExpr()        {}
 func (*ComparisonExpr) IExpr() {}
 func (*LikeExpr) IExpr()       {}
 func (*RegexExpr) IExpr()      {}
+func (*RLikeExpr) IExpr()      {}
 func (*RangeCond) IExpr()      {}
 func (*ExistsExpr) IExpr()     {}
 func (DateVal) IExpr()         {}
@@ -543,14 +544,25 @@ func (node *RangeCond) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v %s from %v to %v", node.Left, node.Operator, node.From, node.To)
 }
 
-// RegexExor represents a Regex expression that matches a pattern with an expression.
+// RegexExpr represents a Regex expression that matches a pattern with an expression.
 type RegexExpr struct {
+	Operand Expr
+	Pattern Expr
+}
+
+// This node is synonymous with the one above, simply here so that there
+// can be a distinction between the input commands when formatted.
+type RLikeExpr struct {
 	Operand Expr
 	Pattern Expr
 }
 
 func (node *RegexExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v regexp %v", node.Operand, node.Pattern)
+}
+
+func (node *RLikeExpr) Format(buf *TrackedBuffer) {
+	buf.Fprintf("%v rlike %v", node.Operand, node.Pattern)
 }
 
 // ExistsExpr represents an EXISTS expression.
