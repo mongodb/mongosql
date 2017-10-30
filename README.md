@@ -24,8 +24,18 @@ Refer to [this guide](https://github.com/golang/go/wiki/Setting-GOPATH#unix-syst
 Note that on Linux systems, you should elect to use `~/.bashrc` instead of `~/.bash_profile`.
 You should also set `$GOBIN` and `$PATH`:
 ```
+<<<<<<< HEAD
+<<<<<<< HEAD
 export GOBIN="$GOPATH/bin"
 export PATH="$GOBIN:$PATH"
+=======
+export GOBIN=$GOPATH/bin
+export PATH=$GOBIN:$PATH
+>>>>>>> a6d15f81... BI-566 implemented RLIKE functionality
+=======
+export GOBIN=$GOPATH/bin
+export PATH=$GOBIN:$PATH
+>>>>>>> a6d15f81... BI-566 implemented RLIKE functionality
 ```
 After this, you can download the repo and build it as such:
 ```
@@ -34,7 +44,16 @@ cd $GOPATH/src/github.com/10gen/sqlproxy
 go install main/sqlproxy.go
 ```
 
+<<<<<<< HEAD
+<<<<<<< HEAD
 ### Windows
+=======
+=======
+>>>>>>> a6d15f81... BI-566 implemented RLIKE functionality
+
+### Building the BI Connector: Windows
+
+>>>>>>> a6d15f81... BI-566 implemented RLIKE functionality
 Download [Go](https://golang.org/dl/) version >= 1.8.1.
 
 Refer to [this guide](https://github.com/golang/go/wiki/Setting-GOPATH#windows) for setting `%GOPATH%`.  
@@ -160,5 +179,13 @@ For more a comprehensive set of startup customizations, you can pass in a config
 sqlproxy --config testdata/resources/configs/sample.yml
 ```
 
+<<<<<<< HEAD
 ## Documentation
+=======
+
+### Documentation
+<<<<<<< HEAD
+>>>>>>> a6d15f81... BI-566 implemented RLIKE functionality
+=======
+>>>>>>> a6d15f81... BI-566 implemented RLIKE functionality
 See the BI Connector [documentation](https://docs.mongodb.com/bi-connector/master/).

@@ -382,6 +382,7 @@ var keywords = map[string]int{
 	"repeatable":         REPEATABLE,
 	"restrict":           RESTRICT,
 	"right":              RIGHT,
+	"rlike":              RLIKE,
 	"row":                ROW,
 	"sample":             SAMPLE,
 	"schema":             SCHEMA,
