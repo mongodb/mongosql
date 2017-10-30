@@ -4760,3 +4760,10 @@ testcases:
   - [2, 0, "20171008"]
   - [3, 20171008, ~]
   - [4, ~, ~]
+- sql: "select utc_date = date(utc_timestamp) and utc_date > 2017-10-24"
+  id: 'utc_date_timetamp_check'
+  db: functions_test
+  expected_names: ['utc_date() = date(utc_timestamp()) and utc_date() > 2017-10-24']
+  expected_types: [int]
+  expected:
+  - [1]

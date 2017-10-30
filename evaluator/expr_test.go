@@ -1112,6 +1112,24 @@ func TestEvaluates(t *testing.T) {
 				runTests(evalCtx, tests)
 			})
 
+			SkipConvey("Subject: UTC_TIMESTAMP", func() {
+				tests := []test{
+					test{"UTC_TIMESTAMP()", SQLTimestamp{time.Now().UTC()}},
+					test{"UTC_TIMESTAMP", SQLTimestamp{time.Now().UTC()}},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: UTC_DATE", func() {
+				now := time.Now().In(time.UTC)
+				t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+				tests := []test{
+					test{"UTC_DATE()", SQLDate{t}},
+					test{"UTC_DATE", SQLDate{t}},
+				}
+				runTests(evalCtx, tests)
+			})
+
 			Convey("Subject: CURRENT_USER/SESSION_USER/SYSTEM_USER/USER", func() {
 				tests := []test{
 					test{"CURRENT_USER()", SQLVarchar("test user")},
