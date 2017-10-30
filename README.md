@@ -26,6 +26,7 @@ You should also set `$GOBIN` and `$PATH`:
 ```
 export GOBIN="$GOPATH/bin"
 export PATH="$GOBIN:$PATH"
+```
 After this, you can download the repo and build it as such:
 ```
 git clone git@github.com:10gen/sqlproxy.git $GOPATH/src/github.com/10gen/sqlproxy
@@ -34,13 +35,10 @@ go install main/sqlproxy.go
 ```
 
 ### Windows
-
-### Building the BI Connector: Windows
-
 Download [Go](https://golang.org/dl/) version >= 1.8.1.
 
 Refer to [this guide](https://github.com/golang/go/wiki/Setting-GOPATH#windows) for setting `%GOPATH%`.  
-You should then set `GOBIN` to `%GOPATH%\bin`.  
+You should then set `%GOBIN%` to `%GOPATH%\bin`.  
 You will also need to update your `PATH` to:
 - `%GOBIN%`, if it was originally blank, or
 - `%GOBIN%;<other-contents>` otherwise. 
@@ -162,5 +160,5 @@ For more a comprehensive set of startup customizations, you can pass in a config
 sqlproxy --config testdata/resources/configs/sample.yml
 ```
 
-### Documentation
+## Documentation
 See the BI Connector [documentation](https://docs.mongodb.com/bi-connector/master/).
