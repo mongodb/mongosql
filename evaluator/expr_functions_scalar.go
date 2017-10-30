@@ -183,6 +183,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"ucase":             &ucaseFunc{},
 	"upper":             &ucaseFunc{},
 	"user":              &userFunc{},
+	"utc_date":          &utcDateFunc{},
 	"utc_time":          &curtimeFunc{},
 	"utc_timestamp":     &utcTimestampFunc{},
 	"version":           &versionFunc{},
@@ -3737,11 +3738,28 @@ func (_ *ucaseFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1)
 }
 
+type utcDateFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_utc-date
+func (_ *utcDateFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	now := time.Now().In(time.UTC)
+	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	return SQLDate{t}, nil
+}
+
+func (_ *utcDateFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLDate
+}
+
+func (_ *utcDateFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 0)
+}
+
 type utcTimestampFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_utc-timestamp
 func (_ *utcTimestampFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	return SQLTimestamp{time.Now().Round(time.Second).In(schema.DefaultLocale)}, nil
+	return SQLTimestamp{time.Now().UTC().Round(time.Second).In(time.UTC)}, nil
 }
 
 func (_ *utcTimestampFunc) Type(exprs []SQLExpr) schema.SQLType {

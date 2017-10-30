@@ -220,6 +220,7 @@ var (
 	USE_BYTES                = []byte("use")
 	USER_BYTES               = []byte("user")
 	USING_BYTES              = []byte("using")
+	UTC_DATE_BYTES           = []byte("utc_date")
 	UTC_TIMESTAMP_BYTES      = []byte("utc_timestamp")
 	VALUES_BYTES             = []byte("values")
 	VARIABLES_BYTES          = []byte("variables")
@@ -439,6 +440,7 @@ var keywords = map[string]int{
 	"user":               USER,
 	"using":              USING,
 	"utc_timestamp":      UTC_TIMESTAMP,
+	"utc_date":           UTC_DATE,
 	"values":             VALUES,
 	"variables":          VARIABLES,
 	"view":               VIEW,
