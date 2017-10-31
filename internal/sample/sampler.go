@@ -142,13 +142,13 @@ func (s *Sampler) Run(ctx context.Context) {
 				altered := len(s.schema.Alterations) > 0
 				s.schemaLock.RUnlock()
 				if altered {
+					s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
+				} else {
 					s.lgr.Infof(log.Admin, "re-sampling schema")
 					err := s.resampleSchema(ctx)
 					if err != nil {
 						s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
 					}
-				} else {
-					s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
 				}
 			})
 		}
@@ -215,13 +215,13 @@ func (s *Sampler) Run(ctx context.Context) {
 		altered := len(s.schema.Alterations) > 0
 		s.schemaLock.RUnlock()
 		if altered {
+			s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
+		} else {
 			s.lgr.Infof(log.Admin, "re-sampling schema")
 			err := s.resampleAndPersistSchema(ctx)
 			if err != nil {
 				s.lgr.Errf(log.Admin, "failed re-sampling schema: %v", err)
 			}
-		} else {
-			s.lgr.Warnf(log.Admin, "skipping resampling schema: schema has been altered")
 		}
 	})
 }

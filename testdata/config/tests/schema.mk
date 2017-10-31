@@ -1,8 +1,5 @@
 
-test-basic-sample: build-mongosqld run-mongodb restore-data run-mongosqld _test-schema-available _test-connect-success _test-basic-sample
-_test-basic-sample: TABLE := test1
-_test-basic-sample: NUM_COLUMNS := 5
-_test-basic-sample: _test-count-columns
+test-basic-sample: build-mongosqld run-mongodb _write-initial-docs run-mongosqld _test-schema-available _test-connect-success _test-sample-initial-schema
 
 _test-schema-available:
 	$(ENV) TIMEOUT=60 testdata/bin/test-schema-available.sh
@@ -18,14 +15,31 @@ _write-initial-schema:
 _write-updated-schema:
 	$(ENV) GENERATION=1 testdata/bin/write-schema.sh
 
-test-read-schema: build-mongosqld run-mongodb restore-data _write-initial-schema run-mongosqld _test-schema-available _test-connect-success _test-read-schema
-_test-read-schema: TABLE := test1
+test-read-schema: build-mongosqld run-mongodb _write-initial-docs _write-initial-schema run-mongosqld _test-schema-available _test-connect-success _test-read-schema
+_test-read-schema: TABLE := sample_test
 _test-read-schema: NUM_COLUMNS := 1
 _test-read-schema: _test-count-columns
 
-_test-read-updated-schema: TABLE := test1
+_test-read-updated-schema: TABLE := sample_test
 _test-read-updated-schema: NUM_COLUMNS := 2
 _test-read-updated-schema: _test-count-columns
+
+_write-initial-docs:
+	$(ENV) NUM_DOCS=10 testdata/bin/write-sample-docs.sh
+
+_test-sample-initial-schema: TABLE := sample_test
+_test-sample-initial-schema: NUM_COLUMNS := 11
+_test-sample-initial-schema: _test-count-columns
+
+_sleep-ten:
+	sleep 10
+
+_write-updated-docs:
+	$(ENV) NUM_DOCS=20 testdata/bin/write-sample-docs.sh
+
+_test-sample-updated-schema: TABLE := sample_test
+_test-sample-updated-schema: NUM_COLUMNS := 21
+_test-sample-updated-schema: _test-count-columns
 
 # test that basic schema reading works fine
 test-read-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/clustered
@@ -46,6 +60,9 @@ test-read-updated: build-mongosqld run-mongodb restore-data _write-initial-schem
 # test that basic sampling works fine
 test-sample-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
 test-sample-simple: test-basic-sample
+
+test-sample-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic,sqlproxy/schema/interval-2
+test-sample-updated: build-mongosqld run-mongodb _write-initial-docs run-mongosqld _test-schema-available _test-connect-success _write-updated-docs _sleep-ten _test-sample-updated-schema
 
 # we should be able to connect when all namespaces are empty, but nothing should be created
 test-sample-empty: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
@@ -81,7 +98,6 @@ test-read-after-sampling: test-basic-sample _write-initial-schema _test-read-sch
 _test-mysql-query:
 	$(ENV) QUERY="$(QUERY)" EXPECTED="$(EXPECTED)" testdata/bin/test-mysql-query.sh
 
-test-count-columns: build-mongosqld run-mongodb _insert-sample-docs run-mongosqld _test-schema-available _test-count-columns
 _test-count-columns: QUERY = select count(*) from information_schema.columns where table_name = '$(TABLE)';
 _test-count-columns: EXPECTED = $(NUM_COLUMNS)
 _test-count-columns: _test-mysql-query
@@ -95,10 +111,13 @@ _test-count-dbs: EXPECTED = $(NUM_DBS)
 _test-count-dbs: _test-mysql-query
 
 _insert-sample-docs:
-	$(ARTIFACTS_DIR)/mongodb/bin/mongo --eval 'for(i=0;i<1001;i++){ doc={}; doc[i]=true; db.sample_test.insert(doc); };' > /dev/null 2>&1
+	$(ENV) NUM_DOCS='$(NUM_DOCS)' testdata/bin/write-sample-docs.sh
 
-# our collection has 1001 documents, each with two fields (_id and some number between 0 and 1000).
+# for the tests below, our collection has 1001 documents, each with two fields (_id and some number between 0 and 1000).
 # when we sample n documents, we expect n+1 columns in the resulting schema (_id plus the unique column from each sampled doc)
+
+test-count-columns: NUM_DOCS := 1001
+test-count-columns: build-mongosqld run-mongodb _insert-sample-docs run-mongosqld _test-schema-available _test-count-columns
 
 test-sample-size-default: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
 test-sample-size-default: TABLE := sample_test
