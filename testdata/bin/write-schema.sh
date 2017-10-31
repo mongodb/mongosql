@@ -18,7 +18,7 @@ create_schema_cmd_for_generation() {
             _id: new ObjectId(),
             versionId: vId,
             database: \"test\",
-            collection: \"test1\",
+            collection: \"sample_test\",
             sampleSize: NumberLong(1),
             startSampleTime: new Date(),
             endSampleTime: new Date(),
@@ -33,7 +33,7 @@ create_schema_cmd_for_generation() {
             _id: vId,
             startSampleTime: new Date(),
             endSampleTime: new Date(),
-            databases: [ { name: \"test\", collections: [ \"test1\" ] } ],
+            databases: [ { name: \"test\", collections: [ \"sample_test\" ] } ],
             generation: NumberLong($1),
             protocol: \"v1\",
             processName: \"write-initial-schema.sh\"
