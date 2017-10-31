@@ -845,6 +845,22 @@ tasks:
   name: test-alter-flush
   tags: ["test", "config"]
 
+- <<: *run-config-test
+  name: test-rename-column-simple
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-rename-column-to-similar-to-id
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-rename-column-id
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-rename-column-duplicate
+  tags: ["test", "config"]
+
 - name: tpch-handwritten-denormalized
   tags:
     - oneoff-task
