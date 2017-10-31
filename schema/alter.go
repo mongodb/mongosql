@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -56,6 +57,9 @@ func (a *Alteration) alter(schema *Schema) error {
 	case DropColumn:
 		if len(table.Columns) == 1 {
 			return fmt.Errorf("cannot remove last column from table %q", a.Table)
+		}
+		if strings.Split(a.Column, ".")[0] == "_id" {
+			return fmt.Errorf("cannot drop column %s: not allowed", a.Column)
 		}
 		for i, col := range table.Columns {
 			if col.SqlName == a.Column {

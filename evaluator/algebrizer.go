@@ -361,6 +361,9 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 			if len(table.Columns()) == 1 {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_CANT_REMOVE_ALL_FIELDS)
 			}
+			if strings.Split(colName, ".")[0] == "_id" {
+				return nil, fmt.Errorf("cannot drop column %s: not allowed", colName)
+			}
 			alteration := &schema.Alteration{
 				Timestamp: time.Now(),
 				Type:      schema.DropColumn,
