@@ -192,7 +192,14 @@ func RunTest(t *testing.T, test *TestCase, db *sql.DB) error {
 	}
 
 	results, err := RunSQL(db, query, test.ExpectedTypes, test.ExpectedNames)
-	if err != nil {
+	if test.ExpectedError != "" {
+		if err == nil {
+			return fmt.Errorf("expected error, but query executed successfully")
+		}
+		if err.Error() != test.ExpectedError {
+			return fmt.Errorf("expected error '%s', got '%v'", test.ExpectedError, err.Error())
+		}
+	} else if err != nil {
 		return err
 	}
 

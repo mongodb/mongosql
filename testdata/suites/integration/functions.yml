@@ -3,6 +3,12 @@
 #
 # Aggregate
 testcases:
+
+- sql: 'select abcde()'
+  id: func_abcde_not_supported
+  db: functions_test
+  expected_error: "Error 1105: scalar function 'abcde' is not supported"
+
 - sql: "select adddate(d, interval 7 minute) from bar"
   id: '0'
   db: functions_test
