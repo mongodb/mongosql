@@ -378,7 +378,7 @@ outerLoop:
 				values := make(Values, len(l.Data)+len(r.Data))
 				copy(values, append(l.Data, r.Data...))
 				select {
-				case ch <- append(l.Data, r.Data...):
+				case ch <- values:
 				case <-ctx.Done():
 					break outerLoop
 				}
