@@ -1,4 +1,3 @@
-
 - db: "collation_test"
   collection: "collation_1"
   collation: { locale: "en_US", strength: 1 }
@@ -32,7 +31,6 @@
   - { _id: 3, c: 20171008.0, d: 20171008 }
   - { _id: 4 }
 
-
 - db: "functions_test"
   collection: "dates"
   min_server_version: 3.4
@@ -58,8 +56,6 @@
   - {d: "0166-01-02"}
   - {d: "0001-01-02"}
   - {d: "0000-03-01"}
-
-
 
 - db: "functions_test"
   collection: "strings"
@@ -120,6 +116,21 @@
   - { _id: 1, a: 2, b: 2, c: ~ }
   - { _id: 2, a: 2, b: 3 }
   - { _id: 3, a: 3, b: 3 }
+
+- db: "information_schema_test"
+  collection: "information_schema_3"
+  indexes:
+  - {key: { a: 1, b: 1, b.c: 1}, name: "a_b_c_index", unique: true}
+  - {key: { a: 1}, name: "a_index", unique: true}
+  - {key: { b: 1}, name: "b_index", unique: true}
+  - {key: { c: 1}, name: "c_index", unique: false}
+  docs:
+  - {_id: 0, a: 1, b: [{c: 1}, {c: 2, d: [5, 6]}], c: [{c: 1}, {c: 2}]}
+
+- db: "information_schema_test"
+  collection: "information_schema_4"
+  docs:
+  - {_id: 0, a: 1, b: [{d: 1}, {d: 2}, {d: {e: [1, 2, 3]}}]}
 
 - db: "join_test"
   collection: "join_1"

@@ -117,31 +117,12 @@ const (
 	View       TableType = "VIEW"
 )
 
-// Table is the definition of a table.
-type Table interface {
-	// Name gets the name of the table.
-	Name() TableName
-	// Collation gets the collection for the table.
-	Collation() *collation.Collation
-	// Column gets the column of the specified name.
-	Column(string) (Column, error)
-	// Columns gets the columns for the table.
-	Columns() []Column
-	// PrimaryKeys returns the primary keys
-	// for this table.
-	PrimaryKeys() []Column
-	// Comments gets the comments for the table.
-	Comments() string
-	// Type is the type of the table.
-	Type() TableType
-}
-
 // ColumnName is the name of a column.
 type ColumnName string
 
-// Column is a column in a Table.
+// Column is the interface that wraps a SQL column.
 type Column interface {
-	// Name gets the name of the column
+	// Name gets the name of the column.
 	Name() ColumnName
 	// Type is the type of the column.
 	Type() schema.SQLType
@@ -161,4 +142,53 @@ func (cols Columns) Contains(name ColumnName) bool {
 		}
 	}
 	return false
+}
+
+// ForeignKey represents a foreign key in a SQL table.
+// This generally allows for cross-referencing related
+// data across tables. In our case, it primarily
+// allows us to (from a child table) reference data in
+// a parent table.
+type ForeignKey struct {
+	columns              []Column
+	constraintName       string
+	foreignDatabase      string
+	foreignTable         string
+	localToForeignColumn map[string]string
+}
+
+// NewForeignKey returns a new foreign key for the column c.
+func NewForeignKey(c Column, name, db, tb, col string) ForeignKey {
+	return ForeignKey{
+		columns:         []Column{c},
+		constraintName:  name,
+		foreignDatabase: db,
+		foreignTable:    tb,
+		localToForeignColumn: map[string]string{
+			string(c.Name()): col,
+		},
+	}
+}
+
+// Table is an interface describing an SQL table.
+type Table interface {
+	// Collation gets the collection for the table.
+	Collation() *collation.Collation
+	// Column gets the columns of the specified name.
+	Column(string) (Column, error)
+	// Columns gets the columns for the table.
+	Columns() []Column
+	// Comments gets the comments for the table.
+	Comments() string
+	// ForeignKeys returns the foreign keys for this table.
+	ForeignKeys() []ForeignKey
+	// Indexes return the indexes for this table.
+	Indexes() []Index
+	// Name gets the name of the table.
+	Name() TableName
+	// PrimaryKeys returns the primary keys
+	// for this table.
+	PrimaryKeys() []Column
+	// Type is the type of the table.
+	Type() TableType
 }

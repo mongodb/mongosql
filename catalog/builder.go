@@ -12,7 +12,6 @@ import (
 
 // Build builds a catalog up from a schema and variables.
 func Build(schema *schema.Schema, variables *variable.Container) (*Catalog, error) {
-
 	alteredSchema, err := schema.Altered()
 	if err != nil {
 		return nil, err
@@ -65,10 +64,12 @@ func (b *catalogBuilder) buildFromSchema() error {
 				return err
 			}
 		}
+
 		dInfo, ok := info.Databases[mongodb.DatabaseName(strings.ToLower(dbConfig.Name))]
 		if !ok {
 			continue
 		}
+
 		for _, tblConfig := range dbConfig.Tables {
 			if !info.IsAnyAllowedCollection(mongodb.DatabaseName(dbConfig.Name), mongodb.CollectionName(tblConfig.CollectionName)) {
 				continue
@@ -83,23 +84,48 @@ func (b *catalogBuilder) buildFromSchema() error {
 			if collection.Collation != nil {
 				col, err = collation.FromMongoDB(collection.Collation)
 				if err != nil {
-					return mysqlerrors.Newf(mysqlerrors.ER_UNKNOWN_COLLATION, "unable to translate MongoDB's collation for \"%s\".\"%s\": %v", dbConfig.Name, tblConfig.Name, err)
+					return mysqlerrors.Newf(mysqlerrors.ER_UNKNOWN_COLLATION,
+						"unable to translate MongoDB's collation for %q.%q: %v", dbConfig.Name, tblConfig.Name, err)
 				}
 			}
+
 			tableType := BaseTable
 			if collection.IsView {
 				tableType = View
 			}
+
 			t := NewMongoTable(tblConfig, tableType, col)
 
 			t.isSharded = collection.IsSharded
 
-			err = d.AddTable(t)
-			if err != nil {
+			mongoNameToColumn := make(map[string]Column)
+
+			for _, c := range t.columns {
+				mongoNameToColumn[string(c.MongoName)] = c
+			}
+
+			idx := 1
+			for _, i := range collection.Indexes {
+				index := addColumnToIndex(i, mongoNameToColumn)
+				if index != nil {
+					if i.Unique {
+						index.constraintName = createUniqueIndexName(dbConfig.Name, tblConfig.Name, idx)
+						index.unique = true
+						idx++
+					}
+					t.indexes = append(t.indexes, *index)
+				}
+			}
+
+			if err = d.AddTable(t); err != nil {
 				return err
 			}
 		}
 	}
+
+	// Adding foreign keys occurs after visiting all namespaces since such keys
+	// can only be identified if all tables within a collection are known.
+	b.addForeignKeys()
 	return nil
 }
 
@@ -294,7 +320,9 @@ func (b *catalogBuilder) addColumnsTable(d *Database) error {
 		for _, db := range c.Databases() {
 			for _, tbl := range db.Tables() {
 				for i, col := range tbl.Columns() {
-					columnType := translateColumnType(col.Type(), b.variables.GetUInt16(variable.MongoDBMaxVarcharLength))
+					columnKey := getIndexKey(col, tbl)
+					maxVarcharLength := b.variables.GetUInt16(variable.MongoDBMaxVarcharLength)
+					columnType := translateColumnType(col.Type(), maxVarcharLength)
 					dataType := columnType
 					if idx := strings.Index(dataType, "("); idx >= 0 {
 						dataType = dataType[:idx]
@@ -304,7 +332,7 @@ func (b *catalogBuilder) addColumnsTable(d *Database) error {
 						string(db.Name),
 						string(tbl.Name()),
 						string(col.Name()),
-						i,
+						i+1,
 						nil,
 						"YES",
 						dataType,
@@ -316,7 +344,7 @@ func (b *catalogBuilder) addColumnsTable(d *Database) error {
 						string(tbl.Collation().CharsetName),
 						string(tbl.Collation().Name),
 						columnType,
-						"",
+						columnKey,
 						"",
 						"select",
 						col.Comments(),
@@ -464,9 +492,18 @@ func (b *catalogBuilder) addFilesTable(d *Database) error {
 	return d.AddTable(t)
 }
 
+func (b *catalogBuilder) getTableFromNamespace(ns namespace) (Table, error) {
+	currentDb, err := b.catalog.Database(ns.database)
+	if err != nil {
+		return nil, err
+	}
+
+	return currentDb.Table(ns.table)
+}
+
 func (b *catalogBuilder) addKeyColumnUsageTable(d *Database) error {
 	t := NewDynamicTable("KEY_COLUMN_USAGE", SystemView, func() []*DataRow {
-		return []*DataRow{}
+		return b.getDataRowsForTableType("KEY_COLUMN_USAGE")
 	})
 
 	t.AddColumn("CONSTRAINT_CATALOG", schema.SQLVarchar)
@@ -605,7 +642,7 @@ func (b *catalogBuilder) addProfilingTable(d *Database) error {
 
 func (b *catalogBuilder) addReferentialConstraintsTable(d *Database) error {
 	t := NewDynamicTable("REFERENTIAL_CONSTRAINTS", SystemView, func() []*DataRow {
-		return []*DataRow{}
+		return b.getDataRowsForTableType("REFERENTIAL_CONSTRAINTS")
 	})
 
 	t.AddColumn("CONSTRAINT_CATALOG", schema.SQLVarchar)
@@ -704,7 +741,7 @@ func (b *catalogBuilder) addSchemaPrivileges(d *Database) error {
 
 func (b *catalogBuilder) addStatisticsTable(d *Database) error {
 	t := NewDynamicTable("STATISTICS", SystemView, func() []*DataRow {
-		return []*DataRow{}
+		return b.getDataRowsForTableType("STATISTICS")
 	})
 
 	t.AddColumn("TABLE_CATALOG", schema.SQLVarchar)
@@ -806,7 +843,7 @@ func (b *catalogBuilder) addTableSpacesTable(d *Database) error {
 
 func (b *catalogBuilder) addTableConstraintsTable(d *Database) error {
 	t := NewDynamicTable("TABLE_CONSTRAINTS", SystemView, func() []*DataRow {
-		return []*DataRow{}
+		return b.getDataRowsForTableType("TABLE_CONSTRAINTS")
 	})
 
 	t.AddColumn("CONSTRAINT_CATALOG", schema.SQLVarchar)
@@ -972,4 +1009,51 @@ func (b *catalogBuilder) addMySQLProcTable(d *Database) error {
 	t.AddColumn("body_utf8", schema.SQLVarchar)
 
 	return d.AddTable(t)
+}
+
+func (b *catalogBuilder) getDataRowsForTableType(tableType string) []*DataRow {
+	c := b.catalog
+
+	var rows []*DataRow
+
+	ck := key{
+		catalog: string(c.Name),
+	}
+
+	for _, db := range c.databases {
+		ck.database = string(db.Name)
+
+		for _, tb := range db.tables {
+			ck.table = string(tb.Name())
+
+			primaryKeyRows := getDataRowsForPrimaryKey(tableType, ck, tb.PrimaryKeys())
+
+			rows = append(rows, primaryKeyRows...)
+
+			mongoTable, ok := tb.(*MongoTable)
+			if !ok {
+				continue
+			}
+
+			uniqueKeyRows := getDataRowsForUniqueIndexes(tableType, ck, mongoTable.indexes)
+
+			rows = append(rows, uniqueKeyRows...)
+
+			for _, fk := range mongoTable.foreignKeys {
+				for position, col := range fk.columns {
+					ck.column = string(col.Name())
+					foreignKeyRow := getDataRowForForeignKey(tableType, ck, fk, position+1)
+					rows = append(rows, foreignKeyRow)
+					// The break below occurs because only the name of the
+					// constraint needs to be recorded in the table constraints;
+					// it does not need to include every column as a row.
+					if tableType == "TABLE_CONSTRAINTS" || tableType == "REFERENTIAL_CONSTRAINTS" {
+						break
+					}
+				}
+			}
+
+		}
+	}
+	return rows
 }

@@ -389,18 +389,30 @@ testcases:
   id: '66'
   db: show_test
   expected: []
-- sql: "SHOW INDEX FROM table_name"
+- sql: "SHOW INDEX FROM parent"
   id: '67'
-  db: show_test
-  expected: []
-- sql: "SHOW INDEXES FROM table_name"
+  db: information_schema_test
+  expected_names: ["Table", "Non_unique", "Key_name", "Seq_in_index", "Column_name", "Collation", "Cardinality", "Sub_part", "Packed", "Null", "Index_type", "Comment", "Index_comment"]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+   - ["parent", "0", "PRIMARY", "1", "id", "A", "0", ~, ~, "YES", "BTREE", "", ""]
+   - ["parent", "0", "a", "1", "a", "A", "0", ~, ~, "YES", "BTREE", "", ""]
+- sql: "SHOW KEYS FROM childAndSibling from information_schema_test;"
   id: '68'
   db: show_test
-  expected: []
-- sql: "SHOW KEYS FROM table_name WHERE x = 10"
+  expected_names: ["Table", "Non_unique", "Key_name", "Seq_in_index", "Column_name", "Collation", "Cardinality", "Sub_part", "Packed", "Null", "Index_type", "Comment", "Index_comment"]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+   - ["childAndSibling", "0", "PRIMARY", "1", "id", "A", "0", ~, ~, "YES", "BTREE", "", ""]
+   - ["childAndSibling", "0", "PRIMARY", "2", "b_idx", "A", "0", ~, ~, "YES", "BTREE", "", ""]
+   - ["childAndSibling", "0", "PRIMARY", "3", "c_idx", "A", "0", ~, ~, "YES", "BTREE", "", ""]
+- sql: "SHOW INDEX FROM foo WHERE Column_name = 'id'"
   id: '69'
-  db: show_test
-  expected: []
+  db: information_schema_test
+  expected_names: ["Table", "Non_unique", "Key_name", "Seq_in_index", "Column_name", "Collation", "Cardinality", "Sub_part", "Packed", "Null", "Index_type", "Comment", "Index_comment"]
+  expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
+  expected:
+   - ["foo", "0", "PRIMARY", "1", "id", "A", "0", ~, ~, "YES", "BTREE", "", ""]
 - sql: "SHOW MASTER STATUS"
   id: '70'
   db: show_test
@@ -598,3 +610,17 @@ testcases:
   expected_types: [varchar, varchar]
   expected:
    - ["show_test", "CREATE DATABASE `show_test` /*!40100 DEFAULT CHARACTER SET utf8 */"]
+- sql: "SHOW CREATE TABLE `grandGrandChild1`"
+  id: '111'
+  db: information_schema_test
+  expected_names: ["Table", "Create Table"]
+  expected_types: [varchar, varchar]
+  expected:
+   - ["grandGrandChild1", "CREATE TABLE `grandGrandChild1` (\n  `id` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"_id\" }',\n  `b_alias` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"b_idx_alias\" }',\n  `d_alias` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"b.d_idx_alias\" }',\n  `e_alias` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"b.d.e_idx_alias\" }',\n  `d` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"b.d\" }',\n  `e` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"b.d.e\" }',\n  PRIMARY KEY (`id`,`b_alias`,`d_alias`,`e_alias`),\n  CONSTRAINT `fk_information_schema_test_grandGrandChild1_to_grandchild1_1` FOREIGN KEY (`id`,`b_alias`,`d_alias`) REFERENCES `grandchild1` (`id`,`b_idx`,`d_idx`) ON DELETE CASCADE ON UPDATE CASCADE\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"information_schema_4\" }'"]
+- sql: "SHOW CREATE TABLE `parent`"
+  id: '111'
+  db: information_schema_test
+  expected_names: ["Table", "Create Table"]
+  expected_types: [varchar, varchar]
+  expected:
+   - ["parent", "CREATE TABLE `parent` (\n  `id` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"_id\" }',\n  `a` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\" }',\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `information_schema_test_parent_1_UNIQUE` (`a`)\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"information_schema_3\" }'"]

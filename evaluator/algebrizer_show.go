@@ -26,6 +26,8 @@ func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {
 		return a.translateShowCreateTable(show)
 	case "databases", "schemas":
 		return a.translateShowDatabases(show)
+	case "keys", "index", "indexes":
+		return a.translateShowKeys(show)
 	case "processlist":
 		return a.translateShowProcessList(show)
 	case "status":
@@ -224,6 +226,69 @@ func (a *algebrizer) translateShowDatabases(show *parser.Show) (PlanStage, error
 		columnAliases: []string{"Database"},
 		orderBy:       "Database",
 		predicate:     a.translateShowLikeOrWhere("Database", show.LikeOrWhere),
+	}
+
+	return a.translateShowInfo(&info)
+}
+
+func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
+	dbName := a.dbName
+	tableName := ""
+
+	switch f := show.From.(type) {
+	case parser.StrVal:
+		tableName = string(f)
+	case *parser.ColName:
+		dbName = string(f.Qualifier)
+		tableName = string(f.Name)
+	default:
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_ILLEGAL_VALUE_FOR_TYPE, "FROM", parser.String(f))
+	}
+
+	if dbName == "" {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_DB_ERROR)
+	}
+
+	if db, err := a.catalog.Database(dbName); err != nil {
+		return nil, err
+	} else if tbl, err := db.Table(tableName); err != nil {
+		return nil, err
+	} else {
+		dbName = string(db.Name)
+		tableName = string(tbl.Name())
+	}
+
+	info := showInfo{
+		dbName:        catalog.InformationSchemaDatabase,
+		tableName:     "STATISTICS",
+		columnNames:   []string{"TABLE_NAME", "NON_UNIQUE", "INDEX_NAME", "SEQ_IN_INDEX", "COLUMN_NAME", "COLLATION", "CARDINALITY", "SUB_PART", "PACKED", "NULLABLE", "INDEX_TYPE", "COMMENT", "INDEX_COMMENT", "TABLE_SCHEMA"},
+		columnAliases: []string{"Table", "Non_unique", "Key_name", "Seq_in_index", "Column_name", "Collation", "Cardinality", "Sub_part", "Packed", "Null", "Index_type", "Comment", "Index_comment"},
+		orderBy:       "Non_unique",
+		predicate:     show.LikeOrWhere,
+	}
+
+	info.predicate = &parser.AndExpr{
+		Left: &parser.ComparisonExpr{
+			Operator: parser.AST_EQ,
+			Left: &parser.ColName{
+				Name: []byte("Table"),
+			},
+			Right: parser.StrVal([]byte(tableName)),
+		},
+		Right: &parser.ComparisonExpr{
+			Operator: parser.AST_EQ,
+			Left: &parser.ColName{
+				Name: []byte("TABLE_SCHEMA"),
+			},
+			Right: parser.StrVal([]byte(dbName)),
+		},
+	}
+
+	if show.LikeOrWhere != nil {
+		info.predicate = &parser.AndExpr{
+			Left:  info.predicate,
+			Right: show.LikeOrWhere,
+		}
 	}
 
 	return a.translateShowInfo(&info)

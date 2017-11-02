@@ -10,7 +10,7 @@ testcases:
   expected_names: ["Field", "Type", "Null", "Key", "Default", "Extra"]
   expected_types: ["varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
   expected:
-  - ["id", "bigint(20)", "YES", "", "NULL", ""]
+  - ["id", "bigint(20)", "YES", "PRI", "NULL", ""]
   - ["a", "bigint(20)", "YES", "", "NULL", ""]
   - ["ab", "bigint(20)", "YES", "", "NULL", ""]
 

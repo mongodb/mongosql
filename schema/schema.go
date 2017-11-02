@@ -448,6 +448,43 @@ func (t *Table) Equals(other *Table) error {
 	return nil
 }
 
+
+// IsPrimaryKey returns true if mongoName is part of a primary
+// key and false otherwise.
+func (t *Table) IsPrimaryKey(mongoName string) bool {
+	if mongoName == "_id" {
+		return true
+	}
+
+	for _, d := range t.Pipeline {
+		unwindVal, ok := d.Map()["$unwind"]
+		if !ok {
+			return false
+		}
+
+		unwind, ok := unwindVal.(bson.D)
+		if !ok {
+			return false
+		}
+
+		arrayIndexNameVal, ok := unwind.Map()["includeArrayIndex"]
+		if !ok {
+			continue
+		}
+
+		arrayIndexName, ok := arrayIndexNameVal.(string)
+		if !ok {
+			continue
+		}
+
+		if mongoName == arrayIndexName {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Sort sorts a table's columns lexicographically.
 func (t *Table) Sort() {
 	sort.Slice(t.Columns, func(i, j int) bool {

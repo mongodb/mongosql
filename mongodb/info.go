@@ -82,6 +82,8 @@ type CollectionInfo struct {
 	Privileges Privilege
 	// Collation is the default collation of the collection.
 	Collation *Collation
+	// Indexes hold the indexes of the MongoDB collection.
+	Indexes []Index
 	// IsView is true if the collection is a MongoDB view
 	// and false otherwise.
 	IsView bool
@@ -99,18 +101,15 @@ func addShardingInfo(logger *log.Logger, session *Session, dbs map[DatabaseName]
 	for db, dbInfo := range dbs {
 		for collection, collectionInfo := range dbInfo.Collections {
 			collectionName := string(collection)
-
 			collStatsCommand := struct {
 				CollStats string `bson:"collStats"`
 			}{collectionName}
-
 			err := session.Run(string(db), collStatsCommand, &stats)
 			if err != nil {
 				logger.Warnf(log.Admin, "Unable to run collStats on collection %s: %v", collectionName, err)
 			} else {
 				collectionInfo.IsSharded = stats.Sharded
 			}
-
 		}
 	}
 }
@@ -125,7 +124,7 @@ func LoadInfo(logger *log.Logger, session *Session, config *schema.Schema, requi
 
 	version := session.Model().Version
 
-	dbs := createDatabasesFromSchema(config)
+	dbs := createDatabasesFromSchema(logger, session, config)
 
 	if session.Model().Kind == model.Mongos {
 		addShardingInfo(logger, session, dbs)
@@ -152,25 +151,46 @@ func LoadInfo(logger *log.Logger, session *Session, config *schema.Schema, requi
 	return i, nil
 }
 
-func createDatabasesFromSchema(config *schema.Schema) map[DatabaseName]*DatabaseInfo {
+func createDatabasesFromSchema(logger *log.Logger, session *Session, config *schema.Schema) map[DatabaseName]*DatabaseInfo {
 	dbInfos := make(map[DatabaseName]*DatabaseInfo, len(config.Databases))
 	for _, dbSchema := range config.Databases {
+		dbName := strings.ToLower(dbSchema.Name)
 		dbInfo := &DatabaseInfo{
 			caseSensitiveName: dbSchema.Name,
-			Name:              DatabaseName(strings.ToLower(dbSchema.Name)),
+			Name:              DatabaseName(dbName),
 			Collections:       make(map[CollectionName]*CollectionInfo),
 		}
+
 		dbInfos[dbInfo.Name] = dbInfo
-		for _, tblSchema := range dbSchema.Tables {
-			name := CollectionName(tblSchema.CollectionName)
+
+		for _, table := range dbSchema.Tables {
+			name := CollectionName(table.CollectionName)
 			if _, ok := dbInfo.Collections[name]; ok {
 				// Because multiple tables can be mapped to the same collection,
 				// we can skip collections we've already included.
 				continue
 			}
 
+			collectionIndexes, collectionIndex := []Index{}, Index{}
+			cursor, err := session.ListIndexes(dbName, table.CollectionName)
+			if err != nil {
+				logger.Warnf(log.Admin, "failed to run listIndexes on namespace %q.%q: %v",
+					dbName, table.CollectionName, err)
+				continue
+			}
+
+			for cursor.Next(session.Context(), &collectionIndex) {
+				collectionIndexes = append(collectionIndexes, collectionIndex)
+			}
+
+			if cursor.Err() != nil {
+				logger.Warnf(log.Admin, "cursor unable to iterate through indexes on namespace %q.%q: %v",
+					dbName, table.CollectionName, err)
+			}
+
 			dbInfo.Collections[name] = &CollectionInfo{
-				Name: name,
+				Name:    name,
+				Indexes: collectionIndexes,
 			}
 		}
 	}

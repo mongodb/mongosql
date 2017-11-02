@@ -49,7 +49,8 @@ func (r *DataRow) Read(i int) (interface{}, error) {
 	return r.Values[i], nil
 }
 
-// ReadInt reads the value of column i as an int.
+// ReadInt reads the i'th value from r's values
+// as an int.
 func (r *DataRow) ReadInt(i int) (int, error) {
 	if len(r.Values) >= i {
 		return 0, fmt.Errorf("%d is out of range", i)
@@ -63,7 +64,8 @@ func (r *DataRow) ReadInt(i int) (int, error) {
 	return result, nil
 }
 
-// ReadInt64 reads the value of column i as an int64.
+// ReadInt64 reads the i'th value from r's values
+// as an int64.
 func (r *DataRow) ReadInt64(i int) (int64, error) {
 	if len(r.Values) >= i {
 		return 0, fmt.Errorf("%d is out of range", i)
@@ -77,7 +79,8 @@ func (r *DataRow) ReadInt64(i int) (int64, error) {
 	return result, nil
 }
 
-// ReadString reads the value of column i as a string.
+// ReadString reads the i'th value from r's values
+// as an string.
 func (r *DataRow) ReadString(i int) (string, error) {
 	if len(r.Values) >= i {
 		return "", fmt.Errorf("%d is out of range", i)

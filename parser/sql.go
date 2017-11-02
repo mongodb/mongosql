@@ -2800,19 +2800,19 @@ yydefault:
 		yyDollar = yyS[yypt-4 : yypt+1]
 		//line sql.y:603
 		{
-			yyVAL.statement = &Show{Section: "index"}
+			yyVAL.statement = &Show{Section: "indexes", From: yyDollar[3].expr, LikeOrWhere: yyDollar[4].expr}
 		}
 	case 100:
 		yyDollar = yyS[yypt-4 : yypt+1]
 		//line sql.y:607
 		{
-			yyVAL.statement = &Show{Section: "indexes"}
+			yyVAL.statement = &Show{Section: "indexes", From: yyDollar[3].expr, LikeOrWhere: yyDollar[4].expr}
 		}
 	case 101:
 		yyDollar = yyS[yypt-4 : yypt+1]
 		//line sql.y:611
 		{
-			yyVAL.statement = &Show{Section: "keys"}
+			yyVAL.statement = &Show{Section: "keys", From: yyDollar[3].expr, LikeOrWhere: yyDollar[4].expr}
 		}
 	case 102:
 		yyDollar = yyS[yypt-3 : yypt+1]

@@ -59,6 +59,48 @@ func GenerateCreateTable(table Table, maxVarcharLength uint16) string {
 		buf.WriteString(")")
 	}
 
+	indexes := table.Indexes()
+	if len(indexes) > 0 {
+		for _, idx := range indexes {
+			buf.WriteString(",\n")
+			keyType := "KEY"
+			if idx.unique {
+				keyType = "UNIQUE " + keyType
+			}
+			buf.WriteString("  " + keyType + " `" + idx.constraintName + "` (")
+			for j, col := range idx.columns {
+				if j > 0 {
+					buf.WriteString(",")
+				}
+				buf.WriteString("`" + string(col.Name()) + "`")
+			}
+			buf.WriteString(")")
+		}
+	}
+
+	foreignKeys := table.ForeignKeys()
+	if len(foreignKeys) > 0 {
+		for _, fk := range foreignKeys {
+			buf.WriteString(",\n")
+			buf.WriteString("  CONSTRAINT `" + fk.constraintName + "` FOREIGN KEY" + " (")
+			for j, col := range fk.columns {
+				if j > 0 {
+					buf.WriteString(",")
+				}
+				buf.WriteString("`" + string(col.Name()) + "`")
+			}
+			buf.WriteString(") REFERENCES `" + fk.foreignTable + "` (")
+			for j, col := range fk.columns {
+				if j > 0 {
+					buf.WriteString(",")
+				}
+				buf.WriteString("`" + fk.localToForeignColumn[string(col.Name())] + "`")
+			}
+			buf.WriteString(")")
+			buf.WriteString(" ON DELETE CASCADE ON UPDATE CASCADE")
+		}
+	}
+
 	buf.WriteString("\n)")
 
 	switch table.Type() {

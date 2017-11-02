@@ -601,15 +601,15 @@ show_statement:
   }
 | SHOW INDEX show_from_in where_expression_opt
   {
-    $$ = &Show{Section: "index"}
+    $$ = &Show{Section: "indexes", From: $3, LikeOrWhere: $4}
   }
 | SHOW INDEXES show_from_in where_expression_opt
   {
-    $$ = &Show{Section: "indexes"}
+    $$ = &Show{Section: "indexes", From: $3, LikeOrWhere: $4}
   }
 | SHOW KEYS show_from_in where_expression_opt
   {
-    $$ = &Show{Section: "keys"}
+    $$ = &Show{Section: "keys", From: $3, LikeOrWhere: $4}
   }
 | SHOW MASTER STATUS
   {

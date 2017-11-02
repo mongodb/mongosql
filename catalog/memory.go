@@ -24,53 +24,7 @@ type InMemoryTable struct {
 	Rows      []*DataRow
 }
 
-// Name gets the name for the Table.
-func (t *InMemoryTable) Name() TableName {
-	return t.name
-}
-
-// Collation gets the collation for the Table.
-func (t *InMemoryTable) Collation() *collation.Collation {
-	return collation.Default
-}
-
-// Column gets the column of the specified name.
-func (t *InMemoryTable) Column(name string) (Column, error) {
-	for _, c := range t.columns {
-		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
-			return c, nil
-		}
-	}
-
-	return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, name, string(t.Name()))
-}
-
-// Columns gets the columns for the Table.
-func (t *InMemoryTable) Columns() []Column {
-	var cols []Column
-	for _, c := range t.columns {
-		cols = append(cols, c)
-	}
-	return cols
-}
-
-// Comments are comments about the table.
-func (t *InMemoryTable) Comments() string {
-	return ""
-}
-
-// PrimaryKeys returns the primary keys for
-// the table.
-func (t *InMemoryTable) PrimaryKeys() []Column {
-	return nil
-}
-
-// Type is the type of the table.
-func (t *InMemoryTable) Type() TableType {
-	return BaseTable
-}
-
-// AddColumn adds a column to the DynamicTable.
+// AddColumn adds a columns to the InMemoryTable, t.
 func (t *InMemoryTable) AddColumn(name string, sqlType schema.SQLType) (*InMemoryColumn, error) {
 	for _, c := range t.columns {
 		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
@@ -88,9 +42,65 @@ func (t *InMemoryTable) AddColumn(name string, sqlType schema.SQLType) (*InMemor
 	return c, nil
 }
 
-// Insert inserts a row into the table.
+// Collation returns the collation for the InMemoryTable, t.
+func (t *InMemoryTable) Collation() *collation.Collation {
+	return collation.Default
+}
+
+// Column returns the column of the specified name.
+func (t *InMemoryTable) Column(name string) (Column, error) {
+	for _, c := range t.columns {
+		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
+			return c, nil
+		}
+	}
+
+	return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, name, string(t.Name()))
+}
+
+// Columns returns the columns for the InMemoryTable, t.
+func (t *InMemoryTable) Columns() []Column {
+	var cols []Column
+	for _, c := range t.columns {
+		cols = append(cols, c)
+	}
+	return cols
+}
+
+// Comments returns comments about the InMemoryTable, t.
+func (t *InMemoryTable) Comments() string {
+	return ""
+}
+
+// ForeignKeys returns the foreign keys for the InMemoryTable, t.
+func (t *InMemoryTable) ForeignKeys() []ForeignKey {
+	return nil
+}
+
+// Indexes returns the indexes for the InMemoryTable, t.
+func (t *InMemoryTable) Indexes() []Index {
+	return nil
+}
+
+// Insert inserts a row into the InMemoryTable, t.
 func (t *InMemoryTable) Insert(values ...interface{}) {
 	t.Rows = append(t.Rows, &DataRow{Values: values})
+}
+
+// Name returns the name for the InMemoryTable, t.
+func (t *InMemoryTable) Name() TableName {
+	return t.name
+}
+
+// PrimaryKeys returns the primary keys for
+// the InMemoryTable, t.
+func (t *InMemoryTable) PrimaryKeys() []Column {
+	return nil
+}
+
+// Type returns the type of the InMemoryTable, t.
+func (t *InMemoryTable) Type() TableType {
+	return BaseTable
 }
 
 // InMemoryColumn is an in-memory table column.
@@ -100,17 +110,17 @@ type InMemoryColumn struct {
 	sqlType  schema.SQLType
 }
 
-// Name gets the name of the column.
+// Name returns the name of the column.
 func (c *InMemoryColumn) Name() ColumnName {
 	return c.name
 }
 
-// Type gets the type of the column.
+// Type returns the type of the column.
 func (c *InMemoryColumn) Type() schema.SQLType {
 	return c.sqlType
 }
 
-// Comments gets the comments for the column.
+// Comments returns the comments for the column.
 func (c *InMemoryColumn) Comments() string {
 	return c.comments
 }

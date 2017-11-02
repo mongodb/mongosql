@@ -16,6 +16,7 @@ type InMemoryDataset struct {
 	Collection string   `yaml:"collection"`
 	Collation  bson.D   `yaml:"collation"`
 	Docs       []bson.D `yaml:"docs"`
+	Indexes    []bson.D `yaml:"indexes"`
 	MinVersion string   `yaml:"min_server_version"`
 }
 
@@ -47,11 +48,20 @@ func (i *InMemoryDataset) Restore(opts *toolsoptions.ToolOptions) error {
 	}
 
 	if len(i.Collation) > 0 {
-		var result bson.D
 		err = db.Run(bson.D{
 			{Name: "create", Value: i.Collection},
 			{Name: "collation", Value: i.Collation},
-		}, &result)
+		}, &struct{}{})
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, idx := range i.Indexes {
+		err = db.Run(bson.D{
+			{Name: "createIndexes", Value: i.Collection},
+			{Name: "indexes", Value: []interface{}{idx}},
+		}, &struct{}{})
 		if err != nil {
 			return err
 		}

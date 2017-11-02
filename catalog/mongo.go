@@ -23,7 +23,7 @@ func NewMongoTable(t *schema.Table, tableType TableType, collation *collation.Co
 			comments:  fmt.Sprintf(`{ "name": "%s" }`, c.Name),
 		}
 		columns = append(columns, mc)
-		if isPrimaryKey(t, mc.MongoName) {
+		if t.IsPrimaryKey(mc.MongoName) {
 			primaryKeys = append(primaryKeys, mc)
 		}
 	}
@@ -40,31 +40,33 @@ func NewMongoTable(t *schema.Table, tableType TableType, collation *collation.Co
 	}
 }
 
-// MongoTable is a table whose data comes from elsewhere.
+// MongoTable is a table whose data comes from a MongoDB collection.
 type MongoTable struct {
-	name        TableName
-	collation   *collation.Collation
-	columns     []*MongoColumn
-	primaryKeys []Column
-	comments    string
-	tableType   TableType
-	isSharded   bool
-
+	name           TableName
+	collation      *collation.Collation
+	columns        []*MongoColumn
+	primaryKeys    []Column
+	indexes        []Index
+	foreignKeys    []ForeignKey
+	comments       string
+	tableType      TableType
+	isSharded      bool
 	CollectionName string
 	Pipeline       []bson.D
 }
 
-// Name is the name of the Table.
+// Name is the name of the MongoTable, t.
 func (t *MongoTable) Name() TableName {
 	return t.name
 }
 
-// IsSharded returns true if the MongoTable is in a sharded collection.
+// IsSharded returns true if the MongoTable,
+// t is in a sharded collection.
 func (t *MongoTable) IsSharded() bool {
 	return t.isSharded
 }
 
-// Collation gets the collation for the table.
+// Collation gets the collation for the MongoTable, t.
 func (t *MongoTable) Collation() *collation.Collation {
 	return t.collation
 }
@@ -80,7 +82,7 @@ func (t *MongoTable) Column(name string) (Column, error) {
 	return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, name, string(t.Name()))
 }
 
-// Columns are the columns for the Table.
+// Columns returns the columns in MongoTable, t.
 func (t *MongoTable) Columns() []Column {
 	var cols []Column
 	for _, c := range t.columns {
@@ -89,18 +91,28 @@ func (t *MongoTable) Columns() []Column {
 	return cols
 }
 
-// Comments are the comments for the Table.
+// Comments are the comments for the MongoTable, t.
 func (t *MongoTable) Comments() string {
 	return t.comments
 }
 
+// ForeignKeys returns the foreign keys for the MongoTable, t.
+func (t *MongoTable) ForeignKeys() []ForeignKey {
+	return t.foreignKeys
+}
+
+// Indexes returns the indexes for the MongoTable, t.
+func (t *MongoTable) Indexes() []Index {
+	return t.indexes
+}
+
 // PrimaryKeys returns the primary keys for
-// the table.
+// the MongoTable, t.
 func (t *MongoTable) PrimaryKeys() []Column {
 	return t.primaryKeys
 }
 
-// Type is the type of the table.
+// Type returns the type of the MongoTable, t.
 func (t *MongoTable) Type() TableType {
 	return t.tableType
 }
@@ -115,51 +127,17 @@ type MongoColumn struct {
 	MongoType schema.MongoType
 }
 
-// Name gets the name of the column.
+// Name returns the name of the column.
 func (c *MongoColumn) Name() ColumnName {
 	return c.name
 }
 
-// Type gets the type of the column.
-func (c *MongoColumn) Type() schema.SQLType {
-	return c.sqlType
-}
-
-// Comments gets the comments for the column.
+// Comments returns the comments for the column.
 func (c *MongoColumn) Comments() string {
 	return c.comments
 }
 
-func isPrimaryKey(t *schema.Table, mongoName string) bool {
-	if mongoName == "_id" {
-		return true
-	}
-
-	for _, d := range t.Pipeline {
-		unwindVal, ok := d.Map()["$unwind"]
-		if !ok {
-			return false
-		}
-
-		unwind, ok := unwindVal.(bson.D)
-		if !ok {
-			return false
-		}
-
-		arrayIndexNameVal, ok := unwind.Map()["includeArrayIndex"]
-		if !ok {
-			continue
-		}
-
-		arrayIndexName, ok := arrayIndexNameVal.(string)
-		if !ok {
-			continue
-		}
-
-		if mongoName == arrayIndexName {
-			return true
-		}
-	}
-
-	return false
+// Type returns the SQLType of the column, c.
+func (c *MongoColumn) Type() schema.SQLType {
+	return c.sqlType
 }

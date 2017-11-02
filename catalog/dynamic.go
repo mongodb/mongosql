@@ -17,7 +17,7 @@ func NewDynamicTable(name string, tableType TableType, generator func() []*DataR
 	}
 }
 
-// DynamicTable is a table that gets its data dynamically.
+// DynamicTable is a table that returns its data dynamically.
 type DynamicTable struct {
 	name      TableName
 	columns   []*DynamicColumn
@@ -25,17 +25,17 @@ type DynamicTable struct {
 	generator func() []*DataRow
 }
 
-// Name gets the name for the Table.
+// Name returns the name for the DynamicTable, t.
 func (t *DynamicTable) Name() TableName {
 	return t.name
 }
 
-// Collation gets the collation for the Table.
+// Collation returns the collation for the DynamicTable, t.
 func (t *DynamicTable) Collation() *collation.Collation {
 	return collation.Default
 }
 
-// Column gets the column of the specified name.
+// Column returns the column of the specified name.
 func (t *DynamicTable) Column(name string) (Column, error) {
 	for _, c := range t.columns {
 		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
@@ -46,7 +46,7 @@ func (t *DynamicTable) Column(name string) (Column, error) {
 	return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, name, string(t.Name()))
 }
 
-// Columns gets the columns for the Table.
+// Columns returns the columns in the DynamicTable, t.
 func (t *DynamicTable) Columns() []Column {
 	var cols []Column
 	for _, c := range t.columns {
@@ -55,23 +55,33 @@ func (t *DynamicTable) Columns() []Column {
 	return cols
 }
 
-// Comments are comments about the table.
+// Comments are comments about the DynamicTable, t.
 func (t *DynamicTable) Comments() string {
 	return ""
 }
 
 // PrimaryKeys returns the primary keys for
-// the table.
+// the DynamicTable, t.
 func (t *DynamicTable) PrimaryKeys() []Column {
 	return nil
 }
 
-// Type is the type of the table.
+// ForeignKeys returns the foreign keys for the DynamicTable, t.
+func (t *DynamicTable) ForeignKeys() []ForeignKey {
+	return nil
+}
+
+// Indexes returns the indexes for the DynamicTable, t.
+func (t *DynamicTable) Indexes() []Index {
+	return nil
+}
+
+// Type is the type of the DynamicTable, t.
 func (t *DynamicTable) Type() TableType {
 	return t.tableType
 }
 
-// AddColumn adds a column to the DynamicTable.
+// AddColumn adds a column to the DynamicTable, t.
 func (t *DynamicTable) AddColumn(name string, sqlType schema.SQLType) (*DynamicColumn, error) {
 	for _, c := range t.columns {
 		if strings.ToLower(name) == strings.ToLower(string(c.name)) {
@@ -89,7 +99,8 @@ func (t *DynamicTable) AddColumn(name string, sqlType schema.SQLType) (*DynamicC
 	return c, nil
 }
 
-// OpenReader opens a DataReader to enumerate over the .
+// OpenReader opens a DataReader to enumerate over the
+// t's generated rows.
 func (t *DynamicTable) OpenReader() (DataReader, error) {
 	return &dataRowSliceReader{
 		rows: t.generator(),
@@ -103,17 +114,17 @@ type DynamicColumn struct {
 	sqlType  schema.SQLType
 }
 
-// Name gets the name of the column.
+// Name returns the name of the column.
 func (c *DynamicColumn) Name() ColumnName {
 	return c.name
 }
 
-// Type gets the type of the column.
+// Type returns the type of the column.
 func (c *DynamicColumn) Type() schema.SQLType {
 	return c.sqlType
 }
 
-// Comments gets the comments for the column.
+// Comments returns the comments for the column.
 func (c *DynamicColumn) Comments() string {
 	return c.comments
 }

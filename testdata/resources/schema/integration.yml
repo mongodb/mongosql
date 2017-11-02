@@ -238,6 +238,135 @@ schema:
       MongoType: int
       SqlName: b
       SqlType: int
+  - table: parent
+    collection: "information_schema_3"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+  - table: childAndSibling
+    collection: "information_schema_3"
+    pipeline: [
+      $unwind: { path: "$b", includeArrayIndex: "b_idx" },
+      $unwind: { path: "$c", includeArrayIndex: "c_idx" }
+    ]
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b_idx
+      MongoType: int
+      SqlName: b_idx
+      SqlType: int
+    - Name: b.c
+      MongoType: int
+      SqlName: b_child
+      SqlType: int
+    - Name: c_idx
+      MongoType: int
+      SqlName: c_idx
+      SqlType: int
+    - Name: c.c
+      MongoType: int
+      SqlName: c_child
+      SqlType: int
+  - table: grandchild
+    collection: "information_schema_3"
+    pipeline: [
+      $unwind: { path: "$b", includeArrayIndex: "b_idx" },
+      $unwind: { path: "$b.d", includeArrayIndex: "b.d_idx" }
+    ]
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b_idx
+      MongoType: int
+      SqlName: b_idx
+      SqlType: int
+    - Name: b.d_idx
+      MongoType: int
+      SqlName: d_idx
+      SqlType: int
+    - Name: b.d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+  - table: parent1
+    collection: "information_schema_4"
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int
+  - table: grandchild1
+    collection: "information_schema_4"
+    pipeline: [
+      $unwind: { path: "$b", includeArrayIndex: "b_idx" },
+      $unwind: { path: "$b.d", includeArrayIndex: "b.d_idx" }
+    ]
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b_idx
+      MongoType: int
+      SqlName: b_idx
+      SqlType: int
+    - Name: b.d_idx
+      MongoType: int
+      SqlName: d_idx
+      SqlType: int
+    - Name: b.d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+  - table: grandGrandChild1
+    collection: "information_schema_4"
+    pipeline: [
+        $unwind: { path: "$b", includeArrayIndex: "b_idx_alias" },
+        $unwind: { path: "$b.d", includeArrayIndex: "b.d_idx_alias" },
+        $unwind: { path: "$b.d.e", includeArrayIndex: "b.d.e_idx_alias" }
+    ]
+    columns:
+    - Name: _id
+      MongoType: int
+      SqlName: id
+      SqlType: int
+    - Name: b_idx_alias
+      MongoType: int
+      SqlName: b_alias
+      SqlType: int
+    - Name: b.d_idx_alias
+      MongoType: int
+      SqlName: d_alias
+      SqlType: int
+    - Name: b.d.e_idx_alias
+      MongoType: int
+      SqlName: e_alias
+      SqlType: int
+    - Name: b.d
+      MongoType: int
+      SqlName: d
+      SqlType: int
+    - Name: b.d.e
+      MongoType: int
+      SqlName: e
+      SqlType: int
 - db: information_schema_test2
   tables:
   - table: foo

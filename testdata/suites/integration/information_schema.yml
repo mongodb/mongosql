@@ -54,9 +54,15 @@ testcases:
   - ["def", "information_schema", "USER_PRIVILEGES", "SYSTEM VIEW", "utf8_bin",""]
   - ["def", "information_schema", "VIEWS", "SYSTEM VIEW", "utf8_bin",""]
   - ["def", "information_schema", "ndb_transid_mysql_connection_map", "SYSTEM VIEW", "utf8_bin", ""]
-  - ["def", "information_schema_test", "bar", "BASE TABLE", "utf8_bin", "{ \"collectionName\": \"information_schema_2\" }"]
-  - ["def", "information_schema_test", "foo", "BASE TABLE", "utf8_bin", "{ \"collectionName\": \"information_schema_1\" }"]
-  - ["def", "information_schema_test2", "foo", "BASE TABLE", "utf8_bin", "{ \"collectionName\": \"information_schema_1\" }"]
+  - ["def", "information_schema_test", "bar"            , "BASE TABLE" , "utf8_bin", "{ \"collectionName\": \"information_schema_2\" }" ]
+  - ["def", "information_schema_test", "childAndSibling", "BASE TABLE" , "utf8_bin", "{ \"collectionName\": \"information_schema_3\" }" ]
+  - ["def", "information_schema_test", "foo"            , "BASE TABLE" , "utf8_bin", "{ \"collectionName\": \"information_schema_1\" }" ]
+  - ["def", "information_schema_test", "grandGrandChild1", "BASE TABLE" , "utf8_bin", "{ \"collectionName\": \"information_schema_4\" }" ]
+  - ["def", "information_schema_test", "grandchild"     , "BASE TABLE" , "utf8_bin", "{ \"collectionName\": \"information_schema_3\" }" ]
+  - ["def", "information_schema_test", "grandchild1"    , "BASE TABLE" , "utf8_bin", "{ \"collectionName\": \"information_schema_4\" }" ]
+  - ["def", "information_schema_test", "parent"         , "BASE TABLE" , "utf8_bin", "{ \"collectionName\": \"information_schema_3\" }" ]
+  - ["def", "information_schema_test", "parent1"        , "BASE TABLE" , "utf8_bin", "{ \"collectionName\": \"information_schema_4\" }" ]
+  - ["def", "information_schema_test2", "foo"           , "BASE TABLE" , "utf8_bin", "{ \"collectionName\": \"information_schema_1\" }" ]
 
 - sql: "select * from information_schema.tables  where TABLE_SCHEMA like 'where_test%' order by TABLE_SCHEMA, TABLE_NAME"
   id: '1b'
@@ -83,13 +89,35 @@ testcases:
   expected_types: [string, string, string, string, int64, string, string, string, int64, int64, int64, int64, int64,
     string, string, string, string, string, string, string, string]
   expected:
-  - ["def", "information_schema_test", "bar", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }", ""]
-  - ["def", "information_schema_test", "bar", "b", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"b\" }", ""]
-  - ["def", "information_schema_test", "foo", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }", ""]
-  - ["def", "information_schema_test", "foo", "a", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"a\" }", ""]
-  - ["def", "information_schema_test2", "foo", "id", "0", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"_id\" }", ""]
-  - ["def", "information_schema_test2", "foo", "a", "1", ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"a\" }", ""]
-
+  - [ "def", "information_schema_test", "bar", "id", 1, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"_id\" }", ""]
+  - [ "def", "information_schema_test", "bar", "b", 2, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"b\" }", ""]
+  - [ "def", "information_schema_test", "childAndSibling", "id", 1, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"_id\" }", "" ]
+  - [ "def", "information_schema_test", "childAndSibling", "b_idx", 2, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"b_idx\" }", ""]
+  - [ "def", "information_schema_test", "childAndSibling", "b_child", 3, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"b.c\" }", ""]
+  - [ "def", "information_schema_test", "childAndSibling", "c_idx", 4, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"c_idx\" }", "" ]
+  - [ "def", "information_schema_test", "childAndSibling", "c_child", 5, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"c.c\" }", "" ]
+  - [ "def", "information_schema_test", "foo", "id", 1, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"_id\" }", "" ]
+  - [ "def", "information_schema_test", "foo", "a", 2, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"a\" }", ""]
+  - [ "def", "information_schema_test", "grandGrandChild1", "id", 1, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"_id\" }", "" ]
+  - [ "def", "information_schema_test", "grandGrandChild1", "b_alias", 2, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"b_idx_alias\" }", "" ]
+  - [ "def", "information_schema_test", "grandGrandChild1", "d_alias", 3, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"b.d_idx_alias\" }", ""]
+  - [ "def", "information_schema_test", "grandGrandChild1", "e_alias", 4, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"b.d.e_idx_alias\" }", ""]
+  - [ "def", "information_schema_test", "grandGrandChild1", "d", 5, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"b.d\" }", "" ]
+  - [ "def", "information_schema_test", "grandGrandChild1", "e", 6, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"b.d.e\" }", ""]
+  - [ "def", "information_schema_test", "grandchild", "id", 1, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"_id\" }", "" ]
+  - [ "def", "information_schema_test", "grandchild", "b_idx", 2, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"b_idx\" }", ""]
+  - [ "def", "information_schema_test", "grandchild", "d_idx", 3, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"b.d_idx\" }",""]
+  - [ "def", "information_schema_test", "grandchild", "d", 4, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"b.d\" }", "" ]
+  - [ "def", "information_schema_test", "grandchild1", "id", 1, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"_id\" }", ""]
+  - [ "def", "information_schema_test", "grandchild1", "b_idx", 2, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"b_idx\" }", "" ]
+  - [ "def", "information_schema_test", "grandchild1", "d_idx", 3, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"b.d_idx\" }", ""]
+  - [ "def", "information_schema_test", "grandchild1", "d", 4, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"b.d\" }", ""]
+  - [ "def", "information_schema_test", "parent", "id", 1, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"_id\" }", ""]
+  - [ "def", "information_schema_test", "parent", "a", 2, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "UNI", "", "select", "{ \"name\": \"a\" }", ""]
+  - [ "def", "information_schema_test", "parent1", "id", 1, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"_id\" }", ""]
+  - [ "def", "information_schema_test", "parent1", "a", 2, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"a\" }", ""]
+  - [ "def", "information_schema_test2", "foo", "id", 1, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "PRI", "", "select", "{ \"name\": \"_id\" }", ""]
+  - [ "def", "information_schema_test2", "foo", "a", 2, ~, "YES", "bigint", ~, ~, ~, ~, ~, "utf8", "utf8_bin", "bigint(20)", "", "", "select", "{ \"name\": \"a\" }", ""]
 # GLOBAL_VARIABLES
 - sql: "select * from information_schema.global_variables order by variable_name limit 1"
   id: '3'
@@ -119,3 +147,93 @@ testcases:
   expected_types: [string, string, string]
   expected:
   - ["Query", "starting", "SELECT COMMAND, STATE, INFO FROM information_schema.processlist WHERE info LIKE '%process%'"]
+
+# PRIMARY KEYS/FOREIGN KEYS
+- sql: "select constraint_name, constraint_type from information_schema.TABLE_CONSTRAINTS where TABLE_NAME='grandchild' AND CONSTRAINT_SCHEMA='information_schema_test'"
+  id: '6'
+  db: information_schema_test
+  description: "table_constraints_test"
+  expected_names: ["constraint_name", "constraint_type"]
+  expected_types: [string, string]
+  expected:
+  - ["PRIMARY", "PRIMARY KEY"]
+  - ["fk_information_schema_test_grandchild_to_parent_1", "FOREIGN KEY"]
+
+- sql: "select constraint_name, column_name from information_schema.key_column_usage where table_name='childAndSibling' AND CONSTRAINT_SCHEMA='information_schema_test'"
+  id: '7'
+  db: information_schema_test
+  description: "check child keys when sibling arrays are present in a child table"
+  expected_names: ["constraint_name", "column_name"]
+  expected_types: [string, string]
+  expected:
+  - ["PRIMARY", "id"]
+  - ["PRIMARY", "b_idx"]
+  - ["PRIMARY", "c_idx"]
+
+- sql: "select constraint_name, column_name from information_schema.key_column_usage where table_name='grandchild' AND CONSTRAINT_SCHEMA='information_schema_test'"
+  id: '8'
+  db: information_schema_test
+  description: "check grandchild keys when no child table exists without siblings"
+  expected_names: ["constraint_name", "column_name"]
+  expected_types: [string, string]
+  expected:
+  - ["PRIMARY", "id"]
+  - ["PRIMARY", "b_idx"]
+  - ["PRIMARY", "d_idx"]
+  - ["fk_information_schema_test_grandchild_to_parent_1", "id"]
+
+- sql: "select constraint_name, column_name, referenced_table_name, referenced_column_name from information_schema.key_column_usage where table_name='grandGrandChild1' AND CONSTRAINT_SCHEMA='information_schema_test'"
+  id: '9'
+  db: information_schema_test
+  description: "check when foreign keys are aliased between grandgrandchild and grandchild tables and child table doesn't exist"
+  expected_names: ["constraint_name", "column_name", "referenced_table_name", "referenced_column_name"]
+  expected_types: [string, string, string, string]
+  expected:
+  - ["PRIMARY", "id", ~, ~]
+  - ["PRIMARY", "b_alias", ~, ~]
+  - ["PRIMARY", "d_alias", ~, ~]
+  - ["PRIMARY", "e_alias", ~, ~]
+  - ["fk_information_schema_test_grandGrandChild1_to_grandchild1_1", "id", "grandchild1", "id"]
+  - ["fk_information_schema_test_grandGrandChild1_to_grandchild1_1", "b_alias", "grandchild1", "b_idx"]
+  - ["fk_information_schema_test_grandGrandChild1_to_grandchild1_1", "d_alias", "grandchild1", "d_idx"]
+
+# Testing that unique indexes show up
+- sql: "select constraint_name, column_name from information_schema.key_column_usage where table_name='parent' AND CONSTRAINT_SCHEMA='information_schema_test'"
+  id: '10'
+  db: information_schema_test
+  description: "check if unqiue indexes get picked up"
+  expected_names: ["constraint_name", "column_name"]
+  expected_types: [string, string]
+  expected:
+    - ["PRIMARY", "id"]
+    - ["information_schema_test_parent_1_UNIQUE", "a"]
+
+- sql: "select * from information_schema.referential_constraints where table_name='grandchild'"
+  id: '11'
+  db: information_schema_test
+  description: "referential_constraints grandchild"
+  expected_names: ["CONSTRAINT_CATALOG", "CONSTRAINT_SCHEMA", "CONSTRAINT_NAME", "UNIQUE_CONSTRAINT_CATALOG", "UNIQUE_CONSTRAINT_SCHEMA", "UNIQUE_CONSTRAINT_NAME", "MATCH_OPTION", "UPDATE_RULE", "DELETE_RULE", "TABLE_NAME", "REFERENCED_TABLE_NAME"]
+  expected_types: [string, string, string, string, string, string, string, string, string, string, string]
+  expected:
+    - ["def", "information_schema_test", "fk_information_schema_test_grandchild_to_parent_1", "def", "information_schema_test", "PRIMARY", "NONE", "CASCADE", "CASCADE", "grandchild", "parent"]
+    - ["def", "join_test", "fk_join_test_grandchild_to_child_1", "def", "join_test", "PRIMARY", "NONE", "CASCADE", "CASCADE", "grandchild", "child"]
+
+- sql: "select * from information_schema.referential_constraints where table_name='child' and constraint_schema='join_test'"
+  id: '12'
+  db: information_schema_test
+  description: "referential_constraints child"
+  expected_names: ["CONSTRAINT_CATALOG", "CONSTRAINT_SCHEMA", "CONSTRAINT_NAME", "UNIQUE_CONSTRAINT_CATALOG", "UNIQUE_CONSTRAINT_SCHEMA", "UNIQUE_CONSTRAINT_NAME", "MATCH_OPTION", "UPDATE_RULE", "DELETE_RULE", "TABLE_NAME", "REFERENCED_TABLE_NAME"]
+  expected_types: [string, string, string, string, string, string, string, string, string, string, string]
+  expected:
+    - ["def", "join_test", "fk_join_test_child_to_parent_1", "def", "join_test", "PRIMARY", "NONE", "CASCADE", "CASCADE", "child", "parent"]
+
+- sql: "select * from information_schema.statistics where table_name='child' and table_schema='join_test'"
+  id: '13'
+  db: information_schema_test
+  description: "statistics child"
+  expected_names: ["TABLE_CATALOG", "TABLE_SCHEMA", "TABLE_NAME", "NON_UNIQUE", "INDEX_SCHEMA", "INDEX_NAME", "SEQ_IN_INDEX", "COLUMN_NAME", "COLLATION", "CARDINALITY", "SUB_PART", "PACKED", "NULLABLE", "INDEX_TYPE", "COMMENT", "INDEX_COMMENT"]
+  expected_types: [string, string, string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+  expected:
+    - ["def", "join_test", "child", "0", "join_test", "PRIMARY", "1", "id", "A", "0", "NULL", "NULL", "YES", "BTREE", "", ""]
+    - ["def", "join_test", "child", "0", "join_test", "PRIMARY", "2", "b_idx", "A", "0", "NULL", "NULL", "YES", "BTREE", "", ""]
+    - ["def", "join_test", "child", "1", "join_test", "fk_join_test_child_to_parent_1", "1", "id", "A", "0", "NULL", "NULL", "YES", "BTREE", "", ""]

@@ -10,7 +10,7 @@ import (
 func (c *conn) handleShow(sql string, stmt *parser.Show) error {
 	switch strings.ToLower(stmt.Section) {
 	case "charset", "collation", "columns", "create database", "create table",
-		"databases", "processlist", "schemas", "status", "tables", "variables":
+		"databases", "index", "indexes", "keys", "processlist", "schemas", "status", "tables", "variables":
 		fields, iter, err := evaluator.EvaluateQuery(sql, stmt, c)
 		if err != nil {
 			return err
