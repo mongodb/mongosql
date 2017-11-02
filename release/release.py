@@ -27,6 +27,7 @@ MAIN_DOWNLOADS_JSON = "mongodb-bi-downloads.json"
 RELEASES_JSON = "mongodb-bi-releases.json"
 UNITS = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']
 NUM_RELEASE_PLATFORMS = 12
+ZIP_SUFFIX = " (zip)"
 USAGE = """
 BI Connector Release tool 0.1
 Usage:
@@ -158,17 +159,21 @@ class BIReleaser(object):
 
             entry = json.loads(response.text)
             variant = entry["build_variant"]
-            extension = ".msi" if "windows" in variant else ".tgz"
+            extension = [".msi", ".zip"] if "windows" in variant else [".tgz"]
             for file in entry["files"]:
                 url = file["url"]
                 _, ext = os.path.splitext(url)
-                if ext == extension:
-                    self.__urls[variant] = url
-                    break
+                if ext in extension:
+                    v = variant if ext in [".msi", ".tgz"] else variant + ZIP_SUFFIX
+                    self.__urls[v] = url
+                    # we want to get all the URLs for windows
+                    if ext not in [".msi", ".zip"]:
+                        break
 
-        if len(self.__urls) != NUM_RELEASE_PLATFORMS:
-            print("Expected %s URLs, got %s" % (NUM_RELEASE_PLATFORMS, \
-                len(self.__urls)))
+        # adding 1 since we upload the .zip binary for Windows
+        num_expected_urls = NUM_RELEASE_PLATFORMS + 1
+        if len(self.__urls) != num_expected_urls:
+            print("Expected %s URLs, got %s" % (num_expected_urls, len(self.__urls)))
             sys.exit(1)
 
 
@@ -189,8 +194,16 @@ class BIReleaser(object):
             print "Uploading binary %s..." % (file_name)
             key_name = os.path.join(S3_PATH, file_name)
             key = self.__bucket.new_key(key_name)
-            key.set_contents_from_filename(
-                os.path.join(self.__temp_dir, file_name))
+            file_location = os.path.join(self.__temp_dir, file_name)
+            key.set_contents_from_filename(file_location)
+            if file_location.endswith(".zip"):
+                os.remove(file_location)
+
+        # delete the zip archive from the URL map
+        for key, _ in self.__urls.items():
+            if key.endswith(ZIP_SUFFIX):
+                del self.__urls[key]
+                break
 
     def upload_current_artifacts(self):
         """Updates the main downloads page at
@@ -379,8 +392,9 @@ class BIReleaser(object):
     def verify_website_links(self):
         """Verifies that the download URLs exist and are valid.
         """
-        for url, entry in self.__urls.items():
-            r = requests.head(entry)
+        for file_name in os.listdir(self.__temp_dir):
+            url = "https://" + S3_BUCKET + ".s3.amazonaws.com/" + S3_PATH + "/" + file_name
+            r = requests.head(url)
             if r.status_code == 200:
                 print('%s URL is fine...' % (url))
             else:
