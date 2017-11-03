@@ -220,8 +220,13 @@ func (p *program) loadSchema() error {
 }
 
 func (p *program) logStartupInfo() []string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		p.controlLogger.Infof(log.Always, "can't get this server's hostname: %v", err)
+	}
 	startupInfo := []string{
-		fmt.Sprintf("[initandlisten] mongosqld version: %v", config.VersionStr),
+		fmt.Sprintf("[initandlisten] mongosqld starting: version=%v pid=%v host=%v",
+			config.VersionStr, os.Getpid(), hostname),
 		fmt.Sprintf("[initandlisten] git version: %v", config.Gitspec),
 		fmt.Sprintf("[initandlisten] OpenSSL version: %v", openssl.Version),
 		fmt.Sprintf("[initandlisten] options: %v", config.ToJSON(p.cfg)),
