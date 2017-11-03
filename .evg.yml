@@ -45,6 +45,13 @@ functions:
         ${SCRIPT_DIR}/download-tableau-data.sh
         ${SCRIPT_DIR}/download-tpch-data.sh
 
+  "ensure schema available":
+    command: shell.exec
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        ${SCRIPT_DIR}/ensure-schema-available.sh
+
   "export variables":
     - command: shell.exec
       params:
@@ -534,6 +541,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_use_dynamic_schema: "true"
+    - func: "ensure schema available"
     - func: "run integration tests"
       vars:
         var_suite: blackbox
