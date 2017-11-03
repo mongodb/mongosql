@@ -1,9 +1,6 @@
 package evaluator
 
 import (
-	"strings"
-
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/variable"
 )
