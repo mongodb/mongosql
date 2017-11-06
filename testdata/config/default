@@ -57,6 +57,11 @@ VERSION_FLAG=""
 # sqlproxy/nopushdown
 SQLPROXY_PUSHDOWN_OFF=""
 
+# client/connection/*
+CLIENT_HOST_ARG="--host 127.0.0.1"
+CLIENT_PORT_ARG=" --port 3307"
+CLIENT_PROTOCOL_ARG=""
+
 # client/ssl/*
 CLIENT_SSLMODE="--ssl-mode preferred" # this is the same as the implicit default
 CLIENT_SSLCA=""

@@ -674,7 +674,11 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-cleartext-auth-allowssl-nossl
+  name: test-cleartext-auth-allowssl-tcp-nossl
+  tags: ["test", "config"]
+
+- <<: *run-config-test
+  name: test-cleartext-auth-allowssl-unix-nossl
   tags: ["test", "config"]
 
 - <<: *run-config-test

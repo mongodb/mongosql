@@ -12,15 +12,19 @@ import (
 )
 
 func (c *conn) authClearTextPasswordPlugin() error {
-	if (c.capability & CLIENT_SSL) == 0 {
+	isUnixSocket := c.conn.LocalAddr().Network() == "unix"
+
+	if (c.capability&CLIENT_SSL) == 0 && !isUnixSocket {
 		// require SSL for using cleartext plugin
-		err := mysqlerrors.Newf(mysqlerrors.ER_INSECURE_PLAIN_TEXT, "ssl is required when using cleartext authentication")
+		err := mysqlerrors.Newf(mysqlerrors.ER_INSECURE_PLAIN_TEXT,
+			"ssl is required when using cleartext authentication")
 		c.writeError(err)
 		return err
 	}
 
 	if c.clientRequestedAuthPluginName != clearPasswordClientAuthPluginName {
-		if err := c.writeAuthSwitchRequest(clearPasswordClientAuthPluginName, []byte{0}); err != nil {
+		err := c.writeAuthSwitchRequest(clearPasswordClientAuthPluginName, []byte{0})
+		if err != nil {
 			return err
 		}
 

@@ -1,0 +1,3 @@
+
+CLIENT_HOST_ARG="--host localhost"
+CLIENT_PROTOCOL_ARG="--protocol SOCKET"
