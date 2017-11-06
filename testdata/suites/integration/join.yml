@@ -1659,3 +1659,64 @@ testcases:
   - [0, 1, 0, 5, ~, ~, ~, ~]
   - [0, 1, 1, 6, 0, 1, 1, 6]
   - [2, 0, 0, 7, 2, 0, 0, 7] 
+- sql: "select * from par_c a left join par_b b on a.id = b.id and b > 22"
+  id: 'par_join_b_gt_22'
+  db: join_test
+  description: 'the additional criteria tests left self join optimization'
+  expected_names: ['id', 'c_idx', 'c.d', 'id', 'b_idx', 'b']
+  expected_types: [int, int, int, int, int, int]
+  expected:
+  - [1, 0, 11, ~, ~, ~ ]
+  - [1, 1, 12, ~, ~, ~ ]
+  - [1, 2, 13, ~, ~, ~ ]
+  - [2, 0, 31, 2, 2, 23]
+  - [2, 1, 32, 2, 2, 23]
+  - [2, 2, 33, 2, 2, 23]
+- sql: "select * from par_c a left join par_b b on a.id = b.id and b.id = 2"
+  id: 'par_join_bid_2'
+  db: join_test
+  description: 'the additional criteria tests left self join optimization'
+  expected_names: ['id', 'c_idx', 'c.d', 'id', 'b_idx', 'b']
+  expected_types: [int, int, int, int, int, int]
+  expected:
+  - [ 1, 0, 11, ~, ~, ~ ]
+  - [ 1, 1, 12, ~, ~, ~ ]
+  - [ 1, 2, 13, ~, ~, ~ ]
+  - [ 2, 0, 31, 2, 0, 21]
+  - [ 2, 0, 31, 2, 1, 22]
+  - [ 2, 0, 31, 2, 2, 23]
+  - [ 2, 1, 32, 2, 0, 21]
+  - [ 2, 1, 32, 2, 1, 22]
+  - [ 2, 1, 32, 2, 2, 23]
+  - [ 2, 2, 33, 2, 0, 21]
+  - [ 2, 2, 33, 2, 1, 22]
+  - [ 2, 2, 33, 2, 2, 23]
+- sql: "select * from par_c a left join par_b b on a.id = b.id and b.id != 2"
+  id: 'par_join_b_ne_2'
+  db: join_test
+  description: 'the additional criteria tests left self join optimization'
+  expected_names: ['id', 'c_idx', 'c.d', 'id', 'b_idx', 'b']
+  expected_types: [int, int, int, int, int, int]
+  expected:
+  - [ 1, 0, 11, ~, ~, ~]
+  - [ 1, 1, 12, ~, ~, ~]
+  - [ 1, 2, 13, ~, ~, ~]
+  - [ 2, 0, 31, ~, ~, ~]
+  - [ 2, 1, 32, ~, ~, ~]
+  - [ 2, 2, 33, ~, ~, ~]
+- sql: "select * from par_c a left join par_b b on a.id = b.id and b.b_idx != 1"
+  id: 'par_join_b_idx_ne_1'
+  db: join_test
+  description: 'the additional criteria tests that left join optimization and $lookup are disabled'
+  expected_names: ['id', 'c_idx', 'c.d', 'id', 'b_idx', 'b']
+  expected_types: [int, int, int, int, int, int]
+  expected:
+  - [ 1, 0, 11, ~, ~, ~ ]
+  - [ 1, 1, 12, ~, ~, ~ ]
+  - [ 1, 2, 13, ~, ~, ~ ]
+  - [ 2, 0, 31, 2, 0, 21]
+  - [ 2, 0, 31, 2, 2, 23]
+  - [ 2, 1, 32, 2, 0, 21]
+  - [ 2, 1, 32, 2, 2, 23]
+  - [ 2, 2, 33, 2, 0, 21]
+  - [ 2, 2, 33, 2, 2, 23]
