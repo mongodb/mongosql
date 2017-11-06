@@ -960,11 +960,37 @@ const (
 	leftJoinExcludeFieldName = "__leftjoin_exclude"
 )
 
-// buildRemainingPredicateForLeftJoin will return 2 items; first a $project to put before the unwind, and a $match to put after the unwind.
-func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegistry, combinedMappingRegistry *mappingRegistry, remainingPredicate SQLExpr, asField string, preserveIndex bool) (bson.D, bson.D, bool) {
+// buildRemainingPredicateForLeftJoin will return 2 items; first a $project to
+// put before the unwind, and a $match to put after the unwind. The remaining
+// predicate SQLExpr is used to build the $project (or $addFields) and the
+// $match. asField is the name of the array field to check. foreignIndex is
+// the name of the foreign pipeline unwind, if any (passing an empty string is
+// safe if there is no foreign unwind), because we cannot build a predicate
+// using the foreignIndex because it creates a circular dependency in the
+// pipeline (the foreign unwind must go afther the $project/$addFields which
+// must use the field created by the foreign unwind)
+func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegistry, combinedMappingRegistry *mappingRegistry, remainingPredicate SQLExpr, asField, foreignIndex string, preserveIndex bool) (bson.D, bson.D, bool) {
+	registries := []*mappingRegistry{combinedMappingRegistry}
 	fixedLookupFieldName := func(tbl, col string) (string, bool) {
-		fieldName, ok := combinedMappingRegistry.lookupFieldName(tbl, col)
+		// Join predicates should always be based on the original field, rather than the added
+		// fields that have been added for left joins. The only way the value being NULL could
+		// matter is if <=> or is NULL is in the predicate, and even if that is the case,
+		// it would already be NULL from being a left join, anyway. If it is instead <> NULL
+		// the predicate is essentially a no-op
+		fieldName, _, _, ok := v.lookupSQLColumnForJoin(tbl, col, registries)
 		if !ok {
+			panic(fmt.Sprintf("could not find column: %q.%q, "+
+				"this should never happen, registries were: %v", tbl, col, registries))
+		}
+		if fieldName == foreignIndex {
+			logPrefix := "$lookup translation"
+			// preserveIndex is used when we are doing self-join optimization,
+			// it is false for $lookup, so we can use that to set out log message
+			if preserveIndex {
+				logPrefix = "self-join optimization"
+			}
+			v.logger.Debugf(log.Dev, logPrefix+": cannot use foreign unwind index: %q in left join criteria because use occurs before foreign unwind moving on...", foreignIndex)
+
 			return "", false
 		}
 
@@ -998,6 +1024,7 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 	var projectBody bson.M
 	var match bson.D
 	if preserveIndex {
+		dolAsField := "$" + asField
 		// This is interesting. First, we are going to create variable that marks every item in the array that should
 		// be excluded. Using that variable, we'll then create a condition. If we filter all the items out that
 		// should be excluded and end up with 0 items, we set the field to an empty array. Otherwise, we keep the array
@@ -1013,9 +1040,22 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 							"$map": bson.M{
 								"input": bson.M{
 									"$cond": bson.M{
-										"if":   bson.M{"$isArray": "$" + asField},
-										"then": "$" + asField,
-										"else": []interface{}{"$" + asField},
+										"if":   bson.M{"$isArray": dolAsField},
+										"then": dolAsField,
+										"else": bson.M{"$cond": bson.M{
+											// It is very important that we map null and missing to []
+											// rather than [null] because [null] is semantically different:
+											// When we form a child table with {..., x : [null], ...}
+											// we have one row with one primary key x_idx = 0 with null
+											// as a value. When we form a child table with [], null, or missing,
+											// we produce 0 rows. Mapping null (or missing) to [null] breaks
+											// this semantics, and ruins the fields added for self-join
+											// optimized left-joins
+											"if":   bson.M{"$lte": []interface{}{dolAsField, nil}},
+											"then": []interface{}{},
+											"else": []interface{}{dolAsField},
+										},
+										},
 									},
 								},
 								"as": "this",
@@ -1024,9 +1064,7 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 										"if":   ifPart,
 										"then": "$$this",
 										"else": bson.M{
-											leftJoinExcludeFieldName: bson.M{
-												"$literal": true,
-											},
+											leftJoinExcludeFieldName: true,
 										},
 									},
 								},
@@ -1081,6 +1119,13 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 }
 
 func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSourceStage, join *JoinStage) (PlanStage, error) {
+	var foreignRegistryBackup *mappingRegistry = nil
+	// If we fail to translate a left join predicate later, we will need to restore this
+	// if, instead this is an inner join, there is nothing to worry about
+	if join.kind == leftJoin {
+		foreignRegistryBackup = msForeign.mappingRegistry.copy()
+	}
+
 	newPipeline, err := v.selfJoinOptimizePipeline(msLocal, msForeign, join.kind)
 	if err != nil {
 		v.logger.Warnf(log.Dev, "cannot self-join optimize pipelines: %v", err)
@@ -1106,13 +1151,22 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 		}
 	}
 
-	ms.mappingRegistry, ms.pipeline = newMappingRegistry, newPipeline.stages
+	// Do not copy back the newMappingRegistry and newPipeline.stages until
+	// we are sure that we can correctly translate the remaining join
+	// predicate, because it is still possible that there will need to be a
+	// deoptimization back to $lookup or in memory join. Unfortunately,
+	// checking the conditions that can cause failure here earlier would
+	// be more expensive.
 
 	remainingPredicate := combineExpressions(
 		v.remainingJoinPredicate(msLocal, msForeign, join.matcher))
 
 	if remainingPredicate != nil {
 		if join.kind == innerJoin || join.kind == straightJoin {
+			// This isn't a left join, so we do not have to worry about
+			// failing to build the left-join predicate and can copy
+			// back the newMappingRegistry and newPipeline.stages
+			ms.mappingRegistry, ms.pipeline = newMappingRegistry, newPipeline.stages
 			v.logger.Debugf(log.Dev, "self-join optimization: creating filter "+
 				"stage for remaining predicate: %v",
 				remainingPredicate.String())
@@ -1147,20 +1201,26 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 			newMappingRegistry,
 			remainingPredicate,
 			strings.Replace(unwindSuffix[0].path, "$", "", 1),
+			unwindSuffix[0].index,
 			true,
 		)
+
 		if !ok {
+			// We failed to translate, make sure to restore the foriegn
+			// mapping registry
+			msForeign.mappingRegistry = foreignRegistryBackup
 			return join, nil
 		}
 
 		if match != nil {
-			ms.pipeline = append(ms.pipeline, match)
+			newPipeline.stages = append(newPipeline.stages, match)
 		}
 
 		// Insert project after the first.
-		ms.pipeline = insertPipelineStageAt(ms.pipeline, project, insertionPoint)
+		newPipeline.stages = insertPipelineStageAt(newPipeline.stages, project, insertionPoint)
 	}
 
+	ms.mappingRegistry, ms.pipeline = newMappingRegistry, newPipeline.stages
 	return ms, nil
 }
 
@@ -1258,8 +1318,9 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 			for _, expr := range exprs {
 				// Ignore non-equalExpr join conditions, since
 				// they will be handled after any foreign
-				// $unwinds as a $match and thus not cause any
-				// issues.
+				// $unwinds as a $match or remaining left join predicate
+				// (see buildRemainingLeftJoinPredicate) and thus not
+				// cause any issues.
 				if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
 					column1, _ := equalExpr.left.(SQLColumnExpr)
 					column2, _ := equalExpr.right.(SQLColumnExpr)
@@ -1270,12 +1331,14 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 					if containsString(msForeign.aliasNames, column1.tableName) {
 						_, columnName, _, _ := v.lookupSQLColumnForJoin(column1.tableName, column1.columnName, registries)
 						if columnName == unwindIndexName {
+							v.logger.Debugf(log.Dev, "$lookup translation: cannot use foreign unwind index: %q in equality criteria because use in $lookup occurs before foreign unwind, moving on...", unwindIndexName)
 							return join, nil
 						}
 					}
 					if containsString(msForeign.aliasNames, column2.tableName) {
 						_, columnName, _, _ := v.lookupSQLColumnForJoin(column2.tableName, column2.columnName, registries)
 						if columnName == unwindIndexName {
+							v.logger.Debugf(log.Dev, "$lookup translation: cannot use foreign unwind index: %q in equality criteria, because use in $lookup occurs before foreign unwind, moving on...", unwindIndexName)
 							return join, nil
 						}
 					}
@@ -1362,7 +1425,7 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 
 	if kind == leftJoin {
 		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
-		// $project to ensure account for this incompatibility. Effectively, when our left
+		// $project to account for this incompatibility. Effectively, when our left
 		// hand field is null, we'll empty the joined results prior to unwinding.
 		project := bson.M{}
 
@@ -1397,10 +1460,12 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	}}
 
 	lookupOnArrayField := false
+	oldForeignIndex := ""
 
 	if foreignHasUnwind {
 		foreignMapped := msForeign.pipeline[0].Map()["$unwind"].(bson.D).Map()
 		oldForeignPath := fmt.Sprintf("%v", foreignMapped["path"])
+		oldForeignIndex = asField + "." + fmt.Sprintf("%v", foreignMapped["includeArrayIndex"])
 		lookupOnArrayField = strings.Split(foreignFieldName, ".")[0] == oldForeignPath[1:]
 	}
 
@@ -1416,9 +1481,9 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 			newMappingRegistry,
 			lookupInfo.remainingPredicate,
 			asField,
+			oldForeignIndex,
 			false,
 		)
-
 		if !ok {
 			return join, nil
 		}
@@ -2351,7 +2416,7 @@ func (v *pushDownOptimizer) meetsLeftSelfJoinPipelineCriteria(logger *log.Logger
 	// We can't have any issues with embedded NULLs and empties if the
 	// foreign pipeline only has one $unwind and there is no remaining
 	// predicate.
-	if lenForeign == 1 && !hasRemainingPredicate {
+	if lenForeign == 1 {
 		return true
 	}
 
@@ -2369,7 +2434,7 @@ func (v *pushDownOptimizer) meetsLeftSelfJoinPipelineCriteria(logger *log.Logger
 			lenForeign <= lenLocal && !hasRemainingPredicate) {
 		// Building the remaining predicate is completely wrong when
 		// the local side is older than the foreign side, or,
-		// unfortunately, the same table on the bright side, we can
+		// unfortunately, the same table. On the bright side, we can
 		// generally anticipate that the left side of left joins will
 		// generally be the younger in our users queries.
 		return true
