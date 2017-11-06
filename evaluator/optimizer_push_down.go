@@ -1813,20 +1813,13 @@ func (v *pushDownOptimizer) selfJoinOptimizePipeline(local, foreign *MongoSource
 // buildLeftSelfJoinPKAddFieldBody builds the conditional for an AddField,
 // checking column columnCheck for missing, NULL, or empty.
 func buildLeftSelfJoinPKAddFieldBody(columnCheck, columnCopy string) bson.D {
-	lteNil := bson.M{"$lte": []interface{}{columnCheck, nil}}
-	eqEmpty := bson.M{"$eq": []interface{}{columnCheck, []interface{}{}}}
+	lteNil := bson.D{{"$lte", []interface{}{columnCheck, nil}}}
+	eqEmpty := bson.D{{"$eq", []interface{}{columnCheck, []interface{}{}}}}
+	totalOr := bson.D{{"$or", []interface{}{lteNil, eqEmpty}}}
 
-	branches := []interface{}{
-		bson.M{"case": lteNil,
-			"then": nil},
-		bson.M{"case": eqEmpty,
-			"then": nil},
+	addFieldBody := bson.D{
+		{"$cond", []interface{}{totalOr, nil, columnCopy}},
 	}
-
-	addFieldBody := bson.D{{"$switch", bson.D{
-		{"default", columnCopy},
-		{"branches", branches},
-	}}}
 
 	return addFieldBody
 }

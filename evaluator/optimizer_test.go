@@ -2043,94 +2043,49 @@ func TestOptimizePlan(t *testing.T) {
 					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id left join merge_c c on b._id=c._id",
 						[]bson.D{
 							{{"$addFields", bson.M{
-								"_id_0": bson.D{{"$switch", bson.D{
-									{"default", "$_id"},
-									{"branches", []interface{}{bson.M{
-										"case": bson.M{"$lte": []interface{}{"$b", interface{}(nil)}},
-										"then": interface{}(nil)}, bson.M{
-										"case": bson.M{"$eq": []interface{}{"$b", []interface{}{}}},
-										"then": interface{}(nil)}}}}}}}}},
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "b_idx"},
-								{"path", "$b"},
-								{"preserveNullAndEmptyArrays", true}}}},
+								"_id_0": bson.D{{"$cond", []interface{}{
+									bson.D{{"$or", []interface{}{
+										bson.D{{"$lte", []interface{}{"$b", interface{}(nil)}}},
+										bson.D{{"$eq", []interface{}{"$b", []interface{}{}}}}}}}, interface{}(nil), "$_id"}}}}}},
+							{{"$unwind", bson.D{{"includeArrayIndex", "b_idx"}, {"path", "$b"}, {"preserveNullAndEmptyArrays", true}}}},
 							{{"$addFields", bson.M{
-								"_id_1": bson.D{{"$switch", bson.D{
-									{"default", "$_id"},
-									{"branches", []interface{}{bson.M{
-										"case": bson.M{"$lte": []interface{}{"$c", interface{}(nil)}},
-										"then": interface{}(nil)}, bson.M{
-										"then": interface{}(nil),
-										"case": bson.M{"$eq": []interface{}{"$c", []interface{}{}}}}}}}}}}}},
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "c_idx"},
-								{"path", "$c"},
-								{"preserveNullAndEmptyArrays", true}}}},
-							{{"$project", bson.M{
-								"b_DOT__id": "$_id_0",
-								"c_DOT__id": "$_id_1"}}}},
+								"_id_1": bson.D{{"$cond", []interface{}{
+									bson.D{{"$or", []interface{}{
+										bson.D{{"$lte", []interface{}{"$c", interface{}(nil)}}},
+										bson.D{{"$eq", []interface{}{"$c", []interface{}{}}}}}}}, interface{}(nil), "$_id"}}}}}},
+							{{"$unwind", bson.D{{"includeArrayIndex", "c_idx"}, {"path", "$c"}, {"preserveNullAndEmptyArrays", true}}}},
+							{{"$project", bson.M{"b_DOT__id": "$_id_0", "c_DOT__id": "$_id_1"}}}},
 					)
 					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id left join merge_c c on r._id=c._id",
 						[]bson.D{
 							{{"$addFields", bson.M{
-								"_id_0": bson.D{
-									{"$switch", bson.D{
-										{"default", "$_id"},
-										{"branches", []interface{}{bson.M{
-											"case": bson.M{"$lte": []interface{}{"$b", interface{}(nil)}},
-											"then": interface{}(nil)}, bson.M{
-											"case": bson.M{"$eq": []interface{}{"$b", []interface{}{}}},
-											"then": interface{}(nil)}}}}}}}}},
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "b_idx"},
-								{"path", "$b"}, {"preserveNullAndEmptyArrays", true}}}},
+								"_id_0": bson.D{{"$cond", []interface{}{
+									bson.D{{"$or", []interface{}{
+										bson.D{{"$lte", []interface{}{"$b", interface{}(nil)}}},
+										bson.D{{"$eq", []interface{}{"$b", []interface{}{}}}}}}}, interface{}(nil), "$_id"}}}}}},
+							{{"$unwind", bson.D{{"includeArrayIndex", "b_idx"}, {"path", "$b"}, {"preserveNullAndEmptyArrays", true}}}},
 							{{"$addFields", bson.M{
-								"_id_1": bson.D{
-									{"$switch", bson.D{
-										{"default", "$_id"},
-										{"branches", []interface{}{bson.M{
-											"case": bson.M{"$lte": []interface{}{"$c", interface{}(nil)}},
-											"then": interface{}(nil)}, bson.M{
-											"then": interface{}(nil),
-											"case": bson.M{"$eq": []interface{}{"$c", []interface{}{}}}}}}}}}}}},
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "c_idx"},
-								{"path", "$c"},
-								{"preserveNullAndEmptyArrays", true}}}},
-							{{"$project", bson.M{
-								"b_DOT__id": "$_id_0",
-								"c_DOT__id": "$_id_1"}}}})
+								"_id_1": bson.D{{"$cond", []interface{}{
+									bson.D{{"$or", []interface{}{
+										bson.D{{"$lte", []interface{}{"$c", interface{}(nil)}}},
+										bson.D{{"$eq", []interface{}{"$c", []interface{}{}}}}}}}, interface{}(nil), "$_id"}}}}}},
+							{{"$unwind", bson.D{{"includeArrayIndex", "c_idx"}, {"path", "$c"}, {"preserveNullAndEmptyArrays", true}}}},
+							{{"$project", bson.M{"b_DOT__id": "$_id_0", "c_DOT__id": "$_id_1"}}}},
+					)
 					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id left join merge_d_a a on r._id=a._id",
 						[]bson.D{
 							{{"$addFields", bson.M{
-								"_id_0": bson.D{
-									{"$switch", bson.D{
-										{"default", "$_id"},
-										{"branches", []interface{}{bson.M{
-											"case": bson.M{"$lte": []interface{}{"$b", interface{}(nil)}},
-											"then": interface{}(nil)}, bson.M{
-											"case": bson.M{"$eq": []interface{}{"$b", []interface{}{}}},
-											"then": interface{}(nil)}}}}}}}}},
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "b_idx"},
-								{"path", "$b"},
-								{"preserveNullAndEmptyArrays", true}}}},
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "c_idx"},
-								{"path", "$c"}}}},
-							{{"$project", bson.M{
-								"b_DOT__id": "$_id_0",
-								"c_DOT__id": "$_id",
-								"r_DOT__id": "$_id"}}}},
+								"_id_0": bson.D{{"$cond", []interface{}{
+									bson.D{{"$or", []interface{}{
+										bson.D{{"$lte", []interface{}{"$b", interface{}(nil)}}},
+										bson.D{{"$eq", []interface{}{"$b", []interface{}{}}}}}}}, interface{}(nil), "$_id"}}}}}},
+							{{"$unwind", bson.D{{"includeArrayIndex", "b_idx"}, {"path", "$b"}, {"preserveNullAndEmptyArrays", true}}}},
+							{{"$unwind", bson.D{{"includeArrayIndex", "c_idx"}, {"path", "$c"}}}},
+							{{"$project", bson.M{"b_DOT__id": "$_id_0", "c_DOT__id": "$_id", "r_DOT__id": "$_id"}}}},
 						[]bson.D{
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "d_idx"},
-								{"path", "$d"}}}},
-							{{"$unwind", bson.D{
-								{"includeArrayIndex", "d.a_idx"},
-								{"path", "$d.a"}}}},
-							{{"$project", bson.M{
-								"a_DOT__id": "$_id"}}}},
+							{{"$unwind", bson.D{{"includeArrayIndex", "d_idx"}, {"path", "$d"}}}},
+							{{"$unwind", bson.D{{"includeArrayIndex", "d.a_idx"}, {"path", "$d.a"}}}},
+							{{"$project", bson.M{"a_DOT__id": "$_id"}}}},
 					)
 					test("select b._id, c._id from merge r inner join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id inner join merge_d_a a on r._id=a._id",
 						[]bson.D{
