@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Builds an MSI for mongosqd.exe and mongodrdl.exe.
+    Builds an MSI for mongosqld.exe and mongodrdl.exe.
 .DESCRIPTION
     .
 .PARAMETER ProjectName
@@ -40,7 +40,7 @@ account for the next revision that will require being
 upgradeable."
 }
 
-$upgradeCode = "59f426b4-a3bd-11e7-abc4-cec278b6b50a"
+$upgradeCode = "c1352bab-3ea4-4f9d-bf4d-2973d72af78c"
 
 # compile wxs into .wixobjs
 & $WixPath\candle.exe -wx `
