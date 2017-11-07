@@ -133,3 +133,9 @@ test-sample-size-ten: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy
 test-sample-size-ten: TABLE := sample_test
 test-sample-size-ten: NUM_COLUMNS := 11
 test-sample-size-ten: test-count-columns
+
+test-flush-new-collection: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/dynamic
+test-flush-new-collection: build-mongosqld run-mongodb run-mongosqld _test-schema-available _test-connect-success _write-initial-docs _test-flush-and-count
+_test-flush-and-count: QUERY := flush sample,, select count(*) from information_schema.tables where table_name = 'sample_test'
+_test-flush-and-count: EXPECTED := 1
+_test-flush-and-count: _test-mysql-query

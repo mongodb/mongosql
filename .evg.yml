@@ -830,6 +830,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-flush-new-collection
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-alter-drdl
   tags: ["test", "config"]
 

@@ -4,11 +4,14 @@
 . "$(dirname $0)/prepare-shell.sh"
 
 (
+    set -o errexit
     echo "running mysql query test..."
 
-    result=$(mysql --skip-column-names --silent $CLIENT_ARGS -e "$QUERY" 2>&1)
-    code=$?
+    cmd="$(echo "$QUERY" | sed 's/,,/;/g')"
 
+    set +o errexit
+    result=$(mysql --skip-column-names --silent $CLIENT_ARGS -e "$cmd" 2>&1)
+    code=$?
     set -o errexit
 
     if [ "$code" != "0" ]; then
