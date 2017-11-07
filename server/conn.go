@@ -189,6 +189,15 @@ func (c *conn) Catalog() *catalog.Catalog {
 
 // UpdateCatalog updates the catalog to utilize the new schema.
 func (c *conn) UpdateCatalog(s *schema.Schema) error {
+	err := c.loadMongoDBInfo(s)
+	if err != nil {
+		return err
+	}
+
+	return c.setCatalogFromSchema(s)
+}
+
+func (c *conn) setCatalogFromSchema(s *schema.Schema) error {
 	cat, err := catalog.Build(s, c.variables)
 	if err != nil {
 		return err
@@ -328,13 +337,31 @@ func (c *conn) handshake() error {
 	}
 	c.process.SetUser(c.user)
 
-	if err = c.setSystemVariables(currentSchema); err != nil {
+	if err = c.loadMongoDBInfo(currentSchema); err != nil {
+		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, err.Error())
+		c.writeError(err)
+		return err
+	}
+
+	c.logger.Infof(log.Admin, "connected to MongoDB %v, git version: %v",
+		c.variables.MongoDBInfo.Version, c.variables.MongoDBInfo.GitVersion)
+
+	if c.variables.MongoDBInfo.CompatibleVersion != "" {
+		c.logger.Infof(log.Admin, "MongoDB version compatibility is %v",
+			c.variables.MongoDBInfo.CompatibleVersion)
+	}
+
+	if !c.variables.MongoDBInfo.VersionAtLeast(3, 2) {
+		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR,
+			"MongoDB version is %v but version >= 3.2 required",
+			c.variables.MongoDBInfo.Version)
+		c.writeError(err)
 		return err
 	}
 
 	c.setStatusVariables()
 
-	err = c.UpdateCatalog(currentSchema)
+	err = c.setCatalogFromSchema(currentSchema)
 	if err != nil {
 		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR, "error building catalog: %v", err)
 		c.writeError(err)
@@ -697,40 +724,18 @@ func (c *conn) setStatusVariables() {
 	sessionVariables.StartTime = globalVariables.StartTime
 }
 
-// setSystemVariables sets system variables for this client connection.
-func (c *conn) setSystemVariables(currentSchema *schema.Schema) (err error) {
+// loadMongoDBInfo sets system variables that store information about MongoDB
+func (c *conn) loadMongoDBInfo(currentSchema *schema.Schema) (err error) {
 	c.variables.MongoDBInfo, err = mongodb.LoadInfo(c.logger, c.session,
 		currentSchema, c.server.cfg.Security.Enabled)
 	if err != nil {
-		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR,
-			"error retrieving information from MongoDB: %v", err)
-		c.writeError(err)
-		return err
+		return fmt.Errorf("error retrieving information from MongoDB: %v", err)
 	}
 
 	err = c.variables.MongoDBInfo.SetCompatibleVersion(
 		c.server.variables.GetString(variable.MongoDBVersionCompatibility))
 	if err != nil {
-		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR,
-			"error setting compatibility version: %v", err)
-		c.writeError(err)
-		return err
-	}
-
-	c.logger.Infof(log.Admin, "connected to MongoDB %v, git version: %v",
-		c.variables.MongoDBInfo.Version, c.variables.MongoDBInfo.GitVersion)
-
-	if c.variables.MongoDBInfo.CompatibleVersion != "" {
-		c.logger.Infof(log.Admin, "MongoDB version compatibility is %v",
-			c.variables.MongoDBInfo.CompatibleVersion)
-	}
-
-	if !c.variables.MongoDBInfo.VersionAtLeast(3, 2) {
-		err = mysqlerrors.Newf(mysqlerrors.ER_HANDSHAKE_ERROR,
-			"MongoDB version is %v but version >= 3.2 required",
-			c.variables.MongoDBInfo.Version)
-		c.writeError(err)
-		return err
+		return fmt.Errorf("error setting compatibility version: %v", err)
 	}
 
 	return nil
