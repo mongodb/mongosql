@@ -43,19 +43,26 @@ const (
 	mgoOperatorMap       = "$map"
 	mgoOperatorMax       = "$max"
 	mgoOperatorMin       = "$min"
+	mgoOperatorMod       = "$mod"
 	mgoOperatorNeq       = "$ne"
 	mgoOperatorNot       = "$not"
 	mgoOperatorOr        = "$or"
 	mgoOperatorRange     = "$range"
 	mgoOperatorReduce    = "$reduce"
+	mgoOperatorSplit     = "$split"
 	mgoOperatorStrlenCP  = "$strLenCP"
 	mgoOperatorSubstr    = "$substrCP"
 	mgoOperatorSubtract  = "$subtract"
+	mgoOperatorSwitch    = "$switch"
 	mgoOperatorTrunc     = "$trunc"
+	mgoOperatorType      = "$type"
 )
 
 var (
-	mgoNullLiteral = bson.M{"$literal": nil}
+	mgoNullLiteral         = bson.M{"$literal": nil}
+	dateComponentSeparator = []interface{}{"!", "\"", "#", bson.M{"$literal": "$"}, "%", "&", "'",
+		"(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]",
+		"^", "_", "`", "{", "|", "}", "~"}
 )
 
 var (
@@ -72,8 +79,60 @@ var (
 		return bson.M{mgoOperatorLet: bson.M{"vars": vars, "in": in}}
 	}
 
+	// wrapInMap returns the aggregation expression {$map: {input: input, as: as, in: in }}.
+	// https://docs.mongodb.com/manual/reference/operator/aggregation/map/
 	wrapInMap = func(input, as, in interface{}) bson.M {
-		return bson.M{"$map": bson.M{"input": input, "as": as, "in": in}}
+		return bson.M{mgoOperatorMap: bson.M{"input": input, "as": as, "in": in}}
+	}
+
+	// wrapInRange returns the aggregation expression {$range: [start, stop, step]}.
+	// https://docs.mongodb.com/manual/reference/operator/aggregation/range/
+	wrapInRange = func(start, stop, step interface{}) interface{} {
+		if step != nil {
+			return bson.M{mgoOperatorRange: []interface{}{start, stop, step}}
+		}
+		return wrapInOp(mgoOperatorRange, start, stop)
+	}
+
+	// wrapInReduce returns the aggregation expression
+	// {$reduce: {input: input, initialValue: initialValue, in: in }}.
+	// https://docs.mongodb.com/manual/reference/operator/aggregation/range/
+	wrapInReduce = func(input, initialValue, in interface{}) bson.M {
+		return bson.M{mgoOperatorReduce: bson.M{"input": input, "initialValue": initialValue, "in": in}}
+	}
+
+	// wrapInSwitch returns the aggregation expression
+	// {$switch: branches: branches, default: defaultExpr }
+	// https://docs.mongodb.com/manual/reference/operator/aggregation/switch/
+	wrapInSwitch = func(defaultExpr interface{}, branches ...bson.M) bson.M {
+		return bson.M{mgoOperatorSwitch: bson.M{"branches": branches, "default": defaultExpr}}
+	}
+
+	// wrapInCase returns an expression to use as one of the branches arguments to wrapInSwitch.
+	// caseExpr must evaluate to a boolean.
+	wrapInCase = func(caseExpr, thenExpr interface{}) bson.M {
+		return bson.M{"case": caseExpr, "then": thenExpr}
+	}
+
+	// wrapInInRange returns an expression that evaluates to true if val is in range [min, max).
+	// val must evaluate to a number.
+	wrapInInRange = func(val interface{}, min, max float64) interface{} {
+		return wrapInOp(mgoOperatorAnd,
+			wrapInOp(mgoOperatorGte, val, min),
+			wrapInOp(mgoOperatorLt, val, max))
+	}
+
+	// containsBSONType returns an expression that evaluates to true if types contains the BSON type of v.
+	containsBSONType = func(v interface{}, types ...string) bson.M {
+
+		vType := bson.M{mgoOperatorType: v}
+		checks := make([]interface{}, len(types))
+
+		for i, t := range types {
+			checks[i] = wrapInOp(mgoOperatorEq, vType, t)
+		}
+
+		return bson.M{mgoOperatorOr: checks}
 	}
 
 	wrapLRTrim = func(isLTrimType bool, args interface{}) interface{} {
@@ -245,6 +304,19 @@ var (
 
 	wrapSingleArgFuncWithNullCheck = func(name string, arg interface{}) interface{} {
 		return wrapInNullCheckedCond(nil, bson.M{name: arg}, arg)
+	}
+
+	// wrapInStringToArray converts an expression v (which must evaluate to a string) to an array.
+	// For example, "hello" -> ["h", "e", "l", "l", "o"].
+	wrapInStringToArray = func(v interface{}) bson.M {
+		input := bson.M{mgoOperatorRange: []interface{}{0, bson.M{mgoOperatorStrlenCP: v}}}
+		in := bson.M{mgoOperatorSubstr: []interface{}{v, "$$this", 1}}
+		return bson.M{mgoOperatorMap: bson.M{"input": input, "in": in}}
+	}
+
+	// wrapInArrayToString combines an expression (which much evaluate to an array) into a single string.
+	wrapInArrayToString = func(v interface{}) bson.M {
+		return wrapInReduce(v, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
 	}
 )
 
@@ -921,6 +993,161 @@ func (t *pushDownTranslator) translateExprAux(e SQLExpr) (interface{}, bool) {
 				"$$date",
 			)
 			return wrapInLet(letAssignment, letEvaluation), true
+
+		case "date":
+
+			if !t.versionAtLeast(3, 5, 0) {
+				return nil, false
+			}
+
+			if len(typedE.Exprs) != 1 {
+				return nil, false
+			}
+
+			args, ok := translateArgs()
+			if !ok {
+				return nil, false
+			}
+
+			val := args[0]
+
+			wrapInDateFromString := func(v interface{}) bson.M {
+				return bson.M{"$dateFromString": bson.M{"dateString": v}}
+			}
+
+			// CASE 1: it's already a Mongo date, we just return it
+			isDateType := containsBSONType(val, "date")
+			dateBranch := wrapInCase(isDateType, val)
+
+			// CASE 2: it's a number.
+			isNumber := containsBSONType(val, "int", "decimal", "long", "double")
+
+			// evaluates to true if val positive and has <= X digits.
+			hasUpToXDigits := func(x float64) interface{} {
+				return wrapInInRange(val, 0, math.Pow(10, x))
+			}
+
+			// this handles converting a number in YYMMDD format to YYYYMMDD.
+			// if YY < 70, we assume they meant 20YY. if YY > 70, we assume 19YY.
+			getPadding := func(v interface{}) interface{} {
+				return wrapInCond(
+					20000000,
+					19000000,
+					wrapInOp(mgoOperatorLt,
+						wrapInOp(mgoOperatorDivide,
+							v, 10000),
+						70))
+			}
+
+			// we interpret this as being format YYMMDD
+			ifSix := wrapInOp(mgoOperatorAdd, val, getPadding(val))
+			sixBranch := wrapInCase(hasUpToXDigits(6), ifSix)
+
+			// this number is good as is! YYYYMMDD
+			eightBranch := wrapInCase(hasUpToXDigits(8), val)
+
+			// if it's twelve digits, interpret as YYMMDDHHMMSS.
+			// first drop the last six digits, then pad like we would a six digit number.
+			firstSixDigits := bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, val, 1000000)}
+			ifTwelve := wrapInOp(mgoOperatorAdd, firstSixDigits, getPadding(firstSixDigits))
+			twelveBranch := wrapInCase(hasUpToXDigits(12), ifTwelve)
+
+			// if fourteen, YYYYMMDDHHMMSS. just drop the last six digits.
+			ifFourteen := bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, val, 1000000)}
+			fourteenBranch := wrapInCase(hasUpToXDigits(14), ifFourteen)
+
+			// define "num", the input number normalized to 8 digits, in a "let"
+			numberVar := wrapInSwitch(nil, sixBranch, eightBranch, twelveBranch, fourteenBranch)
+			numberLetVars := bson.M{"num": numberVar}
+
+			dateParts := bson.M{
+				// YYYYMMDD / 10000 = YYYY
+				"year": bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 10000)},
+				// (YYYYMMDD / 100) % 100 = MM
+				"month": wrapInOp(mgoOperatorMod, bson.M{mgoOperatorTrunc: wrapInOp(mgoOperatorDivide, "$$num", 100)}, 100),
+				// YYYYMMDD % 100 = DD
+				"day": wrapInOp(mgoOperatorMod, "$$num", 100),
+			}
+
+			// try to avoid aggregation errors by catching obviously invalid dates
+			yearValid := wrapInInRange("$$year", 0, 10000)
+			monthValid := wrapInInRange("$$month", 1, 13)
+			dayValid := wrapInInRange("$$day", 1, 32)
+
+			makeDateOrNull := wrapInCond(
+				bson.M{"$dateFromParts": bson.M{
+					"year":  "$$year",
+					"month": "$$month",
+					"day":   "$$day",
+				}},
+				nil,
+				bson.M{mgoOperatorAnd: []interface{}{yearValid, monthValid, dayValid}},
+			)
+
+			evaluateNumber := wrapInLet(dateParts, makeDateOrNull)
+			handleNumberToDate := wrapInLet(numberLetVars, evaluateNumber)
+			numberBranch := wrapInCase(isNumber, handleNumberToDate)
+
+			// CASE 3: it's a string
+			isString := containsBSONType(val, "string")
+
+			// first split on T, take first substring, then split that on " ", and take first
+			// substring. this gives us just the date part of the string. note that if the
+			// string doesn't have T or a space, just returns original string
+			trimmedString := wrapInOp(mgoOperatorArrElemAt,
+				wrapInOp(mgoOperatorSplit,
+					wrapInOp(mgoOperatorArrElemAt,
+						wrapInOp(mgoOperatorSplit, val, "T"),
+						0),
+					" "),
+				0)
+
+			// convert the string to an array so we can use map/reduce
+			trimmedAsArray := wrapInStringToArray("$$trimmed")
+
+			// isSeparator evaluates to true if a character is in the defined separator list
+			isSeparator := wrapInOp(mgoOperatorNeq, -1, wrapInOp("$indexOfArray", dateComponentSeparator, "$$c"))
+
+			// use map to convert all separators in the string to / symbol, and leave numbers as-is
+			separatorsNormalized := wrapInMap(trimmedAsArray, "c", wrapInCond("/", "$$c", isSeparator))
+
+			// use reduce to convert characters back to a single string
+			joined := wrapInReduce(separatorsNormalized, "", wrapInOp(mgoOperatorConcat, "$$value", "$$this"))
+
+			// if the third character is a /, or if the string is only 6 digits long and has no slashes,
+			// then the string is either format YY/MM/DD or YYMMDD and we need to add the appropriate first
+			// two year digits (19xx or 20xx) for Mongo to understand it
+			hasShortYear := wrapInOp(mgoOperatorOr,
+				// length is only 6, assume YYMMDD
+				wrapInOp(mgoOperatorEq, bson.M{mgoOperatorStrlenCP: "$$joined"}, 6),
+				// third character is /, assume YY/MM/DD
+				wrapInOp(mgoOperatorEq, "/", bson.M{mgoOperatorSubstr: []interface{}{"$$joined", 2, 1}}))
+
+			padYear := wrapInOp(mgoOperatorConcat,
+				wrapInCond(
+					"20",
+					"19",
+					// check if first two digits < 70 to determine padding
+					wrapInOp(
+						mgoOperatorLt,
+						bson.M{mgoOperatorSubstr: []interface{}{"$$joined", 0, 2}},
+						"70")),
+				"$$joined")
+
+			// we have to use nested $lets because in the outer one we define $$trimmed and
+			// in the inner one we define $$joined. defining $$joined requires knowing the
+			// length of trimmed, so we can't do it all in one step.
+			innerIn := wrapInCond(padYear, "$$joined", hasShortYear)
+			innerLet := wrapInLet(bson.M{"joined": joined}, innerIn)
+
+			// gracefully handle strings that are too short to possibly be valid by returning null
+			tooShort := wrapInOp(mgoOperatorLt, bson.M{mgoOperatorStrlenCP: "$$trimmed"}, 6)
+			outerIn := wrapInCond(nil, wrapInDateFromString(innerLet), tooShort)
+			outerLet := wrapInLet(bson.M{"trimmed": trimmedString}, outerIn)
+
+			stringBranch := wrapInCase(isString, outerLet)
+
+			return wrapInSwitch(nil, dateBranch, numberBranch, stringBranch), true
 
 		case "datediff":
 			if len(typedE.Exprs) != 2 {

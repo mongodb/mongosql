@@ -149,6 +149,41 @@ schema:
       MongoType: string
       SqlName: s
       SqlType: varchar
+  - table: dateTest
+    collection: "dates"
+    columns:
+    - Name: d
+      MongoType: date
+      SqlName: d
+      SqlType: timestamp
+    - Name: s1
+      MongoType: string
+      SqlName: s1
+      SqlType: varchar
+    - Name:  s2
+      MongoType: string
+      SqlName: s2
+      SqlType: varchar
+    - Name: s3
+      MongoType: string
+      SqlName: s3
+      SqlType: varchar
+    - Name: s4
+      MongoType: string
+      SqlName: s4
+      SqlType: varchar
+    - Name: n1
+      MongoType: float64
+      SqlName: n1
+      SqlType: float64
+    - Name: n2
+      MongoType: int
+      SqlName: n2
+      SqlType: int
+    - Name: n3
+      MongoType: int
+      SqlName: n3
+      SqlType: int
 - db: groupby_test
   tables:
   - table: foo

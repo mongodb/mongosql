@@ -1183,19 +1183,98 @@ func TestEvaluates(t *testing.T) {
 			})
 
 			Convey("Subject: DATE", func() {
-				d, err := time.Parse("2006-01-02", "2016-03-01")
+				fmtString := "2006-01-02"
+
+				d, err := time.Parse(fmtString, "2016-03-01")
+				So(err, ShouldBeNil)
+
+				dExpected := SQLDate{Time: d}
+
+				preCutoff, err := time.Parse(fmtString, "2069-12-31")
+				So(err, ShouldBeNil)
+
+				postCutoff, err := time.Parse(fmtString, "1970-01-01")
+				So(err, ShouldBeNil)
+
+				jan112000, err := time.Parse(fmtString, "2000-01-11")
+				So(err, ShouldBeNil)
+
+				nov102000, err := time.Parse(fmtString, "2000-11-10")
+				So(err, ShouldBeNil)
+
+				nov102006, err := time.Parse(fmtString, "2006-11-10")
+				So(err, ShouldBeNil)
+
+				nov100116, err := time.Parse(fmtString, "0116-11-10")
+				So(err, ShouldBeNil)
+
+				may042000, err := time.Parse(fmtString, "2000-05-04")
 				So(err, ShouldBeNil)
 
 				tests := []test{
+					// invalid inputs
 					test{"DATE(NULL)", SQLNull},
 					test{"DATE(23)", SQLNull},
 					test{"DATE('cat')", SQLNull},
-					test{"DATE(TIMESTAMP '2016-03-01 12:32:23')", SQLDate{Time: d}},
-					test{"DATE(DATE '2016-03-01')", SQLDate{Time: d}},
-					test{"DATE('2016-03-01')", SQLDate{Time: d}},
-					test{"DATE('20160301')", SQLDate{Time: d}},
-					test{"DATE(20160301)", SQLDate{Time: d}},
-					test{"DATE(160301)", SQLDate{Time: d}},
+					test{"DATE(6911)", SQLNull},
+					test{"DATE(2017110722040)", SQLNull},
+					test{"DATE(-50)", SQLNull},
+					test{"DATE('')", SQLNull},
+
+					// explicitly labeling input as date/timestamp
+					test{"DATE(TIMESTAMP '2016-03-01 12:32:23')", dExpected},
+					test{"DATE(DATE '2016-03-01')", dExpected},
+
+					// unlabeled string inputs
+					test{"DATE('2016-03-01 12:32:23')", dExpected},
+					test{"DATE('2016-03-01')", dExpected},
+					test{"DATE('20160301')", dExpected},
+
+					// number inputs
+					test{"DATE(20160301)", dExpected},
+					test{"DATE(20160301123456)", dExpected},
+					test{"DATE(160301123456)", dExpected},
+					test{"DATE(160301)", dExpected},
+
+					// numbers that are too short to pad
+					test{"DATE(1)", SQLNull},
+					test{"DATE(11)", SQLNull},
+
+					// number inputs requiring padding
+					test{"DATE(111)", SQLDate{Time: jan112000}},
+					test{"DATE(1110)", SQLDate{Time: nov102000}},
+					test{"DATE(61110)", SQLDate{Time: nov102006}},
+					test{"DATE(1161110)", SQLDate{Time: nov100116}},
+					test{"DATE(504123025)", SQLDate{Time: may042000}},
+					test{"DATE(1110123025)", SQLDate{Time: nov102000}},
+					test{"DATE(61110123025)", SQLDate{Time: nov102006}},
+					test{"DATE(61110123025.22)", SQLDate{Time: nov102006}},
+					test{"DATE(1161110123025)", SQLDate{Time: nov100116}},
+
+					// alternate delimiters
+					test{"DATE('16-03-01')", dExpected},
+					test{"DATE('2016.03.01')", dExpected},
+
+					// mixed delimiters
+					test{"DATE('2016@03.01')", dExpected},
+					test{"DATE('2016-03-01 12.32.23')", dExpected},
+
+					// shortened form of single-digit values
+					test{"DATE('16-03-1')", dExpected},
+					test{"DATE('2016.3.1')", dExpected},
+					test{"DATE('16.3.1')", dExpected},
+
+					// timestamp w/ fractional seconds
+					test{"DATE('2016-03-01 12.32.23.3333')", dExpected},
+
+					// use T instead of space to separate
+					test{"DATE('2016-03-01T12.32.23.3333')", dExpected},
+
+					// make sure behavior around year cutoff is correct -
+					// 0-69 are intepreted as 2000-2069, while 70-99 are
+					// interpreted as 1970-1999.
+					test{"DATE('69-12-31')", SQLDate{Time: preCutoff}},
+					test{"DATE('70-01-01')", SQLDate{Time: postCutoff}},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -3890,6 +3969,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"trim(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$cond":[{"$eq":["$s",""]},"",{"$let":{"in":{"$cond":[{"$eq":["$$rtrim",""]},"",{"$substrCP":["$$rtrim",{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$$rtrim"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$split":["$$rtrim"," "]}}}}}}},{"$strLenCP":"$$rtrim"}]}]},"vars":{"rtrim":{"$cond":[{"$eq":["$s",""]},"",{"$substrCP":["$s",0,{"$subtract":[{"$strLenCP":"$s"},{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$s"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$reverseArray":{"$split":["$s"," "]}}}}}}}}]}]}]}}}}]}]}`},
 			test{"lpad(s, 5, 'xy')", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$let":{"in":{"$cond":[{"$lt":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},0]},null,{"$cond":[{"$lt":[{"$strLenCP":"$s"},"$$length"]},{"$cond":[{"$eq":["$$padStrLen",0]},null,{"$concat":[{"$substrCP":[{"$reduce":{"in":{"$concat":["$$value","$$this"]},"initialValue":"","input":{"$map":{"in":{"$literal":"xy"},"input":{"$range":[0,{"$ceil":{"$divide":["$$padLen","$$padStrLen"]}}]}}}}},0,"$$padLen"]},"$s"]}]},{"$substrCP":["$s",0,"$$length"]}]}]},"vars":{"length":{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},"padLen":{"$subtract":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},{"$strLenCP":"$s"}]},"padStrLen":{"$strLenCP":{"$literal":"xy"}}}}}]}`},
 			test{"rpad(s, 5, 'xy')", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$let":{"in":{"$cond":[{"$lt":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},0]},null,{"$cond":[{"$lt":[{"$strLenCP":"$s"},"$$length"]},{"$cond":[{"$eq":["$$padStrLen",0]},null,{"$concat":["$s",{"$substrCP":[{"$reduce":{"in":{"$concat":["$$value","$$this"]},"initialValue":"","input":{"$map":{"in":{"$literal":"xy"},"input":{"$range":[0,{"$ceil":{"$divide":["$$padLen","$$padStrLen"]}}]}}}}},0,"$$padLen"]}]}]},{"$substrCP":["$s",0,"$$length"]}]}]},"vars":{"length":{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},"padLen":{"$subtract":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},{"$strLenCP":"$s"}]},"padStrLen":{"$strLenCP":{"$literal":"xy"}}}}}]}`},
+			test{"date(s)", "{\"$switch\":{\"branches\":[{\"case\":{\"$or\":[{\"$eq\":[{\"$type\":\"$s\"},\"date\"]}]},\"then\":\"$s\"},{\"case\":{\"$or\":[{\"$eq\":[{\"$type\":\"$s\"},\"int\"]},{\"$eq\":[{\"$type\":\"$s\"},\"decimal\"]},{\"$eq\":[{\"$type\":\"$s\"},\"long\"]},{\"$eq\":[{\"$type\":\"$s\"},\"double\"]}]},\"then\":{\"$let\":{\"in\":{\"$let\":{\"in\":{\"$cond\":[{\"$and\":[{\"$and\":[{\"$gte\":[\"$$year\",0]},{\"$lt\":[\"$$year\",10000]}]},{\"$and\":[{\"$gte\":[\"$$month\",1]},{\"$lt\":[\"$$month\",13]}]},{\"$and\":[{\"$gte\":[\"$$day\",1]},{\"$lt\":[\"$$day\",32]}]}]},{\"$dateFromParts\":{\"day\":\"$$day\",\"month\":\"$$month\",\"year\":\"$$year\"}},null]},\"vars\":{\"day\":{\"$mod\":[\"$$num\",100]},\"month\":{\"$mod\":[{\"$trunc\":{\"$divide\":[\"$$num\",100]}},100]},\"year\":{\"$trunc\":{\"$divide\":[\"$$num\",10000]}}}}},\"vars\":{\"num\":{\"$switch\":{\"branches\":[{\"case\":{\"$and\":[{\"$gte\":[\"$s\",0]},{\"$lt\":[\"$s\",1000000]}]},\"then\":{\"$add\":[\"$s\",{\"$cond\":[{\"$lt\":[{\"$divide\":[\"$s\",10000]},70]},20000000,19000000]}]}},{\"case\":{\"$and\":[{\"$gte\":[\"$s\",0]},{\"$lt\":[\"$s\",100000000]}]},\"then\":\"$s\"},{\"case\":{\"$and\":[{\"$gte\":[\"$s\",0]},{\"$lt\":[\"$s\",1000000000000]}]},\"then\":{\"$add\":[{\"$trunc\":{\"$divide\":[\"$s\",1000000]}},{\"$cond\":[{\"$lt\":[{\"$divide\":[{\"$trunc\":{\"$divide\":[\"$s\",1000000]}},10000]},70]},20000000,19000000]}]}},{\"case\":{\"$and\":[{\"$gte\":[\"$s\",0]},{\"$lt\":[\"$s\",100000000000000]}]},\"then\":{\"$trunc\":{\"$divide\":[\"$s\",1000000]}}}],\"default\":null}}}}}},{\"case\":{\"$or\":[{\"$eq\":[{\"$type\":\"$s\"},\"string\"]}]},\"then\":{\"$let\":{\"in\":{\"$cond\":[{\"$lt\":[{\"$strLenCP\":\"$$trimmed\"},6]},null,{\"$dateFromString\":{\"dateString\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$eq\":[{\"$strLenCP\":\"$$joined\"},6]},{\"$eq\":[\"/\",{\"$substrCP\":[\"$$joined\",2,1]}]}]},{\"$concat\":[{\"$cond\":[{\"$lt\":[{\"$substrCP\":[\"$$joined\",0,2]},\"70\"]},\"20\",\"19\"]},\"$$joined\"]},\"$$joined\"]},\"vars\":{\"joined\":{\"$reduce\":{\"in\":{\"$concat\":[\"$$value\",\"$$this\"]},\"initialValue\":\"\",\"input\":{\"$map\":{\"as\":\"c\",\"in\":{\"$cond\":[{\"$ne\":[-1,{\"$indexOfArray\":[[\"!\",\"\\\"\",\"#\",{\"$literal\":\"$\"},\"%\",\"\\u0026\",\"'\",\"(\",\")\",\"*\",\"+\",\",\",\"-\",\".\",\"/\",\":\",\";\",\"\\u003c\",\"=\",\"\\u003e\",\"?\",\"@\",\"[\",\"\\\\\",\"]\",\"^\",\"_\",\"`\",\"{\",\"|\",\"}\",\"~\"],\"$$c\"]}]},\"/\",\"$$c\"]},\"input\":{\"$map\":{\"in\":{\"$substrCP\":[\"$$trimmed\",\"$$this\",1]},\"input\":{\"$range\":[0,{\"$strLenCP\":\"$$trimmed\"}]}}}}}}}}}}}}]},\"vars\":{\"trimmed\":{\"$arrayElemAt\":[{\"$split\":[{\"$arrayElemAt\":[{\"$split\":[\"$s\",\"T\"]},0]},\" \"]},0]}}}}}],\"default\":null}}"},
 		}
 
 		runTests(tests)

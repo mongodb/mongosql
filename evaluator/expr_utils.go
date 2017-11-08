@@ -15,6 +15,7 @@ import (
 const (
 	regexCharsToEscape = ".^$*+?()[{\\|"
 	maxPrecisionInt    = int64(1 << 53)
+	punctuation        = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 )
 
 func compareBytes(left, right []byte) (int, error) {
@@ -813,12 +814,7 @@ func isDigit(c byte) bool {
 }
 
 func isPunct(c byte) bool {
-	switch c {
-	case '.', '#', '@', ':', '$', '^', '/', '-':
-		return true
-	default:
-		return false
-	}
+	return strings.IndexByte(punctuation, c) != -1
 }
 
 func isSpace(c byte) bool {
