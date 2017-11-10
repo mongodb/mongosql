@@ -154,7 +154,7 @@ func TestOptimizePlan32(t *testing.T) {
 					"__predicate": true,
 				}}},
 				{{"$project", bson.M{
-					"foo_DOT_a": "$a",
+					"test_DOT_foo_DOT_a": "$a",
 				}}},
 			},
 		)
@@ -243,7 +243,7 @@ func TestOptimizePlan32(t *testing.T) {
 					"__predicate": true,
 				}}},
 				{{"$project", bson.M{
-					"foo_DOT_a": "$a",
+					"test_DOT_foo_DOT_a": "$a",
 				}}},
 			},
 		)
@@ -329,7 +329,7 @@ func TestOptimizePlan32(t *testing.T) {
 					"__predicate": true,
 				}}},
 				{{"$project", bson.M{
-					"foo_DOT_a": "$a",
+					"test_DOT_foo_DOT_a": "$a",
 				}}},
 			},
 		)
@@ -429,16 +429,16 @@ func TestOptimizePlan32(t *testing.T) {
 					"__predicate": true,
 				}}},
 				{{"$project", bson.M{
-					"a_DOT_b":   "$b",
-					"a_DOT__id": "$_id",
-					"b_DOT_e":   "$__joined_b.d.e",
-					"b_DOT_g":   "$__joined_b.g",
-					"b_DOT_f":   "$__joined_b.d.f",
-					"b_DOT__id": "$__joined_b._id",
-					"a_DOT_a":   "$a",
-					"b_DOT_a":   "$__joined_b.a",
-					"b_DOT_b":   "$__joined_b.b",
-					"b_DOT_c":   "$__joined_b.c",
+					"test_DOT_a_DOT_b":   "$b",
+					"test_DOT_a_DOT__id": "$_id",
+					"test_DOT_b_DOT_e":   "$__joined_b.d.e",
+					"test_DOT_b_DOT_g":   "$__joined_b.g",
+					"test_DOT_b_DOT_f":   "$__joined_b.d.f",
+					"test_DOT_b_DOT__id": "$__joined_b._id",
+					"test_DOT_a_DOT_a":   "$a",
+					"test_DOT_b_DOT_a":   "$__joined_b.a",
+					"test_DOT_b_DOT_b":   "$__joined_b.b",
+					"test_DOT_b_DOT_c":   "$__joined_b.c",
 				}}},
 			},
 		)
@@ -507,12 +507,12 @@ func TestOptimizePlan(t *testing.T) {
 				test("select a, b from (select a, b from bar) b",
 					[]bson.D{
 						{{"$project", bson.M{
-							"bar_DOT_a": "$a",
-							"bar_DOT_b": "$b",
+							"test_DOT_bar_DOT_a": "$a",
+							"test_DOT_bar_DOT_b": "$b",
 						}}},
 						{{"$project", bson.M{
-							"b_DOT_a": "$bar_DOT_a",
-							"b_DOT_b": "$bar_DOT_b",
+							"test_DOT_b_DOT_a": "$test_DOT_bar_DOT_a",
+							"test_DOT_b_DOT_b": "$test_DOT_bar_DOT_b",
 						}}},
 					},
 				)
@@ -605,16 +605,16 @@ func TestOptimizePlan(t *testing.T) {
 								"__predicate": true,
 							}}},
 							{{"$project", bson.M{
-								"a_DOT_a":   "$a",
-								"a_DOT_b":   "$b",
-								"b_DOT_b":   "$__joined_b.b",
-								"b_DOT_f":   "$__joined_b.d.f",
-								"b_DOT__id": "$__joined_b._id",
-								"a_DOT__id": "$_id",
-								"b_DOT_a":   "$__joined_b.a",
-								"b_DOT_c":   "$__joined_b.c",
-								"b_DOT_e":   "$__joined_b.d.e",
-								"b_DOT_g":   "$__joined_b.g",
+								"test_DOT_a_DOT_a":   "$a",
+								"test_DOT_a_DOT_b":   "$b",
+								"test_DOT_b_DOT_b":   "$__joined_b.b",
+								"test_DOT_b_DOT_f":   "$__joined_b.d.f",
+								"test_DOT_b_DOT__id": "$__joined_b._id",
+								"test_DOT_a_DOT__id": "$_id",
+								"test_DOT_b_DOT_a":   "$__joined_b.a",
+								"test_DOT_b_DOT_c":   "$__joined_b.c",
+								"test_DOT_b_DOT_e":   "$__joined_b.d.e",
+								"test_DOT_b_DOT_g":   "$__joined_b.g",
 							}}},
 						},
 					)
@@ -632,8 +632,8 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
 							}}},
 						},
 					)
@@ -653,8 +653,8 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
 							}}},
 						},
 					)
@@ -675,8 +675,8 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 							{{"$match", bson.M{"__joined_bar.b": int64(12)}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
 							}}},
 						},
 					)
@@ -701,8 +701,8 @@ func TestOptimizePlan(t *testing.T) {
 								},
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
 							}}},
 						},
 					)
@@ -728,8 +728,8 @@ func TestOptimizePlan(t *testing.T) {
 								},
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
 							}}},
 						},
 					)
@@ -755,8 +755,8 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 							{{"$match", bson.M{"__joined_bar.b": int64(12)}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
 							}}},
 						},
 					)
@@ -765,14 +765,14 @@ func TestOptimizePlan(t *testing.T) {
 						[]bson.D{
 							{{"$match", bson.M{"b": int64(12)}}},
 							{{"$project", bson.M{
-								"bar_DOT_a": "$a",
-								"bar_DOT_b": "$b",
+								"test_DOT_bar_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$b",
 							}}},
-							{{"$match", bson.M{"bar_DOT_a": int64(10)}}},
-							{{"$match", bson.M{"bar_DOT_a": bson.M{"$ne": nil}}}},
+							{{"$match", bson.M{"test_DOT_bar_DOT_a": int64(10)}}},
+							{{"$match", bson.M{"test_DOT_bar_DOT_a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "foo",
-								"localField":   "bar_DOT_a",
+								"localField":   "test_DOT_bar_DOT_a",
 								"foreignField": "a",
 								"as":           "__joined_foo",
 							}}},
@@ -781,8 +781,8 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$__joined_foo.a",
-								"bar_DOT_b": "$bar_DOT_b",
+								"test_DOT_foo_DOT_a": "$__joined_foo.a",
+								"test_DOT_bar_DOT_b": "$test_DOT_bar_DOT_b",
 							}}},
 						},
 					)
@@ -801,8 +801,8 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_a": "$__joined_bar.a",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_a": "$__joined_bar.a",
 							}}},
 						},
 					)
@@ -824,8 +824,8 @@ func TestOptimizePlan(t *testing.T) {
 								"b": bson.M{"$gt": int64(10)},
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
 							}}},
 						},
 					)
@@ -853,8 +853,8 @@ func TestOptimizePlan(t *testing.T) {
 								},
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
 							}}},
 						},
 					)
@@ -873,8 +873,8 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
 							}}},
 						},
 					)
@@ -882,13 +882,13 @@ func TestOptimizePlan(t *testing.T) {
 					test("select foo.a, b.b from foo join (select a, b from bar) b on foo.a=b.a",
 						[]bson.D{
 							{{"$project", bson.M{
-								"bar_DOT_a": "$a",
-								"bar_DOT_b": "$b",
+								"test_DOT_bar_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$b",
 							}}},
-							{{"$match", bson.M{"bar_DOT_a": bson.M{"$ne": nil}}}},
+							{{"$match", bson.M{"test_DOT_bar_DOT_a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "foo",
-								"localField":   "bar_DOT_a",
+								"localField":   "test_DOT_bar_DOT_a",
 								"foreignField": "a",
 								"as":           "__joined_foo",
 							}}},
@@ -897,8 +897,8 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_foo",
 							}}},
 							{{"$project", bson.M{
-								"b_DOT_b":   "$bar_DOT_b",
-								"foo_DOT_a": "$__joined_foo.a",
+								"test_DOT_b_DOT_b":   "$test_DOT_bar_DOT_b",
+								"test_DOT_foo_DOT_a": "$__joined_foo.a",
 							}}},
 						},
 					)
@@ -906,12 +906,12 @@ func TestOptimizePlan(t *testing.T) {
 					test("select * from (select foo.a from bar join (select foo.a from foo) foo on foo.a=bar.b) x join (select g.a from bar join (select foo.a from foo) g on g.a=bar.a) y on x.a=y.a",
 						[]bson.D{
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
+								"test_DOT_foo_DOT_a": "$a",
 							}}},
-							{{"$match", bson.M{"foo_DOT_a": bson.M{"$ne": nil}}}},
+							{{"$match", bson.M{"test_DOT_foo_DOT_a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "bar",
-								"localField":   "foo_DOT_a",
+								"localField":   "test_DOT_foo_DOT_a",
 								"foreignField": "b",
 								"as":           "__joined_bar",
 							}}},
@@ -920,20 +920,20 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_bar",
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$foo_DOT_a",
+								"test_DOT_foo_DOT_a": "$test_DOT_foo_DOT_a",
 							}}},
 							{{"$project", bson.M{
-								"x_DOT_a": "$foo_DOT_a",
+								"test_DOT_x_DOT_a": "$test_DOT_foo_DOT_a",
 							}}},
 						},
 						[]bson.D{
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
+								"test_DOT_foo_DOT_a": "$a",
 							}}},
-							{{"$match", bson.M{"foo_DOT_a": bson.M{"$ne": nil}}}},
+							{{"$match", bson.M{"test_DOT_foo_DOT_a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "bar",
-								"localField":   "foo_DOT_a",
+								"localField":   "test_DOT_foo_DOT_a",
 								"foreignField": "a",
 								"as":           "__joined_bar",
 							}}},
@@ -942,10 +942,10 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_bar",
 							}}},
 							{{"$project", bson.M{
-								"g_DOT_a": "$foo_DOT_a",
+								"test_DOT_g_DOT_a": "$test_DOT_foo_DOT_a",
 							}}},
 							{{"$project", bson.M{
-								"y_DOT_a": "$g_DOT_a",
+								"test_DOT_y_DOT_a": "$test_DOT_g_DOT_a",
 							}}},
 						},
 					)
@@ -953,25 +953,25 @@ func TestOptimizePlan(t *testing.T) {
 					test("select * from foo f left join (select b.b from foo f join (select * from bar) b on f.a=b.a)  b on f.a=b.b",
 						[]bson.D{
 							{{"$project", bson.M{
-								"f_DOT__id": "$_id",
-								"f_DOT_a":   "$a",
-								"f_DOT_b":   "$b",
-								"f_DOT_c":   "$c",
-								"f_DOT_e":   "$d.e",
-								"f_DOT_f":   "$d.f",
-								"f_DOT_g":   "$g",
+								"test_DOT_f_DOT__id": "$_id",
+								"test_DOT_f_DOT_a":   "$a",
+								"test_DOT_f_DOT_b":   "$b",
+								"test_DOT_f_DOT_c":   "$c",
+								"test_DOT_f_DOT_e":   "$d.e",
+								"test_DOT_f_DOT_f":   "$d.f",
+								"test_DOT_f_DOT_g":   "$g",
 							}}},
 						},
 						[]bson.D{
 							{{"$project", bson.M{
-								"bar_DOT__id": "$_id",
-								"bar_DOT_a":   "$a",
-								"bar_DOT_b":   "$b",
+								"test_DOT_bar_DOT__id": "$_id",
+								"test_DOT_bar_DOT_a":   "$a",
+								"test_DOT_bar_DOT_b":   "$b",
 							}}},
-							{{"$match", bson.M{"bar_DOT_a": bson.M{"$ne": nil}}}},
+							{{"$match", bson.M{"test_DOT_bar_DOT_a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "foo",
-								"localField":   "bar_DOT_a",
+								"localField":   "test_DOT_bar_DOT_a",
 								"foreignField": "a",
 								"as":           "__joined_f",
 							}}},
@@ -980,10 +980,10 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"b_DOT_b": "$bar_DOT_b",
+								"test_DOT_b_DOT_b": "$test_DOT_bar_DOT_b",
 							}}},
 							{{"$project", bson.M{
-								"b_DOT_b": "$b_DOT_b",
+								"test_DOT_b_DOT_b": "$test_DOT_b_DOT_b",
 							}}},
 						},
 					)
@@ -991,14 +991,14 @@ func TestOptimizePlan(t *testing.T) {
 					test("select * from foo f right join (select b.b from foo f join (select * from bar) b on f.a=b.a)  b on f.a=b.b",
 						[]bson.D{
 							{{"$project", bson.M{
-								"bar_DOT__id": "$_id",
-								"bar_DOT_a":   "$a",
-								"bar_DOT_b":   "$b",
+								"test_DOT_bar_DOT__id": "$_id",
+								"test_DOT_bar_DOT_a":   "$a",
+								"test_DOT_bar_DOT_b":   "$b",
 							}}},
-							{{"$match", bson.M{"bar_DOT_a": bson.M{"$ne": nil}}}},
+							{{"$match", bson.M{"test_DOT_bar_DOT_a": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "foo",
-								"localField":   "bar_DOT_a",
+								"localField":   "test_DOT_bar_DOT_a",
 								"foreignField": "a",
 								"as":           "__joined_f",
 							}}},
@@ -1007,20 +1007,20 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"b_DOT_b": "$bar_DOT_b",
+								"test_DOT_b_DOT_b": "$test_DOT_bar_DOT_b",
 							}}},
 							{{"$lookup", bson.M{
 								"from":         "foo",
-								"localField":   "b_DOT_b",
+								"localField":   "test_DOT_b_DOT_b",
 								"foreignField": "a",
 								"as":           "__joined_f",
 							}}},
 							{{"$project", bson.M{
-								"b_DOT_b": 1,
+								"test_DOT_b_DOT_b": 1,
 								"__joined_f": bson.M{
 									"$cond": []interface{}{
 										bson.M{"$eq": []interface{}{
-											bson.M{"$ifNull": []interface{}{"$b_DOT_b", nil}},
+											bson.M{"$ifNull": []interface{}{"$test_DOT_b_DOT_b", nil}},
 											nil,
 										}},
 										bson.M{"$literal": []interface{}{}},
@@ -1033,14 +1033,14 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": true,
 							}}},
 							{{"$project", bson.M{
-								"f_DOT__id": "$__joined_f._id",
-								"b_DOT_b":   "$b_DOT_b",
-								"f_DOT_a":   "$__joined_f.a",
-								"f_DOT_b":   "$__joined_f.b",
-								"f_DOT_c":   "$__joined_f.c",
-								"f_DOT_e":   "$__joined_f.d.e",
-								"f_DOT_f":   "$__joined_f.d.f",
-								"f_DOT_g":   "$__joined_f.g",
+								"test_DOT_f_DOT__id": "$__joined_f._id",
+								"test_DOT_b_DOT_b":   "$test_DOT_b_DOT_b",
+								"test_DOT_f_DOT_a":   "$__joined_f.a",
+								"test_DOT_f_DOT_b":   "$__joined_f.b",
+								"test_DOT_f_DOT_c":   "$__joined_f.c",
+								"test_DOT_f_DOT_e":   "$__joined_f.d.e",
+								"test_DOT_f_DOT_f":   "$__joined_f.d.f",
+								"test_DOT_f_DOT_g":   "$__joined_f.g",
 							}}},
 						},
 					)
@@ -1067,39 +1067,39 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"f_DOT__id":          "$__joined_f._id",
-								"f_DOT_a":            "$__joined_f.a",
-								"f_DOT_b":            "$__joined_f.b",
-								"f_DOT_c":            "$__joined_f.c",
-								"f_DOT_e":            "$__joined_f.d.e",
-								"f_DOT_f":            "$__joined_f.d.f",
-								"f_DOT_g":            "$__joined_f.g",
-								"m1_DOT__id":         "$_id",
-								"m1_DOT_a":           "$a",
-								"m2_DOT__id":         "$_id",
-								"m2_DOT_d_DOT_a":     "$d.a",
-								"m2_DOT_d_DOT_a_idx": "$d.a_idx",
-								"m2_DOT_d_idx":       "$d_idx",
+								"test_DOT_f_DOT__id":          "$__joined_f._id",
+								"test_DOT_f_DOT_a":            "$__joined_f.a",
+								"test_DOT_f_DOT_b":            "$__joined_f.b",
+								"test_DOT_f_DOT_c":            "$__joined_f.c",
+								"test_DOT_f_DOT_e":            "$__joined_f.d.e",
+								"test_DOT_f_DOT_f":            "$__joined_f.d.f",
+								"test_DOT_f_DOT_g":            "$__joined_f.g",
+								"test_DOT_m1_DOT__id":         "$_id",
+								"test_DOT_m1_DOT_a":           "$a",
+								"test_DOT_m2_DOT__id":         "$_id",
+								"test_DOT_m2_DOT_d_DOT_a":     "$d.a",
+								"test_DOT_m2_DOT_d_DOT_a_idx": "$d.a_idx",
+								"test_DOT_m2_DOT_d_idx":       "$d_idx",
 							}}},
 						},
 						[]bson.D{
 							{{"$project", bson.M{
-								"foo_DOT__id": "$_id",
-								"foo_DOT_a":   "$a",
-								"foo_DOT_b":   "$b",
-								"foo_DOT_c":   "$c",
-								"foo_DOT_e":   "$d.e",
-								"foo_DOT_f":   "$d.f",
-								"foo_DOT_g":   "$g",
+								"test_DOT_foo_DOT__id": "$_id",
+								"test_DOT_foo_DOT_a":   "$a",
+								"test_DOT_foo_DOT_b":   "$b",
+								"test_DOT_foo_DOT_c":   "$c",
+								"test_DOT_foo_DOT_e":   "$d.e",
+								"test_DOT_foo_DOT_f":   "$d.f",
+								"test_DOT_foo_DOT_g":   "$g",
 							}}},
 							{{"$project", bson.M{
-								"g_DOT__id": "$foo_DOT__id",
-								"g_DOT_a":   "$foo_DOT_a",
-								"g_DOT_b":   "$foo_DOT_b",
-								"g_DOT_c":   "$foo_DOT_c",
-								"g_DOT_e":   "$foo_DOT_e",
-								"g_DOT_f":   "$foo_DOT_f",
-								"g_DOT_g":   "$foo_DOT_g",
+								"test_DOT_g_DOT__id": "$test_DOT_foo_DOT__id",
+								"test_DOT_g_DOT_a":   "$test_DOT_foo_DOT_a",
+								"test_DOT_g_DOT_b":   "$test_DOT_foo_DOT_b",
+								"test_DOT_g_DOT_c":   "$test_DOT_foo_DOT_c",
+								"test_DOT_g_DOT_e":   "$test_DOT_foo_DOT_e",
+								"test_DOT_g_DOT_f":   "$test_DOT_foo_DOT_f",
+								"test_DOT_g_DOT_g":   "$test_DOT_foo_DOT_g",
 							}}},
 						},
 					)
@@ -1108,24 +1108,24 @@ func TestOptimizePlan(t *testing.T) {
 							{{"$match", bson.M{"a": bson.M{"$gt": int64(4)}}}},
 							{{"$limit", int64(1)}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
+								"test_DOT_foo_DOT_a": "$a",
 							}}},
 							{{"$project", bson.M{
-								"c_DOT_a": "$foo_DOT_a",
-							}}},
-						},
-						[]bson.D{
-							{{"$project", bson.M{
-								"bar_DOT_a": "$a",
-							}}},
-							{{"$project", bson.M{
-								"b_DOT_a": "$bar_DOT_a",
+								"test_DOT_c_DOT_a": "$test_DOT_foo_DOT_a",
 							}}},
 						},
 						[]bson.D{
 							{{"$project", bson.M{
-								"f_DOT_a": "$a",
-								"f_DOT_b": "$b",
+								"test_DOT_bar_DOT_a": "$a",
+							}}},
+							{{"$project", bson.M{
+								"test_DOT_b_DOT_a": "$test_DOT_bar_DOT_a",
+							}}},
+						},
+						[]bson.D{
+							{{"$project", bson.M{
+								"test_DOT_f_DOT_a": "$a",
+								"test_DOT_f_DOT_b": "$b",
 							}}},
 						},
 					)
@@ -1223,19 +1223,19 @@ func TestOptimizePlan(t *testing.T) {
 								"__predicate": true,
 							}}},
 							{{"$project", bson.M{
-								"f_DOT_f":            "$__joined_f.d.f",
-								"f_DOT_g":            "$__joined_f.g",
-								"m1_DOT_a":           "$a",
-								"m2_DOT_d_DOT_a":     "$d.a",
-								"m2_DOT_d_DOT_a_idx": "$d.a_idx",
-								"m2_DOT_d_idx":       "$d_idx",
-								"f_DOT_b":            "$__joined_f.b",
-								"f_DOT_e":            "$__joined_f.d.e",
-								"f_DOT__id":          "$__joined_f._id",
-								"m1_DOT__id":         "$_id",
-								"m2_DOT__id":         "$_id",
-								"f_DOT_a":            "$__joined_f.a",
-								"f_DOT_c":            "$__joined_f.c",
+								"test_DOT_f_DOT_f":            "$__joined_f.d.f",
+								"test_DOT_f_DOT_g":            "$__joined_f.g",
+								"test_DOT_m1_DOT_a":           "$a",
+								"test_DOT_m2_DOT_d_DOT_a":     "$d.a",
+								"test_DOT_m2_DOT_d_DOT_a_idx": "$d.a_idx",
+								"test_DOT_m2_DOT_d_idx":       "$d_idx",
+								"test_DOT_f_DOT_b":            "$__joined_f.b",
+								"test_DOT_f_DOT_e":            "$__joined_f.d.e",
+								"test_DOT_f_DOT__id":          "$__joined_f._id",
+								"test_DOT_m1_DOT__id":         "$_id",
+								"test_DOT_m2_DOT__id":         "$_id",
+								"test_DOT_f_DOT_a":            "$__joined_f.a",
+								"test_DOT_f_DOT_c":            "$__joined_f.c",
 							}}},
 						},
 					)
@@ -1265,9 +1265,9 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_c": "$__joined_foo.c",
-								"bar_DOT_a": "$a",
-								"baz_DOT_b": "$__joined_baz.b",
+								"test_DOT_foo_DOT_c": "$__joined_foo.c",
+								"test_DOT_bar_DOT_a": "$a",
+								"test_DOT_baz_DOT_b": "$__joined_baz.b",
 							}}},
 						},
 					)
@@ -1297,9 +1297,9 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$__joined_foo.a",
-								"bar_DOT_a": "$a",
-								"baz_DOT_a": "$__joined_baz.a",
+								"test_DOT_foo_DOT_a": "$__joined_foo.a",
+								"test_DOT_bar_DOT_a": "$a",
+								"test_DOT_baz_DOT_a": "$__joined_baz.a",
 							}}},
 						},
 					)
@@ -1400,9 +1400,9 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"bar_DOT_a": "$__joined_bar.a",
-								"baz_DOT_a": "$a",
-								"foo_DOT_a": "$__joined_foo.a",
+								"test_DOT_bar_DOT_a": "$__joined_bar.a",
+								"test_DOT_baz_DOT_a": "$a",
+								"test_DOT_foo_DOT_a": "$__joined_foo.a",
 							}}},
 						},
 					)
@@ -1432,19 +1432,19 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"baz_DOT__id": "$__joined_baz._id",
-								"foo_DOT_b":   "$b",
-								"foo_DOT_e":   "$d.e",
-								"foo_DOT__id": "$_id",
-								"foo_DOT_g":   "$g",
-								"bar_DOT_a":   "$__joined_bar.a",
-								"bar_DOT_b":   "$__joined_bar.b",
-								"bar_DOT__id": "$__joined_bar._id",
-								"baz_DOT_a":   "$__joined_baz.a",
-								"foo_DOT_a":   "$a",
-								"foo_DOT_c":   "$c",
-								"foo_DOT_f":   "$d.f",
-								"baz_DOT_b":   "$__joined_baz.b",
+								"test_DOT_baz_DOT__id": "$__joined_baz._id",
+								"test_DOT_foo_DOT_b":   "$b",
+								"test_DOT_foo_DOT_e":   "$d.e",
+								"test_DOT_foo_DOT__id": "$_id",
+								"test_DOT_foo_DOT_g":   "$g",
+								"test_DOT_bar_DOT_a":   "$__joined_bar.a",
+								"test_DOT_bar_DOT_b":   "$__joined_bar.b",
+								"test_DOT_bar_DOT__id": "$__joined_bar._id",
+								"test_DOT_baz_DOT_a":   "$__joined_baz.a",
+								"test_DOT_foo_DOT_a":   "$a",
+								"test_DOT_foo_DOT_c":   "$c",
+								"test_DOT_foo_DOT_f":   "$d.f",
+								"test_DOT_baz_DOT_b":   "$__joined_baz.b",
 							}}},
 						},
 					)
@@ -1540,19 +1540,19 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 							{{"$match", bson.M{"__predicate": true}}},
 							{{"$project", bson.M{
-								"f_DOT_a":            "$__joined_f.a",
-								"f_DOT_c":            "$__joined_f.c",
-								"f_DOT_f":            "$__joined_f.d.f",
-								"f_DOT_g":            "$__joined_f.g",
-								"m1_DOT__id":         "$_id",
-								"m1_DOT_a":           "$a",
-								"f_DOT_b":            "$__joined_f.b",
-								"f_DOT_e":            "$__joined_f.d.e",
-								"f_DOT__id":          "$__joined_f._id",
-								"m2_DOT__id":         "$_id",
-								"m2_DOT_d_DOT_a":     "$d.a",
-								"m2_DOT_d_DOT_a_idx": "$d.a_idx",
-								"m2_DOT_d_idx":       "$d_idx",
+								"test_DOT_f_DOT_a":            "$__joined_f.a",
+								"test_DOT_f_DOT_c":            "$__joined_f.c",
+								"test_DOT_f_DOT_f":            "$__joined_f.d.f",
+								"test_DOT_f_DOT_g":            "$__joined_f.g",
+								"test_DOT_m1_DOT__id":         "$_id",
+								"test_DOT_m1_DOT_a":           "$a",
+								"test_DOT_f_DOT_b":            "$__joined_f.b",
+								"test_DOT_f_DOT_e":            "$__joined_f.d.e",
+								"test_DOT_f_DOT__id":          "$__joined_f._id",
+								"test_DOT_m2_DOT__id":         "$_id",
+								"test_DOT_m2_DOT_d_DOT_a":     "$d.a",
+								"test_DOT_m2_DOT_d_DOT_a_idx": "$d.a_idx",
+								"test_DOT_m2_DOT_d_idx":       "$d_idx",
 							}}},
 						},
 					)
@@ -1560,18 +1560,18 @@ func TestOptimizePlan(t *testing.T) {
 					test("select f1.a, b1.b from foo f1 inner join (select b2.b, b2.a, b2._id from bar b2 join (select * from foo) f2 on f2._id = b2._id) b1 on b1._id = f1._id",
 						[]bson.D{
 							{{"$project", bson.M{
-								"foo_DOT__id": "$_id",
-								"foo_DOT_a":   "$a",
-								"foo_DOT_b":   "$b",
-								"foo_DOT_c":   "$c",
-								"foo_DOT_e":   "$d.e",
-								"foo_DOT_f":   "$d.f",
-								"foo_DOT_g":   "$g",
+								"test_DOT_foo_DOT__id": "$_id",
+								"test_DOT_foo_DOT_a":   "$a",
+								"test_DOT_foo_DOT_b":   "$b",
+								"test_DOT_foo_DOT_c":   "$c",
+								"test_DOT_foo_DOT_e":   "$d.e",
+								"test_DOT_foo_DOT_f":   "$d.f",
+								"test_DOT_foo_DOT_g":   "$g",
 							}}},
-							{{"$match", bson.M{"foo_DOT__id": bson.M{"$ne": nil}}}},
+							{{"$match", bson.M{"test_DOT_foo_DOT__id": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "bar",
-								"localField":   "foo_DOT__id",
+								"localField":   "test_DOT_foo_DOT__id",
 								"foreignField": "_id",
 								"as":           "__joined_b2",
 							}}},
@@ -1580,14 +1580,14 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_b2",
 							}}},
 							{{"$project", bson.M{
-								"b2_DOT__id": "$__joined_b2._id",
-								"b2_DOT_a":   "$__joined_b2.a",
-								"b2_DOT_b":   "$__joined_b2.b",
+								"test_DOT_b2_DOT_a":   "$__joined_b2.a",
+								"test_DOT_b2_DOT_b":   "$__joined_b2.b",
+								"test_DOT_b2_DOT__id": "$__joined_b2._id",
 							}}},
-							{{"$match", bson.M{"b2_DOT__id": bson.M{"$ne": nil}}}},
+							{{"$match", bson.M{"test_DOT_b2_DOT__id": bson.M{"$ne": nil}}}},
 							{{"$lookup", bson.M{
 								"from":         "foo",
-								"localField":   "b2_DOT__id",
+								"localField":   "test_DOT_b2_DOT__id",
 								"foreignField": "_id",
 								"as":           "__joined_f1",
 							}}},
@@ -1596,8 +1596,8 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_f1",
 							}}},
 							{{"$project", bson.M{
-								"b1_DOT_b": "$b2_DOT_b",
-								"f1_DOT_a": "$__joined_f1.a",
+								"test_DOT_f1_DOT_a": "$__joined_f1.a",
+								"test_DOT_b1_DOT_b": "$test_DOT_b2_DOT_b",
 							}}},
 						},
 					)
@@ -1630,9 +1630,9 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 							{{"$match", bson.M{"__joined_foo.a": int64(10)}}},
 							{{"$project", bson.M{
-								"baz_DOT_a": "$__joined_baz.a",
-								"foo_DOT_a": "$__joined_foo.a",
-								"bar_DOT_a": "$a",
+								"test_DOT_baz_DOT_a": "$__joined_baz.a",
+								"test_DOT_foo_DOT_a": "$__joined_foo.a",
+								"test_DOT_bar_DOT_a": "$a",
 							}}},
 						},
 					)
@@ -1670,9 +1670,9 @@ func TestOptimizePlan(t *testing.T) {
 								},
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$__joined_foo.a",
-								"bar_DOT_a": "$a",
-								"baz_DOT_a": "$__joined_baz.a",
+								"test_DOT_foo_DOT_a": "$__joined_foo.a",
+								"test_DOT_bar_DOT_a": "$a",
+								"test_DOT_baz_DOT_a": "$__joined_baz.a",
 							}}},
 						},
 					)
@@ -1695,17 +1695,17 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": false,
 							}}},
 							{{"$project", bson.M{
-								"r_DOT_c":           "$__joined_r.c",
-								"r_DOT_e":           "$__joined_r.d.e",
-								"r_DOT_g":           "$__joined_r.g",
-								"a_DOT_d_DOT_a":     "$d.a",
-								"a_DOT_d_idx":       "$d_idx",
-								"a_DOT_d_DOT_a_idx": "$d.a_idx",
-								"r_DOT_a":           "$__joined_r.a",
-								"r_DOT_b":           "$__joined_r.b",
-								"r_DOT_f":           "$__joined_r.d.f",
-								"r_DOT__id":         "$__joined_r._id",
-								"a_DOT__id":         "$_id",
+								"test_DOT_r_DOT_c":           "$__joined_r.c",
+								"test_DOT_r_DOT_e":           "$__joined_r.d.e",
+								"test_DOT_r_DOT_g":           "$__joined_r.g",
+								"test_DOT_a_DOT_d_DOT_a":     "$d.a",
+								"test_DOT_a_DOT_d_idx":       "$d_idx",
+								"test_DOT_a_DOT_d_DOT_a_idx": "$d.a_idx",
+								"test_DOT_r_DOT_a":           "$__joined_r.a",
+								"test_DOT_r_DOT_b":           "$__joined_r.b",
+								"test_DOT_r_DOT_f":           "$__joined_r.d.f",
+								"test_DOT_r_DOT__id":         "$__joined_r._id",
+								"test_DOT_a_DOT__id":         "$_id",
 							}}},
 						},
 					)
@@ -1745,8 +1745,8 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": true,
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
 							}}},
 						},
 					)
@@ -1786,8 +1786,8 @@ func TestOptimizePlan(t *testing.T) {
 							}}},
 							{{"$match", bson.M{"__joined_bar.b": int64(12)}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
 							}}},
 						},
 					)
@@ -1833,7 +1833,7 @@ func TestOptimizePlan(t *testing.T) {
 																"$ifNull": []interface{}{"$$right", interface{}(nil)}}, interface{}(nil)}}}}, interface{}(nil), bson.M{
 														"$gt": []interface{}{"$$left", "$$right"}}}}}}}}}}},
 							{{"$unwind", bson.M{"path": "$__joined_bar", "preserveNullAndEmptyArrays": true}}},
-							{{"$project", bson.M{"foo_DOT_a": "$a", "bar_DOT_b": "$__joined_bar.b"}}}},
+							{{"$project", bson.M{"test_DOT_foo_DOT_a": "$a", "test_DOT_bar_DOT_b": "$__joined_bar.b"}}}},
 					)
 
 					test("select foo.a, bar.b from foo left join bar on foo.a = bar.a AND bar.b > 10",
@@ -1876,8 +1876,10 @@ func TestOptimizePlan(t *testing.T) {
 								"path": "$__joined_bar",
 								"preserveNullAndEmptyArrays": true}}},
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"bar_DOT_b": "$__joined_bar.b"}}}},
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$__joined_bar.b",
+							}}},
+						},
 					)
 
 					test("select foo.c, bar.a, baz.b from foo left join bar on foo.a = bar.a left join baz on bar.a = baz.a",
@@ -1946,9 +1948,9 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": true,
 							}}},
 							{{"$project", bson.M{
-								"foo_DOT_c": "$c",
-								"bar_DOT_a": "$__joined_bar.a",
-								"baz_DOT_b": "$__joined_baz.b",
+								"test_DOT_foo_DOT_c": "$c",
+								"test_DOT_bar_DOT_a": "$__joined_bar.a",
+								"test_DOT_baz_DOT_b": "$__joined_baz.b",
 							}}},
 						},
 					)
@@ -1958,12 +1960,12 @@ func TestOptimizePlan(t *testing.T) {
 					test("select foo.a from foo right join bar on foo.a < bar.a",
 						[]bson.D{
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
+								"test_DOT_foo_DOT_a": "$a",
 							}}},
 						},
 						[]bson.D{
 							{{"$project", bson.M{
-								"bar_DOT_a": "$a",
+								"test_DOT_bar_DOT_a": "$a",
 							}}},
 						},
 					)
@@ -1996,8 +1998,8 @@ func TestOptimizePlan(t *testing.T) {
 								"preserveNullAndEmptyArrays": true,
 							}}},
 							{{"$project", bson.M{
-								"bar_DOT_b": "$b",
-								"foo_DOT_a": "$__joined_foo.a",
+								"test_DOT_bar_DOT_b": "$b",
+								"test_DOT_foo_DOT_a": "$__joined_foo.a",
 							}}},
 						},
 					)
@@ -2007,8 +2009,8 @@ func TestOptimizePlan(t *testing.T) {
 					test("select * from merge r left join merge_d_a a on r._id=a._id",
 						[]bson.D{
 							{{"$project", bson.M{
-								"r_DOT__id": "$_id",
-								"r_DOT_a":   "$a",
+								"test_DOT_r_DOT__id": "$_id",
+								"test_DOT_r_DOT_a":   "$a",
 							}}}},
 						[]bson.D{
 							{{"$unwind", bson.D{
@@ -2020,10 +2022,10 @@ func TestOptimizePlan(t *testing.T) {
 								{"path", "$d.a"},
 							}}},
 							{{"$project", bson.M{
-								"a_DOT_d_DOT_a":     "$d.a",
-								"a_DOT_d_DOT_a_idx": "$d.a_idx",
-								"a_DOT_d_idx":       "$d_idx",
-								"a_DOT__id":         "$_id",
+								"test_DOT_a_DOT_d_idx":       "$d_idx",
+								"test_DOT_a_DOT__id":         "$_id",
+								"test_DOT_a_DOT_d_DOT_a":     "$d.a",
+								"test_DOT_a_DOT_d_DOT_a_idx": "$d.a_idx",
 							}}},
 						},
 					)
@@ -2036,8 +2038,9 @@ func TestOptimizePlan(t *testing.T) {
 								{"includeArrayIndex", "c_idx"},
 								{"path", "$c"}}}},
 							{{"$project", bson.M{
-								"b_DOT__id": "$_id",
-								"c_DOT__id": "$_id"}}},
+								"test_DOT_c_DOT__id": "$_id",
+								"test_DOT_b_DOT__id": "$_id",
+							}}},
 						},
 					)
 					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id left join merge_c c on b._id=c._id",
@@ -2054,7 +2057,7 @@ func TestOptimizePlan(t *testing.T) {
 										bson.D{{"$lte", []interface{}{"$c", interface{}(nil)}}},
 										bson.D{{"$eq", []interface{}{"$c", []interface{}{}}}}}}}, interface{}(nil), "$_id"}}}}}},
 							{{"$unwind", bson.D{{"includeArrayIndex", "c_idx"}, {"path", "$c"}, {"preserveNullAndEmptyArrays", true}}}},
-							{{"$project", bson.M{"b_DOT__id": "$_id_0", "c_DOT__id": "$_id_1"}}}},
+							{{"$project", bson.M{"test_DOT_b_DOT__id": "$_id_0", "test_DOT_c_DOT__id": "$_id_1"}}}},
 					)
 					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id left join merge_c c on r._id=c._id",
 						[]bson.D{
@@ -2070,7 +2073,7 @@ func TestOptimizePlan(t *testing.T) {
 										bson.D{{"$lte", []interface{}{"$c", interface{}(nil)}}},
 										bson.D{{"$eq", []interface{}{"$c", []interface{}{}}}}}}}, interface{}(nil), "$_id"}}}}}},
 							{{"$unwind", bson.D{{"includeArrayIndex", "c_idx"}, {"path", "$c"}, {"preserveNullAndEmptyArrays", true}}}},
-							{{"$project", bson.M{"b_DOT__id": "$_id_0", "c_DOT__id": "$_id_1"}}}},
+							{{"$project", bson.M{"test_DOT_b_DOT__id": "$_id_0", "test_DOT_c_DOT__id": "$_id_1"}}}},
 					)
 					test("select b._id, c._id from merge r left join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id left join merge_d_a a on r._id=a._id",
 						[]bson.D{
@@ -2081,11 +2084,11 @@ func TestOptimizePlan(t *testing.T) {
 										bson.D{{"$eq", []interface{}{"$b", []interface{}{}}}}}}}, interface{}(nil), "$_id"}}}}}},
 							{{"$unwind", bson.D{{"includeArrayIndex", "b_idx"}, {"path", "$b"}, {"preserveNullAndEmptyArrays", true}}}},
 							{{"$unwind", bson.D{{"includeArrayIndex", "c_idx"}, {"path", "$c"}}}},
-							{{"$project", bson.M{"b_DOT__id": "$_id_0", "c_DOT__id": "$_id", "r_DOT__id": "$_id"}}}},
+							{{"$project", bson.M{"test_DOT_b_DOT__id": "$_id_0", "test_DOT_c_DOT__id": "$_id", "test_DOT_r_DOT__id": "$_id"}}}},
 						[]bson.D{
 							{{"$unwind", bson.D{{"includeArrayIndex", "d_idx"}, {"path", "$d"}}}},
 							{{"$unwind", bson.D{{"includeArrayIndex", "d.a_idx"}, {"path", "$d.a"}}}},
-							{{"$project", bson.M{"a_DOT__id": "$_id"}}}},
+							{{"$project", bson.M{"test_DOT_a_DOT__id": "$_id"}}}},
 					)
 					test("select b._id, c._id from merge r inner join merge_b b on r._id=b._id inner join merge_c c on r._id=c._id inner join merge_d_a a on r._id=a._id",
 						[]bson.D{
@@ -2106,8 +2109,8 @@ func TestOptimizePlan(t *testing.T) {
 								{"path", "$b"},
 							}}},
 							{{"$project", bson.M{
-								"b_DOT__id": "$_id",
-								"c_DOT__id": "$_id",
+								"test_DOT_b_DOT__id": "$_id",
+								"test_DOT_c_DOT__id": "$_id",
 							}}},
 						},
 					)
@@ -2148,8 +2151,8 @@ func TestOptimizePlan(t *testing.T) {
 							},
 							}},
 							{{"$project", bson.M{
-								"b_DOT__id": "$_id",
-								"r_DOT__id": "$_id",
+								"test_DOT_b_DOT__id": "$_id",
+								"test_DOT_r_DOT__id": "$_id",
 							},
 							}},
 						},
@@ -2209,8 +2212,8 @@ func TestOptimizePlan(t *testing.T) {
 							},
 							}},
 							{{"$project", bson.M{
-								"d_DOT__id": "$__joined_d._id",
-								"b_DOT__id": "$__joined_b._id",
+								"test_DOT_d_DOT__id": "$__joined_d._id",
+								"test_DOT_b_DOT__id": "$__joined_b._id",
 							},
 							}},
 						},
@@ -2221,73 +2224,73 @@ func TestOptimizePlan(t *testing.T) {
 					test("select foo.a from foo inner join bar on foo.a < bar.a",
 						[]bson.D{
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
+								"test_DOT_foo_DOT_a": "$a",
 							}}},
 						},
 						[]bson.D{
 							{{"$project", bson.M{
-								"bar_DOT_a": "$a",
+								"test_DOT_bar_DOT_a": "$a",
 							}}},
 						},
 					)
 					test("select foo.a from foo inner join bar on foo.a < foo.b",
 						[]bson.D{
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
-								"foo_DOT_b": "$b",
+								"test_DOT_foo_DOT_a": "$a",
+								"test_DOT_foo_DOT_b": "$b",
 							}}},
 						},
 					)
 					test("select foo.a from foo, bar where foo.a < bar.a",
 						[]bson.D{
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
+								"test_DOT_foo_DOT_a": "$a",
 							}}},
 						},
 						[]bson.D{
 							{{"$project", bson.M{
-								"bar_DOT_a": "$a",
+								"test_DOT_bar_DOT_a": "$a",
 							}}},
 						},
 					)
 					test("select foo.a from foo left join bar on foo.a < bar.a",
 						[]bson.D{
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
+								"test_DOT_foo_DOT_a": "$a",
 							}}},
 						},
 						[]bson.D{
 							{{"$project", bson.M{
-								"bar_DOT_a": "$a",
+								"test_DOT_bar_DOT_a": "$a",
 							}}},
 						},
 					)
 					test("select foo.a from foo right join bar on foo.a < bar.a",
 						[]bson.D{
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
+								"test_DOT_foo_DOT_a": "$a",
 							}}},
 						},
 						[]bson.D{
 							{{"$project", bson.M{
-								"bar_DOT_a": "$a",
+								"test_DOT_bar_DOT_a": "$a",
 							}}},
 						},
 					)
 					test("select foo.a, b.b from foo, (select a, b from bar) b where foo.a = b.a",
 						[]bson.D{
 							{{"$project", bson.M{
-								"foo_DOT_a": "$a",
+								"test_DOT_foo_DOT_a": "$a",
 							}}},
 						},
 						[]bson.D{
 							{{"$project", bson.M{
-								"bar_DOT_a": "$a",
-								"bar_DOT_b": "$b",
+								"test_DOT_bar_DOT_a": "$a",
+								"test_DOT_bar_DOT_b": "$b",
 							}}},
 							{{"$project", bson.M{
-								"b_DOT_a": "$bar_DOT_a",
-								"b_DOT_b": "$bar_DOT_b",
+								"test_DOT_b_DOT_a": "$test_DOT_bar_DOT_a",
+								"test_DOT_b_DOT_b": "$test_DOT_bar_DOT_b",
 							}}},
 						},
 					)
@@ -2299,8 +2302,8 @@ func TestOptimizePlan(t *testing.T) {
 			test("select a, b from foo",
 				[]bson.D{
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
-						"foo_DOT_b": "$b",
+						"test_DOT_foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_b": "$b",
 					}}},
 				},
 			)
@@ -2309,8 +2312,8 @@ func TestOptimizePlan(t *testing.T) {
 				test("select a, (select foo.b from bar) from foo",
 					[]bson.D{
 						{{"$project", bson.M{
-							"foo_DOT_a": "$a",
-							"b":         "$b",
+							"test_DOT_foo_DOT_a": "$a",
+							"b":                  "$b",
 						}}},
 					},
 				)
@@ -2324,7 +2327,7 @@ func TestOptimizePlan(t *testing.T) {
 						"a": int64(10),
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 			)
@@ -2406,7 +2409,7 @@ func TestOptimizePlan(t *testing.T) {
 						"__predicate": true,
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 			)
@@ -2487,7 +2490,7 @@ func TestOptimizePlan(t *testing.T) {
 						"__predicate": true,
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 			)
@@ -2566,7 +2569,7 @@ func TestOptimizePlan(t *testing.T) {
 						"__predicate": true,
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 			)
@@ -2585,7 +2588,7 @@ func TestOptimizePlan(t *testing.T) {
 						"d.a": int64(10),
 					}}},
 					{{"$project", bson.M{
-						"merge_d_a_DOT_d_DOT_a": "$d.a",
+						"test_DOT_merge_d_a_DOT_d_DOT_a": "$d.a",
 					}}},
 				},
 			)
@@ -2607,7 +2610,7 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 					{{"$project", bson.M{
-						"merge_d_a_DOT_d_DOT_a": "$d.a",
+						"test_DOT_merge_d_a_DOT_d_DOT_a": "$d.a",
 					}}},
 				},
 			)
@@ -2625,7 +2628,7 @@ func TestOptimizePlan(t *testing.T) {
 						"c": int64(10),
 					}}},
 					{{"$project", bson.M{
-						"merge_c_DOT_c": "$c",
+						"test_DOT_merge_c_DOT_c": "$c",
 					}}},
 				},
 			)
@@ -2649,7 +2652,7 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 					{{"$project", bson.M{
-						"merge_c_DOT_c": "$c",
+						"test_DOT_merge_c_DOT_c": "$c",
 					}}},
 				},
 			)
@@ -2660,18 +2663,18 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"foo_DOT_a": bson.M{
+						"test_DOT_foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"foo_DOT_b": bson.M{
+						"test_DOT_foo_DOT_b": bson.M{
 							"$first": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$foo_DOT_a",
-						"foo_DOT_b": "$foo_DOT_b",
+						"test_DOT_foo_DOT_a": "$test_DOT_foo_DOT_a",
+						"test_DOT_foo_DOT_b": "$test_DOT_foo_DOT_b",
 					}}},
 				},
 			)
@@ -2680,19 +2683,19 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"foo_DOT_a": bson.M{
+						"test_DOT_foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"foo_DOT_b": bson.M{
+						"test_DOT_foo_DOT_b": bson.M{
 							"$first": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$foo_DOT_a",
-						"foo_DOT_b": "$foo_DOT_b",
-						"foo_DOT_c": "$_id.foo_DOT_c",
+						"test_DOT_foo_DOT_a": "$test_DOT_foo_DOT_a",
+						"test_DOT_foo_DOT_b": "$test_DOT_foo_DOT_b",
+						"test_DOT_foo_DOT_c": "$_id.test_DOT_foo_DOT_c",
 					}}},
 				},
 			)
@@ -2701,19 +2704,19 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"foo_DOT_a": bson.M{
+						"test_DOT_foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"foo_DOT_b": bson.M{
+						"test_DOT_foo_DOT_b": bson.M{
 							"$first": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a":           "$foo_DOT_a",
-						"foo_DOT_b":           "$foo_DOT_b",
-						"foo_DOT_c+foo_DOT_a": bson.M{"$add": []interface{}{"$_id.foo_DOT_c", "$foo_DOT_a"}},
+						"test_DOT_foo_DOT_a":                    "$test_DOT_foo_DOT_a",
+						"test_DOT_foo_DOT_b":                    "$test_DOT_foo_DOT_b",
+						"test_DOT_foo_DOT_c+test_DOT_foo_DOT_a": bson.M{"$add": []interface{}{"$_id.test_DOT_foo_DOT_c", "$test_DOT_foo_DOT_a"}},
 					}}},
 				},
 			)
@@ -2722,18 +2725,18 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"max(foo_DOT_a)": bson.M{
+						"max(test_DOT_foo_DOT_a)": bson.M{
 							"$max": "$a",
 						},
-						"max(foo_DOT_b)": bson.M{
+						"max(test_DOT_foo_DOT_b)": bson.M{
 							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"max(foo_DOT_a)": "$max(foo_DOT_a)",
-						"max(foo_DOT_b)": "$max(foo_DOT_b)",
+						"max(test_DOT_foo_DOT_a)": "$max(test_DOT_foo_DOT_a)",
+						"max(test_DOT_foo_DOT_b)": "$max(test_DOT_foo_DOT_b)",
 					}}},
 				},
 			)
@@ -2741,13 +2744,13 @@ func TestOptimizePlan(t *testing.T) {
 			test("select max(dt) from datetest",
 				[]bson.D{
 					{{"$group", bson.M{
-						"max(datetest_DOT_dt)": bson.M{
+						"max(test_DOT_datetest_DOT_dt)": bson.M{
 							"$max": "$dt",
 						},
 						"_id": bson.D{}}},
 					},
 					{{"$project", bson.M{
-						"max(datetest_DOT_dt)": "$max(datetest_DOT_dt)",
+						"max(test_DOT_datetest_DOT_dt)": "$max(test_DOT_datetest_DOT_dt)",
 					},
 					}},
 				},
@@ -2756,13 +2759,13 @@ func TestOptimizePlan(t *testing.T) {
 			test("select min(dt) from datetest",
 				[]bson.D{
 					{{"$group", bson.M{
-						"min(datetest_DOT_dt)": bson.M{
+						"min(test_DOT_datetest_DOT_dt)": bson.M{
 							"$min": "$dt",
 						},
 						"_id": bson.D{}}},
 					},
 					{{"$project", bson.M{
-						"min(datetest_DOT_dt)": "$min(datetest_DOT_dt)",
+						"min(test_DOT_datetest_DOT_dt)": "$min(test_DOT_datetest_DOT_dt)",
 					},
 					}},
 				},
@@ -2772,19 +2775,19 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"max(foo_DOT_a)": bson.M{
+						"max(test_DOT_foo_DOT_a)": bson.M{
 							"$max": "$a",
 						},
-						"max(foo_DOT_b)": bson.M{
+						"max(test_DOT_foo_DOT_b)": bson.M{
 							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_c":      "$_id.foo_DOT_c",
-						"max(foo_DOT_a)": "$max(foo_DOT_a)",
-						"max(foo_DOT_b)": "$max(foo_DOT_b)",
+						"test_DOT_foo_DOT_c":      "$_id.test_DOT_foo_DOT_c",
+						"max(test_DOT_foo_DOT_a)": "$max(test_DOT_foo_DOT_a)",
+						"max(test_DOT_foo_DOT_b)": "$max(test_DOT_foo_DOT_b)",
 					}}},
 				},
 			)
@@ -2793,18 +2796,18 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"foo_DOT_a": bson.M{
+						"test_DOT_foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"max(foo_DOT_b)": bson.M{
+						"max(test_DOT_foo_DOT_b)": bson.M{
 							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a":      "$foo_DOT_a",
-						"max(foo_DOT_b)": "$max(foo_DOT_b)",
+						"test_DOT_foo_DOT_a":      "$test_DOT_foo_DOT_a",
+						"max(test_DOT_foo_DOT_b)": "$max(test_DOT_foo_DOT_b)",
 					}}},
 				},
 			)
@@ -2813,23 +2816,23 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"foo_DOT_a": bson.M{
+						"test_DOT_foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"distinct foo_DOT_b": bson.M{
+						"distinct test_DOT_foo_DOT_b": bson.M{
 							"$addToSet": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"_id":                     0,
-						"foo_DOT_a":               "$foo_DOT_a",
-						"max(distinct foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_b"},
+						"_id":                              0,
+						"test_DOT_foo_DOT_a":               "$test_DOT_foo_DOT_a",
+						"max(distinct test_DOT_foo_DOT_b)": bson.M{"$max": "$distinct test_DOT_foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a":               "$foo_DOT_a",
-						"max(distinct foo_DOT_b)": "$max(distinct foo_DOT_b)",
+						"test_DOT_foo_DOT_a":               "$test_DOT_foo_DOT_a",
+						"max(distinct test_DOT_foo_DOT_b)": "$max(distinct test_DOT_foo_DOT_b)",
 					}}},
 				},
 			)
@@ -2838,25 +2841,25 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"foo_DOT_a": bson.M{
+						"test_DOT_foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"distinct foo_DOT_b": bson.M{
+						"distinct test_DOT_foo_DOT_b": bson.M{
 							"$addToSet": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"_id":                     0,
-						"foo_DOT_c":               "$_id.foo_DOT_c",
-						"foo_DOT_a":               "$foo_DOT_a",
-						"max(distinct foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_b"},
+						"_id":                              0,
+						"test_DOT_foo_DOT_c":               "$_id.test_DOT_foo_DOT_c",
+						"test_DOT_foo_DOT_a":               "$test_DOT_foo_DOT_a",
+						"max(distinct test_DOT_foo_DOT_b)": bson.M{"$max": "$distinct test_DOT_foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a":               "$foo_DOT_a",
-						"foo_DOT_c":               "$foo_DOT_c",
-						"max(distinct foo_DOT_b)": "$max(distinct foo_DOT_b)",
+						"test_DOT_foo_DOT_a":               "$test_DOT_foo_DOT_a",
+						"test_DOT_foo_DOT_c":               "$test_DOT_foo_DOT_c",
+						"max(distinct test_DOT_foo_DOT_b)": "$max(distinct test_DOT_foo_DOT_b)",
 					}}},
 				},
 			)
@@ -2865,17 +2868,17 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"foo_DOT_a": bson.M{
+						"test_DOT_foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"max(foo_DOT_b)": bson.M{
+						"max(test_DOT_foo_DOT_b)": bson.M{
 							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a+max(foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$max(foo_DOT_b)"}},
+						"test_DOT_foo_DOT_a+max(test_DOT_foo_DOT_b)": bson.M{"$add": []interface{}{"$test_DOT_foo_DOT_a", "$max(test_DOT_foo_DOT_b)"}},
 					}}},
 				},
 			)
@@ -2885,22 +2888,22 @@ func TestOptimizePlan(t *testing.T) {
 			// test("select a + b from foo group by a + b",
 			// 	[]bson.D{
 			// 		{{"$group", bson.M{
-			// 			"_id": bson.D{{"foo_DOT_a+foo_DOT_b", bson.M{"$add": []interface{}{"$a", "$b"}}}},
-			// 			"foo_DOT_a": bson.M{
+			// 			"_id": bson.D{{"test_DOT_foo_DOT_a+test_DOT_foo_DOT_b", bson.M{"$add": []interface{}{"$a", "$b"}}}},
+			// 			"test_DOT_foo_DOT_a": bson.M{
 			// 				"$first": "$a",
 			// 			},
-			// 			"foo_DOT_b": bson.M{
+			// 			"test_DOT_foo_DOT_b": bson.M{
 			// 				"$first": "$b",
 			// 			},
 			// 		}}},
 			// 		{{"$project", bson.M{
 			// 			"_id":                 0,
-			// 			"foo_DOT_a":           "$foo_DOT_a",
-			// 			"foo_DOT_b":           "$foo_DOT_b",
-			// 			"foo_DOT_a+foo_DOT_b": "$_id.foo_DOT_a+foo_DOT_b",
+			// 			"test_DOT_foo_DOT_a":           "$test_DOT_foo_DOT_a",
+			// 			"test_DOT_foo_DOT_b":           "$test_DOT_foo_DOT_b",
+			// 			"test_DOT_foo_DOT_a+test_DOT_foo_DOT_b": "$_id.test_DOT_foo_DOT_a+test_DOT_foo_DOT_b",
 			// 		}}},
 			// 		{{"$project", bson.M{
-			// 			"foo_DOT_a+foo_DOT_b": "$_id.foo_DOT_a+foo_DOT_b",
+			// 			"test_DOT_foo_DOT_a+test_DOT_foo_DOT_b": "$_id.test_DOT_foo_DOT_a+test_DOT_foo_DOT_b",
 			// 		}}},
 			// 	},
 			// )
@@ -2909,17 +2912,17 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"foo_DOT_a": bson.M{
+						"test_DOT_foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"max(foo_DOT_b)": bson.M{
+						"max(test_DOT_foo_DOT_b)": bson.M{
 							"$max": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a+foo_DOT_c+max(foo_DOT_b)": bson.M{"$add": []interface{}{bson.M{"$add": []interface{}{"$foo_DOT_a", "$_id.foo_DOT_c"}}, "$max(foo_DOT_b)"}},
+						"test_DOT_foo_DOT_a+test_DOT_foo_DOT_c+max(test_DOT_foo_DOT_b)": bson.M{"$add": []interface{}{bson.M{"$add": []interface{}{"$test_DOT_foo_DOT_a", "$_id.test_DOT_foo_DOT_c"}}, "$max(test_DOT_foo_DOT_b)"}},
 					}}},
 				},
 			)
@@ -2928,22 +2931,22 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"foo_DOT_a": bson.M{
+						"test_DOT_foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"distinct foo_DOT_b": bson.M{
+						"distinct test_DOT_foo_DOT_b": bson.M{
 							"$addToSet": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"_id":                     0,
-						"foo_DOT_a":               "$foo_DOT_a",
-						"max(distinct foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_b"},
+						"_id":                              0,
+						"test_DOT_foo_DOT_a":               "$test_DOT_foo_DOT_a",
+						"max(distinct test_DOT_foo_DOT_b)": bson.M{"$max": "$distinct test_DOT_foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a+max(distinct foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$max(distinct foo_DOT_b)"}},
+						"test_DOT_foo_DOT_a+max(distinct test_DOT_foo_DOT_b)": bson.M{"$add": []interface{}{"$test_DOT_foo_DOT_a", "$max(distinct test_DOT_foo_DOT_b)"}},
 					}}},
 				},
 			)
@@ -2952,19 +2955,19 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"distinct foo_DOT_b": bson.M{
+						"distinct test_DOT_foo_DOT_b": bson.M{
 							"$addToSet": "$b",
 						},
 					}}},
 					{{"$project", bson.M{
-						"_id":                     0,
-						"foo_DOT_c":               "$_id.foo_DOT_c",
-						"max(distinct foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_b"},
+						"_id":                              0,
+						"test_DOT_foo_DOT_c":               "$_id.test_DOT_foo_DOT_c",
+						"max(distinct test_DOT_foo_DOT_b)": bson.M{"$max": "$distinct test_DOT_foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_c+max(distinct foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_c", "$max(distinct foo_DOT_b)"}},
+						"test_DOT_foo_DOT_c+max(distinct test_DOT_foo_DOT_b)": bson.M{"$add": []interface{}{"$test_DOT_foo_DOT_c", "$max(distinct test_DOT_foo_DOT_b)"}},
 					}}},
 				},
 			)
@@ -2973,18 +2976,18 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"distinct foo_DOT_a+foo_DOT_b": bson.M{
+						"distinct test_DOT_foo_DOT_a+test_DOT_foo_DOT_b": bson.M{
 							"$addToSet": bson.M{"$add": []interface{}{"$a", "$b"}},
 						},
 					}}},
 					{{"$project", bson.M{
 						"_id": 0,
-						"max(distinct foo_DOT_a+foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_a+foo_DOT_b"},
+						"max(distinct test_DOT_foo_DOT_a+test_DOT_foo_DOT_b)": bson.M{"$max": "$distinct test_DOT_foo_DOT_a+test_DOT_foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
-						"max(distinct foo_DOT_a+foo_DOT_b)": "$max(distinct foo_DOT_a+foo_DOT_b)",
+						"max(distinct test_DOT_foo_DOT_a+test_DOT_foo_DOT_b)": "$max(distinct test_DOT_foo_DOT_a+test_DOT_foo_DOT_b)",
 					}}},
 				},
 			)
@@ -2993,22 +2996,22 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"foo_DOT_a": bson.M{
+						"test_DOT_foo_DOT_a": bson.M{
 							"$first": "$a",
 						},
-						"distinct foo_DOT_a+foo_DOT_b": bson.M{
+						"distinct test_DOT_foo_DOT_a+test_DOT_foo_DOT_b": bson.M{
 							"$addToSet": bson.M{"$add": []interface{}{"$a", "$b"}},
 						},
 					}}},
 					{{"$project", bson.M{
-						"_id":                               0,
-						"foo_DOT_a":                         "$foo_DOT_a",
-						"max(distinct foo_DOT_a+foo_DOT_b)": bson.M{"$max": "$distinct foo_DOT_a+foo_DOT_b"},
+						"_id":                                                 0,
+						"test_DOT_foo_DOT_a":                                  "$test_DOT_foo_DOT_a",
+						"max(distinct test_DOT_foo_DOT_a+test_DOT_foo_DOT_b)": bson.M{"$max": "$distinct test_DOT_foo_DOT_a+test_DOT_foo_DOT_b"},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a+max(distinct foo_DOT_a+foo_DOT_b)": bson.M{"$add": []interface{}{"$foo_DOT_a", "$max(distinct foo_DOT_a+foo_DOT_b)"}},
+						"test_DOT_foo_DOT_a+max(distinct test_DOT_foo_DOT_a+test_DOT_foo_DOT_b)": bson.M{"$add": []interface{}{"$test_DOT_foo_DOT_a", "$max(distinct test_DOT_foo_DOT_a+test_DOT_foo_DOT_b)"}},
 					}}},
 				},
 			)
@@ -3016,9 +3019,9 @@ func TestOptimizePlan(t *testing.T) {
 			test("select sum(a) from foo",
 				[]bson.D{
 					{{"$group", bson.M{
-						"_id":            bson.D{},
-						"sum(foo_DOT_a)": bson.M{"$sum": "$a"},
-						"sum(foo_DOT_a)_count": bson.M{
+						"_id": bson.D{},
+						"sum(test_DOT_foo_DOT_a)": bson.M{"$sum": "$a"},
+						"sum(test_DOT_foo_DOT_a)_count": bson.M{
 							"$sum": bson.M{
 								"$cond": []interface{}{
 									bson.M{
@@ -3040,10 +3043,10 @@ func TestOptimizePlan(t *testing.T) {
 					}}},
 					{{"$project", bson.M{
 						"_id": 0,
-						"sum(foo_DOT_a)": bson.M{
+						"sum(test_DOT_foo_DOT_a)": bson.M{
 							"$let": bson.M{
 								"vars": bson.M{
-									"expr": "$sum(foo_DOT_a)_count",
+									"expr": "$sum(test_DOT_foo_DOT_a)_count",
 								},
 								"in": bson.M{
 									"$cond": []interface{}{
@@ -3053,14 +3056,14 @@ func TestOptimizePlan(t *testing.T) {
 											bson.M{"$eq": []interface{}{"$$expr", false}},
 										}},
 										bson.M{"$literal": nil},
-										"$sum(foo_DOT_a)",
+										"$sum(test_DOT_foo_DOT_a)",
 									},
 								},
 							},
 						},
 					}}},
 					{{"$project", bson.M{
-						"sum(foo_DOT_a)": "$sum(foo_DOT_a)",
+						"sum(test_DOT_foo_DOT_a)": "$sum(test_DOT_foo_DOT_a)",
 					}}},
 				},
 			)
@@ -3081,7 +3084,7 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{},
-						"count(foo_DOT_a)": bson.M{
+						"count(test_DOT_foo_DOT_a)": bson.M{
 							"$sum": bson.M{
 								"$cond": []interface{}{
 									bson.M{
@@ -3102,7 +3105,7 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 					{{"$project", bson.M{
-						"count(foo_DOT_a)": "$count(foo_DOT_a)",
+						"count(test_DOT_foo_DOT_a)": "$count(test_DOT_foo_DOT_a)",
 					}}},
 				},
 			)
@@ -3110,15 +3113,15 @@ func TestOptimizePlan(t *testing.T) {
 			test("select count(distinct b) from foo",
 				[]bson.D{
 					{{"$group", bson.M{
-						"_id":                bson.D{},
-						"distinct foo_DOT_b": bson.M{"$addToSet": "$b"},
+						"_id": bson.D{},
+						"distinct test_DOT_foo_DOT_b": bson.M{"$addToSet": "$b"},
 					}}},
 					{{"$project", bson.M{
 						"_id": 0,
-						"count(distinct foo_DOT_b)": bson.M{
+						"count(distinct test_DOT_foo_DOT_b)": bson.M{
 							"$sum": bson.M{
 								"$map": bson.M{
-									"input": "$distinct foo_DOT_b",
+									"input": "$distinct test_DOT_foo_DOT_b",
 									"as":    "i",
 									"in": bson.M{
 										"$cond": []interface{}{
@@ -3132,7 +3135,7 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 					{{"$project", bson.M{
-						"count(distinct foo_DOT_b)": "$count(distinct foo_DOT_b)",
+						"count(distinct test_DOT_foo_DOT_b)": "$count(distinct test_DOT_foo_DOT_b)",
 					}}},
 				},
 			)
@@ -3143,20 +3146,20 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_c", "$c"},
+							{"test_DOT_foo_DOT_c", "$c"},
 						},
-						"max(foo_DOT_a)": bson.M{
+						"max(test_DOT_foo_DOT_a)": bson.M{
 							"$max": "$a",
 						},
-						"max(foo_DOT_b)": bson.M{
+						"max(test_DOT_foo_DOT_b)": bson.M{
 							"$max": "$b",
 						},
 					}}},
 					{{"$match", bson.M{
-						"max(foo_DOT_b)": int64(10),
+						"max(test_DOT_foo_DOT_b)": int64(10),
 					}}},
 					{{"$project", bson.M{
-						"max(foo_DOT_a)": "$max(foo_DOT_a)",
+						"max(test_DOT_foo_DOT_a)": "$max(test_DOT_foo_DOT_a)",
 					}}},
 				},
 			)
@@ -3169,7 +3172,7 @@ func TestOptimizePlan(t *testing.T) {
 						{"b", 1},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 			)
@@ -3180,10 +3183,10 @@ func TestOptimizePlan(t *testing.T) {
 						{"b", 1},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 					{{"$project", bson.M{
-						"a": "$foo_DOT_a",
+						"test_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
 				},
 			)
@@ -3191,14 +3194,14 @@ func TestOptimizePlan(t *testing.T) {
 			test("(select a from foo) order by a limit 1",
 				[]bson.D{
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 					{{"$sort", bson.D{
-						{"foo_DOT_a", 1},
+						{"test_DOT_foo_DOT_a", 1},
 					}}},
 					{{"$limit", int64(1)}},
 					{{"$project", bson.M{
-						"a": "$foo_DOT_a",
+						"test_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
 				},
 			)
@@ -3210,14 +3213,14 @@ func TestOptimizePlan(t *testing.T) {
 					}}},
 					{{"$limit", int64(3)}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 					{{"$sort", bson.D{
-						{"foo_DOT_a", 1},
+						{"test_DOT_foo_DOT_a", 1},
 					}}},
 					{{"$limit", int64(1)}},
 					{{"$project", bson.M{
-						"ut_DOT_a": "$foo_DOT_a",
+						"test_DOT_ut_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
 				},
 			)
@@ -3229,15 +3232,15 @@ func TestOptimizePlan(t *testing.T) {
 					}}},
 					{{"$limit", int64(3)}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 					{{"$sort", bson.D{
-						{"foo_DOT_a", 1},
+						{"test_DOT_foo_DOT_a", 1},
 					}}},
 					{{"$skip", int64(1)}},
 					{{"$limit", int64(1)}},
 					{{"$project", bson.M{
-						"ut_DOT_a": "$foo_DOT_a",
+						"test_DOT_ut_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
 				},
 			)
@@ -3249,7 +3252,7 @@ func TestOptimizePlan(t *testing.T) {
 						{"b", -1},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 			)
@@ -3258,17 +3261,17 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$group", bson.M{
 						"_id": bson.D{
-							{"foo_DOT_a", "$a"},
+							{"test_DOT_foo_DOT_a", "$a"},
 						},
-						"max(foo_DOT_b)": bson.M{
+						"max(test_DOT_foo_DOT_b)": bson.M{
 							"$max": "$b",
 						},
 					}}},
 					{{"$sort", bson.D{
-						{"max(foo_DOT_b)", 1},
+						{"max(test_DOT_foo_DOT_b)", 1},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$_id.foo_DOT_a",
+						"test_DOT_foo_DOT_a": "$_id.test_DOT_foo_DOT_a",
 					}}},
 				},
 			)
@@ -3277,7 +3280,7 @@ func TestOptimizePlan(t *testing.T) {
 				test("select a from foo order by a > b",
 					[]bson.D{
 						{{"$addFields", bson.M{
-							"foo_DOT_a>foo_DOT_b": bson.M{
+							"test_DOT_foo_DOT_a>test_DOT_foo_DOT_b": bson.M{
 								"$let": bson.M{
 									"vars": bson.M{
 										"left":  "$a",
@@ -3285,6 +3288,7 @@ func TestOptimizePlan(t *testing.T) {
 									},
 									"in": bson.M{
 										"$cond": []interface{}{
+
 											bson.M{
 												"$or": []interface{}{
 													bson.M{
@@ -3324,12 +3328,12 @@ func TestOptimizePlan(t *testing.T) {
 						}}},
 						{{"$sort", bson.D{
 							{
-								"foo_DOT_a>foo_DOT_b",
-								int(1),
+								Name:  "test_DOT_foo_DOT_a>test_DOT_foo_DOT_b",
+								Value: int(1),
 							},
 						}}},
 						{{"$project", bson.M{
-							"foo_DOT_a": "$a",
+							"test_DOT_foo_DOT_a": "$a",
 						}}},
 					},
 				)
@@ -3341,7 +3345,7 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$limit", int64(10)}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 			)
@@ -3351,7 +3355,7 @@ func TestOptimizePlan(t *testing.T) {
 					{{"$skip", int64(10)}},
 					{{"$limit", int64(20)}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 			)
@@ -3360,10 +3364,10 @@ func TestOptimizePlan(t *testing.T) {
 				[]bson.D{
 					{{"$limit", int64(1)}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 					{{"$project", bson.M{
-						"a": "$foo_DOT_a",
+						"test_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
 				},
 			)
@@ -3371,11 +3375,11 @@ func TestOptimizePlan(t *testing.T) {
 			test("(select a from foo) limit 1",
 				[]bson.D{
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 					{{"$limit", int64(1)}},
 					{{"$project", bson.M{
-						"a": "$foo_DOT_a",
+						"test_DOT_a": "$test_DOT_foo_DOT_a",
 					}}},
 				},
 			)
@@ -3392,7 +3396,7 @@ func TestOptimizePlan(t *testing.T) {
 						},
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 			)
@@ -3414,7 +3418,7 @@ func TestOptimizePlan(t *testing.T) {
 						}},
 					}},
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 					}}},
 				},
 			)
@@ -3435,7 +3439,7 @@ func TestOptimizePlan(t *testing.T) {
 						emptyFieldNamePrefix: bson.M{
 							"$literal": "",
 						},
-						"ifnull(foo_DOT_a,)": bson.M{
+						"ifnull(test_DOT_foo_DOT_a,)": bson.M{
 							"$ifNull": []interface{}{
 								"$a", bson.M{"$literal": ""}}},
 					}}},
@@ -3449,7 +3453,7 @@ func TestOptimizePlan(t *testing.T) {
 						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
 							"$literal": "",
 						},
-						"ifnull(foo_DOT_a,)": bson.M{
+						"ifnull(test_DOT_foo_DOT_a,)": bson.M{
 							"$ifNull": []interface{}{
 								"$a", bson.M{"$literal": ""}}},
 					}}},
@@ -3474,8 +3478,8 @@ func TestOptimizePlan(t *testing.T) {
 			test("select a, b, trim('   ') from foo",
 				[]bson.D{
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
-						"foo_DOT_b": "$b",
+						"test_DOT_foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_b": "$b",
 						emptyFieldNamePrefix: bson.M{
 							"$literal": "",
 						},
@@ -3484,13 +3488,13 @@ func TestOptimizePlan(t *testing.T) {
 			test("select ifnull(a, ''), trim(''), a, trim(' ') from foo",
 				[]bson.D{
 					{{"$project", bson.M{
-						"ifnull(foo_DOT_a,)": bson.M{
+						"ifnull(test_DOT_foo_DOT_a,)": bson.M{
 							"$ifNull": []interface{}{
 								"$a", bson.M{"$literal": ""}}},
 						emptyFieldNamePrefix: bson.M{
 							"$literal": "",
 						},
-						"foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_a": "$a",
 						fmt.Sprintf("%v_%v", emptyFieldNamePrefix, 0): bson.M{
 							"$literal": "",
 						},
@@ -3657,32 +3661,32 @@ func TestOptimizePlan(t *testing.T) {
 			test("select a, b as a from foo",
 				[]bson.D{
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
-						"foo_DOT_b": "$b",
+						"test_DOT_foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_b": "$b",
 					}}},
 				})
 			test("select a, b as a, c as a from foo",
 				[]bson.D{
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
-						"foo_DOT_b": "$b",
-						"foo_DOT_c": "$c",
+						"test_DOT_foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_b": "$b",
+						"test_DOT_foo_DOT_c": "$c",
 					}}},
 				})
 			test("select a, b as a, _id as a from foo",
 				[]bson.D{
 					{{"$project", bson.M{
-						"foo_DOT_a":   "$a",
-						"foo_DOT_b":   "$b",
-						"foo_DOT__id": "$_id",
+						"test_DOT_foo_DOT_a":   "$a",
+						"test_DOT_foo_DOT_b":   "$b",
+						"test_DOT_foo_DOT__id": "$_id",
 					}}},
 				})
 			test("select a, b as a, e as a from foo",
 				[]bson.D{
 					{{"$project", bson.M{
-						"foo_DOT_a": "$a",
-						"foo_DOT_b": "$b",
-						"foo_DOT_e": "$d.e",
+						"test_DOT_foo_DOT_a": "$a",
+						"test_DOT_foo_DOT_b": "$b",
+						"test_DOT_foo_DOT_e": "$d.e",
 					}}},
 				})
 		})
@@ -3849,13 +3853,13 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 			testOptimize("select a, (select b from bar) from foo",
 				[]bson.D{
 					{{"$project", bson.M{
-						"bar_DOT_b": "$b",
+						"test_DOT_bar_DOT_b": "$b",
 					}}},
 				})
 			testOptimize("select exists(select a from bar) from foo",
 				[]bson.D{
 					{{"$project", bson.M{
-						"bar_DOT_a": "$a",
+						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				})
 			testOptimize("select a from bar where `a` = (select `b` from bar where b=2)",
@@ -3864,16 +3868,16 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 						"b": int64(2),
 					}}},
 					{{"$project", bson.M{
-						"bar_DOT_b": "$b",
+						"test_DOT_bar_DOT_b": "$b",
 					}}},
 				})
 			testOptimize("select a from bar where `a` = (select `b` from bar where b = (select a from bar where a=1))",
 				[]bson.D{
 					bson.D{{"$project", bson.M{
-						"bar_DOT_b": "$b",
+						"test_DOT_bar_DOT_b": "$b",
 					}}},
 					bson.D{{"$project", bson.M{
-						"bar_DOT_b": "$bar_DOT_b",
+						"test_DOT_bar_DOT_b": "$test_DOT_bar_DOT_b",
 					}}},
 				},
 				[]bson.D{
@@ -3881,7 +3885,7 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 						"a": int64(1),
 					}}},
 					bson.D{{"$project", bson.M{
-						"bar_DOT_a": "$a",
+						"test_DOT_bar_DOT_a": "$a",
 					}}},
 				})
 			testOptimize("select a from bar where (`a`, `b`) = (select `c`, `b` from foo where b=2)",
@@ -3890,8 +3894,8 @@ func TestOptimizeSubqueryPlan(t *testing.T) {
 						"b": int64(2),
 					}}},
 					{{"$project", bson.M{
-						"foo_DOT_c": "$c",
-						"foo_DOT_b": "$b",
+						"test_DOT_foo_DOT_c": "$c",
+						"test_DOT_foo_DOT_b": "$b",
 					}}},
 				})
 		})
@@ -4004,25 +4008,25 @@ func TestOptimizeEvaluations(t *testing.T) {
 			test{"3 < '3'", "false", SQLFalse},
 			test{"3 > '3'", "false", SQLFalse},
 			test{"3 <=> '3'", "true", SQLTrue},
-			test{"3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 < a", "a > 3", &SQLGreaterThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 > a", "a < 3", &SQLLessThanExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 < a", "a > 3", &SQLGreaterThanExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 <= a", "a >= 3", &SQLGreaterThanOrEqualExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 > a", "a < 3", &SQLLessThanExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 >= a", "a <= 3", &SQLLessThanOrEqualExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 <> a", "a <> 3", &SQLNotEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
 			test{"3 + 3 = 6", "true", SQLTrue},
 			test{"3 <=> 3", "true", SQLTrue},
 			test{"NULL <=> 3", "false", SQLFalse},
 			test{"3 <=> NULL", "false", SQLFalse},
 			test{"NULL <=> NULL", "true", SQLTrue},
-			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)}},
-			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 / (3 - 2) = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)}},
+			test{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
 			test{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
 				&SQLAndExpr{
-					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)},
-					&SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "b", schema.SQLInt, schema.MongoInt), SQLInt(2)}}},
+					&SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLFloat(3)},
+					&SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "b", schema.SQLInt, schema.MongoInt), SQLInt(2)}}},
 			test{"3 + 3 = 6 OR a = 3", "true", SQLTrue},
-			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"3 + 3 = 5 OR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
 			test{"0 OR NULL", "null", SQLNull},
 			test{"1 OR NULL", "true", SQLTrue},
 			test{"NULL OR NULL", "null", SQLNull},
@@ -4031,18 +4035,18 @@ func TestOptimizeEvaluations(t *testing.T) {
 			test{"0 AND NULL", "false", SQLFalse},
 			test{"1 AND NULL", "null", SQLNull},
 			test{"1 AND 6+0 = 6", "true", SQLTrue},
-			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"(3 + 3 = 5) XOR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
-			test{"(3 + 3 = 6) XOR a = 3", "a <> 3", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}}},
-			test{"(13 + 9 > 6) XOR (a = 4)", "a <> 4", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(4)}}},
-			test{"(8 / 5 = 9) XOR (a = 5)", "a = 5", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(5)}},
+			test{"3 + 3 = 6 AND a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"(3 + 3 = 5) XOR a = 3", "a = 3", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}},
+			test{"(3 + 3 = 6) XOR a = 3", "a <> 3", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(3)}}},
+			test{"(13 + 9 > 6) XOR (a = 4)", "a <> 4", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(4)}}},
+			test{"(8 / 5 = 9) XOR (a = 5)", "a = 5", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(5)}},
 			test{"false XOR 23", "true", SQLTrue},
 			test{"true XOR 23", "false", SQLFalse},
-			test{"a = 23 XOR true", "a <> 23", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(23)}}},
+			test{"a = 23 XOR true", "a <> 23", &SQLNotExpr{operand: &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLInt(23)}}},
 			test{"!3", "0", SQLFalse},
 			test{"!NULL", "null", SQLNull},
-			test{"a = ~1", "a = 18446744073709551614", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLUint64(18446744073709551614)}},
-			test{"a = ~2398238912332232323", "a = 16048505161377319292", &SQLEqualsExpr{NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt), SQLUint64(16048505161377319292)}},
+			test{"a = ~1", "a = 18446744073709551614", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLUint64(18446744073709551614)}},
+			test{"a = ~2398238912332232323", "a = 16048505161377319292", &SQLEqualsExpr{NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt), SQLUint64(16048505161377319292)}},
 			test{"DAYNAME('2016-1-1')", "Friday", SQLVarchar("Friday")},
 			test{"(8-7)", "1", SQLInt(1)},
 			test{"a LIKE NULL", "null", SQLNull},
@@ -4074,7 +4078,7 @@ func TestOptimizeEvaluations(t *testing.T) {
 			test{"exp(2)", "7.38905609893065", SQLFloat(7.38905609893065)},
 			test{"greatest(a, NULL)", "null", SQLNull},
 			test{"greatest(2, 3)", "3", SQLInt(3)},
-			test{"ifnull(NULL, a)", "bar.a", NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt)},
+			test{"ifnull(NULL, a)", "bar.a", NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
 			test{"ifnull(10, a)", "10", SQLInt(10)},
 			test{"interval(NULL, a)", "-1", SQLInt(-1)},
 			test{"interval(0, 1)", "0", SQLInt(0)},
@@ -4096,7 +4100,7 @@ func TestOptimizeEvaluations(t *testing.T) {
 			test{"mod(NULL, 2)", "null", SQLNull},
 			test{"mod(10, NULL)", "null", SQLNull},
 			test{"nullif(NULL, a)", "null", SQLNull},
-			test{"nullif(a, NULL)", "bar.a", NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt)},
+			test{"nullif(a, NULL)", "bar.a", NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)},
 			test{"pow(a, NULL)", "null", SQLNull},
 			test{"pow(NULL, a)", "null", SQLNull},
 			test{"pow(2,2)", "4", SQLFloat(4)},

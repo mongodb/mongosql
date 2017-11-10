@@ -171,20 +171,12 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 	return NewProjectStage(
 		NewDualStage(),
 		ProjectedColumn{
-			Column: &Column{
-				SelectID: a.selectID,
-				Name:     "Table",
-				SQLType:  schema.SQLVarchar,
-			},
-			Expr: SQLVarchar(string(table.Name())),
+			Column: NewColumn(a.selectID, "", "", "", "Table", "", "", schema.SQLVarchar, "", false),
+			Expr:   SQLVarchar(string(table.Name())),
 		},
 		ProjectedColumn{
-			Column: &Column{
-				SelectID: a.selectID,
-				Name:     "Create Table",
-				SQLType:  schema.SQLVarchar,
-			},
-			Expr: SQLVarchar(createTableSQL),
+			Column: NewColumn(a.selectID, "", "", "", "Create Table", "", "", schema.SQLVarchar, "", false),
+			Expr:   SQLVarchar(createTableSQL),
 		},
 	), nil
 }
@@ -388,7 +380,7 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 	subqueryTableName := info.tableName
 	plan = NewProjectStage(plan, projectedColumns...)
 	plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, subqueryTableName)
-	a.registerTable(subqueryTableName)
+	a.registerTable("", subqueryTableName)
 	a.registerColumns(plan.Columns())
 
 	if info.predicate != nil {
@@ -400,7 +392,7 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 	}
 
 	if len(info.orderBy) > 0 {
-		expr, err := a.resolveColumnExpr(subqueryTableName, info.orderBy)
+		expr, err := a.resolveColumnExpr(info.dbName, subqueryTableName, info.orderBy)
 		if err != nil {
 			panic(err.Error())
 		}

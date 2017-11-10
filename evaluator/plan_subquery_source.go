@@ -48,9 +48,10 @@ func (s *SubquerySourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 func (s *SubquerySourceStage) Columns() []*Column {
 	var columns []*Column
 	for _, column := range s.source.Columns() {
-		column.SelectID = s.selectID
-		column.Table = s.aliasName
-		columns = append(columns, column.clone())
+		c := column.clone()
+		c.SelectID = s.selectID
+		c.Table = s.aliasName
+		columns = append(columns, c)
 	}
 
 	return columns

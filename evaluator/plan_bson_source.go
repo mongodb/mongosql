@@ -13,32 +13,35 @@ const (
 // BSONSource is the simple interface for SQLProxy to simulate
 // data coming from a MongoDB installation.
 type BSONSourceStage struct {
-	selectID  int
-	tableName string
-	collation *collation.Collation
-	data      []bson.D
+	selectID     int
+	databaseName string
+	tableName    string
+	collation    *collation.Collation
+	data         []bson.D
 }
 
 // NewBSONSourceStage constructs a BSONSourceStage with its required values.
 func NewBSONSourceStage(selectID int, tableName string, collation *collation.Collation, data []bson.D) *BSONSourceStage {
 	return &BSONSourceStage{
-		selectID:  selectID,
-		tableName: tableName,
-		collation: collation,
-		data:      data,
+		selectID:     selectID,
+		databaseName: BSONSourceDB,
+		tableName:    tableName,
+		collation:    collation,
+		data:         data,
 	}
 }
 
 type BSONSourceIter struct {
-	selectID  int
-	tableName string
-	data      []bson.D
-	index     int
-	err       error
+	selectID     int
+	tableName    string
+	databaseName string
+	data         []bson.D
+	index        int
+	err          error
 }
 
 func (bs *BSONSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
-	return &BSONSourceIter{selectID: bs.selectID, data: bs.data, tableName: bs.tableName, index: 0}, nil
+	return &BSONSourceIter{selectID: bs.selectID, databaseName: bs.databaseName, data: bs.data, tableName: bs.tableName, index: 0}, nil
 }
 
 func (bs *BSONSourceIter) Next(row *Row) bool {
@@ -58,12 +61,12 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 			return false
 		}
 
-		values = append(values, Value{
-			SelectID: bs.selectID,
-			Table:    bs.tableName,
-			Name:     docElem.Name,
-			Data:     value,
-		})
+		values = append(values, NewValue(
+			bs.selectID,
+			bs.databaseName,
+			bs.tableName,
+			docElem.Name,
+			value))
 	}
 
 	row.Data = values
@@ -73,18 +76,12 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 }
 
 func (bs *BSONSourceStage) Columns() []*Column {
+
 	var columns []*Column
 	for _, v := range bs.data[0] {
-		columns = append(columns, &Column{
-			SelectID:      bs.selectID,
-			Table:         bs.tableName,
-			OriginalTable: bs.tableName,
-			Database:      BSONSourceDB,
-			Name:          v.Name,
-			OriginalName:  v.Name,
-			SQLType:       schema.SQLNone,
-			MongoType:     schema.MongoNone,
-		})
+		column := NewColumn(bs.selectID, bs.tableName, bs.tableName, bs.databaseName, v.Name, v.Name, "",
+			schema.SQLNone, schema.MongoNone, false)
+		columns = append(columns, column)
 	}
 	return columns
 }

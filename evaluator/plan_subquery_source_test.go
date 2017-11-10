@@ -68,8 +68,8 @@ func TestSubquerySourceStage(t *testing.T) {
 		}
 
 		expected := []Values{
-			{{42, "funny", "a", SQLInt(6)}, {42, "funny", "b", SQLInt(9)}},
-			{{42, "funny", "a", SQLInt(3)}, {42, "funny", "b", SQLInt(4)}},
+			{{42, BSONSourceDB, "funny", "a", SQLInt(6)}, {42, BSONSourceDB, "funny", "b", SQLInt(9)}},
+			{{42, BSONSourceDB, "funny", "a", SQLInt(3)}, {42, BSONSourceDB, "funny", "b", SQLInt(4)}},
 		}
 
 		runTest(project, false, rows, expected)

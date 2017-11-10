@@ -1658,7 +1658,7 @@ testcases:
   expected:
   - [0, 1, 0, 5, ~, ~, ~, ~]
   - [0, 1, 1, 6, 0, 1, 1, 6]
-  - [2, 0, 0, 7, 2, 0, 0, 7] 
+  - [2, 0, 0, 7, 2, 0, 0, 7]
 - sql: "select * from par_c a left join par_b b on a.id = b.id and b > 22"
   id: 'par_join_b_gt_22'
   db: join_test
@@ -1720,3 +1720,267 @@ testcases:
   - [ 2, 1, 32, 2, 2, 23]
   - [ 2, 2, 33, 2, 0, 21]
   - [ 2, 2, 33, 2, 2, 23]
+# Cross database join tests
+- sql: "select f.*, b.* from join_test.foo f, (select * from groupby_test.foo) b;"
+  id: 'crossdb_cross_join_aliased_select'
+  db: join_test
+  description: "cross db cross join"
+  expected_names: ["id", "a", "b", "id", "a", "b", "c"]
+  expected_types: [int, int, int, int , int ,int, int]
+  expected:
+  - [   0 ,    1 , NULL ,    0 ,    1 ,    1 ,    1 ]
+  - [   0 ,    1 , NULL ,    1 ,    2 ,    2 , NULL ]
+  - [   0 ,    1 , NULL ,    2 ,    2 ,    3 , NULL ]
+  - [   0 ,    1 , NULL ,    3 ,    3 ,    3 , NULL ]
+  - [   1 ,    2 ,    1 ,    0 ,    1 ,    1 ,    1 ]
+  - [   1 ,    2 ,    1 ,    1 ,    2 ,    2 , NULL ]
+  - [   1 ,    2 ,    1 ,    2 ,    2 ,    3 , NULL ]
+  - [   1 ,    2 ,    1 ,    3 ,    3 ,    3 , NULL ]
+  - [   2 ,    3 , NULL ,    0 ,    1 ,    1 ,    1 ]
+  - [   2 ,    3 , NULL ,    1 ,    2 ,    2 , NULL ]
+  - [   2 ,    3 , NULL ,    2 ,    2 ,    3 , NULL ]
+  - [   2 ,    3 , NULL ,    3 ,    3 ,    3 , NULL ]
+
+
+# Implicit joins
+- sql: "select d from join_test.bar, groupby_test.foo where join_test.bar.d = groupby_test.foo.b"
+  id: 'crossdb_join_implicit'
+  db: join_test
+  description: "implicit cross db inner join"
+  expected_names: ["d"]
+  expected_types: [int]
+  expected:
+  - [1]
+
+- sql: "select d from join_test.bar, (select * from groupby_test.foo) bar where join_test.bar.d = bar.b"
+  id: 'crossdb_join_implicit_with_subquery'
+  db: join_test
+  description: "implicit cross db inner join"
+  expected_names: ["d"]
+  expected_types: [int]
+  expected:
+  - [1]
+
+# Inner joins
+- sql: "select join_test.foo.a, join_test.foo.b from join_test.foo inner join groupby_test.foo on join_test.foo.id = groupby_test.foo.id"
+  id: 'crossdb_inner_join'
+  db: join_test
+  description: "inner join"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected:
+  - [1, ~]
+  - [2, 1]
+  - [3, ~]
+
+- sql: "select k.a, k.b from join_test.foo inner join groupby_test.foo on join_test.foo.id = groupby_test.foo.id join join_test.foo k on k.id =join_test.foo.id"
+  id: 'crossdb_join_inner_join_three_tables'
+  db: join_test
+  description: "inner join"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected:
+  - [1, ~]
+  - [2, 1]
+  - [3, ~]
+
+# Straight_joins
+- sql: "select join_test.foo.a, join_test.baz.c from join_test.foo straight_join groupby_test.foo on join_test.foo.id = groupby_test.foo.id and join_test.foo.id > 0 straight_join join_test.baz on groupby_test.foo.id = join_test.baz.id"
+  id: 'straight_join_three_tables_with_additional_criteria'
+  db: join_Test
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [2, 11]
+  - [3, 30]
+
+- sql: "select join_test.foo.a, join_test.temp.c from join_test.foo straight_join (select * from groupby_test.foo straight_join join_test.baz on groupby_test.foo.id = join_test.baz.id) temp on join_test.foo.id = groupby_test.temp.id and join_test.foo.id > 0"
+  id: "straight_join_with_subquery_between_three_tables"
+  db: join_test
+  expected_names: ["a", "c"]
+  expected_types: [int, int]
+  expected:
+  - [2, 11]
+  - [3, 30]
+
+# Left joins
+- sql: "select join_test.foo.a from join_test.foo left outer join groupby_test.foo on join_test.foo.id = groupby_test.foo.id"
+  id: "cross_db_left_outer_join"
+  db: join_test
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+
+- sql: "select join_test.foo.a from join_test.foo left outer join groupby_test.foo foo on join_test.foo.id = groupby_test.foo.id"
+  id: "cross_db_left_outer_join_with_alias"
+  db: join_test
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+
+# To investigate
+#- sql: "select join_test.foo.a from join_test.foo join (select join_test.baz.id from groupby_test.foo left outer join join_test.baz on foo.id=baz.id) foo"
+#  id: "cross_db_left_outer_join_with_subquery"
+#  db: join_test
+#  expected_names: ["a"]
+#  expected_types: [int]
+#  expected:
+#  - [1]
+#  - [2]
+#  - [3]
+
+- sql: "select join_test.foo.a from join_test.foo left outer join (select groupby_test.foo.id from groupby_test.foo left outer join join_test.baz on foo.id=baz.id) foo on join_Test.foo.id=groupby_test.foo.id"
+  id: "cross_db_left_outer_join_with_subquery"
+  db: join_test
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+
+- sql: "select join_test.foo.a, groupby_test.foo.id from join_test.foo left outer join groupby_test.foo foo on join_test.foo.id = groupby_test.foo.id AND join_test.foo.id > 1"
+  id: "cross_db_left_outer_join_with_alias_and_additional_criteria"
+  db: join_test
+  expected_names: ["a", "id"]
+  expected_types: [int, int]
+  expected:
+  - [1, ~]
+  - [2, ~]
+  - [3, 2]
+
+# Right joins
+- sql: "select join_test.foo.a from join_test.foo right outer join groupby_test.foo on join_test.foo.id = groupby_test.foo.id"
+  id: "cross_db_right_outer_join"
+  db: join_test
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+  - [~]
+
+- sql: "select groupby_test.foo.* from join_test.foo right outer join groupby_test.foo foo on join_test.foo.id = groupby_test.foo.id"
+  id: "cross_db_right_outer_join_with_alias_and_wildcard_with_db_name"
+  db: join_test
+  expected_names: ["id", "a", "b", "c"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [0, 1, 1, 1]
+  - [1, 2, 2, ~]
+  - [2, 2, 3, ~]
+  - [3, 3, 3, ~]
+
+- sql: "select join_test.foo.* from join_test.foo right outer join (select groupby_test.foo.id from groupby_test.foo right outer join join_test.baz on foo.id=baz.id) foo on join_test.foo.id=groupby_test.foo.id"
+  id: "cross_db_right_outer_join_with_subquery"
+  db: join_test
+  expected_names: ["id","a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [0, 1, ~]
+  - [1, 2, 1]
+  - [2, 3, ~]
+  - [~, ~, ~]
+
+- sql: "select join_test.foo.a, groupby_test.foo.id from join_test.foo right outer join groupby_test.foo foo on join_test.foo.id = groupby_test.foo.id AND join_test.foo.id > 1"
+  id: "cross_db_right_outer_join_with_alias_and_additional_criteria"
+  db: join_test
+  expected_names: ["a", "id"]
+  expected_types: [int, int]
+  expected:
+  - [~, 0]
+  - [~, 1]
+  - [3, 2]
+  - [~, 3]
+
+# Natural joins
+- sql: "select * from join_test.foo natural join groupby_test.foo"
+  id: "cross_db_natural_join"
+  db: join_test
+  expected_names: []
+  expected_types: []
+  expected: []
+
+- sql: "select * from join_test.foo natural left join groupby_test.foo"
+  id: "cross_db_natural_left_join"
+  db: join_test
+  expected_names: ["id", "a", "b", "c"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [0, 1, ~, ~]
+  - [1, 2, 1, ~]
+  - [2, 3, ~, ~]
+
+
+- sql: "select * from join_test.foo natural right join groupby_test.foo"
+  id: "cross_db_natural_right_join"
+  db: join_test
+  expected_names: ["id", "a", "b", "c"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [0, 1, 1, 1]
+  - [1, 2, 2, ~]
+  - [2, 2, 3, ~]
+  - [3, 3, 3, ~]
+
+# Alias
+- sql: "select * from join_test.foo natural join groupby_test.foo b"
+  id: "cross_db_natural_with_alias"
+  db: join_test
+  expected_names: []
+  expected_types: []
+  expected: []
+
+- sql: "select * from join_test.foo natural left join groupby_test.foo b"
+  id: "cross_db_natural_left_with_alias"
+  db: join_test
+  expected_names: ["id", "a", "b", "c"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [0, 1, ~, ~]
+  - [1, 2, 1, ~]
+  - [2, 3, ~, ~]
+
+- sql: "select * from join_test.foo natural right join groupby_test.foo b"
+  id: "cross_db_natural_right_alias"
+  db: join_test
+  expected_names: ["id", "a", "b", "c"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [0, 1, 1, 1]
+  - [1, 2, 2, ~]
+  - [2, 2, 3, ~]
+  - [3, 3, 3, ~]
+
+# Subquery
+- sql: "select * from join_test.foo natural join (select * from groupby_test.foo natural join groupby_test.foo bar) k"
+  id: "cross_db_natural_with_alias_and_subquery"
+  db: join_test
+  expected_names: []
+  expected_types: []
+  expected: []
+
+- sql: "select * from join_test.foo natural left join (select * from groupby_test.foo natural join groupby_test.foo bar) k"
+  id: "cross_db_natural_left_with_alias_and_subquery"
+  db: join_test
+  expected_names: ["id", "a", "b", "c"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [0, 1, ~, ~]
+  - [1, 2, 1, ~]
+  - [2, 3, ~, ~]
+
+- sql: "select * from join_test.foo natural right join (select * from groupby_test.foo natural join groupby_test.foo bar) k"
+  id: "cross_db_natural_right_alias_and_subquery"
+  db: join_test
+  expected_names: ["id", "a", "b", "c"]
+  expected_types: [int, int, int, int]
+  expected:
+  - [0, 1, 1, 1]

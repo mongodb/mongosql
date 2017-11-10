@@ -52,25 +52,14 @@ func NewMongoSourceStage(db *catalog.Database, table *catalog.MongoTable, select
 
 	for _, c := range table.Columns() {
 		mc := c.(*catalog.MongoColumn)
-		column := &Column{
-			SelectID:      selectID,
-			Table:         ms.aliasNames[0],
-			OriginalTable: ms.tableNames[0],
-			Database:      ms.dbName,
-			Name:          string(mc.Name()),
-			OriginalName:  string(mc.Name()),
-			SQLType:       mc.Type(),
-			MongoType:     mc.MongoType,
-			PrimaryKey:    primaryKeys.Contains(mc.Name()),
-		}
-
+		column := NewColumn(selectID, ms.aliasNames[0], ms.tableNames[0], ms.dbName, string(mc.Name()),
+			string(mc.Name()), "", mc.Type(), mc.MongoType, primaryKeys.Contains(mc.Name()))
 		ms.mappingRegistry.addColumn(column)
-		ms.mappingRegistry.registerMapping(ms.aliasNames[0], string(mc.Name()), string(mc.MongoName))
+		ms.mappingRegistry.registerMapping(ms.dbName, ms.aliasNames[0], string(mc.Name()), string(mc.MongoName))
 	}
 
 	ms.pipeline = make([]bson.D, len(table.Pipeline))
 	copy(ms.pipeline, table.Pipeline)
-
 	return ms
 }
 
@@ -149,20 +138,18 @@ func (ms *MongoSourceIter) Next(row *Row) bool {
 
 	for _, column := range ms.mappingRegistry.columns {
 
-		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Table, column.MappingRegistryName)
+		mappedFieldName, ok := ms.mappingRegistry.lookupFieldName(column.Database, column.Table, column.MappingRegistryName)
 
 		if !ok {
-			ms.err = fmt.Errorf("unable to find mapping from %v.%v to a field name", column.Table, column.MappingRegistryName)
+			ms.err = fmt.Errorf("unable to find mapping from %v.%v.%v to a field name %v", column.Database,
+				column.Table, column.MappingRegistryName, ms.mappingRegistry.String())
 			return false
 		}
 
 		extractedField, _ := extractFieldByName(mappedFieldName, mappedDocument)
 
-		value := Value{
-			SelectID: column.SelectID,
-			Table:    column.Table,
-			Name:     column.Name,
-		}
+		value := NewValue(column.SelectID, column.Database,
+			column.Table, column.Name, nil)
 
 		value.Data, ms.err = NewSQLValueFromSQLColumnExpr(extractedField, column.SQLType, column.MongoType)
 		if ms.err != nil {
@@ -198,7 +185,7 @@ func (ms *MongoSourceIter) Err() error {
 // mappingRegistry provides a way to get a field name from a table/column.
 type mappingRegistry struct {
 	columns []*Column
-	fields  map[string]map[string]string
+	fields  map[string]map[string]map[string]string
 }
 
 func (mr *mappingRegistry) addColumn(column *Column) {
@@ -210,9 +197,11 @@ func (mr *mappingRegistry) copy() *mappingRegistry {
 	newMappingRegistry.columns = make([]*Column, len(mr.columns))
 	copy(newMappingRegistry.columns, mr.columns)
 	if mr.fields != nil {
-		for tableName, columns := range mr.fields {
-			for columnName, fieldName := range columns {
-				newMappingRegistry.registerMapping(tableName, columnName, fieldName)
+		for db, tables := range mr.fields {
+			for tableName, columns := range tables {
+				for columnName, fieldName := range columns {
+					newMappingRegistry.registerMapping(db, tableName, columnName, fieldName)
+				}
 			}
 		}
 	}
@@ -228,12 +217,17 @@ func (mr *mappingRegistry) isPrimaryKey(name string) bool {
 	return false
 }
 
-func (mr *mappingRegistry) lookupFieldName(tableName, columnName string) (string, bool) {
+func (mr *mappingRegistry) lookupFieldName(dbName, tableName, columnName string) (string, bool) {
 	if mr.fields == nil {
 		return "", false
 	}
 
-	columnToField, ok := mr.fields[tableName]
+	dbToColumn, ok := mr.fields[dbName]
+	if !ok {
+		return "", false
+	}
+
+	columnToField, ok := dbToColumn[tableName]
 	if !ok {
 		return "", false
 	}
@@ -243,39 +237,44 @@ func (mr *mappingRegistry) lookupFieldName(tableName, columnName string) (string
 	return field, ok
 }
 
-func (mr *mappingRegistry) registerMapping(tbl, column, field string) {
+func (mr *mappingRegistry) registerMapping(db, tbl, column, field string) {
 
 	if mr.fields == nil {
-		mr.fields = make(map[string]map[string]string)
+		mr.fields = make(map[string]map[string]map[string]string)
+	}
+	if _, ok := mr.fields[db]; !ok {
+		mr.fields[db] = make(map[string]map[string]string)
 	}
 
-	if _, ok := mr.fields[tbl]; !ok {
-		mr.fields[tbl] = make(map[string]string)
+	if _, ok := mr.fields[db][tbl]; !ok {
+		mr.fields[db][tbl] = make(map[string]string)
 	}
 
-	mr.fields[tbl][column] = field
+	mr.fields[db][tbl][column] = field
 }
 
 // containsFieldName checks whether a field name exists across the entire registry
 func (mr *mappingRegistry) containsFieldName(fieldName string) bool {
-	for _, columns := range mr.fields {
 
-		for _, field := range columns {
-			if field == fieldName {
-				return true
+	for _, dbs := range mr.fields {
+		for _, columns := range dbs {
+			for _, field := range columns {
+				if field == fieldName {
+					return true
+				}
 			}
 		}
 	}
-
 	return false
 }
 
 func (mr *mappingRegistry) String() string {
 	var b bytes.Buffer
-
-	for table, entry := range mr.fields {
-		for column, name := range entry {
-			b.WriteString(fmt.Sprintf("%v.%v => %v\n", table, column, name))
+	for database, tables := range mr.fields {
+		for table, entry := range tables {
+			for column, name := range entry {
+				b.WriteString(fmt.Sprintf("%v.%v.%v => %v\n", database, table, column, name))
+			}
 		}
 	}
 	return b.String()

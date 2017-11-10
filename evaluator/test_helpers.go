@@ -15,14 +15,14 @@ import (
 
 // bsonDToValues takes a bson.D document and returns
 // the corresponding values.
-func bsonDToValues(selectID int, tableName string, document bson.D) ([]Value, error) {
+func bsonDToValues(selectID int, databaseName, tableName string, document bson.D) ([]Value, error) {
 	values := []Value{}
 	for _, v := range document {
 		value, err := NewSQLValueFromSQLColumnExpr(v.Value, schema.SQLNone, schema.MongoNone)
 		if err != nil {
 			return nil, err
 		}
-		values = append(values, Value{selectID, tableName, v.Name, value})
+		values = append(values, NewValue(selectID, databaseName, tableName, v.Name, value))
 	}
 	return values, nil
 }
@@ -142,7 +142,7 @@ func createSQLColumnExprFromSource(source PlanStage, tableName, columnName strin
 			continue
 		}
 		if c.Table == tableName && c.Name == columnName {
-			return NewSQLColumnExpr(c.SelectID, c.Table, c.Name, c.SQLType, c.MongoType)
+			return NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.SQLType, c.MongoType)
 		}
 	}
 
@@ -162,7 +162,7 @@ func createProjectedColumnFromColumn(newSelectID int, column *Column, projectedT
 			MongoType:     column.MongoType,
 			PrimaryKey:    column.PrimaryKey,
 		},
-		Expr: NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType),
+		Expr: NewSQLColumnExpr(column.SelectID, column.Database, column.Table, column.Name, column.SQLType, column.MongoType),
 	}
 }
 
@@ -177,6 +177,38 @@ func createProjectedColumn(selectID int, source PlanStage, sourceTableName, sour
 	}
 
 	panic(fmt.Sprintf("no column found with the name %q", sourceColumnName))
+}
+
+func createProjectedColumnWithDatabase(selectID int, source PlanStage, sourceDatabaseName, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string) ProjectedColumn {
+	var dbName string
+	for _, c := range source.Columns() {
+		if c.MongoType == schema.MongoFilter {
+			continue
+		}
+		if c.Table == sourceTableName && c.Name == sourceColumnName && c.Database == sourceDatabaseName {
+			return createProjectedColumnFromColumnWithDatabase(selectID, c, sourceDatabaseName, projectedTableName, projectedColumnName)
+		}
+		dbName = c.Database
+	}
+
+	panic(fmt.Sprintf("no column found with the name %q from database: %s", sourceColumnName, dbName))
+}
+
+func createProjectedColumnFromColumnWithDatabase(newSelectID int, column *Column, databaseName, projectedTableName, projectedColumnName string) ProjectedColumn {
+	return ProjectedColumn{
+		Column: &Column{
+			SelectID:      newSelectID,
+			Name:          projectedColumnName,
+			OriginalName:  column.OriginalName,
+			Database:      databaseName,
+			Table:         projectedTableName,
+			OriginalTable: column.OriginalTable,
+			SQLType:       column.SQLType,
+			MongoType:     column.MongoType,
+			PrimaryKey:    column.PrimaryKey,
+		},
+		Expr: NewSQLColumnExpr(column.SelectID, databaseName, column.Table, column.Name, column.SQLType, column.MongoType),
+	}
 }
 
 func createAllProjectedColumnsFromSource(selectID int, source PlanStage, projectedTableName string) ProjectedColumns {

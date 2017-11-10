@@ -85,6 +85,7 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 		for i, pc := range b.project {
 			newExpr := NewSQLColumnExpr(
 				b.selectID,
+				projectedKeys[i].Database,
 				projectedKeys[i].Table,
 				projectedKeys[i].Name,
 				projectedKeys[i].SQLType,
@@ -306,26 +307,18 @@ func (b *queryPlanBuilder) includeWhere(where *parser.Where) error {
 
 func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColumn {
 	pc := &ProjectedColumn{
-		Column: &Column{
-			SelectID: b.selectID,
-		},
-		Expr: expr,
+		Column: NewColumn(b.selectID, "", "", "", "", "", "", "", "", false),
+		Expr:   expr,
 	}
 
 	if sqlCol, ok := expr.(SQLColumnExpr); ok {
 		if c := b.algebrizer.findSQLColumn(sqlCol); c != nil {
 			pc = c.projectWithExpr(expr)
 		} else {
-			pc.SelectID = sqlCol.selectID
-			pc.Name = sqlCol.columnName
-			pc.Table = sqlCol.tableName
-			pc.SQLType = sqlCol.columnType.SQLType
-			pc.MongoType = sqlCol.columnType.MongoType
+			pc.Column = NewColumn(sqlCol.selectID, sqlCol.tableName, "", sqlCol.databaseName, sqlCol.columnName, "", "", sqlCol.columnType.SQLType, sqlCol.columnType.MongoType, false)
 		}
 	} else {
-		pc.Name = expr.String()
-		pc.SQLType = expr.Type()
-		pc.MongoType = schema.MongoNone
+		pc.Column = NewColumn(b.selectID, "", "", "", expr.String(), "", "", expr.Type(), schema.MongoNone, false)
 	}
 
 	return pc

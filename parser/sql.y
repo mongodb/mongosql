@@ -541,7 +541,7 @@ show_statement:
   }
 | SHOW CREATE TABLE ID DOT ID
   {
-    $$ = &Show{Section: "create table", From: &ColName{$6, $4}}
+    $$ = &Show{Section: "create table", From: &ColName{nil, $6, $4}}
   }
 | SHOW CREATE TABLE DOT ID
   {
@@ -891,6 +891,10 @@ select_expression:
 | sql_id DOT TIMES
   {
     $$ = &StarExpr{TableName: $1}
+  }
+| sql_id DOT sql_id DOT TIMES
+  {
+    $$ = &StarExpr{DatabaseName: $1, TableName: $3}
   }
 
 column_expression_list:
@@ -2016,6 +2020,10 @@ column_name:
 | sql_id DOT sql_id
   {
     $$ = &ColName{Qualifier: $1, Name: $3}
+  }
+| sql_id DOT sql_id DOT sql_id
+  {
+    $$ = &ColName{Database: $1, Qualifier: $3, Name: $5}
   }
 
 value:

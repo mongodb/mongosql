@@ -20,7 +20,7 @@ import (
 
 func createFieldNameLookup(db *schema.Database) fieldNameLookup {
 
-	return func(tableName, columnName string) (string, bool) {
+	return func(databaseName, tableName, columnName string) (string, bool) {
 		table, ok := db.Table(tableName)
 		if !ok {
 			return "", false
@@ -78,9 +78,9 @@ func TestEvaluates(t *testing.T) {
 
 	Convey("Subject: Evaluates", t, func() {
 		evalCtx := NewEvalCtx(execCtx, collation.Default, &Row{Values{
-			{1, "bar", "a", SQLInt(123)},
-			{1, "bar", "b", SQLInt(456)},
-			{1, "bar", "c", SQLNull},
+			{1, "test", "bar", "a", SQLInt(123)},
+			{1, "test", "bar", "b", SQLInt(456)},
+			{1, "test", "bar", "c", SQLNull},
 		}})
 
 		Convey("Subject: SQLAddExpr", func() {
@@ -107,22 +107,22 @@ func TestEvaluates(t *testing.T) {
 
 			aggCtx := NewEvalCtx(execCtx, collation.Default,
 				&Row{Values{
-					{1, "bar", "a", SQLNull},
-					{1, "bar", "b", SQLInt(3)},
-					{1, "bar", "c", SQLNull},
-					{1, "bar", "g", SQLDate{t1}},
+					{1, "test", "bar", "a", SQLNull},
+					{1, "test", "bar", "b", SQLInt(3)},
+					{1, "test", "bar", "c", SQLNull},
+					{1, "test", "bar", "g", SQLDate{t1}},
 				}},
 				&Row{Values{
-					{1, "bar", "a", SQLInt(3)},
-					{1, "bar", "b", SQLNull},
-					{1, "bar", "c", SQLNull},
-					{1, "bar", "g", SQLDate{t2}},
+					{1, "test", "bar", "a", SQLInt(3)},
+					{1, "test", "bar", "b", SQLNull},
+					{1, "test", "bar", "c", SQLNull},
+					{1, "test", "bar", "g", SQLDate{t2}},
 				}},
 				&Row{Values{
-					{1, "bar", "a", SQLInt(5)},
-					{1, "bar", "b", SQLInt(6)},
-					{1, "bar", "c", SQLNull},
-					{1, "bar", "g", SQLNull},
+					{1, "test", "bar", "a", SQLInt(5)},
+					{1, "test", "bar", "b", SQLInt(6)},
+					{1, "test", "bar", "c", SQLNull},
+					{1, "test", "bar", "g", SQLNull},
 				}},
 			)
 
@@ -438,21 +438,21 @@ func TestEvaluates(t *testing.T) {
 
 		Convey("Subject: SQLColumnExpr", func() {
 			Convey("Should return the value of the field when it exists", func() {
-				subject := NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt)
+				subject := NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldEqual, SQLInt(123))
 			})
 
 			Convey("Should return nil when the field is null", func() {
-				subject := NewSQLColumnExpr(1, "bar", "c", schema.SQLInt, schema.MongoInt)
+				subject := NewSQLColumnExpr(1, "test", "bar", "c", schema.SQLInt, schema.MongoInt)
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldHaveSameTypeAs, SQLNull)
 			})
 
 			Convey("Should return nil when the field doesn't exists", func() {
-				subject := NewSQLColumnExpr(1, "bar", "no_existy", schema.SQLInt, schema.MongoInt)
+				subject := NewSQLColumnExpr(1, "test", "bar", "no_existy", schema.SQLInt, schema.MongoInt)
 				result, err := subject.Evaluate(evalCtx)
 				So(err, ShouldBeNil)
 				So(result, ShouldHaveSameTypeAs, SQLNull)
@@ -2516,8 +2516,8 @@ func TestEvaluates(t *testing.T) {
 				cs := &CacheStage{}
 				ctx := &EvalCtx{}
 				rows := []Row{
-					{Values{{1, "test", "a", SQLInt(1)}, {1, "test", "b", SQLInt(2)}}},
-					{Values{{1, "test", "a", SQLInt(2)}, {1, "test", "b", SQLInt(4)}}},
+					{Values{{1, "", "test", "a", SQLInt(1)}, {1, "", "test", "b", SQLInt(2)}}},
+					{Values{{1, "", "test", "a", SQLInt(2)}, {1, "", "test", "b", SQLInt(4)}}},
 				}
 				cs.rows = rows
 
@@ -3197,9 +3197,9 @@ func TestReconcileSQLExpr(t *testing.T) {
 
 	exprConv := &SQLConvertExpr{SQLVarchar("2010-01-01"), schema.SQLTimestamp, SQLNone}
 	exprTime := &SQLScalarFunctionExpr{"current_timestamp", []SQLExpr{}}
-	exprA := NewSQLColumnExpr(1, "bar", "a", schema.SQLInt, schema.MongoInt)
-	exprB := NewSQLColumnExpr(1, "bar", "b", schema.SQLInt, schema.MongoInt)
-	exprG := NewSQLColumnExpr(1, "bar", "g", schema.SQLTimestamp, schema.MongoDate)
+	exprA := NewSQLColumnExpr(1, "test", "bar", "a", schema.SQLInt, schema.MongoInt)
+	exprB := NewSQLColumnExpr(1, "test", "bar", "b", schema.SQLInt, schema.MongoInt)
+	exprG := NewSQLColumnExpr(1, "test", "bar", "g", schema.SQLTimestamp, schema.MongoDate)
 
 	Convey("Subject: reconcileSQLExpr", t, func() {
 
@@ -3352,11 +3352,16 @@ func TestTranslatePredicate(t *testing.T) {
 
 		partialTests := []partialTest{
 			// non-boolean types always exclude null
-			partialTest{"a", `{"a":{"$ne":null}}`, `a`, NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt)},
-			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
-			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
-			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
-			partialTest{"NOT (a = 3 AND a < b)", `{"$and":[{"a":{"$ne":3}},{"a":{"$ne":null}}]}`, "NOT a < b", &SQLNotExpr{&SQLLessThanExpr{NewSQLColumnExpr(1, tableTwoName, "a", schema.SQLInt, schema.MongoInt), NewSQLColumnExpr(1, tableTwoName, "b", schema.SQLInt, schema.MongoInt)}}},
+			partialTest{"a", `{"a":{"$ne":null}}`, `a`, NewSQLColumnExpr(1, "test", tableTwoName, "a", schema.SQLInt, schema.MongoInt)},
+			partialTest{"a = 3 AND a < b", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, "test", tableTwoName, "a", schema.SQLInt, schema.MongoInt),
+				NewSQLColumnExpr(1, "test", tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
+			partialTest{"a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, "test", tableTwoName, "a", schema.SQLInt, schema.MongoInt),
+				NewSQLColumnExpr(1, "test", tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
+			partialTest{"a < b AND a = 3", `{"a":3}`, "a < b", &SQLLessThanExpr{NewSQLColumnExpr(1, "test", tableTwoName, "a", schema.SQLInt, schema.MongoInt),
+				NewSQLColumnExpr(1, "test", tableTwoName, "b", schema.SQLInt, schema.MongoInt)}},
+			partialTest{"NOT (a = 3 AND a < b)", `{"$and":[{"a":{"$ne":3}},{"a":{"$ne":null}}]}`, "NOT a < b",
+				&SQLNotExpr{&SQLLessThanExpr{NewSQLColumnExpr(1, "test", tableTwoName, "a", schema.SQLInt, schema.MongoInt),
+					NewSQLColumnExpr(1, "test", tableTwoName, "b", schema.SQLInt, schema.MongoInt)}}},
 		}
 
 		runPartialTests(partialTests)

@@ -268,6 +268,53 @@ schema:
 		`
 schema:
 -
+  db: bson_source_database
+  tables:
+  -
+     table: bar
+     collection: bar
+     columns:
+     -
+        Name: a
+        MongoType: int
+        SqlType: int
+     -
+        Name: b
+        MongoType: int
+        SqlType: int
+     -
+        Name: loc.1
+        MongoType: string
+        SqlName: c
+        SqlType: varchar
+     -
+        Name: g
+        MongoType: date
+        SqlName: g
+        SqlType: timestamp
+     -
+        Name: h
+        MongoType: date
+        SqlName: h
+        SqlType: date
+     -
+        Name: s
+        MongoType: string
+        SqlName: s
+        SqlType: varchar
+     -
+        Name: t
+        MongoType: bool
+        SqlName: t
+        SqlType: boolean
+     -
+        Name: _id
+        MongoType: bson.ObjectId
+        SqlType: varchar
+  -
+     table: foo
+     collection: foo
+-
   db: test
   tables:
   -

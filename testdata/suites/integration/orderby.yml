@@ -195,3 +195,61 @@ testcases:
   - [1]
   - [2]
   - [2]
+
+# Three dot notation
+- sql: "select orderby_test.foo.a from foo order by (select orderby_test.foo.a from foo limit 1)"
+  id: '17'
+  db: orderby_test
+  description: "non-correlated subquery with three dot notation"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [0]
+  - [1]
+  - [2]
+- sql: "select orderby_test.f.a from foo f order by (select -orderby_test.foo.a from foo where f.id = orderby_test.foo.id)"
+  id: '18'
+  db: orderby_test
+  description: "correlated subquery with three dot notation"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [2]
+  - [1]
+  - [0]
+- sql: "select orderby_test.f.a from foo f order by orderby_test.f.a * orderby_test.f.id"
+  id: '19'
+  db: orderby_test
+  description: "order by expression with three dot notation"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [0]
+  - [1]
+  - [2]
+- sql: "select orderby_test.f.a from foo f order by orderby_test.f.a > orderby_test.f.id"
+  id: '20'
+  db: orderby_test
+  description: "order by expression with three dot notation"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [0]
+  - [1]
+  - [2]
+  - [2]
+
+- sql: "select orderby_test.foo.id, orderby_test.foo.a from orderby_test.foo order by orderby_test.foo.a, orderby_test.foo.id desc"
+  id: '21'
+  db: orderby_test
+  description: "multiple terms with the second desc with three dot notation"
+  expected_names: ["id", "a"]
+  expected_types: [int, int]
+  expected:
+  - [1, 0]
+  - [2, 1]
+  - [3, 2]
+  - [0, 2]

@@ -201,12 +201,12 @@ func (gb *GroupByIter) evaluateProjectedColumns(r []*Row) (*Row, error) {
 			return nil, err
 		}
 
-		value := Value{
-			SelectID: projectedColumn.SelectID,
-			Table:    projectedColumn.Table,
-			Name:     projectedColumn.Name,
-			Data:     v,
-		}
+		value := NewValue(
+			projectedColumn.SelectID,
+			projectedColumn.Database,
+			projectedColumn.Table,
+			projectedColumn.Name,
+			v)
 
 		row.Data = append(row.Data, value)
 	}

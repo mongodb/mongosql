@@ -13,8 +13,8 @@ func optimizeCrossJoins(n node, _ *EvalCtx, _ *log.Logger) (node, error) {
 }
 
 type crossJoinOptimizer struct {
-	predicateParts expressionParts
-	tableNames     []string
+	predicateParts      expressionParts
+	qualifiedTableNames []string
 }
 
 func (v *crossJoinOptimizer) visit(n node) (node, error) {
@@ -58,21 +58,21 @@ func (v *crossJoinOptimizer) visit(n node) (node, error) {
 		}
 		if matcherOk && (typedN.kind == innerJoin || typedN.kind == crossJoin || typedN.kind == straightJoin) && len(v.predicateParts) > 0 {
 			// We have a filter and a join without any criteria
-			v.tableNames = nil
+			v.qualifiedTableNames = nil
 			left, err := v.visit(typedN.left)
 			if err != nil {
 				return nil, err
 			}
-			tableNames := v.tableNames
-			v.tableNames = nil
+			tableNames := v.qualifiedTableNames
+			v.qualifiedTableNames = nil
 			right, err := v.visit(typedN.right)
 			if err != nil {
 				return nil, err
 			}
 
 			// this is now the table names from the left and the right side
-			tableNames = append(tableNames, v.tableNames...)
-			v.tableNames = tableNames
+			tableNames = append(tableNames, v.qualifiedTableNames...)
+			v.qualifiedTableNames = tableNames
 
 			// go through each part of the predicate and figure out which
 			// ones are associated to the tables in the current join.
@@ -103,7 +103,10 @@ func (v *crossJoinOptimizer) visit(n node) (node, error) {
 		}
 
 	case *MongoSourceStage:
-		v.tableNames = append(v.tableNames, typedN.aliasNames...)
+		for _, alias := range typedN.aliasNames {
+			fullyQualifiedTableName := fullyQualifiedTableName(typedN.dbName, alias)
+			v.qualifiedTableNames = append(v.qualifiedTableNames, fullyQualifiedTableName)
+		}
 		return n, nil
 	}
 
@@ -111,15 +114,15 @@ func (v *crossJoinOptimizer) visit(n node) (node, error) {
 }
 
 func (v *crossJoinOptimizer) canUseExpressionPartInJoinClause(part expressionPart) bool {
-	if len(part.tableNames) > 0 {
+	if len(part.qualifiedTableNames) > 0 {
 		// the right-most table must be present in the part
-		if !containsString(part.tableNames, v.tableNames[len(v.tableNames)-1]) {
+		if !containsString(part.qualifiedTableNames, v.qualifiedTableNames[len(v.qualifiedTableNames)-1]) {
 			return false
 		}
 
 		// all the names in the part must be in scope
-		for _, n := range part.tableNames {
-			if !containsString(v.tableNames, n) {
+		for _, n := range part.qualifiedTableNames {
+			if !containsString(v.qualifiedTableNames, n) {
 				return false
 			}
 		}

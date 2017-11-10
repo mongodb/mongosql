@@ -1,6 +1,8 @@
 package evaluator
 
-import "github.com/10gen/sqlproxy/collation"
+import (
+	"github.com/10gen/sqlproxy/collation"
+)
 
 // Filter ensures that only rows matching a given criteria are
 // returned.

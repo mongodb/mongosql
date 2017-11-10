@@ -705,3 +705,40 @@ testcases:
   expected:
   - [0, "abcde"]
   - [2, "ABC123"]
+
+# Three dot notation
+- sql: "select where_test.foo.a from where_test.foo where 0 <= where_test.foo.id"
+  id: '79'
+  db: where_test
+  description: "less than or equal (reversed) with three dot notation"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [1]
+  - [2]
+  - [3]
+- sql: "select where_test.foo.id from where_test.foo where where_test.foo.a = (select a from where_test.bar where where_test.bar.id = (select where_test.foo.id from where_test.foo limit 1))"
+  id: '80'
+  db: where_test
+  description: "non-correlated nested subqueries with three dot notation"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "select where_test.foo.id from where_test.foo where where_test.foo.a = (select min(where_test.bar.a) from where_test.bar)"
+  id: '81'
+  db: where_test
+  description: "non-correlated subquery with three dot notation"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [1]
+- sql: "select where_test.foo.a from where_test.foo where (where_test.foo.id, where_test.foo.a) = (select where_test.bar.id, a from where_test.bar where foo.id = bar.id AND foo.a = bar.a)"
+  id: '82'
+  db: where_test
+  description: "correlated subquery with three dot notation"
+  expected_names: ["a"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [3]

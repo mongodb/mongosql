@@ -25,11 +25,11 @@ func optimizeFiltering(n node, _ *EvalCtx, logger *log.Logger) (node, error) {
 }
 
 type filteringOptimizer struct {
-	logger         *log.Logger
-	predicateParts expressionParts
-	tableNames     []string
-	allowPredicate bool
-	root           PlanStage
+	logger              *log.Logger
+	predicateParts      expressionParts
+	qualifiedTableNames []string
+	allowPredicate      bool
+	root                PlanStage
 }
 
 func (v *filteringOptimizer) visit(n node) (node, error) {
@@ -45,7 +45,10 @@ func (v *filteringOptimizer) visit(n node) (node, error) {
 		}
 
 	case *MongoSourceStage:
-		v.tableNames = append(v.tableNames, typedN.aliasNames...)
+		for _, alias := range typedN.aliasNames {
+			fullyQualifiedTableName := fullyQualifiedTableName(typedN.dbName, alias)
+			v.qualifiedTableNames = append(v.qualifiedTableNames, fullyQualifiedTableName)
+		}
 
 		if v.allowPredicate {
 			combined, remaining := v.getMatchingPredicate()
@@ -57,7 +60,7 @@ func (v *filteringOptimizer) visit(n node) (node, error) {
 
 		return n, nil
 	case *DynamicSourceStage:
-		v.tableNames = append(v.tableNames, typedN.aliasName)
+		v.qualifiedTableNames = append(v.qualifiedTableNames, fullyQualifiedTableName(typedN.dbName, typedN.aliasName))
 
 		if v.allowPredicate {
 			combined, remaining := v.getMatchingPredicate()
@@ -71,21 +74,23 @@ func (v *filteringOptimizer) visit(n node) (node, error) {
 	case *JoinStage:
 		oldAllowPredicate := v.allowPredicate
 		v.allowPredicate = true
-		v.tableNames = nil
+		v.qualifiedTableNames = nil
 		left, err := v.visit(typedN.left)
 		if err != nil {
 			return nil, err
 		}
 
 		v.allowPredicate = false
-		tableNames := v.tableNames
-		v.tableNames = nil
+		qualifiedTableNames := v.qualifiedTableNames
+		v.qualifiedTableNames = nil
+
 		right, err := v.visit(typedN.right)
 		if err != nil {
 			return nil, err
 		}
-		tableNames = append(tableNames, v.tableNames...)
-		v.tableNames = tableNames
+		qualifiedTableNames = append(qualifiedTableNames, v.qualifiedTableNames...)
+
+		v.qualifiedTableNames = qualifiedTableNames
 		v.allowPredicate = oldAllowPredicate
 
 		if left != typedN.left || right != typedN.right {
@@ -119,7 +124,10 @@ func (v *filteringOptimizer) visit(n node) (node, error) {
 		return n, nil
 
 	case *SubquerySourceStage:
-		v.tableNames = append(v.tableNames, typedN.aliasName)
+		dbNames := generateDbSetFromColumns(typedN.Columns())
+		for dbName, _ := range dbNames {
+			v.qualifiedTableNames = append(v.qualifiedTableNames, fullyQualifiedTableName(dbName, typedN.aliasName))
+		}
 
 		source, err := optimizeFiltering(typedN.source, nil, v.logger)
 		if err != nil {
@@ -164,8 +172,8 @@ func (v *filteringOptimizer) getMatchingPredicate() (SQLExpr, []expressionPart) 
 	var remainingParts []expressionPart
 	for _, part := range v.predicateParts {
 		valid := true
-		for _, partTableName := range part.tableNames {
-			if !containsString(v.tableNames, partTableName) {
+		for _, partTableName := range part.qualifiedTableNames {
+			if !containsString(v.qualifiedTableNames, partTableName) {
 				valid = false
 				break
 			}

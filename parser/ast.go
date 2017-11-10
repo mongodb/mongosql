@@ -202,13 +202,18 @@ func (*NonStarExpr) ISelectExpr() {}
 
 // StarExpr defines a '*' or 'table.*' expression.
 type StarExpr struct {
-	TableName []byte
+	DatabaseName []byte
+	TableName    []byte
 }
 
 func (node *StarExpr) Format(buf *TrackedBuffer) {
+	if node.DatabaseName != nil {
+		buf.Fprintf("%s.", node.DatabaseName)
+	}
 	if node.TableName != nil {
 		buf.Fprintf("%s.", node.TableName)
 	}
+
 	buf.Fprintf("*")
 }
 
@@ -652,10 +657,15 @@ func (node *UnknownVal) Format(buf *TrackedBuffer) {
 
 // ColName represents a column name.
 type ColName struct {
-	Name, Qualifier []byte
+	Database, Name, Qualifier []byte
 }
 
 func (node *ColName) Format(buf *TrackedBuffer) {
+	if node.Database != nil {
+		escape(buf, node.Database)
+		buf.Fprintf(".")
+	}
+
 	if node.Qualifier != nil {
 		escape(buf, node.Qualifier)
 		buf.Fprintf(".")

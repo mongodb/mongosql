@@ -141,7 +141,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 
 			var expected []Values
 			for _, document := range rows {
-				values, err := bsonDToValues(1, tableTwoName, document)
+				values, err := bsonDToValues(1, dbOne, tableTwoName, document)
 				So(err, ShouldBeNil)
 				expected = append(expected, values)
 			}

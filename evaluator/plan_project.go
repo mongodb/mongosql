@@ -66,18 +66,17 @@ func (pj *ProjectIter) Next(r *Row) bool {
 			return false
 		}
 
-		value := Value{
-			SelectID: projectedColumn.SelectID,
-			Table:    projectedColumn.Table,
-			Name:     projectedColumn.Name,
-			Data:     v,
-		}
+		value := NewValue(
+			projectedColumn.SelectID,
+			projectedColumn.Database,
+			projectedColumn.Table,
+			projectedColumn.Name,
+			v)
 
 		values = append(values, value)
 	}
 
 	r.Data = values
-
 	return true
 }
 

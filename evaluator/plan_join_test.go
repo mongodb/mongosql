@@ -94,18 +94,20 @@ func TestJoinPlanStage(t *testing.T) {
 
 		criteria := &SQLEqualsExpr{
 			left: &SQLColumnExpr{
-				selectID:   1,
-				tableName:  tableOneName,
-				columnName: "orderid",
+				selectID:     1,
+				databaseName: BSONSourceDB,
+				tableName:    tableOneName,
+				columnName:   "orderid",
 				columnType: schema.ColumnType{
 					SQLType:   schema.SQLInt,
 					MongoType: schema.MongoInt,
 				},
 			},
 			right: &SQLColumnExpr{
-				selectID:   1,
-				tableName:  tableTwoName,
-				columnName: "orderid",
+				selectID:     1,
+				databaseName: BSONSourceDB,
+				tableName:    tableTwoName,
+				columnName:   "orderid",
 				columnType: schema.ColumnType{
 					SQLType:   schema.SQLInt,
 					MongoType: schema.MongoInt,

@@ -77,8 +77,8 @@ type innerJoinSource struct {
 }
 
 // tableEdge holds the tables referenced within an innerJoinExpr that
-// is an equality predicate between two fields e.g. foo.a = bar.b
-// would create a table edge with entries "foo, bar".
+// is an equality predicate between two fields e.g. db1.foo.a = db2.bar.b
+// would create a table edge with entries "db1.foo, db2.bar".
 type tableEdge struct {
 	// tables holds the tables referenced by the equality expression and
 	// always has exactly two entries - the left and right data sources.
@@ -181,7 +181,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 		ijs := innerJoinSource{
 			dataSource: typedN,
 		}
-		v.sources[typedN.aliasName] = ijs
+		v.sources[fullyQualifiedTableName(typedN.dbName, typedN.aliasName)] = ijs
 		return n, nil
 	case *JoinStage:
 		if !v.canOptimizeInnerJoinSubtree(typedN.left) ||
@@ -275,7 +275,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 			nPipelineStages: len(typedN.pipeline),
 			dataSource:      typedN,
 		}
-		v.sources[typedN.aliasNames[0]] = ijs
+		v.sources[fullyQualifiedTableName(typedN.dbName, typedN.aliasNames[0])] = ijs
 		return n, nil
 	case *SQLSubqueryExpr:
 		v.logger.Debugf(log.Dev, "attempting to optimize inner "+
@@ -325,7 +325,10 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 
 		ijs := innerJoinSource{nPipelineStages, n}
 		v.nPlanStages += subqueryOptimizer.nPlanStages
-		v.sources[typedN.aliasName] = ijs
+		dbNames := generateDbSetFromColumns(typedN.Columns())
+		for dbName, _ := range dbNames {
+			v.sources[fullyQualifiedTableName(dbName, typedN.aliasName)] = ijs
+		}
 		v.hasSubquery = true
 		return n, nil
 	case *UnionStage:
@@ -446,10 +449,12 @@ func (v *innerJoinOptimizer) getInnerJoinEqualities() []tableEdge {
 		}
 
 		equalityExpr := e.expr.(*SQLEqualsExpr)
+		left := equalityExpr.left.(SQLColumnExpr)
+		right := equalityExpr.right.(SQLColumnExpr)
 		edge := tableEdge{
 			[]string{
-				equalityExpr.left.(SQLColumnExpr).tableName,
-				equalityExpr.right.(SQLColumnExpr).tableName,
+				fullyQualifiedTableName(left.databaseName, left.tableName),
+				fullyQualifiedTableName(right.databaseName, right.tableName),
 			},
 		}
 
@@ -502,8 +507,10 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (node, error) {
 		for j, e := range v.exprs {
 			if e.isEquality {
 				eq := e.expr.(*SQLEqualsExpr)
-				left := eq.left.(SQLColumnExpr).tableName
-				right := eq.right.(SQLColumnExpr).tableName
+				leftColumn := eq.left.(SQLColumnExpr)
+				rightColumn := eq.right.(SQLColumnExpr)
+				left := fullyQualifiedTableName(leftColumn.databaseName, leftColumn.tableName)
+				right := fullyQualifiedTableName(rightColumn.databaseName, rightColumn.tableName)
 				if edge.contains(left) && edge.contains(right) {
 					boundCriteria = append(boundCriteria, eq)
 					bound, idx = true, j
@@ -514,14 +521,15 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (node, error) {
 		if bound {
 			v.exprs = append(v.exprs[:idx], v.exprs[idx+1:]...)
 		}
+
 	}
 
 	for _, e := range v.exprs {
-		tables, err := referencedTables(e.expr)
+		qualifiedTableNames, err := referencedTables(e.expr)
 		if err != nil {
 			return nil, err
 		}
-		criterion := freeCriterion{e.expr, tables}
+		criterion := freeCriterion{e.expr, qualifiedTableNames}
 		freeCriteria = append(freeCriteria, criterion)
 	}
 

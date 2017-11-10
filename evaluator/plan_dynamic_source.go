@@ -33,16 +33,8 @@ func NewDynamicSourceStage(db *catalog.Database, table *catalog.DynamicTable,
 func (s *DynamicSourceStage) Columns() []*Column {
 	var columns []*Column
 	for _, c := range s.table.Columns() {
-		column := &Column{
-			SelectID:      s.selectID,
-			Table:         s.aliasName,
-			OriginalTable: string(s.table.Name()),
-			Database:      s.dbName,
-			Name:          string(c.Name()),
-			OriginalName:  string(c.Name()),
-			SQLType:       c.Type(),
-			MongoType:     schema.MongoNone,
-		}
+		column := NewColumn(s.selectID, s.aliasName, string(s.table.Name()), s.dbName, string(c.Name()), string(c.Name()), "",
+			c.Type(), schema.MongoNone, false)
 		columns = append(columns, column)
 	}
 
@@ -63,6 +55,7 @@ func (s *DynamicSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 	i := &dynamicDataSourceIter{
 		selectID:  s.selectID,
+		dbName:    s.dbName,
 		tableName: s.aliasName,
 		columns:   s.table.Columns(),
 		reader:    reader,
@@ -72,6 +65,7 @@ func (s *DynamicSourceStage) Open(ctx *ExecutionCtx) (Iter, error) {
 
 type dynamicDataSourceIter struct {
 	selectID  int
+	dbName    string
 	tableName string
 	columns   []catalog.Column
 	reader    catalog.DataReader
@@ -97,12 +91,12 @@ func (i *dynamicDataSourceIter) Next(row *Row) bool {
 	row.Data = Values{}
 	for x := 0; x < len(i.dataRow.Values); x++ {
 		sqlValue, _ := NewSQLValue(i.dataRow.Values[x], i.columns[x].Type(), "")
-		row.Data = append(row.Data, Value{
-			SelectID: i.selectID,
-			Table:    i.tableName,
-			Name:     string(i.columns[x].Name()),
-			Data:     sqlValue,
-		})
+		row.Data = append(row.Data, NewValue(
+			i.selectID,
+			i.dbName,
+			i.tableName,
+			string(i.columns[x].Name()),
+			sqlValue))
 	}
 
 	return true

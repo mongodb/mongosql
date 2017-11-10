@@ -82,22 +82,17 @@ type Column struct {
 	PrimaryKey          bool
 }
 
+func NewColumn(selectID int, table, originalTable, database, name, originalName, mappingRegistryName string, sqlType schema.SQLType, mongoType schema.MongoType, primaryKey bool) *Column {
+	return &Column{selectID, table, originalTable, database, name, originalName, mappingRegistryName,
+		sqlType, mongoType, primaryKey}
+}
+
 func (c *Column) clone() *Column {
-	return &Column{
-		SelectID:      c.SelectID,
-		Table:         c.Table,
-		OriginalTable: c.OriginalTable,
-		Name:          c.Name,
-		OriginalName:  c.OriginalName,
-		Database:      c.Database,
-		SQLType:       c.SQLType,
-		MongoType:     c.MongoType,
-		PrimaryKey:    c.PrimaryKey,
-	}
+	return NewColumn(c.SelectID, c.Table, c.OriginalTable, c.Database, c.Name, c.OriginalName, c.MappingRegistryName, c.SQLType, c.MongoType, c.PrimaryKey)
 }
 
 func (c *Column) expr() SQLColumnExpr {
-	return NewSQLColumnExpr(c.SelectID, c.Table, c.Name, c.SQLType, c.MongoType)
+	return NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.SQLType, c.MongoType)
 }
 
 func (c *Column) projectAs(name string) ProjectedColumn {
@@ -135,7 +130,10 @@ func (cs Columns) Unique() Columns {
 	var results Columns
 	contains := func(column *Column) bool {
 		for _, c := range results {
-			if c.SelectID == column.SelectID && c.Name == column.Name && c.Table == column.Table {
+			if c.SelectID == column.SelectID &&
+				c.Name == column.Name &&
+				c.Table == column.Table &&
+				c.Database == column.Database {
 				return true
 			}
 		}
@@ -177,7 +175,10 @@ func (pcs ProjectedColumns) Unique() ProjectedColumns {
 	var results ProjectedColumns
 	contains := func(column *ProjectedColumn) bool {
 		for _, expr := range results {
-			if expr.Column.SelectID == column.SelectID && expr.Column.Name == column.Name && expr.Column.Table == column.Table {
+			if expr.Column.SelectID == column.SelectID &&
+				expr.Column.Name == column.Name &&
+				expr.Column.Table == column.Table &&
+				expr.Column.Database == column.Database {
 				return true
 			}
 		}

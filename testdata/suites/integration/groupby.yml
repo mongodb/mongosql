@@ -516,3 +516,91 @@ testcases:
   - [1, ~]
   - [2, ~]
   - [3, ~]
+
+# Three dot notation
+- sql: "select groupby_test.foo.a, stddev_samp(groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
+  id: '50'
+  db: groupby_test
+  description: "std sample deviation of column with three dot notation"
+  expected_names: ["a", "stddev_samp(groupby_test.foo.b)"]
+  expected_types: [int, float64]
+  expected:
+  - [1, ~]
+  - [2, 0.7071067811865476]
+  - [3, ~]
+
+- sql: "select groupby_test.foo.a, stddev_samp(distinct groupby_test.foo.a) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
+  id: '51'
+  db: groupby_test
+  description: "std sample deviation of distinct column with three dot notation"
+  expected_names: ["a", "stddev_samp(distinct groupby_test.foo.a)"]
+  expected_types: [int, float64]
+  expected:
+  - [1, ~]
+  - [2, ~]
+  - [3, ~]
+
+- sql: "select groupby_test.foo.a, sum(groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
+  id: '52'
+  db: groupby_test
+  description: "sum of column with three dot notation"
+  expected_names: ["a", "sum(groupby_test.foo.b)"]
+  expected_types: [int, int]
+  expected:
+  - [1, 1]
+  - [2, 5]
+  - [3, 3]
+
+- sql: "select groupby_test.foo.a, sum(groupby_test.foo.a+groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
+  id: '53'
+  db: groupby_test
+  description: "sum of an expression with three dot notation"
+  expected_names: ["a", "sum(groupby_test.foo.a+groupby_test.foo.b)"]
+  expected_types: [int, int]
+  expected:
+  - [1, 2]
+  - [2, 9]
+  - [3, 6]
+
+- sql: "select groupby_test.foo.a as f, sum(groupby_test.foo.b) from groupby_test.foo group by f order by groupby_test.foo.a"
+  id: '54'
+  db: groupby_test
+  description: "single aggregation with alias with three dot notation"
+  expected_names: ["f", "sum(groupby_test.foo.b)"]
+  expected_types: [int, int]
+  expected:
+  - [1, 1]
+  - [2, 5]
+  - [3, 3]
+- sql: "select groupby_test.foo.a, sum(groupby_test.foo.b), count(*) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
+  id: '55'
+  db: groupby_test
+  description: "multiple aggregations with three dot notation"
+  expected_names: ["a", "sum(groupby_test.foo.b)", "count(*)"]
+  expected_types: [int, int, int]
+  expected:
+  - [1, 1, 1]
+  - [2, 5, 2]
+  - [3, 3, 1]
+
+- sql: "select groupby_test.foo.a, avg(groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
+  id: '56'
+  db: groupby_test
+  description: "avg of column with three dot notation"
+  expected_names: ["a", "avg(groupby_test.foo.b)"]
+  expected_types: [int, float64]
+  expected:
+  - [1, 1.0]
+  - [2, 2.5]
+  - [3, 3.0]
+
+- sql: "select groupby_test.foo.a, avg(groupby_test.foo.a+groupby_test.foo.b) from groupby_test.foo group by groupby_test.foo.a order by groupby_test.foo.a"
+  id: '57'
+  db: groupby_test
+  description: "avg of an expression with three dot notation"
+  expected_names: ["a", "avg(groupby_test.foo.a+groupby_test.foo.b)"]
+  expected_types: [int, float64]
+  expected:
+  - [1, 2.0]
+  - [2, 4.5]
+  - [3, 6.0]

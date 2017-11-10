@@ -262,6 +262,22 @@ func findUnwindForPath(unwinds []unwindInfo, path string) (unwindInfo, bool) {
 	return unwindInfo{stageNumber: -1, path: "", index: ""}, false
 }
 
+func fullyQualifiedTableName(databaseName, tableName string) string {
+	qualifiedName := tableName
+	if databaseName != "" {
+		qualifiedName = databaseName + "." + tableName
+	}
+	return qualifiedName
+}
+
+func generateDbSetFromColumns(columns []*Column) map[string]struct{} {
+	dbNames := make(map[string]struct{})
+	for _, c := range columns {
+		dbNames[c.Database] = struct{}{}
+	}
+	return dbNames
+}
+
 func getKey(key string, doc bson.D) (interface{}, bool) {
 	index := strings.Index(key, ".")
 	if index == -1 {
@@ -471,4 +487,5 @@ func sanitizeFieldName(fieldName string) string {
 func unsanitizeFieldName(fieldName string) string {
 	r := strings.Replace(fieldName, Dot, ".", -1)
 	return strings.Replace(r, Dollar, "$", -1)
+
 }

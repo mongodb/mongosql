@@ -156,10 +156,12 @@ func (a *algebrizer) fullName(tableName, columnName string) string {
 	return fn
 }
 
-func (a *algebrizer) lookupColumn(tableName, columnName string) (*Column, error) {
+func (a *algebrizer) lookupColumn(databaseName, tableName, columnName string) (*Column, error) {
 	var found *Column
 	for _, column := range a.columns {
-		if strings.EqualFold(column.Name, columnName) && (tableName == "" || strings.EqualFold(column.Table, tableName)) {
+		if strings.EqualFold(column.Name, columnName) &&
+			(tableName == "" || strings.EqualFold(column.Table, tableName)) &&
+			(databaseName == "" || strings.EqualFold(column.Database, databaseName)) {
 			if found != nil {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NON_UNIQ_ERROR, a.fullName(tableName, columnName), a.currentClause)
 			}
@@ -192,7 +194,8 @@ func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn,
 
 func (a *algebrizer) findSQLColumn(sqlCol SQLColumnExpr) *Column {
 	for _, c := range a.columns {
-		if strings.EqualFold(c.Table, sqlCol.tableName) &&
+		if strings.EqualFold(c.Database, sqlCol.databaseName) &&
+			strings.EqualFold(c.Table, sqlCol.tableName) &&
 			strings.EqualFold(c.Name, sqlCol.columnName) {
 			return c
 		}
@@ -204,7 +207,7 @@ func (a *algebrizer) findSQLColumn(sqlCol SQLColumnExpr) *Column {
 	return nil
 }
 
-func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, error) {
+func (a *algebrizer) resolveColumnExpr(dataBaseName, tableName, columnName string) (SQLExpr, error) {
 
 	if a.resolveProjectedColumnsFirst && tableName == "" {
 		expr, ok, err := a.lookupProjectedColumn(columnName)
@@ -216,12 +219,12 @@ func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, e
 		}
 	}
 
-	column, err := a.lookupColumn(tableName, columnName)
+	column, err := a.lookupColumn(dataBaseName, tableName, columnName)
 	if err == nil {
 		if a.currentClause != whereClause && column.MongoType == schema.MongoFilter {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ER_BAD_FIELD_ERROR, column.Name, column.Table)
 		}
-		return NewSQLColumnExpr(column.SelectID, column.Table, column.Name, column.SQLType, column.MongoType), nil
+		return NewSQLColumnExpr(column.SelectID, column.Database, column.Table, column.Name, column.SQLType, column.MongoType), nil
 	}
 
 	if !a.resolveProjectedColumnsFirst && tableName == "" {
@@ -237,7 +240,7 @@ func (a *algebrizer) resolveColumnExpr(tableName, columnName string) (SQLExpr, e
 	// we didn't find it in the current scope, so we need to search our parent,
 	// and let it search its parent, etc.
 	if a.parent != nil {
-		expr, parentErr := a.parent.resolveColumnExpr(tableName, columnName)
+		expr, parentErr := a.parent.resolveColumnExpr(dataBaseName, tableName, columnName)
 		if parentErr == nil {
 			a.correlated = true
 			return expr, nil
@@ -252,11 +255,10 @@ func (a *algebrizer) registerColumns(columns []*Column) error {
 		for _, c2 := range a.columns {
 			// we don't use SelectID here because it's irrelevant to whether a query
 			// is semantically valid.
-			if strings.EqualFold(c.Name, c2.Name) && strings.EqualFold(c.Table, c2.Table) {
+			if strings.EqualFold(c.Name, c2.Name) && strings.EqualFold(c.Table, c2.Table) && strings.EqualFold(c.Database, c2.Database) {
 				return true
 			}
 		}
-
 		return false
 	}
 
@@ -276,14 +278,15 @@ func (a *algebrizer) registerColumns(columns []*Column) error {
 }
 
 // registerTable ensures that we have no duplicate table names or aliases.
-func (a *algebrizer) registerTable(tableName string) error {
+func (a *algebrizer) registerTable(dbName, tableName string) error {
+	qualifiedTableName := fullyQualifiedTableName(dbName, tableName)
 	for _, registeredName := range a.tableNames {
-		if strings.EqualFold(tableName, registeredName) {
+		if strings.EqualFold(qualifiedTableName, registeredName) {
 			return mysqlerrors.Defaultf(mysqlerrors.ER_NONUNIQ_TABLE, tableName)
 		}
 	}
 
-	a.tableNames = append(a.tableNames, tableName)
+	a.tableNames = append(a.tableNames, qualifiedTableName)
 
 	return nil
 }
@@ -726,7 +729,7 @@ func (a *algebrizer) translateUnion(union *parser.Union) (PlanStage, error) {
 		unionStage := NewUnionStage(UnionDistinct, left, right)
 
 		for _, col := range unionStage.Columns() {
-			expr := NewSQLColumnExpr(col.SelectID, col.Table, col.Name, col.SQLType, col.MongoType)
+			expr := NewSQLColumnExpr(col.SelectID, col.Database, col.Table, col.Name, col.SQLType, col.MongoType)
 			keys = append(keys, expr)
 			projectedColumns = append(projectedColumns, ProjectedColumn{Column: col, Expr: expr})
 		}
@@ -746,12 +749,16 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 		switch typedE := selectExpr.(type) {
 
 		case *parser.StarExpr:
+			databaseName, tableName := "", ""
+			if typedE.DatabaseName != nil {
+				databaseName = string(typedE.DatabaseName)
+			}
 
-			// validate tableName if present. Need to have a map of alias -> tableName -> schema
-			tableName := ""
 			if typedE.TableName != nil {
 				tableName = string(typedE.TableName)
-			} else {
+			}
+
+			if tableName == "" && databaseName == "" {
 				hasGlobalStar = true
 			}
 
@@ -759,8 +766,10 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 				if column.MongoType == schema.MongoFilter {
 					continue
 				}
-
-				if tableName == "" || strings.EqualFold(tableName, column.Table) {
+				// If the form is of string dot wildcard, sql automatically assumes the first string refers to a table.
+				if (tableName == "" && databaseName == "") ||
+					(databaseName == "" && strings.EqualFold(tableName, column.Table)) ||
+					(strings.EqualFold(tableName, column.Table) && strings.EqualFold(databaseName, column.Database)) {
 					projectedColumn := column.projectAs(column.Name)
 					projectedColumn.SelectID = a.selectID
 					projectedColumns = append(projectedColumns, projectedColumn)
@@ -795,12 +804,8 @@ func (a *algebrizer) translateSelectExprs(selectExprs parser.SelectExprs) (Proje
 			// function in the select expression
 			if projectedColumn == nil {
 				projectedColumn = &ProjectedColumn{
-					Expr: translatedExpr,
-					Column: &Column{
-						SelectID:  a.selectID,
-						MongoType: schema.MongoNone,
-						SQLType:   translatedExpr.Type(),
-					},
+					Expr:   translatedExpr,
+					Column: NewColumn(a.selectID, "", "", "", "", "", "", translatedExpr.Type(), schema.MongoNone, false),
 				}
 			}
 
@@ -916,6 +921,8 @@ func (a *algebrizer) getTableName(tableExpr parser.TableExpr, colName string, co
 func (a *algebrizer) convertToAnd(columns parser.ColumnExprs, leftCols []*Column, rightCols []*Column, tableExpr *parser.JoinTableExpr) (parser.Expr, error) {
 	var expression parser.Expr
 	seenColumns := make(map[string]struct{})
+	leftDatabaseName := leftCols[0].Database
+	rightDatabaseName := rightCols[0].Database
 	for _, column := range columns {
 		colName := string(column.Name)
 		// if column is not already in the comparison
@@ -932,8 +939,9 @@ func (a *algebrizer) convertToAnd(columns parser.ColumnExprs, leftCols []*Column
 				return nil, err
 			}
 
-			leftExpr := &parser.ColName{[]byte(colName), leftTableName}
-			rightExpr := &parser.ColName{[]byte(colName), rightTableName}
+			// Need to assign databases for cross db joins.
+			leftExpr := &parser.ColName{[]byte(leftDatabaseName), []byte(colName), leftTableName}
+			rightExpr := &parser.ColName{[]byte(rightDatabaseName), []byte(colName), rightTableName}
 			comparison := &parser.ComparisonExpr{parser.AST_EQ, leftExpr, rightExpr, ""}
 			// add to final expression
 			if expression == nil {
@@ -982,8 +990,8 @@ func (c columnsUsing) Less(i, j int) bool {
 	} else if !iInUsing && jInUsing {
 		return false
 	} else {
-		_, iInRight := c.rightTables[c.columns[i].Table]
-		_, jInRight := c.rightTables[c.columns[j].Table]
+		_, iInRight := c.rightTables[fullyQualifiedTableName(c.columns[i].Database, c.columns[i].Table)]
+		_, jInRight := c.rightTables[fullyQualifiedTableName(c.columns[j].Database, c.columns[j].Table)]
 		if iInRight && !jInRight {
 			return (c.kind == rightJoin || c.kind == naturalRightJoin)
 		} else if jInRight && !iInRight {
@@ -1076,6 +1084,14 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 				filterCols = typedT.Using
 			} else {
 				// construct a list of all the common columns in the natural join case
+
+				// this ensures the columns values are pulled from the correct database
+				// when appending rows that did not have an exact match from both dbs on common columns
+				filterDb := leftCols[0].Database
+				if kind == naturalRightJoin {
+					filterDb = rightCols[0].Database
+				}
+
 				rightColMap := make(map[string]struct{})
 				var emptyStruct struct{}
 				for _, rightCol := range rightCols {
@@ -1083,7 +1099,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 				}
 				for _, leftCol := range leftCols {
 					if _, ok := rightColMap[leftCol.Name]; ok {
-						filterCols = append(filterCols, &parser.ColName{[]byte(leftCol.Name), make([]byte, 0)})
+						filterCols = append(filterCols, &parser.ColName{[]byte(filterDb), []byte(leftCol.Name), make([]byte, 0)})
 					}
 				}
 			}
@@ -1092,6 +1108,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 			if err != nil {
 				return nil, nil, err
 			}
+
 			if comparison == nil {
 				predicate = SQLTrue
 			} else {
@@ -1105,7 +1122,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 				rightTables := make(map[string]struct{})
 				var emptyStruct struct{}
 				for _, column := range rightCols {
-					rightTables[column.Table] = emptyStruct
+					rightTables[fullyQualifiedTableName(column.Database, column.Table)] = emptyStruct
 				}
 				sortableFilterableColumns := &columnsUsing{cols, filterCols, kind, rightTables}
 				sortableFilterableColumns.Sort()
@@ -1130,7 +1147,6 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 	case *parser.TableName:
 
 		tableName := strings.ToLower(string(typedT.Name))
-
 		if aliasName == "" {
 			aliasName = tableName
 		}
@@ -1168,7 +1184,7 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 			}
 		}
 
-		err = a.registerTable(aliasName)
+		err = a.registerTable(dbName, aliasName)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1196,13 +1212,14 @@ func (a *algebrizer) translateSimpleTableExpr(tableExpr parser.SimpleTableExpr, 
 
 		plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID, aliasName)
 
-		err = a.registerTable(aliasName)
+		// database is not set here because duplicate tables are not allowed in a select query
+		// ignoring it avoids false positives
+		err = a.registerTable("", aliasName)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		columns := plan.Columns()
-
 		err = a.registerColumns(columns)
 		if err != nil {
 			return nil, nil, err
@@ -1299,6 +1316,11 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	case *parser.CaseExpr:
 		return a.translateCaseExpr(typedE)
 	case *parser.ColName:
+		dataBaseName := ""
+		if typedE.Database != nil {
+			dataBaseName = string(typedE.Database)
+		}
+
 		tableName := ""
 		if typedE.Qualifier != nil {
 			tableName = string(typedE.Qualifier)
@@ -1310,7 +1332,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			return a.translateVariableExpr(typedE)
 		}
 
-		return a.resolveColumnExpr(tableName, columnName)
+		return a.resolveColumnExpr(dataBaseName, tableName, columnName)
 	case *parser.ComparisonExpr:
 		reconcile := true
 		if (typedE.Operator == parser.AST_EQ && typedE.SubqueryOperator == "") ||
@@ -1811,7 +1833,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		}
 
 		current.aggregates = append(current.aggregates, aggExpr)
-		return NewSQLColumnExpr(current.selectID, "", aggExpr.String(), aggExpr.Type(), schema.MongoNone), nil
+		return NewSQLColumnExpr(current.selectID, "", "", aggExpr.String(), aggExpr.Type(), schema.MongoNone), nil
 	}
 
 	for _, e := range expr.Exprs {

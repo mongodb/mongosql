@@ -1732,7 +1732,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						return NewProjectStage(source,
 							createProjectedColumnFromSQLExpr(1, "a+2",
 								&SQLAddExpr{
-									left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+									left:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
 									right: SQLInt(2),
 								},
 							),
@@ -1744,7 +1744,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						return NewProjectStage(source,
 							createProjectedColumnFromSQLExpr(1, "b",
 								&SQLAddExpr{
-									left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+									left:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
 									right: SQLInt(2),
 								},
 							),
@@ -1757,7 +1757,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 							createProjectedColumnFromSQLExpr(1, "ascii(a)",
 								&SQLScalarFunctionExpr{
 									Name:  "ascii",
-									Exprs: []SQLExpr{NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt)},
+									Exprs: []SQLExpr{NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt)},
 								},
 							),
 						)
@@ -1895,7 +1895,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 							filter := NewFilterStage(
 								outerGroup,
 								&SQLGreaterThanExpr{
-									left:  NewSQLColumnExpr(1, "", "sum(1)", schema.SQLFloat, schema.MongoNone),
+									left:  NewSQLColumnExpr(1, "", "", "sum(1)", schema.SQLFloat, schema.MongoNone),
 									right: SQLInt(0),
 								},
 							)
@@ -1917,7 +1917,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				test("select a from foo where a", func() PlanStage {
 					source := createMongoSource(1, "foo", "foo")
 					return NewProjectStage(
-						NewFilterStage(source, NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt)),
+						NewFilterStage(source, NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt)),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
 					)
 				})
@@ -1943,7 +1943,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return NewProjectStage(
 						NewFilterStage(source,
 							&SQLEqualsExpr{
-								left:  NewSQLColumnExpr(1, "foo", "g", schema.SQLBoolean, schema.MongoBool),
+								left:  NewSQLColumnExpr(1, defaultDbName, "foo", "g", schema.SQLBoolean, schema.MongoBool),
 								right: SQLTrue,
 							},
 						),
@@ -1956,7 +1956,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return NewProjectStage(
 						NewFilterStage(source,
 							&SQLGreaterThanExpr{
-								left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								left:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
 								right: SQLInt(10),
 							},
 						),
@@ -1969,7 +1969,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return NewProjectStage(
 						NewFilterStage(source,
 							&SQLGreaterThanExpr{
-								left:  NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+								left:  NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
 								right: SQLInt(10),
 							},
 						),
@@ -2094,13 +2094,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 						NewGroupByStage(source,
 							nil,
 							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "sum(foo.a)", &SQLAggFunctionExpr{
+								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
 									Name:  "sum",
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
@@ -2110,13 +2110,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 						NewGroupByStage(source,
 							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "sum(foo.a)", &SQLAggFunctionExpr{
+								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
 									Name:  "sum",
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
@@ -2127,14 +2127,14 @@ func TestAlgebrizeQuery(t *testing.T) {
 							[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 							ProjectedColumns{
 								createProjectedColumn(1, source, "foo", "a", "foo", "a"),
-								createProjectedColumnFromSQLExpr(1, "sum(foo.a)", &SQLAggFunctionExpr{
+								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
 									Name:  "sum",
 									Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 								}),
 							},
 						),
 						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
@@ -2145,18 +2145,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 							NewGroupByStage(source,
 								[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 								ProjectedColumns{
-									createProjectedColumnFromSQLExpr(1, "sum(foo.a)", &SQLAggFunctionExpr{
+									createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
 										Name:  "sum",
 										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 									}),
 								},
 							),
 							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+								expr:      NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone),
 								ascending: true,
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
@@ -2167,18 +2167,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 							NewGroupByStage(source,
 								[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 								ProjectedColumns{
-									createProjectedColumnFromSQLExpr(1, "sum(foo.a)", &SQLAggFunctionExpr{
+									createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
 										Name:  "sum",
 										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 									}),
 								},
 							),
 							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+								expr:      NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone),
 								ascending: true,
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "sum_a", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						createProjectedColumnFromSQLExpr(1, "sum_a", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
@@ -2191,7 +2191,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 								[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "b")},
 								ProjectedColumns{
 									createProjectedColumn(1, foo1Source, "f", "b", "f", "b"),
-									createProjectedColumnFromSQLExpr(1, "sum(f.a)", &SQLAggFunctionExpr{
+									createProjectedColumnFromSQLExpr(1, "sum(test.f.a)", &SQLAggFunctionExpr{
 										Name:  "sum",
 										Exprs: []SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "a")},
 									}),
@@ -2214,7 +2214,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 								ascending: true,
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "sum(f.a)", schema.SQLFloat, schema.MongoNone)),
+						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.f.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
@@ -2225,7 +2225,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						NewGroupByStage(foo1Source,
 							[]SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
 							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "sum(foo.a)", &SQLAggFunctionExpr{
+								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
 									Name: "sum",
 									Exprs: []SQLExpr{
 										createSQLColumnExprFromSource(foo1Source, "foo", "a"),
@@ -2238,7 +2238,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 								correlated: true,
 								plan: NewProjectStage(
 									foo2Source,
-									createProjectedColumnFromSQLExpr(2, "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+									createProjectedColumnFromSQLExpr(2, "sum(foo.a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 								),
 							},
 						),
@@ -2263,7 +2263,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 										foo2Source,
 										nil,
 										ProjectedColumns{
-											createProjectedColumnFromSQLExpr(2, "sum(f.a+foo.a)", &SQLAggFunctionExpr{
+											createProjectedColumnFromSQLExpr(2, "sum(test.f.a+test.foo.a)", &SQLAggFunctionExpr{
 												Name: "sum",
 												Exprs: []SQLExpr{&SQLAddExpr{
 													left:  createSQLColumnExprFromSource(foo2Source, "f", "a"),
@@ -2272,7 +2272,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 											}),
 										},
 									),
-									createProjectedColumnFromSQLExpr(2, "sum(f.a+foo.a)", NewSQLColumnExpr(2, "", "sum(f.a+foo.a)", schema.SQLFloat, schema.MongoNone)),
+									createProjectedColumnFromSQLExpr(2, "sum(f.a+foo.a)", NewSQLColumnExpr(2, "", "", "sum(test.f.a+test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 								),
 							},
 						),
@@ -2290,14 +2290,14 @@ func TestAlgebrizeQuery(t *testing.T) {
 								[]SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
 								ProjectedColumns{
 									createProjectedColumn(1, source, "foo", "a", "foo", "a"),
-									createProjectedColumnFromSQLExpr(1, "sum(foo.a)", &SQLAggFunctionExpr{
+									createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
 										Name:  "sum",
 										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 									}),
 								},
 							),
 							&SQLGreaterThanExpr{
-								left:  NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+								left:  NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone),
 								right: SQLInt(10),
 							},
 						),
@@ -2350,18 +2350,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 							NewGroupByStage(source,
 								nil,
 								ProjectedColumns{
-									createProjectedColumnFromSQLExpr(1, "sum(foo.a)", &SQLAggFunctionExpr{
+									createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
 										Name:  "sum",
 										Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 									}),
 								},
 							),
-							[]SQLExpr{NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
+							[]SQLExpr{NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)},
 							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 
@@ -2373,23 +2373,23 @@ func TestAlgebrizeQuery(t *testing.T) {
 								NewGroupByStage(source,
 									nil,
 									ProjectedColumns{
-										createProjectedColumnFromSQLExpr(1, "sum(foo.a)", &SQLAggFunctionExpr{
+										createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", &SQLAggFunctionExpr{
 											Name:  "sum",
 											Exprs: []SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
 										}),
 									},
 								),
 								&SQLGreaterThanExpr{
-									left:  NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone),
+									left:  NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone),
 									right: SQLInt(20),
 								},
 							),
-							[]SQLExpr{NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)},
+							[]SQLExpr{NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)},
 							ProjectedColumns{
-								createProjectedColumnFromSQLExpr(1, "sum(foo.a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+								createProjectedColumnFromSQLExpr(1, "sum(test.foo.a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 							},
 						),
-						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "sum(foo.a)", schema.SQLFloat, schema.MongoNone)),
+						createProjectedColumnFromSQLExpr(1, "sum(a)", NewSQLColumnExpr(1, "", "", "sum(test.foo.a)", schema.SQLFloat, schema.MongoNone)),
 					)
 				})
 			})
@@ -2400,7 +2400,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return NewProjectStage(
 						NewOrderByStage(source,
 							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
 								ascending: true,
 							},
 						),
@@ -2413,7 +2413,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return NewProjectStage(
 						NewOrderByStage(source,
 							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
 								ascending: true,
 							},
 						),
@@ -2426,7 +2426,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return NewProjectStage(
 						NewOrderByStage(source,
 							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
 								ascending: true,
 							},
 						),
@@ -2439,7 +2439,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return NewProjectStage(
 						NewOrderByStage(source,
 							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
 								ascending: true,
 							},
 						),
@@ -2452,7 +2452,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return NewProjectStage(
 						NewOrderByStage(source,
 							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
+								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
 								ascending: true,
 							},
 						),
@@ -2465,7 +2465,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return NewProjectStage(
 						NewOrderByStage(source,
 							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
 								ascending: true,
 							},
 						),
@@ -2478,7 +2478,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return NewProjectStage(
 						NewOrderByStage(source,
 							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
 								ascending: true,
 							},
 						),
@@ -2492,7 +2492,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					return NewProjectStage(
 						NewOrderByStage(source,
 							&orderByTerm{
-								expr:      NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+								expr:      NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
 								ascending: true,
 							},
 						),
@@ -2520,18 +2520,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 							&orderByTerm{
 								expr: &SQLSubtractExpr{
 									left: &SQLAddExpr{
-										left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
-										right: NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+										left:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+										right: NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
 									},
-									right: NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+									right: NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
 								},
 								ascending: true,
 							},
 						),
 						createProjectedColumnFromSQLExpr(1, "c",
 							&SQLAddExpr{
-								left:  NewSQLColumnExpr(1, "foo", "a", schema.SQLInt, schema.MongoInt),
-								right: NewSQLColumnExpr(1, "foo", "b", schema.SQLInt, schema.MongoInt),
+								left:  NewSQLColumnExpr(1, defaultDbName, "foo", "a", schema.SQLInt, schema.MongoInt),
+								right: NewSQLColumnExpr(1, defaultDbName, "foo", "b", schema.SQLInt, schema.MongoInt),
 							},
 						),
 					)
@@ -2683,10 +2683,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 				testError("select a from foo order by 2", `ERROR 1054 (42S22): Unknown column '2' in 'order clause'`)
 				testError("select a from foo order by idk", `ERROR 1054 (42S22): Unknown column 'idk' in 'order clause'`)
 
-				testError("select sum(a) from foo group by sum(a)", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
-				testError("select sum(a) from foo group by (a + sum(a))", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
-				testError("select sum(a) from foo group by 1", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
-				testError("select a+sum(a) from foo group by 1", `ERROR 1056 (42000): Can't group on 'sum(foo.a)'`)
+				testError("select sum(a) from foo group by sum(a)", `ERROR 1056 (42000): Can't group on 'sum(test.foo.a)'`)
+				testError("select sum(a) from foo group by (a + sum(a))", `ERROR 1056 (42000): Can't group on 'sum(test.foo.a)'`)
+				testError("select sum(a) from foo group by 1", `ERROR 1056 (42000): Can't group on 'sum(test.foo.a)'`)
+				testError("select a+sum(a) from foo group by 1", `ERROR 1056 (42000): Can't group on 'sum(test.foo.a)'`)
 				testError("select sum(a) from foo group by 2", `ERROR 1054 (42S22): Unknown column '2' in 'group clause'`)
 
 				testError("select a from foo, foo", `ERROR 1066 (42000): Not unique table/alias: 'foo'`)
@@ -2914,7 +2914,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 	createSQLColumnExpr := func(columnName string) SQLColumnExpr {
 		for _, c := range source.Columns() {
 			if c.Name == columnName {
-				return NewSQLColumnExpr(1, c.Table, c.Name, c.SQLType, c.MongoType)
+				return NewSQLColumnExpr(1, c.Database, c.Table, c.Name, c.SQLType, c.MongoType)
 			}
 		}
 

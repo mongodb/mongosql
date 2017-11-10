@@ -317,11 +317,12 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context, lChan, rChan <-chan *Row,
 	getNilValues := func(columns []*Column) Values {
 		var nilValues Values
 		for _, c := range columns {
-			nilValues = append(nilValues, Value{
-				SelectID: c.SelectID,
-				Table:    c.Table,
-				Name:     c.Name,
-			})
+			nilValues = append(nilValues, NewValue(
+				c.SelectID,
+				c.Database,
+				c.Table,
+				c.Name,
+				nil))
 		}
 		return nilValues
 	}

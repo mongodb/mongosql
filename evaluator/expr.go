@@ -296,22 +296,23 @@ func (s SQLCaseExpr) Type() schema.SQLType {
 // SQLColumnExpr represents a column reference.
 //
 type SQLColumnExpr struct {
-	selectID   int
-	tableName  string
-	columnName string
-	columnType schema.ColumnType
+	selectID     int
+	databaseName string
+	tableName    string
+	columnName   string
+	columnType   schema.ColumnType
 }
 
 // NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
-func NewSQLColumnExpr(selectID int, tableName, columnName string, sqlType schema.SQLType, mongoType schema.MongoType) SQLColumnExpr {
-	return SQLColumnExpr{selectID, tableName, columnName, schema.ColumnType{sqlType, mongoType}}
+func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, sqlType schema.SQLType, mongoType schema.MongoType) SQLColumnExpr {
+	return SQLColumnExpr{selectID, databaseName, tableName, columnName, schema.ColumnType{sqlType, mongoType}}
 }
 
 func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 	// first check our immediate rows
 	for _, row := range ctx.Rows {
-		if value, ok := row.GetField(c.selectID, c.tableName, c.columnName); ok {
+		if value, ok := row.GetField(c.selectID, c.databaseName, c.tableName, c.columnName); ok {
 			return NewSQLValueFromSQLColumnExpr(value, c.columnType.SQLType, c.columnType.MongoType)
 		}
 	}
@@ -320,7 +321,7 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	// information in the case we are evaluating a correlated column.
 	if ctx.ExecutionCtx != nil {
 		for _, row := range ctx.ExecutionCtx.SrcRows {
-			if value, ok := row.GetField(c.selectID, c.tableName, c.columnName); ok {
+			if value, ok := row.GetField(c.selectID, c.databaseName, c.tableName, c.columnName); ok {
 				return NewSQLValueFromSQLColumnExpr(value, c.columnType.SQLType, c.columnType.MongoType)
 			}
 		}
@@ -331,6 +332,10 @@ func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 
 func (c SQLColumnExpr) String() string {
 	var str string
+	if c.databaseName != "" {
+		str += c.databaseName + "."
+	}
+
 	if c.tableName != "" {
 		str += c.tableName + "."
 	}
@@ -1637,7 +1642,7 @@ func (v *constantColumnReplacer) visit(n node) (node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
 		for _, row := range v.ctx.SrcRows {
-			if val, ok := row.GetField(typedN.selectID, typedN.tableName, typedN.columnName); ok {
+			if val, ok := row.GetField(typedN.selectID, typedN.databaseName, typedN.tableName, typedN.columnName); ok {
 				return val, nil
 			}
 		}

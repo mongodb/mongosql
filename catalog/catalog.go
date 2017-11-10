@@ -95,7 +95,6 @@ func (d *Database) Table(name string) (Table, error) {
 	if t, ok := d.tableMap[strings.ToLower(name)]; ok {
 		return t, nil
 	}
-
 	return nil, mysqlerrors.Defaultf(mysqlerrors.ER_NO_SUCH_TABLE, string(d.Name), name)
 }
 

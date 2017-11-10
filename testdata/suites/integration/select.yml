@@ -1073,3 +1073,43 @@ testcases:
   - [ "57f422f941a74e324fb5c44a", 1, 1, "57f422f941a74e324fb5c44a", 1, 1, 0, 1 ]
   - [ "57f422f941a74e324fb5c44a", 1, 1, "57f422f941a74e324fb5c44a", 1, 4, 1, 1 ]
   - [ "57f422f941a74e324fb5c44a", 1, 1, "57f422f941a74e324fb5c44a", 1, 5, 2, 1 ]
+
+# Three dot notation
+- sql: "select id from foo where select_sTest.foo.a = 1"
+  id: '109'
+  db: select_sTest
+  description: "three dot notation"
+  expected_names: ["id"]
+  expected_types: [int]
+  expected:
+  - [0]
+- sql: "select select_sTest.foo.* from foo"
+  id: '110'
+  db: select_sTest
+  description: "three dot with wildcard"
+  expected_names: ["id", "a", "b"]
+  expected_types: [int, int, int]
+  expected:
+  - [0, 1, ~]
+  - [1, 2, ~]
+  - [2, 3, ~]
+- sql: "select select_sTest.foo.a, (select select_sTest.foo.a + (select select_sTest.foo.a FROM foo limit 1) as b FROM foo limit 1) as b FROM foo"
+  id: '111'
+  db: select_sTest
+  description: "non-correlated nested subqueries with three dot notation"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected:
+  - [1, 2]
+  - [2, 2]
+  - [3, 2]
+- sql: "select select_sTest.f.a, (select select_sTest.foo.a FROM foo where select_sTest.f.id = select_sTest.foo.id - 1) as b FROM foo f"
+  id: '112'
+  db: select_sTest
+  description: "correlated subquery with three dot notation"
+  expected_names: ["a", "b"]
+  expected_types: [int, int]
+  expected:
+  - [1, 2]
+  - [2, 3]
+  - [3, ~]

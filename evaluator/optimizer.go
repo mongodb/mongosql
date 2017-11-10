@@ -77,7 +77,9 @@ func combineExpressions(exprs []SQLExpr) SQLExpr {
 
 func sharesRootTable(logger *log.Logger, local, foreign *MongoSourceStage) bool {
 	baseCollectionName := local.collectionNames[0]
-
+	if local.dbName != foreign.dbName {
+		return false
+	}
 	logger.Debugf(log.Dev, "attempting to use self-join optimization for tables %v and %v",
 		local.aliasNames, foreign.aliasNames)
 
@@ -110,11 +112,11 @@ func splitExpressionIntoParts(e SQLExpr) (expressionParts, error) {
 	exprs := splitExpression(e)
 	result := []expressionPart{}
 	for _, expr := range exprs {
-		tableNames, err := referencedTables(expr)
+		qualifiedTableNames, err := referencedTables(expr)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, expressionPart{expr, tableNames})
+		result = append(result, expressionPart{expr, qualifiedTableNames})
 	}
 	return result, nil
 }
@@ -133,8 +135,8 @@ func (parts expressionParts) combine() SQLExpr {
 }
 
 type expressionPart struct {
-	expr       SQLExpr
-	tableNames []string
+	expr                SQLExpr
+	qualifiedTableNames []string
 }
 
 func referencedTables(e SQLExpr) ([]string, error) {
@@ -144,17 +146,17 @@ func referencedTables(e SQLExpr) ([]string, error) {
 		return nil, err
 	}
 
-	return finder.tableNames, nil
+	return finder.qualifiedTableNames, nil
 }
 
 type sqlExprReferencedTableCollector struct {
-	tableNames []string
+	qualifiedTableNames []string
 }
 
 func (v *sqlExprReferencedTableCollector) visit(n node) (node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
-		v.tableNames = append(v.tableNames, typedN.tableName)
+		v.qualifiedTableNames = append(v.qualifiedTableNames, fullyQualifiedTableName(typedN.databaseName, typedN.tableName))
 	}
 	return walk(v, n)
 }

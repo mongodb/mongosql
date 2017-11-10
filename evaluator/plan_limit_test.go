@@ -59,8 +59,8 @@ func TestLimitPlanStage(t *testing.T) {
 			operator.limit = 2
 
 			expected := []Values{
-				{{1, tableOneName, "a", SQLInt(1)}},
-				{{1, tableOneName, "a", SQLInt(2)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(1)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(2)}},
 			}
 
 			runTest(operator, rows, expected)
@@ -72,8 +72,8 @@ func TestLimitPlanStage(t *testing.T) {
 			operator.offset = 4
 
 			expected := []Values{
-				{{1, tableOneName, "a", SQLInt(5)}},
-				{{1, tableOneName, "a", SQLInt(6)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(5)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(6)}},
 			}
 
 			runTest(operator, rows, expected)
@@ -102,13 +102,13 @@ func TestLimitPlanStage(t *testing.T) {
 			operator.limit = 40
 
 			expected := []Values{
-				{{1, tableOneName, "a", SQLInt(1)}},
-				{{1, tableOneName, "a", SQLInt(2)}},
-				{{1, tableOneName, "a", SQLInt(3)}},
-				{{1, tableOneName, "a", SQLInt(4)}},
-				{{1, tableOneName, "a", SQLInt(5)}},
-				{{1, tableOneName, "a", SQLInt(6)}},
-				{{1, tableOneName, "a", SQLInt(7)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(1)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(2)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(3)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(4)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(5)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(6)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(7)}},
 			}
 
 			runTest(operator, rows, expected)
@@ -118,7 +118,7 @@ func TestLimitPlanStage(t *testing.T) {
 			operator.limit = 1
 			operator.offset = 1
 
-			expected := []Values{{{1, tableOneName, "a", SQLInt(2)}}}
+			expected := []Values{{{1, BSONSourceDB, tableOneName, "a", SQLInt(2)}}}
 
 			runTest(operator, rows, expected)
 
@@ -129,7 +129,7 @@ func TestLimitPlanStage(t *testing.T) {
 			operator.limit = 1
 			operator.offset = 6
 
-			expected := []Values{{{1, tableOneName, "a", SQLInt(7)}}}
+			expected := []Values{{{1, BSONSourceDB, tableOneName, "a", SQLInt(7)}}}
 
 			runTest(operator, rows, expected)
 		})
@@ -150,9 +150,9 @@ func TestLimitPlanStage(t *testing.T) {
 			operator.offset = 0
 
 			expected := []Values{
-				{{1, tableOneName, "a", SQLInt(1)}},
-				{{1, tableOneName, "a", SQLInt(2)}},
-				{{1, tableOneName, "a", SQLInt(3)}}}
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(1)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(2)}},
+				{{1, BSONSourceDB, tableOneName, "a", SQLInt(3)}}}
 
 			runTest(operator, rows, expected)
 		})

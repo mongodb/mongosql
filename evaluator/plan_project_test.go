@@ -66,11 +66,11 @@ func TestProjectOperator(t *testing.T) {
 		projectedColumns := ProjectedColumns{
 			ProjectedColumn{
 				Column: &Column{1, "", "", BSONSourceDB, "a", "a", "", schema.SQLInt, schema.MongoInt, false},
-				Expr:   NewSQLColumnExpr(1, tableOneName, "a", schema.SQLInt, schema.MongoInt),
+				Expr:   NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "a", schema.SQLInt, schema.MongoInt),
 			},
 			ProjectedColumn{
 				Column: &Column{1, "", "", BSONSourceDB, "b", "b", "", schema.SQLInt, schema.MongoInt, false},
-				Expr:   NewSQLColumnExpr(1, tableOneName, "b", schema.SQLInt, schema.MongoInt),
+				Expr:   NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "b", schema.SQLInt, schema.MongoInt),
 			},
 		}
 
@@ -79,8 +79,8 @@ func TestProjectOperator(t *testing.T) {
 		}
 
 		expected := []Values{
-			{{1, "", "a", SQLInt(6)}, {1, "", "b", SQLInt(9)}},
-			{{1, "", "a", SQLInt(3)}, {1, "", "b", SQLInt(4)}},
+			{{1, BSONSourceDB, "", "a", SQLInt(6)}, {1, BSONSourceDB, "", "b", SQLInt(9)}},
+			{{1, BSONSourceDB, "", "a", SQLInt(3)}, {1, BSONSourceDB, "", "b", SQLInt(4)}},
 		}
 
 		runTest(project, false, rows, expected)

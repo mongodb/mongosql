@@ -238,7 +238,7 @@ type pushDownTranslator struct {
 
 // a function that, given a tableName and a columnName, will return
 // the field name coming back from mongodb.
-type fieldNameLookup func(tableName, columnName string) (string, bool)
+type fieldNameLookup func(database, tableName, columnName string) (string, bool)
 
 // TranslateExpr attempts to turn the SQLExpr into MongoDB query language.
 func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
@@ -425,7 +425,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 	case SQLColumnExpr:
 
-		name, ok := t.lookupFieldName(typedE.tableName, typedE.columnName)
+		name, ok := t.lookupFieldName(typedE.databaseName, typedE.tableName, typedE.columnName)
 		if !ok {
 			return nil, false
 		}
@@ -2297,7 +2297,7 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 			return match, &SQLAndExpr{exLeft, exRight}
 		}
 	case SQLColumnExpr:
-		name, ok := t.lookupFieldName(typedE.tableName, typedE.columnName)
+		name, ok := t.lookupFieldName(typedE.databaseName, typedE.tableName, typedE.columnName)
 		if !ok {
 			return nil, e
 		}
@@ -2653,7 +2653,7 @@ func getSingleMapEntry(m bson.M) (string, interface{}) {
 func (t *pushDownTranslator) getFieldName(e SQLExpr) (string, bool) {
 	switch field := e.(type) {
 	case SQLColumnExpr:
-		return t.lookupFieldName(field.tableName, field.columnName)
+		return t.lookupFieldName(field.databaseName, field.tableName, field.columnName)
 	default:
 		return "", false
 	}

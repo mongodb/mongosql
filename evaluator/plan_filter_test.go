@@ -63,15 +63,15 @@ func TestFilterPlanStage(t *testing.T) {
 				"b = 7 or a = 6",
 			}
 
-			r0, err := bsonDToValues(1, tableTwoName, rows[0])
+			r0, err := bsonDToValues(1, BSONSourceDB, tableTwoName, rows[0])
 			So(err, ShouldBeNil)
-			r1, err := bsonDToValues(1, tableTwoName, rows[1])
+			r1, err := bsonDToValues(1, BSONSourceDB, tableTwoName, rows[1])
 			So(err, ShouldBeNil)
 
 			expected := [][]Values{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
 
 			for i, query := range queries {
-				matcher, err := getSQLExpr(schema, dbOne, tableTwoName, query)
+				matcher, err := getSQLExpr(schema, BSONSourceDB, tableTwoName, query)
 				So(err, ShouldBeNil)
 
 				operator := &FilterStage{
