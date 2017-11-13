@@ -21,6 +21,7 @@ type aggRowCtx struct {
 	Ctx []*Row
 }
 
+// A GroupByStage groups records according to one or more fields.
 type GroupByStage struct {
 	// projectedColumns holds the ProjectedColumn that should
 	// be present in the result of a grouping. This will
@@ -57,7 +58,6 @@ func (gb *GroupByStage) Collation() *collation.Collation {
 	return gb.source.Collation()
 }
 
-// GroupBy groups records according to one or more fields.
 type GroupByIter struct {
 	source    Iter
 	collation *collation.Collation

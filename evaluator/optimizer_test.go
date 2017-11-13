@@ -3939,7 +3939,7 @@ func (v *subqueryFinder) visit(n node) (node, error) {
 
 	switch typedN := n.(type) {
 	case *SQLSubqueryExpr:
-		v.count += 1
+		v.count++
 		v.firstSubquery = typedN
 	}
 
@@ -3958,7 +3958,7 @@ func (v *cacheStageCounter) visit(n node) (node, error) {
 
 	switch n.(type) {
 	case *CacheStage:
-		v.count += 1
+		v.count++
 	}
 	return n, nil
 }
@@ -3978,14 +3978,14 @@ func (v *sourceStageReplacer) visit(n node) (node, error) {
 
 	switch typedN := n.(type) {
 	case *BSONSourceStage:
-		v.existing += 1
+		v.existing++
 		if v.lastSourceStage == nil {
 			v.lastSourceStage = typedN
 		}
 	case *MongoSourceStage:
 		bs := NewBSONSourceStage(typedN.selectIDs[0], typedN.tableNames[0], typedN.collation, v.data[0:1])
 		v.data = v.data[1:]
-		v.replaced += 1
+		v.replaced++
 		n = bs
 	}
 

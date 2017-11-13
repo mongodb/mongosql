@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+
 	"github.com/10gen/sqlproxy/collation"
 )
 
@@ -47,10 +48,10 @@ func (c *CacheStage) Collation() *collation.Collation {
 	return c.collation
 }
 
-func (_ *CacheIter) Close() error {
+func (*CacheIter) Close() error {
 	return nil
 }
 
-func (_ *CacheIter) Err() error {
+func (*CacheIter) Err() error {
 	return nil
 }

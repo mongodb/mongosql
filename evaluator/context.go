@@ -20,7 +20,7 @@ type ServerCtx interface {
 
 // ConnectionCtx holds connection context information.
 type ConnectionCtx interface {
-	ConnectionId() uint32
+	ConnectionID() uint32
 	DB() string
 	Kill(uint32, KillScope) error
 	LastInsertId() int64

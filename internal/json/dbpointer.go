@@ -36,7 +36,7 @@ func (d *decodeState) storeDBPointer(v reflect.Value) {
 		if !ok {
 			d.error(fmt.Errorf("expected first argument to DBPointer to be of type string"))
 		}
-		arg1, ok := args[1].(ObjectId)
+		arg1, ok := args[1].(ObjectID)
 		if !ok {
 			d.error(fmt.Errorf("expected second argument to DBPointer to be of type ObjectId, but ended up being %t", args[1]))
 		}
@@ -62,7 +62,7 @@ func (d *decodeState) getDBPointer() interface{} {
 	if !ok {
 		d.error(fmt.Errorf("expected string for first argument of DBPointer constructor"))
 	}
-	arg1, ok := args[1].(ObjectId)
+	arg1, ok := args[1].(ObjectID)
 	if !ok {
 		d.error(fmt.Errorf("expected ObjectId for second argument of DBPointer constructor"))
 	}

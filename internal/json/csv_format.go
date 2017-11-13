@@ -36,23 +36,23 @@ func (d Date) String() string {
 
 func (d DBRef) String() string {
 	return fmt.Sprintf(`{ "$ref": "%v", "$id": %v, "$db": "%v" }`,
-		d.Collection, d.Id, d.Database)
+		d.Collection, d.ID, d.Database)
 }
 
 func (d DBPointer) String() string {
 	return fmt.Sprintf(`{ "$ref": "%v", "$id": %v }`,
-		d.Namespace, d.Id)
+		d.Namespace, d.ID)
 }
 
 func (f Float) String() string {
 	return fmt.Sprintf("%v", float64(f))
 }
 
-func (_ MinKey) String() string {
+func (MinKey) String() string {
 	return "$MinKey"
 }
 
-func (_ MaxKey) String() string {
+func (MaxKey) String() string {
 	return "$MaxKey"
 }
 
@@ -66,7 +66,7 @@ func (n NumberLong) String() string {
 
 // Assumes that o represents a valid ObjectId
 // (composed of 24 hexadecimal characters).
-func (o ObjectId) String() string {
+func (o ObjectID) String() string {
 	return fmt.Sprintf("ObjectId(%v)", string(o))
 }
 
@@ -79,6 +79,6 @@ func (t Timestamp) String() string {
 		t.Seconds, t.Increment)
 }
 
-func (_ Undefined) String() string {
+func (Undefined) String() string {
 	return `{ "$undefined": true }`
 }

@@ -18,13 +18,13 @@ func stateO(s *scanner, c int) int {
 }
 
 // Decodes an ObjectId literal stored in the underlying byte data into v.
-func (d *decodeState) storeObjectId(v reflect.Value) {
+func (d *decodeState) storeObjectID(v reflect.Value) {
 	op := d.scanWhile(scanSkipSpace)
 	if op != scanBeginCtor {
 		d.error(fmt.Errorf("expected beginning of constructor"))
 	}
 
-	args, err := d.ctor("ObjectId", []reflect.Type{objectIdType})
+	args, err := d.ctor("ObjectId", []reflect.Type{objectIDType})
 	if err != nil {
 		d.error(err)
 	}
@@ -32,12 +32,12 @@ func (d *decodeState) storeObjectId(v reflect.Value) {
 	case reflect.Interface:
 		v.Set(args[0])
 	default:
-		d.error(fmt.Errorf("cannot store %v value into %v type", objectIdType, kind))
+		d.error(fmt.Errorf("cannot store %v value into %v type", objectIDType, kind))
 	}
 }
 
 // Returns an ObjectId literal from the underlying byte data.
-func (d *decodeState) getObjectId() interface{} {
+func (d *decodeState) getObjectID() interface{} {
 	op := d.scanWhile(scanSkipSpace)
 	if op != scanBeginCtor {
 		d.error(fmt.Errorf("expected beginning of constructor"))
@@ -51,5 +51,5 @@ func (d *decodeState) getObjectId() interface{} {
 	if !ok {
 		d.error(fmt.Errorf("expected string for first argument of ObjectId constructor"))
 	}
-	return ObjectId(arg0)
+	return ObjectID(arg0)
 }

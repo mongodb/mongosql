@@ -10,7 +10,7 @@ const (
 	BSONSourceDB = "bson_source_database"
 )
 
-// BSONSource is the simple interface for SQLProxy to simulate
+// BSONSourceStage is the simple interface for SQLProxy to simulate
 // data coming from a MongoDB installation.
 type BSONSourceStage struct {
 	selectID     int
@@ -70,7 +70,7 @@ func (bs *BSONSourceIter) Next(row *Row) bool {
 	}
 
 	row.Data = values
-	bs.index += 1
+	bs.index++
 
 	return true
 }

@@ -79,6 +79,7 @@ func (s *Schema) Altered() (*Schema, error) {
 	return newSchema, nil
 }
 
+// DeepCopy returns a deep copy of a Schema
 func (s *Schema) DeepCopy() *Schema {
 	if s == nil {
 		return nil
@@ -356,7 +357,7 @@ func (t *Table) deepCopy() *Table {
 	}
 }
 
-// Column gets the column given the SqlName.
+// Column gets the column given the SQLName.
 func (t *Table) Column(sqlName string) (*Column, bool) {
 	sqlName = strings.ToLower(sqlName)
 	for _, c := range t.Columns {
@@ -484,8 +485,8 @@ func (t *Table) validate() error {
 			haveMongoFilter = true
 		}
 
-		if _, ok := cmap[strings.ToLower(c.SqlName)]; ok {
-			return fmt.Errorf("duplicate SQL column '%s'", c.SqlName)
+		if _, ok := cmap[strings.ToLower(c.SQLName)]; ok {
+			return fmt.Errorf("duplicate SQL column '%s'", c.SQLName)
 		}
 
 		// we're dealing with a legacy 2d array
@@ -495,16 +496,16 @@ func (t *Table) validate() error {
 			resolvedRawColumns = append(resolvedRawColumns, c)
 		}
 
-		cmap[strings.ToLower(c.SqlName)] = struct{}{}
+		cmap[strings.ToLower(c.SQLName)] = struct{}{}
 	}
 
 	for _, column := range geo2DField {
-		// add longitude and latitude SqlName
+		// add longitude and latitude SQLName
 		for j, suffix := range []string{"_longitude", "_latitude"} {
 			c := &Column{
 				Name:      fmt.Sprintf("%v.%v", column.Name, j),
-				SqlName:   column.SqlName + suffix,
-				SqlType:   SQLArrNumeric,
+				SQLName:   column.SQLName + suffix,
+				SQLType:   SQLArrNumeric,
 				MongoType: SQLFloat,
 			}
 			resolvedRawColumns = append(resolvedRawColumns, c)
@@ -520,18 +521,18 @@ type Column struct {
 	Name string `yaml:"Name"`
 	// MongoType is the type of the field in MongoDB.
 	MongoType MongoType `yaml:"MongoType"`
-	// SqlName is the name of the column to be shown to users.
-	SqlName string `yaml:"SqlName"`
-	// SqlType is the type to be shown to users.
-	SqlType SQLType `yaml:"SqlType"`
+	// SQLName is the name of the column to be shown to users.
+	SQLName string `yaml:"SqlName"`
+	// SQLType is the type to be shown to users.
+	SQLType SQLType `yaml:"SqlType"`
 }
 
 func (c *Column) deepCopy() *Column {
 	return &Column{
 		c.Name,
 		c.MongoType,
-		c.SqlName,
-		c.SqlType,
+		c.SQLName,
+		c.SQLType,
 	}
 }
 
@@ -543,66 +544,66 @@ func (c *Column) Equals(other *Column) error {
 	if c.MongoType != other.MongoType {
 		return fmt.Errorf("mongotypes not equal.\nthis: '%s'\nother: '%s'", c.MongoType, other.MongoType)
 	}
-	if c.SqlName != other.SqlName {
-		return fmt.Errorf("sqlnames not equal.\nthis: '%s'\n other: '%s'", c.SqlName, other.SqlName)
+	if c.SQLName != other.SQLName {
+		return fmt.Errorf("sqlnames not equal.\nthis: '%s'\n other: '%s'", c.SQLName, other.SQLName)
 	}
-	if c.SqlType != other.SqlType {
-		return fmt.Errorf("sqltypes not equal.\nthis: '%s'\nother: '%s'", c.SqlType, other.SqlType)
+	if c.SQLType != other.SQLType {
+		return fmt.Errorf("sqltypes not equal.\nthis: '%s'\nother: '%s'", c.SQLType, other.SQLType)
 	}
 	return nil
 }
 
 func (c *Column) validate() error {
-	if c.SqlName == "" {
-		c.SqlName = c.Name
+	if c.SQLName == "" {
+		c.SQLName = c.Name
 	}
 
-	if c.SqlName == "" {
+	if c.SQLName == "" {
 		return fmt.Errorf("found column with no name")
 	}
 
-	err := fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SqlType)
+	err := fmt.Errorf("cannot map mongo type '%s' to SQL type '%s'", c.MongoType, c.SQLType)
 	switch c.MongoType {
 	case MongoBool:
-		if c.SqlType == SQLBoolean {
+		if c.SQLType == SQLBoolean {
 			err = nil
 		}
 	case MongoDate:
-		switch c.SqlType {
+		switch c.SQLType {
 		case SQLDate, SQLTimestamp:
 			err = nil
 		}
 	case MongoDecimal128:
-		switch c.SqlType {
+		switch c.SQLType {
 		case SQLDecimal128, SQLNumeric, SQLVarchar:
 			err = nil
 		}
 	case MongoFloat:
-		switch c.SqlType {
+		switch c.SQLType {
 		case SQLFloat, SQLNumeric, SQLVarchar, SQLArrNumeric:
 			err = nil
 		}
 	case MongoGeo2D:
-		if c.SqlType == SQLArrNumeric {
+		if c.SQLType == SQLArrNumeric {
 			err = nil
 		}
 	case MongoInt:
-		switch c.SqlType {
+		switch c.SQLType {
 		case SQLInt, SQLInt64, SQLNumeric, SQLVarchar:
 			err = nil
 		}
 	case MongoInt64:
-		switch c.SqlType {
+		switch c.SQLType {
 		case SQLInt64, SQLNumeric, SQLVarchar:
 			err = nil
 		}
 	case MongoNumber:
-		switch c.SqlType {
+		switch c.SQLType {
 		case SQLInt, SQLInt64, SQLFloat, SQLDecimal128, SQLNumeric:
 			err = nil
 		}
-	case MongoObjectId, MongoString, MongoFilter, MongoUUID, MongoUUIDCSharp, MongoUUIDJava, MongoUUIDOld:
-		if c.SqlType == SQLVarchar {
+	case MongoObjectID, MongoString, MongoFilter, MongoUUID, MongoUUIDCSharp, MongoUUIDJava, MongoUUIDOld:
+		if c.SQLType == SQLVarchar {
 			err = nil
 		}
 	default:

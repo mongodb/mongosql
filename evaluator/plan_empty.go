@@ -2,7 +2,7 @@ package evaluator
 
 import "github.com/10gen/sqlproxy/collation"
 
-// An empty source for when we find that 0 rows are going to be returned, we don't
+// An EmptyStage is for when we find that 0 rows are going to be returned: we don't
 // need to hit MongoDB to get back nothing.
 type EmptyStage struct {
 	columns   []*Column
@@ -16,7 +16,7 @@ func NewEmptyStage(columns []*Column, collation *collation.Collation) *EmptyStag
 
 type EmptyIter struct{}
 
-func (_ *EmptyStage) Open(ctx *ExecutionCtx) (Iter, error) {
+func (*EmptyStage) Open(ctx *ExecutionCtx) (Iter, error) {
 	return &EmptyIter{}, nil
 }
 
@@ -28,14 +28,14 @@ func (es *EmptyStage) Collation() *collation.Collation {
 	return es.collation
 }
 
-func (_ *EmptyIter) Next(row *Row) bool {
+func (*EmptyIter) Next(row *Row) bool {
 	return false
 }
 
-func (_ *EmptyIter) Close() error {
+func (*EmptyIter) Close() error {
 	return nil
 }
 
-func (_ *EmptyIter) Err() error {
+func (*EmptyIter) Err() error {
 	return nil
 }

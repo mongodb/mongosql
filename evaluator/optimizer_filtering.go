@@ -125,7 +125,7 @@ func (v *filteringOptimizer) visit(n node) (node, error) {
 
 	case *SubquerySourceStage:
 		dbNames := generateDbSetFromColumns(typedN.Columns())
-		for dbName, _ := range dbNames {
+		for dbName := range dbNames {
 			v.qualifiedTableNames = append(v.qualifiedTableNames, fullyQualifiedTableName(dbName, typedN.aliasName))
 		}
 

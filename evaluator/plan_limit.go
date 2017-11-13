@@ -4,7 +4,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 )
 
-// Limit restricts the number of rows returned by a query.
+// A LimitStage restricts the number of rows returned by a query.
 type LimitStage struct {
 	// limit is the maximum number of rows to return
 	limit uint64
@@ -46,7 +46,7 @@ func (l *LimitIter) Next(row *Row) bool {
 	if l.offset != 0 {
 		r := &Row{}
 		for l.source.Next(r) {
-			l.total += 1
+			l.total++
 			if l.total == l.offset {
 				break
 			}
@@ -60,7 +60,7 @@ func (l *LimitIter) Next(row *Row) bool {
 		l.offset, l.total = 0, 0
 	}
 
-	l.total += 1
+	l.total++
 
 	if l.total > l.limit {
 		return false

@@ -7,65 +7,66 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
-// Represents base-64 encoded binary data
+// BinData represents base-64 encoded binary data
 type BinData struct {
 	Type   byte
 	Base64 string
 }
 
-// Represents the number of milliseconds since the Unix epoch.
+// Date represents the number of milliseconds since the Unix epoch.
 type Date int64
 
 type ISODate string
 
-type ObjectId string
+type ObjectID string
 
-// Represents a reference to another document.
+// DBRef epresents a reference to another document.
 type DBRef struct {
 	Collection string
-	Id         interface{}
+	ID         interface{}
 	Database   string // optional
 }
 
-// Refers to a document in some namespace by wrapping a string containing the namespace
-// and the objectId in which the _id of the document is contained
+// DBPointer refers to a document in some namespace by wrapping a string
+// containing the namespace and the objectId in which the _id of the document
+// is contained.
 type DBPointer struct {
 	Namespace string
-	Id        bson.ObjectId
+	ID        bson.ObjectId
 }
 
-// Represents the literal MinKey.
+// MinKey represents the literal MinKey.
 type MinKey struct{}
 
-// Represents the literal MaxKey.
+// MaxKey represents the literal MaxKey.
 type MaxKey struct{}
 
-// Represents a signed 32-bit integer.
+// NumberInt represents a signed 32-bit integer.
 type NumberInt int32
 
-// Represents a signed 64-bit integer.
+// NumberLong represents a signed 64-bit integer.
 type NumberLong int64
 
-// Represents a signed 64-bit float.
+// NumberFloat represents a signed 64-bit float.
 type NumberFloat float64
 
-// Represents a signed 32-bit uint.
+// NumberUint32 represents a signed 32-bit uint.
 type NumberUint32 uint32
 
-// Represents a signed 64-bit uint.
+// NumberUint64 represents a signed 64-bit uint.
 type NumberUint64 uint64
 
 type Decimal128 struct {
 	bson.Decimal128
 }
 
-// Represents a regular expression.
+// RegExp represents a regular expression.
 type RegExp struct {
 	Pattern string
 	Options string
 }
 
-// Represents a timestamp value.
+// Timestamp represents a timestamp value.
 type Timestamp struct {
 	Seconds   uint32
 	Increment uint32
@@ -78,7 +79,7 @@ type JavaScript struct {
 
 type Float float64
 
-// Represents the literal undefined.
+// Undefined represents the literal undefined.
 type Undefined struct{}
 
 var (
@@ -100,7 +101,7 @@ var (
 	numberFloatType  = reflect.TypeOf(NumberFloat(0))
 	numberUint32Type = reflect.TypeOf(NumberUint32(0))
 	numberUint64Type = reflect.TypeOf(NumberUint64(0))
-	objectIdType     = reflect.TypeOf(ObjectId(""))
+	objectIDType     = reflect.TypeOf(ObjectID(""))
 	regexpType       = reflect.TypeOf(RegExp{})
 	timestampType    = reflect.TypeOf(Timestamp{})
 	undefinedType    = reflect.TypeOf(Undefined{})
@@ -281,7 +282,7 @@ func (d *decodeState) storeExtendedLiteral(item []byte, v reflect.Value, fromQuo
 		}
 
 	case 'O': // ObjectId
-		d.storeObjectId(v)
+		d.storeObjectID(v)
 
 	case 'N': // NumberInt or NumberLong
 		switch item[6] {
@@ -361,8 +362,8 @@ func (d *decodeState) getExtendedLiteral(item []byte) (interface{}, bool) {
 			return MaxKey{}, true
 		}
 
-	case 'O': // ObjectId
-		return d.getObjectId(), true
+	case 'O': // ObjectID
+		return d.getObjectID(), true
 
 	case 'N': // NumberInt or NumberLong
 		switch item[6] {

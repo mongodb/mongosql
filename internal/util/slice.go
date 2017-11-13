@@ -5,8 +5,8 @@ import (
 	"reflect"
 )
 
-// generic function that returns true if elt is in slice.
-// panics if slice is not of Kind reflect.Slice
+// SliceContains is a generic function that returns true if elt is in slice.
+// It panics if slice is not of Kind reflect.Slice.
 func SliceContains(slice, elt interface{}) bool {
 	if slice == nil {
 		return false
@@ -29,7 +29,7 @@ func StringSliceContains(slice []string, str string) bool {
 	return StringSliceIndex(slice, str) != -1
 }
 
-// StringSliceContains returns the first index at which the given element
+// StringSliceIndex returns the first index at which the given element
 // can be found in the slice, or -1 if it is not present.
 func StringSliceIndex(slice []string, str string) int {
 	i := -1
@@ -42,8 +42,8 @@ func StringSliceIndex(slice []string, str string) int {
 	return i
 }
 
-// generic function that returns number of instances of 'elt' in 'slice'.
-// panics if slice is not of Kind reflect.Slice
+// SliceCount is a generic function that returns number of instances of 'elt' in 'slice'.
+// It panics if slice is not of Kind reflect.Slice.
 func SliceCount(slice, elt interface{}) int {
 	v := reflect.ValueOf(slice)
 	if v.Kind() != reflect.Slice {

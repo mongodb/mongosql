@@ -17,7 +17,8 @@ import (
 
 const usage = `mongosqld [install|uninstall] <options>`
 
-// Used to check if mongosqld should exit early with a normal exit code (for --help, --version, etc)
+// ErrExitEarly is used to check if mongosqld should exit early with a normal
+// exit code (for --help, --version, etc)
 var ErrExitEarly = errors.New("exit early")
 
 // MakeAbsPaths takes args and a map representing a set of command line flags that

@@ -82,7 +82,7 @@ func NewObjectSchema(doc bson.D) (*Schema, error) {
 // provided bson type.
 func NewScalarSchema(t BsonType) (*Schema, error) {
 	switch t {
-	case Int, Long, Double, Decimal, Boolean, String, Date, BinData, ObjectId:
+	case Int, Long, Double, Decimal, Boolean, String, Date, BinData, ObjectID:
 		return &Schema{
 			BsonType: t,
 		}, nil
@@ -154,7 +154,7 @@ func NewSchemaFromValue(value interface{}) (*Schema, error) {
 	case bool:
 		return NewScalarSchema(Boolean)
 	case bson.ObjectId:
-		return NewScalarSchema(ObjectId)
+		return NewScalarSchema(ObjectID)
 	}
 
 	return NewEmptySchema(), nil
@@ -200,12 +200,12 @@ func (s *Schema) InferSpecialTypes() {
 	}
 }
 
-// JsonSchema returns a JSON-Schema representation of a Schema in string form.
+// JSONSchema returns a JSON-Schema representation of a Schema in string form.
 // The JSON-Schema representation returned by this function differs in a few
 // important ways from the JSON-Schema standard. Those differences are discussed
 // in this design document:
 // https://docs.google.com/document/d/12LWz00vJo_H-tHFv7IHa5L6X5a6Y-eNE4dyb8TXdk7U/edit#
-func (s *Schema) JsonSchema() (string, error) {
+func (s *Schema) JSONSchema() (string, error) {
 	b, err := json.MarshalIndent(s, "", "    ")
 	if err != nil {
 		return "", err
@@ -334,7 +334,7 @@ func (s *Schema) Validate() error {
 			return fmt.Errorf("SpecialType %s invalid for schema of BsonType %s", s.SpecialType, s.BsonType)
 		}
 
-	case Int, Long, Double, Decimal, Boolean, String, Date, ObjectId, NoBsonType:
+	case Int, Long, Double, Decimal, Boolean, String, Date, ObjectID, NoBsonType:
 		// Properties must be nil
 		if s.Properties != nil {
 			return fmt.Errorf("Properties must be nil for schema of BsonType %s", s.BsonType)

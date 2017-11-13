@@ -18,6 +18,11 @@ build-mongodrdl:
 build-mongosqld:
 	$(ENV) testdata/bin/build-mongosqld.sh
 
+check:
+	$(ENV) testdata/bin/check-formatting.sh
+	$(ENV) testdata/bin/check-lint.sh
+	$(ENV) testdata/bin/check-vet.sh
+
 check-races:
 	testdata/bin/check-races.sh
 
@@ -37,6 +42,10 @@ run-mongodb:
 
 run-mongosqld:
 	$(ENV) testdata/bin/start-mongosqld.sh
+
+setup-hooks:
+	rm -rf .git/hooks
+	ln -s ../.githooks .git/hooks
 
 shell:
 	mysql -P3307

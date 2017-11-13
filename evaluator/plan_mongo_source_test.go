@@ -30,15 +30,15 @@ type connCtx struct {
 	variables *variable.Container
 }
 
-func (_ *connCtx) LastInsertId() int64 {
+func (*connCtx) LastInsertId() int64 {
 	return int64(0)
 }
 
-func (_ *connCtx) RowCount() int64 {
+func (*connCtx) RowCount() int64 {
 	return int64(0)
 }
 
-func (_ *connCtx) ConnectionId() uint32 {
+func (*connCtx) ConnectionID() uint32 {
 	return uint32(0)
 }
 
@@ -46,15 +46,15 @@ func (c *connCtx) Context() context.Context {
 	return context.Background()
 }
 
-func (_ *connCtx) DB() string {
+func (*connCtx) DB() string {
 	return ""
 }
 
-func (_ *connCtx) Kill(id uint32, scope KillScope) error {
+func (*connCtx) Kill(id uint32, scope KillScope) error {
 	return nil
 }
 
-func (_ *connCtx) Logger(_ string) *log.Logger {
+func (*connCtx) Logger(_ string) *log.Logger {
 	lg := log.GlobalLogger()
 	return &lg
 }
@@ -67,7 +67,7 @@ func (c *connCtx) Session() *mongodb.Session {
 	return c.session
 }
 
-func (_ *connCtx) User() string {
+func (*connCtx) User() string {
 	return ""
 }
 

@@ -37,7 +37,7 @@ type SQLAggFunctionExpr struct {
 }
 
 func (f *SQLAggFunctionExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
-	var distinctMap map[interface{}]bool = nil
+	var distinctMap map[interface{}]bool
 	if f.Distinct {
 		distinctMap = make(map[interface{}]bool)
 	}

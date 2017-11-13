@@ -2,7 +2,7 @@ package evaluator
 
 import "github.com/10gen/sqlproxy/collation"
 
-// Dual simulates a source for queries that don't require fields.
+// A DualStage simulates a source for queries that don't require fields.
 // It only ever returns one row.
 type DualStage struct{}
 
@@ -34,10 +34,10 @@ func (d *DualStage) Collation() *collation.Collation {
 	return collation.Default
 }
 
-func (_ *DualIter) Close() error {
+func (*DualIter) Close() error {
 	return nil
 }
 
-func (_ *DualIter) Err() error {
+func (*DualIter) Err() error {
 	return nil
 }

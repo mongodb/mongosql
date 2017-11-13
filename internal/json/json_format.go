@@ -55,7 +55,7 @@ func (d Date) MarshalJSON() ([]byte, error) {
 
 func (d DBRef) MarshalJSON() ([]byte, error) {
 	// Convert the $id field to JSON
-	idChunk, err := Marshal(d.Id)
+	idChunk, err := Marshal(d.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (d DBRef) MarshalJSON() ([]byte, error) {
 func (d DBPointer) MarshalJSON() ([]byte, error) {
 	buffer := bytes.Buffer{}
 	// Convert the $id field to JSON
-	idChunk, err := Marshal(d.Id)
+	idChunk, err := Marshal(d.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,12 +91,12 @@ func (d DBPointer) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func (_ MinKey) MarshalJSON() ([]byte, error) {
+func (MinKey) MarshalJSON() ([]byte, error) {
 	data := `{ "$minKey": 1 }`
 	return []byte(data), nil
 }
 
-func (_ MaxKey) MarshalJSON() ([]byte, error) {
+func (MaxKey) MarshalJSON() ([]byte, error) {
 	data := `{ "$maxKey": 1 }`
 	return []byte(data), nil
 }
@@ -134,9 +134,9 @@ func (n NumberFloat) MarshalJSON() ([]byte, error) {
 	return []byte(floatString), nil
 }
 
-// Assumes that o represents a valid ObjectId
+// MarshalJSON assumes that o represents a valid ObjectId
 // (composed of 24 hexadecimal characters).
-func (o ObjectId) MarshalJSON() ([]byte, error) {
+func (o ObjectID) MarshalJSON() ([]byte, error) {
 	data := fmt.Sprintf(`{ "$oid": "%v" }`, string(o))
 	return []byte(data), nil
 }
@@ -157,7 +157,7 @@ func (t Timestamp) MarshalJSON() ([]byte, error) {
 	return []byte(data), nil
 }
 
-func (_ Undefined) MarshalJSON() ([]byte, error) {
+func (Undefined) MarshalJSON() ([]byte, error) {
 	data := `{ "$undefined": true }`
 	return []byte(data), nil
 }

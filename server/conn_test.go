@@ -49,7 +49,7 @@ func readHelper(t *testing.T, packets []byte, expLen int) []byte {
 	}
 
 	if int(c.sequence) != (headers / 4) {
-		t.Fatal(fmt.Sprintf("c.sequence updated incorrectly, expected % and saw %d", (headers / 4), c.compressionSequence))
+		t.Fatal(fmt.Sprintf("c.sequence updated incorrectly, expected %d and saw %d", (headers / 4), c.compressionSequence))
 	}
 
 	return result

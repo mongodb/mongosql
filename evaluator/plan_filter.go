@@ -4,7 +4,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 )
 
-// Filter ensures that only rows matching a given criteria are
+// A FilterStage ensures that only rows matching a given criteria are
 // returned.
 type FilterStage struct {
 	matcher SQLExpr

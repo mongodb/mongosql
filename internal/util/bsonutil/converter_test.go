@@ -3,27 +3,28 @@ package bsonutil
 import (
 	"encoding/base64"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/json"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
-	"time"
 )
 
 func TestObjectIdBSONToJSON(t *testing.T) {
 
 	Convey("Converting a BSON ObjectId", t, func() {
 		Convey("that is valid to JSON should produce a json.ObjectId", func() {
-			bsonObjId := bson.NewObjectId()
-			jsonObjId := json.ObjectId(bsonObjId.Hex())
+			bsonObjID := bson.NewObjectId()
+			jsonObjID := json.ObjectID(bsonObjID.Hex())
 
-			_jObjId, err := ConvertBSONValueToJSON(bsonObjId)
+			_jObjID, err := ConvertBSONValueToJSON(bsonObjID)
 			So(err, ShouldBeNil)
-			jObjId, ok := _jObjId.(json.ObjectId)
+			jObjID, ok := _jObjID.(json.ObjectID)
 			So(ok, ShouldBeTrue)
 
-			So(jObjId, ShouldNotEqual, bsonObjId)
-			So(jObjId, ShouldEqual, jsonObjId)
+			So(jObjID, ShouldNotEqual, bsonObjID)
+			So(jObjID, ShouldEqual, jsonObjID)
 		})
 	})
 }
@@ -38,15 +39,15 @@ func TestArraysBSONToJSON(t *testing.T) {
 		})
 
 		Convey("should work for one-level deep arrays", func() {
-			objId := bson.NewObjectId()
-			bsonArr := []interface{}{objId, 28, 0.999, "plain"}
+			objID := bson.NewObjectId()
+			bsonArr := []interface{}{objID, 28, 0.999, "plain"}
 			_jArr, err := ConvertBSONValueToJSON(bsonArr)
 			So(err, ShouldBeNil)
 			jArr, ok := _jArr.([]interface{})
 			So(ok, ShouldBeTrue)
 
 			So(len(jArr), ShouldEqual, 4)
-			So(jArr[0], ShouldEqual, json.ObjectId(objId.Hex()))
+			So(jArr[0], ShouldEqual, json.ObjectID(objID.Hex()))
 			So(jArr[1], ShouldEqual, 28)
 			So(jArr[2], ShouldEqual, 0.999)
 			So(jArr[3], ShouldEqual, "plain")

@@ -2,8 +2,9 @@ package json
 
 import (
 	"fmt"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestNewKeyword(t *testing.T) {
@@ -111,7 +112,7 @@ func TestNewKeyword(t *testing.T) {
 			So(jsonValue, ShouldEqual, NumberLong(123))
 		})
 
-		Convey("can be used with ObjectId constructor", func() {
+		Convey("can be used with ObjectID constructor", func() {
 			var jsonMap map[string]interface{}
 
 			key := "key"
@@ -121,9 +122,9 @@ func TestNewKeyword(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonValue, ok := jsonMap[key].(ObjectId)
+			jsonValue, ok := jsonMap[key].(ObjectID)
 			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, ObjectId("123"))
+			So(jsonValue, ShouldEqual, ObjectID("123"))
 		})
 
 		Convey("can be used with RegExp constructor", func() {

@@ -25,7 +25,7 @@ func TestFormatDecimal(t *testing.T) {
 	for _, e := range tests {
 		d, _ := decimal.NewFromString(e)
 		if util.FormatDecimal(d) != e {
-			t.Fatalf("%s did not roundtrip")
+			t.Fatalf("%s did not roundtrip", e)
 		}
 	}
 }

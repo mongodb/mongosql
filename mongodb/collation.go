@@ -1,5 +1,6 @@
 package mongodb
 
+// Collation represents a MongoDB collation.
 type Collation struct {
 
 	// Locale defines the collation locale.

@@ -8,14 +8,21 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 )
 
+// Constants representing special field values
 const (
 	FieldNull  string = "NULL"
 	FieldBlank string = ""
+)
 
-	// full list as per MySQL: https://dev.mysql.com/doc/refman/5.7/en/thread-commands.html
+// MySQL thread command values
+// full list: https://dev.mysql.com/doc/refman/5.7/en/thread-commands.html
+const (
 	CommandQuery string = "Query"
 	CommandSleep string = "Sleep"
+)
 
+// MySQL process states
+const (
 	StateStarting string = "starting"
 )
 

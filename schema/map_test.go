@@ -148,8 +148,8 @@ func testMapSchema(collection string, prejoined bool, jsonSchema *mongo.Schema, 
 
 	// create a relational schema from the database
 	actual := &schema.Schema{
-		nil,
-		[]*schema.Database{db},
+		Alterations: nil,
+		Databases:   []*schema.Database{db},
 	}
 
 	// compare the generated schema to the expected one
@@ -165,7 +165,6 @@ func bsonFromJson(jsonBytes []byte) (bson.D, error) {
 	dict := map[string]interface{}{}
 	err := json.Unmarshal(jsonBytes, &dict)
 	if err != nil {
-		panic(err)
 		return nil, err
 	}
 

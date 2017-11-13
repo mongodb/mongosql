@@ -13,6 +13,15 @@ type ColumnType struct {
 	MongoType MongoType
 }
 
+// NewColumnType returns a *ColumnType with the specified SQLType and MongoType
+func NewColumnType(sqlType SQLType, mongoType MongoType) *ColumnType {
+	return &ColumnType{
+		SQLType:   sqlType,
+		MongoType: mongoType,
+	}
+}
+
+// Constants for various date and time format strings
 const (
 	DateFormat            = "2006-01-02"
 	TimeFormat            = "15:04:05"
@@ -20,6 +29,7 @@ const (
 	TimestampFormatMicros = "2006-01-02 15:04:05.000000"
 )
 
+// DefaultLocale is the default locale to use when formatting dates and times.
 var DefaultLocale = time.UTC
 
 // MongoType is the type that exists in MongoDB.
@@ -37,7 +47,7 @@ const (
 	MongoInt64                = "int64"
 	MongoNone                 = ""
 	MongoNumber               = "number"
-	MongoObjectId             = "bson.ObjectId"
+	MongoObjectID             = "bson.ObjectId"
 	MongoString               = "string"
 	MongoUUID                 = "bson.UUID"
 	MongoUUIDOld              = "bson.UUID_Old"
@@ -103,6 +113,8 @@ func (sqlType SQLType) ZeroValue() interface{} {
 	return ""
 }
 
+// SQLTypesSorter is a type used for sorting SQLTypes according to some
+// configurable sorting rules.
 type SQLTypesSorter struct {
 	Types               []SQLType
 	VarcharHighPriority bool

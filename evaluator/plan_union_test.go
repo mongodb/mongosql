@@ -79,9 +79,9 @@ func containsRow(results []result, row *Row) ([]result, bool) {
 	for i, result := range results {
 		matches := true
 		for _, value := range row.Data {
-			result_val, ok := result[value.Name]
+			resultVal, ok := result[value.Name]
 			So(ok, ShouldBeTrue)
-			if result_val != value.Data {
+			if resultVal != value.Data {
 				matches = false
 				break
 			}

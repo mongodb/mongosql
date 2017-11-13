@@ -887,14 +887,13 @@ func (a *algebrizer) getTableName(tableExpr parser.TableExpr, colName string, co
 	case *parser.AliasedTableExpr:
 		if typedE.As != nil {
 			return typedE.As, nil
-		} else {
-			// only legal type is TableName, as other AliasedTableExpr's must have AS clause specified
-			name, ok := typedE.Expr.(*parser.TableName)
-			if !ok {
-				return nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "A %s must have an alias", typedE.Expr)
-			}
-			return name.Name, nil
 		}
+		// only legal type is TableName, as other AliasedTableExpr's must have AS clause specified
+		name, ok := typedE.Expr.(*parser.TableName)
+		if !ok {
+			return nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "A %s must have an alias", typedE.Expr)
+		}
+		return name.Name, nil
 	case *parser.ParenTableExpr:
 		return a.getTableName(typedE.Expr, colName, columns)
 	case *parser.JoinTableExpr:
@@ -943,14 +942,29 @@ func (a *algebrizer) convertToAnd(columns parser.ColumnExprs, leftCols []*Column
 			}
 
 			// Need to assign databases for cross db joins.
-			leftExpr := &parser.ColName{[]byte(leftDatabaseName), []byte(colName), leftTableName}
-			rightExpr := &parser.ColName{[]byte(rightDatabaseName), []byte(colName), rightTableName}
-			comparison := &parser.ComparisonExpr{parser.AST_EQ, leftExpr, rightExpr, ""}
+			leftExpr := &parser.ColName{
+				Database:  []byte(leftDatabaseName),
+				Name:      []byte(colName),
+				Qualifier: leftTableName,
+			}
+			rightExpr := &parser.ColName{
+				Database:  []byte(rightDatabaseName),
+				Name:      []byte(colName),
+				Qualifier: rightTableName,
+			}
+			comparison := &parser.ComparisonExpr{
+				Operator: parser.AST_EQ,
+				Left:     leftExpr,
+				Right:    rightExpr,
+			}
 			// add to final expression
 			if expression == nil {
 				expression = comparison
 			} else {
-				expression = &parser.AndExpr{expression, comparison}
+				expression = &parser.AndExpr{
+					Left:  expression,
+					Right: comparison,
+				}
 			}
 		}
 	}
@@ -1109,7 +1123,12 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 				}
 				for _, leftCol := range leftCols {
 					if _, ok := rightColMap[leftCol.Name]; ok {
-						filterCols = append(filterCols, &parser.ColName{[]byte(filterDb), []byte(leftCol.Name), make([]byte, 0)})
+						colName := &parser.ColName{
+							Database:  []byte(filterDb),
+							Name:      []byte(leftCol.Name),
+							Qualifier: make([]byte, 0),
+						}
+						filterCols = append(filterCols, colName)
 					}
 				}
 			}

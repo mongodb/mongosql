@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	BASEMASK = 0777 // octal literal
+	baseMask = 0777 // octal literal
 )
 
 func (s *Server) populateListeners() error {
@@ -38,7 +38,7 @@ func (s *Server) populateListeners() error {
 			return err
 		}
 
-		oldMask := syscall.Umask(int(BASEMASK - permissions))
+		oldMask := syscall.Umask(int(baseMask - permissions))
 		listener, err = net.Listen("unix", socket)
 		if err != nil {
 			if !isErrAddrInUse(err) {

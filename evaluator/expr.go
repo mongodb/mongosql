@@ -38,7 +38,7 @@ type reconcilingSQLExpr interface {
 	reconcile() (SQLExpr, error)
 }
 
-// Arithmetic consts
+// ArithmeticOperator is for constants that represent arithmetic operators
 type ArithmeticOperator byte
 
 const (
@@ -115,7 +115,7 @@ func (fe *MongoFilterExpr) String() string {
 	return fmt.Sprintf("%v=%v", fe.column.String(), fe.expr.String())
 }
 
-func (_ *MongoFilterExpr) Type() schema.SQLType {
+func (*MongoFilterExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -204,7 +204,7 @@ func (and *SQLAndExpr) String() string {
 	return fmt.Sprintf("%v and %v", and.left, and.right)
 }
 
-func (_ *SQLAndExpr) Type() schema.SQLType {
+func (*SQLAndExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -305,7 +305,13 @@ type SQLColumnExpr struct {
 
 // NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
 func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, sqlType schema.SQLType, mongoType schema.MongoType) SQLColumnExpr {
-	return SQLColumnExpr{selectID, databaseName, tableName, columnName, schema.ColumnType{sqlType, mongoType}}
+	return SQLColumnExpr{
+		selectID:     selectID,
+		databaseName: databaseName,
+		tableName:    tableName,
+		columnName:   columnName,
+		columnType:   schema.ColumnType{SQLType: sqlType, MongoType: mongoType},
+	}
 }
 
 func (c SQLColumnExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
@@ -344,7 +350,7 @@ func (c SQLColumnExpr) String() string {
 }
 
 func (c SQLColumnExpr) Type() schema.SQLType {
-	if c.columnType.MongoType == schema.MongoObjectId && c.columnType.SQLType == schema.SQLVarchar {
+	if c.columnType.MongoType == schema.MongoObjectID && c.columnType.SQLType == schema.SQLVarchar {
 		return schema.SQLObjectID
 	}
 
@@ -537,7 +543,7 @@ func (eq *SQLEqualsExpr) String() string {
 	return fmt.Sprintf("%v = %v", eq.left, eq.right)
 }
 
-func (_ *SQLEqualsExpr) Type() schema.SQLType {
+func (*SQLEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -580,7 +586,7 @@ func (em *SQLExistsExpr) String() string {
 	return fmt.Sprintf("exists(%s)", em.expr.String())
 }
 
-func (_ *SQLExistsExpr) Type() schema.SQLType {
+func (*SQLExistsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -628,7 +634,7 @@ func (gt *SQLGreaterThanExpr) String() string {
 	return fmt.Sprintf("%v>%v", gt.left, gt.right)
 }
 
-func (_ *SQLGreaterThanExpr) Type() schema.SQLType {
+func (*SQLGreaterThanExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -677,7 +683,7 @@ func (gte *SQLGreaterThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v>=%v", gte.left, gte.right)
 }
 
-func (_ *SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
+func (*SQLGreaterThanOrEqualExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -798,7 +804,7 @@ func (in *SQLInExpr) String() string {
 	return fmt.Sprintf("%v in %v", in.left, in.right)
 }
 
-func (_ *SQLInExpr) Type() schema.SQLType {
+func (*SQLInExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -834,9 +840,8 @@ func (is *SQLIsExpr) Evaluate(ctx *EvalCtx) (SQLValue, error) {
 	if _, ok := leftVal.(SQLNullValue); ok {
 		if _, ok := rightVal.(SQLBool); ok {
 			return SQLFalse, nil
-		} else {
-			return SQLTrue, nil
 		}
+		return SQLTrue, nil
 	}
 
 	if hasNullValue(leftVal, rightVal) {
@@ -855,7 +860,7 @@ func (is *SQLIsExpr) String() string {
 	return fmt.Sprintf("%v is %v", is.left, is.right)
 }
 
-func (_ *SQLIsExpr) Type() schema.SQLType {
+func (*SQLIsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -903,7 +908,7 @@ func (lt *SQLLessThanExpr) String() string {
 	return fmt.Sprintf("%v<%v", lt.left, lt.right)
 }
 
-func (_ *SQLLessThanExpr) Type() schema.SQLType {
+func (*SQLLessThanExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -951,7 +956,7 @@ func (lte *SQLLessThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v<=%v", lte.left, lte.right)
 }
 
-func (_ *SQLLessThanOrEqualExpr) Type() schema.SQLType {
+func (*SQLLessThanOrEqualExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1025,7 +1030,7 @@ func (l *SQLLikeExpr) String() string {
 	return fmt.Sprintf("%v like %v", l.left, l.right)
 }
 
-func (_ *SQLLikeExpr) Type() schema.SQLType {
+func (*SQLLikeExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1149,7 +1154,7 @@ func (not *SQLNotExpr) String() string {
 	return fmt.Sprintf("not %v", not.operand)
 }
 
-func (_ *SQLNotExpr) Type() schema.SQLType {
+func (*SQLNotExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1198,7 +1203,7 @@ func (neq *SQLNotEqualsExpr) String() string {
 	return fmt.Sprintf("%v != %v", neq.left, neq.right)
 }
 
-func (_ *SQLNotEqualsExpr) Type() schema.SQLType {
+func (*SQLNotEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1265,7 +1270,7 @@ func (nse *SQLNullSafeEqualsExpr) String() string {
 	return fmt.Sprintf("%v <=> %v", nse.left, nse.right)
 }
 
-func (_ *SQLNullSafeEqualsExpr) Type() schema.SQLType {
+func (*SQLNullSafeEqualsExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1319,7 +1324,7 @@ func (or *SQLOrExpr) String() string {
 	return fmt.Sprintf("%v or %v", or.left, or.right)
 }
 
-func (_ *SQLOrExpr) Type() schema.SQLType {
+func (*SQLOrExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1373,7 +1378,7 @@ func (reg *SQLRegexExpr) String() string {
 	return fmt.Sprintf("%s matches %s", reg.operand.String(), reg.pattern.String())
 }
 
-func (_ *SQLRegexExpr) Type() schema.SQLType {
+func (*SQLRegexExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1518,7 +1523,7 @@ func (sc *SQLSubqueryCmpExpr) String() string {
 	return ""
 }
 
-func (_ *SQLSubqueryCmpExpr) Type() schema.SQLType {
+func (*SQLSubqueryCmpExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }
 
@@ -1950,6 +1955,6 @@ func (xor *SQLXorExpr) String() string {
 	return fmt.Sprintf("%v xor %v", xor.left, xor.right)
 }
 
-func (_ *SQLXorExpr) Type() schema.SQLType {
+func (*SQLXorExpr) Type() schema.SQLType {
 	return schema.SQLBoolean
 }

@@ -6,9 +6,10 @@ package server
 import (
 	"bytes"
 	"compress/zlib"
-	"github.com/10gen/sqlproxy/mysqlerrors"
 	"io"
 	"sync/atomic"
+
+	"github.com/10gen/sqlproxy/mysqlerrors"
 )
 
 const (
@@ -225,12 +226,11 @@ func (cw *compressedWriter) writeToNetwork(data []byte, uncomprLength int) error
 
 		if _, err := cw.connWriter.Write(data[:7+maxPayloadLength]); err != nil {
 			return err
-		} else {
-			cw.c.compressionSequence++
-			totalBytesSent += uint64(maxPayloadLength + 7)
-			comprLength -= maxPayloadLength
-			data = data[maxPayloadLength:]
 		}
+		cw.c.compressionSequence++
+		totalBytesSent += uint64(maxPayloadLength + 7)
+		comprLength -= maxPayloadLength
+		data = data[maxPayloadLength:]
 	}
 
 	// compression

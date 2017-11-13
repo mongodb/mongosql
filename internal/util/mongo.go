@@ -12,7 +12,7 @@ const (
 	DefaultMongoDPort      = "27017"
 )
 
-// Extract the replica set name and the list of hosts from the connection string
+// ParseConnectionString extracts the replica set name and the list of hosts from the connection string
 func ParseConnectionString(connString string) ([]string, string) {
 
 	// strip off the replica set name from the beginning
@@ -30,8 +30,8 @@ func ParseConnectionString(connString string) ([]string, string) {
 	return strings.Split(connString, ","), setName
 }
 
-// Split the host string into the individual nodes to connect to, appending the
-// port if necessary.
+// CreateConnectionAddrs splits the host string into the individual nodes to
+// connect to, appending the port if necessary.
 func CreateConnectionAddrs(host, port string) []string {
 
 	// set to the defaults, if necessary
@@ -55,7 +55,7 @@ func CreateConnectionAddrs(host, port string) []string {
 	return addrs
 }
 
-// SplitNamespace splits a namespace path into a database and collection,
+// SplitAndValidateNamespace splits a namespace path into a database and collection,
 // returned in that order. An error is returned if the namespace is invalid.
 func SplitAndValidateNamespace(namespace string) (string, string, error) {
 

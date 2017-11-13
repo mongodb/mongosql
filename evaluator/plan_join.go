@@ -27,7 +27,7 @@ const (
 	rightJoinChild
 )
 
-// NestedLoop implementation of a JOIN.
+// NestedLoopJoiner is an implementation of a join.
 type NestedLoopJoiner struct {
 	ctx          *ExecutionCtx
 	matcher      SQLExpr
@@ -44,8 +44,7 @@ type Joiner interface {
 	Join(ctx context.Context, left, right <-chan *Row, execCtx *ExecutionCtx) <-chan Values
 }
 
-// Join implements the operator interface for
-// join expressions.
+// JoinStage implements the operator interface for join expressions.
 type JoinStage struct {
 	left, right PlanStage
 	matcher     SQLExpr
@@ -186,15 +185,15 @@ func (iter *JoinIter) Next(row *Row) bool {
 	return true
 }
 
-func (join *JoinIter) Close() error {
-	join.cancelIter()
+func (iter *JoinIter) Close() error {
+	iter.cancelIter()
 
-	if err := join.left.Close(); err != nil {
-		join.right.Close()
+	if err := iter.left.Close(); err != nil {
+		iter.right.Close()
 		return err
 	}
 
-	return join.right.Close()
+	return iter.right.Close()
 }
 
 func (join *JoinStage) Columns() []*Column {
@@ -210,17 +209,17 @@ func (join *JoinStage) Collation() *collation.Collation {
 	return join.left.Collation()
 }
 
-func (join *JoinIter) Err() error {
+func (iter *JoinIter) Err() error {
 
-	if err := join.left.Err(); err != nil {
+	if err := iter.left.Err(); err != nil {
 		return err
 	}
 
-	if err := join.right.Err(); err != nil {
+	if err := iter.right.Err(); err != nil {
 		return err
 	}
 
-	return join.err
+	return iter.err
 }
 
 func (join *JoinStage) clone() *JoinStage {
@@ -311,7 +310,7 @@ func (nlp *NestedLoopJoiner) readData(ctx context.Context, lChan, rChan <-chan *
 	return left, right, err
 }
 
-// NestedLoopJoiner implementation.
+// Join is the join implementation for a NestedLoopJoiner.
 func (nlp *NestedLoopJoiner) Join(ctx context.Context, lChan, rChan <-chan *Row, execCtx *ExecutionCtx) <-chan Values {
 
 	getNilValues := func(columns []*Column) Values {

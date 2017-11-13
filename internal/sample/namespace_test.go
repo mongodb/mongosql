@@ -9,16 +9,16 @@ import (
 )
 
 func TestNewNamespace(t *testing.T) {
-	versionId := bson.NewObjectId()
+	versionID := bson.NewObjectId()
 
 	Convey("When creating a new namespace", t, func() {
 
-		ns := NewNamespace(db1, c2, versionId)
+		ns := NewNamespace(db1, c2, versionID)
 
 		Convey("the database, collection and version id should be correctly set", func() {
 			So(ns.Database, ShouldEqual, db1)
 			So(ns.Collection, ShouldEqual, c2)
-			So(ns.VersionId, ShouldEqual, versionId)
+			So(ns.VersionID, ShouldEqual, versionID)
 		})
 
 	})

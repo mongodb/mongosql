@@ -19,6 +19,7 @@ const (
 	bufferSizeLimit          = 8192
 )
 
+// Constants for various mongosqld logging components
 const (
 	defaultComponent    = "MONGOSQLD"
 	ControlComponent    = "CONTROL"
@@ -31,43 +32,47 @@ const (
 	MongodrdlComponent  = "MONGODRDL"
 )
 
+// Verbosity is an enum representing logging verbosity levels.
 type Verbosity int
 
 const (
-	// never log any output
+	// Quiet instructs the logger to never log any output.
 	Quiet Verbosity = -1
 
-	// for messages that notify the user of basic mongosqld events and state changes
+	// Always is for messages that notify the user of basic mongosqld events and state changes.
 	Always Verbosity = 0
 
-	// for messages that would be useful/understandable for mongosqld admins
+	// Admin is for messages that would be useful/understandable for mongosqld admins.
 	Admin Verbosity = 1
 
-	// for messages targeted primarily at MongoDB developers, TSEs, etc.
+	// Dev is for messages targeted primarily at MongoDB developers, TSEs, etc.
 	Dev Verbosity = 2
 )
 
+// Severity is an enum representing log message severities.
 type Severity string
 
 const (
-	// for messages that are understandable/useful for the target audience of the
-	// message's verbosity level without any additional context (beyond an
-	// understanding of mongosqld)
+	// Info is for messages that are understandable/useful for the target audience
+	// of the message's verbosity level without any additional context (beyond an
+	// understanding of mongosqld).
 	Info Severity = "I"
 
-	// for informational messages that require additional context to be useful
-	// or understandable
+	// Debug is for informational messages that require additional context to
+	// be useful or understandable.
 	Debug Severity = "D"
 
-	// for unusual or unexpected mongosqld behavior/errors from which mongosqld
-	// will automatically recover
+	// Warn is for unusual or unexpected mongosqld behavior/errors from which
+	// mongosqld will automatically recover.
 	Warn Severity = "W"
 
-	// for errors fatal to an individual operation, but not to mongosqld itself.
+	// Error is for errors fatal to an individual operation, but not to
+	// mongosqld itself.
 	Error Severity = "E"
 
-	// for errors from which mongosqld cannot recover. should be used sparingly,
-	// and only in cases where something is seriously broken
+	// Fatal is for errors from which mongosqld cannot recover.
+	// It should be used sparingly, and only in cases where something
+	// is seriously broken.
 	Fatal Severity = "F"
 )
 
@@ -87,7 +92,8 @@ func newLine() string {
 }
 
 var (
-	NewLine = newLine() // NewLine is the actual newline string for logging, exported for use elsewhere
+	// NewLine is the actual newline string to use when logging.
+	NewLine = newLine()
 )
 
 type Logger struct {

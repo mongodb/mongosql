@@ -75,9 +75,9 @@ func (row *Row) GetValues() []SQLValue {
 	return values
 }
 
-func (values Values) Map() map[string]SQLValue {
+func (v Values) Map() map[string]SQLValue {
 	m := make(map[string]SQLValue, 0)
-	for _, value := range values {
+	for _, value := range v {
 		m[value.Name] = value.Data
 	}
 	return m

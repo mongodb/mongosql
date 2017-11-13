@@ -555,8 +555,8 @@ type RegexExpr struct {
 	Pattern Expr
 }
 
-// This node is synonymous with the one above, simply here so that there
-// can be a distinction between the input commands when formatted.
+// RLikeExpr is equivalent to RegexExpr. It is implemented separately so that
+// there can be a distinction between the input commands when formatted.
 type RLikeExpr struct {
 	Operand Expr
 	Pattern Expr

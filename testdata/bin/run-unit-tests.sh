@@ -23,24 +23,13 @@ run_unit_tests() {
 (
     set -o errexit
 
-    run_unit_tests catalog
-    run_unit_tests collation
-    run_unit_tests internal/config
-    run_unit_tests internal/json
-    run_unit_tests internal/sample
-    run_unit_tests internal/util
-    run_unit_tests internal/util/bsonutil
-    run_unit_tests mongodrdl
-    run_unit_tests mongodrdl/mongo
-    run_unit_tests mongodrdl/relational
-    run_unit_tests options
-    run_unit_tests variable
-    run_unit_tests evaluator
-    run_unit_tests parser
-    run_unit_tests mongodb
-    run_unit_tests server
-    run_unit_tests schema
-    run_unit_tests schema/mongo
+    for pkg in $(find . -name '*.go' | grep -v './vendor' | xargs dirname | uniq); do
+        case $pkg in
+            '.') continue ;;
+            './testdata/bin') continue ;;
+        esac
+        run_unit_tests "$pkg"
+    done
 
     rm -rf "$PROJECT_DIR/mongodrdl/out/"
 

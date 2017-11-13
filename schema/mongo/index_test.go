@@ -29,17 +29,17 @@ func TestAddIndexes(t *testing.T) {
 				schema.addIndexes(idxs, "")
 
 				Convey("Should add indexes to the appropriate schematas", func() {
-					a_idxs := schema.Properties["a"].Indexes
-					loc_idxs := schema.Properties["loc"].Indexes
-					b_idxs := schema.Properties["b"].Indexes
-					b_geo_idxs := schema.Properties["b"].DominantSchema().Properties["geo"].Indexes
+					aIdxs := schema.Properties["a"].Indexes
+					locIdxs := schema.Properties["loc"].Indexes
+					bIdxs := schema.Properties["b"].Indexes
+					bGeoIdxs := schema.Properties["b"].DominantSchema().Properties["geo"].Indexes
 
-					So(a_idxs, ShouldHaveLength, 0)
-					So(b_idxs, ShouldHaveLength, 0)
-					So(loc_idxs, ShouldHaveLength, 1)
-					So(b_geo_idxs, ShouldHaveLength, 1)
-					So(loc_idxs[0], ShouldEqual, Index2D)
-					So(b_geo_idxs[0], ShouldEqual, Index2DSphere)
+					So(aIdxs, ShouldHaveLength, 0)
+					So(bIdxs, ShouldHaveLength, 0)
+					So(locIdxs, ShouldHaveLength, 1)
+					So(bGeoIdxs, ShouldHaveLength, 1)
+					So(locIdxs[0], ShouldEqual, Index2D)
+					So(bGeoIdxs[0], ShouldEqual, Index2DSphere)
 				})
 			})
 		})

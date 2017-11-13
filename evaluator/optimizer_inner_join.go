@@ -173,7 +173,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 	var err error
 
 	if _, ok := n.(PlanStage); ok {
-		v.nPlanStages += 1
+		v.nPlanStages++
 	}
 
 	switch typedN := n.(type) {
@@ -326,7 +326,7 @@ func (v *innerJoinOptimizer) visit(n node) (node, error) {
 		ijs := innerJoinSource{nPipelineStages, n}
 		v.nPlanStages += subqueryOptimizer.nPlanStages
 		dbNames := generateDbSetFromColumns(typedN.Columns())
-		for dbName, _ := range dbNames {
+		for dbName := range dbNames {
 			v.sources[fullyQualifiedTableName(dbName, typedN.aliasName)] = ijs
 		}
 		v.hasSubquery = true
@@ -666,7 +666,7 @@ func (s sortablePaths) Less(i, j int) bool {
 
 	}
 
-	for idx, _ := range leftEdges {
+	for idx := range leftEdges {
 
 		left := s.optimizer.sources[leftEdges[idx].tables[0]]
 		right := s.optimizer.sources[rightEdges[idx].tables[0]]
@@ -739,7 +739,7 @@ func (s sortablePaths) selfJoinTablesPotential(path path) int {
 			break
 		}
 
-		var v *pushDownOptimizer = nil
+		var v *pushDownOptimizer
 
 		if v.canSelfJoinTables(s.logger, leftSource, rightSource, s.matcher, innerJoin) {
 			i++

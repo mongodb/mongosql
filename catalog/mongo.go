@@ -16,8 +16,8 @@ func NewMongoTable(t *schema.Table, tableType TableType, collation *collation.Co
 	var primaryKeys []Column
 	for _, c := range t.Columns {
 		mc := &MongoColumn{
-			name:      ColumnName(c.SqlName),
-			sqlType:   c.SqlType,
+			name:      ColumnName(c.SQLName),
+			sqlType:   c.SQLType,
 			MongoName: c.Name,
 			MongoType: c.MongoType,
 			comments:  fmt.Sprintf(`{ "name": "%s" }`, c.Name),

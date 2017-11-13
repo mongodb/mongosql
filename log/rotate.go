@@ -8,16 +8,20 @@ import (
 	"github.com/10gen/sqlproxy/internal/util"
 )
 
+// RotationStrategy is an enum representing mongosqld's supported log rotation
+// strategies.
 type RotationStrategy string
 
+// Possible values for RotationStrategy
 const (
 	Rename RotationStrategy = "rename"
-	Reopen                  = "reopen"
-
-	// this is time.RFC3339Nano with "_" instead of ":"
-	// because you cannot have colons in Windows filenames
-	RotationTimeFormat = "2006-01-02T15_04_05.999999999Z07_00"
+	Reopen RotationStrategy = "reopen"
 )
+
+// RotationTimeFormat is the timestamp format used in the filenames of rotated
+// log files. It is equivalent time.RFC3339Nano with "_" instead of ":"
+// (because you cannot have colons in Windows filenames).
+const RotationTimeFormat = "2006-01-02T15_04_05.999999999Z07_00"
 
 type rotateFunc func() (string, error)
 

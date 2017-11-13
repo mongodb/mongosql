@@ -17,7 +17,7 @@ func TestMergeSchema(t *testing.T) {
 		Convey("Merging it with a schema of any other type should fail", func() {
 			otherTypes := []mongo.BsonType{
 				mongo.Int, mongo.Long, mongo.Double, mongo.Decimal, mongo.BinData,
-				mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectId, mongo.Array,
+				mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectID, mongo.Array,
 			}
 			for _, typ := range otherTypes {
 				other := &mongo.Schema{
@@ -39,9 +39,9 @@ func TestMergeSchema(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Should give a schema resembling the non-empty one", func() {
-				jsonActual, err := schema.JsonSchema()
+				jsonActual, err := schema.JSONSchema()
 				So(err, ShouldBeNil)
-				jsonExpected, err := other.JsonSchema()
+				jsonExpected, err := other.JSONSchema()
 				So(err, ShouldBeNil)
 				So(jsonActual, ShouldEqual, jsonExpected)
 			})
@@ -68,9 +68,9 @@ func TestMergeSchema(t *testing.T) {
 						},
 					}
 
-					jsonActual, err := schema.JsonSchema()
+					jsonActual, err := schema.JSONSchema()
 					So(err, ShouldBeNil)
-					jsonExpected, err := expected.JsonSchema()
+					jsonExpected, err := expected.JSONSchema()
 					So(err, ShouldBeNil)
 					So(jsonActual, ShouldEqual, jsonExpected)
 				})
@@ -85,7 +85,7 @@ func TestMergeSchema(t *testing.T) {
 		Convey("Merging it with a schema of any other type should fail", func() {
 			otherTypes := []mongo.BsonType{
 				mongo.Int, mongo.Long, mongo.Double, mongo.Decimal, mongo.BinData,
-				mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectId, mongo.Object,
+				mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectID, mongo.Object,
 			}
 			for _, typ := range otherTypes {
 				other := &mongo.Schema{
@@ -103,9 +103,9 @@ func TestMergeSchema(t *testing.T) {
 			err = schema.Merge(other)
 			So(err, ShouldBeNil)
 
-			jsonActual, err := schema.JsonSchema()
+			jsonActual, err := schema.JSONSchema()
 			So(err, ShouldBeNil)
-			jsonExpected, err := other.JsonSchema()
+			jsonExpected, err := other.JSONSchema()
 			So(err, ShouldBeNil)
 
 			Convey("Should give a schema resembling the non-empty one", func() {
@@ -120,7 +120,7 @@ func TestMergeSchema(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Should not change the dominant schema", func() {
-					newJsonActual, err := schema.JsonSchema()
+					newJsonActual, err := schema.JSONSchema()
 					So(err, ShouldBeNil)
 					So(newJsonActual, ShouldEqual, jsonActual)
 				})
@@ -134,9 +134,9 @@ func TestMergeSchema(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Should change the dominant schema to that of the other array", func() {
-					newJsonActual, err := schema.JsonSchema()
+					newJsonActual, err := schema.JSONSchema()
 					So(err, ShouldBeNil)
-					newJsonExpected, err := other.JsonSchema()
+					newJsonExpected, err := other.JSONSchema()
 					So(err, ShouldBeNil)
 					So(newJsonActual, ShouldNotEqual, jsonActual)
 					So(newJsonActual, ShouldEqual, newJsonExpected)
@@ -146,7 +146,7 @@ func TestMergeSchema(t *testing.T) {
 	})
 }
 
-func TestRenderJsonSchema(t *testing.T) {
+func TestRenderJSONSchema(t *testing.T) {
 	schema := mongo.NewCollectionSchema()
 
 	err := schema.IncludeSample(bson.D{
@@ -166,7 +166,7 @@ func TestRenderJsonSchema(t *testing.T) {
 		t.Fatalf("Failed including sample: %v", err)
 	}
 
-	json, err := schema.JsonSchema()
+	json, err := schema.JSONSchema()
 	if err != nil {
 		t.Fatalf("Failed rendering JSON Schema: %v", err)
 	}
@@ -513,7 +513,7 @@ func TestValidateSchema(t *testing.T) {
 
 		scalars := []mongo.BsonType{
 			mongo.Int, mongo.Long, mongo.Double, mongo.Decimal,
-			mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectId,
+			mongo.Boolean, mongo.String, mongo.Date, mongo.ObjectID,
 		}
 		for _, scalar := range scalars {
 

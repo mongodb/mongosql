@@ -125,17 +125,17 @@ func TestRawMessage(t *testing.T) {
 	// TODO(rsc): Should not need the * in *RawMessage
 	var data struct {
 		X  float64
-		Id *RawMessage
+		ID *RawMessage
 		Y  float32
 	}
 	const raw = `["\u0056",null]`
-	const msg = `{"X":0.1,"Id":["\u0056",null],"Y":0.2}`
+	const msg = `{"X":0.1,"ID":["\u0056",null],"Y":0.2}`
 	err := Unmarshal([]byte(msg), &data)
 	if err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
-	if string([]byte(*data.Id)) != raw {
-		t.Fatalf("Raw mismatch: have %#q want %#q", []byte(*data.Id), raw)
+	if string([]byte(*data.ID)) != raw {
+		t.Fatalf("Raw mismatch: have %#q want %#q", []byte(*data.ID), raw)
 	}
 	b, err := Marshal(&data)
 	if err != nil {
@@ -150,16 +150,16 @@ func TestNullRawMessage(t *testing.T) {
 	// TODO(rsc): Should not need the * in *RawMessage
 	var data struct {
 		X  float64
-		Id *RawMessage
+		ID *RawMessage
 		Y  float32
 	}
-	data.Id = new(RawMessage)
-	const msg = `{"X":0.1,"Id":null,"Y":0.2}`
+	data.ID = new(RawMessage)
+	const msg = `{"X":0.1,"ID":null,"Y":0.2}`
 	err := Unmarshal([]byte(msg), &data)
 	if err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
-	if data.Id != nil {
+	if data.ID != nil {
 		t.Fatalf("Raw mismatch: have non-nil, want nil")
 	}
 	b, err := Marshal(&data)

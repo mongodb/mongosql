@@ -179,23 +179,23 @@ func NewDrdlOptions() (*DrdlOptions, error) {
 	return opts, nil
 }
 
-func (opts DrdlOptions) Parse() ([]string, error) {
-	opts.SetVerbosity = func(val string) error {
+func (o DrdlOptions) Parse() ([]string, error) {
+	o.SetVerbosity = func(val string) error {
 		if i, err := strconv.Atoi(val); err == nil {
-			opts.VLevel = opts.VLevel + i
+			o.VLevel = o.VLevel + i
 		} else if matched, _ := regexp.MatchString(`^v+$`, val); matched {
-			opts.VLevel = opts.VLevel + len(val) + 1
+			o.VLevel = o.VLevel + len(val) + 1
 		} else if matched, _ := regexp.MatchString(`^v+=[0-9]$`, val); matched {
-			opts.VLevel = parseVal(val)
+			o.VLevel = parseVal(val)
 		} else if val == "" {
-			opts.VLevel = opts.VLevel + 1
+			o.VLevel = o.VLevel + 1
 		} else {
 			return fmt.Errorf("invalid verbosity value given")
 		}
 		return nil
 	}
 
-	args, err := opts.parser.Parse()
+	args, err := o.parser.Parse()
 	return args, err
 }
 
@@ -210,7 +210,7 @@ func (o DrdlOptions) GetAuthenticationDatabase() string {
 	return ""
 }
 
-// Print the usage message for the tool to stdout. Returns whether or not the
+// PrintHelp prints the usage message for the tool to stdout. Returns whether or not the
 // help flag is specified.
 func (o DrdlOptions) PrintHelp(force bool) bool {
 	if o.Help || force {

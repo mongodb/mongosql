@@ -101,11 +101,15 @@ func TestInsertSampleRecord(t *testing.T) {
 			version.StartSampleTime = startTime
 			endTime := startTime.Add(time.Duration(3 * time.Minute))
 			version.EndSampleTime = endTime
-			namespace := NewNamespace(db1, c1, version.Id)
+			namespace := NewNamespace(db1, c1, version.ID)
 			version.Databases = []VersionDatabase{
 				VersionDatabase{Name: db1, Collections: []string{c1}},
 			}
-			record := &Record{cfg.Schema.Sample.Source, version, []*Namespace{namespace}}
+			record := &Record{
+				Database:   cfg.Schema.Sample.Source,
+				Version:    version,
+				Namespaces: []*Namespace{namespace},
+			}
 
 			err := InsertSampleRecord(record, session, &lgr)
 			So(err, ShouldBeNil)
@@ -149,7 +153,7 @@ func TestInsertSampleRecord(t *testing.T) {
 					So(dbNamespace.Database, ShouldResemble, namespace.Database)
 					So(dbNamespace.Collection, ShouldResemble, namespace.Collection)
 					So(dbNamespace.SampleSize, ShouldResemble, namespace.SampleSize)
-					So(dbNamespace.VersionId, ShouldResemble, namespace.VersionId)
+					So(dbNamespace.VersionID, ShouldResemble, namespace.VersionID)
 				})
 			})
 		})
@@ -188,11 +192,11 @@ func TestReadSchema(t *testing.T) {
 			})
 			So(err, ShouldBeNil)
 
-			ns1 := NewNamespace(db1, c1, version.Id)
+			ns1 := NewNamespace(db1, c1, version.ID)
 			ns1.Schema = mongoSchema
-			ns2 := NewNamespace(db1, c2, version.Id)
+			ns2 := NewNamespace(db1, c2, version.ID)
 			ns2.Schema = mongoSchema
-			ns3 := NewNamespace(db2, c1, version.Id)
+			ns3 := NewNamespace(db2, c1, version.ID)
 			ns3.Schema = mongoSchema
 
 			namespaces := []*Namespace{ns1, ns2, ns3}
@@ -200,7 +204,11 @@ func TestReadSchema(t *testing.T) {
 				VersionDatabase{Name: db1, Collections: []string{c1, c2}},
 				VersionDatabase{Name: db2, Collections: []string{c1}},
 			}
-			record := &Record{cfg.Schema.Sample.Source, version, namespaces}
+			record := &Record{
+				Database:   cfg.Schema.Sample.Source,
+				Version:    version,
+				Namespaces: namespaces,
+			}
 
 			err = InsertSampleRecord(record, session, &lgr)
 			So(err, ShouldBeNil)
@@ -272,11 +280,11 @@ func TestReadSchema(t *testing.T) {
 			})
 			So(err, ShouldBeNil)
 
-			ns1 := NewNamespace(db1, c1, version.Id)
+			ns1 := NewNamespace(db1, c1, version.ID)
 			ns1.Schema = mongoSchema
-			ns2 := NewNamespace(db1, c2, version.Id)
+			ns2 := NewNamespace(db1, c2, version.ID)
 			ns2.Schema = mongoSchema
-			ns3 := NewNamespace(db2, c1, version.Id)
+			ns3 := NewNamespace(db2, c1, version.ID)
 			ns3.Schema = mongoSchema
 
 			namespaces := []*Namespace{ns1, ns2, ns3}
@@ -284,7 +292,11 @@ func TestReadSchema(t *testing.T) {
 				VersionDatabase{Name: db1, Collections: []string{c1, c2}},
 				VersionDatabase{Name: db2, Collections: []string{c1, c2}}, // c2 shouldn't be here
 			}
-			record := &Record{cfg.Schema.Sample.Source, version, namespaces}
+			record := &Record{
+				Database:   cfg.Schema.Sample.Source,
+				Version:    version,
+				Namespaces: namespaces,
+			}
 
 			err = InsertSampleRecord(record, session, &lgr)
 			So(err, ShouldBeNil)
@@ -378,11 +390,11 @@ func TestSample(t *testing.T) {
 		So(sampleRecord.Version, ShouldNotBeNil)
 		So(len(sampleRecord.Namespaces), ShouldNotEqual, 0)
 
-		versionId := sampleRecord.Version.Id
+		versionID := sampleRecord.Version.ID
 
 		Convey("namespace version ids should match version id", func() {
 			for _, ns := range sampleRecord.Namespaces {
-				So(ns.VersionId, ShouldEqual, versionId)
+				So(ns.VersionID, ShouldEqual, versionID)
 			}
 		})
 
@@ -391,10 +403,10 @@ func TestSample(t *testing.T) {
 		})
 
 		Convey("whitelisted namespaces should be present", func() {
-			db1c1 := NewNamespace(db1, c1, versionId)
-			db2c2 := NewNamespace(db2, c2, versionId)
-			db2c1 := NewNamespace(db2, c1, versionId)
-			sampleNS := NewNamespace(cfg.Schema.Sample.Source, c1, versionId)
+			db1c1 := NewNamespace(db1, c1, versionID)
+			db2c2 := NewNamespace(db2, c2, versionID)
+			db2c1 := NewNamespace(db2, c1, versionID)
+			sampleNS := NewNamespace(cfg.Schema.Sample.Source, c1, versionID)
 
 			_, found := sampleRecord.Version.FindDatabase(db1)
 			So(found, ShouldBeTrue)
@@ -419,22 +431,22 @@ func TestSample(t *testing.T) {
 		})
 
 		Convey("non-existent namespaces should not be present", func() {
-			db1c2 := NewNamespace(db1, c2, versionId)
+			db1c2 := NewNamespace(db1, c2, versionID)
 			So(sampleRecord.Namespaces, shouldNotContainNS, db1c2)
-			db3c2 := NewNamespace(db3, c2, versionId)
+			db3c2 := NewNamespace(db3, c2, versionID)
 			So(sampleRecord.Namespaces, shouldNotContainNS, db3c2)
-			db3c1 := NewNamespace(db3, c1, versionId)
+			db3c1 := NewNamespace(db3, c1, versionID)
 			So(sampleRecord.Namespaces, shouldNotContainNS, db3c1)
-			profile := NewNamespace(db2, "system.profile", versionId)
+			profile := NewNamespace(db2, "system.profile", versionID)
 			So(sampleRecord.Namespaces, shouldNotContainNS, profile)
 		})
 
 		Convey("blacklisted namespaces should not be present", func() {
-			ns1 := NewNamespace(cfg.Schema.Sample.Source, SchemasCollection, versionId)
+			ns1 := NewNamespace(cfg.Schema.Sample.Source, SchemasCollection, versionID)
 			So(sampleRecord.Namespaces, shouldNotContainNS, ns1)
-			ns1 = NewNamespace(cfg.Schema.Sample.Source, LockCollection, versionId)
+			ns1 = NewNamespace(cfg.Schema.Sample.Source, LockCollection, versionID)
 			So(sampleRecord.Namespaces, shouldNotContainNS, ns1)
-			ns1 = NewNamespace(cfg.Schema.Sample.Source, VersionsCollection, versionId)
+			ns1 = NewNamespace(cfg.Schema.Sample.Source, VersionsCollection, versionID)
 			So(sampleRecord.Namespaces, shouldNotContainNS, ns1)
 		})
 

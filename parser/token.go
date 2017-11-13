@@ -130,9 +130,8 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 		case '.':
 			if isDigit(tkn.lastChar) {
 				return tkn.scanNumber(true)
-			} else {
-				return DOT, nil
 			}
+			return DOT, nil
 		case '/':
 			switch tkn.lastChar {
 			case '/':
@@ -148,9 +147,8 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 			if tkn.lastChar == '-' {
 				tkn.next()
 				return tkn.scanCommentType1("--")
-			} else {
-				return SUB, nil
 			}
+			return SUB, nil
 		case '<':
 			switch tkn.lastChar {
 			case '>':
@@ -172,16 +170,14 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 			if tkn.lastChar == '=' {
 				tkn.next()
 				return GE, nil
-			} else {
-				return GT, nil
 			}
+			return GT, nil
 		case '!':
 			if tkn.lastChar == '=' {
 				tkn.next()
 				return NE, nil
-			} else {
-				return NOT, nil
 			}
+			return NOT, nil
 		case '\'', '"':
 			return tkn.scanString(ch, STRING)
 		case '`':

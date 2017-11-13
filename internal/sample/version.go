@@ -17,7 +17,7 @@ const (
 
 // Version represents a sampled schema version.
 type Version struct {
-	Id bson.ObjectId `bson:"_id"`
+	ID bson.ObjectId `bson:"_id"`
 
 	// an ISODate representing the time at which sampling commenced
 	// for this namespace.
@@ -49,7 +49,7 @@ type Version struct {
 
 func NewVersion(processName string) *Version {
 	return &Version{
-		Id:          bson.NewObjectId(),
+		ID:          bson.NewObjectId(),
 		Protocol:    CurrentProtocol,
 		ProcessName: processName,
 	}

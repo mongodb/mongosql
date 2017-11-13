@@ -166,15 +166,15 @@ func (i *Info) setAllPrivileges(privileges Privilege) {
 
 type connectionStatusResult struct {
 	AuthInfo struct {
-		AuthenticatedUsers          []struct{} "authenticatedUsers"
+		AuthenticatedUsers          []struct{} `bson:"authenticatedUsers"`
 		AuthenticatedUserPrivileges []struct {
 			Resource *struct {
-				DB         string "db"
+				DB         string `bson:"db"`
 				Collection string
 			}
 			Actions []string
-		} "authenticatedUserPrivileges"
-	} "authInfo"
+		} `bson:"authenticatedUserPrivileges"`
+	} `bson:"authInfo"`
 }
 
 type privilegeContainer struct {

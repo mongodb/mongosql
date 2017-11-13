@@ -42,7 +42,7 @@ type TestFile struct {
 type TestCase struct {
 	Name             string
 	IsBenchmark      bool
-	Id               string          `yaml:"id"`
+	ID               string          `yaml:"id"`
 	Database         string          `yaml:"db"`
 	Skip             bool            `yaml:"skip"`
 	SQL              string          `yaml:"sql"`
@@ -127,8 +127,8 @@ func addTestsToSuite(suite *TestSuite, tests *TestFile) {
 
 		// set test name
 		testName := tests.Name
-		if t.Id != "" {
-			testName = fmt.Sprintf("%s_%s", testName, t.Id)
+		if t.ID != "" {
+			testName = fmt.Sprintf("%s_%s", testName, t.ID)
 		}
 		t.Name = testName
 
@@ -140,8 +140,8 @@ func addTestsToSuite(suite *TestSuite, tests *TestFile) {
 
 	for _, b := range tests.Benchmarks {
 		benchName := tests.Name
-		if b.Id != "" {
-			benchName = fmt.Sprintf("%s_%s", benchName, b.Id)
+		if b.ID != "" {
+			benchName = fmt.Sprintf("%s_%s", benchName, b.ID)
 		}
 		b.Name = benchName
 
@@ -181,7 +181,7 @@ func loadTestSuiteConfig(name string) *TestSuite {
 
 func (f *TestFile) validate(filename string) error {
 	for i, t := range f.TestCases {
-		if len(f.TestCases) > 1 && t.Id == "" {
+		if len(f.TestCases) > 1 && t.ID == "" {
 			return fmt.Errorf("Id field not provided for testcase %d, but there is more than one testcase in the file", i)
 		}
 
@@ -198,7 +198,7 @@ func (f *TestFile) validate(filename string) error {
 	}
 
 	for i, b := range f.Benchmarks {
-		if len(f.Benchmarks) > 1 && b.Id == "" {
+		if len(f.Benchmarks) > 1 && b.ID == "" {
 			return fmt.Errorf("Id field not provided for benchmark %d, but there is more than one benchmark in the file", i)
 		}
 	}

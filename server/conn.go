@@ -216,7 +216,7 @@ func (c *conn) setCatalogFromSchema(s *schema.Schema) error {
 }
 
 // ConnectionId returns the connection's identifier.
-func (c *conn) ConnectionId() uint32 {
+func (c *conn) ConnectionID() uint32 {
 	return c.connectionID
 }
 
@@ -404,7 +404,7 @@ func (c *conn) handshake() error {
 }
 
 func (c *conn) Kill(id uint32, scope evaluator.KillScope) error {
-	if c.ConnectionId() == id {
+	if c.ConnectionID() == id {
 		return mysqlerrors.Defaultf(mysqlerrors.ER_QUERY_INTERRUPTED)
 	}
 
@@ -827,9 +827,9 @@ func (c *conn) writeEOF(status uint16) error {
 }
 
 func (c *conn) writeError(e error) error {
-	var m *mysqlerrors.MySqlError
+	var m *mysqlerrors.MySQLError
 	var ok bool
-	if m, ok = e.(*mysqlerrors.MySqlError); !ok {
+	if m, ok = e.(*mysqlerrors.MySQLError); !ok {
 		m = mysqlerrors.Unknownf(e.Error())
 	}
 
@@ -945,13 +945,12 @@ func (c *conn) writePacket(data []byte) error {
 		if err != nil {
 			c.logger.Errf(log.Dev, "write maxPayloadLength error: %v", err)
 			return errBadConn
-		} else {
-			c.sequence++
-			totalBytesSent += uint64(maxPayloadLength + 4)
-
-			length -= maxPayloadLength
-			data = data[maxPayloadLength:]
 		}
+		c.sequence++
+		totalBytesSent += uint64(maxPayloadLength + 4)
+
+		length -= maxPayloadLength
+		data = data[maxPayloadLength:]
 	}
 
 	// header
@@ -1010,7 +1009,7 @@ func (c *conn) writeOK(r *Result) error {
 	data = append(data, OK_HEADER)
 
 	data = append(data, putLengthEncodedInt(r.AffectedRows)...)
-	data = append(data, putLengthEncodedInt(r.InsertId)...)
+	data = append(data, putLengthEncodedInt(r.InsertID)...)
 
 	if c.capability&CLIENT_PROTOCOL_41 > 0 {
 		data = append(data, byte(r.Status), byte(r.Status>>8))

@@ -401,24 +401,24 @@ func (c *expressionCollector) Add(e SQLExpr) {
 	c.visit(e)
 }
 
-func (v *expressionCollector) visit(n node) (node, error) {
+func (c *expressionCollector) visit(n node) (node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
-		if containsInt(v.selectIDs, typedN.selectID) {
-			if v.removeMode {
-				v.referencedColumns.remove(typedN)
+		if containsInt(c.selectIDs, typedN.selectID) {
+			if c.removeMode {
+				c.referencedColumns.remove(typedN)
 			} else {
-				v.referencedColumns.add(typedN)
+				c.referencedColumns.add(typedN)
 			}
 		}
 		return typedN, nil
 	case *SQLSubqueryExpr:
 		if typedN.correlated {
-			return walk(v, n)
+			return walk(c, n)
 		}
 		return n, nil
 	default:
-		return walk(v, n)
+		return walk(c, n)
 	}
 }
 

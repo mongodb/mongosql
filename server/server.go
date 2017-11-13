@@ -93,6 +93,7 @@ func (s *Server) getSchema() *schema.Schema {
 	return s.sampler.Schema(s.lifetimeCtx)
 }
 
+// Alter applies the provided alterations to the server's current schema.
 func (s *Server) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.Schema, error) {
 	if s.fileBasedSchema != nil {
 		return nil, fmt.Errorf("cannot alter schema: schema was loaded from a file")
@@ -208,7 +209,7 @@ func (s *Server) StoreStartupInfo(startupInfo []string) {
 
 func (s *Server) addConnection(c *conn) {
 	s.activeConnectionsMx.Lock()
-	s.activeConnections[c.ConnectionId()] = c
+	s.activeConnections[c.ConnectionID()] = c
 	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()
 	atomic.StoreUint32(s.variables.ThreadsConnected, uint32(activeConnections))
@@ -218,7 +219,7 @@ func (s *Server) addConnection(c *conn) {
 		address = c.conn.LocalAddr().String()
 	}
 	c.process.SetHost(c.getFormattedAddress())
-	c.logger.Infof(log.Always, "connection accepted from %v #%v (%v %v now open)", address, c.ConnectionId(), activeConnections, pluralized)
+	c.logger.Infof(log.Always, "connection accepted from %v #%v (%v %v now open)", address, c.ConnectionID(), activeConnections, pluralized)
 }
 
 func (s *Server) killConnection(connID uint32) error {
@@ -248,7 +249,7 @@ func (s *Server) killQuery(connID uint32) error {
 
 func (s *Server) removeConnection(c *conn) {
 	s.activeConnectionsMx.Lock()
-	delete(s.activeConnections, c.ConnectionId())
+	delete(s.activeConnections, c.ConnectionID())
 	if atomic.LoadInt32(&s.closed) == 1 && len(s.activeConnections) == 0 {
 		s.lifetimeCancel()
 	}

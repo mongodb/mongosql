@@ -1167,18 +1167,17 @@ func (t *pushDownTranslator) translateExprAux(e SQLExpr) (interface{}, bool) {
 
 					date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 					return date, true
-				} else {
-					exprType := expr.Type()
-					if exprType == schema.SQLTimestamp || exprType == schema.SQLDate {
-						date, ok := t.translateExprAux(expr)
-						if !ok {
-							return nil, false
-						}
-						return date, true
-					} else {
+				}
+
+				exprType := expr.Type()
+				if exprType == schema.SQLTimestamp || exprType == schema.SQLDate {
+					date, ok := t.translateExprAux(expr)
+					if !ok {
 						return nil, false
 					}
+					return date, true
 				}
+				return nil, false
 			}
 
 			if date1, ok = parseArgs(typedE.Exprs[0]); !ok {
@@ -2668,9 +2667,8 @@ func (t *pushDownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 			return match, exLeft
 		} else if exLeft == nil && exRight != nil {
 			return match, exRight
-		} else {
-			return match, &SQLAndExpr{exLeft, exRight}
 		}
+		return match, &SQLAndExpr{exLeft, exRight}
 	case SQLColumnExpr:
 		name, ok := t.lookupFieldName(typedE.databaseName, typedE.tableName, typedE.columnName)
 		if !ok {

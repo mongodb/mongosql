@@ -16,7 +16,7 @@ const (
 	Array      BsonType = "array"
 	Date       BsonType = "date"
 	BinData    BsonType = "binData"
-	ObjectId   BsonType = "objectId"
+	ObjectID   BsonType = "objectId"
 	NoBsonType BsonType = ""
 )
 

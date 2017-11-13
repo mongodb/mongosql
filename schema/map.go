@@ -56,7 +56,7 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 
 	// order the props alphabetically
 	props := make([]string, 0, len(js.Properties))
-	for prop, _ := range js.Properties {
+	for prop := range js.Properties {
 		props = append(props, prop)
 	}
 	sort.Slice(props, func(i, j int) bool { return props[i] < props[j] })
@@ -132,8 +132,8 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 	col := &Column{
 		Name:      indexName,
 		MongoType: MongoInt,
-		SqlName:   indexName,
-		SqlType:   SQLInt,
+		SQLName:   indexName,
+		SQLType:   SQLInt,
 	}
 	err := ctx.table.AddColumn(col)
 	if err != nil {
@@ -306,7 +306,7 @@ func (ctx *mappingContext) getDominantSchema(s *mongo.Schemata) *mongo.Schema {
 	// if we had multiple schemas for this path, log a warning
 	if len(s.Schemas) > 1 {
 		bsonTypes := []string{}
-		for bt, _ := range s.Schemas {
+		for bt := range s.Schemas {
 			if bt == mongo.NoBsonType {
 				// use "empty" instead of "" so that log
 				// messages make sense
@@ -362,9 +362,9 @@ func newColumn(name string, js *mongo.Schema, uuidSubtype3Encoding string) (*Col
 	case mongo.Date:
 		sqlType = SQLTimestamp
 		mongoType = MongoDate
-	case mongo.ObjectId:
+	case mongo.ObjectID:
 		sqlType = SQLVarchar
-		mongoType = MongoObjectId
+		mongoType = MongoObjectID
 	case mongo.String:
 		sqlType = SQLVarchar
 		mongoType = MongoString
@@ -402,8 +402,8 @@ func newColumn(name string, js *mongo.Schema, uuidSubtype3Encoding string) (*Col
 	return &Column{
 		Name:      name,
 		MongoType: mongoType,
-		SqlName:   name,
-		SqlType:   sqlType,
+		SQLName:   name,
+		SQLType:   sqlType,
 	}, nil
 }
 

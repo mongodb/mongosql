@@ -391,7 +391,7 @@ func insertPipelineStageAt(pipeline []bson.D, val bson.D, i int) []bson.D {
 // insersectionStringSet gives the set intersection of two string sets
 func intersectionStringSet(left, right map[string]struct{}) map[string]struct{} {
 	ret := make(map[string]struct{})
-	for k, _ := range left {
+	for k := range left {
 		if _, ok := right[k]; ok {
 			ret[k] = struct{}{}
 		}
@@ -413,7 +413,7 @@ func keysStringMap(set map[string]interface{}) []string {
 	keys := make([]string, len(set))
 
 	i := 0
-	for k, _ := range set {
+	for k := range set {
 		keys[i] = k
 		i++
 	}
@@ -426,7 +426,7 @@ func keysStringSet(set map[string]struct{}) []string {
 	keys := make([]string, len(set))
 
 	i := 0
-	for k, _ := range set {
+	for k := range set {
 		keys[i] = k
 		i++
 	}
@@ -504,25 +504,25 @@ func computeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32
 		}
 		switch typedDoc := currDoc.(type) {
 		case []bson.D:
-			var maxChildDepth uint32 = 0
+			var maxChildDepth uint32
 			for _, doc := range typedDoc {
 				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
 			}
 			return maxChildDepth
 		case []interface{}:
-			var maxChildDepth uint32 = 0
+			var maxChildDepth uint32
 			for _, doc := range typedDoc {
 				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
 			}
 			return maxChildDepth
 		case bson.M:
-			var maxChildDepth uint32 = 0
+			var maxChildDepth uint32
 			for _, doc := range typedDoc {
 				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
 			}
 			return maxChildDepth
 		case bson.D:
-			var maxChildDepth uint32 = 0
+			var maxChildDepth uint32
 			for _, doc := range typedDoc {
 				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc.Value, depth+1))
 			}

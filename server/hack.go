@@ -5,8 +5,8 @@ import (
 	"unsafe"
 )
 
-// no copy to change slice to string
-// use your own risk
+// String implements a no-copy change from byte slice to string.
+// Use at your own risk.
 func String(b []byte) (s string) {
 	pbytes := (*reflect.SliceHeader)(unsafe.Pointer(&b))
 	pstring := (*reflect.StringHeader)(unsafe.Pointer(&s))
@@ -15,8 +15,8 @@ func String(b []byte) (s string) {
 	return
 }
 
-// no copy to change string to slice
-// use your own risk
+// Slice implements a no copy change from string to byte slice.
+// Use at your own risk.
 func Slice(s string) (b []byte) {
 	pbytes := (*reflect.SliceHeader)(unsafe.Pointer(&b))
 	pstring := (*reflect.StringHeader)(unsafe.Pointer(&s))

@@ -51,7 +51,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 	case string, float64, int32, int64:
 		return v, nil // require no conversion
 
-	case json.ObjectId: // ObjectId
+	case json.ObjectID: // ObjectId
 		s := string(v)
 		if !bson.IsObjectIdHex(s) {
 			return nil, errors.New("expected ObjectId to contain 24 hexadecimal characters")
@@ -186,7 +186,7 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 		return json.NumberInt(v), nil
 
 	case bson.ObjectId: // ObjectId
-		return json.ObjectId(v.Hex()), nil
+		return json.ObjectID(v.Hex()), nil
 
 	case bson.Decimal128:
 		y, _ := bson.ParseDecimal128(v.String())
@@ -307,7 +307,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 		return json.NumberInt(v), nil
 
 	case bson.ObjectId: // ObjectId
-		return json.ObjectId(v.Hex()), nil
+		return json.ObjectID(v.Hex()), nil
 
 	case bson.Decimal128:
 		y, _ := bson.ParseDecimal128(v.String())

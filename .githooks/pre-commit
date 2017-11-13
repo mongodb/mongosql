@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -o errexit
+
+echo "Running pre-commit hook..."
+
+testdata/bin/check-formatting.sh
+testdata/bin/check-lint.sh
+testdata/bin/check-vet.sh
+
+echo "pre-commit hook successful."

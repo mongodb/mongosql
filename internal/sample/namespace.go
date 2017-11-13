@@ -14,7 +14,7 @@ type Namespace struct {
 
 	// an ObjectId referencing the _id of a schema
 	// version document from the versions collection.
-	VersionId bson.ObjectId `bson:"versionId,omitempty"`
+	VersionID bson.ObjectId `bson:"versionId,omitempty"`
 
 	// a string representing the name of the database.
 	Database string `bson:"database,omitempty"`
@@ -37,7 +37,7 @@ type Namespace struct {
 
 func NewNamespace(db, c string, id bson.ObjectId) *Namespace {
 	return &Namespace{
-		VersionId:  id,
+		VersionID:  id,
 		Database:   db,
 		Collection: c,
 	}
@@ -46,5 +46,5 @@ func NewNamespace(db, c string, id bson.ObjectId) *Namespace {
 func (n *Namespace) Equals(ns *Namespace) bool {
 	return n.Database == ns.Database &&
 		n.Collection == ns.Collection &&
-		n.VersionId == ns.VersionId
+		n.VersionID == ns.VersionID
 }

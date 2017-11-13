@@ -15,6 +15,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/schema"
 
+	// for using the mysql driver with database/sql
 	_ "github.com/go-sql-driver/mysql"
 )
 

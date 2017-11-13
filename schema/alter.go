@@ -6,14 +6,18 @@ import (
 	"time"
 )
 
+// AlterationType is an enum that represents the type of change being made by a
+// particular alteration (RenameColumn, DropColumn, or RenameTable).
 type AlterationType string
 
+// Possible values for AlterationType
 const (
 	RenameColumn AlterationType = "rename_column"
 	DropColumn   AlterationType = "drop_column"
 	RenameTable  AlterationType = "rename_table"
 )
 
+// An Alteration specifies a change to be made to the schema of a SQL table.
 type Alteration struct {
 	Timestamp time.Time      `bson:"timestamp"`
 	Type      AlterationType `bson:"type"`
@@ -53,7 +57,7 @@ func (a *Alteration) alter(schema *Schema) error {
 		if !ok {
 			return fmt.Errorf("could not find column %q.%q in database %q", a.Table, a.Column, a.Db)
 		}
-		column.SqlName = a.NewColumn
+		column.SQLName = a.NewColumn
 	case DropColumn:
 		if len(table.Columns) == 1 {
 			return fmt.Errorf("cannot remove last column from table %q", a.Table)
@@ -62,7 +66,7 @@ func (a *Alteration) alter(schema *Schema) error {
 			return fmt.Errorf("cannot drop column %s: not allowed", a.Column)
 		}
 		for i, col := range table.Columns {
-			if col.SqlName == a.Column {
+			if col.SQLName == a.Column {
 				table.Columns = append(table.Columns[:i], table.Columns[i+1:]...)
 				return nil
 			}

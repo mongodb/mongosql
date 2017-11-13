@@ -267,7 +267,7 @@ func (a *algebrizer) translateShowVariables(show *parser.Show, kind string) (Pla
 
 func (a *algebrizer) translateShowProcessList(show *parser.Show) (PlanStage, error) {
 
-	var transform map[string]exprTransformer = nil
+	var transform map[string]exprTransformer
 
 	// need to truncate to first 100 characters
 	if show.Modifier == "" {
@@ -359,7 +359,7 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 		c.OriginalTable = info.tableName
 		c.OriginalName = c.Name
 
-		var projColumn ProjectedColumn = ProjectedColumn{c, c.expr()}
+		projColumn := ProjectedColumn{c, c.expr()}
 
 		// apply expression colExprTransformations if given
 		if info.colExprTransformations != nil {

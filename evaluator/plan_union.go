@@ -183,11 +183,7 @@ func (iter *UnionIter) Close() error {
 		return err
 	}
 
-	if err := iter.right.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return iter.right.Close()
 }
 
 func (iter *UnionIter) Err() error {

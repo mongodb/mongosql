@@ -107,8 +107,5 @@ func (c *conn) writeFieldList(status uint16, fs []*Field) error {
 		}
 	}
 
-	if err := c.writeEOF(status); err != nil {
-		return err
-	}
-	return nil
+	return c.writeEOF(status)
 }

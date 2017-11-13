@@ -20,7 +20,7 @@ const (
 	LockCollection         = "mongosqld.lock"
 	SchemasCollection      = "mongosqld.schemas"
 	VersionsCollection     = "mongosqld.versions"
-	VersionIdField         = "versionId"
+	VersionIDField         = "versionId"
 	VersionGenerationField = "generation"
 )
 
@@ -42,13 +42,13 @@ type nsCollections []string
 // the provided alterations applied.
 func (r *Record) Alter(alts []*schema.Alteration) {
 	id := bson.NewObjectId()
-	r.Version.Id = id
-	r.Version.Generation += 1
+	r.Version.ID = id
+	r.Version.Generation++
 	r.Version.Alterations = append(r.Version.Alterations, alts...)
 	r.Version.Protocol = CurrentProtocol
 	for _, ns := range r.Namespaces {
 		ns.id = bson.NewObjectId()
-		ns.VersionId = id
+		ns.VersionID = id
 	}
 }
 
@@ -73,7 +73,7 @@ func (r *Record) getSchema(cfg *config.SchemaSampleOptions, lgr *log.Logger) (*s
 		err := sampledDB.Map(ns.Schema, ns.Collection, false, cfg.UUIDSubtype3Encoding, *lgr)
 		if err != nil {
 			return nil, fmt.Errorf(
-				"error mapping schema version %s, namespace %q.%q: %v",
+				"error mapping schema version %v, namespace %q.%q: %v",
 				r.Version, ns.Database, ns.Collection, err,
 			)
 		}
@@ -329,7 +329,7 @@ func SampleSchema(cfg *config.SchemaSampleOptions, processName string,
 				lgr.Debugf(log.Dev, "mapping schema for database %q", db)
 			}
 
-			namespace := NewNamespace(db, collection, sampleVersion.Id)
+			namespace := NewNamespace(db, collection, sampleVersion.ID)
 
 			// 1. run sample command
 			lgr.Debugf(log.Dev, "mapping schema for namespace %s", ns)
@@ -358,7 +358,7 @@ func SampleSchema(cfg *config.SchemaSampleOptions, processName string,
 					return nil, nil, fmt.Errorf("error including collection: %v", err)
 				}
 				doc = &bson.D{}
-				count += 1
+				count++
 			}
 
 			if err := iter.Close(ctx); err != nil {
@@ -437,7 +437,7 @@ func LatestRecord(opts *config.SchemaSampleOptions, session *mongodb.Session, lg
 		{{"$lookup", bson.D{
 			{"from", SchemasCollection},
 			{"localField", "version._id"},
-			{"foreignField", VersionIdField},
+			{"foreignField", VersionIDField},
 			{"as", "namespaces"},
 		}}},
 	}

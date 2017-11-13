@@ -2,13 +2,14 @@ package json
 
 import (
 	"fmt"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestObjectIdValue(t *testing.T) {
+func TestObjectIDValue(t *testing.T) {
 
-	Convey("When unmarshalling JSON with ObjectId values", t, func() {
+	Convey("When unmarshalling JSON with ObjectID values", t, func() {
 
 		Convey("works for a single key", func() {
 			var jsonMap map[string]interface{}
@@ -20,9 +21,9 @@ func TestObjectIdValue(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonValue, ok := jsonMap[key].(ObjectId)
+			jsonValue, ok := jsonMap[key].(ObjectID)
 			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, ObjectId("123"))
+			So(jsonValue, ShouldEqual, ObjectID("123"))
 		})
 
 		Convey("works for multiple keys", func() {
@@ -36,17 +37,17 @@ func TestObjectIdValue(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonValue1, ok := jsonMap[key1].(ObjectId)
+			jsonValue1, ok := jsonMap[key1].(ObjectID)
 			So(ok, ShouldBeTrue)
-			So(jsonValue1, ShouldEqual, ObjectId("123"))
+			So(jsonValue1, ShouldEqual, ObjectID("123"))
 
-			jsonValue2, ok := jsonMap[key2].(ObjectId)
+			jsonValue2, ok := jsonMap[key2].(ObjectID)
 			So(ok, ShouldBeTrue)
-			So(jsonValue2, ShouldEqual, ObjectId("456"))
+			So(jsonValue2, ShouldEqual, ObjectID("456"))
 
-			jsonValue3, ok := jsonMap[key3].(ObjectId)
+			jsonValue3, ok := jsonMap[key3].(ObjectID)
 			So(ok, ShouldBeTrue)
-			So(jsonValue3, ShouldEqual, ObjectId("789"))
+			So(jsonValue3, ShouldEqual, ObjectID("789"))
 		})
 
 		Convey("works in an array", func() {
@@ -64,9 +65,9 @@ func TestObjectIdValue(t *testing.T) {
 			So(ok, ShouldBeTrue)
 
 			for _, _jsonValue := range jsonArray {
-				jsonValue, ok := _jsonValue.(ObjectId)
+				jsonValue, ok := _jsonValue.(ObjectID)
 				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldEqual, ObjectId("000"))
+				So(jsonValue, ShouldEqual, ObjectID("000"))
 			}
 		})
 

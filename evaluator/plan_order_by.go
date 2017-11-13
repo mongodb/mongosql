@@ -10,7 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/variable"
 )
 
-// OrderBy sorts records according to one or more keys.
+// An OrderByStage sorts records according to one or more keys.
 type OrderByStage struct {
 	source PlanStage
 	terms  []*orderByTerm

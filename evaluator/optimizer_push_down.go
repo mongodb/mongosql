@@ -1137,7 +1137,7 @@ func (v *pushDownOptimizer) buildRemainingPredicateForLeftJoin(leftMappingRegist
 }
 
 func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSourceStage, join *JoinStage) (PlanStage, error) {
-	var foreignRegistryBackup *mappingRegistry = nil
+	var foreignRegistryBackup *mappingRegistry
 	// If we fail to translate a left join predicate later, we will need to restore this
 	// if, instead this is an inner join, there is nothing to worry about
 	if join.kind == leftJoin {

@@ -8,13 +8,13 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
-	. "github.com/10gen/mongo-go-driver/yamgo/private/ops"
+	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
 )
 
 var testServerOnce sync.Once
-var testServer Server
+var testServer ops.Server
 
-func CreateIndex(s Server, databaseName, collectionName string, keys []string) {
+func CreateIndex(s ops.Server, databaseName, collectionName string, keys []string) {
 	indexes := bson.D{}
 	var v interface{}
 	for _, k := range keys {
@@ -55,7 +55,7 @@ func CreateIndex(s Server, databaseName, collectionName string, keys []string) {
 	}
 }
 
-func DropCollection(s Server, databaseName, collectionName string) {
+func DropCollection(s ops.Server, databaseName, collectionName string) {
 	c, err := s.Connection(context.Background())
 	if err != nil {
 		panic(err)
@@ -85,7 +85,7 @@ func DropCollection(s Server, databaseName, collectionName string) {
 	}
 }
 
-func DropDatabase(s Server, databaseName string) {
+func DropDatabase(s ops.Server, databaseName string) {
 	c, err := s.Connection(context.Background())
 	if err != nil {
 		panic(err)
@@ -108,7 +108,7 @@ func DropDatabase(s Server, databaseName string) {
 	}
 }
 
-func Exists(s Server, databaseName, collectionName string, filter bson.D) bool {
+func Exists(s ops.Server, databaseName, collectionName string, filter bson.D) bool {
 	findCommand := bson.D{
 		{"find", collectionName},
 		{"filter", filter},
@@ -137,7 +137,7 @@ func Exists(s Server, databaseName, collectionName string, filter bson.D) bool {
 	return len(result.Cursor.FirstBatch) > 0
 }
 
-func Find(s Server, databaseName, collectionName string, batchSize int32) CursorResult {
+func Find(s ops.Server, databaseName, collectionName string, batchSize int32) ops.CursorResult {
 	findCommand := bson.D{
 		{"find", collectionName},
 	}
@@ -167,7 +167,7 @@ func Find(s Server, databaseName, collectionName string, batchSize int32) Cursor
 	return &result.Cursor
 }
 
-func InsertDocuments(s Server, databaseName, collectionName string, documents interface{}) {
+func InsertDocuments(s ops.Server, databaseName, collectionName string, documents interface{}) {
 	insertCommand := bson.D{
 		{"insert", collectionName},
 		{"documents", documents},
@@ -192,7 +192,7 @@ func InsertDocuments(s Server, databaseName, collectionName string, documents in
 	}
 }
 
-func RunCmd(s Server, databaseName string, cmd interface{}, result interface{}) {
+func RunCmd(s ops.Server, databaseName string, cmd interface{}, result interface{}) {
 	request := msg.NewCommand(
 		msg.NextRequestID(),
 		databaseName,
@@ -222,8 +222,8 @@ type firstBatchCursorResult struct {
 	ID         int64      `bson:"id"`
 }
 
-func (cursorResult *firstBatchCursorResult) Namespace() Namespace {
-	namespace := ParseNamespace(cursorResult.NS)
+func (cursorResult *firstBatchCursorResult) Namespace() ops.Namespace {
+	namespace := ops.ParseNamespace(cursorResult.NS)
 	return namespace
 }
 

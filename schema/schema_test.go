@@ -73,7 +73,7 @@ schema:
 
 		So(len(cfg.Databases[0].Tables[0].Columns), ShouldEqual, 2)
 
-		So(cfg.Databases[0].Tables[0].Columns[0].SqlName, ShouldEqual, "a")
+		So(cfg.Databases[0].Tables[0].Columns[0].SQLName, ShouldEqual, "a")
 
 		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, []bson.D{
 			bson.D{{"$unwind", "$x"}},
@@ -137,7 +137,7 @@ schema:
      -
         Name: d
         MongoType: geo.2darray
-        SqlName: d
+        SQLName: d
         SqlType: numeric[]
   -
      table: bar2
@@ -157,9 +157,9 @@ schema:
 		So(len(cfg.Databases[2].Tables[0].Columns), ShouldEqual, 3)
 		So(len(cfg.Databases[2].Tables[1].Columns), ShouldEqual, 0)
 
-		So(cfg.Databases[2].Tables[0].Columns[0].SqlName, ShouldEqual, "c")
-		So(cfg.Databases[2].Tables[0].Columns[1].SqlName, ShouldEqual, "d_longitude")
-		So(cfg.Databases[2].Tables[0].Columns[2].SqlName, ShouldEqual, "d_latitude")
+		So(cfg.Databases[2].Tables[0].Columns[0].SQLName, ShouldEqual, "c")
+		So(cfg.Databases[2].Tables[0].Columns[1].SQLName, ShouldEqual, "d_longitude")
+		So(cfg.Databases[2].Tables[0].Columns[2].SQLName, ShouldEqual, "d_latitude")
 
 		So(cfg.Databases[0].Name, ShouldEqual, "test1")
 
@@ -170,7 +170,7 @@ schema:
 
 		So(len(cfg.Databases[0].Tables[0].Columns), ShouldEqual, 3)
 
-		So(cfg.Databases[0].Tables[0].Columns[0].SqlName, ShouldEqual, "a")
+		So(cfg.Databases[0].Tables[0].Columns[0].SQLName, ShouldEqual, "a")
 
 		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, []bson.D{
 			bson.D{{"$unwind", "$x"}},
@@ -347,7 +347,7 @@ schema:
      -
         Name: a
         MongoType: int
-        SqlName: B
+        SQLName: B
         SqlType: int
      -
         Name: b

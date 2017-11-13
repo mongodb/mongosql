@@ -64,44 +64,44 @@ type fakeConnectionCtx struct {
 	server    ServerCtx
 }
 
-func (_ *fakeConnectionCtx) LastInsertId() int64 {
+func (*fakeConnectionCtx) LastInsertId() int64 {
 	return 11
 }
-func (_ *fakeConnectionCtx) Logger(_ string) *log.Logger {
+func (*fakeConnectionCtx) Logger(_ string) *log.Logger {
 	lg := log.GlobalLogger()
 	return &lg
 }
-func (_ *fakeConnectionCtx) RowCount() int64 {
+func (*fakeConnectionCtx) RowCount() int64 {
 	return 21
 }
-func (_ *fakeConnectionCtx) Catalog() *catalog.Catalog {
+func (*fakeConnectionCtx) Catalog() *catalog.Catalog {
 	return nil
 }
-func (_ *fakeConnectionCtx) UpdateCatalog(*schema.Schema) error {
+func (*fakeConnectionCtx) UpdateCatalog(*schema.Schema) error {
 	return nil
 }
-func (_ *fakeConnectionCtx) ConnectionId() uint32 {
+func (*fakeConnectionCtx) ConnectionID() uint32 {
 	return 42
 }
-func (_ *fakeConnectionCtx) Context() context.Context {
+func (*fakeConnectionCtx) Context() context.Context {
 	return context.Background()
 }
-func (_ *fakeConnectionCtx) DB() string {
+func (*fakeConnectionCtx) DB() string {
 	return "test"
 }
-func (_ *fakeConnectionCtx) GetStartupInfo() []string {
+func (*fakeConnectionCtx) GetStartupInfo() []string {
 	return []string{}
 }
-func (_ *fakeConnectionCtx) Kill(id uint32, scope KillScope) error {
+func (*fakeConnectionCtx) Kill(id uint32, scope KillScope) error {
 	return nil
 }
 func (f *fakeConnectionCtx) Server() ServerCtx {
 	return f.server
 }
-func (_ *fakeConnectionCtx) Session() *mongodb.Session {
+func (*fakeConnectionCtx) Session() *mongodb.Session {
 	return nil
 }
-func (_ *fakeConnectionCtx) User() string {
+func (*fakeConnectionCtx) User() string {
 	return "test user"
 }
 func (f *fakeConnectionCtx) Variables() *variable.Container {

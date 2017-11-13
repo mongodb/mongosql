@@ -6,6 +6,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
+// Index represents a MongoDB index.
 type Index struct {
 	Key        bson.D
 	Unique     bool // Prevent two documents from having the same index key

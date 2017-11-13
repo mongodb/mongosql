@@ -19,7 +19,7 @@ const (
 )
 
 func compareBytes(left, right []byte) (int, error) {
-	for i, _ := range left {
+	for i := range left {
 		if left[i] < right[i] {
 			return -1, nil
 		} else if left[i] > right[i] {
@@ -203,7 +203,7 @@ func fast2Sum(a, b float64) (float64, float64) {
 // returns a default column type.
 func getColumnType(tables map[string]*schema.Table, tableName, columnName string) *schema.ColumnType {
 
-	none := &schema.ColumnType{schema.SQLNone, schema.MongoNone}
+	none := schema.NewColumnType(schema.SQLNone, schema.MongoNone)
 
 	if tables == nil {
 		return none
@@ -219,7 +219,7 @@ func getColumnType(tables map[string]*schema.Table, tableName, columnName string
 		return none
 	}
 
-	return &schema.ColumnType{column.SqlType, column.MongoType}
+	return schema.NewColumnType(column.SQLType, column.MongoType)
 }
 
 func getSQLTupleExprs(left, right SQLExpr) ([]SQLExpr, []SQLExpr, error) {
@@ -435,43 +435,41 @@ func translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) (SQLExpr, error)
 	constructTupleExpr = func(op string, left, right []SQLExpr, isEqual bool) (SQLExpr, error) {
 		if len(left) == 1 {
 			return comparisonExpr(left[0], right[0], op)
-		} else {
-			rightChild, err := constructTupleExpr(op, left[1:], right[1:], isEqual)
-			if !isEqual {
-				return &SQLOrExpr{&SQLNotEqualsExpr{left[0], right[0]}, rightChild}, err
-			}
-			return &SQLAndExpr{&SQLEqualsExpr{left[0], right[0]}, rightChild}, err
 		}
+		rightChild, err := constructTupleExpr(op, left[1:], right[1:], isEqual)
+		if !isEqual {
+			return &SQLOrExpr{&SQLNotEqualsExpr{left[0], right[0]}, rightChild}, err
+		}
+		return &SQLAndExpr{&SQLEqualsExpr{left[0], right[0]}, rightChild}, err
 	}
 
 	var translationFunc func(int) (SQLExpr, error)
 	translationFunc = func(i int) (SQLExpr, error) {
 		if len(left[i:]) == 0 {
 			return SQLFalse, nil
-		} else {
-			var leftChild SQLExpr
-			var err error
-
-			if i == 0 {
-				cmpOp := op
-				if op == sqlOpLTE {
-					cmpOp = sqlOpLT
-				} else if op == sqlOpGTE {
-					cmpOp = sqlOpGT
-				}
-				leftChild, err = comparisonExpr(left[0], right[0], cmpOp)
-			} else {
-				leftChild, err = constructTupleExpr(op, left[:i+1], right[:i+1], true)
-			}
-
-			if err != nil {
-				return nil, err
-			}
-
-			rightChild, err := translationFunc(i + 1)
-
-			return &SQLOrExpr{leftChild, rightChild}, err
 		}
+		var leftChild SQLExpr
+		var err error
+
+		if i == 0 {
+			cmpOp := op
+			if op == sqlOpLTE {
+				cmpOp = sqlOpLT
+			} else if op == sqlOpGTE {
+				cmpOp = sqlOpGT
+			}
+			leftChild, err = comparisonExpr(left[0], right[0], cmpOp)
+		} else {
+			leftChild, err = constructTupleExpr(op, left[:i+1], right[:i+1], true)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		rightChild, err := translationFunc(i + 1)
+
+		return &SQLOrExpr{leftChild, rightChild}, err
 	}
 
 	switch op {

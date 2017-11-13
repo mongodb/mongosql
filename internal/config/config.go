@@ -26,6 +26,7 @@ var (
 	}
 )
 
+// Constants for the allowed values of NumConnectionsPerSession
 const (
 	MinConnections = 2
 	MaxConnections = 10
@@ -275,13 +276,16 @@ type Schema struct {
 	Sample           SchemaSampleOptions `config:"sample"`
 }
 
+// SampleMode is an enum representing mongosqld's sampling modes.
 type SampleMode string
 
+// Values for SampleMode
 const (
 	ReadSampleMode  = "read"
 	WriteSampleMode = "write"
 )
 
+// SchemaSampleOptions holds schema sampling configuration.
 type SchemaSampleOptions struct {
 	Source               string     `config:"source"`
 	Mode                 SampleMode `config:"mode"`

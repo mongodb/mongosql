@@ -9,16 +9,17 @@ import (
 )
 
 const (
+	// InformationSchemaDatabase is the name of the MySQL information schema database.
 	InformationSchemaDatabase = "information_schema"
 )
 
-// CatalogName is the name of a catalog.
-type CatalogName string
+// Name is the name of a catalog.
+type Name string
 
 // Catalog holds databases.
 type Catalog struct {
 	// Name is the name of the catalog.
-	Name CatalogName
+	Name Name
 
 	databases   []*Database
 	databaseMap map[string]*Database
@@ -27,7 +28,7 @@ type Catalog struct {
 // New creates a new Catalog.
 func New(name string) *Catalog {
 	return &Catalog{
-		Name:        CatalogName(name),
+		Name:        Name(name),
 		databases:   []*Database{},
 		databaseMap: make(map[string]*Database),
 	}
@@ -148,6 +149,7 @@ type Column interface {
 	Comments() string
 }
 
+// Columns is a slice of `Column`s.
 type Columns []Column
 
 // Contains returns true if the given name

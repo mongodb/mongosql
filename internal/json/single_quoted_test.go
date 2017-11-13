@@ -2,8 +2,9 @@ package json
 
 import (
 	"fmt"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSingleQuotedKeys(t *testing.T) {
@@ -118,7 +119,7 @@ func TestSingleQuotedValues(t *testing.T) {
 			jsonValue, ok := jsonMap[key].(DBRef)
 			So(ok, ShouldBeTrue)
 			So(jsonValue.Collection, ShouldEqual, "examples")
-			So(jsonValue.Id, ShouldEqual, "xyz")
+			So(jsonValue.ID, ShouldEqual, "xyz")
 			So(jsonValue.Database, ShouldBeEmpty)
 		})
 
@@ -132,9 +133,9 @@ func TestSingleQuotedValues(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonValue, ok := jsonMap[key].(ObjectId)
+			jsonValue, ok := jsonMap[key].(ObjectID)
 			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, ObjectId("xyz"))
+			So(jsonValue, ShouldEqual, ObjectID("xyz"))
 		})
 
 		Convey("can be used within RegExp constructor", func() {

@@ -3321,7 +3321,7 @@ func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
 
 		Convey("bson object id should return its string value", func() {
 			v := bson.ObjectId("56a10dd56ce28a89a8ed6edb")
-			newV, err := NewSQLValueFromSQLColumnExpr(v, schema.SQLVarchar, schema.MongoObjectId)
+			newV, err := NewSQLValueFromSQLColumnExpr(v, schema.SQLVarchar, schema.MongoObjectID)
 			So(err, ShouldBeNil)
 			So(newV, ShouldEqual, v.Hex())
 		})
@@ -3399,7 +3399,7 @@ func TestNewSQLValueFromSQLColumnExpr(t *testing.T) {
 			So(newV, ShouldResemble, SQLVarchar("6"))
 
 			_id := bson.ObjectId("56a10dd56ce28a89a8ed6edb")
-			newV, err = NewSQLValueFromSQLColumnExpr(_id, schema.SQLVarchar, schema.MongoObjectId)
+			newV, err = NewSQLValueFromSQLColumnExpr(_id, schema.SQLVarchar, schema.MongoObjectID)
 			So(err, ShouldBeNil)
 			So(newV, ShouldResemble, SQLObjectID(_id.Hex()))
 
@@ -4354,7 +4354,7 @@ func TestIsUUID(t *testing.T) {
 		So(isUUID(schema.MongoUUIDOld), ShouldBeTrue)
 		So(isUUID(schema.MongoString), ShouldBeFalse)
 		So(isUUID(schema.MongoGeo2D), ShouldBeFalse)
-		So(isUUID(schema.MongoObjectId), ShouldBeFalse)
+		So(isUUID(schema.MongoObjectID), ShouldBeFalse)
 		So(isUUID(schema.MongoBool), ShouldBeFalse)
 		So(isUUID(schema.MongoInt), ShouldBeFalse)
 		So(isUUID(schema.MongoInt64), ShouldBeFalse)

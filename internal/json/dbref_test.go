@@ -2,9 +2,10 @@ package json
 
 import (
 	"fmt"
-	. "github.com/smartystreets/goconvey/convey"
 	"math"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestDBRefValue(t *testing.T) {
@@ -163,7 +164,7 @@ func TestDBRefValue(t *testing.T) {
 				So(ok, ShouldBeTrue)
 				So(jsonValue.Collection, ShouldEqual, "ref")
 
-				id, ok := jsonValue.Id.(float64)
+				id, ok := jsonValue.ID.(float64)
 				So(ok, ShouldBeTrue)
 				So(math.IsNaN(id), ShouldBeTrue)
 
@@ -183,7 +184,7 @@ func TestDBRefValue(t *testing.T) {
 				So(ok, ShouldBeTrue)
 				So(jsonValue.Collection, ShouldEqual, "ref")
 
-				id, ok := jsonValue.Id.(float64)
+				id, ok := jsonValue.ID.(float64)
 				So(ok, ShouldBeTrue)
 				So(math.IsInf(id, 1), ShouldBeTrue)
 
@@ -219,7 +220,7 @@ func TestDBRefValue(t *testing.T) {
 				So(jsonValue, ShouldResemble, DBRef{"ref", MaxKey{}, ""})
 			})
 
-			Convey("an ObjectId object", func() {
+			Convey("an ObjectID object", func() {
 				var jsonMap map[string]interface{}
 
 				key := "key"
@@ -231,7 +232,7 @@ func TestDBRefValue(t *testing.T) {
 
 				jsonValue, ok := jsonMap[key].(DBRef)
 				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", ObjectId("123"), ""})
+				So(jsonValue, ShouldResemble, DBRef{"ref", ObjectID("123"), ""})
 			})
 
 			Convey("a NumberInt object", func() {
@@ -338,7 +339,7 @@ func TestDBRefValue(t *testing.T) {
 				So(ok, ShouldBeTrue)
 				So(jsonValue.Collection, ShouldEqual, "ref")
 
-				id, ok := jsonValue.Id.(int32)
+				id, ok := jsonValue.ID.(int32)
 				So(ok, ShouldBeTrue)
 				So(id, ShouldAlmostEqual, 123)
 			})
