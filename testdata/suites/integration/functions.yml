@@ -687,6 +687,18 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select char_length(s) from special"
+  id: 'char_length_special'
+  db: functions_test
+  description: "multibyte characters should still have length 1"
+  expected_names: ["char_length(s)"]
+  expected_types: [int]
+  expected:
+  - [4]
+  - [5]
+  - [13]
+  - [7]
+
 - sql: "select coalesce(null, b) from bar"
   id: '51'
   db: functions_test
@@ -2311,6 +2323,16 @@ testcases:
   - [""]
   - [""]   
 
+- sql: "select left(s, 2) from special"
+  id: 'left_special'
+  db: functions_test
+  expected_names: ["left(s, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["I♥"]
+  - ["ƏŨ"]
+  - ["⅓ "]
+  - ["∞π"]
 
 - sql: "select length(b) from bar"
   id: '118'
@@ -2343,6 +2365,18 @@ testcases:
   - [~]
   - [~]
   - [~]
+
+- sql: "select length(s) from special"
+  id: 'length_special'
+  db: functions_test
+  description: "ensure length correctly returns # of bytes"
+  expected_names: ["length(s)"]
+  expected_types: [int]
+  expected:
+  - [6]
+  - [10]
+  - [24]
+  - [20]
 
 - sql: "select ln(a) from bar"
   id: '121'
@@ -2448,6 +2482,17 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select locate('♥', s) from special"
+  id: "locate_special"
+  db: functions_test
+  expected_names: ["locate('♥', s)"]
+  expected_types: [int]
+  expected:
+  - [2]
+  - [0]
+  - [0]
+  - [0]
+
 - sql: "select log2(a) from bar"
   id: '130'
   db: functions_test
@@ -2532,6 +2577,17 @@ testcases:
   expected:
   - ["hey"]
   - ["thi"]
+
+- sql: "select mid(s, 2, 4) from special"
+  id: 'mid_special'
+  db: functions_test
+  expected_names: ["mid(s, 2, 4)"]
+  expected_types: [varchar]
+  expected:
+  - ["♥NY"]
+  - ["Ũ Ó€"]
+  - [" ⅔ †"]
+  - ["π∅≤≥"]
 
 - sql: "select minute(d) from bar"
   id: '138'
@@ -2790,6 +2846,17 @@ testcases:
   - [~]
   - [""]
   - [~]
+
+- sql: "select repeat(s, 2) from special"
+  id: "repeat_special"
+  db: functions_test
+  expected_names: ["repeat(s, 2)"]
+  expected_types: [string]
+  expected:
+    - ["I♥NYI♥NY"]
+    - ["ƏŨ Ó€ƏŨ Ó€"]
+    - ["⅓ ⅔ † ‡ µ ¢ £⅓ ⅔ † ‡ µ ¢ £"]
+    - ["∞π∅≤≥≠≈∞π∅≤≥≠≈"]
 
 - sql: "select length(repeat('a', c)) from bar"
   id: 'repeat_5'
@@ -3177,6 +3244,16 @@ testcases:
   - [""]
   - [""]   
 
+- sql: "select right(s, 3) from special"
+  id: "right_special"
+  db: functions_test
+  expected_names: ["right(s, 3)"]
+  expected_types: [varchar]
+  expected:
+  - ["♥NY"]
+  - [" Ó€"]
+  - ["¢ £"]
+  - ["≥≠≈"]
 
 - sql: "select round(c, 2) from bar"
   id: '162'
@@ -3579,6 +3656,28 @@ testcases:
   - [""]
   - [""]
 
+- sql: "select substring(s, 1, 2) from special"
+  id: 'substring_special_1'
+  db: functions_test
+  expected_names: ["substring(s, 1, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["I♥"]
+  - ["ƏŨ"]
+  - ["⅓ "]
+  - ["∞π"]
+
+- sql: "select substring(s, 2) from special"
+  id: 'substring_special_2'
+  db: functions_test
+  expected_names: ["substring(s, 2)"]
+  expected_types: [varchar]
+  expected:
+  - ["♥NY"]
+  - ["Ũ Ó€"]
+  - [" ⅔ † ‡ µ ¢ £"]
+  - ["π∅≤≥≠≈"]
+
 - sql: "select substring_index(b, 'y', 1) from bar"
   id: '181'
   db: functions_test
@@ -3590,6 +3689,17 @@ testcases:
   - [~]
   - ["this"]
   - [~]
+
+- sql: "select substring_index(s, 'µ', 1) from special"
+  id: 'substring_index_special'
+  db: functions_test
+  expected_names: ["substring_index(s, 'µ', 1)"]
+  expected_types: [string]
+  expected:
+  - ["I♥NY"]
+  - ["ƏŨ Ó€"]
+  - ["⅓ ⅔ † ‡ "]
+  - ["∞π∅≤≥≠≈"]
 
 - sql: "select tan(a) from bar"
   id: '182'
@@ -5847,3 +5957,566 @@ testcases:
   - ["....."]
   - [".... "]
   - [". . ."]
+
+- sql: "select lpad(s, 8, 'x') from special"
+  id: "lpad_32"
+  db: functions_test
+  description: "pad special/multibyte characters"
+  expected_names: ["lpad(s, 8, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["xxxxI♥NY"]
+  - ["xxxƏŨ Ó€"]
+  - ["⅓ ⅔ † ‡ "]
+  - ["x∞π∅≤≥≠≈"]
+
+- sql: "select lpad('hi', 8, s) from special"
+  id: "lpad_33"
+  db: functions_test
+  description: "pad with special/multibyte characters"
+  expected_names: ["lpad('hi', 8, s)"]
+  expected_types: ["string"]
+  expected:
+  - ["I♥NYI♥hi"]
+  - ["ƏŨ Ó€Əhi"]
+  - ["⅓ ⅔ † hi"]
+  - ["∞π∅≤≥≠hi"]
+
+- sql: "select rpad(s, 5, 'x') from lpad"
+  id: "rpad_1"
+  db: functions_test
+  description: "test padding strings w/ single character string"
+  expected_names: ["rpad(s, 5, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["hixxx"]
+  - ["heyxx"]
+  - ["yoyox"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["xxxxx"]
+  - [" xxxx"]
+  - [". . ."]
+
+- sql: "select rpad(s, 5, 'xy') from lpad"
+  id: "rpad_2"
+  db: functions_test
+  description: "test padding strings w/ two character string"
+  expected_names: ["rpad(s, 5, 'xy')"]
+  expected_types: [string]
+  expected:
+  - ["hixyx"]
+  - ["heyxy"]
+  - ["yoyox"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["xyxyx"]
+  - [" xyxy"]
+  - [". . ."]
+
+- sql: "select rpad(s, 5, '') from lpad"
+  id: "rpad_3"
+  db: functions_test
+  description: "test padding strings w/ empty string"
+  expected_names: ["rpad(s, 5, '')"]
+  expected_types: [string]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["~"]
+  - ["~"]
+  - [". . ."]
+
+- sql: "select rpad(s, -2, 'x') from lpad"
+  id: "rpad_4"
+  db: functions_test
+  description: "test padding strings to negative length"
+  expected_names: ["rpad(s, -2, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select rpad(s, -2.1, 'x') from lpad"
+  id: "rpad_5"
+  db: functions_test
+  description: "test padding strings to negative float length"
+  expected_names: ["rpad(s, -2.1, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select rpad(s, 0, 'x') from lpad"
+  id: "rpad_6"
+  db: functions_test
+  description: "test padding strings to length 0"
+  expected_names: ["rpad(s, 0, 'x')"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+
+- sql: "select rpad(s, '5', 'x') from lpad"
+  id: "rpad_7"
+  db: functions_test
+  description: "test padding strings to string length with string parseable as int"
+  expected_names: ["rpad(s, '5', 'x')"]
+  expected_types: [string]
+  expected:
+  - ["hixxx"]
+  - ["heyxx"]
+  - ["yoyox"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["xxxxx"]
+  - [" xxxx"]
+  - [". . ."]
+
+- sql: "select rpad(s, 4.5, 'x') from lpad"
+  id: "rpad_8"
+  db: functions_test
+  description: "test padding strings to float length - should round up"
+  expected_names: ["rpad(s, 4.5, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["hixxx"]
+  - ["heyxx"]
+  - ["yoyox"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["xxxxx"]
+  - [" xxxx"]
+  - [". . ."]
+
+- sql: "select rpad(s, 4.4, 'x') from lpad"
+  id: "rpad_9"
+  db: functions_test
+  description: "test padding strings to float length - should round down"
+  expected_names: ["rpad(s, 4.4, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["hixx"]
+  - ["heyx"]
+  - ["yoyo"]
+  - ["hell"]
+  - ["bana"]
+  - ["mong"]
+  - ["xxxx"]
+  - [" xxx"]
+  - [". . "]
+
+- sql: "select rpad(s, '4.4', 'x') from lpad"
+  id: "rpad_10"
+  db: functions_test
+  description: "test padding strings to string length (string parseable as float) - should round down"
+  expected_names: ["rpad(s, '4.4', 'x')"]
+  expected_types: [string]
+  expected:
+  - ["hixx"]
+  - ["heyx"]
+  - ["yoyo"]
+  - ["hell"]
+  - ["bana"]
+  - ["mong"]
+  - ["xxxx"]
+  - [" xxx"]
+  - [". . "]
+
+- sql: "select rpad(s, '4.6', 'x') from lpad"
+  id: "rpad_11"
+  db: functions_test
+  description: "should always round length down if it's a string - round 4.6 to 4"
+  expected_names: ["rpad(s, '4.6', 'x')"]
+  expected_types: [string]
+  expected:
+  - ["hixx"]
+  - ["heyx"]
+  - ["yoyo"]
+  - ["hell"]
+  - ["bana"]
+  - ["mong"]
+  - ["xxxx"]
+  - [" xxx"]
+  - [". . "]
+
+- sql: "select rpad(s, i, 'x') from lpad"
+  id: "rpad_12"
+  db: functions_test
+  description: "pad strings using int length from a column"
+  expected_names: ["rpad(s, i, 'x')"]
+  expected_types: [string]
+  expected:
+  - ["hixxx"]
+  - ["heyx"]
+  - ["yoy"]
+  - ["he"]
+  - ["b"]
+  - [""]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select rpad(i, 3, 'x') from lpad"
+  id: "rpad_13"
+  db: functions_test
+  description: "pad ints"
+  expected_names: ["rpad(i, 3, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["5xx"]
+  - ["4xx"]
+  - ["3xx"]
+  - ["2xx"]
+  - ["1xx"]
+  - ["0xx"]
+  - ["-2x"]
+  - ["-3x"]
+  - ["-4x"]
+
+- sql: "select rpad(f, 5, 'x') from lpad"
+  id: "rpad_14"
+  db: functions_test
+  description: "pad floats"
+  expected_names: ["rpad(f, 5, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["2.2xx"]
+  - ["4xxxx"]
+  - ["1xxxx"]
+  - ["10.9x"]
+  - ["8.666"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select rpad(s, 5, true) from lpad"
+  id: "rpad_15"
+  db: functions_test
+  description: "pad strings with a bool - true"
+  expected_names: ["rpad(s, 5, true)"]
+  expected_types: ["string"]
+  expected:
+  - ["hi111"]
+  - ["hey11"]
+  - ["yoyo1"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["11111"]
+  - [" 1111"]
+  - [". . ."]
+
+- sql: "select rpad(false, i, 'x') from lpad"
+  id: "rpad_16"
+  db: functions_test
+  description: "pad a bool"
+  expected_names: ["rpad(false, i, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["0xxxx"]
+  - ["0xxx"]
+  - ["0xx"]
+  - ["0x"]
+  - ["0"]
+  - [""]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select rpad(s, true, 'x') from lpad"
+  id: "rpad_17"
+  db: functions_test
+  description: "pad strings to boolean length true"
+  expected_names: ["rpad(s, true, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["h"]
+  - ["h"]
+  - ["y"]
+  - ["h"]
+  - ["b"]
+  - ["m"]
+  - ["x"]
+  - [" "]
+  - ["."]
+
+- sql: "select rpad(s, 5, 1.1) from lpad"
+  id: "rpad_18"
+  db: functions_test
+  description: "pad strings with a float"
+  expected_names: ["rpad(s, 5, 1.1)"]
+  expected_types: ["string"]
+  expected:
+  - ["hi1.1"]
+  - ["hey1."]
+  - ["yoyo1"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["1.11."]
+  - [" 1.11"]
+  - [". . ."]
+
+- sql: "select rpad(d, 30, 'abc') from bar"
+  id: "rpad_19"
+  db: functions_test
+  description: "pad timestamps with string"
+  expected_names: ["rpad(d, 30, 'abc')"]
+  expected_types: [string]
+  expected:
+    - ["2000-09-23 13:45:00.400000abca"]
+    - ["2000-09-24 13:45:00.000000abca"]
+    - ["2000-10-24 13:45:00.007000abca"]
+    - ["~"]
+    - ["~"]
+
+- sql: "select rpad(s, -0.5, 'x') from lpad"
+  id: "rpad_20"
+  db: functions_test
+  description: "test rounding negative float length - round to -1"
+  expected_names: ["rpad(s, -0.5, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select rpad(s, -0.49, 'x') from lpad"
+  id: "rpad_21"
+  db: functions_test
+  description: "test rounding negative float length - round to 0"
+  expected_names: ["rpad(s, -0.49, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+
+- sql: "select rpad(s, '-0.5', 'x') from lpad"
+  id: "rpad_22"
+  db: functions_test
+  description: "test rounding negative string length - always round closer to zero"
+  expected_names: ["rpad(s, '-0.5', 'x')"]
+  expected_types: ["string"]
+  expected:
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+
+- sql: "select rpad(s, '-0.49', 'x') from lpad"
+  id: "rpad_23"
+  db: functions_test
+  description: "test rounding negative float length - always round closer to 0"
+  expected_names: ["rpad(s, '-0.49', 'x')"]
+  expected_types: ["string"]
+  expected:
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+
+- sql: "select rpad('hi', 3, s) from lpad"
+  id: "rpad_24"
+  db: functions_test
+  description: "use column as padding"
+  expected_names: ["rpad('hi', 3, s)"]
+  expected_types: ["string"]
+  expected:
+  - ["hih"]
+  - ["hih"]
+  - ["hiy"]
+  - ["hih"]
+  - ["hib"]
+  - ["him"]
+  - ["~"]
+  - ["hi "]
+  - ["hi."]
+
+- sql: "select rpad(s, t, z) from bar"
+  id: "rpad_25"
+  db: functions_test
+  description: "1+ null arguments always evaluates to null"
+  expected_names: ["rpad(s, t, z)"]
+  expected_types: ["string"]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select rpad(s, t, z) from bar"
+  id: "rpad_26"
+  db: functions_test
+  description: "1+ null arguments always evaluates to null"
+  expected_names: ["rpad(s, t, z)"]
+  expected_types: ["string"]
+  expected:
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+
+- sql: "select rpad(s, false, 'x') from lpad"
+  id: "rpad_27"
+  db: functions_test
+  description: "pad strings to boolean length false"
+  expected_names: ["rpad(s, false, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+
+- sql: "select rpad(s, 5, false) from lpad"
+  id: "rpad_28"
+  db: functions_test
+  description: "pad strings with a bool - false"
+  expected_names: ["rpad(s, 5, false)"]
+  expected_types: ["string"]
+  expected:
+  - ["hi000"]
+  - ["hey00"]
+  - ["yoyo0"]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["00000"]
+  - [" 0000"]
+  - [". . ."]
+
+- sql: "select rpad(x, 8, 'x') from lpad"
+  id: "rpad_29"
+  db: functions_test
+  description: "pad strings containing spaces and symbols"
+  expected_names: ["rpad(x, 8, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - [" hixxxxx"]
+  - ["  xxxxxx"]
+  - ["@!#_xxxx"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]
+  - ["~"]  
+
+- sql: "select rpad(s, 5, ' ') from lpad"
+  id: "rpad_30"
+  db: functions_test
+  description: "pad with a space"
+  expected_names: ["rpad(s, 5, ' ')"]
+  expected_types: ["string"]
+  expected:
+  - ["hi   "]
+  - ["hey  "]
+  - ["yoyo "]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["     "]
+  - ["     "]
+  - [". . ."]
+
+- sql: "select rpad(s, 5, '.') from lpad"
+  id: "rpad_31"
+  db: functions_test
+  description: "pad with a symbol"
+  expected_names: ["rpad(s, 5, '.')"]
+  expected_types: ["string"]
+  expected:
+  - ["hi..."]
+  - ["hey.."]
+  - ["yoyo."]
+  - ["hello"]
+  - ["banan"]
+  - ["mongo"]
+  - ["....."]
+  - [" ...."]
+  - [". . ."]
+
+- sql: "select rpad(s, 8, 'x') from special"
+  id: "rpad_32"
+  db: functions_test
+  description: "right pad special/multibyte characters"
+  expected_names: ["rpad(s, 8, 'x')"]
+  expected_types: ["string"]
+  expected:
+  - ["I♥NYxxxx"]
+  - ["ƏŨ Ó€xxx"]
+  - ["⅓ ⅔ † ‡ "]
+  - ["∞π∅≤≥≠≈x"]
+
+- sql: "select rpad('hi', 8, s) from special"
+  id: "rpad_33"
+  db: functions_test
+  description: "pad with special/multibyte characters"
+  expected_names: ["rpad('hi', 8, s)"]
+  expected_types: ["string"]
+  expected:
+  - ["hiI♥NYI♥"]
+  - ["hiƏŨ Ó€Ə"]
+  - ["hi⅓ ⅔ † "]
+  - ["hi∞π∅≤≥≠"]

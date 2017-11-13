@@ -83,6 +83,14 @@ data:
     - {s: " ", i : -3}
     - {s: ". . .", i : -4}
 - inline:
+    db: "functions_test"
+    collection: "special"
+    docs:
+    - {s: "I♥NY"}
+    - {s: "ƏŨ Ó€"}
+    - {s: "⅓ ⅔ † ‡ µ ¢ £"}
+    - {s: "∞π∅≤≥≠≈"}
+- inline:
     db: "groupby_test"
     collection: "groupby"
     docs:

@@ -142,6 +142,13 @@ schema:
       MongoType: string
       SqlName: x
       SqlType: varchar
+  - table: special
+    collection: "special"
+    columns:
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
 - db: groupby_test
   tables:
   - table: foo

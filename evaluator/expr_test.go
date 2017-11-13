@@ -2083,6 +2083,12 @@ func TestEvaluates(t *testing.T) {
 					test{"LPAD(' hi', 4, 'x')", SQLVarchar("x hi")},
 					test{"LPAD('  ', 5, ' ')", SQLVarchar("     ")},
 					test{"LPAD('@!#_', 10, '.')", SQLVarchar("......@!#_")},
+					test{"LPAD('I♥NY', 8, 'x')", SQLVarchar("xxxxI♥NY")},
+					test{"LPAD('ƏŨ Ó€', 8, 'x')", SQLVarchar("xxxƏŨ Ó€")},
+					test{"LPAD('⅓ ⅔ † ‡ µ ¢ £', 8, 'x')", SQLVarchar("⅓ ⅔ † ‡ ")},
+					test{"LPAD('∞π∅≤≥≠≈', 8, 'x')", SQLVarchar("x∞π∅≤≥≠≈")},
+					test{"LPAD('hello', 8, '♥')", SQLVarchar("♥♥♥hello")},
+					test{"LPAD('hello', 8, 'ƏŨ')", SQLVarchar("ƏŨƏhello")},
 
 					// str type: numbers
 					test{"LPAD(5, 4, 'a')", SQLVarchar("aaa5")},
@@ -2143,6 +2149,99 @@ func TestEvaluates(t *testing.T) {
 					// padStr type: boolean
 					test{"LPAD('hello', 7, true)", SQLVarchar("11hello")},
 					test{"LPAD('hello', 10, false)", SQLVarchar("00000hello")},
+				}
+				runTests(evalCtx, tests)
+			})
+
+			Convey("Subject: RPAD", func() {
+				tests := []test{
+
+					// RPAD(str, len, padStr)
+
+					// basic case
+					test{"RPAD('hello', 7, 'x')", SQLVarchar("helloxx")},
+
+					// nulls in various positions
+					test{"RPAD(NULL, 5, 'a')", SQLNull},
+					test{"RPAD('hi', NULL, 'a')", SQLNull},
+					test{"RPAD('hi', 5, NULL)", SQLNull},
+					test{"RPAD(NULL, NULL, NULL)", SQLNull},
+
+					// str: empty
+					test{"RPAD('', 0, 'a')", SQLVarchar("")},
+					test{"RPAD('', 1, 'a')", SQLVarchar("a")},
+					test{"RPAD('', 7, 'ab')", SQLVarchar("abababa")},
+
+					// str: spaces and symbols
+					test{"RPAD(' hi', 4, 'x')", SQLVarchar(" hix")},
+					test{"RPAD('  ', 5, ' ')", SQLVarchar("     ")},
+					test{"RPAD('@!#_', 10, '.')", SQLVarchar("@!#_......")},
+					test{"RPAD('I♥NY', 8, 'x')", SQLVarchar("I♥NYxxxx")},
+					test{"RPAD('ƏŨ Ó€', 8, 'x')", SQLVarchar("ƏŨ Ó€xxx")},
+					test{"RPAD('⅓ ⅔ † ‡ µ ¢ £', 8, 'x')", SQLVarchar("⅓ ⅔ † ‡ ")},
+					test{"RPAD('∞π∅≤≥≠≈', 8, 'x')", SQLVarchar("∞π∅≤≥≠≈x")},
+					test{"RPAD('hello', 8, '♥')", SQLVarchar("hello♥♥♥")},
+					test{"RPAD('hello', 8, 'ƏŨ')", SQLVarchar("helloƏŨƏ")},
+
+					// str type: numbers
+					test{"RPAD(5, 4, 'a')", SQLVarchar("5aaa")},
+					test{"RPAD(10, 4, 'a')", SQLVarchar("10aa")},
+					test{"RPAD(10.2, 4, 'a')", SQLVarchar("10.2")},
+
+					// str type: boolean
+					test{"RPAD(true, 4, 'a')", SQLVarchar("1aaa")},
+					test{"RPAD(false, 4, 'a')", SQLVarchar("0aaa")},
+
+					// len < 0
+					test{"RPAD('hi', -1, 'a')", SQLNull},
+
+					// len = 0
+					test{"RPAD('hi', 0, 'a')", SQLVarchar("")},
+
+					// len <= len(str)
+					test{"RPAD('hello', 2, 'x')", SQLVarchar("he")},
+					test{"RPAD('hello', 5, 'x')", SQLVarchar("hello")},
+
+					// len type: str
+					test{"RPAD('hello', '5', 'x')", SQLVarchar("hello")},
+					test{"RPAD('hello', '5.6', 'x')", SQLVarchar("hello")},
+					test{"RPAD('hello', '6', 'x')", SQLVarchar("hellox")},
+					test{"RPAD('hello', '6.2', 'x')", SQLVarchar("hellox")},
+					// if can't be cast to #, then use length 0
+					test{"RPAD('hello', 'a', 'x')", SQLVarchar("")},
+
+					// len: floating point
+					test{"RPAD('hello', 5.4, 'x')", SQLVarchar("hello")},
+					test{"RPAD('hello', 5.5, 'x')", SQLVarchar("hellox")},
+
+					// len float values close to 0 - round to closest int
+					test{"RPAD('hello', 0.4, 'x')", SQLVarchar("")},
+					test{"RPAD('hello', 0.5, 'x')", SQLVarchar("h")},
+					test{"RPAD('hello', -0.4, 'x')", SQLVarchar("")},
+					test{"RPAD('hello', -0.5, 'x')", SQLNull},
+
+					// len string values close to 0 - always round toward 0
+					test{"RPAD('hello', '0.4', 'x')", SQLVarchar("")},
+					test{"RPAD('hello', '0.5', 'x')", SQLVarchar("")},
+					test{"RPAD('hello', '-0.4', 'x')", SQLVarchar("")},
+					test{"RPAD('hello', '-0.5', 'x')", SQLVarchar("")},
+
+					// len: bool
+					test{"RPAD('hello', true, 'x')", SQLVarchar("h")},
+					test{"RPAD('hello', false, 'x')", SQLVarchar("")},
+
+					// len(padStr) > 1
+					test{"RPAD('hello', 7, 'xy')", SQLVarchar("helloxy")},
+					test{"RPAD('hello', 8, 'xy')", SQLVarchar("helloxyx")},
+
+					// padStr type: number
+					test{"RPAD('hello', 7, 1)", SQLVarchar("hello11")},
+					test{"RPAD('hello', 10, 1.1)", SQLVarchar("hello1.11.")},
+					test{"RPAD('hello', 10, -1)", SQLVarchar("hello-1-1-")},
+
+					// padStr type: boolean
+					test{"RPAD('hello', 7, true)", SQLVarchar("hello11")},
+					test{"RPAD('hello', 10, false)", SQLVarchar("hello00000")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -3616,7 +3715,6 @@ func TestExprNoPushdown(t *testing.T) {
 			test{"rtrim(t)"},
 			test{"trim(g)"},
 			test{"sleep(s)"},
-			test{"lpad(s, a+b, 'hi')"},
 		}
 		runTests(tests, testSchema3, tableTwoName)
 
@@ -3784,7 +3882,8 @@ func TestTranslateExpr(t *testing.T) {
 			test{"rtrim(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$cond":[{"$eq":["$s",""]},"",{"$substrCP":["$s",0,{"$subtract":[{"$strLenCP":"$s"},{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$s"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$reverseArray":{"$split":["$s"," "]}}}}}}}}]}]}]}]}`},
 			test{"ltrim(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$cond":[{"$eq":["$s",""]},"",{"$substrCP":["$s",{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$s"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$split":["$s"," "]}}}}}}},{"$strLenCP":"$s"}]}]}]}`},
 			test{"trim(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$cond":[{"$eq":["$s",""]},"",{"$let":{"in":{"$cond":[{"$eq":["$$rtrim",""]},"",{"$substrCP":["$$rtrim",{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$$rtrim"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$split":["$$rtrim"," "]}}}}}}},{"$strLenCP":"$$rtrim"}]}]},"vars":{"rtrim":{"$cond":[{"$eq":["$s",""]},"",{"$substrCP":["$s",0,{"$subtract":[{"$strLenCP":"$s"},{"$min":{"$map":{"as":"zipArray","in":{"$cond":[{"$eq":[{"$arrayElemAt":["$$zipArray",0]},""]},{"$strLenCP":"$s"},{"$arrayElemAt":["$$zipArray",1]}]},"input":{"$let":{"in":{"$zip":{"inputs":["$$splitArray",{"$range":[0,{"$size":"$$splitArray"}]}]}},"vars":{"splitArray":{"$reverseArray":{"$split":["$s"," "]}}}}}}}}]}]}]}}}}]}]}`},
-			test{"lpad(s, 5, 'xy')", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$let":{"in":{"$cond":[{"$lt":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[5,0]},{"$floor":{"$add":[{"$multiply":[5,"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[5,"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},0]},null,{"$cond":[{"$lt":[{"$strLenCP":"$s"},"$$length"]},{"$cond":[{"$eq":["$$padStrLen",0]},null,{"$concat":[{"$substr":[{"$reduce":{"in":{"$concat":["$$value","$$this"]},"initialValue":"","input":{"$map":{"in":{"$literal":"xy"},"input":{"$range":[0,{"$ceil":{"$divide":["$$padLen","$$padStrLen"]}}]}}}}},0,"$$padLen"]},"$s"]}]},{"$substr":["$s",0,"$$length"]}]}]},"vars":{"length":{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[5,0]},{"$floor":{"$add":[{"$multiply":[5,"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[5,"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},"padLen":{"$subtract":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[5,0]},{"$floor":{"$add":[{"$multiply":[5,"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[5,"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},{"$strLenCP":"$s"}]},"padStrLen":{"$strLenCP":{"$literal":"xy"}}}}}]}`},
+			test{"lpad(s, 5, 'xy')", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$let":{"in":{"$cond":[{"$lt":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},0]},null,{"$cond":[{"$lt":[{"$strLenCP":"$s"},"$$length"]},{"$cond":[{"$eq":["$$padStrLen",0]},null,{"$concat":[{"$substrCP":[{"$reduce":{"in":{"$concat":["$$value","$$this"]},"initialValue":"","input":{"$map":{"in":{"$literal":"xy"},"input":{"$range":[0,{"$ceil":{"$divide":["$$padLen","$$padStrLen"]}}]}}}}},0,"$$padLen"]},"$s"]}]},{"$substrCP":["$s",0,"$$length"]}]}]},"vars":{"length":{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},"padLen":{"$subtract":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},{"$strLenCP":"$s"}]},"padStrLen":{"$strLenCP":{"$literal":"xy"}}}}}]}`},
+			test{"rpad(s, 5, 'xy')", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$let":{"in":{"$cond":[{"$lt":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},0]},null,{"$cond":[{"$lt":[{"$strLenCP":"$s"},"$$length"]},{"$cond":[{"$eq":["$$padStrLen",0]},null,{"$concat":["$s",{"$substrCP":[{"$reduce":{"in":{"$concat":["$$value","$$this"]},"initialValue":"","input":{"$map":{"in":{"$literal":"xy"},"input":{"$range":[0,{"$ceil":{"$divide":["$$padLen","$$padStrLen"]}}]}}}}},0,"$$padLen"]}]}]},{"$substrCP":["$s",0,"$$length"]}]}]},"vars":{"length":{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},"padLen":{"$subtract":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":5},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":5},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},{"$strLenCP":"$s"}]},"padStrLen":{"$strLenCP":{"$literal":"xy"}}}}}]}`},
 		}
 
 		runTests(tests)

@@ -160,6 +160,7 @@ var scalarFuncMap = map[string]scalarFunc{
 	"replace":           &replaceFunc{},
 	"right":             &rightFunc{},
 	"round":             &roundFunc{},
+	"rpad":              &rpadFunc{},
 	"rtrim":             &rtrimFunc{},
 	"schema":            &dbFunc{},
 	"second":            &secondFunc{},
@@ -2250,41 +2251,7 @@ type lpadFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_lpad
 func (_ *lpadFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return SQLNull, nil
-	}
-
-	str := values[0].String()
-
-	var length int
-	if floatLength := values[1].Float64(); floatLength < float64(0) {
-		length = int(floatLength - 0.5)
-	} else {
-		length = int(floatLength + 0.5)
-	}
-
-	padStr := values[2].String()
-	padLen := length - len(str)
-
-	// either:
-	// 1) padding string is empty and the input string is not long enough to not need padding
-	// 2) output length is negative and therefore impossible
-	if (len(padStr) == 0 && len(str) < length) || length < 0 {
-		return SQLNull, nil
-	}
-
-	// the string is already long enough
-	if len(str) >= length {
-		return SQLVarchar(str[:length]), nil
-	}
-
-	// repeat padding as many times as needed to fill room
-	numRepeats := math.Ceil(float64(padLen) / float64(len(padStr)))
-	padding := strings.Repeat(padStr, int(numRepeats))
-	// in case room % len(padstr) != 0, chop off end
-	padding = padding[:padLen]
-
-	return SQLVarchar(padding + str), nil
+	return handlePadding(values, true)
 }
 
 func (_ *lpadFunc) Type(exprs []SQLExpr) schema.SQLType {
@@ -2863,6 +2830,38 @@ func (_ *roundFunc) Type(exprs []SQLExpr) schema.SQLType {
 
 func (_ *roundFunc) Validate(exprCount int) error {
 	return ensureArgCount(exprCount, 1, 2)
+}
+
+type rpadFunc struct{}
+
+// https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_rpad
+func (_ *rpadFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
+	return handlePadding(values, false)
+}
+
+func (_ *rpadFunc) Type(exprs []SQLExpr) schema.SQLType {
+	return schema.SQLVarchar
+}
+
+func (_ *rpadFunc) Validate(exprCount int) error {
+	return ensureArgCount(exprCount, 3)
+}
+
+func (_ *rpadFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt, schema.SQLVarchar}
+	defaults := []SQLValue{SQLNull, SQLNull, SQLNull}
+	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		newExprs,
+	}
+}
+
+func (_ *rpadFunc) normalize(f *SQLScalarFunctionExpr) SQLExpr {
+	if hasNullExpr(f.Exprs...) {
+		return SQLNull
+	}
+	return f
 }
 
 type secondFunc struct{}
@@ -4595,4 +4594,53 @@ func runesIndex(r, sep []rune) int {
 	}
 
 	return -1
+}
+
+// handlePadding is used by the lpad and rpad functions. creates the
+// specified padding string and pads the original string. padding
+// goes on the left side if isLeftPad = true, on the right side otherwise.
+func handlePadding(values []SQLValue, isLeftPad bool) (SQLValue, error) {
+	if hasNullValue(values...) {
+		return SQLNull, nil
+	}
+
+	var length int
+	if floatLength := values[1].Float64(); floatLength < float64(0) {
+		length = int(floatLength - 0.5)
+	} else {
+		length = int(floatLength + 0.5)
+	}
+
+	str := []rune(values[0].String())
+	padStr := []rune(values[2].String())
+	padLen := length - len(str)
+
+	// either:
+	// 1) padding string is empty and the input string is not long enough to not need padding
+	// 2) output length is negative and therefore impossible
+	if (len(padStr) == 0 && len(str) < length) || length < 0 {
+		return SQLNull, nil
+	}
+
+	// the string is already long enough
+	if len(str) >= length {
+		return SQLVarchar(str[:length]), nil
+	}
+
+	// repeat padding as many times as needed to fill room
+	numRepeats := math.Ceil(float64(padLen) / float64(len(padStr)))
+
+	padding := []rune(strings.Repeat(string(padStr), int(numRepeats)))
+
+	// in case room % len(padstr) != 0, chop off end
+	padding = padding[:padLen]
+
+	finalPad := string(padding)
+	finalStr := string(str)
+
+	if isLeftPad {
+		return SQLVarchar(finalPad + finalStr), nil
+	}
+
+	return SQLVarchar(finalStr + finalPad), nil
 }

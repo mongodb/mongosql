@@ -1420,7 +1420,8 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{"$log10": args[0]},
 				mgoNullLiteral}}, true
 
-		case "lpad":
+		case "lpad", "rpad":
+
 			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
 			}
@@ -1436,22 +1437,11 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 			// arguments to lpad
 			str := args[0]
+			lengthVal := args[1]
 			padStr := args[2]
 
-			lengthVal, ok := getLiteral(args[1])
-
-			if !ok {
-				return nil, false
-			}
-
-			// convert length to a SQLValue
-			sqlVal, notConverted := NewSQLValue(lengthVal, schema.SQLFloat, schema.SQLNone)
-			if notConverted {
-				return nil, false
-			}
-
 			// round to nearest int.
-			length, ok := wrapInRound([]interface{}{sqlVal})
+			length, ok := wrapInRound([]interface{}{lengthVal})
 			if !ok {
 				return nil, false
 			}
@@ -1492,7 +1482,7 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 			// join occurrences together and trim to the exact length needed
 			fullPad := bson.M{
-				"$substr": []interface{}{
+				mgoOperatorSubstr: []interface{}{
 					bson.M{
 						mgoOperatorReduce: bson.M{
 							"input":        padParts,
@@ -1504,15 +1494,22 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 
 			// based on length of input string, we either add the padding
 			// or just take appropriate substring of input string
+			var concatted bson.M
+			if typedE.Name == "lpad" {
+				concatted = bson.M{mgoOperatorConcat: []interface{}{fullPad, str}}
+			} else {
+				concatted = bson.M{mgoOperatorConcat: []interface{}{str, fullPad}}
+			}
+
 			handleConcat := wrapInCond(
 				nil,
-				bson.M{mgoOperatorConcat: []interface{}{fullPad, str}},
+				concatted,
 				bson.M{mgoOperatorEq: []interface{}{"$$padStrLen", 0}})
 
 			// handle everything in the case that input length >=0
 			handleNonNegativeLength := wrapInCond(
 				handleConcat,
-				bson.M{"$substr": []interface{}{str, 0, "$$length"}},
+				bson.M{mgoOperatorSubstr: []interface{}{str, 0, "$$length"}},
 				paddingCond)
 
 			// whether the input length is < 0
