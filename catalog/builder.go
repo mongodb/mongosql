@@ -91,6 +91,9 @@ func (b *catalogBuilder) buildFromSchema() error {
 				tableType = View
 			}
 			t := NewMongoTable(tblConfig, tableType, col)
+
+			t.isSharded = collection.IsSharded
+
 			err = d.AddTable(t)
 			if err != nil {
 				return err

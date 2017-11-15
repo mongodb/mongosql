@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/10gen/mongo-go-driver/yamgo/model"
 	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
@@ -84,6 +85,34 @@ type CollectionInfo struct {
 	// IsView is true if the collection is a MongoDB view
 	// and false otherwise.
 	IsView bool
+	// IsSharded is true if the collection is sharded
+	// and false otherwise.
+	IsSharded bool
+}
+
+// addShardingInfo loads sharding information for the dbInfo map.
+func addShardingInfo(logger *log.Logger, session *Session, dbs map[DatabaseName]*DatabaseInfo) {
+	stats := struct {
+		Sharded bool `bson:"sharded"`
+	}{}
+
+	for db, dbInfo := range dbs {
+		for collection, collectionInfo := range dbInfo.Collections {
+			collectionName := string(collection)
+
+			collStatsCommand := struct {
+				CollStats string `bson:"collStats"`
+			}{collectionName}
+
+			err := session.Run(string(db), collStatsCommand, &stats)
+			if err != nil {
+				logger.Warnf(log.Admin, "Unable to run collStats on collection %s: %v", collectionName, err)
+			} else {
+				collectionInfo.IsSharded = stats.Sharded
+			}
+
+		}
+	}
 }
 
 // LoadInfo looks up information from MongoDB.
@@ -97,6 +126,10 @@ func LoadInfo(logger *log.Logger, session *Session, config *schema.Schema, requi
 	version := session.Model().Version
 
 	dbs := createDatabasesFromSchema(config)
+
+	if session.Model().Kind == model.Mongos {
+		addShardingInfo(logger, session, dbs)
+	}
 
 	i := &Info{
 		Databases:    dbs,
@@ -141,7 +174,6 @@ func createDatabasesFromSchema(config *schema.Schema) map[DatabaseName]*Database
 			}
 		}
 	}
-
 	return dbInfos
 }
 
@@ -156,7 +188,6 @@ func (i *Info) loadMetadata(logger *log.Logger, s *Session) error {
 }
 
 func (dbInfo *DatabaseInfo) loadMetadata(logger *log.Logger, s *Session) error {
-
 	if (dbInfo.Privileges & ListCollectionsPrivilege) == 0 {
 
 		logger.Warnf(log.Admin, "user does not have the 'listCollections' privileges on database '%v'", dbInfo.caseSensitiveName)

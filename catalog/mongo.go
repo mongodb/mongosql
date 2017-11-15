@@ -48,6 +48,7 @@ type MongoTable struct {
 	primaryKeys []Column
 	comments    string
 	tableType   TableType
+	isSharded   bool
 
 	CollectionName string
 	Pipeline       []bson.D
@@ -56,6 +57,11 @@ type MongoTable struct {
 // Name is the name of the Table.
 func (t *MongoTable) Name() TableName {
 	return t.name
+}
+
+// IsSharded returns true if the MongoTable is in a sharded collection.
+func (t *MongoTable) IsSharded() bool {
+	return t.isSharded
 }
 
 // Collation gets the collation for the table.

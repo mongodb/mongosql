@@ -3694,6 +3694,238 @@ func TestOptimizePlan(t *testing.T) {
 	})
 }
 
+func TestPushdownSharding(t *testing.T) {
+	testSchema, err := schema.New(testSchema4)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading schema: %v", err))
+	}
+	testInfo := getMongoDBInfoWithShardedCollection(nil, testSchema, mongodb.AllPrivileges, "foo")
+	testVariables := createTestVariables(testInfo)
+	testCatalog := getCatalogFromSchema(testSchema, testVariables)
+	defaultDbName := "test"
+	test := func(sql string, expected ...[]bson.D) {
+		Convey(sql, func() {
+			statement, err := parser.Parse(sql)
+			So(err, ShouldBeNil)
+
+			plan, err := AlgebrizeQuery(statement, defaultDbName, testVariables, testCatalog)
+			So(err, ShouldBeNil)
+			actualPlan := OptimizePlan(createTestConnectionCtx(testInfo), plan)
+
+			pg := &pipelineGatherer{}
+			pg.visit(actualPlan)
+
+			actual := pg.pipelines
+
+			v := ShouldResembleDiffed(actual, expected)
+			if v != "" {
+				fmt.Printf("\n ACTUAL: %#v", pretty.Formatter(actual))
+				fmt.Printf("\n EXPECTED: %#v", pretty.Formatter(expected))
+			}
+			So(actual, ShouldResembleDiffed, expected)
+		})
+	}
+
+	Convey("Join behaviour against sharded collections", t, func() {
+		// should not push down because the from collection is sharded.
+		test("select * from bar left join foo on bar.a=foo.a and bar.a=foo.f",
+			[]bson.D{
+				{{"$project", bson.M{
+					"test_DOT_bar_DOT_b":   "$b",
+					"test_DOT_bar_DOT__id": "$_id",
+					"test_DOT_bar_DOT_a":   "$a",
+				}}}},
+			[]bson.D{
+				{{
+					"$project", bson.M{
+						"test_DOT_foo_DOT_a":   "$a",
+						"test_DOT_foo_DOT_b":   "$b",
+						"test_DOT_foo_DOT_c":   "$c",
+						"test_DOT_foo_DOT_e":   "$d.e",
+						"test_DOT_foo_DOT_g":   "$g",
+						"test_DOT_foo_DOT_f":   "$d.f",
+						"test_DOT_foo_DOT__id": "$_id",
+					}}}},
+		)
+		// should push down because the from collection is not sharded after flipping.
+		test("select * from bar right join foo on bar.a=foo.a and bar.a=foo.f",
+			[]bson.D{
+				{{"$lookup", bson.M{
+					"from":         "bar",
+					"localField":   "a",
+					"foreignField": "a",
+					"as":           "__joined_bar",
+				}}},
+				{{"$project", bson.M{
+					"c":      1,
+					"d.f":    1,
+					"g":      1,
+					"_id":    1,
+					"filter": 1,
+					"__joined_bar": bson.M{
+						"$cond": []interface{}{
+							bson.M{"$eq": []interface{}{
+								bson.M{"$ifNull": []interface{}{"$a", nil}},
+								nil,
+							}},
+							bson.M{"$literal": []interface{}{}},
+							"$__joined_bar",
+						},
+					},
+					"a":   1,
+					"b":   1,
+					"d.e": 1,
+				}}},
+				{{"$addFields", bson.M{"__joined_bar": bson.M{
+					"$filter": bson.M{
+						"cond": bson.M{
+							"$let": bson.M{
+								"vars": bson.M{
+									"left": "$$this.a", "right": "$d.f"},
+								"in": bson.M{
+									"$cond": []interface{}{bson.M{
+										"$or": []interface{}{bson.M{
+											"$eq": []interface{}{bson.M{
+												"$ifNull": []interface{}{
+													"$$left", nil,
+												}}, nil,
+											},
+										}, bson.M{
+											"$eq": []interface{}{bson.M{
+												"$ifNull": []interface{}{"$$right", nil}},
+												nil}}}},
+										nil,
+										bson.M{
+											"$eq": []interface{}{"$$left", "$$right"}}}}}},
+						"input": "$__joined_bar", "as": "this"}}}}},
+				{{"$unwind", bson.M{
+					"path": "$__joined_bar",
+					"preserveNullAndEmptyArrays": true,
+				}}},
+				{{"$project", bson.M{
+					"test_DOT_bar_DOT_b":   "$__joined_bar.b",
+					"test_DOT_foo_DOT_f":   "$d.f",
+					"test_DOT_foo_DOT_c":   "$c",
+					"test_DOT_foo_DOT_e":   "$d.e",
+					"test_DOT_foo_DOT_g":   "$g",
+					"test_DOT_foo_DOT__id": "$_id",
+					"test_DOT_bar_DOT_a":   "$__joined_bar.a",
+					"test_DOT_bar_DOT__id": "$__joined_bar._id",
+					"test_DOT_foo_DOT_a":   "$a",
+					"test_DOT_foo_DOT_b":   "$b",
+				}}},
+			})
+		// after flipping, the from collection, foo is sharded and it should not push down.
+		test("select * from foo right join bar on foo.a=bar.a and foo.f=bar.a",
+			[]bson.D{
+				{{
+					"$project", bson.M{
+						"test_DOT_foo_DOT_a":   "$a",
+						"test_DOT_foo_DOT_b":   "$b",
+						"test_DOT_foo_DOT_c":   "$c",
+						"test_DOT_foo_DOT_e":   "$d.e",
+						"test_DOT_foo_DOT_g":   "$g",
+						"test_DOT_foo_DOT_f":   "$d.f",
+						"test_DOT_foo_DOT__id": "$_id",
+					}}}},
+			[]bson.D{
+				{{"$project", bson.M{
+					"test_DOT_bar_DOT_b":   "$b",
+					"test_DOT_bar_DOT__id": "$_id",
+					"test_DOT_bar_DOT_a":   "$a",
+				}}}})
+		// should flip after not being able to be pushed down the first time due to foo being sharded and then
+		// push down.
+		test("select * from bar inner join foo on bar.a=foo.a and bar.a=foo.f",
+			[]bson.D{
+				{{"$match", bson.M{"a": bson.M{"$ne": nil}}}},
+				{{"$lookup", bson.M{
+					"from":         "bar",
+					"localField":   "a",
+					"foreignField": "a",
+					"as":           "__joined_bar"}}},
+				{{"$unwind", bson.M{
+					"path": "$__joined_bar",
+					"preserveNullAndEmptyArrays": false}}},
+				{{"$addFields", bson.M{
+					"__predicate": bson.D{
+						{"$let", bson.D{
+							{"vars", bson.M{
+								"predicate": bson.M{
+									"$let": bson.M{
+										"vars": bson.M{
+											"right": "$d.f",
+											"left":  "$__joined_bar.a",
+										},
+										"in": bson.M{
+											"$cond": []interface{}{
+												bson.M{
+													"$or": []interface{}{
+														bson.M{
+															"$eq": []interface{}{
+																bson.M{
+																	"$ifNull": []interface{}{
+																		"$$left",
+																		nil,
+																	},
+																},
+																nil,
+															},
+														},
+														bson.M{
+															"$eq": []interface{}{bson.M{
+																"$ifNull": []interface{}{
+																	"$$right",
+																	nil,
+																},
+															},
+																nil,
+															},
+														},
+													},
+												},
+												nil,
+												bson.M{"$eq": []interface{}{
+													"$$left",
+													"$$right",
+												},
+												},
+											},
+										},
+									},
+								},
+							}},
+							{"in", bson.D{
+								{"$cond", []interface{}{
+									bson.D{{"$or", []interface{}{
+										bson.D{{"$eq", []interface{}{"$$predicate", false}}},
+										bson.D{{"$eq", []interface{}{"$$predicate", 0}}},
+										bson.D{{"$eq", []interface{}{"$$predicate", "0"}}},
+										bson.D{{"$eq", []interface{}{"$$predicate", "-0"}}},
+										bson.D{{"$eq", []interface{}{"$$predicate", "0.0"}}},
+										bson.D{{"$eq", []interface{}{"$$predicate", "-0.0"}}},
+										bson.D{{"$eq", []interface{}{"$$predicate", nil}}},
+									}}},
+									false,
+									true,
+								}},
+							}}}}}}}},
+				{{"$match", bson.M{"__predicate": true}}},
+				{{"$project", bson.M{
+					"test_DOT_bar_DOT_a":   "$__joined_bar.a",
+					"test_DOT_foo_DOT_c":   "$c",
+					"test_DOT_foo_DOT_g":   "$g",
+					"test_DOT_bar_DOT_b":   "$__joined_bar.b",
+					"test_DOT_bar_DOT__id": "$__joined_bar._id",
+					"test_DOT_foo_DOT_a":   "$a",
+					"test_DOT_foo_DOT_b":   "$b",
+					"test_DOT_foo_DOT_e":   "$d.e",
+					"test_DOT_foo_DOT_f":   "$d.f",
+					"test_DOT_foo_DOT__id": "$_id"}}},
+			})
+	})
+}
+
 type subqueryFinder struct {
 	count         int
 	firstSubquery *SQLSubqueryExpr

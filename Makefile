@@ -82,4 +82,5 @@ include testdata/config/tests/log-rotation.mk
 include testdata/config/tests/mongo-ssl.mk
 include testdata/config/tests/mongodrdl.mk
 include testdata/config/tests/schema.mk
+include testdata/config/tests/sharding.mk
 include testdata/config/tests/sqlproxy-ssl.mk

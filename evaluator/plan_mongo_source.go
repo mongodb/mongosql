@@ -17,15 +17,16 @@ import (
 // MongoSourceStage is the primary interface for SQLProxy to a MongoDB
 // installation and executes simple queries against collections.
 type MongoSourceStage struct {
-	collation       *collation.Collation
-	selectIDs       []int
-	dbName          string
-	tableNames      []string
-	aliasNames      []string
-	collectionNames []string
-	tableType       catalog.TableType
-	mappingRegistry *mappingRegistry
-	pipeline        []bson.D
+	collation           *collation.Collation
+	selectIDs           []int
+	dbName              string
+	tableNames          []string
+	aliasNames          []string
+	collectionNames     []string
+	isShardedCollection map[string]bool
+	tableType           catalog.TableType
+	mappingRegistry     *mappingRegistry
+	pipeline            []bson.D
 }
 
 // NewMongoSourceStage creates a new MongoSourceStage from a catalog.MongoTable.
@@ -45,7 +46,7 @@ func NewMongoSourceStage(db *catalog.Database, table *catalog.MongoTable, select
 
 	ms.collation = table.Collation()
 	ms.collectionNames = []string{table.CollectionName}
-
+	ms.isShardedCollection = map[string]bool{table.CollectionName: table.IsSharded()}
 	ms.mappingRegistry = &mappingRegistry{}
 
 	primaryKeys := catalog.Columns(table.PrimaryKeys())
@@ -69,14 +70,15 @@ func (ms *MongoSourceStage) clone() *MongoSourceStage {
 		pipeline = append(pipeline, stage)
 	}
 	return &MongoSourceStage{
-		selectIDs:       ms.selectIDs,
-		dbName:          ms.dbName,
-		tableNames:      ms.tableNames,
-		aliasNames:      ms.aliasNames,
-		collectionNames: ms.collectionNames,
-		collation:       ms.collation,
-		mappingRegistry: ms.mappingRegistry,
-		pipeline:        pipeline,
+		selectIDs:           ms.selectIDs,
+		dbName:              ms.dbName,
+		tableNames:          ms.tableNames,
+		aliasNames:          ms.aliasNames,
+		collectionNames:     ms.collectionNames,
+		isShardedCollection: ms.isShardedCollection,
+		collation:           ms.collation,
+		mappingRegistry:     ms.mappingRegistry,
+		pipeline:            pipeline,
 	}
 }
 

@@ -1156,6 +1156,9 @@ func (v *pushDownOptimizer) selfJoinOptimizeTables(msLocal, msForeign *MongoSour
 	ms.tableNames = append(ms.tableNames, msForeign.tableNames...)
 	ms.collectionNames = append(ms.collectionNames,
 		msForeign.collectionNames...)
+	for key, val := range msForeign.isShardedCollection {
+		msLocal.isShardedCollection[key] = val
+	}
 
 	newMappingRegistry := ms.mappingRegistry.copy()
 	newMappingRegistry.columns = append(newMappingRegistry.columns,
@@ -1293,6 +1296,14 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 		return join, nil
 	}
 
+	for i, collection := range msForeign.collectionNames {
+		isSharded, _ := msForeign.isShardedCollection[collection]
+		if isSharded {
+			v.logger.Warnf(log.Dev, "unable to translate join "+
+				"stage to lookup: foreign table %q is sharded", msForeign.tableNames[i])
+			return join, nil
+		}
+	}
 	// Before attempting the self-join optimization, check that the
 	// underlying collection is the same for both tables and that the join
 	// criteria holds the primary key for both.
@@ -1597,6 +1608,9 @@ func (v *pushDownOptimizer) visitJoin(join *JoinStage) (PlanStage, error) {
 	msLocal.aliasNames = append(msLocal.aliasNames, msForeign.aliasNames...)
 	msLocal.tableNames = append(msLocal.tableNames, msForeign.tableNames...)
 	msLocal.collectionNames = append(msLocal.collectionNames, msForeign.collectionNames...)
+	for key, val := range msForeign.isShardedCollection {
+		msLocal.isShardedCollection[key] = val
+	}
 	ms := msLocal.clone()
 	ms.selectIDs = append(ms.selectIDs, msForeign.selectIDs...)
 	ms.pipeline = pipeline

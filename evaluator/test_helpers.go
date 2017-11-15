@@ -352,6 +352,23 @@ func getMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb
 	return i
 }
 
+// getMongoDBInfoWithShardedCollection returns Info without looking up the information in MongoDB by setting
+// all privileges to the specified privileges and a specific collection to be sharded.
+func getMongoDBInfoWithShardedCollection(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege, shardedCollection string) *mongodb.Info {
+	info := getMongoDBInfo(versionArray, sch, privileges)
+	for _, db := range sch.Databases {
+		// dbInfo is a pointer.
+		dbInfo := info.Databases[mongodb.DatabaseName(db.Name)]
+		for _, col := range db.Tables {
+			if string(col.Name) == shardedCollection {
+				dbInfo.Collections[mongodb.CollectionName(col.Name)].IsSharded = true
+			}
+		}
+	}
+
+	return info
+}
+
 func getCatalogFromSchema(schema *schema.Schema, variables *variable.Container) *catalog.Catalog {
 	c, err := catalog.Build(schema, variables)
 	if err != nil {
