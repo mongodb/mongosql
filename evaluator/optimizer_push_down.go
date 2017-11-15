@@ -35,10 +35,12 @@ type pushDownOptimizer struct {
 	tableNamesInScope     map[string][]string
 	columnTracker         *columnTracker
 	leftJoinOriginalNames map[string]map[string]map[string]string
+	depth                 int
 }
 
 func newPushDownOptimizer(ctx ConnectionCtx, logger *log.Logger) *pushDownOptimizer {
 	return &pushDownOptimizer{
+		depth:                 0,
 		logger:                logger,
 		ctx:                   ctx,
 		columnTracker:         newColumnTracker(),
@@ -134,12 +136,12 @@ func (v *pushDownOptimizer) visit(n node) (node, error) {
 			v.columnTracker.add(pc.Expr)
 		}
 	}
-
+	v.depth++
 	n, err := walk(v, n)
 	if err != nil {
 		return nil, err
 	}
-
+	v.depth--
 	switch typedN := n.(type) {
 	// Since we are walking to the bottom of the tree, we'll collect all
 	// the selectIDs that are currently in scope. In the case of Joins,
@@ -2057,12 +2059,58 @@ const (
 	emptyFieldNamePrefix = "__empty"
 )
 
-func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, error) {
+// hasColumnReference takes a projectedColumns and checks if actual
+// columns are referenced in its expressions within the selectIdsInScope.
+func (v *pushDownOptimizer) hasColumnReference(projectedColumns ProjectedColumns) (bool, error) {
+	for _, projectedColumn := range projectedColumns {
+		refdCols, err := referencedColumns(v.selectIDsInScope, projectedColumn.Expr)
+		if err != nil {
+			return false, err
+		}
+		if refdCols != nil {
+			return true, nil
+		}
+	}
+	return false, nil
+}
 
+func (v *pushDownOptimizer) visitProject(project *ProjectStage) (PlanStage, error) {
 	// Check if we can optimize further, if the child operator has a MongoSource.
 	ms, ok := v.canPushDown(project.source)
 	if !ok {
 		return project, nil
+	}
+
+	// Check if this project stage is the topmost stage.
+	if v.depth == 0 {
+		ok, err := v.hasColumnReference(project.projectedColumns)
+		if err != nil {
+			v.logger.Warnf(log.Dev, "cannot find referenced project expression: %v", err)
+			return nil, err
+		}
+		if !ok {
+			pipeline := bson.D{}
+			if v.ctx.Variables().MongoDBInfo.VersionAtLeast(3, 4, 0) {
+				pipeline = bson.D{{"$count", "rowCount"}}
+			} else {
+				pipeline = bson.D{{"$group", bson.M{"_id": bson.M{}, "rowCount": bson.M{"$sum": 1}}}}
+			}
+
+			newMappingRegistry := &mappingRegistry{}
+			newColumn := NewColumn(ms.selectIDs[0], "", "", "", "rowCount", "", "rowCount",
+				schema.SQLUint64, schema.SQLUint64, false)
+			newMappingRegistry.addColumn(newColumn)
+			newMappingRegistry.registerMapping(newColumn.Database, newColumn.Table, newColumn.Name,
+				newColumn.MappingRegistryName)
+
+			ms = ms.clone()
+			ms.pipeline = append(ms.pipeline, pipeline)
+			ms.mappingRegistry = newMappingRegistry
+			rg := NewRowGeneratorStage(ms, newColumn)
+			newProject := project.clone()
+			newProject.source = rg
+			return newProject, nil
+		}
 	}
 
 	fieldsToProject := bson.M{}

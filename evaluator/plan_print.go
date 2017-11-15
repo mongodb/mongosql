@@ -178,6 +178,11 @@ func prettyPrint(b *bytes.Buffer, n node, d int) {
 
 		b.WriteString("):\n")
 		prettyPrint(b, typedN.source, d+1)
+	case *RowGeneratorStage:
+		b.WriteString(fmt.Sprintf("↳ RowGeneratorStage("))
+		b.WriteString(typedN.rowCountColumn.Name)
+		b.WriteString("):\n")
+		prettyPrint(b, typedN.source, d+1)
 	case *SetCommand:
 		b.WriteString("↳ Set:\n")
 		for _, e := range typedN.assignments {

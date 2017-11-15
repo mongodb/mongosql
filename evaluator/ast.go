@@ -38,6 +38,7 @@ func (ps *LimitStage) astnode()          {}
 func (ps *MongoSourceStage) astnode()    {}
 func (ps *OrderByStage) astnode()        {}
 func (ps *ProjectStage) astnode()        {}
+func (ps *RowGeneratorStage) astnode()   {}
 func (ps *SubquerySourceStage) astnode() {}
 func (ps *UnionStage) astnode()          {}
 
@@ -346,6 +347,15 @@ func walk(v nodeVisitor, n node) (node, error) {
 
 		if typedN.source != source || &typedN.projectedColumns != pcs {
 			n = NewProjectStage(source, *pcs...)
+		}
+	case *RowGeneratorStage:
+		source, err := visitPlanStage(typedN.source)
+		if err != nil {
+			return nil, err
+		}
+
+		if typedN.source != source {
+			n = NewRowGeneratorStage(source, typedN.rowCountColumn)
 		}
 	case *SubquerySourceStage:
 		source, err := visitPlanStage(typedN.source)
