@@ -1289,7 +1289,9 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				bson.M{"$min": args},
 				args...,
 			), true
-		case "left":
+
+		case "left", "right":
+
 			if !t.versionAtLeast(3, 4, 0) {
 				return nil, false
 			}
@@ -1307,12 +1309,29 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 				"length": args[1],
 			}
 
-			letEvaluation := wrapInNullCheckedCond(
-				nil,
-				bson.M{"$substrCP": []interface{}{"$$string", 0, "$$length"}},
-				"$$string", "$$length",
-			)
+			// when length is negative, just use 0. round length to closest integer
+			subStrLength, _ := wrapInRound([]interface{}{wrapInOp(mgoOperatorMax, "$$length", 0)})
 
+			var subStrOp bson.M
+
+			switch typedE.Name {
+			case "left":
+				subStrOp = bson.M{mgoOperatorSubstr: []interface{}{"$$string", 0, subStrLength}}
+			default:
+				// start = max(0, strLen - subStrLen)
+				start := wrapInOp(mgoOperatorMax,
+					0,
+					wrapInOp(mgoOperatorSubtract,
+						bson.M{mgoOperatorStrlenCP: "$$string"},
+						subStrLength))
+
+				subStrOp = bson.M{mgoOperatorSubstr: []interface{}{
+					"$$string",
+					start,
+					subStrLength}}
+			}
+
+			letEvaluation := wrapInNullCheckedCond(nil, subStrOp, "$$string", "$$length")
 			return wrapInLet(letAssignment, letEvaluation), true
 
 		case "length":
@@ -1677,40 +1696,6 @@ func (t *pushDownTranslator) TranslateExpr(e SQLExpr) (interface{}, bool) {
 			repeat := bson.M{"$reduce": reduceArgs}
 
 			return wrapInNullCheckedCond(nil, repeat, str, num), true
-
-		case "right":
-			if !t.versionAtLeast(3, 4, 0) {
-				return nil, false
-			}
-			if len(typedE.Exprs) != 2 {
-				return nil, false
-			}
-			args, ok := translateArgs()
-			if !ok {
-				return nil, false
-			}
-
-			letAssignment := bson.M{
-				"string": args[0],
-				"length": args[1],
-			}
-
-			letEvaluation := wrapInNullCheckedCond(
-				nil,
-				bson.M{"$substrCP": []interface{}{
-					args[0],
-					bson.M{"$max": []interface{}{
-						bson.M{"$subtract": []interface{}{
-							bson.M{"$strLenCP": "$$string"},
-							"$$length",
-						}},
-						0,
-					}},
-					"$$length"}},
-				"$$string", "$$length",
-			)
-
-			return wrapInLet(letAssignment, letEvaluation), true
 
 		case "round":
 			if !(len(typedE.Exprs) == 2 || len(typedE.Exprs) == 1) {

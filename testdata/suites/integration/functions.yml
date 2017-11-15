@@ -2024,6 +2024,294 @@ testcases:
   - [~]
   - [~]
 
+- sql: "select left(b, null) from bar"
+  id: 'left_1'
+  db: functions_test
+  description: "null length should evaluate to null"
+  expected_names: ["left(b, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select left(null, b) from bar"
+  id: 'left_2'
+  db: functions_test
+  description: "null string should evaluate to null"
+  expected_names: ["left(null, b)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select left(b, -2) from bar"
+  id: 'left_3'
+  db: functions_test
+  description: "w/ negative length, return empty string for non-null strings"
+  expected_names: ["left(b, -2)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+- sql: "select left(b, -2.5) from bar"
+  id: 'left_4'
+  db: functions_test
+  description: "w/ negative float length, return empty string for non-null strings"
+  expected_names: ["left(b, -2.5)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+- sql: "select left(b, 2.4) from bar"
+  id: 'left_5'
+  db: functions_test
+  description: "float length rounded to closest int - round down"
+  expected_names: ["left(b, 2.4)"]
+  expected_types: [string]
+  expected:
+  - ["he"]
+  - ["yo"]
+  - [~]
+  - ["th"]
+  - [~]
+
+- sql: "select left(b, 2.5) from bar"
+  id: 'left_6'
+  db: functions_test
+  description: "float length rounded to closest int - round up"
+  expected_names: ["left(b, 2.5)"]
+  expected_types: [string]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [~]
+  - ["thi"]
+  - [~]
+
+- sql: "select left(b, '3') from bar"
+  id: 'left_7'
+  db: functions_test
+  description: "using a string as length - positive int"
+  expected_names: ["left(b, '3')"]
+  expected_types: [string]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [~]
+  - ["thi"]
+  - [~]
+
+
+- sql: "select left(b, '-3') from bar"
+  id: 'left_8'
+  db: functions_test
+  description: "using a string as length - negative int"
+  expected_names: ["left(b, '-3')"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+
+- sql: "select left(b, '2.4') from bar"
+  id: 'left_9'
+  db: functions_test
+  description: "using a string as length - positive float - round down"
+  expected_names: ["left(b, '2.4')"]
+  expected_types: [string]
+  expected:
+  - ["he"]
+  - ["yo"]
+  - [~]
+  - ["th"]
+  - [~]
+
+- sql: "select left(b, '2.5') from bar"
+  id: 'left_10'
+  db: functions_test
+  description: "using a string as length - positive float - strings always rounded down"
+  expected_names: ["left(b, '2.5')"]
+  expected_types: [string]
+  expected:
+  - ["he"]
+  - ["yo"]
+  - [~]
+  - ["th"]
+  - [~]
+
+- sql: "select left(b, 0) from bar"
+  id: 'left_11'
+  db: functions_test
+  description: "using 0 as length gives empty strings for non-null values"
+  expected_names: ["left(b, 0)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+- sql: "select left(b, false) from bar"
+  id: 'left_12'
+  db: functions_test
+  description: "using a bool as length - false"
+  expected_names: ["left(b, false)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+- sql: "select left(b, true) from bar"
+  id: 'left_13'
+  db: functions_test
+  description: "using a bool as length - true"
+  expected_names: ["left(b, true)"]
+  expected_types: [string]
+  expected:
+  - ["h"]
+  - ["y"]
+  - [~]
+  - ["t"]
+  - [~]
+
+- sql: "select left(true, id) from bar"
+  id: 'left_14'
+  db: functions_test
+  description: "using bool true as first argument, column as second"
+  expected_names: ["left(true, id)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - ["1"]
+  - ["1"]
+  - ["1"]
+  - ["1"]
+
+- sql: "select left(false, id) from bar"
+  id: 'left_15'
+  db: functions_test
+  description: "using bool false as first argument, column as second"
+  expected_names: ["left(false, id)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - ["0"]
+  - ["0"]
+  - ["0"]
+  - ["0"]
+
+- sql: "select left(b, 6) from bar"
+  id: 'left_16'
+  db: functions_test
+  description: "output length value > length of string"
+  expected_names: ["left(b, 6)"]
+  expected_types: [string]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [~]
+  - ["this"]
+  - [~]
+
+- sql: "select left(b, 'hi') from bar"
+  id: 'left_17'
+  db: functions_test
+  description: "string that cannot be parsed as number used as length"
+  expected_names: ["left(b, 'hi')"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+- sql: "select left(c, 2) from bar"
+  id: 'left_18'
+  db: functions_test
+  description: "using a number as first argument"
+  expected_names: ["left(c, 2)"]
+  expected_types: [string]
+  expected:
+  - ["1."]
+  - ["-1"]
+  - ["56"]
+  - [~]
+  - [~]
+
+- sql: "select left(d, 2) from bar"
+  id: 'left_19'
+  db: functions_test
+  description: "using a date as first argument"
+  expected_names: ["left(d, 2)"]
+  expected_types: [string]
+  expected:
+  - ["20"]
+  - ["20"]
+  - ["20"]
+  - [~]
+  - [~]
+
+- sql: "select left(s, 3) from lpad"
+  id: 'left_20'
+  db: functions_test
+  description: "using strings of several different lengths, and with spaces and punctuation"
+  expected_names: ["left(s, 3)"]
+  expected_types: [string]
+  expected:
+  - ["hi"]
+  - ["hey"]
+  - ["yoy"]
+  - ["hel"]
+  - ["ban"]
+  - ["mon"]
+  - [""]
+  - [" "]
+  - [". ."]
+
+- sql: "select left(a, b) from baz"
+  id: "left_21"
+  db: functions_test
+  description: "both arguments are columns"
+  expected_names: ["left(a, b)"]
+  expected_types: [string]
+  expected:
+  - ["h"]
+  - [""]
+  - [""]
+  - ["h"]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - ["h"]
+  - ["he"]
+  - ["hey"]
+  - [""]
+  - [""]   
+
+
 - sql: "select length(b) from bar"
   id: '118'
   db: functions_test
@@ -2613,6 +2901,282 @@ testcases:
   - [~]
   - [~]
   - [~]
+
+- sql: "select right(b, null) from bar"
+  id: 'right_1'
+  db: functions_test
+  description: "null length should evaluate to null"
+  expected_names: ["right(b, null)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+- sql: "select right(null, b) from bar"
+  id: 'right_2'
+  db: functions_test
+  description: "null string should evaluate to null"
+  expected_names: ["right(null, b)"]
+  expected_types: [int]
+  expected:
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+  - [~]
+
+
+- sql: "select right(b, -2) from bar"
+  id: 'right_3'
+  db: functions_test
+  description: "w/ negative length, return empty string for non-null strings"
+  expected_names: ["right(b, -2)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+- sql: "select right(b, -2.5) from bar"
+  id: 'right_4'
+  db: functions_test
+  description: "w/ negative float length, return empty string for non-null strings"
+  expected_names: ["right(b, -2.5)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+- sql: "select right(b, 2.4) from bar"
+  id: 'right_5'
+  db: functions_test
+  description: "float length rounded to closest int - round down"
+  expected_names: ["right(b, 2.4)"]
+  expected_types: [string]
+  expected:
+  - ["ey"]
+  - ["yo"]
+  - [~]
+  - ["is"]
+  - [~]
+
+- sql: "select right(b, 2.5) from bar"
+  id: 'right_6'
+  db: functions_test
+  description: "float length rounded to closest int - round up"
+  expected_names: ["right(b, 2.5)"]
+  expected_types: [string]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [~]
+  - ["his"]
+  - [~]
+
+- sql: "select right(b, '3') from bar"
+  id: 'right_7'
+  db: functions_test
+  description: "using a string as length - positive int"
+  expected_names: ["right(b, '3')"]
+  expected_types: [string]
+  expected:
+  - ["hey"]
+  - ["yo"]
+  - [~]
+  - ["his"]
+  - [~]
+
+
+- sql: "select right(b, '-3') from bar"
+  id: 'right_8'
+  db: functions_test
+  description: "using a string as length - negative int"
+  expected_names: ["right(b, '-3')"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+
+- sql: "select right(b, '2.4') from bar"
+  id: 'right_9'
+  db: functions_test
+  description: "using a string as length - positive float - round down"
+  expected_names: ["right(b, '2.4')"]
+  expected_types: [string]
+  expected:
+  - ["ey"]
+  - ["yo"]
+  - [~]
+  - ["is"]
+  - [~]
+
+- sql: "select right(b, '2.5') from bar"
+  id: 'right_10'
+  db: functions_test
+  description: "using a string as length - positive float - strings always rounded down"
+  expected_names: ["right(b, '2.5')"]
+  expected_types: [string]
+  expected:
+  - ["ey"]
+  - ["yo"]
+  - [~]
+  - ["is"]
+  - [~]
+
+- sql: "select right(b, 0) from bar"
+  id: 'right_11'
+  db: functions_test
+  description: "using 0 as length gives empty strings for non-null values"
+  expected_names: ["right(b, 0)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+- sql: "select right(b, false) from bar"
+  id: 'right_12'
+  db: functions_test
+  description: "using a bool as length - false"
+  expected_names: ["right(b, false)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+- sql: "select right(b, true) from bar"
+  id: 'right_13'
+  db: functions_test
+  description: "using a bool as length - true"
+  expected_names: ["right(b, true)"]
+  expected_types: [string]
+  expected:
+  - ["y"]
+  - ["o"]
+  - [~]
+  - ["s"]
+  - [~]
+
+- sql: "select right(true, id) from bar"
+  id: 'right_14'
+  db: functions_test
+  description: "using bool true as first argument, column as second"
+  expected_names: ["right(true, id)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - ["1"]
+  - ["1"]
+  - ["1"]
+  - ["1"]
+
+- sql: "select right(false, id) from bar"
+  id: 'right_15'
+  db: functions_test
+  description: "using bool false as first argument, column as second"
+  expected_names: ["right(false, id)"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - ["0"]
+  - ["0"]
+  - ["0"]
+  - ["0"]
+
+- sql: "select right(b, 'hi') from bar"
+  id: 'right_16'
+  db: functions_test
+  description: "string that cannot be parsed as number used as length"
+  expected_names: ["right(b, 'hi')"]
+  expected_types: [string]
+  expected:
+  - [""]
+  - [""]
+  - [~]
+  - [""]
+  - [~]
+
+- sql: "select right(c, 2) from bar"
+  id: 'right_17'
+  db: functions_test
+  description: "using a number as first argument"
+  expected_names: ["right(c, 2)"]
+  expected_types: [string]
+  expected:
+  - ["56"]
+  - ["32"]
+  - ["42"]
+  - [~]
+  - [~]
+
+- sql: "select right(d, 2) from bar"
+  id: 'right_18'
+  db: functions_test
+  description: "using a date as first argument"
+  expected_names: ["right(d, 2)"]
+  expected_types: [string]
+  expected:
+  - ["00"]
+  - ["00"]
+  - ["00"]
+  - [~]
+  - [~]
+
+- sql: "select right(s, 3) from lpad"
+  id: 'right_19'
+  db: functions_test
+  description: "using strings of several different lengths, and with spaces and punctuation"
+  expected_names: ["right(s, 3)"]
+  expected_types: [string]
+  expected:
+  - ["hi"]
+  - ["hey"]
+  - ["oyo"]
+  - ["llo"]
+  - ["ana"]
+  - ["odb"]
+  - [""]
+  - [" "]
+  - [". ."]
+
+- sql: "select right(a, b) from baz"
+  id: "right_20"
+  db: functions_test
+  description: "both arguments are columns"
+  expected_names: ["right(a, b)"]
+  expected_types: [string]
+  expected:
+  - ["y"]
+  - [""]
+  - [""]
+  - ["y"]
+  - [""]
+  - [""]
+  - [""]
+  - [""]
+  - ["y"]
+  - ["ey"]
+  - ["hey"]
+  - [""]
+  - [""]   
+
 
 - sql: "select round(c, 2) from bar"
   id: '162'

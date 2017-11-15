@@ -1695,9 +1695,53 @@ func TestEvaluates(t *testing.T) {
 
 			Convey("Subject: LEFT", func() {
 				tests := []test{
+
+					// if any argument null, should return null
 					test{"LEFT(NULL, NULL)", SQLNull},
+					test{"LEFT('hi', NULL)", SQLNull},
+					test{"LEFT(NULL, 5)", SQLNull},
+
+					// basic cases w/ string, int inputs and positive int length
 					test{"LEFT('sDgcdcdc', 4)", SQLVarchar("sDgc")},
 					test{"LEFT(124, 2)", SQLVarchar("12")},
+
+					// negative lengths and 0 give empty string
+					test{"LEFT('hi', -1)", SQLVarchar("")},
+					test{"LEFT('hi', 0)", SQLVarchar("")},
+					test{"LEFT('hi', -2.5)", SQLVarchar("")},
+
+					// float lengths should be rounded to closest int
+					test{"LEFT('hello', 2.4)", SQLVarchar("he")},
+					test{"LEFT('hello', 2.5)", SQLVarchar("hel")},
+					test{"LEFT(1234, 2.3)", SQLVarchar("12")},
+					test{"LEFT(1234, 2.5)", SQLVarchar("123")},
+					test{"LEFT('yo', 2.5)", SQLVarchar("yo")},
+
+					// strings with spaces and symbols
+					test{"LEFT('  ', 1)", SQLVarchar(" ")},
+					test{"LEFT('@!%', 2)", SQLVarchar("@!")},
+
+					// boolean for string
+					test{"LEFT(true, 3)", SQLVarchar("1")},
+					test{"LEFT(false, 3)", SQLVarchar("0")},
+
+					// boolean for length
+					test{"LEFT('hello', true)", SQLVarchar("h")},
+					test{"LEFT('hello', false)", SQLVarchar("")},
+
+					// string for length
+					test{"LEFT('hello', 'hi')", SQLVarchar("")},
+
+					// len > length of string
+					test{"LEFT('hi', 5)", SQLVarchar("hi")},
+
+					// string number as length
+					test{"LEFT('hello', '2')", SQLVarchar("he")},
+					test{"LEFT('hello', '-3')", SQLVarchar("")},
+
+					// unlike with floats, string #s always round down
+					test{"LEFT('hello', '2.4')", SQLVarchar("he")},
+					test{"LEFT('hello', '2.6')", SQLVarchar("he")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -1946,9 +1990,52 @@ func TestEvaluates(t *testing.T) {
 
 			Convey("Subject: RIGHT", func() {
 				tests := []test{
+					// if any argument null, should return null
 					test{"RIGHT(NULL, NULL)", SQLNull},
+					test{"RIGHT('hi', NULL)", SQLNull},
+					test{"RIGHT(NULL, 5)", SQLNull},
+
+					// basic cases w/ string, int inputs and positive int length
 					test{"RIGHT('sDgcdcdc', 4)", SQLVarchar("dcdc")},
 					test{"RIGHT(124, 2)", SQLVarchar("24")},
+
+					// negative lengths and 0 give empty string
+					test{"RIGHT('hi', -1)", SQLVarchar("")},
+					test{"RIGHT('hi', 0)", SQLVarchar("")},
+					test{"RIGHT('hi', -2.5)", SQLVarchar("")},
+
+					// float lengths should be rounded to closest int
+					test{"RIGHT('hello', 2.4)", SQLVarchar("lo")},
+					test{"RIGHT('hello', 2.5)", SQLVarchar("llo")},
+					test{"RIGHT(1234, 2.3)", SQLVarchar("34")},
+					test{"RIGHT(1234, 2.5)", SQLVarchar("234")},
+					test{"RIGHT('yo', 2.5)", SQLVarchar("yo")},
+
+					// strings with spaces and symbols
+					test{"RIGHT('  ', 1)", SQLVarchar(" ")},
+					test{"RIGHT('@!%', 2)", SQLVarchar("!%")},
+
+					// boolean for string
+					test{"RIGHT(true, 3)", SQLVarchar("1")},
+					test{"RIGHT(false, 3)", SQLVarchar("0")},
+
+					// boolean for length
+					test{"RIGHT('hello', true)", SQLVarchar("o")},
+					test{"RIGHT('hello', false)", SQLVarchar("")},
+
+					// string for length
+					test{"RIGHT('hello', 'hi')", SQLVarchar("")},
+
+					// len > length of string
+					test{"RIGHT('hi', 5)", SQLVarchar("hi")},
+
+					// string number as length
+					test{"RIGHT('hello', '2')", SQLVarchar("lo")},
+					test{"RIGHT('hello', '-3')", SQLVarchar("")},
+
+					// unlike with floats, string #s always round down
+					test{"RIGHT('hello', '2.4')", SQLVarchar("lo")},
+					test{"RIGHT('hello', '2.6')", SQLVarchar("lo")},
 				}
 				runTests(evalCtx, tests)
 			})
@@ -2171,10 +2258,14 @@ func TestEvaluates(t *testing.T) {
 					test{"SUBSTR('this', -5.2)", SQLVarchar("")},
 					test{"SUBSTR('this' from -5.2)", SQLVarchar("")},
 					test{"SUBSTR('this', 2.632)", SQLVarchar("is")},
+					test{"SUBSTR('this', '2.632')", SQLVarchar("his")},
+					test{"SUBSTR('this', '2.1')", SQLVarchar("his")},
 					test{"SUBSTR('this' from -2.632)", SQLVarchar("his")},
 					test{"SUBSTR('this', 2.4, 1.4)", SQLVarchar("h")},
 					test{"SUBSTR('this' from 2.4 for -1.4 )", SQLVarchar("")},
 					test{"SUBSTR('this', 1.6, 2.6)", SQLVarchar("his")},
+					test{"SUBSTR('this', 1.6, '2.6')", SQLVarchar("hi")},
+					test{"SUBSTR('this', 1.6, '2.1')", SQLVarchar("hi")},
 					test{"SUBSTR('this', -11.6)", SQLVarchar("")},
 					test{"SUBSTR(NULL, -4)", SQLNull},
 					test{"SUBSTR(NULL, -4, 2)", SQLNull},
@@ -3632,7 +3723,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"least(a, 2)", `{"$cond":[{"$eq":[{"$ifNull":["$a",null]},null]},null,{"$min":["$a",{"$literal":2}]}]}`},
 			test{"least(a, 2, b)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$a",null]},null]},{"$eq":[{"$ifNull":["$b",null]},null]}]},null,{"$min":["$a",{"$literal":2},"$b"]}]}`},
 			test{"length(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$strLenBytes":"$s"}]}`},
-			test{"left(s, 2)", `{"$let":{"in":{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$$string",null]},null]},{"$eq":[{"$ifNull":["$$length",null]},null]}]},null,{"$substrCP":["$$string",0,"$$length"]}]},"vars":{"length":{"$literal":2},"string":"$s"}}}`},
+			test{"left(s, 2)", `{"$let":{"in":{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$$string",null]},null]},{"$eq":[{"$ifNull":["$$length",null]},null]}]},null,{"$substrCP":["$$string",0,{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$max":["$$length",0]},0]},{"$floor":{"$add":[{"$multiply":[{"$max":["$$length",0]},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$max":["$$length",0]},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}}]}]},"vars":{"length":{"$literal":2},"string":"$s"}}}`},
 			test{"left('abcde', 0)", `{"$literal":""}`},
 			test{"lcase(s)", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$toLower":"$s"}]}`},
 			test{"locate(s, 'funny')", `{"$cond":[{"$eq":[{"$ifNull":["$s",null]},null]},null,{"$add":[{"$indexOfCP":[{"$literal":"funny"},"$s"]},1]}]}`},
@@ -3650,8 +3741,7 @@ func TestTranslateExpr(t *testing.T) {
 			test{"repeat(NULL, b)", `{"$literal":null}`},
 			test{"repeat(s, 0)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":0},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":0},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":0},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},null]},null]}]},null,{"$reduce":{"in":{"$concat":["$$this","$$value"]},"initialValue":"","input":{"$map":{"in":"$s","input":{"$range":[0,{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$literal":0},0]},{"$floor":{"$add":[{"$multiply":[{"$literal":0},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$literal":0},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},1]}}}}}]}`},
 			test{"repeat(s, b)", `{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$s",null]},null]},{"$eq":[{"$ifNull":[{"$let":{"in":{"$divide":[{"$cond":[{"$gte":["$b",0]},{"$floor":{"$add":[{"$multiply":["$b","$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$b","$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},null]},null]}]},null,{"$reduce":{"in":{"$concat":["$$this","$$value"]},"initialValue":"","input":{"$map":{"in":"$s","input":{"$range":[0,{"$let":{"in":{"$divide":[{"$cond":[{"$gte":["$b",0]},{"$floor":{"$add":[{"$multiply":["$b","$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$b","$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}},1]}}}}}]}`},
-			test{"right(s, 2)", `{"$let":{"in":{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$$string",null]},null]},{"$eq":[{"$ifNull":["$$length",null]},null]}]},null,{"$substrCP":["$s",{"$max":[{"$subtract":[{"$strLenCP":"$$string"},"$$length"]},0]},"$$length"]}]},"vars":{"length":{"$literal":2},"string":"$s"}}}`},
-			test{"right(s, a)", `{"$let":{"in":{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$$string",null]},null]},{"$eq":[{"$ifNull":["$$length",null]},null]}]},null,{"$substrCP":["$s",{"$max":[{"$subtract":[{"$strLenCP":"$$string"},"$$length"]},0]},"$$length"]}]},"vars":{"length":"$a","string":"$s"}}}`},
+			test{"right(s, 2)", `{"$let":{"in":{"$cond":[{"$or":[{"$eq":[{"$ifNull":["$$string",null]},null]},{"$eq":[{"$ifNull":["$$length",null]},null]}]},null,{"$substrCP":["$$string",{"$max":[0,{"$subtract":[{"$strLenCP":"$$string"},{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$max":["$$length",0]},0]},{"$floor":{"$add":[{"$multiply":[{"$max":["$$length",0]},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$max":["$$length",0]},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}}]}]},{"$let":{"in":{"$divide":[{"$cond":[{"$gte":[{"$max":["$$length",0]},0]},{"$floor":{"$add":[{"$multiply":[{"$max":["$$length",0]},"$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":[{"$max":["$$length",0]},"$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":1}}}]}]},"vars":{"length":{"$literal":2},"string":"$s"}}}`},
 			test{"round(a, 5)", `{"$let":{"in":{"$divide":[{"$cond":[{"$gte":["$a",0]},{"$floor":{"$add":[{"$multiply":["$a","$$decimal"]},0.5]}},{"$ceil":{"$subtract":[{"$multiply":["$a","$$decimal"]},0.5]}}]},"$$decimal"]},"vars":{"decimal":100000}}}`},
 			test{"round(a, -5)", `{"$literal":0}`},
 			test{"second(g)", `{"$cond":[{"$eq":[{"$ifNull":["$g",null]},null]},null,{"$second":"$g"}]}`},

@@ -2149,13 +2149,16 @@ type leftFunc struct{}
 
 // https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_left
 func (_ *leftFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) {
-	substring := &substringFunc{}
-	return substring.Evaluate([]SQLValue{values[0], SQLInt(1), values[1]}, ctx)
+	substring, err := NewSQLScalarFunctionExpr("substring", []SQLExpr{values[0], SQLInt(1), values[1]})
+	if err != nil {
+		return SQLNull, err
+	}
+	return substring.Evaluate(ctx)
 }
 
 func (_ *leftFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
-	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLNone, schema.SQLInt}
-	defaults := []SQLValue{SQLNone, SQLNone, SQLNone}
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt}
+	defaults := []SQLValue{SQLNone, SQLNone}
 	newExprs := convertExprs(f.Exprs, argTypes, defaults)
 	return &SQLScalarFunctionExpr{
 		f.Name,
@@ -2755,13 +2758,32 @@ func (_ *rightFunc) Evaluate(values []SQLValue, ctx *EvalCtx) (SQLValue, error) 
 	if hasNullValue(values...) {
 		return SQLNull, nil
 	}
-	if int(values[1].Int64()) > len(values[0].String()) {
-		return SQLVarchar(values[0].String()), nil
+
+	str := values[0].String()
+	posFloat := values[1].Float64()
+
+	if posFloat > float64(len(str)) {
+		return SQLVarchar(str), nil
 	}
 
-	substring := &substringFunc{}
-	num := -1 * values[1].Int64()
-	return substring.Evaluate([]SQLValue{values[0], SQLInt(num)}, ctx)
+	startPos := math.Min(0, -1.0*posFloat)
+
+	substring, err := NewSQLScalarFunctionExpr("substring", []SQLExpr{values[0], SQLFloat(startPos)})
+	if err != nil {
+		return SQLNull, err
+	}
+
+	return substring.Evaluate(ctx)
+}
+
+func (_ *rightFunc) reconcile(f *SQLScalarFunctionExpr) *SQLScalarFunctionExpr {
+	argTypes := []schema.SQLType{schema.SQLVarchar, schema.SQLInt}
+	defaults := []SQLValue{SQLNone, SQLNone}
+	newExprs := convertExprs(f.Exprs, argTypes, defaults)
+	return &SQLScalarFunctionExpr{
+		f.Name,
+		newExprs,
+	}
 }
 
 func (_ *rightFunc) Type(exprs []SQLExpr) schema.SQLType {
