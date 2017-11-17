@@ -135,7 +135,7 @@ func ForceEOF(yylex interface{}) {
 %type <tableExprs> table_expression_list
 %type <columnExprs> column_expression_list
 %type <tableExpr> table_expression join_expression
-%type <str> join_type natural_join_type
+%type <str> join_type 
 %type <smTableExpr> simple_table_expression
 %type <tableName> table_name
 %type <indexHints> index_hint_list
@@ -958,10 +958,6 @@ join_expression:
   {
     $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3, Using: $6}
   }
-| table_expression natural_join_type table_expression %prec JOIN
-  {
-    $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3}
-  }
 
 as_opt: %prec INTERVAL
   {
@@ -1013,9 +1009,7 @@ join_type:
   {
     $$ = AST_CROSS_JOIN
   }
-
-natural_join_type:
-  NATURAL JOIN
+| NATURAL JOIN
   {
     $$ = AST_NATURAL_JOIN
   }

@@ -2695,6 +2695,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 				testError("select a from foo left outer join bar where a = 10", `ERROR 1064 (42000): A left join requires criteria`)
 
+				testError("select * from bar natural join baz using (id)", "ERROR 1064 (42000): A natural join cannot have join criteria")
+				testError("select * from bar natural join baz on bar.id=baz.id", "ERROR 1064 (42000): A natural join cannot have join criteria")
+				testError("select * from foo natural left join bar using (id)", "ERROR 1064 (42000): A natural left join cannot have join criteria")
+				testError("select * from foo natural right join bar using (id)", "ERROR 1064 (42000): A natural right join cannot have join criteria")
+
 				testError("select bar.d, baz.a from bar join baz using (tomato)", `ERROR 1054 (42S22): Unknown column 'bar.tomato' in 'from clause'`)
 				testError("select * from baz join bar using (d)", `ERROR 1054 (42S22): Unknown column 'baz.d' in 'from clause'`)
 				testError("select bar.d, baz.a from bar join (select * from baz join foo) using (c)", `ERROR 1248 (42000): Every derived table must have its own alias`)
@@ -2706,6 +2711,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				testError("select * from (foo join bar) natural join baz", "ERROR 1052 (23000): Column 'a' in from clause is ambiguous")
 				testError("select * from foo join bar using (b) natural join baz", "ERROR 1052 (23000): Column 'a' in from clause is ambiguous")
 				testError("select bar.d, biz.a from bar natural join (select * from baz join foo) as biz", `ERROR 1060 (42S21): Duplicate column name 'biz.a'`)
+				testError("select * from foo left join bar natural join baz using (id)", "ERROR 1064 (42000): A natural join cannot have join criteria")
 			})
 		})
 	})
@@ -2950,7 +2956,6 @@ func TestAlgebrizeExpr(t *testing.T) {
 			test("DATE '06-12-31'", SQLDate{expected})
 			test("DATE '20061231'", SQLDate{expected})
 			test("DATE '061231'", SQLDate{expected})
-
 			testError("DATE '2014-13-07'", "ERROR 1525 (HY000): Incorrect DATE value: '2014-13-07'")
 			testError("DATE '2014-12-32'", "ERROR 1525 (HY000): Incorrect DATE value: '2014-12-32'")
 			testError("DATE '2006-12-31 10:32:46'", "ERROR 1525 (HY000): Incorrect DATE value: '2006-12-31 10:32:46'")

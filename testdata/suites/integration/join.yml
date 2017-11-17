@@ -1429,14 +1429,6 @@ testcases:
   expected:
   - [0, 10, ~, 4, 5, 3]
   - [1, 11, 1, 3, 8, 5]
-- sql: "select * from bar join baz natural join barbaz using (id, c, d)"
-  id: 'natural_twoJoinsPredicateAtEnd'
-  db: join_test
-  description: ""
-  expected_names: ["id", "c", "d", "a", "b", "e"]
-  expected_types: [int, int, int, int, int, int]
-  expected:
-  - [1, 11, 1, 3, 8, 5]
 - sql: "select * from foo natural right join bar"
   id: 'natural_simpleRight'
   db: join_test

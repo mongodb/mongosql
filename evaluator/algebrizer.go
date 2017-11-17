@@ -17,6 +17,9 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// Note: while most errors in the BI-Connector begin with lower case words, any algebrizer/mysqlerror
+// begins with a capital letter for consistency with MySQL.
+
 // AlgebrizeCommand takes a parsed SQL statement and returns an algebrized form of the command.
 func AlgebrizeCommand(stmt parser.Statement, dbName string, vars *variable.Container, catalog *catalog.Catalog) (command, error) {
 	g := &selectIDGenerator{}
@@ -738,7 +741,7 @@ func (a *algebrizer) translateUnion(union *parser.Union) (PlanStage, error) {
 	case parser.AST_UNION_ALL:
 		return NewUnionStage(UnionAll, left, right), nil
 	default:
-		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "cannot perform set operation '%s'", union.Type)
+		return nil, mysqlerrors.Newf(mysqlerrors.ER_NOT_SUPPORTED_YET, "Cannot perform set operation '%s'", union.Type)
 	}
 }
 
@@ -1060,6 +1063,13 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr) (PlanStage, 
 		return a.translateSimpleTableExpr(typedT, "")
 	case *parser.JoinTableExpr:
 		kind := joinKind(typedT.Join)
+		switch kind {
+		case naturalJoin, naturalRightJoin, naturalLeftJoin:
+			if !(typedT.On == nil && typedT.Using == nil) {
+				return nil, nil, mysqlerrors.Newf(mysqlerrors.ER_PARSE_ERROR, "A %s cannot have join criteria", typedT.Join)
+			}
+
+		}
 
 		left, leftCols, err := a.translateTableExpr(typedT.LeftExpr)
 		if err != nil {
@@ -1823,7 +1833,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		if current == nil {
 			// If we ever get here, this is a bug somewhere. It means we had created a SQLColumnExpr
 			// but associated an invalid selectID with it.
-			return nil, mysqlerrors.Unknownf("aggregate doesn't include any relevant columns")
+			return nil, mysqlerrors.Unknownf("Aggregate doesn't include any relevant columns")
 		}
 
 		if current.currentClause == whereClause {
